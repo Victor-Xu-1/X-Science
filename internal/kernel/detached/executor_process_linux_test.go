@@ -311,11 +311,7 @@ time.sleep(300)`
 	defer store.Close()
 	executionID := strings.TrimSpace(readRequiredTestFile(t, filepath.Join(home, "controller-execution-id")))
 	execution, found, err := store.GetDetachedKernelExecution(context.Background(), executionID)
-	expectedState := workspace.DetachedKernelExecutionStateStarted
-	if queued {
-		expectedState = workspace.DetachedKernelExecutionStateAccepted
-	}
-	if err != nil || !found || execution.State != expectedState {
+	if err != nil || !found {
 		t.Fatalf("active execution=%#v found=%t err=%v", execution, found, err)
 	}
 	backend, found, err := store.GetKernelExecutionBackend(context.Background(), execution.BackendID)
@@ -330,6 +326,26 @@ time.sleep(300)`
 			_ = syscall.Kill(-int(backend.ExecutorPID), syscall.SIGKILL)
 		}
 	})
+	// Start acknowledges committed dispatch, not worker observation. The
+	// independent executor may persist its started acknowledgement after the
+	// controller exits. Observe that boundary before injecting task failure;
+	// arm process cleanup first so failed readiness cannot leak the fixture.
+	expectedState := workspace.DetachedKernelExecutionStateStarted
+	if queued {
+		expectedState = workspace.DetachedKernelExecutionStateAccepted
+	} else {
+		deadline := time.Now().Add(10 * time.Second)
+		for execution.State == workspace.DetachedKernelExecutionStateDispatchCommitted && time.Now().Before(deadline) {
+			time.Sleep(10 * time.Millisecond)
+			execution, found, err = store.GetDetachedKernelExecution(context.Background(), executionID)
+			if err != nil || !found {
+				t.Fatalf("observe active execution: found=%t err=%v", found, err)
+			}
+		}
+	}
+	if execution.State != expectedState {
+		t.Fatalf("active execution state=%s, want %s\nexecutor diagnostics:\n%s", execution.State, expectedState, detachedExecutorDiagnostics(home))
+	}
 	var descendants []int
 	if !queued {
 		readyDeadline := time.Now().Add(10 * time.Second)
