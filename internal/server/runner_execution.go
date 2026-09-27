@@ -976,7 +976,7 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 		language: taskLanguage,
 		audit:    func(record map[string]any) { s.recordSessionRunnerCommunicationAudit(run, record) },
 		delegate: &sessionRunnerResponseContractClient{
-			delegate: communicationObserver, progressDue: communicationSchedule.due, progressAllowed: communicationSchedule.allowed,
+			delegate: communicationObserver, progressDue: communicationSchedule.due,
 		},
 	}
 	engine.AllowToolPreamble = func(text string) bool {

@@ -59,9 +59,8 @@ func projectRunnerResponseContract(request agentruntime.ModelRequest, due bool) 
 }
 
 type sessionRunnerResponseContractClient struct {
-	delegate        agentruntime.ModelClient
-	progressDue     func() bool
-	progressAllowed func() bool
+	delegate    agentruntime.ModelClient
+	progressDue func() bool
 }
 
 func (client *sessionRunnerResponseContractClient) Complete(ctx context.Context, request agentruntime.ModelRequest) (agentruntime.ModelResponse, error) {
@@ -95,9 +94,10 @@ func (client *sessionRunnerResponseContractClient) CompleteStream(ctx context.Co
 	if progress == "" || sessionRunnerPublicProgressNarration(response.Message.Content) != "" || strings.Contains(response.Message.Content, agentruntime.PublicProgressEnvelopeBegin) {
 		return response, nil
 	}
-	if client.progressAllowed != nil && !client.progressAllowed() {
-		return response, nil
-	}
+	// Cadence controls when to request an update, not whether a model-authored
+	// finding may be published. The runner's ordinary safety and deduplication
+	// boundary remains authoritative; never discard fresh prose because another
+	// operation finished recently.
 	response.Message.Content = progress
 	events := []agentruntime.ModelStreamEvent{
 		{Kind: agentruntime.ModelStreamEventToolCallBoundary},

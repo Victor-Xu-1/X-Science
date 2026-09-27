@@ -228,10 +228,15 @@ test.describe('desktop recovery', () => {
       await expect(page.getByText(RECOVERY_COPY.final, { exact: true })).toBeVisible();
       await expect(firstStep).toHaveClass(/tool-step--error/);
       await expect(firstStep).toContainText('candidate 1/3 retained');
+      await expect(page.getByText(RECOVERY_COPY.intro, { exact: true })).toBeVisible();
+      await expect(page.getByText(RECOVERY_COPY.recovery, { exact: true })).toBeVisible();
 
       await page.reload({ waitUntil: 'domcontentloaded' });
       await expect(page.getByTestId('message-list-scroller')).toBeVisible();
       const replayedGroups = page.locator('.tool-group-summary');
+      await expect(page.getByText(RECOVERY_COPY.intro, { exact: true })).toBeVisible();
+      await expect(page.getByText(RECOVERY_COPY.recovery, { exact: true })).toBeVisible();
+      await expect(page.getByText(RECOVERY_COPY.final, { exact: true })).toBeVisible();
       await expect(replayedGroups).toHaveCount(2);
       const replayedFirst = replayedGroups.nth(0).locator('.tool-step');
       const replayedSecond = replayedGroups.nth(1).locator('.tool-step');

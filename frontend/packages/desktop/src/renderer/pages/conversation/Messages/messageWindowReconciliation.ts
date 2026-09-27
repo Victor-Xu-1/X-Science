@@ -138,7 +138,7 @@ export function mergeLoadedPageWithCurrent(
   messages: TMessage[],
   currentList: TMessage[],
   preserveUnmatchedLiveKeys = false,
-  preserveExistingOrder = false
+  preserveExistingOrder = true
 ): TMessage[] {
   if (!currentList.length) return messages;
 
@@ -162,6 +162,13 @@ export function mergeLoadedPageWithCurrent(
   };
   const loadedIds = new Set(messages.map((message) => message.id));
   const loadedKeys = new Set(messages.map(getMessageMergeKey));
+  const loadedByKey = new Map<string, TMessage[]>();
+  for (const message of messages) {
+    const key = getMessageMergeKey(message);
+    const group = loadedByKey.get(key) ?? [];
+    group.push(message);
+    loadedByKey.set(key, group);
+  }
   const resolvedForLiveIds = new Map<string, TMessage>();
 
   const mergedMessages = messages.map((message) => {
@@ -195,23 +202,19 @@ export function mergeLoadedPageWithCurrent(
         continue;
       }
       const key = getMessageMergeKey(current);
-      const hasCompatibleLoadedMessage = messages.some(
-        (candidate) => getMessageMergeKey(candidate) === key && canFallbackMergeByKey(candidate, current)
-      );
-      if (loadedKeys.has(key) && hasCompatibleLoadedMessage) continue;
+      if (loadedByKey.get(key)?.some((candidate) => canFallbackMergeByKey(candidate, current))) continue;
       ordered.push(current);
       retained.add(current.id);
     }
-    for (const message of mergedMessages) {
-      if (retained.has(message.id)) continue;
-      retained.add(message.id);
-      ordered.push(message);
-    }
-    if (ordered.length) {
-      if (ordered.length === currentList.length && ordered.every((message, index) => message === currentList[index])) {
+    const reconciled = insertRecoveredMessagesInPageOrder(ordered, mergedMessages);
+    if (reconciled.length) {
+      if (
+        reconciled.length === currentList.length &&
+        reconciled.every((message, index) => message === currentList[index])
+      ) {
         return currentList;
       }
-      return ordered;
+      return reconciled;
     }
   }
 
@@ -241,22 +244,53 @@ export function mergeLoadedPageWithCurrent(
 
 export function prependHistoryMessages(currentList: TMessage[], messages: TMessage[]): TMessage[] {
   if (!messages.length) return currentList;
-
-  const currentIds = new Set(currentList.map((message) => message.id));
-  const currentKeys = new Set(currentList.map(getMessageMergeKey));
-  const uniqueHistory = messages.filter(
-    (message) => !currentIds.has(message.id) && !currentKeys.has(getMessageMergeKey(message))
-  );
+  const uniqueHistory = distinctHistoryMessages(currentList, messages);
   return uniqueHistory.length ? [...uniqueHistory, ...currentList] : currentList;
 }
 
 export function appendHistoryMessages(currentList: TMessage[], messages: TMessage[]): TMessage[] {
   if (!messages.length) return currentList;
-
-  const currentIds = new Set(currentList.map((message) => message.id));
-  const currentKeys = new Set(currentList.map(getMessageMergeKey));
-  const uniqueHistory = messages.filter(
-    (message) => !currentIds.has(message.id) && !currentKeys.has(getMessageMergeKey(message))
-  );
+  const uniqueHistory = distinctHistoryMessages(currentList, messages);
   return uniqueHistory.length ? [...currentList, ...uniqueHistory] : currentList;
+}
+
+// A coarse attempt key can own several distinct public text segments. Pagination
+// must use the same compatibility rule as refresh, not discard every matching key.
+function distinctHistoryMessages(current: TMessage[], incoming: TMessage[]): TMessage[] {
+  const ids = new Set(current.map((message) => message.id));
+  const byKey = new Map<string, TMessage[]>();
+  for (const message of current) {
+    const key = getMessageMergeKey(message);
+    const group = byKey.get(key) ?? [];
+    group.push(message);
+    byKey.set(key, group);
+  }
+  return incoming.filter((message) => {
+    if (ids.has(message.id)) return false;
+    if (byKey.get(getMessageMergeKey(message))?.some((other) => canFallbackMergeByKey(message, other))) return false;
+    ids.add(message.id);
+    return true;
+  });
+}
+
+// Preserve mounted rows; insert recovered rows before their next known neighbor
+// from the durable page. Unanchored tail rows append. No timestamps or text-based
+// sorting may move an already published message during a refresh.
+function insertRecoveredMessagesInPageOrder(current: TMessage[], page: TMessage[]): TMessage[] {
+  const existing = new Set(current.map((message) => message.id));
+  const before = new Map<string | undefined, TMessage[]>();
+  let anchor: string | undefined;
+  for (let index = page.length - 1; index >= 0; index--) {
+    const message = page[index];
+    if (existing.has(message.id)) {
+      anchor = message.id;
+    } else {
+      const group = before.get(anchor) ?? [];
+      group.push(message);
+      before.set(anchor, group);
+    }
+  }
+  return current
+    .flatMap((message) => [...(before.get(message.id)?.toReversed() ?? []), message])
+    .concat(before.get(undefined)?.toReversed() ?? []);
 }

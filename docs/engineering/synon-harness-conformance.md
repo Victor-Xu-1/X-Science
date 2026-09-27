@@ -482,6 +482,20 @@ Import initialization failures remain unresolved, distinct from absence.
 
 ## Streaming and user visibility
 
+Published transcript content is independent of the model's context window.
+Bounded history refreshes retain already published rows in place and insert
+recovered rows relative to their durable neighbors. Pagination preserves
+distinct text segments within one assistant attempt. Initial loading and
+explicit branch replacement use canonical history order; ordinary refresh,
+context compaction and tool activity do not remove earlier message content.
+Virtualization may unmount offscreen rows but must not discard their data.
+
+Progress cadence requests another public update after a completed operation
+and the elapsed communication interval, including a single long operation.
+Cadence never discards valid newly generated public prose. Existing validation
+and deduplication still apply; missing prose does not stop an otherwise valid
+tool call or trigger a separate model retry.
+
 Provider content is persisted incrementally. Private reasoning is never shown;
 a reasoning-only interval produces one localized activity state. Waiting for a
 question, plan decision, permission, background completion, model selection,
