@@ -68,25 +68,6 @@ func runHasExecutedSkill(run *sessionRunnerChatRun, name string) bool {
 	return false
 }
 
-func managedEnvironmentSetupEvidenceFromMessages(
-	messages []agentruntime.Message,
-	required []string,
-) (map[string]string, []string) {
-	state := managedEnvironmentSetupEvidenceStateFromMessages(messages, required)
-	return state.evidence, state.missing
-}
-
-func managedEnvironmentSetupEvidenceStateFromMessages(
-	messages []agentruntime.Message,
-	required []string,
-) managedEnvironmentSetupEvidenceState {
-	return managedEnvironmentSetupEvidenceStateFromMessagesUsing(
-		messages, required, map[string]struct{}{
-			"webfetch": {}, "webresearch": {},
-		},
-	)
-}
-
 func managedEnvironmentSetupEvidenceStateFromMessagesUsing(
 	messages []agentruntime.Message,
 	required []string,

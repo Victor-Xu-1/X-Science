@@ -19,6 +19,7 @@ from rdkit.Chem import AllChem
 from autodock_vina_inputs import convert_ligand_source, read_smiles_records
 from autodock_vina_outputs import write_docking_report, write_primary_pose_artifacts
 from autodock_vina_pockets import load_validated_pocket_selection
+from documented_input import load_documented_input
 
 
 VINA_RESULT = re.compile(r"^REMARK VINA RESULT:\s+(-?\d+(?:\.\d+)?)")
@@ -945,13 +946,14 @@ def parser() -> argparse.ArgumentParser:
     value.add_argument("--reference-ligand")
     value.add_argument("--pocket-selection")
     value.add_argument("--pocket-validation")
+    value.add_argument("--site-evidence")
     value.add_argument("--report-language", choices=["en", "zh"], default="en")
     value.add_argument("--receptor-chain", action="append", default=[])
     value.add_argument("--receptor-contact-cutoff", type=float, default=8.0)
     for axis in ("x", "y", "z"):
         value.add_argument(f"--center-{axis}", type=float)
         value.add_argument(f"--size-{axis}", type=float)
-    value.add_argument("--center-authority", choices=["resolved-user-input"])
+    value.add_argument("--center-authority", choices=["resolved-user-input", "documented-input"])
     value.add_argument("--seed", type=int, default=42)
     value.add_argument("--repeat-count", type=int, default=3)
     value.add_argument("--exhaustiveness", type=int, default=8)
@@ -967,11 +969,18 @@ def validate_docking_center_contract(
     has_pocket_validation: bool,
     explicit_center: tuple[float | None, float | None, float | None],
     center_authority: str | None,
+    has_documented_input: bool = False,
 ) -> None:
     has_any_explicit = any(value is not None for value in explicit_center)
     has_complete_explicit = all(value is not None for value in explicit_center)
     if has_any_explicit and not has_complete_explicit:
         raise ValueError("docking center requires all three --center-x/--center-y/--center-z values")
+    if has_complete_explicit and any(not math.isfinite(float(value)) for value in explicit_center):
+        raise ValueError("docking center values must be finite")
+    if has_documented_input:
+        if not has_complete_explicit or center_authority != "documented-input" or reference_ligand or has_pocket_selection or has_pocket_validation:
+            raise ValueError("documented inputs require an explicit center and cannot claim another site authority")
+        return
     if has_pocket_selection != has_pocket_validation:
         raise ValueError("--pocket-selection and --pocket-validation must be supplied together")
     if has_pocket_selection:
@@ -1116,6 +1125,16 @@ def main() -> int:
         else:
             pocket_validation_source = source
     explicit_center = (args.center_x, args.center_y, args.center_z)
+    documented_source = None
+    documented_evidence = None
+    if args.site_evidence:
+        documented_source = (root / args.site_evidence).resolve()
+        if root not in documented_source.parents or not documented_source.is_file():
+            raise ValueError("documented input must be a file inside the authorized workspace")
+        documented_evidence = load_documented_input(
+            documented_source, receptor_source, "binding-site-center",
+            dict(zip(("center_x", "center_y", "center_z"), explicit_center, strict=True)),
+        )
     explicit_size = (args.size_x, args.size_y, args.size_z)
     if (
         receptor_source.suffix.lower() != ".pdbqt"
@@ -1131,6 +1150,7 @@ def main() -> int:
         pocket_validation_source is not None,
         explicit_center,
         args.center_authority,
+        documented_evidence is not None,
     )
     validate_box_size_contract(pocket_selection_source is not None, explicit_size)
     pocket_evidence = None
@@ -1141,7 +1161,7 @@ def main() -> int:
     target_output = (root / args.output_dir).resolve()
     input_paths = tuple(
         source
-        for source in (receptor_source, ligand_source, pocket_selection_source, pocket_validation_source)
+        for source in (receptor_source, ligand_source, pocket_selection_source, pocket_validation_source, documented_source)
         if source is not None
     )
     target_output = validate_output_target(
@@ -1169,6 +1189,8 @@ def main() -> int:
             run_checked([executable_path, "--help"], invocation_log)
         output.mkdir(parents=False)
         work.mkdir(parents=False)
+        if documented_source is not None:
+            shutil.copy2(documented_source, output / "documented_site_input.json")
         if pocket_selection_source is not None and pocket_validation_source is not None:
             shutil.copy2(pocket_selection_source, output / "binding_site_selection.json")
             shutil.copy2(pocket_validation_source, output / "binding_site_validation.json")
@@ -1191,7 +1213,7 @@ def main() -> int:
             center_source = "p2rank_predicted_pocket"
         elif all(value is not None for value in explicit_center):
             center_x, center_y, center_z = explicit_center
-            center_source = "resolved_user_input_explicit"
+            center_source = "documented_task_input" if documented_evidence is not None else "resolved_user_input_explicit"
         elif derived_center is not None:
             center_x, center_y, center_z = derived_center
             center_source = "reference_ligand_centroid"
@@ -1208,6 +1230,7 @@ def main() -> int:
                 "size_y": args.size_y,
                 "size_z": args.size_z,
                 "pocket_evidence": pocket_evidence,
+                "documented_input": documented_evidence,
             }
         )
         prepared_ligand_source = convert_ligand_source(ligand_source, work, invocation_log)
@@ -1370,6 +1393,7 @@ def main() -> int:
             pocket_evidence,
             primary_pose_manifest_rows,
             args,
+            documented_evidence,
         )
         atomic_text(log_path, "\n".join(json.dumps(item, sort_keys=True) for item in invocation_log) + "\n")
         shutil.rmtree(work)
@@ -1404,6 +1428,10 @@ def main() -> int:
                     and sha256_file(output / "binding_site_validation.json") == pocket_evidence["validation_sha256"]
                 )
             ),
+            "documented_input_integrity": (
+                documented_source is None or
+                sha256_file(output / "documented_site_input.json") == sha256_file(documented_source)
+            ),
             "pose_count_fidelity": (
                 len(pose_score_rows) == input_count
                 and all(len(sampled_poses[candidate_id]) >= args.repeat_count for candidate_id in expected_candidate_ids)
@@ -1436,10 +1464,12 @@ def main() -> int:
                 "ligand": sha256_file(ligand_source),
                 "pocket_selection": None if pocket_selection_source is None else sha256_file(pocket_selection_source),
                 "pocket_validation": None if pocket_validation_source is None else sha256_file(pocket_validation_source),
+                "documented_input": None if documented_source is None else sha256_file(documented_source),
             },
             "binding_site": {
                 "source": center_source,
                 "prediction": pocket_evidence,
+                "documented_input": documented_evidence,
             },
             "report_language": args.report_language,
             "input_count": input_count,

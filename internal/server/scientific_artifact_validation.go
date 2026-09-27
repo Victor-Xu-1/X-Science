@@ -39,18 +39,19 @@ func (err *scientificArtifactValidationError) Unwrap() error {
 }
 
 type scientificArtifactValidation struct {
-	SchemaVersion       int    `json:"schemaVersion"`
-	Format              string `json:"format"`
-	OK                  bool   `json:"ok"`
-	Code                string `json:"code"`
-	DelimiterCount      int    `json:"delimiterCount"`
-	SupplierRecordCount int    `json:"supplierRecordCount"`
-	ParsedCount         int    `json:"parsedCount"`
-	InvalidRecordCount  int    `json:"invalidRecordCount"`
-	AtomCountRecords    int    `json:"atomCountRecords"`
-	TerminalDelimiter   bool   `json:"terminalDelimiter"`
-	RDKitVersion        string `json:"rdkitVersion,omitempty"`
-	Error               string `json:"error,omitempty"`
+	SchemaVersion          int                                `json:"schemaVersion"`
+	Format                 string                             `json:"format"`
+	OK                     bool                               `json:"ok"`
+	Code                   string                             `json:"code"`
+	DelimiterCount         int                                `json:"delimiterCount"`
+	SupplierRecordCount    int                                `json:"supplierRecordCount"`
+	ParsedCount            int                                `json:"parsedCount"`
+	InvalidRecordCount     int                                `json:"invalidRecordCount"`
+	AtomCountRecords       int                                `json:"atomCountRecords"`
+	TerminalDelimiter      bool                               `json:"terminalDelimiter"`
+	RDKitVersion           string                             `json:"rdkitVersion,omitempty"`
+	Error                  string                             `json:"error,omitempty"`
+	InvalidRecordLocations []scientificArtifactRecordLocation `json:"invalidRecordLocations,omitempty"`
 }
 
 type cappedScientificOutput struct {
@@ -112,7 +113,7 @@ func decodeScientificArtifactValidation(
 		"schemaVersion": {}, "format": {}, "ok": {}, "code": {},
 		"delimiterCount": {}, "supplierRecordCount": {}, "parsedCount": {},
 		"invalidRecordCount": {}, "atomCountRecords": {}, "terminalDelimiter": {},
-		"rdkitVersion": {}, "error": {},
+		"rdkitVersion": {}, "error": {}, "invalidRecordLocations": {},
 	}
 	for field := range fields {
 		if _, ok := allowedFields[field]; !ok {
@@ -120,7 +121,7 @@ func decodeScientificArtifactValidation(
 		}
 	}
 	for field := range allowedFields {
-		if field != "rdkitVersion" && field != "error" {
+		if field != "rdkitVersion" && field != "error" && field != "invalidRecordLocations" {
 			if value, found := fields[field]; !found || bytes.Equal(value, []byte("null")) {
 				return scientificArtifactValidation{}, errors.New("scientific artifact validator omitted a required result field")
 			}
@@ -147,6 +148,9 @@ func decodeScientificArtifactValidation(
 	}
 	if result.RDKitVersion != "" && result.RDKitVersion != expectedRDKit {
 		return scientificArtifactValidation{}, errors.New("scientific artifact validator used the wrong RDKit generation")
+	}
+	if !scientificArtifactRecordLocationsValid(result) {
+		return scientificArtifactValidation{}, errors.New("scientific artifact validator returned invalid record locations")
 	}
 	return result, nil
 }

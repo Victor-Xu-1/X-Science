@@ -88,7 +88,7 @@ func TestHistoricalPublicTextPreservesOnlyAuthorizedFailureCodes(t *testing.T) {
 	if strings.Contains(got, "runner_private_checkpoint") || strings.Contains(got, "内部状态") {
 		t.Fatalf("untrusted runtime identifier escaped: %q", got)
 	}
-	strict := sessionRunnerSanitizeHistoricalPublicText(raw)
+	strict := sessionRunnerSanitizeHistoricalPublicTextWithCodes(raw, nil)
 	if strings.Contains(strict, "artifact_save_requires_correction") ||
 		strings.Contains(strict, "runner_private_checkpoint") {
 		t.Fatalf("unscoped sanitizer preserved internal identifiers: %q", strict)

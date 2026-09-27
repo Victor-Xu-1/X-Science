@@ -66,7 +66,15 @@ func TestRunnerDurableCorrectionIgnoresNoOpEdit(t *testing.T) {
 	}
 }
 
-func TestRunnerInlineArtifactRepairReturnsToValidationAfterCleanSave(t *testing.T) {
+func TestRunnerInlineArtifactRepairKeepsToolsAvailableAfterCleanSave(t *testing.T) {
+	gateway := serverAgentRuntimeToolGateway{taskRun: &sessionRunnerChatRun{TaskIntent: "prepare inputs and continue execution"}}
+	tools := []agentruntime.ToolSchema{{Name: "edit_file"}, {Name: "save_artifacts"}}
+	assertCanContinue := func(messages []agentruntime.Message) {
+		t.Helper()
+		if choice := gateway.RequiredToolChoice(messages, tools); choice == "none" {
+			t.Fatal("an inline publication forbade the remaining task tools")
+		}
+	}
 	warningCall := agentruntime.Message{Role: "assistant", ToolCalls: []agentruntime.ToolCall{{
 		ID: "save-warning", Name: "save_artifacts", Arguments: json.RawMessage(`{"files":["evidence.csv"]}`),
 	}}}
@@ -87,9 +95,7 @@ func TestRunnerInlineArtifactRepairReturnsToValidationAfterCleanSave(t *testing.
 		"ok":true,"artifacts":[{"filename":"evidence.csv","version_id":"v2","unchanged":true}]
 	}`}
 	messages := []agentruntime.Message{warningCall, warningResult, editCall, editResult, cleanSaveCall, cleanSaveResult}
-	if !sessionRunnerInlineArtifactRepairReadyForRevalidation(messages) {
-		t.Fatal("clean publication did not close the inline correction window")
-	}
+	assertCanContinue(messages)
 
 	blockedSaveCall := agentruntime.Message{Role: "assistant", ToolCalls: []agentruntime.ToolCall{{
 		ID: "save-blocked", Name: "save_artifacts", Arguments: json.RawMessage(`{"files":["evidence.csv"]}`),
@@ -97,31 +103,16 @@ func TestRunnerInlineArtifactRepairReturnsToValidationAfterCleanSave(t *testing.
 	blockedSaveResult := agentruntime.Message{Role: "tool", ToolCallID: "save-blocked", Content: `{
 		"ok":false,"executed":false,"preflight":true,"code":"repeated_non_progressing_tool_call"
 	}`}
-	if !sessionRunnerInlineArtifactRepairReadyForRevalidation(append(messages, blockedSaveCall, blockedSaveResult)) {
-		t.Fatal("a non-executing duplicate obscured the last clean publication")
-	}
+	assertCanContinue(append(messages, blockedSaveCall, blockedSaveResult))
 
 	laterEditCall := agentruntime.Message{Role: "assistant", ToolCalls: []agentruntime.ToolCall{{
 		ID: "edit-later", Name: "edit_file", Arguments: json.RawMessage(`{"file_path":"evidence.csv"}`),
 	}}}
 	laterEditResult := agentruntime.Message{Role: "tool", ToolCallID: "edit-later", Content: `{"ok":true,"changed":true}`}
-	if sessionRunnerInlineArtifactRepairReadyForRevalidation(
-		append(messages, laterEditCall, laterEditResult),
-	) {
-		t.Fatal("an unsaved later mutation was treated as ready for validation")
-	}
+	assertCanContinue(append(messages, laterEditCall, laterEditResult))
 
 	normalSave := []agentruntime.Message{cleanSaveCall, cleanSaveResult}
-	if sessionRunnerInlineArtifactRepairReadyForRevalidation(normalSave) {
-		t.Fatal("an ordinary save without a correction window forced early validation")
-	}
-
-	run := &sessionRunnerChatRun{TaskIntent: "produce a source-backed evidence table"}
-	gateway := serverAgentRuntimeToolGateway{taskRun: run}
-	tools := []agentruntime.ToolSchema{{Name: "edit_file"}, {Name: "save_artifacts"}}
-	if choice := gateway.RequiredToolChoice(messages, tools); choice != "none" {
-		t.Fatalf("resolved inline correction choice=%#v, want none", choice)
-	}
+	assertCanContinue(normalSave)
 }
 
 func TestRunnerAdvisoryEvidenceWarningDoesNotOpenCorrectionWindow(t *testing.T) {
@@ -142,8 +133,9 @@ func TestRunnerAdvisoryEvidenceWarningDoesNotOpenCorrectionWindow(t *testing.T) 
 		"ok":true,"artifacts":[{"filename":"evidence.csv","version_id":"v1","unchanged":true}]
 	}`}
 	messages := []agentruntime.Message{warningCall, warningResult, cleanSaveCall, cleanSaveResult}
-	if sessionRunnerInlineArtifactRepairReadyForRevalidation(messages) {
-		t.Fatal("a non-blocking evidence advisory was treated as an inline correction")
+	gateway := serverAgentRuntimeToolGateway{taskRun: &sessionRunnerChatRun{TaskIntent: "continue the task"}}
+	if choice := gateway.RequiredToolChoice(messages, []agentruntime.ToolSchema{{Name: "save_artifacts"}}); choice != nil {
+		t.Fatalf("advisory warning constrained tool selection: %#v", choice)
 	}
 	if paths, edited := runnerPendingArtifactEvidenceRepairMutation(messages[:2]); len(paths) != 0 || edited {
 		t.Fatalf("advisory warning opened an artifact repair path: paths=%#v edited=%t", paths, edited)

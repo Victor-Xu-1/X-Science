@@ -45,7 +45,7 @@ func TestAgentSaveArtifactsRejectsWholeFileScriptTemplateBeforeCanonicalWrite(t 
 	assertAgentSaveArtifactsNoCanonicalWrites(t, fixture)
 }
 
-func TestUnresolvedTemplateSaveRequiresEditBeforeRepublish(t *testing.T) {
+func TestUnresolvedTemplateSaveKeepsRepairToolsAvailable(t *testing.T) {
 	run := &sessionRunnerChatRun{TaskIntent: "prepare a rendered report"}
 	saveCall := agentruntime.Message{Role: "assistant", ToolCalls: []agentruntime.ToolCall{{
 		ID: "save-template", Name: "save_artifacts", Arguments: json.RawMessage(`{"files":["report.md"]}`),
@@ -55,11 +55,11 @@ func TestUnresolvedTemplateSaveRequiresEditBeforeRepublish(t *testing.T) {
 		"errors":[{"code":"unresolved_template_marker","path":"report.md"}]
 	}`}
 	tools := []agentruntime.ToolSchema{{Name: "read_file"}, {Name: "edit_file"}, {Name: "save_artifacts"}}
-	choice, _ := sessionRunnerCorrectionRequiredToolChoice(
+	choice := sessionRunnerCorrectionRequiredToolChoice(
 		run, []agentruntime.Message{saveCall, saveResult}, tools,
-	).(map[string]any)
-	if choice["name"] != "edit_file" {
-		t.Fatalf("unresolved template correction choice=%#v, want edit_file", choice)
+	)
+	if choice != "required" {
+		t.Fatalf("unresolved template correction choice=%#v, want model-selected repair", choice)
 	}
 }
 

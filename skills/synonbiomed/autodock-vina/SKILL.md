@@ -19,7 +19,7 @@ preferred-execution-assets:
 critical-constraints:
   - For a generated-candidate workflow, run the drug-discovery-pipeline assembler after both validations pass and publish its ranking, report, component registry, and pose-score table; never hand-edit the quantitative report.
   - Execute docking only through scripts/autodock_vina.py; never call or wrap vina, mk_prepare_receptor.py, or mk_prepare_ligand.py directly, never split ranked_poses.pdbqt, and publish only the pack-generated validated pose files and report.
-  - For a raw apo receptor without a bound reference ligand, require an explicit binding-site route decision and offer the registered P2Rank resolver; never substitute the whole-protein centroid or model-estimated coordinates.
+  - For a raw apo receptor, use a validated prediction, a reference ligand, explicit user input, or a documented evidence-backed task derivation. An unavailable prediction does not forbid a distinct manual route; preserve its sources and uncertainty.
 ---
 
 # AutoDock Vina managed workflow
@@ -79,19 +79,21 @@ path.
    derive the docking center from that component's verified coordinates. When
    it is omitted, the pack may select one unambiguous bound organic component
    from authoritative PDB SITE annotations or a single plausible non-polymer;
-   ambiguous or apo coordinates require one short binding-site decision instead
+   ambiguous or apo coordinates require an evidence-backed site route instead
    of an invented local center or protein centroid. Offer P2Rank by its
    public implementation name for automatic apo-pocket prediction, a manual
-   center, or a receptor/reference-ligand input. If the user selects P2Rank or
-   delegates the decision to Synon Biomed, load `p2rank-pocket-detection`, run
+   center, or a receptor/reference-ligand input. If P2Rank is the chosen method,
+   load `p2rank-pocket-detection`, run
    its reviewed pack, and pass both `pocket_selection.json` and
    `pocket_validation.json` directly to this pack. When current-task user input explicitly supplies the
    three center coordinates, pass them together with
    `--center-authority resolved-user-input`; the Harness verifies the numeric
    tuple against user evidence before process start. Prepared PDBQT receptors
-   use the same evidence-bound explicit-center route. Do not write ad-hoc
-   Gemmi/BioPython center-parsing code. Record the coordinate system and
-   rationale. Routine seed, exhaustiveness, and mode-count defaults are owned
+   use the same evidence-bound explicit-center route. When scientific choices
+   have been delegated, Synon may instead derive a manual site from task
+   sources and record it through the documented-input route below. Do not
+   require the user to repeat coordinates derived from those sources. Record
+   the coordinate system and rationale. Routine seed, exhaustiveness, and mode-count defaults are owned
    by the pack unless the task explicitly constrains them.
 4. Use `manage_environments(mode="list", dependencies=["vina", "meeko", "rdkit", "gemmi", "prody", "biopython", "openbabel"])`
    as the only readiness check. Do not probe retired runtime tools or guessed
@@ -133,9 +135,25 @@ selects one deterministic instance of `--reference-ligand`, selects the polymer
 chains contacting that instance, removes ligands/waters, writes a normalized
 PDB, derives and records that ligand centroid, and records the selected chains
 before Meeko preparation. A raw apo receptor cannot use naked `--center-*`
-values; it may instead consume the paired passing P2Rank receipts. PDBQT receptors require all three explicit center values and the same
+values; it may instead consume paired passing prediction receipts or the
+documented-input alternative. PDBQT receptors require all three explicit center values and the same
 Harness-verified `--center-authority` because they do not retain a reference
 ligand.
+For a literature-guided, structure-derived or exploratory manual site, use
+`--center-authority documented-input --site-evidence <task-relative-json>`
+alongside all three `--center-*` values and box dimensions. The evidence file
+uses `schema: "synon.documented-input.v1"`, `evidence_group: "binding-site-center"`,
+`input_sha256` of the exact receptor, `basis` (literature-guided,
+structure-derived, user-supplied or exploratory), a reproducible `method`,
+nonempty `sources` references, honest `limitations`, and `values` containing
+`center_x`, `center_y`, `center_z` as numbers matching the command.
+Inspect and calculate from the real task inputs as needed to prepare this
+record. Do not reuse a prediction validation JSON or claim that a manual
+choice was predicted or experimentally confirmed. No predictor signature or
+successful predictor execution is required for this distinct route.
+The Harness checks source bytes and matching values, pins the source and
+record for execution, and the report labels the manual basis and uncertainty.
+This provenance check does not establish scientific validity.
 Use repeated `--receptor-chain` only when the authoritative structure evidence
 already identifies the intended receptor chain. The
 script executes `vina --help`, `mk_prepare_ligand.py --help`, and

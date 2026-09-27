@@ -27,6 +27,7 @@ from typing import Any
 import requests
 
 from mcp_servers_common.ratelimit import pace
+from mcp_servers_common.ua import validate_optional_contact_email
 
 EUTILS_BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 IDCONV_URL = "https://www.ncbi.nlm.nih.gov/pmc/utils/idconv/v1.0/"
@@ -61,7 +62,7 @@ def _is_rate_limit_body(text: str) -> bool:
 class PubMedSearch:
     def __init__(
         self,
-        email: str,
+        email: str | None,
         tool: str = "bio-tools-pubmed-search",
         api_key: str | None = None,
         sleep_s: float = 0.5,
@@ -69,7 +70,7 @@ class PubMedSearch:
         timeout: float = 60.0,
         session: requests.Session | None = None,
     ) -> None:
-        self.email = email
+        self.email = validate_optional_contact_email(email)
         self.tool = tool
         self.api_key = api_key
         self.sleep_s = sleep_s
@@ -77,7 +78,7 @@ class PubMedSearch:
         self.timeout = timeout
         self.session = session or requests.Session()
         self.session.headers.setdefault(
-            "User-Agent", f"{tool}/1.0 (mailto:{email})"
+            "User-Agent", f"{tool}/1.0" + (f" (mailto:{self.email})" if self.email else "")
         )
         # instrumentation (read by bench)
         self.request_count = 0
@@ -98,7 +99,8 @@ class PubMedSearch:
     def _ident(self, params: dict[str, Any]) -> dict[str, Any]:
         out = dict(params)
         out.setdefault("tool", self.tool)
-        out.setdefault("email", self.email)
+        if self.email:
+            out.setdefault("email", self.email)
         if self.api_key:
             out.setdefault("api_key", self.api_key)
         return out

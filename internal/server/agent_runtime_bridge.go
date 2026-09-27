@@ -1,8 +1,6 @@
 package server
 
 import (
-	"time"
-
 	"synon-go/internal/agentruntime"
 	"synon-go/internal/providers"
 )
@@ -38,5 +36,4 @@ type sessionRunnerAuditedStaticModelClient struct {
 // because streaming was enabled.
 type sessionRunnerStaticStreamingCompatibilityClient struct {
 	delegate agentruntime.StreamingModelClient
-	timeout  time.Duration
 }

@@ -9,6 +9,32 @@ import (
 	sessionstore "synon-go/internal/persistence/sessions"
 )
 
+func TestCompactDurableContextDoesNotPromoteOneReceiptToTaskCompletion(t *testing.T) {
+	for _, result := range []map[string]any{
+		{"status": "idle", "num_notifications": 0},
+		{"status": "completed", "ok": true},
+		{"status": "already_loaded", "executed": false, "reused": true},
+	} {
+		entries := []eventjournal.Entry{{EventID: 7, Message: eventjournal.Message{
+			"type": "runner_checkpoint", "toolPhase": "completed", "toolCallId": "prepare-only",
+			"toolName": "observation", "toolResult": result,
+		}}}
+		lines, err := compactDurableRuntimeContextLines(entries)
+		if err != nil {
+			t.Fatal(err)
+		}
+		context := strings.Join(lines, "\n")
+		for _, forbidden := range []string{"Do not create a new inventory", "finalize the task", "release task resources"} {
+			if strings.Contains(context, forbidden) {
+				t.Fatalf("single receipt imposed task-level decision %q: %s", forbidden, context)
+			}
+		}
+		if !strings.Contains(context, "does not establish task completion") || !strings.Contains(context, "prepare-only") {
+			t.Fatalf("receipt scope was not preserved: %s", context)
+		}
+	}
+}
+
 func TestDeterministicCompactSummaryPreservesDurableFailureAndPendingRepair(t *testing.T) {
 	entries := []eventjournal.Entry{
 		{EventID: 1, Message: eventjournal.Message{"type": "message", "role": "user", "text": "运行复杂科学任务并校验全部结果"}},
@@ -63,8 +89,9 @@ func TestDeterministicCompactSummaryPreservesDurableFailureAndPendingRepair(t *t
 		t.Fatal(err)
 	}
 	if !strings.Contains(successSummary, "Continuation status") ||
-		!strings.Contains(successSummary, "Do not create a new inventory") ||
-		!strings.Contains(successSummary, "finalize the task") {
+		!strings.Contains(successSummary, "call-validated") ||
+		!strings.Contains(successSummary, "does not establish task completion") ||
+		!strings.Contains(successSummary, "continue unfinished work") {
 		t.Fatalf("successful continuation state is missing:\n%s", successSummary)
 	}
 	prompt, err := buildCompactModelPrompt(

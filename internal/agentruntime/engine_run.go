@@ -25,7 +25,7 @@ func (e Engine) Run(ctx context.Context, request RunRequest) (RunResult, error) 
 	toolChoicePolicy, hasToolChoicePolicy := e.Tools.(ModelToolChoicePolicy)
 	toolSchemaExpansion, hasToolSchemaExpansion := e.Tools.(ModelToolSchemaExpansion)
 	requiredToolRecovery, hasRequiredToolRecovery := e.Tools.(RequiredToolCallRecovery)
-	e.Tools = newFailedToolCallGuard(e.Tools)
+	e.Tools = newFailedToolCallGuard(e.Tools, request.Tools...)
 
 	messages := append([]Message(nil), normalized.Messages...)
 	modelMessages := append([]Message(nil), messages...)
@@ -205,6 +205,12 @@ func (e Engine) Run(ctx context.Context, request RunRequest) (RunResult, error) 
 		// call to that same operation target succeeds.
 		if !batch.NoProgress {
 			consecutivePrivatePreflightRepairs = 0
+			if toolRoundReportsMaterialProgress(batch.Messages) {
+				// A host-confirmed effect reopens an identical continuation. A
+				// bare successful status alone cannot keep a repeated noop alive.
+				lastToolCallRoundSignature = ""
+				consecutiveIdenticalToolRounds = 0
+			}
 			clearResolvedToolRejectionFamilies(message.ToolCalls, batch.Messages, rejectionFamilyAttempts)
 		}
 		// A reused idempotent read is not new evidence. Count consecutive

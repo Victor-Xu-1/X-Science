@@ -129,6 +129,10 @@ func (s *Server) executeAgentKernelToolInternal(
 	if err != nil {
 		return nil, err
 	}
+	input, preflight, err = s.bindManagedExecutionInputs(ctx, access, workspaceDir, workingDir, publicName, input)
+	if err != nil || preflight != nil {
+		return preflight, err
+	}
 	kind, language, environment := "analysis", "python", ""
 	code := ""
 	executionTimeout := defaultAgentKernelExecutionTimeout

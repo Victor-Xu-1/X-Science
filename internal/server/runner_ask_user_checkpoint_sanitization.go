@@ -200,10 +200,6 @@ func managedExecutionPrioritizeResolverOption(
 	parameters []sciencecapability.ExecutionParameter,
 	original string,
 ) ([]any, bool) {
-	resolverTerms := []string{
-		strings.ToLower(strings.TrimSpace(resolver.Implementation)),
-		strings.ToLower(strings.TrimSpace(resolver.Skill)),
-	}
 	for index, raw := range options {
 		option, valid := raw.(map[string]any)
 		if !valid {
@@ -240,15 +236,10 @@ func managedExecutionPrioritizeResolverOption(
 		if boolValue(metadata["terminal_decision"], false) {
 			continue
 		}
-		text := strings.ToLower(managedExecutionRawAskUserOptionText(option))
-		matches := hasResolver || exactImplementation
-		for _, term := range resolverTerms {
-			if term != "" && strings.Contains(text, term) {
-				matches = true
-				break
-			}
-		}
-		if !matches {
+		// Prose can compare or explicitly reject this resolver. Only declared
+		// identity may bind an existing choice; otherwise add a distinct option
+		// whose displayed route and executable authority agree.
+		if !hasResolver && !exactImplementation {
 			continue
 		}
 		bound := copyMapAny(option)
@@ -321,17 +312,6 @@ func managedExecutionEnsureStopOption(
 		return updated
 	}
 	return append(options, stop)
-}
-
-func managedExecutionRawAskUserOptionText(option map[string]any) string {
-	parts := []string{
-		stringValue(option["label"]), stringValue(option["description"]),
-		stringValue(option["pros"]), stringValue(option["cons"]), stringValue(option["preview"]),
-	}
-	if metadata, valid := option["metadata"].(map[string]any); valid {
-		parts = append(parts, stringValue(metadata["route_description"]))
-	}
-	return strings.Join(parts, " ")
 }
 
 func managedExecutionResolverAskUserOption(

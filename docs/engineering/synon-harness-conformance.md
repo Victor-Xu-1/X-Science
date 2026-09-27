@@ -27,6 +27,18 @@ batches and generic input/output fallbacks do not define the public layout.
   second recovery loop. Existing durable preparation and tool checkpoints
   carry the current lifecycle phase rather than publishing a competing event
   stream.
+- Context pressure uses the fully assembled main-agent request, including
+  runtime system/Skill/MCP context and currently exposed function schemas,
+  before either provider transport. Reaching the configured soft budget
+  requests the existing durable compaction/resume transition; it does not
+  terminate the logical task, dispatch a doomed provider request, or create a
+  second message-pruning path. A rebuilt context that remains above the soft
+  threshold is allowed to run instead of compacting unchanged input forever;
+  a later below-to-above transition rearms the request budget. Required input
+  and schemas without archiveable history do not trigger compaction. Explicit
+  opt-out, cancellation, auxiliary presentation calls, immutable receipts and
+  provider-owned hard-limit recovery retain their existing authority. Unknown
+  model capacity is not inferred from a model name or a task.
 - `ask_user` exposes one direct question with 2–4 options. It is model-judged
   and used only for a material unresolved user-owned choice; it is never a
   mandatory root-task intake ritual. The first substantial compute-environment
@@ -71,6 +83,10 @@ batches and generic input/output fallbacks do not define the public layout.
   it back into a primary engine choice. An explicit implementation takes
   precedence over comparative prose; an unregistered composite or version is
   not silently rebound to an engine mentioned inside its name or description.
+  Without a declared identity, mentions in an option's prose (including
+  comparisons or negations) cannot bind it to a resolver. Normalization instead
+  offers a separate registry-bound choice, preserving the original option's
+  meaning and keeping displayed choices aligned with executable authority.
   Primary and auxiliary selections share one event-ordered replay scope. A
   changed primary retires older auxiliary selections from active authority,
   not from history; re-confirming the same primary preserves them. Current
@@ -142,7 +158,16 @@ runner checkpoints and compaction continuity so recovery cannot fall back to a
 prompt-keyword route.
 
 The first successful Skill invocation returns one complete authoritative
-contract plus a bounded activation receipt. Repeating the same Skill with the
+contract plus a bounded activation receipt. The model-facing receipt preserves
+the loader's typed `loaded` and `executed` facts before the description and
+contract body. Thus large-result previews and identity-only replay retain the
+distinction between loading a capability and executing its workflow; missing
+or untyped receipt fields are not invented. This does not change tool choice,
+execution admission or completion policy. A pending contract inspection never
+rewrites an explicit Skill request to a different identity or copies its arguments
+to another Skill. Existing admission reports the exact pending inspection; after
+that contract is loaded, the original request follows the same gateway normally.
+Repeating the same Skill with the
 same arguments in the same logical task is idempotent: it returns a compact
 `already_loaded`/`reused` receipt, does not rematerialize or repersist the
 contract, and is restored from durable completed checkpoints after recovery.
@@ -203,6 +228,15 @@ The same unavailable outcome does not count as semantic progress at tool
 settlement or durable replay: receiving an unavailable-source response cannot
 clear a previously closed no-progress action. Successful and partial usable
 results retain their existing progress semantics.
+The closed envelope classifier recognizes `not_available` as unavailable in
+both typed and decoded results, including the single `result` wrapper. Typed
+connectors expose status fields through the same envelope interface without
+marshaling source bodies. Retry control reads the same single-wrapper contract,
+preserving explicit transient recovery and outer retry prohibitions.
+Unavailable reads neither refresh semantic progress
+nor enter the successful-read cache; they remain completed transport attempts,
+not hard tool failures. Ordinary empty searches and usable abstract records
+retain their existing semantics; nested scientific records are not scanned.
 Externalized historical receipts validate owner, stream, frame, call, version,
 digest, size, type and event ordering before opening the stored payload. A
 genuinely missing payload remains unavailable evidence and cannot be replaced
@@ -306,10 +340,67 @@ details, persisted message history and live notifications project the same
 identity. Stop-hook, cleanup and response-persistence failures replace earlier
 causes when they determine the final outcome. Public labels are closed,
 localized categories, never provider payloads or filesystem paths.
+Final-answer artifact projection collapses identical public citations after
+mapping prior provenance relations. An immutable version may legitimately
+have been both consumed and produced; citing it in a later turn creates one
+citation without changing either audit receipt. Distinct versions and current
+outputs retain their identities, and repository authority and idempotency
+checks remain unchanged.
 No-progress call deduplication uses the same complete semantic execution
 fingerprint as live retry guards and durable recovery. Human-facing argument
 previews remain bounded, but their clipping, JSON key order and presentation
 labels never decide whether two execution identities are the same.
+Successful read-only calls do not erase other failed execution identities,
+even when they share an executor. Durable retry state is rebuilt only from
+the active transcript, with the same committed-workspace-mutation predicate
+used by live execution. A separate failure-only cache has no admission
+authority. A new user turn permits reconsidering a previous failed execution;
+lease recovery alone does not. Non-executed receipts cannot create a mutation
+epoch or an executed-failure identity. History-read errors propagate before
+execution rather than admitting a call without its recovery state. Runtime
+failure reduction streams the fenced immutable event projection, not the
+provider-message window: an admitted in-flight batch must not block its own
+execution-history read, and model compaction must not erase failure receipts.
+Unavailable history produces a non-executed structured receipt; raw persistence
+details stay out of model and browser responses, while cancellation retains its
+original control-flow meaning.
+An explicitly non-executed transient runtime admission is not a terminal job:
+its original retry advice remains intact and the same call can run after the
+owning service recovers, without a new user message. Already-started or
+uncertain executions still require reconciliation rather than blind resubmission.
+The live guard receives the initial advertised capability snapshot, including
+custom execution tool names, before its first call.
+An authoritative changed-effect or committed workspace-write receipt resets
+the identical-call counter, so advancing continuations are not stopped merely
+because their arguments repeat. Bare success, unchanged effects and nonexecuted
+receipts cannot reset it; the existing no-progress recovery window and scheduler
+backoff remain in force. Local HTTP fault/recovery tests, multi-segment effect
+tests and the unchanged-operation loop regression verify both sides.
+Recovering a provider protocol, plan, transport or capability transition does
+not freeze the task's remaining tools after its first successful action.
+Immediate immutable revalidation belongs only to rejected output-candidate
+repairs after a successful changed, versioned artifact publication. An input
+read, capability load, environment setup, empty save or unchanged publication
+cannot force a terminal answer, even when an older artifact-reference correction
+is still present. Their existing convergence checks remain intact. Controlled local
+provider HTTP tests execute and persist the next authorized action through the
+real tool gateway, while artifact-repair regressions retain revalidation.
+Inline input/draft publication is not a terminal task transition. Resolving a
+save warning leaves the next model-selected action available, including across
+user turns. Only an explicit output-candidate correction may request immediate
+revalidation; final candidate validation remains in the single completion path.
+Structured file rejection requires further action but does not impose an
+edit/save alternation. The model may inspect, parse, acquire, prepare an
+environment, compute, or perform several repairs before publication. One edit
+does not certify validity; unchanged-retry fences and the real publication
+validator remain authoritative. Aggregate parser counts are not record locators.
+Streaming molecular validation returns up to 32 exact, one-based invalid-record
+locations; line-oriented inputs also include physical line numbers, counting
+headers, comments and blank lines. Repair can inspect and change those records
+without guessing from counts or discarding a valid tail. This bounded feedback
+never includes raw inputs or parser stderr, explicitly marks partial locations,
+and never limits how many records the validator checks. Re-publication still
+validates the complete repaired file through the same managed parser.
 Recent closed-route previews are not the admission set. During no-progress
 recovery, a single cancellable, fenced transcript scan matches the proposed
 batch against exact completed idempotent receipts, typed terminal admission
@@ -459,6 +550,16 @@ tools are absent from new model snapshots.
 7. `wait_for_notification` accepts an omitted display label and caps one wait
    at 1800 seconds; a timeout returns durable pending-work state so the model
    can decide whether to wait again, change course, or ask the user.
+   An empty queue with no pending work returns `status: idle`, not task
+   completion. Only actual notification receipts describe execution outcomes;
+   the empty observation does not assert that any computation ran or succeeded.
+   Acknowledgement accepts both new idle and historical empty-completed
+   receipts only with an empty notification manifest, preserving replay without
+   manufacturing execution evidence. Received manifests still require their
+   exact positive notification count.
+   Compact continuation preserves typed unavailable/partial outcomes and
+   explicit execution/reuse provenance. A successful individual tool result
+   cannot impose task-wide finalization or prohibit still-missing computation.
 8. A new user message after a terminal runner attempt starts a fresh attempt
    and supersedes obsolete resume-dispatch records. A typed answer to an active
    `ask_user` checkpoint continues that same attempt instead.
@@ -538,6 +639,13 @@ tools are absent from new model snapshots.
     to the existing approval terminal states; precise diagnostics and partial
     results remain in the original receipt. Unknown or missing receipts do not
     acquire execution authority.
+    Terminal completed and failed events share pre-execution settlement. An
+    explicitly non-executing admission rejection retires any pending or approved
+    local operation with its immutable result, preserving the original approval
+    history. Recognition follows the typed admission envelope, not a list of
+    tool-specific rejection codes. Such receipts cannot remain runnable or
+    inflate active-operation counts; prepared, started and uncertain executions
+    still require their normal reconciliation and are never cancelled by this path.
     A successful mutator that explicitly reports `changed=false`,
     `unchanged=true`, or only unchanged artifact versions does not advance the
     mutation epoch. A complete before/after file hash also ignores a
@@ -590,10 +698,11 @@ tools are absent from new model snapshots.
     source-locator-read, artifact-edit and publication capabilities. The model
     still owns every query, source choice and byte change; an unavailable source
     route advances to editing so the unsupported row can be removed rather than
-    retried forever. When an inline
-    draft warning is followed by a clean artifact save, the gateway selects
-    `tool_choice=none` for the next round so the immutable completion validator
-    rechecks the candidate before any additional provider-selected mutation.
+    retried forever. A clean save resolves an inline draft warning without
+    ending the logical task: it may be an input for a later computation. Only
+    an explicit rejected output-candidate correction selects `tool_choice=none`
+    after a changed publication, so the immutable completion validator can
+    recheck that candidate. Historical inline saves cannot freeze a new turn.
     `none` is an Engine-enforced protocol state: that model request carries an
     empty Tool catalog, and a provider-emitted Tool call is discarded and
     privately resampled instead of reaching the gateway.
@@ -833,7 +942,9 @@ tools are absent from new model snapshots.
 Execution effect preparation and registered-entrypoint admission use the same
 Shell grammar. A static single-command argv may contain comments, continued
 lines and trailing newlines; substitutions, redirections, pipelines and extra
-commands cannot inherit that entrypoint's authority. One redundant leading
+commands cannot inherit that entrypoint's authority.
+Shell expansion uses invocation-local mutable state, so concurrent parsing
+cannot mix another call's arguments or scratch buffers. One redundant leading
 `cd` is removed only when its resolved target is the exact task workspace and
 the remaining command already matches one registered execution-pack entrypoint;
 different directories, activation commands and any additional operation remain
@@ -853,7 +964,98 @@ Python API witnesses use native from-import semantics for submodules and do
 not treat scoped/optional imports or rebound names as proven missing APIs.
 Import initialization failures remain unresolved, distinct from absence.
 
+Python namespace validity belongs to the actual persistent worker, not to a
+source-text receiver/import heuristic in model-call admission. A checkpoint
+resume does not prove that the worker restarted. Comma imports, aliases, scoped
+parameters and retained variables execute with native Python semantics. Syntax
+and unavailable-import checks still run; a genuine missing name is a runtime
+failure, with any earlier effects preserved rather than described as unexecuted.
+Recovery restores only missing state and must not replay completed side effects.
+
+Public PubMed retrieval does not require opting into contact-email disclosure.
+The connector omits absent email identification, retains explicitly supplied
+operator or consented contact values, and rejects malformed supplied values.
+Request pacing, transport validation, bounded retries and source provenance are
+unchanged. Contact identification remains recommended by the upstream; see
+[E-utilities parameter guidance](https://www.ncbi.nlm.nih.gov/books/NBK25499/).
+Missing optional external research packages are not substitutes for source
+evidence: select another available source instead of inventing their output.
+
+The public-file downloader's optional expected checksum refers to the complete
+file. A bounded inspection response's body hash is not a full-file digest.
+Unknown full-file checksums may be omitted; known authoritative checksums must
+still match before publication, and a mismatch must not be bypassed.
+
+## Receipt-bound execution inputs
+
+Resolver-produced files and documented task-derived parameters are distinct
+input origins. Optional `documentedInputs` routes use the same kernel and
+immutable artifact boundary; they do not require success from an unavailable
+resolver or relabel manual work as prediction. The contract and provenance
+checks are documented in `managed-execution-runtime.md`. Numeric tuples
+belonging to such routes may be prepared within authorized task work, without
+an additional user-transcription or prose-keyword gate.
+When automatic-result preflight fails, recovery feedback exposes any registered
+documented route for that exact evidence group, including its input binding,
+parameter names and the automatic-output arguments it replaces. The feedback
+does not create a route or supply scientific values. Receipt-store or immutable
+file outages instead retain infrastructure recovery, preserving completed work.
+
+Local execution-pack file parameters may declare `inputEvidence` with an
+`evidenceGroup` and producer `outputKind`. The existing `evidenceResolvers`
+relationship selects eligible producer packs; `inputLineage` maps a consumer
+input kind to a SHA-256 JSON pointer in one declared producer output. These
+optional catalog fields do not change ordinary user file inputs or explicit
+user-owned parameter authority. Catalog validation rejects missing/ambiguous
+producers, unknown output kinds, invalid pointers and competing authorities.
+
+At the final kernel execution boundary, including approved resumes, each
+supplied automatic-result group must come from one successful same-task host execution.
+The runtime reconstructs authority from persisted execution receipts and the
+existing immutable output snapshots. A workspace marker, successful-looking
+JSON, filename or model summary cannot grant authority. Renamed copies must
+match the exact output digest. Changed input bytes, mixed executions, failed
+producers and foreign-task receipts are rejected before process start.
+
+The execution-only command consumes immutable output paths and digest-checked
+lineage inputs through the existing artifact materializer and read-only mount.
+The original approval arguments remain unchanged. Lineage JSON is limited to
+1 MiB and read with the shared strict JSON-pointer parser. Guarded CLI arguments
+must be explicit and unique; abbreviations cannot bypass binding. Receipt and
+materialization failures remain structured, nonexecuted diagnostics with a
+recovery path, not successful results or a reason to redo valid upstream work.
+No separate provenance database, model-side cache or task-specific gate exists.
+
+Verification: `go test -race -p 1 ./internal/server ./internal/sciencecapability
+-run 'TestExecutionInput|TestRepositoryScientificCapabilityCatalogIsValid'
+-count=1 -timeout=180s`. The suite includes a real local producer and consumer,
+SQLite receipts, read-only execution mounts, reconstruction, concurrent replay,
+cancellation and invalid handoffs. Fixtures are engineering probes, not claims
+about a scientific engine or scientific result.
+
 ## Streaming and user visibility
+
+Published transcript content is independent of the model's context window.
+Compaction retains original user requirements and resolved choices verbatim,
+in their user role and active-branch order; it summarizes observations rather
+than replacing user authority. Existing replay byte/event budgets, ownership
+and task-scoped evidence checks still apply. Loading a bounded Skill contract
+mid-run supplies its complete instructions to the next model request while the
+durable tool receipt continues to reference the exact externalized result.
+Ordinary large data results remain previews with artifact navigation.
+
+Progress cadence requests another public update after a completed operation
+and the elapsed communication interval, including a single long operation.
+Cadence never discards valid newly generated public prose. Existing validation
+and deduplication still apply; missing prose does not stop an otherwise valid
+tool call or trigger a separate model retry.
+
+Bounded history refreshes retain already published rows in place and insert
+recovered rows relative to their durable neighbors. Pagination preserves
+distinct text segments within one assistant attempt. Initial loading and
+explicit branch replacement use canonical history order; ordinary refresh,
+context compaction and tool activity do not remove earlier message content.
+Virtualization may unmount offscreen rows but must not discard their data.
 
 Provider content is persisted incrementally. Private reasoning is never shown;
 a reasoning-only interval produces one localized activity state. Waiting for a
@@ -929,6 +1131,23 @@ remain only where required to read or safely reap pre-migration state; new
 resources use Synon names.
 
 ## Verification boundary
+
+Continuation guidance is request-scoped: the saved prefix and its resume
+instruction are attached only to the resumed provider request, never to the
+engine history used by subsequent tool rounds. A bounded tail probe holds an
+ambiguous replay until the native response resolves it. If an output-token
+limit leaves only an exact replay of the saved tail, no new content is committed
+and the existing durable no-progress path owns recovery. Successful repetitions,
+new content and validated tool boundaries remain intact. A provisional native
+tool-start delta alone does not validate incomplete arguments. The probe does
+not edit historical messages, filter particular words or impose a task lifetime.
+
+Deployment-configured and saved model profiles share the provider's timeout
+authority. Streaming requests use response-header and semantic-idle budgets,
+not an additional total-duration deadline in the presentation adapter. A
+healthy stream may exceed several idle windows while producing meaningful
+progress. Explicit caller cancellation/deadlines still apply; stalled streams
+remain bounded, and non-streaming calls retain provider request deadlines.
 
 Contract, persistence, kernel-host, confined provider proxy, SSH/Slurm,
 approval-resume, plan approval, artifact-retention and source-routing behavior

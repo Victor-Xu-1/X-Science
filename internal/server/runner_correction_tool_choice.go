@@ -100,17 +100,25 @@ func sessionRunnerCorrectionStillRequiresAction(run *sessionRunnerChatRun, messa
 	return true
 }
 
-// sessionRunnerCorrectionReadyForRevalidation identifies the exact state in
-// which a correction-owned execution unit has produced its required durable
-// action and must return to the immutable stop-hook validator. Continuing with
-// provider-auto tool choice here lets semantically identical save calls evade
-// argument-level no-progress detection by changing only their descriptions.
+// Only a rejected output candidate returns directly to the immutable validator.
+// A protocol, plan or capability recovery is an intermediate task transition:
+// freezing tools after its first successful action would prevent further work.
+// Candidate repair still converges after a changed immutable publication;
+// loading capabilities, inspecting inputs or preparing execution is not one.
 func sessionRunnerCorrectionReadyForRevalidation(
 	run *sessionRunnerChatRun,
 	messages []agentruntime.Message,
 ) bool {
-	if run == nil || (strings.TrimSpace(run.CorrectionReason) == "") ||
-		sessionRunnerCorrectionStillRequiresAction(run, messages) {
+	if run == nil {
+		return false
+	}
+	switch strings.TrimSpace(run.CorrectionReason) {
+	case "artifact_reference_correction_required", "completion_review_correction_required",
+		sessionRunnerVisualArtifactValidationReasonCode:
+	default:
+		return false
+	}
+	if sessionRunnerCorrectionStillRequiresAction(run, messages) {
 		return false
 	}
 	boundary := -1
@@ -129,12 +137,18 @@ func sessionRunnerCorrectionReadyForRevalidation(
 		}
 		var result any
 		if json.Unmarshal([]byte(message.Content), &result) != nil || agentruntime.ToolResultDidNotExecute(result) ||
-			agentruntime.ToolResultDidNotExecute(result) ||
 			agentruntime.ClassifyToolResult(result) != agentruntime.ToolResultSucceeded {
 			continue
 		}
-		if call, found := calls[message.ToolCallID]; found && !runnerCorrectionReadCall(call) {
-			return true
+		call, found := calls[message.ToolCallID]
+		if !found || normalizeAgentToolName(call.Name) != "saveartifacts" {
+			continue
+		}
+		for _, raw := range anySliceValue(mapValue(result)["artifacts"]) {
+			artifact := mapValue(raw)
+			if strings.TrimSpace(stringValue(artifact["version_id"])) != "" && !boolValue(artifact["unchanged"], false) {
+				return true
+			}
 		}
 	}
 	return false
@@ -150,8 +164,7 @@ func sessionRunnerImmediateArtifactRepairRequired(
 	if runnerLatestArtifactSaveRequiresCorrection(messages) {
 		return true
 	}
-	paths, _ := runnerPendingArtifactFileRepair(messages)
-	return len(paths) > 0
+	return len(runnerPendingArtifactFileRepairPaths(messages)) > 0
 }
 
 func runnerLatestArtifactSaveRequiresCorrection(messages []agentruntime.Message) bool {
@@ -243,13 +256,13 @@ func sessionRunnerCorrectionRequiredToolChoice(
 			return runnerCorrectionCapabilityToolChoice(tools, "artifact-publication", nil)
 		}
 	}
-	if paths, edited := runnerPendingArtifactFileRepair(messages); len(paths) > 0 {
-		if !edited {
-			return runnerCorrectionCapabilityToolChoice(tools, "artifact-edit", nil)
-		}
-		if edited {
-			return runnerCorrectionCapabilityToolChoice(tools, "artifact-publication", nil)
-		}
+	if len(tools) > 0 && len(runnerPendingArtifactFileRepairPaths(messages)) > 0 {
+		// A parser rejection identifies invalid output, not the operation that
+		// can repair it. Inspection, acquisition, environment preparation or
+		// computation may be prerequisites; one edit is not proof of validity.
+		// Keep action mandatory without imposing an edit/save alternation. The
+		// publication validator and failed-call guard still own acceptance.
+		return "required"
 	}
 	if choice, handled := runnerSourceLocatorRepairRequiredToolChoice(run, messages, tools); handled {
 		return choice
@@ -319,12 +332,9 @@ func runnerLatestToolPreflightStatus(messages []agentruntime.Message) string {
 	return ""
 }
 
-// runnerPendingArtifactFileRepair keeps structured artifact repair on one
-// deterministic state transition: a validator rejection must be followed by
-// a successful edit of the affected file before save_artifacts can run again.
-// This avoids charging a second real tool failure for an unchanged malformed
-// CSV/TSV/JSON payload while leaving the content and repair itself model-owned.
-func runnerPendingArtifactFileRepair(messages []agentruntime.Message) ([]string, bool) {
+// The latest publication owns pending file validation. Intermediate tools do
+// not discharge a rejection or prescribe how the model must repair the bytes.
+func runnerPendingArtifactFileRepairPaths(messages []agentruntime.Message) []string {
 	calls := runnerToolCallsByCallID(messages)
 	for index := len(messages) - 1; index >= 0; index-- {
 		message := messages[index]
@@ -338,103 +348,11 @@ func runnerPendingArtifactFileRepair(messages []agentruntime.Message) ([]string,
 		var result map[string]any
 		if json.Unmarshal([]byte(strings.TrimSpace(message.Content)), &result) != nil ||
 			strings.TrimSpace(stringValue(result["code"])) != "artifact_save_requires_correction" {
-			return nil, false
+			return nil
 		}
-		paths := runnerArtifactSaveFileRepairPaths(result)
-		if len(paths) == 0 {
-			return nil, false
-		}
-		pathSet := make(map[string]struct{}, len(paths))
-		for _, path := range paths {
-			pathSet[strings.ToLower(filepath.Clean(path))] = struct{}{}
-		}
-		for _, candidate := range messages[index+1:] {
-			if candidate.Role != "tool" || strings.TrimSpace(candidate.Content) == "" {
-				continue
-			}
-			candidateCall, ok := calls[candidate.ToolCallID]
-			if !ok {
-				continue
-			}
-			var value any
-			if json.Unmarshal([]byte(candidate.Content), &value) != nil ||
-				agentruntime.ClassifyToolResult(value) != agentruntime.ToolResultSucceeded {
-				continue
-			}
-			if runnerArtifactRepairToolTouchedPath(candidateCall, value, pathSet) {
-				return paths, true
-			}
-		}
-		return paths, false
+		return runnerArtifactSaveFileRepairPaths(result)
 	}
-	return nil, false
-}
-
-func runnerArtifactRepairToolTouchedPath(
-	call agentruntime.ToolCall,
-	result any,
-	paths map[string]struct{},
-) bool {
-	if len(paths) == 0 || !runnerCorrectionResultMadeMutation(result) {
-		return false
-	}
-	normalizedTool := normalizeAgentToolName(call.Name)
-	if normalizedTool == "editfile" {
-		var input map[string]any
-		if json.Unmarshal(call.Arguments, &input) != nil {
-			return false
-		}
-		path := strings.TrimSpace(firstNonEmpty(stringValue(input["file_path"]), stringValue(input["path"])))
-		_, found := paths[strings.ToLower(filepath.Clean(path))]
-		return found
-	}
-	if normalizedTool != "repl" && normalizedTool != "python" && normalizedTool != "r" && normalizedTool != "bash" {
-		return false
-	}
-	return runnerArtifactRepairResultContainsPath(result, paths, 0, new(int))
-}
-
-func runnerArtifactRepairResultContainsPath(
-	value any,
-	paths map[string]struct{},
-	depth int,
-	visited *int,
-) bool {
-	if visited == nil || depth > 8 || *visited >= 2048 {
-		return false
-	}
-	(*visited)++
-	switch typed := value.(type) {
-	case map[string]any:
-		for key, child := range typed {
-			if normalizeAgentToolName(key) == "fileswritten" {
-				for _, raw := range anySliceValue(child) {
-					path := strings.TrimSpace(stringValue(raw))
-					if record := mapValue(raw); len(record) > 0 {
-						path = strings.TrimSpace(firstNonEmpty(
-							stringValue(record["path"]),
-							stringValue(record["file_path"]),
-							stringValue(record["filename"]),
-						))
-					}
-					path = strings.ToLower(filepath.Clean(path))
-					if _, found := paths[path]; found {
-						return true
-					}
-				}
-			}
-			if runnerArtifactRepairResultContainsPath(child, paths, depth+1, visited) {
-				return true
-			}
-		}
-	case []any:
-		for _, child := range typed {
-			if runnerArtifactRepairResultContainsPath(child, paths, depth+1, visited) {
-				return true
-			}
-		}
-	}
-	return false
+	return nil
 }
 
 func runnerArtifactSaveFileRepairPaths(result map[string]any) []string {

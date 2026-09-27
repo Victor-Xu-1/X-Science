@@ -200,6 +200,11 @@ type ToolResult struct {
 	// classification. Keeping the context in the same tool role avoids a trailing
 	// synthetic assistant turn and does not elevate model-authored state to policy.
 	ModelContext any
+	// ModelContent is a host-supplied, already bounded instruction-contract view.
+	// Large data results still use their ordinary immutable descriptors. A loaded
+	// contract must reach the next model call in full, even when its audit payload
+	// was externalized. This never replaces durable bytes or outcome authority.
+	ModelContent string
 	// Terminal ends the agent run after this successful tool result has been
 	// durably emitted. It is reserved for protocol completion tools such as a
 	// fixed-job submit_output; failed results remain model-correctable.

@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import csv
-import hashlib
 import json
 import math
 import os
@@ -16,6 +15,7 @@ import subprocess
 import tarfile
 import uuid
 
+from p2rank_predictions import parse_predictions, prediction_failure_record, sha256_file
 
 PACK_ID = "binding-pocket-prediction.p2rank"
 P2RANK_VERSION = "2.5.1"
@@ -24,14 +24,6 @@ OUTPUT_MARKER = ".synon-execution-pack.json"
 DEFAULT_OUTPUT_DIR = "pocket_detection"
 MAX_ARCHIVE_MEMBERS = 50_000
 MAX_ARCHIVE_EXPANDED_BYTES = 2_000_000_000
-
-
-def sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
 
 
 def atomic_text(path: Path, content: str) -> None:
@@ -221,55 +213,6 @@ def validated_internal_state_directory(root: Path, path: Path, label: str) -> Pa
     return path
 
 
-def finite_float(row: dict[str, str], key: str) -> float:
-    try:
-        value = float(row[key])
-    except (KeyError, TypeError, ValueError):
-        raise ValueError(f"P2Rank output is missing a numeric {key} value") from None
-    if not math.isfinite(value):
-        raise ValueError(f"P2Rank output contains a non-finite {key} value")
-    return value
-
-
-def parse_predictions(path: Path) -> list[dict[str, object]]:
-    rows: list[dict[str, object]] = []
-    with path.open("r", encoding="utf-8-sig", newline="") as handle:
-        reader = csv.DictReader(handle, skipinitialspace=True)
-        for raw in reader:
-            normalized = {
-                str(key).strip(): str(value).strip()
-                for key, value in raw.items()
-                if key is not None and value is not None
-            }
-            try:
-                rank = int(normalized["rank"])
-            except (KeyError, ValueError):
-                raise ValueError("P2Rank output is missing an integer rank") from None
-            probability = finite_float(normalized, "probability")
-            if probability < 0 or probability > 1:
-                raise ValueError("P2Rank probability is outside [0, 1]")
-            atom_ids = [int(value) for value in re.findall(r"\d+", normalized.get("surf_atom_ids", ""))]
-            rows.append(
-                {
-                    "name": normalized.get("name", f"pocket{rank}"),
-                    "rank": rank,
-                    "score": finite_float(normalized, "score"),
-                    "probability": probability,
-                    "center": [
-                        finite_float(normalized, "center_x"),
-                        finite_float(normalized, "center_y"),
-                        finite_float(normalized, "center_z"),
-                    ],
-                    "residue_ids": normalized.get("residue_ids", ""),
-                    "surface_atom_ids": sorted(set(atom_ids)),
-                }
-            )
-    rows.sort(key=lambda row: int(row["rank"]))
-    if not rows or [int(row["rank"]) for row in rows] != list(range(1, len(rows) + 1)):
-        raise ValueError("P2Rank output must contain contiguous rank-ordered pockets")
-    return rows
-
-
 def build_candidates(
     predictions: list[dict[str, object]],
     atoms: dict[int, tuple[float, float, float, str]],
@@ -411,15 +354,17 @@ def main() -> int:
         if len(prediction_files) != 1:
             raise RuntimeError("P2Rank did not produce exactly one predictions CSV")
         raw_predictions = prediction_files[0]
+        # Preserve engine evidence before parsing can reject an empty or
+        # malformed result. Runtime cleanup must not erase the failure's cause.
+        shutil.copy2(raw_predictions, staging / "p2rank_predictions.csv")
+        params = list(raw_output.rglob("params.txt"))
+        if len(params) == 1:
+            shutil.copy2(params[0], staging / "p2rank_params.txt")
         predictions = parse_predictions(raw_predictions)[: args.top_k]
         candidates = build_candidates(predictions, atoms, args.minimum_box_size, args.box_padding)
         selected = candidates[0]
         candidates_path = staging / "pocket_candidates.csv"
         write_candidates(candidates_path, candidates)
-        shutil.copy2(raw_predictions, staging / "p2rank_predictions.csv")
-        params = list(raw_output.rglob("params.txt"))
-        if len(params) == 1:
-            shutil.copy2(params[0], staging / "p2rank_params.txt")
         write_selected_atoms(staging / "selected_pocket_atoms.pdb", selected, atoms)
         source_sha = sha256_file(structure)
         selection = {
@@ -484,8 +429,8 @@ def main() -> int:
         return 0
     except Exception as error:
         failure_root = validated_internal_state_directory(root, root / ".p2rank-failures", "failure")
-        failure = failure_root / token
-        atomic_text(staging / "failure.json", json.dumps({"error": str(error), "execution_pack_id": PACK_ID}, ensure_ascii=False, indent=2) + "\n")
+        failure_record = prediction_failure_record(error, PACK_ID, staging)
+        atomic_text(staging / "failure.json", json.dumps(failure_record, ensure_ascii=False, indent=2) + "\n")
         failure_root = validated_internal_state_directory(root, root / ".p2rank-failures", "failure")
         failure = failure_root / token
         if not failure.exists() and not failure.is_symlink():

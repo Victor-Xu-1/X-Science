@@ -78,8 +78,8 @@
     },
     {
       "path": "kernels/sdf_artifact_validator.py",
-      "sha256": "b02ce061795237b81950f8f6cd45a689598781b619ebc319653860106d3113f4",
-      "bytes": 7859
+      "sha256": "f3676f4ab909ae7d0d666fbe4b544edc8d32d20f1ceb698cd25f8d957bda515e",
+      "bytes": 8391
     },
     {
       "path": "kernels/sitecustomize.py",
@@ -108,8 +108,8 @@
     },
     {
       "path": "kernels/synon_biomed_runtime/worker_compile.py",
-      "sha256": "ee3b89e65cecb2ce836e0b0fbce99027189d0f4b15619d7067e68a1fe062de48",
-      "bytes": 1954
+      "sha256": "555321b39b07ec9484ac6468c3e2378bdfd0a9abba485906ed3771e28bfb12b1",
+      "bytes": 2256
     },
     {
       "path": "kernels/synon_biomed_runtime/worker_effects.py",
@@ -118,8 +118,13 @@
     },
     {
       "path": "kernels/synon_biomed_runtime/worker_execution.py",
-      "sha256": "1228977a43679bc778aa947af23d322675584edde78c82cb5b7e0869d9905944",
-      "bytes": 4862
+      "sha256": "fdeb5bcf38f505ccdbb78f345fcc645b968fcead2cc8951a734a2d5970b7582a",
+      "bytes": 4916
+    },
+    {
+      "path": "kernels/synon_biomed_runtime/worker_process_outcomes.py",
+      "sha256": "d798e8a4567f1c87bef485e23cb328f0c449b35f02dee944bd767e11bd90c654",
+      "bytes": 3786
     },
     {
       "path": "kernels/synon_biomed_runtime/worker_reads.py",
@@ -133,8 +138,8 @@
     },
     {
       "path": "kernels/synon_biomed_runtime/worker_streams.py",
-      "sha256": "e284d693604bb405010556959c2dacd41b189097fa5f9525c6b51bd9f541869f",
-      "bytes": 5683
+      "sha256": "c67a7d4e870748816144396949718c916814b214bba413f68180b4c0ecd16ac3",
+      "bytes": 7276
     },
     {
       "path": "kernels/synon_biomed_runtime/worker_transport.py",

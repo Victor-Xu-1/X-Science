@@ -4,6 +4,7 @@ import io
 import json
 import os
 import select
+import subprocess
 import sys
 import threading
 
@@ -13,6 +14,19 @@ MAX_OUTPUT_JSON_BYTES = 16 * 1024 * 1024
 TRUNCATION_NOTICE = "\n[output truncated]\n"
 MAX_LIVE_BYTES = 10 * 1024 * 1024
 LIVE_NOTICE = "\n…(live stream truncated at 10 MB; full output in tool_result)\n"
+MAX_SUBPROCESS_DIAGNOSTIC_BYTES = 512 * 1024
+
+
+def captured_subprocess_output(value):
+    """Retain a bounded diagnostic tail without rendering commands or objects."""
+    if type(value) not in (str, bytes) or not value:
+        return ""
+    clipped = value[-MAX_SUBPROCESS_DIAGNOSTIC_BYTES:]
+    raw = clipped.encode("utf-8", errors="replace") if type(clipped) is str else clipped
+    truncated = len(value) > len(clipped) or len(raw) > MAX_SUBPROCESS_DIAGNOSTIC_BYTES
+    text = raw[-MAX_SUBPROCESS_DIAGNOSTIC_BYTES:].decode("utf-8", errors="replace")
+    notice = "[captured subprocess output truncated; showing tail]\n" if truncated else ""
+    return "\n" + notice + text
 
 
 class StreamCapture:
@@ -132,6 +146,22 @@ class CellStreams:
             raise
         self.stdin = open(os.devnull, encoding="utf-8")
         sys.stdin, sys.stdout, sys.stderr = self.stdin, self.stdout.text, self.stderr.text
+
+    def capture_subprocess_failure(self, error):
+        # Uncaught captured subprocess failures otherwise expose only an exit
+        # code: their corrective diagnostics never reached our process pipes.
+        # Follow the visible exception chain, not arbitrary nested payloads or
+        # stderr text. Caught probes and successful fallbacks never enter here.
+        seen = set()
+        for _ in range(8):
+            if error is None or id(error) in seen:
+                return
+            seen.add(id(error))
+            if isinstance(error, (subprocess.CalledProcessError, subprocess.TimeoutExpired)):
+                self.stdout.text.write(captured_subprocess_output(error.output))
+                self.stderr.text.write(captured_subprocess_output(error.stderr))
+                return
+            error = error.__cause__ or (None if error.__suppress_context__ else error.__context__)
 
     def finish(self):
         try:

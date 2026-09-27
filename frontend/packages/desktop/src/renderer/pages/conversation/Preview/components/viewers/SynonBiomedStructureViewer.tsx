@@ -3040,9 +3040,11 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
               data-testid='synon-biomed-structure-scene'
               data-scene-id={structureSceneSummary.sceneId}
               role='status'
-              aria-label='母结构与派生结构叠加场景'
+              aria-label={t('preview.scientific.structure.sceneOverlayLabel')}
             >
-              母结构 + 派生结构叠加 · {structureSceneSummary.layerCount} 层
+              {t('preview.scientific.structure.sceneOverlaySummary', {
+                layerCount: structureSceneSummary.layerCount,
+              })}
             </div>
           )}
           {renderElectrostaticLegend()}

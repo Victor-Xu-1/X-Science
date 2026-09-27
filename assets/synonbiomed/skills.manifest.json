@@ -132,8 +132,8 @@
     },
     {
       "path": "autodock-vina/scripts/autodock_vina.py",
-      "sha256": "65aa70306989d8115781683a28f4677dd83ed4f11fbd3ecdd6ac686eb0720fcb",
-      "bytes": 64652
+      "sha256": "d4d3bb8d4589d1ce82e42fbfdd181a9b3195c0fbd142b66ed2bb3672703b1394",
+      "bytes": 66547
     },
     {
       "path": "autodock-vina/scripts/autodock_vina_inputs.py",
@@ -142,8 +142,8 @@
     },
     {
       "path": "autodock-vina/scripts/autodock_vina_outputs.py",
-      "sha256": "ab7ce5b3403ded9ce004d438e56095195e946ab5a629c4157f09663004fa7f97",
-      "bytes": 9914
+      "sha256": "73b7dcc30ac37073b6b4a5a63201d189b2e29af24210f1a6ac5369f29726d7de",
+      "bytes": 10814
     },
     {
       "path": "autodock-vina/scripts/autodock_vina_pockets.py",
@@ -151,9 +151,14 @@
       "bytes": 4856
     },
     {
+      "path": "autodock-vina/scripts/documented_input.py",
+      "sha256": "d133a2eff21e88be60092533adb497825a50a1d3698dfb833316f6803ffa69d6",
+      "bytes": 2401
+    },
+    {
       "path": "autodock-vina/SKILL.md",
-      "sha256": "bef8af9ee68c79a16da950946595f4ea11497affcd429b4608e28d8f5478fff6",
-      "bytes": 15066
+      "sha256": "309fac68fa0aff8c0c6b113af91b0f32c56903d9b4239276dc133e397d4fff85",
+      "bytes": 16370
     },
     {
       "path": "binding-mode-analysis/scripts/analyze_binding_pocket.py",
@@ -1162,8 +1167,13 @@
     },
     {
       "path": "p2rank-pocket-detection/scripts/p2rank_binding_pockets.py",
-      "sha256": "4e1c1192ec8529f73cce83d56cdfd805f539f80008ba7fcce4816de5a3dd5ba1",
-      "bytes": 22610
+      "sha256": "5bdb500ef971d4eaaef86052c1ce0dce63a97a25ba6fbaf4c98a0ae9e63e4ecb",
+      "bytes": 20393
+    },
+    {
+      "path": "p2rank-pocket-detection/scripts/p2rank_predictions.py",
+      "sha256": "7c2a0c830e3fc19948698e4aaaf9735f1a7f8c47f5d5ff2b3f1e36586e2eb13e",
+      "bytes": 4193
     },
     {
       "path": "p2rank-pocket-detection/SKILL.md",

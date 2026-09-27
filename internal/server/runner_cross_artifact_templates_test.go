@@ -5,6 +5,7 @@ import (
 	"strings"
 )
 
+// Compact test adapter over the production streaming validator.
 func runnerCrossArtifactTemplateFailures(name, content string) []string {
 	failures, err := scanRunnerTemplateFailures(context.Background(), strings.NewReader(content), name)
 	if err != nil {

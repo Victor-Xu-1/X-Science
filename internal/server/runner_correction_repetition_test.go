@@ -70,7 +70,7 @@ func TestCorrectionCountIsIndependentOfReplayWindow(t *testing.T) {
 		if runnerRepeatedCorrectionInterruptionCount(legacyScoped, cause) != 2 {
 			t.Fatal("input-revision fallback lost the claim-bound repetition projection")
 		}
-		for _, message := range sessionEntriesToChatMessages("", scoped) {
+		for _, message := range requireProviderReplayMessages(t, "", scoped) {
 			if strings.Contains(message.Content, runnerCorrectionRepetitionProjectionType) {
 				t.Fatal("internal repetition projection leaked into model text")
 			}

@@ -69,6 +69,8 @@ type ExecutionPack struct {
 	Downloads         []ExecutionDownload         `json:"downloads,omitempty"`
 	Parameters        []ExecutionParameter        `json:"parameters,omitempty"`
 	EvidenceResolvers []ExecutionEvidenceResolver `json:"evidenceResolvers,omitempty"`
+	InputLineage      []ExecutionInputLineage     `json:"inputLineage,omitempty"`
+	DocumentedInputs  []ExecutionDocumentedInput  `json:"documentedInputs,omitempty"`
 	Outputs           []ExecutionOutput           `json:"outputs,omitempty"`
 	Comparisons       []ExecutionComparison       `json:"comparisons,omitempty"`
 	ScoreKind         string                      `json:"scoreKind,omitempty"`
@@ -104,16 +106,17 @@ type ExecutionDownload struct {
 }
 
 type ExecutionParameter struct {
-	Name          string   `json:"name"`
-	Argument      string   `json:"argument"`
-	Type          string   `json:"type"`
-	Required      bool     `json:"required"`
-	Default       any      `json:"default,omitempty"`
-	Minimum       *float64 `json:"minimum,omitempty"`
-	Maximum       *float64 `json:"maximum,omitempty"`
-	Evidence      string   `json:"evidence,omitempty"`
-	EvidenceGroup string   `json:"evidenceGroup,omitempty"`
-	EvidenceTerms []string `json:"evidenceTerms,omitempty"`
+	Name          string                  `json:"name"`
+	Argument      string                  `json:"argument"`
+	Type          string                  `json:"type"`
+	Required      bool                    `json:"required"`
+	Default       any                     `json:"default,omitempty"`
+	Minimum       *float64                `json:"minimum,omitempty"`
+	Maximum       *float64                `json:"maximum,omitempty"`
+	Evidence      string                  `json:"evidence,omitempty"`
+	EvidenceGroup string                  `json:"evidenceGroup,omitempty"`
+	EvidenceTerms []string                `json:"evidenceTerms,omitempty"`
+	InputEvidence *ExecutionInputEvidence `json:"inputEvidence,omitempty"`
 }
 
 type ExecutionEvidenceResolver struct {
@@ -263,6 +266,9 @@ func (catalog Catalog) Validate() error {
 	}
 	for _, capability := range catalog.Capabilities {
 		for _, engine := range capability.AcceptedEngines {
+			if err := catalog.validateExecutionInputEvidence(engine.ExecutionPack); err != nil {
+				return fmt.Errorf("execution pack %q input evidence: %w", engine.ExecutionPack.ID, err)
+			}
 			for _, resolver := range engine.ExecutionPack.EvidenceResolvers {
 				targets := localResolverTargets[strings.ToLower(strings.TrimSpace(resolver.Skill))]
 				if len(targets) == 0 || !targets[strings.ToLower(strings.TrimSpace(resolver.Implementation))] {
@@ -429,9 +435,7 @@ func validateExecutionPack(capabilityID string, engine EngineDefinition) error {
 			if input.Kind != download.InputKind {
 				continue
 			}
-			for _, extension := range input.Extensions {
-				validExtension = validExtension || strings.HasSuffix(strings.ToLower(filename), extension)
-			}
+			validExtension = validExtension || matchesExecutionInputExtension(filename, input.Extensions)
 		}
 		if !inputKinds[download.InputKind] || parseErr != nil || parsed.Scheme != "https" ||
 			parsed.Host == "" || parsed.User != nil || parsed.Fragment != "" || len(download.URL) > 2048 ||
@@ -502,7 +506,7 @@ func validateExecutionPack(capabilityID string, engine EngineDefinition) error {
 	seenResolvers := map[string]bool{}
 	for _, resolver := range pack.EvidenceResolvers {
 		key := strings.ToLower(strings.TrimSpace(resolver.EvidenceGroup) + "\x00" + strings.TrimSpace(resolver.Skill) + "\x00" + strings.TrimSpace(resolver.Implementation))
-		if !evidenceGroupTerms[resolver.EvidenceGroup] || !identifierPattern.MatchString(resolver.Skill) ||
+		if (!evidenceGroupTerms[resolver.EvidenceGroup] && !executionInputEvidenceGroup(pack, resolver.EvidenceGroup)) || !identifierPattern.MatchString(resolver.Skill) ||
 			!validBoundedText(resolver.Implementation, 128) || seenResolvers[key] {
 			return errors.New("execution evidence resolver is invalid or duplicated")
 		}

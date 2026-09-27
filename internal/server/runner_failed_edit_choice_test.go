@@ -17,9 +17,9 @@ func TestCorrectionFailedNativeEditAllowsAlternateToolStrategy(t *testing.T) {
 				runnerEvidenceDepthCall("save-bad", "save_artifacts", map[string]any{"files": []string{"input.pdb"}}),
 				{Role: "tool", ToolCallID: "save-bad", Content: `{"ok":false,"code":"artifact_save_requires_correction","errors":[{"path":"input.pdb","code":"unresolved_template_marker"}]}`},
 			}
-			before, _ := sessionRunnerCorrectionRequiredToolChoice(run, messages, tools).(map[string]any)
-			if before["name"] != "edit_file" {
-				t.Fatalf("fixture did not require edit: %#v", before)
+			before := sessionRunnerCorrectionRequiredToolChoice(run, messages, tools)
+			if before != "required" {
+				t.Fatalf("fixture excluded preparatory repair tools: %#v", before)
 			}
 			messages = append(messages,
 				agentruntime.Message{Role: "assistant", ToolCalls: []agentruntime.ToolCall{correctionEditCall("edit-bad", "input.pdb", "{% include https://example.test/input.pdb %}")}},
@@ -45,9 +45,9 @@ func TestCorrectionFailedNativeEditAllowsAlternateToolStrategy(t *testing.T) {
 				agentruntime.Message{Role: "assistant", ToolCalls: []agentruntime.ToolCall{correctionEditCall("edit-fixed", "input.pdb", "valid bytes")}},
 				agentruntime.Message{Role: "tool", ToolCallID: "edit-fixed", Content: `{"ok":true,"changed":true}`},
 			)
-			choice, _ := gateway.RequiredToolChoice(messages, tools).(map[string]any)
-			if choice["name"] != "save_artifacts" {
-				t.Fatalf("real mutation did not advance to publication: %#v", choice)
+			choice := gateway.RequiredToolChoice(messages, tools)
+			if choice != "required" {
+				t.Fatalf("real mutation excluded verification before publication: %#v", choice)
 			}
 		})
 	}

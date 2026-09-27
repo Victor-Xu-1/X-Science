@@ -43,5 +43,9 @@ func addScientificArtifactFailureFeedback(failure map[string]any, err error) {
 	failure["validation_records"] = result.SupplierRecordCount
 	failure["validation_parsed_records"] = result.ParsedCount
 	failure["validation_invalid_records"] = result.InvalidRecordCount
+	if len(result.InvalidRecordLocations) > 0 {
+		failure["validation_invalid_record_locations"] = result.InvalidRecordLocations
+		failure["validation_locations_truncated"] = len(result.InvalidRecordLocations) < result.InvalidRecordCount
+	}
 	failure["validation_detail"] = fmt.Sprintf("%s: format=%s records=%d parsed=%d invalid=%d; counts are a stream summary, not line locations", invalid.Code, result.Format, result.SupplierRecordCount, result.ParsedCount, result.InvalidRecordCount)
 }

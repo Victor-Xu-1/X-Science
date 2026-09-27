@@ -30,6 +30,15 @@ def contact_email() -> str | None:
     return os.environ.get("OPERON_CONTACT_EMAIL") or None
 
 
+def validate_optional_contact_email(value: str | None) -> str | None:
+    """Omit absent identification, but do not silently accept a malformed one."""
+    if value is None:
+        return None
+    if not isinstance(value, str) or "@" not in value or any(c.isspace() for c in value):
+        raise ValueError("contact email must be a valid address when provided")
+    return value
+
+
 def require_contact_email(*, env_override: str = "NCBI_EMAIL") -> str:
     """Return ``env_override`` > consented email; raise ``ContactEmailRequired``
     when neither yields a usable address. For upstreams (NCBI E-utilities)

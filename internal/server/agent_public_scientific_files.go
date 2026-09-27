@@ -144,7 +144,7 @@ func agentPublicScientificFileToolSchema() agentruntime.ToolSchema {
 				"source_tool_call_id": map[string]any{"type": "string", "maxLength": 512, "description": "Optional prior source tool-call id. Omit when the exact URL uniquely identifies the latest durable source result."},
 				"url":                 map[string]any{"type": "string", "minLength": 1, "maxLength": 4096, "description": "Exact public HTTPS URL already returned by a completed source tool."},
 				"filename":            map[string]any{"type": "string", "minLength": 1, "maxLength": 200, "description": "Optional path-free filename with the same format extension as the source URL."},
-				"expected_sha256":     map[string]any{"type": "string", "pattern": "^[0-9a-f]{64}$", "description": "Optional authoritative lowercase SHA-256 checksum; provide it for safe owner-scoped reuse of an already verified download across tasks."},
+				"expected_sha256":     map[string]any{"type": "string", "pattern": "^[0-9a-f]{64}$", "description": "Optional authoritative lowercase SHA-256 of the complete file, for integrity and owner-scoped reuse. Omit if no complete-file checksum is known. Never use web_fetch bodySha256 from partial/ranged/preview response bytes as the full-file checksum; its bodyHashScope describes only the inspected bytes. Never remove a genuine authoritative checksum merely to bypass a mismatch."},
 				"human_description":   map[string]any{"type": "string", "minLength": 1, "maxLength": 256, "description": "Short present-participle label for the download."},
 			},
 			"required": []string{"url", "human_description"},

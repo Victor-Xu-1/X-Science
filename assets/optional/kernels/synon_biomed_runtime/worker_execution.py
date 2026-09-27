@@ -76,6 +76,7 @@ class Worker:
             frames = [frame for frame in traceback.extract_tb(error.__traceback__) if frame.filename == filename]
             if frames:
                 result["trace"] = {"error_lineno": frames[-1].lineno, "error_call": frames[-1].line}
+            streams.capture_subprocess_failure(error)
         finally:
             self.executing = False
             result["trace"]["execution_reads"] = self.execution_reads.finish()

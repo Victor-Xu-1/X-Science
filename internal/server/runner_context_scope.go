@@ -462,7 +462,8 @@ func (s *Server) autoCompactSessionForRunner(ctx context.Context, options Sessio
 	}
 	contextWindow := runnerContextWindow(options)
 	threshold := s.autoCompactTokenThreshold(contextWindow)
-	forceAfterProviderPressure := providerContextPressureRequiresCompaction(entries)
+	pressureReason := runnerContextPressureRequiringCompaction(entries)
+	forceAfterProviderPressure := pressureReason != ""
 	result.EstimatedTokens = estimated
 	result.Threshold = threshold
 	result.ContextWindow = contextWindow
@@ -476,10 +477,14 @@ func (s *Server) autoCompactSessionForRunner(ctx context.Context, options Sessio
 		estimated, threshold, defaultRunnerAutoCompactContextPercent, contextWindow,
 	)
 	if forceAfterProviderPressure {
-		result.TriggerReason = sessionRunnerProviderContextPressureReasonCode
+		result.TriggerReason = pressureReason
+		pressureSource := "the provider rejected the prior execution unit for context pressure"
+		if pressureReason == sessionRunnerRequestContextPressureReasonCode {
+			pressureSource = "the fully assembled request reached the configured context budget before provider dispatch"
+		}
 		instructions = fmt.Sprintf(
-			"Automatic compact before runner model call after the provider rejected the prior execution unit for context pressure. Preserve the original task, verified evidence, tool outcomes, artifact paths, unresolved work, and failure provenance. Estimated context=%d tokens, configured threshold=%d, context window=%d.",
-			estimated, threshold, contextWindow,
+			"Automatic compact before runner model call after %s. Preserve the original task, verified evidence, tool outcomes, artifact paths, unresolved work, and failure provenance. Estimated context=%d tokens, configured threshold=%d, context window=%d.",
+			pressureSource, estimated, threshold, contextWindow,
 		)
 	}
 	result.Message = fmt.Sprintf(
@@ -584,21 +589,21 @@ func (s *Server) compactSummaryWithPlanNavigation(frameID, summary string) strin
 	return summary + "\nDurable plan navigation state:\n" + navigation
 }
 
-// providerContextPressureRequiresCompaction reports whether a provider context
-// rejection is still unresolved in the durable replay. A later user follow-up
+// runnerContextPressureRequiringCompaction returns the unresolved request-budget
+// or provider context-pressure reason in durable replay. A later user follow-up
 // does not erase the pressure: compacting preserves that input while avoiding a
 // second identical rejection. A durable compact boundary or a newer completed
 // assistant turn clears the recovery trigger.
-func providerContextPressureRequiresCompaction(entries []eventjournal.Entry) bool {
+func runnerContextPressureRequiringCompaction(entries []eventjournal.Entry) string {
 	for index := len(entries) - 1; index >= 0; index-- {
 		entry := entries[index]
 		if isCompactJournalEntry(entry) {
-			return false
+			return ""
 		}
 		message := entry.Message
 		if strings.TrimSpace(stringValue(message["type"])) == "message" &&
 			strings.TrimSpace(stringValue(message["role"])) == "assistant" {
-			return false
+			return ""
 		}
 		if strings.TrimSpace(stringValue(message["type"])) != "runner_checkpoint" {
 			continue
@@ -607,11 +612,11 @@ func providerContextPressureRequiresCompaction(entries []eventjournal.Entry) boo
 		if reason == "" {
 			reason = strings.TrimSpace(stringValue(message["reasonCode"]))
 		}
-		if reason == sessionRunnerProviderContextPressureReasonCode {
-			return true
+		if reason == sessionRunnerProviderContextPressureReasonCode || reason == sessionRunnerRequestContextPressureReasonCode {
+			return reason
 		}
 	}
-	return false
+	return ""
 }
 
 func (s *Server) autoCompactEnabled() bool {

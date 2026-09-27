@@ -75,50 +75,6 @@ func normalizeSessionRunnerChatOptions(options SessionRunnerChatOptions) Session
 	return options
 }
 
-func sessionEntriesToChatMessages(systemPrompt string, entries []eventjournal.Entry) []chatCompletionMessage {
-	messages := []chatCompletionMessage{{Role: "system", Content: systemPrompt}}
-	compactSummary, compactEventID, hasCompact := latestCompactModelContext(entries)
-	if hasCompact {
-		messages = append(messages, chatCompletionMessage{
-			Role:    "system",
-			Content: "Synon compact handoff context:\n" + compactSummary,
-		})
-	}
-	if correctionContext := recoveredRunnerCorrectionContext(entries); correctionContext != "" {
-		messages = append(messages, chatCompletionMessage{Role: "system", Content: correctionContext})
-	}
-	latestPreCompactUser := ""
-	for _, entry := range entries {
-		if hasCompact && entry.EventID <= compactEventID {
-			if role := strings.TrimSpace(stringValue(entry.Message["role"])); role == "user" {
-				if text := runnerModelMessageText(entry.Message); text != "" {
-					latestPreCompactUser = text
-				}
-			}
-			continue
-		}
-		role := strings.TrimSpace(stringValue(entry.Message["role"]))
-		if eventType := strings.TrimSpace(stringValue(entry.Message["type"])); eventType == "content_delta" || eventType == "content_reset" {
-			continue
-		}
-		if role != "user" && role != "assistant" {
-			continue
-		}
-		text := runnerMessageText(entry.Message)
-		if role == "user" {
-			text = runnerModelMessageText(entry.Message)
-		}
-		if text == "" {
-			continue
-		}
-		messages = append(messages, chatCompletionMessage{Role: role, Content: text})
-	}
-	if hasCompact && !hasChatRole(messages, "user") && strings.TrimSpace(latestPreCompactUser) != "" {
-		messages = append(messages, chatCompletionMessage{Role: "user", Content: latestPreCompactUser})
-	}
-	return messages
-}
-
 type recoveredRunnerCorrection struct {
 	ReasonCode               string
 	Detail                   string

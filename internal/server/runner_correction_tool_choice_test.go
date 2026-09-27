@@ -893,7 +893,7 @@ func TestGatewayAppliesImmediateArtifactEvidenceRepairOutsideCompletionCorrectio
 	}
 }
 
-func TestFailedDelimitedArtifactSaveUsesWriterBeforeRetry(t *testing.T) {
+func TestFailedDelimitedArtifactSaveKeepsRepairStrategyOpen(t *testing.T) {
 	run := &sessionRunnerChatRun{}
 	saveCall := agentruntime.Message{Role: "assistant", ToolCalls: []agentruntime.ToolCall{{
 		ID: "save-1", Name: "save_artifacts", Arguments: json.RawMessage(`{"files":["source_ledger.csv"]}`),
@@ -906,9 +906,9 @@ func TestFailedDelimitedArtifactSaveUsesWriterBeforeRetry(t *testing.T) {
 	tools := []agentruntime.ToolSchema{{Name: "repl"}, {Name: "edit_file"}, {Name: "save_artifacts"}}
 	messages := []agentruntime.Message{saveCall, saveResult}
 
-	choice, _ := sessionRunnerCorrectionRequiredToolChoice(run, messages, tools).(map[string]any)
-	if choice["name"] != "edit_file" {
-		t.Fatalf("malformed delimited artifact did not use the declared artifact editor: %#v", choice)
+	choice := sessionRunnerCorrectionRequiredToolChoice(run, messages, tools)
+	if choice != "required" {
+		t.Fatalf("malformed delimited artifact excluded inspection or computation: %#v", choice)
 	}
 
 	writeCall := agentruntime.Message{Role: "assistant", ToolCalls: []agentruntime.ToolCall{{
@@ -918,9 +918,9 @@ func TestFailedDelimitedArtifactSaveUsesWriterBeforeRetry(t *testing.T) {
 		"ok":true,"changed":true,"path":"source_ledger.csv"
 	}`}
 	messages = append(messages, writeCall, writeResult)
-	choice, _ = sessionRunnerCorrectionRequiredToolChoice(run, messages, tools).(map[string]any)
-	if choice["name"] != "save_artifacts" {
-		t.Fatalf("writer-corrected delimited artifact did not advance to save: %#v", choice)
+	choice = sessionRunnerCorrectionRequiredToolChoice(run, messages, tools)
+	if choice != "required" {
+		t.Fatalf("an edit excluded further repair or validation: %#v", choice)
 	}
 
 	saveCall2 := agentruntime.Message{Role: "assistant", ToolCalls: []agentruntime.ToolCall{{
@@ -933,7 +933,7 @@ func TestFailedDelimitedArtifactSaveUsesWriterBeforeRetry(t *testing.T) {
 	}
 }
 
-func TestFailedScientificArtifactSaveUsesWriterBeforeRetry(t *testing.T) {
+func TestFailedScientificArtifactSaveKeepsRepairStrategyOpen(t *testing.T) {
 	run := &sessionRunnerChatRun{TaskIntent: "Repair and save the molecule set"}
 	saveCall := agentruntime.Message{Role: "assistant", ToolCalls: []agentruntime.ToolCall{{
 		ID: "save-scientific", Name: "save_artifacts",
@@ -951,9 +951,9 @@ func TestFailedScientificArtifactSaveUsesWriterBeforeRetry(t *testing.T) {
 		{Name: "save_artifacts", Capabilities: []string{"artifact-publication"}},
 	}
 	messages := []agentruntime.Message{saveCall, saveResult}
-	choice, _ := sessionRunnerCorrectionRequiredToolChoice(run, messages, tools).(map[string]any)
-	if choice["name"] != "edit_file" {
-		t.Fatalf("invalid scientific artifact did not require its writer: %#v", choice)
+	choice := sessionRunnerCorrectionRequiredToolChoice(run, messages, tools)
+	if choice != "required" {
+		t.Fatalf("invalid scientific artifact excluded preparation or diagnosis: %#v", choice)
 	}
 
 	editCall := agentruntime.Message{Role: "assistant", ToolCalls: []agentruntime.ToolCall{{
@@ -962,9 +962,9 @@ func TestFailedScientificArtifactSaveUsesWriterBeforeRetry(t *testing.T) {
 	}}}
 	editResult := agentruntime.Message{Role: "tool", ToolCallID: "edit-scientific", Content: `{"ok":true,"changed":true}`}
 	messages = append(messages, editCall, editResult)
-	choice, _ = sessionRunnerCorrectionRequiredToolChoice(run, messages, tools).(map[string]any)
-	if choice["name"] != "save_artifacts" {
-		t.Fatalf("scientific repair did not advance to publication: %#v", choice)
+	choice = sessionRunnerCorrectionRequiredToolChoice(run, messages, tools)
+	if choice != "required" {
+		t.Fatalf("scientific repair excluded follow-up validation: %#v", choice)
 	}
 }
 

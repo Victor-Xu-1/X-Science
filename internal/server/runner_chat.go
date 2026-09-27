@@ -66,7 +66,7 @@ const sessionRunnerProviderContinuationContractVersion = 1
 // improves. Retry budgets are scoped to this revision so failures produced by
 // an older repair contract cannot permanently quarantine a task after an
 // upgrade, while repeated failures under the current strategy stay bounded.
-const sessionRunnerRecoveryContractRevision = 30
+const sessionRunnerRecoveryContractRevision = 45
 
 const sessionRunnerConsecutiveIdenticalToolRoundBudget = 3
 const sessionRunnerToolRoundNoProgressReasonCode = "runner_tool_round_no_progress"
@@ -75,6 +75,7 @@ const sessionRunnerCorrectionNoProgressExhaustedReasonCode = transcriptstore.Ret
 const sessionRunnerToolRoundLimitReasonCode = "runner_tool_round_limit_exhausted"
 const sessionRunnerToolFailedReasonCode = "tool_call_failed"
 const sessionRunnerProviderContextPressureReasonCode = "provider_context_pressure"
+const sessionRunnerRequestContextPressureReasonCode = "request_context_compaction_required"
 const sessionRunnerProviderOutputTokenLimitReasonCode = "provider_output_token_limit"
 const sessionRunnerModelProtocolErrorReasonCode = "provider_model_protocol_error"
 const sessionRunnerRequiredToolChoiceUnsatisfiedReasonCode = "required_tool_choice_unsatisfied"

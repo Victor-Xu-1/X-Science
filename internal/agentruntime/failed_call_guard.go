@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"net/url"
-	"regexp"
 	"strings"
 	"sync"
 
@@ -17,13 +16,12 @@ type failedToolCallGuard struct {
 	next ToolGateway
 
 	mu                        sync.Mutex
-	failedCalls               map[string]string
 	failedCallMutationEpoch   map[string]uint64
 	nonProgressingCalls       map[string]uint64
 	nonRetryablePartialCalls  map[string]int
 	nonRetryablePartialEpoch  map[string]uint64
 	blockedSourceDestinations map[string]string
-	externalStateFailures     map[string]string
+	executionFailures         ExecutionFailureLedger
 	transientSourceAttempts   map[string]int
 	transientSourceEpoch      map[string]uint64
 	toolCapabilities          map[string][]string
@@ -31,9 +29,6 @@ type failedToolCallGuard struct {
 }
 
 const maxNonRetryablePartialAttempts = 2
-
-var semanticFailurePathPattern = regexp.MustCompile(`(?:[A-Za-z]:)?[/\\][^\s:'"]+`)
-var semanticFailureLinePattern = regexp.MustCompile(`\bline\s+\d+\b`)
 
 // A source connector may legitimately be unavailable for a short interval,
 // but changing the query does not repair an unavailable upstream. Bound the
@@ -104,13 +99,11 @@ func newFailedToolCallGuard(next ToolGateway, schemas ...ToolSchema) ToolGateway
 	}
 	guard := &failedToolCallGuard{
 		next:                      next,
-		failedCalls:               make(map[string]string),
 		failedCallMutationEpoch:   make(map[string]uint64),
 		nonProgressingCalls:       make(map[string]uint64),
 		nonRetryablePartialCalls:  make(map[string]int),
 		nonRetryablePartialEpoch:  make(map[string]uint64),
 		blockedSourceDestinations: make(map[string]string),
-		externalStateFailures:     make(map[string]string),
 		transientSourceAttempts:   make(map[string]int),
 		transientSourceEpoch:      make(map[string]uint64),
 		toolCapabilities:          make(map[string][]string),
@@ -168,10 +161,7 @@ func (g *failedToolCallGuard) Execute(ctx context.Context, call ToolCall) (ToolR
 	}
 	toolName := strings.TrimSpace(executionCall.Name)
 	toolCapabilities := g.toolCapabilitiesFor(toolName)
-	executionTool := toolCapabilitySetContainsAny(toolCapabilities, "runtime-execution", "artifact-write", "software-provisioning")
-	if len(toolCapabilities) == 0 {
-		executionTool = registeredExecutionTool(toolName)
-	}
+	executionTool := executionFailureTool(toolName, toolCapabilities)
 	fingerprint := failedToolCallFingerprint(executionCall)
 	sourceDestination := failedToolCallSourceDestination(executionCall, toolCapabilities)
 	g.mu.Lock()
@@ -190,11 +180,10 @@ func (g *failedToolCallGuard) Execute(ctx context.Context, call ToolCall) (ToolR
 	if transientSourceBucket != "" && g.transientSourceEpoch[transientSourceBucket] == g.mutationEpoch {
 		transientSourceAttempts = g.transientSourceAttempts[transientSourceBucket]
 	}
-	semanticTarget := semanticToolFailureTarget(toolName, executionCall.Arguments)
-	_, waitsForExternalState := g.externalStateFailures[semanticTarget]
+	executionBoundary := g.executionFailures.Boundary(executionCall)
 	g.mu.Unlock()
-	if waitsForExternalState {
-		return failedToolCallGuardBoundary(semanticExternalStateRequiredBoundary(toolName)), nil
+	if executionBoundary != nil {
+		return failedToolCallGuardBoundary(executionBoundary), nil
 	}
 	if repeatedNonProgress {
 		return failedToolCallGuardBoundary(map[string]any{
@@ -250,7 +239,6 @@ func (g *failedToolCallGuard) Execute(ctx context.Context, call ToolCall) (ToolR
 		executionCall.Arguments = append(json.RawMessage(nil), result.ExecutedArguments...)
 		fingerprint = failedToolCallFingerprint(executionCall)
 		sourceDestination = failedToolCallSourceDestination(executionCall, toolCapabilities)
-		semanticTarget = semanticToolFailureTarget(toolName, executionCall.Arguments)
 	}
 	// A trusted Materialized result is an immutable durable protocol value.
 	// The guard may update its private retry budget from that value, but it must
@@ -260,6 +248,13 @@ func (g *failedToolCallGuard) Execute(ctx context.Context, call ToolCall) (ToolR
 	mutableEnvelope := result.Materialized == nil
 	outcome := ClassifyToolResult(result.Value)
 	nonExecutingPreflight := IsNonExecutingPreflight(result.Value)
+	if executionTool && ToolResultDidNotExecute(result.Value) && isTransientRuntimeFailure(result.Value) {
+		// No execution exists to reconcile. A temporary admission outage must
+		// not become a permanent failed-job lock: retry the same operation once
+		// its owner recovers. Preserve the owner's retry advice and immutable
+		// receipt; the engine's existing no-progress window bounds blind calls.
+		return result, nil
+	}
 	if outcome.HardFailed() && boundedExactToolRetryAllowed(result.Value) && !executionTool {
 		// Some stateful tool protocols deliberately permit one or more exact
 		// resubmissions and expose the remaining budget in their trusted result
@@ -267,20 +262,21 @@ func (g *failedToolCallGuard) Execute(ctx context.Context, call ToolCall) (ToolR
 		// protocol-owned budget before the tool itself can count the next try.
 		return result, nil
 	}
-	if isTransientRuntimeFailure(result.Value) && executionTool {
+	if executionTool && outcome.HardFailed() && executionFailureNeedsExternalState(result.Value) {
 		if value, ok := result.Value.(map[string]any); ok && mutableEnvelope {
+			kind := executionFailureKind(result.Value)
 			code := toolResultCode(value)
 			if code == "" {
-				code = "transient"
+				code = string(kind)
 				value["code"] = code
 			}
-			failurecontract.ApplyTerminalJobFailure(value, code)
+			value["failure_kind"] = string(kind)
+			value["terminal"] = true
+			value["retryable"] = false
+			value["next_action"] = failurecontract.NextAction(kind)
 			value["execution_unit_state"] = "failed"
 		}
-		g.mu.Lock()
-		g.externalStateFailures[semanticTarget] = toolName
-		g.mu.Unlock()
-	} else if isTransientRuntimeFailure(result.Value) {
+	} else if !executionTool && isTransientRuntimeFailure(result.Value) {
 		// The runtime was draining (backend restart in progress) or the
 		// upstream reported itself unavailable. These are infrastructure
 		// conditions, not argument bugs: the identical call is the correct
@@ -316,9 +312,10 @@ func (g *failedToolCallGuard) Execute(ctx context.Context, call ToolCall) (ToolR
 	nonProgressingMutation := !nonExecutingPreflight &&
 		(outcome == ToolResultSucceeded || outcome == ToolResultPartial) &&
 		workspaceMutationTool(toolName, toolCapabilities) && toolResultExplicitlyNoMutation(result.Value)
-	mutationCommitted := workspaceMutationCommitted(toolName, toolCapabilities, outcome, result.Value)
+	mutationCommitted := WorkspaceMutationCommitted(toolName, toolCapabilities, outcome, result.Value)
 	g.mu.Lock()
 	defer g.mu.Unlock()
+	g.executionFailures.Observe(executionCall, toolCapabilities, result.Value)
 	if sourceDestination != "" && (nonRetryableSourceBoundary(result.Value) || definitiveUnavailable) {
 		g.blockedSourceDestinations[sourceDestination] = toolName
 	}
@@ -341,19 +338,12 @@ func (g *failedToolCallGuard) Execute(ctx context.Context, call ToolCall) (ToolR
 		}
 		g.nonRetryablePartialCalls[fingerprint]++
 		g.nonRetryablePartialEpoch[fingerprint] = g.mutationEpoch
-	} else if (outcome.HardFailed() || definitiveUnavailable) && !nonExecutingPreflight {
-		g.failedCalls[fingerprint] = toolName
+	} else if !executionTool && (outcome.HardFailed() || definitiveUnavailable) && !nonExecutingPreflight {
 		g.failedCallMutationEpoch[fingerprint] = g.mutationEpoch
 	} else if !nonExecutingPreflight {
-		// Only a successful call to the same tool proves that its arguments or
-		// relevant state were corrected. Unrelated successes must not reopen a
-		// previously failed exact call.
-		for failedFingerprint, failedTool := range g.failedCalls {
-			if failedTool == toolName {
-				delete(g.failedCalls, failedFingerprint)
-				delete(g.failedCallMutationEpoch, failedFingerprint)
-			}
-		}
+		// A read-only inspection through the same executor does not repair a
+		// different failed call. Committed mutations already advance the epoch;
+		// success retires only this exact execution's stale failure receipt.
 		// A successful execution of this exact call proves that the caller
 		// has made progress; do not carry its stale partial-failure guard.
 		delete(g.nonRetryablePartialCalls, fingerprint)
@@ -366,49 +356,6 @@ func (g *failedToolCallGuard) Execute(ctx context.Context, call ToolCall) (ToolR
 		}
 	}
 	return result, nil
-}
-
-// semanticToolFailureFingerprint creates a stable, non-sensitive diagnostic
-// family for durable recovery state. It never decides whether corrected code
-// may execute; exact execution identity owns that decision.
-func semanticToolFailureFingerprint(call ToolCall, value any, capabilities []string) string {
-	toolName := strings.ToLower(strings.TrimSpace(call.Name))
-	executionTool := toolCapabilitySetContainsAny(capabilities, "runtime-execution", "artifact-write", "software-provisioning")
-	if len(capabilities) == 0 {
-		executionTool = registeredExecutionTool(toolName)
-	}
-	if !executionTool {
-		return ""
-	}
-	object, ok := value.(map[string]any)
-	if !ok {
-		return ""
-	}
-	codeValue, _ := object["code"].(string)
-	code := strings.ToLower(strings.TrimSpace(codeValue))
-	if code == "" {
-		status, _ := object["status"].(string)
-		if strings.EqualFold(strings.TrimSpace(status), "code_preflight_required") {
-			code = "code_preflight_required"
-		} else {
-			code = "failure"
-		}
-	}
-	diagnostic := semanticFailureDiagnostic(object)
-	if diagnostic == "" {
-		return ""
-	}
-	// These are typed runtime contracts, not independent user inputs. Once a
-	// documented API/CLI, output witness, dependency, or environment contract
-	// has failed repeatedly, changing the script text does not create a new
-	// repair opportunity; it is the same Synon execution failure layer.
-	switch code {
-	case "software_api_contract_mismatch", "software_cli_arguments_invalid", "software_runtime_import_missing",
-		"software_dependency_unavailable", "software_environment_witness_failed", "software_output_validation_failed",
-		"software_quality_contract_failed", "software_request_unsupported", "software_input_contract_failed", "code_preflight_required":
-		diagnostic = "typed_contract"
-	}
-	return toolName + "|" + semanticToolFailureTarget(toolName, call.Arguments) + "|" + code + "|" + diagnostic
 }
 
 func registeredExecutionTool(toolName string) bool {
@@ -443,73 +390,11 @@ func semanticToolFailureTarget(toolName string, arguments json.RawMessage) strin
 
 func semanticExternalStateRequiredBoundary(toolName string) map[string]any {
 	return map[string]any{
-		"ok": false, "status": "external_state_required", "executed": false,
+		"ok": false, "status": "external_state_required", "executed": false, "preflight": true,
 		"code": "external_state_required", "tool": strings.TrimSpace(toolName),
 		"message":     "the previous registered execution ended on an external runtime condition; wait for a new user or external-state signal before starting another execution",
 		"next_action": "wait_for_external_state_then_start_new_execution",
 	}
-}
-
-func semanticFailureDiagnostic(object map[string]any) string {
-	for _, key := range []string{"stderr", "error", "message"} {
-		text, ok := object[key].(string)
-		if !ok {
-			continue
-		}
-		lines := strings.Split(strings.TrimSpace(text), "\n")
-		for index := len(lines) - 1; index >= 0; index-- {
-			line := strings.TrimSpace(lines[index])
-			if line == "" {
-				continue
-			}
-			line = semanticFailurePathPattern.ReplaceAllString(line, "<path>")
-			line = semanticFailureLinePattern.ReplaceAllString(line, "line <n>")
-			return strings.Join(strings.Fields(line), " ")
-		}
-	}
-	return ""
-}
-
-// SemanticFailureFingerprint returns the canonical family identity used by the
-// in-memory guard. Callers must treat it as opaque and never surface the raw
-// diagnostic; it may contain only server-derived bounded evidence.
-func SemanticFailureFingerprint(toolName string, arguments json.RawMessage, value any) string {
-	return semanticToolFailureFingerprint(ToolCall{Name: toolName, Arguments: arguments}, value, nil)
-}
-
-// SemanticFailureFingerprintWithCapabilities is the canonical path for new
-// runtime checkpoints. The compatibility wrapper above remains for historical
-// records that predate immutable Tool capability metadata.
-func SemanticFailureFingerprintWithCapabilities(
-	toolName string,
-	arguments json.RawMessage,
-	value any,
-	capabilities []string,
-) string {
-	return semanticToolFailureFingerprint(
-		ToolCall{Name: toolName, Arguments: arguments}, value, capabilities,
-	)
-}
-
-func SemanticFailureTarget(toolName string, arguments json.RawMessage) string {
-	return semanticToolFailureTarget(toolName, arguments)
-}
-
-// SemanticFailureFamilyTool returns the normalized tool name encoded in a
-// semantic failure family identity.
-func SemanticFailureFamilyTool(fingerprint string) string {
-	if separator := strings.IndexByte(fingerprint, '|'); separator > 0 {
-		return strings.TrimSpace(fingerprint[:separator])
-	}
-	return ""
-}
-
-func SemanticFailureFamilyKind(fingerprint string) failurecontract.Kind {
-	parts := strings.SplitN(fingerprint, "|", 4)
-	if len(parts) < 3 {
-		return failurecontract.ResultRejected
-	}
-	return failurecontract.KindForDetailCode(parts[2])
 }
 
 func boundedExactToolRetryAllowed(value any) bool {
@@ -541,13 +426,18 @@ func boundedRetryCount(value any) (int64, bool) {
 	}
 }
 
-// workspaceMutationCommitted advances the guard only after a tool that can
+// WorkspaceMutationCommitted advances retry state only after a tool that can
 // change the task workspace reports a committed result. This is intentionally
 // narrower than "any successful tool": a read/search result must not reopen a
 // previously failed exact call. A hard-failed Python/R call may still have
 // written durable files, so files_written/artifacts are treated as committed
 // evidence and also advance the epoch.
-func workspaceMutationCommitted(toolName string, capabilities []string, outcome ToolResultOutcome, value any) bool {
+// Both live execution and durable replay use this predicate; a restarted
+// runner must neither forget unchanged failures nor reject committed repairs.
+func WorkspaceMutationCommitted(toolName string, capabilities []string, outcome ToolResultOutcome, value any) bool {
+	if ToolResultDidNotExecute(value) {
+		return false
+	}
 	name := strings.TrimSpace(toolName)
 	mutationTool := workspaceMutationTool(name, capabilities)
 	if !mutationTool {
@@ -624,8 +514,8 @@ func nonRetryableSourceBoundary(value any) bool {
 // (ErrRuntimeDraining surfaces as "runtime draining"), or the tool explicitly
 // reported the upstream source unavailable.
 func isTransientRuntimeFailure(value any) bool {
-	object, ok := value.(map[string]any)
-	if !ok {
+	object := toolResultEnvelopeMap(value)
+	if object == nil {
 		return false
 	}
 	if object["sourceUnavailable"] == true || isRetryableSourceUnavailable(value) {
@@ -640,20 +530,22 @@ func isTransientRuntimeFailure(value any) bool {
 }
 
 func isRetryableSourceUnavailable(value any) bool {
-	object, ok := value.(map[string]any)
-	if !ok {
-		return false
-	}
-	if object["sourceUnavailable"] != true {
-		message, _ := object["error"].(string)
-		message = strings.ToLower(strings.TrimSpace(message))
-		if !strings.Contains(message, "authority is unavailable") &&
-			!strings.Contains(message, "upstream unavailable") {
+	// Read the same closed, single-wrapper envelope as outcome classification.
+	// An outer retry prohibition remains authoritative over a nested source.
+	object := toolResultEnvelopeMap(value)
+	for depth := 0; depth <= 1 && object != nil; depth++ {
+		if object["retryable"] == false {
 			return false
 		}
+		message, _ := object["error"].(string)
+		message = strings.ToLower(strings.TrimSpace(message))
+		if object["sourceUnavailable"] == true || strings.Contains(message, "authority is unavailable") ||
+			strings.Contains(message, "upstream unavailable") {
+			return true
+		}
+		object = toolResultEnvelopeMap(object["result"])
 	}
-	retryable, present := object["retryable"].(bool)
-	return !present || retryable
+	return false
 }
 
 func transientSourceFailureBucket(toolName string, capabilities []string) string {

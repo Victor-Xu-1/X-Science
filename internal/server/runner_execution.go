@@ -266,7 +266,6 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 		run.addExecutedSkillInvocationKeys(completedSkillInvocationKeysFromRunnerEntries(scientificEntries)...)
 		run.addTrustedScientificReviewSignals(trustedScientificReviewSignalsFromRunnerEntries(scientificEntries)...)
 		run.addTrustedScientificCapabilityWitnesses(trustedScientificCapabilityWitnessesFromRunnerEntries(scientificEntries)...)
-		messages = appendProviderContinuationContext(messages, run.ProviderContinuation)
 	}
 	taskIntent := promptContextFromMessages(messages)
 	taskLanguage := sessionRunnerResponseLanguage(taskIntent)
@@ -735,8 +734,9 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 	engine.Model = &sessionRunnerDynamicModelClient{
 		server: s, sessionID: session.ID, session: session, fallback: engine.Model,
 		fallbackModel: options.Model, role: "agent", audit: options.ModelAudit,
-		contextUsage: newSessionContextUsageRecorder(s, session.ID, sessionRunnerAttempt(run), options),
-		initial:      initialModel, initialReady: initialReady,
+		contextUsage:  newSessionContextUsageRecorder(s, session.ID, sessionRunnerAttempt(run), options),
+		contextBudget: newSessionRunnerRequestContextBudget(s, options, entries, run, autoCompactResult.Triggered),
+		initial:       initialModel, initialReady: initialReady,
 		initialSelection: options.modelSelection, initialRevision: options.modelSelectionRevision,
 		resolutionInput: providers.ResolutionInput{
 			Context:   ctx,
@@ -746,9 +746,10 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 	}
 	if run != nil && run.ProviderContinuation != nil && run.ProviderContinuation.Content.Len() > 0 {
 		engine.Model = &sessionRunnerContinuationModelClient{
-			delegate:      engine.Model,
-			prefix:        run.ProviderContinuation.Content.String(),
-			privatePrefix: run.ProviderContinuation.PrivateCandidate.String(),
+			delegate:        engine.Model,
+			prefix:          run.ProviderContinuation.Content.String(),
+			privatePrefix:   run.ProviderContinuation.PrivateCandidate.String(),
+			contextMessages: agentRuntimeMessagesFromChat(appendProviderContinuationContext(nil, run.ProviderContinuation)),
 		}
 	}
 	if s.memoryExtraction != nil {
@@ -1001,7 +1002,7 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 		language: taskLanguage,
 		audit:    func(record map[string]any) { s.recordSessionRunnerCommunicationAudit(run, record) },
 		delegate: &sessionRunnerResponseContractClient{
-			delegate: communicationObserver, progressDue: communicationSchedule.due, progressAllowed: communicationSchedule.allowed,
+			delegate: communicationObserver, progressDue: communicationSchedule.due,
 		},
 	}
 	engine.AllowToolPreamble = func(text string) bool {

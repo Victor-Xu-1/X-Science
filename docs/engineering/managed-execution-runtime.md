@@ -82,6 +82,38 @@ the current request's imports before returning success.
 
 ## Runtime authority
 
+### Documented alternatives to automatic input resolvers
+
+An automatic resolver is one evidence route, not a monopoly on a task's
+scientific parameters. A local pack may declare `documentedInputs` with an
+evidence group, a document argument and a primary input kind. This additive
+contract allows a task to prepare and execute a literature-guided,
+structure-derived, user-supplied or exploratory alternative in the same pack.
+It does not require the user to transcribe derived values or an unsuccessful
+resolver to produce a passing receipt.
+
+The document uses `synon.documented-input.v1`: `evidence_group`,
+`input_sha256`, `basis`, `method`, `sources`, `limitations` and `values`
+(keyed by the registered parameter names). The kernel checks the complete
+parameter tuple, exact source digest and bounded provenance record, then uses
+the existing immutable-file materialization path. Original approval arguments
+remain unchanged. Conflicting automatic and documented inputs are rejected.
+Replays recheck the requested bytes; a previous snapshot cannot hide a changed
+input. Sources remain attributed claims, not fetched instructions or proof of
+scientific validity. Reports must preserve that distinction.
+
+Groups with this alternative are not user-only choices and are not blocked by
+prose-keyword derivation guards. Authentication, user resource constraints,
+host receipts for actual automatic results, confinement and cancellation remain
+unchanged. This mechanism is independent of target, program and filename.
+
+Focused validation:
+
+```sh
+go test ./internal/server -run 'TestDocumentedInput|TestExecutionInputAuthority' -count=1
+go test ./internal/sciencecapability ./internal/assets -count=1
+```
+
 | Module | Responsibility |
 | --- | --- |
 | `internal/server/agent_environment_management.go` | Exact model schemas, frame authority, resource and implementation admission |
@@ -148,6 +180,33 @@ an ordinary child does not gain signal protection by using the same name.
 
 ## Failure and retry contract
 
+### Consistent live and recovered admission
+
+Executed-call retry state has one reducer in `internal/agentruntime`. The live
+engine observes terminal results directly; the server decodes canonical
+transcript checkpoints into the same reducer. Neither diagnostic text presence
+nor the most recent error's wording decides whether an earlier failure exists.
+Typed failure kinds take precedence over historical detail codes.
+
+Committed workspace repairs retire exact input failures, including repairs
+that wrote files before returning a failure. An unchanged edit, inspection, or
+unexecuted preflight does not prove a repair. External runtime conditions remain
+separate: an unrelated file edit or another failed call cannot clear them.
+Corrected inputs can retry local input failures; nonexecuted admission outages
+never become failed-job locks. Existing bounded no-progress handling still
+prevents blind repeated calls.
+
+A new explicit user turn starts a new retry scope. A lease checkpoint, model
+compaction or process restart does not. History scans retain only the requested
+execution target's failures while still observing committed workspace repairs.
+Original failure receipts remain immutable. The reducer cannot restart a job,
+fabricate environment recovery, or settle an unknown execution outcome.
+
+```sh
+go test -race ./internal/agentruntime -count=1
+go test -race ./internal/server -run 'TestFailureConsistency|TestFailureReplay|TestDurableSemantic' -count=1
+```
+
 ### Persistence contention and task lifetime
 
 SQLite `BUSY` and `LOCKED` (including their extended driver codes) retain their
@@ -200,6 +259,30 @@ cells report observed task-file opens, including failed open attempts. Opaque
 native and subprocess reads are not inferred from program text. Adapters without
 observations do not claim complete dependency coverage. Missing user input,
 approval or credentials remains an explicit blocker.
+
+Unhandled Python subprocess exceptions preserve their captured stdout/stderr
+through the existing worker stream and terminal result path. Each captured
+stream retains at most 512 KiB of its diagnostic tail with an explicit clipping
+notice; the usual stream/protocol limits still apply. Visible exception causes
+are followed within a bounded, cycle-safe walk. Suppressed causes are not
+disclosed. The worker does not monkeypatch subprocess APIs, infer failure from
+stderr text, or turn caught nonzero probes into failed cells.
+
+The existing Python compilation path checks discarded synchronous process
+results in submitted cell expression statements: native `os.system`,
+`subprocess.run`, `subprocess.call`, and `Popen.wait/communicate` propagate a
+nonzero result as `CalledProcessError` through that same terminal path. Actual
+callable identity, not a variable name or scientific program, selects this
+behavior. The command and its arguments are evaluated once; no execution is
+replayed. Ordinary callables retain their original caller frame.
+
+Assigned, conditional, returned and otherwise consumed results keep native
+Python behavior, permitting explicit return-code checks and fallbacks. A
+caught exception can continue within the same cell; an unhandled failure leaves
+the persistent worker available for a corrected next cell. Imported libraries
+and dynamically compiled external scripts are not rewritten. This is not proof
+that arbitrary user code checked every result or produced valid scientific
+artifacts; an outer successful cell remains insufficient scientific evidence.
 
 Closing a repeated target applies only to that operation path in the current
 bounded execution unit. It does not terminate the logical task or consume a

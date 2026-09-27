@@ -82,7 +82,9 @@ func testAskUserResolverIdentityPersistence(t *testing.T, typed, resolveParent b
 	}
 	inputOption := managedExecutionSafeAskUserOptionFields("Provide input", "Provide the authoritative control point.", "Uses supplied evidence.", "Requires user input.")
 	inputOption["recommended"] = false
-	input := map[string]any{"question": "How should the control point be resolved?", "header": "Input source", "options": []any{option, inputOption}}
+	manualOption := managedExecutionSafeAskUserOptionFields("Use supplied input", "Resolve the control point without Resolver Engine.", "Avoids execution.", "Requires supplied input.")
+	manualOption["recommended"] = false
+	input := map[string]any{"question": "How should the control point be resolved?", "header": "Input source", "options": []any{manualOption, option, inputOption}}
 	original := string(mustMarshalRawMessage(input))
 	checkpoint := server.sanitizeManagedAskUserToolCallForCheckpoint(run, agentruntime.ToolCall{ID: "ask-resolver-scope", Name: "ask_user", Arguments: mustMarshalRawMessage(input)})
 	normalized := (serverAgentRuntimeToolGateway{server: server, taskRun: run}).normalizeAdmittedToolArguments("ask_user", input)
@@ -112,6 +114,9 @@ func testAskUserResolverIdentityPersistence(t *testing.T, typed, resolveParent b
 	question := mapValue(questions[0])
 	choices := anySliceValue(question["options"])
 	selected := mapValue(choices[0])
+	if stringValue(selected["label"]) != stringValue(option["label"]) {
+		t.Fatalf("comparison prose displaced the declared resolver: %#v", choices)
+	}
 	metadata := mapValue(selected["metadata"])
 	if stringValue(metadata["implementation"]) != "" || metadata["resources"] != nil || !reflect.DeepEqual(mapValue(metadata["evidence_resolver"]), map[string]any{
 		"evidence_group": resolver.EvidenceGroup, "skill": resolver.Skill, "implementation": resolver.Implementation,

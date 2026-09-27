@@ -503,6 +503,11 @@ func managedExecutionEvidenceGroupsForSelectedImplementations(
 		}
 		for _, engine := range capabilityCatalog.LocalExecutionPacksForSkill(skill.Name) {
 			for _, parameter := range engine.ExecutionPack.Parameters {
+				if _, documented := engine.ExecutionPack.DocumentedInput(parameter.EvidenceGroup); documented {
+					// An evidence-backed task derivation is not a user-only value.
+					// Validate its explicit record at execution, not words in prose.
+					continue
+				}
 				if parameter.Evidence != "resolved-user-input" ||
 					(parameter.Type != "number" && parameter.Type != "integer") {
 					continue

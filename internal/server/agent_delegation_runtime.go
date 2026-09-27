@@ -19,7 +19,7 @@ func (s *Server) executeAgentTool(ctx context.Context, toolName string, input ma
 	prompt := strings.TrimSpace(stringValue(input["prompt"]))
 	description := strings.TrimSpace(stringValue(input["description"]))
 	name := strings.TrimSpace(stringValue(input["name"]))
-	parentSessionID := firstNonEmpty(agentRuntimeParentSessionID(ctx), stringValue(input["parent_session_id"]), stringValue(input["parentSessionId"]))
+	parentSessionID := firstNonEmpty(stringValue(input["parent_session_id"]), stringValue(input["parentSessionId"]))
 	subagentType := firstNonEmpty(stringValue(input["subagent_type"]), stringValue(input["subagentType"]), "general-purpose")
 	model := strings.TrimSpace(stringValue(input["model"]))
 	toolPolicy := normalizeAgentToolPolicy(stringValue(input["tool_policy"]))

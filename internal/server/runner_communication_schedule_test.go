@@ -9,7 +9,7 @@ import (
 func TestCommunicationScheduleSurvivesRestoreWithoutRepeatingIntroduction(t *testing.T) {
 	now := time.Date(2026, 9, 13, 12, 0, 0, 0, time.UTC)
 	schedule := &sessionRunnerCommunicationSchedule{now: func() time.Time { return now }}
-	if !schedule.due() || !schedule.allowed() {
+	if !schedule.due() {
 		t.Fatal("initial explanation not due")
 	}
 	if err := schedule.published(); err != nil {
@@ -28,11 +28,11 @@ func TestCommunicationScheduleSurvivesRestoreWithoutRepeatingIntroduction(t *tes
 	if err := json.Unmarshal(encoded, restored); err != nil {
 		t.Fatal(err)
 	}
-	if restored.due() || restored.allowed() {
+	if restored.due() {
 		t.Fatal("restore restarted cadence")
 	}
 	now = now.Add(30 * time.Second)
-	if restored.due() || !restored.allowed() {
+	if restored.due() {
 		t.Fatal("optional transition cadence mismatch")
 	}
 	now = now.Add(60 * time.Second)

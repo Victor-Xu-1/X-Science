@@ -4,6 +4,7 @@ import importlib.util
 import sys
 
 from .python_code_compatibility import prepare_python_source
+from .worker_process_outcomes import prepare_process_outcomes
 
 
 def correction(message, diagnostics):
@@ -18,7 +19,9 @@ def prepare(source, namespace, filename):
     source = prepare_python_source(source, namespace)
     try:
         tree = ast.parse(source, filename=filename)
-        compiled = compile(tree, filename, "exec", dont_inherit=True)
+        # Compile once before binding helpers so invalid source cannot mutate
+        # the persistent namespace. Import admission still inspects user AST.
+        compile(tree, filename, "exec", dont_inherit=True)
     except (SyntaxError, ValueError) as error:
         return None, correction(str(error), [
             {"code": "python_syntax_error", "line": getattr(error, "lineno", None)}
@@ -47,4 +50,5 @@ def prepare(source, namespace, filename):
         return None, correction("Unavailable Python imports: " + ", ".join(missing), [
             {"code": "python_import_module_unavailable", "modules": missing}
         ])
-    return compiled, None
+    tree = prepare_process_outcomes(tree, namespace)
+    return compile(tree, filename, "exec", dont_inherit=True), None

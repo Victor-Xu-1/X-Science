@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"sync"
 
@@ -324,7 +325,24 @@ func serverAgentRuntimeGatewayFailureBudget(invocation *toolgateway.Invocation) 
 		return
 	}
 	name := invocation.CanonicalName
-	if value := gateway.durableSemanticFailureBoundary(invocation.Context, name, invocation.Input); value != nil {
+	value, err := gateway.durableSemanticFailureBoundary(invocation.Context, name, invocation.Input)
+	if err != nil {
+		if contextErr := agentRuntimeContextError(invocation.Context); contextErr != nil {
+			invocation.CompleteForAudit(nil, agentRuntimeContextStatus(contextErr), contextErr.Error(), contextErr)
+			return
+		}
+		value = durableSemanticPreflightBoundary(map[string]any{
+			"ok": false, "code": "execution_history_unavailable", "retryable": true,
+			"message": "Execution history is temporarily unavailable; no tool execution started.",
+		})
+		// Retain a non-executed structured receipt. A raw transport error would
+		// discard it and expose persistence details to the model and browser.
+		log.Printf("tool_execution_history_unavailable session=%q call=%q error=%q",
+			gateway.sessionID, execution.call.ID, truncateFeedbackRunes(redactFeedbackString(err.Error()), 1000))
+		invocation.CompleteForAudit(value, "failed", stringValue(value["message"]), nil)
+		return
+	}
+	if value != nil {
 		invocation.CompleteForAudit(value, "blocked", stringValue(value["message"]), nil)
 		return
 	}
@@ -566,6 +584,14 @@ func serverAgentRuntimeGatewayMaterialize(invocation *toolgateway.Invocation) {
 	execution.response = response
 	execution.responseParts = parts
 	execution.result = gateway.trustedAgentRuntimeToolResult(invocation.Context, execution.call, response, parts)
+	if status == "completed" && isCompletedSkillToolName(name) {
+		if contract, ok := response.(string); ok && strings.HasPrefix(contract, agentRuntimeSkillMetadataPrefix) {
+			// The catalog loader has already bounded and materialized this exact
+			// contract. A data preview is insufficient instruction context for a
+			// capability first discovered during this execution unit.
+			execution.result.ModelContent = contract
+		}
+	}
 	if status == "completed" && gateway.server.sessionRunnerEvidenceTool(name) {
 		if state := gateway.server.generatedPlanResearchHandoffContext(gateway.sessionID, execution.call, response); state != "" {
 			var modelContext map[string]any

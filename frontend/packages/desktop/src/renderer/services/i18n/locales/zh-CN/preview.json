@@ -525,6 +525,8 @@
     "structure": {
       "kind": "3D 结构",
       "preview": "3D 结构预览",
+      "sceneOverlayLabel": "母结构与派生结构叠加场景",
+      "sceneOverlaySummary": "母结构 + 派生结构叠加 · {{layerCount}} 层",
       "thumbnail": {
         "loading": "正在渲染真实三维结构预览",
         "failed": "三维结构渲染失败"

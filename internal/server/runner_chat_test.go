@@ -888,14 +888,14 @@ func TestProviderContextPressureRequiresOneDurableCompaction(t *testing.T) {
 			"reason_code": sessionRunnerProviderContextPressureReasonCode,
 		}},
 	}
-	if !providerContextPressureRequiresCompaction(entries) {
+	if runnerContextPressureRequiringCompaction(entries) != sessionRunnerProviderContextPressureReasonCode {
 		t.Fatal("unresolved provider context pressure must force compaction")
 	}
 
 	withNewUserInput := append(append([]eventjournal.Entry(nil), entries...), eventjournal.Entry{
 		EventID: 3, Message: eventjournal.Message{"type": "message", "role": "user", "text": "please continue"},
 	})
-	if !providerContextPressureRequiresCompaction(withNewUserInput) {
+	if runnerContextPressureRequiringCompaction(withNewUserInput) != sessionRunnerProviderContextPressureReasonCode {
 		t.Fatal("a follow-up must not erase unresolved provider context pressure")
 	}
 
@@ -904,14 +904,14 @@ func TestProviderContextPressureRequiresOneDurableCompaction(t *testing.T) {
 			"type": "session_compact", "trigger": "auto", "summary": "durable compact summary",
 		},
 	})
-	if providerContextPressureRequiresCompaction(compacted) {
+	if runnerContextPressureRequiringCompaction(compacted) != "" {
 		t.Fatal("a durable compact boundary must clear provider context pressure")
 	}
 
 	completedWithoutCompaction := append(append([]eventjournal.Entry(nil), entries...), eventjournal.Entry{
 		EventID: 3, Message: eventjournal.Message{"type": "message", "role": "assistant", "text": "completed after switching provider"},
 	})
-	if providerContextPressureRequiresCompaction(completedWithoutCompaction) {
+	if runnerContextPressureRequiringCompaction(completedWithoutCompaction) != "" {
 		t.Fatal("a newer completed assistant turn must clear stale provider context pressure")
 	}
 }
@@ -961,7 +961,7 @@ func TestSessionRunnerAutoCompactForcesRecoveryAfterProviderContextPressure(t *t
 	if !strings.Contains(result.Message, "reason=provider_context_pressure") {
 		t.Fatalf("forced compact result did not preserve reason: %#v", result)
 	}
-	if providerContextPressureRequiresCompaction(updated) {
+	if runnerContextPressureRequiringCompaction(updated) != "" {
 		t.Fatalf("forced compact did not clear context pressure: %#v", updated)
 	}
 }
@@ -2291,7 +2291,7 @@ func TestSessionEntriesRestoreBoundedCorrectionsAcrossAttempts(t *testing.T) {
 					"reason_code": test.reasonCode, "resume_detail": test.detail,
 				}},
 			}
-			messages := sessionEntriesToChatMessages("system prompt", entries)
+			messages := requireProviderReplayMessages(t, "system prompt", entries)
 			if len(messages) != 3 || messages[1].Role != "system" ||
 				!strings.Contains(messages[1].Content, "same logical task") ||
 				!strings.Contains(messages[1].Content, "synon.runner_recovery.v1") ||
@@ -2316,7 +2316,7 @@ func TestSessionEntriesRestoreBoundedCorrectionsAcrossAttempts(t *testing.T) {
 			entries = append(entries, eventjournal.Entry{EventID: 3, Message: eventjournal.Message{
 				"type": "message", "role": "user", "content": "Start an unrelated new task.",
 			}})
-			messages = sessionEntriesToChatMessages("system prompt", entries)
+			messages = requireProviderReplayMessages(t, "system prompt", entries)
 			for _, message := range messages {
 				if strings.Contains(message.Content, test.detail) || strings.Contains(message.Content, test.reasonCode) {
 					t.Fatalf("stale correction crossed a new user boundary: %#v", messages)
@@ -2344,7 +2344,7 @@ func TestSessionTranscriptPreservesMultimodalContentBlocks(t *testing.T) {
 		},
 	}
 
-	messages := sessionEntriesToChatMessages("system prompt", entries)
+	messages := requireProviderReplayMessages(t, "system prompt", entries)
 	if len(messages) != 2 || messages[1].Role != "user" {
 		t.Fatalf("chat messages = %#v", messages)
 	}
@@ -2762,6 +2762,7 @@ func TestSessionRunnerChatOnceTimesOutSlowModelEndpoint(t *testing.T) {
 		Endpoint:         modelAPI.URL + "/v1/chat/completions",
 		Model:            "test-model",
 		RequestTimeout:   40 * time.Millisecond,
+		MaxAttempts:      1, // This assertion measures one request, not retry backoff.
 		LeaseTTL:         time.Minute,
 		ReplayLimit:      20,
 		OutputLimitBytes: 64 * 1024,

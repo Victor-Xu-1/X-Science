@@ -1410,7 +1410,7 @@ export const useMessageLstCache = (key: string, ownerId = '') => {
                   messages,
                   withoutOptimisticUserMessages(liveWindow),
                   true,
-                  source === 'cursor-reset'
+                  source !== 'initial' && source !== 'rebase'
                 );
             if (source === 'initial') initialHistoryBaselineRef.current = null;
             writeCachedMessageWindow(key, ownerId, branchRevision, nextList, nextPagination);

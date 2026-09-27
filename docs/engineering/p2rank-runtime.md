@@ -78,6 +78,15 @@ If execution fails, inspect the task-local `.p2rank-failures/<generation>`
 record, repair only the reported dependency/input/resource condition, and run a
 new generation. Never reuse partial output as a docking box.
 
+A successful engine process can legitimately return a header-only prediction
+CSV with no pocket candidates. The parser reports `p2rank_no_pockets`, distinct
+from malformed headers or invalid ranks. It does not synthesize a selection,
+validation success, or docking box. The failed generation retains the original
+CSV, engine log and available parameters before parsing; `failure.json` records
+the failure code and hashes of retained evidence. An unchanged empty-result
+execution is not an automatic retry: inspect the input and method evidence
+before deciding on a materially different supported calculation.
+
 ## Operational acceptance
 
 Before release, run the exact pack against both:

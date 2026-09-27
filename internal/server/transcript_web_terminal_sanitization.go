@@ -100,10 +100,6 @@ func sanitizeTranscriptWebPublicValue(value any, preservedCodes map[string]struc
 	}
 }
 
-func sessionRunnerSanitizeHistoricalPublicText(content string) string {
-	return sessionRunnerSanitizeHistoricalPublicTextWithCodes(content, nil)
-}
-
 func sessionRunnerSanitizeHistoricalPublicTextWithCodes(
 	content string,
 	preservedCodes map[string]struct{},

@@ -1,6 +1,9 @@
 package agentruntime
 
-import "testing"
+import (
+	"encoding/json"
+	"testing"
+)
 
 type testToolResultEnvelope struct {
 	result map[string]any
@@ -8,6 +11,10 @@ type testToolResultEnvelope struct {
 
 func (value testToolResultEnvelope) ToolResultEnvelope() map[string]any {
 	return value.result
+}
+
+func (value testToolResultEnvelope) MarshalJSON() ([]byte, error) {
+	return json.Marshal(value.result)
 }
 
 func TestClassifyToolResultUsesClosedProductionEnvelopeContract(t *testing.T) {

@@ -180,10 +180,10 @@ func TestRunnerReplayUsesLatestAutoCompactAsReplayBoundary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if runnerReplayContainsEvent(events, oldUser.EventID) || runnerReplayContainsEvent(events, oldCheckpoint.EventID) {
-		t.Fatalf("replay leaked pre-compact events oldUser=%d oldCheckpoint=%d events=%#v", oldUser.EventID, oldCheckpoint.EventID, events)
+	if runnerReplayContainsEvent(events, oldCheckpoint.EventID) {
+		t.Fatalf("replay leaked pre-compact checkpoint=%d events=%#v", oldCheckpoint.EventID, events)
 	}
-	for _, want := range []int64{resumeUser.EventID, autoCompact.EventID, newUser.EventID, newCheckpoint.EventID} {
+	for _, want := range []int64{oldUser.EventID, resumeUser.EventID, autoCompact.EventID, newUser.EventID, newCheckpoint.EventID} {
 		if !runnerReplayContainsEvent(events, want) {
 			t.Fatalf("replay lost post-compact event=%d events=%#v", want, events)
 		}

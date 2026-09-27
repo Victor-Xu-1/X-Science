@@ -188,17 +188,6 @@ func validSHA256Hex(value string) bool {
 	return err == nil && len(decoded) == sha256.Size
 }
 
-func runnerNoProgressRecoveryFromEntries(
-	entries []eventjournal.Entry,
-	authority *transcriptRunnerAuthority,
-) sessionRunnerNoProgressRecovery {
-	state := newSessionRunnerNoProgressRecovery(runnerRecoveryObligationFingerprint(authority, transcriptstore.RunnerInterruptionCause{}))
-	for _, entry := range entries {
-		state.observeEntry(entry, authority)
-	}
-	return state
-}
-
 func (state *sessionRunnerNoProgressRecovery) observeEntry(
 	entry eventjournal.Entry,
 	authority *transcriptRunnerAuthority,

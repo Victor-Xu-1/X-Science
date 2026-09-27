@@ -76,14 +76,7 @@ func (g serverAgentRuntimeToolGateway) ToolCallAdmissionDiagnostic(call agentrun
 		"issues":            sanitizedAgentRuntimeValidationIssues(value["issues"]),
 		"expectedArguments": value["expectedArguments"],
 	}
-	raw, err := json.Marshal(diagnostic)
-	if err != nil {
-		return "schema validation failed"
-	}
-	if len(raw) > 1800 {
-		raw = raw[:1800]
-	}
-	return string(raw)
+	return boundedAgentRuntimeArgumentDiagnostic(diagnostic)
 }
 
 // ToolCallPreflightDiagnostics runs task-scoped policy before the engine emits
@@ -159,9 +152,9 @@ func (g serverAgentRuntimeToolGateway) toolCallPreflightDiagnostic(ctx context.C
 	if preflight == nil && g.server != nil && g.server.kernelManager != nil {
 		preflight = agentRuntimePythonEnvironmentAPIPreflight(name, input, g.server.kernelManager)
 	}
-	if preflight == nil {
-		preflight = agentRuntimePythonExplicitModulePreflight(name, input)
-	}
+	// Namespace validity belongs to the persistent Python worker. A resumed
+	// model turn is not evidence of a restarted kernel; source-text guesses
+	// here reject valid aliases, local bindings and retained state.
 	if preflight == nil {
 		preflight = agentKernelOptionalFormatterPreflight(name, input)
 	}
@@ -189,9 +182,6 @@ func (g serverAgentRuntimeToolGateway) toolCallPreflightDiagnostic(ctx context.C
 			requiredSourceClass = g.taskRun.requiredMCPSourceClassSnapshot()
 		}
 		preflight = agentRuntimeREPLMCPContractPreflight(name, input, g.toolSchemas, requiredSourceClass)
-	}
-	if preflight == nil {
-		preflight = g.agentRuntimeREPLRecoveryStatePreflight(name, input)
 	}
 	if preflight == nil {
 		preflight = agentRuntimeUnresolvedSkillDirectoryPreflight(name, input)

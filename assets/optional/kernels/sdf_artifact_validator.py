@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stream strict managed-RDKit validation and return a v2 count summary.
+"""Stream strict managed-RDKit validation with bounded repair locations.
 
 Every molecule is checked. Memory scales with the current molecule/line, not
 the complete library. Exit 0 is valid, 2 invalid data, and 3 parser failure.
@@ -14,6 +14,8 @@ import re
 import sys
 from typing import Any, BinaryIO
 
+MAX_INVALID_RECORD_LOCATIONS = 32
+
 
 def _result(format_name: str, **values: Any) -> dict[str, Any]:
     result = {
@@ -21,10 +23,21 @@ def _result(format_name: str, **values: Any) -> dict[str, Any]:
         "code": "validator_failed", "delimiterCount": 0,
         "supplierRecordCount": 0, "parsedCount": 0,
         "invalidRecordCount": 0, "atomCountRecords": 0,
+        "invalidRecordLocations": [],
         "terminalDelimiter": format_name == "smi",
     }
     result.update(values)
     return result
+
+
+def record_invalid(result: dict[str, Any], line: int = 0) -> None:
+    """Keep exact one-based locations, never raw input or an unbounded log."""
+    result["invalidRecordCount"] += 1
+    if len(result["invalidRecordLocations"]) < MAX_INVALID_RECORD_LOCATIONS:
+        location = {"record": result["supplierRecordCount"]}
+        if line:
+            location["line"] = line
+        result["invalidRecordLocations"].append(location)
 
 
 class DelimiterReader:
@@ -95,7 +108,7 @@ def validate_sdf(source: BinaryIO) -> dict[str, Any]:
                     result["supplierRecordCount"] += 1
                     result["atomCountRecords"] += 1
                     if molecule is None or molecule.GetNumAtoms() <= 0:
-                        result["invalidRecordCount"] += 1
+                        record_invalid(result)
                     else:
                         result["parsedCount"] += 1
             reader.drain()
@@ -143,7 +156,7 @@ def validate_smiles(source: BinaryIO) -> dict[str, Any]:
     aliases = {"smiles", "canonical_smiles", "isomeric_smiles"}
     text = io.TextIOWrapper(source, encoding="utf-8", errors="strict", newline=None)
     try:
-        for raw in text:
+        for line_number, raw in enumerate(text, start=1):
             line = raw.strip()
             if not line or line.startswith("#"):
                 continue
@@ -168,7 +181,7 @@ def validate_smiles(source: BinaryIO) -> dict[str, Any]:
                 except Exception:
                     molecule = None
             if molecule is None or molecule.GetNumAtoms() <= 0:
-                result["invalidRecordCount"] += 1
+                record_invalid(result, line_number)
             else:
                 result["parsedCount"] += 1
     except UnicodeDecodeError:

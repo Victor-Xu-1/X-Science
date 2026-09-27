@@ -1360,7 +1360,7 @@ func agentSaveArtifactFailurePayload(path, code string, unsupported []string, un
 	switch code {
 	case "invalid_scientific_artifact":
 		recovery["action"] = "inspect_the_parser_diagnosis_and_repair_the_file_before_retrying"
-		recovery["diagnostic"] = "validation_code identifies the parser failure; validation counts summarize records, not line numbers; validate the complete repaired file"
+		recovery["diagnostic"] = "validation_code identifies the parser failure; use validation_invalid_record_locations when present (one-based record and physical line); counts are not locations; preserve valid records and validate the complete repaired file"
 	case "scientific_validator_unavailable":
 		recovery["action"] = "restore_the_managed_scientific_validator_before_retrying"
 		recovery["data_policy"] = "validator failure is not evidence of invalid file content; preserve the file"

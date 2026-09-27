@@ -8,6 +8,26 @@ import (
 
 const maxNoProgressRecoveryCallLabels = 8
 
+func toolRoundReportsMaterialProgress(messages []Message) bool {
+	for _, message := range messages {
+		if message.Role != "tool" {
+			continue
+		}
+		var value map[string]any
+		if json.Unmarshal([]byte(message.Content), &value) != nil || ToolResultDidNotExecute(value) {
+			continue
+		}
+		if reported, committed := toolResultWorkspaceMutationReport(value); reported && committed {
+			return true
+		}
+		if effect, ok := value["effect"].(map[string]any); ok &&
+			effect["schema"] == ToolEffectSchema && effect["state"] == string(ToolEffectChanged) {
+			return true
+		}
+	}
+	return false
+}
+
 // Failure feedback is already carried by the exact native tool receipt. Never
 // describe rejected/failed or decision-required actions as successful reusable
 // work merely because they made no progress. A compact reuse receipt is a

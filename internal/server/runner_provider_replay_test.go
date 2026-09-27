@@ -586,9 +586,10 @@ func TestSessionEntriesToProviderMessagesSkipsAuthorizedRecoveryAcrossCompactBou
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(messages) != 3 || messages[0].Role != "system" ||
+	if len(messages) != 4 || messages[0].Role != "system" ||
 		!strings.Contains(messages[1].Content, "Synon compact handoff context") ||
-		messages[2].Role != "user" || messages[2].Content != "continue safely" {
+		messages[2].Role != "user" || messages[2].Content != "old task" ||
+		messages[3].Role != "user" || messages[3].Content != "continue safely" {
 		t.Fatalf("messages=%#v", messages)
 	}
 }
@@ -616,10 +617,11 @@ func TestSessionEntriesToProviderMessagesPreservesExactAskUserImplementationAcro
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(messages) != 4 || messages[2].Role != "user" || messages[2].Content != resolved ||
-		!strings.Contains(messages[2].Content, `"implementations":{"Which generator?":"DiffSBDD"}`) ||
-		!strings.Contains(messages[2].Content, transcriptstore.AskUserSelectedRouteInstruction) ||
-		messages[3].Role != "assistant" {
+	if len(messages) != 5 || messages[2].Role != "user" || messages[2].Content != "design molecules for this pocket" ||
+		messages[3].Role != "user" || messages[3].Content != resolved ||
+		!strings.Contains(messages[3].Content, `"implementations":{"Which generator?":"DiffSBDD"}`) ||
+		!strings.Contains(messages[3].Content, transcriptstore.AskUserSelectedRouteInstruction) ||
+		messages[4].Role != "assistant" {
 		t.Fatalf("messages=%#v", messages)
 	}
 }

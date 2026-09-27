@@ -28,11 +28,14 @@ func staticShellStatement(statement *syntax.Stmt) ([]string, bool) {
 		return nil, false
 	}
 	args := make([]string, 0, len(call.Args))
+	// Expansion owns mutable scratch buffers. A nil config selects the
+	// library's shared default and races across concurrent tool invocations.
+	expansion := &expand.Config{}
 	for _, word := range call.Args {
 		if !staticShellWord(word.Parts, false) {
 			return nil, false
 		}
-		values, err := expand.Fields(nil, word)
+		values, err := expand.Fields(expansion, word)
 		if err != nil || len(values) != 1 || strings.ContainsRune(values[0], 0) {
 			return nil, false
 		}

@@ -217,7 +217,15 @@ func (e Engine) executeTool(ctx context.Context, call ToolCall) (Message, error)
 		eventMessage = ToolFailureEventMessage(result.Value)
 	}
 	originalResult := message.Content
-	modelResult, modelResultErr := AttachToolResultModelContext(originalResult, result.ModelContext)
+	modelContent := originalResult
+	if result.ModelContent != "" {
+		encoded, encodeErr := json.Marshal(result.ModelContent)
+		if encodeErr != nil {
+			return message, encodeErr
+		}
+		modelContent = string(encoded)
+	}
+	modelResult, modelResultErr := AttachToolResultModelContext(modelContent, result.ModelContext)
 	if modelResultErr != nil {
 		return message, modelResultErr
 	}

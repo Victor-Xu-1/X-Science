@@ -32,6 +32,14 @@ func TestP2RankPocketPackBuildsAHashedDockingHandoff(t *testing.T) {
 	if !bytes.Equal(pack, skill) {
 		t.Fatal("P2Rank execution pack and materialized Skill asset differ")
 	}
+	packModule, err := os.ReadFile(filepath.Join(filepath.Dir(packPath), "p2rank_predictions.py"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	skillModule, err := os.ReadFile(filepath.Join(filepath.Dir(skillPath), "p2rank_predictions.py"))
+	if err != nil || !bytes.Equal(packModule, skillModule) {
+		t.Fatalf("prediction parser differs between registered and materialized entrypoints: %v", err)
+	}
 	if bytes.Contains(pack, []byte("pred_max_pockets")) || bytes.Contains(pack, []byte("pred_min_pockets")) {
 		t.Fatal("P2Rank 2.5.1 execution still contains unsupported pocket-count parameters")
 	}
@@ -108,6 +116,7 @@ import importlib.util, json, sys, tempfile
 from pathlib import Path
 sys.dont_write_bytecode = True
 spec = importlib.util.spec_from_file_location("p2rank_pack", sys.argv[1])
+sys.path.insert(0, str(Path(sys.argv[1]).parent))
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 atoms, b_factors = module.pdb_atoms(module.Path(sys.argv[2]))

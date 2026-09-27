@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "b4fc2906a5c5e8aef39974aaaa69a02ca105834b5436d61c26ec8572a3debc59",
+  "adaptationFingerprintSHA256": "d1acc3f34cde77c8cc893ad91fc01ade17fc6a2c6a9da0af0e3fe4c9cee48e25",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
-  "additionFingerprintSHA256": "2be117d21972cdb19833e19f18835c0984334d11a39bbd59ebbb41fae5b739d4",
+  "additionFingerprintSHA256": "4998694daf9b9e65c77766ecf8f9dafa910e74eb6ff74ba8ba3bf941e2033fb1",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 400,
     "adaptedSourceFiles": 664,
     "removedSourceFiles": 290,
-    "addedFiles": 677
+    "addedFiles": 678
   },
   "adaptations": [
     {
@@ -1200,8 +1200,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/hooks.ts",
       "sourceSHA256": "75067dc9b38938e3dc2acbf3385ddaf8c444e4f68cc65d658f8e93da5a904fea",
-      "targetSHA256": "9cff8879e5993fc9a6db27a348ed24c9f853f0824b0e7c8630fbd850b4c41322",
-      "bytes": 61769,
+      "targetSHA256": "af8b8517d9a1bf3021e3e86885a0d66a6985b47e4d4ccdf47954c577b7a7c484",
+      "bytes": 61787,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -1424,8 +1424,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedStructureViewer.tsx",
       "sourceSHA256": "6cb430ff6d16123ef3da68f5af29d4dc093a1e5bb9e9b2655a3c01e2d1e2ecb1",
-      "targetSHA256": "9727de80665371fed28e89f1f9df95288f253a1745be19f83f92491f8c50e1a2",
-      "bytes": 134612,
+      "targetSHA256": "ca2450e76709f720c8d9233686f6df7ab67aff310479b216142ba3caaea569c5",
+      "bytes": 134691,
       "reason": "Unify PDB, mmCIF, SDF, and related molecular formats on one Molstar preview with composition-aware controls, collapsed auxiliary panels, and source-fenced 2D interaction refresh."
     },
     {
@@ -2383,8 +2383,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "e6ed31af8e9ae0b0a56640eed9f6db35f9d363fdc4470eab9c892d5211b61483",
-      "bytes": 246883,
+      "targetSHA256": "623afa9d98bd302135a37966674154a4eb35fe05addff783aac376e91890f407",
+      "bytes": 246991,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2460,8 +2460,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/preview.json",
       "sourceSHA256": "bf530f4a992cc14652500390e715b7add84853e9b0757158c718244cf4cd8f32",
-      "targetSHA256": "a7c15e28db313f43dfacb12292620f6be897f28844dbab233c3c8608a3f95359",
-      "bytes": 39801,
+      "targetSHA256": "e4d651c8f04ce035355e4c97800f29b27a5456fd302d646cac4f7b33c2853884",
+      "bytes": 39967,
       "reason": "Add English labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls."
     },
     {
@@ -2551,8 +2551,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/preview.json",
       "sourceSHA256": "6b772273972756a3407fee8fe7b4503e992964a8de901375f06bfd2faacf2ba0",
-      "targetSHA256": "ccad76e1db4c1efcb130259705fe809331c2ecd8389d1d8a6754b459bf68f51f",
-      "bytes": 38378,
+      "targetSHA256": "1c7fd4a5d79b81071d8b657a23d1f6545f097129d60adf806bfcc898da02b85b",
+      "bytes": 38530,
       "reason": "Add Simplified Chinese labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls."
     },
     {
@@ -7068,8 +7068,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/messageWindowReconciliation.ts",
-      "sha256": "052dfa9219fb936eadf611a5883cfb0545ae1e7e0b25662b90bbf3e5cb443aab",
-      "bytes": 10914,
+      "sha256": "85e409f2211e1e73f346b84ac9ece215bef1b269b43387f2706543d524b0c693",
+      "bytes": 12741,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9120,8 +9120,8 @@
     },
     {
       "path": "tests/unit/previews/PreviewI18nParity.test.ts",
-      "sha256": "bb032c2070dec779f78acfb00f03c846712f9893b8360a9369bf96e8515b37f6",
-      "bytes": 906,
+      "sha256": "00e4668ad2e3d010439442c5c83585a9d91fb63909b8f2e225c408a002640295",
+      "bytes": 1747,
       "reason": "Keep the primary Chinese and English preview resources structurally aligned."
     },
     {
@@ -9524,6 +9524,12 @@
       "path": "tests/unit/renderer/messageVirtualWindow.test.ts",
       "sha256": "711fa538c3944aae8d981621b078061b97fc8ffbd7e7d2379a6df80d0809f3d9",
       "bytes": 2314,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/messageWindowContinuity.test.ts",
+      "sha256": "e2ae7a309330027bb4133ed66310e3e18d68a2488ef8b8aab3d12bbcf7d5256b",
+      "bytes": 3137,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -10422,8 +10428,8 @@
     },
     {
       "path": "tests/web-e2e/synonbiomedStreamingParity.e2e.ts",
-      "sha256": "b83e31c6a9145ddd77d5b70778b18cfa3154bfc5c588ff442a176fae28695538",
-      "bytes": 12441,
+      "sha256": "edc1a12f19bb5c7917a5ad7d62a454eaa7cad7d145ca98fd7d94b633785ae9a0",
+      "bytes": 13022,
       "reason": "Verify localized thinking, live tool stdout, inline images, and exact final artifact cards in desktop and narrow real browser paths."
     },
     {

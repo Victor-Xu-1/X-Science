@@ -29,16 +29,15 @@ const runnerReplaySeedCTE = `compact_boundary(event_id) AS (
 	WHERE state.stream_uid=? AND event.event_type='runner_checkpoint'
 		AND json_extract(event.payload_json,'$.toolPhase')='auto_compact'
 ),
-compact_input(event_id) AS (
+retained_user_inputs(event_id) AS (
 	SELECT event.event_id FROM transcript_branch_state state
 	JOIN transcript_branch_events membership
 		ON membership.stream_uid=state.stream_uid AND membership.branch_id=state.active_branch_id
 	JOIN transcript_events event
 		ON event.stream_uid=membership.stream_uid AND event.event_id=membership.event_id
 	WHERE state.stream_uid=? AND event.event_type IN (
-		'user_message','history_user_message'
-	) AND event.event_id<=(SELECT event_id FROM compact_boundary)
-	ORDER BY event.publication_seq DESC LIMIT 1
+		'user_message','history_user_message','user_input_response'
+	)
 ),
 current_task_input(event_id) AS (
 	SELECT event.event_id FROM transcript_branch_state state
@@ -51,7 +50,7 @@ current_task_input(event_id) AS (
 	ORDER BY event.publication_seq DESC LIMIT 1
 ),
 seed(event_id) AS (
-	SELECT event_id FROM compact_input
+	SELECT event_id FROM retained_user_inputs
 	UNION
 	SELECT event_id FROM (
 		SELECT event.event_id FROM transcript_branch_state state
@@ -157,6 +156,9 @@ selected(event_id) AS (
 // ListRunnerReplay projects messages and checkpoints with independent seed
 // limits. If the v40 tool-batch authority is present, any batch touched by the
 // seed expands atomically to its assistant root and every terminal tool result.
+// User-owned requirements and answers are retained from the active branch,
+// independently of the recent operation window. The expanded byte/event budget
+// still bounds the read; summaries must not silently replace user authority.
 // An open batch or an expanded window beyond either hard budget fails closed;
 // no partial provider transaction is returned.
 func (r *Repository) ListRunnerReplay(ctx context.Context, input ListRunnerReplayInput) ([]RunnerReplayEvent, error) {

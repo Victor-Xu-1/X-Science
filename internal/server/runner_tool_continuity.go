@@ -8,6 +8,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"synon-go/internal/agentruntime"
 	"synon-go/internal/persistence/journal"
 )
 
@@ -87,12 +88,10 @@ func sessionRunnerToolContinuityRecords(entries []journal.Entry) ([]sessionRunne
 			input = inputs[toolCallID]
 		}
 		result := message["toolResult"]
-		successful := phase == "completed"
-		if resultObject := mapValue(result); resultObject != nil {
-			if rawOK, present := resultObject["ok"]; present && !boolValue(rawOK, false) {
-				successful = false
-			}
-		}
+		// Lifecycle completion is not a successful result. Keep the same typed
+		// outcome authority used by the live gateway instead of reclassifying
+		// unavailable or partial receipts during compaction.
+		successful := phase == "completed" && agentruntime.ClassifyToolResult(result) == agentruntime.ToolResultSucceeded
 		record := sessionRunnerToolContinuityRecord{
 			EventID: entry.EventID, ToolCallID: toolCallID, ToolName: toolName,
 			Phase: phase, Successful: successful,
@@ -367,6 +366,15 @@ func sessionRunnerContinuitySummary(toolName string, value any, result bool, lim
 			}
 		}
 	}
+	if result {
+		// An observation or reused admission can succeed without executing the
+		// requested work. Retain this distinction for every tool family.
+		for _, key := range []string{"executed", "reused", "partial", "num_notifications", "cells_completed"} {
+			if item, found := object[key]; found {
+				selected[key] = item
+			}
+		}
+	}
 	if len(selected) == 0 {
 		return ""
 	}
@@ -467,7 +475,7 @@ func sessionRunnerToolContinuityContext(records []sessionRunnerToolContinuityRec
 		lines = append(lines, line)
 	}
 	lines = append(lines,
-		"Execution continuity rule: a later denied, failed, or differently-shaped call does not erase an earlier successful immutable receipt. Before any expensive rerun, compare the prior working directory, executable, argv, provider/package tuple, request digest, declared outputs, and current source/input validity. Reuse a matching valid result and run only missing bounded validation, reporting, or publication work; rerun only the smallest invalidated computation. A capability label alone is never cache identity.",
+		"Execution continuity rule: a later denied, failed, or differently-shaped call does not erase an earlier successful immutable receipt. Before any expensive rerun, compare the prior working directory, executable, argv, provider/package tuple, request digest, declared outputs, and current source/input validity. Reuse each matching valid result and continue remaining task steps, including missing computation; rerun only the smallest invalidated computation. A capability label alone is never cache identity. A successful observation, admission, reused result, or empty wait does not establish task completion or prove fresh execution. If provenance is absent from this compact view, inspect the immutable receipt rather than infer success.",
 		"Failure repair rule: before editing code, changing packages, or retrying a failed call, use its failureDiagnostic as the authoritative cause and repair the reported exception, file, line, and contract. Never substitute a speculative alternate cause. If failureDiagnostic is absent or incomplete, retrieve the immutable execution receipt first.",
 	)
 	return strings.Join(lines, "\n")

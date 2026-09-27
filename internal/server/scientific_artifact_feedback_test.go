@@ -32,7 +32,8 @@ func TestAgentSaveArtifactsScientificFailureThenRepair(t *testing.T) {
 	fixture := newAgentSaveArtifactsFixtureWithKernelManager(t, realManagedScientificKernelManagerForServerTest(t))
 	const name = "out/molecules.smi"
 	input := map[string]any{"files": []any{name}, "language": "python", "environment": "synon-biomed-python", "human_description": "Save molecular data"}
-	write := writeAgentSaveArtifactsFile(t, fixture.projectPath, name, "smiles name\nCCO valid\nnot_a_molecule invalid\n")
+	const original = "smiles name\nCCO first\nnot_a_molecule invalid\nCCC third\n"
+	write := writeAgentSaveArtifactsFile(t, fixture.projectPath, name, original)
 	fixture.saveExecution(t, fixture.identity.access, fixture.projectPath, "invalid-source", 1, write)
 	result, err := fixture.server.executeAgentSaveArtifacts(fixture.toolContext(t, "save-invalid", input), fixture.identity, "save-invalid", input)
 	if !errors.Is(err, errAgentSaveArtifactsNoResults) {
@@ -43,11 +44,22 @@ func TestAgentSaveArtifactsScientificFailureThenRepair(t *testing.T) {
 		t.Fatalf("save response lost diagnosis: %#v", result)
 	}
 	assertAgentSaveArtifactsNoCanonicalWrites(t, fixture)
-	write = writeAgentSaveArtifactsFile(t, fixture.projectPath, name, "smiles name\nCCO ethanol\nCC ethane\n")
+	locations, ok := failures[0]["validation_invalid_record_locations"].([]scientificArtifactRecordLocation)
+	if !ok || len(locations) != 1 || locations[0].Record != 2 || locations[0].Line != 3 {
+		t.Fatalf("repair lacks the exact middle record: %#v", failures[0])
+	}
+	lines := strings.Split(original, "\n")
+	lines[locations[0].Line-1] = "CC repaired"
+	repaired := strings.Join(lines, "\n")
+	write = writeAgentSaveArtifactsFile(t, fixture.projectPath, name, repaired)
 	fixture.saveExecution(t, fixture.identity.access, fixture.projectPath, "repaired-source", 2, write)
 	result, err = fixture.server.executeAgentSaveArtifacts(fixture.toolContext(t, "save-repaired", input), fixture.identity, "save-repaired", input)
 	if err != nil || result["errors"] != nil || len(agentSaveArtifactResults(t, result)) != 1 {
 		t.Fatalf("repaired data could not publish: %#v %v", result, err)
+	}
+	validation, err := fixture.server.validateSMILESArtifact(context.Background(), strings.NewReader(repaired))
+	if err != nil || validation.ParsedCount != 3 || !strings.HasSuffix(repaired, "CCC third\n") {
+		t.Fatalf("repair discarded valid tail records: %#v %v", validation, err)
 	}
 }
 

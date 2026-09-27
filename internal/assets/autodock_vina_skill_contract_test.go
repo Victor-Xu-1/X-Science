@@ -82,7 +82,7 @@ func TestAutoDockVinaSkillUsesTheManagedHarnessExecutionContract(t *testing.T) {
 		t.Fatal("autodock-vina workflow script is missing from the bundled skills manifest")
 	}
 	implementationSource := append([]byte(nil), skillScript...)
-	for _, moduleName := range []string{"autodock_vina_inputs.py", "autodock_vina_outputs.py", "autodock_vina_pockets.py"} {
+	for _, moduleName := range []string{"autodock_vina_inputs.py", "autodock_vina_outputs.py", "autodock_vina_pockets.py", "documented_input.py"} {
 		skillModule, readErr := os.ReadFile(filepath.Join(filepath.Dir(skillPath), "scripts", moduleName))
 		if readErr != nil {
 			t.Fatal(readErr)
@@ -142,7 +142,7 @@ func TestAutoDockVinaSkillUsesTheManagedHarnessExecutionContract(t *testing.T) {
 	if len(loaded[0].CriticalConstraints) != 3 ||
 		!strings.Contains(loaded[0].CriticalConstraints[0], "never hand-edit the quantitative report") ||
 		!strings.Contains(loaded[0].CriticalConstraints[1], "never split ranked_poses.pdbqt") ||
-		!strings.Contains(loaded[0].CriticalConstraints[2], "never substitute the whole-protein centroid") {
+		!strings.Contains(loaded[0].CriticalConstraints[2], "documented evidence-backed task derivation") {
 		t.Fatalf("critical constraints=%v", loaded[0].CriticalConstraints)
 	}
 	for _, requiredTool := range []string{
@@ -169,7 +169,7 @@ func TestAutoDockVinaSkillUsesTheManagedHarnessExecutionContract(t *testing.T) {
 		"preserved exactly", `load ` + "`drug-discovery-pipeline`" + ` again`, "assemble_docking_results.py",
 		"do not author quantitative Markdown with `edit_file`", "openbabel", "CDX", "primary_pose_manifest.csv",
 		"Never split `ranked_poses.pdbqt`", "pack-generated readable report",
-		"raw apo receptor", "P2Rank resolver",
+		"raw apo receptor", "--site-evidence", "synon.documented-input.v1",
 		"SMI/SMILES inputs",
 	} {
 		if !strings.Contains(text, requiredMarker) {

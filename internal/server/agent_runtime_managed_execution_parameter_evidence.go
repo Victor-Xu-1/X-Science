@@ -90,6 +90,12 @@ func managedExecutionPackParameterEvidencePreflight(
 	sort.Strings(groups)
 	for _, group := range groups {
 		arguments := presentByGroup[group]
+		// File integrity and value correspondence are enforced again at the
+		// kernel boundary. This route documents a task-derived assumption; it
+		// neither requires nor creates a successful resolver receipt.
+		if route, found := pack.DocumentedInput(group); found && argumentValues[route.Argument] != "" && len(arguments) == expectedByGroup[group] {
+			continue
+		}
 		if len(arguments) == expectedByGroup[group] && resolvedUserEvidenceContainsArguments(userEvidence, group, arguments) {
 			continue
 		}

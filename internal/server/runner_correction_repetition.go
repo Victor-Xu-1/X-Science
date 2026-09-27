@@ -82,16 +82,3 @@ func (state runnerCorrectionRepetition) waitsForChangedCondition(cause transcrip
 	}})
 	return state.StalledCycles >= sessionRunnerConsecutiveIdenticalToolRoundBudget
 }
-
-// Count only the current unchanged obligation. A new typed obligation or user
-// task opens a new scope; unrelated tool successes and clarifications do not.
-func runnerRepeatedCorrectionInterruptionCount(entries []eventjournal.Entry, correction transcriptstore.RunnerInterruptionCause) int {
-	var state runnerCorrectionRepetition
-	for _, entry := range entries {
-		state.observe(entry)
-	}
-	if state.Fingerprint != runnerCorrectionFingerprint(correction) {
-		return 0
-	}
-	return state.Count
-}

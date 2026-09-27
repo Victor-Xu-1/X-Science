@@ -510,13 +510,19 @@ func TestTranscriptRunnerBackgroundKernelWaitsForDurableNotification(t *testing.
 			if !available["python"] || !available["wait_for_notification"] {
 				t.Errorf("background tools unavailable: %#v", available)
 			}
-			_, _ = w.Write([]byte(`{"choices":[{"message":{"role":"assistant","tool_calls":[{"id":"background-python","type":"function","function":{"name":"python","arguments":"{\"code\":\"import time; time.sleep(0.2); print('BACKGROUND-READY')\",\"environment\":\"python\",\"background\":true,\"human_description\":\"Running background kernel check\"}"}}]}}]}`))
+			_, _ = w.Write([]byte(`{"choices":[{"message":{"role":"assistant","tool_calls":[{"id":"wait-empty","type":"function","function":{"name":"wait_for_notification","arguments":"{\"timeout_seconds\":0}"}}]}}]}`))
 		case 2:
+			if !chatRequestHasToolResult(request, "wait-empty", `"status":"idle"`) ||
+				!chatRequestHasToolResult(request, "wait-empty", `"num_notifications":0`) {
+				t.Errorf("provider did not receive truthful empty observation: %#v", request.Messages)
+			}
+			_, _ = w.Write([]byte(`{"choices":[{"message":{"role":"assistant","tool_calls":[{"id":"background-python","type":"function","function":{"name":"python","arguments":"{\"code\":\"import time; time.sleep(0.2); print('BACKGROUND-READY')\",\"environment\":\"python\",\"background\":true,\"human_description\":\"Running background kernel check\"}"}}]}}]}`))
+		case 3:
 			if !chatRequestHasToolResult(request, "background-python", "running") {
 				t.Errorf("provider did not receive running background receipt: %#v", request.Messages)
 			}
 			_, _ = w.Write([]byte(`{"choices":[{"message":{"role":"assistant","tool_calls":[{"id":"wait-background","type":"function","function":{"name":"wait_for_notification","arguments":"{\"timeout_seconds\":3,\"human_description\":\"Waiting for background kernel result\"}"}}]}}]}`))
-		case 3:
+		case 4:
 			if !chatRequestHasToolResult(request, "wait-background", "BACKGROUND-READY") {
 				t.Errorf("provider did not receive durable cell result: %#v", request.Messages)
 			}
@@ -547,7 +553,7 @@ func TestTranscriptRunnerBackgroundKernelWaitsForDurableNotification(t *testing.
 		APIKey: "test-key", Model: "test-model", LeaseTTL: time.Minute, ReplayLimit: 100,
 		OutputLimitBytes: 1 << 20, DisableSkillDiscovery: true, AllowedTools: []string{"python"},
 	}, nil)
-	if err != nil || !result.Claimed || result.Status != "completed" || requests.Load() != 3 {
+	if err != nil || !result.Claimed || result.Status != "completed" || requests.Load() != 4 {
 		t.Fatalf("result=%#v requests=%d err=%v", result, requests.Load(), err)
 	}
 	assertKernelApprovalEventCounts(t, store, "frame-background", 1, 1, 1)
@@ -626,6 +632,24 @@ func TestAgentKernelCellResultPayloadStatusesAndTruncation(t *testing.T) {
 	}
 }
 
+func TestAgentKernelEmptyWaitDoesNotClaimExecutionCompletion(t *testing.T) {
+	store, manager, app, identity := newKernelHostTestRuntime(t, filepath.Join(t.TempDir(), "workspace.db"), true)
+	defer closeKernelHostTestRuntime(t, app, manager, store)
+	for _, timeout := range []int{0, 1800} {
+		result, err := app.executeAgentKernelNotificationWait(context.Background(), identity, "empty-wait", map[string]any{"timeout_seconds": timeout})
+		if err != nil {
+			t.Fatal(err)
+		}
+		notifications, ok := result["notifications"].([]any)
+		if result["status"] != "idle" || result["num_notifications"] != 0 || !ok || len(notifications) != 0 || result["cells_completed"] != nil {
+			t.Fatalf("empty wait claimed execution completion: %#v", result)
+		}
+		if hint := stringValue(result["system_hint"]); !strings.Contains(hint, "does not prove") || !strings.Contains(hint, "execution receipts") {
+			t.Fatalf("empty wait lost the observation/evidence distinction: %#v", result)
+		}
+	}
+}
+
 func TestAgentKernelRestartProjectsReferenceLostCellResult(t *testing.T) {
 	root := t.TempDir()
 	store, manager, app, identity := newKernelHostTestRuntime(t, filepath.Join(root, "workspace.db"), true)
@@ -662,9 +686,9 @@ func TestAgentKernelRestartProjectsReferenceLostCellResult(t *testing.T) {
 		t.Fatal(err)
 	}
 	noWork, err := app.executeAgentKernelNotificationWait(context.Background(), identity, "lost-empty", map[string]any{"timeout_seconds": 0})
-	if err != nil || noWork["status"] != "completed" || noWork["num_notifications"] != 0 ||
+	if err != nil || noWork["status"] != "idle" || noWork["num_notifications"] != 0 ||
 		len(noWork["notifications"].([]any)) != 0 || noWork["error"] != nil ||
-		noWork["system_hint"] != "All delegations have completed and their notifications have been consumed." {
+		!strings.Contains(stringValue(noWork["system_hint"]), "does not prove") {
 		t.Fatalf("post-lost notification work=%#v err=%v", noWork, err)
 	}
 	events, err := store.ListFrameEvents(identity.access.Frame.ID, 0, 100)
@@ -744,9 +768,9 @@ func TestAgentKernelWaitReturnsReferenceUncollectedLandingUntilCollect(t *testin
 		t.Fatalf("terminal retry after collection: %v", err)
 	}
 	noWork, err := app.executeAgentKernelNotificationWait(context.Background(), identity, "landing-empty", map[string]any{"timeout_seconds": 0})
-	if err != nil || noWork["status"] != "completed" || noWork["num_notifications"] != 0 ||
+	if err != nil || noWork["status"] != "idle" || noWork["num_notifications"] != 0 ||
 		len(noWork["notifications"].([]any)) != 0 || noWork["error"] != nil ||
-		noWork["system_hint"] != "All delegations have completed and their notifications have been consumed." {
+		!strings.Contains(stringValue(noWork["system_hint"]), "does not prove") {
 		t.Fatalf("post-collect result=%#v err=%v", noWork, err)
 	}
 }
@@ -1056,8 +1080,8 @@ func TestAgentKernelReferenceToolExecutionContract(t *testing.T) {
 		t.Fatalf("background execution notifications=%#v", seenExecutions)
 	}
 	noWork, err := app.executeAgentKernelNotificationWait(context.Background(), identity, "wait-background-empty", map[string]any{"timeout_seconds": 0})
-	if err != nil || noWork["status"] != "completed" || noWork["num_notifications"] != 0 || len(noWork["notifications"].([]any)) != 0 || noWork["error"] != nil ||
-		noWork["system_hint"] != "All delegations have completed and their notifications have been consumed." {
+	if err != nil || noWork["status"] != "idle" || noWork["num_notifications"] != 0 || len(noWork["notifications"].([]any)) != 0 || noWork["error"] != nil ||
+		!strings.Contains(stringValue(noWork["system_hint"]), "does not prove") {
 		t.Fatalf("no-work wait=%#v err=%v", noWork, err)
 	}
 

@@ -348,6 +348,7 @@ func runnerInterruptionMayContinueSameTask(reasonCode string) bool {
 		"provider_stream_no_progress",
 		sessionRunnerProviderOutputTokenLimitReasonCode,
 		sessionRunnerProviderContextPressureReasonCode,
+		sessionRunnerRequestContextPressureReasonCode,
 		sessionRunnerToolRoundNoProgressReasonCode,
 		sessionRunnerToolRoundNoProgressExhaustedReasonCode,
 		sessionRunnerCorrectionNoProgressExhaustedReasonCode,
@@ -402,6 +403,7 @@ func runnerInterruptionAutoResume(reasonCode string) bool {
 		"provider_stream_no_progress",
 		sessionRunnerProviderOutputTokenLimitReasonCode,
 		sessionRunnerProviderContextPressureReasonCode,
+		sessionRunnerRequestContextPressureReasonCode,
 		sessionRunnerToolRoundNoProgressReasonCode,
 		sessionRunnerToolRoundNoProgressExhaustedReasonCode,
 		sessionRunnerCorrectionNoProgressExhaustedReasonCode,
@@ -450,6 +452,7 @@ func runnerInterruptionIsProgressBoundary(reasonCode string) bool {
 		sessionRunnerExpiredLeaseRecoveryReasonCode,
 		sessionRunnerToolRoundLimitReasonCode,
 		"provider_stream_interrupted",
+		sessionRunnerRequestContextPressureReasonCode,
 		sessionRunnerProviderOutputTokenLimitReasonCode,
 		sessionRunnerKernelOperationPendingRecoveryReasonCode:
 		return true
@@ -464,6 +467,8 @@ func runnerInterruptionIsProgressBoundary(reasonCode string) bool {
 func sessionRunnerFailureReasonCode(message string) string {
 	message = strings.TrimSpace(message)
 	switch {
+	case strings.HasPrefix(message, "runner request context compaction required:"):
+		return sessionRunnerRequestContextPressureReasonCode
 	case strings.HasPrefix(message, "runner completion reference integrity failed"):
 		return "artifact_reference_correction_required"
 	case strings.Contains(message, "provider stream made no progress"):
@@ -581,28 +586,6 @@ func sessionRunnerModelProviderUnavailableFailure(message string) bool {
 	}
 	if strings.HasPrefix(normalized, "secret ") && strings.Contains(normalized, " not found") {
 		return true
-	}
-	return false
-}
-
-func providerContextPressureFailure(message string) bool {
-	message = strings.ToLower(strings.TrimSpace(message))
-	if message == "" {
-		return false
-	}
-	for _, marker := range []string{
-		"exceed max message tokens",
-		"maximum context length is",
-		"maximum context length exceeded",
-		"context_length_exceeded",
-		"context length exceeded",
-		"context window exceeded",
-		"input tokens exceed",
-		"prompt is too long",
-	} {
-		if strings.Contains(message, marker) {
-			return true
-		}
 	}
 	return false
 }

@@ -99,6 +99,7 @@ def write_docking_report(
     pocket_evidence: dict[str, object] | None,
     pose_manifest_rows: list[dict[str, object]],
     args: object,
+    documented_evidence: dict[str, object] | None = None,
 ) -> None:
     """Render a deterministic report from the exact ranking and pose manifest."""
     pose_paths = {str(row["candidate_id"]): str(row["path"]) for row in pose_manifest_rows}
@@ -139,6 +140,16 @@ def write_docking_report(
                 "The selected site is a ligand-agnostic pocket prediction, not an experimentally established "
                 "binding site; confirm it against orthogonal structural or biochemical evidence."
             )
+    elif center_source == "documented_task_input" and documented_evidence is not None:
+        method = str(documented_evidence["method"]).replace("\n", " ")
+        sources = "; ".join(str(item).replace("\n", " ") for item in documented_evidence["sources"])
+        limits = str(documented_evidence["limitations"]).replace("\n", " ")
+        if report_language == "zh":
+            site_basis = f"有来源记录的任务设定（{documented_evidence['basis']}）：{method}；来源：{sources}"
+            site_limitation = f"这不是自动口袋预测成功或实验确证的声明。{limits}"
+        else:
+            site_basis = f"Documented task input ({documented_evidence['basis']}): {method}; sources: {sources}"
+            site_limitation = f"This is not a successful pocket prediction or experimental confirmation. {limits}"
     else:
         if report_language == "zh":
             site_basis = "由用户确认并传入执行包的显式对接盒坐标。"

@@ -213,6 +213,7 @@ func realManagedScientificKernelManagerForServerTest(t *testing.T) *kernelruntim
 	optional := filepath.Join(root, "assets", "optional")
 	manager := kernelruntime.NewManager(kernelruntime.Config{
 		Python:                   "/usr/bin/python3",
+		Micromamba:               filepath.Join(optional, "micromamba", "linux-x86_64", "micromamba"),
 		CondaHome:                filepath.Dir(envsPath),
 		CondaEnvsPath:            envsPath,
 		CondaRuntimeCatalog:      filepath.Join(optional, "conda-runtimes", "manifest.json"),
@@ -225,6 +226,13 @@ func realManagedScientificKernelManagerForServerTest(t *testing.T) *kernelruntim
 	})
 	if err := manager.Verify(); err != nil {
 		t.Fatalf("verify bundled kernel assets: %v", err)
+	}
+	// Asset changes have a new runtime generation. Opted-in integration runs
+	// may provision it into a dedicated test environment, not an active service.
+	if os.Getenv("SYNON_TEST_PROVISION_SCIENTIFIC_RUNTIME") == "1" {
+		if err := manager.EnsureManagedPythonEnvironment(t.Context()); err != nil {
+			t.Fatalf("provision real scientific test runtime: %v", err)
+		}
 	}
 	python, validator, generation, rdkitVersion, err := manager.ScientificArtifactValidator()
 	if err != nil {

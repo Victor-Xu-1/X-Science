@@ -2,12 +2,44 @@ package kernel
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
 )
+
+func TestPythonWorkerNamespaceAndMissingStateRecovery(t *testing.T) {
+	manager, _ := newHostCallTestSession(t, nil)
+	cells := []string{
+		"import json, os\nprior_result = {'records': [7]}\nassert os.path.basename('example') == 'example'\nprint(json.dumps(prior_result))",
+		"assert prior_result.get('records') == [7]\nprint(json.dumps(prior_result))",
+		"import json as encoder\nfrom collections import Counter as Counts, defaultdict as Mapping\nassert encoder.loads('{}') == {}\nassert Counts('aa')['a'] == 2\nassert Mapping(int)['a'] == 0",
+		"def read(json):\n return json.get('value')\nassert read({'value': 7}) == 7",
+		"globals()['record'] = {'value': 7}\nassert record.get('value') == 7",
+		"read = lambda factory=dict(a=1), record=None: record.get('value')\nassert read(record={'value': 7}) == 7",
+		"def read(\n factory=dict(a=[1,2]),\n record=None,\n):\n return record.get('value')\nassert read(record={'value': 7}) == 7",
+	}
+	for index, code := range cells {
+		outcome := executeHostCallCell(t, manager, fmt.Sprintf("exec-namespace-%d", index), code, nil)
+		if outcome.Err != nil || outcome.Response.Error != "" || len(outcome.Response.Preflight) != 0 {
+			t.Fatalf("valid cell %d failed: %#v", index, outcome)
+		}
+	}
+
+	// A different real worker has no previous variables. Its NameError is an
+	// execution failure, not a fabricated non-executing admission result.
+	fresh, _ := newHostCallTestSession(t, nil)
+	missing := executeHostCallCell(t, fresh, "exec-state-lost", "side_effects = ['once']\nprint(prior_result.get('records'))\nside_effects.append('must-not-run')", nil)
+	if missing.Err != nil || !strings.Contains(missing.Response.Error, "NameError") || len(missing.Response.Preflight) != 0 {
+		t.Fatalf("lost namespace outcome=%#v", missing)
+	}
+	recovered := executeHostCallCell(t, fresh, "exec-state-repaired", "assert side_effects == ['once']\nprior_result = {'records': [7]}\nassert prior_result.get('records') == [7]\nassert side_effects == ['once']", nil)
+	if recovered.Err != nil || recovered.Response.Error != "" || len(recovered.Response.Preflight) != 0 {
+		t.Fatalf("targeted state recovery failed: %#v", recovered)
+	}
+}
 
 func TestWorkerUsesPythonRuntimeErrorsInsteadOfDomainPreflight(t *testing.T) {
 	if runtime.GOOS == "windows" {

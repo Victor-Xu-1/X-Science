@@ -199,7 +199,7 @@ func TestWebConversationUserArtifactReferencesAreCanonicalAndOwnerScoped(t *test
 	if err != nil {
 		t.Fatalf("load real runner replay: %v", err)
 	}
-	messages := sessionEntriesToChatMessages("system", entries)
+	messages := requireProviderReplayMessages(t, "system", entries)
 	if len(messages) != 2 {
 		t.Fatalf("model messages=%#v", messages)
 	}

@@ -3148,6 +3148,8 @@ export type I18nKey =
   | 'preview.scientific.structure.quickActions.viewSurface'
   | 'preview.scientific.structure.quickActions.working'
   | 'preview.scientific.structure.readOnly'
+  | 'preview.scientific.structure.sceneOverlayLabel'
+  | 'preview.scientific.structure.sceneOverlaySummary'
   | 'preview.scientific.structure.thumbnail.failed'
   | 'preview.scientific.structure.thumbnail.loading'
   | 'preview.scientific.structure.viewerLabel'

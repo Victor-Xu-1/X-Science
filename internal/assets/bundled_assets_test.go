@@ -332,7 +332,7 @@ func TestBundledPythonWorkerUsesOneModularRuntimeAndHostBridge(t *testing.T) {
 	if !strings.Contains(bootstrap, "from synon_biomed_runtime.worker_execution import run") {
 		t.Fatal("kernel entrypoint does not delegate to its owned runtime")
 	}
-	for _, module := range []string{"worker_transport.py", "worker_streams.py", "worker_compile.py", "worker_execution.py", "worker_safety.py", "worker_reads.py"} {
+	for _, module := range []string{"worker_transport.py", "worker_streams.py", "worker_compile.py", "worker_process_outcomes.py", "worker_execution.py", "worker_safety.py", "worker_reads.py"} {
 		if len(read(filepath.Join("synon_biomed_runtime", module))) == 0 {
 			t.Fatalf("worker module %s is empty", module)
 		}

@@ -526,6 +526,15 @@ func (s *Server) checkpointSessionRunnerToolEvent(
 	run *sessionRunnerChatRun,
 	event agentruntime.Event,
 ) error {
+	if event.Type == agentruntime.EventToolCompleted || event.Type == agentruntime.EventToolFailed {
+		// Admission can reject after approval but before execution. Both terminal
+		// event kinds must retire that unstarted operation through its existing
+		// durable settlement path, so recovery cannot mistake it for pending work.
+		result, _ := decodeToolEventJSON(event.Result).(map[string]any)
+		if err := s.completeKernelOperationPreflightForToolEvent(run, event.ToolCallID, result); err != nil {
+			return err
+		}
+	}
 	switch event.Type {
 	case agentruntime.EventToolStarted:
 		return s.checkpointChatTool(options, run, "running", fmt.Sprintf("tool %s started", event.ToolName), event.ToolCallID, "start", map[string]any{
@@ -550,11 +559,6 @@ func (s *Server) checkpointSessionRunnerToolEvent(
 		return s.checkpointChatTool(options, run, "running", message, event.ToolCallID, phase, details)
 	case agentruntime.EventToolCompleted:
 		toolResult := structuredOnboardingToolAuditProjection(event.ToolName, decodeToolEventJSON(event.Result))
-		if resultMap, _ := toolResult.(map[string]any); agentKernelPreflightResult(resultMap) {
-			if err := s.completeKernelOperationPreflightForToolEvent(run, event.ToolCallID, resultMap); err != nil {
-				return err
-			}
-		}
 		requestedInput, executedInput, hasExecutedInput := runnerToolEventInputs(event)
 		details := map[string]any{
 			"toolName": event.ToolName, "toolInput": requestedInput, "toolResult": toolResult,
