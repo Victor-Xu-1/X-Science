@@ -430,7 +430,7 @@ describe('ProjectHistorySection', () => {
     );
 
     await screen.findByRole('button', { name: 'Example project' });
-    expect(screen.getByTestId('projects-batch-panel')).toBeInTheDocument();
+    expect(await screen.findByTestId('projects-batch-panel')).toBeInTheDocument();
     expect(screen.getByTestId('projects-batch-delete')).toBeDisabled();
 
     fireEvent.click(screen.getByTestId('project-batch-checkbox-proj_example'));

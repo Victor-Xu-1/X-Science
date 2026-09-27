@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "08cdd06f2776cda05f91777dca881fbdf8f2429e2b1911226c96f33ea4064548",
+  "adaptationFingerprintSHA256": "fee505f6e9b28db5cc66080350cd88629949cf1dfd0cbfd382e8f81093a22545",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
-  "additionFingerprintSHA256": "01febfc158590228851bb1d3862e49a8ac66c7ca2950fa39d3b47c687048cb7d",
+  "additionFingerprintSHA256": "f7858b4f33d066f90f631632a90ea70f2eb2a50f4fc00759900b25a75239c058",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 400,
     "adaptedSourceFiles": 664,
     "removedSourceFiles": 290,
-    "addedFiles": 678
+    "addedFiles": 679
   },
   "adaptations": [
     {
@@ -1200,8 +1200,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/hooks.ts",
       "sourceSHA256": "75067dc9b38938e3dc2acbf3385ddaf8c444e4f68cc65d658f8e93da5a904fea",
-      "targetSHA256": "9cff8879e5993fc9a6db27a348ed24c9f853f0824b0e7c8630fbd850b4c41322",
-      "bytes": 61769,
+      "targetSHA256": "62a55e5f2b535b7033b52fb025eb4ca5b817d20df5f83472a7c569df87d49345",
+      "bytes": 61842,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -3678,8 +3678,8 @@
     {
       "path": "tests/unit/renderer/ProjectHistorySection.dom.test.tsx",
       "sourceSHA256": "2e8afef2e11d0ed36ae2dbcd0489da3a02d424cd84870f94e5fc7d8041c9677e",
-      "targetSHA256": "b5bf44c3b880592c0e2dabbcb27577cd474d930b822e13d836e24a0fd4d40b69",
-      "bytes": 25236,
+      "targetSHA256": "3424992477d82a7f9c17e1b8155c1cb798e4e5768d8f889e71b21222977f45d1",
+      "bytes": 25243,
       "reason": "Exercise immediate keyboard input on committed project handles before passive effects flush."
     },
     {
@@ -7074,8 +7074,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/messageWindowReconciliation.ts",
-      "sha256": "052dfa9219fb936eadf611a5883cfb0545ae1e7e0b25662b90bbf3e5cb443aab",
-      "bytes": 10914,
+      "sha256": "f15626f24ab5319105e16e1a1e8b57d7fc76596e827d8c5516a50a157c4511e2",
+      "bytes": 13174,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9504,14 +9504,20 @@
     },
     {
       "path": "tests/unit/renderer/messagePublicationCoverage.dom.test.tsx",
-      "sha256": "c236adb8dfd381f14917095dba97cb8dc632c21a56d30d7c21927611846fafd1",
-      "bytes": 7230,
+      "sha256": "ec279e79c6243d35e86704b22a90ee92b6bf8dbeda6f22952050bc35c2724b4e",
+      "bytes": 9021,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/unit/renderer/messageVirtualWindow.test.ts",
       "sha256": "711fa538c3944aae8d981621b078061b97fc8ffbd7e7d2379a6df80d0809f3d9",
       "bytes": 2314,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/messageWindowContinuity.test.ts",
+      "sha256": "c5cad73d1b03e00157e0cbb4d77a1621ad08d7c4837a1f195be832f6c34e5322",
+      "bytes": 4123,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -10428,8 +10434,8 @@
     },
     {
       "path": "tests/web-e2e/synonbiomedStreamingParity.e2e.ts",
-      "sha256": "b83e31c6a9145ddd77d5b70778b18cfa3154bfc5c588ff442a176fae28695538",
-      "bytes": 12441,
+      "sha256": "907ccb38591ef2ce4bb169a950d5b6069d703819ad62094370dd14e69d795e11",
+      "bytes": 13754,
       "reason": "Verify localized thinking, live tool stdout, inline images, and exact final artifact cards in desktop and narrow real browser paths."
     },
     {

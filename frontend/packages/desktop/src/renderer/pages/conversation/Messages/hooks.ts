@@ -547,6 +547,7 @@ function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[]
             newList.push({
               ...existingMsg,
               ...message,
+              id: existingMsg.id,
               ...mergeTextPublicationCoverage(existingMsg, message),
               content: mergeTextMessageContent(existingMsg.content, message.content),
             });
@@ -593,6 +594,7 @@ function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[]
       newList[newList.length - 1] = {
         ...last,
         ...message,
+        id: last.id,
         ...mergeTextPublicationCoverage(last, message),
         content: mergeTextMessageContent(last.content, message.content),
         artifact_refs: mergeArtifactReferences(
@@ -1410,7 +1412,7 @@ export const useMessageLstCache = (key: string, ownerId = '') => {
                   messages,
                   withoutOptimisticUserMessages(liveWindow),
                   true,
-                  source === 'cursor-reset'
+                  source !== 'initial' && source !== 'rebase'
                 );
             if (source === 'initial') initialHistoryBaselineRef.current = null;
             writeCachedMessageWindow(key, ownerId, branchRevision, nextList, nextPagination);

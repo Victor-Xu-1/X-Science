@@ -23,13 +23,7 @@ type sessionRunnerCommunicationSchedule struct {
 func (schedule *sessionRunnerCommunicationSchedule) due() bool {
 	schedule.mu.Lock()
 	defer schedule.mu.Unlock()
-	return schedule.LastPublished.IsZero() || schedule.CompletedSteps >= 4 && schedule.now().Sub(schedule.LastPublished) >= 90*time.Second
-}
-
-func (schedule *sessionRunnerCommunicationSchedule) allowed() bool {
-	schedule.mu.Lock()
-	defer schedule.mu.Unlock()
-	return schedule.LastPublished.IsZero() || schedule.CompletedSteps > 0 && schedule.now().Sub(schedule.LastPublished) >= 30*time.Second
+	return schedule.LastPublished.IsZero() || schedule.CompletedSteps > 0 && schedule.now().Sub(schedule.LastPublished) >= 90*time.Second
 }
 
 func (schedule *sessionRunnerCommunicationSchedule) published() error {

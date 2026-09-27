@@ -71,6 +71,25 @@ func TestResponseContractKeepsNativePreambleOnce(t *testing.T) {
 	}
 }
 
+func TestResponseContractDoesNotDiscardNewProgressBetweenCadenceRequests(t *testing.T) {
+	text := "The first source is unavailable; I will check the remaining source."
+	args, _ := json.Marshal(map[string]any{"public_progress": text})
+	model := &nativeCommunicationFixture{responses: []agentruntime.ModelResponse{{
+		Message: agentruntime.Message{ToolCalls: []agentruntime.ToolCall{{
+			ID: "new-finding", Name: "inspect", Arguments: args,
+		}}},
+	}}}
+	client := &sessionRunnerResponseContractClient{delegate: model, progressDue: func() bool { return false }}
+	var visible string
+	_, err := client.CompleteStream(context.Background(), agentruntime.ModelRequest{}, func(event agentruntime.ModelStreamEvent) error {
+		visible += event.ContentDelta
+		return nil
+	})
+	if err != nil || visible != text || model.calls != 1 {
+		t.Fatalf("new progress silently discarded: %q calls=%d error=%v", visible, model.calls, err)
+	}
+}
+
 type interruptedProgressModel struct{}
 
 func (interruptedProgressModel) Complete(context.Context, agentruntime.ModelRequest) (agentruntime.ModelResponse, error) {
@@ -120,13 +139,13 @@ func TestResponseContractPreservesInvalidFieldToolArgumentsAndRejectsSchemaColli
 	}
 }
 
-func TestResponseContractConsolidatesBatchAndHonorsCadence(t *testing.T) {
-	for _, allowed := range []bool{false, true} {
+func TestResponseContractConsolidatesBatchRegardlessOfRequestCadence(t *testing.T) {
+	for _, due := range []bool{false, true} {
 		model := &nativeCommunicationFixture{responses: []agentruntime.ModelResponse{{Message: agentruntime.Message{ToolCalls: []agentruntime.ToolCall{
 			{ID: "a", Name: "inspect", Arguments: json.RawMessage(`{"public_progress":"Comparing the two records."}`)},
 			{ID: "b", Name: "inspect", Arguments: json.RawMessage(`{"public_progress":"Comparing the two records."}`)},
 		}}}}}
-		client := &sessionRunnerResponseContractClient{delegate: model, progressAllowed: func() bool { return allowed }}
+		client := &sessionRunnerResponseContractClient{delegate: model, progressDue: func() bool { return due }}
 		count := 0
 		response, err := client.CompleteStream(context.Background(), agentruntime.ModelRequest{}, func(event agentruntime.ModelStreamEvent) error {
 			if event.Kind == agentruntime.ModelStreamEventPublicProgressDelta {
@@ -134,12 +153,8 @@ func TestResponseContractConsolidatesBatchAndHonorsCadence(t *testing.T) {
 			}
 			return nil
 		})
-		want := 0
-		if allowed {
-			want = 1
-		}
-		if err != nil || count != want || model.calls != 1 {
-			t.Fatalf("allowed=%t count=%d err=%v", allowed, count, err)
+		if err != nil || count != 1 || model.calls != 1 {
+			t.Fatalf("due=%t count=%d err=%v", due, count, err)
 		}
 		for _, call := range response.Message.ToolCalls {
 			if strings.Contains(string(call.Arguments), runnerPublicProgressField) {
