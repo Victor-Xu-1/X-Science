@@ -6,7 +6,6 @@ import (
 	"io"
 	"mime"
 	"net/http"
-	"net/url"
 	"path"
 	"regexp"
 	"strconv"
@@ -34,7 +33,13 @@ func (s *Server) handleArtifactDownload(w http.ResponseWriter, r *http.Request) 
 	if !ok {
 		return
 	}
-	segments := workspacePathSegments(strings.TrimPrefix(r.URL.Path, "/api/artifacts/"))
+	segments := artifactPathSegments(r, "/api/artifacts/")
+	if len(segments) >= 3 && segments[1] == "versions" {
+		if _, err := decodeArtifactPathIdentity(segments[2]); err != nil {
+			writeAttachmentError(w, http.StatusBadRequest, "invalid artifact version identity")
+			return
+		}
+	}
 	if len(segments) >= 4 && segments[1] == "versions" && segments[3] == "archive" {
 		s.handleArtifactArchive(w, r, store, userID, segments)
 		return
@@ -59,8 +64,8 @@ func (s *Server) handleArtifactDownload(w http.ResponseWriter, r *http.Request) 
 		writeAttachmentError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
-	artifactID, err := url.PathUnescape(segments[0])
-	if err != nil || strings.TrimSpace(artifactID) == "" {
+	artifactID, err := decodeArtifactPathIdentity(segments[0])
+	if err != nil {
 		writeAttachmentError(w, http.StatusBadRequest, "invalid artifact id")
 		return
 	}
@@ -107,10 +112,9 @@ func (s *Server) handleExactArtifactVersionDownload(
 		writeAttachmentError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
-	artifactID, artifactErr := url.PathUnescape(encodedArtifactID)
-	versionID, versionErr := url.PathUnescape(encodedVersionID)
-	artifactID, versionID = strings.TrimSpace(artifactID), strings.TrimSpace(versionID)
-	if artifactErr != nil || versionErr != nil || artifactID == "" || versionID == "" {
+	artifactID, artifactErr := decodeArtifactPathIdentity(encodedArtifactID)
+	versionID, versionErr := decodeArtifactPathIdentity(encodedVersionID)
+	if artifactErr != nil || versionErr != nil {
 		writeAttachmentError(w, http.StatusBadRequest, "invalid artifact version identity")
 		return
 	}
@@ -163,7 +167,7 @@ func (s *Server) handleArtifactVersionDownload(w http.ResponseWriter, r *http.Re
 	if !ok {
 		return
 	}
-	segments := workspacePathSegments(strings.TrimPrefix(r.URL.Path, "/api/artifacts/versions/"))
+	segments := artifactPathSegments(r, "/api/artifacts/versions/")
 	if len(segments) != 1 {
 		writeAttachmentError(w, http.StatusNotFound, "artifact version endpoint not found")
 		return
@@ -172,8 +176,8 @@ func (s *Server) handleArtifactVersionDownload(w http.ResponseWriter, r *http.Re
 		writeAttachmentError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
-	versionID, err := url.PathUnescape(segments[0])
-	if err != nil || strings.TrimSpace(versionID) == "" {
+	versionID, err := decodeArtifactPathIdentity(segments[0])
+	if err != nil {
 		writeAttachmentError(w, http.StatusBadRequest, "invalid artifact version id")
 		return
 	}

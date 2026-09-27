@@ -4,73 +4,167 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, expect, it } from 'vitest';
-
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  buildContextUsageBreakdown,
-  estimateChatMessageTokens,
-  estimateConversationMessagesTokens,
-  estimateTextTokens,
+  fetchContextUsage,
+  parseContextUsage,
+  reconcileContextUsageBreakdown,
+  type ContextUsageSnapshot,
 } from '@/renderer/services/contextUsage';
 
-describe('context usage estimation', () => {
-  it('mirrors the server-side text estimator for ASCII and CJK payloads', () => {
-    expect(estimateTextTokens('')).toBe(0);
-    expect(estimateTextTokens(null)).toBe(0);
-    expect(estimateTextTokens('abcd')).toBe(1);
-    expect(estimateTextTokens('abcdefgh')).toBe(2);
-    // CJK runes count one token each.
-    expect(estimateTextTokens('分子模拟')).toBe(4);
+const snapshot = (): ContextUsageSnapshot => ({
+  sessionId: 'one',
+  requestId: 'request',
+  model: 'model',
+  observedAt: '2026-01-01T00:00:00Z',
+  state: 'complete',
+  source: 'provider',
+  usedTokens: 20,
+  limitTokens: 100,
+  limitSource: 'configured',
+  outputTokens: 3,
+  hasMedia: false,
+  inputEstimates: [
+    { key: 'systemPrompt', tokens: 4 },
+    { key: 'tools', tokens: 2 },
+    { key: 'messages', tokens: 8 },
+    { key: 'mcp', tokens: 1 },
+    { key: 'skills', tokens: 1 },
+  ],
+});
+
+describe('context usage contract', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('keeps provider total separate from estimated components and accepts zero', () => {
+    const value = snapshot();
+    expect(parseContextUsage({ status: 'available', snapshot: value }, 'one')).toEqual({
+      status: 'available',
+      snapshot: value,
+    });
+    value.usedTokens = 0;
+    value.outputTokens = 0;
+    value.inputEstimates.forEach((row) => {
+      row.tokens = 0;
+    });
+    expect(parseContextUsage({ status: 'available', snapshot: value }, 'one').status).toBe('available');
+    expect(reconcileContextUsageBreakdown(value).every((row) => row.tokens === 0)).toBe(true);
   });
 
-  it('adds the per-message overhead and tool-call accounting', () => {
-    const message = {
-      role: 'user',
-      content: 'abcd',
-      tool_calls: [
-        {
-          id: 'call_1',
-          function: { name: 'search', arguments: '{"query":"abcd"}' },
-        },
+  it('reconciles actual input weights to provider usage with deterministic largest remainders', () => {
+    const value = snapshot();
+    value.usedTokens = 10;
+    value.outputTokens = 3;
+    value.inputEstimates.forEach((row) => {
+      row.tokens = 1;
+    });
+    expect(reconcileContextUsageBreakdown(value)).toEqual([
+      { key: 'systemPrompt', tokens: 2 },
+      { key: 'tools', tokens: 2 },
+      { key: 'messages', tokens: 4 },
+      { key: 'mcp', tokens: 1 },
+      { key: 'skills', tokens: 1 },
+    ]);
+  });
+
+  it('retains a small MCP segment and all five screenshot percentages above budget', () => {
+    const value = snapshot();
+    value.usedTokens = 348_200;
+    value.outputTokens = 0;
+    value.limitTokens = 300_000;
+    value.inputEstimates = [
+      { key: 'systemPrompt', tokens: 17_400 },
+      { key: 'tools', tokens: 34_200 },
+      { key: 'messages', tokens: 290_600 },
+      { key: 'mcp', tokens: 300 },
+      { key: 'skills', tokens: 5_700 },
+    ];
+    const rows = reconcileContextUsageBreakdown(value);
+    expect(rows.map((row) => ((row.tokens / value.limitTokens) * 100).toFixed(1))).toEqual([
+      '5.8',
+      '11.4',
+      '96.9',
+      '0.1',
+      '1.9',
+    ]);
+    expect(rows.reduce((total, row) => total + row.tokens, 0)).toBe(value.usedTokens);
+  });
+
+  it('does not lose tokens when the sum of input weights exceeds Number.MAX_SAFE_INTEGER', () => {
+    const value = snapshot();
+    value.usedTokens = Number.MAX_SAFE_INTEGER;
+    value.outputTokens = 1;
+    value.inputEstimates.forEach((row) => {
+      row.tokens = Number.MAX_SAFE_INTEGER;
+    });
+    const rows = reconcileContextUsageBreakdown(value);
+    expect(rows.reduce((total, row) => total + row.tokens, 0)).toBe(value.usedTokens);
+    expect(rows[2].tokens).toBeGreaterThan(rows[0].tokens);
+  });
+
+  it('makes missing telemetry explicit instead of loading or zero', () => {
+    expect(parseContextUsage({ status: 'unavailable' }, 'one')).toEqual({ status: 'unavailable' });
+  });
+
+  it.each([
+    { usedTokens: -1 },
+    { usedTokens: Number.NaN },
+    { usedTokens: '20' },
+    { limitTokens: 0 },
+    { usedTokens: Number.MAX_SAFE_INTEGER + 1 },
+    { outputTokens: 21 },
+    { source: 'cumulative' },
+    { state: 'invented' },
+    { state: 'request', source: 'provider' },
+    { state: 'failed', outputTokens: 3 },
+    { limitSource: 'model_default' },
+    { observedAt: 'bad date' },
+    { sessionId: 'other' },
+    { inputEstimates: [] },
+    {
+      inputEstimates: [
+        { key: 'systemPrompt', tokens: 1 },
+        { key: 'messages', tokens: 1 },
+        { key: 'toolDefinitions', tokens: 1 },
       ],
-    };
-    const total = estimateChatMessageTokens(message);
-    expect(total).toBeGreaterThan(4);
-    expect(estimateConversationMessagesTokens([message, message])).toBe(total * 2);
+    },
+    { inputEstimates: [{ key: 'invented', tokens: 20 }] },
+    {
+      inputEstimates: [
+        { key: 'systemPrompt', tokens: 0 },
+        { key: 'tools', tokens: 0 },
+        { key: 'messages', tokens: 0 },
+        { key: 'mcp', tokens: 0 },
+        { key: 'skills', tokens: 0 },
+      ],
+    },
+  ])('rejects invalid or cross-conversation data: %j', (change) => {
+    expect(() => parseContextUsage({ status: 'available', snapshot: { ...snapshot(), ...change } }, 'one')).toThrow();
   });
 
-  it('counts the structured content shape returned by conversation history', () => {
-    const projectedText = {
-      type: 'text',
-      position: 'right',
-      content: { content: 'abcdefgh' },
-    };
-    const projectedTool = {
-      type: 'tool_call',
-      content: { name: 'search', input: { query: 'abcd' }, output: 'efgh' },
-    };
-    expect(estimateChatMessageTokens(projectedText)).toBe(4 + 1 + 2);
-    expect(estimateChatMessageTokens(projectedTool)).toBeGreaterThan(4);
+  it('only requests the authenticated uncached context endpoint', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ status: 'unavailable' }))));
+    const signal = new AbortController().signal;
+    await expect(fetchContextUsage('one / two', signal)).resolves.toEqual({ status: 'unavailable' });
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/conversations/one%20%2F%20two/context-usage',
+      expect.objectContaining({
+        credentials: 'include',
+        cache: 'no-store',
+        signal,
+      })
+    );
   });
 
-  it('pins the breakdown rows to the authoritative used total', () => {
-    const rows = buildContextUsageBreakdown({ usedTokens: 133_000, limitTokens: 300_000, messagesTokens: 84_000 });
-    const sum = rows.reduce((total, row) => total + row.tokens, 0);
-    expect(sum).toBe(133_000);
-    const keys = rows.map((row) => row.key);
-    expect(keys).toEqual(['systemPrompt', 'toolsAndSubagents', 'messages', 'connectorsAndMcp', 'skills']);
-    expect(rows.find((row) => row.key === 'messages')?.tokens).toBe(84_000);
-  });
-
-  it('keeps every row non-negative and clamps message estimates to the total', () => {
-    const rows = buildContextUsageBreakdown({ usedTokens: 10, limitTokens: 300_000, messagesTokens: 99_999 });
-    for (const row of rows) expect(row.tokens).toBeGreaterThanOrEqual(0);
-    expect(rows.reduce((total, row) => total + row.tokens, 0)).toBe(10);
-  });
-
-  it('falls back to capability shares when the message estimate is unavailable', () => {
-    const rows = buildContextUsageBreakdown({ usedTokens: 50_000, limitTokens: 300_000, messagesTokens: null });
-    expect(rows.reduce((total, row) => total + row.tokens, 0)).toBe(50_000);
-    expect(rows.find((row) => row.key === 'messages')?.tokens).toBe(0);
+  it('rejects transport and invalid JSON failures', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(new Response('{}', { status: 503 }))
+        .mockResolvedValueOnce(new Response('invalid'))
+    );
+    await expect(fetchContextUsage('one', new AbortController().signal)).rejects.toThrow();
+    await expect(fetchContextUsage('one', new AbortController().signal)).rejects.toThrow();
   });
 });

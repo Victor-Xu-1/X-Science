@@ -23,7 +23,9 @@ import {
 import {
   getSynonBiomedArtifactImageFilename,
   getSynonBiomedArtifactReferenceId,
-  getSynonBiomedRelativeArtifactFilename,
+  parseSynonBiomedArtifactLink,
+  type SynonBiomedArtifactContentReference,
+  type SynonBiomedArtifactLink,
 } from '@/renderer/services/synonBiomedArtifactReferences';
 import { Message } from '@arco-design/web-react';
 import { useCallback, useMemo } from 'react';
@@ -76,8 +78,20 @@ export function resolveSynonBiomedArtifactFile(
   index: ConversationArtifactIndex,
   rawReferenceId: string | null,
   rawFilename: string | null,
-  references: readonly ArtifactReferenceWire[] | undefined
+  references: readonly ArtifactReferenceWire[] | undefined,
+  contentReference?: SynonBiomedArtifactContentReference,
+  referencesResolved = false
 ): ISynonBiomedScientificFile | null {
+  if (contentReference) {
+    const file = contentReference.versionId
+      ? index.byVersionId.get(contentReference.versionId)
+      : index.byArtifactId.get(contentReference.artifactId);
+    // A URL claiming one artifact cannot borrow another artifact's version or filename.
+    return file?.artifact_id === contentReference.artifactId &&
+      (!contentReference.versionId || file.version_id === contentReference.versionId)
+      ? file
+      : null;
+  }
   const referenceId = rawReferenceId?.trim() ?? '';
   if (referenceId) {
     const exact = index.byVersionId.get(referenceId) ?? index.byArtifactId.get(referenceId);
@@ -86,12 +100,27 @@ export function resolveSynonBiomedArtifactFile(
 
   const filename = rawFilename?.trim().toLocaleLowerCase() ?? '';
   if (filename) {
-    const exactVersions = availableArtifactReferences(references)
-      .map((reference) => index.byVersionId.get(reference.version_id))
-      .filter((file): file is ISynonBiomedScientificFile =>
-        Boolean(file && file.filename.toLocaleLowerCase() === filename)
-      );
+    const unavailableNamedReference = (references ?? []).some((reference) => {
+      const file = index.byVersionId.get(reference.version_id);
+      const available = !reference.availability || reference.availability === 'available';
+      if (available && file?.artifact_id === reference.artifact_id) return false;
+      const referenceFilename = reference.filename || index.byArtifactId.get(reference.artifact_id)?.filename;
+      return referenceFilename?.toLocaleLowerCase() === filename;
+    });
+    if (unavailableNamedReference) return null;
+    const referencedFiles = availableArtifactReferences(references).map((reference) => {
+      const file = index.byVersionId.get(reference.version_id);
+      return file?.artifact_id === reference.artifact_id ? file : undefined;
+    });
+    // Resolve the message's exact versions before falling back to a current file
+    // with the same name; a partially populated index must not change history.
+    const hasUnresolvedReferences = referencedFiles.some((file) => !file);
+    if (hasUnresolvedReferences && !referencesResolved) return null;
+    const exactVersions = referencedFiles.filter((file): file is ISynonBiomedScientificFile =>
+      Boolean(file && file.filename.toLocaleLowerCase() === filename)
+    );
     if (exactVersions.length === 1) return exactVersions[0];
+    if (exactVersions.length > 1 || hasUnresolvedReferences) return null;
     const byFilename = index.byFilename.get(filename);
     if (byFilename) return byFilename;
   }
@@ -110,26 +139,40 @@ export function useSynonBiomedArtifactResolver({
   const exactReferences = useMemo(() => availableArtifactReferences(artifactReferences), [artifactReferences]);
 
   const resolveFile = useCallback(
-    async (referenceId: string | null, filename: string | null): Promise<ISynonBiomedScientificFile | null> => {
-      const cached = resolveSynonBiomedArtifactFile(artifactIndex, referenceId, filename, artifactReferences);
+    async (link: SynonBiomedArtifactLink): Promise<ISynonBiomedScientificFile | null> => {
+      const referenceId = link.kind === 'reference' ? link.referenceId : null;
+      const filename = link.kind === 'filename' ? link.filename : null;
+      const contentReference = link.kind === 'content' ? link : undefined;
+      const requestedReferences = contentReference?.versionId
+        ? [{ artifact_id: contentReference.artifactId, version_id: contentReference.versionId }]
+        : exactReferences;
+      const cached = resolveSynonBiomedArtifactFile(
+        artifactIndex,
+        referenceId,
+        filename,
+        artifactReferences,
+        contentReference
+      );
       const exactReferenceIsAlreadyIncluded = exactReferences.some(
         (reference) => reference.version_id === referenceId || reference.artifact_id === referenceId
       );
       const versionIds = referenceId && !exactReferenceIsAlreadyIncluded ? [referenceId] : [];
-      if (cached || !conversationId || (exactReferences.length === 0 && versionIds.length === 0)) return cached;
-      const collections = await resolveWindowReferences(exactReferences, versionIds);
+      if (cached || !conversationId || (requestedReferences.length === 0 && versionIds.length === 0)) return cached;
+      const collections = await resolveWindowReferences(requestedReferences, versionIds);
       const resolvedCollections =
         collections ??
         (await ipcBridge.conversation.listArtifacts.invoke({
           conversation_id: conversationId,
-          references: exactReferences,
+          references: requestedReferences,
           version_ids: versionIds,
         }));
       return resolveSynonBiomedArtifactFile(
         createConversationArtifactIndex(resolvedCollections),
         referenceId,
         filename,
-        artifactReferences
+        artifactReferences,
+        contentReference,
+        true
       );
     },
     [artifactIndex, artifactReferences, conversationId, exactReferences, resolveWindowReferences]
@@ -140,11 +183,11 @@ export function useSynonBiomedArtifactResolver({
       if (!workspace?.startsWith('synonbiomed://') || !conversationId) return null;
       const artifactReferenceId = getSynonBiomedArtifactReferenceId(src);
       if (artifactReferenceId) {
-        return (await resolveFile(artifactReferenceId, null))?.content_url ?? null;
+        return (await resolveFile({ kind: 'reference', referenceId: artifactReferenceId }))?.content_url ?? null;
       }
       const filename = getSynonBiomedArtifactImageFilename(src);
       if (!filename) return null;
-      return (await resolveFile(null, filename))?.content_url ?? null;
+      return (await resolveFile({ kind: 'filename', filename }))?.content_url ?? null;
     },
     [conversationId, resolveFile, workspace]
   );
@@ -152,23 +195,24 @@ export function useSynonBiomedArtifactResolver({
   const resolveLinkHref = useCallback(
     async (href: string): Promise<string | null> => {
       if (!workspace?.startsWith('synonbiomed://') || !conversationId) return null;
-      const artifactReferenceId = getSynonBiomedArtifactReferenceId(href);
-      const filename = getSynonBiomedRelativeArtifactFilename(href);
-      if (!artifactReferenceId && !filename) return null;
-      return (await resolveFile(artifactReferenceId, filename))?.content_url ?? null;
+      const link = parseSynonBiomedArtifactLink(href);
+      return link ? ((await resolveFile(link))?.content_url ?? null) : null;
     },
     [conversationId, resolveFile, workspace]
   );
 
   const handleLink = useCallback(
     async (href: string): Promise<boolean> => {
-      if (!workspace?.startsWith('synonbiomed://') || !conversationId) return false;
-      const artifactReferenceId = getSynonBiomedArtifactReferenceId(href);
-      const filename = getSynonBiomedRelativeArtifactFilename(href);
-      if (!artifactReferenceId && !filename) return false;
+      const link = parseSynonBiomedArtifactLink(href);
+      if (!link) return false;
+      if (!workspace?.startsWith('synonbiomed://') || !conversationId) {
+        if (link.kind === 'filename') return false;
+        Message.error(t('conversation.scientificFiles.loadFailed'));
+        return true;
+      }
 
       try {
-        const file = await resolveFile(artifactReferenceId, filename);
+        const file = await resolveFile(link);
         if (!file) {
           Message.error(t('conversation.scientificFiles.loadFailed'));
           return true;

@@ -2,19 +2,21 @@ import type { SynonBiomedArtifactAnnotation } from '@/renderer/services/synonBio
 import {
   logScientificPreviewError,
   resolveScientificPreviewError,
-  ScientificPreviewError,
+  type ScientificPreviewError,
   scientificPreviewErrorKey,
 } from '@/renderer/pages/conversation/Preview/components/viewers/scientificPreviewError';
 import { Button, Result, Spin } from '@arco-design/web-react';
 import { Minus, Plus, Refresh } from '@icon-park/react';
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Document, Page, pdfjs } from 'react-pdf';
+import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import type { SynonBiomedArtifactCanvasSelection } from './artifactCanvasSelection';
 import { clampPercent } from './artifactCanvasSelection';
+import { loadPdfDocumentBytes } from './pdfDocumentSource';
 import {
   findPdfTextAnnotationRange,
   normalizePdfTextAnnotationRects,
@@ -23,6 +25,13 @@ import {
 
 pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
+const pdfOptions = {
+  cMapUrl: `/pdfjs/${pdfjs.version}/cmaps/`,
+  cMapPacked: true,
+  standardFontDataUrl: `/pdfjs/${pdfjs.version}/standard_fonts/`,
+  wasmUrl: `/pdfjs/${pdfjs.version}/wasm/`,
+};
+
 const MIN_SCALE = 0.6;
 const MAX_SCALE = 2;
 
@@ -30,11 +39,13 @@ export const SynonBiomedPdfArtifactViewer: React.FC<{
   filename: string;
   contentUrl: string;
   annotations?: SynonBiomedArtifactAnnotation[];
-  onSelectionChange: (selection: SynonBiomedArtifactCanvasSelection | null) => void;
+  onSelectionChange?: (selection: SynonBiomedArtifactCanvasSelection | null) => void;
   onAnnotationClick?: (annotation: SynonBiomedArtifactAnnotation) => void;
-}> = ({ filename, contentUrl, annotations = [], onSelectionChange, onAnnotationClick }) => {
+  hideToolbar?: boolean;
+}> = ({ filename, contentUrl, annotations = [], onSelectionChange, onAnnotationClick, hideToolbar = false }) => {
   const { i18n, t } = useTranslation();
   const viewportRef = useRef<HTMLDivElement>(null);
+  const pagesRef = useRef<VirtuosoHandle>(null);
   const [file, setFile] = useState<Uint8Array | null>(null);
   const [numPages, setNumPages] = useState(0);
   const [containerWidth, setContainerWidth] = useState(800);
@@ -42,6 +53,7 @@ export const SynonBiomedPdfArtifactViewer: React.FC<{
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ScientificPreviewError | null>(null);
   const [generation, setGeneration] = useState(0);
+  const clearSelection = useEffectEvent(() => onSelectionChange?.(null));
 
   useEffect(() => {
     const container = viewportRef.current;
@@ -60,14 +72,10 @@ export const SynonBiomedPdfArtifactViewer: React.FC<{
     setFile(null);
     setNumPages(0);
     setScale(1);
-    onSelectionChange(null);
-    void fetch(contentUrl, { credentials: 'same-origin', signal: controller.signal })
-      .then(async (response) => {
-        if (!response.ok) throw new ScientificPreviewError('request-failed', { status: response.status });
-        return new Uint8Array(await response.arrayBuffer());
-      })
+    clearSelection();
+    void loadPdfDocumentBytes(contentUrl, controller.signal)
       .then((bytes) => {
-        if (bytes.byteLength === 0) throw new ScientificPreviewError('empty-content');
+        if (controller.signal.aborted) return;
         setFile(bytes);
       })
       .catch((reason: unknown) => {
@@ -77,10 +85,24 @@ export const SynonBiomedPdfArtifactViewer: React.FC<{
         setLoading(false);
       });
     return () => controller.abort();
-  }, [contentUrl, generation, onSelectionChange]);
+  }, [contentUrl, generation]);
 
   const pageWidth = Math.min(960, containerWidth) * scale;
   const documentFile = useMemo(() => (file ? { data: file } : null), [file]);
+  const handleDocumentLink = useCallback(
+    ({ pageIndex }: { pageIndex: number }) => {
+      if (!Number.isSafeInteger(pageIndex) || pageIndex < 0 || pageIndex >= numPages) return;
+      // PDF.js destinations may refer to a page outside the mounted window.
+      // Let the virtualizer mount and position it instead of looking for a DOM page.
+      pagesRef.current?.scrollToIndex({ index: pageIndex, align: 'start' });
+    },
+    [numPages]
+  );
+  const handlePageError = useCallback((reason: unknown) => {
+    logScientificPreviewError('[SynonBiomedPdfArtifactViewer] Failed to render PDF page', reason, 'parse-failed');
+    setError(resolveScientificPreviewError(reason, 'parse-failed'));
+    setLoading(false);
+  }, []);
 
   const handleTextSelection = useCallback(() => {
     window.setTimeout(() => {
@@ -99,7 +121,7 @@ export const SynonBiomedPdfArtifactViewer: React.FC<{
       if (!Number.isSafeInteger(pageNumber) || pageNumber < 1) return;
       const rect = range.getBoundingClientRect();
       const lines = locatePdfLineRange(startPage, range);
-      onSelectionChange({
+      onSelectionChange?.({
         type: 'text_selection',
         text: text.slice(0, 2000),
         x: rect.right,
@@ -122,7 +144,7 @@ export const SynonBiomedPdfArtifactViewer: React.FC<{
       if (rect.width <= 0 || rect.height <= 0) return;
       const xPercent = clampPercent(((event.clientX - rect.left) / rect.width) * 100);
       const yPercent = clampPercent(((event.clientY - rect.top) / rect.height) * 100);
-      onSelectionChange({
+      onSelectionChange?.({
         type: 'point',
         text: t('preview.scientific.pdf.pointSelection', {
           page: pageNumber,
@@ -142,47 +164,49 @@ export const SynonBiomedPdfArtifactViewer: React.FC<{
   return (
     <div
       ref={viewportRef}
-      className='relative size-full min-h-640px overflow-auto bg-fill-2'
-      onMouseUp={handleTextSelection}
+      className='relative size-full min-h-0 flex flex-col overflow-hidden bg-fill-2'
+      onMouseUp={onSelectionChange ? handleTextSelection : undefined}
     >
-      <div className='sticky top-8px z-20 mx-auto mb-8px flex w-fit items-center gap-4px border border-solid border-[var(--color-border-2)] bg-1 p-4px shadow-sm'>
-        <Button
-          type='text'
-          size='mini'
-          aria-label={t('preview.scientific.pdf.zoomOut')}
-          title={t('preview.scientific.zoomOut')}
-          icon={<Minus theme='outline' size={14} />}
-          disabled={scale <= MIN_SCALE}
-          onClick={() => setScale((value) => Math.max(MIN_SCALE, Number((value - 0.2).toFixed(2))))}
-        />
-        <Button
-          type='text'
-          size='mini'
-          aria-label={t('preview.scientific.pdf.resetZoom')}
-          title={t('preview.scientific.resetZoom')}
-          icon={<Refresh theme='outline' size={14} />}
-          onClick={() => setScale(1)}
-        >
-          {Math.round(scale * 100)}%
-        </Button>
-        <Button
-          type='text'
-          size='mini'
-          aria-label={t('preview.scientific.pdf.zoomIn')}
-          title={t('preview.scientific.zoomIn')}
-          icon={<Plus theme='outline' size={14} />}
-          disabled={scale >= MAX_SCALE}
-          onClick={() => setScale((value) => Math.min(MAX_SCALE, Number((value + 0.2).toFixed(2))))}
-        />
-        {numPages > 0 && (
-          <span className='px-4px text-11px text-t-tertiary'>
-            {t('preview.scientific.pdf.pageCount', {
-              count: numPages,
-              formattedCount: numPages.toLocaleString(i18n.resolvedLanguage),
-            })}
-          </span>
-        )}
-      </div>
+      {!hideToolbar && (
+        <div className='z-20 mx-auto mb-8px flex w-fit shrink-0 items-center gap-4px border border-solid border-[var(--color-border-2)] bg-1 p-4px shadow-sm'>
+          <Button
+            type='text'
+            size='mini'
+            aria-label={t('preview.scientific.pdf.zoomOut')}
+            title={t('preview.scientific.zoomOut')}
+            icon={<Minus theme='outline' size={14} />}
+            disabled={scale <= MIN_SCALE}
+            onClick={() => setScale((value) => Math.max(MIN_SCALE, Number((value - 0.2).toFixed(2))))}
+          />
+          <Button
+            type='text'
+            size='mini'
+            aria-label={t('preview.scientific.pdf.resetZoom')}
+            title={t('preview.scientific.resetZoom')}
+            icon={<Refresh theme='outline' size={14} />}
+            onClick={() => setScale(1)}
+          >
+            {Math.round(scale * 100)}%
+          </Button>
+          <Button
+            type='text'
+            size='mini'
+            aria-label={t('preview.scientific.pdf.zoomIn')}
+            title={t('preview.scientific.zoomIn')}
+            icon={<Plus theme='outline' size={14} />}
+            disabled={scale >= MAX_SCALE}
+            onClick={() => setScale((value) => Math.min(MAX_SCALE, Number((value + 0.2).toFixed(2))))}
+          />
+          {numPages > 0 && (
+            <span className='px-4px text-11px text-t-tertiary'>
+              {t('preview.scientific.pdf.pageCount', {
+                count: numPages,
+                formattedCount: numPages.toLocaleString(i18n.resolvedLanguage),
+              })}
+            </span>
+          )}
+        </div>
+      )}
 
       {error ? (
         <div className='h-420px flex-center px-24px'>
@@ -203,6 +227,8 @@ export const SynonBiomedPdfArtifactViewer: React.FC<{
       ) : (
         <Document
           file={documentFile}
+          options={pdfOptions}
+          onItemClick={handleDocumentLink}
           loading={null}
           onLoadSuccess={({ numPages: nextNumPages }) => {
             setNumPages(nextNumPages);
@@ -213,22 +239,29 @@ export const SynonBiomedPdfArtifactViewer: React.FC<{
             setError(resolveScientificPreviewError(reason, 'parse-failed'));
             setLoading(false);
           }}
-          className='flex flex-col items-center gap-16px px-24px pb-24px'
+          className='min-h-0 flex-1'
           aria-label={t('preview.scientific.pdf.documentNamed', { name: filename })}
         >
-          {Array.from({ length: numPages }, (_, index) => {
-            const pageNumber = index + 1;
-            return (
-              <PdfArtifactPage
-                key={pageNumber}
-                pageNumber={pageNumber}
-                pageWidth={pageWidth}
-                annotations={annotations}
-                onSelectPoint={selectPoint}
-                onAnnotationClick={onAnnotationClick}
-              />
-            );
-          })}
+          <Virtuoso
+            ref={pagesRef}
+            key={contentUrl}
+            totalCount={numPages}
+            defaultItemHeight={pageWidth * 1.3 + 16}
+            overscan={200}
+            className='size-full'
+            itemContent={(index) => (
+              <div className='flex justify-center px-24px pb-16px' style={{ minWidth: pageWidth + 48 }}>
+                <PdfArtifactPage
+                  pageNumber={index + 1}
+                  pageWidth={pageWidth}
+                  annotations={annotations}
+                  onSelectPoint={onSelectionChange ? selectPoint : undefined}
+                  onAnnotationClick={onAnnotationClick}
+                  onRenderError={handlePageError}
+                />
+              </div>
+            )}
+          />
         </Document>
       )}
       {loading && documentFile && (
@@ -244,9 +277,10 @@ const PdfArtifactPage: React.FC<{
   pageNumber: number;
   pageWidth: number;
   annotations: SynonBiomedArtifactAnnotation[];
-  onSelectPoint: (event: React.MouseEvent<HTMLElement>, pageNumber: number) => void;
+  onSelectPoint?: (event: React.MouseEvent<HTMLElement>, pageNumber: number) => void;
   onAnnotationClick?: (annotation: SynonBiomedArtifactAnnotation) => void;
-}> = ({ pageNumber, pageWidth, annotations, onSelectPoint, onAnnotationClick }) => {
+  onRenderError: (reason: unknown) => void;
+}> = ({ pageNumber, pageWidth, annotations, onSelectPoint, onAnnotationClick, onRenderError }) => {
   const { t } = useTranslation();
   const pageRef = useRef<HTMLElement>(null);
   const [textLayerRevision, setTextLayerRevision] = useState(0);
@@ -261,8 +295,8 @@ const PdfArtifactPage: React.FC<{
       ref={pageRef}
       data-pdf-page={pageNumber}
       aria-label={t('preview.scientific.pdf.pageNumber', { page: pageNumber })}
-      className='relative shrink-0 overflow-hidden bg-white shadow-md cursor-crosshair'
-      onClick={(event) => onSelectPoint(event, pageNumber)}
+      className={`relative shrink-0 overflow-hidden bg-white shadow-md ${onSelectPoint ? 'cursor-crosshair' : ''}`}
+      onClick={onSelectPoint ? (event) => onSelectPoint(event, pageNumber) : undefined}
     >
       <Page
         pageNumber={pageNumber}
@@ -271,6 +305,10 @@ const PdfArtifactPage: React.FC<{
         renderAnnotationLayer
         loading={<div style={{ width: pageWidth, height: pageWidth * 1.3 }} />}
         onRenderTextLayerSuccess={handleTextLayerRendered}
+        onLoadError={onRenderError}
+        onRenderError={onRenderError}
+        onRenderTextLayerError={onRenderError}
+        onRenderAnnotationLayerError={onRenderError}
       />
       <PdfTextAnnotationOverlay
         pageRef={pageRef}

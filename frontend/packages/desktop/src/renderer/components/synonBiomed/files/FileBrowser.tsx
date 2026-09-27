@@ -364,7 +364,7 @@ const FilePreview: React.FC<{ entry: BrowserEntry; url: string }> = ({ entry, ur
   if (kind === 'pdf') {
     return (
       <div className='min-h-0 flex-1 overflow-hidden'>
-        <SynonBiomedPdfArtifactViewer filename={entry.name} contentUrl={url} onSelectionChange={() => undefined} />
+        <SynonBiomedPdfArtifactViewer filename={entry.name} contentUrl={url} />
       </div>
     );
   }

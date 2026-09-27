@@ -280,6 +280,7 @@ export const getLocalBinaryPreviewMimeType = (
   contentType: PreviewContentType
 ): string | undefined => {
   const normalized = file_path.toLowerCase();
+  if (contentType === 'pdf') return 'application/pdf';
   if (contentType === 'hdf5') return 'application/octet-stream';
   if (normalized.endsWith('.bcif')) return 'application/octet-stream';
   if (normalized.endsWith('.csv.gz') || normalized.endsWith('.tsv.gz') || normalized.endsWith('.sam.gz'))

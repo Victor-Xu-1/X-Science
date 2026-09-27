@@ -8,6 +8,7 @@ import React from 'react';
 import type { i18n } from 'i18next';
 import { I18nextProvider } from 'react-i18next';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import MarkdownView from '@/renderer/components/Markdown';
 import { createTestI18n } from '../i18nTestUtils';
@@ -204,6 +205,68 @@ describe('MarkdownView local file links', () => {
     await waitFor(() => {
       expect(onLink).toHaveBeenCalledWith('README.md');
     });
+    expect(openExternalUrlMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    '/api/artifacts/artifact-report/versions/version-report',
+    'https://synon.bio/api/artifacts/artifact-report/versions/version-report',
+    '%7B%7Bartifact%3Aversion-report%7D%7D',
+    './report.pdf',
+  ])('marks generated file links consistently and contains unresolved clicks: %s', async (href) => {
+    const onLink = vi.fn().mockResolvedValue(false);
+    const resolveLinkHref = vi.fn().mockResolvedValue(null);
+    renderWithProviders(
+      <MarkdownView onLink={onLink} resolveLinkHref={resolveLinkHref}>{`[**Report.pdf**](${href})`}</MarkdownView>
+    );
+    const link = screen.getByRole('link', { name: 'Report.pdf' });
+    expect(link).toHaveClass('markdown-artifact-file-link');
+    expect(link).not.toHaveAttribute('target', '_blank');
+    fireEvent.click(link);
+    await waitFor(() => expect(onLink).toHaveBeenCalledWith(href));
+    expect(openExternalUrlMock).not.toHaveBeenCalled();
+    await waitFor(() => expect(link).toHaveAttribute('data-artifact-link-resolution', 'unavailable'));
+  });
+
+  it('does not give normal external web links the generated-file treatment', () => {
+    renderWithProviders(<MarkdownView>{'[Docs](https://example.test/report.pdf)'}</MarkdownView>);
+    expect(screen.getByRole('link', { name: 'Docs' })).not.toHaveClass('markdown-artifact-file-link');
+  });
+
+  it('preserves generic relative webpage navigation outside an artifact-aware conversation', async () => {
+    const onLink = vi.fn().mockResolvedValue(false);
+    renderWithProviders(<MarkdownView onLink={onLink}>{'[Guide](guide.html)'}</MarkdownView>);
+    const link = screen.getByRole('link', { name: 'Guide' });
+    expect(link).not.toHaveClass('markdown-artifact-file-link');
+    fireEvent.click(link);
+    await waitFor(() =>
+      expect(openExternalUrlMock).toHaveBeenCalledWith(new URL('guide.html', window.location.href).href)
+    );
+  });
+
+  it('opens a generated link with Enter while resolution is pending', async () => {
+    const onLink = vi.fn().mockResolvedValue(true);
+    renderWithProviders(
+      <MarkdownView onLink={onLink} resolveLinkHref={() => new Promise(() => undefined)}>
+        {'[Report](/api/artifacts/artifact-report/versions/version-report)'}
+      </MarkdownView>
+    );
+    const link = screen.getByRole('link', { name: 'Report' });
+    expect(link).toHaveAttribute('aria-busy', 'true');
+    link.focus();
+    await userEvent.setup().keyboard('{Enter}');
+    expect(onLink).toHaveBeenCalledWith('/api/artifacts/artifact-report/versions/version-report');
+    expect(openExternalUrlMock).not.toHaveBeenCalled();
+  });
+
+  it('contains middle-click previews without intercepting the right-click context menu', async () => {
+    const onLink = vi.fn().mockResolvedValue(true);
+    renderWithProviders(<MarkdownView onLink={onLink}>{'[Report](/api/artifacts/a/versions/v)'}</MarkdownView>);
+    const link = screen.getByRole('link', { name: 'Report' });
+    fireEvent(link, new MouseEvent('auxclick', { bubbles: true, cancelable: true, button: 2 }));
+    expect(onLink).not.toHaveBeenCalled();
+    fireEvent(link, new MouseEvent('auxclick', { bubbles: true, cancelable: true, button: 1 }));
+    await waitFor(() => expect(onLink).toHaveBeenCalledWith('/api/artifacts/a/versions/v'));
     expect(openExternalUrlMock).not.toHaveBeenCalled();
   });
 
