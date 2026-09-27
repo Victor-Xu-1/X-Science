@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "ab346c75e1de730236b8490586d6ec2b9bc305f6d9f836dddc086243c1d78e24",
+  "adaptationFingerprintSHA256": "149e767a724d142e49d57855d62282a2849544fd47afa7ae51d53873df77bc24",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
-  "additionFingerprintSHA256": "2b3a12aebea2e3472131f2284366fe189225ebcb19c49492ea56fa4feb1bd25e",
+  "additionFingerprintSHA256": "1303a9680da40859fbb6a5ccb89e41b41230e6a0875e431c6435380dcb4dac42",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 400,
@@ -1109,8 +1109,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/components/MessageText.tsx",
       "sourceSHA256": "d985f0bfdc719a845cd19aa11d5be56766d937f168c65df91c9cc522c06cb4fc",
-      "targetSHA256": "5093e2b278be353bc3420308a00883abef2acbda733e237b16868f685ee6637f",
-      "bytes": 11248,
+      "targetSHA256": "3c2226ccbd23b17bf24df88972eaae1ace06e24fcfd42317fbd2dd2b2f1f882c",
+      "bytes": 11766,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -2383,8 +2383,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "623afa9d98bd302135a37966674154a4eb35fe05addff783aac376e91890f407",
-      "bytes": 246991,
+      "targetSHA256": "9387bbf512af15f59983523dafd23bba3045eae5424bd25ddf9265d588e8b056",
+      "bytes": 247070,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2418,8 +2418,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json",
       "sourceSHA256": "c6802cdea4137a9a8199f5b9e57c11a99e7b8fde42539065da42dd4db9052b8e",
-      "targetSHA256": "557e471edad1d81d5892059a1849e00b6affdafbd4ed86e4882850d85469b217",
-      "bytes": 76716,
+      "targetSHA256": "3cb03c3a3a779fe8b47c932484d867317a11bd1d5d1ac2ad88cfee26feb8b07e",
+      "bytes": 76858,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2509,8 +2509,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/conversation.json",
       "sourceSHA256": "cb395d18cb1692e13c849172bf6d957304ef382973fb5ab95fd14723cbc045bd",
-      "targetSHA256": "319ba632253f998ce26a0f5a4569da6c3072b6953c9fe7f8c3a822dc00665152",
-      "bytes": 72549,
+      "targetSHA256": "fd5af802caa26bf394ed18614d70b226ed98cf620b9e4c571355875c2f48dc11",
+      "bytes": 72666,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -3258,8 +3258,8 @@
     {
       "path": "tests/unit/chat/messageText.dom.test.tsx",
       "sourceSHA256": "2b737bd83d2d62d21529001dea92fee4fe08732d04126954eb8b7faa7a0c6eea",
-      "targetSHA256": "4363d0c1317cbd16c1806af920efe5af47d577085b81dc852e982df8048b826b",
-      "bytes": 19535,
+      "targetSHA256": "c88f750af827554d5efe874aeb677388458230a9060f359af485c5be759f2ad9",
+      "bytes": 19830,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -7572,8 +7572,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/runtime/terminalFailureMessagesModel.ts",
-      "sha256": "c81c8438e35d2ad08f84e528ed97e89e65f83acd3724fcfa83ca3da2054b7555",
-      "bytes": 3692,
+      "sha256": "d9d293d5cb1b3bb9d8bb3f61c9d0e9d2778d5d64094b37ce0a7d810c785c25d3",
+      "bytes": 3635,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8970,8 +8970,8 @@
     },
     {
       "path": "tests/unit/chat/terminalFailureMessagesModel.test.ts",
-      "sha256": "9957884b1129d87b85eed3a011afd61eb149bf9e4e42568c07d6406909aac226",
-      "bytes": 5017,
+      "sha256": "22f49cea434d0363a1673540c0828d7c0b0a6fd1451c468bae9a97abad60cc15",
+      "bytes": 6369,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -10386,8 +10386,8 @@
     },
     {
       "path": "tests/web-e2e/synonbiomedMessageProjectionRecovery.e2e.ts",
-      "sha256": "acdb5cb7c35d63d39dba28545666f15a74657c2059171516191a274bc2c098b3",
-      "bytes": 5764,
+      "sha256": "d7bd5fce99a9418227741411e8ce35735150cc2245e333c2bbbc5592c14c7c50",
+      "bytes": 6026,
       "reason": "Verify durable cancel/resume history preserves the final answer and exact in-app artifact preview after refresh through the real Go fixture."
     },
     {

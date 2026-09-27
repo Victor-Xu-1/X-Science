@@ -152,8 +152,8 @@
     },
     {
       "path": "autodock-vina/scripts/documented_input.py",
-      "sha256": "d133a2eff21e88be60092533adb497825a50a1d3698dfb833316f6803ffa69d6",
-      "bytes": 2401
+      "sha256": "321497067e6f850ca092e6263a7afe3af3c51da4523e4867b01d8cf55b74fccd",
+      "bytes": 2400
     },
     {
       "path": "autodock-vina/SKILL.md",

@@ -37,11 +37,12 @@ export const markTerminalFailuresSuperseded = (
 };
 
 /**
- * Present at most the latest unresolved terminal failure. A newer visible
+ * Mark at most the latest terminal failure as unresolved. A newer visible
  * message proves that the conversation continued, while an active runtime
  * proves a continuation was accepted before its first new message arrives.
- * This is a read-model projection only: partial assistant content remains in
- * history and the durable transcript is never rewritten by the renderer.
+ * Keep every historical failure visible: resuming changes the current task
+ * state, not the evidence from earlier attempts. This read-model projection
+ * does not rewrite content or override visibility set by another authority.
  */
 export const projectTerminalFailuresForDisplay = (messages: TMessage[], activeRuntime: boolean): TMessage[] => {
   let newerActivity = activeRuntime;
@@ -51,15 +52,11 @@ export const projectTerminalFailuresForDisplay = (messages: TMessage[], activeRu
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index];
     if (isSupersededTerminalFailure(message)) {
-      if (message.hidden !== true) {
-        next[index] = { ...message, hidden: true };
-        changed = true;
-      }
       continue;
     }
     if (isTerminalFailure(message)) {
       if (newerActivity) {
-        next[index] = { ...message, status: 'finish', terminal_superseded: true, hidden: true };
+        next[index] = { ...message, status: 'finish', terminal_superseded: true };
         changed = true;
       } else {
         // Reserve the one current terminal failure; every older failure is

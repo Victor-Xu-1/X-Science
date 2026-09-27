@@ -1012,10 +1012,12 @@ func TestResearchSourceCheckpointAdvancesDurableReconciliationCursor(t *testing.
 	if got := int64(numberValue(metadata.ContextData[generatedPlanResearchLatestSourceEventIDKey])); got != items[0].TerminalEventID {
 		t.Fatalf("latest source cursor=%d terminal event=%d", got, items[0].TerminalEventID)
 	}
-	mismatchedRun := *run
-	mismatchedRun.TaskIntent = "A different task"
+	mismatchedRun := &sessionRunnerChatRun{
+		SessionID: run.SessionID, Attempt: run.Attempt, ClaimToken: run.ClaimToken,
+		TaskIntent: "A different task", Transcript: run.Transcript,
+	}
 	if _, err := fixture.server.executeAgentUpdateStepStatus(
-		withTranscriptRunnerChatRun(context.Background(), &mismatchedRun), fixture.stream.FrameID, "reject-other-task", map[string]any{
+		withTranscriptRunnerChatRun(context.Background(), mismatchedRun), fixture.stream.FrameID, "reject-other-task", map[string]any{
 			"step": stepID, "status": "in_progress",
 		},
 	); err == nil {

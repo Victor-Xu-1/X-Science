@@ -1190,6 +1190,7 @@ export type I18nKey =
   | 'conversation.synonRuntime.runtimeOperations.failureUnauthorized'
   | 'conversation.synonRuntime.runtimeOperations.filesWritten'
   | 'conversation.synonRuntime.runtimeOperations.historicalPlanNotice'
+  | 'conversation.synonRuntime.runtimeOperations.historicalResponseIncomplete'
   | 'conversation.synonRuntime.runtimeOperations.later'
   | 'conversation.synonRuntime.runtimeOperations.loadingExecutionLog'
   | 'conversation.synonRuntime.runtimeOperations.loadingPlan'

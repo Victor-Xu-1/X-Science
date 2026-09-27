@@ -1074,6 +1074,7 @@
       "failureOwnershipMismatch": "任务执行权限已变化",
       "failureProviderDegraded": "计算服务当前降级",
       "failureResultRejected": "结果未通过验证",
+      "historicalResponseIncomplete": "此前未完成的回复，保留供追溯；不代表当前任务状态。",
       "failurePresentation": "回复呈现需要修正",
       "failurePresentationDetail": "回复的语言或格式未通过校验。已有文件和执行结果已保留，可从保存的位置继续修正回复。",
       "failureFinalization": "任务收尾检查失败",
