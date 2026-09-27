@@ -376,7 +376,6 @@ export function useWorkspaceFileOps(params: UseWorkspaceFileOpsOptions) {
 
         // 根据文件类型读取内容 / Read content based on file type
         if (
-          contentType === 'pdf' ||
           contentType === 'word' ||
           contentType === 'excel' ||
           contentType === 'ppt' ||

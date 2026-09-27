@@ -120,6 +120,7 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "README.md": "Document the browser-only source boundary, dependency authority, scoped checks, and isolated real-backend testing prerequisites.",
     "packages/desktop/src/renderer/styles/tokens.css": "Own the single canonical visual-primitive scale (space, radius, elevation, type, weight, stacking) that every renderer module references instead of restating literals.",
     "packages/desktop/src/renderer/pages/settings/skills/SkillLibraryCard.tsx": "Render installed and draft skills with complete readable copy, declared-category icons and isolated keyboard actions.",
     "packages/desktop/src/renderer/pages/settings/skills/SkillFilePreview.tsx": "Render original Markdown and source files through distinct safe read-only previews.",
@@ -248,6 +249,7 @@ ALLOWED_ADDITIONS = {
     "tests/web-e2e/officialChromeTest.ts": "Bind Playwright acceptance to one verified official Google Chrome CDP session and isolated context.",
     "tests/web-e2e/rdkitProduction.e2e.ts": "Verify real RDKit worker rendering, pixels, MIME, cache, and path-specific CSP under the production Go host.",
     "tests/web-e2e/synonGoFrameFixture.ts": "Apply deterministic frame and delegation state through the compiled Go browser-test fixture.",
+    "tests/web-e2e/synonbiomedMessageProjectionRecovery.e2e.ts": "Verify durable cancel/resume history preserves the final answer and exact in-app artifact preview after refresh through the real Go fixture.",
     "tests/web-e2e/synonbiomedAskUser.e2e.ts-snapshots/ask-user-typed-desktop-linux.png": "Retain the reviewed desktop visual baseline for typed AskUser history and terminal state.",
     "tests/web-e2e/synonbiomedAskUser.e2e.ts-snapshots/ask-user-typed-narrow-linux.png": "Retain the reviewed narrow visual baseline for typed AskUser history and terminal state.",
     "tests/web-e2e/synonbiomedAskUser.e2e.ts-snapshots/ask-user-typed-desktop-official-windows-chrome.png": "Retain the reviewed official Windows Chrome desktop baseline for typed AskUser history and terminal state.",
@@ -289,6 +291,7 @@ ALLOWED_ADDITION_RULES = (
 )
 
 ALLOWED_REMOVALS = {
+    "packages/desktop/src/renderer/components/synonBiomed/runtime/ContextUsageIndicator.tsx": "Retire the unused ACP-derived usage ring after the authenticated request-usage card became the single composer authority.",
     "packages/desktop/src/renderer/styles/codex-theme.css": "Rename the shared visual shell to workspace-theme.css while preserving its original import provenance.",
     "packages/desktop/src/renderer/pages/conversation/Messages/acp/MessageAcpToolCall.tsx": "Consolidate tool rendering into the receipt-bound ToolOperationDetail and tool timeline.",
     "packages/desktop/src/renderer/pages/conversation/Messages/components/MessagePlan.tsx": "Consolidate plan rendering into the shared SynonBiomedPlanTree.",
@@ -501,9 +504,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "9517f6c2541a574df4ced17b19c71b1475fb5092fd1b04bc2072de6ef3ef92ac"
-APPROVED_REMOVAL_FINGERPRINT = "5fef3be0a5509d2fb15cb2771a2752a473b003888a8250f68dd500c451f451d4"
-APPROVED_ADDITION_FINGERPRINT = "938a7aecb3145954c7adf208ed5b76cebc4e1964b04984e2777e32d519498118"
+APPROVED_ADAPTATION_FINGERPRINT = "08cdd06f2776cda05f91777dca881fbdf8f2429e2b1911226c96f33ea4064548"
+APPROVED_REMOVAL_FINGERPRINT = "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c"
+APPROVED_ADDITION_FINGERPRINT = "01febfc158590228851bb1d3862e49a8ac66c7ca2950fa39d3b47c687048cb7d"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

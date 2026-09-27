@@ -293,6 +293,18 @@ func (s *Server) quarantineTranscriptWebReadModel(
 	if err != nil {
 		return err
 	}
+	// The failure belongs only to the source selected by this work item. A
+	// later source must remain eligible for rebuilding, not inherit that error.
+	if fence.SessionID != work.SessionID || fence.BranchGeneration != work.BranchGeneration ||
+		fence.ThroughPublicationSequence != work.ThroughPublicationSequence ||
+		fence.SourceRevision != work.SourceRevision {
+		return transcriptstore.ErrBranchStateStale
+	}
+	// Another worker may already have verified the same source after this
+	// attempt failed. Its completed projection wins over an obsolete error.
+	if transcriptWebFenceReady(fence) {
+		return transcriptstore.ErrTranscriptWebProjectionStale
+	}
 	code := transcriptWebProjectionErrorCode(cause)
 	stateJSON, err := json.Marshal(transcriptWebProjectorCheckpointV1{
 		Version: transcriptstore.TranscriptWebProjectorVersion, Mode: "quarantined", ErrorCode: code,

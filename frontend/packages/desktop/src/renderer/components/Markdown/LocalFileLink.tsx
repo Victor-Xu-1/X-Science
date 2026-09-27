@@ -78,7 +78,7 @@ const LocalFileLink: React.FC<LocalFileLinkProps> = ({ reference, children, onOp
           type='text'
           size='mini'
           aria-label={locationLabel ? `${textLabel} ${locationLabel}` : textLabel}
-          className='markdown-local-file-link !px-6px !py-2px !h-auto !leading-normal !align-baseline max-w-full !rd-6px'
+          className='markdown-local-file-link markdown-artifact-file-link !px-6px !py-2px !h-auto !leading-normal !align-baseline max-w-full !rd-6px'
           onClick={handleOpen}
         >
           {content}

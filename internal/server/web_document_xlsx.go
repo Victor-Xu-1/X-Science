@@ -339,8 +339,9 @@ func buildWebXLSXSheet(
 		return webExcelSheet{}, 0, err
 	}
 	data := make([][]any, maxRow+1)
-	for row, width := range rowWidths {
-		data[row] = make([]any, width)
+	for row := range data {
+		// Empty rows must remain arrays in JSON so clients preserve row positions.
+		data[row] = make([]any, rowWidths[row])
 	}
 	for _, value := range values {
 		data[value.Row][value.Col] = value.Value

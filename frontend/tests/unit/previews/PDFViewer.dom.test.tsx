@@ -5,18 +5,15 @@
  */
 
 import PDFViewer from '@/renderer/pages/conversation/Preview/components/viewers/PDFViewer';
-import { buildNativePdfPreviewSrc } from '@/renderer/pages/conversation/Preview/previewUrls';
-import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, screen } from '@testing-library/react';
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderWithI18n } from '../i18nTestUtils';
 
-vi.mock('@/common', () => ({
-  ipcBridge: {
-    shell: {
-      openFile: { invoke: vi.fn() },
-    },
-  },
+vi.mock('@/renderer/pages/artifact/SynonBiomedPdfArtifactViewer', () => ({
+  SynonBiomedPdfArtifactViewer: ({ filename, contentUrl }: { filename: string; contentUrl: string }) => (
+    <section aria-label={filename} data-testid='shared-pdf-viewer' data-source={contentUrl} />
+  ),
 }));
 
 afterEach(() => {
@@ -35,15 +32,13 @@ describe('PDFViewer', () => {
     expect(screen.getByText('PDF 文件路径为空')).toBeTruthy();
   });
 
-  it('mounts the browser-native iframe before completion and clears loading on its real load event', async () => {
+  it('uses the shared PDF.js renderer instead of a browser plugin', async () => {
     await renderWithI18n(<PDFViewer content='data:application/pdf;base64,JVBERi0xLjQ=' hideToolbar />, 'en-US');
-    const iframe = screen.getByTestId('pdf-browser-preview');
-
-    expect(iframe.tagName).toBe('IFRAME');
-    expect(iframe.getAttribute('src')).toBe(buildNativePdfPreviewSrc('data:application/pdf;base64,JVBERi0xLjQ='));
-    expect(screen.getByText('Loading PDF')).toBeTruthy();
-    fireEvent.load(iframe);
-    await waitFor(() => expect(screen.queryByText('Loading PDF')).toBeNull());
+    expect(screen.getByTestId('shared-pdf-viewer')).toHaveAttribute(
+      'data-source',
+      'data:application/pdf;base64,JVBERi0xLjQ='
+    );
+    expect(document.querySelector('iframe, webview')).toBeNull();
   });
 
   it('loads a remote project PDF from its authenticated content endpoint', async () => {
@@ -56,9 +51,27 @@ describe('PDFViewer', () => {
       'en-US'
     );
 
-    const iframe = screen.getByTestId('pdf-browser-preview');
-    expect(iframe.getAttribute('src')).toBe(
-      buildNativePdfPreviewSrc('/api/projects/proj_123/artifacts/artifact_123/content')
+    expect(screen.getByTestId('shared-pdf-viewer')).toHaveAttribute(
+      'data-source',
+      '/api/projects/proj_123/artifacts/artifact_123/content'
     );
+  });
+
+  it('uses transported content even when local path metadata exists', async () => {
+    await renderWithI18n(
+      <PDFViewer file_path='/workspace/report.pdf' content='data:application/pdf;base64,JVBERi0xLjQ=' />,
+      'en-US'
+    );
+    expect(screen.getByTestId('shared-pdf-viewer')).toHaveAttribute(
+      'data-source',
+      'data:application/pdf;base64,JVBERi0xLjQ='
+    );
+  });
+
+  it('reports an unavailable disk source without requesting a file URL', async () => {
+    await renderWithI18n(<PDFViewer file_path='/workspace/report.pdf' />, 'en-US');
+    expect(screen.getByText('Failed to load PDF document')).toBeInTheDocument();
+    expect(document.querySelector('iframe, webview')).toBeNull();
+    expect(screen.queryByTestId('shared-pdf-viewer')).toBeNull();
   });
 });

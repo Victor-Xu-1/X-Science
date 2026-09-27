@@ -4,133 +4,170 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* Compact single-layer card rendered through Arco Dropdown: the surface stays
- * owned by app-overlay-menu plus the shared composer-control-menu density, so
- * this module only adds the usage-specific stat block. */
-
 .root {
   box-sizing: border-box;
+  width: min(280px, calc(100vw - 24px));
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  padding: 16px 16px 14px;
+  border: 1px solid #e8e8e8;
+  border-radius: var(--ui-radius-2xl);
+  background: #fff;
+  box-shadow:
+    0 9px 28px rgb(0 0 0 / 9%),
+    0 2px 8px rgb(0 0 0 / 3%);
+  color: #191919;
+}
+
+:global(body[arco-theme='dark']) .root {
+  border-color: var(--color-border-2);
+  background: var(--color-bg-2);
   color: var(--color-text-1);
+}
+
+:global(body[arco-theme='dark']) .usedText,
+:global(body[arco-theme='dark']) .legendPercent {
+  color: var(--workspace-text-secondary);
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--ui-space-4);
-  height: 24px;
-  padding: 0 10px;
+  height: 16px;
+  margin-bottom: 12px;
 }
 
 .headerTitle {
   font-size: var(--ui-font-meta);
-  font-weight: var(--ui-weight-semibold);
-  line-height: 16px;
-  color: var(--color-text-1);
+  font-weight: var(--ui-weight-medium);
+  line-height: var(--ui-line-height-micro);
+  color: inherit;
 }
 
 .closeButton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   padding: 0;
   border: 0;
-  border-radius: var(--ui-radius-sm);
+  border-radius: var(--ui-radius-md);
   background: transparent;
-  color: var(--color-text-3);
+  color: inherit;
   cursor: pointer;
 }
 
-.closeButton:hover {
+.closeButton:hover,
+.closeButton:focus-visible {
   background: var(--color-fill-2);
-  color: var(--color-text-1);
+  color: inherit;
+}
+
+.closeButton svg path {
+  stroke: #4c4c4c;
+}
+
+:global(body[arco-theme='dark']) .closeButton svg path {
+  stroke: var(--workspace-text-secondary);
 }
 
 .statRow {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
-  gap: var(--ui-space-4);
-  padding: 1px 10px 2px;
+  width: 100%;
+  min-height: 26px;
+  gap: 8px;
+  margin-bottom: 6px;
+  outline: none;
+}
+
+.statRow:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 3px;
+  border-radius: var(--ui-radius-sm);
 }
 
 .bigPercent {
-  font-size: var(--ui-font-title);
+  flex: 0 0 auto;
+  font-size: var(--ui-font-display);
   font-weight: var(--ui-weight-bold);
-  line-height: 20px;
+  line-height: var(--ui-line-height-display);
   font-variant-numeric: tabular-nums;
 }
 
 .usedText {
-  color: var(--color-text-3);
-  font-size: var(--ui-font-micro);
-  line-height: 16px;
+  color: #7f7f7f;
+  font-size: var(--ui-font-meta);
+  line-height: var(--ui-line-height-meta);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .usedText strong {
-  color: var(--color-text-1);
-  font-weight: var(--ui-weight-semibold);
+  color: inherit;
+  font-weight: var(--ui-weight-regular);
 }
 
 .bar {
   display: flex;
-  height: 6px;
-  margin: 1px 10px 3px;
+  width: 100%;
+  height: 8px;
+  gap: 0;
   border-radius: var(--ui-radius-xs);
-  background: var(--color-fill-3);
+  background: #f2f2f2;
   overflow: hidden;
 }
 
-.barSegment {
+.barSegment,
+.barRemaining {
+  flex-basis: 0;
   height: 100%;
-  transition: width 240ms ease;
+  min-width: 0;
+}
+
+.barRemaining {
+  background: #f2f2f2;
 }
 
 .legend {
   display: flex;
   flex-direction: column;
+  margin-top: 14px;
 }
 
 .legendRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--ui-space-4);
+  gap: 8px;
   height: 26px;
-  padding: 0 10px;
-  border-radius: var(--ui-radius-sm);
-  font-size: var(--ui-font-meta);
+  font-size: var(--ui-font-body);
   font-weight: var(--ui-weight-regular);
-  line-height: 16px;
-  color: var(--color-text-1);
+  line-height: var(--ui-line-height-meta);
+  color: inherit;
 }
 
-.legendRow + .legendRow {
-  margin-top: 0;
-}
-
-.legendRow > span:first-child {
+.legendLabel {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 9px;
   min-width: 0;
 }
 
 .legendDot {
-  width: 7px;
-  height: 7px;
-  flex: 0 0 7px;
+  display: inline-block;
+  flex: 0 0 8px;
+  width: 8px;
+  height: 8px;
   border-radius: var(--ui-radius-circle);
 }
 
 .legendPercent {
-  color: var(--color-text-3);
+  flex: 0 0 auto;
+  color: #7f7f7f;
+  font-size: var(--ui-font-meta);
   font-variant-numeric: tabular-nums;
 }
 
@@ -138,8 +175,111 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 48px;
-  padding: 0 10px;
-  font-size: var(--ui-font-micro);
-  line-height: 16px;
+  min-height: 120px;
+}
+
+.details {
+  max-width: 360px;
+  font-size: var(--ui-font-meta);
+  line-height: var(--ui-line-height-meta);
+  overflow-wrap: anywhere;
+}
+
+.details p {
+  margin: 4px 0;
+}
+
+.screenReaderOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 10px;
+  min-height: 120px;
+  font-size: var(--ui-font-body);
+  line-height: var(--ui-line-height-meta);
+}
+
+.retry {
+  align-self: flex-start;
+  cursor: pointer;
+  color: #6366f1;
+  border: 1px solid var(--color-border-2);
+  background: var(--color-fill-1);
+  border-radius: var(--ui-radius-md);
+  padding: 7px 14px;
+}
+
+@media (max-width: 520px) {
+  .root {
+    width: min(280px, calc(100vw - 24px));
+    padding: 16px 14px 14px;
+    border-radius: var(--ui-radius-2xl);
+  }
+
+  .header {
+    margin-bottom: 12px;
+  }
+
+  .headerTitle {
+    font-size: var(--ui-font-meta);
+  }
+
+  .statRow {
+    min-height: 26px;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .bigPercent {
+    font-size: var(--ui-font-display);
+    line-height: var(--ui-line-height-display);
+  }
+
+  .usedText {
+    color: var(--workspace-text-secondary);
+    font-size: var(--ui-font-meta);
+    line-height: var(--ui-line-height-meta);
+  }
+
+  .bar {
+    height: 8px;
+  }
+
+  .legend {
+    margin-top: 14px;
+  }
+
+  .legendRow {
+    height: 26px;
+    font-size: var(--ui-font-body);
+    line-height: var(--ui-line-height-meta);
+  }
+
+  .legendLabel {
+    gap: 9px;
+  }
+
+  .legendDot {
+    flex-basis: 8px;
+    width: 8px;
+    height: 8px;
+  }
+
+  .legendPercent {
+    color: var(--workspace-text-secondary);
+    font-size: var(--ui-font-meta);
+  }
 }
