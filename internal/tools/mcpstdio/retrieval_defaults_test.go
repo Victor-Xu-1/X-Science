@@ -5,6 +5,21 @@ import (
 	"testing"
 )
 
+func TestCloneInputPreservesSourceAndReturnsWritableEmptyMap(t *testing.T) {
+	input := map[string]any{"query": "original"}
+	got := cloneInput(input)
+	got["query"] = "changed"
+	got["page"] = 1
+	if len(input) != 1 || input["query"] != "original" {
+		t.Fatalf("source mutated: %#v", input)
+	}
+	empty := cloneInput(nil)
+	empty["page"] = 1
+	if len(empty) != 1 {
+		t.Fatal("empty clone must be writable")
+	}
+}
+
 func TestApplyDiscoveryDefaultsUsesBroadSchemaBoundedPage(t *testing.T) {
 	tool := ToolProjection{
 		ToolName: "search_trials",

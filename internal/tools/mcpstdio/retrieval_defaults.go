@@ -128,7 +128,7 @@ func schemaInteger(value any) (int, bool) {
 }
 
 func cloneInput(input map[string]any) map[string]any {
-	cloned := make(map[string]any, len(input)+1)
+	cloned := make(map[string]any, len(input))
 	for key, value := range input {
 		cloned[key] = value
 	}

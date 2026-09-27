@@ -70,7 +70,7 @@ func (s *Server) mirrorSessionEntryToWorkspaceFrame(entry *eventjournal.Entry) e
 	} else if !found {
 		return nil
 	}
-	payload := make(map[string]any, len(entry.Message)+2)
+	payload := make(map[string]any, len(entry.Message))
 	for key, value := range entry.Message {
 		payload[key] = value
 	}

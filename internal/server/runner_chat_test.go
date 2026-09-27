@@ -595,6 +595,7 @@ func TestSessionRunnerChatUsesCompactSummaryForResumeContext(t *testing.T) {
 		}
 		var compactSystem string
 		nonSystem := []string{}
+		nonSystemRoles := []string{}
 		for _, message := range request.Messages {
 			if message.Role == "system" {
 				if strings.Contains(message.Content, "Synon compact handoff context:") {
@@ -603,17 +604,21 @@ func TestSessionRunnerChatUsesCompactSummaryForResumeContext(t *testing.T) {
 				continue
 			}
 			nonSystem = append(nonSystem, message.Content)
+			nonSystemRoles = append(nonSystemRoles, message.Role)
 		}
 		if !strings.Contains(compactSystem, "Compact session summary") || !strings.Contains(compactSystem, "old investigation step") {
 			t.Fatalf("compact system context = %q messages=%#v", compactSystem, request.Messages)
 		}
 		for _, content := range nonSystem {
-			if strings.Contains(content, "old investigation step") || strings.Contains(content, "old assistant result") {
+			if strings.Contains(content, "old assistant result") {
 				t.Fatalf("old pre-compact raw message leaked into model context: %#v", request.Messages)
 			}
 		}
-		if len(nonSystem) == 0 || !strings.Contains(nonSystem[len(nonSystem)-1], "continue after compact") {
-			t.Fatalf("post-compact user message missing: %#v", request.Messages)
+		// Summaries may replace observations, but original user requirements
+		// remain exact user-role messages, once each and in original order.
+		if len(nonSystem) != 2 || nonSystem[0] != "old investigation step" || nonSystem[1] != "continue after compact" ||
+			nonSystemRoles[0] != "user" || nonSystemRoles[1] != "user" {
+			t.Fatalf("compaction lost, duplicated or changed user authority: %#v", request.Messages)
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"choices":[{"message":{"role":"assistant","content":"continued from compact context"}}]}`))

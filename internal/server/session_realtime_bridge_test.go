@@ -45,6 +45,9 @@ func TestRunnerSessionAppendMirrorsIntoFrameTraceAndRealtime(t *testing.T) {
 	if err := server.mirrorSessionEntryToWorkspaceFrame(entry); err != nil {
 		t.Fatalf("idempotent mirror replay: %v", err)
 	}
+	if _, mutated := entry.Message["journal_event_id"]; mutated || entry.Message["type"] != "message" {
+		t.Fatalf("mirroring mutated source journal message: %#v", entry.Message)
+	}
 	frameEvents, err := store.ListFrameEvents("frame-1", 0, 10)
 	if err != nil || len(frameEvents) != 1 || frameEvents[0].Type != "assistant_message" ||
 		frameEvents[0].Payload["type"] != "assistant_message" || frameEvents[0].Payload["journal_event_id"] != float64(1) {
