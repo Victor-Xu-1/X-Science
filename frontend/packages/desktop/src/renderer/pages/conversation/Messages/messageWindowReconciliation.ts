@@ -116,6 +116,9 @@ const canFallbackMergeByKey = (persisted: TMessage, live: TMessage): boolean => 
     persisted.id !== live.id &&
     (persisted.content.assistantAttemptId || live.content.assistantAttemptId)
   ) {
+    // Two history rows already have durable identities. Similar or repeated
+    // prose cannot make one replace the other, even within a single attempt.
+    if ((persisted.history_coverage_through ?? 0) > 0 && (live.history_coverage_through ?? 0) > 0) return false;
     const persistedText = persisted.content.content;
     const liveText = live.content.content;
     // During a running refresh the durable projector often exposes a shorter
@@ -162,28 +165,23 @@ export function mergeLoadedPageWithCurrent(
   };
   const loadedIds = new Set(messages.map((message) => message.id));
   const loadedKeys = new Set(messages.map(getMessageMergeKey));
-  const loadedByKey = new Map<string, TMessage[]>();
-  for (const message of messages) {
-    const key = getMessageMergeKey(message);
-    const group = loadedByKey.get(key) ?? [];
-    group.push(message);
-    loadedByKey.set(key, group);
-  }
   const resolvedForLiveIds = new Map<string, TMessage>();
 
   const mergedMessages = messages.map((message) => {
     const exactLive = takeLiveMessage(currentById.get(message.id));
     const live =
       exactLive ??
-      currentByKey
-        .get(getMessageMergeKey(message))
-        ?.map((candidate) => (canFallbackMergeByKey(message, candidate) ? takeLiveMessage(candidate) : undefined))
-        .find(Boolean);
+      takeLiveMessage(
+        currentByKey
+          .get(getMessageMergeKey(message))
+          ?.find((candidate) => !consumedLiveIds.has(candidate.id) && canFallbackMergeByKey(message, candidate))
+      );
     const merged = live ? preferPersistedOrLiveMessage(message, live) : message;
     if (live) resolvedForLiveIds.set(live.id, merged);
     return merged;
   });
 
+  const mergedByKey = new Map(mergedMessages.map((message) => [getMessageMergeKey(message), message]));
   if (preserveUnmatchedLiveKeys && preserveExistingOrder) {
     // A refresh page is a bounded tail, not a replacement for the whole
     // mounted transcript. Rebuilding from the page first moves older live
@@ -201,8 +199,17 @@ export function mergeLoadedPageWithCurrent(
         }
         continue;
       }
-      const key = getMessageMergeKey(current);
-      if (loadedByKey.get(key)?.some((candidate) => canFallbackMergeByKey(candidate, current))) continue;
+      // A bounded page is not evidence that another published row disappeared.
+      // Retire an unmatched live replica only with publication-coverage proof,
+      // never just because another row has similar text or an attempt-level key.
+      const represented = mergedByKey.get(getMessageMergeKey(current));
+      if (
+        current.type === 'text' &&
+        !(current.history_coverage_through && current.history_coverage_through > 0) &&
+        represented?.type === 'text' &&
+        isTextPublicationCovered(represented, current)
+      )
+        continue;
       ordered.push(current);
       retained.add(current.id);
     }
@@ -218,7 +225,6 @@ export function mergeLoadedPageWithCurrent(
     }
   }
 
-  const mergedByKey = new Map(mergedMessages.map((message) => [getMessageMergeKey(message), message]));
   const liveOnly = sameConversation.filter((message) => {
     const key = getMessageMergeKey(message);
     if (
