@@ -98,10 +98,16 @@ func testTranscriptToolHistoryResumedFinalArtifact(t *testing.T, oldQuarantine b
 	}
 	if oldQuarantine {
 		// Reproduce the old derived prefix without touching canonical events.
-		// The regular delivery pass must rebuild it through the version fence.
+		// Its source fence is already current, so only a projector upgrade can
+		// make the regular delivery pass revisit the terminal conflict.
 		if _, err := db.Exec(`UPDATE transcript_web_projection_state
-			SET projector_version=?,status='quarantined',last_error_code='projection_source_conflict'
-			WHERE stream_uid=?`, transcriptstore.TranscriptWebProjectorVersion-1, stream.UID); err != nil {
+			SET projector_version=?,status='quarantined',last_error_code='projection_source_conflict',
+			through_publication_seq=(SELECT through_publication_seq FROM transcript_branch_heads WHERE stream_uid=?),
+			source_revision=(SELECT source_revision FROM transcript_branch_heads WHERE stream_uid=?)
+			WHERE stream_uid=?`, 11, stream.UID, stream.UID, stream.UID); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := db.Exec(`DELETE FROM transcript_web_projection_dirty WHERE stream_uid=?`, stream.UID); err != nil {
 			t.Fatal(err)
 		}
 	}
