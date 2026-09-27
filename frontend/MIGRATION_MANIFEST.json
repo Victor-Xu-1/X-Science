@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "06490572575f8c601dd73dd3ebf8a3f459957b6df6c3ec651b635d0294a69ae6",
+  "adaptationFingerprintSHA256": "08cdd06f2776cda05f91777dca881fbdf8f2429e2b1911226c96f33ea4064548",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
-  "additionFingerprintSHA256": "3e5bc14010186ec6af1155e8733bace369e2be91e41140fc6374341360a5caf5",
+  "additionFingerprintSHA256": "7ba40cf0ce15f66625683a075d151f9e52a235cebffa90979709726652930b81",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 400,
@@ -4070,8 +4070,8 @@
     {
       "path": "tests/unit/renderer/useSynonBiomedArtifactLinkPreview.dom.test.ts",
       "sourceSHA256": "38079d6cffb619e89c591d731c0349b74c1ea7a1efa0f7f70e03afb5ed9c4531",
-      "targetSHA256": "266e5cd3f243fd281246efc545667dc4c549ea3f80d31b00dfbceb256535a698",
-      "bytes": 23244,
+      "targetSHA256": "1e3a3db07312eb6fdd731f2e2e29e20f701f75dec913d82deae3cc54e5e1a730",
+      "bytes": 26439,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -4308,8 +4308,8 @@
     {
       "path": "tests/unit/synonbiomed/artifactLinkPreviewModel.test.ts",
       "sourceSHA256": "2dd605356a709a7f460ba18e333daad18f120ec068514b01652fc4ab3f68e0a9",
-      "targetSHA256": "b1858d68d830e2df75efbca65818f7e902a241ad056dbcffc55fed2fde41a094",
-      "bytes": 8402,
+      "targetSHA256": "e46812e986b77a8bbdde892ddc52b8957464838df444c7d92c4dc42c6fc0f9c5",
+      "bytes": 9855,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -8292,8 +8292,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/services/synonBiomedArtifactReferences.ts",
-      "sha256": "09f523b03f0fcffcb973785addeb0098816e7ea314a0c894043d66d48a7f87ee",
-      "bytes": 4479,
+      "sha256": "b931828c01e906ad65dd61d7846e7ff04941fa0c5e19826301f82859198ac692",
+      "bytes": 4766,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10170,14 +10170,14 @@
     },
     {
       "path": "tests/web-e2e/officePreview.e2e.ts",
-      "sha256": "ee4e4715bcdc462f36b5ef64ae2cbb65acfed6dbc1f39ac9c47810b92362decf",
-      "bytes": 15191,
+      "sha256": "82dd4ae2d8f1b4e2b4dbaeb281bda6d2c8900c45d1f3d2517054d7517ec10496",
+      "bytes": 19796,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/web-e2e/officePreviewFixtures.ts",
-      "sha256": "fbfec38ef64b7656b0842e22ed31770f25a06ebe9b1e3fd152fc2e31cdd75242",
-      "bytes": 8397,
+      "sha256": "55ca654f4a5e1d2c41a5bfb73d8ec5b889d7083e27ea09fb98cc1fa10c725440",
+      "bytes": 9072,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -10242,8 +10242,8 @@
     },
     {
       "path": "tests/web-e2e/synonGoFrameFixture.ts",
-      "sha256": "24c8d3f2c143dd865cde1423e2c4e9a2203310ff35ff0ce0c70512ef1acfad63",
-      "bytes": 12497,
+      "sha256": "980daf7e16d8d3bf4aaabbbe33077e8ef1507c557350147a8c1dfc1b64f0afd0",
+      "bytes": 13658,
       "reason": "Apply deterministic frame and delegation state through the compiled Go browser-test fixture."
     },
     {

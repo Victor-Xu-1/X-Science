@@ -28,6 +28,18 @@ export type AskUserFixture = {
   questions: Array<Record<string, unknown>>;
 };
 
+type OfficeArtifactFixture = {
+  frameId: string;
+  officeArtifact: { artifactId: string; versions: string[] };
+};
+
+type OfficeArtifactResult = {
+  artifactId: string;
+  versionId: string;
+  latestVersionId: string;
+  filename: string;
+};
+
 export type TranscriptRebasePreparation = {
   frameId: string;
   cutoverId: string;
@@ -124,6 +136,29 @@ export function applySynonGoFrameFixture(input: FrameFixture): void {
   if (response.ok !== true || response.frameId !== input.frameId) {
     throw new Error(`Go frame fixture returned an invalid response: ${JSON.stringify(response)}`);
   }
+}
+
+export function seedSynonGoOfficeArtifact(input: OfficeArtifactFixture): OfficeArtifactResult {
+  const response = runFixture({ action: 'seed-office-artifact', ...input }) as Partial<OfficeArtifactResult> & {
+    ok?: boolean;
+  };
+  if (
+    response.ok !== true ||
+    response.artifactId !== input.officeArtifact.artifactId ||
+    response.filename !== 'encoded-preview.pdf' ||
+    typeof response.versionId !== 'string' ||
+    !response.versionId ||
+    typeof response.latestVersionId !== 'string' ||
+    !response.latestVersionId ||
+    response.versionId === response.latestVersionId
+  )
+    throw new Error('Go office fixture returned invalid immutable version identities');
+  return {
+    artifactId: response.artifactId,
+    filename: response.filename,
+    versionId: response.versionId,
+    latestVersionId: response.latestVersionId,
+  };
 }
 
 export function seedSynonGoDelegateFixture(): DelegateFixture {
@@ -320,6 +355,7 @@ function runFixture(
     | FrameFixture
     | { action: 'seed-delegate' | 'remove-delegate' }
     | ({ action: 'seed-ask-user' } & AskUserFixture)
+    | ({ action: 'seed-office-artifact' } & OfficeArtifactFixture)
     | { action: 'seed-scroll-history'; frameId: string; historyCount: number }
     | { action: 'prepare-transcript-rebase'; frameId: string; historyCount: number }
     | { action: 'activate-transcript-rebase'; frameId: string; cutoverId: string }

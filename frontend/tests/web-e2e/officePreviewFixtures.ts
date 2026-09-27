@@ -1,7 +1,9 @@
 import { Buffer } from 'node:buffer';
+import { randomUUID } from 'node:crypto';
 import { crc32 } from 'node:zlib';
 import { Document, Packer, Paragraph, Table, TableCell, TableRow } from 'docx';
 import * as XLSX from 'xlsx-republish';
+import { seedSynonGoOfficeArtifact } from './synonGoFrameFixture';
 
 export type OfficePreviewFixture = {
   kind: 'pdf' | 'docx' | 'xlsx' | 'pptx';
@@ -77,10 +79,11 @@ export async function createOfficePreviewFixtures(): Promise<OfficePreviewFixtur
   ];
 }
 
-export function createPreviewPdf(): Uint8Array {
+export function createPreviewPdf(marker = 'Actual PDF text and graphic'): Uint8Array {
+  if (!/^[A-Za-z0-9 ]{1,80}$/.test(marker)) throw new Error('PDF fixture marker must be plain ASCII text');
   const streams = [1, 2].map(
     (page) =>
-      `BT /F1 18 Tf 40 240 Td (PREVIEW TEST page ${page}) Tj 0 -30 Td /F1 12 Tf (Actual PDF text and graphic) Tj 0 -24 Td /F2 14 Tf <988489C86D4B8BD5> Tj ET\n0.1 0.5 0.5 rg 40 70 100 60 re f\n`
+      `BT /F1 18 Tf 40 240 Td (PREVIEW TEST page ${page}) Tj 0 -30 Td /F1 12 Tf (${marker}) Tj 0 -24 Td /F2 14 Tf <988489C86D4B8BD5> Tj ET\n0.1 0.5 0.5 rg 40 70 100 60 re f\n`
   );
   const objects = [
     '<< /Type /Catalog /Pages 2 0 R >>',
@@ -106,6 +109,19 @@ export function createPreviewPdf(): Uint8Array {
   pdf += offsets.map((offset) => `${String(offset).padStart(10, '0')} 00000 n \n`).join('');
   pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
   return Buffer.from(pdf);
+}
+
+/** Seed immutable versions through the existing Go test fixture and Store. */
+export function seedEncodedOfficeArtifact(frameId: string) {
+  return seedSynonGoOfficeArtifact({
+    frameId,
+    officeArtifact: {
+      artifactId: `office artifact/${randomUUID()} 中文`,
+      versions: ['EXACT VERSION ONE', 'LATEST VERSION TWO'].map((marker) =>
+        Buffer.from(createPreviewPdf(marker)).toString('base64')
+      ),
+    },
+  });
 }
 
 async function createPreviewPresentation(): Promise<Uint8Array> {

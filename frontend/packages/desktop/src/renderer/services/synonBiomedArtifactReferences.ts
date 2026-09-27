@@ -41,6 +41,18 @@ export type SynonBiomedArtifactLink =
   | { kind: 'reference'; referenceId: string }
   | { kind: 'filename'; filename: string };
 
+function decodeArtifactPathIdentity(segment: string): string | null {
+  try {
+    // The backend applies PathEscape to opaque IDs. Split the route first, then
+    // decode each identity once; encoded slashes and percent signs remain data.
+    const identity = decodeURIComponent(segment);
+    if (!identity.trim() || identity === '.' || identity === '..' || /\p{Cc}/u.test(identity)) return null;
+    return identity;
+  } catch {
+    return null;
+  }
+}
+
 /** Model URLs supply identities, never a trusted origin or a fetch destination. */
 export function parseSynonBiomedArtifactLink(rawHref: string): SynonBiomedArtifactLink | null {
   const referenceId = getSynonBiomedArtifactReferenceId(rawHref);
@@ -65,11 +77,9 @@ export function parseSynonBiomedArtifactLink(rawHref: string): SynonBiomedArtifa
   }
   const content = /^\/api\/artifacts\/([^/]+)(?:\/versions\/([^/]+))?$/.exec(pathname ?? '');
   if (content) {
-    const artifactId = decodeArtifactReference(content[1]);
-    const versionId = content[2] ? decodeArtifactReference(content[2]) : undefined;
-    // No encoded separators, control characters, dot segments or extra path components.
-    const safeId = /^[a-z0-9][a-z0-9._-]*$/i;
-    if (!safeId.test(artifactId) || (versionId !== undefined && !safeId.test(versionId))) return null;
+    const artifactId = decodeArtifactPathIdentity(content[1]);
+    const versionId = content[2] ? decodeArtifactPathIdentity(content[2]) : undefined;
+    if (artifactId === null || versionId === null) return null;
     return { kind: 'content', artifactId, ...(versionId ? { versionId } : {}) };
   }
 

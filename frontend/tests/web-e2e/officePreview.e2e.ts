@@ -1,6 +1,10 @@
 import { expect, test, type Locator } from '@playwright/test';
 import pdfPackage from 'pdfjs-dist/package.json';
-import { createOfficePreviewFixtures, type OfficePreviewFixture } from './officePreviewFixtures';
+import {
+  createOfficePreviewFixtures,
+  seedEncodedOfficeArtifact,
+  type OfficePreviewFixture,
+} from './officePreviewFixtures';
 import { appendSynonGoAssistantMessage, beginSynonGoTranscriptStream } from './synonGoFrameFixture';
 import {
   createScientificWorkspace,
@@ -195,25 +199,7 @@ test('opens blue bold generated-file links in app without remote navigation or d
     const initialPageCount = page.context().pages().length;
     for (const link of links) {
       const control = page.getByRole('link', { name: link.label, exact: true });
-      await expect(control).toHaveClass(/markdown-artifact-file-link/);
-      const style = await control.evaluate((element) => {
-        const computed = getComputedStyle(element);
-        return { color: computed.color, weight: Number(computed.fontWeight) };
-      });
-      const channels = style.color.match(/\d+/g)?.map(Number);
-      expect(channels, style.color).toHaveLength(3);
-      expect(channels![2]).toBeGreaterThan(channels![0] + 40);
-      expect(channels![2]).toBeGreaterThan(channels![1]);
-      expect(style.weight).toBeGreaterThanOrEqual(700);
-      for (const nestedStyle of await control.locator('strong, code').evaluateAll((elements) =>
-        elements.map((element) => {
-          const computed = getComputedStyle(element);
-          return { color: computed.color, weight: Number(computed.fontWeight) };
-        })
-      )) {
-        expect(nestedStyle.color).toBe(style.color);
-        expect(nestedStyle.weight).toBeGreaterThanOrEqual(700);
-      }
+      await assertBlueBoldGeneratedLink(control);
       if (link === links[0]) {
         await control.focus();
         await control.press('Enter');
@@ -233,6 +219,119 @@ test('opens blue bold generated-file links in app without remote navigation or d
     await removeScientificWorkspace(page, workspace);
   }
 });
+
+test('opens escaped artifact identities at the exact historical version after refresh', async ({ page }) => {
+  await loginToScientificWorkbench(page);
+  const workspace = await createScientificWorkspace(page, 'office-escaped-links');
+  const remoteRequests: string[] = [];
+  const downloads: string[] = [];
+  const popups: string[] = [];
+  const pageErrors: string[] = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
+  page.on('download', (download) => downloads.push(download.suggestedFilename()));
+  page.on('popup', (popup) => popups.push(popup.url()));
+  await page.route('https://synon.bio/**', (route) => {
+    remoteRequests.push(route.request().url());
+    return route.abort();
+  });
+  try {
+    // IDs are opaque in the backend contract. Versions remain Store-generated
+    // UUIDs; unusual version IDs are covered by real HTTP/renderer unit tests.
+    const artifact = seedEncodedOfficeArtifact(workspace.conversationId);
+    const artifactPath = `/api/artifacts/${encodeURIComponent(artifact.artifactId)}`;
+    const exactPath = `${artifactPath}/versions/${encodeURIComponent(artifact.versionId)}`;
+    const latest = await page.request.get(artifactPath);
+    expect(latest.status()).toBe(200);
+    expect((await latest.body()).toString()).toContain('LATEST VERSION TWO');
+    const historical = await page.request.get(exactPath);
+    expect(historical.status()).toBe(200);
+    expect((await historical.body()).toString()).toContain('EXACT VERSION ONE');
+    const contentResponses: Array<{ path: string; status: number }> = [];
+    const metadataResponses: Array<{ path: string; status: number }> = [];
+    page.on('response', (response) => {
+      const path = new URL(response.url()).pathname;
+      if (path === `${artifactPath}/metadata` || path === `${artifactPath}/versions`) {
+        metadataResponses.push({ path, status: response.status() });
+      } else if (path.startsWith(artifactPath) || path.startsWith('/api/artifacts/versions/')) {
+        contentResponses.push({ path, status: response.status() });
+      }
+    });
+    const stream = beginSynonGoTranscriptStream(workspace.conversationId);
+    await page.goto(`/#/conversation/${workspace.conversationId}`, { waitUntil: 'domcontentloaded' });
+    await expect(page.getByTestId('message-list-scroller')).toBeVisible();
+    appendSynonGoAssistantMessage(
+      stream,
+      [
+        `[**\`${artifact.filename}\`** (relative)](${exactPath})`,
+        `[**\`${artifact.filename}\`** (absolute)](https://synon.bio${exactPath}?download=1)`,
+      ].join('\n\n')
+    );
+    const initialPageCount = page.context().pages().length;
+    for (const variant of ['relative', 'absolute']) {
+      if (variant === 'absolute') await page.reload({ waitUntil: 'domcontentloaded' });
+      const control = page.getByRole('link', { name: `${artifact.filename} (${variant})`, exact: true });
+      await assertBlueBoldGeneratedLink(control);
+      await control.focus();
+      await control.press('Enter');
+      const panel = page.getByTestId('chat-preview-panel');
+      await assertOfficeContent(panel, 'pdf');
+      await expect(panel.locator('[data-pdf-page="2"] .react-pdf__Page__textContent')).toContainText(
+        'EXACT VERSION ONE'
+      );
+      await expect(panel).not.toContainText('LATEST VERSION TWO');
+      await expect(page).toHaveURL(new RegExp(`#/conversation/${workspace.conversationId}$`));
+    }
+    expect(contentResponses.filter((response) => response.path === exactPath && response.status === 200)).toHaveLength(
+      2
+    );
+    expect(contentResponses.every((response) => response.path === exactPath && response.status === 200)).toBe(true);
+    expect(metadataResponses.every((response) => response.status === 200)).toBe(true);
+    expect(page.context().pages()).toHaveLength(initialPageCount);
+    expect(remoteRequests).toEqual([]);
+    expect(downloads).toEqual([]);
+    expect(popups).toEqual([]);
+    expect(pageErrors).toEqual([]);
+    await test.info().attach('escaped-artifact-responses', {
+      body: JSON.stringify(
+        {
+          artifactId: artifact.artifactId,
+          versionId: artifact.versionId,
+          latestVersionId: artifact.latestVersionId,
+          contentResponses,
+          metadataResponses,
+        },
+        null,
+        2
+      ),
+      contentType: 'application/json',
+    });
+    await page.screenshot({ path: test.info().outputPath('escaped-generated-file-link.png'), fullPage: true });
+  } finally {
+    await removeScientificWorkspace(page, workspace);
+  }
+});
+
+async function assertBlueBoldGeneratedLink(control: Locator) {
+  await expect(control).toHaveClass(/markdown-artifact-file-link/);
+  const style = await control.evaluate((element) => {
+    const computed = getComputedStyle(element);
+    return { color: computed.color, weight: Number(computed.fontWeight) };
+  });
+  const channels = style.color.match(/\d+/g)?.map(Number);
+  expect(channels, style.color).toHaveLength(3);
+  expect(channels![2]).toBeGreaterThan(channels![0] + 40);
+  expect(channels![2]).toBeGreaterThan(channels![1]);
+  expect(style.weight).toBeGreaterThanOrEqual(700);
+  for (const nestedStyle of await control.locator('strong, code').evaluateAll((elements) =>
+    elements.map((element) => {
+      const computed = getComputedStyle(element);
+      return { color: computed.color, weight: Number(computed.fontWeight) };
+    })
+  )) {
+    expect(nestedStyle.color).toBe(style.color);
+    expect(nestedStyle.weight).toBeGreaterThanOrEqual(700);
+  }
+}
 
 async function assertOfficeContent(root: Locator, kind: OfficePreviewFixture['kind']) {
   if (kind === 'pdf') {

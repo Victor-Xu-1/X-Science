@@ -117,6 +117,83 @@ describe('useSynonBiomedArtifactLinkPreview', () => {
     );
   });
 
+  it.each(['', 'https://untrusted-origin.test'])(
+    'resolves opaque artifact identities from %s using only authoritative content URLs',
+    async (origin) => {
+      const reference = { artifact_id: 'artifact/with space', version_id: '版本/with space' };
+      const contentUrl = '/api/artifacts/artifact%2Fwith%20space/versions/%E7%89%88%E6%9C%AC%2Fwith%20space';
+      ipcMocks.listArtifacts.mockResolvedValue([
+        {
+          kind: 'scientific_files',
+          payload: {
+            files: [
+              scientificFile({
+                ...reference,
+                filename: 'report.md',
+                content_type: 'text/markdown',
+                preview_kind: 'markdown',
+                content_url: contentUrl,
+              }),
+            ],
+          },
+        },
+      ]);
+      const fetchMock = vi.fn().mockResolvedValue(new Response('# Exact opaque identity'));
+      vi.stubGlobal('fetch', fetchMock);
+      const { result } = renderHook(() =>
+        useSynonBiomedArtifactResolver({
+          conversationId: 'frame-report',
+          workspace: 'synonbiomed://project-report',
+        })
+      );
+
+      await act(async () => expect(await result.current.handleLink(`${origin}${contentUrl}?download=1`)).toBe(true));
+      expect(ipcMocks.listArtifacts).toHaveBeenCalledWith({
+        conversation_id: 'frame-report',
+        references: [reference],
+        version_ids: [],
+      });
+      expect(fetchMock).toHaveBeenCalledExactlyOnceWith(contentUrl, {
+        headers: { accept: SYNON_BIOMED_TEXT_ACCEPT_HEADER },
+      });
+      expect(previewMocks.openPreview).toHaveBeenCalledWith(
+        '# Exact opaque identity',
+        'markdown',
+        expect.objectContaining({
+          artifactId: reference.artifact_id,
+          versionId: reference.version_id,
+          contentUrl,
+        }),
+        { presentation: 'board' }
+      );
+    }
+  );
+
+  it('contains mismatched opaque pairs without normalizing or double-decoding them', async () => {
+    const file = scientificFile({ artifact_id: 'artifact/with space', version_id: 'version/with space' });
+    mockConversationArtifacts = [{ kind: 'scientific_files', payload: { files: [file] } } as IConversationArtifact];
+    ipcMocks.listArtifacts.mockResolvedValue(mockConversationArtifacts);
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const { result } = renderHook(() =>
+      useSynonBiomedArtifactResolver({
+        conversationId: 'frame-report',
+        workspace: 'synonbiomed://project-report',
+      })
+    );
+    for (const path of [
+      '/api/artifacts/another%2Fwith%20space/versions/version%2Fwith%20space',
+      '/api/artifacts/artifact%2Fwith%20space/versions/another%2Fwith%20space',
+      '/api/artifacts/artifact%252Fwith%20space/versions/version%2Fwith%20space',
+    ]) {
+      await act(async () => expect(await result.current.handleLink(`https://untrusted-origin.test${path}`)).toBe(true));
+      await expect(result.current.resolveLinkHref(path)).resolves.toBeNull();
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(previewMocks.openPreview).not.toHaveBeenCalled();
+    expect(messageMocks.error).toHaveBeenCalledTimes(3);
+  });
+
   it.each(['unknown', 'wrong-artifact', 'wrong-version'])(
     'contains %s API identities without fetching or falling back',
     async (scenario) => {
