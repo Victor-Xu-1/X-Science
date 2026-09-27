@@ -36,6 +36,27 @@
 加载、空数据、失败、等待用户和已完成应分别呈现。运行投影也不能替代
 [Runtime](runtime.md) 的任务权威或 [Evidence](evidence.md) 的持久化记录。
 
+### Durable history recovery · 持久化消息恢复
+
+消息列表是持久化事件的派生视图，不是任务或工具执行的权威。任务取消时，
+没有终态回执的前台工具会显示推导出的取消状态；后续执行若显式指向同一
+工具的原始执行身份，可以继续该工具，保留同一条工具记录和最终产物引用。
+真正的工具终态回执不能被后续“运行中”覆盖，工具身份、输入和父调用也
+不能在恢复时改变。恢复后的再次取消按当前执行周期结算，不沿用旧周期。
+
+投影遇到源冲突时保留可用历史并隔离错误；旧快照的构建失败不能隔离已经
+推进的源版本。不要直接修改线上投影表或删除原始消息来恢复界面。
+
+从仓库根目录运行恢复及隔离竞态回归：
+
+```sh
+go test ./internal/server -run '^TestTranscriptToolHistory|^TestTranscriptWebQuarantineRejectsAdvancedSourceFence' -count=1
+```
+
+这些测试包含真实临时 SQLite、持久化任务事件和正式投影重建入口；不是
+模型调用测试。浏览器场景为 `synonbiomedMessageProjectionRecovery.e2e.ts`，
+沿用下文的隔离服务及 Chrome 前置条件。
+
 ## Focused verification · 验证入口
 
 ### Document preview · 文档预览

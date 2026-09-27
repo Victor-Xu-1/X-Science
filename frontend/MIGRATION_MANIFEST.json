@@ -5,13 +5,13 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "08cdd06f2776cda05f91777dca881fbdf8f2429e2b1911226c96f33ea4064548",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
-  "additionFingerprintSHA256": "7ba40cf0ce15f66625683a075d151f9e52a235cebffa90979709726652930b81",
+  "additionFingerprintSHA256": "01febfc158590228851bb1d3862e49a8ac66c7ca2950fa39d3b47c687048cb7d",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 400,
     "adaptedSourceFiles": 664,
     "removedSourceFiles": 290,
-    "addedFiles": 677
+    "addedFiles": 678
   },
   "adaptations": [
     {
@@ -10242,8 +10242,8 @@
     },
     {
       "path": "tests/web-e2e/synonGoFrameFixture.ts",
-      "sha256": "980daf7e16d8d3bf4aaabbbe33077e8ef1507c557350147a8c1dfc1b64f0afd0",
-      "bytes": 13658,
+      "sha256": "5b8fc1049a9d7dc611212dfaf21e6d49c66bacd4ebc071255f6d5e0b9ca6f61e",
+      "bytes": 14712,
       "reason": "Apply deterministic frame and delegation state through the compiled Go browser-test fixture."
     },
     {
@@ -10341,6 +10341,12 @@
       "sha256": "2bc3fffea8e85cc0853d8619525119f592658dfc633e67bf32f52ac27f7ef141",
       "bytes": 10848,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/web-e2e/synonbiomedMessageProjectionRecovery.e2e.ts",
+      "sha256": "acdb5cb7c35d63d39dba28545666f15a74657c2059171516191a274bc2c098b3",
+      "bytes": 5764,
+      "reason": "Verify durable cancel/resume history preserves the final answer and exact in-app artifact preview after refresh through the real Go fixture."
     },
     {
       "path": "tests/web-e2e/synonbiomedModelListRecovery.e2e.ts-snapshots/model-list-unavailable-desktop-linux.png",
