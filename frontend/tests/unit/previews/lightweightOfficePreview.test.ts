@@ -93,4 +93,20 @@ describe('lightweight Office preview service', () => {
       'Invalid workbook preview response'
     );
   });
+
+  it('preserves blank worksheet rows and cached formula values without relaxing row validation', async () => {
+    const sheets = [
+      { name: 'Sparse', data: [['Header'], [], ['After blank row']] },
+      { name: 'Formula', data: [[2, 3, 5]] },
+    ];
+    requestJson.mockResolvedValue({ to: 'excel-json', result: { success: true, data: { sheets } } });
+    await expect(loadLightweightOfficePreview('excel', { artifactId: 'workbook' })).resolves.toEqual({ sheets });
+    requestJson.mockResolvedValue({
+      to: 'excel-json',
+      result: { success: true, data: { sheets: [{ name: 'Invalid', data: [['Header'], null] }] } },
+    });
+    await expect(loadLightweightOfficePreview('excel', { artifactId: 'workbook' })).rejects.toThrow(
+      'Invalid workbook preview response'
+    );
+  });
 });

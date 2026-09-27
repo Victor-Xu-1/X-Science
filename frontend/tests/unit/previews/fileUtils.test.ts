@@ -163,6 +163,10 @@ describe('fileUtils', () => {
   });
 
   describe('local binary preview transport', () => {
+    it('transports local PDF bytes through the authenticated buffer endpoint', () => {
+      expect(getLocalBinaryPreviewMimeType('report.PDF', 'pdf')).toBe('application/pdf');
+    });
+
     it('routes existing binary scientific sources through read-buffer data URLs', () => {
       expect(getLocalBinaryPreviewMimeType('matrix.h5ad', 'hdf5')).toBe('application/octet-stream');
       expect(getLocalBinaryPreviewMimeType('structure.bcif', 'structure')).toBe('application/octet-stream');
@@ -240,14 +244,14 @@ describe('fileUtils', () => {
 
 describe('previewUrls', () => {
   describe('buildPdfSrc', () => {
-    it('builds file:// URI from file_path', () => {
+    it('does not turn a filesystem path into a browser file URL', () => {
       const result = buildPdfSrc('/path/to/doc.pdf');
-      expect(result).toBe('file:///path/to/doc.pdf');
+      expect(result).toBe('');
     });
 
     it('returns content when file_path is absent', () => {
-      const result = buildPdfSrc(undefined, 'base64data');
-      expect(result).toBe('base64data');
+      const result = buildPdfSrc(undefined, 'data:application/pdf;base64,JVBERi0=');
+      expect(result).toBe('data:application/pdf;base64,JVBERi0=');
     });
 
     it('uses the authenticated content URL for a Synon Biomed virtual project file', () => {
@@ -273,20 +277,32 @@ describe('previewUrls', () => {
       expect(result).toBe('');
     });
 
-    it('encodes URI properly', () => {
-      const result = buildPdfSrc('/path/with spaces/doc.pdf');
-      expect(result).toContain('file:///path/with%20spaces/doc.pdf');
+    it('preserves an authenticated relative content endpoint', () => {
+      expect(buildPdfSrc('/api/artifacts/versions/version-1')).toBe('/api/artifacts/versions/version-1');
     });
 
-    it('builds a valid file:/// URI from a Windows backslash path', () => {
-      // Regression: raw Windows paths previously produced `file://C:%5C...` (ERR_FAILED → blank preview).
+    it('does not load Windows filesystem paths through the browser', () => {
       const result = buildPdfSrc('C:\\Users\\me\\doc.pdf');
-      expect(result).toBe('file:///C:/Users/me/doc.pdf');
+      expect(result).toBe('');
     });
 
-    it('encodes non-ASCII segments in a Windows path', () => {
-      const result = buildPdfSrc('C:\\临时空间\\文章.pdf');
-      expect(result).toBe(`file:///C:/${encodeURIComponent('临时空间')}/${encodeURIComponent('文章')}.pdf`);
+    it('prefers transported content over source metadata', () => {
+      expect(buildPdfSrc('/workspace/report.pdf', '/api/artifacts/versions/version-2')).toBe(
+        '/api/artifacts/versions/version-2'
+      );
     });
+
+    it.each(['file:///workspace/report.pdf', 'javascript:alert(1)', 'not a URL'])('rejects %s', (source) => {
+      expect(buildPdfSrc(undefined, source)).toBe('');
+    });
+
+    it('does not silently substitute a different source when transported content is invalid', () => {
+      expect(buildPdfSrc('https://example.test/old.pdf', 'file:///workspace/new.pdf')).toBe('');
+    });
+
+    it.each(['blob:https://example.test/document', 'data:audio/wav;base64,UklGRg==', '/api/files/audio'])(
+      'preserves browser media source %s',
+      (source) => expect(buildPdfSrc(undefined, source)).toBe(source)
+    );
   });
 });

@@ -10,9 +10,53 @@ import {
 import type { ISynonBiomedScientificFile } from '@/common/adapter/ipcBridge';
 import type { ArtifactReferenceWire } from '@/common/adapter/messageStreamProtocol';
 import type { ConversationArtifactIndex } from '@/renderer/pages/conversation/Messages/artifacts';
-import { createSynonBiomedCompanionArtifactUrls } from '@/renderer/services/synonBiomedArtifactReferences';
+import {
+  createSynonBiomedCompanionArtifactUrls,
+  parseSynonBiomedArtifactLink,
+} from '@/renderer/services/synonBiomedArtifactReferences';
 
 describe('Synon Biomed artifact link preview model', () => {
+  it.each([
+    '/api/artifacts/artifact-report/versions/version-report',
+    'https://synon.bio/api/artifacts/artifact-report/versions/version-report?download=1#page=2',
+    'http://another-deployment.test:8765/api/artifacts/artifact-report/versions/version-report',
+  ])('extracts only the exact artifact identity from %s', (href) => {
+    expect(parseSynonBiomedArtifactLink(href)).toEqual({
+      kind: 'content',
+      artifactId: 'artifact-report',
+      versionId: 'version-report',
+    });
+  });
+
+  it('classifies all generated-file link forms through one parser', () => {
+    expect(parseSynonBiomedArtifactLink('/api/artifacts/artifact-report')).toEqual({
+      kind: 'content',
+      artifactId: 'artifact-report',
+    });
+    expect(parseSynonBiomedArtifactLink('%7B%7Bartifact%3Aversion-report%7D%7D')).toEqual({
+      kind: 'reference',
+      referenceId: 'version-report',
+    });
+    expect(parseSynonBiomedArtifactLink('./reports/report.pdf')).toEqual({ kind: 'filename', filename: 'report.pdf' });
+  });
+
+  it.each([
+    'https://example.test/report.pdf',
+    '//synon.bio/api/artifacts/a/versions/v',
+    'https://user:password@synon.bio/api/artifacts/a/versions/v',
+    'https://synon.bio/api/artifacts/a/versions/v/extra',
+    'https://synon.bio/api/artifacts/a/versions/v/',
+    '/api/artifacts/a%2fv/versions/v',
+    '/api/artifacts/a%5cv/versions/v',
+    '/api/artifacts/a%252fv/versions/v',
+    '/api/artifacts/a/../a/versions/v',
+    '/api/artifacts/a/%2e%2e/a/versions/v',
+    '/api/artifacts/a/versions/v%00',
+    'javascript:/api/artifacts/a/versions/v',
+  ])('does not promote an unsafe or unrelated URL into a local artifact: %s', (href) => {
+    expect(parseSynonBiomedArtifactLink(href)).toBeNull();
+  });
+
   it('extracts raw and URL-encoded artifact references', () => {
     const artifactId = 'f0af1025-7698-432a-b4ad-841099d2cd4b';
 
@@ -90,5 +134,81 @@ describe('Synon Biomed artifact link preview model', () => {
     expect(resolveSynonBiomedArtifactRootFrameId({ root_frame_id: null, frame_id: null }, 'conversation-1')).toBe(
       'conversation-1'
     );
+  });
+
+  it('does not substitute a cached newer version for an unresolved historical message reference', () => {
+    const current = {
+      artifact_id: 'artifact-report',
+      version_id: 'version-new',
+      filename: 'report.pdf',
+    } as ISynonBiomedScientificFile;
+    const index: ConversationArtifactIndex = {
+      byFilename: new Map([['report.pdf', current]]),
+      byArtifactId: new Map([['artifact-report', current]]),
+      byVersionId: new Map([['version-new', current]]),
+    };
+    expect(
+      resolveSynonBiomedArtifactFile(index, null, 'report.pdf', [
+        {
+          artifact_id: 'artifact-report',
+          version_id: 'version-old',
+        },
+      ])
+    ).toBeNull();
+    expect(
+      resolveSynonBiomedArtifactFile(index, null, 'report.pdf', [
+        {
+          artifact_id: 'another-artifact',
+          version_id: 'version-new',
+        },
+      ])
+    ).toBeNull();
+  });
+
+  it('keeps unavailable named references closed without blocking an available unrelated file', () => {
+    const file = {
+      artifact_id: 'artifact-report',
+      version_id: 'version-report',
+      filename: 'report.pdf',
+    } as ISynonBiomedScientificFile;
+    const index: ConversationArtifactIndex = {
+      byFilename: new Map([['report.pdf', file]]),
+      byArtifactId: new Map([['artifact-report', file]]),
+      byVersionId: new Map([['version-report', file]]),
+    };
+    const available: ArtifactReferenceWire = {
+      artifact_id: 'artifact-report',
+      version_id: 'version-report',
+      relation: 'produced',
+    };
+    const missing: ArtifactReferenceWire = {
+      artifact_id: 'artifact-missing',
+      version_id: 'version-missing',
+      filename: 'other.pdf',
+      relation: 'produced',
+    };
+    expect(resolveSynonBiomedArtifactFile(index, null, 'report.pdf', [available, missing], undefined, true)).toBe(file);
+    expect(
+      resolveSynonBiomedArtifactFile(
+        index,
+        null,
+        'report.pdf',
+        [{ ...available, version_id: 'version-old', filename: 'report.pdf', availability: 'deleted' }],
+        undefined,
+        true
+      )
+    ).toBeNull();
+    const ambiguous = { ...file, artifact_id: 'artifact-other', version_id: 'version-other' };
+    index.byVersionId.set(ambiguous.version_id, ambiguous);
+    expect(
+      resolveSynonBiomedArtifactFile(
+        index,
+        null,
+        'report.pdf',
+        [available, { artifact_id: ambiguous.artifact_id, version_id: ambiguous.version_id, relation: 'produced' }],
+        undefined,
+        true
+      )
+    ).toBeNull();
   });
 });

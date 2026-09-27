@@ -428,7 +428,13 @@ const SinglePreviewPanel: React.FC<{ conversationId?: string }> = ({ conversatio
         </div>
       );
     } else if (content_type === 'pdf') {
-      return <PDFPreview file_path={metadata?.file_path} content={content} />;
+      return (
+        <PDFPreview
+          file_path={metadata?.file_path}
+          fileName={metadata?.file_name || metadata?.title}
+          content={metadata?.contentUrl || content}
+        />
+      );
     } else if (content_type === 'ppt') {
       return (
         <PptViewer
