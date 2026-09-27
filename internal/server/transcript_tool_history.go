@@ -267,6 +267,8 @@ func transcriptAssistantSegmentResetTarget(
 
 type transcriptToolHistoryFact struct {
 	attempt               int64
+	observedAttempt       int64
+	explicitOriginAttempt bool
 	callID                string
 	name                  string
 	status                string
@@ -325,11 +327,11 @@ func (s *transcriptToolHistoryState) consume(
 		// close an already-visible durable start below.
 		return transcriptToolHistoryAction{}, false, nil
 	}
-	if !exists && (fact.status != "running" || fact.phase == "approval_resumed" || strings.HasPrefix(fact.phase, "progress-")) {
+	if !exists && !fact.explicitOriginAttempt && (fact.status != "running" || fact.phase == "approval_resumed" || strings.HasPrefix(fact.phase, "progress-")) {
 		// A resumed runner can commit the terminal checkpoint under a new
 		// attempt number while the durable tool batch keeps the original call
-		// identity. Reconcile that exact visible running call instead of
-		// creating a second coordinate.
+		// identity. Only legacy facts without an explicit origin need this
+		// reconciliation; a declared origin must never be rewritten.
 		originalIdentity := identity
 		candidateIdentity, candidateRecord, candidateExists, err := s.findCompatibleRunningTool(fact)
 		if err != nil {
@@ -340,10 +342,11 @@ func (s *transcriptToolHistoryState) consume(
 		} else {
 			identity = originalIdentity
 		}
-		if fact.provisional && !exists {
-			// Private terminal output without a public start is still private.
-			return transcriptToolHistoryAction{}, false, nil
-		}
+	}
+	if fact.provisional && !exists {
+		// Private terminal output without its own public start is still private,
+		// whether its origin was explicit or resolved from a legacy checkpoint.
+		return transcriptToolHistoryAction{}, false, nil
 	}
 	if !exists {
 		record = transcriptToolHistoryRecord{
@@ -401,7 +404,7 @@ func (s *transcriptToolHistoryState) settleAttempt(attempt int64, terminal strin
 	}
 	actions := make([]transcriptToolHistoryAction, 0)
 	for identity, record := range s.byIdentity {
-		if record.fact.attempt != attempt || record.fact.background || !transcriptToolStatusActive(record.fact.status) {
+		if transcriptToolExecutionAttempt(record.fact) != attempt || record.fact.background || !transcriptToolStatusActive(record.fact.status) {
 			continue
 		}
 		record.fact.status = status
@@ -484,12 +487,14 @@ func transcriptToolHistoryFactFromEvent(
 		return transcriptToolHistoryFact{}, true, transcriptstore.ErrEventConflict
 	}
 	originAttempt := *projected.Event.RunnerAttempt
+	explicitOriginAttempt := false
 	if value, present := payload["toolOriginAttempt"]; present {
 		origin, ok := transcriptWebNonnegativeSafeInteger(value)
 		if !ok || origin <= 0 || origin > originAttempt {
 			return transcriptToolHistoryFact{}, true, transcriptstore.ErrEventConflict
 		}
 		originAttempt = origin
+		explicitOriginAttempt = true
 	}
 	if _, ok := transcriptstore.CanonicalAskUserToolNameV1(name); ok {
 		return transcriptToolHistoryFact{}, false, nil
@@ -569,6 +574,7 @@ func transcriptToolHistoryFactFromEvent(
 	}
 	return transcriptToolHistoryFact{
 		attempt: originAttempt, callID: callID, name: name, status: status,
+		observedAttempt: *projected.Event.RunnerAttempt, explicitOriginAttempt: explicitOriginAttempt,
 		phase: phase, revision: projected.Event.PublicationSeq, parentID: parentID,
 		provisional: visibility == "provisional",
 		description: description, input: input, inputSet: inputSet,
@@ -696,14 +702,18 @@ func mergeTranscriptToolHistoryFact(current, update transcriptToolHistoryFact) (
 	if current.inputSet && update.inputSet && !transcriptToolJSONEqual(current.input, update.input) {
 		return transcriptToolHistoryFact{}, fmt.Errorf("tool input changed: %w", transcriptstore.ErrEventConflict)
 	}
+	if !current.background && !update.backgroundObservation && transcriptToolExecutionAttempt(update) < transcriptToolExecutionAttempt(current) {
+		return transcriptToolHistoryFact{}, fmt.Errorf("tool execution attempt regressed: %w", transcriptstore.ErrEventConflict)
+	}
 	if !current.inputSet && update.inputSet {
 		current.input = update.input
 		current.inputSet = true
 	}
-	if !transcriptToolStatusTransitionAllowed(current.status, update.status) {
+	resuming := transcriptToolResumesSyntheticSettlement(current, update)
+	if !resuming && !transcriptToolStatusTransitionAllowed(current.status, update.status) {
 		return transcriptToolHistoryFact{}, fmt.Errorf("tool status regressed: %w", transcriptstore.ErrEventConflict)
 	}
-	settling := transcriptToolStatusActive(current.status) && !transcriptToolStatusActive(update.status)
+	settling := resuming || transcriptToolStatusActive(current.status) && !transcriptToolStatusActive(update.status)
 	if settling {
 		// A waiting checkpoint may carry an approval/pending result. The
 		// terminal execution result is the authoritative settlement of that same
@@ -740,7 +750,12 @@ func mergeTranscriptToolHistoryFact(current, update transcriptToolHistoryFact) (
 	}
 	if update.settlement != "" {
 		current.settlement = update.settlement
+	} else if resuming || !transcriptToolStatusActive(update.status) {
+		// An actual terminal observation supersedes an inferred settlement even
+		// when the receipt has no result payload (for example cancellation).
+		current.settlement = ""
 	}
+	current.observedAttempt = max(transcriptToolExecutionAttempt(current), transcriptToolExecutionAttempt(update))
 	current.status = update.status
 	current.background = update.background
 	return current, nil

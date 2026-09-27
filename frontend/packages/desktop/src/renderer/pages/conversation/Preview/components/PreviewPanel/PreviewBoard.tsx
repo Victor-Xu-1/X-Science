@@ -404,7 +404,8 @@ const PreviewBoardTileContent: React.FC<{
       />
     );
   }
-  if (type === 'pdf') return <PDFPreview file_path={metadata?.file_path} content={content} />;
+  if (type === 'pdf')
+    return <PDFPreview file_path={metadata?.file_path} fileName={fileName} content={metadata?.contentUrl || content} />;
   if (type === 'ppt') {
     return (
       <PptViewer

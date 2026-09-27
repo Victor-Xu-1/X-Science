@@ -88,7 +88,7 @@ func newTranscriptRepository(t *testing.T) (*Repository, *sql.DB, string) {
 	statements := SchemaContractStatements()
 	for index, statement := range statements {
 		if statement == transcriptWebProjectionStateV38Statement {
-			statements[index] = transcriptWebProjectionStateV67Statement
+			statements[index] = WebReadModelV70ProjectionStateStatement()
 		}
 	}
 	for index, statement := range statements {

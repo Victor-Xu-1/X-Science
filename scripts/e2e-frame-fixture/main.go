@@ -49,6 +49,7 @@ type fixtureRequest struct {
 	HistoryCount      int                             `json:"historyCount,omitempty"`
 	CutoverID         string                          `json:"cutoverId,omitempty"`
 	Transcript        *transcriptStreamFixtureRequest `json:"transcript,omitempty"`
+	OfficeArtifact    *officeArtifactFixtureRequest   `json:"officeArtifact,omitempty"`
 }
 
 type fixtureQuestion struct {
@@ -102,6 +103,13 @@ func run() error {
 		return fmt.Errorf("open browser fixture workspace: %w", err)
 	}
 	defer store.Close()
+	if request.Action == "seed-office-artifact" {
+		response, err := seedOfficeArtifactFixture(store, request)
+		if err != nil {
+			return fmt.Errorf("seed office artifact browser fixture: %w", err)
+		}
+		return json.NewEncoder(os.Stdout).Encode(response)
+	}
 	if request.Action == "seed-ask-user" {
 		response, err := seedAskUserFixture(store, request)
 		if err != nil {
@@ -297,6 +305,12 @@ func decodeRequest(reader io.Reader) (fixtureRequest, error) {
 	request.Action = strings.TrimSpace(request.Action)
 	if request.Action == "" {
 		request.Action = "update-frame"
+	}
+	if request.Action == "seed-office-artifact" {
+		return request, validateOfficeArtifactFixture(request)
+	}
+	if request.OfficeArtifact != nil {
+		return fixtureRequest{}, errors.New("officeArtifact requires seed-office-artifact action")
 	}
 	if request.Action == "seed-delegate" || request.Action == "remove-delegate" {
 		if request.FrameID != "" || request.Status != nil || request.Name != nil || request.TaskSummary != nil ||

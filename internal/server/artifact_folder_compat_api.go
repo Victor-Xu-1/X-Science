@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"net/url"
-	"strings"
 
 	workspace "synon-go/internal/persistence/workspace"
 )
@@ -20,13 +18,13 @@ func (s *Server) handleArtifactCompatibility(w http.ResponseWriter, r *http.Requ
 		writeV11Detail(w, http.StatusServiceUnavailable, "Workspace runtime is not configured")
 		return
 	}
-	segments := workspacePathSegments(strings.TrimPrefix(r.URL.Path, "/api/artifacts/"))
+	segments := artifactPathSegments(r, "/api/artifacts/")
 	if len(segments) != 2 || segments[1] != "folder" {
 		writeV11Detail(w, http.StatusNotFound, "Artifact endpoint not found")
 		return
 	}
-	artifactID, err := url.PathUnescape(segments[0])
-	if err != nil || strings.TrimSpace(artifactID) == "" {
+	artifactID, err := decodeArtifactPathIdentity(segments[0])
+	if err != nil {
 		writeV11Detail(w, http.StatusBadRequest, "Invalid artifact id")
 		return
 	}

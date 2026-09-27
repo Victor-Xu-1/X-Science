@@ -217,6 +217,23 @@ const createInitStyleText = (
     font-size: 0.875em;
     font-family: var(--font-mono);
   }
+  /* Generated file links remain recognizable even when their labels use bold/code markup. */
+  .markdown-shadow-body .markdown-artifact-file-link,
+  .markdown-shadow-body .markdown-artifact-file-link:visited,
+  .markdown-shadow-body .markdown-artifact-file-link:hover,
+  .markdown-shadow-body .markdown-artifact-file-link:focus-visible {
+    color: ${currentTheme === 'dark' ? '#8ab4ff' : '#1d4ed8'};
+    font-weight: 700;
+  }
+  .markdown-shadow-body .markdown-artifact-file-link :is(strong, code, span) {
+    color: inherit;
+    font-weight: inherit;
+  }
+  .markdown-shadow-body .markdown-artifact-file-link:focus-visible {
+    outline: 2px solid ${currentTheme === 'dark' ? '#8ab4ff' : '#1d4ed8'};
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
   blockquote {
     border-left: 3px solid var(--conversation-stream-accent, var(--bg-3));
     padding: 8px 14px;
