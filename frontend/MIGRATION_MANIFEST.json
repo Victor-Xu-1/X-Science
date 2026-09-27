@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "cab4b92cd54b80aec71ea1ccdf81cfc014481b953ecad05c3f329ab0b001dde9",
+  "adaptationFingerprintSHA256": "b4527c922f361c966c97082afd143c76075cf64f3929b2cd626892bcd44dd080",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
-  "additionFingerprintSHA256": "f4aa1553aa8fafbfaeaf06889f603bafa53ad148e41d65f8f8f1d735ce5b102b",
+  "additionFingerprintSHA256": "f7858b4f33d066f90f631632a90ea70f2eb2a50f4fc00759900b25a75239c058",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 400,
@@ -1200,8 +1200,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/hooks.ts",
       "sourceSHA256": "75067dc9b38938e3dc2acbf3385ddaf8c444e4f68cc65d658f8e93da5a904fea",
-      "targetSHA256": "af8b8517d9a1bf3021e3e86885a0d66a6985b47e4d4ccdf47954c577b7a7c484",
-      "bytes": 61787,
+      "targetSHA256": "62a55e5f2b535b7033b52fb025eb4ca5b817d20df5f83472a7c569df87d49345",
+      "bytes": 61842,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -7074,8 +7074,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/messageWindowReconciliation.ts",
-      "sha256": "85e409f2211e1e73f346b84ac9ece215bef1b269b43387f2706543d524b0c693",
-      "bytes": 12741,
+      "sha256": "f15626f24ab5319105e16e1a1e8b57d7fc76596e827d8c5516a50a157c4511e2",
+      "bytes": 13174,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9504,8 +9504,8 @@
     },
     {
       "path": "tests/unit/renderer/messagePublicationCoverage.dom.test.tsx",
-      "sha256": "c236adb8dfd381f14917095dba97cb8dc632c21a56d30d7c21927611846fafd1",
-      "bytes": 7230,
+      "sha256": "ec279e79c6243d35e86704b22a90ee92b6bf8dbeda6f22952050bc35c2724b4e",
+      "bytes": 9021,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -9516,8 +9516,8 @@
     },
     {
       "path": "tests/unit/renderer/messageWindowContinuity.test.ts",
-      "sha256": "e2ae7a309330027bb4133ed66310e3e18d68a2488ef8b8aab3d12bbcf7d5256b",
-      "bytes": 3137,
+      "sha256": "c5cad73d1b03e00157e0cbb4d77a1621ad08d7c4837a1f195be832f6c34e5322",
+      "bytes": 4123,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

@@ -18,6 +18,26 @@ const text = (id: string, content: string, msgId = id): IMessageText => ({
 });
 
 describe('long-task published message continuity', () => {
+  it('keeps one richer live row across repeated durable prefix refreshes', () => {
+    const snapshot = { ...text('durable-segment', 'Observed result.', 'attempt-a'), status: 'work' as const };
+    const live = {
+      ...snapshot,
+      id: 'live-attempt',
+      history_coverage_through: undefined,
+      content: { ...snapshot.content, content: 'Observed result. Still investigating.' },
+    };
+    let current: IMessageText[] = [live];
+    for (let index = 0; index < 5; index++) {
+      current = mergeLoadedPageWithCurrent('long-task', [snapshot], current, true) as IMessageText[];
+    }
+    expect(current).toHaveLength(1);
+    expect(current[0].id).toBe(snapshot.id);
+    expect(current[0].content.content).toBe(live.content.content);
+    expect(current[0].history_coverage_through).toBe(snapshot.history_coverage_through);
+    expect(prependHistoryMessages(current, [snapshot])).toEqual(current);
+    expect(appendHistoryMessages(current, [snapshot])).toEqual(current);
+  });
+
   it('keeps distinct durable segments even when their text shares a prefix', () => {
     const first = text('segment-1', 'Observed result.', 'attempt-a');
     const second = text('segment-2', 'Observed result. Now verifying.', 'attempt-a');
