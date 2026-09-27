@@ -547,6 +547,7 @@ function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[]
             newList.push({
               ...existingMsg,
               ...message,
+              id: existingMsg.id,
               ...mergeTextPublicationCoverage(existingMsg, message),
               content: mergeTextMessageContent(existingMsg.content, message.content),
             });
@@ -593,6 +594,7 @@ function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[]
       newList[newList.length - 1] = {
         ...last,
         ...message,
+        id: last.id,
         ...mergeTextPublicationCoverage(last, message),
         content: mergeTextMessageContent(last.content, message.content),
         artifact_refs: mergeArtifactReferences(

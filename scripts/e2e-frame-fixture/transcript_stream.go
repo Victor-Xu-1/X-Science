@@ -33,6 +33,10 @@ func applyTranscriptStreamFixture(store *workspace.Store, request fixtureRequest
 		return beginTranscriptStreamingRecovery(store, request.FrameID, *request.Transcript)
 	case "complete-streaming-recovery":
 		return completeTranscriptStreamingRecovery(store, request.FrameID, *request.Transcript)
+	case "cancel-projection-tool":
+		return cancelTranscriptProjectionTool(store, request.FrameID, *request.Transcript)
+	case "complete-projection-tool":
+		return completeTranscriptProjectionTool(store, request.FrameID, *request.Transcript)
 	default:
 		return nil, fmt.Errorf("unsupported transcript stream fixture action %q", request.Action)
 	}

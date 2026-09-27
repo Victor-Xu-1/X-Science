@@ -45,7 +45,13 @@ const preserveMessageIdentityWhenEquivalent = (candidate: TMessage, current: TMe
 
 const preferPersistedOrLiveMessage = (persisted: TMessage, live: TMessage): TMessage => {
   if (persisted.type === 'text' && live.type === 'text') {
-    return preserveMessageIdentityWhenEquivalent(preferTextMessageVersion(persisted, live), live);
+    const preferred = preferTextMessageVersion(persisted, live);
+    // Content and publication coverage may come from the richer live copy,
+    // but an accepted history match establishes its durable row identity.
+    // Keeping the temporary id would make inherited coverage look like a
+    // second durable segment on the next refresh or pagination request.
+    const canonical = preferred.id === persisted.id ? preferred : { ...preferred, id: persisted.id };
+    return preserveMessageIdentityWhenEquivalent(canonical, live);
   }
   if (isToolMessage(persisted) && isToolMessage(live) && persisted.type === live.type) {
     return preserveMessageIdentityWhenEquivalent(preferToolMessageVersion(persisted, live), live);

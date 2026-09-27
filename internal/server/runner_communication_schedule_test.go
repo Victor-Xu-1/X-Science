@@ -6,6 +6,24 @@ import (
 	"time"
 )
 
+func TestCommunicationScheduleRequestsUpdateAfterOneLongOperation(t *testing.T) {
+	now := time.Date(2026, 9, 13, 12, 0, 0, 0, time.UTC)
+	schedule := &sessionRunnerCommunicationSchedule{now: func() time.Time { return now }}
+	if err := schedule.published(); err != nil {
+		t.Fatal(err)
+	}
+	now = now.Add(5 * time.Minute)
+	if schedule.due() {
+		t.Fatal("elapsed time alone must not invent progress")
+	}
+	if err := schedule.settled(); err != nil {
+		t.Fatal(err)
+	}
+	if !schedule.due() {
+		t.Fatal("a completed long operation must not wait for three more tool calls")
+	}
+}
+
 func TestCommunicationScheduleSurvivesRestoreWithoutRepeatingIntroduction(t *testing.T) {
 	now := time.Date(2026, 9, 13, 12, 0, 0, 0, time.UTC)
 	schedule := &sessionRunnerCommunicationSchedule{now: func() time.Time { return now }}

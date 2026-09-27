@@ -65,6 +65,255 @@ describe('useSynonBiomedArtifactLinkPreview', () => {
     vi.unstubAllGlobals();
   });
 
+  it.each([
+    '/api/artifacts/artifact-report/versions/version-report',
+    'https://synon.bio/api/artifacts/artifact-report/versions/version-report?download=1',
+    'https://untrusted-origin.test/api/artifacts/artifact-report/versions/version-report',
+  ])('resolves %s only through the authoritative conversation pair', async (href) => {
+    ipcMocks.listArtifacts.mockResolvedValue([
+      {
+        kind: 'scientific_files',
+        payload: {
+          files: [
+            scientificFile({
+              artifact_id: 'artifact-report',
+              version_id: 'version-report',
+              filename: 'report.md',
+              content_type: 'text/markdown',
+              preview_kind: 'markdown',
+              content_url: '/api/artifacts/artifact-report/versions/version-report',
+            }),
+          ],
+        },
+      },
+    ]);
+    const fetchMock = vi.fn().mockResolvedValue(new Response('# Verified report'));
+    vi.stubGlobal('fetch', fetchMock);
+    const { result } = renderHook(() =>
+      useSynonBiomedArtifactResolver({
+        conversationId: 'frame-report',
+        workspace: 'synonbiomed://project-report',
+      })
+    );
+
+    await act(async () => expect(await result.current.handleLink(href)).toBe(true));
+
+    expect(ipcMocks.listArtifacts).toHaveBeenCalledWith({
+      conversation_id: 'frame-report',
+      references: [{ artifact_id: 'artifact-report', version_id: 'version-report' }],
+      version_ids: [],
+    });
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith('/api/artifacts/artifact-report/versions/version-report', {
+      headers: { accept: SYNON_BIOMED_TEXT_ACCEPT_HEADER },
+    });
+    expect(previewMocks.openPreview).toHaveBeenCalledWith(
+      '# Verified report',
+      'markdown',
+      expect.objectContaining({
+        artifactId: 'artifact-report',
+        versionId: 'version-report',
+      }),
+      { presentation: 'board' }
+    );
+  });
+
+  it.each(['', 'https://untrusted-origin.test'])(
+    'resolves opaque artifact identities from %s using only authoritative content URLs',
+    async (origin) => {
+      const reference = { artifact_id: 'artifact/with space', version_id: '版本/with space' };
+      const contentUrl = '/api/artifacts/artifact%2Fwith%20space/versions/%E7%89%88%E6%9C%AC%2Fwith%20space';
+      ipcMocks.listArtifacts.mockResolvedValue([
+        {
+          kind: 'scientific_files',
+          payload: {
+            files: [
+              scientificFile({
+                ...reference,
+                filename: 'report.md',
+                content_type: 'text/markdown',
+                preview_kind: 'markdown',
+                content_url: contentUrl,
+              }),
+            ],
+          },
+        },
+      ]);
+      const fetchMock = vi.fn().mockResolvedValue(new Response('# Exact opaque identity'));
+      vi.stubGlobal('fetch', fetchMock);
+      const { result } = renderHook(() =>
+        useSynonBiomedArtifactResolver({
+          conversationId: 'frame-report',
+          workspace: 'synonbiomed://project-report',
+        })
+      );
+
+      await act(async () => expect(await result.current.handleLink(`${origin}${contentUrl}?download=1`)).toBe(true));
+      expect(ipcMocks.listArtifacts).toHaveBeenCalledWith({
+        conversation_id: 'frame-report',
+        references: [reference],
+        version_ids: [],
+      });
+      expect(fetchMock).toHaveBeenCalledExactlyOnceWith(contentUrl, {
+        headers: { accept: SYNON_BIOMED_TEXT_ACCEPT_HEADER },
+      });
+      expect(previewMocks.openPreview).toHaveBeenCalledWith(
+        '# Exact opaque identity',
+        'markdown',
+        expect.objectContaining({
+          artifactId: reference.artifact_id,
+          versionId: reference.version_id,
+          contentUrl,
+        }),
+        { presentation: 'board' }
+      );
+    }
+  );
+
+  it('contains mismatched opaque pairs without normalizing or double-decoding them', async () => {
+    const file = scientificFile({ artifact_id: 'artifact/with space', version_id: 'version/with space' });
+    mockConversationArtifacts = [{ kind: 'scientific_files', payload: { files: [file] } } as IConversationArtifact];
+    ipcMocks.listArtifacts.mockResolvedValue(mockConversationArtifacts);
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const { result } = renderHook(() =>
+      useSynonBiomedArtifactResolver({
+        conversationId: 'frame-report',
+        workspace: 'synonbiomed://project-report',
+      })
+    );
+    for (const path of [
+      '/api/artifacts/another%2Fwith%20space/versions/version%2Fwith%20space',
+      '/api/artifacts/artifact%2Fwith%20space/versions/another%2Fwith%20space',
+      '/api/artifacts/artifact%252Fwith%20space/versions/version%2Fwith%20space',
+    ]) {
+      await act(async () => expect(await result.current.handleLink(`https://untrusted-origin.test${path}`)).toBe(true));
+      await expect(result.current.resolveLinkHref(path)).resolves.toBeNull();
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(previewMocks.openPreview).not.toHaveBeenCalled();
+    expect(messageMocks.error).toHaveBeenCalledTimes(3);
+  });
+
+  it.each(['unknown', 'wrong-artifact', 'wrong-version'])(
+    'contains %s API identities without fetching or falling back',
+    async (scenario) => {
+      const file = scientificFile({ artifact_id: 'artifact-report', version_id: 'version-report' });
+      mockConversationArtifacts = [{ kind: 'scientific_files', payload: { files: [file] } } as IConversationArtifact];
+      // A mismatched lookup response must not relax the requested pair either.
+      ipcMocks.listArtifacts.mockResolvedValue(mockConversationArtifacts);
+      const fetchMock = vi.fn();
+      vi.stubGlobal('fetch', fetchMock);
+      const { result } = renderHook(() =>
+        useSynonBiomedArtifactResolver({
+          conversationId: 'frame-report',
+          workspace: 'synonbiomed://project-report',
+        })
+      );
+      const href =
+        scenario === 'unknown'
+          ? '/api/artifacts/missing/versions/missing'
+          : scenario === 'wrong-artifact'
+            ? '/api/artifacts/another-artifact/versions/version-report'
+            : '/api/artifacts/artifact-report/versions/another-version';
+      await act(async () => expect(await result.current.handleLink(href)).toBe(true));
+      await expect(result.current.resolveLinkHref(href)).resolves.toBeNull();
+      expect(previewMocks.openPreview).not.toHaveBeenCalled();
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(messageMocks.error).toHaveBeenCalled();
+    }
+  );
+
+  it('does not let a content URL use a version id as its artifact id', async () => {
+    mockConversationArtifacts = [
+      {
+        kind: 'scientific_files',
+        payload: {
+          files: [
+            scientificFile({
+              artifact_id: 'artifact-report',
+              version_id: 'version-report',
+            }),
+          ],
+        },
+      } as IConversationArtifact,
+    ];
+    const { result } = renderHook(() =>
+      useSynonBiomedArtifactResolver({
+        conversationId: 'frame-report',
+        workspace: 'synonbiomed://project-report',
+      })
+    );
+    await act(async () => expect(await result.current.handleLink('/api/artifacts/version-report')).toBe(true));
+    expect(previewMocks.openPreview).not.toHaveBeenCalled();
+    expect(messageMocks.error).toHaveBeenCalled();
+  });
+
+  it('loads a message historical version before using a cached same-name current version', async () => {
+    const previous = scientificFile({
+      artifact_id: 'artifact-report',
+      version_id: 'version-old',
+      filename: 'report.pdf',
+      content_type: 'application/pdf',
+      preview_kind: 'pdf',
+      content_url: '/api/artifacts/artifact-report/versions/version-old',
+    });
+    const current = scientificFile({
+      ...previous,
+      version_id: 'version-new',
+      version_number: 2,
+      content_url: '/api/artifacts/artifact-report/versions/version-new',
+    });
+    mockConversationArtifacts = [{ kind: 'scientific_files', payload: { files: [current] } } as IConversationArtifact];
+    ipcMocks.listArtifacts.mockResolvedValue([{ kind: 'scientific_files', payload: { files: [previous] } }]);
+    const reference = { artifact_id: 'artifact-report', version_id: 'version-old' };
+    const { result } = renderHook(() =>
+      useSynonBiomedArtifactResolver({
+        conversationId: 'frame-report',
+        workspace: 'synonbiomed://project-report',
+        artifactReferences: [reference],
+      })
+    );
+    await act(async () => expect(await result.current.handleLink('./report.pdf')).toBe(true));
+    expect(ipcMocks.listArtifacts).toHaveBeenCalledWith({
+      conversation_id: 'frame-report',
+      references: [reference],
+      version_ids: [],
+    });
+    expect(previewMocks.openPreview).toHaveBeenCalledWith(
+      previous.content_url,
+      'pdf',
+      expect.objectContaining({ artifactId: 'artifact-report', versionId: 'version-old' }),
+      { presentation: 'board' }
+    );
+  });
+
+  it('keeps artifact metadata request failures inside the preview workflow', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    ipcMocks.listArtifacts.mockRejectedValue(new Error('metadata unavailable'));
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const { result } = renderHook(() =>
+      useSynonBiomedArtifactResolver({
+        conversationId: 'frame-report',
+        workspace: 'synonbiomed://project-report',
+      })
+    );
+    await act(async () =>
+      expect(await result.current.handleLink('https://untrusted.test/api/artifacts/a/versions/v')).toBe(true)
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(previewMocks.openPreview).not.toHaveBeenCalled();
+    expect(messageMocks.error).toHaveBeenCalled();
+    log.mockRestore();
+  });
+
+  it('leaves generic relative links outside Synon conversations to the ordinary web handler', async () => {
+    const { result } = renderHook(() => useSynonBiomedArtifactResolver({ workspace: '/tmp/project' }));
+    await expect(result.current.handleLink('./guide.html')).resolves.toBe(false);
+    expect(ipcMocks.listArtifacts).not.toHaveBeenCalled();
+    expect(messageMocks.error).not.toHaveBeenCalled();
+  });
+
   it('resolves a relative Markdown link against real frame artifacts and opens native preview', async () => {
     mockConversationArtifacts = [
       {

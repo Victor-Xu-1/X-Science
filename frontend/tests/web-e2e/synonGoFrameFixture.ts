@@ -28,6 +28,18 @@ export type AskUserFixture = {
   questions: Array<Record<string, unknown>>;
 };
 
+type OfficeArtifactFixture = {
+  frameId: string;
+  officeArtifact: { artifactId: string; versions: string[] };
+};
+
+type OfficeArtifactResult = {
+  artifactId: string;
+  versionId: string;
+  latestVersionId: string;
+  filename: string;
+};
+
 export type TranscriptRebasePreparation = {
   frameId: string;
   cutoverId: string;
@@ -87,7 +99,9 @@ type TranscriptFixtureCommand = {
     | 'begin-streaming-parity'
     | 'complete-streaming-parity'
     | 'begin-streaming-recovery'
-    | 'complete-streaming-recovery';
+    | 'complete-streaming-recovery'
+    | 'cancel-projection-tool'
+    | 'complete-projection-tool';
   frameId: string;
   transcript: {
     run?: TranscriptStreamRun;
@@ -124,6 +138,29 @@ export function applySynonGoFrameFixture(input: FrameFixture): void {
   if (response.ok !== true || response.frameId !== input.frameId) {
     throw new Error(`Go frame fixture returned an invalid response: ${JSON.stringify(response)}`);
   }
+}
+
+export function seedSynonGoOfficeArtifact(input: OfficeArtifactFixture): OfficeArtifactResult {
+  const response = runFixture({ action: 'seed-office-artifact', ...input }) as Partial<OfficeArtifactResult> & {
+    ok?: boolean;
+  };
+  if (
+    response.ok !== true ||
+    response.artifactId !== input.officeArtifact.artifactId ||
+    response.filename !== 'encoded-preview.pdf' ||
+    typeof response.versionId !== 'string' ||
+    !response.versionId ||
+    typeof response.latestVersionId !== 'string' ||
+    !response.latestVersionId ||
+    response.versionId === response.latestVersionId
+  )
+    throw new Error('Go office fixture returned invalid immutable version identities');
+  return {
+    artifactId: response.artifactId,
+    filename: response.filename,
+    versionId: response.versionId,
+    latestVersionId: response.latestVersionId,
+  };
 }
 
 export function seedSynonGoDelegateFixture(): DelegateFixture {
@@ -275,6 +312,36 @@ export function removeSynonGoDelegateFixture(): void {
   }
 }
 
+export function cancelSynonGoProjectionTool(run: TranscriptStreamRun): void {
+  assertTranscriptFixtureResponse(
+    runFixture({ action: 'cancel-projection-tool', frameId: run.frameId, transcript: { run, batchId: run.runId } }),
+    run.frameId,
+    4
+  );
+}
+
+export function completeSynonGoProjectionTool(
+  run: TranscriptStreamRun,
+  text: string,
+  artifactRefs: Array<{ artifactId: string; versionId: string }>
+): number {
+  const response = runFixture({
+    action: 'complete-projection-tool',
+    frameId: run.frameId,
+    transcript: {
+      run,
+      batchId: run.runId,
+      text,
+      artifactRefs: artifactRefs.map(({ artifactId, versionId }) => ({ artifactId, versionId })),
+    },
+  }) as { attempt?: unknown };
+  assertTranscriptFixtureResponse(response, run.frameId, 4);
+  if (typeof response.attempt !== 'number' || response.attempt <= run.attempt) {
+    throw new Error('Go projection fixture did not resume a later runner attempt');
+  }
+  return response.attempt;
+}
+
 export function prepareSynonGoTranscriptRebase(frameId: string, historyCount = 120): TranscriptRebasePreparation {
   const response = runFixture({ action: 'prepare-transcript-rebase', frameId, historyCount }) as {
     ok?: boolean;
@@ -320,6 +387,7 @@ function runFixture(
     | FrameFixture
     | { action: 'seed-delegate' | 'remove-delegate' }
     | ({ action: 'seed-ask-user' } & AskUserFixture)
+    | ({ action: 'seed-office-artifact' } & OfficeArtifactFixture)
     | { action: 'seed-scroll-history'; frameId: string; historyCount: number }
     | { action: 'prepare-transcript-rebase'; frameId: string; historyCount: number }
     | { action: 'activate-transcript-rebase'; frameId: string; cutoverId: string }

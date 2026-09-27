@@ -34,9 +34,27 @@ const RECOVERY_COPY = {
 };
 
 const viewports = [
-  { name: 'desktop', width: 1440, height: 900, dark: false, reducedMotion: false },
-  { name: 'narrow', width: 390, height: 844, dark: false, reducedMotion: false },
-  { name: 'desktop-dark-reduced', width: 1440, height: 900, dark: true, reducedMotion: true },
+  {
+    name: 'desktop',
+    width: 1440,
+    height: 900,
+    dark: false,
+    reducedMotion: false,
+  },
+  {
+    name: 'narrow',
+    width: 390,
+    height: 844,
+    dark: false,
+    reducedMotion: false,
+  },
+  {
+    name: 'desktop-dark-reduced',
+    width: 1440,
+    height: 900,
+    dark: true,
+    reducedMotion: true,
+  },
 ] as const;
 
 for (const viewport of viewports) {
@@ -120,9 +138,17 @@ for (const viewport of viewports) {
         const computeGroup = toolGroups.filter({ has: computeTool });
         await expect(computeGroup).toHaveClass(/tool-group-summary--single/);
         if (viewport.dark) {
-          await expect
-            .poll(() => computeGroup.evaluate((element) => getComputedStyle(element).backgroundColor))
-            .toBe('rgba(255, 255, 255, 0.04)');
+          // Resolve the current workspace palette with the browser's own color
+          // serialization rather than pinning the retired translucent surface.
+          const expectedSurface = await page.evaluate(() => {
+            const probe = document.createElement('div');
+            probe.style.backgroundColor = 'color-mix(in srgb, #282724 65%, #1f1e1c)';
+            document.body.append(probe);
+            const color = getComputedStyle(probe).backgroundColor;
+            probe.remove();
+            return color;
+          });
+          await expect(computeGroup).toHaveCSS('background-color', expectedSurface);
         }
         if (viewport.reducedMotion) {
           expect(await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(true);
@@ -147,7 +173,10 @@ for (const viewport of viewports) {
         );
         await expect(thinking).toHaveAttribute('data-active', 'false');
         await expect(computeStep).toHaveClass(/tool-step--completed/);
+        await computeTool.click();
+        await computeStep.getByRole('button', { name: /显示输出/ }).click();
         await expect(computeStep.getByTestId('tool-public-output')).toContainText('candidate 3/3');
+        await computeTool.click();
 
         const finalText = page.getByText('分析完成。结果文件已按生成顺序放在本条回答之后。', {
           exact: true,
@@ -197,7 +226,11 @@ for (const viewport of viewports) {
 }
 
 test.describe('desktop recovery', () => {
-  test.use({ viewport: { width: 1440, height: 900 }, colorScheme: 'light', reducedMotion: 'no-preference' });
+  test.use({
+    viewport: { width: 1440, height: 900 },
+    colorScheme: 'light',
+    reducedMotion: 'no-preference',
+  });
 
   test('retains a failed operation while the recovery operation completes across refresh', async ({ page }) => {
     await loginToScientificWorkbench(page);
@@ -205,7 +238,9 @@ test.describe('desktop recovery', () => {
 
     try {
       const stream = beginSynonGoTranscriptStream(workspace.conversationId);
-      await page.goto(`/#/conversation/${workspace.conversationId}`, { waitUntil: 'domcontentloaded' });
+      await page.goto(`/#/conversation/${workspace.conversationId}`, {
+        waitUntil: 'domcontentloaded',
+      });
       await expect(page.getByTestId('message-list-scroller')).toBeVisible();
 
       beginSynonGoStreamingRecovery(stream, RECOVERY_COPY);
@@ -246,7 +281,9 @@ test.describe('desktop recovery', () => {
       if ((await replayedFirst.getByTestId('tool-chip').getAttribute('aria-expanded')) !== 'true') {
         await replayedFirst.getByTestId('tool-chip').click();
       }
-      const replayedFailureOutput = replayedFirst.getByRole('button', { name: /显示输出/ });
+      const replayedFailureOutput = replayedFirst.getByRole('button', {
+        name: /显示输出/,
+      });
       if ((await replayedFailureOutput.getAttribute('aria-expanded')) !== 'true') {
         await replayedFailureOutput.click();
       }
@@ -255,7 +292,9 @@ test.describe('desktop recovery', () => {
       if ((await replayedSecond.getByTestId('tool-chip').getAttribute('aria-expanded')) !== 'true') {
         await replayedSecond.getByTestId('tool-chip').click();
       }
-      const replayedSuccessOutput = replayedSecond.getByRole('button', { name: /显示输出/ });
+      const replayedSuccessOutput = replayedSecond.getByRole('button', {
+        name: /显示输出/,
+      });
       if ((await replayedSuccessOutput.getAttribute('aria-expanded')) !== 'true') {
         await replayedSuccessOutput.click();
       }

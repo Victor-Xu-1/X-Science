@@ -121,6 +121,7 @@ ALLOWED_ADAPTATIONS = {
 
 ALLOWED_ADDITIONS = {
     "packages/desktop/src/common/chat/largeToolResultReference.ts": "Validate immutable same-origin large-result references once for transcript summaries and lazy detail loading; previews never replace source evidence.",
+    "README.md": "Document the browser-only source boundary, dependency authority, scoped checks, and isolated real-backend testing prerequisites.",
     "packages/desktop/src/renderer/styles/tokens.css": "Own the single canonical visual-primitive scale (space, radius, elevation, type, weight, stacking) that every renderer module references instead of restating literals.",
     "packages/desktop/src/renderer/pages/settings/skills/SkillLibraryCard.tsx": "Render installed and draft skills with complete readable copy, declared-category icons and isolated keyboard actions.",
     "packages/desktop/src/renderer/pages/settings/skills/SkillFilePreview.tsx": "Render original Markdown and source files through distinct safe read-only previews.",
@@ -249,6 +250,7 @@ ALLOWED_ADDITIONS = {
     "tests/web-e2e/officialChromeTest.ts": "Bind Playwright acceptance to one verified official Google Chrome CDP session and isolated context.",
     "tests/web-e2e/rdkitProduction.e2e.ts": "Verify real RDKit worker rendering, pixels, MIME, cache, and path-specific CSP under the production Go host.",
     "tests/web-e2e/synonGoFrameFixture.ts": "Apply deterministic frame and delegation state through the compiled Go browser-test fixture.",
+    "tests/web-e2e/synonbiomedMessageProjectionRecovery.e2e.ts": "Verify durable cancel/resume history preserves the final answer and exact in-app artifact preview after refresh through the real Go fixture.",
     "tests/web-e2e/synonbiomedAskUser.e2e.ts-snapshots/ask-user-typed-desktop-linux.png": "Retain the reviewed desktop visual baseline for typed AskUser history and terminal state.",
     "tests/web-e2e/synonbiomedAskUser.e2e.ts-snapshots/ask-user-typed-narrow-linux.png": "Retain the reviewed narrow visual baseline for typed AskUser history and terminal state.",
     "tests/web-e2e/synonbiomedAskUser.e2e.ts-snapshots/ask-user-typed-desktop-official-windows-chrome.png": "Retain the reviewed official Windows Chrome desktop baseline for typed AskUser history and terminal state.",
@@ -503,9 +505,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "d1acc3f34cde77c8cc893ad91fc01ade17fc6a2c6a9da0af0e3fe4c9cee48e25"
+APPROVED_ADAPTATION_FINGERPRINT = "ab346c75e1de730236b8490586d6ec2b9bc305f6d9f836dddc086243c1d78e24"
 APPROVED_REMOVAL_FINGERPRINT = "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c"
-APPROVED_ADDITION_FINGERPRINT = "4998694daf9b9e65c77766ecf8f9dafa910e74eb6ff74ba8ba3bf941e2033fb1"
+APPROVED_ADDITION_FINGERPRINT = "2b3a12aebea2e3472131f2284366fe189225ebcb19c49492ea56fa4feb1bd25e"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

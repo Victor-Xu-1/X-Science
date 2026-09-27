@@ -40,4 +40,3 @@ def load_documented_input(path: Path, source: Path, group: str, values: dict[str
         if isinstance(actual, bool) or not isinstance(actual, (int, float)) or not math.isfinite(actual) or actual != value:
             raise ValueError("documented input values do not match execution parameters")
     return record
-

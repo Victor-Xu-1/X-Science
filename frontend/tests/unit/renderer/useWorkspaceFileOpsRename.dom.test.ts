@@ -7,6 +7,7 @@ import { SYNON_BIOMED_TEXT_ACCEPT_HEADER } from '@/renderer/services/synonBiomed
 
 const ipcMocks = vi.hoisted(() => ({
   readFile: vi.fn(),
+  readFileBuffer: vi.fn(),
   getImageBase64: vi.fn(),
   openFile: vi.fn(),
   showItemInFolder: vi.fn(),
@@ -27,6 +28,7 @@ vi.mock('@/common', () => ({
   ipcBridge: {
     fs: {
       readFile: { invoke: ipcMocks.readFile },
+      readFileBuffer: { invoke: ipcMocks.readFileBuffer },
       getImageBase64: { invoke: ipcMocks.getImageBase64 },
     },
     shell: {
@@ -70,6 +72,53 @@ describe('useWorkspaceFileOps rename', () => {
     composerReferenceMocks.insert.mockReset();
     composerReferenceMocks.insert.mockReturnValue(true);
     emitterMocks.emit.mockReset();
+  });
+
+  it('opens a local PDF using scoped binary bytes, not a browser file URL', async () => {
+    const openPreview = vi.fn();
+    ipcMocks.readFileBuffer.mockResolvedValue('JVBERi0xLjcK');
+    const { result } = renderHook(() =>
+      useWorkspaceFileOps({
+        workspace: '/workspace',
+        eventPrefix: 'acp',
+        messageApi: { success: vi.fn(), error: vi.fn(), warning: vi.fn() },
+        t: (key) => key,
+        setSelected: vi.fn(),
+        selectedKeysRef: { current: [] },
+        selectedNodeRef: { current: null },
+        ensureNodeSelected: vi.fn(),
+        refreshWorkspace: vi.fn(),
+        renameModal: { visible: false, value: '', target: null },
+        deleteModal: { visible: false, target: null, loading: false },
+        renameLoading: false,
+        setRenameLoading: vi.fn(),
+        closeRenameModal: vi.fn(),
+        closeDeleteModal: vi.fn(),
+        closeContextMenu: vi.fn(),
+        setRenameModal: vi.fn(),
+        setDeleteModal: vi.fn(),
+        openPreview,
+      })
+    );
+    await act(async () =>
+      result.current.handlePreviewFile({
+        name: 'report.pdf',
+        fullPath: '/workspace/report.pdf',
+        relativePath: 'report.pdf',
+        isDir: false,
+        isFile: true,
+      })
+    );
+    expect(ipcMocks.readFileBuffer).toHaveBeenCalledWith({
+      path: '/workspace/report.pdf',
+      workspace: '/workspace',
+    });
+    expect(openPreview).toHaveBeenCalledWith(
+      '',
+      'pdf',
+      expect.objectContaining({ contentUrl: 'data:application/pdf;base64,JVBERi0xLjcK' }),
+      { presentation: 'board' }
+    );
   });
 
   it('adds a remote artifact as an exact composer reference without a local attachment', () => {

@@ -16,11 +16,9 @@ import (
 
 // TranscriptWebProjectorVersion advances whenever reducer semantics change so
 // every existing derived view is rebuilt from its immutable Transcript source.
-// Version 9 normalizes legacy pre-execution rejection checkpoints whose
-// completed status contradicted their failed phase. Existing source events
-// remain immutable for audit while every older materialized view is rebuilt
-// without a frontend compatibility path.
-const TranscriptWebProjectorVersion = 11
+// Version 12 recognizes resumed tools after inferred cancellation, including
+// histories quarantined by the previous reducer. Source events remain immutable.
+const TranscriptWebProjectorVersion = 12
 
 var ErrTranscriptWebProjectionStale = errors.New("transcript Web projection state is stale")
 

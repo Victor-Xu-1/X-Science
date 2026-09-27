@@ -7,6 +7,51 @@ import { mergeLoadedPageWithCurrent } from '@/renderer/pages/conversation/Messag
 
 afterEach(() => vi.restoreAllMocks());
 
+it.each([
+  { sequenced: true, replace: false },
+  { sequenced: false, replace: false },
+  { sequenced: true, replace: true },
+  { sequenced: false, replace: true },
+])('keeps durable identity during a subsequent live update (%j)', ({ sequenced, replace }) => {
+  const snapshot: IMessageText = {
+    id: 'durable-segment',
+    msg_id: 'attempt',
+    conversation_id: 'conversation',
+    type: 'text',
+    position: 'left',
+    status: 'work',
+    history_coverage_through: 1000,
+    content: { content: 'Observed result.', assistantAttemptId: 'attempt' },
+  };
+  const wrapper = ({ children }: PropsWithChildren) => (
+    <MessageListProvider value={[snapshot]}>{children}</MessageListProvider>
+  );
+  const frames: FrameRequestCallback[] = [];
+  vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+    frames.push(callback);
+    return frames.length;
+  });
+  const { result } = renderHook(() => ({ merge: useMergeLiveMessage(), messages: useMessageList() }), { wrapper });
+  const incoming: IMessageText = {
+    ...snapshot,
+    id: 'live-next',
+    history_coverage_through: undefined,
+    source_publication_sequence: sequenced ? 1001 : undefined,
+    content: {
+      content: replace ? 'Observed result. Still investigating.' : ' Still investigating.',
+      assistantAttemptId: 'attempt',
+      replace,
+    },
+  };
+  act(() => result.current.merge(incoming));
+  act(() => frames.shift()?.(16));
+  expect(result.current.messages).toHaveLength(1);
+  expect(result.current.messages[0].id).toBe(snapshot.id);
+  const refreshed = mergeLoadedPageWithCurrent('conversation', [snapshot], result.current.messages, true);
+  expect(refreshed).toHaveLength(1);
+  expect((refreshed[0] as IMessageText).content.content).toBe('Observed result. Still investigating.');
+});
+
 it('does not replay a live publication across tool boundaries, but retains genuinely new text', () => {
   const wrapper = ({ children }: PropsWithChildren) => <MessageListProvider value={[]}>{children}</MessageListProvider>;
   const frames: FrameRequestCallback[] = [];

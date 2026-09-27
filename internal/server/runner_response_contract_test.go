@@ -74,10 +74,17 @@ func TestResponseContractKeepsNativePreambleOnce(t *testing.T) {
 func TestResponseContractDoesNotDiscardNewProgressBetweenCadenceRequests(t *testing.T) {
 	text := "The first source is unavailable; I will check the remaining source."
 	args, _ := json.Marshal(map[string]any{"public_progress": text})
-	model := &nativeCommunicationFixture{responses: []agentruntime.ModelResponse{{Message: agentruntime.Message{ToolCalls: []agentruntime.ToolCall{{ID: "new-finding", Name: "inspect", Arguments: args}}}}}}
+	model := &nativeCommunicationFixture{responses: []agentruntime.ModelResponse{{
+		Message: agentruntime.Message{ToolCalls: []agentruntime.ToolCall{{
+			ID: "new-finding", Name: "inspect", Arguments: args,
+		}}},
+	}}}
 	client := &sessionRunnerResponseContractClient{delegate: model, progressDue: func() bool { return false }}
 	var visible string
-	_, err := client.CompleteStream(context.Background(), agentruntime.ModelRequest{}, func(event agentruntime.ModelStreamEvent) error { visible += event.ContentDelta; return nil })
+	_, err := client.CompleteStream(context.Background(), agentruntime.ModelRequest{}, func(event agentruntime.ModelStreamEvent) error {
+		visible += event.ContentDelta
+		return nil
+	})
 	if err != nil || visible != text || model.calls != 1 {
 		t.Fatalf("new progress silently discarded: %q calls=%d error=%v", visible, model.calls, err)
 	}

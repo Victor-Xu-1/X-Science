@@ -2,8 +2,6 @@ package server
 
 import (
 	"net/http"
-	"net/url"
-	"strings"
 	"time"
 
 	workspace "synon-go/internal/persistence/workspace"
@@ -17,14 +15,16 @@ func (s *Server) registerWorkspaceArtifactReadCompatibilityRoutes(mux *http.Serv
 }
 
 func (s *Server) handleWorkspaceArtifactReadCompatibility(w http.ResponseWriter, r *http.Request) {
-	segments := workspacePathSegments(strings.TrimPrefix(r.URL.Path, "/api/artifacts/"))
+	segments := artifactPathSegments(r, "/api/artifacts/")
 	if r.Method == http.MethodPost && len(segments) == 1 && segments[0] == "bulk-move" {
 		s.handleCompatibilityArtifactBulkMove(w, r)
 		return
 	}
+	var artifactID string
 	if len(segments) >= 1 {
-		artifactID, err := url.PathUnescape(segments[0])
-		if err != nil || strings.TrimSpace(artifactID) == "" {
+		var err error
+		artifactID, err = decodeArtifactPathIdentity(segments[0])
+		if err != nil {
 			writeV11Detail(w, http.StatusBadRequest, "Invalid artifact id")
 			return
 		}
@@ -50,11 +50,6 @@ func (s *Server) handleWorkspaceArtifactReadCompatibility(w http.ResponseWriter,
 		}
 	}
 	if len(segments) >= 2 {
-		artifactID, err := url.PathUnescape(segments[0])
-		if err != nil || strings.TrimSpace(artifactID) == "" {
-			writeV11Detail(w, http.StatusBadRequest, "Invalid artifact id")
-			return
-		}
 		if r.Method == http.MethodGet && len(segments) == 2 && segments[1] == "versions" {
 			s.handleArtifactVersionsCompatibility(w, r, artifactID)
 			return
@@ -81,10 +76,10 @@ func (s *Server) handleWorkspaceArtifactReadCompatibility(w http.ResponseWriter,
 }
 
 func (s *Server) handleWorkspaceArtifactVersionReadCompatibility(w http.ResponseWriter, r *http.Request) {
-	segments := workspacePathSegments(strings.TrimPrefix(r.URL.Path, "/api/artifacts/versions/"))
+	segments := artifactPathSegments(r, "/api/artifacts/versions/")
 	if r.Method == http.MethodGet && len(segments) == 2 && segments[1] == "verification" {
-		versionID, err := url.PathUnescape(segments[0])
-		if err != nil || strings.TrimSpace(versionID) == "" {
+		versionID, err := decodeArtifactPathIdentity(segments[0])
+		if err != nil {
 			writeV11Detail(w, http.StatusBadRequest, "Invalid artifact version id")
 			return
 		}
@@ -101,8 +96,8 @@ func (s *Server) handleWorkspaceArtifactVersionReadCompatibility(w http.Response
 		return
 	}
 	if r.Method == http.MethodGet && len(segments) == 2 && segments[1] == "lineage" {
-		versionID, err := url.PathUnescape(segments[0])
-		if err != nil || strings.TrimSpace(versionID) == "" {
+		versionID, err := decodeArtifactPathIdentity(segments[0])
+		if err != nil {
 			writeV11Detail(w, http.StatusBadRequest, "Invalid artifact version id")
 			return
 		}
