@@ -68,7 +68,8 @@ func isTranscriptStreamFixtureAction(action string) bool {
 	switch action {
 	case "begin-transcript-stream", "append-transcript-deltas", "append-transcript-assistant",
 		"begin-streaming-parity", "complete-streaming-parity",
-		"begin-streaming-recovery", "complete-streaming-recovery":
+		"begin-streaming-recovery", "complete-streaming-recovery",
+		"cancel-projection-tool", "complete-projection-tool":
 		return true
 	default:
 		return false
@@ -129,14 +130,18 @@ func validateTranscriptStreamFixtureRequest(request *fixtureRequest) error {
 			len(input.ArtifactRefs) != 0 || !validTranscriptStreamingCopy(input.Copy) {
 			return errors.New("begin-streaming-parity requires the matching run, copy, and batchId")
 		}
-	case "complete-streaming-parity":
+	case "complete-streaming-parity", "complete-projection-tool":
 		if err := validateTranscriptFixtureRun(input.Run, request.FrameID); err != nil {
 			return err
 		}
-		if input.Run.RunID != input.BatchID || input.Text != "" || len(input.Chunks) != 0 || input.Recovery != nil ||
-			!validTranscriptStreamingCopy(input.Copy) || len(input.ArtifactRefs) == 0 ||
+		validBody := input.Text == "" && validTranscriptStreamingCopy(input.Copy)
+		if request.Action == "complete-projection-tool" {
+			validBody = input.Copy == nil && strings.TrimSpace(input.Text) != "" && validFixtureText(input.Text)
+		}
+		if input.Run.RunID != input.BatchID || len(input.Chunks) != 0 || input.Recovery != nil ||
+			!validBody || len(input.ArtifactRefs) == 0 ||
 			len(input.ArtifactRefs) > transcriptFixtureRefLimit {
-			return errors.New("complete-streaming-parity requires the matching run, copy, batchId, and artifact references")
+			return errors.New("transcript completion requires matching run, bounded body, batchId, and artifact references")
 		}
 		seen := map[string]bool{}
 		for index := range input.ArtifactRefs {
@@ -145,9 +150,17 @@ func validateTranscriptStreamFixtureRequest(request *fixtureRequest) error {
 			ref.VersionID = strings.TrimSpace(ref.VersionID)
 			key := ref.ArtifactID + "\x00" + ref.VersionID
 			if !validTranscriptFixtureID(ref.ArtifactID) || !validTranscriptFixtureID(ref.VersionID) || seen[key] {
-				return errors.New("complete-streaming-parity contains an invalid or duplicate artifact reference")
+				return errors.New("transcript completion contains an invalid or duplicate artifact reference")
 			}
 			seen[key] = true
+		}
+	case "cancel-projection-tool":
+		if err := validateTranscriptFixtureRun(input.Run, request.FrameID); err != nil {
+			return err
+		}
+		if input.Run.RunID != input.BatchID || input.Text != "" || len(input.Chunks) != 0 || input.Copy != nil ||
+			input.Recovery != nil || len(input.ArtifactRefs) != 0 {
+			return errors.New("cancel-projection-tool accepts only matching run and batchId")
 		}
 	case "begin-streaming-recovery", "complete-streaming-recovery":
 		if err := validateTranscriptFixtureRun(input.Run, request.FrameID); err != nil {

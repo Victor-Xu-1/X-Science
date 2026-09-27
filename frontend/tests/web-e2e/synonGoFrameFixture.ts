@@ -99,7 +99,9 @@ type TranscriptFixtureCommand = {
     | 'begin-streaming-parity'
     | 'complete-streaming-parity'
     | 'begin-streaming-recovery'
-    | 'complete-streaming-recovery';
+    | 'complete-streaming-recovery'
+    | 'cancel-projection-tool'
+    | 'complete-projection-tool';
   frameId: string;
   transcript: {
     run?: TranscriptStreamRun;
@@ -308,6 +310,36 @@ export function removeSynonGoDelegateFixture(): void {
   if (response.ok !== true || response.projectId !== 'delegate-fixture-project') {
     throw new Error(`Go delegate fixture cleanup returned an invalid response: ${JSON.stringify(response)}`);
   }
+}
+
+export function cancelSynonGoProjectionTool(run: TranscriptStreamRun): void {
+  assertTranscriptFixtureResponse(
+    runFixture({ action: 'cancel-projection-tool', frameId: run.frameId, transcript: { run, batchId: run.runId } }),
+    run.frameId,
+    4
+  );
+}
+
+export function completeSynonGoProjectionTool(
+  run: TranscriptStreamRun,
+  text: string,
+  artifactRefs: Array<{ artifactId: string; versionId: string }>
+): number {
+  const response = runFixture({
+    action: 'complete-projection-tool',
+    frameId: run.frameId,
+    transcript: {
+      run,
+      batchId: run.runId,
+      text,
+      artifactRefs: artifactRefs.map(({ artifactId, versionId }) => ({ artifactId, versionId })),
+    },
+  }) as { attempt?: unknown };
+  assertTranscriptFixtureResponse(response, run.frameId, 4);
+  if (typeof response.attempt !== 'number' || response.attempt <= run.attempt) {
+    throw new Error('Go projection fixture did not resume a later runner attempt');
+  }
+  return response.attempt;
 }
 
 export function prepareSynonGoTranscriptRebase(frameId: string, historyCount = 120): TranscriptRebasePreparation {

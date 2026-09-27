@@ -36,6 +36,34 @@
 加载、空数据、失败、等待用户和已完成应分别呈现。运行投影也不能替代
 [Runtime](runtime.md) 的任务权威或 [Evidence](evidence.md) 的持久化记录。
 
+### Durable history recovery · 持久化消息恢复
+
+消息列表是持久化事件的派生视图，不是任务或工具执行的权威。任务取消时，
+没有终态回执的前台工具会显示推导出的取消状态；后续执行若显式指向同一
+工具的原始执行身份，可以继续该工具，保留同一条工具记录和最终产物引用。
+真正的工具终态回执不能被后续“运行中”覆盖，工具身份、输入和父调用也
+不能在恢复时改变。恢复后的再次取消按当前执行周期结算，不沿用旧周期。
+
+投影遇到源冲突时保留可用历史并隔离错误；旧快照的构建失败不能隔离已经
+推进的源版本。不要直接修改线上投影表或删除原始消息来恢复界面。
+
+工作区 schema 70 将派生表允许的投影版本扩展到 12，并保留已有行。
+后台投影流程据版本差异重建旧视图，包括版本 11 下已隔离的会话；不需要
+重新执行模型或工具。升级前须备份工作区数据库与运行状态，保留旧部署。
+迁移失败时事务回滚；成功升级后采用向前修复，不能把旧程序直接接到已升级
+数据库。恢复旧数据库备份会丢失备份后的新写入，必须单独评估和授权。
+
+从仓库根目录运行恢复及隔离竞态回归：
+
+```sh
+go test ./internal/server -run '^TestTranscriptToolHistory|^TestTranscriptWebQuarantineRejectsAdvancedSourceFence' -count=1
+go test ./internal/persistence/workspace -run '^TestTranscriptWebProjectorV70|^TestTranscriptWebProjectorFresh' -count=1
+```
+
+这些测试包含真实临时 SQLite、持久化任务事件和正式投影重建入口；不是
+模型调用测试。浏览器场景为 `synonbiomedMessageProjectionRecovery.e2e.ts`，
+沿用下文的隔离服务及 Chrome 前置条件。
+
 ## Focused verification · 验证入口
 
 ### Document preview · 文档预览

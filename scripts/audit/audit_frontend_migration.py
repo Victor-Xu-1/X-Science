@@ -249,6 +249,7 @@ ALLOWED_ADDITIONS = {
     "tests/web-e2e/officialChromeTest.ts": "Bind Playwright acceptance to one verified official Google Chrome CDP session and isolated context.",
     "tests/web-e2e/rdkitProduction.e2e.ts": "Verify real RDKit worker rendering, pixels, MIME, cache, and path-specific CSP under the production Go host.",
     "tests/web-e2e/synonGoFrameFixture.ts": "Apply deterministic frame and delegation state through the compiled Go browser-test fixture.",
+    "tests/web-e2e/synonbiomedMessageProjectionRecovery.e2e.ts": "Verify durable cancel/resume history preserves the final answer and exact in-app artifact preview after refresh through the real Go fixture.",
     "tests/web-e2e/synonbiomedAskUser.e2e.ts-snapshots/ask-user-typed-desktop-linux.png": "Retain the reviewed desktop visual baseline for typed AskUser history and terminal state.",
     "tests/web-e2e/synonbiomedAskUser.e2e.ts-snapshots/ask-user-typed-narrow-linux.png": "Retain the reviewed narrow visual baseline for typed AskUser history and terminal state.",
     "tests/web-e2e/synonbiomedAskUser.e2e.ts-snapshots/ask-user-typed-desktop-official-windows-chrome.png": "Retain the reviewed official Windows Chrome desktop baseline for typed AskUser history and terminal state.",
@@ -505,7 +506,7 @@ ALLOWED_ADAPTATION_RULES = (
 
 APPROVED_ADAPTATION_FINGERPRINT = "08cdd06f2776cda05f91777dca881fbdf8f2429e2b1911226c96f33ea4064548"
 APPROVED_REMOVAL_FINGERPRINT = "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c"
-APPROVED_ADDITION_FINGERPRINT = "7ba40cf0ce15f66625683a075d151f9e52a235cebffa90979709726652930b81"
+APPROVED_ADDITION_FINGERPRINT = "01febfc158590228851bb1d3862e49a8ac66c7ca2950fa39d3b47c687048cb7d"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {
