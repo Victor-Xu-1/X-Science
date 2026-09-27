@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "cb02698833d0f6d3fe0962e9f5eae766edaae76d588fc9af88d90f14ed6a412f",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
-  "additionFingerprintSHA256": "42a85e5cbf2224598fb5a55d353abb41bf064912f0d3cac1a2c61547925a012f",
+  "additionFingerprintSHA256": "f9976b522302d0dbb2f013db1aed0c6ef68b6b9f8f225368398bf1ccea4f6915",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 400,
@@ -10398,8 +10398,8 @@
     },
     {
       "path": "tests/web-e2e/synonbiomedStreamingParity.e2e.ts",
-      "sha256": "d3635f395b268a8ee620f5a8f0dc90f0a7d9763dc1bb3a1be20526206e442001",
-      "bytes": 12887,
+      "sha256": "edc1a12f19bb5c7917a5ad7d62a454eaa7cad7d145ca98fd7d94b633785ae9a0",
+      "bytes": 13022,
       "reason": "Verify localized thinking, live tool stdout, inline images, and exact final artifact cards in desktop and narrow real browser paths."
     },
     {

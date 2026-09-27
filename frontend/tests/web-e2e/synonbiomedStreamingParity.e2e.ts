@@ -224,6 +224,8 @@ test.describe('desktop recovery', () => {
 
       completeSynonGoStreamingRecovery(stream, RECOVERY_COPY);
       await expect(secondStep).toHaveClass(/tool-step--completed/);
+      await secondStep.getByTestId('tool-chip').click();
+      await secondStep.getByRole('button', { name: /显示输出/ }).click();
       await expect(secondStep).toContainText('candidate 3/3');
       await expect(page.getByText(RECOVERY_COPY.final, { exact: true })).toBeVisible();
       await expect(firstStep).toHaveClass(/tool-step--error/);
