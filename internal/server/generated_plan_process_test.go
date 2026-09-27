@@ -960,7 +960,14 @@ func TestResearchSourceCheckpointAdvancesDurableReconciliationCursor(t *testing.
 	planStep["output_module"] = "source_analysis"
 	planStep["research_question"] = "What does the source establish?"
 	planStep["research_depth"] = "deep"
-	plan := revisePlanForTest(t, fixture, "source-cursor-plan", planInput)
+	planContext, planRun := appendLargeToolResultSource(t, fixture, "source-cursor-plan", generatePlanToolName)
+	planRun.AutonomousPlanning = true
+	planRun.TaskIntent = "Research and deliver"
+	planResult, err := fixture.server.executeAgentGeneratePlan(planContext, fixture.stream.SessionID, "source-cursor-plan", planInput)
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan := mapValue(planResult)
 	stepID := stringValue(mapValue(anySliceValue(plan["steps"])[0])["id"])
 	if _, err := fixture.server.executeAgentUpdateStepStatus(context.Background(), fixture.stream.FrameID, "start-source-step", map[string]any{
 		"step": stepID, "status": "in_progress",
@@ -1004,6 +1011,15 @@ func TestResearchSourceCheckpointAdvancesDurableReconciliationCursor(t *testing.
 	}
 	if got := int64(numberValue(metadata.ContextData[generatedPlanResearchLatestSourceEventIDKey])); got != items[0].TerminalEventID {
 		t.Fatalf("latest source cursor=%d terminal event=%d", got, items[0].TerminalEventID)
+	}
+	mismatchedRun := *run
+	mismatchedRun.TaskIntent = "A different task"
+	if _, err := fixture.server.executeAgentUpdateStepStatus(
+		withTranscriptRunnerChatRun(context.Background(), &mismatchedRun), fixture.stream.FrameID, "reject-other-task", map[string]any{
+			"step": stepID, "status": "in_progress",
+		},
+	); err == nil {
+		t.Fatal("a different task acquired the research cursor")
 	}
 	if _, err := fixture.server.executeAgentUpdateStepStatus(
 		withTranscriptRunnerChatRun(context.Background(), run), fixture.stream.FrameID, "reconcile-source", map[string]any{

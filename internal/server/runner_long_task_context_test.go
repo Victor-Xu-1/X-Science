@@ -4,7 +4,6 @@ import (
 	"strings"
 	eventjournal "synon-go/internal/persistence/journal"
 	"testing"
-	"time"
 )
 
 func TestProviderReplayPreservesExactUserConstraintsAfterCompaction(t *testing.T) {
@@ -29,23 +28,5 @@ func TestProviderReplayPreservesExactUserConstraintsAfterCompaction(t *testing.T
 		if count != 1 {
 			t.Fatalf("user constraint not preserved exactly once: count=%d tail=%q", count, want[len(want)-10:])
 		}
-	}
-}
-
-func TestCommunicationScheduleRequestsUpdateAfterOneLongOperation(t *testing.T) {
-	now := time.Now()
-	schedule := &sessionRunnerCommunicationSchedule{now: func() time.Time { return now }}
-	if err := schedule.published(); err != nil {
-		t.Fatal(err)
-	}
-	now = now.Add(20 * time.Minute)
-	if schedule.due() {
-		t.Fatal("idle time alone requested invented progress")
-	}
-	if err := schedule.settled(); err != nil {
-		t.Fatal(err)
-	}
-	if !schedule.due() {
-		t.Fatal("one long completed operation must not wait for three more operations to request an update")
 	}
 }

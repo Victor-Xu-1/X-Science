@@ -4,7 +4,7 @@ func planToolDefinitions() []Tool {
 	return []Tool{
 		{
 			Name:        "generate_plan",
-			Description: "Create or revise one durable working plan using the complete current plan content. Phases and steps are ordered control state. Use execution steps with an execution_tool for actual computation or tool-produced results; completion requires a successful current-task execution receipt. Research steps name an output_module and research_question. Synthesis combines findings and delivery creates outputs. The working plan pauses only in explicit plan-review mode.",
+			Description: "Create or revise one durable working plan using the complete current plan content. Phases and steps are ordered control state. Use execution steps with an execution_tool for actual computation or tool-produced results; completion requires a successful current-task execution receipt. Each research step represents one substantive output module or decision question, naming an output_module and research_question; source discovery and extraction happen inside that module. Synthesis combines findings and delivery creates outputs. The working plan pauses only in explicit plan-review mode.",
 			Capabilities: []string{
 				"plan", "approval", "durable-state", "artifact-version", "single-plan-authority", "synon-plan-v3",
 			},
