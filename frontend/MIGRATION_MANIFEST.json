@@ -3,7 +3,7 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "b4527c922f361c966c97082afd143c76075cf64f3929b2cd626892bcd44dd080",
+  "adaptationFingerprintSHA256": "fee505f6e9b28db5cc66080350cd88629949cf1dfd0cbfd382e8f81093a22545",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
   "additionFingerprintSHA256": "f7858b4f33d066f90f631632a90ea70f2eb2a50f4fc00759900b25a75239c058",
   "summary": {
@@ -3678,8 +3678,8 @@
     {
       "path": "tests/unit/renderer/ProjectHistorySection.dom.test.tsx",
       "sourceSHA256": "2e8afef2e11d0ed36ae2dbcd0489da3a02d424cd84870f94e5fc7d8041c9677e",
-      "targetSHA256": "b5bf44c3b880592c0e2dabbcb27577cd474d930b822e13d836e24a0fd4d40b69",
-      "bytes": 25236,
+      "targetSHA256": "3424992477d82a7f9c17e1b8155c1cb798e4e5768d8f889e71b21222977f45d1",
+      "bytes": 25243,
       "reason": "Exercise immediate keyboard input on committed project handles before passive effects flush."
     },
     {
