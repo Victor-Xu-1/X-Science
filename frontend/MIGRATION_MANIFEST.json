@@ -3,7 +3,7 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "149e767a724d142e49d57855d62282a2849544fd47afa7ae51d53873df77bc24",
+  "adaptationFingerprintSHA256": "f16308c26aefcc6ae6662eaa179c6b89431cb4a214a1f95060d7bdc066eaed22",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
   "additionFingerprintSHA256": "1303a9680da40859fbb6a5ccb89e41b41230e6a0875e431c6435380dcb4dac42",
   "summary": {
@@ -1389,8 +1389,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedJsonViewer.tsx",
       "sourceSHA256": "d4d5ff7079af98e03c54373e8ddc84b0bdb3d2f052d8829a819137d12599afc7",
-      "targetSHA256": "ac928aad51619b4eda581cd82ca221c7b380b533ae77ede0dee582d6afbde3e7",
-      "bytes": 11467,
+      "targetSHA256": "eab421a93037131db7e51333a7d9ffc3b052b24ba6bb0ba7e75efbc61262d426",
+      "bytes": 11597,
       "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -3440,8 +3440,8 @@
     {
       "path": "tests/unit/previews/SynonBiomedJsonArtifactViewer.dom.test.tsx",
       "sourceSHA256": "3f05fcfd62937d2ab09dc26fade37548abc705bb3d218aeaab3ecefeb8142084",
-      "targetSHA256": "5d4bb732674250be1c6d5feba1b8b7f590ff840c6df192ea683d84c49a18931b",
-      "bytes": 2364,
+      "targetSHA256": "f045ed0808107239b93818ee9144867600e8dda5a313b673991df4b4a8a2ecc6",
+      "bytes": 3632,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {

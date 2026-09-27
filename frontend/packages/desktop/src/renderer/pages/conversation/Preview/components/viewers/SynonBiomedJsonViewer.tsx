@@ -37,7 +37,13 @@ type TreeNodeProps = {
   onToggle: (path: string) => void;
 };
 
-const SynonBiomedJsonViewer: React.FC<JsonViewerProps> = ({
+// Reset document-local state at the identity boundary, before it is interactive.
+// A passive mount effect can overwrite an early user selection after paint.
+const SynonBiomedJsonViewer: React.FC<JsonViewerProps> = (props) => (
+  <JsonDocumentViewer key={props.filename} {...props} />
+);
+
+const JsonDocumentViewer: React.FC<JsonViewerProps> = ({
   filename,
   content,
   readOnly = true,
@@ -49,12 +55,6 @@ const SynonBiomedJsonViewer: React.FC<JsonViewerProps> = ({
   const [mode, setMode] = useState<'tree' | 'source'>(document.status === 'ready' ? 'tree' : 'source');
   const [query, setQuery] = useState('');
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(() => new Set(['$']));
-
-  useEffect(() => {
-    setMode(document.status === 'ready' ? 'tree' : 'source');
-    setQuery('');
-    setExpandedPaths(new Set(['$']));
-  }, [filename]);
 
   useEffect(() => {
     if (document.status !== 'ready' && mode === 'tree') setMode('source');
