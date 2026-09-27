@@ -563,3 +563,20 @@ Changes to this flow require schema tests, manager mapping tests, immutable and
 additive-resolution tests, foreground and background lifecycle tests, a real
 kernel execution witness, a real Skill-script read-only mount witness, and an
 isolated target-runtime task. Mock-only success is not sufficient.
+
+### MCP response materialization capacity
+
+Large MCP transport frames spill to private, disk-capacity-checked temporary
+files. Before JSON decoding, the shared resource admission layer reserves eight
+times the serialized size and leaves half of measured memory headroom unused.
+Concurrent decoders share reservations. Linux measurements include physical
+available memory and every cgroup v2 ancestor's hard limit; Windows uses current
+physical/virtual availability. A configured Go memory limit can only tighten
+admission. Other platforms without capacity telemetry use a conservative 1 GiB
+headroom estimate (at most 64 MiB of serialized response per idle decoder).
+
+Insufficient capacity returns an explicit error advising smaller result pages
+or released memory. It never truncates source bytes or reports partial success.
+This is a conservative decoder admission check, not an OS memory reservation or
+a guarantee against unrelated future allocations. Temporary files and decoder
+reservations are released on success, malformed JSON and cancellation.

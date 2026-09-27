@@ -96,7 +96,9 @@ func decodeMCPJSON(source io.Reader, target any) error {
 	if err := decoder.Decode(target); err != nil {
 		return err
 	}
-	if err := decoder.Decode(new(any)); !errors.Is(err, io.EOF) {
+	// One token is enough to reject a second value. Do not materialize an
+	// arbitrary trailing object only to discard it as a protocol error.
+	if _, err := decoder.Token(); !errors.Is(err, io.EOF) {
 		if err != nil {
 			return err
 		}
@@ -111,20 +113,14 @@ func readMCPStdioMessage(ctx context.Context, reader *bufio.Reader, sdk bool) (r
 		if err != nil {
 			return rpcMessage{}, err
 		}
-		result, err := func() (rpcMessage, error) {
-			defer line.close()
-			source, err := line.reader()
-			if err != nil {
-				return rpcMessage{}, err
-			}
+		result, err := decodeMCPBuffered(line, func(source io.Reader) (rpcMessage, error) {
 			if sdk {
 				msg, _, err := decodeSDKBridgeReader(source)
 				return msg, err
 			}
-			var result rpcMessage
-			err = decodeMCPJSON(source, &result)
-			return result, err
-		}()
+			return decodeMCPEnvelope(source)
+		})
+		line.close()
 		if errors.Is(err, io.EOF) {
 			continue
 		} // Blank stdout lines are not a closed transport.
@@ -150,13 +146,7 @@ func decodeMCPResponseStream(ctx context.Context, contentType string, source io.
 	if _, err := io.CopyBuffer(buffer, source, make([]byte, mcpResponseBufferBytes)); err != nil {
 		return rpcMessage{}, err
 	}
-	reader, err := buffer.reader()
-	if err != nil {
-		return rpcMessage{}, err
-	}
-	var message rpcMessage
-	err = decodeMCPJSON(reader, &message)
-	return message, err
+	return decodeMCPBuffered(buffer, decodeMCPEnvelope)
 }
 
 func decodeMCPEventStream(ctx context.Context, source *bufio.Reader) (rpcMessage, error) {
@@ -192,11 +182,5 @@ func decodeMCPEventStream(ctx context.Context, source *bufio.Reader) (rpcMessage
 	if data.size == 0 {
 		return rpcMessage{}, errors.New("remote MCP SSE response did not contain a data event")
 	}
-	reader, err := data.reader()
-	if err != nil {
-		return rpcMessage{}, err
-	}
-	var message rpcMessage
-	err = decodeMCPJSON(reader, &message)
-	return message, err
+	return decodeMCPBuffered(data, decodeMCPEnvelope)
 }
