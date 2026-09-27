@@ -11,6 +11,16 @@ import unoConfig from './uno.config';
 const repoRoot = import.meta.dirname;
 const rendererRoot = resolve(repoRoot, 'packages/desktop/src/renderer');
 const rootPackage = JSON.parse(readFileSync(resolve(repoRoot, 'package.json'), 'utf8')) as { version: string };
+const pdfPackage = JSON.parse(readFileSync(resolve(repoRoot, 'node_modules/pdfjs-dist/package.json'), 'utf8')) as {
+  version: string;
+};
+
+// Keep the worker, CJK maps, standard fonts and image decoders on the same
+// locked PDF.js version. Versioned URLs cannot reuse a previous build's data.
+export const pdfStaticCopyTargets = ['cmaps', 'standard_fonts', 'wasm'].map((directory) => ({
+  src: portableStaticCopySource(resolve(repoRoot, `node_modules/pdfjs-dist/${directory}`)),
+  dest: `pdfjs/${pdfPackage.version}`,
+}));
 
 export function portableStaticCopySource(pathname: string): string {
   return normalizePath(pathname.replaceAll('\\', '/'));
@@ -183,6 +193,7 @@ export function createRendererPlugins(): PluginOption[] {
     productionPreviewCachePlugin(),
     viteStaticCopy({
       targets: [
+        ...pdfStaticCopyTargets,
         { src: portableStaticCopySource(resolve(repoRoot, 'LICENSE')), dest: '.' },
         {
           src: portableStaticCopySource(resolve(repoRoot, 'node_modules/@rdkit/rdkit/dist/RDKit_minimal.js')),
