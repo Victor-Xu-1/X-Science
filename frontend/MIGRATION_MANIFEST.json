@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "33311a6b37387106f0d02418a5d4325ee44a6b3d6f11dfc94ef3324e3c1eb2cb",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
-  "additionFingerprintSHA256": "2110ca021142860cd1bbcf717057b22830b9d60f7ab6de5286d1d0a956237875",
+  "additionFingerprintSHA256": "42673a2a748e9645785bc6dd1cd4e50e7edea43546d0268e75e8cc3708e66b1a",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 400,
@@ -10266,8 +10266,8 @@
     },
     {
       "path": "tests/web-e2e/structureEditorAcceptance.e2e.ts",
-      "sha256": "5beb50336d4e6ba821cc5b380d9d976b48ae030fc7649bc55e920846408ce66f",
-      "bytes": 9098,
+      "sha256": "c3403d18049552e30696ca808bda0db624066d91151514729ebccec1498a99ea",
+      "bytes": 9384,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

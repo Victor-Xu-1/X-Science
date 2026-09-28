@@ -185,7 +185,12 @@ test('persists a native structure snapshot without changing its coordinate versi
     expect(await (await page.request.get(`${sourcePath}/versions`)).json()).toEqual(versionsBefore);
     await page.reload({ waitUntil: 'domcontentloaded' });
     expect(await (await page.request.get(imagePath)).body()).toEqual(imageBytes);
-    await expect(page.getByRole('region', { name: /3D 结构预览/u })).toBeVisible();
+    const reloadedRegion = page.getByRole('region', { name: /3D 结构预览/u });
+    await expect(reloadedRegion).toBeVisible();
+    await expect(reloadedRegion.getByTestId('synon-biomed-molstar-quick-snapshot')).toBeEnabled();
+    await expect
+      .poll(async () => (await inspectRenderedPixels(reloadedRegion.locator('canvas'))).nonWhite)
+      .toBeGreaterThan(100);
     await page.screenshot({
       path: test.info().outputPath('persisted-structure-snapshot.png'),
       fullPage: true,
