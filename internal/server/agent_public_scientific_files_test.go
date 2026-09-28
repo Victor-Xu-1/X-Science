@@ -53,15 +53,18 @@ type prefixThenBlockingScientificResponseBody struct {
 	started   chan struct{}
 	closed    chan struct{}
 	closeOnce sync.Once
+	startOnce sync.Once
 }
 
 func (body *prefixThenBlockingScientificResponseBody) Read(buffer []byte) (int, error) {
 	if !body.delivered {
 		body.delivered = true
 		count := copy(buffer, body.prefix)
-		close(body.started)
 		return count, nil
 	}
+	// A second read begins only after io.Copy has written the previous prefix.
+	// Cancelling at the first read can correctly leave zero retained bytes.
+	body.startOnce.Do(func() { close(body.started) })
 	<-body.closed
 	return 0, context.Canceled
 }
@@ -398,6 +401,7 @@ func TestAgentPublicScientificFileDownloadResumesAfterCancellationAndServiceBoun
 		"human_description": "Downloading a restart-resumable count matrix",
 	}
 	callContext, cancel := context.WithCancel(agentPublicScientificToolContext(t, fixture, "restart-resume-first", input))
+	defer cancel()
 	firstDone := make(chan error, 1)
 	go func() {
 		_, err := fixture.server.executeAgentPublicScientificFileDownload(
@@ -410,7 +414,7 @@ func TestAgentPublicScientificFileDownloadResumesAfterCancellationAndServiceBoun
 		cancel()
 	case <-time.After(3 * time.Second):
 		cancel()
-		t.Fatal("initial download did not begin")
+		t.Fatal("initial download did not write its prefix and request more bytes")
 	}
 	if err := <-firstDone; !errors.Is(err, context.Canceled) {
 		t.Fatalf("canceled download error=%v", err)

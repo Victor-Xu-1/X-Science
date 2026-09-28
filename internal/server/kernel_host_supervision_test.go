@@ -19,7 +19,7 @@ import (
 
 func TestKernelHostSupervisionRunsRealChildCollectsStructuredAndResumes(t *testing.T) {
 	databasePath := filepath.Join(t.TempDir(), "workspace.db")
-	store, manager, app, identity := newKernelHostSupervisionTestRuntime(t, databasePath, true)
+	store, manager, app, identity := newKernelHostTestRuntime(t, databasePath, true)
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -201,7 +201,7 @@ func TestKernelDelegateSubmitOutputIsSchemaBoundAndAtMostOnce(t *testing.T) {
 
 func TestKernelHostSupervisionQueuesMessageDuringActiveProviderCall(t *testing.T) {
 	databasePath := filepath.Join(t.TempDir(), "workspace.db")
-	store, manager, app, identity := newKernelHostSupervisionTestRuntime(t, databasePath, true)
+	store, manager, app, identity := newKernelHostTestRuntime(t, databasePath, true)
 	defer closeKernelHostTestRuntime(t, app, manager, store)
 
 	firstStarted := make(chan struct{})
@@ -271,7 +271,7 @@ print(json.dumps(host.delegate("active queue child", model="queue-model", wait=F
 
 func TestKernelHostSupervisionRecoversPendingMessageAfterRuntimeRestart(t *testing.T) {
 	databasePath := filepath.Join(t.TempDir(), "workspace.db")
-	store, manager, app, identity := newKernelHostSupervisionTestRuntime(t, databasePath, true)
+	store, manager, app, identity := newKernelHostTestRuntime(t, databasePath, true)
 	providerRequests := atomic.Int64{}
 	providerStarted := make(chan struct{})
 	releaseProvider := make(chan struct{})
@@ -313,7 +313,7 @@ func TestKernelHostSupervisionRecoversPendingMessageAfterRuntimeRestart(t *testi
 	}
 	closeKernelHostTestRuntime(t, app, manager, store)
 
-	store, manager, app, identity = newKernelHostSupervisionTestRuntime(t, databasePath, false)
+	store, manager, app, identity = newKernelHostTestRuntime(t, databasePath, false)
 	defer closeKernelHostTestRuntime(t, app, manager, store)
 	type collectOutcome struct {
 		result map[string]any
@@ -354,7 +354,7 @@ print(json.dumps(host.collect(["` + childID + `"], timeout=20)[0], sort_keys=Tru
 
 func TestKernelHostSupervisionParksForQuestionAndResumesWithParentAnswer(t *testing.T) {
 	databasePath := filepath.Join(t.TempDir(), "workspace.db")
-	store, manager, app, identity := newKernelHostSupervisionTestRuntime(t, databasePath, true)
+	store, manager, app, identity := newKernelHostTestRuntime(t, databasePath, true)
 	defer closeKernelHostTestRuntime(t, app, manager, store)
 	var requests atomic.Int64
 	questionStarted := make(chan struct{})
@@ -487,7 +487,7 @@ func waitForKernelSupervisionRun(t *testing.T, run *kernelChildRun, label string
 
 func TestKernelHostSupervisionTimeoutStopTopologyAndUpfrontLimits(t *testing.T) {
 	databasePath := filepath.Join(t.TempDir(), "workspace.db")
-	store, manager, app, identity := newKernelHostSupervisionTestRuntime(t, databasePath, true)
+	store, manager, app, identity := newKernelHostTestRuntime(t, databasePath, true)
 	defer closeKernelHostTestRuntime(t, app, manager, store)
 	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var body map[string]any
@@ -702,7 +702,7 @@ host.children()`})
 
 func TestKernelHostSupervisionParallelOrderChildrenAndBlockingCancel(t *testing.T) {
 	databasePath := filepath.Join(t.TempDir(), "workspace.db")
-	store, manager, app, identity := newKernelHostSupervisionTestRuntime(t, databasePath, true)
+	store, manager, app, identity := newKernelHostTestRuntime(t, databasePath, true)
 	defer closeKernelHostTestRuntime(t, app, manager, store)
 	parallelReady := make(chan struct{})
 	var parallelCalls atomic.Int64
