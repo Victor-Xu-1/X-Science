@@ -176,10 +176,10 @@ func (s *Server) waitForAgentKernelNotification(ctx context.Context, identity *a
 				return s.projectAgentKernelNotifications(ctx, access, notifications)
 			}
 			return map[string]any{
-				"status":            "completed",
+				"status":            "idle",
 				"num_notifications": 0,
 				"notifications":     []any{},
-				"system_hint":       "All delegations have completed and their notifications have been consumed.",
+				"system_hint":       "No pending work or unread notifications were found. This observation does not prove that requested work ran or succeeded. Check durable execution receipts and continue any missing task steps; waiting alone does not start them.",
 			}, nil
 		}
 		if agentKernelHasOnlyUncollectedLandings(pending) {
@@ -338,7 +338,9 @@ func agentKernelNotificationClaimCount(raw string) (int, error) {
 			return 0, errors.New("kernel notification result manifest is invalid")
 		}
 		return result.NumNotifications, nil
-	case "timeout", "error", "uncollected_results":
+	// Historical empty observations used completed. Accept their zero-count
+	// acknowledgements during durable replay; new observations emit idle.
+	case "idle", "completed", "timeout", "error", "uncollected_results":
 		if result.NumNotifications != 0 || len(result.Notifications) != 0 {
 			return 0, errors.New("kernel notification result manifest is invalid")
 		}

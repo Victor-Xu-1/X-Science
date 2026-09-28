@@ -65,10 +65,36 @@ func TestToolGatewayActiveEntrypointsUseOneOrderedPipeline(t *testing.T) {
 		"executeDirectToolGatewayLegacyResponse(",
 		"executeApprovedAgentRuntimeToolLegacy(",
 		"executeChatToolCall(",
+		"func sessionEntriesToChatMessages(",
+		"func runnerArtifactMutationTool(",
+		"func withAgentRuntimeParentSessionID(",
+		"func managedEnvironmentSetupEvidenceFromMessages(",
+		"func runnerCrossArtifactTemplateFailures(",
+		"func runnerRepeatedCorrectionInterruptionCount(",
+		"func runnerNoProgressRecoveryFromEntries(",
+		"func sessionRunnerSanitizeHistoricalPublicText(",
 	} {
 		if count := strings.Count(allSource, legacy); count != 0 {
 			t.Errorf("retired implementation %s remains in production source %d times", legacy, count)
 		}
+	}
+	replay := production["agent_runtime_semantic_failure_budget.go"]
+	for _, required := range []string{"agentruntime.ExecutionFailureLedger", ".state.Observe(", ".state.Boundary("} {
+		if !strings.Contains(replay, required) {
+			t.Errorf("durable execution failure adapter lost shared reducer: %s", required)
+		}
+	}
+	live, err := os.ReadFile(filepath.Join(serverDir, "..", "agentruntime", "failed_call_guard.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{"ExecutionFailureLedger", ".executionFailures.Observe(", ".executionFailures.Boundary("} {
+		if !strings.Contains(string(live), required) {
+			t.Errorf("live execution failure adapter lost shared reducer: %s", required)
+		}
+	}
+	if strings.Contains(string(live), "externalStateFailures") || strings.Contains(replay, "SemanticFailureFamilyKind") {
+		t.Error("a competing execution failure state authority was reintroduced")
 	}
 }
 

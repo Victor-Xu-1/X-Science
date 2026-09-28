@@ -11,11 +11,13 @@ import tempfile
 import threading
 import unittest
 
+from scripts.quality.kernel_worker_process_outcomes_cases import WorkerProcessOutcomeCases
+
 WORKER = Path(__file__).resolve().parents[2] / "assets/optional/kernels/kernel_worker.py"
 
 
 @unittest.skipUnless(os.name == "posix", "the worker requires POSIX descriptors and signals")
-class WorkerProtocolTests(unittest.TestCase):
+class WorkerProtocolTests(WorkerProcessOutcomeCases, unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory(prefix="synon-worker-test-")
         self.process = subprocess.Popen(
@@ -102,6 +104,97 @@ class WorkerProtocolTests(unittest.TestCase):
         self.assertFalse(Path(self.directory.name, "must-not-exist").exists())
         self.assertFalse(self.cell("print('healthy')")["error"])
 
+    def test_unhandled_subprocess_failure_retains_captured_diagnostics(self):
+        for text_mode in (False, True):
+            with self.subTest(text=text_mode):
+                result = self.cell(
+                    "import subprocess, sys\n"
+                    "print('parent-before', flush=True)\n"
+                    "subprocess.run([sys.executable, '-c', "
+                    "\"import sys; print('child-before'); "
+                    "print('invalid argument: expected --input', file=sys.stderr); sys.exit(2)\"], "
+                    f"capture_output=True, check=True, text={text_mode})"
+                )
+                self.assertIn("CalledProcessError", result["error"])
+                self.assertIn("parent-before", result["stdout"])
+                self.assertEqual(result["stdout"].count("child-before"), 1)
+                self.assertEqual(result["stderr"].count("invalid argument: expected --input"), 1)
+        self.assertEqual(self.cell("print('next-cell')")["stdout"].strip(), "next-cell")
+
+    def test_handled_subprocess_failure_does_not_change_cell_outcome(self):
+        result = self.cell(
+            "import subprocess, sys\n"
+            "try:\n"
+            "    subprocess.run([sys.executable, '-c', "
+            "\"import sys; print('handled-probe', file=sys.stderr); sys.exit(2)\"], "
+            "capture_output=True, check=True)\n"
+            "except subprocess.CalledProcessError:\n"
+            "    print('alternative-completed')\n"
+        )
+        self.assertFalse(result["error"])
+        self.assertEqual(result["stdout"].strip(), "alternative-completed")
+        self.assertEqual(result["stderr"], "")
+
+    def test_wrapped_subprocess_failure_retains_explicit_cause_output(self):
+        result = self.cell(
+            "import subprocess, sys\n"
+            "try:\n"
+            "    subprocess.run([sys.executable, '-c', "
+            "\"import sys; print('wrapped-diagnostic', file=sys.stderr); sys.exit(3)\"], "
+            "capture_output=True, check=True)\n"
+            "except subprocess.CalledProcessError as cause:\n"
+            "    raise RuntimeError('execution failed') from cause\n"
+        )
+        self.assertIn("RuntimeError: execution failed", result["error"])
+        self.assertIn("wrapped-diagnostic", result["stderr"])
+
+    def test_subprocess_timeout_retains_partial_captured_output(self):
+        result = self.cell(
+            "import subprocess, sys\n"
+            "subprocess.run([sys.executable, '-c', "
+            "\"import sys, time; print('started', flush=True); "
+            "print('waiting-for-input', file=sys.stderr, flush=True); time.sleep(30)\"], "
+            "capture_output=True, check=True, timeout=1, text=True)"
+        )
+        self.assertIn("TimeoutExpired", result["error"])
+        self.assertIn("started", result["stdout"])
+        self.assertIn("waiting-for-input", result["stderr"])
+
+    def test_large_captured_failure_keeps_bounded_diagnostic_tail(self):
+        result = self.cell(
+            "import subprocess, sys\n"
+            "subprocess.run([sys.executable, '-c', "
+            "\"import sys; sys.stderr.write('x' * 1100000 + 'TAIL-DIAGNOSTIC'); sys.exit(4)\"], "
+            "capture_output=True, check=True)"
+        )
+        self.assertIn("CalledProcessError", result["error"])
+        self.assertIn("TAIL-DIAGNOSTIC", result["stderr"])
+        self.assertIn("captured subprocess output truncated", result["stderr"])
+        self.assertLess(len(result["stderr"]), 600000)
+
+    def test_suppressed_subprocess_context_is_not_disclosed(self):
+        result = self.cell(
+            "import subprocess, sys\n"
+            "try:\n"
+            "    subprocess.run([sys.executable, '-c', "
+            "\"import sys; print('suppressed-detail', file=sys.stderr); sys.exit(3)\"], "
+            "capture_output=True, check=True)\n"
+            "except subprocess.CalledProcessError:\n"
+            "    raise RuntimeError('public failure') from None\n"
+        )
+        self.assertIn("RuntimeError: public failure", result["error"])
+        self.assertEqual(result["stderr"], "")
+
+    def test_captured_binary_failure_cannot_corrupt_protocol(self):
+        result = self.cell(
+            "import subprocess, sys\n"
+            "subprocess.run([sys.executable, '-c', "
+            "\"import os, sys; os.write(2, bytes([255, 0, 10]) + b'binary-tail'); sys.exit(2)\"], "
+            "capture_output=True, check=True)"
+        )
+        self.assertIn("CalledProcessError", result["error"])
+        self.assertIn("\ufffd\x00\nbinary-tail", result["stderr"])
+
     def test_runtime_error_preserves_state(self):
         result = self.cell("retained = 9\nraise ValueError('synthetic-error')")
         self.assertIn("synthetic-error", result["error"])
@@ -168,13 +261,16 @@ class WorkerProtocolTests(unittest.TestCase):
         self.assertGreater(len(raw), 1000)
 
     def test_large_stream_interrupt_retains_terminal_output(self):
-        cell_id = self.start_cell("print('A' * 10486784 + 'TAIL', flush=True)\nwhile True:\n    pass")
+        cell_id = self.start_cell(
+            "import os, signal\n"
+            "print('A' * 10486784 + 'TAIL', flush=True)\n"
+            "os.kill(os.getpid(), signal.SIGINT)"
+        )
         while True:
             frame = self.frames.get(timeout=12)
             self.assertNotIn("eof", frame)
             if frame.get("type") == "stdout_chunk" and "live stream truncated" in frame.get("data", ""):
                 break
-        self.process.send_signal(signal.SIGINT)
         result, _ = self.terminal(cell_id)
         self.assertTrue(result["interrupted"])
         self.assertTrue(result["stdout"].endswith("TAIL\n"))

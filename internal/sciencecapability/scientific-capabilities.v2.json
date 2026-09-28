@@ -58,6 +58,7 @@
             "channels": ["conda-forge"],
             "executable": "python",
             "script": "executionpacks/p2rank_binding_pockets.py",
+            "modules": ["executionpacks/p2rank_predictions.py"],
             "cliWitnesses": [
               {"executable": "java", "arguments": ["-version"]}
             ],
@@ -145,7 +146,8 @@
             "modules": [
               "executionpacks/autodock_vina_inputs.py",
               "executionpacks/autodock_vina_outputs.py",
-              "executionpacks/autodock_vina_pockets.py"
+              "executionpacks/autodock_vina_pockets.py",
+              "executionpacks/documented_input.py"
             ],
             "cliWitnesses": [
               {"executable": "vina", "arguments": ["--help"]},
@@ -155,17 +157,18 @@
             ],
             "inputs": [
               {"kind": "receptor", "argument": "--receptor", "extensions": [".pdb", ".pdbqt", ".cif", ".mmcif"]},
-              {"kind": "ligand", "argument": "--ligand", "extensions": [".cdx", ".sdf", ".mol", ".mol2", ".pdbqt"]}
+              {"kind": "ligand", "argument": "--ligand", "extensions": [".cdx", ".sdf", ".mol", ".mol2", ".smi", ".smiles", ".pdbqt"]}
             ],
             "parameters": [
               {"name": "reference_ligand", "argument": "--reference-ligand", "type": "string", "required": false},
-              {"name": "pocket_selection", "argument": "--pocket-selection", "type": "string", "required": false},
-              {"name": "pocket_validation", "argument": "--pocket-validation", "type": "string", "required": false},
+              {"name": "pocket_selection", "argument": "--pocket-selection", "type": "string", "required": false, "inputEvidence": {"evidenceGroup": "binding-site-center", "outputKind": "pocket-selection"}},
+              {"name": "pocket_validation", "argument": "--pocket-validation", "type": "string", "required": false, "inputEvidence": {"evidenceGroup": "binding-site-center", "outputKind": "validation-record"}},
               {"name": "report_language", "argument": "--report-language", "type": "string", "required": false, "default": "en", "evidence": "runtime-response-language"},
               {"name": "center_x", "argument": "--center-x", "type": "number", "required": false, "evidence": "resolved-user-input", "evidenceGroup": "binding-site-center", "evidenceTerms": ["binding-site center", "binding pocket", "pocket prediction", "docking center", "grid box center", "box center", "center coordinates", "docking box", "结合位点中心", "结合口袋", "口袋预测", "对接中心", "对接盒子", "盒子中心", "网格中心", "中心坐标"]},
               {"name": "center_y", "argument": "--center-y", "type": "number", "required": false, "evidence": "resolved-user-input", "evidenceGroup": "binding-site-center"},
               {"name": "center_z", "argument": "--center-z", "type": "number", "required": false, "evidence": "resolved-user-input", "evidenceGroup": "binding-site-center"},
               {"name": "center_authority", "argument": "--center-authority", "type": "string", "required": false},
+              {"name": "site_evidence", "argument": "--site-evidence", "type": "string", "required": false},
               {"name": "size_x", "argument": "--size-x", "type": "number", "required": false, "minimum": 1, "maximum": 100},
               {"name": "size_y", "argument": "--size-y", "type": "number", "required": false, "minimum": 1, "maximum": 100},
               {"name": "size_z", "argument": "--size-z", "type": "number", "required": false, "minimum": 1, "maximum": 100},
@@ -176,6 +179,12 @@
             ],
             "evidenceResolvers": [
               {"evidenceGroup": "binding-site-center", "skill": "p2rank-pocket-detection", "implementation": "P2Rank"}
+            ],
+            "documentedInputs": [
+              {"evidenceGroup": "binding-site-center", "argument": "--site-evidence", "inputKind": "receptor"}
+            ],
+            "inputLineage": [
+              {"evidenceGroup": "binding-site-center", "inputKind": "receptor", "outputKind": "validation-record", "sha256Pointer": "/inputs/structure"}
             ],
             "outputs": [
               {"kind": "docking-scores", "path": "out/docking_scores.csv", "format": "csv", "delivery": "snapshot", "minBytes": 64, "minRecords": 1},

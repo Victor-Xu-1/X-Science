@@ -81,6 +81,35 @@ func requiredScientificCapabilitiesFromRunnerEntries(entries []eventjournal.Entr
 	return uniqueSortedScientificCapabilities(capabilities)
 }
 
+// completedSkillInput returns the identity that was actually admitted and
+// executed. The model-requested toolInput is retained for legacy checkpoints
+// that predate executedToolInput, but it must not override a newer execution
+// receipt: request text is not execution authority.
+func completedSkillInput(message eventjournal.Message) map[string]any {
+	if raw, present := message["executedToolInput"]; present {
+		input := mapValue(raw)
+		if strings.TrimSpace(stringValue(input["skill"])) == "" {
+			return nil
+		}
+		return input
+	}
+	return mapValue(message["toolInput"])
+}
+
+// sessionRunnerEffectiveSelectedSkillNames keeps recovery on the exact Skill
+// identities that already crossed execution admission. A prior model request
+// may remain in SessionRunnerChatOptions after a resolver selected a different
+// concrete Skill; once a completed execution receipt exists, that request is
+// not allowed to become the recovery route again.
+func sessionRunnerEffectiveSelectedSkillNames(requested []string, run *sessionRunnerChatRun) []string {
+	if run != nil {
+		if executed := run.executedSkillNamesSnapshot(); len(executed) > 0 {
+			return executed
+		}
+	}
+	return append([]string(nil), requested...)
+}
+
 func completedSkillNamesFromRunnerEntries(entries []eventjournal.Entry) []string {
 	names := make([]string, 0)
 	for _, entry := range entries {
@@ -91,7 +120,7 @@ func completedSkillNamesFromRunnerEntries(entries []eventjournal.Entry) []string
 			!isCompletedSkillToolName(stringValue(message["toolName"])) {
 			continue
 		}
-		input, _ := message["toolInput"].(map[string]any)
+		input := completedSkillInput(message)
 		name := strings.TrimPrefix(strings.TrimSpace(stringValue(input["skill"])), "/")
 		if name != "" {
 			names = append(names, name)
@@ -117,7 +146,7 @@ func completedSkillInvocationKeysFromRunnerEntries(entries []eventjournal.Entry)
 			!isCompletedSkillToolName(stringValue(message["toolName"])) {
 			continue
 		}
-		input, _ := message["toolInput"].(map[string]any)
+		input := completedSkillInput(message)
 		if key := runtimeSkillInvocationKeyFromInput(input); key != "" {
 			keys = append(keys, key)
 		}
@@ -433,7 +462,8 @@ func (s *Server) autoCompactSessionForRunner(ctx context.Context, options Sessio
 	}
 	contextWindow := runnerContextWindow(options)
 	threshold := s.autoCompactTokenThreshold(contextWindow)
-	forceAfterProviderPressure := providerContextPressureRequiresCompaction(entries)
+	pressureReason := runnerContextPressureRequiringCompaction(entries)
+	forceAfterProviderPressure := pressureReason != ""
 	result.EstimatedTokens = estimated
 	result.Threshold = threshold
 	result.ContextWindow = contextWindow
@@ -447,10 +477,14 @@ func (s *Server) autoCompactSessionForRunner(ctx context.Context, options Sessio
 		estimated, threshold, defaultRunnerAutoCompactContextPercent, contextWindow,
 	)
 	if forceAfterProviderPressure {
-		result.TriggerReason = sessionRunnerProviderContextPressureReasonCode
+		result.TriggerReason = pressureReason
+		pressureSource := "the provider rejected the prior execution unit for context pressure"
+		if pressureReason == sessionRunnerRequestContextPressureReasonCode {
+			pressureSource = "the fully assembled request reached the configured context budget before provider dispatch"
+		}
 		instructions = fmt.Sprintf(
-			"Automatic compact before runner model call after the provider rejected the prior execution unit for context pressure. Preserve the original task, verified evidence, tool outcomes, artifact paths, unresolved work, and failure provenance. Estimated context=%d tokens, configured threshold=%d, context window=%d.",
-			estimated, threshold, contextWindow,
+			"Automatic compact before runner model call after %s. Preserve the original task, verified evidence, tool outcomes, artifact paths, unresolved work, and failure provenance. Estimated context=%d tokens, configured threshold=%d, context window=%d.",
+			pressureSource, estimated, threshold, contextWindow,
 		)
 	}
 	result.Message = fmt.Sprintf(
@@ -555,21 +589,21 @@ func (s *Server) compactSummaryWithPlanNavigation(frameID, summary string) strin
 	return summary + "\nDurable plan navigation state:\n" + navigation
 }
 
-// providerContextPressureRequiresCompaction reports whether a provider context
-// rejection is still unresolved in the durable replay. A later user follow-up
+// runnerContextPressureRequiringCompaction returns the unresolved request-budget
+// or provider context-pressure reason in durable replay. A later user follow-up
 // does not erase the pressure: compacting preserves that input while avoiding a
 // second identical rejection. A durable compact boundary or a newer completed
 // assistant turn clears the recovery trigger.
-func providerContextPressureRequiresCompaction(entries []eventjournal.Entry) bool {
+func runnerContextPressureRequiringCompaction(entries []eventjournal.Entry) string {
 	for index := len(entries) - 1; index >= 0; index-- {
 		entry := entries[index]
 		if isCompactJournalEntry(entry) {
-			return false
+			return ""
 		}
 		message := entry.Message
 		if strings.TrimSpace(stringValue(message["type"])) == "message" &&
 			strings.TrimSpace(stringValue(message["role"])) == "assistant" {
-			return false
+			return ""
 		}
 		if strings.TrimSpace(stringValue(message["type"])) != "runner_checkpoint" {
 			continue
@@ -578,11 +612,11 @@ func providerContextPressureRequiresCompaction(entries []eventjournal.Entry) boo
 		if reason == "" {
 			reason = strings.TrimSpace(stringValue(message["reasonCode"]))
 		}
-		if reason == sessionRunnerProviderContextPressureReasonCode {
-			return true
+		if reason == sessionRunnerProviderContextPressureReasonCode || reason == sessionRunnerRequestContextPressureReasonCode {
+			return reason
 		}
 	}
-	return false
+	return ""
 }
 
 func (s *Server) autoCompactEnabled() bool {

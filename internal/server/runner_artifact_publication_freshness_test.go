@@ -25,12 +25,32 @@ func TestArtifactPublicationFreshnessRejectsReferencedReportBeforeLaterEvidence(
 	messages := sessionRunnerFreshnessSaveMessages("report.md", "text/markdown")
 	messages = append(messages,
 		agentruntime.Message{Role: "assistant", ToolCalls: []agentruntime.ToolCall{{ID: "source-1", Name: "fetch_article_fulltext"}}},
-		agentruntime.Message{Role: "tool", ToolCallID: "source-1", Content: `{"ok":true,"result":{"status":"not_available"}}`},
+		agentruntime.Message{Role: "tool", ToolCallID: "source-1", Content: `{"ok":true,"result":{"status":"available"}}`},
 	)
 	final := "Report: {{artifact:" + sessionRunnerFreshnessTestVersion + "}}"
 	failures := sessionRunnerArtifactPublicationFreshnessFailures(messages, final)
 	if len(failures) != 1 || failures[0] != sessionRunnerArtifactPublicationStaleMarker+":report.md later_tool=fetch_article_fulltext" {
 		t.Fatalf("freshness failures=%#v", failures)
+	}
+}
+
+func TestArtifactPublicationFreshnessIgnoresUnsuccessfulLaterEvidence(t *testing.T) {
+	for _, fixture := range []struct{ name, result string }{
+		{"unavailable", `{"ok":true,"result":{"status":"not_available"}}`},
+		{"failed", `{"ok":false,"error":"source request failed"}`},
+		{"not executed", `{"ok":true,"executed":false,"preflight":true}`},
+	} {
+		t.Run(fixture.name, func(t *testing.T) {
+			messages := sessionRunnerFreshnessSaveMessages("report.md", "text/markdown")
+			messages = append(messages,
+				agentruntime.Message{Role: "assistant", ToolCalls: []agentruntime.ToolCall{{ID: "source-1", Name: "fetch_article_fulltext"}}},
+				agentruntime.Message{Role: "tool", ToolCallID: "source-1", Content: fixture.result},
+			)
+			final := "Report: {{artifact:" + sessionRunnerFreshnessTestVersion + "}}"
+			if failures := sessionRunnerArtifactPublicationFreshnessFailures(messages, final); len(failures) != 0 {
+				t.Fatalf("unsuccessful lookup did not introduce new evidence: %#v", failures)
+			}
+		})
 	}
 }
 

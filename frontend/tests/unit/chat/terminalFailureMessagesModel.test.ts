@@ -29,6 +29,25 @@ const failedTip = (msgId: string): IMessageTips => ({
 });
 
 describe('terminal failure continuation state', () => {
+  it.each(['failed', 'cancelled'] as const)(
+    'retains superseded %s text and its evidence after refresh',
+    (terminalStatus) => {
+      const history: IMessageText = {
+        ...failedMessage('historical'),
+        status: 'finish',
+        terminal_status: terminalStatus,
+        terminal_superseded: true,
+        content: { content: 'Original partial findings and failure context' },
+      };
+      for (const active of [true, false]) {
+        const projected = projectTerminalFailuresForDisplay([history], active);
+        expect(projected[0].hidden).not.toBe(true);
+        expect(projected[0]).toBe(history);
+        expect(history.content.content).toBe('Original partial findings and failure context');
+      }
+    }
+  );
+
   it('supersedes every visible historical failure when continuation starts', () => {
     const completed: IMessageText = {
       ...failedMessage('completed'),
@@ -46,7 +65,7 @@ describe('terminal failure continuation state', () => {
     expect(restoreTerminalFailures(marked.messages, marked.rollback)).toEqual(original);
   });
 
-  it('supersedes and hides a rendered terminal error card when continuation starts', () => {
+  it('supersedes but retains a rendered terminal error card when continuation starts', () => {
     const original: TMessage[] = [failedTip('failed-tip')];
 
     const marked = markTerminalFailuresSuperseded(original);
@@ -57,8 +76,8 @@ describe('terminal failure continuation state', () => {
       type: 'tips',
       status: 'finish',
       terminal_superseded: true,
-      hidden: true,
     });
+    expect(projected[0].hidden).not.toBe(true);
     expect(restoreTerminalFailures(marked.messages, marked.rollback)).toEqual(original);
   });
 
@@ -81,19 +100,20 @@ describe('terminal failure continuation state', () => {
     expect(restoreTerminalFailures(marked.messages, marked.rollback)).toEqual([normalized]);
   });
 
-  it('hides every historical failure while a continuation is active', () => {
+  it('retains every historical failure while a continuation is active', () => {
     const original = [failedMessage('failed-1'), failedMessage('failed-2')];
 
     const projected = projectTerminalFailuresForDisplay(original, true);
 
     expect(projected).not.toBe(original);
     expect(projected).toEqual([
-      expect.objectContaining({ status: 'finish', terminal_superseded: true, hidden: true }),
-      expect.objectContaining({ status: 'finish', terminal_superseded: true, hidden: true }),
+      expect.objectContaining({ status: 'finish', terminal_superseded: true }),
+      expect.objectContaining({ status: 'finish', terminal_superseded: true }),
     ]);
+    expect(projected.every((message) => message.hidden !== true)).toBe(true);
   });
 
-  it('hides a failure already superseded by an accepted continuation', () => {
+  it('preserves a failure already superseded by an accepted continuation', () => {
     const marked = markTerminalFailuresSuperseded([failedMessage('failed-1')]);
 
     const projected = projectTerminalFailuresForDisplay(marked.messages, true);
@@ -101,11 +121,11 @@ describe('terminal failure continuation state', () => {
     expect(projected[0]).toMatchObject({
       status: 'finish',
       terminal_superseded: true,
-      hidden: true,
     });
+    expect(projected).toBe(marked.messages);
   });
 
-  it('keeps only the newest unresolved failure visible after refresh', () => {
+  it('keeps history visible and only the newest failure unresolved after refresh', () => {
     const continued: IMessageText = {
       ...failedMessage('continued'),
       status: 'finish',
@@ -117,7 +137,8 @@ describe('terminal failure continuation state', () => {
 
     const projected = projectTerminalFailuresForDisplay(original, false);
 
-    expect(projected[0]).toMatchObject({ status: 'finish', terminal_superseded: true, hidden: true });
+    expect(projected[0]).toMatchObject({ status: 'finish', terminal_superseded: true });
+    expect(projected[0].hidden).not.toBe(true);
     expect(projected[1]).toBe(continued);
     expect(projected[2]).toBe(latest);
   });
@@ -126,5 +147,15 @@ describe('terminal failure continuation state', () => {
     const original: TMessage[] = [failedMessage('current-failure')];
 
     expect(projectTerminalFailuresForDisplay(original, false)).toBe(original);
+  });
+
+  it('does not override an explicit visibility decision or change stored content', () => {
+    const hidden = { ...failedMessage('private-row'), hidden: true };
+    const input = [hidden];
+    const projected = projectTerminalFailuresForDisplay(input, true);
+    expect(projected[0].hidden).toBe(true);
+    expect(projected[0].content).toBe(hidden.content);
+    expect(input[0]).toBe(hidden);
+    expect(hidden.terminal_superseded).toBeUndefined();
   });
 });

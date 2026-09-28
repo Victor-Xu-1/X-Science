@@ -35,6 +35,15 @@ func agentRuntimeSkillModelResult(value any) any {
 	}
 	description := strings.Join(strings.Fields(stringValue(skill["description"])), " ")
 	header := agentRuntimeSkillMetadataPrefix + strconv.Quote(name)
+	// Loading a contract succeeds without executing the requested workflow.
+	// Keep the loader's typed facts in the leading receipt so externalization
+	// and identity-only replay cannot turn preparation into execution evidence.
+	data := mapValue(payload["data"])
+	for _, field := range []string{"loaded", "executed"} {
+		if value, present := data[field].(bool); present {
+			header += " " + field + "=" + strconv.Quote(strconv.FormatBool(value))
+		}
+	}
 	if description != "" {
 		header += ` description=` + strconv.Quote(description)
 	}
@@ -95,11 +104,18 @@ func providerSkillResultName(content string) (string, bool) {
 	if prefix == "" {
 		return "", false
 	}
-	quoted := strings.TrimSpace(strings.TrimPrefix(strings.SplitN(content, "\n", 2)[0], prefix))
-	if index := strings.Index(quoted, " description="); index >= 0 {
-		quoted = strings.TrimSpace(quoted[:index])
+	header := strings.TrimSpace(strings.SplitN(content, "\n", 2)[0])
+	if !strings.HasSuffix(header, "/>") {
+		return "", false
 	}
-	quoted = strings.TrimSpace(strings.TrimSuffix(quoted, "/>"))
+	attributes := strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(header, prefix), "/>"))
+	quoted, err := strconv.QuotedPrefix(attributes)
+	if err != nil || !strings.HasPrefix(quoted, `"`) {
+		return "", false
+	}
+	if rest := strings.TrimPrefix(attributes, quoted); rest != "" && !strings.HasPrefix(rest, " ") {
+		return "", false
+	}
 	name, err := strconv.Unquote(quoted)
 	if err != nil || strings.TrimSpace(name) == "" {
 		return "", false

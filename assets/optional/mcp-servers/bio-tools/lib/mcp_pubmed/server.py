@@ -12,22 +12,20 @@ from functools import lru_cache
 
 from mcp_servers_common import Tier1Server, load_schemas, original_json
 from mcp_servers_common.gate import apply_gate_tier1
-from mcp_servers_common.ua import require_contact_email
+from mcp_servers_common.ua import contact_email, validate_optional_contact_email
 
 from . import marshal
 
-# NCBI asks clients to identify themselves. Override via env if desired.
-# DEAD post-#3270: the live PubMed path is the hosted streamable_http server
-# (hostedHclsServer in bundledRegistry.ts); this stdio module is no longer
-# spawned. Y12 sweep dropped the hardcoded Synon LLM default.
+# NCBI recommends tool/contact identification; public retrieval does not
+# require opting into personal-email disclosure. Never invent a fallback.
 NCBI_API_KEY = os.environ.get("NCBI_API_KEY") or None
 
 
-def _contact_email() -> str:
+def _contact_email() -> str | None:
     # Resolve at first real NCBI call, not module import/tools-list time. The
     # bundled process receives only an owner-scoped, explicitly consented
     # OPERON_CONTACT_EMAIL from the Go connector authority.
-    return require_contact_email()
+    return validate_optional_contact_email(os.environ.get("NCBI_EMAIL") or contact_email())
 
 
 # One client per process; fleet clients handle pacing/retries internally.

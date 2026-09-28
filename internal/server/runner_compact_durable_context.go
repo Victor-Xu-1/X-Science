@@ -25,12 +25,12 @@ func compactDurableRuntimeContextLines(entries []eventjournal.Entry) ([]string, 
 	latest := records[len(records)-1]
 	if !latest.Successful {
 		lines = append(lines, fmt.Sprintf(
-			"Pending work: repair the latest failed tool call %s (%s) from event %d using its exact failureDiagnostic, then rerun only the affected governed step.",
+			"Pending work: reconcile tool call %s (%s) from event %d using its immutable receipt and exact failureDiagnostic. Preserve usable partial and prior results; repair or replace only the unresolved step.",
 			latest.ToolCallID, latest.ToolName, latest.EventID,
 		))
 	} else {
 		lines = append(lines, fmt.Sprintf(
-			"Continuation status: the latest governed tool call %s (%s) succeeded at event %d. Do not create a new inventory, repeat a source lookup, regenerate an artifact, or request software approval for the same capability unless a later immutable receipt proves its input, output, or validation changed; if no unresolved step remains, finalize the task and release task resources.",
+			"Continuation status: tool call %s (%s) returned a successful result at event %d. This applies only to that call's recorded outcome and does not establish task completion. Compare its execution provenance and outputs with the remaining task requirements, reuse valid receipts, and continue unfinished work.",
 			latest.ToolCallID, latest.ToolName, latest.EventID,
 		))
 	}

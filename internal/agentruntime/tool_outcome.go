@@ -31,14 +31,30 @@ func (outcome ToolResultOutcome) HardFailed() bool {
 // evidence validation. It intentionally inspects only envelope fields and the
 // documented source-status list, never arbitrary nested scientific payloads.
 func ClassifyToolResult(value any) ToolResultOutcome {
+	return classifyToolResultEnvelope(value, 0)
+}
+
+func classifyToolResultEnvelope(value any, depth int) ToolResultOutcome {
+	return classifyToolResultMap(toolResultEnvelopeMap(value), depth)
+}
+
+func toolResultEnvelopeMap(value any) map[string]any {
 	if provider, ok := value.(interface{ ToolResultEnvelope() map[string]any }); ok {
-		return classifyToolResultMap(provider.ToolResultEnvelope(), 0)
+		return provider.ToolResultEnvelope()
+	}
+	result, _ := value.(map[string]any)
+	return result
+}
+
+// ToolResultDidNotExecute is the execution-provenance boundary for a typed
+// result. A successful admission or decision receipt is not evidence that the
+// requested action ran when its own envelope explicitly says otherwise.
+func ToolResultDidNotExecute(value any) bool {
+	if provider, ok := value.(interface{ ToolResultEnvelope() map[string]any }); ok {
+		value = provider.ToolResultEnvelope()
 	}
 	result, ok := value.(map[string]any)
-	if !ok {
-		return ToolResultSucceeded
-	}
-	return classifyToolResultMap(result, 0)
+	return ok && result["executed"] == false
 }
 
 // IsNonExecutingPreflight identifies a fail-closed admission result that
@@ -127,7 +143,7 @@ func classifyToolResultMap(result map[string]any, depth int) ToolResultOutcome {
 		switch normalizeToolOutcomeToken(result[key]) {
 		case "failed", "failure", "error":
 			return ToolResultFailed
-		case "unavailable", "sourceunavailable":
+		case "unavailable", "sourceunavailable", "notavailable":
 			return ToolResultUnavailable
 		case "partial", "incomplete":
 			return ToolResultPartial
@@ -141,7 +157,7 @@ func classifyToolResultMap(result map[string]any, depth int) ToolResultOutcome {
 				continue
 			}
 			switch normalizeToolOutcomeToken(source["status"]) {
-			case "failed", "failure", "error", "unavailable", "sourceunavailable":
+			case "failed", "failure", "error", "unavailable", "sourceunavailable", "notavailable":
 				unavailable++
 			}
 		}
@@ -153,9 +169,9 @@ func classifyToolResultMap(result map[string]any, depth int) ToolResultOutcome {
 		}
 	}
 	if depth == 0 {
-		if nested, ok := result["result"].(map[string]any); ok {
-			return classifyToolResultMap(nested, depth+1)
-		}
+		// Typed and decoded forms of the same envelope must retain identical
+		// outcomes without marshaling large bodies or inspecting record payloads.
+		return classifyToolResultEnvelope(result["result"], depth+1)
 	}
 	return ToolResultSucceeded
 }

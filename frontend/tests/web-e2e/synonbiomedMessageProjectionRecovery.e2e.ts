@@ -93,6 +93,9 @@ test('preserves the final answer and file preview after a cancelled durable tool
         await page.goto(conversationPath, { waitUntil: 'domcontentloaded' });
       }
       await expect(page.getByText(finalMarker, { exact: true })).toBeVisible();
+      await expect(page.getByText(prefix, { exact: true })).toBeVisible();
+      await expect(page.getByTestId('terminal-failure-history')).toContainText('此前未完成的回复');
+      await expect(page.getByTestId('terminal-failure-alert')).toHaveCount(0);
       const finals = (await messages(page, workspace.conversationId)).filter(
         (item) => item.content?.content === finalAnswer
       );

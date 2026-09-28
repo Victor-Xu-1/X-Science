@@ -52,7 +52,7 @@ func (s *Server) newAgentRuntimeEngineWithContext(
 			if !ok {
 				model = serverErrorModelClient{err: errors.New("static runner model client does not support streaming")}
 			} else {
-				model = sessionRunnerStaticStreamingCompatibilityClient{delegate: streaming, timeout: options.RequestTimeout}
+				model = sessionRunnerStaticStreamingCompatibilityClient{delegate: streaming}
 			}
 		}
 	}
@@ -517,12 +517,6 @@ func (g serverAgentRuntimeToolGateway) RequiredToolChoice(
 	if planChoice != nil {
 		return planChoice
 	}
-	if !hasActivePlanAction && sessionRunnerInlineArtifactRepairReadyForRevalidation(messages) {
-		// The latest publication resolved an earlier inline draft warning. Stop
-		// provider-selected mutation now and return to the immutable completion
-		// validator; another save cannot add evidence or improve the same bytes.
-		return "none"
-	}
 	g.taskRun.setRequiredMCPSourceClass("")
 	return nil
 }
@@ -590,23 +584,6 @@ type agentRuntimeHookConfig struct {
 
 type agentRuntimeToolExecutionTimeoutKey struct{}
 
-type agentRuntimeParentSessionContextKey struct{}
-
-func withAgentRuntimeParentSessionID(ctx context.Context, sessionID string) context.Context {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	return context.WithValue(ctx, agentRuntimeParentSessionContextKey{}, strings.TrimSpace(sessionID))
-}
-
-func agentRuntimeParentSessionID(ctx context.Context) string {
-	if ctx == nil {
-		return ""
-	}
-	value, _ := ctx.Value(agentRuntimeParentSessionContextKey{}).(string)
-	return strings.TrimSpace(value)
-}
-
 func (g serverAgentRuntimeToolGateway) effectiveAllowedTools() []string {
 	if g.hasToolSnapshot {
 		return agentRuntimeToolSchemaNames(g.toolSchemas)
@@ -662,8 +639,3 @@ func boundedAgentRuntimeToolContext(ctx context.Context) (context.Context, conte
 	}
 	return context.WithTimeout(ctx, timeout)
 }
-
-// AdmitsToolCall performs the same name, snapshot, normalization, and schema
-// checks as Execute without running the tool or writing audit state. The
-// runtime failure guard uses it only after repeated invalid calls so a valid
-// correction can still reach the gateway.

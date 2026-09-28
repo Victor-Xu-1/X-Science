@@ -8,9 +8,9 @@ import (
 
 func TestOutputBudgetRecoveryDoesNotRewriteTaskInstructions(t *testing.T) {
 	entries := []eventjournal.Entry{{Message: eventjournal.Message{"type": "user_message", "role": "user", "content": "Prepare a detailed report."}}}
-	before := sessionEntriesToChatMessages("system", entries)
+	before := requireProviderReplayMessages(t, "system", entries)
 	entries = append(entries, eventjournal.Entry{Message: eventjournal.Message{"type": "runner_checkpoint", "status": "interrupted", "reason_code": sessionRunnerProviderOutputTokenLimitReasonCode}})
-	after := sessionEntriesToChatMessages("system", entries)
+	after := requireProviderReplayMessages(t, "system", entries)
 	if !reflect.DeepEqual(before, after) {
 		t.Fatalf("budget recovery altered task instructions: before=%#v after=%#v", before, after)
 	}

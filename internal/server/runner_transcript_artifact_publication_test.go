@@ -58,3 +58,19 @@ func TestAssistantMessageArtifactReferencesAreScopedToCurrentTurn(t *testing.T) 
 		t.Fatalf("mismatched snapshot fence error=%v", err)
 	}
 }
+
+func TestAssistantMessageArtifactReferencesCollapseRepeatedPriorRelations(t *testing.T) {
+	snapshot := transcriptstore.ArtifactCommitSnapshot{ThroughAttempt: 5, References: []transcriptstore.ArtifactReference{
+		{RunnerAttempt: 3, ArtifactID: "input", VersionID: "input-v1", Relation: transcriptstore.ArtifactRelationConsumed, Availability: transcriptstore.ArtifactAvailable},
+		{RunnerAttempt: 4, ArtifactID: "input", VersionID: "input-v1", Relation: transcriptstore.ArtifactRelationProduced, Availability: transcriptstore.ArtifactAvailable},
+		{RunnerAttempt: 5, ArtifactID: "input", VersionID: "input-v2", Relation: transcriptstore.ArtifactRelationProduced, Availability: transcriptstore.ArtifactAvailable},
+	}}
+	refs, err := assistantMessageArtifactReferences(snapshot, 5, []byte(`{"text":"Compare [the prior input]({{artifact:input-v1}}) with the updated output."}`))
+	want := []transcriptstore.ArtifactReferenceInput{
+		{ArtifactID: "input", VersionID: "input-v1", Relation: transcriptstore.ArtifactRelationCited},
+		{ArtifactID: "input", VersionID: "input-v2", Relation: transcriptstore.ArtifactRelationProduced},
+	}
+	if err != nil || !reflect.DeepEqual(refs, want) {
+		t.Fatalf("one prior version must produce one citation without losing the new version: %#v %v", refs, err)
+	}
+}

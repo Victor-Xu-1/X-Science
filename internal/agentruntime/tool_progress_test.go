@@ -121,11 +121,19 @@ func TestWorkspaceMutationReportFailsOpenWhenScanOrShapeIsIncomplete(t *testing.
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
-			if !workspaceMutationCommitted(
+			if !WorkspaceMutationCommitted(
 				"repl", []string{"runtime-execution"}, ToolResultSucceeded, value,
 			) {
 				t.Fatalf("incomplete workspace observation suppressed a possible mutation: %#v", value)
 			}
 		})
+	}
+}
+
+func TestWorkspaceMutationNeverAdvancesForNonExecutedReceipt(t *testing.T) {
+	if WorkspaceMutationCommitted("edit_file", []string{"artifact-write"}, ToolResultSucceeded, map[string]any{
+		"ok": true, "executed": false, "changed": true,
+	}) {
+		t.Fatal("non-executed receipt advanced workspace mutation epoch")
 	}
 }

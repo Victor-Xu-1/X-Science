@@ -60,7 +60,13 @@ func TestSessionRunnerPreparationCheckpointDeadlineIsBoundedAndResumable(t *test
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatal("classified preparation error must preserve its deadline cause")
 	}
-	reason, detail, bounded := sessionRunnerBoundedCorrectionDetails(err)
+	var correction sessionRunnerBoundedCorrection
+	bounded := errors.As(err, &correction)
+	if !bounded {
+		t.Fatalf("not a typed correction: %v", err)
+	}
+	cause := correction.runnerCorrection()
+	reason, detail := cause.ReasonCode, cause.Detail
 	if !bounded || reason != sessionRunnerPreparationTimeoutReasonCode ||
 		!strings.Contains(detail, "history_replay") {
 		t.Fatalf("preparation checkpoint correction = (%q, %q, %t)", reason, detail, bounded)
@@ -86,7 +92,8 @@ func TestSessionRunnerKernelRecoveryTimeoutIsBoundedAndResumable(t *testing.T) {
 	if !errors.Is(correction, errSessionRunnerKernelRecoveryDeadline) {
 		t.Fatal("kernel recovery timeout must preserve its deadline cause")
 	}
-	reason, detail := correction.runnerCorrection()
+	cause := correction.runnerCorrection()
+	reason, detail := cause.ReasonCode, cause.Detail
 	if reason != sessionRunnerKernelRecoveryTimeoutReasonCode ||
 		!strings.Contains(detail, "durable operation") {
 		t.Fatalf("kernel recovery correction = (%q, %q)", reason, detail)
@@ -588,6 +595,7 @@ func TestSessionRunnerChatUsesCompactSummaryForResumeContext(t *testing.T) {
 		}
 		var compactSystem string
 		nonSystem := []string{}
+		nonSystemRoles := []string{}
 		for _, message := range request.Messages {
 			if message.Role == "system" {
 				if strings.Contains(message.Content, "Synon compact handoff context:") {
@@ -596,17 +604,21 @@ func TestSessionRunnerChatUsesCompactSummaryForResumeContext(t *testing.T) {
 				continue
 			}
 			nonSystem = append(nonSystem, message.Content)
+			nonSystemRoles = append(nonSystemRoles, message.Role)
 		}
 		if !strings.Contains(compactSystem, "Compact session summary") || !strings.Contains(compactSystem, "old investigation step") {
 			t.Fatalf("compact system context = %q messages=%#v", compactSystem, request.Messages)
 		}
 		for _, content := range nonSystem {
-			if strings.Contains(content, "old investigation step") || strings.Contains(content, "old assistant result") {
+			if strings.Contains(content, "old assistant result") {
 				t.Fatalf("old pre-compact raw message leaked into model context: %#v", request.Messages)
 			}
 		}
-		if len(nonSystem) == 0 || !strings.Contains(nonSystem[len(nonSystem)-1], "continue after compact") {
-			t.Fatalf("post-compact user message missing: %#v", request.Messages)
+		// Summaries may replace observations, but original user requirements
+		// remain exact user-role messages, once each and in original order.
+		if len(nonSystem) != 2 || nonSystem[0] != "old investigation step" || nonSystem[1] != "continue after compact" ||
+			nonSystemRoles[0] != "user" || nonSystemRoles[1] != "user" {
+			t.Fatalf("compaction lost, duplicated or changed user authority: %#v", request.Messages)
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"choices":[{"message":{"role":"assistant","content":"continued from compact context"}}]}`))
@@ -882,14 +894,14 @@ func TestProviderContextPressureRequiresOneDurableCompaction(t *testing.T) {
 			"reason_code": sessionRunnerProviderContextPressureReasonCode,
 		}},
 	}
-	if !providerContextPressureRequiresCompaction(entries) {
+	if runnerContextPressureRequiringCompaction(entries) != sessionRunnerProviderContextPressureReasonCode {
 		t.Fatal("unresolved provider context pressure must force compaction")
 	}
 
 	withNewUserInput := append(append([]eventjournal.Entry(nil), entries...), eventjournal.Entry{
 		EventID: 3, Message: eventjournal.Message{"type": "message", "role": "user", "text": "please continue"},
 	})
-	if !providerContextPressureRequiresCompaction(withNewUserInput) {
+	if runnerContextPressureRequiringCompaction(withNewUserInput) != sessionRunnerProviderContextPressureReasonCode {
 		t.Fatal("a follow-up must not erase unresolved provider context pressure")
 	}
 
@@ -898,14 +910,14 @@ func TestProviderContextPressureRequiresOneDurableCompaction(t *testing.T) {
 			"type": "session_compact", "trigger": "auto", "summary": "durable compact summary",
 		},
 	})
-	if providerContextPressureRequiresCompaction(compacted) {
+	if runnerContextPressureRequiringCompaction(compacted) != "" {
 		t.Fatal("a durable compact boundary must clear provider context pressure")
 	}
 
 	completedWithoutCompaction := append(append([]eventjournal.Entry(nil), entries...), eventjournal.Entry{
 		EventID: 3, Message: eventjournal.Message{"type": "message", "role": "assistant", "text": "completed after switching provider"},
 	})
-	if providerContextPressureRequiresCompaction(completedWithoutCompaction) {
+	if runnerContextPressureRequiringCompaction(completedWithoutCompaction) != "" {
 		t.Fatal("a newer completed assistant turn must clear stale provider context pressure")
 	}
 }
@@ -955,7 +967,7 @@ func TestSessionRunnerAutoCompactForcesRecoveryAfterProviderContextPressure(t *t
 	if !strings.Contains(result.Message, "reason=provider_context_pressure") {
 		t.Fatalf("forced compact result did not preserve reason: %#v", result)
 	}
-	if providerContextPressureRequiresCompaction(updated) {
+	if runnerContextPressureRequiringCompaction(updated) != "" {
 		t.Fatalf("forced compact did not clear context pressure: %#v", updated)
 	}
 }
@@ -1598,7 +1610,8 @@ func TestSessionRunnerChatPreparationTimeoutInterruptsBlockedLifecycleHook(t *te
 	if preparationErr.stage != "lifecycle_hooks" {
 		t.Fatalf("preparation timeout stage = %q, want lifecycle_hooks", preparationErr.stage)
 	}
-	reason, detail := preparationErr.runnerCorrection()
+	cause := preparationErr.runnerCorrection()
+	reason, detail := cause.ReasonCode, cause.Detail
 	if reason != sessionRunnerPreparationTimeoutReasonCode || !strings.Contains(detail, "lifecycle_hooks") {
 		t.Fatalf("runner correction reason=%q detail=%q", reason, detail)
 	}
@@ -2284,7 +2297,7 @@ func TestSessionEntriesRestoreBoundedCorrectionsAcrossAttempts(t *testing.T) {
 					"reason_code": test.reasonCode, "resume_detail": test.detail,
 				}},
 			}
-			messages := sessionEntriesToChatMessages("system prompt", entries)
+			messages := requireProviderReplayMessages(t, "system prompt", entries)
 			if len(messages) != 3 || messages[1].Role != "system" ||
 				!strings.Contains(messages[1].Content, "same logical task") ||
 				!strings.Contains(messages[1].Content, "synon.runner_recovery.v1") ||
@@ -2309,7 +2322,7 @@ func TestSessionEntriesRestoreBoundedCorrectionsAcrossAttempts(t *testing.T) {
 			entries = append(entries, eventjournal.Entry{EventID: 3, Message: eventjournal.Message{
 				"type": "message", "role": "user", "content": "Start an unrelated new task.",
 			}})
-			messages = sessionEntriesToChatMessages("system prompt", entries)
+			messages = requireProviderReplayMessages(t, "system prompt", entries)
 			for _, message := range messages {
 				if strings.Contains(message.Content, test.detail) || strings.Contains(message.Content, test.reasonCode) {
 					t.Fatalf("stale correction crossed a new user boundary: %#v", messages)
@@ -2337,7 +2350,7 @@ func TestSessionTranscriptPreservesMultimodalContentBlocks(t *testing.T) {
 		},
 	}
 
-	messages := sessionEntriesToChatMessages("system prompt", entries)
+	messages := requireProviderReplayMessages(t, "system prompt", entries)
 	if len(messages) != 2 || messages[1].Role != "user" {
 		t.Fatalf("chat messages = %#v", messages)
 	}
@@ -2771,6 +2784,7 @@ func TestSessionRunnerChatOnceTimesOutSlowModelEndpoint(t *testing.T) {
 		Endpoint:         modelAPI.URL + "/v1/chat/completions",
 		Model:            "test-model",
 		RequestTimeout:   40 * time.Millisecond,
+		MaxAttempts:      1, // This assertion measures one request, not retry backoff.
 		LeaseTTL:         time.Minute,
 		ReplayLimit:      20,
 		OutputLimitBytes: 64 * 1024,

@@ -525,6 +525,8 @@
     "structure": {
       "kind": "3D structure",
       "preview": "3D structure preview",
+      "sceneOverlayLabel": "Parent and derived structure overlay scene",
+      "sceneOverlaySummary": "Parent + derived structure overlay · layers: {{layerCount}}",
       "thumbnail": {
         "loading": "Rendering 3D structure preview",
         "failed": "3D render failed"

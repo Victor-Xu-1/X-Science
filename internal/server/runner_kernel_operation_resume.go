@@ -360,7 +360,7 @@ func recoveredKernelToolCheckpointStatus(
 	if operation.State == workspace.KernelLocalOperationStateStarted ||
 		(operation.State == workspace.KernelLocalOperationStateCompleted && succeeded) ||
 		(operation.State == workspace.KernelLocalOperationStateCancelled &&
-			agentKernelPreflightStatus(operation.ReasonCode) && succeeded) {
+			agentKernelPreflightResult(result) && succeeded) {
 		return "completed", "completed"
 	}
 	return "failed", "failed"
@@ -418,22 +418,21 @@ func agentKernelPreflightResult(result map[string]any) bool {
 	return agentKernelPreflightReasonCode(result) != ""
 }
 
-// agentKernelPreflightReasonCode recognizes the same non-executing correction
-// after either its original server result or the failed-call guard's bounded
-// terminal envelope. The guard preserves executed=false but promotes status to
-// code; durable kernel settlement must therefore consult both fields or a
-// rejected call remains approved and is executed again on resume.
+// agentKernelPreflightReasonCode uses explicit execution provenance and the
+// shared admission contract, not a growing list of rejection names. Legacy
+// preflight codes remain readable, but cannot override an executed receipt.
 func agentKernelPreflightReasonCode(result map[string]any) string {
-	if result == nil {
+	if !agentruntime.ToolResultDidNotExecute(result) {
 		return ""
+	}
+	if agentruntime.IsNonExecutingPreflight(result) {
+		return firstNonEmpty(stringValue(result["status"]), stringValue(result["code"]), "execution_preflight_required")
 	}
 	if status := strings.TrimSpace(stringValue(result["status"])); agentKernelPreflightStatus(status) {
 		return status
 	}
-	if !boolValue(result["executed"], true) {
-		if code := strings.TrimSpace(stringValue(result["code"])); agentKernelPreflightStatus(code) {
-			return code
-		}
+	if code := strings.TrimSpace(stringValue(result["code"])); agentKernelPreflightStatus(code) {
+		return code
 	}
 	return ""
 }

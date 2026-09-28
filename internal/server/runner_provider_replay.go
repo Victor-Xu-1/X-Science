@@ -33,14 +33,12 @@ func sessionEntriesToProviderMessages(
 	if repairContext := recoveredToolFailureContext(entries, compactEventID); repairContext != "" {
 		messages = append(messages, chatCompletionMessage{Role: "system", Content: repairContext, ContextUsageSource: agentruntime.ContextUsageMessages})
 	}
-	// Compaction may summarize the scientific work, but an answered AskUser
-	// choice is an exact user-owned execution decision rather than summarizable
-	// prose. Replay every durable input response from the current logical task
-	// verbatim across the compact boundary so a selected implementation cannot
-	// be widened to a method family or silently replaced after resume.
+	// Compaction may summarize observations, never replace original user-owned
+	// requirements or decisions. Replay them verbatim in their original role and
+	// order. This is context, not permission to reuse evidence across task scopes.
 	if hasCompact {
 		for _, entry := range entries {
-			if entry.EventID > compactEventID || !runnerEntryIsInputResponse(entry) {
+			if entry.EventID > compactEventID || (stringValue(entry.Message["role"]) != "user" && !runnerEntryIsInputResponse(entry)) {
 				continue
 			}
 			text := strings.TrimSpace(runnerModelMessageText(entry.Message))
@@ -49,7 +47,6 @@ func sessionEntriesToProviderMessages(
 			}
 		}
 	}
-	latestPreCompactUser := ""
 	pending := map[string]struct{}{}
 	settled := map[string]string{}
 	settledBackground := map[string]bool{}
@@ -57,11 +54,6 @@ func sessionEntriesToProviderMessages(
 	deferredAfterToolBatch := []chatCompletionMessage{}
 	for _, entry := range entries {
 		if hasCompact && entry.EventID <= compactEventID {
-			if role := strings.TrimSpace(stringValue(entry.Message["role"])); role == "user" {
-				if text := runnerModelMessageText(entry.Message); text != "" {
-					latestPreCompactUser = text
-				}
-			}
 			continue
 		}
 		eventType := strings.TrimSpace(stringValue(entry.Message["type"]))
@@ -230,9 +222,6 @@ func sessionEntriesToProviderMessages(
 	if len(pending) != 0 {
 		return nil, errors.New("provider replay contains an unsettled tool transaction")
 	}
-	if hasCompact && !hasChatRole(messages, "user") && strings.TrimSpace(latestPreCompactUser) != "" {
-		messages = append(messages, chatCompletionMessage{Role: "user", Content: latestPreCompactUser})
-	}
 	return messages, nil
 }
 
@@ -387,12 +376,12 @@ func boundedIdentifierEditDistance(left, right string, limit int) int {
 	if delta := len(leftRunes) - len(rightRunes); delta > limit || delta < -limit {
 		return limit + 1
 	}
-	previous := make([]int, len(rightRunes)+1)
+	previous := append(make([]int, len(rightRunes)), 0)
 	for index := range previous {
 		previous[index] = index
 	}
 	for leftIndex, leftRune := range leftRunes {
-		current := make([]int, len(rightRunes)+1)
+		current := append(make([]int, len(rightRunes)), 0)
 		current[0] = leftIndex + 1
 		rowMinimum := current[0]
 		for rightIndex, rightRune := range rightRunes {

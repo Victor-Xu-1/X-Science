@@ -116,6 +116,10 @@ const MessageText: React.FC<{
     !isUserMessage &&
     message.terminal_superseded !== true &&
     (message.terminal_status === 'failed' || message.status === 'error');
+  const isHistoricalIncompleteResponse =
+    !isUserMessage &&
+    message.terminal_superseded === true &&
+    (message.terminal_status === 'failed' || message.terminal_status === 'cancelled');
   const hasTextContent = hasRenderableMessageText(message);
   const shouldRenderPlainText = isUserMessage;
   const conversationContext = useConversationContextSafe();
@@ -188,6 +192,15 @@ const MessageText: React.FC<{
             content={t('conversation.synonRuntime.runtimeOperations.assistantResponseIncomplete')}
             showIcon
             data-testid='terminal-failure-alert'
+            className='mb-12px w-full'
+          />
+        )}
+        {isHistoricalIncompleteResponse && (
+          <Alert
+            type='warning'
+            content={t('conversation.synonRuntime.runtimeOperations.historicalResponseIncomplete')}
+            showIcon
+            data-testid='terminal-failure-history'
             className='mb-12px w-full'
           />
         )}

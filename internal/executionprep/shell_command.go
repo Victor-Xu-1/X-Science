@@ -19,22 +19,56 @@ func SingleShellCommand(source string) ([]string, bool) {
 		return nil, false
 	}
 	statement := file.Stmts[0]
+	return staticShellStatement(statement)
+}
+
+func staticShellStatement(statement *syntax.Stmt) ([]string, bool) {
 	call, ok := statement.Cmd.(*syntax.CallExpr)
 	if !ok || statement.Background || statement.Coprocess || statement.Negated || len(statement.Redirs) != 0 || len(call.Assigns) != 0 || len(call.Args) == 0 {
 		return nil, false
 	}
 	args := make([]string, 0, len(call.Args))
+	// Expansion owns mutable scratch buffers. A nil config selects the
+	// library's shared default and races across concurrent tool invocations.
+	expansion := &expand.Config{}
 	for _, word := range call.Args {
 		if !staticShellWord(word.Parts, false) {
 			return nil, false
 		}
-		values, err := expand.Fields(nil, word)
+		values, err := expand.Fields(expansion, word)
 		if err != nil || len(values) != 1 || strings.ContainsRune(values[0], 0) {
 			return nil, false
 		}
 		args = append(args, values[0])
 	}
 	return args, args[0] != ""
+}
+
+// ShellCommandInDirectory resolves one static invocation, optionally preceded
+// by exactly `cd <literal> &&`. It does not evaluate substitutions or pretend
+// to resolve working directories across arbitrary control-flow branches.
+func ShellCommandInDirectory(source string) (string, []string, bool) {
+	if args, ok := SingleShellCommand(source); ok {
+		return "", args, true
+	}
+	if len(source) > MaxSourceBytes || strings.ContainsRune(source, 0) {
+		return "", nil, false
+	}
+	file, err := syntax.NewParser(syntax.Variant(syntax.LangBash)).Parse(strings.NewReader(source), "<execution>")
+	if err != nil || len(file.Stmts) != 1 {
+		return "", nil, false
+	}
+	statement := file.Stmts[0]
+	chain, ok := statement.Cmd.(*syntax.BinaryCmd)
+	if !ok || chain.Op != syntax.AndStmt || statement.Background || statement.Coprocess || statement.Negated || len(statement.Redirs) != 0 {
+		return "", nil, false
+	}
+	left, ok := staticShellStatement(chain.X)
+	if !ok || len(left) != 2 || left[0] != "cd" || left[1] == "" || strings.HasPrefix(left[1], "-") {
+		return "", nil, false
+	}
+	right, ok := staticShellStatement(chain.Y)
+	return left[1], right, ok
 }
 
 func staticShellWord(parts []syntax.WordPart, quoted bool) bool {

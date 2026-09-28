@@ -1287,13 +1287,24 @@ func TestTranscriptRunnerProviderContinuationRecoversTimeoutBeforeNewSemanticByt
 }
 
 func TestTranscriptRunnerProviderContinuationRemainsResumableAcrossRepeatedNoProgressSegments(t *testing.T) {
+	testTranscriptRunnerRepeatedNoProgress(t, false)
+}
+
+func TestTranscriptRunnerTruncatedTailReplayRemainsResumableAfterRestart(t *testing.T) {
+	testTranscriptRunnerRepeatedNoProgress(t, true)
+}
+
+func testTranscriptRunnerRepeatedNoProgress(t *testing.T, tailReplay bool) {
+	t.Helper()
 	store, repo, _ := newTranscriptWebFixture(t)
 	seedTranscriptWebFrame(t, store, "local", "project-stream-no-progress", "frame-stream-no-progress")
 	var requests atomic.Int64
 	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		sequence := requests.Add(1)
 		w.Header().Set("Content-Type", "text/event-stream")
-		if sequence <= 6 {
+		if tailReplay && sequence > 1 && sequence <= 6 {
+			_, _ = w.Write([]byte("data: {\"choices\":[{\"index\":0,\"delta\":{\"content\":\"prefix\"},\"finish_reason\":\"length\"}]}\n\ndata: [DONE]\n\n"))
+		} else if sequence <= 6 {
 			_, _ = w.Write([]byte("data: {\"id\":\"no-progress\",\"choices\":[{\"delta\":{\"role\":\"assistant\",\"content\":\"stable prefix\"}}]}\n\n"))
 		} else {
 			_, _ = w.Write([]byte("data: {\"id\":\"progress-after-recovery\",\"choices\":[{\"delta\":{\"role\":\"assistant\",\"content\":\"stable prefix recovered\"},\"finish_reason\":\"stop\"}]}\n\n"))
@@ -1333,10 +1344,25 @@ func TestTranscriptRunnerProviderContinuationRemainsResumableAcrossRepeatedNoPro
 		MaxAttempts: 1, RequireSavedModel: true, DisableSkillDiscovery: true,
 	}
 	for segment := 1; segment <= 6; segment++ {
+		if tailReplay && segment == 3 {
+			if err := server.Close(context.Background()); err != nil {
+				t.Fatal(err)
+			}
+			server = New(Options{Workspace: store, Transcript: repo, FileRoot: t.TempDir()})
+			if _, err := server.settingsStore.Set("model.activeProviderId", "stream-no-progress-provider"); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := server.secretStore.Create(secretstore.Secret{ID: "stream-no-progress-key", UserID: "local", Provider: "openai", Value: "test-key"}); err != nil {
+				t.Fatal(err)
+			}
+		}
 		options.RunnerID = fmt.Sprintf("stream-no-progress-runner-%d", segment)
 		result, err := server.RunSessionRunnerChatOnce(context.Background(), options)
 		if err != nil || result.Status != "interrupted" || result.Attempt != 1 {
 			t.Fatalf("segment=%d result=%#v err=%v", segment, result, err)
+		}
+		if tailReplay && segment > 1 && result.InterruptionReasonCode != "provider_stream_no_progress" {
+			t.Fatalf("replay advanced the durable fence: %#v", result)
 		}
 		options.SessionID = ""
 	}

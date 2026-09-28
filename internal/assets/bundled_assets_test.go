@@ -332,7 +332,7 @@ func TestBundledPythonWorkerUsesOneModularRuntimeAndHostBridge(t *testing.T) {
 	if !strings.Contains(bootstrap, "from synon_biomed_runtime.worker_execution import run") {
 		t.Fatal("kernel entrypoint does not delegate to its owned runtime")
 	}
-	for _, module := range []string{"worker_transport.py", "worker_streams.py", "worker_compile.py", "worker_execution.py", "worker_safety.py", "worker_reads.py"} {
+	for _, module := range []string{"worker_transport.py", "worker_streams.py", "worker_compile.py", "worker_process_outcomes.py", "worker_execution.py", "worker_safety.py", "worker_reads.py"} {
 		if len(read(filepath.Join("synon_biomed_runtime", module))) == 0 {
 			t.Fatalf("worker module %s is empty", module)
 		}
@@ -433,7 +433,7 @@ func TestSDFArtifactValidatorProtocolRejectsInvalidEnvelope(t *testing.T) {
 			if err := json.Unmarshal(output, &payload); err != nil {
 				t.Fatalf("decode validator output %q: %v", output, err)
 			}
-			if payload.SchemaVersion != 1 || payload.OK || payload.Code != test.code ||
+			if payload.SchemaVersion != 2 || payload.OK || payload.Code != test.code ||
 				payload.DelimiterCount != 0 || payload.ParsedCount != 0 {
 				t.Fatalf("invalid SDF validator payload = %#v", payload)
 			}
@@ -456,7 +456,7 @@ func TestSDFArtifactValidatorProtocolRejectsInvalidEnvelope(t *testing.T) {
 	if err := json.Unmarshal(output, &smilesPayload); err != nil {
 		t.Fatal(err)
 	}
-	if smilesPayload.SchemaVersion != 1 || smilesPayload.Format != "smi" || smilesPayload.OK ||
+	if smilesPayload.SchemaVersion != 2 || smilesPayload.Format != "smi" || smilesPayload.OK ||
 		smilesPayload.Code != "empty_smiles_records" || smilesPayload.ParsedCount != 0 {
 		t.Fatalf("header-only SMILES validator payload=%#v", smilesPayload)
 	}

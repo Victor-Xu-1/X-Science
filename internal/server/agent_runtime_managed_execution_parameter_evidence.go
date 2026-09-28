@@ -28,14 +28,19 @@ func managedExecutionPackParameterEvidencePreflight(
 	userEvidence []managedExecutionUserEvidence,
 	responseLanguage string,
 	selectedResolvers []sciencecapability.ExecutionEvidenceResolver,
+	directImplementations ...string,
 ) map[string]any {
 	argumentValues := managedExecutionArgumentValues(content)
+	directImplementation := ""
+	if len(directImplementations) > 0 {
+		directImplementation = strings.TrimSpace(directImplementations[0])
+	}
 	for _, parameter := range pack.Parameters {
 		if parameter.Evidence != "selected-evidence-resolver" {
 			continue
 		}
 		value, present := argumentValues[parameter.Argument]
-		selected, found := selectedEvidenceResolverParameterValue(pack, selectedResolvers)
+		selected, found := selectedExecutionPackParameterValue(pack, selectedResolvers, directImplementation)
 		if present && found && taskImplementationMatchesRegistered(value, selected) {
 			continue
 		}
@@ -85,8 +90,27 @@ func managedExecutionPackParameterEvidencePreflight(
 	sort.Strings(groups)
 	for _, group := range groups {
 		arguments := presentByGroup[group]
+		// File integrity and value correspondence are enforced again at the
+		// kernel boundary. This route documents a task-derived assumption; it
+		// neither requires nor creates a successful resolver receipt.
+		if route, found := pack.DocumentedInput(group); found && argumentValues[route.Argument] != "" && len(arguments) == expectedByGroup[group] {
+			continue
+		}
 		if len(arguments) == expectedByGroup[group] && resolvedUserEvidenceContainsArguments(userEvidence, group, arguments) {
 			continue
+		}
+		if resolver, found := selectedEvidenceResolverFromSelection(selectedResolvers, group); found {
+			parameters := make([]string, 0, len(arguments))
+			for _, argument := range arguments {
+				parameters = append(parameters, argument.parameter.Name)
+			}
+			return map[string]any{
+				"ok": false, "status": "execution_selected_resolver_handoff_required", "executed": false,
+				"decision_required": false, "execution_pack_id": pack.ID,
+				"evidence_group": group, "parameters": parameters, "selected_resolver": resolver,
+				"message":  "A selected evidence resolver already owns this controlled parameter group; copied resolver values are not user-input authority.",
+				"recovery": "Complete or restore the selected resolver's exact registered entrypoint, then consume its validated handoff through the parent execution pack. Do not transcribe derived values into user-input parameters or ask the user to ratify them.",
+			}
 		}
 		parameters := make([]string, 0, len(arguments))
 		for _, argument := range arguments {
@@ -115,6 +139,21 @@ func selectedEvidenceResolverParameterValue(
 	}
 	values = uniqueSortedFolded(values)
 	return firstString(values), len(values) == 1
+}
+
+// An execution pack may be the current task's primary implementation or an
+// auxiliary evidence resolver for another pack. Both roles must resolve from
+// the task's registered selection; merely naming a Skill cannot select it.
+func selectedExecutionPackParameterValue(
+	pack sciencecapability.ExecutionPack,
+	selected []sciencecapability.ExecutionEvidenceResolver,
+	directImplementation string,
+) (string, bool) {
+	if resolver, found := selectedEvidenceResolverParameterValue(pack, selected); found {
+		return resolver, true
+	}
+	directImplementation = strings.TrimSpace(directImplementation)
+	return directImplementation, directImplementation != ""
 }
 
 func managedExecutionArgumentValues(content string) map[string]string {

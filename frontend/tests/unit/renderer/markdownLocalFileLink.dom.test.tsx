@@ -293,6 +293,8 @@ describe('MarkdownView local file links', () => {
     );
 
     const link = screen.getByRole('link', { name: 'Final report' });
+    expect(link).toHaveClass('synon-artifact-link');
+    expect(link).toHaveAttribute('data-synon-artifact-link', 'true');
     await waitFor(() => {
       expect(link).toHaveAttribute('href', '/api/artifacts/artifact-report/versions/version-report');
     });

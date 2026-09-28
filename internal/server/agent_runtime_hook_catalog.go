@@ -173,7 +173,7 @@ func arrayValue(value any) []any {
 }
 
 func mergeAgentRuntimeToolInput(input map[string]any, updates map[string]any) map[string]any {
-	merged := make(map[string]any, len(input)+len(updates))
+	merged := make(map[string]any, len(input))
 	for key, value := range input {
 		merged[key] = value
 	}

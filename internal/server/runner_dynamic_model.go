@@ -30,6 +30,7 @@ type sessionRunnerDynamicModelClient struct {
 	initialSelection string
 	initialRevision  int64
 	contextUsage     *sessionContextUsageRecorder
+	contextBudget    *sessionRunnerRequestContextBudget
 
 	mu                  sync.RWMutex
 	lastSuccessfulModel string
@@ -269,6 +270,11 @@ func (client *sessionRunnerDynamicModelClient) Complete(
 	ctx context.Context,
 	request agentruntime.ModelRequest,
 ) (agentruntime.ModelResponse, error) {
+	if client != nil {
+		if err := client.contextBudget.beforeCall(ctx, request); err != nil {
+			return agentruntime.ModelResponse{}, err
+		}
+	}
 	resolved, err := client.resolve(ctx)
 	if err != nil {
 		return agentruntime.ModelResponse{}, wrapResolvedSessionRunnerModelCallError(err, resolved)
@@ -303,6 +309,11 @@ func (client *sessionRunnerDynamicModelClient) CompleteStream(
 	request agentruntime.ModelRequest,
 	emit func(agentruntime.ModelStreamEvent) error,
 ) (agentruntime.ModelResponse, error) {
+	if client != nil {
+		if err := client.contextBudget.beforeCall(ctx, request); err != nil {
+			return agentruntime.ModelResponse{}, err
+		}
+	}
 	resolved, err := client.resolve(ctx)
 	if err != nil {
 		return agentruntime.ModelResponse{}, wrapResolvedSessionRunnerModelCallError(err, resolved)

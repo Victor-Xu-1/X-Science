@@ -23,25 +23,44 @@ func (s *Server) resolveWebFSPath(
 		return webFSAccess{}, err
 	}
 	if strings.TrimSpace(workspaceValue) != "" {
-		workspaceRoot, err := canonicalWebFSDirectory(workspaceValue)
+		workspaceRoot, err := filepath.Abs(strings.TrimSpace(workspaceValue))
 		if err != nil {
 			return webFSAccess{}, err
 		}
-		authorized := false
 		for _, root := range roots {
 			if write && !root.Writable {
 				continue
 			}
-			if webFSPathWithin(root.Path, workspaceRoot) {
-				authorized = true
-				break
+			if !webFSPathWithin(root.Path, workspaceRoot) {
+				continue
 			}
+			// Authorize the lexical path before touching it. Resolve through the
+			// owner's root so intermediate symlinks cannot probe another root.
+			workspaceRoot, err = resolveWebFSTarget(root.Path, workspaceRoot, true)
+			if err != nil {
+				return webFSAccess{}, err
+			}
+			directory, err := os.OpenRoot(root.Path)
+			if err != nil {
+				return webFSAccess{}, err
+			}
+			relative, err := filepath.Rel(root.Path, workspaceRoot)
+			if err != nil {
+				directory.Close()
+				return webFSAccess{}, errWebFSForbidden
+			}
+			info, err := directory.Lstat(relative)
+			directory.Close()
+			if err != nil {
+				return webFSAccess{}, err
+			}
+			if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
+				return webFSAccess{}, errWebFSUnsupported
+			}
+			target, err := resolveWebFSTarget(workspaceRoot, requested, mustExist)
+			return webFSAccess{Root: workspaceRoot, Target: target}, err
 		}
-		if !authorized {
-			return webFSAccess{}, errWebFSForbidden
-		}
-		target, err := resolveWebFSTarget(workspaceRoot, requested, mustExist)
-		return webFSAccess{Root: workspaceRoot, Target: target}, err
+		return webFSAccess{}, errWebFSForbidden
 	}
 	requested = strings.TrimSpace(requested)
 	if requested == "" || !filepath.IsAbs(requested) {
@@ -62,6 +81,22 @@ func (s *Server) resolveWebFSPath(
 		return webFSAccess{Root: root.Path, Target: target}, err
 	}
 	return webFSAccess{}, errWebFSForbidden
+}
+
+// openWebFSRegularFile consumes a resolved, owner-authorized root. The actual
+// open remains anchored even if an intermediate directory changes to a symlink
+// after path validation. The returned descriptor owns the file snapshot.
+func openWebFSRegularFile(access webFSAccess) (*os.File, error) {
+	relative, inside := relativePathWithin(access.Root, access.Target)
+	if !inside {
+		return nil, errWebFSForbidden
+	}
+	root, err := os.OpenRoot(access.Root)
+	if err != nil {
+		return nil, err
+	}
+	defer root.Close()
+	return openRegularWorkspaceRootFile(root, filepath.FromSlash(relative))
 }
 
 func (s *Server) webFSRoots(userID string, includeLocalRead bool) ([]webFSRoot, error) {
@@ -186,7 +221,16 @@ func resolveWebFSTarget(root, requested string, mustExist bool) (string, error) 
 	if !webFSPathWithin(root, target) {
 		return "", errWebFSForbidden
 	}
-	info, statErr := os.Lstat(target)
+	directory, err := os.OpenRoot(root)
+	if err != nil {
+		return "", err
+	}
+	defer directory.Close()
+	relative, err := filepath.Rel(root, target)
+	if err != nil {
+		return "", errWebFSForbidden
+	}
+	info, statErr := directory.Lstat(relative)
 	if statErr == nil {
 		if info.Mode()&os.ModeSymlink != 0 {
 			return "", errWebFSUnsupported
@@ -208,7 +252,11 @@ func resolveWebFSTarget(root, requested string, mustExist bool) (string, error) 
 	}
 	ancestor := filepath.Dir(target)
 	for {
-		info, err := os.Lstat(ancestor)
+		relative, err := filepath.Rel(root, ancestor)
+		if err != nil || !webFSPathWithin(root, ancestor) {
+			return "", errWebFSForbidden
+		}
+		info, err := directory.Lstat(relative)
 		if err == nil {
 			if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
 				return "", errWebFSUnsupported

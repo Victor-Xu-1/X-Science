@@ -256,7 +256,9 @@ func (s *Server) resumePendingAgentToolCalls(
 					}
 				case "completed", "denied", "failed", "blocked":
 					status, phase := "completed", "completed"
-					if agentruntime.ClassifyToolResult(approvalResult).HardFailed() {
+					if agentruntime.IsNonExecutingPreflight(approvalResult) {
+						status, phase = "failed", prestartToolFailurePhase
+					} else if agentruntime.ClassifyToolResult(approvalResult).HardFailed() {
 						status, phase = "failed", "failed"
 					}
 					if err := s.checkpointChatTool(options, run, status,
@@ -524,6 +526,15 @@ func (s *Server) checkpointSessionRunnerToolEvent(
 	run *sessionRunnerChatRun,
 	event agentruntime.Event,
 ) error {
+	if event.Type == agentruntime.EventToolCompleted || event.Type == agentruntime.EventToolFailed {
+		// Admission can reject after approval but before execution. Both terminal
+		// event kinds must retire that unstarted operation through its existing
+		// durable settlement path, so recovery cannot mistake it for pending work.
+		result, _ := decodeToolEventJSON(event.Result).(map[string]any)
+		if err := s.completeKernelOperationPreflightForToolEvent(run, event.ToolCallID, result); err != nil {
+			return err
+		}
+	}
 	switch event.Type {
 	case agentruntime.EventToolStarted:
 		return s.checkpointChatTool(options, run, "running", fmt.Sprintf("tool %s started", event.ToolName), event.ToolCallID, "start", map[string]any{
@@ -548,11 +559,6 @@ func (s *Server) checkpointSessionRunnerToolEvent(
 		return s.checkpointChatTool(options, run, "running", message, event.ToolCallID, phase, details)
 	case agentruntime.EventToolCompleted:
 		toolResult := structuredOnboardingToolAuditProjection(event.ToolName, decodeToolEventJSON(event.Result))
-		if resultMap, _ := toolResult.(map[string]any); agentKernelPreflightResult(resultMap) {
-			if err := s.completeKernelOperationPreflightForToolEvent(run, event.ToolCallID, resultMap); err != nil {
-				return err
-			}
-		}
 		requestedInput, executedInput, hasExecutedInput := runnerToolEventInputs(event)
 		details := map[string]any{
 			"toolName": event.ToolName, "toolInput": requestedInput, "toolResult": toolResult,
@@ -583,7 +589,7 @@ func (s *Server) checkpointSessionRunnerToolEvent(
 		if phase == "completed" && !event.RejectedBeforeExecution {
 			run.activateToolCapability(event.ToolName, stringArrayValue(details["toolCapabilities"])...)
 		}
-		if err := s.checkpointChatTool(options, run, status, fmt.Sprintf("tool %s completed", event.ToolName), event.ToolCallID, phase, details); err != nil {
+		if err := s.checkpointChatTool(options, run, status, fmt.Sprintf("tool %s %s", event.ToolName, status), event.ToolCallID, phase, details); err != nil {
 			return err
 		}
 		if phase == "completed" && runnerToolCompletionHasMaterialProgress(event.ToolName, toolResult) {
@@ -843,7 +849,12 @@ func (s *Server) prepareRunnerToolBatchCheckpointMutation(
 			item.State == workspace.ToolCallBatchItemStatePending
 		startedRejection := batch.State == workspace.ToolCallBatchStateRunning &&
 			item.State == workspace.ToolCallBatchItemStateRunning
-		if !pendingRejection && !startedRejection {
+		// Approval resumption deliberately leaves the batch in waiting until
+		// its exact receipt settles. A native rejection must close that same
+		// transaction instead of recording an orphan terminal checkpoint.
+		waitingRejection := batch.State == workspace.ToolCallBatchStateWaiting &&
+			item.State == workspace.ToolCallBatchItemStateWaiting
+		if !pendingRejection && !startedRejection && !waitingRejection {
 			fmt.Fprintf(os.Stderr, "[runner] tool batch %s pre-start failure for %s is not actionable (batch=%s item=%s); skipping\n",
 				batchID, toolCallID, batch.State, item.State)
 			return nil, nil

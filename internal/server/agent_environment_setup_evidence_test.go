@@ -95,3 +95,22 @@ func TestManagedEnvironmentSetupEvidenceRequiredActionsUseExactMissingURLs(t *te
 		}
 	}
 }
+
+func managedEnvironmentSetupEvidenceFromMessages(
+	messages []agentruntime.Message,
+	required []string,
+) (map[string]string, []string) {
+	state := managedEnvironmentSetupEvidenceStateFromMessages(messages, required)
+	return state.evidence, state.missing
+}
+
+func managedEnvironmentSetupEvidenceStateFromMessages(
+	messages []agentruntime.Message,
+	required []string,
+) managedEnvironmentSetupEvidenceState {
+	return managedEnvironmentSetupEvidenceStateFromMessagesUsing(
+		messages, required, map[string]struct{}{
+			"webfetch": {}, "webresearch": {},
+		},
+	)
+}

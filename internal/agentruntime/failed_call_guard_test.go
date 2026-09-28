@@ -214,8 +214,12 @@ func TestFailedToolCallGuardAllowsCorrectedArgumentsImmediately(t *testing.T) {
 		t.Fatalf("corrected result = %#v err=%v executions=%d", result, err, executions.Load())
 	}
 	retry, err := guard.Execute(context.Background(), ToolCall{ID: "quoted-after-correction", Name: "drug_search", Arguments: json.RawMessage(`{"max_phase":"4"}`)})
-	if err != nil || !ClassifyToolResult(retry.Value).Failed() || executions.Load() != 3 {
-		t.Fatalf("same-tool correction did not clear stale failure: result=%#v err=%v executions=%d", retry, err, executions.Load())
+	if err != nil || mapValueForTest(t, retry.Value)["code"] != "repeated_failed_tool_call" || executions.Load() != 2 {
+		t.Fatalf("corrected search reopened the unchanged invalid call: result=%#v err=%v executions=%d", retry, err, executions.Load())
+	}
+	validAgain, err := guard.Execute(context.Background(), ToolCall{ID: "valid-again", Name: "drug_search", Arguments: json.RawMessage(`{"max_phase":4}`)})
+	if err != nil || ClassifyToolResult(validAgain.Value).Failed() || executions.Load() != 3 {
+		t.Fatalf("valid search was closed by an unrelated invalid fingerprint: result=%#v err=%v", validAgain, err)
 	}
 }
 
@@ -564,18 +568,19 @@ func TestFailedToolCallGuardUsesArbitraryMutationCapability(t *testing.T) {
 	}
 }
 
-func TestSemanticFailureFingerprintUsesCapabilityAuthority(t *testing.T) {
+func TestExecutionFailureLedgerUsesCapabilityAuthority(t *testing.T) {
 	failure := map[string]any{"ok": false, "code": "software_output_validation_failed", "error": "invalid output"}
 	arguments := json.RawMessage(`{"working_dir":"analysis"}`)
-	if fingerprint := SemanticFailureFingerprintWithCapabilities(
-		"future_compute", arguments, failure, []string{"runtime-execution"},
-	); fingerprint == "" {
-		t.Fatal("runtime capability did not receive semantic recovery identity")
+	var state ExecutionFailureLedger
+	compute := ToolCall{Name: "future_compute", Arguments: arguments}
+	state.Observe(compute, []string{"runtime-execution"}, failure)
+	if state.Boundary(compute) == nil {
+		t.Fatal("runtime capability did not retain the failed execution")
 	}
-	if fingerprint := SemanticFailureFingerprintWithCapabilities(
-		"future_reader", arguments, failure, []string{"source-evidence", "read-only"},
-	); fingerprint != "" {
-		t.Fatalf("read-only source capability was misclassified as mutable execution: %q", fingerprint)
+	reader := ToolCall{Name: "future_reader", Arguments: arguments}
+	state.Observe(reader, []string{"source-evidence", "read-only"}, failure)
+	if state.Boundary(reader) != nil {
+		t.Fatal("read-only source capability was misclassified as mutable execution")
 	}
 }
 

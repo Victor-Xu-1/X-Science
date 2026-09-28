@@ -92,7 +92,7 @@ func NormalizeExecutionRequest(input ExecutionRequest) (ExecutionRequest, Defini
 	for kind, path := range input.Inputs {
 		binding, found := inputByKind[strings.TrimSpace(kind)]
 		path = filepath.ToSlash(strings.TrimSpace(path))
-		if !found || !safeTaskRelativePath(path) || !containsString(binding.Extensions, strings.ToLower(filepath.Ext(path))) {
+		if !found || !safeTaskRelativePath(path) || !matchesExecutionInputExtension(path, binding.Extensions) {
 			return ExecutionRequest{}, Definition{}, EngineDefinition{}, fmt.Errorf("scientific execution input %q is invalid", kind)
 		}
 		normalizedInputs[binding.Kind] = path
@@ -128,6 +128,18 @@ func NormalizeExecutionRequest(input ExecutionRequest) (ExecutionRequest, Defini
 	}
 	input.Parameters = normalizedParameters
 	return input, definition, engine, nil
+}
+
+// Registered suffixes may be compound archive extensions. The catalog and
+// request boundary share this comparison so an acquired input stays admissible.
+func matchesExecutionInputExtension(path string, extensions []string) bool {
+	path = strings.ToLower(path)
+	for _, extension := range extensions {
+		if strings.HasSuffix(path, extension) {
+			return true
+		}
+	}
+	return false
 }
 
 func CanonicalExecutionRequestJSON(input ExecutionRequest) ([]byte, error) {

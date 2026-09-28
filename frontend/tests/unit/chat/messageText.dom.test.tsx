@@ -135,8 +135,16 @@ vi.mock('@/renderer/utils/ui/clipboard', () => ({
 }));
 
 vi.mock('@arco-design/web-react', () => ({
-  Alert: ({ title, content }: { title?: React.ReactNode; content?: React.ReactNode }) => (
-    <div data-testid='terminal-failure-alert'>
+  Alert: ({
+    title,
+    content,
+    'data-testid': testId,
+  }: {
+    title?: React.ReactNode;
+    content?: React.ReactNode;
+    'data-testid'?: string;
+  }) => (
+    <div data-testid={testId}>
       {title}
       {content}
     </div>
@@ -322,6 +330,10 @@ describe('MessageText attachment paths', () => {
       </ConversationProvider>
     );
     expect(screen.queryByTestId('terminal-failure-alert')).not.toBeInTheDocument();
+    expect(screen.getByText('partial answer')).toBeInTheDocument();
+    expect(screen.getByTestId('terminal-failure-history')).toHaveTextContent(
+      'conversation.synonRuntime.runtimeOperations.historicalResponseIncomplete'
+    );
   });
 
   it('does not render a durable cancellation reason as assistant content', () => {

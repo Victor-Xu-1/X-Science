@@ -127,6 +127,7 @@ func (e Engine) executeTool(ctx context.Context, call ToolCall) (Message, error)
 	if err := validateToolCall(call); err != nil {
 		value["error"] = err.Error()
 		message, messageErr := e.toolResultMessage(ctx, call, value, ClassifyToolResult(value))
+		message.noProgress = true
 		if messageErr != nil {
 			return message, messageErr
 		}
@@ -216,7 +217,15 @@ func (e Engine) executeTool(ctx context.Context, call ToolCall) (Message, error)
 		eventMessage = ToolFailureEventMessage(result.Value)
 	}
 	originalResult := message.Content
-	modelResult, modelResultErr := AttachToolResultModelContext(originalResult, result.ModelContext)
+	modelContent := originalResult
+	if result.ModelContent != "" {
+		encoded, encodeErr := json.Marshal(result.ModelContent)
+		if encodeErr != nil {
+			return message, encodeErr
+		}
+		modelContent = string(encoded)
+	}
+	modelResult, modelResultErr := AttachToolResultModelContext(modelContent, result.ModelContext)
 	if modelResultErr != nil {
 		return message, modelResultErr
 	}
@@ -276,12 +285,15 @@ func AttachToolResultModelContext(content string, modelContext any) (string, err
 // custom MarshalJSON values are never marshalled a second time on the
 // large-result path.
 func toolResultReportsNoProgress(value any) bool {
+	if provider, ok := value.(interface{ ToolResultEnvelope() map[string]any }); ok {
+		value = provider.ToolResultEnvelope()
+	}
 	if envelope, ok := value.(map[string]any); ok {
-		reused, present := envelope["reused"].(bool)
-		if present {
-			return reused
+		outcome := ClassifyToolResult(envelope)
+		if envelope["executed"] == false || outcome.HardFailed() || outcome == ToolResultUnavailable {
+			return true
 		}
-		return toolResultExplicitlyUnchanged(envelope)
+		return envelope["reused"] == true || toolResultExplicitlyUnchanged(envelope) || toolResultExplicitlyNoMutation(envelope)
 	}
 	reflected := reflect.ValueOf(value)
 	for reflected.IsValid() && reflected.Kind() == reflect.Pointer {

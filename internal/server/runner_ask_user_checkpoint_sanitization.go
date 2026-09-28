@@ -200,33 +200,46 @@ func managedExecutionPrioritizeResolverOption(
 	parameters []sciencecapability.ExecutionParameter,
 	original string,
 ) ([]any, bool) {
-	resolverTerms := []string{
-		strings.ToLower(strings.TrimSpace(resolver.Implementation)),
-		strings.ToLower(strings.TrimSpace(resolver.Skill)),
-	}
 	for index, raw := range options {
 		option, valid := raw.(map[string]any)
 		if !valid {
 			continue
 		}
 		metadata := mapValue(option["metadata"])
-		declaredImplementation := strings.TrimSpace(stringValue(metadata["implementation"]))
-		if declaredImplementation != "" &&
-			!taskImplementationMatchesRegistered(declaredImplementation, resolver.Implementation) {
+		declaredResolver, hasResolver := metadata["evidence_resolver"]
+		if hasResolver {
+			// Typed scope is authoritative over comparative prose. Malformed or
+			// conflicting proposals must survive unchanged for normal validation;
+			// normalization cannot turn them into a different user-owned choice.
+			tuple, valid := declaredResolver.(map[string]any)
+			declaredGroup, groupOK := tuple["evidence_group"].(string)
+			declaredSkill, skillOK := tuple["skill"].(string)
+			declaredEngine, engineOK := tuple["implementation"].(string)
+			if !valid || !groupOK || !skillOK || !engineOK ||
+				strings.TrimSpace(declaredGroup) != group ||
+				!strings.EqualFold(strings.TrimSpace(declaredSkill), strings.TrimSpace(resolver.Skill)) ||
+				!askUserImplementationIdentityMatches(declaredEngine, resolver.Implementation) {
+				continue
+			}
+		}
+		// Match the same field precedence as askUserQuestionOptionsValue. A
+		// comparative mention in prose cannot override an explicit engine or
+		// turn an unregistered composition into a registered auxiliary route.
+		declaredImplementation := strings.TrimSpace(firstNonEmpty(
+			stringValue(option["implementation"]), stringValue(metadata["implementation"]),
+		))
+		exactImplementation := askUserImplementationIdentityMatches(declaredImplementation, resolver.Implementation) ||
+			(declaredImplementation != "" && strings.EqualFold(declaredImplementation, strings.TrimSpace(resolver.Skill)))
+		if declaredImplementation != "" && !exactImplementation {
 			continue
 		}
 		if boolValue(metadata["terminal_decision"], false) {
 			continue
 		}
-		text := strings.ToLower(managedExecutionRawAskUserOptionText(option))
-		matches := false
-		for _, term := range resolverTerms {
-			if term != "" && strings.Contains(text, term) {
-				matches = true
-				break
-			}
-		}
-		if !matches {
+		// Prose can compare or explicitly reject this resolver. Only declared
+		// identity may bind an existing choice; otherwise add a distinct option
+		// whose displayed route and executable authority agree.
+		if !hasResolver && !exactImplementation {
 			continue
 		}
 		bound := copyMapAny(option)
@@ -241,6 +254,11 @@ func managedExecutionPrioritizeResolverOption(
 		}
 		delete(metadata, "implementation")
 		delete(metadata, "resources")
+		// Both public tool fields and persisted metadata are normalized later.
+		// Leaving the public fields would recreate a primary-engine selection
+		// after this option has already been bound to an auxiliary resolver.
+		delete(bound, "implementation")
+		delete(bound, "resources")
 		bound["metadata"] = metadata
 		if index == 0 {
 			updated := append([]any(nil), options...)
@@ -256,7 +274,7 @@ func managedExecutionPrioritizeResolverOption(
 	if len(options) >= 4 {
 		options = options[:3]
 	}
-	prioritized := make([]any, 0, len(options)+1)
+	prioritized := make([]any, 0, len(options))
 	prioritized = append(prioritized, managedExecutionResolverAskUserOption(resolver, group, parameters, original))
 	prioritized = append(prioritized, options...)
 	return prioritized, true
@@ -294,17 +312,6 @@ func managedExecutionEnsureStopOption(
 		return updated
 	}
 	return append(options, stop)
-}
-
-func managedExecutionRawAskUserOptionText(option map[string]any) string {
-	parts := []string{
-		stringValue(option["label"]), stringValue(option["description"]),
-		stringValue(option["pros"]), stringValue(option["cons"]), stringValue(option["preview"]),
-	}
-	if metadata, valid := option["metadata"].(map[string]any); valid {
-		parts = append(parts, stringValue(metadata["route_description"]))
-	}
-	return strings.Join(parts, " ")
 }
 
 func managedExecutionResolverAskUserOption(

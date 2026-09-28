@@ -16,9 +16,7 @@ func (client sessionRunnerStaticStreamingCompatibilityClient) Complete(
 	ctx context.Context,
 	request agentruntime.ModelRequest,
 ) (agentruntime.ModelResponse, error) {
-	requestCtx, cancel := staticStreamingRequestContext(ctx, client.timeout)
-	defer cancel()
-	response, err := client.delegate.Complete(requestCtx, request)
+	response, err := client.delegate.Complete(ctx, request)
 	return response, normalizeStaticStreamingModelError(err)
 }
 
@@ -27,17 +25,11 @@ func (client sessionRunnerStaticStreamingCompatibilityClient) CompleteStream(
 	request agentruntime.ModelRequest,
 	emit func(agentruntime.ModelStreamEvent) error,
 ) (agentruntime.ModelResponse, error) {
-	requestCtx, cancel := staticStreamingRequestContext(ctx, client.timeout)
-	defer cancel()
-	response, err := client.delegate.CompleteStream(requestCtx, request, emit)
+	// The provider owns header/semantic-idle budgets. Adding a total deadline
+	// here terminates healthy streams and hides their recoverable error cause.
+	// Caller cancellation and explicit deadlines still flow through unchanged.
+	response, err := client.delegate.CompleteStream(ctx, request, emit)
 	return response, normalizeStaticStreamingModelError(err)
-}
-
-func staticStreamingRequestContext(parent context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
-	if timeout <= 0 {
-		return context.WithCancel(parent)
-	}
-	return context.WithTimeout(parent, timeout)
 }
 
 func normalizeStaticStreamingModelError(err error) error {
@@ -52,11 +44,24 @@ func normalizeStaticStreamingModelError(err error) error {
 	}
 	for _, prefix := range []string{"provider endpoint returned ", "model provider returned http "} {
 		if index := strings.Index(lower, prefix); index >= 0 {
-			return errors.New(message[:index] + "OpenAI chat endpoint returned " + message[index+len(prefix):])
+			return &staticStreamingModelPresentationError{
+				message: message[:index] + "OpenAI chat endpoint returned " + message[index+len(prefix):],
+				cause:   err,
+			}
 		}
 	}
 	return err
 }
+
+// Presentation compatibility must not erase the provider's typed HTTP/protocol
+// cause: recovery and advisory-review decisions consume that authority.
+type staticStreamingModelPresentationError struct {
+	message string
+	cause   error
+}
+
+func (err *staticStreamingModelPresentationError) Error() string { return err.message }
+func (err *staticStreamingModelPresentationError) Unwrap() error { return err.cause }
 
 func (m serverErrorModelClient) Complete(context.Context, agentruntime.ModelRequest) (agentruntime.ModelResponse, error) {
 	return agentruntime.ModelResponse{}, m.err

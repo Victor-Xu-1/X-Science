@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"sync"
 
 	"synon-go/internal/agentruntime"
+	"synon-go/internal/executionprep"
 	"synon-go/internal/toolcontract"
 	"synon-go/internal/toolgateway"
 )
@@ -280,10 +282,14 @@ func serverAgentRuntimeGatewayAdmit(invocation *toolgateway.Invocation) {
 func serverAgentRuntimeGatewayPreflight(invocation *toolgateway.Invocation) {
 	execution := serverAgentRuntimeExecution(invocation)
 	gateway := execution.gateway
+	name := invocation.CanonicalName
+	if preflight := gateway.agentRuntimeRegisteredAcquisitionPreflight(name, invocation.Input); preflight != nil {
+		invocation.CompleteForAudit(preflight, "completed", "", nil)
+		return
+	}
 	if gateway.resumeAfterApproval {
 		return
 	}
-	name := invocation.CanonicalName
 	preflight := agentRuntimeUnresolvedToolResultTemplatePreflight(name, invocation.Input)
 	if preflight == nil {
 		preflight = agentRuntimeUnresolvedSkillDirectoryPreflight(name, invocation.Input)
@@ -305,7 +311,7 @@ func serverAgentRuntimeGatewayPreflight(invocation *toolgateway.Invocation) {
 	// check here prevents a second execution path from bypassing loaded Skill
 	// contracts when an older checkpoint falls outside the model replay window.
 	if preflight == nil {
-		preflight = gateway.agentRuntimeSkillExecutionContractPreflight(name, invocation.Input)
+		preflight = gateway.agentRuntimeSkillExecutionContractPreflight(name, invocation.Input, invocation.Context)
 	}
 	if preflight != nil {
 		invocation.CompleteForAudit(preflight, "completed", "", nil)
@@ -319,7 +325,24 @@ func serverAgentRuntimeGatewayFailureBudget(invocation *toolgateway.Invocation) 
 		return
 	}
 	name := invocation.CanonicalName
-	if value := gateway.durableSemanticFailureBoundary(invocation.Context, name, invocation.Input); value != nil {
+	value, err := gateway.durableSemanticFailureBoundary(invocation.Context, name, invocation.Input)
+	if err != nil {
+		if contextErr := agentRuntimeContextError(invocation.Context); contextErr != nil {
+			invocation.CompleteForAudit(nil, agentRuntimeContextStatus(contextErr), contextErr.Error(), contextErr)
+			return
+		}
+		value = durableSemanticPreflightBoundary(map[string]any{
+			"ok": false, "code": "execution_history_unavailable", "retryable": true,
+			"message": "Execution history is temporarily unavailable; no tool execution started.",
+		})
+		// Retain a non-executed structured receipt. A raw transport error would
+		// discard it and expose persistence details to the model and browser.
+		log.Printf("tool_execution_history_unavailable session=%q call=%q error=%q",
+			gateway.sessionID, execution.call.ID, truncateFeedbackRunes(redactFeedbackString(err.Error()), 1000))
+		invocation.CompleteForAudit(value, "failed", stringValue(value["message"]), nil)
+		return
+	}
+	if value != nil {
 		invocation.CompleteForAudit(value, "blocked", stringValue(value["message"]), nil)
 		return
 	}
@@ -459,6 +482,21 @@ func serverAgentRuntimeGatewayExecute(invocation *toolgateway.Invocation) {
 	execution := serverAgentRuntimeExecution(invocation)
 	gateway := execution.gateway
 	name := invocation.CanonicalName
+	// Keep the immutable binary-route invariant at the final execution
+	// boundary as well as the preflight stage. Approved resumes may bypass
+	// permission-oriented preflight, but they must never bypass route safety.
+	if boundary := gateway.agentRuntimeRegisteredAcquisitionPreflight(name, invocation.Input); boundary != nil {
+		invocation.CompleteForAudit(boundary, "completed", "", nil)
+		return
+	}
+	// Rebind the final source after all earlier stages, including approved
+	// resumes. The proof stays in a private host context, never tool arguments.
+	if boundary := gateway.agentRuntimeImplementationExecutionChoicePreflight(name, invocation.Input, invocation.Context); boundary != nil {
+		invocation.CompleteForAudit(boundary, "completed", "", nil)
+		return
+	}
+	invocation.Context = executionprep.WithObservation(invocation.Context,
+		gateway.agentRuntimeDiagnosticObservation(invocation.Context, name, invocation.Input))
 	if name == "wait_for_notification" {
 		result, err := gateway.server.executeAgentKernelNotificationWait(
 			invocation.Context, gateway.kernel, execution.call.ID, invocation.Input,
@@ -546,6 +584,14 @@ func serverAgentRuntimeGatewayMaterialize(invocation *toolgateway.Invocation) {
 	execution.response = response
 	execution.responseParts = parts
 	execution.result = gateway.trustedAgentRuntimeToolResult(invocation.Context, execution.call, response, parts)
+	if status == "completed" && isCompletedSkillToolName(name) {
+		if contract, ok := response.(string); ok && strings.HasPrefix(contract, agentRuntimeSkillMetadataPrefix) {
+			// The catalog loader has already bounded and materialized this exact
+			// contract. A data preview is insufficient instruction context for a
+			// capability first discovered during this execution unit.
+			execution.result.ModelContent = contract
+		}
+	}
 	if status == "completed" && gateway.server.sessionRunnerEvidenceTool(name) {
 		if state := gateway.server.generatedPlanResearchHandoffContext(gateway.sessionID, execution.call, response); state != "" {
 			var modelContext map[string]any

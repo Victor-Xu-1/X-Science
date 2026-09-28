@@ -46,6 +46,11 @@ This runs `npm ci --ignore-scripts` in `frontend/`. npm and
 `frontend/package-lock.json` are the frontend dependency authority; do not add
 another package-manager lockfile.
 
+Browser-backed HTML isolation tests require the Chromium revision selected by
+the locked Playwright dependency. Install it explicitly with
+`(cd frontend && npx --no-install playwright install chromium)`; frontend CI
+uses the same revision rather than a developer's browser profile.
+
 ## Verify the change you made
 
 Start with a test that reproduces the bug or specifies the new behavior, then

@@ -51,6 +51,9 @@ func startSession(ctx context.Context, root string, config ServerConfig) (*sessi
 	if ctx == nil {
 		ctx = context.Background()
 	}
+	// Local MCP configuration deliberately selects an executable and argv;
+	// callers authorize that configuration, while ValidateSpec bounds its shape.
+	// Tool-call payloads travel over JSON-RPC and never become command arguments.
 	cmd := exec.CommandContext(ctx, command, config.Args...)
 	if root != "" {
 		cmd.Dir = root
@@ -89,8 +92,6 @@ func startSession(ctx context.Context, root string, config ServerConfig) (*sessi
 		_ = process.close()
 		return nil, err
 	}
-	scanner := bufio.NewScanner(stdout)
-	scanner.Buffer(make([]byte, 64*1024), maxScannerTokenBytes)
 	sess := &session{
 		command:    command,
 		cmd:        cmd,
@@ -98,7 +99,7 @@ func startSession(ctx context.Context, root string, config ServerConfig) (*sessi
 		stdin:      stdin,
 		stdout:     stdout,
 		stderrPipe: stderr,
-		scanner:    scanner,
+		reader:     bufio.NewReaderSize(stdout, mcpResponseBufferBytes),
 		encoder:    json.NewEncoder(stdin),
 		stderr:     &limitedBuffer{},
 	}

@@ -19,7 +19,7 @@ preferred-execution-assets:
 critical-constraints:
   - For a generated-candidate workflow, run the drug-discovery-pipeline assembler after both validations pass and publish its ranking, report, component registry, and pose-score table; never hand-edit the quantitative report.
   - Execute docking only through scripts/autodock_vina.py; never call or wrap vina, mk_prepare_receptor.py, or mk_prepare_ligand.py directly, never split ranked_poses.pdbqt, and publish only the pack-generated validated pose files and report.
-  - For a raw apo receptor without a bound reference ligand, require an explicit binding-site route decision and offer the registered P2Rank resolver; never substitute the whole-protein centroid or model-estimated coordinates.
+  - For a raw apo receptor, use a validated prediction, a reference ligand, explicit user input, or a documented evidence-backed task derivation. An unavailable prediction does not forbid a distinct manual route; preserve its sources and uncertainty.
 ---
 
 # AutoDock Vina managed workflow
@@ -66,27 +66,34 @@ path.
    that do not ask for the latest qualifying entry.
 2. Supply a chemically prepared receptor or an evidence-backed receptor source,
    plus one ligand file containing the exact requested ligand set. PDBQT inputs
-   bypass preparation; PDB/mmCIF and CDX/SDF/MOL/MOL2 inputs are prepared by the
+   bypass preparation; PDB/mmCIF and CDX/SDF/MOL/MOL2/SMI/SMILES inputs are prepared by the
    pack's reviewed conversion and Meeko path. Pass CDX directly to the pack so
    its Open Babel conversion, molecule-count validation, and stable source-order
-   identifiers stay in the same execution receipt.
+   identifiers stay in the same execution receipt. Pass SMI/SMILES inputs directly
+   as well; the pack owns parsing, stable candidate IDs, and deterministic 3D
+   conformer generation. When a record contains disconnected salt/counterion
+   fragments, the pack selects the unique largest organic fragment and records
+   the selected and removed canonical fragments in `vina.log`; equally ranked
+   fragments fail as ambiguous instead of being silently discarded.
 3. For a raw PDB/mmCIF co-crystal, pass `--reference-ligand` and let the pack
    derive the docking center from that component's verified coordinates. When
    it is omitted, the pack may select one unambiguous bound organic component
    from authoritative PDB SITE annotations or a single plausible non-polymer;
-   ambiguous or apo coordinates require one short binding-site decision instead
+   ambiguous or apo coordinates require an evidence-backed site route instead
    of an invented local center or protein centroid. Offer P2Rank by its
    public implementation name for automatic apo-pocket prediction, a manual
-   center, or a receptor/reference-ligand input. If the user selects P2Rank or
-   delegates the decision to Synon Biomed, load `p2rank-pocket-detection`, run
+   center, or a receptor/reference-ligand input. If P2Rank is the chosen method,
+   load `p2rank-pocket-detection`, run
    its reviewed pack, and pass both `pocket_selection.json` and
    `pocket_validation.json` directly to this pack. When current-task user input explicitly supplies the
    three center coordinates, pass them together with
    `--center-authority resolved-user-input`; the Harness verifies the numeric
    tuple against user evidence before process start. Prepared PDBQT receptors
-   use the same evidence-bound explicit-center route. Do not write ad-hoc
-   Gemmi/BioPython center-parsing code. Record the coordinate system and
-   rationale. Routine seed, exhaustiveness, and mode-count defaults are owned
+   use the same evidence-bound explicit-center route. When scientific choices
+   have been delegated, Synon may instead derive a manual site from task
+   sources and record it through the documented-input route below. Do not
+   require the user to repeat coordinates derived from those sources. Record
+   the coordinate system and rationale. Routine seed, exhaustiveness, and mode-count defaults are owned
    by the pack unless the task explicitly constrains them.
 4. Use `manage_environments(mode="list", dependencies=["vina", "meeko", "rdkit", "gemmi", "prody", "biopython", "openbabel"])`
    as the only readiness check. Do not probe retired runtime tools or guessed
@@ -128,18 +135,37 @@ selects one deterministic instance of `--reference-ligand`, selects the polymer
 chains contacting that instance, removes ligands/waters, writes a normalized
 PDB, derives and records that ligand centroid, and records the selected chains
 before Meeko preparation. A raw apo receptor cannot use naked `--center-*`
-values; it may instead consume the paired passing P2Rank receipts. PDBQT receptors require all three explicit center values and the same
+values; it may instead consume paired passing prediction receipts or the
+documented-input alternative. PDBQT receptors require all three explicit center values and the same
 Harness-verified `--center-authority` because they do not retain a reference
 ligand.
+For a literature-guided, structure-derived or exploratory manual site, use
+`--center-authority documented-input --site-evidence <task-relative-json>`
+alongside all three `--center-*` values and box dimensions. The evidence file
+uses `schema: "synon.documented-input.v1"`, `evidence_group: "binding-site-center"`,
+`input_sha256` of the exact receptor, `basis` (literature-guided,
+structure-derived, user-supplied or exploratory), a reproducible `method`,
+nonempty `sources` references, honest `limitations`, and `values` containing
+`center_x`, `center_y`, `center_z` as numbers matching the command.
+Inspect and calculate from the real task inputs as needed to prepare this
+record. Do not reuse a prediction validation JSON or claim that a manual
+choice was predicted or experimentally confirmed. No predictor signature or
+successful predictor execution is required for this distinct route.
+The Harness checks source bytes and matching values, pins the source and
+record for execution, and the report labels the manual basis and uncertainty.
+This provenance check does not establish scientific validity.
 Use repeated `--receptor-chain` only when the authoritative structure evidence
 already identifies the intended receptor chain. The
 script executes `vina --help`, `mk_prepare_ligand.py --help`, and
 `mk_prepare_receptor.py --help` before docking, and also executes the reviewed
 `obabel` CDX conversion when the ligand input is CDX. Do not preconvert CDX or
 call any of those CLIs directly. Vina 1.2.x output is captured
-by the script; do not add an unsupported `--log` flag. The default output
-directory is `out`; `--output-dir` may select one task-relative directory and
-is rejected if it escapes the authorized workspace.
+by the script; do not add an unsupported `--log` flag. Do not create, remove,
+or mark an output directory before execution. The default is `out`; when it
+already exists, the pack preserves it and selects the first absent `out-2`,
+`out-3`, and so on. A workspace marker never authorizes reuse. An explicit
+`--output-dir` must be task-relative, stay inside the authorized workspace, and
+be absent before execution. Use the validated output path printed by the pack.
 
 `--repeat-count` controls independent Vina runs per candidate; each run uses a
 deterministic adjacent seed. `--num-modes` controls the sampled modes per run.
@@ -158,36 +184,36 @@ A successful run must retain the exact managed environment generation, Bash
 receipt, input hashes, stdout/stderr, output files, and validation record. The
 workflow publishes and validates:
 
-- `out/docking_scores.csv` with exactly these columns:
+- `<validated-output>/docking_scores.csv` with exactly these columns:
   `ligand_id`, `best_affinity_kcal_mol`, `mode_count`, `receptor_sha256`,
   `center_x`, `center_y`, `center_z`, `size_x`, `size_y`, `size_z`, `seed`,
   `repeat_count`, `exhaustiveness`, `num_modes`, `poses_per_candidate`,
   `primary_pose_run`, `primary_pose_mode`, reference-geometry diagnostics, and
   `rank`. `poses_per_candidate` is always 1. Read this canonical table directly;
   do not guess or rename an affinity field before inspecting its header;
-- `out/ranked_poses.pdbqt`;
-- `out/primary_poses/*.pdbqt`, one validated file per candidate, plus
-  `out/primary_pose_manifest.csv` with ID, rank, score, source mode, and hash.
+- `<validated-output>/ranked_poses.pdbqt`;
+- `<validated-output>/primary_poses/*.pdbqt`, one validated file per candidate, plus
+  `<validated-output>/primary_pose_manifest.csv` with ID, rank, score, source mode, and hash.
   Never split `ranked_poses.pdbqt`; its pre-`MODEL` bytes are metadata;
-- `out/docking_pose_scores.csv`, one primary-pose row per candidate with its
+- `<validated-output>/docking_pose_scores.csv`, one primary-pose row per candidate with its
   affinity, source run/mode, and reference-geometry diagnostics;
-- `out/docking_pose_samples.csv`, the complete internal score ledger for every
+- `<validated-output>/docking_pose_samples.csv`, the complete internal score ledger for every
   sampled run and mode, including the selected-primary flag;
-- `out/docking_complex_ensemble.pdb`, a standard editable PDB containing the
+- `<validated-output>/docking_complex_ensemble.pdb`, a standard editable PDB containing the
   fixed selected protein exactly once, the selected original co-crystal ligand
   as residue `REF` when available, and exactly one primary pose for every
   docked candidate as a separate residue component. Candidate residue names
   are stable three-character component codes and every REMARK maps that code
   back to the original candidate ID, candidate rank, source run/mode, and
   affinity;
-- `out/docking_components.csv`, the editable component registry joining protein
+- `<validated-output>/docking_components.csv`, the editable component registry joining protein
   chains, the optional reference ligand, candidate IDs, PDB residue groups,
   ranks, affinities, and source pose files;
-- `out/vina.log` with bounded CLI receipts;
-- `out/validation.json` with passing input fidelity, source integrity,
+- `<validated-output>/vina.log` with bounded CLI receipts;
+- `<validated-output>/validation.json` with passing input fidelity, source integrity,
   candidate-ID fidelity, retained-pose count fidelity, complex-component
   integrity, output integrity, score summary, and process cleanup;
-- `out/docking_report.md`, generated from the same ranking and pose manifest,
+- `<validated-output>/docking_report.md`, generated from the same ranking and pose manifest,
   with the box basis and score limitations stated explicitly.
 
 Candidate IDs come from the input molecule titles and are preserved exactly
@@ -217,7 +243,7 @@ model may explain those outputs but must not transcribe or recalculate them.
 ## Failure boundary
 
 A failed run ends the current execution unit. Preserve its exit code,
-stdout/stderr, `out/failure.json`, and any completed outputs. Before one new
+stdout/stderr, the pack-reported failure artifact, and any completed outputs. Before one new
 execution, reload this Skill or inspect the documented interface named by the
 receipt and change only the evidence-proven input or parameter. A second
 semantically equivalent failure closes this path. Do not edit-run loop, guess

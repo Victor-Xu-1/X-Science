@@ -49,8 +49,15 @@ func assertGeneratePlanToolSchema(t *testing.T, tool registry.Tool) {
 	}
 	required := stringValueSlice(stepItems["required"])
 	kind := mapValue(stepProperties["kind"])
-	if !stringSliceContains(required, "kind") || len(anySliceValue(kind["enum"])) != 4 {
-		t.Fatalf("generate_plan step kind must distinguish research, synthesis, and delivery: %#v", stepItems)
+	wantKinds := []string{"work", "execution", "research", "synthesis", "delivery"}
+	actualKinds := stringValueSlice(kind["enum"])
+	if !stringSliceContains(required, "kind") || len(actualKinds) != len(wantKinds) {
+		t.Fatalf("generate_plan must distinguish every supported step kind: %#v", stepItems)
+	}
+	for i, want := range wantKinds {
+		if actualKinds[i] != want {
+			t.Fatalf("generate_plan kind[%d]=%q want=%q", i, actualKinds[i], want)
+		}
 	}
 	for _, field := range []string{"output_module", "research_question", "research_depth", "discovery_queries"} {
 		if stepProperties[field] == nil {

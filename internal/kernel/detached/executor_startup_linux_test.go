@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
@@ -109,11 +110,42 @@ func TestSupervisorObservesAbsentGenerationWithoutLaunching(t *testing.T) {
 }
 
 func TestStartupReconciliationSettlesExitedGenerationWithoutNewToolCall(t *testing.T) {
-	store, backend := startupBackendFixture(t)
+	assertStartupReconciliation(t, exitedStartupLauncher{t: t})
+}
+
+type exitedStartupLauncher struct{ t *testing.T }
+
+func (launcher exitedStartupLauncher) Launch(ExecutorLaunchRequest) error {
+	launcher.t.Error("startup reconciliation must not launch a replacement")
+	return errors.New("unexpected replacement launch")
+}
+
+func (launcher exitedStartupLauncher) Observe(_ context.Context, backendID string, generation int64) (ExecutorLaunchState, error) {
+	if backendID != "backend-startup" || generation != 1 {
+		launcher.t.Fatalf("unexpected executor identity: %s/%d", backendID, generation)
+	}
+	return ExecutorLaunchExited, nil
+}
+
+func TestSystemdStartupReconciliationSettlesExitedGenerationWithoutNewToolCall(t *testing.T) {
+	// Clean clones and CI may have systemctl installed without a user manager.
+	// Only that external prerequisite can skip this integration check; once
+	// connected, a failed product observation remains a test failure.
+	probe, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := exec.CommandContext(probe, "systemctl", "--user", "show", "--property=Version").Run(); err != nil {
+		t.Skipf("user systemd manager unavailable: %v", err)
+	}
 	launcher, err := NewSystemdUserExecutorLauncher()
 	if err != nil {
 		t.Fatal(err)
 	}
+	assertStartupReconciliation(t, launcher)
+}
+
+func assertStartupReconciliation(t *testing.T, launcher ExecutorLauncher) {
+	t.Helper()
+	store, backend := startupBackendFixture(t)
 	controller := &Backend{Store: store, Launcher: launcher, StartTimeout: time.Nanosecond}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

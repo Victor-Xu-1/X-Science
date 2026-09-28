@@ -28,6 +28,7 @@ from typing import Iterable, Sequence
 import httpx
 
 from mcp_servers_common.ratelimit import pace
+from mcp_servers_common.ua import validate_optional_contact_email
 
 from .parse import parse_article
 
@@ -65,7 +66,7 @@ class PubMedFetcher:
 
     def __init__(
         self,
-        email: str,
+        email: str | None,
         tool: str = DEFAULT_TOOL,
         api_key: str | None = None,
         batch_size: int = DEFAULT_BATCH_SIZE,
@@ -74,8 +75,7 @@ class PubMedFetcher:
         max_retries: int = DEFAULT_MAX_RETRIES,
         transport: httpx.BaseTransport | None = None,
     ) -> None:
-        if not email or "@" not in email:
-            raise ValueError("NCBI etiquette requires a contact email address")
+        email = validate_optional_contact_email(email)
         if not (1 <= batch_size <= 200):
             raise ValueError("batch_size must be between 1 and 200 (efetch limit per request)")
         self.email = email
@@ -88,7 +88,7 @@ class PubMedFetcher:
         self._client = httpx.Client(
             timeout=timeout_s,
             transport=transport,
-            headers={"User-Agent": f"{tool}/0.1.0 ({email})"},
+            headers={"User-Agent": f"{tool}/0.1.0" + (f" ({email})" if email else "")},
         )
 
     # -- lifecycle -----------------------------------------------------------------
@@ -105,7 +105,9 @@ class PubMedFetcher:
     # -- low-level transport -------------------------------------------------------
 
     def _common_params(self) -> dict:
-        params = {"tool": self.tool, "email": self.email}
+        params = {"tool": self.tool}
+        if self.email:
+            params["email"] = self.email
         if self.api_key:
             params["api_key"] = self.api_key
         return params

@@ -8,6 +8,61 @@ import (
 	eventjournal "synon-go/internal/persistence/journal"
 )
 
+func TestSessionRunnerToolContinuityPreservesTypedOutcomeAndProvenance(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		result      map[string]any
+		successful  bool
+		wantSummary string
+	}{
+		{"unavailable", map[string]any{"status": "not_available"}, false, `"status":"not_available"`},
+		{"nested_failure", map[string]any{"result": map[string]any{"status": "failed"}}, false, ""},
+		{"partial", map[string]any{"partial": true}, false, `"partial":true`},
+		{"admission_only", map[string]any{"ok": true, "executed": false}, true, `"executed":false`},
+		{"reused", map[string]any{"ok": true, "executed": false, "reused": true}, true, `"reused":true`},
+		{"executed", map[string]any{"ok": true, "executed": true}, true, `"executed":true`},
+		{"empty_wait", map[string]any{"status": "idle", "num_notifications": 0}, true, `"num_notifications":0`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			entries := []eventjournal.Entry{{EventID: 1, Message: eventjournal.Message{
+				"type": "runner_checkpoint", "toolCallId": "receipt", "toolName": "observation",
+				"toolPhase": "completed", "toolResult": tc.result,
+			}}}
+			records, err := sessionRunnerToolContinuityRecords(entries)
+			if err != nil || len(records) != 1 {
+				t.Fatalf("records=%#v err=%v", records, err)
+			}
+			if records[0].Successful != tc.successful || !strings.Contains(records[0].ResultSummary, tc.wantSummary) {
+				t.Fatalf("continuity lost result semantics: %#v", records[0])
+			}
+			// Persist and reload the compact projection just as a restart does.
+			restored, err := sessionRunnerToolContinuityRecords([]eventjournal.Entry{{EventID: 2, Message: eventjournal.Message{
+				"type": "runner_checkpoint", "toolPhase": "auto_compact", sessionRunnerToolContinuityField: records,
+			}}})
+			if err != nil || len(restored) != 1 || restored[0].Successful != tc.successful || restored[0].ResultSummary != records[0].ResultSummary {
+				t.Fatalf("restored=%#v err=%v", restored, err)
+			}
+		})
+	}
+}
+
+func TestSessionRunnerToolContinuityUsesExecutedSkillIdentity(t *testing.T) {
+	entries := []eventjournal.Entry{{EventID: 1, Message: eventjournal.Message{
+		"type": "runner_checkpoint", "toolCallId": "skill-call", "toolName": "skill",
+		"toolPhase": "completed", "toolInput": map[string]any{"skill": "chemistry"},
+		"executedToolInput": map[string]any{"skill": "p2rank-pocket-detection"},
+		"toolResult":        map[string]any{"ok": true},
+	}}}
+
+	records, err := sessionRunnerToolContinuityRecords(entries)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(records) != 1 || records[0].SkillName != "p2rank-pocket-detection" {
+		t.Fatalf("continuity records=%#v", records)
+	}
+}
+
 func TestSessionRunnerToolContinuityPreservesLoadedSkillsAndSourcesAcrossLongCompaction(t *testing.T) {
 	entries := []eventjournal.Entry{
 		{EventID: 1, Message: eventjournal.Message{
@@ -78,7 +133,9 @@ func TestSessionRunnerProviderContextTokenEstimateCountsNativeToolProtocol(t *te
 		}},
 	}
 
-	visibleOnly := estimateChatMessagesTokens(sessionEntriesToChatMessages("system", entries))
+	visibleOnly := estimateChatMessagesTokens([]chatCompletionMessage{
+		{Role: "system", Content: "system"}, {Role: "user", Content: "continue"},
+	})
 	providerEstimate, err := sessionRunnerProviderContextTokenEstimate("system", entries)
 	if err != nil {
 		t.Fatal(err)

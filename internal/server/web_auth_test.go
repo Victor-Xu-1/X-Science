@@ -170,7 +170,7 @@ func TestP2PasswordModeDefaultsToDenyAndRejectsSpoofedIdentity(t *testing.T) {
 	app := New(Options{SynonLinkAuth: SynonLinkAuthOptions{
 		Username: "operator", Password: "test-secret-password", UserID: "user-1",
 	}})
-	for _, path := range []string{"/api/me", "/api/tools", "/api/events/stream", "/ws/session-1"} {
+	for _, path := range []string{"/api/me", "/api/tools", "/api/events/stream", "/ws/session-1", "/api/mcp/servers", "/api/mcp/test-connection"} {
 		request := httptest.NewRequest(http.MethodGet, path, nil)
 		request.RemoteAddr = "127.0.0.1:12345"
 		request.Header.Set("X-Synon-User-Id", "attacker")

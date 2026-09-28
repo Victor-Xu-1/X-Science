@@ -16,12 +16,14 @@ func TestCorrectionToolChoicePersistsUntilSuccessfulExecutedAction(t *testing.T)
 	}
 	boundary := agentruntime.Message{Role: "system", Content: sessionRunnerDurableCorrectionContextMarker + ". Obtain source authority."}
 	preflight := agentruntime.Message{Role: "tool", ToolCallID: "ask-1", Content: `{"ok":false,"executed":false,"status":"agent_owned_decision"}`}
+	decision := agentruntime.Message{Role: "tool", ToolCallID: "choice-1", Content: `{"ok":true,"executed":false,"decision_required":true,"status":"implementation_selection_required"}`}
 	failed := agentruntime.Message{Role: "tool", ToolCallID: "fetch-1", Content: `{"ok":false,"error":"network failure"}`}
 	succeeded := agentruntime.Message{Role: "tool", ToolCallID: "fetch-2", Content: `{"ok":true,"status":"completed","body":"authoritative content"}`}
 
 	for name, messages := range map[string][]agentruntime.Message{
 		"no action":        {boundary},
 		"preflight only":   {boundary, preflight},
+		"decision only":    {boundary, decision},
 		"failed action":    {boundary, failed},
 		"unrelated before": {{Role: "tool", Content: `{"ok":true}`}, boundary},
 	} {
@@ -891,7 +893,7 @@ func TestGatewayAppliesImmediateArtifactEvidenceRepairOutsideCompletionCorrectio
 	}
 }
 
-func TestFailedDelimitedArtifactSaveUsesWriterBeforeRetry(t *testing.T) {
+func TestFailedDelimitedArtifactSaveKeepsRepairStrategyOpen(t *testing.T) {
 	run := &sessionRunnerChatRun{}
 	saveCall := agentruntime.Message{Role: "assistant", ToolCalls: []agentruntime.ToolCall{{
 		ID: "save-1", Name: "save_artifacts", Arguments: json.RawMessage(`{"files":["source_ledger.csv"]}`),
@@ -904,9 +906,9 @@ func TestFailedDelimitedArtifactSaveUsesWriterBeforeRetry(t *testing.T) {
 	tools := []agentruntime.ToolSchema{{Name: "repl"}, {Name: "edit_file"}, {Name: "save_artifacts"}}
 	messages := []agentruntime.Message{saveCall, saveResult}
 
-	choice, _ := sessionRunnerCorrectionRequiredToolChoice(run, messages, tools).(map[string]any)
-	if choice["name"] != "edit_file" {
-		t.Fatalf("malformed delimited artifact did not use the declared artifact editor: %#v", choice)
+	choice := sessionRunnerCorrectionRequiredToolChoice(run, messages, tools)
+	if choice != "required" {
+		t.Fatalf("malformed delimited artifact excluded inspection or computation: %#v", choice)
 	}
 
 	writeCall := agentruntime.Message{Role: "assistant", ToolCalls: []agentruntime.ToolCall{{
@@ -916,9 +918,9 @@ func TestFailedDelimitedArtifactSaveUsesWriterBeforeRetry(t *testing.T) {
 		"ok":true,"changed":true,"path":"source_ledger.csv"
 	}`}
 	messages = append(messages, writeCall, writeResult)
-	choice, _ = sessionRunnerCorrectionRequiredToolChoice(run, messages, tools).(map[string]any)
-	if choice["name"] != "save_artifacts" {
-		t.Fatalf("writer-corrected delimited artifact did not advance to save: %#v", choice)
+	choice = sessionRunnerCorrectionRequiredToolChoice(run, messages, tools)
+	if choice != "required" {
+		t.Fatalf("an edit excluded further repair or validation: %#v", choice)
 	}
 
 	saveCall2 := agentruntime.Message{Role: "assistant", ToolCalls: []agentruntime.ToolCall{{
@@ -928,6 +930,76 @@ func TestFailedDelimitedArtifactSaveUsesWriterBeforeRetry(t *testing.T) {
 	messages = append(messages, saveCall2, saveResult2)
 	if choice := sessionRunnerCorrectionRequiredToolChoice(run, messages, tools); choice != nil {
 		t.Fatalf("successful corrected save left a pending file repair: %#v", choice)
+	}
+}
+
+func TestFailedScientificArtifactSaveKeepsRepairStrategyOpen(t *testing.T) {
+	run := &sessionRunnerChatRun{TaskIntent: "Repair and save the molecule set"}
+	saveCall := agentruntime.Message{Role: "assistant", ToolCalls: []agentruntime.ToolCall{{
+		ID: "save-scientific", Name: "save_artifacts",
+		Arguments: json.RawMessage(`{"files":["ligands.smi"]}`),
+	}}}
+	saveResult := agentruntime.Message{Role: "tool", ToolCallID: "save-scientific", Content: `{
+		"ok":false,"code":"artifact_save_requires_correction",
+		"errors":[{"code":"invalid_scientific_artifact","path":"ligands.smi",
+		"validation_code":"invalid_smiles_records","validation_records":4,
+		"validation_parsed_records":3,"validation_invalid_records":1}]
+	}`}
+	tools := []agentruntime.ToolSchema{
+		{Name: "edit_file", Capabilities: []string{"artifact-write", "artifact-edit"}},
+		{Name: "manage_environments", Capabilities: []string{"environment-management"}},
+		{Name: "save_artifacts", Capabilities: []string{"artifact-publication"}},
+	}
+	messages := []agentruntime.Message{saveCall, saveResult}
+	choice := sessionRunnerCorrectionRequiredToolChoice(run, messages, tools)
+	if choice != "required" {
+		t.Fatalf("invalid scientific artifact excluded preparation or diagnosis: %#v", choice)
+	}
+
+	editCall := agentruntime.Message{Role: "assistant", ToolCalls: []agentruntime.ToolCall{{
+		ID: "edit-scientific", Name: "edit_file",
+		Arguments: json.RawMessage(`{"file_path":"ligands.smi","old_string":"invalid","new_string":"CC"}`),
+	}}}
+	editResult := agentruntime.Message{Role: "tool", ToolCallID: "edit-scientific", Content: `{"ok":true,"changed":true}`}
+	messages = append(messages, editCall, editResult)
+	choice = sessionRunnerCorrectionRequiredToolChoice(run, messages, tools)
+	if choice != "required" {
+		t.Fatalf("scientific repair excluded follow-up validation: %#v", choice)
+	}
+}
+
+func TestPartialArtifactSaveRequiresAnotherToolBeforeCompletion(t *testing.T) {
+	run := &sessionRunnerChatRun{TaskIntent: "Save the requested report and structure"}
+	saveCall := agentruntime.Message{Role: "assistant", ToolCalls: []agentruntime.ToolCall{{
+		ID: "save-partial", Name: "save_artifacts",
+		Arguments: json.RawMessage(`{"files":["report.md","structure.pdb"]}`),
+	}}}
+	saveResult := agentruntime.Message{Role: "tool", ToolCallID: "save-partial", Content: `{
+		"ok":false,"partial":true,"code":"artifact_save_requires_correction",
+		"artifacts":[{"filename":"report.md"}],
+		"errors":[{"path":"structure.pdb","code":"file_not_found","retryable":false}]
+	}`}
+	tools := []agentruntime.ToolSchema{
+		{Name: "edit_file", Capabilities: []string{"artifact-write", "artifact-edit"}},
+		{Name: "download_public_scientific_file", Capabilities: []string{"source-download", "artifact-write"}},
+		{Name: "save_artifacts", Capabilities: []string{"artifact-publication"}},
+	}
+	gateway := serverAgentRuntimeToolGateway{taskRun: run}
+	if choice := gateway.RequiredToolChoice([]agentruntime.Message{saveCall, saveResult}, tools); choice != "required" {
+		t.Fatalf("partial save allowed immediate completion: %#v", choice)
+	}
+
+	repairedCall := agentruntime.Message{Role: "assistant", ToolCalls: []agentruntime.ToolCall{{
+		ID: "save-repaired", Name: "save_artifacts",
+		Arguments: json.RawMessage(`{"files":["structure.pdb"]}`),
+	}}}
+	repairedResult := agentruntime.Message{Role: "tool", ToolCallID: "save-repaired", Content: `{
+		"ok":true,"artifacts":[{"filename":"structure.pdb"}]
+	}`}
+	if choice := gateway.RequiredToolChoice(
+		[]agentruntime.Message{saveCall, saveResult, repairedCall, repairedResult}, tools,
+	); choice != nil && choice != "none" {
+		t.Fatalf("successful repair left tool choice pending: %#v", choice)
 	}
 }
 

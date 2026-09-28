@@ -20,7 +20,7 @@ func TestSessionRunnerREPLRecoveryContextIsResumeOnlyAndSeparatesDurableState(t 
 		transcriptstore.ResumeSourceUserInput,
 	} {
 		context := sessionRunnerREPLRecoveryContext(source, 1)
-		for _, required := range []string{"variables", "not durable", "define every variable", "read-only", "do not replay a side-effecting call"} {
+		for _, required := range []string{"variables", "not durable", "does not by itself mean", "only the missing state", "read-only", "do not replay a side-effecting call"} {
 			if !strings.Contains(context, required) {
 				t.Fatalf("resume source %q context missing %q: %s", source, required, context)
 			}

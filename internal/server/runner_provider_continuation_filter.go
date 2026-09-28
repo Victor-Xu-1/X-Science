@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"synon-go/internal/agentruntime"
+	"synon-go/internal/providers"
 )
 
 type sessionRunnerProviderNoProgressInterruption struct{}
@@ -63,11 +64,12 @@ func stripSessionRunnerExactPrefixReplay(prefix, content string) string {
 }
 
 type sessionRunnerContinuationModelClient struct {
-	delegate      agentruntime.ModelClient
-	prefix        string
-	privatePrefix string
-	mu            sync.Mutex
-	calls         int
+	delegate        agentruntime.ModelClient
+	prefix          string
+	privatePrefix   string
+	contextMessages []agentruntime.Message
+	mu              sync.Mutex
+	calls           int
 }
 
 func (client *sessionRunnerContinuationModelClient) Complete(context.Context, agentruntime.ModelRequest) (agentruntime.ModelResponse, error) {
@@ -93,21 +95,33 @@ func (client *sessionRunnerContinuationModelClient) CompleteStream(
 	if call != 1 || client.prefix == "" {
 		return streaming.CompleteStream(ctx, request, emit)
 	}
+	// Continuation authority belongs to this request, not the engine's message
+	// history. Subsequent tool rounds must not keep obeying an old prefix.
+	request.Messages = append(append([]agentruntime.Message(nil), request.Messages...), client.contextMessages...)
 	filter := &sessionRunnerExactPrefixFilter{prefix: client.prefix}
+	replay := newContinuationTailProbe(client.prefix, emit)
 	response, err := streaming.CompleteStream(ctx, request, func(event agentruntime.ModelStreamEvent) error {
 		if (event.Kind != "" && event.Kind != agentruntime.ModelStreamEventContentDelta) ||
 			(event.Kind == "" && event.ContentDelta == "") {
-			if emit == nil {
-				return nil
-			}
-			return emit(event)
+			return replay.event(event)
 		}
 		event.ContentDelta = filter.delta(event.ContentDelta)
-		if event.ContentDelta == "" || emit == nil {
+		if event.ContentDelta == "" {
 			return nil
 		}
-		return emit(event)
+		return replay.event(event)
 	})
+	if ctx.Err() != nil {
+		return agentruntime.ModelResponse{}, ctx.Err()
+	}
+	if providers.IsProviderOutputTokenLimit(err) && replay.onlyReplayedTail(filter.matched > 0) {
+		// No bytes from this ambiguous tail have been published or committed.
+		// The existing durable no-progress recovery owns backoff and resumption.
+		return agentruntime.ModelResponse{}, sessionRunnerProviderNoProgressInterruption{}
+	}
+	if flushErr := replay.flush(); flushErr != nil {
+		return agentruntime.ModelResponse{}, flushErr
+	}
 	if err != nil {
 		return agentruntime.ModelResponse{}, err
 	}

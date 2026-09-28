@@ -16,7 +16,6 @@ import (
 	"synon-go/internal/failurecontract"
 	kernelruntime "synon-go/internal/kernel"
 	"synon-go/internal/software"
-	"synon-go/internal/toolcontract"
 )
 
 func (g serverAgentRuntimeToolGateway) normalizeAdmittedToolArguments(name string, input map[string]any) map[string]any {
@@ -30,13 +29,6 @@ func (g serverAgentRuntimeToolGateway) normalizeAdmittedToolArguments(name strin
 	}
 	if name == generatePlanToolName {
 		input = normalizeLegacyGeneratePlanArguments(input)
-	}
-	if name == toolcontract.Skill && g.taskRun != nil {
-		pending := g.taskRun.pendingRequiredSkillNamesSnapshot()
-		if len(pending) == 1 {
-			input = copyMapAny(input)
-			input["skill"] = pending[0]
-		}
 	}
 	if normalizeAgentToolName(name) == "saveartifacts" {
 		input = normalizeAgentRuntimeSaveArtifactsArguments(input)
@@ -945,42 +937,15 @@ func (v agentRuntimeMCPValidator) Validate(input map[string]any) map[string]any 
 	}
 	validator := &kernelMCPInputValidator{schema: v.compiled}
 	if err := validator.Validate(input); err != nil {
+		feedbackSchema, feedbackError := agentRuntimeArgumentDiagnosticSchema(v.schema, input, err)
 		return map[string]any{
 			"ok": false, "code": "invalid_tool_arguments", "tool": v.toolName,
 			"message":   "Tool arguments do not match the admitted JSON Schema.",
-			"retryable": true, "issues": agentRuntimeMCPValidationIssues(v.schema, input, err),
-			"expectedArguments": agentRuntimeCompactArgumentContract(v.schema),
+			"retryable": true, "issues": agentRuntimeMCPValidationIssues(feedbackSchema, input, feedbackError),
+			"expectedArguments": agentRuntimeCompactArgumentContract(feedbackSchema),
 		}
 	}
 	return nil
-}
-
-func agentRuntimeCompactArgumentContract(schema map[string]any) map[string]any {
-	properties, _ := schema["properties"].(map[string]any)
-	required := map[string]bool{}
-	for _, raw := range anySliceValue(schema["required"]) {
-		if name := strings.TrimSpace(fmt.Sprint(raw)); name != "" {
-			required[name] = true
-		}
-	}
-	names := make([]string, 0, len(properties))
-	for name := range properties {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	if len(names) > 24 {
-		names = names[:24]
-	}
-	fields := make(map[string]any, len(names))
-	for _, name := range names {
-		property, _ := properties[name].(map[string]any)
-		field := map[string]any{"types": agentRuntimeSchemaJSONTypes(property), "required": required[name]}
-		if values, ok := property["enum"].([]any); ok && len(values) > 0 && len(values) <= 12 {
-			field["enum"] = values
-		}
-		fields[name] = field
-	}
-	return map[string]any{"type": "object", "fields": fields, "additionalProperties": schema["additionalProperties"]}
 }
 
 func agentRuntimeMCPValidationIssues(schema map[string]any, input map[string]any, err error) []map[string]any {

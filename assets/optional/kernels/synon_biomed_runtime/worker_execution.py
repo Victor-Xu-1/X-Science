@@ -14,6 +14,7 @@ from .worker_streams import CellStreams
 from .worker_transport import Transport
 from .worker_safety import harden_process
 from .worker_reads import ExecutionReadWitness
+from .worker_effects import ObservationGuard, declined
 
 
 class Worker:
@@ -24,6 +25,7 @@ class Worker:
         self.executing = False
         self.source_names = []
         self.execution_reads = ExecutionReadWitness()
+        self.observation_guard = ObservationGuard()
         signal.signal(signal.SIGINT, self.interrupt)
 
     def interrupt(self, _signum, _frame):
@@ -39,6 +41,11 @@ class Worker:
         result = {"id": cell_id, "stdout": "", "stderr": "", "error": None,
                   "interrupted": False, "preflight": None,
                   "trace": {"error_lineno": None, "error_call": None}, "usage": {}}
+        refusal = self.observation_guard.validate(request, self.namespace)
+        if refusal is not None:
+            result['preflight'] = declined(refusal)
+            self.transport.send(result)
+            return
         self.index += 1
         filename = "<synon-cell-" + str(self.index) + ">"
         linecache.cache[filename] = (len(source), None, source.splitlines(True), filename)
@@ -69,6 +76,7 @@ class Worker:
             frames = [frame for frame in traceback.extract_tb(error.__traceback__) if frame.filename == filename]
             if frames:
                 result["trace"] = {"error_lineno": frames[-1].lineno, "error_call": frames[-1].line}
+            streams.capture_subprocess_failure(error)
         finally:
             self.executing = False
             result["trace"]["execution_reads"] = self.execution_reads.finish()

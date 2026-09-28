@@ -1086,6 +1086,11 @@ func trustedScientificReviewSignalsFromRunnerEntries(entries []eventjournal.Entr
 		}
 		toolResult, resultRecorded := message["toolResult"]
 		if resultRecorded && agentruntime.ClassifyToolResult(toolResult) != agentruntime.ToolResultSucceeded {
+			// Exhausted transport routes are recovery facts, never source
+			// authority. Preserve the same facts as live settlement on replay.
+			signals = append(signals, trustedScientificEvidenceRouteExhaustionSignals(
+				stringValue(message["toolName"]), message["toolInput"], toolResult,
+			)...)
 			continue
 		}
 		entrySignals := make([]string, 0)

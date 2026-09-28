@@ -1090,8 +1090,8 @@
         },
         {
             "path": "lib/mcp_pubmed/server.py",
-            "sha256": "b3a599cc42f2c5b72ef5c3d0094d5393609c468af40ac46ce49d0d5324eef0b1",
-            "bytes": 7221
+            "sha256": "06e1e162a6200b8b2be75e2569d022dbcef65eff7b93f294af1a0b12e54c19cd",
+            "bytes": 7170
         },
         {
             "path": "lib/mcp_regulation/__init__.py",
@@ -1175,8 +1175,8 @@
         },
         {
             "path": "lib/mcp_servers_common/ua.py",
-            "sha256": "1f4ea01e53db2fdd6dc3f8f3b391042570618503c4f3d6eda21328bacbd3ecad",
-            "bytes": 3500
+            "sha256": "1defeef520e65230483b9e6389574849d5e19c599729b4afb5cb6986d3156cac",
+            "bytes": 3883
         },
         {
             "path": "lib/mcp_synon_research/__init__.py",
@@ -1560,8 +1560,8 @@
         },
         {
             "path": "lib/pubmed_fetch/fetch.py",
-            "sha256": "ee08639006a0342466238d759fe8113b0e91f88c03494477e3197640540bc1d2",
-            "bytes": 10177
+            "sha256": "f9c3f8e6a6708b81a5dab685098d936c3e96a7e2c20891c26fae0faa016e170f",
+            "bytes": 10251
         },
         {
             "path": "lib/pubmed_fetch/parse.py",
@@ -1575,8 +1575,8 @@
         },
         {
             "path": "lib/pubmed_search/client.py",
-            "sha256": "f6b2ac57b4d2e3f46a2aec17c0d8dd6fb3ac91387ca1b5d001dec524640853c0",
-            "bytes": 21722
+            "sha256": "d140992dd31119e18735d5730d71f9092cd19625e6220a1d8a75d1471c7bee8f",
+            "bytes": 21890
         },
         {
             "path": "lib/quickgo_annotations/__init__.py",

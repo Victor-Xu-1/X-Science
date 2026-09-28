@@ -107,6 +107,21 @@ func TestResearchProcessInjectsOneBilingualModuleQuerySet(t *testing.T) {
 	}
 }
 
+func TestResearchProcessPreservesExactSourceDownloadInput(t *testing.T) {
+	server, _, frameID := newGeneratedPlanProcessFixture(t)
+	input := map[string]any{
+		"url":               "https://example.org/structure.cif",
+		"filename":          "structure.cif",
+		"human_description": "Downloading a structure",
+	}
+	capabilities := []string{"source-evidence", "source-download", "artifact-write"}
+	got := server.generatedPlanResearchQueryInput(frameID, "download_source_asset", input, capabilities)
+	if len(got) != len(input) || got["url"] != input["url"] || got["filename"] != input["filename"] ||
+		got["human_description"] != input["human_description"] {
+		t.Fatalf("research plan changed exact source-download arguments: %#v", got)
+	}
+}
+
 func TestAutonomousPlanPendingStepDoesNotDisplaceSubstantiveWork(t *testing.T) {
 	server, store, frameID := newGeneratedPlanProcessFixture(t)
 	metadata, found, err := store.GetFrameRuntimeMetadata(frameID)
@@ -848,6 +863,18 @@ func TestResearchProcessExecutesDiscoveredFetchAlternative(t *testing.T) {
 	if normalized["url"] != "https://evidence.example/next-record" {
 		t.Fatalf("discovered fetch route was not preserved exactly: %#v", normalized)
 	}
+	registeredBinary := server.generatedPlanResearchQueryInput(frameID, "web_fetch", map[string]any{
+		"url": "https://github.com/rdk/p2rank/releases/download/2.5.1/p2rank_2.5.1.tar.gz",
+	})
+	if registeredBinary["url"] != "https://github.com/rdk/p2rank/releases/download/2.5.1/p2rank_2.5.1.tar.gz" {
+		t.Fatalf("registered execution download was rewritten by research continuation: %#v", registeredBinary)
+	}
+	scientificFile := server.generatedPlanResearchQueryInput(frameID, "web_fetch", map[string]any{
+		"url": "https://files.rcsb.org/download/3DSH.pdb",
+	})
+	if scientificFile["url"] != "https://files.rcsb.org/download/3DSH.pdb" {
+		t.Fatalf("scientific file URL was rewritten by research continuation: %#v", scientificFile)
+	}
 	schemas := []agentruntime.ToolSchema{{Name: updateStepStatusToolName}, {Name: "web_fetch"}}
 	gateway := serverAgentRuntimeToolGateway{
 		server: server, sessionID: frameID, taskRun: &sessionRunnerChatRun{TaskIntent: "Research and deliver"},
@@ -933,7 +960,14 @@ func TestResearchSourceCheckpointAdvancesDurableReconciliationCursor(t *testing.
 	planStep["output_module"] = "source_analysis"
 	planStep["research_question"] = "What does the source establish?"
 	planStep["research_depth"] = "deep"
-	plan := revisePlanForTest(t, fixture, "source-cursor-plan", planInput)
+	planContext, planRun := appendLargeToolResultSource(t, fixture, "source-cursor-plan", generatePlanToolName)
+	planRun.AutonomousPlanning = true
+	planRun.TaskIntent = "Research and deliver"
+	planResult, err := fixture.server.executeAgentGeneratePlan(planContext, fixture.stream.SessionID, "source-cursor-plan", planInput)
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan := mapValue(planResult)
 	stepID := stringValue(mapValue(anySliceValue(plan["steps"])[0])["id"])
 	if _, err := fixture.server.executeAgentUpdateStepStatus(context.Background(), fixture.stream.FrameID, "start-source-step", map[string]any{
 		"step": stepID, "status": "in_progress",
@@ -977,6 +1011,17 @@ func TestResearchSourceCheckpointAdvancesDurableReconciliationCursor(t *testing.
 	}
 	if got := int64(numberValue(metadata.ContextData[generatedPlanResearchLatestSourceEventIDKey])); got != items[0].TerminalEventID {
 		t.Fatalf("latest source cursor=%d terminal event=%d", got, items[0].TerminalEventID)
+	}
+	mismatchedRun := &sessionRunnerChatRun{
+		SessionID: run.SessionID, Attempt: run.Attempt, ClaimToken: run.ClaimToken,
+		TaskIntent: "A different task", Transcript: run.Transcript,
+	}
+	if _, err := fixture.server.executeAgentUpdateStepStatus(
+		withTranscriptRunnerChatRun(context.Background(), mismatchedRun), fixture.stream.FrameID, "reject-other-task", map[string]any{
+			"step": stepID, "status": "in_progress",
+		},
+	); err == nil {
+		t.Fatal("a different task acquired the research cursor")
 	}
 	if _, err := fixture.server.executeAgentUpdateStepStatus(
 		withTranscriptRunnerChatRun(context.Background(), run), fixture.stream.FrameID, "reconcile-source", map[string]any{
@@ -1466,14 +1511,14 @@ func TestDeliveryStepPublishesArtifactsPreparedBeforeDelivery(t *testing.T) {
 	}
 }
 
-func TestAutonomousPlanCompletionDoesNotGateFinalOutput(t *testing.T) {
+func TestAutonomousPlanCompletionRetainsOpenWork(t *testing.T) {
 	server, _, frameID := newGeneratedPlanProcessFixture(t)
-	remaining, err := server.incompleteGeneratedPlanStepTitles(frameID)
+	remaining, err := server.incompleteGeneratedPlanCondition(frameID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(remaining) != 0 {
-		t.Fatalf("autonomous navigation became a completion gate: %v", remaining)
+	if remaining == nil || len(remaining.condition.Steps) != 3 {
+		t.Fatalf("autonomous plan lost open work: %#v", remaining)
 	}
 }
 

@@ -187,10 +187,36 @@ func TestAskUserRejectsModelAuthoredControlledParameterTuple(t *testing.T) {
 		"ask_user", preNamedInput,
 	)
 	admittedOptions, _ := admitted["options"].([]any)
-	if len(admittedOptions) != 3 ||
-		!strings.Contains(string(mustMarshalRawMessage(admitted)), `"evidence_resolver"`) ||
-		!strings.Contains(string(mustMarshalRawMessage(admitted)), "结束并说明原因") {
-		t.Fatalf("execution AskUser arguments diverged from the checkpoint: %#v", admitted)
+	if string(mustMarshalRawMessage(admitted)) != string(preNamedSanitized.Arguments) {
+		t.Fatalf("execution AskUser arguments diverged from the checkpoint: admitted=%#v checkpoint=%s", admitted, preNamedSanitized.Arguments)
+	}
+	if again := (serverAgentRuntimeToolGateway{server: srv, taskRun: run}).normalizeAdmittedToolArguments("ask_user", admitted); !reflect.DeepEqual(again, admitted) {
+		t.Fatalf("repeated normalization changed the pending decision: %#v", again)
+	}
+	// A prose-only engine mention cannot acquire executable authority. The
+	// registered resolver is a separate typed choice; both original choices
+	// and the terminal route must remain available on both surfaces.
+	resolverCount, terminalCount, originalCount := 0, 0, 0
+	for _, raw := range admittedOptions {
+		choice := mapValue(raw)
+		metadata := mapValue(choice["metadata"])
+		if metadata["evidence_resolver"] != nil {
+			resolverCount++
+		}
+		if boolValue(metadata["terminal_decision"], false) {
+			terminalCount++
+		}
+		for _, original := range anySliceValue(preNamedInput["options"]) {
+			if stringValue(choice["label"]) == stringValue(mapValue(original)["label"]) {
+				originalCount++
+				if metadata["evidence_resolver"] != nil {
+					t.Fatalf("prose-only choice gained executable resolver authority: %#v", choice)
+				}
+			}
+		}
+	}
+	if resolverCount != 1 || terminalCount != 1 || originalCount != len(anySliceValue(preNamedInput["options"])) {
+		t.Fatalf("resolver, original choices, or terminal route changed: %#v", admittedOptions)
 	}
 	chineseResolverQuestion, err := json.Marshal(map[string]any{
 		"question": "受体中没有内置配体，请选择结合口袋的确定方式", "header": "分子对接口袋",
@@ -327,7 +353,7 @@ func TestManagedExecutionResolverChoiceCopyIsDomainNeutral(t *testing.T) {
 func TestDurableExecutedSkillRetainsResolverAuthorityOutsideSelectionWindow(t *testing.T) {
 	skillCatalog := skills.NewCatalog()
 	skillCatalog.AddSkill(skills.Skill{
-		Name: "primary-skill", ImplementationIdentities: []string{"Primary Engine"},
+		Name: "resolver-skill", ImplementationIdentities: []string{"Resolver Engine"},
 	})
 	skillCatalog.AddSkill(skills.Skill{
 		Name: "primary-skill", ImplementationIdentities: []string{"Primary Engine"},
@@ -356,6 +382,9 @@ func TestDurableExecutedSkillRetainsResolverAuthorityOutsideSelectionWindow(t *t
 	)
 	if !ok || len(validated) != 1 || validated[0] != candidate {
 		t.Fatalf("durable Skill resolver authority validated=%#v ok=%t", validated, ok)
+	}
+	if !reflect.DeepEqual(run.selectedImplementationsSnapshot(), []string{"Primary Engine"}) {
+		t.Fatalf("unique parent was not restored: %v", run.selectedImplementationsSnapshot())
 	}
 }
 

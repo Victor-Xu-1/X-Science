@@ -227,11 +227,6 @@ func (g serverAgentRuntimeToolGateway) trustedAgentRuntimeToolResult(
 		Outcome: agentruntime.ClassifyToolResult(value),
 	}
 	bindDurableInlineToolResultValue(&result)
-	capabilities := agentRuntimeToolCapabilities(g.toolSchemas, call.Name)
-	if taskCapabilities := run.toolCapabilities(call.Name); len(taskCapabilities) > 0 {
-		capabilities = taskCapabilities
-	}
-	g.server.recordAgentRuntimeSemanticFailure(g.sessionID, call, result.Value, capabilities)
 	return result
 }
 

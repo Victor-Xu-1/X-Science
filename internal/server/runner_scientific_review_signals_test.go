@@ -309,7 +309,6 @@ func TestTrustedScientificReviewSignalsPersistUnavailableFullTextRouteExhaustion
 	)
 	want := []string{
 		"evidence-route-exhausted:publication:fetcharticlefulltext",
-		"scientific-tool:fetch_article_fulltext",
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("unavailable full-text route signals=%#v want=%#v", got, want)
@@ -494,7 +493,6 @@ func TestTrustedScientificReviewSignalsExcludeUnavailableArticleFullText(t *test
 		"fetch_article_fulltext", map[string]any{"pmcid": "PMC1"}, unavailable, nil,
 	); !reflect.DeepEqual(got, []string{
 		"evidence-route-exhausted:publication:fetcharticlefulltext",
-		"scientific-tool:fetch_article_fulltext",
 	}) {
 		t.Fatalf("unavailable full text gained source authority: %#v", got)
 	}
@@ -506,7 +504,7 @@ func TestTrustedScientificReviewSignalsExcludeUnavailableArticleFullText(t *test
 			"scientific-tool:fetch_article_fulltext", "source-host:www.ebi.ac.uk",
 		},
 	}}}
-	if got := trustedScientificReviewSignalsFromRunnerEntries(entries); !reflect.DeepEqual(got, []string{"scientific-tool:fetch_article_fulltext"}) {
+	if got := trustedScientificReviewSignalsFromRunnerEntries(entries); !reflect.DeepEqual(got, []string{"evidence-route-exhausted:publication:fetcharticlefulltext"}) {
 		t.Fatalf("unavailable replay restored source authority: %#v", got)
 	}
 }

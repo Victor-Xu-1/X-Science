@@ -18,6 +18,8 @@ func TestAutoDockVinaPrimaryPoseSelectionKeepsBestScoreAndUsesReferenceOnlyForTi
 	)
 	command := exec.Command("python3", "-c", `
 import importlib.util
+import hashlib
+import json
 import os
 import sys
 import tempfile
@@ -48,6 +50,88 @@ validate_output_target = module.validate_output_target
 promote_execution_output = module.promote_execution_output
 validated_internal_state_directory = module.validated_internal_state_directory
 pdb_reference_site_scores = module.pdb_reference_site_scores
+read_smiles_records = module.read_smiles_records
+normalize_dockable_fragment = module.normalize_dockable_fragment
+
+with tempfile.TemporaryDirectory() as temporary:
+    root = Path(temporary)
+    single = root / "ye6144.smi"
+    single.write_text("CCO\n", encoding="utf-8")
+    assert read_smiles_records(single) == [("CCO", "ye6144")]
+    library = root / "library.smiles"
+    library.write_text("# source comment\nCCO ethanol\n\nCCN\n", encoding="utf-8")
+    assert read_smiles_records(library) == [
+        ("CCO", "ethanol"),
+        ("CCN", "library-0002"),
+    ]
+    empty = root / "empty.smi"
+    empty.write_text("# no molecules\n", encoding="utf-8")
+    try:
+        read_smiles_records(empty)
+    except ValueError as error:
+        assert "no valid records" in str(error)
+    else:
+        raise AssertionError("empty SMILES input was accepted")
+
+class FragmentAtomFixture:
+    def __init__(self, atomic_number):
+        self.atomic_number = atomic_number
+    def GetAtomicNum(self):
+        return self.atomic_number
+
+class FragmentFixture:
+    def __init__(self, label, atomic_numbers):
+        self.label = label
+        self.atoms = [FragmentAtomFixture(number) for number in atomic_numbers]
+    def GetAtoms(self):
+        return self.atoms
+    def GetNumHeavyAtoms(self):
+        return len(self.atoms)
+
+class FragmentParentFixture:
+    def __init__(self, fragments):
+        self.fragments = fragments
+
+class FragmentChemFixture:
+    @staticmethod
+    def GetMolFrags(molecule, asMols, sanitizeFrags):
+        assert asMols and sanitizeFrags
+        return tuple(molecule.fragments)
+    @staticmethod
+    def MolToSmiles(fragment, isomericSmiles):
+        assert isomericSmiles
+        return fragment.label
+
+original_chem = module.Chem
+module.Chem = FragmentChemFixture
+try:
+    main_fragment = FragmentFixture("CCN", [6, 6, 7])
+    chloride = FragmentFixture("[Cl-]", [17])
+    fragment_log = []
+    selected = normalize_dockable_fragment(
+        FragmentParentFixture([chloride, main_fragment]), "candidate", fragment_log,
+    )
+    assert selected is main_fragment
+    assert fragment_log == [{
+        "operation": "normalize_ligand_fragments",
+        "candidate_id": "candidate",
+        "source_fragment_count": 2,
+        "selected_smiles": "CCN",
+        "removed_smiles": ["[Cl-]"],
+    }]
+    try:
+        normalize_dockable_fragment(
+            FragmentParentFixture([
+                FragmentFixture("CC", [6, 6]), FragmentFixture("NN", [6, 6]),
+            ]),
+            "ambiguous", [],
+        )
+    except ValueError as error:
+        assert "ambiguous largest fragments" in str(error)
+    else:
+        raise AssertionError("ambiguous ligand fragments were accepted")
+finally:
+    module.Chem = original_chem
 
 class EntityFixture:
     def __init__(self):
@@ -87,6 +171,28 @@ else:
     raise AssertionError("raw apo receptor accepted an unbound explicit center")
 validate_docking_center_contract(Path("prepared.pdbqt"), None, False, False, (1.0, 2.0, 3.0), "resolved-user-input")
 validate_docking_center_contract(Path("apo.pdb"), None, False, False, (1.0, 2.0, 3.0), "resolved-user-input")
+validate_docking_center_contract(Path("apo.pdb"), None, False, False, (1.0, 2.0, 3.0), "documented-input", True)
+with tempfile.TemporaryDirectory() as temporary:
+    root = Path(temporary)
+    source = root / "observed.pdb"
+    source.write_text("real input bytes for parser test")
+    record = {
+        "schema": "synon.documented-input.v1", "evidence_group": "binding-site-center",
+        "input_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+        "basis": "structure-derived", "method": "A reproducible selection from observed coordinates",
+        "sources": ["observed.pdb"], "limitations": "An exploratory definition, not a predictor result",
+        "values": {"center_x": 1.0, "center_y": 2.0, "center_z": 3.0},
+    }
+    evidence = root / "evidence.json"
+    evidence.write_text(json.dumps(record))
+    assert module.load_documented_input(evidence, source, "binding-site-center", record["values"]) == record
+    source.write_text("different bytes")
+    try:
+        module.load_documented_input(evidence, source, "binding-site-center", record["values"])
+    except ValueError as error:
+        assert "source bytes" in str(error)
+    else:
+        raise AssertionError("changed source accepted with stale documented evidence")
 validate_docking_center_contract(Path("complex.pdb"), "LIG", False, False, (None, None, None), None)
 validate_docking_center_contract(Path("apo.pdb"), None, True, True, (None, None, None), None)
 validate_box_size_contract(False, (20.0, 20.0, 20.0))
@@ -126,6 +232,14 @@ with tempfile.TemporaryDirectory() as temporary:
         encoding="utf-8",
     )
     (prior / "completed.txt").write_text("preserve", encoding="utf-8")
+    redirected = validate_output_target(root, prior, (receptor, ligand), True)
+    assert redirected == root / "out-2"
+    try:
+        validate_output_target(root, prior, (receptor, ligand))
+    except ValueError as error:
+        assert "must not already exist" in str(error)
+    else:
+        raise AssertionError("a matching workspace marker authorized explicit output reuse")
     original_which = module.shutil.which
     original_argv = sys.argv
     original_cwd = Path.cwd()
@@ -154,12 +268,14 @@ with tempfile.TemporaryDirectory() as temporary:
     staging = root / ".vina-pack-output-rerun"
     staging.mkdir()
     (staging / "new-result.txt").write_text("new", encoding="utf-8")
-    promotion = promote_execution_output(staging, prior, "rerun-token", root)
-    previous = root / promotion["previous"]
-    assert (prior / "new-result.txt").read_text(encoding="utf-8") == "new"
-    assert (previous / "completed.txt").read_text(encoding="utf-8") == "preserve"
-    assert promotion["current"] == "out"
-    assert previous == root / ".vina-pack-generations" / "out" / "rerun-token"
+    try:
+        promote_execution_output(staging, prior, "rerun-token", root)
+    except RuntimeError as error:
+        assert "created before promotion" in str(error)
+    else:
+        raise AssertionError("Vina promotion replaced an existing output target")
+    assert (prior / "completed.txt").read_text(encoding="utf-8") == "preserve"
+    assert (staging / "new-result.txt").read_text(encoding="utf-8") == "new"
 
 with tempfile.TemporaryDirectory() as temporary, tempfile.TemporaryDirectory() as outside_temporary:
     root = Path(temporary).resolve()
@@ -276,6 +392,11 @@ with tempfile.TemporaryDirectory() as temporary:
     assert report_text.startswith("# 分子对接报告")
     assert "由用户确认并传入执行包的显式对接盒坐标" in report_text
     assert "Vina 分数是计算评分估计值" in report_text
+    documented = {"basis":"exploratory","method":"Derivation from measured coordinates","sources":["observed structure"],"limitations":"Requires experimental confirmation"}
+    write_docking_report(report, Path("receptor.pdbqt"), Path("ligands.cdx"), rows, "documented_task_input", None, None, manifest_rows, args, documented)
+    report_text = report.read_text(encoding="utf-8")
+    assert "有来源记录的任务设定" in report_text and "observed structure" in report_text
+    assert "不是自动口袋预测成功" in report_text and "由用户确认" not in report_text
 `, scriptPath)
 	if output, err := command.CombinedOutput(); err != nil {
 		t.Fatalf("run primary-pose selector behavior: %v\n%s", err, output)

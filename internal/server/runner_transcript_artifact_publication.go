@@ -66,6 +66,7 @@ func assistantMessageArtifactReferences(
 	}
 	content := transcriptPayloadText(payload)
 	references := make([]transcriptstore.ArtifactReferenceInput, 0, len(snapshot.References))
+	seen := make(map[transcriptstore.ArtifactReferenceInput]struct{}, len(snapshot.References))
 	for _, reference := range snapshot.References {
 		if reference.Availability != transcriptstore.ArtifactAvailable || reference.RunnerAttempt > attempt {
 			continue
@@ -82,11 +83,19 @@ func assistantMessageArtifactReferences(
 		if explicitPriorReference {
 			relation = transcriptstore.ArtifactRelationCited
 		}
-		references = append(references, transcriptstore.ArtifactReferenceInput{
+		projected := transcriptstore.ArtifactReferenceInput{
 			ArtifactID: reference.ArtifactID,
 			VersionID:  reference.VersionID,
 			Relation:   relation,
-		})
+		}
+		// The ledger can retain several provenance relations for one immutable
+		// version. Once projected to a prior citation they are the same public
+		// reference, not conflicting writes. Keep the original ledger intact.
+		if _, duplicate := seen[projected]; duplicate {
+			continue
+		}
+		seen[projected] = struct{}{}
+		references = append(references, projected)
 	}
 	return references, nil
 }
