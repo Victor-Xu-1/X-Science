@@ -92,7 +92,6 @@ export const buildMessagePresentationList = (
   groupBoundaryMessageIds: string[] = []
 ): MessageListProcessedItem[] => {
   const result: MessageListMessageItem[] = [];
-  const attachmentOnlyMessages: TMessage[] = [];
   let diffsChanges: FileChangeInfo[] = [];
   let diffsSourceMessageIds: string[] = [];
   let toolList: Array<IMessageToolGroup | IMessageAcpToolCall | IMessageToolCall> = [];
@@ -145,7 +144,9 @@ export const buildMessagePresentationList = (
       // An empty assistant segment is still a durable turn boundary. Keeping
       // it out of the UI must not fuse tool phases from opposite sides.
       resetSummaryGroups();
-      if (deliveredMessageArtifactReferences(message).length) attachmentOnlyMessages.push(message);
+      // Keep delivery anchors in transcript order, including timestamp ties.
+      // The projection below omits the empty text row but retains its files.
+      if (deliveredMessageArtifactReferences(message).length) result.push(message);
       continue;
     }
     if (
@@ -216,7 +217,7 @@ export const buildMessagePresentationList = (
   const producedRelations = new Set<ArtifactReferenceRelation>(['produced']);
   const attachedRelations = new Set<ArtifactReferenceRelation>(['attached']);
   const resultWithInlineFiles: MessageListProcessedItem[] = [];
-  for (const item of [...result, ...attachmentOnlyMessages]) {
+  for (const item of result) {
     if (item.type !== 'text' || hasRenderableMessageText(item)) resultWithInlineFiles.push(item);
     const sourceMessages = item.type === 'tool_summary' || item.type === 'file_summary' ? [] : [item];
     for (const source of sourceMessages) {

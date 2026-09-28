@@ -98,6 +98,38 @@ describe('message list projection controller', () => {
   });
 
   it.each([
+    { label: 'shared millisecond', createdAt: 3 },
+    { label: 'missing timestamp', createdAt: undefined },
+  ])('keeps an empty completed round before later messages with $label', ({ createdAt }) => {
+    const first = {
+      ...text('empty-final', '', 3),
+      created_at: createdAt,
+      terminal_status: 'completed',
+      artifact_refs: [produced('a', 'v1')],
+    } as TMessage;
+    const nextUser = {
+      ...text('next-user', 'Continue with another round.', 3),
+      created_at: createdAt,
+      position: 'right',
+    } as TMessage;
+    const nextFinal = {
+      ...text('next-final', 'Next round complete.', 3),
+      created_at: createdAt,
+      terminal_status: 'completed',
+      artifact_refs: [produced('b', 'vb')],
+    } as TMessage;
+    const messages = [first, nextUser, nextFinal];
+    const before = JSON.stringify(messages);
+    expect(buildMessagePresentationList(messages, inventory()).map((row) => row.id)).toEqual([
+      'artifact-refs-empty-final',
+      'next-user',
+      'next-final',
+      'artifact-refs-next-final',
+    ]);
+    expect(JSON.stringify(messages)).toBe(before);
+  });
+
+  it.each([
     { status: 'finish' },
     { status: 'error', terminal_status: 'failed' },
     { status: 'finish', terminal_status: 'cancelled' },

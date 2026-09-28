@@ -5,13 +5,13 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "63bbc78ecbe3965faa9e281085dea48f68f39bbd3440ae2d605e8c443268a04c",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
-  "additionFingerprintSHA256": "8f33dd17221be038838f010a3068e98bf9003a8351a608f430918c855acebb31",
+  "additionFingerprintSHA256": "476216d95f8ff28692c835ab008981150b7f1378f490848f928311e3f96cebce",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 400,
     "adaptedSourceFiles": 664,
     "removedSourceFiles": 290,
-    "addedFiles": 689
+    "addedFiles": 690
   },
   "adaptations": [
     {
@@ -7062,8 +7062,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/messageListProjection.ts",
-      "sha256": "00beed4b4195042e34f5afdbb32de0e057bec1bed3371da57cdd13cec103ecba",
-      "bytes": 10411,
+      "sha256": "c33ca6b87ccbace75790cdfcc9ee6c40704f77a1f069f8a682f7c981d6088800",
+      "bytes": 10470,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9420,8 +9420,8 @@
     },
     {
       "path": "tests/unit/renderer/conversation/messageListProjection.test.ts",
-      "sha256": "969e77e71a8b20ea9b210e40a91db3f1be94ca36abcacc270eed590ccdbde79d",
-      "bytes": 8565,
+      "sha256": "351746f5e7ef42a591d199d2d56a61cf00f7822ddb9b6fe83e85a95f5301e579",
+      "bytes": 9697,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -10263,6 +10263,12 @@
       "sha256": "a4584d6a10521835a7c03dc5eaeef4ff7dfb89016dbe9c898e3f22d67f525e76",
       "bytes": 4902,
       "reason": "Verify real RDKit worker rendering, pixels, MIME, cache, and path-specific CSP under the production Go host."
+    },
+    {
+      "path": "tests/web-e2e/roundArtifactDelivery.e2e.ts",
+      "sha256": "ff0a10613efddcda5dd0294fa88586d780de281c4193de4748db978776c634d1",
+      "bytes": 4536,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/web-e2e/scientificEnvironments.e2e.ts",
