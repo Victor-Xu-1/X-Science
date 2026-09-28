@@ -126,3 +126,57 @@ test('switches a multi-model complex inside the built-in 3D preview', async ({ p
     await removeScientificWorkspace(page, workspace);
   }
 });
+
+test('persists a native structure snapshot without changing its coordinate version', async ({ page }) => {
+  await loginToScientificWorkbench(page);
+  const workspace = await createScientificWorkspace(page, 'structure-snapshot');
+  try {
+    const structure = await uploadScientificArtifact(page, workspace, {
+      filename: 'snapshot-source.pdb',
+      contentType: 'chemical/x-pdb',
+      source: PDB_FIXTURE,
+    });
+    const sourcePath = `/api/artifacts/${structure.artifactId}`;
+    const versionsBefore = await (await page.request.get(`${sourcePath}/versions`)).json();
+    await openScientificArtifact(page, structure.artifactId);
+    const region = page.getByRole('region', { name: /3D 结构预览/u });
+    await expect(region).toBeVisible();
+    await expect
+      .poll(async () => (await inspectRenderedPixels(region.locator('canvas'))).nonWhite)
+      .toBeGreaterThan(100);
+    const capture = region.getByTestId('synon-biomed-molstar-quick-snapshot');
+    await expect(capture).toBeEnabled();
+    const [savedResponse, download] = await Promise.all([
+      page.waitForResponse((response) => {
+        const url = new URL(response.url());
+        return response.request().method() === 'POST' && url.pathname === `${sourcePath}/versions/binary`;
+      }),
+      page.waitForEvent('download'),
+      capture.click(),
+    ]);
+    expect(savedResponse.status()).toBe(201);
+    expect(new URL(savedResponse.url()).searchParams.get('parent_version_id')).toBe(structure.versionId);
+    expect(download.suggestedFilename()).toBe('snapshot-source-snapshot.png');
+    const saved = (await savedResponse.json()) as { artifact_id: string; version_id: string };
+    expect(saved.artifact_id).not.toBe(structure.artifactId);
+    expect(saved.version_id).not.toBe(structure.versionId);
+    const imagePath = `/api/artifacts/${saved.artifact_id}/versions/${saved.version_id}`;
+    const imageResponse = await page.request.get(imagePath);
+    expect(imageResponse.status()).toBe(200);
+    expect(imageResponse.headers()['content-type']).toContain('image/png');
+    const imageBytes = await imageResponse.body();
+    expect([...imageBytes.subarray(0, 8)]).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);
+    expect(imageBytes.length).toBeGreaterThan(1024);
+    expect(await (await page.request.get(sourcePath)).text()).toBe(PDB_FIXTURE);
+    expect(await (await page.request.get(`${sourcePath}/versions`)).json()).toEqual(versionsBefore);
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    expect(await (await page.request.get(imagePath)).body()).toEqual(imageBytes);
+    await expect(page.getByRole('region', { name: /3D 结构预览/u })).toBeVisible();
+    await page.screenshot({
+      path: test.info().outputPath('persisted-structure-snapshot.png'),
+      fullPage: true,
+    });
+  } finally {
+    await removeScientificWorkspace(page, workspace);
+  }
+});
