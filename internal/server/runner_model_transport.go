@@ -176,6 +176,7 @@ func (s *Server) resolveSessionRunnerModelAuthority(ctx context.Context, session
 	profile, _, snapshot, err := s.resolveSessionModelProfileSnapshotWithFallback(session, resolutionInput, "", "")
 	options.modelSelection = snapshot.Selection
 	options.modelSelectionRevision = snapshot.Revision
+	options.modelOwnerUserID = snapshot.OwnerUserID
 	if err != nil {
 		return options, wrapSessionRunnerModelCallError(err, snapshot, "", "")
 	}

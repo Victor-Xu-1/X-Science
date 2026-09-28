@@ -216,6 +216,9 @@ func (g serverAgentRuntimeToolGateway) executeAgentToolResponse(ctx context.Cont
 		}
 	}
 	response, err := g.executeAgentToolResponseUncached(ctx, call, name, input)
+	if err == nil && name == "read_file" && !runnerCorrectionReadInput(name, input) {
+		response = g.taskRun.observeFileRead(input, response)
+	}
 	if err == nil && g.readReuseEnabled(name) {
 		g.taskRun.storeReadReuse(name, input, response)
 	}
@@ -235,6 +238,9 @@ func (g serverAgentRuntimeToolGateway) executeAgentToolResponseUncached(ctx cont
 	if isAgentWorkspaceFileTool(name) {
 		if name == "read_file" {
 			ctx = withAgentWorkspaceReadBudget(ctx, g.fileReadLimitBytes)
+			if !runnerCorrectionReadInput(name, input) {
+				ctx = withFileReadProgressReserve(ctx)
+			}
 		}
 		return g.server.executeAgentWorkspaceFileTool(ctx, g.kernel, name, input)
 	}
