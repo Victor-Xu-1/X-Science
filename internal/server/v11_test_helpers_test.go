@@ -106,3 +106,21 @@ func closeTestServer(t *testing.T, server *Server) {
 		t.Errorf("close test server: %v", err)
 	}
 }
+
+// Local execution fixtures own their provider and MCP processes. Optional
+// public discovery is exercised by connector tests, not these local protocols.
+// Custom connectors remain enabled, including records restored after restart.
+func disableBundledMCPForLocalFixture(ctx context.Context, server *Server, userID string) error {
+	connectors, err := server.mcpDirectory.ListUnifiedConnectors(ctx, userID)
+	if err != nil {
+		return err
+	}
+	for _, connector := range connectors {
+		if connector.Source == "bundled" {
+			if _, err := server.mcpDirectory.SetUnifiedEnabled(ctx, userID, connector.ID, false); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}

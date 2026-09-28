@@ -473,6 +473,10 @@ func newKernelHostTestRuntime(t *testing.T, databasePath string, seed bool) (*wo
 	}
 	app := New(Options{FileRoot: filepath.Dir(databasePath), Workspace: store, KernelManager: manager})
 	identity := &agentKernelContext{access: access, workspaceDir: t.TempDir()}
+	if err := disableBundledMCPForLocalFixture(t.Context(), app, identity.access.UserID); err != nil {
+		closeKernelHostTestRuntime(t, app, manager, store)
+		t.Fatal(err)
+	}
 	return store, manager, app, identity
 }
 
