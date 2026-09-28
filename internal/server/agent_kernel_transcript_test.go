@@ -117,6 +117,20 @@ func TestTranscriptFrameRunnerExecutesPythonWithoutLegacySession(t *testing.T) {
 	server := newV11TestServer(t, Options{
 		Workspace: store, Transcript: repo, KernelManager: manager, FileRoot: t.TempDir(),
 	})
+	// This fixture covers real local Python execution, approval and artifact
+	// persistence. Public connector discovery has its own protocol tests and
+	// must not consume preparation deadlines before the local provider runs.
+	connectors, err := server.mcpDirectory.ListUnifiedConnectors(t.Context(), "local")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, connector := range connectors {
+		if connector.Source == "bundled" {
+			if _, err := server.mcpDirectory.SetUnifiedEnabled(t.Context(), "local", connector.ID, false); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
 	access, found, err := store.GetKernelFrameAccessContext(context.Background(), "frame-kernel")
 	if err != nil || !found {
 		t.Fatalf("resolve frame access found=%v err=%v", found, err)
