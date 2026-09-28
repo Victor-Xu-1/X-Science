@@ -372,9 +372,12 @@ func (s *Server) launchAgentSSHJob(
 			"scheduler_id=$(sbatch --parsable .synon-slurm.sh); scheduler_id=${scheduler_id%%;*}; " +
 			"case \"$scheduler_id\" in ''|*[!0-9]*) exit 65;; esac; printf %s \"$scheduler_id\" > .scheduler_id"
 	} else {
+		// Publish the forked process identity before returning to the monitor.
+		// The child may not have been scheduled yet; letting it write the PID
+		// creates a window where a live launch is mistaken for a lost job.
 		command += "nohup env " + environment +
-			" bash -c 'echo $$ > .wrapper_pid; exec bash _operon_wrapper.sh' " +
-			"</dev/null >/dev/null 2>&1 &"
+			" bash _operon_wrapper.sh </dev/null >/dev/null 2>&1 & " +
+			"printf '%s\\n' \"$!\" > .wrapper_pid"
 	}
 	result, err := runKernelComputeSSHCommand(ctx, provider, kernelComputeCommandRequest{
 		Command: command, Intent: "Launch the durable remote job", Timeout: 30 * time.Second,
@@ -575,10 +578,13 @@ func (s *Server) validateAgentSSHRecoveryState(job workspace.ComputeJob, hardwar
 }
 
 func pollAgentSSHJob(ctx context.Context, provider workspace.ComputeProvider, remoteWorkdir string) (agentSSHJobStatus, error) {
+	// Completion may be published between the first file check and process
+	// exit. Recheck the durable terminal receipt before declaring a lost job.
 	command := "cd " + shellSingleQuote(remoteWorkdir) + " || exit 44; " +
 		"if [ -s .phase ]; then cat .phase; " +
 		"elif [ -s .wrapper_pid ] && kill -0 \"$(cat .wrapper_pid)\" 2>/dev/null; then printf running; " +
 		"elif [ -s .scheduler_id ] && squeue -h -j \"$(cat .scheduler_id)\" 2>/dev/null | grep -q .; then printf running; " +
+		"elif [ -s .phase ]; then cat .phase; " +
 		"else printf lost; fi"
 	result, err := runKernelComputeSSHCommand(ctx, provider, kernelComputeCommandRequest{
 		Command: command, Intent: "Inspect the durable remote job", Timeout: 30 * time.Second,
