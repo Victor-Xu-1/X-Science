@@ -467,9 +467,8 @@ func TestActivatedTranscriptProjectionCacheInvalidatesForLateArtifactBinding(t *
 		t.Fatalf("exact status=%d body=%s", exact.Code, exact.Body.String())
 	}
 	exactRefs, _ := p3DecodeObject(t, exact)["artifact_refs"].([]any)
-	if len(exactRefs) != 1 || webString(exactRefs[0].(map[string]any)["artifact_id"]) != artifact.ID ||
-		webString(exactRefs[0].(map[string]any)["version_id"]) != version.ID {
-		t.Fatalf("exact refs=%#v", exactRefs)
+	if len(exactRefs) != 0 {
+		t.Fatalf("unfinished round exposed late-bound refs=%#v", exactRefs)
 	}
 	if _, bound, replayCreated, err := repo.AppendAssistantEventWithCommittedArtifacts(context.Background(), assistantInput); err != nil || replayCreated || len(bound) != 1 {
 		t.Fatalf("second replay refs=%#v created=%t err=%v", bound, replayCreated, err)
@@ -479,15 +478,45 @@ func TestActivatedTranscriptProjectionCacheInvalidatesForLateArtifactBinding(t *
 	if idempotent.Code != http.StatusOK || testTranscriptWebProjectionBuilds(server) != 2 {
 		t.Fatalf("idempotent status=%d builds=%d body=%s", idempotent.Code, testTranscriptWebProjectionBuilds(server), idempotent.Body.String())
 	}
+	if _, _, _, err := repo.FinishRunner(context.Background(), transcriptstore.FinishRunnerInput{
+		Claim: claimed.Claim, ClientMessageID: "finish-artifact-cache", Status: "completed",
+		PayloadJSON: []byte(`{"status":"completed","text":"result ready"}`),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	completed := p3JSONRequest(t, server, http.MethodGet,
+		"/api/conversations/frame-artifact-cache/messages?limit=50", nil, "")
+	if completed.Code != http.StatusOK || testTranscriptWebProjectionBuilds(server) != 3 {
+		t.Fatalf("completed status=%d builds=%d body=%s", completed.Code, testTranscriptWebProjectionBuilds(server), completed.Body.String())
+	}
+	completedItems, _ := p3DecodeObject(t, completed)["items"].([]any)
+	terminalID := ""
+	for _, item := range completedItems {
+		message, _ := item.(map[string]any)
+		if webString(message["terminal_status"]) == "completed" {
+			terminalID = webString(message["id"])
+		}
+	}
+	if terminalID == "" {
+		t.Fatal("completed round has no terminal delivery")
+	}
+	exact = p3JSONRequest(t, server, http.MethodGet,
+		"/api/conversations/frame-artifact-cache/messages/"+url.PathEscape(terminalID), nil, "")
+	exactRefs, _ = p3DecodeObject(t, exact)["artifact_refs"].([]any)
+	if exact.Code != http.StatusOK || len(exactRefs) != 1 ||
+		webString(exactRefs[0].(map[string]any)["artifact_id"]) != artifact.ID ||
+		webString(exactRefs[0].(map[string]any)["version_id"]) != version.ID || testTranscriptWebProjectionBuilds(server) != 3 {
+		t.Fatalf("completed exact refs=%#v builds=%d", exactRefs, testTranscriptWebProjectionBuilds(server))
+	}
 	if affected, err := repo.MarkArtifactVersionUnavailable(
 		context.Background(), stream.OwnerID, artifact.ID, version.ID, transcriptstore.ArtifactDeleted,
 	); err != nil || affected != 1 {
 		t.Fatalf("mark deleted affected=%d err=%v", affected, err)
 	}
 	deleted := p3JSONRequest(t, server, http.MethodGet,
-		"/api/conversations/frame-artifact-cache/messages/"+url.PathEscape(assistantMessageID), nil, "")
+		"/api/conversations/frame-artifact-cache/messages/"+url.PathEscape(terminalID), nil, "")
 	deletedRefs, _ := p3DecodeObject(t, deleted)["artifact_refs"].([]any)
-	if deleted.Code != http.StatusOK || testTranscriptWebProjectionBuilds(server) != 2 || len(deletedRefs) != 1 ||
+	if deleted.Code != http.StatusOK || testTranscriptWebProjectionBuilds(server) != 3 || len(deletedRefs) != 1 ||
 		webString(deletedRefs[0].(map[string]any)["availability"]) != string(transcriptstore.ArtifactDeleted) {
 		t.Fatalf("deleted status=%d builds=%d refs=%#v", deleted.Code, testTranscriptWebProjectionBuilds(server), deletedRefs)
 	}
