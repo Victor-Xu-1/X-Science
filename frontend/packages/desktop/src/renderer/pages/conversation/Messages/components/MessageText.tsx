@@ -27,6 +27,7 @@ import { useConversationArtifactIndex } from '../artifacts';
 import { presentArtifactReferenceContent } from './artifactReferencePresentation';
 import MessageCronBadge from './MessageCronBadge';
 import { hasRenderableMessageText } from './messageTextVisibility';
+import { splitDeliveryListPresentation } from './deliveryListPresentation';
 
 const CODE_STYLE = { marginTop: 4, marginBlock: 4 };
 
@@ -108,7 +109,11 @@ const MessageText: React.FC<{
     [artifactIndex, contentToRender, message.artifact_refs, message.status, message.terminal_status]
   );
   const { text, files } = parseFileMarker(publicContent);
-  const { data, json } = useFormatContent(text);
+  const deliveryView = useMemo(
+    () => (message.position === 'right' ? { body: text, appendix: '', count: 0 } : splitDeliveryListPresentation(text)),
+    [message.position, text]
+  );
+  const { data, json } = useFormatContent(deliveryView.body);
   const { t } = useTranslation();
   const [showCopyAlert, setShowCopyAlert] = useState(false);
   const isUserMessage = message.position === 'right';
@@ -143,7 +148,8 @@ const MessageText: React.FC<{
   }
 
   const handleCopy = () => {
-    const baseText = shouldRenderPlainText ? text : json ? JSON.stringify(data, null, 2) : text;
+    const baseText =
+      shouldRenderPlainText || deliveryView.appendix ? text : json ? JSON.stringify(data, null, 2) : text;
     const fileList = files.length ? `Files:\n${files.map((path) => `- ${path}`).join('\n')}\n\n` : '';
     const textToCopy = fileList + baseText;
     copyText(textToCopy)
@@ -267,6 +273,21 @@ const MessageText: React.FC<{
             </div>
           )}
           <div className='pointer-events-none absolute inset-0 z-1' data-testid='transcript-highlight-host' />
+          {deliveryView.appendix && (
+            <details className='mt-8px' data-testid='historical-delivery-list'>
+              <summary className='cursor-pointer'>
+                {t('messages.historicalDeliveryList', { count: deliveryView.count })}
+              </summary>
+              <MarkdownView
+                codeStyle={CODE_STYLE}
+                onLink={synonBiomedArtifactResolver.handleLink}
+                resolveLinkHref={isSynonBiomedWorkspace ? synonBiomedArtifactResolver.resolveLinkHref : undefined}
+                onLocalFileLink={handleLocalFileLink}
+              >
+                {deliveryView.appendix}
+              </MarkdownView>
+            </details>
+          )}
         </div>
         {/* Only the final text block in a turn exposes a message-level action. */}
         {showCopyRow && hasTextContent && (

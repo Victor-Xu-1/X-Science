@@ -623,19 +623,17 @@ describe('MessageList', () => {
     });
 
     const strips = screen.getAllByTestId('artifact-reference-strip');
-    expect(strips).toHaveLength(3);
+    expect(strips).toHaveLength(2);
     expect(strips[0]).toHaveAttribute('data-artifact-ids', 'artifact-first');
     expect(strips[1]).toHaveAttribute('data-artifact-ids', 'artifact-second');
-    expect(strips[2]).toHaveAttribute('data-artifact-ids', 'artifact-first');
     expect(screen.getByTestId('msgtext-assistant-first').closest('[data-item-index]')?.nextElementSibling).toBe(
       strips[0].closest('[data-item-index]')
     );
     expect(screen.getByTestId('msgtext-assistant-second').closest('[data-item-index]')?.nextElementSibling).toBe(
       strips[1].closest('[data-item-index]')
     );
-    expect(screen.getByTestId('msgtext-assistant-third').closest('[data-item-index]')?.nextElementSibling).toBe(
-      strips[2].closest('[data-item-index]')
-    );
+    // Reusing an unchanged version is not a second generation event.
+    expect(screen.getByTestId('msgtext-assistant-third')).toBeInTheDocument();
     expect(screen.queryByText('scientific_files')).not.toBeInTheDocument();
   });
 

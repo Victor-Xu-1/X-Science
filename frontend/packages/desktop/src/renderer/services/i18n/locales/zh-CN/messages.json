@@ -8,6 +8,7 @@
   "imageGenerationModelDetected": "检测到图片模型，已自动开启图片工具，设置为默认模型：{{platform}}:{{model}}",
   "copy": "复制",
   "copySuccess": "复制成功",
+  "historicalDeliveryList": "历史交付清单（{{count}} 个文件，展开原文）",
   "copyFailed": "复制失败",
   "copyLastOutput.empty": "暂无可复制的回复",
   "copiedToClipboard": "已复制到剪贴板",

@@ -900,6 +900,7 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
         position: 'left',
         created_at,
         content: message.data as IMessageToolCall['content'],
+        ...(message.artifact_refs !== undefined ? { artifact_refs: message.artifact_refs } : {}),
       };
     }
     case 'tool_group': {
@@ -910,6 +911,7 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
         conversation_id: message.conversation_id,
         created_at,
         content: message.data as IMessageToolGroup['content'],
+        ...(message.artifact_refs !== undefined ? { artifact_refs: message.artifact_refs } : {}),
       };
     }
     case 'agent_status': {
@@ -1105,6 +1107,7 @@ export const composeMessage = (
         return updateMessage(i, {
           ...msg,
           content: { ...msg.content, ...message.content },
+          artifact_refs: mergeArtifactReferences(msg.artifact_refs, message.artifact_refs, 'union'),
         });
       }
     }

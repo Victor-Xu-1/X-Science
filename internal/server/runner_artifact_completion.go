@@ -36,10 +36,10 @@ func (s *Server) runSessionAgentWithArtifactReferenceRepair(
 	if err != nil {
 		return result, err
 	}
-	finalContent, err := s.sessionRunnerAttachRequiredDeliverables(run, artifactCommits, result.FinalMessage.Content)
-	if err != nil {
-		return result, err
-	}
+	// Attachments are projected from durable generation receipts at their
+	// originating tool message. Do not append the cumulative project inventory
+	// to every final answer or turn historical files into new deliverables.
+	finalContent := result.FinalMessage.Content
 	if canonical, changed := normalizeSessionRunnerArtifactReferencesToCurrentVersions(finalContent, artifactCommits); changed {
 		finalContent = canonical
 	}
