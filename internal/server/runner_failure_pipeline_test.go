@@ -49,7 +49,7 @@ func TestRunnerSettlementPersistsSafeFailureReasonThroughFrameAndHistory(t *test
 	if err != nil || !found {
 		t.Fatalf("frame context: found=%t err=%v", found, err)
 	}
-	if err := fixture.server.publishTranscriptTerminal(frameContext, "failure-pipeline-test", projection, "failure-pipeline-message"); err != nil {
+	if err := fixture.server.publishTranscriptTerminal(context.Background(), frameContext, "failure-pipeline-test", projection, "failure-pipeline-message"); err != nil {
 		t.Fatal(err)
 	}
 	raw, err = json.Marshal(transcriptWebEvents(t, fixture.store, fixture.stream.OwnerID))

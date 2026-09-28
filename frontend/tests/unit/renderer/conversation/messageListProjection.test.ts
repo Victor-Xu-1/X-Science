@@ -28,7 +28,126 @@ const text = (id: string, content: string, createdAt: number): TMessage =>
   }) as unknown as TMessage;
 
 describe('message list projection controller', () => {
-  it('attaches an exact produced version to its generating tool once, not later summaries', () => {
+  const produced = (artifactId: string, versionId: string) => ({
+    artifact_id: artifactId,
+    version_id: versionId,
+    relation: 'produced' as const,
+    availability: 'available' as const,
+  });
+  const inventory = () =>
+    [
+      {
+        kind: 'scientific_files',
+        status: 'active',
+        payload: {
+          files: [produced('a', 'v1'), produced('a', 'v2'), produced('b', 'vb')].map((ref) =>
+            Object.assign(ref, {
+              filename: 'same-name.csv',
+              content_url: `/api/artifacts/${ref.artifact_id}/versions/${ref.version_id}`,
+              is_intermediate: false,
+            })
+          ),
+        },
+      },
+    ] as unknown as IConversationArtifact[];
+
+  it('coalesces round versions without merging distinct artifacts that share a filename', () => {
+    const final = {
+      ...text('final', 'Saved files.', 3),
+      terminal_status: 'completed',
+      artifact_refs: [produced('a', 'v1'), produced('a', 'v2'), produced('b', 'vb'), produced('b', 'vb')],
+    } as TMessage;
+    const before = JSON.stringify(final);
+    const rows = buildMessagePresentationList([final], inventory());
+    expect(rows.filter((row) => row.type === 'referenced_files')).toMatchObject([
+      {
+        sourceMessageIds: ['final'],
+        files: [
+          { artifact_id: 'a', version_id: 'v2' },
+          { artifact_id: 'b', version_id: 'vb' },
+        ],
+      },
+    ]);
+    expect(JSON.stringify(final)).toBe(before);
+  });
+
+  it('keeps terminal-only pages stable when generating tools are loaded later', () => {
+    const final = {
+      ...text('final', 'Saved.', 3),
+      terminal_status: 'completed',
+      artifact_refs: [produced('a', 'v2')],
+    } as TMessage;
+    const oldTool = {
+      ...tool('old-save', 'save_artifacts', 1),
+      artifact_refs: [produced('a', 'v1')],
+    } as TMessage;
+    const files = (messages: TMessage[]) =>
+      buildMessagePresentationList(messages, inventory()).filter((row) => row.type === 'referenced_files');
+    expect(files([oldTool, final])).toEqual(files([final]));
+  });
+
+  it('delivers after an empty completed answer without inserting an empty message row', () => {
+    const final = {
+      ...text('empty-final', '', 3),
+      terminal_status: 'completed',
+      artifact_refs: [produced('a', 'v2')],
+    } as TMessage;
+    const rows = buildMessagePresentationList([final], inventory());
+    expect(rows).toMatchObject([{ type: 'referenced_files', sourceMessageIds: ['empty-final'] }]);
+    expect(rows).toHaveLength(1);
+  });
+
+  it.each([
+    { label: 'shared millisecond', createdAt: 3 },
+    { label: 'missing timestamp', createdAt: undefined },
+  ])('keeps an empty completed round before later messages with $label', ({ createdAt }) => {
+    const first = {
+      ...text('empty-final', '', 3),
+      created_at: createdAt,
+      terminal_status: 'completed',
+      artifact_refs: [produced('a', 'v1')],
+    } as TMessage;
+    const nextUser = {
+      ...text('next-user', 'Continue with another round.', 3),
+      created_at: createdAt,
+      position: 'right',
+    } as TMessage;
+    const nextFinal = {
+      ...text('next-final', 'Next round complete.', 3),
+      created_at: createdAt,
+      terminal_status: 'completed',
+      artifact_refs: [produced('b', 'vb')],
+    } as TMessage;
+    const messages = [first, nextUser, nextFinal];
+    const before = JSON.stringify(messages);
+    expect(buildMessagePresentationList(messages, inventory()).map((row) => row.id)).toEqual([
+      'artifact-refs-empty-final',
+      'next-user',
+      'next-final',
+      'artifact-refs-next-final',
+    ]);
+    expect(JSON.stringify(messages)).toBe(before);
+  });
+
+  it.each([
+    { status: 'finish' },
+    { status: 'error', terminal_status: 'failed' },
+    { status: 'finish', terminal_status: 'cancelled' },
+    {
+      status: 'finish',
+      terminal_status: 'completed',
+      terminal_superseded: true,
+    },
+  ])('does not deliver an unfinished or superseded round: %j', (state) => {
+    const message = {
+      ...text('not-final', 'Progress retained.', 1),
+      ...state,
+      artifact_refs: [produced('a', 'v1')],
+    } as TMessage;
+    expect(buildMessagePresentationList([message], inventory()).map((row) => row.type)).toEqual(['text']);
+  });
+
+  it('delivers produced files once after the completed round, not at intermediate saves', () => {
     const ref = {
       artifact_id: 'a',
       version_id: 'v1',
@@ -41,6 +160,7 @@ describe('message list projection controller', () => {
     } as TMessage;
     const summary = {
       ...text('summary', 'Complete.', 3),
+      terminal_status: 'completed',
       artifact_refs: [ref],
     } as TMessage;
     const artifacts = [
@@ -64,14 +184,17 @@ describe('message list projection controller', () => {
     const files = rows.filter((row) => row.type === 'referenced_files');
     expect(files).toHaveLength(1);
     expect(files[0]).toMatchObject({
-      sourceMessageIds: ['save'],
+      sourceMessageIds: ['summary'],
       files: [{ version_id: 'v1' }],
     });
-    expect(rows.findIndex((row) => row.type === 'referenced_files')).toBe(1);
-    expect(rows[2]).toMatchObject({
-      type: 'tool_summary',
-      sourceMessageIds: ['later'],
-    });
+    expect(rows.findIndex((row) => row.type === 'referenced_files')).toBe(
+      rows.findIndex((row) => row.id === 'summary') + 1
+    );
+    expect(
+      buildMessagePresentationList([origin, { ...summary, terminal_status: undefined }], artifacts).filter(
+        (row) => row.type === 'referenced_files'
+      )
+    ).toEqual([]);
     expect(buildMessagePresentationList([origin, tool('later', 'read_file', 2), summary], artifacts)).toEqual(rows);
   });
 
