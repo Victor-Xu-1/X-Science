@@ -135,6 +135,9 @@ test('switches a multi-model complex inside the built-in 3D preview', async ({ p
 });
 
 test('persists a native structure snapshot without changing its coordinate version', async ({ page }) => {
+  // Software WebGL renders a full-resolution image before the upload; this
+  // lifecycle also verifies persistence, original bytes, history and a reload.
+  test.setTimeout(120_000);
   await loginToScientificWorkbench(page);
   const workspace = await createScientificWorkspace(page, 'structure-snapshot');
   try {
@@ -155,12 +158,15 @@ test('persists a native structure snapshot without changing its coordinate versi
       .poll(async () => (await inspectRenderedPixels(region.locator('canvas'))).nonWhite)
       .toBeGreaterThan(100);
     const [savedResponse, download] = await Promise.all([
-      page.waitForResponse((response) => {
-        const url = new URL(response.url());
-        return response.request().method() === 'POST' && url.pathname === `${sourcePath}/versions/binary`;
-      }),
-      page.waitForEvent('download'),
-      capture.click(),
+      page.waitForResponse(
+        (response) => {
+          const url = new URL(response.url());
+          return response.request().method() === 'POST' && url.pathname === `${sourcePath}/versions/binary`;
+        },
+        { timeout: 60_000 }
+      ),
+      page.waitForEvent('download', { timeout: 60_000 }),
+      capture.click({ timeout: 60_000 }),
     ]);
     expect(savedResponse.status()).toBe(201);
     expect(new URL(savedResponse.url()).searchParams.get('parent_version_id')).toBe(structure.versionId);
