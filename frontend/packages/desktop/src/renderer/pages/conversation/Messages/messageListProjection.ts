@@ -9,8 +9,7 @@ import { isPendingSynonBiomedAskUserHistory } from '@/renderer/components/synonB
 import { parseDiff, type FileChangeInfo } from '@/renderer/utils/file/diffUtils';
 import { hasRenderableMessageText } from './components/messageTextVisibility';
 import {
-  artifactReferenceKey,
-  indexArtifactGenerationOwners,
+  deliveredMessageArtifactReferences,
   indexScientificFilesByArtifactReference,
   matchScientificFilesToArtifactReferences,
 } from './components/artifactReferenceModel';
@@ -93,6 +92,7 @@ export const buildMessagePresentationList = (
   groupBoundaryMessageIds: string[] = []
 ): MessageListProcessedItem[] => {
   const result: MessageListMessageItem[] = [];
+  const attachmentOnlyMessages: TMessage[] = [];
   let diffsChanges: FileChangeInfo[] = [];
   let diffsSourceMessageIds: string[] = [];
   let toolList: Array<IMessageToolGroup | IMessageAcpToolCall | IMessageToolCall> = [];
@@ -145,6 +145,7 @@ export const buildMessagePresentationList = (
       // An empty assistant segment is still a durable turn boundary. Keeping
       // it out of the UI must not fuse tool phases from opposite sides.
       resetSummaryGroups();
+      if (deliveredMessageArtifactReferences(message).length) attachmentOnlyMessages.push(message);
       continue;
     }
     if (
@@ -174,15 +175,13 @@ export const buildMessagePresentationList = (
           continue;
         }
       }
-      if (startsNewToolSummary(toolList, message) || message.artifact_refs?.length) resetSummaryGroups();
+      if (startsNewToolSummary(toolList, message)) resetSummaryGroups();
       pushToolList(message);
-      if (message.artifact_refs?.length) resetSummaryGroups();
       continue;
     }
     if (message.type === 'acp_tool_call') {
-      if (startsNewToolSummary(toolList, message) || message.artifact_refs?.length) resetSummaryGroups();
+      if (startsNewToolSummary(toolList, message)) resetSummaryGroups();
       pushToolList(message);
-      if (message.artifact_refs?.length) resetSummaryGroups();
       continue;
     }
     if (message.type === 'tool_call') {
@@ -192,9 +191,8 @@ export const buildMessagePresentationList = (
         result.push(message);
         continue;
       }
-      if (startsNewToolSummary(toolList, message) || message.artifact_refs?.length) resetSummaryGroups();
+      if (startsNewToolSummary(toolList, message)) resetSummaryGroups();
       pushToolList(message);
-      if (message.artifact_refs?.length) resetSummaryGroups();
       continue;
     }
     resetSummaryGroups();
@@ -217,16 +215,15 @@ export const buildMessagePresentationList = (
   };
   const producedRelations = new Set<ArtifactReferenceRelation>(['produced']);
   const attachedRelations = new Set<ArtifactReferenceRelation>(['attached']);
-  const generationOwners = indexArtifactGenerationOwners(presentationList);
-  const attachedProducedVersions = new Set<string>();
   const resultWithInlineFiles: MessageListProcessedItem[] = [];
-  for (const item of result) {
-    resultWithInlineFiles.push(item);
-    const sourceMessages = item.type === 'tool_summary' ? item.messages : item.type === 'file_summary' ? [] : [item];
+  for (const item of [...result, ...attachmentOnlyMessages]) {
+    if (item.type !== 'text' || hasRenderableMessageText(item)) resultWithInlineFiles.push(item);
+    const sourceMessages = item.type === 'tool_summary' || item.type === 'file_summary' ? [] : [item];
     for (const source of sourceMessages) {
-      if (!source.artifact_refs?.length) continue;
+      const references = deliveredMessageArtifactReferences(source);
+      if (!references.length) continue;
       const presentedVersionIds =
-        source.type === 'text' && typeof source.content.content === 'string'
+        source.position === 'right' && source.type === 'text' && typeof source.content.content === 'string'
           ? artifactVersionIdsInPresentedContent(
               source.content.content,
               source.artifact_refs,
@@ -235,21 +232,13 @@ export const buildMessagePresentationList = (
             )
           : new Set<string>();
       const files = matchScientificFilesToArtifactReferences(
-        source.artifact_refs,
+        references,
         allScientificFiles,
         source.position === 'right' ? attachedRelations : producedRelations,
         scientificFilesByVersion
       )
         .filter((file) => file.version_id !== null)
-        .filter((file) => file.version_id === null || !presentedVersionIds.has(file.version_id))
-        .filter((file) => {
-          if (source.position === 'right') return true;
-          const key = artifactReferenceKey(file.artifact_id, file.version_id!);
-          const owner = generationOwners.get(key);
-          if ((owner && owner !== source.id) || attachedProducedVersions.has(key)) return false;
-          attachedProducedVersions.add(key);
-          return true;
-        });
+        .filter((file) => file.version_id === null || !presentedVersionIds.has(file.version_id));
       if (files.length === 0) continue;
       resultWithInlineFiles.push({
         type: 'referenced_files',

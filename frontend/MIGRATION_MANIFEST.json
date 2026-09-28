@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "bc0d194c8e15a07da6b70902e8788cab62d1598364d64c4e3ccbde091a12648d",
+  "adaptationFingerprintSHA256": "63bbc78ecbe3965faa9e281085dea48f68f39bbd3440ae2d605e8c443268a04c",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
-  "additionFingerprintSHA256": "cdb7d7c27e9fce81df1fc621c83c6dd0f4a21dbcdb8e0ba9dca7b34ebc2e21af",
+  "additionFingerprintSHA256": "8f33dd17221be038838f010a3068e98bf9003a8351a608f430918c855acebb31",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 400,
@@ -3888,8 +3888,8 @@
     {
       "path": "tests/unit/renderer/messageList.dom.test.tsx",
       "sourceSHA256": "7edb9ebf403daeeb505d02c8e44fef103c00302115afed4e7a7792ff08906702",
-      "targetSHA256": "c4eeb1a5e96a22cde57d4214ae880c3e7d7252197f20dd0289150fa458a214cc",
-      "bytes": 37714,
+      "targetSHA256": "0ff9339865c3a5e20d7921daebbac9b0fe665b280a011249432cf1febf90d2fe",
+      "bytes": 39108,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -6984,8 +6984,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/components/artifactReferenceModel.ts",
-      "sha256": "d58b08abb6e6228ca58a573edb4fe1352e6432dfebfb3d03479349eed49cf61a",
-      "bytes": 2808,
+      "sha256": "2f31e216b966ab1b341f0162f843a8ff6586dcbdf864fed74d619527e2c0f2fd",
+      "bytes": 2999,
       "reason": "Resolve exact canonical message artifact_refs without tool-name, filename, path, or latest-version guessing."
     },
     {
@@ -7062,8 +7062,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/messageListProjection.ts",
-      "sha256": "865df9ba18ca0b7f408c118f0a9e6ab327d31f68be6e2af282835080d05b24d6",
-      "bytes": 10934,
+      "sha256": "00beed4b4195042e34f5afdbb32de0e057bec1bed3371da57cdd13cec103ecba",
+      "bytes": 10411,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9420,8 +9420,8 @@
     },
     {
       "path": "tests/unit/renderer/conversation/messageListProjection.test.ts",
-      "sha256": "cc2bf5ba2bb759c8e7d2af672ba02f715744f8b71c57dea1eba1b39d99e7a04c",
-      "bytes": 5252,
+      "sha256": "969e77e71a8b20ea9b210e40a91db3f1be94ca36abcacc270eed590ccdbde79d",
+      "bytes": 8565,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

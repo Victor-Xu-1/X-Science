@@ -1197,7 +1197,7 @@ func TestTranscriptWebDeliveryUsesTerminalReceiptAndExactArtifactReferences(t *t
 			}
 		}
 	}
-	if !reflect.DeepEqual(assistantRefs, terminalRefs) || len(terminalRefs) != 1 {
+	if len(assistantRefs) != 0 || len(terminalRefs) != 1 {
 		t.Fatalf("assistant refs=%#v terminal refs=%#v", assistantRefs, terminalRefs)
 	}
 	if assistantMessageID != finalMessageID || terminalMessageID != finalMessageID {

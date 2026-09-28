@@ -4,17 +4,17 @@ import type { TMessage } from '@/common/chat/chatLib';
 
 export const artifactReferenceKey = (artifactId: string, versionId: string): string => `${artifactId}\0${versionId}`;
 
-export function indexArtifactGenerationOwners(messages: TMessage[]): ReadonlyMap<string, string> {
-  const owners = new Map<string, string>();
-  for (const message of messages) {
-    if (message.hidden || !['tool_call', 'tool_group', 'acp_tool_call'].includes(message.type)) continue;
-    for (const ref of message.artifact_refs ?? []) {
-      if (ref.relation !== 'produced') continue;
-      const key = artifactReferenceKey(ref.artifact_id, ref.version_id);
-      if (!owners.has(key)) owners.set(key, message.id);
-    }
+export function deliveredMessageArtifactReferences(message: TMessage): ArtifactReferenceWire[] {
+  if (message.hidden) return [];
+  if (message.position === 'right') return message.artifact_refs?.filter((ref) => ref.relation === 'attached') ?? [];
+  if (message.type !== 'text' || message.terminal_status !== 'completed' || message.terminal_superseded) return [];
+  // The backend scopes these references to the admitted input revision. Do not
+  // infer completion from finished prose, tools, filenames or a loaded page.
+  const heads = new Map<string, ArtifactReferenceWire>();
+  for (const ref of message.artifact_refs ?? []) {
+    if (ref.relation === 'produced') heads.set(ref.artifact_id, ref);
   }
-  return owners;
+  return [...heads.values()];
 }
 
 export function indexScientificFilesByArtifactReference(

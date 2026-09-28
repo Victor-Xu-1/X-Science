@@ -1,14 +1,16 @@
 # Synon Biomed Operations Runbook
 
-## Message-local generated files
+## End-of-round generated files
 
-Generated-file attachments are projected from the durable artifact commit
-receipt for the exact tool invocation and immutable version. Live tool
-publications and history reloads use the same owner/active-branch-scoped lookup;
-filenames and model-written tool output never establish ownership. Snapshot
-files appear after the generating tool group, not at the end of every later
-summary. Unchanged versions are not duplicated, distinct versions stay distinct,
-and explicitly attached user files retain their user-message placement.
+Generated files are saved immediately, but their attachment cards appear together
+after the round's authoritative completed answer, not after intermediate tools or
+finished progress prose. Live terminal publications and paginated history use the
+same owner/active-branch-scoped commit lookup, bound to the admitted input revision
+and terminal event. Resumed attempts share that round; later user inputs do not.
+Only the final immutable version of each generated snapshot is delivered. Earlier
+versions and source receipts remain stored, and user uploads retain their original
+message placement. Paused/failed runs retain their saved files without presenting
+them as a completed delivery. Filenames and tool-output text never grant ownership.
 
 Final answers no longer receive an automatically appended cumulative project
 inventory. Historical trailing artifact-only delivery lists remain stored and

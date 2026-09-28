@@ -2,87 +2,52 @@ package server
 
 import (
 	"context"
-	"regexp"
 	"strconv"
 	"strings"
 
 	transcriptstore "synon-go/internal/persistence/transcript"
 )
 
-var transcriptWebTruncatedArtifactImagePattern = regexp.MustCompile(`!\[[^\]\r\n]+\]\(\s*(?:\r?\n|$)`)
-
-// enrichTranscriptWebArtifactPresentation repairs the bounded historical
-// window written before assistant events carried current artifact
-// heads. It never parses filenames into authority: the exact active branch,
-// owner, and runner attempt select a durable artifact snapshot. The frontend
-// then uses the same structured references as newly published messages.
-func (s *Server) enrichTranscriptWebArtifactPresentation(
-	ctx context.Context,
-	frameID string,
-	messages []map[string]any,
-) error {
-	attempts := make(map[int64]struct{})
-	hasTool := false
+// enrichTranscriptWebArtifactPresentation derives one final delivery per round
+// from immutable receipts. Intermediate saves remain durable but are not public
+// attachment placements. It does not rewrite messages or require generating
+// tools to be present in this paginated history window.
+func (s *Server) enrichTranscriptWebArtifactPresentation(ctx context.Context, frameID string, messages []map[string]any) error {
+	attempts := []int64{}
 	for _, message := range messages {
-		hasTool = hasTool || webString(message["type"]) == "tool_call"
-		attempt, ok := transcriptWebArtifactRecoveryAttempt(frameID, message)
-		if ok {
-			attempts[attempt] = struct{}{}
+		if webString(message["position"]) != "right" {
+			message["artifact_refs"] = transcriptNonProducedArtifactReferences(message["artifact_refs"])
+		}
+		if attempt, ok := transcriptWebArtifactRecoveryAttempt(frameID, message); ok {
+			attempts = append(attempts, attempt)
 		}
 	}
-	if len(attempts) == 0 && !hasTool {
+	if len(attempts) == 0 {
 		return nil
 	}
 	if s == nil || s.workspaceStore == nil || s.transcriptStore == nil {
 		return transcriptstore.ErrSchemaUnavailable
 	}
 	frame, found, err := s.workspaceStore.GetFrame(frameID)
-	if err != nil {
+	if err != nil || !found {
 		return err
-	}
-	if !found {
-		return nil
 	}
 	ownerID, found, err := s.workspaceStore.ProjectOwnerIDContext(ctx, frame.ProjectID)
-	if err != nil {
+	if err != nil || !found {
 		return err
-	}
-	if !found {
-		return nil
 	}
 	stream, found, err := s.transcriptStore.GetFrameStreamBySession(ctx, ownerID, frameID)
+	if err != nil || !found {
+		return err
+	}
+	snapshots, err := s.transcriptStore.CompletedRoundArtifactReferences(ctx, stream.UID, ownerID, attempts)
 	if err != nil {
 		return err
 	}
-	if !found {
-		return nil
-	}
-	if err := s.enrichTranscriptToolArtifacts(ctx, stream.UID, ownerID, messages); err != nil {
-		return err
-	}
-	snapshots := make(map[int64][]map[string]any, len(attempts))
-	for attempt := range attempts {
-		snapshot, snapshotErr := s.transcriptStore.CurrentArtifactCommitSnapshot(
-			ctx, stream.UID, ownerID, attempt,
-		)
-		if snapshotErr != nil {
-			return snapshotErr
-		}
-		available := make([]transcriptstore.ArtifactReference, 0, len(snapshot.References))
-		for _, reference := range snapshot.References {
-			if reference.Availability == transcriptstore.ArtifactAvailable {
-				available = append(available, reference)
-			}
-		}
-		snapshots[attempt] = transcriptArtifactReferences(available)
-	}
 	for _, message := range messages {
-		attempt, ok := transcriptWebArtifactRecoveryAttempt(frameID, message)
-		if !ok {
-			continue
-		}
-		if references := snapshots[attempt]; len(references) > 0 {
-			message["artifact_refs"] = references
+		if attempt, ok := transcriptWebArtifactRecoveryAttempt(frameID, message); ok {
+			message["artifact_refs"] = append(transcriptNonProducedArtifactReferences(message["artifact_refs"]),
+				transcriptArtifactReferences(snapshots[attempt])...)
 		}
 	}
 	return nil
@@ -91,16 +56,11 @@ func (s *Server) enrichTranscriptWebArtifactPresentation(
 func transcriptWebArtifactRecoveryAttempt(frameID string, message map[string]any) (int64, bool) {
 	if strings.TrimSpace(webString(message["type"])) != "text" ||
 		strings.TrimSpace(webString(message["position"])) != "left" ||
-		transcriptWebMessageHasArtifactReferences(message["artifact_refs"]) {
+		webString(message["terminal_status"]) != "completed" || message["terminal_superseded"] == true {
 		return 0, false
 	}
 	content, ok := message["content"].(map[string]any)
 	if !ok || content == nil {
-		return 0, false
-	}
-	text := webString(content["content"])
-	if !strings.Contains(text, sessionRunnerArtifactReferenceMarker) &&
-		!transcriptWebTruncatedArtifactImagePattern.MatchString(text) {
 		return 0, false
 	}
 	identity := strings.TrimSpace(webString(content["assistant_attempt_id"]))
@@ -119,13 +79,12 @@ func transcriptWebArtifactRecoveryAttempt(frameID string, message map[string]any
 	return attempt, err == nil && attempt > 0
 }
 
-func transcriptWebMessageHasArtifactReferences(value any) bool {
-	switch references := value.(type) {
-	case []map[string]any:
-		return len(references) > 0
-	case []any:
-		return len(references) > 0
-	default:
-		return false
+func transcriptNonProducedArtifactReferences(value any) []map[string]any {
+	refs := []map[string]any{}
+	for _, ref := range transcriptWebArtifactReferenceMaps(value) {
+		if webString(ref["relation"]) != "produced" {
+			refs = append(refs, ref)
+		}
 	}
+	return refs
 }

@@ -608,7 +608,7 @@ func (s *Server) publishTranscriptWebClaim(ctx context.Context, claim transcript
 		frameContext.Frame.ProjectID != stream.ProjectID || frameContext.Frame.RootFrameID != stream.RootFrameID {
 		return transcriptstore.ErrOwnerMismatch
 	}
-	refs := transcriptArtifactReferences(claim.ArtifactReferences)
+	refs := transcriptNonProducedArtifactReferences(transcriptArtifactReferences(claim.ArtifactReferences))
 	baseID := fmt.Sprintf("transcript-web:%s:%d", stream.UID, claim.PublicationSeq)
 	createdAt := claim.Event.CreatedAt.UnixMilli()
 	if richAskUser {
@@ -721,13 +721,10 @@ func (s *Server) publishTranscriptWebClaim(ctx context.Context, claim transcript
 			return err
 		}
 		projection = s.publicTranscriptTerminalProjection(ctx, stream, projection)
-		return s.publishTranscriptTerminal(frameContext, baseID, projection, messageID)
+		return s.publishTranscriptTerminal(ctx, frameContext, baseID, projection, messageID)
 	case transcriptstore.ToolOperationObservationEventType:
 		toolPayload, visible, err := transcriptWebToolStreamPayload(claim, payload, stream.SessionID, baseID, refs)
 		if err != nil || !visible {
-			return err
-		}
-		if err := s.enrichTranscriptToolStreamArtifacts(ctx, stream.UID, stream.OwnerID, toolPayload); err != nil {
 			return err
 		}
 		return s.publishWebMessageStream(frameContext, baseID+":tool", toolPayload)
@@ -753,9 +750,6 @@ func (s *Server) publishTranscriptWebClaim(ctx context.Context, claim transcript
 				return toolErr
 			}
 			if visible {
-				if err := s.enrichTranscriptToolStreamArtifacts(ctx, stream.UID, stream.OwnerID, toolPayload); err != nil {
-					return err
-				}
 				if err := s.publishWebMessageStream(frameContext, baseID+":tool", toolPayload); err != nil {
 					return err
 				}
@@ -826,12 +820,20 @@ func runnerRecoveryWaitPublicMessage(task string) string {
 }
 
 func (s *Server) publishTranscriptTerminal(
+	ctx context.Context,
 	frameContext workspace.FrameRealtimeContext,
 	baseID string,
 	projection transcriptstore.TerminalProjection,
 	messageID string,
 ) error {
-	refs := transcriptArtifactReferences(projection.ArtifactReferences)
+	refs := transcriptNonProducedArtifactReferences(transcriptArtifactReferences(projection.ArtifactReferences))
+	if projection.TerminalStatus == "completed" && !projection.Superseded {
+		rounds, err := s.transcriptStore.CompletedRoundArtifactReferences(ctx, projection.StreamUID, projection.OwnerID, []int64{projection.Attempt})
+		if err != nil {
+			return err
+		}
+		refs = append(refs, transcriptArtifactReferences(rounds[projection.Attempt])...)
+	}
 	sourcePublicationSequence := projection.PublicationSeq
 	publicationBoundaryID := baseID
 	messageStatus := "finish"
