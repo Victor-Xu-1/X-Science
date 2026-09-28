@@ -7,10 +7,6 @@
       "platform": "darwin-x86_64",
       "requiredPackages": [
         {
-          "name": "py3dmol",
-          "version": "2.5.4"
-        },
-        {
           "name": "python",
           "version": "3.11.*"
         },
@@ -19,14 +15,14 @@
           "version": "2024.03.5"
         }
       ],
-      "packageCount": 111,
-      "generation": "ea791f622247ead8be19803f54e65648b7de18048e20d49019ee6b4e2efb92ac",
-      "manifestPath": "synon-biomed-python/ea791f622247ead8be19803f54e65648b7de18048e20d49019ee6b4e2efb92ac/manifest.json",
-      "explicitPath": "synon-biomed-python/ea791f622247ead8be19803f54e65648b7de18048e20d49019ee6b4e2efb92ac/explicit.txt",
-      "licensesPath": "synon-biomed-python/ea791f622247ead8be19803f54e65648b7de18048e20d49019ee6b4e2efb92ac/licenses.json",
+      "packageCount": 110,
+      "generation": "45acb199de241bb6f7387f451e861307878cbf31786d93a6e7e3a2b8c1a92589",
+      "manifestPath": "synon-biomed-python/45acb199de241bb6f7387f451e861307878cbf31786d93a6e7e3a2b8c1a92589/manifest.json",
+      "explicitPath": "synon-biomed-python/45acb199de241bb6f7387f451e861307878cbf31786d93a6e7e3a2b8c1a92589/explicit.txt",
+      "licensesPath": "synon-biomed-python/45acb199de241bb6f7387f451e861307878cbf31786d93a6e7e3a2b8c1a92589/licenses.json",
       "licenseTextsIncluded": false,
-      "explicitSHA256": "e2833d45a0a706f1c4d84c26e28f8d91579eecba977b2c2e2e875d362a658b04",
-      "licenseInventorySHA256": "1f8e145379125f29423a64c03e181af2cf91f627fa9139ba5ef7cad5029bd6b8"
+      "explicitSHA256": "511acb1fae71a3c1850784a95552ea22aa8fdd0ccb11d0deda535d9a157e2594",
+      "licenseInventorySHA256": "5aa6187b91a1d5cf414ccc7e1de96821d2ff146ee7c4233f1d70a42dd8612747"
     },
     {
       "name": "synon-biomed-r",
@@ -47,5 +43,5 @@
       "licenseInventorySHA256": "7988463bc2ff7be2c873d0b1156dc436bc45011ea69bddd8ab3a68cf3f9b5bbe"
     }
   ],
-  "catalogSHA256": "741f63ad2aca846d58cdbd890d1b491ae5ae527299f54fda27fab583d2d875ce"
+  "catalogSHA256": "2ec15b9a8286d737e02544b2c8cfe23afe813da42c71cb0985c62963a73c1216"
 }

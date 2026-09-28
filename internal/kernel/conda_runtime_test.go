@@ -47,8 +47,13 @@ func TestBundledManagedPythonRuntimeContractIncludesPinnedChemistryCapability(t 
 	for _, item := range runtime.manifest.RequiredPackages {
 		required[item.Name] = item.Version
 	}
-	if required["python"] != "3.11.*" || required["rdkit"] != "2024.03.5" || required["py3dmol"] != "2.5.4" {
+	if required["python"] != "3.11.*" || required["rdkit"] != "2024.03.5" || len(required) != 2 {
 		t.Fatalf("required packages = %#v", required)
+	}
+	for _, item := range runtime.manifest.Packages {
+		if strings.Contains(strings.ToLower(item.Name), "3dmol") {
+			t.Fatalf("retired renderer remains in managed runtime: %s", item.Name)
+		}
 	}
 }
 

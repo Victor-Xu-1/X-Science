@@ -58,8 +58,8 @@
     },
     {
       "path": "kernels/cheminfo_render_helpers.py",
-      "sha256": "77c5d99b3238aaf6f20bc04364ff0b5c7f994556e271c97fe1885c286951921a",
-      "bytes": 312
+      "sha256": "514dab137c148f3137679adc4dab8ec88c220680480c35b7b638320ed7a9c47b",
+      "bytes": 206
     },
     {
       "path": "kernels/kernel_egress_forwarder.py",
@@ -88,13 +88,13 @@
     },
     {
       "path": "kernels/synon_biomed_runtime/__init__.py",
-      "sha256": "12a885bc7c702139a08a66d2a3ce9ad5c6a49e69b5a6dc07a1a6bd8753aa5ace",
-      "bytes": 390
+      "sha256": "a9cde95e8cadedb4e29a1390526c33daa8b3e173d89089becfc10103bc392793",
+      "bytes": 284
     },
     {
       "path": "kernels/synon_biomed_runtime/cheminfo_render.py",
-      "sha256": "baddaf8e5a44e9da3c7c790d6d17e7c45e5398f8c0c4d9eb036356a1b8c6ac78",
-      "bytes": 11840
+      "sha256": "f8fa37ba2b84e579b7b084caf5b1fab948d6aa915994f7bd75ff87b3c7e28948",
+      "bytes": 6860
     },
     {
       "path": "kernels/synon_biomed_runtime/matplotlib_runtime.py",

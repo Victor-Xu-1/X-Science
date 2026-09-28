@@ -117,6 +117,39 @@ migration or new storage engine is required by this interface.
 
 ### Local scientific software
 
+The Python chemistry runtime supplies RDKit 2D rendering. Interactive 3D
+structures are rendered only by the workbench Mol* preview from coordinate
+artifacts; Python helpers do not export a second HTML viewer. Publish a scene
+using the version-bound JSON example in the `cheminfo-render` Skill.
+Scene structure/version/hash validation is mandatory. Independent image review
+follows the session's existing `verifier_mode` setting for both single images and
+multi-structure scenes; a second structure does not implicitly enable it.
+The pre-review gate checks the actual image bytes and immutable hashes. The
+existing independent reviewer must read image bytes through `read_file`; missing
+visual evidence is recorded as unverified, not a passing assessment. No retired
+visual tool is required before the reviewer can start. Mol* Snapshot saves a
+new PNG artifact through the existing binary branch API, bound to the displayed
+structure version; local inline previews remain download-only. Snapshot saving
+does not overwrite coordinates or certify scientific correctness.
+
+Scene completion also validates selected, still-staged artifact versions before
+publishing them. Selection comes from the existing produced-artifact ledger and
+must match both artifact and version identity. Unselected drafts and cited-only
+inputs do not satisfy the scene contract; validation never changes publication
+state. Normal completion and checkpoint recovery use this same selection, so
+an unpublished valid scene cannot be trapped behind its own publication gate.
+
+Pinned optional runtime locks are generated with
+`node scripts/generate-conda-runtime-lock.mjs`. For a dependency removal without
+unrelated upgrades, use `--locked-manifest <verified-generation/manifest.json>`,
+`--exclude-packages <unused-package>`, `--required-packages <remaining-pins>`
+and the existing `--name`, `--platform`, `--catalog`, `--output-dir` arguments.
+This verifies all input digests and rejects removing packages with retained
+dependents. Repeat the same command with `--check` before deleting superseded
+tracked lock assets. Installed generations are not deleted or modified in place;
+the runtime prepares a new generation through the existing controller.
+Regressions: `node --test scripts/*conda*.test.mjs`.
+
 Settings → Scientific Toolkit → Scientific environments is the single
 catalog for local scientific software preparation. It presents the required
 Python/R core runtimes and the registered optional predownload environments as
@@ -229,7 +262,7 @@ The required core contract is intentionally small and explicit:
 
 | Required runtime | Baseline contract | Why it is required |
 | --- | --- | --- |
-| `synon-biomed-python` | Python 3.11, RDKit, py3Dmol and the bundled rendering helpers | Default molecular, structure and general scientific task path |
+| `synon-biomed-python` | Python 3.11, RDKit and the bundled 2D rendering helpers; native structures are previewed by Mol* in the workbench | Default molecular, structure and general scientific task path |
 | `synon-biomed-r` | R 4.5, `data.table`, `ggplot2`, `jsonlite`, and `tidyverse` namespaces | Supported R analysis and shared report/data handling |
 
 Shell, Java, GPU frameworks, docking engines, omics stacks and other large

@@ -18,6 +18,7 @@ path = sys.argv[1]
 with open(path, "r", encoding="utf-8") as handle:
     document = json.load(handle)
 expected = [
+    "docs/licenses/frontend-dependencies/jszip@3.10.1/lib/license_header.js",
     "skills/synonbiomed/skill-creator/assets/eval_review.html",
     "skills/synonbiomed/skill-creator/eval-viewer/viewer.html",
     "assets/synon-link/synon-link-extension-v0.6.10.zip",
@@ -25,6 +26,8 @@ expected = [
 ]
 actual = [item.get("path") for item in document.get("allowedVisualAssets", [])]
 expected_tooling = [
+    "scripts/conda-lock-source.mjs",
+    "scripts/conda-lock-source.test.mjs",
     "scripts/audit/reference_harness_inventory.mjs",
     "scripts/dev/frontend-dependency-watch.mjs",
     "scripts/generate-conda-runtime-lock.mjs",
@@ -61,6 +64,9 @@ actual_non_product_web_files=$(find "$ROOT_DIR" \
     -o -iname '*.vue' -o -iname '*.svelte' -o -iname '*.astro' \
   \) -printf '%P\n' | sort)
 expected_web_files=$(printf '%s\n' \
+  'docs/licenses/frontend-dependencies/jszip@3.10.1/lib/license_header.js' \
+  'scripts/conda-lock-source.mjs' \
+  'scripts/conda-lock-source.test.mjs' \
   'scripts/audit/reference_harness_inventory.mjs' \
   'scripts/dev/frontend-dependency-watch.mjs' \
   'scripts/generate-conda-runtime-lock.mjs' \
@@ -72,6 +78,17 @@ if [[ "$actual_non_product_web_files" != "$expected_web_files" ]]; then
   diff -u <(printf '%s\n' "$expected_web_files") <(printf '%s\n' "$actual_non_product_web_files") >&2 || true
   exit 1
 fi
+
+# A license header has a source-like extension but is not executable source.
+# Classify only the exact inventoried file, and fail if code is added to it.
+python3 - "$ROOT_DIR/docs/licenses/frontend-dependencies/jszip@3.10.1/lib/license_header.js" <<'PY'
+import pathlib
+import re
+import sys
+text = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")
+if not re.fullmatch(r"\s*/\*(?:(?!\*/).)*\*/\s*", text, flags=re.S):
+    raise SystemExit("ERROR: license header contains executable content")
+PY
 
 banned_directories=$(find "$ROOT_DIR" -mindepth 1 -maxdepth 1 \
   -type d \( -name desktop -o -name web -o -name webapp -o -name web-ui \) \

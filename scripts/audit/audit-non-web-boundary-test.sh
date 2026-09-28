@@ -19,6 +19,8 @@ mkdir -p "$FIXTURE/docs" "$FIXTURE/frontend/node_modules/example" \
   "$FIXTURE/skills/synonbiomed/skill-creator/assets" \
   "$FIXTURE/skills/synonbiomed/skill-creator/eval-viewer"
 cp "$ROOT_DIR/docs/non-web-asset-boundary.json" "$FIXTURE/docs/non-web-asset-boundary.json"
+mkdir -p "$FIXTURE/docs/licenses/frontend-dependencies/jszip@3.10.1/lib"
+printf '/*! preserved license */\n' >"$FIXTURE/docs/licenses/frontend-dependencies/jszip@3.10.1/lib/license_header.js"
 printf '{}\n' >"$FIXTURE/frontend/package.json"
 printf '{}\n' >"$FIXTURE/frontend/SOURCE_IMPORT_MANIFEST.json"
 printf '{}\n' >"$FIXTURE/frontend/MIGRATION_MANIFEST.json"
@@ -28,12 +30,21 @@ printf 'export {};\n' >"$FIXTURE/scripts/audit/reference_harness_inventory.mjs"
 printf 'export {};\n' >"$FIXTURE/scripts/dev/frontend-dependency-watch.mjs"
 printf 'export {};\n' >"$FIXTURE/scripts/generate-conda-runtime-lock.mjs"
 printf 'export {};\n' >"$FIXTURE/scripts/generate-conda-runtime-lock.test.mjs"
+printf 'export {};\n' >"$FIXTURE/scripts/conda-lock-source.mjs"
+printf 'export {};\n' >"$FIXTURE/scripts/conda-lock-source.test.mjs"
 printf '<html></html>\n' \
   >"$FIXTURE/skills/synonbiomed/skill-creator/assets/eval_review.html"
 printf '<html></html>\n' \
   >"$FIXTURE/skills/synonbiomed/skill-creator/eval-viewer/viewer.html"
 
 bash "$ROOT_DIR/scripts/audit/audit-non-web-boundary.sh" "$FIXTURE" >/dev/null
+
+printf 'execute();\n' >>"$FIXTURE/docs/licenses/frontend-dependencies/jszip@3.10.1/lib/license_header.js"
+if bash "$ROOT_DIR/scripts/audit/audit-non-web-boundary.sh" "$FIXTURE" >/dev/null 2>&1; then
+  echo "ERROR: boundary audit accepted executable code in a license header" >&2
+  exit 1
+fi
+printf '/*! preserved license */\n' >"$FIXTURE/docs/licenses/frontend-dependencies/jszip@3.10.1/lib/license_header.js"
 
 ln -s "$FIXTURE" "$TMP_DIR/project-link"
 bash "$ROOT_DIR/scripts/audit/audit-non-web-boundary.sh" "$TMP_DIR/project-link" >/dev/null

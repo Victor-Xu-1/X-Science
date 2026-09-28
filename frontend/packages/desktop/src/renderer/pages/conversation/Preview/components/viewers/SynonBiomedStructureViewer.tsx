@@ -35,6 +35,7 @@ import {
 import { ELECTROSTATIC_COLOR_STOPS } from './molstarElectrostaticTheme';
 import { loadStructureContent, resolveStructureFormat } from './structureSource';
 import { loadStructureSceneSources } from './structureScene';
+import { saveStructureSnapshot } from './structureSnapshot';
 import { annotateMolstarControls } from './molstarControlsHelp';
 import {
   createAnimationFrameCoalescer,
@@ -727,6 +728,11 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
         height,
         backgroundColor: CANVAS_BACKGROUNDS[canvasBackground],
       });
+      // A saved task structure needs a durable image version as well as a
+      // download. Inline/local previews retain the download-only workflow.
+      if (contentUrl?.includes('/api/artifacts/')) {
+        await saveStructureSnapshot(contentUrl, filename, dataUri);
+      }
       const anchor = document.createElement('a');
       anchor.href = dataUri;
       anchor.download = `${filename.replace(/\.[^.]+$/, '') || 'structure'}-snapshot.png`;

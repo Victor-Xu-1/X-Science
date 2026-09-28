@@ -3,6 +3,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readdir, readFile, realpath, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
+import { readLockedRecords } from './conda-lock-source.mjs';
 
 const MAX_METADATA_FILES = 4096;
 // Verified Conda records can exceed 5 MB (notably qt6-main).
@@ -19,6 +20,8 @@ const VALUE_OPTION_NAMES = new Set([
   'solve-json',
   'package-cache',
   'required-packages',
+  'locked-manifest',
+  'exclude-packages',
 ]);
 const FLAG_OPTION_NAMES = new Set(['check']);
 const PLATFORM_CONTRACTS = new Map([
@@ -64,8 +67,11 @@ const parseArguments = (values) => {
       throw new Error(`--${required} is required`);
     }
   }
-  if (Boolean(options.prefix) === Boolean(options['solve-json'])) {
-    throw new Error('exactly one of --prefix or --solve-json is required');
+  if ([options.prefix, options['solve-json'], options['locked-manifest']].filter(Boolean).length !== 1) {
+    throw new Error('exactly one of --prefix, --solve-json or --locked-manifest is required');
+  }
+  if (options['exclude-packages'] && !options['locked-manifest']) {
+    throw new Error('--exclude-packages requires --locked-manifest');
   }
   return options;
 };
@@ -292,7 +298,11 @@ const main = async () => {
     throw new Error('--package-cache must be a directory');
   }
   let records;
-  if (options['solve-json']) {
+  if (options['locked-manifest']) {
+    records = await readLockedRecords(resolve(options['locked-manifest']), {
+      name: options.name, platform, exclude: options['exclude-packages'],
+    });
+  } else if (options['solve-json']) {
     const solvePath = resolve(options['solve-json']);
     const solveStat = await stat(solvePath);
     if (!solveStat.isFile() || solveStat.size <= 0 || solveStat.size > 32 * 1024 * 1024) {
@@ -415,7 +425,9 @@ const main = async () => {
     schemaVersion: 2,
     name: boundedText(options.name, '--name', 128),
     platform,
-    source: usedPackageCacheLicense
+    source: options['locked-manifest']
+      ? 'verified-conda-lock-license-fields'
+      : usedPackageCacheLicense
       ? 'verified-conda-meta-and-package-cache-license-fields'
       : options['solve-json']
         ? 'verified-conda-solver-receipt-license-fields'

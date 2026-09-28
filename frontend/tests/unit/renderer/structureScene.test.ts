@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
 import {
   loadStructureSceneSources,
   parseStructureSceneManifest,
@@ -6,6 +7,18 @@ import {
 } from '@/renderer/pages/conversation/Preview/components/viewers/structureScene';
 
 describe('structure scene delivery contract', () => {
+  it('loads the scene contract taught by the chemistry rendering skill', () => {
+    const skill = readFileSync(
+      new URL('../../../../skills/synonbiomed/cheminfo-render/SKILL.md', import.meta.url),
+      'utf8'
+    );
+    const example = skill.split('```json\n')[1]?.split('\n```')[0];
+    expect(example).toBeDefined();
+    const scene = parseStructureSceneManifest(JSON.parse(example!));
+    expect(scene?.mother_structure).toEqual({ name: 'receptor.pdb', version_id: 'receptor-version' });
+    expect(scene?.derived_structures).toEqual([{ name: 'complex.pdb', version_id: 'complex-version' }]);
+  });
+
   it('accepts exact mother and derived version references', () => {
     const manifest = parseStructureSceneManifest({
       schema: STRUCTURE_SCENE_MANIFEST_SCHEMA,
@@ -51,16 +64,16 @@ describe('structure scene delivery contract', () => {
       loadStructureSceneSources(
         {
           'scene.json': '/artifacts/scene.json',
-          'mother.pdb': '/artifacts/mother.pdb',
-          'pocket.pdb': '/artifacts/pocket.pdb',
+          'mother.pdb': '/api/artifacts/mother/versions/mother-v2',
+          'pocket.pdb': '/api/artifacts/pocket/versions/pocket-v1',
         },
         new AbortController().signal
       )
     ).resolves.toEqual({
       sceneId: 'scene-1',
       sources: [
-        { name: 'mother.pdb', versionId: 'mother-v1', url: '/artifacts/mother.pdb' },
-        { name: 'pocket.pdb', versionId: 'pocket-v1', url: '/artifacts/pocket.pdb' },
+        { name: 'mother.pdb', versionId: 'mother-v1', url: '/api/artifacts/mother/versions/mother-v1' },
+        { name: 'pocket.pdb', versionId: 'pocket-v1', url: '/api/artifacts/pocket/versions/pocket-v1' },
       ],
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);

@@ -47,8 +47,8 @@ func TestRealNativeCorePythonInstallAndReuse(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	output, err := exec.CommandContext(ctx, python, "-I", "-c", "import rdkit,py3Dmol;print(rdkit.__version__+'|'+py3Dmol.__version__)").CombinedOutput()
-	if err != nil || strings.TrimSpace(string(output)) != "2024.03.5|2.5.4" {
+	output, err := exec.CommandContext(ctx, python, "-I", "-c", "import importlib.util, rdkit; assert importlib.util.find_spec('py3Dmol') is None; print(rdkit.__version__)").CombinedOutput()
+	if err != nil || strings.TrimSpace(string(output)) != "2024.03.5" {
 		t.Fatalf("native Python import=%q err=%v", output, err)
 	}
 	pythonWorker := startNativeRuntimeTestWorker(t, manager, SessionSpec{

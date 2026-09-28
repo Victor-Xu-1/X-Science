@@ -203,6 +203,13 @@ import SynonBiomedStructureViewer, {
   resolvePdbLigandResidueName,
 } from '@/renderer/pages/conversation/Preview/components/viewers/SynonBiomedStructureViewer';
 
+const snapshotMocks = vi.hoisted(() => ({
+  save: vi.fn(async () => ({ artifact_id: 'snapshot', version_id: 'snapshot-v1' })),
+}));
+vi.mock('@/renderer/pages/conversation/Preview/components/viewers/structureSnapshot', () => ({
+  saveStructureSnapshot: snapshotMocks.save,
+}));
+
 const electrostaticDX = electrostaticTransportMocks.dx;
 
 const electrostaticResponse = () => ({
@@ -313,6 +320,30 @@ const dockingPanelResizeEnsemble = [
 ].join('\n');
 
 describe('SynonBiomedStructureViewer', () => {
+  it('persists an immutable native snapshot before offering the browser download', async () => {
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
+    await renderWithI18n(
+      <SynonBiomedStructureViewer
+        filename='complex.pdb'
+        content='HEADER TEST\nATOM      1  N   MET A   1'
+        contentUrl='/api/artifacts/complex/versions/source-v1'
+      />,
+      'en-US'
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Expand the left toolbar' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Snapshot' })).toBeEnabled());
+    fireEvent.click(screen.getByRole('button', { name: 'Snapshot' }));
+    await waitFor(() =>
+      expect(snapshotMocks.save).toHaveBeenCalledWith(
+        '/api/artifacts/complex/versions/source-v1',
+        'complex.pdb',
+        'data:image/png;base64,MOLSTAR_CAPTURE'
+      )
+    );
+    await waitFor(() => expect(click).toHaveBeenCalled());
+    click.mockRestore();
+  });
+
   it('keeps the electrostatic scale as one top-anchored content-height overlay', () => {
     const rules = structureViewerCss.match(/\.synon-biomed-molstar__electrostatic-legend\s*\{[^}]*\}/g) ?? [];
     expect(rules).toHaveLength(1);

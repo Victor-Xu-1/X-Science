@@ -7,10 +7,6 @@
       "platform": "linux-x86_64",
       "requiredPackages": [
         {
-          "name": "py3dmol",
-          "version": "2.5.4"
-        },
-        {
           "name": "python",
           "version": "3.11.*"
         },
@@ -19,14 +15,14 @@
           "version": "2024.03.5"
         }
       ],
-      "packageCount": 181,
-      "generation": "d9ea950dc16ade50deed3cbc08079b627826c7bbc4c946fce7fa9233546746ae",
-      "manifestPath": "synon-biomed-python/d9ea950dc16ade50deed3cbc08079b627826c7bbc4c946fce7fa9233546746ae/manifest.json",
-      "explicitPath": "synon-biomed-python/d9ea950dc16ade50deed3cbc08079b627826c7bbc4c946fce7fa9233546746ae/explicit.txt",
-      "licensesPath": "synon-biomed-python/d9ea950dc16ade50deed3cbc08079b627826c7bbc4c946fce7fa9233546746ae/licenses.json",
+      "packageCount": 180,
+      "generation": "f10efe8796c2f0ee7925a17354ea12284de3c6dfb0943d391a37a4577f672d7d",
+      "manifestPath": "synon-biomed-python/f10efe8796c2f0ee7925a17354ea12284de3c6dfb0943d391a37a4577f672d7d/manifest.json",
+      "explicitPath": "synon-biomed-python/f10efe8796c2f0ee7925a17354ea12284de3c6dfb0943d391a37a4577f672d7d/explicit.txt",
+      "licensesPath": "synon-biomed-python/f10efe8796c2f0ee7925a17354ea12284de3c6dfb0943d391a37a4577f672d7d/licenses.json",
       "licenseTextsIncluded": false,
-      "explicitSHA256": "3439fedfa8efddedc5b3706932154f7b5d14b4829058cfd645eded0c284fc418",
-      "licenseInventorySHA256": "bc37e408580a9bd019cd89586808e02f487ea7ebaa1bb51bac05e08b98bb8890"
+      "explicitSHA256": "9782305375fc0ab52a68d1213d7c0565a1f3a807f4a860b7cee29cd119898c0e",
+      "licenseInventorySHA256": "b9a1bd4ab33880ee0832738902a5fdd42288d806c64fbf3c0aceb2b993a8a195"
     },
     {
       "name": "synon-biomed-python-baseline",
@@ -53,5 +49,5 @@
       "licenseInventorySHA256": "ed79c4e3a0f9a26fe167db3d361c81bf3d162126f3d5603fab17489e9b205419"
     }
   ],
-  "catalogSHA256": "193cce1a82732795fe971b5b8004f92997a17dcf49522c856e39f3be4b3b5339"
+  "catalogSHA256": "f37ae9a804a754932160b3a93d45389c610f16d2ed0f6ce7ab33798d31463b36"
 }

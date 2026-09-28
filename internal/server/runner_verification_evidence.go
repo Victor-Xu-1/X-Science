@@ -71,23 +71,25 @@ type sessionReviewerEvidenceReceipt struct {
 	Complete              bool   `json:"complete"`
 
 	content string
+	visual  bool
 }
 
 type sessionReviewerEvidenceScope struct {
-	mu               sync.Mutex
-	sessionID        string
-	streamUID        string
-	runnerAttempt    int
-	reviewIndex      int
-	reviewUnitID     string
-	inventorySHA256  string
-	artifacts        map[string]sessionReviewerArtifactEvidence
-	receipts         map[string]sessionReviewerEvidenceReceipt
-	submissionMode   sessionReviewerSubmissionMode
-	submission       *sessionReviewerSubmission
-	submitRejections int
-	lastSubmitError  string
-	replCalls        int
+	mu                 sync.Mutex
+	sessionID          string
+	streamUID          string
+	runnerAttempt      int
+	reviewIndex        int
+	reviewUnitID       string
+	inventorySHA256    string
+	artifacts          map[string]sessionReviewerArtifactEvidence
+	receipts           map[string]sessionReviewerEvidenceReceipt
+	submissionMode     sessionReviewerSubmissionMode
+	submission         *sessionReviewerSubmission
+	submitRejections   int
+	lastSubmitError    string
+	replCalls          int
+	requireVisualReads bool
 }
 
 type sessionReviewerSubmission struct {
@@ -151,6 +153,8 @@ func newSessionReviewerEvidenceScopeForMode(
 		streamUID: streamUID, runnerAttempt: runnerAttempt, reviewIndex: reviewIndex, reviewUnitID: reviewUnitID,
 		inventorySHA256: inventorySHA256, artifacts: artifacts, submissionMode: mode,
 		receipts: make(map[string]sessionReviewerEvidenceReceipt, len(artifacts)),
+		requireVisualReads: stringValue(binding["review_scope"]) == "logical_task_terminal" &&
+			int(numberValue(binding["review_chunk_index"])) >= int(numberValue(binding["review_chunk_count"]))-1,
 	}, nil
 }
 
@@ -506,6 +510,7 @@ func (scope *sessionReviewerEvidenceScope) record(
 		ArtifactID: strings.TrimSpace(artifact.ArtifactID), VersionID: versionID,
 		ExpectedContentSHA256: expectedSHA256, ReadScope: readScope,
 		ResultSHA256: resultSHA256, Complete: complete, content: content,
+		visual: len(parts) == 1 && parts[0].Type == agentruntime.ContentPartImage,
 	}
 	scope.mu.Lock()
 	if _, duplicate := scope.receipts[receipt.ToolCallID]; duplicate {
@@ -770,7 +775,35 @@ func validateSessionReviewerEvidence(
 			}
 		}
 	}
+	if err := scope.validateVisualReads(receipts); err != nil {
+		return nil, err
+	}
 	return receipts, nil
+}
+
+// Visual evidence uses the same immutable read receipts as other reviewer
+// evidence. Merely reading image metadata cannot establish visual inspection.
+func (scope *sessionReviewerEvidenceScope) validateVisualReads(receipts []sessionReviewerEvidenceReceipt) error {
+	if scope == nil || !scope.requireVisualReads {
+		return nil
+	}
+	read := make(map[string]bool)
+	for _, receipt := range receipts {
+		if receipt.Complete && receipt.visual {
+			read[receipt.VersionID] = true
+		}
+	}
+	missing := []string{}
+	for version, artifact := range scope.artifacts {
+		if visualArtifactName(artifact.Name) && !read[version] {
+			missing = append(missing, artifact.Name)
+		}
+	}
+	if len(missing) > 0 {
+		sort.Strings(missing)
+		return fmt.Errorf("visual assessment is unverified: reviewer did not inspect image bytes for %s", strings.Join(missing, ", "))
+	}
+	return nil
 }
 
 // sessionReviewerRecoverableRejection reports whether a failed reviewer tool

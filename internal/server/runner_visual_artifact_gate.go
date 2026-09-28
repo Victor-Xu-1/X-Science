@@ -5,8 +5,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"path/filepath"
-	"sort"
 	"strings"
 
 	sessionstore "synon-go/internal/persistence/sessions"
@@ -25,20 +26,29 @@ func (err *sessionRunnerVisualArtifactValidationRequired) Error() string {
 	if err == nil {
 		return "generated visual artifacts require immutable visual validation"
 	}
-	names := append([]string(nil), err.Artifacts...)
-	names = append(names, err.StructureSceneFailures...)
-	names = uniqueSortedStrings(names)
-	if len(names) == 0 {
+	// Keep repair causes separate from affected names: a large delivery must
+	// not consume the display budget before the model sees what to fix.
+	failures := summarizeVisualValidationItems(err.StructureSceneFailures)
+	names := summarizeVisualValidationItems(err.Artifacts)
+	if failures == "" && names == "" {
 		return "generated visual artifacts require immutable visual validation"
 	}
-	sort.Strings(names)
-	if len(names) > 8 {
-		names = append(names[:8], fmt.Sprintf("and %d more", len(names)-8))
+	if failures != "" {
+		detail := "multi-structure delivery does not satisfy the immutable structure-scene contract: " + failures
+		if names != "" {
+			detail += ". Affected artifacts: " + names
+		}
+		return detail
 	}
-	if len(err.StructureSceneFailures) > 0 && len(err.Artifacts) == 0 {
-		return "multi-structure delivery does not satisfy the immutable structure-scene contract: " + strings.Join(names, ", ")
+	return "generated visual artifacts or structure scenes are not bound to the required immutable visual evidence: " + names
+}
+
+func summarizeVisualValidationItems(items []string) string {
+	items = uniqueSortedStrings(items)
+	if len(items) > 8 {
+		items = append(items[:8], fmt.Sprintf("and %d more", len(items)-8))
 	}
-	return "generated visual artifacts or structure scenes are not bound to the required immutable visual evidence: " + strings.Join(names, ", ")
+	return strings.Join(items, ", ")
 }
 
 func (err *sessionRunnerVisualArtifactValidationRequired) runnerCorrection() transcriptstore.RunnerInterruptionCause {
@@ -53,8 +63,9 @@ func (err *sessionRunnerVisualArtifactValidationRequired) runnerCorrection() tra
 		visual.Artifacts = append([]transcriptstore.RunnerVisualConditionArtifact(nil), err.Targets...)
 		visual.UnboundNames = append([]string(nil), err.StructureSceneFailures...)
 	}
+	detail := err.Error() + ". For multiple structures, save a synon.structure-scene.v1 manifest using mother_structure and derived_structures entries with name/version_id, layers with version_id/role/representation/visible, and preview_image with name/version_id/sha256. Use the native Mol* preview and the cheminfo-render contract; do not generate a standalone HTML viewer or substitute a 2D grid for a 3D scene. Preserve coordinates and exact immutable hashes; repair the reported scene or manifest fields."
 	return newRunnerCorrection(sessionRunnerVisualArtifactValidationReasonCode,
-		err.Error()+". For every generated visual artifact, bind the renderer output to its immutable hash and pass VisualReview. For any delivery containing multiple structures, also save one synon.structure-scene.v1 manifest that names the exact mother and derived versions, includes visible layers and a preview image, then validate that preview with VisualReview before answering. Repair every overlap, clipping, hash, canvas, scene, or manifest blocker; a semantic VisualReview pass is valid only after its model-visible challenge succeeds.",
+		detail,
 		transcriptstore.RunnerCorrectionCondition{Visual: &visual},
 	)
 }
@@ -63,12 +74,12 @@ func (err *sessionRunnerVisualArtifactValidationRequired) runnerCorrection() tra
 // the user-controlled completion-verification pipeline. Optional independent
 // review may add broader judgment, but verifier_mode=off must not start or keep
 // a review workflow alive after the main task has completed.
-func (s *Server) verifySessionRunnerVisualArtifactEvidence(session sessionstore.Session) error {
+func (s *Server) verifySessionRunnerVisualArtifactEvidence(session sessionstore.Session, candidates []transcriptstore.ArtifactReferenceInput) error {
 	// Not every runner entry point is backed by a workspace frame. IM,
 	// delegation, and direct TaskRun sessions can legitimately complete without
 	// one, and therefore cannot have workspace artifact versions to validate.
-	// Workspace-backed sessions remain strict: once a frame exists, every image
-	// artifact must be bound to an immutable passing VisualReview record.
+	// Byte integrity is checked here. Independent interpretation belongs to the
+	// existing reviewer, not a retired tool that the main model cannot invoke.
 	if s == nil || s.workspaceStore == nil {
 		return nil
 	}
@@ -87,106 +98,58 @@ func (s *Server) verifySessionRunnerVisualArtifactEvidence(session sessionstore.
 	if err != nil {
 		return err
 	}
-	if sessionRunnerVerificationEnabled(session) {
-		if err := s.verifyVisualArtifactEvidence(workspaceEvidence.Artifacts); err != nil {
-			return err
-		}
-	}
-	return s.verifyStructureSceneEvidence(workspaceEvidence.Artifacts)
-}
-
-func (s *Server) verifyVisualArtifactEvidence(artifacts []sessionReviewerArtifactEvidence) error {
-	visualArtifacts := make([]sessionReviewerArtifactEvidence, 0)
-	for _, artifact := range artifacts {
-		if visualArtifactName(artifact.Name) {
-			visualArtifacts = append(visualArtifacts, artifact)
-		}
-	}
-	if len(visualArtifacts) == 0 {
-		return nil
-	}
-	if s == nil || s.runtimeStore == nil {
-		return errors.New("visual review runtime store is unavailable")
-	}
-	validatedHashes, err := s.validatedVisualReviewImageHashes()
-	if err != nil {
+	if err := s.verifyVisualArtifactEvidence(workspaceEvidence.Artifacts); err != nil {
 		return err
 	}
-	missing := []string{}
-	targets := []transcriptstore.RunnerVisualConditionArtifact{}
-	for _, artifact := range visualArtifacts {
-		digest := strings.ToLower(strings.TrimSpace(artifact.ContentSHA256))
-		if len(digest) != sha256.Size*2 {
-			missing = append(missing, artifact.Name+" (invalid artifact digest)")
-			targets = append(targets, transcriptstore.RunnerVisualConditionArtifact{Name: artifact.Name, VersionID: artifact.VersionID, SHA256: artifact.ContentSHA256, Failure: "invalid_digest"})
-			continue
-		}
-		if _, found := validatedHashes[digest]; !found {
-			missing = append(missing, artifact.Name)
-			targets = append(targets, transcriptstore.RunnerVisualConditionArtifact{Name: artifact.Name, VersionID: artifact.VersionID, SHA256: digest, Failure: "missing_validation"})
-		}
-	}
-	if len(missing) > 0 {
-		return &sessionRunnerVisualArtifactValidationRequired{Artifacts: missing, Targets: targets}
-	}
-	return nil
+	return s.verifyStructureSceneEvidence(workspaceEvidence.Artifacts, candidates)
 }
 
-func (s *Server) validatedVisualReviewImageHashes() (map[string]struct{}, error) {
-	if s == nil || s.runtimeStore == nil {
-		return nil, errors.New("visual review runtime store is unavailable")
-	}
-	records, err := s.runtimeStore.List(visualReviewRuntimeNamespace)
-	if err != nil {
-		return nil, fmt.Errorf("list visual review records: %w", err)
-	}
-	validatedHashes := map[string]struct{}{}
-	for _, entry := range records {
-		record := mapValue(entry.Value)
-		if !visualReviewRecordPassed(record) {
+// Validate actual immutable bytes without treating metadata as semantic review.
+func (s *Server) verifyVisualArtifactEvidence(artifacts []sessionReviewerArtifactEvidence) error {
+	for _, artifact := range artifacts {
+		if !visualArtifactName(artifact.Name) {
 			continue
 		}
-		for _, rawEvidence := range anySliceValue(record["evidence"]) {
-			evidence := mapValue(rawEvidence)
-			if stringValue(evidence["source"]) != "image_path" || stringValue(evidence["status"]) != "attached" {
-				continue
-			}
-			digest := strings.ToLower(strings.TrimSpace(stringValue(evidence["sha256"])))
-			if len(digest) == sha256.Size*2 {
-				validatedHashes[digest] = struct{}{}
+		if s == nil || s.workspaceStore == nil {
+			return errors.New("visual artifact store is unavailable")
+		}
+		_, version, reader, found, err := s.workspaceStore.OpenArtifactVersionContent(artifact.VersionID)
+		if err != nil {
+			return err
+		}
+		if !found || reader == nil {
+			return fmt.Errorf("visual artifact %s is unavailable", artifact.Name)
+		}
+		hash := sha256.New()
+		header := make([]byte, 512)
+		n, readErr := io.ReadFull(reader, header)
+		if readErr != nil && readErr != io.EOF && readErr != io.ErrUnexpectedEOF {
+			reader.Close()
+			return readErr
+		}
+		_, _ = hash.Write(header[:n])
+		_, copyErr := io.Copy(hash, reader)
+		closeErr := reader.Close()
+		if err := errors.Join(copyErr, closeErr); err != nil {
+			return err
+		}
+		digest := hex.EncodeToString(hash.Sum(nil))
+		if !agentWorkspaceImageMIME(http.DetectContentType(header[:n])) ||
+			!strings.EqualFold(digest, artifact.ContentSHA256) ||
+			!strings.EqualFold(digest, version.ContentSHA256) {
+			return &sessionRunnerVisualArtifactValidationRequired{
+				Artifacts: []string{artifact.Name},
+				Targets:   []transcriptstore.RunnerVisualConditionArtifact{{Name: artifact.Name, VersionID: artifact.VersionID, SHA256: artifact.ContentSHA256, Failure: "invalid_image_integrity"}},
 			}
 		}
 	}
-	return validatedHashes, nil
+	return nil
 }
 
 func visualArtifactName(name string) bool {
 	switch strings.ToLower(filepath.Ext(strings.TrimSpace(name))) {
 	case ".png", ".jpg", ".jpeg", ".gif", ".webp":
 		return true
-	default:
-		return false
-	}
-}
-
-func visualReviewRecordPassed(record map[string]any) bool {
-	if !boolValue(record["visual_verified"], false) || strings.ToLower(strings.TrimSpace(stringValue(record["verdict"]))) != "pass" {
-		return false
-	}
-	switch strings.TrimSpace(stringValue(record["action"])) {
-	case "validate_layout":
-		validation := mapValue(record["layout_validation"])
-		return boolValue(record["layout_verified"], false) &&
-			strings.TrimSpace(stringValue(record["evidence_level"])) == "machine_verified_layout" &&
-			numberValue(validation["overlap_count"]) == 0 &&
-			numberValue(validation["clipped_count"]) == 0 &&
-			numberValue(validation["invalid_box_count"]) == 0
-	case "record_assessment":
-		assessment := mapValue(record["assessment"])
-		response := strings.ToUpper(strings.TrimSpace(stringValue(assessment["visual_challenge_response"])))
-		expectedHash := strings.TrimSpace(stringValue(record[visualReviewChallengeHashField]))
-		actualHash := sha256.Sum256([]byte(response))
-		return response != "" && expectedHash != "" && strings.EqualFold(expectedHash, hex.EncodeToString(actualHash[:]))
 	default:
 		return false
 	}

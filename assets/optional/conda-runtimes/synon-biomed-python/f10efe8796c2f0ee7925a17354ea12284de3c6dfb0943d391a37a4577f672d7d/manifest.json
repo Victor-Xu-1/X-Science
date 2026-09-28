@@ -4,10 +4,6 @@
   "platform": "linux-x86_64",
   "requiredPackages": [
     {
-      "name": "py3dmol",
-      "version": "2.5.4"
-    },
-    {
       "name": "python",
       "version": "3.11.*"
     },
@@ -16,9 +12,9 @@
       "version": "2024.03.5"
     }
   ],
-  "packageCount": 181,
-  "explicitSHA256": "3439fedfa8efddedc5b3706932154f7b5d14b4829058cfd645eded0c284fc418",
-  "licenseInventorySHA256": "bc37e408580a9bd019cd89586808e02f487ea7ebaa1bb51bac05e08b98bb8890",
+  "packageCount": 180,
+  "explicitSHA256": "9782305375fc0ab52a68d1213d7c0565a1f3a807f4a860b7cee29cd119898c0e",
+  "licenseInventorySHA256": "b9a1bd4ab33880ee0832738902a5fdd42288d806c64fbf3c0aceb2b993a8a195",
   "packages": [
     {
       "name": "_openmp_mutex",
@@ -2025,21 +2021,6 @@
       ]
     },
     {
-      "name": "py3dmol",
-      "version": "2.5.4",
-      "build": "pyhd8ed1ab_0",
-      "buildNumber": 0,
-      "subdir": "noarch",
-      "channel": "conda-forge",
-      "url": "https://conda.anaconda.org/conda-forge/noarch/py3dmol-2.5.4-pyhd8ed1ab_0.conda",
-      "sha256": "de9ac46d330aa7b5cb833ecb851249a550d6a6f8f8a4cbb7748b9cd6220f6c52",
-      "license": "MIT",
-      "depends": [
-        "ipython",
-        "python >=3.10"
-      ]
-    },
-    {
       "name": "pycairo",
       "version": "1.29.0",
       "build": "py311hc1a9592_1",
@@ -3103,5 +3084,5 @@
       ]
     }
   ],
-  "manifestSHA256": "d9ea950dc16ade50deed3cbc08079b627826c7bbc4c946fce7fa9233546746ae"
+  "manifestSHA256": "f10efe8796c2f0ee7925a17354ea12284de3c6dfb0943d391a37a4577f672d7d"
 }

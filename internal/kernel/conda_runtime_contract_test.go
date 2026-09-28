@@ -121,6 +121,11 @@ func TestBundledNativeRuntimeCatalogsVerifyPlatformLocks(t *testing.T) {
 			if runtime.entry.Platform != platform.ID || runtime.entry.Generation != runtime.manifestDigest {
 				t.Fatalf("%s/%s %s: inconsistent generation", target.goos, target.goarch, name)
 			}
+			for _, item := range runtime.manifest.Packages {
+				if strings.Contains(strings.ToLower(item.Name), "3dmol") {
+					t.Fatalf("%s/%s %s: retired renderer still required", target.goos, target.goarch, name)
+				}
+			}
 		}
 	}
 }
@@ -135,7 +140,15 @@ func TestCondaRuntimeRejectsUnknownFieldsAndAlteredDigest(t *testing.T) {
 		if unknown {
 			data = bytes.Replace(data, []byte("{"), []byte("{\"unrecognized\":true,"), 1)
 		} else {
-			data = bytes.Replace(data, []byte(`"packageCount": 181`), []byte(`"packageCount": 180`), 1)
+			var catalog condaRuntimeCatalog
+			if err := json.Unmarshal(data, &catalog); err != nil {
+				t.Fatal(err)
+			}
+			catalog.Runtimes[0].PackageCount++
+			data, err = json.Marshal(catalog)
+			if err != nil {
+				t.Fatal(err)
+			}
 		}
 		if err := os.WriteFile(config.CondaRuntimeCatalog, data, 0o600); err != nil {
 			t.Fatal(err)

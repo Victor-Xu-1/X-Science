@@ -117,7 +117,7 @@ describe('Synon Biomed workspace settings service', () => {
       }
       if (url.endsWith('/api/preferences/allowed-domains')) {
         if (init?.method === 'POST' || init?.method === 'PUT') return json({});
-        return json({ domains: ['3dmol.org'], configDomains: [], deniedDomains: ['localhost'] });
+        return json({ domains: ['example.org'], configDomains: [], deniedDomains: ['localhost'] });
       }
       if (url.endsWith('/api/preferences/builtin-allowlist/disabled-groups')) return json({});
       return json({ detail: 'not found' }, 404);
@@ -125,7 +125,7 @@ describe('Synon Biomed workspace settings service', () => {
 
     const snapshot = await loadSynonBiomedNetworkSettings({ fetchImpl });
     expect(snapshot.groups[0]).toEqual(expect.objectContaining({ id: 'nih', domains: ['*.nih.gov'] }));
-    expect(snapshot.domains).toEqual(['3dmol.org']);
+    expect(snapshot.domains).toEqual(['example.org']);
     expect(snapshot.activeKernelCount).toBe(2);
     expect(snapshot.hasSeenOnboarding).toBe(true);
 

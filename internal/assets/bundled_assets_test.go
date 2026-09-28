@@ -271,12 +271,20 @@ func TestBundledScientificPythonAssetsUseOneVerifiedHelperAuthority(t *testing.T
 	}
 
 	canonical := read("assets/optional/kernels/synon_biomed_runtime/cheminfo_render.py")
-	for _, symbol := range []string{"def render_molecule_images(", "use_svg: bool = True", "metadata_filename: str | os.PathLike[str] | None = None", "def save_py3dmol_html(", "def make_py3dmol_view_html("} {
+	for _, symbol := range []string{"def render_molecule_images(", "use_svg: bool = True", "metadata_filename: str | os.PathLike[str] | None = None"} {
 		if !strings.Contains(canonical, symbol) {
 			t.Fatalf("canonical cheminfo helper missing %s", symbol)
 		}
 	}
 	skill := read("skills/synonbiomed/cheminfo-render/SKILL.md")
+	for _, text := range []string{canonical, skill, read("assets/optional/kernels/synon_biomed_runtime/__init__.py")} {
+		if strings.Contains(strings.ToLower(text), "3dmol") {
+			t.Fatal("chemistry rendering still advertises or implements the retired viewer")
+		}
+	}
+	if !strings.Contains(skill, "Mol*") || !strings.Contains(skill, "derived_structures") || !strings.Contains(skill, "version_id") {
+		t.Fatal("chemistry rendering does not route native structures through the existing scene contract")
+	}
 	if !strings.Contains(skill, "use_svg=True") || !strings.Contains(skill, "Do not invent other") {
 		t.Fatalf("cheminfo skill does not document the canonical rendering contract")
 	}
@@ -286,6 +294,9 @@ func TestBundledScientificPythonAssetsUseOneVerifiedHelperAuthority(t *testing.T
 		"skills/synonbiomed/cheminfo-render/cheminfo_render_helpers.py",
 	} {
 		shim := read(relative)
+		if strings.Contains(strings.ToLower(shim), "3dmol") {
+			t.Fatalf("%s exports the retired viewer", relative)
+		}
 		if strings.Contains(shim, "from kernel import") {
 			t.Fatalf("%s retains the ambiguous generic kernel import", relative)
 		}

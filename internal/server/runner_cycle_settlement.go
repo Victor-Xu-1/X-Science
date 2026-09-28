@@ -123,7 +123,7 @@ func (s *Server) settleSessionRunnerChatOutcome(
 			runnerInterruptionMayContinueSameTask(reason) {
 			resumeDetail := message
 			if reason == sessionRunnerVisualMediaUnsupportedReasonCode {
-				resumeDetail = "the selected model endpoint rejected model-visible image input; no text-only fallback was used. For a generated labeled plot or diagram, export the renderer-derived synon.visual-layout.v1 manifest and call VisualReview action=validate_layout. For semantic image interpretation, use an explicitly configured vision-capable model; do not claim inspection from metadata"
+				resumeDetail = "the selected model endpoint rejected model-visible image input; no text-only fallback was used. For a generated labeled plot or diagram, retain the renderer-derived layout evidence and read the image through read_file using an explicitly configured vision-capable endpoint. The independent reviewer consumes the same immutable artifact path. For semantic image interpretation, use an explicitly configured vision-capable model; do not claim inspection from metadata"
 			}
 			autoResume := runnerInterruptionAutoResume(reason) ||
 				(reason == sessionRunnerModelProviderUnavailableReasonCode &&

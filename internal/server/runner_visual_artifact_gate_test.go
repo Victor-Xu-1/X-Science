@@ -7,17 +7,34 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"synon-go/internal/agentruntime"
 
 	sessionstore "synon-go/internal/persistence/sessions"
 	workspace "synon-go/internal/persistence/workspace"
 )
 
+func TestVisualArtifactCorrectionPreservesActionableFailureWithManyArtifacts(t *testing.T) {
+	err := &sessionRunnerVisualArtifactValidationRequired{
+		Artifacts:              []string{"a.pdb", "b.pdb", "c.pdb", "d.pdb", "e.pdb", "f.pdb", "g.pdb", "h.pdb", "i.pdb"},
+		StructureSceneFailures: []string{"visible derived layer is missing for version-z"},
+	}
+	for _, detail := range []string{err.Error(), err.runnerCorrection().Detail} {
+		if !strings.Contains(detail, err.StructureSceneFailures[0]) {
+			t.Fatalf("artifact name truncation hid the actionable repair condition: %s", detail)
+		}
+	}
+	if len(err.runnerCorrection().Condition.Visual.UnboundNames) != 10 {
+		t.Fatal("display summarization must not truncate the complete recovery condition")
+	}
+}
+
 func TestVisualArtifactCompletionGateSkipsSessionsWithoutWorkspaceFrame(t *testing.T) {
 	srv := New(Options{FileRoot: t.TempDir()})
-	if err := srv.verifySessionRunnerVisualArtifactEvidence(sessionstore.Session{ID: "im:wechat:standalone"}); err != nil {
+	if err := srv.verifySessionRunnerVisualArtifactEvidence(sessionstore.Session{ID: "im:wechat:standalone"}, nil); err != nil {
 		t.Fatalf("non-workspace session unexpectedly required workspace visual evidence: %v", err)
 	}
 }
@@ -49,91 +66,98 @@ func TestVisualArtifactCompletionGateHonorsDisabledVerifierMode(t *testing.T) {
 	disabled := sessionstore.Session{ID: "frame-visual-policy", WorkDir: root, Orchestration: map[string]any{
 		"sessionConfig": map[string]any{"verifier_mode": "off"},
 	}}
-	if err := srv.verifySessionRunnerVisualArtifactEvidence(disabled); err != nil {
+	if err := srv.verifySessionRunnerVisualArtifactEvidence(disabled, nil); err != nil {
 		t.Fatalf("disabled verifier unexpectedly required visual evidence: %v", err)
 	}
 	enabled := disabled
 	enabled.Orchestration = map[string]any{"sessionConfig": map[string]any{"verifier_mode": "on"}}
-	if err := srv.verifySessionRunnerVisualArtifactEvidence(enabled); err == nil {
-		t.Fatal("enabled verifier accepted an unreviewed image artifact")
-	} else {
-		var required *sessionRunnerVisualArtifactValidationRequired
-		if !errors.As(err, &required) || len(required.Artifacts) != 1 || required.Artifacts[0] != "ranking.png" {
-			t.Fatalf("enabled verifier error=%#v", err)
-		}
+	if err := srv.verifySessionRunnerVisualArtifactEvidence(enabled, nil); err != nil {
+		t.Fatalf("pre-review integrity gate prevented the enabled independent reviewer from running: %v", err)
 	}
 }
 
-func TestVisualArtifactCompletionGateRequiresExactPassedImageHash(t *testing.T) {
-	root := t.TempDir()
-	imageBytes := writeVisualReviewSizedPNG(t, filepath.Join(root, "ranking.png"), 240, 140)
-	imageDigest := sha256.Sum256(imageBytes)
-	digest := hex.EncodeToString(imageDigest[:])
-	artifact := sessionReviewerArtifactEvidence{
-		ArtifactID: "artifact-ranking", VersionID: "version-ranking", Name: "ranking.png",
-		Kind: "image", ContentSHA256: digest,
-	}
-	srv := New(Options{FileRoot: root})
-	if err := srv.verifyVisualArtifactEvidence([]sessionReviewerArtifactEvidence{artifact}); err == nil {
-		t.Fatal("unreviewed image artifact passed completion gate")
-	} else {
-		var required *sessionRunnerVisualArtifactValidationRequired
-		if !errors.As(err, &required) || len(required.Artifacts) != 1 || required.Artifacts[0] != "ranking.png" {
-			t.Fatalf("unreviewed image error=%#v", err)
-		}
-		condition := required.runnerCorrection().Condition
-		if condition == nil || condition.Visual == nil || len(condition.Visual.Artifacts) != 1 || condition.Visual.Artifacts[0].VersionID != artifact.VersionID || condition.Visual.Artifacts[0].SHA256 != digest {
-			t.Fatal("visual correction lost immutable version/digest")
+func TestTerminalReviewerRequiresImageBytesNotMetadata(t *testing.T) {
+	scope := &sessionReviewerEvidenceScope{requireVisualReads: true, artifacts: map[string]sessionReviewerArtifactEvidence{
+		"image-v1": {Name: "figure.png", VersionID: "image-v1"},
+	}}
+	for _, receipts := range [][]sessionReviewerEvidenceReceipt{
+		nil,
+		{{VersionID: "image-v1", Complete: true}},
+		{{VersionID: "other", Complete: true, visual: true}},
+		{{VersionID: "image-v1", visual: true}},
+	} {
+		if scope.validateVisualReads(receipts) == nil {
+			t.Fatal("missing or metadata-only image evidence passed")
 		}
 	}
+	if err := scope.validateVisualReads([]sessionReviewerEvidenceReceipt{{VersionID: "image-v1", Complete: true, visual: true}}); err != nil {
+		t.Fatal(err)
+	}
+}
 
-	manifest, err := json.Marshal(map[string]any{
-		"schema": visualReviewLayoutSchema, "image_path": "ranking.png", "image_sha256": digest,
-		"canvas": map[string]any{"width": 240, "height": 140},
-		"text_boxes": []any{
-			map[string]any{"id": "title", "text": "Ranking", "x0": 70, "y0": 8, "x1": 170, "y1": 28},
-			map[string]any{"id": "label-a", "text": "A", "x0": 30, "y0": 90, "x1": 45, "y1": 110},
-		},
+func TestTerminalReviewerAcceptsCanonicalImageReadReceipt(t *testing.T) {
+	data := writeVisualReviewSizedPNG(t, filepath.Join(t.TempDir(), "scene.png"), 240, 140)
+	hash := sha256.Sum256(data)
+	artifact := sessionReviewerArtifactEvidence{ArtifactID: "image", Name: "scene.png", VersionID: "image-v1", ContentSHA256: hex.EncodeToString(hash[:])}
+	binding := map[string]any{"stream_uid": "stream", "runner_attempt": 1, "review_index": 0,
+		"artifact_inventory_sha256": strings.Repeat("a", 64), "review_scope": "logical_task_terminal"}
+	scope, err := newSessionReviewerEvidenceScope(binding, sessionReviewerWorkspaceEvidence{Artifacts: []sessionReviewerArtifactEvidence{artifact}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !scope.requireVisualReads {
+		t.Fatal("terminal review did not require image evidence")
+	}
+	raw, err := readAgentWorkspaceFile(context.Background(), bytes.NewReader(data), "scene.png", "image/png", int64(len(data)), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rich := raw.(agentRuntimeRichToolResponse)
+	value, err := scope.record("read_file", "read-image", map[string]any{"version_id": "image-v1"}, rich.value, rich.parts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded, _ := json.Marshal(value)
+	messages := []agentruntime.Message{
+		{Role: "assistant", ToolCalls: []agentruntime.ToolCall{{ID: "read-image", Name: "read_file", Arguments: json.RawMessage(`{"version_id":"image-v1"}`)}}},
+		{Role: "tool", ToolCallID: "read-image", Content: string(encoded), Parts: rich.parts},
+	}
+	if receipts, err := validateSessionReviewerEvidence(sessionRunnerReview{Verdict: "pass"}, messages, scope); err != nil || len(receipts) != 1 {
+		t.Fatalf("canonical image read was rejected: receipts=%v err=%v", receipts, err)
+	}
+	bad := append([]byte(nil), data...)
+	bad[len(bad)-1] ^= 1
+	rich.parts[0].Media.Source.Data = bad
+	if _, err := scope.record("read_file", "tampered", map[string]any{"version_id": "image-v1"}, rich.value, rich.parts); err == nil {
+		t.Fatal("tampered visual read was accepted")
+	}
+}
+
+func TestVisualArtifactCompletionGateRejectsChangedImageBytes(t *testing.T) {
+	root := t.TempDir()
+	store, err := workspace.Open(filepath.Join(root, "workspace.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = store.Close() })
+	if _, err := store.CreateProject(workspace.CreateProjectInput{ID: "project", UserID: "owner", Name: "Project"}); err != nil {
+		t.Fatal(err)
+	}
+	data := writeVisualReviewSizedPNG(t, filepath.Join(root, "figure.png"), 240, 140)
+	_, version, err := store.WriteArtifactVersion(context.Background(), workspace.WriteArtifactVersionInput{
+		ArtifactID: "figure", ProjectID: "project", Name: "figure.png", ContentType: "image/png", Content: bytes.NewReader(data),
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, "ranking.layout.json"), manifest, 0o600); err != nil {
+	artifact := sessionReviewerArtifactEvidence{ArtifactID: "figure", VersionID: version.ID, Name: "figure.png", ContentSHA256: version.ContentSHA256}
+	srv := New(Options{FileRoot: root, Workspace: store})
+	if err := srv.verifyVisualArtifactEvidence([]sessionReviewerArtifactEvidence{artifact}); err != nil {
 		t.Fatal(err)
 	}
-	result, err := srv.executeVisualReviewTool(withVisualReviewWorkspaceRoot(context.Background(), root), map[string]any{
-		"action": "validate_layout", "objective": "validate ranking chart",
-		"image_path": "ranking.png", "render_manifest_path": "ranking.layout.json",
-	})
-	if err != nil || mapValue(result)["status"] != "passed" {
-		t.Fatalf("layout validation result=%#v err=%v", result, err)
-	}
-	if err := srv.verifyVisualArtifactEvidence([]sessionReviewerArtifactEvidence{artifact}); err != nil {
-		t.Fatalf("hash-bound reviewed image did not pass completion gate: %v", err)
-	}
-
-	tampered := artifact
-	tampered.ContentSHA256 = hex.EncodeToString(sha256.New().Sum(nil))
-	if err := srv.verifyVisualArtifactEvidence([]sessionReviewerArtifactEvidence{tampered}); err == nil {
-		t.Fatal("different artifact bytes reused an unrelated visual validation")
-	}
-	if err := srv.verifyVisualArtifactEvidence([]sessionReviewerArtifactEvidence{{Name: "table.csv"}}); err != nil {
-		t.Fatalf("non-visual artifact unexpectedly required visual validation: %v", err)
-	}
-}
-
-func TestVisualReviewRecordPassedRejectsMetadataOnlySemanticAssessment(t *testing.T) {
-	responseHash := sha256.Sum256([]byte("2345ABCD"))
-	base := map[string]any{
-		"action": "record_assessment", "verdict": "pass", "visual_verified": true,
-		visualReviewChallengeHashField: hex.EncodeToString(responseHash[:]),
-		"assessment":                   map[string]any{"visual_challenge_response": "2345ABCD"},
-	}
-	if !visualReviewRecordPassed(base) {
-		t.Fatal("valid model-visible challenge record was rejected")
-	}
-	delete(base, visualReviewChallengeHashField)
-	if visualReviewRecordPassed(base) {
-		t.Fatal("metadata-only semantic assessment passed without the visual challenge")
+	artifact.ContentSHA256 = strings.Repeat("0", 64)
+	var invalid *sessionRunnerVisualArtifactValidationRequired
+	if err := srv.verifyVisualArtifactEvidence([]sessionReviewerArtifactEvidence{artifact}); !errors.As(err, &invalid) {
+		t.Fatalf("changed bytes accepted: %v", err)
 	}
 }

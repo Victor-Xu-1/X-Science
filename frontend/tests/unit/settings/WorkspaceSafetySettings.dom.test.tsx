@@ -41,7 +41,7 @@ const networkSnapshot = {
   disabledGroups: [],
   activeKernelCount: 2,
   hasSeenOnboarding: true,
-  domains: ['3dmol.org'],
+  domains: ['existing.example.org'],
   configDomains: ['api.internal.example'],
   deniedDomains: ['transfer.sh'],
 };
@@ -67,7 +67,7 @@ describe('workspace network settings', () => {
     fireEvent.click(screen.getByRole('button', { name: /包管理/ }));
     expect(screen.getByText('pypi.org')).toBeInTheDocument();
     expect(screen.getByText('repo.anaconda.com')).toBeInTheDocument();
-    expect(screen.getByText('3dmol.org')).toBeInTheDocument();
+    expect(screen.getByText('existing.example.org')).toBeInTheDocument();
     expect(screen.getByText('api.internal.example')).toBeInTheDocument();
     expect(screen.getByText('受保护的网络目标')).toBeInTheDocument();
     expect(screen.getAllByText('查看 1 个域名')).toHaveLength(2);
@@ -93,7 +93,7 @@ describe('workspace network settings', () => {
 
   it('clears only user-authorized domains through the replace contract', async () => {
     await renderWithSettingsI18n(<NetworkSettingsContent />);
-    await screen.findByText('3dmol.org');
+    await screen.findByText('existing.example.org');
     fireEvent.click(screen.getByRole('button', { name: '全部清除' }));
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByText(/内置分组和配置文件域名不会改变/)).toBeInTheDocument();

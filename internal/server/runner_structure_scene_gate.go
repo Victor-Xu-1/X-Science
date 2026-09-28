@@ -7,6 +7,8 @@ import (
 	"io"
 	"path/filepath"
 	"strings"
+
+	transcriptstore "synon-go/internal/persistence/transcript"
 )
 
 // structureSceneManifestSchema is deliberately a single, versioned contract.
@@ -49,9 +51,18 @@ type structureScenePreviewImage struct {
 // whenever a task delivers two or more user-visible structures; this keeps
 // comparison/derived workflows honest without branching on a tool or domain
 // name. Single-structure tasks retain their existing completion behavior.
-func (s *Server) verifyStructureSceneEvidence(artifacts []sessionReviewerArtifactEvidence) error {
+func (s *Server) verifyStructureSceneEvidence(artifacts []sessionReviewerArtifactEvidence, candidates []transcriptstore.ArtifactReferenceInput) error {
 	if s == nil || s.workspaceStore == nil {
 		return errors.New("structure scene workspace store is unavailable")
+	}
+	// Completion validates before publishing. Only exact produced versions in
+	// its canonical delivery selection may participate while still staged;
+	// unrelated drafts and cited-only inputs remain outside this delivery.
+	selectedVersions := make(map[string]string, len(candidates))
+	for _, candidate := range candidates {
+		if candidate.Relation == transcriptstore.ArtifactRelationProduced && candidate.ArtifactID != "" && candidate.VersionID != "" {
+			selectedVersions[candidate.ArtifactID] = candidate.VersionID
+		}
 	}
 	snapshotArtifacts := make([]sessionReviewerArtifactEvidence, 0, len(artifacts))
 	for _, artifact := range artifacts {
@@ -66,7 +77,7 @@ func (s *Server) verifyStructureSceneEvidence(artifacts []sessionReviewerArtifac
 		if err != nil {
 			return fmt.Errorf("read structure scene version state for %s: %w", artifact.Name, err)
 		}
-		if found && intermediate {
+		if found && intermediate && selectedVersions[artifact.ArtifactID] != artifact.VersionID {
 			continue
 		}
 		snapshotArtifacts = append(snapshotArtifacts, artifact)
@@ -110,31 +121,24 @@ func (s *Server) verifyStructureSceneEvidence(artifacts []sessionReviewerArtifac
 		}
 	}
 
-	validatedHashes, err := s.validatedVisualReviewImageHashes()
-	if err != nil {
-		return err
-	}
-	preview := findArtifactByVersionID(images, manifest.PreviewImage.VersionID)
-	if preview == nil {
-		// validateStructureSceneManifest already reports this, but keeping this
-		// guard makes the hash lookup fail closed if the contract is extended.
-		return &sessionRunnerVisualArtifactValidationRequired{
-			Artifacts:              append(structureSceneArtifactNames(structures), manifestArtifact.Name),
-			StructureSceneFailures: []string{"preview_image is not a current snapshot image"},
-		}
-	}
-	if _, found := validatedHashes[strings.ToLower(strings.TrimSpace(preview.ContentSHA256))]; !found {
-		return &sessionRunnerVisualArtifactValidationRequired{
-			Artifacts:              append(structureSceneArtifactNames(structures), preview.Name),
-			StructureSceneFailures: []string{"preview_image is not bound to a passing VisualReview record"},
-		}
-	}
 	return nil
 }
 
 func (s *Server) findStructureSceneManifest(
 	artifacts []sessionReviewerArtifactEvidence,
 ) (*sessionReviewerArtifactEvidence, structureSceneManifest, []string) {
+	var structures, images []sessionReviewerArtifactEvidence
+	for _, artifact := range artifacts {
+		if structureArtifactName(artifact.Name) {
+			structures = append(structures, artifact)
+		}
+		if visualArtifactName(artifact.Name) {
+			images = append(images, artifact)
+		}
+	}
+	var rejectedArtifact *sessionReviewerArtifactEvidence
+	var rejectedManifest structureSceneManifest
+	var rejectedFailures []string
 	for index := range artifacts {
 		artifact := &artifacts[index]
 		if strings.ToLower(filepath.Ext(strings.TrimSpace(artifact.Name))) != ".json" {
@@ -151,10 +155,25 @@ func (s *Server) findStructureSceneManifest(
 			continue
 		}
 		var manifest structureSceneManifest
+		var failures []string
 		if err := json.Unmarshal(content, &manifest); err != nil {
-			return artifact, structureSceneManifest{}, []string{"structure-scene manifest is not valid JSON: " + err.Error()}
+			failures = []string{"structure-scene manifest is not valid JSON: " + err.Error()}
+		} else {
+			failures = validateStructureSceneManifest(manifest, structures, images)
+		}
+		if len(failures) > 0 {
+			// Failed attempts remain evidence, not a permanent authority over a
+			// later valid replacement. Never accept an invalid candidate merely
+			// because it is newer; test every candidate against current versions.
+			if rejectedArtifact == nil {
+				rejectedArtifact, rejectedManifest, rejectedFailures = artifact, manifest, failures
+			}
+			continue
 		}
 		return artifact, manifest, nil
+	}
+	if rejectedArtifact != nil {
+		return rejectedArtifact, rejectedManifest, rejectedFailures
 	}
 	return nil, structureSceneManifest{}, []string{"missing snapshot manifest with schema " + structureSceneManifestSchema}
 }
