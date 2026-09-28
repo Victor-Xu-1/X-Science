@@ -98,19 +98,24 @@ func TestSessionRunnerPreparationHeartbeatRetainsClaimAcrossDiscovery(t *testing
 			}); err != nil {
 				t.Fatal(err)
 			}
-			ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
+			// Keep the production ticker and real SQLite renewal, with transaction
+			// headroom under CI load. Observe the commit rather than a two-second
+			// expiry. The controlled-tick authority test separately crosses the
+			// original expiry. Renewal must precede the MCP discovery deadline.
+			const ttl = 30 * time.Second
+			preparationBudget := 2*sessionRunnerHeartbeatInterval(ttl) + 10*time.Second
+			ctx, cancel := context.WithTimeout(t.Context(), preparationBudget)
 			defer cancel()
 			type outcome struct {
 				result SessionRunnerCycleResult
 				err    error
 			}
 			done := make(chan outcome, 1)
-			const ttl = 2 * time.Second
 			go func() {
 				result, err := app.RunSessionRunnerChatOnce(ctx, SessionRunnerChatOptions{
 					SessionID: "preparation-frame", RunnerID: "preparation-runner", Endpoint: provider.URL,
 					Model: "test-model", APIKey: "test-key", MaxAttempts: 1, LeaseTTL: ttl,
-					PreparationTimeout: 10 * time.Second, DisableSkillDiscovery: true,
+					PreparationTimeout: preparationBudget, DisableSkillDiscovery: true,
 				})
 				done <- outcome{result, err}
 			}()
@@ -167,20 +172,31 @@ func TestSessionRunnerPreparationHeartbeatRetainsClaimAcrossDiscovery(t *testing
 				}
 				return
 			}
-			originalExpiry := initial.ClaimedAt.Add(ttl)
-			timer := time.NewTimer(time.Until(originalExpiry.Add(150 * time.Millisecond)))
-			defer timer.Stop()
-			select {
-			case <-timer.C:
-			case <-ctx.Done():
-				t.Fatal("preparation ended before crossing the original lease")
-			}
-			state, _, err := repo.GetLatestRunnerRuntimeState(ctx, stream.UID, stream.OwnerID)
-			if err != nil || state.Status != "running" || !state.ExpiresAt.After(time.Now().UTC()) || !state.ExpiresAt.After(originalExpiry) {
-				t.Fatalf("preparation lost its live lease: state=%#v originalExpiry=%s err=%v", state, originalExpiry, err)
+			ticker := time.NewTicker(50 * time.Millisecond)
+			defer ticker.Stop()
+			for {
+				state, found, err := repo.GetLatestRunnerRuntimeState(ctx, stream.UID, stream.OwnerID)
+				if err != nil || !found || state.Status != "running" || !state.ExpiresAt.After(time.Now().UTC()) {
+					t.Fatalf("preparation lost its live lease: state=%#v found=%t err=%v", state, found, err)
+				}
+				if state.ExpiresAt.After(initial.ExpiresAt) {
+					break
+				}
+				select {
+				case result := <-done:
+					t.Fatalf("runner stopped before committing a preparation renewal: %#v err=%v", result.result, result.err)
+				case <-ctx.Done():
+					t.Fatal("preparation did not commit a renewal before its deadline")
+				case <-ticker.C:
+				}
 			}
 			if modelRequests.Load() != 0 {
 				t.Fatal("model ran before controlled discovery completed")
+			}
+			select {
+			case <-cancelled:
+				t.Fatal("discovery was cancelled before the controlled drain or release")
+			default:
 			}
 			if mode == "drain" {
 				if err := app.Drain(ctx); err != nil {
