@@ -662,7 +662,7 @@ func loadManagedPythonRuntime(config Config) (managedPythonRuntime, error) {
 	}
 	pythonVersion := runtime.packageVersions["python"]
 	rdkitVersion := runtime.packageVersions["rdkit"]
-	if pythonVersion == "" || rdkitVersion == "" || runtime.packageVersions["py3dmol"] == "" {
+	if pythonVersion == "" || rdkitVersion == "" {
 		return managedPythonRuntime{}, errors.New("managed Python runtime required package is unavailable")
 	}
 	activationHash := sha256.Sum256([]byte(managedPythonActivationContract + "\x00" + runtime.manifestDigest + "\x00" + helperDigest))
@@ -851,7 +851,7 @@ func (m *Manager) smokeManagedPython(ctx context.Context, runtime managedPythonR
 		return err
 	}
 	prefixJSON, _ := json.Marshal(prefix)
-	code := "import json,pathlib,tempfile;import rdkit,py3Dmol,shutil,cheminfo_render_helpers as h;out=tempfile.mkdtemp(prefix='synon-rdkit-smoke-',dir=" +
+	code := "import json,pathlib,tempfile;import rdkit,shutil,cheminfo_render_helpers as h;out=tempfile.mkdtemp(prefix='synon-rdkit-smoke-',dir=" +
 		string(prefixJSON) + ");r=h.render_molecule_images(['CCO'],['smoke'],out_dir=out);p=pathlib.Path(r['grid']);" +
 		"assert p.is_file() and p.stat().st_size>0;shutil.rmtree(out);print(json.dumps({'rdkit':rdkit.__version__,'ok':True},sort_keys=True))"
 	command := newWorkerProcessCommand(ctx, python, "-I", "-c", code)

@@ -67,6 +67,7 @@ test('keeps structure preview read-only and displays interactions through the re
 
     const region = page.getByRole('region', { name: /3D 结构预览/u });
     await expect(region).toBeVisible();
+    await region.getByRole('button', { name: '展开左侧工具栏', exact: true }).click();
     await expect(region.getByRole('complementary', { name: /表示层编辑器/u })).toHaveCount(0);
     await expect(region.getByRole('tab', { name: /Ligand 编辑/u })).toHaveCount(0);
     await expect(region.getByRole('button', { name: /添加图层/u })).toHaveCount(0);
@@ -75,6 +76,10 @@ test('keeps structure preview read-only and displays interactions through the re
     // the retired independent toggles must not reintroduce competing state.
     const pocketMode = region.getByTestId('synon-biomed-molstar-quick-pocket');
     await expect(pocketMode).toBeEnabled();
+    if ((await pocketMode.getAttribute('aria-pressed')) === 'true') {
+      await pocketMode.click();
+      await expect(pocketMode).toHaveAttribute('aria-pressed', 'false');
+    }
     await pocketMode.click();
     await expect(pocketMode).toHaveAttribute('aria-pressed', 'true');
 
@@ -112,6 +117,8 @@ test('switches a multi-model complex inside the built-in 3D preview', async ({ p
 
     const region = page.getByRole('region', { name: /3D 结构预览/u });
     const modelNavigator = region.getByRole('group', { name: /结构模型/u });
+    await expect(region).toBeVisible();
+    await region.getByRole('button', { name: '展开左侧工具栏', exact: true }).click();
     await expect(modelNavigator).toBeVisible();
     await expect(modelNavigator).toContainText('模型 1 / 2');
 
@@ -122,6 +129,72 @@ test('switches a multi-model complex inside the built-in 3D preview', async ({ p
     await expect(canvas).toHaveCount(1);
     await expect.poll(async () => (await inspectRenderedPixels(canvas)).nonWhite).toBeGreaterThan(100);
     expect(structureErrors).toEqual([]);
+  } finally {
+    await removeScientificWorkspace(page, workspace);
+  }
+});
+
+test('persists a native structure snapshot without changing its coordinate version', async ({ page }) => {
+  // Software WebGL renders a full-resolution image before the upload; this
+  // lifecycle also verifies persistence, original bytes, history and a reload.
+  test.setTimeout(120_000);
+  await loginToScientificWorkbench(page);
+  const workspace = await createScientificWorkspace(page, 'structure-snapshot');
+  try {
+    const structure = await uploadScientificArtifact(page, workspace, {
+      filename: 'snapshot-source.pdb',
+      contentType: 'chemical/x-pdb',
+      source: PDB_FIXTURE,
+    });
+    const sourcePath = `/api/artifacts/${structure.artifactId}`;
+    const versionsBefore = await (await page.request.get(`${sourcePath}/versions`)).json();
+    await openScientificArtifact(page, structure.artifactId);
+    const region = page.getByRole('region', { name: /3D 结构预览/u });
+    await expect(region).toBeVisible();
+    await region.getByRole('button', { name: '展开左侧工具栏', exact: true }).click();
+    const capture = region.getByTestId('synon-biomed-molstar-quick-snapshot');
+    await expect(capture).toBeEnabled();
+    await expect
+      .poll(async () => (await inspectRenderedPixels(region.locator('canvas'))).nonWhite)
+      .toBeGreaterThan(100);
+    const [savedResponse, download] = await Promise.all([
+      page.waitForResponse(
+        (response) => {
+          const url = new URL(response.url());
+          return response.request().method() === 'POST' && url.pathname === `${sourcePath}/versions/binary`;
+        },
+        { timeout: 60_000 }
+      ),
+      page.waitForEvent('download', { timeout: 60_000 }),
+      capture.click({ timeout: 60_000 }),
+    ]);
+    expect(savedResponse.status()).toBe(201);
+    expect(new URL(savedResponse.url()).searchParams.get('parent_version_id')).toBe(structure.versionId);
+    expect(download.suggestedFilename()).toBe('snapshot-source-snapshot.png');
+    const saved = (await savedResponse.json()) as { artifact_id: string; version_id: string };
+    expect(saved.artifact_id).not.toBe(structure.artifactId);
+    expect(saved.version_id).not.toBe(structure.versionId);
+    const imagePath = `/api/artifacts/${saved.artifact_id}/versions/${saved.version_id}`;
+    const imageResponse = await page.request.get(imagePath);
+    expect(imageResponse.status()).toBe(200);
+    expect(imageResponse.headers()['content-type']).toContain('image/png');
+    const imageBytes = await imageResponse.body();
+    expect([...imageBytes.subarray(0, 8)]).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);
+    expect(imageBytes.length).toBeGreaterThan(1024);
+    expect(await (await page.request.get(sourcePath)).text()).toBe(PDB_FIXTURE);
+    expect(await (await page.request.get(`${sourcePath}/versions`)).json()).toEqual(versionsBefore);
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    expect(await (await page.request.get(imagePath)).body()).toEqual(imageBytes);
+    const reloadedRegion = page.getByRole('region', { name: /3D 结构预览/u });
+    await expect(reloadedRegion).toBeVisible();
+    await expect(reloadedRegion.getByTestId('synon-biomed-molstar-quick-snapshot')).toBeEnabled();
+    await expect
+      .poll(async () => (await inspectRenderedPixels(reloadedRegion.locator('canvas'))).nonWhite)
+      .toBeGreaterThan(100);
+    await page.screenshot({
+      path: test.info().outputPath('persisted-structure-snapshot.png'),
+      fullPage: true,
+    });
   } finally {
     await removeScientificWorkspace(page, workspace);
   }

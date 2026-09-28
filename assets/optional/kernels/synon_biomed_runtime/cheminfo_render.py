@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import math
 import os
-import re
 from pathlib import Path
 from typing import Sequence
 
@@ -42,63 +41,6 @@ def _write_json(path: str | os.PathLike[str], payload: dict) -> str:
     if p.stat().st_size <= 0:
         raise RuntimeError(f"metadata JSON was not written: {p}")
     return str(p)
-
-
-def _json_for_script(value: object) -> str:
-    return json.dumps(value, ensure_ascii=False).replace("</", "<\\/")
-
-
-def _css_color(value: str) -> str:
-    return re.sub(r"[^#a-zA-Z0-9(),.% -]", "", value).strip() or "white"
-
-
-def _find_vendored_3dmol_js() -> Path | None:
-    """Locate the 3Dmol.js asset shipped with this Synon Biomed runtime."""
-    roots = [Path(__file__).resolve(), Path.cwd().resolve()]
-    seen: set[Path] = set()
-    for root in roots:
-        for base in [root, *root.parents]:
-            if base in seen:
-                continue
-            seen.add(base)
-            for asset_dir in (
-                base / "runtime" / "assets" / "web-dist" / "assets",
-                base / "assets" / "web-dist" / "assets",
-                base / "web-dist" / "assets",
-                base / "web" / "assets",
-            ):
-                if not asset_dir.exists():
-                    continue
-                candidates = sorted(asset_dir.glob("3Dmol*.js"), key=lambda p: p.stat().st_size, reverse=True)
-                if candidates:
-                    return candidates[0]
-    return None
-
-
-def _load_vendored_3dmol_js() -> str:
-    asset = _find_vendored_3dmol_js()
-    if asset is None:
-        raise FileNotFoundError("could not locate vendored 3Dmol.js in the Synon Biomed runtime assets")
-    js = asset.read_text(encoding="utf-8")
-    if "$3Dmol" not in js and "3Dmol" not in js:
-        raise RuntimeError(f"vendored 3Dmol.js asset looks invalid: {asset}")
-    return js.replace("</script", "<\\/script")
-
-
-def _inline_vendored_3dmol(html: str) -> str:
-    """Replace py3Dmol CDN script references with the vendored local 3Dmol.js."""
-    js = _load_vendored_3dmol_js()
-    inline = f"<script>\n{js}\n</script>"
-    script_re = re.compile(
-        r"<script\b[^>]*\bsrc=[\"'][^\"']*(?:3Dmol|3dmol)[^\"']*[\"'][^>]*>\s*</script>",
-        flags=re.IGNORECASE,
-    )
-    patched, count = script_re.subn(inline, html, count=1)
-    if count:
-        return patched
-    if "<head>" in html:
-        return html.replace("<head>", f"<head>\n{inline}", 1)
-    return f"<!doctype html><html><head>{inline}</head><body>{html}</body></html>"
 
 
 def render_molecule_images(
@@ -239,90 +181,3 @@ def render_molecule_images(
         "metadata": metadata,
         "metadata_json": metadata_json,
     }
-
-
-def save_py3dmol_html(view, out_html: str | os.PathLike[str]) -> str:
-    """Save a py3Dmol view as self-contained HTML."""
-    p = _ensure_parent(out_html)
-    if not hasattr(view, "_make_html"):
-        raise TypeError("view must be a py3Dmol view object with _make_html()")
-    html = view._make_html()
-    if not isinstance(html, str) or "3Dmol" not in html:
-        raise RuntimeError("py3Dmol did not return a usable HTML viewer")
-    html = _inline_vendored_3dmol(html)
-    p.write_text(html, encoding="utf-8")
-    if p.stat().st_size <= 0:
-        raise RuntimeError(f"py3Dmol HTML was not written: {p}")
-    return str(p)
-
-
-def make_py3dmol_view_html(
-    pdb_text: str,
-    out_html: str | os.PathLike[str],
-    *,
-    width: int = 800,
-    height: int = 600,
-    cartoon_color: str = "lightblue",
-    background: str = "white",
-    self_contained: bool = True,
-) -> str:
-    """Create a basic py3Dmol protein viewer from PDB text and save it as HTML."""
-    if not pdb_text.strip():
-        raise ValueError("pdb_text is empty")
-    if self_contained:
-        js = _load_vendored_3dmol_js()
-        html = f"""<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Synon Biomed 3D Viewer</title>
-  <style>
-    html, body, #viewer {{
-      width: 100%;
-      height: 100%;
-      min-height: {int(height)}px;
-      margin: 0;
-      background: {_css_color(background)};
-      overflow: hidden;
-    }}
-  </style>
-  <script>
-{js}
-  </script>
-</head>
-<body>
-  <div id="viewer"></div>
-  <script>
-    const pdbText = {_json_for_script(pdb_text)};
-    const threeDmol = window.$3Dmol || window["$3Dmol"] || window["3Dmol"];
-    if (!threeDmol) {{
-      document.body.textContent = "3Dmol.js failed to initialize.";
-      throw new Error("3Dmol.js failed to initialize");
-    }}
-    window.$3Dmol = threeDmol;
-    const viewer = threeDmol.createViewer("viewer", {{ backgroundColor: {_json_for_script(background)} }});
-    viewer.addModel(pdbText, "pdb");
-    viewer.setStyle({{}}, {{ cartoon: {{ color: {_json_for_script(cartoon_color)} }} }});
-    viewer.setStyle({{ hetflag: true }}, {{ stick: {{ colorscheme: "Jmol" }} }});
-    viewer.setStyle({{ resn: "HOH" }}, {{}});
-    viewer.zoomTo();
-    viewer.render();
-  </script>
-</body>
-</html>
-"""
-        p = _ensure_parent(out_html)
-        p.write_text(html, encoding="utf-8")
-        if p.stat().st_size <= 0:
-            raise RuntimeError(f"3Dmol HTML was not written: {p}")
-        return str(p)
-
-    import py3Dmol
-
-    view = py3Dmol.view(width=width, height=height)
-    view.addModel(pdb_text, "pdb")
-    view.setStyle({"cartoon": {"color": cartoon_color}})
-    view.setBackgroundColor(background)
-    view.zoomTo()
-    return save_py3dmol_html(view, out_html)

@@ -85,7 +85,6 @@ https://conda.anaconda.org/conda-forge/osx-arm64/psutil-7.2.2-py311hd322c8c_3.co
 https://conda.anaconda.org/conda-forge/osx-arm64/pthread-stubs-0.4-hb001647_1004.conda#3f79452dbda3febaf7053486e4844fa945accf4d74eac4169e2c4d5dc5e4dd0b
 https://conda.anaconda.org/conda-forge/noarch/ptyprocess-0.7.0-pyhd8ed1ab_1.conda#a7713dfe30faf17508ec359e0bc7e0983f5d94682492469bd462cdaae9c64d83
 https://conda.anaconda.org/conda-forge/noarch/pure_eval-0.2.4-pyhd8ed1ab_0.conda#2151e981a422ef57031482b28df9c8432d54c1f44996e7760774813f167be863
-https://conda.anaconda.org/conda-forge/noarch/py3dmol-2.5.4-pyhd8ed1ab_0.conda#de9ac46d330aa7b5cb833ecb851249a550d6a6f8f8a4cbb7748b9cd6220f6c52
 https://conda.anaconda.org/conda-forge/osx-arm64/pycairo-1.29.1-py311h9638a91_2.conda#1c7a2b09da2f4d6a3f65867f5b711b6b7850fc003baa36099b3d554a3566d882
 https://conda.anaconda.org/conda-forge/noarch/pygments-2.21.0-pyhcf101f3_0.conda#f5f015ff1bc3e1b7fc08eee096b1865234189ae0b82bebdb86a5369116e42fa0
 https://conda.anaconda.org/conda-forge/noarch/pyparsing-3.3.3-pyh5ded981_0.conda#dc10d64d4b9a1310083b2f563416ab45560ee2a04fd6baab40f223f2b1ab37bc

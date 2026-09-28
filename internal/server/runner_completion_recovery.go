@@ -263,7 +263,7 @@ func (s *Server) validateRecoveredTranscriptCompletionCandidate(
 	if unresolved == 0 && len(malformedArtifactReferences) == 0 && len(artifactCandidates.contractFailures) == 0 &&
 		len(scientificFailures) == 0 && len(fatalCrossArtifactFailures) == 0 && len(researchValidation.Failures) == 0 && len(missingLocalArtifacts) == 0 &&
 		len(missingRequiredDeliverables) == 0 {
-		if err := s.verifySessionRunnerVisualArtifactEvidence(session); err != nil {
+		if err := s.verifySessionRunnerVisualArtifactEvidence(session, validationCommits); err != nil {
 			return err
 		}
 		return nil

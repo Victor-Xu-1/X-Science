@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "319fcedf96ab41c6e1f98a5c166de30e7f4238365956ea423eaacdbdae089bcc",
+  "adaptationFingerprintSHA256": "bc0d194c8e15a07da6b70902e8788cab62d1598364d64c4e3ccbde091a12648d",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
-  "additionFingerprintSHA256": "56ff78f88f21797f963ece2797490804eafbef5df5b8393cf9674b22c316cd04",
+  "additionFingerprintSHA256": "cdb7d7c27e9fce81df1fc621c83c6dd0f4a21dbcdb8e0ba9dca7b34ebc2e21af",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 400,
     "adaptedSourceFiles": 664,
     "removedSourceFiles": 290,
-    "addedFiles": 687
+    "addedFiles": 689
   },
   "adaptations": [
     {
@@ -850,8 +850,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/artifact/ArtifactPreview.tsx",
       "sourceSHA256": "21d3998423856a474f4e13516869e446beaebf11fab0597fc9e7a3d732d624d1",
-      "targetSHA256": "6a06ab7bea77fb2a2554e4a108f5f8240b6e853880db1f76f3cd10ffe4f013ab",
-      "bytes": 41431,
+      "targetSHA256": "e12eb5950f5864dcb23ed5dc64cf9ed67ac4b6453ecf874fe8ca06db494fe032",
+      "bytes": 41760,
       "reason": "Connect immutable Go artifacts, annotations, refinement, and native viewers with bounded localized failure handling."
     },
     {
@@ -1424,8 +1424,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedStructureViewer.tsx",
       "sourceSHA256": "6cb430ff6d16123ef3da68f5af29d4dc093a1e5bb9e9b2655a3c01e2d1e2ecb1",
-      "targetSHA256": "ca2450e76709f720c8d9233686f6df7ab67aff310479b216142ba3caaea569c5",
-      "bytes": 134691,
+      "targetSHA256": "1f6f81f90d166f8618f12960e05cabf0d886eb2aefb2a7b0009566208df5b1ea",
+      "bytes": 135032,
       "reason": "Unify PDB, mmCIF, SDF, and related molecular formats on one Molstar preview with composition-aware controls, collapsed auxiliary panels, and source-fenced 2D interaction refresh."
     },
     {
@@ -3475,8 +3475,8 @@
     {
       "path": "tests/unit/previews/SynonBiomedStructureViewer.dom.test.tsx",
       "sourceSHA256": "ba8c8acb753fdac5f71871a9aeba75f7dd569f1f82eca75dae7e0c76fa5f1c54",
-      "targetSHA256": "727d801b6e42c47419b6754349841b8a81cefc95efc8aaf4c9e5ce27c600ffb8",
-      "bytes": 126447,
+      "targetSHA256": "1e32c871686add37a04b44a1759debeb69082a4d5b7905fa95bcf3ecde97cf6f",
+      "bytes": 127730,
       "reason": "Verify format-neutral composition controls, collapsed 2D panels, and source-invalidated interactions after minimization."
     },
     {
@@ -3580,8 +3580,8 @@
     {
       "path": "tests/unit/renderer/ArtifactPreview.dom.test.tsx",
       "sourceSHA256": "35fcf88c79cd262a41b65d79e70c4ec8a97ede955c9b4f8d3fefe3fc536d2bd9",
-      "targetSHA256": "4cb324da7d003bfefc2ee07e1b4a324f30c4b8aa01df054098fc6b0f14979b32",
-      "bytes": 13431,
+      "targetSHA256": "4975431ad324975ac0ad567a667b9e86e0bf8cb1b3e13985fcdc18444e60195e",
+      "bytes": 14839,
       "reason": "Isolate persisted client configuration while testing native artifact preview and cloud export behavior."
     },
     {
@@ -4238,8 +4238,8 @@
     {
       "path": "tests/unit/settings/WorkspaceSafetySettings.dom.test.tsx",
       "sourceSHA256": "f07b31bc984e1838894c695506522191635283ed1d0f416f603c1b9fa21c0336",
-      "targetSHA256": "b26e84171ab8eb3123dddd0110f7ef3101ad63d33ed0d5503a471770804e1f75",
-      "bytes": 4918,
+      "targetSHA256": "194a85cf762046ca68868f2ae96f26fd99da13cbffe64e4519d6d6a23dd5b252",
+      "bytes": 4951,
       "reason": "Keep safety-settings assertions aligned with the clarified permission copy."
     },
     {
@@ -4420,8 +4420,8 @@
     {
       "path": "tests/unit/synonbiomed/workspaceSettings.test.ts",
       "sourceSHA256": "904c26dc08afd992aedcbd1e8611220be4b5ef94d9fceabb966c220cd42452f3",
-      "targetSHA256": "89e34c65cfa11093295a40a5d6afaf33d334c77431e8d49418acb2916256e413",
-      "bytes": 19688,
+      "targetSHA256": "026e41580252d7cbf975402cfa3b370d22eab2d0e50e549a81fb3cc1288d9979",
+      "bytes": 19692,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -7488,8 +7488,14 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/structureScene.ts",
-      "sha256": "3c3851585d26c45f013cfb8cda5fe496687711cc637326fe26d3cef618e881fa",
-      "bytes": 4316,
+      "sha256": "99439365abd83a1bf8df67ea0662eeaa576dadf6f66cadb9b9743529a3604a1c",
+      "bytes": 4841,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/structureSnapshot.ts",
+      "sha256": "f5764141dd7869f5fc0a666dbda165c52aa1fb8f42a7c2c5d533b472bb5a34d9",
+      "bytes": 1835,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9654,8 +9660,14 @@
     },
     {
       "path": "tests/unit/renderer/structureScene.test.ts",
-      "sha256": "13557a358560df81d45b49776457b7fd84d0bc68c182351d6ffa01dd3100f3e9",
-      "bytes": 2440,
+      "sha256": "9d81a17d02b4e1475aea26c6e39ca019df288f630809923529ba4b56fb94422a",
+      "bytes": 3167,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/structureSnapshot.test.ts",
+      "sha256": "5d9ece8257d76ee6d8a3d2017ad7eee1a0b1095e3bf11c128c50603eec43d060",
+      "bytes": 2181,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -10266,8 +10278,8 @@
     },
     {
       "path": "tests/web-e2e/structureEditorAcceptance.e2e.ts",
-      "sha256": "bf542329de1dcded0d2036380e7b487c23322d102962ac1331dca88d0b3d9c7a",
-      "bytes": 5449,
+      "sha256": "c3403d18049552e30696ca808bda0db624066d91151514729ebccec1498a99ea",
+      "bytes": 9384,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

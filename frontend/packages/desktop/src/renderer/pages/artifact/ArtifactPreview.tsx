@@ -905,8 +905,15 @@ const ArtifactContent: React.FC<{
   }
 
   if (plan.type === 'structure') {
+    // Rendering and derived snapshots must share the displayed version, including
+    // the initial current-version view and an explicitly selected history entry.
+    const structureContentUrl = `${getSynonBiomedArtifactContentUrl(artifactId)}/versions/${encodeURIComponent(versionId)}`;
     return (
-      <SynonBiomedStructureViewer filename={filename} contentUrl={contentUrl} rootFrameId={rootFrameId ?? undefined} />
+      <SynonBiomedStructureViewer
+        filename={filename}
+        contentUrl={structureContentUrl}
+        rootFrameId={rootFrameId ?? undefined}
+      />
     );
   }
 

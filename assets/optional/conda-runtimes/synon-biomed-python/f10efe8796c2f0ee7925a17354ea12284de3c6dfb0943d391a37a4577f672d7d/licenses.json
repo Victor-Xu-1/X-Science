@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "name": "synon-biomed-python",
   "platform": "linux-x86_64",
-  "source": "verified-conda-meta-license-fields",
+  "source": "verified-conda-lock-license-fields",
   "licenseTextsIncluded": false,
-  "packageCount": 181,
+  "packageCount": 180,
   "packages": [
     {
       "name": "_openmp_mutex",
@@ -724,12 +724,6 @@
       "name": "pure_eval",
       "version": "0.2.3",
       "build": "pyhd8ed1ab_1",
-      "license": "MIT"
-    },
-    {
-      "name": "py3dmol",
-      "version": "2.5.4",
-      "build": "pyhd8ed1ab_0",
       "license": "MIT"
     },
     {

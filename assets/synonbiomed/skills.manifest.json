@@ -232,18 +232,18 @@
     },
     {
       "path": "cheminfo-render/cheminfo_render_helpers.py",
-      "sha256": "416f27ebbb08a05a574eb88704bbdc10dc993c0b2081c05c267b2195479345ca",
-      "bytes": 309
+      "sha256": "ba0674cf32e5fc77a4cedbcb4a922df3d84219dd31fa10e0553ca7eca7a91a7a",
+      "bytes": 203
     },
     {
       "path": "cheminfo-render/kernel.py",
-      "sha256": "38ecb7115b221882012f6b6c0d5b2bafa987f223c60bfbb8df9e5439fd9fd0b8",
-      "bytes": 298
+      "sha256": "7dad60b4890795aa761d754181a410e1808d778b9d1b1c18d6865ec56f3db000",
+      "bytes": 192
     },
     {
       "path": "cheminfo-render/SKILL.md",
-      "sha256": "153953723a0f8a2120b0966991b96be7c17f53d17baca3952f1c55e54d856337",
-      "bytes": 4830
+      "sha256": "2b3a6202d0d83c969a1b52ab866d9ebe5fe01f39df88e1185704fc48858c999d",
+      "bytes": 4750
     },
     {
       "path": "chem-physical-properties/SKILL.md",

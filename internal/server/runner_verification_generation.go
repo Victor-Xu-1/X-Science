@@ -175,6 +175,9 @@ func (s *Server) runSessionReviewerGeneration(
 		return sessionReviewerSubmission{}, nil, err
 	}
 	scope.sessionID = session.ID
+	if scope.requireVisualReads {
+		userPrompt += "\n\nInspect each image artifact in the bound inventory using read_file with its exact version_id before submitting the terminal review. Metadata, filenames, hashes and a text description are not visual inspection. Report image defects or unavailable visual evidence honestly; do not invoke retired review tools."
+	}
 	reviewScopeCtx := withSessionReviewerEvidenceScope(ctx, scope)
 	reviewCtx, cancelReview := context.WithCancelCause(reviewScopeCtx)
 	defer cancelReview(nil)

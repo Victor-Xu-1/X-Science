@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { parseSynonBiomedArtifactLink } from '@/renderer/services/synonBiomedArtifactReferences';
+
 export const STRUCTURE_SCENE_MANIFEST_SCHEMA = 'synon.structure-scene.v1' as const;
 
 const MAX_STRUCTURE_SCENE_MANIFEST_BYTES = 1024 * 1024;
@@ -84,11 +86,19 @@ export async function loadStructureSceneSources(
         Object.entries(companionArtifactUrls ?? {}).map(([name, value]) => [name.toLocaleLowerCase(), value])
       );
       const references = [manifest.mother_structure, ...manifest.derived_structures];
-      const sources = references.map((reference) => ({
-        name: reference.name,
-        versionId: reference.version_id,
-        url: urlByName.get(reference.name.toLocaleLowerCase()) ?? '',
-      }));
+      const sources = references.map((reference) => {
+        const target = parseSynonBiomedArtifactLink(urlByName.get(reference.name.toLocaleLowerCase()) ?? '');
+        // The companion list may now point at a newer version. A scene binds
+        // immutable bytes, not the current file with the same display name.
+        return {
+          name: reference.name,
+          versionId: reference.version_id,
+          url:
+            target?.kind === 'content'
+              ? `/api/artifacts/${encodeURIComponent(target.artifactId)}/versions/${encodeURIComponent(reference.version_id)}`
+              : '',
+        };
+      });
       if (sources.some((source) => !source.url)) continue;
       return { sceneId: manifest.scene_id, sources };
     } catch (error) {

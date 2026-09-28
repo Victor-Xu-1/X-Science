@@ -7,10 +7,6 @@
       "platform": "darwin-arm64",
       "requiredPackages": [
         {
-          "name": "py3dmol",
-          "version": "2.5.4"
-        },
-        {
           "name": "python",
           "version": "3.11.*"
         },
@@ -19,14 +15,14 @@
           "version": "2024.03.5"
         }
       ],
-      "packageCount": 111,
-      "generation": "04731507b7c81141618a7bf81806696e46861d130e1a201224b2afb942012ac6",
-      "manifestPath": "synon-biomed-python/04731507b7c81141618a7bf81806696e46861d130e1a201224b2afb942012ac6/manifest.json",
-      "explicitPath": "synon-biomed-python/04731507b7c81141618a7bf81806696e46861d130e1a201224b2afb942012ac6/explicit.txt",
-      "licensesPath": "synon-biomed-python/04731507b7c81141618a7bf81806696e46861d130e1a201224b2afb942012ac6/licenses.json",
+      "packageCount": 110,
+      "generation": "c6228d46984d06738be5d742cd1d3f3fb9f674825fbccb44c6613c0018990a7b",
+      "manifestPath": "synon-biomed-python/c6228d46984d06738be5d742cd1d3f3fb9f674825fbccb44c6613c0018990a7b/manifest.json",
+      "explicitPath": "synon-biomed-python/c6228d46984d06738be5d742cd1d3f3fb9f674825fbccb44c6613c0018990a7b/explicit.txt",
+      "licensesPath": "synon-biomed-python/c6228d46984d06738be5d742cd1d3f3fb9f674825fbccb44c6613c0018990a7b/licenses.json",
       "licenseTextsIncluded": false,
-      "explicitSHA256": "2196d5c9a49580b1f78b5df4cd35bde23a57ef755c13edea9b3a16bdbea2c520",
-      "licenseInventorySHA256": "820f4436b73ee403388588afa488f8ddf63e99b12423c953770cc62e668c5fe1"
+      "explicitSHA256": "a6e3e9256e480b1864c94cf8f82180030c3dd8a62f88ed3b33835842e5979185",
+      "licenseInventorySHA256": "848b24bdc94009d059bceab20d5caafa23c63c6cdce2f988691866cf789a480e"
     },
     {
       "name": "synon-biomed-r",
@@ -47,5 +43,5 @@
       "licenseInventorySHA256": "0684667ea966ee98c8663b76521a60bb508a52f7361f84c6ef2fc15aa18418e8"
     }
   ],
-  "catalogSHA256": "a4a689b16ae7039069ffc4978fe4e76ba740dba9d7fd0c781c6ae0320eab14af"
+  "catalogSHA256": "feb154b845a1ea6b0b238c82220567100e36d62ef30b650ee3f3ba8bfd941022"
 }

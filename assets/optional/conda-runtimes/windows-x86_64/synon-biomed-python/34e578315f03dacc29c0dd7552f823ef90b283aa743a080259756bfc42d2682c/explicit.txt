@@ -83,7 +83,6 @@ https://conda.anaconda.org/conda-forge/win-64/pixman-0.46.4-h5112557_3.conda#cad
 https://conda.anaconda.org/conda-forge/noarch/prompt-toolkit-3.0.53-pyha770c72_0.conda#efe8def2c93aa34cd8d3c9af1dc4c7d312791cf769d8b2b615e32733e6df6051
 https://conda.anaconda.org/conda-forge/win-64/psutil-7.2.2-py311hf893f09_3.conda#b4f3cd1660f454e821aee50a30025a3ccb5328d4585e6b968fadbff7cea343b7
 https://conda.anaconda.org/conda-forge/noarch/pure_eval-0.2.4-pyhd8ed1ab_0.conda#2151e981a422ef57031482b28df9c8432d54c1f44996e7760774813f167be863
-https://conda.anaconda.org/conda-forge/noarch/py3dmol-2.5.4-pyhd8ed1ab_0.conda#de9ac46d330aa7b5cb833ecb851249a550d6a6f8f8a4cbb7748b9cd6220f6c52
 https://conda.anaconda.org/conda-forge/win-64/pycairo-1.29.1-py311hbbe0d89_2.conda#b3b82876597c90cde03efc7afcfd016411675461f38f72e94225a09587b6f509
 https://conda.anaconda.org/conda-forge/noarch/pygments-2.21.0-pyhcf101f3_0.conda#f5f015ff1bc3e1b7fc08eee096b1865234189ae0b82bebdb86a5369116e42fa0
 https://conda.anaconda.org/conda-forge/noarch/pyparsing-3.3.3-pyh5ded981_0.conda#dc10d64d4b9a1310083b2f563416ab45560ee2a04fd6baab40f223f2b1ab37bc
