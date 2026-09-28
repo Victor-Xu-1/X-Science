@@ -2008,6 +2008,7 @@ export type I18nKey =
   | 'messages.export.userLabel'
   | 'messages.fileChanges'
   | 'messages.fileChangesCount'
+  | 'messages.historicalDeliveryList'
   | 'messages.imageGenerationModelDetected'
   | 'messages.imageLoadFailed'
   | 'messages.noOptionsAvailable'

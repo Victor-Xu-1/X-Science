@@ -727,6 +727,9 @@ func (s *Server) publishTranscriptWebClaim(ctx context.Context, claim transcript
 		if err != nil || !visible {
 			return err
 		}
+		if err := s.enrichTranscriptToolStreamArtifacts(ctx, stream.UID, stream.OwnerID, toolPayload); err != nil {
+			return err
+		}
 		return s.publishWebMessageStream(frameContext, baseID+":tool", toolPayload)
 	case "runner_checkpoint":
 		attemptStarted := transcriptRunnerAttemptStarted(payload, attempt)
@@ -750,6 +753,9 @@ func (s *Server) publishTranscriptWebClaim(ctx context.Context, claim transcript
 				return toolErr
 			}
 			if visible {
+				if err := s.enrichTranscriptToolStreamArtifacts(ctx, stream.UID, stream.OwnerID, toolPayload); err != nil {
+					return err
+				}
 				if err := s.publishWebMessageStream(frameContext, baseID+":tool", toolPayload); err != nil {
 					return err
 				}

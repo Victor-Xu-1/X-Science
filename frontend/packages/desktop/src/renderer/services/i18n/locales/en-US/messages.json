@@ -8,6 +8,7 @@
   "imageGenerationModelDetected": "Image model detected, image tool has been automatically enabled. Default model: {{platform}}:{{model}}",
   "copy": "Copy",
   "copySuccess": "Copied successfully",
+  "historicalDeliveryList": "Historical delivery list ({{count}} files, expand original)",
   "copyFailed": "Failed to copy",
   "copyLastOutput.empty": "No response to copy yet",
   "copiedToClipboard": "Copied to clipboard",

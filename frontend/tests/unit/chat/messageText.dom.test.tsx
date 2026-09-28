@@ -11,6 +11,7 @@ import type { IMessageText } from '@/common/chat/chatLib';
 import { ipcBridge } from '@/common';
 import { ConversationProvider } from '@/renderer/hooks/context/ConversationContext';
 import MessageText from '@/renderer/pages/conversation/Messages/components/MessageText';
+import { copyText } from '@/renderer/utils/ui/clipboard';
 import {
   LARGE_TEXT_PREVIEW_MAX_LENGTH,
   LARGE_TEXT_PREVIEW_THRESHOLD,
@@ -175,6 +176,26 @@ const fileMetadata = (path: string) => ({
 });
 
 describe('MessageText attachment paths', () => {
+  it('keeps a folded historical delivery inventory expandable and copies its original text', async () => {
+    const original =
+      'Verified result.\n\nDeliverables\n\n- [a.csv](/api/artifacts/a/versions/v1)\n- [b.csv](/api/artifacts/b/versions/v2)';
+    const message = {
+      id: 'historical-files',
+      type: 'text',
+      position: 'left',
+      content: { content: original },
+    } as IMessageText;
+    render(<MessageText message={message} />);
+    const details = screen.getByTestId('historical-delivery-list');
+    expect(details).not.toHaveAttribute('open');
+    expect(details.textContent).toContain('a.csv');
+    const summary = details.querySelector('summary')!;
+    fireEvent.click(summary);
+    expect(details).toHaveAttribute('open');
+    fireEvent.click(screen.getByRole('button', { name: 'common.copy' }));
+    await waitFor(() => expect(copyText).toHaveBeenCalledWith(original));
+  });
+
   beforeEach(() => {
     previewMocks.openPreview.mockClear();
     artifactLinkMocks.handle.mockClear();

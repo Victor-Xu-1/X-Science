@@ -159,12 +159,28 @@ describe('composeMessage', () => {
       data: { call_id: 'call-1', name: 'python', status: 'running' },
       msg_id: 'transcript-tool:stream-1:1:call-1',
       conversation_id: CONVERSATION_ID,
+      artifact_refs: [
+        {
+          artifact_id: 'a',
+          version_id: 'v',
+          relation: 'produced',
+          availability: 'available',
+        },
+      ],
     });
 
     expect(transformed).toMatchObject({
       id: 'transcript-tool:stream-1:1:call-1',
       msg_id: 'transcript-tool:stream-1:1:call-1',
       type: 'tool_call',
+      artifact_refs: [
+        {
+          artifact_id: 'a',
+          version_id: 'v',
+          relation: 'produced',
+          availability: 'available',
+        },
+      ],
     });
   });
 
