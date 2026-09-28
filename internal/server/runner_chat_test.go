@@ -3029,19 +3029,38 @@ func TestSessionRunnerChatStopsBeforeToolExecutionWhenDurableCheckpointLosesLeas
 }
 
 func TestSessionRunnerChatOnceRenewsLeaseDuringLongModelTurn(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
 	requestStarted := make(chan struct{}, 2)
 	releaseRequest := make(chan struct{})
+	release := sync.OnceFunc(func() { close(releaseRequest) })
 	var requests atomic.Int64
-	modelAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	modelAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requests.Add(1)
-		requestStarted <- struct{}{}
-		<-releaseRequest
+		select {
+		case requestStarted <- struct{}{}:
+		case <-ctx.Done():
+			return
+		case <-r.Context().Done():
+			return
+		}
+		select {
+		case <-releaseRequest:
+		case <-ctx.Done():
+			return
+		case <-r.Context().Done():
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{
 			"choices": [{"message": {"role": "assistant", "content": "long turn completed"}}]
 		}`))
 	}))
-	defer modelAPI.Close()
+	defer func() {
+		cancel()
+		release()
+		modelAPI.Close()
+	}()
 
 	root := t.TempDir()
 	srv := New(Options{FileRoot: root})
@@ -3068,11 +3087,25 @@ func TestSessionRunnerChatOnceRenewsLeaseDuringLongModelTurn(t *testing.T) {
 		err    error
 	}
 	done := make(chan runOutcome, 1)
+	joined := make(chan struct{})
+	// The real HTTP integration observes committed renewal across the original
+	// expiry; millisecond scheduling is covered separately with virtual time.
+	const leaseTTL = 10 * time.Second
 	go func() {
-		result, err := srv.RunSessionRunnerChatOnce(context.Background(), SessionRunnerChatOptions{RunnerID: "chat-heartbeat-runner-a", Endpoint: modelAPI.URL + "/v1/chat/completions", Model: "test-model",
-			LeaseTTL: 80 * time.Millisecond, ReplayLimit: 20, OutputLimitBytes: 64 * 1024,
+		defer close(joined)
+		result, err := srv.RunSessionRunnerChatOnce(ctx, SessionRunnerChatOptions{RunnerID: "chat-heartbeat-runner-a", Endpoint: modelAPI.URL + "/v1/chat/completions", Model: "test-model",
+			LeaseTTL: leaseTTL, ReplayLimit: 20, OutputLimitBytes: 64 * 1024,
 		})
 		done <- runOutcome{result: result, err: err}
+	}()
+	defer func() {
+		cancel()
+		release()
+		select {
+		case <-joined:
+		case <-time.After(10 * time.Second):
+			t.Error("chat runner did not join after fixture cancellation")
+		}
 	}()
 	select {
 	case <-requestStarted:
@@ -3084,9 +3117,9 @@ func TestSessionRunnerChatOnceRenewsLeaseDuringLongModelTurn(t *testing.T) {
 		t.Fatalf("first lease=%#v found=%t err=%v", firstLease, found, err)
 	}
 	firstClaim := sessionstore.RunnerClaimFromSession(firstLease)
-	duplicate, err := srv.RunSessionRunnerChatOnce(context.Background(), SessionRunnerChatOptions{SessionID: sessionID, RunnerID: "chat-heartbeat-runner-a",
+	duplicate, err := srv.RunSessionRunnerChatOnce(ctx, SessionRunnerChatOptions{SessionID: sessionID, RunnerID: "chat-heartbeat-runner-a",
 		Endpoint: modelAPI.URL + "/v1/chat/completions", Model: "test-model",
-		LeaseTTL: 80 * time.Millisecond, ReplayLimit: 20, OutputLimitBytes: 64 * 1024,
+		LeaseTTL: leaseTTL, ReplayLimit: 20, OutputLimitBytes: 64 * 1024,
 	})
 	if err != nil || duplicate.Claimed {
 		t.Fatalf("duplicate same-runner result=%+v err=%v", duplicate, err)
@@ -3097,7 +3130,31 @@ func TestSessionRunnerChatOnceRenewsLeaseDuringLongModelTurn(t *testing.T) {
 	if _, err := srv.sessionStore.ValidateRunnerClaim(firstClaim, true); err != nil {
 		t.Fatalf("duplicate same-runner invalidated the first lease: %v", err)
 	}
-	time.Sleep(140 * time.Millisecond)
+	deadline := time.NewTimer(3 * leaseTTL)
+	defer deadline.Stop()
+	poll := time.NewTicker(20 * time.Millisecond)
+	defer poll.Stop()
+	for {
+		current, found, err := srv.sessionStore.Get(sessionID)
+		if err != nil || !found || current.Runner == nil {
+			t.Fatalf("current lease=%#v found=%t err=%v", current, found, err)
+		}
+		if !time.Now().Before(firstLease.Runner.ExpiresAt) &&
+			current.Runner.LastHeartbeatAt.After(firstLease.Runner.LastHeartbeatAt) &&
+			current.Runner.ExpiresAt.After(firstLease.Runner.ExpiresAt) {
+			if _, err := srv.sessionStore.ValidateRunnerClaim(firstClaim, true); err != nil {
+				t.Fatalf("renewed original claim is not live: %v", err)
+			}
+			break
+		}
+		select {
+		case outcome := <-done:
+			t.Fatalf("chat finished before the blocked model was released: %+v err=%v", outcome.result, outcome.err)
+		case <-deadline.C:
+			t.Fatal("no committed renewal across the original lease expiry")
+		case <-poll.C:
+		}
+	}
 	_, claimed, err := srv.sessionStore.ClaimRunner(sessionID, "chat-heartbeat-runner-b", time.Minute)
 	if err != nil {
 		t.Fatal(err)
@@ -3105,7 +3162,7 @@ func TestSessionRunnerChatOnceRenewsLeaseDuringLongModelTurn(t *testing.T) {
 	if claimed {
 		t.Fatal("second runner reclaimed a live long-running chat lease")
 	}
-	close(releaseRequest)
+	release()
 	select {
 	case outcome := <-done:
 		if outcome.err != nil {
