@@ -82,16 +82,8 @@ func TestSessionRunnerPreparationHeartbeatRetainsClaimAcrossDiscovery(t *testing
 			t.Cleanup(provider.Close)
 			app := New(Options{Workspace: store, Transcript: repo, FileRoot: t.TempDir(), HTTPClient: client})
 			t.Cleanup(func() { closeTestServer(t, app) })
-			connectors, err := app.mcpDirectory.ListUnifiedConnectors(t.Context(), "local")
-			if err != nil {
+			if err := disableBundledMCPForLocalFixture(t.Context(), app, "local"); err != nil {
 				t.Fatal(err)
-			}
-			for _, connector := range connectors {
-				if connector.Source == "bundled" {
-					if _, err := app.mcpDirectory.SetUnifiedEnabled(t.Context(), "local", connector.ID, false); err != nil {
-						t.Fatal(err)
-					}
-				}
 			}
 			if _, _, err := app.submitFrameMessage(store, frameMessageSubmission{
 				FrameID: "preparation-frame", MessageUUID: "preparation-input", ClientMessageID: "preparation-input", Text: "Reply ready.",
