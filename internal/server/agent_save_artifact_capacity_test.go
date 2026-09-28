@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	sessionstore "synon-go/internal/persistence/sessions"
 	"synon-go/internal/runtimecontrol"
 )
 
@@ -142,6 +143,18 @@ func TestAgentSaveArtifactsLargeOrdinaryCSVNotRejectedByEvidencePreview(t *testi
 	writeAgentSaveArtifactsFile(t, fixture.projectPath, "results.csv", content)
 	input := map[string]any{"files": []any{"results.csv"}, "language": "text", "human_description": "Saving measured table"}
 	ctx := withTranscriptRunnerChatRun(fixture.toolContext(t, "save-large-table", input), &sessionRunnerChatRun{VerificationExplicitlyDisabled: true})
+	// Full-file validation can outlive the initial lease under race instrumentation.
+	// Match the runner lifecycle instead of giving this fixture an oversized lease.
+	ctx, stopHeartbeat := fixture.server.startSessionRunnerChatHeartbeat(ctx,
+		sessionstore.RunnerMutationClaim{},
+		&transcriptRunnerAuthority{Stream: fixture.stream, Claim: fixture.claim},
+		SessionRunnerChatOptions{LeaseTTL: time.Minute},
+	)
+	defer func() {
+		if err := stopHeartbeat(); err != nil {
+			t.Errorf("stop artifact runner heartbeat: %v", err)
+		}
+	}()
 	result, err := fixture.server.executeAgentSaveArtifacts(ctx, fixture.identity, "save-large-table", input)
 	if err != nil || len(agentSaveArtifactResults(t, result)) != 1 || result["errors"] != nil {
 		t.Fatalf("large ordinary CSV rejected by evidence preview: result=%v err=%v", result, err)
