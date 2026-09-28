@@ -3,7 +3,7 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "abb6b3de624aacd6104a6d7b317702e04d58a0dd7ad020d18ae744bfc2a8e881",
+  "adaptationFingerprintSHA256": "33311a6b37387106f0d02418a5d4325ee44a6b3d6f11dfc94ef3324e3c1eb2cb",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
   "additionFingerprintSHA256": "38630b89fcac75d873f8470d4dfcc6497094485008de2f6ca8398fdefd4fd3ee",
   "summary": {
@@ -850,8 +850,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/artifact/ArtifactPreview.tsx",
       "sourceSHA256": "21d3998423856a474f4e13516869e446beaebf11fab0597fc9e7a3d732d624d1",
-      "targetSHA256": "6a06ab7bea77fb2a2554e4a108f5f8240b6e853880db1f76f3cd10ffe4f013ab",
-      "bytes": 41431,
+      "targetSHA256": "e12eb5950f5864dcb23ed5dc64cf9ed67ac4b6453ecf874fe8ca06db494fe032",
+      "bytes": 41760,
       "reason": "Connect immutable Go artifacts, annotations, refinement, and native viewers with bounded localized failure handling."
     },
     {
@@ -3580,8 +3580,8 @@
     {
       "path": "tests/unit/renderer/ArtifactPreview.dom.test.tsx",
       "sourceSHA256": "35fcf88c79cd262a41b65d79e70c4ec8a97ede955c9b4f8d3fefe3fc536d2bd9",
-      "targetSHA256": "4cb324da7d003bfefc2ee07e1b4a324f30c4b8aa01df054098fc6b0f14979b32",
-      "bytes": 13431,
+      "targetSHA256": "4975431ad324975ac0ad567a667b9e86e0bf8cb1b3e13985fcdc18444e60195e",
+      "bytes": 14839,
       "reason": "Isolate persisted client configuration while testing native artifact preview and cloud export behavior."
     },
     {

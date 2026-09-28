@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderWithI18n } from '../i18nTestUtils';
@@ -172,7 +172,39 @@ import ArtifactPreview from '@/renderer/pages/artifact/ArtifactPreview';
 import AudioPreview from '@/renderer/pages/artifact/AudioPreview';
 import VideoPreview from '@/renderer/pages/artifact/VideoPreview';
 
+vi.mock('@/renderer/pages/conversation/Preview/components/viewers/SynonBiomedStructureViewer', () => ({
+  default: ({ contentUrl }: { contentUrl?: string }) => (
+    <output data-testid='structure-version-source'>{contentUrl}</output>
+  ),
+}));
+
 describe('ArtifactPreview', () => {
+  it('binds structure rendering and derived snapshots to the displayed immutable version', async () => {
+    const original = await loadArtifactMock();
+    const [olderVersion] = await loadVersionsMock();
+    loadArtifactMock.mockResolvedValueOnce({
+      ...original,
+      filename: 'complex.pdb',
+      contentType: 'chemical/x-pdb',
+      versionId: 'version-2',
+      versionNumber: 2,
+    });
+    loadVersionsMock.mockResolvedValueOnce([
+      { ...olderVersion, versionId: 'version-2', versionNumber: 2, contentType: 'chemical/x-pdb' },
+      { ...olderVersion, contentType: 'chemical/x-pdb' },
+    ]);
+    await render(<ArtifactPreview />);
+    expect(await screen.findByTestId('structure-version-source')).toHaveTextContent(
+      '/api/artifacts/artifact-1/versions/version-2'
+    );
+    fireEvent.click(screen.getByRole('tab', { name: '版本' }));
+    const olderVersionButton = await screen.findByRole('button', { name: /版本 1/ });
+    await act(async () => fireEvent.click(olderVersionButton));
+    expect(screen.getByTestId('structure-version-source')).toHaveTextContent(
+      '/api/artifacts/artifact-1/versions/version-1'
+    );
+  });
+
   it('renders a Synon Biomed image artifact using the backend content endpoint', async () => {
     await render(<ArtifactPreview />);
 
