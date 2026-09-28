@@ -1,4 +1,5 @@
 import type { TMessage } from '@/common/chat/chatLib';
+import type { IConversationArtifact } from '@/common/adapter/ipcBridge';
 import { buildMessagePresentationList } from '@/renderer/pages/conversation/Messages/messageListProjection';
 import { describe, expect, it } from 'vitest';
 
@@ -8,7 +9,13 @@ const tool = (id: string, name: string, createdAt: number): TMessage =>
     type: 'tool_call',
     position: 'left',
     created_at: createdAt,
-    content: { call_id: id, name, args: {}, output: JSON.stringify({ ok: true }), status: 'completed' },
+    content: {
+      call_id: id,
+      name,
+      args: {},
+      output: JSON.stringify({ ok: true }),
+      status: 'completed',
+    },
   }) as unknown as TMessage;
 
 const text = (id: string, content: string, createdAt: number): TMessage =>
@@ -21,6 +28,53 @@ const text = (id: string, content: string, createdAt: number): TMessage =>
   }) as unknown as TMessage;
 
 describe('message list projection controller', () => {
+  it('attaches an exact produced version to its generating tool once, not later summaries', () => {
+    const ref = {
+      artifact_id: 'a',
+      version_id: 'v1',
+      relation: 'produced',
+      availability: 'available',
+    };
+    const origin = {
+      ...tool('save', 'save_artifacts', 1),
+      artifact_refs: [ref],
+    } as TMessage;
+    const summary = {
+      ...text('summary', 'Complete.', 3),
+      artifact_refs: [ref],
+    } as TMessage;
+    const artifacts = [
+      {
+        kind: 'scientific_files',
+        status: 'active',
+        payload: {
+          files: [
+            {
+              artifact_id: 'a',
+              version_id: 'v1',
+              filename: 'result.csv',
+              content_url: '/api/artifacts/a/versions/v1',
+              is_intermediate: false,
+            },
+          ],
+        },
+      },
+    ] as unknown as IConversationArtifact[];
+    const rows = buildMessagePresentationList([origin, tool('later', 'read_file', 2), summary], artifacts);
+    const files = rows.filter((row) => row.type === 'referenced_files');
+    expect(files).toHaveLength(1);
+    expect(files[0]).toMatchObject({
+      sourceMessageIds: ['save'],
+      files: [{ version_id: 'v1' }],
+    });
+    expect(rows.findIndex((row) => row.type === 'referenced_files')).toBe(1);
+    expect(rows[2]).toMatchObject({
+      type: 'tool_summary',
+      sourceMessageIds: ['later'],
+    });
+    expect(buildMessagePresentationList([origin, tool('later', 'read_file', 2), summary], artifacts)).toEqual(rows);
+  });
+
   it('omits orphan assistant delimiters without hiding user input or scientific symbols', () => {
     const user = { ...text('user', '></', 1), position: 'right' } as TMessage;
     const projected = buildMessagePresentationList(
@@ -56,7 +110,9 @@ describe('message list projection controller', () => {
       []
     );
     expect(projected.map((item) => item.type)).toEqual(['tool_summary', 'tool_summary']);
-    expect(projected[0]).toMatchObject({ sourceMessageIds: ['search-1', 'fetch-1'] });
+    expect(projected[0]).toMatchObject({
+      sourceMessageIds: ['search-1', 'fetch-1'],
+    });
     expect(projected[1]).toMatchObject({ sourceMessageIds: ['analysis-1'] });
   });
 

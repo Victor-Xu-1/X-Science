@@ -22,13 +22,15 @@ func (s *Server) enrichTranscriptWebArtifactPresentation(
 	messages []map[string]any,
 ) error {
 	attempts := make(map[int64]struct{})
+	hasTool := false
 	for _, message := range messages {
+		hasTool = hasTool || webString(message["type"]) == "tool_call"
 		attempt, ok := transcriptWebArtifactRecoveryAttempt(frameID, message)
 		if ok {
 			attempts[attempt] = struct{}{}
 		}
 	}
-	if len(attempts) == 0 {
+	if len(attempts) == 0 && !hasTool {
 		return nil
 	}
 	if s == nil || s.workspaceStore == nil || s.transcriptStore == nil {
@@ -54,6 +56,9 @@ func (s *Server) enrichTranscriptWebArtifactPresentation(
 	}
 	if !found {
 		return nil
+	}
+	if err := s.enrichTranscriptToolArtifacts(ctx, stream.UID, ownerID, messages); err != nil {
+		return err
 	}
 	snapshots := make(map[int64][]map[string]any, len(attempts))
 	for attempt := range attempts {

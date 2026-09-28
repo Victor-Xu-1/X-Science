@@ -1,7 +1,21 @@
 import type { ISynonBiomedScientificFile } from '@/common/adapter/ipcBridge';
 import type { ArtifactReferenceRelation, ArtifactReferenceWire } from '@/common/adapter/messageStreamProtocol';
+import type { TMessage } from '@/common/chat/chatLib';
 
 export const artifactReferenceKey = (artifactId: string, versionId: string): string => `${artifactId}\0${versionId}`;
+
+export function indexArtifactGenerationOwners(messages: TMessage[]): ReadonlyMap<string, string> {
+  const owners = new Map<string, string>();
+  for (const message of messages) {
+    if (message.hidden || !['tool_call', 'tool_group', 'acp_tool_call'].includes(message.type)) continue;
+    for (const ref of message.artifact_refs ?? []) {
+      if (ref.relation !== 'produced') continue;
+      const key = artifactReferenceKey(ref.artifact_id, ref.version_id);
+      if (!owners.has(key)) owners.set(key, message.id);
+    }
+  }
+  return owners;
+}
 
 export function indexScientificFilesByArtifactReference(
   files: ISynonBiomedScientificFile[]

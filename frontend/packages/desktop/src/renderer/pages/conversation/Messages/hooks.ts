@@ -465,6 +465,7 @@ function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[]
           created_at: existingMsg.created_at,
           hidden: existingTerminal || incomingTerminal ? false : message.hidden,
           content: merged,
+          artifact_refs: mergeArtifactReferences(existingMsg.artifact_refs, message.artifact_refs, 'union'),
         };
         index.call_idIndex.set(identity, existingIdx);
         return newList;
