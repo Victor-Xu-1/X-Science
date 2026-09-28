@@ -67,6 +67,7 @@ test('keeps structure preview read-only and displays interactions through the re
 
     const region = page.getByRole('region', { name: /3D 结构预览/u });
     await expect(region).toBeVisible();
+    await region.getByRole('button', { name: '展开左侧工具栏', exact: true }).click();
     await expect(region.getByRole('complementary', { name: /表示层编辑器/u })).toHaveCount(0);
     await expect(region.getByRole('tab', { name: /Ligand 编辑/u })).toHaveCount(0);
     await expect(region.getByRole('button', { name: /添加图层/u })).toHaveCount(0);
@@ -75,6 +76,10 @@ test('keeps structure preview read-only and displays interactions through the re
     // the retired independent toggles must not reintroduce competing state.
     const pocketMode = region.getByTestId('synon-biomed-molstar-quick-pocket');
     await expect(pocketMode).toBeEnabled();
+    if ((await pocketMode.getAttribute('aria-pressed')) === 'true') {
+      await pocketMode.click();
+      await expect(pocketMode).toHaveAttribute('aria-pressed', 'false');
+    }
     await pocketMode.click();
     await expect(pocketMode).toHaveAttribute('aria-pressed', 'true');
 
@@ -112,6 +117,8 @@ test('switches a multi-model complex inside the built-in 3D preview', async ({ p
 
     const region = page.getByRole('region', { name: /3D 结构预览/u });
     const modelNavigator = region.getByRole('group', { name: /结构模型/u });
+    await expect(region).toBeVisible();
+    await region.getByRole('button', { name: '展开左侧工具栏', exact: true }).click();
     await expect(modelNavigator).toBeVisible();
     await expect(modelNavigator).toContainText('模型 1 / 2');
 
@@ -141,11 +148,12 @@ test('persists a native structure snapshot without changing its coordinate versi
     await openScientificArtifact(page, structure.artifactId);
     const region = page.getByRole('region', { name: /3D 结构预览/u });
     await expect(region).toBeVisible();
+    await region.getByRole('button', { name: '展开左侧工具栏', exact: true }).click();
+    const capture = region.getByTestId('synon-biomed-molstar-quick-snapshot');
+    await expect(capture).toBeEnabled();
     await expect
       .poll(async () => (await inspectRenderedPixels(region.locator('canvas'))).nonWhite)
       .toBeGreaterThan(100);
-    const capture = region.getByTestId('synon-biomed-molstar-quick-snapshot');
-    await expect(capture).toBeEnabled();
     const [savedResponse, download] = await Promise.all([
       page.waitForResponse((response) => {
         const url = new URL(response.url());
