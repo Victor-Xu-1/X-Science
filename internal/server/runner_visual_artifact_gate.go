@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"path/filepath"
 	"strings"
 
@@ -98,7 +97,11 @@ func (s *Server) verifySessionRunnerVisualArtifactEvidence(session sessionstore.
 	if err != nil {
 		return err
 	}
-	if err := s.verifyVisualArtifactEvidence(workspaceEvidence.Artifacts); err != nil {
+	deliveryEvidence, err := s.sessionRunnerVisualDeliveryEvidence(frame.ProjectID, candidates)
+	if err != nil {
+		return err
+	}
+	if err := s.verifyVisualArtifactEvidence(deliveryEvidence); err != nil {
 		return err
 	}
 	return s.verifyStructureSceneEvidence(workspaceEvidence.Artifacts, candidates)
@@ -120,25 +123,22 @@ func (s *Server) verifyVisualArtifactEvidence(artifacts []sessionReviewerArtifac
 		if !found || reader == nil {
 			return fmt.Errorf("visual artifact %s is unavailable", artifact.Name)
 		}
-		hash := sha256.New()
-		header := make([]byte, 512)
-		n, readErr := io.ReadFull(reader, header)
-		if readErr != nil && readErr != io.EOF && readErr != io.ErrUnexpectedEOF {
-			reader.Close()
-			return readErr
-		}
-		_, _ = hash.Write(header[:n])
-		_, copyErr := io.Copy(hash, reader)
+		content, readErr := io.ReadAll(io.LimitReader(reader, agentWorkspaceVisualMaxBytes+1))
 		closeErr := reader.Close()
-		if err := errors.Join(copyErr, closeErr); err != nil {
+		if err := errors.Join(readErr, closeErr); err != nil {
 			return err
 		}
-		digest := hex.EncodeToString(hash.Sum(nil))
-		if !agentWorkspaceImageMIME(http.DetectContentType(header[:n])) ||
+		hash := sha256.Sum256(content)
+		digest := hex.EncodeToString(hash[:])
+		integrityErr := validateVisualArtifactImage(content)
+		if integrityErr == nil && (int64(len(content)) != version.SizeBytes ||
 			!strings.EqualFold(digest, artifact.ContentSHA256) ||
-			!strings.EqualFold(digest, version.ContentSHA256) {
+			!strings.EqualFold(digest, version.ContentSHA256)) {
+			integrityErr = errors.New("image byte size or immutable hash does not match")
+		}
+		if integrityErr != nil {
 			return &sessionRunnerVisualArtifactValidationRequired{
-				Artifacts: []string{artifact.Name},
+				Artifacts: []string{artifact.Name + " (" + integrityErr.Error() + ")"},
 				Targets:   []transcriptstore.RunnerVisualConditionArtifact{{Name: artifact.Name, VersionID: artifact.VersionID, SHA256: artifact.ContentSHA256, Failure: "invalid_image_integrity"}},
 			}
 		}

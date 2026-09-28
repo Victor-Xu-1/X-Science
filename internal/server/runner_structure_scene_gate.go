@@ -121,7 +121,14 @@ func (s *Server) verifyStructureSceneEvidence(artifacts []sessionReviewerArtifac
 		}
 	}
 
-	return nil
+	// A scene can reference an already-published preview outside the new
+	// produced selection. Validate that exact bound preview through the same
+	// decoder, without inspecting unrelated drafts in the workspace inventory.
+	preview := findArtifactByVersionID(images, manifest.PreviewImage.VersionID)
+	if preview == nil {
+		return errors.New("structure scene preview version is unavailable")
+	}
+	return s.verifyVisualArtifactEvidence([]sessionReviewerArtifactEvidence{*preview})
 }
 
 func (s *Server) findStructureSceneManifest(

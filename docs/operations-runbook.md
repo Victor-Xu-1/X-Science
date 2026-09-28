@@ -139,6 +139,14 @@ inputs do not satisfy the scene contract; validation never changes publication
 state. Normal completion and checkpoint recovery use this same selection, so
 an unpublished valid scene cannot be trapped behind its own publication gate.
 
+Image integrity checks use the exact produced snapshot versions selected for
+publication, not unrelated drafts, cited inputs or newer versions with the same
+name. A scene's bound preview is checked even when it was already published.
+PNG, JPEG, GIF and WebP must decode successfully; a matching signature or hash
+alone is insufficient. Validation bounds each compressed image to 25 MiB and
+its decoded canvas to 32 Mi pixels before allocating pixels. Export a smaller
+image if this limit is exceeded; never substitute metadata for image evidence.
+
 Pinned optional runtime locks are generated with
 `node scripts/generate-conda-runtime-lock.mjs`. For a dependency removal without
 unrelated upgrades, use `--locked-manifest <verified-generation/manifest.json>`,
