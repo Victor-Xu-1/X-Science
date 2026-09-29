@@ -218,10 +218,6 @@ func (s *Server) finishBackgroundShell(taskID string, outputPath string, running
 		settlementErr = errors.Join(settlementErr, errors.New("background task store is unavailable"))
 		return
 	}
-	// Fence the terminal status against shutdown; the registry entry remains
-	// live until both output and task persistence have settled.
-	s.backgroundShellMu.Lock()
-	defer s.backgroundShellMu.Unlock()
 	current, found, getErr := s.taskStore.Get(taskID)
 	if getErr != nil || !found {
 		if getErr == nil {
@@ -230,6 +226,13 @@ func (s *Server) finishBackgroundShell(taskID string, outputPath string, running
 		settlementErr = errors.Join(settlementErr, getErr)
 		return
 	}
+	// Never hold the admission lock over filesystem I/O: Close must still be
+	// able to establish its deadline while persistence is stalled. A command
+	// already settled before this snapshot can complete normally; the wait
+	// group retains ownership until its terminal write actually finishes.
+	s.backgroundShellMu.Lock()
+	closing := s.backgroundShellClosing
+	s.backgroundShellMu.Unlock()
 	status := "completed"
 	if err != nil || settlementErr != nil {
 		status = "failed"
@@ -238,7 +241,7 @@ func (s *Server) finishBackgroundShell(taskID string, outputPath string, running
 		status = "stopped"
 	}
 	metadata := cloneTaskMetadata(current.Metadata)
-	if s.backgroundShellClosing && current.Status != "stopped" {
+	if closing && current.Status != "stopped" {
 		status = "stopped"
 		metadata["stoppedBy"] = "server_shutdown"
 		metadata["stoppedAt"] = time.Now().UTC().Format(time.RFC3339Nano)

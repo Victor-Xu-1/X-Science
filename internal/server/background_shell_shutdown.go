@@ -29,6 +29,15 @@ func (s *Server) stopAllBackgroundShells(ctx context.Context) error {
 	}
 	s.backgroundShellMu.Lock()
 	s.backgroundShellClosing = true
+	if s.backgroundShellDone == nil {
+		s.backgroundShellDone = make(chan struct{})
+		done := s.backgroundShellDone
+		go func() {
+			s.backgroundShellWG.Wait()
+			close(done)
+		}()
+	}
+	done := s.backgroundShellDone
 	running := make([]*shellops.RunningCommand, 0, len(s.backgroundShells))
 	for _, command := range s.backgroundShells {
 		running = append(running, command)
@@ -43,11 +52,6 @@ func (s *Server) stopAllBackgroundShells(ctx context.Context) error {
 			}
 		}
 	}
-	done := make(chan struct{})
-	go func() {
-		s.backgroundShellWG.Wait()
-		close(done)
-	}()
 	select {
 	case <-ctx.Done():
 		return errors.Join(closeErr, ctx.Err())

@@ -317,6 +317,7 @@ type Server struct {
 	backgroundShellWG                     sync.WaitGroup
 	backgroundShellClosing                bool
 	backgroundShellErr                    error
+	backgroundShellDone                   chan struct{}
 	webResearchMu                         sync.Mutex
 	webResearchSessions                   map[string]*webResearchSessionState
 	webZipMu                              sync.Mutex

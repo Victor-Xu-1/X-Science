@@ -45,6 +45,8 @@ claim → recovery → context → snapshot → provider ⇄ tool → verify →
 登记时发现关闭已开始就立即停止进程。只有全部收尾完成后，关闭才报告成功。
 等待遵守调用方的取消和期限；日志或任务状态写入失败会明确记录并反馈，不以进程
 消失或清空进程表代替成功收尾。
+任务存储保留执行器的 `failed` 终态及退出码；普通命令失败不是关闭失败。
+任务文件读写不占用启动/关闭互斥锁，文件系统阻塞时关闭仍能遵守调用方期限。
 
 ```sh
 go test ./internal/server -run 'TestServerClose.*BackgroundShell|TestBackgroundShell' -count=1

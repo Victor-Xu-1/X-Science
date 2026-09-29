@@ -308,7 +308,7 @@ func (s *Store) saveLocked(data fileData) error {
 
 func validStatus(status string) bool {
 	switch status {
-	case "open", "running", "done", "blocked", "pending", "in_progress", "completed", "stopped":
+	case "open", "running", "done", "blocked", "pending", "in_progress", "completed", "stopped", "failed":
 		return true
 	default:
 		return false
