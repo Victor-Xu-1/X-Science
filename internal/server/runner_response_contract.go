@@ -99,7 +99,17 @@ func (client *sessionRunnerResponseContractClient) CompleteStream(ctx context.Co
 		return response, err
 	}
 	progress, blockID := extractRunnerResponseProgress(&response)
-	if progress == "" || strings.Contains(response.Message.Content, agentruntime.PublicProgressEnvelopeBegin) {
+	if strings.Contains(response.Message.Content, agentruntime.PublicProgressEnvelopeBegin) {
+		return response, nil
+	}
+	if progress == "" && len(response.Message.ToolCalls) > 0 {
+		// A completed native preamble has the same explicit progress role.
+		// Preserve it even if later tool admission asks for a private repair,
+		// without promoting an earlier interrupted response's candidate bytes.
+		progress = sessionRunnerPublicProgressNarration(response.Message.Content)
+		blockID = fmt.Sprintf("native-%x", sha256.Sum256([]byte(response.Message.ToolCalls[0].ID+"\x00"+progress)))
+	}
+	if progress == "" {
 		return response, nil
 	}
 	// Cadence controls when to request an update, not whether a model-authored

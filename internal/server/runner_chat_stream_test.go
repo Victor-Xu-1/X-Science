@@ -345,7 +345,6 @@ func testSessionRunnerChatProgressBeforeTool(t *testing.T, structured, chinese b
 	toolBoundaryWritten := make(chan struct{})
 	releaseToolBoundary := make(chan struct{})
 	var releaseOnce sync.Once
-	t.Cleanup(func() { releaseOnce.Do(func() { close(releaseToolBoundary) }) })
 	modelAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var request map[string]any
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -399,7 +398,10 @@ func testSessionRunnerChatProgressBeforeTool(t *testing.T, structured, chinese b
 		_, _ = w.Write([]byte("data: [DONE]\n\n"))
 		flusher.Flush()
 	}))
-	defer modelAPI.Close()
+	defer func() {
+		releaseOnce.Do(func() { close(releaseToolBoundary) })
+		modelAPI.Close()
+	}()
 
 	root := t.TempDir()
 	workspaceStore, err := workspace.Open(filepath.Join(root, "workspace.db"))
@@ -461,29 +463,29 @@ func testSessionRunnerChatProgressBeforeTool(t *testing.T, structured, chinese b
 	case <-time.After(2 * time.Second):
 		t.Fatal("provider did not reach its tool-call boundary")
 	}
-	progressBeforeResponseEnd := false
-	deadline := time.Now().Add(2 * time.Second)
-	for !chinese && !structured && !progressBeforeResponseEnd && time.Now().Before(deadline) {
+	// The native tool-start marker is provisional. Neither narration nor tool
+	// execution may escape before the completed response validates its arguments.
+	deadline := time.Now().Add(200 * time.Millisecond)
+	for time.Now().Before(deadline) {
 		entries, readErr := server.eventJournal.ReadAfter(session.ID, 0, 100)
 		if readErr != nil {
 			t.Fatal(readErr)
 		}
 		for _, entry := range entries {
-			if stringValue(entry.Message["type"]) == "content_delta" &&
-				stringValue(entry.Message["text"]) == "I found an earlier result; I’ll verify it with the runtime now." {
-				progressBeforeResponseEnd = true
-				break
+			if stringValue(entry.Message["type"]) == "content_delta" ||
+				stringValue(entry.Message["toolPhase"]) == "started" {
+				t.Fatal("unvalidated provider response escaped its private boundary")
 			}
 		}
-		if !progressBeforeResponseEnd {
-			time.Sleep(10 * time.Millisecond)
-		}
-	}
-	if !chinese && !structured && !progressBeforeResponseEnd {
-		t.Fatal("public progress was not durable while the provider response remained open")
+		time.Sleep(10 * time.Millisecond)
 	}
 	releaseOnce.Do(func() { close(releaseToolBoundary) })
-	outcome := <-finished
+	var outcome cycleOutcome
+	select {
+	case outcome = <-finished:
+	case <-time.After(10 * time.Second):
+		t.Fatal("validated response did not reach tool and final settlement")
+	}
 	result, err := outcome.result, outcome.err
 	if err != nil {
 		t.Fatal(err)
@@ -882,9 +884,9 @@ func TestTranscriptRunnerMalformedToolCallProtocolRecoversWithinExecutionUnit(t 
 			terminals++
 		}
 	}
-	// The terminal message is the authoritative full segment, while deltas are
-	// incremental presentation. Concatenating both would double-count progress.
-	if deltaText.String() != "evidence collected" || assistantText.String() != "evidence collected recovered final" || interruptions != 0 || continuations != 0 || terminals != 1 {
+	// Malformed tool arguments never authorize the preceding private draft.
+	// The repaired complete response remains the sole authoritative message.
+	if deltaText.Len() != 0 || assistantText.String() != "evidence collected recovered final" || interruptions != 0 || continuations != 0 || terminals != 1 {
 		t.Fatalf("delta=%q assistant=%q interruptions=%d continuations=%d terminals=%d events=%v",
 			deltaText.String(), assistantText.String(), interruptions, continuations, terminals, projectedEventSummaries(events))
 	}
