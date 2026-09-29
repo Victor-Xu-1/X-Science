@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "be42704df66a23ee74bb66f3eb245da665fb240b01a7e81e64923ee27a5105d8",
+  "adaptationFingerprintSHA256": "7420b188cb673fb39497940a1ad7ddcf97b563d129ed57eaa412fd3785ea5886",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
-  "additionFingerprintSHA256": "76e3e2d182a927fcec3bbc15d0b1851f782271f7532729385526b0b81b04ddbe",
+  "additionFingerprintSHA256": "13ebd9f870c22440a8739572541e4668dab496de275d2796f50ca4636cec7b0d",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 397,
     "adaptedSourceFiles": 667,
     "removedSourceFiles": 290,
-    "addedFiles": 708
+    "addedFiles": 710
   },
   "adaptations": [
     {
@@ -1018,8 +1018,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/MessageList.tsx",
       "sourceSHA256": "4f24db9de35b76ad7e4e842aa6298165645c2c1542f27eb22ea42a565dee0d8c",
-      "targetSHA256": "b22e6005365ac85aebc7f8b1fd2a9ed36b2e97d6f013de58ea5282c59725f454",
-      "bytes": 41838,
+      "targetSHA256": "dd9d75b30dcdbfadd640f9b2d624651cd11d945a906e7364e7885340db845e34",
+      "bytes": 42010,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -7233,8 +7233,14 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/useConversationScrollController.ts",
-      "sha256": "8f1bf5a326eb6b123207ca03448e62ffcf01e0626962d2b0144cd0fd4f8040ed",
-      "bytes": 9740,
+      "sha256": "74a31bfc5ecaaafe189953a35385b47711da507d400c989bfe6c8f975e7d9b69",
+      "bytes": 10009,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/Messages/useTouchScrollIntent.ts",
+      "sha256": "6dcabb0402334d917ab469c241575b3201163ec1e9f231a7fb189cd11c8db016",
+      "bytes": 1313,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9855,8 +9861,8 @@
     },
     {
       "path": "tests/unit/renderer/useConversationScrollController.dom.test.tsx",
-      "sha256": "0d70c49781a9131122eeda23873c016887f050b606002cb64c1bc87a5eeee890",
-      "bytes": 10824,
+      "sha256": "5314c886d75f585c9a9fe83ee9d8b025ecd2d7347c0f09939fb2150e68e31b6c",
+      "bytes": 11472,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -9869,6 +9875,12 @@
       "path": "tests/unit/renderer/useNearViewport.dom.test.tsx",
       "sha256": "f4160e5b5edde2619793955bc37c5516625a98f920439ec3e69150425135dc5e",
       "bytes": 2585,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/useTouchScrollIntent.dom.test.tsx",
+      "sha256": "c30a9d3a6829cbe87472cb6e4b200fc8f2e0b7dae073984266c7bcd132ae472a",
+      "bytes": 1884,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -10665,14 +10677,14 @@
     },
     {
       "path": "tests/web-e2e/turnRail.browser.mjs",
-      "sha256": "3d8b56a669bbdfc040c06eb7c09b403de64af3919d83488015248a0a63b011bf",
-      "bytes": 9780,
+      "sha256": "6d34d89fcd1323cd762f25f24a73c4a763910e230e756daca3099598df333d14",
+      "bytes": 11233,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/web-e2e/turnRail.fixture.tsx",
-      "sha256": "4976701963c5bc72d1674b4bb548d80afa1e006e97ccdddb54a7a513d87d18c9",
-      "bytes": 6996,
+      "sha256": "eb9edd5936366f4f453f779da9a05a1550d8dac95fa46349e888d2136470274c",
+      "bytes": 7815,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     }
   ]

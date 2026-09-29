@@ -59,7 +59,7 @@ try {
   });
   await vite.listen();
   browser = await chromium.launch({ headless: true });
-  page = await browser.newPage({ viewport: { width: 1000, height: 800 } });
+  page = await browser.newPage({ viewport: { width: 1000, height: 800 }, hasTouch: true });
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto(`http://127.0.0.1:${vite.httpServer.address().port}/__turn_rail_test__`);
@@ -70,6 +70,25 @@ try {
   await page.reload();
   await expect(rail).toBeVisible();
   await expect(page.locator('[data-source-message-id="q99"]')).toBeInViewport();
+  await page.getByTestId('missing-anchor').click();
+  await expect(page.getByTestId('following-output')).toHaveText('auto');
+  const touchSession = await page.context().newCDPSession(page);
+  await touchSession.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 500, y: 300 }] });
+  await page.waitForTimeout(80);
+  await touchSession.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 500, y: 520 }] });
+  await page.waitForTimeout(80);
+  await touchSession.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await expect(page.getByTestId('following-output')).toHaveText('false');
+  await page.waitForTimeout(200);
+  await touchSession.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 500, y: 600 }] });
+  await page.waitForTimeout(80);
+  await touchSession.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 500, y: 350 }] });
+  await page.waitForTimeout(80);
+  await touchSession.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 500, y: 120 }] });
+  await page.waitForTimeout(80);
+  await touchSession.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await expect(page.getByTestId('following-output')).toHaveText('auto');
+  await touchSession.detach();
   assert.ok((await rail.getByRole('button').count()) < 70);
   await expect(rail.locator('[aria-setsize="100"]')).toHaveCount(await rail.getByRole('button').count());
   const marks = rail.locator('ol');
@@ -176,6 +195,8 @@ try {
         'one turn',
         '100 turns keyboard forward/backward',
         'long rail independent pointer-wheel navigation',
+        'unavailable anchor preserves output following',
+        'native touch direction restores tail following',
         '1000 turns bounded DOM',
         'real Virtuoso jump',
         'disjoint cursor-window jump without pagination cascade',

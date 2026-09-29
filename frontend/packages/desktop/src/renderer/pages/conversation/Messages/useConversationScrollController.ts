@@ -177,16 +177,22 @@ export function useConversationScrollController({
 
   const canLoadPreviousPage = useCallback(() => userDetachedRef.current && historyPagingIntentRef.current, []);
   const canLoadNextPage = useCallback(() => historyPagingIntentRef.current, []);
-  const retainMessageAnchor = useCallback((messageId: string, block: ScrollLogicalPosition = 'start') => {
-    // Lazy report bodies, images and artifact cards can resize after Virtuoso's
-    // initial seek. Retain the user's anchor on geometry changes, until the
-    // next reading gesture. This is event-driven, not a timed retry loop.
-    messageAnchorRef.current = { messageId, block };
-    userDetachedRef.current = true;
-    historyPagingIntentRef.current = false;
-    userTowardTailIntentRef.current = false;
-    setFollowingOutput(false);
-  }, []);
+  const retainMessageAnchor = useCallback(
+    (messageId: string, block: ScrollLogicalPosition = 'start') => {
+      // A failed or stale navigation request must not detach output following.
+      // Callers retain an unloaded target only after its window has arrived.
+      if (!messages.some((message) => message.id === messageId)) return;
+      // Lazy report bodies, images and artifact cards can resize after Virtuoso's
+      // initial seek. Retain the user's anchor on geometry changes, until the
+      // next reading gesture. This is event-driven, not a timed retry loop.
+      messageAnchorRef.current = { messageId, block };
+      userDetachedRef.current = true;
+      historyPagingIntentRef.current = false;
+      userTowardTailIntentRef.current = false;
+      setFollowingOutput(false);
+    },
+    [messages]
+  );
 
   const scrollToBottom = useCallback(
     (behavior: ScrollBehavior = 'smooth') => {

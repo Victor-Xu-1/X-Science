@@ -26,6 +26,22 @@ function textMessage(id: string, position: 'left' | 'right', blockIndex?: number
 }
 
 describe('useConversationScrollController', () => {
+  it('keeps output following when an unavailable anchor cannot be loaded', () => {
+    const { result } = renderHook(() =>
+      useConversationScrollController({
+        conversationId: 'conversation-1',
+        messages: [textMessage('question', 'right')],
+        itemCount: 1,
+        lastUserMessageId: 'question',
+        lastUserRowIndex: 0,
+        scrollMessageIntoView: vi.fn(() => false),
+        scrollToBottomItem: vi.fn(() => true),
+      })
+    );
+    act(() => result.current.retainMessageAnchor('missing'));
+    expect(result.current.followOutput(true)).toBe('auto');
+    expect(result.current.showScrollButton).toBe(false);
+  });
   it('retains an explicit anchor across late content sizing and releases it on a reading gesture', () => {
     const frames: FrameRequestCallback[] = [];
     const requestFrame = vi

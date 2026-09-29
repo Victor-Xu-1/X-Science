@@ -19,6 +19,7 @@ import {
 import { useAnchorViewport } from '@/renderer/pages/conversation/Messages/useAnchorViewport';
 import { useConversationScrollController } from '@/renderer/pages/conversation/Messages/useConversationScrollController';
 import { MessageVirtualItem } from '@/renderer/pages/conversation/Messages/MessageVirtualItem';
+import { useTouchScrollIntent } from '@/renderer/pages/conversation/Messages/useTouchScrollIntent';
 
 await i18n.use(initReactI18next).init({
   lng: 'zh-CN',
@@ -68,6 +69,7 @@ function Fixture() {
     messages.map((message) => `text:${message.id}`)
   );
   const list = useRef<VirtuosoHandle>(null);
+  const pendingAnchor = useRef<string | null>(null);
   const [viewport, setViewport] = useState<HTMLDivElement | null>(null);
   const lastUser = messages.findLast((message) => message.position === 'right');
   const controller = useConversationScrollController({
@@ -88,6 +90,13 @@ function Fixture() {
       return true;
     },
   });
+  const touchScrollIntent = useTouchScrollIntent('fixture', controller.handleUserScrollIntent);
+  useLayoutEffect(() => {
+    if (pendingAnchor.current && messages.some((message) => message.id === pendingAnchor.current)) {
+      controller.retainMessageAnchor(pendingAnchor.current);
+      pendingAnchor.current = null;
+    }
+  }, [controller, messages]);
   const loadAfter = () => {
     if (
       windowed &&
@@ -105,6 +114,10 @@ function Fixture() {
     <main style={{ height: '80vh', width: 'calc(100% - 160px)', margin: '50px 80px' }}>
       <button data-testid='before-navigation'>Before navigation</button>
       <output data-testid='automatic-after-loads'>{afterLoads}</output>
+      <output data-testid='following-output'>{String(controller.followOutput(true))}</output>
+      <button data-testid='missing-anchor' onClick={() => controller.retainMessageAnchor('missing')}>
+        Unavailable anchor
+      </button>
       <Virtuoso
         components={{ Item: MessageVirtualItem }}
         key={anchorViewport.revision}
@@ -125,6 +138,7 @@ function Fixture() {
         endReached={loadAfter}
         onScroll={loadAfter}
         onWheel={(event) => controller.handleUserScrollIntent(event.deltaY < 0 ? 'away-from-tail' : 'toward-tail')}
+        {...touchScrollIntent}
         itemContent={(_, message) => (
           <article
             data-source-message-id={message.id}
@@ -145,6 +159,7 @@ function Fixture() {
         onJump={(id) => {
           controller.retainMessageAnchor(id);
           if (!messages.some((message) => message.id === id)) {
+            pendingAnchor.current = id;
             const start = Math.max(0, allMessages.findIndex((message) => message.id === id) - 4);
             setRange([start, Math.min(allMessages.length, start + 8)]);
             setHydrated(false);
