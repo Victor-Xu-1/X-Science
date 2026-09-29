@@ -248,20 +248,36 @@ func TestReadProgressChangingContentWithoutNarrativeContinues(t *testing.T) {
 
 func TestReadProgressMetadataStaysWithinReadBudget(t *testing.T) {
 	fixture := newAgentSaveArtifactsFixture(t)
-	if err := os.WriteFile(filepath.Join(fixture.projectPath, "large.txt"), []byte(strings.Repeat("source text 界\n", 2000)), 0600); err != nil {
+	path := filepath.Join(fixture.projectPath, "large.txt")
+	if err := os.WriteFile(path, []byte(strings.Repeat("source text 界\n", 2000)), 0600); err != nil {
 		t.Fatal(err)
 	}
-	gateway := serverAgentRuntimeToolGateway{server: fixture.server, kernel: fixture.identity, taskRun: &sessionRunnerChatRun{}, fileReadLimitBytes: 1024}
+	// Keep the evidence budget fixed while accounting for the fixture's real
+	// absolute location. Clean clones may nest TMPDIR under a much longer path.
+	location, err := json.Marshal(map[string]any{"file_path": path, "file_path_scope": "original_source"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	budget := int64(1024 + len(location) - 1)
+	gateway := serverAgentRuntimeToolGateway{server: fixture.server, kernel: fixture.identity, taskRun: &sessionRunnerChatRun{}, fileReadLimitBytes: budget}
 	input := map[string]any{"file_path": "large.txt", "human_description": "Reading bounded evidence"}
 	for attempt := 0; attempt < 2; attempt++ {
 		value, err := gateway.executeAgentToolResponse(context.Background(), agentruntime.ToolCall{ID: fmt.Sprintf("budget-%d", attempt), Name: "read_file"}, "read_file", input)
 		if err != nil {
 			t.Fatal(err)
 		}
-		encoded, err := json.Marshal(value)
-		if err != nil || len(encoded) > 1024 {
-			t.Fatalf("progress envelope exceeds reader budget: bytes=%d err=%v", len(encoded), err)
+		encoded, err := json.Marshal(map[string]any{"ok": true, "result": value})
+		if err != nil || int64(len(encoded)) > budget {
+			t.Fatalf("progress envelope exceeds reader budget: bytes=%d budget=%d err=%v", len(encoded), budget, err)
 		}
+		result := mapValue(value)
+		if stringValue(result["content"]) == "" || (result["reused"] == true) != (attempt > 0) {
+			t.Fatalf("bounded read lost content or reuse signal: attempt=%d result=%#v", attempt, result)
+		}
+	}
+	gateway.fileReadLimitBytes = 64
+	if _, err := gateway.executeAgentToolResponse(context.Background(), agentruntime.ToolCall{ID: "too-small", Name: "read_file"}, "read_file", input); err == nil {
+		t.Fatal("impossible metadata budget was silently exceeded")
 	}
 }
 
