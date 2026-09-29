@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -42,8 +43,9 @@ func (g serverAgentRuntimeToolGateway) readReuseEnabled(name string) bool {
 }
 
 type sessionRunnerReadReuseEntry struct {
-	value any
-	size  int64
+	value             any
+	size              int64
+	observationDigest string
 }
 
 type sessionRunnerReadReuseCache struct {
@@ -145,15 +147,16 @@ func (run *sessionRunnerChatRun) storeReadReuse(name string, input map[string]an
 	if cache == nil {
 		return
 	}
-	entry := sessionRunnerReadReuseEntry{value: value, size: int64(len(raw))}
+	entry := sessionRunnerReadReuseEntry{value: value, size: int64(len(raw) + len(key))}
+	cache.store(key, entry)
+}
+
+func (cache *sessionRunnerReadReuseCache) store(key string, entry sessionRunnerReadReuseEntry) (sessionRunnerReadReuseEntry, bool) {
 	cache.mu.Lock()
 	defer cache.mu.Unlock()
-	if previous, exists := cache.entries[key]; exists {
+	previous, exists := cache.entries[key]
+	if exists {
 		cache.bytes -= previous.size
-		cache.entries[key] = entry
-		cache.bytes += entry.size
-		cache.touch(key)
-		return
 	}
 	cache.entries[key] = entry
 	cache.touch(key)
@@ -166,6 +169,7 @@ func (run *sessionRunnerChatRun) storeReadReuse(name string, input map[string]an
 			cache.bytes -= old.size
 		}
 	}
+	return previous, exists
 }
 
 func (s *Server) hydrateSessionRunnerReadReuse(run *sessionRunnerChatRun, entries []eventjournal.Entry) {
@@ -182,7 +186,8 @@ func (s *Server) hydrateSessionRunnerReadReuse(run *sessionRunnerChatRun, entrie
 		name := strings.TrimSpace(stringValue(message["toolName"]))
 		input := decodeReadReuseMap(message["toolInput"])
 		conditionRead := runnerCorrectionReadInput(name, input)
-		if name == "" || input == nil || (!gateway.readReuseEnabled(name) && !conditionRead) {
+		fileRead := name == "read_file" && !conditionRead
+		if name == "" || input == nil || (!gateway.readReuseEnabled(name) && !conditionRead && !fileRead) {
 			continue
 		}
 		if conditionRead {
@@ -192,6 +197,10 @@ func (s *Server) hydrateSessionRunnerReadReuse(run *sessionRunnerChatRun, entrie
 			run, name, strings.TrimSpace(stringValue(message["toolCallId"])), message["toolResult"],
 		)
 		if !recorded {
+			continue
+		}
+		if fileRead {
+			run.observeFileRead(input, result)
 			continue
 		}
 		run.storeReadReuse(name, input, result)
@@ -268,8 +277,8 @@ func (s *Server) hydrateSessionRunnerReadReuseValue(
 		record.ToolCallID != strings.TrimSpace(toolCallID) {
 		return nil, false
 	}
-	var restored any
-	if json.Unmarshal(content, &restored) != nil {
+	restored, valid := decodeReadReuseValue(json.RawMessage(content))
+	if !valid {
 		return nil, false
 	}
 	return restored, true
@@ -294,7 +303,15 @@ func decodeReadReuseValue(value any) (any, bool) {
 			return nil, false
 		}
 		var decoded any
-		if err := json.Unmarshal(typed, &decoded); err != nil {
+		decoder := json.NewDecoder(bytes.NewReader(typed))
+		// Reuse must preserve exact source IDs/counters, including integers
+		// outside float64's exact range, across typed and durable JSON results.
+		decoder.UseNumber()
+		if err := decoder.Decode(&decoded); err != nil {
+			return nil, false
+		}
+		var trailing any
+		if err := decoder.Decode(&trailing); err != io.EOF {
 			return nil, false
 		}
 		return decoded, true
@@ -369,6 +386,18 @@ func markReadReuse(value any) any {
 		copy.Reused = true
 		return &copy
 	default:
-		return value
+		// A cached typed source may not expose a mutable map. Preserve its
+		// serialized contract while adding the same explicit reuse receipt.
+		raw, err := json.Marshal(value)
+		if err != nil {
+			return value
+		}
+		decoded, valid := decodeReadReuseValue(json.RawMessage(raw))
+		object, objectResult := decoded.(map[string]any)
+		if !valid || !objectResult || object == nil {
+			return value
+		}
+		object["reused"] = true
+		return object
 	}
 }

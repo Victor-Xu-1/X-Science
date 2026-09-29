@@ -31,6 +31,7 @@ func (s *Server) newAgentRuntimeEngineWithContext(
 		profile := providers.ModelProfile{
 			Provider: providers.ProviderProfile{
 				ID:       "static-runner-config",
+				UserID:   options.modelOwnerUserID,
 				Name:     "Static runner configuration",
 				Type:     "openai-compatible",
 				Protocol: providers.ProtocolOpenAICompatible,
@@ -52,7 +53,13 @@ func (s *Server) newAgentRuntimeEngineWithContext(
 			if !ok {
 				model = serverErrorModelClient{err: errors.New("static runner model client does not support streaming")}
 			} else {
-				model = sessionRunnerStaticStreamingCompatibilityClient{delegate: streaming}
+				// Default-config and saved providers share the same durable
+				// budget authority; recreating a client must not lose a learned
+				// output limit or require changes to the user's saved settings.
+				model = newSessionOutputBudgetClient(
+					sessionRunnerStaticStreamingCompatibilityClient{delegate: streaming},
+					s.runtimeStore, profile, options.SessionID, "agent",
+				)
 			}
 		}
 	}

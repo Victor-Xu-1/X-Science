@@ -83,6 +83,7 @@ type Result struct {
 func (result Result) ToolResultEnvelope() map[string]any {
 	return map[string]any{
 		"sourceUnavailable": result.SourceUnavailable,
+		"reused":            result.Reused,
 		"partial":           result.Partial,
 		"error":             result.Error,
 	}

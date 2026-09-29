@@ -31,6 +31,9 @@ func (s *Server) readAgentWorkspaceVersionWithLocation(ctx context.Context, iden
 		return nil, errors.New("read_file source content failed integrity verification")
 	}
 	metadata := map[string]any{"source_version_id": version.versionID}
+	if version.sha256 != "" {
+		metadata["source_sha256"] = version.sha256
+	}
 	if pathErr == nil {
 		relative, err := filepath.Rel(root, path)
 		if err != nil {
