@@ -21,6 +21,7 @@ export const areMessageItemPropsEqual = (prev: MessageItemMemoProps, next: Messa
   prev.message.status === next.message.status &&
   prev.message.terminal_status === next.message.terminal_status &&
   prev.message.terminal_superseded === next.message.terminal_superseded &&
+  prev.message.round_summary === next.message.round_summary &&
   prev.branchState === next.branchState &&
   prev.highlighted === next.highlighted &&
   prev.rowWidthClass === next.rowWidthClass &&

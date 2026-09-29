@@ -7,6 +7,14 @@ import { renderWithI18n } from '../i18nTestUtils';
 
 const copyTextMock = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 
+vi.mock('@/renderer/pages/conversation/Messages/components/MessageReplyBranchButton', () => ({
+  default: ({ throughAttempt }: { throughAttempt: number }) => (
+    <button data-testid='reply-branch' data-attempt={throughAttempt}>
+      Branch
+    </button>
+  ),
+}));
+
 vi.mock('@/renderer/utils/ui/clipboard', () => ({
   copyText: copyTextMock,
 }));
@@ -47,6 +55,26 @@ const message: IMessageText = {
 };
 
 describe('MessageText final-turn actions', () => {
+  it('offers the reply branch only on a non-superseded completed answer', async () => {
+    const summary = {
+      attempt: 3,
+      input_revision: 2,
+      completed_at: 10000,
+      elapsed_ms: 100,
+      call_count: 0,
+      reported_call_count: 0,
+      usage_state: 'unavailable' as const,
+      tokens: null,
+      models: [],
+    };
+    const complete: IMessageText = { ...message, terminal_status: 'completed', round_summary: summary };
+    const rendered = await renderWithI18n(<MessageText message={complete} />);
+    expect(screen.getByTestId('reply-branch')).toHaveAttribute('data-attempt', '3');
+    rendered.rerender(<MessageText message={{ ...complete, terminal_superseded: true }} />);
+    expect(screen.queryByTestId('reply-branch')).not.toBeInTheDocument();
+    rendered.rerender(<MessageText message={{ ...complete, terminal_status: 'failed' }} />);
+    expect(screen.queryByTestId('reply-branch')).not.toBeInTheDocument();
+  });
   it('does not reserve or render an action row for intermediate assistant text', async () => {
     await renderWithI18n(<MessageText message={message} showCopyRow={false} />);
 
@@ -61,6 +89,7 @@ describe('MessageText final-turn actions', () => {
     const copyButton = actions.querySelector('button');
 
     expect(copyButton).toBeTruthy();
+    expect(copyButton?.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
     expect(actions.querySelectorAll('button')).toHaveLength(1);
     expect(actions).not.toHaveTextContent('20:42');
     expect(screen.queryByRole('button', { name: /note/i })).not.toBeInTheDocument();

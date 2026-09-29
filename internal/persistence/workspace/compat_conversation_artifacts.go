@@ -182,7 +182,7 @@ func (s *Store) listCompatibilityConversationArtifactVersionsByReferences(
 		arguments = append(arguments, index, reference.ArtifactID, reference.VersionID)
 	}
 	arguments = append(arguments, ownerUserID, projectID, rootFrameID)
-	query := `WITH requested(ordinal, artifact_id, version_id) AS (VALUES ` + strings.Join(values, ",") + `)
+	query := `WITH requested(ordinal, artifact_id, version_id) AS (VALUES ` + strings.Join(values, ",") + `),` + compatibilityInheritedArtifactCTE + `
 		SELECT a.id, v.id, v.version_number, a.project_id,
 			m.root_frame_id, COALESCE(NULLIF(m.frame_id, ''), p.frame_id),
 			COALESCE((SELECT first_p.frame_id
@@ -205,7 +205,9 @@ func (s *Store) listCompatibilityConversationArtifactVersionsByReferences(
 		JOIN projects project ON project.id = a.project_id
 		JOIN artifact_runtime_metadata m ON m.artifact_id = a.id
 		LEFT JOIN artifact_version_provenance p ON p.version_id = v.id
-		WHERE project.user_id = ? AND a.project_id = ? AND m.root_frame_id = ?
+		CROSS JOIN artifact_scope scope
+		WHERE project.user_id = scope.owner_id AND a.project_id = scope.project_id
+			AND (m.root_frame_id = scope.frame_id OR ` + compatibilityInheritedVersionMatch + `)
 		ORDER BY requested.ordinal`
 	rows, err := s.db.QueryContext(ctx, query, arguments...)
 	if err != nil {
@@ -383,13 +385,17 @@ func (s *Store) listCompatibilityConversationArtifacts(
 	}
 	ownerUserID, projectID = strings.TrimSpace(ownerUserID), strings.TrimSpace(projectID)
 	rootFrameID = strings.TrimSpace(rootFrameID)
-	versionJoin := compatibilityConversationArtifactAllVersionsJoin
+	owned := `m.root_frame_id = scope.frame_id`
+	inherited := compatibilityInheritedVersionMatch
 	if currentOnly {
-		versionJoin = compatibilityConversationArtifactCurrentVersionJoin
+		owned += ` AND v.version_number = a.current_version_number`
+		inherited = compatibilityInheritedHeadMatch
 	}
-	query := compatibilityConversationArtifactSelectPrefix + versionJoin + compatibilityConversationArtifactSelectSuffix + `
-		WHERE project.user_id = ? AND a.project_id = ? AND m.root_frame_id = ?
-			AND COALESCE(m.is_ephemeral, 0) = 0`
+	query := `WITH ` + compatibilityInheritedArtifactCTE + compatibilityConversationArtifactSelectPrefix +
+		compatibilityConversationArtifactAllVersionsJoin + compatibilityConversationArtifactSelectSuffix + `
+		CROSS JOIN artifact_scope scope
+		WHERE project.user_id = scope.owner_id AND a.project_id = scope.project_id
+			AND ((` + owned + `) OR ` + inherited + `) AND COALESCE(m.is_ephemeral, 0) = 0`
 	if excludeIntermediate {
 		query += compatibilityExcludeIntermediateArtifactWhere
 	}

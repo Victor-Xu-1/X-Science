@@ -120,6 +120,7 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "packages/desktop/src/common/chat/roundSummary.ts": "Validate durable per-round completion timing and model usage shared by live and historical messages; unavailable telemetry never erases answer text.",
     "packages/desktop/src/common/chat/largeToolResultReference.ts": "Validate immutable same-origin large-result references once for transcript summaries and lazy detail loading; previews never replace source evidence.",
     "README.md": "Document the browser-only source boundary, dependency authority, scoped checks, and isolated real-backend testing prerequisites.",
     "packages/desktop/src/renderer/styles/tokens.css": "Own the single canonical visual-primitive scale (space, radius, elevation, type, weight, stacking) that every renderer module references instead of restating literals.",
@@ -505,9 +506,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "0562a5ee9ed6b3f3772f0b7fef5189d5ffecd41256566c491799a25d7d61b3ef"
+APPROVED_ADAPTATION_FINGERPRINT = "55ff197ec6c57739bf6bd6932b658a78dd85e9a5ca47e15e99d15b4b8f780a0f"
 APPROVED_REMOVAL_FINGERPRINT = "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c"
-APPROVED_ADDITION_FINGERPRINT = "13ebd9f870c22440a8739572541e4668dab496de275d2796f50ca4636cec7b0d"
+APPROVED_ADDITION_FINGERPRINT = "f53574162f8b60e8fdf1374b75ba4f687d61ca0d0242a88630bd007ed15342a1"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

@@ -150,18 +150,21 @@ func (s *Store) ListCompatibilityProjectCurrentArtifactPage(
 	}
 	defer func() { _ = tx.Rollback() }()
 
+	versionScope := `v.version_number = a.current_version_number`
+	if input.FrameID != "" {
+		versionScope = `((COALESCE(NULLIF(m.frame_id, ''), p.frame_id) = scope.frame_id
+		 AND v.version_number = a.current_version_number) OR ` + compatibilityInheritedHeadMatch + `)`
+	}
+	prefix := `WITH ` + compatibilityInheritedArtifactCTE + ` `
 	where := `
 		FROM artifacts a
 		JOIN projects project ON project.id = a.project_id
-		JOIN artifact_versions v ON v.artifact_id = a.id AND v.version_number = a.current_version_number
+		JOIN artifact_versions v ON v.artifact_id = a.id
 		LEFT JOIN artifact_runtime_metadata m ON m.artifact_id = a.id
 		LEFT JOIN artifact_version_provenance p ON p.version_id = v.id
-		WHERE project.user_id = ? AND a.project_id = ?`
-	filterArguments := []any{input.OwnerUserID, input.ProjectID}
-	if input.FrameID != "" {
-		where += ` AND COALESCE(NULLIF(m.frame_id, ''), p.frame_id) = ?`
-		filterArguments = append(filterArguments, input.FrameID)
-	}
+		CROSS JOIN artifact_scope scope
+		WHERE project.user_id = scope.owner_id AND a.project_id = scope.project_id AND ` + versionScope
+	filterArguments := []any{input.OwnerUserID, input.ProjectID, input.FrameID}
 	if input.ExcludeIntermediate {
 		where += compatibilityExcludeIntermediateArtifactWhere
 	}
@@ -178,7 +181,7 @@ func (s *Store) ListCompatibilityProjectCurrentArtifactPage(
 
 	var total int
 	var revisionUpdatedAt sql.NullString
-	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*), MAX(a.updated_at) `+where, filterArguments...).Scan(
+	if err := tx.QueryRowContext(ctx, prefix+`SELECT COUNT(*), MAX(a.updated_at) `+where, filterArguments...).Scan(
 		&total, &revisionUpdatedAt,
 	); err != nil {
 		return CompatibilityProjectArtifactPage{}, fmt.Errorf("read project artifact page revision: %w", err)
@@ -195,7 +198,7 @@ func (s *Store) ListCompatibilityProjectCurrentArtifactPage(
 		filterArguments = append(filterArguments, input.Cursor.CreatedAt.UTC(), input.Cursor.CreatedAt.UTC(), input.Cursor.ArtifactID)
 	}
 
-	query := `SELECT a.id, v.id, v.version_number, a.project_id,
+	query := prefix + `SELECT a.id, v.id, v.version_number, a.project_id,
 		m.root_frame_id, COALESCE(m.frame_id, p.frame_id), a.name,
 		COALESCE(NULLIF(p.content_type, ''), a.kind),
 		CASE WHEN COALESCE(v.storage_path, '') = '' THEN length(v.content) ELSE v.size_bytes END,

@@ -1,11 +1,13 @@
 package server
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"reflect"
 	"testing"
+	"time"
 
 	"synon-go/internal/executionprep"
 	kernelruntime "synon-go/internal/kernel"
@@ -35,7 +37,22 @@ func observationPreflightManager(t *testing.T, language string) *kernelruntime.M
 			t.Skip(err)
 		}
 	}
-	return kernelruntime.NewManager(config)
+	manager := kernelruntime.NewManager(config)
+	if language == "powershell" {
+		// Native runtime/module initialization is fixture readiness, not the
+		// effect-classification behavior exercised under the production deadline.
+		// Fail readiness explicitly instead of misreporting a cold parser timeout
+		// as a scientific-implementation decision.
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		prepared, err := manager.PrepareExecutionSource(ctx, executionprep.Request{
+			Language: "powershell", Source: "Get-Location",
+		})
+		if err != nil || !prepared.Observation.Matches("powershell", "Get-Location") {
+			t.Fatalf("native PowerShell parser readiness: %v", err)
+		}
+	}
+	return manager
 }
 
 // Exercise the production composition, not just the implementation-choice

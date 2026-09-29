@@ -1,0 +1,209 @@
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 32px;
+  margin-top: 8px;
+  color: var(--color-text-2);
+}
+.reversed {
+  flex-direction: row-reverse;
+}
+.footer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  min-width: 0;
+  margin-inline-start: 6px;
+  color: var(--color-text-2);
+  font-size: var(--ui-font-meta);
+  line-height: 20px;
+  font-variant-numeric: tabular-nums;
+}
+.meta {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  white-space: nowrap;
+}
+.control {
+  box-sizing: border-box;
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  height: 28px;
+  border: 0;
+  border-radius: var(--ui-radius-sm);
+  color: inherit;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--ui-font-meta);
+  line-height: 20px;
+  transition:
+    color 140ms ease,
+    background-color 140ms ease;
+}
+.iconButton {
+  composes: control;
+  width: 28px;
+}
+.trigger {
+  composes: control;
+  gap: 6px;
+  padding-inline: 6px;
+}
+.icon {
+  display: block;
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  stroke-width: 4.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.control:hover:not(:disabled),
+.control[aria-expanded='true'] {
+  color: var(--color-text-1);
+  background: var(--color-fill-2);
+}
+.control:focus-visible {
+  outline: 2px solid var(--color-primary-light-4);
+  outline-offset: 2px;
+}
+.control:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+@media (prefers-reduced-motion: reduce) {
+  .control {
+    transition: none;
+  }
+}
+.panel {
+  box-sizing: border-box;
+  width: min(244px, calc(100vw - 56px));
+  /* The native popover is the only surface; content adds no second card. */
+  color: var(--color-text-1);
+}
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: var(--ui-font-title);
+}
+.header span {
+  color: var(--color-text-2);
+  font-size: var(--ui-font-meta);
+}
+.bar {
+  display: flex;
+  height: 8px;
+  border-radius: var(--ui-radius-md);
+  overflow: hidden;
+  background: var(--color-fill-2);
+  margin-bottom: 8px;
+}
+.bar i {
+  min-width: 0;
+}
+.caption {
+  margin: 0 0 4px;
+  color: var(--color-text-2);
+  font-size: var(--ui-font-meta);
+  line-height: 16px;
+}
+.panel [data-category='input'] {
+  background: #2563eb;
+}
+.panel [data-category='uncached'] {
+  background: #3b82f6;
+}
+.panel [data-category='cache_read'] {
+  background: #8b5cf6;
+}
+.panel [data-category='cache_write'] {
+  background: #f59e0b;
+}
+.panel [data-category='output'] {
+  background: #10b981;
+}
+.legend {
+  margin: 0;
+  font-size: var(--ui-font-subtitle);
+}
+.legend > div,
+.inputDetails dl > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  min-height: 24px;
+}
+.legend dt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.legend dt i {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.legend dd {
+  margin: 0;
+  color: var(--color-text-2);
+  font-variant-numeric: tabular-nums;
+}
+.legend .inputGroup {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0 12px;
+}
+.inputGroup > dt,
+.inputGroup > dd:first-of-type {
+  line-height: 24px;
+}
+.inputDetails {
+  grid-column: 1 / -1;
+  padding-inline-start: 16px;
+  border-inline-start: 1px solid var(--color-border-2);
+}
+.inputDetails dl {
+  margin: 0;
+  font-size: var(--ui-font-body);
+}
+.legend .total {
+  border-top: 1px solid var(--color-border-2);
+  border-bottom: 1px solid var(--color-border-2);
+  margin: 6px 0;
+  padding: 6px 0;
+}
+.total dd {
+  color: var(--color-text-1);
+}
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-2);
+  line-height: 20px;
+  font-size: var(--ui-font-body);
+  overflow-wrap: anywhere;
+}
+.identity > :first-child {
+  flex-shrink: 0;
+}
+.notice {
+  margin: 0 0 6px;
+  color: var(--color-text-3);
+  font-size: var(--ui-font-meta);
+}

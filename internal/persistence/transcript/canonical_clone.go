@@ -18,7 +18,10 @@ type CloneFrameHistoryInput struct {
 	TargetStreamUID string
 	OwnerID         string
 	LegacyCutoverID string
-	sourceCounts    canonicalCloneSourceCounts
+	// ThroughAttempt selects a completed reply boundary; zero retains whole-history cloning.
+	ThroughAttempt int64
+	SourceBranchID string
+	sourceCounts   canonicalCloneSourceCounts
 }
 
 type canonicalCloneSourceCounts struct {
@@ -144,8 +147,10 @@ func normalizeCloneFrameHistoryInput(input CloneFrameHistoryInput) (CloneFrameHi
 	input.TargetStreamUID = strings.TrimSpace(input.TargetStreamUID)
 	input.OwnerID = strings.TrimSpace(input.OwnerID)
 	input.LegacyCutoverID = strings.ToLower(strings.TrimSpace(input.LegacyCutoverID))
+	input.SourceBranchID = strings.TrimSpace(input.SourceBranchID)
 	if input.SourceStreamUID == "" || input.TargetStreamUID == "" || input.SourceStreamUID == input.TargetStreamUID ||
-		input.OwnerID == "" ||
+		input.OwnerID == "" || input.ThroughAttempt < 0 ||
+		(input.SourceBranchID != "" && (!validTranscriptBranchID(input.SourceBranchID) || input.ThroughAttempt == 0)) ||
 		(input.LegacyCutoverID != "" && len(input.LegacyCutoverID) != sha256.Size*2) {
 		return CloneFrameHistoryInput{}, errors.New("complete canonical clone identity is required")
 	}
@@ -188,6 +193,15 @@ func (r *Repository) cloneFrameHistoryConn(
 		return CloneFrameHistoryResult{}, fmt.Errorf("stage canonical clone source: %w", err)
 	}
 	defer func() { _ = cleanupCanonicalCloneStageConn(context.Background(), conn, target.UID) }()
+	if input.ThroughAttempt > 0 {
+		if err := scopeCanonicalCloneToReplyConn(ctx, conn, &source, target, input, &stage); err != nil {
+			return CloneFrameHistoryResult{}, err
+		}
+		input.sourceCounts, err = scopedCanonicalCloneCountsConn(ctx, conn, source.UID, target.UID)
+		if err != nil {
+			return CloneFrameHistoryResult{}, err
+		}
+	}
 	if existing, found, err := loadExistingCanonicalCloneStreamingConn(ctx, conn, source, target, input, stage); err != nil {
 		return CloneFrameHistoryResult{}, err
 	} else if found {
@@ -318,20 +332,20 @@ func loadCloneSourceFrameAuthorityConn(
 	return authority, nil
 }
 
-func digestCanonicalCloneRunnerFactsConn(ctx context.Context, conn *sql.Conn, streamUID string) ([]byte, error) {
+func digestCanonicalCloneRunnerFactsConn(ctx context.Context, conn *sql.Conn, streamUID, targetUID string) ([]byte, error) {
 	digest := sha256.New()
 	queries := []string{
 		`SELECT attempt,runner_id,claim_token_sha256,claimed_input_revision,resume_source,
 			resume_checkpoint_sequence,status,phase,phase_sequence,last_checkpoint_sequence,
 			claimed_at,expires_at,finished_event_id,finished_at
-			FROM transcript_runner_attempts WHERE stream_uid=? ORDER BY attempt`,
+			FROM transcript_runner_attempts WHERE stream_uid=?` + canonicalCloneAttemptSelection("attempt") + ` ORDER BY attempt`,
 		`SELECT attempt,event_id,status,finished_at FROM transcript_runner_receipts
-			WHERE stream_uid=? ORDER BY attempt`,
+			WHERE stream_uid=?` + canonicalCloneAttemptSelection("attempt") + ` ORDER BY attempt`,
 		`SELECT checkpoint_sequence,runner_attempt,event_id,phase,resumable,created_at
-			FROM transcript_runner_checkpoints WHERE stream_uid=? ORDER BY checkpoint_sequence`,
+			FROM transcript_runner_checkpoints WHERE stream_uid=?` + canonicalCloneAttemptSelection("runner_attempt") + ` ORDER BY checkpoint_sequence`,
 	}
 	for _, query := range queries {
-		if err := digestHistoryActivationRows(ctx, conn, digest, query, streamUID); err != nil {
+		if err := digestHistoryActivationRows(ctx, conn, digest, query, streamUID, targetUID); err != nil {
 			return nil, err
 		}
 	}

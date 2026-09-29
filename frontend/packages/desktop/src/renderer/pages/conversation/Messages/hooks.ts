@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { decodeRoundSummary } from '@/common/chat/roundSummary';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import type {
   AgentStreamErrorInfo,
@@ -1061,6 +1062,7 @@ export function normalizeDbMessage(msg: TMessage): TMessage {
 
   return {
     ...normalized,
+    round_summary: decodeRoundSummary(normalized.round_summary),
     content: normalizeTextMessageContent((normalized as IMessageText).content),
   };
 }

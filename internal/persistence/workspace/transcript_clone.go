@@ -20,6 +20,8 @@ type CloneConversationInput struct {
 	ExpectedSourceIncarnationID string
 	TargetFrameID               string
 	TargetName                  string
+	ThroughAttempt              int64
+	SourceBranchID              string
 }
 
 type CloneConversationResult struct {
@@ -75,6 +77,10 @@ func (s *Store) CloneConversationWithTranscript(
 		if err != nil {
 			return fmt.Errorf("clone source runtime metadata: %w", err)
 		}
+		// A present-day task summary can contain conclusions after the fork point.
+		if input.ThroughAttempt > 0 {
+			targetMetadata.TaskSummary = ""
+		}
 		target, targetFound, err := queryTraceFrame(ctx, tx, input.TargetFrameID)
 		if err != nil {
 			return err
@@ -106,6 +112,7 @@ func (s *Store) CloneConversationWithTranscript(
 		clone, err := tx.CloneFrameHistory(ctx, transcriptstore.CloneFrameHistoryInput{
 			SourceStreamUID: sourceStream.UID, TargetStreamUID: "frame:" + target.ID,
 			OwnerID: input.OwnerUserID, LegacyCutoverID: legacyCutoverID,
+			ThroughAttempt: input.ThroughAttempt, SourceBranchID: input.SourceBranchID,
 		})
 		if err != nil {
 			return fmt.Errorf("clone canonical transcript history: %w", err)
