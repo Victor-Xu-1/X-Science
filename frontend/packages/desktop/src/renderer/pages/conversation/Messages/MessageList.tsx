@@ -33,6 +33,10 @@ import './messages.css';
 import HOC from '@renderer/utils/ui/HOC';
 import { useConversationArtifacts, useSyncConversationArtifactWindow } from './artifacts';
 import { isUserTaskMessage } from './scrollTargetModel';
+import { isNearMessageBoundary, navigateVirtualMessage } from './virtualMessageNavigation';
+import { useAnchorViewport } from './useAnchorViewport';
+import { useTouchScrollIntent } from './useTouchScrollIntent';
+import { MessageVirtualItem } from './MessageVirtualItem';
 import {
   useLoadAnchorMessageWindow,
   useLoadNextMessagePage,
@@ -61,6 +65,7 @@ import { projectTranscriptActivity } from './transcriptActivityModel';
 import ConversationLoadingSurface from '../components/ConversationLoadingSurface';
 import { useConversationScrollController } from './useConversationScrollController';
 import SelectionReplyButton from './components/SelectionReplyButton';
+import ConversationTurnNavigation from '../components/ConversationTitleMinimap/ConversationTurnNavigation';
 import { ConversationAnnotationsProvider } from './components/ConversationAnnotationsContext';
 import { areMessageItemPropsEqual } from './messageItemMemoModel';
 import { projectTerminalFailuresForDisplay } from '../runtime/terminalFailureMessagesModel';
@@ -119,6 +124,7 @@ MessageVirtuosoList.displayName = 'MessageVirtuosoList';
 const MessageVirtuosoHeader: React.FC<{ context: MessageVirtuosoContext }> = ({ context }) => <>{context.header}</>;
 const MessageVirtuosoFooter: React.FC<{ context: MessageVirtuosoContext }> = ({ context }) => <>{context.footer}</>;
 const MESSAGE_VIRTUOSO_COMPONENTS: Components<MessageListProcessedItem, MessageVirtuosoContext> = {
+  Item: MessageVirtualItem,
   List: MessageVirtuosoList,
   Header: MessageVirtuosoHeader,
   Footer: MessageVirtuosoFooter,
@@ -304,10 +310,12 @@ const MessageList: React.FC<{
     behavior: ScrollBehavior;
   } | null>(null);
   const pageLoadRequestTokenRef = useRef(0);
+  const anchorViewportTransitionRef = useRef(false);
   const previousPageLoadInFlightRef = useRef<{ conversationId: string; token: number } | null>(null);
   const nextPageLoadInFlightRef = useRef<{ conversationId: string; token: number } | null>(null);
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const scrollerElementRef = useRef<HTMLDivElement | null>(null);
+  const [navigationViewport, setNavigationViewport] = useState<HTMLDivElement | null>(null);
   const committedVirtualWindowRef = useRef<{
     conversationId: string;
     value: MessageVirtualWindow;
@@ -395,6 +403,11 @@ const MessageList: React.FC<{
     [artifacts, pagination.groupBoundaryMessageIds, presentationList]
   );
   const processedRowKeys = useMemo(() => processedList.map(getProcessedItemRowKey), [processedList]);
+  const {
+    reset: resetAnchorViewport,
+    revision: anchorViewportRevision,
+    initial: anchorViewportInitial,
+  } = useAnchorViewport(conversationId, processedRowKeys);
   const virtualWindow = useMemo(() => {
     const committed = committedVirtualWindowRef.current;
     return reconcileMessageVirtualWindow(
@@ -470,12 +483,7 @@ const MessageList: React.FC<{
     (messageId: string, options?: { behavior?: ScrollBehavior; block?: ScrollLogicalPosition }): boolean => {
       const targetIndex = processedList.findIndex((item) => matchesTargetMessage(item, messageId));
       if (targetIndex < 0 || !virtuosoRef.current) return false;
-      const block = options?.block;
-      virtuosoRef.current.scrollToIndex({
-        index: targetIndex,
-        align: block === 'center' ? 'center' : block === 'end' ? 'end' : 'start',
-        behavior: options?.behavior === 'smooth' ? 'smooth' : 'auto',
-      });
+      navigateVirtualMessage(virtuosoRef.current, scrollerElementRef.current, messageId, targetIndex, options);
       return true;
     },
     [processedList]
@@ -504,6 +512,8 @@ const MessageList: React.FC<{
     handleTotalListHeightChanged,
     handleUserScrollIntent,
     canLoadPreviousPage,
+    canLoadNextPage,
+    retainMessageAnchor,
     followOutput,
     showScrollButton,
     showLastUserButton,
@@ -518,6 +528,8 @@ const MessageList: React.FC<{
     scrollMessageIntoView: scrollProcessedMessageIntoView,
     scrollToBottomItem,
   });
+
+  const touchScrollIntent = useTouchScrollIntent(conversationId, handleUserScrollIntent);
 
   const handleMessageListPointerDown = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
@@ -547,13 +559,10 @@ const MessageList: React.FC<{
     [handleLastUserPositionChange, lastUserRowIndex, processedList]
   );
 
-  const handleMessageListScroll = useCallback(
-    (event: React.UIEvent<HTMLDivElement>) => updateLastUserPosition(event.currentTarget),
-    [updateLastUserPosition]
-  );
-
   const setScrollerRef = useCallback((element: HTMLElement | Window | null) => {
     scrollerElementRef.current = element instanceof HTMLDivElement ? element : null;
+    if (scrollerElementRef.current) anchorViewportTransitionRef.current = false;
+    setNavigationViewport(scrollerElementRef.current);
   }, []);
 
   useEffect(() => {
@@ -566,6 +575,10 @@ const MessageList: React.FC<{
   const loadPreviousAtBoundary = useCallback(() => {
     if (
       canLoadPreviousPage() &&
+      !pagination.isLoadingAnchor &&
+      !pendingMessageJumpRef.current &&
+      !anchorViewportTransitionRef.current &&
+      isNearMessageBoundary(scrollerElementRef.current, 'start') &&
       pagination.hasMoreBefore &&
       !pagination.isLoadingBefore &&
       previousPageLoadInFlightRef.current?.conversationId !== conversationId
@@ -585,11 +598,17 @@ const MessageList: React.FC<{
     loadPreviousMessagePage,
     pagination.hasMoreBefore,
     pagination.isLoadingBefore,
+    pagination.isLoadingAnchor,
   ]);
 
   const loadNextAtBoundary = useCallback(() => {
     if (
       pagination.hasMoreAfter &&
+      canLoadNextPage() &&
+      !pagination.isLoadingAnchor &&
+      !pendingMessageJumpRef.current &&
+      !anchorViewportTransitionRef.current &&
+      isNearMessageBoundary(scrollerElementRef.current, 'end') &&
       !pagination.isLoadingAfter &&
       nextPageLoadInFlightRef.current?.conversationId !== conversationId
     ) {
@@ -602,7 +621,14 @@ const MessageList: React.FC<{
         }
       });
     }
-  }, [conversationId, loadNextMessagePage, pagination.hasMoreAfter, pagination.isLoadingAfter]);
+  }, [
+    conversationId,
+    canLoadNextPage,
+    loadNextMessagePage,
+    pagination.hasMoreAfter,
+    pagination.isLoadingAfter,
+    pagination.isLoadingAnchor,
+  ]);
 
   useEffect(() => {
     if (!targetMessageId || processedList.length === 0) {
@@ -613,13 +639,12 @@ const MessageList: React.FC<{
     if (handledTargetKeyRef.current === targetKey) {
       return;
     }
-
     const targetIndex = processedList.findIndex((item) => matchesTargetMessage(item, targetMessageId));
     if (targetIndex === -1) {
       if (loadingTargetKeyRef.current !== targetKey) {
         loadingTargetKeyRef.current = targetKey;
         void loadAnchorMessageWindow(targetMessageId).then((loaded) => {
-          if (!loaded) {
+          if (!loaded && loadingTargetKeyRef.current === targetKey) {
             loadingTargetKeyRef.current = '';
           }
         });
@@ -627,22 +652,36 @@ const MessageList: React.FC<{
       return;
     }
 
+    retainMessageAnchor(targetMessageId, 'center');
     handledTargetKeyRef.current = targetKey;
+    const loadedAnchor = loadingTargetKeyRef.current === targetKey;
     loadingTargetKeyRef.current = '';
     setHighlightedMessageId(targetMessageId);
-    requestAnimationFrame(() => {
-      scrollProcessedMessageIntoView(targetMessageId, {
-        behavior: 'smooth',
-        block: 'center',
+    if (loadedAnchor) {
+      anchorViewportTransitionRef.current = true;
+      resetAnchorViewport(getProcessedItemRowKey(processedList[targetIndex]), 'center');
+    } else
+      requestAnimationFrame(() => {
+        scrollProcessedMessageIntoView(targetMessageId, {
+          behavior: 'smooth',
+          block: 'center',
+        });
       });
-    });
 
     const timer = window.setTimeout(() => {
       setHighlightedMessageId((current) => (current === targetMessageId ? undefined : current));
     }, 2400);
 
     return () => window.clearTimeout(timer);
-  }, [loadAnchorMessageWindow, location.key, processedList, scrollProcessedMessageIntoView, targetMessageId]);
+  }, [
+    loadAnchorMessageWindow,
+    location.key,
+    processedList,
+    retainMessageAnchor,
+    resetAnchorViewport,
+    scrollProcessedMessageIntoView,
+    targetMessageId,
+  ]);
 
   useEffect(() => {
     const handleMessageJump = (event: Event) => {
@@ -650,7 +689,6 @@ const MessageList: React.FC<{
       if (!detail || !detail.conversation_id) return;
       if (!conversationContext?.conversation_id || detail.conversation_id !== conversationContext.conversation_id)
         return;
-
       const targetIndex = processedList.findIndex((item) => {
         if (
           (item as { type?: string }).type === 'file_summary' ||
@@ -667,20 +705,22 @@ const MessageList: React.FC<{
       if (targetIndex < 0) {
         const anchorMessageId = detail.messageId;
         if (!anchorMessageId) return;
-        pendingMessageJumpRef.current = {
+        const pendingJump = {
           conversationId: detail.conversation_id,
           messageId: anchorMessageId,
-          align: detail.align || 'start',
-          behavior: detail.behavior || 'smooth',
+          align: detail.align || ('start' as const),
+          behavior: detail.behavior || ('smooth' as const),
         };
+        pendingMessageJumpRef.current = pendingJump;
         void loadAnchorMessageWindow(anchorMessageId).then((loaded) => {
-          if (!loaded && pendingMessageJumpRef.current?.messageId === anchorMessageId) {
+          if (!loaded && pendingMessageJumpRef.current === pendingJump) {
             pendingMessageJumpRef.current = null;
           }
         });
         return;
       }
 
+      retainMessageAnchor(getProcessedItemAnchorId(processedList[targetIndex]), detail.align || 'start');
       requestAnimationFrame(() => {
         scrollProcessedMessageIntoView(getProcessedItemAnchorId(processedList[targetIndex]), {
           block: detail.align || 'start',
@@ -693,21 +733,25 @@ const MessageList: React.FC<{
     return () => {
       window.removeEventListener(CHAT_MESSAGE_JUMP_EVENT, handleMessageJump);
     };
-  }, [conversationContext?.conversation_id, loadAnchorMessageWindow, processedList, scrollProcessedMessageIntoView]);
+  }, [
+    conversationContext?.conversation_id,
+    retainMessageAnchor,
+    loadAnchorMessageWindow,
+    processedList,
+    scrollProcessedMessageIntoView,
+  ]);
 
   useLayoutEffect(() => {
     const pending = pendingMessageJumpRef.current;
     if (!pending || pending.conversationId !== conversationId) return;
-    if (!processedList.some((item) => matchesTargetMessage(item, pending.messageId))) return;
+    const target = processedList.find((item) => matchesTargetMessage(item, pending.messageId));
+    if (!target) return;
+    retainMessageAnchor(pending.messageId, pending.align);
+    anchorViewportTransitionRef.current = true;
     pendingMessageJumpRef.current = null;
     setHighlightedMessageId(pending.messageId);
-    requestAnimationFrame(() => {
-      scrollProcessedMessageIntoView(pending.messageId, {
-        block: pending.align,
-        behavior: pending.behavior,
-      });
-    });
-  }, [conversationId, processedList, scrollProcessedMessageIntoView]);
+    resetAnchorViewport(getProcessedItemRowKey(target), pending.align);
+  }, [conversationId, processedList, resetAnchorViewport, retainMessageAnchor]);
 
   // Click scroll button
   const handleScrollButtonClick = () => {
@@ -736,6 +780,7 @@ const MessageList: React.FC<{
             key={item.id}
             id={`message-${getProcessedItemAnchorId(item)}`}
             data-conversation-artifact-kind={item.artifact.kind}
+            data-source-message-id={getProcessedItemAnchorId(item)}
             data-testid={`conversation-artifact-${item.artifact.kind}`}
             className={`${rowWidthClass} w-full min-w-0 box-border message-item px-8px m-t-10px`}
             style={highlighted ? highlightStyle : undefined}
@@ -754,6 +799,7 @@ const MessageList: React.FC<{
             key={item.id}
             id={`message-${getProcessedItemAnchorId(item)}`}
             className={`${rowWidthClass} w-full min-w-0 box-border message-item px-8px m-t-10px ${item.type}`}
+            data-source-message-id={getProcessedItemAnchorId(item)}
             style={highlighted ? highlightStyle : undefined}
           >
             {item.type === 'file_summary' && <MessageFileChanges diffsChanges={item.diffs} />}
@@ -886,12 +932,12 @@ const MessageList: React.FC<{
         <Image.PreviewGroup actionsLayout={['zoomIn', 'zoomOut', 'originalSize', 'rotateLeft', 'rotateRight']}>
           <ImagePreviewContext.Provider value={{ inPreviewGroup: true }}>
             <Virtuoso<MessageListProcessedItem, MessageVirtuosoContext>
-              key={`${conversationId}:${processedList.length > 0 ? 'ready' : 'empty'}`}
+              key={`${conversationId}:${processedList.length > 0 ? 'ready' : 'empty'}:${anchorViewportRevision}`}
               ref={virtuosoRef}
               scrollerRef={setScrollerRef}
               data={processedList}
               firstItemIndex={virtualWindow.firstItemIndex}
-              initialTopMostItemIndex={0}
+              initialTopMostItemIndex={anchorViewportInitial}
               defaultItemHeight={MESSAGE_DEFAULT_ITEM_HEIGHT}
               computeItemKey={(_absoluteIndex, item) => getProcessedItemRowKey(item)}
               itemContent={renderVirtuosoItem}
@@ -919,11 +965,16 @@ const MessageList: React.FC<{
                   handleUserScrollIntent('toward-tail');
                 }
               }}
-              onScroll={handleMessageListScroll}
+              onScroll={(event) => {
+                updateLastUserPosition(event.currentTarget);
+                loadPreviousAtBoundary();
+                loadNextAtBoundary();
+              }}
               onWheel={(event) => {
                 if (event.deltaY < 0) handleUserScrollIntent('away-from-tail');
                 else if (event.deltaY > 0) handleUserScrollIntent('toward-tail');
               }}
+              {...touchScrollIntent}
             />
           </ImagePreviewContext.Provider>
         </Image.PreviewGroup>
@@ -959,6 +1010,12 @@ const MessageList: React.FC<{
         </button>
 
         <SelectionReplyButton messages={list} />
+        <ConversationTurnNavigation
+          conversationId={conversationId}
+          messages={list}
+          viewport={navigationViewport}
+          windowBranchId={pagination.branchId}
+        />
       </div>
     </ConversationAnnotationsProvider>
   );

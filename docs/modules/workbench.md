@@ -66,6 +66,33 @@ go test ./internal/persistence/workspace -run '^TestTranscriptWebProjectorV70|^T
 
 ## Focused verification · 验证入口
 
+### Turn navigation · 左侧轮次导航
+
+桌面会话左侧每次用户提问对应一条导航线；一轮即显示一条，轮次没有固定上限。
+悬停或键盘聚焦显示问题及首段答复预览，相邻线条连续伸缩；点击或 Enter 沿现有
+消息定位入口跳转，离开、Escape 或正文滚动收起预览。小屏隐藏窄轨，仍可使用顶部
+对话检索；启用减少动态效果时停止预览动画与平滑滚动。
+
+导航与顶部检索共用按分支隔离的分页轮次投影，隐藏控制消息、附件续块及工具调用
+不会增加轮次。长导航只渲染可见标记并保留首尾与键盘焦点，不截断历史；未加载的
+正文通过原锚点窗口加载。远距离定位由虚拟列表的实测跳转完成，近距离才平滑移动，
+避免变高消息的估算位置导致跳错。导航失败提供重试，不改写消息或触发模型执行。
+重叠分页按消息身份去重，不按文字去重。显式锚点跳转暂停历史自动翻页，直到用户
+再次主动滚动；分页还需检查实际视口边界，不能把虚拟列表预渲染边界当成滚动位置。
+现有滚动控制器保留显式定位意图，在报告、图片等延迟内容改变高度时通过虚拟列表
+重新对齐目标；用户主动滚动后立即释放，不使用定时重试或直接改写正文 scrollTop。
+虚拟行通过独立格式化上下文包含子消息外边距，确保行间距参与高度测量，避免
+长列表跳转的累计偏移以及目标与轮次高亮不一致。
+进入会话后新增的已接受轮次保留在当前分支索引中，切换正文窗口不会删除标记。
+分支索引与正文窗口的分支身份一致时才合并实时消息，避免切换期间混入旧分支。
+长导航支持独立鼠标滚轮浏览和顺序键盘访问，预览仅保留有界文本片段。
+
+```sh
+cd frontend
+npm run test:unit -- tests/unit/renderer/conversationTurnIndex.test.ts tests/unit/renderer/conversationTurnIndexLoading.test.ts tests/unit/renderer/ConversationTurnRail.dom.test.tsx
+node tests/web-e2e/turnRail.browser.mjs
+```
+
 ### Document preview · 文档预览
 
 回答中的生成文件链接以蓝色粗体显示，点击或键盘激活进入应用内预览；

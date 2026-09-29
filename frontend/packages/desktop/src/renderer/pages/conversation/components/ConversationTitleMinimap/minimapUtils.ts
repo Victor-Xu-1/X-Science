@@ -8,6 +8,8 @@
 
 import type { IMessageText, TMessage } from '@/common/chat/chatLib';
 import React from 'react';
+import { isUserTaskMessage } from '../../Messages/scrollTargetModel';
+import { isSynonBiomedOptimisticUserMessage } from '../../Messages/optimisticUserMessage';
 import {
   defaultVisualStyle,
   MAX_LINE_LEN,
@@ -162,13 +164,13 @@ export const buildTurnPreview = (messages: TMessage[]): TurnPreviewItem[] => {
   let turnIndex = 0;
   let currentTurn: TurnPreviewItem | null = null;
 
-  for (const message of messages) {
-    if (!isTextMessage(message)) continue;
-
-    const text = normalizeText(message.content.content || '');
-    if (!text) continue;
-
-    if (message.position === 'right') {
+  // Cursor windows may overlap at group boundaries. Preserve chronological
+  // position while accepting the newest copy of a canonical message identity.
+  const uniqueMessages = new Map(messages.map((message) => [message.id, message]));
+  for (const message of uniqueMessages.values()) {
+    if (message.hidden || isSynonBiomedOptimisticUserMessage(message.id)) continue;
+    const text = isTextMessage(message) ? normalizeText(message.content.content || '') : '';
+    if (isUserTaskMessage(message)) {
       if (currentTurn) {
         turns.push(currentTurn);
       }
@@ -181,12 +183,14 @@ export const buildTurnPreview = (messages: TMessage[]): TurnPreviewItem[] => {
         answerRaw: '',
         messageId: message.id,
         msgId: message.msg_id,
+        messageIds: [message.id],
       };
       continue;
     }
 
-    if (message.position === 'left' && currentTurn) {
-      if (!currentTurn.answer) {
+    if (currentTurn) currentTurn.messageIds.push(message.id);
+    if (message.position === 'left' && currentTurn && isTextMessage(message)) {
+      if (!currentTurn.answer && text) {
         currentTurn.answer = truncate(text);
         currentTurn.answerRaw = text;
       }

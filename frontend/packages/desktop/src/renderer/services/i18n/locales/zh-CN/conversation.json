@@ -514,6 +514,10 @@
     }
   },
   "minimap": {
+    "turnNavigation": "对话轮次导航",
+    "goToTurn": "跳到第 {{index}} 轮：{{preview}}",
+    "content": "内容",
+    "retryNavigation": "导航加载失败 · 重试",
     "searchAria": "搜索会话",
     "searchHint": "点击这里搜索关键词",
     "empty": "暂无问答内容",

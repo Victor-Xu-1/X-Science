@@ -514,6 +514,10 @@
     }
   },
   "minimap": {
+    "turnNavigation": "Conversation turns",
+    "goToTurn": "Go to turn {{index}}: {{preview}}",
+    "content": "Content",
+    "retryNavigation": "Navigation failed to load · Retry",
     "searchAria": "Search conversation",
     "searchHint": "Click here to search keywords",
     "empty": "No Q&A turns yet",
