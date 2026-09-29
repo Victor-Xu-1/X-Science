@@ -210,6 +210,14 @@ func TestWebReplyBranchBrowser(t *testing.T) {
 	if os.Getenv("SYNON_REPLY_BRANCH_BROWSER") != "1" {
 		t.Skip("enable controlled browser integration")
 	}
+	for _, inactive := range []bool{false, true} {
+		t.Run(fmt.Sprintf("inactive_%t", inactive), func(t *testing.T) {
+			testWebReplyBranchBrowser(t, inactive)
+		})
+	}
+}
+
+func testWebReplyBranchBrowser(t *testing.T, inactive bool) {
 	f := newAgentSaveArtifactsFixture(t)
 	f.server.runtimeStore = runtimekv.New(filepath.Join(t.TempDir(), "runtime.sqlite"))
 	artifact := saveReplyBranchArtifact(t, f, "browser-branch", "branch-result.txt")
@@ -224,6 +232,31 @@ func TestWebReplyBranchBrowser(t *testing.T) {
 	first := f.claim.Attempt
 	startNextPresentationRound(t, f)
 	finishRoundPresentation(t, f, "completed")
+	branchID := ""
+	if inactive {
+		base, err := f.repo.GetBranchState(context.Background(), f.stream.UID, f.stream.OwnerID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		branchID = base.ActiveBranchID
+		if _, err := f.repo.ForkFrameUserMessageBranch(context.Background(), transcriptstore.ForkFrameUserMessageBranchInput{
+			StreamUID: f.stream.UID, OwnerID: f.stream.OwnerID, SourceBranchID: branchID,
+			ExpectedActiveBranchID: branchID, ExpectedGeneration: base.Generation,
+			ClientMutationID: "browser-sibling", SourceClientMessageID: "save-user", SourceMessageIndex: 0,
+			ReplacementText: "Independent sibling input", Destinations: []string{"ws"},
+		}); err != nil {
+			t.Fatal(err)
+		}
+		claim, err := f.repo.ClaimRunner(context.Background(), transcriptstore.ClaimRunnerInput{
+			StreamUID: f.stream.UID, OwnerID: f.stream.OwnerID, RunnerID: "browser-sibling-runner",
+			TTL: time.Minute, ResumeSource: transcriptstore.ResumeSourceFresh,
+		})
+		if err != nil || !claim.Claimed {
+			t.Fatalf("sibling claim: %+v %v", claim, err)
+		}
+		f.claim = claim.Claim
+		finishRoundPresentation(t, f, "completed")
+	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		r.Header.Set("X-Synon-User-Id", f.stream.OwnerID)
 		f.server.Handler().ServeHTTP(w, r)
@@ -235,7 +268,7 @@ func TestWebReplyBranchBrowser(t *testing.T) {
 	}
 	command := exec.Command("node", "tests/web-e2e/replyBranch.browser.mjs")
 	command.Dir = frontend
-	data, _ := json.Marshal(map[string]any{"source": f.stream.FrameID, "attempt": first, "artifact": artifact})
+	data, _ := json.Marshal(map[string]any{"source": f.stream.FrameID, "attempt": first, "artifact": artifact, "branch": branchID})
 	command.Env = append(os.Environ(), "SYNON_BRANCH_API="+server.URL, "SYNON_BRANCH_FIXTURE="+string(data))
 	output, err := command.CombinedOutput()
 	if err != nil {

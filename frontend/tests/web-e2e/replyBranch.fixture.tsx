@@ -27,6 +27,7 @@ await i18n.use(initReactI18next).init({
 const fixture: {
   source: string;
   attempt: number;
+  branch: string;
   artifact: { artifact_id: string; version_id: string };
 } = await fetch("/__branch_fixture__").then((r) => r.json());
 function Page() {
@@ -39,9 +40,16 @@ function Page() {
     setHistory("");
     setSummary(undefined);
     setFiles([]);
-    fetch(`/api/conversations/${encodeURIComponent(id)}/messages?limit=80`, {
-      signal: controller.signal,
-    })
+    const branch =
+      id === fixture.source && fixture.branch
+        ? `&branch_id=${encodeURIComponent(fixture.branch)}`
+        : "";
+    fetch(
+      `/api/conversations/${encodeURIComponent(id)}/messages?limit=80${branch}`,
+      {
+        signal: controller.signal,
+      }
+    )
       .then(async (r) => {
         if (!r.ok) throw new Error("History request failed");
         return r.json();
@@ -98,10 +106,11 @@ function Page() {
       <pre data-testid="history" style={{ whiteSpace: "pre-wrap" }}>
         {history}
       </pre>
-      {id === fixture.source && (
+      {id === fixture.source && summary && (
         <MessageReplyBranchButton
           conversationId={id}
           throughAttempt={fixture.attempt}
+          sourceBranchId={fixture.branch}
         />
       )}
       {summary && <MessageRoundFooter summary={summary} />}

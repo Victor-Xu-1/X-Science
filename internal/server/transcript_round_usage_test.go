@@ -31,14 +31,14 @@ func TestRoundUsageHistoryLiveAndLaterRounds(t *testing.T) {
 	record(providers.ProtocolOpenAICompatible, "model-a", 100, 80, 0, 10, 110)
 	record(providers.ProtocolAnthropic, "model-b", 12, 30, 5, 3, 50)
 	message := roundPresentationMessage(f)
-	if err := f.server.enrichTranscriptWebConversationMessages(context.Background(), f.stream.FrameID, []map[string]any{message}); err != nil {
+	if err := f.server.enrichTranscriptWebConversationMessages(context.Background(), f.stream.FrameID, "", []map[string]any{message}); err != nil {
 		t.Fatal(err)
 	}
 	if message["round_summary"] != nil {
 		t.Fatal("running round claimed a completed summary")
 	}
 	projection := finishRoundPresentation(t, f, "completed")
-	if err := f.server.enrichTranscriptWebConversationMessages(context.Background(), f.stream.FrameID, []map[string]any{message}); err != nil {
+	if err := f.server.enrichTranscriptWebConversationMessages(context.Background(), f.stream.FrameID, "", []map[string]any{message}); err != nil {
 		t.Fatal(err)
 	}
 	raw, _ := json.Marshal(message["round_summary"])
@@ -90,7 +90,7 @@ func TestRoundUsageHistoryLiveAndLaterRounds(t *testing.T) {
 	record(providers.ProtocolOpenAICompatible, "late-model", 999, 0, 0, 9, 1008)
 	startNextPresentationRound(t, f)
 	record(providers.ProtocolOpenAICompatible, "next-model", 500, 0, 0, 10, 510)
-	if err := f.server.enrichTranscriptWebConversationMessages(context.Background(), f.stream.FrameID, []map[string]any{message}); err != nil {
+	if err := f.server.enrichTranscriptWebConversationMessages(context.Background(), f.stream.FrameID, "", []map[string]any{message}); err != nil {
 		t.Fatal(err)
 	}
 	after, _ := json.Marshal(message["round_summary"])
@@ -118,7 +118,7 @@ func TestRoundUsageProviderProtocolAndUnavailableCalls(t *testing.T) {
 	}
 	f.server.recordSessionRunnerModelAudit(f.stream.SessionID, int(f.claim.Attempt), providers.AuditRecord{Protocol: providers.ProtocolOpenAICompatible, Model: "unreported-model", HTTPStatus: 502})
 	finishRoundPresentation(t, f, "completed")
-	summaries, err := f.server.completedRoundSummaries(context.Background(), f.stream.UID, f.stream.OwnerID, f.stream.SessionID, []int64{f.claim.Attempt})
+	summaries, err := f.server.completedRoundSummaries(context.Background(), f.stream.UID, f.stream.OwnerID, f.stream.SessionID, "", []int64{f.claim.Attempt})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -126,7 +126,7 @@ func TestRoundUsageProviderProtocolAndUnavailableCalls(t *testing.T) {
 	if got.CallCount != 2 || got.ReportedCallCount != 1 || got.UsageState != "partial" || got.Tokens.Input != 20 || got.Tokens.Total != 110 {
 		t.Fatalf("provider-to-round=%+v", got)
 	}
-	if _, err := f.server.completedRoundSummaries(context.Background(), f.stream.UID, "wrong", f.stream.SessionID, []int64{f.claim.Attempt}); err == nil {
+	if _, err := f.server.completedRoundSummaries(context.Background(), f.stream.UID, "wrong", f.stream.SessionID, "", []int64{f.claim.Attempt}); err == nil {
 		t.Fatal("owner check bypassed")
 	}
 }
@@ -153,7 +153,7 @@ func TestRoundUsageIncludesResumedAttemptsNotFutureInputs(t *testing.T) {
 	}
 	f.claim = claim.Claim
 	finishRoundPresentation(t, f, "completed")
-	rounds, err := f.repo.CompletedRoundUsageAuthorities(context.Background(), f.stream.UID, f.stream.OwnerID, []int64{first, f.claim.Attempt})
+	rounds, err := f.repo.CompletedRoundUsageAuthorities(context.Background(), f.stream.UID, f.stream.OwnerID, "", []int64{first, f.claim.Attempt})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -189,7 +189,7 @@ func TestRoundUsageMissingCorruptAndProtocolSemantics(t *testing.T) {
 		t.Fatal(err)
 	}
 	finishRoundPresentation(t, f, "completed")
-	summaries, err := f.server.completedRoundSummaries(context.Background(), f.stream.UID, f.stream.OwnerID, f.stream.SessionID, []int64{f.claim.Attempt})
+	summaries, err := f.server.completedRoundSummaries(context.Background(), f.stream.UID, f.stream.OwnerID, f.stream.SessionID, "", []int64{f.claim.Attempt})
 	if err != nil || summaries[f.claim.Attempt].UsageState != "unavailable" || summaries[f.claim.Attempt].Tokens != nil {
 		t.Fatalf("telemetry corrupted task: %+v %v", summaries, err)
 	}

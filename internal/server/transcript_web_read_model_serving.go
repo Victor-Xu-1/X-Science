@@ -203,7 +203,7 @@ func (s *Server) writeActivatedTranscriptWebReadModelPage(
 	}
 	s.sanitizeTranscriptWebTerminalMessages(r.Context(), active.stream, messages)
 	s.sanitizeTranscriptWebPublicMessagesForTask(r.Context(), active.stream, messages)
-	if err := s.enrichTranscriptWebConversationMessages(r.Context(), frameID, messages); err != nil {
+	if err := s.enrichTranscriptWebConversationMessages(r.Context(), frameID, active.snapshot.BranchID, messages); err != nil {
 		writeWebConversationError(w, err)
 		return
 	}

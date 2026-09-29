@@ -34,8 +34,8 @@ type completedRoundSummary struct {
 // Uses durable provider receipts, never model prose, context estimates or the
 // current model selection. One indexed audit scan per contributing session
 // serves the whole history page, including immutable inherited rounds.
-func (s *Server) completedRoundSummaries(ctx context.Context, streamUID, ownerID, sessionID string, attempts []int64) (map[int64]*completedRoundSummary, error) {
-	authority, err := s.transcriptStore.CompletedRoundUsageAuthorities(ctx, streamUID, ownerID, attempts)
+func (s *Server) completedRoundSummaries(ctx context.Context, streamUID, ownerID, sessionID, branchID string, attempts []int64) (map[int64]*completedRoundSummary, error) {
+	authority, err := s.transcriptStore.CompletedRoundUsageAuthorities(ctx, streamUID, ownerID, branchID, attempts)
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +189,7 @@ func addRoundTokens(total *roundTokenSummary, next roundTokenSummary) error {
 	return nil
 }
 
-func (s *Server) enrichTranscriptRoundSummaries(ctx context.Context, frameID string, messages []map[string]any) error {
+func (s *Server) enrichTranscriptRoundSummaries(ctx context.Context, frameID, branchID string, messages []map[string]any) error {
 	attempts := []int64{}
 	for _, message := range messages {
 		if attempt, ok := transcriptWebArtifactRecoveryAttempt(frameID, message); ok {
@@ -211,7 +211,7 @@ func (s *Server) enrichTranscriptRoundSummaries(ctx context.Context, frameID str
 	if err != nil || !found {
 		return err
 	}
-	summaries, err := s.completedRoundSummaries(ctx, stream.UID, owner, frameID, attempts)
+	summaries, err := s.completedRoundSummaries(ctx, stream.UID, owner, frameID, branchID, attempts)
 	if err != nil {
 		return err
 	}

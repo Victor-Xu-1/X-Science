@@ -86,11 +86,11 @@ func TestWebReplyBranchInheritedFilesAndUsage(t *testing.T) {
 	startNextPresentationRound(t, f)
 	record(child, f.claim.Attempt, "child-model")
 	finishRoundPresentation(t, f, "completed")
-	summaries, err := f.server.completedRoundSummaries(context.Background(), stream.UID, stream.OwnerID, child, []int64{firstAttempt, f.claim.Attempt})
+	summaries, err := f.server.completedRoundSummaries(context.Background(), stream.UID, stream.OwnerID, child, "", []int64{firstAttempt, f.claim.Attempt})
 	if err != nil || summaries[firstAttempt].CallCount != 1 || summaries[f.claim.Attempt].CallCount != 1 || strings.Join(summaries[f.claim.Attempt].Models, ",") != "child-model" {
 		t.Fatalf("child/source audit isolation: %+v %v", summaries, err)
 	}
-	if _, err := f.repo.CompletedRoundUsageAuthorities(context.Background(), stream.UID, "foreign", []int64{firstAttempt}); err == nil {
+	if _, err := f.repo.CompletedRoundUsageAuthorities(context.Background(), stream.UID, "foreign", "", []int64{firstAttempt}); err == nil {
 		t.Fatal("foreign usage authority accepted")
 	}
 	base, err := f.repo.GetBranchState(context.Background(), stream.UID, stream.OwnerID)

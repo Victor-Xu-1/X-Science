@@ -115,7 +115,7 @@ func (s *Server) loadActivatedTranscriptWebHistory(
 		return nil, transcriptstore.ProjectionSnapshot{}, active, err
 	}
 	messages := cloneTranscriptWebProjectionMessages(view.messages)
-	if err := s.enrichTranscriptWebConversationMessages(ctx, view.stream.SessionID, messages); err != nil {
+	if err := s.enrichTranscriptWebConversationMessages(ctx, view.stream.SessionID, view.snapshot.BranchID, messages); err != nil {
 		return nil, transcriptstore.ProjectionSnapshot{}, true, err
 	}
 	if err := s.refreshCachedTranscriptWebArtifactAvailability(ctx, view.stream, ownerID, messages); err != nil {

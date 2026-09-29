@@ -216,13 +216,13 @@ func (s *Server) projectRichWebConversationMessages(
 // response-only pass uses its canonical tool calls and durable Frame lineage.
 func (s *Server) enrichTranscriptWebConversationMessages(
 	ctx context.Context,
-	frameID string,
+	frameID, branchID string,
 	messages []map[string]any,
 ) error {
 	if err := s.enrichTranscriptWebArtifactPresentation(ctx, frameID, messages); err != nil {
 		return err
 	}
-	if err := s.enrichTranscriptRoundSummaries(ctx, frameID, messages); err != nil {
+	if err := s.enrichTranscriptRoundSummaries(ctx, frameID, branchID, messages); err != nil {
 		return err
 	}
 	hasToolCall := false
@@ -400,7 +400,7 @@ func (s *Server) writeTranscriptBranchMessagePage(
 		start = max(0, end-limit)
 	}
 	pageMessages := cloneTranscriptWebProjectionMessages(messages[start:end])
-	if err := s.enrichTranscriptWebConversationMessages(r.Context(), frameID, pageMessages); err != nil {
+	if err := s.enrichTranscriptWebConversationMessages(r.Context(), frameID, snapshot.BranchID, pageMessages); err != nil {
 		writeWebConversationError(w, err)
 		return
 	}

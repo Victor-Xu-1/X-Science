@@ -390,7 +390,7 @@ func (s *Server) handleWebConversationMessageGet(w http.ResponseWriter, r *http.
 				writeWebConversationError(w, transcriptWebStorageError(err))
 				return
 			}
-			if err := s.enrichTranscriptWebConversationMessages(r.Context(), frame.ID, messages); err != nil {
+			if err := s.enrichTranscriptWebConversationMessages(r.Context(), frame.ID, readModel.snapshot.BranchID, messages); err != nil {
 				writeWebConversationError(w, err)
 				return
 			}
@@ -406,7 +406,7 @@ func (s *Server) handleWebConversationMessageGet(w http.ResponseWriter, r *http.
 	} else if active {
 		if index := exactTranscriptMessageIndexValue(view.messages, messageID); index >= 0 {
 			message := cloneTranscriptWebProjectionMap(view.messages[index])
-			if err := s.enrichTranscriptWebConversationMessages(r.Context(), frame.ID, []map[string]any{message}); err != nil {
+			if err := s.enrichTranscriptWebConversationMessages(r.Context(), frame.ID, view.snapshot.BranchID, []map[string]any{message}); err != nil {
 				writeWebConversationError(w, err)
 				return
 			}
