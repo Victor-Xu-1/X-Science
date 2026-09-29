@@ -213,14 +213,15 @@ publication decisions without generating text or storing response bodies.
 
 The model-facing tool response contract declares `public_progress` as a string
 separate from executable arguments. Its schema requires a nonempty update at
-the start and after at least four settled operations and 90 seconds without
-public prose. Routine rounds allow an empty string; optional structured updates
-have a 30-second minimum interval and require a settled operation. Cadence
+the start and after a settled operation and 90 seconds without
+public prose. Routine rounds allow an empty string. Cadence
 metadata is scoped to stream, branch and input revision and survives recovery.
 The primary model produces both the explanation and its action in one request;
 no summarization request is added. One parallel batch publishes at most one
-structured update. Valid native tool-round prose takes precedence, avoiding a
-duplicate explanation. Existing native streaming remains available.
+structured update. Valid structured progress takes precedence; native
+tool-round prose is the fallback, avoiding a duplicate explanation. Native
+response content continues streaming into its private candidate buffer; only
+public promotion waits for the validated response boundary.
 
 The adapter removes this field before tool admission/execution. Invalid or
 missing progress never disables an otherwise valid scientific operation.
@@ -258,6 +259,10 @@ Its UTF-8 chunks never become `content_delta` events solely because the provider
 was interrupted. Resumption restores these private bytes before completion
 validation; public progress requires an explicit progress or tool boundary.
 Readers retain support for earlier continuations containing public deltas.
+An incomplete native tool-start marker grants no publication authority. A
+validated new tool response cannot promote an earlier interrupted private draft
+into public progress; final no-tool candidates still retain their exact private
+prefix through completion validation.
 An older reader that does not understand private candidate checkpoints cannot
 resume these new continuations; deployment rollback must preserve a compatible
 reader or drain the affected continuations first.

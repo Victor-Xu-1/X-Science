@@ -32,7 +32,10 @@ type outputBudgetState struct {
 // Preserves the provider error while recording that a larger effective output
 // allowance could not be obtained. Recovery may change the action, but must not
 // spend indefinitely replaying a generation that only adds tiny fragments.
-type sessionOutputBudgetSaturatedError struct{ cause error }
+type sessionOutputBudgetSaturatedError struct {
+	cause error
+	scope string
+}
 
 func (e *sessionOutputBudgetSaturatedError) Error() string { return e.cause.Error() }
 func (e *sessionOutputBudgetSaturatedError) Unwrap() error { return e.cause }
@@ -41,15 +44,20 @@ type sessionOutputBudgetClient struct {
 	delegate                  agentruntime.ModelClient
 	store                     *runtimekv.Store
 	namespace, owner, session string
+	fixedLimit                int
 }
 
 func newSessionOutputBudgetClient(delegate agentruntime.ModelClient, store *runtimekv.Store, profile providers.ModelProfile, session, role string) agentruntime.ModelClient {
-	if store == nil || profile.MaxTokens != nil {
+	if store == nil {
 		return delegate
 	}
 	identity, _ := json.Marshal([]string{profile.Provider.UserID, session, role, profile.Provider.ID, profile.Provider.Protocol, profile.Provider.Endpoint, profile.Model})
 	digest := sha256.Sum256(identity)
-	return &sessionOutputBudgetClient{delegate: delegate, store: store, namespace: "output-budget-" + hex.EncodeToString(digest[:]), owner: profile.Provider.UserID, session: session}
+	client := &sessionOutputBudgetClient{delegate: delegate, store: store, namespace: "output-budget-" + hex.EncodeToString(digest[:]), owner: profile.Provider.UserID, session: session}
+	if profile.MaxTokens != nil {
+		client.fixedLimit = *profile.MaxTokens
+	}
+	return client
 }
 
 func (client *sessionOutputBudgetClient) read() (outputBudgetState, error) {
@@ -184,8 +192,19 @@ func (client *sessionOutputBudgetClient) run(ctx context.Context, request agentr
 		}
 		return client.delegate.Complete(ctx, input)
 	}
-	if request.MaxTokens > 0 {
-		return invoke(request)
+	if request.MaxTokens > 0 || client.fixedLimit > 0 {
+		response, err := invoke(request)
+		limit := request.MaxTokens
+		if limit <= 0 {
+			limit = client.fixedLimit
+		}
+		scope := fmt.Sprintf("%s:%d", client.namespace, limit)
+		if providers.IsProviderOutputTokenLimit(err) {
+			err = &sessionOutputBudgetSaturatedError{cause: err, scope: scope}
+		} else if err != nil {
+			err = &sessionOutputBudgetRecoveryError{cause: err, scope: scope}
+		}
+		return response, err
 	}
 	state, err := client.read()
 	if err != nil {
@@ -241,9 +260,23 @@ func (client *sessionOutputBudgetClient) run(ctx context.Context, request agentr
 				return response, errors.Join(callErr, readErr)
 			}
 			if state.Next <= adaptive.MaxTokens {
-				callErr = &sessionOutputBudgetSaturatedError{cause: callErr}
+				callErr = &sessionOutputBudgetSaturatedError{cause: callErr, scope: client.namespace}
 			}
 		}
+	}
+	if providers.IsProviderOutputTokenLimit(callErr) {
+		var saturated *sessionOutputBudgetSaturatedError
+		if !errors.As(callErr, &saturated) {
+			state, readErr := client.read()
+			if readErr != nil {
+				return response, errors.Join(callErr, readErr)
+			}
+			callErr = &sessionOutputBudgetRecoveryError{cause: callErr, scope: client.namespace, canGrow: state.Next > adaptive.MaxTokens}
+		}
+	} else if callErr != nil {
+		// Protocol/empty/transport failures share the same provider authority.
+		// The interruption classifier still decides which failures are retryable.
+		callErr = &sessionOutputBudgetRecoveryError{cause: callErr, scope: client.namespace}
 	}
 	return response, callErr
 }

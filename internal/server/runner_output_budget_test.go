@@ -216,8 +216,8 @@ func TestOutputBudgetStateIsScopedAndExplicitLimitsRemainAuthoritative(t *testin
 	}
 	value := 20
 	profile.MaxTokens = &value
-	if newSessionOutputBudgetClient(nil, store, profile, "task", "agent") != nil {
-		t.Fatal("explicit saved limit was overridden")
+	if fixed := newSessionOutputBudgetClient(nil, store, profile, "task", "agent").(*sessionOutputBudgetClient); fixed.fixedLimit != value {
+		t.Fatal("explicit saved limit was not retained by recovery")
 	}
 }
 

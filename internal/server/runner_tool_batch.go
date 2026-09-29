@@ -592,8 +592,10 @@ func (s *Server) checkpointSessionRunnerToolEvent(
 		if err := s.checkpointChatTool(options, run, status, fmt.Sprintf("tool %s %s", event.ToolName, status), event.ToolCallID, phase, details); err != nil {
 			return err
 		}
-		if phase == "completed" && runnerToolCompletionHasMaterialProgress(event.ToolName, toolResult) {
+		observed := run.observeExecutionEvidence(event.ToolName, toolResult)
+		if phase == "completed" && runnerGenerationToolProgress(event.ToolName, observed) {
 			run.recordMaterialProgress()
+			run.resetGenerationRecoveryProgress()
 		}
 		if event.ToolName == "wait_for_notification" {
 			expected, err := agentKernelNotificationClaimCount(event.Result)

@@ -1365,6 +1365,24 @@ func testTranscriptRunnerRepeatedNoProgress(t *testing.T, tailReplay bool) {
 			t.Fatalf("replay advanced the durable fence: %#v", result)
 		}
 		options.SessionID = ""
+		if !result.InterruptionAutoResume {
+			if !result.AwaitingRecoveryCondition {
+				t.Fatalf("lost recoverable wait: %#v", result)
+			}
+			// An unchanged unproductive route is no longer unattended work.
+			// Explicit continuation must retain the same attempt and prefix.
+			options.SessionID = "frame-stream-no-progress"
+			stream, _, lookupErr := repo.GetFrameStreamBySession(context.Background(), "local", options.SessionID)
+			if lookupErr != nil {
+				t.Fatal(lookupErr)
+			}
+			checkpoint, found, lookupErr := repo.LatestResumableCheckpoint(context.Background(), stream.UID, "local")
+			if lookupErr != nil || !found {
+				t.Fatalf("missing manual resume point: %v", lookupErr)
+			}
+			options.TranscriptResumeSource = transcriptstore.ResumeSourceCheckpoint
+			options.TranscriptCheckpoint = checkpoint.Sequence
+		}
 	}
 	options.RunnerID = "stream-no-progress-runner-7"
 	completed, err := server.RunSessionRunnerChatOnce(context.Background(), options)

@@ -1132,6 +1132,17 @@ resources use Synon names.
 
 ## Verification boundary
 
+Generation failures share one durable recovery observation in the existing
+Transcript. Explicit output caps, automatic budgets, empty responses and partial
+tool arguments cannot bypass the unchanged-route wait. The phase machine owns
+the progress decision; server adapters own its claim-fenced persistence and
+existing dispatch. A token-limit reason alone is not evidence of progress.
+Read observations are restored from the active canonical branch independently
+of the provider replay window, using the existing bounded task-local cache.
+Successful execution is not by itself new evidence: repeated completed runtime
+observations do not reset generation recovery. This never caches execution or
+asserts that unknown external side effects were absent.
+
 Continuation guidance is request-scoped: the saved prefix and its resume
 instruction are attached only to the resumed provider request, never to the
 engine history used by subsequent tool rounds. A bounded tail probe holds an
