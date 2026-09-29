@@ -119,6 +119,34 @@ func TestReadProgressTypedCachePreservesExplicitReuse(t *testing.T) {
 	}
 }
 
+func TestReadProgressTypedCachePreservesIntegerPrecision(t *testing.T) {
+	for _, id := range []any{int64(9007199254740993), int64(-9007199254740993), ^uint64(0)} {
+		t.Run(fmt.Sprint(id), func(t *testing.T) {
+			type sourceResult struct {
+				ID any `json:"id"`
+			}
+			run := &sessionRunnerChatRun{}
+			input := map[string]any{"query": "exact source identifier"}
+			run.storeReadReuse("source_reader", input, sourceResult{ID: id})
+			result, found := run.lookupReadReuse("source_reader", input)
+			if !found || mapValue(result)["reused"] != true {
+				t.Fatalf("cached typed result was not reused: %#v", result)
+			}
+			raw, err := json.Marshal(result)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var fields map[string]json.RawMessage
+			if err := json.Unmarshal(raw, &fields); err != nil {
+				t.Fatal(err)
+			}
+			if string(fields["id"]) != fmt.Sprint(id) {
+				t.Fatalf("source identifier changed on cache replay: got=%s want=%v", fields["id"], id)
+			}
+		})
+	}
+}
+
 func TestReadProgressEquivalentWindowsAndRunIsolation(t *testing.T) {
 	run := &sessionRunnerChatRun{}
 	input := map[string]any{"version_id": "source-alias", "offset": 9, "limit": 100, "human_description": "Reading"}
@@ -142,6 +170,25 @@ func TestReadProgressEquivalentWindowsAndRunIsolation(t *testing.T) {
 	input["json_pointer"] = "/other"
 	if mapValue(run.observeFileRead(input, page))["reused"] == true {
 		t.Fatal("distinct selection lost")
+	}
+}
+
+func TestReadProgressReplayJSONPreservesPrecisionAndRejectsTrailingValues(t *testing.T) {
+	const raw = `{"id":9007199254740993,"nested":{"id":18446744073709551615}}`
+	for _, input := range []any{json.RawMessage(raw), []byte(raw), raw} {
+		decoded, valid := decodeReadReuseValue(input)
+		if !valid {
+			t.Fatalf("valid replay rejected: %T", input)
+		}
+		encoded, err := json.Marshal(decoded)
+		if err != nil || string(encoded) != raw {
+			t.Fatalf("replay changed exact evidence: %s err=%v", encoded, err)
+		}
+	}
+	for _, invalid := range []string{raw + `{}`, raw + ` null`, raw + ` trailing`, `{"id":`} {
+		if _, valid := decodeReadReuseValue(json.RawMessage(invalid)); valid {
+			t.Fatalf("malformed or multiple JSON values accepted: %q", invalid)
+		}
 	}
 }
 

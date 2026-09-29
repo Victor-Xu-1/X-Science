@@ -138,7 +138,7 @@ func TestSessionRunnerReadReuseHydratesRawJSONReplayReads(t *testing.T) {
 	server.hydrateSessionRunnerReadReuse(run, []eventjournal.Entry{{Message: eventjournal.Message{
 		"type": "runner_checkpoint", "toolName": "web_fetch", "toolPhase": "completed",
 		"toolInput":  json.RawMessage(`{"url":"https://example.org/raw"}`),
-		"toolResult": json.RawMessage(`{"ok":true,"result":{"statusCode":200,"body":"raw"}}`),
+		"toolResult": json.RawMessage(`{"ok":true,"result":{"statusCode":200,"body":"raw","sequence":9007199254740993}}`),
 	}}})
 	value, ok := run.lookupReadReuse("web_fetch", map[string]any{"url": "https://example.org/raw"})
 	if !ok {
@@ -148,11 +148,15 @@ func TestSessionRunnerReadReuseHydratesRawJSONReplayReads(t *testing.T) {
 	if !ok || record["reused"] != true {
 		t.Fatalf("raw JSON hydrated read=%#v", value)
 	}
+	sequence, err := json.Marshal(mapValue(record["result"])["sequence"])
+	if err != nil || string(sequence) != "9007199254740993" {
+		t.Fatalf("checkpoint replay changed source sequence: %s err=%v", sequence, err)
+	}
 }
 
 func TestSessionRunnerReadReuseHydratesExternalizedResultAsRawEvidence(t *testing.T) {
 	fixture := newAgentSaveArtifactsFixture(t)
-	raw := []byte(`{"ok":true,"result":{"statusCode":200,"body":"` +
+	raw := []byte(`{"ok":true,"result":{"sequence":9007199254740993,"statusCode":200,"body":"` +
 		strings.Repeat("durable source evidence ", 1200) + `"}}`)
 	artifactID, _ := runnerLargeToolResultIdentities(fixture.stream, "prior-fetch", "web_fetch")
 	record, err := fixture.store.WriteRunnerLargeToolResult(context.Background(), workspace.WriteRunnerLargeToolResultInput{
@@ -245,6 +249,10 @@ func TestSessionRunnerReadReuseHydratesExternalizedResultAsRawEvidence(t *testin
 	result := mapValue(envelope["result"])
 	if envelope["reused"] != true || strings.TrimSpace(stringValue(result["body"])) == "" {
 		t.Fatalf("hydrated read did not restore raw evidence: %#v", value)
+	}
+	sequence, err := json.Marshal(result["sequence"])
+	if err != nil || string(sequence) != "9007199254740993" {
+		t.Fatalf("externalized replay changed source sequence: %s err=%v", sequence, err)
 	}
 	if stringValue(envelope["artifact_id"]) != "" || stringValue(envelope["version_id"]) != "" {
 		t.Fatalf("prior call-bound descriptor leaked into the new read: %#v", value)

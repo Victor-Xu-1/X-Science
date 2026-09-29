@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -276,8 +277,8 @@ func (s *Server) hydrateSessionRunnerReadReuseValue(
 		record.ToolCallID != strings.TrimSpace(toolCallID) {
 		return nil, false
 	}
-	var restored any
-	if json.Unmarshal(content, &restored) != nil {
+	restored, valid := decodeReadReuseValue(json.RawMessage(content))
+	if !valid {
 		return nil, false
 	}
 	return restored, true
@@ -302,7 +303,15 @@ func decodeReadReuseValue(value any) (any, bool) {
 			return nil, false
 		}
 		var decoded any
-		if err := json.Unmarshal(typed, &decoded); err != nil {
+		decoder := json.NewDecoder(bytes.NewReader(typed))
+		// Reuse must preserve exact source IDs/counters, including integers
+		// outside float64's exact range, across typed and durable JSON results.
+		decoder.UseNumber()
+		if err := decoder.Decode(&decoded); err != nil {
+			return nil, false
+		}
+		var trailing any
+		if err := decoder.Decode(&trailing); err != io.EOF {
 			return nil, false
 		}
 		return decoded, true
@@ -380,8 +389,12 @@ func markReadReuse(value any) any {
 		// A cached typed source may not expose a mutable map. Preserve its
 		// serialized contract while adding the same explicit reuse receipt.
 		raw, err := json.Marshal(value)
-		var object map[string]any
-		if err != nil || json.Unmarshal(raw, &object) != nil || object == nil {
+		if err != nil {
+			return value
+		}
+		decoded, valid := decodeReadReuseValue(json.RawMessage(raw))
+		object, objectResult := decoded.(map[string]any)
+		if !valid || !objectResult || object == nil {
 			return value
 		}
 		object["reused"] = true
