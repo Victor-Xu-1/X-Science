@@ -5,6 +5,7 @@ import (
 
 	"errors"
 	"fmt"
+	"log"
 
 	"os"
 	osexec "os/exec"
@@ -90,6 +91,15 @@ func (s *Server) startBackgroundShellCommand(toolName string, shellName string, 
 	if strings.TrimSpace(s.fileRoot) == "" {
 		return nil, errors.New("file root is not configured")
 	}
+	if !s.admitBackgroundShell() {
+		return nil, errors.New("background shell service is shutting down")
+	}
+	settlementStarted := false
+	defer func() {
+		if !settlementStarted {
+			s.backgroundShellWG.Done()
+		}
+	}()
 	command := stringValue(input["command"])
 	description := firstNonEmpty(stringValue(input["description"]), command)
 	task, err := s.taskStore.CreateWithOptions(taskstore.CreateOptions{
@@ -137,6 +147,7 @@ func (s *Server) startBackgroundShellCommand(toolName string, shellName string, 
 		return nil, err
 	}
 	s.storeBackgroundShell(task.ID, running)
+	settlementStarted = true
 	go s.finishBackgroundShell(task.ID, outputPath, running)
 	result := map[string]any{
 		"backgroundTaskId":          task.ID,
@@ -163,6 +174,15 @@ func (s *Server) storeBackgroundShell(taskID string, running *shellops.RunningCo
 		s.backgroundShells = map[string]*shellops.RunningCommand{}
 	}
 	s.backgroundShells[taskID] = running
+	// Shutdown may start while an already admitted launch prepares its process.
+	// It remains in the wait group and must be killed before registration returns.
+	if s.backgroundShellClosing && running != nil {
+		if err := running.Kill(); err != nil && !errors.Is(err, os.ErrProcessDone) {
+			if s.backgroundShellErr == nil {
+				s.backgroundShellErr = err
+			}
+		}
+	}
 }
 
 func (s *Server) takeBackgroundShell(taskID string) *shellops.RunningCommand {
@@ -174,26 +194,55 @@ func (s *Server) takeBackgroundShell(taskID string) *shellops.RunningCommand {
 }
 
 func (s *Server) finishBackgroundShell(taskID string, outputPath string, running *shellops.RunningCommand) {
+	var settlementErr error
+	defer s.backgroundShellWG.Done()
+	defer func() {
+		s.backgroundShellMu.Lock()
+		delete(s.backgroundShells, taskID)
+		if s.backgroundShellErr == nil {
+			s.backgroundShellErr = settlementErr
+		}
+		s.backgroundShellMu.Unlock()
+		if settlementErr != nil {
+			log.Printf("background shell settlement %s: %v", taskID, settlementErr)
+		}
+	}()
 	result, err := running.Wait()
-	_ = s.takeBackgroundShell(taskID)
 	content := backgroundShellOutputContent(result)
-	_ = os.MkdirAll(filepath.Dir(outputPath), 0o700)
-	_ = os.WriteFile(outputPath, []byte(content), 0o600)
+	if writeErr := os.MkdirAll(filepath.Dir(outputPath), 0o700); writeErr != nil {
+		settlementErr = writeErr
+	} else if writeErr := os.WriteFile(outputPath, []byte(content), 0o600); writeErr != nil {
+		settlementErr = writeErr
+	}
 	if s.taskStore == nil {
+		settlementErr = errors.Join(settlementErr, errors.New("background task store is unavailable"))
 		return
 	}
+	// Fence the terminal status against shutdown; the registry entry remains
+	// live until both output and task persistence have settled.
+	s.backgroundShellMu.Lock()
+	defer s.backgroundShellMu.Unlock()
 	current, found, getErr := s.taskStore.Get(taskID)
 	if getErr != nil || !found {
+		if getErr == nil {
+			getErr = errors.New("background task disappeared before settlement")
+		}
+		settlementErr = errors.Join(settlementErr, getErr)
 		return
 	}
 	status := "completed"
-	if err != nil {
+	if err != nil || settlementErr != nil {
 		status = "failed"
 	}
 	if current.Status == "stopped" {
 		status = "stopped"
 	}
 	metadata := cloneTaskMetadata(current.Metadata)
+	if s.backgroundShellClosing && current.Status != "stopped" {
+		status = "stopped"
+		metadata["stoppedBy"] = "server_shutdown"
+		metadata["stoppedAt"] = time.Now().UTC().Format(time.RFC3339Nano)
+	}
 	metadata["output"] = content
 	metadata["stdout"] = result.Stdout
 	metadata["stderr"] = result.Stderr
@@ -201,10 +250,11 @@ func (s *Server) finishBackgroundShell(taskID string, outputPath string, running
 	metadata["stdoutBytes"] = result.StdoutBytes
 	metadata["stderrBytes"] = result.StderrBytes
 	metadata["completedAt"] = time.Now().UTC().Format(time.RFC3339Nano)
-	if err != nil {
-		metadata["error"] = err.Error()
+	if resultErr := errors.Join(err, settlementErr); resultErr != nil {
+		metadata["error"] = resultErr.Error()
 	}
-	_, _, _, _ = s.taskStore.UpdateWithOptions(taskID, taskstore.UpdateOptions{Status: &status, Metadata: metadata, MetadataSet: true})
+	_, _, _, updateErr := s.taskStore.UpdateWithOptions(taskID, taskstore.UpdateOptions{Status: &status, Metadata: metadata, MetadataSet: true})
+	settlementErr = errors.Join(settlementErr, updateErr)
 }
 
 func backgroundShellOutputContent(result shellops.Result) string {

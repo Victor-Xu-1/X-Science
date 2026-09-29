@@ -314,6 +314,9 @@ type Server struct {
 	streamingCacheClock                   uint64
 	backgroundShellMu                     sync.Mutex
 	backgroundShells                      map[string]*shellops.RunningCommand
+	backgroundShellWG                     sync.WaitGroup
+	backgroundShellClosing                bool
+	backgroundShellErr                    error
 	webResearchMu                         sync.Mutex
 	webResearchSessions                   map[string]*webResearchSessionState
 	webZipMu                              sync.Mutex

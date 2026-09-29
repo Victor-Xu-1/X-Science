@@ -4,11 +4,21 @@ import (
 	"context"
 	"errors"
 	"os"
-	"time"
 
-	taskstore "synon-go/internal/persistence/tasks"
 	"synon-go/internal/tools/shellops"
 )
+
+// Admission and shutdown share one lock, so Wait cannot race a new zero-to-one
+// lifetime registration. The lifetime includes launch and terminal persistence.
+func (s *Server) admitBackgroundShell() bool {
+	s.backgroundShellMu.Lock()
+	defer s.backgroundShellMu.Unlock()
+	if s.backgroundShellClosing {
+		return false
+	}
+	s.backgroundShellWG.Add(1)
+	return true
+}
 
 func (s *Server) stopAllBackgroundShells(ctx context.Context) error {
 	if s == nil {
@@ -18,38 +28,32 @@ func (s *Server) stopAllBackgroundShells(ctx context.Context) error {
 		return errors.New("background shell shutdown context is required")
 	}
 	s.backgroundShellMu.Lock()
-	running := make(map[string]*shellops.RunningCommand, len(s.backgroundShells))
-	for taskID, command := range s.backgroundShells {
-		running[taskID] = command
+	s.backgroundShellClosing = true
+	running := make([]*shellops.RunningCommand, 0, len(s.backgroundShells))
+	for _, command := range s.backgroundShells {
+		running = append(running, command)
 	}
-	s.backgroundShells = map[string]*shellops.RunningCommand{}
 	s.backgroundShellMu.Unlock()
 
 	var closeErr error
-	for taskID, command := range running {
-		if err := ctx.Err(); err != nil {
-			return errors.Join(closeErr, err)
-		}
-		if s.taskStore != nil {
-			if task, found, err := s.taskStore.Get(taskID); err != nil {
-				closeErr = errors.Join(closeErr, err)
-			} else if found && task.Status == "running" {
-				status := "stopped"
-				metadata := cloneTaskMetadata(task.Metadata)
-				metadata["stoppedBy"] = "server_shutdown"
-				metadata["stoppedAt"] = time.Now().UTC().Format(time.RFC3339Nano)
-				if _, _, _, err := s.taskStore.UpdateWithOptions(taskID, taskstore.UpdateOptions{
-					Status: &status, Metadata: metadata, MetadataSet: true,
-				}); err != nil {
-					closeErr = errors.Join(closeErr, err)
-				}
-			}
-		}
+	for _, command := range running {
 		if command != nil {
 			if err := command.Kill(); err != nil && !errors.Is(err, os.ErrProcessDone) {
 				closeErr = errors.Join(closeErr, err)
 			}
 		}
 	}
-	return closeErr
+	done := make(chan struct{})
+	go func() {
+		s.backgroundShellWG.Wait()
+		close(done)
+	}()
+	select {
+	case <-ctx.Done():
+		return errors.Join(closeErr, ctx.Err())
+	case <-done:
+		s.backgroundShellMu.Lock()
+		defer s.backgroundShellMu.Unlock()
+		return errors.Join(closeErr, s.backgroundShellErr)
+	}
 }
