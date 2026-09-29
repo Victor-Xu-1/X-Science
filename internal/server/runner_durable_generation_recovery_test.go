@@ -108,13 +108,17 @@ func TestDurableGenerationFixedBudgetMustBoundUnproductiveContinuation(t *testin
 
 func TestDurableGenerationRepeatedExecutionObservationIsNotProgress(t *testing.T) {
 	run := &sessionRunnerChatRun{}
-	receipt := map[string]any{"ok": true, "exit_code": 0, "files_written": []any{}, "stdout": "same files", "exec_id": "first", "cell_index": 1}
+	receipt := map[string]any{"ok": true, "exit_code": 0, "files_written": []any{}, "stdout": "same files", "exec_id": "first", "cell_index": 1, "kernel_id": "initial-kernel"}
 	if !runnerGenerationToolProgress("bash", run.observeExecutionEvidence("bash", receipt)) {
 		t.Fatal("first observation should be evidence")
 	}
 	receipt["exec_id"], receipt["cell_index"] = "second", 2
 	if runnerGenerationToolProgress("bash", run.observeExecutionEvidence("bash", receipt)) {
 		t.Fatal("same observation counted as fresh evidence")
+	}
+	receipt["kernel_id"] = "replacement-kernel"
+	if runnerGenerationToolProgress("bash", run.observeExecutionEvidence("bash", receipt)) {
+		t.Fatal("kernel replacement counted identical output as fresh evidence")
 	}
 	receipt["stdout"] = "new useful result"
 	if !runnerGenerationToolProgress("bash", run.observeExecutionEvidence("bash", receipt)) {

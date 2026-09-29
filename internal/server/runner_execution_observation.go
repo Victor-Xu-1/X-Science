@@ -35,7 +35,7 @@ func (run *sessionRunnerChatRun) observeExecutionEvidence(name string, value any
 		}
 	}
 	observed := copyMapAny(object)
-	for _, key := range []string{"exec_id", "tool_use_id", "cell_index", "kernel_reused", "effect", "reused", "elapsed_ms", "duration_ms"} {
+	for _, key := range []string{"exec_id", "tool_use_id", "cell_index", "kernel_id", "kernel_reused", "effect", "reused", "elapsed_ms", "duration_ms"} {
 		delete(observed, key)
 	}
 	raw, err := json.Marshal(observed)
