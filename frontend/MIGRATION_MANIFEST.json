@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "63bbc78ecbe3965faa9e281085dea48f68f39bbd3440ae2d605e8c443268a04c",
+  "adaptationFingerprintSHA256": "67b732b1942bccf5214d2624d9d11ff527db22b1ff924e1556b2d0fef56bc345",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
-  "additionFingerprintSHA256": "476216d95f8ff28692c835ab008981150b7f1378f490848f928311e3f96cebce",
+  "additionFingerprintSHA256": "452c744dc8a2b68e308212802ff3f2b27fba1f33cbda25db6c02ef8e5014a8f4",
   "summary": {
     "sourceFiles": 1354,
-    "unchangedSourceFiles": 400,
-    "adaptedSourceFiles": 664,
+    "unchangedSourceFiles": 397,
+    "adaptedSourceFiles": 667,
     "removedSourceFiles": 290,
-    "addedFiles": 690
+    "addedFiles": 707
   },
   "adaptations": [
     {
@@ -1018,8 +1018,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/MessageList.tsx",
       "sourceSHA256": "4f24db9de35b76ad7e4e842aa6298165645c2c1542f27eb22ea42a565dee0d8c",
-      "targetSHA256": "1f0198bc47ac6f9e255ca51f766647060c722f1eea491f3f425a05b86732286f",
-      "bytes": 39594,
+      "targetSHA256": "d290cc64a1eb4347b2cc880285974b61e1600132e2b4c6e9b2d3e708732546c9",
+      "bytes": 41753,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -1699,6 +1699,27 @@
       "sourceSHA256": "babe4e675a878bca8b63d99d044037aff466c902476e9e89386375fa28ac2900",
       "targetSHA256": "ec75afa3ed06609f456311edfecbd1d89bdce172b56160563e74fa26dc4585b6",
       "bytes": 9985,
+      "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/components/ConversationTitleMinimap/minimapTypes.ts",
+      "sourceSHA256": "085904fa9e77421021f9d03f6977cca135c8702e7fbc3f903dda33c528340c42",
+      "targetSHA256": "463fe2e3c1f6cfec3150a9dee9246b0c8b8cd9a3e596ad1e0efc09664ab8b299",
+      "bytes": 1427,
+      "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/components/ConversationTitleMinimap/minimapUtils.ts",
+      "sourceSHA256": "c2286eeb078d807568860a04b9f1c07df14fbfa72538923cd19b2ada9bae5217",
+      "targetSHA256": "98b1c63e56265bb6178857122a38e266b6708127807f1ecdefdaa54b4a4cde26",
+      "bytes": 7801,
+      "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/components/ConversationTitleMinimap/useMinimapPanel.ts",
+      "sourceSHA256": "95892f8209eec3726f66d9004407c2aa055f4a6c42d3182512e4dda182287145",
+      "targetSHA256": "ef1b170e0806c43552f70d320610324aa2fdaa3146ca7a1c64aeabcb90d46d7c",
+      "bytes": 13209,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -2383,8 +2404,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "40592a41e8dd7f790c8c559a1e674092e2b89862acc13add6a0bf10b8fe6f20f",
-      "bytes": 247108,
+      "targetSHA256": "798bdacc5b6f532649084291163e881a3350825b306e9f3464c1d8593e37f0df",
+      "bytes": 247264,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2418,8 +2439,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json",
       "sourceSHA256": "c6802cdea4137a9a8199f5b9e57c11a99e7b8fde42539065da42dd4db9052b8e",
-      "targetSHA256": "3cb03c3a3a779fe8b47c932484d867317a11bd1d5d1ac2ad88cfee26feb8b07e",
-      "bytes": 76858,
+      "targetSHA256": "9f6b294e2e199a3b7cec222861bed34c52dfaddac4c030a604efd7f923fa8a4f",
+      "bytes": 77042,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2509,8 +2530,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/conversation.json",
       "sourceSHA256": "cb395d18cb1692e13c849172bf6d957304ef382973fb5ab95fd14723cbc045bd",
-      "targetSHA256": "fd5af802caa26bf394ed18614d70b226ed98cf620b9e4c571355875c2f48dc11",
-      "bytes": 72666,
+      "targetSHA256": "fb4b0fd1920a65cd6e8997c6bf21d37d60e8b10655aa45b2d151e3ca37e25c4f",
+      "bytes": 72847,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -6941,6 +6962,12 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/conversation/Messages/MessageVirtualItem.tsx",
+      "sha256": "5bb042406ae823feed9a1c4f9117d42a8620d08b04c49cda830948f07646b883",
+      "bytes": 552,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/components/MessageScientificFiles.css",
       "sha256": "9091a7ccbc0d8ce8b9c3856317ed2fe38df508e85fab6f2892a7ff64d730fea5",
       "bytes": 1893,
@@ -7199,9 +7226,21 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/conversation/Messages/useAnchorViewport.ts",
+      "sha256": "cacfea4d4b8f1a41246cbdd04cbd771ef5d3c89cb1fb0a466e3840833adadfa6",
+      "bytes": 1425,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/useConversationScrollController.ts",
-      "sha256": "637d2e6e91304252f6af487fa710c4c46ad32cdff46905e2be9abb361625d0cf",
-      "bytes": 7986,
+      "sha256": "8f1bf5a326eb6b123207ca03448e62ffcf01e0626962d2b0144cd0fd4f8040ed",
+      "bytes": 9740,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/Messages/virtualMessageNavigation.ts",
+      "sha256": "201396c9e0c12deeef810fa8dcb7b1cd192445d160facbab3e48df6ec58fd126",
+      "bytes": 1432,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -7514,6 +7553,48 @@
       "path": "packages/desktop/src/renderer/pages/conversation/components/ConversationLoadingSurface.tsx",
       "sha256": "2cf149994bc16cab672a3836eae2869638e47400492e127dbf809284c43199af",
       "bytes": 903,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/components/ConversationTitleMinimap/ConversationTurnNavigation.tsx",
+      "sha256": "10656c3989bfa34c6fcacf4d2959067895c45065b047afce5c0c1e815e7a717f",
+      "bytes": 1296,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/components/ConversationTitleMinimap/ConversationTurnRail.module.css",
+      "sha256": "3447fbe4608a25bf0c82296b0a967f40c8ec7308d9449ee570d2c04232f4f280",
+      "bytes": 2690,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/components/ConversationTitleMinimap/ConversationTurnRail.tsx",
+      "sha256": "3628c68a6d3134e5fe1868aeb239bd5e28224b946808feb79d3a5fca9035a331",
+      "bytes": 8754,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/components/ConversationTitleMinimap/turnIndex.ts",
+      "sha256": "f4ac191b490f2b2a68803e598d9941dd81c9b56740ceadb799af6bea731a4659",
+      "bytes": 3249,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/components/ConversationTitleMinimap/turnRailModel.ts",
+      "sha256": "213c00e84f6f4646590d40007b451b54c5345a6d8c3733751f3b5e3ba8994416",
+      "bytes": 1334,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/components/ConversationTitleMinimap/useTurnIndex.ts",
+      "sha256": "1aa0641b21383aabde7ff2ba7a8420bc7ba4cdd3e38cd6f3ca08afdd591c04ae",
+      "bytes": 2195,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/components/ConversationTitleMinimap/useTurnRailGeometry.ts",
+      "sha256": "fe46c4d85c64a127729b5e995a041465971ffc8d0d0b09868b8ad55badf389b7",
+      "bytes": 2919,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9299,6 +9380,12 @@
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
+      "path": "tests/unit/renderer/ConversationTurnRail.dom.test.tsx",
+      "sha256": "97a306aa68f5ea36859d917befed9c35ed19d3e178f651b5e80a3ab8be9650f0",
+      "bytes": 4336,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/unit/renderer/DetailValueTree.dom.test.tsx",
       "sha256": "ef51431aca1a3720bd938d9724437c9a898c9c2b1aa38cd868f3c83f5240ad7e",
       "bytes": 2647,
@@ -9476,6 +9563,18 @@
       "path": "tests/unit/renderer/conversationRoutePerformance.test.ts",
       "sha256": "994513256892c787b0f7268c22cdc94c147d04d953cccca958c823365897501c",
       "bytes": 3667,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/conversationTurnIndex.test.ts",
+      "sha256": "950bb5cf5cdee3271c3239e23b887e27a9e5292fef4b3ed316dc3cac891a9cd7",
+      "bytes": 3102,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/conversationTurnIndexLoading.test.ts",
+      "sha256": "2987af7e4855b70e11fd1ac36ac33113e6f2b6cf7f71fa3fd86ad62f627ec236",
+      "bytes": 4093,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -9737,6 +9836,12 @@
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
+      "path": "tests/unit/renderer/useAnchorViewport.dom.test.tsx",
+      "sha256": "bd57be849d50df774e5817e7e0ec22d04bec1cf715be0a7149c8c45900d93e9e",
+      "bytes": 1514,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/unit/renderer/useAttachEntry.dom.test.tsx",
       "sha256": "f647829b917903961633f57ee9927aba0b93ca4fceb83fac132b32d7a0c20d4f",
       "bytes": 1772,
@@ -9750,8 +9855,8 @@
     },
     {
       "path": "tests/unit/renderer/useConversationScrollController.dom.test.tsx",
-      "sha256": "c69386fd95e9300b580632a44151c8e42927e4ca5b89d53d3e4c326e1d567fb9",
-      "bytes": 7340,
+      "sha256": "0d70c49781a9131122eeda23873c016887f050b606002cb64c1bc87a5eeee890",
+      "bytes": 10824,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -9764,6 +9869,12 @@
       "path": "tests/unit/renderer/useNearViewport.dom.test.tsx",
       "sha256": "f4160e5b5edde2619793955bc37c5516625a98f920439ec3e69150425135dc5e",
       "bytes": 2585,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/virtualMessageNavigation.test.ts",
+      "sha256": "220674d9fe1d87bf3324883e2d677fddf4d58de955a2218ab484c8f231e98036",
+      "bytes": 990,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -10544,6 +10655,18 @@
       "path": "tests/web-e2e/toolPhaseLifecycle.fixture.tsx",
       "sha256": "ad5dd73e91be9c66e21203e654495a63e104163455a4eaf6e6cef8e4becb8a07",
       "bytes": 2352,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/web-e2e/turnRail.browser.mjs",
+      "sha256": "f9d6c8aaeeaf979d4ee3383a130fbd9475feb45a86e9b08e9e2c8fc57f82b630",
+      "bytes": 9438,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/web-e2e/turnRail.fixture.tsx",
+      "sha256": "4976701963c5bc72d1674b4bb548d80afa1e006e97ccdddb54a7a513d87d18c9",
+      "bytes": 6996,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     }
   ]

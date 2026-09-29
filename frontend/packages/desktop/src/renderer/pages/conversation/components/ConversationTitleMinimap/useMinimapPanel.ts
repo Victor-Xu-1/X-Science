@@ -5,7 +5,7 @@
  */
 
 import { dispatchChatMessageJump } from '@/renderer/utils/chat/chatMinimapEvents';
-import { loadAllConversationMessagesPaged } from '@/renderer/utils/chat/messagePagination';
+import { loadConversationTurnIndex } from './turnIndex';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { MinimapVisualStyle, TurnPreviewItem } from './minimapTypes';
@@ -19,7 +19,7 @@ import {
   PANEL_OFFSET,
   PANEL_VISIBLE_ITEM_CAP,
 } from './minimapTypes';
-import { buildTurnPreview, getPanelWidth, isIndexMatch, normalizeText, readPopoverVisualStyle } from './minimapUtils';
+import { getPanelWidth, isIndexMatch, normalizeText, readPopoverVisualStyle } from './minimapUtils';
 
 // Return type for the useMinimapPanel hook
 type UseMinimapPanelReturn = {
@@ -67,9 +67,11 @@ export const useMinimapPanel = (conversation_id?: string): UseMinimapPanelReturn
   const isSearchInputComposingRef = useRef(false);
   const pendingCloseAfterCompositionRef = useRef(false);
   const searchKeywordRef = useRef('');
+  const indexRequestRef = useRef<AbortController | null>(null);
 
   // Reset on conversation switch
   useEffect(() => {
+    indexRequestRef.current?.abort();
     setVisible(false);
     setLoading(false);
     setItems([]);
@@ -79,6 +81,7 @@ export const useMinimapPanel = (conversation_id?: string): UseMinimapPanelReturn
     setActiveResultIndex(-1);
     isSearchInputComposingRef.current = false;
     pendingCloseAfterCompositionRef.current = false;
+    return () => indexRequestRef.current?.abort();
   }, [conversation_id]);
 
   // Sync searchKeyword to ref
@@ -108,15 +111,19 @@ export const useMinimapPanel = (conversation_id?: string): UseMinimapPanelReturn
       setItems([]);
       return;
     }
+    indexRequestRef.current?.abort();
+    const request = new AbortController();
+    indexRequestRef.current = request;
     setLoading(true);
     try {
-      const messages = await loadAllConversationMessagesPaged(conversation_id);
-      setItems(buildTurnPreview(messages));
+      const turns = await loadConversationTurnIndex(conversation_id, { fullText: true, signal: request.signal });
+      if (!request.signal.aborted) setItems(turns);
     } catch (error) {
+      if (request.signal.aborted) return;
       console.error('[ConversationTitleMinimap] Failed to load conversation messages:', error);
       setItems([]);
     } finally {
-      setLoading(false);
+      if (!request.signal.aborted) setLoading(false);
     }
   }, [conversation_id]);
 

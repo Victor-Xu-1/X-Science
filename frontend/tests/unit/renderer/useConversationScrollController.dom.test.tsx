@@ -26,6 +26,90 @@ function textMessage(id: string, position: 'left' | 'right', blockIndex?: number
 }
 
 describe('useConversationScrollController', () => {
+  it('retains an explicit anchor across late content sizing and releases it on a reading gesture', () => {
+    const frames: FrameRequestCallback[] = [];
+    const requestFrame = vi
+      .spyOn(window, 'requestAnimationFrame')
+      .mockImplementation((callback) => (frames.push(callback), frames.length));
+    const cancelFrame = vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
+    const flush = () => {
+      while (frames.length) frames.shift()?.(0);
+    };
+    const messages = [textMessage('question', 'right'), textMessage('answer', 'left')];
+    const seek = vi.fn(() => true);
+    const tail = vi.fn(() => true);
+    const { result, unmount } = renderHook(() =>
+      useConversationScrollController({
+        conversationId: 'conversation-1',
+        messages,
+        itemCount: 2,
+        lastUserMessageId: 'question',
+        lastUserRowIndex: 0,
+        scrollMessageIntoView: seek,
+        scrollToBottomItem: tail,
+      })
+    );
+    act(flush);
+    tail.mockClear();
+    act(() => {
+      result.current.retainMessageAnchor('question', 'center');
+      result.current.handleTotalListHeightChanged(900);
+      flush();
+    });
+    expect(seek).toHaveBeenLastCalledWith('question', { behavior: 'auto', block: 'center' });
+    expect(tail).not.toHaveBeenCalled();
+    const count = seek.mock.calls.length;
+    act(() => {
+      result.current.handleTotalListHeightChanged(900);
+      flush();
+    });
+    expect(seek).toHaveBeenCalledTimes(count);
+    act(() => {
+      result.current.handleUserScrollIntent('away-from-tail');
+      result.current.handleTotalListHeightChanged(1700);
+      flush();
+    });
+    expect(seek).toHaveBeenCalledTimes(count);
+    expect(result.current.canLoadNextPage()).toBe(true);
+    unmount();
+    requestFrame.mockRestore();
+    cancelFrame.mockRestore();
+  });
+
+  it('requires a fresh reading gesture after an explicit anchor jump before paging history', () => {
+    const { result, rerender } = renderHook(
+      ({ conversationId }) =>
+        useConversationScrollController({
+          conversationId,
+          messages: [textMessage('question', 'right')],
+          itemCount: 1,
+          lastUserMessageId: 'question',
+          lastUserRowIndex: 0,
+          scrollMessageIntoView: vi.fn(() => true),
+          scrollToBottomItem: vi.fn(() => true),
+        }),
+      { initialProps: { conversationId: 'conversation-1' } }
+    );
+    expect(result.current.canLoadPreviousPage()).toBe(false);
+    expect(result.current.canLoadNextPage()).toBe(false);
+    act(() => result.current.handleUserScrollIntent('away-from-tail'));
+    expect(result.current.canLoadPreviousPage()).toBe(true);
+    expect(result.current.canLoadNextPage()).toBe(true);
+    act(() => result.current.retainMessageAnchor('question'));
+    act(() => result.current.handleAtBottomStateChange(true));
+    expect(result.current.canLoadPreviousPage()).toBe(false);
+    expect(result.current.canLoadNextPage()).toBe(false);
+    expect(result.current.followOutput(true)).toBe(false);
+    act(() => result.current.handleUserScrollIntent('toward-tail'));
+    expect(result.current.canLoadNextPage()).toBe(true);
+    act(() => result.current.scrollToLastUser());
+    expect(result.current.canLoadNextPage()).toBe(false);
+    act(() => result.current.scrollToBottom());
+    expect(result.current.canLoadNextPage()).toBe(true);
+    rerender({ conversationId: 'conversation-2' });
+    expect(result.current.canLoadNextPage()).toBe(false);
+  });
+
   it('derives the two Claude-style controls from Virtuoso bottom and range state', () => {
     const messages = [textMessage('question', 'right'), textMessage('answer', 'left')];
     const { result } = renderHook(() =>

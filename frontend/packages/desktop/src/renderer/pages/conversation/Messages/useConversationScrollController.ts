@@ -34,6 +34,8 @@ export type ConversationScrollController = {
   handleTotalListHeightChanged: (height: number) => void;
   handleUserScrollIntent: (intent?: ConversationScrollIntent) => void;
   canLoadPreviousPage: () => boolean;
+  canLoadNextPage: () => boolean;
+  retainMessageAnchor: (messageId: string, block?: ScrollLogicalPosition) => void;
   followOutput: (atBottom: boolean) => FollowOutput;
   showScrollButton: boolean;
   showLastUserButton: boolean;
@@ -43,7 +45,8 @@ export type ConversationScrollController = {
 
 /**
  * Keep one scroll authority: React Virtuoso owns geometry and anchoring while
- * this controller owns only product intent and the two Claude-style actions.
+ * this controller owns reading intent: follow the tail, retain an explicit
+ * message anchor, or leave positioning to the reader's next gesture.
  */
 export function useConversationScrollController({
   conversationId,
@@ -58,29 +61,36 @@ export function useConversationScrollController({
   const [followingOutput, setFollowingOutput] = useState(true);
   const [lastUserAboveViewport, setLastUserAboveViewport] = useState(false);
   const userDetachedRef = useRef(false);
+  const historyPagingIntentRef = useRef(false);
+  const messageAnchorRef = useRef<{ messageId: string; block: ScrollLogicalPosition } | null>(null);
   const userTowardTailIntentRef = useRef(false);
   const initialScrollRequestedRef = useRef(false);
-  const pendingTailFollowFrameRef = useRef<number | null>(null);
+  const pendingViewportFrameRef = useRef<number | null>(null);
   const lastListHeightRef = useRef(0);
   const previousTailIdRef = useRef(messages.at(-1)?.id ?? null);
 
-  const scheduleAttachedTailFollow = useCallback(() => {
-    if (itemCount <= 0 || userDetachedRef.current || pendingTailFollowFrameRef.current !== null) return;
-    pendingTailFollowFrameRef.current = requestAnimationFrame(() => {
-      pendingTailFollowFrameRef.current = null;
-      if (!userDetachedRef.current) scrollToBottomItem('auto');
+  const scheduleViewportFollow = useCallback(() => {
+    if (itemCount <= 0 || pendingViewportFrameRef.current !== null) return;
+    if (!messageAnchorRef.current && userDetachedRef.current) return;
+    pendingViewportFrameRef.current = requestAnimationFrame(() => {
+      pendingViewportFrameRef.current = null;
+      const anchor = messageAnchorRef.current;
+      if (anchor) scrollMessageIntoView(anchor.messageId, { behavior: 'auto', block: anchor.block });
+      else if (!userDetachedRef.current) scrollToBottomItem('auto');
     });
-  }, [itemCount, scrollToBottomItem]);
+  }, [itemCount, scrollMessageIntoView, scrollToBottomItem]);
 
   useLayoutEffect(() => {
-    if (pendingTailFollowFrameRef.current !== null) {
-      cancelAnimationFrame(pendingTailFollowFrameRef.current);
-      pendingTailFollowFrameRef.current = null;
+    if (pendingViewportFrameRef.current !== null) {
+      cancelAnimationFrame(pendingViewportFrameRef.current);
+      pendingViewportFrameRef.current = null;
     }
     setAtBottom(true);
     setFollowingOutput(true);
     setLastUserAboveViewport(false);
     userDetachedRef.current = false;
+    historyPagingIntentRef.current = false;
+    messageAnchorRef.current = null;
     userTowardTailIntentRef.current = false;
     initialScrollRequestedRef.current = false;
     lastListHeightRef.current = 0;
@@ -98,14 +108,15 @@ export function useConversationScrollController({
     // group or text segment usually grows in place without changing the item
     // count. Coalesce those updates into the next animation frame so Virtuoso
     // has measured the resized row before its own scrollToIndex authority moves
-    // the viewport. Never write scrollTop directly from React.
-    scheduleAttachedTailFollow();
-  }, [messages, scheduleAttachedTailFollow]);
+    // the viewport, or realigns a retained message anchor after lazy content
+    // changes height. Never write scrollTop directly from React.
+    scheduleViewportFollow();
+  }, [messages, scheduleViewportFollow]);
 
   useEffect(
     () => () => {
-      if (pendingTailFollowFrameRef.current !== null) {
-        cancelAnimationFrame(pendingTailFollowFrameRef.current);
+      if (pendingViewportFrameRef.current !== null) {
+        cancelAnimationFrame(pendingViewportFrameRef.current);
       }
     },
     []
@@ -118,7 +129,7 @@ export function useConversationScrollController({
     // explicit user detach, otherwise followOutput immediately pulls the
     // viewport down again and the page oscillates while the user scrolls.
     // Reattach only after a user gesture toward the tail or an explicit jump.
-    if (nextAtBottom && (!userDetachedRef.current || userTowardTailIntentRef.current)) {
+    if (nextAtBottom && !messageAnchorRef.current && (!userDetachedRef.current || userTowardTailIntentRef.current)) {
       userDetachedRef.current = false;
       userTowardTailIntentRef.current = false;
       setFollowingOutput(true);
@@ -147,12 +158,14 @@ export function useConversationScrollController({
       if (!Number.isFinite(height) || height < 0) return;
       const previousHeight = lastListHeightRef.current;
       lastListHeightRef.current = height;
-      if (height > previousHeight) scheduleAttachedTailFollow();
+      if (height !== previousHeight) scheduleViewportFollow();
     },
-    [scheduleAttachedTailFollow]
+    [scheduleViewportFollow]
   );
 
   const handleUserScrollIntent = useCallback((intent: ConversationScrollIntent = 'away-from-tail') => {
+    messageAnchorRef.current = null;
+    historyPagingIntentRef.current = true;
     if (intent === 'toward-tail') {
       userTowardTailIntentRef.current = true;
       return;
@@ -162,12 +175,25 @@ export function useConversationScrollController({
     setFollowingOutput(false);
   }, []);
 
-  const canLoadPreviousPage = useCallback(() => userDetachedRef.current, []);
+  const canLoadPreviousPage = useCallback(() => userDetachedRef.current && historyPagingIntentRef.current, []);
+  const canLoadNextPage = useCallback(() => historyPagingIntentRef.current, []);
+  const retainMessageAnchor = useCallback((messageId: string, block: ScrollLogicalPosition = 'start') => {
+    // Lazy report bodies, images and artifact cards can resize after Virtuoso's
+    // initial seek. Retain the user's anchor on geometry changes, until the
+    // next reading gesture. This is event-driven, not a timed retry loop.
+    messageAnchorRef.current = { messageId, block };
+    userDetachedRef.current = true;
+    historyPagingIntentRef.current = false;
+    userTowardTailIntentRef.current = false;
+    setFollowingOutput(false);
+  }, []);
 
   const scrollToBottom = useCallback(
     (behavior: ScrollBehavior = 'smooth') => {
       if (itemCount <= 0) return;
       userDetachedRef.current = false;
+      messageAnchorRef.current = null;
+      historyPagingIntentRef.current = true;
       userTowardTailIntentRef.current = false;
       setFollowingOutput(true);
       scrollToBottomItem(behavior);
@@ -179,6 +205,8 @@ export function useConversationScrollController({
   const scrollToLastUser = useCallback(() => {
     if (lastUserRowIndex < 0 || !lastUserMessageId) return;
     userDetachedRef.current = true;
+    messageAnchorRef.current = { messageId: lastUserMessageId, block: 'start' };
+    historyPagingIntentRef.current = false;
     userTowardTailIntentRef.current = false;
     setFollowingOutput(false);
     scrollMessageIntoView(lastUserMessageId, { behavior: 'smooth', block: 'start' });
@@ -191,6 +219,7 @@ export function useConversationScrollController({
     if (!tail || tail.id === previousTailId || tail.position !== 'right') return;
     if (!isSynonBiomedOptimisticUserMessage(tail.id)) return;
     userDetachedRef.current = false;
+    messageAnchorRef.current = null;
     userTowardTailIntentRef.current = false;
     setFollowingOutput(true);
     scrollToBottomItem('auto');
@@ -208,6 +237,8 @@ export function useConversationScrollController({
     handleTotalListHeightChanged,
     handleUserScrollIntent,
     canLoadPreviousPage,
+    canLoadNextPage,
+    retainMessageAnchor,
     followOutput,
     showScrollButton: itemCount > 0 && (!atBottom || !followingOutput),
     showLastUserButton: lastUserRowIndex >= 0 && lastUserAboveViewport,

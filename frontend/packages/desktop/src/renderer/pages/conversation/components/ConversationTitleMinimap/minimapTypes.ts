@@ -14,6 +14,8 @@ export type TurnPreviewItem = {
   answerRaw: string;
   messageId?: string;
   msgId?: string;
+  /** All visible source rows belonging to this turn, including tool anchors. */
+  messageIds: string[];
 };
 
 export type MinimapVisualStyle = {
