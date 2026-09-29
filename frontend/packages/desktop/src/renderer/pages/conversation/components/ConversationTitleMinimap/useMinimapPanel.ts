@@ -117,7 +117,7 @@ export const useMinimapPanel = (conversation_id?: string): UseMinimapPanelReturn
     setLoading(true);
     try {
       const turns = await loadConversationTurnIndex(conversation_id, { fullText: true, signal: request.signal });
-      if (!request.signal.aborted) setItems(turns);
+      if (!request.signal.aborted) setItems(turns.items);
     } catch (error) {
       if (request.signal.aborted) return;
       console.error('[ConversationTitleMinimap] Failed to load conversation messages:', error);

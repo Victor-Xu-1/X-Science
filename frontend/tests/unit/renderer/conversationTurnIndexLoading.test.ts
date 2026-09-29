@@ -37,14 +37,15 @@ describe('paged turn index', () => {
   it('counts an inclusive overlapping page boundary only once by canonical message identity', async () => {
     load.mockResolvedValueOnce(page([message('q2'), message('a2', 'left')], 'older'));
     load.mockResolvedValueOnce(page([message('q1'), message('a1', 'left'), message('q2')]));
-    const turns = await loadConversationTurnIndex('c');
+    const { items: turns, branchId } = await loadConversationTurnIndex('c');
+    expect(branchId).toBe('br_12345678');
     expect(turns.map((turn) => turn.messageId)).toEqual(['q1', 'q2']);
     expect(turns[1].answer).toBe('a2');
   });
   it('joins a turn across page boundaries with one bounded page request at a time', async () => {
     load.mockResolvedValueOnce(page([message('a1', 'left', 'Answer'), message('q2')], 'older'));
     load.mockResolvedValueOnce(page([message('q1')]));
-    const result = await loadConversationTurnIndex('c');
+    const { items: result } = await loadConversationTurnIndex('c');
     expect(result.map((x) => [x.messageId, x.answer])).toEqual([
       ['q1', 'Answer'],
       ['q2', ''],
@@ -83,6 +84,6 @@ describe('paged turn index', () => {
   });
   it('does not turn right-positioned non-text records into user prompts', async () => {
     load.mockResolvedValue(page([message('q'), { ...message('tool'), type: 'tool_call', content: {} } as TMessage]));
-    expect(await loadConversationTurnIndex('c')).toHaveLength(1);
+    expect((await loadConversationTurnIndex('c')).items).toHaveLength(1);
   });
 });

@@ -1010,7 +1010,12 @@ const MessageList: React.FC<{
         </button>
 
         <SelectionReplyButton messages={list} />
-        <ConversationTurnNavigation conversationId={conversationId} messages={list} viewport={navigationViewport} />
+        <ConversationTurnNavigation
+          conversationId={conversationId}
+          messages={list}
+          viewport={navigationViewport}
+          windowBranchId={pagination.branchId}
+        />
       </div>
     </ConversationAnnotationsProvider>
   );

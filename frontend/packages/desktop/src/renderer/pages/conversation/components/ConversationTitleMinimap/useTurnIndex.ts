@@ -5,12 +5,11 @@ import {
   SYNON_BIOMED_BRANCH_SELECTION_EVENT,
   type SynonBiomedBranchSelectionEventDetail,
 } from '@/renderer/services/synonBiomedConversationBranches';
-import type { TurnPreviewItem } from './minimapTypes';
-import { loadConversationTurnIndex, mergeLiveTurnPreviews } from './turnIndex';
+import { loadConversationTurnIndex, mergeLiveTurnPreviews, type ConversationTurnIndex } from './turnIndex';
 
-export function useTurnIndex(conversationId: string | undefined, messages: TMessage[]) {
+export function useTurnIndex(conversationId: string | undefined, messages: TMessage[], windowBranchId?: string) {
   const [revision, setRevision] = useState(0);
-  const [state, setState] = useState<{ owner: string; items: TurnPreviewItem[]; failed: boolean }>();
+  const [state, setState] = useState<ConversationTurnIndex & { owner: string; failed: boolean }>();
   const owner = `${conversationId ?? ''}:${revision}`;
   const retry = useCallback(() => setRevision((value) => value + 1), []);
   useEffect(() => {
@@ -31,8 +30,8 @@ export function useTurnIndex(conversationId: string | undefined, messages: TMess
     if (!conversationId) return;
     const controller = new AbortController();
     void loadConversationTurnIndex(conversationId, { signal: controller.signal })
-      .then((items) => {
-        if (!controller.signal.aborted) setState({ owner, items, failed: false });
+      .then((index) => {
+        if (!controller.signal.aborted) setState({ owner, ...index, failed: false });
       })
       .catch(() => {
         if (!controller.signal.aborted) setState({ owner, items: [], failed: true });
@@ -40,6 +39,20 @@ export function useTurnIndex(conversationId: string | undefined, messages: TMess
     return () => controller.abort();
   }, [conversationId, owner]);
   const current = state?.owner === owner ? state : undefined;
-  const items = useMemo(() => mergeLiveTurnPreviews(current?.items ?? [], messages), [current?.items, messages]);
+  const ready = Boolean(current && !current.failed && current.branchId === windowBranchId);
+  useEffect(() => {
+    if (!ready) return;
+    // The visible message window can be replaced by an anchor jump. Keep its
+    // accepted turns in this owner-fenced index, not only in the render result.
+    setState((previous) => {
+      if (previous?.owner !== owner || previous.failed || previous.branchId !== windowBranchId) return previous;
+      const items = mergeLiveTurnPreviews(previous.items, messages);
+      return items === previous.items ? previous : { ...previous, items };
+    });
+  }, [messages, owner, ready, windowBranchId]);
+  const items = useMemo(
+    () => (ready ? mergeLiveTurnPreviews(current!.items, messages) : (current?.items ?? [])),
+    [current?.items, messages, ready]
+  );
   return { items, loading: Boolean(conversationId && !current), failed: current?.failed ?? false, retry };
 }

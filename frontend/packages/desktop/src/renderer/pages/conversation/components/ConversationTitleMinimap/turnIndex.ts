@@ -4,11 +4,13 @@ import { getSynonBiomedBranchSelectionRevision } from '@/renderer/services/synon
 import { buildTurnPreview } from './minimapUtils';
 import type { TurnPreviewItem } from './minimapTypes';
 
+export type ConversationTurnIndex = { items: TurnPreviewItem[]; branchId?: string };
+
 /** The rail and title search use the same branch-fenced, paged projection. */
 export async function loadConversationTurnIndex(
   conversationId: string,
   options: { signal?: AbortSignal; fullText?: boolean } = {}
-): Promise<TurnPreviewItem[]> {
+): Promise<ConversationTurnIndex> {
   const revision = getSynonBiomedBranchSelectionRevision(conversationId);
   const pages: TMessage[][] = [];
   const cursors = new Set<string>();
@@ -54,12 +56,18 @@ export async function loadConversationTurnIndex(
     if (!before || cursors.has(before)) throw new Error('conversation_history_cursor_not_advancing');
     cursors.add(before);
   } while (before);
-  return buildTurnPreview(pages.toReversed().flat());
+  return { items: buildTurnPreview(pages.toReversed().flat()), branchId };
 }
 
 export function mergeLiveTurnPreviews(history: TurnPreviewItem[], messages: TMessage[]): TurnPreviewItem[] {
-  const live = buildTurnPreview(messages);
-  const merged = history.map((item) => ({ ...item }));
+  const live = buildTurnPreview(
+    messages.map((message) =>
+      message.type === 'text'
+        ? { ...message, content: { ...message.content, content: message.content.content.slice(0, 512) } }
+        : message
+    )
+  );
+  const merged = history.slice();
   const positions = new Map(history.map((item, index) => [item.messageId, index]));
   for (const item of live) {
     const position = positions.get(item.messageId);
@@ -67,7 +75,7 @@ export function mergeLiveTurnPreviews(history: TurnPreviewItem[], messages: TMes
       merged.push({ ...item, index: merged.length + 1 });
     } else {
       const previous = merged[position];
-      merged[position] = {
+      const next = {
         ...previous,
         ...item,
         index: previous.index,
@@ -75,7 +83,17 @@ export function mergeLiveTurnPreviews(history: TurnPreviewItem[], messages: TMes
         answerRaw: item.answerRaw || previous.answerRaw,
         messageIds: [...new Set([...previous.messageIds, ...item.messageIds])],
       };
+      if (
+        next.question !== previous.question ||
+        next.questionRaw !== previous.questionRaw ||
+        next.answer !== previous.answer ||
+        next.answerRaw !== previous.answerRaw ||
+        next.msgId !== previous.msgId ||
+        next.messageIds.length !== previous.messageIds.length ||
+        next.messageIds.some((id, index) => id !== previous.messageIds[index])
+      )
+        merged[position] = next;
     }
   }
-  return merged;
+  return merged.length === history.length && merged.every((item, index) => item === history[index]) ? history : merged;
 }

@@ -72,6 +72,11 @@ try {
   await expect(page.locator('[data-source-message-id="q99"]')).toBeInViewport();
   assert.ok((await rail.getByRole('button').count()) < 70);
   await expect(rail.locator('[aria-setsize="100"]')).toHaveCount(await rail.getByRole('button').count());
+  const marks = rail.locator('ol');
+  const previousMarkOffset = await marks.evaluate((element) => element.scrollTop);
+  await rail.hover();
+  await page.mouse.wheel(0, -320);
+  await expect.poll(() => marks.evaluate((element) => element.scrollTop)).toBeLessThan(previousMarkOffset);
   const first = rail.locator('[data-turn-index="0"]');
   await first.focus();
   await first.hover();
@@ -170,6 +175,7 @@ try {
       checks: [
         'one turn',
         '100 turns keyboard forward/backward',
+        'long rail independent pointer-wheel navigation',
         '1000 turns bounded DOM',
         'real Virtuoso jump',
         'disjoint cursor-window jump without pagination cascade',

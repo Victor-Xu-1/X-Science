@@ -9,13 +9,15 @@ export default function ConversationTurnNavigation({
   conversationId,
   messages,
   viewport,
+  windowBranchId,
 }: {
   conversationId?: string;
   messages: TMessage[];
   viewport: HTMLDivElement | null;
+  windowBranchId?: string;
 }) {
   const { t } = useTranslation();
-  const { items, loading, failed, retry } = useTurnIndex(conversationId, messages);
+  const { items, loading, failed, retry } = useTurnIndex(conversationId, messages, windowBranchId);
   if (!conversationId || loading) return null;
   if (failed)
     return (
