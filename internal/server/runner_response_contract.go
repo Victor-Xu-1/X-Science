@@ -67,21 +67,29 @@ func (client *sessionRunnerResponseContractClient) Complete(ctx context.Context,
 	return client.CompleteStream(ctx, request, nil)
 }
 
-// Preserve native streaming through the existing candidate/public boundary.
-// A valid native preamble wins over the structured field, so there is never a
-// second copy of the same model turn's explanation. Structured progress is
-// released only after the complete response has validated its JSON arguments.
+// Select one narration source only after the response is complete. A native
+// tool-start token does not validate its arguments; interrupted drafts remain
+// private. Structured progress owns its explicit role; native text is fallback.
 func (client *sessionRunnerResponseContractClient) CompleteStream(ctx context.Context, request agentruntime.ModelRequest, emit func(agentruntime.ModelStreamEvent) error) (agentruntime.ModelResponse, error) {
 	projected, err := projectRunnerResponseContract(request, client.progressDue != nil && client.progressDue())
 	if err != nil {
 		return agentruntime.ModelResponse{}, err
 	}
 	var response agentruntime.ModelResponse
+	collect := func(event agentruntime.ModelStreamEvent) error {
+		// Content remains a private candidate. Forward it incrementally so
+		// persistence, cancellation and progress watchdogs retain their cadence.
+		// A provisional tool boundary cannot promote that candidate.
+		if emit != nil && event.Kind != agentruntime.ModelStreamEventToolCallBoundary {
+			return emit(event)
+		}
+		return nil
+	}
 	if streaming, ok := client.delegate.(agentruntime.StreamingModelClient); ok {
-		response, err = streaming.CompleteStream(ctx, projected, emit)
+		response, err = streaming.CompleteStream(ctx, projected, collect)
 	} else {
 		response, err = client.delegate.Complete(ctx, projected)
-		if response.Message.Content != "" && emit != nil {
+		if emit != nil && response.Message.Content != "" {
 			if dispatchErr := emit(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventContentDelta, ContentDelta: response.Message.Content}); dispatchErr != nil {
 				return response, dispatchErr
 			}
@@ -91,7 +99,24 @@ func (client *sessionRunnerResponseContractClient) CompleteStream(ctx context.Co
 		return response, err
 	}
 	progress, blockID := extractRunnerResponseProgress(&response)
-	if progress == "" || sessionRunnerPublicProgressNarration(response.Message.Content) != "" || strings.Contains(response.Message.Content, agentruntime.PublicProgressEnvelopeBegin) {
+	for _, call := range response.Message.ToolCalls {
+		if call.ProviderProtocolDiagnostic != "" || (len(call.Arguments) > 0 && !json.Valid(call.Arguments)) {
+			// Providers retain malformed proposals for the engine's private
+			// protocol repair. A successful transport is not validated arguments.
+			return response, nil
+		}
+	}
+	if strings.Contains(response.Message.Content, agentruntime.PublicProgressEnvelopeBegin) {
+		return response, nil
+	}
+	if progress == "" && len(response.Message.ToolCalls) > 0 {
+		// A completed native preamble has the same explicit progress role.
+		// Preserve it even if later tool admission asks for a private repair,
+		// without promoting an earlier interrupted response's candidate bytes.
+		progress = sessionRunnerPublicProgressNarration(response.Message.Content)
+		blockID = fmt.Sprintf("native-%x", sha256.Sum256([]byte(response.Message.ToolCalls[0].ID+"\x00"+progress)))
+	}
+	if progress == "" {
 		return response, nil
 	}
 	// Cadence controls when to request an update, not whether a model-authored

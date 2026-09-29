@@ -121,6 +121,9 @@ func (s *Server) interruptClaimedSessionRunner(
 	if len(resumeDetails) > 0 {
 		resumeDetail = resumeDetails[0]
 	}
+	if result != nil && result.AwaitingRecoveryCondition {
+		resumeDetail += "; automatic recovery is paused because the unchanged route is not making progress; completed work is preserved; change the provider/output configuration or execution approach, then explicitly continue"
+	}
 	return s.interruptClaimedSessionRunnerWithCause(options, result, activeRun, projectionClaim, transcriptAuthority, reasonCode, resumeDetail, nil)
 }
 
@@ -310,6 +313,7 @@ func (s *Server) interruptClaimedSessionRunnerLockedWithCause(
 func runnerInterruptionNeedsRecoveryBackoff(reasonCode string) bool {
 	switch strings.TrimSpace(reasonCode) {
 	case "provider_stream_no_progress",
+		sessionRunnerProviderOutputTokenLimitReasonCode,
 		sessionRunnerResponseLanguageMismatchReasonCode,
 		sessionRunnerFinalPresentationReasonCode,
 		sessionRunnerProviderTransportTemporaryReasonCode,
@@ -453,7 +457,6 @@ func runnerInterruptionIsProgressBoundary(reasonCode string) bool {
 		sessionRunnerToolRoundLimitReasonCode,
 		"provider_stream_interrupted",
 		sessionRunnerRequestContextPressureReasonCode,
-		sessionRunnerProviderOutputTokenLimitReasonCode,
 		sessionRunnerKernelOperationPendingRecoveryReasonCode:
 		return true
 	default:

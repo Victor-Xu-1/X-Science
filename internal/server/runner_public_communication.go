@@ -91,6 +91,9 @@ func sessionRunnerPublicProgressNarration(content string) string {
 	if content == "" {
 		return ""
 	}
+	if strings.IndexFunc(content, func(r rune) bool { return unicode.IsLetter(r) || unicode.IsDigit(r) || unicode.IsSymbol(r) }) < 0 {
+		return ""
+	}
 	normalizedControl := strings.ToLower(content)
 	if strings.Contains(normalizedControl, "<|functioncallbegin|>") ||
 		strings.Contains(normalizedControl, "<|functioncallend|>") ||

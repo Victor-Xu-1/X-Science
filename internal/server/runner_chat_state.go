@@ -80,6 +80,8 @@ type sessionRunnerChatRun struct {
 	planProgressAvailable              atomic.Bool
 	ProviderContinuation               *sessionRunnerProviderContinuationState
 	ProviderAttemptSemanticBytes       int64
+	generationRecoveryMu               sync.Mutex
+	generationRecovery                 providerGenerationRecovery
 	NoProgressRecovery                 *sessionRunnerNoProgressRecovery
 	managedEnvironmentMu               sync.Mutex
 	managedEnvironmentBindings         map[string]string

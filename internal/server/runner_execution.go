@@ -654,6 +654,9 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 		if recoveryContext := sessionRunnerNoProgressRecoveryContext(*run.NoProgressRecovery); recoveryContext != "" {
 			messages = appendRuntimeTerminalPolicyContextMessage(messages, recoveryContext)
 		}
+		if recoveryContext := run.generationRecoveryContext(); recoveryContext != "" {
+			messages = appendRuntimeTerminalPolicyContextMessage(messages, recoveryContext)
+		}
 	}
 	if desiredOutputs := s.generatedPlanDesiredOutputsContext(intakeFrameID); desiredOutputs != "" {
 		messages = attachRuntimeResearchNavigationState(messages, desiredOutputs)
@@ -693,6 +696,9 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 	// that internal language during long correction runs.
 	messages = appendRuntimeResponseLanguageContextMessage(messages, taskLanguage)
 	messages = moveRecoveredRunnerCorrectionContextToEnd(messages)
+	if err := run.waitGenerationRecovery(ctx); err != nil {
+		return "", err
+	}
 	if err := checkpointPreparationStage("model_execution"); err != nil {
 		return "", err
 	}
@@ -824,6 +830,9 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 		return publishProgress("", candidateStream.take())
 	}
 	publishTypedProgressSegment := func(blockID string) error {
+		// A complete typed update replaces a still-private draft, not history.
+		candidateStream.discard()
+		privatePrefix = ""
 		return publishProgress(blockID, publicProgressStream.take())
 	}
 	engine.OnModelDelta = func(event agentruntime.ModelStreamEvent) error {
@@ -849,9 +858,8 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 			if publicProgressBlockID != "" {
 				return errors.New("tool boundary arrived before the public progress block closed")
 			}
-			if candidateStream.hasContent() {
-				return publishProgressSegment()
-			}
+			// A streamed tool proposal may still have truncated arguments.
+			// Only the complete model-response boundary authorizes its preamble.
 			return nil
 		case agentruntime.ModelStreamEventContentDelta:
 			if event.ContentDelta != "" {
@@ -894,9 +902,8 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 					run, event.Message, event.ToolCalls,
 				)
 				if progressSegmentPublished {
-					// A provider-native tool boundary already proved that the
-					// preceding text was progress and published it. Only a rare
-					// trailing fragment remains in the private buffer.
+					// A complete typed progress block has already been published.
+					// Only a trailing explicit progress fragment can remain.
 					if candidateStream.hasContent() {
 						if err := publishProgressSegment(); err != nil {
 							return err

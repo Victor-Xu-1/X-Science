@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -319,12 +320,24 @@ func (accumulator sessionRunnerRecoveryProjectionAccumulator) result() sessionRu
 func (s *Server) loadSessionRunnerRecoveryProjection(
 	ctx context.Context,
 	authority *transcriptRunnerAuthority,
+	restoreRuns ...*sessionRunnerChatRun,
 ) (sessionRunnerRecoveryProjection, error) {
 	if s == nil || s.transcriptStore == nil || authority == nil {
 		return sessionRunnerRecoveryProjection{}, nil
 	}
 	accumulator := newSessionRunnerRecoveryProjectionAccumulator(authority)
+	for _, run := range restoreRuns {
+		if run == nil || run.Transcript == nil || run.Transcript.Stream.UID != authority.Stream.UID ||
+			run.Transcript.Stream.OwnerID != authority.Stream.OwnerID {
+			return sessionRunnerRecoveryProjection{}, errors.New("progress restoration authority mismatch")
+		}
+	}
 	err := s.scanSessionRunnerRecoveryEntries(ctx, authority, func(entry eventjournal.Entry) error {
+		for _, run := range restoreRuns {
+			if err := s.restoreRunnerProgressEntry(run, entry); err != nil {
+				return err
+			}
+		}
 		accumulator.observe(entry)
 		return nil
 	})

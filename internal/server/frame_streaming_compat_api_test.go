@@ -215,21 +215,31 @@ func TestCompatibilityStreamingExposesRealKernelStdout(t *testing.T) {
 	app := server.Handler()
 	waitForFile(t, filepath.Join(workspaceDir, "http-stream-started"))
 	var stream map[string]any
+	stdoutReceived := false
 	deadline := time.Now().Add(3 * time.Second)
 	for time.Now().Before(deadline) {
 		stream = compatJSONRequest(t, app, http.MethodGet, "/api/frames/root/streaming", "local", nil, http.StatusOK)
 		stdout, _ := stream["tool_stdout"].([]any)
 		if len(stdout) == 1 {
 			entry := stdout[0].(map[string]any)
-			if entry["tool_use_id"] != "tool-http-stream" || entry["stdout"] != "live stdout\n" {
+			if entry["tool_use_id"] != "tool-http-stream" {
 				t.Fatalf("tool stdout entry = %#v", entry)
 			}
-			assertCompatibilityExecStreamWatermarks(t, entry, "live stdout\n")
-			break
+			// Execution registration and pipe chunk publication are asynchronous.
+			// Keep the same deadline and exact byte/watermark assertions, but do
+			// not mistake an initial empty running record for missing output.
+			if entry["stdout"] != "" {
+				if entry["stdout"] != "live stdout\n" {
+					t.Fatalf("tool stdout entry = %#v", entry)
+				}
+				assertCompatibilityExecStreamWatermarks(t, entry, "live stdout\n")
+				stdoutReceived = true
+				break
+			}
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
-	if stdout, _ := stream["tool_stdout"].([]any); len(stdout) != 1 {
+	if !stdoutReceived {
 		t.Fatalf("live kernel stream = %#v", stream)
 	}
 	rootAuthoritativeBatch := compatJSONRequest(t, app, http.MethodPost, "/api/frames/root/streaming-batch", "local", map[string]any{}, http.StatusOK)

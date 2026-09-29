@@ -18,6 +18,7 @@ func (s *Server) loadTranscriptRunnerReplay(
 	ctx context.Context,
 	authority *transcriptRunnerAuthority,
 	messageLimit, checkpointLimit int,
+	restoreRuns ...*sessionRunnerChatRun,
 ) ([]eventjournal.Entry, error) {
 	if s == nil || s.transcriptStore == nil || authority == nil {
 		return nil, errors.New("transcript runner authority is required")
@@ -26,7 +27,7 @@ func (s *Server) loadTranscriptRunnerReplay(
 	if err != nil {
 		return nil, err
 	}
-	recoveryProjection, err := s.loadSessionRunnerRecoveryProjection(ctx, authority)
+	recoveryProjection, err := s.loadSessionRunnerRecoveryProjection(ctx, authority, restoreRuns...)
 	if err != nil {
 		return nil, err
 	}

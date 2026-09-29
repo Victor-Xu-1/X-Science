@@ -35,6 +35,16 @@ func TestSameInputNoProgressRecoveryUsesBackoffWithoutAttemptCeiling(t *testing.
 	}
 }
 
+func TestOutputLimitIsNotAnAutomaticProgressBoundary(t *testing.T) {
+	now := time.Date(2026, time.September, 1, 12, 0, 0, 0, time.UTC)
+	for _, attempt := range []int64{1, 4, 1000} {
+		notBefore := frameResumeDispatchAutoResumePolicy(sessionRunnerProviderOutputTokenLimitReasonCode, attempt, "limited-frame", now)
+		if delay := notBefore.Sub(now); delay < 2*time.Second || delay > 22*time.Second {
+			t.Fatalf("output limit recovery attempt %d delay=%s", attempt, delay)
+		}
+	}
+}
+
 func TestProviderTransportRecoveryUsesReferenceBackoffWithoutAttemptCeiling(t *testing.T) {
 	now := time.Date(2026, time.August, 27, 12, 0, 0, 0, time.UTC)
 	for _, test := range []struct {

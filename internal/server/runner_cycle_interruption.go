@@ -55,6 +55,15 @@ func (s *Server) handleSessionRunnerChatInterruption(
 		return true, nil
 	}
 	var noProgressInterruption sessionRunnerProviderNoProgressInterruption
+	if providers.IsProviderOutputTokenLimit(chatErr) || providers.IsProviderEmptyResponse(chatErr) ||
+		providers.IsRetryableModelProtocolError(chatErr) || providers.IsContinuationSafeResponseTruncation(chatErr) ||
+		providers.IsRecoverableStreamInterruption(chatErr) || errors.As(chatErr, &noProgressInterruption) {
+		park, err := s.checkpointGenerationRecovery(context.WithoutCancel(ctx), chatRun, chatErr)
+		if err != nil {
+			return true, err
+		}
+		result.AwaitingRecoveryCondition = park
+	}
 	if providers.IsRetryableModelProtocolError(chatErr) {
 		if chatRun != nil && chatRun.ProviderAttemptSemanticBytes > 0 {
 			boundaryEvent, boundaryErr := s.persistProviderContinuationBoundary(context.WithoutCancel(ctx), chatRun)
@@ -152,14 +161,6 @@ func (s *Server) handleSessionRunnerChatInterruption(
 			} else if providerOutputTokenLimit {
 				reasonCode = sessionRunnerProviderOutputTokenLimitReasonCode
 				resumeDetail = "provider reached its output token limit before completing the next action; start a fresh bounded generation from the last completed tool checkpoint"
-			}
-			var saturated *sessionOutputBudgetSaturatedError
-			if errors.As(chatErr, &saturated) && providerContinuationRouteExhausted(chatRun) {
-				// Both budget adaptation and next-action recovery were tried.
-				// Park only this unchanged generation route, retaining a native
-				// resume point; healthy long output/compute is unaffected.
-				result.AwaitingRecoveryCondition = true
-				resumeDetail = "provider output remains truncated with negligible new content after budget adaptation and next-action recovery; completed work and accepted history are preserved; resume after correcting the provider/output configuration or supplying a changed execution route"
 			}
 			if err := s.interruptClaimedSessionRunner(
 				options, result, activeRun, projectionClaim, transcriptAuthority, reasonCode, resumeDetail,
