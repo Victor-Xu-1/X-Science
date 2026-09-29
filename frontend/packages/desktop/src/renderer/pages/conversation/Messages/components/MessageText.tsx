@@ -9,9 +9,8 @@ import { SYNON_AI_FILES_MARKER } from '@/common/config/constants';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useLocalFilePreview } from '@/renderer/pages/conversation/Preview/hooks/useLocalFilePreview';
-import { iconColors } from '@/renderer/styles/colors';
 import { Alert, Message, Tooltip } from '@arco-design/web-react';
-import { Copy } from '@icon-park/react';
+import { IconCopy } from '@arco-design/web-react/icon';
 import classNames from 'classnames';
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -28,6 +27,10 @@ import { presentArtifactReferenceContent } from './artifactReferencePresentation
 import MessageCronBadge from './MessageCronBadge';
 import { hasRenderableMessageText } from './messageTextVisibility';
 import { splitDeliveryListPresentation } from './deliveryListPresentation';
+import { decodeRoundSummary } from '@/common/chat/roundSummary';
+import MessageRoundFooter from './MessageRoundFooter';
+import MessageReplyBranchButton from './MessageReplyBranchButton';
+import actionStyles from './MessageRoundFooter.module.css';
 
 const CODE_STYLE = { marginTop: 4, marginBlock: 4 };
 
@@ -117,6 +120,10 @@ const MessageText: React.FC<{
   const { t } = useTranslation();
   const [showCopyAlert, setShowCopyAlert] = useState(false);
   const isUserMessage = message.position === 'right';
+  const roundSummary =
+    !isUserMessage && message.terminal_status === 'completed' && !message.terminal_superseded
+      ? decodeRoundSummary(message.round_summary)
+      : undefined;
   const isRejectedTerminalCandidate =
     !isUserMessage &&
     message.terminal_superseded !== true &&
@@ -168,15 +175,14 @@ const MessageText: React.FC<{
         type='button'
         aria-label={t('common.copy')}
         className={classNames(
-          'border-none bg-transparent p-4px rd-4px cursor-pointer hover:bg-3 transition-colors',
-          isMobile
+          actionStyles.iconButton,
+          isMobile || roundSummary
             ? ''
             : 'opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus:opacity-100 focus:pointer-events-auto'
         )}
         onClick={handleCopy}
-        style={{ lineHeight: 0 }}
       >
-        <Copy theme='outline' size='16' fill={iconColors.secondary} />
+        <IconCopy className={actionStyles.icon} />
       </button>
     </Tooltip>
   );
@@ -290,14 +296,23 @@ const MessageText: React.FC<{
           )}
         </div>
         {/* Only the final text block in a turn exposes a message-level action. */}
-        {showCopyRow && hasTextContent && (
+        {((showCopyRow && hasTextContent) || roundSummary) && (
           <div
             data-testid='message-text-actions'
-            className={classNames('min-h-32px flex items-center mt-4px', {
-              'flex-row-reverse': isUserMessage,
+            className={classNames(actionStyles.actions, {
+              [actionStyles.reversed]: isUserMessage,
             })}
           >
-            {copyButton}
+            {message.content.content.trim() && copyButton}
+            {roundSummary && isSynonBiomedWorkspace && (
+              <MessageReplyBranchButton
+                key={`${message.conversation_id}:${message.id}`}
+                conversationId={message.conversation_id}
+                throughAttempt={roundSummary.attempt}
+                sourceBranchId={message.content.synonBiomed?.branchId}
+              />
+            )}
+            {roundSummary && <MessageRoundFooter summary={roundSummary} />}
           </div>
         )}
       </div>

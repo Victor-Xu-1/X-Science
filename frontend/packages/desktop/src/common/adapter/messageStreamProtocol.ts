@@ -1,3 +1,5 @@
+import { decodeRoundSummary, type RoundSummary } from '../chat/roundSummary';
+
 export const MESSAGE_STREAM_TYPES = ['start', 'thinking', 'text', 'content', 'tool_call', 'finish', 'error'] as const;
 
 export type MessageStreamType = (typeof MESSAGE_STREAM_TYPES)[number];
@@ -62,6 +64,7 @@ export interface IResponseMessage {
   terminal_status?: 'completed' | 'failed' | 'cancelled';
   /** A later attempt accepted for this same logical input supersedes this terminal state. */
   terminal_superseded?: boolean;
+  round_summary?: RoundSummary;
   /** Replace accumulated text for the same msg_id instead of appending. */
   replace?: boolean;
   /** Replace every persisted assistant segment owned by this exact attempt. */
@@ -274,6 +277,9 @@ function decodeMessagePayload(raw: unknown): IResponseMessage | undefined {
         }
       : {}),
     ...(raw.terminal_superseded !== undefined ? { terminal_superseded: raw.terminal_superseded } : {}),
+    ...(raw.terminal_status === 'completed' && decodeRoundSummary(raw.round_summary)
+      ? { round_summary: decodeRoundSummary(raw.round_summary) }
+      : {}),
     ...(raw.replace !== undefined ? { replace: raw.replace } : {}),
     ...(raw.replace_scope !== undefined ? { replace_scope: raw.replace_scope as 'attempt' } : {}),
     ...(raw.assistant_attempt_id !== undefined ? { assistant_attempt_id: raw.assistant_attempt_id as string } : {}),

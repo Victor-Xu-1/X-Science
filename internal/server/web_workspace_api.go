@@ -116,10 +116,11 @@ func (s *Server) handleWebWorkspaceList(w http.ResponseWriter, r *http.Request, 
 	}
 	entries := make([]map[string]any, 0, len(page.Artifacts))
 	for _, artifact := range page.Artifacts {
+		inherited := artifact.FrameID != nil && *artifact.FrameID != frameID
 		entries = append(entries, map[string]any{
 			"name": artifact.Filename, "type": "file",
 			"relative_path": "project-files/" + artifact.Filename,
-			"read_only":     false, "can_rename": true, "can_delete": true,
+			"read_only":     inherited, "can_rename": !inherited, "can_delete": !inherited,
 			"artifact_id": artifact.ID, "version_id": artifact.VersionID,
 			"content_type": artifact.ContentType, "size_bytes": artifact.SizeBytes,
 			"content_url": "/api/artifacts/" + url.PathEscape(artifact.ID) + "/versions/" + url.PathEscape(artifact.VersionID),

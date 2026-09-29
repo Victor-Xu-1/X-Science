@@ -860,8 +860,19 @@ func validateArtifactVersionAuthority(
 	if err != nil {
 		return err
 	}
-	if ownerID != stream.OwnerID || projectID != stream.ProjectID || frameID == "" ||
-		metadataRootFrameID != stream.RootFrameID || producingRootFrameID != stream.RootFrameID {
+	if ownerID != stream.OwnerID || projectID != stream.ProjectID || frameID == "" {
+		return ErrArtifactMismatch
+	}
+	if metadataRootFrameID != stream.RootFrameID || producingRootFrameID != stream.RootFrameID {
+		if ref.Relation == ArtifactRelationCited || ref.Relation == ArtifactRelationConsumed {
+			inherited, err := inheritedArtifactVersionConn(ctx, conn, stream, ref.ArtifactID, ref.VersionID, "")
+			if err != nil {
+				return err
+			}
+			if inherited {
+				return nil
+			}
+		}
 		return ErrArtifactMismatch
 	}
 	if (ref.Relation == ArtifactRelationProduced || ref.Relation == ArtifactRelationAttached) && frameID != stream.FrameID {

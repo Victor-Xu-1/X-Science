@@ -57,6 +57,15 @@ func validatePayloadHistoryArtifactSourceConn(
 	if err == nil {
 		return nil
 	}
+	if errors.Is(err, ErrArtifactMismatch) {
+		inherited, queryErr := inheritedArtifactVersionConn(ctx, conn, source, artifactID, versionID, relation)
+		if queryErr != nil {
+			return queryErr
+		}
+		if inherited {
+			return nil
+		}
+	}
 	if availability == ArtifactAvailable || (!errors.Is(err, ErrArtifactMissing) && !errors.Is(err, ErrArtifactMismatch)) {
 		return err
 	}

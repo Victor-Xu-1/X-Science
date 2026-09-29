@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { isErrorTipMessage, transformMessage } from '@/common/chat/chatLib';
+import { applyRoundSummaryPublication } from '../../Messages/roundSummaryProjection';
 import type { AvailableCommand } from '@/common/chat/chatLib';
 import { mapAcpCommandsToSlashCommands } from '@/common/chat/slash/acpMapping';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
@@ -477,6 +478,11 @@ export const useAcpMessage = (
           break;
         case 'finish':
           {
+            // A terminal metadata-only publication must update the existing
+            // text without appending/replacing its already accepted bytes.
+            if (message.terminal_status === 'completed' && message.round_summary) {
+              updateMessageList((messages) => applyRoundSummaryPublication(messages, message));
+            }
             if (message.artifact_refs !== undefined) {
               mergeLiveMessage(undefined, false, {
                 msgId: message.msg_id,

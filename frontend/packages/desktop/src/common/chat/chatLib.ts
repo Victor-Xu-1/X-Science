@@ -8,6 +8,7 @@ import type { AcpPermissionRequest, PlanUpdate, ToolCallUpdate } from '@/common/
 import type { AcpAvailableCommand } from '@/common/chat/slash/types';
 import type { ArtifactReferenceWire, IResponseMessage, ToolLifecycleStatus } from '../adapter/messageStreamProtocol';
 import { uuid } from '../utils';
+import { decodeRoundSummary, type RoundSummary } from './roundSummary';
 import { sanitizeAcpToolCallContent, sanitizeAcpToolUpdate } from './acpToolCallOutput';
 import {
   isTextPublicationCovered,
@@ -117,6 +118,7 @@ interface IMessage<T extends TMessageType, Content> {
   terminal_status?: 'completed' | 'failed' | 'cancelled';
   /** True after a later attempt for the same logical input has been accepted. */
   terminal_superseded?: boolean;
+  round_summary?: RoundSummary;
   /**
    * Hidden from UI display but persisted to DB and sent to agent.
    */
@@ -482,9 +484,11 @@ export const preferTextMessageVersion = (primary: IMessageText, secondary: IMess
       }
     : undefined;
   const reconciledReferences = mergeArtifactReferences(secondary.artifact_refs, primary.artifact_refs, 'union');
+  const roundSummary = decodeRoundSummary(primary.round_summary) ?? decodeRoundSummary(secondary.round_summary);
   const publicationCoverage = mergeTextPublicationCoverage(primary, secondary);
   if (
     terminalState === undefined &&
+    roundSummary === undefined &&
     reconciledReferences === undefined &&
     Object.keys(publicationCoverage).length === 0
   )
@@ -493,6 +497,7 @@ export const preferTextMessageVersion = (primary: IMessageText, secondary: IMess
     ...selected,
     ...publicationCoverage,
     ...terminalState,
+    ...(roundSummary ? { round_summary: roundSummary } : {}),
     ...(reconciledReferences === undefined ? {} : { artifact_refs: reconciledReferences }),
   };
 };
@@ -885,6 +890,9 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
         ...(message.artifact_refs !== undefined ? { artifact_refs: message.artifact_refs } : {}),
         ...(message.terminal_status !== undefined ? { terminal_status: message.terminal_status } : {}),
         ...(message.terminal_superseded !== undefined ? { terminal_superseded: message.terminal_superseded } : {}),
+        ...(decodeRoundSummary(message.round_summary)
+          ? { round_summary: decodeRoundSummary(message.round_summary) }
+          : {}),
         ...(message.hidden && { hidden: true }),
       };
     }

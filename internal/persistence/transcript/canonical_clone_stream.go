@@ -28,6 +28,7 @@ type canonicalCloneStage struct {
 	activeTarget     string
 	branchGeneration int64
 	legacyCutover    *storedHistoryActivationCutover
+	throughOrdinal   int64
 }
 
 type canonicalCloneMaterialized struct {
@@ -458,13 +459,13 @@ func materializeCanonicalCloneRunnerConn(
 			ON event.target_uid=? AND event.source_event_id=attempt.finished_event_id AND event.keep=1
 		LEFT JOIN transcript_runner_receipts receipt
 			ON receipt.stream_uid=attempt.stream_uid AND receipt.attempt=attempt.attempt
-		WHERE attempt.stream_uid=? AND (
+		WHERE attempt.stream_uid=?`+canonicalCloneAttemptSelection("attempt.attempt")+` AND (
 			attempt.status='running' OR attempt.finished_event_id IS NULL OR attempt.finished_at IS NULL OR
 			event.target_event_id IS NULL OR
 			(attempt.status!='reclaimed' AND receipt.attempt IS NULL) OR
 			(receipt.attempt IS NOT NULL AND (receipt.event_id!=attempt.finished_event_id OR
 				receipt.status!=attempt.status OR receipt.finished_at!=attempt.finished_at)))`,
-		target.UID, source.UID).Scan(&invalid); err != nil {
+		target.UID, source.UID, target.UID).Scan(&invalid); err != nil {
 		return 0, 0, 0, err
 	}
 	if invalid != 0 {
@@ -481,7 +482,7 @@ func materializeCanonicalCloneRunnerConn(
 	attemptRows, err := conn.QueryContext(ctx, `SELECT attempt,runner_id,claim_token_sha256,claimed_input_revision,
 		resume_source,resume_checkpoint_sequence,status,phase,phase_sequence,last_checkpoint_sequence,
 		claimed_at,expires_at,finished_event_id,finished_at
-		FROM transcript_runner_attempts WHERE stream_uid=? ORDER BY attempt`, source.UID)
+		FROM transcript_runner_attempts WHERE stream_uid=?`+canonicalCloneAttemptSelection("attempt")+` ORDER BY attempt`, source.UID, target.UID)
 	if err != nil {
 		return 0, 0, 0, err
 	}
@@ -571,7 +572,7 @@ func materializeCanonicalCloneRunnerConn(
 		return 0, 0, 0, err
 	}
 	checkpointRows, err := conn.QueryContext(ctx, `SELECT checkpoint_sequence,runner_attempt,event_id,phase,resumable,created_at
-		FROM transcript_runner_checkpoints WHERE stream_uid=? ORDER BY checkpoint_sequence`, source.UID)
+		FROM transcript_runner_checkpoints WHERE stream_uid=?`+canonicalCloneAttemptSelection("runner_attempt")+` ORDER BY checkpoint_sequence`, source.UID, target.UID)
 	if err != nil {
 		return 0, 0, 0, err
 	}
@@ -626,7 +627,13 @@ func planCanonicalCloneBranchesConn(
 	writePayloadGenesisDigestField(digest, []byte(strconv.FormatInt(stage.branchGeneration, 10)))
 	var branchRows *sql.Rows
 	var err error
-	if stage.legacyCutover == nil {
+	if stage.throughOrdinal > 0 {
+		// A new conversation starts with one base branch, not the source's later
+		// edits or siblings. Preserve source identity in the clone mapping.
+		branchRows, err = conn.QueryContext(ctx, `SELECT branch_id,branch_id,NULL,NULL,
+			0,'base','reply-prefix',zeroblob(32),'',created_at,created_at FROM transcript_branches WHERE stream_uid=? AND branch_id=?`,
+			source.UID, stage.activeSource)
+	} else if stage.legacyCutover == nil {
 		branchRows, err = conn.QueryContext(ctx, `SELECT branch_id,branch_id,parent_branch_id,fork_event_id,
 			fork_point,kind,client_mutation_id,request_sha256,source_message_id,created_at,updated_at
 			FROM transcript_branches WHERE stream_uid=? ORDER BY branch_id`, source.UID)
@@ -718,7 +725,10 @@ func planCanonicalCloneBranchesConn(
 		return 0, 0, nil, ErrEventConflict
 	}
 	var membershipRows *sql.Rows
-	if stage.legacyCutover == nil {
+	if stage.throughOrdinal > 0 {
+		membershipRows, err = conn.QueryContext(ctx, `SELECT branch_id,ordinal,event_id FROM transcript_branch_events
+			WHERE stream_uid=? AND branch_id=? AND ordinal<=? ORDER BY ordinal`, source.UID, stage.activeSource, stage.throughOrdinal)
+	} else if stage.legacyCutover == nil {
 		membershipRows, err = conn.QueryContext(ctx, `SELECT branch_id,ordinal,event_id FROM transcript_branch_events
 			WHERE stream_uid=? ORDER BY branch_id,ordinal`, source.UID)
 	} else {
@@ -854,7 +864,8 @@ func planCanonicalCloneArtifactsConn(
 	digest := sha256.New()
 	commitRows, err := conn.QueryContext(ctx, `SELECT runner_attempt,source_event_id,ordinal,artifact_id,version_id,
 		relation,bound_event_id,created_at FROM transcript_artifact_commits WHERE stream_uid=?
-		ORDER BY runner_attempt,source_event_id,ordinal`, source.UID)
+		AND (?=0 OR source_event_id IN (SELECT source_event_id FROM `+canonicalCloneEventTable+` WHERE target_uid=? AND keep=1))
+		ORDER BY runner_attempt,source_event_id,ordinal`, source.UID, stage.throughOrdinal, target.UID)
 	if err != nil {
 		return 0, 0, nil, err
 	}
@@ -925,7 +936,8 @@ func planCanonicalCloneArtifactsConn(
 	if stage.legacyCutover == nil {
 		refRows, err = conn.QueryContext(ctx, `SELECT runner_attempt,source_event_id,ordinal,artifact_id,version_id,
 			relation,availability,created_at FROM transcript_artifact_refs WHERE stream_uid=?
-			ORDER BY runner_attempt,source_event_id,ordinal`, source.UID)
+			AND (?=0 OR source_event_id IN (SELECT source_event_id FROM `+canonicalCloneEventTable+` WHERE target_uid=? AND keep=1))
+			ORDER BY runner_attempt,source_event_id,ordinal`, source.UID, stage.throughOrdinal, target.UID)
 	} else {
 		refRows, err = conn.QueryContext(ctx, `SELECT event.runner_attempt,ref.target_event_key,ref.ordinal,
 			ref.artifact_id,ref.version_id,ref.relation,ref.availability,ref.created_at
@@ -1040,7 +1052,7 @@ func materializeCanonicalCloneStageConn(
 	if err != nil {
 		return canonicalCloneMaterialized{}, nil, err
 	}
-	runnerDigest, err := digestCanonicalCloneRunnerFactsConn(ctx, conn, source.UID)
+	runnerDigest, err := digestCanonicalCloneRunnerFactsConn(ctx, conn, source.UID, target.UID)
 	if err != nil {
 		return canonicalCloneMaterialized{}, nil, err
 	}
@@ -1081,7 +1093,7 @@ func expectedCanonicalCloneStageConn(
 	if err != nil {
 		return canonicalCloneMaterialized{}, nil, err
 	}
-	runnerDigest, err := digestCanonicalCloneRunnerFactsConn(ctx, conn, source.UID)
+	runnerDigest, err := digestCanonicalCloneRunnerFactsConn(ctx, conn, source.UID, target.UID)
 	if err != nil {
 		return canonicalCloneMaterialized{}, nil, err
 	}
@@ -1218,7 +1230,7 @@ func verifyCanonicalCloneTargetRunnerConn(
 	attemptRows, err := conn.QueryContext(ctx, `SELECT attempt,runner_id,claim_token_sha256,claimed_input_revision,
 		resume_source,resume_checkpoint_sequence,status,phase,phase_sequence,last_checkpoint_sequence,
 		claimed_at,expires_at,finished_event_id,finished_at
-		FROM transcript_runner_attempts WHERE stream_uid=? ORDER BY attempt`, sourceUID)
+		FROM transcript_runner_attempts WHERE stream_uid=?`+canonicalCloneAttemptSelection("attempt")+` ORDER BY attempt`, sourceUID, targetUID)
 	if err != nil {
 		return err
 	}
@@ -1254,7 +1266,7 @@ func verifyCanonicalCloneTargetRunnerConn(
 		return err
 	}
 	receiptRows, err := conn.QueryContext(ctx, `SELECT attempt,event_id,status,finished_at
-		FROM transcript_runner_receipts WHERE stream_uid=? ORDER BY attempt`, sourceUID)
+		FROM transcript_runner_receipts WHERE stream_uid=?`+canonicalCloneAttemptSelection("attempt")+` ORDER BY attempt`, sourceUID, targetUID)
 	if err != nil {
 		return err
 	}
@@ -1293,7 +1305,7 @@ func verifyCanonicalCloneTargetRunnerConn(
 		return err
 	}
 	checkpointRows, err := conn.QueryContext(ctx, `SELECT checkpoint_sequence,runner_attempt,event_id,phase,resumable,created_at
-		FROM transcript_runner_checkpoints WHERE stream_uid=? ORDER BY checkpoint_sequence`, sourceUID)
+		FROM transcript_runner_checkpoints WHERE stream_uid=?`+canonicalCloneAttemptSelection("runner_attempt")+` ORDER BY checkpoint_sequence`, sourceUID, targetUID)
 	if err != nil {
 		return err
 	}

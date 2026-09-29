@@ -43,14 +43,22 @@ func (s *Server) handleWebConversationClone(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	var body struct {
-		Conversation map[string]any `json:"conversation"`
-		IntentID     string         `json:"intent_id"`
+		Conversation   map[string]any `json:"conversation"`
+		IntentID       string         `json:"intent_id"`
+		ThroughAttempt int64          `json:"through_attempt"`
+		SourceBranchID string         `json:"source_branch_id"`
 	}
 	if err := decodeWebConversationJSON(w, r, &body); err != nil || body.Conversation == nil {
 		writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"message": "invalid clone request"})
 		return
 	}
 	sourceID := strings.TrimSpace(webString(body.Conversation["id"]))
+	body.SourceBranchID = strings.TrimSpace(body.SourceBranchID)
+	if body.ThroughAttempt < 0 || (body.ThroughAttempt == 0 && body.SourceBranchID != "") ||
+		(body.SourceBranchID != "" && !validWebTranscriptBranchID(body.SourceBranchID)) {
+		writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"message": "invalid clone boundary"})
+		return
+	}
 	source, project, ok := s.webConversationAccess(w, r, sourceID)
 	if !ok {
 		return
@@ -60,6 +68,9 @@ func (s *Server) handleWebConversationClone(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	name := strings.TrimSpace(source.Name) + " copy"
+	if body.ThroughAttempt > 0 {
+		name = strings.TrimSpace(source.Name) + " branch"
+	}
 	if utf8.RuneCountInString(name) > maxWebConversationNameRunes {
 		writeWebConversationError(w, &webConversationRequestError{
 			Status: http.StatusBadRequest, Detail: "conversation name exceeds 255 characters",
@@ -82,6 +93,7 @@ func (s *Server) handleWebConversationClone(w http.ResponseWriter, r *http.Reque
 		OwnerUserID: userID, SourceFrameID: source.ID,
 		ExpectedSourceIncarnationID: source.IncarnationID,
 		TargetFrameID:               targetID, TargetName: name,
+		ThroughAttempt: body.ThroughAttempt, SourceBranchID: body.SourceBranchID,
 	})
 	if err != nil {
 		if errors.Is(err, transcriptstore.ErrEventConflict) {

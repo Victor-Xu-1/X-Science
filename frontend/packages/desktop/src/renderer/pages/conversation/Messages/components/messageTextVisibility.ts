@@ -5,6 +5,7 @@
  */
 
 import type { IMessageText } from '@/common/chat/chatLib';
+import { decodeRoundSummary } from '@/common/chat/roundSummary';
 
 /**
  * Keep transcript virtualization and MessageText on the same visibility rule.
@@ -12,6 +13,13 @@ import type { IMessageText } from '@/common/chat/chatLib';
  * produces a zero-sized-item error on every transcript refresh.
  */
 export const hasRenderableMessageText = (message: IMessageText): boolean => {
+  if (
+    message.position === 'left' &&
+    message.terminal_status === 'completed' &&
+    !message.terminal_superseded &&
+    decodeRoundSummary(message.round_summary)
+  )
+    return true;
   const content = message.content.content;
   if (typeof content !== 'string' || content.trim().length === 0) return false;
 

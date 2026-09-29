@@ -222,6 +222,9 @@ func (s *Server) enrichTranscriptWebConversationMessages(
 	if err := s.enrichTranscriptWebArtifactPresentation(ctx, frameID, messages); err != nil {
 		return err
 	}
+	if err := s.enrichTranscriptRoundSummaries(ctx, frameID, messages); err != nil {
+		return err
+	}
 	hasToolCall := false
 	rawMessages := make([]map[string]any, 0, len(messages)*2)
 	for _, message := range messages {

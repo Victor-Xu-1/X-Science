@@ -857,6 +857,15 @@ func (s *Server) publishTranscriptTerminal(
 	if projection.ReasonCode != "" {
 		terminalPayload["terminal_reason_code"] = projection.ReasonCode
 	}
+	if projection.TerminalStatus == "completed" && !projection.Superseded {
+		summaries, err := s.completedRoundSummaries(ctx, projection.StreamUID, projection.OwnerID, projection.SessionID, []int64{projection.Attempt})
+		if err != nil {
+			return err
+		}
+		if summary := summaries[projection.Attempt]; summary != nil {
+			terminalPayload["round_summary"] = summary
+		}
+	}
 	if err := s.publishWebMessageStream(frameContext, baseID+":terminal", terminalPayload); err != nil {
 		return err
 	}
