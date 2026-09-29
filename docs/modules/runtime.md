@@ -38,6 +38,20 @@ claim → recovery → context → snapshot → provider ⇄ tool → verify →
 
 ## Focused verification · 验证入口
 
+### Background shutdown · 后台执行关闭
+
+后台 Shell 的生命周期包括启动、进程退出、输出日志和任务终态持久化。
+关闭服务时先封闭新启动的入口；已经获准、但尚未登记进程的启动也属于等待范围，
+登记时发现关闭已开始就立即停止进程。只有全部收尾完成后，关闭才报告成功。
+等待遵守调用方的取消和期限；日志或任务状态写入失败会明确记录并反馈，不以进程
+消失或清空进程表代替成功收尾。
+任务存储保留执行器的 `failed` 终态及退出码；普通命令失败不是关闭失败。
+任务文件读写不占用启动/关闭互斥锁，文件系统阻塞时关闭仍能遵守调用方期限。
+
+```sh
+go test ./internal/server -run 'TestServerClose.*BackgroundShell|TestBackgroundShell' -count=1
+```
+
 ### Provider generation recovery · 模型生成恢复
 
 环境默认模型和已保存模型使用同一任务隔离的输出预算恢复逻辑。供应商返回输出截断后，
