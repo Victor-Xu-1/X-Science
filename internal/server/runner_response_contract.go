@@ -99,6 +99,13 @@ func (client *sessionRunnerResponseContractClient) CompleteStream(ctx context.Co
 		return response, err
 	}
 	progress, blockID := extractRunnerResponseProgress(&response)
+	for _, call := range response.Message.ToolCalls {
+		if call.ProviderProtocolDiagnostic != "" || (len(call.Arguments) > 0 && !json.Valid(call.Arguments)) {
+			// Providers retain malformed proposals for the engine's private
+			// protocol repair. A successful transport is not validated arguments.
+			return response, nil
+		}
+	}
 	if strings.Contains(response.Message.Content, agentruntime.PublicProgressEnvelopeBegin) {
 		return response, nil
 	}

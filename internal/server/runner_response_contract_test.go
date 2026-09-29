@@ -181,3 +181,25 @@ func TestResponseContractDoesNotPromoteInterruptedOrFinalDrafts(t *testing.T) {
 		}
 	}
 }
+
+func TestResponseContractProtocolDiagnosticCannotPromoteNativeOrStructuredDraft(t *testing.T) {
+	for _, args := range []string{`{}`, `{"public_progress":"Checking the source."}`} {
+		model := &nativeCommunicationFixture{responses: []agentruntime.ModelResponse{{Message: agentruntime.Message{
+			Content: "Checking the source.", ToolCalls: []agentruntime.ToolCall{{
+				ID: "invalid-arguments", Name: "inspect", Arguments: json.RawMessage(args),
+				ProviderProtocolDiagnostic: "invalid JSON object arguments",
+			}},
+		}}}}
+		client := &sessionRunnerResponseContractClient{delegate: model}
+		public := 0
+		response, err := client.CompleteStream(context.Background(), agentruntime.ModelRequest{}, func(event agentruntime.ModelStreamEvent) error {
+			if event.Kind == agentruntime.ModelStreamEventPublicProgressDelta {
+				public++
+			}
+			return nil
+		})
+		if err != nil || public != 0 || response.Message.ToolCalls[0].ProviderProtocolDiagnostic == "" {
+			t.Fatalf("malformed proposal was promoted or lost its diagnostic: public=%d err=%v", public, err)
+		}
+	}
+}
