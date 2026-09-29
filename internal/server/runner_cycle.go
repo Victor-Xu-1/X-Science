@@ -561,7 +561,7 @@ func (s *Server) runSessionRunnerChatOnce(
 		}
 		if transcriptAuthority != nil {
 			entries, err = s.loadTranscriptRunnerReplay(
-				ctx, transcriptAuthority, int(options.ReplayLimit), int(options.ReplayLimit),
+				ctx, transcriptAuthority, int(options.ReplayLimit), int(options.ReplayLimit), chatRun,
 			)
 		} else {
 			entries, err = s.eventJournal.ReadAfter(session.ID, 0, int(options.ReplayLimit))
@@ -573,7 +573,9 @@ func (s *Server) runSessionRunnerChatOnce(
 			result.CheckpointEventID = entries[len(entries)-1].EventID
 		}
 		chatRun.AfterEventID = result.CheckpointEventID
-		s.hydrateSessionRunnerReadReuse(chatRun, entries)
+		if transcriptAuthority == nil {
+			s.hydrateSessionRunnerReadReuse(chatRun, entries)
+		}
 	}
 	if err := s.checkpointTranscriptRunner(ctx, transcriptAuthority, transcriptstore.RunnerPhasePlanning, "runner-started", map[string]any{
 		"status": "running", "detail": "runner chat started",

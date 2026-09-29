@@ -3791,7 +3791,7 @@ func TestSessionRunnerInterruptionAutoResumeIncludesQualityCorrections(t *testin
 	}
 	if !runnerInterruptionIsProgressBoundary(sessionRunnerToolRoundLimitReasonCode) ||
 		!runnerInterruptionIsProgressBoundary("provider_stream_interrupted") ||
-		!runnerInterruptionIsProgressBoundary(sessionRunnerProviderOutputTokenLimitReasonCode) ||
+		runnerInterruptionIsProgressBoundary(sessionRunnerProviderOutputTokenLimitReasonCode) ||
 		!runnerInterruptionIsProgressBoundary("runtime_draining") ||
 		!runnerInterruptionIsProgressBoundary(sessionRunnerResumeDispatchInterruptedReasonCode) ||
 		!runnerInterruptionIsProgressBoundary(sessionRunnerStoreContentionReasonCode) ||

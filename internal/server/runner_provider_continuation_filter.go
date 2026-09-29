@@ -10,11 +10,13 @@ import (
 	"synon-go/internal/providers"
 )
 
-type sessionRunnerProviderNoProgressInterruption struct{}
+type sessionRunnerProviderNoProgressInterruption struct{ cause error }
 
 func (sessionRunnerProviderNoProgressInterruption) Error() string {
 	return "provider continuation produced no new durable semantic content"
 }
+
+func (e sessionRunnerProviderNoProgressInterruption) Unwrap() error { return e.cause }
 
 type sessionRunnerExactPrefixFilter struct {
 	prefix  string
@@ -117,7 +119,7 @@ func (client *sessionRunnerContinuationModelClient) CompleteStream(
 	if providers.IsProviderOutputTokenLimit(err) && replay.onlyReplayedTail(filter.matched > 0) {
 		// No bytes from this ambiguous tail have been published or committed.
 		// The existing durable no-progress recovery owns backoff and resumption.
-		return agentruntime.ModelResponse{}, sessionRunnerProviderNoProgressInterruption{}
+		return agentruntime.ModelResponse{}, sessionRunnerProviderNoProgressInterruption{cause: err}
 	}
 	if flushErr := replay.flush(); flushErr != nil {
 		return agentruntime.ModelResponse{}, flushErr
@@ -131,6 +133,8 @@ func (client *sessionRunnerContinuationModelClient) CompleteStream(
 	}
 	// Previously interrupted candidate bytes must reach the same completion
 	// gates as the new suffix; they have never been published as progress.
-	response.Message.Content = client.privatePrefix + response.Message.Content
+	if len(response.Message.ToolCalls) == 0 {
+		response.Message.Content = client.privatePrefix + response.Message.Content
+	}
 	return response, nil
 }

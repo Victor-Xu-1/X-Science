@@ -56,17 +56,22 @@ func TestResponseContractStreamsOnePrimaryProgressAndStripsControlArgument(t *te
 	if model.calls != 1 || response.Message.Content != text || strings.Contains(string(response.Message.ToolCalls[0].Arguments), runnerPublicProgressField) {
 		t.Fatalf("calls=%d response=%+v", model.calls, response.Message)
 	}
-	if len(events) != 4 || events[2].Kind != agentruntime.ModelStreamEventPublicProgressDelta || events[2].ContentDelta != text || events[3].Kind != agentruntime.ModelStreamEventPublicProgressBoundary {
+	if len(events) != 3 || events[0].Kind != agentruntime.ModelStreamEventToolCallBoundary || events[1].Kind != agentruntime.ModelStreamEventPublicProgressDelta || events[1].ContentDelta != text || events[2].Kind != agentruntime.ModelStreamEventPublicProgressBoundary {
 		t.Fatalf("events=%+v", events)
 	}
 }
 
-func TestResponseContractKeepsNativePreambleOnce(t *testing.T) {
+func TestResponseContractSelectsStructuredProgressOnce(t *testing.T) {
 	model := &nativeCommunicationFixture{responses: []agentruntime.ModelResponse{{Message: agentruntime.Message{Content: "Checking the records.", ToolCalls: []agentruntime.ToolCall{{ID: "check", Name: "inspect", Arguments: json.RawMessage(`{"public_progress":"I will check the records."}`)}}}}}}
 	client := &sessionRunnerResponseContractClient{delegate: model}
 	visible := ""
-	response, err := client.CompleteStream(context.Background(), agentruntime.ModelRequest{}, func(event agentruntime.ModelStreamEvent) error { visible += event.ContentDelta; return nil })
-	if err != nil || visible != "Checking the records." || response.Message.Content != visible {
+	response, err := client.CompleteStream(context.Background(), agentruntime.ModelRequest{}, func(event agentruntime.ModelStreamEvent) error {
+		if event.Kind == agentruntime.ModelStreamEventPublicProgressDelta {
+			visible += event.ContentDelta
+		}
+		return nil
+	})
+	if err != nil || visible != "I will check the records." || response.Message.Content != visible {
 		t.Fatalf("visible=%q response=%q err=%v", visible, response.Message.Content, err)
 	}
 }
@@ -173,6 +178,28 @@ func TestResponseContractDoesNotPromoteInterruptedOrFinalDrafts(t *testing.T) {
 		response, err := client.CompleteStream(context.Background(), agentruntime.ModelRequest{}, func(event agentruntime.ModelStreamEvent) error { visible += event.ContentDelta; return nil })
 		if err != nil || visible != "" || strings.Contains(string(response.Message.ToolCalls[0].Arguments), runnerPublicProgressField) {
 			t.Fatalf("text=%q visible=%q err=%v", text, visible, err)
+		}
+	}
+}
+
+func TestResponseContractProtocolDiagnosticCannotPromoteNativeOrStructuredDraft(t *testing.T) {
+	for _, args := range []string{`{}`, `{"public_progress":"Checking the source."}`} {
+		model := &nativeCommunicationFixture{responses: []agentruntime.ModelResponse{{Message: agentruntime.Message{
+			Content: "Checking the source.", ToolCalls: []agentruntime.ToolCall{{
+				ID: "invalid-arguments", Name: "inspect", Arguments: json.RawMessage(args),
+				ProviderProtocolDiagnostic: "invalid JSON object arguments",
+			}},
+		}}}}
+		client := &sessionRunnerResponseContractClient{delegate: model}
+		public := 0
+		response, err := client.CompleteStream(context.Background(), agentruntime.ModelRequest{}, func(event agentruntime.ModelStreamEvent) error {
+			if event.Kind == agentruntime.ModelStreamEventPublicProgressDelta {
+				public++
+			}
+			return nil
+		})
+		if err != nil || public != 0 || response.Message.ToolCalls[0].ProviderProtocolDiagnostic == "" {
+			t.Fatalf("malformed proposal was promoted or lost its diagnostic: public=%d err=%v", public, err)
 		}
 	}
 }
