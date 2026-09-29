@@ -45,6 +45,13 @@ for (const viewport of viewports) {
         expect(initialMessageIds.length).toBeGreaterThan(2);
         expect(initialMessageIds).toContain(seededMessageIds.at(-1));
         await expect(page.getByTestId('jump-to-last-seen')).toHaveCount(0);
+        const rail = page.getByTestId('conversation-turn-rail');
+        if (viewport.name === 'desktop') {
+          await expect(rail).toBeVisible();
+          await expect(rail.getByRole('button')).toHaveCount(seededMessageIds.length);
+        } else {
+          await expect(rail).toBeHidden();
+        }
 
         emitAssistantDeltas(
           stream,
@@ -57,7 +64,7 @@ for (const viewport of viewports) {
         expect(await getControlStyle(lastPromptControl)).toMatchObject({
           height: 32,
           backgroundColor: 'rgb(255, 255, 255)',
-          borderRadius: '9999px',
+          pillShaped: true,
           fontSize: '14px',
           padding: '0px 12px 0px 10px',
           transitionDuration: '0.2s',
@@ -84,7 +91,7 @@ for (const viewport of viewports) {
         expect(await getControlStyle(bottomControl)).toMatchObject({
           height: 32,
           backgroundColor: 'rgb(255, 255, 255)',
-          borderRadius: '9999px',
+          pillShaped: true,
           fontSize: '14px',
           padding: '0px',
           transitionDuration: '0.2s',
@@ -101,6 +108,16 @@ for (const viewport of viewports) {
 
         emitAssistantDeltas(stream, ['Pinned streamed message.']);
         await expect.poll(async () => (await getScrollMetrics(page)).bottomGap).toBeLessThanOrEqual(20);
+        if (viewport.name === 'desktop') {
+          await rail.locator('[data-turn-index="0"]').focus();
+          await page.keyboard.press('Enter');
+          await expect(page.locator('[data-source-message-id="' + seededMessageIds[0] + '"]')).toBeInViewport();
+          await expect(rail.locator('[data-turn-index="0"]')).toHaveAttribute('aria-current', 'location');
+          await rail.locator('[data-turn-index="' + (seededMessageIds.length - 1) + '"]').click();
+          await expect(page.locator('[data-source-message-id="' + seededMessageIds.at(-1) + '"]')).toBeInViewport();
+          await page.reload();
+          await expect(rail.getByRole('button')).toHaveCount(seededMessageIds.length);
+        }
         await page.screenshot({
           path: testInfo.outputPath(`conversation-scroll-${viewport.name}.png`),
         });
@@ -136,10 +153,11 @@ async function getViewportAnchor(page: Page) {
 async function getControlStyle(control: Locator) {
   return control.evaluate((element) => {
     const style = getComputedStyle(element);
+    const bounds = element.getBoundingClientRect();
     return {
-      height: Math.round(element.getBoundingClientRect().height),
+      height: Math.round(bounds.height),
       backgroundColor: style.backgroundColor,
-      borderRadius: style.borderRadius,
+      pillShaped: Number.parseFloat(style.borderRadius) >= Math.min(bounds.width, bounds.height) / 2,
       fontSize: style.fontSize,
       padding: style.padding,
       transitionDuration: style.transitionDuration,
