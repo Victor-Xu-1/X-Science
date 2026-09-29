@@ -67,7 +67,11 @@ func TestUnboundedTickRenewsClaimPastOriginalLease(t *testing.T) {
 	defer first.Close()
 	second := openStore(t, databasePath)
 	defer second.Close()
-	createDueRoutine(t, first, "unbounded", time.Now().UTC())
+	clock := newManualClock(time.Now().UTC())
+	createDueRoutine(t, first, "unbounded", clock.Now())
+	renewals := make(chan time.Time, 16)
+	observed := &renewalObservingRepository{Store: first, renewed: renewals}
+	heartbeatClock := &timerObservingClock{manualClock: clock, scheduled: make(chan time.Time, 16)}
 
 	started := make(chan struct{}, 1)
 	release := make(chan struct{})
@@ -88,9 +92,9 @@ func TestUnboundedTickRenewsClaimPastOriginalLease(t *testing.T) {
 			return Result{Summary: "unbounded completed"}, nil
 		}
 	})
-	newScheduler := func(repository Repository) *Scheduler {
+	newScheduler := func(repository Repository, timerClock Clock) *Scheduler {
 		scheduler, err := New(Options{
-			Repository: repository, Executor: executor,
+			Repository: repository, Executor: executor, Clock: timerClock,
 			LockTTL: 60 * time.Millisecond, TickTimeout: 0, UnboundedTicks: true,
 			ErrorBackoff: 5 * time.Millisecond,
 			MinimumDelay: time.Millisecond,
@@ -100,11 +104,28 @@ func TestUnboundedTickRenewsClaimPastOriginalLease(t *testing.T) {
 		}
 		return scheduler
 	}
-	one, two := newScheduler(first), newScheduler(second)
+	one, two := newScheduler(observed, heartbeatClock), newScheduler(second, clock)
 	startScheduler(t, one)
-	startScheduler(t, two)
+	defer stopScheduler(t, one)
 	receiveSignal(t, started)
-	time.Sleep(180 * time.Millisecond)
+	startScheduler(t, two)
+	defer stopScheduler(t, two)
+	// Advance only after the real heartbeat schedules its next timer. The test
+	// proves persisted renewal across three lease periods, not OS scheduling
+	// within a 60 ms window on a loaded CI host.
+	for step := 0; step < 9; step++ {
+		next := clock.Now().Add(20 * time.Millisecond)
+		if due := receive(t, heartbeatClock.scheduled); !due.Equal(next) {
+			t.Fatalf("heartbeat timer=%s want=%s", due, next)
+		}
+		clock.Advance(20 * time.Millisecond)
+		if renewedAt := receive(t, renewals); !renewedAt.Equal(next) {
+			t.Fatalf("renewal time=%s want=%s", renewedAt, next)
+		}
+		if _, claimed, err := second.ClaimNextDueRoutine(clock.Now(), 60*time.Millisecond); err != nil || claimed {
+			t.Fatalf("renewed claim became available: claimed=%t err=%v", claimed, err)
+		}
+	}
 	if got := calls.Load(); got != 1 {
 		t.Fatalf("executor calls after original lease elapsed = %d, want 1", got)
 	}
@@ -113,8 +134,38 @@ func TestUnboundedTickRenewsClaimPastOriginalLease(t *testing.T) {
 		routine, err := first.GetRoutine("routine-unbounded")
 		return err == nil && routine.TickCount == 1 && routine.LockedAt == nil && routine.LastResults == "unbounded completed"
 	})
-	stopScheduler(t, one)
-	stopScheduler(t, two)
+}
+
+type renewalObservingRepository struct {
+	*workspace.Store
+	renewed chan time.Time
+}
+
+func (r *renewalObservingRepository) RenewClaimedRoutineTick(ctx context.Context, claim workspace.Routine, at time.Time) error {
+	if err := r.Store.RenewClaimedRoutineTick(ctx, claim, at); err != nil {
+		return err
+	}
+	select {
+	case r.renewed <- at:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+	return nil
+}
+
+type timerObservingClock struct {
+	*manualClock
+	scheduled chan time.Time
+}
+
+func (c *timerObservingClock) NewTimer(delay time.Duration) Timer {
+	timer := c.manualClock.NewTimer(delay)
+	// Observe the owning scheduler's heartbeat, never the competing scheduler's
+	// wake timer. Logical time stays fixed until this registration is received.
+	if delay == 20*time.Millisecond {
+		c.scheduled <- c.Now().Add(delay)
+	}
+	return timer
 }
 
 func TestDeferredTickKeepsClaimWithoutRecordingFailureOrCompletion(t *testing.T) {

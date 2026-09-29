@@ -4,11 +4,60 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	sessionstore "synon-go/internal/persistence/sessions"
 	transcriptstore "synon-go/internal/persistence/transcript"
 )
+
+func TestSessionRunnerChatHeartbeatKeepsShortLeaseAcrossExpiry(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		store := sessionstore.NewStore(t.TempDir())
+		const sessionID = "short-chat-heartbeat"
+		const ttl = 80 * time.Millisecond
+		if err := store.Upsert(sessionstore.Session{ID: sessionID}); err != nil {
+			t.Fatal(err)
+		}
+		initial, claimed, err := store.ClaimRunner(sessionID, "runner-a", ttl)
+		if err != nil || !claimed || initial.Runner == nil {
+			t.Fatalf("initial claim=%#v claimed=%t err=%v", initial, claimed, err)
+		}
+		claim := sessionstore.RunnerClaimFromSession(initial)
+		server := &Server{sessionStore: store}
+		_, stop := server.startSessionRunnerChatHeartbeat(t.Context(), claim, nil,
+			SessionRunnerChatOptions{LeaseTTL: ttl})
+		defer func() { _ = stop() }()
+		// Use the production ticker and real file-backed store. The bubble keeps
+		// host scheduling pauses from advancing the lease's logical clock.
+		synctest.Wait()
+		for step := 1; step <= 12; step++ {
+			time.Sleep(ttl / 4)
+			synctest.Wait()
+			current, found, err := store.Get(sessionID)
+			if err != nil || !found || current.Runner == nil ||
+				!current.Runner.ExpiresAt.Equal(time.Now().Add(ttl)) {
+				t.Fatalf("step %d: lease=%#v found=%t err=%v", step, current, found, err)
+			}
+			if _, claimed, err := store.ClaimRunner(sessionID, "runner-b", ttl); err != nil || claimed {
+				t.Fatalf("step %d: competitor claimed=%t err=%v", step, claimed, err)
+			}
+			if _, err := store.ValidateRunnerClaim(claim, true); err != nil {
+				t.Fatalf("step %d: original claim invalid: %v", step, err)
+			}
+		}
+		if err := stop(); err != nil {
+			t.Fatal(err)
+		}
+		time.Sleep(ttl + time.Millisecond)
+		if _, claimed, err := store.ClaimRunner(sessionID, "runner-b", ttl); err != nil || !claimed {
+			t.Fatalf("stopped heartbeat blocked takeover: claimed=%t err=%v", claimed, err)
+		}
+		if _, renewed, err := store.HeartbeatRunner(claim, ttl); renewed || !errors.Is(err, sessionstore.ErrRunnerClaimStale) {
+			t.Fatalf("stale owner renewed after takeover: renewed=%t err=%v", renewed, err)
+		}
+	})
+}
 
 func TestTranscriptRunnerHeartbeatKeepsCheckpointClaimImmutable(t *testing.T) {
 	_, repo, _ := newTranscriptWebFixture(t)

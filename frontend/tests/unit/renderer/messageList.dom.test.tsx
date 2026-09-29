@@ -15,6 +15,7 @@ import {
   MessageListLoadingProvider,
   MessageListProvider,
   MessagePaginationProvider,
+  useUpdateMessageList,
 } from '@/renderer/pages/conversation/Messages/hooks';
 import MessageList from '@/renderer/pages/conversation/Messages/MessageList';
 vi.mock('@/renderer/hooks/context/RealtimeContext', () => ({
@@ -213,7 +214,11 @@ describe('MessageList', () => {
       y?: number
     ) {
       const top = typeof optionsOrX === 'object' ? (optionsOrX.top ?? 0) : (y ?? 0);
-      Object.defineProperty(this, 'scrollTop', { configurable: true, value: top, writable: true });
+      Object.defineProperty(this, 'scrollTop', {
+        configurable: true,
+        value: top,
+        writable: true,
+      });
       this.dispatchEvent(new Event('scroll'));
     });
     mockIsProcessing = false;
@@ -246,7 +251,9 @@ describe('MessageList', () => {
     });
 
     expect(screen.getByTestId('message-list-scroller')).toHaveClass('overflow-x-hidden');
-    expect(screen.getByTestId('message-list-scroller')).not.toHaveStyle({ visibility: 'hidden' });
+    expect(screen.getByTestId('message-list-scroller')).not.toHaveStyle({
+      visibility: 'hidden',
+    });
     await waitFor(() => expect(document.querySelectorAll('[data-testid^="msgtext-"]').length).toBeGreaterThan(0));
     const mountedRows = document.querySelectorAll('[data-testid^="msgtext-"]').length;
     expect(mountedRows).toBeLessThan(messages.length);
@@ -395,16 +402,45 @@ describe('MessageList', () => {
       ],
     } as IMessageText;
 
+    const messages: TMessage[] = [assistantMessage, saveMessage];
+    const CompleteRound = () => {
+      const updateMessages = useUpdateMessageList();
+      return (
+        <button
+          onClick={() =>
+            updateMessages([
+              ...messages,
+              {
+                ...assistantMessage,
+                id: 'round-final',
+                created_at: 3,
+                terminal_status: 'completed',
+                status: 'finish',
+              },
+            ])
+          }
+        >
+          Complete test round
+        </button>
+      );
+    };
     await render(<MessageList />, {
-      wrapper: ({ children }) => <Wrapper messages={[assistantMessage, saveMessage]}>{children}</Wrapper>,
+      wrapper: ({ children }) => (
+        <Wrapper messages={messages}>
+          {children}
+          <CompleteRound />
+        </Wrapper>
+      ),
     });
 
+    expect(screen.queryByTestId('artifact-reference-strip')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Complete test round' }));
     expect(await screen.findByTestId('artifact-reference-strip')).toHaveAttribute('data-file-count', '1');
     expect(screen.getByTestId('tool-summary')).not.toHaveAttribute('data-file-count');
     expect(screen.queryByText('scientific_files')).not.toBeInTheDocument();
   });
 
-  it('does not render a second artifact strip when the assistant body already presents the exact version', async () => {
+  it('keeps one grouped final delivery even when the original body contains file links', async () => {
     mockConversationArtifacts = [
       {
         id: 'scientific-files:conversation-1',
@@ -443,6 +479,7 @@ describe('MessageList', () => {
     const assistantMessage = {
       ...createTextMessage(),
       status: 'finish',
+      terminal_status: 'completed',
       content: {
         content: [
           '### 保存结果文件',
@@ -468,7 +505,7 @@ describe('MessageList', () => {
       wrapper: ({ children }) => <Wrapper messages={[assistantMessage]}>{children}</Wrapper>,
     });
 
-    expect(screen.queryByTestId('artifact-reference-strip')).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('artifact-reference-strip')).toHaveLength(1);
     expect(screen.getByTestId('msgtext-message-1')).toHaveTextContent('figure.png');
   });
 
@@ -578,6 +615,7 @@ describe('MessageList', () => {
     const assistantMessage = (id: string, content: string, createdAt: number, artifactId: string, versionId: string) =>
       ({
         ...createTextMessage(),
+        terminal_status: 'completed',
         id,
         msg_id: id,
         content: { content },
@@ -614,7 +652,17 @@ describe('MessageList', () => {
               content: { content: 'reuse result' },
               created_at: 6,
             },
-            assistantMessage('assistant-third', 'third result', 7, 'artifact-first', 'version-first'),
+            {
+              ...assistantMessage('assistant-third', 'third result', 7, 'artifact-first', 'version-first'),
+              artifact_refs: [
+                {
+                  artifact_id: 'artifact-first',
+                  version_id: 'version-first',
+                  relation: 'cited',
+                  availability: 'available',
+                },
+              ],
+            },
           ]}
         >
           {children}
@@ -772,7 +820,12 @@ describe('MessageList', () => {
         id: 'tool-1',
         type: 'tool_call',
         position: 'left',
-        content: { call_id: 'tool-1', name: 'python', args: {}, status: 'completed' },
+        content: {
+          call_id: 'tool-1',
+          name: 'python',
+          args: {},
+          status: 'completed',
+        },
         created_at: 3,
       },
       {
@@ -818,14 +871,21 @@ describe('MessageList', () => {
         id: 'progress-text',
         type: 'text',
         position: 'left',
-        content: { content: 'The selected dataset is suitable. Next I will prepare the analysis.' },
+        content: {
+          content: 'The selected dataset is suitable. Next I will prepare the analysis.',
+        },
         created_at: 1,
       },
       {
         id: 'tool-after-progress',
         type: 'tool_call',
         position: 'left',
-        content: { call_id: 'tool-after-progress', name: 'python', args: {}, status: 'completed' },
+        content: {
+          call_id: 'tool-after-progress',
+          name: 'python',
+          args: {},
+          status: 'completed',
+        },
         created_at: 2,
       },
       {
@@ -934,7 +994,11 @@ describe('MessageList', () => {
   });
 
   it('does not create virtual rows for empty or internal cancellation text', async () => {
-    const visible = { ...createTextMessage(), id: 'visible', msg_id: 'visible-msg' };
+    const visible = {
+      ...createTextMessage(),
+      id: 'visible',
+      msg_id: 'visible-msg',
+    };
     const empty = {
       ...createTextMessage(),
       id: 'empty',
@@ -1022,7 +1086,12 @@ describe('MessageList', () => {
         conversation_id: 'conversation-1',
         type: 'tool_call',
         position: 'left',
-        content: { call_id: 'older-tool', name: 'read_file', args: {}, status: 'completed' },
+        content: {
+          call_id: 'older-tool',
+          name: 'read_file',
+          args: {},
+          status: 'completed',
+        },
         created_at: 1,
       },
       {
