@@ -50,6 +50,7 @@ type SessionRunnerChatOptions struct {
 	// the first call must not repeat the same provider/profile lookup.
 	modelSelection         string
 	modelSelectionRevision int64
+	modelOwnerUserID       string
 	sourceToolActivity     *sessionRunnerSourceToolActivity
 	RuntimeSessionConfig   map[string]any
 }

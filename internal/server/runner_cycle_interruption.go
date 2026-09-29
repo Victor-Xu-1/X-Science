@@ -153,6 +153,14 @@ func (s *Server) handleSessionRunnerChatInterruption(
 				reasonCode = sessionRunnerProviderOutputTokenLimitReasonCode
 				resumeDetail = "provider reached its output token limit before completing the next action; start a fresh bounded generation from the last completed tool checkpoint"
 			}
+			var saturated *sessionOutputBudgetSaturatedError
+			if errors.As(chatErr, &saturated) && providerContinuationRouteExhausted(chatRun) {
+				// Both budget adaptation and next-action recovery were tried.
+				// Park only this unchanged generation route, retaining a native
+				// resume point; healthy long output/compute is unaffected.
+				result.AwaitingRecoveryCondition = true
+				resumeDetail = "provider output remains truncated with negligible new content after budget adaptation and next-action recovery; completed work and accepted history are preserved; resume after correcting the provider/output configuration or supplying a changed execution route"
+			}
 			if err := s.interruptClaimedSessionRunner(
 				options, result, activeRun, projectionClaim, transcriptAuthority, reasonCode, resumeDetail,
 			); err != nil {

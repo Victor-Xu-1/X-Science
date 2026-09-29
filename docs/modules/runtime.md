@@ -38,6 +38,38 @@ claim → recovery → context → snapshot → provider ⇄ tool → verify →
 
 ## Focused verification · 验证入口
 
+### Provider generation recovery · 模型生成恢复
+
+环境默认模型和已保存模型使用同一任务隔离的输出预算恢复逻辑。供应商返回输出截断后，
+根据实际用量调整下一次调用额度；用户明确设置的额度、调用级额度和供应商确认的上限
+仍具有权威。配置和凭据不会因恢复而被改写。
+
+续写回执始终保留已接受的精确文字。连续截断只增加少量字节时，这些字节不再单独证明
+任务取得有效进展；原恢复链改为完成下一步动作，必要时把过大的单个动作拆开执行。
+若供应商无法提供更大的有效额度，且改变生成方式后仍只产生碎片，保存原任务与检查点，
+等待条件改变或用户继续；不把它标为任务完成或丢弃原消息。持续增长的输出、正在进行的
+工具及长计算不受这条同路径恢复规则限制。
+
+```sh
+go test ./internal/server -run 'TestStaticOutputBudget|TestOutputBudget|TestContinuation.*Generations|TestContinuationGrowingBudget' -count=1
+```
+
+### Reading progress · 读取进展
+
+任务内重复读取相同来源和窗口时，以实际返回内容判断是否有新证据，不以模型附带的
+说明文字或新的工具调用编号判断进展。普通文件每次仍通过原权限检查并读取当前内容；
+相同窗口内容未变才返回复用标记，文件变化和后续窗口继续正常执行。
+观察摘要随已完成回执恢复，且使用任务内有界缓存，不跨项目或任务共享。
+同一末页的等价窗口不会因为请求了更多行而被当成新证据。
+
+缓存来源与文件读取的混合批次沿原无进展恢复链处理：模型先获得复用已有证据、改变
+下一步动作的反馈；持续重复则保存恢复点，不重复网络副作用，也不靠固定任务时长终止
+健康下载或计算。大结果仍遵守原有不可变回执与读取权限，不能将预览当作全文。
+
+```sh
+go test -race ./internal/server -run 'TestReadProgress|TestSessionRunnerReadReuse|TestServerAgentRuntimeReadReuse|TestCorrectionRead|TestCorrectionPaged|TestNoProgressReceipt' -count=1
+```
+
 从仓库根目录执行：
 
 ```sh

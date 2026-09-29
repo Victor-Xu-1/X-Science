@@ -29,6 +29,14 @@ type outputBudgetState struct {
 	Session  string `json:"sessionId"`
 }
 
+// Preserves the provider error while recording that a larger effective output
+// allowance could not be obtained. Recovery may change the action, but must not
+// spend indefinitely replaying a generation that only adds tiny fragments.
+type sessionOutputBudgetSaturatedError struct{ cause error }
+
+func (e *sessionOutputBudgetSaturatedError) Error() string { return e.cause.Error() }
+func (e *sessionOutputBudgetSaturatedError) Unwrap() error { return e.cause }
+
 type sessionOutputBudgetClient struct {
 	delegate                  agentruntime.ModelClient
 	store                     *runtimekv.Store
@@ -226,6 +234,15 @@ func (client *sessionOutputBudgetClient) run(ctx context.Context, request agentr
 				return response, errors.Join(callErr, saveErr)
 			}
 			log.Printf("output budget recovery state could not be saved: %v", saveErr)
+		}
+		if limited && adaptive.MaxTokens > 0 {
+			state, readErr := client.read()
+			if readErr != nil {
+				return response, errors.Join(callErr, readErr)
+			}
+			if state.Next <= adaptive.MaxTokens {
+				callErr = &sessionOutputBudgetSaturatedError{cause: callErr}
+			}
 		}
 	}
 	return response, callErr

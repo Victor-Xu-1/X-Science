@@ -229,15 +229,7 @@ func (s *Server) loadProviderContinuation(
 		int64(state.Content.Len()) != latest.AcceptedSemanticBytes || acceptedSHA != latest.AcceptedSHA256 {
 		return errors.New("provider continuation accepted content does not match its durable fence and digest")
 	}
-	for index := len(contracts) - 1; index > 0; index-- {
-		current, previous := contracts[index], contracts[index-1]
-		if current.AcceptedThroughEventID != previous.AcceptedThroughEventID ||
-			current.AcceptedThroughPublicationSequence != previous.AcceptedThroughPublicationSequence ||
-			current.AcceptedSemanticBytes != previous.AcceptedSemanticBytes || current.AcceptedSHA256 != previous.AcceptedSHA256 {
-			break
-		}
-		state.ConsecutiveNoProgress++
-	}
+	state.ConsecutiveNoProgress = providerContinuationProgressStreak(contracts)
 	run.ProviderContinuation = state
 	run.ProviderAttemptSemanticBytes = 0
 	run.AssistantSegmentOrdinal = latest.CurrentSegmentOrdinal
@@ -284,6 +276,9 @@ func appendProviderContinuationContext(
 		"Synon provider continuation authority (server supplied): continue after the exact accepted assistant prefix above. Do not repeat, rewrite, summarize, or retract any accepted prefix bytes. Start with only the next semantic byte. continuation_root_attempt=%d continuation_root_segment=%d accepted_bytes=%d accepted_sha256=%s.",
 		contract.RootAttempt, contract.RootSegmentOrdinal, contract.AcceptedSemanticBytes, contract.AcceptedSHA256,
 	)
+	if providerContinuationNeedsNextAction(state) {
+		guidance = "Continuation recovery: next-action. Earlier accepted bytes above remain immutable history, not a requirement to extend an unfinished phrase. Repeated truncated generations have added little usable content. Use the completed evidence and tools to produce a complete next action or finish the response. If one action is too large, divide its implementation into independently valid smaller actions without reducing the requested deliverable or repeating completed work. Do not replay or rewrite the accepted history."
+	}
 	messages = append(messages, chatCompletionMessage{Role: "system", Content: guidance})
 	return messages
 }
@@ -355,7 +350,7 @@ func (s *Server) persistProviderContinuationBoundary(
 		return transcriptstore.Event{}, errors.New("provider continuation checkpoint did not advance beyond its accepted-content fence")
 	}
 	state.Contract = contract
-	if run.ProviderAttemptSemanticBytes > 0 {
+	if run.ProviderAttemptSemanticBytes >= providerContinuationProgressBytes {
 		state.ConsecutiveNoProgress = 0
 	} else {
 		state.ConsecutiveNoProgress++
