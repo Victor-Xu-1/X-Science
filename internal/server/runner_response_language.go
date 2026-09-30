@@ -18,7 +18,6 @@ const simplifiedChineseTranslationInstruction = "你是严格的简体中文忠�
 var (
 	responseLanguageFencedCodePattern = regexp.MustCompile("(?s)```.*?```")
 	responseLanguageInlineCodePattern = regexp.MustCompile("`[^`\\n]*`")
-	responseLanguageURLPattern        = regexp.MustCompile(`https?://[^\s)>\]]+`)
 )
 
 // sessionRunnerResponseLanguageModelClient is a boundary validator on the
@@ -400,9 +399,10 @@ func sessionRunnerLanguageProbeReady(text string) bool {
 }
 
 func sessionRunnerClearlyEnglishNarrative(text string, final bool) bool {
-	narrative := responseLanguageFencedCodePattern.ReplaceAllString(text, " ")
-	narrative = responseLanguageInlineCodePattern.ReplaceAllString(narrative, " ")
-	narrative = responseLanguageURLPattern.ReplaceAllString(narrative, " ")
+	return sessionRunnerNarrationIsEnglish(responseLanguageNarrative(text), final)
+}
+
+func sessionRunnerNarrationIsEnglish(narrative string, final bool) bool {
 	han, latin, latinWords := sessionRunnerLanguageProfile(narrative)
 	if latinWords < 2 {
 		return false
