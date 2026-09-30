@@ -52,6 +52,19 @@ func TestFreshExecutionRequestKeepsSeparatePositiveInstructions(t *testing.T) {
 	}
 }
 
+func TestFreshExecutionNegationRequiresWordBoundary(t *testing.T) {
+	for _, before := range []string{"piano", "knot", "snow"} {
+		if sessionRunnerFreshRequestNegated(before) {
+			t.Fatalf("ordinary word suffix %q erased an explicit execution request", before)
+		}
+	}
+	for _, before := range []string{"do not", "no", "don't", "without", "不要"} {
+		if !sessionRunnerFreshRequestNegated(before) {
+			t.Fatalf("actual negation %q was not retained", before)
+		}
+	}
+}
+
 func TestRejectedOrFailedToolDoesNotSatisfyFreshExecution(t *testing.T) {
 	for _, messages := range [][]agentruntime.Message{
 		{

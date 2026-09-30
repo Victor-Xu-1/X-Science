@@ -3,6 +3,8 @@ package server
 import (
 	"encoding/json"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"synon-go/internal/agentruntime"
 )
@@ -47,9 +49,19 @@ func sessionRunnerFreshRequestNegated(before string) bool {
 	before = strings.TrimSpace(before)
 	for _, negation := range []string{
 		"不", "不要", "无需", "无须", "不用", "不得", "不必", "不需要",
-		"不要再", "无需再", "不用再", "不再", "not", "don't", "without", "never", "no",
+		"不要再", "无需再", "不用再", "不再",
 	} {
 		if strings.HasSuffix(before, negation) {
+			return true
+		}
+	}
+	for _, negation := range []string{"not", "don't", "without", "never", "no"} {
+		if !strings.HasSuffix(before, negation) {
+			continue
+		}
+		prefix := strings.TrimSuffix(before, negation)
+		previous, _ := utf8.DecodeLastRuneInString(prefix)
+		if prefix == "" || (!unicode.IsLetter(previous) && !unicode.IsNumber(previous) && previous != '_') {
 			return true
 		}
 	}
