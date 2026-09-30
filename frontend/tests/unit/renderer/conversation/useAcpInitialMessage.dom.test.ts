@@ -204,6 +204,7 @@ describe('useAcpInitialMessage', () => {
     const storageKey = `acp_initial_message_${conversationId}`;
     const stored = JSON.stringify({
       input: 'hello',
+      loading_id: 'initial-pending-once',
       compute_providers: ['local'],
       session_options: {
         ultra_mode: true,
@@ -224,6 +225,7 @@ describe('useAcpInitialMessage', () => {
     expect(sessionStorage.getItem(storageKey)).toBe(stored);
     expect(sendMessageInvokeMock).toHaveBeenCalledWith({
       input: 'hello',
+      loading_id: 'initial-pending-once',
       conversation_id: conversationId,
       files: [],
       session_options: {
@@ -259,7 +261,7 @@ describe('useAcpInitialMessage', () => {
   it('retains the first-message draft after a runtime failure and does not duplicate the send on rerender', async () => {
     const conversationId = 'initial-failure';
     const storageKey = `acp_initial_message_${conversationId}`;
-    const stored = JSON.stringify({ input: 'retry me' });
+    const stored = JSON.stringify({ input: 'retry me', loading_id: 'initial-failure-once' });
     sessionStorage.setItem(storageKey, stored);
     sendMessageInvokeMock.mockRejectedValue(new Error('runtime unavailable'));
     const params = createParams(conversationId);
@@ -271,6 +273,7 @@ describe('useAcpInitialMessage', () => {
     await Promise.resolve();
 
     expect(sendMessageInvokeMock).toHaveBeenCalledTimes(1);
+    expect(sendMessageInvokeMock).toHaveBeenCalledWith(expect.objectContaining({ loading_id: 'initial-failure-once' }));
     expect(sessionStorage.getItem(storageKey)).toBe(stored);
     expect(params.addOrUpdateMessage).toHaveBeenCalledTimes(1);
   });

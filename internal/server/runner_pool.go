@@ -36,10 +36,16 @@ func (s *Server) runSessionRunnerChatLoop(
 		default:
 		}
 		var committedWork <-chan struct{}
+		var committedInput <-chan struct{}
 		if s.workspaceStore != nil {
 			// Capture the generation before claiming so a commit racing with the
 			// empty claim closes this exact channel instead of becoming a lost wake.
 			committedWork = s.workspaceStore.OutboxWake()
+		}
+		if s.transcriptStore != nil {
+			// Canonical Transcript input does not write the workspace outbox.
+			// Capture its commit generation before the same durable claim query.
+			committedInput = s.transcriptStore.InputWake()
 		}
 		kernelWork := s.kernelRuntimeWake()
 		result, err := runCycle(ctx, options)
@@ -75,6 +81,9 @@ func (s *Server) runSessionRunnerChatLoop(
 			stopRunnerIdleTimer(timer)
 			return nil
 		case <-committedWork:
+			stopRunnerIdleTimer(timer)
+			idlePollInterval = options.PollInterval
+		case <-committedInput:
 			stopRunnerIdleTimer(timer)
 			idlePollInterval = options.PollInterval
 		case <-kernelWork:

@@ -17,9 +17,10 @@ func (r *Repository) AppendUserEvent(ctx context.Context, input AppendUserEventI
 	}
 	var event Event
 	var created bool
-	err = r.withImmediate(ctx, func(conn *sql.Conn) error {
+	err = r.RunImmediate(ctx, func(tx *ImmediateTransaction) error {
 		var err error
-		event, created, err = r.appendUserEventConn(ctx, conn, input, r.now().UTC())
+		event, created, err = r.appendUserEventConn(ctx, tx.conn, input, r.now().UTC())
+		tx.markInputAdded(created, err)
 		return err
 	})
 	return event, created, schemaError(err)
@@ -188,7 +189,8 @@ func (r *Repository) AdmitUserEvent(ctx context.Context, input AdmitUserEventInp
 	}
 	var event Event
 	var admitted bool
-	err := r.withImmediate(ctx, func(conn *sql.Conn) error {
+	err := r.RunImmediate(ctx, func(tx *ImmediateTransaction) error {
+		conn := tx.conn
 		stream, err := getStreamConn(ctx, conn, input.StreamUID, input.OwnerID)
 		if err != nil {
 			return err
@@ -231,6 +233,7 @@ func (r *Repository) AdmitUserEvent(ctx context.Context, input AdmitUserEventInp
 		}
 		event.Type = "user_message"
 		admitted = true
+		tx.markInputAdded(true, nil)
 		return activateFrameForNewInputConn(ctx, conn, stream, r.now().UTC())
 	})
 	return event, admitted, schemaError(err)
@@ -247,9 +250,9 @@ func (r *Repository) AppendFrameUserEvent(
 	var event Event
 	var frameEvent FrameReferenceEvent
 	var created bool
-	err = r.withImmediate(ctx, func(conn *sql.Conn) error {
+	err = r.RunImmediate(ctx, func(tx *ImmediateTransaction) error {
 		var err error
-		event, frameEvent, created, err = appendFrameUserEventConn(ctx, conn, input, r.now().UTC())
+		event, frameEvent, created, err = tx.AppendFrameUserEvent(ctx, input)
 		return err
 	})
 	return event, frameEvent, created, schemaError(err)
@@ -267,6 +270,7 @@ func (tx *ImmediateTransaction) AppendFrameUserEvent(
 		return Event{}, FrameReferenceEvent{}, false, err
 	}
 	event, frameEvent, created, err := appendFrameUserEventConn(ctx, tx.conn, input, tx.repository.now().UTC())
+	tx.markInputAdded(created, err)
 	return event, frameEvent, created, schemaError(err)
 }
 

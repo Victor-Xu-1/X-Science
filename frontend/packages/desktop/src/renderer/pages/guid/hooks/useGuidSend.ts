@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { uuid } from '@/common/utils';
 import type { IMcpServer } from '@/common/config/storage';
 import { toSessionMcpServer } from '@/renderer/hooks/mcp/catalog';
 import { emitter } from '@/renderer/utils/emitter';
@@ -414,6 +415,9 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       );
       const initialMessage = {
         input: messageInput,
+        // Persist the existing runtime idempotency identity with the handoff,
+        // so an ambiguous response followed by reload cannot create a new turn.
+        loading_id: uuid(),
         files: files.length > 0 ? files : undefined,
         artifact_refs: combinedArtifactReferences.length > 0 ? combinedArtifactReferences : undefined,
         inject_skills: capabilityPayload.injectSkills.length > 0 ? capabilityPayload.injectSkills : undefined,
@@ -426,9 +430,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
           effort,
         },
         compute_providers: sessionComputeProviders,
-        // A newly created task stays staged: the conversation composer shows
-        // the request for review and the user starts it with an explicit send.
-        draft_only: true,
+        // Send is the user's execution intent. The conversation's existing
+        // initial-message controller submits it once when realtime is ready.
       };
       sessionStorage.setItem(`acp_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
 

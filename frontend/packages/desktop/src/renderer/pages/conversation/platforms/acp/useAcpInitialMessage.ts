@@ -251,6 +251,10 @@ export const useAcpInitialMessage = ({
             )
           : [];
         const displayMessage = buildDisplayMessage(input, files, workspacePath || '');
+        const loadingId =
+          typeof initialMessage.loading_id === 'string' && initialMessage.loading_id.trim()
+            ? initialMessage.loading_id.trim()
+            : undefined;
 
         markSendStarted?.();
         setAiProcessing(true);
@@ -265,6 +269,7 @@ export const useAcpInitialMessage = ({
         const result = await ipcBridge.acpConversation.sendMessage.invoke({
           input: displayMessage,
           conversation_id: conversation_id,
+          ...(loadingId ? { loading_id: loadingId } : {}),
           files,
           artifact_refs,
           ...(inject_skills ? { inject_skills } : {}),

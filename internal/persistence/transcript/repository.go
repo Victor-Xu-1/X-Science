@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"io"
+	"sync"
 	"time"
 )
 
@@ -16,10 +17,12 @@ const maxEventPayloadBytes = 1 << 20
 const MaxEventPayloadBytes = maxEventPayloadBytes
 
 type Repository struct {
-	db     *sql.DB
-	readDB *sql.DB
-	now    func() time.Time
-	rand   io.Reader
+	db          *sql.DB
+	readDB      *sql.DB
+	now         func() time.Time
+	rand        io.Reader
+	inputWakeMu sync.Mutex
+	inputWake   chan struct{}
 }
 
 // ImmediateTransaction is the shared SQLite authority used when a workspace
@@ -27,6 +30,7 @@ type Repository struct {
 type ImmediateTransaction struct {
 	repository *Repository
 	conn       *sql.Conn
+	inputAdded bool
 }
 
 func (tx *ImmediateTransaction) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {

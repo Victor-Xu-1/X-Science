@@ -22,8 +22,8 @@ const CANDIDATE_PATTERN =
 
 /**
  * Reads the self-describing docking ensemble emitted by the canonical docking
- * execution pack. Ordinary PDB files deliberately return null and keep the
- * standard Mol* path unchanged.
+ * execution pack. A co-crystal reference is optional, just as in the producer;
+ * ordinary PDB files keep the standard Mol* path unchanged.
  */
 export const parseDockingEnsemble = (source: string): DockingEnsemble | null => {
   if (!source.includes(ENSEMBLE_MARKER)) return null;
@@ -84,15 +84,16 @@ export const parseDockingEnsemble = (source: string): DockingEnsemble | null => 
     (left, right) =>
       left.rank - right.rank || left.poseRank - right.poseRank || left.candidateId.localeCompare(right.candidateId)
   );
-  if (!reference || sortedCandidates.length === 0) return null;
+  if (sortedCandidates.length === 0) return null;
 
-  const uniqueResidues = new Set([reference.residueName, ...sortedCandidates.map((entry) => entry.residueName)]);
-  if (uniqueResidues.size !== sortedCandidates.length + 1) return null;
+  const entries = reference ? [reference, ...sortedCandidates] : sortedCandidates;
+  const uniqueResidues = new Set(entries.map((entry) => entry.residueName));
+  if (uniqueResidues.size !== entries.length) return null;
   if ([...uniqueResidues].some((residueName) => !ligandLinesByResidue.get(residueName)?.length)) {
     return null;
   }
   return {
-    entries: [reference, ...sortedCandidates],
+    entries,
     source,
     proteinLines,
     ligandLinesByResidue,

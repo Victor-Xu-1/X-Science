@@ -9,10 +9,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IMcpServer } from '@/common/config/storage';
 import { readConversationRouteSnapshot } from '@/renderer/pages/conversation/utils/conversationCache';
 import { useGuidSend, type GuidSendDeps } from '@/renderer/pages/guid/hooks/useGuidSend';
+import { useAcpInitialMessage } from '@/renderer/pages/conversation/platforms/acp/useAcpInitialMessage';
 
 const createConversationInvokeMock = vi.fn();
 const swrMutateMock = vi.fn();
 const prefetchConversationRouteMock = vi.fn();
+const sendInitialMessageInvokeMock = vi.fn();
 const { loadSynonBiomedProjectsMock, uploadSynonBiomedProjectAttachmentMock } = vi.hoisted(() => ({
   loadSynonBiomedProjectsMock: vi.fn(),
   uploadSynonBiomedProjectAttachmentMock: vi.fn(),
@@ -20,12 +22,24 @@ const { loadSynonBiomedProjectsMock, uploadSynonBiomedProjectAttachmentMock } = 
 
 vi.mock('@/common', () => ({
   ipcBridge: {
+    acpConversation: { sendMessage: { invoke: (...args: unknown[]) => sendInitialMessageInvokeMock(...args) } },
     conversation: {
       create: {
         invoke: (...args: unknown[]) => createConversationInvokeMock(...args),
       },
     },
   },
+}));
+
+vi.mock('@/renderer/services/synonBiomedCompute', () => ({
+  setSynonBiomedSessionComputeProvider: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('@/renderer/utils/file/messageFiles', () => ({
+  buildDisplayMessage: (input: string) => input,
+}));
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({ t: (key: string) => key }),
 }));
 
 vi.mock('@/renderer/utils/emitter', () => ({
@@ -125,6 +139,12 @@ describe('useGuidSend', () => {
     sessionStorage.clear();
     createConversationInvokeMock.mockReset();
     createConversationInvokeMock.mockResolvedValue({ id: 'conv-1' });
+    sendInitialMessageInvokeMock.mockReset();
+    sendInitialMessageInvokeMock.mockResolvedValue({
+      turn_id: 'first-turn',
+      msg_id: 'first-message',
+      runtime: { backend: 'synonbiomed', status: 'running' },
+    });
     prefetchConversationRouteMock.mockReset();
     prefetchConversationRouteMock.mockResolvedValue(undefined);
     swrMutateMock.mockReset();
@@ -138,6 +158,56 @@ describe('useGuidSend', () => {
       sizeBytes: 24,
       checksum: 'sha256:docking',
     });
+  });
+
+  it('starts the first task after one Guid send and does not submit again on rerender', async () => {
+    const deps = createDeps();
+    const guid = renderHook(() => useGuidSend(deps));
+    await act(async () => {
+      const first = guid.result.current.sendMessageHandler();
+      const duplicate = guid.result.current.sendMessageHandler();
+      await expect(duplicate).resolves.toBe(false);
+      await expect(first).resolves.toBe(true);
+    });
+    expect(createConversationInvokeMock).toHaveBeenCalledTimes(1);
+    expect(deps.navigate).toHaveBeenCalledWith('/conversation/conv-1');
+    const loadingId = JSON.parse(sessionStorage.getItem('acp_initial_message_conv-1') || '{}').loading_id;
+    expect(loadingId).toEqual(expect.any(String));
+
+    const params = {
+      conversation_id: 'conv-1',
+      backend: 'synonbiomed',
+      streamReady: true,
+      setAiProcessing: vi.fn(),
+      resetState: vi.fn(),
+      markSendStarted: vi.fn(),
+      markSendAccepted: vi.fn(),
+      checkAndUpdateTitle: vi.fn(),
+      addOrUpdateMessage: vi.fn(),
+      onDraftPrefill: vi.fn(),
+    };
+    const conversation = renderHook(() => useAcpInitialMessage(params));
+    await vi.waitFor(() => expect(sendInitialMessageInvokeMock).toHaveBeenCalledTimes(1));
+    expect(sendInitialMessageInvokeMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conversation_id: 'conv-1',
+        loading_id: loadingId,
+        input: 'hello',
+        session_options: expect.objectContaining({
+          model: 'synonbiomed-default',
+          effort: 'high',
+          verifier_mode: 'on',
+          memory_mode: 'on',
+        }),
+      })
+    );
+    expect(params.onDraftPrefill).not.toHaveBeenCalled();
+    expect(params.markSendStarted).toHaveBeenCalledTimes(1);
+    expect(params.markSendAccepted).toHaveBeenCalledWith('first-turn', expect.any(Object), 'first-message');
+    expect(sessionStorage.getItem('acp_initial_message_conv-1')).toBeNull();
+    conversation.rerender();
+    await act(async () => Promise.resolve());
+    expect(sendInitialMessageInvokeMock).toHaveBeenCalledTimes(1);
   });
 
   it('uploads staged browser files to the selected project and carries artifact references into the first message', async () => {
@@ -364,7 +434,7 @@ describe('useGuidSend', () => {
     );
   });
 
-  it('stores draft session controls for the first Synon Biomed message', async () => {
+  it('carries session controls into the executable first Synon Biomed message', async () => {
     const deps = createDeps();
     deps.sessionOptions = {
       delegation: true,
@@ -381,6 +451,7 @@ describe('useGuidSend', () => {
 
     expect(JSON.parse(sessionStorage.getItem('acp_initial_message_conv-1') || '{}')).toEqual({
       input: 'hello',
+      loading_id: expect.any(String),
       session_options: {
         ultra_mode: true,
         verifier_mode: 'off',
@@ -391,7 +462,6 @@ describe('useGuidSend', () => {
         effort: 'high',
       },
       compute_providers: ['local', 'ssh:hpc-a'],
-      draft_only: true,
     });
   });
 
