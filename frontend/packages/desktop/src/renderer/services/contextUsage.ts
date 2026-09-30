@@ -7,6 +7,19 @@
 export const CONTEXT_USAGE_CATEGORIES = ['systemPrompt', 'tools', 'messages', 'mcp', 'skills'] as const;
 export type ContextUsageCategory = (typeof CONTEXT_USAGE_CATEGORIES)[number];
 export type ContextUsageBreakdownRow = { key: ContextUsageCategory; tokens: number };
+export type ContextUsageProgress = {
+  phase: 'generating' | 'thinking' | 'compacting';
+  observedAt: string;
+  usedTokens: number;
+  outputTokens: number;
+};
+export type ContextCompactionPolicy = {
+  enabled: boolean;
+  windowTokens: number;
+  thresholdTokens: number;
+  percent: number;
+  source: 'window_percent' | 'token_override';
+};
 export type ContextUsageSnapshot = {
   sessionId: string;
   requestId: string;
@@ -20,8 +33,28 @@ export type ContextUsageSnapshot = {
   outputTokens: number;
   hasMedia: boolean;
   inputEstimates: ContextUsageBreakdownRow[];
+  progress?: ContextUsageProgress;
 };
-export type ContextUsageResult = { status: 'unavailable' } | { status: 'available'; snapshot: ContextUsageSnapshot };
+export type ContextUsageResult =
+  | { status: 'unavailable' }
+  | {
+      status: 'available';
+      snapshot: ContextUsageSnapshot;
+      autoCompaction?: ContextCompactionPolicy;
+    };
+
+export class ContextUsageRequestError extends Error {
+  constructor(
+    message: string,
+    readonly retryable: boolean
+  ) {
+    super(message);
+  }
+}
+
+export function isContextUsageRetryable(error: unknown): boolean {
+  return error instanceof ContextUsageRequestError ? error.retryable : error instanceof TypeError;
+}
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -71,7 +104,52 @@ export function parseContextUsage(payload: unknown, conversationId: string): Con
   ) {
     throw new Error('Missing context usage input weights');
   }
-  return { status: 'available', snapshot: value as ContextUsageSnapshot };
+  const progress = value.progress;
+  if (
+    progress !== undefined &&
+    (!isObject(progress) ||
+      !['generating', 'thinking', 'compacting'].includes(String(progress.phase)) ||
+      typeof progress.observedAt !== 'string' ||
+      !Number.isFinite(Date.parse(progress.observedAt)) ||
+      !isTokenCount(progress.usedTokens) ||
+      !isTokenCount(progress.outputTokens) ||
+      progress.usedTokens - value.usedTokens !== progress.outputTokens ||
+      value.source !== 'estimated' ||
+      value.state === 'complete' ||
+      (progress.phase === 'compacting' && progress.outputTokens !== 0))
+  )
+    throw new Error('Invalid context usage progress');
+  const policy = payload.autoCompaction;
+  if (
+    policy !== undefined &&
+    (!isObject(policy) ||
+      typeof policy.enabled !== 'boolean' ||
+      policy.windowTokens !== value.limitTokens ||
+      !isTokenCount(policy.thresholdTokens) ||
+      policy.thresholdTokens === 0 ||
+      typeof policy.percent !== 'number' ||
+      !Number.isFinite(policy.percent) ||
+      Math.abs(policy.percent - (policy.thresholdTokens * 100) / value.limitTokens) > 0.000001 ||
+      !['window_percent', 'token_override'].includes(String(policy.source)))
+  )
+    throw new Error('Invalid context compaction policy');
+  return {
+    status: 'available',
+    snapshot: value as ContextUsageSnapshot,
+    ...(policy === undefined ? {} : { autoCompaction: policy as ContextCompactionPolicy }),
+  };
+}
+
+/** A stream estimate is separate from durable request/provider counters. */
+export function projectContextUsage(snapshot: ContextUsageSnapshot): ContextUsageSnapshot {
+  if (!snapshot.progress) return snapshot;
+  return {
+    ...snapshot,
+    source: 'estimated',
+    usedTokens: snapshot.progress.usedTokens,
+    outputTokens: snapshot.progress.outputTokens,
+    observedAt: snapshot.progress.observedAt,
+  };
 }
 
 /**
@@ -110,6 +188,10 @@ export async function fetchContextUsage(conversationId: string, signal: AbortSig
     headers: { Accept: 'application/json' },
     signal,
   });
-  if (!response.ok) throw new Error(`Context usage request failed: ${response.status}`);
+  if (!response.ok)
+    throw new ContextUsageRequestError(
+      `Context usage request failed: ${response.status}`,
+      response.status === 408 || response.status === 429 || response.status >= 500
+    );
   return parseContextUsage(await response.json(), conversationId);
 }

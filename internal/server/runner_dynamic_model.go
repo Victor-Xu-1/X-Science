@@ -272,6 +272,7 @@ func (client *sessionRunnerDynamicModelClient) Complete(
 ) (agentruntime.ModelResponse, error) {
 	if client != nil {
 		if err := client.contextBudget.beforeCall(ctx, request); err != nil {
+			client.recordContextPressure(ctx, request, err)
 			return agentruntime.ModelResponse{}, err
 		}
 	}
@@ -311,6 +312,7 @@ func (client *sessionRunnerDynamicModelClient) CompleteStream(
 ) (agentruntime.ModelResponse, error) {
 	if client != nil {
 		if err := client.contextBudget.beforeCall(ctx, request); err != nil {
+			client.recordContextPressure(ctx, request, err)
 			return agentruntime.ModelResponse{}, err
 		}
 	}
@@ -328,17 +330,24 @@ func (client *sessionRunnerDynamicModelClient) CompleteStream(
 		}
 		return emit(event)
 	}
-	complete := func(target sessionRunnerResolvedModelClient) (agentruntime.ModelResponse, error) {
+	complete := func(target sessionRunnerResolvedModelClient, progress *contextStreamProgress) (agentruntime.ModelResponse, error) {
 		if streaming, ok := target.client.(agentruntime.StreamingModelClient); ok {
-			return streaming.CompleteStream(ctx, request, trackedEmit)
+			return streaming.CompleteStream(ctx, request, func(event agentruntime.ModelStreamEvent) error {
+				if err := trackedEmit(event); err != nil {
+					return err
+				}
+				progress.observe(event)
+				return nil
+			})
 		}
 		return target.client.Complete(ctx, request)
 	}
 	for {
 		recorder := contextUsageRecorderForCall(ctx, client.contextUsage)
 		usage := recorder.begin(resolved.model, request)
-		response, callErr := complete(resolved)
-		recorder.finish(usage, response, callErr)
+		progress := recorder.streamProgress(usage)
+		response, callErr := complete(resolved, progress)
+		progress.finish(response, callErr)
 		if callErr == nil {
 			client.recordSuccess(resolved)
 			if strings.TrimSpace(response.Model) == "" {

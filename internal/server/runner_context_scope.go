@@ -632,15 +632,7 @@ func (s *Server) autoCompactEnabled() bool {
 
 func (s *Server) autoCompactTokenThreshold(contextWindow int) int {
 	setting, ok, err := s.settingsStore.Get(configStoreKey("autoCompactTokenThreshold"))
-	if err == nil && ok {
-		if value := int(numberValue(setting.Value)); value > 0 {
-			return value
-		}
-	}
-	if contextWindow <= 0 {
-		contextWindow = defaultRunnerContextWindow
-	}
-	threshold := contextWindow * defaultRunnerAutoCompactContextPercent / 100
+	threshold, _ := resolveContextCompactionThreshold(contextWindow, setting.Value, err == nil && ok)
 	return threshold
 }
 

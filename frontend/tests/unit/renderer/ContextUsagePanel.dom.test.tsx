@@ -203,7 +203,12 @@ describe('ContextUsagePanel', () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(30000);
     });
-    expect(vi.mocked(fetch).mock.calls.length).toBe(attempts);
+    expect(vi.mocked(fetch).mock.calls.length).toBe(attempts + 3);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60000);
+    });
+    expect(vi.mocked(fetch).mock.calls.length).toBe(attempts + 3);
+    expect(screen.queryByTestId('context-usage-loading')).not.toBeInTheDocument();
   });
 
   it('polls live usage without overlapping requests and cancels on unmount', async () => {
@@ -243,5 +248,71 @@ describe('ContextUsagePanel', () => {
     });
     await waitFor(() => expect(screen.getByTestId('context-usage-percent')).toHaveTextContent('5.0%'));
     expect(screen.getByTestId('context-usage-percent')).not.toHaveTextContent('99.0%');
+  });
+
+  it('updates the ring during a stream, retains an explicit stale value, and reconciles the provider final', async () => {
+    let record: unknown = {
+      ...usage(),
+      autoCompaction: { enabled: true, windowTokens: 100, thresholdTokens: 80, percent: 80, source: 'window_percent' },
+      snapshot: {
+        ...usage().snapshot,
+        state: 'request',
+        source: 'estimated',
+        outputTokens: 0,
+        progress: { phase: 'generating', observedAt: '2026-01-01T00:00:01Z', usedTokens: 28, outputTokens: 8 },
+      },
+    };
+    let failed = false;
+    vi.mocked(fetch).mockImplementation(() =>
+      Promise.resolve(new Response(JSON.stringify(record), { status: failed ? 503 : 200 }))
+    );
+    await renderWithI18n(<ContextUsagePanel conversationId='conversation-1' active />, 'en-US');
+    fireEvent.click(screen.getByTestId('synon-biomed-context-usage-trigger'));
+    await waitFor(() => expect(screen.getByTestId('context-usage-percent')).toHaveTextContent('28.0%'));
+    expect(screen.getByTestId('context-usage-phase')).toHaveTextContent('Generating');
+    expect(screen.getByTestId('context-usage-policy')).toHaveTextContent('80%');
+    expect(screen.getByTestId('synon-biomed-context-usage-trigger')).toHaveAttribute(
+      'title',
+      expect.stringContaining('≈ 28.0%')
+    );
+    vi.useFakeTimers();
+    fireEvent.click(screen.getByTestId('context-usage-close'));
+    fireEvent.click(screen.getByTestId('synon-biomed-context-usage-trigger'));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    failed = true;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+    });
+    expect(screen.getByText(/Retrying update/)).toBeInTheDocument();
+    expect(screen.getByTestId('context-usage-percent')).toHaveTextContent('28.0%');
+    failed = false;
+    record = usage(31);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    expect(screen.getByTestId('context-usage-percent')).toHaveTextContent('31.0%');
+    expect(screen.getByTestId('context-usage-phase')).toHaveTextContent('Latest request');
+    expect(screen.queryByText(/Retrying update/)).not.toBeInTheDocument();
+  });
+
+  it('stops bounded network retries and resumes on a real online event, but does not retry authorization errors', async () => {
+    vi.mocked(fetch).mockImplementation(() => Promise.resolve(new Response('{}', { status: 401 })));
+    await renderWithI18n(<ContextUsagePanel conversationId='conversation-1' active />, 'en-US');
+    fireEvent.click(screen.getByTestId('synon-biomed-context-usage-trigger'));
+    await screen.findByText(/Could not load context usage/);
+    vi.useFakeTimers();
+    const before = vi.mocked(fetch).mock.calls.length;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60000);
+    });
+    expect(vi.mocked(fetch).mock.calls.length).toBe(before);
+    vi.mocked(fetch).mockImplementation(() => Promise.resolve(new Response(JSON.stringify(usage(40)))));
+    await act(async () => {
+      window.dispatchEvent(new Event('online'));
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(screen.getByTestId('context-usage-percent')).toHaveTextContent('40.0%');
   });
 });

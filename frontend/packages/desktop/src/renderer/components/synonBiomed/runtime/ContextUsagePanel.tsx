@@ -9,7 +9,11 @@ import { Close } from '@icon-park/react';
 import React, { useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useContextUsage } from '@/renderer/hooks/synonBiomed/useContextUsage';
-import { reconcileContextUsageBreakdown, type ContextUsageCategory } from '@/renderer/services/contextUsage';
+import {
+  projectContextUsage,
+  reconcileContextUsageBreakdown,
+  type ContextUsageCategory,
+} from '@/renderer/services/contextUsage';
 import styles from './ContextUsagePanel.module.css';
 
 const RING_SIZE = 16;
@@ -40,7 +44,11 @@ function formatTokenCount(count: number): string {
 /**
  * Bare usage ring; the management card owns its popover behavior.
  */
-const UsageRing: React.FC<{ usedTokens: number; limitTokens: number }> = ({ usedTokens, limitTokens }) => {
+const UsageRing: React.FC<{ usedTokens: number; limitTokens: number; threshold?: number }> = ({
+  usedTokens,
+  limitTokens,
+  threshold,
+}) => {
   const percent = limitTokens > 0 ? (usedTokens / limitTokens) * 100 : 0;
   const radius = (RING_SIZE - RING_STROKE_WIDTH) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -66,7 +74,7 @@ const UsageRing: React.FC<{ usedTokens: number; limitTokens: number }> = ({ used
         cy={RING_SIZE / 2}
         r={radius}
         fill='none'
-        stroke='var(--color-text-3)'
+        stroke={threshold !== undefined && usedTokens >= threshold ? '#d97706' : '#6366f1'}
         strokeWidth={RING_STROKE_WIDTH}
         strokeLinecap='round'
         strokeDasharray={circumference}
@@ -86,7 +94,26 @@ const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({ conversationId, a
   const triggerRef = useRef<HTMLButtonElement>(null);
   const detailsId = useId();
   const { state, retry } = useContextUsage(conversationId, visible, active);
-  const usage = state.status === 'available' ? state.snapshot : null;
+  const usage = state.status === 'available' ? projectContextUsage(state.snapshot) : null;
+  const policy = state.status === 'available' ? state.autoCompaction : undefined;
+  const stale = state.refreshState === 'retrying' || state.refreshState === 'stale';
+  const phase =
+    usage?.state === 'failed'
+      ? 'interrupted'
+      : active && usage?.state === 'request'
+        ? usage.progress?.phase || 'requesting'
+        : 'latest';
+  const statusLabel = t(`conversation.contextUsage.${phase}`);
+  const policyLabel = !policy
+    ? t('conversation.contextUsage.policyUnavailable')
+    : !policy.enabled
+      ? t('conversation.contextUsage.compactionDisabled')
+      : t(
+          policy.source === 'token_override'
+            ? 'conversation.contextUsage.customThreshold'
+            : 'conversation.contextUsage.compactionTarget',
+          { percent: Number(policy.percent.toFixed(1)), tokens: formatTokenCount(policy.thresholdTokens) }
+        );
   const usagePercent = usage ? (usage.usedTokens / usage.limitTokens) * 100 : 0;
   const rows = usage ? reconcileContextUsageBreakdown(usage) : [];
   // Keep the semantic legend order stable, but make the visual bar readable:
@@ -113,6 +140,8 @@ const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({ conversationId, a
         t('conversation.contextUsage.estimatedBreakdown'),
         t('conversation.contextUsage.breakdownNote'),
         t('conversation.contextUsage.budgetNote'),
+        policyLabel,
+        usage.progress ? t('conversation.contextUsage.streamEstimateNote') : '',
         usage.hasMedia ? t('conversation.contextUsage.mediaNote') : '',
         usage.state === 'request' ? t('conversation.contextUsage.requestPending') : '',
         usage.state === 'failed' ? t('conversation.contextUsage.failedRequest') : '',
@@ -139,6 +168,9 @@ const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({ conversationId, a
         >
           <div className={styles.header}>
             <span className={styles.headerTitle}>{t('conversation.contextUsage.title')}</span>
+            <span className={styles.phase} role='status' data-testid='context-usage-phase'>
+              {statusLabel}
+            </span>
             <button
               type='button'
               className={styles.closeButton}
@@ -209,6 +241,30 @@ const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({ conversationId, a
                   </div>
                 ))}
               </div>
+              <div className={styles.policy} data-testid='context-usage-policy'>
+                <span>{policyLabel}</span>
+                <span>
+                  {t(
+                    usage.limitSource === 'configured'
+                      ? 'conversation.contextUsage.configuredWindow'
+                      : 'conversation.contextUsage.defaultBudget'
+                  )}
+                </span>
+              </div>
+              {stale && (
+                <div className={styles.refreshNotice} role='status'>
+                  <span>
+                    {t(
+                      state.refreshState === 'retrying'
+                        ? 'conversation.contextUsage.refreshRetrying'
+                        : 'conversation.contextUsage.refreshStale'
+                    )}
+                  </span>
+                  <button type='button' onClick={retry}>
+                    {t('conversation.contextUsage.retry')}
+                  </button>
+                </div>
+              )}
             </>
           ) : state.status === 'loading' ? (
             <div
@@ -241,9 +297,27 @@ const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({ conversationId, a
         aria-label={t('conversation.contextUsage.title')}
         aria-expanded={visible}
         aria-haspopup='dialog'
+        title={
+          usage
+            ? `${statusLabel} · ${usage.source === 'estimated' ? '≈ ' : ''}${usagePercent.toFixed(1)}%`
+            : t('conversation.contextUsage.unavailable')
+        }
+        data-usage-state={state.status}
         className='inline-flex items-center justify-center cursor-pointer border-0 bg-transparent p-0'
       >
-        <UsageRing usedTokens={usage?.usedTokens ?? 0} limitTokens={usage?.limitTokens ?? 1} />
+        {usage ? (
+          <UsageRing
+            usedTokens={usage.usedTokens}
+            limitTokens={usage.limitTokens}
+            threshold={policy?.enabled ? policy.thresholdTokens : undefined}
+          />
+        ) : state.status === 'loading' ? (
+          <Spin size={16} />
+        ) : (
+          <span className={styles.unknown} aria-hidden='true'>
+            —
+          </span>
+        )}
       </button>
     </Dropdown>
   );

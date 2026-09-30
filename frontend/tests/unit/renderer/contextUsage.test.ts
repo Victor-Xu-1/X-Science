@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   fetchContextUsage,
   parseContextUsage,
+  projectContextUsage,
   reconcileContextUsageBreakdown,
   type ContextUsageSnapshot,
 } from '@/renderer/services/contextUsage';
@@ -35,6 +36,43 @@ const snapshot = (): ContextUsageSnapshot => ({
 
 describe('context usage contract', () => {
   afterEach(() => vi.unstubAllGlobals());
+
+  it('keeps stream estimates additive and validates the actual server compaction policy', () => {
+    const value = {
+      ...snapshot(),
+      state: 'request' as const,
+      source: 'estimated' as const,
+      outputTokens: 0,
+      progress: { phase: 'generating' as const, observedAt: '2026-01-01T00:00:01Z', usedTokens: 28, outputTokens: 8 },
+    };
+    const policy = { enabled: true, windowTokens: 100, thresholdTokens: 80, percent: 80, source: 'window_percent' };
+    const result = parseContextUsage({ status: 'available', snapshot: value, autoCompaction: policy }, 'one');
+    expect(result.status).toBe('available');
+    const projected = projectContextUsage(value);
+    expect(projected.usedTokens).toBe(28);
+    expect(projected.outputTokens).toBe(8);
+    expect(value.usedTokens).toBe(20);
+    expect(reconcileContextUsageBreakdown(projected).reduce((total, row) => total + row.tokens, 0)).toBe(28);
+    for (const progress of [
+      { ...value.progress, usedTokens: 99 },
+      { ...value.progress, phase: 'invented' },
+      { ...value.progress, observedAt: 'invalid' },
+    ]) {
+      expect(() => parseContextUsage({ status: 'available', snapshot: { ...value, progress } }, 'one')).toThrow();
+    }
+    expect(() =>
+      parseContextUsage({ status: 'available', snapshot: { ...value, source: 'provider' } }, 'one')
+    ).toThrow();
+    expect(() =>
+      parseContextUsage({ status: 'available', snapshot: value, autoCompaction: { ...policy, percent: 50 } }, 'one')
+    ).toThrow();
+    expect(() =>
+      parseContextUsage(
+        { status: 'available', snapshot: value, autoCompaction: { ...policy, windowTokens: 1000 } },
+        'one'
+      )
+    ).toThrow();
+  });
 
   it('keeps provider total separate from estimated components and accepts zero', () => {
     const value = snapshot();

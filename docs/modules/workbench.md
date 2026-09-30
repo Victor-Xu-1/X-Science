@@ -66,6 +66,29 @@ go test ./internal/persistence/workspace -run '^TestTranscriptWebProjectorV70|^T
 
 ## Focused verification · 验证入口
 
+### Live context usage · 运行中上下文反馈
+
+输入框圆环只展示主智能体最近一次请求的上下文占用，不是累计计费 Token，也不是
+任务完成进度。沿现有 `GET /api/conversations/:id/context-usage` 授权查询读取数值；
+响应可选 `progress` 保存流式文本的数值估算和状态，最多每秒持久化一次，不保存文本
+或私有推理。结束后由供应商用量校准；旧请求的迟到事件不能覆盖新请求或恢复已删除状态。
+工具静默计算不会虚增上下文，未报告的私有推理与工具参数不猜测计数。
+
+运行中或展开面板时每五秒查询。暂时网络故障按 1/2/4 秒有界重试，保留上次读数并
+明确标注可能过期；鉴权或无效记录不自动重试，恢复网络、重新聚焦或手动重试可重新查询。
+暂无记录显示未知而不是零。历史快照不会被标成当前正在生成。
+
+可选 `autoCompaction` 返回与请求准入共用的有效阈值：默认配置窗口的 80%，已有显式
+Token 覆盖或关闭设置原样生效并在界面说明。窗口未配置时显示默认预算，不宣称已经核实
+模型容量；供应商实际溢出恢复仍保留。压缩前后的记录不删除用户可见历史。
+
+```sh
+go test ./internal/server -run 'TestContextUsage|TestContextProgress|TestContextCompactionPolicy|TestWebContextUsage|TestRequestContextBudget' -count=1
+cd frontend
+npm run test:unit -- tests/unit/renderer/contextUsage.test.ts tests/unit/renderer/ContextUsagePanel.dom.test.tsx
+node tests/web-e2e/contextUsagePanel.browser.mjs
+```
+
 ### Turn navigation · 左侧轮次导航
 
 桌面会话左侧每次用户提问对应一条导航线；一轮即显示一条，轮次没有固定上限。
