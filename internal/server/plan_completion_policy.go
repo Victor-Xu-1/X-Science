@@ -33,11 +33,29 @@ func (s *Server) recoveredCompletionCorrectionIsAdvisory(
 		correction.Condition.Validate() != nil || correction.Condition.Plan == nil {
 		return false, nil
 	}
-	remaining, err := s.incompleteGeneratedPlanCondition(frameID, run)
-	if err != nil || remaining == nil || !remaining.advisory {
+	contextData, err := s.generatedPlanCompletionContext(frameID, run)
+	if err != nil || contextData == nil || !autonomousGeneratedPlan(contextData) {
 		return false, err
 	}
 	plan := correction.Condition.Plan
 	return strings.TrimSpace(plan.ArtifactID) != "" && strings.TrimSpace(plan.VersionID) != "" &&
-		plan.ArtifactID == remaining.condition.ArtifactID && plan.VersionID == remaining.condition.VersionID, nil
+		plan.ArtifactID == stringValue(contextData["_plan_artifact_id"]) &&
+		plan.VersionID == stringValue(contextData["_plan_version_id"]), nil
+}
+
+// Completion and recovery share this scoped metadata authority. In particular,
+// completed navigation must not revive an older administrative interruption.
+func (s *Server) generatedPlanCompletionContext(frameID string, run *sessionRunnerChatRun) (map[string]any, error) {
+	if s == nil || s.workspaceStore == nil || strings.TrimSpace(frameID) == "" {
+		return nil, nil
+	}
+	metadata, found, err := s.workspaceStore.GetFrameRuntimeMetadata(strings.TrimSpace(frameID))
+	if err != nil || !found {
+		return nil, err
+	}
+	contextData := mapValue(metadata.ContextData)
+	if !generatedPlanExecutionAuthorized(contextData) || (run != nil && !sessionRunnerPlanMatchesTask(contextData, run)) {
+		return nil, nil
+	}
+	return contextData, nil
 }

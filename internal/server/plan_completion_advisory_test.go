@@ -70,6 +70,32 @@ func TestRecoveredAutonomousPlanCorrectionUsesCurrentPolicy(t *testing.T) {
 	}
 }
 
+func TestRecoveredAutonomousPlanCompletedNavigationIsAdvisory(t *testing.T) {
+	f := newAgentSaveArtifactsFixture(t)
+	_ = revisePlanForTest(t, f, "completed-navigation", revisionPlanInput("Explain supplied result"))
+	remaining, err := f.server.incompleteGeneratedPlanCondition(f.stream.SessionID)
+	if err != nil || remaining == nil {
+		t.Fatalf("load pending navigation: %#v %v", remaining, err)
+	}
+	cause := remaining.runnerCorrection()
+	metadata, found, err := f.store.GetFrameRuntimeMetadata(f.stream.SessionID)
+	if err != nil || !found {
+		t.Fatal(err)
+	}
+	// This seeds navigation state only; it is not a scientific execution receipt.
+	metadata.ContextData["_step_statuses"] = map[string]any{
+		remaining.condition.Steps[0].ID: map[string]any{"status": "completed"},
+	}
+	if _, err := f.store.SetFrameRuntimeMetadata(f.stream.SessionID, metadata); err != nil {
+		t.Fatal(err)
+	}
+	advisory, err := f.server.recoveredCompletionCorrectionIsAdvisory(f.stream.SessionID, nil,
+		recoveredRunnerCorrection{ReasonCode: cause.ReasonCode, Detail: cause.Detail, Condition: cause.Condition})
+	if err != nil || !advisory {
+		t.Fatalf("completed autonomous navigation reopened an obsolete tool obligation: advisory=%t error=%v", advisory, err)
+	}
+}
+
 func TestCompactPlanExecutionRepairRetainsVerifiedReceiptAndReason(t *testing.T) {
 	for _, applied := range []bool{false, true} {
 		binding := map[string]any{"call_id": "verified-call", "tool": "python", "event_id": float64(12)}

@@ -504,19 +504,13 @@ func resolveGeneratedPlanStepIdentity(
 }
 
 func (s *Server) incompleteGeneratedPlanCondition(frameID string, runs ...*sessionRunnerChatRun) (*sessionRunnerPlanStepsIncomplete, error) {
-	if s == nil || s.workspaceStore == nil || strings.TrimSpace(frameID) == "" {
-		return nil, nil
+	var run *sessionRunnerChatRun
+	if len(runs) > 0 {
+		run = runs[0]
 	}
-	metadata, found, err := s.workspaceStore.GetFrameRuntimeMetadata(strings.TrimSpace(frameID))
-	if err != nil || !found {
+	contextData, err := s.generatedPlanCompletionContext(frameID, run)
+	if err != nil || contextData == nil {
 		return nil, err
-	}
-	contextData := mapValue(metadata.ContextData)
-	if !generatedPlanExecutionAuthorized(contextData) {
-		return nil, nil
-	}
-	if len(runs) > 0 && runs[0] != nil && !sessionRunnerPlanMatchesTask(contextData, runs[0]) {
-		return nil, nil
 	}
 	steps, err := generatedPlanStepIdentities(mapValue(contextData["_plan_json"]))
 	if err != nil {

@@ -623,11 +623,13 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 		return "", err
 	}
 	taskContract := buildSessionRunnerTaskContract(taskIntent, taskIntentID, taskIntentRevision)
+	recoveredCorrectionAdvisory := false
 	if correction, found := latestRunnerCorrection(entries); found {
 		staleAdvisory, err := s.recoveredCompletionCorrectionIsAdvisory(intakeFrameID, run, correction)
 		if err != nil {
 			return "", fmt.Errorf("resolve recovered completion policy: %w", err)
 		}
+		recoveredCorrectionAdvisory = staleAdvisory
 		if staleAdvisory {
 			// This correction was emitted before the explicit review policy was
 			// resolved. Drop only the synthetic correction context; replayed user,
@@ -987,7 +989,7 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 		runRequest.InitialToolChoice = planPriorityChoice
 	} else if choice := sessionRunnerCorrectionRequiredToolChoice(run, runRequest.Messages, advertisedRuntimeToolSchemas); choice != nil {
 		runRequest.InitialToolChoice = choice
-	} else if initialToolChoice := recoveredRunnerInitialToolChoice(entries, advertisedRuntimeToolSchemas); initialToolChoice != nil {
+	} else if initialToolChoice := recoveredRunnerInitialToolChoice(entries, advertisedRuntimeToolSchemas); !recoveredCorrectionAdvisory && initialToolChoice != nil {
 		// A durable correction that explicitly requires new evidence must begin
 		// with a real model-selected tool call. The engine owns bounded private
 		// protocol repair; if the provider still returns prose, the outer runner
