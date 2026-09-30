@@ -2,7 +2,6 @@ package transcript
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"strings"
 )
@@ -54,7 +53,8 @@ func (r *Repository) AppendFrameUserEventToBranch(
 	normalized.MessageOrigin = "task_intent"
 
 	var result AppendFrameUserEventToBranchResult
-	err = r.withImmediate(ctx, func(conn *sql.Conn) error {
+	err = r.RunImmediate(ctx, func(tx *ImmediateTransaction) error {
+		conn := tx.conn
 		now := r.now().UTC()
 		stream, err := getStreamConn(ctx, conn, normalized.StreamUID, normalized.OwnerID)
 		if err != nil {
@@ -163,6 +163,7 @@ func (r *Repository) AppendFrameUserEventToBranch(
 		result.Switched = activeBranchID != input.TargetBranchID
 
 		event, frameEvent, created, err := appendFrameUserEventConn(ctx, conn, normalized, now)
+		tx.markInputAdded(created, err)
 		if err != nil {
 			return fmt.Errorf("append branch continuation: %w", err)
 		}

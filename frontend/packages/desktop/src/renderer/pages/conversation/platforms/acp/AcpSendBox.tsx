@@ -487,8 +487,7 @@ const AcpSendBox: React.FC<{
     []
   );
 
-  // Check for and send initial message from guid page
-  // Check for and stage the initial message from the guid page.
+  // Consume routed sends once; explicitly staged entry points still restore a draft.
   const stageInitialDraft = useCallback(
     (payload: StagedDraftPayload) => {
       applyStagedDraft(

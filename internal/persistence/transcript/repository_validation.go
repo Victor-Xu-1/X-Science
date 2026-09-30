@@ -46,13 +46,17 @@ func (r *Repository) RunImmediateWithOutcome(
 			_, _ = conn.ExecContext(context.WithoutCancel(ctx), "ROLLBACK")
 		}
 	}()
-	if err = fn(&ImmediateTransaction{repository: r, conn: conn}); err != nil {
+	tx := &ImmediateTransaction{repository: r, conn: conn}
+	if err = fn(tx); err != nil {
 		return outcome, err
 	}
 	outcome.CommitAttempted = true
 	_, err = conn.ExecContext(ctx, "COMMIT")
 	if err == nil {
 		outcome.Committed = true
+		if tx.inputAdded {
+			r.signalCommittedInput()
+		}
 	}
 	return outcome, err
 }

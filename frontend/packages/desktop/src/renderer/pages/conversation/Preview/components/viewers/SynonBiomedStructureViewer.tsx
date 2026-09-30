@@ -2123,9 +2123,13 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
           setDockingEnsemble(ensemble);
           setDockingEntryIndex(initialDockingIndex);
           setSelectedDockingIndices([initialDockingIndex]);
+          const referenceOffset = ensemble.entries[0].kind === 'reference' ? 1 : 0;
           setDockingColorIndices(
             Object.fromEntries(
-              ensemble.entries.map((entry, index) => [index, entry.kind === 'reference' ? 1 : (index - 1) % 4])
+              ensemble.entries.map((entry, index) => [
+                index,
+                entry.kind === 'reference' ? 1 : (index - referenceOffset) % DOCKING_COLOR_OPTIONS.length,
+              ])
             )
           );
           const hasInitialPocket = initialDockingSummary?.hasLigand ?? false;
