@@ -45,6 +45,8 @@ claim → recovery → context → snapshot → provider ⇄ tool → verify →
 不是执行是否发生的依据；非终态、未执行的前置拒绝和失败回执不能冒充成功。
 计划状态反馈保留 `execution_ref`、`execution_binding` 和 `execution_continuation`，
 模型可以复用匹配的已有执行，不得因为反馈压缩丢失标识而再次执行。
+重新执行请求按相邻动作识别否定语义：明确“不重新计算”不产生新计算义务；
+同一消息中另有明确重新分析的要求时，该要求仍须有当前请求的成功执行证据。
 
 对应回归（含真实 SQLite、终态协议结算和可控 HTTP 模型边界）：
 

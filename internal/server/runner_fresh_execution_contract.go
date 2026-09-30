@@ -22,19 +22,34 @@ func sessionRunnerFreshExecutionRequested(messages []agentruntime.Message) bool 
 	if latest == "" {
 		return false
 	}
-	for _, negation := range []string{
-		"不要重新计算", "无需重新计算", "不用重新计算", "不要重算", "无需重算",
-		"do not recalculate", "don't recalculate", "without recalculating", "do not rerun", "don't rerun",
-	} {
-		if strings.Contains(latest, negation) {
-			return false
-		}
-	}
 	for _, request := range []string{
 		"重新计算", "重新运算", "重新分析", "重新运行", "重算", "再计算", "再运行",
 		"recalculate", "recompute", "rerun", "re-run", "run again", "re-analyze", "reanalyze",
 	} {
-		if strings.Contains(latest, request) {
+		for offset := 0; offset < len(latest); {
+			index := strings.Index(latest[offset:], request)
+			if index < 0 {
+				break
+			}
+			index += offset
+			if !sessionRunnerFreshRequestNegated(latest[:index]) {
+				return true
+			}
+			offset = index + len(request)
+		}
+	}
+	return false
+}
+
+// Negation belongs to the adjacent action, not the entire message. A request
+// may prohibit recalculating one result while explicitly rerunning another.
+func sessionRunnerFreshRequestNegated(before string) bool {
+	before = strings.TrimSpace(before)
+	for _, negation := range []string{
+		"不", "不要", "无需", "无须", "不用", "不得", "不必", "不需要",
+		"不要再", "无需再", "不用再", "不再", "not", "don't", "without", "never", "no",
+	} {
+		if strings.HasSuffix(before, negation) {
 			return true
 		}
 	}
