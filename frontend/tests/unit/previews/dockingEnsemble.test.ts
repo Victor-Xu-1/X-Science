@@ -21,6 +21,21 @@ const fixture = [
 ].join('\n');
 
 describe('docking ensemble projection', () => {
+  it('accepts ranked poses without a co-crystal reference and projects only the selected ligand', () => {
+    const withoutReference = fixture
+      .split('\n')
+      .filter((line) => !line.includes('REFERENCE LIGAND') && !line.includes('C1   REF'))
+      .join('\n');
+    const ensemble = parseDockingEnsemble(withoutReference);
+    expect(ensemble?.entries.map((entry) => entry.residueName)).toEqual(['D01', 'D02', 'D03']);
+    expect(ensemble?.entries.every((entry) => entry.kind === 'candidate')).toBe(true);
+    const selected = selectDockingEnsembleEntry(ensemble!, 0);
+    expect(selected.match(/^ATOM/gm)).toHaveLength(1);
+    expect(selected).toContain('HETATM    3 C1   D01');
+    expect(selected).not.toContain('HETATM    4 C1   D02');
+    expect(selected).not.toContain('HETATM    5 C1   D03');
+  });
+
   it('discovers the reference and ranked candidates from the self-describing PDB', () => {
     const ensemble = parseDockingEnsemble(fixture);
     expect(ensemble?.entries).toEqual([
@@ -105,6 +120,25 @@ describe('docking ensemble projection', () => {
     expect(selected.endsWith('\nEND\n')).toBe(true);
   });
 
+  it('accepts a single candidate but still rejects missing or duplicate ligand components', () => {
+    const singleCandidate = fixture
+      .split('\n')
+      .filter(
+        (line) =>
+          !line.includes('REFERENCE LIGAND') && !line.includes('REF') && !line.includes('D02') && !line.includes('D03')
+      )
+      .join('\n');
+    const ensemble = parseDockingEnsemble(singleCandidate);
+    expect(ensemble?.entries).toHaveLength(1);
+    expect(selectDockingEnsembleEntry(ensemble!, 0)).toContain('HETATM    3 C1   D01');
+    expect(parseDockingEnsemble(singleCandidate.replace(/^HETATM.*$/m, ''))).toBeNull();
+    expect(
+      parseDockingEnsemble(
+        singleCandidate + '\nREMARK 900 DOCKED LIGAND D01 CANDIDATE other RANK 2 AFFINITY -5.000 KCAL/MOL'
+      )
+    ).toBeNull();
+  });
+
   it('projects any two distinct ligands for comparison while keeping one receptor', () => {
     const ensemble = parseDockingEnsemble(fixture);
     const selected = selectDockingEnsembleEntries(ensemble!, [3, 0]);
@@ -117,8 +151,14 @@ describe('docking ensemble projection', () => {
     expect(selected.indexOf('HETATM    5 C1   D03')).toBeLessThan(selected.indexOf('HETATM    2 C1   REF'));
   });
 
-  it('merges only the minimized ligand coordinates and preserves the ensemble contract', () => {
-    const ensemble = parseDockingEnsemble(fixture)!;
+  it.each([true, false])('merges only minimized ligand coordinates (co-crystal reference: %s)', (withReference) => {
+    const source = withReference
+      ? fixture
+      : fixture
+          .split('\n')
+          .filter((line) => !line.includes('REFERENCE LIGAND') && !line.includes('C1   REF'))
+          .join('\n');
+    const ensemble = parseDockingEnsemble(source)!;
     const minimizedPose = [
       'REMARK 900 DOCKING POSE PREVIEW',
       'ATOM      1 CA   GLY A  16      99.999  99.999  99.999  1.00 46.96           C',
