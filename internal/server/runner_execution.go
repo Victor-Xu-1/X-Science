@@ -624,7 +624,10 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 	}
 	taskContract := buildSessionRunnerTaskContract(taskIntent, taskIntentID, taskIntentRevision)
 	if correction, found := latestRunnerCorrection(entries); found {
-		staleAdvisory := sessionRunnerRecoveredCorrectionIsAdvisory(correction.ReasonCode, correction.repairDetail())
+		staleAdvisory, err := s.recoveredCompletionCorrectionIsAdvisory(intakeFrameID, run, correction)
+		if err != nil {
+			return "", fmt.Errorf("resolve recovered completion policy: %w", err)
+		}
 		if staleAdvisory {
 			// This correction was emitted before the explicit review policy was
 			// resolved. Drop only the synthetic correction context; replayed user,

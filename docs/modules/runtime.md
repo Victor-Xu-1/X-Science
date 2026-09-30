@@ -40,6 +40,8 @@ claim → recovery → context → snapshot → provider ⇄ tool → verify →
 回执和产物完整性检查后，未更新完的计划状态只记录为提示，不自动重开一轮模型调用、
 重复计算或重新发布；原计划的待办状态保留，不能为了放行而伪造完成。
 用户明确审阅并批准的执行计划仍保留原有执行义务，鉴权、归属和真实失败检查不变。
+恢复入口使用同一完成策略：旧检查点的自动导航条件只有在持久化类型、当前任务及
+计划版本完全匹配时才成为提示；不从说明文字猜测身份，也不清除其他计划或已批准的义务。
 
 恢复阶段完成的内核调用和正常工具阶段沿同一持久化回执路径识别。阶段名用于观察，
 不是执行是否发生的依据；非终态、未执行的前置拒绝和失败回执不能冒充成功。
@@ -51,7 +53,7 @@ claim → recovery → context → snapshot → provider ⇄ tool → verify →
 对应回归（含真实 SQLite、终态协议结算和可控 HTTP 模型边界）：
 
 ```sh
-go test ./internal/server -run 'TestCompactPlanExecutionRepair|TestCompletionPlanPolicy|TestRecoveredToolContract|TestAutonomousCompletionPublishesFinal|TestForegroundDetachedKernelWaitDoesNotCommitProvisionalTerminalReceipt|TestExecutionPlanStepRequiresScoped|TestExecutionReceiptAmbiguityAndPlanFence' -count=1
+go test ./internal/server -run 'TestCompactPlanExecutionRepair|TestCompletionPlanPolicy|TestRecoveredAutonomousPlanCorrection|TestRecoveredToolContract|TestFreshExecution|TestAutonomousCompletionPublishesFinal|TestForegroundDetachedKernelWaitDoesNotCommitProvisionalTerminalReceipt|TestExecutionPlanStepRequiresScoped|TestExecutionReceiptAmbiguityAndPlanFence' -count=1
 ```
 
 ## Focused verification · 验证入口

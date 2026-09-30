@@ -5,6 +5,71 @@ import (
 	"testing"
 )
 
+func TestRecoveredAutonomousPlanCorrectionUsesCurrentPolicy(t *testing.T) {
+	f := newAgentSaveArtifactsFixture(t)
+	_ = revisePlanForTest(t, f, "recovered-navigation-plan", revisionPlanInput("Explain supplied result"))
+	remaining, err := f.server.incompleteGeneratedPlanCondition(f.stream.SessionID)
+	if err != nil || remaining == nil {
+		t.Fatalf("load real durable plan: %#v %v", remaining, err)
+	}
+	cause := remaining.runnerCorrection()
+	correction := recoveredRunnerCorrection{ReasonCode: cause.ReasonCode, Detail: cause.Detail, Condition: cause.Condition}
+	advisory, err := f.server.recoveredCompletionCorrectionIsAdvisory(f.stream.SessionID, nil, correction)
+	if err != nil || !advisory {
+		t.Fatalf("old autonomous bookkeeping correction remains a forced tool obligation: advisory=%t error=%v", advisory, err)
+	}
+	for _, variant := range []string{"legacy detail", "foreign artifact", "foreign version", "invalid condition", "different reason"} {
+		other := correction
+		condition := *correction.Condition
+		plan := *condition.Plan
+		condition.Plan = &plan
+		other.Condition = &condition
+		switch variant {
+		case "legacy detail":
+			other.Condition = nil
+		case "foreign artifact":
+			plan.ArtifactID = "foreign-plan"
+		case "foreign version":
+			plan.VersionID = "foreign-version"
+		case "invalid condition":
+			condition.Schema = "untrusted-condition"
+		case "different reason":
+			condition.ReasonCode = "plan_approval_required"
+		}
+		if advisory, err := f.server.recoveredCompletionCorrectionIsAdvisory(f.stream.SessionID, nil, other); err != nil || advisory {
+			t.Fatalf("%s condition erased an obligation: advisory=%t error=%v", variant, advisory, err)
+		}
+	}
+	if advisory, err := f.server.recoveredCompletionCorrectionIsAdvisory("different-frame", nil, correction); err != nil || advisory {
+		t.Fatalf("another frame cleared the original condition: advisory=%t error=%v", advisory, err)
+	}
+	for _, otherRun := range []*sessionRunnerChatRun{
+		{TaskIntentID: "another-input"},
+		{TaskIntentRevision: 999},
+		{TaskIntent: "a different request"},
+	} {
+		if advisory, err := f.server.recoveredCompletionCorrectionIsAdvisory(f.stream.SessionID, otherRun, correction); err != nil || advisory {
+			t.Fatalf("another task input cleared the original condition: advisory=%t error=%v", advisory, err)
+		}
+	}
+	metadata, found, err := f.store.GetFrameRuntimeMetadata(f.stream.SessionID)
+	if err != nil || !found {
+		t.Fatal(err)
+	}
+	metadata.ContextData["_plan_approved"] = true
+	if _, err := f.store.SetFrameRuntimeMetadata(f.stream.SessionID, metadata); err != nil {
+		t.Fatal(err)
+	}
+	advisory, err = f.server.recoveredCompletionCorrectionIsAdvisory(f.stream.SessionID, nil, correction)
+	if err != nil || advisory {
+		t.Fatalf("explicitly approved plan lost its obligation: advisory=%t error=%v", advisory, err)
+	}
+	remaining, err = f.server.incompleteGeneratedPlanCondition(f.stream.SessionID)
+	if err != nil || remaining == nil || len(remaining.condition.Steps) != 1 {
+		t.Fatalf("recovered policy rewrote pending progress: %#v %v", remaining, err)
+	}
+}
+
 func TestCompactPlanExecutionRepairRetainsVerifiedReceiptAndReason(t *testing.T) {
 	for _, applied := range []bool{false, true} {
 		binding := map[string]any{"call_id": "verified-call", "tool": "python", "event_id": float64(12)}
