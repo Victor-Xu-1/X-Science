@@ -40,5 +40,12 @@ func (s *Server) handleWebContextUsage(w http.ResponseWriter, r *http.Request, f
 		writeWorkspaceJSON(w, http.StatusServiceUnavailable, map[string]any{"message": "context usage record unavailable"})
 		return
 	}
-	writeWorkspaceJSON(w, http.StatusOK, map[string]any{"status": "available", "snapshot": snapshot})
+	result := map[string]any{"status": "available", "snapshot": snapshot}
+	policy, err := s.contextCompactionPolicy(snapshot.LimitTokens)
+	if err != nil {
+		log.Printf("context_usage_policy_unavailable frame=%s: %v", frame.ID, err)
+	} else {
+		result["autoCompaction"] = policy
+	}
+	writeWorkspaceJSON(w, http.StatusOK, result)
 }

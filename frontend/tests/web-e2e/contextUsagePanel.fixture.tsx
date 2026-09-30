@@ -24,6 +24,6 @@ await i18n.use(initReactI18next).init({
 
 createRoot(document.getElementById('root')!).render(
   <main style={{ position: 'fixed', right: 64, bottom: 110 }}>
-    <ContextUsagePanel conversationId='browser-context-usage' />
+    <ContextUsagePanel conversationId='browser-context-usage' active />
   </main>
 );

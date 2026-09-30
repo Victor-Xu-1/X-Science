@@ -27,6 +27,45 @@ const snapshot = {
   ],
 };
 let mode = 'unavailable';
+let streamedOutput = 24_000;
+const policy = {
+  enabled: true,
+  windowTokens: 300_000,
+  thresholdTokens: 240_000,
+  percent: 80,
+  source: 'window_percent',
+};
+function responseBody() {
+  const record =
+    mode === 'stream'
+      ? {
+          ...snapshot,
+          usedTokens: 60_000,
+          state: 'request',
+          source: 'estimated',
+          progress: {
+            phase: 'generating',
+            observedAt: new Date().toISOString(),
+            usedTokens: 60_000 + streamedOutput,
+            outputTokens: streamedOutput,
+          },
+        }
+      : mode === 'request'
+        ? { ...snapshot, state: 'request', source: 'estimated' }
+        : mode === 'configured'
+          ? { ...snapshot, limitSource: 'configured' }
+          : mode === 'zero'
+            ? {
+                ...snapshot,
+                usedTokens: 0,
+                source: 'estimated',
+                inputEstimates: snapshot.inputEstimates.map((row) => ({ ...row, tokens: 0 })),
+              }
+            : snapshot;
+  return mode === 'unavailable'
+    ? { status: 'unavailable' }
+    : { status: 'available', snapshot: record, autoCompaction: policy };
+}
 let vite;
 let browser;
 try {
@@ -37,6 +76,13 @@ try {
       {
         name: 'context-usage-browser-page',
         configureServer(server) {
+          // Controlled HTTP service: exercise the browser transport and retries,
+          // without intercepting requests or changing a real user's task.
+          server.middlewares.use('/api/conversations/browser-context-usage/context-usage', (_request, response) => {
+            response.statusCode = mode === 'error' ? 503 : 200;
+            response.setHeader('content-type', 'application/json');
+            response.end(JSON.stringify(mode === 'error' ? { message: 'unavailable' } : responseBody()));
+          });
           server.middlewares.use('/__context_usage_test__', async (_request, response, next) => {
             try {
               const html = await server.transformIndexHtml(
@@ -63,26 +109,6 @@ try {
   page.on('pageerror', (error) => errors.push(error.message));
   page.on('request', (request) => {
     if (request.url().includes('/api/')) apiPaths.push(new URL(request.url()).pathname);
-  });
-  await page.route('**/api/conversations/browser-context-usage/context-usage', async (route) => {
-    if (mode === 'error') return route.fulfill({ status: 503, json: { message: 'unavailable' } });
-    const record =
-      mode === 'request'
-        ? { ...snapshot, state: 'request', source: 'estimated' }
-        : mode === 'configured'
-          ? { ...snapshot, limitSource: 'configured' }
-          : mode === 'zero'
-            ? {
-                ...snapshot,
-                usedTokens: 0,
-                source: 'estimated',
-                inputEstimates: snapshot.inputEstimates.map((row) => ({ ...row, tokens: 0 })),
-              }
-            : snapshot;
-    return route.fulfill({
-      status: 200,
-      json: mode === 'unavailable' ? { status: 'unavailable' } : { status: 'available', snapshot: record },
-    });
   });
   const origin = `http://127.0.0.1:${address.port}`;
   const trigger = page.getByTestId('synon-biomed-context-usage-trigger');
@@ -219,6 +245,24 @@ try {
   await trigger.click();
   await expect(panel).toContainText('上下文用量加载失败');
   await expect(panel.getByRole('button', { name: '重试' })).toBeVisible();
+  mode = 'stream';
+  await panel.getByRole('button', { name: '重试' }).click();
+  await expect(panel.getByTestId('context-usage-percent')).toHaveText('28.0%');
+  await expect(panel.getByTestId('context-usage-policy')).toContainText('80%');
+  await expect(panel.getByTestId('context-usage-phase')).toContainText('估算');
+  const offsetBefore = await trigger.locator('circle').last().getAttribute('stroke-dashoffset');
+  streamedOutput = 30_000;
+  await expect(panel.getByTestId('context-usage-percent')).toHaveText('30.0%', { timeout: 8000 });
+  assert.notEqual(await trigger.locator('circle').last().getAttribute('stroke-dashoffset'), offsetBefore);
+  mode = 'error';
+  await expect(panel).toContainText('更新重试中', { timeout: 8000 });
+  await expect(panel.getByTestId('context-usage-percent')).toHaveText('30.0%');
+  mode = 'provider';
+  await expect(panel.getByTestId('context-usage-percent')).toHaveText('116.1%', { timeout: 8000 });
+  await expect(panel.getByTestId('context-usage-phase')).toHaveText('最近请求');
+  await page.reload();
+  await trigger.click();
+  await expect(panel.getByTestId('context-usage-percent')).toHaveText('116.1%');
   assert.ok(apiPaths.length >= 4);
   assert.ok(apiPaths.every((path) => path === '/api/conversations/browser-context-usage/context-usage'));
   assert.deepEqual(errors, []);

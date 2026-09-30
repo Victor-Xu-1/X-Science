@@ -32,6 +32,7 @@ type runnerContextUsage struct {
 	OutputTokens   int                     `json:"outputTokens"`
 	HasMedia       bool                    `json:"hasMedia"`
 	InputEstimates []runnerContextUsageRow `json:"inputEstimates"`
+	Progress       *runnerContextProgress  `json:"progress,omitempty"`
 }
 
 type runnerContextUsageRow struct {
@@ -195,8 +196,10 @@ func (recorder *sessionContextUsageRecorder) finish(snapshot *runnerContextUsage
 		return
 	}
 	snapshot.State = "failed"
+	snapshot.ObservedAt = time.Now().UTC()
 	if callErr == nil {
 		snapshot.State = "complete"
+		snapshot.Progress = nil
 		usage := response.Usage
 		if usage.InputTokens >= 0 && usage.OutputTokens >= 0 && usage.TotalTokens >= 0 &&
 			(usage.InputTokens > 0 || usage.OutputTokens > 0 || usage.TotalTokens > 0) {
@@ -246,6 +249,9 @@ func (recorder *sessionContextUsageRecorder) persist(snapshot runnerContextUsage
 			// A completion can update only the exact request it began.
 			if previous.Attempt > snapshot.Attempt || (completing && previous.RequestID != snapshot.RequestID) {
 				return false, nil
+			}
+			if completing && snapshot.State == "request" && previous.State != "request" {
+				return false, nil // A late stream sample cannot reopen a settled request.
 			}
 		} else if completing {
 			return false, nil // Do not recreate a deleted task's operational state.
@@ -307,6 +313,9 @@ func decodeRunnerContextUsage(entry runtimekv.Entry) (runnerContextUsage, error)
 	}
 	if legacy {
 		return snapshot, errLegacyRunnerContextUsage
+	}
+	if !validRunnerContextProgress(snapshot) {
+		return snapshot, errors.New("invalid context progress record")
 	}
 	return snapshot, nil
 }
