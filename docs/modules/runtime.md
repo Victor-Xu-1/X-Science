@@ -36,6 +36,22 @@ claim → recovery → context → snapshot → provider ⇄ tool → verify →
 进程已退出时不能仅凭最近心跳声称仍在运行。科学进程的创建、取消与资源约束见
 [Science](science.md)，产物及事件提交见 [Evidence](evidence.md)。
 
+自动生成的工作计划是导航状态，不是第二套完成判据。最终答复通过任务契约、实际执行
+回执和产物完整性检查后，未更新完的计划状态只记录为提示，不自动重开一轮模型调用、
+重复计算或重新发布；原计划的待办状态保留，不能为了放行而伪造完成。
+用户明确审阅并批准的执行计划仍保留原有执行义务，鉴权、归属和真实失败检查不变。
+
+恢复阶段完成的内核调用和正常工具阶段沿同一持久化回执路径识别。阶段名用于观察，
+不是执行是否发生的依据；非终态、未执行的前置拒绝和失败回执不能冒充成功。
+计划状态反馈保留 `execution_ref`、`execution_binding` 和 `execution_continuation`，
+模型可以复用匹配的已有执行，不得因为反馈压缩丢失标识而再次执行。
+
+对应回归（含真实 SQLite、终态协议结算和可控 HTTP 模型边界）：
+
+```sh
+go test ./internal/server -run 'TestCompactPlanExecutionRepair|TestCompletionPlanPolicy|TestRecoveredToolContract|TestAutonomousCompletionPublishesFinal|TestForegroundDetachedKernelWaitDoesNotCommitProvisionalTerminalReceipt|TestExecutionPlanStepRequiresScoped|TestExecutionReceiptAmbiguityAndPlanFence' -count=1
+```
+
 ## Focused verification · 验证入口
 
 ### Background shutdown · 后台执行关闭

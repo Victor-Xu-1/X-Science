@@ -18,6 +18,7 @@ const sessionRunnerPlanStepsIncompleteReasonCode = "plan_step_status_required"
 
 type sessionRunnerPlanStepsIncomplete struct {
 	condition transcriptstore.RunnerPlanCondition
+	advisory  bool
 }
 
 func (err sessionRunnerPlanStepsIncomplete) Error() string {
@@ -522,7 +523,10 @@ func (s *Server) incompleteGeneratedPlanCondition(frameID string, runs ...*sessi
 		return nil, err
 	}
 	statuses := mapValue(contextData["_step_statuses"])
-	remaining := &sessionRunnerPlanStepsIncomplete{condition: transcriptstore.RunnerPlanCondition{ArtifactID: stringValue(contextData["_plan_artifact_id"]), VersionID: stringValue(contextData["_plan_version_id"])}}
+	remaining := &sessionRunnerPlanStepsIncomplete{
+		condition: transcriptstore.RunnerPlanCondition{ArtifactID: stringValue(contextData["_plan_artifact_id"]), VersionID: stringValue(contextData["_plan_version_id"])},
+		advisory:  autonomousGeneratedPlan(contextData),
+	}
 	for _, step := range steps {
 		status := strings.TrimSpace(stringValue(mapValue(statuses[step.ID])["status"]))
 		if status != "completed" {

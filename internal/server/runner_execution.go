@@ -1086,10 +1086,8 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 			Detail: "the model completed its tool rounds without producing a user-visible final answer",
 		}
 	}
-	if remaining, err := s.incompleteGeneratedPlanCondition(intakeFrameID, run); err != nil {
+	if err := s.validateGeneratedPlanCompletion(intakeFrameID, run); err != nil {
 		return "", err
-	} else if remaining != nil {
-		return "", *remaining
 	}
 	// The candidate has passed every structural, task-contract, and optional
 	// review gate; evidence-quality advisories remain attached to their durable

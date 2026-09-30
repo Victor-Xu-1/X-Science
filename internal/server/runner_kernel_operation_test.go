@@ -323,6 +323,15 @@ func TestForegroundDetachedKernelWaitDoesNotCommitProvisionalTerminalReceipt(t *
 		SessionID: stream.SessionID, Attempt: int(claimed.Claim.Attempt), ClaimToken: claimed.Claim.ClaimToken,
 		Transcript: &transcriptRunnerAuthority{Stream: stream, Claim: claimed.Claim},
 	}
+	// Production settles detached operations while the runner is recovering,
+	// not in the provider tool phase. Completion must recognize the same receipt.
+	run.phaseMachine, err = newSessionRunnerPhaseMachine()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := advanceSessionRunnerPreparationPhase(run, "kernel_recovery"); err != nil {
+		t.Fatal(err)
+	}
 	call := agentruntime.ToolCall{
 		ID: "foreground-detached-call", Name: "python",
 		Arguments: json.RawMessage(`{"code":"print('terminal-result')","environment":"python","background":false}`),
@@ -537,6 +546,19 @@ func TestForegroundDetachedKernelWaitDoesNotCommitProvisionalTerminalReceipt(t *
 	}
 	if receipts != 1 || executionLogs != 1 {
 		t.Fatalf("terminal receipts=%d execution logs=%d, want one exact result and no duplicate execution", receipts, executionLogs)
+	}
+	messages, err := server.sessionRunnerDurableExplicitToolContractMessages(context.Background(), run)
+	if err != nil {
+		t.Fatal(err)
+	}
+	recognized := false
+	for _, message := range messages {
+		if message.Role == "tool" && message.ToolCallID == call.ID && strings.Contains(message.Content, "terminal-result") {
+			recognized = true
+		}
+	}
+	if !recognized {
+		t.Fatal("successful recovered execution was invisible to the completion contract")
 	}
 }
 

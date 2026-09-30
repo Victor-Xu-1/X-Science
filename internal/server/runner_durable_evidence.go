@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"synon-go/internal/agentruntime"
+	"synon-go/internal/kernelcontract"
 	transcriptstore "synon-go/internal/persistence/transcript"
 	workspace "synon-go/internal/persistence/workspace"
 	"synon-go/internal/toolcontract"
@@ -273,7 +274,13 @@ func (s *Server) sessionRunnerDurableCheckpointExplicitTool(checkpoint sessionRu
 		return validSessionRunnerMCPDurableCheckpoint(checkpoint)
 	}
 	if !strings.EqualFold(strings.TrimSpace(checkpoint.LifecyclePhase), "tool") {
-		return false
+		// Detached root tools settle through the same immutable protocol while
+		// the runner is in recovery. The phase is an observation, not a second
+		// execution authority; do not make a successful recovered call disappear.
+		return strings.EqualFold(strings.TrimSpace(checkpoint.LifecyclePhase), "recovery") &&
+			kernelcontract.IsTool(name) && strings.TrimSpace(checkpoint.ToolCallID) != "" &&
+			(checkpoint.ToolPhase == "completed" || checkpoint.ToolPhase == "failed") &&
+			!checkpoint.RejectedBeforeExecution
 	}
 	// Ordinary root-tool checkpoints are emitted only after the server runtime
 	// dispatched the exact snapshotted tool. The immutable completed checkpoint

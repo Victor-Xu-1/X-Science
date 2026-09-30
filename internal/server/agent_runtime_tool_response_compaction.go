@@ -26,7 +26,7 @@ func compactGeneratedPlanStatusToolResponse(response any) any {
 	result := generatedPlanControlFields(payload,
 		"ok", "status", "step", "title", "notes", "observations", "source_refs", "follow_ups",
 		"plan_artifact_id", "plan_version_id", "query_languages", "idempotent", "applied", "requested_status",
-		"research_continuation", "effect",
+		"research_continuation", "execution_continuation", "execution_ref", "execution_binding", "effect",
 	)
 	if _, present := payload["source_receipts"]; present {
 		result["source_receipts"] = compactGeneratedPlanSourceReceiptIdentities(payload["source_receipts"])
