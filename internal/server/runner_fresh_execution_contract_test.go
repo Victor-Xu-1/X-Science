@@ -28,10 +28,39 @@ func TestFreshExecutionRequestDoesNotConstrainOrdinaryOrNegatedRequests(t *testi
 	for _, content := range []string{
 		"解释现有结果。",
 		"不要重新计算，只总结现有报告。",
+		"已有结果 2+2=4，请解释，不重新计算。",
+		"无需重新分析，只解释现有结论。",
+		"不再运行工具，请汇总已有结果。",
 		"Do not rerun the analysis; summarize the existing result.",
 	} {
 		if sessionRunnerFreshExecutionRequested([]agentruntime.Message{{Role: "user", Content: content}}) {
 			t.Fatalf("ordinary request %q incorrectly required fresh execution", content)
+		}
+	}
+}
+
+func TestFreshExecutionRequestKeepsSeparatePositiveInstructions(t *testing.T) {
+	for _, content := range []string{
+		"不要重新计算 A，但请重新分析 B。",
+		"Do not rerun A; recalculate B using its updated input.",
+		"不要重算旧版本。请重算新版本。",
+	} {
+		request := []agentruntime.Message{{Role: "user", Content: content}}
+		if !sessionRunnerFreshExecutionRequested(request) || sessionRunnerFreshExecutionCompletionError(request, nil) == nil {
+			t.Fatalf("a negated unrelated action erased a positive fresh request: %q", content)
+		}
+	}
+}
+
+func TestFreshExecutionNegationRequiresWordBoundary(t *testing.T) {
+	for _, before := range []string{"piano", "knot", "snow"} {
+		if sessionRunnerFreshRequestNegated(before) {
+			t.Fatalf("ordinary word suffix %q erased an explicit execution request", before)
+		}
+	}
+	for _, before := range []string{"do not", "no", "don't", "without", "不要"} {
+		if !sessionRunnerFreshRequestNegated(before) {
+			t.Fatalf("actual negation %q was not retained", before)
 		}
 	}
 }

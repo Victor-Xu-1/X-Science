@@ -623,8 +623,13 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 		return "", err
 	}
 	taskContract := buildSessionRunnerTaskContract(taskIntent, taskIntentID, taskIntentRevision)
+	recoveredCorrectionAdvisory := false
 	if correction, found := latestRunnerCorrection(entries); found {
-		staleAdvisory := sessionRunnerRecoveredCorrectionIsAdvisory(correction.ReasonCode, correction.repairDetail())
+		staleAdvisory, err := s.recoveredCompletionCorrectionIsAdvisory(intakeFrameID, run, correction)
+		if err != nil {
+			return "", fmt.Errorf("resolve recovered completion policy: %w", err)
+		}
+		recoveredCorrectionAdvisory = staleAdvisory
 		if staleAdvisory {
 			// This correction was emitted before the explicit review policy was
 			// resolved. Drop only the synthetic correction context; replayed user,
@@ -984,7 +989,7 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 		runRequest.InitialToolChoice = planPriorityChoice
 	} else if choice := sessionRunnerCorrectionRequiredToolChoice(run, runRequest.Messages, advertisedRuntimeToolSchemas); choice != nil {
 		runRequest.InitialToolChoice = choice
-	} else if initialToolChoice := recoveredRunnerInitialToolChoice(entries, advertisedRuntimeToolSchemas); initialToolChoice != nil {
+	} else if initialToolChoice := recoveredRunnerInitialToolChoice(entries, advertisedRuntimeToolSchemas); !recoveredCorrectionAdvisory && initialToolChoice != nil {
 		// A durable correction that explicitly requires new evidence must begin
 		// with a real model-selected tool call. The engine owns bounded private
 		// protocol repair; if the provider still returns prose, the outer runner
@@ -1086,10 +1091,8 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 			Detail: "the model completed its tool rounds without producing a user-visible final answer",
 		}
 	}
-	if remaining, err := s.incompleteGeneratedPlanCondition(intakeFrameID, run); err != nil {
+	if err := s.validateGeneratedPlanCompletion(intakeFrameID, run); err != nil {
 		return "", err
-	} else if remaining != nil {
-		return "", *remaining
 	}
 	// The candidate has passed every structural, task-contract, and optional
 	// review gate; evidence-quality advisories remain attached to their durable

@@ -401,7 +401,7 @@ func TestAskUserStageProgressPersistsThroughRealRunnerPause(t *testing.T) {
 	}
 }
 
-func TestAutonomousFalseFinalResumesSamePlanAndCompletes(t *testing.T) {
+func TestAutonomousCompletionPublishesFinalWithoutAdministrativePlanReplay(t *testing.T) {
 	store, repo, _ := newTranscriptWebFixture(t)
 	const frameID = "adaptive-continuation-frame"
 	seedTranscriptWebFrame(t, store, "local", "adaptive-continuation-project", frameID)
@@ -437,7 +437,7 @@ func TestAutonomousFalseFinalResumesSamePlanAndCompletes(t *testing.T) {
 				"function": map[string]any{"name": generatePlanToolName, "arguments": string(mustJSON(t, plan))},
 			}}}
 		case 2:
-			message = map[string]any{"role": "assistant", "content": "Progress noted; analysis will follow later."}
+			message = map[string]any{"role": "assistant", "content": "The supplied evidence has been inspected. No further computation was requested."}
 		case 3:
 			message = map[string]any{"role": "assistant", "tool_calls": []any{map[string]any{
 				"id": "adaptive-progress-call", "type": "function",
@@ -459,23 +459,11 @@ func TestAutonomousFalseFinalResumesSamePlanAndCompletes(t *testing.T) {
 		LeaseTTL: time.Minute, MaxAttempts: 1, MaxToolRounds: 3, DisableSkillDiscovery: true, DisableMCPDiscovery: true,
 	}
 	first, err := server.RunSessionRunnerChatOnce(context.Background(), options)
-	if err != nil || first.Status != "interrupted" || first.InterruptionReasonCode != sessionRunnerPlanStepsIncompleteReasonCode ||
-		!first.InterruptionAutoResume || requests.Load() != 2 {
-		t.Fatalf("false final settled the unfinished plan: %#v requests=%d error=%v", first, requests.Load(), err)
+	if err != nil || first.Status != "completed" || requests.Load() != 2 {
+		t.Fatalf("autonomous administrative state reopened verified final output: %#v requests=%d error=%v", first, requests.Load(), err)
 	}
-	stream, found, err := repo.GetFrameStreamBySession(context.Background(), "local", frameID)
-	if err != nil || !found {
-		t.Fatal(err)
-	}
-	checkpoint, found, err := repo.LatestResumableCheckpoint(context.Background(), stream.UID, stream.OwnerID)
-	if err != nil || !found {
-		t.Fatalf("unfinished work had no continuation checkpoint: %#v %v", checkpoint, err)
-	}
-	options.RunnerID = "adaptive-second"
-	options.TranscriptResumeSource = transcriptstore.ResumeSourceCheckpoint
-	options.TranscriptCheckpoint = checkpoint.Sequence
-	second, err := server.RunSessionRunnerChatOnce(context.Background(), options)
-	if err != nil || second.Status != "completed" || requests.Load() != 4 {
-		t.Fatalf("same-plan continuation did not finish: %#v requests=%d error=%v", second, requests.Load(), err)
+	remaining, err := server.incompleteGeneratedPlanCondition(frameID)
+	if err != nil || remaining == nil {
+		t.Fatalf("advisory policy erased unfinished navigation: %#v error=%v", remaining, err)
 	}
 }

@@ -18,6 +18,7 @@ const sessionRunnerPlanStepsIncompleteReasonCode = "plan_step_status_required"
 
 type sessionRunnerPlanStepsIncomplete struct {
 	condition transcriptstore.RunnerPlanCondition
+	advisory  bool
 }
 
 func (err sessionRunnerPlanStepsIncomplete) Error() string {
@@ -503,26 +504,23 @@ func resolveGeneratedPlanStepIdentity(
 }
 
 func (s *Server) incompleteGeneratedPlanCondition(frameID string, runs ...*sessionRunnerChatRun) (*sessionRunnerPlanStepsIncomplete, error) {
-	if s == nil || s.workspaceStore == nil || strings.TrimSpace(frameID) == "" {
-		return nil, nil
+	var run *sessionRunnerChatRun
+	if len(runs) > 0 {
+		run = runs[0]
 	}
-	metadata, found, err := s.workspaceStore.GetFrameRuntimeMetadata(strings.TrimSpace(frameID))
-	if err != nil || !found {
+	contextData, err := s.generatedPlanCompletionContext(frameID, run)
+	if err != nil || contextData == nil {
 		return nil, err
-	}
-	contextData := mapValue(metadata.ContextData)
-	if !generatedPlanExecutionAuthorized(contextData) {
-		return nil, nil
-	}
-	if len(runs) > 0 && runs[0] != nil && !sessionRunnerPlanMatchesTask(contextData, runs[0]) {
-		return nil, nil
 	}
 	steps, err := generatedPlanStepIdentities(mapValue(contextData["_plan_json"]))
 	if err != nil {
 		return nil, err
 	}
 	statuses := mapValue(contextData["_step_statuses"])
-	remaining := &sessionRunnerPlanStepsIncomplete{condition: transcriptstore.RunnerPlanCondition{ArtifactID: stringValue(contextData["_plan_artifact_id"]), VersionID: stringValue(contextData["_plan_version_id"])}}
+	remaining := &sessionRunnerPlanStepsIncomplete{
+		condition: transcriptstore.RunnerPlanCondition{ArtifactID: stringValue(contextData["_plan_artifact_id"]), VersionID: stringValue(contextData["_plan_version_id"])},
+		advisory:  autonomousGeneratedPlan(contextData),
+	}
 	for _, step := range steps {
 		status := strings.TrimSpace(stringValue(mapValue(statuses[step.ID])["status"]))
 		if status != "completed" {
