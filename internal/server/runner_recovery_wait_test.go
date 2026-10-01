@@ -2,15 +2,150 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"synon-go/internal/agentruntime"
 	eventjournal "synon-go/internal/persistence/journal"
 	sessionstore "synon-go/internal/persistence/sessions"
 	transcriptstore "synon-go/internal/persistence/transcript"
 	workspace "synon-go/internal/persistence/workspace"
 )
+
+func TestCorrectionProviderOnlyHTTPRecoveryWait(t *testing.T) {
+	const frameID = "provider-correction-frame"
+	store, repo, _ := newTranscriptWebFixture(t)
+	seedTranscriptWebFrame(t, store, "local", "provider-correction-project", frameID)
+	server := New(Options{Workspace: store, Transcript: repo, FileRoot: t.TempDir()})
+	t.Cleanup(func() { _ = server.Close(context.Background()) })
+	if _, _, err := server.submitFrameMessage(store, frameMessageSubmission{
+		FrameID: frameID, MessageUUID: "correction-input-message", ClientMessageID: "correction-input",
+		Text: "请直接给出已有结果的中文摘要，不要重新计算。",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	seedAnsweredTaskIntake(t, server, "local", frameID)
+	var requests atomic.Int64
+	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var request map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			http.Error(w, "invalid protocol request", http.StatusBadRequest)
+			return
+		}
+		// Invalid native presentation, not a scientific quality judgment. The
+		// real provider parser must reject it before publishing a final answer.
+		content := agentruntime.PublicProgressEnvelopeBegin + `{"version":2,"id":"invalid","text":"已有结果"}` + agentruntime.PublicProgressEnvelopeEnd
+		if strings.Contains(fmt.Sprint(request["messages"]), "Write a brief expert orientation before the task begins.") {
+			content = "查看已有证据后给出摘要。"
+		} else if requests.Add(1) > 20 {
+			http.Error(w, "unbounded correction requests", http.StatusConflict)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{"choices": []any{map[string]any{
+			"message": map[string]any{"role": "assistant", "content": content}, "finish_reason": "stop",
+		}}})
+	}))
+	defer provider.Close()
+	options := SessionRunnerChatOptions{
+		SessionID: frameID, RunnerID: "provider-correction-runner", Endpoint: provider.URL + "/v1/chat/completions",
+		APIKey: "local-test", Model: "local-test", LeaseTTL: time.Minute, MaxAttempts: 1,
+		DisableSkillDiscovery: true, DisableMCPDiscovery: true,
+	}
+	stream, found, err := repo.GetFrameStreamBySession(context.Background(), "local", frameID)
+	if err != nil || !found {
+		t.Fatalf("stream found=%t error=%v", found, err)
+	}
+	for cycle := 0; cycle <= sessionRunnerConsecutiveIdenticalToolRoundBudget; cycle++ {
+		result, err := server.RunSessionRunnerChatOnce(context.Background(), options)
+		if err != nil || result.Status != "interrupted" {
+			t.Fatalf("cycle=%d result=%#v error=%v", cycle, result, err)
+		}
+		park := cycle == sessionRunnerConsecutiveIdenticalToolRoundBudget
+		if result.AwaitingRecoveryCondition != park || result.InterruptionAutoResume == park {
+			t.Fatalf("HTTP provider loop cycle=%d result=%#v want park=%t", cycle, result, park)
+		}
+		options.TranscriptResumeSource = transcriptstore.ResumeSourceCheckpoint
+		checkpoint, found, err := repo.LatestResumableCheckpoint(context.Background(), stream.UID, stream.OwnerID)
+		if err != nil || !found {
+			t.Fatalf("checkpoint found=%t error=%v", found, err)
+		}
+		options.TranscriptCheckpoint = checkpoint.Sequence
+	}
+	if requests.Load() != int64(sessionRunnerConsecutiveIdenticalToolRoundBudget+1) {
+		t.Fatalf("provider-only repair exceeded its bounded route: requests=%d", requests.Load())
+	}
+	if err := server.drainTranscriptWebDeliveries(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	frame, found, err := store.GetCompatibilityFrame(frameID)
+	if err != nil || !found {
+		t.Fatalf("frame found=%t error=%v", found, err)
+	}
+	snapshot, err := server.webConversationRuntimeSnapshot(frame)
+	if err != nil || snapshot["state"] != "paused" || snapshot["is_processing"] != false || snapshot["can_send_message"] != true {
+		t.Fatalf("parked real-protocol run still appears busy: snapshot=%#v error=%v", snapshot, err)
+	}
+	if _, eligible, err := repo.GetAutoResumeCandidate(context.Background(), stream.UID, stream.OwnerID); err != nil || eligible {
+		t.Fatalf("parked protocol run still schedules: eligible=%t error=%v", eligible, err)
+	}
+	if _, resumable, err := repo.LatestResumableCheckpoint(context.Background(), stream.UID, stream.OwnerID); err != nil || !resumable {
+		t.Fatalf("protocol run lost continuation: resumable=%t error=%v", resumable, err)
+	}
+}
+
+func TestCorrectionProviderOnlyRecoveryParksUnchangedConditionAfterReopen(t *testing.T) {
+	failures := map[string]error{
+		"visual":       &sessionRunnerVisualArtifactValidationRequired{Artifacts: []string{"scene.json"}, StructureSceneFailures: []string{"missing version-bound scene"}},
+		"presentation": sessionRunnerFinalPresentationCorrection{},
+	}
+	for name, failure := range failures {
+		t.Run(name, func(t *testing.T) {
+			fixture := newCorrectionRouteFixture(t)
+			for cycle := 0; cycle <= sessionRunnerConsecutiveIdenticalToolRoundBudget; cycle++ {
+				claim := fixture.run.Transcript.Claim
+				appendRunnerToolCheckpoint(t, fixture.repo, claim, fmt.Sprintf("provider-%d", cycle), map[string]any{
+					"status": "running", "stage": "model_execution", "lifecyclePhase": "provider",
+				})
+				entries, err := fixture.server.loadTranscriptRunnerReplay(context.Background(), fixture.run.Transcript, 20, 20)
+				if err != nil {
+					t.Fatal(err)
+				}
+				result := &SessionRunnerCycleResult{SessionID: fixture.run.SessionID, Attempt: fixture.run.Attempt}
+				callErr := failure
+				handled, err := fixture.server.handleSessionRunnerChatInterruption(context.Background(),
+					SessionRunnerChatOptions{SessionID: fixture.run.SessionID, RunnerID: claim.RunnerID}, result,
+					&activeSessionRun{}, sessionstore.RunnerMutationClaim{}, fixture.run.Transcript, fixture.run, entries, &callErr, nil)
+				if err != nil || !handled || result.Status != "interrupted" {
+					t.Fatalf("cycle=%d result=%#v handled=%t error=%v", cycle, result, handled, err)
+				}
+				park := cycle == sessionRunnerConsecutiveIdenticalToolRoundBudget
+				if result.AwaitingRecoveryCondition != park || result.InterruptionAutoResume == park {
+					t.Fatalf("unchanged provider-only correction: cycle=%d result=%#v want park=%t", cycle, result, park)
+				}
+				if park {
+					if _, eligible, err := fixture.repo.GetAutoResumeCandidate(context.Background(), fixture.stream.UID, fixture.stream.OwnerID); err != nil || eligible {
+						t.Fatalf("parked correction still schedules: eligible=%t error=%v", eligible, err)
+					}
+					if _, resumable, err := fixture.repo.LatestResumableCheckpoint(context.Background(), fixture.stream.UID, fixture.stream.OwnerID); err != nil || !resumable {
+						t.Fatalf("logical task lost continuation: resumable=%t error=%v", resumable, err)
+					}
+					break
+				}
+				if cycle == 1 {
+					fixture.reopen(t)
+				}
+				fixture.resume(t)
+			}
+		})
+	}
+}
 
 func TestUnchangedRecoveryWithRejectedActionsParksWithoutFailingTask(t *testing.T) {
 	f := newAgentSaveArtifactsFixture(t)

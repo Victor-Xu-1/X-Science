@@ -69,6 +69,9 @@ describe('useSynonBiomedArtifactLinkPreview', () => {
     '/api/artifacts/artifact-report/versions/version-report',
     'https://synon.bio/api/artifacts/artifact-report/versions/version-report?download=1',
     'https://untrusted-origin.test/api/artifacts/artifact-report/versions/version-report',
+    '#/artifacts/artifact-report/versions/version-report',
+    '/#/artifacts/artifact-report/versions/version-report',
+    'http://127.0.0.1:8765/#/artifacts/artifact-report/versions/version-report',
   ])('resolves %s only through the authoritative conversation pair', async (href) => {
     ipcMocks.listArtifacts.mockResolvedValue([
       {
@@ -115,6 +118,53 @@ describe('useSynonBiomedArtifactLinkPreview', () => {
       }),
       { presentation: 'board' }
     );
+  });
+
+  it.each([
+    '#/artifacts/',
+    '/#/artifacts/',
+    'http://127.0.0.1:8765/#/artifacts/',
+    'https://untrusted.test/#/artifacts/',
+  ])('opens known hash-route files and contains unknown identities: %s', async (prefix) => {
+    mockConversationArtifacts = [
+      {
+        kind: 'scientific_files',
+        payload: {
+          files: [
+            scientificFile({
+              artifact_id: 'artifact-report',
+              version_id: 'version-report',
+              filename: 'report.md',
+              content_type: 'text/markdown',
+              preview_kind: 'markdown',
+              content_url: '/api/artifacts/artifact-report/versions/version-report',
+            }),
+          ],
+        },
+      } as IConversationArtifact,
+    ];
+    const fetchMock = vi.fn().mockResolvedValue(new Response('# Current artifact'));
+    vi.stubGlobal('fetch', fetchMock);
+    const { result } = renderHook(() =>
+      useSynonBiomedArtifactResolver({
+        conversationId: 'frame-report',
+        workspace: 'synonbiomed://project-report',
+      })
+    );
+    await act(async () => expect(await result.current.handleLink(`${prefix}artifact-report`)).toBe(true));
+    expect(previewMocks.openPreview).toHaveBeenCalledWith(
+      '# Current artifact',
+      'markdown',
+      expect.objectContaining({ artifactId: 'artifact-report', versionId: 'version-report' }),
+      { presentation: 'board' }
+    );
+    await act(async () => expect(await result.current.handleLink(`${prefix}missing`)).toBe(true));
+    await expect(result.current.resolveLinkHref(`${prefix}missing`)).resolves.toBeNull();
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith('/api/artifacts/artifact-report/versions/version-report', {
+      headers: { accept: SYNON_BIOMED_TEXT_ACCEPT_HEADER },
+    });
+    expect(previewMocks.openPreview).toHaveBeenCalledTimes(1);
+    expect(messageMocks.error).toHaveBeenCalledTimes(1);
   });
 
   it.each(['', 'https://untrusted-origin.test'])(

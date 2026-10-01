@@ -57,13 +57,17 @@ func TestPlanModeProtocolRecoveryPersistsUntilRealPlanApproval(t *testing.T) {
 	options := SessionRunnerChatOptions{SessionID: frame, RunnerID: "plan-continuity-runner", Endpoint: provider.URL + "/v1/chat/completions", APIKey: "local-test", Model: "local-test",
 		AllowedTools: []string{generatePlanToolName}, LeaseTTL: time.Minute, ReplayLimit: 20, MaxAttempts: 1, MaxToolRounds: 2,
 		DisableSkillDiscovery: true, DisableMCPDiscovery: true, RuntimeSessionConfig: map[string]any{"planMode": true}}
-	for unit := 1; unit <= 5; unit++ {
-		allowPlan.Store(unit == 5)
+	parkUnit := sessionRunnerConsecutiveIdenticalToolRoundBudget + 1
+	// A provider that finally supports the required plan call can be retried
+	// explicitly from the retained checkpoint. Parking is not plan approval.
+	nativePlanUnit := parkUnit + 1
+	for unit := 1; unit <= nativePlanUnit; unit++ {
+		allowPlan.Store(unit == nativePlanUnit)
 		result, err := server.RunSessionRunnerChatOnce(ctx, options)
 		if err != nil || !result.Claimed {
 			t.Fatalf("unit %d: result=%#v error=%v", unit, result, err)
 		}
-		if unit == 5 {
+		if unit == nativePlanUnit {
 			if result.Status != "awaiting_approval" {
 				t.Fatalf("real plan did not reach user approval: %#v", result)
 			}
@@ -73,7 +77,9 @@ func TestPlanModeProtocolRecoveryPersistsUntilRealPlanApproval(t *testing.T) {
 			}
 			break
 		}
-		if result.Status != "interrupted" || result.InterruptionReasonCode != sessionRunnerPlanApprovalRequiredReasonCode || !result.InterruptionAutoResume {
+		parked := unit == parkUnit
+		if result.Status != "interrupted" || result.InterruptionReasonCode != sessionRunnerPlanApprovalRequiredReasonCode ||
+			result.AwaitingRecoveryCondition != parked || result.InterruptionAutoResume == parked {
 			t.Fatalf("unit %d lost pending plan obligation: %#v", unit, result)
 		}
 		stream, found, err := repo.GetFrameStreamBySession(ctx, "local", frame)
@@ -85,13 +91,15 @@ func TestPlanModeProtocolRecoveryPersistsUntilRealPlanApproval(t *testing.T) {
 			t.Fatal(err)
 		}
 		candidate, found, err := repo.GetAutoResumeCandidate(ctx, stream.UID, stream.OwnerID)
-		if err != nil || !found || candidate.ReasonCode != sessionRunnerPlanApprovalRequiredReasonCode {
-			t.Fatalf("automatic dispatcher lost pending plan: found=%t candidate=%#v error=%v", found, candidate, err)
+		if err != nil || found == parked || (!parked && candidate.ReasonCode != sessionRunnerPlanApprovalRequiredReasonCode) {
+			t.Fatalf("plan recovery eligibility: parked=%t found=%t candidate=%#v error=%v", parked, found, candidate, err)
 		}
+		// Automatic dispatch stops at the unchanged-route bound. This next call
+		// deliberately models an explicit retry, not another automatic attempt.
 		options.TranscriptResumeSource, options.TranscriptCheckpoint = transcriptstore.ResumeSourceCheckpoint, checkpoint.Sequence
 		options.RunnerID = fmt.Sprintf("plan-continuity-%d", unit)
 	}
-	t.Logf("four bounded protocol recovery units followed by native durable plan approval; local HTTP requests=%d", requests.Load())
+	t.Logf("bounded automatic plan recovery parked, then explicit retry created a native plan still awaiting approval; local HTTP requests=%d", requests.Load())
 }
 
 func TestCorrectionCancellationCannotScheduleAnotherUnit(t *testing.T) {

@@ -211,6 +211,9 @@ describe('MarkdownView local file links', () => {
   it.each([
     '/api/artifacts/artifact-report/versions/version-report',
     'https://synon.bio/api/artifacts/artifact-report/versions/version-report',
+    '#/artifacts/artifact-report',
+    '/#/artifacts/artifact-report',
+    'http://127.0.0.1:8765/#/artifacts/artifact-report',
     '%7B%7Bartifact%3Aversion-report%7D%7D',
     './report.pdf',
   ])('marks generated file links consistently and contains unresolved clicks: %s', async (href) => {

@@ -63,12 +63,19 @@ export function parseSynonBiomedArtifactLink(rawHref: string): SynonBiomedArtifa
   if (!href.includes('\\') && !Array.from(href).some((character) => character.charCodeAt(0) <= 0x20)) {
     if (href.startsWith('/api/')) {
       pathname = href.split(/[?#]/, 1)[0];
+    } else if (href.startsWith('#/artifacts/') || href.startsWith('/#/artifacts/')) {
+      pathname = `/api${href.slice(href.indexOf('#') + 1).split(/[?#]/, 1)[0]}`;
     } else if (/^https?:\/\//i.test(href)) {
       try {
         const url = new URL(href);
         if (!url.username && !url.password) {
           // Inspect the original path: URL.pathname has already normalized dot segments.
           pathname = /^https?:\/\/[^/?#]+([^?#]*)/i.exec(href)?.[1];
+          if ((!pathname || pathname === '/') && url.hash.startsWith('#/artifacts/')) {
+            // A workbench route supplies the same untrusted identity as an API
+            // link. Never fetch its origin or turn it into external navigation.
+            pathname = `/api${url.hash.slice(1).split(/[?#]/, 1)[0]}`;
+          }
         }
       } catch {
         return null;
