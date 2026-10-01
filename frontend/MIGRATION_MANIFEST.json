@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "a8440f02fcadcbb2abb3601f87d1d104afd96fd5185e48374f120631e6e23d43",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
-  "additionFingerprintSHA256": "2d476ce60df76b21751ac49a3c131554cf83a11fd91666d51babe059adc6494b",
+  "additionFingerprintSHA256": "b1a5da6fc8b7a7d2d9aa67d0962892b36d00ce6295144dd766a425c1a60092ca",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 397,
@@ -6843,8 +6843,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/synonBiomed/runtime/SynonBiomedTaskAttentionNotice.css",
-      "sha256": "a1064890857f37f62730d211d14117c78cb717d58a8dd64fdb085e57e38e694d",
-      "bytes": 612,
+      "sha256": "cce67ac4c296bffc6348929fc31dee228ea75274542e05baa487d4344e9143e4",
+      "bytes": 731,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
