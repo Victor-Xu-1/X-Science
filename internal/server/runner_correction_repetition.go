@@ -46,11 +46,11 @@ func (state *runnerCorrectionRepetition) observe(entry eventjournal.Entry) {
 	if runnerCheckpointHasMaterialProgress(entry.Message) {
 		state.ProgressSinceCondition = true
 	}
-	// Language-only repair executes through the provider, not a native tool.
+	// A correction can retry through the provider without executing a tool.
 	// Count its host-owned execution checkpoint as an attempted route so the
-	// existing same-condition wait also covers repeated private final responses.
+	// same-condition wait covers all unchanged private final-response repairs.
 	// Preparation logs and model-authored payloads are not execution attempts.
-	if state.ReasonCode == sessionRunnerResponseLanguageMismatchReasonCode &&
+	if state.ReasonCode != "" &&
 		entry.SourceEventType == "runner_checkpoint" &&
 		stringValue(entry.Message["status"]) == "running" &&
 		stringValue(entry.Message["stage"]) == "model_execution" &&

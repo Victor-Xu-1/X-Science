@@ -20,6 +20,9 @@ describe('Synon Biomed artifact link preview model', () => {
     '/api/artifacts/artifact-report/versions/version-report',
     'https://synon.bio/api/artifacts/artifact-report/versions/version-report?download=1#page=2',
     'http://another-deployment.test:8765/api/artifacts/artifact-report/versions/version-report',
+    '#/artifacts/artifact-report/versions/version-report',
+    '/#/artifacts/artifact-report/versions/version-report',
+    'http://127.0.0.1:8765/#/artifacts/artifact-report/versions/version-report?download=1',
   ])('extracts only the exact artifact identity from %s', (href) => {
     expect(parseSynonBiomedArtifactLink(href)).toEqual({
       kind: 'content',
@@ -64,6 +67,26 @@ describe('Synon Biomed artifact link preview model', () => {
   });
 
   it.each([
+    '#/artifacts/',
+    '/#/artifacts/',
+    'http://127.0.0.1:8765/#/artifacts/',
+    'https://untrusted.test/#/artifacts/',
+  ])('normalizes hash-route identities without trusting an origin: %s', (prefix) => {
+    expect(parseSynonBiomedArtifactLink(`${prefix}artifact%2Fwith%20space`)).toEqual({
+      kind: 'content',
+      artifactId: 'artifact/with space',
+    });
+    expect(parseSynonBiomedArtifactLink(`${prefix}a%252Fv/versions/v%2F1`)).toEqual({
+      kind: 'content',
+      artifactId: 'a%2Fv',
+      versionId: 'v/1',
+    });
+    for (const identity of ['..', '%2e%2e', '%00', 'a%', 'a/../b', 'a/versions/%20', 'a/versions/v/extra']) {
+      expect(parseSynonBiomedArtifactLink(`${prefix}${identity}`)).toBeNull();
+    }
+  });
+
+  it.each([
     'https://example.test/report.pdf',
     '//synon.bio/api/artifacts/a/versions/v',
     'https://user:password@synon.bio/api/artifacts/a/versions/v',
@@ -87,6 +110,12 @@ describe('Synon Biomed artifact link preview model', () => {
     '/api/artifacts/a/versions/v%7F',
     '/api/artifacts/a/versions/v%C2%85',
     'javascript:/api/artifacts/a/versions/v',
+    'https://user:password@synon.bio/#/artifacts/a',
+    'https://synon.bio/other/#/artifacts/a',
+    'https://synon.bio/other/../#/artifacts/a',
+    'javascript://synon.bio/#/artifacts/a',
+    '//synon.bio/#/artifacts/a',
+    '#/conversation/a',
   ])('does not promote an unsafe or unrelated URL into a local artifact: %s', (href) => {
     expect(parseSynonBiomedArtifactLink(href)).toBeNull();
   });

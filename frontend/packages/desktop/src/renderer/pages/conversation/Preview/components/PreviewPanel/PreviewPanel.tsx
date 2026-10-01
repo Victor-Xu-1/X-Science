@@ -221,15 +221,58 @@ const SinglePreviewPanel: React.FC<{ conversationId?: string }> = ({ conversatio
     setCloseTabConfirm({ show: false, tabId: null });
   }, []);
 
-  // 如果预览面板未打开，不渲染 / Don't render if preview panel is not open
+  const editingMode = useMemo(() => (activeTab ? getPreviewEditingMode(activeTab) : null), [activeTab]);
+
+  // 下载文件到本地 / Download file to local system
+  const handleDownload = useCallback(async () => {
+    if (!activeTab) return;
+    try {
+      await downloadPreviewTab(activeTab);
+    } catch {
+      console.warn('[PreviewPanel] Failed to download file');
+      messageApi.error(t('messages.downloadFailed'));
+    }
+  }, [activeTab, messageApi, t]);
+
+  // 在系统默认应用中打开文件 / Open file in system default application
+  const handleOpenInSystem = useCallback(async () => {
+    const filePath = activeTab?.metadata?.file_path;
+    if (!filePath) {
+      try {
+        messageApi.error(t('preview.openInSystemFailed'));
+      } catch {
+        // Context holder may be unmounted
+      }
+      return;
+    }
+
+    try {
+      // 使用系统默认应用打开文件 / Open file with system default application
+      await ipcBridge.shell.openFile.invoke(filePath);
+      try {
+        messageApi.success(t('preview.openInSystemSuccess'));
+      } catch {
+        // Context holder may be unmounted after async operation
+      }
+    } catch {
+      try {
+        messageApi.error(t('preview.openInSystemFailed'));
+      } catch {
+        // Context holder may be unmounted after async operation
+      }
+    }
+  }, [activeTab?.metadata?.file_path, messageApi, t]);
+
+  // Hooks must also run while closed; opening the first file retains this
+  // mounted component and cannot change its hook order.
   if (!isOpen || !activeTab) return null;
 
   const { content, content_type, metadata } = activeTab;
   const isMarkdown = content_type === 'markdown';
   const isHTML = content_type === 'html';
   const isEditable = metadata?.editable !== false && !metadata?.truncated;
-  const editingMode = useMemo(() => getPreviewEditingMode(activeTab), [activeTab]);
   const canEdit = editingMode !== null;
+  const showOpenInSystemButton = Boolean(metadata?.file_path && !metadata?.contentUrl);
 
   const handleStartEditing = () => {
     if (!canEdit) return;
@@ -254,48 +297,6 @@ const SinglePreviewPanel: React.FC<{ conversationId?: string }> = ({ conversatio
       setIsSavingEdit(false);
     }
   };
-
-  // 对所有有 file_path 的文件显示"在系统中打开"按钮（统一在工具栏显示）
-  // Show "Open in System" button for all files with file_path (unified in toolbar)
-  const showOpenInSystemButton = Boolean(metadata?.file_path && !metadata?.contentUrl);
-
-  // 下载文件到本地 / Download file to local system
-  const handleDownload = useCallback(async () => {
-    try {
-      await downloadPreviewTab(activeTab);
-    } catch {
-      console.warn('[PreviewPanel] Failed to download file');
-      messageApi.error(t('messages.downloadFailed'));
-    }
-  }, [activeTab, messageApi, t]);
-
-  // 在系统默认应用中打开文件 / Open file in system default application
-  const handleOpenInSystem = useCallback(async () => {
-    if (!metadata?.file_path) {
-      try {
-        messageApi.error(t('preview.openInSystemFailed'));
-      } catch {
-        // Context holder may be unmounted
-      }
-      return;
-    }
-
-    try {
-      // 使用系统默认应用打开文件 / Open file with system default application
-      await ipcBridge.shell.openFile.invoke(metadata.file_path);
-      try {
-        messageApi.success(t('preview.openInSystemSuccess'));
-      } catch {
-        // Context holder may be unmounted after async operation
-      }
-    } catch {
-      try {
-        messageApi.error(t('preview.openInSystemFailed'));
-      } catch {
-        // Context holder may be unmounted after async operation
-      }
-    }
-  }, [metadata?.file_path, messageApi, t]);
 
   const renderMissingFile = () => {
     const filePath = metadata?.file_path;
