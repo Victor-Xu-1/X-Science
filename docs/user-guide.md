@@ -206,7 +206,7 @@
 | 模型测试失败、无法发送 | 核对当前模型、ID、地址、凭据、网络和额度；保留脱敏错误 | [模型运行](operations-runbook.md#model-authority) |
 | 看得见连接器却不能用 | 检查安装、启用、凭证和工具权限；连接超时先看具体错误 | [MCP 超时](operations-runbook.md#remote-mcp-connection-timeouts) |
 | 科研环境一直准备或失败 | 查看实际准备状态、磁盘/网络错误；按页面重试，不清空已有环境 | [本地科研软件](operations-runbook.md#local-scientific-software) |
-| 任务无新输出 | 先区分等待回答、审批、长计算和连接丢失，再查看执行记录或刷新状态 | [诊断与可观测性](operations-runbook.md#observability-and-diagnosis) |
+| 任务无新输出 | 先区分回答卡片、工具授权、计划审批和运行暂停；计划审批有直接入口，暂停可从保存的进度继续。没有待处理请求时不应标成等待审批 | [待处理事项与恢复](modules/workbench.md#pending-decisions-and-recovery--待处理事项与恢复) · [诊断与可观测性](operations-runbook.md#observability-and-diagnosis) |
 | 文件或来源没有显示 | 核对项目与版本，刷新产物；记录缺失信息，不把它推断为成功 | [证据与产物](modules/evidence.md) |
 
 报告问题时提供版本或提交、操作路径、脱敏后的错误，以及必要的任务/文件标识。

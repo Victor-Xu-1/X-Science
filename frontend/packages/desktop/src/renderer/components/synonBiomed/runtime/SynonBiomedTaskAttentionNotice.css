@@ -1,0 +1,30 @@
+.synon-task-attention {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  color: var(--workspace-text, #171717);
+  background: var(--workspace-overlay-surface, var(--color-bg-2));
+  border: 1px solid var(--color-border-2);
+  border-radius: 12px;
+}
+
+.synon-task-attention__copy {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.synon-task-attention__copy p {
+  margin: 4px 0 0;
+  color: var(--workspace-text-secondary, #525252);
+}
+
+@media (max-width: 520px) {
+  .synon-task-attention {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+}

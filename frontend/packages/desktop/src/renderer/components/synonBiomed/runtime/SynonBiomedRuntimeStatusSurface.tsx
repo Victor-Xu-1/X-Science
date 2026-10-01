@@ -3,6 +3,7 @@ import type { RefObject } from 'react';
 import React from 'react';
 import AskUserCard from './AskUserCard';
 import SynonBiomedApprovalCard from './SynonBiomedApprovalCard';
+import SynonBiomedTaskAttentionNotice from './SynonBiomedTaskAttentionNotice';
 import type {
   SynonBiomedApprovalScope,
   SynonBiomedPendingInputRequest,
@@ -100,6 +101,16 @@ const SynonBiomedRuntimeStatusSurface = ({
         onOpenPlan={onOpenPlan}
         onOpenPendingInput={onOpenPendingInput}
       />
+      {snapshot?.planApproval ? (
+        <SynonBiomedTaskAttentionNotice kind='plan' reason={null} onAction={onOpenPlan} />
+      ) : snapshot?.status === 'paused' && !pendingInputCount ? (
+        <SynonBiomedTaskAttentionNotice
+          kind='paused'
+          reason={snapshot.failureReason}
+          busy={resuming}
+          onAction={snapshot.canResume ? onResume : undefined}
+        />
+      ) : null}
       {pendingRequest ? (
         <div
           key={`${pendingRequest.requestId}:${pendingRequest.kind}`}
