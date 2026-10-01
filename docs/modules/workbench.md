@@ -36,6 +36,28 @@
 加载、空数据、失败、等待用户和已完成应分别呈现。运行投影也不能替代
 [Runtime](runtime.md) 的任务权威或 [Evidence](evidence.md) 的持久化记录。
 
+### Pending decisions and recovery · 待处理事项与恢复
+
+需要用户操作时，输入框上方直接呈现对应入口：真实计划审批显示“查看计划并审批”，
+工具授权显示具体操作和批准范围，`ask_user` 显示问题与回答卡片。工具完全访问权限
+不等于批准执行计划，也不代替用户回答。多个请求按现有待处理顺序逐项处理，
+回答或授权成功后以服务端新快照呈现下一项，不自动替用户决定。
+
+计划只是任务导航数据；模型输出上限或无进展导致的暂停不能因为存在计划而被
+标成“等待审批”。暂停显示已保存的进度、可公开的原因和原有继续入口。
+状态刷新不关闭用户正在查看的计划；计划版本变更时旧内容和操作失效，必须重新加载。
+提交失败在原卡片显示错误并保留回答供重试；过期请求返回冲突时重新读取权威状态，
+不让旧问题或旧授权入口一直挡住任务。切换会话后晚到的结果不得作用于新会话。
+
+相关回归及隔离浏览器集成（真实临时 SQLite/HTTP，不启动科研任务或模型）：
+
+```sh
+go test ./internal/server -run '^TestFrameAttentionProjectionRequiresAnActualApprovalBoundary$' -count=1
+SYNON_FRAME_ATTENTION_BROWSER=1 go test ./internal/server -run '^TestFrameAttentionBrowser$' -count=1
+cd frontend
+npm run test:unit -- tests/unit/synonbiomed/SynonBiomedRuntimeOperations.dom.test.tsx
+```
+
 新任务入口的“发送”沿现有首条消息控制器提交一次请求，保留附件、能力和会话设置，
 在实时订阅就绪后发送；不会先降成待用户二次确认的草稿。明确标记为草稿的首次引导
 仍只恢复输入，不自动执行。快速重复点击、重新渲染不应重复提交首条任务。

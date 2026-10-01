@@ -46,6 +46,7 @@ import {
   TERMINAL_RUNTIME_STATUSES,
   isRuntimePauseTransitionSettled,
   offlineRecoveryDelay,
+  planReferenceIdentity,
   projectAcceptedRuntimeStart,
   runtimeSummaryChanged,
 } from './runtimeOperationsControllerModel';
@@ -130,6 +131,7 @@ const SynonBiomedRuntimeOperationsController: React.FC<SynonBiomedRuntimeOperati
   const planOwnerRef = useRef<string | null>(null);
   const planRequestRef = useRef(0);
   const planControllerRef = useRef<AbortController | null>(null);
+  const loadedPlanIdentityRef = useRef<string | null>(null);
   const inputRequestRef = useRef(0);
   const inputControllerRef = useRef<AbortController | null>(null);
   const resumeRequestRef = useRef(0);
@@ -263,10 +265,11 @@ const SynonBiomedRuntimeOperationsController: React.FC<SynonBiomedRuntimeOperati
       setResumeInFlight(false);
       setPauseInFlight(false);
       setSnapshotError(null);
+      loadedPlanIdentityRef.current = null;
+      setPlanDrawerVisible(false);
+      setPlanDocument(null);
+      setPlanError(null);
     }
-    setPlanDrawerVisible(false);
-    setPlanDocument(null);
-    setPlanError(null);
     void requestSnapshot(conversationId, snapshotRevision)
       .then((nextSnapshot) => {
         if (active) {
@@ -301,6 +304,24 @@ const SynonBiomedRuntimeOperationsController: React.FC<SynonBiomedRuntimeOperati
       active = false;
     };
   }, [applyAuthoritativeSnapshot, applySnapshot, conversationId, requestSnapshot, snapshotRevision]);
+
+  const currentPlanIdentity = planReferenceIdentity(snapshot?.taskPlan);
+  useEffect(() => {
+    if (
+      !planDrawerVisible ||
+      planOwnerRef.current !== conversationId ||
+      loadedPlanIdentityRef.current === currentPlanIdentity
+    )
+      return;
+    // Refreshes keep a reviewed plan open; a new plan revision invalidates
+    // its content and actions instead of silently approving the replacement.
+    planRequestRef.current += 1;
+    planControllerRef.current?.abort();
+    planControllerRef.current = null;
+    setPlanDocument(null);
+    setPlanLoading(false);
+    setPlanError(t('conversation.synonRuntime.runtimeOperations.planChanged'));
+  }, [conversationId, currentPlanIdentity, planDrawerVisible, t]);
 
   useEffect(() => {
     if (!['offline', 'reconnecting', 'protocol-error'].includes(realtimeSnapshot.status)) return;
@@ -553,6 +574,24 @@ const SynonBiomedRuntimeOperationsController: React.FC<SynonBiomedRuntimeOperati
     }
   };
 
+  const reconcileInputConflict = async (
+    reason: unknown,
+    owner: string,
+    operation: number,
+    controller: AbortController
+  ) => {
+    if (!isSynonBiomedHttpError(reason) || reason.status !== 409) return false;
+    // Both questions and permission requests can expire while their card is
+    // visible. The existing snapshot authority decides what remains actionable.
+    invalidateSynonBiomedFrameReads(owner);
+    const refreshedSnapshot = await loadSynonBiomedRuntimeSnapshot(owner, { signal: controller.signal });
+    if (conversationAuthorityRef.current !== owner || inputRequestRef.current !== operation) return true;
+    setSnapshotError(null);
+    applyAuthoritativeSnapshot(refreshedSnapshot, false);
+    onResumed(refreshedSnapshot.rootFrameId, toSynonAIRuntimeSummary(refreshedSnapshot));
+    return true;
+  };
+
   const resolveInput = async (
     request: SynonBiomedPendingInputRequest,
     decision: 'allow' | 'deny',
@@ -585,30 +624,19 @@ const SynonBiomedRuntimeOperationsController: React.FC<SynonBiomedRuntimeOperati
     } catch (reason) {
       if (conversationAuthorityRef.current !== owner || inputRequestRef.current !== operation) return;
       let reportedReason = reason;
-      if (isSynonBiomedHttpError(reason) && reason.status === 409) {
-        try {
-          // A 409 means the visible approval request lost its execution
-          // waiter (for example, the kernel completed or failed while the
-          // card was on screen). Re-read authoritative state so a stale card
-          // cannot trap the user behind a generic "submit failed" toast.
-          invalidateSynonBiomedFrameReads(owner);
-          const refreshedSnapshot = await loadSynonBiomedRuntimeSnapshot(owner, {
-            signal: controller.signal,
-          });
-          if (conversationAuthorityRef.current !== owner || inputRequestRef.current !== operation) return;
-          applyAuthoritativeSnapshot(refreshedSnapshot, false);
-          onResumed(refreshedSnapshot.rootFrameId, toSynonAIRuntimeSummary(refreshedSnapshot));
-          return;
-        } catch (refreshReason) {
-          reportedReason = refreshReason;
-        }
+      try {
+        if (await reconcileInputConflict(reason, owner, operation, controller)) return;
+      } catch (refreshReason) {
+        reportedReason = refreshReason;
       }
+      if (conversationAuthorityRef.current !== owner || inputRequestRef.current !== operation) return;
       console.error(
         '[SynonBiomedRuntimeOperations] Failed to resolve approval request',
         redactErrorText(reportedReason instanceof Error ? reportedReason.message : String(reportedReason))
       );
       onResumeFailed?.(reportedReason instanceof Error ? reportedReason.message : String(reportedReason));
       messageApi.error(t('conversation.synonRuntime.runtimeOperations.approvalSubmitFailed'));
+      throw reportedReason;
     } finally {
       if (conversationAuthorityRef.current === owner && inputRequestRef.current === operation) {
         if (inputControllerRef.current === controller) inputControllerRef.current = null;
@@ -644,12 +672,20 @@ const SynonBiomedRuntimeOperationsController: React.FC<SynonBiomedRuntimeOperati
       );
     } catch (reason) {
       if (conversationAuthorityRef.current !== owner || inputRequestRef.current !== operation) return;
+      let reportedReason = reason;
+      try {
+        if (await reconcileInputConflict(reason, owner, operation, controller)) return;
+      } catch (refreshReason) {
+        reportedReason = refreshReason;
+      }
+      if (conversationAuthorityRef.current !== owner || inputRequestRef.current !== operation) return;
       console.error(
         '[SynonBiomedRuntimeOperations] Failed to resolve user question',
-        redactErrorText(reason instanceof Error ? reason.message : String(reason))
+        redactErrorText(reportedReason instanceof Error ? reportedReason.message : String(reportedReason))
       );
-      onResumeFailed?.(reason instanceof Error ? reason.message : String(reason));
+      onResumeFailed?.(reportedReason instanceof Error ? reportedReason.message : String(reportedReason));
       messageApi.error(t('conversation.synonRuntime.runtimeOperations.answerSubmitFailed'));
+      throw reportedReason;
     } finally {
       if (conversationAuthorityRef.current === owner && inputRequestRef.current === operation) {
         if (inputControllerRef.current === controller) inputControllerRef.current = null;
@@ -659,7 +695,8 @@ const SynonBiomedRuntimeOperationsController: React.FC<SynonBiomedRuntimeOperati
   };
 
   const openPlanReview = () => {
-    const artifactId = snapshot?.taskPlan?.artifactId;
+    const reference = snapshotRef.current?.taskPlan;
+    const artifactId = reference?.artifactId;
     if (!artifactId) {
       messageApi.info(t('conversation.synonRuntime.runtimeOperations.noPlanAvailable'));
       return;
@@ -670,13 +707,19 @@ const SynonBiomedRuntimeOperationsController: React.FC<SynonBiomedRuntimeOperati
     const controller = new AbortController();
     planControllerRef.current = controller;
     planOwnerRef.current = owner;
+    loadedPlanIdentityRef.current = planReferenceIdentity(reference);
     setPlanDrawerVisible(true);
     setPlanDocument(null);
     setPlanLoading(true);
     setPlanError(null);
     void loadSynonBiomedPlanDocument(artifactId, { signal: controller.signal })
       .then((document) => {
-        if (conversationAuthorityRef.current === owner && planRequestRef.current === request) setPlanDocument(document);
+        if (
+          conversationAuthorityRef.current === owner &&
+          planRequestRef.current === request &&
+          loadedPlanIdentityRef.current === planReferenceIdentity(snapshotRef.current?.taskPlan)
+        )
+          setPlanDocument(document);
       })
       .catch((reason: unknown) => {
         if (conversationAuthorityRef.current !== owner || planRequestRef.current !== request) return;
@@ -713,6 +756,15 @@ const SynonBiomedRuntimeOperationsController: React.FC<SynonBiomedRuntimeOperati
   );
 
   const completePlanReview = async (action: 'approve' | 'discard') => {
+    if (planActionControllerRef.current && !planActionControllerRef.current.signal.aborted) return;
+    if (
+      !snapshotRef.current?.planApproval ||
+      !planDocument ||
+      loadedPlanIdentityRef.current !== planReferenceIdentity(snapshotRef.current.taskPlan)
+    ) {
+      setPlanError(t('conversation.synonRuntime.runtimeOperations.planChanged'));
+      return;
+    }
     const owner = conversationId;
     const request = ++planActionRequestRef.current;
     planActionControllerRef.current?.abort();
@@ -723,8 +775,16 @@ const SynonBiomedRuntimeOperationsController: React.FC<SynonBiomedRuntimeOperati
     try {
       const result =
         action === 'approve'
-          ? await approveSynonBiomedPlan(conversationId, { signal: controller.signal })
-          : await discardSynonBiomedPlan(conversationId, { signal: controller.signal });
+          ? await approveSynonBiomedPlan(
+              conversationId,
+              { signal: controller.signal },
+              snapshotRef.current.planApproval
+            )
+          : await discardSynonBiomedPlan(
+              conversationId,
+              { signal: controller.signal },
+              snapshotRef.current.planApproval
+            );
       if (conversationAuthorityRef.current !== owner || planActionRequestRef.current !== request) return;
       applyAuthoritativeSnapshot(result.snapshot, false);
       setPlanDrawerVisible(false);
@@ -742,6 +802,14 @@ const SynonBiomedRuntimeOperationsController: React.FC<SynonBiomedRuntimeOperati
       );
       onResumeFailed?.(reason instanceof Error ? reason.message : String(reason));
       messageApi.error(t('conversation.synonRuntime.runtimeOperations.planActionFailed'));
+      setPlanError(
+        t(
+          isSynonBiomedHttpError(reason) && reason.status === 409
+            ? 'conversation.synonRuntime.runtimeOperations.planChanged'
+            : 'conversation.synonRuntime.runtimeOperations.planActionFailed'
+        )
+      );
+      if (isSynonBiomedHttpError(reason) && reason.status === 409) refreshRuntime();
     } finally {
       if (conversationAuthorityRef.current === owner && planActionRequestRef.current === request) {
         if (planActionControllerRef.current === controller) planActionControllerRef.current = null;

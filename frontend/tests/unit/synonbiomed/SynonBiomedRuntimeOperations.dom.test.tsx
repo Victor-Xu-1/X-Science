@@ -1815,7 +1815,7 @@ describe('SynonBiomedRuntimeOperations', () => {
     expect(onResumed).toHaveBeenCalledWith('frame-ask', expect.objectContaining({ state: 'running' }));
   });
 
-  it('opens plan review from its dedicated runtime event, not the task capsule', async () => {
+  it('exposes genuine plan approval directly and opens the existing review drawer', async () => {
     runtimeMocks.loadSnapshot.mockResolvedValue(awaitingPlanSnapshot);
     runtimeMocks.loadPlan.mockResolvedValue({
       version: 3,
@@ -1887,10 +1887,7 @@ describe('SynonBiomedRuntimeOperations', () => {
     await waitFor(() => expect(region).toHaveAttribute('data-state', 'waiting_approval'));
     expect(region).toHaveTextContent('任务等待审批');
     expect(screen.queryByRole('button', { name: '批准并执行' })).not.toBeInTheDocument();
-    await act(async () => {
-      emitter.emit('synonbiomed.runtime.plan.open', 'frame-plan');
-      await Promise.resolve();
-    });
+    fireEvent.click(await screen.findByRole('button', { name: '查看计划并审批' }));
     expect(await screen.findByText('Characterize STAT6 binding pockets')).toBeInTheDocument();
     expect(screen.getByText('Structure review')).toBeInTheDocument();
     expect(screen.getByText('OPERON')).toBeInTheDocument();
@@ -1899,8 +1896,150 @@ describe('SynonBiomedRuntimeOperations', () => {
     expect(screen.getByText('Confirm outputs')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '批准并执行' }));
-    await waitFor(() => expect(runtimeMocks.approvePlan).toHaveBeenCalledWith('frame-plan', abortOptions()));
+    await waitFor(() =>
+      expect(runtimeMocks.approvePlan).toHaveBeenCalledWith(
+        'frame-plan',
+        abortOptions(),
+        awaitingPlanSnapshot.planApproval
+      )
+    );
     expect(onResumed).toHaveBeenCalledWith('frame-plan', expect.objectContaining({ state: 'running' }));
+  });
+
+  it('keeps plan review open across same-owner realtime refresh and rejects a changed plan', async () => {
+    let invalidate: (() => void) | undefined;
+    runtimeMocks.subscribeInvalidation.mockImplementation((_owner: string, listener: () => void) => {
+      invalidate = listener;
+      return vi.fn();
+    });
+    runtimeMocks.loadSnapshot.mockResolvedValue(awaitingPlanSnapshot);
+    runtimeMocks.loadPlan.mockResolvedValue({
+      version: 1,
+      taskSummary: 'Stable reviewed plan',
+      phases: [],
+      feasibility: null,
+    });
+    await renderWithI18n(
+      <SynonBiomedRuntimeOperations
+        conversationId='frame-plan'
+        runtimeState='waiting_confirmation'
+        onResumed={vi.fn()}
+      />
+    );
+    fireEvent.click(await screen.findByRole('button', { name: '查看计划并审批' }));
+    expect(await screen.findByText('Stable reviewed plan')).toBeInTheDocument();
+    vi.useFakeTimers();
+    try {
+      await act(async () => {
+        invalidate?.();
+        await vi.advanceTimersByTimeAsync(80);
+      });
+      expect(screen.getByText('Stable reviewed plan')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '批准并执行' })).toBeEnabled();
+      runtimeMocks.loadSnapshot.mockResolvedValue({
+        ...awaitingPlanSnapshot,
+        taskPlan: { artifactId: 'artifact-new-plan', versionId: 'version-new-plan' },
+        planApproval: { artifactId: 'artifact-new-plan', versionId: 'version-new-plan' },
+      });
+      await act(async () => {
+        invalidate?.();
+        await vi.advanceTimersByTimeAsync(80);
+      });
+      expect(screen.queryByText('Stable reviewed plan')).not.toBeInTheDocument();
+      expect(screen.getByText('任务计划已更新。请重新加载并审阅当前计划后再操作。')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: '批准并执行' })).not.toBeInTheDocument();
+      expect(runtimeMocks.approvePlan).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('preserves the AskUser answers and displays an inline error when submission fails', async () => {
+    runtimeMocks.loadSnapshot.mockResolvedValue(askUserSnapshot);
+    runtimeMocks.resolveAskUser.mockRejectedValue(new Error('network unavailable'));
+    await renderWithI18n(
+      <SynonBiomedRuntimeOperations conversationId='frame-waiting' runtimeState='waiting_input' onResumed={vi.fn()} />
+    );
+    fireEvent.click(await screen.findByRole('radio', { name: /Candidate A/ }));
+    expect(await screen.findByText('回答提交失败。')).toBeInTheDocument();
+    expect(screen.getByTestId('synon-biomed-ask-user-card')).toHaveTextContent('Choose a candidate');
+  });
+
+  it('reconciles an expired AskUser boundary on conflict instead of trapping the old question', async () => {
+    runtimeMocks.loadSnapshot.mockResolvedValueOnce(askUserSnapshot).mockResolvedValueOnce({
+      ...askUserSnapshot,
+      status: 'paused',
+      pendingInputRequests: [],
+      canCancel: false,
+      canResume: true,
+    });
+    runtimeMocks.resolveAskUser.mockRejectedValue({
+      name: 'SynonBiomedHttpError',
+      status: 409,
+      code: '',
+      message: 'request expired',
+    });
+    const onResumed = vi.fn();
+    await renderWithI18n(
+      <SynonBiomedRuntimeOperations conversationId='frame-waiting' runtimeState='waiting_input' onResumed={onResumed} />
+    );
+    fireEvent.click(await screen.findByRole('radio', { name: /Candidate A/ }));
+    await waitFor(() => expect(runtimeMocks.loadSnapshot).toHaveBeenCalledTimes(2));
+    expect(screen.queryByTestId('synon-biomed-ask-user-card')).not.toBeInTheDocument();
+    expect(screen.getByTestId('synon-biomed-runtime-status')).toHaveAttribute('data-state', 'paused');
+    expect(onResumed).toHaveBeenCalled();
+  });
+
+  it('advances from a question to a queued permission request without hiding the next action', async () => {
+    const permission = pendingSnapshot.pendingInputRequests[0];
+    runtimeMocks.loadSnapshot.mockResolvedValue({
+      ...askUserSnapshot,
+      pendingInputRequests: [...askUserSnapshot.pendingInputRequests, permission],
+    });
+    runtimeMocks.resolveAskUser.mockResolvedValue({
+      snapshot: pendingSnapshot,
+      runtime: { state: 'waiting_input', pending_confirmations: 1 },
+    });
+    await renderWithI18n(
+      <SynonBiomedRuntimeOperations conversationId='frame-waiting' runtimeState='waiting_input' onResumed={vi.fn()} />
+    );
+    expect(await screen.findByTestId('synon-biomed-runtime-status')).toHaveTextContent('2 项待处理');
+    fireEvent.click(await screen.findByRole('radio', { name: /Candidate A/ }));
+    expect(await screen.findByRole('button', { name: '允许 本次' })).toBeEnabled();
+    expect(screen.queryByTestId('synon-biomed-ask-user-card')).not.toBeInTheDocument();
+    expect(screen.getByTestId('synon-biomed-runtime-status')).toHaveTextContent('1 项待处理');
+    expect(runtimeMocks.resolveInput).not.toHaveBeenCalled();
+  });
+
+  it('displays an inline permission error and keeps a failed decision available for retry', async () => {
+    runtimeMocks.loadSnapshot.mockResolvedValue(pendingSnapshot);
+    runtimeMocks.resolveInput.mockRejectedValue(new Error('network unavailable'));
+    await renderWithI18n(
+      <SynonBiomedRuntimeOperations conversationId='frame-waiting' runtimeState='waiting_input' onResumed={vi.fn()} />
+    );
+    fireEvent.click(await screen.findByRole('button', { name: '允许 本次' }));
+    expect(await screen.findByText('操作授权提交失败。')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '允许 本次' })).toBeEnabled();
+  });
+
+  it('describes an output-limit pause without exposing a fictional approval', async () => {
+    runtimeMocks.loadSnapshot.mockResolvedValue({
+      ...awaitingPlanSnapshot,
+      status: 'paused',
+      planApproval: null,
+      canCancel: false,
+      canResume: true,
+      failureReason: 'provider_output_token_limit',
+    });
+    await renderWithI18n(
+      <SynonBiomedRuntimeOperations conversationId='frame-plan' runtimeState='paused' onResumed={vi.fn()} />
+    );
+    expect(await screen.findByTestId('synon-biomed-paused-attention')).toHaveTextContent('本次模型输出达到上限');
+    expect(screen.getByRole('button', { name: '继续任务' })).toBeEnabled();
+    expect(screen.queryByTestId('synon-biomed-plan-attention')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '批准并执行' })).not.toBeInTheDocument();
+    expect(runtimeMocks.loadPlan).not.toHaveBeenCalled();
+    expect(runtimeMocks.approvePlan).not.toHaveBeenCalled();
   });
 
   it.each(['processing', 'completed'] as const)(

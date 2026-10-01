@@ -13,12 +13,14 @@ import (
 )
 
 type compatibilityApprovePlanRequest struct {
-	EditedPlan   map[string]any `json:"edited_plan"`
-	VerifierMode *string        `json:"verifier_mode"`
-	MemoryMode   *string        `json:"memory_mode"`
-	UltraMode    *bool          `json:"ultra_mode"`
-	PlanMode     *bool          `json:"plan_mode"`
-	TargetAgent  *string        `json:"target_agent"`
+	ExpectedPlanArtifactID *string        `json:"expected_plan_artifact_id"`
+	ExpectedPlanVersionID  *string        `json:"expected_plan_version_id"`
+	EditedPlan             map[string]any `json:"edited_plan"`
+	VerifierMode           *string        `json:"verifier_mode"`
+	MemoryMode             *string        `json:"memory_mode"`
+	UltraMode              *bool          `json:"ultra_mode"`
+	PlanMode               *bool          `json:"plan_mode"`
+	TargetAgent            *string        `json:"target_agent"`
 }
 
 const compatibilityPlanApprovalText = "[System] The user approved the proposed plan. Continue execution."
@@ -72,6 +74,10 @@ func (s *Server) handleCompatibilityApprovePlan(w http.ResponseWriter, r *http.R
 	}
 	expectedPlanArtifact := stringValue(contextData["_plan_artifact_id"])
 	expectedPlanVersion := stringValue(contextData["_plan_version_id"])
+	if (input.ExpectedPlanArtifactID != nil || input.ExpectedPlanVersionID != nil) &&
+		!validateCompatibilityPlanReviewFence(w, contextData, input.ExpectedPlanArtifactID, input.ExpectedPlanVersionID) {
+		return
+	}
 	identityBaseVersion := expectedPlanVersion
 	if storedBase := stringValue(contextData["_plan_approval_base_version_id"]); storedBase != "" {
 		identityBaseVersion = storedBase
@@ -216,6 +222,20 @@ func (s *Server) handleCompatibilityDiscardPlan(w http.ResponseWriter, r *http.R
 	contextData := copyMapAny(metadata.ContextData)
 	if contextData == nil {
 		contextData = map[string]any{}
+	}
+	if body["expected_plan_artifact_id"] != nil || body["expected_plan_version_id"] != nil {
+		var artifactID, versionID *string
+		for field, target := range map[string]**string{"expected_plan_artifact_id": &artifactID, "expected_plan_version_id": &versionID} {
+			if raw := body[field]; raw != nil {
+				if err := json.Unmarshal(raw, target); err != nil {
+					writeV11Detail(w, http.StatusBadRequest, "Invalid plan review reference")
+					return
+				}
+			}
+		}
+		if !validateCompatibilityPlanReviewFence(w, contextData, artifactID, versionID) {
+			return
+		}
 	}
 	if current.Status != "awaiting_plan_approval" {
 		if current.Status == "processing" && compatibilityPlanBool(contextData["_plan_approved"]) {
@@ -375,6 +395,17 @@ func (s *Server) recordCompatibilityPlanDiscard(frame workspace.CompatibilityFra
 func compatibilityPlanBool(value any) bool {
 	result, _ := value.(bool)
 	return result
+}
+
+func validateCompatibilityPlanReviewFence(w http.ResponseWriter, data map[string]any, artifactID, versionID *string) bool {
+	if artifactID != nil && versionID != nil && strings.TrimSpace(*artifactID) == stringValue(data["_plan_artifact_id"]) &&
+		strings.TrimSpace(*versionID) == stringValue(data["_plan_version_id"]) {
+		return true
+	}
+	writeJSON(w, http.StatusConflict, map[string]any{
+		"code": "plan_revision_changed", "detail": "The task plan changed. Reload the current plan before deciding.",
+	})
+	return false
 }
 
 func writeCompatibilityPlanError(w http.ResponseWriter, detail, code string) {

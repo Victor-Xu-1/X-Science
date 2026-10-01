@@ -7,6 +7,7 @@ import {
   type SynonBiomedApprovalScope,
   type SynonBiomedPendingInputRequest,
   type SynonBiomedPlanDocument,
+  type SynonBiomedPlanReference,
   type SynonBiomedRuntimeSnapshot,
 } from '@/renderer/components/synonBiomed/runtime/runtimeOperationsModel';
 import type { TConversationRuntimeSummary } from '@/common/config/storage';
@@ -286,29 +287,39 @@ export async function forkSynonBiomedAtAskUserAnswer(
 
 export async function approveSynonBiomedPlan(
   frameId: string,
-  options: SynonBiomedRuntimeGatewayOptions = {}
+  options: SynonBiomedRuntimeGatewayOptions = {},
+  expectedPlan?: SynonBiomedPlanReference
 ): Promise<{ snapshot: SynonBiomedRuntimeSnapshot; runtime: TConversationRuntimeSummary }> {
-  return completePlanReview(frameId, 'approve-plan', options);
+  return completePlanReview(frameId, 'approve-plan', options, expectedPlan);
 }
 
 export async function discardSynonBiomedPlan(
   frameId: string,
-  options: SynonBiomedRuntimeGatewayOptions = {}
+  options: SynonBiomedRuntimeGatewayOptions = {},
+  expectedPlan?: SynonBiomedPlanReference
 ): Promise<{ snapshot: SynonBiomedRuntimeSnapshot; runtime: TConversationRuntimeSummary }> {
-  return completePlanReview(frameId, 'discard-plan', options);
+  return completePlanReview(frameId, 'discard-plan', options, expectedPlan);
 }
 
 async function completePlanReview(
   frameId: string,
   operation: 'approve-plan' | 'discard-plan',
-  options: SynonBiomedRuntimeGatewayOptions
+  options: SynonBiomedRuntimeGatewayOptions,
+  expectedPlan?: SynonBiomedPlanReference
 ): Promise<{ snapshot: SynonBiomedRuntimeSnapshot; runtime: TConversationRuntimeSummary }> {
   await requestJson<unknown>(
     `/api/frames/${encodeURIComponent(frameId)}/${operation}`,
     {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: '{}',
+      body: JSON.stringify(
+        expectedPlan
+          ? {
+              expected_plan_artifact_id: expectedPlan.artifactId,
+              expected_plan_version_id: expectedPlan.versionId ?? '',
+            }
+          : {}
+      ),
     },
     options
   );

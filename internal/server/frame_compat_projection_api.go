@@ -172,7 +172,12 @@ func (s *Server) compatibilityFrameResponse(frame workspace.CompatibilityFrame, 
 			switch {
 			case len(pendingInputs) > 0:
 				responseStatus = workspace.FrameStatusAwaitingUserResponse
-			case planArtifactID != "":
+			case planArtifactID != "" && !autonomousGeneratedPlan(frame.ContextData) &&
+				!boolValue(frame.ContextData["_plan_approved"], false) &&
+				(frame.Status == workspace.FrameStatusAwaitingPlanApproval ||
+					stringValue(runtimeProjection["runtime_interruption_reason"]) == sessionRunnerPlanApprovalRequiredReasonCode):
+				// A plan is navigation data, not an approval request. Provider
+				// recovery and no-progress pauses keep their actual recovery state.
 				responseStatus = workspace.FrameStatusAwaitingPlanApproval
 			case runtimePaused:
 				responseStatus = "paused"

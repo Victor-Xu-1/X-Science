@@ -92,7 +92,7 @@ const SynonBiomedRuntimeDrawers = ({
         error={planError}
         onRetry={onRetryPlan}
       />
-      {planDocument && planApprovalAvailable ? (
+      {planDocument && !planError && !planLoading && planApprovalAvailable ? (
         <div className='sticky bottom-0 mt-16px px-12px py-12px flex justify-end gap-8px border-t border-solid border-[var(--color-border-2)] bg-base'>
           <Button
             aria-label={returnPlanLabel}

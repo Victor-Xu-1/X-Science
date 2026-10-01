@@ -1,6 +1,9 @@
 import type { TConversationRuntimeSummary } from '@/common/config/storage';
 import type { SynonBiomedRuntimeInvalidation } from '@/renderer/services/synonBiomedRuntimeOperations';
-import type { SynonBiomedRuntimeSnapshot } from './runtimeOperationsModel';
+import type { SynonBiomedPlanReference, SynonBiomedRuntimeSnapshot } from './runtimeOperationsModel';
+
+export const planReferenceIdentity = (reference: SynonBiomedPlanReference | null | undefined): string | null =>
+  reference ? JSON.stringify([reference.artifactId, reference.versionId]) : null;
 
 export const TERMINAL_RUNTIME_STATUSES = new Set<NonNullable<SynonBiomedRuntimeInvalidation['terminal_status']>>([
   'completed',

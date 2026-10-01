@@ -1,0 +1,30 @@
+.synon-task-attention {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-6);
+  padding: var(--ui-space-5) var(--ui-space-6);
+  color: var(--workspace-text, #171717);
+  background: var(--workspace-overlay-surface, var(--color-bg-2));
+  border: 1px solid var(--color-border-2);
+  border-radius: var(--ui-radius-xl);
+}
+
+.synon-task-attention__copy {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--ui-font-body);
+  line-height: var(--ui-line-height-body);
+}
+
+.synon-task-attention__copy p {
+  margin: var(--ui-space-2) 0 0;
+  color: var(--workspace-text-secondary, #525252);
+}
+
+@media (max-width: 520px) {
+  .synon-task-attention {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--ui-space-4);
+  }
+}
