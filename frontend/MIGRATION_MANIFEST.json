@@ -3,7 +3,7 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "a8440f02fcadcbb2abb3601f87d1d104afd96fd5185e48374f120631e6e23d43",
+  "adaptationFingerprintSHA256": "d66cda6832c15fdd941999e9e5e01386c944865534c086c9cd8bce9e24596fcc",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
   "additionFingerprintSHA256": "b1a5da6fc8b7a7d2d9aa67d0962892b36d00ce6295144dd766a425c1a60092ca",
   "summary": {
@@ -2404,8 +2404,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "679835b00d80c0967d01e4edfbf6330c5d7d48df091ba5ba6344c9ce7c8d6446",
-      "bytes": 248775,
+      "targetSHA256": "ab522e3f90b0cd4f6622808448db3f8190f6f4608e27d77038d2689df2414851",
+      "bytes": 249310,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
