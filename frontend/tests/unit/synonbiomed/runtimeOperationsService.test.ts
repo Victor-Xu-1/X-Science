@@ -1,4 +1,5 @@
 import {
+  approveSynonBiomedPlan,
   forkSynonBiomedAtAskUserAnswer,
   notifySynonBiomedRuntimeInvalidation,
   resolveSynonBiomedInputRequest,
@@ -48,6 +49,21 @@ const approvalRequest = {
 };
 
 describe('Synon Biomed ask_user runtime service', () => {
+  it('binds plan approval to the artifact and version the user reviewed', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'accepted' }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'plan-fence', status: 'processing' }), { status: 200 }));
+    await approveSynonBiomedPlan(
+      'plan-fence',
+      { baseUrl: 'http://gateway.test', fetchImpl },
+      { artifactId: 'reviewed-plan', versionId: 'reviewed-version' }
+    );
+    expect(JSON.parse(String(fetchImpl.mock.calls[0][1].body))).toEqual({
+      expected_plan_artifact_id: 'reviewed-plan',
+      expected_plan_version_id: 'reviewed-version',
+    });
+  });
   it('routes local runtime invalidations only to the matching frame subscription', () => {
     const first = vi.fn();
     const second = vi.fn();

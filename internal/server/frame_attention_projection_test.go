@@ -2,14 +2,64 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
 	transcriptstore "synon-go/internal/persistence/transcript"
 	workspace "synon-go/internal/persistence/workspace"
 )
+
+func TestPlanApprovalRejectsAnUnreviewedReplacementVersion(t *testing.T) {
+	for _, reference := range []map[string]any{
+		{"expected_plan_artifact_id": "old-plan", "expected_plan_version_id": "old-version"},
+		{"expected_plan_artifact_id": "current-plan", "expected_plan_version_id": "old-version"},
+		{"expected_plan_artifact_id": "current-plan"},
+	} {
+		t.Run(fmt.Sprint(reference), func(t *testing.T) {
+			root := t.TempDir()
+			store, err := workspace.Open(filepath.Join(root, "workspace.db"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { _ = store.Close() })
+			if _, err := store.CreateProject(workspace.CreateProjectInput{ID: "project", UserID: "local", Name: "Plan fence"}); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := store.CreateFrame(workspace.CreateFrameInput{ID: "frame", ProjectID: "project", AgentName: "OPERON", Status: "awaiting_plan_approval", ConversationType: "agent"}); err != nil {
+				t.Fatal(err)
+			}
+			_, version, err := store.WriteArtifactVersion(context.Background(), workspace.WriteArtifactVersionInput{
+				ArtifactID: "current-plan", ProjectID: "project", Name: "plan.json", ContentType: "application/json",
+				Content: strings.NewReader(`{"version":1,"task_summary":"Current plan","phases":[]}`), MaxBytes: 1024, RootFrameID: "frame", FrameID: "frame",
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := store.SetFrameRuntimeMetadata("frame", workspace.FrameRuntimeMetadata{ContextData: map[string]any{
+				"_plan_artifact_id": "current-plan", "_plan_version_id": version.ID,
+			}}); err != nil {
+				t.Fatal(err)
+			}
+			app := New(Options{Workspace: store, FileRoot: root})
+			t.Cleanup(func() { _ = app.Close(context.Background()) })
+			for _, operation := range []string{"approve-plan", "discard-plan"} {
+				result := compatJSONRequest(t, app.Handler(), http.MethodPost, "/api/frames/frame/"+operation, "local", reference, http.StatusConflict)
+				if result["code"] != "plan_revision_changed" {
+					t.Fatalf("wrong conflict %#v", result)
+				}
+			}
+			frame, _, err := store.GetFrame("frame")
+			metadata, _, metaErr := store.GetFrameRuntimeMetadata("frame")
+			if err != nil || metaErr != nil || frame.Status != "awaiting_plan_approval" || metadata.ContextData["_plan_approved"] != nil {
+				t.Fatalf("stale decision changed task: frame=%#v err=%v meta_err=%v", frame, err, metaErr)
+			}
+		})
+	}
+}
 
 func TestFrameAttentionProjectionRequiresAnActualApprovalBoundary(t *testing.T) {
 	for _, test := range []struct {

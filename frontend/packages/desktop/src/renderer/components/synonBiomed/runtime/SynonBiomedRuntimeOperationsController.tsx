@@ -775,8 +775,16 @@ const SynonBiomedRuntimeOperationsController: React.FC<SynonBiomedRuntimeOperati
     try {
       const result =
         action === 'approve'
-          ? await approveSynonBiomedPlan(conversationId, { signal: controller.signal })
-          : await discardSynonBiomedPlan(conversationId, { signal: controller.signal });
+          ? await approveSynonBiomedPlan(
+              conversationId,
+              { signal: controller.signal },
+              snapshotRef.current.planApproval
+            )
+          : await discardSynonBiomedPlan(
+              conversationId,
+              { signal: controller.signal },
+              snapshotRef.current.planApproval
+            );
       if (conversationAuthorityRef.current !== owner || planActionRequestRef.current !== request) return;
       applyAuthoritativeSnapshot(result.snapshot, false);
       setPlanDrawerVisible(false);
@@ -794,7 +802,14 @@ const SynonBiomedRuntimeOperationsController: React.FC<SynonBiomedRuntimeOperati
       );
       onResumeFailed?.(reason instanceof Error ? reason.message : String(reason));
       messageApi.error(t('conversation.synonRuntime.runtimeOperations.planActionFailed'));
-      setPlanError(t('conversation.synonRuntime.runtimeOperations.planActionFailed'));
+      setPlanError(
+        t(
+          isSynonBiomedHttpError(reason) && reason.status === 409
+            ? 'conversation.synonRuntime.runtimeOperations.planChanged'
+            : 'conversation.synonRuntime.runtimeOperations.planActionFailed'
+        )
+      );
+      if (isSynonBiomedHttpError(reason) && reason.status === 409) refreshRuntime();
     } finally {
       if (conversationAuthorityRef.current === owner && planActionRequestRef.current === request) {
         if (planActionControllerRef.current === controller) planActionControllerRef.current = null;

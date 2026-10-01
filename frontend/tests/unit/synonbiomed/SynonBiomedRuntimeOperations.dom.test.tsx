@@ -1896,7 +1896,13 @@ describe('SynonBiomedRuntimeOperations', () => {
     expect(screen.getByText('Confirm outputs')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '批准并执行' }));
-    await waitFor(() => expect(runtimeMocks.approvePlan).toHaveBeenCalledWith('frame-plan', abortOptions()));
+    await waitFor(() =>
+      expect(runtimeMocks.approvePlan).toHaveBeenCalledWith(
+        'frame-plan',
+        abortOptions(),
+        awaitingPlanSnapshot.planApproval
+      )
+    );
     expect(onResumed).toHaveBeenCalledWith('frame-plan', expect.objectContaining({ state: 'running' }));
   });
 
