@@ -11,6 +11,7 @@ import (
 	"regexp"
 
 	"strings"
+	"unicode/utf8"
 
 	sessionstore "synon-go/internal/persistence/sessions"
 	transcriptstore "synon-go/internal/persistence/transcript"
@@ -100,8 +101,10 @@ func sessionRunnerCanonicalDeliverableFormat(value string) string {
 // and it does not confuse downloading an input dataset with delivering output.
 func sessionRunnerRequiresDurableArtifact(taskIntent string) bool {
 	for _, pattern := range sessionRunnerDurableArtifactIntentPatterns {
-		if pattern.MatchString(taskIntent) {
-			return true
+		for _, match := range pattern.FindAllStringIndex(taskIntent, -1) {
+			if sessionRunnerAffirmativeDeliverableIntent(taskIntent[:match[1]], true) {
+				return true
+			}
 		}
 	}
 	return false
@@ -119,13 +122,7 @@ func sessionRunnerExplicitDeliverableNames(taskIntent string) []string {
 	result := make([]string, 0)
 	seen := map[string]struct{}{}
 	for _, match := range sessionRunnerExplicitDeliverableNamePattern.FindAllStringIndex(text, -1) {
-		start := match[0]
-		clauseStart := sessionRunnerDeliverableClauseStart(text[:start])
-		clausePrefix := strings.ToLower(text[clauseStart:start])
-		if !containsAny(clausePrefix, []string{
-			"output", "outputs", "deliver", "publish", "save", "write", "create", "generate",
-			"输出", "交付", "发布", "保存", "生成", "产出", "创建",
-		}) {
+		if !sessionRunnerAffirmativeDeliverableIntent(text[:match[0]], false) {
 			continue
 		}
 		name := filepath.Base(strings.TrimSpace(text[match[0]:match[1]]))
@@ -156,12 +153,7 @@ func sessionRunnerExplicitDeliverableFormats(taskIntent string) []string {
 	result := make([]string, 0)
 	seen := map[string]struct{}{}
 	for _, match := range sessionRunnerExplicitDeliverableFormatPattern.FindAllStringIndex(text, -1) {
-		clauseStart := sessionRunnerDeliverableClauseStart(text[:match[0]])
-		clausePrefix := strings.ToLower(text[clauseStart:match[0]])
-		if !containsAny(clausePrefix, []string{
-			"output", "outputs", "deliver", "publish", "save", "write", "export",
-			"输出", "交付", "发布", "保存", "生成", "产出", "导出",
-		}) {
+		if !sessionRunnerAffirmativeDeliverableIntent(text[:match[0]], false) {
 			continue
 		}
 		format := sessionRunnerCanonicalDeliverableFormat(text[match[0]:match[1]])
@@ -178,7 +170,8 @@ func sessionRunnerExplicitDeliverableFormats(taskIntent string) []string {
 func sessionRunnerDeliverableClauseStart(prefix string) int {
 	start := 0
 	if boundary := strings.LastIndexAny(prefix, "\n。！？；;:"); boundary >= 0 {
-		start = boundary + 1
+		_, size := utf8.DecodeRuneInString(prefix[boundary:])
+		start = boundary + size
 	}
 	// ASCII full stops inside extensions are not sentence boundaries. Only a
 	// dot followed by whitespace terminates the output clause.
