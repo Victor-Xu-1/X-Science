@@ -145,8 +145,13 @@ type ModelRequest struct {
 	Headers     map[string]string
 	MediaPolicy MediaPolicy
 	MaxTokens   int
-	Temperature *float64
-	ToolChoice  any
+	// UseProviderDefaultOutputBudget lets the durable runtime negotiate an
+	// output allowance without reapplying a saved profile's initial allowance.
+	// A positive caller MaxTokens remains authoritative. This is not a request
+	// to change the user's saved profile or any task-wide resource budget.
+	UseProviderDefaultOutputBudget bool `json:"useProviderDefaultOutputBudget,omitempty"`
+	Temperature                    *float64
+	ToolChoice                     any
 	// ReasoningMode is an execution hint for provider adapters. The default
 	// preserves the selected model profile. Disabled is reserved for short,
 	// user-visible presentation turns where hidden reasoning would consume the
