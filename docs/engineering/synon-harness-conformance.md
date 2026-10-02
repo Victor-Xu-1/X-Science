@@ -839,6 +839,14 @@ tools are absent from new model snapshots.
   visible labels; only the immutable-version projector emits final download
   links. Explicit primary-plus-comparator reporting
   remains valid.
+- File names, formats and durable-output intent share one affirmative-clause
+  recognizer. A prohibited output (for example, "do not generate PDF"), a
+  negated persistence request, or a later input-reading action cannot become
+  an additional completion requirement. Negation applies to the whole format
+  list, while a new affirmative action after a comma or contrast retains its
+  explicitly requested output. Actual affirmative files and formats still
+  require published snapshots; the runtime does not generate an unwanted file
+  or rewrite a user's prompt to satisfy a misread requirement.
 - Host and network access use explicit grants. Host deletion moves items to the
   system Trash and never performs a permanent delete.
   Host grants do not override protected kernel namespaces. A conflicting mount
