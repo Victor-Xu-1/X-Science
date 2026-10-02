@@ -117,7 +117,7 @@ func (c *runtimeModelClient) applyProfileGenerationControls(request agentruntime
 		value := *c.profile.Temperature
 		request.Temperature = &value
 	}
-	if request.MaxTokens <= 0 && c.profile.MaxTokens != nil {
+	if request.MaxTokens <= 0 && c.profile.MaxTokens != nil && !request.UseProviderDefaultOutputBudget {
 		request.MaxTokens = *c.profile.MaxTokens
 	}
 	return request

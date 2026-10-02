@@ -18,7 +18,7 @@ import (
 
 // All recovery paths must preserve work and bound an unchanged generation route.
 // All databases, settings and provider responses belong to this local fixture.
-func TestDurableGenerationFixedBudgetMustBoundUnproductiveContinuation(t *testing.T) {
+func TestDurableGenerationFixedProviderCapacityMustBoundUnproductiveContinuation(t *testing.T) {
 	for _, incompleteTool := range []bool{false, true} {
 		for _, explicit := range []bool{false, true} {
 			t.Run(fmt.Sprintf("incomplete_tool_%t_explicit_limit_%t", incompleteTool, explicit), func(t *testing.T) {
@@ -33,10 +33,10 @@ func TestDurableGenerationFixedBudgetMustBoundUnproductiveContinuation(t *testin
 						t.Error(err)
 						return
 					}
-					if explicit && input.MaxTokens != 2048 {
-						t.Errorf("explicit limit changed: %d", input.MaxTokens)
-					}
 					sequence := requests.Add(1)
+					if explicit && sequence == 1 && input.MaxTokens != 2048 {
+						t.Errorf("saved initial allowance changed: %d", input.MaxTokens)
+					}
 					w.Header().Set("Content-Type", "text/event-stream")
 					if incompleteTool {
 						fmt.Fprintf(w, "data: {\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call-%d\",\"type\":\"function\",\"function\":{\"name\":\"edit_file\",\"arguments\":\"{\"}}]},\"finish_reason\":\"length\"}],\"usage\":{\"prompt_tokens\":100,\"completion_tokens\":2048}}\n\ndata: [DONE]\n\n", sequence)

@@ -1133,7 +1133,18 @@ resources use Synon names.
 ## Verification boundary
 
 Generation failures share one durable recovery observation in the existing
-Transcript. Explicit output caps, automatic budgets, empty responses and partial
+Transcript. A saved model profile's per-response allowance seeds the first task
+request; it is not a ceiling on all subsequent task generations. The durable
+budget adapter can increase the allowance after a real truncation without
+changing that saved profile. Its bounded comparison can use the provider default
+without accidentally reapplying the same saved allowance. A typed provider maximum
+is tried directly and retained only for its generation context. Missing usage
+does not manufacture a consumed-token count; it retires the ineffective initial
+allowance and allows one transition to the provider-default route. Recreating a
+client preserves these observations and does not reinstate the saved ceiling.
+An explicit positive caller allowance
+remains authoritative, as do cancellation and task-wide resource controls.
+Explicit caller output caps, automatic budgets, empty responses and partial
 tool arguments cannot bypass the unchanged-route wait. The phase machine owns
 the progress decision; server adapters own its claim-fenced persistence and
 existing dispatch. A token-limit reason alone is not evidence of progress.

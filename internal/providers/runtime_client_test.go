@@ -301,6 +301,22 @@ func TestRuntimeModelClientAppliesProfileGenerationControlsAndRequestOverrides(t
 	if overridden["temperature"] != overrideTemperature || overridden["max_tokens"] != float64(1024) {
 		t.Fatalf("request override payload = %#v", overridden)
 	}
+	request.UseProviderDefaultOutputBudget = true
+	if _, err := client.Complete(context.Background(), request); err != nil {
+		t.Fatal(err)
+	}
+	bounded := <-requests
+	if bounded["max_tokens"] != float64(1024) {
+		t.Fatalf("runtime default bypassed explicit caller allowance: %#v", bounded)
+	}
+	request.MaxTokens = 0
+	if _, err := client.Complete(context.Background(), request); err != nil {
+		t.Fatal(err)
+	}
+	automatic := <-requests
+	if _, present := automatic["max_tokens"]; present || automatic["temperature"] != overrideTemperature {
+		t.Fatalf("runtime provider-default request reapplied the saved allowance: %#v", automatic)
+	}
 }
 
 func TestOpenAIMessageRoundTripsHiddenReasoningContent(t *testing.T) {

@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -52,6 +53,131 @@ func TestOutputBudgetRecoveryPersistsAcrossModelClientRecreation(t *testing.T) {
 	profiles, err := store.ListModelProvidersWithContext(context.Background(), "dynamic-user")
 	if err != nil || len(profiles) != 1 || profiles[0].MaxTokens != nil {
 		t.Fatalf("runtime recovery changed saved settings: %#v %v", profiles, err)
+	}
+}
+
+func TestOutputBudgetSavedProfileIsInitialAllowanceNotTaskCeiling(t *testing.T) {
+	for _, limit := range []int{40, 2048} {
+		t.Run(fmt.Sprintf("saved_allowance_%d", limit), func(t *testing.T) {
+			var budgets []int
+			api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				var input struct {
+					MaxTokens int `json:"max_tokens"`
+				}
+				if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+					t.Error(err)
+					return
+				}
+				budgets = append(budgets, input.MaxTokens)
+				w.Header().Set("Content-Type", "application/json")
+				if input.MaxTokens <= limit {
+					fmt.Fprintf(w, `{"choices":[{"finish_reason":"length","message":{"role":"assistant","tool_calls":[{"id":"partial","function":{"name":"edit_file","arguments":"{"}}]}}],"usage":{"completion_tokens":%d}}`, limit)
+					return
+				}
+				_, _ = w.Write([]byte(`{"choices":[{"finish_reason":"stop","message":{"role":"assistant","content":"complete result"}}]}`))
+			}))
+			defer api.Close()
+			enabled := true
+			srv, store, project, frame := newDynamicModelTestRuntime(t, "saved-budget-model", []workspace.ModelProviderInput{{
+				ID: "saved-budget-provider", UserID: "dynamic-user", Name: "Saved budget", Type: "openai-compatible",
+				BaseURL: api.URL, Model: "saved-budget-model", Enabled: &enabled, MaxTokens: &limit,
+			}})
+			request := agentruntime.ModelRequest{Messages: []agentruntime.Message{{Role: "user", Content: "Complete the result from the existing evidence."}}}
+			response, err := newDynamicModelTestClient(srv, project, frame).Complete(context.Background(), request)
+			if !providers.IsProviderOutputTokenLimit(err) || len(response.Message.ToolCalls) != 0 {
+				t.Fatalf("incomplete action escaped the provider boundary: response=%#v err=%v", response, err)
+			}
+			response, err = newDynamicModelTestClient(srv, project, frame).Complete(context.Background(), request)
+			if err != nil || response.Message.Content != "complete result" || !reflect.DeepEqual(budgets, []int{limit, limit * 2}) {
+				t.Fatalf("saved profile locked the task: budgets=%v response=%#v err=%v", budgets, response, err)
+			}
+			profiles, err := store.ListModelProvidersWithContext(context.Background(), "dynamic-user")
+			if err != nil || len(profiles) != 1 || profiles[0].MaxTokens == nil || *profiles[0].MaxTokens != limit {
+				t.Fatalf("runtime adaptation mutated saved configuration: profiles=%#v err=%v", profiles, err)
+			}
+		})
+	}
+}
+
+func TestOutputBudgetMissingUsageRetiresSavedAllowanceWithoutInventingUsage(t *testing.T) {
+	var budgets []int
+	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var input struct {
+			MaxTokens int `json:"max_tokens"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&input)
+		budgets = append(budgets, input.MaxTokens)
+		w.Header().Set("Content-Type", "application/json")
+		if input.MaxTokens > 0 {
+			_, _ = w.Write([]byte(`{"choices":[{"finish_reason":"length","message":{"role":"assistant","tool_calls":[{"id":"partial","function":{"name":"edit_file","arguments":"{"}}]}}]}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"choices":[{"finish_reason":"stop","message":{"role":"assistant","content":"complete"}}]}`))
+	}))
+	defer api.Close()
+	limit := 40
+	profile := providers.ModelProfile{Provider: providers.ProviderProfile{ID: "missing-usage", UserID: "owner", Protocol: providers.ProtocolOpenAICompatible, Endpoint: api.URL}, Model: "model", MaxTokens: &limit, Request: providers.RequestProfile{MaxAttempts: 1}}
+	store := runtimekv.New(filepath.Join(t.TempDir(), "state.sqlite"))
+	defer store.Close()
+	makeClient := func() *sessionOutputBudgetClient {
+		delegate, err := providers.NewRuntimeModelClient(profile, api.Client(), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return newSessionOutputBudgetClient(delegate, store, profile, "task", "agent").(*sessionOutputBudgetClient)
+	}
+	if _, err := makeClient().Complete(context.Background(), agentruntime.ModelRequest{}); !providers.IsProviderOutputTokenLimit(err) {
+		t.Fatalf("missing-usage truncation was not retained: %v", err)
+	}
+	state, err := makeClient().read()
+	if err != nil || state.Lower != 0 || state.Next != 0 || !state.SkipInitialAllowance {
+		t.Fatalf("missing usage was guessed or saved allowance stayed pinned: state=%#v err=%v", state, err)
+	}
+	response, err := makeClient().Complete(context.Background(), agentruntime.ModelRequest{})
+	if err != nil || response.Message.Content != "complete" || !reflect.DeepEqual(budgets, []int{40, 0}) {
+		t.Fatalf("provider-default route did not recover: budgets=%v response=%#v err=%v", budgets, response, err)
+	}
+}
+
+func TestOutputBudgetConstraintCannotFreezeChangedGenerationContext(t *testing.T) {
+	var budgets []int
+	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var input struct {
+			MaxTokens int `json:"max_tokens"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&input)
+		budgets = append(budgets, input.MaxTokens)
+		w.Header().Set("Content-Type", "application/json")
+		if input.MaxTokens <= 40 {
+			_, _ = w.Write([]byte(`{"choices":[{"finish_reason":"length","message":{"role":"assistant","tool_calls":[{"id":"partial","function":{"name":"edit_file","arguments":"{"}}]}}],"usage":{"completion_tokens":40}}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"choices":[{"finish_reason":"stop","message":{"role":"assistant","content":"complete"}}]}`))
+	}))
+	defer api.Close()
+	profile := providers.ModelProfile{Provider: providers.ProviderProfile{ID: "context-budget", UserID: "owner", Protocol: providers.ProtocolOpenAICompatible, Endpoint: api.URL}, Model: "model", Request: providers.RequestProfile{MaxAttempts: 1}}
+	store := runtimekv.New(filepath.Join(t.TempDir(), "state.sqlite"))
+	defer store.Close()
+	delegate, err := providers.NewRuntimeModelClient(profile, api.Client(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := newSessionOutputBudgetClient(delegate, store, profile, "task", "agent").(*sessionOutputBudgetClient)
+	old := agentruntime.ModelRequest{Messages: []agentruntime.Message{{Role: "user", Content: "old context"}}}
+	identity, err := outputBudgetContext(old)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := client.observe(identity, providers.OutputLimitDetails{OutputTokens: 40}, 80, 40); err != nil {
+		t.Fatal(err)
+	}
+	changed := agentruntime.ModelRequest{Messages: []agentruntime.Message{{Role: "user", Content: "changed context with available capacity"}}}
+	if _, err := client.Complete(context.Background(), changed); !providers.IsProviderOutputTokenLimit(err) {
+		t.Fatalf("changed-context boundary lost: %v", err)
+	}
+	response, err := client.Complete(context.Background(), changed)
+	if err != nil || response.Message.Content != "complete" || !reflect.DeepEqual(budgets, []int{40, 80}) {
+		t.Fatalf("old constraint froze the changed request: budgets=%v response=%#v err=%v", budgets, response, err)
 	}
 }
 
@@ -143,11 +269,8 @@ func TestOutputBudgetUsesProviderDeclaredMaximumAfterRejectedProposal(t *testing
 	if _, err := makeClient().Complete(context.Background(), request); !providers.IsProviderOutputTokenLimit(err) {
 		t.Fatalf("initial provider stop was not retained: %v", err)
 	}
-	if _, err := makeClient().Complete(context.Background(), request); !providers.IsProviderOutputTokenLimit(err) {
-		t.Fatalf("fallback provider stop was not retained: %v", err)
-	}
 	response, err := makeClient().Complete(context.Background(), request)
-	if err != nil || response.Message.Content != "complete" || !reflect.DeepEqual(budgets, []int{0, 256, 0, 150}) {
+	if err != nil || response.Message.Content != "complete" || !reflect.DeepEqual(budgets, []int{0, 256, 150}) {
 		t.Fatalf("declared maximum was not used: budgets=%v response=%#v err=%v", budgets, response, err)
 	}
 	state, err := makeClient().(*sessionOutputBudgetClient).read()
@@ -216,8 +339,8 @@ func TestOutputBudgetStateIsScopedAndExplicitLimitsRemainAuthoritative(t *testin
 	}
 	value := 20
 	profile.MaxTokens = &value
-	if fixed := newSessionOutputBudgetClient(nil, store, profile, "task", "agent").(*sessionOutputBudgetClient); fixed.fixedLimit != value {
-		t.Fatal("explicit saved limit was not retained by recovery")
+	if seeded := newSessionOutputBudgetClient(nil, store, profile, "task", "agent").(*sessionOutputBudgetClient); seeded.initialLimit != value {
+		t.Fatal("saved initial allowance was not retained by recovery")
 	}
 }
 
