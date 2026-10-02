@@ -296,6 +296,7 @@ func (client *sessionOutputBudgetClient) run(ctx context.Context, request agentr
 				return response, errors.Join(callErr, saveErr)
 			}
 			log.Printf("output budget recovery state could not be saved: %v", saveErr)
+			return response, nil
 		}
 		state, err = client.read()
 		if err != nil {
