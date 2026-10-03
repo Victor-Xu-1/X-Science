@@ -3,7 +3,7 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "9258454884447a9c38390bbf16457677ed6f04ee6aa8b38ded8fe4c0cd1ef32c",
+  "adaptationFingerprintSHA256": "2d12c2429c32316d92f466528666d3070a552317da1e829dc6d473e7c181faf9",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
   "additionFingerprintSHA256": "92bcacf4587254581c0ee06b553fc4bbe8074734f97bcf51c95e8dc30c80699b",
   "summary": {
@@ -2439,8 +2439,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json",
       "sourceSHA256": "c6802cdea4137a9a8199f5b9e57c11a99e7b8fde42539065da42dd4db9052b8e",
-      "targetSHA256": "15bb965587d7775415075658bca8fa481f0f08fc380fcd5ab666ca00314912d6",
-      "bytes": 80118,
+      "targetSHA256": "443bb362033c6b8ba44342605dbb14e30b0e3eab3b0932d05ba4e9fd01667b7b",
+      "bytes": 80152,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2530,8 +2530,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/conversation.json",
       "sourceSHA256": "cb395d18cb1692e13c849172bf6d957304ef382973fb5ab95fd14723cbc045bd",
-      "targetSHA256": "b75586cc421d1b5892f974bb513bc57dc1fc497b3772e2b245cd9a7cf97ea1c7",
-      "bytes": 75748,
+      "targetSHA256": "b47d77b1ab07fac2fe9fbd3bc09da2b6283df7cbc28a005352052149e339246c",
+      "bytes": 75785,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {

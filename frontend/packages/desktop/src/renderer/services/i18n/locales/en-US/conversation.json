@@ -646,7 +646,7 @@
     "providerPeak": "Observed provider peak",
     "providerSamples": "{{count}} retained provider samples",
     "historyChartLabel": "Per-request windows, bar height in tokens; select a sample for its model and capacity",
-    "historyCoverage": "Per-request windows, not cumulative billing. Unrecorded earlier calls cannot be reconstructed.",
+    "historyCoverage": "Each bar is one request in tokens, not cumulative billing or capacity percent. Unrecorded earlier calls cannot be reconstructed.",
     "legacyHistoryUnavailable": "This older task has only its latest record; earlier window changes are unavailable.",
     "historyTruncated": "Latest {{count}} samples retained; the observed provider peak is preserved.",
     "compactionObserved": "Context pressure/compaction preparation observed; this does not claim compaction completed.",

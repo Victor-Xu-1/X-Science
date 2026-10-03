@@ -646,7 +646,7 @@
     "providerPeak": "记录以来的实测峰值",
     "providerSamples": "保留 {{count}} 条实测样本",
     "historyChartLabel": "每柱表示一次请求窗口，柱高按 token 数；点击查看该次模型及容量",
-    "historyCoverage": "逐次请求窗口，不是累计计费用量；未记录的早期调用无法重建。",
+    "historyCoverage": "每柱一次请求，柱高是 token 数，不是容量占比或累计计费用量；未记录的早期调用无法重建。",
     "legacyHistoryUnavailable": "旧任务只保留最新一条，之前的窗口变化不可用。",
     "historyTruncated": "保留最近 {{count}} 条，已观测的实测峰值仍保留。",
     "compactionObserved": "已观测到上下文压力或压缩准备，不代表压缩已完成。",
