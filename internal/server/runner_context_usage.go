@@ -254,6 +254,11 @@ func (recorder *sessionContextUsageRecorder) persist(snapshot runnerContextUsage
 		} else if completing {
 			return false, nil // Do not recreate a deleted task's operational state.
 		}
+		if !completing || snapshot.State != "request" || (snapshot.Progress != nil && snapshot.Progress.Phase == "compacting") {
+			if err := recordRunnerContextHistory(entries, snapshot); err != nil {
+				return false, err
+			}
+		}
 		entries["latest"] = runtimekv.Entry{Value: snapshot}
 		return true, nil
 	})

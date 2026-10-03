@@ -11,10 +11,12 @@ import { useTranslation } from 'react-i18next';
 import { useContextUsage } from '@/renderer/hooks/synonBiomed/useContextUsage';
 import {
   projectContextUsage,
-  reconcileContextUsageBreakdown,
+  estimateContextUsageBreakdown,
   type ContextUsageCategory,
 } from '@/renderer/services/contextUsage';
 import styles from './ContextUsagePanel.module.css';
+import ContextWindowHistory from './ContextWindowHistory';
+import { formatContextTokens as formatTokenCount, lastConfirmedContextUsage } from './contextWindowHistoryModel';
 
 const RING_SIZE = 16;
 const RING_STROKE_WIDTH = 2.5;
@@ -26,20 +28,6 @@ const COLORS: Record<ContextUsageCategory, string> = {
   mcp: '#8b5cf6',
   skills: '#ec4899',
 };
-
-function formatTokenCount(count: number): string {
-  if (count >= 1_000_000) {
-    const value = count / 1_000_000;
-    const formatted = value.toFixed(1);
-    return `${formatted}M`;
-  }
-  if (count >= 1_000) {
-    const value = count / 1_000;
-    const formatted = value.toFixed(1);
-    return `${formatted}K`;
-  }
-  return count.toString();
-}
 
 /**
  * Bare usage ring; the management card owns its popover behavior.
@@ -96,6 +84,8 @@ const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({ conversationId, a
   const { state, retry } = useContextUsage(conversationId, visible, active);
   const usage = state.status === 'available' ? projectContextUsage(state.snapshot) : null;
   const policy = state.status === 'available' ? state.autoCompaction : undefined;
+  const history = state.status === 'available' ? state.history : undefined;
+  const lastProvider = usage?.source === 'estimated' ? lastConfirmedContextUsage(history, usage) : undefined;
   const stale = state.refreshState === 'retrying' || state.refreshState === 'stale';
   const phase =
     usage?.state === 'failed'
@@ -120,13 +110,14 @@ const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({ conversationId, a
           );
   const capacityKnown = Boolean(usage && usage.limitTokens > 0);
   const usagePercent = usage && capacityKnown ? (usage.usedTokens / usage.limitTokens) * 100 : 0;
-  const rows = usage ? reconcileContextUsageBreakdown(usage) : [];
+  const rows = usage ? estimateContextUsageBreakdown(usage) : [];
+  const localTotal = rows.reduce((sum, row) => sum + row.tokens, 0);
   // Keep the semantic legend order stable, but make the visual bar readable:
   // tiny shares are not swallowed by a later large segment and ties retain
-  // the authoritative category order from reconcileContextUsageBreakdown.
+  // the locally estimated category order. Never scale categories to a receipt.
   const barRows = rows.filter((row) => row.tokens > 0).toSorted((left, right) => left.tokens - right.tokens);
-  const barTotal = usage ? Math.max(1, usage.limitTokens, usage.usedTokens) : 1;
-  const remaining = usage ? Math.max(0, barTotal - usage.usedTokens) : 0;
+  const barTotal = usage ? Math.max(1, usage.limitTokens, localTotal) : 1;
+  const remaining = usage ? Math.max(0, barTotal - localTotal) : 0;
   const labels = {
     systemPrompt: t('conversation.contextUsage.systemPrompt'),
     tools: t('conversation.contextUsage.toolsAndSubagents'),
@@ -253,13 +244,26 @@ const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({ conversationId, a
                       <i className={styles.legendDot} style={{ background: COLORS[row.key] }} aria-hidden='true' />
                       {labels[row.key]}
                     </span>
-                    <span className={styles.legendPercent}>
-                      {capacityKnown
-                        ? `${((row.tokens / usage.limitTokens) * 100).toFixed(1)}%`
-                        : `≈ ${formatTokenCount(row.tokens)}`}
-                    </span>
+                    <span className={styles.legendPercent}>≈ {formatTokenCount(row.tokens)}</span>
                   </div>
                 ))}
+              </div>
+              <div className={styles.policy} data-testid='context-usage-diagnostics'>
+                <span>
+                  {t('conversation.contextUsage.localComposition')}: ≈ {formatTokenCount(localTotal)}
+                </span>
+                {usage.source === 'provider' && (
+                  <span>
+                    {t('conversation.contextUsage.providerDifference')}: {usage.usedTokens - localTotal > 0 ? '+' : ''}
+                    {formatTokenCount(usage.usedTokens - localTotal)}
+                  </span>
+                )}
+                {lastProvider && (
+                  <span>
+                    {t('conversation.contextUsage.lastConfirmed')}: {formatTokenCount(lastProvider.usedTokens)} ·{' '}
+                    {new Date(lastProvider.observedAt).toLocaleTimeString()}
+                  </span>
+                )}
               </div>
               <div className={styles.policy} data-testid='context-usage-policy'>
                 <span>{policyLabel}</span>
@@ -281,6 +285,7 @@ const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({ conversationId, a
                   {usage.model} · {new Date(usage.observedAt).toLocaleString()}
                 </span>
               </div>
+              {history && <ContextWindowHistory history={history} />}
               {stale && (
                 <div className={styles.refreshNotice} role='status'>
                   <span>
@@ -333,7 +338,7 @@ const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({ conversationId, a
             : t('conversation.contextUsage.unavailable')
         }
         data-usage-state={state.status}
-        className='inline-flex items-center justify-center cursor-pointer border-0 bg-transparent p-0'
+        className='inline-flex items-center justify-center gap-1 cursor-pointer border-0 bg-transparent p-0'
       >
         {usage && capacityKnown ? (
           <UsageRing
@@ -350,6 +355,12 @@ const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({ conversationId, a
         ) : (
           <span className={styles.unknown} aria-hidden='true'>
             —
+          </span>
+        )}
+        {usage && (
+          <span className={styles.triggerValue} data-testid='context-usage-trigger-value'>
+            {usage.source === 'estimated' ? '≈ ' : ''}
+            {capacityKnown ? `${usagePercent.toFixed(0)}%` : formatTokenCount(usage.usedTokens)}
           </span>
         )}
       </button>

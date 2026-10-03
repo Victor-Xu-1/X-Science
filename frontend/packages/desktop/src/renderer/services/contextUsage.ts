@@ -35,12 +35,20 @@ export type ContextUsageSnapshot = {
   inputEstimates: ContextUsageBreakdownRow[];
   progress?: ContextUsageProgress;
 };
+export type ContextUsageHistory = {
+  sessionId: string;
+  totalObserved: number;
+  coverage: 'recorded' | 'latest_only';
+  samples: ContextUsageSnapshot[];
+  peak?: ContextUsageSnapshot;
+};
 export type ContextUsageResult =
   | { status: 'unavailable' }
   | {
       status: 'available';
       snapshot: ContextUsageSnapshot;
       autoCompaction?: ContextCompactionPolicy;
+      history?: ContextUsageHistory;
     };
 
 export class ContextUsageRequestError extends Error {
@@ -98,6 +106,10 @@ export function parseContextUsage(payload: unknown, conversationId: string): Con
       throw new Error('Invalid context usage breakdown');
     }
   }
+  const inputEstimateTotal = value.inputEstimates.reduce((sum, row) => sum + BigInt(row.tokens), BigInt(0));
+  if (inputEstimateTotal + BigInt(value.outputTokens as number) > BigInt(Number.MAX_SAFE_INTEGER)) {
+    throw new Error('Invalid context usage estimate total');
+  }
   if (
     value.usedTokens > value.outputTokens &&
     value.inputEstimates.every((row) => (row as ContextUsageBreakdownRow).tokens === 0)
@@ -119,6 +131,13 @@ export function parseContextUsage(payload: unknown, conversationId: string): Con
       (progress.phase === 'compacting' && progress.outputTokens !== 0))
   )
     throw new Error('Invalid context usage progress');
+  if (
+    isObject(progress) &&
+    isTokenCount(progress.outputTokens) &&
+    inputEstimateTotal + BigInt(progress.outputTokens) > BigInt(Number.MAX_SAFE_INTEGER)
+  ) {
+    throw new Error('Invalid context usage progress');
+  }
   const policy = payload.autoCompaction;
   if (
     policy !== undefined &&
@@ -140,9 +159,72 @@ export function parseContextUsage(payload: unknown, conversationId: string): Con
   // Rolling upgrade compatibility: retire historical guessed defaults without
   // rewriting their provider token receipts or binding them to a newer model.
   const legacyDefault = value.limitSource === 'runner_default';
+  let history: ContextUsageHistory | undefined;
+  if (payload.history !== undefined) {
+    const raw = payload.history;
+    if (
+      !isObject(raw) ||
+      raw.sessionId !== conversationId ||
+      !isTokenCount(raw.totalObserved) ||
+      !['recorded', 'latest_only'].includes(String(raw.coverage)) ||
+      !Array.isArray(raw.samples) ||
+      raw.samples.length === 0 ||
+      raw.samples.length > 128 ||
+      raw.totalObserved < raw.samples.length ||
+      (raw.coverage === 'latest_only' && (raw.samples.length !== 1 || raw.totalObserved !== 1))
+    ) {
+      throw new Error('Invalid context usage history');
+    }
+    const samples = raw.samples.map((candidate) => {
+      const parsed = parseContextUsage({ status: 'available', snapshot: candidate }, conversationId);
+      if (parsed.status !== 'available') throw new Error('Invalid context history sample');
+      return parsed.snapshot;
+    });
+    const latest = samples.at(-1)!;
+    if (
+      latest.model !== value.model ||
+      latest.usedTokens !== value.usedTokens ||
+      latest.outputTokens !== value.outputTokens ||
+      latest.state !== value.state ||
+      latest.source !== value.source ||
+      latest.observedAt !== value.observedAt ||
+      latest.limitTokens !== (legacyDefault ? 0 : value.limitTokens) ||
+      latest.limitSource !== (legacyDefault ? 'unknown' : value.limitSource)
+    ) {
+      throw new Error('Invalid context history latest sample');
+    }
+    if (
+      new Set(samples.map((sample) => sample.requestId)).size !== samples.length ||
+      samples.at(-1)?.requestId !== value.requestId
+    )
+      throw new Error('Invalid context history order');
+    let peak: ContextUsageSnapshot | undefined;
+    if (raw.peak !== undefined) {
+      const parsed = parseContextUsage({ status: 'available', snapshot: raw.peak }, conversationId);
+      if (
+        parsed.status !== 'available' ||
+        parsed.snapshot.source !== 'provider' ||
+        parsed.snapshot.state !== 'complete'
+      ) {
+        throw new Error('Invalid context history peak');
+      }
+      peak = parsed.snapshot;
+      if (samples.some((sample) => sample.source === 'provider' && sample.usedTokens > peak!.usedTokens)) {
+        throw new Error('Invalid context history peak');
+      }
+    }
+    history = {
+      sessionId: conversationId,
+      totalObserved: raw.totalObserved,
+      coverage: raw.coverage as ContextUsageHistory['coverage'],
+      samples,
+      ...(peak ? { peak } : {}),
+    };
+  }
   return {
     status: 'available',
     snapshot: (legacyDefault ? { ...value, limitTokens: 0, limitSource: 'unknown' } : value) as ContextUsageSnapshot,
+    ...(history ? { history } : {}),
     ...(policy === undefined
       ? {}
       : {
@@ -175,32 +257,17 @@ export function projectContextUsage(snapshot: ContextUsageSnapshot): ContextUsag
 }
 
 /**
- * Provider totals and input estimates have different authorities. Preserve
- * their proportions without pretending the estimates exactly measured usage.
- * BigInt keeps the allocation stable even near the safe-integer boundary.
+ * Keep locally measured input estimates unchanged. Scaling them to the
+ * provider's total would fabricate per-category accuracy and hide the delta.
+ * Public response tokens are included under messages, with their source kept
+ * separate in the diagnostics. The category sum need not equal provider usage.
  */
-export function reconcileContextUsageBreakdown(snapshot: ContextUsageSnapshot): ContextUsageBreakdownRow[] {
-  const inputTokens = snapshot.usedTokens - snapshot.outputTokens;
-  if (inputTokens < 0) throw new Error('Invalid context usage total');
-  const totalWeight = snapshot.inputEstimates.reduce((sum, row) => sum + BigInt(row.tokens), BigInt(0));
-  if (totalWeight === BigInt(0) && inputTokens > 0) throw new Error('Missing context usage input weights');
-  const rows = snapshot.inputEstimates.map((row) => {
-    const numerator = BigInt(inputTokens) * BigInt(row.tokens);
-    return {
-      key: row.key,
-      tokens: totalWeight === BigInt(0) ? 0 : Number(numerator / totalWeight),
-      remainder: totalWeight === BigInt(0) ? BigInt(0) : numerator % totalWeight,
-    };
-  });
-  const undistributed = inputTokens - rows.reduce((sum, row) => sum + row.tokens, 0);
-  const order = rows
-    .map((row, index) => ({ index, remainder: row.remainder }))
-    .toSorted((left, right) =>
-      left.remainder === right.remainder ? left.index - right.index : left.remainder > right.remainder ? -1 : 1
-    );
-  for (let index = 0; index < undistributed; index += 1) rows[order[index].index].tokens += 1;
+export function estimateContextUsageBreakdown(snapshot: ContextUsageSnapshot): ContextUsageBreakdownRow[] {
+  const total = snapshot.inputEstimates.reduce((sum, row) => sum + BigInt(row.tokens), BigInt(snapshot.outputTokens));
+  if (total > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error('Invalid context usage estimate total');
+  const rows = snapshot.inputEstimates.map((row) => ({ ...row }));
   rows[CONTEXT_USAGE_CATEGORIES.indexOf('messages')].tokens += snapshot.outputTokens;
-  return rows.map(({ key, tokens }) => ({ key, tokens }));
+  return rows;
 }
 
 export async function fetchContextUsage(conversationId: string, signal: AbortSignal): Promise<ContextUsageResult> {

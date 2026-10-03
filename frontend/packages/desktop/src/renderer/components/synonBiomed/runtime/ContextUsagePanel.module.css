@@ -6,7 +6,9 @@
 
 .root {
   box-sizing: border-box;
-  width: min(280px, calc(100vw - 24px));
+  width: min(360px, calc(100vw - 24px));
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   padding: 16px 16px 14px;
@@ -85,6 +87,59 @@
   border: 1px dashed var(--color-text-3);
   border-radius: var(--ui-radius-circle);
   font-size: var(--ui-font-micro);
+}
+.triggerValue {
+  font-size: var(--ui-font-micro);
+  color: var(--workspace-text-secondary);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.history {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-border-2);
+}
+.historyHeading {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: var(--ui-font-meta);
+}
+.historyHeading span {
+  color: var(--workspace-text-secondary);
+}
+.historyChart {
+  display: flex;
+  align-items: stretch;
+  height: 68px;
+  gap: 2px;
+  margin-top: 10px;
+  border-bottom: 1px solid var(--color-border-2);
+}
+.historyPoint {
+  display: flex;
+  flex: 1 1 0;
+  align-items: flex-end;
+  justify-content: center;
+  min-width: 0;
+  max-width: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.historyPoint span {
+  width: 100%;
+  background: #6366f1;
+  border-radius: 2px 2px 0 0;
+}
+.historyPoint[data-source='estimated'] span {
+  background: repeating-linear-gradient(45deg, #d97706, #d97706 3px, #fbbf24 3px, #fbbf24 6px);
+}
+.historyPoint[aria-pressed='true'],
+.historyPoint:focus-visible {
+  outline: 2px solid var(--color-text-2);
+  outline-offset: 1px;
 }
 
 .closeButton {
@@ -266,7 +321,7 @@
 
 @media (max-width: 520px) {
   .root {
-    width: min(280px, calc(100vw - 24px));
+    width: min(360px, calc(100vw - 24px));
     padding: 16px 14px 14px;
     border-radius: var(--ui-radius-2xl);
   }
