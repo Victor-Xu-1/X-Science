@@ -281,7 +281,7 @@ func TestSessionRunnerChatOnceAuditsStaticProviderAuthorityForTaskMetrics(t *tes
 	}
 	contextUsage := readContextUsageTest(t, srv.runtimeStore, session.ID)
 	if contextUsage.Source != "provider" || contextUsage.UsedTokens != 14 || contextUsage.OutputTokens != 3 ||
-		contextUsage.LimitTokens != defaultRunnerContextWindow || contextUsage.LimitSource != "runner_default" {
+		contextUsage.LimitTokens != 0 || contextUsage.LimitSource != "unknown" {
 		t.Fatalf("runner-to-context-usage projection = %+v", contextUsage)
 	}
 }

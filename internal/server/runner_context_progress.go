@@ -104,14 +104,14 @@ func validRunnerContextProgress(snapshot runnerContextUsage) bool {
 		p.UsedTokens-snapshot.UsedTokens == p.OutputTokens && (p.Phase != "compacting" || p.OutputTokens == 0)
 }
 
-func (client *sessionRunnerDynamicModelClient) recordContextPressure(ctx context.Context, request agentruntime.ModelRequest, failure error) {
+func (client *sessionRunnerDynamicModelClient) recordContextPressure(ctx context.Context, request agentruntime.ModelRequest, failure error, resolved sessionRunnerResolvedModelClient) {
 	var pressure *sessionRunnerRequestContextPressureError
 	if !errors.As(failure, &pressure) {
 		return
 	}
 	recorder := contextUsageRecorderForCall(ctx, client.contextUsage)
-	// The provider has not been resolved/dispatched. Do not guess a model name.
-	snapshot := recorder.begin("", request)
+	// Admission runs after model resolution, before provider dispatch.
+	snapshot := recorder.begin(resolved.model, request, contextCapacityForModel(resolved.contextProfile, client.contextOptions))
 	if snapshot == nil {
 		return
 	}

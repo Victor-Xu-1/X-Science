@@ -152,12 +152,24 @@ func (s *Server) handleLLMProviders(w http.ResponseWriter, r *http.Request) {
 			Enabled        *bool           `json:"enabled"`
 			Temperature    *float64        `json:"temperature"`
 			MaxTokens      json.RawMessage `json:"maxTokens"`
+			ContextWindow  json.RawMessage `json:"contextWindow"`
 		}
 		if err := decodeWorkspaceJSON(r, &input); err != nil {
 			writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": err.Error()})
 			return
 		}
 		var maxTokens *int
+		var contextWindow *int
+		if len(input.ContextWindow) > 0 {
+			if err := json.Unmarshal(input.ContextWindow, &contextWindow); err != nil {
+				writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "contextWindow must be a positive integer or null"})
+				return
+			}
+			if contextWindow != nil && (*contextWindow < 1 || *contextWindow > 10_000_000) {
+				writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "contextWindow must be between 1 and 10000000, or null for unknown"})
+				return
+			}
+		}
 		if len(input.MaxTokens) > 0 {
 			if err := json.Unmarshal(input.MaxTokens, &maxTokens); err != nil {
 				writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "maxTokens must be a positive integer or null"})
@@ -200,6 +212,7 @@ func (s *Server) handleLLMProviders(w http.ResponseWriter, r *http.Request) {
 			Type: firstNonEmpty(input.Provider, input.Type), BaseURL: input.BaseURL,
 			Model: input.Model, SecretRef: secretRef, Enabled: input.Enabled,
 			Temperature: input.Temperature, MaxTokens: maxTokens, MaxTokensSet: len(input.MaxTokens) > 0,
+			ContextWindow: contextWindow, ContextWindowSet: len(input.ContextWindow) > 0,
 		}
 		var provider workspace.ModelProvider
 		if profileStyle || found {
@@ -342,10 +355,11 @@ func llmProfileProjection(provider workspace.ModelProvider) map[string]any {
 		"id": provider.ID, "name": provider.Name, "provider": provider.Type,
 		"baseUrl": provider.BaseURL, "model": provider.Model,
 		"temperature": provider.Temperature, "maxTokens": provider.MaxTokens,
-		"createdAt":    provider.CreatedAt.UTC().Format(time.RFC3339Nano),
-		"updatedAt":    provider.UpdatedAt.UTC().Format(time.RFC3339Nano),
-		"hasApiKey":    strings.TrimSpace(provider.SecretRef) != "",
-		"apiKeySource": map[bool]string{true: "stored", false: "missing"}[strings.TrimSpace(provider.SecretRef) != ""],
+		"contextWindow": provider.ContextWindow,
+		"createdAt":     provider.CreatedAt.UTC().Format(time.RFC3339Nano),
+		"updatedAt":     provider.UpdatedAt.UTC().Format(time.RFC3339Nano),
+		"hasApiKey":     strings.TrimSpace(provider.SecretRef) != "",
+		"apiKeySource":  map[bool]string{true: "stored", false: "missing"}[strings.TrimSpace(provider.SecretRef) != ""],
 	}
 }
 
@@ -620,12 +634,13 @@ type modelProviderResponse struct {
 	Model                string   `json:"model"`
 	Temperature          *float64 `json:"temperature,omitempty"`
 	MaxTokens            *int     `json:"maxTokens,omitempty"`
+	ContextWindow        *int     `json:"contextWindow,omitempty"`
 	Enabled              bool     `json:"enabled"`
 	CredentialConfigured bool     `json:"credentialConfigured"`
 }
 
 func modelProviderProjection(provider workspace.ModelProvider) modelProviderResponse {
-	return modelProviderResponse{ID: provider.ID, UserID: provider.UserID, Name: provider.Name, Type: provider.Type, BaseURL: provider.BaseURL, Model: provider.Model, Temperature: provider.Temperature, MaxTokens: provider.MaxTokens, Enabled: provider.Enabled, CredentialConfigured: provider.SecretRef != ""}
+	return modelProviderResponse{ID: provider.ID, UserID: provider.UserID, Name: provider.Name, Type: provider.Type, BaseURL: provider.BaseURL, Model: provider.Model, Temperature: provider.Temperature, MaxTokens: provider.MaxTokens, ContextWindow: provider.ContextWindow, Enabled: provider.Enabled, CredentialConfigured: provider.SecretRef != ""}
 }
 
 func (s *Server) handleWorkspaceProject(w http.ResponseWriter, r *http.Request) {

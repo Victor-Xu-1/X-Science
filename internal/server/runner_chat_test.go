@@ -858,11 +858,8 @@ func TestSessionRunnerAutoCompactUsesProviderWindowAndHonorsExplicitThreshold(t 
 	if !srv.autoCompactEnabled() {
 		t.Fatal("auto compact should be enabled when no explicit setting exists")
 	}
-	if defaultRunnerContextWindow != 1_000_000 {
-		t.Fatalf("default runner context window = %d", defaultRunnerContextWindow)
-	}
-	want := 800_000
-	if got := srv.autoCompactTokenThreshold(defaultRunnerContextWindow); got != want {
+	want := 0 // Unconfigured model capacity must not invent an 800K threshold.
+	if got := srv.autoCompactTokenThreshold(0); got != want {
 		t.Fatalf("default auto compact threshold = %d, want %d", got, want)
 	}
 	if defaultRunnerAutoCompactContextPercent != 80 {
@@ -874,11 +871,11 @@ func TestSessionRunnerAutoCompactUsesProviderWindowAndHonorsExplicitThreshold(t 
 	if _, err := srv.settingsStore.Set(configStoreKey("autoCompactTokenThreshold"), float64(123_456)); err != nil {
 		t.Fatalf("set explicit auto compact threshold: %v", err)
 	}
-	if got := srv.autoCompactTokenThreshold(defaultRunnerContextWindow); got != 123_456 {
+	if got := srv.autoCompactTokenThreshold(0); got != 123_456 {
 		t.Fatalf("explicit auto compact threshold = %d, want 123456", got)
 	}
-	if got := runnerContextWindow(SessionRunnerChatOptions{Model: "mimo-v2.5"}); got != defaultRunnerContextWindow {
-		t.Fatalf("default model context window = %d, want %d", got, defaultRunnerContextWindow)
+	if got := runnerContextWindow(SessionRunnerChatOptions{Model: "mimo-v2.5"}); got != 0 {
+		t.Fatalf("unconfigured model context window = %d, want unknown", got)
 	}
 	custom := SessionRunnerChatOptions{RuntimeSessionConfig: map[string]any{"contextWindow": float64(250000)}}
 	if got := runnerContextWindow(custom); got != 250000 {

@@ -1,4 +1,4 @@
-import { Button, Input, Message, Modal, Select, Spin, Tag, Tooltip } from '@arco-design/web-react';
+import { Button, Input, InputNumber, Message, Modal, Select, Spin, Tag, Tooltip } from '@arco-design/web-react';
 import { CheckOne, Delete, Edit, Refresh } from '@icon-park/react';
 import type { TFunction } from 'i18next';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -33,6 +33,7 @@ type ProfileDraft = {
   model: string;
   apiKey: string;
   temperature: number;
+  contextWindow?: number;
 };
 
 type NumericOption = {
@@ -397,6 +398,7 @@ const ProfileEditorModal: React.FC<{
         apiKey: draft.apiKey.trim() || undefined,
         copyApiKeyFrom: editor.profile?.id,
         temperature: draft.temperature,
+        contextWindow: draft.contextWindow ?? null,
         ...(editor.profile ? { maxTokens: null } : {}),
       });
     } catch (error) {
@@ -440,8 +442,9 @@ const ProfileEditorModal: React.FC<{
               setDraft((current) => ({
                 ...current,
                 provider,
-                baseUrl: template?.defaultBaseUrl || current.baseUrl,
-                model: template?.modelExamples[0] || '',
+                baseUrl: provider === current.provider ? current.baseUrl : template?.defaultBaseUrl || current.baseUrl,
+                model: provider === current.provider ? current.model : template?.modelExamples[0] || '',
+                contextWindow: provider === current.provider ? current.contextWindow : undefined,
               }));
             }}
           >
@@ -462,6 +465,7 @@ const ProfileEditorModal: React.FC<{
               setDraft((current) => ({
                 ...current,
                 model: typeof model === 'string' ? model : '',
+                contextWindow: model === current.model ? current.contextWindow : undefined,
               }))
             }
             placeholder={t('settings.customModelPlaceholder')}
@@ -480,7 +484,13 @@ const ProfileEditorModal: React.FC<{
           <Input
             aria-label={t('settings.modelsBaseUrl')}
             value={draft.baseUrl}
-            onChange={(baseUrl) => setDraft((current) => ({ ...current, baseUrl }))}
+            onChange={(baseUrl) =>
+              setDraft((current) => ({
+                ...current,
+                baseUrl,
+                contextWindow: baseUrl === current.baseUrl ? current.contextWindow : undefined,
+              }))
+            }
             placeholder={selectedTemplate?.defaultBaseUrl}
           />
         </Field>
@@ -491,6 +501,23 @@ const ProfileEditorModal: React.FC<{
             onChange={(apiKey) => setDraft((current) => ({ ...current, apiKey }))}
             placeholder={editor?.profile?.hasApiKey ? t('settings.modelsKeepKey') : t('settings.modelsKeyPlaceholder')}
             autoComplete='new-password'
+          />
+        </Field>
+        <Field
+          label={t('settings.modelsContextWindow')}
+          description={t('settings.modelsContextWindowHint')}
+          className='md:col-span-2'
+        >
+          <InputNumber
+            aria-label={t('settings.modelsContextWindow')}
+            data-testid='synon-biomed-context-window-input'
+            value={draft.contextWindow}
+            min={1}
+            max={10_000_000}
+            step={1}
+            precision={0}
+            placeholder={t('settings.modelsContextWindowUnknown')}
+            onChange={(contextWindow) => setDraft((current) => ({ ...current, contextWindow }))}
           />
         </Field>
         <Field label={t('settings.modelsTemperature')} description={t('settings.modelsTemperatureHint')}>
@@ -539,6 +566,7 @@ function createDraft(profile?: SynonBiomedLlmProfile, template?: SynonBiomedLlmP
     model: profile?.model ?? template?.modelExamples[0] ?? '',
     apiKey: '',
     temperature: profile?.temperature ?? 0.2,
+    contextWindow: profile?.contextWindow,
   };
 }
 

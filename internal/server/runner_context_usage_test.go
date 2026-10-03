@@ -278,6 +278,7 @@ func TestContextUsageDynamicClientUsesRealProviderProtocol(t *testing.T) {
 				BaseURL: provider.URL + "/v1", Model: "observed-model", Enabled: &enabled,
 			}})
 			client := newDynamicModelTestClient(srv, project, frame)
+			client.contextOptions = SessionRunnerChatOptions{RuntimeSessionConfig: map[string]any{"contextWindow": 500}}
 			client.contextUsage = newSessionContextUsageRecorder(srv, frame, 1, SessionRunnerChatOptions{RuntimeSessionConfig: map[string]any{"contextWindow": 500}})
 			request := agentruntime.ModelRequest{Messages: []agentruntime.Message{{Role: "user", Content: "observe this request", ContextUsageSource: agentruntime.ContextUsageSkills}}}
 			var err error

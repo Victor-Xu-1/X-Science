@@ -45,12 +45,13 @@ type ProviderProfile struct {
 }
 
 type ModelProfile struct {
-	Provider    ProviderProfile `json:"provider"`
-	Model       string          `json:"model"`
-	APIKey      string          `json:"-"`
-	Temperature *float64        `json:"temperature,omitempty"`
-	MaxTokens   *int            `json:"maxTokens,omitempty"`
-	Request     RequestProfile  `json:"request"`
+	Provider      ProviderProfile `json:"provider"`
+	Model         string          `json:"model"`
+	APIKey        string          `json:"-"`
+	Temperature   *float64        `json:"temperature,omitempty"`
+	MaxTokens     *int            `json:"maxTokens,omitempty"`
+	ContextWindow *int            `json:"contextWindow,omitempty"`
+	Request       RequestProfile  `json:"request"`
 }
 
 type ResolutionInput struct {
@@ -282,10 +283,11 @@ func buildModelProfile(provider workspace.ModelProvider, secretStore *secretstor
 			SecretRef:    strings.TrimSpace(provider.SecretRef),
 			Capabilities: capabilities,
 		},
-		Model:       strings.TrimSpace(provider.Model),
-		APIKey:      apiKey,
-		Temperature: provider.Temperature,
-		MaxTokens:   provider.MaxTokens,
+		Model:         strings.TrimSpace(provider.Model),
+		APIKey:        apiKey,
+		Temperature:   provider.Temperature,
+		MaxTokens:     provider.MaxTokens,
+		ContextWindow: provider.ContextWindow,
 		Request: RequestProfile{
 			Timeout:          input.RequestTimeout,
 			MaxAttempts:      maxAttempts,

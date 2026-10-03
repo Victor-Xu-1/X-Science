@@ -62,6 +62,8 @@ func schemaMigrationIdentityHandlersKnown(identity schemaMigrationIdentityV2) bo
 	case modelProviderGenerationV36CallbackID:
 		return identity.PreflightIdentity == modelProviderGenerationV36PreflightIdentity &&
 			identity.RuleSpec == modelProviderGenerationV36RuleSpec
+	case modelProviderContextV71CallbackID:
+		return identity.PreflightIdentity == modelProviderContextV71PreflightIdentity && identity.RuleSpec == modelProviderContextV71RuleSpec
 	case scientificComputeAuthorityV37CallbackID:
 		return identity.PreflightIdentity == scientificComputeAuthorityV37PreflightIdentity &&
 			identity.RuleSpec == scientificComputeAuthorityV37RuleSpec
@@ -207,6 +209,8 @@ func runSchemaMigrationPreflight(ctx context.Context, executor schemaMigrationQu
 		return preflightTranscriptTypedHistoryBootstrapV35(ctx, executor)
 	case modelProviderGenerationV36PreflightIdentity:
 		return preflightModelProviderGenerationV36(ctx, executor)
+	case modelProviderContextV71PreflightIdentity:
+		return preflightModelProviderContextV71(ctx, executor)
 	case scientificComputeAuthorityV37PreflightIdentity:
 		return preflightScientificComputeAuthorityV37(ctx, executor)
 	case transcriptWebReadModelV38PreflightIdentity:
@@ -296,6 +300,8 @@ func runSchemaMigrationCallback(ctx context.Context, tx *sql.Tx, migration versi
 	case transcriptHistoryActivationV31CallbackID:
 		return backfillTranscriptFrameAuthorityV31(ctx, tx)
 	case modelProviderGenerationV36CallbackID:
+		return nil
+	case modelProviderContextV71CallbackID:
 		return nil
 	case scientificComputeAuthorityV37CallbackID:
 		return nil

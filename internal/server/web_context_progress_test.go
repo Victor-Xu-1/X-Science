@@ -34,6 +34,7 @@ func TestWebContextUsageLiveStreamThroughProviderAndSQLite(t *testing.T) {
 	enabled := true
 	srv, _, project, frame := newDynamicModelTestRuntime(t, "stream-model", []workspace.ModelProviderInput{{ID: "stream", UserID: "dynamic-user", Name: "Stream", Type: "openai-compatible", BaseURL: provider.URL + "/v1", Model: "stream-model", Enabled: &enabled}})
 	client := newDynamicModelTestClient(srv, project, frame)
+	client.contextOptions = SessionRunnerChatOptions{RuntimeSessionConfig: map[string]any{"contextWindow": 1000}}
 	client.contextUsage = newSessionContextUsageRecorder(srv, frame, 1, SessionRunnerChatOptions{RuntimeSessionConfig: map[string]any{"contextWindow": 1000}})
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

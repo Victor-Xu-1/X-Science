@@ -37,6 +37,44 @@ const snapshot = (): ContextUsageSnapshot => ({
 describe('context usage contract', () => {
   afterEach(() => vi.unstubAllGlobals());
 
+  it('keeps unknown capacity unknown and retires historical defaults without mutating receipts', () => {
+    const legacy = {
+      ...snapshot(),
+      usedTokens: 52733,
+      outputTokens: 969,
+      limitTokens: 1000000,
+      limitSource: 'runner_default',
+    };
+    const result = parseContextUsage(
+      {
+        status: 'available',
+        snapshot: legacy,
+        autoCompaction: {
+          enabled: true,
+          windowTokens: 1000000,
+          thresholdTokens: 800000,
+          percent: 80,
+          source: 'window_percent',
+        },
+      },
+      'one'
+    );
+    expect(result.status).toBe('available');
+    if (result.status !== 'available') throw new Error('missing usage');
+    expect(result.snapshot).toMatchObject({
+      usedTokens: 52733,
+      outputTokens: 969,
+      limitTokens: 0,
+      limitSource: 'unknown',
+    });
+    expect(result.autoCompaction).toMatchObject({ windowTokens: 0, thresholdTokens: 0, percent: 0, source: 'unknown' });
+    expect(legacy.limitTokens).toBe(1000000);
+    expect(parseContextUsage(result, 'one')).toEqual(result);
+    expect(() =>
+      parseContextUsage({ status: 'available', snapshot: { ...legacy, limitSource: 'unknown' } }, 'one')
+    ).toThrow();
+  });
+
   it('keeps stream estimates additive and validates the actual server compaction policy', () => {
     const value = {
       ...snapshot(),

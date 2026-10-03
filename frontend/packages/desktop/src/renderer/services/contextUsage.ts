@@ -18,7 +18,7 @@ export type ContextCompactionPolicy = {
   windowTokens: number;
   thresholdTokens: number;
   percent: number;
-  source: 'window_percent' | 'token_override';
+  source: 'window_percent' | 'token_override' | 'unknown';
 };
 export type ContextUsageSnapshot = {
   sessionId: string;
@@ -29,7 +29,7 @@ export type ContextUsageSnapshot = {
   source: 'provider' | 'estimated';
   usedTokens: number;
   limitTokens: number;
-  limitSource: 'configured' | 'runner_default';
+  limitSource: 'configured' | 'model_profile' | 'unknown';
   outputTokens: number;
   hasMedia: boolean;
   inputEstimates: ContextUsageBreakdownRow[];
@@ -80,10 +80,10 @@ export function parseContextUsage(payload: unknown, conversationId: string): Con
     !Number.isFinite(Date.parse(value.observedAt)) ||
     !['request', 'complete', 'failed'].includes(String(value.state)) ||
     !['provider', 'estimated'].includes(String(value.source)) ||
-    !['configured', 'runner_default'].includes(String(value.limitSource)) ||
+    !['configured', 'model_profile', 'unknown', 'runner_default'].includes(String(value.limitSource)) ||
     !isTokenCount(value.usedTokens) ||
     !isTokenCount(value.limitTokens) ||
-    value.limitTokens === 0 ||
+    (value.limitSource === 'unknown' ? value.limitTokens !== 0 : value.limitTokens === 0) ||
     !isTokenCount(value.outputTokens) ||
     (isTokenCount(value.outputTokens) && isTokenCount(value.usedTokens) && value.outputTokens > value.usedTokens) ||
     (value.state !== 'complete' && (value.source !== 'estimated' || value.outputTokens !== 0)) ||
@@ -126,17 +126,39 @@ export function parseContextUsage(payload: unknown, conversationId: string): Con
       typeof policy.enabled !== 'boolean' ||
       policy.windowTokens !== value.limitTokens ||
       !isTokenCount(policy.thresholdTokens) ||
-      policy.thresholdTokens === 0 ||
+      (policy.source === 'unknown'
+        ? policy.thresholdTokens !== 0 || value.limitTokens !== 0
+        : policy.thresholdTokens === 0) ||
       typeof policy.percent !== 'number' ||
       !Number.isFinite(policy.percent) ||
-      Math.abs(policy.percent - (policy.thresholdTokens * 100) / value.limitTokens) > 0.000001 ||
-      !['window_percent', 'token_override'].includes(String(policy.source)))
+      Math.abs(policy.percent - (value.limitTokens > 0 ? (policy.thresholdTokens * 100) / value.limitTokens : 0)) >
+        0.000001 ||
+      (policy.source === 'window_percent' && value.limitTokens === 0) ||
+      !['window_percent', 'token_override', 'unknown'].includes(String(policy.source)))
   )
     throw new Error('Invalid context compaction policy');
+  // Rolling upgrade compatibility: retire historical guessed defaults without
+  // rewriting their provider token receipts or binding them to a newer model.
+  const legacyDefault = value.limitSource === 'runner_default';
   return {
     status: 'available',
-    snapshot: value as ContextUsageSnapshot,
-    ...(policy === undefined ? {} : { autoCompaction: policy as ContextCompactionPolicy }),
+    snapshot: (legacyDefault ? { ...value, limitTokens: 0, limitSource: 'unknown' } : value) as ContextUsageSnapshot,
+    ...(policy === undefined
+      ? {}
+      : {
+          autoCompaction: legacyDefault
+            ? ({
+                enabled: (policy as ContextCompactionPolicy).enabled,
+                windowTokens: 0,
+                thresholdTokens:
+                  (policy as ContextCompactionPolicy).source === 'token_override'
+                    ? (policy as ContextCompactionPolicy).thresholdTokens
+                    : 0,
+                percent: 0,
+                source: (policy as ContextCompactionPolicy).source === 'token_override' ? 'token_override' : 'unknown',
+              } as ContextCompactionPolicy)
+            : (policy as ContextCompactionPolicy),
+        }),
   };
 }
 

@@ -96,7 +96,7 @@ func TestTraceShallowFullDeltaAndBackendBenchCompatibility(t *testing.T) {
 	if focusedChild["input_data"].(map[string]any)["request"] != "private child input" ||
 		focusedContext["private"] != "child context" || len(focusedContext["_messages"].([]any)) != 1 ||
 		focusedChild["context_used"] != float64(84000) ||
-		focusedChild["context_usage_percent"] != float64(8.4) {
+		focusedChild["context_usage_percent"] != nil {
 		t.Fatalf("focused child trace=%#v", focusedChild)
 	}
 	withoutMessages := runtimeCompatJSON(t, app, http.MethodGet,

@@ -1365,7 +1365,7 @@ func assertV11EmptyFrameShape(t *testing.T, frame map[string]any, projectID, fra
 	if frame["id"] != frameID || frame["project_id"] != projectID || frame["root_frame_id"] != frameID ||
 		frame["agent_name"] != "OPERON" || frame["status"] != "completed" || frame["conversation_type"] != "agent" ||
 		frame["parent_frame_id"] != nil || frame["name"] != nil || frame["children"] == nil || len(frame["children"].([]any)) != 0 ||
-		numberValue(frame["context_limit"]) != defaultRunnerContextWindow || numberValue(frame["compaction_count"]) != 0 || frame["is_hidden"] != false {
+		numberValue(frame["context_limit"]) != 0 || numberValue(frame["compaction_count"]) != 0 || frame["is_hidden"] != false {
 		t.Fatalf("v1.1 empty frame shape = %#v", frame)
 	}
 	if wantInputData == nil {

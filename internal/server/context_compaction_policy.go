@@ -15,21 +15,21 @@ type contextCompactionPolicy struct {
 func resolveContextCompactionThreshold(window int, setting any, found bool) (int, string) {
 	if found {
 		if value := int(numberValue(setting)); value > 0 {
+			if window > 0 {
+				value = min(value, window) // An explicit budget cannot enlarge model capacity.
+			}
 			return value, "token_override"
 		}
 	}
 	if window <= 0 {
-		window = defaultRunnerContextWindow
+		return 0, "unknown"
 	}
-	return window * defaultRunnerAutoCompactContextPercent / 100, "window_percent"
+	return max(1, window*defaultRunnerAutoCompactContextPercent/100), "window_percent"
 }
 
 func (s *Server) contextCompactionPolicy(window int) (*contextCompactionPolicy, error) {
 	if s == nil || s.settingsStore == nil {
 		return nil, errors.New("context policy storage unavailable")
-	}
-	if window <= 0 {
-		window = defaultRunnerContextWindow
 	}
 	enabled, exists, err := s.settingsStore.Get(configStoreKey("autoCompactEnabled"))
 	if err != nil {
@@ -41,6 +41,10 @@ func (s *Server) contextCompactionPolicy(window int) (*contextCompactionPolicy, 
 		return nil, err
 	}
 	threshold, source := resolveContextCompactionThreshold(window, setting.Value, found)
+	percent := 0.0 // Not a fullness percentage when the model capacity is unknown.
+	if window > 0 {
+		percent = float64(threshold) * 100 / float64(window)
+	}
 	return &contextCompactionPolicy{Enabled: isEnabled, WindowTokens: window, ThresholdTokens: threshold,
-		Percent: float64(threshold) * 100 / float64(window), Source: source}, nil
+		Percent: percent, Source: source}, nil
 }

@@ -13,30 +13,33 @@ import (
 )
 
 type ModelProvider struct {
-	ID          string    `json:"id"`
-	UserID      string    `json:"userId"`
-	Name        string    `json:"name"`
-	Type        string    `json:"type"`
-	BaseURL     string    `json:"baseUrl"`
-	Model       string    `json:"model"`
-	SecretRef   string    `json:"secretRef,omitempty"`
-	Temperature *float64  `json:"temperature,omitempty"`
-	MaxTokens   *int      `json:"maxTokens,omitempty"`
-	Enabled     bool      `json:"enabled"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	ID            string    `json:"id"`
+	UserID        string    `json:"userId"`
+	Name          string    `json:"name"`
+	Type          string    `json:"type"`
+	BaseURL       string    `json:"baseUrl"`
+	Model         string    `json:"model"`
+	SecretRef     string    `json:"secretRef,omitempty"`
+	Temperature   *float64  `json:"temperature,omitempty"`
+	MaxTokens     *int      `json:"maxTokens,omitempty"`
+	ContextWindow *int      `json:"contextWindow,omitempty"`
+	Enabled       bool      `json:"enabled"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
 }
 
 type ModelProviderInput struct {
-	ID          string
-	UserID      string
-	Name        string
-	Type        string
-	BaseURL     string
-	Model       string
-	SecretRef   string
-	Temperature *float64
-	MaxTokens   *int
+	ID               string
+	UserID           string
+	Name             string
+	Type             string
+	BaseURL          string
+	Model            string
+	SecretRef        string
+	Temperature      *float64
+	MaxTokens        *int
+	ContextWindow    *int
+	ContextWindowSet bool
 	// MaxTokensSet distinguishes an explicit provider-default reset from an
 	// omitted update. Existing callers that omit generation controls retain them.
 	MaxTokensSet bool
@@ -244,7 +247,7 @@ func (s *Store) RegisterModelProvider(input ModelProviderInput) (ModelProvider, 
 	if _, err := url.ParseRequestURI(input.BaseURL); err != nil {
 		return ModelProvider{}, fmt.Errorf("invalid model provider base url: %w", err)
 	}
-	if err := validateModelProviderGenerationControls(input.Temperature, input.MaxTokens); err != nil {
+	if err := validateModelProviderControls(input); err != nil {
 		return ModelProvider{}, err
 	}
 	enabled := true
@@ -252,10 +255,10 @@ func (s *Store) RegisterModelProvider(input ModelProviderInput) (ModelProvider, 
 		enabled = *input.Enabled
 	}
 	now := s.now().UTC()
-	provider := ModelProvider{ID: input.ID, UserID: input.UserID, Name: input.Name, Type: input.Type, BaseURL: input.BaseURL, Model: input.Model, SecretRef: input.SecretRef, Temperature: input.Temperature, MaxTokens: input.MaxTokens, Enabled: enabled, CreatedAt: now, UpdatedAt: now}
+	provider := ModelProvider{ID: input.ID, UserID: input.UserID, Name: input.Name, Type: input.Type, BaseURL: input.BaseURL, Model: input.Model, SecretRef: input.SecretRef, Temperature: input.Temperature, MaxTokens: input.MaxTokens, ContextWindow: input.ContextWindow, Enabled: enabled, CreatedAt: now, UpdatedAt: now}
 	if _, err := s.db.ExecContext(context.Background(), `
-		INSERT INTO model_providers (id, user_id, name, type, base_url, model, secret_ref, temperature, max_tokens, enabled, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, provider.ID, provider.UserID, provider.Name, provider.Type, provider.BaseURL, provider.Model, provider.SecretRef, provider.Temperature, provider.MaxTokens, provider.Enabled, provider.CreatedAt, provider.UpdatedAt); err != nil {
+		INSERT INTO model_providers (id, user_id, name, type, base_url, model, secret_ref, temperature, max_tokens, context_window, enabled, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, provider.ID, provider.UserID, provider.Name, provider.Type, provider.BaseURL, provider.Model, provider.SecretRef, provider.Temperature, provider.MaxTokens, provider.ContextWindow, provider.Enabled, provider.CreatedAt, provider.UpdatedAt); err != nil {
 		return ModelProvider{}, fmt.Errorf("insert model provider: %w", err)
 	}
 	return provider, nil
@@ -275,7 +278,7 @@ func (s *Store) UpsertModelProvider(input ModelProviderInput) (ModelProvider, er
 	if _, err := url.ParseRequestURI(input.BaseURL); err != nil {
 		return ModelProvider{}, fmt.Errorf("invalid model provider base url: %w", err)
 	}
-	if err := validateModelProviderGenerationControls(input.Temperature, input.MaxTokens); err != nil {
+	if err := validateModelProviderControls(input); err != nil {
 		return ModelProvider{}, err
 	}
 	enabled := true
@@ -283,21 +286,24 @@ func (s *Store) UpsertModelProvider(input ModelProviderInput) (ModelProvider, er
 		enabled = *input.Enabled
 	}
 	now := s.now().UTC()
-	provider := ModelProvider{ID: strings.TrimSpace(input.ID), UserID: strings.TrimSpace(input.UserID), Name: strings.TrimSpace(input.Name), Type: strings.TrimSpace(input.Type), BaseURL: strings.TrimSpace(input.BaseURL), Model: strings.TrimSpace(input.Model), SecretRef: strings.TrimSpace(input.SecretRef), Temperature: input.Temperature, MaxTokens: input.MaxTokens, Enabled: enabled, CreatedAt: now, UpdatedAt: now}
+	provider := ModelProvider{ID: strings.TrimSpace(input.ID), UserID: strings.TrimSpace(input.UserID), Name: strings.TrimSpace(input.Name), Type: strings.TrimSpace(input.Type), BaseURL: strings.TrimSpace(input.BaseURL), Model: strings.TrimSpace(input.Model), SecretRef: strings.TrimSpace(input.SecretRef), Temperature: input.Temperature, MaxTokens: input.MaxTokens, ContextWindow: input.ContextWindow, Enabled: enabled, CreatedAt: now, UpdatedAt: now}
 	row := s.db.QueryRowContext(context.Background(), `
-		INSERT INTO model_providers (id, user_id, name, type, base_url, model, secret_ref, temperature, max_tokens, enabled, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO model_providers (id, user_id, name, type, base_url, model, secret_ref, temperature, max_tokens, context_window, enabled, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(id) DO UPDATE SET
 			name=excluded.name, type=excluded.type, base_url=excluded.base_url,
 			model=excluded.model, secret_ref=excluded.secret_ref,
 			temperature=COALESCE(excluded.temperature,model_providers.temperature),
 			max_tokens=CASE WHEN ? THEN excluded.max_tokens ELSE COALESCE(excluded.max_tokens,model_providers.max_tokens) END,
+			context_window=CASE WHEN ? OR excluded.context_window IS NOT NULL THEN excluded.context_window
+				WHEN model_providers.type<>excluded.type OR model_providers.base_url<>excluded.base_url OR model_providers.model<>excluded.model THEN NULL
+				ELSE model_providers.context_window END,
 			enabled=excluded.enabled, updated_at=excluded.updated_at
 		WHERE model_providers.user_id=excluded.user_id
-		RETURNING id, user_id, name, type, base_url, model, secret_ref, temperature, max_tokens, enabled, created_at, updated_at`,
+		RETURNING id, user_id, name, type, base_url, model, secret_ref, temperature, max_tokens, context_window, enabled, created_at, updated_at`,
 		provider.ID, provider.UserID, provider.Name, provider.Type, provider.BaseURL,
-		provider.Model, provider.SecretRef, provider.Temperature, provider.MaxTokens, provider.Enabled, provider.CreatedAt, provider.UpdatedAt, input.MaxTokensSet)
-	if err := row.Scan(&provider.ID, &provider.UserID, &provider.Name, &provider.Type, &provider.BaseURL, &provider.Model, &provider.SecretRef, &provider.Temperature, &provider.MaxTokens, &provider.Enabled, &provider.CreatedAt, &provider.UpdatedAt); err != nil {
+		provider.Model, provider.SecretRef, provider.Temperature, provider.MaxTokens, provider.ContextWindow, provider.Enabled, provider.CreatedAt, provider.UpdatedAt, input.MaxTokensSet, input.ContextWindowSet)
+	if err := row.Scan(&provider.ID, &provider.UserID, &provider.Name, &provider.Type, &provider.BaseURL, &provider.Model, &provider.SecretRef, &provider.Temperature, &provider.MaxTokens, &provider.ContextWindow, &provider.Enabled, &provider.CreatedAt, &provider.UpdatedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ModelProvider{}, fmt.Errorf("model provider %q belongs to another user", input.ID)
 		}
@@ -312,10 +318,10 @@ func (s *Store) GetModelProvider(userID, id string) (ModelProvider, bool, error)
 	}
 	var provider ModelProvider
 	err := s.db.QueryRowContext(context.Background(), `
-		SELECT id, user_id, name, type, base_url, model, secret_ref, temperature, max_tokens, enabled, created_at, updated_at
+		SELECT id, user_id, name, type, base_url, model, secret_ref, temperature, max_tokens, context_window, enabled, created_at, updated_at
 		FROM model_providers WHERE user_id=? AND id=?`, strings.TrimSpace(userID), strings.TrimSpace(id)).Scan(
 		&provider.ID, &provider.UserID, &provider.Name, &provider.Type, &provider.BaseURL,
-		&provider.Model, &provider.SecretRef, &provider.Temperature, &provider.MaxTokens, &provider.Enabled, &provider.CreatedAt, &provider.UpdatedAt)
+		&provider.Model, &provider.SecretRef, &provider.Temperature, &provider.MaxTokens, &provider.ContextWindow, &provider.Enabled, &provider.CreatedAt, &provider.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return ModelProvider{}, false, nil
 	}
@@ -359,7 +365,7 @@ func (s *Store) ListModelProvidersWithContext(ctx context.Context, userID string
 		return nil, errors.New("model provider user id is required")
 	}
 	rows, err := s.readDatabase().QueryContext(ctx, `
-		SELECT id, user_id, name, type, base_url, model, secret_ref, temperature, max_tokens, enabled, created_at, updated_at
+		SELECT id, user_id, name, type, base_url, model, secret_ref, temperature, max_tokens, context_window, enabled, created_at, updated_at
 		FROM model_providers WHERE user_id = ? ORDER BY updated_at DESC, id DESC`, userID)
 	if err != nil {
 		return nil, fmt.Errorf("list model providers: %w", err)
@@ -368,7 +374,7 @@ func (s *Store) ListModelProvidersWithContext(ctx context.Context, userID string
 	providers := make([]ModelProvider, 0)
 	for rows.Next() {
 		var provider ModelProvider
-		if err := rows.Scan(&provider.ID, &provider.UserID, &provider.Name, &provider.Type, &provider.BaseURL, &provider.Model, &provider.SecretRef, &provider.Temperature, &provider.MaxTokens, &provider.Enabled, &provider.CreatedAt, &provider.UpdatedAt); err != nil {
+		if err := rows.Scan(&provider.ID, &provider.UserID, &provider.Name, &provider.Type, &provider.BaseURL, &provider.Model, &provider.SecretRef, &provider.Temperature, &provider.MaxTokens, &provider.ContextWindow, &provider.Enabled, &provider.CreatedAt, &provider.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("scan model provider: %w", err)
 		}
 		providers = append(providers, provider)

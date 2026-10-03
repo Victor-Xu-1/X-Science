@@ -107,8 +107,7 @@ func traceApplyContextMetrics(projection map[string]any, contextData map[string]
 		return
 	}
 	projection["context_used"] = used
-	projection["context_usage_percent"] = math.Min(100,
-		math.Round(used/float64(v11DefaultContextLimit)*1000)/10)
+	projection["context_usage_percent"] = nil // Usage alone cannot establish model capacity.
 }
 
 func traceContextUsage(contextData map[string]any) (float64, bool) {

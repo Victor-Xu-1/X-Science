@@ -145,7 +145,7 @@ func TestRequestContextBudgetPreemptsBothProviderTransports(t *testing.T) {
 			_, err = client.Complete(context.Background(), large)
 		}
 		var pressure *sessionRunnerRequestContextPressureError
-		if !errors.As(err, &pressure) || provider.calls != 0 || !client.initialReady {
+		if !errors.As(err, &pressure) || provider.calls != 0 || client.initialReady {
 			t.Fatalf("stream=%t calls=%d initial=%t err=%v", streaming, provider.calls, client.initialReady, err)
 		}
 	}

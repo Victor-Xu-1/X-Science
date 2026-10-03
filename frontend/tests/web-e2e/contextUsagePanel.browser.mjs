@@ -15,7 +15,7 @@ const snapshot = {
   source: 'provider',
   usedTokens: 348_200,
   limitTokens: 300_000,
-  limitSource: 'runner_default',
+  limitSource: 'model_profile',
   outputTokens: 0,
   hasMedia: false,
   inputEstimates: [
@@ -54,14 +54,16 @@ function responseBody() {
         ? { ...snapshot, state: 'request', source: 'estimated' }
         : mode === 'configured'
           ? { ...snapshot, limitSource: 'configured' }
-          : mode === 'zero'
-            ? {
-                ...snapshot,
-                usedTokens: 0,
-                source: 'estimated',
-                inputEstimates: snapshot.inputEstimates.map((row) => ({ ...row, tokens: 0 })),
-              }
-            : snapshot;
+          : mode === 'legacy'
+            ? { ...snapshot, limitSource: 'runner_default' }
+            : mode === 'zero'
+              ? {
+                  ...snapshot,
+                  usedTokens: 0,
+                  source: 'estimated',
+                  inputEstimates: snapshot.inputEstimates.map((row) => ({ ...row, tokens: 0 })),
+                }
+              : snapshot;
   return mode === 'unavailable'
     ? { status: 'unavailable' }
     : { status: 'available', snapshot: record, autoCompaction: policy };
@@ -113,7 +115,10 @@ try {
   const origin = `http://127.0.0.1:${address.port}`;
   const trigger = page.getByTestId('synon-biomed-context-usage-trigger');
   const panel = page.getByTestId('context-usage-panel');
-  await page.goto(origin + '/__context_usage_test__');
+  // Readiness is the rendered control, not unrelated asset load completion.
+  // This also bounds cold Vite dependency initialization explicitly.
+  await page.goto(origin + '/__context_usage_test__', { waitUntil: 'domcontentloaded' });
+  await expect(trigger).toBeVisible({ timeout: 30000 });
   await trigger.focus();
   await page.keyboard.press('Enter');
   await expect(panel).toContainText('此会话尚无上下文记录');
@@ -133,7 +138,7 @@ try {
   assert.ok(descriptionId);
   const desktopBounds = await panel.boundingBox();
   assert.ok(desktopBounds && desktopBounds.width <= 300, JSON.stringify(desktopBounds));
-  assert.ok(desktopBounds && desktopBounds.height <= 280, JSON.stringify(desktopBounds));
+  assert.ok(desktopBounds && desktopBounds.height <= 340, JSON.stringify(desktopBounds));
   const barLayout = await panel.getByTestId('context-usage-bar').evaluate((bar) => ({
     gap: getComputedStyle(bar).gap,
     categories: [...bar.querySelectorAll('[data-category]')].map((segment) => segment.getAttribute('data-category')),
@@ -177,8 +182,8 @@ try {
   await page.screenshot({ path: join(artifacts, 'desktop.png'), fullPage: true });
   await panel.screenshot({ path: join(artifacts, 'card.png') });
   await summary.focus();
-  await expect(page.locator(`#${descriptionId}`)).toContainText('默认上下文预算');
-  await expect(page.locator('.arco-tooltip-content:visible')).toContainText('默认上下文预算');
+  await expect(page.locator(`#${descriptionId}`)).toContainText('本模型配置的容量声明');
+  await expect(page.locator('.arco-tooltip-content:visible')).toContainText('本模型配置的容量声明');
   await page.setViewportSize({ width: 390, height: 844 });
   await panel.getByRole('button', { name: '关闭' }).click();
   await trigger.click();
@@ -225,6 +230,15 @@ try {
   );
   assert.equal(await closeStroke(), 'rgb(197, 192, 184)');
   await page.screenshot({ path: join(artifacts, 'narrow-dark.png'), fullPage: true });
+  mode = 'legacy';
+  await page.reload();
+  await trigger.click();
+  await expect(panel.getByTestId('context-usage-tokens')).toHaveText('348.2K');
+  await expect(panel).toContainText('模型容量未知');
+  await expect(panel.getByTestId('context-usage-percent')).toHaveCount(0);
+  await expect(trigger.locator('circle')).toHaveCount(0);
+  await expect(panel.getByTestId('context-usage-policy')).not.toContainText('800');
+  await page.screenshot({ path: join(artifacts, 'unknown-capacity.png'), fullPage: true });
   mode = 'zero';
   await page.reload();
   await trigger.click();
