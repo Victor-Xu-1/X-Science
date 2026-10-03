@@ -137,7 +137,9 @@ function handleWorkerMessage(target: Worker, event: MessageEvent<unknown>): void
     return;
   }
   const svg = response.svg.trim();
-  const molBlock = response.molBlock?.trim() ?? '';
+  // The blank title/program/comment lines are positional MDL records. Trimming
+  // the molecule can shift its counts line and destroy an otherwise valid graph.
+  const molBlock = response.molBlock?.trimEnd() ?? '';
   const smiles = response.smiles?.trim() ?? '';
   if (
     !svg ||
@@ -150,7 +152,7 @@ function handleWorkerMessage(target: Worker, event: MessageEvent<unknown>): void
     failWorker(target, fixedError('protocol_error', 'RDKit worker returned an invalid SVG'));
     return;
   }
-  if (request.operation === 'validate_molblock' && (!molBlock || !smiles)) {
+  if (request.operation === 'validate_molblock' && (!molBlock.trim() || !smiles)) {
     failWorker(target, fixedError('protocol_error', 'RDKit worker returned incomplete molecule data'));
     return;
   }
@@ -183,9 +185,15 @@ function currentWorker(): Worker {
   return created;
 }
 
-function validateRenderInput(source: string, width: number, height: number, maximumLength: number): string {
-  const normalized = source.trim();
-  if (!normalized || normalized.length > maximumLength) {
+function validateRenderInput(
+  source: string,
+  width: number,
+  height: number,
+  maximumLength: number,
+  preserveHeader = false
+): string {
+  const normalized = preserveHeader ? source : source.trim();
+  if (!normalized.trim() || normalized.length > maximumLength) {
     throw fixedError('invalid_input', 'Invalid molecule input');
   }
   for (const dimension of [width, height]) {
@@ -215,6 +223,16 @@ export function renderMoleculeSvg(smiles: string, width: number, height: number)
 }
 
 export type RDKitMoleculeResult = RDKitResult;
+
+/** Parses authoritative SMILES locally; atom order is retained for an explicit index map. */
+export function parseSmilesMolBlock(smiles: string): Promise<string | null> {
+  return requestRdkit({
+    operation: 'render_svg',
+    source: smiles,
+    width: 16,
+    height: 16,
+  }).then((result) => result?.molBlock ?? null);
+}
 
 export function validateAndRenderMolBlock(
   molBlock: string,
@@ -246,7 +264,8 @@ function requestRdkit({
       source,
       width,
       height,
-      operation === 'render_svg' ? MAX_SMILES_LENGTH : MAX_MOLBLOCK_LENGTH
+      operation === 'render_svg' ? MAX_SMILES_LENGTH : MAX_MOLBLOCK_LENGTH,
+      operation === 'validate_molblock'
     );
   } catch (error) {
     return Promise.reject(error);

@@ -369,9 +369,10 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
   const [expandedDockingColorIndex, setExpandedDockingColorIndex] = useState<number | null>(null);
   const [dockingProteinVisible, setDockingProteinVisible] = useState(true);
   const [structureComposition, setStructureComposition] = useState<MolstarStructureComposition | null>(null);
-  const [structureSceneSummary, setStructureSceneSummary] = useState<{ sceneId: string; layerCount: number } | null>(
-    null
-  );
+  const [structureSceneSummary, setStructureSceneSummary] = useState<{
+    sceneId: string;
+    layerCount: number;
+  } | null>(null);
   const [structureObjectVisibility, setStructureObjectVisibility] = useState<Record<StructureObjectKind, boolean>>({
     protein: true,
     ligand: true,
@@ -471,7 +472,8 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
     void (async () => {
       try {
         const source = engine.getPrimaryLigandDepictionSource();
-        const rendered = source ? await validateAndRenderMolBlock(source.molBlock, 276, 189) : null;
+        const chemicalSource = source?.chemistrySmiles ?? source?.molBlock;
+        const rendered = chemicalSource ? await validateAndRenderMolBlock(chemicalSource, 276, 189) : null;
         if (!active) return;
         setStructureLigandDepiction(
           source
@@ -684,7 +686,10 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
       const potentials: MolstarElectrostaticPotentialSources = {};
       const ligandPotentials: Record<string, { source: string; label: string }> = {};
       if (maps.protein) {
-        potentials.protein = { source: maps.protein, label: `${labelStem}-protein-apbs.dx` };
+        potentials.protein = {
+          source: maps.protein,
+          label: `${labelStem}-protein-apbs.dx`,
+        };
       }
       for (const ligand of source.ligands) {
         const map = source.ligands.length === 1 ? maps.ligand : maps.ligands?.[ligand.key];
@@ -984,7 +989,9 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
             async () => {
               const response = await loadPrimaryLigandInteractionStrengthReport(context.depiction);
               return (response.report.interactions ?? []).map((record) =>
-                Object.assign({}, record, { ligand_label: context.depiction.residueName })
+                Object.assign({}, record, {
+                  ligand_label: context.depiction.residueName,
+                })
               );
             },
           ];
@@ -1544,7 +1551,11 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
       void refreshInteractionDiagram(activeIndex, ensemble);
     }
     if (pocketVisible && nextIndices.length > 0) {
-      schedulePocketInteractionStrengthRefresh({ kind: 'docking', indices: nextIndices, ensemble });
+      schedulePocketInteractionStrengthRefresh({
+        kind: 'docking',
+        indices: nextIndices,
+        ensemble,
+      });
     }
   };
 
@@ -2541,7 +2552,13 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
               ) : depictionLoading ? (
                 <Spin size={18} />
               ) : (
-                <span>{t('preview.scientific.structure.quickActions.ligandDepictionUnavailable')}</span>
+                <span>
+                  {t(
+                    !dockingEnsemble && structureLigandDepiction && !structureLigandDepiction.topologyAvailable
+                      ? 'preview.scientific.structure.quickActions.ligandTopologyUnavailable'
+                      : 'preview.scientific.structure.quickActions.ligandDepictionUnavailable'
+                  )}
+                </span>
               )}
             </div>
             <footer>

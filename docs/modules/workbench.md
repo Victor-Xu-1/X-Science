@@ -241,4 +241,19 @@ npm run test:unit -- tests/unit/renderer/routeModules.test.ts tests/unit/rendere
 真实界面图片必须来自实际运行的浏览器，不能由生成图片替代。
 概念视觉只能说明设计意图，不能证明页面、任务或科学结果已实现。
 
+## 分子预览的键级权威
+
+二维结构及化学计算输入使用文件声明的键级，不把三维几何推断或芳香环显示效果
+当作化学事实。SDF/MOL/MOL2 中的单键、双键、三键和芳香键保持原有语义；
+mmCIF/CCD 使用完整的声明键表。初始视图、口袋视图与缩略图共用读取链路。
+
+PDBQT 中存在 Meeko 的 SMILES 和原子索引映射时，预览在本地验证元素、索引覆盖、
+极性氢及各个姿态的对应关系后恢复键级，保持对接坐标与姿态数量，不修改原始文件。
+SMILES 是二维化学身份的权威，几何显示数据不能反向覆盖它。
+格式背景见 [Meeko 导出说明](https://meeko.readthedocs.io/en/develop/export_usage.html)。
+
+只有坐标、没有可核实键表或映射的文件仍可查看三维坐标，但不能显示伪造的饱和
+二维结构，也不能将猜测图作为 ligand 电荷计算输入。缺失或不一致的映射会明确
+显示化学拓扑不可用；不按文件名猜测分子，不查询外部服务补造结构。
+
 [模块导航](README.md) · [工程拓扑](../engineering/module-topology.md)

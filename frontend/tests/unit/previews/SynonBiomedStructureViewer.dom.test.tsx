@@ -99,7 +99,9 @@ const molstarMocks = vi.hoisted(() => {
           | {
               residueName: string;
               interactionResidueName: string;
-              molBlock: string;
+              molBlock?: string;
+              chemistrySmiles?: string;
+              topologyAvailable?: boolean;
               complexPdb?: string;
               atomCount: number;
               hasProtein: boolean;
@@ -2331,6 +2333,48 @@ describe('SynonBiomedStructureViewer', () => {
     expect(await within(depiction).findByRole('img', { name: '2D structure of LIG' })).toBeInTheDocument();
     expect(rdkitMocks.validateAndRenderMolBlock).toHaveBeenCalledWith('standalone SDF mol block', 276, 189);
     expect(screen.getByRole('button', { name: '2D interactions' })).toBeDisabled();
+  });
+
+  it('uses mapped SMILES rather than geometry when drawing a recovered ligand', async () => {
+    molstarMocks.engine.load.mockResolvedValueOnce({
+      objects: [{ id: 'ligand', kind: 'ligand', atomCount: 6, residueNames: ['MOL'] }],
+      atomCount: 6,
+      hasProtein: false,
+      hasLigand: true,
+    });
+    molstarMocks.engine.getPrimaryLigandDepictionSource.mockReturnValueOnce({
+      residueName: 'MOL',
+      interactionResidueName: 'MOL',
+      atomCount: 6,
+      hasProtein: false,
+      molBlock: 'coordinates and declared bonds',
+      chemistrySmiles: 'c1ccccc1',
+      topologyAvailable: true,
+    });
+    await renderWithI18n(<SynonBiomedStructureViewer filename='mapped.pdbqt' content='fixture' />, 'zh-CN');
+    await waitFor(() => expect(rdkitMocks.validateAndRenderMolBlock).toHaveBeenCalledWith('c1ccccc1', 276, 189));
+  });
+
+  it('does not invent a molecule for unknown topology while leaving its coordinate preview available', async () => {
+    molstarMocks.engine.load.mockResolvedValueOnce({
+      objects: [{ id: 'ligand', kind: 'ligand', atomCount: 6, residueNames: ['UNL'] }],
+      atomCount: 6,
+      hasProtein: false,
+      hasLigand: true,
+    });
+    molstarMocks.engine.getPrimaryLigandDepictionSource.mockReturnValueOnce({
+      residueName: 'UNL',
+      interactionResidueName: 'UNL',
+      atomCount: 6,
+      hasProtein: false,
+      topologyAvailable: false,
+    });
+    await renderWithI18n(<SynonBiomedStructureViewer filename='coordinates.pdb' content='fixture' />, 'zh-CN');
+    const depiction = await screen.findByTestId('synon-biomed-structure-ligand-depiction');
+    fireEvent.click(within(depiction).getByRole('button', { name: '向上展开二维结构' }));
+    expect(await within(depiction).findByText(/文件缺少可核实的键级信息/)).toBeInTheDocument();
+    expect(rdkitMocks.validateAndRenderMolBlock).not.toHaveBeenCalled();
+    expect(screen.getByTestId('synon-biomed-structure-canvas')).toBeInTheDocument();
   });
 
   it('adds localized hover and focus descriptions to native Mol* controls', async () => {

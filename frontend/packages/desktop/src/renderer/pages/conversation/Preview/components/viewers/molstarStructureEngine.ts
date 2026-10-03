@@ -9,7 +9,7 @@ import type { PluginUISpec } from 'molstar/lib/mol-plugin-ui/spec';
 import { OrderedSet } from 'molstar/lib/mol-data/int';
 import { Vec2, Vec3, Vec4 } from 'molstar/lib/mol-math/linear-algebra';
 import { Bond, StructureElement, Unit } from 'molstar/lib/mol-model/structure';
-import type { Structure } from 'molstar/lib/mol-model/structure';
+import type { Model, Structure } from 'molstar/lib/mol-model/structure';
 import type { ElementIndex } from 'molstar/lib/mol-model/structure/model/indexing';
 import { StructureQuery } from 'molstar/lib/mol-model/structure/query/query';
 import { isProtein, type MoleculeType } from 'molstar/lib/mol-model/structure/model/types';
@@ -37,7 +37,10 @@ import { PluginStateObject } from 'molstar/lib/mol-plugin-state/objects';
 import { StateTransforms } from 'molstar/lib/mol-plugin-state/transforms';
 import type { StructureRef } from 'molstar/lib/mol-plugin-state/manager/structure/hierarchy-state';
 import { CubeProvider, DxProvider } from 'molstar/lib/mol-plugin-state/formats/volume';
-import { MmcifFormat } from 'molstar/lib/mol-model-formats/structure/mmcif';
+import { CCDFormat, MmcifFormat } from 'molstar/lib/mol-model-formats/structure/mmcif';
+import { parseSmilesMolBlock } from '@/renderer/services/rdkitBrowser';
+import { hasDeclaredLigandTopology } from './ligandTopology';
+import { restorePdbqtTopology } from './pdbqtTopology';
 import { resolveSurfaceColorSettings, type MolstarElectrostaticVolume } from './molstarElectrostaticTheme';
 import {
   isDisplayLigandResidueName,
@@ -164,9 +167,9 @@ const resolveMmcifBondOrder = (value: string): number => {
   }
 };
 
-const readMmcifLigandBondDefinitions = (structure: Structure, residueName: string): DockingLigandBondDefinition[] => {
-  const sourceData = structure.model.sourceData;
-  if (!MmcifFormat.is(sourceData)) return [];
+const readMmcifLigandBondDefinitions = (model: Model, residueName: string): DockingLigandBondDefinition[] => {
+  const sourceData = model.sourceData;
+  if (!MmcifFormat.is(sourceData) && !CCDFormat.is(sourceData)) return [];
   const category = sourceData.data.frame.categories.chem_comp_bond;
   if (!category) return [];
   const component = category.getField('comp_id');
@@ -332,7 +335,9 @@ export type MolstarTrajectoryModelState = {
 export type MolstarLigandDepictionSource = {
   residueName: string;
   interactionResidueName: string;
-  molBlock: string;
+  molBlock?: string;
+  chemistrySmiles?: string;
+  topologyAvailable: boolean;
   complexPdb?: string;
   atomCount: number;
   hasProtein: boolean;
@@ -1429,6 +1434,29 @@ export async function createMolstarStructureEngine(
   };
   let selectedDockingLigandResidueName: string | undefined;
   let loadedFormat = '';
+  const restoredSmiles = new WeakMap<Model, string>();
+  const parseChemicalTrajectory = async (source: string | ArrayBuffer, filename: string, format: string) => {
+    const restored =
+      format === 'pdbqt' && typeof source === 'string'
+        ? await restorePdbqtTopology(source, parseSmilesMolBlock)
+        : undefined;
+    const raw = await plugin.builders.data.rawData({
+      data: restored?.source ?? source,
+      label: filename,
+    });
+    const trajectory = await plugin.builders.structure.parseTrajectory(
+      raw,
+      (restored ? 'sdf' : format) as MolstarTrajectoryFormat
+    );
+    const data = trajectory.cell?.obj?.data;
+    if (restored && data) {
+      for (let index = 0; index < data.frameCount; index += 1) {
+        const model = await Task.resolveInContext(data.getFrameAtIndex(index));
+        restoredSmiles.set(model, restored.smiles[index]);
+      }
+    }
+    return trajectory;
+  };
   const structureObjectVisibility: Record<StructureObjectKind, boolean> = {
     protein: true,
     ligand: true,
@@ -2159,9 +2187,11 @@ export async function createMolstarStructureEngine(
     residueName = residueName.trim().toUpperCase() || 'Ligand';
     const interactionResidueName = /^[A-Z0-9]{1,3}$/.test(residueName) ? residueName : 'LIG';
     const parsedLigandShape = createDockingLigandShapeData(primaryLigand, structureLigandColor);
+    const ligandModel = primaryLigand.elements[0]?.unit.model ?? structure.model;
+    const topologyAvailable = hasDeclaredLigandTopology(primaryLigand);
     const ligandShape =
-      loadedFormat === 'mmcif'
-        ? applyDockingLigandBondDefinitions(parsedLigandShape, readMmcifLigandBondDefinitions(structure, residueName))
+      MmcifFormat.is(ligandModel.sourceData) || CCDFormat.is(ligandModel.sourceData)
+        ? applyDockingLigandBondDefinitions(parsedLigandShape, readMmcifLigandBondDefinitions(ligandModel, residueName))
         : parsedLigandShape;
     const protein = StructureQuery.loci(StructureSelectionQueries.protein.query, structure);
     const hasProtein = !StructureElement.Loci.isEmpty(protein);
@@ -2175,12 +2205,9 @@ export async function createMolstarStructureEngine(
     return {
       residueName,
       interactionResidueName,
-      molBlock: formatDockingLigandMolBlock(ligandShape, residueName, {
-        // Small-molecule formats carry authoritative aromatic topology. PDB,
-        // PQR and mmCIF Mol* flags can also contain geometry-derived aromatic
-        // accents, which must not be promoted into RDKit chemistry.
-        preserveAromaticBonds: loadedFormat === 'mol' || loadedFormat === 'sdf' || loadedFormat === 'mol2',
-      }),
+      molBlock: topologyAvailable ? formatDockingLigandMolBlock(ligandShape, residueName) : undefined,
+      chemistrySmiles: restoredSmiles.get(ligandModel),
+      topologyAvailable,
       complexPdb,
       atomCount: ligandShape.atoms.length,
       hasProtein,
@@ -2221,10 +2248,15 @@ export async function createMolstarStructureEngine(
       for (const key of requestedLigands) {
         const ligand = createLigandDepictionSource(structure, filterStructureLociByResidueName(allLigands, key));
         if (!ligand?.molBlock) throw new Error(`MOLSTAR_ELECTROSTATIC_LIGAND_INPUT_MISSING:${key}`);
-        ligands.push({ key, molBlock: ligand.molBlock, atomCount: ligand.atomCount });
+        ligands.push({
+          key,
+          molBlock: ligand.molBlock,
+          atomCount: ligand.atomCount,
+        });
       }
     } else {
       const ligand = getPrimaryLigandDepictionSource();
+      if (ligand && !ligand.topologyAvailable) throw new Error('MOLSTAR_LIGAND_TOPOLOGY_UNAVAILABLE');
       if (ligand?.molBlock) {
         ligands.push({
           key: normalizeElectrostaticLigandKey(ligand.residueName) || 'LIGAND',
@@ -2274,10 +2306,19 @@ export async function createMolstarStructureEngine(
       // Mol* state-tree writes are intentionally serialized; concurrent raw
       // data and volume commits can race on the same state snapshot.
       const loaded = await entries.reduce<
-        Promise<Array<{ role: MolstarElectrostaticMapRole; key?: string; volume: MolstarElectrostaticVolumeHandle }>>
+        Promise<
+          Array<{
+            role: MolstarElectrostaticMapRole;
+            key?: string;
+            volume: MolstarElectrostaticVolumeHandle;
+          }>
+        >
       >(async (pending, { role, key, source }) => {
         const current = await pending;
-        const raw = await plugin.builders.data.rawData({ data: source.source, label: source.label });
+        const raw = await plugin.builders.data.rawData({
+          data: source.source,
+          label: source.label,
+        });
         stagedSourceRefs.push(raw.ref);
         const parsed = await DxProvider.parse(plugin, raw);
         current.push({
@@ -3390,11 +3431,7 @@ export async function createMolstarStructureEngine(
     activeDockingStructure = undefined;
     activeDockingDistanceRefs = [];
 
-    const raw = await plugin.builders.data.rawData({
-      data: source,
-      label: filename,
-    });
-    const trajectory = await plugin.builders.structure.parseTrajectory(raw, format as MolstarTrajectoryFormat);
+    const trajectory = await parseChemicalTrajectory(source, filename, format);
     const model = await plugin.builders.structure.createModel(trajectory);
     const modelProperties = await plugin.builders.structure.insertModelProperties(model);
     const structureSelector = await plugin.builders.structure.createStructure(modelProperties || model, {
@@ -3493,11 +3530,7 @@ export async function createMolstarStructureEngine(
         const parsed = await CubeProvider.parse(plugin, raw);
         await CubeProvider.visuals(plugin, parsed);
       } else {
-        const raw = await plugin.builders.data.rawData({
-          data: source,
-          label: filename,
-        });
-        const trajectory = await plugin.builders.structure.parseTrajectory(raw, format as MolstarTrajectoryFormat);
+        const trajectory = await parseChemicalTrajectory(source, filename, format);
         const preset = await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default', {
           structure: { name: 'model', params: {} },
           showUnitcell: false,
@@ -3515,11 +3548,7 @@ export async function createMolstarStructureEngine(
     },
     add: async (source, filename, format) => {
       if (format === 'cube') throw new Error('MOLSTAR_STRUCTURE_SCENE_CUBE_UNSUPPORTED');
-      const raw = await plugin.builders.data.rawData({
-        data: source,
-        label: filename,
-      });
-      const trajectory = await plugin.builders.structure.parseTrajectory(raw, format as MolstarTrajectoryFormat);
+      const trajectory = await parseChemicalTrajectory(source, filename, format);
       const preset = await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default', {
         structure: { name: 'model', params: {} },
         showUnitcell: false,

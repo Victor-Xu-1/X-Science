@@ -3147,6 +3147,7 @@ export type I18nKey =
   | 'preview.scientific.structure.quickActions.ligandDepictionAlt'
   | 'preview.scientific.structure.quickActions.ligandDepictionUnavailable'
   | 'preview.scientific.structure.quickActions.ligandObject'
+  | 'preview.scientific.structure.quickActions.ligandTopologyUnavailable'
   | 'preview.scientific.structure.quickActions.loadingInteractionDiagram'
   | 'preview.scientific.structure.quickActions.minimization'
   | 'preview.scientific.structure.quickActions.minimizationComplete'

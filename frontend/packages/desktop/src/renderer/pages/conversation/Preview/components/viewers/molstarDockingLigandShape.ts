@@ -18,6 +18,7 @@ import { PluginStateObject } from 'molstar/lib/mol-plugin-state/objects';
 import { StateTransformer } from 'molstar/lib/mol-state';
 import { Color } from 'molstar/lib/mol-util/color';
 import { ParamDefinition as PD } from 'molstar/lib/mol-util/param-definition';
+import { hasDeclaredLigandTopology } from './ligandTopology';
 
 type DockingLigandShapeAtom = {
   position: readonly [number, number, number];
@@ -34,6 +35,7 @@ type DockingLigandShapeBond = {
   aromatic: boolean;
   chemicalAromatic?: boolean;
   order: number;
+  displayOrder?: number;
 };
 
 export type DockingLigandShapeData = {
@@ -96,9 +98,9 @@ export const formatDockingLigandMolBlock = (
   atoms.forEach((atom) => {
     const element = atom.element.trim().toUpperCase().slice(0, 3) || 'C';
     lines.push(
-      `${formatV2000Coordinate(atom.position[0])}${formatV2000Coordinate(atom.position[1])}${formatV2000Coordinate(
-        atom.position[2]
-      )} ${element.padEnd(3, ' ')} 0  0  0  0  0  0  0  0  0  0  0  0`
+      `${formatV2000Coordinate(atom.position[0])}${formatV2000Coordinate(
+        atom.position[1]
+      )}${formatV2000Coordinate(atom.position[2])} ${element.padEnd(3, ' ')} 0  0  0  0  0  0  0  0  0  0  0  0`
     );
   });
   bonds.forEach((bond) => {
@@ -107,15 +109,18 @@ export const formatDockingLigandMolBlock = (
     const bondType =
       preserveAromaticBonds && bond.chemicalAromatic ? 4 : Math.max(1, Math.min(3, Math.round(bond.order)));
     lines.push(
-      `${formatV2000Integer(bond.atomA + 1, 3)}${formatV2000Integer(bond.atomB + 1, 3)}${formatV2000Integer(
-        bondType,
+      `${formatV2000Integer(bond.atomA + 1, 3)}${formatV2000Integer(
+        bond.atomB + 1,
         3
-      )}  0  0  0  0`
+      )}${formatV2000Integer(bondType, 3)}  0  0  0  0`
     );
   });
 
   const chargedAtoms = atoms
-    .map((atom, index) => ({ index: index + 1, charge: Math.trunc(atom.formalCharge) }))
+    .map((atom, index) => ({
+      index: index + 1,
+      charge: Math.trunc(atom.formalCharge),
+    }))
     .filter(({ charge }) => charge !== 0 && charge >= -15 && charge <= 15);
   for (let offset = 0; offset < chargedAtoms.length; offset += 8) {
     const group = chargedAtoms.slice(offset, offset + 8);
@@ -177,7 +182,8 @@ const isPlanarAromaticCycle = (
 
 export const inferDockingAromaticCycles = (
   atoms: readonly DockingAromaticAtom[],
-  bonds: readonly DockingAromaticBond[]
+  bonds: readonly DockingAromaticBond[],
+  { geometryFallback = true }: { geometryFallback?: boolean } = {}
 ): number[][] => {
   const adjacency = new Map<number, number[]>();
   const bondsByKey = new Map<string, DockingAromaticBond>();
@@ -197,7 +203,7 @@ export const inferDockingAromaticCycles = (
           bondsByKey.get(dockingBondKey(atomIndex, path[(index + 1) % path.length]))
         );
         const explicitlyAromatic = edgeBonds.every((bond) => bond?.aromatic);
-        if (!explicitlyAromatic && !isPlanarAromaticCycle(path, atoms, bondsByKey)) continue;
+        if (!explicitlyAromatic && (!geometryFallback || !isPlanarAromaticCycle(path, atoms, bondsByKey))) continue;
         cycles.set(path.toSorted((left, right) => left - right).join(':'), [...path]);
         continue;
       }
@@ -242,7 +248,7 @@ export const applyDockingLigandBondDefinitions = (
   return {
     ...data,
     bonds,
-    aromaticCycles: inferDockingAromaticCycles(data.atoms, bonds),
+    aromaticCycles: inferDockingAromaticCycles(data.atoms, bonds, { geometryFallback: false }),
   };
 };
 
@@ -365,11 +371,12 @@ const buildDockingLigandBondShape = (data: DockingLigandShapeData, previousCylin
     const direction = Vec3.normalize(Vec3(), Vec3.sub(Vec3(), end, start));
     const reference = Math.abs(direction[2]) < 0.85 ? Vec3.create(0, 0, 1) : Vec3.create(0, 1, 0);
     const perpendicular = Vec3.normalize(Vec3(), Vec3.cross(Vec3(), direction, reference));
+    const displayOrder = bond.displayOrder ?? bond.order;
     const laneOffsets = bond.aromatic
       ? [0]
-      : bond.order >= 3
+      : displayOrder >= 3
         ? [-0.13, 0, 0.13]
-        : bond.order === 2
+        : displayOrder === 2
           ? [-0.085, 0.085]
           : [0];
     for (const laneOffset of laneOffsets) {
@@ -561,13 +568,17 @@ export const createDockingLigandShapeData = (
         const neighborUnitIndex = b[edge];
         const atomB = atomIndexByUnit.get(`${unit.id}:${neighborUnitIndex}`);
         if (atomB === undefined || atomA >= atomB) continue;
-        const chemicalAromatic = (unit.bonds.edgeProps.flags[edge] & BondType.Flag.Aromatic) !== 0;
+        const declaredOrder = unit.bonds.edgeProps.order[edge] ?? 1;
+        const sourceKind = unit.model.sourceData.kind;
+        const chemicalAromatic =
+          (unit.bonds.edgeProps.flags[edge] & BondType.Flag.Aromatic) !== 0 ||
+          ((sourceKind === 'mol' || sourceKind === 'sdf') && declaredOrder === 4);
         bonds.push({
           atomA,
           atomB,
           aromatic: chemicalAromatic,
           chemicalAromatic,
-          order: unit.bonds.edgeProps.order[edge] ?? 1,
+          order: chemicalAromatic ? 1 : declaredOrder,
         });
       }
     });
@@ -616,7 +627,10 @@ export const createDockingLigandShapeData = (
           },
         ];
   });
-  const aromaticCycles = inferDockingAromaticCycles(visibleAtoms, visibleBonds);
+  const declaredTopology = hasDeclaredLigandTopology(loci);
+  const aromaticCycles = inferDockingAromaticCycles(visibleAtoms, visibleBonds, {
+    geometryFallback: !declaredTopology,
+  });
   const aromaticBondKeys = new Set(
     aromaticCycles.flatMap((cycle) =>
       cycle.map((atomIndex, index) => dockingBondKey(atomIndex, cycle[(index + 1) % cycle.length]))
@@ -642,21 +656,26 @@ export const createDockingLigandShapeData = (
         atomB: bond.atomB,
         aromatic,
         chemicalAromatic: bond.chemicalAromatic,
-        order: aromatic
-          ? 1
-          : chargedTerminal
+        // Chemical semantics remain immutable. Geometry-derived accents and
+        // line counts are presentation only, never input to RDKit or charge tools.
+        order: bond.order,
+        displayOrder: declaredTopology
+          ? bond.order
+          : aromatic
             ? 1
-            : resolveDockingBondOrder(
-                atomA.element,
-                atomB.element,
-                Vec3.distance(
-                  Vec3.create(atomA.position[0], atomA.position[1], atomA.position[2]),
-                  Vec3.create(atomB.position[0], atomB.position[1], atomB.position[2])
+            : chargedTerminal
+              ? 1
+              : resolveDockingBondOrder(
+                  atomA.element,
+                  atomB.element,
+                  Vec3.distance(
+                    Vec3.create(atomA.position[0], atomA.position[1], atomA.position[2]),
+                    Vec3.create(atomB.position[0], atomB.position[1], atomB.position[2])
+                  ),
+                  atomDegrees[bond.atomA],
+                  atomDegrees[bond.atomB],
+                  bond.order
                 ),
-                atomDegrees[bond.atomA],
-                atomDegrees[bond.atomB],
-                bond.order
-              ),
       };
     }),
     aromaticCycles,

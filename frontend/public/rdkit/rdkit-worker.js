@@ -40,7 +40,7 @@ function validRequest(value) {
       value.operation === "validate_molblock") &&
     typeof value.source === "string" &&
     value.source.trim().length > 0 &&
-    value.source.trim().length <=
+    value.source.length <=
       (value.operation === "render_svg"
         ? MAX_SMILES_LENGTH
         : MAX_MOLBLOCK_LENGTH) &&
@@ -108,7 +108,11 @@ self.addEventListener("message", async (event) => {
 
   let molecule;
   try {
-    molecule = rdkit.get_mol(request.source.trim());
+    // MDL header lines are positional, including an empty title. Only SMILES
+    // text may be whitespace-normalized; never shift a molecule's counts line.
+    molecule = rdkit.get_mol(
+      request.operation === "validate_molblock" ? request.source : request.source.trim(),
+    );
   } catch {
     molecule = null;
   }

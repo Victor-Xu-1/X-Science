@@ -41,6 +41,21 @@ class MockWorker {
 }
 
 describe('RDKit isolated worker client', () => {
+  it('retains an empty positional MDL input header across the worker boundary', async () => {
+    const { validateAndRenderMolBlock } = await import('@/renderer/services/rdkitBrowser');
+    const molBlock = '\n  RDKit\n\n  2  1  0  0  0  0            999 V2000\nM  END\n';
+    const request = validateAndRenderMolBlock(molBlock, 276, 189);
+    expect((MockWorker.instances[0].messages[0] as { source: string }).source).toBe(molBlock);
+    MockWorker.instances[0].emitMessage({ version: 1, id: 1, ok: true, svg: '<svg></svg>', molBlock, smiles: 'C=O' });
+    await expect(request).resolves.toMatchObject({ molBlock: molBlock.trimEnd() });
+  });
+  it('preserves the positional blank MDL header when recovering a SMILES atom map', async () => {
+    const { parseSmilesMolBlock } = await import('@/renderer/services/rdkitBrowser');
+    const request = parseSmilesMolBlock('C=O');
+    const molBlock = '\n  RDKit\n\n  2  1  0  0  0  0            999 V2000\nM  END\n';
+    MockWorker.instances[0].emitMessage({ version: 1, id: 1, ok: true, svg: '<svg></svg>', molBlock, smiles: 'C=O' });
+    await expect(request).resolves.toBe(molBlock.trimEnd());
+  });
   beforeEach(() => {
     vi.resetModules();
     MockWorker.instances = [];
