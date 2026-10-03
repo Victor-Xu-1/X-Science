@@ -2,45 +2,31 @@ import assert from 'node:assert/strict';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { createServer } from 'vite';
+import { build, preview as previewBuild } from 'vite';
 import { chromium, expect } from '@playwright/test';
 
 const artifacts = await mkdtemp(join(tmpdir(), 'synon-ligand-topology-'));
 let vite, browser, page;
 const errors = [];
+const diagnostics = [];
 try {
-  vite = await createServer({
+  const fixtureBuild = join(artifacts, 'compiled-fixture');
+  await build({
     configFile: resolve('vite.config.ts'),
-    optimizeDeps: { noDiscovery: true },
-    server: {
-      host: '127.0.0.1',
-      port: 0,
-      hmr: false,
-      fs: { allow: [process.cwd()] },
-    },
-    plugins: [
-      {
-        name: 'ligand-topology-browser-page',
-        configureServer(server) {
-          server.middlewares.use('/__ligand_topology__', async (_request, response, next) => {
-            try {
-              const html = await server.transformIndexHtml(
-                '/__ligand_topology__',
-                `<html lang="zh-CN"><body><div id="root"></div><script type="module" src="/@fs/${resolve(
-                  'tests/web-e2e/ligandTopology.fixture.tsx'
-                )}"></script></body></html>`
-              );
-              response.setHeader('content-type', 'text/html; charset=utf-8');
-              response.end(html);
-            } catch (error) {
-              next(error);
-            }
-          });
-        },
+    root: process.cwd(),
+    build: {
+      outDir: fixtureBuild,
+      emptyOutDir: true,
+      rollupOptions: {
+        input: resolve('tests/web-e2e/ligandTopology.fixture.html'),
       },
-    ],
+    },
   });
-  await vite.listen();
+  vite = await previewBuild({
+    configFile: resolve('vite.config.ts'),
+    build: { outDir: fixtureBuild },
+    preview: { host: '127.0.0.1', port: 0, strictPort: false },
+  });
   const address = vite.httpServer.address();
   browser = await chromium.launch({
     headless: true,
@@ -49,10 +35,29 @@ try {
   page = await browser.newPage({
     viewport: { width: 1000, height: 950 },
   });
-  page.on('pageerror', (error) => errors.push(error.message));
-  await page.goto(`http://127.0.0.1:${address.port}/__ligand_topology__`, {
-    waitUntil: 'domcontentloaded',
+  page.on('console', (message) => {
+    if (diagnostics.length < 20 && ['error', 'warning'].includes(message.type()))
+      diagnostics.push({ type: message.type(), text: message.text() });
   });
+  page.on('response', (response) => {
+    if (new URL(response.url()).pathname.startsWith('/rdkit/') && diagnostics.length < 20)
+      diagnostics.push({ asset: new URL(response.url()).pathname, status: response.status() });
+  });
+  page.on('worker', (worker) => diagnostics.push({ worker: worker.url() }));
+  let rejectPageError;
+  const pageFailure = new Promise((_, reject) => {
+    rejectPageError = reject;
+  });
+  page.on('pageerror', (error) => {
+    errors.push(error.message);
+    rejectPageError(error);
+  });
+  await Promise.race([
+    pageFailure,
+    page.goto(`http://127.0.0.1:${address.port}/tests/web-e2e/ligandTopology.fixture.html`, {
+      waitUntil: 'domcontentloaded',
+    }),
+  ]);
   const depiction = page.locator('.synon-biomed-molstar__ligand-depiction');
   const svg = depiction.locator('.synon-biomed-molstar__ligand-depiction-svg svg');
   const bondPathCounts = (element) => {
@@ -63,7 +68,7 @@ try {
     }
     return [...counts.values()].sort((a, b) => a - b);
   };
-  await page.getByRole('button', { name: 'sdf', exact: true }).waitFor({ timeout: 60000 });
+  await Promise.race([pageFailure, page.getByRole('button', { name: 'sdf', exact: true }).waitFor({ timeout: 60000 })]);
   const expected = await page.getByTestId('reference-svg').evaluate(bondPathCounts);
   assert.equal(expected.length, 8);
   await expect(page.getByTestId('chemistry-validation')).toHaveText('[true,true,true,true]');
@@ -116,11 +121,21 @@ try {
   if (page) {
     await page.screenshot({ path: join(artifacts, 'failed.png') });
     console.error(
-      JSON.stringify({ artifacts, pageErrors: errors, visibleText: await page.locator('body').innerText() })
+      JSON.stringify({
+        artifacts,
+        pageErrors: errors,
+        environment: await page.evaluate(() => ({
+          Worker: Worker.toString(),
+          baseURI: document.baseURI,
+          location: location.href,
+        })),
+        diagnostics,
+        visibleText: await page.locator('body').innerText(),
+      })
     );
   }
   throw error;
 } finally {
   await browser?.close();
-  await vite?.close();
+  if (vite) await new Promise((resolve) => vite.httpServer.close(resolve));
 }

@@ -5,13 +5,13 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "7ec78661b29a7f4a0133f2719ec6149637ffb41c8a542b0531d046ae3a7068e1",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
-  "additionFingerprintSHA256": "e5d0e3c117a0e9b3e1b8f46f97b21d1f912860e627f2785885d4e8c7b521633b",
+  "additionFingerprintSHA256": "fc98ed591f66a1d3a50b24e656529757f436fffa6e04eaf949581278820062f4",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 397,
     "adaptedSourceFiles": 667,
     "removedSourceFiles": 290,
-    "addedFiles": 738
+    "addedFiles": 739
   },
   "adaptations": [
     {
@@ -10479,14 +10479,20 @@
     },
     {
       "path": "tests/web-e2e/ligandTopology.browser.mjs",
-      "sha256": "3c104a382fd75bc4c4e32ddd9a3baae3a31421ec3653fcd17cf29fd306f26383",
-      "bytes": 5084,
+      "sha256": "14470ee00b733171cc128685091a2ce9e0d9b1851795bb5fb39b3b7e018e0830",
+      "bytes": 5628,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/web-e2e/ligandTopology.fixture.html",
+      "sha256": "0a0c810b476d5f9b9785f97c54057dff870ae2684372cdeca09ef4f7f5aaf58b",
+      "bytes": 286,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/web-e2e/ligandTopology.fixture.tsx",
-      "sha256": "099a16f3982b65a52e1440c1a15501b93a55dd5cd9942ca7e8945eb94d5881f3",
-      "bytes": 7596,
+      "sha256": "805e2e6426148846b20302ee4fc42d0914d943c2a23c7c6dd559151f3a160f99",
+      "bytes": 7949,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

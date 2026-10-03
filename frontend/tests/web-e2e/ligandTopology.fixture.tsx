@@ -127,75 +127,80 @@ const sources: Record<string, string> = {
   pdbqt,
   pdb: coordinateLines(0, false) + '\nEND\n',
 };
-await i18n.use(initReactI18next).init({
-  lng: 'zh-CN',
-  resources: { 'zh-CN': { translation: { preview, common } } },
-  interpolation: { escapeValue: false },
-});
-const referenceSvg = await renderMoleculeSvg('c1ccccc1C=O', 276, 189);
-const emptyHeader = await parseSmilesMolBlock('C=O');
-const emptyHeaderValid = Boolean(emptyHeader && (await validateAndRenderMolBlock(emptyHeader, 276, 189)));
-const chemistryValidation = await Promise.all(
-  [
-    ['c1cc[nH]c1', 4, 1],
-    ['C[NH2+]C', 2, 2],
-    ['N#CC(=O)O', 0, 0],
-  ].map(async ([source, parent, count]) => {
-    const smiles = String(source);
-    const template = await parseSmilesMolBlock(smiles);
-    if (!template) return false;
-    const lines = template.split('\n');
-    const atoms = Number(lines[3].slice(0, 3));
-    const records = lines.slice(4, 4 + atoms).map((line, index) => {
-      const element = line.slice(31, 34).trim();
-      return `HETATM${String(index + 1).padStart(5)} ${element.padEnd(4)} UNL A   1    ${index.toFixed(3).padStart(8)}   0.000   0.000  1.00  0.00     0.000 ${element}`;
-    });
-    const hydrogenPairs = Array.from({ length: Number(count) }, (_, index) => `${parent} ${atoms + index + 1}`);
-    records.push(
-      ...hydrogenPairs.map(
-        (_pair, index) =>
-          `HETATM${String(atoms + index + 1).padStart(5)} H    UNL A   1       0.000   1.000   0.000  1.00  0.00     0.000 HD`
-      )
-    );
-    const metadata = [
-      `REMARK SMILES ${smiles}`,
-      `REMARK SMILES IDX ${Array.from({ length: atoms }, (_, index) => `${index + 1} ${index + 1}`).join(' ')}`,
-    ];
-    if (hydrogenPairs.length) metadata.push(`REMARK H PARENT ${hydrogenPairs.join(' ')}`);
-    const recovered = await restorePdbqtTopology([...metadata, ...records].join('\n'), parseSmilesMolBlock);
-    const restored = recovered ? await validateAndRenderMolBlock(recovered.source.split('$$$$')[0], 276, 189) : null;
-    const expected = await validateAndRenderMolBlock(smiles, 276, 189);
-    const normalized = restored ? await validateAndRenderMolBlock(restored.smiles, 276, 189) : null;
-    if (!normalized || normalized.smiles !== expected?.smiles)
-      console.error('Synthetic chemistry roundtrip', {
-        smiles,
-        restored: restored?.smiles,
-        normalized: normalized?.smiles,
-        recovered: Boolean(recovered),
-        expected: expected?.smiles,
+async function startFixture() {
+  await i18n.use(initReactI18next).init({
+    lng: 'zh-CN',
+    resources: { 'zh-CN': { translation: { preview, common } } },
+    interpolation: { escapeValue: false },
+  });
+  const referenceSvg = await renderMoleculeSvg('c1ccccc1C=O', 276, 189);
+  const emptyHeader = await parseSmilesMolBlock('C=O');
+  const emptyHeaderValid = Boolean(emptyHeader && (await validateAndRenderMolBlock(emptyHeader, 276, 189)));
+  const chemistryValidation = await Promise.all(
+    [
+      ['c1cc[nH]c1', 4, 1],
+      ['C[NH2+]C', 2, 2],
+      ['N#CC(=O)O', 0, 0],
+    ].map(async ([source, parent, count]) => {
+      const smiles = String(source);
+      const template = await parseSmilesMolBlock(smiles);
+      if (!template) return false;
+      const lines = template.split('\n');
+      const atoms = Number(lines[3].slice(0, 3));
+      const records = lines.slice(4, 4 + atoms).map((line, index) => {
+        const element = line.slice(31, 34).trim();
+        return `HETATM${String(index + 1).padStart(5)} ${element.padEnd(4)} UNL A   1    ${index.toFixed(3).padStart(8)}   0.000   0.000  1.00  0.00     0.000 ${element}`;
       });
-    return Boolean(normalized && expected && normalized.smiles === expected.smiles);
-  })
-);
-function Fixture() {
-  const [format, setFormat] = useState('sdf');
-  return (
-    <main style={{ padding: 20, width: 600, height: 840 }}>
-      <nav aria-label='Synthetic formats'>
-        {Object.keys(sources).map((value) => (
-          <button key={value} onClick={() => setFormat(value)}>
-            {value}
-          </button>
-        ))}
-      </nav>
-      <div hidden data-testid='reference-svg' dangerouslySetInnerHTML={{ __html: referenceSvg ?? '' }} />
-      <output hidden data-testid='chemistry-validation'>
-        {JSON.stringify([...chemistryValidation, emptyHeaderValid])}
-      </output>
-      <section style={{ height: 780 }}>
-        <SynonBiomedStructureViewer filename={`synthetic-benzaldehyde.${format}`} content={sources[format]} />
-      </section>
-    </main>
+      const hydrogenPairs = Array.from({ length: Number(count) }, (_, index) => `${parent} ${atoms + index + 1}`);
+      records.push(
+        ...hydrogenPairs.map(
+          (_pair, index) =>
+            `HETATM${String(atoms + index + 1).padStart(5)} H    UNL A   1       0.000   1.000   0.000  1.00  0.00     0.000 HD`
+        )
+      );
+      const metadata = [
+        `REMARK SMILES ${smiles}`,
+        `REMARK SMILES IDX ${Array.from({ length: atoms }, (_, index) => `${index + 1} ${index + 1}`).join(' ')}`,
+      ];
+      if (hydrogenPairs.length) metadata.push(`REMARK H PARENT ${hydrogenPairs.join(' ')}`);
+      const recovered = await restorePdbqtTopology([...metadata, ...records].join('\n'), parseSmilesMolBlock);
+      const restored = recovered ? await validateAndRenderMolBlock(recovered.source.split('$$$$')[0], 276, 189) : null;
+      const expected = await validateAndRenderMolBlock(smiles, 276, 189);
+      const normalized = restored ? await validateAndRenderMolBlock(restored.smiles, 276, 189) : null;
+      if (!normalized || normalized.smiles !== expected?.smiles)
+        console.error('Synthetic chemistry roundtrip', {
+          smiles,
+          restored: restored?.smiles,
+          normalized: normalized?.smiles,
+          recovered: Boolean(recovered),
+          expected: expected?.smiles,
+        });
+      return Boolean(normalized && expected && normalized.smiles === expected.smiles);
+    })
   );
+  function Fixture() {
+    const [format, setFormat] = useState('sdf');
+    return (
+      <main style={{ padding: 20, width: 600, height: 840 }}>
+        <nav aria-label='Synthetic formats'>
+          {Object.keys(sources).map((value) => (
+            <button key={value} onClick={() => setFormat(value)}>
+              {value}
+            </button>
+          ))}
+        </nav>
+        <div hidden data-testid='reference-svg' dangerouslySetInnerHTML={{ __html: referenceSvg ?? '' }} />
+        <output hidden data-testid='chemistry-validation'>
+          {JSON.stringify([...chemistryValidation, emptyHeaderValid])}
+        </output>
+        <section style={{ height: 780 }}>
+          <SynonBiomedStructureViewer filename={`synthetic-benzaldehyde.${format}`} content={sources[format]} />
+        </section>
+      </main>
+    );
+  }
+  createRoot(document.getElementById('root')!).render(<Fixture />);
 }
-createRoot(document.getElementById('root')!).render(<Fixture />);
+// Worker replies must not depend on a top-level module evaluation completing.
+// Match the application's asynchronous post-bootstrap renderer lifecycle.
+void startFixture();
