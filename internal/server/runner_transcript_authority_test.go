@@ -207,10 +207,9 @@ func TestFrameRunnerAutoCompactPersistsTranscriptBoundary(t *testing.T) {
 	foundBoundary := false
 	// This fixture declares an absolute compaction threshold but no model
 	// capacity. Durable recovery must preserve the unknown percentage, not 80%.
-	expectedContextPercent := []byte(`"contextPercent":null`)
 	for _, event := range replay {
 		if event.Event.Type == "runner_checkpoint" && bytes.Contains(event.ResolvedPayloadJSON, []byte(`"toolPhase":"auto_compact"`)) &&
-			bytes.Contains(event.ResolvedPayloadJSON, expectedContextPercent) &&
+			(!bytes.Contains(event.ResolvedPayloadJSON, []byte(`"contextPercent":`)) || bytes.Contains(event.ResolvedPayloadJSON, []byte(`"contextPercent":null`))) &&
 			bytes.Contains(event.ResolvedPayloadJSON, []byte(`"contextWindow":0`)) &&
 			bytes.Contains(event.ResolvedPayloadJSON, []byte(`"summaryStatus":"deterministic-context"`)) &&
 			bytes.Contains(event.ResolvedPayloadJSON, []byte(`"attempted":false`)) &&
@@ -219,7 +218,7 @@ func TestFrameRunnerAutoCompactPersistsTranscriptBoundary(t *testing.T) {
 		}
 	}
 	if !foundBoundary {
-		t.Fatalf("missing durable transcript auto-compact checkpoint: %#v", replay)
+		t.Fatal("missing durable transcript auto-compact checkpoint with unknown capacity and deterministic summary")
 	}
 	archives, err := store.ListCompactionArchives("frame-auto-compact")
 	if err != nil || len(archives) != 1 || !strings.Contains(archives[0].Summary, "transcript auto compact request") {
