@@ -14,7 +14,7 @@ import {
   contextWindowChart,
   lastConfirmedContextUsage,
   summarizeContextWindowHistory,
-} from '@/renderer/services/contextWindowHistory';
+} from '@/renderer/components/synonBiomed/runtime/contextWindowHistoryModel';
 
 const sample = (requestId: string, usedTokens: number, limitTokens = 1000): ContextUsageSnapshot => ({
   sessionId: 'session',

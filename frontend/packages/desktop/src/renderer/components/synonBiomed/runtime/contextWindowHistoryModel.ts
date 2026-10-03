@@ -4,7 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { projectContextUsage, type ContextUsageHistory, type ContextUsageSnapshot } from './contextUsage';
+import {
+  projectContextUsage,
+  type ContextUsageHistory,
+  type ContextUsageSnapshot,
+} from '@/renderer/services/contextUsage';
 
 export function formatContextTokens(count: number): string {
   if (Math.abs(count) >= 1_000_000) return `${(count / 1_000_000).toFixed(1)}M`;

@@ -7,11 +7,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type ContextUsageHistory } from '@/renderer/services/contextUsage';
-import {
-  contextWindowChart,
-  formatContextTokens,
-  summarizeContextWindowHistory,
-} from '@/renderer/services/contextWindowHistory';
+import { contextWindowChart, formatContextTokens, summarizeContextWindowHistory } from './contextWindowHistoryModel';
 import styles from './ContextUsagePanel.module.css';
 
 /** Compact numeric history, with each receipt bound to its own model/window. */

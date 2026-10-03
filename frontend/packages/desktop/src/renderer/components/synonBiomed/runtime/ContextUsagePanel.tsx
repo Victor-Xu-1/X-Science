@@ -16,10 +16,7 @@ import {
 } from '@/renderer/services/contextUsage';
 import styles from './ContextUsagePanel.module.css';
 import ContextWindowHistory from './ContextWindowHistory';
-import {
-  formatContextTokens as formatTokenCount,
-  lastConfirmedContextUsage,
-} from '@/renderer/services/contextWindowHistory';
+import { formatContextTokens as formatTokenCount, lastConfirmedContextUsage } from './contextWindowHistoryModel';
 
 const RING_SIZE = 16;
 const RING_STROKE_WIDTH = 2.5;
