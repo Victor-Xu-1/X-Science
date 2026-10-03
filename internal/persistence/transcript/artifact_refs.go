@@ -644,6 +644,19 @@ func (r *Repository) CurrentArtifactCommitSnapshot(
 	streamUID, ownerID string,
 	throughAttempt int64,
 ) (ArtifactCommitSnapshot, error) {
+	return r.currentArtifactCommitSnapshot(ctx, streamUID, ownerID, throughAttempt, false)
+}
+
+// CurrentRoundArtifactCommitSnapshot keeps the same branch/head fences as the
+// history snapshot, but only admits commits from the owning input revision.
+// Recovery attempts are execution units, not separate user deliveries.
+func (r *Repository) CurrentRoundArtifactCommitSnapshot(ctx context.Context, streamUID, ownerID string, throughAttempt int64) (ArtifactCommitSnapshot, error) {
+	return r.currentArtifactCommitSnapshot(ctx, streamUID, ownerID, throughAttempt, true)
+}
+
+func (r *Repository) currentArtifactCommitSnapshot(
+	ctx context.Context, streamUID, ownerID string, throughAttempt int64, roundOnly bool,
+) (ArtifactCommitSnapshot, error) {
 	streamUID = strings.TrimSpace(streamUID)
 	ownerID = strings.TrimSpace(ownerID)
 	if throughAttempt <= 0 {
@@ -676,6 +689,18 @@ func (r *Repository) CurrentArtifactCommitSnapshot(
 	if storedOwner != ownerID {
 		return ArtifactCommitSnapshot{}, ErrOwnerMismatch
 	}
+	attemptScope := ""
+	arguments := []any{streamUID, result.BranchID, throughAttempt}
+	if roundOnly {
+		attemptScope = ` AND commit_row.runner_attempt IN (
+			SELECT origin.attempt FROM transcript_runner_attempts origin
+			JOIN transcript_runner_attempts target ON target.stream_uid=origin.stream_uid
+				AND target.claimed_input_revision=origin.claimed_input_revision
+			WHERE target.stream_uid=? AND target.attempt=?
+		)`
+		arguments = append(arguments, streamUID, throughAttempt)
+	}
+	arguments = append(arguments, streamUID)
 	rows, err := tx.QueryContext(ctx, `
 		WITH ranked AS (
 			SELECT commit_row.runner_attempt,commit_row.source_event_id,commit_row.ordinal,
@@ -690,7 +715,7 @@ func (r *Repository) CurrentArtifactCommitSnapshot(
 				ON membership.stream_uid=commit_row.stream_uid
 				AND membership.event_id=commit_row.source_event_id
 			WHERE commit_row.stream_uid=? AND membership.branch_id=?
-				AND commit_row.runner_attempt<=?
+				AND commit_row.runner_attempt<=?`+attemptScope+`
 		)
 		SELECT current_row.runner_attempt,current_row.source_event_id,current_row.ordinal,
 			current_row.artifact_id,current_row.version_id,current_row.relation,
@@ -711,7 +736,7 @@ func (r *Repository) CurrentArtifactCommitSnapshot(
 			ON artifact.id=current_row.artifact_id AND artifact.project_id=project.id
 		WHERE current_row.current_rank=1
 		ORDER BY current_row.branch_ordinal,current_row.ordinal,current_row.artifact_id,current_row.version_id`,
-		streamUID, result.BranchID, throughAttempt, streamUID,
+		arguments...,
 	)
 	if err != nil {
 		return ArtifactCommitSnapshot{}, schemaError(err)

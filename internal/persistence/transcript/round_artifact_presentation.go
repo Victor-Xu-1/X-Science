@@ -36,19 +36,7 @@ func (r *Repository) CompletedRoundArtifactReferences(ctx context.Context, strea
 		return nil, err
 	}
 	rows, err := r.db.QueryContext(ctx, `
-		WITH sources AS (
-			SELECT stream_uid,runner_attempt,source_event_id,ordinal,artifact_id,version_id,relation,created_at
-			FROM transcript_artifact_commits WHERE stream_uid=? AND relation='produced'
-			UNION ALL
-			SELECT ref.stream_uid,ref.runner_attempt,ref.source_event_id,ref.ordinal,
-				ref.artifact_id,ref.version_id,ref.relation,ref.created_at
-			FROM transcript_artifact_refs ref
-			WHERE ref.stream_uid=? AND ref.relation='produced' AND NOT EXISTS (
-				SELECT 1 FROM transcript_artifact_commits committed
-				WHERE committed.stream_uid=ref.stream_uid AND committed.artifact_id=ref.artifact_id
-					AND committed.version_id=ref.version_id AND committed.relation='produced'
-			)
-		), terminals AS (
+		WITH sources AS NOT MATERIALIZED (`+ArtifactGenerationSourcesSQL+`), terminals AS (
 			SELECT target.attempt,target.claimed_input_revision,terminal.ordinal AS terminal_ordinal,
 				state.active_branch_id
 			FROM json_each(?) request
@@ -85,7 +73,7 @@ func (r *Repository) CompletedRoundArtifactReferences(ctx context.Context, strea
 			AND tomb.version_id=c.version_id AND tomb.owner_id=stream.owner_id AND tomb.project_id=stream.project_id
 		WHERE c.head_rank=1 AND (a.id IS NULL OR a.retention_mode='snapshot')
 		ORDER BY c.target_attempt,c.branch_ordinal,c.ordinal,c.artifact_id`,
-		streamUID, streamUID, string(raw), streamUID, ownerID, streamUID, streamUID, ownerID)
+		string(raw), streamUID, ownerID, streamUID, streamUID, ownerID)
 	if err != nil {
 		return nil, schemaError(err)
 	}
