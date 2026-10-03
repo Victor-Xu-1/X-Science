@@ -631,6 +631,7 @@
         "expandLigandDepiction": "向上展开二维结构",
         "ligandDepictionAlt": "{{ligand}} 的二维结构",
         "ligandDepictionUnavailable": "暂无二维结构",
+        "ligandTopologyUnavailable": "文件缺少可核实的键级信息，不能可靠绘制二维结构；三维坐标仍可查看。",
         "previousSelectedLigand": "上一个已选配体",
         "nextSelectedLigand": "下一个已选配体",
         "interactionLegendTitle": "相互作用线",

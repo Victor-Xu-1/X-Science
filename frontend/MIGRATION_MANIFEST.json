@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "96922ef49580b319d30756047442f36960fb11ff33a26d1f9c08202ffb2d7d77",
+  "adaptationFingerprintSHA256": "7ec78661b29a7f4a0133f2719ec6149637ffb41c8a542b0531d046ae3a7068e1",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
-  "additionFingerprintSHA256": "a14187bf9d07e7129d7c1416c3beae2e376fed1864668238020db58f28b37c6e",
+  "additionFingerprintSHA256": "fc98ed591f66a1d3a50b24e656529757f436fffa6e04eaf949581278820062f4",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 397,
     "adaptedSourceFiles": 667,
     "removedSourceFiles": 290,
-    "addedFiles": 732
+    "addedFiles": 739
   },
   "adaptations": [
     {
@@ -1424,8 +1424,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedStructureViewer.tsx",
       "sourceSHA256": "6cb430ff6d16123ef3da68f5af29d4dc093a1e5bb9e9b2655a3c01e2d1e2ecb1",
-      "targetSHA256": "a0ff0a97556e9ca94c0bcf52445eae29c7ad99fff55ce0c8a2a18b76b7d0f4ef",
-      "bytes": 135206,
+      "targetSHA256": "5da84f05359c727e81d6a381263516357d93223e2cfe5a952c090bdfb024b379",
+      "bytes": 135673,
       "reason": "Unify PDB, mmCIF, SDF, and related molecular formats on one Molstar preview with composition-aware controls, collapsed auxiliary panels, and source-fenced 2D interaction refresh."
     },
     {
@@ -2404,8 +2404,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "ce3e743925b9fc09e0e8297c45a4bd32da311817317f75018717af7d2c8ba46f",
-      "bytes": 249584,
+      "targetSHA256": "44882b95d58bb6b31655bfcb13548b3551cdd24c57b3edd2bde6cb28b007bf45",
+      "bytes": 249658,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2481,8 +2481,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/preview.json",
       "sourceSHA256": "bf530f4a992cc14652500390e715b7add84853e9b0757158c718244cf4cd8f32",
-      "targetSHA256": "e4d651c8f04ce035355e4c97800f29b27a5456fd302d646cac4f7b33c2853884",
-      "bytes": 39967,
+      "targetSHA256": "a54402cc15a6413299ab1357ba54d322ae0e8deac76439ba727dfdc15d7488ab",
+      "bytes": 40125,
       "reason": "Add English labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls."
     },
     {
@@ -2572,8 +2572,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/preview.json",
       "sourceSHA256": "6b772273972756a3407fee8fe7b4503e992964a8de901375f06bfd2faacf2ba0",
-      "targetSHA256": "1c7fd4a5d79b81071d8b657a23d1f6545f097129d60adf806bfcc898da02b85b",
-      "bytes": 38530,
+      "targetSHA256": "4a8184261d57f7f5e6ff51aa757e6ed5f0823a2d175aa584156569eeae7c685f",
+      "bytes": 38670,
       "reason": "Add Simplified Chinese labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls."
     },
     {
@@ -2614,8 +2614,8 @@
     {
       "path": "packages/desktop/src/renderer/services/rdkitBrowser.ts",
       "sourceSHA256": "86ea78e09e9b3a5067ce140b5d385da659ae6b03868fd364dd9881ad3de404b4",
-      "targetSHA256": "63c03d67192e27f011fdd3380871f3ba68ecc6deb2f8deae9bf596a634f0c79e",
-      "bytes": 8914,
+      "targetSHA256": "5507a8ba92c9ccb95c0d17707985b23169d32745c412207722e2c30bc6d805b2",
+      "bytes": 9524,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -3496,8 +3496,8 @@
     {
       "path": "tests/unit/previews/SynonBiomedStructureViewer.dom.test.tsx",
       "sourceSHA256": "ba8c8acb753fdac5f71871a9aeba75f7dd569f1f82eca75dae7e0c76fa5f1c54",
-      "targetSHA256": "2ba7f85ad365e4cb28be12bb067713df2472c9e2dd9e2d449b31849d29132367",
-      "bytes": 130528,
+      "targetSHA256": "9ec3908b47fb955267c337b284ddd53ee3e769596b5edc1fcb39bde36cafec65",
+      "bytes": 132598,
       "reason": "Verify format-neutral composition controls, collapsed 2D panels, and source-invalidated interactions after minimization."
     },
     {
@@ -3986,8 +3986,8 @@
     {
       "path": "tests/unit/renderer/rdkitBrowser.dom.test.ts",
       "sourceSHA256": "cf55e00b20510b2bfe9fc4a96ae068b2d9b1afceb147db2c581b62e9f5819513",
-      "targetSHA256": "fb3617d6d3ac0325c125715aba89e5f0b28035bdf18b003d9c2564922364c8d9",
-      "bytes": 7579,
+      "targetSHA256": "fce9fa5664bcd3fd2741873c5a03917b4f3e15d61c5008a78df52f4d0a2991d8",
+      "bytes": 8728,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -7478,6 +7478,12 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/ligandTopology.ts",
+      "sha256": "3cc3e99178b13b4ac98464e2394ade1b142635eec8e06dfc8a28c2e34ba39198",
+      "bytes": 1518,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/markdownArtifactReferences.ts",
       "sha256": "bfe0d8b5e297eaaf4e1e379984aa941107fe66e4ddbaa860891bb28f67f473e3",
       "bytes": 1491,
@@ -7503,8 +7509,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/molstarDockingLigandShape.ts",
-      "sha256": "9038cb401f1b12edf552ff435cf9103c590cded6ee6b539b6f68308bb646eed5",
-      "bytes": 25304,
+      "sha256": "50993b9e57485c82b0c24e3b46bd87bced59ae91120006835314bcdcc86ea2cf",
+      "bytes": 26291,
       "reason": "Normalize docking ligand shape and alternate-conformer selection for the shared Molstar structure path."
     },
     {
@@ -7533,14 +7539,20 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/molstarStructureEngine.ts",
-      "sha256": "4d4193ba85a46acc2aa69d97d6f59a9c3de83d87372e733b9963ccb4bc66beee",
-      "bytes": 144660,
+      "sha256": "120e94a3b138f2de631166ff6a42c62d600572e72486751bc30cf6961163cbe2",
+      "bytes": 145686,
       "reason": "Own format-neutral Molstar loading, structure composition, surface styling, ligand extraction, and object visibility operations."
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/molstarViewportPerformance.ts",
       "sha256": "510c55d801ce6a6bb15561a6fd252ad6a6ab1663a599e03d63555f1c0672c938",
       "bytes": 2874,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/pdbqtTopology.ts",
+      "sha256": "96cf3ceb558bc8f9839846ba9a02c46868f585f10de74affefa77cc98e6d02cf",
+      "bytes": 7988,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8991,8 +9003,8 @@
     },
     {
       "path": "public/rdkit/rdkit-worker.js",
-      "sha256": "ee24f91e5c8aa337ca2c2307b53661f658b60db2e4ebb86bc676c3f5ae0ddf40",
-      "bytes": 3919,
+      "sha256": "13add6cab09f0652559be711c9aec8c4759cce3fe76aa1e35c454b0d9a8fceb3",
+      "bytes": 4144,
       "reason": "Confine lockfile-pinned RDKit code generation to the dedicated worker and its path-specific production CSP."
     },
     {
@@ -9338,6 +9350,12 @@
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
+      "path": "tests/unit/previews/ligandBondOrder.test.ts",
+      "sha256": "f9fff5a7de018272b442fdb05f2643dd298a53be3d683dd5e9fae0966eab77a5",
+      "bytes": 4233,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/unit/previews/lightweightOfficePreview.test.ts",
       "sha256": "f0dbd02aff9e2c107471b264f85c78b670964e87498647619a814c8e6268026e",
       "bytes": 3759,
@@ -9359,6 +9377,12 @@
       "path": "tests/unit/previews/molstarViewportPerformance.test.ts",
       "sha256": "3e53e173596603aadd9836715d0d4bf061acc7353efab3225fd17830d2589b8f",
       "bytes": 3106,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/previews/pdbqtTopology.test.ts",
+      "sha256": "72e6cf59dc19ff30e6c61cbbe2ef7f8a89c812195ba3ba3e8221ac73290defd6",
+      "bytes": 3705,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -10452,6 +10476,24 @@
       "sha256": "5cd893b05600052756fe2d22f131f3c7952d11ac7e06973de02c4471c3db3c0b",
       "bytes": 4078,
       "reason": "Prepare authenticated first-run preferences through real Go APIs before each browser acceptance run."
+    },
+    {
+      "path": "tests/web-e2e/ligandTopology.browser.mjs",
+      "sha256": "14470ee00b733171cc128685091a2ce9e0d9b1851795bb5fb39b3b7e018e0830",
+      "bytes": 5628,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/web-e2e/ligandTopology.fixture.html",
+      "sha256": "0a0c810b476d5f9b9785f97c54057dff870ae2684372cdeca09ef4f7f5aaf58b",
+      "bytes": 286,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/web-e2e/ligandTopology.fixture.tsx",
+      "sha256": "805e2e6426148846b20302ee4fc42d0914d943c2a23c7c6dd559151f3a160f99",
+      "bytes": 7949,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/web-e2e/molstarControlsHelp.e2e.ts",
