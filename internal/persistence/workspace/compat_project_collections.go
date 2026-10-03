@@ -204,7 +204,7 @@ func (s *Store) ListCompatibilityProjectCurrentArtifactPage(
 		CASE WHEN COALESCE(v.storage_path, '') = '' THEN length(v.content) ELSE v.size_bytes END,
 		v.created_at, NULLIF(v.content_sha256, ''), COALESCE(v.storage_path, ''),
 		COALESCE(m.is_user_upload, 0), p.agent_name, a.folder_id,
-		COALESCE(p.is_intermediate, 0), a.priority, m.superseded_by_artifact_id ` + where +
+		` + artifactEffectiveIntermediateSQL + `, a.priority, m.superseded_by_artifact_id ` + where +
 		` ORDER BY v.created_at DESC, a.id DESC LIMIT ?`
 	arguments := append(append([]any{}, filterArguments...), input.Limit+1)
 	rows, err := tx.QueryContext(ctx, query, arguments...)
@@ -302,7 +302,7 @@ func (s *Store) listCompatibilityProjectArtifacts(
 			CASE WHEN COALESCE(v.storage_path, '') = '' THEN length(v.content) ELSE v.size_bytes END,
 			v.created_at, NULLIF(v.content_sha256, ''), COALESCE(v.storage_path, ''),
 			COALESCE(m.is_user_upload, 0), p.agent_name, a.folder_id,
-			COALESCE(p.is_intermediate, 0), a.priority,
+			` + artifactEffectiveIntermediateSQL + `, a.priority,
 			m.superseded_by_artifact_id
 		FROM artifacts a
 		JOIN projects project ON project.id = a.project_id

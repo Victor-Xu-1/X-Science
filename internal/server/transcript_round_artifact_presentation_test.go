@@ -208,6 +208,23 @@ func TestRoundArtifactPresentationCarriesSavedOutputAcrossAuthorizedResume(t *te
 	}
 	f.claim = next.Claim
 	after := saveRoundPresentationFile(t, f, "after-resume", "after.txt", "saved after recovery")
+	run := &sessionRunnerChatRun{Transcript: &transcriptRunnerAuthority{Stream: f.stream, Claim: f.claim}}
+	commits, err := f.server.sessionRunnerArtifactCommitReferences(context.Background(), run)
+	if err != nil {
+		t.Fatal(err)
+	}
+	selected, err := f.server.sessionRunnerActiveArtifactCommitReferences(context.Background(), run, commits, "Finished")
+	if err != nil || len(selected) != 2 {
+		t.Fatalf("same-input recovered publication selected=%#v err=%v", selected, err)
+	}
+	pageInput := workspace.CompatibilityProjectArtifactPageInput{
+		OwnerUserID: f.stream.OwnerID, ProjectID: f.stream.ProjectID, FrameID: f.stream.FrameID,
+		ExcludeIntermediate: true, ExcludeInternal: true, Limit: 1,
+	}
+	page, err := f.store.ListCompatibilityProjectCurrentArtifactPage(context.Background(), pageInput)
+	if err != nil || page.Total != 0 {
+		t.Fatalf("unfinished recovery exposed drafts: %#v %v", page, err)
+	}
 	finishRoundPresentation(t, f, "completed")
 	rounds, err := f.repo.CompletedRoundArtifactReferences(context.Background(), f.stream.UID, f.stream.OwnerID, []int64{first.Attempt, f.claim.Attempt})
 	if err != nil || len(rounds[first.Attempt]) != 0 || len(rounds[f.claim.Attempt]) != 2 {
@@ -215,6 +232,28 @@ func TestRoundArtifactPresentationCarriesSavedOutputAcrossAuthorizedResume(t *te
 	}
 	if rounds[f.claim.Attempt][0].VersionID != stringValue(before["version_id"]) || rounds[f.claim.Attempt][1].VersionID != stringValue(after["version_id"]) {
 		t.Fatal("recovery lost or changed original saved versions")
+	}
+	page, err = f.store.ListCompatibilityProjectCurrentArtifactPage(context.Background(), pageInput)
+	if err != nil || page.Total != 2 || len(page.Artifacts) != 1 || !page.HasMore {
+		t.Fatalf("historical collection differs from round: %#v %v", page, err)
+	}
+	if page.Artifacts[0].IsIntermediate {
+		t.Fatal("completed delivery retained a draft presentation")
+	}
+	pageInput.Cursor = page.NextCursor
+	nextPage, err := f.store.ListCompatibilityProjectCurrentArtifactPage(context.Background(), pageInput)
+	if err != nil || len(nextPage.Artifacts) != 1 || nextPage.HasMore || nextPage.Artifacts[0].ID == page.Artifacts[0].ID {
+		t.Fatalf("recovered delivery pagination=%#v err=%v", nextPage, err)
+	}
+	for _, artifact := range []map[string]any{before, after} {
+		retention, intermediate, found, err := f.store.ArtifactCurrentPresentationState(stringValue(artifact["artifact_id"]))
+		if err != nil || !found || retention != "snapshot" || intermediate {
+			t.Fatalf("current delivery visibility differs: %q %t %t %v", retention, intermediate, found, err)
+		}
+		storedIntermediate, _, err := f.store.ArtifactVersionIntermediate(stringValue(artifact["version_id"]))
+		if err != nil || !storedIntermediate {
+			t.Fatal("history projection rewrote original draft provenance")
+		}
 	}
 }
 
@@ -229,11 +268,19 @@ func TestRoundArtifactPresentationRejectsAbandonedBranchAndTracksUnavailableFile
 	if err != nil || len(rounds[f.claim.Attempt]) != 1 || rounds[f.claim.Attempt][0].Availability != transcriptstore.ArtifactDeleted {
 		t.Fatalf("deleted file should remain explicitly unavailable: %#v %v", rounds, err)
 	}
+	forkRoundPresentationBeforeTerminal(t, f, rounds[f.claim.Attempt][0].SourceEventID)
+	rounds, err = f.repo.CompletedRoundArtifactReferences(context.Background(), f.stream.UID, f.stream.OwnerID, []int64{f.claim.Attempt})
+	if err != nil || len(rounds[f.claim.Attempt]) != 0 {
+		t.Fatalf("abandoned terminal leaked attachments: %#v %v", rounds, err)
+	}
+}
+
+func forkRoundPresentationBeforeTerminal(t *testing.T, f *agentSaveArtifactsFixture, source int64) {
+	t.Helper()
 	var parent string
 	if err := f.db.QueryRow(`SELECT active_branch_id FROM transcript_branch_state WHERE stream_uid=?`, f.stream.UID).Scan(&parent); err != nil {
 		t.Fatal(err)
 	}
-	source := rounds[f.claim.Attempt][0].SourceEventID
 	now := time.Now().UTC()
 	if _, err := f.db.Exec(`INSERT INTO transcript_branches(
 		stream_uid,branch_id,parent_branch_id,fork_event_id,fork_point,kind,
@@ -249,9 +296,5 @@ func TestRoundArtifactPresentationRejectsAbandonedBranchAndTracksUnavailableFile
 	}
 	if _, err := f.db.Exec(`UPDATE transcript_branch_state SET active_branch_id='br_deadbeef',generation=generation+1 WHERE stream_uid=?`, f.stream.UID); err != nil {
 		t.Fatal(err)
-	}
-	rounds, err = f.repo.CompletedRoundArtifactReferences(context.Background(), f.stream.UID, f.stream.OwnerID, []int64{f.claim.Attempt})
-	if err != nil || len(rounds[f.claim.Attempt]) != 0 {
-		t.Fatalf("abandoned terminal leaked attachments: %#v %v", rounds, err)
 	}
 }

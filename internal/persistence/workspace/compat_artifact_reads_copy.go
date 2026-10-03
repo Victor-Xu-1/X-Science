@@ -89,7 +89,7 @@ func (s *Store) CopyCompatibilityArtifactRealtime(
 				m.root_frame_id, COALESCE(m.is_user_upload, 0),
 				v.content, v.content_sha256, v.storage_path, v.size_bytes, v.created_by,
 				COALESCE(NULLIF(p.content_type, ''), a.kind), p.extracted_code,
-				p.agent_name, p.language, COALESCE(p.is_intermediate, 0)
+				p.agent_name, p.language, `+artifactEffectiveIntermediateSQL+`
 			FROM artifacts a
 			JOIN projects project ON project.id = a.project_id AND project.user_id = ?
 			JOIN artifact_versions v ON v.artifact_id = a.id AND v.version_number = a.current_version_number

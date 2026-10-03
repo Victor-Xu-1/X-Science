@@ -16,7 +16,7 @@ func (s *Store) ArtifactCurrentPresentationState(artifactID string) (retention s
 		return "", false, false, errors.New("workspace store is closed")
 	}
 	err = s.db.QueryRowContext(context.Background(), `
-		SELECT a.retention_mode, COALESCE(p.is_intermediate, 0)
+		SELECT a.retention_mode, `+artifactEffectiveIntermediateSQL+`
 		FROM artifacts a
 		JOIN artifact_versions v ON v.artifact_id=a.id AND v.version_number=a.current_version_number
 		LEFT JOIN artifact_version_provenance p ON p.version_id=v.id

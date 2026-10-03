@@ -223,9 +223,10 @@ func (s *Server) sessionRunnerArtifactCommitReferences(
 // sessionRunnerActiveArtifactCommitReferences projects the current delivery
 // set out of the append-only continuation ledger. History remains durable for
 // audit and resume, but an artifact superseded by a later correction must not
-// remain a competing final deliverable forever. The current attempt's saved
-// artifacts are authoritative; an explicit final reference may also retain an
-// unchanged artifact from an earlier attempt. A new independent input revision
+// remain a competing final deliverable forever. The current input's saved
+// artifacts, including recovered execution units, are authoritative. An explicit
+// final reference may retain an unchanged artifact from an earlier attempt.
+// A new independent input revision
 // with neither signal has no artifact deliverable to validate: projecting the
 // full historical ledger there would make an unrelated prior report a mutable
 // obligation of the new turn. Explicit continuation tasks retain the full
@@ -239,15 +240,15 @@ func (s *Server) sessionRunnerActiveArtifactCommitReferences(
 	if run == nil || run.Transcript == nil || s == nil || s.transcriptStore == nil {
 		return commits, nil
 	}
-	currentAttemptRefs, err := s.transcriptStore.ListArtifactCommitReferences(
+	currentRound, err := s.transcriptStore.CurrentRoundArtifactCommitSnapshot(
 		ctx, run.Transcript.Stream.UID, run.Transcript.Stream.OwnerID, run.Transcript.Claim.Attempt,
 	)
 	if err != nil {
 		return nil, err
 	}
-	currentVersions := make(map[string]struct{}, len(currentAttemptRefs))
+	currentVersions := make(map[string]struct{}, len(currentRound.References))
 	hasCurrentProduced := false
-	for _, ref := range currentAttemptRefs {
+	for _, ref := range currentRound.References {
 		versionID := strings.TrimSpace(ref.VersionID)
 		if versionID == "" {
 			continue
