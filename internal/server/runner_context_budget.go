@@ -17,6 +17,7 @@ type sessionRunnerRequestContextBudget struct {
 	mu        sync.Mutex
 	threshold int
 	armed     bool
+	server    *Server
 }
 
 type sessionRunnerRequestContextPressureError struct {
@@ -58,6 +59,7 @@ func newSessionRunnerRequestContextBudget(
 		return nil
 	}
 	return &sessionRunnerRequestContextBudget{
+		server:    s,
 		threshold: s.autoCompactTokenThreshold(runnerContextWindow(options)),
 		armed:     !compacted && !runnerReplayFreshlyCompacted(entries),
 	}
@@ -87,8 +89,8 @@ func runnerReplayFreshlyCompacted(entries []eventjournal.Entry) bool {
 	return false
 }
 
-func (budget *sessionRunnerRequestContextBudget) beforeCall(ctx context.Context, request agentruntime.ModelRequest) error {
-	if budget == nil || budget.threshold <= 0 || ctx.Value(auxiliaryContextUsageKey{}) == true {
+func (budget *sessionRunnerRequestContextBudget) beforeCall(ctx context.Context, request agentruntime.ModelRequest, capacities ...runnerContextCapacity) error {
+	if budget == nil || ctx.Value(auxiliaryContextUsageKey{}) == true {
 		return nil
 	}
 	if err := ctx.Err(); err != nil {
@@ -104,6 +106,14 @@ func (budget *sessionRunnerRequestContextBudget) beforeCall(ctx context.Context,
 	}
 	budget.mu.Lock()
 	defer budget.mu.Unlock()
+	if len(capacities) > 0 && budget.server != nil {
+		// Bind and evaluate under the same lock. Auxiliary calls skip this
+		// entirely; no concurrent call can substitute another model's threshold.
+		budget.threshold = budget.server.autoCompactTokenThreshold(capacities[0].Tokens)
+	}
+	if budget.threshold <= 0 {
+		return nil
+	}
 	if estimated < budget.threshold {
 		budget.armed = true
 		return nil

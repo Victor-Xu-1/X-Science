@@ -438,7 +438,6 @@ type sessionRunnerAutoCompactResult struct {
 // arbitrary task-size budget. Keep headroom for one large tool result and the
 // next model output, but scale with the provider-declared context window.
 const defaultRunnerAutoCompactContextPercent = 80
-const defaultRunnerContextWindow = 1_000_000
 
 func (s *Server) autoCompactSessionForRunner(ctx context.Context, options SessionRunnerChatOptions, session sessionstore.Session, entries []eventjournal.Entry, run *sessionRunnerChatRun) ([]eventjournal.Entry, sessionRunnerAutoCompactResult, error) {
 	result := sessionRunnerAutoCompactResult{}
@@ -467,14 +466,16 @@ func (s *Server) autoCompactSessionForRunner(ctx context.Context, options Sessio
 	result.EstimatedTokens = estimated
 	result.Threshold = threshold
 	result.ContextWindow = contextWindow
-	result.ContextPercent = defaultRunnerAutoCompactContextPercent
+	if contextWindow > 0 {
+		result.ContextPercent = threshold * 100 / contextWindow
+	}
 	if !forceAfterProviderPressure && (threshold <= 0 || estimated < threshold) {
 		return entries, result, nil
 	}
 	result.TriggerReason = "estimated_context_threshold"
 	instructions := fmt.Sprintf(
-		"Automatic compact before runner model call: estimated context %d tokens reached the %d-token threshold (%d%% of the provider-declared %d-token context window).",
-		estimated, threshold, defaultRunnerAutoCompactContextPercent, contextWindow,
+		"Automatic compact before runner model call: estimated context %d tokens reached the configured %d-token threshold. Declared usable context window=%d tokens (0 means unknown).",
+		estimated, threshold, contextWindow,
 	)
 	if forceAfterProviderPressure {
 		result.TriggerReason = pressureReason
@@ -488,9 +489,16 @@ func (s *Server) autoCompactSessionForRunner(ctx context.Context, options Sessio
 		)
 	}
 	result.Message = fmt.Sprintf(
-		"auto compact completed before model call: reason=%s estimated=%d threshold=%d context_window=%d percent=%d",
-		result.TriggerReason, estimated, threshold, contextWindow, defaultRunnerAutoCompactContextPercent,
+		"auto compact completed before model call: reason=%s estimated=%d threshold=%d context_window=%d",
+		result.TriggerReason, estimated, threshold, contextWindow,
 	)
+	var contextPercent any
+	if contextWindow > 0 {
+		contextPercent = result.ContextPercent
+		result.Message += fmt.Sprintf(" percent=%d", result.ContextPercent)
+	} else {
+		result.Message += " context_capacity=unknown"
+	}
 	if transcriptBacked {
 		summary, summaryErr := buildCompactModelContextSummary(session, entries, instructions, "auto")
 		if summaryErr != nil {
@@ -523,7 +531,7 @@ func (s *Server) autoCompactSessionForRunner(ctx context.Context, options Sessio
 			"estimatedTokens":         estimated,
 			"threshold":               threshold,
 			"contextWindow":           contextWindow,
-			"contextPercent":          defaultRunnerAutoCompactContextPercent,
+			"contextPercent":          contextPercent,
 			"reason":                  result.TriggerReason,
 		}
 		if len(toolContinuity) > 0 {
@@ -569,7 +577,7 @@ func (s *Server) autoCompactSessionForRunner(ctx context.Context, options Sessio
 			"estimatedTokens": estimated,
 			"threshold":       threshold,
 			"contextWindow":   contextWindow,
-			"contextPercent":  defaultRunnerAutoCompactContextPercent,
+			"contextPercent":  contextPercent,
 			"reason":          result.TriggerReason,
 		}); err != nil {
 			return entries, result, err
@@ -634,15 +642,6 @@ func (s *Server) autoCompactTokenThreshold(contextWindow int) int {
 	setting, ok, err := s.settingsStore.Get(configStoreKey("autoCompactTokenThreshold"))
 	threshold, _ := resolveContextCompactionThreshold(contextWindow, setting.Value, err == nil && ok)
 	return threshold
-}
-
-func runnerContextWindow(options SessionRunnerChatOptions) int {
-	for _, key := range []string{"contextWindow", "context_window", "contextLimit", "context_limit"} {
-		if value := int(numberValue(options.RuntimeSessionConfig[key])); value > 0 && value <= 10_000_000 {
-			return value
-		}
-	}
-	return defaultRunnerContextWindow
 }
 
 func estimateChatMessagesTokens(messages []chatCompletionMessage) int {

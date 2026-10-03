@@ -73,16 +73,10 @@ func newSessionContextUsageRecorder(s *Server, sessionID string, attempt int, op
 	if s == nil || s.runtimeStore == nil || strings.TrimSpace(sessionID) == "" {
 		return nil
 	}
-	limitSource := "runner_default"
-	for _, key := range []string{"contextWindow", "context_window", "contextLimit", "context_limit"} {
-		if value := int(numberValue(options.RuntimeSessionConfig[key])); value > 0 && value <= 10_000_000 {
-			limitSource = "configured"
-			break
-		}
-	}
+	capacity := contextCapacityForModel(options.ModelProfile, options)
 	recorder := &sessionContextUsageRecorder{
 		store: s.runtimeStore, sessionID: sessionID, attempt: attempt,
-		limit: runnerContextWindow(options), limitSource: limitSource,
+		limit: capacity.Tokens, limitSource: capacity.Source,
 	}
 	if s.workspaceStore != nil {
 		recorder.frameExists = func() (bool, error) {
@@ -156,7 +150,7 @@ func estimateRunnerRequestUsage(request agentruntime.ModelRequest) ([]runnerCont
 	return rows, hasMedia, nil
 }
 
-func (recorder *sessionContextUsageRecorder) begin(model string, request agentruntime.ModelRequest) *runnerContextUsage {
+func (recorder *sessionContextUsageRecorder) begin(model string, request agentruntime.ModelRequest, capacities ...runnerContextCapacity) *runnerContextUsage {
 	if recorder == nil {
 		return nil
 	}
@@ -175,10 +169,14 @@ func (recorder *sessionContextUsageRecorder) begin(model string, request agentru
 		log.Printf("context_usage_estimate_failed session=%s: %v", recorder.sessionID, err)
 		return nil
 	}
+	capacity := runnerContextCapacity{Tokens: recorder.limit, Source: recorder.limitSource}
+	if len(capacities) > 0 {
+		capacity = capacities[0]
+	}
 	snapshot := runnerContextUsage{
 		SessionID: recorder.sessionID, RequestID: uuid.NewString(), Attempt: recorder.attempt,
 		Model: model, ObservedAt: time.Now().UTC(), State: "request", Source: "estimated",
-		LimitTokens: recorder.limit, LimitSource: recorder.limitSource,
+		LimitTokens: capacity.Tokens, LimitSource: capacity.Source,
 		InputEstimates: rows, HasMedia: hasMedia,
 	}
 	for _, row := range rows {
@@ -292,11 +290,13 @@ func decodeRunnerContextUsage(entry runtimekv.Entry) (runnerContextUsage, error)
 			}
 		}
 	}
-	if snapshot.SessionID == "" || snapshot.RequestID == "" || snapshot.Attempt < 0 || snapshot.UsedTokens < 0 || snapshot.LimitTokens <= 0 ||
+	if snapshot.SessionID == "" || snapshot.RequestID == "" || snapshot.Attempt < 0 || snapshot.UsedTokens < 0 || snapshot.LimitTokens < 0 ||
 		snapshot.OutputTokens < 0 || snapshot.OutputTokens > snapshot.UsedTokens || snapshot.ObservedAt.IsZero() ||
 		(snapshot.State != "request" && snapshot.State != "complete" && snapshot.State != "failed") ||
 		(snapshot.Source != "estimated" && snapshot.Source != "provider") ||
-		(snapshot.LimitSource != "configured" && snapshot.LimitSource != "runner_default") ||
+		(snapshot.LimitSource != "configured" && snapshot.LimitSource != "model_profile" && snapshot.LimitSource != "unknown" && snapshot.LimitSource != "runner_default") ||
+		(snapshot.LimitSource == "unknown" && snapshot.LimitTokens != 0) ||
+		(snapshot.LimitSource != "unknown" && snapshot.LimitTokens == 0) ||
 		(snapshot.State != "complete" && (snapshot.Source == "provider" || snapshot.OutputTokens != 0)) ||
 		len(snapshot.InputEstimates) != len(contextUsageCategoryKeys) && len(snapshot.InputEstimates) != 3 {
 		return snapshot, errors.New("invalid context usage record")
@@ -316,6 +316,12 @@ func decodeRunnerContextUsage(entry runtimekv.Entry) (runnerContextUsage, error)
 	}
 	if !validRunnerContextProgress(snapshot) {
 		return snapshot, errors.New("invalid context progress record")
+	}
+	// Preserve historical task receipts, but never present the retired guessed
+	// default as a model limit or retroactively bind them to today's profile.
+	if snapshot.LimitSource == "runner_default" {
+		snapshot.LimitTokens = 0
+		snapshot.LimitSource = "unknown"
 	}
 	return snapshot, nil
 }

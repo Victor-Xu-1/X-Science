@@ -9,7 +9,8 @@ import (
 	workspace "synon-go/internal/persistence/workspace"
 )
 
-const v11DefaultContextLimit = defaultRunnerContextWindow
+// Compatibility projections have no model-bound capacity authority.
+const v11DefaultContextLimit = 0
 
 func (s *Server) handleProjectsCompatibility(w http.ResponseWriter, r *http.Request) {
 	if s.workspaceStore == nil {

@@ -18,6 +18,7 @@ const profile: SynonBiomedLlmProfile = {
   model: 'deepseek-chat',
   temperature: 0.2,
   maxTokens: 2048,
+  contextWindow: 128000,
   createdAt: '2026-07-10T00:00:00.000Z',
   updatedAt: '2026-07-10T00:00:00.000Z',
   hasApiKey: true,
@@ -32,9 +33,10 @@ afterEach(() => {
 describe('Synon Biomed LLM service', () => {
   it('preserves explicit null budgets on the wire instead of dropping the reset', async () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ ok: true, profile })));
-    await saveSynonBiomedLlmProfile({ ...profile, maxTokens: null }, fetchMock);
+    await saveSynonBiomedLlmProfile({ ...profile, maxTokens: null, contextWindow: null }, fetchMock);
     const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
     expect(body).toHaveProperty('maxTokens', null);
+    expect(body).toHaveProperty('contextWindow', null);
     expect(body).not.toHaveProperty('apiKey');
   });
   it('loads provider profiles and native model selector entries from Synon LLM Core', async () => {
@@ -118,6 +120,7 @@ describe('Synon Biomed LLM service', () => {
       apiKey: 'secret-value',
       temperature: profile.temperature,
       maxTokens: profile.maxTokens,
+      contextWindow: profile.contextWindow,
     });
     await activateSynonBiomedLlmProfile(profile);
     const result = await testSynonBiomedLlmProfile(profile.id);

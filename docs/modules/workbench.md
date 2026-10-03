@@ -108,7 +108,7 @@ go test ./internal/persistence/workspace -run '^TestTranscriptWebProjectorV70|^T
 
 ### Live context usage · 运行中上下文反馈
 
-输入框圆环只展示主智能体最近一次请求的上下文占用，不是累计计费 Token，也不是
+输入框圆环只在模型窗口已声明时展示主智能体最近一次请求的上下文占用，不是累计计费 Token，也不是
 任务完成进度。沿现有 `GET /api/conversations/:id/context-usage` 授权查询读取数值；
 响应可选 `progress` 保存流式文本的数值估算和状态，最多每秒持久化一次，不保存文本
 或私有推理。结束后由供应商用量校准；旧请求的迟到事件不能覆盖新请求或恢复已删除状态。
@@ -119,8 +119,13 @@ go test ./internal/persistence/workspace -run '^TestTranscriptWebProjectorV70|^T
 暂无记录显示未知而不是零。历史快照不会被标成当前正在生成。
 
 可选 `autoCompaction` 返回与请求准入共用的有效阈值：默认配置窗口的 80%，已有显式
-Token 覆盖或关闭设置原样生效并在界面说明。窗口未配置时显示默认预算，不宣称已经核实
-模型容量；供应商实际溢出恢复仍保留。压缩前后的记录不删除用户可见历史。
+Token 覆盖或关闭设置在界面说明，显式阈值不能超过已声明模型窗口。窗口来自当前解析的
+模型配置 `contextWindow`，或更小的显式会话预算；不能从模型别名、输出 `maxTokens`
+或已成功请求的大小推断。容量未知时仍显示真实供应商 token 总量、请求模型/时间和估算
+输入组成，但不显示占用率、剩余容量或默认 1M/800K 阈值；供应商实际溢出恢复仍保留。
+历史 `runner_default` 在只读投影中归一为未知，原任务和用量凭据不改写。修改模型、提供方
+或地址会清除旧容量声明；下一次调用及未输出的模型接管先解析模型，再共同绑定准入预算
+和用量快照，已发出的请求保持自己的模型/窗口。压缩前后的记录不删除用户可见历史。
 
 ```sh
 go test ./internal/server -run 'TestContextUsage|TestContextProgress|TestContextCompactionPolicy|TestWebContextUsage|TestRequestContextBudget' -count=1

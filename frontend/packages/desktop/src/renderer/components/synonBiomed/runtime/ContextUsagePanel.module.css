@@ -59,6 +59,7 @@
   font-size: var(--ui-font-micro);
   line-height: 16px;
   color: var(--workspace-text-secondary);
+  overflow-wrap: anywhere;
 }
 .refreshNotice {
   display: flex;

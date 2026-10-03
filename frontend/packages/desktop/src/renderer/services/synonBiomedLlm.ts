@@ -16,6 +16,7 @@ export type SynonBiomedLlmProfile = {
   model: string;
   temperature?: number;
   maxTokens?: number;
+  contextWindow?: number;
   createdAt?: string;
   updatedAt?: string;
   hasApiKey: boolean;
@@ -38,6 +39,7 @@ export type SynonBiomedLlmProfileInput = {
   copyApiKeyFrom?: string;
   temperature?: number;
   maxTokens?: number | null;
+  contextWindow?: number | null;
 };
 
 export type SynonBiomedLlmModel = {
@@ -222,6 +224,7 @@ export function activateSynonBiomedLlmProfile(
       model: profile.model,
       temperature: profile.temperature,
       maxTokens: profile.maxTokens,
+      contextWindow: profile.contextWindow,
       copyApiKeyFrom: profile.id,
     },
     fetchImpl
@@ -309,6 +312,7 @@ function toProfile(value: unknown): SynonBiomedLlmProfile | null {
     model: stringValue(value.model),
     temperature: optionalNumber(value.temperature),
     maxTokens: optionalNumber(value.maxTokens),
+    contextWindow: optionalNumber(value.contextWindow),
     createdAt: optionalString(value.createdAt),
     updatedAt: optionalString(value.updatedAt),
     hasApiKey: value.hasApiKey === true || value.credentialConfigured === true,

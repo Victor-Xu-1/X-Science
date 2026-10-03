@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"reflect"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -31,6 +32,7 @@ type sessionRunnerDynamicModelClient struct {
 	initialRevision  int64
 	contextUsage     *sessionContextUsageRecorder
 	contextBudget    *sessionRunnerRequestContextBudget
+	contextOptions   SessionRunnerChatOptions
 
 	mu                  sync.RWMutex
 	lastSuccessfulModel string
@@ -42,6 +44,7 @@ type sessionRunnerResolvedModelClient struct {
 	model             string
 	selection         string
 	selectionRevision int64
+	contextProfile    *providers.ModelProfile
 }
 
 type sessionRunnerModelCallError struct {
@@ -147,12 +150,12 @@ func (client *sessionRunnerDynamicModelClient) resolve(ctx context.Context) (ses
 	if client == nil {
 		return sessionRunnerResolvedModelClient{}, errors.New("dynamic session model runtime is unavailable")
 	}
-	if initial, ready, err := client.takeInitial(ctx); err != nil {
-		return sessionRunnerResolvedModelClient{}, err
-	} else if ready {
-		return initial, nil
-	}
 	if client.server == nil {
+		if initial, ready, err := client.takeInitial(ctx); err != nil {
+			return sessionRunnerResolvedModelClient{}, err
+		} else if ready {
+			return initial, nil
+		}
 		return sessionRunnerResolvedModelClient{}, errors.New("dynamic session model runtime is unavailable")
 	}
 	session := client.session
@@ -189,7 +192,7 @@ func (client *sessionRunnerDynamicModelClient) resolve(ctx context.Context) (ses
 		}, err
 	}
 	if profile == nil {
-		if client.fallback == nil {
+		if client.fallback == nil || client.contextOptions.RequireSavedModel {
 			return sessionRunnerResolvedModelClient{
 				selection: snapshot.Selection, selectionRevision: snapshot.Revision,
 			}, errors.New("dynamic session model has no configured provider")
@@ -199,6 +202,15 @@ func (client *sessionRunnerDynamicModelClient) resolve(ctx context.Context) (ses
 			client: client.fallback, identity: "fallback\x00" + model, model: model,
 			selection: snapshot.Selection, selectionRevision: snapshot.Revision,
 		}, nil
+	}
+	// Selection revision alone does not detect edits to the selected profile.
+	// Resolve current authority first; reuse preparation only for the exact same
+	// private profile (including window/generation controls and credential).
+	// Comparison emits no profile or credential data.
+	if initial, ready, err := client.takeInitial(ctx); err != nil {
+		return sessionRunnerResolvedModelClient{}, err
+	} else if ready && reflect.DeepEqual(initial.contextProfile, profile) {
+		return initial, nil
 	}
 	delegate, err := providers.NewRuntimeModelClient(*profile, client.server.httpClient, client.audit)
 	if err != nil {
@@ -215,6 +227,7 @@ func (client *sessionRunnerDynamicModelClient) resolve(ctx context.Context) (ses
 			strings.TrimSpace(profile.Model),
 		}, "\x00"),
 		model: strings.TrimSpace(profile.Model), selection: snapshot.Selection, selectionRevision: snapshot.Revision,
+		contextProfile: profile,
 	}, nil
 }
 
@@ -270,19 +283,21 @@ func (client *sessionRunnerDynamicModelClient) Complete(
 	ctx context.Context,
 	request agentruntime.ModelRequest,
 ) (agentruntime.ModelResponse, error) {
-	if client != nil {
-		if err := client.contextBudget.beforeCall(ctx, request); err != nil {
-			client.recordContextPressure(ctx, request, err)
-			return agentruntime.ModelResponse{}, err
-		}
+	if ctx != nil && ctx.Err() != nil {
+		return agentruntime.ModelResponse{}, ctx.Err()
 	}
 	resolved, err := client.resolve(ctx)
 	if err != nil {
 		return agentruntime.ModelResponse{}, wrapResolvedSessionRunnerModelCallError(err, resolved)
 	}
 	for {
+		capacity := contextCapacityForModel(resolved.contextProfile, client.contextOptions)
+		if err := client.contextBudget.beforeCall(ctx, request, capacity); err != nil {
+			client.recordContextPressure(ctx, request, err, resolved)
+			return agentruntime.ModelResponse{}, err
+		}
 		recorder := contextUsageRecorderForCall(ctx, client.contextUsage)
-		usage := recorder.begin(resolved.model, request)
+		usage := recorder.begin(resolved.model, request, capacity)
 		response, callErr := resolved.client.Complete(ctx, request)
 		recorder.finish(usage, response, callErr)
 		if callErr == nil {
@@ -310,11 +325,8 @@ func (client *sessionRunnerDynamicModelClient) CompleteStream(
 	request agentruntime.ModelRequest,
 	emit func(agentruntime.ModelStreamEvent) error,
 ) (agentruntime.ModelResponse, error) {
-	if client != nil {
-		if err := client.contextBudget.beforeCall(ctx, request); err != nil {
-			client.recordContextPressure(ctx, request, err)
-			return agentruntime.ModelResponse{}, err
-		}
+	if ctx != nil && ctx.Err() != nil {
+		return agentruntime.ModelResponse{}, ctx.Err()
 	}
 	resolved, err := client.resolve(ctx)
 	if err != nil {
@@ -343,8 +355,13 @@ func (client *sessionRunnerDynamicModelClient) CompleteStream(
 		return target.client.Complete(ctx, request)
 	}
 	for {
+		capacity := contextCapacityForModel(resolved.contextProfile, client.contextOptions)
+		if err := client.contextBudget.beforeCall(ctx, request, capacity); err != nil {
+			client.recordContextPressure(ctx, request, err, resolved)
+			return agentruntime.ModelResponse{}, err
+		}
 		recorder := contextUsageRecorderForCall(ctx, client.contextUsage)
-		usage := recorder.begin(resolved.model, request)
+		usage := recorder.begin(resolved.model, request, capacity)
 		progress := recorder.streamProgress(usage)
 		response, callErr := complete(resolved, progress)
 		progress.finish(response, callErr)

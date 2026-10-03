@@ -108,19 +108,24 @@ const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({ conversationId, a
     ? t('conversation.contextUsage.policyUnavailable')
     : !policy.enabled
       ? t('conversation.contextUsage.compactionDisabled')
-      : t(
-          policy.source === 'token_override'
-            ? 'conversation.contextUsage.customThreshold'
-            : 'conversation.contextUsage.compactionTarget',
-          { percent: Number(policy.percent.toFixed(1)), tokens: formatTokenCount(policy.thresholdTokens) }
-        );
-  const usagePercent = usage ? (usage.usedTokens / usage.limitTokens) * 100 : 0;
+      : policy.source === 'unknown'
+        ? t('conversation.contextUsage.pressureRecovery')
+        : t(
+            policy.source === 'token_override'
+              ? policy.windowTokens > 0
+                ? 'conversation.contextUsage.customThreshold'
+                : 'conversation.contextUsage.customThresholdTokens'
+              : 'conversation.contextUsage.compactionTarget',
+            { percent: Number(policy.percent.toFixed(1)), tokens: formatTokenCount(policy.thresholdTokens) }
+          );
+  const capacityKnown = Boolean(usage && usage.limitTokens > 0);
+  const usagePercent = usage && capacityKnown ? (usage.usedTokens / usage.limitTokens) * 100 : 0;
   const rows = usage ? reconcileContextUsageBreakdown(usage) : [];
   // Keep the semantic legend order stable, but make the visual bar readable:
   // tiny shares are not swallowed by a later large segment and ties retain
   // the authoritative category order from reconcileContextUsageBreakdown.
   const barRows = rows.filter((row) => row.tokens > 0).toSorted((left, right) => left.tokens - right.tokens);
-  const barTotal = usage ? Math.max(usage.limitTokens, usage.usedTokens) : 1;
+  const barTotal = usage ? Math.max(1, usage.limitTokens, usage.usedTokens) : 1;
   const remaining = usage ? Math.max(0, barTotal - usage.usedTokens) : 0;
   const labels = {
     systemPrompt: t('conversation.contextUsage.systemPrompt'),
@@ -134,12 +139,14 @@ const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({ conversationId, a
         usage.source === 'provider'
           ? t('conversation.contextUsage.providerTotal')
           : t('conversation.contextUsage.estimatedTotal'),
-        usage.limitSource === 'configured'
-          ? t('conversation.contextUsage.configuredLimit')
-          : t('conversation.contextUsage.defaultLimit'),
+        usage.limitSource === 'model_profile'
+          ? t('conversation.contextUsage.modelProfileLimit')
+          : usage.limitSource === 'configured'
+            ? t('conversation.contextUsage.configuredLimit')
+            : t('conversation.contextUsage.unknownCapacity'),
         t('conversation.contextUsage.estimatedBreakdown'),
         t('conversation.contextUsage.breakdownNote'),
-        t('conversation.contextUsage.budgetNote'),
+        capacityKnown ? t('conversation.contextUsage.budgetNote') : t('conversation.contextUsage.compositionNote'),
         policyLabel,
         usage.progress ? t('conversation.contextUsage.streamEstimateNote') : '',
         usage.hasMedia ? t('conversation.contextUsage.mediaNote') : '',
@@ -204,15 +211,24 @@ const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({ conversationId, a
                   aria-label={t('conversation.contextUsage.title')}
                   aria-describedby={detailsId}
                 >
-                  <span className={styles.bigPercent} data-testid='context-usage-percent'>
-                    {usagePercent.toFixed(1)}%
+                  <span
+                    className={styles.bigPercent}
+                    data-testid={capacityKnown ? 'context-usage-percent' : 'context-usage-tokens'}
+                  >
+                    {capacityKnown
+                      ? `${usagePercent.toFixed(1)}%`
+                      : `${usage.source === 'estimated' ? '≈ ' : ''}${formatTokenCount(usage.usedTokens)}`}
                   </span>
                   <span className={styles.usedText}>
-                    {t('conversation.contextUsage.usedLabel')}{' '}
-                    <strong>
-                      {usage.source === 'estimated' ? '≈ ' : ''}
-                      {formatTokenCount(usage.usedTokens)} / {formatTokenCount(usage.limitTokens)}
-                    </strong>
+                    {capacityKnown
+                      ? t('conversation.contextUsage.usedLabel')
+                      : t('conversation.contextUsage.unknownCapacity')}{' '}
+                    {capacityKnown && (
+                      <strong>
+                        {usage.source === 'estimated' ? '≈ ' : ''}
+                        {formatTokenCount(usage.usedTokens)} / {formatTokenCount(usage.limitTokens)}
+                      </strong>
+                    )}
                   </span>
                 </div>
               </Tooltip>
@@ -237,7 +253,11 @@ const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({ conversationId, a
                       <i className={styles.legendDot} style={{ background: COLORS[row.key] }} aria-hidden='true' />
                       {labels[row.key]}
                     </span>
-                    <span className={styles.legendPercent}>{((row.tokens / usage.limitTokens) * 100).toFixed(1)}%</span>
+                    <span className={styles.legendPercent}>
+                      {capacityKnown
+                        ? `${((row.tokens / usage.limitTokens) * 100).toFixed(1)}%`
+                        : `≈ ${formatTokenCount(row.tokens)}`}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -245,10 +265,20 @@ const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({ conversationId, a
                 <span>{policyLabel}</span>
                 <span>
                   {t(
-                    usage.limitSource === 'configured'
+                    capacityKnown
                       ? 'conversation.contextUsage.configuredWindow'
-                      : 'conversation.contextUsage.defaultBudget'
+                      : 'conversation.contextUsage.compositionNote'
                   )}
+                </span>
+              </div>
+              <div className={styles.policy} data-testid='context-usage-observation'>
+                <span>
+                  {usage.source === 'provider'
+                    ? t('conversation.contextUsage.providerTotal')
+                    : t('conversation.contextUsage.estimatedTotal')}
+                </span>
+                <span>
+                  {usage.model} · {new Date(usage.observedAt).toLocaleString()}
                 </span>
               </div>
               {stale && (
@@ -299,18 +329,22 @@ const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({ conversationId, a
         aria-haspopup='dialog'
         title={
           usage
-            ? `${statusLabel} · ${usage.source === 'estimated' ? '≈ ' : ''}${usagePercent.toFixed(1)}%`
+            ? `${statusLabel} · ${usage.source === 'estimated' ? '≈ ' : ''}${capacityKnown ? `${usagePercent.toFixed(1)}%` : `${formatTokenCount(usage.usedTokens)} · ${t('conversation.contextUsage.unknownCapacity')}`}`
             : t('conversation.contextUsage.unavailable')
         }
         data-usage-state={state.status}
         className='inline-flex items-center justify-center cursor-pointer border-0 bg-transparent p-0'
       >
-        {usage ? (
+        {usage && capacityKnown ? (
           <UsageRing
             usedTokens={usage.usedTokens}
             limitTokens={usage.limitTokens}
-            threshold={policy?.enabled ? policy.thresholdTokens : undefined}
+            threshold={policy?.enabled && policy.thresholdTokens > 0 ? policy.thresholdTokens : undefined}
           />
+        ) : usage ? (
+          <span className={styles.unknown} data-testid='context-usage-capacity-unknown' aria-hidden='true'>
+            ?
+          </span>
         ) : state.status === 'loading' ? (
           <Spin size={16} />
         ) : (

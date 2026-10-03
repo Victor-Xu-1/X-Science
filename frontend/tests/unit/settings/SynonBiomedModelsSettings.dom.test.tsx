@@ -249,6 +249,24 @@ describe('SynonBiomedModelsSettingsContent', () => {
     fireEvent.click(screen.getByRole('button', { name: '保存' }));
     await waitFor(() => expect(mocks.save).toHaveBeenCalledTimes(1));
     expect(mocks.save.mock.calls[0][0]).not.toHaveProperty('maxTokens');
+    expect(mocks.save.mock.calls[0][0]).toHaveProperty('contextWindow', null);
+  });
+
+  it('saves a declared context window and clears it after endpoint changes', async () => {
+    mocks.load.mockResolvedValue({ ...snapshot, profiles: [{ ...snapshot.profiles[0], contextWindow: 128000 }] });
+    await renderWithI18n(<SynonBiomedModelsSettingsContent />, 'zh-CN');
+    await screen.findByText('Production DeepSeek');
+    fireEvent.click(screen.getByRole('button', { name: '编辑 Production DeepSeek' }));
+    expect(screen.getByLabelText('上下文窗口（token）')).toHaveValue('128000');
+    fireEvent.click(screen.getByRole('button', { name: '保存' }));
+    await waitFor(() => expect(mocks.save).toHaveBeenCalledTimes(1));
+    expect(mocks.save.mock.calls[0][0]).toHaveProperty('contextWindow', 128000);
+    fireEvent.click(screen.getByRole('button', { name: '编辑 Production DeepSeek' }));
+    fireEvent.change(screen.getByLabelText('Base URL'), { target: { value: 'https://other.invalid/v1' } });
+    expect(screen.getByLabelText('上下文窗口（token）')).toHaveValue('');
+    fireEvent.click(screen.getByRole('button', { name: '保存' }));
+    await waitFor(() => expect(mocks.save).toHaveBeenCalledTimes(2));
+    expect(mocks.save.mock.calls[1][0]).toHaveProperty('contextWindow', null);
   });
 
   it('editing a legacy model clears its stored cap for adaptive provider budgeting', async () => {

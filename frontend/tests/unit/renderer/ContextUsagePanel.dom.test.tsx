@@ -97,16 +97,38 @@ describe('ContextUsagePanel', () => {
     expect(trigger).toHaveFocus();
   });
 
-  it('identifies the default runner budget as unverified', async () => {
+  it('retires the guessed default capacity instead of drawing a misleading fullness ring', async () => {
     const defaultBudget = usage();
     defaultBudget.snapshot.limitSource = 'runner_default';
     vi.mocked(fetch).mockImplementation(() => Promise.resolve(new Response(JSON.stringify(defaultBudget))));
     await renderWithI18n(<ContextUsagePanel conversationId='conversation-1' />, 'en-US');
     fireEvent.click(screen.getByTestId('synon-biomed-context-usage-trigger'));
-    expect(await screen.findByTestId('context-usage-percent')).toHaveTextContent('20.0%');
+    expect(await screen.findByTestId('context-usage-tokens')).toHaveTextContent('20');
+    expect(screen.queryByTestId('context-usage-percent')).not.toBeInTheDocument();
+    expect(screen.getByTestId('context-usage-capacity-unknown')).toHaveTextContent('?');
+    expect(screen.getByTestId('synon-biomed-context-usage-trigger').querySelector('svg')).toBeNull();
     const summary = screen.getByRole('group');
     expect(document.getElementById(summary.getAttribute('aria-describedby') ?? '')).toHaveTextContent(
-      'not a verified model limit'
+      'Model capacity unknown'
+    );
+  });
+
+  it('shows the declared current-model capacity and correct ring fraction', async () => {
+    const profile = usage(64000);
+    profile.snapshot.limitTokens = 128000;
+    profile.snapshot.limitSource = 'model_profile';
+    vi.mocked(fetch).mockImplementation(() => Promise.resolve(new Response(JSON.stringify(profile))));
+    await renderWithI18n(<ContextUsagePanel conversationId='conversation-1' />, 'en-US');
+    const trigger = screen.getByTestId('synon-biomed-context-usage-trigger');
+    fireEvent.click(trigger);
+    expect(await screen.findByTestId('context-usage-percent')).toHaveTextContent('50.0%');
+    const ring = trigger.querySelectorAll('circle')[1];
+    expect(Number(ring.getAttribute('stroke-dashoffset')) / Number(ring.getAttribute('stroke-dasharray'))).toBeCloseTo(
+      0.5
+    );
+    expect(screen.getByTestId('context-usage-observation')).toHaveTextContent('model');
+    expect(document.getElementById(screen.getByRole('group').getAttribute('aria-describedby') ?? '')).toHaveTextContent(
+      'not provider-verified'
     );
   });
 

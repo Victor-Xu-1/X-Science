@@ -27,6 +27,13 @@ batches and generic input/output fallbacks do not define the public layout.
   second recovery loop. Existing durable preparation and tool checkpoints
   carry the current lifecycle phase rather than publishing a competing event
   stream.
+- Context capacity has no guessed default. A nullable, owner-scoped provider
+  profile declaration follows its exact provider/model/endpoint identity; an
+  explicit session budget may only reduce it. Model resolution precedes request
+  admission, including pre-output handoffs. The same capacity binds admission,
+  compaction and immutable per-call usage metadata. Unknown capacity cannot
+  produce a fullness percentage or a fabricated soft threshold; actual provider
+  context rejection still uses the existing durable recovery transition.
 - Context pressure uses the fully assembled main-agent request, including
   runtime system/Skill/MCP context and currently exposed function schemas,
   before either provider transport. Reaching the configured soft budget

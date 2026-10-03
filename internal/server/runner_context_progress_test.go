@@ -90,7 +90,7 @@ func TestContextProgressPressureUsesExistingGuardAndSkipsCancellation(t *testing
 			t.Fatal("existing budget guard lost")
 		}
 		got := readContextUsageTest(t, store, "pressure")
-		if !client.initialReady || got.UsedTokens != 800 || got.Progress == nil || got.Progress.Phase != "compacting" || got.Progress.OutputTokens != 0 {
+		if client.initialReady || got.UsedTokens != 800 || got.Progress == nil || got.Progress.Phase != "compacting" || got.Progress.OutputTokens != 0 {
 			t.Fatalf("pressure was not visible before dispatch: %+v", got)
 		}
 		if !validRunnerContextProgress(got) {
