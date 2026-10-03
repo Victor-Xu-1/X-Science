@@ -112,6 +112,15 @@ go test ./internal/persistence/workspace -run '^TestTranscriptWebProjectorV70|^T
 任务完成进度。沿现有 `GET /api/conversations/:id/context-usage` 授权查询读取数值；
 响应可选 `progress` 保存流式文本的数值估算和状态，最多每秒持久化一次，不保存文本
 或私有推理。结束后由供应商用量校准；旧请求的迟到事件不能覆盖新请求或恢复已删除状态。
+分类保留各类实际输入的本地估算，不为凑齐供应商总量而缩放；显示本地组成总量与供应商回报之间
+的差值。生成时的估算和同一模型/窗口的上次供应商确认读数分别标注，不互相冒充。
+输入框同时显示百分比或 token 数；容量未知时不再只显示一个无法解释的空圆环。
+
+接口可选 `history` 是同一 runtimekv 命名空间内原子读取的数值窗口历史，最多保留 128 次请求，
+并单独保留记录以来的供应商峰值及该次模型/容量。它不保存输入文本、响应文本或私有推理，随
+任务删除一并清理。历史柱图每柱一请求，可点击核对来源、模型、容量和时间；实测与估算区分，
+压缩准备不冒称压缩已完成。未知容量、模型切换、流更新及保留期截断不重新绑定旧凭据。
+旧任务仅有最新一条时明确标注缺少早期历史；已观测次数不等于整个任务累计调用/计费用量。
 工具静默计算不会虚增上下文，未报告的私有推理与工具参数不猜测计数。
 
 运行中或展开面板时每五秒查询。暂时网络故障按 1/2/4 秒有界重试，保留上次读数并
@@ -128,9 +137,9 @@ Token 覆盖或关闭设置在界面说明，显式阈值不能超过已声明�
 和用量快照，已发出的请求保持自己的模型/窗口。压缩前后的记录不删除用户可见历史。
 
 ```sh
-go test ./internal/server -run 'TestContextUsage|TestContextProgress|TestContextCompactionPolicy|TestWebContextUsage|TestRequestContextBudget' -count=1
+go test ./internal/server -run 'TestContextUsage|TestContextProgress|TestContextHistory|TestContextCompactionPolicy|TestWebContextHistory|TestWebContextUsage|TestRequestContextBudget' -count=1
 cd frontend
-npm run test:unit -- tests/unit/renderer/contextUsage.test.ts tests/unit/renderer/ContextUsagePanel.dom.test.tsx
+npm run test:unit -- tests/unit/renderer/contextUsage.test.ts tests/unit/renderer/contextWindowHistory.test.ts tests/unit/renderer/ContextUsagePanel.dom.test.tsx
 node tests/web-e2e/contextUsagePanel.browser.mjs
 ```
 

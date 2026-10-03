@@ -36,6 +36,44 @@ const policy = {
   source: 'window_percent',
 };
 function responseBody() {
+  if (mode === 'history') {
+    const samples = [850, 950, 950, 200, 90].map((usedTokens, index) => ({
+      ...snapshot,
+      requestId: `history-${index}`,
+      usedTokens,
+      outputTokens: 0,
+      model: index === 4 ? 'new-model' : 'earlier-model',
+      limitTokens: index === 4 ? 0 : 1000,
+      limitSource: index === 4 ? 'unknown' : 'model_profile',
+      inputEstimates: snapshot.inputEstimates.map((row) => ({
+        ...row,
+        tokens: row.key === 'messages' ? usedTokens : 0,
+      })),
+      ...(index === 2
+        ? {
+            state: 'request',
+            source: 'estimated',
+            progress: {
+              phase: 'compacting',
+              observedAt: snapshot.observedAt,
+              usedTokens,
+              outputTokens: 0,
+            },
+          }
+        : {}),
+    }));
+    return {
+      status: 'available',
+      snapshot: samples[4],
+      history: {
+        sessionId: snapshot.sessionId,
+        totalObserved: 5,
+        coverage: 'recorded',
+        samples,
+        peak: samples[1],
+      },
+    };
+  }
   const record =
     mode === 'stream'
       ? {
@@ -43,6 +81,10 @@ function responseBody() {
           usedTokens: 60_000,
           state: 'request',
           source: 'estimated',
+          inputEstimates: snapshot.inputEstimates.map((row) => ({
+            ...row,
+            tokens: row.key === 'messages' ? 2400 : row.tokens,
+          })),
           progress: {
             phase: 'generating',
             observedAt: new Date().toISOString(),
@@ -127,8 +169,8 @@ try {
   await expect(panel.getByTestId('context-usage-percent')).toContainText('116.1%');
   await expect(panel.getByTestId('context-usage-legend')).toContainText('工具及子智能体');
   await expect(panel.getByTestId('context-usage-legend')).toContainText('连接器及MCP');
-  for (const percent of ['5.8%', '11.4%', '96.9%', '0.1%', '1.9%']) {
-    await expect(panel.getByTestId('context-usage-legend')).toContainText(percent);
+  for (const estimate of ['≈ 17.4K', '≈ 34.2K', '≈ 290.6K', '≈ 300', '≈ 5.7K']) {
+    await expect(panel.getByTestId('context-usage-legend')).toContainText(estimate);
   }
   const visibleText = await panel.innerText();
   assert.ok(visibleText.includes('已使用 348.2K / 300.0K'));
@@ -137,8 +179,8 @@ try {
   const descriptionId = await summary.getAttribute('aria-describedby');
   assert.ok(descriptionId);
   const desktopBounds = await panel.boundingBox();
-  assert.ok(desktopBounds && desktopBounds.width <= 300, JSON.stringify(desktopBounds));
-  assert.ok(desktopBounds && desktopBounds.height <= 340, JSON.stringify(desktopBounds));
+  assert.ok(desktopBounds && desktopBounds.width <= 380, JSON.stringify(desktopBounds));
+  assert.ok(desktopBounds && desktopBounds.height <= 470, JSON.stringify(desktopBounds));
   const barLayout = await panel.getByTestId('context-usage-bar').evaluate((bar) => ({
     gap: getComputedStyle(bar).gap,
     categories: [...bar.querySelectorAll('[data-category]')].map((segment) => segment.getAttribute('data-category')),
@@ -243,7 +285,7 @@ try {
   await page.reload();
   await trigger.click();
   await expect(panel.getByTestId('context-usage-percent')).toContainText('0.0%');
-  await expect(panel.getByTestId('context-usage-legend')).toContainText('0.0%');
+  await expect(panel.getByTestId('context-usage-legend')).toContainText('≈ 0');
   mode = 'configured';
   await page.reload();
   await trigger.click();
@@ -277,6 +319,22 @@ try {
   await page.reload();
   await trigger.click();
   await expect(panel.getByTestId('context-usage-percent')).toHaveText('116.1%');
+  mode = 'history';
+  await page.reload();
+  await trigger.click();
+  await expect(panel.getByTestId('context-window-peak')).toContainText('950 / 1.0K · 95.0%');
+  await expect(panel.getByTestId('context-window-selected')).toContainText('new-model');
+  await expect(panel.getByTestId('context-window-selected')).toContainText('模型容量未知');
+  await expect(trigger.getByTestId('context-usage-trigger-value')).toHaveText('90');
+  const historyButtons = panel.getByTestId('context-window-history').getByRole('button');
+  await historyButtons.nth(1).click();
+  await expect(panel.getByTestId('context-window-selected')).toContainText('95.0%');
+  await expect(panel.getByTestId('context-window-selected')).toContainText('earlier-model');
+  await historyButtons.nth(2).click();
+  await expect(panel.getByTestId('context-window-selected')).toContainText('不代表压缩已完成');
+  await historyButtons.nth(3).click();
+  await expect(panel.getByTestId('context-window-selected')).toContainText('20.0%');
+  await page.screenshot({ path: join(artifacts, 'window-history.png'), fullPage: true });
   assert.ok(apiPaths.length >= 4);
   assert.ok(apiPaths.every((path) => path === '/api/conversations/browser-context-usage/context-usage'));
   assert.deepEqual(errors, []);

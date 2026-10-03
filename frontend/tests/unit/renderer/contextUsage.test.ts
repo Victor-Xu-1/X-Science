@@ -9,7 +9,7 @@ import {
   fetchContextUsage,
   parseContextUsage,
   projectContextUsage,
-  reconcileContextUsageBreakdown,
+  estimateContextUsageBreakdown,
   type ContextUsageSnapshot,
 } from '@/renderer/services/contextUsage';
 
@@ -90,7 +90,7 @@ describe('context usage contract', () => {
     expect(projected.usedTokens).toBe(28);
     expect(projected.outputTokens).toBe(8);
     expect(value.usedTokens).toBe(20);
-    expect(reconcileContextUsageBreakdown(projected).reduce((total, row) => total + row.tokens, 0)).toBe(28);
+    expect(estimateContextUsageBreakdown(projected).reduce((total, row) => total + row.tokens, 0)).toBe(24);
     for (const progress of [
       { ...value.progress, usedTokens: 99 },
       { ...value.progress, phase: 'invented' },
@@ -124,19 +124,19 @@ describe('context usage contract', () => {
       row.tokens = 0;
     });
     expect(parseContextUsage({ status: 'available', snapshot: value }, 'one').status).toBe('available');
-    expect(reconcileContextUsageBreakdown(value).every((row) => row.tokens === 0)).toBe(true);
+    expect(estimateContextUsageBreakdown(value).every((row) => row.tokens === 0)).toBe(true);
   });
 
-  it('reconciles actual input weights to provider usage with deterministic largest remainders', () => {
+  it('preserves category estimates when provider counters disagree instead of scaling them', () => {
     const value = snapshot();
     value.usedTokens = 10;
     value.outputTokens = 3;
     value.inputEstimates.forEach((row) => {
       row.tokens = 1;
     });
-    expect(reconcileContextUsageBreakdown(value)).toEqual([
-      { key: 'systemPrompt', tokens: 2 },
-      { key: 'tools', tokens: 2 },
+    expect(estimateContextUsageBreakdown(value)).toEqual([
+      { key: 'systemPrompt', tokens: 1 },
+      { key: 'tools', tokens: 1 },
       { key: 'messages', tokens: 4 },
       { key: 'mcp', tokens: 1 },
       { key: 'skills', tokens: 1 },
@@ -155,7 +155,7 @@ describe('context usage contract', () => {
       { key: 'mcp', tokens: 300 },
       { key: 'skills', tokens: 5_700 },
     ];
-    const rows = reconcileContextUsageBreakdown(value);
+    const rows = estimateContextUsageBreakdown(value);
     expect(rows.map((row) => ((row.tokens / value.limitTokens) * 100).toFixed(1))).toEqual([
       '5.8',
       '11.4',
@@ -166,16 +166,15 @@ describe('context usage contract', () => {
     expect(rows.reduce((total, row) => total + row.tokens, 0)).toBe(value.usedTokens);
   });
 
-  it('does not lose tokens when the sum of input weights exceeds Number.MAX_SAFE_INTEGER', () => {
+  it('rejects unsafe category sums rather than normalizing them to a plausible total', () => {
     const value = snapshot();
     value.usedTokens = Number.MAX_SAFE_INTEGER;
     value.outputTokens = 1;
     value.inputEstimates.forEach((row) => {
       row.tokens = Number.MAX_SAFE_INTEGER;
     });
-    const rows = reconcileContextUsageBreakdown(value);
-    expect(rows.reduce((total, row) => total + row.tokens, 0)).toBe(value.usedTokens);
-    expect(rows[2].tokens).toBeGreaterThan(rows[0].tokens);
+    expect(() => estimateContextUsageBreakdown(value)).toThrow('estimate total');
+    expect(() => parseContextUsage({ status: 'available', snapshot: value }, 'one')).toThrow('estimate total');
   });
 
   it('makes missing telemetry explicit instead of loading or zero', () => {

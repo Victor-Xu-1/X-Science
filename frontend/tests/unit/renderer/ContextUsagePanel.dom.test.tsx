@@ -61,6 +61,67 @@ const usage = (usedTokens = 20, sessionId = 'conversation-1') => ({
 });
 
 describe('ContextUsagePanel', () => {
+  it('exposes unscaled estimates, receipt delta and selectable near-full history', async () => {
+    const current = usage(20);
+    const peak = { ...current.snapshot, requestId: 'peak', usedTokens: 95, model: 'earlier-model' };
+    vi.mocked(fetch).mockImplementation(() =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            ...current,
+            history: {
+              sessionId: current.snapshot.sessionId,
+              totalObserved: 2,
+              coverage: 'recorded',
+              samples: [peak, current.snapshot],
+              peak,
+            },
+          })
+        )
+      )
+    );
+    await renderWithI18n(<ContextUsagePanel conversationId='conversation-1' />, 'en-US');
+    fireEvent.click(screen.getByTestId('synon-biomed-context-usage-trigger'));
+    expect(await screen.findByTestId('context-window-peak')).toHaveTextContent('95 / 100 · 95.0%');
+    expect(screen.getByTestId('context-usage-diagnostics')).toHaveTextContent('Local composition estimate: ≈ 19');
+    expect(screen.getByTestId('context-usage-diagnostics')).toHaveTextContent('Provider minus local estimate: +1');
+    expect(screen.getByTestId('context-usage-legend')).toHaveTextContent('≈ 4');
+    fireEvent.click(screen.getByRole('button', { name: /^1 · earlier-model/ }));
+    expect(screen.getByTestId('context-window-selected')).toHaveTextContent('earlier-model');
+    expect(screen.getByTestId('context-window-selected')).toHaveTextContent('95.0%');
+    expect(screen.getByTestId('context-window-selected')).toHaveTextContent('not cumulative billing');
+  });
+
+  it('keeps live local and last-confirmed provider windows separate', async () => {
+    const current = usage(25);
+    const confirmed = { ...current.snapshot, requestId: 'confirmed', usedTokens: 20 };
+    const pending = { ...current.snapshot, source: 'estimated', state: 'request', outputTokens: 0 };
+    vi.mocked(fetch).mockImplementation(() =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            ...current,
+            snapshot: pending,
+            history: {
+              sessionId: pending.sessionId,
+              totalObserved: 2,
+              coverage: 'recorded',
+              samples: [confirmed, pending],
+              peak: confirmed,
+            },
+          })
+        )
+      )
+    );
+    await renderWithI18n(<ContextUsagePanel conversationId='conversation-1' active />, 'en-US');
+    fireEvent.click(screen.getByTestId('synon-biomed-context-usage-trigger'));
+    expect(await screen.findByTestId('context-usage-diagnostics')).toHaveTextContent(
+      'Last confirmed provider window: 20'
+    );
+    expect(screen.getByTestId('context-usage-percent')).toHaveTextContent('25.0%');
+    expect(screen.getByTestId('context-usage-trigger-value')).toHaveTextContent('≈ 25%');
+  });
+
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.stubGlobal(
@@ -156,7 +217,7 @@ describe('ContextUsagePanel', () => {
     fireEvent.click(screen.getByTestId('synon-biomed-context-usage-trigger'));
     expect(await screen.findByTestId('context-usage-percent')).toHaveTextContent('0.0%');
     expect(screen.queryByTestId('context-usage-loading')).not.toBeInTheDocument();
-    expect(screen.getByTestId('context-usage-legend')).toHaveTextContent('0.0%');
+    expect(screen.getByTestId('context-usage-legend')).toHaveTextContent('≈ 0');
     expect(screen.getByTestId('context-usage-legend')).not.toHaveTextContent('响应 token');
   });
 
