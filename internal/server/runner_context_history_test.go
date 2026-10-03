@@ -90,3 +90,30 @@ func TestContextHistoryLegacyCoverageAndInvalidHistoryAreExplicit(t *testing.T) 
 		t.Fatal("foreign/corrupt history silently presented as valid")
 	}
 }
+
+func TestContextHistoryNextRequestRetainsInterruptedStreamProjection(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "history.sqlite")
+	store := runtimekv.New(path)
+	recorder := &sessionContextUsageRecorder{store: store, sessionID: "interrupted-history", attempt: 1, limit: 1000, limitSource: "configured"}
+	first := recorder.begin("model", agentruntime.ModelRequest{})
+	first.Progress = &runnerContextProgress{Phase: "generating", ObservedAt: time.Now().UTC(), UsedTokens: first.UsedTokens + 123, OutputTokens: 123}
+	if err := recorder.persist(*first, true); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Close(); err != nil {
+		t.Fatal(err)
+	}
+	// Reopen the actual database without a finish callback, as after a crash.
+	store = runtimekv.New(path)
+	t.Cleanup(func() { _ = store.Close() })
+	recorder = &sessionContextUsageRecorder{store: store, sessionID: first.SessionID, attempt: 2, limit: 1000, limitSource: "configured"}
+	second := recorder.begin("model", agentruntime.ModelRequest{})
+	if second == nil {
+		t.Fatal("next request not recorded")
+	}
+	_, history, _, err := readRunnerContextUsage(store, first.SessionID)
+	if err != nil || len(history.Samples) != 2 || history.Samples[0].Progress == nil ||
+		history.Samples[0].Progress.OutputTokens != 123 || history.Samples[0].Progress.UsedTokens != first.Progress.UsedTokens {
+		t.Fatalf("new request discarded the prior durable stream projection: err=%v history=%+v", err, history)
+	}
+}

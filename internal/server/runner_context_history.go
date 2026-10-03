@@ -69,6 +69,20 @@ func recordRunnerContextHistory(entries map[string]runtimekv.Entry, snapshot run
 		if err != nil {
 			return err
 		}
+		last := len(history.Samples) - 1
+		if history.Samples[last].RequestID != snapshot.RequestID {
+			// Streaming persists only latest. Preserve its durable projection
+			// before a new request makes the previous sample historical, even
+			// when the previous process never reached its finish callback.
+			previous, err := decodeRunnerContextUsage(entries["latest"])
+			if err != nil {
+				return err
+			}
+			if previous.SessionID != snapshot.SessionID || previous.RequestID != history.Samples[last].RequestID {
+				return errors.New("context history order does not match latest request")
+			}
+			history.Samples[last] = previous
+		}
 	} else if entry, found := entries["latest"]; found {
 		previous, err := decodeRunnerContextUsage(entry)
 		if err == nil {
