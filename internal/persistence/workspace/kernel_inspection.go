@@ -146,7 +146,7 @@ func (s *Store) ListKernelArtifacts(ctx context.Context, ownerUserID, currentPro
 		CASE WHEN COALESCE(v.storage_path,'')='' THEN length(v.content) ELSE v.size_bytes END,
 		v.id,NULLIF(v.content_sha256,''),v.version_number,COALESCE(m.is_user_upload,0),COALESCE(m.is_ephemeral,0),
 		a.folder_id,a.priority,p.agent_name,p.language,
-		COALESCE(p.is_intermediate,0),COALESCE(p.is_checkpoint,0),a.created_at,a.updated_at
+		` + artifactEffectiveIntermediateSQL + `,COALESCE(p.is_checkpoint,0),a.created_at,a.updated_at
 		FROM artifacts a
 		JOIN projects project ON project.id=a.project_id
 		JOIN artifact_versions v ON v.artifact_id=a.id AND v.version_number=a.current_version_number
@@ -180,7 +180,7 @@ func (s *Store) ListKernelArtifacts(ctx context.Context, ownerUserID, currentPro
 		arguments = append(arguments, contentType+"%")
 	}
 	if !options.IncludeIntermediate {
-		query += ` AND COALESCE(p.is_intermediate,0)=0`
+		query += ` AND NOT ` + artifactEffectiveIntermediateSQL
 	}
 	if options.After != nil {
 		query += ` AND a.created_at>?`

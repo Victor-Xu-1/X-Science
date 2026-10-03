@@ -120,3 +120,36 @@ func TestArtifactDeliveryProjectionDoesNotCrossOwnerOrAbandonedBranch(t *testing
 		t.Fatalf("abandoned draft state=%t found=%t err=%v", intermediate, found, err)
 	}
 }
+
+func TestArtifactDeliveryExactMessageReferenceMatchesRecoveredLibrary(t *testing.T) {
+	f := newAgentSaveArtifactsFixture(t)
+	artifact := saveRoundPresentationFile(t, f, "reference-output", "result.txt", "completed immutable bytes")
+	finishRoundPresentation(t, f, "completed")
+	refs := []workspace.CompatibilityArtifactVersionReference{{
+		ArtifactID: stringValue(artifact["artifact_id"]), VersionID: stringValue(artifact["version_id"]),
+	}}
+	files, err := f.store.ListAvailableCompatibilityConversationArtifactVersionsByReferences(
+		context.Background(), f.stream.OwnerID, f.stream.ProjectID, f.stream.RootFrameID, refs,
+	)
+	if err != nil || len(files) != 1 || files[0].IsIntermediate {
+		t.Fatalf("message reference hydration differs from recovered library: %#v %v", files, err)
+	}
+	byVersion, err := f.store.ListAvailableCompatibilityConversationArtifactVersionsByVersionIDs(
+		context.Background(), f.stream.OwnerID, f.stream.ProjectID, f.stream.RootFrameID, []string{refs[0].VersionID},
+	)
+	if err != nil || len(byVersion) != 1 || byVersion[0].IsIntermediate {
+		t.Fatalf("version-only message hydration differs: %#v %v", byVersion, err)
+	}
+	browsed, total, err := f.store.ListKernelArtifacts(context.Background(), f.stream.OwnerID, f.stream.ProjectID, workspace.KernelArtifactBrowseOptions{})
+	if err != nil || total != 1 || len(browsed) != 1 || browsed[0].IsIntermediate {
+		t.Fatalf("kernel artifact browser differs: %#v total=%d err=%v", browsed, total, err)
+	}
+	name := "copied-result.txt"
+	copy, err := f.store.CopyCompatibilityArtifactRealtime(context.Background(), f.stream.OwnerID, refs[0].ArtifactID, &name, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, intermediate, found, err := f.store.ArtifactCurrentPresentationState(copy.NewArtifactID); err != nil || !found || intermediate {
+		t.Fatalf("copy of recovered delivery became hidden: %t %t %v", intermediate, found, err)
+	}
+}

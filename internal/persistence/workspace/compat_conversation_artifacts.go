@@ -198,7 +198,7 @@ func (s *Store) listCompatibilityConversationArtifactVersionsByReferences(
 			CASE WHEN COALESCE(v.storage_path, '') = '' THEN length(v.content) ELSE v.size_bytes END,
 			v.created_at, NULLIF(v.content_sha256, ''), COALESCE(v.storage_path, ''),
 			COALESCE(m.is_user_upload, 0), p.agent_name, p.language,
-			COALESCE(p.is_intermediate, 0), a.retention_mode, a.priority,
+			` + artifactEffectiveIntermediateSQL + `, a.retention_mode, a.priority,
 			(SELECT first_v.id FROM artifact_versions first_v
 			 WHERE first_v.artifact_id = a.id
 			 ORDER BY first_v.version_number, first_v.id LIMIT 1),
