@@ -187,7 +187,8 @@ export const inferDockingAromaticCycles = (
 ): number[][] => {
   const adjacency = new Map<number, number[]>();
   const bondsByKey = new Map<string, DockingAromaticBond>();
-  bonds.forEach((bond) => {
+  const candidateBonds = geometryFallback ? bonds : bonds.filter((bond) => bond.aromatic);
+  candidateBonds.forEach((bond) => {
     bondsByKey.set(dockingBondKey(bond.atomA, bond.atomB), bond);
     adjacency.set(bond.atomA, [...(adjacency.get(bond.atomA) ?? []), bond.atomB]);
     adjacency.set(bond.atomB, [...(adjacency.get(bond.atomB) ?? []), bond.atomA]);

@@ -1450,10 +1450,10 @@ export async function createMolstarStructureEngine(
     );
     const data = trajectory.cell?.obj?.data;
     if (restored && data) {
-      for (let index = 0; index < data.frameCount; index += 1) {
-        const model = await Task.resolveInContext(data.getFrameAtIndex(index));
-        restoredSmiles.set(model, restored.smiles[index]);
-      }
+      const models = await Promise.all(
+        Array.from({ length: data.frameCount }, (_, index) => Task.resolveInContext(data.getFrameAtIndex(index)))
+      );
+      models.forEach((model, index) => restoredSmiles.set(model, restored.smiles[index]));
     }
     return trajectory;
   };
