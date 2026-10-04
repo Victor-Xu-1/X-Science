@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "d4b1e072f41206d8f74c951794cc22a07c4978a0e7dc32df95abb38682d861e0",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
-  "additionFingerprintSHA256": "e52596b90e929a88f1cd1e485667e6efa965c9d35e52806a982f50be415f5f69",
+  "additionFingerprintSHA256": "3c0bc0cf842b1a4e889e5f09e53557d54d75959f57df1c0454c6faf94a1233cd",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 397,
@@ -10509,8 +10509,8 @@
     },
     {
       "path": "tests/web-e2e/ligandTopology.browser.mjs",
-      "sha256": "14470ee00b733171cc128685091a2ce9e0d9b1851795bb5fb39b3b7e018e0830",
-      "bytes": 5628,
+      "sha256": "77fd085dd5a9ae352b57ee926a10c835e1a27e47609fc662fbac52d32ec80119",
+      "bytes": 6184,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
