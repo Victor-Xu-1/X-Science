@@ -12,17 +12,23 @@ export type StructureObjectListLabels = {
   colorOptions: readonly string[];
   selectAll: string;
   clearAll: string;
+  comparison: string;
+  selectLigand: (label: string) => string;
 };
 
 type StructureObjectListProps = {
   objects: readonly StructureObjectSummary[];
   visibility: Readonly<Record<StructureObjectKind, boolean>>;
+  selectedLigandIds: readonly string[];
+  comparison: boolean;
   labels: StructureObjectListLabels;
   disabled?: boolean;
   ligandColorOptions: readonly number[];
   ligandColorIndex: number;
   ligandColorExpanded: boolean;
   onToggle: (kind: StructureObjectKind) => void;
+  onSelectLigand: (id: string) => void;
+  onComparisonChange: (enabled: boolean) => void;
   onToggleLigandColor: () => void;
   onSelectLigandColor: (index: number) => void;
   onSelectAll: () => void;
@@ -32,12 +38,16 @@ type StructureObjectListProps = {
 export const StructureObjectList: React.FC<StructureObjectListProps> = ({
   objects,
   visibility,
+  selectedLigandIds,
+  comparison,
   labels,
   disabled = false,
   ligandColorOptions,
   ligandColorIndex,
   ligandColorExpanded,
   onToggle,
+  onSelectLigand,
+  onComparisonChange,
   onToggleLigandColor,
   onSelectLigandColor,
   onSelectAll,
@@ -54,12 +64,18 @@ export const StructureObjectList: React.FC<StructureObjectListProps> = ({
     </header>
     <div className='synon-biomed-molstar__compound-list'>
       {objects.map((object) => {
-        const visible = visibility[object.kind];
+        const visible = visibility[object.kind] && (object.kind === 'protein' || selectedLigandIds.includes(object.id));
         const title = object.kind === 'protein' ? labels.protein : labels.ligand;
-        const toggleLabel = object.kind === 'protein' ? labels.toggleProtein : labels.toggleLigand;
+        const multi = objects.filter((object) => object.kind === 'ligand').length > 1;
+        const toggleLabel =
+          object.kind === 'protein'
+            ? labels.toggleProtein
+            : multi
+              ? labels.selectLigand(object.label ?? object.residueNames.join(', '))
+              : labels.toggleLigand;
         const detail =
           object.kind === 'ligand' && object.residueNames.length > 0
-            ? object.residueNames.join(', ')
+            ? (object.label ?? object.residueNames.join(', '))
             : labels.atoms(object.atomCount);
         return (
           <React.Fragment key={object.id}>
@@ -75,7 +91,7 @@ export const StructureObjectList: React.FC<StructureObjectListProps> = ({
                 aria-label={toggleLabel}
                 aria-pressed={visible}
                 disabled={disabled}
-                onClick={() => onToggle(object.kind)}
+                onClick={() => (object.kind === 'ligand' && multi ? onSelectLigand(object.id) : onToggle(object.kind))}
               >
                 <span className='synon-biomed-molstar__compound-marker' aria-hidden='true' />
                 <span className='synon-biomed-molstar__compound-copy'>
@@ -85,7 +101,7 @@ export const StructureObjectList: React.FC<StructureObjectListProps> = ({
                   {detail}
                 </span>
               </button>
-              {object.kind === 'ligand' && (
+              {object.kind === 'ligand' && selectedLigandIds.includes(object.id) && (
                 <button
                   type='button'
                   className='synon-biomed-molstar__compound-color-trigger'
@@ -105,7 +121,7 @@ export const StructureObjectList: React.FC<StructureObjectListProps> = ({
                 </button>
               )}
             </div>
-            {object.kind === 'ligand' && ligandColorExpanded && (
+            {object.kind === 'ligand' && selectedLigandIds.includes(object.id) && ligandColorExpanded && (
               <div
                 className='synon-biomed-molstar__compound-color-palette'
                 role='group'
@@ -131,7 +147,25 @@ export const StructureObjectList: React.FC<StructureObjectListProps> = ({
     </div>
     {objects.some((object) => object.kind === 'ligand') && (
       <footer className='synon-biomed-molstar__compound-bulk-actions'>
-        <button type='button' disabled={disabled || visibility.ligand} onClick={onSelectAll}>
+        {objects.filter((object) => object.kind === 'ligand').length > 1 && (
+          <button
+            type='button'
+            aria-pressed={comparison}
+            disabled={disabled}
+            onClick={() => onComparisonChange(!comparison)}
+          >
+            {labels.comparison}
+          </button>
+        )}
+        <button
+          type='button'
+          disabled={
+            disabled ||
+            (visibility.ligand &&
+              selectedLigandIds.length === objects.filter((object) => object.kind === 'ligand').length)
+          }
+          onClick={onSelectAll}
+        >
           {labels.selectAll}
         </button>
         <button type='button' disabled={disabled || !visibility.ligand} onClick={onClearAll}>

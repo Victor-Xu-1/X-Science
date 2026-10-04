@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "982b0e2063fbb3bffcff8ee14f67d93dc14df1ad10f95bc6c309a81bd12fc213",
+  "adaptationFingerprintSHA256": "d4b1e072f41206d8f74c951794cc22a07c4978a0e7dc32df95abb38682d861e0",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
-  "additionFingerprintSHA256": "0786c9352c138421255a58182a83d8d02e645a79f2b6f05dc6d829fb5ceeab52",
+  "additionFingerprintSHA256": "e52596b90e929a88f1cd1e485667e6efa965c9d35e52806a982f50be415f5f69",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 397,
     "adaptedSourceFiles": 667,
     "removedSourceFiles": 290,
-    "addedFiles": 742
+    "addedFiles": 746
   },
   "adaptations": [
     {
@@ -1424,8 +1424,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedStructureViewer.tsx",
       "sourceSHA256": "6cb430ff6d16123ef3da68f5af29d4dc093a1e5bb9e9b2655a3c01e2d1e2ecb1",
-      "targetSHA256": "5da84f05359c727e81d6a381263516357d93223e2cfe5a952c090bdfb024b379",
-      "bytes": 135673,
+      "targetSHA256": "9da8cd58f3fcb59486acdd97ce5efbd6856e3b932c2cd2c0de99cd4d140ceb9d",
+      "bytes": 140041,
       "reason": "Unify PDB, mmCIF, SDF, and related molecular formats on one Molstar preview with composition-aware controls, collapsed auxiliary panels, and source-fenced 2D interaction refresh."
     },
     {
@@ -2404,8 +2404,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "f32f2d3a93c703d086c379580d77ecadb8d4a50b6b516c526ec2c0939945b9a3",
-      "bytes": 250724,
+      "targetSHA256": "f84772c2381710e1943666bf4c0ba2f7c64e09455253953404b1196eb43f2c26",
+      "bytes": 250859,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2481,8 +2481,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/preview.json",
       "sourceSHA256": "bf530f4a992cc14652500390e715b7add84853e9b0757158c718244cf4cd8f32",
-      "targetSHA256": "a54402cc15a6413299ab1357ba54d322ae0e8deac76439ba727dfdc15d7488ab",
-      "bytes": 40125,
+      "targetSHA256": "dc0b56ed0e7a809ebfc17f0c004d285fc801409fb51fdff5c315e5d81c20416f",
+      "bytes": 40230,
       "reason": "Add English labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls."
     },
     {
@@ -2572,8 +2572,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/preview.json",
       "sourceSHA256": "6b772273972756a3407fee8fe7b4503e992964a8de901375f06bfd2faacf2ba0",
-      "targetSHA256": "4a8184261d57f7f5e6ff51aa757e6ed5f0823a2d175aa584156569eeae7c685f",
-      "bytes": 38670,
+      "targetSHA256": "eb5ab4ae895e68191ec5f38dbefdb3dc6f773ecda1ae8a8a9dda88fcdbf64982",
+      "bytes": 38768,
       "reason": "Add Simplified Chinese labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls."
     },
     {
@@ -3496,8 +3496,8 @@
     {
       "path": "tests/unit/previews/SynonBiomedStructureViewer.dom.test.tsx",
       "sourceSHA256": "ba8c8acb753fdac5f71871a9aeba75f7dd569f1f82eca75dae7e0c76fa5f1c54",
-      "targetSHA256": "9ec3908b47fb955267c337b284ddd53ee3e769596b5edc1fcb39bde36cafec65",
-      "bytes": 132598,
+      "targetSHA256": "c1fab4a3e40a578e4bb63d2fdc057d9429ff3f518d0cf1c145b0f4370f9a0b60",
+      "bytes": 140779,
       "reason": "Verify format-neutral composition controls, collapsed 2D panels, and source-invalidated interactions after minimization."
     },
     {
@@ -7437,8 +7437,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/StructureObjectList.tsx",
-      "sha256": "b6cbab97ca90f4a22d3e3b7187975eb49604767d0c4cd678fc3114f807abe849",
-      "bytes": 5140,
+      "sha256": "65e57bbf991172c652844459f20245046216545e2249f68d1e215e2e16c6361c",
+      "bytes": 6408,
       "reason": "Render one composition-derived protein and ligand list with shared visibility, color, select-all, and clear controls."
     },
     {
@@ -7551,8 +7551,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/molstarStructureEngine.ts",
-      "sha256": "120e94a3b138f2de631166ff6a42c62d600572e72486751bc30cf6961163cbe2",
-      "bytes": 145686,
+      "sha256": "e8560db4ab3cbe71875d02c9ad1511f6c1e728f233ae4708e685a57e513b75ad",
+      "bytes": 146678,
       "reason": "Own format-neutral Molstar loading, structure composition, surface styling, ligand extraction, and object visibility operations."
     },
     {
@@ -7587,8 +7587,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/structureComposition.ts",
-      "sha256": "5cc0db667b2c5a088b04d3c237049dda0427748e0cbbae8eab36acd11fc3f058",
-      "bytes": 3669,
+      "sha256": "d5d7a40124e4efbf7ed838873f7b7f272f3b11baa0edbfa2a8b54fce4d215d42",
+      "bytes": 2865,
       "reason": "Classify parsed molecular structures into protein and primary-ligand components while excluding crystallization additives and duplicate conformers."
     },
     {
@@ -7604,9 +7604,15 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
-      "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/structureScene.ts",
-      "sha256": "99439365abd83a1bf8df67ea0662eeaa576dadf6f66cadb9b9743529a3604a1c",
-      "bytes": 4841,
+      "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/structureLigandController.ts",
+      "sha256": "141c012c393c492cbb16cbd082a649c1885f3589824047279d6681a3a0d74ea2",
+      "bytes": 5890,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/structureLigandSelection.ts",
+      "sha256": "513c4abde750465fd820976c18a0074ae2facc5558e71f86b2145cd8676cd365",
+      "bytes": 4255,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9026,6 +9032,12 @@
       "reason": "Restore the validated cached light or dark appearance before renderer startup without allowing inline scripts."
     },
     {
+      "path": "tests/fixtures/structureLigands.ts",
+      "sha256": "24e17822c299ddbb4221664e53e2c45681af322ca22aa94919bd370c51c6cc13",
+      "bytes": 2933,
+      "reason": "Share explicitly synthetic receptor/ligand coordinates across parsed-state and native viewer selection regressions; never substitute them for user artifacts or research results."
+    },
+    {
       "path": "tests/integration/synonbiomedControlledLlmFixture.ts",
       "sha256": "337e993b9cb9d9694970b51d2697f3d0f514a9b3e02f18906f7d647d356e8f8a",
       "bytes": 13853,
@@ -9437,6 +9449,12 @@
       "path": "tests/unit/previews/structureInteractionReportCache.test.ts",
       "sha256": "b7dd8d93569d51e6f6be40846f9fd9bdb56de1fb10dc380981c319b1ce2ca257",
       "bytes": 4839,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/previews/structureLigandSelection.test.ts",
+      "sha256": "e297360c7830abb8706b88fee61b452f7665cf93c3e60f35cc1ea7fe95223358",
+      "bytes": 8762,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -9881,12 +9899,6 @@
       "path": "tests/unit/renderer/startupModuleBoundary.test.ts",
       "sha256": "2fe74f521fbcaccf18f50022c807b93549138244e9dd1f5296d8fd7c223fad6d",
       "bytes": 1250,
-      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
-    },
-    {
-      "path": "tests/unit/renderer/structureScene.test.ts",
-      "sha256": "9d81a17d02b4e1475aea26c6e39ca019df288f630809923529ba4b56fb94422a",
-      "bytes": 3167,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -10595,6 +10607,18 @@
       "path": "tests/web-e2e/structureEditorAcceptance.e2e.ts",
       "sha256": "c3403d18049552e30696ca808bda0db624066d91151514729ebccec1498a99ea",
       "bytes": 9384,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/web-e2e/structureLigandSelection.fixture.html",
+      "sha256": "0b96996d2406701614a24a85a2a541f8a65603454cba038fbc7b52cf6a43f8af",
+      "bytes": 275,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/web-e2e/structureLigandSelection.fixture.tsx",
+      "sha256": "15ed76f62546fed360266fb33fc0a8f665826da536bab4c65b499ce94cb6144e",
+      "bytes": 2157,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

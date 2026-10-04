@@ -120,6 +120,7 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "tests/fixtures/structureLigands.ts": "Share explicitly synthetic receptor/ligand coordinates across parsed-state and native viewer selection regressions; never substitute them for user artifacts or research results.",
     "packages/desktop/src/common/chat/roundSummary.ts": "Validate durable per-round completion timing and model usage shared by live and historical messages; unavailable telemetry never erases answer text.",
     "packages/desktop/src/common/chat/largeToolResultReference.ts": "Validate immutable same-origin large-result references once for transcript summaries and lazy detail loading; previews never replace source evidence.",
     "README.md": "Document the browser-only source boundary, dependency authority, scoped checks, and isolated real-backend testing prerequisites.",
@@ -506,9 +507,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "982b0e2063fbb3bffcff8ee14f67d93dc14df1ad10f95bc6c309a81bd12fc213"
+APPROVED_ADAPTATION_FINGERPRINT = "d4b1e072f41206d8f74c951794cc22a07c4978a0e7dc32df95abb38682d861e0"
 APPROVED_REMOVAL_FINGERPRINT = "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c"
-APPROVED_ADDITION_FINGERPRINT = "0786c9352c138421255a58182a83d8d02e645a79f2b6f05dc6d829fb5ceeab52"
+APPROVED_ADDITION_FINGERPRINT = "e52596b90e929a88f1cd1e485667e6efa965c9d35e52806a982f50be415f5f69"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

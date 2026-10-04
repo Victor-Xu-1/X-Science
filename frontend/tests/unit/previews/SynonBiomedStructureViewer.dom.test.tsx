@@ -23,7 +23,6 @@ const molstarMocks = vi.hoisted(() => {
       hasProtein: false,
       hasLigand: false,
     })),
-    add: vi.fn(async () => undefined),
     loadDockingEnsemble: vi.fn(async () => ({
       hasLigand: true,
       ligandCount: 24,
@@ -78,6 +77,8 @@ const molstarMocks = vi.hoisted(() => {
     setDockingProteinVisible: vi.fn(),
     setStructureObjectVisible: vi.fn(),
     setStructureLigandColor: vi.fn(async () => undefined),
+    setStructureLigandSelection: vi.fn(async () => undefined),
+    getStructureLigandSelection: vi.fn(() => ['ligand']),
     replaceDockingLayers: vi.fn(async () => ({
       hasLigand: true,
       ligandCount: 24,
@@ -312,6 +313,36 @@ const expandCompoundListFromRight = async () => {
   fireEvent.click(expandButton);
 };
 
+const enableDockingComparison = async (list: HTMLElement) => {
+  const toggle = within(list).getByRole('button', { name: 'Overlay comparison' });
+  expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  fireEvent.click(toggle);
+  await waitFor(() => expect(toggle).toHaveAttribute('aria-pressed', 'true'));
+};
+
+const ordinaryMultiLigandComposition = (prefix = '') => ({
+  objects: [
+    { id: 'protein', kind: 'protein' as const, atomCount: 8, residueNames: ['GLY', 'ALA'] },
+    {
+      id: prefix + 'first',
+      kind: 'ligand' as const,
+      label: prefix + 'UNL · A:101',
+      atomCount: 2,
+      residueNames: ['UNL'],
+    },
+    {
+      id: prefix + 'second',
+      kind: 'ligand' as const,
+      label: prefix + 'UNL · B:101',
+      atomCount: 2,
+      residueNames: ['UNL'],
+    },
+  ],
+  atomCount: 12,
+  hasProtein: true,
+  hasLigand: true,
+});
+
 const dockingPanelResizeEnsemble = [
   'REMARK 900 SYNON BIOMED DOCKING COMPLEX ENSEMBLE',
   'ATOM      1 CA   GLY A  16      27.817 -18.400  -4.985  1.00 46.96           C',
@@ -493,6 +524,39 @@ describe('SynonBiomedStructureViewer', () => {
     vi.unstubAllGlobals();
   });
 
+  it.each(['standalone.sdf', 'mother.pdb'])('does not inject companion scene structures into %s', async (filename) => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            schema: 'synon.structure-scene.v1',
+            scene_id: 'comparison',
+            mother_structure: { name: 'mother.pdb', version_id: 'mother-v1' },
+            derived_structures: [{ name: 'other.pdb', version_id: 'other-v1' }],
+          })
+        )
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    await renderWithI18n(
+      <SynonBiomedStructureViewer
+        filename={filename}
+        content='primary bytes'
+        companionArtifactUrls={{
+          'scene.json': '/api/artifacts/scene/versions/scene-v1',
+          'mother.pdb': '/api/artifacts/mother/versions/mother-v1',
+          'other.pdb': '/api/artifacts/other/versions/other-v1',
+        }}
+      />,
+      'en-US'
+    );
+    await waitFor(() =>
+      expect(molstarMocks.engine.load).toHaveBeenCalledWith('primary bytes', filename, expect.any(String))
+    );
+    await act(async () => {});
+    expect(molstarMocks.engine.load).toHaveBeenCalledTimes(1);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('keeps candidate-only docking on the single-pose path even when a companion scene is available', async () => {
     const ensemble = [
       'REMARK 900 SYNON BIOMED DOCKING COMPLEX ENSEMBLE',
@@ -545,14 +609,112 @@ describe('SynonBiomedStructureViewer', () => {
     expect(first).toHaveAttribute('aria-pressed', 'true');
     expect(second).toHaveAttribute('aria-pressed', 'false');
     expect(molstarMocks.engine.load).not.toHaveBeenCalled();
-    expect(molstarMocks.engine.add).not.toHaveBeenCalled();
     fireEvent.click(second);
     await waitFor(() => expect(second).toHaveAttribute('aria-pressed', 'true'));
+    expect(first).toHaveAttribute('aria-pressed', 'false');
     fireEvent.click(first);
-    await waitFor(() => expect(first).toHaveAttribute('aria-pressed', 'false'));
+    await waitFor(() => expect(first).toHaveAttribute('aria-pressed', 'true'));
+    expect(second).toHaveAttribute('aria-pressed', 'false');
     await waitFor(() =>
-      expect(molstarMocks.engine.applyDockingPocket).toHaveBeenLastCalledWith('D02', expect.any(Object))
+      expect(molstarMocks.engine.applyDockingPocket).toHaveBeenLastCalledWith('D01', expect.any(Object))
     );
+  });
+
+  it('previews ordinary same-name ligands exclusively and compares only after opting in', async () => {
+    molstarMocks.engine.load.mockResolvedValueOnce(ordinaryMultiLigandComposition());
+    molstarMocks.engine.getStructureLigandSelection.mockReturnValueOnce(['first']);
+    await renderWithI18n(<SynonBiomedStructureViewer filename='multi.cif' content='data_multi' />, 'en-US');
+    await expandCompoundListFromRight();
+    const list = screen.getByTestId('synon-biomed-structure-object-list');
+    const first = within(list).getByRole('button', { name: 'Preview UNL · A:101' });
+    const second = within(list).getByRole('button', { name: 'Preview UNL · B:101' });
+    fireEvent.click(second);
+    await waitFor(() => expect(second).toHaveAttribute('aria-pressed', 'true'));
+    expect(first).toHaveAttribute('aria-pressed', 'false');
+    expect(molstarMocks.engine.setStructureLigandSelection).toHaveBeenLastCalledWith(['second']);
+    expect(within(list).getByRole('button', { name: 'Show or hide the protein receptor' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    await enableDockingComparison(list);
+    fireEvent.click(first);
+    await waitFor(() => expect(first).toHaveAttribute('aria-pressed', 'true'));
+    expect(second).toHaveAttribute('aria-pressed', 'true');
+    expect(molstarMocks.engine.setStructureLigandSelection).toHaveBeenLastCalledWith(['second', 'first']);
+    fireEvent.click(within(list).getByRole('button', { name: 'Overlay comparison' }));
+    await waitFor(() => expect(second).toHaveAttribute('aria-pressed', 'false'));
+    expect(first).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('restores the old ordinary selection if pocket rebuilding fails', async () => {
+    molstarMocks.engine.load.mockResolvedValueOnce(ordinaryMultiLigandComposition());
+    molstarMocks.engine.getStructureLigandSelection.mockReturnValueOnce(['first']);
+    const view = await renderWithI18n(
+      <SynonBiomedStructureViewer filename='multi.cif' content='data_multi' />,
+      'en-US'
+    );
+    await expandCompoundListFromRight();
+    molstarMocks.engine.applyPocketFocus.mockRejectedValueOnce(new Error('controlled rebuild failure'));
+    const list = screen.getByTestId('synon-biomed-structure-object-list');
+    fireEvent.click(within(list).getByRole('button', { name: 'Preview UNL · B:101' }));
+    await waitFor(() => expect(molstarMocks.engine.setStructureLigandSelection).toHaveBeenLastCalledWith(['first']));
+    expect(within(list).getByRole('button', { name: 'Preview UNL · A:101' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(list).getByRole('button', { name: 'Preview UNL · B:101' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByText(view.i18n.t('preview.scientific.structure.quickActions.actionFailed'))).toBeInTheDocument();
+  });
+
+  it('does not apply a retired selection response to a newly opened file', async () => {
+    molstarMocks.engine.load
+      .mockResolvedValueOnce(ordinaryMultiLigandComposition())
+      .mockResolvedValueOnce(ordinaryMultiLigandComposition('new-'));
+    molstarMocks.engine.getStructureLigandSelection.mockReturnValueOnce(['first']).mockReturnValueOnce(['new-first']);
+    let finishSelection!: () => void;
+    molstarMocks.engine.setStructureLigandSelection.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishSelection = resolve;
+        })
+    );
+    const view = await renderWithI18n(<SynonBiomedStructureViewer filename='old.cif' content='data_old' />, 'en-US');
+    await expandCompoundListFromRight();
+    fireEvent.click(screen.getByRole('button', { name: 'Preview UNL · B:101' }));
+    await waitFor(() => expect(finishSelection).toBeDefined());
+    view.rerender(<SynonBiomedStructureViewer filename='new.cif' content='data_new' />);
+    await expandCompoundListFromRight();
+    await act(async () => {
+      finishSelection();
+      await Promise.resolve();
+    });
+    const list = screen.getByTestId('synon-biomed-structure-object-list');
+    expect(within(list).getByRole('button', { name: 'Preview new-UNL · A:101' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    expect(within(list).getByRole('button', { name: 'Preview new-UNL · B:101' })).toHaveAttribute(
+      'aria-pressed',
+      'false'
+    );
+    expect(molstarMocks.engine.applyPocketFocus).toHaveBeenCalledTimes(2);
+  });
+
+  it('clears pocket state when model navigation restores the initial representation', async () => {
+    molstarMocks.engine.load.mockResolvedValueOnce(ordinaryMultiLigandComposition());
+    molstarMocks.engine.getStructureLigandSelection.mockReturnValueOnce(['first']).mockReturnValueOnce(['first']);
+    molstarMocks.engine.getTrajectoryModelState.mockReturnValueOnce({ index: 0, count: 2 });
+    molstarMocks.engine.advanceTrajectoryModel.mockResolvedValueOnce({ index: 1, count: 2 });
+    await renderWithI18n(
+      <SynonBiomedStructureViewer filename='models.pdb' content='HEADER synthetic models' />,
+      'en-US'
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Expand the left toolbar' }));
+    const pocket = screen.getByRole('button', { name: 'Pocket' });
+    await waitFor(() => expect(pocket).toHaveAttribute('aria-pressed', 'true'));
+    fireEvent.click(screen.getByRole('button', { name: 'Next model' }));
+    await waitFor(() =>
+      expect(screen.getByTestId('synon-biomed-molstar-model-navigator')).toHaveTextContent('Model 2 / 2')
+    );
+    expect(pocket).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Initial' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('opens a publication SVG generated by the independent backend interaction engine', async () => {
@@ -875,6 +1037,7 @@ describe('SynonBiomedStructureViewer', () => {
     expect(interactionLegend).toHaveAttribute('data-collapsed', 'true');
     expect(screen.getByRole('button', { name: 'Initial' })).not.toHaveAttribute('data-active', 'true');
 
+    await enableDockingComparison(list);
     fireEvent.click(rankTwo);
     await waitFor(() =>
       expect(molstarMocks.engine.replaceDockingComparison).toHaveBeenLastCalledWith(
@@ -1010,6 +1173,7 @@ describe('SynonBiomedStructureViewer', () => {
     const rankOne = within(list).getByRole('button', {
       name: 'Select #1 MDM2-012 · Pose within candidate 1/1 · -10.026 kcal/mol',
     });
+    await enableDockingComparison(list);
     const rankTwo = within(list).getByRole('button', {
       name: 'Select #2 MDM2-025 · Pose within candidate 1/1 · -9.876 kcal/mol',
     });
@@ -1090,6 +1254,7 @@ describe('SynonBiomedStructureViewer', () => {
     await expandCompoundListFromRight();
     const list = await screen.findByTestId('synon-biomed-docking-compound-list');
     const pocket = screen.getByRole('button', { name: 'Pocket' });
+    await enableDockingComparison(list);
     await waitFor(() => expect(pocket).toHaveAttribute('data-active', 'true'));
 
     molstarMocks.engine.replaceDockingComparison.mockImplementationOnce(
@@ -1158,6 +1323,7 @@ describe('SynonBiomedStructureViewer', () => {
     );
     await expandCompoundListFromRight();
     const list = await screen.findByTestId('synon-biomed-docking-compound-list');
+    await enableDockingComparison(list);
     fireEvent.click(
       within(list).getByRole('button', {
         name: 'Select G7I · Reference co-crystal ligand',
@@ -1214,6 +1380,7 @@ describe('SynonBiomedStructureViewer', () => {
       name: 'Protein surface',
     });
     const pocket = screen.getByRole('button', { name: 'Pocket' });
+    await enableDockingComparison(list);
     fireEvent.click(proteinSurface);
     await waitFor(() =>
       expect(molstarMocks.engine.applyDockingPocket).toHaveBeenLastCalledWith(
@@ -1298,6 +1465,7 @@ describe('SynonBiomedStructureViewer', () => {
     );
     await expandCompoundListFromRight();
     const list = await screen.findByTestId('synon-biomed-docking-compound-list');
+    await enableDockingComparison(list);
     fireEvent.click(
       within(list).getByRole('button', {
         name: 'Select #1 MDM2-012 · Pose within candidate 2/2 · -9.901 kcal/mol',
@@ -1413,6 +1581,7 @@ describe('SynonBiomedStructureViewer', () => {
     );
     await expandCompoundListFromRight();
     const list = await screen.findByTestId('synon-biomed-docking-compound-list');
+    await enableDockingComparison(list);
     const firstPose = within(list).getByRole('button', {
       name: 'Select #1 MDM2-012 · Pose within candidate 1/2 · -10.026 kcal/mol',
     });
@@ -1801,6 +1970,7 @@ describe('SynonBiomedStructureViewer', () => {
 
     await expandCompoundListFromRight();
     const list = await screen.findByTestId('synon-biomed-docking-compound-list');
+    await enableDockingComparison(list);
     const orderedLabels = Array.from(
       list.querySelectorAll<HTMLButtonElement>('.synon-biomed-molstar__compound-main')
     ).map((button) => button.getAttribute('aria-label'));
