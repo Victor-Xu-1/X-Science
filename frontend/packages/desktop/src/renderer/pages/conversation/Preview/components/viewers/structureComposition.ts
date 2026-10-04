@@ -2,12 +2,15 @@ import { OrderedSet } from 'molstar/lib/mol-data/int';
 import { StructureElement, Unit, type Structure } from 'molstar/lib/mol-model/structure';
 import { StructureQuery } from 'molstar/lib/mol-model/structure/query/query';
 import { StructureSelectionQueries } from 'molstar/lib/mol-plugin-state/helpers/structure-selection-query';
+import { queryStructureLigands, splitStructureLigands } from './structureLigandSelection';
+export { isDisplayLigandResidueName } from './structureLigandSelection';
 
 export type StructureObjectKind = 'protein' | 'ligand';
 
 export type StructureObjectSummary = {
-  id: StructureObjectKind;
+  id: string;
   kind: StructureObjectKind;
+  label?: string;
   atomCount: number;
   residueNames: string[];
 };
@@ -18,16 +21,6 @@ export type MolstarStructureComposition = {
   hasProtein: boolean;
   hasLigand: boolean;
 };
-
-const STANDALONE_LIGAND_FORMATS = new Set(['mol', 'sdf', 'mol2', 'xyz']);
-
-// Common crystallization/cryoprotection additives are part of the parsed
-// structure, but they are not user-facing binding compounds. Keep the list at
-// this semantic boundary so PDB and mmCIF use exactly the same classification.
-const STRUCTURE_ADDITIVE_RESIDUE_NAMES = new Set(['ACT', 'DMS', 'EDO', 'EOH', 'GOL', 'MPD', 'PEG', 'PG4', 'PGE']);
-
-export const isDisplayLigandResidueName = (name: string): boolean =>
-  !STRUCTURE_ADDITIVE_RESIDUE_NAMES.has(name.trim().toUpperCase());
 
 const residueNames = (loci: StructureElement.Loci): string[] => {
   const names = new Set<string>();
@@ -57,31 +50,22 @@ export const summarizeStructureComposition = (
 
   const all = selection(structure, 'all');
   const protein = selection(structure, 'protein');
-  let ligand = selection(structure, 'ligand');
+  const ligand = queryStructureLigands(structure, format);
   const atomCount = StructureElement.Loci.size(all);
   const proteinAtomCount = StructureElement.Loci.size(protein);
-  let ligandAtomCount = StructureElement.Loci.size(ligand);
-
-  if (proteinAtomCount === 0 && ligandAtomCount === 0 && atomCount > 0 && STANDALONE_LIGAND_FORMATS.has(format)) {
-    ligand = all;
-    ligandAtomCount = atomCount;
-  }
-
-  const ligandResidueNames = residueNames(ligand);
-  const displayLigandResidueNames =
-    proteinAtomCount > 0 ? ligandResidueNames.filter(isDisplayLigandResidueName) : ligandResidueNames;
-  const hasDisplayLigand = ligandAtomCount > 0 && (displayLigandResidueNames.length > 0 || proteinAtomCount === 0);
+  const ligands = splitStructureLigands(ligand, proteinAtomCount > 0);
 
   const objects: StructureObjectSummary[] = [];
   if (proteinAtomCount > 0) {
     objects.push({ id: 'protein', kind: 'protein', atomCount: proteinAtomCount, residueNames: residueNames(protein) });
   }
-  if (hasDisplayLigand) {
+  for (const instance of ligands) {
     objects.push({
-      id: 'ligand',
+      id: instance.id,
       kind: 'ligand',
-      atomCount: ligandAtomCount,
-      residueNames: displayLigandResidueNames,
+      label: instance.label,
+      atomCount: instance.atomCount,
+      residueNames: [instance.residueName],
     });
   }
 
@@ -89,6 +73,6 @@ export const summarizeStructureComposition = (
     objects,
     atomCount,
     hasProtein: proteinAtomCount > 0,
-    hasLigand: hasDisplayLigand,
+    hasLigand: ligands.length > 0,
   };
 };

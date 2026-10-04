@@ -49,6 +49,10 @@ call PrepareAndDrawInPNG, or assume a drawing result has an img.data field.
    publish the complex ensemble and its component CSV together. Use the native
    pose controls to select or compare ligands in the fixed receptor frame.
    Do not refit ligand coordinates merely to improve a picture.
+   A structure preview loads only the clicked coordinate file. Multiple ligands
+   in one PDB/mmCIF are separate chain/residue/conformer instances; clicking a
+   ligand previews it alone with the same receptor. Overlay comparison requires
+   an explicit user selection. Different poses in PDBQT/SDF use model controls.
 3. Open the native structure preview to check loaded structures, selections,
    camera and labels. A successful file write does not prove a rendered scene.
    If a reviewed preview image is required, export/capture the actual Mol*
@@ -89,7 +93,12 @@ with the values from the actual saved artifacts before publication.
 
 Every structure reference has `name` and `version_id` matching a saved
 snapshot. Mother and derived versions are distinct; each has a visible layer
-with a representation. The preview image must match its actual immutable hash
+with a representation in the recorded comparison. This manifest is provenance,
+not permission to inject its files into every coordinate preview. Open the
+referenced artifacts individually on the file board, or put one receptor and
+separately identified ligands in a single coordinate file for native selection.
+Do not duplicate the receptor or conflate ligand instances by rewriting all
+their chain/residue/conformer identities. The preview image must match its actual immutable hash
 and be inspected through `read_file` when independent review is enabled.
 The workbench Mol* Snapshot action saves the actual render as a new image
 artifact derived from the displayed immutable structure, without replacing the

@@ -40,6 +40,7 @@ import { CubeProvider, DxProvider } from 'molstar/lib/mol-plugin-state/formats/v
 import { CCDFormat, MmcifFormat } from 'molstar/lib/mol-model-formats/structure/mmcif';
 import { parseSmilesMolBlock } from '@/renderer/services/rdkitBrowser';
 import { hasDeclaredLigandTopology } from './ligandTopology';
+import { createStructureLigandController } from './structureLigandController';
 import { restorePdbqtTopology } from './pdbqtTopology';
 import { resolveSurfaceColorSettings, type MolstarElectrostaticVolume } from './molstarElectrostaticTheme';
 import {
@@ -333,6 +334,7 @@ export type MolstarTrajectoryModelState = {
 };
 
 export type MolstarLigandDepictionSource = {
+  instanceId?: string;
   residueName: string;
   interactionResidueName: string;
   molBlock?: string;
@@ -464,11 +466,6 @@ export type MolstarStructureEngine = {
     filename: string,
     format: string
   ) => Promise<MolstarStructureComposition>;
-  readonly add: (
-    source: string | ArrayBuffer,
-    filename: string,
-    format: string
-  ) => Promise<MolstarStructureComposition>;
   readonly loadDockingEnsemble: (
     source: string,
     filename: string,
@@ -531,6 +528,8 @@ export type MolstarStructureEngine = {
   ) => Promise<void>;
   readonly setStructureObjectVisible: (kind: StructureObjectKind, visible: boolean) => void;
   readonly setStructureLigandColor: (color: Color) => Promise<void>;
+  readonly setStructureLigandSelection: (ids: readonly string[]) => Promise<void>;
+  readonly getStructureLigandSelection: () => readonly string[];
   readonly advanceTrajectoryModel: (by: number) => Promise<MolstarTrajectoryModelState>;
   readonly exportCurrentPose: (options?: { selectionOnly?: boolean }) => {
     content: string;
@@ -545,6 +544,8 @@ export type MolstarStructureEngine = {
 type MolstarStructureEngineOptions = {
   mode?: MolstarStructureEngineMode;
   onSelectionChange?: (summary: MolstarSelectionSummary) => void;
+  onModelChange?: () => void;
+  onModelError?: (error: unknown) => void;
 };
 
 type CreateDefaultPluginUISpec = () => PluginUISpec;
@@ -1391,7 +1392,7 @@ export function createPoseAtoms(structure: Structure, selection: StructureElemen
 
 export async function createMolstarStructureEngine(
   host: HTMLElement,
-  { mode = 'viewport', onSelectionChange }: MolstarStructureEngineOptions = {}
+  { mode = 'viewport', onSelectionChange, onModelChange, onModelError }: MolstarStructureEngineOptions = {}
 ): Promise<MolstarStructureEngine> {
   // Keep only the UI shell lazy. The core model/representation graph above is
   // static within this viewer chunk, while the broad Viewer application spec
@@ -1608,6 +1609,7 @@ export async function createMolstarStructureEngine(
 
       if (changed) await update.commit();
     }
+    await structureLigands.apply();
     applyStructureObjectVisibility();
     await applyStructureLigandColor();
     plugin.handleResize();
@@ -1634,6 +1636,7 @@ export async function createMolstarStructureEngine(
       createSynonViewRepresentationPreset(representation, electrostaticVolumes)
     );
 
+    await structureLigands.apply();
     applyStructureObjectVisibility();
     await applyStructureLigandColor();
     plugin.handleResize();
@@ -1662,7 +1665,8 @@ export async function createMolstarStructureEngine(
     // Resolve the ligand before changing any Mol* state. A receptor-only file
     // must leave its current protein representation untouched when the user
     // presses the pocket action.
-    const ligandSelectionLoci = resolvePocketLigandLoci(structure, targetLigandLoci, (currentStructure) =>
+    const requestedLigandLoci = targetLigandLoci ?? (targetStructure ? undefined : structureLigands.selectedLoci());
+    const ligandSelectionLoci = resolvePocketLigandLoci(structure, requestedLigandLoci, (currentStructure) =>
       StructureQuery.loci(StructureSelectionQueries.ligand.query, currentStructure)
     );
     if (StructureElement.Loci.isEmpty(ligandSelectionLoci)) {
@@ -1688,7 +1692,7 @@ export async function createMolstarStructureEngine(
       initialState: targetStructure ? { isHidden: true } : undefined,
     });
 
-    const ligandLoci = targetLigandLoci ? ligandSelectionLoci : selectPrimaryPocketLigandLoci(ligandSelectionLoci);
+    const ligandLoci = requestedLigandLoci ? ligandSelectionLoci : selectPrimaryPocketLigandLoci(ligandSelectionLoci);
     const layerPlan = resolvePocketLayerPlan(options.displayLayers ?? []);
     const ligandSurfaceResidueNames = resolveStructureLociResidueNames(ligandLoci);
     const ligandSurfacePlans = layerPlan.hasLigandSurface
@@ -2163,6 +2167,25 @@ export async function createMolstarStructureEngine(
 
   const getStructureComposition = (): MolstarStructureComposition =>
     summarizeStructureComposition(getCurrentStructure(), loadedFormat);
+  const structureLigands = createStructureLigandController(
+    plugin,
+    getCurrentStructure,
+    () => loadedFormat,
+    (ids, atomCount) => {
+      host.dataset.synonStructureActiveLigands = JSON.stringify(ids);
+      host.dataset.synonStructureLigandAtomCount = String(atomCount);
+    },
+    async () => {
+      await applyRepresentationPreset('auto');
+      onModelChange?.();
+    },
+    (error) => {
+      console.error('[MolstarStructureEngine] Native model selection failed', {
+        errorName: error instanceof Error ? error.name : typeof error,
+      });
+      onModelError?.(error);
+    }
+  );
 
   const createLigandDepictionSource = (
     structure: Structure,
@@ -2227,7 +2250,12 @@ export async function createMolstarStructureEngine(
     }
     const displayLigands =
       residueNames.length > 0 ? filterStructureLociByResidueNames(queriedLigands, residueNames) : queriedLigands;
-    return createLigandDepictionSource(structure, displayLigands);
+    const selected = structureLigands.depictionLoci();
+    const depiction = createLigandDepictionSource(
+      structure,
+      selected ? StructureElement.Loci.intersect(displayLigands, selected) : displayLigands
+    );
+    return depiction ? { ...depiction, instanceId: structureLigands.selectedIds().at(-1) } : undefined;
   };
 
   const getElectrostaticInputSource = (
@@ -2455,10 +2483,12 @@ export async function createMolstarStructureEngine(
 
   const advanceTrajectoryModel = async (by: number): Promise<MolstarTrajectoryModelState> => {
     if (!Number.isSafeInteger(by) || by === 0) return getTrajectoryModelState();
+    structureLigands.reset();
     await PluginCommands.State.ApplyAction(plugin, {
       state: plugin.state.data,
       action: UpdateTrajectory.create({ action: 'advance', by }),
     });
+    await applyRepresentationPreset('auto');
     plugin.handleResize();
     return getTrajectoryModelState();
   };
@@ -3493,6 +3523,7 @@ export async function createMolstarStructureEngine(
   return {
     plugin,
     load: async (source, filename, format) => {
+      structureLigands.reset();
       loadedFormat = format;
       structureObjectVisibility.protein = true;
       structureObjectVisibility.ligand = true;
@@ -3541,23 +3572,7 @@ export async function createMolstarStructureEngine(
           throw new Error('MOLSTAR_STRUCTURE_MISSING');
         }
       }
-      applyStructureObjectVisibility();
-      await applyStructureLigandColor();
-      plugin.handleResize();
-      return getStructureComposition();
-    },
-    add: async (source, filename, format) => {
-      if (format === 'cube') throw new Error('MOLSTAR_STRUCTURE_SCENE_CUBE_UNSUPPORTED');
-      const trajectory = await parseChemicalTrajectory(source, filename, format);
-      const preset = await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default', {
-        structure: { name: 'model', params: {} },
-        showUnitcell: false,
-        representationPreset: 'auto',
-        representationPresetParams: INITIAL_REPRESENTATION_PRESET_PARAMS,
-      });
-      if (!preset || plugin.managers.structure.hierarchy.current.structures.length === 0) {
-        throw new Error('MOLSTAR_STRUCTURE_SCENE_LAYER_MISSING');
-      }
+      await structureLigands.apply();
       applyStructureObjectVisibility();
       await applyStructureLigandColor();
       plugin.handleResize();
@@ -3606,13 +3621,21 @@ export async function createMolstarStructureEngine(
     setElectrostaticPotentials,
     setStructureObjectVisible,
     setStructureLigandColor,
+    setStructureLigandSelection: async (ids) => {
+      await structureLigands.select(ids);
+      applyStructureObjectVisibility();
+    },
+    getStructureLigandSelection: structureLigands.selectedIds,
     advanceTrajectoryModel,
     exportCurrentPose: ({ selectionOnly = false } = {}) => {
       const structure = getCurrentStructure();
       if (!structure) throw new Error('MOLSTAR_STRUCTURE_MISSING');
       const selection = getCurrentSelectionLoci();
       const useSelection = selectionOnly && Boolean(selection && !StructureElement.Loci.isEmpty(selection));
-      const atoms = createPoseAtoms(structure, useSelection ? selection : undefined);
+      const displayed = !dockingBaseStructure
+        ? structureLigands.displayedLoci(structureObjectVisibility.protein, structureObjectVisibility.ligand)
+        : undefined;
+      const atoms = createPoseAtoms(structure, useSelection ? selection : displayed);
       if (atoms.length === 0) throw new Error('MOLSTAR_POSE_EMPTY');
       return {
         content: formatMolstarPosePdb(atoms),
@@ -3655,6 +3678,7 @@ export async function createMolstarStructureEngine(
       return screenshot.getImageDataUri();
     },
     dispose: () => {
+      structureLigands.dispose();
       if (disposed) return;
       disposed = true;
       clickSubscription.unsubscribe();

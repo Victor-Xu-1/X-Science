@@ -34,7 +34,6 @@ import {
 } from './molstarStructureEngine';
 import { ELECTROSTATIC_COLOR_STOPS } from './molstarElectrostaticTheme';
 import { loadStructureContent, resolveStructureFormat } from './structureSource';
-import { loadStructureSceneSources } from './structureScene';
 import { saveStructureSnapshot } from './structureSnapshot';
 import { annotateMolstarControls } from './molstarControlsHelp';
 import {
@@ -177,7 +176,7 @@ const structureInteractionReportKey = (index: number, entry: DockingEnsembleEntr
   `${index}:${entry.candidateId}:${entry.poseRank}:${entry.residueName}`;
 
 const primaryLigandInteractionReportKey = (depiction: StructureLigandDepiction): string =>
-  `structure:${depiction.residueName}:${depiction.interactionResidueName}:${depiction.atomCount}`;
+  `structure:${depiction.instanceId ?? depiction.residueName}:${depiction.interactionResidueName}:${depiction.atomCount}`;
 
 const DOCKING_COLOR_OPTIONS = [
   { key: 'teal', value: Color(0x0f766e) },
@@ -322,6 +321,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
   const controlDockRef = useRef<HTMLDivElement>(null);
   const quickActionsRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<MolstarStructureEngine | null>(null);
+  const structureGenerationRef = useRef(0);
   const busyActionRef = useRef<string | null>(null);
   const busyIndicatorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dockingSelectionQueueRef = useRef<Promise<void>>(Promise.resolve());
@@ -369,10 +369,8 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
   const [expandedDockingColorIndex, setExpandedDockingColorIndex] = useState<number | null>(null);
   const [dockingProteinVisible, setDockingProteinVisible] = useState(true);
   const [structureComposition, setStructureComposition] = useState<MolstarStructureComposition | null>(null);
-  const [structureSceneSummary, setStructureSceneSummary] = useState<{
-    sceneId: string;
-    layerCount: number;
-  } | null>(null);
+  const [selectedStructureLigandIds, setSelectedStructureLigandIds] = useState<readonly string[]>([]);
+  const [ligandComparisonMode, setLigandComparisonMode] = useState(false);
   const [structureObjectVisibility, setStructureObjectVisibility] = useState<Record<StructureObjectKind, boolean>>({
     protein: true,
     ligand: true,
@@ -445,7 +443,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
 
   useEffect(() => {
     setRightPanelExpanded(false);
-    setStructureSceneSummary(null);
+    setLigandComparisonMode(false);
   }, [content, contentUrl, filename]);
 
   useEffect(() => {
@@ -459,7 +457,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
   }, [hasElectrostaticSurface]);
 
   useEffect(() => {
-    if (dockingEnsemble || !structureComposition?.hasLigand) {
+    if (dockingEnsemble || !structureComposition?.hasLigand || !structureObjectVisibility.ligand) {
       setStructureLigandDepiction(null);
       setStructureLigandDepictionLoading(false);
       return;
@@ -500,7 +498,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
     return () => {
       active = false;
     };
-  }, [dockingEnsemble, structureComposition]);
+  }, [dockingEnsemble, structureComposition, selectedStructureLigandIds, structureObjectVisibility.ligand]);
 
   useEffect(() => {
     setDockingDepictionIndex((current) =>
@@ -577,6 +575,8 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
   ): Promise<boolean> => {
     const engine = engineRef.current;
     if (!engine || loading || error || busyActionRef.current) return false;
+    const generation = structureGenerationRef.current;
+    const ownsAction = () => engineRef.current === engine && structureGenerationRef.current === generation;
 
     busyActionRef.current = actionId;
     if (busyIndicatorTimerRef.current) clearTimeout(busyIndicatorTimerRef.current);
@@ -590,8 +590,9 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
     try {
       const result = operation(engine);
       if (result && typeof result.then === 'function') await result;
-      return true;
+      return ownsAction();
     } catch (reason) {
+      if (!ownsAction()) return false;
       logScientificPreviewError(
         `[SynonBiomedStructureViewer] Failed to run ${actionId} action`,
         reason,
@@ -604,12 +605,14 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
       );
       return false;
     } finally {
-      if (busyIndicatorTimerRef.current) {
-        clearTimeout(busyIndicatorTimerRef.current);
-        busyIndicatorTimerRef.current = null;
+      if (ownsAction()) {
+        if (busyIndicatorTimerRef.current) {
+          clearTimeout(busyIndicatorTimerRef.current);
+          busyIndicatorTimerRef.current = null;
+        }
+        if (busyActionRef.current === actionId) busyActionRef.current = null;
+        setBusyAction(null);
       }
-      if (busyActionRef.current === actionId) busyActionRef.current = null;
-      setBusyAction(null);
     }
   };
 
@@ -1369,6 +1372,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
     await runEngineAction('trajectory-model', async (engine) => {
       setTrajectoryModel(await engine.advanceTrajectoryModel(by));
       setStructureComposition(engine.getStructureComposition());
+      setSelectedStructureLigandIds(engine.getStructureLigandSelection());
     });
     electrostaticMapRequestRef.current += 1;
     electrostaticMapCacheRef.current = null;
@@ -1561,10 +1565,12 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
 
   const handleCompoundVisibilityToggle = async (index: number) => {
     const selected = selectedDockingIndices.includes(index);
-    const nextIndices = selected
-      ? selectedDockingIndices.filter((current) => current !== index)
-      : [...selectedDockingIndices, index];
-    if (!selected) setDockingDepictionIndex(index);
+    const nextIndices = !ligandComparisonMode
+      ? [index]
+      : selected
+        ? selectedDockingIndices.filter((current) => current !== index)
+        : [...selectedDockingIndices, index];
+    setDockingDepictionIndex(index);
     await applyDockingMultiSelection(nextIndices);
   };
 
@@ -1597,6 +1603,77 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
       ...current,
       ligand: visible,
     }));
+  };
+
+  const selectStructureLigands = async (ids: readonly string[]) => {
+    const previous = selectedStructureLigandIds;
+    const generation = structureGenerationRef.current;
+    const current = () => structureGenerationRef.current === generation;
+    const succeeded = await runEngineAction('structure-ligand-selection', async (engine) => {
+      try {
+        await engine.setStructureLigandSelection(ids);
+        if (!current()) return;
+        engine.setStructureObjectVisible('ligand', ids.length > 0);
+        if (pocketVisible && ids.length > 0) {
+          await engine.applyPocketFocus({
+            ...pocketSettings,
+            focusCamera: false,
+            displayLayers: viewLayers.filter((layer) => !isElectrostaticSurfaceRepresentation(layer)),
+          });
+        } else {
+          await engine.applyRepresentationStyle(
+            viewLayers.find((layer) => !isElectrostaticSurfaceRepresentation(layer)) ?? 'initial'
+          );
+        }
+      } catch (error) {
+        if (!current()) return;
+        try {
+          await engine.setStructureLigandSelection(previous);
+          if (pocketVisible && previous.length > 0) {
+            await engine.applyPocketFocus({ ...pocketSettings, focusCamera: false, displayLayers: viewLayers });
+          } else {
+            await engine.applyRepresentationStyle(viewLayers[0] ?? 'initial');
+          }
+        } catch (rollbackError) {
+          setError(resolveScientificPreviewError(rollbackError, 'parse-failed'));
+          throw new AggregateError([error, rollbackError], 'Structure selection could not be restored');
+        }
+        throw error;
+      }
+    });
+    if (!succeeded || !current()) return false;
+    setSelectedStructureLigandIds([...ids]);
+    setStructureLigandVisible(ids.length > 0);
+    setStructureLigandColorExpanded(false);
+    electrostaticMapRequestRef.current += 1;
+    electrostaticMapCacheRef.current = null;
+    setElectrostaticMapReport(null);
+    setViewLayers((current) => current.filter((layer) => !isElectrostaticSurfaceRepresentation(layer)));
+    interactionReportCacheRef.current.clear();
+    cancelScheduledPocketInteractionStrengthRefresh();
+    pocketStrengthRequestRef.current += 1;
+    pocketStrengthContextRef.current = null;
+    pocketStrengthRecordsRef.current = [];
+    clearPocketInteractionStrengthRender();
+    if (interactionDiagramOpenRef.current) {
+      interactionDiagramRequestRef.current += 1;
+      setInteractionDiagramOpen(false);
+      setInteractionDiagram(null);
+    }
+    return true;
+  };
+
+  const handleLigandComparisonMode = async (enabled: boolean) => {
+    if (enabled) {
+      setLigandComparisonMode(true);
+      return;
+    }
+    if (dockingEnsemble) {
+      await applyDockingMultiSelection([dockingEntryIndex]);
+      setLigandComparisonMode(false);
+    } else if (await selectStructureLigands(selectedStructureLigandIds.slice(-1))) {
+      setLigandComparisonMode(false);
+    }
   };
 
   const handleStructureLigandColorSelection = async (colorIndex: number) => {
@@ -1986,6 +2063,15 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
     const host = hostRef.current;
     if (!host) return;
 
+    structureGenerationRef.current += 1;
+    busyActionRef.current = null;
+    if (busyIndicatorTimerRef.current) clearTimeout(busyIndicatorTimerRef.current);
+    busyIndicatorTimerRef.current = null;
+    setBusyAction(null);
+    interactionDiagramRequestRef.current += 1;
+    setInteractionDiagramOpen(false);
+    setInteractionDiagram(null);
+    setInteractionDiagramError(null);
     const controller = new AbortController();
     let active = true;
     let engine: MolstarStructureEngine | undefined;
@@ -2012,6 +2098,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
     setExpandedDockingColorIndex(null);
     setDockingProteinVisible(true);
     setStructureComposition(null);
+    setSelectedStructureLigandIds([]);
     setStructureObjectVisibility({ protein: true, ligand: true });
     setStructureLigandColorIndex(0);
     setStructureLigandColorExpanded(false);
@@ -2031,6 +2118,28 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
         mode: 'viewport',
         onSelectionChange: () => {
           if (active) setSelectedLigandResidueName(engine?.getSelectedLigandResidueName());
+        },
+        onModelChange: () => {
+          if (!active || !engine) return;
+          setTrajectoryModel(engine.getTrajectoryModelState());
+          setStructureComposition(engine.getStructureComposition());
+          setSelectedStructureLigandIds(engine.getStructureLigandSelection());
+          setPocketVisible(false);
+          setViewLayers([]);
+          electrostaticMapRequestRef.current += 1;
+          electrostaticMapCacheRef.current = null;
+          setElectrostaticMapReport(null);
+          interactionReportCacheRef.current.clear();
+          interactionDiagramRequestRef.current += 1;
+          setInteractionDiagramOpen(false);
+          cancelScheduledPocketInteractionStrengthRefresh();
+          pocketStrengthRequestRef.current += 1;
+          pocketStrengthContextRef.current = null;
+          pocketStrengthRecordsRef.current = [];
+          setPocketStrengthStatus('idle');
+        },
+        onModelError: (reason) => {
+          if (active) setError(resolveScientificPreviewError(reason, 'parse-failed'));
         },
       });
       if (!active) {
@@ -2057,7 +2166,6 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
       });
       if (!active) return;
 
-      const sceneSources = await loadStructureSceneSources(companionArtifactUrls, controller.signal);
       const ensemble = format === 'pdb' && typeof source === 'string' ? parseDockingEnsemble(source) : null;
       const initialDockingIndex = ensemble
         ? Math.max(
@@ -2085,42 +2193,6 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
       }
       const composition = !ensemble ? await engine.load(displayedSource, filename, format) : null;
       if (!active) return;
-      if (!ensemble && sceneSources) {
-        const primaryName = filename.toLocaleLowerCase();
-        const sceneLayersToAdd = sceneSources.sources.filter(
-          (sceneSource) => sceneSource.name.toLocaleLowerCase() !== primaryName && sceneSource.url !== contentUrl
-        );
-        let loadedSceneLayerCount = 0;
-        for (const sceneSource of sceneLayersToAdd) {
-          try {
-            // Mol* mutates one shared scene; preserve deterministic layer order.
-            // eslint-disable-next-line no-await-in-loop
-            const companionSource = await loadStructureContent({
-              contentUrl: sceneSource.url,
-              filename: sceneSource.name,
-              format: resolveStructureFormat(sceneSource.name),
-              signal: controller.signal,
-            });
-            // eslint-disable-next-line no-await-in-loop
-            await engine.add(companionSource, sceneSource.name, resolveStructureFormat(sceneSource.name));
-            loadedSceneLayerCount += 1;
-          } catch (reason) {
-            console.warn('[SynonBiomedStructureViewer] Failed to load structure scene layer', {
-              filename: sceneSource.name,
-              reasonName: reason instanceof Error ? reason.name : typeof reason,
-            });
-          }
-        }
-        if (loadedSceneLayerCount === sceneLayersToAdd.length && loadedSceneLayerCount > 0) {
-          engine.resetCamera();
-          setStructureSceneSummary({
-            sceneId: sceneSources.sceneId,
-            layerCount: loadedSceneLayerCount + 1,
-          });
-          host.dataset.synonStructureScene = sceneSources.sceneId;
-          host.dataset.synonStructureSceneLayers = String(loadedSceneLayerCount + 1);
-        }
-      }
       const initialStructurePocketSummary =
         composition?.hasProtein && composition.hasLigand
           ? await engine.applyPocketFocus({
@@ -2156,6 +2228,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
         }
         if (composition) {
           setStructureComposition(composition);
+          setSelectedStructureLigandIds(engine.getStructureLigandSelection());
           if (initialStructurePocketSummary?.hasLigand) {
             setPocketVisible(true);
             setViewLayers([]);
@@ -2177,6 +2250,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
 
     return () => {
       active = false;
+      structureGenerationRef.current += 1;
       cancelScheduledPocketInteractionStrengthRefresh();
       pocketStrengthRequestRef.current += 1;
       pocketStrengthContextRef.current = null;
@@ -2188,7 +2262,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
       if (engineRef.current === null) sourceRef.current = null;
       engine?.dispose();
     };
-  }, [companionArtifactUrls, content, contentUrl, filename, format]);
+  }, [content, contentUrl, filename, format]);
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -2331,6 +2405,18 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
       <StructureObjectList
         objects={structureComposition.objects}
         visibility={structureObjectVisibility}
+        selectedLigandIds={selectedStructureLigandIds}
+        comparison={ligandComparisonMode}
+        onComparisonChange={(enabled) => void handleLigandComparisonMode(enabled)}
+        onSelectLigand={(id) =>
+          void selectStructureLigands(
+            !ligandComparisonMode
+              ? [id]
+              : selectedStructureLigandIds.includes(id)
+                ? selectedStructureLigandIds.filter((current) => current !== id)
+                : [...selectedStructureLigandIds, id]
+          )
+        }
         disabled={!canInteract}
         ligandColorOptions={DOCKING_COLOR_OPTIONS.map((option) => option.value)}
         ligandColorIndex={structureLigandColorIndex}
@@ -2338,7 +2424,12 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
         onToggle={handleStructureObjectToggle}
         onToggleLigandColor={() => setStructureLigandColorExpanded((expanded) => !expanded)}
         onSelectLigandColor={(index) => void handleStructureLigandColorSelection(index)}
-        onSelectAll={() => setStructureLigandVisible(true)}
+        onSelectAll={() => {
+          setLigandComparisonMode(true);
+          void selectStructureLigands(
+            structureComposition.objects.filter((object) => object.kind === 'ligand').map((object) => object.id)
+          );
+        }}
         onClearAll={() => setStructureLigandVisible(false)}
         labels={{
           title: t('preview.scientific.structure.quickActions.compoundList'),
@@ -2358,6 +2449,8 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
           ),
           selectAll: t('preview.scientific.structure.quickActions.selectAllCompounds'),
           clearAll: t('preview.scientific.structure.quickActions.clearAllCompounds'),
+          comparison: t('preview.scientific.structure.quickActions.overlayComparison'),
+          selectLigand: (ligand) => t('preview.scientific.structure.quickActions.selectLigandInstance', { ligand }),
         }}
       />
     );
@@ -2481,10 +2574,23 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
           })}
         </div>
         <footer className='synon-biomed-molstar__compound-bulk-actions'>
+          {dockingEnsemble.entries.length > 1 && (
+            <button
+              type='button'
+              disabled={!canInteract}
+              aria-pressed={ligandComparisonMode}
+              onClick={() => void handleLigandComparisonMode(!ligandComparisonMode)}
+            >
+              {t('preview.scientific.structure.quickActions.overlayComparison')}
+            </button>
+          )}
           <button
             type='button'
             disabled={!canInteract || selectedDockingIndices.length === dockingEnsemble.entries.length}
-            onClick={() => void applyDockingMultiSelection(dockingEnsemble.entries.map((_, index) => index))}
+            onClick={() => {
+              setLigandComparisonMode(true);
+              void applyDockingMultiSelection(dockingEnsemble.entries.map((_, index) => index));
+            }}
           >
             {t('preview.scientific.structure.quickActions.selectAllCompounds')}
           </button>
@@ -3061,19 +3167,6 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
           }}
         >
           <div ref={hostRef} data-testid='synon-biomed-structure-canvas' className='synon-biomed-molstar__host' />
-          {structureSceneSummary && (
-            <div
-              className='synon-biomed-molstar__quick-status'
-              data-testid='synon-biomed-structure-scene'
-              data-scene-id={structureSceneSummary.sceneId}
-              role='status'
-              aria-label={t('preview.scientific.structure.sceneOverlayLabel')}
-            >
-              {t('preview.scientific.structure.sceneOverlaySummary', {
-                layerCount: structureSceneSummary.layerCount,
-              })}
-            </div>
-          )}
           {renderElectrostaticLegend()}
           {interactionDiagramOpen && !interactionDiagramExpanded ? renderInteractionDiagramPanel() : null}
           {renderLigandDepiction()}

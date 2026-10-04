@@ -610,6 +610,8 @@
         "ligandObject": "Ligand",
         "toggleProteinObject": "显示或隐藏蛋白受体",
         "toggleLigandObject": "显示或隐藏 ligand",
+        "overlayComparison": "叠加比较",
+        "selectLigandInstance": "预览 {{ligand}}",
         "referenceScorePending": "待重评分",
         "resizeDockingPanelWidth": "拖动调整化合物列表宽度",
         "resizeDockingPanelHeight": "拖动调整化合物列表高度",

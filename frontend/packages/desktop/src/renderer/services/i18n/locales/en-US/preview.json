@@ -610,6 +610,8 @@
         "ligandObject": "Ligand",
         "toggleProteinObject": "Show or hide the protein receptor",
         "toggleLigandObject": "Show or hide the ligand",
+        "overlayComparison": "Overlay comparison",
+        "selectLigandInstance": "Preview {{ligand}}",
         "referenceScorePending": "Rescore pending",
         "resizeDockingPanelWidth": "Drag to resize the compound list width",
         "resizeDockingPanelHeight": "Drag to resize the compound list height",
