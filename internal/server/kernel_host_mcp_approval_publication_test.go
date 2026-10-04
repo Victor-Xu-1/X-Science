@@ -72,7 +72,9 @@ func TestKernelMCPPublicApprovalLifecycle(t *testing.T) {
 				approved := action == "allow_once"
 				response := compatibilityInputResponse{RequestID: approvalID, Action: action, Approved: &approved}
 				if approved {
-					response.Scope = "once"
+					// Match the real browser: allow with omitted once scope and
+					// no tool_id when the request only has its approval requestId.
+					response.Action, response.Mode = "allow", "ro"
 				}
 				result, err := app.resolveCompatibilityInput(httptest.NewRequest(http.MethodPost, "/resolve-input", nil), frame,
 					compatibilityResolveInputRequest{Responses: []compatibilityInputResponse{response}})

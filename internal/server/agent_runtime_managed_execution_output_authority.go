@@ -86,7 +86,7 @@ func (s *Server) managedExecutionOutputAuthorities(
 						continue
 					}
 					seenRoots[outputRoot] = true
-					authority, verifyErr := s.verifyManagedExecutionOutputAuthority(
+					authority, verifyErr := s.verifyAndPublishManagedExecutionOutputAuthority(
 						ctx, workspaceRoot, outputRoot, pack.ID, record.ID, writes,
 					)
 					if verifyErr != nil {
@@ -101,10 +101,6 @@ func (s *Server) managedExecutionOutputAuthorities(
 						log.Printf("managed_execution_output_unavailable frame=%q execution=%q pack=%q", access.Frame.ID, record.ID, pack.ID)
 						continue
 					}
-					if err := publishManagedExecutionOutputSnapshot(ctx, workspaceRoot, authority); err != nil {
-						return nil, err
-					}
-					authority.ResolvedRoot = managedExecutionSnapshotDirectory(workspaceRoot, authority)
 					authorities = append(authorities, authority)
 				}
 			}
@@ -141,6 +137,24 @@ func managedExecutionReceiptWriteMap(workspaceRoot string, raw any) (map[string]
 }
 
 func (s *Server) verifyManagedExecutionOutputAuthority(
+	ctx context.Context,
+	workspaceRoot, outputRoot, packID, executionID string,
+	writes map[string]string,
+) (managedExecutionOutputAuthority, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	unlock, err := lockManagedExecutionSnapshot(ctx, outputRoot)
+	if err != nil {
+		return managedExecutionOutputAuthority{}, err
+	}
+	defer unlock()
+	return s.verifyManagedExecutionOutputAuthorityLocked(ctx, workspaceRoot, outputRoot, packID, executionID, writes)
+}
+
+// All callers validate through the same lock; the publication transaction
+// already holds it and uses this single implementation without re-locking.
+func (s *Server) verifyManagedExecutionOutputAuthorityLocked(
 	ctx context.Context,
 	workspaceRoot, outputRoot, packID, executionID string,
 	writes map[string]string,
