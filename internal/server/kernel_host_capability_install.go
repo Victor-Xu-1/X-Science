@@ -210,10 +210,17 @@ func isKernelHostWaitOnlyApprovalSource(source string) bool {
 	return source == "kernel-host-mcp" || source == kernelCapabilityInstallApprovalSource || source == kernelArtifactDeleteApprovalSource
 }
 
-func (s *Server) waitForKernelHostApproval(ctx context.Context, approvalID, subject string) error {
+func (s *Server) waitForKernelHostApproval(ctx context.Context, approvalID, subject string) (waitErr error) {
 	if s == nil || s.runtimeStore == nil {
 		return kernelruntime.NewHostCallError("approval_unavailable", subject+" approval store is unavailable")
 	}
+	defer func() {
+		if waitErr != nil {
+			if err := s.retirePendingKernelHostApproval(approvalID, subject+" approval wait ended"); err != nil {
+				waitErr = errors.Join(waitErr, err)
+			}
+		}
+	}()
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
 	for {

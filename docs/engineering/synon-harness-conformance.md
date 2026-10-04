@@ -1050,6 +1050,16 @@ about a scientific engine or scientific result.
 
 ## Streaming and user visibility
 
+Nested kernel-host MCP consent uses the existing owner-scoped task-input
+projection and confirmation channel. The persisted approval remains the single
+decision authority; the visible card carries the exact frame, host-call and tool
+binding. Resolving it wakes only the currently waiting callback and never replays
+the enclosing analysis. Supported remembered decisions retain their existing
+policy; one-shot requests cannot acquire broader scope. Cancellation retires
+only unresolved host approvals and removes their public projections without
+overwriting accepted or denied decisions. A later call in the same owned task
+may retire an older pending MCP reference only under its durable terminal audit.
+
 Published transcript content is independent of the model's context window.
 Compaction retains original user requirements and resolved choices verbatim,
 in their user role and active-branch order; it summarizes observations rather

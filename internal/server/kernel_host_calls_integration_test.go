@@ -7,6 +7,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -286,8 +288,10 @@ host.mcp("remote", "echo", text="blocked")
 		err    error
 	}
 	returned := make(chan hostMCPReturn, 1)
+	approvalContext, cancelApproval := context.WithCancel(context.Background())
+	defer cancelApproval()
 	go func() {
-		result, err := app.executeAgentKernelTool(context.Background(), identity, "repl", map[string]any{
+		result, err := app.executeAgentKernelTool(approvalContext, identity, "repl", map[string]any{
 			"code": `import host
 print(host.mcp("remote", "echo", text="approved")["echo"])
 `,
@@ -314,6 +318,27 @@ print(host.mcp("remote", "echo", text="approved")["echo"])
 	}
 	if approvalID == "" {
 		t.Fatal("kernel MCP approval was not queued")
+	}
+	publicApproval := false
+	deadline = time.Now().Add(time.Second)
+	for !publicApproval && time.Now().Before(deadline) {
+		metadata, _, err := store.GetFrameRuntimeMetadata(identity.access.Frame.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, request := range compatibilityServerPendingInputs(metadata.ContextData) {
+			if compatibilityServerPendingInputID(request) == approvalID &&
+				stringValue(request["kind"]) == agentToolApprovalKind &&
+				stringValue(request["approval_source"]) == "kernel-host-mcp" {
+				publicApproval = true
+			}
+		}
+		if !publicApproval {
+			time.Sleep(10 * time.Millisecond)
+		}
+	}
+	if !publicApproval {
+		t.Fatal("nested MCP approval is pending internally but absent from public task inputs")
 	}
 	mutatedName := "remote-mutated"
 	if _, err := store.UpdateMCPServer(server.ID, identity.access.UserID, workspace.UpdateMCPServerInput{Name: &mutatedName}); err != nil {
@@ -371,11 +396,29 @@ print(host.mcp("remote", "echo", text="approved")["echo"])
 	if secondApprovalID == "" {
 		t.Fatal("second kernel MCP approval was not queued")
 	}
-	approval, err = app.resolveAgentRuntimeApprovalMessage(context.Background(), "", map[string]any{
-		"approvalId": secondApprovalID, "approve": true,
-	})
-	if err != nil || mapValue(approval)["status"] != "approved" {
-		t.Fatalf("second approval=%#v err=%v", approval, err)
+	deadline = time.Now().Add(time.Second)
+	publicApproval = false
+	for !publicApproval && time.Now().Before(deadline) {
+		metadata, _, err := store.GetFrameRuntimeMetadata(identity.access.Frame.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, request := range compatibilityServerPendingInputs(metadata.ContextData) {
+			publicApproval = publicApproval || compatibilityServerPendingInputID(request) == secondApprovalID
+		}
+		if !publicApproval {
+			time.Sleep(10 * time.Millisecond)
+		}
+	}
+	frame, found, err := store.GetCompatibilityFrame(identity.access.Frame.ID)
+	if err != nil || !found || !publicApproval {
+		t.Fatalf("public MCP approval found=%t frame=%t err=%v", publicApproval, found, err)
+	}
+	approved := true
+	resolved, err := app.resolveCompatibilityInput(httptest.NewRequest(http.MethodPost, "/resolve-input", nil), frame,
+		compatibilityResolveInputRequest{Responses: []compatibilityInputResponse{{RequestID: secondApprovalID, Action: "allow_once", Approved: &approved, Scope: "once"}}})
+	if err != nil || len(resolved.RemainingIDs) != 0 {
+		t.Fatalf("public MCP approval resolution=%#v err=%v", resolved, err)
 	}
 	select {
 	case completed := <-returned:
