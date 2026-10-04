@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"strings"
 	"time"
@@ -51,15 +50,9 @@ func (s *Server) requireVisibleKernelMCPApproval(
 	if resolution.tool.ReadOnlyHint {
 		mode = "ro"
 	}
-	preview, err := json.MarshalIndent(map[string]any{
-		"server": resolution.connector.Name, "method": resolution.tool.ToolName, "arguments": input,
-	}, "", "  ")
+	preview, err := kernelMCPApprovalPreview(resolution, input)
 	if err != nil {
 		return kernelruntime.NewHostCallError("approval_unavailable", "MCP approval preview is unavailable")
-	}
-	previewText := []rune(redactFeedbackString(string(preview)))
-	if len(previewText) > 4096 {
-		previewText = append(previewText[:4096], []rune("\n[Preview shortened; actual arguments are unchanged.]")...)
 	}
 	request := map[string]any{
 		"requestId": approvalID, "kind": agentToolApprovalKind,
@@ -69,7 +62,7 @@ func (s *Server) requireVisibleKernelMCPApproval(
 		"title":       "Approve MCP operation: " + resolution.tool.ToolName,
 		"description": "MCP " + resolution.connector.Name + " / " + resolution.tool.ToolName,
 		"target":      resolution.connector.Name + "/" + resolution.tool.ToolName,
-		"code":        string(previewText), "mode": mode,
+		"code":        preview, "mode": mode,
 		"rememberable": boolValue(permission["rememberable"], false),
 	}
 	if err := s.workspaceStore.AddKernelArtifactApprovalRequest(ctx, access.UserID, access.Frame.ProjectID, access.Frame.ID, request); err != nil {
