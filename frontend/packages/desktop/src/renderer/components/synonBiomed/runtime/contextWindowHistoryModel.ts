@@ -10,6 +10,19 @@ import {
   type ContextUsageSnapshot,
 } from '@/renderer/services/contextUsage';
 
+const DEFAULT_CONTEXT_DISPLAY_WINDOW_TOKENS = 1_000_000;
+
+/** Display-only default for validated receipts; never rewrite a model limit. */
+export function contextDisplayWindow(snapshot: Pick<ContextUsageSnapshot, 'limitTokens' | 'usedTokens'>) {
+  const isDefaultBudget = snapshot.limitTokens === 0;
+  const windowTokens = isDefaultBudget ? DEFAULT_CONTEXT_DISPLAY_WINDOW_TOKENS : snapshot.limitTokens;
+  return {
+    windowTokens,
+    isDefaultBudget,
+    percent: (snapshot.usedTokens * 100) / windowTokens,
+  };
+}
+
 export function formatContextTokens(count: number): string {
   if (Math.abs(count) >= 1_000_000) return `${(count / 1_000_000).toFixed(1)}M`;
   if (Math.abs(count) >= 1_000) return `${(count / 1_000).toFixed(1)}K`;
@@ -47,10 +60,8 @@ export function lastConfirmedContextUsage(history: ContextUsageHistory | undefin
 export function contextWindowChart(history: ContextUsageHistory) {
   const projected = history.samples.map(projectContextUsage);
   const maximum = Math.max(1, ...projected.map((sample) => sample.usedTokens));
-  return projected.map((sample, index) => ({
-    sample,
-    index,
-    height: sample.usedTokens / maximum,
-    percent: sample.limitTokens > 0 ? (sample.usedTokens * 100) / sample.limitTokens : undefined,
-  }));
+  return projected.map((sample, index) => {
+    const { windowTokens, isDefaultBudget, percent } = contextDisplayWindow(sample);
+    return { sample, index, height: sample.usedTokens / maximum, windowTokens, isDefaultBudget, percent };
+  });
 }

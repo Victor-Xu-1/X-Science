@@ -62,10 +62,20 @@ describe('context window history', () => {
 
   it('keeps a current local estimate separate from the last provider receipt and model switch', () => {
     const value = history();
-    const current = { ...sample('current', 300), source: 'estimated' as const, state: 'request' as const };
+    const current = {
+      ...sample('current', 300),
+      source: 'estimated' as const,
+      state: 'request' as const,
+    };
     expect(lastConfirmedContextUsage(value, current)?.requestId).toBe('three');
     expect(lastConfirmedContextUsage(value, { ...current, model: 'new-model' })).toBeUndefined();
-    expect(lastConfirmedContextUsage(value, { ...current, limitTokens: 0, limitSource: 'unknown' })).toBeUndefined();
+    expect(
+      lastConfirmedContextUsage(value, {
+        ...current,
+        limitTokens: 0,
+        limitSource: 'unknown',
+      })
+    ).toBeUndefined();
     value.samples.push({
       ...current,
       limitTokens: 0,
@@ -77,8 +87,25 @@ describe('context window history', () => {
         outputTokens: 0,
       },
     });
-    expect(contextWindowChart(value).at(-1)?.percent).toBeUndefined();
+    expect(contextWindowChart(value).at(-1)?.percent).toBeCloseTo(0.03);
     expect(summarizeContextWindowHistory(value).peak?.usedTokens).toBe(950);
+  });
+
+  it('uses a 1M display default without rewriting an unknown-capacity receipt', () => {
+    const receipt = sample('default-window', 52_700, 0);
+    const before = structuredClone(receipt);
+    const points = contextWindowChart({
+      sessionId: 'session',
+      totalObserved: 1,
+      coverage: 'recorded',
+      samples: [receipt],
+    });
+    expect(points[0].percent).toBeCloseTo(5.27);
+    expect(points[0]).toMatchObject({
+      windowTokens: 1_000_000,
+      isDefaultBudget: true,
+    });
+    expect(receipt).toEqual(before);
   });
 
   it.each(['foreign', 'duplicate', 'order', 'capacity', 'count', 'peak', 'oversized', 'latest-model'])(

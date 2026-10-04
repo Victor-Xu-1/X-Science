@@ -6,14 +6,14 @@
 
 .root {
   box-sizing: border-box;
-  width: min(360px, calc(100vw - 24px));
-  max-height: calc(100dvh - 48px);
+  width: min(260px, calc(100vw - 24px));
+  max-height: min(360px, calc(100dvh - 48px));
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  padding: 16px 16px 14px;
+  padding: 12px;
   border: 1px solid #e8e8e8;
-  border-radius: var(--ui-radius-2xl);
+  border-radius: var(--ui-radius-md);
   background: #fff;
   box-shadow:
     0 9px 28px rgb(0 0 0 / 9%),
@@ -37,7 +37,7 @@
   align-items: center;
   justify-content: space-between;
   height: 16px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .headerTitle {
@@ -62,6 +62,16 @@
   line-height: 16px;
   color: var(--workspace-text-secondary);
   overflow-wrap: anywhere;
+}
+.observation,
+.historyMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: var(--ui-font-micro);
+  line-height: 16px;
+  color: var(--workspace-text-secondary);
 }
 .refreshNotice {
   display: flex;
@@ -88,32 +98,39 @@
   border-radius: var(--ui-radius-circle);
   font-size: var(--ui-font-micro);
 }
-.triggerValue {
-  font-size: var(--ui-font-micro);
-  color: var(--workspace-text-secondary);
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
 .history {
-  margin-top: 10px;
-  padding-top: 10px;
+  margin-top: 8px;
+  padding-top: 6px;
   border-top: 1px solid var(--color-border-2);
 }
-.historyHeading {
+.historyToggle {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 4px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: start;
+  color: inherit;
+  cursor: pointer;
   font-size: var(--ui-font-meta);
 }
-.historyHeading span {
+.historyToggle span {
   color: var(--workspace-text-secondary);
+  font-size: var(--ui-font-micro);
+}
+.historyToggle:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
 }
 .historyChart {
   display: flex;
   align-items: stretch;
-  height: 68px;
+  height: 44px;
   gap: 2px;
-  margin-top: 10px;
+  margin-top: 6px;
   border-bottom: 1px solid var(--color-border-2);
 }
 .historyPoint {
@@ -146,8 +163,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   padding: 0;
   border: 0;
   border-radius: var(--ui-radius-md);
@@ -210,7 +227,7 @@
 .bar {
   display: flex;
   width: 100%;
-  height: 8px;
+  height: 6px;
   gap: 0;
   border-radius: var(--ui-radius-xs);
   background: #f2f2f2;
@@ -231,7 +248,7 @@
 .legend {
   display: flex;
   flex-direction: column;
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .legendRow {
@@ -239,7 +256,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  height: 24px;
+  height: 20px;
   font-size: var(--ui-font-body);
   font-weight: var(--ui-weight-regular);
   line-height: var(--ui-line-height-meta);
@@ -251,13 +268,15 @@
   align-items: center;
   gap: 9px;
   min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .legendDot {
   display: inline-block;
-  flex: 0 0 8px;
-  width: 8px;
-  height: 8px;
+  flex: 0 0 6px;
+  width: 6px;
+  height: 6px;
   border-radius: var(--ui-radius-circle);
 }
 
@@ -276,7 +295,7 @@
 }
 
 .details {
-  max-width: 360px;
+  max-width: 260px;
   font-size: var(--ui-font-meta);
   line-height: var(--ui-line-height-meta);
   overflow-wrap: anywhere;
@@ -321,13 +340,13 @@
 
 @media (max-width: 520px) {
   .root {
-    width: min(360px, calc(100vw - 24px));
-    padding: 16px 14px 14px;
-    border-radius: var(--ui-radius-2xl);
+    width: min(260px, calc(100vw - 24px));
+    padding: 12px;
+    border-radius: var(--ui-radius-md);
   }
 
   .header {
-    margin-bottom: 12px;
+    margin-bottom: 8px;
   }
 
   .headerTitle {
@@ -352,15 +371,15 @@
   }
 
   .bar {
-    height: 8px;
+    height: 6px;
   }
 
   .legend {
-    margin-top: 10px;
+    margin-top: 8px;
   }
 
   .legendRow {
-    height: 24px;
+    height: 20px;
     font-size: var(--ui-font-body);
     line-height: var(--ui-line-height-meta);
   }
@@ -370,9 +389,9 @@
   }
 
   .legendDot {
-    flex-basis: 8px;
-    width: 8px;
-    height: 8px;
+    flex-basis: 6px;
+    width: 6px;
+    height: 6px;
   }
 
   .legendPercent {

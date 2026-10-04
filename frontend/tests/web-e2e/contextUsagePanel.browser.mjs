@@ -5,7 +5,7 @@ import { join, resolve } from 'node:path';
 import { createServer } from 'vite';
 import { chromium, expect } from '@playwright/test';
 
-const artifacts = await mkdtemp(join(tmpdir(), 'synon-context-usage-'));
+const artifacts = await mkdtemp(join(process.env.CONTEXT_USAGE_ARTIFACT_ROOT || tmpdir(), 'synon-context-usage-'));
 const snapshot = {
   sessionId: 'browser-context-usage',
   requestId: 'browser-request',
@@ -108,7 +108,22 @@ function responseBody() {
               : snapshot;
   return mode === 'unavailable'
     ? { status: 'unavailable' }
-    : { status: 'available', snapshot: record, autoCompaction: policy };
+    : {
+        status: 'available',
+        snapshot: record,
+        autoCompaction: policy,
+        ...(mode === 'legacy'
+          ? {
+              history: {
+                sessionId: record.sessionId,
+                totalObserved: 1,
+                coverage: 'latest_only',
+                samples: [record],
+                peak: record,
+              },
+            }
+          : {}),
+      };
 }
 let vite;
 let browser;
@@ -174,13 +189,17 @@ try {
   }
   const visibleText = await panel.innerText();
   assert.ok(visibleText.includes('已使用 348.2K / 300.0K'));
+  assert.equal(await trigger.innerText(), '');
+  await expect(trigger.getByTestId('context-usage-trigger-value')).toHaveCount(0);
+  await expect(panel.getByTestId('context-usage-diagnostics')).toHaveCount(0);
+  await expect(panel.getByTestId('context-usage-policy')).toHaveCount(0);
   await expect(panel.locator('p')).toHaveCount(0);
   const summary = panel.getByRole('group');
   const descriptionId = await summary.getAttribute('aria-describedby');
   assert.ok(descriptionId);
   const desktopBounds = await panel.boundingBox();
-  assert.ok(desktopBounds && desktopBounds.width <= 380, JSON.stringify(desktopBounds));
-  assert.ok(desktopBounds && desktopBounds.height <= 470, JSON.stringify(desktopBounds));
+  assert.ok(desktopBounds && desktopBounds.width <= 280, JSON.stringify(desktopBounds));
+  assert.ok(desktopBounds && desktopBounds.height <= 320, JSON.stringify(desktopBounds));
   const barLayout = await panel.getByTestId('context-usage-bar').evaluate((bar) => ({
     gap: getComputedStyle(bar).gap,
     categories: [...bar.querySelectorAll('[data-category]')].map((segment) => segment.getAttribute('data-category')),
@@ -205,7 +224,7 @@ try {
     };
   });
   assert.deepEqual(visualTokens, {
-    radius: '16px',
+    radius: '8px',
     headerFont: '12px',
     headerLine: '16px',
     bigFont: '20px',
@@ -275,12 +294,16 @@ try {
   mode = 'legacy';
   await page.reload();
   await trigger.click();
-  await expect(panel.getByTestId('context-usage-tokens')).toHaveText('348.2K');
-  await expect(panel).toContainText('模型容量未知');
-  await expect(panel.getByTestId('context-usage-percent')).toHaveCount(0);
-  await expect(trigger.locator('circle')).toHaveCount(0);
-  await expect(panel.getByTestId('context-usage-policy')).not.toContainText('800');
-  await page.screenshot({ path: join(artifacts, 'unknown-capacity.png'), fullPage: true });
+  await expect(panel.getByTestId('context-usage-percent')).toHaveText('34.8%');
+  await expect(panel).toContainText('348.2K / 1.0M');
+  await expect(panel).toContainText('默认窗口预算');
+  await expect(trigger.locator('circle')).toHaveCount(2);
+  assert.equal(await trigger.innerText(), '');
+  await expect(panel.getByTestId('context-window-history')).toHaveText('仅有最新记录');
+  await expect(panel.getByTestId('context-window-history-chart')).toHaveCount(0);
+  const defaultBounds = await panel.boundingBox();
+  assert.ok(defaultBounds && defaultBounds.width <= 280 && defaultBounds.height <= 320, JSON.stringify(defaultBounds));
+  await page.screenshot({ path: join(artifacts, 'default-compact.png'), fullPage: true });
   mode = 'zero';
   await page.reload();
   await trigger.click();
@@ -304,7 +327,8 @@ try {
   mode = 'stream';
   await panel.getByRole('button', { name: '重试' }).click();
   await expect(panel.getByTestId('context-usage-percent')).toHaveText('28.0%');
-  await expect(panel.getByTestId('context-usage-policy')).toContainText('80%');
+  const streamDescription = await panel.getByRole('group', { name: '上下文用量' }).getAttribute('aria-describedby');
+  await expect(page.locator(`#${streamDescription}`)).toContainText('80%');
   await expect(panel.getByTestId('context-usage-phase')).toContainText('估算');
   const offsetBefore = await trigger.locator('circle').last().getAttribute('stroke-dashoffset');
   streamedOutput = 30_000;
@@ -322,19 +346,33 @@ try {
   mode = 'history';
   await page.reload();
   await trigger.click();
+  const historyToggle = panel.getByTestId('context-window-history-toggle');
+  await expect(historyToggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(panel.getByTestId('context-window-history-chart')).toHaveCount(0);
+  const compactHistoryBounds = await panel.boundingBox();
+  assert.ok(compactHistoryBounds && compactHistoryBounds.height <= 320, JSON.stringify(compactHistoryBounds));
+  await historyToggle.click();
+  await expect(historyToggle).toHaveAttribute('aria-expanded', 'true');
   await expect(panel.getByTestId('context-window-peak')).toContainText('950 / 1.0K · 95.0%');
   await expect(panel.getByTestId('context-window-selected')).toContainText('new-model');
-  await expect(panel.getByTestId('context-window-selected')).toContainText('模型容量未知');
-  await expect(trigger.getByTestId('context-usage-trigger-value')).toHaveText('90');
-  const historyButtons = panel.getByTestId('context-window-history').getByRole('button');
+  await expect(panel.getByTestId('context-window-selected')).toContainText('默认窗口预算');
+  await expect(panel.getByTestId('context-window-selected')).toContainText('90 / 1.0M');
+  await expect(trigger.getByTestId('context-usage-trigger-value')).toHaveCount(0);
+  const historyButtons = panel.getByTestId('context-window-history-chart').getByRole('button');
   await historyButtons.nth(1).click();
   await expect(panel.getByTestId('context-window-selected')).toContainText('95.0%');
   await expect(panel.getByTestId('context-window-selected')).toContainText('earlier-model');
   await historyButtons.nth(2).click();
-  await expect(panel.getByTestId('context-window-selected')).toContainText('不代表压缩已完成');
+  await expect(panel.getByTestId('context-window-selected')).toContainText('压缩准备');
+  await expect(panel.getByTestId('context-window-selected').getByText('压缩准备')).toHaveAttribute(
+    'title',
+    /不代表压缩已完成/
+  );
   await historyButtons.nth(3).click();
   await expect(panel.getByTestId('context-window-selected')).toContainText('20.0%');
   await page.screenshot({ path: join(artifacts, 'window-history.png'), fullPage: true });
+  await historyToggle.click();
+  await expect(panel.getByTestId('context-window-history-chart')).toHaveCount(0);
   assert.ok(apiPaths.length >= 4);
   assert.ok(apiPaths.every((path) => path === '/api/conversations/browser-context-usage/context-usage'));
   assert.deepEqual(errors, []);

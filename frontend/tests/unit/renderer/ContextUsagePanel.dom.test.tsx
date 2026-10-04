@@ -63,7 +63,12 @@ const usage = (usedTokens = 20, sessionId = 'conversation-1') => ({
 describe('ContextUsagePanel', () => {
   it('exposes unscaled estimates, receipt delta and selectable near-full history', async () => {
     const current = usage(20);
-    const peak = { ...current.snapshot, requestId: 'peak', usedTokens: 95, model: 'earlier-model' };
+    const peak = {
+      ...current.snapshot,
+      requestId: 'peak',
+      usedTokens: 95,
+      model: 'earlier-model',
+    };
     vi.mocked(fetch).mockImplementation(() =>
       Promise.resolve(
         new Response(
@@ -82,20 +87,44 @@ describe('ContextUsagePanel', () => {
     );
     await renderWithI18n(<ContextUsagePanel conversationId='conversation-1' />, 'en-US');
     fireEvent.click(screen.getByTestId('synon-biomed-context-usage-trigger'));
+    await screen.findByTestId('context-usage-percent');
+    const disclosure = screen.getByTestId('context-window-history-toggle');
+    expect(disclosure).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByTestId('context-window-history-chart')).not.toBeInTheDocument();
+    const summary = screen.getByRole('group', { name: 'Context usage' });
+    const description = document.getElementById(summary.getAttribute('aria-describedby') ?? '');
+    expect(description).toHaveTextContent('Local composition estimate: ≈ 19');
+    expect(description).toHaveTextContent('Provider minus local estimate: +1');
+    fireEvent.click(disclosure);
     expect(await screen.findByTestId('context-window-peak')).toHaveTextContent('95 / 100 · 95.0%');
-    expect(screen.getByTestId('context-usage-diagnostics')).toHaveTextContent('Local composition estimate: ≈ 19');
-    expect(screen.getByTestId('context-usage-diagnostics')).toHaveTextContent('Provider minus local estimate: +1');
+    expect(screen.getByTestId('synon-biomed-context-usage-trigger')).toHaveTextContent(/^$/);
+    expect(screen.queryByTestId('context-usage-trigger-value')).not.toBeInTheDocument();
     expect(screen.getByTestId('context-usage-legend')).toHaveTextContent('≈ 4');
     fireEvent.click(screen.getByRole('button', { name: /^1 · earlier-model/ }));
     expect(screen.getByTestId('context-window-selected')).toHaveTextContent('earlier-model');
     expect(screen.getByTestId('context-window-selected')).toHaveTextContent('95.0%');
-    expect(screen.getByTestId('context-window-selected')).toHaveTextContent('not cumulative billing');
+    expect(screen.getByTestId('context-window-history-chart')).toHaveAttribute(
+      'title',
+      expect.stringContaining('not cumulative billing')
+    );
+    fireEvent.click(disclosure);
+    expect(disclosure).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByTestId('context-window-history-chart')).not.toBeInTheDocument();
   });
 
   it('keeps live local and last-confirmed provider windows separate', async () => {
     const current = usage(25);
-    const confirmed = { ...current.snapshot, requestId: 'confirmed', usedTokens: 20 };
-    const pending = { ...current.snapshot, source: 'estimated', state: 'request', outputTokens: 0 };
+    const confirmed = {
+      ...current.snapshot,
+      requestId: 'confirmed',
+      usedTokens: 20,
+    };
+    const pending = {
+      ...current.snapshot,
+      source: 'estimated',
+      state: 'request',
+      outputTokens: 0,
+    };
     vi.mocked(fetch).mockImplementation(() =>
       Promise.resolve(
         new Response(
@@ -115,11 +144,17 @@ describe('ContextUsagePanel', () => {
     );
     await renderWithI18n(<ContextUsagePanel conversationId='conversation-1' active />, 'en-US');
     fireEvent.click(screen.getByTestId('synon-biomed-context-usage-trigger'));
-    expect(await screen.findByTestId('context-usage-diagnostics')).toHaveTextContent(
+    await screen.findByTestId('context-usage-percent');
+    const summary = screen.getByRole('group', { name: 'Context usage' });
+    expect(document.getElementById(summary.getAttribute('aria-describedby') ?? '')).toHaveTextContent(
       'Last confirmed provider window: 20'
     );
     expect(screen.getByTestId('context-usage-percent')).toHaveTextContent('25.0%');
-    expect(screen.getByTestId('context-usage-trigger-value')).toHaveTextContent('≈ 25%');
+    expect(screen.getByTestId('synon-biomed-context-usage-trigger')).toHaveAttribute(
+      'title',
+      expect.stringContaining('≈ 25.0%')
+    );
+    expect(screen.queryByTestId('context-usage-trigger-value')).not.toBeInTheDocument();
   });
 
   beforeEach(() => {
@@ -132,6 +167,40 @@ describe('ContextUsagePanel', () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
+  });
+
+  it('keeps the default card focused and omits the duplicate single-record chart', async () => {
+    const current = usage(52_700);
+    current.snapshot.limitTokens = 0;
+    current.snapshot.limitSource = 'unknown';
+    vi.mocked(fetch).mockImplementation(() =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            ...current,
+            history: {
+              sessionId: current.snapshot.sessionId,
+              totalObserved: 1,
+              coverage: 'latest_only',
+              samples: [current.snapshot],
+              peak: current.snapshot,
+            },
+          })
+        )
+      )
+    );
+    await renderWithI18n(<ContextUsagePanel conversationId='conversation-1' />, 'en-US');
+    fireEvent.click(screen.getByTestId('synon-biomed-context-usage-trigger'));
+    expect(await screen.findByTestId('context-usage-percent')).toHaveTextContent('5.3%');
+    expect(screen.queryByTestId('context-usage-diagnostics')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('context-usage-policy')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('context-window-peak')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('context-window-history-toggle')).not.toBeInTheDocument();
+    expect(screen.getByTestId('context-window-history')).toHaveTextContent('Only the latest record is available');
+    const summary = screen.getByRole('group');
+    expect(document.getElementById(summary.getAttribute('aria-describedby') ?? '')).toHaveTextContent(
+      'Provider minus local estimate'
+    );
   });
 
   it('loads the real context contract without ACP props or message sampling', async () => {
@@ -158,21 +227,31 @@ describe('ContextUsagePanel', () => {
     expect(trigger).toHaveFocus();
   });
 
-  it('retires the guessed default capacity instead of drawing a misleading fullness ring', async () => {
-    const defaultBudget = usage();
-    defaultBudget.snapshot.limitSource = 'runner_default';
-    vi.mocked(fetch).mockImplementation(() => Promise.resolve(new Response(JSON.stringify(defaultBudget))));
-    await renderWithI18n(<ContextUsagePanel conversationId='conversation-1' />, 'en-US');
-    fireEvent.click(screen.getByTestId('synon-biomed-context-usage-trigger'));
-    expect(await screen.findByTestId('context-usage-tokens')).toHaveTextContent('20');
-    expect(screen.queryByTestId('context-usage-percent')).not.toBeInTheDocument();
-    expect(screen.getByTestId('context-usage-capacity-unknown')).toHaveTextContent('?');
-    expect(screen.getByTestId('synon-biomed-context-usage-trigger').querySelector('svg')).toBeNull();
-    const summary = screen.getByRole('group');
-    expect(document.getElementById(summary.getAttribute('aria-describedby') ?? '')).toHaveTextContent(
-      'Model capacity unknown'
-    );
-  });
+  it.each(['unknown', 'runner_default'])(
+    'uses the explicit 1M display default for %s without relabelling it as verified',
+    async (source) => {
+      const defaultBudget = usage(52_700);
+      defaultBudget.snapshot.limitTokens = source === 'unknown' ? 0 : 123_456;
+      defaultBudget.snapshot.limitSource = source;
+      vi.mocked(fetch).mockImplementation(() => Promise.resolve(new Response(JSON.stringify(defaultBudget))));
+      await renderWithI18n(<ContextUsagePanel conversationId='conversation-1' />, 'en-US');
+      fireEvent.click(screen.getByTestId('synon-biomed-context-usage-trigger'));
+      expect(await screen.findByTestId('context-usage-percent')).toHaveTextContent('5.3%');
+      const trigger = screen.getByTestId('synon-biomed-context-usage-trigger');
+      expect(trigger).toHaveTextContent(/^$/);
+      expect(screen.queryByTestId('context-usage-trigger-value')).not.toBeInTheDocument();
+      const ring = trigger.querySelectorAll('circle')[1];
+      expect(ring).toBeDefined();
+      expect(
+        Number(ring.getAttribute('stroke-dashoffset')) / Number(ring.getAttribute('stroke-dasharray'))
+      ).toBeCloseTo(0.9473, 4);
+      expect(screen.getByTestId('context-usage-panel')).toHaveTextContent('52.7K / 1.0M');
+      const summary = screen.getByRole('group');
+      expect(document.getElementById(summary.getAttribute('aria-describedby') ?? '')).toHaveTextContent(
+        'Default display budget: 1.0M tokens; not a verified model limit'
+      );
+    }
+  );
 
   it('shows the declared current-model capacity and correct ring fraction', async () => {
     const profile = usage(64000);
@@ -187,7 +266,7 @@ describe('ContextUsagePanel', () => {
     expect(Number(ring.getAttribute('stroke-dashoffset')) / Number(ring.getAttribute('stroke-dasharray'))).toBeCloseTo(
       0.5
     );
-    expect(screen.getByTestId('context-usage-observation')).toHaveTextContent('model');
+    expect(screen.getByTestId('context-usage-observation')).toHaveTextContent('Model profile window');
     expect(document.getElementById(screen.getByRole('group').getAttribute('aria-describedby') ?? '')).toHaveTextContent(
       'not provider-verified'
     );
@@ -336,13 +415,24 @@ describe('ContextUsagePanel', () => {
   it('updates the ring during a stream, retains an explicit stale value, and reconciles the provider final', async () => {
     let record: unknown = {
       ...usage(),
-      autoCompaction: { enabled: true, windowTokens: 100, thresholdTokens: 80, percent: 80, source: 'window_percent' },
+      autoCompaction: {
+        enabled: true,
+        windowTokens: 100,
+        thresholdTokens: 80,
+        percent: 80,
+        source: 'window_percent',
+      },
       snapshot: {
         ...usage().snapshot,
         state: 'request',
         source: 'estimated',
         outputTokens: 0,
-        progress: { phase: 'generating', observedAt: '2026-01-01T00:00:01Z', usedTokens: 28, outputTokens: 8 },
+        progress: {
+          phase: 'generating',
+          observedAt: '2026-01-01T00:00:01Z',
+          usedTokens: 28,
+          outputTokens: 8,
+        },
       },
     };
     let failed = false;
@@ -353,7 +443,8 @@ describe('ContextUsagePanel', () => {
     fireEvent.click(screen.getByTestId('synon-biomed-context-usage-trigger'));
     await waitFor(() => expect(screen.getByTestId('context-usage-percent')).toHaveTextContent('28.0%'));
     expect(screen.getByTestId('context-usage-phase')).toHaveTextContent('Generating');
-    expect(screen.getByTestId('context-usage-policy')).toHaveTextContent('80%');
+    const summary = screen.getByRole('group', { name: 'Context usage' });
+    expect(document.getElementById(summary.getAttribute('aria-describedby') ?? '')).toHaveTextContent('80%');
     expect(screen.getByTestId('synon-biomed-context-usage-trigger')).toHaveAttribute(
       'title',
       expect.stringContaining('≈ 28.0%')
