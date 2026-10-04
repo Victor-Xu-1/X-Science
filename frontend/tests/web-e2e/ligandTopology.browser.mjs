@@ -60,6 +60,10 @@ try {
   ]);
   const depiction = page.locator('.synon-biomed-molstar__ligand-depiction');
   const svg = depiction.locator('.synon-biomed-molstar__ligand-depiction-svg svg');
+  // Mol* rebuilds asynchronously after a format/model change. Use one bounded
+  // visual-readiness budget; keep all chemistry and model assertions intact.
+  const visualReadiness = { timeout: 45000 };
+  const readinessMeasurements = [];
   const bondPathCounts = (element) => {
     const counts = new Map();
     for (const path of element.querySelectorAll('path[class]')) {
@@ -74,15 +78,17 @@ try {
   await expect(page.getByTestId('chemistry-validation')).toHaveText('[true,true,true,true]');
   assert.ok(expected.filter((value) => value > 1).length >= 4, JSON.stringify(expected));
   for (const format of ['sdf', 'mol', 'mol2', 'cif', 'pdbqt']) {
+    const started = Date.now();
     await page.getByRole('button', { name: format, exact: true }).click();
-    await expect(depiction).toBeVisible({ timeout: 45000 });
+    await expect(depiction).toBeVisible(visualReadiness);
     const expand = depiction.getByRole('button', {
       name: '向上展开二维结构',
       exact: true,
     });
     if (await expand.isVisible()) await expand.click();
-    await expect(svg).toBeVisible({ timeout: 45000 });
+    await expect(svg).toBeVisible(visualReadiness);
     await expect.poll(() => svg.evaluate(bondPathCounts), { timeout: 15000 }).toEqual(expected);
+    readinessMeasurements.push({ format, readyAfterMs: Date.now() - started });
     await page.screenshot({
       path: join(artifacts, format + '-bond-orders.png'),
     });
@@ -92,17 +98,21 @@ try {
   if (!(await nextModel.isVisible())) await page.getByTestId('synon-biomed-molstar-toolbar-collapse').click();
   await nextModel.click();
   await expect(page.getByTestId('synon-biomed-molstar-model-navigator')).toContainText('模型 2 / 9');
-  await expect(svg).toBeVisible();
+  await expect(svg).toBeVisible(visualReadiness);
   assert.deepEqual(await svg.evaluate(bondPathCounts), expected);
+  const unknownStarted = Date.now();
   await page.getByRole('button', { name: 'pdb', exact: true }).click();
-  await expect(depiction).toBeVisible();
+  await expect(depiction).toBeVisible(visualReadiness);
   const expandUnknown = depiction.getByRole('button', { name: '向上展开二维结构', exact: true });
   if (await expandUnknown.isVisible()) await expandUnknown.click();
   await expect(depiction).toContainText('文件缺少可核实的键级信息', {
     timeout: 30000,
   });
   await expect(svg).toHaveCount(0);
-  await expect(page.getByTestId('synon-biomed-structure-canvas').locator('canvas').first()).toBeVisible();
+  await expect(page.getByTestId('synon-biomed-structure-canvas').locator('canvas').first()).toBeVisible(
+    visualReadiness
+  );
+  readinessMeasurements.push({ format: 'pdb', readyAfterMs: Date.now() - unknownStarted });
   await page.screenshot({
     path: join(artifacts, 'unknown-coordinate-topology.png'),
   });
@@ -113,6 +123,7 @@ try {
       formats: ['sdf', 'mol', 'mol2', 'cif', 'pdbqt'],
       bondPathCounts: expected,
       modelCount: 9,
+      readinessMeasurements,
       pageErrors: errors,
       artifacts,
     })
