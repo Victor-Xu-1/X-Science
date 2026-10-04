@@ -1369,11 +1369,19 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
   };
 
   const handleTrajectoryModelChange = async (by: number) => {
-    await runEngineAction('trajectory-model', async (engine) => {
+    const succeeded = await runEngineAction('trajectory-model', async (engine) => {
       setTrajectoryModel(await engine.advanceTrajectoryModel(by));
       setStructureComposition(engine.getStructureComposition());
       setSelectedStructureLigandIds(engine.getStructureLigandSelection());
     });
+    if (!succeeded) return;
+    setPocketVisible(false);
+    setSelectedLigandResidueName(undefined);
+    cancelScheduledPocketInteractionStrengthRefresh();
+    pocketStrengthRequestRef.current += 1;
+    pocketStrengthContextRef.current = null;
+    pocketStrengthRecordsRef.current = [];
+    setPocketStrengthStatus('idle');
     electrostaticMapRequestRef.current += 1;
     electrostaticMapCacheRef.current = null;
     setElectrostaticMapReport(null);
