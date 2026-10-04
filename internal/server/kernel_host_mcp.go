@@ -159,7 +159,14 @@ func (s *Server) handleKernelMCPHostCallForAccess(
 		if approvalID == "" {
 			return nil, kernelruntime.NewHostCallError("approval_unavailable", "MCP approval request is unavailable")
 		}
-		if err := s.waitForKernelMCPApproval(ctx, approvalID); err != nil {
+		approvalAccess, err := s.validateKernelHostIdentity(ctx, bound.access)
+		if err != nil || approvalAccess.Frame.ID != frameID || approvalAccess.UserID != ownerID {
+			if err := s.retirePendingKernelHostApproval(approvalID, "MCP frame authority changed before approval"); err != nil {
+				return nil, kernelruntime.NewHostCallError("approval_unavailable", "MCP approval could not be settled")
+			}
+			return nil, kernelruntime.NewHostCallError("permission_denied", "MCP frame authority is invalid before approval")
+		}
+		if err := s.requireVisibleKernelMCPApproval(ctx, approvalAccess, resolution, updated, permission); err != nil {
 			return nil, err
 		}
 	}

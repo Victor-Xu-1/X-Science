@@ -3,6 +3,7 @@ package workspace
 import (
 	"context"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -28,6 +29,33 @@ type KernelMCPAuditTerminalInput struct {
 	Status string
 	Reason string
 	Result any
+}
+
+func (s *Store) KernelMCPAuditTerminalStatus(ctx context.Context, ownerUserID, frameID, callID string) (string, bool, error) {
+	if s == nil || s.db == nil {
+		return "", false, errors.New("workspace store is closed")
+	}
+	ownerUserID, frameID, callID = strings.TrimSpace(ownerUserID), strings.TrimSpace(frameID), strings.TrimSpace(callID)
+	if ownerUserID == "" || frameID == "" || callID == "" {
+		return "", false, errors.New("kernel MCP audit lookup requires owner, frame, and call")
+	}
+	var raw string
+	err := s.db.QueryRowContext(ctx, `SELECT e.payload FROM frame_events e
+		JOIN frames f ON f.id=e.frame_id JOIN projects p ON p.id=f.project_id AND p.user_id=?
+		WHERE e.id=? AND e.frame_id=? AND e.event_type='kernel_mcp_audit_terminal'`,
+		strings.TrimSpace(ownerUserID), kernelMCPAuditEventID("terminal", frameID, callID), strings.TrimSpace(frameID)).Scan(&raw)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, err
+	}
+	var payload map[string]any
+	if err := json.Unmarshal([]byte(raw), &payload); err != nil {
+		return "", false, err
+	}
+	status, _ := payload["status"].(string)
+	return status, true, nil
 }
 
 func (s *Store) BeginKernelMCPAudit(ctx context.Context, input KernelMCPAuditInput) (FrameEvent, error) {

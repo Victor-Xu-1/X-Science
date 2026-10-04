@@ -43,9 +43,18 @@ func publishManagedExecutionOutputSnapshot(
 	if workspaceRoot == "" || outputRoot == "" || !managedExecutionPathWithinRoot(workspaceRoot, outputRoot) || outputRoot == workspaceRoot {
 		return errors.New("managed execution snapshot workspace authority is invalid")
 	}
-	lock := agentWorkspaceEditLock("managed-execution-snapshot:\x00" + outputRoot)
-	lock.Lock()
-	defer lock.Unlock()
+	unlock, err := lockManagedExecutionSnapshot(ctx, outputRoot)
+	if err != nil {
+		return err
+	}
+	defer unlock()
+	return publishManagedExecutionOutputSnapshotLocked(ctx, workspaceRoot, authority)
+}
+
+// Caller holds the existing per-output snapshot lock. All publication paths
+// use this implementation, including the atomic receipt verification path.
+func publishManagedExecutionOutputSnapshotLocked(ctx context.Context, workspaceRoot string, authority managedExecutionOutputAuthority) error {
+	outputRoot := filepath.Clean(strings.TrimSpace(authority.Root))
 	stableRoot := filepath.Join(workspaceRoot, ".synon-artifacts", ".managed")
 	if _, err := secureEnsureAgentWorkspaceDirectory(filepath.Dir(stableRoot), 0o700); err != nil {
 		return fmt.Errorf("prepare managed execution snapshot root: %w", err)

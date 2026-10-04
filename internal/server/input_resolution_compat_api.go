@@ -151,6 +151,9 @@ func (s *Server) resolveCompatibilityInput(
 			pendingByID[id] = item
 		}
 	}
+	if result, handled, err := s.resolveKernelMCPApprovalInputs(r.Context(), current, pendingByID, input.Responses); handled {
+		return result, err
+	}
 	if result, handled, err := s.resolveKernelCapabilityInstallApprovalInputs(r.Context(), current, pendingByID, input.Responses); handled {
 		return result, err
 	}
