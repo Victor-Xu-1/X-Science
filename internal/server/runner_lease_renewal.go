@@ -10,7 +10,11 @@ import (
 // claim identity is never rewritten by the heartbeat goroutine; the store is
 // the authority for expiry and ownership after every attempted write.
 func (s *Server) renewTranscriptRunnerLease(ctx context.Context, claim transcriptstore.RunnerClaim, ttl time.Duration, expiresAt time.Time) (transcriptstore.HeartbeatRunnerResult, error) {
-	deadline := time.Now().Add(ttl / 3)
+	// Use the remaining already-owned grant, not a shorter preparation slice.
+	// A temporary writer/acquisition delay must not kill live work while that
+	// authority is still valid. Parent cancellation and durable expiry remain
+	// hard bounds, and the store rechecks all fences after obtaining its lock.
+	deadline := time.Now().Add(ttl)
 	if !expiresAt.IsZero() && expiresAt.Before(deadline) {
 		deadline = expiresAt
 	}
