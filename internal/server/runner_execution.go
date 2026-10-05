@@ -217,15 +217,9 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 	currentLogicalEntries := entries
 	if run != nil {
 		preparationSubstage = "load_provider_continuation"
-		// A completed Skill result in the exact provider replay is durable
-		// execution authority. Restore it before constructing a new engine after
-		// approval, AskUser, or process recovery so task-scoped execution routing
-		// does not silently disappear at continuation boundaries.
-		visibleSkillNames := providerVisibleSkillNames(messages)
-		run.addExecutedSkillNames(visibleSkillNames...)
-		for _, skillName := range visibleSkillNames {
-			run.addExecutedSkillInvocationKeys(runtimeSkillInvocationKey(skillName, "", ""))
-		}
+		// Provider history is conversation context, not Skill admission authority.
+		// Restore only current-intent immutable receipts below, including durable
+		// replay receipts after compaction, approval, or process recovery.
 		if err := s.loadProviderContinuation(ctx, run); err != nil {
 			return "", err
 		}
@@ -266,6 +260,7 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 		run.addExecutedSkillInvocationKeys(completedSkillInvocationKeysFromRunnerEntries(scientificEntries)...)
 		run.addTrustedScientificReviewSignals(trustedScientificReviewSignalsFromRunnerEntries(scientificEntries)...)
 		run.addTrustedScientificCapabilityWitnesses(trustedScientificCapabilityWitnessesFromRunnerEntries(scientificEntries)...)
+		run.ContinuationArtifactReferences = artifactReferencesFromRunnerEntries(scientificEntries)
 	}
 	taskIntent := promptContextFromMessages(messages)
 	taskLanguage := sessionRunnerResponseLanguage(taskIntent)
@@ -294,20 +289,6 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 		}
 		if strings.TrimSpace(taskIntent) == "" {
 			return "", errors.New("canonical transcript task intent is unavailable")
-		}
-		currentTaskIntent := taskIntent
-		if continuationEntries := sessionRunnerContinuationEvidenceEntries(currentTaskIntent, entries); len(continuationEntries) > 0 {
-			preparationSubstage = "restore_continuation_evidence"
-			if rootTaskIntent := sessionRunnerContinuationRootTaskIntent(currentTaskIntent, entries); rootTaskIntent != "" {
-				taskIntent = rootTaskIntent
-				taskLanguage = sessionRunnerResponseLanguage(rootTaskIntent)
-			}
-			run.addRequiredScientificCapabilities(requiredScientificCapabilitiesFromRunnerEntries(continuationEntries)...)
-			run.addExecutedSkillNames(completedSkillNamesFromRunnerEntries(continuationEntries)...)
-			run.addExecutedSkillInvocationKeys(completedSkillInvocationKeysFromRunnerEntries(continuationEntries)...)
-			run.addTrustedScientificReviewSignals(trustedScientificReviewSignalsFromRunnerEntries(continuationEntries)...)
-			run.addTrustedScientificCapabilityWitnesses(trustedScientificCapabilityWitnessesFromRunnerEntries(continuationEntries)...)
-			run.ContinuationArtifactReferences = artifactReferencesFromRunnerEntries(continuationEntries)
 		}
 		run.TaskIntent = taskIntent
 		run.TaskIntentID = taskIntentID

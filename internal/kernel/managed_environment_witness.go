@@ -68,13 +68,10 @@ func (m *Manager) managedWitnessRuntime(environment string) (string, string, err
 	if err := validateManagedEnvironmentName(environment); err != nil {
 		return "", "", err
 	}
-	// The service-owned bundled Python runtime is content-addressed and uses
-	// the stricter .synon-runtime.json marker contract. Do not route it through
-	// the generic Conda marker reader.
-	if strings.TrimSpace(environment) == m.ManagedPythonEnvironmentName() &&
-		strings.TrimSpace(m.config.CondaRuntimeCatalog) != "" {
-		prefix, err := m.ManagedPythonActivePrefix()
-		return prefix, "python", err
+	// Inventory and execution witnesses project the same core-runtime authority,
+	// including portable activation pointers and full generation identities.
+	if bundled, prefix, recognized, err := m.bundledManagedEnvironment(environment); recognized {
+		return prefix, bundled.Language, err
 	}
 	root, err := m.managedEnvironmentRoot()
 	if err != nil {

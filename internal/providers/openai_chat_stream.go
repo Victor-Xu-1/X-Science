@@ -158,8 +158,9 @@ func (c *streamingRuntimeModelClient) completeOpenAIChatStreamAttempt(ctx contex
 
 	startedAt := time.Now().UTC()
 	firstByteTimeout, idleTimeout := openAIChatStreamTimeouts(c.profile.Request.Timeout)
-	requestCtx, cancelRequest := context.WithCancelCause(ctx)
+	requestCtx, cancelRequest, emit, planning := toolPlanningStreamContext(ctx, request, idleTimeout, emit)
 	defer cancelRequest(nil)
+	defer planning.Stop()
 
 	httpRequest, err := http.NewRequestWithContext(requestCtx, http.MethodPost, c.profile.Provider.Endpoint, bytes.NewReader(payload))
 	if err != nil {
@@ -171,21 +172,20 @@ func (c *streamingRuntimeModelClient) completeOpenAIChatStreamAttempt(ctx contex
 	c.applyHeaders(httpRequest, request.Headers)
 	outboundRequestID := httpRequest.Header.Get("X-Request-ID")
 
-	firstByteTimer := time.AfterFunc(firstByteTimeout, func() {
-		cancelRequest(errOpenAIChatStreamFirstByteTimeout)
-	})
+	stopHeaders := providerStreamHeaderDeadline(request, firstByteTimeout, cancelRequest)
 	response, err := c.httpClient.Do(httpRequest)
-	_ = firstByteTimer.Stop()
+	stopHeaders()
 	if err != nil {
-		err = openAIChatStreamRequestError(ctx, requestCtx, err)
+		err = classifyProviderStreamInterruption(ctx, requestCtx, false, err)
 		record := c.baseAuditRecord(attempt, c.profile.Provider.Endpoint, startedAt)
 		record.RequestID = outboundRequestID
 		record.FinishedAt = time.Now().UTC()
 		record.DurationMs = record.FinishedAt.Sub(record.StartedAt).Milliseconds()
 		record.Error = c.redactSensitiveText(err.Error())
 		c.emitAudit(record)
-		return agentruntime.ModelResponse{}, ctx.Err() == nil, false, err
+		return agentruntime.ModelResponse{}, ctx.Err() == nil && !IsProviderEmptyResponse(err), false, err
 	}
+	planning.HeadersReceived()
 	defer response.Body.Close()
 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
@@ -255,7 +255,7 @@ func (c *streamingRuntimeModelClient) completeOpenAIChatStreamAttempt(ctx contex
 		err = enrichOutputLimitFailure(err, c.effectiveRequestMaxTokens(request), &record, usage)
 		record.Error = c.redactSensitiveText(err.Error())
 		c.emitAudit(record)
-		retryable := !emitted && ctx.Err() == nil &&
+		retryable := !emitted && ctx.Err() == nil && !IsProviderEmptyResponse(err) &&
 			!errors.Is(err, errProviderResponseTooLarge) &&
 			(!errors.Is(err, errProviderResponseTruncated) || errors.Is(err, errProviderStreamIncomplete))
 		return agentruntime.ModelResponse{}, retryable, emitted, err

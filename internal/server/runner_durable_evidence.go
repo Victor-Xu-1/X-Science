@@ -213,27 +213,11 @@ func (s *Server) sessionRunnerDurableTaskBoundary(
 	if expected := strings.TrimSpace(run.TaskIntentID); expected != "" && expected != strings.TrimSpace(intent.ID) {
 		return "", false, errors.New("runner transcript task intent changed during completion verification")
 	}
-	intents, err := s.transcriptStore.ListActiveFrameTaskIntents(
-		ctx, run.Transcript.Stream.UID, run.Transcript.Stream.OwnerID,
-	)
-	if err != nil {
-		return "", false, err
-	}
-	activeIndex := -1
-	for index := len(intents) - 1; index >= 0; index-- {
-		if strings.TrimSpace(intents[index].ID) == strings.TrimSpace(intent.ID) {
-			activeIndex = index
-			break
-		}
-	}
-	if activeIndex < 0 {
-		return "", false, errors.New("runner transcript active task intent is missing from durable history")
-	}
-	rootIndex := activeIndex
-	for rootIndex > 0 && sessionRunnerTaskContinuesPriorWork(intents[rootIndex].Text) {
-		rootIndex--
-	}
-	boundary := strings.TrimSpace(intents[rootIndex].SourceEventID)
+	// The Transcript owns task identity. Explicit resume/input-response events
+	// retain this intent; an authored follow-on request gets its own intent even
+	// when it mentions earlier work. Text cannot revive a previous engine choice,
+	// capability requirement, or execution receipt for a different request.
+	boundary := strings.TrimSpace(intent.SourceEventID)
 	if boundary == "" {
 		return "", false, errors.New("runner transcript logical task boundary is unavailable")
 	}

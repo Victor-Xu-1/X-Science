@@ -32,6 +32,11 @@
 Linux/WSL。不要把 native 安装成功写成该平台已能执行科学任务。支持矩阵、配置及恢复方式见
 [运维手册](../operations-runbook.md)和 [Kernel execution contract](../engineering/kernel-execution-contract.md)。
 
+通用环境预检读取核心 Python/R 已验证的目录、JSON 激活指针及代际身份，
+不会把合法的便携式指针当作损坏安装，也不为核心环境写第二份管理标记。
+核心 Python 的额外包沿已有不可变派生环境流程安装；原始核心代际不会就地修改。
+目录可用、包已安装、引擎具备能力和实际计算完成是不同状态，不能相互替代。
+
 ## Focused verification · 验证入口
 
 从仓库根目录执行：

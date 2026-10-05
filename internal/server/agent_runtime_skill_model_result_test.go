@@ -52,13 +52,16 @@ func TestProviderVisibleSkillResultsBecomeReceiptsForSystemContext(t *testing.T)
 	}
 }
 
-func TestProviderVisibleSkillNamesRestoreContinuationAuthority(t *testing.T) {
+func TestProviderVisibleSkillReceiptsPreserveHistoryWithoutExecutionAuthority(t *testing.T) {
 	messages := []chatCompletionMessage{
 		{Role: "tool", Content: `<skill-metadata name="single-cell-rna-analysis" description="analysis" />` + "\n\ncontract"},
 		{Role: "tool", Content: `<skill-metadata name="document-workbench" />` + "\n\ncontract"},
 	}
-	if got := strings.Join(providerVisibleSkillNames(messages), ","); got != "document-workbench,single-cell-rna-analysis" {
-		t.Fatalf("visible Skill names = %q", got)
+	visible := providerVisibleSkillResultNames(messages)
+	_, document := visible["document-workbench"]
+	_, analysis := visible["single-cell-rna-analysis"]
+	if len(visible) != 2 || !document || !analysis {
+		t.Fatalf("visible Skill receipts = %#v", visible)
 	}
 }
 

@@ -36,6 +36,7 @@ type anthropicStreamEvent struct {
 	Delta struct {
 		Type        string `json:"type"`
 		Text        string `json:"text,omitempty"`
+		Thinking    string `json:"thinking,omitempty"`
 		PartialJSON string `json:"partial_json,omitempty"`
 	} `json:"delta,omitempty"`
 	Usage anthropicStreamUsage `json:"usage,omitempty"`
@@ -117,6 +118,12 @@ func readAnthropicStream(client *runtimeModelClient, response http.Response, emi
 			}
 		case "content_block_delta":
 			switch event.Delta.Type {
+			case "thinking_delta":
+				if event.Delta.Thinking != "" {
+					if err := emit(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventPrivateReasoning, ReasoningActive: true}); err != nil {
+						return err
+					}
+				}
 			case "text_delta":
 				if event.Delta.Text != "" {
 					acc.content.WriteString(event.Delta.Text)

@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -154,16 +153,6 @@ func deactivateProviderSkillResultsForSelectedImplementation(
 		out[index].Content = header + "\n\nThis historical dedicated capability is inactive because a later exact user answer selected another implementation. Follow only the current matching or implementation-agnostic capability contract."
 	}
 	return out
-}
-
-func providerVisibleSkillNames(messages []chatCompletionMessage) []string {
-	visible := providerVisibleSkillResultNames(messages)
-	names := make([]string, 0, len(visible))
-	for name := range visible {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	return names
 }
 
 func compactProviderVisibleSkillResultBodies(messages []chatCompletionMessage) []chatCompletionMessage {
