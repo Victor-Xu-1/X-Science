@@ -12,11 +12,24 @@ import (
 
 var errProviderPlanningNoProgress = errors.New("provider tool planning exceeded its action-progress window without public output or a tool call")
 
-// A tool-enabled request must eventually produce a public answer/progress or
-// begin an actual tool call. Private reasoning renews transport liveness, but
-// is not an actionable result and cannot indefinitely extend an action-progress
-// window. Productive responses keep the existing decoder-progress idle limit;
-// this is not a total task or scientific-process deadline.
+// Tool-enabled requests already have the first-action deadline below. Keep one
+// cancellation authority before headers, not two equal timers racing to choose
+// whether the same no-progress interval is replayable. Plain requests retain
+// their existing transport header deadline.
+func providerStreamHeaderDeadline(request agentruntime.ModelRequest, timeout time.Duration, cancel context.CancelCauseFunc) func() {
+	if len(request.Tools) > 0 {
+		return func() {}
+	}
+	timer := time.AfterFunc(timeout, func() { cancel(errOpenAIChatStreamFirstByteTimeout) })
+	return func() { timer.Stop() }
+}
+
+// A tool-enabled request must produce a public answer/progress or begin an
+// actual tool call within its operation window. The initial window starts at
+// dispatch, including providers that ignore streaming and trickle unframed
+// JSON: incoming bytes alone are not an actionable result. Later private-only
+// intervals are bounded too. Productive responses keep the existing decoder
+// idle limit; this is not a total task or scientific-process deadline.
 func toolPlanningStreamContext(
 	parent context.Context,
 	request agentruntime.ModelRequest,
@@ -34,6 +47,24 @@ func toolPlanningStreamContext(
 	var timer *time.Timer
 	var generation uint64
 	stopped := false
+	arm := func() {
+		generation++
+		currentGeneration := generation
+		timer = time.AfterFunc(timeout, func() {
+			mu.Lock()
+			if stopped || generation != currentGeneration {
+				mu.Unlock()
+				return
+			}
+			stopped = true
+			generation++
+			mu.Unlock()
+			cancel(errProviderPlanningNoProgress)
+		})
+	}
+	mu.Lock()
+	arm()
+	mu.Unlock()
 	stop := func() {
 		mu.Lock()
 		defer mu.Unlock()
@@ -53,19 +84,7 @@ func toolPlanningStreamContext(
 				timer = nil
 			}
 		} else if event.ReasoningActive && !stopped && timer == nil {
-			generation++
-			currentGeneration := generation
-			timer = time.AfterFunc(timeout, func() {
-				mu.Lock()
-				if stopped || generation != currentGeneration {
-					mu.Unlock()
-					return
-				}
-				stopped = true
-				generation++
-				mu.Unlock()
-				cancel(errProviderPlanningNoProgress)
-			})
+			arm()
 		}
 		mu.Unlock()
 		return emit(event)

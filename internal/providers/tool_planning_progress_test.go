@@ -3,6 +3,7 @@ package providers
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -65,6 +66,92 @@ func TestToolPlanningReasoningOnlyStreamHasBoundedProgress(t *testing.T) {
 			}
 			if visible.Len() != 0 {
 				t.Fatalf("private reasoning leaked: %q", visible.String())
+			}
+		})
+	}
+}
+
+func TestToolPlanningUnframedJSONCannotExtendActionProgress(t *testing.T) {
+	for _, protocol := range []string{ProtocolOpenAICompatible, ProtocolAnthropic, ProtocolOpenAIResponses, ProtocolGemini} {
+		t.Run(protocol, func(t *testing.T) {
+			var requests atomic.Int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				requests.Add(1)
+				w.Header().Set("Content-Type", "application/json")
+				prefix, suffix := `{"choices":[{"message":{"role":"assistant","reasoning_content":"`, `"},"finish_reason":"stop"}]}`
+				switch protocol {
+				case ProtocolAnthropic:
+					prefix, suffix = `{"id":"msg","role":"assistant","content":[{"type":"thinking","thinking":"`, `"}],"stop_reason":"end_turn"}`
+				case ProtocolOpenAIResponses:
+					prefix, suffix = `{"id":"resp","output":[{"type":"reasoning","summary":[{"type":"summary_text","text":"`, `"}]}]}`
+				case ProtocolGemini:
+					prefix, suffix = `{"candidates":[{"content":{"role":"model","parts":[{"thought":true,"text":"`, `"}]}}]}`
+				}
+				fmt.Fprint(w, prefix)
+				w.(http.Flusher).Flush()
+				ticker := time.NewTicker(10 * time.Millisecond)
+				defer ticker.Stop()
+				for i := 0; i < 200; i++ {
+					select {
+					case <-r.Context().Done():
+						return
+					case <-ticker.C:
+					}
+					fmt.Fprint(w, "private")
+					w.(http.Flusher).Flush()
+				}
+				fmt.Fprint(w, suffix)
+			}))
+			defer server.Close()
+			client, err := NewRuntimeModelClient(ModelProfile{
+				Provider: ProviderProfile{ID: "unframed-planning", Protocol: protocol, Endpoint: server.URL + "/v1beta/models/model:generateContent"},
+				Model:    "model", Request: RequestProfile{Timeout: 100 * time.Millisecond, MaxAttempts: 3, MaxResponseBytes: 64 << 10},
+			}, server.Client(), nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			defer cancel()
+			var visible strings.Builder
+			started := time.Now()
+			_, err = client.(agentruntime.StreamingModelClient).CompleteStream(ctx, agentruntime.ModelRequest{
+				Messages: []agentruntime.Message{{Role: "user", Content: "Perform the next analysis."}},
+				Tools:    []agentruntime.ToolSchema{{Name: "analysis", Parameters: map[string]any{"type": "object"}}},
+			}, func(event agentruntime.ModelStreamEvent) error { visible.WriteString(event.ContentDelta); return nil })
+			if !IsProviderEmptyResponse(err) || time.Since(started) > time.Second || requests.Load() != 1 || visible.Len() != 0 {
+				t.Fatalf("unframed bytes extended action progress: err=%v elapsed=%s requests=%d visible=%q", err, time.Since(started), requests.Load(), visible.String())
+			}
+		})
+	}
+}
+
+func TestToolPlanningBeforeHeadersDoesNotTransportReplay(t *testing.T) {
+	for _, protocol := range []string{ProtocolOpenAICompatible, ProtocolAnthropic, ProtocolOpenAIResponses, ProtocolGemini} {
+		t.Run(protocol, func(t *testing.T) {
+			var requests atomic.Int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				requests.Add(1)
+				if _, err := io.Copy(io.Discard, r.Body); err != nil {
+					return
+				}
+				<-r.Context().Done()
+			}))
+			defer server.Close()
+			client, err := NewRuntimeModelClient(ModelProfile{
+				Provider: ProviderProfile{ID: "header-planning", Protocol: protocol, Endpoint: server.URL + "/v1beta/models/model:generateContent"},
+				Model:    "model", Request: RequestProfile{Timeout: 100 * time.Millisecond, MaxAttempts: 3, MaxResponseBytes: 64 << 10},
+			}, server.Client(), nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			defer cancel()
+			_, err = client.(agentruntime.StreamingModelClient).CompleteStream(ctx, agentruntime.ModelRequest{
+				Messages: []agentruntime.Message{{Role: "user", Content: "Perform the next analysis."}},
+				Tools:    []agentruntime.ToolSchema{{Name: "analysis", Parameters: map[string]any{"type": "object"}}},
+			}, nil)
+			if !IsProviderEmptyResponse(err) || requests.Load() != 1 {
+				t.Fatalf("first-action expiry replayed before headers: err=%v requests=%d", err, requests.Load())
 			}
 		})
 	}
