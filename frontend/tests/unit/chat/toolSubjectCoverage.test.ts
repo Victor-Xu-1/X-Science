@@ -75,7 +75,7 @@ describe('truthful phase progress', () => {
         { mode: 'install' },
         { output: JSON.stringify({ status: 'running', operation_id: 'opaque' }) }
       ).resultSummary
-    ).toBe('后台执行中');
+    ).toBe('后台已启动');
     expect(
       present(
         'manage_environments',

@@ -1,6 +1,6 @@
 import type { NormalizedToolCall } from '@/common/chat/normalizeToolCall';
 
-export type ToolExecutionDisposition = 'not-executed' | 'preflight-passed' | 'preflight-blocked';
+export type ToolExecutionDisposition = 'not-executed' | 'preflight-passed' | 'preflight-blocked' | 'background-started';
 
 export interface ToolExecutionPresentationGroup {
   item: NormalizedToolCall;
@@ -60,12 +60,20 @@ export function toolExecutionDisposition(tool: NormalizedToolCall): ToolExecutio
   const explicitlyExecuted = envelopes.some((value) => value.executed === true);
   const notExecuted = !explicitlyExecuted && envelopes.some((value) => value.executed === false);
   const preflight = result.mode === 'preflight' && result.ok === true && !explicitlyExecuted;
-  if (!notExecuted && !preflight) return null;
-  if (
-    envelopes.some(
-      (value) => value.ok === false || value.success === false || value.isError === true || value.partial === true
-    )
-  ) {
+  const failed = envelopes.some(
+    (value) => value.ok === false || value.success === false || value.isError === true || value.partial === true
+  );
+  if (!notExecuted && !preflight) {
+    // This immutable receipt proves launch acceptance, not the current or
+    // terminal state of the background job. Never infer it from result rows.
+    const hasBackgroundIdentity = ['exec_id', 'execution_id', 'operation_id', 'notification_id'].some(
+      (key) => typeof result[key] === 'string' && (result[key] as string).trim().length > 0
+    );
+    return tool.status === 'completed' && !failed && result.status === 'running' && hasBackgroundIdentity
+      ? 'background-started'
+      : null;
+  }
+  if (failed) {
     return notExecuted ? 'not-executed' : null;
   }
   if (envelopes.some((value) => value.decision_required === true)) return 'not-executed';

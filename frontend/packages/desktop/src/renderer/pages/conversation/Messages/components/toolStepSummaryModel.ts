@@ -142,6 +142,8 @@ export function buildToolStepResultSummary(tool: NormalizedToolCall, language: s
       return chinese ? '预检通过' : 'Preflight passed';
     case 'preflight-blocked':
       return chinese ? '预检受限' : 'Preflight blocked';
+    case 'background-started':
+      return chinese ? '后台已启动' : 'Started in background';
   }
   if (tool.status === 'error') return chinese ? '未完成' : 'Failed';
   if (tool.status === 'waiting') return chinese ? '等待中' : 'Waiting';
@@ -160,9 +162,6 @@ export function buildToolStepResultSummary(tool: NormalizedToolCall, language: s
   }
   if (['environment', 'compute', 'analysis'].includes(activityKind) && isRecord(outputValue)) {
     const receipt = outputValue as Record<string, unknown>;
-    if (receipt.status === 'running' && (receipt.operation_id || receipt.notification_id)) {
-      return chinese ? '后台执行中' : 'Running in background';
-    }
     if (activityKind === 'environment' && receipt.mode === 'reuse') {
       return chinese ? '复用已有环境' : 'Reused existing environment';
     }

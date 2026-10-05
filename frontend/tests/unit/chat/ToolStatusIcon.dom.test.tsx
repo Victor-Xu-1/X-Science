@@ -5,6 +5,12 @@ import ToolStatusIcon from '@/renderer/pages/conversation/Messages/components/To
 
 afterEach(cleanup);
 describe('tool execution status icon', () => {
+  it('uses a static launch marker without claiming success or ongoing activity', () => {
+    const { container } = render(<ToolStatusIcon status='completed' disposition='background-started' />);
+    expect(container.querySelector('.tool-status-icon--completed')).toBeNull();
+    expect(container.querySelector('.tool-status-icon__pulse')).toBeNull();
+    expect(container.querySelector('.tool-status-icon--background-started')).not.toBeNull();
+  });
   it('uses a neutral non-running marker for an unexecuted completed request', () => {
     const { container } = render(<ToolStatusIcon status='completed' disposition='not-executed' />);
     expect(container.querySelector('.tool-status-icon--completed')).toBeNull();
