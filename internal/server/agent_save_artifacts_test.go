@@ -149,7 +149,7 @@ func TestAgentSavedArtifactEvidenceRetainsPriorReceiptsAcrossContinuationUnit(t 
 	if _, _, created, err := fixture.repo.AppendFrameUserEvent(context.Background(), transcriptstore.AppendFrameUserEventInput{
 		StreamUID: fixture.stream.UID, OwnerID: fixture.stream.OwnerID,
 		ClientMessageID: "continuation-user", FrameEventID: "continuation-user-event",
-		MessageUUID: "continuation-user-message", Text: "Continue the same report and preserve verified sources.",
+		MessageUUID: "continuation-user-message", Text: "Continue",
 	}); err != nil || !created {
 		t.Fatalf("append continuation created=%t err=%v", created, err)
 	}

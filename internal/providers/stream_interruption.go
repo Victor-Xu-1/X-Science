@@ -202,6 +202,12 @@ func classifyProviderStreamInterruption(parentCtx, requestCtx context.Context, e
 		err = candidate.cause
 	}
 	err = openAIChatStreamRequestError(parentCtx, requestCtx, err)
+	if errors.Is(err, errProviderPlanningNoProgress) {
+		if emitted {
+			return newRecoverableStreamInterruption(err)
+		}
+		return newProviderEmptyResponseError(err.Error())
+	}
 	if candidate != nil && emitted && isRecoverableProviderStreamFailure(err) {
 		return newRecoverableStreamInterruption(err)
 	}

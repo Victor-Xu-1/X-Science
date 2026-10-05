@@ -531,8 +531,12 @@ func TestManagedEnvironmentCreateCanCloneVerifiedBundledRuntime(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(active), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(generationPath, active); err != nil {
+	if err := activateManagedRuntimeGeneration(active, generationPath); err != nil {
 		t.Fatal(err)
+	}
+	baseline, found, err := manager.InspectManagedEnvironment(context.Background(), runtimeSpec.entry.Name)
+	if err != nil || !found || baseline.Generation != runtimeSpec.activationGeneration || baseline.Language != "python" {
+		t.Fatalf("portable bundled runtime was not admitted for package preflight: %#v found=%t err=%v", baseline, found, err)
 	}
 	if err := os.WriteFile(config.Micromamba, []byte(`#!/bin/sh
 set -eu

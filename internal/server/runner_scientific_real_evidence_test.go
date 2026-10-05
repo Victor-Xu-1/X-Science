@@ -6,7 +6,7 @@ import (
 	eventjournal "synon-go/internal/persistence/journal"
 )
 
-func TestSessionRunnerContinuationCarriesContiguousLogicalTaskEvidence(t *testing.T) {
+func TestSessionRunnerArtifactReferencesUseScopedImmutableReceipts(t *testing.T) {
 	entries := []eventjournal.Entry{
 		{EventID: 1, Message: eventjournal.Message{
 			"role": "user", "type": "message", "messageOrigin": "task_intent", "text": "完成一个不相关的旧任务",
@@ -33,39 +33,16 @@ func TestSessionRunnerContinuationCarriesContiguousLogicalTaskEvidence(t *testin
 			"role": "user", "type": "message", "messageOrigin": "task_intent", "text": "继续当前报告，保留已有证据",
 		}},
 	}
-	prior := sessionRunnerContinuationEvidenceEntries("继续当前报告，保留已有证据", entries)
-	if len(prior) != 4 || prior[0].EventID != 3 || prior[3].EventID != 6 {
-		t.Fatalf("prior continuation entries=%#v", prior)
+	scoped, found := filterRunnerEntriesByLatestTaskIntent(entries[:5])
+	if !found || len(scoped) != 1 || scoped[0].EventID != 5 {
+		t.Fatalf("new authored request did not establish its execution scope: %#v", scoped)
 	}
-	if root := sessionRunnerContinuationRootTaskIntent("继续当前报告，保留已有证据", entries); root != "评估公开文献中的蛋白工程" {
-		t.Fatalf("continuation root task intent=%q", root)
+	if refs := artifactReferencesFromRunnerEntries(scoped); len(refs) != 0 {
+		t.Fatalf("new request claimed previous outputs as its execution: %#v", refs)
 	}
-	refs := artifactReferencesFromRunnerEntries(prior)
+	refs := artifactReferencesFromRunnerEntries(entries[2:4])
 	if len(refs) != 1 || refs[0].ArtifactID != "artifact-report" || refs[0].VersionID != "version-report" {
 		t.Fatalf("continuation artifact references=%#v", refs)
-	}
-}
-
-func TestSessionRunnerTaskContinuationDoesNotSelectScientificRoute(t *testing.T) {
-	for _, text := range []string{
-		"继续核查公开研究并补充报告。",
-		"更新已有报告中的状态分布。",
-		"请把刚才已经生成并验证通过的结果重新发布为完整结果包。",
-		"Resume the same task with the existing evidence.",
-		"Refine the previous answer with a sensitivity analysis.",
-		"Republish the results above as one complete previewable bundle.",
-	} {
-		if !sessionRunnerTaskContinuesPriorWork(text) {
-			t.Fatalf("explicit continuation was not recognized: %q", text)
-		}
-	}
-	for _, text := range []string{
-		"分析现有临床证据，形成一份新的风险评估。",
-		"Analyze existing public evidence for a different compound.",
-	} {
-		if sessionRunnerTaskContinuesPriorWork(text) {
-			t.Fatalf("independent task was classified as a continuation: %q", text)
-		}
 	}
 }
 

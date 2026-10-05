@@ -83,8 +83,9 @@ func (c *streamingRuntimeModelClient) completeOpenAIResponsesStreamAttempt(ctx c
 
 	startedAt := time.Now().UTC()
 	firstByteTimeout, idleTimeout := openAIChatStreamTimeouts(c.profile.Request.Timeout)
-	requestCtx, cancelRequest := context.WithCancelCause(ctx)
+	requestCtx, cancelRequest, emit, stopPlanning := toolPlanningStreamContext(ctx, request, idleTimeout, emit)
 	defer cancelRequest(nil)
+	defer stopPlanning()
 
 	httpRequest, err := http.NewRequestWithContext(requestCtx, http.MethodPost, c.profile.Provider.Endpoint, bytes.NewReader(payload))
 	if err != nil {
@@ -179,7 +180,7 @@ func (c *streamingRuntimeModelClient) completeOpenAIResponsesStreamAttempt(ctx c
 		err = enrichOutputLimitFailure(err, c.effectiveRequestMaxTokens(request), &record, usage)
 		record.Error = c.redactSensitiveText(err.Error())
 		c.emitAudit(record)
-		retryable := !emitted && ctx.Err() == nil &&
+		retryable := !emitted && ctx.Err() == nil && !IsProviderEmptyResponse(err) &&
 			!errors.Is(err, errProviderResponseTooLarge) &&
 			(!errors.Is(err, errProviderResponseTruncated) || errors.Is(err, errProviderStreamIncomplete))
 		return agentruntime.ModelResponse{}, retryable, emitted, err

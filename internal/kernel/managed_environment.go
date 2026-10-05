@@ -231,6 +231,9 @@ func (m *Manager) InspectManagedEnvironment(ctx context.Context, name string) (M
 	if err := validateManagedEnvironmentName(name); err != nil {
 		return ManagedEnvironment{}, false, err
 	}
+	if bundled, _, recognized, err := m.bundledManagedEnvironment(name); recognized {
+		return bundled, true, err
+	}
 	root, err := m.managedEnvironmentRoot()
 	if err != nil {
 		return ManagedEnvironment{}, false, err
