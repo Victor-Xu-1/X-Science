@@ -42,9 +42,9 @@ func (c *streamingRuntimeModelClient) completeNativeStream(ctx context.Context, 
 func (c *streamingRuntimeModelClient) completeNativeStreamAttempt(ctx context.Context, request agentruntime.ModelRequest, emit func(agentruntime.ModelStreamEvent) error, attempt int, endpoint string, payload []byte, decode nativeJSONDecoder, readStream nativeStreamReader) (agentruntime.ModelResponse, bool, bool, error) {
 	startedAt := time.Now().UTC()
 	firstByteTimeout, idleTimeout := openAIChatStreamTimeouts(c.profile.Request.Timeout)
-	requestCtx, cancelRequest, emit, stopPlanning := toolPlanningStreamContext(ctx, request, idleTimeout, emit)
+	requestCtx, cancelRequest, emit, planning := toolPlanningStreamContext(ctx, request, idleTimeout, emit)
 	defer cancelRequest(nil)
-	defer stopPlanning()
+	defer planning.Stop()
 
 	httpRequest, err := http.NewRequestWithContext(requestCtx, http.MethodPost, endpoint, bytes.NewReader(payload))
 	if err != nil {
@@ -68,6 +68,7 @@ func (c *streamingRuntimeModelClient) completeNativeStreamAttempt(ctx context.Co
 		c.emitAudit(record)
 		return agentruntime.ModelResponse{}, ctx.Err() == nil && !IsProviderEmptyResponse(err), false, err
 	}
+	planning.HeadersReceived()
 	defer response.Body.Close()
 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {

@@ -125,7 +125,7 @@ func TestToolPlanningUnframedJSONCannotExtendActionProgress(t *testing.T) {
 	}
 }
 
-func TestToolPlanningBeforeHeadersDoesNotTransportReplay(t *testing.T) {
+func TestToolPlanningHeaderWaitPreservesTransportRetry(t *testing.T) {
 	for _, protocol := range []string{ProtocolOpenAICompatible, ProtocolAnthropic, ProtocolOpenAIResponses, ProtocolGemini} {
 		t.Run(protocol, func(t *testing.T) {
 			var requests atomic.Int32
@@ -139,7 +139,7 @@ func TestToolPlanningBeforeHeadersDoesNotTransportReplay(t *testing.T) {
 			defer server.Close()
 			client, err := NewRuntimeModelClient(ModelProfile{
 				Provider: ProviderProfile{ID: "header-planning", Protocol: protocol, Endpoint: server.URL + "/v1beta/models/model:generateContent"},
-				Model:    "model", Request: RequestProfile{Timeout: 100 * time.Millisecond, MaxAttempts: 3, MaxResponseBytes: 64 << 10},
+				Model:    "model", Request: RequestProfile{Timeout: 100 * time.Millisecond, MaxAttempts: 2, MaxResponseBytes: 64 << 10},
 			}, server.Client(), nil)
 			if err != nil {
 				t.Fatal(err)
@@ -150,8 +150,8 @@ func TestToolPlanningBeforeHeadersDoesNotTransportReplay(t *testing.T) {
 				Messages: []agentruntime.Message{{Role: "user", Content: "Perform the next analysis."}},
 				Tools:    []agentruntime.ToolSchema{{Name: "analysis", Parameters: map[string]any{"type": "object"}}},
 			}, nil)
-			if !IsProviderEmptyResponse(err) || requests.Load() != 1 {
-				t.Fatalf("first-action expiry replayed before headers: err=%v requests=%d", err, requests.Load())
+			if err == nil || IsProviderEmptyResponse(err) || requests.Load() != 2 {
+				t.Fatalf("header availability failure lost its bounded transport contract: err=%v requests=%d", err, requests.Load())
 			}
 		})
 	}
@@ -163,7 +163,7 @@ func TestToolPlanningUsefulActionRetainsProductiveStreaming(t *testing.T) {
 		{Kind: agentruntime.ModelStreamEventPublicProgressDelta, ContentDelta: "Inputs ready."},
 		{Kind: agentruntime.ModelStreamEventToolCallBoundary},
 	} {
-		ctx, cancel, emit, stop := toolPlanningStreamContext(context.Background(), agentruntime.ModelRequest{
+		ctx, cancel, emit, planning := toolPlanningStreamContext(context.Background(), agentruntime.ModelRequest{
 			Tools: []agentruntime.ToolSchema{{Name: "analysis"}},
 		}, 20*time.Millisecond, nil)
 		if err := emit(agentruntime.ModelStreamEvent{ReasoningActive: true}); err != nil {
@@ -177,18 +177,18 @@ func TestToolPlanningUsefulActionRetainsProductiveStreaming(t *testing.T) {
 			t.Fatalf("useful action was treated as a private-only stall: %v", context.Cause(ctx))
 		case <-time.After(60 * time.Millisecond):
 		}
-		stop()
+		planning.Stop()
 		cancel(nil)
 	}
 }
 
 func TestToolPlanningPreservesCallerCancellation(t *testing.T) {
 	parent, cancelParent := context.WithCancel(context.Background())
-	ctx, cancel, emit, stop := toolPlanningStreamContext(parent, agentruntime.ModelRequest{
+	ctx, cancel, emit, planning := toolPlanningStreamContext(parent, agentruntime.ModelRequest{
 		Tools: []agentruntime.ToolSchema{{Name: "analysis"}},
 	}, time.Second, nil)
 	defer cancel(nil)
-	defer stop()
+	defer planning.Stop()
 	if err := emit(agentruntime.ModelStreamEvent{ReasoningActive: true}); err != nil {
 		t.Fatal(err)
 	}

@@ -12,6 +12,11 @@ import (
 
 var errProviderPlanningNoProgress = errors.New("provider tool planning exceeded its action-progress window without public output or a tool call")
 
+type providerStreamPlanningDeadline struct {
+	Stop            func()
+	HeadersReceived func()
+}
+
 // Tool-enabled requests already have the first-action deadline below. Keep one
 // cancellation authority before headers, not two equal timers racing to choose
 // whether the same no-progress interval is replayable. Plain requests retain
@@ -35,18 +40,19 @@ func toolPlanningStreamContext(
 	request agentruntime.ModelRequest,
 	timeout time.Duration,
 	emit func(agentruntime.ModelStreamEvent) error,
-) (context.Context, context.CancelCauseFunc, func(agentruntime.ModelStreamEvent) error, func()) {
+) (context.Context, context.CancelCauseFunc, func(agentruntime.ModelStreamEvent) error, providerStreamPlanningDeadline) {
 	ctx, cancel := context.WithCancelCause(parent)
 	if emit == nil {
 		emit = func(agentruntime.ModelStreamEvent) error { return nil }
 	}
 	if len(request.Tools) == 0 {
-		return ctx, cancel, emit, func() {}
+		return ctx, cancel, emit, providerStreamPlanningDeadline{Stop: func() {}, HeadersReceived: func() {}}
 	}
 	var mu sync.Mutex
 	var timer *time.Timer
 	var generation uint64
 	stopped := false
+	headersReceived := false
 	arm := func() {
 		generation++
 		currentGeneration := generation
@@ -58,8 +64,14 @@ func toolPlanningStreamContext(
 			}
 			stopped = true
 			generation++
+			cause := errProviderPlanningNoProgress
+			if !headersReceived {
+				// Header absence is a transport availability failure, not evidence
+				// of private-only generation. Preserve its bounded retry contract.
+				cause = errOpenAIChatStreamFirstByteTimeout
+			}
 			mu.Unlock()
-			cancel(errProviderPlanningNoProgress)
+			cancel(cause)
 		})
 	}
 	mu.Lock()
@@ -77,6 +89,7 @@ func toolPlanningStreamContext(
 	wrapped := func(event agentruntime.ModelStreamEvent) error {
 		useful := strings.TrimSpace(event.ContentDelta) != "" || event.Kind == agentruntime.ModelStreamEventToolCallBoundary
 		mu.Lock()
+		headersReceived = true // A decoded event necessarily follows response headers.
 		if useful {
 			generation++
 			if timer != nil {
@@ -89,5 +102,12 @@ func toolPlanningStreamContext(
 		mu.Unlock()
 		return emit(event)
 	}
-	return ctx, cancel, wrapped, stop
+	return ctx, cancel, wrapped, providerStreamPlanningDeadline{
+		Stop: stop,
+		HeadersReceived: func() {
+			mu.Lock()
+			headersReceived = true
+			mu.Unlock()
+		},
+	}
 }
