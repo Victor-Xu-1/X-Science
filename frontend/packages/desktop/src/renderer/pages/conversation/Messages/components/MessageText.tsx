@@ -124,7 +124,9 @@ const MessageText: React.FC<{
     !isUserMessage && message.terminal_status === 'completed' && !message.terminal_superseded
       ? decodeRoundSummary(message.round_summary)
       : undefined;
-  const isRejectedTerminalCandidate =
+  // Terminal status proves incompleteness, not a specific validation failure.
+  // Typed failure reasons remain the task center's responsibility.
+  const isFailedTerminalResponse =
     !isUserMessage &&
     message.terminal_superseded !== true &&
     (message.terminal_status === 'failed' || message.status === 'error');
@@ -197,10 +199,10 @@ const MessageText: React.FC<{
           isUserMessage ? 'message-text-layout--user items-end' : 'items-start'
         )}
       >
-        {isRejectedTerminalCandidate && (
+        {isFailedTerminalResponse && (
           <Alert
             type='error'
-            title={t('conversation.synonRuntime.runtimeOperations.failureResultRejected')}
+            title={t('conversation.synonRuntime.runtimeOperations.taskFailed')}
             content={t('conversation.synonRuntime.runtimeOperations.assistantResponseIncomplete')}
             showIcon
             data-testid='terminal-failure-alert'

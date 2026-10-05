@@ -3,7 +3,7 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "4ca21f983cc9397204a840ac1b987478b942e32b8c3fd525ac436b7ce2aca4d4",
+  "adaptationFingerprintSHA256": "6f4acc4d09d8b8137ae2431497646191eb16865dd2b58445abdb81a871d3ed45",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
   "additionFingerprintSHA256": "07137f180f015b688c24d0e754a3bdcf2928ecea28d0372f158089cc72a3ac79",
   "summary": {
@@ -1109,8 +1109,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/components/MessageText.tsx",
       "sourceSHA256": "d985f0bfdc719a845cd19aa11d5be56766d937f168c65df91c9cc522c06cb4fc",
-      "targetSHA256": "20f07454e131b4c350df5c747845336836f475da0110b82a28fab186a28e0d4e",
-      "bytes": 13562,
+      "targetSHA256": "b9d6efa496d8291ee19d2e18e284e63225df045e05fddfe6df497bc1d18e13ee",
+      "bytes": 13692,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -3279,8 +3279,8 @@
     {
       "path": "tests/unit/chat/messageText.dom.test.tsx",
       "sourceSHA256": "2b737bd83d2d62d21529001dea92fee4fe08732d04126954eb8b7faa7a0c6eea",
-      "targetSHA256": "a6d7c429a4c27864f4a5ec30f1bca1ae475a4cd9395ec24ecb79601f5fe6c9ae",
-      "bytes": 20800,
+      "targetSHA256": "fb7d7852ecc44c74eb666edb63185746c849b75001a479883073d29f5a669c26",
+      "bytes": 21997,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
