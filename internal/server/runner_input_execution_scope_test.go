@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	transcriptstore "synon-go/internal/persistence/transcript"
+	"synon-go/internal/sciencecapability"
+	"synon-go/internal/skills"
 )
 
 func TestFollowOnIntentDoesNotInheritExecutionChoice(t *testing.T) {
@@ -53,6 +55,16 @@ func TestFollowOnIntentDoesNotInheritExecutionChoice(t *testing.T) {
 			entries, err = f.server.runnerAskUserSelectionEntries(context.Background(), run)
 			if err != nil || len(selectedAskUserImplementationsFromRunnerEntries(entries)) != 0 {
 				t.Fatalf("new intent inherited prior engine: %#v err=%v", entries, err)
+			}
+			f.server.skillCatalog, f.server.scienceCapabilities = skills.NewCatalog(), &sciencecapability.Catalog{}
+			addSelectionRouteEngine(f.server, "first-analysis", "first-skill", "First Engine")
+			addSelectionRouteEngine(f.server, "second-analysis", "second-skill", "Second Engine")
+			run.TaskIntent = intent.Text
+			run.addRequiredScientificCapabilities("second-analysis")
+			ctx := withTranscriptRunnerChatRun(context.Background(), run)
+			if got := f.server.canonicalManagedEnvironmentImplementation(ctx, "Second Engine"); got != "Second Engine" ||
+				!reflect.DeepEqual(run.selectedImplementationsSnapshot(), []string{"Second Engine"}) {
+				t.Fatalf("current registered capability could not select its own route: got=%q selected=%v", got, run.selectedImplementationsSnapshot())
 			}
 		})
 	}
