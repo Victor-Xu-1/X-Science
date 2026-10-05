@@ -42,7 +42,8 @@ try {
   await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/__phase_test__`);
   const detail = page.getByTestId('tool-public-detail');
   const timeline = page.getByTestId('tool-chip');
-  await expect(timeline).toContainText('1 / 8');
+  await expect(timeline).toContainText('写入依赖包');
+  await expect(timeline).not.toContainText('1 / 8');
   await expect(timeline).toContainText('5:00');
   await expect(timeline).not.toContainText('13%');
   await timeline.click();
@@ -66,7 +67,25 @@ try {
   await expect(detail).not.toContainText('Current phase');
   await page.screenshot({ path: join(artifacts, 'terminal-narrow.png'), fullPage: true });
   await page.reload();
-  await expect(timeline).toContainText('1 / 8');
+  await expect(timeline).toContainText('写入依赖包');
+  await expect(timeline).not.toContainText('1 / 8');
+  await page.getByRole('button', { name: 'Show background launch', exact: true }).click();
+  await expect(timeline).toContainText('后台已启动');
+  await expect(timeline).not.toContainText('已完成');
+  await expect(timeline.locator('.tool-status-icon--background-started')).toHaveCount(1);
+  await expect(timeline.locator('.tool-status-icon--completed')).toHaveCount(0);
+  await expect(timeline.locator('.tool-status-icon__pulse')).toHaveCount(0);
+  const launchIcon = timeline.locator('.tool-status-icon--background-started');
+  const neutralColor = await timeline
+    .locator('.tool-step-row__result')
+    .evaluate((element) => getComputedStyle(element).color);
+  await expect(launchIcon).toHaveCSS('color', neutralColor);
+  await expect(launchIcon).not.toHaveCSS('color', 'rgb(56, 115, 77)');
+  await page.screenshot({ path: join(artifacts, 'background-launch.png'), fullPage: true });
+  await page.getByRole('button', { name: 'English', exact: true }).click();
+  await expect(timeline).toContainText('Started in background');
+  await page.getByRole('button', { name: 'Fail operation', exact: true }).click();
+  await expect(timeline).not.toContainText('Started in background');
   assert.deepEqual(errors, []);
   console.log(
     JSON.stringify({
@@ -75,8 +94,9 @@ try {
       verified: [
         'production component',
         'running-to-terminal',
+        'background-launch-not-completion',
         'diagnostic redaction',
-        'ordinal progress',
+        'phase and elapsed time without an indeterminate percentage',
         'disclosure keyboard',
         'refresh',
         'two viewports',

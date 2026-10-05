@@ -65,6 +65,30 @@ vi.mock('@arco-design/web-react', async () => {
 });
 
 describe('MessageToolGroupSummary ACP image output', () => {
+  it('presents a kernel background receipt as launched, not completed computation', () => {
+    const message: IMessageToolCall = {
+      id: 'kernel-launch',
+      conversation_id: 'conv-1',
+      type: 'tool_call',
+      content: {
+        call_id: 'kernel-launch',
+        name: 'bash',
+        status: 'completed',
+        args: { background: true },
+        output: JSON.stringify({
+          status: 'running',
+          exec_id: 'opaque-job',
+          message: 'Kernel cell is running in the background.',
+        }),
+      },
+    };
+    render(<MessageToolGroupSummary messages={[message]} />);
+    const row = screen.getByRole('button', { name: /Started in background/ });
+    expect(row.querySelector('.tool-status-icon--background-started')).not.toBeNull();
+    expect(row.querySelector('.tool-status-icon--completed')).toBeNull();
+    expect(row.querySelector('.tool-status-icon__pulse')).toBeNull();
+    expect(row.textContent).not.toContain('opaque-job');
+  });
   it('does not present an unexecuted environment request as a successful operation', () => {
     const message: IMessageToolCall = {
       id: 'environment-wait',

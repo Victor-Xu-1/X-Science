@@ -124,6 +124,10 @@ body[arco-theme='dark'] .tool-group-summary {
   color: var(--tool-stream-success);
 }
 
+.tool-status-icon--background-started {
+  color: var(--tool-stream-text-muted, var(--text-tertiary, var(--color-text-3)));
+}
+
 .tool-status-icon--error,
 .tool-status-icon--canceled {
   color: var(--tool-stream-danger);

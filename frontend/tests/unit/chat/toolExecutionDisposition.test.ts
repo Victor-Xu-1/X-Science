@@ -11,6 +11,35 @@ const call = (output: unknown, status: NormalizedToolCall['status'] = 'completed
 });
 
 describe('execution disposition from typed tool results', () => {
+  it.each(['exec_id', 'execution_id', 'operation_id', 'notification_id'])(
+    'keeps a %s background launch distinct from execution completion',
+    (identity) => {
+      const tool = { ...call({ status: 'running', [identity]: 'opaque-job' }), name: 'bash' };
+      expect(toolExecutionDisposition(tool)).toBe('background-started');
+      expect(buildToolStepResultSummary(tool, 'zh-CN')).toBe('后台已启动');
+      expect(buildToolStepResultSummary(tool, 'en-US')).toBe('Started in background');
+    }
+  );
+  it('recognizes wrapped launch receipts but never scientific rows, invalid IDs or failed envelopes', () => {
+    const result = { status: 'running', exec_id: 'opaque-job' };
+    expect(toolExecutionDisposition(call({ result }))).toBe('background-started');
+    for (const output of [
+      { records: [result] },
+      { data: result },
+      { ...result, exec_id: '' },
+      { ...result, exec_id: '  ' },
+      { ...result, exec_id: 1 },
+      { ok: false, result },
+      { result: { ...result, success: false } },
+      { ...result, status: 'completed' },
+    ]) {
+      expect(toolExecutionDisposition(call(output))).toBeNull();
+    }
+    expect(toolExecutionDisposition(call({ ...result, executed: false }))).toBe('not-executed');
+    expect(toolExecutionDisposition(call(result, 'error'))).toBeNull();
+    expect(buildToolStepResultSummary(call(result, 'running'), 'en-US')).toBe('Running');
+    expect(buildToolStepResultSummary(call(result, 'canceled'), 'en-US')).toBe('Stopped');
+  });
   it('does not report an unexecuted decision as completed in either language', () => {
     const tool = call({
       ok: true,

@@ -10,6 +10,9 @@ const ToolStatusIcon: React.FC<{ status: NormalizedToolStatus; disposition?: Too
   if (disposition === 'not-executed' || disposition === 'preflight-blocked') {
     return <span className='tool-status-icon tool-status-icon--not-executed'>−</span>;
   }
+  if (disposition === 'background-started') {
+    return <span className='tool-status-icon tool-status-icon--background-started'>↗</span>;
+  }
   const icon = (() => {
     switch (status) {
       case 'completed':

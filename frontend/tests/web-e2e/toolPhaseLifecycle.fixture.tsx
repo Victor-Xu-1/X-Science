@@ -24,37 +24,46 @@ await i18n.use(initReactI18next).init({
 });
 
 function PhaseLifecycle() {
-  const [status, setStatus] = useState<NormalizedToolCall['status']>('running');
+  const [phase, setPhase] = useState<'running' | 'error' | 'background'>('running');
+  const status = phase === 'background' ? 'completed' : phase;
   const item: NormalizedToolCall = {
     key: 'phase-lifecycle',
     name: 'manage_environments',
     status,
     input: JSON.stringify({ mode: 'create', packages: ['runtime-module'] }),
-    progress: {
-      phase: 'installing_packages',
-      completedItems: 1,
-      totalItems: 8,
-      elapsedMs: 300_000,
-      indeterminate: true,
-    },
+    progress:
+      phase === 'background'
+        ? undefined
+        : {
+            phase: 'installing_packages',
+            completedItems: 1,
+            totalItems: 8,
+            elapsedMs: 300_000,
+            indeterminate: true,
+          },
     output:
-      status === 'error'
-        ? JSON.stringify({
-            ok: false,
-            status: 'failed',
-            failure: {
-              category: 'installation_failed',
-              diagnostic_tail: 'transfer failed: short body\n/tmp/private/build.log\napi_key=sk-fixture-secret123456',
-            },
-          })
-        : undefined,
+      phase === 'background'
+        ? JSON.stringify({ status: 'running', exec_id: 'opaque-background-job' })
+        : status === 'error'
+          ? JSON.stringify({
+              ok: false,
+              status: 'failed',
+              failure: {
+                category: 'installation_failed',
+                diagnostic_tail: 'transfer failed: short body\n/tmp/private/build.log\napi_key=sk-fixture-secret123456',
+              },
+            })
+          : undefined,
   };
   return (
     <main style={{ padding: 20 }}>
-      <button onClick={() => setStatus('error')}>Fail operation</button>
-      <button onClick={() => setStatus('running')}>Show running</button>
+      <button onClick={() => setPhase('error')}>Fail operation</button>
+      <button onClick={() => setPhase('running')}>Show running</button>
+      <button onClick={() => setPhase('background')}>Show background launch</button>
       <button onClick={() => void i18n.changeLanguage('en-US')}>English</button>
-      <ToolOperationDetail item={item} />
+      <section className='tool-group-summary'>
+        <ToolOperationDetail item={item} />
+      </section>
     </main>
   );
 }
