@@ -61,7 +61,9 @@ function PhaseLifecycle() {
       <button onClick={() => setPhase('running')}>Show running</button>
       <button onClick={() => setPhase('background')}>Show background launch</button>
       <button onClick={() => void i18n.changeLanguage('en-US')}>English</button>
-      <ToolOperationDetail item={item} />
+      <section className='tool-group-summary'>
+        <ToolOperationDetail item={item} />
+      </section>
     </main>
   );
 }

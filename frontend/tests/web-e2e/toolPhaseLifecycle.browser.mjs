@@ -75,6 +75,12 @@ try {
   await expect(timeline.locator('.tool-status-icon--background-started')).toHaveCount(1);
   await expect(timeline.locator('.tool-status-icon--completed')).toHaveCount(0);
   await expect(timeline.locator('.tool-status-icon__pulse')).toHaveCount(0);
+  const launchIcon = timeline.locator('.tool-status-icon--background-started');
+  const neutralColor = await timeline
+    .locator('.tool-step-row__result')
+    .evaluate((element) => getComputedStyle(element).color);
+  await expect(launchIcon).toHaveCSS('color', neutralColor);
+  await expect(launchIcon).not.toHaveCSS('color', 'rgb(56, 115, 77)');
   await page.screenshot({ path: join(artifacts, 'background-launch.png'), fullPage: true });
   await page.getByRole('button', { name: 'English', exact: true }).click();
   await expect(timeline).toContainText('Started in background');
