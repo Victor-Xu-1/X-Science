@@ -309,52 +309,76 @@ describe('MessageText attachment paths', () => {
     expect(content).not.toHaveTextContent(missingVersion);
   });
 
-  it('marks a rejected terminal candidate so completion-looking prose cannot contradict the task capsule', () => {
-    const failed: IMessageText = {
-      id: 'msg-failed',
-      msg_id: 'msg-failed',
+  it.each(['durable-failure', 'legacy-error'] as const)(
+    'marks %s as incomplete without inventing a result-validation failure',
+    (failureSource) => {
+      const failed: IMessageText = {
+        id: 'msg-failed',
+        msg_id: 'msg-failed',
+        conversation_id: 'conv-1',
+        type: 'text',
+        position: 'left',
+        status: failureSource === 'durable-failure' ? 'finish' : 'error',
+        ...(failureSource === 'durable-failure' ? { terminal_status: 'failed' as const } : {}),
+        content: { content: 'partial answer' },
+      };
+      const view = render(
+        <ConversationProvider
+          value={{
+            conversationId: 'conv-1',
+            workspace: '/workspace/demo',
+            type: 'acp',
+          }}
+        >
+          <MessageText message={failed} />
+        </ConversationProvider>
+      );
+      expect(screen.getByText('partial answer')).toBeInTheDocument();
+      expect(screen.getByTestId('terminal-failure-alert')).toHaveTextContent(
+        'conversation.synonRuntime.runtimeOperations.taskFailed'
+      );
+      expect(screen.getByTestId('terminal-failure-alert')).not.toHaveTextContent(
+        'conversation.synonRuntime.runtimeOperations.failureResultRejected'
+      );
+      expect(screen.getByTestId('terminal-failure-alert')).toHaveTextContent(
+        'conversation.synonRuntime.runtimeOperations.assistantResponseIncomplete'
+      );
+
+      view.rerender(
+        <ConversationProvider
+          value={{
+            conversationId: 'conv-1',
+            workspace: '/workspace/demo',
+            type: 'acp',
+          }}
+        >
+          <MessageText message={{ ...failed, status: 'finish', terminal_superseded: true }} />
+        </ConversationProvider>
+      );
+      expect(screen.queryByTestId('terminal-failure-alert')).not.toBeInTheDocument();
+      expect(screen.getByText('partial answer')).toBeInTheDocument();
+      if (failureSource === 'durable-failure') {
+        expect(screen.getByTestId('terminal-failure-history')).toHaveTextContent(
+          'conversation.synonRuntime.runtimeOperations.historicalResponseIncomplete'
+        );
+      }
+    }
+  );
+
+  it.each(['successful-assistant', 'user-message'] as const)('does not add a failure alert to %s', (kind) => {
+    const message: IMessageText = {
+      id: 'not-a-failed-response',
+      msg_id: 'not-a-failed-response',
       conversation_id: 'conv-1',
       type: 'text',
-      position: 'left',
-      status: 'error',
-      terminal_status: 'failed',
-      content: { content: 'partial answer' },
+      position: kind === 'user-message' ? 'right' : 'left',
+      status: kind === 'user-message' ? 'error' : 'finish',
+      terminal_status: kind === 'user-message' ? 'failed' : 'completed',
+      content: { content: 'preserved content' },
     };
-    const view = render(
-      <ConversationProvider
-        value={{
-          conversationId: 'conv-1',
-          workspace: '/workspace/demo',
-          type: 'acp',
-        }}
-      >
-        <MessageText message={failed} />
-      </ConversationProvider>
-    );
-    expect(screen.getByText('partial answer')).toBeInTheDocument();
-    expect(screen.getByTestId('terminal-failure-alert')).toHaveTextContent(
-      'conversation.synonRuntime.runtimeOperations.failureResultRejected'
-    );
-    expect(screen.getByTestId('terminal-failure-alert')).toHaveTextContent(
-      'conversation.synonRuntime.runtimeOperations.assistantResponseIncomplete'
-    );
-
-    view.rerender(
-      <ConversationProvider
-        value={{
-          conversationId: 'conv-1',
-          workspace: '/workspace/demo',
-          type: 'acp',
-        }}
-      >
-        <MessageText message={{ ...failed, status: 'finish', terminal_superseded: true }} />
-      </ConversationProvider>
-    );
+    render(<MessageText message={message} />);
+    expect(screen.getByText('preserved content')).toBeInTheDocument();
     expect(screen.queryByTestId('terminal-failure-alert')).not.toBeInTheDocument();
-    expect(screen.getByText('partial answer')).toBeInTheDocument();
-    expect(screen.getByTestId('terminal-failure-history')).toHaveTextContent(
-      'conversation.synonRuntime.runtimeOperations.historicalResponseIncomplete'
-    );
   });
 
   it('does not render a durable cancellation reason as assistant content', () => {
