@@ -73,6 +73,17 @@ go test ./internal/server -run 'TestCompactPlanExecutionRepair|TestCompletionPla
 
 ## Focused verification · 验证入口
 
+### Runner lease renewal · 运行租约续期
+
+续期等待使用当前已经持有的租约剩余时间，不用更短的准备阶段窗口提前终止
+正在运行的工作。调用方取消与已知租约到期仍是硬边界；取得数据库写锁后，
+存储层再次校验身份、代次、输入版本与真实有效期。SQLite 暂时争用只经过现有
+有限重试；未知存储错误、失权和真正过期不会被忽略，也不伪造续期成功。
+
+```sh
+go test ./internal/server -run 'TestRunnerLeaseRenewal|TestTranscriptRunnerHeartbeat|TestRunnerHeartbeatsStopCleanly' -count=1
+```
+
 ### Background shutdown · 后台执行关闭
 
 后台 Shell 的生命周期包括启动、进程退出、输出日志和任务终态持久化。
