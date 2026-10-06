@@ -22,15 +22,13 @@ type memoryReservations struct {
 // concurrent decoders from each spending the same measured headroom. This is a
 // conservative admission check, not a promise against unrelated future writers.
 func ReserveDecodeMemory(bytes uint64) (func(), error) {
-	return decodeMemory.reserve(bytes, availableDecodeMemory)
+	return decodeMemory.reserve(bytes, availableDecodeBudget)
 }
 
-func (r *memoryReservations) reserve(bytes uint64, available func() uint64) (func(), error) {
+func (r *memoryReservations) reserve(bytes uint64, availableBudget func() uint64) (func(), error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	headroom := available()
-	// Leave half of observed headroom for request handling, GC and other work.
-	budget := headroom / 2
+	budget := availableBudget()
 	if r.reserved > budget || bytes > budget-r.reserved {
 		return nil, ErrInsufficientMemory
 	}
@@ -39,18 +37,24 @@ func (r *memoryReservations) reserve(bytes uint64, available func() uint64) (fun
 	return func() { once.Do(func() { r.mu.Lock(); r.reserved -= bytes; r.mu.Unlock() }) }, nil
 }
 
-func availableDecodeMemory() uint64 {
-	available := platformAvailableMemory()
+func availableDecodeBudget() uint64 {
 	limit := debug.SetMemoryLimit(-1) // Query only; never changes the runtime limit.
-	if limit >= 0 && limit < math.MaxInt64 {
-		var usage runtime.MemStats
-		runtime.ReadMemStats(&usage)
-		used := usage.Sys - usage.HeapReleased
+	var usage runtime.MemStats
+	runtime.ReadMemStats(&usage)
+	return decodeAdmissionBudget(platformAvailableMemory(), limit, usage.Sys-usage.HeapReleased)
+}
+
+func decodeAdmissionBudget(physicalHeadroom uint64, runtimeLimit int64, runtimeUsed uint64) uint64 {
+	// Keep half of the physical headroom for control, GC and unrelated work.
+	// The decoder's conservative footprint is then bounded by the remaining
+	// runtime budget, not halved again as though it were fresh physical space.
+	budget := physicalHeadroom / 2
+	if runtimeLimit >= 0 && runtimeLimit < math.MaxInt64 {
 		remaining := uint64(0)
-		if used < uint64(limit) {
-			remaining = uint64(limit) - used
+		if runtimeUsed < uint64(runtimeLimit) {
+			remaining = uint64(runtimeLimit) - runtimeUsed
 		}
-		available = min(available, remaining)
+		budget = min(budget, remaining)
 	}
-	return available
+	return budget
 }
