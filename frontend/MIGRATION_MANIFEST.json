@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "6f4acc4d09d8b8137ae2431497646191eb16865dd2b58445abdb81a871d3ed45",
+  "adaptationFingerprintSHA256": "2065e95a07715a380adcb7c6558f322e8a53257d61950df5e8100cb0ba2ebe4d",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
-  "additionFingerprintSHA256": "07137f180f015b688c24d0e754a3bdcf2928ecea28d0372f158089cc72a3ac79",
+  "additionFingerprintSHA256": "e3fb636dd3ffee4e1f35fe99a5e70fc726174039d0507c3bd04d07012c1dc2e8",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 397,
     "adaptedSourceFiles": 667,
     "removedSourceFiles": 290,
-    "addedFiles": 746
+    "addedFiles": 749
   },
   "adaptations": [
     {
@@ -2404,8 +2404,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "f84772c2381710e1943666bf4c0ba2f7c64e09455253953404b1196eb43f2c26",
-      "bytes": 250859,
+      "targetSHA256": "619b6db9dc4144c41189352e762a033063d2d0293304d99e9be4ff440a221764",
+      "bytes": 251235,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2488,8 +2488,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/settings.json",
       "sourceSHA256": "d7c89e27673b4245d2efeb4216c9768e08420beabd9294779d4d099207ea5e7a",
-      "targetSHA256": "1aeacbdf1385428370c4912e4d357f6bd5e43340ffe1c8806373a99dcd30745b",
-      "bytes": 137272,
+      "targetSHA256": "47eb424347d75346dcf56561ad3f51d5650a8fce86486635897ea60d2d372a38",
+      "bytes": 137958,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2579,8 +2579,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/settings.json",
       "sourceSHA256": "3afd2c67b5d1a42960c03d5e70dbdb23c3b6b1a3981665ac37919e199dc814c0",
-      "targetSHA256": "d0ea42534112ed6cf0ac37aed575687a3fedaf34c1528d259521256f6ce55b30",
-      "bytes": 132125,
+      "targetSHA256": "5bb544870cec2c0dc083dbe204246c13f834aa26283daa6bfe9ce58fcd0ea5d8",
+      "bytes": 132680,
       "reason": "Explain required scientific runtimes, unified user-managed storage, and Synon Go service guidance."
     },
     {
@@ -6705,8 +6705,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/synonBiomed/runtime/ComputeJobsDialog.tsx",
-      "sha256": "d89acd44f9c392c723a7bf6cb90a3753595b235804c7253c314c50145cc96dd0",
-      "bytes": 17506,
+      "sha256": "7fe33d86b462677b99fa17005aed1ecd56388ffcd6fd86e518c31dd099b10bf2",
+      "bytes": 18891,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -7983,8 +7983,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/settings/components/compute/ComputeJobs.tsx",
-      "sha256": "1b8727284e24be8b386dd92fde8cc08719af0e1a9f1bcd5b00f0afb55dff4ef5",
-      "bytes": 14344,
+      "sha256": "8226e41fd59ca4b4a0f780a23d3ce2e663d77d2f548e2016c4081af2feb960d6",
+      "bytes": 15057,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8001,8 +8001,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/settings/components/compute/ComputeSettingsPrimitives.tsx",
-      "sha256": "538ca4e90b2900afae9b8b8f0286508508dc0f23bf4df6a8626822cbd1a37c43",
-      "bytes": 3351,
+      "sha256": "96c2b80eef71c4237f9129c0897a8ef30f594be7425bbc47a34a669f75435d06",
+      "bytes": 3841,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8321,6 +8321,12 @@
       "path": "packages/desktop/src/renderer/services/authProviders.ts",
       "sha256": "660b8cd532fa91eb091ed98b762600d209469411af53f1b007ffeb4da3565eae",
       "bytes": 2739,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/compute/jobPresentation.ts",
+      "sha256": "3e9c6bfe3188f6030d42822033eae33a6f094effa77d67afe330cf5bf2b32e07",
+      "bytes": 1165,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10058,6 +10064,12 @@
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
+      "path": "tests/unit/settings/ComputeJobControlState.dom.test.tsx",
+      "sha256": "ab577bef7e69b4d2699bdebf1d95eeef10c2d6118c8822d6a2090d19f2d20d2f",
+      "bytes": 2053,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/unit/settings/LanguageSwitcher.dom.test.tsx",
       "sha256": "b51c7fdc3492d42d3eb724a9c05beb228e05eb9c6a84742c0a2a133422b912cf",
       "bytes": 2074,
@@ -10103,6 +10115,12 @@
       "path": "tests/unit/settings/SkillFilePreview.dom.test.tsx",
       "sha256": "8d8c46ea05e37bb79cb1493cf023d19029180c5f22d99e4c95dc1ae103098da9",
       "bytes": 1327,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/settings/computeJobPresentation.test.ts",
+      "sha256": "2ca724311ac11cc2f47d5a939f101f5a575f668c2cf915c596001ad2423b68e9",
+      "bytes": 1321,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
