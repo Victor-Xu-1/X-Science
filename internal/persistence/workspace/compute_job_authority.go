@@ -44,14 +44,6 @@ type OwnedComputeJob struct {
 	Job         ComputeJob `json:"job"`
 }
 
-func (s *Store) ListActiveBYOCJobs(limit int) ([]OwnedComputeJob, error) {
-	return s.listActiveComputeJobs("byoc", limit)
-}
-
-func (s *Store) ListActiveSSHJobs(limit int) ([]OwnedComputeJob, error) {
-	return s.listActiveComputeJobs("ssh", limit)
-}
-
 func (s *Store) CountActiveComputeJobs(userID, provider string) (int, error) {
 	ctx := context.Background()
 	if err := s.ensureComputeWorkbenchSchema(ctx); err != nil {
@@ -63,51 +55,6 @@ func (s *Store) CountActiveComputeJobs(userID, provider string) (int, error) {
 		strings.TrimSpace(userID), strings.TrimSpace(provider), ComputeJobPending, ComputeJobStaging,
 		ComputeJobQueued, ComputeJobRunning, ComputeJobHarvesting).Scan(&count)
 	return count, err
-}
-
-func (s *Store) listActiveComputeJobs(family string, limit int) ([]OwnedComputeJob, error) {
-	ctx := context.Background()
-	if err := s.ensureComputeWorkbenchSchema(ctx); err != nil {
-		return nil, err
-	}
-	if limit < 1 || limit > 1000 {
-		limit = 1000
-	}
-	rows, err := s.db.QueryContext(ctx, `SELECT owner_user_id,`+computeJobColumns+` FROM compute_workbench_jobs WHERE provider_family=? AND state IN (?,?,?,?) ORDER BY started_at,job_id LIMIT ?`, strings.TrimSpace(family), ComputeJobPending, ComputeJobStaging, ComputeJobRunning, ComputeJobHarvesting, limit+1)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	result := make([]OwnedComputeJob, 0)
-	for rows.Next() {
-		var owner string
-		var job ComputeJob
-		var ended sql.NullTime
-		var intent, hardware, left string
-		if err := rows.Scan(
-			&owner, &job.JobID, &job.Environment, &job.TierType, &job.Provider, &job.FrameID, &job.ProjectID,
-			&job.State, &job.StartedAt, &ended, &intent, &hardware, &job.OriginToolUseID, &job.RootFrameID,
-			&job.ProviderFamily, &job.ProviderLabel, &job.ExternalID, &job.ExternalURL, &job.SupportsTail,
-			&job.ErrorKind, &left, &job.SystemHint,
-		); err != nil {
-			return nil, err
-		}
-		job.StartedAtISO = job.StartedAt.UTC().Format(time.RFC3339Nano)
-		if ended.Valid {
-			value := ended.Time.UTC().Format(time.RFC3339Nano)
-			job.EndedAtISO = &value
-		}
-		_ = json.Unmarshal([]byte(intent), &job.Intent)
-		_ = json.Unmarshal([]byte(hardware), &job.HardwareDetails)
-		if err := json.Unmarshal([]byte(left), &job.LeftOnRemote); err != nil || job.LeftOnRemote == nil {
-			job.LeftOnRemote = []string{}
-		}
-		result = append(result, OwnedComputeJob{OwnerUserID: owner, Job: job})
-		if len(result) > limit {
-			return nil, errors.New("active compute job inventory exceeds the bounded supervisor limit")
-		}
-	}
-	return result, rows.Err()
 }
 
 func (s *Store) CreateComputeJob(userID string, job ComputeJob) (ComputeJob, error) {
@@ -356,7 +303,8 @@ func (s *Store) transitionComputeJob(
 			endedAt = at
 		}
 		result, err := tx.ExecContext(ctx, `
-			UPDATE compute_workbench_jobs SET state=?,ended_at=?,error_kind=?
+			UPDATE compute_workbench_jobs SET state=?,ended_at=?,
+				system_hint=CASE WHEN error_kind IN ('control_unreachable','control_configuration_required') THEN NULL ELSE system_hint END,error_kind=?
 			WHERE owner_user_id=? AND job_id=? AND state=?`,
 			nextState, endedAt, nullableComputeString(errorKind), userID, jobID, job.State)
 		if err != nil {

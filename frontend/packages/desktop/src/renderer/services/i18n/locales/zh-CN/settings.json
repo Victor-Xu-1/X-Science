@@ -1816,8 +1816,15 @@
       "completed": "已完成",
       "failed": "失败",
       "cancelled": "已取消",
-      "unknown": "未知"
+      "unknown": "未知",
+      "harvesting": "收集结果中",
+      "controlUnreachable": "连接不可达",
+      "controlConfiguration": "连接配置异常",
+      "timedOut": "执行时限已到",
+      "orphaned": "执行实体已丢失"
     },
+    "controlUnreachableHint": "暂时无法确认远端进度，结果未知。原任务与文件已保留，将自动重连；不会因此终止或重复提交计算。",
+    "controlConfigurationHint": "远端连接配置或授权异常，无法确认执行结果。原任务与文件已保留，不会自动重复提交计算。",
     "addSsh": {
       "title": "添加 SSH 主机",
       "description": "从 ~/.ssh/config 选择或输入主机别名。Synon Biomed 会使用现有 SSH 密钥连接，不会复制任何凭证。",

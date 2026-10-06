@@ -13,32 +13,38 @@ import (
 
 type leaseTestRepository struct {
 	*workspace.Store
-	failOnce atomic.Bool
-	renewals atomic.Int32
-	renewed  chan struct{}
+	failOnce  atomic.Bool
+	failError error
+	renewals  atomic.Int32
+	renewed   chan struct{}
 }
 
-func (r *leaseTestRepository) RenewOutboxClaim(ctx context.Context, id, token string, lease time.Duration) error {
+func (r *leaseTestRepository) RenewOutboxClaim(ctx context.Context, id, token string, lease time.Duration) (time.Time, error) {
 	if r.failOnce.CompareAndSwap(true, false) {
-		return context.DeadlineExceeded
+		if r.failError != nil {
+			return time.Time{}, r.failError
+		}
+		return time.Time{}, context.DeadlineExceeded
 	}
-	if err := r.Store.RenewOutboxClaim(ctx, id, token, lease); err != nil {
-		return err
+	expires, err := r.Store.RenewOutboxClaim(ctx, id, token, lease)
+	if err != nil {
+		return time.Time{}, err
 	}
 	r.renewals.Add(1)
 	select {
 	case r.renewed <- struct{}{}:
 	default:
 	}
-	return nil
+	return expires, nil
 }
 
 // At-least-once delivery permits serial retries after renewal fails. It must
 // not overlap the cancelled delivery or allow an expired claim to continue.
-func TestLongRunningDispatcherRetriesAfterLeaseFailureWithoutConcurrentDelivery(t *testing.T) {
+func TestLongRunningDispatcherRetriesAfterPermanentLeaseFailureWithoutConcurrentDelivery(t *testing.T) {
 	store := openStoreAt(t, filepath.Join(t.TempDir(), "workspace.sqlite"))
 	event := enqueueEvent(t, store, 1, 8)
-	probe := &leaseTestRepository{Store: store}
+	failure := errors.New("permanent storage I/O failure")
+	probe := &leaseTestRepository{Store: store, failError: failure}
 	probe.failOnce.Store(true)
 	delivery := &leaseTestDeliverer{started: make(chan struct{}), retried: make(chan struct{}), release: make(chan struct{})}
 	reported := make(chan error, 8)
@@ -66,7 +72,7 @@ func TestLongRunningDispatcherRetriesAfterLeaseFailureWithoutConcurrentDelivery(
 	}
 	select {
 	case err := <-reported:
-		if !errors.Is(err, context.DeadlineExceeded) {
+		if !errors.Is(err, failure) {
 			t.Fatalf("unexpected retry cause: %v", err)
 		}
 	default:

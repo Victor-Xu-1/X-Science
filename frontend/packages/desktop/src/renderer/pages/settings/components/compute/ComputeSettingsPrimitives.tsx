@@ -65,6 +65,13 @@ export const ComputeDetail: React.FC<{ label: string; value: string }> = ({ labe
 export function computeStateLabel(state: string, t: ReturnType<typeof useTranslation>['t']): string {
   const labels: Record<string, string> = {
     running: t('settings.computeWorkspace.states.running'),
+    staging: t('settings.computeWorkspace.states.starting'),
+    harvesting: t('settings.computeWorkspace.states.harvesting'),
+    control_unreachable: t('settings.computeWorkspace.states.controlUnreachable'),
+    control_configuration_required: t('settings.computeWorkspace.states.controlConfiguration'),
+    done: t('settings.computeWorkspace.states.completed'),
+    timed_out: t('settings.computeWorkspace.states.timedOut'),
+    orphaned: t('settings.computeWorkspace.states.orphaned'),
     starting: t('settings.computeWorkspace.states.starting'),
     queued: t('settings.computeWorkspace.states.queued'),
     pending: t('settings.computeWorkspace.states.pending'),

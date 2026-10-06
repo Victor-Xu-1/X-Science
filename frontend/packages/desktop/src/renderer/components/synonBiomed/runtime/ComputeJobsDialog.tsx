@@ -6,6 +6,11 @@
 
 import { ipcBridge } from '@/common';
 import {
+  computeJobControlHintKey,
+  computeJobVisibleState,
+  isComputeControlUnavailable,
+} from '@/renderer/services/computeJobPresentation';
+import {
   loadSynonBiomedComputeJob,
   loadSynonBiomedComputeJobLog,
   type SynonBiomedComputeJob,
@@ -128,6 +133,8 @@ const ComputeJobsEmpty: React.FC<{ title: string; body: string }> = ({ title, bo
 
 const ComputeJobRow: React.FC<{ job: SynonBiomedComputeJob; onOpen: () => void }> = ({ job, onOpen }) => {
   const { t } = useTranslation();
+  const visibleState = computeJobVisibleState(job);
+  const controlHint = computeJobControlHintKey(job);
   return (
     <div
       role='button'
@@ -149,10 +156,20 @@ const ComputeJobRow: React.FC<{ job: SynonBiomedComputeJob; onOpen: () => void }
           <Tag size='small' color='gray'>
             {job.providerLabel || job.provider}
           </Tag>
+          {controlHint && (
+            <Tag size='small' color='orange'>
+              {t(
+                visibleState === 'control_unreachable'
+                  ? 'settings.computeWorkspace.states.controlUnreachable'
+                  : 'settings.computeWorkspace.states.controlConfiguration'
+              )}
+            </Tag>
+          )}
           {job.externalId && <span className='truncate font-mono'>{compactId(job.externalId)}</span>}
           <span>{job.providerFamily === 'ssh' || job.providerFamily === 'infer' ? '' : job.tierType}</span>
           <span className='ml-auto shrink-0'>{formatAge(job.startedAtIso ?? job.startedAt)}</span>
         </div>
+        {controlHint && <div className='mt-4px text-11px text-warning-7'>{t(controlHint)}</div>}
       </div>
       <span className='sr-only'>{t('conversation.synonRuntime.computeRuntime.jobs.openDetails')}</span>
       <Right theme='outline' size={12} className='mt-4px shrink-0 text-t-tertiary' />
@@ -230,6 +247,8 @@ const ComputeJobDetail: React.FC<{
   }
   if (!detail) return null;
   const activeLog = logs[stream];
+  const visibleState = computeJobVisibleState(detail);
+  const controlHint = computeJobControlHintKey(detail);
   const externalUrl = safeExternalURL(detail.externalUrl);
   const harvestWarning =
     isTerminalJob(detail) && (detail.errorKind === 'harvest_failed' || detail.errorKind === 'over_cap');
@@ -259,10 +278,25 @@ const ComputeJobDetail: React.FC<{
         <div className='line-clamp-3 min-w-0 flex-1 break-words pt-5px text-14px leading-20px text-t-primary'>
           {computeIntentLabel(detail)}
         </div>
-        <Tag size='small' color={jobStateColor(detail.state)} className='mt-4px shrink-0 uppercase'>
-          {displayJobState(detail.state)}
+        <Tag size='small' color={jobStateColor(visibleState)} className='mt-4px shrink-0 uppercase'>
+          {controlHint
+            ? t(
+                visibleState === 'control_unreachable'
+                  ? 'settings.computeWorkspace.states.controlUnreachable'
+                  : 'settings.computeWorkspace.states.controlConfiguration'
+              )
+            : displayJobState(visibleState)}
         </Tag>
       </div>
+
+      {controlHint && (
+        <div
+          data-testid='compute-job-control-warning'
+          className='rounded-8px bg-warning-1 px-12px py-10px text-12px text-warning-7'
+        >
+          {t(controlHint)}
+        </div>
+      )}
 
       {harvestWarning && (
         <div
@@ -422,8 +456,9 @@ const isTerminalJob = (job: SynonBiomedComputeJob): boolean =>
     job.state.trim().toLowerCase()
   ) || Boolean(job.endedAtIso);
 
-const jobStateColor = (state: string): 'green' | 'red' | 'gray' => {
+const jobStateColor = (state: string): 'green' | 'red' | 'gray' | 'orange' => {
   const normalized = state.trim().toLowerCase();
+  if (isComputeControlUnavailable(normalized)) return 'orange';
   if (['running', 'harvesting'].includes(normalized)) return 'green';
   if (['failed', 'timed_out', 'cancelled', 'canceled'].includes(normalized)) return 'red';
   return 'gray';

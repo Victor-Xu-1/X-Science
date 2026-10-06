@@ -511,6 +511,14 @@ func kernelComputeJobProjection(job workspace.ComputeJob) map[string]any {
 	}
 	if job.ErrorKind != nil {
 		result["error_kind"] = *job.ErrorKind
+		if *job.ErrorKind == "control_unreachable" || *job.ErrorKind == "control_configuration_required" {
+			result["execution_status"] = "last_observed"
+			result["control_status"] = *job.ErrorKind
+			result["execution_outcome"] = "unknown"
+		}
+	}
+	if job.SystemHint != nil {
+		result["system_hint"] = *job.SystemHint
 	}
 	return result
 }

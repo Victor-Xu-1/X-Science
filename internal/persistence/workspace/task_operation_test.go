@@ -89,7 +89,7 @@ func TestOutboxLeaseCannotReviveExpiredOwnership(t *testing.T) {
 		t.Fatalf("claim=%#v %v", claimed, err)
 	}
 	event := claimed[0]
-	if err := store.RenewOutboxClaim(ctx, event.ID, event.ClaimToken, time.Minute); err != nil {
+	if _, err := store.RenewOutboxClaim(ctx, event.ID, event.ClaimToken, time.Minute); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := store.db.ExecContext(ctx, `UPDATE workspace_outbox SET lease_expires_at_ms=0 WHERE event_id=?`, event.ID); err != nil {
@@ -98,7 +98,7 @@ func TestOutboxLeaseCannotReviveExpiredOwnership(t *testing.T) {
 	if _, _, err := store.BeginTaskOperation(ctx, event); !errors.Is(err, ErrOutboxClaimLost) {
 		t.Fatalf("expired claim admitted a side effect: %v", err)
 	}
-	if err := store.RenewOutboxClaim(ctx, event.ID, event.ClaimToken, time.Minute); !errors.Is(err, ErrOutboxClaimLost) {
+	if _, err := store.RenewOutboxClaim(ctx, event.ID, event.ClaimToken, time.Minute); !errors.Is(err, ErrOutboxClaimLost) {
 		t.Fatalf("expired claim revived: %v", err)
 	}
 	if err := store.SettleTaskOperation(ctx, event, map[string]any{"status": "completed"}); !errors.Is(err, ErrOutboxClaimLost) {

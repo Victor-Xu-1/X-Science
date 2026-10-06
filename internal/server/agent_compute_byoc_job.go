@@ -27,7 +27,6 @@ import (
 const (
 	byocHarvestMargin              = 10 * time.Minute
 	byocTerminationGrace           = 60 * time.Second
-	byocDefaultJobTimeout          = 30 * time.Minute
 	byocDefaultContainer           = 12 * time.Hour
 	byocMaximumContainer           = 85500 * time.Second
 	byocMaximumInputBytes          = int64(10 << 30)
@@ -103,6 +102,10 @@ func (s *Server) submitAgentBYOCJob(
 		}
 		return kernelComputeJobProjection(existing), nil
 	}
+	if !s.claimComputeJobActor(access.UserID, jobID) {
+		return map[string]any{"job_id": jobID, "status": "submission_in_progress"}, nil
+	}
+	defer func() { s.releaseComputeJobActor(access.UserID, jobID); s.notifyComputeProviderJobSupervisor() }()
 	handleID := strings.TrimSpace(stringValue(input["handle_id"]))
 	handleSandbox := ""
 	handleTierApproved := false
@@ -135,12 +138,9 @@ func (s *Server) submitAgentBYOCJob(
 			s.markAgentComputeHandleTierApproved(handleID, jobID)
 		}
 	}
-	jobTimeout := time.Duration(numberValue(input["timeout_seconds"])) * time.Second
-	if jobTimeout <= 0 {
-		jobTimeout = byocDefaultJobTimeout
-	}
-	if jobTimeout > spec.Timeout {
-		jobTimeout = spec.Timeout
+	jobTimeout, err := computeJobTimeout(input, settings.MaxTimeoutSec, spec.Timeout)
+	if err != nil {
+		return nil, err
 	}
 	providerSpec := agentBYOCProviderSandboxSpec(spec)
 	providerSpecSHA256, err := agentBYOCProviderSpecSHA256(providerSpec)
@@ -182,7 +182,7 @@ func (s *Server) submitAgentBYOCJob(
 		s.computeSubmitMu.Unlock()
 		return nil, capacityErr
 	}
-	_, err = s.workspaceStore.CreateComputeJob(access.UserID, workspace.ComputeJob{
+	job, err := s.workspaceStore.CreateComputeJob(access.UserID, workspace.ComputeJob{
 		JobID: jobID, ProjectID: access.Frame.ProjectID, Provider: authority.Provider.Name,
 		Environment: firstNonEmpty(spec.Environment, "remote"), TierType: "remote",
 		FrameID: &frameID, RootFrameID: &rootID, OriginToolUseID: &originID,
@@ -194,14 +194,15 @@ func (s *Server) submitAgentBYOCJob(
 		return nil, err
 	}
 	preserveStage = true
+	// Durable job ownership now carries any approved handle through uncertain
+	// responses. Releasing it here could let a second job reuse a live sandbox.
+	handleClaimed = false
+	owned := workspace.OwnedComputeJob{OwnerUserID: access.UserID, Job: job}
 	sandboxID := handleSandbox
 	if sandboxID == "" {
 		createResult, createErr := s.createAgentBYOCSandbox(ctx, authority.Definition, jobID, submissionID, providerSpec)
 		if createErr != nil {
-			if _, transitionErr := s.workspaceStore.TransitionComputeJob(access.UserID, jobID, workspace.ComputeJobFailed, providerOperationFailureKind(createErr), time.Now().UTC()); transitionErr == nil {
-				preserveStage = false
-			}
-			return nil, createErr
+			return s.retainUnknownComputeSubmission(owned, createErr)
 		}
 		sandboxID = strings.TrimSpace(stringValue(createResult["sandbox_id"]))
 		if handleID != "" && sandboxID != "" {
@@ -209,15 +210,13 @@ func (s *Server) submitAgentBYOCJob(
 		}
 	}
 	if sandboxID == "" {
-		if _, transitionErr := s.workspaceStore.TransitionComputeJob(access.UserID, jobID, workspace.ComputeJobFailed, "invalid_provider_response", time.Now().UTC()); transitionErr == nil {
-			preserveStage = false
-		}
-		return nil, errors.New("BYOC provider returned no sandbox id")
+		return s.retainUnknownComputeSubmission(owned, &kernelruntime.ProviderOperationError{Kind: "transient", Message: "BYOC creation response contains no confirmed sandbox identity"})
 	}
-	if _, err := s.workspaceStore.BindComputeJobExternalForStaging(access.UserID, jobID, sandboxID, ""); err != nil {
-		_ = s.terminateAgentBYOCSandbox(context.Background(), authority.Definition, sandboxID)
-		return nil, err
+	job, err = s.workspaceStore.BindComputeJobExternalForStaging(access.UserID, jobID, sandboxID, "")
+	if err != nil {
+		return s.retainUnknownComputeSubmission(owned, &kernelruntime.ProviderOperationError{Kind: "transient", Message: "BYOC creation succeeded but its durable binding could not be committed"})
 	}
+	owned.Job = job
 	request := agentBYOCSubmissionRequest(authority.Definition.InstallID, submissionID, sandboxID, archive, jobTimeout, deadline, time.Now())
 	_, err = s.providerOperationRunner.RunProviderOperation(ctx, kernelruntime.ProviderOperationInput{
 		Runtime: authority.Definition, Operation: "submit", Request: request,
@@ -226,19 +225,12 @@ func (s *Server) submitAgentBYOCJob(
 		},
 	})
 	if err != nil {
-		_ = s.terminateAgentBYOCSandbox(context.Background(), authority.Definition, sandboxID)
-		if _, transitionErr := s.workspaceStore.TransitionComputeJob(access.UserID, jobID, workspace.ComputeJobFailed, providerOperationFailureKind(err), time.Now().UTC()); transitionErr == nil {
-			preserveStage = false
-		}
-		return nil, err
+		return s.retainUnknownComputeSubmission(owned, err)
 	}
 	if _, err := s.workspaceStore.TransitionComputeJob(access.UserID, jobID, workspace.ComputeJobRunning, "", time.Now().UTC()); err != nil {
 		return nil, err
 	}
 	preserveStage = false
-	if handleID != "" {
-		handleClaimed = false
-	}
 	_ = s.workspaceStore.AppendComputeJobLog(access.UserID, jobID, "combined", fmt.Sprintf("submitted %d bytes sha256=%s\n", archive.Bytes, archive.SHA256))
 	s.notifyComputeProviderJobSupervisor()
 	return map[string]any{"job_id": jobID, "provider": providerID, "status": "running", "sandbox_id": sandboxID}, nil

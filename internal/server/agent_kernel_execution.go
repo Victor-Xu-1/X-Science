@@ -370,6 +370,9 @@ func (s *Server) executeAgentKernelToolInternal(
 		defer setupCancel()
 		backendSession, ensureErr := s.kernelExecutionBackend.EnsureSession(setupCtx, spec)
 		if ensureErr != nil {
+			if receipt, matched := kernelResourceAdmissionReceipt(ensureErr); matched {
+				return receipt, nil
+			}
 			return nil, ensureErr
 		}
 		if s.kernelHostGrantFenceActive(access.UserID) {

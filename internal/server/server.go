@@ -177,8 +177,6 @@ type Server struct {
 	computeProviderJobs                   map[string]bool
 	computeProviderHandleMu               sync.Mutex
 	computeSubmitMu                       sync.Mutex
-	computeRunsMu                         sync.Mutex
-	computeRuns                           map[string]context.CancelFunc
 	hostGPUDetector                       func(context.Context) compute.GPUInfo
 	modalConfigPath                       string
 	eventJournal                          *eventjournal.EventJournal
@@ -579,7 +577,6 @@ func New(options Options) *Server {
 		computeProviderJobWake:                make(chan struct{}, 1),
 		providerOperationRunner:               providerOperationRunner,
 		computeProviderJobs:                   map[string]bool{},
-		computeRuns:                           map[string]context.CancelFunc{},
 		hostGPUDetector:                       hostGPUDetector,
 		kernelManager:                         kernelManager,
 		kernelExecutionBackend:                options.KernelExecutionBackend,

@@ -33,8 +33,8 @@
     },
     {
       "path": "compute/operon_compute_provider/__init__.py",
-      "sha256": "e0d1099a59fe39cbf329e9df53d6508f19b57dbc1f2a0ce44d510aa45f5cb560",
-      "bytes": 56147
+      "sha256": "f931d773923c001c81e2c52a1a37c20bcbbd4bbaf4a2262625583bcf8877213b",
+      "bytes": 56329
     },
     {
       "path": "compute/operon_compute_provider/__main__.py",
@@ -53,8 +53,8 @@
     },
     {
       "path": "compute/wrapper.sh.tmpl",
-      "sha256": "967ab99b28e686f23ccbde5361b7c97957db6392019758e4c9576f6b89371a4b",
-      "bytes": 15673
+      "sha256": "d5bfef58cbd6be5dc4ea4143870673318a653992cc1db1ce24423803bac5f87a",
+      "bytes": 15674
     },
     {
       "path": "kernels/cheminfo_render_helpers.py",

@@ -12,12 +12,19 @@ import {
   type SynonBiomedManagedEndpoint,
 } from '@/renderer/services/synonBiomedCompute';
 import { ComputeDetail, computeStateLabel, normalizeComputeTestId } from './ComputeSettingsPrimitives';
+import {
+  computeJobControlHintKey,
+  computeJobVisibleState,
+  isComputeControlUnavailable,
+} from '@/renderer/services/computeJobPresentation';
 
 export const ComputeJobRow: React.FC<{
   job: SynonBiomedComputeJob;
   onOpen: () => void;
 }> = ({ job, onOpen }) => {
   const { t, i18n } = useTranslation();
+  const visibleState = computeJobVisibleState(job);
+  const controlHintKey = computeJobControlHintKey(job);
   return (
     <div
       data-testid={`compute-job-${normalizeComputeTestId(job.jobId)}`}
@@ -26,8 +33,8 @@ export const ComputeJobRow: React.FC<{
       <div className='min-w-0'>
         <div className='flex flex-wrap items-center gap-7px'>
           <span className='text-14px font-600 text-t-primary'>{job.providerLabel || job.provider || job.jobId}</span>
-          <Tag size='small' color={computeStateTone(job.state)}>
-            {computeStateLabel(job.state, t)}
+          <Tag size='small' color={computeStateTone(visibleState)}>
+            {computeStateLabel(visibleState, t)}
           </Tag>
           {job.providerFamily ? (
             <Tag size='small' color='gray'>
@@ -41,8 +48,10 @@ export const ComputeJobRow: React.FC<{
           <span>{formatComputeTime(job.startedAtIso ?? job.startedAt, i18n?.resolvedLanguage ?? i18n?.language)}</span>
         </div>
         {job.systemHint || job.errorKind ? (
-          <div className={`mt-4px text-12px ${job.errorKind ? 'text-red-6' : 'text-t-secondary'}`}>
-            {job.errorKind ?? job.systemHint}
+          <div
+            className={`mt-4px text-12px ${controlHintKey ? 'text-orange-6' : job.errorKind ? 'text-red-6' : 'text-t-secondary'}`}
+          >
+            {controlHintKey ? t(controlHintKey) : (job.errorKind ?? job.systemHint)}
           </div>
         ) : null}
       </div>
@@ -163,8 +172,8 @@ export const ComputeJobDetailModal: React.FC<{
             <div className='min-w-0'>
               <div className='flex flex-wrap items-center gap-7px'>
                 <h3 className='m-0 text-16px font-650 text-t-primary'>{detail.providerLabel || detail.provider}</h3>
-                <Tag size='small' color={computeStateTone(detail.state)}>
-                  {computeStateLabel(detail.state, t)}
+                <Tag size='small' color={computeStateTone(computeJobVisibleState(detail))}>
+                  {computeStateLabel(computeJobVisibleState(detail), t)}
                 </Tag>
                 <Tag size='small' color='gray'>
                   {[detail.environment, detail.tierType].filter(Boolean).join(' · ')}
@@ -208,9 +217,12 @@ export const ComputeJobDetailModal: React.FC<{
                   <StructuredField label={t('settings.computeHardware')} value={detail.hardwareDetails} />
                 ) : null}
                 {detail.systemHint ? (
-                  <StructuredField label={t('settings.computeSystemHint')} value={detail.systemHint} />
+                  <StructuredField
+                    label={t('settings.computeSystemHint')}
+                    value={computeJobControlHintKey(detail) ? t(computeJobControlHintKey(detail)!) : detail.systemHint}
+                  />
                 ) : null}
-                {detail.errorKind ? (
+                {detail.errorKind && !isComputeControlUnavailable(computeJobVisibleState(detail)) ? (
                   <StructuredField label={t('settings.computeError')} value={detail.errorKind} danger />
                 ) : null}
               </div>
@@ -306,9 +318,10 @@ export function buildSessionProviderNames(
 
 const computeStateTone = (state: string): string => {
   const normalized = state.toLowerCase();
-  if (['completed', 'succeeded', 'success'].includes(normalized)) return 'green';
-  if (['failed', 'error', 'cancelled', 'canceled'].includes(normalized)) return 'red';
-  if (['running', 'starting', 'queued', 'pending'].includes(normalized)) return 'arcoblue';
+  if (['done', 'completed', 'succeeded', 'success'].includes(normalized)) return 'green';
+  if (['failed', 'error', 'cancelled', 'canceled', 'timed_out', 'orphaned'].includes(normalized)) return 'red';
+  if (isComputeControlUnavailable(normalized)) return 'orange';
+  if (['running', 'starting', 'staging', 'harvesting', 'queued', 'pending'].includes(normalized)) return 'arcoblue';
   return 'gray';
 };
 

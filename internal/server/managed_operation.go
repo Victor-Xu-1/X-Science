@@ -316,6 +316,11 @@ func (s *Server) deliverTaskOperation(ctx context.Context, event workspace.Outbo
 			case <-ticker.C:
 			}
 			if err := check(runCtx); err != nil {
+				// The renewable owner bounds execution by its live claim.
+				// Transient reads do not establish cancellation or claim loss.
+				if isTransientSQLiteContention(err) {
+					continue
+				}
 				cancel(err)
 				return
 			}
