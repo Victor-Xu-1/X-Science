@@ -33,5 +33,7 @@ func TestComputeJobTimeoutPreservesRealAuthority(t *testing.T) {
 		}
 	}
 	negative := -1
-	if _, err := computeJobTimeout(nil, &negative, 0); err == nil { t.Fatal("invalid operator authority accepted") }
+	if _, err := computeJobTimeout(nil, &negative, 0); err == nil {
+		t.Fatal("invalid operator authority accepted")
+	}
 }
