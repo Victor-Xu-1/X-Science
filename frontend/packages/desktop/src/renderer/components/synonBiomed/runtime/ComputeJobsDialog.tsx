@@ -9,7 +9,7 @@ import {
   computeJobControlHintKey,
   computeJobVisibleState,
   isComputeControlUnavailable,
-} from '@/renderer/services/computeJobPresentation';
+} from '@/renderer/services/compute/jobPresentation';
 import {
   loadSynonBiomedComputeJob,
   loadSynonBiomedComputeJobLog,

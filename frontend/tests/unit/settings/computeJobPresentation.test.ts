@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeJobControlHintKey, computeJobVisibleState } from '@/renderer/services/computeJobPresentation';
+import { computeJobControlHintKey, computeJobVisibleState } from '@/renderer/services/compute/jobPresentation';
 
 describe('compute job control observations', () => {
   it('does not present an unreachable last-observed running job as live', () => {

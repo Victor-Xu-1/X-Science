@@ -1,4 +1,4 @@
-import type { SynonBiomedComputeJob } from './synonBiomedCompute';
+import type { SynonBiomedComputeJob } from '../synonBiomedCompute';
 
 type JobObservation = Pick<SynonBiomedComputeJob, 'state' | 'errorKind' | 'endedAtIso'>;
 const activeStates = new Set(['pending', 'staging', 'queued', 'running', 'harvesting']);

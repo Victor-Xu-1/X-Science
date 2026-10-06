@@ -16,7 +16,7 @@ import {
   computeJobControlHintKey,
   computeJobVisibleState,
   isComputeControlUnavailable,
-} from '@/renderer/services/computeJobPresentation';
+} from '@/renderer/services/compute/jobPresentation';
 
 export const ComputeJobRow: React.FC<{
   job: SynonBiomedComputeJob;
