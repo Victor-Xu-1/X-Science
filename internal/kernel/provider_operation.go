@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -25,8 +26,13 @@ type ProviderOperationInput struct {
 	Runtime   ProviderRuntimeSpec
 	Operation string
 	Request   map[string]any
-	Prepare   func(stage string) error
-	Collect   func(stage string, response map[string]any) error
+	// StageDirectory is a host-owned private directory, never a model field.
+	// The caller serializes its job actor and retains verified partial data.
+	// An empty value keeps the disposable stage used by control-only calls.
+	StageDirectory      string
+	TransferIdleTimeout time.Duration
+	Prepare             func(stage string) error
+	Collect             func(stage string, response map[string]any) error
 }
 
 type ProviderOperationRunner interface {
@@ -62,13 +68,18 @@ func (m *Manager) RunProviderOperation(ctx context.Context, input ProviderOperat
 	default:
 		return nil, errors.New("provider operation is not admitted")
 	}
-	stage, err := os.MkdirTemp("/tmp", providerOperationStagePrefix)
+	stage, releaseStage, err := prepareProviderOperationStage(input.StageDirectory)
 	if err != nil {
-		return nil, errors.New("provider operation stage is unavailable")
+		return nil, err
 	}
-	defer os.RemoveAll(stage)
-	if err := os.Chmod(stage, 0o700); err != nil {
-		return nil, errors.New("provider operation stage permissions are unavailable")
+	defer releaseStage()
+	if input.TransferIdleTimeout > 0 {
+		if operation != "wait" || providerOperationString(input.Request["harvest"]) != "fetch" || input.StageDirectory == "" {
+			return nil, errors.New("transfer idle observation requires a durable output-fetch stage")
+		}
+		var stop context.CancelFunc
+		ctx, stop = providerTransferContext(ctx, stage, input.TransferIdleTimeout)
+		defer stop()
 	}
 	if input.Prepare != nil {
 		if err := input.Prepare(stage); err != nil {
@@ -90,7 +101,7 @@ func (m *Manager) RunProviderOperation(ctx context.Context, input ProviderOperat
 	if err != nil || len(rawRequest) == 0 || len(rawRequest) > providerOperationMaxRequest {
 		return nil, errors.New("provider operation request exceeds the bounded contract")
 	}
-	if err := os.WriteFile(filepath.Join(stage, "req.json"), rawRequest, 0o600); err != nil {
+	if err := stageProviderOperationRequest(stage, rawRequest); err != nil {
 		return nil, errors.New("provider operation request could not be staged")
 	}
 

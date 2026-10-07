@@ -34,7 +34,7 @@ type recordingProviderOperationRunner struct {
 	terminateCalled bool
 }
 
-func (r *recordingProviderOperationRunner) RunProviderOperation(_ context.Context, input kernelruntime.ProviderOperationInput) (map[string]any, error) {
+func (r *recordingProviderOperationRunner) RunProviderOperation(ctx context.Context, input kernelruntime.ProviderOperationInput) (map[string]any, error) {
 	r.mu.Lock()
 	r.operations = append(r.operations, input.Operation)
 	r.mu.Unlock()
@@ -47,11 +47,10 @@ func (r *recordingProviderOperationRunner) RunProviderOperation(_ context.Contex
 		r.mu.Unlock()
 		return map[string]any{"ok": true, "sandbox_ids": ids}, nil
 	case "submit":
-		stage, err := os.MkdirTemp("/tmp", "synon-provider-recording-")
-		if err != nil {
-			return nil, err
+		stage := input.StageDirectory
+		if stage == "" {
+			return nil, errors.New("durable submit stage required")
 		}
-		defer os.RemoveAll(stage)
 		if input.Prepare != nil {
 			if err := input.Prepare(stage); err != nil {
 				return nil, err
@@ -94,41 +93,16 @@ func (r *recordingProviderOperationRunner) RunProviderOperation(_ context.Contex
 		r.mu.Unlock()
 		return map[string]any{"ok": true}, nil
 	case "wait":
+		if action := stringValue(input.Request["harvest"]); action != "" {
+			return recordingComputeHarvestOperation(ctx, input, action)
+		}
 		if boolValue(input.Request["probe_only"], false) {
 			return map[string]any{
 				"ok": true, "ready": true, "job_exit_code": 0, "job_wall_s": 2,
 				"stdout_tail": "remote stdout", "stderr_tail": "", "deadline_fired": false,
 			}, nil
 		}
-		stage, err := os.MkdirTemp("/tmp", "synon-provider-harvest-")
-		if err != nil {
-			return nil, err
-		}
-		defer os.RemoveAll(stage)
-		archive, err := os.OpenFile(filepath.Join(stage, "out.tar.gz"), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
-		if err != nil {
-			return nil, err
-		}
-		compressed := gzip.NewWriter(archive)
-		writer := tar.NewWriter(compressed)
-		for name, body := range map[string]string{"out/result.txt": "harvested-result", "stdout.log": "remote stdout", "stderr.log": ""} {
-			if err := writer.WriteHeader(&tar.Header{Name: name, Mode: 0o600, Size: int64(len(body)), Typeflag: tar.TypeReg}); err != nil {
-				return nil, err
-			}
-			if _, err := io.WriteString(writer, body); err != nil {
-				return nil, err
-			}
-		}
-		if err := errors.Join(writer.Close(), compressed.Close(), archive.Close()); err != nil {
-			return nil, err
-		}
-		response := map[string]any{"ok": true, "ready": true, "job_exit_code": 0, "bytes_written": 1}
-		if input.Collect != nil {
-			if err := input.Collect(stage, response); err != nil {
-				return nil, err
-			}
-		}
-		return response, nil
+		return nil, errors.New("legacy whole-output harvest was called")
 	case "list_volumes":
 		return map[string]any{"ok": true, "volumes": []any{map[string]any{"name": "weights", "created_at": 1234}}}, nil
 	case "list_dir":
@@ -493,7 +467,7 @@ s.close()
 	operations = append([]string(nil), operationRunner.operations...)
 	terminated := operationRunner.terminateCalled
 	operationRunner.mu.Unlock()
-	if strings.Join(operations, ",") != "create,submit,wait,wait" || terminated {
+	if strings.Join(operations, ",") != "create,submit,"+strings.TrimSuffix(strings.Repeat("wait,", 7), ",") || terminated {
 		t.Fatalf("BYOC terminal operations=%v terminated=%t", operations, terminated)
 	}
 	secondJobInput := copyMapAny(jobInput)
@@ -508,6 +482,11 @@ s.close()
 	}
 	server.reconcileActiveComputeProviderJobs(context.Background())
 	secondJobID := stringValue(mapValue(secondSubmitted)["job_id"])
+	secondJob, secondFound, secondErr := store.GetComputeJob("owner-provider", secondJobID)
+	firstDeadline := int64(numberValue(mapValue(completed.HardwareDetails)["sandbox_deadline_epoch"]))
+	if secondErr != nil || !secondFound || firstDeadline <= 0 || int64(numberValue(mapValue(secondJob.HardwareDetails)["sandbox_deadline_epoch"])) != firstDeadline {
+		t.Fatalf("warm reuse refreshed the physical instance lifetime: %#v %v", secondJob, secondErr)
+	}
 	deadline = time.Now().Add(3 * time.Second)
 	for time.Now().Before(deadline) {
 		job, found, getErr := store.GetComputeJob("owner-provider", secondJobID)
@@ -531,7 +510,7 @@ s.close()
 	operations = append([]string(nil), operationRunner.operations...)
 	terminated = operationRunner.terminateCalled
 	operationRunner.mu.Unlock()
-	if strings.Join(operations, ",") != "create,submit,wait,wait,submit,wait,wait,terminate" || !terminated {
+	if strings.Join(operations, ",") != "create,submit,"+strings.Repeat("wait,", 7)+"submit,"+strings.Repeat("wait,", 7)+"terminate" || !terminated {
 		t.Fatalf("warm BYOC operations=%v terminated=%t", operations, terminated)
 	}
 	landing, err := server.listBYOCRemoteDirectory(context.Background(), "owner-provider", "modal", "/")

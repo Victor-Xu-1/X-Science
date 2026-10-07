@@ -309,7 +309,8 @@ func recoveredKernelSessionSpec(input workspace.KernelExecutionSessionSpecV1) ke
 		mounts = append(mounts, kernelruntime.WorkerMount{Path: mount.Path, Writable: mount.Writable})
 	}
 	return kernelruntime.SessionSpec{
-		KernelID: input.KernelID, OwnerID: input.OwnerUserID, ProjectID: input.ProjectID,
+		ResourceMemoryBytes: input.ResourceMemoryBytes,
+		KernelID:            input.KernelID, OwnerID: input.OwnerUserID, ProjectID: input.ProjectID,
 		FrameID: input.FrameID, FrameIncarnationID: input.FrameIncarnationID,
 		RootFrameID: input.RootFrameID, RootFrameIncarnationID: input.RootFrameIncarnationID,
 		AgentName: input.AgentName, DelegateName: input.DelegateName, KernelKind: input.KernelKind,

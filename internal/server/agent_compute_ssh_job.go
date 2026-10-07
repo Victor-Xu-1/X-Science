@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"synon-go/internal/agentruntime"
+	"synon-go/internal/compute/checkpoint"
 	kernelruntime "synon-go/internal/kernel"
 	workspace "synon-go/internal/persistence/workspace"
 )
@@ -44,7 +46,15 @@ func (s *Server) submitAgentSSHJob(
 	if err := validateAgentBYOCOutputs(anySliceValue(input["outputs"])); err != nil {
 		return nil, err
 	}
-	exclude, transferLimits, err := agentSSHHarvestContract(input)
+	checkpointContract, err := checkpoint.Decode(input["checkpoint"])
+	if err != nil {
+		return nil, err
+	}
+	resume, err := s.computeCheckpointResume(ctx, access, input, workspaceDir)
+	if err != nil {
+		return nil, err
+	}
+	exclude, transferLimits, err := agentComputeHarvestContract(input)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +73,7 @@ func (s *Server) submitAgentSSHJob(
 		return map[string]any{"job_id": jobID, "status": "submission_in_progress"}, nil
 	}
 	defer func() { s.releaseComputeJobActor(access.UserID, jobID); s.notifyComputeProviderJobSupervisor() }()
-	timeout, err := computeJobTimeout(input, provider.MaxTimeoutSec, 0)
+	timeout, err := computeJobTimeout(computeCheckpointTimeoutInput(input, resume), provider.MaxTimeoutSec, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +94,7 @@ func (s *Server) submitAgentSSHJob(
 	if err != nil {
 		return nil, err
 	}
-	durableStage, archive, err := s.stageAgentBYOCJob(jobID, workspaceDir, input, access)
+	durableStage, archive, err := s.stageAgentBYOCJobContext(ctx, jobID, workspaceDir, input, access)
 	if err != nil {
 		return nil, err
 	}
@@ -103,6 +113,8 @@ func (s *Server) submitAgentSSHJob(
 		"remote_inputs": remoteInputs,
 		"exclude":       exclude, "transfer_limits": transferLimits,
 	}
+	hardware["root_frame_incarnation_id"] = access.RootFrameIncarnationID
+	bindComputeCheckpointHardware(hardware, checkpointContract, resume, int64(timeout/time.Second))
 	s.computeSubmitMu.Lock()
 	if capacityErr := s.enforceAgentComputeCapacity(access, provider); capacityErr != nil {
 		s.computeSubmitMu.Unlock()
@@ -130,7 +142,7 @@ func (s *Server) submitAgentSSHJob(
 	if err != nil {
 		return nil, err
 	}
-	if err := s.launchAgentSSHJob(ctx, provider, remoteWorkdir, timeout, scheduler, schedulerDirectives, remoteInputs); err != nil {
+	if err := s.launchAgentSSHJob(ctx, provider, remoteWorkdir, timeout, scheduler, schedulerDirectives, remoteInputs, archive.SHA256); err != nil {
 		// A transport failure after launch may hide an accepted remote job.
 		// Keep the same staging identity for reconciliation, never manufacture
 		// launch_failed or a new submission from an unknown response.
@@ -140,52 +152,12 @@ func (s *Server) submitAgentSSHJob(
 	if err != nil {
 		return nil, err
 	}
-	preserveStage = false
+	preserveStage = checkpointContract != nil || resume != nil
 	_ = s.workspaceStore.AppendComputeJobLog(access.UserID, jobID, "combined", fmt.Sprintf("submitted %d bytes sha256=%s\n", archive.Bytes, archive.SHA256))
 	s.notifyComputeProviderJobSupervisor()
 	return map[string]any{
 		"job_id": jobID, "provider": publicComputeProviderName(provider.Name), "status": "running",
 		"remote_workdir": remoteWorkdir,
-	}, nil
-}
-
-func agentSSHHarvestContract(input map[string]any) ([]string, map[string]any, error) {
-	exclude := stringArrayValue(input["exclude"])
-	if len(exclude) != len(anySliceValue(input["exclude"])) || len(exclude) > 256 {
-		return nil, nil, errors.New("SSH harvest exclude must contain at most 256 glob strings")
-	}
-	for _, pattern := range exclude {
-		pattern = strings.TrimSpace(pattern)
-		if pattern == "" || len(pattern) > 4096 || strings.ContainsAny(pattern, "\x00\r\n") || path.IsAbs(pattern) || pattern == ".." || strings.HasPrefix(pattern, "../") {
-			return nil, nil, errors.New("SSH harvest exclude contains an invalid glob")
-		}
-	}
-	raw := mapValue(input["transfer_limits"])
-	for key := range raw {
-		if key != "max_file_mb" && key != "max_total_mb" {
-			return nil, nil, fmt.Errorf("SSH transfer_limits field %q is not allowed", key)
-		}
-	}
-	maxFileMB, maxTotalMB := int64(500), int64(2000)
-	if value, found := raw["max_file_mb"]; found {
-		number := numberValue(value)
-		if number <= 0 {
-			return nil, nil, errors.New("max_file_mb must be a positive integer")
-		}
-		maxFileMB = number
-	}
-	if value, found := raw["max_total_mb"]; found {
-		number := numberValue(value)
-		if number <= 0 {
-			return nil, nil, errors.New("max_total_mb must be a positive integer")
-		}
-		maxTotalMB = number
-	}
-	if maxFileMB < 1 || maxTotalMB < 1 || maxFileMB > maxTotalMB || maxTotalMB > 20480 {
-		return nil, nil, errors.New("SSH transfer limits require 1 <= max_file_mb <= max_total_mb <= 20480")
-	}
-	return exclude, map[string]any{
-		"max_file_bytes": maxFileMB << 20, "max_total_bytes": maxTotalMB << 20,
 	}, nil
 }
 
@@ -339,12 +311,24 @@ func (s *Server) launchAgentSSHJob(
 	scheduler string,
 	directives []string,
 	remoteInputs []agentSSHRemoteInput,
+	inputSHA256 ...string,
 ) error {
 	quoted := shellSingleQuote(remoteWorkdir)
 	environment := "OPERON_JOB_TIMEOUT_S=" + strconv.Itoa(int(timeout/time.Second)) +
+		" OPERON_OUTPUT_PROTOCOL=2" +
 		" OPERON_SANDBOX_DEADLINE_EPOCH=0 OPERON_SANDBOX_REMAINING_S=0 " +
 		"OPERON_HARVEST_MARGIN_S=" + strconv.Itoa(int(byocHarvestMargin/time.Second)) +
 		" OPERON_TERM_GRACE_S=" + strconv.Itoa(int(byocTerminationGrace/time.Second))
+	if len(inputSHA256) > 0 {
+		if len(inputSHA256) != 1 {
+			return errors.New("SSH input identity is ambiguous")
+		}
+		decoded, err := hex.DecodeString(inputSHA256[0])
+		if err != nil || len(decoded) != 32 || hex.EncodeToString(decoded) != inputSHA256[0] {
+			return errors.New("SSH input identity is invalid")
+		}
+		environment += " OPERON_INPUT_SHA256=" + inputSHA256[0]
+	}
 	command := "set -eu; umask 077; cd " + quoted + "; " + agentSSHProcessIdentityShell +
 		"command -v flock >/dev/null || exit 66; exec 9>.launch.lock; flock -w 10 9 || exit 75; " +
 		"if [ -s .phase ]; then exit 0; fi; " +
@@ -352,7 +336,7 @@ func (s *Server) launchAgentSSHJob(
 	if scheduler == "slurm" {
 		command += agentSSHSlurmRecoveryShell(path.Base(remoteWorkdir))
 	}
-	command += "if [ -e .submit_intent ]; then exit 75; fi; env -u TAR_OPTIONS -u GZIP tar -xzf in.tar.gz; "
+	command += "if [ -e .submit_intent ]; then exit 75; fi; env -u TAR_OPTIONS -u GZIP tar -xzf in.tar.gz; bash --noprofile --norc -p _synon_harvest.sh check; "
 	for _, remoteInput := range remoteInputs {
 		source := shellSingleQuote(remoteInput.Source)
 		destination := shellSingleQuote(remoteInput.Destination)
@@ -436,14 +420,16 @@ func (s *Server) reconcileAgentSSHJob(ctx context.Context, owned workspace.Owned
 			s.failComputeProviderJob(owned, workspace.ComputeJobOrphaned, "recovery_state_invalid", inputErr)
 			return true
 		}
-		if err := s.launchAgentSSHJob(ctx, provider, remoteWorkdir, timeout, scheduler, directives, remoteInputs); err != nil {
+		if err := s.launchAgentSSHJob(ctx, provider, remoteWorkdir, timeout, scheduler, directives, remoteInputs, archive.SHA256); err != nil {
 			return s.handleComputeProviderProbeFailure(owned, err)
 		}
 		job, err = s.workspaceStore.TransitionComputeJob(owned.OwnerUserID, job.JobID, workspace.ComputeJobRunning, "", time.Now().UTC())
 		if err != nil {
 			return false
 		}
-		s.removeAgentBYOCRecoveryStage(stage, job.JobID)
+		if hardware["checkpoint_contract"] == nil {
+			s.removeAgentBYOCRecoveryStage(stage, job.JobID)
+		}
 		owned.Job = job
 	}
 	status, err := pollAgentSSHJob(ctx, provider, remoteWorkdir)
@@ -471,9 +457,6 @@ func storedAgentSSHRemoteInputs(value any) ([]agentSSHRemoteInput, error) {
 			return nil, errors.New("stored SSH remote input is invalid")
 		}
 		inputs = append(inputs, input)
-		if len(inputs) > byocMaximumInputFiles {
-			return nil, errors.New("stored SSH remote inputs exceed the bounded contract")
-		}
 	}
 	return inputs, nil
 }
@@ -554,10 +537,8 @@ func (s *Server) harvestAgentSSHJobWithOutcome(
 	forcedKind string,
 ) bool {
 	job := owned.Job
-	if status.Phase == "harvest_failed" {
-		s.failComputeProviderJob(owned, workspace.ComputeJobFailed, "harvest_failed", errors.New("remote output staging failed"))
-		return true
-	}
+	// Recover original files after legacy packaging failure; it does not prove
+	// that the physical calculation failed.
 	if job.State == workspace.ComputeJobRunning {
 		updated, err := s.workspaceStore.TransitionComputeJob(owned.OwnerUserID, job.JobID, workspace.ComputeJobHarvesting, "", time.Now().UTC())
 		if err != nil {
@@ -577,24 +558,18 @@ func (s *Server) harvestAgentSSHJobWithOutcome(
 	if err != nil || resolved != filepath.Clean(stage) {
 		return s.handleComputeProviderProbeFailure(owned, errors.New("SSH harvest staging path is not owned"))
 	}
-	if err := runAgentSSHCopy(ctx, provider, filepath.Join(stage, "out.tar.gz"), path.Join(remoteWorkdir, "out.tar.gz"), false); err != nil {
-		return s.handleComputeProviderProbeFailure(owned, err)
-	}
 	remoteURI := func(name string) string {
 		return "ssh://" + publicComputeProviderName(provider.Name) + path.Join(remoteWorkdir, filepath.ToSlash(name))
 	}
-	limits := mapValue(hardware["transfer_limits"])
-	files, left, err := extractAgentComputeHarvest(
-		stage, strings.TrimSpace(stringValue(hardware["workspace_dir"])), job.JobID,
-		agentComputeHarvestPolicy{
-			Outputs: anySliceValue(hardware["outputs"]), Exclude: stringArrayValue(hardware["exclude"]),
-			MaxFileBytes: int64(numberValue(limits["max_file_bytes"])), MaxTotalBytes: int64(numberValue(limits["max_total_bytes"])),
-			RemoteURI: remoteURI,
-		},
-	)
+	harvest, ready, err := s.harvestSelectedComputeOutputs(ctx, stage, strings.TrimSpace(stringValue(hardware["workspace_dir"])), job.JobID,
+		hardware, remoteURI, sshHarvestTransport{provider: provider, workdir: remoteWorkdir, stage: stage})
 	if err != nil {
 		return s.handleComputeProviderProbeFailure(owned, err)
 	}
+	if !ready {
+		return false
+	}
+	files, left := harvest.Files, harvest.Left
 	stdout := readAgentSSHHarvestTail(strings.TrimSpace(stringValue(hardware["workspace_dir"])), job.JobID, "stdout.log")
 	stderr := readAgentSSHHarvestTail(strings.TrimSpace(stringValue(hardware["workspace_dir"])), job.JobID, "stderr.log")
 	if stdout != "" {
@@ -615,25 +590,31 @@ func (s *Server) harvestAgentSSHJobWithOutcome(
 	}
 	result := map[string]any{
 		"exit_code": status.Exit, "job_wall_s": status.Wall, "stdout_tail": stdout, "stderr_tail": stderr,
-		"output_files": files, "output_file_count": len(files),
+		"output_files": files, "output_file_count": harvest.Count,
+		"output_manifest": harvest.Manifest, "output_manifest_sha256": harvest.ManifestSHA256,
+		"remote_output_count": harvest.RemoteCount, "delivery_state": "complete",
 		"featured_files": featuredComputeProviderFiles(files, anySliceValue(hardware["outputs"])),
 		"remote_workdir": remoteWorkdir,
 	}
-	if len(left) > 0 {
+	result["output_files_truncated"] = int64(len(files)) < harvest.Count
+	if harvest.RemoteCount > 0 {
 		result["left_on_remote"] = left
 		result["system_hint"] = "One or more unselected or over-limit files remain in the remote workdir; retrieve or chain them before close."
 	}
+	s.attachComputeCheckpointReceipt(ctx, owned, result)
 	if err := s.resetOwnedComputeProviderProbe(owned); err != nil {
 		log.Printf("SSH harvest recovery observation could not be committed job=%s", job.JobID)
 		return false
 	}
-	_ = s.workspaceStore.SetComputeJobResult(owned.OwnerUserID, job.JobID, result)
+	if err := s.workspaceStore.SetComputeJobResult(owned.OwnerUserID, job.JobID, result); err != nil {
+		return s.handleComputeProviderProbeFailure(owned, err)
+	}
 	_, err = s.transitionAgentComputeJobTerminal(owned, next, kind, time.Now().UTC(), result)
 	if err != nil {
 		return false
 	}
 	_ = os.RemoveAll(stage)
-	if len(left) == 0 {
+	if harvest.RemoteCount == 0 {
 		_, _ = runKernelComputeSSHCommand(context.Background(), provider, kernelComputeCommandRequest{
 			Command: "rm -rf -- " + shellSingleQuote(remoteWorkdir), Intent: "Remove the harvested remote job directory", Timeout: 30 * time.Second,
 		})

@@ -144,6 +144,15 @@ func (b *Backend) EnsureSession(ctx context.Context, spec kernelruntime.SessionS
 			}
 		}
 		if existing.State == workspace.KernelExecutionBackendStateStarting {
+			reservation, found, err := b.Store.KernelResourceReservation(ctx, existing.BackendID, existing.BackendGeneration)
+			if err != nil {
+				return kernelruntime.BackendSessionRef{}, err
+			}
+			if found && reservation.State == "waiting" {
+				if err := b.launchExecutor(existing); err != nil {
+					return kernelruntime.BackendSessionRef{}, err
+				}
+			}
 			if ready, waitErr := b.waitForReady(ctx, existing.BackendID, existing.BackendGeneration, b.StartTimeout); waitErr == nil {
 				return backendSessionRef(ready), nil
 			}
@@ -875,15 +884,29 @@ func (b *Backend) launchExecutor(backend workspace.KernelExecutionBackend) (laun
 		if launchErr == nil {
 			return
 		}
+		var unavailable *ExecutorResourceUnavailableError
+		if errors.As(launchErr, &unavailable) {
+			return
+		}
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		state, observeErr := b.Launcher.Observe(ctx, backend.BackendID, backend.BackendGeneration)
 		if observeErr == nil && state == ExecutorLaunchExited {
-			launchErr = errors.Join(launchErr, b.Store.FailKernelExecutorStartup(ctx, workspace.KernelStartupFailure{
+			settleErr := b.Store.FailKernelExecutorStartup(ctx, workspace.KernelStartupFailure{
 				BackendID: backend.BackendID, BackendGeneration: backend.BackendGeneration, ExecutorInstanceID: backend.ExecutorInstanceID, Stage: "launch",
-			}))
+			})
+			if settleErr == nil {
+				settleErr = b.Store.ReleaseKernelResources(ctx, backend.BackendID, backend.BackendGeneration, backend.MachineBootID)
+			}
+			launchErr = errors.Join(launchErr, settleErr)
 		}
 	}()
+	resourceCtx, resourceCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	memoryMax, resourceErr := b.reserveExecutorResources(resourceCtx, backend)
+	resourceCancel()
+	if resourceErr != nil {
+		return resourceErr
+	}
 	logPath := filepath.Join(b.LogDir, backend.BackendID+".log")
 	workingDirectory, err := os.Getwd()
 	if err != nil || !filepath.IsAbs(workingDirectory) {
@@ -910,7 +933,8 @@ func (b *Backend) launchExecutor(backend workspace.KernelExecutionBackend) (laun
 		args = append(args, "--conda-envs-path", strings.TrimSpace(b.CondaEnvsPath))
 	}
 	return b.Launcher.Launch(ExecutorLaunchRequest{
-		BackendID: backend.BackendID, BackendGeneration: backend.BackendGeneration,
+		MemoryMaxBytes: memoryMax,
+		BackendID:      backend.BackendID, BackendGeneration: backend.BackendGeneration,
 		Executable: b.Executable, Arguments: args, WorkingDirectory: workingDirectory, LogPath: logPath,
 	})
 }
@@ -1023,7 +1047,8 @@ func durableSessionSpec(spec kernelruntime.SessionSpec) workspace.KernelExecutio
 		})
 	}
 	return workspace.KernelExecutionSessionSpecV1{
-		Version: 1, KernelID: spec.KernelID, OwnerUserID: spec.OwnerID, ProjectID: spec.ProjectID,
+		ResourceMemoryBytes: spec.ResourceMemoryBytes,
+		Version:             1, KernelID: spec.KernelID, OwnerUserID: spec.OwnerID, ProjectID: spec.ProjectID,
 		RootFrameID: spec.RootFrameID, RootFrameIncarnationID: spec.RootFrameIncarnationID,
 		FrameID: spec.FrameID, FrameIncarnationID: spec.FrameIncarnationID,
 		AgentName: spec.AgentName, DelegateName: spec.DelegateName, KernelKind: spec.KernelKind,

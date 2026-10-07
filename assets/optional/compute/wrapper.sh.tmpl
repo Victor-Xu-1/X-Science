@@ -42,7 +42,25 @@ if [ "$OPW_REMAINING" -gt 0 ] 2>/dev/null; then
 else
   OPW_DEADLINE=$OPW_EPOCH
 fi
-readonly OPW_JOB_TIMEOUT OPW_DEADLINE OPW_MARGIN OPW_GRACE
+if [ -f _synon_checkpoint.env ] && [ ! -L _synon_checkpoint.env ]; then
+  source ./_synon_checkpoint.env
+fi
+OPW_CHECKPOINT_SIGNAL=${OPERON_CHECKPOINT_SIGNAL:-}
+OPW_CHECKPOINT_PID_FILE=${OPERON_CHECKPOINT_PID_FILE:-}
+case "$OPW_CHECKPOINT_SIGNAL" in ''|TERM|USR1|USR2) ;; *) exit 76 ;; esac
+OPW_OUTPUT_PROTOCOL=${OPERON_OUTPUT_PROTOCOL:-1}
+readonly OPW_JOB_TIMEOUT OPW_DEADLINE OPW_MARGIN OPW_GRACE OPW_CHECKPOINT_SIGNAL OPW_CHECKPOINT_PID_FILE OPW_OUTPUT_PROTOCOL
+native_checkpoint_pid() {
+  local pid boot ticks extra stat tail
+  [[ $OPW_CHECKPOINT_PID_FILE == out/* && -f $OPW_CHECKPOINT_PID_FILE && ! -L $OPW_CHECKPOINT_PID_FILE ]] || return 1
+  IFS=: read -r pid boot ticks extra < "$OPW_CHECKPOINT_PID_FILE" || return 1
+  [[ $pid =~ ^[1-9][0-9]*$ && $ticks =~ ^[1-9][0-9]*$ && -z $extra && $boot == "$(</proc/sys/kernel/random/boot_id)" ]] || return 1
+  [[ -r /proc/$pid/stat ]] || return 1
+  stat=$(<"/proc/$pid/stat"); tail=${stat##*) }
+  local fields=(); read -r -a fields <<< "$tail"
+  [[ ${#fields[@]} -ge 20 && ${fields[2]} == "$wpid" && ${fields[19]} == "$ticks" && ${fields[0]} != Z && ${fields[0]} != X ]] || return 1
+  printf %s "$pid"
+}
 set -a; source .job_env 2>/dev/null || true; set +a
 # Back-compat: an OLD host still wraps this script in an outer timeout(1)
 # whose group-TERM reaches the wrapper but NOT the workload (own session
@@ -102,6 +120,19 @@ if [ "$OPW_DEADLINE" -gt 0 ] 2>/dev/null; then
     # Marker is workload-forgeable but forging only suppresses the TERM the
     # forger's own group would receive.
     : > .deadline_fired
+    checkpoint_pid=
+    if [ -n "$OPW_CHECKPOINT_SIGNAL" ] && [ "$OPW_CHECKPOINT_SIGNAL" != TERM ] && checkpoint_pid=$(native_checkpoint_pid); then
+      kill -"$OPW_CHECKPOINT_SIGNAL" "$checkpoint_pid" 2>/dev/null
+      checkpoint_i=0
+      # This opt-in native checkpoint grace is inside the provider margin.
+      checkpoint_grace=$(( OPW_GRACE < OPW_MARGIN / 2 ? OPW_GRACE : OPW_MARGIN / 2 ))
+      while [ "$checkpoint_i" -lt "$checkpoint_grace" ]; do
+        [ -n "$wd_cancelled" ] && exit 0
+        kill -0 -- -"$wpid" 2>/dev/null || exit 0
+        sleep 1 & wait $!
+        checkpoint_i=$(( checkpoint_i + 1 ))
+      done
+    fi
     kill -TERM -- -"$wpid" 2>/dev/null
     : > .deadline_termed
     # Grace: 1s liveness+cancel-gated ticks (tightens review r10).
@@ -261,7 +292,11 @@ now_end=${EPOCHSECONDS:-$(date +%s)}
 # from the sourced .job_env. The host deny-list also strips them at
 # staging; this is the in-sandbox belt so the list isn't load-bearing
 # across host/wrapper version skews (review r12).
-if env -u TAR_OPTIONS -u GZIP tar -czf out.tar.gz.tmp out stdout.log stderr.log \
+if [ "$OPW_OUTPUT_PROTOCOL" = 2 ]; then
+  # Calculation completion is independent of output selection/transport.
+  # The host's single harvest protocol packages only the admitted file list.
+  staged=0
+elif env -u TAR_OPTIONS -u GZIP tar -czf out.tar.gz.tmp out stdout.log stderr.log \
   && mv -f out.tar.gz.tmp out.tar.gz; then
   staged=0
 else

@@ -12,6 +12,11 @@
   ],
   "files": [
     {
+      "path": "compute/harvest.sh.tmpl",
+      "sha256": "d1b7d39d96fd25b518861afac13117b5adf0f46a56896b2c3b01031af30e1b9d",
+      "bytes": 8629
+    },
+    {
       "path": "compute/inference_provider.py",
       "sha256": "13ddeadcbe7db4b6fe2949dddc52580a8b163e3f8a6a98628772ba0099395363",
       "bytes": 2461
@@ -33,13 +38,18 @@
     },
     {
       "path": "compute/operon_compute_provider/__init__.py",
-      "sha256": "f931d773923c001c81e2c52a1a37c20bcbbd4bbaf4a2262625583bcf8877213b",
-      "bytes": 56329
+      "sha256": "f61bf0fb7dea6e2135c3b5737223fcad44ab1b27b55fa5f8242e7c418bd00880",
+      "bytes": 57343
     },
     {
       "path": "compute/operon_compute_provider/__main__.py",
       "sha256": "b6c9ccbd7ac120637c33b6a991ba479cfeaf3b1e5e33ad53090dc8439bc056ad",
       "bytes": 1215
+    },
+    {
+      "path": "compute/operon_compute_provider/transfer.py",
+      "sha256": "1767b8c0851380c5585c91d4a6489a4ed92bbb7724900c0ceca04bdb78d958e2",
+      "bytes": 10087
     },
     {
       "path": "compute/provider_kernel_bootstrap.py",
@@ -53,8 +63,8 @@
     },
     {
       "path": "compute/wrapper.sh.tmpl",
-      "sha256": "d5bfef58cbd6be5dc4ea4143870673318a653992cc1db1ce24423803bac5f87a",
-      "bytes": 15674
+      "sha256": "e501757469c3112fff6e062ba2e42c3afa00e1e75ca7769fc94b2c67bbe64449",
+      "bytes": 17608
     },
     {
       "path": "kernels/cheminfo_render_helpers.py",

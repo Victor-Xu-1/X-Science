@@ -350,10 +350,18 @@ func (s *Server) executeAgentKernelToolInternal(
 		return nil, err
 	}
 	if taskOwnedKernel {
+		// Application execution packs own their typed resource contract.
 		if preauthorizedOperation == nil {
 			return nil, errors.New("task-owned runtime durable operation authority is unavailable")
 		}
 		spec.KernelID = softwareRuntimeKernelID(preauthorizedOperation.OperationID)
+	}
+	spec.ResourceMemoryBytes, err = kernelcontract.MemoryBudgetBytes(input)
+	if err != nil {
+		return nil, err
+	}
+	if spec.ResourceMemoryBytes > 0 && (s.kernelExecutionBackend == nil || approvalCall == nil) {
+		return map[string]any{"ok": false, "executed": false, "status": "resource_budget_backend_unavailable", "execution_outcome": "not_started", "retryable": true}, nil
 	}
 	if approvalCall != nil && s.kernelExecutionBackend != nil && publicName != "repl" &&
 		agentKernelUsesDetachedExecution(publicName, background) {

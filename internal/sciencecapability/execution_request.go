@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -23,6 +24,7 @@ type ExecutionRequest struct {
 	Parameters      map[string]any    `json:"parameters"`
 	WorkingDir      string            `json:"working_dir,omitempty"`
 	TimeoutSeconds  int64             `json:"timeout_seconds,omitempty"`
+	MemoryBudgetMB  int64             `json:"memory_budget_mb,omitempty"`
 	Background      bool              `json:"background,omitempty"`
 }
 
@@ -78,8 +80,11 @@ func NormalizeExecutionRequest(input ExecutionRequest) (ExecutionRequest, Defini
 	// Omitted timeouts are unlimited. The detached runtime and durable task
 	// identity survive UI/service interruptions; only an explicit positive
 	// deadline may bound a scientific execution.
-	if input.TimeoutSeconds < 0 || input.TimeoutSeconds > 7*24*60*60 {
+	if input.TimeoutSeconds < 0 || input.TimeoutSeconds > software.MaxExecutionTimeoutSeconds {
 		return ExecutionRequest{}, Definition{}, EngineDefinition{}, errors.New("scientific execution timeout is invalid")
+	}
+	if input.MemoryBudgetMB < 0 || input.MemoryBudgetMB > math.MaxInt64>>20 {
+		return ExecutionRequest{}, Definition{}, EngineDefinition{}, errors.New("scientific memory allocation is not representable")
 	}
 	inputByKind := make(map[string]ExecutionInput, len(pack.Inputs))
 	for _, binding := range pack.Inputs {
@@ -214,6 +219,7 @@ func BuildSoftwareRequest(input ExecutionRequest) (software.Request, Definition,
 	request.Stdin = string(script)
 	request.WorkingDir = normalized.WorkingDir
 	request.Background = normalized.Background
+	request.MemoryBudgetMB = normalized.MemoryBudgetMB
 	for _, binding := range pack.Inputs {
 		request.Arguments = append(request.Arguments, binding.Argument, normalized.Inputs[binding.Kind])
 	}

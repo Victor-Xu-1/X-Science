@@ -249,6 +249,12 @@ class ByocResident:
     def run_oneshot(self, argv: list[str]) -> NoReturn:
         signal.signal(signal.SIGINT, lambda *_: os._exit(EXIT_PROTOCOL))
         op, stage, expect_confined = argv[1], argv[2], argv[3] == "1"
+        # argv is supplied by the host, not the request. Durable data stages
+        # retain partial transfers while the worker remains confined to this
+        # exact private directory. A request cannot widen that authority.
+        self._bound_stage = os.path.realpath(stage)
+        if stage != self._bound_stage or not os.path.isdir(stage) or os.stat(stage).st_mode & 0o077:
+            os._exit(EXIT_PROTOCOL)
         self._prologue()
         if expect_confined and not self._probe_confined():
             os._exit(self.EXIT_UNCONFINED)
@@ -595,10 +601,6 @@ class ByocResident:
         if submission_state == "launching":
             raise ByocError("transient", "submission launch state is ambiguous")
         if submission_state == "running":
-            try:
-                os.unlink(in_tgz)
-            except OSError:
-                pass
             return {"ok": True, "wrapper_deadline_aware": True}
 
         # Exec 1 of 2 — stream + untar the inputs. The upload is SPLIT from
@@ -641,9 +643,6 @@ class ByocResident:
                 rc = self._drain_wait(r)
             except Exception:
                 raise
-            finally:
-                try: os.unlink(in_tgz)
-                except OSError: pass
             if rc != 0:
                 if rc == 78:
                     raise ByocError("transient", "submission upload lock is unavailable")
@@ -651,11 +650,6 @@ class ByocResident:
                     "invalid_request",
                     f"submission staging failed (rc={rc})",
                 )
-        else:
-            try:
-                os.unlink(in_tgz)
-            except OSError:
-                pass
         # POST-upload recompute of the relative watchdog anchor: fresh
         # remaining life from the absolute deadline on this clock (the
         # helper runs on the submitting host, same clock that minted
@@ -670,6 +664,13 @@ class ByocResident:
         if remaining_s > 0 and deadline_epoch > 0:
             remaining_s = max(1, deadline_epoch - int(time.time()))
         wrapper_env = f"OPERON_JOB_TIMEOUT_S={job_timeout}"
+        if req.get("output_protocol") == 2:
+            check = self._p.exec(sid, ["bash", "--noprofile", "--norc", "-p", f"{WORK}/_synon_harvest.sh", "check"])
+            if self._drain_wait(check) != 0:
+                raise ByocError("invalid_request", "image lacks the native compute control/harvest commands; no workload was launched")
+        wrapper_env += f" OPERON_INPUT_SHA256={archive_sha256}"
+        if req.get("output_protocol") == 2:
+            wrapper_env += " OPERON_OUTPUT_PROTOCOL=2"
         # RELATIVE remaining-seconds is the authority (the wrapper anchors
         # it on the SANDBOX clock — a host-clock epoch comparison would
         # shrink the staging margin by any clock skew); the epoch rides
@@ -898,6 +899,11 @@ class ByocResident:
         sid = req["sandbox_id"]
         stage = self._stage(req)
         self._install_id = req["install_id"]
+        if req.get("harvest"):
+            if self._p.read_owner(sid) != self._install_id:
+                raise ByocError("ownership_mismatch", self._owner_msg(sid))
+            from .transfer import harvest_operation
+            return harvest_operation(self._p, req, stage)
         poll_s = int(req.get("poll_seconds") or 30)
         head = self._probe_one(sid, poll_s=poll_s,
                                flags=bool(req.get("probe_only")))
@@ -1109,8 +1115,7 @@ class ByocResident:
         self._p.terminate(sid)
         return {"ok": True}
 
-    @staticmethod
-    def _stage(req: dict[str, Any]) -> str:
+    def _stage(self, req: dict[str, Any]) -> str:
         # Host-supplied via stage/req.json and bwrap confines writes anyway,
         # but reject anything outside the expected mkdtemp prefix so a
         # protocol bug can't be levered into an arbitrary-path open. realpath
@@ -1123,7 +1128,9 @@ class ByocResident:
             os.path.realpath(os.path.dirname(STAGE_PREFIX)),
             os.path.basename(STAGE_PREFIX),
         )
-        if not (real.startswith(prefix) and os.path.isdir(real)):
+        bound = getattr(self, "_bound_stage", None)
+        admitted = real == bound if bound is not None else real.startswith(prefix)
+        if not (admitted and real == stage and os.path.isdir(real)):
             raise ByocError("invalid_request", "bad stage path")
         return real
 

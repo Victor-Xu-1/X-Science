@@ -7,9 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 	"unicode"
 	"unicode/utf8"
 )
@@ -23,7 +25,8 @@ const (
 	maxOutputWitness   = 256
 	maxScientificFiles = 64
 	maxQualityChecks   = 128
-	maxTimeoutSeconds  = 7 * 24 * 60 * 60
+	// Leave room for the shared recovery observation window and stop grace.
+	MaxExecutionTimeoutSeconds = (math.MaxInt64/int64(time.Second) - 30) / 2
 )
 
 type PackageManager string
@@ -103,6 +106,7 @@ type Request struct {
 	Stdin              string                      `json:"stdin,omitempty"`
 	WorkingDir         string                      `json:"working_dir,omitempty"`
 	TimeoutSeconds     int64                       `json:"timeout_seconds,omitempty"`
+	MemoryBudgetMB     int64                       `json:"memory_budget_mb,omitempty"`
 	ExpectedOutputs    []OutputWitness             `json:"expected_outputs,omitempty"`
 	Comparisons        []TabularComparisonContract `json:"comparisons,omitempty"`
 	ScientificEvidence *ScientificEvidenceRequest  `json:"scientific_evidence,omitempty"`
@@ -246,8 +250,11 @@ func NormalizeRequest(input Request) (Request, error) {
 	// Zero deliberately means no wall-clock deadline. Long scientific jobs are
 	// owned by durable execution state and explicit cancellation rather than a
 	// hidden default timeout. A positive user-authored deadline remains bounded.
-	if result.TimeoutSeconds < 0 || result.TimeoutSeconds > maxTimeoutSeconds {
+	if result.TimeoutSeconds < 0 || result.TimeoutSeconds > MaxExecutionTimeoutSeconds {
 		return Request{}, errors.New("software timeout_seconds is outside the bounded range")
+	}
+	if result.MemoryBudgetMB < 0 || result.MemoryBudgetMB > math.MaxInt64>>20 {
+		return Request{}, errors.New("software memory allocation is not representable")
 	}
 	if len(result.ExpectedOutputs) > maxOutputWitness {
 		return Request{}, errors.New("software output witness count exceeds the bounded limit")

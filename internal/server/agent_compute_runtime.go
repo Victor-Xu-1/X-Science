@@ -157,7 +157,7 @@ func agentComputeToolSchemas() []agentruntime.ToolSchema {
 					"provider_params": map[string]any{"type": "object"},
 					"command":         map[string]any{"type": "string", "minLength": 1, "maxLength": 262144},
 					"intent":          map[string]any{"type": "string", "minLength": 1, "maxLength": 256},
-					"inputs": map[string]any{"type": "array", "maxItems": 256, "items": map[string]any{"anyOf": []any{
+					"inputs": map[string]any{"type": "array", "items": map[string]any{"anyOf": []any{
 						map[string]any{"type": "string", "minLength": 1, "maxLength": 4096},
 						map[string]any{"type": "object", "additionalProperties": false, "properties": map[string]any{
 							"src": map[string]any{"type": "string", "minLength": 1, "maxLength": 4096},
@@ -173,10 +173,12 @@ func agentComputeToolSchemas() []agentruntime.ToolSchema {
 					}}},
 					"exclude": map[string]any{"type": "array", "maxItems": 256, "items": map[string]any{"type": "string"}},
 					"transfer_limits": map[string]any{"type": "object", "additionalProperties": false, "properties": map[string]any{
-						"max_file_mb":  map[string]any{"type": "integer", "minimum": 1, "maximum": 20480},
-						"max_total_mb": map[string]any{"type": "integer", "minimum": 1, "maximum": 20480},
+						"max_file_mb":  map[string]any{"type": "integer", "minimum": 1, "description": "Optional explicit per-file transfer budget in MiB; omission adds no dataset-size ceiling. Actual storage and representation limits still apply."},
+						"max_total_mb": map[string]any{"type": "integer", "minimum": 1, "description": "Optional explicit total transfer budget in MiB; omission adds no dataset-size ceiling. Outputs outside the budget stay referenced on the remote provider."},
 					}},
 					"timeout_seconds": map[string]any{"type": "integer", "minimum": 0, "description": "Optional execution deadline in seconds. Zero or omission imposes no product deadline; configured provider and physical execution limits still apply."},
+					"resume_from_job": map[string]any{"type": "string", "description": "Resume the verified native file checkpoint of a terminal job owned by this task. The command must match its original resume contract; existing explicit logical budgets are retained."},
+					"checkpoint":      computeNativeCheckpointSchema(),
 					"scheduler":       map[string]any{"type": "string", "enum": []string{"slurm", "none"}},
 					"tier":            map[string]any{"type": "object"}, "human_description": human,
 					"env": map[string]any{"type": "object"},

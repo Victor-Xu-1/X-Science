@@ -1019,7 +1019,8 @@ func kernelSessionSpec(spec workspace.KernelExecutionSessionSpecV1) kernelruntim
 		mounts = append(mounts, restoredKernelWorkerMount(mount))
 	}
 	return kernelruntime.SessionSpec{
-		KernelID: spec.KernelID, OwnerID: spec.OwnerUserID, ProjectID: spec.ProjectID,
+		ResourceMemoryBytes: spec.ResourceMemoryBytes,
+		KernelID:            spec.KernelID, OwnerID: spec.OwnerUserID, ProjectID: spec.ProjectID,
 		RootFrameID: spec.RootFrameID, RootFrameIncarnationID: spec.RootFrameIncarnationID,
 		FrameID: spec.FrameID, FrameIncarnationID: spec.FrameIncarnationID,
 		AgentName: spec.AgentName, DelegateName: spec.DelegateName, KernelKind: spec.KernelKind,

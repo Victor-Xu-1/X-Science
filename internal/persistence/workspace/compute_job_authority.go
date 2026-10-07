@@ -322,9 +322,9 @@ func (s *Store) transitionComputeJob(
 			resultJSON = string(encoded)
 		}
 		usageResult, err := tx.ExecContext(ctx, `
-			UPDATE compute_usage SET state=?,ended_at=?,result=COALESCE(?,result)
+			UPDATE compute_usage SET state=?,ended_at=?,result=CASE WHEN ? IS NULL THEN result ELSE json_patch(COALESCE(result,'{}'),?) END
 			WHERE job_id=? AND state=?`,
-			nextState, endedAt, resultJSON, jobID, job.State)
+			nextState, endedAt, resultJSON, resultJSON, jobID, job.State)
 		if err != nil {
 			return fmt.Errorf("transition authoritative compute usage: %w", err)
 		}
