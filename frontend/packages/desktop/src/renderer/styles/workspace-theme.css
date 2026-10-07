@@ -1419,7 +1419,7 @@ html body .arco-tag {
 html body button.settings-action-button,
 html body button.settings-icon-button,
 html body button.settings-text-danger-button,
-html body .arco-modal button.text-left {
+html body .arco-modal button.text-left:where(:not([role='option'])) {
   border: 1px solid transparent !important;
   box-shadow: 0 1px 2px rgb(0 0 0 / 6%) !important;
 }
@@ -1430,7 +1430,7 @@ html body button.settings-icon-button {
 }
 
 html body button.settings-text-danger-button,
-html body .arco-modal button.text-left {
+html body .arco-modal button.text-left:where(:not([role='option'])) {
   background: transparent !important;
   box-shadow: none !important;
 }
@@ -2005,7 +2005,9 @@ html
     .arco-select-view,
     .arco-cascader-view,
     .arco-tree-select-view
-  ):focus-visible:where(:not(.conversation-search-modal__searchbar input)) {
+  ):focus-visible:where(
+    :not(.conversation-search-modal__searchbar input, .project-command-palette .arco-input-inner-wrapper input)
+  ) {
   outline: 2px solid var(--workspace-text) !important;
   outline-width: 2px !important;
   outline-offset: 2px !important;
@@ -2015,6 +2017,7 @@ html
 /* The composer is a single control surface; its inner textarea must not
  * acquire another ring inside the surrounding keyboard indicator. */
 html body .conversation-search-modal__searchbar:has(input:focus-visible),
+html body .project-command-palette .arco-input-inner-wrapper:has(input:focus-visible),
 html body :is(.guid-input-card-shell, .sendbox-panel):has(textarea:focus-visible) {
   outline: 2px solid var(--workspace-text) !important;
   outline-offset: 2px !important;

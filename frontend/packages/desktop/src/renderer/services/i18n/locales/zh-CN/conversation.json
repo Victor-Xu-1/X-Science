@@ -1399,6 +1399,7 @@
     "deleteConfirm": "确定删除这条笔记？"
   },
   "projectCommandPalette": {
+    "partialUnavailable": "部分项目内容暂时不可用。",
     "newTask": "新建任务",
     "newTaskDescription": "开始新的 Synon Biomed 会话",
     "openProject": "打开项目",

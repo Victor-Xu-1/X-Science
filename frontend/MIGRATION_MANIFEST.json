@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "2706b9ac9521c73fda88e187c128171552dc93397ed05fd2610fba99d039fad0",
+  "adaptationFingerprintSHA256": "5b2d159d6c372c7173784b77b8eda6006d39fc483742484869666185c4d43f38",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
-  "additionFingerprintSHA256": "c78a4736e00c8c23bc9e743815413bdf244acb61c8b521a67839668031e35f27",
+  "additionFingerprintSHA256": "c70b41882af7a5d4fdf3df2dc2935f63eda0cbba62bdd1cf0294905a9a7f1223",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 393,
@@ -388,8 +388,8 @@
     {
       "path": "packages/desktop/src/renderer/components/layout/Titlebar/ProjectCommandPalette.tsx",
       "sourceSHA256": "55e02ed951e6dfa502cfc47ec5554524967c8b6165195bc3237b5f02772774b8",
-      "targetSHA256": "65522666850829dd5cfc31c10db3adb8d2bc3d05c28d3d0ec62a10ce10e005cd",
-      "bytes": 9497,
+      "targetSHA256": "94374554295e043507fb493617eb372786affdccd8ca1ad726c2e68703cb0215",
+      "bytes": 12701,
       "reason": "Adapt the desktop layout, command palette, navigation, and window controls to authenticated responsive browser operation."
     },
     {
@@ -2467,8 +2467,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json",
       "sourceSHA256": "c6802cdea4137a9a8199f5b9e57c11a99e7b8fde42539065da42dd4db9052b8e",
-      "targetSHA256": "6abe372d76504c4f0e1ae0067dbd0deae5a914148bb092a2cedcba222749db74",
-      "bytes": 80595,
+      "targetSHA256": "0cf44b1ff4d742d0b8e6f2d69c805651a118b138e820fe18ee7bff9d6a29bc8d",
+      "bytes": 80675,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2558,8 +2558,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/conversation.json",
       "sourceSHA256": "cb395d18cb1692e13c849172bf6d957304ef382973fb5ab95fd14723cbc045bd",
-      "targetSHA256": "ed067e4e78e4b7a92a4cbeb14c36d663ba76c6eb12b95ff4a35bc597018a1fe1",
-      "bytes": 76195,
+      "targetSHA256": "b7bdcd9a7a180bfec49d63d82f7ae85adb51fe872904be4f0815ead24593465d",
+      "bytes": 76261,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -3916,8 +3916,8 @@
     {
       "path": "tests/unit/renderer/layout/ProjectCommandPalette.dom.test.tsx",
       "sourceSHA256": "65b04097e899ff206673d6d9aa097b11a8e95f89186ac1b3ad47ca0a25adba98",
-      "targetSHA256": "4b1c1ce8d4fd93c43c47cdbc9d2c085a42b3375258821e210d4fd408b0e1e673",
-      "bytes": 4673,
+      "targetSHA256": "c7c8847bdffa7562b724192252f17283ee6831ea2ea41cfc2fef7c2a14201aa5",
+      "bytes": 9318,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -8635,8 +8635,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/styles/workspace-theme.css",
-      "sha256": "3dd23768ffcfde347aa17e3b0c0d3373bd10b2123ce9db515ea9550297c7d763",
-      "bytes": 65405,
+      "sha256": "3bf34a22a84b4cd402aba82fb1aa28c1733ab2511025ee7fa2fa883d37a8ceeb",
+      "bytes": 65616,
       "reason": "Provide the shared visual shell under a product-neutral filename and CSS custom-property namespace."
     },
     {
@@ -9361,8 +9361,8 @@
     },
     {
       "path": "tests/unit/conversation/conversationSearchStyle.test.ts",
-      "sha256": "b7c739cff5ee627fba6ea91bad0f3bf92c1896e685e8352fa8d8cd47cd37862b",
-      "bytes": 1484,
+      "sha256": "25bd81c8d4f457bd8a91c319695d80208af24fdcbccf3750cbd9fc60062a59ce",
+      "bytes": 2645,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

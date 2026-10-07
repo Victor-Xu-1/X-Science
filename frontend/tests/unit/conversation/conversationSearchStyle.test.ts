@@ -15,19 +15,42 @@ function outlineRules(fragment: string) {
   return matches;
 }
 
-describe('Conversation search composite keyboard indicator', () => {
+describe('Composite search keyboard indicators', () => {
   it('keeps the existing high-contrast indicator on the enclosing search surface', () => {
     expect(outlineRules('.conversation-search-modal__searchbar:has(input:focus-visible)')).toEqual([
+      expect.objectContaining({ outline: '2px solid var(--workspace-text)' }),
+    ]);
+    expect(outlineRules('.project-command-palette .arco-input-inner-wrapper:has(input:focus-visible)')).toEqual([
       expect.objectContaining({ outline: '2px solid var(--workspace-text)' }),
     ]);
   });
 
   it('excludes only the inner search field without changing generic ring specificity', () => {
-    const rules = outlineRules(':focus-visible:where(:not(.conversation-search-modal__searchbar input))');
+    const rules = outlineRules(':focus-visible:where(');
     expect(rules).toHaveLength(1);
     expect(rules[0]).toEqual(expect.objectContaining({ outline: '2px solid var(--workspace-text)' }));
     expect(rules[0].selector).toContain("input:not([type='hidden'])");
     expect(rules[0].selector).toContain('textarea');
     expect(rules[0].selector).toContain('select');
+    expect(rules[0].selector).toContain('.conversation-search-modal__searchbar input');
+    expect(rules[0].selector).toContain('.project-command-palette .arco-input-inner-wrapper input');
+  });
+
+  it('does not flatten semantic options with the ordinary dialog-row reset', () => {
+    const resets: string[] = [];
+    styles.walkRules((rule) => {
+      if (!rule.selector.includes('.arco-modal button.text-left')) return;
+      rule.walkDecls('background', (declaration) => {
+        if (declaration.value === 'transparent') resets.push(rule.selector);
+      });
+    });
+    expect(resets).toHaveLength(1);
+    expect(resets[0]).toContain(".arco-modal button.text-left:where(:not([role='option']))");
+    const selection: string[] = [];
+    styles.walkRules((rule) => {
+      if (!rule.selector.includes("[role='listbox'] [aria-selected='true']")) return;
+      rule.walkDecls('background', (declaration) => selection.push(declaration.value));
+    });
+    expect(selection).toContain('var(--workspace-overlay-selected)');
   });
 });
