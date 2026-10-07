@@ -69,8 +69,8 @@ func TestAgentComputeAskUserProducesEvidenceBackedBilingualDecisionCards(t *test
 }
 
 func TestAgentComputeRuntimeListsExecutesAndCompletesOneDurableSSHJob(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("the production SSH command path is exercised in the Linux target runtime")
+	if runtime.GOOS != "linux" {
+		t.Skip("this fixture runs the Linux remote peer's native control protocol locally")
 	}
 	root := t.TempDir()
 	remoteHome := filepath.Join(root, "remote")
@@ -86,17 +86,13 @@ func TestAgentComputeRuntimeListsExecutesAndCompletesOneDurableSSHJob(t *testing
 		t.Fatal(err)
 	}
 	ssh := filepath.Join(root, "ssh")
-	if err := os.WriteFile(ssh, []byte("#!/usr/bin/env bash\nset -eu\ncommand=${!#}\nexport HOME=\"$SYNON_TEST_REMOTE_HOME\"\nexec bash -c \"$command\"\n"), 0o700); err != nil {
+	if err := os.WriteFile(ssh, []byte("#!/usr/bin/env bash\nset -eu\nwhile [[ $1 == -* ]]; do shift 2; done\nshift\ncommand=\"$*\"\nexport HOME=\"$SYNON_TEST_REMOTE_HOME\"\nexec bash -c \"$command\"\n"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	scp := filepath.Join(root, "scp")
-	if err := os.WriteFile(scp, []byte("#!/usr/bin/env bash\nset -eu\nargs=(\"$@\")\nsrc=${args[${#args[@]}-2]}\ndst=${args[${#args[@]}-1]}\n[[ $src == *:* ]] && src=${src#*:}\n[[ $dst == *:* ]] && dst=${dst#*:}\nmkdir -p \"$(dirname \"$dst\")\"\ncp -- \"$src\" \"$dst\"\n"), 0o700); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "sbatch"), []byte("#!/usr/bin/env bash\nset -eu\nscript=${!#}\nfor arg in \"$@\"; do [[ $arg == --comment=* ]] && printf '%s' \"${arg#--comment=}\" > .fixture_scheduler_tag; done\nbash \"$script\" >/dev/null 2>&1 &\necho $!\n"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, "sbatch"), []byte("#!/usr/bin/env bash\nset -eu\nscript=${!#}\nbash \"$script\" >/dev/null 2>&1 &\necho $!\n"), 0o700); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(root, "squeue"), []byte("#!/usr/bin/env bash\nset -eu\nid=${!#}\nkill -0 \"$id\" 2>/dev/null && echo \"$id RUNNING\" || true\n"), 0o700); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "squeue"), []byte("#!/usr/bin/env bash\nset -eu\nid=\nfor arg in \"$@\"; do [[ $arg == --jobs=* ]] && id=${arg#--jobs=}; done\n[[ -n $id ]] || id=$(cat .scheduler_id 2>/dev/null || true)\nif [[ -n $id ]] && kill -0 \"$id\" 2>/dev/null; then printf '%s|%s\\n' \"$id\" \"$(cat .fixture_scheduler_tag)\"; fi\n"), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(root, "scancel"), []byte("#!/usr/bin/env bash\nkill -TERM \"$1\" 2>/dev/null || true\n"), 0o700); err != nil {
@@ -135,6 +131,13 @@ func TestAgentComputeRuntimeListsExecutesAndCompletesOneDurableSSHJob(t *testing
 		RuntimeAssetsDir: filepath.Join(repositoryRootForServerTest(t), "assets", "optional"),
 	})
 	identity := &agentKernelContext{access: access, workspaceDir: root}
+	supervisorCtx, stopSupervisor := context.WithCancel(t.Context())
+	supervisorDone := make(chan struct{})
+	go func() {
+		defer close(supervisorDone)
+		_ = server.runComputeProviderJobSupervisor(supervisorCtx, 50*time.Millisecond)
+	}()
+	t.Cleanup(func() { stopSupervisor(); <-supervisorDone })
 
 	listed, err := server.executeAgentComputeTool(context.Background(), identity, agentruntime.ToolCall{ID: "list-compute"}, listComputeToolName, map[string]any{})
 	listedProviders := anySliceValue(mapValue(listed)["providers"])
@@ -203,7 +206,7 @@ func TestAgentComputeRuntimeListsExecutesAndCompletesOneDurableSSHJob(t *testing
 		"staging_dir":    recoveryStage, "archive_sha256": recoveryArchive.SHA256, "archive_bytes": recoveryArchive.Bytes,
 		"outputs": []any{"out/recovered.txt"}, "timeout_seconds": 30,
 	}
-	recoveryJob, err := store.CreateComputeJob("owner-compute", workspace.ComputeJob{
+	_, err = store.CreateComputeJob("owner-compute", workspace.ComputeJob{
 		JobID: recoveryJobID, ProjectID: "project-compute", Provider: "ssh:fixture",
 		Environment: "remote", TierType: "remote", FrameID: &recoveryFrame, RootFrameID: &recoveryRoot,
 		OriginToolUseID: &recoveryOrigin, Intent: "Recover SSH staging", HardwareDetails: recoveryHardware,
@@ -212,17 +215,16 @@ func TestAgentComputeRuntimeListsExecutesAndCompletesOneDurableSSHJob(t *testing
 	if err != nil {
 		t.Fatal(err)
 	}
-	recoveryOwned := workspace.OwnedComputeJob{OwnerUserID: "owner-compute", Job: recoveryJob}
+	server.notifyComputeProviderJobSupervisor()
 	recoveryDeadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(recoveryDeadline) {
-		if server.reconcileAgentSSHJob(context.Background(), recoveryOwned) {
-			break
-		}
 		current, found, getErr := store.GetComputeJob("owner-compute", recoveryJobID)
 		if getErr != nil || !found {
 			t.Fatalf("SSH recovery state found=%t err=%v", found, getErr)
 		}
-		recoveryOwned.Job = current
+		if isTerminalAgentComputeJobState(current.State) {
+			break
+		}
 		time.Sleep(50 * time.Millisecond)
 	}
 	recovered, found, err := store.GetComputeJob("owner-compute", recoveryJobID)
@@ -253,9 +255,9 @@ func TestAgentComputeRuntimeListsExecutesAndCompletesOneDurableSSHJob(t *testing
 	}
 	deadline := time.Now().Add(time.Second)
 	for time.Now().Before(deadline) {
-		server.computeRunsMu.Lock()
-		_, running := server.computeRuns[jobID]
-		server.computeRunsMu.Unlock()
+		server.computeProviderJobsMu.Lock()
+		running := server.computeProviderJobs["owner-compute\x00"+jobID]
+		server.computeProviderJobsMu.Unlock()
 		if !running {
 			return
 		}

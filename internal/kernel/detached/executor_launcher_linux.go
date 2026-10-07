@@ -74,15 +74,20 @@ func (launcher *SystemdUserExecutorLauncher) Observe(ctx context.Context, backen
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	output, err := exec.CommandContext(ctx, launcher.systemctl, "--user", "show", "--property=LoadState,ActiveState,SubState", executorUnitName(backendID, generation)).Output()
-	if err != nil {
-		return ExecutorLaunchUnknown, fmt.Errorf("observe detached executor service: %w", err)
-	}
 	values := make(map[string]string)
 	for _, line := range strings.Split(string(output), "\n") {
 		key, value, ok := strings.Cut(line, "=")
 		if ok {
 			values[key] = value
 		}
+	}
+	// systemctl can return a nonzero exit code while explicitly reporting a
+	// missing unit. That is affirmative absence, unlike a DBus/control error.
+	if values["LoadState"] == "not-found" && values["ActiveState"] == "inactive" {
+		return ExecutorLaunchExited, nil
+	}
+	if err != nil {
+		return ExecutorLaunchUnknown, fmt.Errorf("observe detached executor service: %w", err)
 	}
 	if values["LoadState"] == "not-found" || values["ActiveState"] == "inactive" || values["ActiveState"] == "failed" {
 		return ExecutorLaunchExited, nil
@@ -142,7 +147,10 @@ func executorMemoryBudget(path string) (int64, error) {
 		maxBytes = byAvailable
 	}
 	if maxBytes < executorMemoryFloorBytes {
-		maxBytes = executorMemoryFloorBytes
+		// A floor is a minimum admission requirement, not permission to invent
+		// capacity. Raising this value consumed the control-plane reserve when
+		// other workloads had already exhausted the host.
+		return 0, &ExecutorResourceUnavailableError{AvailableBytes: available, ReserveBytes: reserve, RequiredBytes: executorMemoryFloorBytes}
 	}
 	if maxBytes >= total {
 		return 0, errors.New("machine memory cannot preserve the control-plane reserve")

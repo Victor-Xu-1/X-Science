@@ -154,6 +154,49 @@ Unrelated workers are not members of the target process tree or process group.
 Only the contiguous sandbox-launcher ancestry receives supervisor treatment;
 an ordinary child does not gain signal protection by using the same name.
 
+## Durable job and control-plane boundaries
+
+The model-facing `submit_job` deadline is optional integral seconds. Zero or
+omission does not introduce a product-wide job lifetime; a selected provider's
+real instance lifetime and explicitly configured operator limits remain binding.
+An external instance limit is not proof that arbitrary application memory can be
+checkpointed or that a subsequent instance can resume its computation.
+
+Submission and periodic recovery share one owned job actor. The remote SSH
+launcher additionally serializes each workdir with `flock`, records its launch
+intention before the side effect, and captures PID, boot ID and start tick.
+Slurm submission uses a stable user-scoped name/comment, so a lost `sbatch`
+response is reconciled instead of blindly submitted again. A process without
+its original incarnation or a scheduler response without a confirmed identity
+is never presented as a newly successful execution.
+
+Transient control failures retain the last observed execution state and the
+original external identity. Durable backoff bounds one observation burst, not
+the logical task lifetime. The workbench displays control unreachability and an
+unknown outcome until reconnection; definitive remote absence or owner mismatch
+remains a terminal authority failure. A valid terminal receipt must explicitly
+contain a readiness flag, exit code and elapsed time, rather than treating
+missing numeric fields as a successful zero.
+
+SSH direct file transfers and managed archives use one native `rsync` path over
+the selected authenticated SSH connection. Both peers require `rsync`; there is
+no unverified SCP fallback. Full-file checksums and a stable partial directory
+support resumed transfers, while I/O-idle detection and caller cancellation do
+not impose a total transfer duration. Completed destinations are published by
+the transfer protocol; failed downloads do not delete an existing destination.
+Managed harvest staging survives reconstruction until terminal settlement.
+Archive path/type/integrity and extraction protections still apply.
+
+The supervisor drains keyset pages instead of treating a page size as a maximum
+active inventory. Control workers have bounded concurrency, and queued snapshots
+are re-read before acting so a late observation cannot revive a settled job.
+
+Long-running environment operations renew their durable outbox ownership using
+the actual committed lease deadline. Transient SQLite contention is retried
+within that remaining ownership window. Real expiry, revoked ownership,
+cancellation and permanent storage errors still stop the execution unit; no
+expired claim is extended and no error callback runs inside its renewal window.
+
 ## Environment invariants
 
 - Existing-environment inventory and a live machine-resource snapshot precede

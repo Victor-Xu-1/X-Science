@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strconv"
 	"strings"
 	"testing"
@@ -649,6 +650,8 @@ func TestCompatEventReplayIsBoundedAndAdvancesAcrossDeliveryNone(t *testing.T) {
 }
 
 func TestCompatWebSocketServicesControlsBetweenDurableCatchUpPages(t *testing.T) {
+	previous := runtime.GOMAXPROCS(1)
+	defer runtime.GOMAXPROCS(previous)
 	store, err := workspace.Open(filepath.Join(t.TempDir(), "workspace.db"))
 	if err != nil {
 		t.Fatal(err)

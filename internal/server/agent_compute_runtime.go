@@ -5,10 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -178,7 +176,7 @@ func agentComputeToolSchemas() []agentruntime.ToolSchema {
 						"max_file_mb":  map[string]any{"type": "integer", "minimum": 1, "maximum": 20480},
 						"max_total_mb": map[string]any{"type": "integer", "minimum": 1, "maximum": 20480},
 					}},
-					"timeout_seconds": map[string]any{"type": "number", "minimum": 1, "maximum": 86400},
+					"timeout_seconds": map[string]any{"type": "integer", "minimum": 0, "description": "Optional execution deadline in seconds. Zero or omission imposes no product deadline; configured provider and physical execution limits still apply."},
 					"scheduler":       map[string]any{"type": "string", "enum": []string{"slurm", "none"}},
 					"tier":            map[string]any{"type": "object"}, "human_description": human,
 					"env": map[string]any{"type": "object"},
@@ -310,52 +308,38 @@ func (s *Server) executeAgentSCP(ctx context.Context, identity *agentKernelConte
 	}
 	absoluteLocal := filepath.Join(workspaceRoot, localPath)
 	if direction == "up" {
-		info, err := os.Stat(absoluteLocal)
+		resolved, err := filepath.EvalSymlinks(absoluteLocal)
+		if err != nil || !hostPathWithin(workspaceRoot, resolved) {
+			return nil, errors.New("SSH transfer source escapes the task workspace")
+		}
+		absoluteLocal = resolved
+		info, err := os.Lstat(absoluteLocal)
 		if err != nil || !info.Mode().IsRegular() {
 			return nil, errors.New("scp upload source must be an existing regular workspace file")
-		}
-		if info.Size() > 256<<20 {
-			return nil, errors.New("scp transfer exceeds the 256 MiB limit")
 		}
 	} else if direction != "down" {
 		return nil, errors.New("scp direction must be up or down")
 	}
-	alias := strings.TrimPrefix(provider.Name, "ssh:")
-	if alias == "" || strings.HasPrefix(alias, "-") {
-		return nil, errors.New("scp SSH provider alias is invalid")
-	}
-	arguments := []string{"-q", "-o", "BatchMode=yes", "-o", "ConnectTimeout=15"}
-	if user := strings.TrimSpace(stringValue(provider.SSHOverrides["user"])); user != "" {
-		arguments = append(arguments, "-o", "User="+user)
-	}
-	if port := int(numberValue(provider.SSHOverrides["port"])); port > 0 {
-		arguments = append(arguments, "-P", strconv.Itoa(port))
-	}
-	if identityFile := strings.TrimSpace(stringValue(provider.SSHOverrides["identityFile"])); identityFile != "" {
-		arguments = append(arguments, "-i", identityFile)
-	}
-	remote := alias + ":" + remotePath
-	if direction == "up" {
-		arguments = append(arguments, "--", absoluteLocal, remote)
-	} else {
-		arguments = append(arguments, "--", remote, absoluteLocal)
-	}
-	runCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
-	defer cancel()
-	command := exec.CommandContext(runCtx, "scp", arguments...)
-	stderr := &boundedComputeBuffer{limit: 64 << 10}
-	command.Stderr = stderr
-	if err := command.Run(); err != nil {
-		if errors.Is(runCtx.Err(), context.DeadlineExceeded) {
-			return nil, errors.New("scp transfer timed out")
+	if direction == "down" {
+		root, err := os.OpenRoot(workspaceRoot)
+		if err != nil {
+			return nil, err
 		}
-		return nil, fmt.Errorf("scp transfer failed: %s", strings.TrimSpace(stderr.String()))
-	}
-	info, err := os.Stat(absoluteLocal)
-	if err != nil || !info.Mode().IsRegular() || info.Size() > 256<<20 {
-		if direction == "down" {
-			_ = os.Remove(absoluteLocal)
+		defer root.Close()
+		if err := root.MkdirAll(filepath.Dir(localPath), 0o700); err != nil {
+			return nil, err
 		}
+		parent, err := canonicalHostDirectory(filepath.Dir(absoluteLocal))
+		if err != nil || !hostPathWithin(workspaceRoot, parent) {
+			return nil, errors.New("SSH transfer destination escapes the task workspace")
+		}
+		absoluteLocal = filepath.Join(parent, filepath.Base(absoluteLocal))
+	}
+	if err := runAgentSSHCopy(ctx, provider, absoluteLocal, remotePath, direction == "up"); err != nil {
+		return nil, err
+	}
+	info, err := os.Lstat(absoluteLocal)
+	if err != nil || !info.Mode().IsRegular() {
 		return nil, errors.New("scp transferred file failed post-transfer validation")
 	}
 	return map[string]any{"direction": direction, "local_path": filepath.ToSlash(localPath), "remote_path": remotePath, "bytes": info.Size()}, nil
@@ -675,13 +659,6 @@ func (s *Server) cancelAgentComputeJob(ctx context.Context, access workspace.Ker
 		return map[string]any{"cancelled": true, "job_id": jobID, "status": updated.State}, nil
 	}
 	if job.ProviderFamily == "ssh" && boolValue(mapValue(job.HardwareDetails)["managed_ssh"], false) {
-		s.computeRunsMu.Lock()
-		cancel := s.computeRuns[jobID]
-		s.computeRunsMu.Unlock()
-		if cancel != nil {
-			cancel()
-			return map[string]any{"cancelled": true, "job_id": jobID}, nil
-		}
 		s.cancelManagedAgentSSHJob(ctx, workspace.OwnedComputeJob{OwnerUserID: access.UserID, Job: job})
 		updated, found, err := s.workspaceStore.GetComputeJob(access.UserID, jobID)
 		if err != nil || !found {
@@ -689,14 +666,7 @@ func (s *Server) cancelAgentComputeJob(ctx context.Context, access workspace.Ker
 		}
 		return map[string]any{"cancelled": true, "job_id": jobID, "status": updated.State}, nil
 	}
-	s.computeRunsMu.Lock()
-	cancel := s.computeRuns[jobID]
-	s.computeRunsMu.Unlock()
-	if cancel == nil {
-		return map[string]any{"cancelled": false, "job_id": jobID, "status": job.State}, nil
-	}
-	cancel()
-	return map[string]any{"cancelled": true, "job_id": jobID}, nil
+	return map[string]any{"cancelled": false, "job_id": jobID, "status": job.State}, nil
 }
 
 func (s *Server) runningAgentComputeJobs(access workspace.KernelFrameAccess) (map[string]any, error) {

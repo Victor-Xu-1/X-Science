@@ -2,6 +2,7 @@ package runtimecontrol
 
 import (
 	"errors"
+	"math"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -9,7 +10,7 @@ import (
 
 func TestDecodeMemoryReservationsDoNotOversubscribe(t *testing.T) {
 	var reservations memoryReservations
-	available := func() uint64 { return 100 }
+	available := func() uint64 { return 50 }
 	release, err := reservations.reserve(40, available)
 	if err != nil {
 		t.Fatal(err)
@@ -42,7 +43,7 @@ func TestDecodeMemoryConcurrentReservations(t *testing.T) {
 	for range 20 {
 		go func() {
 			defer finished.Done()
-			release, err := reservations.reserve(25, func() uint64 { return 100 })
+			release, err := reservations.reserve(25, func() uint64 { return 50 })
 			if err == nil {
 				accepted.Add(1)
 			}
@@ -58,5 +59,28 @@ func TestDecodeMemoryConcurrentReservations(t *testing.T) {
 	finished.Wait()
 	if accepted.Load() != 2 || reservations.reserved != 0 {
 		t.Fatalf("accepted=%d reserved=%d", accepted.Load(), reservations.reserved)
+	}
+}
+
+func TestDecodeAdmissionSeparatesPhysicalReserveFromRuntimeBudget(t *testing.T) {
+	const mib = uint64(1 << 20)
+	for _, test := range []struct {
+		name     string
+		physical uint64
+		limit    int64
+		used     uint64
+		want     uint64
+	}{
+		{"runtime_headroom_not_reserved_twice", 2 * 1024 * mib, int64(512 * mib), 64 * mib, 448 * mib},
+		{"physical_reserve_retained", 128 * mib, int64(512 * mib), 64 * mib, 64 * mib},
+		{"exhausted_runtime_refused", 2 * 1024 * mib, int64(64 * mib), 64 * mib, 0},
+		{"unknown_physical_capacity_refused", 0, math.MaxInt64, 0, 0},
+		{"unlimited_runtime_uses_physical_budget", 128 * mib, math.MaxInt64, 0, 64 * mib},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if got := decodeAdmissionBudget(test.physical, test.limit, test.used); got != test.want {
+				t.Fatalf("budget=%d want=%d", got, test.want)
+			}
+		})
 	}
 }

@@ -5,10 +5,9 @@ rm -rf out stdout.log stderr.log .phase .deadline_fired .deadline_termed .job_ti
 mkdir out
 
 # Deadline plumbing (env from _op_submit's launch line; defaults keep an
-# old host's submit behaving like today — no watchdog without a deadline,
-# and the no-env job-guard fallback is the 72h ceiling so the OLD host's
-# outer timeout(1) stays the SOLE deadline in the old-host+new-wrapper
-# arm (a 4h fallback here silently failed any legal >4h job).
+# old host's submit compatible: no watchdog without a physical deadline,
+# and no implicit per-job deadline. An old host's explicit outer timeout(1)
+# remains its authority; the wrapper must not invent another task ceiling.
 # OPW_JOB_TIMEOUT is the per-job runaway guard. The container wall is
 # anchored on the SANDBOX clock from the host-sent RELATIVE remaining
 # seconds — comparing a host-clock epoch against ${EPOCHSECONDS} here
@@ -22,7 +21,7 @@ mkdir out
 # staging) nor by reassigning the wrapper's own variables from inside the
 # sourced file (a bare `DEADLINE=0` line would otherwise disarm the
 # watchdog). readonly makes any such reassignment a no-op error.
-OPW_JOB_TIMEOUT=${OPERON_JOB_TIMEOUT_S:-259200}
+OPW_JOB_TIMEOUT=${OPERON_JOB_TIMEOUT_S:-0}
 OPW_MARGIN=${OPERON_HARVEST_MARGIN_S:-600}
 OPW_GRACE=${OPERON_TERM_GRACE_S:-60}
 OPW_REMAINING=${OPERON_SANDBOX_REMAINING_S:-0}
@@ -209,7 +208,7 @@ if [ -f .deadline_fired ]; then
     fi
     sleep "$OPW_GRACE"
   fi
-elif { [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; } \
+elif [ "$OPW_JOB_TIMEOUT" -gt 0 ] && { [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; } \
   && [ "$job_wall" -ge $(( OPW_JOB_TIMEOUT - 1 )) ]; then
   if kill -0 -- -"$wpid" 2>/dev/null; then
     kill -TERM -- -"$wpid" 2>/dev/null
@@ -278,7 +277,7 @@ fi
 # anything written after .phase reads as newer and is ignored by the
 # probe. The inputs are wrapper-held facts (rc, measured wall, deadline
 # window), so deriving late changes nothing on the honest path.
-if { [ "$rc" -eq 137 ] || [ "$rc" -eq 124 ]; } \
+if [ "$OPW_JOB_TIMEOUT" -gt 0 ] && { [ "$rc" -eq 137 ] || [ "$rc" -eq 124 ]; } \
   && [ "$job_wall" -ge $(( OPW_JOB_TIMEOUT - 1 )) ]; then
   : > .job_timeout_fired
 else

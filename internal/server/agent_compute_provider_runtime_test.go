@@ -574,17 +574,14 @@ s.close()
 	}
 	ownedProbe := workspace.OwnedComputeJob{OwnerUserID: "owner-provider", Job: probeJob}
 	probeErr := &kernelruntime.ProviderOperationError{Kind: "transient", Message: "temporary provider error"}
-	for attempt := 1; attempt <= computeProviderJobFailureLimit; attempt++ {
+	for attempt := 1; attempt <= 5; attempt++ {
 		server.handleComputeProviderProbeFailure(ownedProbe, probeErr)
 		current, found, getErr := store.GetComputeJob("owner-provider", probeJob.JobID)
 		if getErr != nil || !found {
 			t.Fatalf("probe job attempt=%d found=%t err=%v", attempt, found, getErr)
 		}
-		if attempt < computeProviderJobFailureLimit && current.State != workspace.ComputeJobRunning {
-			t.Fatalf("probe job stopped before budget at attempt=%d state=%s", attempt, current.State)
-		}
-		if attempt == computeProviderJobFailureLimit && current.State != workspace.ComputeJobOrphaned {
-			t.Fatalf("probe job did not stop at bounded budget: state=%s", current.State)
+		if current.State != workspace.ComputeJobRunning || current.EndedAtISO != nil || current.ErrorKind == nil || *current.ErrorKind != "control_unreachable" {
+			t.Fatalf("transient control failure changed execution outcome at attempt=%d job=%#v", attempt, current)
 		}
 	}
 	createRecoveryJob := func(jobID, submissionID string) (workspace.OwnedComputeJob, map[string]any, string) {

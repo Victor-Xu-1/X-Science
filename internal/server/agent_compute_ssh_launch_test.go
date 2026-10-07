@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -22,7 +23,10 @@ func TestAgentSSHProbeObservesCompletionAtProcessExit(t *testing.T) {
 	if err := os.MkdirAll(remote, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(remote, ".wrapper_pid"), []byte("12345"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(remote, ".wrapper_pid"), []byte(strconv.Itoa(os.Getpid())), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(remote, ".wrapper_identity"), []byte(sshTestProcessIdentity(t, os.Getpid())), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	// Publish the real terminal file precisely between the probe's first file
@@ -36,6 +40,128 @@ func TestAgentSSHProbeObservesCompletionAtProcessExit(t *testing.T) {
 	status, err := pollAgentSSHJob(t.Context(), workspace.ComputeProvider{Name: "ssh:fixture", Family: "ssh"}, remote)
 	if err != nil || status.Phase != "done" || status.Exit != 0 || status.Wall != 2 {
 		t.Fatalf("completion at process exit was lost: status=%#v err=%v", status, err)
+	}
+}
+
+func sshTestProcessIdentity(t *testing.T, pid int) string {
+	t.Helper()
+	stat, err := os.ReadFile("/proc/" + strconv.Itoa(pid) + "/stat")
+	if err != nil {
+		t.Fatal(err)
+	}
+	boot, err := os.ReadFile("/proc/sys/kernel/random/boot_id")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fields := strings.Fields(string(stat)[strings.LastIndex(string(stat), ") ")+2:])
+	return strconv.Itoa(pid) + ":" + strings.TrimSpace(string(boot)) + ":" + fields[19] + "\n"
+}
+
+func TestAgentSSHProbeRejectsReusedPIDIncarnation(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("Linux process identity contract")
+	}
+	root := t.TempDir()
+	remote := filepath.Join(root, ".synon-biomed", "jobs", "job-incarnation-fence")
+	if err := os.MkdirAll(remote, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	identity := strings.TrimSpace(sshTestProcessIdentity(t, os.Getpid()))
+	identity = identity[:strings.LastIndex(identity, ":")+1] + "0\n"
+	if err := os.WriteFile(filepath.Join(remote, ".wrapper_identity"), []byte(identity), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(remote, ".wrapper_pid"), []byte(strconv.Itoa(os.Getpid())), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "ssh"), []byte("#!/usr/bin/env bash\nexec bash -c \"${!#}\"\n"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", root+string(os.PathListSeparator)+os.Getenv("PATH"))
+	_, err := pollAgentSSHJob(t.Context(), workspace.ComputeProvider{Name: "ssh:fixture", Family: "ssh"}, remote)
+	if err == nil || providerOperationFailureKind(err) != "not_found" {
+		t.Fatalf("reused live PID became the original job: %v", err)
+	}
+}
+
+func TestAgentSSHSlurmControlFailureDoesNotProveProcessLossAcrossNodes(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("Linux remote peer fixture")
+	}
+	root := t.TempDir()
+	remote := filepath.Join(root, ".synon-biomed", "jobs", "job-remote-node")
+	if err := os.MkdirAll(remote, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(remote, ".scheduler_id"), []byte("123"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(remote, ".wrapper_identity"), []byte("123:another-node-boot:987\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for name, script := range map[string]string{"ssh": "#!/usr/bin/env bash\nexec bash -c \"${!#}\"\n", "squeue": "#!/usr/bin/env bash\nexit 1\n"} {
+		if err := os.WriteFile(filepath.Join(root, name), []byte(script), 0o700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	t.Setenv("PATH", root+string(os.PathListSeparator)+os.Getenv("PATH"))
+	provider := workspace.ComputeProvider{Name: "ssh:fixture", Family: "ssh"}
+	_, err := pollAgentSSHJob(t.Context(), provider, remote)
+	if err == nil || providerOperationFailureKind(err) == "not_found" {
+		t.Fatalf("scheduler connection failure became definitive loss: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "squeue"), []byte("#!/usr/bin/env bash\nprintf '123|job-remote-node\\n'\n"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	status, err := pollAgentSSHJob(t.Context(), provider, remote)
+	if err != nil || status.Phase != "running" {
+		t.Fatalf("owned compute-node job was lost by login-node PID inspection: %#v %v", status, err)
+	}
+}
+
+func TestAgentSlurmLaunchReconcilesLostAcceptedResponseWithoutResubmission(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("Linux shell protocol")
+	}
+	root := t.TempDir()
+	remote := filepath.Join(root, ".synon-biomed", "jobs", "job-uncertain-slurm")
+	if err := os.MkdirAll(remote, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(remote, "in.tar.gz"), tarGzipFixture(t, map[string]string{"_operon_wrapper.sh": "true\n"}), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	// sbatch accepts the request, then loses the response before the local
+	// scheduler-id receipt. squeue returns its same stable user-scoped tag.
+	scripts := map[string]string{
+		"ssh":    "#!/usr/bin/env bash\nexec bash -c \"${!#}\"\n",
+		"sbatch": "#!/usr/bin/env bash\nprintf 'submitted\\n' >> submits; printf '987|job-uncertain-slurm\\n' > accepted; exit 75\n",
+		"squeue": "#!/usr/bin/env bash\ncat accepted\n",
+	}
+	for name, script := range scripts {
+		if err := os.WriteFile(filepath.Join(root, name), []byte(script), 0o700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	t.Setenv("PATH", root+string(os.PathListSeparator)+os.Getenv("PATH"))
+	s := &Server{}
+	provider := workspace.ComputeProvider{Name: "ssh:fixture", Family: "ssh"}
+	if err := s.launchAgentSSHJob(t.Context(), provider, remote, 0, "slurm", nil, nil); err == nil {
+		t.Fatal("lost acceptance response was fabricated as known")
+	}
+	if err := s.launchAgentSSHJob(t.Context(), provider, remote, 0, "slurm", nil, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.launchAgentSSHJob(t.Context(), provider, remote, 0, "slurm", nil, nil); err != nil {
+		t.Fatal(err)
+	}
+	submits, err := os.ReadFile(filepath.Join(remote, "submits"))
+	if err != nil || string(submits) != "submitted\n" {
+		t.Fatalf("duplicate side effect: %q %v", submits, err)
+	}
+	receipt, err := os.ReadFile(filepath.Join(remote, ".scheduler_id"))
+	if err != nil || strings.TrimSpace(string(receipt)) != "987" {
+		t.Fatalf("accepted identity not recovered: %q %v", receipt, err)
 	}
 }
 

@@ -3,6 +3,8 @@
 package detached
 
 import (
+	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -70,6 +72,38 @@ func TestExecutorMemoryLimitsPreserveControlPlane(t *testing.T) {
 	}
 	if max >= 8388608*1024 {
 		t.Fatalf("unsafe memory budget=%d", max)
+	}
+}
+
+func TestExecutorMemoryFloorCannotInventUnavailableCapacity(t *testing.T) {
+	meminfo := filepath.Join(t.TempDir(), "meminfo")
+	if err := os.WriteFile(meminfo, []byte("MemTotal: 8388608 kB\nMemAvailable: 524288 kB\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	budget, err := executorMemoryBudget(meminfo)
+	var unavailable *ExecutorResourceUnavailableError
+	if budget != 0 || !errors.As(err, &unavailable) || unavailable.RequiredBytes != executorMemoryFloorBytes {
+		t.Fatalf("unsafe invented budget=%d err=%v", budget, err)
+	}
+}
+
+func TestSystemdExecutorObservationDistinguishesAbsentUnitFromControlFailure(t *testing.T) {
+	root := t.TempDir()
+	control := filepath.Join(root, "systemctl")
+	launcher := &SystemdUserExecutorLauncher{systemctl: control}
+	if err := os.WriteFile(control, []byte("#!/bin/sh\nprintf 'LoadState=not-found\\nActiveState=inactive\\nSubState=dead\\n'; exit 4\n"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	state, err := launcher.Observe(context.Background(), "kernel-backend-resource-fixture", 1)
+	if err != nil || state != ExecutorLaunchExited {
+		t.Fatalf("affirmative missing unit not recognized: %s %v", state, err)
+	}
+	if err := os.WriteFile(control, []byte("#!/bin/sh\necho 'control unavailable' >&2; exit 1\n"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	state, err = launcher.Observe(context.Background(), "kernel-backend-resource-fixture", 1)
+	if err == nil || state != ExecutorLaunchUnknown {
+		t.Fatalf("control failure invented absence: %s %v", state, err)
 	}
 }
 

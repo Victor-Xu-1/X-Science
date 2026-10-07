@@ -7,10 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -21,20 +23,23 @@ import (
 
 const (
 	computeProviderJobPollInterval = 15 * time.Second
-	computeProviderJobFailureLimit = 3
 	computeProviderHarvestMaxFiles = 10000
 	computeProviderHarvestMaxBytes = int64(20 << 30)
 	computeProviderProbeNamespace  = "compute-provider-job-probes"
 )
 
 func (s *Server) RunComputeProviderJobSupervisor(ctx context.Context) error {
+	return s.runComputeProviderJobSupervisor(ctx, computeProviderJobPollInterval)
+}
+
+func (s *Server) runComputeProviderJobSupervisor(ctx context.Context, interval time.Duration) error {
 	if s == nil || s.workspaceStore == nil {
 		if ctx != nil {
 			<-ctx.Done()
 		}
 		return nil
 	}
-	ticker := time.NewTicker(computeProviderJobPollInterval)
+	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 	s.reconcileActiveComputeProviderJobs(ctx)
 	for {
@@ -50,51 +55,102 @@ func (s *Server) RunComputeProviderJobSupervisor(ctx context.Context) error {
 }
 
 func (s *Server) reconcileActiveComputeProviderJobs(ctx context.Context) {
-	jobs := []workspace.OwnedComputeJob{}
-	if s.providerOperationRunner != nil {
-		byocJobs, err := s.workspaceStore.ListActiveBYOCJobs(1000)
+	queue := make(chan workspace.OwnedComputeJob)
+	var workers sync.WaitGroup
+	// Bound control-plane concurrency, never the number or lifetime of jobs.
+	for range 4 {
+		workers.Go(func() {
+			for item := range queue {
+				s.reconcileOwnedComputeJob(ctx, item)
+			}
+		})
+	}
+	defer func() { close(queue); workers.Wait() }()
+	cursor := ""
+	for ctx.Err() == nil {
+		page, err := s.workspaceStore.ListSupervisedComputeJobsPage(ctx, cursor, workspace.ComputeJobPageMax)
 		if err != nil {
+			log.Printf("compute supervision inventory unavailable: %v", err)
 			return
 		}
-		jobs = append(jobs, byocJobs...)
+		for _, owned := range page.Jobs {
+			if owned.Job.ProviderFamily == "byoc" && s.providerOperationRunner == nil {
+				continue
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case queue <- owned:
+			}
+		}
+		if page.NextCursor == "" {
+			return
+		}
+		cursor = page.NextCursor
 	}
-	sshJobs, err := s.workspaceStore.ListActiveSSHJobs(1000)
-	if err != nil {
+}
+
+func (s *Server) reconcileOwnedComputeJob(ctx context.Context, item workspace.OwnedComputeJob) {
+	if !s.claimComputeJobActor(item.OwnerUserID, item.Job.JobID) {
 		return
 	}
-	jobs = append(jobs, sshJobs...)
-	for _, owned := range jobs {
-		jobKey := owned.OwnerUserID + "\x00" + owned.Job.JobID
-		s.computeProviderJobsMu.Lock()
-		if s.computeProviderJobs[jobKey] {
-			s.computeProviderJobsMu.Unlock()
-			continue
-		}
-		s.computeProviderJobs[jobKey] = true
-		s.computeProviderJobsMu.Unlock()
-		go func(item workspace.OwnedComputeJob, key string) {
-			defer func() {
-				s.computeProviderJobsMu.Lock()
-				delete(s.computeProviderJobs, key)
-				s.computeProviderJobsMu.Unlock()
-			}()
-			if item.Job.ProviderFamily == "ssh" {
-				s.reconcileAgentSSHJob(ctx, item)
-				return
-			}
-			s.reconcileComputeProviderJob(ctx, item)
-		}(owned, jobKey)
+	defer s.releaseComputeJobActor(item.OwnerUserID, item.Job.JobID)
+	// A queued inventory snapshot may predate cancellation or completion.
+	// Re-read the owned receipt before any external observation/side effect.
+	if ctx.Err() != nil {
+		return
 	}
+	current, found, err := s.workspaceStore.GetComputeJob(item.OwnerUserID, item.Job.JobID)
+	if err != nil {
+		log.Printf("compute supervision receipt unavailable job=%s", item.Job.JobID)
+		return
+	}
+	if !found || isTerminalAgentComputeJobState(current.State) {
+		return
+	}
+	item.Job = current
+	if item.Job.ProviderFamily == "ssh" {
+		s.reconcileAgentSSHJob(ctx, item)
+		return
+	}
+	s.reconcileComputeProviderJob(ctx, item)
+}
+
+func (s *Server) claimComputeJobActor(owner, jobID string) bool {
+	key := owner + "\x00" + jobID
+	s.computeProviderJobsMu.Lock()
+	defer s.computeProviderJobsMu.Unlock()
+	if s.computeProviderJobs == nil {
+		s.computeProviderJobs = map[string]bool{}
+	}
+	if s.computeProviderJobs[key] {
+		return false
+	}
+	s.computeProviderJobs[key] = true
+	return true
+}
+
+func (s *Server) releaseComputeJobActor(owner, jobID string) {
+	s.computeProviderJobsMu.Lock()
+	delete(s.computeProviderJobs, owner+"\x00"+jobID)
+	s.computeProviderJobsMu.Unlock()
 }
 
 func (s *Server) reconcileComputeProviderJob(ctx context.Context, owned workspace.OwnedComputeJob) {
 	job := owned.Job
+	if ctx.Err() != nil || !s.computeProviderProbeDue(job.JobID) {
+		return
+	}
 	if job.FrameID == nil || job.RootFrameID == nil {
 		s.failComputeProviderJob(owned, workspace.ComputeJobOrphaned, "authority_missing", nil)
 		return
 	}
 	access, found, err := s.workspaceStore.GetKernelFrameAccessContext(ctx, *job.FrameID)
-	if err != nil || !found || access.UserID != owned.OwnerUserID || access.Frame.RootFrameID != *job.RootFrameID {
+	if err != nil {
+		s.handleComputeProviderProbeFailure(owned, err)
+		return
+	}
+	if !found || access.UserID != owned.OwnerUserID || access.Frame.RootFrameID != *job.RootFrameID {
 		s.failComputeProviderJob(owned, workspace.ComputeJobOrphaned, "authority_changed", nil)
 		return
 	}
@@ -122,19 +178,22 @@ func (s *Server) reconcileComputeProviderJob(ctx context.Context, owned workspac
 		s.failComputeProviderJob(owned, workspace.ComputeJobOrphaned, "remote_identity_missing", nil)
 		return
 	}
-	probe, err := s.providerOperationRunner.RunProviderOperation(ctx, kernelruntime.ProviderOperationInput{
+	probeCtx, cancelProbe := context.WithTimeout(ctx, 30*time.Second)
+	probe, err := s.providerOperationRunner.RunProviderOperation(probeCtx, kernelruntime.ProviderOperationInput{
 		Runtime: authority.Definition, Operation: "wait",
 		Request: map[string]any{
 			"sandbox_id": *job.ExternalID, "install_id": installID, "poll_seconds": 2, "probe_only": true,
 		},
 	})
+	cancelProbe()
 	if err != nil {
-		if s.handleComputeProviderProbeFailure(owned, err) {
-			s.cleanupFailedComputeProviderSandbox(owned, authority.Definition)
-		}
+		s.handleComputeProviderProbeFailure(owned, err)
 		return
 	}
-	s.resetComputeProviderProbeFailures(job.JobID)
+	if err := validateComputeProviderProbeReceipt(probe); err != nil {
+		s.handleComputeProviderProbeFailure(owned, err)
+		return
+	}
 	if stdout := strings.TrimSpace(stringValue(probe["stdout_tail"])); stdout != "" {
 		_ = s.workspaceStore.AppendComputeJobLog(owned.OwnerUserID, job.JobID, "stdout", stdout+"\n")
 	}
@@ -142,6 +201,9 @@ func (s *Server) reconcileComputeProviderJob(ctx context.Context, owned workspac
 		_ = s.workspaceStore.AppendComputeJobLog(owned.OwnerUserID, job.JobID, "stderr", stderr+"\n")
 	}
 	if !boolValue(probe["ready"], false) {
+		if err := s.resetOwnedComputeProviderProbe(owned); err != nil {
+			log.Printf("compute probe recovery could not be committed job=%s", job.JobID)
+		}
 		return
 	}
 	if job.State == workspace.ComputeJobRunning {
@@ -167,9 +229,11 @@ func (s *Server) reconcileComputeProviderJob(ctx context.Context, owned workspac
 	})
 	if err != nil {
 		harvesting := workspace.OwnedComputeJob{OwnerUserID: owned.OwnerUserID, Job: job}
-		if s.handleComputeProviderProbeFailure(harvesting, err) {
-			s.cleanupFailedComputeProviderSandbox(harvesting, authority.Definition)
-		}
+		s.handleComputeProviderProbeFailure(harvesting, err)
+		return
+	}
+	if err := s.resetOwnedComputeProviderProbe(owned); err != nil {
+		log.Printf("compute harvest recovery could not be committed job=%s", job.JobID)
 		return
 	}
 	next, errorKind := classifyComputeProviderTerminal(probe)
@@ -300,7 +364,6 @@ func (s *Server) recoverAgentBYOCSubmission(
 	})
 	if err != nil {
 		if s.handleComputeProviderProbeFailure(owned, err) {
-			s.cleanupFailedComputeProviderSandbox(owned, authority.Definition)
 			s.removeAgentBYOCRecoveryStage(stage, job.JobID)
 		}
 		return job, false
@@ -310,7 +373,10 @@ func (s *Server) recoverAgentBYOCSubmission(
 		_ = s.workspaceStore.AppendComputeJobLog(owned.OwnerUserID, job.JobID, "stderr", "submission reached the provider but its running state could not be committed; recovery will retry idempotently\n")
 		return job, false
 	}
-	s.resetComputeProviderProbeFailures(job.JobID)
+	owned.Job = updated
+	if err := s.resetOwnedComputeProviderProbe(owned); err != nil {
+		log.Printf("compute submission recovery observation could not be committed job=%s", job.JobID)
+	}
 	s.removeAgentBYOCRecoveryStage(stage, job.JobID)
 	_ = s.workspaceStore.AppendComputeJobLog(owned.OwnerUserID, job.JobID, "combined", fmt.Sprintf("recovered submission %d bytes sha256=%s\n", archive.Bytes, archive.SHA256))
 	return updated, true
@@ -388,16 +454,6 @@ func (s *Server) failAgentBYOCRecovery(
 	s.removeAgentBYOCRecoveryStage(stage, owned.Job.JobID)
 }
 
-func (s *Server) cleanupFailedComputeProviderSandbox(owned workspace.OwnedComputeJob, runtimeSpec kernelruntime.ProviderRuntimeSpec) {
-	if owned.Job.ExternalID == nil {
-		return
-	}
-	sandboxID := strings.TrimSpace(*owned.Job.ExternalID)
-	if sandboxID != "" {
-		_ = s.terminateAgentBYOCSandbox(context.Background(), runtimeSpec, sandboxID)
-	}
-}
-
 func (s *Server) removeAgentBYOCRecoveryStage(stage, jobID string) {
 	if s == nil || stage == "" || !computeJobIDPattern.MatchString(jobID) {
 		return
@@ -410,18 +466,18 @@ func (s *Server) removeAgentBYOCRecoveryStage(stage, jobID string) {
 
 func (s *Server) handleComputeProviderProbeFailure(owned workspace.OwnedComputeJob, runErr error) bool {
 	kind := providerOperationFailureKind(runErr)
-	definitive := kind == "not_found" || kind == "ownership_mismatch" || kind == "unauthorized" || kind == "invalid_request"
-	failures := s.incrementComputeProviderProbeFailures(owned.Job.JobID, kind)
-	if !definitive && failures < computeProviderJobFailureLimit {
-		_ = s.workspaceStore.AppendComputeJobLog(owned.OwnerUserID, owned.Job.JobID, "stderr", fmt.Sprintf("provider probe %d/%d failed: %s\n", failures, computeProviderJobFailureLimit, kind))
+	if kind == "not_found" || kind == "ownership_mismatch" {
+		return s.failComputeProviderJob(owned, workspace.ComputeJobOrphaned, kind, runErr)
+	}
+	failures, persistErr := s.deferComputeProviderProbe(owned, kind)
+	if persistErr != nil {
+		log.Printf("compute control observation could not be committed job=%s kind=%s", owned.Job.JobID, kind)
 		return false
 	}
-	next := workspace.ComputeJobOrphaned
-	if kind == "unauthorized" || kind == "invalid_request" {
-		next = workspace.ComputeJobFailed
+	if err := s.workspaceStore.AppendComputeJobLog(owned.OwnerUserID, owned.Job.JobID, "stderr", fmt.Sprintf("provider control unavailable (%s); original job retained, next probe after %s\n", kind, computeProviderProbeDelay(failures))); err != nil {
+		log.Printf("compute control recovery log could not be committed job=%s", owned.Job.JobID)
 	}
-	s.failComputeProviderJob(owned, next, kind, runErr)
-	return true
+	return false
 }
 
 func (s *Server) failComputeProviderJob(owned workspace.OwnedComputeJob, next, kind string, runErr error) bool {
@@ -453,6 +509,9 @@ func (s *Server) transitionAgentComputeJobTerminal(
 		at = at.UTC()
 	}
 	projected := owned.Job
+	if projected.ErrorKind != nil && (*projected.ErrorKind == "control_unreachable" || *projected.ErrorKind == "control_configuration_required") {
+		projected.SystemHint = nil
+	}
 	projected.State = next
 	endedAt := at.Format(time.RFC3339Nano)
 	projected.EndedAtISO = &endedAt
@@ -475,28 +534,6 @@ func (s *Server) transitionAgentComputeJobTerminal(
 		},
 	)
 	return updated, err
-}
-
-func (s *Server) incrementComputeProviderProbeFailures(jobID, kind string) int {
-	if s.runtimeStore == nil {
-		return computeProviderJobFailureLimit
-	}
-	count := 0
-	entry, found, _ := s.runtimeStore.Get(computeProviderProbeNamespace, jobID)
-	if found {
-		count = int(numberValue(mapValue(entry.Value)["count"]))
-	}
-	count++
-	_, _ = s.runtimeStore.Set(computeProviderProbeNamespace, jobID, map[string]any{
-		"count": count, "kind": kind, "updated_at": time.Now().UTC().Format(time.RFC3339Nano),
-	})
-	return count
-}
-
-func (s *Server) resetComputeProviderProbeFailures(jobID string) {
-	if s.runtimeStore != nil {
-		_, _ = s.runtimeStore.Delete(computeProviderProbeNamespace, jobID)
-	}
 }
 
 func classifyComputeProviderTerminal(probe map[string]any) (string, string) {

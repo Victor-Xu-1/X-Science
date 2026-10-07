@@ -1816,8 +1816,15 @@
       "completed": "Completed",
       "failed": "Failed",
       "cancelled": "Cancelled",
-      "unknown": "Unknown"
+      "unknown": "Unknown",
+      "harvesting": "Collecting results",
+      "controlUnreachable": "Control unreachable",
+      "controlConfiguration": "Connection configuration error",
+      "timedOut": "Execution limit reached",
+      "orphaned": "Execution entity lost"
     },
+    "controlUnreachableHint": "Remote progress cannot currently be confirmed; the outcome is unknown. The original job and files are retained for automatic reconnection, without terminating or resubmitting the computation.",
+    "controlConfigurationHint": "Remote connection configuration or authorization is unavailable; the outcome is unknown. The original job and files are retained without automatically resubmitting the computation.",
     "addSsh": {
       "title": "Add SSH host",
       "description": "Select or enter a host alias from ~/.ssh/config. Synon Biomed uses the existing SSH key and never copies credentials.",

@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/url"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"strconv"
@@ -14,12 +14,8 @@ import (
 	"time"
 
 	"synon-go/internal/agentruntime"
+	kernelruntime "synon-go/internal/kernel"
 	workspace "synon-go/internal/persistence/workspace"
-)
-
-const (
-	agentSSHJobPollInterval = 500 * time.Millisecond
-	agentSSHTransferTimeout = 10 * time.Minute
 )
 
 type agentSSHJobStatus struct {
@@ -59,16 +55,17 @@ func (s *Server) submitAgentSSHJob(
 	jobID := "job-" + digest[:24]
 	if existing, found, getErr := s.workspaceStore.GetComputeJob(access.UserID, jobID); getErr == nil && found {
 		if existing.State == workspace.ComputeJobPending || existing.State == workspace.ComputeJobStaging || existing.State == workspace.ComputeJobRunning {
-			s.startAgentSSHJobMonitor(workspace.OwnedComputeJob{OwnerUserID: access.UserID, Job: existing})
+			s.notifyComputeProviderJobSupervisor()
 		}
 		return kernelComputeJobProjection(existing), nil
 	}
-	timeout := time.Duration(numberValue(input["timeout_seconds"])) * time.Second
-	if timeout <= 0 {
-		timeout = byocDefaultJobTimeout
+	if !s.claimComputeJobActor(access.UserID, jobID) {
+		return map[string]any{"job_id": jobID, "status": "submission_in_progress"}, nil
 	}
-	if provider.MaxTimeoutSec != nil && *provider.MaxTimeoutSec > 0 && timeout > time.Duration(*provider.MaxTimeoutSec)*time.Second {
-		return nil, errors.New("SSH job timeout exceeds the provider limit")
+	defer func() { s.releaseComputeJobActor(access.UserID, jobID); s.notifyComputeProviderJobSupervisor() }()
+	timeout, err := computeJobTimeout(input, provider.MaxTimeoutSec, 0)
+	if err != nil {
+		return nil, err
 	}
 	remoteWorkdir, err := s.agentSSHRemoteWorkdir(ctx, provider, jobID)
 	if err != nil {
@@ -134,10 +131,10 @@ func (s *Server) submitAgentSSHJob(
 		return nil, err
 	}
 	if err := s.launchAgentSSHJob(ctx, provider, remoteWorkdir, timeout, scheduler, schedulerDirectives, remoteInputs); err != nil {
-		if _, transitionErr := s.workspaceStore.TransitionComputeJob(access.UserID, jobID, workspace.ComputeJobFailed, "launch_failed", time.Now().UTC()); transitionErr == nil {
-			preserveStage = false
-		}
-		return nil, err
+		// A transport failure after launch may hide an accepted remote job.
+		// Keep the same staging identity for reconciliation, never manufacture
+		// launch_failed or a new submission from an unknown response.
+		return s.retainUnknownComputeSubmission(workspace.OwnedComputeJob{OwnerUserID: access.UserID, Job: job}, err)
 	}
 	job, err = s.workspaceStore.TransitionComputeJob(access.UserID, jobID, workspace.ComputeJobRunning, "", time.Now().UTC())
 	if err != nil {
@@ -145,8 +142,7 @@ func (s *Server) submitAgentSSHJob(
 	}
 	preserveStage = false
 	_ = s.workspaceStore.AppendComputeJobLog(access.UserID, jobID, "combined", fmt.Sprintf("submitted %d bytes sha256=%s\n", archive.Bytes, archive.SHA256))
-	owned := workspace.OwnedComputeJob{OwnerUserID: access.UserID, Job: job}
-	s.startAgentSSHJobMonitor(owned)
+	s.notifyComputeProviderJobSupervisor()
 	return map[string]any{
 		"job_id": jobID, "provider": publicComputeProviderName(provider.Name), "status": "running",
 		"remote_workdir": remoteWorkdir,
@@ -349,13 +345,14 @@ func (s *Server) launchAgentSSHJob(
 		" OPERON_SANDBOX_DEADLINE_EPOCH=0 OPERON_SANDBOX_REMAINING_S=0 " +
 		"OPERON_HARVEST_MARGIN_S=" + strconv.Itoa(int(byocHarvestMargin/time.Second)) +
 		" OPERON_TERM_GRACE_S=" + strconv.Itoa(int(byocTerminationGrace/time.Second))
-	command := "set -eu; umask 077; cd " + quoted + "; " +
+	command := "set -eu; umask 077; cd " + quoted + "; " + agentSSHProcessIdentityShell +
+		"command -v flock >/dev/null || exit 66; exec 9>.launch.lock; flock -w 10 9 || exit 75; " +
 		"if [ -s .phase ]; then exit 0; fi; " +
-		"if [ -s .wrapper_pid ] && kill -0 \"$(cat .wrapper_pid)\" 2>/dev/null; then exit 0; fi; "
+		"if synon_process_alive; then exit 0; fi; "
 	if scheduler == "slurm" {
-		command += "if [ -s .scheduler_id ] && squeue -h -j \"$(cat .scheduler_id)\" 2>/dev/null | grep -q .; then exit 0; fi; "
+		command += agentSSHSlurmRecoveryShell(path.Base(remoteWorkdir))
 	}
-	command += "rm -f .wrapper_pid .scheduler_id; env -u TAR_OPTIONS -u GZIP tar -xzf in.tar.gz; "
+	command += "if [ -e .submit_intent ]; then exit 75; fi; env -u TAR_OPTIONS -u GZIP tar -xzf in.tar.gz; "
 	for _, remoteInput := range remoteInputs {
 		source := shellSingleQuote(remoteInput.Source)
 		destination := shellSingleQuote(remoteInput.Destination)
@@ -367,133 +364,52 @@ func (s *Server) launchAgentSSHJob(
 		if len(directives) > 0 {
 			script += strings.Join(directives, "\n") + "\n"
 		}
-		script += "set -eu\ncd " + quoted + "\nexport " + environment + "\necho $$ > .wrapper_pid\nexec bash _operon_wrapper.sh\n"
+		script += "set -eu\ncd " + quoted + "\nexport " + environment + "\n" + agentSSHProcessIdentityShell + "\nsynon_publish_identity $$\nexec bash _operon_wrapper.sh\n"
 		command += "printf %s " + shellSingleQuote(script) + " > .synon-slurm.sh; chmod 700 .synon-slurm.sh; " +
-			"scheduler_id=$(sbatch --parsable .synon-slurm.sh); scheduler_id=${scheduler_id%%;*}; " +
+			"printf '%s\\n' " + shellSingleQuote(path.Base(remoteWorkdir)) + " > .submit_intent; " +
+			"scheduler_id=$(sbatch --parsable --job-name=" + shellSingleQuote(path.Base(remoteWorkdir)) + " --comment=" + shellSingleQuote(path.Base(remoteWorkdir)) + " .synon-slurm.sh 9>&-); scheduler_id=${scheduler_id%%;*}; " +
 			"case \"$scheduler_id\" in ''|*[!0-9]*) exit 65;; esac; printf %s \"$scheduler_id\" > .scheduler_id"
 	} else {
 		// Publish the forked process identity before returning to the monitor.
 		// The child may not have been scheduled yet; letting it write the PID
 		// creates a window where a live launch is mistaken for a lost job.
-		command += "nohup env " + environment +
-			" bash _operon_wrapper.sh </dev/null >/dev/null 2>&1 & " +
-			"printf '%s\\n' \"$!\" > .wrapper_pid"
+		child := "set -eu; " + agentSSHProcessIdentityShell + "synon_publish_identity $$; exec bash _operon_wrapper.sh"
+		command += "printf '%s\\n' " + shellSingleQuote(path.Base(remoteWorkdir)) + " > .submit_intent; nohup env " + environment +
+			" bash -c " + shellSingleQuote(child) + " 9>&- </dev/null >/dev/null 2>&1 & " +
+			"pid=$!; synon_publish_identity \"$pid\" || test -s .phase"
 	}
 	result, err := runKernelComputeSSHCommand(ctx, provider, kernelComputeCommandRequest{
 		Command: command, Intent: "Launch the durable remote job", Timeout: 30 * time.Second,
 	})
 	if err != nil || int(numberValue(mapValue(result)["exit_code"])) != 0 {
-		return errors.New("SSH job could not be launched")
+		if err == nil && (int(numberValue(mapValue(result)["exit_code"])) == 65 || int(numberValue(mapValue(result)["exit_code"])) == 66) {
+			return &kernelruntime.ProviderOperationError{Kind: "invalid_request", Message: "SSH launch identity or required control commands could not be verified"}
+		}
+		return &kernelruntime.ProviderOperationError{Kind: "transient", Message: "SSH submission response is unavailable; reconcile the original remote identity before any repeated side effect"}
 	}
 	return nil
-}
-
-func runAgentSSHCopy(ctx context.Context, provider workspace.ComputeProvider, localPath, remotePath string, upload bool) error {
-	alias := strings.TrimPrefix(provider.Name, "ssh:")
-	if alias == "" || strings.HasPrefix(alias, "-") || !agentComputeRemotePathPattern.MatchString(remotePath) {
-		return errors.New("SSH transfer authority is invalid")
-	}
-	arguments := []string{"-q", "-o", "BatchMode=yes", "-o", "ConnectTimeout=15"}
-	if user := strings.TrimSpace(stringValue(provider.SSHOverrides["user"])); user != "" {
-		arguments = append(arguments, "-o", "User="+user)
-	}
-	if port := int(numberValue(provider.SSHOverrides["port"])); port > 0 {
-		arguments = append(arguments, "-P", strconv.Itoa(port))
-	}
-	if identity := strings.TrimSpace(stringValue(provider.SSHOverrides["identityFile"])); identity != "" {
-		arguments = append(arguments, "-i", identity)
-	}
-	remote := alias + ":" + remotePath
-	if upload {
-		arguments = append(arguments, "--", localPath, remote)
-	} else {
-		arguments = append(arguments, "--", remote, localPath)
-	}
-	transferCtx, cancel := context.WithTimeout(ctx, agentSSHTransferTimeout)
-	defer cancel()
-	command := exec.CommandContext(transferCtx, "scp", arguments...)
-	stderr := &boundedComputeBuffer{limit: 64 << 10}
-	command.Stderr = stderr
-	if err := command.Run(); err != nil {
-		if errors.Is(transferCtx.Err(), context.DeadlineExceeded) {
-			return errors.New("SSH transfer timed out")
-		}
-		return fmt.Errorf("SSH transfer failed: %s", strings.TrimSpace(stderr.String()))
-	}
-	if !upload {
-		info, err := os.Lstat(localPath)
-		if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 || info.Size() <= 0 || info.Size() > computeProviderHarvestMaxBytes {
-			return errors.New("SSH downloaded archive failed local validation")
-		}
-		if err := os.Chmod(localPath, 0o600); err != nil {
-			return errors.New("SSH downloaded archive permissions could not be restricted")
-		}
-	}
-	return nil
-}
-
-func (s *Server) startAgentSSHJobMonitor(owned workspace.OwnedComputeJob) {
-	if s == nil || s.workspaceStore == nil || !boolValue(mapValue(owned.Job.HardwareDetails)["managed_ssh"], false) {
-		return
-	}
-	key := owned.OwnerUserID + "\x00" + owned.Job.JobID
-	s.computeProviderJobsMu.Lock()
-	if s.computeProviderJobs[key] {
-		s.computeProviderJobsMu.Unlock()
-		return
-	}
-	s.computeProviderJobs[key] = true
-	s.computeProviderJobsMu.Unlock()
-	ctx, cancel := context.WithCancel(context.Background())
-	s.computeRunsMu.Lock()
-	s.computeRuns[owned.Job.JobID] = cancel
-	s.computeRunsMu.Unlock()
-	go func() {
-		defer func() {
-			cancel()
-			s.computeRunsMu.Lock()
-			delete(s.computeRuns, owned.Job.JobID)
-			s.computeRunsMu.Unlock()
-			s.computeProviderJobsMu.Lock()
-			delete(s.computeProviderJobs, key)
-			s.computeProviderJobsMu.Unlock()
-		}()
-		ticker := time.NewTicker(agentSSHJobPollInterval)
-		defer ticker.Stop()
-		for {
-			terminal := s.reconcileAgentSSHJob(context.Background(), owned)
-			if terminal {
-				return
-			}
-			select {
-			case <-ctx.Done():
-				s.cancelManagedAgentSSHJob(context.Background(), owned)
-				return
-			case <-ticker.C:
-				job, found, err := s.workspaceStore.GetComputeJob(owned.OwnerUserID, owned.Job.JobID)
-				if err != nil || !found || isTerminalAgentComputeJobState(job.State) {
-					return
-				}
-				owned.Job = job
-			}
-		}
-	}()
 }
 
 func (s *Server) reconcileAgentSSHJob(ctx context.Context, owned workspace.OwnedComputeJob) bool {
 	job := owned.Job
+	if ctx.Err() != nil || !s.computeProviderProbeDue(job.JobID) {
+		return false
+	}
 	if !boolValue(mapValue(job.HardwareDetails)["managed_ssh"], false) {
 		return false
 	}
 	provider, found, err := s.workspaceStore.GetComputeProvider(job.Provider, owned.OwnerUserID)
-	if err != nil || !found || provider.Family != "ssh" {
+	if err != nil {
+		return s.handleComputeProviderProbeFailure(owned, err)
+	}
+	if !found || provider.Family != "ssh" {
 		s.failComputeProviderJob(owned, workspace.ComputeJobOrphaned, "authority_changed", err)
 		return true
 	}
 	hardware := mapValue(job.HardwareDetails)
 	remoteWorkdir := strings.TrimSpace(stringValue(hardware["remote_workdir"]))
 	timeout := time.Duration(numberValue(hardware["timeout_seconds"])) * time.Second
-	if !validAgentSSHWorkdir(remoteWorkdir, job.JobID) || timeout <= 0 {
+	if !validAgentSSHWorkdir(remoteWorkdir, job.JobID) || timeout < 0 {
 		s.failComputeProviderJob(owned, workspace.ComputeJobOrphaned, "recovery_state_invalid", nil)
 		return true
 	}
@@ -534,8 +450,10 @@ func (s *Server) reconcileAgentSSHJob(ctx context.Context, owned workspace.Owned
 	if err != nil {
 		return s.handleComputeProviderProbeFailure(owned, err)
 	}
-	s.resetComputeProviderProbeFailures(job.JobID)
 	if status.Phase == "running" {
+		if err := s.resetOwnedComputeProviderProbe(owned); err != nil {
+			log.Printf("SSH probe recovery observation could not be committed job=%s", job.JobID)
+		}
 		return false
 	}
 	return s.harvestAgentSSHJob(ctx, owned, provider, status)
@@ -581,11 +499,13 @@ func pollAgentSSHJob(ctx context.Context, provider workspace.ComputeProvider, re
 	// Completion may be published between the first file check and process
 	// exit. Recheck the durable terminal receipt before declaring a lost job.
 	command := "cd " + shellSingleQuote(remoteWorkdir) + " || exit 44; " +
+		agentSSHProcessIdentityShell +
+		"if [ -s .phase ]; then cat .phase; exit 0; fi; " +
+		agentSSHSlurmObservationShell(path.Base(remoteWorkdir)) +
 		"if [ -s .phase ]; then cat .phase; " +
-		"elif [ -s .wrapper_pid ] && kill -0 \"$(cat .wrapper_pid)\" 2>/dev/null; then printf running; " +
-		"elif [ -s .scheduler_id ] && squeue -h -j \"$(cat .scheduler_id)\" 2>/dev/null | grep -q .; then printf running; " +
+		"elif synon_process_alive; then printf running; " +
 		"elif [ -s .phase ]; then cat .phase; " +
-		"else printf lost; fi"
+		"elif [ -s .wrapper_identity ]; then printf lost; else printf unknown; fi"
 	result, err := runKernelComputeSSHCommand(ctx, provider, kernelComputeCommandRequest{
 		Command: command, Intent: "Inspect the durable remote job", Timeout: 30 * time.Second,
 	})
@@ -597,7 +517,10 @@ func pollAgentSSHJob(ctx context.Context, provider workspace.ComputeProvider, re
 		return agentSSHJobStatus{Phase: phase}, nil
 	}
 	if phase == "lost" || phase == "" {
-		return agentSSHJobStatus{}, errors.New("SSH job process disappeared before writing a terminal phase")
+		return agentSSHJobStatus{}, &kernelruntime.ProviderOperationError{Kind: "not_found", Message: "the original SSH process incarnation is gone without a terminal receipt"}
+	}
+	if phase == "unknown" {
+		return agentSSHJobStatus{}, &kernelruntime.ProviderOperationError{Kind: "transient", Message: "SSH submission identity remains unresolved; no repeated side effect is authorized"}
 	}
 	parts := strings.Split(phase, ":")
 	if len(parts) != 3 || (parts[0] != "done" && parts[0] != "harvest_failed") {
@@ -644,11 +567,16 @@ func (s *Server) harvestAgentSSHJobWithOutcome(
 	}
 	hardware := mapValue(job.HardwareDetails)
 	remoteWorkdir := strings.TrimSpace(stringValue(hardware["remote_workdir"]))
-	stage, err := os.MkdirTemp(s.fileRoot, "ssh-harvest-")
-	if err != nil {
-		return false
+	// A stable owned staging path keeps verified partial transfer data across
+	// probes and controller reconstruction. Remove it only after settlement.
+	stage := filepath.Join(s.fileRoot, "provider-harvests", job.JobID)
+	if err := os.MkdirAll(stage, 0o700); err != nil {
+		return s.handleComputeProviderProbeFailure(owned, err)
 	}
-	defer os.RemoveAll(stage)
+	resolved, err := canonicalHostDirectory(stage)
+	if err != nil || resolved != filepath.Clean(stage) {
+		return s.handleComputeProviderProbeFailure(owned, errors.New("SSH harvest staging path is not owned"))
+	}
 	if err := runAgentSSHCopy(ctx, provider, filepath.Join(stage, "out.tar.gz"), path.Join(remoteWorkdir, "out.tar.gz"), false); err != nil {
 		return s.handleComputeProviderProbeFailure(owned, err)
 	}
@@ -677,7 +605,7 @@ func (s *Server) harvestAgentSSHJobWithOutcome(
 	}
 	next, kind := workspace.ComputeJobDone, ""
 	timeout := int(numberValue(hardware["timeout_seconds"]))
-	if (status.Exit == 124 || status.Exit == 137) && status.Wall >= timeout-1 {
+	if timeout > 0 && (status.Exit == 124 || status.Exit == 137) && status.Wall >= timeout-1 {
 		next, kind = workspace.ComputeJobTimedOut, "timeout"
 	} else if status.Exit != 0 {
 		next, kind = workspace.ComputeJobFailed, "nonzero_exit"
@@ -695,11 +623,16 @@ func (s *Server) harvestAgentSSHJobWithOutcome(
 		result["left_on_remote"] = left
 		result["system_hint"] = "One or more unselected or over-limit files remain in the remote workdir; retrieve or chain them before close."
 	}
+	if err := s.resetOwnedComputeProviderProbe(owned); err != nil {
+		log.Printf("SSH harvest recovery observation could not be committed job=%s", job.JobID)
+		return false
+	}
 	_ = s.workspaceStore.SetComputeJobResult(owned.OwnerUserID, job.JobID, result)
 	_, err = s.transitionAgentComputeJobTerminal(owned, next, kind, time.Now().UTC(), result)
 	if err != nil {
 		return false
 	}
+	_ = os.RemoveAll(stage)
 	if len(left) == 0 {
 		_, _ = runKernelComputeSSHCommand(context.Background(), provider, kernelComputeCommandRequest{
 			Command: "rm -rf -- " + shellSingleQuote(remoteWorkdir), Intent: "Remove the harvested remote job directory", Timeout: 30 * time.Second,
@@ -728,7 +661,7 @@ func (s *Server) cancelManagedAgentSSHJob(ctx context.Context, owned workspace.O
 	}
 	remoteWorkdir := strings.TrimSpace(stringValue(mapValue(owned.Job.HardwareDetails)["remote_workdir"]))
 	_, _ = runKernelComputeSSHCommand(ctx, provider, kernelComputeCommandRequest{
-		Command: "cd " + shellSingleQuote(remoteWorkdir) + " && if [ -s .scheduler_id ]; then scancel \"$(cat .scheduler_id)\" 2>/dev/null || true; fi; if [ -s .wrapper_pid ]; then kill -TERM \"$(cat .wrapper_pid)\" 2>/dev/null || true; fi",
+		Command: "cd " + shellSingleQuote(remoteWorkdir) + " && " + agentSSHProcessIdentityShell + " if [ -s .scheduler_id ]; then scancel \"$(cat .scheduler_id)\" 2>/dev/null || true; elif synon_process_alive; then read -r identity < .wrapper_identity; pid=${identity%%:*}; kill -TERM \"$pid\" 2>/dev/null || true; fi",
 		Intent:  "Cancel the durable remote job", Timeout: 30 * time.Second,
 	})
 	deadline := time.Now().Add(byocTerminationGrace + 15*time.Second)

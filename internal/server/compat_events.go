@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -424,9 +425,22 @@ func (s *Server) handleCompatEventWebSocket(w http.ResponseWriter, r *http.Reque
 		}
 		return response == nil || writeCompatWebSocket(ctx, connection, response)
 	}
+	servicePendingControl := func() bool {
+		// A nonblocking queue check alone cannot give the network reader CPU
+		// while this writer drains a fast replay on a single execution thread.
+		runtime.Gosched()
+		select {
+		case <-ctx.Done():
+			return false
+		case control, open := <-controls:
+			return open && handleControl(control)
+		default:
+			return true
+		}
+	}
 	drainDurablePage := func() (bool, bool) {
 		next, complete, delivered, err := s.catchUpCompatEventPage(ctx, store, userID, filter, cursor, func(event workspace.RealtimeEvent) bool {
-			return writeCompatWebSocket(ctx, connection, compatEventMessage(event))
+			return servicePendingControl() && writeCompatWebSocket(ctx, connection, compatEventMessage(event))
 		})
 		if err != nil || !delivered {
 			_ = connection.Close(websocket.StatusInternalError, "realtime catch-up failed")
@@ -450,6 +464,9 @@ func (s *Server) handleCompatEventWebSocket(w http.ResponseWriter, r *http.Reque
 		default:
 		}
 		if durablePending {
+			if !servicePendingControl() {
+				return
+			}
 			ok, complete := drainDurablePage()
 			if !ok {
 				return

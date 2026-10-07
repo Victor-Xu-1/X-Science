@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"testing"
 	"time"
@@ -132,6 +133,8 @@ func TestWebSocketMCPFullResponseBeyondOldTotalLimit(t *testing.T) {
 }
 
 func TestStdioMCPFullResponseBeyondOldTotalLimit(t *testing.T) {
+	previous := debug.SetMemoryLimit(512 << 20)
+	defer debug.SetMemoryLimit(previous)
 	t.Setenv("TMPDIR", t.TempDir())
 	session, err := startSession(context.Background(), t.TempDir(), ServerConfig{
 		Command: "python3", Args: []string{"-c", `import sys,json

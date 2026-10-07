@@ -499,8 +499,11 @@ class ByocResident:
             raise ByocError("invalid_request", "submission_id is invalid")
         quoted_submission_id = shlex.quote(submission_id)
         in_tgz = os.path.join(stage, "in.tar.gz")
-        # Defensive fallback only — the host always sends `timeout`.
-        job_timeout = int(req.get("timeout") or 14400)
+        # No supplied job deadline means no product-imposed deadline. The
+        # sandbox's real lifetime and any explicit operator budget remain.
+        job_timeout = int(req.get("timeout", 0))
+        if job_timeout < 0:
+            raise ByocError("invalid_request", "job timeout must be nonnegative")
         # Deadline plumbing for the wrapper's watchdog. All int()-coerced
         # before interpolation; 0 means "absent" and the wrapper falls back
         # to its own defaults (no watchdog without a deadline) — an old host
