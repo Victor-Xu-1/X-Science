@@ -8,7 +8,7 @@ import {
 } from './PreviewTransitionSnapshot';
 
 let activeScrollLocks = 0;
-let savedBodyOverflow = '';
+const BODY_LOCK_CLASS = 'workbench-preview-scroll-lock';
 const activeScopes = new Set<HTMLElement>();
 function isTopmostScope(root: HTMLElement | null): boolean {
   const leaves = [...activeScopes].filter(
@@ -18,14 +18,15 @@ function isTopmostScope(root: HTMLElement | null): boolean {
 }
 function lockBodyScroll(): () => void {
   if (activeScrollLocks++ === 0) {
-    savedBodyOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    // Do not overwrite a dialog's inline ownership or save its temporary lock
+    // as our original state. The CSS lease composes with Arco in either order.
+    document.body.classList.add(BODY_LOCK_CLASS);
   }
   let released = false;
   return () => {
     if (released) return;
     released = true;
-    if (--activeScrollLocks === 0) document.body.style.overflow = savedBodyOverflow;
+    if (--activeScrollLocks === 0) document.body.classList.remove(BODY_LOCK_CLASS);
   };
 }
 

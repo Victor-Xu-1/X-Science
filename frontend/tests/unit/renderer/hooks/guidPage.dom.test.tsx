@@ -519,6 +519,7 @@ describe('GuidPage', () => {
 
     fireEvent.click(screen.getByTestId('guid-action-row'));
     expect(screen.getByTestId('guid-page')).toHaveAttribute('data-composer-position', 'docked');
+    expect(screen.getByRole('heading', { level: 1, name: 'common.newTask' })).toBeInTheDocument();
 
     await act(async () => resolveSend(false));
     expect(screen.getByTestId('guid-page')).toHaveAttribute('data-composer-position', 'centered');

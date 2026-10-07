@@ -394,7 +394,7 @@
 .preview-board__fullscreen-layer {
   position: fixed;
   inset: 0;
-  z-index: var(--ui-z-toast);
+  z-index: var(--ui-z-overlay);
   min-width: 0;
   min-height: 0;
   display: flex;
@@ -1002,6 +1002,10 @@
 }
 /* Fixed fullscreen descendants must use the viewport, not a permanent
    decorative animation/containment layer. Keep viewers in their original DOM. */
+html body.workbench-preview-scroll-lock {
+  overflow: hidden !important;
+}
+
 html body :is(.preview-panel, .preview-board, .preview-board__tile):has([data-preview-fullscreen-scope]) {
   animation: none !important;
   transform: none !important;

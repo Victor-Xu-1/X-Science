@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "61dcce0510e2772bf83deae858034f1ebadccf425f3501d608f099bf9aadf4f1",
+  "adaptationFingerprintSHA256": "72835efdfd17cecb8242c9719e9b9b392a6b914df7f1b90ab8ff5b8725d4657f",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
-  "additionFingerprintSHA256": "2584106e05162cd186a87ac11083bd5e07787818dcb8a47d13f92892414f2170",
+  "additionFingerprintSHA256": "fdba01517b6299676bec7928d0630230cf2d0d6ac14e18ef2c93b3c78d9bd3fa",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 393,
     "adaptedSourceFiles": 671,
     "removedSourceFiles": 290,
-    "addedFiles": 772
+    "addedFiles": 773
   },
   "adaptations": [
     {
@@ -1270,8 +1270,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/PreviewPanel/preview.css",
       "sourceSHA256": "0b00c170d8d6dfbf1ad315b4ab403426afb2bdad857316eb9e8f4496b2904219",
-      "targetSHA256": "a782bf1b2aa7631637c1c7b1c19af28cac2e2c4a21239361fa77cbe771751759",
-      "bytes": 24268,
+      "targetSHA256": "38dd6e08ae47b678ecdc6cc20af0191b75d50d81518e6ce1e66d6f6b20643f87",
+      "bytes": 24346,
       "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -1914,8 +1914,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/guid/GuidPage.tsx",
       "sourceSHA256": "74e43625d6289cbbcfab89d2156b48aa31b91619742d0e2e383f1194f4b7abb0",
-      "targetSHA256": "0d693cfd0142a0ec004cee64c0d00b3d4ba449df26e06623207bc6cc2c6f18c0",
-      "bytes": 32957,
+      "targetSHA256": "48e48393fa6ad0c6989cb7d961e02bfcab89db04c0218d46509a0bc83d336668",
+      "bytes": 32953,
       "reason": "Migrate authenticated login, onboarding, project workbench, and artifact workflows to the Go product shell."
     },
     {
@@ -3468,8 +3468,8 @@
     {
       "path": "tests/unit/previews/PreviewPanel.dom.test.tsx",
       "sourceSHA256": "fdf5da9df9c125fd4bc5399787c42a470e36d0ecd0a7cefa4842ad18da8787a2",
-      "targetSHA256": "e491bcdc5877adf843f67745ddbcf9347f11531b6af9cb5b3f924445fcb62faf",
-      "bytes": 12322,
+      "targetSHA256": "9d292ed81012deb14ff353fdcb79da3193720cab508c8fd5aedb005865e207e8",
+      "bytes": 12570,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -3881,8 +3881,8 @@
     {
       "path": "tests/unit/renderer/hooks/guidPage.dom.test.tsx",
       "sourceSHA256": "3d3844aa79c885baecd5d8b6276c031d33b10963b38f009079dde27771036a1c",
-      "targetSHA256": "7276794a9c6b1231e7c1b5e87fbca62fd0cd6c7bcc1877aede7e8b7b499346b2",
-      "bytes": 27976,
+      "targetSHA256": "ed1865ff0f4523e0b35a18df72ae2eb04ce50cb2537fe0492cd8584e7826d4bf",
+      "bytes": 28075,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -7375,8 +7375,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/PreviewPanel/PreviewFullscreenLayer.tsx",
-      "sha256": "8af83ad1cdf10d79a5d428147f22ba2a48946202540d3d5185285963a0b071bb",
-      "bytes": 5049,
+      "sha256": "3ccb062b9d134f28cf88ac4dd34568d7e13ec34f9cb1b65a9add117dd2d079ef",
+      "bytes": 5187,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9421,8 +9421,14 @@
     },
     {
       "path": "tests/unit/previews/PreviewBoard.dom.test.tsx",
-      "sha256": "cf6612bc880c732ae0555e1daf04f2be409581e39a820be6a5768112e3074d63",
-      "bytes": 12970,
+      "sha256": "5dea9c77f2302d5841daa8bc68838f735b6b131e2cb9a590507a95e403e45a2d",
+      "bytes": 13304,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/previews/PreviewFullscreenLayer.dom.test.tsx",
+      "sha256": "1498c65a345b4091bbf6f9140f1cfec5a81d5eef2736776604bdb4c17c54e17a",
+      "bytes": 3222,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -9517,8 +9523,8 @@
     },
     {
       "path": "tests/unit/previews/previewBoardLayoutStyle.test.ts",
-      "sha256": "15eeb878999271368a4b47efb75837425981fba94cb913a72a77bfdf03dcf49c",
-      "bytes": 1005,
+      "sha256": "88dc6e0fa63f46ad79c6e8146eebbc9a121ff3dced6f3b13d8acdf5d6c308cbe",
+      "bytes": 1827,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

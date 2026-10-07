@@ -191,16 +191,18 @@ describe('PreviewBoard', () => {
     expect(screen.getByTestId('preview-board').querySelectorAll('[data-testid="preview-board-tile"]')).toHaveLength(2);
     expect(screen.getAllByTestId('preview-board-slot')).toEqual(slots);
     expect(slots[1]).toContainElement(sibling);
-    expect(document.body.style.overflow).toBe('hidden');
+    expect(document.body).toHaveClass('workbench-preview-scroll-lock');
 
     fireEvent.click(screen.getByRole('button', { name: 'Return to file board' }));
     expect(screen.queryByTestId('preview-board-fullscreen-layer')).not.toBeInTheDocument();
+    expect(document.body).not.toHaveClass('workbench-preview-scroll-lock');
     expect(screen.getByTestId('preview-board').querySelectorAll('[data-testid="preview-board-tile"]')).toHaveLength(2);
     expect(document.body.style.overflow).toBe('');
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Expand preview' })[0]);
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(screen.queryByTestId('preview-board-fullscreen-layer')).not.toBeInTheDocument();
+    expect(document.body).not.toHaveClass('workbench-preview-scroll-lock');
     expect(document.body.style.overflow).toBe('');
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Close file' })[0]);
@@ -224,16 +226,18 @@ describe('PreviewBoard', () => {
     const layer = screen.getByTestId('preview-board-fullscreen-layer');
     expect(layer).toContainElement(screen.getByTestId('preview-board'));
     expect(layer.querySelectorAll('[data-testid="preview-board-tile"]')).toHaveLength(2);
-    expect(document.body.style.overflow).toBe('hidden');
+    expect(document.body).toHaveClass('workbench-preview-scroll-lock');
 
     fireEvent.click(screen.getByRole('button', { name: 'Exit file board fullscreen' }));
     expect(screen.queryByTestId('preview-board-fullscreen-layer')).not.toBeInTheDocument();
+    expect(document.body).not.toHaveClass('workbench-preview-scroll-lock');
     expect(screen.getAllByTestId('preview-board-tile')).toHaveLength(2);
     expect(document.body.style.overflow).toBe('');
 
     fireEvent.click(screen.getByRole('button', { name: 'Open file board fullscreen' }));
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(screen.queryByTestId('preview-board-fullscreen-layer')).not.toBeInTheDocument();
+    expect(document.body).not.toHaveClass('workbench-preview-scroll-lock');
     expect(document.body.style.overflow).toBe('');
   });
 

@@ -142,7 +142,8 @@ describe('PreviewPanel', () => {
     const content = screen.getByTestId('fullscreen-preview-content');
     const parent = content.parentElement;
     expect(host).toContainElement(content);
-    expect(document.body.style.overflow).toBe('hidden');
+    expect(document.body).toHaveClass('workbench-preview-scroll-lock');
+    expect(document.body.style.overflow).toBe('');
 
     rerender(
       <PreviewFullscreenLayer active={false}>
@@ -151,6 +152,7 @@ describe('PreviewPanel', () => {
     );
     expect(host).toContainElement(screen.getByTestId('fullscreen-preview-content'));
     expect(content.parentElement).toBe(parent);
+    expect(document.body).not.toHaveClass('workbench-preview-scroll-lock');
     expect(document.body.style.overflow).toBe('');
 
     unmount();
@@ -210,10 +212,11 @@ describe('PreviewPanel', () => {
       );
     }
     const { rerender, unmount } = render(<Pair first />);
-    expect(document.body.style.overflow).toBe('hidden');
+    expect(document.body).toHaveClass('workbench-preview-scroll-lock');
     rerender(<Pair first={false} />);
-    expect(document.body.style.overflow).toBe('hidden');
+    expect(document.body).toHaveClass('workbench-preview-scroll-lock');
     unmount();
+    expect(document.body).not.toHaveClass('workbench-preview-scroll-lock');
     expect(document.body.style.overflow).toBe('');
   });
 
