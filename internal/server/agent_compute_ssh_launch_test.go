@@ -128,7 +128,7 @@ func TestAgentSlurmLaunchReconcilesLostAcceptedResponseWithoutResubmission(t *te
 	if err := os.MkdirAll(remote, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(remote, "in.tar.gz"), tarGzipFixture(t, map[string]string{"_operon_wrapper.sh": "true\n"}), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(remote, "in.tar.gz"), sshLaunchArchiveFixture(t, map[string]string{"_operon_wrapper.sh": "true\n"}), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	// sbatch accepts the request, then loses the response before the local
@@ -178,7 +178,7 @@ func TestAgentSSHLaunchPublishesIdentityBeforeChildStarts(t *testing.T) {
 	if err := os.MkdirAll(remote, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	archive := tarGzipFixture(t, map[string]string{
+	archive := sshLaunchArchiveFixture(t, map[string]string{
 		"_operon_wrapper.sh": "#!/usr/bin/env bash\nprintf 'started\\n' >> starts; printf 'done:0:0' > .phase\n",
 	})
 	if err := os.WriteFile(filepath.Join(remote, "in.tar.gz"), archive, 0o600); err != nil {
@@ -254,6 +254,45 @@ func TestAgentSSHLaunchPublishesIdentityBeforeChildStarts(t *testing.T) {
 		case <-ctx.Done():
 			t.Fatal("released wrapper did not complete")
 		case <-time.After(10 * time.Millisecond):
+		}
+	}
+}
+
+func sshLaunchArchiveFixture(t *testing.T, files map[string]string) []byte {
+	t.Helper()
+	_, source, _, _ := runtime.Caller(0)
+	helper, err := os.ReadFile(filepath.Join(filepath.Dir(source), "../../assets/optional/compute/harvest.sh.tmpl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	files["_synon_harvest.sh"] = string(helper)
+	return tarGzipFixture(t, files)
+}
+
+func TestAgentSSHLaunchRequiresNativeHarvestReadinessBeforeSideEffect(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("Linux native launch protocol")
+	}
+	root := t.TempDir()
+	remote := filepath.Join(root, ".synon-biomed", "jobs", "job-missing-control")
+	if err := os.MkdirAll(remote, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	archive := tarGzipFixture(t, map[string]string{"_operon_wrapper.sh": "printf started > starts\n"})
+	if err := os.WriteFile(filepath.Join(remote, "in.tar.gz"), archive, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "ssh"), []byte("#!/usr/bin/env bash\nexec bash -c \"${!#}\"\n"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", root+string(os.PathListSeparator)+os.Getenv("PATH"))
+	server := &Server{}
+	if err := server.launchAgentSSHJob(t.Context(), workspace.ComputeProvider{Name: "ssh:fixture", Family: "ssh"}, remote, 0, "none", nil, nil); err == nil {
+		t.Fatal("launch accepted an archive missing its required native helper")
+	}
+	for _, name := range []string{"starts", ".submit_intent", ".wrapper_pid"} {
+		if _, err := os.Stat(filepath.Join(remote, name)); !os.IsNotExist(err) {
+			t.Fatalf("readiness failure produced a launch side effect %s: %v", name, err)
 		}
 	}
 }
