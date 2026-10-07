@@ -4,6 +4,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--ui-radius-sm);
+  background: transparent;
+  cursor: pointer;
+}
+
+.trigger:hover {
+  background: var(--color-fill-2);
+}
+
 .root {
   box-sizing: border-box;
   width: min(260px, calc(100vw - 24px));
@@ -33,10 +50,15 @@
 }
 
 .header {
+  position: sticky;
+  top: 0;
+  z-index: var(--ui-z-raise);
+  background: inherit;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 16px;
+  min-height: 28px;
+  flex-shrink: 0;
   margin-bottom: 8px;
 }
 
@@ -127,19 +149,23 @@
 }
 .historyChart {
   display: flex;
-  align-items: stretch;
-  height: 44px;
+  align-items: center;
+  height: 60px;
   gap: 2px;
   margin-top: 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-padding-inline: 4px;
+  padding-inline: 4px;
   border-bottom: 1px solid var(--color-border-2);
 }
 .historyPoint {
   display: flex;
-  flex: 1 1 0;
+  flex: 0 0 28px;
   align-items: flex-end;
   justify-content: center;
-  min-width: 0;
-  max-width: 28px;
+  width: 28px;
+  height: 44px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -163,8 +189,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
   padding: 0;
   border: 0;
   border-radius: var(--ui-radius-md);
@@ -339,63 +366,8 @@
 }
 
 @media (max-width: 520px) {
-  .root {
-    width: min(260px, calc(100vw - 24px));
-    padding: 12px;
-    border-radius: var(--ui-radius-md);
-  }
-
-  .header {
-    margin-bottom: 8px;
-  }
-
-  .headerTitle {
-    font-size: var(--ui-font-meta);
-  }
-
-  .statRow {
-    min-height: 26px;
-    gap: 8px;
-    margin-bottom: 6px;
-  }
-
-  .bigPercent {
-    font-size: var(--ui-font-display);
-    line-height: var(--ui-line-height-display);
-  }
-
-  .usedText {
-    color: var(--workspace-text-secondary);
-    font-size: var(--ui-font-meta);
-    line-height: var(--ui-line-height-meta);
-  }
-
-  .bar {
-    height: 6px;
-  }
-
-  .legend {
-    margin-top: 8px;
-  }
-
-  .legendRow {
-    height: 20px;
-    font-size: var(--ui-font-body);
-    line-height: var(--ui-line-height-meta);
-  }
-
-  .legendLabel {
-    gap: 9px;
-  }
-
-  .legendDot {
-    flex-basis: 6px;
-    width: 6px;
-    height: 6px;
-  }
-
+  .usedText,
   .legendPercent {
     color: var(--workspace-text-secondary);
-    font-size: var(--ui-font-meta);
   }
 }
