@@ -20,6 +20,7 @@ import (
 // one detached executor. A Backend owns exactly one configured launcher; it
 // never races or falls back to another launch mechanism.
 type ExecutorLaunchRequest struct {
+	MemoryMaxBytes    int64
 	BackendID         string
 	BackendGeneration int64
 	Executable        string
@@ -113,49 +114,15 @@ const (
 // consume nearly all of a constrained WSL VM. Resolve an absolute per-executor
 // budget from both total and currently available memory instead.
 func executorMemoryBudget(path string) (int64, error) {
-	if strings.TrimSpace(path) == "" {
-		path = "/proc/meminfo"
-	}
-	raw, err := os.ReadFile(path)
+	total, available, reserve, err := readExecutorMemory(path)
 	if err != nil {
-		return 0, fmt.Errorf("read machine memory information: %w", err)
+		return 0, err
 	}
-	values := make(map[string]int64, 2)
-	for _, line := range strings.Split(string(raw), "\n") {
-		fields := strings.Fields(line)
-		if len(fields) < 2 || (fields[0] != "MemTotal:" && fields[0] != "MemAvailable:") {
-			continue
-		}
-		kilobytes, parseErr := strconv.ParseInt(fields[1], 10, 64)
-		if parseErr != nil || kilobytes <= 0 || kilobytes > (1<<62)/1024 {
-			return 0, errors.New("machine memory information is invalid")
-		}
-		values[fields[0]] = kilobytes * 1024
-	}
-	total, available := values["MemTotal:"], values["MemAvailable:"]
-	if total <= 0 || available <= 0 || available > total {
-		return 0, errors.New("machine memory information is incomplete")
-	}
-	reserve := total * executorMemoryReserveFraction / 100
-	if reserve < executorControlReserveBytes {
-		reserve = executorControlReserveBytes
-	}
-	byTotal := total * executorMemoryTotalFraction / 100
-	byAvailable := available - reserve
-	maxBytes := byTotal
-	if byAvailable < maxBytes {
-		maxBytes = byAvailable
-	}
-	if maxBytes < executorMemoryFloorBytes {
-		// A floor is a minimum admission requirement, not permission to invent
-		// capacity. Raising this value consumed the control-plane reserve when
-		// other workloads had already exhausted the host.
+	budget := min(memoryFraction(total, executorMemoryTotalFraction), available-reserve)
+	if budget < executorMemoryFloorBytes {
 		return 0, &ExecutorResourceUnavailableError{AvailableBytes: available, ReserveBytes: reserve, RequiredBytes: executorMemoryFloorBytes}
 	}
-	if maxBytes >= total {
-		return 0, errors.New("machine memory cannot preserve the control-plane reserve")
-	}
-	return maxBytes, nil
+	return budget, nil
 }
 
 func (launcher *SystemdUserExecutorLauncher) Launch(request ExecutorLaunchRequest) error {
@@ -164,9 +131,16 @@ func (launcher *SystemdUserExecutorLauncher) Launch(request ExecutorLaunchReques
 		!validExecutorUnitComponent(request.BackendID) || request.BackendGeneration < 1 {
 		return errors.New("systemd detached executor launch authority is invalid")
 	}
-	memoryMax, err := executorMemoryBudget(launcher.meminfoPath)
-	if err != nil {
-		return err
+	memoryMax := request.MemoryMaxBytes
+	if memoryMax == 0 {
+		var err error
+		memoryMax, err = executorMemoryBudget(launcher.meminfoPath)
+		if err != nil {
+			return err
+		}
+	}
+	if memoryMax < executorMemoryFloorBytes {
+		return errors.New("detached executor memory reservation invalid")
 	}
 	unit := executorUnitName(request.BackendID, request.BackendGeneration)
 	arguments := []string{

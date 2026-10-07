@@ -179,7 +179,10 @@ class ProductIdentityGateTests(unittest.TestCase):
         self.assertTrue(result["aligned"], result["drifts"])
         self.assertEqual(result["drift_count"], 0)
         self.assertEqual(result["drifts"], [])
-        self.assertEqual(result["schema_facts"]["current_workspace_schema"], 71)
+        self.assertEqual(
+            result["schema_facts"]["current_workspace_schema"],
+            load("docs/governance/product-identity.json")["current_workspace_schema"]["target"],
+        )
         self.assertIn(
             {"path": ".env.example", "kind": "line-prefix", "value_template": "# {display_name} safe local defaults."},
             load("docs/governance/product-identity-consumer-matrix.json")["user_visible_name_projections"],

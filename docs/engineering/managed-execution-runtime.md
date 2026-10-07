@@ -187,6 +187,81 @@ the transfer protocol; failed downloads do not delete an existing destination.
 Managed harvest staging survives reconstruction until terminal settlement.
 Archive path/type/integrity and extraction protections still apply.
 
+### Selected and recoverable data delivery
+
+`internal/compute/transfer` is the common selection, inventory, storage and
+integrity authority for SSH and provider-backed delivery. The host obtains a
+digest-bound, NUL-safe inventory before packaging. It streams this observation
+through an exact disk-backed path index and selects the requested outputs,
+logs and identity-bound native checkpoint files. Exclusions, explicit byte
+budgets, non-regular files and actual target storage remain distinct reasons.
+Omitted `transfer_limits` do not invent per-file or dataset-size ceilings.
+Control-request bounds on glob rules do not limit how many files a rule matches.
+
+The native helper packages only the admitted NUL file list. Control probes do
+not wait for an entire large archive or prefix checksum: those data operations
+have an owned detached process and atomically published receipts. The host
+retains its selection, manifest and partial download in a private per-job
+stage. A resumed provider stream verifies its existing prefix against the same
+immutable receipt and checks the complete archive digest before extraction.
+The confined provider worker is bound to the exact host-supplied stage; a
+request cannot widen it. Only a fetch attempt may have an I/O-idle observer,
+which watches byte/verification progress and never cancels the computation.
+
+Extraction admits exactly the selected paths, types, sizes and total from the
+manifest, not arbitrary expanded archive content. A pre-existing destination is
+not evidence of success: replay checks its actual payloads. Publication is
+atomic. Storage guards retain control-plane headroom, and intentionally remote
+outputs have exact counts and a full manifest; bounded previews are labelled
+as previews rather than a complete file list. A BYOC reference in a sandbox is
+not persistent object storage and exposes the original instance retention
+deadline. Use an authorized persistent resource when that retention is needed.
+
+Calculation exit and delivery are separate facts. A legacy wrapper packaging
+failure can still be recovered from the original files through this same
+selector. Terminal failure/timeout annotation merges into a committed result;
+it must not replace its output references, logs or native checkpoint receipt.
+
+### Native file checkpoints and instance lifetimes
+
+Warm sandbox reuse retains the earliest owned physical-instance deadline from
+the handle and durable job history. A new job never refreshes that lifetime.
+Unknown or insufficient remaining lifetime prevents a new launch without
+discarding the existing sandbox or outputs; it requires reconciliation or an
+authorized resource with sufficient lifetime.
+
+`submit_job.checkpoint` declares `manifest`, `resume_command`, `signal` and,
+for `USR1`/`USR2`, `pid_file`. All manifest and PID paths are relative below
+`out/`. This is an application-native file protocol, not process-memory
+snapshotting. A declared custom signal targets only the exact PID, boot ID and
+start tick within the submitted process group; it never signals a timeout
+monitor or an unrelated process. The application writes its PID receipt as
+`PID:BOOT_ID:START_TICKS` and implements the declared handler itself.
+
+The committed checkpoint manifest is JSONL:
+
+1. A header with `schema=synon.compute-checkpoint.v1`, positive `generation`,
+   `source_input_sha256` and `resume_command_sha256`.
+2. One record per native file: `path`, `sha256` and integral `bytes`.
+3. A final `commit=complete`, exact `file_count` and exact total `bytes`.
+
+The host supplies `OPERON_INPUT_SHA256`, `OPERON_RESUME_COMMAND_SHA256`,
+`OPERON_CHECKPOINT_GENERATION` and `OPERON_CHECKPOINT_MANIFEST`. Partial,
+duplicate, aliased, escaped, changed or incompletely committed checkpoints are
+not restartable. The complete selected manifest remains the data authority;
+only compact counts/identities enter the compute result.
+
+`resume_from_job` accepts a terminal job owned by this project, root frame and
+frame incarnation. Its command must match the original approved resume
+contract. Native files are reverified and restored with the immutable original
+inputs, not a later mutable copy of those inputs. Checkpoint-capable submissions
+retain their ingress archive for this purpose. Existing explicit logical time
+budgets carry forward; a new execution unit does not reset an exhausted budget.
+A verified file checkpoint proves restartability, not scientific completion.
+Unsupported software must use a resource that covers its real lifetime; no
+arbitrary memory reconstruction, paid-resource fallback or scientific rerun is
+implied by this protocol.
+
 The supervisor drains keyset pages instead of treating a page size as a maximum
 active inventory. Control workers have bounded concurrency, and queued snapshots
 are re-read before acting so a late observation cannot revive a settled job.
@@ -340,6 +415,30 @@ tasks and approved operations cannot be starved behind a busy first page.
 ## Physical execution and background operations
 
 ### Bounded memory, continuous execution
+
+Python, R, Bash and typed software execution requests can carry an explicit
+`memory_budget_mb`. This is an allocation budget, not a verified scientific
+minimum. Machine capacity and outstanding reservations are admitted separately.
+Omission retains the conservative native default. An explicit budget on a large
+host is not restricted to that default percentage; actual available memory and
+the controller reserve still bind it. Interface bounds are numeric
+representability, not the current development machine.
+
+Workspace resource reservations bind backend identity, generation and machine
+boot. Their `waiting`, `reserved` and `released` states use the existing startup
+and execution recovery authority. Atomic admission counts unused outstanding
+promises, while crediting only observed resident anonymous usage so reclaimable
+file cache cannot be double-discounted. Unknown observation never releases a
+reservation. Positive original-process/supervisor absence is required before
+release. Capacity waits retain the original unstarted generation and wake the
+existing notification path when admitted; they are not application failures or
+permission to reduce the workload. Cancelled or superseded waiting frame
+incarnations cannot launch later.
+
+The resource table is additive migration 72. Upgrades preserve existing backend
+and execution identities. Rollback after a database upgrade requires the
+pre-upgrade database backup or a compatible forward recovery, not running an
+older binary against an unrecognized schema.
 
 On the Linux detached executor, cgroup v2 and systemd 254 or newer are required
 for delegated workload placement. The single executor service retains its

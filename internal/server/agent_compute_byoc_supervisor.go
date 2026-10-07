@@ -1,30 +1,25 @@
 package server
 
 import (
-	"archive/tar"
-	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
 
+	"synon-go/internal/compute/transfer"
 	kernelruntime "synon-go/internal/kernel"
 	workspace "synon-go/internal/persistence/workspace"
 )
 
 const (
 	computeProviderJobPollInterval = 15 * time.Second
-	computeProviderHarvestMaxFiles = 10000
-	computeProviderHarvestMaxBytes = int64(20 << 30)
 	computeProviderProbeNamespace  = "compute-provider-job-probes"
 )
 
@@ -214,24 +209,21 @@ func (s *Server) reconcileComputeProviderJob(ctx context.Context, owned workspac
 		job = updated
 	}
 	workspaceDir := strings.TrimSpace(stringValue(hardware["workspace_dir"]))
-	harvestedFiles := []string{}
-	_, err = s.providerOperationRunner.RunProviderOperation(ctx, kernelruntime.ProviderOperationInput{
-		Runtime: authority.Definition, Operation: "wait",
-		Request: map[string]any{
-			"sandbox_id": *job.ExternalID, "install_id": installID, "poll_seconds": 2,
-			"output_cap_bytes": byocMaximumInputBytes,
-		},
-		Collect: func(stage string, _ map[string]any) error {
-			var extractErr error
-			harvestedFiles, extractErr = extractAgentBYOCHarvest(stage, workspaceDir, job.JobID)
-			return extractErr
-		},
-	})
+	stage := filepath.Join(s.fileRoot, "provider-harvests", job.JobID)
+	remoteURI := func(name string) string {
+		return "byoc://" + publicComputeProviderName(job.Provider) + "/" + *job.ExternalID + "/work/" + name
+	}
+	harvest, ready, err := s.harvestSelectedComputeOutputs(ctx, stage, workspaceDir, job.JobID, hardware, remoteURI,
+		byocHarvestTransport{runner: s.providerOperationRunner, runtime: authority.Definition, sandbox: *job.ExternalID, stage: stage})
 	if err != nil {
 		harvesting := workspace.OwnedComputeJob{OwnerUserID: owned.OwnerUserID, Job: job}
 		s.handleComputeProviderProbeFailure(harvesting, err)
 		return
 	}
+	if !ready {
+		return
+	}
+	harvestedFiles := harvest.Files
 	if err := s.resetOwnedComputeProviderProbe(owned); err != nil {
 		log.Printf("compute harvest recovery could not be committed job=%s", job.JobID)
 		return
@@ -242,12 +234,24 @@ func (s *Server) reconcileComputeProviderJob(ctx context.Context, owned workspac
 		"job_wall_s":  int(numberValue(probe["job_wall_s"])),
 		"stdout_tail": stringValue(probe["stdout_tail"]), "stderr_tail": stringValue(probe["stderr_tail"]),
 		"output_files":      harvestedFiles,
-		"output_file_count": len(harvestedFiles),
+		"output_file_count": harvest.Count,
+		"output_manifest":   harvest.Manifest, "output_manifest_sha256": harvest.ManifestSHA256,
+		"remote_output_count": harvest.RemoteCount, "left_on_remote": harvest.Left,
+		"delivery_state":    "complete",
 		"featured_files":    featuredComputeProviderFiles(harvestedFiles, anySliceValue(hardware["outputs"])),
 		"deadline_fired":    boolValue(probe["deadline_fired"], false),
 		"job_timeout_fired": boolValue(probe["job_timeout_fired"], false),
 	}
-	_ = s.workspaceStore.SetComputeJobResult(owned.OwnerUserID, job.JobID, terminalDetails)
+	terminalDetails["output_files_truncated"] = int64(len(harvestedFiles)) < harvest.Count
+	if harvest.RemoteCount > 0 {
+		terminalDetails["remote_retention_until_epoch"] = hardware["sandbox_deadline_epoch"]
+		terminalDetails["remote_retention_is_persistent"] = false
+	}
+	s.attachComputeCheckpointReceipt(ctx, owned, terminalDetails)
+	if err := s.workspaceStore.SetComputeJobResult(owned.OwnerUserID, job.JobID, terminalDetails); err != nil {
+		s.handleComputeProviderProbeFailure(owned, err)
+		return
+	}
 	_, err = s.transitionAgentComputeJobTerminal(owned, next, errorKind, time.Now().UTC(), terminalDetails)
 	if err != nil {
 		return
@@ -255,9 +259,10 @@ func (s *Server) reconcileComputeProviderJob(ctx context.Context, owned workspac
 	handleID := strings.TrimSpace(stringValue(hardware["handle_id"]))
 	if handleID != "" {
 		s.releaseAgentComputeHandle(handleID, job.JobID, true)
-	} else {
+	} else if harvest.RemoteCount == 0 {
 		_ = s.terminateAgentBYOCSandbox(context.Background(), authority.Definition, *job.ExternalID)
 	}
+	_ = os.RemoveAll(stage)
 }
 
 func (s *Server) recoverAgentBYOCSubmission(
@@ -348,7 +353,7 @@ func (s *Server) recoverAgentBYOCSubmission(
 		job = updated
 		owned.Job = updated
 		if handleID != "" {
-			s.bindAgentComputeHandleSandbox(handleID, job.JobID, sandboxID)
+			s.bindAgentComputeHandleSandbox(handleID, job.JobID, sandboxID, deadline)
 		}
 	}
 	if job.State != workspace.ComputeJobStaging || sandboxID == "" {
@@ -358,8 +363,13 @@ func (s *Server) recoverAgentBYOCSubmission(
 	request := agentBYOCSubmissionRequest(authority.Definition.InstallID, submissionID, sandboxID, archive, jobTimeout, deadline, time.Now())
 	_, err = s.providerOperationRunner.RunProviderOperation(ctx, kernelruntime.ProviderOperationInput{
 		Runtime: authority.Definition, Operation: "submit", Request: request,
+		StageDirectory: stage,
 		Prepare: func(operationStage string) error {
-			return copyAgentBYOCStagedArchive(stage, operationStage, archive)
+			observed, err := inspectAgentBYOCStagedArchive(filepath.Join(operationStage, "in.tar.gz"))
+			if err == nil && observed != archive {
+				return errors.New("BYOC durable input changed")
+			}
+			return err
 		},
 	})
 	if err != nil {
@@ -377,7 +387,9 @@ func (s *Server) recoverAgentBYOCSubmission(
 	if err := s.resetOwnedComputeProviderProbe(owned); err != nil {
 		log.Printf("compute submission recovery observation could not be committed job=%s", job.JobID)
 	}
-	s.removeAgentBYOCRecoveryStage(stage, job.JobID)
+	if hardware["checkpoint_contract"] == nil {
+		s.removeAgentBYOCRecoveryStage(stage, job.JobID)
+	}
 	_ = s.workspaceStore.AppendComputeJobLog(owned.OwnerUserID, job.JobID, "combined", fmt.Sprintf("recovered submission %d bytes sha256=%s\n", archive.Bytes, archive.SHA256))
 	return updated, true
 }
@@ -550,222 +562,6 @@ func classifyComputeProviderTerminal(probe map[string]any) (string, string) {
 	return workspace.ComputeJobFailed, "nonzero_exit"
 }
 
-type agentComputeHarvestPolicy struct {
-	Outputs       []any
-	Exclude       []string
-	MaxFileBytes  int64
-	MaxTotalBytes int64
-	RemoteURI     func(string) string
-}
-
-func extractAgentBYOCHarvest(stage, workspaceDir, jobID string) ([]string, error) {
-	files, _, err := extractAgentComputeHarvest(stage, workspaceDir, jobID, agentComputeHarvestPolicy{})
-	return files, err
-}
-
-func extractAgentComputeHarvest(
-	stage string,
-	workspaceDir string,
-	jobID string,
-	policy agentComputeHarvestPolicy,
-) ([]string, []map[string]any, error) {
-	workspaceRoot, err := canonicalHostDirectory(workspaceDir)
-	if err != nil {
-		return nil, nil, errors.New("compute harvest workspace is unavailable")
-	}
-	target := filepath.Join(workspaceRoot, "hpc", jobID)
-	existing := false
-	existingFiles := []string{}
-	if info, err := os.Stat(target); err == nil && info.IsDir() {
-		existing = true
-		existingFiles, err = listRelativeRegularFiles(workspaceRoot, target, computeProviderHarvestMaxFiles)
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-	if !existing {
-		if err := os.MkdirAll(filepath.Dir(target), 0o700); err != nil {
-			return nil, nil, err
-		}
-	}
-	temporary := ""
-	if !existing {
-		temporary, err = os.MkdirTemp(filepath.Dir(target), "."+jobID+"-harvest-")
-		if err != nil {
-			return nil, nil, err
-		}
-		defer os.RemoveAll(temporary)
-	}
-	archive, err := os.Open(filepath.Join(stage, "out.tar.gz"))
-	if err != nil {
-		return nil, nil, errors.New("compute harvest archive is unavailable")
-	}
-	defer archive.Close()
-	compressed, err := gzip.NewReader(archive)
-	if err != nil {
-		return nil, nil, errors.New("compute harvest archive is invalid")
-	}
-	defer compressed.Close()
-	reader := tar.NewReader(compressed)
-	files := []string{}
-	left := []map[string]any{}
-	extractedTotal := int64(0)
-	scannedTotal := int64(0)
-	entries := 0
-	maxTotal := policy.MaxTotalBytes
-	if maxTotal <= 0 || maxTotal > computeProviderHarvestMaxBytes {
-		maxTotal = computeProviderHarvestMaxBytes
-	}
-	maxFile := policy.MaxFileBytes
-	if maxFile <= 0 || maxFile > computeProviderHarvestMaxBytes {
-		maxFile = computeProviderHarvestMaxBytes
-	}
-	for {
-		header, nextErr := reader.Next()
-		if nextErr == io.EOF {
-			break
-		}
-		if nextErr != nil {
-			return nil, nil, errors.New("compute harvest archive could not be read")
-		}
-		entries++
-		if entries > computeProviderHarvestMaxFiles || header.Size < 0 || scannedTotal+header.Size > computeProviderHarvestMaxBytes {
-			return nil, nil, errors.New("compute harvest archive exceeds the extraction cap")
-		}
-		scannedTotal += header.Size
-		name := filepath.Clean(filepath.FromSlash(header.Name))
-		if name == "." || name == ".." || filepath.IsAbs(name) || strings.HasPrefix(name, ".."+string(filepath.Separator)) {
-			return nil, nil, errors.New("compute harvest archive contains an unsafe path")
-		}
-		destinationRoot := temporary
-		if existing {
-			destinationRoot = target
-		}
-		destination := filepath.Join(destinationRoot, name)
-		if !hostPathWithin(destinationRoot, destination) {
-			return nil, nil, errors.New("compute harvest archive escapes the extraction root")
-		}
-		switch header.Typeflag {
-		case tar.TypeDir:
-			if !existing {
-				if err := os.MkdirAll(destination, 0o700); err != nil {
-					return nil, nil, err
-				}
-			}
-		case tar.TypeReg, tar.TypeRegA:
-			archiveName := filepath.ToSlash(name)
-			include, reason := agentComputeHarvestInclusion(archiveName, header.Size, extractedTotal, maxFile, maxTotal, policy)
-			if !include {
-				if _, err := io.CopyN(io.Discard, reader, header.Size); err != nil {
-					return nil, nil, errors.New("compute harvest skipped file could not be drained")
-				}
-				if reason != "excluded" && policy.RemoteURI != nil {
-					left = append(left, map[string]any{
-						"uri": policy.RemoteURI(archiveName), "path": archiveName,
-						"size": header.Size, "reason": reason,
-					})
-				}
-				continue
-			}
-			extractedTotal += header.Size
-			workspaceRelative := filepath.ToSlash(filepath.Join("hpc", jobID, name))
-			files = append(files, workspaceRelative)
-			if existing {
-				if _, err := io.CopyN(io.Discard, reader, header.Size); err != nil {
-					return nil, nil, errors.New("compute harvest existing file could not be drained")
-				}
-				continue
-			}
-			if err := os.MkdirAll(filepath.Dir(destination), 0o700); err != nil {
-				return nil, nil, err
-			}
-			file, err := os.OpenFile(destination, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
-			if err != nil {
-				return nil, nil, err
-			}
-			written, copyErr := io.CopyN(file, reader, header.Size)
-			closeErr := file.Close()
-			if copyErr != nil || closeErr != nil || written != header.Size {
-				return nil, nil, errors.New("compute harvest file changed during extraction")
-			}
-		default:
-			return nil, nil, errors.New("compute harvest archive contains a non-regular entry")
-		}
-	}
-	if existing {
-		return existingFiles, left, nil
-	}
-	if err := os.Rename(temporary, target); err != nil {
-		return nil, nil, err
-	}
-	return files, left, nil
-}
-
-func agentComputeHarvestInclusion(
-	archiveName string,
-	size int64,
-	extractedTotal int64,
-	maxFile int64,
-	maxTotal int64,
-	policy agentComputeHarvestPolicy,
-) (bool, string) {
-	isLog := archiveName == "stdout.log" || archiveName == "stderr.log"
-	if !isLog {
-		if !strings.HasPrefix(archiveName, "out/") {
-			return false, "excluded"
-		}
-		for _, pattern := range policy.Exclude {
-			if computeOutputGlobMatches(pattern, archiveName) {
-				return false, "excluded"
-			}
-		}
-	}
-	if !isLog && len(policy.Outputs) > 0 {
-		matched := false
-		for _, raw := range policy.Outputs {
-			pattern := strings.TrimSpace(stringValue(raw))
-			if item := mapValue(raw); len(item) > 0 {
-				pattern = strings.TrimSpace(stringValue(item["glob"]))
-			}
-			if computeOutputGlobMatches(pattern, archiveName) {
-				matched = true
-				break
-			}
-		}
-		if !matched {
-			return false, "not_selected"
-		}
-	}
-	if size > maxFile {
-		return false, "max_file_bytes"
-	}
-	if extractedTotal+size > maxTotal {
-		return false, "max_total_bytes"
-	}
-	return true, ""
-}
-
-func listRelativeRegularFiles(workspaceRoot, target string, limit int) ([]string, error) {
-	files := []string{}
-	err := filepath.WalkDir(target, func(path string, entry os.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		if entry.Type().IsRegular() {
-			relative, err := filepath.Rel(workspaceRoot, path)
-			if err != nil {
-				return err
-			}
-			files = append(files, filepath.ToSlash(relative))
-			if len(files) > limit {
-				return errors.New("BYOC harvest inventory exceeds the file cap")
-			}
-		}
-		return nil
-	})
-	return files, err
-}
-
 func featuredComputeProviderFiles(files []string, outputs []any) []string {
 	featured := []string{}
 	for _, file := range files {
@@ -801,47 +597,5 @@ func featuredComputeProviderFiles(files []string, outputs []any) []string {
 }
 
 func computeOutputGlobMatches(pattern, candidate string) bool {
-	pattern = strings.TrimPrefix(filepath.ToSlash(filepath.Clean(filepath.FromSlash(strings.TrimSpace(pattern)))), "./")
-	candidate = strings.TrimPrefix(filepath.ToSlash(candidate), "./")
-	if pattern == "" || pattern == "." || strings.HasPrefix(pattern, "../") || filepath.IsAbs(pattern) {
-		return false
-	}
-	relative := strings.TrimPrefix(candidate, "out/")
-	targets := []string{relative}
-	if strings.HasPrefix(pattern, "out/") {
-		targets = []string{candidate}
-	}
-	var expression strings.Builder
-	expression.WriteString("^")
-	for index := 0; index < len(pattern); index++ {
-		switch pattern[index] {
-		case '*':
-			if index+1 < len(pattern) && pattern[index+1] == '*' {
-				index++
-				if index+1 < len(pattern) && pattern[index+1] == '/' {
-					index++
-					expression.WriteString("(?:.*/)?")
-				} else {
-					expression.WriteString(".*")
-				}
-			} else {
-				expression.WriteString("[^/]*")
-			}
-		case '?':
-			expression.WriteString("[^/]")
-		default:
-			expression.WriteString(regexp.QuoteMeta(string(pattern[index])))
-		}
-	}
-	expression.WriteString("$")
-	compiled, err := regexp.Compile(expression.String())
-	if err != nil {
-		return false
-	}
-	for _, target := range targets {
-		if compiled.MatchString(target) {
-			return true
-		}
-	}
-	return false
+	return transfer.GlobMatches(pattern, candidate)
 }

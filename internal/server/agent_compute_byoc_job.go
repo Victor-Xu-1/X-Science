@@ -11,15 +11,19 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
 	"synon-go/internal/agentruntime"
 	"synon-go/internal/compute"
+	"synon-go/internal/compute/checkpoint"
+	"synon-go/internal/compute/transfer"
 	kernelruntime "synon-go/internal/kernel"
 	workspace "synon-go/internal/persistence/workspace"
 )
@@ -29,8 +33,6 @@ const (
 	byocTerminationGrace           = 60 * time.Second
 	byocDefaultContainer           = 12 * time.Hour
 	byocMaximumContainer           = 85500 * time.Second
-	byocMaximumInputBytes          = int64(10 << 30)
-	byocMaximumInputFiles          = 256
 	byocMaximumJobEnvBytes         = 64 << 10
 	computeProviderHandleNamespace = "compute-provider-handles"
 )
@@ -91,6 +93,14 @@ func (s *Server) submitAgentBYOCJob(
 	if err := validateAgentBYOCOutputs(anySliceValue(input["outputs"])); err != nil {
 		return nil, err
 	}
+	checkpointContract, err := checkpoint.Decode(input["checkpoint"])
+	if err != nil {
+		return nil, err
+	}
+	resume, err := s.computeCheckpointResume(ctx, access, input, workspaceDir)
+	if err != nil {
+		return nil, err
+	}
 	if err := s.enforceAgentComputeCapacity(access, authority.Provider); err != nil {
 		return nil, err
 	}
@@ -110,6 +120,7 @@ func (s *Server) submitAgentBYOCJob(
 	handleSandbox := ""
 	handleTierApproved := false
 	handleClaimed := false
+	var originalDeadline time.Time
 	if handleID != "" {
 		handleSandbox, handleTierApproved, err = s.claimAgentComputeHandle(
 			access, handleID, providerID, mapValue(input["provider_params"]), jobID,
@@ -120,9 +131,15 @@ func (s *Server) submitAgentBYOCJob(
 		handleClaimed = true
 		defer func() {
 			if handleClaimed {
-				s.releaseAgentComputeHandle(handleID, jobID, false)
+				s.releaseAgentComputeHandle(handleID, jobID, handleSandbox != "")
 			}
 		}()
+		if handleSandbox != "" {
+			originalDeadline, err = s.agentComputeHandleDeadline(ctx, access, handleID, authority.Provider.Name, handleSandbox)
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 	if !handleTierApproved {
 		if err := s.requireKernelCapabilityInstallApproval(
@@ -138,7 +155,17 @@ func (s *Server) submitAgentBYOCJob(
 			s.markAgentComputeHandleTierApproved(handleID, jobID)
 		}
 	}
-	jobTimeout, err := computeJobTimeout(input, settings.MaxTimeoutSec, spec.Timeout)
+	physicalLimit := spec.Timeout
+	if !originalDeadline.IsZero() {
+		physicalLimit = min(physicalLimit, time.Until(originalDeadline)-byocHarvestMargin)
+		if physicalLimit <= 0 {
+			return nil, errors.New("warm instance has no remaining execution window; retained outputs were not discarded")
+		}
+	}
+	if checkpointContract != nil || resume != nil {
+		physicalLimit = 0
+	}
+	jobTimeout, err := computeJobTimeout(computeCheckpointTimeoutInput(input, resume), settings.MaxTimeoutSec, physicalLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +178,7 @@ func (s *Server) submitAgentBYOCJob(
 	if providerConfigSHA256 == "" {
 		return nil, errors.New("BYOC provider configuration authority is unavailable")
 	}
-	durableStage, archive, err := s.stageAgentBYOCJob(jobID, workspaceDir, input, access)
+	durableStage, archive, err := s.stageAgentBYOCJobContext(ctx, jobID, workspaceDir, input, access)
 	if err != nil {
 		return nil, err
 	}
@@ -165,6 +192,13 @@ func (s *Server) submitAgentBYOCJob(
 	submissionDigest := sha256.Sum256([]byte("synon-byoc-submission\x00" + jobID))
 	submissionID := "submission-" + hex.EncodeToString(submissionDigest[:12])
 	deadline := time.Now().UTC().Add(spec.Timeout + byocHarvestMargin)
+	if !originalDeadline.IsZero() {
+		deadline = originalDeadline
+		remaining := time.Until(deadline) - byocHarvestMargin
+		if remaining <= 0 || (checkpointContract == nil && resume == nil && jobTimeout > remaining) {
+			return nil, errors.New("warm instance no longer covers the requested execution window; no workload was started")
+		}
+	}
 	hardware := map[string]any{
 		"provider_params": mapValue(input["provider_params"]), "outputs": anySliceValue(input["outputs"]),
 		"workspace_dir": workspaceDir,
@@ -177,6 +211,13 @@ func (s *Server) submitAgentBYOCJob(
 		"provider_spec": providerSpec, "provider_spec_sha256": providerSpecSHA256,
 		"provider_config_sha256": providerConfigSHA256,
 	}
+	exclude, transferLimits, err := agentComputeHarvestContract(input)
+	if err != nil {
+		return nil, err
+	}
+	hardware["exclude"], hardware["transfer_limits"] = exclude, transferLimits
+	hardware["root_frame_incarnation_id"] = access.RootFrameIncarnationID
+	bindComputeCheckpointHardware(hardware, checkpointContract, resume, int64(jobTimeout/time.Second))
 	s.computeSubmitMu.Lock()
 	if capacityErr := s.enforceAgentComputeCapacity(access, authority.Provider); capacityErr != nil {
 		s.computeSubmitMu.Unlock()
@@ -206,7 +247,7 @@ func (s *Server) submitAgentBYOCJob(
 		}
 		sandboxID = strings.TrimSpace(stringValue(createResult["sandbox_id"]))
 		if handleID != "" && sandboxID != "" {
-			s.bindAgentComputeHandleSandbox(handleID, jobID, sandboxID)
+			s.bindAgentComputeHandleSandbox(handleID, jobID, sandboxID, deadline)
 		}
 	}
 	if sandboxID == "" {
@@ -220,8 +261,13 @@ func (s *Server) submitAgentBYOCJob(
 	request := agentBYOCSubmissionRequest(authority.Definition.InstallID, submissionID, sandboxID, archive, jobTimeout, deadline, time.Now())
 	_, err = s.providerOperationRunner.RunProviderOperation(ctx, kernelruntime.ProviderOperationInput{
 		Runtime: authority.Definition, Operation: "submit", Request: request,
+		StageDirectory: durableStage,
 		Prepare: func(stage string) error {
-			return copyAgentBYOCStagedArchive(durableStage, stage, archive)
+			observed, err := inspectAgentBYOCStagedArchive(filepath.Join(stage, "in.tar.gz"))
+			if err == nil && observed != archive {
+				return errors.New("BYOC durable input changed")
+			}
+			return err
 		},
 	})
 	if err != nil {
@@ -230,7 +276,7 @@ func (s *Server) submitAgentBYOCJob(
 	if _, err := s.workspaceStore.TransitionComputeJob(access.UserID, jobID, workspace.ComputeJobRunning, "", time.Now().UTC()); err != nil {
 		return nil, err
 	}
-	preserveStage = false
+	preserveStage = checkpointContract != nil || resume != nil
 	_ = s.workspaceStore.AppendComputeJobLog(access.UserID, jobID, "combined", fmt.Sprintf("submitted %d bytes sha256=%s\n", archive.Bytes, archive.SHA256))
 	s.notifyComputeProviderJobSupervisor()
 	return map[string]any{"job_id": jobID, "provider": providerID, "status": "running", "sandbox_id": sandboxID}, nil
@@ -318,7 +364,7 @@ func (s *Server) markAgentComputeHandleTierApproved(handleID, jobID string) {
 	_, _ = s.runtimeStore.Set(computeProviderHandleNamespace, handleID, value)
 }
 
-func (s *Server) bindAgentComputeHandleSandbox(handleID, jobID, sandboxID string) {
+func (s *Server) bindAgentComputeHandleSandbox(handleID, jobID, sandboxID string, deadlines ...time.Time) {
 	s.computeProviderHandleMu.Lock()
 	defer s.computeProviderHandleMu.Unlock()
 	entry, found, err := s.runtimeStore.Get(computeProviderHandleNamespace, handleID)
@@ -329,7 +375,15 @@ func (s *Server) bindAgentComputeHandleSandbox(handleID, jobID, sandboxID string
 	if stringValue(value["busy_job_id"]) != jobID {
 		return
 	}
+	previousSandbox := stringValue(value["sandbox_id"])
 	value["sandbox_id"] = sandboxID
+	if len(deadlines) == 1 && !deadlines[0].IsZero() {
+		epoch := deadlines[0].Unix()
+		previous := int64(numberValue(value["sandbox_deadline_epoch"]))
+		if previousSandbox != sandboxID || previous <= 0 || epoch < previous {
+			value["sandbox_deadline_epoch"] = epoch
+		}
+	}
 	_, _ = s.runtimeStore.Set(computeProviderHandleNamespace, handleID, value)
 }
 
@@ -349,6 +403,7 @@ func (s *Server) releaseAgentComputeHandle(handleID, jobID string, keepSandbox b
 	}
 	if !keepSandbox {
 		value["sandbox_id"] = ""
+		delete(value, "sandbox_deadline_epoch")
 	}
 	value["updated_at"] = time.Now().UTC().Format(time.RFC3339Nano)
 	_, _ = s.runtimeStore.Set(computeProviderHandleNamespace, handleID, value)
@@ -481,32 +536,8 @@ func agentBYOCProviderSandboxSpec(spec byocModalJobSpec) map[string]any {
 }
 
 func validateAgentBYOCOutputs(outputs []any) error {
-	if len(outputs) > 256 {
-		return errors.New("BYOC outputs exceed 256 entries")
-	}
-	for _, raw := range outputs {
-		pattern := strings.TrimSpace(stringValue(raw))
-		visibility := "featured"
-		if item, ok := raw.(map[string]any); ok {
-			if len(item) == 0 || len(item) > 2 {
-				return errors.New("BYOC output objects accept only glob and visibility")
-			}
-			for key := range item {
-				if key != "glob" && key != "visibility" {
-					return fmt.Errorf("BYOC output field %q is not allowed", key)
-				}
-			}
-			pattern = strings.TrimSpace(stringValue(item["glob"]))
-			visibility = strings.TrimSpace(firstNonEmpty(stringValue(item["visibility"]), "featured"))
-		}
-		if pattern == "" || len(pattern) > 4096 || strings.ContainsAny(pattern, "\x00\r\n") || filepath.IsAbs(pattern) || pattern == ".." || strings.HasPrefix(pattern, "../") {
-			return errors.New("BYOC output glob is invalid")
-		}
-		if visibility != "featured" && visibility != "hidden" {
-			return errors.New("BYOC output visibility must be featured or hidden")
-		}
-	}
-	return nil
+	_, err := agentComputeOutputPolicy(outputs)
+	return err
 }
 
 func agentBYOCProviderSpecSHA256(spec map[string]any) (string, error) {
@@ -554,7 +585,8 @@ func agentBYOCSubmissionRequest(
 		"submission_id": submissionID, "timeout": int(jobTimeout / time.Second),
 		"sandbox_deadline_epoch": deadline.Unix(), "sandbox_remaining_s": remaining,
 		"harvest_margin_s": int(byocHarvestMargin / time.Second), "term_grace_s": int(byocTerminationGrace / time.Second),
-		"archive_sha256": archive.SHA256,
+		"archive_sha256":  archive.SHA256,
+		"output_protocol": 2,
 	}
 }
 
@@ -573,13 +605,31 @@ func uniqueSortedBYOCDomains(values []string) []string {
 }
 
 func (s *Server) writeAgentBYOCInputArchive(stage, workspaceRoot string, input map[string]any, accesses ...workspace.KernelFrameAccess) (byocInputArchive, error) {
+	return s.writeAgentBYOCInputArchiveContext(context.Background(), stage, workspaceRoot, input, accesses...)
+}
+
+func (s *Server) writeAgentBYOCInputArchiveContext(ctx context.Context, stage, workspaceRoot string, input map[string]any, accesses ...workspace.KernelFrameAccess) (byocInputArchive, error) {
 	workspaceRoot, err := canonicalHostDirectory(workspaceRoot)
 	if err != nil {
 		return byocInputArchive{}, errors.New("BYOC task workspace is unavailable")
 	}
+	var resume *computeCheckpointResume
+	if stringValue(input["resume_from_job"]) != "" {
+		if len(accesses) != 1 {
+			return byocInputArchive{}, errors.New("checkpoint input has no task authority")
+		}
+		resume, err = s.computeCheckpointResume(ctx, accesses[0], input, workspaceRoot)
+		if err != nil {
+			return byocInputArchive{}, err
+		}
+	}
 	wrapper, err := os.ReadFile(filepath.Join(s.runtimeAssetsDir, "compute", "wrapper.sh.tmpl"))
 	if err != nil {
 		return byocInputArchive{}, errors.New("BYOC wrapper asset is unavailable")
+	}
+	harvestHelper, err := os.ReadFile(filepath.Join(s.runtimeAssetsDir, "compute", "harvest.sh.tmpl"))
+	if err != nil {
+		return byocInputArchive{}, errors.New("compute harvest asset is unavailable")
 	}
 	runTemplate, err := os.ReadFile(filepath.Join(s.runtimeAssetsDir, "compute", "run.sh.tmpl"))
 	if err != nil || bytes.Count(runTemplate, []byte("{{COMMAND}}")) != 1 {
@@ -594,37 +644,57 @@ func (s *Server) writeAgentBYOCInputArchive(stage, workspaceRoot string, input m
 	if err != nil {
 		return byocInputArchive{}, err
 	}
+	checkpointContract, err := checkpoint.Decode(input["checkpoint"])
+	if err != nil {
+		return byocInputArchive{}, err
+	}
+	if checkpointContract == nil && resume != nil {
+		checkpointContract = &resume.Contract
+	}
+	checkpointEnv := []byte{}
+	if checkpointContract != nil {
+		generation := int64(1)
+		if resume != nil {
+			generation = resume.Receipt.Generation + 1
+		}
+		checkpointEnv = []byte("export OPERON_CHECKPOINT_SIGNAL=" + shellSingleQuote(checkpointContract.Signal) + "\nexport OPERON_CHECKPOINT_PID_FILE=" + shellSingleQuote(checkpointContract.PIDFile) + "\nexport OPERON_CHECKPOINT_MANIFEST=" + shellSingleQuote(checkpointContract.Manifest) + "\nexport OPERON_RESUME_COMMAND_SHA256=" + shellSingleQuote(checkpointContract.CommandSHA256()) + "\nexport OPERON_CHECKPOINT_GENERATION=" + strconv.FormatInt(generation, 10) + "\n")
+	}
 	archivePath := filepath.Join(stage, "in.tar.gz")
 	archive, err := os.OpenFile(archivePath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
 	if err != nil {
 		return byocInputArchive{}, errors.New("BYOC input archive could not be created")
 	}
 	hasher := sha256.New()
-	counted := &countingWriter{writer: io.MultiWriter(archive, hasher)}
+	counted := &countingWriter{writer: transfer.StorageWriter{Writer: io.MultiWriter(archive, hasher), Directory: stage, Reserve: 64 << 20}}
 	gzipWriter := gzip.NewWriter(counted)
 	gzipWriter.Header.ModTime = time.Unix(0, 0)
 	tarWriter := tar.NewWriter(gzipWriter)
 	closeArchive := func() error {
-		return errors.Join(tarWriter.Close(), gzipWriter.Close(), archive.Close())
+		return errors.Join(tarWriter.Close(), gzipWriter.Close(), archive.Sync(), archive.Close())
 	}
 	for _, file := range []struct {
 		name string
 		mode int64
 		body []byte
-	}{{"_operon_wrapper.sh", 0o755, wrapper}, {"run.sh", 0o755, runScript}, {".job_env", 0o600, jobEnv}} {
+	}{{"_operon_wrapper.sh", 0o755, wrapper}, {"run.sh", 0o755, runScript}, {".job_env", 0o600, jobEnv}, {"_synon_checkpoint.env", 0o600, checkpointEnv}, {"_synon_harvest.sh", 0o700, harvestHelper}} {
 		if err := writeBYOCTarBytes(tarWriter, file.name, file.mode, file.body); err != nil {
 			_ = closeArchive()
 			return byocInputArchive{}, err
 		}
 	}
-	reserved := map[string]bool{"_operon_wrapper.sh": true, "run.sh": true, ".job_env": true}
-	totalInput := int64(0)
-	inputs := anySliceValue(input["inputs"])
-	if len(inputs) > byocMaximumInputFiles {
+	destinations, err := transfer.NewPathIndex(ctx, stage)
+	if err != nil {
 		_ = closeArchive()
-		return byocInputArchive{}, errors.New("BYOC inputs exceed 256 files")
+		return byocInputArchive{}, err
 	}
-	for _, raw := range inputs {
+	defer destinations.Close()
+	totalInput := int64(0)
+	for record, inputErr := range computeInputRecords(ctx, input, resume, workspaceRoot) {
+		if inputErr != nil {
+			_ = closeArchive()
+			return byocInputArchive{}, inputErr
+		}
+		raw := record.Raw
 		item := mapValue(raw)
 		source := strings.TrimSpace(stringValue(item["src"]))
 		if text, ok := raw.(string); ok {
@@ -634,6 +704,9 @@ func (s *Server) writeAgentBYOCInputArchive(stage, workspaceRoot string, input m
 		destination := strings.TrimSpace(firstNonEmpty(explicitDestination, filepath.Base(source)))
 		var sourceReader io.ReadCloser
 		var sourceSize int64
+		if record.Reader != nil {
+			sourceReader, sourceSize = record.Reader, record.Bytes
+		}
 		artifactID := ""
 		artifactURI := false
 		if match := artifactComputeInputPattern.FindStringSubmatch(source); len(match) == 2 {
@@ -669,14 +742,20 @@ func (s *Server) writeAgentBYOCInputArchive(stage, workspaceRoot string, input m
 			}
 		}
 		destination = filepath.ToSlash(filepath.Clean(filepath.FromSlash(destination)))
-		if source == "" || destination == "." || destination == ".." || strings.HasPrefix(destination, "../") || filepath.IsAbs(destination) || reserved[destination] {
+		if source == "" || destination == "." || destination == ".." || strings.HasPrefix(destination, "../") || filepath.IsAbs(destination) || computeControlInputName(destination) {
 			if sourceReader != nil {
 				_ = sourceReader.Close()
 			}
 			_ = closeArchive()
 			return byocInputArchive{}, errors.New("BYOC input source or destination is invalid")
 		}
-		reserved[destination] = true
+		if err := destinations.Add(ctx, destination); err != nil {
+			if sourceReader != nil {
+				_ = sourceReader.Close()
+			}
+			_ = closeArchive()
+			return byocInputArchive{}, err
+		}
 		if sourceReader == nil {
 			sourcePath, err := canonicalWorkspaceInputFile(workspaceRoot, source)
 			if err != nil {
@@ -695,10 +774,15 @@ func (s *Server) writeAgentBYOCInputArchive(stage, workspaceRoot string, input m
 			}
 			sourceReader, sourceSize = file, info.Size()
 		}
-		if sourceSize < 0 || totalInput+sourceSize > byocMaximumInputBytes {
+		if sourceSize < 0 || sourceSize > math.MaxInt64-totalInput {
 			_ = sourceReader.Close()
 			_ = closeArchive()
-			return byocInputArchive{}, errors.New("BYOC input file is unavailable or exceeds the transfer cap")
+			return byocInputArchive{}, errors.New("BYOC input size is not representable")
+		}
+		if record.SHA256 != "" && sourceSize != record.Bytes {
+			_ = sourceReader.Close()
+			_ = closeArchive()
+			return byocInputArchive{}, errors.New("checkpoint payload size changed")
 		}
 		header := &tar.Header{Name: destination, Mode: 0o644, Size: sourceSize, ModTime: time.Unix(0, 0), Typeflag: tar.TypeReg}
 		if err := tarWriter.WriteHeader(header); err != nil {
@@ -706,11 +790,20 @@ func (s *Server) writeAgentBYOCInputArchive(stage, workspaceRoot string, input m
 			_ = closeArchive()
 			return byocInputArchive{}, err
 		}
-		written, copyErr := io.CopyN(tarWriter, sourceReader, sourceSize)
+		payloadDigest := sha256.New()
+		payload := io.Reader(sourceReader)
+		if record.SHA256 != "" {
+			payload = io.TeeReader(payload, payloadDigest)
+		}
+		written, copyErr := io.CopyN(tarWriter, transfer.ReaderWithContext(ctx, payload), sourceSize)
 		closeErr := sourceReader.Close()
 		if copyErr != nil || closeErr != nil || written != sourceSize {
 			_ = closeArchive()
 			return byocInputArchive{}, errors.New("BYOC input changed while staging")
+		}
+		if record.SHA256 != "" && hex.EncodeToString(payloadDigest.Sum(nil)) != record.SHA256 {
+			_ = closeArchive()
+			return byocInputArchive{}, errors.New("checkpoint payload changed during staging")
 		}
 		totalInput += sourceSize
 	}
@@ -721,6 +814,10 @@ func (s *Server) writeAgentBYOCInputArchive(stage, workspaceRoot string, input m
 }
 
 func (s *Server) stageAgentBYOCJob(jobID, workspaceDir string, input map[string]any, accesses ...workspace.KernelFrameAccess) (string, byocInputArchive, error) {
+	return s.stageAgentBYOCJobContext(context.Background(), jobID, workspaceDir, input, accesses...)
+}
+
+func (s *Server) stageAgentBYOCJobContext(ctx context.Context, jobID, workspaceDir string, input map[string]any, accesses ...workspace.KernelFrameAccess) (string, byocInputArchive, error) {
 	if s == nil || !computeJobIDPattern.MatchString(jobID) || strings.TrimSpace(s.fileRoot) == "" {
 		return "", byocInputArchive{}, errors.New("BYOC durable staging authority is unavailable")
 	}
@@ -741,7 +838,7 @@ func (s *Server) stageAgentBYOCJob(jobID, workspaceDir string, input map[string]
 		_ = os.RemoveAll(temporary)
 		return "", byocInputArchive{}, err
 	}
-	archive, err := s.writeAgentBYOCInputArchive(temporary, workspaceDir, input, accesses...)
+	archive, err := s.writeAgentBYOCInputArchiveContext(ctx, temporary, workspaceDir, input, accesses...)
 	if err != nil {
 		_ = os.RemoveAll(temporary)
 		return "", byocInputArchive{}, err
@@ -755,7 +852,7 @@ func (s *Server) stageAgentBYOCJob(jobID, workspaceDir string, input map[string]
 
 func inspectAgentBYOCStagedArchive(path string) (byocInputArchive, error) {
 	info, err := os.Lstat(path)
-	if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 || info.Mode().Perm()&0o077 != 0 || info.Size() <= 0 || info.Size() > byocMaximumInputBytes {
+	if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 || info.Mode().Perm()&0o077 != 0 || info.Size() <= 0 {
 		return byocInputArchive{}, errors.New("BYOC durable input archive is invalid")
 	}
 	file, err := os.Open(path)
@@ -764,33 +861,11 @@ func inspectAgentBYOCStagedArchive(path string) (byocInputArchive, error) {
 	}
 	defer file.Close()
 	digest := sha256.New()
-	written, err := io.Copy(digest, io.LimitReader(file, byocMaximumInputBytes+1))
+	written, err := io.Copy(digest, file)
 	if err != nil || written != info.Size() {
 		return byocInputArchive{}, errors.New("BYOC durable input archive could not be verified")
 	}
 	return byocInputArchive{SHA256: hex.EncodeToString(digest.Sum(nil)), Bytes: written}, nil
-}
-
-func copyAgentBYOCStagedArchive(sourceDir, targetDir string, expected byocInputArchive) error {
-	observed, err := inspectAgentBYOCStagedArchive(filepath.Join(sourceDir, "in.tar.gz"))
-	if err != nil || observed != expected {
-		return errors.New("BYOC durable input archive changed before submission")
-	}
-	source, err := os.Open(filepath.Join(sourceDir, "in.tar.gz"))
-	if err != nil {
-		return err
-	}
-	defer source.Close()
-	target, err := os.OpenFile(filepath.Join(targetDir, "in.tar.gz"), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
-	if err != nil {
-		return err
-	}
-	written, copyErr := io.CopyN(target, source, expected.Bytes)
-	closeErr := target.Close()
-	if copyErr != nil || closeErr != nil || written != expected.Bytes {
-		return errors.New("BYOC durable input archive copy failed")
-	}
-	return nil
 }
 
 type countingWriter struct {

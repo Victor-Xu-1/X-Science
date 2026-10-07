@@ -181,6 +181,10 @@ func CanonicalInput(tool string, raw json.RawMessage) ([]byte, string, error) {
 		allowed["fresh"] = struct{}{}
 	} else {
 		allowed["environment"] = struct{}{}
+		allowed["memory_budget_mb"] = struct{}{}
+	}
+	if _, err := MemoryBudgetBytes(input); err != nil {
+		return nil, "", err
 	}
 	for key := range input {
 		if _, ok := allowed[key]; !ok {

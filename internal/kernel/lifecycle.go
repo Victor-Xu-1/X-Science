@@ -27,6 +27,8 @@ const (
 )
 
 type SessionSpec struct {
+	// Explicit allocation budget, not an inferred scientific requirement.
+	ResourceMemoryBytes    int64
 	KernelID               string
 	OwnerID                string
 	ProjectID              string

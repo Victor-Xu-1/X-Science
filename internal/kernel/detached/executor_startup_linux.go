@@ -37,6 +37,15 @@ func (b *Backend) ReconcileStartups(ctx context.Context) error {
 	var failures []error
 	for _, backend := range page {
 		b.startupRecoveryCursor = backend.BackendID
+		if handled, err := b.reconcileResourceWait(window, backend); handled {
+			if err != nil {
+				failures = append(failures, err)
+			}
+			if window.Err() != nil {
+				break
+			}
+			continue
+		}
 		b.mu.Lock()
 		timeout := b.StartTimeout
 		b.mu.Unlock()
@@ -103,6 +112,13 @@ func (e *StartupFailureError) Error() string {
 // configured supervisor proves this generation has exited. No elapsed-time
 // heuristic is allowed to create a competing executor.
 func (b *Backend) settleExitedStartup(ctx context.Context, backend workspace.KernelExecutionBackend) error {
+	reservation, found, err := b.Store.KernelResourceReservation(ctx, backend.BackendID, backend.BackendGeneration)
+	if err != nil {
+		return err
+	}
+	if found && reservation.State == "waiting" {
+		return errStartupStillOwned
+	}
 	if backend.ExecutorPID > 0 {
 		alive, err := kernelruntime.ProcessIdentityAlive(backend.ExecutorPID, backend.ExecutorPIDStartTicks)
 		if err != nil {

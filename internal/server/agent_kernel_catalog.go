@@ -130,6 +130,7 @@ func agentKernelBashToolSchema() agentruntime.ToolSchema {
 	return agentruntime.ToolSchema{Name: "bash", Description: agentKernelBashDescription, Parameters: map[string]any{
 		"type": "object", "additionalProperties": false,
 		"properties": map[string]any{
+			"memory_budget_mb": agentKernelMemoryBudgetSchema(),
 			"command": map[string]any{
 				"type": "string", "minLength": 1, "maxLength": 262144, "description": "One complete Bash step. Package-manager mutation is rejected; use the managed environment tools.",
 			},
@@ -154,6 +155,7 @@ func agentKernelLanguageToolParameters(language, defaultEnvironment string) map[
 	return map[string]any{
 		"type": "object", "additionalProperties": false,
 		"properties": map[string]any{
+			"memory_budget_mb": agentKernelMemoryBudgetSchema(),
 			"human_description": map[string]any{
 				"type": "string", "minLength": 1, "maxLength": 256, "description": "Short present-participle action label for this cell.",
 			},

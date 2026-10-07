@@ -63,6 +63,19 @@ func TestTerminalComputeTransitionPublishesNotificationAtomically(t *testing.T) 
 	}
 
 	rollback := createRunning("job-rollback", "sandbox-rollback")
+	for _, failure := range []struct{ id, state, kind string }{{"failed", ComputeJobFailed, "nonzero_exit"}, {"timed-out", ComputeJobTimedOut, "timeout"}} {
+		item := createRunning("job-preserved-"+failure.id, "sandbox-preserved-"+failure.id)
+		if err := store.SetComputeJobResult("owner", item.JobID, map[string]any{"output_manifest": "hpc/owned/manifest.jsonl", "checkpoint": map[string]any{"generation": 3, "verified": true}, "stdout_tail": "committed progress"}); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := store.TransitionComputeJob("owner", item.JobID, failure.state, failure.kind, endedAt); err != nil {
+			t.Fatal(err)
+		}
+		result, found, err := store.GetComputeJobResult("owner", item.JobID)
+		if err != nil || !found || result["output_manifest"] != "hpc/owned/manifest.jsonl" || result["checkpoint"] == nil || result["stdout_tail"] != "committed progress" || result["error_kind"] != failure.kind {
+			t.Fatalf("terminal transition discarded committed results: %#v %t %v", result, found, err)
+		}
+	}
 	if _, _, _, err := store.TransitionComputeJobWithNotification(
 		context.Background(), "owner", rollback.JobID, ComputeJobFailed, "fixture", endedAt,
 		CreateNotificationInput{

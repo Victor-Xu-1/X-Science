@@ -193,6 +193,7 @@ type KernelExecutionMountSpecV1 struct {
 }
 
 type KernelExecutionSessionSpecV1 struct {
+	ResourceMemoryBytes    int64                        `json:"resource_memory_bytes,omitempty"`
 	Version                int                          `json:"version"`
 	KernelID               string                       `json:"kernel_id"`
 	OwnerUserID            string                       `json:"owner_user_id"`
@@ -856,7 +857,7 @@ func canonicalKernelExecutionSessionSpec(
 	input.Environment = strings.TrimSpace(input.Environment)
 	input.RuntimeGeneration = strings.TrimSpace(input.RuntimeGeneration)
 	input.WorkspaceDir = filepath.Clean(strings.TrimSpace(input.WorkspaceDir))
-	if input.Version != 1 || !validDetachedIdentity(input.KernelID) || !validDetachedIdentity(input.OwnerUserID) ||
+	if input.ResourceMemoryBytes < 0 || input.Version != 1 || !validDetachedIdentity(input.KernelID) || !validDetachedIdentity(input.OwnerUserID) ||
 		!validDetachedIdentity(input.ProjectID) || !validDetachedIdentity(input.RootFrameID) ||
 		!validDetachedIdentity(input.RootFrameIncarnationID) || !validDetachedIdentity(input.FrameID) ||
 		!validDetachedIdentity(input.FrameIncarnationID) || !validDetachedIdentity(input.AgentName) ||

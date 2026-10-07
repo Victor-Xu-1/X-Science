@@ -2,12 +2,16 @@ package server
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"context"
+	"crypto/sha256"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"synon-go/internal/compute/transfer"
 	"testing"
 
 	workspace "synon-go/internal/persistence/workspace"
@@ -43,6 +47,24 @@ func TestBYOCInputArchiveRejectsWorkspaceEscapeAndControlEnvironment(t *testing.
 	}
 }
 
+func TestComputeIngressCancelsBeforeReadingAndKeepsControlNamesReserved(t *testing.T) {
+	server := &Server{runtimeAssetsDir: filepath.Join(repositoryRootForServerTest(t), "assets/optional")}
+	workspaceDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(workspaceDir, "input.bin"), []byte("input"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err := server.writeAgentBYOCInputArchiveContext(ctx, t.TempDir(), workspaceDir, map[string]any{"command": "true", "inputs": []any{"input.bin"}}); err == nil {
+		t.Fatal("cancelled ingress was staged")
+	}
+	for _, name := range []string{".phase", ".synon-harvest/selection.nul", "_synon_checkpoint.env", "_synon_harvest.sh"} {
+		if _, err := server.writeAgentBYOCInputArchive(t.TempDir(), workspaceDir, map[string]any{"command": "true", "inputs": []any{map[string]any{"src": "input.bin", "dst": name}}}); err == nil {
+			t.Fatalf("control input name admitted: %s", name)
+		}
+	}
+}
+
 func TestBYOCHarvestRejectsTraversalAndNonRegularEntries(t *testing.T) {
 	for name, header := range map[string]*tar.Header{
 		"traversal": {Name: "../escape.txt", Mode: 0o600, Size: 1, Typeflag: tar.TypeReg},
@@ -68,7 +90,17 @@ func TestBYOCHarvestRejectsTraversalAndNonRegularEntries(t *testing.T) {
 				t.Fatal(err)
 			}
 			workspaceDir := t.TempDir()
-			if _, err := extractAgentBYOCHarvest(stage, workspaceDir, "job-malicious"); err == nil {
+			observation := []byte("f\x00out/expected.txt\x001\x001.0000000000\x00")
+			var manifest, selected bytes.Buffer
+			selection, err := transfer.BuildSelection(context.Background(), bytes.NewReader(observation), fmt.Sprintf("%x", sha256.Sum256(observation)), transfer.Policy{}, transfer.Capacity{BytesKnown: true, Bytes: 4096}, &manifest, &selected, stage)
+			if err != nil {
+				t.Fatal(err)
+			}
+			manifestPath := filepath.Join(stage, "output-manifest.jsonl")
+			if err := os.WriteFile(manifestPath, manifest.Bytes(), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := transfer.ExtractSelected(context.Background(), filepath.Join(stage, "out.tar.gz"), manifestPath, filepath.Join(workspaceDir, "job-malicious"), selection); err == nil {
 				t.Fatalf("malicious BYOC harvest entry was accepted: %#v", header)
 			}
 			if _, err := os.Stat(filepath.Join(workspaceDir, "escape.txt")); !os.IsNotExist(err) {
@@ -105,13 +137,17 @@ func TestBYOCOutputContractSupportsRecursiveFeaturedAndHiddenGlobs(t *testing.T)
 			t.Fatalf("invalid output was accepted: %#v", invalid)
 		}
 	}
-	policy := agentComputeHarvestPolicy{
-		Outputs: []any{"out/**"}, Exclude: []string{"out/tmp/**"},
+	policy := transfer.Policy{
+		Outputs: []transfer.Output{{Glob: "out/**"}}, Exclude: []string{"out/tmp/**"}, MaxFileBytes: 1024, MaxTotalBytes: 4096,
 	}
-	if included, reason := agentComputeHarvestInclusion("out/tmp/cache.bin", 1, 0, 1024, 4096, policy); included || reason != "excluded" {
+	selector, err := policy.Compile()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if included, reason := selector.Select("out/tmp/cache.bin", 1, 0); included || reason != "excluded" {
 		t.Fatalf("excluded output included=%t reason=%q", included, reason)
 	}
-	if included, reason := agentComputeHarvestInclusion("out/model.bin", 2048, 0, 1024, 4096, policy); included || reason != "max_file_bytes" {
+	if included, reason := selector.Select("out/model.bin", 2048, 0); included || reason != "max_file_bytes" {
 		t.Fatalf("over-limit output included=%t reason=%q", included, reason)
 	}
 }
