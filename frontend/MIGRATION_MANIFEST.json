@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "5b2d159d6c372c7173784b77b8eda6006d39fc483742484869666185c4d43f38",
+  "adaptationFingerprintSHA256": "851427b709b9cc35b10f184cae7598cf493a19fe68be097b4283987dc271dd49",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
-  "additionFingerprintSHA256": "acc0c4b34ff5df37c0d3d3cf8b046626c768de0c5aa4b689b5aa3495531b5ffd",
+  "additionFingerprintSHA256": "599ab7f5fea5da8764d0e63b4d54ebabc260003f7e14485a251a5c58a9a7b9d9",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 393,
     "adaptedSourceFiles": 671,
     "removedSourceFiles": 290,
-    "addedFiles": 778
+    "addedFiles": 780
   },
   "adaptations": [
     {
@@ -549,8 +549,8 @@
     {
       "path": "packages/desktop/src/renderer/components/synonBiomed/notes/SynonBiomedNotesModal.tsx",
       "sourceSHA256": "e27a9e7970a42cb897b57cace8f80895952ef4c3285481bdda2813548e3eb319",
-      "targetSHA256": "34490e560217f2e0aa17ff6c19631a2adef53fad3cee804c90603400a71f0133",
-      "bytes": 6717,
+      "targetSHA256": "a1b0db4d49c522cbdcf2761efb060cd93bb93b1ca2927af4c96f98d78bf6021b",
+      "bytes": 5330,
       "reason": "Project authoritative Go files, notes, approvals, models, kernels, sessions, and runtime operations into the migrated workbench."
     },
     {
@@ -843,8 +843,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/artifact/ArtifactAnnotationPanels.tsx",
       "sourceSHA256": "f2a0ed3c6fedf2c011d13650172e66ff5d8cffcc8e10a095a7bfe980ea49aef9",
-      "targetSHA256": "1a1a36e0be4fb967780059a3ff671c40ec1c3c29ba3a058ac2771030a4162648",
-      "bytes": 25629,
+      "targetSHA256": "826c11f8c65cbf7a21f0795d8fd9cc47ea9c8542137272acc67456cfe2fe0c1c",
+      "bytes": 25997,
       "reason": "Connect immutable Go artifacts, annotations, refinement, and native viewers with bounded localized failure handling."
     },
     {
@@ -3615,8 +3615,8 @@
     {
       "path": "tests/unit/renderer/ArtifactAnnotationPanels.dom.test.tsx",
       "sourceSHA256": "a45b7fd9350d0f6a745b3a57113a6f6e93b5261372d19ade883a0c5c560e26fc",
-      "targetSHA256": "5e11a19eb9e2a16546c102eccbc6286cd4139766f8042ead9c7d3ad383509337",
-      "bytes": 11233,
+      "targetSHA256": "dd1201764675e23099d51e7c6b4fb37fb1915d9d0b3932c7e7b7b1e86d08a54f",
+      "bytes": 20811,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -6738,6 +6738,12 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/components/synonBiomed/notes/useSynonBiomedNotesEditor.ts",
+      "sha256": "cbb4069260a0f27c8f247c235412a59a32ac40324cc6541828dee105ce397d7f",
+      "bytes": 5484,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/components/synonBiomed/runtime/AskUserCard.css",
       "sha256": "59d8b5918ecfcba83f7936bc321f8144fe7ebba08bb9ec6e301f8df1ec492fe1",
       "bytes": 1837,
@@ -7029,6 +7035,12 @@
       "path": "packages/desktop/src/renderer/pages/artifact/pdfDocumentSource.ts",
       "sha256": "26ad7255da19bfdbb421cf8cfd559c6804285b0790ebcdd748bf2e5086b0127b",
       "bytes": 1824,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/artifact/useArtifactAnnotationStore.ts",
+      "sha256": "e5c65a3089d1547a284778438033da25067ac325a23bd368cc2e7c23630c7095",
+      "bytes": 4714,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9721,8 +9733,8 @@
     },
     {
       "path": "tests/unit/renderer/SynonBiomedNotesModal.dom.test.tsx",
-      "sha256": "93d9752ed78f56be0637d2d1bf8d076231b1b1633a1123ca3609989a30c71476",
-      "bytes": 2641,
+      "sha256": "78670deb17c498cfe10e49a182fc92cf31533038c2cbf36043cffed10e72ab53",
+      "bytes": 12953,
       "reason": "Verify localized notes lifecycle and failure states."
     },
     {
