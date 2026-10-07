@@ -1,18 +1,12 @@
-import {
-  applySynonBiomedArtifactEdit,
-  suggestSynonBiomedArtifactEdit,
-  type SynonBiomedAppliedArtifactEdit,
-  type SynonBiomedArtifactEditMode,
-} from '@/renderer/services/synonBiomedAnnotations';
+import type { SynonBiomedAppliedArtifactEdit } from '@/renderer/services/synonBiomedAnnotations';
 import { Alert, Button, Input, Spin } from '@arco-design/web-react';
 import Modal from '@/renderer/components/base/WorkbenchModal';
 import { CheckOne, Edit, Refresh } from '@icon-park/react';
 import { diffWordsWithSpace } from 'diff';
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-type SuggestionView = 'diff' | 'full';
-type RefinementStatus = 'idle' | 'suggesting' | 'ready' | 'applying' | 'applied';
+import { useArtifactRefinementEditor } from './useArtifactRefinementEditor';
 type DiffChange = { value: string; added?: boolean; removed?: boolean };
 
 export const ArtifactEditRefinementPanel: React.FC<{
@@ -24,79 +18,49 @@ export const ArtifactEditRefinementPanel: React.FC<{
   onApplied: (result: SynonBiomedAppliedArtifactEdit) => void | Promise<void>;
 }> = ({ artifactId, versionId, selectedText, initialInstruction, onClose, onApplied }) => {
   const { t } = useTranslation();
-  const [instruction, setInstruction] = useState(initialInstruction);
-  const [mode, setMode] = useState<SynonBiomedArtifactEditMode>('edit');
-  const [suggestion, setSuggestion] = useState<string | null>(null);
-  const [editedSuggestion, setEditedSuggestion] = useState<string | null>(null);
-  const [view, setView] = useState<SuggestionView>('diff');
-  const [manualEditing, setManualEditing] = useState(false);
-  const [status, setStatus] = useState<RefinementStatus>('idle');
-  const [error, setError] = useState<string | null>(null);
-  const replacement = editedSuggestion ?? suggestion ?? '';
+  const {
+    instruction,
+    setInstruction,
+    mode,
+    requestMode,
+    suggestion,
+    setEditedSuggestion,
+    view,
+    setView,
+    manualEditing,
+    setManualEditing,
+    status,
+    error,
+    saved,
+    replacement,
+    generate,
+    apply,
+    retryDisplay,
+    close,
+  } = useArtifactRefinementEditor(artifactId, versionId, selectedText, initialInstruction, onApplied);
 
   const changes = useMemo<DiffChange[]>(
     () => (suggestion && mode === 'edit' ? (diffWordsWithSpace(selectedText, replacement) as DiffChange[]) : []),
     [mode, replacement, selectedText, suggestion]
   );
 
-  const generate = async (nextMode: SynonBiomedArtifactEditMode) => {
-    const annotationText = instruction.trim();
-    if (!annotationText) return;
-    setMode(nextMode);
-    setStatus('suggesting');
-    setError(null);
-    try {
-      const next = await suggestSynonBiomedArtifactEdit(artifactId, versionId, {
-        selectedText,
-        annotationText,
-        ...(nextMode === 'edit' && mode === 'edit' && replacement && replacement !== selectedText
-          ? { currentIteration: replacement }
-          : {}),
-        mode: nextMode,
-      });
-      setSuggestion(next);
-      setEditedSuggestion(null);
-      setManualEditing(false);
-      setView(nextMode === 'edit' ? 'diff' : 'full');
-      setStatus('ready');
-    } catch (reason) {
-      console.error('[ArtifactEditRefinementPanel] Failed to generate suggestion', reason);
-      setError(t('preview.artifactRefinement.generateFailed'));
-      setStatus(suggestion ? 'ready' : 'idle');
-    }
+  const closeView = () => {
+    close();
+    onClose();
   };
-
-  const apply = async () => {
-    if (mode !== 'edit' || !replacement || replacement === selectedText) return;
-    setStatus('applying');
-    setError(null);
-    try {
-      const result = await applySynonBiomedArtifactEdit(artifactId, versionId, {
-        selectedText,
-        replacementText: replacement,
-      });
-      setStatus('applied');
-      await onApplied(result);
-    } catch (reason) {
-      console.error('[ArtifactEditRefinementPanel] Failed to apply edit', reason);
-      setError(t('preview.artifactRefinement.applyFailed'));
-      setStatus('ready');
-    }
-  };
-
-  const working = status === 'suggesting' || status === 'applying';
+  const working = status === 'suggesting' || status === 'applying' || status === 'refreshing';
   const canApply = status === 'ready' && mode === 'edit' && Boolean(replacement) && replacement !== selectedText;
 
   return (
     <Modal
       title={t('preview.artifactRefinement.title')}
       visible
-      onCancel={working ? undefined : onClose}
+      onCancel={closeView}
       footer={null}
       unmountOnExit
       style={{ width: 720, maxWidth: 'calc(100vw - 32px)' }}
     >
-      <div className='flex flex-col gap-14px' data-testid='artifact-edit-refinement'>
+      <div className='flex flex-col gap-14px' data-testid='artifact-edit-refinement' aria-busy={working}>
         <section>
           <div className='mb-6px text-11px font-[600] text-t-secondary'>{t('preview.artifactRefinement.editing')}</div>
           <div
@@ -115,39 +79,59 @@ export const ArtifactEditRefinementPanel: React.FC<{
             onChange={setInstruction}
             autoSize={{ minRows: 2, maxRows: 6 }}
             maxLength={4000}
-            disabled={working || status === 'applied'}
+            disabled={working || saved !== null}
             placeholder={t('preview.artifactRefinement.instructionPlaceholder')}
           />
         </label>
 
         <div className='flex flex-wrap items-center justify-end gap-6px'>
-          <Button disabled={!instruction.trim() || working} onClick={() => void generate('ask')}>
+          <Button disabled={!instruction.trim() || working || saved !== null} onClick={() => void generate('ask')}>
             {t('preview.artifactRefinement.ask')}
           </Button>
           <Button
             type='primary'
             icon={<Refresh theme='outline' size={14} />}
-            disabled={!instruction.trim() || working}
+            disabled={!instruction.trim() || working || saved !== null}
             onClick={() => void generate('edit')}
           >
-            {suggestion ? t('preview.artifactRefinement.regenerate') : t('preview.artifactRefinement.generateEdit')}
+            {suggestion && mode === 'edit'
+              ? t('preview.artifactRefinement.regenerate')
+              : t('preview.artifactRefinement.generateEdit')}
           </Button>
         </div>
 
-        {error && <Alert type='error' showIcon content={error} />}
+        {error && (
+          <Alert
+            type={error === 'refresh' ? 'warning' : 'error'}
+            showIcon
+            content={t(
+              error === 'generate'
+                ? 'preview.artifactRefinement.generateFailed'
+                : error === 'apply'
+                  ? 'preview.artifactRefinement.applyFailed'
+                  : 'preview.artifactRefinement.refreshFailed'
+            )}
+          />
+        )}
+        {error === 'refresh' && (
+          <Button disabled={working} onClick={() => void retryDisplay()}>
+            {t('preview.artifactRefinement.showSavedVersion')}
+          </Button>
+        )}
 
         {status === 'suggesting' && (
           <WorkingState
             label={
-              mode === 'ask'
+              requestMode === 'ask'
                 ? t('preview.artifactRefinement.generatingAnswer')
                 : t('preview.artifactRefinement.generatingSuggestion')
             }
           />
         )}
         {status === 'applying' && <WorkingState label={t('preview.artifactRefinement.creatingVersion')} />}
-        {status === 'applied' && (
-          <div className='min-h-120px flex-center gap-8px text-success-6'>
+        {status === 'refreshing' && <WorkingState label={t('preview.artifactRefinement.refreshingSavedVersion')} />}
+        {saved && (
+          <div className='flex items-center gap-8px text-success-6' role='status'>
             <CheckOne theme='outline' size={20} />
             <span className='text-13px font-[600]'>{t('preview.artifactRefinement.applied')}</span>
           </div>
@@ -210,10 +194,8 @@ export const ArtifactEditRefinementPanel: React.FC<{
         )}
 
         <footer className='flex items-center justify-end gap-8px pt-2px'>
-          <Button disabled={working} onClick={onClose}>
-            {status === 'applied' ? t('common.close') : t('common.cancel')}
-          </Button>
-          {mode === 'edit' && status !== 'applied' && (
+          <Button onClick={closeView}>{working || saved ? t('common.close') : t('common.cancel')}</Button>
+          {mode === 'edit' && saved === null && (
             <Button type='primary' disabled={!canApply} loading={status === 'applying'} onClick={() => void apply()}>
               {t('preview.artifactRefinement.applyAsVersion')}
             </Button>
@@ -225,7 +207,7 @@ export const ArtifactEditRefinementPanel: React.FC<{
 };
 
 const WorkingState: React.FC<{ label: string }> = ({ label }) => (
-  <div className='min-h-120px flex-center gap-8px text-t-secondary'>
+  <div className='min-h-120px flex-center gap-8px text-t-secondary' role='status' aria-label={label}>
     <Spin size={18} />
     <span className='text-12px'>{label}</span>
   </div>
@@ -238,7 +220,8 @@ const ViewButton: React.FC<{ active: boolean; onClick: () => void; children: Rea
 }) => (
   <button
     type='button'
-    className={`h-24px border-0 px-7px text-10px cursor-pointer ${active ? 'text-white' : 'bg-transparent text-t-secondary hover:bg-fill-2'}`}
+    aria-pressed={active}
+    className={`h-28px border-0 px-8px text-12px cursor-pointer ${active ? 'text-white' : 'bg-transparent text-t-secondary hover:bg-fill-2'}`}
     style={active ? { backgroundColor: 'rgb(var(--primary-6))' } : undefined}
     onClick={onClick}
   >

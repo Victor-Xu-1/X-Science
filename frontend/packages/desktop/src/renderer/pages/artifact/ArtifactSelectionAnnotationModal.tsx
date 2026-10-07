@@ -1,12 +1,10 @@
-import {
-  createSynonBiomedArtifactAnnotation,
-  type SynonBiomedArtifactAnnotation,
-} from '@/renderer/services/synonBiomedAnnotations';
+import type { SynonBiomedArtifactAnnotation } from '@/renderer/services/synonBiomedAnnotations';
 import type { SynonBiomedArtifactCanvasSelection } from './artifactCanvasSelection';
 import { Input } from '@arco-design/web-react';
 import Modal from '@/renderer/components/base/WorkbenchModal';
-import React, { useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { useArtifactSelectionEditor } from './useArtifactSelectionEditor';
 
 export const ArtifactSelectionAnnotationModal: React.FC<{
   artifactId: string;
@@ -16,38 +14,15 @@ export const ArtifactSelectionAnnotationModal: React.FC<{
   onCreated: (annotation: SynonBiomedArtifactAnnotation) => void | Promise<void>;
 }> = ({ artifactId, versionId, selection, onCancel, onCreated }) => {
   const { t } = useTranslation();
-  const [note, setNote] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const save = async () => {
-    const text = note.trim();
-    if (!text) return;
-    setSaving(true);
-    setError(null);
-    try {
-      const annotation = await createSynonBiomedArtifactAnnotation(artifactId, versionId, {
-        type: selection.type,
-        text,
-        selectionText: selection.type === 'point' ? null : selection.text,
-        selectionPrefix: selection.type === 'text_selection' ? selection.selectionPrefix : null,
-        startLine: selection.type === 'text_selection' ? selection.startLine : null,
-        startColumn: selection.type === 'text_selection' ? selection.startColumn : null,
-        endLine: selection.type === 'text_selection' ? selection.endLine : null,
-        endColumn: selection.type === 'text_selection' ? selection.endColumn : null,
-        xPercent: selection.type === 'text_selection' ? null : selection.xPercent,
-        yPercent: selection.type === 'text_selection' ? null : selection.yPercent,
-        pageNumber: selection.type === 'html_element' ? null : selection.pageNumber,
-        elementSelector: selection.type === 'html_element' ? selection.elementSelector : null,
-        elementDescriptor: selection.type === 'html_element' ? selection.elementDescriptor : null,
-      });
-      await onCreated(annotation);
-    } catch (reason) {
-      console.error('[ArtifactSelectionAnnotationModal] Failed to add selection annotation', reason);
-      setError(t('preview.selectionAnnotation.addFailed'));
-    } finally {
-      setSaving(false);
-    }
+  const { note, setNote, saving, error, created, save, retryDisplay, close } = useArtifactSelectionEditor(
+    artifactId,
+    versionId,
+    selection,
+    onCreated
+  );
+  const closeView = () => {
+    close();
+    onCancel();
   };
 
   return (
@@ -60,16 +35,20 @@ export const ArtifactSelectionAnnotationModal: React.FC<{
             : t('preview.selectionAnnotation.selectionTitle')
       }
       visible
-      onCancel={onCancel}
-      onOk={() => void save()}
+      onCancel={closeView}
+      onOk={() => {
+        if (created && error !== 'display') closeView();
+        else void (created ? retryDisplay() : save());
+      }}
       confirmLoading={saving}
-      okButtonProps={{ disabled: !note.trim() }}
-      okText={t('preview.artifactAnnotations.add')}
-      cancelText={t('common.cancel')}
+      okButtonProps={{ disabled: !note.trim() || saving }}
+      okText={created ? t(error === 'display' ? 'common.retry' : 'common.close') : t('preview.artifactAnnotations.add')}
+      cancelText={t(created ? 'common.close' : 'common.cancel')}
+      hideCancel={created !== null}
       unmountOnExit
       style={{ width: 560, maxWidth: 'calc(100vw - 32px)' }}
     >
-      <div className='flex flex-col gap-12px'>
+      <div className='flex flex-col gap-12px' aria-busy={saving}>
         <div
           className='max-h-120px overflow-auto border-l-3 border-solid bg-fill-1 px-10px py-8px whitespace-pre-wrap break-words text-12px leading-19px text-t-primary'
           style={{ borderLeftColor: 'rgb(var(--primary-6))' }}
@@ -82,13 +61,30 @@ export const ArtifactSelectionAnnotationModal: React.FC<{
             aria-label={t('preview.selectionAnnotation.content')}
             value={note}
             onChange={setNote}
+            disabled={saving || created !== null}
             autoFocus
             autoSize={{ minRows: 3, maxRows: 8 }}
             maxLength={4000}
             showWordLimit
           />
         </label>
-        {error && <div className='text-11px leading-18px text-danger-6'>{error}</div>}
+        {created && (
+          <div role='status' className='text-12px text-success-6'>
+            {t('preview.artifactAnnotations.added')}
+          </div>
+        )}
+        {error && (
+          <div
+            role='alert'
+            className={`text-12px leading-18px ${error === 'display' ? 'text-warning-6' : 'text-danger-6'}`}
+          >
+            {t(
+              error === 'display'
+                ? 'preview.selectionAnnotation.refreshFailed'
+                : 'preview.selectionAnnotation.addFailed'
+            )}
+          </div>
+        )}
       </div>
     </Modal>
   );

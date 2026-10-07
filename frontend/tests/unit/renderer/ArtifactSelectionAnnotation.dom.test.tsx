@@ -1,13 +1,31 @@
 import { ConfigProvider } from '@arco-design/web-react';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import React from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ArtifactSelectionAnnotationModal } from '@/renderer/pages/artifact/ArtifactSelectionAnnotationModal';
+import { artifactCanvasSelectionIdentity } from '@/renderer/pages/artifact/artifactCanvasSelection';
 import { locateRenderedTextSelection } from '@/renderer/pages/artifact/artifactTextSelection';
 import { SynonBiomedImageArtifactViewer } from '@/renderer/pages/artifact/SynonBiomedImageArtifactViewer';
 import { renderWithI18n } from '../i18nTestUtils';
 
 const createAnnotation = vi.hoisted(() => vi.fn());
+const selection = {
+  type: 'point' as const,
+  text: 'Image position',
+  x: 20,
+  y: 30,
+  xPercent: 25,
+  yPercent: 50,
+  pageNumber: null,
+};
+const deferred = <T,>() => {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((complete) => {
+    resolve = complete;
+  });
+  return { promise, resolve };
+};
+beforeEach(() => createAnnotation.mockReset());
 
 vi.mock('@/renderer/services/synonBiomedAnnotations', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/renderer/services/synonBiomedAnnotations')>();
@@ -15,6 +33,154 @@ vi.mock('@/renderer/services/synonBiomedAnnotations', async (importOriginal) => 
 });
 
 describe('Artifact selection annotation', () => {
+  it('keys text, page and HTML anchors independently of screen placement', () => {
+    const text = {
+      type: 'text_selection' as const,
+      text: 'Passage',
+      x: 10,
+      y: 20,
+      startLine: 1,
+      startColumn: 1,
+      endLine: 1,
+      endColumn: 8,
+      selectionPrefix: '',
+      pageNumber: null,
+    };
+    expect(artifactCanvasSelectionIdentity({ ...text, x: 100, y: 200 })).toBe(artifactCanvasSelectionIdentity(text));
+    expect(artifactCanvasSelectionIdentity({ ...text, startLine: 2 })).not.toBe(artifactCanvasSelectionIdentity(text));
+    expect(artifactCanvasSelectionIdentity({ ...text, selectionPrefix: 'Different source' })).not.toBe(
+      artifactCanvasSelectionIdentity(text)
+    );
+    expect(artifactCanvasSelectionIdentity({ ...selection, pageNumber: 2 })).not.toBe(
+      artifactCanvasSelectionIdentity(selection)
+    );
+    expect(artifactCanvasSelectionIdentity({ ...selection, text: 'Localized position label' })).toBe(
+      artifactCanvasSelectionIdentity(selection)
+    );
+    const element = {
+      type: 'html_element' as const,
+      text: 'Cell',
+      x: 10,
+      y: 20,
+      xPercent: 25,
+      yPercent: 50,
+      elementSelector: '#cell-1',
+      elementDescriptor: 'td — Cell',
+    };
+    expect(artifactCanvasSelectionIdentity({ ...element, elementSelector: '#cell-2' })).not.toBe(
+      artifactCanvasSelectionIdentity(element)
+    );
+    expect(
+      artifactCanvasSelectionIdentity({
+        ...element,
+        xPercent: 80,
+        yPercent: 10,
+        elementDescriptor: 'Localized descriptor',
+      })
+    ).toBe(artifactCanvasSelectionIdentity(element));
+  });
+
+  it('retries only publishing a saved annotation after a consumer failure, without posting it twice', async () => {
+    const annotation = { id: 'saved-annotation', text: 'Selection note' };
+    createAnnotation.mockResolvedValueOnce(annotation);
+    const onCreated = vi.fn().mockRejectedValueOnce(new Error('fixture consumer failure')).mockResolvedValue(undefined);
+    await renderWithI18n(
+      <ArtifactSelectionAnnotationModal
+        artifactId='artifact-1'
+        versionId='version-1'
+        selection={selection}
+        onCancel={vi.fn()}
+        onCreated={onCreated}
+      />
+    );
+    fireEvent.change(screen.getByRole('textbox', { name: '选区批注内容' }), { target: { value: annotation.text } });
+    fireEvent.click(screen.getByRole('button', { name: '添加' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('批注已保存');
+    expect(screen.getByRole('textbox', { name: '选区批注内容' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: '重试' }));
+    await waitFor(() => expect(onCreated).toHaveBeenCalledTimes(2));
+    expect(createAnnotation).toHaveBeenCalledTimes(1);
+    expect(onCreated).toHaveBeenLastCalledWith(annotation);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('does not publish a late annotation into the parent after this editor is closed', async () => {
+    const pending = deferred<{ id: string; text: string }>();
+    createAnnotation.mockReturnValueOnce(pending.promise);
+    const onCreated = vi.fn();
+    const view = await renderWithI18n(
+      <ArtifactSelectionAnnotationModal
+        artifactId='artifact-1'
+        versionId='version-1'
+        selection={selection}
+        onCancel={vi.fn()}
+        onCreated={onCreated}
+      />
+    );
+    fireEvent.change(screen.getByRole('textbox', { name: '选区批注内容' }), { target: { value: 'Selection note' } });
+    fireEvent.click(screen.getByRole('button', { name: '添加' }));
+    view.unmount();
+    await act(async () => {
+      pending.resolve({ id: 'old-annotation', text: 'Selection note' });
+      await pending.promise;
+    });
+    expect(onCreated).not.toHaveBeenCalled();
+  });
+
+  it('resets an actually changed anchor, but not an equivalent selection object or toolbar location', async () => {
+    const callbacks = { onCancel: vi.fn(), onCreated: vi.fn() };
+    const view = await renderWithI18n(
+      <ArtifactSelectionAnnotationModal
+        artifactId='artifact-1'
+        versionId='version-1'
+        selection={selection}
+        {...callbacks}
+      />
+    );
+    fireEvent.change(screen.getByRole('textbox', { name: '选区批注内容' }), { target: { value: 'Current draft' } });
+    view.rerender(
+      <ArtifactSelectionAnnotationModal
+        artifactId='artifact-1'
+        versionId='version-1'
+        selection={{ ...selection, x: 200, y: 300 }}
+        {...callbacks}
+      />
+    );
+    expect(screen.getByRole('textbox', { name: '选区批注内容' })).toHaveValue('Current draft');
+    view.rerender(
+      <ArtifactSelectionAnnotationModal
+        artifactId='artifact-1'
+        versionId='version-1'
+        selection={{ ...selection, xPercent: 80 }}
+        {...callbacks}
+      />
+    );
+    expect(screen.getByRole('textbox', { name: '选区批注内容' })).toHaveValue('');
+  });
+
+  it('does not leave the submitted note editable while its annotation is pending', async () => {
+    const pending = deferred<{ id: string; text: string }>();
+    createAnnotation.mockReturnValueOnce(pending.promise);
+    const view = await renderWithI18n(
+      <ArtifactSelectionAnnotationModal
+        artifactId='artifact-1'
+        versionId='version-1'
+        selection={selection}
+        onCancel={vi.fn()}
+        onCreated={vi.fn()}
+      />
+    );
+    const editor = screen.getByRole('textbox', { name: '选区批注内容' });
+    fireEvent.change(editor, { target: { value: 'Submitted note' } });
+    fireEvent.click(screen.getByRole('button', { name: '添加' }));
+    expect(editor).toBeDisabled();
+    await act(async () => {
+      pending.resolve({ id: 'annotation', text: 'Submitted note' });
+      await pending.promise;
+    });
+    view.unmount();
+  });
+
   it('maps an exact rendered selection back to one-based source coordinates and prefix', () => {
     const content = '# Result\n\nSTAT6 inhibition changed viability.\nConclusion.';
     expect(locateRenderedTextSelection(content, 'STAT6 inhibition changed viability.', 240, 180)).toEqual({

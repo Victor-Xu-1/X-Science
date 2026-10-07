@@ -475,6 +475,9 @@
   "artifactRefinement": {
     "generateFailed": "Failed to generate a suggestion.",
     "applyFailed": "Failed to apply the revision.",
+    "refreshFailed": "The new version was saved, but its view could not be refreshed.",
+    "showSavedVersion": "Show saved version",
+    "refreshingSavedVersion": "Loading the saved version",
     "title": "Refine selection",
     "editing": "Editing",
     "instruction": "Revision request or question",
@@ -904,6 +907,7 @@
   "loadingDefault": "Loading preview",
   "selectionAnnotation": {
     "addFailed": "Failed to add the selection annotation.",
+    "refreshFailed": "The annotation was saved, but its view could not be refreshed.",
     "pointTitle": "Add position annotation",
     "elementTitle": "Add element annotation",
     "selectionTitle": "Add selection annotation",

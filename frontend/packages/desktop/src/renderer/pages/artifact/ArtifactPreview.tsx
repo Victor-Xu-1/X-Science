@@ -53,7 +53,7 @@ import { Button, Empty, Input, Message, Select, Spin } from '@arco-design/web-re
 import Modal from '@/renderer/components/base/WorkbenchModal';
 import Tabs from '@/renderer/components/base/WorkbenchTabs';
 import { Comment, Copy, Download, FileText, FolderOpen, Left, Magic, Notes, Upload } from '@icon-park/react';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate, useParams } from 'react-router';
 
@@ -113,6 +113,15 @@ const ArtifactPreview: React.FC = () => {
   const [mutating, setMutating] = useState(false);
   const [notesVisible, setNotesVisible] = useState(false);
   const [messageApi, messageContextHolder] = Message.useMessage();
+  const versionRefreshRevision = useRef(0);
+  const viewOwner = useRef({ artifactId, selectedVersionId });
+  useLayoutEffect(() => {
+    viewOwner.current = { artifactId, selectedVersionId };
+    versionRefreshRevision.current += 1;
+    return () => {
+      versionRefreshRevision.current += 1;
+    };
+  }, [artifactId, selectedVersionId]);
 
   useEffect(() => {
     setActiveInspectorTab(inspectorTabFromSearch(location.search));
@@ -206,7 +215,17 @@ const ArtifactPreview: React.FC = () => {
   const activeVersionId = selectedVersion?.versionId ?? artifact.versionId;
 
   const handleVersionApplied = async (result: SynonBiomedAppliedArtifactEdit) => {
+    // A saved version is immutable; displaying it must not override a newer
+    // route or an explicit historical-version choice made during the read.
+    if (
+      viewOwner.current.artifactId !== artifactId ||
+      viewOwner.current.selectedVersionId !== selectedVersionId ||
+      result.artifactId !== artifactId
+    )
+      return;
+    const refreshRevision = ++versionRefreshRevision.current;
     const nextSnapshot = await loadArtifactSnapshot(result.artifactId);
+    if (refreshRevision !== versionRefreshRevision.current) return;
     setSnapshot(nextSnapshot);
     setSelectedVersionId(result.versionId);
     setCanvasSelection(null);
@@ -418,6 +437,8 @@ const ArtifactPreview: React.FC = () => {
                   onSelect={(versionId) => {
                     setSelectedVersionId(versionId);
                     setCanvasSelection(null);
+                    setAnnotationSelection(null);
+                    setRefinementSelection(null);
                   }}
                 />
               </Tabs.TabPane>
@@ -464,8 +485,8 @@ const ArtifactPreview: React.FC = () => {
             type='text'
             size='small'
             icon={<Comment theme='outline' size={14} />}
-            onMouseDown={(event) => {
-              event.preventDefault();
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => {
               setAnnotationSelection(canvasSelection);
               setCanvasSelection(null);
             }}
@@ -477,8 +498,8 @@ const ArtifactPreview: React.FC = () => {
               type='text'
               size='small'
               icon={<Magic theme='outline' size={14} />}
-              onMouseDown={(event) => {
-                event.preventDefault();
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => {
                 setRefinementSelection(canvasSelection);
                 setCanvasSelection(null);
               }}

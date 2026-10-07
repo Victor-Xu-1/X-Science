@@ -475,6 +475,9 @@
   "artifactRefinement": {
     "generateFailed": "生成建议失败。",
     "applyFailed": "应用修改失败。",
+    "refreshFailed": "新版本已保存，但当前视图刷新失败。",
+    "showSavedVersion": "显示已保存版本",
+    "refreshingSavedVersion": "正在读取已保存版本",
     "title": "改进选区",
     "editing": "正在编辑",
     "instruction": "修改要求或问题",
@@ -901,6 +904,7 @@
   "loadingDefault": "正在加载预览",
   "selectionAnnotation": {
     "addFailed": "添加选区批注失败。",
+    "refreshFailed": "批注已保存，但当前视图刷新失败。",
     "pointTitle": "添加位置批注",
     "elementTitle": "添加元素批注",
     "selectionTitle": "添加选区批注",
