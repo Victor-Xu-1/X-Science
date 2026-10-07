@@ -741,7 +741,7 @@ const GuidPage: React.FC = () => {
         <div className={styles.guidLayout}>
           {!composerDocked ? (
             <section className={styles.guidWelcome} aria-label='SYNON-Biomed'>
-              <h1 className='sr-only'>{t('guid.emptyState.guidance')}</h1>
+              <h1 className='sr-only'>{t('common.newTask')}</h1>
               <img className={styles.guidWelcomeLogo} src='./branding/synon-biomed-lockup.png' alt='SYNON-Biomed' />
               <p className={styles.guidWelcomeGuidance}>{t('guid.emptyState.guidance')}</p>
             </section>

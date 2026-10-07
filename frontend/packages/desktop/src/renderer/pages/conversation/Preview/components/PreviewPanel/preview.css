@@ -864,7 +864,7 @@
   }
 
   .preview-markdown__document {
-    font-size: 14px;
+    font-size: var(--ui-font-subtitle);
     line-height: 1.65;
   }
 
@@ -873,15 +873,16 @@
   }
 
   .preview-markdown__document h1 {
-    font-size: 22px;
+    font-size: var(--ui-font-document-title);
+    line-height: var(--ui-line-height-document-title);
   }
 
   .preview-markdown__document h2 {
-    font-size: 18px;
+    font-size: var(--ui-font-lead);
   }
 
   .preview-markdown__document h3 {
-    font-size: 16px;
+    font-size: var(--ui-font-section);
   }
 }
 

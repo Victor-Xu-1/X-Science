@@ -1,6 +1,8 @@
 {
   "send": "发送",
   "skipToContent": "跳到工作区内容",
+  "chat": "对话",
+  "newTask": "新任务",
   "cancel": "取消",
   "save": "保存",
   "delete": "删除",

@@ -25,6 +25,7 @@ vi.mock('@/common', () => ({
 }));
 vi.mock('@icon-park/react', () => ({
   ArrowLeft: () => <span />,
+  Close: () => <span />,
   Copy: () => <span />,
   LinkOne: () => <span />,
   Right: () => <span />,

@@ -16,12 +16,14 @@ const previewStylesPath = fileURLToPath(
 );
 
 describe('file board layout styles', () => {
-  it('keeps the selected column count as the only grid column authority', async () => {
+  it('uses one adaptive grid with the selected column count as its maximum', async () => {
     const styles = await readFile(previewStylesPath, 'utf8');
     const boardGrid = styles.match(/^\.preview-board__grid\s*\{([^}]*)\}/ms)?.[1] ?? '';
     const boardColumnDeclarations = [...styles.matchAll(/grid-template-columns\s*:/g)];
 
-    expect(boardGrid).toContain('repeat(var(--preview-board-columns, 2), minmax(0, 1fr))');
+    expect(boardGrid).toContain('auto-fit');
+    expect(boardGrid).toContain('var(--preview-board-columns, 2)');
+    expect(boardGrid).toContain('260px');
     expect(boardColumnDeclarations).toHaveLength(1);
   });
 });

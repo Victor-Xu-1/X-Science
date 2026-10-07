@@ -54,7 +54,8 @@ vi.mock('@/renderer/components/layout/FlexFullContainer', () => ({
   default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
-vi.mock('@arco-design/web-react', () => ({
+vi.mock('@arco-design/web-react', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@arco-design/web-react')>()),
   Empty: () => <div data-testid='empty' />,
   Message: {
     useMessage: () => [{ error: vi.fn(), success: vi.fn(), info: vi.fn() }, null],
@@ -66,6 +67,7 @@ vi.mock('@arco-design/web-react', () => ({
 }));
 
 vi.mock('@icon-park/react', () => ({
+  Close: () => <span />,
   Right: () => <span />,
 }));
 

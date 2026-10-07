@@ -1,6 +1,8 @@
 {
   "send": "Send",
   "skipToContent": "Skip to workspace content",
+  "chat": "Conversation",
+  "newTask": "New task",
   "cancel": "Cancel",
   "save": "Save",
   "delete": "Delete",

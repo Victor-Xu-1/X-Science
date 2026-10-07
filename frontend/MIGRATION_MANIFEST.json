@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "dbe37b7d1852ab1677362f1beb88d1861e770334e07d1b742b9c0ed28890ba1b",
+  "adaptationFingerprintSHA256": "61dcce0510e2772bf83deae858034f1ebadccf425f3501d608f099bf9aadf4f1",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
-  "additionFingerprintSHA256": "4804066fb6b984783798dc31663b93a8b1d29acd3731ca9c33f038782e2993b1",
+  "additionFingerprintSHA256": "2584106e05162cd186a87ac11083bd5e07787818dcb8a47d13f92892414f2170",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 393,
@@ -1270,8 +1270,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/PreviewPanel/preview.css",
       "sourceSHA256": "0b00c170d8d6dfbf1ad315b4ab403426afb2bdad857316eb9e8f4496b2904219",
-      "targetSHA256": "4d9f19a4be622323f71ce0eefcae38f9abc1c43a0dfaa758b30943f98b32a916",
-      "bytes": 24136,
+      "targetSHA256": "a782bf1b2aa7631637c1c7b1c19af28cac2e2c4a21239361fa77cbe771751759",
+      "bytes": 24268,
       "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -1914,8 +1914,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/guid/GuidPage.tsx",
       "sourceSHA256": "74e43625d6289cbbcfab89d2156b48aa31b91619742d0e2e383f1194f4b7abb0",
-      "targetSHA256": "4530a00bde0634cc4658e3e2dcc068bb8a62522d2079a01068a5a02a058f1890",
-      "bytes": 32967,
+      "targetSHA256": "0d693cfd0142a0ec004cee64c0d00b3d4ba449df26e06623207bc6cc2c6f18c0",
+      "bytes": 32957,
       "reason": "Migrate authenticated login, onboarding, project workbench, and artifact workflows to the Go product shell."
     },
     {
@@ -1998,8 +1998,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/login/LoginPage.css",
       "sourceSHA256": "2778d3ec60a02f49835499a8e40936e361d1ee0fcc5afa8042678eb079539ff5",
-      "targetSHA256": "8ee34098ad266f247f0b950589300e43525b00058e19c980d53f5aab752893b3",
-      "bytes": 7857,
+      "targetSHA256": "ebdcf1166370f5d785986ca29a656fafac015c0709dff16f3de5ec5f9da321a4",
+      "bytes": 7875,
       "reason": "Migrate authenticated login, onboarding, project workbench, and artifact workflows to the Go product shell."
     },
     {
@@ -2432,8 +2432,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "acc835d7bcc38840e73d1110ef6e4a4a21895dce33f2c8d7dcabacdd01546823",
-      "bytes": 251327,
+      "targetSHA256": "f73b9e98ed0d94add0f201106b2a2c95a9a50bf585b30ccd0c84bca0d541b254",
+      "bytes": 251366,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2460,8 +2460,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/common.json",
       "sourceSHA256": "7f0551495cb6843a54ed515cfc052468d8857ceec658f91f76b852690339c8db",
-      "targetSHA256": "f5f16316ab5fd40a7c9616fb9c2a7d3504bbbbe1aa6ade5414b8c2ddbd03c338",
-      "bytes": 4648,
+      "targetSHA256": "b3d090a40a291c25bb731ca5326dc967e83ecf24fbe2764e93e8641e57dd9e99",
+      "bytes": 4699,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2551,8 +2551,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/common.json",
       "sourceSHA256": "58e5974433b46b9f30c07816e305c5b4f792710e487ac50ca3d2e1c96f1c197e",
-      "targetSHA256": "27e7f19890ef183c7fd15517cea79f9d5328be77ba12d47e5cec0a2389bb9182",
-      "bytes": 4638,
+      "targetSHA256": "7506e4c2f2a5af30cc62ea4317f5948425860ca04e2613b15af5251a44e589d0",
+      "bytes": 4684,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -3881,8 +3881,8 @@
     {
       "path": "tests/unit/renderer/hooks/guidPage.dom.test.tsx",
       "sourceSHA256": "3d3844aa79c885baecd5d8b6276c031d33b10963b38f009079dde27771036a1c",
-      "targetSHA256": "953db78c2414bb3e6f421ad5a93065de06806323620e0a11c6b16d10470894fb",
-      "bytes": 27877,
+      "targetSHA256": "7276794a9c6b1231e7c1b5e87fbca62fd0cd6c7bcc1877aede7e8b7b499346b2",
+      "bytes": 27976,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -4525,8 +4525,8 @@
     {
       "path": "tests/unit/workspace/WorkspacePreviewSelection.dom.test.tsx",
       "sourceSHA256": "2a2a289a423f9b534e7e124992159b9a7aca0169584ff76da46c040c59135167",
-      "targetSHA256": "6676ab43eb54f04d3bb0eb07fd0d6c80e720c893e5e65d1f94f8da7eaded7117",
-      "bytes": 8160,
+      "targetSHA256": "07d6d6212072a5b44af1f1fad83b693e12d9c0e9953e96a49b5a57f6cf038dd2",
+      "bytes": 8277,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -8623,8 +8623,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/styles/tokens.css",
-      "sha256": "b72c3e93ee2e001f308aca5f68a6260629841fd9611153af40788e49ffc5ce08",
-      "bytes": 2964,
+      "sha256": "c6eae40587558f8f6cd3c12690d6f6fafee6f32e077bf66df3a85272c8a6f04c",
+      "bytes": 3039,
       "reason": "Own the single canonical visual-primitive scale (space, radius, elevation, type, weight, stacking) that every renderer module references instead of restating literals."
     },
     {
@@ -9517,14 +9517,14 @@
     },
     {
       "path": "tests/unit/previews/previewBoardLayoutStyle.test.ts",
-      "sha256": "8cf7b172037c8234bbf46a96023f0b52aa57dd12de9c87a803a86b0414dc6df1",
-      "bytes": 939,
+      "sha256": "15eeb878999271368a4b47efb75837425981fba94cb913a72a77bfdf03dcf49c",
+      "bytes": 1005,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/unit/previews/previewImageStyle.test.ts",
-      "sha256": "a9370b77f97e8f69d578420cc2c9ba55891b25639c07fa1abc39425de7428c28",
-      "bytes": 2194,
+      "sha256": "009784e38bc238ef33ca219e5b69008e7f116b73baede9fb552a76a07a750125",
+      "bytes": 2447,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -10381,8 +10381,8 @@
     },
     {
       "path": "tests/unit/synonbiomed/ComputeJobsDialog.dom.test.tsx",
-      "sha256": "f858f541a90566ccb5548aff39e842f2762db41dd33e84655df29f73268e65fe",
-      "bytes": 3754,
+      "sha256": "f708e660b0b2e183c9eb65c0daf004412d71466c10116d76313d86f615660df8",
+      "bytes": 3779,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -10609,8 +10609,8 @@
     },
     {
       "path": "tests/unit/themeVisualTokens.test.ts",
-      "sha256": "d7f5e714dd0f1ea6ed2119ba6208e526a2bec91c108f49dd2d04ef707e83f81e",
-      "bytes": 5290,
+      "sha256": "f4ed69643c4d0534b29edcaeb24fd7b67d15e273aa41440bb9d2575eddab889d",
+      "bytes": 5314,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

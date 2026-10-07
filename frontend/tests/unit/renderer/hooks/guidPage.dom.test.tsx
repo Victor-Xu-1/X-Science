@@ -393,6 +393,7 @@ describe('GuidPage', () => {
       './branding/synon-biomed-lockup.png'
     );
     expect(screen.getByText('guid.emptyState.guidance')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'common.newTask' })).toBeInTheDocument();
     const latestGuidActionRowProps = capturedGuidActionRowProps.at(-1);
     const latestGuidInputCardProps = capturedGuidInputCardProps.at(-1);
 
