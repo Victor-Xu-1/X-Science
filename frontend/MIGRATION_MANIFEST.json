@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "72835efdfd17cecb8242c9719e9b9b392a6b914df7f1b90ab8ff5b8725d4657f",
+  "adaptationFingerprintSHA256": "2706b9ac9521c73fda88e187c128171552dc93397ed05fd2610fba99d039fad0",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
-  "additionFingerprintSHA256": "3ab0c2e261afcc05ba38dd16c598890634d23356d53e4bed33a24f4078b86392",
+  "additionFingerprintSHA256": "c78a4736e00c8c23bc9e743815413bdf244acb61c8b521a67839668031e35f27",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 393,
     "adaptedSourceFiles": 671,
     "removedSourceFiles": 290,
-    "addedFiles": 773
+    "addedFiles": 775
   },
   "adaptations": [
     {
@@ -920,15 +920,15 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/GroupedHistory/ConversationSearchPopover.css",
       "sourceSHA256": "1cd952663f5b21e37c501f9b76034c238e92a3527721ee87d2ca405f443dca78",
-      "targetSHA256": "8e78697c61cb9a10a6f43a886adaf2276ed5d9f624e29cb7a1e5b93d8b8ecfe7",
-      "bytes": 10339,
+      "targetSHA256": "5922c72538536e0a4527478119d57f40f024db2c0061262f13ce84774f261ee9",
+      "bytes": 10352,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/GroupedHistory/ConversationSearchPopover.tsx",
       "sourceSHA256": "f78ce56ae7aa66cf157cc8ede1b0fd0fe093f2f6fb0716e622d19469404ce22a",
-      "targetSHA256": "83b6701845ea283e94761d5de11bae8525fa665f2aa2a660ca54d09eed257676",
-      "bytes": 22478,
+      "targetSHA256": "ebabf4a72e7947c83ee02d1b6f846f9dbb7da73c1c101af064e617e0d5f949a7",
+      "bytes": 21578,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -7044,6 +7044,12 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/conversation/GroupedHistory/useConversationSearchResults.ts",
+      "sha256": "5578660b5fa14fe54f5aba6c386fdec4eb046242bf955efd812dd71871958bfb",
+      "bytes": 3961,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/MessageVirtualItem.tsx",
       "sha256": "5bb042406ae823feed9a1c4f9117d42a8620d08b04c49cda830948f07646b883",
       "bytes": 552,
@@ -8629,8 +8635,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/styles/workspace-theme.css",
-      "sha256": "54aac02e190497273005260b55b2a67297c1c85117c8fad69e590788ca003a09",
-      "bytes": 65274,
+      "sha256": "3dd23768ffcfde347aa17e3b0c0d3373bd10b2123ce9db515ea9550297c7d763",
+      "bytes": 65405,
       "reason": "Provide the shared visual shell under a product-neutral filename and CSS custom-property namespace."
     },
     {
@@ -9349,8 +9355,14 @@
     },
     {
       "path": "tests/unit/conversation/ConversationSearchPopover.dom.test.tsx",
-      "sha256": "1245ae82c405e26ceb8181e1a21215fbfdeaf7532d7833c222ae9ef7a57d2b05",
-      "bytes": 7326,
+      "sha256": "db83f5cdd065fc019e2e29a5a6fed8163dda96fd6f07311d57cf51da5009020a",
+      "bytes": 17651,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/conversation/conversationSearchStyle.test.ts",
+      "sha256": "b7c739cff5ee627fba6ea91bad0f3bf92c1896e685e8352fa8d8cd47cd37862b",
+      "bytes": 1484,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
