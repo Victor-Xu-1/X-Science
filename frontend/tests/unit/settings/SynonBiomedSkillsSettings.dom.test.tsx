@@ -1,5 +1,6 @@
 import { ConfigProvider } from '@arco-design/web-react';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SynonBiomedSkillsSettings from '@/renderer/pages/settings/SynonBiomedSkillsSettings';
@@ -170,7 +171,11 @@ describe('Synon Biomed Skills settings', () => {
     const toggle = await screen.findByRole('switch', { name: '启用 AlphaFold2' });
     fireEvent.keyDown(toggle, { key: ' ' });
     expect(screen.queryByTestId('skill-detail-modal')).not.toBeInTheDocument();
-    fireEvent.keyDown(screen.getByTestId('synon-biomed-skill-row-alphafold2'), { key: 'Enter' });
+    const open = within(screen.getByTestId('synon-biomed-skill-row-alphafold2')).getByRole('button', {
+      name: '查看 AlphaFold2',
+    });
+    open.focus();
+    await userEvent.setup().keyboard('{Enter}');
     expect(screen.getByTestId('skill-detail-modal')).toBeInTheDocument();
   });
 
@@ -383,7 +388,7 @@ describe('Synon Biomed Skills settings', () => {
     fireEvent.change(screen.getByRole('combobox', { name: '科研领域' }), { target: { value: 'structural-biology' } });
     await openMarket();
     fireEvent.change(await screen.findByRole('textbox', { name: '搜索在线技能' }), { target: { value: 'different' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    fireEvent.click(screen.getByRole('button', { name: '关闭', exact: true }));
     await waitFor(() => expect(screen.queryByTestId('skill-market-dialog')).not.toBeInTheDocument());
     expect(screen.getByRole('textbox', { name: '搜索技能' })).toHaveValue('protein');
     expect(screen.getByRole('combobox', { name: '科研领域' })).toHaveValue('structural-biology');

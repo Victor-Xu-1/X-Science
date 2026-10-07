@@ -7,7 +7,13 @@ import { renderWithSettingsI18n } from './settingsI18nTestUtils';
 vi.mock('@/renderer/pages/settings/components/SettingsPageWrapper', () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
-const mocks = vi.hoisted(() => ({ load: vi.fn(), save: vi.fn(), retry: vi.fn(), pause: vi.fn(), uninstall: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  load: vi.fn(),
+  save: vi.fn(),
+  retry: vi.fn(),
+  pause: vi.fn(),
+  uninstall: vi.fn(),
+}));
 vi.mock('@/renderer/services/scientificRuntimeSettings', () => ({
   loadScientificRuntimeSettings: mocks.load,
   pauseScientificRuntime: mocks.pause,
@@ -48,7 +54,7 @@ describe('scientific environment library', () => {
   });
   it('requires explicit confirmation and preserves other selections when downloading', async () => {
     await renderWithSettingsI18n(<ScientificEnvironmentSettings />, 'en-US');
-    fireEvent.click(await screen.findByRole('button', { name: 'Download environment' }));
+    fireEvent.click(await screen.findByRole('button', { name: /^Download environment · / }));
     expect(mocks.save).not.toHaveBeenCalled();
     expect(mocks.retry).not.toHaveBeenCalled();
     mocks.load.mockResolvedValue({
@@ -71,13 +77,17 @@ describe('scientific environment library', () => {
       ).toHaveLength(3)
     );
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'vina==1.2.7' } });
-    fireEvent.change(screen.getByRole('combobox', { name: 'Research category' }), { target: { value: 'other' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Research category' }), {
+      target: { value: 'other' },
+    });
     expect(screen.getByTestId('scientific-environments').querySelectorAll('article[data-environment-id]')).toHaveLength(
       1
     );
     expect(screen.getByText('future-tool')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
-    fireEvent.change(screen.getByRole('combobox', { name: 'Installation status' }), { target: { value: 'ready' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Installation status' }), {
+      target: { value: 'ready' },
+    });
     expect(screen.getByText('No scientific environments match these filters')).toBeInTheDocument();
   });
   it('opens selection without installing and only saves an explicit choice', async () => {
@@ -90,9 +100,12 @@ describe('scientific environment library', () => {
     await waitFor(() => expect(mocks.save).toHaveBeenCalledWith({ 'autodock-vina': true }));
   });
   it('retries selected failures without replacing the selection', async () => {
-    mocks.load.mockResolvedValue({ configured: true, options: [{ ...item, selected: true, status: 'failed' }] });
+    mocks.load.mockResolvedValue({
+      configured: true,
+      options: [{ ...item, selected: true, status: 'failed' }],
+    });
     await renderWithSettingsI18n(<ScientificEnvironmentSettings />, 'en-US');
-    fireEvent.click(await screen.findByRole('button', { name: 'Retry' }));
+    fireEvent.click(await screen.findByRole('button', { name: /^Retry · / }));
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirm download' }));
     await waitFor(() => expect(mocks.retry).toHaveBeenCalledWith('autodock-vina'));
     expect(mocks.save).not.toHaveBeenCalled();
@@ -100,7 +113,7 @@ describe('scientific environment library', () => {
   it('retains failure feedback and allows a deliberate retry', async () => {
     mocks.save.mockRejectedValueOnce(new Error('offline'));
     await renderWithSettingsI18n(<ScientificEnvironmentSettings />, 'en-US');
-    fireEvent.click(await screen.findByRole('button', { name: 'Download environment' }));
+    fireEvent.click(await screen.findByRole('button', { name: /^Download environment · / }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm download' }));
     expect(await screen.findByRole('alert')).toBeInTheDocument();
     expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -112,16 +125,24 @@ describe('scientific environment library', () => {
       options: [{ ...item, selected: true, status: 'preparing', phasePercent: 42 }],
     });
     const view = await renderWithSettingsI18n(<ScientificEnvironmentSettings />, 'en-US');
-    fireEvent.click(await screen.findByRole('button', { name: 'Pause install' }));
+    fireEvent.click(await screen.findByRole('button', { name: /^Pause install · / }));
     await waitFor(() => expect(mocks.pause).toHaveBeenCalledWith('autodock-vina'));
     view.unmount();
 
     mocks.load.mockResolvedValueOnce({
       configured: true,
-      options: [{ ...item, selected: true, status: 'ready', environment: 'autodock-vina', generation: 'unused' }],
+      options: [
+        {
+          ...item,
+          selected: true,
+          status: 'ready',
+          environment: 'autodock-vina',
+          generation: 'unused',
+        },
+      ],
     });
     await renderWithSettingsI18n(<ScientificEnvironmentSettings />);
-    fireEvent.click(await screen.findByRole('button', { name: '卸载' }));
+    fireEvent.click(await screen.findByRole('button', { name: /^卸载 · / }));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: '确认卸载' }));
     await waitFor(() => expect(mocks.uninstall).toHaveBeenCalledWith('autodock-vina'));
@@ -147,19 +168,22 @@ describe('scientific environment library', () => {
     const required = await screen.findByText('Required');
     const card = required.closest('article');
     expect(card).toHaveClass('settings-library-card');
-    expect(within(card!).queryByRole('button', { name: 'Pause install' })).not.toBeInTheDocument();
-    expect(within(card!).queryByRole('button', { name: 'Uninstall' })).not.toBeInTheDocument();
+    expect(within(card!).queryByRole('button', { name: /^Pause install/ })).not.toBeInTheDocument();
+    expect(within(card!).queryByRole('button', { name: /^Uninstall/ })).not.toBeInTheDocument();
     expect(mocks.pause).not.toHaveBeenCalled();
     expect(mocks.uninstall).not.toHaveBeenCalled();
     view.unmount();
   });
   it('retries a failed required runtime from the merged toolkit without changing optional selection', async () => {
-    mocks.load.mockResolvedValue({ configured: true, options: [{ ...coreItem, status: 'failed' }] });
+    mocks.load.mockResolvedValue({
+      configured: true,
+      options: [{ ...coreItem, status: 'failed' }],
+    });
     await renderWithSettingsI18n(
       <ScientificEnvironmentSettings withWrapper={false} withHeader={false} compactHeader />,
       'en-US'
     );
-    fireEvent.click(await screen.findByRole('button', { name: 'Retry' }));
+    fireEvent.click(await screen.findByRole('button', { name: /^Retry · / }));
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirm download' }));
     await waitFor(() => expect(mocks.retry).toHaveBeenCalledWith('synon-biomed-python'));
     expect(mocks.save).not.toHaveBeenCalled();
@@ -178,5 +202,28 @@ describe('scientific environment library', () => {
     expect(await screen.findByText('Refresh failed. Previous values are still shown.')).toBeInTheDocument();
     expect(screen.queryByText('Ready for tasks')).not.toBeInTheDocument();
     view.unmount();
+  });
+  it('names each environment/action without dumping its full package list into the card name', async () => {
+    mocks.load.mockResolvedValue({
+      configured: true,
+      options: [{ ...item, environment: 'vina-runtime' }],
+    });
+    await renderWithSettingsI18n(
+      <ScientificEnvironmentSettings withWrapper={false} withHeader={false} compactHeader />,
+      'en-US'
+    );
+    const action = await screen.findByRole('button', { name: /^Download environment · / });
+    expect(action.getAttribute('aria-label')).toContain('Vina');
+    const card = action.closest('article')!;
+    expect(card).toHaveAccessibleName(/Vina/);
+    expect(card).not.toHaveAttribute('title');
+    const inventory = card.querySelector('details')!;
+    expect(inventory).not.toHaveAttribute('open');
+    expect(inventory).toHaveTextContent('vina==1.2.7');
+    fireEvent.click(inventory.querySelector('summary')!);
+    const packages = within(card).getByRole('region', { name: /Included software.*Vina/ });
+    expect(packages).toHaveAttribute('tabindex', '0');
+    expect(within(packages).getByRole('list')).toHaveTextContent('vina==1.2.7');
+    expect(mocks.save).not.toHaveBeenCalled();
   });
 });

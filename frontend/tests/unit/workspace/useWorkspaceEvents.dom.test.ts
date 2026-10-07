@@ -105,6 +105,18 @@ describe('useWorkspaceEvents', () => {
     rendered.unmount();
   });
 
+  it('does not dismiss a point-anchored menu for focus/programmatic scrolling but still closes for outside click and Escape', () => {
+    const configuration = options('conversation-a', vi.fn());
+    const { unmount } = renderHook(() => useWorkspaceEvents(configuration));
+    act(() => window.dispatchEvent(new Event('scroll')));
+    expect(configuration.closeContextMenu).not.toHaveBeenCalled();
+    act(() => window.dispatchEvent(new MouseEvent('click')));
+    expect(configuration.closeContextMenu).toHaveBeenCalledTimes(1);
+    act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
+    expect(configuration.closeContextMenu).toHaveBeenCalledTimes(2);
+    unmount();
+  });
+
   it('refreshes the artifact workspace at the authoritative completed-turn boundary only for this conversation', () => {
     const refreshWorkspace = vi.fn();
     const { unmount } = renderHook(() => useWorkspaceEvents(options('conversation-a', refreshWorkspace)));

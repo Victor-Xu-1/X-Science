@@ -22,7 +22,8 @@ import {
 } from '@/renderer/services/synonBiomedWorkspaceSettings';
 import { downloadFileFromUrl } from '@/renderer/utils/file/download';
 import { copyText } from '@/renderer/utils/ui/clipboard';
-import { Dropdown, Empty, Input, Message, Modal, Select } from '@arco-design/web-react';
+import { Dropdown, Empty, Input, Message, Select } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import {
   AddOne,
   CloudStorage,

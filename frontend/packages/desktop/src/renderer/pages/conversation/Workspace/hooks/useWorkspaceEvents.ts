@@ -283,11 +283,11 @@ export function useWorkspaceEvents(options: UseWorkspaceEventsOptions) {
       }
     };
     window.addEventListener('click', handleClose);
-    window.addEventListener('scroll', handleClose, true);
+    // Point-anchored menus stay open during programmatic/focus scrolling and
+    // their own bounded list scrolling. Outside clicks and Escape still close.
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('click', handleClose);
-      window.removeEventListener('scroll', handleClose, true);
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [closeContextMenu]);

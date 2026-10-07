@@ -5,7 +5,8 @@ import {
   loadSynonBiomedProjects,
   type SynonBiomedProject,
 } from '@/renderer/services/synonBiomedGateway';
-import { Empty, Input, Modal, Spin } from '@arco-design/web-react';
+import { Empty, Input, Spin } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import { FileCode, FolderOpen, MessageOne, Plus, Search } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';

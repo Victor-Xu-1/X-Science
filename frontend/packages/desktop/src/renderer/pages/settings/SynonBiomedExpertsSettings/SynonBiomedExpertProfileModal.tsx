@@ -5,7 +5,8 @@ import {
   updateSynonBiomedExpertProfile,
   type SynonBiomedExpertProfile,
 } from '@/renderer/services/agents/synonBiomedExpertProfiles';
-import { Form, Input, Message, Modal, Switch } from '@arco-design/web-react';
+import { Form, Input, Message, Switch } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 

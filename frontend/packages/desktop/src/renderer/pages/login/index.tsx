@@ -17,6 +17,7 @@ import './LoginPage.css';
 
 type MessageState = { type: 'error' | 'success'; text: string };
 type AuthMode = 'login' | 'register';
+type InvalidField = 'username' | 'email' | 'password';
 
 const REMEMBER_ME_KEY = 'rememberMe';
 const REMEMBERED_USERNAME_KEY = 'rememberedUsername';
@@ -61,10 +62,12 @@ const LoginPage: React.FC = () => {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [message, setMessage] = useState<MessageState | null>(null);
   const [loading, setLoading] = useState(false);
+  const [invalidField, setInvalidField] = useState<InvalidField | null>(null);
   const [authCapabilities, setAuthCapabilities] = useState<AuthCapabilities>(DEFAULT_AUTH_CAPABILITIES);
   const [sessionExpired] = useState(hasExpiredAuthSession);
   const usernameRef = useRef<HTMLInputElement | null>(null);
-  const messageTimer = useRef<number | undefined>(undefined);
+  const mountedRef = useRef(true);
+  const submissionRef = useRef(false);
   const providerNames: Record<string, string> = {
     google: t('login.oauth.provider.google'),
     apple: t('login.oauth.provider.apple'),
@@ -72,10 +75,11 @@ const LoginPage: React.FC = () => {
   };
 
   useEffect(() => {
+    mountedRef.current = true;
     document.body.classList.add('login-page-active');
     return () => {
       document.body.classList.remove('login-page-active');
-      if (messageTimer.current) window.clearTimeout(messageTimer.current);
+      mountedRef.current = false;
     };
   }, []);
 
@@ -98,15 +102,15 @@ const LoginPage: React.FC = () => {
       localStorage.setItem(REMEMBERED_USERNAME_KEY, migratedUsername);
       setRememberMe(true);
     }
-    window.setTimeout(() => usernameRef.current?.focus(), 0);
   }, []);
 
+  useEffect(() => {
+    if (status !== 'checking') usernameRef.current?.focus();
+  }, [mode, status]);
+
   const showMessage = useCallback((next: MessageState) => {
-    setMessage(next);
-    if (messageTimer.current) window.clearTimeout(messageTimer.current);
-    if (next.type === 'error') {
-      messageTimer.current = window.setTimeout(() => setMessage(null), 5000);
-    }
+    // Recovery messages remain available until the next attempt or mode change.
+    if (mountedRef.current) setMessage(next);
   }, []);
 
   useEffect(() => {
@@ -147,61 +151,86 @@ const LoginPage: React.FC = () => {
   const handleSubmit = useCallback(
     async (event: React.FormEvent) => {
       event.preventDefault();
+      if (submissionRef.current) return;
+      const form = event.currentTarget as HTMLFormElement;
+      const rejectField = (field: InvalidField, key: string) => {
+        setInvalidField(field);
+        showMessage({ type: 'error', text: t(key) });
+        const input = form.elements.namedItem(field);
+        if (input instanceof HTMLElement) input.focus();
+      };
       const name = username.trim();
       const trimmedEmail = email.trim();
       if (!name || !password) {
-        showMessage({ type: 'error', text: t('login.errors.empty') });
+        rejectField(!name ? 'username' : 'password', 'login.errors.empty');
         return;
       }
       if (mode === 'register' && name.length < 2) {
-        showMessage({ type: 'error', text: t('login.errors.invalidName') });
+        rejectField('username', 'login.errors.invalidName');
         return;
       }
       if (mode === 'register' && trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(trimmedEmail)) {
-        showMessage({ type: 'error', text: t('login.errors.invalidEmail') });
+        rejectField('email', 'login.errors.invalidEmail');
         return;
       }
       if (mode === 'register' && password.length < 8) {
-        showMessage({ type: 'error', text: t('login.errors.invalidPassword') });
+        rejectField('password', 'login.errors.invalidPassword');
         return;
       }
 
+      submissionRef.current = true;
+      setInvalidField(null);
       setLoading(true);
       setMessage(null);
-      const result =
-        mode === 'login'
-          ? await login({ username: name, password, remember: rememberMe })
-          : await register({ name, email: trimmedEmail || undefined, password, remember: rememberMe });
+      try {
+        const result =
+          mode === 'login'
+            ? await login({ username: name, password, remember: rememberMe })
+            : await register({
+                name,
+                email: trimmedEmail || undefined,
+                password,
+                remember: rememberMe,
+              });
 
-      if (result.success) {
-        persistRememberedIdentity(name);
-        setPassword('');
-        try {
-          await persistLanguagePreference(i18n.language);
-        } catch (error) {
-          console.error('Failed to persist language after authentication:', error);
+        if (result.success) {
+          persistRememberedIdentity(name);
+          setPassword('');
+          try {
+            await persistLanguagePreference(i18n.language);
+          } catch (error) {
+            console.error('Failed to persist language after authentication:', error);
+          }
+          showMessage({
+            type: 'success',
+            text: t(mode === 'login' ? 'login.success' : 'login.registerSuccess'),
+          });
+        } else {
+          const code = 'code' in result ? result.code : 'unknown';
+          const keyByCode: Record<string, string> = {
+            invalidCredentials: 'login.errors.invalidCredentials',
+            tooManyAttempts: 'login.errors.tooManyAttempts',
+            networkError: 'login.errors.networkError',
+            serverError: 'login.errors.serverError',
+            csrfError: 'login.errors.csrfError',
+            INVALID_NAME: 'login.errors.invalidName',
+            INVALID_EMAIL: 'login.errors.invalidEmail',
+            INVALID_PASSWORD: 'login.errors.invalidPassword',
+            USERNAME_EXISTS: 'login.errors.usernameExists',
+            EMAIL_EXISTS: 'login.errors.emailExists',
+            TOO_MANY_ATTEMPTS: 'login.errors.tooManyAttempts',
+            NETWORK_ERROR: 'login.errors.networkError',
+            SERVER_ERROR: 'login.errors.serverError',
+          };
+          showMessage({ type: 'error', text: t(keyByCode[code] ?? 'login.errors.unknown') });
         }
-        showMessage({ type: 'success', text: t(mode === 'login' ? 'login.success' : 'login.registerSuccess') });
-      } else {
-        const code = 'code' in result ? result.code : 'unknown';
-        const keyByCode: Record<string, string> = {
-          invalidCredentials: 'login.errors.invalidCredentials',
-          tooManyAttempts: 'login.errors.tooManyAttempts',
-          networkError: 'login.errors.networkError',
-          serverError: 'login.errors.serverError',
-          csrfError: 'login.errors.csrfError',
-          INVALID_NAME: 'login.errors.invalidName',
-          INVALID_EMAIL: 'login.errors.invalidEmail',
-          INVALID_PASSWORD: 'login.errors.invalidPassword',
-          USERNAME_EXISTS: 'login.errors.usernameExists',
-          EMAIL_EXISTS: 'login.errors.emailExists',
-          TOO_MANY_ATTEMPTS: 'login.errors.tooManyAttempts',
-          NETWORK_ERROR: 'login.errors.networkError',
-          SERVER_ERROR: 'login.errors.serverError',
-        };
-        showMessage({ type: 'error', text: t(keyByCode[code] ?? 'login.errors.unknown') });
+      } catch {
+        // Never display the transport's raw exception or credential payload.
+        showMessage({ type: 'error', text: t('login.errors.unknown') });
+      } finally {
+        submissionRef.current = false;
+        if (mountedRef.current) setLoading(false);
       }
-      setLoading(false);
     },
     [
       email,
@@ -223,8 +252,8 @@ const LoginPage: React.FC = () => {
     setPassword('');
     setEmail('');
     setMessage(null);
+    setInvalidField(null);
     setPasswordVisible(false);
-    window.setTimeout(() => usernameRef.current?.focus(), 0);
   }, []);
 
   if (status === 'checking') return <AppLoader />;
@@ -255,7 +284,7 @@ const LoginPage: React.FC = () => {
           <h1 id='auth-title'>Synon Biomed</h1>
         </header>
 
-        <form className='login-page__form' onSubmit={handleSubmit} noValidate>
+        <form className='login-page__form' onSubmit={handleSubmit} aria-busy={loading} noValidate>
           {authCapabilities.providers.length > 0 && (
             <details
               className='login-page__alternative-methods'
@@ -271,9 +300,17 @@ const LoginPage: React.FC = () => {
                     className='login-page__provider-button'
                     disabled={loading}
                     onClick={() => {
+                      if (submissionRef.current) return;
+                      submissionRef.current = true;
                       setLoading(true);
                       setMessage(null);
-                      beginExternalLogin(provider, rememberMe);
+                      try {
+                        beginExternalLogin(provider, rememberMe);
+                      } catch {
+                        submissionRef.current = false;
+                        setLoading(false);
+                        showMessage({ type: 'error', text: t('login.oauth.errors.failed') });
+                      }
                     }}
                   >
                     {provider.id === 'google' ? (
@@ -360,6 +397,9 @@ const LoginPage: React.FC = () => {
                     className='login-page__input'
                     placeholder={t(mode === 'login' ? 'login.usernamePlaceholder' : 'login.namePlaceholder')}
                     autoComplete='username'
+                    disabled={loading}
+                    aria-invalid={invalidField === 'username'}
+                    aria-describedby={invalidField === 'username' ? 'login-form-message' : undefined}
                     value={username}
                     onChange={(event) => setUsername(event.target.value)}
                     maxLength={64}
@@ -392,6 +432,9 @@ const LoginPage: React.FC = () => {
                       className='login-page__input'
                       placeholder={t('login.emailPlaceholder')}
                       autoComplete='email'
+                      disabled={loading}
+                      aria-invalid={invalidField === 'email'}
+                      aria-describedby={invalidField === 'email' ? 'login-form-message' : undefined}
                       value={email}
                       onChange={(event) => setEmail(event.target.value)}
                       maxLength={254}
@@ -423,6 +466,9 @@ const LoginPage: React.FC = () => {
                     className='login-page__input'
                     placeholder={t(mode === 'register' ? 'login.newPasswordPlaceholder' : 'login.passwordPlaceholder')}
                     autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+                    disabled={loading}
+                    aria-invalid={invalidField === 'password'}
+                    aria-describedby={invalidField === 'password' ? 'login-form-message' : undefined}
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
                     maxLength={128}
@@ -455,6 +501,7 @@ const LoginPage: React.FC = () => {
                   type='checkbox'
                   id='remember-me'
                   checked={rememberMe}
+                  disabled={loading}
                   onChange={(event) => setRememberMe(event.target.checked)}
                 />
                 <label htmlFor='remember-me'>{t('login.rememberMe')}</label>
@@ -471,6 +518,7 @@ const LoginPage: React.FC = () => {
             </>
           )}
           <div
+            id='login-form-message'
             role='alert'
             aria-live='polite'
             className={`login-page__message ${message || sessionExpired ? 'login-page__message--visible' : ''} ${message?.type === 'success' ? 'login-page__message--success' : 'login-page__message--error'}`}

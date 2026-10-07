@@ -19,18 +19,21 @@ import {
 import { localizeSynonBiomedExpertProfile } from '@/renderer/services/agents/synonBiomedExpertLocalization';
 import SynonBiomedAvatar from '@/renderer/components/synonBiomed/SynonBiomedAvatar';
 import {
-  findSynonBiomedExpertUsage,
   loadSynonBiomedExpertUsage,
   type SynonBiomedExpertUsageByName,
 } from '@/renderer/services/agents/synonBiomedExpertUsage';
-import { Button, Empty, Input, Message, Modal, Select, Spin, Switch, Tabs } from '@arco-design/web-react';
+import { Button, Empty, Input, Message, Select, Spin, Switch } from '@arco-design/web-react';
+import Tabs from '@/renderer/components/base/WorkbenchTabs';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import { Close, Search } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import SettingsPageHeader from '../components/SettingsPageHeader';
 import SettingsLibraryTabHeader from '../components/SettingsLibraryTabHeader';
+import SettingsLibrarySearch from '../components/SettingsLibrarySearch';
 import SettingsLibraryFilterSelect from '../components/SettingsLibraryFilterSelect';
 import SynonBiomedExpertProfileModal from './SynonBiomedExpertProfileModal';
+import ExpertUsageSummary, { type ExpertUsageView } from './ExpertUsageSummary';
 
 import {
   SettingsGeneratedArtwork,
@@ -137,7 +140,7 @@ const ExpertWorkbench: React.FC<ExpertWorkbenchProps> = ({ withHeader = true, co
   const [profiles, setProfiles] = useState<SynonBiomedExpertProfile[]>([]);
   const [skills, setSkills] = useState<SynonBiomedSkill[]>([]);
   const [connectors, setConnectors] = useState<SynonBiomedMcpServer[]>([]);
-  const [expertUsage, setExpertUsage] = useState<SynonBiomedExpertUsageByName | null>(null);
+  const [expertUsage, setExpertUsage] = useState<ExpertUsageView>(undefined);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [query, setQuery] = useState('');
@@ -167,7 +170,7 @@ const ExpertWorkbench: React.FC<ExpertWorkbenchProps> = ({ withHeader = true, co
     const generation = ++catalogGeneration.current;
     setLoading(true);
     setLoadError('');
-    setExpertUsage(null);
+    setExpertUsage(undefined);
 
     let nextProfiles: SynonBiomedExpertProfile[];
     try {
@@ -363,7 +366,9 @@ const ExpertWorkbench: React.FC<ExpertWorkbenchProps> = ({ withHeader = true, co
     if (!selected || selected.source !== 'user') return;
     Modal.confirm({
       title: translationRef.current('settings.expertsSettings.deleteTitle'),
-      content: translationRef.current('settings.expertsSettings.deleteBody', { name: selected.displayName }),
+      content: translationRef.current('settings.expertsSettings.deleteBody', {
+        name: selected.displayName,
+      }),
       okButtonProps: { status: 'danger' },
       onOk: async () => {
         try {
@@ -554,7 +559,11 @@ const ExpertWorkbench: React.FC<ExpertWorkbenchProps> = ({ withHeader = true, co
                       <p className='mb-12px mt-4px text-12px text-t-tertiary'>
                         {t('settings.expertsSettings.capabilitiesDescription')}
                       </p>
-                      <Tabs defaultActiveTab='skills' destroyOnHide={false}>
+                      <Tabs
+                        aria-label={t('settings.expertsSettings.capabilities')}
+                        defaultActiveTab='skills'
+                        destroyOnHide={false}
+                      >
                         <TabPane
                           key='skills'
                           title={`Skills${draft.skillNames.length ? ` ${draft.skillNames.length}` : ''}`}
@@ -671,7 +680,15 @@ const ExpertWorkbench: React.FC<ExpertWorkbenchProps> = ({ withHeader = true, co
       ) : compactHeader ? (
         <SettingsLibraryTabHeader
           title={t('settings.expertsSettings.title')}
-          count={profiles.length}
+          count={visibleProfiles.length}
+          search={
+            <SettingsLibrarySearch
+              label={t('settings.expertsSettings.searchPlaceholder')}
+              value={query}
+              onChange={setQuery}
+              data-testid='experts-search'
+            />
+          }
           filters={
             <SettingsLibraryFilterSelect
               aria-label={t('settings.expertsSettings.filter')}
@@ -792,7 +809,7 @@ const ExpertGroup: React.FC<{
   onOpen: (profile: SynonBiomedExpertProfile) => void;
   onToggle: (profile: SynonBiomedExpertProfile, enabled: boolean) => void;
   pendingProfileName: string | null;
-  usageByName: SynonBiomedExpertUsageByName | null;
+  usageByName: ExpertUsageView;
 }> = ({ title, profiles, onOpen, onToggle, pendingProfileName, usageByName }) => {
   const { t } = useTranslation();
   return (
@@ -835,14 +852,22 @@ const ExpertGroup: React.FC<{
             <div className='expert-card__footer settings-library-card__footer'>
               <ExpertUsageSummary profileName={profile.name} usageByName={usageByName} />
               <span className='settings-library-card__control'>
-                <Switch
-                  className='expert-card__switch shrink-0'
-                  aria-label={t('settings.expertsSettings.enableNamed', { name: profile.displayName })}
-                  checked={profile.enabled}
-                  loading={pendingProfileName === profile.name}
-                  disabled={profile.source !== 'user' || pendingProfileName !== null}
-                  onChange={(enabled) => onToggle(profile, enabled)}
-                />
+                {profile.source !== 'user' ? (
+                  <span className='settings-library-status' role='status'>
+                    {t(profile.enabled ? 'settings.skillsSettings.enabled' : 'settings.skillsSettings.disabled')}
+                  </span>
+                ) : (
+                  <Switch
+                    className='expert-card__switch shrink-0'
+                    aria-label={t('settings.expertsSettings.enableNamed', {
+                      name: profile.displayName,
+                    })}
+                    checked={profile.enabled}
+                    loading={pendingProfileName === profile.name}
+                    disabled={pendingProfileName !== null}
+                    onChange={(enabled) => onToggle(profile, enabled)}
+                  />
+                )}
               </span>
             </div>
           </div>
@@ -851,44 +876,6 @@ const ExpertGroup: React.FC<{
     </section>
   );
 };
-
-const ExpertUsageSummary: React.FC<{
-  profileName: string;
-  usageByName: SynonBiomedExpertUsageByName | null;
-}> = ({ profileName, usageByName }) => {
-  const { i18n, t } = useTranslation();
-  const usage = usageByName ? findSynonBiomedExpertUsage(usageByName, profileName) : null;
-  const formattedLastUsedAt = usage?.lastUsedAt ? formatExpertLastUsedAt(usage.lastUsedAt, i18n.language) : '';
-
-  return (
-    <span className='expert-card__usage settings-library-card__meta hidden shrink-0 items-center sm:flex'>
-      <span data-testid={'expert-usage-count-' + profileName}>
-        {usageByName === null
-          ? t('settings.expertsSettings.usage.unavailable')
-          : t('settings.expertsSettings.usage.count', { count: usage?.invocationCount ?? 0 })}
-      </span>
-      <span data-testid={'expert-last-used-' + profileName}>
-        {usageByName === null
-          ? t('settings.expertsSettings.usage.unavailable')
-          : formattedLastUsedAt
-            ? t('settings.expertsSettings.usage.lastUsed', { time: formattedLastUsedAt })
-            : t('settings.expertsSettings.usage.never')}
-      </span>
-    </span>
-  );
-};
-
-function formatExpertLastUsedAt(value: string, locale: string | undefined): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  return new Intl.DateTimeFormat(locale || undefined, {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).format(date);
-}
 
 const CapabilityRow: React.FC<{ label: string; onRemove: () => void }> = ({ label, onRemove }) => {
   const { t } = useTranslation();

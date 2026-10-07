@@ -1,5 +1,6 @@
-import { Button, Checkbox, Input, Message, Modal, Select, Spin } from '@arco-design/web-react';
-import React, { useEffect, useRef, useState } from 'react';
+import { Button, Checkbox, Input, Message, Select, Spin } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SkillFilePreview } from './SkillFilePreview';
 import { skillSourceLabel } from './skillSourceLabel';
@@ -311,16 +312,26 @@ export function SkillDetailModal({
   const [copyVisible, setCopyVisible] = useState(false);
   const [copyName, setCopyName] = useState('');
   const [copying, setCopying] = useState(false);
+  const lastPresentation = useRef<{ skill: SkillModalItem; draft: boolean; editable: boolean } | null>(null);
+  useLayoutEffect(() => {
+    if (visible && skill) lastPresentation.current = { skill, draft, editable };
+  }, [visible, skill, draft, editable]);
+  // Preserve only this detail's presentation until the exit animation ends.
+  // Mutations below still require the live skill, never this closing snapshot.
+  const presentation = visible ? { skill, draft, editable } : lastPresentation.current;
+  const presentedSkill = presentation?.skill ?? null;
+  const presentedDraft = presentation?.draft ?? false;
+  const presentedEditable = presentation?.editable ?? false;
 
   useEffect(() => {
     const current = ++generation.current;
+    setCopyVisible(false);
+    if (!visible || !skill) return;
     setFiles([]);
     setPath('');
     setContent('');
     setOriginalContent('');
-    setCopyVisible(false);
-    setCopyName(skill ? `${skill.name}-custom` : '');
-    if (!visible || !skill) return;
+    setCopyName(`${skill.name}-custom`);
     setLoading(true);
     void loadSynonBiomedSkillFiles(skill.name)
       .then(async (nextFiles) => {
@@ -445,7 +456,7 @@ export function SkillDetailModal({
     }
   };
 
-  const footer = draft ? (
+  const footer = presentedDraft ? (
     <div className='flex flex-wrap justify-between gap-8px'>
       <Button status='danger' disabled={saving} onClick={() => void removeDraft()}>
         {t('settings.skillsSettings.modals.detail.deleteDraft')}
@@ -460,7 +471,7 @@ export function SkillDetailModal({
         </Button>
       </div>
     </div>
-  ) : editable ? (
+  ) : presentedEditable ? (
     <div className='flex justify-end gap-8px'>
       <Button onClick={onClose}>{t('common.close')}</Button>
       <Button
@@ -484,9 +495,19 @@ export function SkillDetailModal({
   return (
     <>
       <Modal
-        title={skill?.displayName || 'Skill'}
+        title={presentedSkill?.displayName || 'Skill'}
         visible={visible}
         onCancel={onClose}
+        afterClose={() => {
+          if (visible) return;
+          lastPresentation.current = null;
+          setFiles([]);
+          setPath('');
+          setContent('');
+          setOriginalContent('');
+          setLoading(false);
+          setCopyName('');
+        }}
         autoFocus={false}
         focusLock
         className='synon-biomed-skill-detail-modal max-w-[calc(100vw-24px)]'
@@ -495,13 +516,18 @@ export function SkillDetailModal({
       >
         {contextHolder}
         <div className='flex min-h-420px flex-col gap-18px' data-testid='skill-detail-modal'>
-          {skill ? (
+          {presentedSkill ? (
             <header className='border-b border-arco-2 pb-16px'>
               <div className='flex min-w-0 flex-wrap items-center gap-8px'>
-                <span className='break-words text-20px font-semibold text-t-primary'>{skill.displayName}</span>
+                <span className='break-words text-20px font-semibold text-t-primary'>{presentedSkill.displayName}</span>
               </div>
               <p className='mb-0 mt-8px text-13px leading-21px text-t-secondary'>
-                {resolveSkillDescription(skill.name, skill.description, i18n.language, skill.description_i18n)}
+                {resolveSkillDescription(
+                  presentedSkill.name,
+                  presentedSkill.description,
+                  i18n.language,
+                  presentedSkill.description_i18n
+                )}
               </p>
             </header>
           ) : null}
@@ -545,7 +571,7 @@ export function SkillDetailModal({
                     {t('settings.skillsSettings.modals.detail.fileUnavailableBody')}
                   </div>
                 </div>
-              ) : editable ? (
+              ) : presentedEditable ? (
                 <Input.TextArea
                   value={content}
                   onChange={setContent}
@@ -560,46 +586,46 @@ export function SkillDetailModal({
             </div>
           </section>
 
-          {skill ? (
+          {presentedSkill ? (
             <section className='border-t border-arco-2 pt-14px'>
               <h3 className='m-0 text-14px font-semibold text-t-primary'>
                 {t('settings.skillsSettings.modals.detail.details')}
               </h3>
               <dl className='mt-10px grid grid-cols-[120px_minmax(0,1fr)] gap-x-16px gap-y-8px text-12px'>
                 <dt className='text-t-tertiary'>{t('settings.skillsSettings.modals.detail.identifier')}</dt>
-                <dd className='m-0 break-all font-mono text-t-primary'>{skill.name}</dd>
+                <dd className='m-0 break-all font-mono text-t-primary'>{presentedSkill.name}</dd>
                 <dt className='text-t-tertiary'>{t('settings.skillsSettings.sourceFilter')}</dt>
-                <dd className='m-0 text-t-primary'>{skillSourceLabel(skill.source, t)}</dd>
-                {skill.category ? (
+                <dd className='m-0 text-t-primary'>{skillSourceLabel(presentedSkill.source, t)}</dd>
+                {presentedSkill.category ? (
                   <>
                     <dt className='text-t-tertiary'>{t('settings.skillsSettings.modals.detail.category')}</dt>
                     <dd className='m-0 text-t-primary'>
-                      {getSynonBiomedSkillCategoryLabel(skill.category, i18n.language)}
+                      {getSynonBiomedSkillCategoryLabel(presentedSkill.category, i18n.language)}
                     </dd>
                   </>
                 ) : null}
-                {skill.license ? (
+                {presentedSkill.license ? (
                   <>
                     <dt className='text-t-tertiary'>{t('settings.skillsSettings.modals.detail.license')}</dt>
-                    <dd className='m-0 text-t-primary'>{skill.license}</dd>
+                    <dd className='m-0 text-t-primary'>{presentedSkill.license}</dd>
                   </>
                 ) : null}
-                {skill.attachedAgents?.length ? (
+                {presentedSkill.attachedAgents?.length ? (
                   <>
                     <dt className='text-t-tertiary'>{t('settings.skillsSettings.modals.detail.callableExperts')}</dt>
                     <dd className='m-0 text-t-primary'>
-                      {skill.attachedAgents.join(t('settings.skillsSettings.modals.detail.listSeparator'))}
+                      {presentedSkill.attachedAgents.join(t('settings.skillsSettings.modals.detail.listSeparator'))}
                     </dd>
                   </>
                 ) : null}
               </dl>
-              {skill.thirdParty?.length ? (
+              {presentedSkill.thirdParty?.length ? (
                 <div className='mt-14px'>
                   <div className='mb-8px text-12px font-medium text-t-primary'>
                     {t('settings.skillsSettings.modals.detail.thirdParty')}
                   </div>
                   <div className='divide-y divide-[var(--color-border-2)] border-y border-arco-2'>
-                    {skill.thirdParty.map((item) => (
+                    {presentedSkill.thirdParty.map((item) => (
                       <div key={`${item.kind}:${item.name}`} className='flex gap-12px py-9px text-12px'>
                         <span className='w-90px shrink-0 text-t-tertiary'>{thirdPartyKindLabel(item.kind, t)}</span>
                         <span className='min-w-0 flex-1 text-t-primary'>

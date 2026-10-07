@@ -49,7 +49,9 @@ import {
   type SynonBiomedAppliedArtifactEdit,
   type SynonBiomedArtifactAnnotation,
 } from '@/renderer/services/synonBiomedAnnotations';
-import { Button, Empty, Input, Message, Modal, Select, Spin, Tabs } from '@arco-design/web-react';
+import { Button, Empty, Input, Message, Select, Spin } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
+import Tabs from '@/renderer/components/base/WorkbenchTabs';
 import { Comment, Copy, Download, FileText, FolderOpen, Left, Magic, Notes, Upload } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -315,7 +317,7 @@ const ArtifactPreview: React.FC = () => {
   };
 
   return (
-    <main className='artifact-page size-full overflow-hidden bg-1'>
+    <div className='artifact-page size-full overflow-hidden bg-1'>
       {messageContextHolder}
       <div className='artifact-shell size-full max-w-1600px mx-auto flex flex-col'>
         <header className='artifact-header min-h-68px px-18px md:px-28px py-12px flex flex-wrap items-center gap-12px border-b border-solid border-[var(--color-border-2)]'>
@@ -397,7 +399,12 @@ const ArtifactPreview: React.FC = () => {
             </React.Suspense>
           </section>
           <aside className='artifact-inspector min-h-0 overflow-y-auto border-t xl:border-t-0 xl:border-l border-solid border-[var(--color-border-2)] bg-1'>
-            <Tabs activeTab={activeInspectorTab} onChange={setActiveInspectorTab} className='artifact-inspector-tabs'>
+            <Tabs
+              activeTab={activeInspectorTab}
+              onChange={setActiveInspectorTab}
+              className='artifact-inspector-tabs'
+              aria-label={`${t('preview.artifact.tabs.details')} · ${artifact.filename}`}
+            >
               <Tabs.TabPane key='details' title={t('preview.artifact.tabs.details')}>
                 <ArtifactDetails
                   artifact={artifact}
@@ -617,7 +624,7 @@ const ArtifactPreview: React.FC = () => {
           onClose={() => setNotesVisible(false)}
         />
       )}
-    </main>
+    </div>
   );
 };
 

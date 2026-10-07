@@ -6,7 +6,8 @@ import {
   type SynonBiomedNote,
   type SynonBiomedNoteTarget,
 } from '@/renderer/services/synonBiomedNotes';
-import { Button, Empty, Input, Message, Modal, Popconfirm, Spin } from '@arco-design/web-react';
+import { Button, Empty, Input, Message, Popconfirm, Spin } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import { Delete, Edit, Plus, Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';

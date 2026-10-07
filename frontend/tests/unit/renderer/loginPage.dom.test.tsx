@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LoginPage from '@/renderer/pages/login';
@@ -150,7 +150,9 @@ describe('Synon Biomed login and registration page', () => {
     render(<LoginPage />);
     fireEvent.click(screen.getByRole('button', { name: '创建新账户' }));
     fireEvent.change(screen.getByLabelText('名称'), { target: { value: 'Researcher' } });
-    fireEvent.change(screen.getByLabelText('邮箱（可选但推荐）'), { target: { value: 'researcher@example.org' } });
+    fireEvent.change(screen.getByLabelText('邮箱（可选但推荐）'), {
+      target: { value: 'researcher@example.org' },
+    });
     fireEvent.change(screen.getByLabelText('密码'), { target: { value: 'strong-pass-1' } });
     fireEvent.click(screen.getByLabelText('记住我'));
     fireEvent.click(screen.getByRole('button', { name: '创建并登录' }));
@@ -175,7 +177,11 @@ describe('Synon Biomed login and registration page', () => {
     fireEvent.change(screen.getByLabelText('密码'), { target: { value: '12345678' } });
     fireEvent.click(screen.getByRole('button', { name: '登录' }));
     await waitFor(() =>
-      expect(login).toHaveBeenCalledWith({ username: 'victor', password: '12345678', remember: false })
+      expect(login).toHaveBeenCalledWith({
+        username: 'victor',
+        password: '12345678',
+        remember: false,
+      })
     );
   });
 
@@ -192,9 +198,24 @@ describe('Synon Biomed login and registration page', () => {
     authProviderMocks.load.mockResolvedValue({
       localPassword: true,
       providers: [
-        { id: 'google', displayName: 'Google', enabled: true, startPath: '/api/auth/oidc/google/start' },
-        { id: 'apple', displayName: 'Apple', enabled: true, startPath: '/api/auth/oidc/apple/start' },
-        { id: 'wechat', displayName: 'WeChat', enabled: true, startPath: '/api/auth/oauth/wechat/start' },
+        {
+          id: 'google',
+          displayName: 'Google',
+          enabled: true,
+          startPath: '/api/auth/oidc/google/start',
+        },
+        {
+          id: 'apple',
+          displayName: 'Apple',
+          enabled: true,
+          startPath: '/api/auth/oidc/apple/start',
+        },
+        {
+          id: 'wechat',
+          displayName: 'WeChat',
+          enabled: true,
+          startPath: '/api/auth/oauth/wechat/start',
+        },
       ],
     });
     render(<LoginPage />);
@@ -209,7 +230,12 @@ describe('Synon Biomed login and registration page', () => {
     fireEvent.click(screen.getByLabelText('记住我'));
     fireEvent.click(google);
     expect(authProviderMocks.begin).toHaveBeenCalledWith(
-      { id: 'google', displayName: 'Google', enabled: true, startPath: '/api/auth/oidc/google/start' },
+      {
+        id: 'google',
+        displayName: 'Google',
+        enabled: true,
+        startPath: '/api/auth/oidc/google/start',
+      },
       true
     );
   });
@@ -218,9 +244,24 @@ describe('Synon Biomed login and registration page', () => {
     authProviderMocks.load.mockResolvedValue({
       localPassword: true,
       providers: [
-        { id: 'google', displayName: 'Google', enabled: true, startPath: '/api/auth/oidc/google/start' },
-        { id: 'apple', displayName: 'Apple', enabled: true, startPath: '/api/auth/oidc/apple/start' },
-        { id: 'wechat', displayName: 'WeChat', enabled: true, startPath: '/api/auth/oauth/wechat/start' },
+        {
+          id: 'google',
+          displayName: 'Google',
+          enabled: true,
+          startPath: '/api/auth/oidc/google/start',
+        },
+        {
+          id: 'apple',
+          displayName: 'Apple',
+          enabled: true,
+          startPath: '/api/auth/oidc/apple/start',
+        },
+        {
+          id: 'wechat',
+          displayName: 'WeChat',
+          enabled: true,
+          startPath: '/api/auth/oauth/wechat/start',
+        },
       ],
     });
     render(<LoginPage />);
@@ -228,8 +269,51 @@ describe('Synon Biomed login and registration page', () => {
     fireEvent.click(screen.getByLabelText('记住我'));
     fireEvent.click(wechat);
     expect(authProviderMocks.begin).toHaveBeenCalledWith(
-      { id: 'wechat', displayName: 'WeChat', enabled: true, startPath: '/api/auth/oauth/wechat/start' },
+      {
+        id: 'wechat',
+        displayName: 'WeChat',
+        enabled: true,
+        startPath: '/api/auth/oauth/wechat/start',
+      },
       true
     );
+  });
+
+  it('associates the validation error with the invalid field and moves focus there', async () => {
+    render(<LoginPage />);
+    fireEvent.click(screen.getByRole('button', { name: '登录', exact: true }));
+    const password = screen.getByLabelText('密码');
+    expect(password).toHaveAttribute('aria-invalid', 'true');
+    expect(password).toHaveAttribute('aria-describedby', 'login-form-message');
+    expect(password).toHaveFocus();
+    expect(login).not.toHaveBeenCalled();
+  });
+
+  it('recovers from a rejected authentication request without remaining busy', async () => {
+    login.mockRejectedValueOnce(new Error('private transport details'));
+    render(<LoginPage />);
+    fireEvent.change(screen.getByLabelText('密码'), { target: { value: 'fixture-password' } });
+    fireEvent.click(screen.getByRole('button', { name: '登录', exact: true }));
+    await waitFor(() => expect(screen.getByRole('button', { name: '登录', exact: true })).toBeEnabled());
+    expect(screen.getByRole('alert')).toHaveTextContent('登录失败');
+    expect(screen.queryByText('private transport details')).not.toBeInTheDocument();
+  });
+
+  it('fences repeated form submissions while the same authentication is pending', async () => {
+    let resolveLogin!: (result: { success: boolean; code: string }) => void;
+    login.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveLogin = resolve;
+      })
+    );
+    render(<LoginPage />);
+    fireEvent.change(screen.getByLabelText('密码'), { target: { value: 'fixture-password' } });
+    const form = screen.getByRole('button', { name: '登录', exact: true }).closest('form')!;
+    fireEvent.submit(form);
+    fireEvent.submit(form);
+    expect(login).toHaveBeenCalledTimes(1);
+    expect(form).toHaveAttribute('aria-busy', 'true');
+    await act(async () => resolveLogin({ success: false, code: 'unknown' }));
+    expect(form).toHaveAttribute('aria-busy', 'false');
   });
 });

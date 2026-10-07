@@ -8,7 +8,8 @@ import {
   loadSynonBiomedCloudCredentials,
   type SynonBiomedCloudCredential,
 } from '@/renderer/services/synonBiomedWorkspaceSettings';
-import { Button, Empty, Input, Message, Modal, Progress, Select } from '@arco-design/web-react';
+import { Button, Empty, Input, Message, Progress, Select } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import { Download, UploadOne } from '@icon-park/react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';

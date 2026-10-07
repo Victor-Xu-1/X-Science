@@ -77,25 +77,26 @@ export function SkillRow({
   return (
     <div
       data-testid={`synon-biomed-skill-row-${normalizeTestId(skill.name)}`}
-      role='button'
-      tabIndex={0}
-      aria-label={t('settings.skillsSettings.viewNamed', { name: displayName })}
+      role='listitem'
       className='settings-entity-card settings-skill-card settings-library-card'
-      onClick={() => onOpen(skill)}
-      onKeyDown={(event) => {
-        if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
-          event.preventDefault();
-          onOpen(skill);
-        }
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onOpen(skill);
       }}
     >
-      <div className='settings-skill-card__heading settings-library-card__heading'>
-        <span className='settings-skill-card__icon settings-library-card__icon' aria-hidden='true'>
-          <SettingsGeneratedIcon id={resolveSkillIcon(skill)} className='settings-skill-card__icon-image' />
+      <button
+        type='button'
+        className='settings-library-card__body settings-skill-card__open'
+        aria-label={t('settings.skillsSettings.viewNamed', { name: displayName })}
+        onClick={() => onOpen(skill)}
+      >
+        <span className='settings-skill-card__heading settings-library-card__heading'>
+          <span className='settings-skill-card__icon settings-library-card__icon' aria-hidden='true'>
+            <SettingsGeneratedIcon id={resolveSkillIcon(skill)} className='settings-skill-card__icon-image' />
+          </span>
+          <span className='settings-skill-card__title settings-library-card__title'>{displayName}</span>
         </span>
-        <span className='settings-skill-card__title settings-library-card__title'>{displayName}</span>
-      </div>
-      <p className='settings-skill-card__description settings-library-card__description'>{description}</p>
+        <span className='settings-skill-card__description settings-library-card__description'>{description}</span>
+      </button>
       <div
         className='settings-skill-card__footer settings-library-card__footer'
         onClick={(event) => event.stopPropagation()}

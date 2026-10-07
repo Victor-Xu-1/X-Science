@@ -3,7 +3,8 @@ import type {
   SynonBiomedTranscriptAnnotation,
   SynonBiomedTranscriptAnnotationKind,
 } from '@/renderer/services/synonBiomedAnnotations';
-import { Button, Input, Message, Modal, Select, Spin, Tooltip } from '@arco-design/web-react';
+import { Button, Input, Message, Select, Spin, Tooltip } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import { Bookmark, Delete, Refresh } from '@icon-park/react';
 import React, { type RefObject, useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';

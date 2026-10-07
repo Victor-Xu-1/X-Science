@@ -12,51 +12,44 @@ for (const viewport of viewports) {
   test.describe(viewport.name, () => {
     test.use({ viewport: { width: viewport.width, height: viewport.height } });
 
-    test('anchors pagination while every catalog page keeps complete readable cards', async ({ page }) => {
+    test('keeps the complete catalog readable in natural page flow with search and reachable last cards', async ({
+      page,
+    }) => {
       await login(page);
       await page.goto('/#/settings/skills');
-      const pager = page.getByRole('navigation', { name: '技能列表分页' });
-      await expect(pager).toBeVisible();
-      const scroll = page.getByTestId('skill-library-scroll');
-      const footer = page.locator('.settings-skill-library-footer');
-      const initialBox = await footer.boundingBox();
-      expect(initialBox).not.toBeNull();
-      const pageButtons = pager.getByRole('button', { name: /^技能列表分页 \d+$/ });
-      const pageCount = await pageButtons.count();
-      for (let index = 0; index < pageCount; index += 1) {
-        await pageButtons.nth(index).click();
-        await expect(pageButtons.nth(index)).toHaveAttribute('aria-current', 'page');
-        await expect.poll(() => scroll.evaluate((element) => element.scrollTop)).toBe(0);
-        const box = await footer.boundingBox();
-        expect(Math.abs(box!.y - initialBox!.y)).toBeLessThanOrEqual(1);
-        await assertInsideViewport(footer, viewport);
-        const clipped = await page.locator('.settings-skill-card').evaluateAll((cards) =>
-          cards.flatMap((card) => {
-            const bounds = card.getBoundingClientRect();
-            return [
-              ...card.querySelectorAll(
-                '.settings-skill-card__title, .settings-skill-card__description, .settings-skill-card__footer'
-              ),
-            ]
-              .filter((element) => {
-                const child = element.getBoundingClientRect();
-                return (
-                  child.bottom > bounds.bottom + 1 ||
-                  child.right > bounds.right + 1 ||
-                  element.scrollHeight > element.clientHeight + 1
-                );
-              })
-              .map((element) => element.textContent);
-          })
-        );
-        expect(clipped).toEqual([]);
-        await scroll.evaluate((element) => {
-          element.scrollTop = element.scrollHeight;
-        });
-        expect(Math.abs((await footer.boundingBox())!.y - initialBox!.y)).toBeLessThanOrEqual(1);
-      }
-      await page.getByTestId('input-search-synon-biomed-skills').fill('alphafold');
-      expect(Math.abs((await footer.boundingBox())!.y - initialBox!.y)).toBeLessThanOrEqual(1);
+      await expect(page.getByRole('navigation', { name: '技能列表分页' })).toHaveCount(0);
+      const cards = page.locator('.settings-skill-card');
+      await expect(cards.first()).toBeVisible();
+      const catalogCount = await cards.count();
+      expect(catalogCount).toBeGreaterThan(0);
+      const clipped = await cards.evaluateAll((cards) =>
+        cards.flatMap((card) => {
+          const bounds = card.getBoundingClientRect();
+          return [
+            ...card.querySelectorAll(
+              '.settings-skill-card__title, .settings-skill-card__description, .settings-skill-card__footer'
+            ),
+          ]
+            .filter((element) => {
+              const child = element.getBoundingClientRect();
+              return (
+                child.bottom > bounds.bottom + 1 ||
+                child.right > bounds.right + 1 ||
+                element.scrollHeight > element.clientHeight + 1
+              );
+            })
+            .map((element) => element.textContent);
+        })
+      );
+      expect(clipped).toEqual([]);
+      const lastToggle = cards.last().getByRole('switch');
+      await lastToggle.focus();
+      await assertInsideViewport(lastToggle, viewport);
+      const search = page.getByTestId('input-search-synon-biomed-skills');
+      await search.fill('alphafold');
+      await expect(search).toBeFocused();
+      expect(await cards.count()).toBeLessThanOrEqual(catalogCount);
+      await expect(cards.first()).toContainText(/alphafold/i);
       await assertNoHorizontalPageOverflow(page);
     });
 
@@ -69,8 +62,8 @@ for (const viewport of viewports) {
       await expect(page.getByTestId('add-skill-button')).toBeVisible();
       await expect(page.getByRole('tablist')).toHaveCount(0);
       await expect(page.getByRole('heading', { name: /技能/ })).toBeVisible();
-      await expect(page.getByRole('button', { name: '筛选', exact: true })).toBeVisible();
-      await assertInsideViewport(page.getByRole('search', { name: '技能' }), viewport);
+      await assertInsideViewport(page.getByTestId('input-search-synon-biomed-skills'), viewport);
+      await expect(page.getByTestId('settings-tab-skills')).toHaveAttribute('aria-current', 'page');
       await expect(page.getByTestId('skill-category-filter')).toBeVisible();
       const recommendedGrid = page.getByTestId('synon-biomed-skill-grid');
       await expect(recommendedGrid.locator('[data-testid^="synon-biomed-skill-row-"]').first()).toBeVisible();
@@ -100,16 +93,11 @@ for (const viewport of viewports) {
         .toBeLessThanOrEqual(Math.min(960, viewport.height - 32));
       await detailDialog.getByLabel('Close').click();
 
-      await page.getByTestId('synon-biomed-skills-filter').click();
-      const sourceFilter = page.getByRole('combobox', { name: '来源' });
-      await sourceFilter.selectOption('personal');
-      await expect(sourceFilter).toHaveValue('personal');
-      await page.getByRole('combobox', { name: '启用状态' }).selectOption('disabled');
+      await page.getByTestId('input-search-synon-biomed-skills').fill('no-matching-skill-fixture-xyz');
       await expect(workspace.locator('[data-testid^="synon-biomed-skill-row-"]')).toHaveCount(0);
-      await page.getByRole('button', { name: '重置筛选' }).click();
-      await expect(sourceFilter).toHaveValue('all');
-      await expect(page.getByRole('combobox', { name: '启用状态' })).toHaveValue('all');
-      await page.getByTestId('synon-biomed-skills-filter').click();
+      await page.getByTestId('input-search-synon-biomed-skills').press('Escape');
+      await expect(page.getByTestId('input-search-synon-biomed-skills')).toHaveValue('');
+      await expect(page.getByTestId('input-search-synon-biomed-skills')).toBeFocused();
 
       await page.getByTestId('add-skill-button').click();
       await page.getByText('创建个人 Skill', { exact: true }).click();

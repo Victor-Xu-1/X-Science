@@ -11,7 +11,7 @@ async function signIn(page: import('@playwright/test').Page) {
 }
 
 for (const route of ['skills', 'tools', 'environments'] as const) {
-  test(`keeps ${route} card sheet inside the desktop viewport`, async ({ page }, info) => {
+  test(`keeps ${route} catalog readable and every card reachable in natural page flow`, async ({ page }, info) => {
     await signIn(page);
     await page.goto(`/#/settings/${route}`, { waitUntil: 'domcontentloaded' });
     const root = page.locator('.settings-page-wrapper');
@@ -42,17 +42,11 @@ for (const route of ['skills', 'tools', 'environments'] as const) {
             : '[data-testid="scientific-environments"] .environment-grid'
       );
       const scrollOwner = grid?.parentElement;
-      const header = document.querySelector('.settings-page-header');
-      const toolbar = document.querySelector(
-        routeName === 'skills'
-          ? '.settings-skill-library-toolbar'
-          : routeName === 'tools'
-            ? '.mcp-library-toolbar'
-            : '.environment-toolbar'
-      );
+      const header = document.querySelector('.settings-library-tab-header');
+      const toolbar = header;
       const controls = [...(toolbar?.querySelectorAll<HTMLElement>('input, select, button, .arco-input-wrapper') ?? [])]
         .map((control) => {
-          const rect = control.getBoundingClientRect();
+          const rect = (control.closest('.arco-input-wrapper, .arco-select-view') ?? control).getBoundingClientRect();
           const style = getComputedStyle(control);
           return {
             tag: control.tagName,
@@ -77,18 +71,34 @@ for (const route of ['skills', 'tools', 'environments'] as const) {
       });
       return {
         viewport: { width: window.innerWidth, height: window.innerHeight },
-        document: { width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight },
+        document: {
+          width: document.documentElement.scrollWidth,
+          height: document.documentElement.scrollHeight,
+        },
         header: header ? { width: header.clientWidth, height: header.clientHeight } : null,
         toolbar: toolbar ? { width: toolbar.clientWidth, height: toolbar.clientHeight } : null,
         controls,
         wrapper: wrapper
-          ? { width: wrapper.clientWidth, height: wrapper.clientHeight, scrollHeight: wrapper.scrollHeight }
+          ? {
+              width: wrapper.clientWidth,
+              height: wrapper.clientHeight,
+              scrollHeight: wrapper.scrollHeight,
+              overflowY: getComputedStyle(wrapper).overflowY,
+            }
           : null,
         content: content
-          ? { width: content.clientWidth, height: content.clientHeight, scrollHeight: content.scrollHeight }
+          ? {
+              width: content.clientWidth,
+              height: content.clientHeight,
+              scrollHeight: content.scrollHeight,
+            }
           : null,
         pageRoot: pageRoot
-          ? { width: pageRoot.clientWidth, height: pageRoot.clientHeight, scrollHeight: pageRoot.scrollHeight }
+          ? {
+              width: pageRoot.clientWidth,
+              height: pageRoot.clientHeight,
+              scrollHeight: pageRoot.scrollHeight,
+            }
           : null,
         grid: grid
           ? {
@@ -121,11 +131,10 @@ for (const route of ['skills', 'tools', 'environments'] as const) {
     expect(metrics.document.height).toBeLessThanOrEqual(metrics.viewport.height + 1);
     expect(metrics.header, `${route} compact header metrics`).not.toBeNull();
     expect(metrics.toolbar, `${route} compact toolbar metrics`).not.toBeNull();
-    expect(metrics.header?.height, `${route} header height`).toBeLessThanOrEqual(80);
-    expect(metrics.toolbar?.height, `${route} toolbar height`).toBeLessThanOrEqual(42);
+    expect(metrics.header?.height, `${route} readable header`).toBeGreaterThanOrEqual(40);
     expect(metrics.controls.length, `${route} visible toolbar controls`).toBeGreaterThan(0);
     for (const [index, control] of metrics.controls.entries()) {
-      expect(control.height, `${route} control ${index} compact height`).toBeLessThanOrEqual(34);
+      expect(control.height, `${route} control ${index} usable target`).toBeGreaterThanOrEqual(24);
       expect(control.bottom, `${route} control ${index} bottom edge`).toBeLessThanOrEqual(metrics.viewport.height + 1);
     }
     for (const [name, box] of [
@@ -136,14 +145,22 @@ for (const route of ['skills', 'tools', 'environments'] as const) {
       ['scrollOwner', metrics.scrollOwner],
     ] as const) {
       expect(box, `${route} ${name} metrics`).not.toBeNull();
-      expect(box?.scrollHeight, `${route} ${name} vertical overflow`).toBeLessThanOrEqual((box?.height ?? 0) + 1);
+      expect(box?.height, `${route} ${name} has real layout height`).toBeGreaterThan(0);
     }
+    expect(metrics.wrapper?.overflowY).toMatch(/auto|scroll/);
     for (const [index, card] of metrics.cards.entries()) {
       expect(card.x, `${route} card ${index} left edge`).toBeGreaterThanOrEqual(-1);
-      expect(card.y, `${route} card ${index} top edge`).toBeGreaterThanOrEqual(-1);
       expect(card.right, `${route} card ${index} right edge`).toBeLessThanOrEqual(metrics.viewport.width + 1);
-      expect(card.bottom, `${route} card ${index} bottom edge`).toBeLessThanOrEqual(metrics.viewport.height + 1);
+      expect(card.height, `${route} card ${index} readable content`).toBeGreaterThanOrEqual(160);
     }
+    // A large catalog is allowed to exceed one fold. The last card must be
+    // reachable by the page scroll instead of being shrunk/clipped to fit.
+    const lastCard = grid.locator('.settings-library-card').last();
+    await lastCard.scrollIntoViewIfNeeded();
+    await expect(lastCard).toBeVisible();
+    const lastBox = await lastCard.boundingBox();
+    expect(lastBox!.y).toBeGreaterThanOrEqual(-1);
+    expect(lastBox!.y + lastBox!.height).toBeLessThanOrEqual(metrics.viewport.height + 1);
     await page.screenshot({ path: info.outputPath(`${route}-cards.png`), fullPage: true });
   });
 }

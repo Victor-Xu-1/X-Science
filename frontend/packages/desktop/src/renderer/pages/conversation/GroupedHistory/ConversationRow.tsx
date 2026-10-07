@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { Checkbox, Dropdown, Menu, Message, Tooltip } from '@arco-design/web-react';
@@ -175,7 +174,6 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
               'bg-[rgba(var(--primary-6),0.08)]': batchMode && checked,
             }
           )}
-          onClick={handleRowClick}
           onPointerEnter={schedulePointerPrefetch}
           onPointerLeave={cancelPointerPrefetch}
           onFocus={() => onConversationPrefetch(conversation)}
@@ -190,74 +188,83 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                 onToggleChecked(conversation);
               }}
             >
-              <Checkbox checked={checked} />
+              <Checkbox checked={checked} aria-label={`${t('common.select')} · ${conversation.name}`} />
             </span>
           )}
-          <span className='synon-sidebar-conversation-indicator size-12px flex items-center justify-center shrink-0'>
-            {taskIndicatorState === 'running' && !batchMode ? (
-              <span
-                data-testid={`conversation-running-${conversation.id}`}
-                role='status'
-                aria-label={t('common.loading')}
-                className='size-12px flex items-center justify-center'
-              >
+          <button
+            type='button'
+            className='synon-sidebar-conversation-open flex min-w-0 flex-1 items-center gap-8px self-stretch border-0 bg-transparent p-0 pr-20px text-left text-t-primary'
+            aria-label={conversation.name || t('conversation.welcome.newConversation')}
+            aria-current={selected ? 'page' : undefined}
+            aria-pressed={batchMode ? checked : undefined}
+            onClick={handleRowClick}
+          >
+            <span className='synon-sidebar-conversation-indicator size-12px flex items-center justify-center shrink-0'>
+              {taskIndicatorState === 'running' && !batchMode ? (
                 <span
-                  className='size-10px animate-spin rounded-full'
-                  style={{
-                    backgroundImage:
-                      'conic-gradient(from 0deg, transparent 0deg, transparent 105deg, var(--color-text-1) 360deg)',
-                    maskImage: 'radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 0)',
-                    WebkitMaskImage: 'radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 0)',
-                  }}
+                  data-testid={`conversation-running-${conversation.id}`}
+                  role='status'
+                  aria-label={t('common.loading')}
+                  className='size-12px flex items-center justify-center'
+                >
+                  <span
+                    className='size-10px animate-spin rounded-full'
+                    style={{
+                      backgroundImage:
+                        'conic-gradient(from 0deg, transparent 0deg, transparent 105deg, var(--color-text-1) 360deg)',
+                      maskImage: 'radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 0)',
+                      WebkitMaskImage: 'radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 0)',
+                    }}
+                    aria-hidden='true'
+                  />
+                </span>
+              ) : taskIndicatorState === 'paused' ? (
+                <span
+                  data-testid={`conversation-paused-${conversation.id}`}
+                  className='size-10px flex items-center justify-center gap-2px'
+                  aria-label={t('conversation.synonRuntime.runtimeOperations.taskPaused')}
+                  role='status'
+                >
+                  <span className='h-7px w-2px rounded-full bg-[var(--color-text-3)]' aria-hidden='true' />
+                  <span className='h-7px w-2px rounded-full bg-[var(--color-text-3)]' aria-hidden='true' />
+                </span>
+              ) : taskIndicatorState === 'success' ? (
+                <span
+                  data-testid={`conversation-success-${conversation.id}`}
+                  className='size-7px rounded-full bg-success-6 shadow-[0_0_0_2px_rgba(var(--success-6),0.12)]'
+                  aria-label={t('common.success')}
+                  role='status'
+                />
+              ) : taskIndicatorState === 'attention' ? (
+                <span
+                  data-testid={`conversation-attention-${conversation.id}`}
+                  className='size-7px rounded-full bg-orange-6 shadow-[0_0_0_2px_rgba(var(--orange-6),0.12)]'
+                  aria-label={t('common.error')}
+                  role='status'
+                />
+              ) : (
+                <span
+                  className='size-7px rounded-full border border-solid border-[var(--color-text-3)]'
                   aria-hidden='true'
                 />
-              </span>
-            ) : taskIndicatorState === 'paused' ? (
-              <span
-                data-testid={`conversation-paused-${conversation.id}`}
-                className='size-10px flex items-center justify-center gap-2px'
-                aria-label={t('conversation.synonRuntime.runtimeOperations.taskPaused')}
-                role='status'
+              )}
+            </span>
+            <span className='h-24px min-w-0 flex-1 collapsed-hidden'>
+              <Tooltip
+                content={conversation.name}
+                disabled={!inlineNameTooltipEnabled}
+                trigger='hover'
+                popupVisible={inlineNameTooltipEnabled ? undefined : false}
+                unmountOnExit
+                popupHoverStay={false}
+                position='top'
               >
-                <span className='h-7px w-2px rounded-full bg-[var(--color-text-3)]' aria-hidden='true' />
-                <span className='h-7px w-2px rounded-full bg-[var(--color-text-3)]' aria-hidden='true' />
-              </span>
-            ) : taskIndicatorState === 'success' ? (
-              <span
-                data-testid={`conversation-success-${conversation.id}`}
-                className='size-7px rounded-full bg-success-6 shadow-[0_0_0_2px_rgba(var(--success-6),0.12)]'
-                aria-label={t('common.success')}
-                role='status'
-              />
-            ) : taskIndicatorState === 'attention' ? (
-              <span
-                data-testid={`conversation-attention-${conversation.id}`}
-                className='size-7px rounded-full bg-orange-6 shadow-[0_0_0_2px_rgba(var(--orange-6),0.12)]'
-                aria-label={t('common.error')}
-                role='status'
-              />
-            ) : (
-              <span
-                className='size-7px rounded-full border border-solid border-[var(--color-text-3)]'
-                aria-hidden='true'
-              />
-            )}
-          </span>
-          <FlexFullContainer className='h-24px min-w-0 flex-1 collapsed-hidden'>
-            <Tooltip
-              content={conversation.name}
-              disabled={!inlineNameTooltipEnabled}
-              trigger='hover'
-              popupVisible={inlineNameTooltipEnabled ? undefined : false}
-              unmountOnExit
-              popupHoverStay={false}
-              position='top'
-            >
-              <div className='chat-history__item-name synon-sidebar-conversation-name overflow-hidden text-ellipsis block w-full text-14px font-[500] lh-24px whitespace-nowrap min-w-0 text-t-primary'>
-                <span className='block overflow-hidden text-ellipsis whitespace-nowrap'>{conversation.name}</span>
-              </div>
-            </Tooltip>
-          </FlexFullContainer>
+                <span className='chat-history__item-name synon-sidebar-conversation-name overflow-hidden text-ellipsis block w-full text-14px font-[500] lh-24px whitespace-nowrap min-w-0 text-t-primary'>
+                  <span className='block overflow-hidden text-ellipsis whitespace-nowrap'>{conversation.name}</span>
+                </span>
+              </Tooltip>
+            </span>
+          </button>
 
           {renderCompletionUnreadDot()}
           {!batchMode && (
@@ -266,7 +273,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                 'absolute right-8px top-1/2 -translate-y-1/2 items-center justify-end !collapsed-hidden',
                 {
                   flex: isMobile || menuVisible,
-                  'hidden group-hover:flex': !isMobile && !menuVisible,
+                  'hidden group-hover:flex group-focus-within:flex': !isMobile && !menuVisible,
                 }
               )}
               onClick={(event) => {
@@ -278,7 +285,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                   <Menu
                     id={menuId}
                     role='menu'
-                    aria-label={t('common.more')}
+                    aria-label={`${t('common.more')} · ${conversation.name || t('conversation.welcome.newConversation')}`}
                     theme='light'
                     className='app-overlay-menu synon-sidebar-conversation-menu w-[min(224px,calc(100vw-16px))] box-border p-4px'
                     style={{ maxWidth: 'calc(100vw - 16px)' }}
@@ -332,7 +339,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                       </div>
                     </Menu.Item>
                     <Menu.Item key='delete'>
-                      <div className='flex items-center gap-8px'>
+                      <div className='flex items-center gap-8px text-danger-6'>
                         <DeleteOne theme='outline' size='14' />
                         <span>{t('conversation.history.deleteTitle')}</span>
                       </div>
@@ -350,7 +357,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                   boundaryDistance: CONVERSATION_MENU_BOUNDARY_DISTANCE,
                   escToClose: true,
                   popupStyle: {
-                    backgroundColor: '#fff',
+                    backgroundColor: 'var(--workspace-overlay-surface, var(--color-bg-1))',
                     maxWidth: 'calc(100vw - 16px)',
                     opacity: 1,
                     zIndex: 1000,
@@ -362,15 +369,15 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                   ref={menuButtonRef}
                   type='button'
                   data-testid={`conversation-row-menu-${conversation.id}`}
-                  aria-label={t('common.more')}
+                  aria-label={`${t('common.more')} · ${conversation.name || t('conversation.welcome.newConversation')}`}
                   aria-haspopup='menu'
                   aria-expanded={menuVisible}
                   aria-controls={menuVisible ? menuId : undefined}
                   className={classNames(
-                    'flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px rd-4px border-none bg-transparent sider-action-btn',
+                    'flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-28px rd-4px border-none bg-transparent sider-action-btn',
                     {
                       flex: isMobile || menuVisible,
-                      'hidden group-hover:flex': !isMobile && !menuVisible,
+                      'hidden group-hover:flex group-focus-within:flex': !isMobile && !menuVisible,
                     }
                   )}
                   onClick={(event) => {

@@ -223,4 +223,27 @@ describe('SynonBiomedSessionOptionsMenu component', () => {
     fireEvent.mouseEnter(screen.getByTestId('session-config-row-specialist'));
     expect(await screen.findByText('AI Drug Discovery Expert')).toBeInTheDocument();
   });
+
+  it('opens with arrows, navigates the menu and submenus, and restores focus on Escape', async () => {
+    await renderWithI18n(<Harness />);
+    const trigger = screen.getByRole('button', { name: '会话选项' });
+    trigger.focus();
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+    const menu = await screen.findByRole('menu', { name: '会话选项' });
+    await waitFor(() => expect(screen.getByRole('menuitemcheckbox', { name: '委派' })).toHaveFocus());
+    fireEvent.keyDown(menu, { key: 'ArrowDown' });
+    expect(screen.getByRole('menuitemcheckbox', { name: '自动审阅' })).toHaveFocus();
+    fireEvent.keyDown(menu, { key: 'End' });
+    const compute = screen.getByTestId('session-config-row-compute');
+    expect(compute).toHaveFocus();
+    fireEvent.keyDown(compute, { key: 'ArrowRight' });
+    const submenu = await screen.findByRole('menu', { name: '计算' });
+    await waitFor(() => expect(screen.getByRole('menuitemradio', { name: '本机' })).toHaveFocus());
+    fireEvent.keyDown(submenu, { key: 'Escape' });
+    expect(compute).toHaveFocus();
+    expect(compute).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.keyDown(menu, { key: 'Escape' });
+    await waitFor(() => expect(trigger).toHaveFocus());
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  });
 });

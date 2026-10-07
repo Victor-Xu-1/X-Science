@@ -3,7 +3,8 @@ import {
   type SynonBiomedArtifactAnnotation,
 } from '@/renderer/services/synonBiomedAnnotations';
 import type { SynonBiomedArtifactCanvasSelection } from './artifactCanvasSelection';
-import { Input, Modal } from '@arco-design/web-react';
+import { Input } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 

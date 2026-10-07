@@ -37,7 +37,7 @@ describe('settings visual system', () => {
       '--settings-card-radius: var(--ui-radius-2xl)',
       '--settings-card-gap: var(--ui-space-6)',
       '--settings-section-gap: var(--ui-space-7)',
-      '--settings-entity-card-height: 232px',
+      '--settings-entity-card-height: 192px',
       '--settings-page-title-size: 26px',
       '--settings-page-title-line: 34px',
       '--settings-page-description-size: var(--ui-font-subtitle)',
@@ -46,7 +46,7 @@ describe('settings visual system', () => {
       '--settings-meta-size: var(--ui-font-meta)',
       '--settings-module-accent: var(--workspace-accent)',
       '--settings-section-padding: 20px',
-      '--settings-content-inline: clamp(24px, 2.4vw, 38px)',
+      '--settings-content-inline: 0px',
     ]) {
       expect(coreCss, declaration).toContain(declaration);
     }
@@ -69,7 +69,7 @@ describe('settings visual system', () => {
     expect(densityCss).not.toMatch(/--settings-card-gap:\s*\d+px/);
     expect(densityCss).not.toMatch(/--settings-section-gap:\s*var\(--ui-space-[1-4]\)/);
     expect(densityCss).toMatch(/font-size:\s*var\(--settings-page-title-size\)/);
-    expect(densityCss).toMatch(/font-size:\s*var\(--settings-page-description-size\)/);
+    expect(densityCss).toMatch(/font-size:\s*var\(--ui-font-body\)/);
   });
 
   it('keeps one accent and neutral status colours', () => {
@@ -93,11 +93,11 @@ describe('settings visual system', () => {
 
   it('keeps one card grid and one metadata ramp', () => {
     const all = moduleCss.map(([, css]) => css).join('\n');
-    expect(all).toMatch(/grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
+    expect(densityCss).toContain('repeat(auto-fill, minmax(min(100%, 260px), 1fr))');
     expect(all).not.toMatch(/font-size:\s*(?:8|9|10|11|18)px/);
   });
 
-  it('drops pagination and renders the merged catalog as a single scrolling four-column wall', () => {
+  it('keeps the merged catalog in one scrolling, content-width-responsive wall', () => {
     for (const relative of [
       'SynonBiomedSkillsSettings.tsx',
       'SynonBiomedExpertsSettings/ExpertWorkbench.tsx',
@@ -108,8 +108,7 @@ describe('settings visual system', () => {
       expect(source, relative).not.toMatch(/PAGE_SIZE = 12;/);
       expect(source, relative).not.toContain('SettingsPagination');
     }
-    // The shared card density sheet now uses a four-column wall.
-    expect(densityCss).toMatch(/grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
+    expect(densityCss).toContain('repeat(auto-fill, minmax(min(100%, 260px), 1fr))');
     expect(densityCss).toMatch(/grid-auto-rows:\s*auto/);
     expect(densityCss).not.toMatch(/grid-auto-rows:\s*1fr/);
   });

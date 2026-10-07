@@ -1,5 +1,5 @@
 import type { ModalProps } from '@arco-design/web-react';
-import { Modal } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import { Close } from '@icon-park/react';
 import React from 'react';
 

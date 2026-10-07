@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Input, Modal } from '@arco-design/web-react';
+import { Input } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import React from 'react';
 import type { TFunction } from 'i18next';
 import type { RenameModalState, DeleteModalState } from '../types';

@@ -182,11 +182,15 @@ describe('PreviewBoard', () => {
     expect(screen.getByText('analysis.py')).toBeInTheDocument();
     expect(screen.getByText('result.png')).toBeInTheDocument();
     expect(screen.getByText('2 files open')).toBeInTheDocument();
+    const slots = screen.getAllByTestId('preview-board-slot');
+    const sibling = screen.getAllByTestId('preview-board-tile')[1];
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Expand preview' })[0]);
     expect(screen.getAllByTestId('preview-board-tile')).toHaveLength(2);
     expect(screen.getByTestId('preview-board-fullscreen-layer')).toBeInTheDocument();
-    expect(screen.getByTestId('preview-board').querySelectorAll('[data-testid="preview-board-tile"]')).toHaveLength(1);
+    expect(screen.getByTestId('preview-board').querySelectorAll('[data-testid="preview-board-tile"]')).toHaveLength(2);
+    expect(screen.getAllByTestId('preview-board-slot')).toEqual(slots);
+    expect(slots[1]).toContainElement(sibling);
     expect(document.body.style.overflow).toBe('hidden');
 
     fireEvent.click(screen.getByRole('button', { name: 'Return to file board' }));
@@ -254,10 +258,10 @@ describe('PreviewBoard', () => {
     expect(screen.getByTestId('preview-board')).toHaveStyle({ '--preview-board-columns': '1' });
     expect(screen.getByRole('button', { name: 'Single column' })).toHaveAttribute('aria-pressed', 'true');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Three columns' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Up to three columns' }));
     expect(screen.getByTestId('preview-board')).toHaveAttribute('data-columns', '3');
     expect(screen.getByTestId('preview-board')).toHaveStyle({ '--preview-board-columns': '3' });
-    expect(screen.getByRole('button', { name: 'Three columns' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Up to three columns' })).toHaveAttribute('aria-pressed', 'true');
 
     fireEvent.click(screen.getByRole('button', { name: 'Single column' }));
 

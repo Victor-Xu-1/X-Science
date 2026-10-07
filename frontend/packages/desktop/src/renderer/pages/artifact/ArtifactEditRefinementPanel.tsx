@@ -4,7 +4,8 @@ import {
   type SynonBiomedAppliedArtifactEdit,
   type SynonBiomedArtifactEditMode,
 } from '@/renderer/services/synonBiomedAnnotations';
-import { Alert, Button, Input, Modal, Spin } from '@arco-design/web-react';
+import { Alert, Button, Input, Spin } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import { CheckOne, Edit, Refresh } from '@icon-park/react';
 import { diffWordsWithSpace } from 'diff';
 import React, { useMemo, useState } from 'react';

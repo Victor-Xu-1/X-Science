@@ -357,7 +357,21 @@
   display: grid;
   flex: 1;
   grid-auto-rows: minmax(410px, calc(50vh - 46px));
-  grid-template-columns: repeat(var(--preview-board-columns, 2), minmax(0, 1fr));
+  /* The chosen count is a ceiling; keep scientific windows readable when the
+     actual panel is narrow rather than squeezing controls into 150px tiles. */
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(
+      min(
+        100%,
+        max(
+          260px,
+          calc((100% - (var(--preview-board-columns, 2) - 1) * var(--ui-space-5)) / var(--preview-board-columns, 2))
+        )
+      ),
+      1fr
+    )
+  );
   gap: var(--ui-space-5);
   overflow: auto;
   padding: var(--ui-space-5);
@@ -366,9 +380,17 @@
   scrollbar-width: thin;
 }
 
-/* A focused board tile is promoted to a real viewport layer. Keeping this
- * layer outside the board grid prevents the sibling tiles from being removed
- * or squeezed while the user is inspecting one file. */
+.preview-board__slot {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+}
+.preview-board__slot .preview-board__tile {
+  height: 100%;
+}
+
+/* The fixed presentation layer keeps a persistent original grid slot and DOM
+ * ancestry; sibling positions and interactive browsing contexts remain stable. */
 .preview-board__fullscreen-layer {
   position: fixed;
   inset: 0;
@@ -734,6 +756,10 @@
 }
 
 /* Markdown and rendered documents */
+.preview-markdown {
+  container-type: inline-size;
+}
+
 .preview-markdown__scroll {
   padding: 34px 36px 64px;
   background: var(--preview-canvas);
@@ -817,12 +843,46 @@
   font-size: 0.92em;
 }
 
+.preview-markdown__table-region {
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
 .preview-markdown__document :where(th, td) {
+  min-width: 120px;
   padding: 10px 12px;
   border: 0;
   border-bottom: 1px solid var(--preview-border);
   text-align: left;
   vertical-align: top;
+}
+
+@container (max-width: 520px) {
+  .preview-markdown__scroll {
+    padding: 20px 16px 36px;
+  }
+
+  .preview-markdown__document {
+    font-size: 14px;
+    line-height: 1.65;
+  }
+
+  .preview-markdown__document :where(h1, h2, h3, h4, h5, h6) {
+    margin-block: 1.25em 0.6em;
+  }
+
+  .preview-markdown__document h1 {
+    font-size: 22px;
+  }
+
+  .preview-markdown__document h2 {
+    font-size: 18px;
+  }
+
+  .preview-markdown__document h3 {
+    font-size: 16px;
+  }
 }
 
 .preview-markdown__document th {
@@ -938,4 +998,15 @@
     opacity: 1;
     transform: translateX(0);
   }
+}
+/* Fixed fullscreen descendants must use the viewport, not a permanent
+   decorative animation/containment layer. Keep viewers in their original DOM. */
+html body :is(.preview-panel, .preview-board, .preview-board__tile):has([data-preview-fullscreen-scope]) {
+  animation: none !important;
+  transform: none !important;
+  will-change: auto !important;
+  contain: none !important;
+  container-type: normal !important;
+  content-visibility: visible !important;
+  isolation: auto !important;
 }

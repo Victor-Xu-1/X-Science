@@ -70,6 +70,21 @@ const expectDetailsSurfaceClosed = () => {
 };
 
 describe('SynonBiomedTaskStatus', () => {
+  it('announces the phase independently of clocks and focuses/returns from the nonmodal details', async () => {
+    await renderWithI18n(<SynonBiomedTaskStatus {...defaultProps} snapshot={snapshot('completed')} />);
+    const indicator = screen.getByTestId('synon-biomed-task-status-indicator');
+    expect(indicator).toHaveAttribute('aria-live', 'off');
+    expect(indicator.querySelector('.synon-biomed-task-center__title')).toHaveAttribute('aria-live', 'polite');
+    const trigger = screen.getByTestId('synon-biomed-task-details-trigger');
+    trigger.focus();
+    fireEvent.click(trigger);
+    const panel = await screen.findByRole('dialog', { name: '任务状态详情' });
+    expect(panel).toHaveAttribute('aria-modal', 'false');
+    expect(panel).toContainElement(document.activeElement as HTMLElement);
+    fireEvent.keyDown(panel, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(trigger).toHaveFocus();
+  });
   it.each(['response_language_mismatch'])('shows a precise safe presentation failure for %s', async (failureReason) => {
     await renderWithI18n(
       <SynonBiomedTaskStatus
@@ -256,8 +271,9 @@ describe('SynonBiomedTaskStatus', () => {
     expect(screen.queryByTestId('synon-biomed-task-pause')).not.toBeInTheDocument();
     expectDetailsSurfaceClosed();
     expect(screen.queryByText('secretValue123456')).not.toBeInTheDocument();
-    expect(screen.getByTestId('synon-biomed-task-failure-reason')).toHaveTextContent(/任务运行失败|Task failed/i);
-    expect(screen.getByTestId('synon-biomed-task-failure-reason')).not.toHaveTextContent('model_provider_unavailable');
+    expect(screen.getByTestId('synon-biomed-task-details-trigger')).toHaveTextContent(/任务运行失败|Task failed/i);
+    expect(screen.getByTestId('synon-biomed-task-details-trigger')).not.toHaveTextContent('model_provider_unavailable');
+    expect(screen.queryByTestId('synon-biomed-task-failure-reason')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('synon-biomed-task-details-trigger'));
     expect(screen.getByRole('heading', { name: /失败原因|Failure reason/i })).toBeInTheDocument();
@@ -719,7 +735,13 @@ describe('SynonBiomedTaskStatus', () => {
     const indicator = screen.getByTestId('synon-biomed-task-status-indicator');
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
     expect(indicator).toHaveAttribute('data-open', 'false');
-    fireEvent.pointerDown(trigger, { button: 0, isPrimary: true, pointerId: 6, clientX: 240, clientY: 214 });
+    fireEvent.pointerDown(trigger, {
+      button: 0,
+      isPrimary: true,
+      pointerId: 6,
+      clientX: 240,
+      clientY: 214,
+    });
     fireEvent.pointerUp(trigger, { isPrimary: true, pointerId: 6, clientX: 240, clientY: 214 });
     fireEvent.click(trigger);
 
@@ -765,16 +787,32 @@ describe('SynonBiomedTaskStatus', () => {
         toJSON: () => ({}),
       }),
     });
-    fireEvent.pointerDown(indicator, { button: 0, isPrimary: true, pointerId: 7, clientX: 240, clientY: 214 });
+    fireEvent.pointerDown(indicator, {
+      button: 0,
+      isPrimary: true,
+      pointerId: 7,
+      clientX: 240,
+      clientY: 214,
+    });
     expect(indicator).toHaveAttribute('data-dragging', 'false');
     fireEvent.pointerMove(indicator, { isPrimary: true, pointerId: 7, clientX: 300, clientY: 254 });
     expect(indicator).toHaveAttribute('data-dragging', 'true');
     expect(indicator).toHaveAttribute('data-detached', 'true');
     expect(indicator).toHaveAttribute('data-minimized', 'true');
     expect(indicator).toHaveStyle({ position: 'fixed', left: '285px', top: '239px' });
-    fireEvent.pointerMove(document.body, { isPrimary: true, pointerId: 7, clientX: 440, clientY: 354 });
+    fireEvent.pointerMove(document.body, {
+      isPrimary: true,
+      pointerId: 7,
+      clientX: 440,
+      clientY: 354,
+    });
     expect(indicator).toHaveStyle({ position: 'fixed', left: '425px', top: '339px' });
-    fireEvent.pointerUp(document.body, { isPrimary: true, pointerId: 7, clientX: 440, clientY: 354 });
+    fireEvent.pointerUp(document.body, {
+      isPrimary: true,
+      pointerId: 7,
+      clientX: 440,
+      clientY: 354,
+    });
     expect(indicator).toHaveAttribute('data-dragging', 'false');
     expect(window.localStorage.getItem('synon-biomed.task-status.presentation.v5.frame-status-center')).toContain(
       '"x":425'
@@ -801,9 +839,20 @@ describe('SynonBiomedTaskStatus', () => {
         toJSON: () => ({}),
       }),
     });
-    fireEvent.pointerDown(indicator, { button: 0, isPrimary: true, pointerId: 9, clientX: 240, clientY: 214 });
+    fireEvent.pointerDown(indicator, {
+      button: 0,
+      isPrimary: true,
+      pointerId: 9,
+      clientX: 240,
+      clientY: 214,
+    });
     fireEvent.pointerMove(indicator, { isPrimary: true, pointerId: 9, clientX: 280, clientY: 234 });
-    fireEvent.pointerUp(document.body, { isPrimary: true, pointerId: 9, clientX: 280, clientY: 234 });
+    fireEvent.pointerUp(document.body, {
+      isPrimary: true,
+      pointerId: 9,
+      clientX: 280,
+      clientY: 234,
+    });
     expect(indicator).toHaveAttribute('data-minimized', 'true');
     expect(indicator).toHaveClass('synon-biomed-task-center__pill--minimized');
     expect(screen.queryByTestId('synon-biomed-task-details-trigger')).not.toBeInTheDocument();
@@ -825,8 +874,14 @@ describe('SynonBiomedTaskStatus', () => {
   });
 
   it('keeps position and minimized state isolated per conversation across A to B to A navigation', async () => {
-    const conversationA = snapshot('completed', { frameId: 'conversation-a', rootFrameId: 'conversation-a' });
-    const conversationB = snapshot('completed', { frameId: 'conversation-b', rootFrameId: 'conversation-b' });
+    const conversationA = snapshot('completed', {
+      frameId: 'conversation-a',
+      rootFrameId: 'conversation-a',
+    });
+    const conversationB = snapshot('completed', {
+      frameId: 'conversation-b',
+      rootFrameId: 'conversation-b',
+    });
     const view = await renderWithI18n(<SynonBiomedTaskStatus {...defaultProps} snapshot={conversationA} />);
 
     const indicatorA = screen.getByTestId('synon-biomed-task-status-indicator');
@@ -844,14 +899,25 @@ describe('SynonBiomedTaskStatus', () => {
         toJSON: () => ({}),
       }),
     });
-    fireEvent.pointerDown(indicatorA, { button: 0, isPrimary: true, pointerId: 11, clientX: 240, clientY: 214 });
+    fireEvent.pointerDown(indicatorA, {
+      button: 0,
+      isPrimary: true,
+      pointerId: 11,
+      clientX: 240,
+      clientY: 214,
+    });
     fireEvent.pointerMove(document.body, {
       isPrimary: true,
       pointerId: 11,
       clientX: 520,
       clientY: 374,
     });
-    fireEvent.pointerUp(document.body, { isPrimary: true, pointerId: 11, clientX: 520, clientY: 374 });
+    fireEvent.pointerUp(document.body, {
+      isPrimary: true,
+      pointerId: 11,
+      clientX: 520,
+      clientY: 374,
+    });
 
     expect(indicatorA).toHaveAttribute('data-minimized', 'true');
     expect(indicatorA).toHaveStyle({ position: 'fixed', left: '505px', top: '359px' });

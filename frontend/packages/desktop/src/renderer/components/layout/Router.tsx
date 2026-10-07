@@ -39,7 +39,7 @@ const AuthUnavailablePanel: React.FC = () => {
   const { failure, refresh } = useAuth();
   const messageKey = failure === 'server' ? 'login.errors.serverError' : 'login.errors.networkError';
   return (
-    <section className='auth-unavailable' aria-labelledby='auth-unavailable-title' data-testid='auth-unavailable-panel'>
+    <main className='auth-unavailable' aria-labelledby='auth-unavailable-title' data-testid='auth-unavailable-panel'>
       <div className='auth-unavailable__card'>
         <div className='auth-unavailable__brand' aria-label={t('login.brand')}>
           <span className='auth-unavailable__brand-mark' aria-hidden='true'>
@@ -66,7 +66,7 @@ const AuthUnavailablePanel: React.FC = () => {
           <span>{t('login.unavailable.retry')}</span>
         </button>
       </div>
-    </section>
+    </main>
   );
 };
 

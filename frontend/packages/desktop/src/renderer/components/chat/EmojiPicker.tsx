@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Button, Empty, Popover, Tabs } from '@arco-design/web-react';
+import { Button, Empty, Popover } from '@arco-design/web-react';
+import Tabs from '@/renderer/components/base/WorkbenchTabs';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -597,7 +598,12 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
   const pickerContent =
     builtinAvatars.length > 0 ? (
       <div className='w-280px'>
-        <Tabs activeTab={activeTab} onChange={(key) => setActiveTab(key as 'emoji' | 'builtin')} size='small'>
+        <Tabs
+          aria-label={`${t('settings.assistantAvatarBuiltinTab')} / ${t('settings.assistantAvatarEmojiTab')}`}
+          activeTab={activeTab}
+          onChange={(key) => setActiveTab(key as 'emoji' | 'builtin')}
+          size='small'
+        >
           <Tabs.TabPane
             key='builtin'
             title={

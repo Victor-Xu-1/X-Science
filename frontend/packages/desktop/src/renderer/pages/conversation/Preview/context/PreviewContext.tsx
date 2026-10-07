@@ -9,6 +9,7 @@ import type { PreviewContentType } from '@/common/types/office/preview';
 import { emitter } from '@/renderer/utils/emitter';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { usePreviewFocusReturn } from './usePreviewFocusReturn';
 
 type PreviewDefaultTitleKey =
   | 'preview.defaultTitles.markdown'
@@ -176,7 +177,11 @@ const parsePersistedTabs = (value: unknown): PreviewTab[] => {
 // 从 localStorage 恢复状态 / Restore state from localStorage
 // 注意：isOpen 不从 localStorage 恢复，新会话时预览面板默认关闭
 // Note: isOpen is not restored from localStorage, preview panel is closed by default for new sessions
-const loadPersistedState = (): { isOpen: boolean; tabs: PreviewTab[]; activeTabId: string | null } => {
+const loadPersistedState = (): {
+  isOpen: boolean;
+  tabs: PreviewTab[];
+  activeTabId: string | null;
+} => {
   try {
     let tabs = parsePersistedTabs(JSON.parse(localStorage.getItem(PREVIEW_TABS_KEY) || '[]'));
     let activeTabId = localStorage.getItem(PREVIEW_ACTIVE_TAB_ID_KEY);
@@ -223,6 +228,8 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // const [sendBoxHandler, setSendBoxHandlerState] = useState<((text: string) => void) | null>(null);
   const sendBoxHandler = useRef<((text: string) => void) | null>(null);
   const [domSnippets, setDomSnippets] = useState<DomSnippet[]>([]);
+  const previewFocusIds = useMemo(() => tabs.map((tab) => tab.id), [tabs]);
+  const { remember: rememberPreviewOpener, restore: restorePreviewOpener } = usePreviewFocusReturn(previewFocusIds);
 
   useEffect(() => {
     setTabs((currentTabs) => {
@@ -369,7 +376,9 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const openPreview = useCallback(
     (new_content: string, type: PreviewContentType, meta?: PreviewMetadata, options?: OpenPreviewOptions) => {
+      const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       const activateTab = (tabId: string) => {
+        rememberPreviewOpener(tabId, opener);
         // Keep the ref current inside a batched update so immediately-opened
         // files and replace-mode callers observe the same active identity.
         activeTabIdRef.current = tabId;
@@ -404,15 +413,30 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const fallbackTitle = (() => {
           // 根据内容类型设置默认标题 / Set default title based on content type
           if (type === 'markdown')
-            return { title: t('preview.defaultTitles.markdown'), key: 'preview.defaultTitles.markdown' } as const;
+            return {
+              title: t('preview.defaultTitles.markdown'),
+              key: 'preview.defaultTitles.markdown',
+            } as const;
           if (type === 'diff')
-            return { title: t('preview.defaultTitles.diff'), key: 'preview.defaultTitles.diff' } as const;
+            return {
+              title: t('preview.defaultTitles.diff'),
+              key: 'preview.defaultTitles.diff',
+            } as const;
           if (type === 'code' && meta?.language) return { title: meta.language } as const;
           if (type === 'code')
-            return { title: t('preview.defaultTitles.code'), key: 'preview.defaultTitles.code' } as const;
+            return {
+              title: t('preview.defaultTitles.code'),
+              key: 'preview.defaultTitles.code',
+            } as const;
           if (type === 'image')
-            return { title: t('preview.defaultTitles.image'), key: 'preview.defaultTitles.image' } as const;
-          return { title: t('preview.defaultTitles.preview'), key: 'preview.defaultTitles.preview' } as const;
+            return {
+              title: t('preview.defaultTitles.image'),
+              key: 'preview.defaultTitles.image',
+            } as const;
+          return {
+            title: t('preview.defaultTitles.preview'),
+            key: 'preview.defaultTitles.preview',
+          } as const;
         })();
 
         const explicitTitle = extractFileName(meta?.file_name) || extractFileName(meta?.title);
@@ -457,16 +481,17 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setPresentationMode((currentMode) => options?.presentation ?? currentMode);
       setIsOpen(true);
     },
-    [extractFileName, findPreviewTabInList, t]
+    [extractFileName, findPreviewTabInList, rememberPreviewOpener, t]
   );
 
   const closePreview = useCallback(() => {
+    restorePreviewOpener(activeTabIdRef.current, true);
     setIsOpen(false);
     setTabs([]);
     setActiveTabId(null);
     setPresentationMode('single');
     setDomSnippets([]);
-  }, []);
+  }, [restorePreviewOpener]);
 
   // Track last-known mtime per file path for external change detection
   const fileMtimeRef = useRef<Map<string, number>>(new Map());
@@ -474,6 +499,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const closeTab = useCallback(
     (tabId: string) => {
+      restorePreviewOpener(tabId);
       setTabs((prevTabs) => {
         // Clean up mtime record for the closed tab
         const tabToClose = prevTabs.find((tab) => tab.id === tabId);
@@ -505,7 +531,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return newTabs;
       });
     },
-    [activeTabId]
+    [activeTabId, restorePreviewOpener]
   );
 
   const closePreviewByIdentity = useCallback(
@@ -683,8 +709,14 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
         if (['pdf', 'word', 'excel', 'ppt', 'audio', 'video', 'hdf5', 'unsupported'].includes(tab.content_type)) return;
         const content =
           tab.content_type === 'image'
-            ? await ipcBridge.fs.getImageBase64.invoke({ path: file_path, workspace: tab.metadata?.workspace })
-            : await ipcBridge.fs.readFile.invoke({ path: file_path, workspace: tab.metadata?.workspace });
+            ? await ipcBridge.fs.getImageBase64.invoke({
+                path: file_path,
+                workspace: tab.metadata?.workspace,
+              })
+            : await ipcBridge.fs.readFile.invoke({
+                path: file_path,
+                workspace: tab.metadata?.workspace,
+              });
         if (content == null) return;
         setTabs((latest) =>
           latest.map((candidate) => {

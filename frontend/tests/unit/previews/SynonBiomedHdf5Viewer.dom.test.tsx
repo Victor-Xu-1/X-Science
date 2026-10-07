@@ -100,7 +100,7 @@ describe('SynonBiomedHdf5Viewer', () => {
 
     expect(screen.getByRole('status')).toHaveTextContent('Reading simulated_raw.h5ad');
     await waitFor(() => expect(document.querySelector('[data-hdf5-viewer="ready"]')).toBeInTheDocument());
-    expect(screen.getByRole('main', { name: 'AnnData visualization overview' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'AnnData visualization overview' })).toBeInTheDocument();
     expect(screen.getByText('10 × 3')).toBeInTheDocument();
     expect(screen.getByText('No UMAP, t-SNE, or PCA coordinates were found')).toBeInTheDocument();
     expect(screen.getByText('Cell type')).toBeInTheDocument();

@@ -1,4 +1,6 @@
-import { Button, Empty, Message, Modal, Spin, Tabs } from '@arco-design/web-react';
+import { Button, Empty, Message, Spin } from '@arco-design/web-react';
+import Tabs from '@/renderer/components/base/WorkbenchTabs';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import { Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -277,6 +279,7 @@ export const SynonBiomedMcpSettingsContent: React.FC<SynonBiomedMcpSettingsConte
       <McpLibraryToolbar
         compactHeader={compactHeader}
         count={servers.length}
+        visibleCount={visibleServers.length}
         customCount={customServers.length}
         search={search}
         onSearch={setSearch}
@@ -304,7 +307,9 @@ export const SynonBiomedMcpSettingsContent: React.FC<SynonBiomedMcpSettingsConte
                   ? 'bg-fill-4'
                   : connectorHealthOK
                     ? 'bg-success-6'
-                    : 'bg-danger-6'
+                    : directoryHealth?.ok === false
+                      ? 'bg-danger-6'
+                      : 'bg-warning-6'
               }`}
             />
             <span>
@@ -389,7 +394,6 @@ export const SynonBiomedMcpSettingsContent: React.FC<SynonBiomedMcpSettingsConte
           ) : null}
         </Spin>
       </div>
-      <footer className='mcp-library-footer' data-testid='mcp-library-footer' />
 
       <McpConnectorEditorModal
         visible={editorVisible}
@@ -431,6 +435,7 @@ export const SynonBiomedMcpSettingsContent: React.FC<SynonBiomedMcpSettingsConte
         style={{ width: 'min(1100px, calc(100vw - 32px))' }}
       >
         <Tabs
+          aria-label={t('settings.synonBiomedMcpAddConnector')}
           activeTab={browseView ?? 'optional'}
           onChange={(key) => setBrowseView(key as ConnectorBrowseView)}
           destroyOnHide

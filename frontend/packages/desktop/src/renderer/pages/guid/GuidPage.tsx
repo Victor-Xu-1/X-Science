@@ -464,7 +464,9 @@ const GuidPage: React.FC = () => {
       if (resolvedDefaults.permissionMode) {
         const availableModeIds = new Set(agentSelection.currentAgentModeOptions.map((mode) => mode.value));
         if (availableModeIds.size === 0 || availableModeIds.has(resolvedDefaults.permissionMode)) {
-          agentSelection.setSelectedMode(resolvedDefaults.permissionMode, { persistPreference: false });
+          agentSelection.setSelectedMode(resolvedDefaults.permissionMode, {
+            persistPreference: false,
+          });
         } else {
           const fallbackMode = agentSelection.currentAgentModeOptions[0]?.value;
           if (fallbackMode) {
@@ -477,13 +479,17 @@ const GuidPage: React.FC = () => {
           agentSelection.currentThoughtLevelOption.options.map((option) => option.value)
         );
         if (resolvedDefaults.thoughtLevel && availableThoughtLevelValues.has(resolvedDefaults.thoughtLevel)) {
-          agentSelection.setSelectedThoughtLevelValue(resolvedDefaults.thoughtLevel, { persistPreference: false });
+          agentSelection.setSelectedThoughtLevelValue(resolvedDefaults.thoughtLevel, {
+            persistPreference: false,
+          });
         } else {
           const fallbackThoughtLevel =
             agentSelection.currentThoughtLevelOption.currentValue ||
             agentSelection.currentThoughtLevelOption.options[0]?.value ||
             '';
-          agentSelection.setSelectedThoughtLevelValue(fallbackThoughtLevel, { persistPreference: false });
+          agentSelection.setSelectedThoughtLevelValue(fallbackThoughtLevel, {
+            persistPreference: false,
+          });
         }
       }
       setGuidSelectedMcpServerIds(resolvedDefaults.mcpIds);
@@ -527,7 +533,10 @@ const GuidPage: React.FC = () => {
   // This flag lets exactly that cleanup pass preserve the current draft.
   const skipNextClearRef = useRef(false);
   useLayoutEffect(() => {
-    const prefillState = location.state as { prefillPrompt?: string; prefillFiles?: string[] } | null;
+    const prefillState = location.state as {
+      prefillPrompt?: string;
+      prefillFiles?: string[];
+    } | null;
     const prefillPrompt = prefillState?.prefillPrompt;
     const prefillFiles = prefillState?.prefillFiles;
     if (prefillPrompt && consumedPrefillKeyRef.current !== location.key) {
@@ -690,7 +699,9 @@ const GuidPage: React.FC = () => {
           <SynonBiomedSendOptionsMenu
             disabled={guidInput.loading}
             hasDraft
-            disabledIntentHints={{ side_chat: t('conversation.synonRuntime.sendBox.sideChatInConversation') }}
+            disabledIntentHints={{
+              side_chat: t('conversation.synonRuntime.sendBox.sideChatInConversation'),
+            }}
             onSelect={handleGuidSendOption}
           />
         ) : undefined
@@ -730,6 +741,7 @@ const GuidPage: React.FC = () => {
         <div className={styles.guidLayout}>
           {!composerDocked ? (
             <section className={styles.guidWelcome} aria-label='SYNON-Biomed'>
+              <h1 className='sr-only'>{t('guid.emptyState.guidance')}</h1>
               <img className={styles.guidWelcomeLogo} src='./branding/synon-biomed-lockup.png' alt='SYNON-Biomed' />
               <p className={styles.guidWelcomeGuidance}>{t('guid.emptyState.guidance')}</p>
             </section>

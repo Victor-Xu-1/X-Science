@@ -25,7 +25,7 @@ import {
   Save as SaveGlyph,
 } from '@icon-park/react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { PreviewFullscreenLayer } from './PreviewFullscreenLayer';
 import { useTranslation } from 'react-i18next';
 import { PreviewToolbarExtrasProvider } from '../../context/PreviewToolbarExtrasContext';
 import { type PreviewTab, usePreviewContext } from '../../context/PreviewContext';
@@ -94,6 +94,7 @@ function getBoardScrollBehavior(): ScrollBehavior {
 type PreviewBoardFullscreenLayerProps = React.PropsWithChildren<{
   active: boolean;
   label: string;
+  onExit: () => void;
 }>;
 
 /**
@@ -102,29 +103,22 @@ type PreviewBoardFullscreenLayerProps = React.PropsWithChildren<{
  * from fullscreen restores the exact two/three-column layout instead of
  * reflowing the other files.
  */
-const PreviewBoardFullscreenLayer: React.FC<PreviewBoardFullscreenLayerProps> = ({ active, label, children }) => {
-  useEffect(() => {
-    if (!active || typeof document === 'undefined') return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [active]);
-
-  if (!active || typeof document === 'undefined') return <>{children}</>;
-
-  return createPortal(
-    <div
-      className='preview-panel preview-board__fullscreen-layer'
-      data-testid='preview-board-fullscreen-layer'
-      role='dialog'
-      aria-modal='true'
-      aria-label={label}
-    >
-      {children}
-    </div>,
-    document.body
+const PreviewBoardFullscreenLayer: React.FC<PreviewBoardFullscreenLayerProps> = ({
+  active,
+  label,
+  onExit,
+  children,
+}) => {
+  return (
+    <PreviewFullscreenLayer active={active} label={label} onExit={onExit}>
+      <div
+        className={active ? 'preview-panel preview-board__fullscreen-layer' : undefined}
+        style={active ? undefined : { display: 'contents' }}
+        data-testid={active ? 'preview-board-fullscreen-layer' : undefined}
+      >
+        {children}
+      </div>
+    </PreviewFullscreenLayer>
   );
 };
 
@@ -195,113 +189,115 @@ const PreviewBoardTile: React.FC<PreviewBoardTileProps> = ({
   };
 
   return (
-    <PreviewBoardFullscreenLayer active={focused} label={fileName}>
-      <article
-        className={`preview-board__tile${
-          focused ? ' preview-board__tile--fullscreen' : ''
-        }${active ? ' preview-board__tile--active' : ''}`}
-        data-preview-tab-id={tab.id}
-        data-editing={editing || undefined}
-        data-testid='preview-board-tile'
-        onPointerDown={onActivate}
-      >
-        {React.Children.toArray(messageContextHolder)}
-        <header className='preview-board__tile-header'>
-          <span className='preview-board__file-name' title={fileName}>
-            {fileName}
-          </span>
-          <div className='preview-board__tile-actions'>
-            {editing ? (
-              <>
-                <BoardIconButton label={t('preview.board.cancelEdit')} disabled={saving} onClick={onCancelEdit}>
-                  <CloseGlyph theme='outline' size={16} />
-                </BoardIconButton>
-                <BoardIconButton
-                  label={t('preview.board.saveFile')}
-                  disabled={saving || !tab.isDirty}
-                  onClick={onSaveEdit}
-                >
-                  <SaveGlyph theme='outline' size={16} />
-                </BoardIconButton>
-              </>
-            ) : (
-              <>
-                {canEdit ? (
-                  <BoardIconButton label={t('preview.board.editFile')} onClick={onStartEdit}>
-                    <EditGlyph theme='outline' size={16} />
-                  </BoardIconButton>
-                ) : null}
-                <BoardIconButton
-                  label={t('preview.board.addToMessage')}
-                  disabled={!canAddToMessage}
-                  onClick={addToMessage}
-                >
-                  <MessageOneGlyph theme='outline' size={16} />
-                </BoardIconButton>
-                <BoardIconButton
-                  label={
-                    regionCommentMode ? t('preview.regionComment.finishMode') : t('preview.regionComment.startMode')
-                  }
-                  pressed={regionCommentMode}
-                  onClick={onToggleRegionComment}
-                >
-                  <RegionCommentGlyph />
-                </BoardIconButton>
-                <BoardIconButton label={t('preview.downloadFile')} onClick={() => void download()}>
-                  <DownloadGlyph theme='outline' size={16} />
-                </BoardIconButton>
-                <BoardIconButton
-                  label={focused ? t('preview.board.restoreFile') : t('preview.board.expandFile')}
-                  pressed={focused}
-                  onClick={onToggleFocus}
-                >
-                  {focused ? (
-                    <OffScreenGlyph theme='outline' size={16} />
-                  ) : (
-                    <FullScreenGlyph theme='outline' size={16} />
-                  )}
-                </BoardIconButton>
-                <BoardIconButton label={t('preview.board.closeFile')} onClick={onClose}>
-                  <CloseGlyph theme='outline' size={16} />
-                </BoardIconButton>
-              </>
-            )}
-          </div>
-        </header>
-        {tab.metadata?.truncated ? <div className='preview-board__notice'>{t('preview.truncatedBanner')}</div> : null}
-        <div
-          className={`preview-board__tile-body preview-panel__body preview-panel__body--${tab.content_type}${
-            regionCommentMode ? ' preview-panel__body--region-commenting' : ''
-          }`}
+    <div className='preview-board__slot' data-testid='preview-board-slot'>
+      <PreviewBoardFullscreenLayer active={focused} label={fileName} onExit={onToggleFocus}>
+        <article
+          className={`preview-board__tile${
+            focused ? ' preview-board__tile--fullscreen' : ''
+          }${active ? ' preview-board__tile--active' : ''}`}
+          data-preview-tab-id={tab.id}
+          data-editing={editing || undefined}
+          data-testid='preview-board-tile'
+          onPointerDown={onActivate}
         >
-          <PreviewToolbarExtrasProvider value={noopToolbarExtras}>
-            <React.Suspense fallback={<PreviewLoadingState label={t('common.loading')} />}>
-              <PreviewBoardTileContent
-                tab={tab}
-                conversationId={conversationId}
-                editing={editing}
-                onContentChange={onContentChange}
-              />
-            </React.Suspense>
-          </PreviewToolbarExtrasProvider>
-          <PreviewRegionCommentLayer
-            active={regionCommentMode}
-            source={{
-              fileName,
-              contentType: tab.content_type,
-              artifactId: tab.metadata?.artifactId,
-              versionId: tab.metadata?.versionId,
-              filePath: tab.metadata?.file_path,
-            }}
-            onExit={onExitRegionComment}
-            onAdd={(comment) => {
-              addToSendBox(formatPreviewRegionCommentForComposer(comment, i18n.resolvedLanguage));
-              messageApi.success(t('preview.regionComment.added'));
-            }}
-          />
-        </div>
-      </article>
-    </PreviewBoardFullscreenLayer>
+          {React.Children.toArray(messageContextHolder)}
+          <header className='preview-board__tile-header'>
+            <span className='preview-board__file-name' title={fileName}>
+              {fileName}
+            </span>
+            <div className='preview-board__tile-actions'>
+              {editing ? (
+                <>
+                  <BoardIconButton label={t('preview.board.cancelEdit')} disabled={saving} onClick={onCancelEdit}>
+                    <CloseGlyph theme='outline' size={16} />
+                  </BoardIconButton>
+                  <BoardIconButton
+                    label={t('preview.board.saveFile')}
+                    disabled={saving || !tab.isDirty}
+                    onClick={onSaveEdit}
+                  >
+                    <SaveGlyph theme='outline' size={16} />
+                  </BoardIconButton>
+                </>
+              ) : (
+                <>
+                  {canEdit ? (
+                    <BoardIconButton label={t('preview.board.editFile')} onClick={onStartEdit}>
+                      <EditGlyph theme='outline' size={16} />
+                    </BoardIconButton>
+                  ) : null}
+                  <BoardIconButton
+                    label={t('preview.board.addToMessage')}
+                    disabled={!canAddToMessage}
+                    onClick={addToMessage}
+                  >
+                    <MessageOneGlyph theme='outline' size={16} />
+                  </BoardIconButton>
+                  <BoardIconButton
+                    label={
+                      regionCommentMode ? t('preview.regionComment.finishMode') : t('preview.regionComment.startMode')
+                    }
+                    pressed={regionCommentMode}
+                    onClick={onToggleRegionComment}
+                  >
+                    <RegionCommentGlyph />
+                  </BoardIconButton>
+                  <BoardIconButton label={t('preview.downloadFile')} onClick={() => void download()}>
+                    <DownloadGlyph theme='outline' size={16} />
+                  </BoardIconButton>
+                  <BoardIconButton
+                    label={focused ? t('preview.board.restoreFile') : t('preview.board.expandFile')}
+                    pressed={focused}
+                    onClick={onToggleFocus}
+                  >
+                    {focused ? (
+                      <OffScreenGlyph theme='outline' size={16} />
+                    ) : (
+                      <FullScreenGlyph theme='outline' size={16} />
+                    )}
+                  </BoardIconButton>
+                  <BoardIconButton label={t('preview.board.closeFile')} onClick={onClose}>
+                    <CloseGlyph theme='outline' size={16} />
+                  </BoardIconButton>
+                </>
+              )}
+            </div>
+          </header>
+          {tab.metadata?.truncated ? <div className='preview-board__notice'>{t('preview.truncatedBanner')}</div> : null}
+          <div
+            className={`preview-board__tile-body preview-panel__body preview-panel__body--${tab.content_type}${
+              regionCommentMode ? ' preview-panel__body--region-commenting' : ''
+            }`}
+          >
+            <PreviewToolbarExtrasProvider value={noopToolbarExtras}>
+              <React.Suspense fallback={<PreviewLoadingState label={t('common.loading')} />}>
+                <PreviewBoardTileContent
+                  tab={tab}
+                  conversationId={conversationId}
+                  editing={editing}
+                  onContentChange={onContentChange}
+                />
+              </React.Suspense>
+            </PreviewToolbarExtrasProvider>
+            <PreviewRegionCommentLayer
+              active={regionCommentMode}
+              source={{
+                fileName,
+                contentType: tab.content_type,
+                artifactId: tab.metadata?.artifactId,
+                versionId: tab.metadata?.versionId,
+                filePath: tab.metadata?.file_path,
+              }}
+              onExit={onExitRegionComment}
+              onAdd={(comment) => {
+                addToSendBox(formatPreviewRegionCommentForComposer(comment, i18n.resolvedLanguage));
+                messageApi.success(t('preview.regionComment.added'));
+              }}
+            />
+          </div>
+        </article>
+      </PreviewBoardFullscreenLayer>
+    </div>
   );
 };
 
@@ -600,17 +596,6 @@ const PreviewBoard: React.FC<{ conversationId?: string }> = ({ conversationId })
   }, [editingTabId, focusedTabId, regionCommentTabId, tabs]);
 
   useEffect(() => {
-    if (!focusedTabId && !isBoardFullscreen) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      if (focusedTabId) setFocusedTabId(null);
-      else setIsBoardFullscreen(false);
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [focusedTabId, isBoardFullscreen]);
-
-  useEffect(() => {
     if (!activeTabId || focusedTabId) return;
     const tile = tileRefs.current.get(activeTabId);
     tile?.scrollIntoView({
@@ -671,9 +656,15 @@ const PreviewBoard: React.FC<{ conversationId?: string }> = ({ conversationId })
   if (!isOpen || tabs.length === 0) return null;
 
   return (
-    <PreviewBoardFullscreenLayer active={isBoardFullscreen} label={t('preview.board.title')}>
+    <PreviewBoardFullscreenLayer
+      active={isBoardFullscreen}
+      label={t('preview.board.title')}
+      onExit={() => setIsBoardFullscreen(false)}
+    >
       <section
         className='preview-panel preview-board'
+        data-preview-focus-target
+        tabIndex={-1}
         data-columns={columns}
         data-testid='preview-board'
         style={{ '--preview-board-columns': columns } as React.CSSProperties}

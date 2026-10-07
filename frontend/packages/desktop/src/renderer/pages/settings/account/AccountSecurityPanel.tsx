@@ -1,4 +1,5 @@
-import { Button, Message, Modal } from '@arco-design/web-react';
+import { Button, Message } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import { Refresh, Shield } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';

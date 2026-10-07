@@ -9,8 +9,8 @@ import { toLocalFileHref } from '@/renderer/components/Markdown/markdownUtils';
 import { PreviewToolbarExtrasProvider, type PreviewToolbarExtras } from '../../context/PreviewToolbarExtrasContext';
 import { usePreviewContext } from '../../context/PreviewContext';
 import { Link } from '@arco-design/web-react';
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { PreviewFullscreenLayer } from './PreviewFullscreenLayer';
 import CodeEditor from '../editors/CodeEditor';
 import DelimitedTableEditor from '../editors/DelimitedTableEditor';
 import { getPreviewEditingMode } from '../editors/previewEditingPolicy';
@@ -54,24 +54,7 @@ import './preview.css';
 
 const DocumentWysiwygEditor = React.lazy(() => import('../editors/DocumentWysiwygEditor'));
 
-export const PreviewFullscreenLayer: React.FC<React.PropsWithChildren<{ active: boolean }>> = ({
-  active,
-  children,
-}) => {
-  useLayoutEffect(() => {
-    if (!active || typeof document === 'undefined') return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [active]);
-
-  if (active && typeof document !== 'undefined') {
-    return createPortal(children, document.body);
-  }
-  return <>{children}</>;
-};
+export { PreviewFullscreenLayer } from './PreviewFullscreenLayer';
 
 /**
  * 预览面板主组件
@@ -119,15 +102,6 @@ const SinglePreviewPanel: React.FC<{ conversationId?: string }> = ({ conversatio
   useEffect(() => {
     if (isEditing) setRegionCommentMode(false);
   }, [isEditing]);
-
-  useEffect(() => {
-    if (!isFullscreen) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsFullscreen(false);
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isFullscreen]);
 
   // 确认对话框状态 / Confirmation dialog states
   const [closeTabConfirm, setCloseTabConfirm] = useState<CloseTabConfirmState>({
@@ -614,11 +588,17 @@ const SinglePreviewPanel: React.FC<{ conversationId?: string }> = ({ conversatio
 
   return (
     <PreviewToolbarExtrasProvider value={toolbarExtrasContextValue}>
-      <PreviewFullscreenLayer active={isFullscreen}>
+      <PreviewFullscreenLayer
+        active={isFullscreen}
+        label={metadata?.file_name || activeTab.title}
+        onExit={() => setIsFullscreen(false)}
+      >
         <div
           data-testid='preview-panel-shell'
-          role={isFullscreen ? 'dialog' : undefined}
-          aria-modal={isFullscreen || undefined}
+          data-preview-focus-target
+          tabIndex={-1}
+          role='region'
+          aria-label={metadata?.file_name || activeTab.title}
           className={
             isFullscreen
               ? 'preview-panel preview-panel--fullscreen fixed inset-0 z-[2000] size-full flex flex-col overflow-hidden bg-1'

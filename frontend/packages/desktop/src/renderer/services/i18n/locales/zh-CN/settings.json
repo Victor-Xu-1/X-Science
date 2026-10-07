@@ -1993,6 +1993,7 @@
       "configured": "已配置",
       "paired": "已配对",
       "loading": "正在检查",
+      "statusUnavailable": "状态不可用",
       "scanToPair": "扫码配对",
       "regenerate": "重新生成二维码",
       "unpair": "取消配对",

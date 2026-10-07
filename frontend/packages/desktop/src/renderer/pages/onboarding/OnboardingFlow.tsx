@@ -346,7 +346,9 @@ const OnboardingFlow: React.FC = () => {
         };
         void (async () => {
           try {
-            const project = await ensureOnboardingProject(t('guid.onboarding.projectDefaultName'), { fetchImpl });
+            const project = await ensureOnboardingProject(t('guid.onboarding.projectDefaultName'), {
+              fetchImpl,
+            });
             assertAuthority();
             const attachments = await prepareOnboardingSuggestionArtifacts(project.projectId, files, {
               fetchImpl,
@@ -627,16 +629,24 @@ const OnboardingFlow: React.FC = () => {
       const activeSuggestion = suggestionSession.current;
       const activeSuggestionFrame = suggestionFrameId.current;
       if (finalTask && activeSuggestion && suggestionViewRef.current === 'agent' && selectedTask === finalTask) {
-        await resolveOnboardingTaskSuggestion(activeSuggestion, finalTask, { fetchImpl, signal: controller.signal });
+        await resolveOnboardingTaskSuggestion(activeSuggestion, finalTask, {
+          fetchImpl,
+          signal: controller.signal,
+        });
       } else if (activeSuggestionFrame) {
-        await cancelOnboardingSuggestionFrame(activeSuggestionFrame, { fetchImpl, signal: controller.signal });
+        await cancelOnboardingSuggestionFrame(activeSuggestionFrame, {
+          fetchImpl,
+          signal: controller.signal,
+        });
       }
       assertAuthority();
       suggestionSession.current = null;
       suggestionFrameId.current = null;
       await saveOnboardingCapabilities(selection, snapshot, { fetchImpl });
       assertAuthority();
-      const project = await ensureOnboardingProject(t('guid.onboarding.projectDefaultName'), { fetchImpl });
+      const project = await ensureOnboardingProject(t('guid.onboarding.projectDefaultName'), {
+        fetchImpl,
+      });
       assertAuthority();
       const profileSignature = JSON.stringify({
         summary: profileSummary,
@@ -712,7 +722,9 @@ const OnboardingFlow: React.FC = () => {
       profileDocument.current = null;
       launchIdentity.current = null;
       if (result.conversationId) {
-        void navigate(`/conversation/${encodeURIComponent(result.conversationId)}`, { replace: true });
+        void navigate(`/conversation/${encodeURIComponent(result.conversationId)}`, {
+          replace: true,
+        });
       } else {
         void navigate('/guid', { replace: true });
       }
@@ -741,7 +753,7 @@ const OnboardingFlow: React.FC = () => {
   return (
     <main className={styles.root} data-testid='onboarding-flow'>
       <OnboardingHeader user={user} switchingAccount={switchingAccount} onSwitchAccount={switchAccount} t={t} />
-      <section className={styles.flow} aria-live='polite'>
+      <section className={styles.flow}>
         <div
           className={styles.progress}
           role='progressbar'
@@ -756,7 +768,11 @@ const OnboardingFlow: React.FC = () => {
           })}
         >
           <strong>
-            {t('guid.onboarding.progressValue', { current: step + 1, total: ONBOARDING_STEP_COUNT, title: stepTitle })}
+            {t('guid.onboarding.progressValue', {
+              current: step + 1,
+              total: ONBOARDING_STEP_COUNT,
+              title: stepTitle,
+            })}
           </strong>
           <span className={styles.progressBars} aria-hidden='true'>
             {Array.from({ length: ONBOARDING_STEP_COUNT }, (_, index) => (
@@ -914,7 +930,9 @@ const OnboardingFlow: React.FC = () => {
             {restoredAttachmentNames.length > 0 && files.length === 0 && (
               <Alert
                 type='warning'
-                content={t('guid.onboarding.profile.reselectFiles', { files: restoredAttachmentNames.join(', ') })}
+                content={t('guid.onboarding.profile.reselectFiles', {
+                  files: restoredAttachmentNames.join(', '),
+                })}
                 data-testid='onboarding-restored-files'
               />
             )}
@@ -1087,7 +1105,13 @@ type CapabilityListProps = {
   emptyText: string;
   unavailableText: string;
   query: string;
-  items: Array<{ id: string; title: string; description: string; enabled: boolean; available: boolean }>;
+  items: Array<{
+    id: string;
+    title: string;
+    description: string;
+    enabled: boolean;
+    available: boolean;
+  }>;
   onChange: (id: string, enabled: boolean) => void;
 };
 
@@ -1211,7 +1235,9 @@ const ScientificRuntimeList: React.FC<{
                 <small className={styles.runtimeMeta}>
                   {item.required
                     ? t('settings.environments.included')
-                    : t('guid.onboarding.capabilities.runtimeSize', { size: item.estimatedInstallMB })}
+                    : t('guid.onboarding.capabilities.runtimeSize', {
+                        size: item.estimatedInstallMB,
+                      })}
                   {stateText ? ` · ${stateText}` : ''}
                 </small>
                 {!item.available && (

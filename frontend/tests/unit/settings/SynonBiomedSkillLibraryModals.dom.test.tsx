@@ -60,6 +60,31 @@ const bundledSkill = {
 };
 
 describe('Synon Biomed skill library detail modal', () => {
+  it('retains read-only detail content during exit rather than flashing a missing-file error', async () => {
+    function ClosingFixture() {
+      const [open, setOpen] = React.useState(true);
+      const [selected, setSelected] = React.useState<SkillModalItem | null>(bundledSkill);
+      return (
+        <SkillDetailModal
+          visible={open}
+          skill={selected}
+          draft={false}
+          editable={false}
+          onClose={() => {
+            setOpen(false);
+            setSelected(null);
+          }}
+          onChanged={vi.fn()}
+        />
+      );
+    }
+    await renderWithSettingsI18n(<ClosingFixture />);
+    expect(await screen.findByTestId('skill-markdown')).toHaveTextContent('Detailed workflow.');
+    const close = screen.getAllByRole('button', { name: '关闭' }).find((node) => node.classList.contains('arco-btn'))!;
+    fireEvent.click(close);
+    expect(screen.getByTestId('skill-markdown')).toHaveTextContent('Detailed workflow.');
+    expect(screen.queryByText('此 Skill 的源文件未由后端提供')).not.toBeInTheDocument();
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.loadFiles.mockResolvedValue(['SKILL.md']);

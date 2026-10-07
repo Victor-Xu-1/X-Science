@@ -50,17 +50,22 @@ const LibrarySettingsPage: React.FC = () => {
       <div className='settings-library-page flex min-h-0 w-full flex-col'>
         <div className='settings-library-tabs-row sticky top-0 z-1' style={{ background: 'var(--color-bg-1)' }}>
           <div className='settings-page-header__tabs-row' style={{ paddingTop: 4 }}>
-            <div className='settings-page-header__tabs' role='tablist'>
+            <nav className='settings-page-header__tabs' aria-label={t('settings.scientificToolkit')}>
               {LIBRARY_TABS.map((tab) => {
                 const isActive = tab.key === activeTab;
                 return (
-                  <button
+                  <a
                     key={tab.key}
-                    type='button'
-                    role='tab'
-                    aria-selected={isActive}
+                    href={`#/settings/${tab.key}`}
+                    aria-current={isActive ? 'page' : undefined}
+                    data-settings-tab
                     data-testid={`settings-tab-${tab.key}`}
-                    onClick={() => handleTabChange(tab.key)}
+                    onClick={(event) => {
+                      if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey)
+                        return;
+                      event.preventDefault();
+                      handleTabChange(tab.key);
+                    }}
                     className={classNames(
                       'relative inline-flex cursor-pointer items-center border-none bg-transparent px-2px pb-10px text-14px leading-none transition-colors',
                       isActive ? 'font-600 text-t-primary' : 'font-500 text-t-tertiary hover:text-t-secondary'
@@ -70,10 +75,10 @@ const LibrarySettingsPage: React.FC = () => {
                     {isActive ? (
                       <span className='absolute inset-x-0 -bottom-1px h-2px rounded-2px bg-primary-6' />
                     ) : null}
-                  </button>
+                  </a>
                 );
               })}
-            </div>
+            </nav>
           </div>
         </div>
         <div className='settings-library-page__content min-h-0 flex-1 pt-8px'>

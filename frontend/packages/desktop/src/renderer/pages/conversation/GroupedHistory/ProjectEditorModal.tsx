@@ -1,5 +1,6 @@
 import type { SynonBiomedProject, SynonBiomedProjectInput } from '@/renderer/services/synonBiomedGateway';
-import { Button, Input, Modal } from '@arco-design/web-react';
+import { Button, Input } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 

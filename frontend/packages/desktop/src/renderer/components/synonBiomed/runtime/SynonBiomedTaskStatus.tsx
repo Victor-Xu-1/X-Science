@@ -290,7 +290,9 @@ const SynonBiomedTaskStatus: React.FC<SynonBiomedTaskStatusProps> = ({
       ? t('conversation.synonRuntime.runtimeOperations.retryLater')
       : (snapshot?.failureKind === 'model_not_found' || snapshot?.failureKind === 'safety_refusal') &&
           recoveryModelLabel
-        ? t('conversation.synonRuntime.runtimeOperations.continueWithModel', { model: recoveryModelLabel })
+        ? t('conversation.synonRuntime.runtimeOperations.continueWithModel', {
+            model: recoveryModelLabel,
+          })
         : t('conversation.synonRuntime.runtimeOperations.continueRunning');
   const chooseModelAction =
     (snapshot?.failureKind === 'model_not_found' || snapshot?.failureKind === 'safety_refusal') && onChooseModel
@@ -410,9 +412,11 @@ const SynonBiomedTaskStatus: React.FC<SynonBiomedTaskStatusProps> = ({
   const elapsedLabel =
     taskElapsed === null
       ? null
-      : t('conversation.synonRuntime.runtimeOperations.taskTotalElapsed', { duration: elapsedValue });
+      : t('conversation.synonRuntime.runtimeOperations.taskTotalElapsed', {
+          duration: elapsedValue,
+        });
   const attentionCount = pendingInputCount + (snapshot?.planApproval ? 1 : 0);
-  const secondaryLabel =
+  const secondaryLabelCandidate =
     attentionCount > 0
       ? t('conversation.synonRuntime.runtimeOperations.taskPendingCount', { count: attentionCount })
       : phase === 'failed' && publicFailureLabel
@@ -420,6 +424,7 @@ const SynonBiomedTaskStatus: React.FC<SynonBiomedTaskStatusProps> = ({
           ? elapsedLabel
           : publicFailureLabel
         : elapsedLabel;
+  const secondaryLabel = secondaryLabelCandidate === title ? null : secondaryLabelCandidate;
   const taskCenterAvailable = !busy && Boolean(status || unsupported || authorityPending || failure);
 
   useEffect(() => {
@@ -460,8 +465,7 @@ const SynonBiomedTaskStatus: React.FC<SynonBiomedTaskStatusProps> = ({
         data-minimized={minimized ? 'true' : 'false'}
         style={capsuleStyle}
         role={failure ? 'alert' : 'status'}
-        aria-live={failure ? 'assertive' : 'polite'}
-        aria-atomic='true'
+        aria-live='off'
         {...capsulePointerProps}
       >
         {minimized ? (
@@ -470,7 +474,9 @@ const SynonBiomedTaskStatus: React.FC<SynonBiomedTaskStatusProps> = ({
               type='button'
               className='synon-biomed-task-center__orb'
               data-testid='synon-biomed-task-status-restore'
-              aria-label={t('conversation.synonRuntime.runtimeOperations.restoreTaskStatus', { status: title })}
+              aria-label={t('conversation.synonRuntime.runtimeOperations.restoreTaskStatus', {
+                status: title,
+              })}
               onClick={() => setMinimized(false)}
             >
               {statusIcon}
@@ -530,17 +536,23 @@ const SynonBiomedTaskStatus: React.FC<SynonBiomedTaskStatusProps> = ({
               aria-label={t('conversation.synonRuntime.runtimeOperations.openTaskCenter', {
                 status: title,
                 detail: secondaryLabel ?? '',
-              })}
+              }).trim()}
               title={t('conversation.synonRuntime.runtimeOperations.taskCenterTitle')}
             >
               {statusIcon}
-              <span className='synon-biomed-task-center__title' title={title}>
+              <span
+                className='synon-biomed-task-center__title'
+                title={title}
+                aria-live={failure ? 'assertive' : 'polite'}
+                aria-atomic='true'
+              >
                 {title}
               </span>
               {secondaryLabel ? (
                 <span
                   className='synon-biomed-task-center__metric'
                   title={secondaryLabel}
+                  aria-live={attentionCount > 0 ? 'polite' : 'off'}
                   data-testid={
                     phase === 'failed' && status?.failureReason
                       ? 'synon-biomed-task-failure-reason'
@@ -564,7 +576,12 @@ const SynonBiomedTaskStatus: React.FC<SynonBiomedTaskStatusProps> = ({
         ) : (
           <div className='synon-biomed-task-center__summary-trigger synon-biomed-task-center__summary-trigger--static'>
             {statusIcon}
-            <span className='synon-biomed-task-center__title' title={title}>
+            <span
+              className='synon-biomed-task-center__title'
+              title={title}
+              aria-live={failure ? 'assertive' : 'polite'}
+              aria-atomic='true'
+            >
               {title}
             </span>
             {secondaryLabel ? (

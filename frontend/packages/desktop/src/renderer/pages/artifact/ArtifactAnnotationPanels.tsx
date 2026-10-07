@@ -11,7 +11,8 @@ import {
   type SynonBiomedArtifactAnnotation,
   type SynonBiomedVerificationCheck,
 } from '@/renderer/services/synonBiomedAnnotations';
-import { Button, Empty, Input, InputNumber, Message, Modal, Select, Spin } from '@arco-design/web-react';
+import { Button, Empty, Input, InputNumber, Message, Select, Spin } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import { CheckOne, Delete, Edit, Magic, Plus, Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';

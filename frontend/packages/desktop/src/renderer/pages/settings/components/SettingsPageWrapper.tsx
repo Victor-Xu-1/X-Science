@@ -15,7 +15,11 @@ import {
   subscribeToSettingsRoute,
 } from '../settingsNavigation';
 import type { SettingsRouteId } from '../settingsRouteLoaders';
-import { getSettingsVisualContract, SETTINGS_VISUAL_SYSTEM_ID } from './settingsVisualContract';
+import {
+  getSettingsVisualContract,
+  SETTINGS_LAYOUT_REVISION,
+  SETTINGS_VISUAL_SYSTEM_ID,
+} from './settingsVisualContract';
 import { SettingsGeneratedNavIcon } from './SettingsGeneratedAsset';
 
 interface SettingsPageWrapperProps {
@@ -111,6 +115,16 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
 
   const contentClass = classNames('settings-page-content w-full', contentClassName);
   const visualContract = getSettingsVisualContract(contentRoute);
+  const contentRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    // Lazy route navigation removes the previously focused menu/link. Begin
+    // the new page's reading order at its actual heading, never the body.
+    const heading = contentRef.current?.querySelector<HTMLElement>('h1, h2');
+    if (!heading) return;
+    heading.tabIndex = -1;
+    heading.focus({ preventScroll: true });
+  }, [contentRoute]);
 
   const navigateToTab = React.useCallback((tabId: string) => {
     navigateSettingsRoute(tabId as SettingsRouteId);
@@ -124,6 +138,7 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
           data-settings-route={contentRoute}
           data-settings-module={contentRoute}
           data-settings-visual-system={SETTINGS_VISUAL_SYSTEM_ID}
+          data-settings-layout-revision={SETTINGS_LAYOUT_REVISION}
           data-settings-reference-desktop={visualContract.reference.desktop}
           data-settings-reference-mobile={visualContract.reference.mobile}
         >
@@ -137,10 +152,13 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
                       key={item.path}
                       href={`#/settings/${item.path}`}
                       data-settings-id={item.id}
+                      aria-current={active ? 'page' : undefined}
                       className={classNames('settings-mobile-top-nav__item', {
                         'settings-mobile-top-nav__item--active': active,
                       })}
                       onClick={(event) => {
+                        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
+                          return;
                         event.preventDefault();
                         navigateSettingsRoute(item.id);
                       }}
@@ -162,7 +180,7 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
               </button>
             </div>
           )}
-          <div className={contentClass}>
+          <div ref={contentRef} className={contentClass}>
             <div className='settings-page-body'>{children}</div>
           </div>
         </div>

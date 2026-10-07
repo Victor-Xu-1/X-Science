@@ -46,14 +46,22 @@ vi.mock('@/common', () => ({
 vi.mock('@/renderer/components/layout/PwaPullToRefresh', () => ({ default: () => null }));
 vi.mock('@/renderer/components/layout/Titlebar', () => ({ default: () => null }));
 vi.mock('@renderer/hooks/system/useDeepLink', () => ({ useDeepLink: () => {} }));
-vi.mock('@renderer/hooks/system/notification/useNotificationClick', () => ({ useNotificationClick: () => {} }));
-vi.mock('@renderer/hooks/system/notification/useBrowserNotification', () => ({ useBrowserNotification: () => {} }));
+vi.mock('@renderer/hooks/system/notification/useNotificationClick', () => ({
+  useNotificationClick: () => {},
+}));
+vi.mock('@renderer/hooks/system/notification/useBrowserNotification', () => ({
+  useBrowserNotification: () => {},
+}));
 vi.mock('@renderer/hooks/file/useDirectorySelection', () => ({
   useDirectorySelection: () => ({ contextHolder: null }),
 }));
 vi.mock('@renderer/utils/ui/siderTooltip', () => ({ cleanupSiderTooltips: () => {} }));
-vi.mock('@renderer/hooks/ui/useConversationShortcuts', () => ({ useConversationShortcuts: () => {} }));
-vi.mock('@renderer/utils/platform', () => ({ isElectronDesktop: platformMocks.isElectronDesktopMock }));
+vi.mock('@renderer/hooks/ui/useConversationShortcuts', () => ({
+  useConversationShortcuts: () => {},
+}));
+vi.mock('@renderer/utils/platform', () => ({
+  isElectronDesktop: platformMocks.isElectronDesktopMock,
+}));
 
 import Layout from '@renderer/components/layout/Layout';
 
@@ -332,5 +340,28 @@ describe('Layout shell behavior', () => {
     expect(sider).toHaveStyle({ width: '420px' });
     fireEvent.keyDown(handle, { key: 'Home' });
     expect(sider).toHaveClass('collapsed');
+  });
+
+  it('provides a keyboard skip control and focuses the main workspace without navigating', () => {
+    renderLayout();
+    const main = screen.getByRole('main');
+    expect(main).toHaveAttribute('id', 'workspace-main');
+    expect(main).toHaveAttribute('tabindex', '-1');
+    fireEvent.click(screen.getByRole('button', { name: 'common.skipToContent' }));
+    expect(main).toHaveFocus();
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('removes the collapsed mobile sidebar from focus and accessibility navigation', () => {
+    const previousWidth = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 390 });
+    try {
+      const { container } = renderLayout();
+      const contents = container.querySelector('.layout-sider [inert]')!;
+      expect(contents).toHaveAttribute('inert');
+      expect(contents).toHaveAttribute('aria-hidden', 'true');
+    } finally {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: previousWidth });
+    }
   });
 });
