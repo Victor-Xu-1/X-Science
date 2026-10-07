@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "72835efdfd17cecb8242c9719e9b9b392a6b914df7f1b90ab8ff5b8725d4657f",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
-  "additionFingerprintSHA256": "fdba01517b6299676bec7928d0630230cf2d0d6ac14e18ef2c93b3c78d9bd3fa",
+  "additionFingerprintSHA256": "3ab0c2e261afcc05ba38dd16c598890634d23356d53e4bed33a24f4078b86392",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 393,
@@ -6607,8 +6607,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/base/WorkbenchModal.tsx",
-      "sha256": "c0956bf6202aaecff0ac57a546dfb0dd30698e25b8d3af762d137708c6e4e7de",
-      "bytes": 2497,
+      "sha256": "5f252f84f2ddd38e94b0a06db171d19e539a0096850b81870456cbdaa297d0ac",
+      "bytes": 3291,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9715,8 +9715,8 @@
     },
     {
       "path": "tests/unit/renderer/WorkbenchModal.dom.test.tsx",
-      "sha256": "dd8249fca8ed8deda4f75c9ddace98775080530a3a02cbf34bd2bd6b72261666",
-      "bytes": 1684,
+      "sha256": "7a6c3fb38457fa63a10aa9dbc57a872a37211892560be5bbc69458a4201fa455",
+      "bytes": 7313,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

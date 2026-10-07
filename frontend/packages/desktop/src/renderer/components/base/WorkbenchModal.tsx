@@ -2,6 +2,8 @@ import { Modal as ArcoModal, type ModalProps } from '@arco-design/web-react';
 import { Close } from '@icon-park/react';
 import React, { useId, useLayoutEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { uuid } from '@/common/utils/utils';
+import { restoreScopedFocus } from '@/renderer/utils/focusScope';
 
 function LocalizedCloseIcon() {
   const { t } = useTranslation();
@@ -38,29 +40,42 @@ function WorkbenchModal(props: React.PropsWithChildren<ModalProps>) {
       closeIcon={props.closeIcon === undefined ? <LocalizedCloseIcon /> : props.closeIcon}
       afterClose={() => {
         const root = document.querySelector(selector);
-        const current = document.activeElement;
         const target = openerRef.current;
         openerRef.current = null;
-        if (
-          target?.isConnected &&
-          !target.matches(':disabled') &&
-          (current === document.body || root?.contains(current))
-        )
-          target.focus({ preventScroll: true });
+        restoreScopedFocus(target, root as HTMLElement | null);
         props.afterClose?.();
       }}
     />
   );
 }
 
-// Retain the public imperative API without introducing another implementation.
-// Its lifecycle is deliberately separate from the component adapter above.
+/** Native imperative render/promise/update ownership remains with Arco. */
+function presentImperativeModal(method: typeof ArcoModal.confirm): typeof ArcoModal.confirm {
+  return (config) => {
+    const scopeId = uuid(36);
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const presented = {
+      ...config,
+      'data-workbench-modal-scope': scopeId,
+      closeIcon: config.closeIcon === undefined ? <LocalizedCloseIcon /> : config.closeIcon,
+      afterClose: () => {
+        const root = document.querySelector<HTMLElement>(`[data-workbench-modal-scope="${scopeId}"]`);
+        restoreScopedFocus(opener, root);
+        config.afterClose?.();
+      },
+    };
+    return method(presented);
+  };
+}
+
+// Presentation delegates return the original instances and never implement a
+// second confirmation/promise controller. Hook/config/destroy APIs stay native.
 export default Object.assign(WorkbenchModal, {
-  confirm: ArcoModal.confirm,
-  info: ArcoModal.info,
-  success: ArcoModal.success,
-  warning: ArcoModal.warning,
-  error: ArcoModal.error,
+  confirm: presentImperativeModal(ArcoModal.confirm),
+  info: presentImperativeModal(ArcoModal.info),
+  success: presentImperativeModal(ArcoModal.success),
+  warning: presentImperativeModal(ArcoModal.warning),
+  error: presentImperativeModal(ArcoModal.error),
   config: ArcoModal.config,
   destroyAll: ArcoModal.destroyAll,
   useModal: ArcoModal.useModal,
