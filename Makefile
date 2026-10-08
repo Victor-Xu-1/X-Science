@@ -1,3 +1,5 @@
+.DEFAULT_GOAL := build
+
 GO ?= go
 NPM ?= npm
 BINARY ?= dist/synon-go
