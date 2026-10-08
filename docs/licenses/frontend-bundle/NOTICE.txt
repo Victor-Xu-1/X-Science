@@ -1,13 +1,13 @@
-Synon Biomed — frontend third-party notices
+X-Science — frontend third-party notices
 ===============================================
 
 Third-party packages retain their respective licenses and copyrights.
-These terms are not replaced by the root AGPL or a Synon commercial agreement.
+These terms are not replaced by the root AGPL or an X-Science commercial agreement.
 Code is bundled/minified for browser use; upstream package implementations are not edited.
 
 This notice covers packages in the browser bundle and the copied RDKit runtime.
 Other components and optional scientific runtimes have separate notices in this directory.
-Package lock SHA-256: 242ae7cb35458f1c239e9a979989a52f9eaaaf4cc123accc0166678b78c15d41
+Package lock SHA-256: 44c63edbc8640ab67e7911285c5fe85db0fefaca0f7c0f576f02e3eb5cdbee4c
 
 Package index
 -------------
@@ -382,8 +382,8 @@ diff2html@3.4.56 — notice 61
   Source: https://registry.npmjs.org/diff2html/-/diff2html-3.4.56.tgz
 dom-helpers@5.2.1 — notice 72
   Source: https://registry.npmjs.org/dom-helpers/-/dom-helpers-5.2.1.tgz
-dompurify@3.4.14 — notice 37, 14
-  Source: https://registry.npmjs.org/dompurify/-/dompurify-3.4.14.tgz
+dompurify@3.4.16 — notice 37, 14
+  Source: https://registry.npmjs.org/dompurify/-/dompurify-3.4.16.tgz
 es-toolkit@1.49.0 — notice 39
   Source: https://registry.npmjs.org/es-toolkit/-/es-toolkit-1.49.0.tgz
 escape-string-regexp@5.0.0 — notice 48
