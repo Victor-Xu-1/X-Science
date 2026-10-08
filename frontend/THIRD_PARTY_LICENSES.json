@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "package": "@synon-go/workbench-web",
-  "lockfileSHA256": "242ae7cb35458f1c239e9a979989a52f9eaaaf4cc123accc0166678b78c15d41",
+  "lockfileSHA256": "c5927a7bf4174c9c53ec400e27cd20ac6a3ee462fc6d2a9506b3500c7b438d55",
   "summary": {
     "records": 1131,
     "workspaceLinkRecords": 1,
@@ -7952,7 +7952,7 @@
   "workspaceLinks": [
     {
       "name": "@synon-go/workbench-renderer",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "path": "packages/desktop",
       "basis": "local workspace package; source licensing reviewed separately"
     }

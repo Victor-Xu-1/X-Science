@@ -1,6 +1,6 @@
 {
   "schema": "synon.product-identity.v1",
   "display_name": "Synon Biomed",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "machine_slug": "synon-biomed"
 }
