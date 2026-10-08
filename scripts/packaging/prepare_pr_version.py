@@ -10,14 +10,15 @@ from pathlib import Path
 import stat
 import subprocess
 import tempfile
+import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.quality.product_version import next_version
 if __package__:
     from . import version_provenance as provenance
-    from .product_version import next_version
     from .pr_version_gate import read_version
 else:
     import version_provenance as provenance
-    from product_version import next_version
     from pr_version_gate import read_version
 
 

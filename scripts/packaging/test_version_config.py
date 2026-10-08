@@ -3,7 +3,7 @@
 from pathlib import Path
 import unittest
 
-from scripts.packaging.product_version import ProductVersion
+from scripts.quality.product_version import ProductVersion
 from scripts.packaging.version_provenance import document, projections
 
 ROOT = Path(__file__).resolve().parents[2]

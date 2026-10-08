@@ -9,7 +9,7 @@ import tempfile
 import unittest
 
 from scripts.packaging import version_provenance as provenance
-from scripts.packaging.product_version import next_version
+from scripts.quality.product_version import next_version
 
 ROOT = Path(__file__).resolve().parents[2]
 

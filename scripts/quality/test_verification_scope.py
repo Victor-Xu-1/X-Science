@@ -126,7 +126,7 @@ class VerificationOwnershipTests(unittest.TestCase):
 
     def test_version_counter_has_exact_verification_ownership(self):
         repo = Path(__file__).resolve().parents[2]
-        groups = contract.matched(repo, ["scripts/packaging/product_version.py"])
+        groups = contract.matched(repo, ["scripts/quality/product_version.py"])
         self.assertEqual([group["name"] for group in groups], ["pr-version-counter"])
         self.assertEqual(contract.checks(groups), [
             ["python3", "-B", "-m", "unittest", "scripts.packaging.test_product_version", "scripts.packaging.test_pr_version_gate", "scripts.packaging.test_prepare_pr_version", "scripts.packaging.test_version_config", "scripts.packaging.test_version_provenance"],

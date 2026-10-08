@@ -2,7 +2,7 @@
 
 import unittest
 
-from scripts.packaging.product_version import ProductVersion, next_version, require_next_version
+from scripts.quality.product_version import ProductVersion, next_version, require_next_version
 
 
 class ProductVersionTest(unittest.TestCase):

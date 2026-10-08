@@ -38,7 +38,7 @@
       "name": "pr-version-counter",
       "paths": [
         "docs/governance/versioning.md",
-        "scripts/packaging/product_version.py",
+        "scripts/quality/product_version.py",
         "scripts/packaging/test_product_version.py",
         "scripts/packaging/pr_version_gate.py",
         "scripts/packaging/test_pr_version_gate.py",

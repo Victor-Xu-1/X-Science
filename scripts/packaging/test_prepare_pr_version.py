@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 from scripts.packaging import prepare_pr_version as prepare
 from scripts.packaging import version_provenance as provenance
-from scripts.packaging.product_version import next_version
+from scripts.quality.product_version import next_version
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -25,6 +25,7 @@ class PreparePrVersionTest(unittest.TestCase):
         self.git("config", "user.name", "Version fixture")
         self.git("config", "user.email", "version@example.invalid")
         self.head = self.git("rev-parse", "HEAD")
+        self.git("checkout", "--quiet", "-b", "version-preparation-fixture", self.head)
         self.old = json.loads((self.root / "product-identity.json").read_text())["version"]
         self.new = next_version(self.old)
 

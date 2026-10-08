@@ -74,7 +74,7 @@ required_fragments=(
   'timezone: Asia/Shanghai'
 )
 for fragment in "${required_fragments[@]}"; do
-  if ! grep -Fq "$fragment" "$WORKFLOW"; then
+  if ! grep -Fq -- "$fragment" "$WORKFLOW"; then
     echo "ERROR: quality workflow is missing required gate: $fragment" >&2
     exit 1
   fi
@@ -98,7 +98,7 @@ for fragment in \
   'scripts/packaging/pr_version_gate.py' \
   "--base '\${{ github.event.pull_request.base.sha }}' --candidate '\${{ github.sha }}'" \
   'needs: pr-quality'; do
-  if ! grep -Fq "$fragment" "$PR_WORKFLOW"; then
+  if ! grep -Fq -- "$fragment" "$PR_WORKFLOW"; then
     echo "ERROR: PR fast workflow is missing required gate: $fragment" >&2
     exit 1
   fi
@@ -119,7 +119,7 @@ for fragment in \
   'github.sha' \
   'scripts/packaging/pr_version_gate.py' \
   "--initial-main '\${{ github.event.created }}'"; do
-  if ! grep -Fq "$fragment" "$MAIN_WORKFLOW"; then
+  if ! grep -Fq -- "$fragment" "$MAIN_WORKFLOW"; then
     echo "ERROR: main integration workflow is missing required gate: $fragment" >&2
     exit 1
   fi

@@ -1,4 +1,4 @@
-"""The product's per-PR numeric counter, not dependency or schema SemVer policy."""
+"""The product's per-PR numeric counter, independent of API/dependency SemVer."""
 
 from dataclasses import dataclass
 import re

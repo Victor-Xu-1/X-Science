@@ -7,12 +7,13 @@ import json
 from pathlib import Path
 import re
 import subprocess
+import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.quality.product_version import ProductVersion, next_version, require_next_version
 if __package__:
-    from .product_version import ProductVersion, next_version, require_next_version
     from .version_provenance import document
 else:
-    from product_version import ProductVersion, next_version, require_next_version
     from version_provenance import document
 
 SHA = re.compile(r"[0-9a-f]{40}")

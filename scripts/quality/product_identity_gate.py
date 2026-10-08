@@ -13,8 +13,10 @@ import subprocess
 import sys
 from typing import Any
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
-from scripts.packaging.product_version import ProductVersion
+if __package__:
+    from .product_version import ProductVersion
+else:
+    from product_version import ProductVersion
 
 
 IDENTITY_SCHEMA = "synon.product-identity.v1"

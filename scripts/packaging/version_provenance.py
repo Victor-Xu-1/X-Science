@@ -8,11 +8,10 @@ import importlib.util
 import json
 from pathlib import Path
 import re
+import sys
 
-if __package__:
-    from .product_version import require_next_version
-else:
-    from product_version import require_next_version
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.quality.product_version import require_next_version
 
 AUDIT = "scripts/audit/audit_frontend_migration.py"
 MIGRATION = "frontend/MIGRATION_MANIFEST.json"
