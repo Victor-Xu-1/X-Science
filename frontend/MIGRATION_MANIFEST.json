@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "0de2380e4446959f29d561e90b74c1587eef95369303970b355c099d38aee268",
+  "adaptationFingerprintSHA256": "8a0ee7796e5dac56b2b9ad42fb73ce3fb709bbb343916483c69e10d61ad2550c",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
-  "additionFingerprintSHA256": "d5acc2e24429ffb71cdc6302b8613ef9bbd7db6ae5fef984e168631766efebbf",
+  "additionFingerprintSHA256": "fd56c7bc0705ed5eb19f2bbef4023017fb8216d57f69c50a9300918a3b5637ae",
   "summary": {
     "sourceFiles": 1354,
-    "unchangedSourceFiles": 392,
-    "adaptedSourceFiles": 672,
+    "unchangedSourceFiles": 391,
+    "adaptedSourceFiles": 673,
     "removedSourceFiles": 290,
-    "addedFiles": 790
+    "addedFiles": 793
   },
   "adaptations": [
     {
@@ -857,8 +857,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/artifact/ArtifactPreview.tsx",
       "sourceSHA256": "21d3998423856a474f4e13516869e446beaebf11fab0597fc9e7a3d732d624d1",
-      "targetSHA256": "ecbe7ad81c084425d1c66b47c998e1858c297438f2c3f6a71a49fcd0583c577e",
-      "bytes": 36296,
+      "targetSHA256": "ca956298f97be94ac814356dd248392af517c4ca478d01ffa9f35feef9d1cdd6",
+      "bytes": 39561,
       "reason": "Connect immutable Go artifacts, annotations, refinement, and native viewers with bounded localized failure handling."
     },
     {
@@ -2439,8 +2439,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "f73b9e98ed0d94add0f201106b2a2c95a9a50bf585b30ccd0c84bca0d541b254",
-      "bytes": 251366,
+      "targetSHA256": "01ccebc4612331a425beef394be4ea050dd571d69ac7c861b266ce56da4d4496",
+      "bytes": 251957,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2516,8 +2516,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/preview.json",
       "sourceSHA256": "bf530f4a992cc14652500390e715b7add84853e9b0757158c718244cf4cd8f32",
-      "targetSHA256": "4a4d9d98061410296feafac6edb9f65e87219d49a272288a09dd2c8347db7122",
-      "bytes": 40589,
+      "targetSHA256": "c7854db0cf951ecc8cdb58cf48f4acc2033218f54d6648fd32b5f75ae93d0738",
+      "bytes": 40940,
       "reason": "Add English labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls."
     },
     {
@@ -2607,8 +2607,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/preview.json",
       "sourceSHA256": "6b772273972756a3407fee8fe7b4503e992964a8de901375f06bfd2faacf2ba0",
-      "targetSHA256": "a4c4384f989bc9e062c22626c7db392ccfa375cbfed0c2407ea8545485063dc5",
-      "bytes": 39108,
+      "targetSHA256": "f8c77e1a37862ef066bd717631d7ff803119173f163612e770a8c17f86028e8d",
+      "bytes": 39470,
       "reason": "Add Simplified Chinese labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls."
     },
     {
@@ -2684,8 +2684,8 @@
     {
       "path": "packages/desktop/src/renderer/services/synonBiomedArtifacts.ts",
       "sourceSHA256": "a2b9dc567dc942b1ca0f0013ec6ddf49e5f2e8f0ca3ce68782538a39fbae550e",
-      "targetSHA256": "c023dc10f1e74cede5cd44a1180eb59deffeba683e4b6701444f05c5590516ee",
-      "bytes": 8674,
+      "targetSHA256": "0b9c3d5d436281dd1517db03175bc8bc169d84dd2ef953bff0b107dd0848aa73",
+      "bytes": 9039,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -4038,6 +4038,13 @@
       "targetSHA256": "4933c31e99ff63ed6cb4fcb4a0881768a5bb0dca5bb3be0699c593bcc96cdc60",
       "bytes": 6789,
       "reason": "Verify bounded speech uploads and same-origin-only CSRF header behavior."
+    },
+    {
+      "path": "tests/unit/renderer/synonBiomedArtifacts.dom.test.ts",
+      "sourceSHA256": "8e45ecad7879745647b725239c3379bcb6b416e706f696f892efdb4d12f7896d",
+      "targetSHA256": "2e0300c23df1160d5f00252c1568e14edea4108b196946fce2fbb844ce1c4a3a",
+      "bytes": 5604,
+      "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
       "path": "tests/unit/renderer/synonBiomedCompute.dom.test.ts",
@@ -7033,6 +7040,12 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/artifact/ArtifactMetadataState.tsx",
+      "sha256": "3a4492dda5d1f8d7687705c826d1a59b6db62a358ceb7775f3e7f200c9d968a6",
+      "bytes": 2436,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/artifact/ArtifactPageState.tsx",
       "sha256": "468da06ef9c53dcdadeef2bf4de66574c9ebda0d8a1afb94e3fda13c342b9e8e",
       "bytes": 2227,
@@ -7072,6 +7085,12 @@
       "path": "packages/desktop/src/renderer/pages/artifact/useArtifactFileActionEditor.ts",
       "sha256": "7287288b30effbc3b4e66b48f3a24da7b81e722d15c091e54ee189cd21cba87d",
       "bytes": 3755,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/artifact/useArtifactMetadataReads.ts",
+      "sha256": "d310a4b413ed6d3238265280ba4d294a429b9d4379e08c1a4d9a96b648419779",
+      "bytes": 6912,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9680,8 +9699,8 @@
     },
     {
       "path": "tests/unit/renderer/ArtifactPreviewInteraction.dom.test.tsx",
-      "sha256": "f35776fd9739b6f3eb8e45c468a14e10323d5da2e5d5361429853cac2e448ac0",
-      "bytes": 19225,
+      "sha256": "2f96db8cadda3a787585a5e7ae6eff3aa0921244c722da1babf2e3e6d6420320",
+      "bytes": 30104,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -10246,6 +10265,12 @@
       "path": "tests/unit/renderer/useAnchorViewport.dom.test.tsx",
       "sha256": "bd57be849d50df774e5817e7e0ec22d04bec1cf715be0a7149c8c45900d93e9e",
       "bytes": 1514,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/useArtifactMetadataReads.dom.test.tsx",
+      "sha256": "f95d0d1f3a2b30896c9306b1b465d54fc82c643ad9c6d1aee08e406245dc5e84",
+      "bytes": 5190,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

@@ -1,15 +1,11 @@
 import {
   getSynonBiomedArtifactVersionContentUrl,
-  loadSynonBiomedArtifactLineage,
-  loadSynonBiomedArtifactVersions,
   type SynonBiomedArtifactLineage,
   type SynonBiomedArtifactVersion,
 } from '@/renderer/services/synonBiomedArtifacts';
 import {
   getSynonBiomedArtifactContentUrl,
   loadSynonBiomedArtifact,
-  loadSynonBiomedProjectArtifacts,
-  loadSynonBiomedProjectFolders,
   type SynonBiomedProjectArtifact,
   type SynonBiomedProjectFolder,
 } from '@/renderer/services/synonBiomedGateway';
@@ -38,6 +34,8 @@ import { ArtifactEditRefinementPanel } from './ArtifactEditRefinementPanel';
 import { ArtifactSelectionAnnotationModal } from './ArtifactSelectionAnnotationModal';
 import { ArtifactFileActionModal } from './ArtifactFileActionModal';
 import { ArtifactPageState } from './ArtifactPageState';
+import { ArtifactMetadataState } from './ArtifactMetadataState';
+import { useArtifactMetadataReads, type ArtifactReadState } from './useArtifactMetadataReads';
 import type { ArtifactFileAction } from './useArtifactFileActionEditor';
 import {
   loadSynonBiomedArtifactAnnotations,
@@ -71,10 +69,6 @@ const VideoPreview = React.lazy(cachePreviewModule(() => import('./VideoPreview'
 
 type ArtifactSnapshot = {
   artifact: SynonBiomedProjectArtifact;
-  relatedArtifacts: SynonBiomedProjectArtifact[];
-  versions: SynonBiomedArtifactVersion[];
-  lineage: SynonBiomedArtifactLineage | null;
-  folders: SynonBiomedProjectFolder[];
 };
 
 const ArtifactPreview: React.FC = () => {
@@ -88,6 +82,9 @@ const ArtifactPreview: React.FC = () => {
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [requestOwnerId, setRequestOwnerId] = useState(artifactId);
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
+  const [pinnedVersion, setPinnedVersion] = useState<SynonBiomedArtifactVersion | null>(null);
+  const [savedVersion, setSavedVersion] = useState<SynonBiomedAppliedArtifactEdit | null>(null);
+  const [metadataRevision, setMetadataRevision] = useState(0);
   const [activeInspectorTab, setActiveInspectorTab] = useState(() => inspectorTabFromSearch(location.search));
   const [canvasSelection, setCanvasSelection] = useState<SynonBiomedArtifactCanvasSelection | null>(null);
   const [annotationSelection, setAnnotationSelection] = useState<SynonBiomedArtifactCanvasSelection | null>(null);
@@ -112,6 +109,8 @@ const ArtifactPreview: React.FC = () => {
   useLayoutEffect(() => {
     setFileAction(null);
     setNotesVisible(false);
+    setPinnedVersion(null);
+    setSavedVersion(null);
     retryFocusIntent.current = false;
   }, [artifactId]);
   useLayoutEffect(() => {
@@ -162,11 +161,25 @@ const ArtifactPreview: React.FC = () => {
     };
   }, [artifactId, loadAttempt]);
 
+  const metadataArtifact =
+    snapshot &&
+    artifactId &&
+    !loading &&
+    !failed &&
+    requestOwnerId === artifactId &&
+    snapshot.artifact.artifactId === artifactId
+      ? snapshot.artifact
+      : null;
+  const metadata = useArtifactMetadataReads(metadataArtifact, metadataRevision, selectedVersionId);
   const selectedVersion = useMemo(
-    () => snapshot?.versions.find((version) => version.versionId === selectedVersionId) ?? null,
-    [selectedVersionId, snapshot?.versions]
+    () =>
+      metadata.versions.value.find((version) => version.versionId === selectedVersionId) ??
+      (pinnedVersion && pinnedVersion.artifactId === artifactId && pinnedVersion.versionId === selectedVersionId
+        ? pinnedVersion
+        : null),
+    [artifactId, metadata.versions.value, pinnedVersion, selectedVersionId]
   );
-  const annotationVersionId = selectedVersion?.versionId ?? snapshot?.artifact.versionId ?? null;
+  const annotationVersionId = selectedVersionId ?? snapshot?.artifact.versionId ?? null;
 
   useEffect(() => {
     if (!snapshot || !annotationVersionId) {
@@ -201,15 +214,31 @@ const ArtifactPreview: React.FC = () => {
     );
   }
 
-  const { artifact, relatedArtifacts, versions, lineage, folders } = snapshot;
-  const latexResourceUrls = buildLatexArtifactResourceUrls(relatedArtifacts);
-  const contentUrl = selectedVersion
-    ? getSynonBiomedArtifactVersionContentUrl(selectedVersion.versionId)
+  const { artifact } = snapshot;
+  const versions = metadata.versions.value;
+  const folders = metadata.folders.value;
+  const latexResourceUrls = buildLatexArtifactResourceUrls(metadata.resources.value);
+  const contentUrl = selectedVersionId
+    ? getSynonBiomedArtifactVersionContentUrl(selectedVersionId)
     : getSynonBiomedArtifactContentUrl(artifact.artifactId);
-  const displayVersion = selectedVersion?.versionNumber || artifact.versionNumber;
-  const displayContentType = selectedVersion?.contentType ?? artifact.contentType;
-  const displaySize = selectedVersion?.sizeBytes ?? artifact.sizeBytes;
-  const activeVersionId = selectedVersion?.versionId ?? artifact.versionId;
+  const displayMetadata =
+    selectedVersion ?? (!selectedVersionId || selectedVersionId === artifact.versionId ? artifact : null);
+  const receiptVersion =
+    savedVersion?.artifactId === artifactId && savedVersion.versionId === selectedVersionId
+      ? savedVersion.versionNumber
+      : null;
+  const displayVersion = displayMetadata?.versionNumber ?? receiptVersion;
+  const displayContentType = displayMetadata?.contentType ?? null;
+  const displaySize = displayMetadata?.sizeBytes ?? null;
+  const activeVersionId = selectedVersionId ?? artifact.versionId;
+  const previewNeedsResources =
+    resolveSynonBiomedArtifactPreviewPlan({ filename: artifact.filename, contentType: displayContentType }).type ===
+    'latex';
+  const folderStateLabel = t('preview.artifact.details.folder');
+  const folderActionHint =
+    metadata.folders.status === 'ready'
+      ? undefined
+      : t(`preview.artifact.metadata.${metadata.folders.status}`, { section: folderStateLabel });
 
   const handleVersionApplied = async (result: SynonBiomedAppliedArtifactEdit) => {
     // A saved version is immutable; displaying it must not override a newer
@@ -224,6 +253,8 @@ const ArtifactPreview: React.FC = () => {
     const nextSnapshot = await loadArtifactSnapshot(result.artifactId);
     if (refreshRevision !== versionRefreshRevision.current) return;
     setSnapshot(nextSnapshot);
+    setSavedVersion(result);
+    setMetadataRevision((revision) => revision + 1);
     setSelectedVersionId(result.versionId);
     setCanvasSelection(null);
     setAnnotationRevision((revision) => revision + 1);
@@ -257,9 +288,9 @@ const ArtifactPreview: React.FC = () => {
             </h1>
             <div className='mt-2px text-11px text-t-tertiary'>
               {displayContentType ?? t('preview.artifact.unknownType')} · {formatBytes(displaySize)} ·{' '}
-              {t('preview.artifact.versionLabel', {
-                version: displayVersion || 1,
-              })}
+              {displayVersion
+                ? t('preview.artifact.versionLabel', { version: displayVersion })
+                : t('preview.artifact.metadata.unknownVersion')}
             </div>
           </div>
           <div className='flex items-center gap-6px'>
@@ -277,6 +308,8 @@ const ArtifactPreview: React.FC = () => {
             </Button>
             <Button
               aria-label={t('preview.artifact.copyFile')}
+              disabled={metadata.folders.status !== 'ready'}
+              title={folderActionHint}
               icon={<Copy theme='outline' size={15} />}
               onClick={() => setFileAction('copy')}
             >
@@ -284,6 +317,8 @@ const ArtifactPreview: React.FC = () => {
             </Button>
             <Button
               aria-label={t('preview.artifact.moveToFolder')}
+              disabled={metadata.folders.status !== 'ready'}
+              title={folderActionHint}
               icon={<FolderOpen theme='outline' size={15} />}
               onClick={() => setFileAction('move')}
             >
@@ -307,18 +342,27 @@ const ArtifactPreview: React.FC = () => {
             aria-label={t('preview.artifact.filePreview')}
           >
             <React.Suspense fallback={<PreviewLoadingState label={t('preview.artifact.preparingDataViewer')} />}>
-              <ArtifactContent
-                artifactId={artifact.artifactId}
-                versionId={activeVersionId}
-                rootFrameId={artifact.rootFrameId ?? artifact.frameId}
-                filename={artifact.filename}
-                contentType={displayContentType}
-                contentUrl={contentUrl}
-                annotations={previewAnnotations}
-                resourceUrls={latexResourceUrls}
-                onSelectionChange={setCanvasSelection}
-                onAnnotationClick={() => setActiveInspectorTab('annotations')}
-              />
+              {previewNeedsResources && metadata.resources.status !== 'ready' ? (
+                <ArtifactMetadataState
+                  state={metadata.resources}
+                  label={t('preview.artifact.metadata.resources')}
+                  owner={metadata.owner}
+                  onRetry={() => metadata.retry('resources')}
+                />
+              ) : (
+                <ArtifactContent
+                  artifactId={artifact.artifactId}
+                  versionId={activeVersionId}
+                  rootFrameId={artifact.rootFrameId ?? artifact.frameId}
+                  filename={artifact.filename}
+                  contentType={displayContentType}
+                  contentUrl={contentUrl}
+                  annotations={previewAnnotations}
+                  resourceUrls={latexResourceUrls}
+                  onSelectionChange={setCanvasSelection}
+                  onAnnotationClick={() => setActiveInspectorTab('annotations')}
+                />
+              )}
             </React.Suspense>
           </section>
           <aside className='artifact-inspector min-h-0 overflow-y-auto border-t xl:border-t-0 xl:border-l border-solid border-[var(--color-border-2)] bg-1'>
@@ -331,20 +375,39 @@ const ArtifactPreview: React.FC = () => {
               <Tabs.TabPane key='details' title={t('preview.artifact.tabs.details')}>
                 <ArtifactDetails
                   artifact={artifact}
-                  folder={folders.find((item) => item.folderId === artifact.folderId)}
+                  folders={metadata.folders}
+                  owner={metadata.owner}
+                  onRetryFolders={() => metadata.retry('folders')}
                 />
+                {metadata.resources.status === 'failed' && !previewNeedsResources && (
+                  <ArtifactMetadataState
+                    state={metadata.resources}
+                    label={t('preview.artifact.metadata.resources')}
+                    owner={metadata.owner}
+                    onRetry={() => metadata.retry('resources')}
+                  />
+                )}
               </Tabs.TabPane>
               <Tabs.TabPane key='versions' title={t('preview.artifact.tabs.versions')}>
-                <ArtifactVersions
-                  versions={versions}
-                  selectedVersionId={selectedVersionId ?? artifact.versionId}
-                  onSelect={(versionId) => {
-                    setSelectedVersionId(versionId);
-                    setCanvasSelection(null);
-                    setAnnotationSelection(null);
-                    setRefinementSelection(null);
-                  }}
-                />
+                <ArtifactMetadataState
+                  state={metadata.versions}
+                  label={t('preview.artifact.tabs.versions')}
+                  owner={metadata.owner}
+                  hasCachedValue={versions.length > 0}
+                  onRetry={() => metadata.retry('versions')}
+                >
+                  <ArtifactVersions
+                    versions={versions}
+                    selectedVersionId={selectedVersionId ?? artifact.versionId}
+                    onSelect={(versionId) => {
+                      setPinnedVersion(versions.find((version) => version.versionId === versionId) ?? null);
+                      setSelectedVersionId(versionId);
+                      setCanvasSelection(null);
+                      setAnnotationSelection(null);
+                      setRefinementSelection(null);
+                    }}
+                  />
+                </ArtifactMetadataState>
               </Tabs.TabPane>
               <Tabs.TabPane key='annotations' title={t('preview.artifact.tabs.annotations')}>
                 {activeVersionId ? (
@@ -370,7 +433,15 @@ const ArtifactPreview: React.FC = () => {
                 )}
               </Tabs.TabPane>
               <Tabs.TabPane key='lineage' title={t('preview.artifact.tabs.lineage')}>
-                <ArtifactLineage lineage={lineage} />
+                <ArtifactMetadataState
+                  state={metadata.lineage}
+                  label={t('preview.artifact.tabs.lineage')}
+                  owner={metadata.lineageOwner}
+                  hasCachedValue={metadata.lineage.value !== null}
+                  onRetry={() => metadata.retry('lineage')}
+                >
+                  <ArtifactLineage lineage={metadata.lineage.value} />
+                </ArtifactMetadataState>
               </Tabs.TabPane>
             </Tabs>
           </aside>
@@ -490,26 +561,17 @@ const ArtifactPreview: React.FC = () => {
 
 async function loadArtifactSnapshot(artifactId: string): Promise<ArtifactSnapshot> {
   const artifact = await loadSynonBiomedArtifact(artifactId);
-  const [versionsResult, lineageResult, foldersResult, relatedArtifactsResult] = await Promise.allSettled([
-    loadSynonBiomedArtifactVersions(artifactId),
-    loadSynonBiomedArtifactLineage(artifactId, { slim: true }),
-    artifact.projectId ? loadSynonBiomedProjectFolders(artifact.projectId) : Promise.resolve([]),
-    artifact.projectId ? loadSynonBiomedProjectArtifacts(artifact.projectId) : Promise.resolve([artifact]),
-  ]);
-  return {
-    artifact,
-    relatedArtifacts: relatedArtifactsResult.status === 'fulfilled' ? relatedArtifactsResult.value : [artifact],
-    versions: versionsResult.status === 'fulfilled' ? versionsResult.value : [],
-    lineage: lineageResult.status === 'fulfilled' ? lineageResult.value : null,
-    folders: foldersResult.status === 'fulfilled' ? foldersResult.value : [],
-  };
+  return { artifact };
 }
 
 const ArtifactDetails: React.FC<{
   artifact: SynonBiomedProjectArtifact;
-  folder?: SynonBiomedProjectFolder;
-}> = ({ artifact, folder }) => {
+  folders: ArtifactReadState<SynonBiomedProjectFolder[]>;
+  owner: string;
+  onRetryFolders: () => void;
+}> = ({ artifact, folders, owner, onRetryFolders }) => {
   const { t, i18n } = useTranslation();
+  const folder = folders.value.find((item) => item.folderId === artifact.folderId);
   return (
     <dl className='m-0 px-16px pb-18px grid grid-cols-[92px_minmax(0,1fr)] gap-x-10px gap-y-12px text-12px'>
       <Detail label={t('preview.artifact.details.filename')} value={artifact.filename} />
@@ -524,7 +586,20 @@ const ArtifactDetails: React.FC<{
           version: artifact.versionNumber || 1,
         })}
       />
-      <Detail label={t('preview.artifact.details.folder')} value={folder?.name ?? t('preview.artifact.projectRoot')} />
+      <dt className='text-t-tertiary'>{t('preview.artifact.details.folder')}</dt>
+      <dd className='m-0 min-w-0 break-all text-t-primary'>
+        <ArtifactMetadataState
+          state={folders}
+          label={t('preview.artifact.details.folder')}
+          owner={owner}
+          compact
+          onRetry={onRetryFolders}
+        >
+          {!artifact.folderId
+            ? t('preview.artifact.projectRoot')
+            : (folder?.name ?? t('preview.artifact.metadata.folderMissing'))}
+        </ArtifactMetadataState>
+      </dd>
       <Detail label={t('preview.artifact.details.agent')} value={artifact.agentName ?? 'Synon Biomed'} />
       <Detail
         label={t('preview.artifact.details.project')}

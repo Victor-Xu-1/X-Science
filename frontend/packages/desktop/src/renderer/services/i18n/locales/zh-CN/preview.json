@@ -355,6 +355,15 @@
     "noClaim": "未提供声明文本"
   },
   "artifact": {
+    "metadata": {
+      "loading": "正在读取{{section}}…",
+      "failed": "无法读取{{section}}",
+      "retry": "重试读取{{section}}",
+      "cached": "当前显示先前读取的内容",
+      "resources": "关联文件",
+      "folderMissing": "当前列表中未找到此文件夹",
+      "unknownVersion": "版本详情暂不可用"
+    },
     "loadFailed": "文件加载失败",
     "notFound": "未找到文件",
     "versionCreated": "已创建版本 {{version}}",
@@ -458,7 +467,7 @@
     "noVersions": "暂无版本记录",
     "lineage": {
       "empty": "暂无来源记录",
-      "pending": "来源信息生成中",
+      "pending": "来源信息尚未就绪",
       "description": "生成说明",
       "noDescription": "未提供生成说明",
       "code": "执行代码",

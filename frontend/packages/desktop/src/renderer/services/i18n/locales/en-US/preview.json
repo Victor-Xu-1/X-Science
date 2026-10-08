@@ -355,6 +355,15 @@
     "noClaim": "No claim text provided"
   },
   "artifact": {
+    "metadata": {
+      "loading": "Loading {{section}}…",
+      "failed": "Unable to load {{section}}",
+      "retry": "Retry {{section}}",
+      "cached": "Showing previously loaded data",
+      "resources": "Related files",
+      "folderMissing": "Folder not found in the current list",
+      "unknownVersion": "Version details unavailable"
+    },
     "loadFailed": "Failed to load file",
     "notFound": "File not found",
     "versionCreated": "Created version {{version}}",
@@ -458,7 +467,7 @@
     "noVersions": "No version history",
     "lineage": {
       "empty": "No lineage record",
-      "pending": "Lineage information is being generated",
+      "pending": "Lineage information is not ready yet",
       "description": "Generation details",
       "noDescription": "No generation details provided",
       "code": "Executed code",

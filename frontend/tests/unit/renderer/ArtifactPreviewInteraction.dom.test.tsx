@@ -13,8 +13,12 @@ import type { SynonBiomedArtifactCanvasSelection } from '@/renderer/pages/artifa
 import { renderWithI18n } from '../i18nTestUtils';
 
 const state = vi.hoisted(() => ({
-  artifactId: 'artifact-1',
+  artifactId: 'artifact-1' as string | undefined,
   load: vi.fn(),
+  versions: vi.fn(),
+  lineage: vi.fn(),
+  folders: vi.fn(),
+  related: vi.fn(),
   suggest: vi.fn(),
   apply: vi.fn(),
   navigate: vi.fn(),
@@ -43,37 +47,13 @@ vi.mock('@/common/config/configService', () => ({
 vi.mock('@/renderer/services/synonBiomedGateway', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/renderer/services/synonBiomedGateway')>()),
   loadSynonBiomedArtifact: state.load,
-  loadSynonBiomedProjectArtifacts: async () => [],
-  loadSynonBiomedProjectFolders: async () =>
-    ['artifact-1', 'artifact-2'].map((id) => ({
-      folderId: `folder-${id}`,
-      projectId: 'project',
-      parentId: null,
-      rootFrameId: 'frame',
-      name: `Folder ${id}`,
-      sortOrder: 0,
-      artifactCount: 1,
-      isConversationFolder: true,
-      isUserUploadsFolder: false,
-    })),
+  loadSynonBiomedProjectArtifacts: state.related,
+  loadSynonBiomedProjectFolders: state.folders,
 }));
 vi.mock('@/renderer/services/synonBiomedArtifacts', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/renderer/services/synonBiomedArtifacts')>()),
-  loadSynonBiomedArtifactVersions: async (id: string) =>
-    [1, 2].map((number) => ({
-      artifactId: id,
-      versionId: `${id}-v${number}`,
-      versionNumber: number,
-      contentType: 'text/plain',
-      sizeBytes: 50,
-      createdAt: null,
-      filePath: '/fixture/example.txt',
-      frameId: 'frame',
-      agentName: 'fixture',
-      parentVersionId: number === 2 ? `${id}-v1` : null,
-      language: null,
-    })),
-  loadSynonBiomedArtifactLineage: async () => null,
+  loadSynonBiomedArtifactVersions: state.versions,
+  loadSynonBiomedArtifactLineage: state.lineage,
   copySynonBiomedArtifact: state.copy,
   moveSynonBiomedArtifact: state.move,
 }));
@@ -118,6 +98,11 @@ vi.mock('@/renderer/pages/artifact/SynonBiomedTextArtifactViewer', () => ({
         Select fixture passage
       </button>
     </>
+  ),
+}));
+vi.mock('@/renderer/pages/artifact/SynonBiomedLatexArtifactViewer', () => ({
+  default: ({ resourceUrls }: { resourceUrls: Record<string, string> }) => (
+    <output data-testid='latex-resource-keys'>{Object.keys(resourceUrls).join(',')}</output>
   ),
 }));
 
@@ -175,6 +160,36 @@ async function openRefinement() {
 beforeEach(() => {
   state.artifactId = 'artifact-1';
   state.load.mockReset().mockImplementation(async (id: string) => artifact(id));
+  state.versions.mockReset().mockImplementation(async (id: string) =>
+    [1, 2].map((number) => ({
+      artifactId: id,
+      versionId: `${id}-v${number}`,
+      versionNumber: number,
+      contentType: 'text/plain',
+      sizeBytes: 50,
+      createdAt: null,
+      filePath: '/fixture/example.txt',
+      frameId: 'frame',
+      agentName: 'fixture',
+      parentVersionId: number === 2 ? `${id}-v1` : null,
+      language: null,
+    }))
+  );
+  state.lineage.mockReset().mockResolvedValue(null);
+  state.related.mockReset().mockResolvedValue([]);
+  state.folders.mockReset().mockResolvedValue(
+    ['artifact-1', 'artifact-2'].map((id) => ({
+      folderId: `folder-${id}`,
+      projectId: 'project',
+      parentId: null,
+      rootFrameId: 'frame',
+      name: `Folder ${id}`,
+      sortOrder: 0,
+      artifactCount: 1,
+      isConversationFolder: true,
+      isUserUploadsFolder: false,
+    }))
+  );
   state.suggest.mockReset().mockResolvedValue('Revised passage');
   state.navigate.mockReset();
   state.copy.mockReset().mockResolvedValue({ artifactId: 'artifact-copy' });
@@ -202,6 +217,189 @@ beforeEach(() => {
 });
 
 describe('Artifact preview interaction ownership', () => {
+  it('shows the file before slow auxiliary metadata without hiding healthy peers', async () => {
+    state.versions.mockReturnValueOnce(new Promise(() => {}));
+    await renderPage();
+    expect(screen.getByTestId('current-preview-url')).toHaveTextContent('/api/artifacts/artifact-1');
+    expect(screen.getByRole('link', { name: 'Download', exact: true })).toBeInTheDocument();
+    expect(await screen.findByText('Folder artifact-1')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: 'Versions' }));
+    expect(within(screen.getByRole('group', { name: 'Versions', exact: true })).getByRole('status')).toHaveTextContent(
+      'Loading Versions'
+    );
+    expect(screen.queryByText('No version history')).not.toBeInTheDocument();
+  });
+
+  it('keeps failed version metadata distinct from empty and retries only that read', async () => {
+    state.versions.mockRejectedValueOnce(new Error('fixture versions failure'));
+    await renderPage();
+    fireEvent.click(screen.getByRole('tab', { name: 'Versions' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Unable to load Versions');
+    expect(screen.queryByText('No version history')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry Versions' }));
+    expect(await screen.findByRole('button', { name: /Version 2/ })).toBeInTheDocument();
+    expect(state.versions).toHaveBeenCalledTimes(2);
+    expect(state.load).toHaveBeenCalledTimes(1);
+    expect(state.lineage).toHaveBeenCalledTimes(1);
+    expect(state.folders).toHaveBeenCalledTimes(1);
+    expect(state.related).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not claim the project root or enable folder mutations after a failed folder read', async () => {
+    state.folders.mockRejectedValueOnce(new Error('fixture folders failure'));
+    await renderPage();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Unable to load Folder');
+    expect(screen.queryByText('Project root')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Copy file' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Move to folder' })).toBeDisabled();
+    expect(screen.getByRole('link', { name: 'Download', exact: true })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry Folder' }));
+    expect(await screen.findByText('Folder artifact-1')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Copy file' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Move to folder' })).toBeEnabled();
+    expect(state.copy).not.toHaveBeenCalled();
+    expect(state.move).not.toHaveBeenCalled();
+  });
+
+  it('keeps failed source metadata distinct from an absent lineage', async () => {
+    state.lineage.mockRejectedValueOnce(new Error('fixture lineage failure'));
+    await renderPage();
+    fireEvent.click(screen.getByRole('tab', { name: 'Lineage' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Unable to load Lineage');
+    expect(screen.queryByText('No lineage record')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry Lineage' }));
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+    expect(state.lineage).toHaveBeenCalledTimes(2);
+    expect(state.load).toHaveBeenCalledTimes(1);
+  });
+
+  it('binds lineage to a selected historical version without rereading healthy peers', async () => {
+    state.lineage.mockImplementation(async (id: string, options: { versionId?: string }) => ({
+      artifactId: id,
+      versionId: options.versionId,
+      versionNumber: 1,
+      codeDescription: `Source ${options.versionId}`,
+      code: null,
+      pending: false,
+      hasMessages: false,
+      hasEnvironment: false,
+      hasCellSources: false,
+    }));
+    await renderPage();
+    expect(state.lineage).toHaveBeenCalledWith('artifact-1', { slim: true, versionId: 'artifact-1-v1' });
+    fireEvent.click(screen.getByRole('tab', { name: 'Versions' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Version 2/ }));
+    await waitFor(() =>
+      expect(state.lineage).toHaveBeenCalledWith('artifact-1', { slim: true, versionId: 'artifact-1-v2' })
+    );
+    fireEvent.click(screen.getByRole('tab', { name: 'Lineage' }));
+    expect(await screen.findByText('Source artifact-1-v2')).toBeInTheDocument();
+    for (const read of [state.versions, state.folders, state.related, state.load])
+      expect(read).toHaveBeenCalledTimes(1);
+  });
+
+  it('describes unready lineage without claiming a historical generation process is running', async () => {
+    state.lineage.mockResolvedValueOnce({ artifactId: 'artifact-1', versionId: 'artifact-1-v1', pending: true });
+    await renderPage();
+    fireEvent.click(screen.getByRole('tab', { name: 'Lineage' }));
+    expect(await screen.findByText('Lineage information is not ready yet')).toBeInTheDocument();
+    expect(screen.queryByText('Lineage information is being generated')).not.toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('shows the saved immutable version even when its metadata refresh is still pending', async () => {
+    await renderPage();
+    await openRefinement();
+    state.versions.mockReturnValueOnce(new Promise(() => {}));
+    state.load.mockResolvedValueOnce(artifact('artifact-1', 2));
+    fireEvent.click(screen.getByRole('button', { name: 'Apply as new version' }));
+    await waitFor(() =>
+      expect(screen.getByTestId('current-preview-url')).toHaveTextContent('/api/artifacts/versions/artifact-1-v2')
+    );
+    expect(state.apply).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores a previous file folder read finishing after the route changed', async () => {
+    const pending = deferred<Array<{ folderId: string; name: string }>>();
+    state.folders.mockReturnValueOnce(pending.promise);
+    const view = await renderPage();
+    expect(screen.getByRole('button', { name: 'Move to folder' })).toBeDisabled();
+    state.artifactId = 'artifact-2';
+    view.rerender(<ArtifactPreview />);
+    expect(await screen.findByText('Folder artifact-2')).toBeInTheDocument();
+    await act(async () => {
+      pending.resolve([{ folderId: 'folder-artifact-2', name: 'Obsolete folder' }]);
+      await pending.promise;
+    });
+    expect(screen.getByText('Folder artifact-2')).toBeInTheDocument();
+    expect(screen.queryByText('Obsolete folder')).not.toBeInTheDocument();
+  });
+
+  it('keeps an unknown non-root folder distinct from the real project root', async () => {
+    state.folders.mockResolvedValueOnce([]);
+    await renderPage();
+    expect(await screen.findByText('Folder not found in the current list')).toBeInTheDocument();
+    expect(screen.queryByText('Project root')).not.toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('reports related-file failure without hiding a standalone preview or rerunning peer reads', async () => {
+    state.related.mockRejectedValueOnce(new Error('fixture related-file failure'));
+    await renderPage();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Unable to load Related files');
+    expect(screen.getByTestId('current-preview-url')).toHaveTextContent('/api/artifacts/artifact-1');
+    fireEvent.click(screen.getByRole('button', { name: 'Retry Related files' }));
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+    expect(state.related).toHaveBeenCalledTimes(2);
+    expect(state.versions).toHaveBeenCalledTimes(1);
+    expect(state.folders).toHaveBeenCalledTimes(1);
+    expect(state.load).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not start a resource-dependent preview using a failed empty resource fallback', async () => {
+    state.load.mockResolvedValue({ ...artifact('artifact-1'), filename: 'report.tex', contentType: 'text/x-tex' });
+    state.related.mockRejectedValueOnce(new Error('fixture resources failure'));
+    await renderWithI18n(<ArtifactPreview />, 'en-US');
+    expect(await screen.findByRole('heading', { name: 'report.tex' })).toBeInTheDocument();
+    const preview = screen.getByRole('region', { name: 'File preview' });
+    expect(await within(preview).findByRole('alert')).toHaveTextContent('Unable to load Related files');
+    expect(screen.queryByTestId('latex-resource-keys')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Download', exact: true })).toBeInTheDocument();
+    state.related.mockResolvedValueOnce([{ ...artifact('figure'), filename: 'figure.png', contentType: 'image/png' }]);
+    fireEvent.click(within(preview).getByRole('button', { name: 'Retry Related files' }));
+    expect(await screen.findByTestId('latex-resource-keys')).toHaveTextContent('figure.png');
+    expect(state.related).toHaveBeenCalledTimes(2);
+    expect(state.load).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns focus to the recovered folder information without an extra Tab stop', async () => {
+    state.folders.mockRejectedValueOnce(new Error('fixture folders failure'));
+    await renderPage();
+    const retry = await screen.findByRole('button', { name: 'Retry Folder' });
+    act(() => retry.focus());
+    fireEvent.click(retry);
+    const region = screen.getByRole('group', { name: 'Folder', exact: true });
+    await waitFor(() => expect(region).toHaveFocus());
+    expect(region).toHaveAttribute('tabindex', '-1');
+    expect(region).toHaveTextContent('Folder artifact-1');
+  });
+
+  it('does not steal an external focus destination when folder recovery finishes', async () => {
+    state.folders.mockRejectedValueOnce(new Error('fixture folders failure'));
+    await renderPage();
+    const pending = deferred<Array<{ folderId: string; name: string }>>();
+    state.folders.mockReturnValueOnce(pending.promise);
+    fireEvent.click(await screen.findByRole('button', { name: 'Retry Folder' }));
+    const destination = screen.getByRole('button', { name: 'Export to cloud storage' });
+    act(() => destination.focus());
+    await act(async () => {
+      pending.resolve([{ folderId: 'folder-artifact-1', name: 'Recovered folder' }]);
+      await pending.promise;
+    });
+    expect(destination).toHaveFocus();
+    expect(screen.getByText('Recovered folder')).toBeInTheDocument();
+  });
+
   it('provides a same-page retry and restores reading focus after a failed file read', async () => {
     state.load.mockRejectedValueOnce(new Error('fixture read failure'));
     await renderWithI18n(<ArtifactPreview />, 'en-US');
@@ -218,8 +416,8 @@ describe('Artifact preview interaction ownership', () => {
     expect(state.load).toHaveBeenCalledTimes(3);
   });
 
-  it('keeps a missing file distinct from a failed read and localizes the recovery surface', async () => {
-    state.artifactId = '';
+  it.each(['', undefined])('keeps a missing file distinct from a failed read: %s', async (missingId) => {
+    state.artifactId = missingId;
     await renderWithI18n(<ArtifactPreview />, 'zh-CN');
     expect(screen.getByRole('heading', { name: '文件预览' })).toBeInTheDocument();
     expect(screen.getByText('未找到文件')).toBeInTheDocument();
