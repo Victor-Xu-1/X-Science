@@ -102,6 +102,25 @@ class VerificationOwnershipTests(unittest.TestCase):
         self.contract_path.unlink()
         self.assertEqual(contract.load(self.repo), [])
 
+    def test_shared_verification_runs_once_across_required_partitions(self):
+        with patch.object(scope, 'changed_paths', return_value=['scripts/check.py']), patch.object(
+            scope, 'resolve_packages', return_value=([], 'verification only'),
+        ), patch.object(scope, 'run', return_value=subprocess.CompletedProcess([], 0)) as invoke:
+            for index in range(4):
+                args = ['pr_fast_scope.py', '--repo', str(self.repo), '--base', 'a' * 40,
+                        '--head', 'b' * 40, '--shard-index', str(index), '--shard-count', '4']
+                with patch.object(sys, 'argv', args):
+                    self.assertEqual(scope.main(), 0)
+            self.assertEqual(invoke.call_count, 1)
+
+    def test_invalid_partition_cannot_skip_the_shared_verification(self):
+        args = ['pr_fast_scope.py', '--repo', str(self.repo), '--base', 'a' * 40,
+                '--head', 'b' * 40, '--shard-index', '4', '--shard-count', '4']
+        with patch.object(sys, 'argv', args), patch.object(scope, 'changed_paths', return_value=['scripts/check.py']), \
+                patch.object(scope, 'run') as invoke:
+            self.assertEqual(scope.main(), 1)
+            invoke.assert_not_called()
+
     def test_existing_contract_cannot_remove_its_own_verification_group(self):
         for groups in [[dict(self.value["groups"][0], paths=["scripts/check.py"])], []]:
             with self.subTest(groups=groups):

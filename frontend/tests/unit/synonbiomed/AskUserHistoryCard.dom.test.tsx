@@ -65,7 +65,9 @@ vi.mock('@/renderer/pages/conversation/utils/ensureConversationRuntime', () => (
 vi.mock('@rdkit/rdkit/dist/RDKit_minimal.js', () => ({
   default: vi.fn(async () => ({ get_mol: () => null })),
 }));
-vi.mock('@rdkit/rdkit/dist/RDKit_minimal.wasm?url', () => ({ default: '/rdkit/RDKit_minimal.wasm' }));
+vi.mock('@rdkit/rdkit/dist/RDKit_minimal.wasm?url', () => ({
+  default: '/rdkit/RDKit_minimal.wasm',
+}));
 
 import AskUserHistoryCard from '@/renderer/components/synonBiomed/runtime/AskUserHistoryCard';
 import { renderWithI18n } from '../i18nTestUtils';
@@ -91,12 +93,18 @@ describe('AskUserHistoryCard', () => {
     branchCapability.state = 'supported';
     branchCapability.reason = '';
     runtimeView.isProcessing = false;
-    ensureRuntime.mockResolvedValue({ runtime: { state: 'running', is_processing: true, turn_id: 'turn-branch' } });
+    ensureRuntime.mockResolvedValue({
+      runtime: { state: 'running', is_processing: true, turn_id: 'turn-branch' },
+    });
   });
 
   it('shows the historical answer and forks from the original tool use when changed', async () => {
     loadSnapshot.mockResolvedValue({ rootFrameId: 'frame-root' });
-    forkAtAnswer.mockResolvedValue({ rootFrameId: 'frame-root', branchId: 'br_00000002', generation: 2 });
+    forkAtAnswer.mockResolvedValue({
+      rootFrameId: 'frame-root',
+      branchId: 'br_00000002',
+      generation: 2,
+    });
     await renderWithI18n(
       <AskUserHistoryCard
         conversationId='frame-source'
@@ -260,9 +268,7 @@ describe('AskUserHistoryCard', () => {
     expect(card).toHaveClass('synon-biomed-ask-user-history');
     expect(card.className).not.toMatch(/(?:^|\s)border(?:\s|$)/);
     expect(card.className).not.toMatch(/(?:^|\s)border-solid(?:\s|$)/);
-    expect(within(card).getByTestId('synon-biomed-ask-user-history-answer')).toHaveTextContent(
-      '已交由 X-Science 决定'
-    );
+    expect(within(card).getByTestId('synon-biomed-ask-user-history-answer')).toHaveTextContent('已交由 X-Science 决定');
   });
 
   it('redacts branch failure diagnostics while keeping the editor recoverable', async () => {
@@ -301,14 +307,15 @@ describe('AskUserHistoryCard', () => {
   it.each([
     [
       'answered',
-      JSON.stringify({ version: 1, status: 'answered', action: 'answer', answers: { [input.question]: 'pIC50' } }),
+      JSON.stringify({
+        version: 1,
+        status: 'answered',
+        action: 'answer',
+        answers: { [input.question]: 'pIC50' },
+      }),
       'pIC50',
     ],
-    [
-      'deferred',
-      JSON.stringify({ version: 1, status: 'deferred', action: 'decide_for_me' }),
-      '已交由 X-Science 决定',
-    ],
+    ['deferred', JSON.stringify({ version: 1, status: 'deferred', action: 'decide_for_me' }), '已交由 X-Science 决定'],
     ['unavailable', JSON.stringify({ version: 2, status: 'cancelled', action: 'cancel' }), '回复不可用'],
   ])(
     'keeps %s history readable without mouse or keyboard fork entry when authority is unavailable',

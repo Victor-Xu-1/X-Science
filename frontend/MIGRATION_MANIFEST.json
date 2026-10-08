@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "b4644b0c7ac6be043e9a14bdc9d1baf427ef78afe874ff7dbd59a101c1e1eff8",
+  "adaptationFingerprintSHA256": "6052f2ecebdf038ae07ba0c13d32339e5f889fa26270b2c10739087bfc8e7433",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "e1d32b7afa4197a4e86257e90f7cbfbd6ce1de54c124675451f6bc7e1faae936",
+  "additionFingerprintSHA256": "97fd85d98aa81699bb8b73dc5a41fedaea89b3c507f148b9a5300cd88f07d1c6",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 352,
@@ -4525,8 +4525,8 @@
     {
       "path": "tests/unit/synonbiomed/AskUserHistoryCard.dom.test.tsx",
       "sourceSHA256": "7235b88fb6cb66311c92f8c5b3041dc93ad11dadef0509f838e480255203fa2c",
-      "targetSHA256": "59634499d195d8b16725cf03fd95dfd211621de51c544f84e714a6ca9695fb8b",
-      "bytes": 13056,
+      "targetSHA256": "0438605f6afd191ecd5962adffd9121d541c938a6687a37d2435d1869ea3fb85",
+      "bytes": 13095,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -8703,8 +8703,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/services/mcp/synonBiomedMcpApps.ts",
-      "sha256": "ce2822edaaec995866e18239232c758642884314e76df2750fab469e50bbb206",
-      "bytes": 14176,
+      "sha256": "34b59e32039ad17261b91334042c4c0648dc639b9b82544748e6f5106ef6a52f",
+      "bytes": 14172,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {

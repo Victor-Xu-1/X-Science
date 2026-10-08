@@ -3,6 +3,9 @@ set -euo pipefail
 
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 WORKFLOW="$ROOT_DIR/.github/workflows/quality.yml"
+RELEASE_CANDIDATE_PREFIX=$(python3 -B -c \
+  'import json,sys; print(json.load(open(sys.argv[1]))["candidate_manifest"]["artifact_name_prefix"])' \
+  "$ROOT_DIR/docs/governance/release-policy.json")
 
 if [[ $# -ne 0 ]]; then
   if [[ $# -ne 4 || "$1" != '--base' || "$3" != '--candidate' ]]; then
@@ -60,7 +63,7 @@ required_fragments=(
   'scripts/package-windows-release-test.sh'
   'scripts/quality/release_candidate_manifest.py create'
   'scripts/quality/release_candidate_manifest.py verify'
-  'synon-biomed-release-candidate-'
+  "$RELEASE_CANDIDATE_PREFIX"
   'RELEASE_CANDIDATE.json'
   'candidate-manifest-sha256'
   'source-tree-digest-mode manifest-only'
