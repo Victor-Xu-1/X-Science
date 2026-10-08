@@ -50,7 +50,7 @@ if [[ "${1:-}" == "env" && "${2:-}" == "GOVERSION" ]]; then
   exit 0
 fi
 if [[ "${1:-}" == "run" ]]; then
-  printf 'synon-biomed\tSynon Biomed\n'
+  printf 'x-science\tX-Science\n'
   exit 0
 fi
 if [[ "${1:-}" != "build" ]]; then
