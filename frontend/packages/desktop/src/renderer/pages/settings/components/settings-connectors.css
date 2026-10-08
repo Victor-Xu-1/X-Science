@@ -33,42 +33,6 @@
   --mcp-soft: var(--settings-module-accent-soft);
 }
 
-/* One accent for every connector tile; hue no longer encodes the provider. */
-.settings-page-wrapper[data-settings-route='tools'] .synon-mcp-card[data-mcp-tone] {
-  --mcp-accent: var(--settings-module-accent);
-  --mcp-soft: var(--settings-module-accent-soft);
-}
-
-/* One accent for every connector tile; hue no longer encodes the provider. */
-.settings-page-wrapper[data-settings-route='tools'] .synon-mcp-card[data-mcp-tone] {
-  --mcp-accent: var(--settings-module-accent);
-  --mcp-soft: var(--settings-module-accent-soft);
-}
-
-/* One accent for every connector tile; hue no longer encodes the provider. */
-.settings-page-wrapper[data-settings-route='tools'] .synon-mcp-card[data-mcp-tone] {
-  --mcp-accent: var(--settings-module-accent);
-  --mcp-soft: var(--settings-module-accent-soft);
-}
-
-/* One accent for every connector tile; hue no longer encodes the provider. */
-.settings-page-wrapper[data-settings-route='tools'] .synon-mcp-card[data-mcp-tone] {
-  --mcp-accent: var(--settings-module-accent);
-  --mcp-soft: var(--settings-module-accent-soft);
-}
-
-/* One accent for every connector tile; hue no longer encodes the provider. */
-.settings-page-wrapper[data-settings-route='tools'] .synon-mcp-card[data-mcp-tone] {
-  --mcp-accent: var(--settings-module-accent);
-  --mcp-soft: var(--settings-module-accent-soft);
-}
-
-/* One accent for every connector tile; hue no longer encodes the provider. */
-.settings-page-wrapper[data-settings-route='tools'] .synon-mcp-card[data-mcp-tone] {
-  --mcp-accent: var(--settings-module-accent);
-  --mcp-soft: var(--settings-module-accent-soft);
-}
-
 .settings-page-wrapper[data-settings-route='tools'] .synon-mcp-card > * {
   position: relative;
   z-index: var(--ui-z-raise);

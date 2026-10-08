@@ -21,6 +21,23 @@ python3 -B scripts/quality/pr_fast_scope.py --frontend --base BASE_SHA --head HE
 
 Use immutable full commit IDs and keep evidence outside the source checkout.
 
+An independently proved `product-identity.json` counter-only change does not
+broaden a mixed frontend/dependency PR to every Go package. The identity matrix
+must be unchanged and the complete JSON must differ only by one valid version
+step. This exemption applies to that file alone: mixed lockfile, dependency,
+auditor and runtime changes retain their existing checks. Missing proof, a name/
+schema edit or unknown input keeps conservative coverage. Version/projection,
+fresh provenance and protected security checks still run; this is scope selection,
+not acceptance or a failure waiver.
+
+Frontend NOTICE updates are declared static license verification inputs: their
+exact paths run the license inventory/binding checks. Embedded Go ownership
+still takes precedence, and unregistered notice/runtime inputs stay conservative.
+Version preparation changes only the lock digest in an already-current notice,
+preserving upstream terms byte-for-byte; a stale or duplicate binding fails.
+The pure version-metadata selector proves the same exact NOTICE delta. Dependency
+version/index/license changes must be reviewed and refreshed before preparation.
+
 PR and main checks derive one to four bounded partitions with `--matrix`. Each job
 passes its `--shard-index` and `--shard-count` to the same selector. Every discovered
 test is assigned exactly once; subtests stay with their parent, and packages without

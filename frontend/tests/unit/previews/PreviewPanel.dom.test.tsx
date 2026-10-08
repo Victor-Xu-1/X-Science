@@ -17,7 +17,10 @@ vi.mock('@/renderer/pages/conversation/Preview/components/viewers/scientificPrev
     await importOriginal<
       typeof import('@/renderer/pages/conversation/Preview/components/viewers/scientificPreviewLoaders')
     >();
-  return { ...actual, LazyMarkdownPreview: ({ content }: { content: string }) => <p>{content}</p> };
+  return {
+    ...actual,
+    LazyMarkdownPreview: ({ content }: { content: string }) => <p>{content}</p>,
+  };
 });
 
 beforeEach(() => {
@@ -60,7 +63,12 @@ describe('PreviewPanel', () => {
         return (
           <>
             <button
-              onClick={() => openPreview('Single preview result', 'markdown', { title: 'result.md', editable: false })}
+              onClick={() =>
+                openPreview('Single preview result', 'markdown', {
+                  title: 'result.md',
+                  editable: false,
+                })
+              }
             >
               Open test file
             </button>
@@ -81,6 +89,21 @@ describe('PreviewPanel', () => {
       for (let cycle = 0; cycle < 2; cycle++) {
         fireEvent.click(screen.getByRole('button', { name: 'Open test file' }));
         await waitFor(() => expect(document.querySelector('.preview-panel')).not.toBeNull());
+        const fullscreenTrigger = screen.getByRole('button', {
+          name: i18n.t('preview.openFullscreen'),
+        });
+        fullscreenTrigger.focus();
+        fireEvent.click(fullscreenTrigger);
+        const fullscreen = screen.getByRole('dialog', { name: 'result.md' });
+        const controls = fullscreen.querySelectorAll<HTMLButtonElement>('button');
+        const first = controls[0];
+        const last = controls[controls.length - 1];
+        first.focus();
+        fireEvent.keyDown(first, { key: 'Tab', shiftKey: true });
+        expect(last).toHaveFocus();
+        fireEvent.keyDown(last, { key: 'Escape' });
+        expect(screen.queryByRole('dialog', { name: 'result.md' })).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: i18n.t('preview.openFullscreen') })).toHaveFocus();
         fireEvent.click(screen.getByRole('button', { name: 'Close test file' }));
         await waitFor(() => expect(document.querySelector('.preview-panel')).toBeNull());
       }
@@ -98,7 +121,7 @@ describe('PreviewPanel', () => {
     expect(shouldRenderPreviewBoard('single', 2)).toBe(false);
   });
 
-  it('ports fullscreen content to the document top layer and restores body scrolling', async () => {
+  it('keeps fullscreen content in its original DOM ancestry and restores body scrolling', async () => {
     const mod = await import('@/renderer/pages/conversation/Preview/components/PreviewPanel/PreviewPanel');
     const PreviewFullscreenLayer = (
       mod as typeof mod & {
@@ -116,9 +139,11 @@ describe('PreviewPanel', () => {
       { container: host }
     );
 
-    expect(screen.getByTestId('fullscreen-preview-content').parentElement).toBe(document.body);
-    expect(host).not.toContainElement(screen.getByTestId('fullscreen-preview-content'));
-    expect(document.body.style.overflow).toBe('hidden');
+    const content = screen.getByTestId('fullscreen-preview-content');
+    const parent = content.parentElement;
+    expect(host).toContainElement(content);
+    expect(document.body).toHaveClass('workbench-preview-scroll-lock');
+    expect(document.body.style.overflow).toBe('');
 
     rerender(
       <PreviewFullscreenLayer active={false}>
@@ -126,10 +151,147 @@ describe('PreviewPanel', () => {
       </PreviewFullscreenLayer>
     );
     expect(host).toContainElement(screen.getByTestId('fullscreen-preview-content'));
+    expect(content.parentElement).toBe(parent);
+    expect(document.body).not.toHaveClass('workbench-preview-scroll-lock');
     expect(document.body.style.overflow).toBe('');
 
     unmount();
     host.remove();
+  });
+
+  it('preserves the mounted viewer and its local state through fullscreen transitions', async () => {
+    const { PreviewFullscreenLayer } =
+      await import('@/renderer/pages/conversation/Preview/components/PreviewPanel/PreviewPanel');
+    const mounted = vi.fn();
+    const disposed = vi.fn();
+    function StatefulViewer() {
+      const [value, setValue] = React.useState(0);
+      React.useEffect(() => {
+        mounted();
+        return disposed;
+      }, []);
+      return <button onClick={() => setValue((current) => current + 1)}>View state {value}</button>;
+    }
+    const { rerender, unmount } = render(
+      <PreviewFullscreenLayer active={false}>
+        <StatefulViewer />
+      </PreviewFullscreenLayer>
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'View state 0' }));
+    rerender(
+      <PreviewFullscreenLayer active>
+        <StatefulViewer />
+      </PreviewFullscreenLayer>
+    );
+    expect(screen.getByRole('button', { name: 'View state 1' })).toBeInTheDocument();
+    rerender(
+      <PreviewFullscreenLayer active={false}>
+        <StatefulViewer />
+      </PreviewFullscreenLayer>
+    );
+    expect(screen.getByRole('button', { name: 'View state 1' })).toBeInTheDocument();
+    expect(mounted).toHaveBeenCalledTimes(1);
+    expect(disposed).not.toHaveBeenCalled();
+    unmount();
+    expect(disposed).toHaveBeenCalledTimes(1);
+  });
+
+  it('retains the scroll lock while another full-window preview remains open', async () => {
+    const { PreviewFullscreenLayer } =
+      await import('@/renderer/pages/conversation/Preview/components/PreviewPanel/PreviewPanel');
+    function Pair({ first }: { first: boolean }) {
+      return (
+        <>
+          <PreviewFullscreenLayer active={first}>
+            <button>First</button>
+          </PreviewFullscreenLayer>
+          <PreviewFullscreenLayer active>
+            <button>Second</button>
+          </PreviewFullscreenLayer>
+        </>
+      );
+    }
+    const { rerender, unmount } = render(<Pair first />);
+    expect(document.body).toHaveClass('workbench-preview-scroll-lock');
+    rerender(<Pair first={false} />);
+    expect(document.body).toHaveClass('workbench-preview-scroll-lock');
+    unmount();
+    expect(document.body).not.toHaveClass('workbench-preview-scroll-lock');
+    expect(document.body.style.overflow).toBe('');
+  });
+
+  it('retains the iframe browsing context and unsaved document state across fullscreen transitions', async () => {
+    const { PreviewFullscreenLayer } =
+      await import('@/renderer/pages/conversation/Preview/components/PreviewPanel/PreviewPanel');
+    const content = <iframe title='Interactive file' />;
+    const { rerender, unmount } = render(<PreviewFullscreenLayer active={false}>{content}</PreviewFullscreenLayer>);
+    const frame = screen.getByTitle('Interactive file') as HTMLIFrameElement;
+    const documentBefore = frame.contentDocument!;
+    documentBefore.body.innerHTML = '<input value="unsaved view state">';
+    rerender(<PreviewFullscreenLayer active>{content}</PreviewFullscreenLayer>);
+    expect(frame.contentDocument === documentBefore).toBe(true);
+    expect(frame.contentDocument?.querySelector('input')?.value).toBe('unsaved view state');
+    rerender(<PreviewFullscreenLayer active={false}>{content}</PreviewFullscreenLayer>);
+    expect(frame.contentDocument === documentBefore).toBe(true);
+    unmount();
+  });
+
+  it('preserves nested browser scroll offsets when fullscreen layout changes clamp them', async () => {
+    const { PreviewFullscreenLayer } =
+      await import('@/renderer/pages/conversation/Preview/components/PreviewPanel/PreviewPanel');
+    function Viewer({ wide }: { wide: boolean }) {
+      const ref = React.useRef<HTMLDivElement>(null);
+      React.useLayoutEffect(() => {
+        if (ref.current) {
+          ref.current.scrollTop = 0;
+          ref.current.querySelector<HTMLElement>('[data-testid="nested-table"]')!.scrollLeft = 0;
+        }
+      }, [wide]);
+      return (
+        <div ref={ref} data-testid='scrolling-viewer'>
+          <div data-testid='nested-table'>Long table</div>
+        </div>
+      );
+    }
+    const { rerender, unmount } = render(
+      <PreviewFullscreenLayer active={false}>
+        <Viewer wide={false} />
+      </PreviewFullscreenLayer>
+    );
+    const scroller = screen.getByTestId('scrolling-viewer');
+    const table = screen.getByTestId('nested-table');
+    scroller.scrollTop = 1255;
+    table.scrollLeft = 80;
+    rerender(
+      <PreviewFullscreenLayer active>
+        <Viewer wide />
+      </PreviewFullscreenLayer>
+    );
+    expect(scroller.scrollTop).toBe(1255);
+    expect(table.scrollLeft).toBe(80);
+    expect(screen.getByTestId('scrolling-viewer')).toBe(scroller);
+    rerender(
+      <PreviewFullscreenLayer active={false}>
+        <Viewer wide={false} />
+      </PreviewFullscreenLayer>
+    );
+    expect(scroller.scrollTop).toBe(1255);
+    expect(table.scrollLeft).toBe(80);
+    unmount();
+  });
+
+  it('does not let a content marker impersonate the topmost fullscreen scope', async () => {
+    const { PreviewFullscreenLayer } =
+      await import('@/renderer/pages/conversation/Preview/components/PreviewPanel/PreviewPanel');
+    const exit = vi.fn();
+    const { unmount } = render(
+      <PreviewFullscreenLayer active onExit={exit}>
+        <div data-preview-fullscreen-scope=''>File content</div>
+      </PreviewFullscreenLayer>
+    );
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(exit).toHaveBeenCalledOnce();
+    unmount();
   });
 
   it(

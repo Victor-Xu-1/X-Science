@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import i18next from 'i18next';
 import React from 'react';
 import { I18nextProvider } from 'react-i18next';
@@ -65,7 +65,11 @@ describe('MessageChannelsSettings', () => {
     mocks.pollQr
       .mockResolvedValueOnce({ status: 'wait', connected: false })
       .mockResolvedValue({ status: 'confirmed', connected: true });
-    mocks.unpair.mockResolvedValue({ unpaired: true, pairedUsersRevoked: 1, restartScheduled: false });
+    mocks.unpair.mockResolvedValue({
+      unpaired: true,
+      pairedUsersRevoked: 1,
+      restartScheduled: false,
+    });
   });
 
   it('keeps exactly Feishu and WeChat in the pairing surface', async () => {
@@ -95,6 +99,53 @@ describe('MessageChannelsSettings', () => {
     expect(screen.queryByText('client_secret')).not.toBeInTheDocument();
     expect(mocks.startQr).toHaveBeenCalledWith('feishu', expect.any(String), expect.any(AbortSignal));
     expect(mocks.pollQr).toHaveBeenCalledWith('feishu', 'qr-session', expect.any(AbortSignal));
+  });
+
+  it('does not show scanning instructions before a QR exists', async () => {
+    renderSettings();
+    await waitFor(() => expect(screen.getAllByRole('button', { name: '扫码配对' })[0]).toBeEnabled());
+    expect(screen.queryAllByText(zhSettings.generalSettings.messageChannels.scanHint)).toHaveLength(0);
+  });
+
+  it('waits for the channel status and does not claim unconfigured on a failed read', async () => {
+    let rejectStatus!: (error: Error) => void;
+    mocks.loadStatuses.mockReturnValue(
+      new Promise((_resolve, reject) => {
+        rejectStatus = reject;
+      })
+    );
+    renderSettings();
+    expect(screen.getAllByRole('button', { name: '扫码配对' }).every((button) => button.hasAttribute('disabled'))).toBe(
+      true
+    );
+    await act(async () => rejectStatus(new Error('offline')));
+    expect(screen.getByRole('alert')).toHaveTextContent(zhSettings.generalSettings.messageChannels.loadFailed);
+    expect(screen.queryAllByText('未配置')).toHaveLength(0);
+    expect(screen.getAllByText('状态不可用')).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: '扫码配对' }).every((button) => button.hasAttribute('disabled'))).toBe(
+      true
+    );
+    fireEvent.click(screen.getByRole('button', { name: '重试' }));
+    await waitFor(() => expect(mocks.loadStatuses).toHaveBeenCalledTimes(2));
+  });
+
+  it('ignores a cancelled QR start even when its transport resolves late', async () => {
+    let resolveStart!: (value: { sessionKey: string; qrCodeUrl: string }) => void;
+    mocks.startQr.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveStart = resolve;
+      })
+    );
+    renderSettings();
+    const card = screen.getByTestId('message-channel-card-feishu');
+    await waitFor(() => expect(within(card).getByRole('button', { name: '扫码配对' })).toBeEnabled());
+    fireEvent.click(within(card).getByRole('button', { name: '扫码配对' }));
+    fireEvent.click(within(card).getByRole('button', { name: '取消', exact: true }));
+    expect(mocks.startQr.mock.calls[0][2].aborted).toBe(true);
+    await act(async () => resolveStart({ sessionKey: 'cancelled', qrCodeUrl: 'data:image/png;base64,late' }));
+    expect(screen.queryByTestId('message-channel-qr-feishu')).not.toBeInTheDocument();
+    expect(mocks.pollQr).not.toHaveBeenCalled();
+    expect(within(card).getByRole('button', { name: '扫码配对' })).toBeEnabled();
   });
 
   it('requires confirmation before unpairing and refreshes the paired state afterward', async () => {

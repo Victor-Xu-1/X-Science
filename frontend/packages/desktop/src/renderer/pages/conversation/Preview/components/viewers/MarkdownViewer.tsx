@@ -11,6 +11,7 @@ import { resolveLocalFileLinkReference } from '@/renderer/components/Markdown/ma
 import { useTextSelection, type SelectionPosition } from '@/renderer/hooks/ui/useTextSelection';
 import 'katex/dist/katex.min.css';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import rehypeKatex from 'rehype-katex';
 import remarkBreaks from 'remark-breaks';
 import { Streamdown, defaultRehypePlugins, defaultRemarkPlugins } from 'streamdown';
@@ -165,7 +166,11 @@ export const MarkdownImage: React.FC<MarkdownImageProps> = ({
           }
         })
         .catch((error) => {
-          console.error('[MarkdownPreview] Failed to load local image:', { src, absolutePath, error });
+          console.error('[MarkdownPreview] Failed to load local image:', {
+            src,
+            absolutePath,
+            error,
+          });
           if (!cancelled) {
             setResolvedSrc(src);
           }
@@ -189,7 +194,13 @@ export const MarkdownImage: React.FC<MarkdownImageProps> = ({
       alt={alt}
       referrerPolicy='no-referrer'
       crossOrigin='anonymous'
-      style={{ maxWidth: '100%', width: 'auto', height: 'auto', display: 'block', objectFit: 'contain' }}
+      style={{
+        maxWidth: '100%',
+        width: 'auto',
+        height: 'auto',
+        display: 'block',
+        objectFit: 'contain',
+      }}
       {...props}
     />
   );
@@ -231,6 +242,7 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
   onTextSelection,
 }) => {
   const internalContainerRef = useRef<HTMLDivElement>(null);
+  const { t } = useTranslation();
   const containerRef = externalContainerRef || internalContainerRef; // 使用外部 ref 或内部 ref / Use external ref or internal ref
   const currentTheme = useThemeDetection();
   const handleLocalFileLink = useLocalFilePreview(workspace);
@@ -308,6 +320,18 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
             remarkPlugins={[...Object.values(defaultRemarkPlugins), remarkBreaks, artifactReferenceRemarkPlugin]}
             rehypePlugins={[defaultRehypePlugins.raw, defaultRehypePlugins.harden, rehypeKatexWithStaticStyles]}
             components={{
+              table({ children, ...props }: React.TableHTMLAttributes<HTMLTableElement>) {
+                return (
+                  <div
+                    className='preview-markdown__table-region'
+                    role='region'
+                    aria-label={t('preview.scientific.table.preview')}
+                    tabIndex={0}
+                  >
+                    <table {...props}>{children}</table>
+                  </div>
+                );
+              },
               a({ href, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
                 if (isSameOriginArtifactVersionUrl(href)) {
                   return (

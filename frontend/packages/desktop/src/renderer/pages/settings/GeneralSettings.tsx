@@ -1,4 +1,5 @@
-import { Input, Message, Modal, Select, Tag } from '@arco-design/web-react';
+import { Input, Message, Select, Tag } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -125,12 +126,9 @@ const GeneralSettings: React.FC = () => {
             description={t('settings.generalSettings.languageDescription')}
             icon='general'
           >
-            <SettingsListRow
-              label={t('settings.generalSettings.languageLabel')}
-              hint={t('settings.generalSettings.languageHint')}
-            >
+            <div className='general-preference-control'>
               <LanguageSwitcher />
-            </SettingsListRow>
+            </div>
           </SettingsSection>
 
           <SettingsSection
@@ -138,22 +136,19 @@ const GeneralSettings: React.FC = () => {
             description={t('settings.generalSettings.appearanceDescription')}
             icon='general'
           >
-            <div className='py-4px grid gap-10px'>
-              <div className='settings-list-row flex items-center justify-between gap-12px flex-wrap'>
-                <span className='text-13px text-t-primary'>{t('settings.generalSettings.themeFamily')}</span>
-                <Select
-                  value={activeVisualTheme}
-                  onChange={(preset) => void changeTheme(preset as VisualThemePreset)}
-                  className='w-180px max-w-full'
-                  aria-label={t('settings.generalSettings.themeFamily')}
-                  data-testid='theme-family-select'
-                >
-                  <Select.Option value='cool'>{t('settings.generalSettings.themeCool')}</Select.Option>
-                  <Select.Option value='warm'>{t('settings.generalSettings.themeWarm')}</Select.Option>
-                  <Select.Option value='white'>{t('settings.generalSettings.themeWhite')}</Select.Option>
-                  <Select.Option value='night'>{t('settings.generalSettings.themeNight')}</Select.Option>
-                </Select>
-              </div>
+            <div className='general-preference-control'>
+              <Select
+                value={activeVisualTheme}
+                onChange={(preset) => void changeTheme(preset as VisualThemePreset)}
+                className='w-full'
+                aria-label={t('settings.generalSettings.themeFamily')}
+                data-testid='theme-family-select'
+              >
+                <Select.Option value='cool'>{t('settings.generalSettings.themeCool')}</Select.Option>
+                <Select.Option value='warm'>{t('settings.generalSettings.themeWarm')}</Select.Option>
+                <Select.Option value='white'>{t('settings.generalSettings.themeWhite')}</Select.Option>
+                <Select.Option value='night'>{t('settings.generalSettings.themeNight')}</Select.Option>
+              </Select>
             </div>
           </SettingsSection>
         </div>
@@ -204,6 +199,8 @@ const GeneralSettings: React.FC = () => {
                       setEmailError(false);
                     }}
                     type='email'
+                    aria-label={t('settings.generalSettings.contactTitle')}
+                    aria-invalid={emailError || undefined}
                     placeholder='you@example.com'
                     onPressEnter={() => void saveEmail()}
                   />
@@ -281,19 +278,5 @@ function contactStatus(contact: SynonBiomedContactEmail | null, t: (key: string)
 function isValidContactEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
-
-const SettingsListRow: React.FC<React.PropsWithChildren<{ label: string; hint: string }>> = ({
-  label,
-  hint,
-  children,
-}) => (
-  <div className='py-10px flex flex-col sm:flex-row sm:items-center justify-between gap-8px sm:gap-16px'>
-    <div className='min-w-0'>
-      <div className='text-13px text-t-primary'>{label}</div>
-      <div className='mt-2px text-11px text-t-tertiary'>{hint}</div>
-    </div>
-    <div className='shrink-0'>{children}</div>
-  </div>
-);
 
 export default GeneralSettings;

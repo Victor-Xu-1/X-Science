@@ -4,7 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Dropdown, Tabs } from '@arco-design/web-react';
+import { Dropdown } from '@arco-design/web-react';
+import Tabs from '@/renderer/components/base/WorkbenchTabs';
+import { handleTabListKeyDown } from '@/renderer/utils/tabListKeyboard';
 import { BranchOne, ChartHistogram, FolderClose } from '@icon-park/react';
 import type { TFunction } from 'i18next';
 import React from 'react';
@@ -88,8 +90,9 @@ const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({
         className='synon-workspace-tablist flex h-44px shrink-0 items-center border-b border-solid border-[var(--color-border-2)] px-8px'
         role='tablist'
         aria-label={t('conversation.synonRuntime.computeRuntime.title')}
+        onKeyDown={handleTabListKeyDown}
       >
-        {tabs.map((tab, index) => (
+        {tabs.map((tab) => (
           <button
             key={tab.key}
             type='button'
@@ -100,7 +103,6 @@ const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({
             data-testid={`workspace-tab-${tab.key}`}
             className={`synon-workspace-tab ${activeTab === tab.key ? 'synon-workspace-tab--selected' : ''}`}
             onClick={() => onTabChange(tab.key)}
-            onKeyDown={(event) => handleReadOnlyTabKeyDown(event, index, tabs, onTabChange)}
           >
             {tab.icon}
             {tab.label}
@@ -112,6 +114,7 @@ const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({
 
   return (
     <Tabs
+      aria-label={t('common.workspace')}
       activeTab={activeTab}
       onChange={(key) => onTabChange(key as WorkspaceTab)}
       type='line'
@@ -123,32 +126,6 @@ const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({
       {!readOnly && <Tabs.TabPane key='changes' title={changesTitle} />}
     </Tabs>
   );
-};
-
-const handleReadOnlyTabKeyDown = (
-  event: React.KeyboardEvent<HTMLButtonElement>,
-  currentIndex: number,
-  tabs: Array<{ key: Extract<WorkspaceTab, 'files' | 'compute'> }>,
-  onTabChange: (tab: WorkspaceTab) => void
-) => {
-  const nextIndex =
-    event.key === 'Home'
-      ? 0
-      : event.key === 'End'
-        ? tabs.length - 1
-        : event.key === 'ArrowLeft'
-          ? (currentIndex - 1 + tabs.length) % tabs.length
-          : event.key === 'ArrowRight'
-            ? (currentIndex + 1) % tabs.length
-            : null;
-  if (nextIndex === null || nextIndex === currentIndex) return;
-  event.preventDefault();
-  const next = tabs[nextIndex].key;
-  const tablist = event.currentTarget.closest('[role="tablist"]');
-  onTabChange(next);
-  queueMicrotask(() => {
-    tablist?.querySelector<HTMLElement>(`[data-testid="workspace-tab-${next}"]`)?.focus();
-  });
 };
 
 export default WorkspaceTabBar;

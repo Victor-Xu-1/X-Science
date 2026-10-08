@@ -1,238 +1,49 @@
-/* Route-scoped desktop geometry from the accepted settings visual contract. */
-
-@media (min-width: 768px) {
-  /* Compute overview cards were previously constrained by the generic
-     238px minimum.  The approved sheet is a measured 206px card. */
-  html body .settings-page-wrapper[data-settings-route='compute'] .compute-overview-grid > .settings-section {
-    height: 206px !important;
-    min-height: var(--settings-entity-card-height) !important;
-    max-height: 206px !important;
-    position: relative !important;
-  }
-
-  html
-    body
-    .settings-page-wrapper[data-settings-route='compute']
-    .compute-overview-grid
-    > .settings-section
-    .settings-section__header {
-    height: 104px !important;
-    min-height: 104px !important;
-    box-sizing: border-box;
-    flex-direction: row !important;
-    align-items: flex-start !important;
-    gap: 18px !important;
-    padding: var(--settings-section-padding) !important;
-  }
-
-  html
-    body
-    .settings-page-wrapper[data-settings-route='compute']
-    .compute-overview-grid
-    > .settings-section
-    .settings-section__heading {
-    flex-direction: row !important;
-    gap: 26px !important;
-    align-items: flex-start !important;
-  }
-
-  html
-    body
-    .settings-page-wrapper[data-settings-route='compute']
-    .compute-overview-grid
-    > .settings-section
-    .settings-section__heading
-    > div:last-child {
-    margin-top: 7px !important;
-  }
-
-  html
-    body
-    .settings-page-wrapper[data-settings-route='compute']
-    .compute-overview-grid
-    > .settings-section
-    .settings-section__title {
-    font-size: var(--ui-font-section) !important;
-    line-height: 22px !important;
-  }
-
-  html
-    body
-    .settings-page-wrapper[data-settings-route='compute']
-    .compute-overview-grid
-    > .settings-section
-    .settings-section__description {
-    font-size: var(--ui-font-body) !important;
-    line-height: 20px !important;
-  }
-
-  html
-    body
-    .settings-page-wrapper[data-settings-route='compute']
-    .compute-overview-grid
-    > .settings-section
-    .settings-section__actions {
-    position: absolute !important;
-    right: 24px !important;
-    bottom: 14px !important;
-    z-index: var(--ui-z-layer-top);
-  }
-
-  html
-    body
-    .settings-page-wrapper[data-settings-route='compute']
-    .compute-overview-grid
-    > .settings-section
-    .settings-section__body {
-    position: absolute !important;
-    right: 24px !important;
-    bottom: 10px !important;
-    left: 24px !important;
-    z-index: var(--ui-z-layer);
-    display: flex !important;
-    min-height: 0 !important;
-    height: 52px !important;
-    padding: 0 !important;
-    gap: 8px !important;
-  }
-
-  html
-    body
-    .settings-page-wrapper[data-settings-route='compute']
-    .compute-overview-grid
-    > .settings-section
-    .compute-product-row {
-    min-height: 52px !important;
-    height: 52px !important;
-    box-sizing: border-box;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    padding: 0 !important;
-    border: 0 !important;
-    background: transparent !important;
-  }
-
-  html
-    body
-    .settings-page-wrapper[data-settings-route='compute']
-    .compute-overview-grid
-    > .settings-section
-    .compute-product-row
-    h3 {
-    font-size: var(--ui-font-subtitle) !important;
-    line-height: 20px !important;
-  }
-
-  html
-    body
-    .settings-page-wrapper[data-settings-route='compute']
-    .compute-overview-grid
-    > .settings-section
-    .compute-product-row
-    p {
-    max-width: 180px;
-    overflow: hidden;
-    font-size: var(--settings-meta-size) !important;
-    line-height: 18px !important;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  html
-    body
-    .settings-page-wrapper[data-settings-route='compute']
-    .compute-overview-grid
-    > .settings-section
-    .compute-empty-row {
-    min-height: 52px !important;
-    height: 52px !important;
-    box-sizing: border-box;
-    justify-content: flex-start !important;
-    padding: 0 !important;
-    border: 0 !important;
-    background: transparent !important;
-    font-size: var(--ui-font-subtitle);
-  }
-
-  html
-    body
-    .settings-page-wrapper[data-settings-route='compute']
-    .compute-overview-grid
-    > .settings-section
-    .compute-empty-row__artwork {
-    display: none !important;
-  }
-
-  html
-    body
-    .settings-page-wrapper[data-settings-route='compute']
-    .compute-section-stack
-    > .compute-section:nth-of-type(1)
-    .settings-section__icon,
-  html
-    body
-    .settings-page-wrapper[data-settings-route='compute']
-    .compute-section-stack
-    > .compute-section:nth-of-type(2)
-    .settings-section__icon {
-    display: none !important;
-  }
-
-  html
-    body
-    .settings-page-wrapper[data-settings-route='compute']
-    .compute-section-stack
-    > .compute-section:nth-of-type(1)
-    .settings-section__header {
-    height: 86px !important;
-    box-sizing: border-box;
-    padding: 32px 24px 0 !important;
-    border-bottom: 1px solid var(--settings-border);
-  }
-
-  html
-    body
-    .settings-page-wrapper[data-settings-route='compute']
-    .compute-section-stack
-    > .compute-section:nth-of-type(2)
-    .settings-section__header {
-    height: 72px !important;
-    box-sizing: border-box;
-    padding: 32px 24px 0 !important;
-  }
-
-  html
-    body
-    .settings-page-wrapper[data-settings-route='compute']
-    .compute-section-stack
-    > .compute-section:nth-of-type(1)
-    .settings-section__title,
-  html
-    body
-    .settings-page-wrapper[data-settings-route='compute']
-    .compute-section-stack
-    > .compute-section:nth-of-type(2)
-    .settings-section__title {
-    font-size: var(--ui-font-section) !important;
-    line-height: 22px !important;
-  }
-
-  html
-    body
-    .settings-page-wrapper[data-settings-route='compute']
-    .compute-section-stack
-    > .compute-section:nth-of-type(2)
-    .settings-section__description {
-    display: none !important;
-  }
-
-  html
-    body
-    .settings-page-wrapper[data-settings-route='compute']
-    .compute-section-stack
-    > .compute-section:nth-of-type(2)
-    .settings-section__body {
-    padding: 0 22px 22px !important;
-  }
+/* Overview cards use normal flow so configuration/status text never collides
+   with an absolutely positioned action at a fixed screenshot coordinate. */
+.settings-page-wrapper[data-settings-route='compute'] .compute-overview-grid {
+  gap: var(--settings-card-gap);
+}
+.settings-page-wrapper[data-settings-route='compute'] .compute-overview-grid > .settings-section {
+  display: flex;
+  box-sizing: border-box;
+  height: auto;
+  flex-direction: column;
+  min-height: var(--settings-entity-card-height);
+}
+.settings-page-wrapper[data-settings-route='compute'] .compute-overview-grid .settings-section__icon {
+  width: 48px;
+  height: 48px;
+  flex-basis: 48px;
+  border-radius: var(--ui-radius-xl);
+}
+.settings-page-wrapper[data-settings-route='compute'] .compute-overview-grid .settings-section__header {
+  flex-direction: column;
+  gap: var(--ui-space-5);
+  padding: var(--settings-section-padding) var(--settings-section-padding) 0;
+}
+.compute-overview-grid .settings-section__heading {
+  align-items: flex-start;
+}
+.settings-page-wrapper[data-settings-route='compute'] .compute-overview-grid .settings-section__body {
+  margin-top: auto;
+  padding: 12px 24px 16px;
+}
+.compute-overview-grid .compute-product-row {
+  flex-wrap: wrap;
+  gap: var(--ui-space-5);
+}
+.compute-overview-grid .compute-product-row p {
+  max-width: none;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.settings-page-wrapper[data-settings-route='compute'] .compute-overview-grid .compute-empty-row {
+  min-height: 48px;
+  padding: 0;
+  justify-content: flex-start;
+  border: 0;
+  box-shadow: none;
+}
+.settings-page-wrapper[data-settings-route='compute'] .compute-overview-grid .compute-empty-row__artwork {
+  display: none;
 }

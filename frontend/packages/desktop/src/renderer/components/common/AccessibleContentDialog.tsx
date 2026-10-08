@@ -1,8 +1,6 @@
 import { Close } from '@icon-park/react';
 import React, { useEffect, useId, useRef } from 'react';
-
-const FOCUSABLE_SELECTOR =
-  'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+import { containTabFocus, focusableElements } from '@/renderer/utils/focusScope';
 
 type AccessibleContentDialogProps = React.PropsWithChildren<{
   title: React.ReactNode;
@@ -41,11 +39,16 @@ export const AccessibleContentDialog: React.FC<AccessibleContentDialogProps> = (
   useEffect(() => {
     if (!visible) return;
     previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const firstFocusable = dialogRef.current?.querySelector<HTMLElement>('[autofocus], ' + FOCUSABLE_SELECTOR);
+    const focusable = focusableElements(dialogRef.current);
+    const firstFocusable = focusable.find((element) => element.hasAttribute('autofocus')) ?? focusable[0];
     const requestedFocus = initialFocusRef?.current;
-    (requestedFocus?.matches(':disabled') ? firstFocusable : (requestedFocus ?? firstFocusable))?.focus();
+    (requestedFocus && focusable.includes(requestedFocus)
+      ? requestedFocus
+      : (firstFocusable ?? dialogRef.current)
+    )?.focus();
     return () => {
-      previousFocusRef.current?.focus();
+      if (previousFocusRef.current?.isConnected && !previousFocusRef.current.matches(':disabled'))
+        previousFocusRef.current.focus();
       previousFocusRef.current = null;
     };
   }, [initialFocusRef, visible]);
@@ -64,6 +67,7 @@ export const AccessibleContentDialog: React.FC<AccessibleContentDialogProps> = (
         role={role}
         aria-modal='true'
         aria-labelledby={titleId}
+        tabIndex={-1}
         className={`accessible-content-dialog__surface relative m-0 w-full ${maxWidthClassName} border border-solid p-0 text-t-primary ${dialogClassName}`}
         onCancel={(event) => {
           event.preventDefault();
@@ -75,18 +79,7 @@ export const AccessibleContentDialog: React.FC<AccessibleContentDialogProps> = (
             onClose();
             return;
           }
-          if (event.key !== 'Tab') return;
-          const focusable = [...(dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR) ?? [])];
-          if (focusable.length === 0) return;
-          const first = focusable[0];
-          const last = focusable.at(-1)!;
-          if (event.shiftKey && document.activeElement === first) {
-            event.preventDefault();
-            last.focus();
-          } else if (!event.shiftKey && document.activeElement === last) {
-            event.preventDefault();
-            first.focus();
-          }
+          containTabFocus(dialogRef.current, event);
         }}
       >
         <header

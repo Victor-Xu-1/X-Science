@@ -13,6 +13,7 @@ import { useCompositionInput } from '@/renderer/hooks/chat/useCompositionInput';
 import { Input } from '@arco-design/web-react';
 import { Close, Paperclip } from '@icon-park/react';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import styles from '../index.module.css';
 import type { GuidLocalFile } from '../hooks/useGuidInput';
 
@@ -31,46 +32,49 @@ const getLocalFileExtension = (fileName: string): string => {
 const GuidLocalFilePreview: React.FC<{ attachment: GuidLocalFile; onRemove: () => void }> = ({
   attachment,
   onRemove,
-}) => (
-  <div
-    className='relative inline-flex h-60px min-w-0 max-w-240px items-center gap-10px rounded-10px border border-solid bg-fill-1 px-10px transition-colors hover:bg-fill-2'
-    data-testid='guid-local-file'
-    data-file-name={attachment.file.name}
-    style={{ borderColor: 'color-mix(in srgb, var(--color-border-2) 70%, transparent)' }}
-  >
+}) => {
+  const { t } = useTranslation();
+  return (
     <div
-      className='flex h-36px w-36px shrink-0 items-center justify-center rounded-8px bg-fill-2 text-t-secondary'
-      data-testid='guid-local-file-icon'
-      aria-hidden='true'
-    >
-      <Paperclip theme='outline' size='17' fill='var(--text-secondary)' aria-hidden='true' />
-    </div>
-    <div className='min-w-0 leading-16px'>
-      <div className='truncate text-13px font-500 text-t-primary' title={attachment.file.name}>
-        {attachment.file.name}
-      </div>
-      <div className='flex items-center gap-4px text-12px text-t-secondary'>
-        <span data-file-extension={getLocalFileExtension(attachment.file.name)}>
-          {getLocalFileExtension(attachment.file.name)}
-        </span>
-        <span aria-hidden='true'>·</span>
-        <span>{formatLocalFileSize(attachment.file.size)}</span>
-      </div>
-    </div>
-    <button
-      type='button'
-      className='absolute -right-6px -top-6px flex h-16px w-16px items-center justify-center rounded-50% border border-solid bg-fill-1 text-t-secondary transition-colors hover:bg-fill-2 hover:text-t-primary'
-      aria-label={`Remove ${attachment.file.name}`}
+      className='relative inline-flex h-60px min-w-0 max-w-240px items-center gap-10px rounded-10px border border-solid bg-fill-1 px-10px transition-colors hover:bg-fill-2'
+      data-testid='guid-local-file'
+      data-file-name={attachment.file.name}
       style={{ borderColor: 'color-mix(in srgb, var(--color-border-2) 70%, transparent)' }}
-      onClick={(event) => {
-        event.stopPropagation();
-        onRemove();
-      }}
     >
-      <Close theme='filled' size='10' />
-    </button>
-  </div>
-);
+      <div
+        className='flex h-36px w-36px shrink-0 items-center justify-center rounded-8px bg-fill-2 text-t-secondary'
+        data-testid='guid-local-file-icon'
+        aria-hidden='true'
+      >
+        <Paperclip theme='outline' size='17' fill='var(--text-secondary)' aria-hidden='true' />
+      </div>
+      <div className='min-w-0 leading-16px'>
+        <div className='truncate text-13px font-500 text-t-primary' title={attachment.file.name}>
+          {attachment.file.name}
+        </div>
+        <div className='flex items-center gap-4px text-12px text-t-secondary'>
+          <span data-file-extension={getLocalFileExtension(attachment.file.name)}>
+            {getLocalFileExtension(attachment.file.name)}
+          </span>
+          <span aria-hidden='true'>·</span>
+          <span>{formatLocalFileSize(attachment.file.size)}</span>
+        </div>
+      </div>
+      <button
+        type='button'
+        className='absolute -right-6px -top-6px flex h-28px w-28px items-center justify-center rounded-50% border border-solid bg-fill-1 text-t-secondary transition-colors hover:bg-fill-2 hover:text-t-primary'
+        aria-label={`${t('common.remove')} · ${attachment.file.name}`}
+        style={{ borderColor: 'color-mix(in srgb, var(--color-border-2) 70%, transparent)' }}
+        onClick={(event) => {
+          event.stopPropagation();
+          onRemove();
+        }}
+      >
+        <Close theme='filled' size='10' />
+      </button>
+    </div>
+  );
+};
 
 type GuidInputCardProps = {
   // Input state
@@ -131,6 +135,7 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
   slashCommandMenu,
 }) => {
   const layout = useLayoutContext();
+  const { t } = useTranslation();
   const isMobile = layout?.isMobile ?? false;
   const { compositionHandlers, isComposing } = useCompositionInput();
   const textareaAutoSize = isMobile ? { minRows: 1, maxRows: 8 } : { minRows: 1, maxRows: 12 };
@@ -168,6 +173,7 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
           </div>
         ) : null}
         <Input.TextArea
+          aria-label={t('conversation.welcome.placeholder')}
           autoSize={textareaAutoSize}
           placeholder={placeholder}
           spellCheck={false}

@@ -1,4 +1,4 @@
-import { Button, Empty, Input, Message, Modal, Select, Spin, Switch } from '@arco-design/web-react';
+import { Button, Empty, Input, Message, Select, Spin, Switch } from '@arco-design/web-react';
 import { Copy, Refresh, Search } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -7,6 +7,7 @@ import {
   type SynonBiomedThirdPartyLicenses,
 } from '@/renderer/services/synonBiomedLicenses';
 import { copyText } from '@/renderer/utils/ui/clipboard';
+import AccessibleContentDialog from '@/renderer/components/common/AccessibleContentDialog';
 
 export type ThirdPartyLicenseSection = {
   id: string;
@@ -35,7 +36,9 @@ const ThirdPartyLicensesModal: React.FC<ThirdPartyLicensesModalProps> = ({ visib
     setLoading(true);
     setLoadFailed(false);
     void loadSynonBiomedThirdPartyLicenses({ signal: controller.signal })
-      .then(setSnapshot)
+      .then((result) => {
+        if (!controller.signal.aborted) setSnapshot(result);
+      })
       .catch((loadError: unknown) => {
         if (!controller.signal.aborted) {
           console.error('Failed to load third-party licenses:', loadError);
@@ -51,7 +54,11 @@ const ThirdPartyLicensesModal: React.FC<ThirdPartyLicensesModalProps> = ({ visib
   const sections = useMemo(() => {
     if (!snapshot) return [];
     return [
-      { id: 'all', title: t('settings.thirdPartyLicenses.fullDocument'), content: snapshot.content },
+      {
+        id: 'all',
+        title: t('settings.thirdPartyLicenses.fullDocument'),
+        content: snapshot.content,
+      },
       ...parseThirdPartyLicenseSections(snapshot.content, t('settings.thirdPartyLicenses.overview')),
     ];
   }, [snapshot, t]);
@@ -81,15 +88,17 @@ const ThirdPartyLicensesModal: React.FC<ThirdPartyLicensesModalProps> = ({ visib
   };
 
   return (
-    <Modal
+    <AccessibleContentDialog
       title={t('settings.thirdPartyLicenses.title')}
       visible={visible}
-      footer={null}
-      onCancel={onClose}
-      unmountOnExit
-      style={{ width: 'min(980px, 96vw)' }}
+      closeLabel={t('common.close')}
+      onClose={onClose}
+      maxWidthClassName='max-w-980px'
     >
-      <div className='flex flex-col gap-10px' data-testid='third-party-licenses-modal'>
+      <div
+        className='flex max-h-[min(760px,calc(100dvh-120px))] flex-col gap-12px overflow-auto p-20px'
+        data-testid='third-party-licenses-modal'
+      >
         <div className='flex flex-col md:flex-row md:items-center justify-between gap-8px'>
           <div className='min-w-0 text-11px text-t-tertiary'>
             {snapshot
@@ -170,11 +179,15 @@ const ThirdPartyLicensesModal: React.FC<ThirdPartyLicensesModalProps> = ({ visib
                 ))}
               </Select>
             </div>
-            <nav className='hidden md:flex flex-col border-r border-arco-2 bg-2 max-h-520px overflow-y-auto p-6px'>
+            <nav
+              aria-label={t('settings.thirdPartyLicenses.sections')}
+              className='hidden md:flex flex-col border-r border-arco-2 bg-2 max-h-520px overflow-y-auto p-6px'
+            >
               {visibleSections.map((section) => (
                 <button
                   type='button'
                   key={section.id}
+                  aria-current={activeSection?.id === section.id ? 'true' : undefined}
                   className={`text-left px-9px py-7px rd-4px text-12px leading-5 transition-colors ${
                     activeSection?.id === section.id
                       ? 'bg-fill-2 text-t-primary font-600'
@@ -204,7 +217,7 @@ const ThirdPartyLicensesModal: React.FC<ThirdPartyLicensesModalProps> = ({ visib
 
         {snapshot ? <div className='text-10px text-t-tertiary break-all'>{snapshot.source}</div> : null}
       </div>
-    </Modal>
+    </AccessibleContentDialog>
   );
 };
 

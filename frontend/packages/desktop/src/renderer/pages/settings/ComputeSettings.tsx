@@ -1,4 +1,5 @@
-import { Button, Message, Modal, Select, Spin, Switch } from '@arco-design/web-react';
+import { Button, Message, Select, Spin, Switch } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import { Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -235,7 +236,7 @@ export const ComputeSettingsContent: React.FC<{
 
   return (
     <div className='settings-compute-page flex min-h-0 flex-col gap-16px' data-testid='synon-biomed-compute-section'>
-      <main className='w-full pb-72px'>
+      <div className='w-full pb-72px'>
         <SettingsPageHeader
           data-testid='compute-header'
           title={t('settings.computeWorkspace.title')}
@@ -436,7 +437,7 @@ export const ComputeSettingsContent: React.FC<{
             </>
           )}
         </div>
-      </main>
+      </div>
 
       <EditProviderModal
         provider={editingProvider}

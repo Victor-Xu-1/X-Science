@@ -229,7 +229,9 @@ describe('SynonBiomedMcpSettingsContent', () => {
         return new Response(JSON.stringify({ directoryHealth: { ok: true } }), { status: 200 });
       }
       if (input === '/api/mcp-servers/reconcile') {
-        return new Response(JSON.stringify({ reconciled: 1 }), { status: failReconcile ? 503 : 200 });
+        return new Response(JSON.stringify({ reconciled: 1 }), {
+          status: failReconcile ? 503 : 200,
+        });
       }
       return new Response(JSON.stringify([]), { status: 200 });
     });
@@ -237,7 +239,7 @@ describe('SynonBiomedMcpSettingsContent', () => {
     await renderWithI18n(<SynonBiomedMcpSettingsContent compactHeader />, 'en-US');
 
     expect(await screen.findByTestId('synon-biomed-mcp-directory-health')).toBeVisible();
-    expect(screen.queryByTestId('synon-biomed-mcp-search')).toBeNull();
+    expect(screen.getByTestId('synon-biomed-mcp-search')).toBeVisible();
     fireEvent.click(screen.getByTestId('synon-biomed-mcp-refresh'));
     await waitFor(() =>
       expect(fetchMock.mock.calls.filter(([path]) => path === '/api/mcp-servers/connectors').length).toBeGreaterThan(1)
@@ -261,7 +263,14 @@ describe('SynonBiomedMcpSettingsContent', () => {
       if (input === '/api/mcp-servers/bundled%3Apubmed/tool-permissions') {
         return new Response(
           JSON.stringify({
-            tools: [{ toolName: 'search_articles', title: 'Search Articles', readOnlyHint: true, state: 'allow' }],
+            tools: [
+              {
+                toolName: 'search_articles',
+                title: 'Search Articles',
+                readOnlyHint: true,
+                state: 'allow',
+              },
+            ],
             skipApprovalsActive: false,
           }),
           { status: 200 }
@@ -300,7 +309,10 @@ describe('SynonBiomedMcpSettingsContent', () => {
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
         '/api/mcp-servers/bundled%3Apubmed/tool-grants',
-        expect.objectContaining({ method: 'POST', body: '{"toolName":"search_articles","decision":"deny"}' })
+        expect.objectContaining({
+          method: 'POST',
+          body: '{"toolName":"search_articles","decision":"deny"}',
+        })
       )
     );
   });
@@ -553,7 +565,9 @@ describe('SynonBiomedMcpSettingsContent', () => {
         );
       }
       if (input === '/api/mcp-servers/bundled%3Abeta/tool-permissions') {
-        return new Response(JSON.stringify({ detail: 'Beta permissions unavailable' }), { status: 503 });
+        return new Response(JSON.stringify({ detail: 'Beta permissions unavailable' }), {
+          status: 503,
+        });
       }
       return new Response(
         JSON.stringify([
@@ -678,7 +692,9 @@ describe('SynonBiomedMcpSettingsContent', () => {
     vi.stubGlobal('fetch', fetchMock);
     await renderWithI18n(<SynonBiomedMcpSettingsContent />, 'zh-CN');
     expect(await screen.findByText('中文检索说明')).toBeVisible();
-    fireEvent.change(screen.getByRole('textbox', { name: '搜索连接器...' }), { target: { value: '中文检索' } });
+    fireEvent.change(screen.getByRole('textbox', { name: '搜索连接器...' }), {
+      target: { value: '中文检索' },
+    });
     expect(screen.getByText('Example')).toBeVisible();
     fireEvent.click(screen.getByTestId('synon-biomed-mcp-add'));
     fireEvent.click(await screen.findByText('免费与本地'));
@@ -733,10 +749,14 @@ describe('SynonBiomedMcpSettingsContent', () => {
     expect(screen.getByText('Connector 12')).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Connector pagination 2', exact: true })).not.toBeInTheDocument();
     scroll.scrollTop = 100;
-    fireEvent.change(screen.getByRole('textbox', { name: 'Search connectors...' }), { target: { value: 'preprints' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search connectors...' }), {
+      target: { value: 'preprints' },
+    });
     await waitFor(() => expect(screen.getByText('bioRxiv')).toBeVisible());
     expect(screen.queryByText('Connector 12')).toBeNull();
-    fireEvent.change(screen.getByTestId('synon-biomed-mcp-filter'), { target: { value: 'needs-attention' } });
+    fireEvent.change(screen.getByTestId('synon-biomed-mcp-filter'), {
+      target: { value: 'needs-attention' },
+    });
     expect(screen.getByText('No connectors match the current filters.')).toBeVisible();
   });
 });

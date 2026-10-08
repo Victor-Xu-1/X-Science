@@ -441,6 +441,7 @@ const ArtifactActions: React.FC<{
       <button
         type='button'
         aria-label={t('conversation.projectArtifacts.moreNamed', { name: artifact.name })}
+        aria-haspopup='menu'
         title={t('conversation.projectArtifacts.moreActions')}
         className='size-24px flex-center border-0 bg-transparent text-t-tertiary hover:text-t-primary hover:bg-fill-1 cursor-pointer'
         onClick={(event) => {

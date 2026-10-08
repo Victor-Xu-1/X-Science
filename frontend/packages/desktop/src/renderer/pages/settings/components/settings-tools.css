@@ -152,18 +152,6 @@ html body .settings-page-wrapper[data-settings-route='tools'] .settings-page-con
    The merged library page needs one type ramp across all four tabs, so the
    card typography now comes only from settings-card-density.css. */
 
-.mcp-library-footer {
-  min-height: 48px;
-  padding-top: 10px;
-  border-top: 1px solid var(--settings-border);
-  background: var(--settings-canvas);
-}
-
-.settings-page-wrapper[data-settings-route='tools'] .mcp-library-footer .settings-pagination {
-  margin: 0;
-  flex-wrap: wrap;
-}
-
 .mcp-library-browser .arco-modal-content {
   max-height: min(75vh, 800px);
   overflow-y: auto;

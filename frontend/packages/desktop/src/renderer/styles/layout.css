@@ -582,3 +582,27 @@ html body .sider-account-menu-icon-slot > .i-icon svg {
     line-height: 20px !important;
   }
 }
+/* The first keyboard stop bypasses repeated workspace navigation without
+   changing the HashRouter URL. It stays visually quiet until focused. */
+.workspace-skip-control {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: var(--ui-z-dialog, 1002);
+  transform: translateY(-200%);
+  padding: 10px 14px;
+  border: 2px solid var(--workspace-text);
+  border-radius: var(--ui-radius-md);
+  color: var(--workspace-text);
+  background: var(--workspace-overlay-surface);
+  font: inherit;
+  cursor: pointer;
+}
+.workspace-skip-control:focus {
+  transform: none;
+}
+.synon-sidebar-conversation-open:focus-visible {
+  outline: 2px solid var(--workspace-text);
+  outline-offset: -2px;
+  border-radius: var(--ui-radius-md);
+}

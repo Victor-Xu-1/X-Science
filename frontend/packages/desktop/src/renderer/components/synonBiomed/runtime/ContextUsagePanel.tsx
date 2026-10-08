@@ -6,7 +6,7 @@
 
 import { Dropdown, Spin, Tooltip } from '@arco-design/web-react';
 import { Close } from '@icon-park/react';
-import React, { useId, useRef, useState } from 'react';
+import React, { useId, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useContextUsage } from '@/renderer/hooks/synonBiomed/useContextUsage';
 import {
@@ -15,6 +15,7 @@ import {
   type ContextUsageCategory,
 } from '@/renderer/services/contextUsage';
 import styles from './ContextUsagePanel.module.css';
+import { focusableElements, restoreScopedFocus } from '@/renderer/utils/focusScope';
 import ContextWindowHistory from './ContextWindowHistory';
 import {
   contextDisplayWindow,
@@ -83,8 +84,17 @@ type ContextUsagePanelProps = { conversationId: string; active?: boolean };
 const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({ conversationId, active = false }) => {
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
+  const [panelNode, setPanelNode] = useState<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelId = useId();
   const detailsId = useId();
+  useLayoutEffect(() => {
+    if (visible && panelNode) focusableElements(panelNode)[0]?.focus({ preventScroll: true });
+  }, [panelNode, visible]);
+  const closePanel = () => {
+    setVisible(false);
+    restoreScopedFocus(triggerRef.current, panelNode);
+  };
   const { state, retry } = useContextUsage(conversationId, visible, active);
   const usage = state.status === 'available' ? projectContextUsage(state.snapshot) : null;
   const policy = state.status === 'available' ? state.autoCompaction : undefined;
@@ -171,10 +181,17 @@ const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({ conversationId, a
       onVisibleChange={setVisible}
       droplist={
         <div
+          id={panelId}
+          ref={setPanelNode}
           className={styles.root}
           data-testid='context-usage-panel'
           role='dialog'
           aria-label={t('conversation.contextUsage.title')}
+          onKeyDown={(event) => {
+            if (event.key !== 'Escape' || event.defaultPrevented) return;
+            event.preventDefault();
+            closePanel();
+          }}
         >
           <div className={styles.header}>
             <span className={styles.headerTitle}>{t('conversation.contextUsage.title')}</span>
@@ -186,10 +203,7 @@ const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({ conversationId, a
               className={styles.closeButton}
               aria-label={t('common.close')}
               data-testid='context-usage-close'
-              onClick={() => {
-                setVisible(false);
-                triggerRef.current?.focus();
-              }}
+              onClick={closePanel}
             >
               <Close theme='outline' size={20} strokeWidth={2.2} />
             </button>
@@ -264,7 +278,7 @@ const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({ conversationId, a
                   {t(`conversation.contextUsage.${usage.source === 'provider' ? 'providerShort' : 'estimatedShort'}`)}
                 </span>
               </div>
-              {history && <ContextWindowHistory history={history} />}
+              {history && <ContextWindowHistory history={history} interactive={visible} />}
               {stale && (
                 <div className={styles.refreshNotice} role='status'>
                   <span>
@@ -310,6 +324,7 @@ const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({ conversationId, a
         data-testid='synon-biomed-context-usage-trigger'
         aria-label={t('conversation.contextUsage.title')}
         aria-expanded={visible}
+        aria-controls={visible ? panelId : undefined}
         aria-haspopup='dialog'
         title={
           usage
@@ -319,7 +334,7 @@ const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({ conversationId, a
             : t('conversation.contextUsage.unavailable')
         }
         data-usage-state={state.status}
-        className='inline-flex items-center justify-center cursor-pointer border-0 bg-transparent p-0'
+        className={styles.trigger}
       >
         {usage ? (
           <UsageRing

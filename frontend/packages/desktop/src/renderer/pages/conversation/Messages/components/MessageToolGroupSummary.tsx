@@ -46,7 +46,7 @@ const MessageToolGroupSummary: React.FC<{
       operationId: tools[0]?.key ?? 'empty-group',
       path: 'group',
     },
-    { defaultExpanded: true }
+    { defaultExpanded: isActive || Boolean(activity?.spinning) }
   );
   const expanded = disclosure.expanded;
   const detailsRef = useRef<HTMLDivElement>(null);
@@ -104,6 +104,8 @@ const MessageToolGroupSummary: React.FC<{
         className='tool-group-summary__details'
         aria-hidden={!expanded}
         data-expanded={expanded ? 'true' : 'false'}
+        onFocusCapture={() => disclosure.setExpanded(true)}
+        onPointerDownCapture={() => disclosure.setExpanded(true)}
       >
         {expanded ? (
           <div className='tool-group-summary__details-inner'>

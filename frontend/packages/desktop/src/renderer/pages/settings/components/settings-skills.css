@@ -51,19 +51,6 @@ html body .settings-page-wrapper[data-settings-route='skills'] .settings-page-co
   padding: 4px 4px 16px;
 }
 
-.settings-skill-library-footer {
-  flex-shrink: 0;
-  min-height: 48px;
-  padding-top: 10px;
-  border-top: 1px solid var(--settings-border);
-  background: var(--settings-canvas);
-}
-
-.settings-page-wrapper[data-settings-route='skills'] .settings-skill-library-footer .settings-pagination {
-  margin: 0;
-  flex-wrap: wrap;
-}
-
 /* The shared merged-library sheet (settings-card-density.css) owns the column
    count for every tab, so the skills wall no longer states one of its own and
    the four tabs cannot disagree about it again. */
@@ -109,6 +96,21 @@ html body .settings-page-wrapper[data-settings-route='skills'] .settings-page-co
   grid-template-columns: minmax(0, 1fr) minmax(180px, 280px) auto;
   align-items: center;
   gap: var(--ui-space-5);
+}
+
+.settings-skill-card__open {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--ui-space-6);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
 }
 
 .settings-skill-library-toolbar > *,
@@ -211,7 +213,7 @@ html body .settings-page-wrapper[data-settings-route='skills'] .settings-page-co
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   overflow: hidden;
-  min-height: 124px;
+  min-height: 96px;
   border: 1px solid var(--settings-border) !important;
   border-radius: var(--settings-card-radius) !important;
   background: var(--settings-surface) !important;
@@ -234,7 +236,6 @@ html body .settings-page-wrapper[data-settings-route='skills'] .settings-page-co
 }
 
 .settings-page-wrapper[data-settings-visual-system='scientific-connectors-v3'] .settings-summary-item strong {
-  max-width: 70%;
   color: var(--settings-text) !important;
   font-size: var(--ui-font-display);
   font-weight: var(--ui-weight-semibold);

@@ -1,4 +1,5 @@
-import { Input, Message, Modal, Switch } from '@arco-design/web-react';
+import { Input, Message, Switch } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import { Delete, Refresh, Right, Up } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';

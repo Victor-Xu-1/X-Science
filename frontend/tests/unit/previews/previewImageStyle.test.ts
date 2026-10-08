@@ -37,4 +37,18 @@ describe('image preview canvas styles', () => {
     expect(boardImage).toContain('object-fit: contain;');
     expect(styles).not.toMatch(/^\.preview-markdown__document\s*\{[^}]*cqi/ms);
   });
+  it('keeps narrow document panels readable without squeezing or clipping wide tables', async () => {
+    const styles = await readFile(previewStylesPath, 'utf8');
+    expect(styles).toMatch(/\.preview-markdown\s*\{[^}]*container-type:\s*inline-size/);
+    expect(styles).toMatch(
+      /@container\s*\(max-width:\s*520px\)[\s\S]*?\.preview-markdown__document h1\s*\{[^}]*font-size:\s*var\(--ui-font-document-title\)/
+    );
+    const tokens = await readFile(
+      fileURLToPath(new URL('../../../packages/desktop/src/renderer/styles/tokens.css', import.meta.url)),
+      'utf8'
+    );
+    expect(tokens).toMatch(/--ui-font-document-title:\s*22px/);
+    expect(styles).toMatch(/\.preview-markdown__table-region\s*\{[^}]*overflow-x:\s*auto/);
+    expect(styles).toMatch(/\.preview-markdown__document :where\(th, td\)\s*\{[^}]*min-width:\s*120px/);
+  });
 });

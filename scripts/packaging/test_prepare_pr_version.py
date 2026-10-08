@@ -118,6 +118,20 @@ class PreparePrVersionTest(unittest.TestCase):
         self.assertEqual(alternate.read_bytes(), raw)
         self.assertEqual(json.loads((self.root / "product-identity.json").read_text())["version"], self.old)
 
+    def test_notice_symlink_is_rejected_before_any_write(self):
+        target = self.root / provenance.NOTICES
+        alternate = self.root / 'alternate-notice.txt'
+        raw = target.read_bytes()
+        alternate.write_bytes(raw)
+        target.unlink()
+        target.symlink_to(alternate)
+        self.git('add', provenance.NOTICES, 'alternate-notice.txt')
+        self.git('commit', '--quiet', '-m', 'untrusted notice link')
+        self.head = self.git('rev-parse', 'HEAD')
+        with self.assertRaisesRegex(ValueError, 'regular file'):
+            self.plan()
+        self.assertEqual(alternate.read_bytes(), raw)
+
     def test_projection_symlinks_are_not_followed(self):
         target = self.root / "frontend/package.json"
         raw = target.read_bytes()

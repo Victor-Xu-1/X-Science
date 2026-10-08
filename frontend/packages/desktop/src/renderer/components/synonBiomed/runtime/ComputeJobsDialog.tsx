@@ -16,7 +16,8 @@ import {
   type SynonBiomedComputeJob,
   type SynonBiomedComputeJobLog,
 } from '@/renderer/services/synonBiomedCompute';
-import { Button, Modal, Tag } from '@arco-design/web-react';
+import { Button, Tag } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import { ArrowLeft, Copy, LinkOne, Right } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useEffect, useState } from 'react';

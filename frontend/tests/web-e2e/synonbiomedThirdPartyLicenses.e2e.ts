@@ -16,7 +16,11 @@ for (const viewport of viewports) {
 
       const apiResponse = await page.request.get('/api/synonbiomed/licenses/third-party');
       expect(apiResponse.status()).toBe(200);
-      const payload = (await apiResponse.json()) as { bytes: number; sha256: string; content: string };
+      const payload = (await apiResponse.json()) as {
+        bytes: number;
+        sha256: string;
+        content: string;
+      };
       expect(payload.bytes).toBeGreaterThan(60_000);
       expect(payload.sha256).toMatch(/^[a-f0-9]{64}$/);
       expect(payload.content).toContain('### Ketcher');
@@ -25,15 +29,16 @@ for (const viewport of viewports) {
       await page.getByTestId('third-party-licenses-open').click();
       const modal = page.getByTestId('third-party-licenses-modal');
       await expect(modal).toBeVisible();
-      await expect(modal).toContainText('11 个章节');
+      const sectionCount = [...payload.content.replace(/\r\n/g, '\n').matchAll(/^#{2,3}\s+.+$/gm)].length;
+      await expect(modal).toContainText(`${sectionCount} 个章节`);
       await expect(modal).toContainText('runtime/assets/skills/THIRD_PARTY_LICENSES.md');
       await expect(page.getByTestId('third-party-license-content')).toContainText('### Ketcher');
-      await assertInsideViewport(page.locator('.arco-modal').filter({ hasText: '第三方许可证' }), viewport.width);
+      await assertInsideViewport(page.getByRole('dialog', { name: '第三方许可证' }), viewport.width);
       await assertNoHorizontalPageOverflow(page);
 
       await page.getByRole('textbox', { name: '搜索第三方许可证' }).fill('micromamba');
       await expect(page.getByTestId('third-party-license-content')).toContainText('BSD 3-Clause License');
-      await assertInsideViewport(page.locator('.arco-modal').filter({ hasText: '第三方许可证' }), viewport.width);
+      await assertInsideViewport(page.getByRole('dialog', { name: '第三方许可证' }), viewport.width);
       await assertNoHorizontalPageOverflow(page);
 
       await expect(page).toHaveScreenshot(`third-party-licenses-${viewport.name}.png`, {

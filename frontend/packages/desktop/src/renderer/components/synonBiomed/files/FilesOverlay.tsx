@@ -3,7 +3,8 @@ import {
   loadSynonBiomedCloudBuckets,
   loadSynonBiomedCloudCredentials,
 } from '@/renderer/services/synonBiomedWorkspaceSettings';
-import { Alert, Button, Modal, Select, Spin } from '@arco-design/web-react';
+import { Alert, Button, Select, Spin } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import { FolderOpen, Refresh } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';

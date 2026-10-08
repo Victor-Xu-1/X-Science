@@ -401,6 +401,13 @@ const Layout: React.FC<{
     <LayoutContext.Provider value={{ isMobile, siderCollapsed: collapsed, setSiderCollapsed: updateSiderCollapsed }}>
       <NavigationHistoryProvider>
         <div className='app-shell flex flex-col size-full min-h-0'>
+          <button
+            type='button'
+            className='workspace-skip-control'
+            onClick={() => document.getElementById('workspace-main')?.focus()}
+          >
+            {t('common.skipToContent')}
+          </button>
           <Titlebar workspaceAvailable={workspaceAvailable} />
           {/* 移动端左侧边栏蒙板 / Mobile left sider backdrop */}
           {isMobile && !collapsed && (
@@ -419,80 +426,95 @@ const Layout: React.FC<{
               })}
               style={siderStyle}
             >
-              <ArcoLayout.Header
-                className={classNames(
-                  'flex items-center justify-start pt-8px pb-8px pl-18px pr-16px gap-12px layout-sider-header synon-sidebar-header',
-                  isMobile && 'layout-sider-header--mobile',
-                  {
-                    'cursor-pointer group ': collapsed,
-                  }
-                )}
+              <div
+                className='flex h-full min-h-0 flex-col'
+                inert={isMobile && collapsed}
+                aria-hidden={isMobile && collapsed ? true : undefined}
               >
-                {isSettingsRoute ? (
-                  <Tooltip content={t('common.back')} position='bottom'>
+                <ArcoLayout.Header
+                  className={classNames(
+                    'flex items-center justify-start pt-8px pb-8px pl-18px pr-16px gap-12px layout-sider-header synon-sidebar-header',
+                    isMobile && 'layout-sider-header--mobile',
+                    {
+                      'cursor-pointer group ': collapsed,
+                    }
+                  )}
+                >
+                  {isSettingsRoute ? (
+                    <Tooltip content={t('common.back')} position='bottom'>
+                      <button
+                        type='button'
+                        className='synon-biomed-brand shrink-0 border-0 bg-transparent p-0 cursor-pointer flex items-center'
+                        aria-label={t('common.back')}
+                        onClick={handleBrandHome}
+                      >
+                        <SynonBiomedBrand />
+                      </button>
+                    </Tooltip>
+                  ) : (
+                    <div className='synon-biomed-brand shrink-0 flex items-center' onClick={onClick}>
+                      <SynonBiomedBrand />
+                    </div>
+                  )}
+                  {isMobile && !collapsed && (
                     <button
                       type='button'
-                      className='synon-biomed-brand shrink-0 border-0 bg-transparent p-0 cursor-pointer flex items-center'
-                      aria-label={t('common.back')}
-                      onClick={handleBrandHome}
+                      data-testid='mobile-sider-close'
+                      className='app-titlebar__button app-titlebar__button--mobile'
+                      onClick={() => setCollapsed(true)}
+                      title={t('common.collapseSidebar')}
+                      aria-label={t('common.collapseSidebar')}
                     >
-                      <SynonBiomedBrand />
+                      <SidebarIcon size={18} strokeWidth={2.5} />
                     </button>
-                  </Tooltip>
-                ) : (
-                  <div className='synon-biomed-brand shrink-0 flex items-center' onClick={onClick}>
-                    <SynonBiomedBrand />
+                  )}
+                  {/* 侧栏折叠改由标题栏统一控制 / Sidebar folding handled by Titlebar toggle */}
+                </ArcoLayout.Header>
+                <nav
+                  aria-label={isSettingsRoute ? t('common.settings') : t('common.workspace')}
+                  className='arco-layout-content pt-0 px-8px pb-0 layout-sider-content synon-sidebar-content'
+                >
+                  {React.isValidElement(sider)
+                    ? React.cloneElement(
+                        sider as React.ReactElement<{
+                          onSessionClick?: () => void;
+                          collapsed?: boolean;
+                        }>,
+                        {
+                          onSessionClick: () => {
+                            cleanupSiderTooltips();
+                            if (isMobile) setCollapsed(true);
+                          },
+                          collapsed,
+                        }
+                      )
+                    : sider}
+                </nav>
+                {!isMobile && (
+                  <div
+                    role='separator'
+                    aria-label={t('common.resizeSidebar')}
+                    aria-orientation='vertical'
+                    aria-valuemin={DESKTOP_COLLAPSED_WIDTH}
+                    aria-valuemax={DESKTOP_SIDER_MAX_WIDTH}
+                    aria-valuenow={collapsed ? DESKTOP_COLLAPSED_WIDTH : desktopSiderWidth}
+                    tabIndex={0}
+                    data-testid='sider-resize-handle'
+                    className='absolute top-0 h-full w-8px z-20 cursor-col-resize group'
+                    style={{ right: '-4px' }}
+                    onMouseDown={beginSiderResizeDrag}
+                    onKeyDown={handleSiderResizeKeyDown}
+                  >
+                    <div className='absolute top-0 left-1/2 h-full w-1px -translate-x-1/2 bg-transparent group-hover:bg-[var(--color-border-2)] transition-colors duration-150' />
                   </div>
                 )}
-                {isMobile && !collapsed && (
-                  <button
-                    type='button'
-                    data-testid='mobile-sider-close'
-                    className='app-titlebar__button app-titlebar__button--mobile'
-                    onClick={() => setCollapsed(true)}
-                    title={t('common.collapseSidebar')}
-                    aria-label={t('common.collapseSidebar')}
-                  >
-                    <SidebarIcon size={18} strokeWidth={2.5} />
-                  </button>
-                )}
-                {/* 侧栏折叠改由标题栏统一控制 / Sidebar folding handled by Titlebar toggle */}
-              </ArcoLayout.Header>
-              <ArcoLayout.Content className='pt-0 px-8px pb-0 layout-sider-content synon-sidebar-content'>
-                {React.isValidElement(sider)
-                  ? React.cloneElement(
-                      sider as React.ReactElement<{ onSessionClick?: () => void; collapsed?: boolean }>,
-                      {
-                        onSessionClick: () => {
-                          cleanupSiderTooltips();
-                          if (isMobile) setCollapsed(true);
-                        },
-                        collapsed,
-                      }
-                    )
-                  : sider}
-              </ArcoLayout.Content>
-              {!isMobile && (
-                <div
-                  role='separator'
-                  aria-label={t('common.resizeSidebar')}
-                  aria-orientation='vertical'
-                  aria-valuemin={DESKTOP_COLLAPSED_WIDTH}
-                  aria-valuemax={DESKTOP_SIDER_MAX_WIDTH}
-                  aria-valuenow={collapsed ? DESKTOP_COLLAPSED_WIDTH : desktopSiderWidth}
-                  tabIndex={0}
-                  data-testid='sider-resize-handle'
-                  className='absolute top-0 h-full w-8px z-20 cursor-col-resize group'
-                  style={{ right: '-4px' }}
-                  onMouseDown={beginSiderResizeDrag}
-                  onKeyDown={handleSiderResizeKeyDown}
-                >
-                  <div className='absolute top-0 left-1/2 h-full w-1px -translate-x-1/2 bg-transparent group-hover:bg-[var(--color-border-2)] transition-colors duration-150' />
-                </div>
-              )}
+              </div>
             </ArcoLayout.Sider>
 
             <ArcoLayout.Content
+              role='main'
+              id='workspace-main'
+              tabIndex={-1}
               className={'bg-1 layout-content flex flex-col min-h-0'}
               onClick={() => {
                 if (isMobile && !collapsed) setCollapsed(true);

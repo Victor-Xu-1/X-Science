@@ -155,7 +155,7 @@ export const McpConnectorCard: React.FC<{
               shape='circle'
               className='synon-mcp-card__more'
               data-testid={`synon-biomed-mcp-more-${normalizeTestId(server.name)}`}
-              aria-label={t('common.more')}
+              aria-label={`${t('common.more')} · ${server.displayName}`}
               icon={<MoreOne size='15' />}
             />
           </Dropdown>

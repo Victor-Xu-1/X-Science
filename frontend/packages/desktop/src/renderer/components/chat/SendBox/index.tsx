@@ -1051,6 +1051,7 @@ const SendBox: React.FC<{
               {renderHighlightedInputValue()}
             </div>
             <Input.TextArea
+              aria-label={t('conversation.sendbox.hint')}
               autoFocus={!isMobile}
               disabled={disabled}
               spellCheck={false}

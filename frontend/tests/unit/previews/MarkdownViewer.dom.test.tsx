@@ -7,6 +7,9 @@
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
+import katex from 'katex';
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 
 const previewMocks = vi.hoisted(() => ({
   openPreview: vi.fn(),
@@ -135,6 +138,29 @@ describe('MarkdownViewer', () => {
     expect(screen.getByText('Hello World')).toBeInTheDocument();
   });
 
+  it('renders Markdown math with the same class namespace as the shared KaTeX CSS and direct viewer', () => {
+    const katexStyles = readFileSync(createRequire(import.meta.url).resolve('katex/dist/katex.min.css'), 'utf8');
+    const direct = document.createElement('div');
+    direct.innerHTML = katex.renderToString('x^2');
+    const { container } = render(<MarkdownViewer content={'$$\nx^2\n$$'} />);
+    const math = container.querySelector('.katex');
+    expect(math).not.toBeNull();
+    for (const className of ['katex-base', 'katex-strut', 'katex-sizing']) {
+      expect(direct.querySelector(`.${className}`)).not.toBeNull();
+      expect(katexStyles).toContain(`.${className}`);
+      expect(math?.querySelector(`.${className}`)).not.toBeNull();
+    }
+    expect(math?.querySelector('annotation')?.textContent).toBe('x^2');
+  });
+
+  it('provides a keyboard-reachable table region while preserving headers and exact values', () => {
+    render(<MarkdownViewer content={'| Candidate | Score |\n| --- | --- |\n| sample | -6.554 |'} />);
+    const region = screen.getByRole('region', { name: 'preview.scientific.table.preview' });
+    expect(region).toHaveAttribute('tabindex', '0');
+    expect(region.querySelector('thead th')?.textContent).toBe('Candidate');
+    expect(screen.getByText('-6.554')).toBeInTheDocument();
+  });
+
   it('hides toolbar when hideToolbar is true', () => {
     render(<MarkdownViewer content='# Test' hideToolbar />);
     expect(screen.queryByText('preview.preview')).not.toBeInTheDocument();
@@ -164,7 +190,10 @@ describe('MarkdownViewer', () => {
         { presentation: 'board' }
       );
     });
-    expect(ipcBridge.fs.getImageBase64.invoke).toHaveBeenCalledWith({ path: filePath, workspace: undefined });
+    expect(ipcBridge.fs.getImageBase64.invoke).toHaveBeenCalledWith({
+      path: filePath,
+      workspace: undefined,
+    });
     expect(ipcBridge.fs.readFile.invoke).not.toHaveBeenCalled();
   });
 
