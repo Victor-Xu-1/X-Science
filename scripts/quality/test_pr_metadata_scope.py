@@ -47,7 +47,7 @@ class MetadataScopeTest(unittest.TestCase):
         filtered, ignored = metadata.filter_paths(self.repo, self.base, self.head, paths)
         self.assertEqual(filtered, [])
         self.assertEqual(set(ignored), set(paths))
-        self.assertEqual(len(ignored), 7)
+        self.assertEqual(len(ignored), 8)
 
     def test_frontend_metadata_still_runs_fresh_provenance_but_not_npm(self):
         argv = ['pr_fast_scope.py', '--repo', str(self.repo), '--base', self.base, '--head', self.head, '--frontend']
@@ -88,7 +88,7 @@ class MetadataScopeTest(unittest.TestCase):
         paths = scope.changed_paths(self.repo, self.base, self.head) + ['internal/runtime/lease.go', 'frontend/App.tsx']
         filtered, ignored = metadata.filter_paths(self.repo, self.base, self.head, paths)
         self.assertEqual(filtered, ['internal/runtime/lease.go', 'frontend/App.tsx'])
-        self.assertEqual(len(ignored), 7)
+        self.assertEqual(len(ignored), 8)
 
     def test_dependency_script_identity_auditor_and_provenance_edits_are_not_hidden(self):
         original_snapshot = metadata.snapshot
@@ -99,6 +99,7 @@ class MetadataScopeTest(unittest.TestCase):
             (metadata.AUDIT, lambda raw: raw + b'\nprint("unreviewed code")\n'),
             (metadata.MIGRATION, lambda raw: json.dumps({**json.loads(raw), 'unreviewed': True}).encode()),
             (metadata.LICENSES, lambda raw: json.dumps({**json.loads(raw), 'unreviewed': True}).encode()),
+            (metadata.NOTICES, lambda raw: raw + b'\nunreviewed notice text\n'),
             (metadata.MATRIX, lambda raw: raw + b'\n'),
         ]
         for target, mutate in mutations:
