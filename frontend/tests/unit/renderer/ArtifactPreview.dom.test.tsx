@@ -222,6 +222,30 @@ describe('ArtifactPreview', () => {
     expect(await screen.findByText('由质量控制流程生成')).toBeInTheDocument();
   });
 
+  it('opens an archive detail as a native archive preview, not the external-original fallback', async () => {
+    loadArtifactMock.mockResolvedValueOnce({
+      ...(await loadArtifactMock()),
+      filename: 'bundle.zip',
+      contentType: 'application/zip',
+    });
+    const request = vi.fn(async () =>
+      Response.json({
+        filename: 'bundle.zip',
+        containers: [],
+        entries: [{ path: 'notes.md', name: 'notes.md', size: 42, directory: false, archive: false }],
+      })
+    );
+    vi.stubGlobal('fetch', request);
+    try {
+      await render(<ArtifactPreview />);
+      expect(await screen.findByTestId('archive-viewer')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /notes\.md/ })).toBeInTheDocument();
+      expect(request).toHaveBeenCalledWith(expect.stringContaining('/versions/version-1/archive'), expect.any(Object));
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('exports the artifact to a connected cloud bucket', async () => {
     await render(<ArtifactPreview />);
     await screen.findByRole('heading', { name: 'qc_metrics.png' });

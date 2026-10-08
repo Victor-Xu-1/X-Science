@@ -103,4 +103,92 @@ describe('Preview focus return', () => {
     act(() => vi.advanceTimersByTime(20));
     expect(outside).toHaveFocus();
   });
+
+  it('does not borrow an unrelated workspace panel when an embedded board closes', () => {
+    vi.useFakeTimers();
+    const boundary = document.createElement('div');
+    boundary.dataset.focusFixture = '';
+    document.body.append(boundary);
+    const opener = button();
+    boundary.append(opener);
+    const outsidePanel = document.createElement('section');
+    outsidePanel.dataset.focusFixture = '';
+    outsidePanel.dataset.previewFocusTarget = '';
+    outsidePanel.tabIndex = -1;
+    document.body.append(outsidePanel);
+    const close = button();
+    const { result } = renderHook(() => usePreviewFocusReturn(['embedded'], { current: boundary }));
+    result.current.remember('embedded', opener);
+    close.focus();
+    result.current.restore('embedded', true);
+    close.remove();
+    act(() => vi.advanceTimersByTime(20));
+    expect(opener).toHaveFocus();
+  });
+
+  it('selects a surviving panel only inside the owned embedded boundary', () => {
+    vi.useFakeTimers();
+    const outside = document.createElement('section');
+    outside.dataset.focusFixture = '';
+    outside.dataset.previewFocusTarget = '';
+    outside.tabIndex = -1;
+    document.body.append(outside);
+    const boundary = document.createElement('div');
+    boundary.dataset.focusFixture = '';
+    document.body.append(boundary);
+    const panel = outside.cloneNode() as HTMLElement;
+    boundary.append(panel);
+    const opener = button();
+    boundary.append(opener);
+    const close = button();
+    const { result } = renderHook(() => usePreviewFocusReturn(['embedded'], { current: boundary }));
+    result.current.remember('embedded', opener);
+    close.focus();
+    result.current.restore('embedded');
+    close.remove();
+    act(() => vi.advanceTimersByTime(20));
+    expect(panel).toHaveFocus();
+  });
+
+  it('cannot retain an unrelated outside opener or restore after its boundary is removed', () => {
+    vi.useFakeTimers();
+    const outside = button();
+    const boundary = document.createElement('div');
+    boundary.dataset.focusFixture = '';
+    document.body.append(boundary);
+    const ref: { current: HTMLElement | null } = { current: boundary };
+    const { result } = renderHook(() => usePreviewFocusReturn(['embedded'], ref));
+    result.current.remember('embedded', outside);
+    result.current.restore('embedded');
+    ref.current = null;
+    outside.focus();
+    act(() => vi.advanceTimersByTime(20));
+    expect(outside).toHaveFocus();
+  });
+
+  it('retains an owned portalled fullscreen target without choosing an unrelated earlier panel', () => {
+    vi.useFakeTimers();
+    const boundary = document.createElement('div');
+    boundary.dataset.focusFixture = '';
+    document.body.append(boundary);
+    const opener = button();
+    boundary.append(opener);
+    const outside = document.createElement('section');
+    outside.dataset.focusFixture = '';
+    outside.dataset.previewFocusTarget = '';
+    outside.dataset.previewFocusScope = 'other';
+    outside.tabIndex = -1;
+    document.body.append(outside);
+    const owned = outside.cloneNode() as HTMLElement;
+    owned.dataset.previewFocusScope = 'embedded';
+    document.body.append(owned);
+    const close = button();
+    const { result } = renderHook(() => usePreviewFocusReturn(['file'], { current: boundary }, 'embedded'));
+    result.current.remember('file', opener);
+    close.focus();
+    result.current.restore('file');
+    close.remove();
+    act(() => vi.advanceTimersByTime(20));
+    expect(owned).toHaveFocus();
+  });
 });

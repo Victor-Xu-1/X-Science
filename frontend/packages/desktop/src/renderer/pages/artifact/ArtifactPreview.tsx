@@ -66,6 +66,7 @@ const SynonBiomedImageArtifactViewer = React.lazy(
 );
 const AudioPreview = React.lazy(cachePreviewModule(() => import('./AudioPreview')));
 const VideoPreview = React.lazy(cachePreviewModule(() => import('./VideoPreview')));
+const ArchiveArtifactPreview = React.lazy(cachePreviewModule(() => import('./ArchiveArtifactPreview')));
 
 type ArtifactSnapshot = {
   artifact: SynonBiomedProjectArtifact;
@@ -804,6 +805,11 @@ const ArtifactContent: React.FC<{
 
   if (plan.type === 'video') {
     return <VideoPreview url={contentUrl} filename={filename} />;
+  }
+
+  if (plan.type === 'archive') {
+    const archiveContentUrl = `${getSynonBiomedArtifactContentUrl(artifactId)}/versions/${encodeURIComponent(versionId)}`;
+    return <ArchiveArtifactPreview filename={filename} contentUrl={archiveContentUrl} />;
   }
 
   if (plan.type === 'audio') {

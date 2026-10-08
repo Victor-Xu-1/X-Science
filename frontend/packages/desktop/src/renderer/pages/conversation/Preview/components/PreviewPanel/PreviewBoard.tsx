@@ -123,6 +123,7 @@ const PreviewBoardFullscreenLayer: React.FC<PreviewBoardFullscreenLayerProps> = 
 };
 
 type PreviewBoardTileProps = {
+  embedded: boolean;
   tab: PreviewTab;
   conversationId?: string;
   focused: boolean;
@@ -142,6 +143,7 @@ type PreviewBoardTileProps = {
 };
 
 const PreviewBoardTile: React.FC<PreviewBoardTileProps> = ({
+  embedded,
   tab,
   conversationId,
   focused,
@@ -226,22 +228,26 @@ const PreviewBoardTile: React.FC<PreviewBoardTileProps> = ({
                       <EditGlyph theme='outline' size={16} />
                     </BoardIconButton>
                   ) : null}
-                  <BoardIconButton
-                    label={t('preview.board.addToMessage')}
-                    disabled={!canAddToMessage}
-                    onClick={addToMessage}
-                  >
-                    <MessageOneGlyph theme='outline' size={16} />
-                  </BoardIconButton>
-                  <BoardIconButton
-                    label={
-                      regionCommentMode ? t('preview.regionComment.finishMode') : t('preview.regionComment.startMode')
-                    }
-                    pressed={regionCommentMode}
-                    onClick={onToggleRegionComment}
-                  >
-                    <RegionCommentGlyph />
-                  </BoardIconButton>
+                  {!embedded && (
+                    <BoardIconButton
+                      label={t('preview.board.addToMessage')}
+                      disabled={!canAddToMessage}
+                      onClick={addToMessage}
+                    >
+                      <MessageOneGlyph theme='outline' size={16} />
+                    </BoardIconButton>
+                  )}
+                  {!embedded && (
+                    <BoardIconButton
+                      label={
+                        regionCommentMode ? t('preview.regionComment.finishMode') : t('preview.regionComment.startMode')
+                      }
+                      pressed={regionCommentMode}
+                      onClick={onToggleRegionComment}
+                    >
+                      <RegionCommentGlyph />
+                    </BoardIconButton>
+                  )}
                   <BoardIconButton label={t('preview.downloadFile')} onClick={() => void download()}>
                     <DownloadGlyph theme='outline' size={16} />
                   </BoardIconButton>
@@ -566,11 +572,15 @@ const PreviewBoardTileContent: React.FC<{
   return <div className='preview-board__empty-state'>{t('preview.errors.conversionFailed')}</div>;
 };
 
-const PreviewBoard: React.FC<{ conversationId?: string }> = ({ conversationId }) => {
+const PreviewBoard: React.FC<{ conversationId?: string; embedded?: boolean }> = ({
+  conversationId,
+  embedded = false,
+}) => {
   const { t } = useTranslation();
   const {
     isOpen,
     tabs,
+    previewFocusScopeId,
     activeTabId,
     closePreview,
     closeTab,
@@ -586,7 +596,7 @@ const PreviewBoard: React.FC<{ conversationId?: string }> = ({ conversationId })
   const [regionCommentTabId, setRegionCommentTabId] = useState<string | null>(null);
   const [savingTabId, setSavingTabId] = useState<string | null>(null);
   const [saveAnnouncement, setSaveAnnouncement] = useState('');
-  const [columns, setColumns] = useState<PreviewBoardColumns>(readPreviewBoardColumns);
+  const [columns, setColumns] = useState<PreviewBoardColumns>(() => (embedded ? 1 : readPreviewBoardColumns()));
   const tileRefs = useRef(new Map<string, HTMLElement>());
 
   useEffect(() => {
@@ -616,7 +626,7 @@ const PreviewBoard: React.FC<{ conversationId?: string }> = ({ conversationId })
 
   const changeColumns = (nextColumns: PreviewBoardColumns) => {
     setColumns(nextColumns);
-    persistPreviewBoardColumns(nextColumns);
+    if (!embedded) persistPreviewBoardColumns(nextColumns);
   };
 
   const cancelEdit = (tab: PreviewTab) => {
@@ -664,6 +674,7 @@ const PreviewBoard: React.FC<{ conversationId?: string }> = ({ conversationId })
       <section
         className='preview-panel preview-board'
         data-preview-focus-target
+        data-preview-focus-scope={previewFocusScopeId}
         tabIndex={-1}
         data-columns={columns}
         data-testid='preview-board'
@@ -730,6 +741,7 @@ const PreviewBoard: React.FC<{ conversationId?: string }> = ({ conversationId })
               }}
             >
               <PreviewBoardTile
+                embedded={embedded}
                 tab={tab}
                 conversationId={conversationId}
                 active={tab.id === activeTabId}

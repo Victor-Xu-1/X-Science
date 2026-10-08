@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { PreviewContentType } from '@/common/types/office/preview';
 import { emitter } from '@/renderer/utils/emitter';
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePreviewFocusReturn } from './usePreviewFocusReturn';
 
@@ -88,6 +88,7 @@ export interface OpenPreviewOptions {
 export type PreviewPresentationMode = 'single' | 'board';
 
 export interface PreviewContextValue {
+  previewFocusScopeId?: string;
   // 预览面板状态 / Preview panel state
   isOpen: boolean;
   tabs: PreviewTab[]; // 所有打开的 tabs
@@ -211,13 +212,24 @@ const loadPersistedState = (): {
   return { isOpen: false, tabs: [], activeTabId: null };
 };
 
-export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+type PreviewScope = 'workspace' | 'embedded';
+type PreviewProviderProps = { children: React.ReactNode; scope?: PreviewScope };
+
+const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scope = 'workspace' }) => {
   const { t, i18n } = useTranslation();
   // 从 localStorage 恢复初始状态 / Restore initial state from localStorage
   // localStorage parsing is synchronous and may include several preview tabs.
   // React ignores subsequent initial-state values, so calculate it only once
   // instead of blocking every provider render.
-  const [persistedState] = useState(loadPersistedState);
+  const [persistedState] = useState(() =>
+    scope === 'workspace'
+      ? loadPersistedState()
+      : {
+          isOpen: false,
+          tabs: [] as PreviewTab[],
+          activeTabId: null as string | null,
+        }
+  );
   const [isOpen, setIsOpen] = useState(persistedState.isOpen);
   const [tabs, setTabs] = useState<PreviewTab[]>(persistedState.tabs);
   const [activeTabId, setActiveTabId] = useState<string | null>(persistedState.activeTabId);
@@ -229,7 +241,14 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const sendBoxHandler = useRef<((text: string) => void) | null>(null);
   const [domSnippets, setDomSnippets] = useState<DomSnippet[]>([]);
   const previewFocusIds = useMemo(() => tabs.map((tab) => tab.id), [tabs]);
-  const { remember: rememberPreviewOpener, restore: restorePreviewOpener } = usePreviewFocusReturn(previewFocusIds);
+  const focusBoundary = useRef<HTMLDivElement>(null);
+  const embeddedFocusId = useId();
+  const previewFocusScopeId = scope === 'embedded' ? embeddedFocusId : undefined;
+  const { remember: rememberPreviewOpener, restore: restorePreviewOpener } = usePreviewFocusReturn(
+    previewFocusIds,
+    scope === 'embedded' ? focusBoundary : undefined,
+    previewFocusScopeId
+  );
 
   useEffect(() => {
     setTabs((currentTabs) => {
@@ -249,6 +268,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // 持久化 tabs 到 localStorage（仅保存小体积文本 tab）
   // Persist tabs to localStorage (only lightweight text tabs)
   useEffect(() => {
+    if (scope !== 'workspace') return;
     const timer = setTimeout(() => {
       try {
         localStorage.setItem(PREVIEW_TABS_KEY, JSON.stringify(sanitizeTabsForPersistence(tabs)));
@@ -261,12 +281,13 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }, 150);
 
     return () => clearTimeout(timer);
-  }, [tabs]);
+  }, [scope, tabs]);
 
   // 持久化 activeTabId（单独存储，避免切换 tab 时重复序列化大内容）
   // Persist activeTabId separately to avoid re-serializing large tab content on tab switch
   useEffect(() => {
     activeTabIdRef.current = activeTabId;
+    if (scope !== 'workspace') return;
     try {
       if (activeTabId) {
         localStorage.setItem(PREVIEW_ACTIVE_TAB_ID_KEY, activeTabId);
@@ -276,7 +297,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     } catch {
       // 忽略存储错误 / Ignore storage errors
     }
-  }, [activeTabId]);
+  }, [scope, activeTabId]);
 
   // 追踪是否正在保存（避免与流式更新冲突）/ Track if currently saving (to avoid conflicts with streaming updates)
   const savingFilesRef = useRef<Set<string>>(new Set());
@@ -744,7 +765,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Poll only the foreground active tab. One in-flight check per file prevents slow
   // filesystem I/O from accumulating interval work and blocking renderer updates.
   useEffect(() => {
-    if (!activeFilePath) return;
+    if (scope !== 'workspace' || !activeFilePath) return;
 
     let pollId: ReturnType<typeof setInterval> | undefined;
     const checkActiveFile = () => {
@@ -769,12 +790,13 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       document.removeEventListener('visibilitychange', syncPolling);
       if (pollId) clearInterval(pollId);
     };
-  }, [activeFilePath, checkFileUpdate]);
+  }, [scope, activeFilePath, checkFileUpdate]);
 
   // Browser preview opens are renderer-local. The HTTP/WebUI bridge has no
   // desktop main-process preview channel, so subscribing to its unavailable
   // compatibility emitter would only produce a false runtime warning.
   useEffect(() => {
+    if (scope !== 'workspace') return;
     const handleEmitterPreviewOpen = (data: {
       content: string;
       contentType: PreviewContentType;
@@ -790,10 +812,11 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return () => {
       emitter.off('preview.open', handleEmitterPreviewOpen);
     };
-  }, [openPreview]);
+  }, [scope, openPreview]);
 
   const previewContextValue = useMemo(() => {
     return {
+      previewFocusScopeId,
       isOpen,
       tabs,
       activeTabId,
@@ -818,6 +841,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       clearDomSnippets,
     };
   }, [
+    previewFocusScopeId,
     isOpen,
     tabs,
     activeTabId,
@@ -842,8 +866,22 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     clearDomSnippets,
   ]);
 
-  return <PreviewContext.Provider value={previewContextValue}>{children}</PreviewContext.Provider>;
+  return (
+    <PreviewContext.Provider value={previewContextValue}>
+      {scope === 'embedded' ? (
+        <div ref={focusBoundary} style={{ display: 'contents' }} data-preview-scope='embedded'>
+          {children}
+        </div>
+      ) : (
+        children
+      )}
+    </PreviewContext.Provider>
+  );
 };
+
+export const PreviewProvider: React.FC<PreviewProviderProps> = (props) => (
+  <PreviewProviderSession key={props.scope ?? 'workspace'} {...props} />
+);
 
 export const usePreviewContext = () => {
   const context = useContext(PreviewContext);
