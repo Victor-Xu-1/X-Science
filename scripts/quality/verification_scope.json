@@ -2,6 +2,17 @@
   "schema": "synon.verification-scope.v1",
   "groups": [
     {
+      "name": "frontend-license-notices",
+      "paths": [
+        "docs/licenses/frontend-bundle/NOTICE.txt",
+        "scripts/audit/frontend-license-report-test.py"
+      ],
+      "frontend": true,
+      "checks": [
+        ["python3", "-B", "scripts/audit/frontend-license-report-test.py"]
+      ]
+    },
+    {
       "name": "source-hygiene",
       "paths": [
         "scripts/audit/audit-source-clean.sh",

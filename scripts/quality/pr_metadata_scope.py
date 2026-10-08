@@ -9,7 +9,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from scripts.packaging.version_provenance import AUDIT, IDENTITY, LICENSES, MIGRATION, document, replace_pointer
+from scripts.packaging.version_provenance import AUDIT, IDENTITY, LICENSES, MIGRATION, NOTICES, document, replace_pointer
 from scripts.quality.product_version import require_next_version
 
 MATRIX = "docs/governance/product-identity-consumer-matrix.json"
@@ -84,7 +84,15 @@ def metadata_paths(repo: Path, base: str, head: str) -> set[str]:
                 link["version"] = new
         if licenses != document(snapshot(repo, head, LICENSES)):
             return set()
-        return set(projected) | {AUDIT, MIGRATION, LICENSES}
+        notice = snapshot(repo, base, NOTICES)
+        previous_lock = hashlib.sha256(snapshot(repo, base, 'frontend/package-lock.json')).hexdigest()
+        binding = ('Package lock SHA-256: ' + previous_lock).encode()
+        if notice.count(binding) != 1:
+            return set()
+        expected_notice = notice.replace(binding, ('Package lock SHA-256: ' + licenses['lockfileSHA256']).encode())
+        if expected_notice != snapshot(repo, head, NOTICES):
+            return set()
+        return set(projected) | {AUDIT, MIGRATION, LICENSES, NOTICES}
     except (OSError, ValueError, KeyError, TypeError, UnicodeError, subprocess.SubprocessError):
         return set()
 

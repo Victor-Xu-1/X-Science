@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "package": "@x-science/workbench-web",
-  "lockfileSHA256": "2bad0aad9a1bae4bf2731b1ca1f874c08f12bdded47f03a1536a465431691ce0",
+  "lockfileSHA256": "16a8b20f2716c55edd24e1411984b7a1814273b1a2f74a77ac0e3b08ae352331",
   "summary": {
     "records": 1129,
     "workspaceLinkRecords": 1,
@@ -4114,7 +4114,7 @@
     },
     {
       "name": "dompurify",
-      "version": "3.4.14",
+      "version": "3.4.16",
       "license": "(MPL-2.0 OR Apache-2.0)",
       "directKind": "runtime-build",
       "basis": "package-lock metadata"
@@ -7019,7 +7019,7 @@
     },
     {
       "name": "source-map-js",
-      "version": "1.2.1",
+      "version": "1.2.2",
       "license": "BSD-3-Clause",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -7938,7 +7938,7 @@
   "workspaceLinks": [
     {
       "name": "@x-science/workbench-renderer",
-      "version": "0.1.7",
+      "version": "0.1.9",
       "path": "packages/desktop",
       "basis": "local workspace package; source licensing reviewed separately"
     }

@@ -16,7 +16,8 @@ from scripts.quality.product_version import require_next_version
 AUDIT = "scripts/audit/audit_frontend_migration.py"
 MIGRATION = "frontend/MIGRATION_MANIFEST.json"
 LICENSES = "frontend/THIRD_PARTY_LICENSES.json"
-DERIVED = {AUDIT, MIGRATION, LICENSES}
+NOTICES = "docs/licenses/frontend-bundle/NOTICE.txt"
+DERIVED = {AUDIT, MIGRATION, LICENSES, NOTICES}
 IDENTITY = "product-identity.json"
 
 
@@ -51,6 +52,19 @@ def replace_pointer(value: dict, pointer: str, old: str, new: str) -> None:
     if target[keys[-1]] != old:
         raise ValueError("base version projection is not aligned")
     target[keys[-1]] = new
+
+
+def require_notice_binding(root: Path) -> tuple[bytes, str]:
+    """Validate the existing notice before deriving a version-only digest change."""
+    path = root / NOTICES
+    if path.is_symlink() or not path.is_file() or path.stat().st_size > 4 * 1024 * 1024:
+        raise ValueError("frontend notice must be a bounded regular file")
+    raw = path.read_bytes()
+    recorded = re.findall(rb'(?m)^Package lock SHA-256: ([0-9a-f]{64})$', raw)
+    digest = hashlib.sha256((root / 'frontend/package-lock.json').read_bytes()).hexdigest()
+    if len(recorded) != 1 or recorded[0].decode() != digest:
+        raise ValueError("frontend notice is not bound to the current dependency lock")
+    return raw, digest
 
 
 def reviewed_audit(root: Path):
@@ -97,6 +111,7 @@ def plan(root: Path, proposed: dict[str, bytes], changed: set[str]) -> dict[str,
             raise ValueError(f"non-version JSON change: {path}")
 
     audit = reviewed_audit(root)
+    notice, notice_digest = require_notice_binding(root)
     migration = document((root / MIGRATION).read_bytes())
     for category, hash_key in (("adaptations", "targetSHA256"), ("additions", "sha256")):
         for record in migration[category]:
@@ -122,4 +137,7 @@ def plan(root: Path, proposed: dict[str, bytes], changed: set[str]) -> dict[str,
         path = "frontend/" + link["path"] + "/package.json"
         if "/version" in projected.get(path, []):
             link["version"] = new
-    return {AUDIT: source.encode(), MIGRATION: audit.json_bytes(migration), LICENSES: audit.json_bytes(licenses)}
+    next_notice = notice.replace(('Package lock SHA-256: ' + notice_digest).encode(),
+                                 ('Package lock SHA-256: ' + licenses['lockfileSHA256']).encode())
+    return {AUDIT: source.encode(), MIGRATION: audit.json_bytes(migration), LICENSES: audit.json_bytes(licenses),
+            NOTICES: next_notice}
