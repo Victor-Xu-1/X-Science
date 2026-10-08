@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "4b92197ba4ad4ebb3882c8926fa05f742697958acd3c11b97f570301c84602d4",
+  "adaptationFingerprintSHA256": "c1d58ef42f4249b0cc9c5cb8712244a040edf5ce2673c42d0596f4858e9815cf",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "e47dabd98fd11d8daf8c5a051f8df412c4107a2594949fd2035ac09ea716a65e",
+  "additionFingerprintSHA256": "e9d71ea345e30f4a90ab3d4284eac73a827a1e11bd77cce16439bb3538832371",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 347,
@@ -17,8 +17,8 @@
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "ae8a827d9e4f0751499e1abbe480a1ba08ff8775ba4085319f5791f9e5e2409e",
-      "bytes": 4355,
+      "targetSHA256": "054bea824be22373f9a17c19a7a02ccf36838cc55d5b5b326b34e38adc6626c8",
+      "bytes": 4377,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
@@ -3566,8 +3566,8 @@
     {
       "path": "tests/unit/previews/MarkdownViewer.dom.test.tsx",
       "sourceSHA256": "2e2df7aae62f3c695991deb6c2abcdb520c6ed45c82419a2fd6399aca18a63a9",
-      "targetSHA256": "37a69e172ad6614391679dff737ab1d38ae7ba75ff2363a4d8633cdccceb9bc5",
-      "bytes": 9866,
+      "targetSHA256": "f58800627f21278619802c18f6c4f083163e840dd97d65678abd1af72e4f11e7",
+      "bytes": 10818,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -6782,8 +6782,8 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "8d677755a5d7943a582f5a9101e5529de438bc141fa03a75c1c80aeeba857a00",
-      "bytes": 557888,
+      "sha256": "2bad0aad9a1bae4bf2731b1ca1f874c08f12bdded47f03a1536a465431691ce0",
+      "bytes": 556998,
       "reason": "Deterministic npm build dependency lock."
     },
     {
