@@ -18,11 +18,12 @@ import subprocess
 import sys
 
 if __package__:
-    from . import pr_dependency_scope, pr_test_partition, runtime_input_scope, verification_scope
+    from . import pr_dependency_scope, pr_metadata_scope, pr_test_partition, runtime_input_scope, verification_scope
     from .runtime_test_inventory import discover, execution_plan
     from .runtime_test_shards import execute
 else:
     import pr_dependency_scope
+    import pr_metadata_scope
     import pr_test_partition
     import runtime_input_scope
     import verification_scope
@@ -83,7 +84,7 @@ def frontend_affected(paths: list[str], repo: Path | None = None) -> bool:
 
 
 def documentation_only(path: str) -> bool:
-    return (path in {"README.md", "AGENTS.md", "CONTRIBUTING.md", "LICENSE", ".gitignore", ".gitattributes", ".editorconfig",
+    return (path in {"README.md", "AGENTS.md", "CONTRIBUTING.md", "SECURITY.md", "CODE_OF_CONDUCT.md", "LICENSE", ".gitignore", ".gitattributes", ".editorconfig",
                     ".github/pull_request_template.md"}
             or path.startswith("docs/assets/") or path.startswith("docs/") and path.endswith(".md"))
 
@@ -149,7 +150,8 @@ def resolve_packages(repo: Path, base: str, head: str, paths: list[str]) -> tupl
 
 def selected_packages(repo: Path, base: str, head: str) -> tuple[list[str], list[str]]:
     paths = changed_paths(repo, base, head)
-    selected, _ = resolve_packages(repo, base, head, paths)
+    behavior, _ = pr_metadata_scope.filter_paths(repo, base, head, paths)
+    selected, _ = resolve_packages(repo, base, head, behavior)
     return selected, paths
 
 
@@ -169,14 +171,16 @@ def main() -> int:
     repo = args.repo.resolve()
     try:
         paths = changed_paths(repo, args.base, args.head)
-        groups = verification_scope.matched(repo, paths)
+        behavior_paths, metadata_paths = pr_metadata_scope.filter_paths(repo, args.base, args.head, paths)
+        groups = verification_scope.matched(repo, behavior_paths)
         if not args.frontend and not args.vet and not args.matrix:
             for command in verification_scope.checks(groups):
                 result = run(repo, *command)
                 if result.returncode:
                     return result.returncode
         if args.frontend:
-            if not frontend_affected(paths, repo):
+            affected = frontend_affected(behavior_paths, repo)
+            if not affected and not metadata_paths:
                 print("No frontend package is affected by this change; Go and policy gates remain active.")
                 return 0
             # Check reviewed content before npm creates ignored output trees.
@@ -185,6 +189,9 @@ def main() -> int:
                              '--root', str(repo), '--check', '--require-clean')
             if provenance.returncode:
                 return provenance.returncode
+            if not affected:
+                print("Only proved version metadata changed; fresh provenance passed, no frontend suite/build required.")
+                return 0
             commands = [
                 ["npm", "ci", "--ignore-scripts"],
                 ["npx", "--no-install", "playwright", "install", "chromium"],
@@ -198,11 +205,12 @@ def main() -> int:
                 if result.returncode:
                     return result.returncode
             return 0
-        selected, reason = resolve_packages(repo, args.base, args.head, paths)
+        selected, reason = resolve_packages(repo, args.base, args.head, behavior_paths)
         if args.matrix:
             print(json.dumps(pr_test_partition.job_matrix(selected)))
             return 0
         scope = {"base": args.base, "head": args.head, "changed_paths": paths, "packages": selected,
+                 "behavior_paths": behavior_paths, "version_metadata_paths": metadata_paths,
                  "verification_groups": [group["name"] for group in groups], "reason": reason,
                  "shard_index": args.shard_index, "shard_count": args.shard_count}
         print(json.dumps(scope, ensure_ascii=False))
