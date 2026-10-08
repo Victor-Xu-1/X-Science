@@ -3,7 +3,7 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "282a55172329d41175638f03d4cd5a255daae3b19ebb973da3124f9a43a3d3d5",
+  "adaptationFingerprintSHA256": "da06c4d0bcec8ac76c63a417ae5f7bdd957b2d99f611269503309f9c875380f6",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
   "additionFingerprintSHA256": "f4c70cb9fb1dc19200710c60dd2fe100e0ca9167b88f9f46ac52f7f9b10c7e1e",
   "summary": {
@@ -878,8 +878,8 @@
     {
       "path": "packages/desktop/src/renderer/index.html",
       "sourceSHA256": "793dd2aa0767028be35aea2fb67c833fc890236132cbdecfd2f0363611ced836",
-      "targetSHA256": "52a14046f2ddcc19ab589cf8ba50c20a08f442d45f3f4546a1b4086d4db86164",
-      "bytes": 4685,
+      "targetSHA256": "14ed362231577a0bc7a58bac83c66d5f36aa1af1b63dee4ae82b9c349aaacc4b",
+      "bytes": 4697,
       "reason": "Project the root Synon Biomed product identity and load the CSP-compatible pre-render theme bootstrap without creating a second version authority."
     },
     {
