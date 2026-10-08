@@ -403,6 +403,8 @@
     "filePreview": "File preview",
     "audioLoadFailed": "Failed to load audio",
     "videoLoadFailed": "Failed to load video",
+    "mediaPreviewNamed": "Media preview · {{name}}",
+    "mediaRetryNamed": "Retry {{name}}",
     "actions": {
       "more": "More file actions",
       "star": "Star",
@@ -915,6 +917,9 @@
     }
   },
   "archive": {
+    "readingEntry": "Opening…",
+    "entryFailedNamed": "Unable to open {{name}}.",
+    "retryEntryNamed": "Retry opening {{name}}",
     "back": "Go up",
     "refresh": "Reload archive",
     "loading": "Reading archive contents…",

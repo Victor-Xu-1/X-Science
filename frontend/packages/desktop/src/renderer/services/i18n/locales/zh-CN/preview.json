@@ -403,6 +403,8 @@
     "filePreview": "文件预览",
     "audioLoadFailed": "音频加载失败",
     "videoLoadFailed": "视频加载失败",
+    "mediaPreviewNamed": "媒体预览 · {{name}}",
+    "mediaRetryNamed": "重新读取 {{name}}",
     "actions": {
       "more": "更多文件操作",
       "star": "收藏",
@@ -912,6 +914,9 @@
     }
   },
   "archive": {
+    "readingEntry": "正在打开…",
+    "entryFailedNamed": "无法打开 {{name}}。",
+    "retryEntryNamed": "重新打开 {{name}}",
     "back": "返回上一级",
     "refresh": "重新读取压缩包",
     "loading": "正在读取压缩包目录…",

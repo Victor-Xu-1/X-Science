@@ -1,11 +1,16 @@
-import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import React from 'react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithI18n } from '../i18nTestUtils';
 
 const render = (ui: React.ReactElement) => renderWithI18n(ui);
 
-afterEach(() => vi.restoreAllMocks());
+beforeEach(() => vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {}));
+afterEach(async () => {
+  cleanup();
+  await Promise.resolve();
+  vi.restoreAllMocks();
+});
 
 const loadArtifactMock = vi.fn(async () => ({
   artifactId: 'artifact-1',
