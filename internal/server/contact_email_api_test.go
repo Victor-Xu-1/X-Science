@@ -12,7 +12,7 @@ import (
 	workspace "synon-go/internal/persistence/workspace"
 )
 
-const referenceContactEmailNoticeVersion = "99f2e8cddaf43594d50084dc3f990846f39c0e314d766e474e72df4d7e7fd89a"
+const referenceContactEmailNoticeVersion = "8cb7a2da25c64d4b79021ee1174beb932f117eab7e027c886f687fc7dd0dd772"
 
 func TestContactEmailCompatibilityAPIIsUserScopedDurableAndRevocable(t *testing.T) {
 	root := t.TempDir()
