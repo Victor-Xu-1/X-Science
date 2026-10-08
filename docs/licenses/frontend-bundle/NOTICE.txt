@@ -1,13 +1,13 @@
-Synon Biomed — frontend third-party notices
+X-Science — frontend third-party notices
 ===============================================
 
 Third-party packages retain their respective licenses and copyrights.
-These terms are not replaced by the root AGPL or a Synon commercial agreement.
+These terms are not replaced by the root AGPL or an X-Science commercial agreement.
 Code is bundled/minified for browser use; upstream package implementations are not edited.
 
 This notice covers packages in the browser bundle and the copied RDKit runtime.
 Other components and optional scientific runtimes have separate notices in this directory.
-Package lock SHA-256: 242ae7cb35458f1c239e9a979989a52f9eaaaf4cc123accc0166678b78c15d41
+Package lock SHA-256: 142b10c312bd2756f164ea230d30b2748a36d65263ccb1df50b069d857274fbe
 
 Package index
 -------------
@@ -382,8 +382,8 @@ diff2html@3.4.56 — notice 61
   Source: https://registry.npmjs.org/diff2html/-/diff2html-3.4.56.tgz
 dom-helpers@5.2.1 — notice 72
   Source: https://registry.npmjs.org/dom-helpers/-/dom-helpers-5.2.1.tgz
-dompurify@3.4.14 — notice 37, 14
-  Source: https://registry.npmjs.org/dompurify/-/dompurify-3.4.14.tgz
+dompurify@3.4.16 — notice 37, 14
+  Source: https://registry.npmjs.org/dompurify/-/dompurify-3.4.16.tgz
 es-toolkit@1.49.0 — notice 39
   Source: https://registry.npmjs.org/es-toolkit/-/es-toolkit-1.49.0.tgz
 escape-string-regexp@5.0.0 — notice 48
@@ -478,8 +478,8 @@ is-buffer@2.0.5 — notice 116
   Source: https://registry.npmjs.org/is-buffer/-/is-buffer-2.0.5.tgz
 is-plain-obj@4.1.0 — notice 48
   Source: https://registry.npmjs.org/is-plain-obj/-/is-plain-obj-4.1.0.tgz
-katex@0.16.22 — notice 63
-  Source: https://registry.npmjs.org/katex/-/katex-0.16.22.tgz
+katex@0.18.2 — notice 63
+  Source: https://registry.npmjs.org/katex/-/katex-0.18.2.tgz
 khroma@2.1.0 — notice 55
   Source: https://registry.npmjs.org/khroma/-/khroma-2.1.0.tgz
 layout-base@1.0.2 — notice 141
@@ -540,8 +540,6 @@ mermaid@11.17.0 — notice 142
   Source: https://registry.npmjs.org/mermaid/-/mermaid-11.17.0.tgz
 dayjs@1.11.21 — notice 50
   Source: https://registry.npmjs.org/dayjs/-/dayjs-1.11.21.tgz
-katex@0.16.47 — notice 63
-  Source: https://registry.npmjs.org/katex/-/katex-0.16.47.tgz
 micromark@4.0.2 — notice 135
   Source: https://registry.npmjs.org/micromark/-/micromark-4.0.2.tgz
 micromark-core-commonmark@2.0.3 — notice 135

@@ -1,6 +1,7 @@
 """Version-only candidate preparation retains byte-bound source provenance."""
 
 import contextlib
+import hashlib
 import io
 import json
 from pathlib import Path
@@ -90,6 +91,27 @@ class VersionProvenanceTest(unittest.TestCase):
     def test_duplicate_json_fields_are_rejected(self):
         with self.assertRaisesRegex(ValueError, "duplicate"):
             provenance.document(b'{"version":"0.1.1","version":"0.1.2"}')
+
+    def test_version_preparation_updates_notice_binding_without_changing_upstream_terms(self):
+        path = 'docs/licenses/frontend-bundle/NOTICE.txt'
+        old_notice = (self.root / path).read_bytes()
+        previous = hashlib.sha256((self.root / 'frontend/package-lock.json').read_bytes()).hexdigest()
+        current = hashlib.sha256(self.proposed['frontend/package-lock.json']).hexdigest()
+        expected = old_notice.replace(previous.encode(), current.encode())
+        self.assertEqual(self.plan().get(path), expected)
+
+    def test_stale_notice_is_not_approved_by_version_preparation(self):
+        path = self.root / 'docs/licenses/frontend-bundle/NOTICE.txt'
+        path.write_text(path.read_text().replace('Package lock SHA-256: ', 'Stale lock SHA-256: '))
+        with self.assertRaisesRegex(ValueError, 'notice.*bound'):
+            self.plan()
+
+    def test_duplicate_notice_binding_is_rejected(self):
+        path = self.root / 'docs/licenses/frontend-bundle/NOTICE.txt'
+        binding = next(line for line in path.read_text().splitlines() if line.startswith('Package lock SHA-256: '))
+        path.write_text(path.read_text() + '\n' + binding + '\n')
+        with self.assertRaisesRegex(ValueError, 'notice.*bound'):
+            self.plan()
 
 if __name__ == "__main__":
     unittest.main()

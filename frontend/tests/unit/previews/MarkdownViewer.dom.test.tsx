@@ -7,6 +7,9 @@
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
+import katex from 'katex';
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 
 const previewMocks = vi.hoisted(() => ({
   openPreview: vi.fn(),
@@ -133,6 +136,21 @@ describe('MarkdownViewer', () => {
   it('renders markdown content in preview mode', () => {
     render(<MarkdownViewer content='# Hello World' />);
     expect(screen.getByText('Hello World')).toBeInTheDocument();
+  });
+
+  it('renders Markdown math with the same class namespace as the shared KaTeX CSS and direct viewer', () => {
+    const katexStyles = readFileSync(createRequire(import.meta.url).resolve('katex/dist/katex.min.css'), 'utf8');
+    const direct = document.createElement('div');
+    direct.innerHTML = katex.renderToString('x^2');
+    const { container } = render(<MarkdownViewer content={'$$\nx^2\n$$'} />);
+    const math = container.querySelector('.katex');
+    expect(math).not.toBeNull();
+    for (const className of ['katex-base', 'katex-strut', 'katex-sizing']) {
+      expect(direct.querySelector(`.${className}`)).not.toBeNull();
+      expect(katexStyles).toContain(`.${className}`);
+      expect(math?.querySelector(`.${className}`)).not.toBeNull();
+    }
+    expect(math?.querySelector('annotation')?.textContent).toBe('x^2');
   });
 
   it('provides a keyboard-reachable table region while preserving headers and exact values', () => {
