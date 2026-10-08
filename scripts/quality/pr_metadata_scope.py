@@ -91,4 +91,27 @@ def metadata_paths(repo: Path, base: str, head: str) -> set[str]:
 
 def filter_paths(repo: Path, base: str, head: str, paths: list[str]) -> tuple[list[str], list[str]]:
     ignored = metadata_paths(repo, base, head) if IDENTITY in paths else set()
+    if IDENTITY in paths and IDENTITY not in ignored and identity_version_only(repo, base, head):
+        # A dependency/UI edit may legitimately change the rest of the metadata.
+        # Exempt only this independently proved file; every other path keeps its
+        # existing dependency, frontend, tooling or unknown-runtime coverage.
+        ignored.add(IDENTITY)
     return [path for path in paths if path not in ignored], sorted(set(paths) & ignored)
+
+
+def identity_version_only(repo: Path, base: str, head: str) -> bool:
+    """Prove a single counter-field delta without trusting candidate code.
+
+    This does not approve projections, provenance or tests. Their mandatory
+    checks remain separate, and changed/unknown authority fails conservatively.
+    """
+    try:
+        if snapshot(repo, base, MATRIX) != snapshot(repo, head, MATRIX):
+            return False
+        before = document(snapshot(repo, base, IDENTITY))
+        after = document(snapshot(repo, head, IDENTITY))
+        require_next_version(before['version'], after['version'])
+        replace_pointer(before, '/version', before['version'], after['version'])
+        return before == after
+    except (OSError, ValueError, KeyError, TypeError, UnicodeError, subprocess.SubprocessError):
+        return False

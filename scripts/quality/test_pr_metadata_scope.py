@@ -113,6 +113,52 @@ class MetadataScopeTest(unittest.TestCase):
             with self.subTest(base=base):
                 self.assertEqual(metadata.metadata_paths(self.repo, base, head), set())
 
+    def test_mixed_dependency_delta_ignores_only_independently_proved_identity_version(self):
+        original_snapshot = metadata.snapshot
+        def changed(repo, revision, path):
+            raw = original_snapshot(repo, revision, path)
+            if revision == self.head and path == 'frontend/package-lock.json':
+                lock = json.loads(raw)
+                lock['packages']['node_modules/dompurify']['version'] = 'unreviewed-upgrade'
+                return json.dumps(lock).encode()
+            return raw
+        paths = scope.changed_paths(self.repo, self.base, self.head)
+        with patch.object(metadata, 'snapshot', side_effect=changed):
+            filtered, ignored = metadata.filter_paths(self.repo, self.base, self.head, paths)
+        self.assertEqual(ignored, ['product-identity.json'])
+        self.assertEqual(filtered, [path for path in paths if path != 'product-identity.json'])
+        self.assertIn('frontend/package-lock.json', filtered)
+        self.assertTrue(scope.frontend_affected(filtered))
+
+    def test_identity_name_schema_matrix_or_bad_counter_never_gets_partial_exemption(self):
+        original_snapshot = metadata.snapshot
+        mutations = [
+            ('product-identity.json', lambda raw: json.dumps({**json.loads(raw), 'display_name': 'unreviewed'}).encode()),
+            ('product-identity.json', lambda raw: json.dumps({**json.loads(raw), 'schema': 'unreviewed'}).encode()),
+            ('product-identity.json', lambda raw: json.dumps({**json.loads(raw), 'version': '0.9.99'}).encode()),
+            (metadata.MATRIX, lambda raw: raw + b'\n'),
+        ]
+        paths = scope.changed_paths(self.repo, self.base, self.head)
+        for target, mutate in mutations:
+            def changed(repo, revision, path):
+                raw = original_snapshot(repo, revision, path)
+                return mutate(raw) if revision == self.head and path == target else raw
+            with self.subTest(target=target), patch.object(metadata, 'snapshot', side_effect=changed):
+                self.assertEqual(metadata.filter_paths(self.repo, self.base, self.head, paths), (paths, []))
+
+    def test_mixed_identity_proof_does_not_hide_runtime_inputs_or_auditor_code(self):
+        original_snapshot = metadata.snapshot
+        def changed(repo, revision, path):
+            raw = original_snapshot(repo, revision, path)
+            return raw + b'\nprint("unreviewed code")\n' if revision == self.head and path == metadata.AUDIT else raw
+        paths = scope.changed_paths(self.repo, self.base, self.head) + ['assets/new/runtime.json', 'internal/runtime/lease.go']
+        with patch.object(metadata, 'snapshot', side_effect=changed):
+            filtered, ignored = metadata.filter_paths(self.repo, self.base, self.head, paths)
+        self.assertEqual(ignored, ['product-identity.json'])
+        self.assertIn(metadata.AUDIT, filtered)
+        self.assertIn('assets/new/runtime.json', filtered)
+        self.assertIn('internal/runtime/lease.go', filtered)
+
 
 if __name__ == '__main__':
     unittest.main()
