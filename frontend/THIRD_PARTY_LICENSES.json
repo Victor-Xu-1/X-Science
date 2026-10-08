@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "package": "@x-science/workbench-web",
-  "lockfileSHA256": "28f647139465ce0d03e962f86c93ea092c50f9994137767126121201371b64bc",
+  "lockfileSHA256": "37e6dc2e342a2e3d5053679a84934cc49b78887008e2962345511f1c4604cad9",
   "summary": {
     "records": 1129,
     "workspaceLinkRecords": 1,
@@ -3260,7 +3260,7 @@
     },
     {
       "name": "axios",
-      "version": "1.18.1",
+      "version": "1.20.0",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -7938,7 +7938,7 @@
   "workspaceLinks": [
     {
       "name": "@x-science/workbench-renderer",
-      "version": "0.1.10",
+      "version": "0.1.11",
       "path": "packages/desktop",
       "basis": "local workspace package; source licensing reviewed separately"
     }
