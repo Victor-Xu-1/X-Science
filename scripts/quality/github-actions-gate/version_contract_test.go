@@ -26,6 +26,8 @@ func TestVersionCounterUsesExactReadOnlyPRAndMainTransitions(t *testing.T) {
 			{"missing", versionStepName, "Removed version check", "actions_version_transition_invalid"},
 			{"constant-head", "--candidate '${{ github.sha }}'", "--candidate 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'", "actions_version_transition_invalid"},
 			{"bypass", "python3 -B scripts/packaging/pr_version_gate.py", "true", "actions_version_transition_invalid"},
+			{"shell-override", "      - name: " + versionStepName, "      - name: " + versionStepName + "\n        shell: true {0}", "actions_version_transition_invalid"},
+			{"directory-override", "      - name: " + versionStepName, "      - name: " + versionStepName + "\n        working-directory: unrelated", "actions_version_transition_invalid"},
 			{"writes", "contents: read", "contents: write", "actions_root_permissions_invalid"},
 			{"token", "      - name: " + versionStepName, "      - name: " + versionStepName + "\n        env:\n          GH_TOKEN: ${{ secrets.PAT }}", "actions_environment_override_forbidden"},
 		} {

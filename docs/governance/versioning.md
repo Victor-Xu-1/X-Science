@@ -39,20 +39,26 @@ PR；一个 PR 内有多少提交都不影响计数。未合并、关闭、合�
 
 ### Prepare before review and merge / 合并前自动准备
 
-Prepare metadata on the clean, named task branch before reviewing its final head:
+Prepare metadata on the clean, named task branch before reviewing its final head.
+Run the tool from a separate, independently reviewed tooling checkout at its
+verified revision, not from the candidate checkout. The controller verifies
+that tooling revision and its clean state before invoking it:
 
 ```sh
-python3 -B scripts/packaging/prepare_pr_version.py \
+python3 -B /absolute/reviewed/tooling/scripts/packaging/prepare_pr_version.py \
   --repo /absolute/task/worktree --base EXACT_CURRENT_MAIN --head EXACT_TASK_HEAD
 # Review the local plan, then apply the same exact binding:
-python3 -B scripts/packaging/prepare_pr_version.py \
+python3 -B /absolute/reviewed/tooling/scripts/packaging/prepare_pr_version.py \
   --repo /absolute/task/worktree --base EXACT_CURRENT_MAIN --head EXACT_TASK_HEAD --apply
 ```
 
 The tool computes the next version from main, not from an already-prepared
 candidate. It changes only root authority, registered JSON version projections,
 and their three derived frontend provenance outputs. It validates fresh baseline
-bytes using the reviewed tooling auditor; candidate audit code is not executed.
+bytes using the separate reviewed tooling auditor; candidate audit code is not
+executed. A same-checkout invocation or an alias of the tooling auditor is
+rejected before loading the auditor. Changes to the audit implementation need
+an independently reviewed tooling update, not self-approval by the candidate.
 It refuses main/detached/dirty worktrees, stale heads, unrelated ancestry,
 unexpected version edits and unsafe paths. It does not commit, push or merge.
 Commit the generated metadata on the task branch and review/test that new exact

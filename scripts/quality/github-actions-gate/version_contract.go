@@ -39,7 +39,8 @@ func validateVersionTransitionStep(relative string, jobs *yaml.Node, bootstrap s
 			}
 			count++
 			run := mappingValue(step, "run")
-			if run == nil || strings.TrimSpace(run.Value) != want {
+			if run == nil || strings.TrimSpace(run.Value) != want ||
+				mappingValue(step, "shell") != nil || mappingValue(step, "working-directory") != nil {
 				return errors.New("actions_version_transition_invalid")
 			}
 		}

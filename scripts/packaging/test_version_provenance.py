@@ -16,6 +16,10 @@ ROOT = Path(__file__).resolve().parents[2]
 
 class VersionProvenanceTest(unittest.TestCase):
     def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory(prefix="version-provenance-")
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name) / "candidate"
+        subprocess.run(["git", "clone", "--quiet", "--shared", "--no-hardlinks", str(ROOT), str(self.root)], check=True)
         self.old = provenance.document((ROOT / provenance.IDENTITY).read_bytes())["version"]
         self.new = next_version(self.old)
         self.proposed = {}
@@ -27,7 +31,18 @@ class VersionProvenanceTest(unittest.TestCase):
 
     def plan(self, changed=None):
         with contextlib.redirect_stdout(io.StringIO()):
-            return provenance.plan(ROOT, self.proposed, changed or set(self.proposed))
+            return provenance.plan(self.root, self.proposed, changed or set(self.proposed))
+
+    def test_tooling_checkout_cannot_trust_itself_as_candidate(self):
+        with self.assertRaisesRegex(ValueError, "separate reviewed tooling"):
+            provenance.plan(ROOT, self.proposed, set(self.proposed))
+
+    def test_candidate_cannot_alias_the_trusted_auditor(self):
+        target = self.root / provenance.AUDIT
+        target.unlink()
+        target.symlink_to(ROOT / provenance.AUDIT)
+        with self.assertRaisesRegex(ValueError, "separate reviewed tooling"):
+            self.plan()
 
     def test_version_only_change_passes_real_audit_and_is_idempotent(self):
         outputs = self.plan()

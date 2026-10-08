@@ -55,8 +55,14 @@ def replace_pointer(value: dict, pointer: str, old: str, new: str) -> None:
 
 def reviewed_audit(root: Path):
     """Execute only the tooling checkout's auditor; candidate code is data."""
-    trusted = Path(__file__).resolve().parents[2] / AUDIT
-    candidate = (root / AUDIT).read_text()
+    tooling = Path(__file__).resolve().parents[2]
+    trusted = tooling / AUDIT
+    target = root / AUDIT
+    # A candidate cannot establish its own trust by invoking its local copy.
+    # samefile also rejects symlink/hardlink aliases across distinct roots.
+    if root.resolve() == tooling or target.samefile(trusted):
+        raise ValueError("version preparation requires separate reviewed tooling")
+    candidate = target.read_text()
     pattern = r'(?m)^APPROVED_(ADAPTATION|ADDITION|REMOVAL)_FINGERPRINT = "([0-9a-f]{64})"$'
     pins = dict(re.findall(pattern, candidate))
     if set(pins) != {"ADAPTATION", "ADDITION", "REMOVAL"}:
