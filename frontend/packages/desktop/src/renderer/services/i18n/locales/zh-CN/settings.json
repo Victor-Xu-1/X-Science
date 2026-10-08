@@ -1603,6 +1603,7 @@
       },
       "detail": {
         "fileLoadFailed": "无法读取 Skill 文件。",
+        "refreshFailed": "变更已完成，但 Skill 库刷新失败。",
         "draftSaved": "Skill 草稿已保存",
         "draftSaveFailed": "Skill 草稿保存失败。",
         "published": "Skill 已发布",

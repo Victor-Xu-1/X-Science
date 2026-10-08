@@ -130,6 +130,7 @@ ALLOWED_ADDITIONS = {
     "public/branding/x-science-logo.provenance.json": "Record the original user-approved logo origin, exact source revision, dimensions and copied-asset checksums without rewriting historical artwork provenance.",
     "tests/unit/renderer/ProductBrand.dom.test.tsx": "Verify one readable current name, an unchanged decorative mark and coordinated compact/prominent presentations.",
     "tests/unit/renderer/XScienceIdentity.test.ts": "Verify current public identity, browser metadata, PWA references and exact original mark/browser-icon hashes.",
+    "tests/unit/renderer/compositeControlLabels.test.ts": "Reject implicit HTML label forwarding around Arco composite pickers across renderer modules while retaining correct native-input labels and existing control implementations.",
     "tests/fixtures/structureLigands.ts": "Share explicitly synthetic receptor/ligand coordinates across parsed-state and native viewer selection regressions; never substitute them for user artifacts or research results.",
     "packages/desktop/src/common/chat/roundSummary.ts": "Validate durable per-round completion timing and model usage shared by live and historical messages; unavailable telemetry never erases answer text.",
     "packages/desktop/src/common/chat/largeToolResultReference.ts": "Validate immutable same-origin large-result references once for transcript summaries and lazy detail loading; previews never replace source evidence.",
@@ -137,6 +138,9 @@ ALLOWED_ADDITIONS = {
     "packages/desktop/src/renderer/styles/tokens.css": "Own the single canonical visual-primitive scale (space, radius, elevation, type, weight, stacking) that every renderer module references instead of restating literals.",
     "packages/desktop/src/renderer/pages/settings/skills/SkillLibraryCard.tsx": "Render installed and draft skills with complete readable copy, declared-category icons and isolated keyboard actions.",
     "packages/desktop/src/renderer/pages/settings/skills/SkillFilePreview.tsx": "Render original Markdown and source files through distinct safe read-only previews.",
+    "packages/desktop/src/renderer/pages/settings/skills/useSkillDetailSession.ts": "Bind Skill detail requests to one committed opening, including same-name reopen and mode changes, without altering service authorization.",
+    "packages/desktop/src/renderer/pages/settings/skills/useSkillDetailFiles.ts": "Own ordered source-file reads, visible failure, exact-read retry and retained draft content behind the existing Skill library services.",
+    "packages/desktop/src/renderer/pages/settings/skills/useSkillDetailMutations.ts": "Serialize original Skill mutations, fence late receipts and distinguish completed changes from retryable library-refresh failure without replaying writes.",
     "packages/desktop/src/renderer/pages/settings/skills/skillSourceLabel.ts": "Share truthful localized source labels between library cards and detail views without claiming authorship.",
     "packages/desktop/src/renderer/pages/settings/skills/SkillLibraryToolbar.tsx": "Provide one responsive search and research-field toolbar with accessible source/status refinement controls.",
     "packages/desktop/src/renderer/pages/settings/skills/SkillMarketModal.tsx": "Reuse the existing pinned-import market in a bounded dialog without resetting the installed library search or filters.",
@@ -522,9 +526,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "da06c4d0bcec8ac76c63a417ae5f7bdd957b2d99f611269503309f9c875380f6"
+APPROVED_ADAPTATION_FINGERPRINT = "5986eb88b369dab13d4ef24a772decb98acd1a5bfcd1cb93402c7b8aeefc1d5d"
 APPROVED_REMOVAL_FINGERPRINT = "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119"
-APPROVED_ADDITION_FINGERPRINT = "f4c70cb9fb1dc19200710c60dd2fe100e0ca9167b88f9f46ac52f7f9b10c7e1e"
+APPROVED_ADDITION_FINGERPRINT = "0462f7dff8753a89fc81348d0a36b979619996c07427d730d7926b4d32d74dfc"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

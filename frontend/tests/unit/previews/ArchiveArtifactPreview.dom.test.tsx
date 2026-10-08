@@ -41,6 +41,9 @@ async function view() {
     </I18nextProvider>
   );
   const rendered = render(node('/api/artifacts/package/versions/v1'));
+  // Keep the real lazy module. Its cold import/transform is separate from the
+  // mock listing request; a one-second entry lookup raced module readiness.
+  await screen.findByTestId('archive-viewer', {}, { timeout: 5_000 });
   return { ...rendered, change: (uri: string, name?: string) => rendered.rerender(node(uri, name)) };
 }
 async function openNotes() {

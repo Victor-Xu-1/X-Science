@@ -86,6 +86,23 @@ const deferred = <T,>() => {
 };
 
 describe('Artifact annotation and verification panels', () => {
+  it.each([
+    { language: 'zh-CN' as const, add: '添加', type: '批注类型', option: '文本选择' },
+    { language: 'en-US' as const, add: 'Add', type: 'Annotation type', option: 'Text selection' },
+  ])(
+    'keeps the $language composite type picker outside native label activation',
+    async ({ language, add, type, option }) => {
+      await render(<ArtifactAnnotationsPanel artifactId='artifact-1' versionId='version-1' />, language);
+      fireEvent.click(screen.getByRole('button', { name: add, exact: true }));
+      const picker = screen.getByRole('combobox', { name: type });
+      expect(picker.closest('label')).toBeNull();
+      fireEvent.click(picker);
+      expect(picker).toHaveAttribute('aria-expanded', 'true');
+      fireEvent.click(screen.getByRole('option', { name: option, exact: true }));
+      expect(picker).toHaveTextContent(option);
+      expect(mocks.createAnnotation).not.toHaveBeenCalled();
+    }
+  );
   beforeEach(() => {
     for (const mock of Object.values(mocks)) mock.mockReset();
     mocks.loadAnnotations.mockResolvedValue({

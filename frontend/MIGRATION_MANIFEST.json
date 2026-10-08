@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "da06c4d0bcec8ac76c63a417ae5f7bdd957b2d99f611269503309f9c875380f6",
+  "adaptationFingerprintSHA256": "5986eb88b369dab13d4ef24a772decb98acd1a5bfcd1cb93402c7b8aeefc1d5d",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "f4c70cb9fb1dc19200710c60dd2fe100e0ca9167b88f9f46ac52f7f9b10c7e1e",
+  "additionFingerprintSHA256": "0462f7dff8753a89fc81348d0a36b979619996c07427d730d7926b4d32d74dfc",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 347,
     "adaptedSourceFiles": 714,
     "removedSourceFiles": 293,
-    "addedFiles": 814
+    "addedFiles": 818
   },
   "adaptations": [
     {
@@ -892,8 +892,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/artifact/ArtifactAnnotationPanels.tsx",
       "sourceSHA256": "f2a0ed3c6fedf2c011d13650172e66ff5d8cffcc8e10a095a7bfe980ea49aef9",
-      "targetSHA256": "826c11f8c65cbf7a21f0795d8fd9cc47ea9c8542137272acc67456cfe2fe0c1c",
-      "bytes": 25997,
+      "targetSHA256": "ac6802f6b217008e46605bb0e81a7729e033d9664e0d0f72c681e5e0a7868c34",
+      "bytes": 25993,
       "reason": "Connect immutable Go artifacts, annotations, refinement, and native viewers with bounded localized failure handling."
     },
     {
@@ -1221,8 +1221,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/components/MessageTranscriptAnnotations.tsx",
       "sourceSHA256": "15cf105ea8b42f0125357e666430eaff20363b7d39a0af6ec0523ebdfd43802b",
-      "targetSHA256": "e96da7c886448f273d993de966f8603cea009e79ea65be25946c698d5d711408",
-      "bytes": 16152,
+      "targetSHA256": "6ff2efe41fdb9e5d4548e7e5fd5ef6235c179921fe6fc674b378f1afb5ca75a1",
+      "bytes": 16148,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -2096,8 +2096,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/project/ArtifactBatchActions.tsx",
       "sourceSHA256": "255a1425a5b7e45acc701e32b981c4fb0bf2a143b9e4fe447228cddbfd012a82",
-      "targetSHA256": "20a22b2a52c1a5cdc8212662fe1a360c4d13611acef61a9f8de7caf08052c772",
-      "bytes": 12572,
+      "targetSHA256": "b9d6b3a9e39155e2a1083b5be145f3afee6643c0fca23131a0174773f226f0f6",
+      "bytes": 12564,
       "reason": "Migrate authenticated login, onboarding, project workbench, and artifact workflows to the Go product shell."
     },
     {
@@ -2453,8 +2453,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/settings/skills/SynonBiomedSkillLibraryModals.tsx",
       "sourceSHA256": "9492e57942849493523265d620c77a96a1fae42069b838f6076c5293ef4e4b1e",
-      "targetSHA256": "eb73af17f8f4fb1a9409dff504e0588af8a7742923bd17fe3ebf9e015c439e73",
-      "bytes": 28300,
+      "targetSHA256": "9d127a62c01ab77246afc37e36ffe738f96333cc255bac3cd8767c6a431929f7",
+      "bytes": 25991,
       "reason": "Expose Go-owned agents, skills, MCP, models, compute, memory, permissions, credentials, storage, and governance settings."
     },
     {
@@ -2488,8 +2488,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "dacc62a7394e66e1ce54b6cebcb152bb86d5ef9e78bf9145bf73d4683151586e",
-      "bytes": 252641,
+      "targetSHA256": "5604319b735d9d0e3d08fc5fbbc811743ae365e83210bac57c808422092d1edd",
+      "bytes": 252699,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2572,8 +2572,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/settings.json",
       "sourceSHA256": "d7c89e27673b4245d2efeb4216c9768e08420beabd9294779d4d099207ea5e7a",
-      "targetSHA256": "c6a795c1ff435ac7ceb9a75a465c3826148276bed662105b4fdf0985e791978b",
-      "bytes": 137788,
+      "targetSHA256": "20cf944f452695f1308b3f7c403fe237293ab7e620b7425a72fd597c8f6161e7",
+      "bytes": 137883,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2663,8 +2663,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/settings.json",
       "sourceSHA256": "3afd2c67b5d1a42960c03d5e70dbdb23c3b6b1a3981665ac37919e199dc814c0",
-      "targetSHA256": "8f6f359bfc0da5e341cb3dd54570d6376dbc85ee027c020d726b81f387e95e98",
-      "bytes": 132501,
+      "targetSHA256": "988d9dc694692fe3edb549fe000433bda7a92ae4c0a35d28294c02d344e4f6f5",
+      "bytes": 132576,
       "reason": "Explain required scientific runtimes, unified user-managed storage, and Synon Go service guidance."
     },
     {
@@ -3748,8 +3748,8 @@
     {
       "path": "tests/unit/renderer/ArtifactAnnotationPanels.dom.test.tsx",
       "sourceSHA256": "a45b7fd9350d0f6a745b3a57113a6f6e93b5261372d19ade883a0c5c560e26fc",
-      "targetSHA256": "dd1201764675e23099d51e7c6b4fb37fb1915d9d0b3932c7e7b7b1e86d08a54f",
-      "bytes": 20811,
+      "targetSHA256": "acca7ce822a15965ceaa8c1d61d9f36cd67b0790c85f2c87abbfd37680f4b934",
+      "bytes": 21753,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -4490,8 +4490,8 @@
     {
       "path": "tests/unit/settings/SynonBiomedSkillLibraryModals.dom.test.tsx",
       "sourceSHA256": "6ccc1ed946a7637ba5fc14fda963e7eff87bd1fa3f70f90ac33a3f40f3622bbc",
-      "targetSHA256": "32b07af9fef1a920e43adf12598c3f47b59c6e032b381d3ae2f40c5fbf178e76",
-      "bytes": 9375,
+      "targetSHA256": "3153d517cc89c59f62f7448bfe7b6cb9c9291497d09188c31a0c802216752d56",
+      "bytes": 20843,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -7370,8 +7370,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/artifact/ArtifactFileActionModal.tsx",
-      "sha256": "5ec8655fc19cc663c3157acf7d12731da9eb6f1fa1b05485d1a09a3daa053c1e",
-      "bytes": 6877,
+      "sha256": "24dfe951b277ab7f4b15d2a2a2b2170af2f015947e2db8a1cda74e1e118fedbc",
+      "bytes": 6865,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8288,8 +8288,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/onboarding/OnboardingModelSetup.tsx",
-      "sha256": "98673378bd04e562260f76da2e3c5f7d265a12b951f29625ac7fadba02216497",
-      "bytes": 10718,
+      "sha256": "6cdc17c12c7d376daed59a270fb80cb99918003d87356c3a3b18d052ba33bd5b",
+      "bytes": 10714,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8735,6 +8735,24 @@
       "sha256": "aad6ff01828d0f2803aeab46929fad2a144ffa51d279daf9ea09189394fcf914",
       "bytes": 578,
       "reason": "Share truthful localized source labels between library cards and detail views without claiming authorship."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/settings/skills/useSkillDetailFiles.ts",
+      "sha256": "2b3132cb8f428f68f539bb3207a265fef545c2ee193265e7d239d9cd4535459f",
+      "bytes": 3487,
+      "reason": "Own ordered source-file reads, visible failure, exact-read retry and retained draft content behind the existing Skill library services."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/settings/skills/useSkillDetailMutations.ts",
+      "sha256": "e26fa3e7f6f4ea4b25782800c326be550a8d1b106a8a91821552e4e91111f64e",
+      "bytes": 4611,
+      "reason": "Serialize original Skill mutations, fence late receipts and distinguish completed changes from retryable library-refresh failure without replaying writes."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/settings/skills/useSkillDetailSession.ts",
+      "sha256": "a428978aff908ce6680ab768b677724517e9a941e16af35db704e51c6594a2f6",
+      "bytes": 1323,
+      "reason": "Bind Skill detail requests to one committed opening, including same-name reopen and mode changes, without altering service authorization."
     },
     {
       "path": "packages/desktop/src/renderer/pages/settings/storage/StorageCloudPanel.tsx",
@@ -9836,8 +9854,8 @@
     },
     {
       "path": "tests/unit/previews/ArchiveArtifactPreview.dom.test.tsx",
-      "sha256": "19d6f0c66ec6c6f982aee897f8a644c5ac38b2ff12b95d28bb05ec1115d5e89f",
-      "bytes": 4669,
+      "sha256": "4612dcad6b09587c58c93a58049178f016d4f28c87d02710bf02a50706fd2704",
+      "bytes": 4896,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -10283,6 +10301,12 @@
       "sha256": "4705469b33ef644349867a845c8524a37f41ed5b12b0bb95626755d4d93bf68b",
       "bytes": 677,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/compositeControlLabels.test.ts",
+      "sha256": "7e9c85c611623c74d23723087d498749ff410cf820b700acfccde489fb910518",
+      "bytes": 2565,
+      "reason": "Reject implicit HTML label forwarding around Arco composite pickers across renderer modules while retaining correct native-input labels and existing control implementations."
     },
     {
       "path": "tests/unit/renderer/contextUsage.test.ts",

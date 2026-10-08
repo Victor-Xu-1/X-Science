@@ -382,7 +382,7 @@ const MessageTranscriptAnnotations: React.FC<{
           <div className='max-h-100px overflow-auto whitespace-pre-wrap border-l-2 border-solid border-[var(--color-border-3)] pl-10px text-11px leading-18px text-t-tertiary'>
             {previewText.slice(0, 500)}
           </div>
-          <label className='flex flex-col gap-6px text-12px text-t-secondary'>
+          <div className='flex flex-col gap-6px text-12px text-t-secondary'>
             {t('conversation.transcriptAnnotations.type')}
             <Select
               aria-label={t('conversation.transcriptAnnotations.typeAria')}
@@ -395,7 +395,7 @@ const MessageTranscriptAnnotations: React.FC<{
                 {t('conversation.transcriptAnnotations.kind.annotation')}
               </Select.Option>
             </Select>
-          </label>
+          </div>
           <label className='flex flex-col gap-6px text-12px text-t-secondary'>
             {t('conversation.transcriptAnnotations.note')}
             <Input.TextArea

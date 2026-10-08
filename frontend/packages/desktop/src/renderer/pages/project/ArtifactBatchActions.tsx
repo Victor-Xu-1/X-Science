@@ -243,7 +243,7 @@ export const ArtifactBatchActions: React.FC<{
           <Empty description={t('common.cloudCredentialsEmpty')} />
         ) : (
           <div className='flex flex-col gap-12px'>
-            <label className='flex flex-col gap-5px text-12px text-t-secondary'>
+            <div className='flex flex-col gap-5px text-12px text-t-secondary'>
               {t('common.cloudCredential')}
               <Select
                 aria-label={t('common.cloudCredential')}
@@ -256,8 +256,8 @@ export const ArtifactBatchActions: React.FC<{
                   </Select.Option>
                 ))}
               </Select>
-            </label>
-            <label className='flex flex-col gap-5px text-12px text-t-secondary'>
+            </div>
+            <div className='flex flex-col gap-5px text-12px text-t-secondary'>
               {t('common.exportBucket')}
               <Select aria-label={t('common.exportBucket')} value={bucket} onChange={setBucket}>
                 {buckets.map((item) => (
@@ -266,7 +266,7 @@ export const ArtifactBatchActions: React.FC<{
                   </Select.Option>
                 ))}
               </Select>
-            </label>
+            </div>
             <label className='flex flex-col gap-5px text-12px text-t-secondary'>
               {t('common.cloudPrefix')}
               <Input

@@ -216,7 +216,7 @@ const OnboardingModelSetup: React.FC = () => {
             </Button>
           ) : (
             <div className={styles.modelForm} data-testid='onboarding-model-form'>
-              <label className={styles.fieldLabel}>
+              <div className={styles.fieldLabel}>
                 <span>{t('guid.onboarding.model.provider')}</span>
                 <Select
                   aria-label={t('guid.onboarding.model.provider')}
@@ -229,7 +229,7 @@ const OnboardingModelSetup: React.FC = () => {
                     </Select.Option>
                   ))}
                 </Select>
-              </label>
+              </div>
               <label className={styles.fieldLabel}>
                 <span>{t('guid.onboarding.model.modelId')}</span>
                 <Input

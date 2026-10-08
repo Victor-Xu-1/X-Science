@@ -92,7 +92,7 @@ export function ArtifactFileActionModal({
               <Empty description={t('preview.artifact.noCloudCredentials')} />
             ) : (
               <>
-                <label className='flex flex-col gap-6px text-12px text-t-secondary'>
+                <div className='flex flex-col gap-6px text-12px text-t-secondary'>
                   {t('preview.artifact.cloudCredential')}
                   <Select
                     aria-label={t('preview.artifact.cloudCredential')}
@@ -106,8 +106,8 @@ export function ArtifactFileActionModal({
                       </Select.Option>
                     ))}
                   </Select>
-                </label>
-                <label className='flex flex-col gap-6px text-12px text-t-secondary'>
+                </div>
+                <div className='flex flex-col gap-6px text-12px text-t-secondary'>
                   {t('preview.artifact.bucket')}
                   <Select
                     aria-label={t('preview.artifact.exportBucket')}
@@ -122,7 +122,7 @@ export function ArtifactFileActionModal({
                       </Select.Option>
                     ))}
                   </Select>
-                </label>
+                </div>
                 {cloud.bucketFailed && (
                   <ReadFailure
                     message={t('preview.artifact.bucketLoadFailed')}
@@ -177,7 +177,7 @@ function FolderSelect({
   const { t } = useTranslation();
   const label = t('preview.artifact.targetFolder');
   return (
-    <label className='flex flex-col gap-6px text-12px text-t-secondary'>
+    <div className='flex flex-col gap-6px text-12px text-t-secondary'>
       {label}
       <Select aria-label={label} value={value} onChange={onChange} disabled={disabled}>
         <Select.Option key={ARTIFACT_ROOT_FOLDER} value={ARTIFACT_ROOT_FOLDER}>
@@ -189,6 +189,6 @@ function FolderSelect({
           </Select.Option>
         ))}
       </Select>
-    </label>
+    </div>
   );
 }

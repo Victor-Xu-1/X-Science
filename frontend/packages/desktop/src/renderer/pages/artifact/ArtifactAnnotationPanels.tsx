@@ -411,7 +411,7 @@ const AnnotationEditor: React.FC<{
   const { t } = useTranslation();
   return (
     <div className='flex flex-col gap-14px'>
-      <label className='flex flex-col gap-6px text-12px text-t-secondary'>
+      <div className='flex flex-col gap-6px text-12px text-t-secondary'>
         {t('preview.artifactAnnotations.fields.type')}
         <Select
           aria-label={t('preview.artifactAnnotations.fields.type')}
@@ -425,7 +425,7 @@ const AnnotationEditor: React.FC<{
             </Select.Option>
           ))}
         </Select>
-      </label>
+      </div>
       <label className='flex flex-col gap-6px text-12px text-t-secondary'>
         {t('preview.artifactAnnotations.fields.content')}
         <Input.TextArea

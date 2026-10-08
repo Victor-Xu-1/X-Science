@@ -4,18 +4,15 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SkillFilePreview } from './SkillFilePreview';
 import { skillSourceLabel } from './skillSourceLabel';
+import { useSkillDetailSession } from './useSkillDetailSession';
+import { useSkillDetailFiles } from './useSkillDetailFiles';
+import { detailSuccessKeys, useSkillDetailMutations } from './useSkillDetailMutations';
 import { resolveSkillDescription } from '@/renderer/services/skills/synonBiomedSkillDescriptions';
 import { getSynonBiomedSkillCategoryLabel } from '@/renderer/services/skills/synonBiomedSkillCategories';
 import {
-  deleteSynonBiomedSkillDraft,
-  duplicateSynonBiomedSkill,
   importSynonBiomedSkillFile,
-  loadSynonBiomedSkillFileContent,
-  loadSynonBiomedSkillFiles,
   importSynonBiomedRepositorySkills,
   previewSynonBiomedSkillRepository,
-  publishSynonBiomedSkillDraft,
-  saveSynonBiomedSkillDraftFile,
   type SynonBiomedSkillRepoPreview,
 } from '@/renderer/services/skills/synonBiomedSkillLibrary';
 
@@ -298,20 +295,33 @@ export function SkillDetailModal({
 }: CommonModalProps & { skill: SkillModalItem | null; draft: boolean; editable: boolean }) {
   const { t, i18n } = useTranslation();
   const [message, contextHolder] = Message.useMessage({ maxCount: 2 });
-  const messageRef = useRef(message);
-  const translationRef = useRef(t);
-  messageRef.current = message;
-  translationRef.current = t;
-  const generation = useRef(0);
-  const [files, setFiles] = useState<string[]>([]);
-  const [path, setPath] = useState('');
-  const [content, setContent] = useState('');
-  const [originalContent, setOriginalContent] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [copyVisible, setCopyVisible] = useState(false);
   const [copyName, setCopyName] = useState('');
-  const [copying, setCopying] = useState(false);
+  const mode = `${draft}:${editable}`;
+  const session = useSkillDetailSession(skill?.name, visible, mode);
+  const editor = useSkillDetailFiles(session, skill?.name, visible, mode);
+  const { files, path, content, original: originalContent, loading, setContent, selectFile } = editor;
+  const mutations = useSkillDetailMutations({
+    session,
+    files: editor,
+    visible,
+    name: skill?.name,
+    draft,
+    editable,
+    onChanged,
+    onClose,
+    onCommitted: (action) => {
+      if (action === 'duplicate') setCopyVisible(false);
+    },
+    onSuccess: (action) => message.success(t(`settings.skillsSettings.modals.detail.${detailSuccessKeys[action]}`)),
+  });
+  const saving = mutations.busy && mutations.pending !== 'duplicate';
+  const copying = mutations.pending === 'duplicate';
+  const canWrite = visible && editor.ready && !mutations.busy && !mutations.needsRefresh;
+  useLayoutEffect(() => {
+    setCopyVisible(false);
+    if (visible && skill) setCopyName(`${skill.name}-custom`);
+  }, [skill?.name, visible, mode]);
   const lastPresentation = useRef<{ skill: SkillModalItem; draft: boolean; editable: boolean } | null>(null);
   useLayoutEffect(() => {
     if (visible && skill) lastPresentation.current = { skill, draft, editable };
@@ -323,150 +333,21 @@ export function SkillDetailModal({
   const presentedDraft = presentation?.draft ?? false;
   const presentedEditable = presentation?.editable ?? false;
 
-  useEffect(() => {
-    const current = ++generation.current;
-    setCopyVisible(false);
-    if (!visible || !skill) return;
-    setFiles([]);
-    setPath('');
-    setContent('');
-    setOriginalContent('');
-    setCopyName(`${skill.name}-custom`);
-    setLoading(true);
-    void loadSynonBiomedSkillFiles(skill.name)
-      .then(async (nextFiles) => {
-        if (generation.current !== current) return;
-        const firstPath = nextFiles.includes('SKILL.md') ? 'SKILL.md' : (nextFiles[0] ?? '');
-        setFiles(nextFiles);
-        setPath(firstPath);
-        if (!firstPath) return;
-        const nextContent = await loadSynonBiomedSkillFileContent(skill.name, firstPath);
-        if (generation.current === current) {
-          setContent(nextContent);
-          setOriginalContent(nextContent);
-        }
-      })
-      .catch((error) => {
-        console.error('Failed to load skill files:', error);
-        if (generation.current === current) {
-          setPath('');
-          setContent('');
-          setOriginalContent('');
-          messageRef.current.error(translationRef.current('settings.skillsSettings.modals.detail.fileLoadFailed'));
-        }
-      })
-      .finally(() => {
-        if (generation.current === current) setLoading(false);
-      });
-    return () => {
-      generation.current += 1;
-    };
-  }, [skill?.name, visible]);
-
-  const selectFile = async (nextPath: string) => {
-    if (!skill) return;
-    const current = ++generation.current;
-    setPath(nextPath);
-    setLoading(true);
-    setContent('');
-    setOriginalContent('');
-    try {
-      const nextContent = await loadSynonBiomedSkillFileContent(skill.name, nextPath);
-      if (generation.current !== current) return;
-      setContent(nextContent);
-      setOriginalContent(nextContent);
-    } catch (error) {
-      if (generation.current !== current) return;
-      console.error('Failed to load skill file content:', error);
-      setContent('');
-      setPath('');
-      messageRef.current.error(translationRef.current('settings.skillsSettings.modals.detail.fileLoadFailed'));
-    } finally {
-      if (generation.current === current) setLoading(false);
-    }
-  };
-
-  const save = async () => {
-    if (!skill || !path) return;
-    setSaving(true);
-    try {
-      await saveSynonBiomedSkillDraftFile(skill.name, path, originalContent, content);
-      setOriginalContent(content);
-      messageRef.current.success(translationRef.current('settings.skillsSettings.modals.detail.draftSaved'));
-      await onChanged();
-    } catch (error) {
-      console.error('Failed to save skill draft:', error);
-      messageRef.current.error(translationRef.current('settings.skillsSettings.modals.detail.draftSaveFailed'));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const publish = async () => {
-    if (!skill) return;
-    setSaving(true);
-    try {
-      await publishSynonBiomedSkillDraft(skill.name, false);
-      messageRef.current.success(translationRef.current('settings.skillsSettings.modals.detail.published'));
-      await onChanged();
-      onClose();
-    } catch (error) {
-      console.error('Failed to publish skill:', error);
-      messageRef.current.error(translationRef.current('settings.skillsSettings.modals.detail.publishFailed'));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const removeDraft = async () => {
-    if (!skill) return;
-    setSaving(true);
-    try {
-      await deleteSynonBiomedSkillDraft(skill.name);
-      messageRef.current.success(translationRef.current('settings.skillsSettings.modals.detail.draftDeleted'));
-      await onChanged();
-      onClose();
-    } catch (error) {
-      console.error('Failed to delete skill draft:', error);
-      messageRef.current.error(translationRef.current('settings.skillsSettings.modals.detail.draftDeleteFailed'));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const duplicate = async () => {
-    if (!skill) return;
-    const normalized = copyName.trim();
-    if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(normalized)) {
-      messageRef.current.warning(translationRef.current('settings.skillsSettings.modals.detail.invalidCopyName'));
-      return;
-    }
-    setCopying(true);
-    try {
-      await duplicateSynonBiomedSkill(skill.name, normalized);
-      messageRef.current.success(translationRef.current('settings.skillsSettings.modals.detail.copyCreated'));
-      setCopyVisible(false);
-      await onChanged();
-      onClose();
-    } catch (error) {
-      console.error('Failed to duplicate skill:', error);
-      messageRef.current.error(translationRef.current('settings.skillsSettings.modals.detail.copyFailed'));
-    } finally {
-      setCopying(false);
-    }
-  };
-
   const footer = presentedDraft ? (
     <div className='flex flex-wrap justify-between gap-8px'>
-      <Button status='danger' disabled={saving} onClick={() => void removeDraft()}>
+      <Button
+        status='danger'
+        disabled={!visible || mutations.busy || mutations.needsRefresh}
+        onClick={() => void mutations.run('delete')}
+      >
         {t('settings.skillsSettings.modals.detail.deleteDraft')}
       </Button>
       <div className='flex gap-8px'>
         <Button onClick={onClose}>{t('common.close')}</Button>
-        <Button loading={saving} disabled={loading || !path} onClick={() => void save()}>
+        <Button loading={saving} disabled={!canWrite} onClick={() => void mutations.run('save')}>
           {t('common.save')}
         </Button>
-        <Button type='primary' loading={saving} disabled={loading || !path} onClick={() => void publish()}>
+        <Button type='primary' loading={saving} disabled={!canWrite} onClick={() => void mutations.run('publish')}>
           {t('settings.skillsSettings.modals.detail.publish')}
         </Button>
       </div>
@@ -477,8 +358,8 @@ export function SkillDetailModal({
       <Button
         type='primary'
         loading={saving}
-        disabled={loading || !path || content === originalContent}
-        onClick={() => void save()}
+        disabled={!canWrite || content === originalContent}
+        onClick={() => void mutations.run('save')}
       >
         {t('common.save')}
       </Button>
@@ -486,7 +367,11 @@ export function SkillDetailModal({
   ) : (
     <div className='flex justify-end gap-8px'>
       <Button onClick={onClose}>{t('common.close')}</Button>
-      <Button type='primary' onClick={() => setCopyVisible(true)}>
+      <Button
+        type='primary'
+        disabled={!visible || mutations.busy || mutations.needsRefresh}
+        onClick={() => setCopyVisible(true)}
+      >
         {t('settings.skillsSettings.modals.detail.createEditableCopy')}
       </Button>
     </div>
@@ -499,13 +384,9 @@ export function SkillDetailModal({
         visible={visible}
         onCancel={onClose}
         afterClose={() => {
-          if (visible) return;
+          if (session.capture()) return;
           lastPresentation.current = null;
-          setFiles([]);
-          setPath('');
-          setContent('');
-          setOriginalContent('');
-          setLoading(false);
+          editor.clear();
           setCopyName('');
         }}
         autoFocus={false}
@@ -516,6 +397,18 @@ export function SkillDetailModal({
       >
         {contextHolder}
         <div className='flex min-h-420px flex-col gap-18px' data-testid='skill-detail-modal'>
+          {mutations.failure && !copyVisible && (
+            <div className='flex items-center justify-between gap-12px'>
+              <p role='alert' className='m-0 text-12px text-[rgb(var(--danger-6))]'>
+                {t(`settings.skillsSettings.modals.detail.${mutations.failure}`)}
+              </p>
+              {mutations.needsRefresh && (
+                <Button disabled={mutations.busy} onClick={() => void mutations.retryRefresh()}>
+                  {t('common.retry')}
+                </Button>
+              )}
+            </div>
+          )}
           {presentedSkill ? (
             <header className='border-b border-arco-2 pb-16px'>
               <div className='flex min-w-0 flex-wrap items-center gap-8px'>
@@ -544,6 +437,7 @@ export function SkillDetailModal({
                   aria-label={t('settings.skillsSettings.modals.detail.fileLabel')}
                   className='w-260px max-w-full'
                   size='small'
+                  disabled={!visible || mutations.busy || mutations.needsRefresh}
                 >
                   {files.map((file) => (
                     <Select.Option key={file} value={file}>
@@ -558,11 +452,22 @@ export function SkillDetailModal({
 
             <div className='relative min-h-360px overflow-hidden border border-arco-2 rd-6px bg-2'>
               {loading ? (
-                <div className='absolute inset-0 z-10 flex items-center justify-center bg-2/80'>
+                <div
+                  role='status'
+                  aria-label={t('common.loading')}
+                  className='absolute inset-0 z-10 flex items-center justify-center bg-2/80'
+                >
                   <Spin />
                 </div>
               ) : null}
-              {!loading && files.length === 0 ? (
+              {editor.status === 'failed' ? (
+                <div className='flex min-h-360px flex-col items-center justify-center gap-12px px-24px text-center'>
+                  <p role='alert' className='m-0 text-13px text-[rgb(var(--danger-6))]'>
+                    {t('settings.skillsSettings.modals.detail.fileLoadFailed')}
+                  </p>
+                  <Button onClick={() => void editor.retry()}>{t('common.retry')}</Button>
+                </div>
+              ) : !loading && files.length === 0 ? (
                 <div className='flex min-h-360px flex-col items-center justify-center px-24px text-center'>
                   <div className='text-13px font-medium text-t-primary'>
                     {t('settings.skillsSettings.modals.detail.fileUnavailableTitle')}
@@ -577,6 +482,7 @@ export function SkillDetailModal({
                   onChange={setContent}
                   aria-label={t('settings.skillsSettings.modals.detail.fileContentLabel')}
                   className='h-full min-h-360px !border-0 !font-mono !text-12px'
+                  disabled={!visible || loading || mutations.busy || mutations.needsRefresh}
                 />
               ) : (
                 <div className='max-h-500px min-h-360px overflow-auto px-18px py-14px text-13px leading-21px'>
@@ -664,15 +570,23 @@ export function SkillDetailModal({
         style={{ width: 480 }}
         footer={
           <div className='flex justify-end gap-8px'>
-            <Button disabled={copying} onClick={() => setCopyVisible(false)}>
-              {t('common.cancel')}
-            </Button>
-            <Button type='primary' loading={copying} onClick={() => void duplicate()}>
+            <Button onClick={() => setCopyVisible(false)}>{t('common.cancel')}</Button>
+            <Button
+              type='primary'
+              loading={copying}
+              disabled={mutations.busy || mutations.needsRefresh}
+              onClick={() => void mutations.run('duplicate', copyName)}
+            >
               {t('settings.skillsSettings.modals.detail.createCopy')}
             </Button>
           </div>
         }
       >
+        {copyVisible && mutations.failure && (
+          <p role='alert' className='mb-12px text-12px text-[rgb(var(--danger-6))]'>
+            {t(`settings.skillsSettings.modals.detail.${mutations.failure}`)}
+          </p>
+        )}
         <Field
           label={t('settings.skillsSettings.modals.detail.copyName')}
           hint={t('settings.skillsSettings.modals.detail.copyHint')}
@@ -682,6 +596,7 @@ export function SkillDetailModal({
             onChange={setCopyName}
             aria-label={t('settings.skillsSettings.modals.detail.copyAria')}
             placeholder='example-custom'
+            disabled={mutations.busy}
           />
         </Field>
       </Modal>

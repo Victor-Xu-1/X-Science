@@ -5078,6 +5078,7 @@ export type I18nKey =
   | 'settings.skillsSettings.modals.detail.publish'
   | 'settings.skillsSettings.modals.detail.publishFailed'
   | 'settings.skillsSettings.modals.detail.published'
+  | 'settings.skillsSettings.modals.detail.refreshFailed'
   | 'settings.skillsSettings.modals.detail.terms'
   | 'settings.skillsSettings.modals.detail.thirdParty'
   | 'settings.skillsSettings.modals.detail.thirdPartyContent'
