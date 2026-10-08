@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "6052f2ecebdf038ae07ba0c13d32339e5f889fa26270b2c10739087bfc8e7433",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "97fd85d98aa81699bb8b73dc5a41fedaea89b3c507f148b9a5300cd88f07d1c6",
+  "additionFingerprintSHA256": "8fb9aa28bc75c31501c3016acc67de3f5006e685b9b4eccd9bb07fbcb3444b8c",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 352,
@@ -6891,8 +6891,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/branding/ProductBrand.css",
-      "sha256": "caa68a7264e2022f9a56cb5f0086c7c6b2da993ae0bf60cf1c56184ba20a7791",
-      "bytes": 640,
+      "sha256": "53cc3a6b643e31a3d725cd981af5309a697deb499bcf7b1190be8fec4a03aed6",
+      "bytes": 726,
       "reason": "Keep the shared mark unmodified and coordinate compact and prominent responsive brand geometry."
     },
     {
