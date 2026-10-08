@@ -46,7 +46,7 @@ import {
 import styles from './onboarding.module.css';
 import { scientificRuntimePresentation } from '@/renderer/utils/scientificRuntimePresentation';
 
-const PRODUCT_ICON = './pwa/icon-192.png?v=9b986028';
+const PRODUCT_ICON = PRODUCT_MARK_SRC;
 type CapabilityTab = 'connectors' | 'skills' | 'runtimes';
 
 const OnboardingFlow: React.FC = () => {
@@ -1282,3 +1282,4 @@ function mergeSelection(
 }
 
 export default OnboardingFlow;
+import { PRODUCT_MARK_SRC } from '@/common/config/productIdentity';

@@ -6,7 +6,7 @@ test('serves the SPA entry consistently from the immutable renderer snapshot', a
 
   responses.forEach((response) => expect(response.status()).toBe(200));
   bodies.forEach((body) => {
-    expect(body).toContain('<title>Synon Biomed</title>');
+    expect(body).toContain('<title>X-Science</title>');
     expect(body).not.toContain('Index of renderer');
   });
 });

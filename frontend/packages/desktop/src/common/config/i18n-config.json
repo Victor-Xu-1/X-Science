@@ -1,6 +1,6 @@
 {
   "referenceLanguage": "en-US",
-  "fallbackLanguage": "zh-CN",
+  "fallbackLanguage": "en-US",
   "supportedLanguages": ["zh-CN", "en-US"],
   "modules": [
     "common",

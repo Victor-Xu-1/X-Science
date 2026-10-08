@@ -227,7 +227,7 @@ describe('groupAssistantsByEnabled', () => {
 });
 
 describe('buildAssistantEditorBackends', () => {
-  it('only exposes Synon Biomed agent backends', () => {
+  it('only exposes X-Science agent backends', () => {
     const backends = buildAssistantEditorBackends(
       [
         {

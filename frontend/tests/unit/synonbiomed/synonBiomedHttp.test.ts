@@ -54,7 +54,7 @@ describe('requestSynonBiomedJson timeout boundary', () => {
         return new Promise<Response>((_resolve, reject) => {
           init?.signal?.addEventListener(
             'abort',
-            () => reject(new DOMException('Synon Biomed request timed out', 'TimeoutError')),
+            () => reject(new DOMException('X-Science request timed out', 'TimeoutError')),
             { once: true }
           );
         });
@@ -97,7 +97,7 @@ describe('requestSynonBiomedJson error boundary', () => {
     await promise.catch((error: unknown) => {
       expect(error).toBeInstanceOf(SynonBiomedHttpError);
       expect(isSynonBiomedHttpError(error)).toBe(true);
-      expect((error as Error).message).toBe('Synon Biomed GET /api/runtime failed (503) [PROVIDER_REJECTED]');
+      expect((error as Error).message).toBe('X-Science GET /api/runtime failed (503) [PROVIDER_REJECTED]');
       expect((error as Error).message).not.toContain('secret');
       expect((error as Error).message).not.toContain('sensitiveValue123456');
     });
@@ -115,7 +115,7 @@ describe('requestSynonBiomedJson error boundary', () => {
     await promise.catch((error: unknown) => {
       expect(isSynonBiomedHttpError(error)).toBe(true);
       expect((error as SynonBiomedHttpError).backendMessage).toBe(expectedMessage);
-      expect((error as Error).message).toBe('Synon Biomed PATCH /api/runtime failed (422)');
+      expect((error as Error).message).toBe('X-Science PATCH /api/runtime failed (422)');
       expect((error as Error).message).not.toContain(expectedMessage);
     });
   });
@@ -130,7 +130,7 @@ describe('requestSynonBiomedJson error boundary', () => {
     await promise.catch((error: unknown) => {
       expect(isSynonBiomedHttpError(error)).toBe(true);
       expect((error as SynonBiomedHttpError).code).toBe('INVALID\nsecret');
-      expect((error as Error).message).toBe('Synon Biomed GET /api/runtime failed (400)');
+      expect((error as Error).message).toBe('X-Science GET /api/runtime failed (400)');
     });
   });
 });

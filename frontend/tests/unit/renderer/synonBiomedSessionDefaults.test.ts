@@ -11,7 +11,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('Synon Biomed session defaults service', () => {
+describe('X-Science session defaults service', () => {
   it('loads typed defaults after validating model IDs against the live model catalog', async () => {
     const fetchMock = vi
       .fn<typeof fetch>()

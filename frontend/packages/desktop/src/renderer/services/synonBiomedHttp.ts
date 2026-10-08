@@ -37,7 +37,7 @@ const createRequestSignal = (signal: AbortSignal | undefined, timeoutMs: number 
 
   timer = setTimeout(() => {
     if (!controller.signal.aborted) {
-      controller.abort(new DOMException('Synon Biomed request timed out', 'TimeoutError'));
+      controller.abort(new DOMException('X-Science request timed out', 'TimeoutError'));
     }
     cleanup();
   }, timeoutMs);
@@ -98,7 +98,7 @@ export class SynonBiomedHttpError extends Error {
     }
     const diagnosticCode = ERROR_CODE_PATTERN.test(code) ? code : '';
     super(
-      `Synon Biomed ${safeMethod(method)} ${safePath(path)} failed (${status})${diagnosticCode ? ` [${diagnosticCode}]` : ''}`
+      `X-Science ${safeMethod(method)} ${safePath(path)} failed (${status})${diagnosticCode ? ` [${diagnosticCode}]` : ''}`
     );
     this.name = 'SynonBiomedHttpError';
     this.status = status;

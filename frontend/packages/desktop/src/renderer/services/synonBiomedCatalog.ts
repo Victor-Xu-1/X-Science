@@ -57,7 +57,7 @@ export type SynonBiomedBackendProjectCatalog = {
 };
 
 export type SynonBiomedCatalog = {
-  product: 'Synon Biomed' | string;
+  product: 'X-Science' | string;
   runtime: {
     runtimeAssetsDir: string;
     agents: CountedNames;
@@ -195,7 +195,7 @@ export class SynonBiomedAssistantCatalogError extends Error {
   readonly code = 'ASSISTANT_CATALOG_LOAD_FAILED' as const;
 
   constructor(cause: unknown) {
-    super('Synon Biomed assistant catalog is unavailable', { cause });
+    super('X-Science assistant catalog is unavailable', { cause });
     this.name = 'SynonBiomedAssistantCatalogError';
   }
 }
@@ -273,7 +273,7 @@ export async function createSynonBiomedProject(
 
   const payload = (await response.json()) as { project?: SynonBiomedBackendProject };
   if (!payload.project?.projectId || !payload.project.name) {
-    throw new SynonBiomedCatalogError(response.status, 'Synon Biomed project create response is invalid');
+    throw new SynonBiomedCatalogError(response.status, 'X-Science project create response is invalid');
   }
 
   return toSynonBiomedBackendProjectWorkspaceOption(payload.project);
@@ -320,7 +320,7 @@ export function buildSynonBiomedIntegrationSurfaces(): SynonBiomedIntegrationSur
 export function buildSynonBiomedSkills(catalog: SynonBiomedCatalog): SynonBiomedSkillInfo[] {
   return catalog.runtime.skills.names.map((skillName) => ({
     name: skillName,
-    description: `Synon Biomed skill from runtime assets: ${skillName}.`,
+    description: `X-Science skill from runtime assets: ${skillName}.`,
     location: `${catalog.runtime.runtimeAssetsDir}/skills/${skillName}/SKILL.md`,
     relative_location: `synonbiomed/skills/${skillName}/SKILL.md`,
     is_auto_inject: false,
@@ -394,8 +394,8 @@ export function buildSynonBiomedAssistants(catalog: SynonBiomedCatalog): Assista
   return agentNames.map((agentName, index) => {
     const id = `synonbiomed:${toSynonBiomedAgentSlug(agentName)}`;
     const displayName = toSynonBiomedAgentDisplayName(agentName);
-    const description = `Synon Biomed expert agent connected through ${catalog.backend.baseUrl}.`;
-    const zhDescription = `通过 ${catalog.backend.baseUrl} 接入的 Synon Biomed 专家 Agent。`;
+    const description = `X-Science expert agent connected through ${catalog.backend.baseUrl}.`;
+    const zhDescription = `通过 ${catalog.backend.baseUrl} 接入的 X-Science 专家 Agent。`;
 
     return {
       id,
@@ -421,10 +421,10 @@ export function buildSynonBiomedAssistants(catalog: SynonBiomedCatalog): Assista
       enabled_skills: [] as string[],
       custom_skill_names: [] as string[],
       disabled_builtin_skills: [] as string[],
-      context: `Use the Synon Biomed backend agent ${agentName} for biomedical research workflows.`,
+      context: `Use the X-Science backend agent ${agentName} for biomedical research workflows.`,
       context_i18n: {
-        'en-US': `Use the Synon Biomed backend agent ${agentName} for biomedical research workflows.`,
-        'zh-CN': `使用 Synon Biomed 后端专家 ${agentName} 处理生物医药研究任务。`,
+        'en-US': `Use the X-Science backend agent ${agentName} for biomedical research workflows.`,
+        'zh-CN': `使用 X-Science 后端专家 ${agentName} 处理生物医药研究任务。`,
       },
       prompts: [] as string[],
       prompts_i18n: {},
@@ -433,7 +433,7 @@ export function buildSynonBiomedAssistants(catalog: SynonBiomedCatalog): Assista
       agent_status_message:
         agentStatus === 'online'
           ? undefined
-          : `Synon Biomed backend status is ${catalog.backend.health.status || 'unknown'}.`,
+          : `X-Science backend status is ${catalog.backend.health.status || 'unknown'}.`,
       deletable: false,
     } satisfies Assistant;
   });
@@ -469,7 +469,7 @@ export async function loadSynonBiomedAssistants(fetchImpl: FetchLike = fetch): P
 async function readErrorMessage(response: Response): Promise<string> {
   const text = await response.text();
   if (!text.trim()) {
-    return `Synon Biomed catalog request failed with HTTP ${response.status}`;
+    return `X-Science catalog request failed with HTTP ${response.status}`;
   }
 
   try {
@@ -517,7 +517,7 @@ function buildSynonBiomedMcpServer(runtimeAssetsDir: string, serverName: string)
   return {
     id: `synonbiomed:mcp:${serverName}`,
     name: serverName,
-    description: `Synon Biomed MCP server from runtime assets: ${serverName}.`,
+    description: `X-Science MCP server from runtime assets: ${serverName}.`,
     enabled: true,
     transport,
     created_at: 0,

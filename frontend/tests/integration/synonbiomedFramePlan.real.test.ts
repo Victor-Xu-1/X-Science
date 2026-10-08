@@ -5,7 +5,7 @@ import { createRealConversationFixture } from './synonbiomedRealConversationFixt
 
 const gatewayBaseUrl = process.env.SYNON_BIOMED_GATEWAY_URL ?? 'http://127.0.0.1:8766';
 
-describe('Synon Biomed frame plan gateway', () => {
+describe('X-Science frame plan gateway', () => {
   it('discovers a real plan artifact attached to an isolated completed frame', async () => {
     const conversation = await createRealConversationFixture({ gatewayBaseUrl });
     let plan: RealArtifactFixture | null = null;

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the single-tree Synon Biomed product identity control plane."""
+"""Validate the single-tree X-Science product identity control plane."""
 
 from __future__ import annotations
 
@@ -13,13 +13,17 @@ import subprocess
 import sys
 from typing import Any
 
+if __package__:
+    from .product_version import ProductVersion
+else:
+    from product_version import ProductVersion
+
 
 IDENTITY_SCHEMA = "synon.product-identity.v1"
 REFERENCE_SCHEMA = "synon.governance.product-identity-reference.v1"
 RELEASE_POLICY_SCHEMA = "synon.governance.release-policy.v1"
 MATRIX_SCHEMA = "synon.governance.product-identity-consumers.v4"
 SEMVER = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
-ACTIVE_RELEASE_LINE = re.compile(r"^0\.1\.(0|[1-9][0-9]*)$")
 SLUG = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 SCHEMA_CONST = re.compile(r"(?m)^\s*const\s+workspaceSchemaVersion\s*=\s*([0-9]+)\s*$")
 RETIRED_VERSIONED_RUNTIME_PREFIXES = (
@@ -177,6 +181,8 @@ def _repository_paths(repo: pathlib.Path) -> list[str]:
 
 
 def _contains_term(path: pathlib.Path, terms: tuple[bytes, ...]) -> bool:
+    if not terms:
+        return False
     overlap = max(len(term) for term in terms) - 1
     tail = b""
     try:
@@ -249,8 +255,10 @@ def validate_authority(authority: dict[str, Any]) -> None:
         raise IdentityError("identity_authority_value_invalid")
     if type(version) is not str or not SEMVER.fullmatch(version):
         raise IdentityError("identity_authority_value_invalid")
-    if not ACTIVE_RELEASE_LINE.fullmatch(version):
-        raise IdentityError("identity_authority_version_line_invalid")
+    try:
+        ProductVersion.parse(version)
+    except ValueError as error:
+        raise IdentityError("identity_authority_version_counter_invalid") from error
     if type(slug) is not str or not SLUG.fullmatch(slug):
         raise IdentityError("identity_authority_value_invalid")
 
@@ -310,7 +318,7 @@ def validate_release_policy(policy: dict[str, Any]) -> None:
     if (
         policy.get("authority_owner") != "user"
         or policy.get("operator_role") != "release-operator"
-        or policy.get("repository") != "Victor-Xu-1/synon-biomed"
+        or policy.get("repository") != "Victor-Xu-1/X-Science"
         or policy.get("product_identity_authority") != "product-identity.json"
     ):
         raise IdentityError("identity_release_policy_authority_invalid")
@@ -319,7 +327,7 @@ def validate_release_policy(policy: dict[str, Any]) -> None:
     if candidate != {
         "schema": "synon.release-candidate.v1",
         "workflow": ".github/workflows/quality.yml",
-        "artifact_name_prefix": "synon-biomed-release-candidate-",
+        "artifact_name_prefix": "x-science-release-candidate-",
         "required_platforms": ["linux-amd64", "windows-amd64"],
         "build_once": True,
     }:
@@ -505,8 +513,10 @@ def audit(
     validate_reference(reference)
     validate_release_policy(release_policy)
     validate_matrix(matrix, reference)
-    if authority["version"] in matrix["legacy_version_terms"]:
-        raise IdentityError("identity_authority_legacy_version")
+    # A future counter value can equal a historical label. The exact PR
+    # transition gate forbids jumps; the current authority is not a legacy
+    # drift. Derived-code checks still reject literals of the current version.
+    retired_versions = [term for term in matrix["legacy_version_terms"] if term != authority["version"]]
     derived = derive_identity(authority)
     drifts: list[dict[str, str]] = []
     checked: set[tuple[str, str, str]] = set()
@@ -525,7 +535,7 @@ def audit(
                 text = _safe(repo, path, "identity_projection_path_invalid").read_text(encoding="utf-8")
             except (OSError, UnicodeDecodeError) as exc:
                 raise IdentityError("identity_projection_read_invalid") from exc
-            aligned = text.count(derived["version"]) == count and all(term not in text for term in matrix["legacy_version_terms"])
+            aligned = text.count(derived["version"]) == count and all(term not in text for term in retired_versions)
         elif kind == "go-embed-authority" and set(projection) == {"path", "kind", "authority_path"}:
             authority_path = projection.get("authority_path")
             if authority_path != matrix["authority_path"]:
@@ -558,7 +568,7 @@ def audit(
                 raise IdentityError("identity_projection_read_invalid") from exc
             code, _ = _go_source_without_comments(text)
             aligned = all(marker in code for marker in markers) and not _identity_literal_present(
-                code, derived, matrix["legacy_version_terms"],
+                code, derived, retired_versions,
             )
         elif kind == "text-derived-consumer" and set(projection) == {"path", "kind", "required_markers"}:
             markers = projection.get("required_markers")
@@ -573,7 +583,7 @@ def audit(
             except (OSError, UnicodeDecodeError) as exc:
                 raise IdentityError("identity_projection_read_invalid") from exc
             aligned = all(marker in text for marker in markers) and not _identity_literal_present(
-                text, derived, matrix["legacy_version_terms"],
+                text, derived, retired_versions,
             )
         else:
             raise IdentityError("identity_projection_shape_invalid")
@@ -608,7 +618,7 @@ def audit(
     for consumer in matrix["consumer_inventory"]:
         for path in consumer["paths"]:
             _safe(repo, path, "identity_consumer_path_invalid")
-    legacy_terms = tuple(term.encode("utf-8") for term in matrix["legacy_version_terms"])
+    legacy_terms = tuple(term.encode("utf-8") for term in retired_versions)
     for relative in _repository_paths(repo):
         path = repo.joinpath(*pathlib.PurePosixPath(relative).parts)
         try:

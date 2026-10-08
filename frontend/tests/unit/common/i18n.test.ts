@@ -18,8 +18,8 @@ const localeResources = {
 };
 
 describe('i18n', () => {
-  it('defaults new users to Simplified Chinese', () => {
-    expect(DEFAULT_LANGUAGE).toBe('zh-CN');
+  it('defaults new users and missing translations to English', () => {
+    expect(DEFAULT_LANGUAGE).toBe('en-US');
   });
 
   it('exposes every bundled product language', () => {

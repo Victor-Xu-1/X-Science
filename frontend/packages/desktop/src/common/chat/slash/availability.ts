@@ -8,14 +8,14 @@
  * Input parameters for determining slash command list availability.
  */
 export interface SlashCommandListAvailabilityInput {
-  /** Active Synon Biomed conversation transport. */
+  /** Active X-Science conversation transport. */
   conversation_type?: string;
 }
 
 /**
  * Determines whether the slash command autocomplete list should be enabled.
  *
- * Slash commands are supported by ACP conversations. Synon Biomed is exposed
+ * Slash commands are supported by ACP conversations. X-Science is exposed
  * through the ACP runtime in this product, while retired agent runtimes are
  * kept read-only and must not call runtime tool endpoints.
  *

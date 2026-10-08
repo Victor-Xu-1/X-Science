@@ -37,18 +37,24 @@ fi
 BIN_DIR=$(realpath -e "$BIN_DIR") || fail "unable to resolve user bin directory: $BIN_DIR"
 TARGET="$BIN_DIR/synon"
 
-if [[ -e "$TARGET" || -L "$TARGET" ]]; then
-  if [[ -L "$TARGET" && "$(realpath -e "$TARGET" 2>/dev/null || true)" == "$WRAPPER" ]]; then
-    echo "[synon-install] already installed: $TARGET"
-  else
-    fail "refusing to replace an existing non-Synon command: $TARGET"
+# Preflight both names before writing either link. The legacy launcher shares
+# the same implementation and state; it is not a second runtime owner.
+TARGETS=("$BIN_DIR/x-science" "$TARGET")
+for target in "${TARGETS[@]}"; do
+  if [[ -e "$target" || -L "$target" ]]; then
+    [[ -L "$target" && "$(realpath -e "$target" 2>/dev/null || true)" == "$WRAPPER" ]] ||
+      fail "refusing to replace an existing non-Synon command: $target"
   fi
-else
-  ln -s "$WRAPPER" "$TARGET"
-  echo "[synon-install] installed: $TARGET -> $WRAPPER"
-fi
-
-[[ "$(realpath -e "$TARGET")" == "$WRAPPER" ]] || fail "installed launcher target verification failed"
+done
+for target in "${TARGETS[@]}"; do
+  if [[ -L "$target" ]]; then
+    echo "[synon-install] already installed: $target"
+  else
+    ln -s "$WRAPPER" "$target"
+    echo "[synon-install] installed: $target -> $WRAPPER"
+  fi
+  [[ "$(realpath -e "$target")" == "$WRAPPER" ]] || fail "installed launcher target verification failed"
+done
 case ":${PATH:-}:" in
   *":$BIN_DIR:"*) echo "[synon-install] PATH already contains $BIN_DIR" ;;
   *)
@@ -56,4 +62,4 @@ case ":${PATH:-}:" in
     echo "export PATH=\"$BIN_DIR:\$PATH\""
     ;;
 esac
-echo "[synon-install] next command: synon start"
+echo "[synon-install] next command: x-science start"

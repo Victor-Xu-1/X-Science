@@ -33,7 +33,7 @@ function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json' } });
 }
 
-describe('Synon Biomed workspace settings service', () => {
+describe('X-Science workspace settings service', () => {
   it('forwards scan cancellation through the real fetch boundary', async () => {
     const controller = new AbortController();
     const fetchImpl = vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
@@ -462,7 +462,7 @@ describe('Synon Biomed workspace settings service', () => {
       name: 'SynonBiomedFileImportError',
       status: 413,
       kind: 'too_large',
-      message: 'Synon Biomed file import failed (413) [too_large]',
+      message: 'X-Science file import failed (413) [too_large]',
     });
   });
 

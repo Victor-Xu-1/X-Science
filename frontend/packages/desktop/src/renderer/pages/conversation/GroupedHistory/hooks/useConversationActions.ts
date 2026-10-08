@@ -145,7 +145,7 @@ export const useConversationActions = ({
             refreshHistory();
             Message.success(t('conversation.history.deleteSuccess'));
           } catch (error) {
-            console.error('Failed to remove Synon Biomed session:', diagnostic(error));
+            console.error('Failed to remove X-Science session:', diagnostic(error));
             Message.error(t('conversation.history.deleteFailed'));
             throw error;
           }
@@ -184,9 +184,9 @@ export const useConversationActions = ({
         setSelectedConversationIds(new Set(failedIds));
 
         if (failedIds.length > 0) {
-          console.error('Failed to delete some Synon Biomed sessions:', failedIds.length);
+          console.error('Failed to delete some X-Science sessions:', failedIds.length);
           Message.error(t('conversation.history.deleteFailed'));
-          throw new Error(`Failed to delete ${failedIds.length} Synon Biomed session(s)`);
+          throw new Error(`Failed to delete ${failedIds.length} X-Science session(s)`);
         }
 
         Message.success(t('conversation.history.batchDeleteSuccess', { count: deletedCount }));
@@ -287,7 +287,7 @@ export const useConversationActions = ({
           `${sanitizeFileName(conversation.name || conversation.id)}.synon-session.json`
         );
       } catch (error) {
-        console.error('Failed to export Synon Biomed session:', diagnostic(error));
+        console.error('Failed to export X-Science session:', diagnostic(error));
         Message.error(t('conversation.history.exportFailed'));
       }
     },
@@ -305,7 +305,7 @@ export const useConversationActions = ({
           `${sanitizeFileName(conversation.name || conversation.id)}-artifacts.zip`
         );
       } catch (error) {
-        console.error('Failed to download Synon Biomed session artifacts:', diagnostic(error));
+        console.error('Failed to download X-Science session artifacts:', diagnostic(error));
         Message.error(t('conversation.history.downloadArtifactsFailed'));
       }
     },

@@ -37,11 +37,11 @@ export async function createSynonBiomedBranchSession(
     signal: options.signal,
   });
   if (!response.ok) {
-    throw new Error(`Synon Biomed branch create failed: ${response.status} ${await readError(response)}`);
+    throw new Error(`X-Science branch create failed: ${response.status} ${await readError(response)}`);
   }
   const created: unknown = await response.json();
   const frameId = isRecord(created) ? stringValue(created.frame_id) : '';
-  if (!frameId) throw new Error('Synon Biomed branch create response is invalid');
+  if (!frameId) throw new Error('X-Science branch create response is invalid');
   return { frameId };
 }
 
@@ -66,32 +66,32 @@ export async function askSynonBiomedAsideQuestion(
     signal,
   });
   if (!createResponse.ok) {
-    throw new Error(`Synon Biomed aside create failed: ${createResponse.status} ${await readError(createResponse)}`);
+    throw new Error(`X-Science aside create failed: ${createResponse.status} ${await readError(createResponse)}`);
   }
   const created: unknown = await createResponse.json();
   const frameId = isRecord(created) ? stringValue(created.frame_id) : '';
-  if (!frameId) throw new Error('Synon Biomed aside create response is invalid');
+  if (!frameId) throw new Error('X-Science aside create response is invalid');
 
   const pollIntervalMs = options.pollIntervalMs ?? 750;
   const timeoutMs = options.timeoutMs ?? 120_000;
   const deadline = Date.now() + timeoutMs;
   const pollFrame = async (): Promise<SynonBiomedAsideAnswer> => {
-    if (Date.now() >= deadline) throw new Error('Synon Biomed aside timed out');
+    if (Date.now() >= deadline) throw new Error('X-Science aside timed out');
     const frameResponse = await fetchImpl(`/api/frames/${encodeURIComponent(frameId)}?shallow=true`, {
       headers: { accept: 'application/json' },
       signal,
     });
     if (!frameResponse.ok) {
-      throw new Error(`Synon Biomed aside status failed: ${frameResponse.status} ${await readError(frameResponse)}`);
+      throw new Error(`X-Science aside status failed: ${frameResponse.status} ${await readError(frameResponse)}`);
     }
     const frame: unknown = await frameResponse.json();
-    if (!isRecord(frame)) throw new Error('Synon Biomed aside frame response is invalid');
+    if (!isRecord(frame)) throw new Error('X-Science aside frame response is invalid');
     const output = isRecord(frame.output_data) ? frame.output_data : null;
     const answer = output ? stringValue(output.response) : '';
     if (answer) return { status: 'ok', answer, frameId };
     const status = stringValue(frame.status).toLowerCase();
     if (status === 'failed') {
-      throw new Error((output ? stringValue(output.error) : '') || 'Synon Biomed aside failed');
+      throw new Error((output ? stringValue(output.error) : '') || 'X-Science aside failed');
     }
     if (TERMINAL_STATUSES.has(status)) return { status: 'noAnswer', frameId };
     await abortableDelay(pollIntervalMs, signal);

@@ -36,6 +36,7 @@ BLOCKED_SERVER_PACKAGES = {
 }
 
 ALLOWED_ADAPTATIONS = {
+    "packages/desktop/src/common/chat/slash/availability.ts": "Rename current first-party transport documentation to the current product display without changing command eligibility or protocol identifiers.",
     "packages/desktop/src/renderer/pages/conversation/GroupedHistory/ProjectHistorySection.tsx": "Synchronize the committed project list before visible reorder handles can receive input.",
     "tests/unit/renderer/ProjectHistorySection.dom.test.tsx": "Exercise immediate keyboard input on committed project handles before passive effects flush.",
     'packages/desktop/src/renderer/main.tsx': 'Remove the global runtime monkey-patch import so React, ResizeObserver, requestAnimationFrame, warnings, and errors retain their native observable behavior.',
@@ -120,6 +121,15 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "packages/desktop/src/common/config/productIdentity.ts": "Project the singular root product identity into the browser and centralize the current public repository and original brand mark.",
+    "packages/desktop/src/renderer/components/branding/ProductBrand.tsx": "Render one original approved mark and root-derived name across current workbench entry points.",
+    "packages/desktop/src/renderer/components/branding/ProductBrand.css": "Keep the shared mark unmodified and coordinate compact and prominent responsive brand geometry.",
+    "public/branding/x-science-mark.png": "Use the byte-identical first-party orange mark, with source, revision and checksum recorded in the accompanying provenance.",
+    "public/branding/x-science-favicon.png": "Use the byte-identical approved browser icon, retaining its 32px dimensions and source checksum.",
+    "public/branding/x-science-touch-icon.png": "Use the byte-identical approved 180px touch icon with its original source checksum.",
+    "public/branding/x-science-logo.provenance.json": "Record the original user-approved logo origin, exact source revision, dimensions and copied-asset checksums without rewriting historical artwork provenance.",
+    "tests/unit/renderer/ProductBrand.dom.test.tsx": "Verify one readable current name, an unchanged decorative mark and coordinated compact/prominent presentations.",
+    "tests/unit/renderer/XScienceIdentity.test.ts": "Verify current public identity, browser metadata, PWA references and exact original mark/browser-icon hashes.",
     "tests/fixtures/structureLigands.ts": "Share explicitly synthetic receptor/ligand coordinates across parsed-state and native viewer selection regressions; never substitute them for user artifacts or research results.",
     "packages/desktop/src/common/chat/roundSummary.ts": "Validate durable per-round completion timing and model usage shared by live and historical messages; unavailable telemetry never erases answer text.",
     "packages/desktop/src/common/chat/largeToolResultReference.ts": "Validate immutable same-origin large-result references once for transcript summaries and lazy detail loading; previews never replace source evidence.",
@@ -296,6 +306,9 @@ ALLOWED_ADDITION_RULES = (
 )
 
 ALLOWED_REMOVALS = {
+    "public/pwa/icon-180.png": "Retire the superseded product artwork after the original approved touch icon became the only current browser reference.",
+    "public/pwa/icon-192.png": "Retire the superseded product artwork after all renderer and service-worker references use the approved original orange mark.",
+    "public/pwa/icon-512.png": "Retire the superseded product artwork after the installable application manifest uses the unchanged original 660px mark.",
     "packages/desktop/src/renderer/components/synonBiomed/runtime/ContextUsageIndicator.tsx": "Retire the unused ACP-derived usage ring after the authenticated request-usage card became the single composer authority.",
     "packages/desktop/src/renderer/styles/codex-theme.css": "Rename the shared visual shell to workspace-theme.css while preserving its original import provenance.",
     "packages/desktop/src/renderer/pages/conversation/Messages/acp/MessageAcpToolCall.tsx": "Consolidate tool rendering into the receipt-bound ToolOperationDetail and tool timeline.",
@@ -509,9 +522,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "b340014f3f37f7792cdef8bfca3ca90612c596d5aef615e43dc0ca205ca6a4e3"
-APPROVED_REMOVAL_FINGERPRINT = "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c"
-APPROVED_ADDITION_FINGERPRINT = "6e967cf6e395471b6d4b1e5adfd90aac14dc58361114e5471da01e6bde12b2a7"
+APPROVED_ADAPTATION_FINGERPRINT = "6bcc568cee8cacbe4ca43f7fbf65182402babef2260141e9a37115b2a1d42b01"
+APPROVED_REMOVAL_FINGERPRINT = "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119"
+APPROVED_ADDITION_FINGERPRINT = "bb07e2f92fbf90102d2b3bdbe34e50e2e4aa733880416bc9a11b2fd139ac6fd1"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

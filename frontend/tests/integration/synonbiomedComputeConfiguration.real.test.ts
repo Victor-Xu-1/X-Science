@@ -4,7 +4,7 @@ import { createSynonBiomedTestFetch } from './synonbiomedTestAuth';
 
 const gatewayBaseUrl = process.env.SYNON_BIOMED_GATEWAY_URL ?? 'http://127.0.0.1:8766';
 
-describe('Synon Biomed real compute configuration gateway', () => {
+describe('X-Science real compute configuration gateway', () => {
   it('loads the native v1.1 Modal and BioNeMo configuration contracts', async () => {
     const authenticatedFetch = await createSynonBiomedTestFetch(gatewayBaseUrl);
     const fetchImpl: typeof fetch = (input, init) => {

@@ -1,6 +1,6 @@
 # Memory architecture
 
-Synon Biomed implements one workspace memory lifecycle. It does not maintain a parallel session-summary memory, file mirror, or runtime-KV memory ledger.
+X-Science implements one workspace memory lifecycle. It does not maintain a parallel session-summary memory, file mirror, or runtime-KV memory ledger.
 
 ## Authorities
 

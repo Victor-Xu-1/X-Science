@@ -134,7 +134,7 @@ export async function setSynonBiomedProjectMemoryEnabled(
   options: SynonBiomedMemoryOptions = {}
 ): Promise<void> {
   const normalizedProjectId = projectId.trim();
-  if (!normalizedProjectId) throw new Error('Synon Biomed project id is required');
+  if (!normalizedProjectId) throw new Error('X-Science project id is required');
   await requestJson(
     `/api/projects/${encodeURIComponent(normalizedProjectId)}/memory/enabled`,
     jsonRequest('PUT', { enabled }),
@@ -148,7 +148,7 @@ export async function createSynonBiomedMemory(
 ): Promise<SynonBiomedMemoryRow> {
   const payload = await requestJson('/api/memories', jsonRequest('POST', input), options);
   const row = toMemoryRow(payload);
-  if (!row) throw new Error('Synon Biomed memory create response is invalid');
+  if (!row) throw new Error('X-Science memory create response is invalid');
   return row;
 }
 
@@ -187,7 +187,7 @@ export async function createSynonBiomedMemoryCategory(
     options
   );
   const category = toMemoryCategory(payload);
-  if (!category) throw new Error('Synon Biomed memory category create response is invalid');
+  if (!category) throw new Error('X-Science memory category create response is invalid');
   return category;
 }
 
@@ -233,7 +233,7 @@ async function requestJson(path: string, init: RequestInit, options: SynonBiomed
   if (!response.ok) {
     const payload = asRecord(await response.json().catch((): null => null));
     const detail = stringValue(payload?.detail) || stringValue(payload?.error);
-    throw new Error(`Synon Biomed memory request failed: ${response.status} ${path}${detail ? ` ${detail}` : ''}`);
+    throw new Error(`X-Science memory request failed: ${response.status} ${path}${detail ? ` ${detail}` : ''}`);
   }
   if (response.status === 204) return undefined;
   const text = await response.text();

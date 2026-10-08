@@ -142,5 +142,5 @@ function validDate(value: unknown): value is string {
 }
 
 function invalidStreamingResponse(): Error {
-  return new Error('Synon Biomed streaming response is invalid');
+  return new Error('X-Science streaming response is invalid');
 }

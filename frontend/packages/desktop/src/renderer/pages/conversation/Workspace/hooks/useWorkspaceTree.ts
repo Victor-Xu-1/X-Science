@@ -87,7 +87,7 @@ export function useWorkspaceTree({ workspace, conversation_id, projectId, eventP
   const isSynonBiomedWorkspace = workspace.startsWith('synonbiomed://');
   const canonicalProjectId = projectId?.trim() ?? '';
   const canLoadWorkspace = !isSynonBiomedWorkspace || (ownerId !== '' && canonicalProjectId !== '');
-  // Synon Biomed's project-files endpoint is filtered by the active
+  // X-Science's project-files endpoint is filtered by the active
   // conversation on the backend. Keep both the snapshot and page caches
   // conversation-scoped so switching conversations never flashes another
   // conversation's files while the new page is loading.

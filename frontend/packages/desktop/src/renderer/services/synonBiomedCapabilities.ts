@@ -402,7 +402,7 @@ export function toSynonAIAssistant(agent: SynonBiomedAgent, index: number): Assi
     prompts_i18n: {},
     models: [],
     agent_status: status,
-    agent_status_message: agent.healthy ? undefined : 'Synon Biomed expert is not healthy.',
+    agent_status_message: agent.healthy ? undefined : 'X-Science expert is not healthy.',
     deletable: source === 'user',
   };
 }
@@ -422,7 +422,7 @@ async function requestJson<T>(path: string, options: SynonBiomedCapabilityOption
     if (isSynonBiomedHttpError(error)) {
       throw new SynonBiomedCapabilityError(
         error.status,
-        error.backendMessage || `Synon Biomed capability request failed with HTTP ${error.status}`
+        error.backendMessage || `X-Science capability request failed with HTTP ${error.status}`
       );
     }
     throw error;
@@ -539,7 +539,7 @@ function toOptionalMcp(value: unknown): SynonBiomedOptionalMcp | null {
 
 function requireOptionalMcp(value: unknown): SynonBiomedOptionalMcp {
   const item = toOptionalMcp(value);
-  if (!item) throw new Error('Synon Biomed returned an invalid optional MCP response.');
+  if (!item) throw new Error('X-Science returned an invalid optional MCP response.');
   return item;
 }
 
@@ -599,7 +599,7 @@ function toCustomMcpServer(value: unknown): SynonBiomedCustomMcpServer | null {
 
 function requireCustomMcpServer(value: unknown): SynonBiomedCustomMcpServer {
   const server = toCustomMcpServer(value);
-  if (!server) throw new Error('Synon Biomed returned an invalid MCP server response.');
+  if (!server) throw new Error('X-Science returned an invalid MCP server response.');
   return server;
 }
 

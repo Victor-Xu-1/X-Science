@@ -24,7 +24,7 @@ vi.mock('@arco-design/web-react', () => ({
 afterEach(cleanup);
 
 describe('WorkspaceTabBar', () => {
-  it('removes the local filesystem changes tab from read-only Synon Biomed projects', () => {
+  it('removes the local filesystem changes tab from read-only X-Science projects', () => {
     render(
       <WorkspaceTabBar
         t={(key) => key}

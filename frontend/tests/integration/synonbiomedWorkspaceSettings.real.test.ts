@@ -12,7 +12,7 @@ import { createSynonBiomedTestFetch } from './synonbiomedTestAuth';
 const backendBaseUrl = process.env.SYNON_BIOMED_BACKEND_URL ?? 'http://127.0.0.1:8766';
 const gatewayBaseUrl = process.env.SYNON_BIOMED_GATEWAY_URL ?? 'http://127.0.0.1:8766';
 
-describe('Synon Biomed workspace settings real integration', () => {
+describe('X-Science workspace settings real integration', () => {
   it('reads network, permission, credential and storage state from the live v1.1-compatible backend', async () => {
     const options = {
       baseUrl: backendBaseUrl,

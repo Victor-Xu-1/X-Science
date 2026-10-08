@@ -386,7 +386,7 @@ describe('MarkdownView local file links', () => {
     expect(screen.getByRole('img', { name: 'CRBN binding overview' })).toHaveAttribute('src', source);
   });
 
-  it('renders a relative Synon Biomed image through its resolved artifact URL', async () => {
+  it('renders a relative X-Science image through its resolved artifact URL', async () => {
     let callback: IntersectionObserverCallback | undefined;
     let target: Element | undefined;
     vi.stubGlobal(

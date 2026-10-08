@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { resolveSynonBiomedMcpDescription } from '@/renderer/services/mcp/synonBiomedMcpDescriptions';
 
-describe('Synon Biomed MCP descriptions', () => {
+describe('X-Science MCP descriptions', () => {
   it.each(['synon-research', 'open-targets-official', 'tamarind-bio', 'adaptyv-cloud-lab', 'idc-rest'])(
     'localizes the installed %s connector',
     (name) => {

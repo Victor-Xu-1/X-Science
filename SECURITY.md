@@ -1,14 +1,14 @@
 # Security policy
 
 Help us protect research data, credentials, workspaces, and the people using
-Synon Biomed. Please report exploitable security issues privately.
+X-Science. Please report exploitable security issues privately.
 
 安全漏洞请私下报告，不要把利用细节、访问令牌、个人数据或未公开研究发到公开 Issue、
 Pull Request 或截图中。
 
 ## Reporting a vulnerability
 
-1. Open this repository's [Security page](https://github.com/Victor-Xu-1/synon-biomed/security).
+1. Open this repository's [Security page](https://github.com/Victor-Xu-1/X-Science/security).
    If **Report a vulnerability** is available, use it to submit a private
    advisory.
 2. If private reporting is unavailable, contact the
@@ -37,9 +37,12 @@ the impact, and coordinate a fix or mitigation. Release notes should identify
 affected versions and remediation without exposing private report contents.
 This policy does not promise a response deadline.
 
-The current development and release line is `v0.1.x`; see the
-[versioning policy](docs/governance/versioning.md). A branch checkout is not a
-published release. Any security backport must be verifiable without weakening
+The current development version is defined by
+[`product-identity.json`](product-identity.json). The per-PR counter can carry
+into later minor and major numbers; see the
+[versioning policy](docs/governance/versioning.md). Published releases identify
+their own exact versions; a branch checkout is not a published release.
+Any security backport must be verifiable without weakening
 the current security boundary; do not assume that every historical revision
 receives fixes.
 

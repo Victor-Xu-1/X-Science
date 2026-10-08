@@ -8,8 +8,8 @@
     "selectModel": "Select Model",
     "useCliModel": "Select Model",
     "modelSwitchNotSupported": "Model list will be available after first connection. Send a message to connect and load available models.",
-    "assistantUnavailable": "Synon Biomed expert information is still loading. Please try again.",
-    "synonBiomedOnly": "Only Synon Biomed experts are supported.",
+    "assistantUnavailable": "X-Science expert information is still loading. Please try again.",
+    "synonBiomedOnly": "Only X-Science experts are supported.",
     "modelListLoading": "Loading models",
     "modelListUnavailable": "Model list unavailable",
     "modelListUnavailableHint": "The live model list failed to load. Click to retry.",
@@ -21,10 +21,10 @@
     "clearWorkspace": "Remove project",
     "openFolder": "Open Folder",
     "none": "None",
-    "quickActionsTitle": "What can Synon Biomed do?",
+    "quickActionsTitle": "What can X-Science do?",
     "quickActionFeedback": "Report Issue",
     "quickActionStar": "Like us? Give us a star!",
-    "skillsMarket": "Synon Biomed Skills Market",
+    "skillsMarket": "X-Science Skills Market",
     "skillsMarketDesc": "Search and activate community Skills on demand. Configure once, available for all agents.",
     "skillsMarketDetails": "View More >>"
   },
@@ -411,7 +411,7 @@
       },
       "MCP_HTTP_RESPONSE_READ_FAILED": {
         "title": "Failed to read the MCP service response",
-        "body": "Synon Biomed could not read the MCP service response. Retry once, and review the tool runtime if it persists."
+        "body": "X-Science could not read the MCP service response. Retry once, and review the tool runtime if it persists."
       },
       "MCP_TOOL_REMOTE_ERROR": {
         "title": "The MCP service rejected the request",
@@ -419,11 +419,11 @@
       },
       "MCP_TOOL_RESPONSE_UNEXPECTED": {
         "title": "The MCP service returned an unexpected response",
-        "body": "Synon Biomed received an invalid MCP tool response. Retry once, and inspect the MCP service if it persists."
+        "body": "X-Science received an invalid MCP tool response. Retry once, and inspect the MCP service if it persists."
       },
       "MCP_TCP_READ_FAILED": {
         "title": "Failed to read from the MCP service",
-        "body": "Synon Biomed could not read the MCP service transport. Retry once, and verify the MCP service is running."
+        "body": "X-Science could not read the MCP service transport. Retry once, and verify the MCP service is running."
       }
     }
   },
@@ -971,7 +971,7 @@
       "responseRequired": "Your response is required",
       "stageRecorded": "Plan steps recorded complete: {{count}}",
       "stageRemaining": "Plan steps still open: {{count}}",
-      "decideForMe": "Let Synon Biomed decide",
+      "decideForMe": "Let X-Science decide",
       "decideForMeDescription": "Choose the best option using the current task context.",
       "customSelections": "Custom selections",
       "customLabel": "Custom:",
@@ -1000,10 +1000,10 @@
       "branchCreated": "Created a new conversation branch from this question",
       "changeFailed": "Failed to change the answer.",
       "editHint": "Changing the answer reruns from this question in a new conversation branch.",
-      "deferred": "Synon Biomed decided",
+      "deferred": "X-Science decided",
       "discussed": "Further discussion requested",
       "unavailable": "Response unavailable",
-      "skipped": "Skipped; Synon Biomed continued without an answer",
+      "skipped": "Skipped; X-Science continued without an answer",
       "label": "Previous answer",
       "editAnswer": "Edit answer"
     },
@@ -1048,7 +1048,7 @@
       "approvalSubmitFailed": "Failed to submit the permission decision.",
       "answerSkipped": "Question skipped",
       "discussionRequested": "Further discussion requested",
-      "delegatedDecision": "Synon Biomed will decide",
+      "delegatedDecision": "X-Science will decide",
       "answerSubmitted": "Answer submitted",
       "answerSubmitFailed": "Failed to submit the answer.",
       "noPlanAvailable": "This conversation has no task plan to view",
@@ -1314,7 +1314,7 @@
       "toolCall": "Tool call",
       "labels": {
         "user": "You",
-        "assistant": "Synon Biomed",
+        "assistant": "X-Science",
         "thinking": "Thinking",
         "tool": "Tool",
         "status": "Status"
@@ -1401,7 +1401,7 @@
   "projectCommandPalette": {
     "partialUnavailable": "Some project contents are temporarily unavailable.",
     "newTask": "New task",
-    "newTaskDescription": "Start a new Synon Biomed session",
+    "newTaskDescription": "Start a new X-Science session",
     "openProject": "Open project",
     "session": "Session",
     "file": "File",

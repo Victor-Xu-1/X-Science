@@ -1008,7 +1008,7 @@ describe('AcpSendBox', () => {
     expect(messageErrorMock).toHaveBeenCalledWith('当前任务缺少运行标识，无法停止。请刷新运行状态后重试。');
   });
 
-  it('cancels a Synon Biomed frame when the live task is ahead of the conversation turn projection', async () => {
+  it('cancels a X-Science frame when the live task is ahead of the conversation turn projection', async () => {
     runtimeViewMock.activeTurnId = null;
 
     await render(<AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />);

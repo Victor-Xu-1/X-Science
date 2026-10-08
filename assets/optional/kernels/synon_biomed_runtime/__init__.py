@@ -1,4 +1,4 @@
-"""Trusted first-party helpers shipped with the Synon Biomed kernel runtime."""
+"""Trusted first-party helpers shipped with the X-Science kernel runtime."""
 
 from .cheminfo_render import (
     render_molecule_images,

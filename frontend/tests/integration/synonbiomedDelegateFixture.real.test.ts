@@ -19,7 +19,7 @@ type NativeSubagentEvent = {
   wallSeconds?: number;
 };
 
-describe.runIf(Boolean(fixtureBaseUrl))('Synon Biomed delegate child-frame fixture integration', () => {
+describe.runIf(Boolean(fixtureBaseUrl))('X-Science delegate child-frame fixture integration', () => {
   it('projects a real delegate turn and opens the linked child conversation', async () => {
     const parentPage = await getJson<{ items: NativeMessage[] }>(
       '/api/conversations/delegate-fixture-parent/messages?limit=50'

@@ -318,9 +318,9 @@ export async function stageOnboardingTask(
   const assertAuthority = options.assertAuthority ?? (() => undefined);
   assertAuthority();
   const task = input.task.trim();
-  if (task && !input.assistantId.trim()) throw new Error('A Synon Biomed assistant is required');
+  if (task && !input.assistantId.trim()) throw new Error('A X-Science assistant is required');
   const assistantName = input.assistantName.trim();
-  if (task && !assistantName) throw new Error('A Synon Biomed assistant name is required');
+  if (task && !assistantName) throw new Error('A X-Science assistant name is required');
   const fetchImpl = onboardingMutationFetch(options.fetchImpl ?? fetch);
   const uploadedArtifacts: OnboardingUploadedArtifact[] = [];
 

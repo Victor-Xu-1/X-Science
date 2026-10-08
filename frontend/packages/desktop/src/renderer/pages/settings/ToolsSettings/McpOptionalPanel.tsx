@@ -44,7 +44,7 @@ export const McpOptionalPanel: React.FC<Props> = ({ onInstalled }) => {
         }
       } catch (error) {
         if (generation === generationRef.current) {
-          console.error('Failed to load optional Synon Biomed MCPs:', error);
+          console.error('Failed to load optional X-Science MCPs:', error);
           Message.error(t('settings.synonBiomedMcpOptionalLoadError'));
         }
       } finally {
@@ -86,7 +86,7 @@ export const McpOptionalPanel: React.FC<Props> = ({ onInstalled }) => {
           await onInstalled();
         }
       } catch (error) {
-        console.error('Failed to start optional Synon Biomed MCP installation:', error);
+        console.error('Failed to start optional X-Science MCP installation:', error);
         Message.error(t('settings.synonBiomedMcpOptionalInstallError'));
         await refresh(false);
       } finally {

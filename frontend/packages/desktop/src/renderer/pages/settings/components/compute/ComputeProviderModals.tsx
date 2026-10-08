@@ -46,7 +46,7 @@ export const EditProviderModal: React.FC<{
         });
       })
       .catch((error) => {
-        console.error('Failed to load Synon Biomed compute provider details:', error);
+        console.error('Failed to load X-Science compute provider details:', error);
         Message.error(t('settings.computeWorkspace.providerDetailsLoadFailed'));
       })
       .finally(() => {
@@ -73,7 +73,7 @@ export const EditProviderModal: React.FC<{
       });
       await onSaved();
     } catch (error) {
-      console.error('Failed to save Synon Biomed compute provider details:', error);
+      console.error('Failed to save X-Science compute provider details:', error);
       Message.error(t('settings.computeWorkspace.providerDetailsSaveFailed'));
     } finally {
       setSaving(false);

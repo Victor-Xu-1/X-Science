@@ -1192,7 +1192,7 @@ describe('MessageList', () => {
     expect(screen.getByTestId('message-list-loading-surface')).toHaveAttribute('aria-busy', 'true');
     expect(screen.getByTestId('message-list-loading-surface')).toHaveAttribute('role', 'status');
     expect(screen.getByTestId('conversation-loading-indicator')).toBeInTheDocument();
-    expect(screen.queryByAltText('SYNON-Biomed')).not.toBeInTheDocument();
+    expect(screen.queryByAltText('X-Science')).not.toBeInTheDocument();
     expect(screen.queryByTestId('conversation-loading-composer')).not.toBeInTheDocument();
     expect(screen.queryByTestId('message-list-skeleton')).not.toBeInTheDocument();
     expect(screen.queryByText('empty state')).not.toBeInTheDocument();

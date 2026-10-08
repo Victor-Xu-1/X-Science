@@ -52,7 +52,7 @@ export type StreamMessage = {
   turn_id?: string;
 };
 
-// Synon Biomed uses the ACP permission event for interactive confirmation.
+// X-Science uses the ACP permission event for interactive confirmation.
 const PERMISSION_TYPES = new Set(['acp_permission']);
 
 export const createBrowserNotificationController = (deps: BrowserNotificationDeps) => {

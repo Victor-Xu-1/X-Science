@@ -63,7 +63,7 @@ export function aggregateSynonBiomedSkillUsage(entries: unknown[]): SynonBiomedS
 function skillUsageRecords(payload: unknown): unknown[] {
   const root = asRecord(payload);
   const entries = root && Array.isArray(root.usage) ? root.usage : null;
-  if (!entries) throw new Error('Synon Biomed skill usage response is invalid');
+  if (!entries) throw new Error('X-Science skill usage response is invalid');
   return entries;
 }
 
@@ -74,7 +74,7 @@ function parseSkillUsageProjection(entries: unknown[]): SynonBiomedSkillUsageByN
     const name = stringValue(entry?.name).trim();
     const invocationCount = entry?.invocationCount;
     if (!name || typeof invocationCount !== 'number' || !Number.isSafeInteger(invocationCount) || invocationCount < 0) {
-      throw new Error('Synon Biomed skill usage response is invalid');
+      throw new Error('X-Science skill usage response is invalid');
     }
     const lastUsedAt = firstValidTimestamp(entry?.lastUsedAt);
     usageByName[name] = { invocationCount, lastUsedAt };

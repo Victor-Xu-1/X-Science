@@ -50,7 +50,7 @@ const inventoryPayload = {
   },
 };
 
-describe('Synon Biomed notebook service', () => {
+describe('X-Science notebook service', () => {
   it('normalizes the frame-scoped v1.1 live kernel inventory', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ has_history: inventoryPayload.has_history, kernels: inventoryPayload.kernels }), {

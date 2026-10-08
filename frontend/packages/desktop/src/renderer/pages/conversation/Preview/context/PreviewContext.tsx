@@ -40,8 +40,8 @@ export interface PreviewMetadata {
   targetLine?: number; // 打开文件后定位到的目标行 / Target line to reveal after opening
   targetColumn?: number; // 打开文件后定位到的目标列 / Target column to reveal after opening
   missingFile?: boolean; // 文件不存在或无法读取 / Whether the referenced file is missing or unreadable
-  artifactId?: string; // Synon Biomed artifact identity for remote lifecycle operations
-  versionId?: string; // Current Synon Biomed artifact version
+  artifactId?: string; // X-Science artifact identity for remote lifecycle operations
+  versionId?: string; // Current X-Science artifact version
   contentUrl?: string; // Authenticated WebHost content endpoint for remote artifacts
   companionArtifactUrls?: Readonly<Record<string, string>>; // Same deliverable set, keyed by lowercase filename
   projectId?: string;

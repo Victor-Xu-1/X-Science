@@ -171,7 +171,7 @@ export function normalizeSynonBiomedConversationBranches(
   value: unknown
 ): SynonBiomedConversationBranchState {
   const payload = asRecord(value);
-  if (!payload) throw new Error('Synon Biomed returned an invalid branch response');
+  if (!payload) throw new Error('X-Science returned an invalid branch response');
   const responseFrameId = stringValue(payload.root_frame_id);
   if (responseFrameId !== rootFrameId) {
     selectedBranches.delete(rootFrameId);
@@ -180,7 +180,7 @@ export function normalizeSynonBiomedConversationBranches(
   const activeBranchId = stringValue(payload.active_branch_id);
   const generation = integerValue(payload.generation);
   if (!BRANCH_ID_PATTERN.test(activeBranchId) || generation <= 0 || !Array.isArray(payload.branches)) {
-    throw new Error('Synon Biomed returned an invalid branch response');
+    throw new Error('X-Science returned an invalid branch response');
   }
   const branches = payload.branches
     .map((raw): SynonBiomedConversationBranch => {
@@ -195,7 +195,7 @@ export function normalizeSynonBiomedConversationBranches(
         typeof active !== 'boolean' ||
         active !== (id === activeBranchId)
       ) {
-        throw new Error('Synon Biomed returned an invalid branch response');
+        throw new Error('X-Science returned an invalid branch response');
       }
       return {
         id,
@@ -208,7 +208,7 @@ export function normalizeSynonBiomedConversationBranches(
     })
     .toSorted((left, right) => (left.createdAt ?? '').localeCompare(right.createdAt ?? ''));
   if (branches.length === 0 || branches.filter((branch) => branch.active).length !== 1) {
-    throw new Error('Synon Biomed returned an invalid branch response');
+    throw new Error('X-Science returned an invalid branch response');
   }
   const cachedSelection = getSelectedSynonBiomedBranch(rootFrameId);
   const cachedSelectionIsCurrent = cachedSelection ? branches.some((branch) => branch.id === cachedSelection) : false;
@@ -269,7 +269,7 @@ export async function forkSynonBiomedUserMessage(
   const branchId = stringValue(payload?.branch_id);
   const generation = integerValue(payload?.generation);
   if (rootFrameId !== input.rootFrameId || !BRANCH_ID_PATTERN.test(branchId) || generation <= 0) {
-    throw new Error('Synon Biomed returned an invalid fork response');
+    throw new Error('X-Science returned an invalid fork response');
   }
   return { rootFrameId, branchId, generation, status: stringValue(payload?.status) || 'accepted' };
 }
@@ -285,7 +285,7 @@ async function requestJson(path: string, init: RequestInit, fetchImpl: FetchLike
   if (!response.ok) {
     const payload = asRecord(await response.json().catch((): null => null));
     const detail = stringValue(payload?.detail) || stringValue(payload?.message) || stringValue(payload?.error);
-    throw new Error(`Synon Biomed branch request failed: ${response.status}${detail ? ` ${detail}` : ''}`);
+    throw new Error(`X-Science branch request failed: ${response.status}${detail ? ` ${detail}` : ''}`);
   }
   if (response.status === 204) return undefined;
   const text = await response.text();

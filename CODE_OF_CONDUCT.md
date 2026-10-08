@@ -1,6 +1,6 @@
 # Code of conduct
 
-Synon Biomed welcomes people with different scientific, engineering, and lived
+X-Science welcomes people with different scientific, engineering, and lived
 experiences. Our community should make it possible to ask questions, challenge
 an interpretation, and improve a result without attacking the person behind it.
 

@@ -116,7 +116,7 @@ func (reader *localAccountManagementReader) Read(
 		},
 		LoginMethods: accountManagementLoginMethods(reader.accounts, reader.external, reader.localAuth, user.ID),
 		Workspaces: []account.Workspace{{
-			ID: "local-runtime", Name: "Synon Biomed local workspace", Kind: "local",
+			ID: "local-runtime", Name: "X-Science local workspace", Kind: "local",
 			Role: "owner", Status: "active", Current: true,
 		}},
 		Entitlements:   []account.Entitlement{},

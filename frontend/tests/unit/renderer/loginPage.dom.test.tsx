@@ -5,11 +5,11 @@ import LoginPage from '@/renderer/pages/login';
 
 const translations: Record<string, string> = {
   'login.languageToggle': '切换语言',
-  'login.pageTitle': 'Synon Biomed - 登录',
+  'login.pageTitle': 'X-Science - 登录',
   'login.loginTitle': '登录',
   'login.registerTitle': '创建账户',
-  'login.subtitle': '欢迎回到 Synon Biomed 工作台',
-  'login.registerSubtitle': '创建 Synon Biomed 本地工作台账户',
+  'login.subtitle': '欢迎回到 X-Science 工作台',
+  'login.registerSubtitle': '创建 X-Science 本地工作台账户',
   'login.username': '用户名',
   'login.name': '名称',
   'login.email': '邮箱（可选但推荐）',
@@ -80,7 +80,7 @@ vi.mock('@/renderer/services/authProviders', () => ({
   consumeExternalAuthError: authProviderMocks.consumeError,
 }));
 
-describe('Synon Biomed login and registration page', () => {
+describe('X-Science login and registration page', () => {
   beforeEach(() => {
     localStorage.clear();
     login.mockReset();
@@ -133,11 +133,11 @@ describe('Synon Biomed login and registration page', () => {
   it('switches accessibly to registration and validates name, email, and password before the request', async () => {
     render(<LoginPage />);
     expect(screen.queryByText('登录', { selector: '.login-page__title' })).not.toBeInTheDocument();
-    expect(screen.queryByText('欢迎回到 Synon Biomed 工作台')).not.toBeInTheDocument();
+    expect(screen.queryByText('欢迎回到 X-Science 工作台')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '创建新账户' }));
-    expect(screen.getByRole('heading', { name: 'Synon Biomed' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'X-Science' })).toBeVisible();
     expect(screen.queryByText('创建账户')).not.toBeInTheDocument();
-    expect(screen.queryByText('创建 Synon Biomed 本地工作台账户')).not.toBeInTheDocument();
+    expect(screen.queryByText('创建 X-Science 本地工作台账户')).not.toBeInTheDocument();
     expect(screen.getByLabelText('邮箱（可选但推荐）')).toHaveAttribute('type', 'email');
     fireEvent.change(screen.getByLabelText('名称'), { target: { value: 'R' } });
     fireEvent.change(screen.getByLabelText('密码'), { target: { value: 'short' } });

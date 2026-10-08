@@ -6,7 +6,7 @@ const fixtureSkill = 'alphafold2';
 
 type WorkspaceSkill = { name: string; enabled?: boolean };
 
-describe('Synon Biomed skill preferences gateway', () => {
+describe('X-Science skill preferences gateway', () => {
   it('persists a real skill enabled preference and restores the original state', async () => {
     const fetchImpl = await createSynonBiomedTestFetch(gatewayBaseUrl);
     const listSkills = async (): Promise<WorkspaceSkill[]> => {

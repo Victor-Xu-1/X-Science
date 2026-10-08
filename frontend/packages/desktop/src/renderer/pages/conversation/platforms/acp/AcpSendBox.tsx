@@ -1004,7 +1004,7 @@ const AcpSendBox: React.FC<{
   // Pause conversation handler: the backend preserves the checkpoint through cancellation.
   const handleStop = async (): Promise<void> => {
     const requestAuthority = conversationAuthorityRef.current;
-    // Synon Biomed's compatibility cancel endpoint is frame-authority based:
+    // X-Science's compatibility cancel endpoint is frame-authority based:
     // the conversation id is the frame id and the legacy turn_id body field
     // is not used by the server. A queued/resumed task can briefly have a live
     // frame in the task center while the conversation runtime view has not yet
@@ -1150,7 +1150,7 @@ const AcpSendBox: React.FC<{
         disabled={runtimeUnavailable}
         allowSendWhileLoading
         placeholder={t('acp.sendbox.placeholder', {
-          backend: agent_name || 'Synon Biomed',
+          backend: agent_name || 'X-Science',
         })}
         className='z-10 w-full min-w-0 max-w-full'
         onFilesAdded={handleFilesAdded}

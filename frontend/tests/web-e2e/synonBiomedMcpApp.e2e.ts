@@ -7,7 +7,7 @@ import {
   type ScientificWorkspaceFixture,
 } from './synonBiomedScientificFixture';
 
-test.describe('Synon Biomed isolated MCP App viewer', () => {
+test.describe('X-Science isolated MCP App viewer', () => {
   test('opens, saves, and rehydrates a real Ketcher artifact in the isolated resource origin', async ({ page }) => {
     let workspace: ScientificWorkspaceFixture | null = null;
     try {

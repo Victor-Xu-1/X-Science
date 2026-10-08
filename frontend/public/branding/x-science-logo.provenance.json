@@ -1,0 +1,31 @@
+{
+  "schema": "synon.first-party-brand-assets.v1",
+  "product_identity_authority": "../../../product-identity.json",
+  "derivation": "Unmodified byte-for-byte copies of the user's approved orange molecular mark and existing browser icons. No wordmark containing the other product name is used.",
+  "source": {
+    "repository": "https://github.com/Victor-Xu-1/X-DDE",
+    "revision": "2bd48f60c856c58793c29db873a014aa1e4dbd33",
+    "directory": "frontend/public/brand",
+    "ownership": "User-provided first-party brand artwork; original component and license attributions are retained."
+  },
+  "assets": [
+    {
+      "path": "x-science-mark.png",
+      "source_path": "x-dde-mark.png",
+      "sha256": "627c51b57fe4f46f91a3d1effcd87d2698c006da82e8770ffee6404edaeb50fa",
+      "dimensions": [660, 660]
+    },
+    {
+      "path": "x-science-favicon.png",
+      "source_path": "favicon.png",
+      "sha256": "84d52d7f9db7c5b818b8090d9f6d4f12ac35fde064301c3a63910f6ed73bb14a",
+      "dimensions": [32, 32]
+    },
+    {
+      "path": "x-science-touch-icon.png",
+      "source_path": "apple-touch-icon.png",
+      "sha256": "28a7436844353a1b2f728c2b46a6205ca1c73c0f5a5d1a9135181922ad79793c",
+      "dimensions": [180, 180]
+    }
+  ]
+}

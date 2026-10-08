@@ -43,6 +43,11 @@ const bootstrapLocaleData: LocaleData = {
 
 const fallbackBootstrapLocale = bootstrapLocaleData[DEFAULT_LANGUAGE] ?? {};
 
+const localeLoaders = {
+  'en-US': () => import('./locales/en-US/index').then((module) => module.default),
+  'zh-CN': () => import('./locales/zh-CN/index').then((module) => module.default),
+} satisfies Record<SupportedLanguage, () => Promise<Record<string, unknown>>>;
+
 // Full dictionaries are cached separately from the bootstrap resources. A
 // partial locale must never satisfy a later authenticated-workspace load.
 const loadedTranslations = new Map<string, Record<string, unknown>>();
@@ -97,11 +102,9 @@ async function loadLocaleModules(locale: string): Promise<Record<string, unknown
   if (inFlight) return inFlight;
 
   const request = (async () => {
-    const fallback = (await import('./locales/zh-CN/index')).default as Record<string, unknown>;
+    const fallback = await localeLoaders[DEFAULT_LANGUAGE]();
     const modules =
-      normalized === DEFAULT_LANGUAGE
-        ? fallback
-        : mergeWithFallback(fallback, (await import('./locales/en-US/index')).default as Record<string, unknown>);
+      normalized === DEFAULT_LANGUAGE ? fallback : mergeWithFallback(fallback, await localeLoaders[normalized]());
     loadedTranslations.set(normalized, modules);
     return modules;
   })().finally(() => loadingTranslations.delete(normalized));

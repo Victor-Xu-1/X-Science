@@ -2,7 +2,7 @@
 
 [首页](../README.md) · [文档导航](README.md) · [产品介绍](product/README.md) · [使用手册](user-guide.md)
 
-本指南帮助你从一份源码启动自己的 Synon Biomed，完成首次配置，再安全地停止和更新。
+本指南帮助你从一份源码启动自己的 X-Science，完成首次配置，再安全地停止和更新。
 它面向 Ubuntu / Windows WSL 中的源码使用方式；正式安装包另见下方说明。
 已有实例、任务或数据时，请先读“已有安装与第二份源码”，不要直接重复首次安装步骤。
 
@@ -16,7 +16,7 @@
 | 已有打包安装或共享实例 | 不使用源码流程覆盖它；先确认其安装方式、数据目录和负责人。 |
 
 Windows 的 `C:\...` 路径和 Ubuntu 中的 `/home/...` 不是同一套路径写法。
-建议将新源码放在 Ubuntu 用户目录下，例如 `$HOME/src/synon-biomed`。
+建议将新源码放在 Ubuntu 用户目录下，例如 `$HOME/src/X-Science`。
 本指南不会要求卸载、重装、注销或移动已有 WSL，也不要求停止其他服务。
 
 当前科学 kernel 的隔离执行路径需要 Linux/WSL；原生 Windows/macOS 的 Python/R
@@ -64,11 +64,11 @@ Windows 已安装某个工具，不代表 Ubuntu 终端也已配置对应 Linux 
 ```bash
 mkdir -p "$HOME/src"
 cd "$HOME/src"
-git clone https://github.com/Victor-Xu-1/synon-biomed.git
-cd synon-biomed
+git clone https://github.com/Victor-Xu-1/X-Science.git
+cd X-Science
 ```
 
-若 `synon-biomed` 目录已经存在，先检查内容；不要删除它来让克隆成功。
+若 `X-Science` 目录已经存在，先检查内容；不要删除它来让克隆成功。
 GitHub 的源码 ZIP、`make build` 输出和 Actions 制品都不自动等于可安装的正式 Release。
 
 ### Install the launcher · 安装用户级入口
@@ -79,7 +79,8 @@ export PATH="$HOME/.local/bin:$PATH"
 synon help
 ```
 
-安装器只创建当前 Linux 用户的 `$HOME/.local/bin/synon` 符号链接，指向**这份源码**的
+安装器创建当前 Linux 用户的 `$HOME/.local/bin/x-science` 和兼容的
+`$HOME/.local/bin/synon` 两个符号链接，均指向**这份源码**的
 `scripts/dev/synon`；不安装系统服务，也不修改 shell 启动文件。
 上面的 PATH 设置只影响当前终端。新终端找不到命令时，可重新设置该 PATH，
 或在同一源码根目录直接使用 `bash scripts/dev/synon`。
@@ -253,7 +254,7 @@ git pull --ff-only
 
 ## 8. Packaged releases · 什么时候使用安装包
 
-先查看 [GitHub Releases](https://github.com/Victor-Xu-1/synon-biomed/releases)
+先查看 [GitHub Releases](https://github.com/Victor-Xu-1/X-Science/releases)
 是否存在适合你的平台、确实发布的版本及安装资产。本指南不声称当前一定有可下载版本。
 
 如果使用正式包：

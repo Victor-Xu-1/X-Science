@@ -77,7 +77,7 @@ class TestResizeObserver {
   disconnect() {}
 }
 
-describe('Synon Biomed PDF artifact viewer', () => {
+describe('X-Science PDF artifact viewer', () => {
   beforeEach(() => {
     parser.failure = false;
     parser.pageFailure = false;

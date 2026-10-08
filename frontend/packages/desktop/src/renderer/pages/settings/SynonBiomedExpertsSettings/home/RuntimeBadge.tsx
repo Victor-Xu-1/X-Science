@@ -11,7 +11,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 /**
- * Shows which Synon Biomed runtime drives an assistant with a muted label and icon.
+ * Shows which X-Science runtime drives an assistant with a muted label and icon.
  */
 const RuntimeBadge: React.FC<{ assistant: Assistant; framed?: boolean }> = ({ assistant, framed = false }) => {
   const { t } = useTranslation();

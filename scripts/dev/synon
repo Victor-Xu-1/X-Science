@@ -18,7 +18,7 @@ LOCK_FILE="$STATE_DIR/quickstart.lock"
 
 usage() {
   cat <<'EOF'
-Usage: synon <command> [options]
+Usage: x-science <command> [options]
 
 Commands:
   start [options]  Start the source backend and Web host.
@@ -28,6 +28,7 @@ Commands:
 
 Start options are passed to source-quickstart.sh, including --open-browser,
 --state-dir, --backend-port, --web-port, and --timeout-seconds.
+The synon command remains a compatibility alias to this same launcher.
 EOF
 }
 

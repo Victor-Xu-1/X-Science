@@ -16,7 +16,7 @@ const gatewayBaseUrl = process.env.SYNON_BIOMED_GATEWAY_URL ?? 'http://127.0.0.1
 
 type CatalogSkill = { name: string; source?: string };
 
-describe('Synon Biomed skill library gateway', () => {
+describe('X-Science skill library gateway', () => {
   it('reads library metadata and atomically edits/restores a real personal Skill', async () => {
     const fetchImpl = await createSynonBiomedTestFetch(gatewayBaseUrl);
     const options = { baseUrl: gatewayBaseUrl, fetchImpl };

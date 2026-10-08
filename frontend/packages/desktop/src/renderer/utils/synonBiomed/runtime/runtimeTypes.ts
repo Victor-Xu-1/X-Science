@@ -8,7 +8,7 @@ import { ipcBridge } from '@/common';
 import type { TFunction } from 'i18next';
 
 /**
- * SWR key for the Synon Biomed expert diagnostics view (`/api/synonbiomed/experts`).
+ * SWR key for the X-Science expert diagnostics view (`/api/synonbiomed/experts`).
  *
  * The fusion build removed the renderer-side detected-agent candidate cache; business
  * surfaces now consume assistants only. The management view keeps its own
@@ -151,8 +151,8 @@ export type ManagedAgent = Omit<AgentMetadata, 'available' | 'handshake'> & {
 };
 
 /**
- * Fetcher for MANAGED_AGENTS_SWR_KEY, the Synon Biomed expert diagnostics
- * view. The fusion WebUI serves this endpoint from the Synon Biomed
+ * Fetcher for MANAGED_AGENTS_SWR_KEY, the X-Science expert diagnostics
+ * view. The fusion WebUI serves this endpoint from the X-Science
  * backend/runtime catalog instead of generic SynonAI Agent integrations.
  */
 export async function fetchManagedAgents(): Promise<ManagedAgent[]> {

@@ -211,7 +211,7 @@ export function useSynonBiomedConversationSync({
         const hadCurrentRuntime = currentRuntime !== null;
         const runtime = readConversation && !conversationResult.error ? readRuntime(conversation) : currentRuntime;
         if (!runtime) {
-          throw new Error('Synon Biomed conversation runtime is missing');
+          throw new Error('X-Science conversation runtime is missing');
         }
         currentRuntime = runtime;
         initialRouteSnapshotPending = false;

@@ -90,7 +90,7 @@ export async function createSynonBiomedExpertProfile(
     options
   );
   const profile = toExpertProfile(payload);
-  if (!profile) throw new Error('Synon Biomed returned an invalid expert profile');
+  if (!profile) throw new Error('X-Science returned an invalid expert profile');
   return profile;
 }
 
@@ -114,7 +114,7 @@ export async function updateSynonBiomedExpertProfile(
     options
   );
   const profile = toExpertProfile(payload);
-  if (!profile) throw new Error('Synon Biomed returned an invalid expert profile');
+  if (!profile) throw new Error('X-Science returned an invalid expert profile');
   if (profile.enabled !== input.enabled) {
     return setSynonBiomedExpertProfileEnabled(profile.name, input.enabled, options);
   }
@@ -136,7 +136,7 @@ export async function setSynonBiomedExpertProfileEnabled(
     options
   );
   const profile = toExpertProfile(payload);
-  if (!profile) throw new Error('Synon Biomed returned an invalid expert profile');
+  if (!profile) throw new Error('X-Science returned an invalid expert profile');
   return profile;
 }
 
@@ -218,7 +218,7 @@ export async function updateSynonBiomedExpertSkills(
     options
   );
   const profile = toExpertProfile(payload);
-  if (!profile) throw new Error('Synon Biomed returned an invalid expert capability profile');
+  if (!profile) throw new Error('X-Science returned an invalid expert capability profile');
   return profile;
 }
 

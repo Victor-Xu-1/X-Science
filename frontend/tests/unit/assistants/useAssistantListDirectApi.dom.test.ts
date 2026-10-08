@@ -27,7 +27,7 @@ vi.mock('react-i18next', () => ({
 
 import { useAssistantList } from '@/renderer/hooks/assistant/useAssistantList';
 
-describe('useAssistantList direct Synon Biomed API', () => {
+describe('useAssistantList direct X-Science API', () => {
   it('loads visible backend experts through the capability service instead of the legacy catalog facade', async () => {
     mocks.loadSynonBiomedAgents.mockResolvedValue([
       {

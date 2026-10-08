@@ -1,50 +1,39 @@
-"""Version proposals must update product projections without touching dependencies."""
+"""One root authority, registered projections, no post-merge version writer."""
 
-import json
 from pathlib import Path
 import unittest
+
+from scripts.quality.product_version import ProductVersion
+from scripts.packaging.version_provenance import document, projections
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
 class VersionConfigTest(unittest.TestCase):
-    def test_single_product_release_strategy_preserves_review_boundary(self):
-        config = json.loads((ROOT / ".github/release-please-config.json").read_text())
-        self.assertEqual(set(config["packages"]), {"."})
-        product = config["packages"]["."]
-        self.assertEqual(product["release-type"], "go")
-        self.assertEqual(product["versioning"], "always-bump-patch")
-        self.assertRegex(product["initial-version"], r"^0\.1\.(?:0|[1-9][0-9]*)$")
-        self.assertTrue(product["skip-github-release"])
-        self.assertFalse(product["include-component-in-tag"])
-        self.assertTrue(product["include-v-in-tag"])
-        self.assertNotIn("release-as", product)
-        self.assertNotIn("version-file", product)
-        self.assertEqual(product["changelog-path"], "docs/CHANGELOG.md")
-        self.assertNotIn("bump-minor-pre-major", product)
-        self.assertNotIn("bump-patch-for-minor-pre-major", product)
+    def test_every_registered_projection_has_the_current_root_version(self):
+        current = document((ROOT / "product-identity.json").read_bytes())["version"]
+        ProductVersion.parse(current)
+        for path, pointers in projections(ROOT).items():
+            for pointer in pointers:
+                value = document((ROOT / path).read_bytes())
+                for part in pointer.split("/")[1:]:
+                    value = value[part.replace("~1", "/").replace("~0", "~")]
+                self.assertEqual(value, current, (path, pointer))
 
-    def test_all_json_version_projections_are_updated_and_dependencies_are_not(self):
-        config = json.loads((ROOT / ".github/release-please-config.json").read_text())
-        projections = json.loads((ROOT / "docs/governance/product-identity-consumer-matrix.json").read_text())
-        expected = {("product-identity.json", "$.version")}
-        for projection in projections["product_version_projections"]:
-            if projection["kind"] != "json-pointer":
-                continue
-            segments = [s.replace("~1", "/").replace("~0", "~") for s in projection["pointer"].split("/")[1:]]
-            jsonpath = "$" + "".join("." + s if s.isidentifier() else "['" + s + "']" for s in segments)
-            expected.add((projection["path"], jsonpath))
-        extras = config["packages"]["."]["extra-files"]
-        self.assertEqual(len(extras), len(expected))
-        self.assertTrue(all(item["type"] == "json" and not item.get("glob") for item in extras))
-        self.assertEqual({(item["path"], item["jsonpath"]) for item in extras}, expected)
-
-    def test_bot_bookkeeping_is_not_a_runtime_dependency(self):
-        manifest = json.loads((ROOT / ".github/release-please-manifest.json").read_text())
-        authority = json.loads((ROOT / "product-identity.json").read_text())
-        self.assertRegex(authority["version"], r"^0\.1\.(?:0|[1-9][0-9]*)$")
-        self.assertEqual(manifest, {".": authority["version"]})
+    def test_legacy_writer_and_secondary_bookkeeping_are_retired(self):
+        for path in (".github/workflows/version-pr.yml", ".github/release-please-config.json",
+                     ".github/release-please-manifest.json", "scripts/packaging/sync_version_proposal.py"):
+            self.assertFalse((ROOT / path).exists(), path)
         self.assertNotIn("release-please", (ROOT / "identity.go").read_text())
+
+    def test_no_dependency_or_schema_version_is_a_product_projection(self):
+        registered = projections(ROOT)
+        self.assertEqual(registered["product-identity.json"], ["/version"])
+        self.assertEqual(registered["frontend/package.json"], ["/version"])
+        self.assertEqual(registered["frontend/packages/desktop/package.json"], ["/version"])
+        self.assertEqual(registered["frontend/package-lock.json"],
+                         ["/version", "/packages//version", "/packages/packages~1desktop/version"])
+        self.assertEqual(len(registered), 4)
 
 
 if __name__ == "__main__":

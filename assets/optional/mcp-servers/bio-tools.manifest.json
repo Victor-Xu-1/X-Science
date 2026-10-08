@@ -1185,8 +1185,8 @@
         },
         {
             "path": "lib/mcp_synon_research/bridge.py",
-            "sha256": "ee10d6426c0be8011fbf5297209a7bcdb4dcc01c2cc439ee78f4201e8ab6ab8b",
-            "bytes": 24112
+            "sha256": "c4b56c6e2169a4a076780842b08afd3d50ea14e6aad4f99aaf78f28ceee3994b",
+            "bytes": 24109
         },
         {
             "path": "lib/mcp_synon_research/server.py",

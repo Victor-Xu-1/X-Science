@@ -46,7 +46,7 @@ export async function loadSynonBiomedSessionOptions(
       : await requestJson(`/api/frames/${encodeURIComponent(rootFrameId)}`, { method: 'GET' }, fetchImpl);
   const payloadRecord = asRecord(framePayload);
   const frame = asRecord(payloadRecord?.frame) ?? payloadRecord;
-  if (!frame) throw new Error('Synon Biomed returned invalid session data');
+  if (!frame) throw new Error('X-Science returned invalid session data');
 
   const inputData = asRecord(frame.input_data) ?? {};
   const contextData = asRecord(frame.context_data);
@@ -136,11 +136,11 @@ async function requestJson(path: string, init: RequestInit, fetchImpl: FetchLike
       }
       const payload = asRecord(decoded);
       const detail = stringValue(payload?.detail) || stringValue(payload?.message) || stringValue(payload?.error);
-      throw new Error(`Synon Biomed session request failed: ${response.status}${detail ? ` ${detail}` : ''}`);
+      throw new Error(`X-Science session request failed: ${response.status}${detail ? ` ${detail}` : ''}`);
     }
     return text ? JSON.parse(text) : undefined;
   } catch (error) {
-    if (controller.signal.aborted) throw new Error('Synon Biomed session request timed out', { cause: error });
+    if (controller.signal.aborted) throw new Error('X-Science session request timed out', { cause: error });
     throw error;
   } finally {
     clearTimeout(timeoutId);

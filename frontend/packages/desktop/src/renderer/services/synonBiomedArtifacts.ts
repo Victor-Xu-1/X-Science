@@ -74,7 +74,7 @@ type RecordValue = Record<string, unknown>;
 export async function loadSynonBiomedArtifactVersions(artifactId: string): Promise<SynonBiomedArtifactVersion[]> {
   const payload = await requestJson<unknown>(`/api/artifacts/${encodeURIComponent(artifactId)}/versions`);
   if (!Array.isArray(payload)) {
-    throw new Error('Synon Biomed artifact versions response must be an array');
+    throw new Error('X-Science artifact versions response must be an array');
   }
   return payload.map(toArtifactVersion).filter((version): version is SynonBiomedArtifactVersion => version !== null);
 }
@@ -89,7 +89,7 @@ export async function loadSynonBiomedArtifactLineage(
     : `/api/artifacts/${encodeURIComponent(artifactId)}/lineage`;
   const lineage = toArtifactLineage(await requestJson<unknown>(`${path}${query}`));
   if (!lineage) {
-    throw new Error(`Synon Biomed artifact lineage response is invalid: ${artifactId}`);
+    throw new Error(`X-Science artifact lineage response is invalid: ${artifactId}`);
   }
   if (lineage.artifactId !== artifactId || (options.versionId && lineage.versionId !== options.versionId)) {
     throw new Error('Synon Biomed artifact lineage response identity does not match the requested version');
@@ -154,7 +154,7 @@ export async function loadSynonBiomedArtifactVersionText(versionId: string): Pro
     headers: { accept: 'text/plain, text/markdown, application/json, text/*;q=0.9, */*;q=0.1' },
   });
   if (!response.ok) {
-    throw new Error(`Synon Biomed artifact version request failed: ${response.status}`);
+    throw new Error(`X-Science artifact version request failed: ${response.status}`);
   }
   return response.text();
 }
@@ -190,7 +190,7 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init);
   if (!response.ok) {
     const detail = await response.text().catch(() => '');
-    throw new Error(`Synon Biomed artifact request failed: ${response.status}${detail ? ` ${detail}` : ''}`);
+    throw new Error(`X-Science artifact request failed: ${response.status}${detail ? ` ${detail}` : ''}`);
   }
   return response.json() as Promise<T>;
 }

@@ -31,7 +31,7 @@ import {
   subscribeSynonBiomedRuntimeInvalidation,
 } from '@/renderer/services/synonBiomedRuntimeOperations';
 
-describe('Synon Biomed runtime operations service', () => {
+describe('X-Science runtime operations service', () => {
   beforeEach(() => {
     requestJson.mockReset();
     subscribeStatusChanged.mockReset();

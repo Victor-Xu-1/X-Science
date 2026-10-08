@@ -4,7 +4,7 @@ import {
   SynonBiomedFileImportError,
 } from '@/renderer/services/synonBiomedFileImportError';
 
-describe('Synon Biomed file import error contract', () => {
+describe('X-Science file import error contract', () => {
   it('preserves a closed backend reason without exposing its raw detail', async () => {
     const response = Response.json(
       { remoteKind: 'outside_roots', detail: '/private/user/path is outside roots' },
@@ -15,7 +15,7 @@ describe('Synon Biomed file import error contract', () => {
       name: 'SynonBiomedFileImportError',
       status: 400,
       kind: 'outside_roots',
-      message: 'Synon Biomed file import failed (400) [outside_roots]',
+      message: 'X-Science file import failed (400) [outside_roots]',
     });
   });
 

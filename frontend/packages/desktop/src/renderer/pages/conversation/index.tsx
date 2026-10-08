@@ -116,7 +116,7 @@ const ChatConversationIndex: React.FC = () => {
         return;
       }
 
-      // Synon Biomed publishes live transcript/runtime changes through the
+      // X-Science publishes live transcript/runtime changes through the
       // bounded stream and runtime wake paths. Re-reading the full conversation
       // for every metadata update competes with first-token rendering and can
       // replace the live projection with a publication that is one step behind.

@@ -1,4 +1,4 @@
-# Contributing to Synon Biomed
+# Contributing to X-Science
 
 Help improve the research workflow, correct documentation, report reproducible
 bugs, or contribute code. Changes enter through reviewed pull requests, not
@@ -16,8 +16,8 @@ direct pushes to `main`. Please follow our [Code of conduct](CODE_OF_CONDUCT.md)
 | Documentation | The confusing or incorrect passage, its source of truth, and a clearer replacement |
 | Code or tests | A focused change, a regression test, and evidence from the affected user path |
 
-Search [existing issues](https://github.com/Victor-Xu-1/synon-biomed/issues) and
-[pull requests](https://github.com/Victor-Xu-1/synon-biomed/pulls) first. Discuss
+Search [existing issues](https://github.com/Victor-Xu-1/X-Science/issues) and
+[pull requests](https://github.com/Victor-Xu-1/X-Science/pulls) first. Discuss
 large changes to architecture, dependencies, storage, public contracts, or
 licensing before investing in an implementation. Report vulnerabilities through
 [Security](SECURITY.md), not a public bug report.
@@ -113,7 +113,7 @@ component terms apply. A contribution under AGPL alone does not grant permission
 to relicense it commercially; no copyright assignment or contributor agreement
 is implied. See [licensing and commercial options](COMMERCIAL-LICENSE.md).
 
-Synon Biomed is research software. Passing engineering checks does not replace
+X-Science is research software. Passing engineering checks does not replace
 scientific review or a user's assessment of a result.
 
 ---

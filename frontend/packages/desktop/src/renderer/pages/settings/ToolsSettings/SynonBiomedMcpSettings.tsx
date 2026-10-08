@@ -94,20 +94,20 @@ export const SynonBiomedMcpSettingsContent: React.FC<SynonBiomedMcpSettingsConte
     if (serversResult.status === 'fulfilled') setServers(serversResult.value);
     else {
       failed = true;
-      console.error('Failed to load Synon Biomed MCP connectors:', serversResult.reason);
+      console.error('Failed to load X-Science MCP connectors:', serversResult.reason);
     }
 
     if (customResult.status === 'fulfilled') setCustomServers(customResult.value);
     else {
       failed = true;
-      console.error('Failed to load Synon Biomed MCP custom connectors:', customResult.reason);
+      console.error('Failed to load X-Science MCP custom connectors:', customResult.reason);
     }
 
     if (healthResult.status === 'fulfilled') setDirectoryHealth(healthResult.value);
     else {
       failed = true;
       setDirectoryHealth(null);
-      console.error('Failed to load Synon Biomed MCP directory health:', healthResult.reason);
+      console.error('Failed to load X-Science MCP directory health:', healthResult.reason);
     }
     if (failed) {
       setLoadError(true);
@@ -147,7 +147,7 @@ export const SynonBiomedMcpSettingsContent: React.FC<SynonBiomedMcpSettingsConte
       Message.success(t('settings.synonBiomedMcpReconcileSuccess'));
       await loadServers();
     } catch (error) {
-      console.error('Failed to reconcile Synon Biomed MCP connectors:', error);
+      console.error('Failed to reconcile X-Science MCP connectors:', error);
       Message.error(t('settings.synonBiomedMcpReconcileError'));
     } finally {
       setReconciling(false);
@@ -162,7 +162,7 @@ export const SynonBiomedMcpSettingsContent: React.FC<SynonBiomedMcpSettingsConte
         if (success) Message.success(success);
         await loadServers();
       } catch (error) {
-        console.error('Failed to update Synon Biomed MCP connector.');
+        console.error('Failed to update X-Science MCP connector.');
         Message.error(t('settings.synonBiomedMcpMutationError'));
         throw error;
       } finally {

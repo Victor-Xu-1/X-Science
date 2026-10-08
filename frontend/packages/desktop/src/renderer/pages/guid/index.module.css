@@ -28,10 +28,7 @@
 }
 
 .guidWelcomeLogo {
-  display: block;
-  width: min(460px, 100%);
-  height: auto;
-  object-fit: contain;
+  justify-content: center;
 }
 
 .guidWelcomeGuidance {

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Synon Biomed exposes one model-facing software flow:
+X-Science exposes one model-facing software flow:
 
 1. preflight the proposed dependency set and resource shape with
    `manage_environments(mode="preflight", ...)` or

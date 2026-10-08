@@ -16,7 +16,7 @@ describe('notebookModel', () => {
           kernelspec: { display_name: 'Python 3 (ipykernel)', language: 'python', name: 'python3' },
         },
         cells: [
-          { cell_type: 'markdown', metadata: {}, source: ['# Synon Biomed\n', 'Notebook preview'] },
+          { cell_type: 'markdown', metadata: {}, source: ['# X-Science\n', 'Notebook preview'] },
           {
             cell_type: 'code',
             execution_count: 7,
@@ -31,7 +31,7 @@ describe('notebookModel', () => {
     expect(notebook.language).toBe('python');
     expect(notebook.kernelLabel).toBe('Python 3 (ipykernel)');
     expect(notebook.cells).toHaveLength(2);
-    expect(normalizeNotebookText(notebook.cells[0]?.source)).toBe('# Synon Biomed\nNotebook preview');
+    expect(normalizeNotebookText(notebook.cells[0]?.source)).toBe('# X-Science\nNotebook preview');
   });
 
   it('rejects legacy notebooks with a stable typed parse error', () => {

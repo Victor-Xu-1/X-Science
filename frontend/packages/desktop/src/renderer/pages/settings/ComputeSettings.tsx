@@ -91,7 +91,7 @@ export const ComputeSettingsContent: React.FC<{
       setGpuEnabled(nextGpuEnabled);
       setManagedEndpoints(nextManagedEndpoints);
     } catch (error) {
-      console.error('Failed to fetch Synon Biomed compute providers:', error);
+      console.error('Failed to fetch X-Science compute providers:', error);
       Message.error(t('settings.computeFetchError'));
     } finally {
       setLoading(false);
@@ -129,7 +129,7 @@ export const ComputeSettingsContent: React.FC<{
     try {
       setJobs(await loadSynonBiomedComputeJobs(projectId));
     } catch (error) {
-      console.error('Failed to load Synon Biomed compute jobs:', error);
+      console.error('Failed to load X-Science compute jobs:', error);
       setJobs([]);
       setJobsFailed(true);
     } finally {
@@ -195,7 +195,7 @@ export const ComputeSettingsContent: React.FC<{
         );
         await loadProviders();
       } catch (error) {
-        console.error('Synon Biomed compute probe failed:', error);
+        console.error('X-Science compute probe failed:', error);
         Message.error(t('settings.computeWorkspace.probeFailed'));
       } finally {
         setPendingName(null);
@@ -219,7 +219,7 @@ export const ComputeSettingsContent: React.FC<{
             Message.success(t('settings.computeDeleted'));
             await loadProviders();
           } catch (error) {
-            console.error('Failed to delete Synon Biomed compute provider:', error);
+            console.error('Failed to delete X-Science compute provider:', error);
             Message.error(t('settings.computeWorkspace.deleteFailed'));
           } finally {
             setPendingName(null);

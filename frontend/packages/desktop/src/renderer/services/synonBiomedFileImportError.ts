@@ -24,7 +24,7 @@ export class SynonBiomedFileImportError extends Error {
   readonly kind: SynonBiomedFileImportFailureKind;
 
   constructor(status: number, kind: SynonBiomedFileImportFailureKind) {
-    super(`Synon Biomed file import failed (${status}) [${kind}]`);
+    super(`X-Science file import failed (${status}) [${kind}]`);
     this.name = 'SynonBiomedFileImportError';
     this.status = status;
     this.kind = kind;

@@ -71,7 +71,7 @@ const renderLayout = () => render(<Layout sider={<TestSider />} />);
 const BACK_KEY = 'common.back';
 
 const readBrandLockupAlpha = () => {
-  const png = readFileSync(resolve(process.cwd(), 'public/branding/synon-biomed-lockup.png'));
+  const png = readFileSync(resolve(process.cwd(), 'public/branding/x-science-mark.png'));
   const idat: Buffer[] = [];
   let width = 0;
   let height = 0;
@@ -220,27 +220,26 @@ describe('Layout shell behavior', () => {
     expect(navigate).not.toHaveBeenCalled();
   });
 
-  it('sets the authenticated shell document title to Synon Biomed', () => {
-    document.title = 'Synon Biomed - \u767b\u5f55';
+  it('sets the authenticated shell document title to X-Science', () => {
+    document.title = 'X-Science - \u767b\u5f55';
     currentPathname = '/guid';
 
     renderLayout();
 
-    expect(document.title).toBe('Synon Biomed');
+    expect(document.title).toBe('X-Science');
   });
 
-  it('renders the supplied complete SYNON-Biomed lockup without a separate wordmark in a non-settings route', () => {
+  it('renders the approved mark beside the root-derived product name in a non-settings route', () => {
     currentPathname = '/guid';
     renderLayout();
 
     // No actionable role/label in chat routes.
     expect(screen.queryByLabelText(BACK_KEY)).toBeNull();
-    expect(screen.queryByText('SYNON-Biomed')).toBeNull();
-    expect(screen.queryByText('Synon Biomed')).toBeNull();
+    expect(screen.getByText('X-Science')).toBeVisible();
     const brandLockup = screen.getByTestId('synon-biomed-brand-lockup');
-    expect(brandLockup.tagName).toBe('IMG');
-    expect(brandLockup).toHaveAttribute('alt', 'SYNON-Biomed');
-    expect(brandLockup).toHaveAttribute('src', './branding/synon-biomed-lockup.png?v=0cac2ebf');
+    expect(brandLockup.tagName).toBe('SPAN');
+    expect(brandLockup.querySelector('img')).toHaveAttribute('alt', '');
+    expect(brandLockup.querySelector('img')).toHaveAttribute('src', './branding/x-science-mark.png');
     fireEvent.click(brandLockup);
     expect(navigate).not.toHaveBeenCalled();
   });
@@ -248,8 +247,8 @@ describe('Layout shell behavior', () => {
   it('ships the complete lockup with a real transparent canvas', () => {
     const alpha = readBrandLockupAlpha();
 
-    expect(alpha).toMatchObject({ width: 2172, height: 724 });
-    expect(alpha.transparentPixels).toBeGreaterThan(1_000_000);
+    expect(alpha).toMatchObject({ width: 660, height: 660 });
+    expect(alpha.transparentPixels).toBeGreaterThan(0);
     expect(alpha.opaquePixels).toBeGreaterThan(10_000);
   });
 

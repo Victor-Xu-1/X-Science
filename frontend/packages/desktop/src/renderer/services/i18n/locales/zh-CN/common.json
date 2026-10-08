@@ -81,10 +81,10 @@
   "more": "更多",
   "refresh": "刷新",
   "readOnly": "只读",
-  "tray.showWindow": "显示 Synon Biomed",
+  "tray.showWindow": "显示 X-Science",
   "tray.newChat": "新建对话",
   "tray.closeToTray": "隐藏到托盘",
-  "tray.about": "关于 Synon Biomed",
+  "tray.about": "关于 X-Science",
   "tray.restart": "重启应用",
   "tray.quit": "退出",
   "tray.runningTasks": "运行中的任务",
@@ -94,8 +94,8 @@
   "tray.untitled": "未命名",
   "backendStartup": {
     "synonBiomed": {
-      "title": "Synon Biomed 后端不可用",
-      "description": "无法连接 Synon Biomed 后端。请确认 WSL 中的后端服务已启动，并检查后端地址与端口配置。"
+      "title": "X-Science 后端不可用",
+      "description": "无法连接 X-Science 后端。请确认 WSL 中的后端服务已启动，并检查后端地址与端口配置。"
     }
   },
   "fileAttach.addFiles": "添加文件",

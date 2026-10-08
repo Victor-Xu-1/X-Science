@@ -136,5 +136,5 @@ function stringValue(value: unknown): string {
 }
 
 function invalidOverview(): Error {
-  return new Error('Synon Biomed account overview response is invalid');
+  return new Error('X-Science account overview response is invalid');
 }

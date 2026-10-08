@@ -11,7 +11,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 /**
- * Manages the visible Synon Biomed expert list with SynonAI's native list,
+ * Manages the visible X-Science expert list with SynonAI's native list,
  * selection, and ordering interactions.
  */
 export const useAssistantList = () => {

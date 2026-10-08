@@ -4,7 +4,7 @@ import { createSynonBiomedTestFetch } from './synonbiomedTestAuth';
 const gatewayBaseUrl = process.env.SYNON_BIOMED_GATEWAY_URL ?? 'http://127.0.0.1:8766';
 const settingKey = 'tools.speechToText';
 
-describe('Synon Biomed speech settings gateway', () => {
+describe('X-Science speech settings gateway', () => {
   it('persists and restores the complete speech configuration through the authenticated WebHost', async () => {
     const fetchImpl = await createSynonBiomedTestFetch(gatewayBaseUrl);
     const readUrl = `${gatewayBaseUrl}/api/settings/client?keys=${encodeURIComponent(settingKey)}`;

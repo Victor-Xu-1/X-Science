@@ -320,7 +320,7 @@ describe('SynonBiomedMemoryManager', () => {
     await waitFor(() => expect(screen.getByTestId('memory-enabled-toggle')).toBeInTheDocument());
   });
 
-  it('toggles memory and creates a note through native Synon Biomed write contracts', async () => {
+  it('toggles memory and creates a note through native X-Science write contracts', async () => {
     const { fetchMock, observed } = createFetchMock();
     vi.stubGlobal('fetch', fetchMock);
     const onChanged = vi.fn();

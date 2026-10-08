@@ -3,7 +3,7 @@ import type { IMcpServer } from '@/common/config/storage';
 import { ensureBackendMcpCatalog } from './catalog';
 
 /**
- * MCP server state backed exclusively by the Synon Biomed MCP catalog.
+ * MCP server state backed exclusively by the X-Science MCP catalog.
  */
 export const useMcpServers = () => {
   const [mcpServers, setMcpServers] = useState<IMcpServer[]>([]);

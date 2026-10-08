@@ -8,7 +8,7 @@ import {
   moveSynonBiomedArtifact,
 } from '@/renderer/services/synonBiomedArtifacts';
 
-describe('Synon Biomed artifact lifecycle service', () => {
+describe('X-Science artifact lifecycle service', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });

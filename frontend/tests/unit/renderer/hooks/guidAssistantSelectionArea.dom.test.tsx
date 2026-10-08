@@ -31,7 +31,7 @@ vi.mock('@arco-design/web-react', async () => {
 });
 
 describe('AssistantSelectionArea', () => {
-  it('keeps the Synon Biomed expert picker visible after an assistant is selected', () => {
+  it('keeps the X-Science expert picker visible after an assistant is selected', () => {
     render(
       <AssistantSelectionArea
         selectedAssistantId='synonbiomed:aidd-expert'
@@ -48,7 +48,7 @@ describe('AssistantSelectionArea', () => {
     expect(screen.queryByText('Run target discovery')).not.toBeInTheDocument();
   });
 
-  it('moves overflow Synon Biomed experts into a more dropdown', async () => {
+  it('moves overflow X-Science experts into a more dropdown', async () => {
     render(
       <AssistantSelectionArea
         selectedAssistantId='synonbiomed:aidd-expert'
@@ -72,7 +72,7 @@ describe('AssistantSelectionArea', () => {
     expect(screen.queryByTestId('assistant-overflow-synonbiomed:oncology-expert')).not.toBeInTheDocument();
   });
 
-  it('reports the real Synon Biomed assistant id when a pill is selected', () => {
+  it('reports the real X-Science assistant id when a pill is selected', () => {
     const onSelectAssistant = vi.fn();
 
     render(
@@ -89,7 +89,7 @@ describe('AssistantSelectionArea', () => {
     expect(onSelectAssistant).toHaveBeenCalledWith('synonbiomed:oncology-expert');
   });
 
-  it('orders Synon Biomed expert pills by sort_order before applying overflow', () => {
+  it('orders X-Science expert pills by sort_order before applying overflow', () => {
     render(
       <AssistantSelectionArea
         selectedAssistantId='synonbiomed:aidd-expert'
@@ -112,7 +112,7 @@ describe('AssistantSelectionArea', () => {
     ).toEqual(['Early Expert', 'AIDD Expert', 'Mid Expert', 'Oncology Expert']);
   });
 
-  it('keeps a selected overflow Synon Biomed expert visible in the top pill row', () => {
+  it('keeps a selected overflow X-Science expert visible in the top pill row', () => {
     render(
       <AssistantSelectionArea
         selectedAssistantId='synonbiomed:genomics-bioinfo-expert'

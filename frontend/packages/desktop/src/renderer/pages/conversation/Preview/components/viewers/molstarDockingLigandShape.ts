@@ -91,7 +91,7 @@ export const formatDockingLigandMolBlock = (
       .slice(0, 80) || 'Ligand';
   const lines = [
     safeTitle,
-    '  Synon Biomed',
+    '  X-Science',
     '',
     `${formatV2000Integer(atoms.length, 3)}${formatV2000Integer(bonds.length, 3)}  0  0  0  0            999 V2000`,
   ];

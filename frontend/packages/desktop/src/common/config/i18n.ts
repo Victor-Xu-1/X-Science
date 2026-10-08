@@ -65,11 +65,11 @@ export type LocaleData = Record<string, Record<string, unknown>>;
 
 /**
  * Ensure a resource bundle is loaded, then switch i18next to the given language.
- * Deduplicates the "load-if-missing + changeLanguage" pattern.
+ * An existing resource bundle may contain only the offline login-shell keys.
+ * The locale loader owns caching and must complete that bundle before switching.
  */
 export async function ensureAndSwitch(
   i18n: {
-    hasResourceBundle: (lng: string, ns: string) => boolean;
     addResourceBundle: (...args: unknown[]) => void;
     changeLanguage: (lng: string) => Promise<unknown>;
   },
@@ -77,9 +77,7 @@ export async function ensureAndSwitch(
   getTranslation: (locale: string) => Record<string, unknown> | Promise<Record<string, unknown>>
 ): Promise<void> {
   const normalizedLang = normalizeLanguageCode(lang);
-  if (!i18n.hasResourceBundle(normalizedLang, 'translation')) {
-    const translation = await getTranslation(normalizedLang);
-    i18n.addResourceBundle(normalizedLang, 'translation', translation, true, true);
-  }
+  const translation = await getTranslation(normalizedLang);
+  i18n.addResourceBundle(normalizedLang, 'translation', translation, true, true);
   await i18n.changeLanguage(normalizedLang);
 }

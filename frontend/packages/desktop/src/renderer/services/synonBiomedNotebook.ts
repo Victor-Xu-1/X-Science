@@ -115,10 +115,10 @@ export async function executeSynonBiomedKernel(
     },
     options
   );
-  if (!isRecord(payload)) throw new Error('Synon Biomed kernel execution response is invalid');
+  if (!isRecord(payload)) throw new Error('X-Science kernel execution response is invalid');
   const execId = stringValue(payload.exec_id);
   const toolUseId = stringValue(payload.tool_use_id);
-  if (!execId || !toolUseId) throw new Error('Synon Biomed kernel execution response is incomplete');
+  if (!execId || !toolUseId) throw new Error('X-Science kernel execution response is incomplete');
   return { execId, toolUseId };
 }
 
@@ -132,7 +132,7 @@ export async function interruptSynonBiomedKernel(
     { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' },
     options
   );
-  if (!isRecord(payload)) throw new Error('Synon Biomed kernel interrupt response is invalid');
+  if (!isRecord(payload)) throw new Error('X-Science kernel interrupt response is invalid');
   return {
     interrupted: payload.interrupted === true,
     via: nullableString(payload.via),
@@ -147,7 +147,7 @@ async function loadKernelInventory(
 ): Promise<SynonBiomedKernelInventory> {
   const payload = await requestSynonBiomedJson<unknown>(endpoint, {}, options);
   if (!isRecord(payload) || !Array.isArray(payload.kernels)) {
-    throw new Error('Synon Biomed kernel response is invalid');
+    throw new Error('X-Science kernel response is invalid');
   }
   const kernels = payload.kernels.flatMap(normalizeKernel);
   return {
@@ -185,7 +185,7 @@ export async function stopSynonBiomedKernel(
     options
   );
   if (!isRecord(payload) || payload.ok !== true) {
-    throw new Error('Synon Biomed kernel stop response is invalid');
+    throw new Error('X-Science kernel stop response is invalid');
   }
   return {
     ok: true,

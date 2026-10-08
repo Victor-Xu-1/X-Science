@@ -29,7 +29,7 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-describe('Synon Biomed real LLM settings lifecycle', () => {
+describe('X-Science real LLM settings lifecycle', () => {
   it('lists, tests, creates, deletes and restores real LLM Core profiles', async () => {
     const fixture = await createControlledLlmFixture(gatewayBaseUrl);
     const active = fixture.profile;

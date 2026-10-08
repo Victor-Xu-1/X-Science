@@ -90,7 +90,7 @@ const skills = [
   },
 ];
 
-describe('Synon Biomed Skills settings', () => {
+describe('X-Science Skills settings', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.loadSkills.mockResolvedValue(skills);

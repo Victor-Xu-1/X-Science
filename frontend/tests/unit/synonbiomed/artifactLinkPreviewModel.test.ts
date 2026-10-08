@@ -15,7 +15,7 @@ import {
   parseSynonBiomedArtifactLink,
 } from '@/renderer/services/synonBiomedArtifactReferences';
 
-describe('Synon Biomed artifact link preview model', () => {
+describe('X-Science artifact link preview model', () => {
   it.each([
     '/api/artifacts/artifact-report/versions/version-report',
     'https://synon.bio/api/artifacts/artifact-report/versions/version-report?download=1#page=2',

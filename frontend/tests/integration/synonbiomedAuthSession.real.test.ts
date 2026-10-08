@@ -3,7 +3,7 @@ import { createSynonBiomedTestFetch, resolveSynonBiomedTestUsername } from './sy
 
 const gatewayBaseUrl = process.env.SYNON_BIOMED_GATEWAY_URL ?? 'http://127.0.0.1:8766';
 
-describe('Synon Biomed WebHost auth-session lifecycle', () => {
+describe('X-Science WebHost auth-session lifecycle', () => {
   it('marks an invalid local session precisely and accepts a fresh login', async () => {
     const authenticatedFetch = await createSynonBiomedTestFetch(gatewayBaseUrl);
     const beforeLogout = await authenticatedFetch(`${gatewayBaseUrl}/api/auth/user`);

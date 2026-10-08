@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { webPassword, webUsername } from './synonGoWebCredentials';
 
-test('shows a compute resource and its current function call in Synon Biomed', async ({ page }) => {
+test('shows a compute resource and its current function call in X-Science', async ({ page }) => {
   await page.goto('/#/login', { waitUntil: 'domcontentloaded' });
   await page.getByRole('combobox').selectOption('zh-CN');
   await page.getByRole('textbox', { name: '用户名' }).fill(webUsername);

@@ -222,8 +222,8 @@
     },
     {
       "path": "catalog-ui.json",
-      "sha256": "01e8a2baf07e7cb98561258b277a04610d3e75f495a0b30298a4f1f929be7a51",
-      "bytes": 20299
+      "sha256": "3b9ee71cdb757527298bf4d79bbf03b48476eb5b364e2581f2f330f102fb818d",
+      "bytes": 20296
     },
     {
       "path": "chai1/SKILL.md",
@@ -1432,8 +1432,8 @@
     },
     {
       "path": "product-self-knowledge/SKILL.md",
-      "sha256": "ee019fee106543bf9926c92960b34e6680a2f746b9bac5ae71c6fa687451601e",
-      "bytes": 1778
+      "sha256": "ea3a8d8251e46c617c648df40b19057b0c8ba518598dc414d52b9573de90d0db",
+      "bytes": 1769
     },
     {
       "path": "protein-design-strategy/references/methods.md",
@@ -1702,8 +1702,8 @@
     },
     {
       "path": "self-awareness/SKILL.md",
-      "sha256": "3f8b204e7e27f9d3d2fc5b8b3667c668bc27eb70293e5b865187424f3a5fa324",
-      "bytes": 13690
+      "sha256": "2c2b11cee677ced5645de813ede27c105a35066a9907845dfdcfc7a18069090b",
+      "bytes": 13678
     },
     {
       "path": "single-cell-rna-analysis/agents/openai.yaml",

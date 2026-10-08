@@ -19,7 +19,7 @@ def write_json(path: pathlib.Path, value: object) -> None:
 
 
 def identity() -> dict:
-    return {"schema": gate.IDENTITY_SCHEMA, "display_name": "Synon Biomed", "version": "0.1.0", "machine_slug": "synon-biomed"}
+    return {"schema": gate.IDENTITY_SCHEMA, "display_name": "X-Science", "version": "0.1.0", "machine_slug": "synon-biomed"}
 
 
 def reference() -> dict:
@@ -37,12 +37,12 @@ def release_policy() -> dict:
         "schema": gate.RELEASE_POLICY_SCHEMA,
         "authority_owner": "user",
         "operator_role": "release-operator",
-        "repository": "Victor-Xu-1/synon-biomed",
+        "repository": "Victor-Xu-1/X-Science",
         "product_identity_authority": "product-identity.json",
         "candidate_manifest": {
             "schema": "synon.release-candidate.v1",
             "workflow": ".github/workflows/quality.yml",
-            "artifact_name_prefix": "synon-biomed-release-candidate-",
+            "artifact_name_prefix": "x-science-release-candidate-",
             "required_platforms": ["linux-amd64", "windows-amd64"],
             "build_once": True,
         },
@@ -126,8 +126,8 @@ def seed(repo: pathlib.Path, version: str = "0.1.0", commit: bool = False) -> No
     write_json(repo / "product-identity.json", identity()); write_json(repo / "docs/governance/product-identity.json", reference())
     write_json(repo / "docs/governance/release-policy.json", release_policy())
     write_json(repo / "docs/governance/product-identity-consumer-matrix.json", matrix())
-    write_json(repo / "package.json", {"version": version, "description": "Synon Biomed workbench"})
-    (repo / "version.go").write_text(f'const Version = "{version}"\nconst Name = "Synon Biomed"\n', encoding="utf-8")
+    write_json(repo / "package.json", {"version": version, "description": "X-Science workbench"})
+    (repo / "version.go").write_text(f'const Version = "{version}"\nconst Name = "X-Science"\n', encoding="utf-8")
     (repo / "go.mod").write_text("module synon-go\n\ngo 1.24\n", encoding="utf-8")
     (repo / "identity.go").write_text(
         'package productidentity\n\nimport (\n    _ "embed"\n    "encoding/json"\n)\n\n'
@@ -139,7 +139,7 @@ def seed(repo: pathlib.Path, version: str = "0.1.0", commit: bool = False) -> No
     )
     (repo / "identity_test.go").write_text(
         'package productidentity\nimport "testing"\n'
-        'func TestCurrentUsesRootProductIdentityAuthority(t *testing.T) { value := Current(); if value.DisplayName != "Synon Biomed" || value.Version != "0.1.0" || value.MachineSlug != "synon-biomed" { t.Fatal(value) } }\n',
+        'func TestCurrentUsesRootProductIdentityAuthority(t *testing.T) { value := Current(); if value.DisplayName != "X-Science" || value.Version != "0.1.0" || value.MachineSlug != "synon-biomed" { t.Fatal(value) } }\n',
         encoding="utf-8",
     )
     buildinfo = repo / "internal/buildinfo"; buildinfo.mkdir(parents=True, exist_ok=True)
@@ -151,10 +151,10 @@ def seed(repo: pathlib.Path, version: str = "0.1.0", commit: bool = False) -> No
     )
     (buildinfo / "buildinfo_test.go").write_text(
         'package buildinfo\nimport "testing"\n'
-        'func TestReleaseInfoUsesSynonBiomedIdentity(t *testing.T) { value := Release(); if value.Name != "Synon Biomed" || value.Version != "0.1.0" || value.MachineSlug != "synon-biomed" { t.Fatal(value) } }\n',
+        'func TestReleaseInfoUsesSynonBiomedIdentity(t *testing.T) { value := Release(); if value.Name != "X-Science" || value.Version != "0.1.0" || value.MachineSlug != "synon-biomed" { t.Fatal(value) } }\n',
         encoding="utf-8",
     )
-    (repo / "README.md").write_text("# Synon Biomed v0.1.0\n", encoding="utf-8")
+    (repo / "README.md").write_text("# X-Science v0.1.0\n", encoding="utf-8")
     schema = repo / "internal/persistence/workspace/versioned_schema.go"; schema.parent.mkdir(parents=True, exist_ok=True)
     schema.write_text("package workspace\nconst workspaceSchemaVersion = 24\n", encoding="utf-8")
     if commit:
@@ -258,7 +258,7 @@ class ProductIdentityGateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             repo = pathlib.Path(directory); seed(repo)
             result = gate.audit(repo, identity(), reference(), release_policy(), matrix())
-            self.assertEqual(result["authority"]["full_display"], "Synon Biomed v0.1.0")
+            self.assertEqual(result["authority"]["full_display"], "X-Science v0.1.0")
             self.assertEqual(result["authority"]["release_tag"], "v0.1.0")
             self.assertEqual(result["schema_facts"], {"current_workspace_schema": 24, "planned_migrations": []})
             self.assertNotIn("full_display", identity()); self.assertNotIn("release_tag", identity())
@@ -322,20 +322,34 @@ class ProductIdentityGateTests(unittest.TestCase):
                 handle.write("Current product version: 4.0.2\n")
             result = gate.audit(repo, identity(), reference(), release_policy(), matrix())
             self.assertIn("README.md", {item["path"] for item in result["drifts"]})
-        with tempfile.TemporaryDirectory() as directory:
-            repo = pathlib.Path(directory); seed(repo)
-            downgraded = identity(); downgraded["version"] = "4.0.2"
-            write_json(repo / "product-identity.json", downgraded)
-            write_json(repo / "package.json", {"version": "4.0.2", "description": "Synon Biomed workbench"})
-            with self.assertRaisesRegex(gate.IdentityError, "identity_authority_version_line_invalid"):
-                gate.audit(repo, downgraded, reference(), release_policy(), matrix())
 
-    def test_active_release_line_rejects_unapproved_minor_bump(self):
-        with tempfile.TemporaryDirectory() as directory:
-            repo = pathlib.Path(directory); seed(repo)
-            future = identity(); future["version"] = "0.2.0"
-            with self.assertRaisesRegex(gate.IdentityError, "identity_authority_version_line_invalid"):
-                gate.audit(repo, future, reference(), release_policy(), matrix())
+    def test_counter_shape_allows_carry_but_rejects_out_of_range_components(self):
+        # Shape is checked here; the exact base-to-candidate increment belongs
+        # to pr_version_gate, not a hard-coded minor-release cap.
+        for version in ("0.1.99", "0.2.0", "0.9.99", "1.0.0", "4.0.2"):
+            with self.subTest(version=version):
+                future = identity(); future["version"] = version
+                gate.validate_authority(future)
+        for version in ("0.1.100", "0.10.0", "1.10.99"):
+            with self.subTest(version=version):
+                future = identity(); future["version"] = version
+                with self.assertRaisesRegex(gate.IdentityError, "identity_authority_version_counter_invalid"):
+                    gate.validate_authority(future)
+
+    def test_future_counter_numbers_are_not_reserved_by_old_legacy_labels(self):
+        for version in ("4.0.2", "5.0.0"):
+            with self.subTest(version=version), tempfile.TemporaryDirectory() as directory:
+                repo = pathlib.Path(directory); seed(repo, version)
+                current = identity(); current["version"] = version
+                write_json(repo / "product-identity.json", current)
+                (repo / "README.md").write_text(f"# {current['display_name']} v{version}\n")
+                result = gate.audit(repo, current, reference(), release_policy(), matrix())
+                self.assertEqual(result["drifts"], [])
+                # Numeric reuse never permits a hard-coded runtime consumer.
+                path = repo / "internal/buildinfo/buildinfo.go"
+                path.write_text(path.read_text() + f'\nvar hardcodedVersion = "{version}"\n')
+                result = gate.audit(repo, current, reference(), release_policy(), matrix())
+                self.assertIn("internal/buildinfo/buildinfo.go", {item["path"] for item in result["drifts"]})
 
     def test_dead_embed_and_hardcoded_buildinfo_are_ineligible(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -350,7 +364,7 @@ class ProductIdentityGateTests(unittest.TestCase):
             repo = pathlib.Path(directory); seed(repo)
             (repo / "internal/buildinfo/buildinfo.go").write_text(
                 'package buildinfo\ntype Info struct { Name, Version, MachineSlug string }\n'
-                'func Release() Info { return Info{Name: "Synon Biomed", Version: "4.0.2", MachineSlug: "synon-go"} }\n',
+                'func Release() Info { return Info{Name: "X-Science", Version: "4.0.2", MachineSlug: "synon-go"} }\n',
                 encoding="utf-8",
             )
             result, code = gate.evaluate(repo, identity(), reference(), release_policy(), matrix(), "candidate")

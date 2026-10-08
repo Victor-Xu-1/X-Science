@@ -258,7 +258,7 @@ describe('MarkdownViewer', () => {
     expect(previewMocks.openPreview).not.toHaveBeenCalled();
   });
 
-  it('resolves companion artifact images and links inside a saved Synon Biomed report', async () => {
+  it('resolves companion artifact images and links inside a saved X-Science report', async () => {
     render(
       <MarkdownViewer
         content={'![curve](curve.png)\n\n[results](results.csv)'}

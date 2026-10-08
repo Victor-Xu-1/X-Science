@@ -13,7 +13,7 @@ import { parseScientificTable } from '@/renderer/pages/conversation/Preview/comp
 import { gzipSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 
-describe('Synon Biomed scientific preview planning', () => {
+describe('X-Science scientific preview planning', () => {
   it('extracts CSV cells for compact artifact cards', () => {
     expect(extractTableThumbnail('rank,name,score\n1,alpha,0.91\n2,beta,0.85')).toEqual({
       headers: ['rank', 'name', 'score'],

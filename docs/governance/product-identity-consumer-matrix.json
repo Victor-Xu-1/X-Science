@@ -18,7 +18,6 @@
   },
   "legacy_version_terms": ["4.0.2", "5.0.0"],
   "legacy_version_path_rules": [
-    {"glob": ".github/workflows/version-pr.yml", "class": "dependency-name-or-version", "disposition": "pinned release automation action versions, independent of the product version"},
     {"glob": "docs/governance/github-actions-pins.json", "class": "dependency-name-or-version", "disposition": "immutable upstream action dependency pins, independent of the product version"},
     {"glob": "*_test.go", "class": "test-fixture", "disposition": "root-package test input only"},
     {"glob": "**/*_test.go", "class": "test-fixture", "disposition": "Go test input or assertion only"},
@@ -95,7 +94,7 @@
       "class": "product-version-projection",
       "owner": "product-ux",
       "paths": ["frontend/package.json", "frontend/packages/desktop/package.json", "frontend/package-lock.json"],
-      "current_disposition": "package versions and product descriptions project Synon Biomed 0.1.1 and are covered by the identity gate",
+      "current_disposition": "package versions and product descriptions project the root product authority and are covered by the identity gate",
       "target": "retain exact root-authority projections without creating another version source",
       "release_blocking": true
     },
@@ -104,7 +103,7 @@
       "class": "product-user-visible",
       "owner": "product-ux",
       "paths": [".env.example", "frontend/packages/desktop/src/common/config/storage.ts", "frontend/packages/desktop/src/common/adapter/ipcBridge.ts"],
-      "current_disposition": "browser metadata and visible product surfaces identify Synon Biomed; dependency scopes remain separately classified",
+      "current_disposition": "browser metadata and visible product surfaces identify X-Science; dependency scopes remain separately classified",
       "target": "retain reviewed UI projections and real-browser identity checks",
       "release_blocking": true
     },

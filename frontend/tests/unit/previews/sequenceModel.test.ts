@@ -5,7 +5,7 @@ import {
 import { describe, expect, it } from 'vitest';
 
 const genBankFixture = `LOCUS       SYNON001                 120 bp    DNA     circular SYN 11-JUL-2026
-DEFINITION  Synthetic Synon Biomed test plasmid.
+DEFINITION  Synthetic X-Science test plasmid.
 ACCESSION   SYNON001
 VERSION     SYNON001.1
 FEATURES             Location/Qualifiers

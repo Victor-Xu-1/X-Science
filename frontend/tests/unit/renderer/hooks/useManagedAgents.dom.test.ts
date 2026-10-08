@@ -5,7 +5,7 @@
  *
  * Unit tests for renderer/hooks/agent/useManagedAgents.ts.
  *
- * The Agent settings management surface must read the Synon Biomed management
+ * The Agent settings management surface must read the X-Science management
  * view. Diagnostics-only actions can refresh the management cache only;
  * catalog-changing or health actions that affect generated assistants must also
  * invalidate assistant list caches.
@@ -55,7 +55,7 @@ describe('useManagedAgents', () => {
     expect(useSWR).toHaveBeenCalledWith('agents.managed', fetchManagedAgents);
   });
 
-  it('exposes only Synon Biomed agents returned by SWR', () => {
+  it('exposes only X-Science agents returned by SWR', () => {
     const agents = [
       {
         id: 'AIDD_EXPERT',
@@ -132,7 +132,7 @@ describe('useManagedAgents', () => {
     expect(result.current).not.toHaveProperty('refreshCustomAgents');
   });
 
-  it('getManagedAgents fetches only the Synon Biomed management catalog without invalidating legacy Agent caches', async () => {
+  it('getManagedAgents fetches only the X-Science management catalog without invalidating legacy Agent caches', async () => {
     const managedAgents = [
       {
         id: 'ONCOLOGY_EXPERT',

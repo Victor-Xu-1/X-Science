@@ -1,4 +1,5 @@
 import React, { Suspense } from 'react';
+import { PRODUCT_MARK_SRC } from '@/common/config/productIdentity';
 import { HashRouter, Navigate, Outlet, Route, Routes } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Refresh } from '@icon-park/react';
@@ -43,7 +44,7 @@ const AuthUnavailablePanel: React.FC = () => {
       <div className='auth-unavailable__card'>
         <div className='auth-unavailable__brand' aria-label={t('login.brand')}>
           <span className='auth-unavailable__brand-mark' aria-hidden='true'>
-            <img src='./pwa/icon-192.png?v=9b986028' alt='' />
+            <img src={PRODUCT_MARK_SRC} alt='' />
           </span>
           <span>{t('login.brand')}</span>
         </div>

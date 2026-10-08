@@ -97,7 +97,7 @@ describe('ChatConversationIndex unavailable states', () => {
     expect(screen.getByTestId('conversation-loading-surface')).toHaveAttribute('aria-busy', 'true');
     expect(screen.getByTestId('conversation-loading-surface')).toHaveAttribute('role', 'status');
     expect(screen.getByTestId('conversation-loading-indicator')).toBeInTheDocument();
-    expect(screen.queryByAltText('SYNON-Biomed')).not.toBeInTheDocument();
+    expect(screen.queryByAltText('X-Science')).not.toBeInTheDocument();
     expect(screen.queryByTestId('conversation-loading-composer')).not.toBeInTheDocument();
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
   });
@@ -216,7 +216,7 @@ describe('ChatConversationIndex unavailable states', () => {
     );
   });
 
-  it('does not revalidate an active Synon Biomed detail for metadata updates', async () => {
+  it('does not revalidate an active X-Science detail for metadata updates', async () => {
     swrMock.mockReturnValue({
       data: {
         id: 'frame-running',
@@ -236,7 +236,7 @@ describe('ChatConversationIndex unavailable states', () => {
     expect(mutateMock).not.toHaveBeenCalled();
   });
 
-  it('does not revalidate an active Synon Biomed detail for creation notifications', async () => {
+  it('does not revalidate an active X-Science detail for creation notifications', async () => {
     swrMock.mockReturnValue({
       data: {
         id: 'frame-running',

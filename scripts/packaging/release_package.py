@@ -19,7 +19,7 @@ sys.path.insert(0, str(ROOT))
 from scripts.quality import release_candidate_manifest as candidate
 from scripts.packaging.oci_bundle import build_layout, verify_roundtrip
 
-REPOSITORY = "Victor-Xu-1/synon-biomed"
+REPOSITORY = "Victor-Xu-1/X-Science"
 REPOSITORY_ID = 1374130212
 
 
@@ -71,11 +71,11 @@ def api_json(path: str, *, absent_ok: bool = False):
         raise ValueError(f"GitHub metadata request failed (HTTP {error.code})") from None
 
 
-def ensure_unused_package_tag(tag: str) -> None:
+def ensure_unused_package_tag(tag: str, package_name: str) -> None:
     page = 1
     while True:
         versions = api_json(
-            f"users/Victor-Xu-1/packages/container/synon-biomed/versions?per_page=100&page={page}",
+            f"users/Victor-Xu-1/packages/container/{package_name}/versions?per_page=100&page={page}",
             absent_ok=True,
         )
         if versions is None:
@@ -110,7 +110,7 @@ def prepare(event: dict, root: Path) -> tuple[str, str, Path]:
     if os.environ.get("GITHUB_SHA") != manifest["source_commit"]:
         raise ValueError("Published tag, checked-out source and archive source must match")
     revision = manifest["source_commit"]
-    ensure_unused_package_tag(tag)
+    ensure_unused_package_tag(tag, identity["machine_slug"])
     return tag, revision, artifact_dir
 
 
@@ -121,6 +121,7 @@ def main() -> None:
     with tempfile.TemporaryDirectory(prefix="synon-package-") as temp:
         root = Path(temp)
         tag, revision, artifacts = prepare(event, root)
+        identity, _ = candidate.load_controls(ROOT)
         remote = f"ghcr.io/{REPOSITORY.lower()}:{tag}"
         layout = root / "layout"
         digest = build_layout(artifacts, layout, tag, revision, REPOSITORY)
@@ -131,7 +132,7 @@ def main() -> None:
              "--username", os.environ["GITHUB_ACTOR"], "--password-stdin"],
             input=os.environ["GH_TOKEN"], text=True, check=True,
         )
-        ensure_unused_package_tag(tag)
+        ensure_unused_package_tag(tag, identity["machine_slug"])
         subprocess.run(
             ["oras", "copy", "--from-oci-layout", f"{layout}@{digest}", remote,
              "--registry-config", registry_config], check=True,

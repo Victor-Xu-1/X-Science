@@ -116,7 +116,7 @@ const SynonBiomedSkillsSettings: React.FC<SynonBiomedSkillsSettingsProps> = ({
     );
     if (failures.length > 0) {
       for (const failure of failures) {
-        if (failure.status === 'rejected') console.error('Failed to fetch Synon Biomed skill library:', failure.reason);
+        if (failure.status === 'rejected') console.error('Failed to fetch X-Science skill library:', failure.reason);
       }
       setLoadError(true);
       messageRef.current.error(translationRef.current('settings.skillsSettings.fetchFailed'));

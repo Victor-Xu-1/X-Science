@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2026 Synon Biomed
+ * Copyright 2026 X-Science
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -49,7 +49,7 @@ export const useBrowserNotification = (): void => {
           : t('settings.browserNotification.bodyTurnCompleted'),
       show: ({ body, conversationId }) => {
         try {
-          const notification = new Notification('Synon Biomed', { body });
+          const notification = new Notification('X-Science', { body });
           notification.addEventListener('click', () => {
             window.focus();
             if (conversationId) void navigate(`/conversation/${conversationId}`);

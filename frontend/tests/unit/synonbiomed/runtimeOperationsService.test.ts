@@ -48,7 +48,7 @@ const approvalRequest = {
   questions: [],
 };
 
-describe('Synon Biomed ask_user runtime service', () => {
+describe('X-Science ask_user runtime service', () => {
   it('binds plan approval to the artifact and version the user reviewed', async () => {
     const fetchImpl = vi
       .fn()

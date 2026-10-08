@@ -13,7 +13,7 @@ import {
   updateSynonBiomedMemoryCategory,
 } from '@/renderer/services/synonBiomedMemory';
 
-describe('Synon Biomed memory service', () => {
+describe('X-Science memory service', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
@@ -187,7 +187,7 @@ describe('Synon Biomed memory service', () => {
         body: { enabled: true },
       },
     ]);
-    await expect(setSynonBiomedProjectMemoryEnabled('  ', true)).rejects.toThrow('Synon Biomed project id is required');
+    await expect(setSynonBiomedProjectMemoryEnabled('  ', true)).rejects.toThrow('X-Science project id is required');
   });
 
   it('defaults category creation to automatic recall', async () => {

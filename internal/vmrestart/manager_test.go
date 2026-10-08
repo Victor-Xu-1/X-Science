@@ -53,7 +53,7 @@ func TestManagerPrepareWritesSecureServiceWithoutLeakingSecrets(t *testing.T) {
 	}
 	if strings.Contains(string(unit), "secret-token") || !strings.Contains(string(unit), "EnvironmentFile=") ||
 		!strings.Contains(string(unit), "Restart=always") ||
-		!strings.Contains(string(unit), "Description=Synon Biomed managed agent runtime") ||
+		!strings.Contains(string(unit), "Description=X-Science managed agent runtime") ||
 		strings.Contains(string(unit), "Description=Synon Go") {
 		t.Fatalf("unit = %s", unit)
 	}

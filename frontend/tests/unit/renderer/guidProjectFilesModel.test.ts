@@ -24,7 +24,7 @@ const makeArtifact = (overrides: Partial<SynonBiomedProjectArtifact> = {}): Syno
   folderId: null,
   priority: null,
   isUserUpload: false,
-  agentName: 'Synon Biomed',
+  agentName: 'X-Science',
   isIntermediate: false,
   ...overrides,
 });

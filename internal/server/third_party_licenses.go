@@ -20,7 +20,7 @@ func (s *Server) handleThirdPartyLicenses(w http.ResponseWriter, r *http.Request
 	}
 	digest := sha256.Sum256(thirdPartyLicenseContent)
 	writeWorkspaceJSON(w, http.StatusOK, map[string]any{
-		"title":   "Synon Biomed Third-Party Licenses",
+		"title":   "X-Science Third-Party Licenses",
 		"source":  thirdPartyLicenseSource,
 		"bytes":   len(thirdPartyLicenseContent),
 		"sha256":  hex.EncodeToString(digest[:]),

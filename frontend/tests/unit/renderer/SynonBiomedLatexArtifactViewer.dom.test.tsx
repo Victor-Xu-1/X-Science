@@ -12,7 +12,7 @@ The response follows $E = mc^2$.
 \includegraphics{figures/assay-plot}
 \end{document}`;
 
-describe('Synon Biomed LaTeX artifact viewer', () => {
+describe('X-Science LaTeX artifact viewer', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, text: async () => source }));
     Object.defineProperty(Range.prototype, 'getClientRects', {

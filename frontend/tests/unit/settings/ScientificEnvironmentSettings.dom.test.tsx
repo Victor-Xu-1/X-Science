@@ -151,7 +151,7 @@ describe('scientific environment library', () => {
   it('keeps required core runtimes visible but outside optional selection actions', async () => {
     mocks.load.mockResolvedValue({ configured: false, options: [coreItem, item] });
     await renderWithSettingsI18n(<ScientificEnvironmentSettings />, 'en-US');
-    expect(await screen.findByText('Synon Biomed Python')).toBeInTheDocument();
+    expect(await screen.findByText('X-Science Python')).toBeInTheDocument();
     expect(screen.getByText('Required')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Manage predownloads' }));
     const dialog = await screen.findByRole('dialog');

@@ -86,7 +86,7 @@ func TestGenerateAndVerifyRealReleaseTree(t *testing.T) {
 	if manifest.FileCount != 6 || manifest.TotalBytes == 0 {
 		t.Fatalf("manifest inventory = %#v", manifest)
 	}
-	if manifest.Name != "synon-biomed" || manifest.Version != buildinfo.Release().Version {
+	if manifest.Name != buildinfo.Release().MachineSlug || manifest.Version != buildinfo.Release().Version {
 		t.Fatalf("manifest identity = %q %q, want root-authority version", manifest.Name, manifest.Version)
 	}
 	if manifest.SchemaVersion != 4 {

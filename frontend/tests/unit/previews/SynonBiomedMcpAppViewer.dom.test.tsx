@@ -34,7 +34,7 @@ vi.mock('@/renderer/services/mcp/synonBiomedMcpApps', async (loadOriginal) => {
   };
 });
 
-describe('Synon Biomed MCP App viewer', () => {
+describe('X-Science MCP App viewer', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.clearAllMocks();

@@ -43,7 +43,7 @@ func TestVMRestartAPIReportsPendingAndCompletedLifecycle(t *testing.T) {
 	app.ServeHTTP(restart, newLoopbackTestRequest(http.MethodPost, "/api/preferences/vm-resources/restart", nil))
 	if restart.Code != http.StatusAccepted || !launched || !strings.Contains(restart.Body.String(), "\"state\":\"pending\"") ||
 		strings.Contains(restart.Body.String(), "completedAt") ||
-		!strings.Contains(restart.Body.String(), "managed Synon Biomed service") ||
+		!strings.Contains(restart.Body.String(), "managed X-Science service") ||
 		strings.Contains(restart.Body.String(), "managed Synon Go service") {
 		t.Fatalf("restart = %d launched=%v body=%s", restart.Code, launched, restart.Body.String())
 	}

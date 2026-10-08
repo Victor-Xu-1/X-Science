@@ -4,10 +4,10 @@ import "testing"
 
 func TestCurrentUsesRootProductIdentityAuthority(t *testing.T) {
 	identity := Current()
-	if identity.Schema != authoritySchema || identity.DisplayName != "Synon Biomed" || !semanticVersionPattern.MatchString(identity.Version) || identity.MachineSlug != "synon-biomed" {
+	if identity.Schema != authoritySchema || identity.DisplayName != "X-Science" || !semanticVersionPattern.MatchString(identity.Version) || identity.MachineSlug != "x-science" {
 		t.Fatalf("identity = %#v", identity)
 	}
-	if identity.FullDisplay() != "Synon Biomed v"+identity.Version || identity.SourcePackage() != "synon-biomed-v"+identity.Version || identity.UserAgent() != "synon-biomed/"+identity.Version {
+	if identity.FullDisplay() != "X-Science v"+identity.Version || identity.SourcePackage() != "x-science-v"+identity.Version || identity.UserAgent() != "x-science/"+identity.Version {
 		t.Fatalf("derived identity is inconsistent: %#v", identity)
 	}
 }

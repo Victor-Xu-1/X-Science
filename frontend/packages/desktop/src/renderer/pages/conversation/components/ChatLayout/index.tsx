@@ -56,7 +56,7 @@ const ChatLayout: React.FC<{
   isTemporaryWorkspace?: boolean;
   /**
    * Stable key for persisting the workspace collapse preference. Defaults to
-   * `conversation_id` for Synon Biomed conversations.
+   * `conversation_id` for X-Science conversations.
    */
   workspacePreferenceKey?: string;
   /** Custom rename handler; when provided, replaces the default conversation.update rename flow */

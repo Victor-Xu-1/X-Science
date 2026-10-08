@@ -1,6 +1,6 @@
 """Bounded execution bridge for an operator-installed Synon-research pack.
 
-The external package remains outside Synon Biomed source.  This module exposes
+The external package remains outside X-Science source.  This module exposes
 its compact JSON helpers through one MCP domain without registering every
 external SKILL.md as a model-visible Skill.
 """

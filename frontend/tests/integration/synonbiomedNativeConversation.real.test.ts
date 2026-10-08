@@ -152,7 +152,7 @@ async function selectNativeConversation(items: NativeConversation[]): Promise<Na
   throw new Error(`no migrated native conversation satisfies the integration contract: ${rejected.join('; ')}`);
 }
 
-describe('Synon Biomed native SynonAI conversation integration', () => {
+describe('X-Science native SynonAI conversation integration', () => {
   it('loads a real root frame, persisted messages, and scientific files through WebHost', async () => {
     const conversations = await getJson<{ items: NativeConversation[]; total: number }>('/api/conversations?limit=100');
     expect(conversations.total).toBeGreaterThan(0);

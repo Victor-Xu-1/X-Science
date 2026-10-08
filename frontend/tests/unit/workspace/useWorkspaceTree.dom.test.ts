@@ -40,7 +40,7 @@ describe('useWorkspaceTree initial loading', () => {
     mocks.authUser = { id: 'owner-a', username: 'victor' };
   });
 
-  it('loads the canonical project artifact collection directly for Synon Biomed', async () => {
+  it('loads the canonical project artifact collection directly for X-Science', async () => {
     const response = [
       {
         name: 'project-files',

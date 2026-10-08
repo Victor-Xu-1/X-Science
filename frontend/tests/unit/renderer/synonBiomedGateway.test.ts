@@ -13,7 +13,7 @@ function deferred<T>() {
   return { promise, resolve };
 }
 
-describe('Synon Biomed project gateway request authority', () => {
+describe('X-Science project gateway request authority', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('coalesces only concurrent default bench reads and revalidates after settlement', async () => {

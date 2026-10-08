@@ -77,7 +77,7 @@ describe('buildGroupedHistory', () => {
     ]);
   });
 
-  it('promotes Synon Biomed backend projects into the SynonAI projects section', () => {
+  it('promotes X-Science backend projects into the SynonAI projects section', () => {
     const result = buildGroupedHistory(
       [
         {

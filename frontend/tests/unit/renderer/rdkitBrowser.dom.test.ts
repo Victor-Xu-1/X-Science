@@ -117,7 +117,7 @@ describe('RDKit isolated worker client', () => {
   it('validates an edited mol block and returns canonical RDKit molecule data', async () => {
     const { validateAndRenderMolBlock } = await import('@/renderer/services/rdkitBrowser');
     const molBlock =
-      'edited ligand\n  Synon Biomed\n\n  1  0  0  0  0  0            999 V2000\n    0.0000    0.0000    0.0000 C   0  0\nM  END';
+      'edited ligand\n  X-Science\n\n  1  0  0  0  0  0            999 V2000\n    0.0000    0.0000    0.0000 C   0  0\nM  END';
     const result = validateAndRenderMolBlock(molBlock, 320, 220);
     const worker = MockWorker.instances[0];
     expect(worker.messages[0]).toEqual({

@@ -42,7 +42,7 @@ function collectManagedAgentLogoKeys(agent: ManagedAgent): string[] {
     .filter((key, index, values) => values.indexOf(key) === index);
 }
 
-/** Shared fetcher for the Synon Biomed experts catalog, keyed into a backend->url map. */
+/** Shared fetcher for the X-Science experts catalog, keyed into a backend->url map. */
 export async function fetchAgentLogos(): Promise<AgentLogoMap> {
   try {
     const agents = await ipcBridge.synonBiomed.getManagedAgents.invoke();
@@ -103,11 +103,11 @@ function lookupBackendAvatar(logos: AgentLogoMap, backend: string | undefined | 
 }
 
 /**
- * Resolve the best available logo for a Synon Biomed runtime from the backend logo catalog.
+ * Resolve the best available logo for a X-Science runtime from the backend logo catalog.
  *
  * Pure - pass the map from {@link useAgentLogos}. Priority:
  *   1. Explicit icon/avatar, if provided
- *   2. Backend ID from the Synon Biomed catalog
+ *   2. Backend ID from the X-Science catalog
  *   3. null, caller renders its own fallback
  */
 export function resolveAgentLogo(

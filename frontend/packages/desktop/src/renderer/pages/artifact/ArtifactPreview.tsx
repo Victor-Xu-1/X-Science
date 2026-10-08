@@ -26,6 +26,7 @@ import {
   LazyUnsupportedPreview as UnsupportedPreview,
 } from '@/renderer/pages/conversation/Preview/components/viewers/scientificPreviewLoaders';
 import PreviewLoadingState from '@/renderer/components/media/PreviewLoadingState';
+import { PRODUCT_NAME } from '@/common/config/productIdentity';
 import SynonBiomedNotesModal from '@/renderer/components/synonBiomed/notes/SynonBiomedNotesModal';
 import type { SynonBiomedArtifactTextSelection } from './artifactTextSelection';
 import type { SynonBiomedArtifactCanvasSelection } from './artifactCanvasSelection';
@@ -601,7 +602,7 @@ const ArtifactDetails: React.FC<{
             : (folder?.name ?? t('preview.artifact.metadata.folderMissing'))}
         </ArtifactMetadataState>
       </dd>
-      <Detail label={t('preview.artifact.details.agent')} value={artifact.agentName ?? 'Synon Biomed'} />
+      <Detail label={t('preview.artifact.details.agent')} value={artifact.agentName ?? PRODUCT_NAME} />
       <Detail
         label={t('preview.artifact.details.project')}
         value={artifact.projectId ?? t('preview.artifact.notLinked')}

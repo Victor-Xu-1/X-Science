@@ -38,22 +38,22 @@ function loadConversationLocale(language: string): Record<string, unknown> {
   return JSON.parse(readFileSync(url, 'utf8')) as Record<string, unknown>;
 }
 
-describe('Synon Biomed runtime settings copy', () => {
-  it('directs missing MCP commands to the Synon Biomed runtime contract', () => {
+describe('X-Science runtime settings copy', () => {
+  it('directs missing MCP commands to the X-Science runtime contract', () => {
     const en = loadSettingsLocale('en-US');
     const zh = loadSettingsLocale('zh-CN');
 
     expect(en.mcpErrorNodeCommandNotFound).not.toContain('Install Node.js');
-    expect(en.mcpErrorNodeCommandNotFound).toContain('Synon Biomed runtime');
+    expect(en.mcpErrorNodeCommandNotFound).toContain('X-Science runtime');
 
     expect(zh.mcpErrorNodeCommandNotFound).not.toContain('安装 Node.js');
-    expect(zh.mcpErrorNodeCommandNotFound).toContain('Synon Biomed 运行时');
+    expect(zh.mcpErrorNodeCommandNotFound).toContain('X-Science 运行时');
   });
 
   it('uses the product name for the manual restart instruction', () => {
     const zh = loadSettingsLocale('zh-CN');
 
-    expect(zh.restartManualRequired).toContain('Synon Biomed 服务');
+    expect(zh.restartManualRequired).toContain('X-Science 服务');
     expect(zh.restartManualRequired).not.toContain('Synon Go');
   });
 
@@ -68,7 +68,7 @@ describe('Synon Biomed runtime settings copy', () => {
     expect((zh.runtimePreparing as Record<string, string>).sendboxHint).not.toContain('托管的 Node');
   });
 
-  it('defines only the Synon Biomed backend startup message in every common locale', () => {
+  it('defines only the X-Science backend startup message in every common locale', () => {
     for (const language of settingsLanguages()) {
       const common = loadCommonLocale(language);
       const backendStartup = common.backendStartup as Record<string, unknown>;
@@ -76,7 +76,7 @@ describe('Synon Biomed runtime settings copy', () => {
 
       expect(Object.keys(backendStartup), language).toEqual(['synonBiomed']);
       expect(synonBiomed.title, language).toBeTruthy();
-      expect(synonBiomed.description, language).toContain('Synon Biomed');
+      expect(synonBiomed.description, language).toContain('X-Science');
     }
   });
 });

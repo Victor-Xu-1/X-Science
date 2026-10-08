@@ -10,7 +10,7 @@ import { buildAssistantEditorBackends } from '@/renderer/pages/settings/SynonBio
 import type { ManagedAgent } from '@/renderer/utils/synonBiomed/runtime/runtimeTypes';
 
 describe('buildAssistantEditorBackends', () => {
-  it('derives editor backends only from Synon Biomed management agents', () => {
+  it('derives editor backends only from X-Science management agents', () => {
     const agents: ManagedAgent[] = [
       managedAgent({
         id: 'AIDD_EXPERT',
@@ -45,7 +45,7 @@ describe('buildAssistantEditorBackends', () => {
     ]);
   });
 
-  it('uses localized Synon Biomed management names and falls back to agent_type when backend is empty', () => {
+  it('uses localized X-Science management names and falls back to agent_type when backend is empty', () => {
     const agents: ManagedAgent[] = [
       managedAgent({
         id: 'AIDD_EXPERT',
@@ -67,7 +67,7 @@ describe('buildAssistantEditorBackends', () => {
     ]);
   });
 
-  it('keeps the current Synon Biomed binding visible even when it is known unavailable', () => {
+  it('keeps the current X-Science binding visible even when it is known unavailable', () => {
     const agents: ManagedAgent[] = [
       managedAgent({
         id: 'ONCOLOGY_EXPERT',

@@ -94,7 +94,7 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
         Message.success(t('settings.synonBiomedUpToDate', { version: status.current }));
       }
     } catch (error) {
-      console.error('Failed to check for Synon Biomed updates:', error);
+      console.error('Failed to check for X-Science updates:', error);
       Message.error(t('settings.synonBiomedUpdateCheckFailed'));
     } finally {
       setCheckingUpdates(false);

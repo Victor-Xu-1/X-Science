@@ -2,10 +2,10 @@
 
 ## Community license
 
-Copyright (c) 2026 Synon Biomed contributors.
+Copyright (c) 2026 X-Science contributors.
 
 Except where a file or component carries a separate license or notice,
-Synon Biomed's first-party code is offered under the GNU Affero General Public
+X-Science's first-party code is offered under the GNU Affero General Public
 License, version 3 only (`AGPL-3.0-only`). The complete, unmodified license is
 in [LICENSE](LICENSE).
 

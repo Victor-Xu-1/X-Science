@@ -10,7 +10,7 @@ import { createSynonBiomedTestFetch } from './synonbiomedTestAuth';
 
 const gatewayBaseUrl = process.env.SYNON_BIOMED_GATEWAY_URL ?? 'http://127.0.0.1:8766';
 
-describe('Synon Biomed gateway integration', () => {
+describe('X-Science gateway integration', () => {
   it('reads a real project and its scientific artifacts without the catalog facade', async () => {
     const fetchImpl = await createSynonBiomedTestFetch(gatewayBaseUrl);
     const projects = await loadSynonBiomedProjects({ baseUrl: gatewayBaseUrl, fetchImpl });

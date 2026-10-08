@@ -69,7 +69,7 @@ export interface IConfigStorageRefer {
  *
  * New business truth must not be added here. Keep this surface migration-only:
  * renderer/process code may read these keys during one-shot imports into the
- * Synon Biomed backend, but all current writes use the fusion-owned services.
+ * X-Science backend, but all current writes use the fusion-owned services.
  */
 export interface ILegacyConfigStorageRefer extends IConfigStorageRefer {
   'google.config'?: {
@@ -194,7 +194,7 @@ export type TChatConversation =
           is_health_check?: boolean;
           /** Cron job ID that spawned this conversation */
           cron_job_id?: string;
-          /** Synon Biomed project and frame identity for native workspace actions. */
+          /** X-Science project and frame identity for native workspace actions. */
           project_id?: string;
           project_name?: string;
           root_frame_id?: string;

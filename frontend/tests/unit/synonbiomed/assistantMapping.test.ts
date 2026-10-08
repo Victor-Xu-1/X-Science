@@ -15,7 +15,7 @@ import {
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 
 const baseCatalog: SynonBiomedCatalog = {
-  product: 'Synon Biomed',
+  product: 'X-Science',
   runtime: {
     runtimeAssetsDir: '/home/victor_1/synonbiomed-workbench/synonbiomed/runtime/assets',
     agents: {
@@ -40,7 +40,7 @@ const baseCatalog: SynonBiomedCatalog = {
   },
 };
 
-describe('Synon Biomed assistant mapping', () => {
+describe('X-Science assistant mapping', () => {
   it('converts backend expert agents into SynonAI builtin assistants', () => {
     const assistants = buildSynonBiomedAssistants(baseCatalog);
 
@@ -61,11 +61,11 @@ describe('Synon Biomed assistant mapping', () => {
         acp_backend: 'synonbiomed',
       },
     });
-    expect(assistants[0].description_i18n['zh-CN']).toContain('Synon Biomed');
+    expect(assistants[0].description_i18n['zh-CN']).toContain('X-Science');
     expect(assistants[1].name_i18n['zh-CN']).toBe('Genomics Bioinfo Expert');
   });
 
-  it('marks expert assistants offline when the Synon Biomed backend is unhealthy', () => {
+  it('marks expert assistants offline when the X-Science backend is unhealthy', () => {
     const assistants = buildSynonBiomedAssistants({
       ...baseCatalog,
       backend: {
@@ -82,7 +82,7 @@ describe('Synon Biomed assistant mapping', () => {
     expect(assistants[0].agent_status_message).toContain('unavailable');
   });
 
-  it('preserves existing Synon Biomed assistant state without keeping non-Synon agents', () => {
+  it('preserves existing X-Science assistant state without keeping non-Synon agents', () => {
     const existing: Assistant[] = [
       {
         ...buildSynonBiomedAssistants(baseCatalog)[0],
@@ -104,7 +104,7 @@ describe('Synon Biomed assistant mapping', () => {
     ]);
     expect(merged[0].name).toBe('Existing AIDD Expert');
   });
-  it('makes Synon Biomed experts the only native assistant catalog and removes every other agent source', () => {
+  it('makes X-Science experts the only native assistant catalog and removes every other agent source', () => {
     const nonSynonBiomedAssistants: Assistant[] = [
       {
         id: 'unsupported:runtime',
@@ -147,7 +147,7 @@ describe('Synon Biomed assistant mapping', () => {
     ]);
   });
 
-  it('returns an empty catalog when Synon Biomed experts are unavailable', () => {
+  it('returns an empty catalog when X-Science experts are unavailable', () => {
     const baseAssistants: Assistant[] = [
       { id: 'bare:codex-cli', name: 'Codex CLI', source: 'generated', sort_order: -1, enabled: true },
       { id: 'my-lab-note-assistant', name: 'My Lab Note Assistant', source: 'user', sort_order: 100, enabled: true },
@@ -156,7 +156,7 @@ describe('Synon Biomed assistant mapping', () => {
     expect(mergeSynonBiomedAssistants(baseAssistants, [])).toEqual([]);
   });
 
-  it('uses Synon Biomed runtime skills as the only native skills catalog', () => {
+  it('uses X-Science runtime skills as the only native skills catalog', () => {
     const baseSkills = [
       { name: 'cron', source: 'builtin', is_custom: false },
       { name: 'xiaohongshu-post', source: 'builtin', is_custom: false },

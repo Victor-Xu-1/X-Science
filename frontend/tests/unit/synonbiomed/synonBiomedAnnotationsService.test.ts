@@ -8,7 +8,7 @@ vi.mock('@/renderer/services/synonBiomedFrameReads', () => ({
 
 import { requestSynonBiomedFrameAudit } from '@/renderer/services/synonBiomedAnnotations';
 
-describe('Synon Biomed manual review service', () => {
+describe('X-Science manual review service', () => {
   beforeEach(() => frameReadMocks.invalidate.mockReset());
 
   it('starts a one-shot audit and invalidates the cached runtime projection', async () => {

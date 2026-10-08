@@ -1,5 +1,5 @@
 // Package toolgateway owns the single ordered tool-execution pipeline used by
-// every Synon Biomed Harness entry point. Domain adapters provide stage
+// every X-Science Harness entry point. Domain adapters provide stage
 // handlers, but they cannot reorder or bypass the canonical stages.
 package toolgateway
 

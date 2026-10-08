@@ -41,7 +41,7 @@ export async function loadSynonBiomedNotes(
     undefined,
     options
   );
-  if (!Array.isArray(payload)) throw new Error('Synon Biomed notes response is invalid');
+  if (!Array.isArray(payload)) throw new Error('X-Science notes response is invalid');
   return payload
     .map(toNote)
     .filter((note): note is SynonBiomedNote => note !== null)
@@ -72,7 +72,7 @@ export async function createSynonBiomedNote(
       options
     )
   );
-  if (!note) throw new Error('Synon Biomed create note response is invalid');
+  if (!note) throw new Error('X-Science create note response is invalid');
   return note;
 }
 
@@ -90,7 +90,7 @@ export async function updateSynonBiomedNote(
       options
     )
   );
-  if (!note) throw new Error('Synon Biomed update note response is invalid');
+  if (!note) throw new Error('X-Science update note response is invalid');
   return note;
 }
 
@@ -153,7 +153,7 @@ async function requestJson<T>(
   });
   if (!response.ok) {
     const detail = await response.text().catch(() => '');
-    throw new Error(`Synon Biomed notes request failed: ${response.status}${detail ? ` ${detail.slice(0, 300)}` : ''}`);
+    throw new Error(`X-Science notes request failed: ${response.status}${detail ? ` ${detail.slice(0, 300)}` : ''}`);
   }
   const text = await response.text();
   return (text ? JSON.parse(text) : undefined) as T;

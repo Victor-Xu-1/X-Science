@@ -8,7 +8,7 @@
  * IPC Bridge → HTTP/WS adapter.
  *
  * This file replaces the original IPC bridge calls with HTTP REST and WebSocket
- * calls routed through the Synon Biomed WebHost gateway. Electron-native
+ * calls routed through the X-Science WebHost gateway. Electron-native
  * operations (window controls, native dialogs, auto-update, devtools, zoom,
  * CDP, deep links) remain as IPC.
  */

@@ -69,7 +69,7 @@ const kernelCellToken = (kernel: SynonBiomedKernel): string | null =>
 const SynonBiomedComputeRuntimePanel: React.FC<SynonBiomedComputeRuntimePanelProps> = ({
   rootFrameId,
   projectId,
-  projectName = 'Synon Biomed',
+  projectName = 'X-Science',
   sessionTitle = '',
 }) => {
   const { t } = useTranslation();

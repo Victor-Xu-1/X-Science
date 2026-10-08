@@ -44,7 +44,7 @@ const AccountSettings: React.FC = () => {
       setEditingName(false);
       Message.success(t('settings.accountSettings.profileSaved'));
     } catch (error) {
-      console.error('Failed to save Synon Biomed display name:', error);
+      console.error('Failed to save X-Science display name:', error);
       Message.error(t('settings.accountSettings.profileSaveFailed'));
     }
   };
@@ -57,7 +57,7 @@ const AccountSettings: React.FC = () => {
       saveProfile({ ...profile, avatarDataUrl });
       Message.success(t('settings.accountSettings.avatarSaved'));
     } catch (error) {
-      console.error('Failed to save Synon Biomed avatar:', error);
+      console.error('Failed to save X-Science avatar:', error);
       const code = error instanceof Error ? error.message : '';
       Message.error(
         code === 'user_profile_avatar_type_invalid'
@@ -76,7 +76,7 @@ const AccountSettings: React.FC = () => {
       saveProfile({ ...profile, avatarDataUrl: null });
       Message.success(t('settings.accountSettings.avatarRemoved'));
     } catch (error) {
-      console.error('Failed to remove Synon Biomed avatar:', error);
+      console.error('Failed to remove X-Science avatar:', error);
       Message.error(t('settings.accountSettings.avatarSaveFailed'));
     }
   };
@@ -97,7 +97,7 @@ const AccountSettings: React.FC = () => {
       await copyText(lines.join('\n'));
       Message.success(t('settings.accountSettings.summaryCopied'));
     } catch (error) {
-      console.error('Failed to copy Synon Biomed account summary:', error);
+      console.error('Failed to copy X-Science account summary:', error);
       Message.error(t('settings.accountSettings.summaryCopyFailed'));
     }
   };

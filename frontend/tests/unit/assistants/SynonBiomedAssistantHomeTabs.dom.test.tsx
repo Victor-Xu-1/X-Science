@@ -66,12 +66,12 @@ const renderHome = (assistants: AssistantListItem[], onCreate = vi.fn()) =>
     </I18nextProvider>
   );
 
-describe('Synon Biomed assistant home', () => {
+describe('X-Science assistant home', () => {
   beforeAll(async () => {
     testI18n = await createTestI18n('en-US');
   });
 
-  it('shows only Synon Biomed assistants and exposes only the Synon expert creation entrypoint', () => {
+  it('shows only X-Science assistants and exposes only the Synon expert creation entrypoint', () => {
     renderHome([
       assistant({ id: 'biomed-planner', name: 'Biomed Planner' }),
       assistant({
@@ -132,10 +132,10 @@ describe('Synon Biomed assistant home', () => {
     expect(screen.getByTestId('switch-enabled-user-profile')).not.toBeDisabled();
   });
 
-  it('labels the runtime chip as Synon Biomed instead of a generic agent runtime', () => {
+  it('labels the runtime chip as X-Science instead of a generic agent runtime', () => {
     renderHome([assistant({ id: 'biomed-planner' })]);
 
-    expect(screen.getByTestId('assistant-runtime-biomed-planner')).toHaveTextContent('Synon Biomed');
+    expect(screen.getByTestId('assistant-runtime-biomed-planner')).toHaveTextContent('X-Science');
     expect(screen.getByTestId('assistant-runtime-biomed-planner')).not.toHaveTextContent('runtime:');
   });
 
