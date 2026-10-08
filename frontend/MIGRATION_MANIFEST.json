@@ -5,13 +5,13 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "282a55172329d41175638f03d4cd5a255daae3b19ebb973da3124f9a43a3d3d5",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "a63b8779f796ce6e03696ad8c344549f03858c040d8a55e055e211c017ef53e8",
+  "additionFingerprintSHA256": "f4c70cb9fb1dc19200710c60dd2fe100e0ca9167b88f9f46ac52f7f9b10c7e1e",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 347,
     "adaptedSourceFiles": 714,
     "removedSourceFiles": 293,
-    "addedFiles": 813
+    "addedFiles": 814
   },
   "adaptations": [
     {
@@ -9622,6 +9622,12 @@
       "path": "tests/unit/build/molstarLazyBoundary.test.ts",
       "sha256": "dc6cdfafbd672131c26171d88fcebbc9374ceda614050ab166fa5ffc46aa11c0",
       "bytes": 5583,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/build/rendererBootProjection.test.ts",
+      "sha256": "e23e40900937babb9a625b3438ca560ba1a907e62e42500488a3377361bf9094",
+      "bytes": 2400,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
