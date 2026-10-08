@@ -19,7 +19,10 @@ class LicenseInventoryTest(unittest.TestCase):
         root = SCRIPT.parents[2]
         lock = (root / "frontend/package-lock.json").read_bytes()
         notices = (root / "docs/licenses/frontend-bundle/NOTICE.txt").read_text()
-        self.assertIn("Package lock SHA-256: " + hashlib.sha256(lock).hexdigest(), notices)
+        self.assertTrue("Package lock SHA-256: " + hashlib.sha256(lock).hexdigest() in notices,
+                        "Bundled NOTICE must be bound to the current dependency lock")
+        identity = json.loads((root / "product-identity.json").read_text())
+        self.assertIn(identity["display_name"] + " — frontend third-party notices", notices.splitlines()[0])
         self.assertIn("@rdkit/rdkit@", notices)
         self.assertIn("Permission is hereby granted", notices)
         self.assertIn("Redistribution and use in source and binary forms", notices)

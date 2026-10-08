@@ -102,6 +102,18 @@ class VerificationOwnershipTests(unittest.TestCase):
         self.contract_path.unlink()
         self.assertEqual(contract.load(self.repo), [])
 
+    def test_exact_license_notice_runs_its_checker_without_claiming_runtime_ownership(self):
+        path = 'docs/licenses/frontend-bundle/NOTICE.txt'
+        self.value['groups'][0]['paths'].append(path)
+        self.save()
+        self.assertEqual(contract.checks(contract.matched(self.repo, [path])),
+                         [['python3', '-B', 'scripts/test_check.py']])
+        entries = [{'ImportPath': 'fixture', 'Dir': str(self.repo)}]
+        self.assertEqual(scope.select_packages(self.repo, [path], entries)[0], [])
+        self.assertEqual(scope.select_packages(self.repo, ['docs/licenses/unregistered/NOTICE.txt'], entries)[0], ['fixture'])
+        entries[0]['EmbedFiles'] = [path]
+        self.assertEqual(scope.select_packages(self.repo, [path], entries)[0], ['fixture'])
+
     def test_shared_verification_runs_once_across_required_partitions(self):
         with patch.object(scope, 'changed_paths', return_value=['scripts/check.py']), patch.object(
             scope, 'resolve_packages', return_value=([], 'verification only'),

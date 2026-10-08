@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "package": "@x-science/workbench-web",
-  "lockfileSHA256": "3c3a8ef5d421b8341913f01838fa7214bb7a25f22725f2ee918509ebd67bac1e",
+  "lockfileSHA256": "72c6a1809ec264ab8d6fcf9e317d49aa62f78fa759315a4050a48ed903280a52",
   "summary": {
-    "records": 1131,
+    "records": 1129,
     "workspaceLinkRecords": 1,
     "directRuntimeBuildDependencies": 62,
     "directDevelopmentDependencies": 26,
@@ -20,7 +20,7 @@
       "CC-BY-4.0": 1,
       "CC0-1.0": 2,
       "ISC": 53,
-      "MIT": 1008,
+      "MIT": 1006,
       "MIT-0": 2,
       "Python-2.0": 1,
       "SEE LICENSE IN LICENSE.txt": 1,
@@ -3260,7 +3260,7 @@
     },
     {
       "name": "axios",
-      "version": "1.18.1",
+      "version": "1.20.0",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -5276,7 +5276,7 @@
     },
     {
       "name": "katex",
-      "version": "0.16.22",
+      "version": "0.18.2",
       "license": "MIT",
       "directKind": "runtime-build",
       "basis": "package-lock metadata"
@@ -5709,22 +5709,8 @@
       "basis": "package-lock metadata"
     },
     {
-      "name": "commander",
-      "version": "8.3.0",
-      "license": "MIT",
-      "directKind": null,
-      "basis": "package-lock metadata"
-    },
-    {
       "name": "dayjs",
       "version": "1.11.21",
-      "license": "MIT",
-      "directKind": "runtime-build",
-      "basis": "package-lock metadata"
-    },
-    {
-      "name": "katex",
-      "version": "0.16.47",
       "license": "MIT",
       "directKind": "runtime-build",
       "basis": "package-lock metadata"
@@ -6431,7 +6417,7 @@
     },
     {
       "name": "proxy-addr",
-      "version": "2.0.7",
+      "version": "2.0.8",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -7033,7 +7019,7 @@
     },
     {
       "name": "source-map-js",
-      "version": "1.2.1",
+      "version": "1.2.2",
       "license": "BSD-3-Clause",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -7952,7 +7938,7 @@
   "workspaceLinks": [
     {
       "name": "@x-science/workbench-renderer",
-      "version": "0.1.8",
+      "version": "0.1.12",
       "path": "packages/desktop",
       "basis": "local workspace package; source licensing reviewed separately"
     }

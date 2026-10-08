@@ -98,6 +98,8 @@ def plan(root: Path, base: str, head: str) -> VersionPreparation:
     if current == expected:
         # Same base and prepared head: validate projections, do not bump again.
         provenance.reviewed_audit(root)
+        regular_target(root, provenance.NOTICES)
+        provenance.require_notice_binding(root)
         return VersionPreparation(head, base, expected, {}, {})
     # Validate every derived destination before reading or replacing it.
     for relative in provenance.DERIVED:
