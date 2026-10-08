@@ -143,6 +143,12 @@ external indirection and test-only imports. Toolchain/module/replacement authori
 changes or unclassified package-external inputs retain complete-graph coverage.
 Declared verification-only workflow changes run mandatory CI contract checks.
 Documentation-only changes do not run product tests.
+Bare `make` defaults to the existing production build, not `go test ./...`.
+CodeQL Go autobuild may invoke `make` to resolve/build dependencies; it must not
+silently rerun the global test target before extracting Go sources. Explicit
+`make test` is still available for authorized comprehensive testing. The scope
+planner recognizes only the exact default-goal addition as a build-entry change;
+any build/test recipe or other Makefile change retains normal consumer coverage.
 An exact one-step product-version change is classified by Git object content,
 not by the names of its seven projection/provenance files. When only the
 registered version fields, their corresponding manifest hashes and auditor
