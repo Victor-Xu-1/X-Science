@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "package": "@x-science/workbench-web",
-  "lockfileSHA256": "72c6a1809ec264ab8d6fcf9e317d49aa62f78fa759315a4050a48ed903280a52",
+  "lockfileSHA256": "75e6b261a5622f1f05444bc60a6bfe37a3619a83ee522ffc80c3f5a5af9cf8fa",
   "summary": {
-    "records": 1129,
+    "records": 1130,
     "workspaceLinkRecords": 1,
     "directRuntimeBuildDependencies": 62,
     "directDevelopmentDependencies": 26,
@@ -20,7 +20,7 @@
       "CC-BY-4.0": 1,
       "CC0-1.0": 2,
       "ISC": 53,
-      "MIT": 1006,
+      "MIT": 1007,
       "MIT-0": 2,
       "Python-2.0": 1,
       "SEE LICENSE IN LICENSE.txt": 1,
@@ -3533,7 +3533,7 @@
     },
     {
       "name": "compression",
-      "version": "1.8.1",
+      "version": "1.8.2",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -4052,6 +4052,13 @@
     {
       "name": "destr",
       "version": "2.0.5",
+      "license": "MIT",
+      "directKind": null,
+      "basis": "package-lock metadata"
+    },
+    {
+      "name": "destroy",
+      "version": "1.2.0",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -7938,7 +7945,7 @@
   "workspaceLinks": [
     {
       "name": "@x-science/workbench-renderer",
-      "version": "0.1.12",
+      "version": "0.1.13",
       "path": "packages/desktop",
       "basis": "local workspace package; source licensing reviewed separately"
     }
