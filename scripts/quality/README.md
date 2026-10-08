@@ -4,7 +4,11 @@ These scripts enforce the current Synon Biomed repository boundaries.
 They are verification gates: passing one gate proves only the contract named by
 that gate, not complete product acceptance.
 
-## Run the maintained test suite
+## Run affected verification
+
+Select the changed tools and their directly related tests. The following whole
+quality-tool suite is for explicit comprehensive qualification, not the default
+for every PR:
 
 ```sh
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover \
@@ -139,6 +143,22 @@ external indirection and test-only imports. Toolchain/module/replacement authori
 changes or unclassified package-external inputs retain complete-graph coverage.
 Declared verification-only workflow changes run mandatory CI contract checks.
 Documentation-only changes do not run product tests.
+Bare `make` defaults to the existing production build, not `go test ./...`.
+CodeQL Go autobuild may invoke `make` to resolve/build dependencies; it must not
+silently rerun the global test target before extracting Go sources. Explicit
+`make test` is still available for authorized comprehensive testing. The scope
+planner recognizes only the exact default-goal addition as a build-entry change;
+any build/test recipe or other Makefile change retains normal consumer coverage.
+An exact one-step product-version change is classified by Git object content,
+not by the names of its seven projection/provenance files. When only the
+registered version fields, their corresponding manifest hashes and auditor
+pins change, those metadata paths do not expand Go dependency closure or cause
+npm installation and the frontend suite/build. The read-only counter and
+identity checks plus a fresh clean frontend provenance audit still run. Mixed
+PRs retain every implementation path; dependency/script/schema/identity/auditor
+implementation changes, incomplete metadata and any uncertain classification
+retain normal coverage. Selection never turns a failed provenance check into
+success. No target, scientific workflow or task-specific exception is used.
 Before frontend dependency installation, the fast path verifies the same
 reviewed migration manifest used by full CI. Run it from a clean candidate or
 clone; stale provenance fails before expensive frontend checks. Do not delete
@@ -170,3 +190,9 @@ execution is unavailable, local evidence must identify the exact revision,
 environment, tested scope and missing gates under a distinct local status; it
 must not be represented as a completed GitHub-hosted workflow or as full quality
 success when only focused checks ran.
+The current protected-public controller uses CI-first evidence: it rechecks
+exact head/base/tree, scoped CI and security checks, review and the counter,
+then normally merges the PR. It does not repeat the same suite on the operator's
+machine. Actual-main checks and task/data-safe deployment remain required;
+deployment smoke covers the shared baseline and only the directly affected
+user interaction. Full release qualification remains a separate boundary.
