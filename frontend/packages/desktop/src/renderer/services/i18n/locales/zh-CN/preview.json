@@ -14,10 +14,10 @@
     "addedToMessage": "已添加到消息",
     "addUnavailable": "当前文件无法添加到消息",
     "unsavedCloseBlocked": "有未保存的修改，请先保存或逐个关闭文件",
-    "layout": "文件画板布局",
+    "layout": "文件画板布局（按可用宽度适配）",
     "oneColumn": "单栏",
-    "twoColumns": "双栏",
-    "threeColumns": "三栏",
+    "twoColumns": "最多双栏",
+    "threeColumns": "最多三栏",
     "editFile": "编辑文件",
     "cancelEdit": "取消编辑",
     "saveFile": "保存修改",
@@ -234,7 +234,18 @@
   },
   "image": {
     "alt": "图片预览",
-    "altNamed": "{{name}} 的图片预览"
+    "altNamed": "{{name}} 的图片预览",
+    "controls": "图片缩放控制",
+    "viewport": "图片视口",
+    "zoomIn": "放大图片",
+    "zoomOut": "缩小图片",
+    "fit": "图片适应窗口",
+    "actualSize": "图片原始尺寸",
+    "zoomPercent": "{{percent}}%",
+    "keyboardHint": "图片焦点：+/− 缩放 · 0 原始尺寸 · F 适应 · 方向键平移",
+    "loading": "正在读取图片",
+    "loadFailed": "无法读取图片",
+    "retry": "重试读取图片"
   },
   "web": {
     "back": "后退",
@@ -355,6 +366,15 @@
     "noClaim": "未提供声明文本"
   },
   "artifact": {
+    "metadata": {
+      "loading": "正在读取{{section}}…",
+      "failed": "无法读取{{section}}",
+      "retry": "重试读取{{section}}",
+      "cached": "当前显示先前读取的内容",
+      "resources": "关联文件",
+      "folderMissing": "当前列表中未找到此文件夹",
+      "unknownVersion": "版本详情暂不可用"
+    },
     "loadFailed": "文件加载失败",
     "notFound": "未找到文件",
     "versionCreated": "已创建版本 {{version}}",
@@ -367,6 +387,7 @@
     "exportSucceeded": "文件已导出到云存储",
     "exportFailed": "云存储导出失败。",
     "backToProject": "返回项目",
+    "backToWorkspace": "返回工作区",
     "unknownType": "未知类型",
     "unknown": "未知",
     "versionLabel": "版本 {{version}}",
@@ -382,6 +403,8 @@
     "filePreview": "文件预览",
     "audioLoadFailed": "音频加载失败",
     "videoLoadFailed": "视频加载失败",
+    "mediaPreviewNamed": "媒体预览 · {{name}}",
+    "mediaRetryNamed": "重新读取 {{name}}",
     "actions": {
       "more": "更多文件操作",
       "star": "收藏",
@@ -457,7 +480,7 @@
     "noVersions": "暂无版本记录",
     "lineage": {
       "empty": "暂无来源记录",
-      "pending": "来源信息生成中",
+      "pending": "来源信息尚未就绪",
       "description": "生成说明",
       "noDescription": "未提供生成说明",
       "code": "执行代码",
@@ -475,6 +498,9 @@
   "artifactRefinement": {
     "generateFailed": "生成建议失败。",
     "applyFailed": "应用修改失败。",
+    "refreshFailed": "新版本已保存，但当前视图刷新失败。",
+    "showSavedVersion": "显示已保存版本",
+    "refreshingSavedVersion": "正在读取已保存版本",
     "title": "改进选区",
     "editing": "正在编辑",
     "instruction": "修改要求或问题",
@@ -888,6 +914,9 @@
     }
   },
   "archive": {
+    "readingEntry": "正在打开…",
+    "entryFailedNamed": "无法打开 {{name}}。",
+    "retryEntryNamed": "重新打开 {{name}}",
     "back": "返回上一级",
     "refresh": "重新读取压缩包",
     "loading": "正在读取压缩包目录…",
@@ -901,6 +930,7 @@
   "loadingDefault": "正在加载预览",
   "selectionAnnotation": {
     "addFailed": "添加选区批注失败。",
+    "refreshFailed": "批注已保存，但当前视图刷新失败。",
     "pointTitle": "添加位置批注",
     "elementTitle": "添加元素批注",
     "selectionTitle": "添加选区批注",

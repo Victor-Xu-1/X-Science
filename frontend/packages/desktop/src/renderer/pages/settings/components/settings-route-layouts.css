@@ -1,7 +1,7 @@
 .settings-page-wrapper[data-settings-route='models'] .settings-list-row {
   box-sizing: border-box;
-  height: 121px;
-  min-height: 121px;
+  height: auto;
+  min-height: 96px;
   padding: 16px 20px !important;
   margin-bottom: var(--ui-space-5);
   border: 1px solid var(--settings-border) !important;
@@ -139,7 +139,7 @@
 .settings-page-wrapper[data-settings-visual-system='scientific-connectors-v3']
   .compute-overview-grid
   > .settings-section {
-  min-height: 238px;
+  min-height: var(--settings-entity-card-height);
 }
 
 .settings-page-wrapper[data-settings-route='compute']

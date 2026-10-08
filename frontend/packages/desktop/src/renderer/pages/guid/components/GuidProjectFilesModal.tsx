@@ -1,4 +1,5 @@
-import { Button, Modal, Spin } from '@arco-design/web-react';
+import { Button, Spin } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import { Check, FolderOpen } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';

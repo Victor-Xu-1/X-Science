@@ -234,9 +234,10 @@ const ChatLayout: React.FC<{
                 if (window.innerWidth < 768 && !rightSiderCollapsed) setRightSiderCollapsed(true);
               }}
             >
-              <ArcoLayout.Content className='flex flex-col flex-1 bg-1 overflow-hidden'>
+              <div className='arco-layout-content flex flex-col flex-1 bg-1 overflow-hidden'>
+                <h1 className='sr-only'>{props.title ?? t('common.chat')}</h1>
                 {props.children}
-              </ArcoLayout.Content>
+              </div>
             </div>
             {/* Preview panel - conditionally rendered */}
             {isPreviewOpen && (
@@ -284,7 +285,11 @@ const ChatLayout: React.FC<{
           </div>
         </div>
         {workspaceEnabled && !layout?.isMobile && (
-          <div
+          <aside
+            aria-label={t('common.workspace')}
+            aria-hidden={rightSiderCollapsed || undefined}
+            inert={rightSiderCollapsed || undefined}
+            data-testid='desktop-workspace-panel'
             className={classNames('!bg-1 relative chat-layout-right-sider layout-sider')}
             style={{
               flexGrow: 0,
@@ -309,12 +314,13 @@ const ChatLayout: React.FC<{
                 isTemporaryWorkspace={isTemporaryWorkspace}
               />
             )}
-            <ArcoLayout.Content
+            <div
+              className='arco-layout-content'
               style={{ height: shouldRenderWorkspaceHeader ? `calc(100% - ${WORKSPACE_HEADER_HEIGHT}px)` : '100%' }}
             >
               {props.sider}
-            </ArcoLayout.Content>
-          </div>
+            </div>
+          </aside>
         )}
 
         {/* Mobile workspace overlay: backdrop + fixed panel + floating collapse handle */}

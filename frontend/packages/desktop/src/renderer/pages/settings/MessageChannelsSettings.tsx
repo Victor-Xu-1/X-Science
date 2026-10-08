@@ -91,6 +91,7 @@ const MessageChannelsSettings: React.FC = () => {
               channel={channel}
               status={statuses[channel.id]}
               statusLoading={loading}
+              statusUnavailable={loadError}
               onPaired={markPaired}
               onUnpaired={refresh}
             />
@@ -105,9 +106,10 @@ const MessageChannelCard: React.FC<{
   channel: ChannelDefinition;
   status: MessageChannelStatus;
   statusLoading: boolean;
+  statusUnavailable: boolean;
   onPaired: (channel: MessageChannelId) => void;
   onUnpaired: () => Promise<void>;
-}> = ({ channel, status, statusLoading, onPaired, onUnpaired }) => {
+}> = ({ channel, status, statusLoading, statusUnavailable, onPaired, onUnpaired }) => {
   const { t } = useTranslation();
   const [phase, setPhase] = useState<'idle' | 'starting' | 'waiting' | 'scanned' | 'success' | 'expired' | 'error'>(
     'idle'
@@ -139,10 +141,10 @@ const MessageChannelCard: React.FC<{
 
   const pollOnce = useCallback(
     async (key: string, controller: AbortController) => {
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || controller.signal.aborted || controllerRef.current !== controller) return;
       try {
         const result = await pollMessageChannelQr(channel.id, key, controller.signal);
-        if (!mountedRef.current || controllerRef.current !== controller) return;
+        if (!mountedRef.current || controller.signal.aborted || controllerRef.current !== controller) return;
         if (result.status === 'confirmed' && result.connected) {
           stopPolling();
           setPhase('success');
@@ -185,12 +187,12 @@ const MessageChannelCard: React.FC<{
     controllerRef.current = controller;
     try {
       const result = await startMessageChannelQr(channel.id, key, controller.signal);
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || controller.signal.aborted || controllerRef.current !== controller) return;
       setQrCodeUrl(result.qrCodeUrl);
       setPhase('waiting');
       void pollOnce(result.sessionKey, controller);
     } catch (requestError) {
-      if (!mountedRef.current || controller.signal.aborted) return;
+      if (!mountedRef.current || controller.signal.aborted || controllerRef.current !== controller) return;
       console.error(`Failed to start ${channel.id} QR pairing:`, messageChannelErrorMessage(requestError));
       setPhase('error');
     }
@@ -225,7 +227,7 @@ const MessageChannelCard: React.FC<{
 
   const isActive = phase === 'starting' || phase === 'waiting' || phase === 'scanned';
   const isPaired = status.paired || phase === 'success';
-  const statusClass = isPaired ? 'success' : isActive ? 'active' : undefined;
+  const statusClass = isPaired ? 'success' : isActive ? 'active' : statusUnavailable ? 'warning' : undefined;
   const statusLabel = isActive
     ? phase === 'starting'
       ? t('settings.generalSettings.messageChannels.loading')
@@ -236,18 +238,25 @@ const MessageChannelCard: React.FC<{
       ? t('settings.generalSettings.messageChannels.paired')
       : statusLoading
         ? t('settings.generalSettings.messageChannels.loading')
-        : status.configured
-          ? t('settings.generalSettings.messageChannels.configured')
-          : t('settings.generalSettings.messageChannels.notConfigured');
+        : statusUnavailable
+          ? t('settings.generalSettings.messageChannels.statusUnavailable')
+          : status.configured
+            ? t('settings.generalSettings.messageChannels.configured')
+            : t('settings.generalSettings.messageChannels.notConfigured');
 
   return (
-    <article className='message-channel-card' data-testid={`message-channel-card-${channel.id}`}>
+    <article
+      className='message-channel-card'
+      data-state={phase}
+      aria-labelledby={`message-channel-title-${channel.id}`}
+      data-testid={`message-channel-card-${channel.id}`}
+    >
       <div className='message-channel-card__header'>
         <span className='message-channel-card__logo' aria-hidden='true'>
           <img src={channel.logo} alt='' />
         </span>
         <div className='message-channel-card__heading'>
-          <h3 className='message-channel-card__title'>
+          <h3 className='message-channel-card__title' id={`message-channel-title-${channel.id}`}>
             {t(`settings.generalSettings.messageChannels.${channel.nameKey}`)}
           </h3>
           <p className='message-channel-card__description'>
@@ -271,12 +280,10 @@ const MessageChannelCard: React.FC<{
           </div>
         ) : phase === 'success' || isPaired ? (
           <div className='message-channel-card__placeholder' data-testid={`message-channel-success-${channel.id}`}>
-            <span
-              className='message-channel-card__success-mark'
-              aria-label={t('settings.generalSettings.messageChannels.connected')}
-            >
+            <span className='message-channel-card__success-mark' aria-hidden='true'>
               ✓
             </span>
+            <span>{t('settings.generalSettings.messageChannels.connected')}</span>
           </div>
         ) : phase === 'starting' ? (
           <div className='message-channel-card__placeholder'>
@@ -286,20 +293,18 @@ const MessageChannelCard: React.FC<{
           <div className='message-channel-card__error' role='alert'>
             {t('settings.generalSettings.messageChannels.requestFailed')}
           </div>
-        ) : (
+        ) : phase === 'expired' ? (
           <div className='message-channel-card__placeholder'>
-            {phase === 'expired'
-              ? t('settings.generalSettings.messageChannels.expired')
-              : t('settings.generalSettings.messageChannels.scanHint')}
+            {t('settings.generalSettings.messageChannels.expired')}
           </div>
-        )}
+        ) : null}
         {phase === 'scanned' ? (
           <div className='message-channel-card__status-copy'>
             {t('settings.generalSettings.messageChannels.scannedWaiting')}
           </div>
         ) : phase === 'waiting' ? (
           <div className='message-channel-card__status-copy'>
-            {t('settings.generalSettings.messageChannels.waitingForScan')}
+            {t('settings.generalSettings.messageChannels.scanHint')}
           </div>
         ) : null}
         <div className='message-channel-card__footer'>
@@ -322,7 +327,7 @@ const MessageChannelCard: React.FC<{
             type='button'
             className={isActive ? 'message-channel-card__secondary-button' : 'message-channel-card__primary-button'}
             onClick={() => void start()}
-            disabled={isActive || unpairing}
+            disabled={isActive || unpairing || statusLoading || statusUnavailable}
           >
             {phase === 'expired' || phase === 'error' || isPaired
               ? t('settings.generalSettings.messageChannels.regenerate')

@@ -134,24 +134,6 @@ export function flattenSingleRoot(files: IDirOrFile[]): IDirOrFile[] {
 }
 
 /**
- * Clip context menu position to viewport boundaries
- */
-export function computeContextMenuPosition(
-  x: number,
-  y: number,
-  menuWidth = 220,
-  menuHeight = 220
-): { top: number; left: number } {
-  let clippedX = x;
-  let clippedY = y;
-  if (typeof window !== 'undefined') {
-    clippedX = Math.min(clippedX, window.innerWidth - menuWidth);
-    clippedY = Math.min(clippedY, window.innerHeight - menuHeight);
-  }
-  return { top: clippedY, left: clippedX };
-}
-
-/**
  * 获取目标文件夹路径（从 selectedNodeRef 或 selected keys）
  * Get target folder path from selectedNodeRef or selected keys
  */

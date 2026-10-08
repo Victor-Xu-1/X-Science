@@ -1,5 +1,8 @@
 {
   "send": "Send",
+  "skipToContent": "Skip to workspace content",
+  "chat": "Conversation",
+  "newTask": "New task",
   "cancel": "Cancel",
   "save": "Save",
   "delete": "Delete",
@@ -35,6 +38,13 @@
   "clearSearch": "Clear search",
   "retry": "Retry",
   "reload": "Reload",
+  "appStartup": {
+    "loading": "Starting {{productName}}…",
+    "slow": "Still starting {{productName}}…",
+    "slowDescription": "Some resources are taking longer to load. You can reload this page to try again.",
+    "failed": "Unable to open {{productName}}",
+    "failedDescription": "The app resources could not be loaded. Reload this page to try again."
+  },
   "technical_details": "Technical Details",
   "error_details": "Error Details",
   "troubleshooting": "Troubleshooting",

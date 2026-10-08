@@ -1,21 +1,19 @@
 import {
-  createSynonBiomedArtifactAnnotation,
-  deleteSynonBiomedArtifactAnnotation,
-  loadSynonBiomedArtifactAnnotations,
   loadSynonBiomedArtifactVerification,
   requestSynonBiomedFrameAudit,
-  updateSynonBiomedArtifactAnnotation,
   type CreateSynonBiomedArtifactAnnotationInput,
   type SynonBiomedAppliedArtifactEdit,
   type SynonBiomedAnnotationType,
   type SynonBiomedArtifactAnnotation,
   type SynonBiomedVerificationCheck,
 } from '@/renderer/services/synonBiomedAnnotations';
-import { Button, Empty, Input, InputNumber, Message, Modal, Select, Spin } from '@arco-design/web-react';
+import { Button, Empty, Input, InputNumber, Message, Select, Spin } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import { CheckOne, Delete, Edit, Magic, Plus, Refresh } from '@icon-park/react';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArtifactEditRefinementPanel } from './ArtifactEditRefinementPanel';
+import { useArtifactAnnotationStore } from './useArtifactAnnotationStore';
 
 const ANNOTATION_TYPES: SynonBiomedAnnotationType[] = ['point', 'text_selection', 'html_element', 'screenshot'];
 
@@ -27,47 +25,48 @@ export const ArtifactAnnotationsPanel: React.FC<{
   onAnnotationsChange?: (annotations: SynonBiomedArtifactAnnotation[]) => void;
 }> = ({ artifactId, versionId, refreshToken = 0, onVersionApplied, onAnnotationsChange }) => {
   const { t } = useTranslation();
-  const [annotations, setAnnotations] = useState<SynonBiomedArtifactAnnotation[]>([]);
-  const [checksum, setChecksum] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [failed, setFailed] = useState(false);
+  const {
+    annotations,
+    checksum,
+    loading,
+    failed,
+    busy: saving,
+    reload,
+    create,
+    update,
+    remove: deleteAnnotation,
+  } = useArtifactAnnotationStore(artifactId, versionId, refreshToken, onAnnotationsChange);
   const [editorVisible, setEditorVisible] = useState(false);
   const [editing, setEditing] = useState<SynonBiomedArtifactAnnotation | null>(null);
   const [draft, setDraft] = useState<AnnotationDraft>(emptyDraft());
   const [refining, setRefining] = useState<SynonBiomedArtifactAnnotation | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
+  const deleteDialog = useRef<ReturnType<typeof Modal.confirm> | null>(null);
   const [messageApi, messageContextHolder] = Message.useMessage();
 
-  const reload = useCallback(async () => {
-    setLoading(true);
-    setFailed(false);
-    try {
-      const result = await loadSynonBiomedArtifactAnnotations(artifactId, versionId);
-      setAnnotations(result.annotations);
-      onAnnotationsChange?.(result.annotations);
-      setChecksum(result.currentChecksum);
-    } catch (error) {
-      console.error('[ArtifactAnnotationsPanel] Failed to load annotations', error);
-      setAnnotations([]);
-      onAnnotationsChange?.([]);
-      setChecksum(null);
-      setFailed(true);
-    } finally {
-      setLoading(false);
-    }
-  }, [artifactId, onAnnotationsChange, refreshToken, versionId]);
-
-  useEffect(() => {
-    void reload();
-  }, [reload]);
+  useLayoutEffect(() => {
+    setEditorVisible(false);
+    setEditing(null);
+    setDraft(emptyDraft());
+    setRefining(null);
+    setSaveFailed(false);
+    return () => {
+      deleteDialog.current?.close();
+      deleteDialog.current = null;
+    };
+  }, [artifactId, versionId]);
 
   const openCreate = () => {
+    if (saving) return;
+    setSaveFailed(false);
     setEditing(null);
     setDraft(emptyDraft());
     setEditorVisible(true);
   };
 
   const openEdit = (annotation: SynonBiomedArtifactAnnotation) => {
+    if (saving) return;
+    setSaveFailed(false);
     setEditing(annotation);
     setDraft(draftFromAnnotation(annotation));
     setEditorVisible(true);
@@ -75,34 +74,27 @@ export const ArtifactAnnotationsPanel: React.FC<{
 
   const save = async () => {
     const text = draft.text.trim();
-    if (!text) return;
-    setSaving(true);
+    if (!text || saving || loading) return;
+    setSaveFailed(false);
     try {
       if (editing) {
-        const updated = await updateSynonBiomedArtifactAnnotation(editing.id, { text });
-        const nextAnnotations = annotations.map((item) => (item.id === updated.id ? updated : item));
-        setAnnotations(nextAnnotations);
-        onAnnotationsChange?.(nextAnnotations);
+        if (!(await update(editing.id, text))) return;
         messageApi.success(t('preview.artifactAnnotations.updated'));
       } else {
-        const created = await createSynonBiomedArtifactAnnotation(artifactId, versionId, toCreateInput(draft));
-        const nextAnnotations = [...annotations, created];
-        setAnnotations(nextAnnotations);
-        onAnnotationsChange?.(nextAnnotations);
-        setChecksum(created.contentChecksum ?? checksum);
+        if (!(await create(toCreateInput(draft)))) return;
         messageApi.success(t('preview.artifactAnnotations.added'));
       }
       setEditorVisible(false);
     } catch (error) {
       console.error('[ArtifactAnnotationsPanel] Failed to save annotation', error);
+      setSaveFailed(true);
       messageApi.error(t('preview.artifactAnnotations.saveFailed'));
-    } finally {
-      setSaving(false);
     }
   };
 
   const remove = (annotation: SynonBiomedArtifactAnnotation) => {
-    Modal.confirm({
+    if (saving) return;
+    deleteDialog.current = Modal.confirm({
       title: t('preview.artifactAnnotations.deleteTitle'),
       content: t('preview.artifactAnnotations.deleteConfirm', {
         label: annotation.label || t('preview.artifactAnnotations.thisAnnotation'),
@@ -112,10 +104,7 @@ export const ArtifactAnnotationsPanel: React.FC<{
       cancelText: t('common.cancel'),
       onOk: async () => {
         try {
-          await deleteSynonBiomedArtifactAnnotation(annotation.id);
-          const nextAnnotations = annotations.filter((item) => item.id !== annotation.id);
-          setAnnotations(nextAnnotations);
-          onAnnotationsChange?.(nextAnnotations);
+          if (!(await deleteAnnotation(annotation.id))) return;
           messageApi.success(t('preview.artifactAnnotations.deleted'));
         } catch (error) {
           console.error('[ArtifactAnnotationsPanel] Failed to delete annotation', error);
@@ -127,14 +116,16 @@ export const ArtifactAnnotationsPanel: React.FC<{
   };
 
   return (
-    <div className='pb-18px' data-testid='artifact-annotations-panel'>
+    <div className='pb-18px' data-testid='artifact-annotations-panel' aria-busy={loading || saving}>
       {messageContextHolder}
       <div className='px-16px pb-10px flex items-center justify-between gap-8px'>
         <div>
           <div className='text-12px font-[600] text-t-primary'>{t('preview.artifactAnnotations.title')}</div>
-          <div className='mt-2px text-11px text-t-tertiary'>
-            {t('preview.artifactAnnotations.currentVersionCount', { count: annotations.length })}
-          </div>
+          {!loading && !failed && (
+            <div className='mt-2px text-11px text-t-tertiary'>
+              {t('preview.artifactAnnotations.currentVersionCount', { count: annotations.length })}
+            </div>
+          )}
         </div>
         <div className='flex gap-4px'>
           <Button
@@ -142,22 +133,32 @@ export const ArtifactAnnotationsPanel: React.FC<{
             size='small'
             aria-label={t('preview.artifactAnnotations.refresh')}
             icon={<Refresh theme='outline' size={14} />}
+            disabled={saving}
             onClick={() => void reload()}
           />
-          <Button size='small' type='primary' icon={<Plus theme='outline' size={14} />} onClick={openCreate}>
+          <Button
+            size='small'
+            type='primary'
+            icon={<Plus theme='outline' size={14} />}
+            disabled={saving}
+            onClick={openCreate}
+          >
             {t('preview.artifactAnnotations.add')}
           </Button>
         </div>
       </div>
+      {failed && !loading && (
+        <div role='alert'>
+          <Empty description={t('preview.artifactAnnotations.loadFailed')} />
+        </div>
+      )}
 
       {loading ? (
-        <div className='h-120px flex-center'>
+        <div className='h-120px flex-center' role='status' aria-label={t('common.loading')}>
           <Spin size={20} />
         </div>
-      ) : failed ? (
-        <Empty description={t('preview.artifactAnnotations.loadFailed')} />
       ) : annotations.length === 0 ? (
-        <Empty description={t('preview.artifactAnnotations.empty')} />
+        !failed && <Empty description={t('preview.artifactAnnotations.empty')} />
       ) : (
         <div className='border-t border-solid border-[var(--color-border-2)]'>
           {annotations.map((annotation) => (
@@ -167,6 +168,7 @@ export const ArtifactAnnotationsPanel: React.FC<{
               onEdit={openEdit}
               onDelete={remove}
               onRefine={setRefining}
+              disabled={saving}
             />
           ))}
         </div>
@@ -180,12 +182,17 @@ export const ArtifactAnnotationsPanel: React.FC<{
         onCancel={() => setEditorVisible(false)}
         onOk={() => void save()}
         confirmLoading={saving}
-        okButtonProps={{ disabled: !draft.text.trim() }}
+        okButtonProps={{ disabled: !draft.text.trim() || loading || saving }}
         okText={editing ? t('common.save') : t('preview.artifactAnnotations.add')}
         cancelText={t('common.cancel')}
         unmountOnExit
       >
-        <AnnotationEditor draft={draft} editing={Boolean(editing)} onChange={setDraft} />
+        <AnnotationEditor draft={draft} editing={Boolean(editing)} disabled={saving} onChange={setDraft} />
+        {saveFailed && (
+          <div role='alert' className='mt-12px text-12px text-danger-6'>
+            {t('preview.artifactAnnotations.saveFailed')}
+          </div>
+        )}
       </Modal>
 
       {refining?.selectionText && (
@@ -398,17 +405,18 @@ const toCreateInput = (draft: AnnotationDraft): CreateSynonBiomedArtifactAnnotat
 const AnnotationEditor: React.FC<{
   draft: AnnotationDraft;
   editing: boolean;
+  disabled: boolean;
   onChange: (draft: AnnotationDraft) => void;
-}> = ({ draft, editing, onChange }) => {
+}> = ({ draft, editing, disabled, onChange }) => {
   const { t } = useTranslation();
   return (
     <div className='flex flex-col gap-14px'>
-      <label className='flex flex-col gap-6px text-12px text-t-secondary'>
+      <div className='flex flex-col gap-6px text-12px text-t-secondary'>
         {t('preview.artifactAnnotations.fields.type')}
         <Select
           aria-label={t('preview.artifactAnnotations.fields.type')}
           value={draft.type}
-          disabled={editing}
+          disabled={editing || disabled}
           onChange={(type) => onChange({ ...draft, type })}
         >
           {ANNOTATION_TYPES.map((type) => (
@@ -417,12 +425,13 @@ const AnnotationEditor: React.FC<{
             </Select.Option>
           ))}
         </Select>
-      </label>
+      </div>
       <label className='flex flex-col gap-6px text-12px text-t-secondary'>
         {t('preview.artifactAnnotations.fields.content')}
         <Input.TextArea
           aria-label={t('preview.artifactAnnotations.fields.content')}
           value={draft.text}
+          disabled={disabled}
           autoSize={{ minRows: 3, maxRows: 7 }}
           maxLength={4000}
           showWordLimit
@@ -435,17 +444,20 @@ const AnnotationEditor: React.FC<{
             <NumberField
               label={t('preview.artifactAnnotations.fields.horizontalPosition')}
               value={draft.xPercent}
+              disabled={disabled}
               onChange={(xPercent) => onChange({ ...draft, xPercent })}
             />
             <NumberField
               label={t('preview.artifactAnnotations.fields.verticalPosition')}
               value={draft.yPercent}
+              disabled={disabled}
               onChange={(yPercent) => onChange({ ...draft, yPercent })}
             />
           </div>
           <NumberField
             label={t('preview.artifactAnnotations.fields.optionalPage')}
             value={draft.pageNumber}
+            disabled={disabled}
             onChange={(pageNumber) => onChange({ ...draft, pageNumber })}
           />
         </>
@@ -456,16 +468,19 @@ const AnnotationEditor: React.FC<{
             <NumberField
               label={t('preview.artifactAnnotations.fields.startLine')}
               value={draft.startLine}
+              disabled={disabled}
               onChange={(startLine) => onChange({ ...draft, startLine })}
             />
             <NumberField
               label={t('preview.artifactAnnotations.fields.endLine')}
               value={draft.endLine}
+              disabled={disabled}
               onChange={(endLine) => onChange({ ...draft, endLine })}
             />
             <NumberField
               label={t('preview.artifactAnnotations.fields.page')}
               value={draft.pageNumber}
+              disabled={disabled}
               onChange={(pageNumber) => onChange({ ...draft, pageNumber })}
             />
           </div>
@@ -474,6 +489,7 @@ const AnnotationEditor: React.FC<{
             <Input
               aria-label={t('preview.artifactAnnotations.fields.selectedText')}
               value={draft.selectionText}
+              disabled={disabled}
               onChange={(selectionText) => onChange({ ...draft, selectionText })}
             />
           </label>
@@ -486,6 +502,7 @@ const AnnotationEditor: React.FC<{
             <Input
               aria-label={t('preview.artifactAnnotations.fields.htmlElementSelector')}
               value={draft.elementSelector}
+              disabled={disabled}
               onChange={(elementSelector) => onChange({ ...draft, elementSelector })}
             />
           </label>
@@ -494,6 +511,7 @@ const AnnotationEditor: React.FC<{
             <Input
               aria-label={t('preview.artifactAnnotations.fields.htmlElementDescription')}
               value={draft.elementDescriptor}
+              disabled={disabled}
               onChange={(elementDescriptor) => onChange({ ...draft, elementDescriptor })}
             />
           </label>
@@ -502,6 +520,7 @@ const AnnotationEditor: React.FC<{
             <Input
               aria-label={t('preview.artifactAnnotations.fields.htmlElementVisibleText')}
               value={draft.selectionText}
+              disabled={disabled}
               onChange={(selectionText) => onChange({ ...draft, selectionText })}
             />
           </label>
@@ -509,11 +528,13 @@ const AnnotationEditor: React.FC<{
             <NumberField
               label={t('preview.artifactAnnotations.fields.horizontalPosition')}
               value={draft.xPercent}
+              disabled={disabled}
               onChange={(xPercent) => onChange({ ...draft, xPercent })}
             />
             <NumberField
               label={t('preview.artifactAnnotations.fields.verticalPosition')}
               value={draft.yPercent}
+              disabled={disabled}
               onChange={(yPercent) => onChange({ ...draft, yPercent })}
             />
           </div>
@@ -526,11 +547,19 @@ const AnnotationEditor: React.FC<{
 const NumberField: React.FC<{
   label: string;
   value: number | null;
+  disabled: boolean;
   onChange: (value: number | null) => void;
-}> = ({ label, value, onChange }) => (
+}> = ({ label, value, disabled, onChange }) => (
   <label className='flex flex-col gap-6px text-12px text-t-secondary'>
     {label}
-    <InputNumber aria-label={label} value={value ?? undefined} min={0} max={10000} onChange={onChange} />
+    <InputNumber
+      aria-label={label}
+      value={value ?? undefined}
+      disabled={disabled}
+      min={0}
+      max={10000}
+      onChange={onChange}
+    />
   </label>
 );
 
@@ -539,7 +568,8 @@ const AnnotationRow: React.FC<{
   onEdit: (annotation: SynonBiomedArtifactAnnotation) => void;
   onDelete: (annotation: SynonBiomedArtifactAnnotation) => void;
   onRefine: (annotation: SynonBiomedArtifactAnnotation) => void;
-}> = ({ annotation, onEdit, onDelete, onRefine }) => {
+  disabled: boolean;
+}> = ({ annotation, onEdit, onDelete, onRefine, disabled }) => {
   const { t } = useTranslation();
   return (
     <article className='px-16px py-12px border-b last:border-b-0 border-x-0 border-t-0 border-solid border-[var(--color-border-2)]'>
@@ -580,6 +610,7 @@ const AnnotationRow: React.FC<{
               aria-label={t('preview.artifactAnnotations.refineNamed', { label: annotation.label })}
               title={t('preview.artifactAnnotations.generateSuggestion')}
               icon={<Magic theme='outline' size={13} />}
+              disabled={disabled}
               onClick={() => onRefine(annotation)}
             />
           )}
@@ -588,6 +619,7 @@ const AnnotationRow: React.FC<{
             size='mini'
             aria-label={t('preview.artifactAnnotations.editNamed', { label: annotation.label })}
             icon={<Edit theme='outline' size={13} />}
+            disabled={disabled}
             onClick={() => onEdit(annotation)}
           />
           <Button
@@ -596,6 +628,7 @@ const AnnotationRow: React.FC<{
             status='danger'
             aria-label={t('preview.artifactAnnotations.deleteNamed', { label: annotation.label })}
             icon={<Delete theme='outline' size={13} />}
+            disabled={disabled}
             onClick={() => onDelete(annotation)}
           />
         </div>

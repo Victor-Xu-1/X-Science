@@ -23,6 +23,7 @@
 
 import classNames from 'classnames';
 import React from 'react';
+import { handleTabListKeyDown } from '@/renderer/utils/tabListKeyboard';
 
 export type SettingsPageTab = {
   key: string;
@@ -56,17 +57,25 @@ const SettingsPageHeader: React.FC<SettingsPageHeaderProps> = ({
   onTabChange,
   'data-testid': dataTestId,
 }) => {
+  const titleId = React.useId();
   return (
     <header data-testid={dataTestId} className='settings-page-header'>
       <div className='settings-page-header__row'>
-        <h1 className='settings-page-header__title'>{title}</h1>
+        <h1 id={titleId} className='settings-page-header__title'>
+          {title}
+        </h1>
         {actions ? <div className='settings-page-header__actions'>{actions}</div> : null}
       </div>
       {description ? <p className='settings-page-header__description'>{description}</p> : null}
 
       {tabs && tabs.length > 0 ? (
         <div className='settings-page-header__tabs-row'>
-          <div className='settings-page-header__tabs' role='tablist'>
+          <div
+            className='settings-page-header__tabs'
+            role='tablist'
+            aria-labelledby={titleId}
+            onKeyDown={handleTabListKeyDown}
+          >
             {tabs.map((tab) => {
               const isActive = tab.key === activeTab;
               return (
@@ -75,6 +84,7 @@ const SettingsPageHeader: React.FC<SettingsPageHeaderProps> = ({
                   type='button'
                   role='tab'
                   aria-selected={isActive}
+                  tabIndex={isActive ? 0 : -1}
                   data-testid={`settings-tab-${tab.key}`}
                   onClick={() => onTabChange?.(tab.key)}
                   className={classNames(

@@ -5,7 +5,7 @@
  */
 import type { Message } from '@arco-design/web-react';
 import type { PendingSkill } from './types';
-import { Modal } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 

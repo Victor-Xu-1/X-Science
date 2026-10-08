@@ -35,13 +35,7 @@ import { useAbortUploadsOnConversationChange } from '@/renderer/hooks/file/useAb
 import { useWorkspaceSearch } from './hooks/useWorkspaceSearch';
 import { useWorkspaceTree } from './hooks/useWorkspaceTree';
 import type { WorkspaceProps, WorkspaceTab } from './types';
-import {
-  computeContextMenuPosition,
-  extractNodeData,
-  extractNodeKey,
-  flattenSingleRoot,
-  getTargetFolderPath,
-} from './utils/treeHelpers';
+import { extractNodeData, extractNodeKey, flattenSingleRoot, getTargetFolderPath } from './utils/treeHelpers';
 import './workspace.css';
 
 const ChatWorkspace: React.FC<WorkspaceProps> = ({
@@ -174,7 +168,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
 
   let contextMenuStyle: React.CSSProperties | undefined;
   if (modalsHook.contextMenu.visible) {
-    contextMenuStyle = computeContextMenuPosition(modalsHook.contextMenu.x, modalsHook.contextMenu.y);
+    contextMenuStyle = { left: modalsHook.contextMenu.x, top: modalsHook.contextMenu.y };
   }
 
   const openNodeContextMenu = useCallback(
@@ -442,19 +436,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                           onClick={(event) => {
                             event.stopPropagation();
                             const rect = (event.currentTarget as HTMLButtonElement).getBoundingClientRect();
-                            const menuWidth = 220;
-                            const menuHeight = 220;
-                            const maxX =
-                              typeof window !== 'undefined'
-                                ? Math.max(8, window.innerWidth - menuWidth - 8)
-                                : rect.left;
-                            const maxY =
-                              typeof window !== 'undefined'
-                                ? Math.max(8, window.innerHeight - menuHeight - 8)
-                                : rect.bottom;
-                            const menuX = Math.min(Math.max(8, rect.left - menuWidth + rect.width), maxX);
-                            const menuY = Math.min(Math.max(8, rect.bottom + 4), maxY);
-                            openNodeContextMenu(nodeData, menuX, menuY);
+                            openNodeContextMenu(nodeData, rect.right, rect.bottom + 4);
                           }}
                         >
                           <div

@@ -57,6 +57,7 @@ describe('design primitive scale', () => {
       'section',
       'lead',
       'display',
+      'document-title',
       'hero',
       'hero-lg',
       'headline',

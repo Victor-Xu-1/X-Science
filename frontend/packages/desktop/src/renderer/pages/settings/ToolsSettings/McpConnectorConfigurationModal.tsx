@@ -1,4 +1,5 @@
-import { Button, Input, Modal } from '@arco-design/web-react';
+import { Button, Input } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import React, { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { SynonBiomedMcpServer } from '@/renderer/services/synonBiomedCapabilities';

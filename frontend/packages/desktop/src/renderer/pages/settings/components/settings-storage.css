@@ -33,7 +33,7 @@
   flex-direction: column;
   gap: var(--ui-space-7);
   width: 100%;
-  max-width: 1180px;
+  max-width: 100%;
   padding-bottom: var(--ui-space-8);
 }
 .settings-storage-workspace .settings-section {
@@ -139,7 +139,8 @@
 .storage-disclosure summary {
   cursor: pointer;
   width: fit-content;
-  padding: 3px 0;
+  min-height: 32px;
+  padding: var(--ui-space-3) 0;
 }
 .storage-disclosure[open] > :not(summary) {
   margin-top: var(--ui-space-4);
@@ -302,8 +303,19 @@ button.storage-category-label {
   font-variant-numeric: tabular-nums;
 }
 .storage-rule-row {
-  padding: 15px 0;
+  padding: var(--ui-space-5) 0;
   border-bottom: 1px solid var(--color-border-2);
+}
+
+@container (min-width: 1000px) {
+  .storage-rule-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--ui-space-5) var(--ui-space-6);
+  }
+  .storage-rule-row:first-child {
+    padding-top: var(--ui-space-5);
+  }
 }
 .storage-rule-row:first-child {
   padding-top: var(--ui-space-3);

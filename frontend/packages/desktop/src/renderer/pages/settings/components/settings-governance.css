@@ -19,8 +19,8 @@
 
 .settings-page-wrapper[data-settings-route='governance'] .memory-layer-card {
   display: grid;
-  min-height: 140px;
-  grid-template-columns: minmax(300px, 1fr) auto;
+  min-height: 96px;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 18px;
   padding: 18px 20px;
@@ -152,9 +152,8 @@
 }
 
 .settings-page-wrapper[data-settings-route='governance'] .memory-manager__workspace {
-  height: 240px;
-  min-height: 240px;
-  max-height: 240px;
+  height: auto;
+  min-height: 192px;
   margin-top: var(--ui-space-5);
 }
 
@@ -242,8 +241,8 @@
   html body .settings-page-wrapper[data-settings-route='governance'] .settings-governance-page {
     box-sizing: border-box;
     display: block !important;
-    width: min(100%, 1080px) !important;
-    margin-inline: auto !important;
+    width: 100%;
+    margin-inline: 0;
     row-gap: 0 !important;
   }
 

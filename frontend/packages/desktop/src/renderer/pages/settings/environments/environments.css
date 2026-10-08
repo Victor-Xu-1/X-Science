@@ -296,6 +296,34 @@
   line-height: 17px;
 }
 
+.environment-inventory {
+  color: var(--settings-text-secondary);
+  font-size: var(--ui-font-meta);
+  line-height: var(--ui-line-height-meta);
+}
+.environment-inventory summary {
+  display: list-item;
+  min-height: 32px;
+  padding-block: var(--ui-space-3);
+  cursor: pointer;
+}
+.environment-inventory :is(p, ul) {
+  margin: var(--ui-space-4) 0;
+  overflow-wrap: anywhere;
+}
+.environment-inventory__packages {
+  max-height: 240px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.environment-inventory__packages ul {
+  padding-inline-start: var(--ui-space-6);
+}
+.environment-inventory li {
+  padding-block: var(--ui-space-1);
+}
+
 .environment-status {
   overflow-wrap: anywhere;
   color: var(--settings-text-secondary, var(--color-text-2));

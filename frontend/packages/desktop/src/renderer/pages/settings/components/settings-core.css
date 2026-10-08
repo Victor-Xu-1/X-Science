@@ -12,26 +12,24 @@
      of restating their own density. Values resolve to the shared --ui-* scale. */
   --settings-control-height: var(--ui-control-lg);
   --settings-control-radius: var(--ui-radius-md);
-  /* Apple-style card chrome: generous radius, hairline border, soft depth. */
+  /* Theme-aware geometry; surface/motion states live in settings-card-surfaces. */
   --settings-card-radius: var(--ui-radius-2xl);
-  --settings-card-border: rgb(0 0 0 / 6%);
-  --settings-card-border-hover: rgb(0 0 0 / 12%);
-  --settings-card-shadow: 0 1px 2px rgb(0 0 0 / 4%), 0 8px 24px rgb(0 0 0 / 5%);
-  --settings-card-shadow-hover: 0 2px 6px rgb(0 0 0 / 6%), 0 14px 32px rgb(0 0 0 / 9%);
+  --settings-card-border: var(--settings-border);
+  --settings-card-border-hover: var(--settings-border-strong);
+  --settings-card-shadow: var(--ui-shadow-sm);
+  --settings-card-shadow-hover: var(--ui-shadow-md);
   --settings-card-padding: 20px;
   --settings-card-gap: var(--ui-space-6);
   --settings-section-gap: var(--ui-space-7);
   --settings-section-padding: 20px;
-  --settings-content-inline: clamp(24px, 2.4vw, 38px);
+  --settings-content-inline: 0px;
   --settings-entity-card-padding: 18px;
   --settings-entity-card-padding-wide: 20px;
   /* Compact floor: cards grow with their content instead of reserving a
      fixed 236px sheet that left a void above the footer. */
-  --settings-entity-card-height: 232px;
-  /* The merged library page (`.settings-library-route`) runs one step roomier.
-     Its cards stack a two-line description and a footer row, so they take this
-     192px floor while every standalone settings page keeps the 168px above. */
-  --settings-library-card-height: 232px;
+  --settings-entity-card-height: 192px;
+  /* A readable floor, never a fixed sheet: long names/statuses can grow. */
+  --settings-library-card-height: var(--settings-entity-card-height);
   /* One type ramp for the whole settings surface. */
   --settings-page-title-size: 26px;
   --settings-page-title-line: 34px;
@@ -56,6 +54,9 @@
   --settings-status-warning: var(--warning);
   --settings-status-danger: var(--danger);
   --settings-focus: color-mix(in srgb, var(--settings-accent) 52%, transparent);
+  /* Form boundaries must remain distinguishable from their surface. Quiet
+     card separators keep the light border; interactive inputs use this one. */
+  --settings-control-border: color-mix(in srgb, var(--settings-text-secondary) 80%, var(--settings-surface));
 }
 
 /* Route-level density files used to shrink three routes into a second visual
@@ -171,7 +172,7 @@
 
 .settings-page-wrapper[data-settings-visual-system='scientific-connectors-v3']
   .settings-page-header__tabs
-  > [role='tab'] {
+  > :is([role='tab'], [data-settings-tab]) {
   min-height: 38px;
   padding: 0 2px 14px !important;
   color: var(--settings-text-secondary);
@@ -181,14 +182,14 @@
 
 .settings-page-wrapper[data-settings-visual-system='scientific-connectors-v3']
   .settings-page-header__tabs
-  > [role='tab'][aria-selected='true'] {
+  > :is([role='tab'][aria-selected='true'], [data-settings-tab][aria-current='page']) {
   color: var(--settings-accent-strong) !important;
   font-weight: var(--ui-weight-semibold) !important;
 }
 
 .settings-page-wrapper[data-settings-visual-system='scientific-connectors-v3']
   .settings-page-header__tabs
-  > [role='tab']
+  > :is([role='tab'], [data-settings-tab])
   > span.absolute {
   background: var(--settings-accent) !important;
 }
@@ -298,7 +299,7 @@
 .settings-page-wrapper[data-settings-visual-system='scientific-connectors-v3'] .arco-select-view,
 .settings-page-wrapper[data-settings-visual-system='scientific-connectors-v3'] .arco-input-number {
   min-height: var(--settings-control-height);
-  border: 1px solid var(--settings-border) !important;
+  border: 1px solid var(--settings-control-border) !important;
   border-radius: var(--ui-radius-lg) !important;
   background: var(--settings-surface) !important;
   box-shadow: none !important;
@@ -420,7 +421,7 @@
 
 .settings-page-wrapper[data-settings-visual-system='scientific-connectors-v3'] .settings-empty-state {
   display: flex;
-  min-height: 148px;
+  min-height: 96px;
   align-items: center;
   justify-content: center;
   padding: var(--ui-space-7);
@@ -476,7 +477,7 @@
 
 .settings-page-wrapper[data-settings-visual-system='scientific-connectors-v3'] .settings-empty-artwork-panel {
   display: flex;
-  min-height: 260px;
+  min-height: 112px;
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -551,34 +552,7 @@ html
   border: 1px solid var(--settings-card-border) !important;
   border-radius: var(--settings-card-radius) !important;
   background: var(--settings-surface) !important;
-  box-shadow: var(--settings-card-shadow) !important;
-  transition:
-    box-shadow 200ms ease,
-    transform 200ms ease,
-    border-color 200ms ease;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .settings-page-wrapper
-    :is(.synon-mcp-card, .settings-skill-card, .environment-card, .expert-card, .compute-card):hover {
-    transform: translateY(-1px);
-    border-color: var(--settings-card-border-hover) !important;
-    box-shadow: var(--settings-card-shadow-hover) !important;
-  }
-}
-
-.settings-page-wrapper
-  :is(.synon-mcp-card, .settings-skill-card, .environment-card, .expert-card, .compute-card):active {
-  transform: translateY(0);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html
-    body
-    .settings-page-wrapper
-    :is(.synon-mcp-card, .settings-skill-card, .environment-card, .expert-card, .compute-card) {
-    transition: none !important;
-  }
+  box-shadow: var(--settings-card-shadow);
 }
 
 /* Two lines of copy keep every card the same rhythm. */
@@ -593,13 +567,4 @@ html
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
-}
-
-@media (prefers-color-scheme: dark) {
-  .settings-page-wrapper {
-    --settings-card-border: rgb(255 255 255 / 10%);
-    --settings-card-border-hover: rgb(255 255 255 / 18%);
-    --settings-card-shadow: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px rgb(0 0 0 / 32%);
-    --settings-card-shadow-hover: 0 2px 6px rgb(0 0 0 / 36%), 0 14px 32px rgb(0 0 0 / 40%);
-  }
 }

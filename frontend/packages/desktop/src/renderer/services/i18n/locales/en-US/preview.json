@@ -14,10 +14,10 @@
     "addedToMessage": "Added to message",
     "addUnavailable": "This file cannot be added to the message",
     "unsavedCloseBlocked": "Save your changes or close edited files individually first",
-    "layout": "File board layout",
+    "layout": "File board layout (fits available width)",
     "oneColumn": "Single column",
-    "twoColumns": "Two columns",
-    "threeColumns": "Three columns",
+    "twoColumns": "Up to two columns",
+    "threeColumns": "Up to three columns",
     "editFile": "Edit file",
     "cancelEdit": "Cancel editing",
     "saveFile": "Save changes",
@@ -234,7 +234,18 @@
   },
   "image": {
     "alt": "Image preview",
-    "altNamed": "Preview of {{name}}"
+    "altNamed": "Preview of {{name}}",
+    "controls": "Image zoom controls",
+    "viewport": "Image viewport",
+    "zoomIn": "Zoom in image",
+    "zoomOut": "Zoom out image",
+    "fit": "Fit image to viewport",
+    "actualSize": "Actual image size",
+    "zoomPercent": "{{percent}}%",
+    "keyboardHint": "Image focus: +/− zoom · 0 actual size · F fit · arrows pan",
+    "loading": "Loading image",
+    "loadFailed": "Unable to load image",
+    "retry": "Retry image"
   },
   "web": {
     "back": "Back",
@@ -355,6 +366,15 @@
     "noClaim": "No claim text provided"
   },
   "artifact": {
+    "metadata": {
+      "loading": "Loading {{section}}…",
+      "failed": "Unable to load {{section}}",
+      "retry": "Retry {{section}}",
+      "cached": "Showing previously loaded data",
+      "resources": "Related files",
+      "folderMissing": "Folder not found in the current list",
+      "unknownVersion": "Version details unavailable"
+    },
     "loadFailed": "Failed to load file",
     "notFound": "File not found",
     "versionCreated": "Created version {{version}}",
@@ -367,6 +387,7 @@
     "exportSucceeded": "File exported to cloud storage",
     "exportFailed": "Failed to export to cloud storage.",
     "backToProject": "Back to project",
+    "backToWorkspace": "Back to workspace",
     "unknownType": "Unknown type",
     "unknown": "Unknown",
     "versionLabel": "Version {{version}}",
@@ -382,6 +403,8 @@
     "filePreview": "File preview",
     "audioLoadFailed": "Failed to load audio",
     "videoLoadFailed": "Failed to load video",
+    "mediaPreviewNamed": "Media preview · {{name}}",
+    "mediaRetryNamed": "Retry {{name}}",
     "actions": {
       "more": "More file actions",
       "star": "Star",
@@ -457,7 +480,7 @@
     "noVersions": "No version history",
     "lineage": {
       "empty": "No lineage record",
-      "pending": "Lineage information is being generated",
+      "pending": "Lineage information is not ready yet",
       "description": "Generation details",
       "noDescription": "No generation details provided",
       "code": "Executed code",
@@ -475,6 +498,9 @@
   "artifactRefinement": {
     "generateFailed": "Failed to generate a suggestion.",
     "applyFailed": "Failed to apply the revision.",
+    "refreshFailed": "The new version was saved, but its view could not be refreshed.",
+    "showSavedVersion": "Show saved version",
+    "refreshingSavedVersion": "Loading the saved version",
     "title": "Refine selection",
     "editing": "Editing",
     "instruction": "Revision request or question",
@@ -891,6 +917,9 @@
     }
   },
   "archive": {
+    "readingEntry": "Opening…",
+    "entryFailedNamed": "Unable to open {{name}}.",
+    "retryEntryNamed": "Retry opening {{name}}",
     "back": "Go up",
     "refresh": "Reload archive",
     "loading": "Reading archive contents…",
@@ -904,6 +933,7 @@
   "loadingDefault": "Loading preview",
   "selectionAnnotation": {
     "addFailed": "Failed to add the selection annotation.",
+    "refreshFailed": "The annotation was saved, but its view could not be refreshed.",
     "pointTitle": "Add position annotation",
     "elementTitle": "Add element annotation",
     "selectionTitle": "Add selection annotation",

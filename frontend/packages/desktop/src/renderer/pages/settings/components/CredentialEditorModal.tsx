@@ -1,4 +1,5 @@
-import { Input, Modal } from '@arco-design/web-react';
+import { Input } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { SynonBiomedSecret, SynonBiomedSecretInput } from '@/renderer/services/synonBiomedWorkspaceSettings';

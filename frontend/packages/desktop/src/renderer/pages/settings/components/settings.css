@@ -15,7 +15,6 @@
 @import './settings-breakpoints.css';
 @import './settings-tabbed-pages.css';
 @import './settings-memory.css';
-@import './settings-reference-rails.css';
 @import './settings-models.css';
 @import './settings-experts.css';
 @import './settings-compute.css';
@@ -26,5 +25,4 @@
 @import './settings-plans.css';
 @import './settings-tools.css';
 @import './settings-responsive.css';
-@import './settings-compact-desktop.css';
 @import './settings-card-density.css';

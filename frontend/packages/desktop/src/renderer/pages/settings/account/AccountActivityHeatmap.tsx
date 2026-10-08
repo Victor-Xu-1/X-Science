@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useId, useMemo, useState } from 'react';
+import { handleTabListKeyDown } from '@/renderer/utils/tabListKeyboard';
 import { useTranslation } from 'react-i18next';
 import {
   aggregateAccountActivity,
@@ -22,6 +23,7 @@ const CHART_RIGHT = 948;
 
 const AccountActivityHeatmap: React.FC<AccountActivityHeatmapProps> = ({ insights }) => {
   const { t, i18n } = useTranslation();
+  const chartId = useId();
   const [mode, setMode] = useState<AccountActivityMode>('daily');
   const [activePointKey, setActivePointKey] = useState<string | null>(null);
   const buckets = useMemo(() => {
@@ -41,13 +43,21 @@ const AccountActivityHeatmap: React.FC<AccountActivityHeatmapProps> = ({ insight
           <h2 id='account-activity-title'>{t('settings.accountSettings.activityTitle')}</h2>
           <p>{t('settings.accountSettings.activityDescription')}</p>
         </div>
-        <div className='account-activity-tabs' role='tablist' aria-label={t('settings.accountSettings.activityRange')}>
+        <div
+          className='account-activity-tabs'
+          role='tablist'
+          aria-label={t('settings.accountSettings.activityRange')}
+          onKeyDown={handleTabListKeyDown}
+        >
           {MODES.map((candidate) => (
             <button
               key={candidate}
               type='button'
               role='tab'
               aria-selected={mode === candidate}
+              id={`${chartId}-${candidate}`}
+              aria-controls={`${chartId}-panel`}
+              tabIndex={mode === candidate ? 0 : -1}
               onClick={() => {
                 setMode(candidate);
                 setActivePointKey(null);
@@ -59,7 +69,13 @@ const AccountActivityHeatmap: React.FC<AccountActivityHeatmapProps> = ({ insight
         </div>
       </div>
 
-      <figure className='account-activity-chart' data-mode={mode}>
+      <figure
+        id={`${chartId}-panel`}
+        role='tabpanel'
+        aria-labelledby={`${chartId}-${mode}`}
+        className='account-activity-chart'
+        data-mode={mode}
+      >
         {!insights.availability.tokenUsage ? (
           <div className='account-activity-chart__unavailable' role='status'>
             {t('settings.accountSettings.tokenUsageUnavailable')}
@@ -77,7 +93,9 @@ const AccountActivityHeatmap: React.FC<AccountActivityHeatmapProps> = ({ insight
             <svg
               viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
               role='img'
-              aria-label={t('settings.accountSettings.activityChartLabel', { tokens: chart.formattedTotalTokens })}
+              aria-label={t('settings.accountSettings.activityChartLabel', {
+                tokens: chart.formattedTotalTokens,
+              })}
               preserveAspectRatio='none'
             >
               {chart.yTicks.slice(0, -1).map((tick) => (
@@ -132,6 +150,11 @@ const AccountActivityHeatmap: React.FC<AccountActivityHeatmapProps> = ({ insight
                       onFocus={() => setActivePointKey(point.bucket.key)}
                       onBlur={() => setActivePointKey((current) => (current === point.bucket.key ? null : current))}
                       onClick={() => setActivePointKey(point.bucket.key)}
+                      onKeyDown={(event) => {
+                        if (event.key !== 'Enter' && event.key !== ' ') return;
+                        event.preventDefault();
+                        setActivePointKey(point.bucket.key);
+                      }}
                     >
                       <title>{label}</title>
                     </rect>

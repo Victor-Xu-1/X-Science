@@ -1399,6 +1399,7 @@
     "deleteConfirm": "Delete this note?"
   },
   "projectCommandPalette": {
+    "partialUnavailable": "Some project contents are temporarily unavailable.",
     "newTask": "New task",
     "newTaskDescription": "Start a new X-Science session",
     "openProject": "Open project",

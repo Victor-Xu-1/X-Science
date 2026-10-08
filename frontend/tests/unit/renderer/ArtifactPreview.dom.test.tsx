@@ -1,11 +1,16 @@
-import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import React from 'react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithI18n } from '../i18nTestUtils';
 
 const render = (ui: React.ReactElement) => renderWithI18n(ui);
 
-afterEach(() => vi.restoreAllMocks());
+beforeEach(() => vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {}));
+afterEach(async () => {
+  cleanup();
+  await Promise.resolve();
+  vi.restoreAllMocks();
+});
 
 const loadArtifactMock = vi.fn(async () => ({
   artifactId: 'artifact-1',
@@ -72,29 +77,17 @@ const copyArtifactMock = vi.fn(async () => ({
 const moveArtifactMock = vi.fn(async () => ({ artifactId: 'artifact-1', folderId: 'folder-2' }));
 const exportArtifactMock = vi.fn(async () => ({ exported: true }));
 const loadCloudBucketsMock = vi.fn(async () => ['bucket-a']);
-const loadStorageMock = vi.fn(async () => ({
-  dataDirectory: {
-    current: '/data',
-    resolved: null,
-    defaultPath: '/data',
-    source: 'flag',
-    usageBytes: 1,
-    freeBytes: 2,
-    activeFrames: 0,
+const loadCloudCredentialsMock = vi.fn(async () => [
+  {
+    id: 'cloud-1',
+    provider: 's3',
+    name: 'Research',
+    credentialType: 'access_key',
+    connected: true,
+    defaultBucket: 'bucket-a',
+    region: 'us-east-1',
   },
-  diskUsage: { artifactsBytes: 1, workspaceBytes: 1, toolResultsBytes: 1, condaBytes: 1, availableBytes: 2 },
-  cloudCredentials: [
-    {
-      id: 'cloud-1',
-      provider: 's3',
-      name: 'Research',
-      credentialType: 'access_key',
-      connected: true,
-      defaultBucket: 'bucket-a',
-      region: 'us-east-1',
-    },
-  ],
-}));
+]);
 
 const navigateMock = vi.fn();
 
@@ -163,7 +156,7 @@ vi.mock('@/renderer/services/synonBiomedArtifacts', () => ({
 }));
 
 vi.mock('@/renderer/services/synonBiomedWorkspaceSettings', () => ({
-  loadSynonBiomedStorageSettings: (...args: unknown[]) => loadStorageMock(...args),
+  loadSynonBiomedCloudCredentials: (...args: unknown[]) => loadCloudCredentialsMock(...args),
   loadSynonBiomedCloudBuckets: (...args: unknown[]) => loadCloudBucketsMock(...args),
   exportSynonBiomedArtifactToCloud: (...args: unknown[]) => exportArtifactMock(...args),
 }));
@@ -227,6 +220,30 @@ describe('ArtifactPreview', () => {
 
     fireEvent.click(screen.getByRole('tab', { name: '来源' }));
     expect(await screen.findByText('由质量控制流程生成')).toBeInTheDocument();
+  });
+
+  it('opens an archive detail as a native archive preview, not the external-original fallback', async () => {
+    loadArtifactMock.mockResolvedValueOnce({
+      ...(await loadArtifactMock()),
+      filename: 'bundle.zip',
+      contentType: 'application/zip',
+    });
+    const request = vi.fn(async () =>
+      Response.json({
+        filename: 'bundle.zip',
+        containers: [],
+        entries: [{ path: 'notes.md', name: 'notes.md', size: 42, directory: false, archive: false }],
+      })
+    );
+    vi.stubGlobal('fetch', request);
+    try {
+      await render(<ArtifactPreview />);
+      expect(await screen.findByTestId('archive-viewer')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /notes\.md/ })).toBeInTheDocument();
+      expect(request).toHaveBeenCalledWith(expect.stringContaining('/versions/version-1/archive'), expect.any(Object));
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('exports the artifact to a connected cloud bucket', async () => {

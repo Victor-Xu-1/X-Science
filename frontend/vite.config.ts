@@ -7,6 +7,10 @@ import { defineConfig, normalizePath, type PluginOption, type ProxyOptions } fro
 import UnoCSS from '@unocss/vite';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 import unoConfig from './uno.config';
+import { renderBootDocument } from './scripts/rendererBoot';
+import i18nConfig from './packages/desktop/src/common/config/i18n-config.json';
+import enCommon from './packages/desktop/src/renderer/services/i18n/locales/en-US/common.json';
+import zhCommon from './packages/desktop/src/renderer/services/i18n/locales/zh-CN/common.json';
 
 const repoRoot = import.meta.dirname;
 const rendererRoot = resolve(repoRoot, 'packages/desktop/src/renderer');
@@ -54,7 +58,7 @@ export function productionPreviewCacheControl(pathname: string): string | undefi
   ) {
     return 'no-cache';
   }
-  if (normalized === '/theme-init.js' || normalized.startsWith('/rdkit/')) {
+  if (normalized === '/theme-init.js' || normalized === '/app-boot.js' || normalized.startsWith('/rdkit/')) {
     return 'no-cache, must-revalidate';
   }
   return previewHashedAssetName.test(normalized) ? 'public, max-age=31536000, immutable' : 'public, max-age=3600';
@@ -256,7 +260,30 @@ export default defineConfig(({ mode }) => {
         '@lezer/highlight',
       ],
     },
-    plugins: createRendererPlugins(),
+    plugins: [
+      ...createRendererPlugins(),
+      {
+        name: 'renderer-boot-shell',
+        transformIndexHtml: {
+          order: 'pre',
+          handler(html) {
+            const identity = JSON.parse(readFileSync(resolve(repoRoot, '../product-identity.json'), 'utf8'));
+            const locales = { 'en-US': enCommon, 'zh-CN': zhCommon };
+            return renderBootDocument(
+              html,
+              identity.display_name,
+              i18nConfig.fallbackLanguage,
+              Object.fromEntries(
+                i18nConfig.supportedLanguages.map((language) => {
+                  const common = locales[language as keyof typeof locales];
+                  return [language, { ...common.appStartup, reload: common.reload }];
+                })
+              )
+            );
+          },
+        },
+      },
+    ],
     build: {
       target: 'es2022',
       outDir: resolve(repoRoot, 'out/renderer'),

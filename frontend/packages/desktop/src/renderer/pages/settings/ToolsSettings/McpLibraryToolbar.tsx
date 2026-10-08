@@ -4,6 +4,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import SettingsPageHeader from '../components/SettingsPageHeader';
 import SettingsLibraryTabHeader from '../components/SettingsLibraryTabHeader';
+import SettingsLibrarySearch from '../components/SettingsLibrarySearch';
 import SettingsLibraryFilterSelect from '../components/SettingsLibraryFilterSelect';
 import type { ConnectorDomainId } from './connectorDomains';
 
@@ -12,6 +13,7 @@ export type ConnectorBrowseView = 'optional' | 'marketplace';
 
 interface Props {
   count: number;
+  visibleCount: number;
   customCount: number;
   search: string;
   onSearch: (value: string) => void;
@@ -73,7 +75,15 @@ export function McpLibraryToolbar(props: Props) {
       {props.compactHeader ? (
         <SettingsLibraryTabHeader
           title={t('settings.tools')}
-          count={props.count}
+          count={props.visibleCount}
+          search={
+            <SettingsLibrarySearch
+              label={t('settings.synonBiomedMcpSearch')}
+              value={props.search}
+              onChange={props.onSearch}
+              data-testid='synon-biomed-mcp-search'
+            />
+          }
           filters={
             <SettingsLibraryFilterSelect
               aria-label={t('settings.synonBiomedMcpDomain')}

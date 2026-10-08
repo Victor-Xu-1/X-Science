@@ -130,6 +130,7 @@ ALLOWED_ADDITIONS = {
     "public/branding/x-science-logo.provenance.json": "Record the original user-approved logo origin, exact source revision, dimensions and copied-asset checksums without rewriting historical artwork provenance.",
     "tests/unit/renderer/ProductBrand.dom.test.tsx": "Verify one readable current name, an unchanged decorative mark and coordinated compact/prominent presentations.",
     "tests/unit/renderer/XScienceIdentity.test.ts": "Verify current public identity, browser metadata, PWA references and exact original mark/browser-icon hashes.",
+    "tests/unit/renderer/compositeControlLabels.test.ts": "Reject implicit HTML label forwarding around Arco composite pickers across renderer modules while retaining correct native-input labels and existing control implementations.",
     "tests/fixtures/structureLigands.ts": "Share explicitly synthetic receptor/ligand coordinates across parsed-state and native viewer selection regressions; never substitute them for user artifacts or research results.",
     "packages/desktop/src/common/chat/roundSummary.ts": "Validate durable per-round completion timing and model usage shared by live and historical messages; unavailable telemetry never erases answer text.",
     "packages/desktop/src/common/chat/largeToolResultReference.ts": "Validate immutable same-origin large-result references once for transcript summaries and lazy detail loading; previews never replace source evidence.",
@@ -137,6 +138,9 @@ ALLOWED_ADDITIONS = {
     "packages/desktop/src/renderer/styles/tokens.css": "Own the single canonical visual-primitive scale (space, radius, elevation, type, weight, stacking) that every renderer module references instead of restating literals.",
     "packages/desktop/src/renderer/pages/settings/skills/SkillLibraryCard.tsx": "Render installed and draft skills with complete readable copy, declared-category icons and isolated keyboard actions.",
     "packages/desktop/src/renderer/pages/settings/skills/SkillFilePreview.tsx": "Render original Markdown and source files through distinct safe read-only previews.",
+    "packages/desktop/src/renderer/pages/settings/skills/useSkillDetailSession.ts": "Bind Skill detail requests to one committed opening, including same-name reopen and mode changes, without altering service authorization.",
+    "packages/desktop/src/renderer/pages/settings/skills/useSkillDetailFiles.ts": "Own ordered source-file reads, visible failure, exact-read retry and retained draft content behind the existing Skill library services.",
+    "packages/desktop/src/renderer/pages/settings/skills/useSkillDetailMutations.ts": "Serialize original Skill mutations, fence late receipts and distinguish completed changes from retryable library-refresh failure without replaying writes.",
     "packages/desktop/src/renderer/pages/settings/skills/skillSourceLabel.ts": "Share truthful localized source labels between library cards and detail views without claiming authorship.",
     "packages/desktop/src/renderer/pages/settings/skills/SkillLibraryToolbar.tsx": "Provide one responsive search and research-field toolbar with accessible source/status refinement controls.",
     "packages/desktop/src/renderer/pages/settings/skills/SkillMarketModal.tsx": "Reuse the existing pinned-import market in a bounded dialog without resetting the installed library search or filters.",
@@ -198,6 +202,8 @@ ALLOWED_ADDITIONS = {
     "packages/desktop/src/renderer/services/synonBiomedConversationTitle.ts": "Create bounded scientific conversation titles without exposing raw task content or adding model-side title authority.",
     "packages/desktop/src/renderer/services/agents/synonBiomedExpertLocalization.ts": "Localize authoritative expert profiles without changing their runtime identities or capabilities.",
     "public/theme-init.js": "Restore the validated cached light or dark appearance before renderer startup without allowing inline scripts.",
+    "public/app-boot.js": "Provide bounded localized startup recovery before the main module loads, with explicit reload and cleanup after mounting.",
+    "scripts/rendererBoot.ts": "Project root identity and shared locale resources into the pre-JavaScript document without inline executable code.",
     "public/genomes/ucsc/NOTICE.txt": "Record the UCSC chromosome-size attribution and redistribution notice shipped with offline genome references.",
     "public/genomes/ucsc/PROVENANCE.json": "Pin the source URLs, hashes, and retrieval provenance for packaged UCSC genome references.",
     "public/genomes/ucsc/hg19.chrom.sizes": "Package checksum-bound hg19 chromosome sizes for offline genome preview.",
@@ -520,9 +526,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "e7b2f390389e512f98f20b0cb0cf740f3cdd78330841ac8af4314ec17a7612aa"
+APPROVED_ADAPTATION_FINGERPRINT = "2b728795a47b5d5a3b556560100b1d6d92d1bdebd5db054324d82238182db2a3"
 APPROVED_REMOVAL_FINGERPRINT = "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119"
-APPROVED_ADDITION_FINGERPRINT = "b389eec423ce2d076928bc04ba69057cee5ca77cc1d181db8808619a855092fb"
+APPROVED_ADDITION_FINGERPRINT = "15f63cb5e7d7eb36d04c459d134608b2fa058832bfec0332b10c532fab68a43a"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {
