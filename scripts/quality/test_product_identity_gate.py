@@ -336,6 +336,21 @@ class ProductIdentityGateTests(unittest.TestCase):
                 with self.assertRaisesRegex(gate.IdentityError, "identity_authority_version_counter_invalid"):
                     gate.validate_authority(future)
 
+    def test_future_counter_numbers_are_not_reserved_by_old_legacy_labels(self):
+        for version in ("4.0.2", "5.0.0"):
+            with self.subTest(version=version), tempfile.TemporaryDirectory() as directory:
+                repo = pathlib.Path(directory); seed(repo, version)
+                current = identity(); current["version"] = version
+                write_json(repo / "product-identity.json", current)
+                (repo / "README.md").write_text(f"# Synon Biomed v{version}\n")
+                result = gate.audit(repo, current, reference(), release_policy(), matrix())
+                self.assertEqual(result["drifts"], [])
+                # Numeric reuse never permits a hard-coded runtime consumer.
+                path = repo / "internal/buildinfo/buildinfo.go"
+                path.write_text(path.read_text() + f'\nvar hardcodedVersion = "{version}"\n')
+                result = gate.audit(repo, current, reference(), release_policy(), matrix())
+                self.assertIn("internal/buildinfo/buildinfo.go", {item["path"] for item in result["drifts"]})
+
     def test_dead_embed_and_hardcoded_buildinfo_are_ineligible(self):
         with tempfile.TemporaryDirectory() as directory:
             repo = pathlib.Path(directory); seed(repo)

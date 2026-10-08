@@ -179,6 +179,8 @@ def _repository_paths(repo: pathlib.Path) -> list[str]:
 
 
 def _contains_term(path: pathlib.Path, terms: tuple[bytes, ...]) -> bool:
+    if not terms:
+        return False
     overlap = max(len(term) for term in terms) - 1
     tail = b""
     try:
@@ -509,8 +511,10 @@ def audit(
     validate_reference(reference)
     validate_release_policy(release_policy)
     validate_matrix(matrix, reference)
-    if authority["version"] in matrix["legacy_version_terms"]:
-        raise IdentityError("identity_authority_legacy_version")
+    # A future counter value can equal a historical label. The exact PR
+    # transition gate forbids jumps; the current authority is not a legacy
+    # drift. Derived-code checks still reject literals of the current version.
+    retired_versions = [term for term in matrix["legacy_version_terms"] if term != authority["version"]]
     derived = derive_identity(authority)
     drifts: list[dict[str, str]] = []
     checked: set[tuple[str, str, str]] = set()
@@ -529,7 +533,7 @@ def audit(
                 text = _safe(repo, path, "identity_projection_path_invalid").read_text(encoding="utf-8")
             except (OSError, UnicodeDecodeError) as exc:
                 raise IdentityError("identity_projection_read_invalid") from exc
-            aligned = text.count(derived["version"]) == count and all(term not in text for term in matrix["legacy_version_terms"])
+            aligned = text.count(derived["version"]) == count and all(term not in text for term in retired_versions)
         elif kind == "go-embed-authority" and set(projection) == {"path", "kind", "authority_path"}:
             authority_path = projection.get("authority_path")
             if authority_path != matrix["authority_path"]:
@@ -562,7 +566,7 @@ def audit(
                 raise IdentityError("identity_projection_read_invalid") from exc
             code, _ = _go_source_without_comments(text)
             aligned = all(marker in code for marker in markers) and not _identity_literal_present(
-                code, derived, matrix["legacy_version_terms"],
+                code, derived, retired_versions,
             )
         elif kind == "text-derived-consumer" and set(projection) == {"path", "kind", "required_markers"}:
             markers = projection.get("required_markers")
@@ -577,7 +581,7 @@ def audit(
             except (OSError, UnicodeDecodeError) as exc:
                 raise IdentityError("identity_projection_read_invalid") from exc
             aligned = all(marker in text for marker in markers) and not _identity_literal_present(
-                text, derived, matrix["legacy_version_terms"],
+                text, derived, retired_versions,
             )
         else:
             raise IdentityError("identity_projection_shape_invalid")
@@ -612,7 +616,7 @@ def audit(
     for consumer in matrix["consumer_inventory"]:
         for path in consumer["paths"]:
             _safe(repo, path, "identity_consumer_path_invalid")
-    legacy_terms = tuple(term.encode("utf-8") for term in matrix["legacy_version_terms"])
+    legacy_terms = tuple(term.encode("utf-8") for term in retired_versions)
     for relative in _repository_paths(repo):
         path = repo.joinpath(*pathlib.PurePosixPath(relative).parts)
         try:
