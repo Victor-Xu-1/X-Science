@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "package": "@x-science/workbench-web",
-  "lockfileSHA256": "3c3a8ef5d421b8341913f01838fa7214bb7a25f22725f2ee918509ebd67bac1e",
+  "lockfileSHA256": "44c63edbc8640ab67e7911285c5fe85db0fefaca0f7c0f576f02e3eb5cdbee4c",
   "summary": {
     "records": 1131,
     "workspaceLinkRecords": 1,
@@ -7033,7 +7033,7 @@
     },
     {
       "name": "source-map-js",
-      "version": "1.2.1",
+      "version": "1.2.2",
       "license": "BSD-3-Clause",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -7952,7 +7952,7 @@
   "workspaceLinks": [
     {
       "name": "@x-science/workbench-renderer",
-      "version": "0.1.8",
+      "version": "0.1.9",
       "path": "packages/desktop",
       "basis": "local workspace package; source licensing reviewed separately"
     }
