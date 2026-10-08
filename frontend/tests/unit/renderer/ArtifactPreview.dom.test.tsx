@@ -72,29 +72,17 @@ const copyArtifactMock = vi.fn(async () => ({
 const moveArtifactMock = vi.fn(async () => ({ artifactId: 'artifact-1', folderId: 'folder-2' }));
 const exportArtifactMock = vi.fn(async () => ({ exported: true }));
 const loadCloudBucketsMock = vi.fn(async () => ['bucket-a']);
-const loadStorageMock = vi.fn(async () => ({
-  dataDirectory: {
-    current: '/data',
-    resolved: null,
-    defaultPath: '/data',
-    source: 'flag',
-    usageBytes: 1,
-    freeBytes: 2,
-    activeFrames: 0,
+const loadCloudCredentialsMock = vi.fn(async () => [
+  {
+    id: 'cloud-1',
+    provider: 's3',
+    name: 'Research',
+    credentialType: 'access_key',
+    connected: true,
+    defaultBucket: 'bucket-a',
+    region: 'us-east-1',
   },
-  diskUsage: { artifactsBytes: 1, workspaceBytes: 1, toolResultsBytes: 1, condaBytes: 1, availableBytes: 2 },
-  cloudCredentials: [
-    {
-      id: 'cloud-1',
-      provider: 's3',
-      name: 'Research',
-      credentialType: 'access_key',
-      connected: true,
-      defaultBucket: 'bucket-a',
-      region: 'us-east-1',
-    },
-  ],
-}));
+]);
 
 const navigateMock = vi.fn();
 
@@ -163,7 +151,7 @@ vi.mock('@/renderer/services/synonBiomedArtifacts', () => ({
 }));
 
 vi.mock('@/renderer/services/synonBiomedWorkspaceSettings', () => ({
-  loadSynonBiomedStorageSettings: (...args: unknown[]) => loadStorageMock(...args),
+  loadSynonBiomedCloudCredentials: (...args: unknown[]) => loadCloudCredentialsMock(...args),
   loadSynonBiomedCloudBuckets: (...args: unknown[]) => loadCloudBucketsMock(...args),
   exportSynonBiomedArtifactToCloud: (...args: unknown[]) => exportArtifactMock(...args),
 }));

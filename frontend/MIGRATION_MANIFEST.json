@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "9c000bc44c2f5a3264a21003e24d62f9137bbf0d75fdfe77a1a1de9658459e45",
+  "adaptationFingerprintSHA256": "4b2fd1e08361f963f92b9aff2af135019bc02669674932d2a97e39ed3f59cb0f",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
-  "additionFingerprintSHA256": "fdd302c8bc246da9523d9c4b347137b2fd01b7f440de4e360d5516f6f46aa9cf",
+  "additionFingerprintSHA256": "4e8458240b3a4ea06c23cc728b63fa53873977c7bf1118e700231a89e1a008c3",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 392,
     "adaptedSourceFiles": 672,
     "removedSourceFiles": 290,
-    "addedFiles": 785
+    "addedFiles": 789
   },
   "adaptations": [
     {
@@ -857,8 +857,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/artifact/ArtifactPreview.tsx",
       "sourceSHA256": "21d3998423856a474f4e13516869e446beaebf11fab0597fc9e7a3d732d624d1",
-      "targetSHA256": "51d3408b513acad24d34888ec1736fec36f2a195661f7252772a5c8b943760a4",
-      "bytes": 43402,
+      "targetSHA256": "d7700845feb525aaf6b6efe48720467a7a17c9103bdaccae4558aa501e07954f",
+      "bytes": 35366,
       "reason": "Connect immutable Go artifacts, annotations, refinement, and native viewers with bounded localized failure handling."
     },
     {
@@ -3636,8 +3636,8 @@
     {
       "path": "tests/unit/renderer/ArtifactPreview.dom.test.tsx",
       "sourceSHA256": "35fcf88c79cd262a41b65d79e70c4ec8a97ede955c9b4f8d3fefe3fc536d2bd9",
-      "targetSHA256": "4975431ad324975ac0ad567a667b9e86e0bf8cb1b3e13985fcdc18444e60195e",
-      "bytes": 14839,
+      "targetSHA256": "8742255a09418bbb8657a26635f3810aa2109467a77e4b12e00fc3ca4e5c96f9",
+      "bytes": 14531,
       "reason": "Isolate persisted client configuration while testing native artifact preview and cloud export behavior."
     },
     {
@@ -7027,6 +7027,12 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/artifact/ArtifactFileActionModal.tsx",
+      "sha256": "5ec8655fc19cc663c3157acf7d12731da9eb6f1fa1b05485d1a09a3daa053c1e",
+      "bytes": 6877,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/artifact/AudioPreview.tsx",
       "sha256": "5ca46c9652bd5af1215bfe53ce2763d0d248abe56d15e4f05816c6a310506437",
       "bytes": 2032,
@@ -7048,6 +7054,18 @@
       "path": "packages/desktop/src/renderer/pages/artifact/useArtifactAnnotationStore.ts",
       "sha256": "e5c65a3089d1547a284778438033da25067ac325a23bd368cc2e7c23630c7095",
       "bytes": 4714,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/artifact/useArtifactCloudExport.ts",
+      "sha256": "51a43a5e64e9ac222946762232b1dfd5a61fe3ad0fc2048de1c7121f90cb773e",
+      "bytes": 3447,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/artifact/useArtifactFileActionEditor.ts",
+      "sha256": "7287288b30effbc3b4e66b48f3a24da7b81e722d15c091e54ee189cd21cba87d",
+      "bytes": 3755,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9649,9 +9667,15 @@
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
+      "path": "tests/unit/renderer/ArtifactFileActionLifecycle.dom.test.tsx",
+      "sha256": "d847d44e216bff443f9ffd09e27fad465175b9b5564964eed8454bdd19e8f2b3",
+      "bytes": 8314,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/unit/renderer/ArtifactPreviewInteraction.dom.test.tsx",
-      "sha256": "8aa211512a431f71720620b7b2d210927b9052552a8ee9cdc11573dcbcb48c1b",
-      "bytes": 8815,
+      "sha256": "53a9e27681647c293bdf974cc128b4ec9d3a5a3619528eaddab534c00abd2f09",
+      "bytes": 15749,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

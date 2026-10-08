@@ -1,9 +1,7 @@
 import {
-  copySynonBiomedArtifact,
   getSynonBiomedArtifactVersionContentUrl,
   loadSynonBiomedArtifactLineage,
   loadSynonBiomedArtifactVersions,
-  moveSynonBiomedArtifact,
   type SynonBiomedArtifactLineage,
   type SynonBiomedArtifactVersion,
 } from '@/renderer/services/synonBiomedArtifacts';
@@ -16,12 +14,6 @@ import {
   type SynonBiomedProjectFolder,
 } from '@/renderer/services/synonBiomedGateway';
 import { resolveSynonBiomedArtifactPreviewPlan } from '@/renderer/services/synonBiomedArtifactPreview';
-import {
-  exportSynonBiomedArtifactToCloud,
-  loadSynonBiomedCloudBuckets,
-  loadSynonBiomedStorageSettings,
-  type SynonBiomedCloudCredential,
-} from '@/renderer/services/synonBiomedWorkspaceSettings';
 import {
   cachePreviewModule,
   LazyExcelPreview as ExcelPreview,
@@ -44,20 +36,20 @@ import type { SynonBiomedArtifactCanvasSelection } from './artifactCanvasSelecti
 import { ArtifactAnnotationsPanel, ArtifactVerificationPanel } from './ArtifactAnnotationPanels';
 import { ArtifactEditRefinementPanel } from './ArtifactEditRefinementPanel';
 import { ArtifactSelectionAnnotationModal } from './ArtifactSelectionAnnotationModal';
+import { ArtifactFileActionModal } from './ArtifactFileActionModal';
+import type { ArtifactFileAction } from './useArtifactFileActionEditor';
 import {
   loadSynonBiomedArtifactAnnotations,
   type SynonBiomedAppliedArtifactEdit,
   type SynonBiomedArtifactAnnotation,
 } from '@/renderer/services/synonBiomedAnnotations';
-import { Button, Empty, Input, Message, Select, Spin } from '@arco-design/web-react';
-import Modal from '@/renderer/components/base/WorkbenchModal';
+import { Button, Empty, Message, Spin } from '@arco-design/web-react';
 import Tabs from '@/renderer/components/base/WorkbenchTabs';
 import { Comment, Copy, Download, FileText, FolderOpen, Left, Magic, Notes, Upload } from '@icon-park/react';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate, useParams } from 'react-router';
 
-const ROOT_FOLDER_VALUE = '__project_root__';
 const SynonBiomedMcpAppArtifactViewer = React.lazy(
   cachePreviewModule(
     () => import('@/renderer/pages/conversation/Preview/components/viewers/SynonBiomedMcpAppArtifactViewer')
@@ -99,18 +91,7 @@ const ArtifactPreview: React.FC = () => {
   const [refinementSelection, setRefinementSelection] = useState<SynonBiomedArtifactTextSelection | null>(null);
   const [previewAnnotations, setPreviewAnnotations] = useState<SynonBiomedArtifactAnnotation[]>([]);
   const [annotationRevision, setAnnotationRevision] = useState(0);
-  const [copyVisible, setCopyVisible] = useState(false);
-  const [copyFilename, setCopyFilename] = useState('');
-  const [copyFolderId, setCopyFolderId] = useState(ROOT_FOLDER_VALUE);
-  const [moveVisible, setMoveVisible] = useState(false);
-  const [moveFolderId, setMoveFolderId] = useState(ROOT_FOLDER_VALUE);
-  const [exportVisible, setExportVisible] = useState(false);
-  const [exportCredentials, setExportCredentials] = useState<SynonBiomedCloudCredential[]>([]);
-  const [exportCredentialId, setExportCredentialId] = useState('');
-  const [exportBuckets, setExportBuckets] = useState<string[]>([]);
-  const [exportBucket, setExportBucket] = useState('');
-  const [exportKey, setExportKey] = useState('');
-  const [mutating, setMutating] = useState(false);
+  const [fileAction, setFileAction] = useState<ArtifactFileAction | null>(null);
   const [notesVisible, setNotesVisible] = useState(false);
   const [messageApi, messageContextHolder] = Message.useMessage();
   const previewReturnRef = useRef<HTMLElement | null>(null);
@@ -123,6 +104,10 @@ const ArtifactPreview: React.FC = () => {
       versionRefreshRevision.current += 1;
     };
   }, [artifactId, selectedVersionId]);
+  useLayoutEffect(() => {
+    setFileAction(null);
+    setNotesVisible(false);
+  }, [artifactId]);
 
   useEffect(() => {
     setActiveInspectorTab(inspectorTabFromSearch(location.search));
@@ -147,7 +132,6 @@ const ArtifactPreview: React.FC = () => {
       .then((nextSnapshot) => {
         if (!active) return;
         setSnapshot(nextSnapshot);
-        setMoveFolderId(nextSnapshot.artifact.folderId ?? ROOT_FOLDER_VALUE);
       })
       .catch((error) => {
         console.error('[ArtifactPreview] Failed to load artifact snapshot', error);
@@ -234,108 +218,6 @@ const ArtifactPreview: React.FC = () => {
     messageApi.success(t('preview.artifact.versionCreated', { version: result.versionNumber }));
   };
 
-  const handleCopy = async () => {
-    const filename = copyFilename.trim();
-    if (!filename) return;
-    setMutating(true);
-    try {
-      const result = await copySynonBiomedArtifact({
-        artifactId: artifact.artifactId,
-        newFilename: filename,
-        targetFolderId: copyFolderId === ROOT_FOLDER_VALUE ? null : copyFolderId,
-      });
-      setCopyVisible(false);
-      messageApi.success(t('preview.artifact.copySucceeded'));
-      if (result.artifactId) {
-        void navigate(`/artifacts/${encodeURIComponent(result.artifactId)}`);
-      }
-    } catch (error) {
-      console.error('[ArtifactPreview] Failed to copy artifact', error);
-      messageApi.error(t('preview.artifact.copyFailed'));
-    } finally {
-      setMutating(false);
-    }
-  };
-
-  const handleMove = async () => {
-    setMutating(true);
-    try {
-      const targetFolderId = moveFolderId === ROOT_FOLDER_VALUE ? null : moveFolderId;
-      await moveSynonBiomedArtifact({
-        artifactId: artifact.artifactId,
-        folderId: targetFolderId,
-      });
-      setSnapshot((current) =>
-        current
-          ? {
-              ...current,
-              artifact: { ...current.artifact, folderId: targetFolderId },
-            }
-          : current
-      );
-      setMoveVisible(false);
-      messageApi.success(t('preview.artifact.moveSucceeded'));
-    } catch (error) {
-      console.error('[ArtifactPreview] Failed to move artifact', error);
-      messageApi.error(t('preview.artifact.moveFailed'));
-    } finally {
-      setMutating(false);
-    }
-  };
-
-  const loadExportCredential = async (credentialId: string, credentials = exportCredentials) => {
-    setExportCredentialId(credentialId);
-    setExportBucket('');
-    setExportBuckets([]);
-    if (!credentialId) return;
-    try {
-      const buckets = await loadSynonBiomedCloudBuckets(credentialId);
-      const credential = credentials.find((item) => item.id === credentialId);
-      setExportBuckets(buckets);
-      setExportBucket(credential?.defaultBucket || buckets[0] || '');
-    } catch (error) {
-      console.error('[ArtifactPreview] Failed to load cloud buckets', error);
-      messageApi.error(t('preview.artifact.bucketLoadFailed'));
-    }
-  };
-
-  const openCloudExport = async () => {
-    setExportVisible(true);
-    setExportKey(artifact.filename);
-    setMutating(true);
-    try {
-      const storage = await loadSynonBiomedStorageSettings();
-      const connected = storage.cloudCredentials.filter((item) => item.connected);
-      setExportCredentials(connected);
-      const initial = connected[0]?.id ?? '';
-      if (initial) await loadExportCredential(initial, connected);
-    } catch (error) {
-      console.error('[ArtifactPreview] Failed to load cloud credentials', error);
-      messageApi.error(t('preview.artifact.credentialsLoadFailed'));
-    } finally {
-      setMutating(false);
-    }
-  };
-
-  const handleCloudExport = async () => {
-    if (!exportCredentialId || !exportBucket || !exportKey.trim()) return;
-    setMutating(true);
-    try {
-      await exportSynonBiomedArtifactToCloud(exportCredentialId, {
-        artifactId: artifact.artifactId,
-        bucket: exportBucket,
-        key: exportKey.trim(),
-      });
-      setExportVisible(false);
-      messageApi.success(t('preview.artifact.exportSucceeded'));
-    } catch (error) {
-      console.error('[ArtifactPreview] Failed to export artifact to cloud', error);
-      messageApi.error(t('preview.artifact.exportFailed'));
-    } finally {
-      setMutating(false);
-    }
-  };
-
   return (
     <div className='artifact-page size-full overflow-hidden bg-1'>
       {messageContextHolder}
@@ -368,30 +250,31 @@ const ArtifactPreview: React.FC = () => {
                 {t('preview.artifact.notes')}
               </Button>
             )}
-            <a href={contentUrl} download={artifact.filename} className='no-underline'>
-              <Button icon={<Download theme='outline' size={15} />}>{t('preview.artifact.download')}</Button>
-            </a>
+            <Button
+              href={contentUrl}
+              anchorProps={{ download: artifact.filename }}
+              icon={<Download theme='outline' size={15} />}
+            >
+              {t('preview.artifact.download')}
+            </Button>
             <Button
               aria-label={t('preview.artifact.copyFile')}
               icon={<Copy theme='outline' size={15} />}
-              onClick={() => {
-                setCopyFilename(makeCopyFilename(artifact.filename, t('preview.artifact.copySuffix')));
-                setCopyVisible(true);
-              }}
+              onClick={() => setFileAction('copy')}
             >
               {t('preview.artifact.copy')}
             </Button>
             <Button
               aria-label={t('preview.artifact.moveToFolder')}
               icon={<FolderOpen theme='outline' size={15} />}
-              onClick={() => setMoveVisible(true)}
+              onClick={() => setFileAction('move')}
             >
               {t('preview.artifact.move')}
             </Button>
             <Button
               aria-label={t('preview.artifact.exportToCloud')}
               icon={<Upload theme='outline' size={15} />}
-              onClick={() => void openCloudExport()}
+              onClick={() => setFileAction('export')}
             >
               {t('preview.artifact.export')}
             </Button>
@@ -544,102 +427,33 @@ const ArtifactPreview: React.FC = () => {
         />
       )}
 
-      <Modal
-        title={t('preview.artifact.copyFile')}
-        visible={copyVisible}
-        onCancel={() => setCopyVisible(false)}
-        onOk={() => void handleCopy()}
-        confirmLoading={mutating}
-        okButtonProps={{ disabled: !copyFilename.trim() }}
-        okText={t('preview.artifact.copy')}
-        cancelText={t('common.cancel')}
-        unmountOnExit
-      >
-        <div className='flex flex-col gap-14px'>
-          <label className='flex flex-col gap-6px text-12px text-t-secondary'>
-            {t('preview.artifact.filename')}
-            <Input aria-label={t('preview.artifact.copiedFilename')} value={copyFilename} onChange={setCopyFilename} />
-          </label>
-          <FolderSelect
-            label={t('preview.artifact.targetFolder')}
-            value={copyFolderId}
-            folders={folders}
-            onChange={setCopyFolderId}
-          />
-        </div>
-      </Modal>
-
-      <Modal
-        title={t('preview.artifact.moveToFolder')}
-        visible={moveVisible}
-        onCancel={() => setMoveVisible(false)}
-        onOk={() => void handleMove()}
-        confirmLoading={mutating}
-        okText={t('preview.artifact.move')}
-        cancelText={t('common.cancel')}
-        unmountOnExit
-      >
-        <FolderSelect
-          label={t('preview.artifact.targetFolder')}
-          value={moveFolderId}
+      {fileAction && (
+        <ArtifactFileActionModal
+          key={`${artifact.artifactId}:${fileAction}`}
+          action={fileAction}
+          artifact={artifact}
           folders={folders}
-          onChange={setMoveFolderId}
+          onClose={() => setFileAction(null)}
+          onCompleted={(result) => {
+            if (viewOwner.current.artifactId !== artifact.artifactId) return;
+            setFileAction(null);
+            if (fileAction === 'move') {
+              setSnapshot((current) =>
+                current?.artifact.artifactId === artifact.artifactId
+                  ? { ...current, artifact: { ...current.artifact, folderId: result.folderId } }
+                  : current
+              );
+            }
+            messageApi.success(
+              t(
+                `preview.artifact.${fileAction === 'copy' ? 'copySucceeded' : fileAction === 'move' ? 'moveSucceeded' : 'exportSucceeded'}`
+              )
+            );
+            if (fileAction === 'copy' && result.copiedArtifactId)
+              void navigate(`/artifacts/${encodeURIComponent(result.copiedArtifactId)}`);
+          }}
         />
-      </Modal>
-
-      <Modal
-        title={t('preview.artifact.exportToCloud')}
-        visible={exportVisible}
-        onCancel={() => setExportVisible(false)}
-        onOk={() => void handleCloudExport()}
-        confirmLoading={mutating}
-        okText={t('preview.artifact.export')}
-        cancelText={t('common.cancel')}
-        okButtonProps={{
-          disabled: !exportCredentialId || !exportBucket || !exportKey.trim(),
-        }}
-        unmountOnExit
-      >
-        {exportCredentials.length === 0 && !mutating ? (
-          <Empty description={t('preview.artifact.noCloudCredentials')} />
-        ) : (
-          <div className='flex flex-col gap-14px'>
-            <label className='flex flex-col gap-6px text-12px text-t-secondary'>
-              {t('preview.artifact.cloudCredential')}
-              <Select
-                aria-label={t('preview.artifact.cloudCredential')}
-                value={exportCredentialId}
-                onChange={(value) => void loadExportCredential(value)}
-              >
-                {exportCredentials.map((credential) => (
-                  <Select.Option key={credential.id} value={credential.id}>
-                    {credential.name}
-                  </Select.Option>
-                ))}
-              </Select>
-            </label>
-            <label className='flex flex-col gap-6px text-12px text-t-secondary'>
-              {t('preview.artifact.bucket')}
-              <Select aria-label={t('preview.artifact.exportBucket')} value={exportBucket} onChange={setExportBucket}>
-                {exportBuckets.map((bucket) => (
-                  <Select.Option key={bucket} value={bucket}>
-                    {bucket}
-                  </Select.Option>
-                ))}
-              </Select>
-            </label>
-            <label className='flex flex-col gap-6px text-12px text-t-secondary'>
-              {t('preview.artifact.objectPath')}
-              <Input
-                aria-label={t('preview.artifact.cloudObjectPath')}
-                value={exportKey}
-                onChange={setExportKey}
-                placeholder='folder/file.ext'
-              />
-            </label>
-          </div>
-        )}
-      </Modal>
+      )}
       {artifact.projectId && (artifact.frameId || artifact.rootFrameId) && (
         <SynonBiomedNotesModal
           visible={notesVisible}
@@ -672,30 +486,6 @@ async function loadArtifactSnapshot(artifactId: string): Promise<ArtifactSnapsho
     folders: foldersResult.status === 'fulfilled' ? foldersResult.value : [],
   };
 }
-
-const FolderSelect: React.FC<{
-  label: string;
-  value: string;
-  folders: SynonBiomedProjectFolder[];
-  onChange: (folderId: string) => void;
-}> = ({ label, value, folders, onChange }) => {
-  const { t } = useTranslation();
-  return (
-    <label className='flex flex-col gap-6px text-12px text-t-secondary'>
-      {label}
-      <Select aria-label={label} value={value} onChange={onChange}>
-        <Select.Option key={ROOT_FOLDER_VALUE} value={ROOT_FOLDER_VALUE}>
-          {t('preview.artifact.projectRoot')}
-        </Select.Option>
-        {folders.map((folder) => (
-          <Select.Option key={folder.folderId} value={folder.folderId}>
-            {folder.name}
-          </Select.Option>
-        ))}
-      </Select>
-    </label>
-  );
-};
 
 const ArtifactDetails: React.FC<{
   artifact: SynonBiomedProjectArtifact;
@@ -1059,12 +849,6 @@ function selectionToolbarStyle(selection: SynonBiomedArtifactCanvasSelection): R
   const left = Math.max(68, Math.min(selection.x, window.innerWidth - 68));
   const top = Math.max(12, Math.min(selection.y + 8, window.innerHeight - 48));
   return { left, top, transform: 'translateX(-50%)' };
-}
-
-function makeCopyFilename(filename: string, suffix: string): string {
-  const dotIndex = filename.lastIndexOf('.');
-  if (dotIndex <= 0) return `${filename}-${suffix}`;
-  return `${filename.slice(0, dotIndex)}-${suffix}${filename.slice(dotIndex)}`;
 }
 
 function formatBytes(bytes: number): string {

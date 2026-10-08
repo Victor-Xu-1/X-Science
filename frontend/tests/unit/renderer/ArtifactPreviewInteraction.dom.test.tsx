@@ -12,11 +12,22 @@ import type { SynonBiomedProjectArtifact } from '@/renderer/services/synonBiomed
 import type { SynonBiomedArtifactCanvasSelection } from '@/renderer/pages/artifact/artifactCanvasSelection';
 import { renderWithI18n } from '../i18nTestUtils';
 
-const state = vi.hoisted(() => ({ artifactId: 'artifact-1', load: vi.fn(), suggest: vi.fn(), apply: vi.fn() }));
+const state = vi.hoisted(() => ({
+  artifactId: 'artifact-1',
+  load: vi.fn(),
+  suggest: vi.fn(),
+  apply: vi.fn(),
+  navigate: vi.fn(),
+  copy: vi.fn(),
+  move: vi.fn(),
+  credentials: vi.fn(),
+  buckets: vi.fn(),
+  export: vi.fn(),
+}));
 vi.mock('react-router', () => ({
   useParams: () => ({ artifactId: state.artifactId }),
   useLocation: () => ({ search: '' }),
-  useNavigate: () => vi.fn(),
+  useNavigate: () => state.navigate,
 }));
 vi.mock('@/common/config/configService', () => ({
   configService: {
@@ -33,7 +44,18 @@ vi.mock('@/renderer/services/synonBiomedGateway', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/renderer/services/synonBiomedGateway')>()),
   loadSynonBiomedArtifact: state.load,
   loadSynonBiomedProjectArtifacts: async () => [],
-  loadSynonBiomedProjectFolders: async () => [],
+  loadSynonBiomedProjectFolders: async () =>
+    ['artifact-1', 'artifact-2'].map((id) => ({
+      folderId: `folder-${id}`,
+      projectId: 'project',
+      parentId: null,
+      rootFrameId: 'frame',
+      name: `Folder ${id}`,
+      sortOrder: 0,
+      artifactCount: 1,
+      isConversationFolder: true,
+      isUserUploadsFolder: false,
+    })),
 }));
 vi.mock('@/renderer/services/synonBiomedArtifacts', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/renderer/services/synonBiomedArtifacts')>()),
@@ -52,6 +74,14 @@ vi.mock('@/renderer/services/synonBiomedArtifacts', async (importOriginal) => ({
       language: null,
     })),
   loadSynonBiomedArtifactLineage: async () => null,
+  copySynonBiomedArtifact: state.copy,
+  moveSynonBiomedArtifact: state.move,
+}));
+vi.mock('@/renderer/services/synonBiomedWorkspaceSettings', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/renderer/services/synonBiomedWorkspaceSettings')>()),
+  loadSynonBiomedCloudCredentials: state.credentials,
+  loadSynonBiomedCloudBuckets: state.buckets,
+  exportSynonBiomedArtifactToCloud: state.export,
 }));
 vi.mock('@/renderer/services/synonBiomedAnnotations', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/renderer/services/synonBiomedAnnotations')>()),
@@ -110,7 +140,7 @@ function artifact(id: string, versionNumber = 1): SynonBiomedProjectArtifact {
     creatingFrameId: 'frame',
     checksum: 'fixture-checksum',
     filePath: '/fixture/example.txt',
-    folderId: null,
+    folderId: `folder-${id}`,
     priority: 'normal',
   };
 }
@@ -146,6 +176,22 @@ beforeEach(() => {
   state.artifactId = 'artifact-1';
   state.load.mockReset().mockImplementation(async (id: string) => artifact(id));
   state.suggest.mockReset().mockResolvedValue('Revised passage');
+  state.navigate.mockReset();
+  state.copy.mockReset().mockResolvedValue({ artifactId: 'artifact-copy' });
+  state.move.mockReset().mockResolvedValue({ artifactId: 'artifact-1' });
+  state.credentials.mockReset().mockResolvedValue([
+    {
+      id: 'credential-1',
+      provider: 's3',
+      name: 'Primary storage',
+      credentialType: 'access_key',
+      connected: true,
+      defaultBucket: 'bucket-1',
+      region: null,
+    },
+  ]);
+  state.buckets.mockReset().mockResolvedValue(['bucket-1']);
+  state.export.mockReset().mockResolvedValue({ exported: true });
   state.apply.mockReset().mockResolvedValue({
     artifactId: 'artifact-1',
     versionId: 'artifact-1-v2',
@@ -156,6 +202,110 @@ beforeEach(() => {
 });
 
 describe('Artifact preview interaction ownership', () => {
+  it('keeps download as one native link rather than two nested interactive controls', async () => {
+    await renderPage();
+    const download = screen.getByRole('link', { name: 'Download', exact: true });
+    expect(download).toHaveAttribute('href', '/api/artifacts/artifact-1');
+    expect(download).toHaveAttribute('download', 'artifact-1.txt');
+    expect(within(download).queryByRole('button')).not.toBeInTheDocument();
+    expect(download.querySelector('button,[tabindex="0"]')).toBeNull();
+  });
+
+  it.each(['close', 'route'] as const)('does not navigate after an obsolete copy finishes: %s', async (dismiss) => {
+    const pending = deferred<{ artifactId: string }>();
+    state.copy.mockReturnValueOnce(pending.promise);
+    const view = await renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Copy file' }));
+    const dialog = screen.getByRole('dialog', { name: 'Copy file' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Copy', exact: true }));
+    expect(state.copy).toHaveBeenCalledWith({
+      artifactId: 'artifact-1',
+      newFilename: 'artifact-1-copy.txt',
+      targetFolderId: null,
+    });
+    expect(within(dialog).getByRole('textbox', { name: 'Copied filename' })).toBeDisabled();
+    expect(within(dialog).getByRole('combobox', { name: 'Target folder' })).toHaveAttribute('aria-disabled', 'true');
+    expect(within(dialog).getByRole('button', { name: 'Copy', exact: true })).toBeDisabled();
+    if (dismiss === 'close')
+      fireEvent.click(within(dialog).getByText('Close', { selector: 'span' }).closest('button')!);
+    else {
+      state.artifactId = 'artifact-2';
+      view.rerender(<ArtifactPreview />);
+      await screen.findByRole('heading', { name: 'artifact-2.txt' });
+    }
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Copy file' })).not.toBeInTheDocument());
+    await act(async () => {
+      pending.resolve({ artifactId: 'artifact-copy' });
+      await pending.promise;
+    });
+    expect(state.navigate).not.toHaveBeenCalled();
+    expect(state.copy).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not apply a previous file move result to the current file folder', async () => {
+    const pending = deferred<{ artifactId: string }>();
+    state.move.mockReturnValueOnce(pending.promise);
+    const view = await renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Move to folder' }));
+    fireEvent.click(
+      within(screen.getByRole('dialog', { name: 'Move to folder' })).getByRole('button', { name: 'Move', exact: true })
+    );
+    expect(state.move).toHaveBeenCalledWith({ artifactId: 'artifact-1', folderId: 'folder-artifact-1' });
+    state.artifactId = 'artifact-2';
+    view.rerender(<ArtifactPreview />);
+    await screen.findByRole('heading', { name: 'artifact-2.txt' });
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Move to folder' })).not.toBeInTheDocument());
+    await act(async () => {
+      pending.resolve({ artifactId: 'artifact-1' });
+      await pending.promise;
+    });
+    expect(screen.getByText('Folder artifact-2')).toBeInTheDocument();
+    expect(screen.queryByText('Folder artifact-1')).not.toBeInTheDocument();
+  });
+
+  it('does not let a cancelled export catalogue replace a newly opened catalogue', async () => {
+    const pending = deferred<Array<{ id: string; name: string; connected: boolean; defaultBucket: string }>>();
+    state.credentials
+      .mockReturnValueOnce(pending.promise)
+      .mockResolvedValueOnce([
+        { id: 'credential-new', name: 'New storage', connected: true, defaultBucket: 'bucket-new' },
+      ]);
+    state.buckets.mockResolvedValue(['bucket-new']);
+    await renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Export to cloud storage' }));
+    fireEvent.click(
+      within(screen.getByRole('dialog', { name: 'Export to cloud storage' })).getByRole('button', { name: 'Cancel' })
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Export to cloud storage' }));
+    await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: 'Cloud storage credential' })).toHaveTextContent('New storage')
+    );
+    await act(async () => {
+      pending.resolve([{ id: 'credential-old', name: 'Old storage', connected: true, defaultBucket: 'bucket-old' }]);
+      await pending.promise;
+    });
+    expect(screen.getByRole('combobox', { name: 'Cloud storage credential' })).toHaveTextContent('New storage');
+    expect(state.buckets).not.toHaveBeenCalledWith('credential-old');
+  });
+
+  it('keeps a failed catalogue visibly failed rather than claiming no connected credentials', async () => {
+    state.credentials.mockRejectedValueOnce(new Error('fixture catalogue failure'));
+    await renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Export to cloud storage' }));
+    const dialog = screen.getByRole('dialog', { name: 'Export to cloud storage' });
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Failed to load cloud storage credentials');
+    expect(
+      within(dialog).queryByText('No connected cloud storage credentials. Add and connect one in Settings first.')
+    ).not.toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Retry' }));
+    await waitFor(() =>
+      expect(within(dialog).getByRole('combobox', { name: 'Cloud storage credential' })).toHaveTextContent(
+        'Primary storage'
+      )
+    );
+    expect(state.credentials).toHaveBeenCalledTimes(2);
+  });
+
   it.each([
     ['Annotate', 'Add selection annotation'],
     ['Refine', 'Refine selection'],
