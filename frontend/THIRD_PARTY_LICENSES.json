@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "package": "@x-science/workbench-web",
-  "lockfileSHA256": "142b10c312bd2756f164ea230d30b2748a36d65263ccb1df50b069d857274fbe",
+  "lockfileSHA256": "3af5ba379f8a0de4e471522ac26ac9eda866b8d883cf415002f17b0d8a068d00",
   "summary": {
     "records": 1129,
     "workspaceLinkRecords": 1,
@@ -3050,7 +3050,7 @@
     },
     {
       "name": "@vue/compiler-core",
-      "version": "3.5.39",
+      "version": "3.5.43",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -3071,14 +3071,14 @@
     },
     {
       "name": "@vue/compiler-dom",
-      "version": "3.5.39",
+      "version": "3.5.43",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
     },
     {
       "name": "@vue/compiler-sfc",
-      "version": "3.5.39",
+      "version": "3.5.43",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -3092,42 +3092,42 @@
     },
     {
       "name": "@vue/compiler-ssr",
-      "version": "3.5.39",
+      "version": "3.5.43",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
     },
     {
       "name": "@vue/reactivity",
-      "version": "3.5.39",
+      "version": "3.5.43",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
     },
     {
       "name": "@vue/runtime-core",
-      "version": "3.5.39",
+      "version": "3.5.43",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
     },
     {
       "name": "@vue/runtime-dom",
-      "version": "3.5.39",
+      "version": "3.5.43",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
     },
     {
       "name": "@vue/server-renderer",
-      "version": "3.5.39",
+      "version": "3.5.43",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
     },
     {
       "name": "@vue/shared",
-      "version": "3.5.39",
+      "version": "3.5.43",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -6347,14 +6347,14 @@
     },
     {
       "name": "postcss",
-      "version": "8.5.26",
+      "version": "8.5.29",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
     },
     {
       "name": "nanoid",
-      "version": "3.3.18",
+      "version": "3.3.20",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -7789,7 +7789,7 @@
     },
     {
       "name": "vue",
-      "version": "3.5.39",
+      "version": "3.5.43",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
