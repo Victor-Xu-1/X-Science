@@ -7,7 +7,7 @@ Code is bundled/minified for browser use; upstream package implementations are n
 
 This notice covers packages in the browser bundle and the copied RDKit runtime.
 Other components and optional scientific runtimes have separate notices in this directory.
-Package lock SHA-256: 3af5ba379f8a0de4e471522ac26ac9eda866b8d883cf415002f17b0d8a068d00
+Package lock SHA-256: 59c22ea631c534ef8ada763d383473bf94fc244b69eaab8fbed06c7973803114
 
 Package index
 -------------
@@ -282,8 +282,8 @@ vfile-message@3.1.4 — notice 131
   Source: https://registry.npmjs.org/vfile-message/-/vfile-message-3.1.4.tgz
 @upsetjs/venn.js@2.0.0 — notice 57
   Source: https://registry.npmjs.org/@upsetjs/venn.js/-/venn.js-2.0.0.tgz
-axios@1.18.1 — notice 70
-  Source: https://registry.npmjs.org/axios/-/axios-1.18.1.tgz
+axios@1.20.0 — notice 70
+  Source: https://registry.npmjs.org/axios/-/axios-1.20.0.tgz
 b-validate@1.5.3 — notice 88
   Source: https://registry.npmjs.org/b-validate/-/b-validate-1.5.3.tgz
 bail@2.0.2 — notice 54

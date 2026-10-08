@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "85bbce1311e19fbf8f710de0d96c490419683dafeabf26e5e5cdbfac18819ba7",
+  "adaptationFingerprintSHA256": "2494f85bc3c3c927e6043b108ad2f1aa91afe3879bd0144122c6017f680f035b",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "39664eba4314b5d34da05ec886885434afc88223779fa57c8eeb81cf755bedcc",
+  "additionFingerprintSHA256": "cd2417e25d2fea91af50b1b9fa1dd82d584be1ef9cfce080b6b7613a7e72b4f0",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 347,
@@ -17,14 +17,14 @@
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "c282bf4c8386a2241e6cbd88af92bce9f320711034157becdfa16efbaefe6d0e",
+      "targetSHA256": "ab3e56cd81dc14e75000ee89dcf57eb093f3fbd33a3efa86265c10215bc7167e",
       "bytes": 4378,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "5621c1dbb6614aba19c851b05a54600c3986c7e9fdb2e140959c481d18383dd2",
+      "targetSHA256": "f53fcd429ba15bfcc0e0c8824b08fa72cf6464218bae23320608357b8e021904",
       "bytes": 157,
       "reason": "Remove @synon-ai/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -6782,8 +6782,8 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "3af5ba379f8a0de4e471522ac26ac9eda866b8d883cf415002f17b0d8a068d00",
-      "bytes": 556978,
+      "sha256": "59c22ea631c534ef8ada763d383473bf94fc244b69eaab8fbed06c7973803114",
+      "bytes": 557607,
       "reason": "Deterministic npm build dependency lock."
     },
     {

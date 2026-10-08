@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "package": "@x-science/workbench-web",
-  "lockfileSHA256": "3af5ba379f8a0de4e471522ac26ac9eda866b8d883cf415002f17b0d8a068d00",
+  "lockfileSHA256": "59c22ea631c534ef8ada763d383473bf94fc244b69eaab8fbed06c7973803114",
   "summary": {
-    "records": 1129,
+    "records": 1130,
     "workspaceLinkRecords": 1,
     "directRuntimeBuildDependencies": 62,
     "directDevelopmentDependencies": 26,
@@ -20,7 +20,7 @@
       "CC-BY-4.0": 1,
       "CC0-1.0": 2,
       "ISC": 53,
-      "MIT": 1006,
+      "MIT": 1007,
       "MIT-0": 2,
       "Python-2.0": 1,
       "SEE LICENSE IN LICENSE.txt": 1,
@@ -3260,7 +3260,7 @@
     },
     {
       "name": "axios",
-      "version": "1.18.1",
+      "version": "1.20.0",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -3533,7 +3533,7 @@
     },
     {
       "name": "compression",
-      "version": "1.8.1",
+      "version": "1.8.2",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -4052,6 +4052,13 @@
     {
       "name": "destr",
       "version": "2.0.5",
+      "license": "MIT",
+      "directKind": null,
+      "basis": "package-lock metadata"
+    },
+    {
+      "name": "destroy",
+      "version": "1.2.0",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -6417,7 +6424,7 @@
     },
     {
       "name": "proxy-addr",
-      "version": "2.0.7",
+      "version": "2.0.8",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -7938,7 +7945,7 @@
   "workspaceLinks": [
     {
       "name": "@x-science/workbench-renderer",
-      "version": "0.1.10",
+      "version": "0.1.13",
       "path": "packages/desktop",
       "basis": "local workspace package; source licensing reviewed separately"
     }
