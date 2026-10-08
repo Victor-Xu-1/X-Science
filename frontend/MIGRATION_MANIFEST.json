@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "8a0ee7796e5dac56b2b9ad42fb73ce3fb709bbb343916483c69e10d61ad2550c",
+  "adaptationFingerprintSHA256": "f34954b74626520f1b823dabef5954b8fe7f8f87392249d3a83dff7ce6040d65",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
-  "additionFingerprintSHA256": "fd56c7bc0705ed5eb19f2bbef4023017fb8216d57f69c50a9300918a3b5637ae",
+  "additionFingerprintSHA256": "2ce8650bc2c59da1157617a94814f37e910de8f4934885f16ee7d14ba2c8203b",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 391,
     "adaptedSourceFiles": 673,
     "removedSourceFiles": 290,
-    "addedFiles": 793
+    "addedFiles": 797
   },
   "adaptations": [
     {
@@ -871,8 +871,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/artifact/SynonBiomedImageArtifactViewer.tsx",
       "sourceSHA256": "542eda7188ddd424e2f66ff5499a4f7c0cd4048ea1d838d9854c0b6bc9a475e8",
-      "targetSHA256": "d7b8de3ac512b0807454afb208ecaee0d96749e15b5d50a047183f3c0f782545",
-      "bytes": 3269,
+      "targetSHA256": "7a523462315bd72b5733cc7f34454341952b9bc3fe2674814144d55a587dda33",
+      "bytes": 8003,
       "reason": "Connect immutable Go artifacts, annotations, refinement, and native viewers with bounded localized failure handling."
     },
     {
@@ -2439,8 +2439,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "01ccebc4612331a425beef394be4ea050dd571d69ac7c861b266ce56da4d4496",
-      "bytes": 251957,
+      "targetSHA256": "4d9b9959e63a9e42977ad8b8a54194f02ad8eb1a47dcf54039ad5d7c09af33ee",
+      "bytes": 252275,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2516,8 +2516,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/preview.json",
       "sourceSHA256": "bf530f4a992cc14652500390e715b7add84853e9b0757158c718244cf4cd8f32",
-      "targetSHA256": "c7854db0cf951ecc8cdb58cf48f4acc2033218f54d6648fd32b5f75ae93d0738",
-      "bytes": 40940,
+      "targetSHA256": "38180d5eadb1eea4c30fd7303d41cdd0f01e362b4036a34e57c0807563bd2f6d",
+      "bytes": 41376,
       "reason": "Add English labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls."
     },
     {
@@ -2607,8 +2607,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/preview.json",
       "sourceSHA256": "6b772273972756a3407fee8fe7b4503e992964a8de901375f06bfd2faacf2ba0",
-      "targetSHA256": "f8c77e1a37862ef066bd717631d7ff803119173f163612e770a8c17f86028e8d",
-      "bytes": 39470,
+      "targetSHA256": "4d2eaa5a68e2a9623345a5c5e2c7347ed8b2003cc88a333428bdf63ff8bd9d16",
+      "bytes": 39921,
       "reason": "Add Simplified Chinese labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls."
     },
     {
@@ -3643,8 +3643,8 @@
     {
       "path": "tests/unit/renderer/ArtifactSelectionAnnotation.dom.test.tsx",
       "sourceSHA256": "cbec415a9ae36e4c50f3d4e594e0fee1450484dc70a9c92a3cc3db52b6ed5b98",
-      "targetSHA256": "dcbbd29915c13a09168907d08e137d1fdcfd590af104d5e30abc55fa35d51a46",
-      "bytes": 14082,
+      "targetSHA256": "850550ad3e664b8c0eddea2ef3c4d8d6ce96bda558a9d0b8c8ead0cdeb5698e1",
+      "bytes": 14183,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -7064,6 +7064,12 @@
       "reason": "Render bounded owner-scoped video Artifact versions with native browser controls and explicit failure states."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/artifact/imageArtifactViewportModel.ts",
+      "sha256": "8ac12d98e38f23f7821f38cee1fff15b1720cffc409a75c26b65b8eb571d94d4",
+      "bytes": 2658,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/artifact/pdfDocumentSource.ts",
       "sha256": "26ad7255da19bfdbb421cf8cfd559c6804285b0790ebcdd748bf2e5086b0127b",
       "bytes": 1824,
@@ -7109,6 +7115,12 @@
       "path": "packages/desktop/src/renderer/pages/artifact/useArtifactSelectionEditor.ts",
       "sha256": "dd6dbac45c4d7741237fba80f57e1439799a645f32b7d228476e3f081d018f45",
       "bytes": 4126,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/artifact/useImageArtifactViewport.ts",
+      "sha256": "1761fcdfe32bdad212140337ed03bdedb62bd43787b07ad6b1171ccaf82c4107",
+      "bytes": 5849,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9818,6 +9830,12 @@
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
+      "path": "tests/unit/renderer/SynonBiomedImageViewport.dom.test.tsx",
+      "sha256": "b95caae10c3808cc360a740b0430430128e76d93ac4574c324c0239b1ad0beda",
+      "bytes": 8937,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/unit/renderer/SynonBiomedNotesModal.dom.test.tsx",
       "sha256": "78670deb17c498cfe10e49a182fc92cf31533038c2cbf36043cffed10e72ab53",
       "bytes": 12953,
@@ -10014,6 +10032,12 @@
       "sha256": "143aa936a0c8e83c63ddb740182ee44278446ffcdde36006124066525a4f8e29",
       "bytes": 4066,
       "reason": "Verify browser popup, polling, blocked-window, and timeout behavior for Go MCP OAuth."
+    },
+    {
+      "path": "tests/unit/renderer/imageArtifactViewportModel.test.ts",
+      "sha256": "b2ca3cca5472f8ab5ad25632f7f20d79d39dff0a9922dbb1fd33d99ed073ab1d",
+      "bytes": 2772,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/unit/renderer/keyedSnapshotStore.test.ts",

@@ -299,6 +299,7 @@ describe('Artifact selection annotation', () => {
       />
     );
     const image = screen.getByRole('img', { name: 'assay.png' });
+    Object.defineProperties(image, { naturalWidth: { value: 400 }, naturalHeight: { value: 200 } });
     Object.defineProperty(image, 'getBoundingClientRect', {
       value: () => ({ left: 100, top: 50, width: 400, height: 200, right: 500, bottom: 250 }),
     });

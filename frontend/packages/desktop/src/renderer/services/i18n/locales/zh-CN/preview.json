@@ -234,7 +234,18 @@
   },
   "image": {
     "alt": "图片预览",
-    "altNamed": "{{name}} 的图片预览"
+    "altNamed": "{{name}} 的图片预览",
+    "controls": "图片缩放控制",
+    "viewport": "图片视口",
+    "zoomIn": "放大图片",
+    "zoomOut": "缩小图片",
+    "fit": "图片适应窗口",
+    "actualSize": "图片原始尺寸",
+    "zoomPercent": "{{percent}}%",
+    "keyboardHint": "图片焦点：+/− 缩放 · 0 原始尺寸 · F 适应 · 方向键平移",
+    "loading": "正在读取图片",
+    "loadFailed": "无法读取图片",
+    "retry": "重试读取图片"
   },
   "web": {
     "back": "后退",

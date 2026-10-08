@@ -234,7 +234,18 @@
   },
   "image": {
     "alt": "Image preview",
-    "altNamed": "Preview of {{name}}"
+    "altNamed": "Preview of {{name}}",
+    "controls": "Image zoom controls",
+    "viewport": "Image viewport",
+    "zoomIn": "Zoom in image",
+    "zoomOut": "Zoom out image",
+    "fit": "Fit image to viewport",
+    "actualSize": "Actual image size",
+    "zoomPercent": "{{percent}}%",
+    "keyboardHint": "Image focus: +/− zoom · 0 actual size · F fit · arrows pan",
+    "loading": "Loading image",
+    "loadFailed": "Unable to load image",
+    "retry": "Retry image"
   },
   "web": {
     "back": "Back",
