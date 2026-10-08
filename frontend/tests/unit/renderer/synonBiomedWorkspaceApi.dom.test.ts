@@ -9,7 +9,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('Synon Biomed workspace API', () => {
+describe('X-Science workspace API', () => {
   it('uses conversation-scoped mutation routes for rename and delete', async () => {
     const fetchMock = vi
       .fn<typeof fetch>()
@@ -36,7 +36,7 @@ describe('Synon Biomed workspace API', () => {
     );
   });
 
-  it('uploads a file through the real Synon Biomed chunk lifecycle and reports progress', async () => {
+  it('uploads a file through the real X-Science chunk lifecycle and reports progress', async () => {
     const fetchMock = vi
       .fn<typeof fetch>()
       .mockResolvedValueOnce(new Response(JSON.stringify({ upload_id: 'upload-1', chunk_size: 4 })))

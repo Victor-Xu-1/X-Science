@@ -9,7 +9,7 @@ const response = (status: number, body = '') =>
     headers: body ? { 'content-type': 'application/json' } : undefined,
   });
 
-describe('Synon Biomed deletion actions', () => {
+describe('X-Science deletion actions', () => {
   it('treats an already-removed session as an idempotent success', async () => {
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(response(404, '{"detail":"missing"}'));
 

@@ -7,7 +7,7 @@ import {
   SYNON_BIOMED_AVATAR_MAX_BYTES,
 } from '@/renderer/services/synonBiomedUserProfile';
 
-describe('Synon Biomed user profile preferences', () => {
+describe('X-Science user profile preferences', () => {
   beforeEach(() => {
     window.localStorage.clear();
   });

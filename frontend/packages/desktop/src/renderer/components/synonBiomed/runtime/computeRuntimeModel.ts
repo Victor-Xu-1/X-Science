@@ -116,7 +116,7 @@ export const groupKernels = (
       group = {
         rootFrameId,
         projectId: kernel.projectId,
-        projectName: kernel.projectName || (rootFrameId === currentRootFrameId ? fallbackProjectName : 'Synon Biomed'),
+        projectName: kernel.projectName || (rootFrameId === currentRootFrameId ? fallbackProjectName : 'X-Science'),
         title:
           kernel.sessionTitle || (rootFrameId === currentRootFrameId ? fallbackSessionTitle : '') || 'Untitled session',
         kernels: [],

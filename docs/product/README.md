@@ -1,14 +1,14 @@
-# A closer look at Synon Biomed / 走进研究工作台
+# A closer look at X-Science / 走进研究工作台
 
 [Home / 首页](../../README.md) · [Install / 安装](../getting-started.md) ·
 [User guide / 使用手册](../user-guide.md) · [Documentation / 文档](../README.md)
 
 Research rarely ends with a single answer. A paper raises another question;
 a structure needs closer inspection; an analysis produces files that need review.
-Synon Biomed brings those steps into one project workspace.
+X-Science brings those steps into one project workspace.
 
 研究很少止于一个答案。一篇论文会引出新问题，一个结构需要进一步查看，
-一次分析会留下待复核的文件。Synon Biomed 将这些环节组织到同一个项目工作台中。
+一次分析会留下待复核的文件。X-Science 将这些环节组织到同一个项目工作台中。
 
 **One workspace for research context, scientific tools and the work they produce.**
 
@@ -245,7 +245,7 @@ with the project and the material it depends on.
 
 不需要。如果你已获得一个正在运行的实例地址与账号，按使用手册登录和配置即可。
 如果准备自己部署，当前文档提供 Ubuntu/WSL 源码启动路径。
-需要预构建包时，以 [GitHub Releases](https://github.com/Victor-Xu-1/synon-biomed/releases)
+需要预构建包时，以 [GitHub Releases](https://github.com/Victor-Xu-1/X-Science/releases)
 实际发布的资产与说明为准；源码压缩包不是安装包。
 
 ### Is everything local and offline? / 数据都在本地吗？

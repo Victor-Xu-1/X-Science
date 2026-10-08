@@ -6,7 +6,7 @@ import {
 } from '@/renderer/utils/synonBiomed/runtime/runtimeSupportPolicy';
 
 describe('Guid agent support policy', () => {
-  it('treats every non-Synon Biomed runtime value as retired', () => {
+  it('treats every non-X-Science runtime value as retired', () => {
     expect(isDeprecatedRuntimeAgentType('synonbiomed')).toBe(false);
     expect(isDeprecatedRuntimeAgentType('acp')).toBe(true);
     expect(isDeprecatedRuntimeAgentType('unsupportedRuntime')).toBe(true);

@@ -381,9 +381,9 @@ export function projectSynonBiomedTaskAuthority(
 }
 
 export function normalizeSynonBiomedRuntimeSnapshot(value: unknown): SynonBiomedRuntimeSnapshot {
-  if (!isRecord(value)) throw new Error('Synon Biomed frame response is invalid');
+  if (!isRecord(value)) throw new Error('X-Science frame response is invalid');
   const frameId = stringValue(value.id) || stringValue(value.frame_id);
-  if (!frameId) throw new Error('Synon Biomed frame response is missing an id');
+  if (!frameId) throw new Error('X-Science frame response is missing an id');
   const status = (stringValue(value.status) || 'unknown').toLowerCase();
   const output = isRecord(value.output_data) ? value.output_data : null;
   const context = isRecord(value.context_data) ? value.context_data : null;
@@ -632,7 +632,7 @@ export function toSynonAIRuntimeSummary(snapshot: SynonBiomedRuntimeSnapshot): T
 }
 
 export function normalizeSynonBiomedPlanDocument(value: unknown): SynonBiomedPlanDocument {
-  if (!isRecord(value)) throw new Error('Synon Biomed plan response is invalid');
+  if (!isRecord(value)) throw new Error('X-Science plan response is invalid');
   const rawPhases = Array.isArray(value.phases) ? value.phases : [];
   const phases = rawPhases.flatMap((rawPhase, phaseIndex) => {
     if (!isRecord(rawPhase)) return [];
@@ -819,7 +819,7 @@ function normalizeSynonBiomedPlanStageProgress(value: unknown): SynonBiomedPlanS
 }
 
 export function normalizeSynonBiomedExecutionLog(value: unknown): SynonBiomedExecutionRecord[] {
-  if (!Array.isArray(value)) throw new Error('Synon Biomed execution-log response is invalid');
+  if (!Array.isArray(value)) throw new Error('X-Science execution-log response is invalid');
   const records: SynonBiomedExecutionRecord[] = [];
   value.forEach((item, index) => {
     if (!isRecord(item)) return;

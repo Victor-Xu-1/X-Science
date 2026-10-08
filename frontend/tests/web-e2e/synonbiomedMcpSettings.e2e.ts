@@ -46,7 +46,7 @@ for (const viewport of viewports) {
   test.describe(viewport.name, () => {
     test.use({ viewport: { width: viewport.width, height: viewport.height } });
 
-    test('operates real Synon Biomed MCP controls in the native settings page', async ({ page }) => {
+    test('operates real X-Science MCP controls in the native settings page', async ({ page }) => {
       test.setTimeout(120_000);
       await login(page);
       await page.goto('/#/settings/tools');

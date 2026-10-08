@@ -1,4 +1,4 @@
-# Synon Biomed
+# X-Science
 
 ### Research with the evidence in view.
 ### 让研究推进，让证据始终可见。
@@ -12,7 +12,7 @@ project-centered browser workspace.
 项目产物连接起来：不仅得到回答，还能查看输入、跟踪执行、检查文件，带着证据继续研究。
 
 **[Get started / 开始使用](#get-started--开始使用)** ·
-**[Why Synon Biomed / 产品介绍](docs/product/README.md)** ·
+**[Why X-Science / 产品介绍](docs/product/README.md)** ·
 **[User guide / 使用手册](docs/user-guide.md)** ·
 **[Documentation / 文档](docs/README.md)**
 
@@ -26,7 +26,7 @@ Research moves between papers, structures, datasets and code. The useful part is
 not just handling each separately—it is keeping the question, the work and its
 supporting material connected.
 
-科研工作的难点之一，是把散落的论文、结构、数据、代码和讨论重新连起来。Synon Biomed
+科研工作的难点之一，是把散落的论文、结构、数据、代码和讨论重新连起来。X-Science
 以项目组织这些材料，让“为什么做、怎么做、产出了什么”有一个共同的工作上下文。
 
 ### Explore a question · 梳理问题与证据
@@ -110,12 +110,16 @@ The commands below are for a **new installation with free ports 8765/8766**.
 If you already have an instance or a `synon` command, inspect it first; the
 installer refuses to replace a command owned by another checkout.
 
+The current command is `x-science`; the installer also retains `synon` as a
+compatibility alias to the same launcher and existing state. Renaming the
+product does not move existing databases, project files or running services.
+
 ```bash
-git clone https://github.com/Victor-Xu-1/synon-biomed.git
-cd synon-biomed
+git clone https://github.com/Victor-Xu-1/X-Science.git
+cd X-Science
 bash scripts/dev/install-source-cli.sh
 export PATH="$HOME/.local/bin:$PATH"
-synon start
+x-science start
 ```
 
 After startup checks pass, the default configuration reports:
@@ -147,7 +151,7 @@ Python/R 核心环境首次准备需要网络、时间和磁盘空间；可选�
 - This is actively developed research software. Review task-specific sources,
   methods, parameters, outputs and limitations; no clinical suitability is implied.
 - A source checkout is not a prebuilt release. Check
-  [GitHub Releases](https://github.com/Victor-Xu-1/synon-biomed/releases);
+  [GitHub Releases](https://github.com/Victor-Xu-1/X-Science/releases);
   use the source workflow when the desired package has not been published.
 
 Installation, configuration and recovery:

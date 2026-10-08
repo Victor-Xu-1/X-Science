@@ -1,6 +1,6 @@
 # Runtime data lifecycle
 
-Synon Biomed has one task-history authority and one bounded operational-state
+X-Science has one task-history authority and one bounded operational-state
 store:
 
 - `workspace/synonbiomed-v1.1.sqlite` owns projects, frames, canonical

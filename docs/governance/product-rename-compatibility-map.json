@@ -1,6 +1,17 @@
 {
   "schema": "synon.governance.product-rename-compatibility.v1",
   "authority_path": "product-identity.json",
+  "target_repository": "Victor-Xu-1/X-Science",
+  "repository_id": 1374130212,
+  "current_identity_transition": {
+    "display_name": "X-Science",
+    "machine_slug": "x-science",
+    "source_launcher": "x-science",
+    "compatibility_launcher": "synon",
+    "logo_provenance": "frontend/public/branding/x-science-logo.provenance.json",
+    "preserved_identifiers": "Existing Go imports, synon API/schema IDs, scientific component namespaces, service/install roots and user database/state paths remain compatibility identifiers. They do not define the displayed product name or archive identity.",
+    "rollback": "Revert the focused identity candidate or restore the preceding identified artifact; the shared source-launcher alias does not create a new state owner. GitHub name changes preserve repository ID/history and can be reversed as a separate settings operation."
+  },
   "status": "identity-projections-aligned-external-release-authorization-required",
   "phases": [
     {"id": "IDENTITY-0", "scope": "governance authority and fail-closed inventory gate", "predecessor": "none", "rollback": "revert the focused governance commit; no runtime or data change", "status": "implemented-by-repository-steward"},

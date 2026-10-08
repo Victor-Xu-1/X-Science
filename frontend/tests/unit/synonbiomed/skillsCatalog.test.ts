@@ -33,7 +33,7 @@ describe('loadAvailableSkillsWithSynonBiomed', () => {
     mocks.loadSynonBiomedSkills.mockReset();
   });
 
-  it('uses the real Synon Biomed skill catalog as the only native SynonAI skill catalog', async () => {
+  it('uses the real X-Science skill catalog as the only native SynonAI skill catalog', async () => {
     mocks.listAvailableSkills.mockResolvedValue([
       { name: 'cron', description: 'Scheduled tasks', source: 'builtin', is_auto_inject: true },
       { name: 'xiaohongshu-post', description: 'Social media copywriting', source: 'builtin', is_auto_inject: false },
@@ -92,7 +92,7 @@ describe('loadAvailableSkillsWithSynonBiomed', () => {
     expect(mocks.listAvailableSkills).not.toHaveBeenCalled();
   });
 
-  it('does not fall back to SynonAI skills when Synon Biomed skills are unavailable', async () => {
+  it('does not fall back to SynonAI skills when X-Science skills are unavailable', async () => {
     mocks.listAvailableSkills.mockResolvedValue([
       { name: 'cron', description: 'Scheduled tasks', source: 'builtin', is_auto_inject: true },
     ]);

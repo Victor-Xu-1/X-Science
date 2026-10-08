@@ -7,7 +7,7 @@ import {
 } from '@/renderer/services/synonBiomedSessionActions';
 import { describe, expect, it, vi } from 'vitest';
 
-describe('Synon Biomed session actions', () => {
+describe('X-Science session actions', () => {
   it('uses the v1.1 frame contracts for edit, move, delete, and downloads', async () => {
     const fetchImpl = vi.fn(
       async () => new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } })

@@ -132,7 +132,7 @@ read-only. Publication uses the short-lived `GITHUB_TOKEN`, not a personal token
 The OCI source annotation links the package to this repository. The transport
 action is pinned to a reviewed commit and the ORAS CLI has an explicit version.
 
-Use `ghcr.io/victor-xu-1/synon-biomed:vMAJOR.MINOR.PATCH` or a digest, not a
+Use `ghcr.io/victor-xu-1/x-science:vMAJOR.MINOR.PATCH` or a digest, not a
 moving `latest` tag. An existing version is never overwritten. A failed job
 before push can be rerun; after any partial push, inspect the package first.
 Publishing a release through automation must account for GitHub's rule that

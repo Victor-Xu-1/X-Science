@@ -214,7 +214,7 @@ export async function createSynonBiomedArtifactAnnotation(
     fetchImpl
   );
   const annotation = toArtifactAnnotation(payload);
-  if (!annotation) throw new Error('Synon Biomed artifact annotation response is invalid');
+  if (!annotation) throw new Error('X-Science artifact annotation response is invalid');
   return annotation;
 }
 
@@ -229,7 +229,7 @@ export async function updateSynonBiomedArtifactAnnotation(
     fetchImpl
   );
   const annotation = toArtifactAnnotation(payload);
-  if (!annotation) throw new Error('Synon Biomed artifact annotation response is invalid');
+  if (!annotation) throw new Error('X-Science artifact annotation response is invalid');
   return annotation;
 }
 
@@ -259,7 +259,7 @@ export async function suggestSynonBiomedArtifactEdit(
     )
   );
   const suggestion = stringValue(payload?.suggestion);
-  if (!suggestion) throw new Error('Synon Biomed artifact edit suggestion response is invalid');
+  if (!suggestion) throw new Error('X-Science artifact edit suggestion response is invalid');
   return suggestion;
 }
 
@@ -289,7 +289,7 @@ export async function applySynonBiomedArtifactEdit(
     carriedAnnotations: arrayValue(payload?.carried_annotations).map(toArtifactAnnotation).filter(isArtifactAnnotation),
   };
   if (!applied.versionId || !applied.artifactId || applied.versionNumber < 1) {
-    throw new Error('Synon Biomed applied artifact edit response is invalid');
+    throw new Error('X-Science applied artifact edit response is invalid');
   }
   return applied;
 }
@@ -345,7 +345,7 @@ export async function createSynonBiomedTranscriptAnnotation(
     fetchImpl
   );
   const annotation = toTranscriptAnnotation(payload);
-  if (!annotation) throw new Error('Synon Biomed transcript annotation response is invalid');
+  if (!annotation) throw new Error('X-Science transcript annotation response is invalid');
   invalidateTranscriptAnnotationReads(frameId, fetchImpl);
   return annotation;
 }
@@ -362,7 +362,7 @@ export async function updateSynonBiomedTranscriptAnnotation(
     fetchImpl
   );
   const annotation = toTranscriptAnnotation(payload);
-  if (!annotation) throw new Error('Synon Biomed transcript annotation response is invalid');
+  if (!annotation) throw new Error('X-Science transcript annotation response is invalid');
   invalidateTranscriptAnnotationReads(frameId, fetchImpl);
   return annotation;
 }
@@ -557,7 +557,7 @@ async function requestJson(path: string, init: RequestInit, fetchImpl: FetchLike
   const response = await fetchImpl(path, { credentials: 'include', ...init });
   if (!response.ok) {
     const detail = await response.text().catch(() => '');
-    throw new Error(`Synon Biomed annotation request failed with ${response.status}${detail ? `: ${detail}` : ''}`);
+    throw new Error(`X-Science annotation request failed with ${response.status}${detail ? `: ${detail}` : ''}`);
   }
   if (response.status === 204) return null;
   return response.json();

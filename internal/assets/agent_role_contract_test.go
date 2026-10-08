@@ -43,7 +43,7 @@ func TestBundledResearchAgentRoleContracts(t *testing.T) {
 	}
 	operon := load("operon")
 	if operon.Name != "OPERON" || operon.Internal || !operon.Planning || operon.Delegation ||
-		!strings.Contains(operon.Identity, "Synon Biomed") || len(operon.Style) < 100 {
+		!strings.Contains(operon.Identity, "X-Science") || len(operon.Style) < 100 {
 		t.Fatalf("invalid research role: name=%s", operon.Name)
 	}
 	reviewer := load("reviewer")

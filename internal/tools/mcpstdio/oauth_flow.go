@@ -346,7 +346,7 @@ func registerOAuthClient(ctx context.Context, metadata oauthMetadata, redirectUR
 		return oauthClientCredentials{}, errors.New("MCP OAuth authorization server has no supported dynamic-client authentication method")
 	}
 	payload := map[string]any{
-		"client_name":                "Synon Biomed",
+		"client_name":                "X-Science",
 		"redirect_uris":              []string{redirectURI},
 		"grant_types":                []string{"authorization_code", "refresh_token"},
 		"response_types":             []string{"code"},

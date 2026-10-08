@@ -5,6 +5,8 @@
  */
 
 import { ipcBridge } from '@/common';
+import ProductBrand from '@/renderer/components/branding/ProductBrand';
+import { PRODUCT_NAME } from '@/common/config/productIdentity';
 import { buildGuidSlashCommands } from '@/common/chat/slash/guidSlashCommands';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import type { IConversationMcpStatus, IMcpServer } from '@/common/config/storage';
@@ -729,8 +731,8 @@ const GuidPage: React.FC = () => {
       >
         <div className={styles.guidLayout}>
           {!composerDocked ? (
-            <section className={styles.guidWelcome} aria-label='SYNON-Biomed'>
-              <img className={styles.guidWelcomeLogo} src='./branding/synon-biomed-lockup.png' alt='SYNON-Biomed' />
+            <section className={styles.guidWelcome} aria-label={PRODUCT_NAME}>
+              <ProductBrand className={styles.guidWelcomeLogo} prominent />
               <p className={styles.guidWelcomeGuidance}>{t('guid.emptyState.guidance')}</p>
             </section>
           ) : null}

@@ -12,7 +12,7 @@ import { createSynonBiomedTestFetch } from './synonbiomedTestAuth';
 
 const gatewayBaseUrl = process.env.SYNON_BIOMED_GATEWAY_URL ?? 'http://127.0.0.1:8766';
 
-describe('Synon Biomed v0.1.0 session actions through SynonAI', () => {
+describe('X-Science v0.1.0 session actions through SynonAI', () => {
   it('updates, moves, exports, and deletes a real frame without an LLM call', async () => {
     const fetchImpl = await createSynonBiomedTestFetch(gatewayBaseUrl);
     const options = { baseUrl: gatewayBaseUrl, fetchImpl };

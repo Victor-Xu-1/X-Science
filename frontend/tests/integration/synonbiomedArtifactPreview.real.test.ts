@@ -17,7 +17,7 @@ afterEach(async () => {
   artifactFixture = null;
 });
 
-describe('Synon Biomed artifact preview gateway', () => {
+describe('X-Science artifact preview gateway', () => {
   it('loads real artifact metadata and exposes the backend content URL without a local file bridge', async () => {
     const fetchImpl = await createSynonBiomedTestFetch(gatewayBaseUrl);
     artifactFixture = await createRealArtifactFixture({

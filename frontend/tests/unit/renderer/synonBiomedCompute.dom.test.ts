@@ -36,7 +36,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('Synon Biomed compute service', () => {
+describe('X-Science compute service', () => {
   it('loads provider summaries, details and SSH aliases from the native compute API', async () => {
     const fetchMock = vi
       .fn<typeof fetch>()
@@ -121,7 +121,7 @@ describe('Synon Biomed compute service', () => {
             egressPolicy: { mode: 'allowlist', mirror: true, additional: ['api.example.com'] },
             maxConcurrentJobs: 10,
             maxTimeoutSec: 43200,
-            profiles: [{ name: 'Synon Biomed (stored)', active: true, tokenIdMasked: 'ak-a····test' }],
+            profiles: [{ name: 'X-Science (stored)', active: true, tokenIdMasked: 'ak-a····test' }],
             ignoredProfiles: ['legacy'],
             tomlMissing: true,
             hasStoredCredential: true,
@@ -145,7 +145,7 @@ describe('Synon Biomed compute service', () => {
       enabled: true,
       appName: 'synonbiomed-research',
       maxTimeoutSec: 43200,
-      profiles: [{ name: 'Synon Biomed (stored)', active: true }],
+      profiles: [{ name: 'X-Science (stored)', active: true }],
     });
     await expect(loadSynonBiomedBioNemoSettings()).resolves.toEqual({
       enabled: true,
@@ -173,7 +173,7 @@ describe('Synon Biomed compute service', () => {
     );
   });
 
-  it('uses the exact Synon Biomed mutation contracts for provider lifecycle operations', async () => {
+  it('uses the exact X-Science mutation contracts for provider lifecycle operations', async () => {
     const fetchMock = vi
       .fn<typeof fetch>()
       .mockResolvedValueOnce(new Response(null, { status: 204 }))
@@ -433,7 +433,7 @@ describe('Synon Biomed compute service', () => {
   it('reports a missing compute job returned as JSON null', async () => {
     vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(new Response('null')));
     await expect(loadSynonBiomedComputeJob('missing-job')).rejects.toThrow(
-      'Synon Biomed compute job does not exist: missing-job'
+      'X-Science compute job does not exist: missing-job'
     );
   });
 
@@ -515,7 +515,7 @@ describe('Synon Biomed compute service', () => {
       name: 'SynonBiomedFileImportError',
       status: 413,
       kind: 'too_large',
-      message: 'Synon Biomed file import failed (413) [too_large]',
+      message: 'X-Science file import failed (413) [too_large]',
     });
   });
 });

@@ -214,7 +214,7 @@
     "config": {"type": "streamable-http", "url": "https://mcp.boltz.bio/mcp", "permissionPolicy": "always-confirm"},
     "authRequired": true, "oauthSupported": true,
     "apiKeyHeader": "x-api-key", "apiKeyLabel": "Boltz API Key",
-    "authHint": "Sign in to Boltz through OAuth or configure a workspace API key. Structure, screening and design jobs may consume credits and always require confirmation in Synon Biomed.",
+    "authHint": "Sign in to Boltz through OAuth or configure a workspace API key. Structure, screening and design jobs may consume credits and always require confirmation in X-Science.",
     "upstreams": [{"name": "Boltz", "infoLabel": "Official authentication documentation", "infoUrl": "https://api.boltz.bio/docs/api/guides/authentication/", "homepageUrl": "https://boltz.bio/api", "credentialUrl": "https://lab.boltz.bio/", "termsUrl": "https://boltz.bio/terms"}]
   },
   {
@@ -229,7 +229,7 @@
     "config": {"type": "streamable-http", "url": "https://mcp.tamarind.bio/mcp", "permissionPolicy": "confirm"},
     "authRequired": true,
     "apiKeyHeader": "x-api-key", "apiKeyLabel": "Tamarind API Key",
-    "authHint": "Create a Tamarind API key in your Tamarind account. Compute jobs can consume account credits and always require confirmation in Synon Biomed.",
+    "authHint": "Create a Tamarind API key in your Tamarind account. Compute jobs can consume account credits and always require confirmation in X-Science.",
     "upstreams": [{"name": "Tamarind Bio", "infoLabel": "MCP documentation", "infoUrl": "https://app.tamarind.bio/api-docs/mcp-server", "homepageUrl": "https://www.tamarind.bio/", "credentialUrl": "https://app.tamarind.bio/api-docs/api-key"}]
   },
   {
@@ -238,7 +238,7 @@
     "config": {"type": "streamable-http", "url": "https://mcp.adaptyvbio.com/mcp/", "permissionPolicy": "confirm"},
     "authRequired": true, "oauthSupported": true,
     "apiKeyHeader": "Authorization", "apiKeyPrefix": "Bearer ", "apiKeyLabel": "Adaptyv Foundry Token",
-    "authHint": "Sign in to Adaptyv Bio. Creating experiments, accepting quotes or making payments always requires confirmation in Synon Biomed.",
+    "authHint": "Sign in to Adaptyv Bio. Creating experiments, accepting quotes or making payments always requires confirmation in X-Science.",
     "upstreams": [{"name": "Adaptyv Bio", "infoLabel": "MCP documentation", "infoUrl": "https://docs.adaptyvbio.com/api-reference/mcp-server", "homepageUrl": "https://www.adaptyvbio.com/", "credentialUrl": "https://foundry.adaptyvbio.com/"}]
   },
   {

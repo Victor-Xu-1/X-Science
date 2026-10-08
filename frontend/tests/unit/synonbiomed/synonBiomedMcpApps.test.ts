@@ -11,7 +11,7 @@ import {
   unregisterSynonBiomedMcpApp,
 } from '@/renderer/services/mcp/synonBiomedMcpApps';
 
-describe('Synon Biomed MCP App bridge service', () => {
+describe('X-Science MCP App bridge service', () => {
   it('normalizes viewer bindings and rejects incomplete entries', async () => {
     const fetchImpl = vi.fn().mockResolvedValueOnce(
       new Response(

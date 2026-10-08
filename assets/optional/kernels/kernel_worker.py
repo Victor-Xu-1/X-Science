@@ -1,4 +1,4 @@
-"""Synon Biomed scientific worker entry point."""
+"""X-Science scientific worker entry point."""
 import sys
 from pathlib import Path
 

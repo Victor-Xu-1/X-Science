@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import ProductBrand from '@/renderer/components/branding/ProductBrand';
 import PwaPullToRefresh from '@/renderer/components/layout/PwaPullToRefresh';
 import Titlebar from '@/renderer/components/layout/Titlebar';
 import { Layout as ArcoLayout, Tooltip } from '@arco-design/web-react';
@@ -43,14 +44,7 @@ const SidebarIcon: React.FC<{ size?: number; strokeWidth?: number }> = ({ size =
   </svg>
 );
 
-const SynonBiomedBrand = () => (
-  <img
-    src='./branding/synon-biomed-lockup.png?v=0cac2ebf'
-    alt='SYNON-Biomed'
-    data-testid='synon-biomed-brand-lockup'
-    className='synon-biomed-brand__lockup'
-  />
-);
+const SynonBiomedBrand = () => <ProductBrand data-testid='synon-biomed-brand-lockup' />;
 
 const useDebug = () => {
   const [count, setCount] = useState(0);
@@ -150,10 +144,10 @@ const Layout: React.FC<{
   const { t } = useTranslation();
 
   useEffect(() => {
-    document.title = 'Synon Biomed';
+    document.title = 'X-Science';
   }, []);
 
-  // The Synon Biomed wordmark acts as Home / Back-to-Chat, but only from settings routes.
+  // The X-Science wordmark acts as Home / Back-to-Chat, but only from settings routes.
   // In non-settings routes the user is already "home", so it is a no-op (and not actionable).
   const isSettingsRoute = location.pathname.startsWith('/settings') || location.hash.startsWith('#/settings');
 

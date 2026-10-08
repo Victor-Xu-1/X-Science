@@ -19,7 +19,7 @@ def write_json(path: pathlib.Path, value: object) -> None:
 
 
 def identity() -> dict:
-    return {"schema": gate.IDENTITY_SCHEMA, "display_name": "Synon Biomed", "version": "0.1.0", "machine_slug": "synon-biomed"}
+    return {"schema": gate.IDENTITY_SCHEMA, "display_name": "X-Science", "version": "0.1.0", "machine_slug": "synon-biomed"}
 
 
 def reference() -> dict:
@@ -37,12 +37,12 @@ def release_policy() -> dict:
         "schema": gate.RELEASE_POLICY_SCHEMA,
         "authority_owner": "user",
         "operator_role": "release-operator",
-        "repository": "Victor-Xu-1/synon-biomed",
+        "repository": "Victor-Xu-1/X-Science",
         "product_identity_authority": "product-identity.json",
         "candidate_manifest": {
             "schema": "synon.release-candidate.v1",
             "workflow": ".github/workflows/quality.yml",
-            "artifact_name_prefix": "synon-biomed-release-candidate-",
+            "artifact_name_prefix": "x-science-release-candidate-",
             "required_platforms": ["linux-amd64", "windows-amd64"],
             "build_once": True,
         },
@@ -126,8 +126,8 @@ def seed(repo: pathlib.Path, version: str = "0.1.0", commit: bool = False) -> No
     write_json(repo / "product-identity.json", identity()); write_json(repo / "docs/governance/product-identity.json", reference())
     write_json(repo / "docs/governance/release-policy.json", release_policy())
     write_json(repo / "docs/governance/product-identity-consumer-matrix.json", matrix())
-    write_json(repo / "package.json", {"version": version, "description": "Synon Biomed workbench"})
-    (repo / "version.go").write_text(f'const Version = "{version}"\nconst Name = "Synon Biomed"\n', encoding="utf-8")
+    write_json(repo / "package.json", {"version": version, "description": "X-Science workbench"})
+    (repo / "version.go").write_text(f'const Version = "{version}"\nconst Name = "X-Science"\n', encoding="utf-8")
     (repo / "go.mod").write_text("module synon-go\n\ngo 1.24\n", encoding="utf-8")
     (repo / "identity.go").write_text(
         'package productidentity\n\nimport (\n    _ "embed"\n    "encoding/json"\n)\n\n'
@@ -139,7 +139,7 @@ def seed(repo: pathlib.Path, version: str = "0.1.0", commit: bool = False) -> No
     )
     (repo / "identity_test.go").write_text(
         'package productidentity\nimport "testing"\n'
-        'func TestCurrentUsesRootProductIdentityAuthority(t *testing.T) { value := Current(); if value.DisplayName != "Synon Biomed" || value.Version != "0.1.0" || value.MachineSlug != "synon-biomed" { t.Fatal(value) } }\n',
+        'func TestCurrentUsesRootProductIdentityAuthority(t *testing.T) { value := Current(); if value.DisplayName != "X-Science" || value.Version != "0.1.0" || value.MachineSlug != "synon-biomed" { t.Fatal(value) } }\n',
         encoding="utf-8",
     )
     buildinfo = repo / "internal/buildinfo"; buildinfo.mkdir(parents=True, exist_ok=True)
@@ -151,10 +151,10 @@ def seed(repo: pathlib.Path, version: str = "0.1.0", commit: bool = False) -> No
     )
     (buildinfo / "buildinfo_test.go").write_text(
         'package buildinfo\nimport "testing"\n'
-        'func TestReleaseInfoUsesSynonBiomedIdentity(t *testing.T) { value := Release(); if value.Name != "Synon Biomed" || value.Version != "0.1.0" || value.MachineSlug != "synon-biomed" { t.Fatal(value) } }\n',
+        'func TestReleaseInfoUsesSynonBiomedIdentity(t *testing.T) { value := Release(); if value.Name != "X-Science" || value.Version != "0.1.0" || value.MachineSlug != "synon-biomed" { t.Fatal(value) } }\n',
         encoding="utf-8",
     )
-    (repo / "README.md").write_text("# Synon Biomed v0.1.0\n", encoding="utf-8")
+    (repo / "README.md").write_text("# X-Science v0.1.0\n", encoding="utf-8")
     schema = repo / "internal/persistence/workspace/versioned_schema.go"; schema.parent.mkdir(parents=True, exist_ok=True)
     schema.write_text("package workspace\nconst workspaceSchemaVersion = 24\n", encoding="utf-8")
     if commit:
@@ -258,7 +258,7 @@ class ProductIdentityGateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             repo = pathlib.Path(directory); seed(repo)
             result = gate.audit(repo, identity(), reference(), release_policy(), matrix())
-            self.assertEqual(result["authority"]["full_display"], "Synon Biomed v0.1.0")
+            self.assertEqual(result["authority"]["full_display"], "X-Science v0.1.0")
             self.assertEqual(result["authority"]["release_tag"], "v0.1.0")
             self.assertEqual(result["schema_facts"], {"current_workspace_schema": 24, "planned_migrations": []})
             self.assertNotIn("full_display", identity()); self.assertNotIn("release_tag", identity())
@@ -342,7 +342,7 @@ class ProductIdentityGateTests(unittest.TestCase):
                 repo = pathlib.Path(directory); seed(repo, version)
                 current = identity(); current["version"] = version
                 write_json(repo / "product-identity.json", current)
-                (repo / "README.md").write_text(f"# Synon Biomed v{version}\n")
+                (repo / "README.md").write_text(f"# {current['display_name']} v{version}\n")
                 result = gate.audit(repo, current, reference(), release_policy(), matrix())
                 self.assertEqual(result["drifts"], [])
                 # Numeric reuse never permits a hard-coded runtime consumer.
@@ -364,7 +364,7 @@ class ProductIdentityGateTests(unittest.TestCase):
             repo = pathlib.Path(directory); seed(repo)
             (repo / "internal/buildinfo/buildinfo.go").write_text(
                 'package buildinfo\ntype Info struct { Name, Version, MachineSlug string }\n'
-                'func Release() Info { return Info{Name: "Synon Biomed", Version: "4.0.2", MachineSlug: "synon-go"} }\n',
+                'func Release() Info { return Info{Name: "X-Science", Version: "4.0.2", MachineSlug: "synon-go"} }\n',
                 encoding="utf-8",
             )
             result, code = gate.evaluate(repo, identity(), reference(), release_policy(), matrix(), "candidate")

@@ -47,7 +47,7 @@ async function loadSynonBiomedLineageMessagesOnce(
 
   const payload: unknown = await response.json();
   if (!isRecord(payload) || !Array.isArray(payload.items)) {
-    throw new Error('Synon Biomed lineage messages response is invalid');
+    throw new Error('X-Science lineage messages response is invalid');
   }
 
   return {

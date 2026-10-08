@@ -26,7 +26,7 @@ const profile = {
   connectorIds: ['bundled:pubmed'],
 };
 
-describe('Synon Biomed expert profile service', () => {
+describe('X-Science expert profile service', () => {
   it('uses the restricted expert profile bridge for the complete lifecycle', async () => {
     const fetchImpl = vi
       .fn<typeof fetch>()

@@ -14,7 +14,7 @@ import {
   updateSynonBiomedTranscriptAnnotation,
 } from '@/renderer/services/synonBiomedAnnotations';
 
-describe('Synon Biomed annotations capability service', () => {
+describe('X-Science annotations capability service', () => {
   it('coalesces only overlapping transcript annotation reads and revalidates after settlement', async () => {
     let resolveRequest!: (response: Response) => void;
     const fetchImpl = vi.fn(

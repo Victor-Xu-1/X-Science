@@ -80,7 +80,7 @@ func TestLoadCatalogRestoresV11AgentsAndSkillClosure(t *testing.T) {
 			t.Fatalf("OPERON missing required skill %q", required)
 		}
 	}
-	if !operon.SupportsPlanMode || !strings.Contains(operon.EffectiveSystemPrompt(), "You are Synon Biomed") || !strings.Contains(operon.EffectiveSystemPrompt(), "## Working style") {
+	if !operon.SupportsPlanMode || !strings.Contains(operon.EffectiveSystemPrompt(), "You are X-Science") || !strings.Contains(operon.EffectiveSystemPrompt(), "## Working style") {
 		t.Fatal("OPERON defaults or composed system prompt do not match v1.1")
 	}
 	for _, required := range []string{

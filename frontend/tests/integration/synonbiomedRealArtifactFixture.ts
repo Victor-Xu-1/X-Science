@@ -62,7 +62,7 @@ export async function createRealArtifactFixture(input: {
     assertResponse(finalizeResponse, 'finalize artifact upload');
     const artifact = (await finalizeResponse.json()) as UploadedArtifact;
     artifactId = artifact.id ?? artifact.artifact_id;
-    if (!artifactId) throw new Error('Synon Biomed did not return an artifact ID');
+    if (!artifactId) throw new Error('X-Science did not return an artifact ID');
 
     return {
       conversationId,

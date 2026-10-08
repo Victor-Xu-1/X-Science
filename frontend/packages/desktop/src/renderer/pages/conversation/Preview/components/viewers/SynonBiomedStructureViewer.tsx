@@ -306,7 +306,7 @@ export const resolvePdbLigandResidueName = (content: string): string | undefined
   return candidates.length === 1 ? candidates[0] : undefined;
 };
 
-/** Hosts the native Mol* viewport within the Synon Biomed single-viewer boundary. */
+/** Hosts the native Mol* viewport within the X-Science single-viewer boundary. */
 const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
   contentUrl,
   content,

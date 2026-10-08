@@ -20,7 +20,7 @@ const bundledProfile: SynonBiomedExpertProfile = {
   skillNames: [],
 };
 
-describe('Synon Biomed expert profile localization', () => {
+describe('X-Science expert profile localization', () => {
   it('presents bundled profiles in English without mutating backend metadata', async () => {
     const i18n = await createTestI18n('en-US');
     const localized = localizeSynonBiomedExpertProfile(bundledProfile, i18n.t);

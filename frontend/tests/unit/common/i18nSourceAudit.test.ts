@@ -32,15 +32,15 @@ const allowedChineseLiterals: Record<string, RegExp[]> = {
   'packages/desktop/src/renderer/services/synonBiomedCapabilities.ts': [/^通用科研助手$/u],
   'packages/desktop/src/renderer/services/synonBiomedCatalog.ts': [
     /^通过 $/u,
-    /^ 接入的 Synon Biomed 专家 Agent。$/u,
-    /^使用 Synon Biomed 后端专家 $/u,
+    /^ 接入的 X-Science 专家 Agent。$/u,
+    /^使用 X-Science 后端专家 $/u,
     /^ 处理生物医药研究任务。$/u,
   ],
   'packages/desktop/src/renderer/theme/builtinThemes.ts': [/^Y2K电子账本 by 椰树女王$/u],
   'packages/desktop/src/renderer/utils/synonBiomed/runtime/runtimeLogo.ts': [/^默认$/u],
 };
 const technicalUiLiterals = [
-  /^(?:Synon Biomed|SYNON-Biomed|Modal|NVIDIA BioNeMo NIM|NVIDIA_API_KEY|SMILES|conda env|chrome-devtools|playwright)$/u,
+  /^(?:X-Science|X-Science|Modal|NVIDIA BioNeMo NIM|NVIDIA_API_KEY|SMILES|conda env|chrome-devtools|playwright)$/u,
   /^(?:Streamable HTTP|Server-Sent Events \(SSE\))$/u,
   /^(?:AFold3 \/ OpenFold3|Boltz2)（NVIDIA NIM）$/u,
   /^(?:https?:\/\/|[\w.-]+@)[^\s]+$/u,

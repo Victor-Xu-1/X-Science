@@ -80,7 +80,7 @@ const AcpChat: React.FC<{
       console.error('[AcpChat] Failed to hydrate messages after runtime mutation');
     });
   }, [refreshMessages]);
-  // Synon Biomed has one approval authority: the runtime snapshot's
+  // X-Science has one approval authority: the runtime snapshot's
   // pending_input_requests rendered by SynonBiomedRuntimeOperations. Keep the
   // compatibility confirmation recovery only for non-Synon ACP backends so
   // one request can never produce two competing approval cards.

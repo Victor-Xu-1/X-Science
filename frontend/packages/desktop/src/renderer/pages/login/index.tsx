@@ -250,9 +250,9 @@ const LoginPage: React.FC = () => {
 
         <header className='login-page__header'>
           <div className='login-page__logo'>
-            <img src='./pwa/icon-192.png?v=9b986028' alt='' aria-hidden='true' />
+            <img src={PRODUCT_MARK_SRC} alt='' aria-hidden='true' />
           </div>
-          <h1 id='auth-title'>Synon Biomed</h1>
+          <h1 id='auth-title'>{PRODUCT_NAME}</h1>
         </header>
 
         <form className='login-page__form' onSubmit={handleSubmit} noValidate>
@@ -493,3 +493,4 @@ const LoginPage: React.FC = () => {
 };
 
 export default LoginPage;
+import { PRODUCT_MARK_SRC, PRODUCT_NAME } from '@/common/config/productIdentity';

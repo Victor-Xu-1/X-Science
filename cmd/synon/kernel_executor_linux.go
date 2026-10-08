@@ -23,7 +23,7 @@ import (
 func runKernelExecutorCLI(args []string) error {
 	flags := flag.NewFlagSet("synon-biomed kernel-executor", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
-	home := flags.String("home", "", "Synon Biomed data directory")
+	home := flags.String("home", "", "X-Science data directory")
 	backendID := flags.String("backend-id", "", "durable backend identity")
 	backendGeneration := flags.Int64("backend-generation", 0, "durable backend generation")
 	executorInstanceID := flags.String("executor-instance-id", "", "executor instance identity")

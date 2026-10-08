@@ -1159,7 +1159,7 @@ unsafe links and invalid receipt scope are not classified as missing content.
 ## Product identity
 
 Runtime prompts, model-visible Skills, UI, logs, health output, and generated
-artifacts identify only Synon Biomed. Historical protocol identifiers may
+artifacts identify only X-Science. Historical protocol identifiers may
 remain only where required to read or safely reap pre-migration state; new
 resources use Synon names.
 

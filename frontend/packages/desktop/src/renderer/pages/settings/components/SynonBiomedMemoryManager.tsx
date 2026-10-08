@@ -109,7 +109,7 @@ export const SynonBiomedMemoryManager: React.FC<{ onChanged?: () => void | Promi
         return true;
       } catch (error) {
         if (controller.signal.aborted || generation !== loadGenerationRef.current) return true;
-        console.error('Failed to load Synon Biomed memory:', error);
+        console.error('Failed to load X-Science memory:', error);
         setLoadError(t('settings.memoryLoadError'));
         return false;
       } finally {
@@ -124,7 +124,7 @@ export const SynonBiomedMemoryManager: React.FC<{ onChanged?: () => void | Promi
     try {
       setProjects(await loadSynonBiomedProjects());
     } catch (error) {
-      console.error('Failed to load Synon Biomed projects:', error);
+      console.error('Failed to load X-Science projects:', error);
       setProjects([]);
       setProjectLoadError(t('settings.memoryProjectLoadError'));
     }
@@ -156,7 +156,7 @@ export const SynonBiomedMemoryManager: React.FC<{ onChanged?: () => void | Promi
       })
       .catch((error) => {
         if (!controller.signal.aborted) {
-          console.error('Failed to load Synon Biomed session memory:', error);
+          console.error('Failed to load X-Science session memory:', error);
           setSessionError(true);
         }
       })
@@ -370,7 +370,7 @@ export const SynonBiomedMemoryManager: React.FC<{ onChanged?: () => void | Promi
         if (refreshFailed) Message.warning(t('settings.memoryRefreshError'));
         return true;
       } catch (error) {
-        console.error('Synon Biomed memory mutation failed:', error);
+        console.error('X-Science memory mutation failed:', error);
         Message.error(t('settings.memoryMutationError'));
         return false;
       } finally {

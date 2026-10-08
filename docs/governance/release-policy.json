@@ -2,12 +2,12 @@
   "schema": "synon.governance.release-policy.v1",
   "authority_owner": "user",
   "operator_role": "release-operator",
-  "repository": "Victor-Xu-1/synon-biomed",
+  "repository": "Victor-Xu-1/X-Science",
   "product_identity_authority": "product-identity.json",
   "candidate_manifest": {
     "schema": "synon.release-candidate.v1",
     "workflow": ".github/workflows/quality.yml",
-    "artifact_name_prefix": "synon-biomed-release-candidate-",
+    "artifact_name_prefix": "x-science-release-candidate-",
     "required_platforms": ["linux-amd64", "windows-amd64"],
     "build_once": true
   },

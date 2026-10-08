@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { BackendHttpError } from '@/common/adapter/httpBridge';
 import { loadSynonBiomedLineageMessages } from '@/renderer/services/synonBiomedLineageMessages';
 
-describe('Synon Biomed lineage messages model', () => {
+describe('X-Science lineage messages model', () => {
   it('normalizes native conversation rows for the child-frame drawer', async () => {
     const fetchImpl = vi.fn(
       async () =>

@@ -31,7 +31,7 @@ vi.mock('@arco-design/web-react', () => ({
 afterEach(cleanup);
 
 describe('WorkspaceToolbar', () => {
-  it('keeps refresh but removes upload controls for a read-only Synon Biomed workspace', () => {
+  it('keeps refresh but removes upload controls for a read-only X-Science workspace', () => {
     render(
       <WorkspaceToolbar
         t={(key) => key}
@@ -57,7 +57,7 @@ describe('WorkspaceToolbar', () => {
     expect(screen.queryByTestId('upload-progress')).toBeNull();
   });
 
-  it('shows upload controls for a remote Synon Biomed artifact workspace without enabling local changes', () => {
+  it('shows upload controls for a remote X-Science artifact workspace without enabling local changes', () => {
     render(
       <WorkspaceToolbar
         t={(key) => key}

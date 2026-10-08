@@ -23,7 +23,7 @@ func (function roundTripFunc) RoundTrip(request *http.Request) (*http.Response, 
 
 func TestPlanFromEnvSkipsPlatformsWithoutLiveCredentials(t *testing.T) {
 	plan := planFromEnv(func(string) string { return "" })
-	if plan.Message != "Synon Biomed v"+buildinfo.Release().Version+" live IM smoke" {
+	if plan.Message != buildinfo.Release().Name+" v"+buildinfo.Release().Version+" live IM smoke" {
 		t.Fatalf("default message = %q", plan.Message)
 	}
 	if len(plan.Enabled) != 0 {

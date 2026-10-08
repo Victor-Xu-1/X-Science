@@ -9,7 +9,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('Synon Biomed artifact actions service', () => {
+describe('X-Science artifact actions service', () => {
   it('uses the exact priority, rename, and delete artifact contracts', async () => {
     const fetchMock = vi
       .fn<typeof fetch>()
@@ -59,7 +59,7 @@ describe('Synon Biomed artifact actions service', () => {
     );
 
     await expect(deleteSynonBiomedArtifact('artifact-foreign')).rejects.toThrow(
-      'Synon Biomed artifact request failed: 404 {"detail":"Artifact artifact-foreign not found"}'
+      'X-Science artifact request failed: 404 {"detail":"Artifact artifact-foreign not found"}'
     );
   });
 });

@@ -19,7 +19,7 @@ type UseWorkspaceCollapseParams = {
   conversation_id?: string;
   /**
    * Stable key used to persist the user's manual toggle preference. Defaults
-   * to `conversation_id` for normal Synon Biomed conversations.
+   * to `conversation_id` for normal X-Science conversations.
    */
   preferenceKey?: string;
   /**

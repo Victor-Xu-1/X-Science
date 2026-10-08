@@ -38,7 +38,7 @@ describe('normalizeToolCall', () => {
     });
   });
 
-  it('preserves linked child-frame metadata for a Synon Biomed delegation', () => {
+  it('preserves linked child-frame metadata for a X-Science delegation', () => {
     const result = normalizeToolCall({
       id: 'delegate-message',
       conversation_id: 'frame-parent',

@@ -55,7 +55,7 @@ function csrfResponse(token = 'a'.repeat(43)): Response {
   return new Response(null, { status: 204 });
 }
 
-describe('Synon Biomed auth-session recovery', () => {
+describe('X-Science auth-session recovery', () => {
   const electronApi = window.electronAPI;
 
   beforeEach(() => {

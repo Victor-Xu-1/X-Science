@@ -11,14 +11,14 @@ import (
 	workspace "synon-go/internal/persistence/workspace"
 )
 
-const contactEmailNoticeText = `Some research data services (such as those run by NCBI, EBI, and OurResearch) ask for a contact email on API requests so they can reach out about problematic traffic. Synon Biomed can send one on your behalf — whether the request comes from built-in tools or from code the agent writes for you.
+const contactEmailNoticeText = `Some research data services (such as those run by NCBI, EBI, and OurResearch) ask for a contact email on API requests so they can reach out about problematic traffic. X-Science can send one on your behalf — whether the request comes from built-in tools or from code the agent writes for you.
 
 If you provide an address:
-- It is saved locally in your Synon Biomed data directory.
+- It is saved locally in your X-Science data directory.
 - It is used as the contact parameter on requests to such services.
 - It becomes part of the LLM session's context.
 - You can change it at any time; a changed address applies immediately.
-- You can remove it at any time in Settings; after removal Synon Biomed asks again before any future use.
+- You can remove it at any time in Settings; after removal X-Science asks again before any future use.
 
 If you decline, these services are used without an email where possible, and the agent will not ask you for one.`
 

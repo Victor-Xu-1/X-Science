@@ -59,11 +59,11 @@ describe('QuickActionButtons', () => {
     webuiGetStatusMock.mockReset();
   });
 
-  it('renders Synon Biomed shortcuts instead of product feedback and GitHub actions', async () => {
+  it('renders X-Science shortcuts instead of product feedback and GitHub actions', async () => {
     const onOpenLink = vi.fn();
     const onOpenBugReport = vi.fn();
     loadSynonBiomedCatalogSummaryMock.mockResolvedValue({
-      product: 'Synon Biomed',
+      product: 'X-Science',
       backendStatus: 'healthy',
       counts: {
         backendAgents: 14,
@@ -114,7 +114,7 @@ describe('QuickActionButtons', () => {
   });
 
   it('opens the real project editor when no project exists and creates the first project', async () => {
-    loadSynonBiomedCatalogSummaryMock.mockResolvedValue({ product: 'Synon Biomed', backendStatus: 'healthy' });
+    loadSynonBiomedCatalogSummaryMock.mockResolvedValue({ product: 'X-Science', backendStatus: 'healthy' });
     loadSynonBiomedProjectsMock.mockResolvedValue([]);
     createSynonBiomedProjectMock.mockResolvedValue({
       projectId: 'proj_first',

@@ -76,7 +76,7 @@ export const ConversationAnnotationsProvider: React.FC<{
 
   const create = useCallback(
     async (input: CreateSynonBiomedTranscriptAnnotationInput) => {
-      if (!frameId) throw new Error('Synon Biomed conversation frame is unavailable');
+      if (!frameId) throw new Error('X-Science conversation frame is unavailable');
       const mutationAuthority = authorityKey;
       const created = await createSynonBiomedTranscriptAnnotation(frameId, input);
       if (annotationsAuthorityRef.current === mutationAuthority) {
@@ -89,7 +89,7 @@ export const ConversationAnnotationsProvider: React.FC<{
 
   const update = useCallback(
     async (annotationId: string, patch: { note?: string; read?: boolean }) => {
-      if (!frameId) throw new Error('Synon Biomed conversation frame is unavailable');
+      if (!frameId) throw new Error('X-Science conversation frame is unavailable');
       const mutationAuthority = authorityKey;
       const updated = await updateSynonBiomedTranscriptAnnotation(frameId, annotationId, patch);
       if (annotationsAuthorityRef.current === mutationAuthority) {
@@ -102,7 +102,7 @@ export const ConversationAnnotationsProvider: React.FC<{
 
   const remove = useCallback(
     async (annotationId: string) => {
-      if (!frameId) throw new Error('Synon Biomed conversation frame is unavailable');
+      if (!frameId) throw new Error('X-Science conversation frame is unavailable');
       const mutationAuthority = authorityKey;
       await deleteSynonBiomedTranscriptAnnotation(frameId, annotationId);
       if (annotationsAuthorityRef.current === mutationAuthority) {

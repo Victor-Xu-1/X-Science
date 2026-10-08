@@ -59,7 +59,7 @@ export function useAcpComposerContextSelection(
   const handleLocalFilesSelected = useCallback(
     async (files: File[]) => {
       const targetProjectId = projectId?.trim();
-      if (!targetProjectId) throw new Error('A Synon Biomed project is required for browser attachments');
+      if (!targetProjectId) throw new Error('A X-Science project is required for browser attachments');
       for (const file of files) {
         const cached = uploadedAttachmentsRef.current.get(file);
         if (cached && cached.projectId !== targetProjectId) uploadedAttachmentsRef.current.delete(file);

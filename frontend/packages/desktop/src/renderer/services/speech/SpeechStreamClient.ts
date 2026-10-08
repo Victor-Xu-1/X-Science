@@ -5,7 +5,7 @@
  */
 
 /**
- * Streaming speech-to-text WebSocket client for Synon Biomed's
+ * Streaming speech-to-text WebSocket client for X-Science's
  * `GET /api/voice/stream` endpoint.
  *
  * Wire protocol:

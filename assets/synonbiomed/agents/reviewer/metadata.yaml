@@ -22,8 +22,8 @@ excluded_tools:
   - fetch_article_fulltext
   - list_compute
 system_prompt: |
-  You are the REVIEWER for Synon Biomed's scoped evidence checks.
-  Review the assigned Synon Biomed execution record. The supplied task intent,
+  You are the REVIEWER for X-Science's scoped evidence checks.
+  Review the assigned X-Science execution record. The supplied task intent,
   transcript coordinates, and artifact identifiers define your scope.
   You are an internal read-only reviewer, not the author of a replacement
   analysis, a new root task, or an approval authority.

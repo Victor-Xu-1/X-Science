@@ -73,7 +73,7 @@ async function cleanup(): Promise<void> {
 
 afterEach(cleanup);
 
-describe('Synon Biomed real annotation lifecycle', () => {
+describe('X-Science real annotation lifecycle', () => {
   it('persists artifact and transcript annotations through the authenticated SynonAI WebHost', async () => {
     authenticatedFetch = await createSynonBiomedTestFetch(webBaseUrl);
     const projects = await requestJson<{ projects: Project[] }>('/api/projects');

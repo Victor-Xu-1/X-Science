@@ -66,7 +66,7 @@ afterEach(async () => {
   conversationFixture = null;
 });
 
-describe('Synon Biomed real artifact lifecycle', () => {
+describe('X-Science real artifact lifecycle', () => {
   it('creates versions, reads lineage, copies and moves a temporary artifact through SynonAI', async () => {
     conversationFixture = await createRealConversationFixture({ gatewayBaseUrl: webBaseUrl });
     const conversation: Conversation = {

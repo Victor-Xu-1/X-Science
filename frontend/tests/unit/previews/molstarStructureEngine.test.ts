@@ -244,7 +244,7 @@ describe('docking ligand element normalization', () => {
       'A1JB1\nignored'
     );
 
-    expect(molBlock).toContain('A1JB1 ignored\n  Synon Biomed');
+    expect(molBlock).toContain('A1JB1 ignored\n  X-Science');
     expect(molBlock).toContain('  2  1  0  0  0  0            999 V2000');
     expect(molBlock).toContain('  1  2  1  0  0  0  0');
     expect(molBlock).toContain('M  CHG  1   1   1');

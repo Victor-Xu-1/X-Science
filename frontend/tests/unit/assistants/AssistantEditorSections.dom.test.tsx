@@ -765,7 +765,7 @@ describe('AssistantEditorSections', () => {
     expect(promptScope.queryByRole('button', { name: 'Add' })).not.toBeInTheDocument();
   });
 
-  it('renders Synon Biomed builtin experts with locked identity and read-only managed content', () => {
+  it('renders X-Science builtin experts with locked identity and read-only managed content', () => {
     const { container } = renderWithProviders(
       <AssistantEditorSections
         editor={createEditor({

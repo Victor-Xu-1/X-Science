@@ -44,7 +44,7 @@ const ALLOWED_NAVIGATE_PATTERNS = [/^\/conversation\/[^/]+$/];
 
 /**
  * Hook to listen for synon-ai:// deep link events from main process.
- * Routes retired 'add-provider' actions to Synon Biomed runtime resources.
+ * Routes retired 'add-provider' actions to X-Science runtime resources.
  * Routes 'navigate' action to the specified route (whitelist-validated).
  */
 export const useDeepLink = () => {

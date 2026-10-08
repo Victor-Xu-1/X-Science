@@ -130,15 +130,15 @@ export async function loadSynonBiomedExecutionLogPage(
     options
   );
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-    throw new Error('Synon Biomed execution-log page response is invalid');
+    throw new Error('X-Science execution-log page response is invalid');
   }
   const record = payload as Record<string, unknown>;
   if (!Array.isArray(record.records) || !Number.isSafeInteger(record.total) || Number(record.total) < 0) {
-    throw new Error('Synon Biomed execution-log page response is invalid');
+    throw new Error('X-Science execution-log page response is invalid');
   }
   const nextBefore = record.next_before;
   if (nextBefore !== undefined && typeof nextBefore !== 'string') {
-    throw new Error('Synon Biomed execution-log page cursor is invalid');
+    throw new Error('X-Science execution-log page cursor is invalid');
   }
   return {
     records: normalizeSynonBiomedExecutionLog(record.records),
@@ -271,7 +271,7 @@ export async function forkSynonBiomedAtAskUserAnswer(
     options
   );
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-    throw new Error('Synon Biomed fork-at-answer response is invalid');
+    throw new Error('X-Science fork-at-answer response is invalid');
   }
   const record = payload as Record<string, unknown>;
   const responseRootFrameId = typeof record.root_frame_id === 'string' ? record.root_frame_id.trim() : '';
@@ -279,7 +279,7 @@ export async function forkSynonBiomedAtAskUserAnswer(
   const generation =
     typeof record.generation === 'number' && Number.isSafeInteger(record.generation) ? record.generation : 0;
   if (responseRootFrameId !== rootFrameId || !/^br_[0-9a-f]{8}$/.test(branchId) || generation <= 0) {
-    throw new Error('Synon Biomed fork-at-answer response is invalid');
+    throw new Error('X-Science fork-at-answer response is invalid');
   }
   invalidateSynonBiomedFrameReads(rootFrameId);
   return { rootFrameId: responseRootFrameId, branchId, generation };

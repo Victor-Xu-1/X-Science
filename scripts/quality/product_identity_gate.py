@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the single-tree Synon Biomed product identity control plane."""
+"""Validate the single-tree X-Science product identity control plane."""
 
 from __future__ import annotations
 
@@ -318,7 +318,7 @@ def validate_release_policy(policy: dict[str, Any]) -> None:
     if (
         policy.get("authority_owner") != "user"
         or policy.get("operator_role") != "release-operator"
-        or policy.get("repository") != "Victor-Xu-1/synon-biomed"
+        or policy.get("repository") != "Victor-Xu-1/X-Science"
         or policy.get("product_identity_authority") != "product-identity.json"
     ):
         raise IdentityError("identity_release_policy_authority_invalid")
@@ -327,7 +327,7 @@ def validate_release_policy(policy: dict[str, Any]) -> None:
     if candidate != {
         "schema": "synon.release-candidate.v1",
         "workflow": ".github/workflows/quality.yml",
-        "artifact_name_prefix": "synon-biomed-release-candidate-",
+        "artifact_name_prefix": "x-science-release-candidate-",
         "required_platforms": ["linux-amd64", "windows-amd64"],
         "build_once": True,
     }:

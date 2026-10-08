@@ -106,7 +106,7 @@ func (s *Server) handleSynonBiomedCatalog(w http.ResponseWriter, r *http.Request
 		status = "degraded"
 	}
 	writeWorkspaceJSON(w, http.StatusOK, map[string]any{
-		"product": "Synon Biomed",
+		"product": "X-Science",
 		"runtime": map[string]any{
 			"runtimeAssetsDir": s.runtimeAssetsDir,
 			"agents":           countedNames(agentNames),

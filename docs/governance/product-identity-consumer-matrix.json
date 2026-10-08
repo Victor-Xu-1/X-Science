@@ -103,7 +103,7 @@
       "class": "product-user-visible",
       "owner": "product-ux",
       "paths": [".env.example", "frontend/packages/desktop/src/common/config/storage.ts", "frontend/packages/desktop/src/common/adapter/ipcBridge.ts"],
-      "current_disposition": "browser metadata and visible product surfaces identify Synon Biomed; dependency scopes remain separately classified",
+      "current_disposition": "browser metadata and visible product surfaces identify X-Science; dependency scopes remain separately classified",
       "target": "retain reviewed UI projections and real-browser identity checks",
       "release_blocking": true
     },

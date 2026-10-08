@@ -205,7 +205,7 @@ describe('ArtifactPreview', () => {
     );
   });
 
-  it('renders a Synon Biomed image artifact using the backend content endpoint', async () => {
+  it('renders a X-Science image artifact using the backend content endpoint', async () => {
     await render(<ArtifactPreview />);
 
     expect(await screen.findByRole('heading', { name: 'qc_metrics.png' })).toBeInTheDocument();

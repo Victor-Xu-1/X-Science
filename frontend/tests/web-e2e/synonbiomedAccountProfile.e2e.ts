@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { loginToScientificWorkbench } from "./synonBiomedScientificFixture";
 
-test.describe("Synon Biomed personal account dashboard", () => {
+test.describe("X-Science personal account dashboard", () => {
   test("renders real account activity and preserves profile controls across responsive layouts", async ({
     page,
   }, testInfo) => {

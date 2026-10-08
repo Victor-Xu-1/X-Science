@@ -111,7 +111,7 @@ async function getJson(path: string, options: SynonBiomedGovernanceOptions): Pro
     headers: { Accept: 'application/json' },
   });
   if (!response.ok) {
-    throw new Error(`Synon Biomed governance request failed: ${response.status} ${path}`);
+    throw new Error(`X-Science governance request failed: ${response.status} ${path}`);
   }
   return response.json();
 }

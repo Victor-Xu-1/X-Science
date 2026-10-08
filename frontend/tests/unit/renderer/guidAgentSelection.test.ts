@@ -21,11 +21,11 @@ describe('guid assistant selection helpers', () => {
     }),
   ];
 
-  it('prefers explicit Synon Biomed assistant keys when the assistant exists', () => {
+  it('prefers explicit X-Science assistant keys when the assistant exists', () => {
     expect(resolveAssistantSelectionKey('custom:synonbiomed:aidd-expert', assistants)).toBe('synonbiomed:aidd-expert');
   });
 
-  it('does not accept non-Synon Biomed assistant ids from stale selections', () => {
+  it('does not accept non-X-Science assistant ids from stale selections', () => {
     expect(resolveAssistantSelectionKey('custom:user-research', assistants)).toBeUndefined();
     expect(resolveAssistantSelectionKey('bare-unsupportedRuntime', assistants)).toBeUndefined();
   });

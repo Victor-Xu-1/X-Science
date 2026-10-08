@@ -990,7 +990,7 @@ func TestSessionRunnerTrustedRuntimeContextUsesServerTimeAndDurableTaskStart(t *
 		"frame_id: frame-identity",
 		"project_id is the authoritative project key",
 		"a task or conversation ID means frame_id",
-		"UUID-shaped frame IDs are valid Synon Biomed task IDs",
+		"UUID-shaped frame IDs are valid X-Science task IDs",
 		"TaskGet and TaskList read only the separate delegated/background task store",
 		"Never pass project_id, root_frame_id, or frame_id to those tools",
 		"answer questions about the current project or task directly from this trusted context",

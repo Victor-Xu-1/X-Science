@@ -111,7 +111,7 @@ export async function loadSynonBiomedComposerCapabilities(
   options: SynonBiomedGatewayOptions = {}
 ): Promise<SynonBiomedComposerCapabilities> {
   const normalizedConversationId = conversationId.trim();
-  if (!normalizedConversationId) throw new Error('Synon Biomed conversation id is required');
+  if (!normalizedConversationId) throw new Error('X-Science conversation id is required');
   return decodeSynonBiomedComposerCapabilities(
     await getJson<unknown>(
       `/api/conversations/${encodeURIComponent(normalizedConversationId)}/composer-capabilities`,
@@ -125,7 +125,7 @@ export async function loadSynonBiomedAssistantComposerCapabilities(
   options: SynonBiomedGatewayOptions = {}
 ): Promise<SynonBiomedComposerCapabilities> {
   const normalizedAssistantId = assistantId.trim();
-  if (!normalizedAssistantId) throw new Error('Synon Biomed assistant id is required');
+  if (!normalizedAssistantId) throw new Error('X-Science assistant id is required');
   return decodeSynonBiomedComposerCapabilities(
     await getJson<unknown>(
       `/api/assistants/${encodeURIComponent(normalizedAssistantId)}/composer-capabilities`,
@@ -136,7 +136,7 @@ export async function loadSynonBiomedAssistantComposerCapabilities(
 
 function decodeSynonBiomedComposerCapabilities(payloadValue: unknown): SynonBiomedComposerCapabilities {
   const payload = asRecord(payloadValue);
-  if (!payload) throw new Error('Synon Biomed composer capabilities response is invalid');
+  if (!payload) throw new Error('X-Science composer capabilities response is invalid');
 
   const skills = uniqueNonEmptyStrings(payload.skills);
   const statuses = Array.isArray(payload.mcp_statuses)
@@ -247,7 +247,7 @@ export async function loadSynonBiomedArtifact(
     await getJson<unknown>(`/api/artifacts/${encodeURIComponent(artifactId)}/metadata`, options)
   );
   if (!artifact) {
-    throw new Error(`Synon Biomed artifact response is invalid: ${artifactId}`);
+    throw new Error(`X-Science artifact response is invalid: ${artifactId}`);
   }
   return artifact;
 }
@@ -269,7 +269,7 @@ export async function loadSynonBiomedProjectWorkbench(
   ]);
   const project = toProject(projectPayload);
   if (!project) {
-    throw new Error(`Synon Biomed project response is invalid: ${projectId}`);
+    throw new Error(`X-Science project response is invalid: ${projectId}`);
   }
 
   return {
@@ -291,7 +291,7 @@ async function getJson<T>(path: string, options: SynonBiomedGatewayOptions): Pro
   });
 
   if (!response.ok) {
-    throw new Error(`Synon Biomed gateway request failed: ${response.status} ${path}`);
+    throw new Error(`X-Science gateway request failed: ${response.status} ${path}`);
   }
 
   return (await response.json()) as T;
@@ -334,7 +334,7 @@ function requireProjectPayload(value: unknown, operation: string): SynonBiomedPr
   const record = asRecord(value);
   const project = toProject(record?.project ?? value);
   if (!project) {
-    throw new Error(`Synon Biomed project ${operation} response is invalid`);
+    throw new Error(`X-Science project ${operation} response is invalid`);
   }
   return project;
 }

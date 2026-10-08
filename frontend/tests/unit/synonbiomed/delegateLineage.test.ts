@@ -68,7 +68,7 @@ const lineage: SynonBiomedDelegateLineage = {
   totals: { needsInput: 1, running: 1, failed: 0, completed: 1, stopped: 0 },
 };
 
-describe('Synon Biomed delegate lineage model', () => {
+describe('X-Science delegate lineage model', () => {
   it('loads the typed hierarchy from the native conversation route', async () => {
     const fetchImpl = vi.fn(async () => new Response(JSON.stringify(lineage), { status: 200 }));
 
@@ -101,7 +101,7 @@ describe('Synon Biomed delegate lineage model', () => {
     const fetchImpl = vi.fn(async () => new Response(JSON.stringify({ rootFrameId: 'root' }), { status: 200 }));
 
     await expect(loadSynonBiomedDelegateLineage('root', { fetchImpl })).rejects.toThrow(
-      'Synon Biomed delegate lineage payload is invalid'
+      'X-Science delegate lineage payload is invalid'
     );
   });
 });

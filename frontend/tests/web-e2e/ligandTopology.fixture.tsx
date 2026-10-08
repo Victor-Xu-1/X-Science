@@ -32,7 +32,7 @@ const bonds = Array.from({ length: 6 }, (_, index) => [
 const integer = (value: number) => String(value).padStart(3, ' ');
 const mol = [
   'Synthetic benzaldehyde',
-  '  Synon Biomed',
+  '  X-Science',
   '',
   '  8  8  0  0  0  0            999 V2000',
   ...positions.map(

@@ -71,10 +71,10 @@
   "more": "More",
   "refresh": "Refresh",
   "readOnly": "Read only",
-  "tray.showWindow": "Show Synon Biomed",
+  "tray.showWindow": "Show X-Science",
   "tray.newChat": "New Chat",
   "tray.closeToTray": "Hide to Tray",
-  "tray.about": "About Synon Biomed",
+  "tray.about": "About X-Science",
   "tray.restart": "Restart App",
   "tray.quit": "Quit",
   "tray.runningTasks": "Running Tasks",
@@ -84,8 +84,8 @@
   "tray.untitled": "Untitled",
   "backendStartup": {
     "synonBiomed": {
-      "title": "Synon Biomed backend unavailable",
-      "description": "The Synon Biomed backend could not be reached. Verify the WSL backend service and its configured address and port."
+      "title": "X-Science backend unavailable",
+      "description": "The X-Science backend could not be reached. Verify the WSL backend service and its configured address and port."
     }
   },
   "fileAttach.addFiles": "Add files",

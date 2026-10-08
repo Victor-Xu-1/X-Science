@@ -87,7 +87,7 @@ describe('SynonBiomedSkillsSettings', () => {
     mocks.loadSources.mockResolvedValue([]);
   });
 
-  it('renders Synon Biomed runtime skills in the shared recommended library', async () => {
+  it('renders X-Science runtime skills in the shared recommended library', async () => {
     await renderWithSettingsI18n(<SynonBiomedSkillsSettings withWrapper={false} />);
 
     await waitFor(() => expect(mocks.loadAvailableSkillsWithSynonBiomed).toHaveBeenCalled());
@@ -98,7 +98,7 @@ describe('SynonBiomedSkillsSettings', () => {
     expect(screen.getByRole('heading', { name: '技能 2' })).toBeInTheDocument();
   });
 
-  it('searches within Synon Biomed runtime skills', async () => {
+  it('searches within X-Science runtime skills', async () => {
     await renderWithSettingsI18n(<SynonBiomedSkillsSettings withWrapper={false} />);
 
     await waitFor(() => expect(screen.getByTestId('synon-biomed-skill-row-alphafold2')).toBeInTheDocument());
@@ -109,7 +109,7 @@ describe('SynonBiomedSkillsSettings', () => {
     expect(screen.getByTestId('synon-biomed-skill-row-boltz2-nim')).toBeInTheDocument();
   });
 
-  it('shows a Synon Biomed-specific empty state', async () => {
+  it('shows a X-Science-specific empty state', async () => {
     mocks.loadAvailableSkillsWithSynonBiomed.mockResolvedValue([]);
 
     await renderWithSettingsI18n(<SynonBiomedSkillsSettings withWrapper={false} />);

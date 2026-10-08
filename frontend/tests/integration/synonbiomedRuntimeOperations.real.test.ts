@@ -23,7 +23,7 @@ afterEach(async () => {
   frameId = null;
 });
 
-describe('Synon Biomed runtime operations gateway', () => {
+describe('X-Science runtime operations gateway', () => {
   it('creates, cancels, reads execution records, rejects an invalid resume, and deletes a real empty frame', async () => {
     conversationFixture = await createRealConversationFixture({ gatewayBaseUrl });
     frameId = conversationFixture.conversationId;

@@ -8,7 +8,7 @@
  * PCM capture recorder for streaming speech-to-text.
  *
  * Captures raw microphone audio via an AudioWorklet, converts it to 16-bit
- * PCM at 16kHz mono (the format required by Synon Biomed's `/api/voice/stream`
+ * PCM at 16kHz mono (the format required by X-Science's `/api/voice/stream`
  * endpoint), and emits fixed-size chunks while recording. Also provides a WAV
  * encoder so the accumulated PCM can be replayed through the whole-blob
  * `/api/stt` fallback when streaming fails mid-session.

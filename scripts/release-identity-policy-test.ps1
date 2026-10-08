@@ -19,7 +19,7 @@ try {
   . (Join-Path $PSScriptRoot 'release-identity-policy.ps1')
   $identity = Assert-SynonProductIdentity -TrustedIdentityPath $trusted -CandidateRoot $current
   $expectedIdentity = (Get-Content -LiteralPath $trusted -Raw) | ConvertFrom-Json
-  if ($identity.display_name -ne 'Synon Biomed' -or $identity.version -ne $expectedIdentity.version) {
+  if ($identity.display_name -ne $expectedIdentity.display_name -or $identity.version -ne $expectedIdentity.version) {
     throw 'Trusted identity projection is incorrect'
   }
   $rejected = $false
@@ -46,6 +46,12 @@ try {
     [System.IO.Directory]::Delete($junction, $false)
   }
   if ($passed -and (Test-Path -LiteralPath $root -PathType Container)) {
+    $testTempPrefix = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath()).TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar
+    $testResolvedRoot = [System.IO.Path]::GetFullPath($root)
+    if (-not $testResolvedRoot.StartsWith($testTempPrefix, [System.StringComparison]::OrdinalIgnoreCase) -or
+        -not ([System.IO.Path]::GetFileName($testResolvedRoot)).StartsWith('synon-release-identity-test-')) {
+      throw 'Test cleanup target is outside the isolated temporary directory'
+    }
     Remove-Item -LiteralPath $root -Recurse -Force
   } elseif (-not $passed) {
     Write-Warning "Release identity test evidence preserved at $root"

@@ -22,13 +22,13 @@ export async function checkSynonBiomedRuntimeUpdate(
     { timeoutMs: 30_000, ...options }
   );
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-    throw new Error('Synon Biomed update status response is invalid');
+    throw new Error('X-Science update status response is invalid');
   }
   const record = payload as Record<string, unknown>;
   const channel = optionalString(record.channel);
   const current = optionalString(record.current);
   if (!channel || !current || typeof record.autoUpdate !== 'boolean') {
-    throw new Error('Synon Biomed update status response is invalid');
+    throw new Error('X-Science update status response is invalid');
   }
   return {
     channel,

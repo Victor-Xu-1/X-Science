@@ -5,7 +5,7 @@ import {
   toSynonBiomedMessageSessionOptions,
 } from '../../packages/desktop/src/renderer/services/synonBiomedSessionOptions';
 
-describe('Synon Biomed session review defaults', () => {
+describe('X-Science session review defaults', () => {
   it('keeps automatic Reviewer and Bookmarker checkpoints opt-in by default', async () => {
     const fetchImpl = async () =>
       new Response(

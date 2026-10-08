@@ -65,7 +65,7 @@ func TestHandlerServesSPAAndAssetsWithoutOwningAPIRoutes(t *testing.T) {
 
 func TestHandlerConfinesRDKitUnsafeEvalToTheDedicatedWorker(t *testing.T) {
 	root := t.TempDir()
-	writeTestAsset(t, root, "index.html", "<!doctype html><title>Synon Biomed</title>")
+	writeTestAsset(t, root, "index.html", "<!doctype html><title>X-Science</title>")
 	writeTestAsset(t, root, "rdkit/rdkit-worker.js", "self.postMessage('ready')")
 	writeTestAsset(t, root, "rdkit/RDKit_minimal.js", "self.initRDKitModule = () => ({})")
 	writeTestAsset(t, root, "rdkit/RDKit_minimal.wasm", "wasm")
@@ -114,7 +114,7 @@ func TestHandlerConfinesRDKitUnsafeEvalToTheDedicatedWorker(t *testing.T) {
 
 func TestHandlerRevalidatesThemeBootstrapWithoutRelaxingPageCSP(t *testing.T) {
 	root := t.TempDir()
-	writeTestAsset(t, root, "index.html", `<script src="/theme-init.js"></script><main>Synon Biomed</main>`)
+	writeTestAsset(t, root, "index.html", `<script src="/theme-init.js"></script><main>X-Science</main>`)
 	writeTestAsset(t, root, themeInitPath, "document.documentElement.dataset.theme = 'dark'")
 	handler, err := New(root)
 	if err != nil {

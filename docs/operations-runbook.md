@@ -1,4 +1,4 @@
-# Synon Biomed Operations Runbook
+# X-Science Operations Runbook
 
 ## End-of-round generated files
 
@@ -17,7 +17,7 @@ inventory. Historical trailing artifact-only delivery lists remain stored and
 copyable in full, but are shown in an expandable original-text section. No
 transcript deletion or database migration is required.
 
-This runbook targets the current Synon Biomed source and runtime contracts. The packaged release contract is
+This runbook targets the current X-Science source and runtime contracts. The packaged release contract is
 [`release-acceptance-contract.md`](release-acceptance-contract.md). A successful
 build or a historical non-Web compatibility report is not sufficient to
 authorize a release.
@@ -233,15 +233,15 @@ protection.
 
 ### Source startup
 
-The public repository is `Victor-Xu-1/synon-biomed`.
+The public repository is `Victor-Xu-1/X-Science`.
 A source checkout does not itself designate a tagged or packaged GitHub
 Release. Do not present a workflow artifact, a source archive, or `make build`
 output as an installable product release. Use an Ubuntu/WSL source checkout
 with Git, Go >=1.26, Node.js >=22.22 and <25, and npm:
 
 ```bash
-git clone https://github.com/Victor-Xu-1/synon-biomed.git
-cd synon-biomed
+git clone https://github.com/Victor-Xu-1/X-Science.git
+cd X-Science
 bash scripts/dev/install-source-cli.sh
 synon start
 ```
@@ -255,8 +255,9 @@ healthy gateway responses from both routes, and then prints:
 READY_URL=http://127.0.0.1:8765/#/login
 ```
 
-The one-time installer creates only the user-level `~/.local/bin/synon` symlink
-and never edits system directories or shell startup files. If it prints a PATH
+The one-time installer creates the user-level `~/.local/bin/x-science` symlink
+and compatibility `~/.local/bin/synon` symlink, both pointing to this checkout's
+single launcher. It never edits system directories or shell startup files. If it prints a PATH
 hint, run that `export PATH=...` line once in the current shell. From then on,
 use `synon start`; its options are passed to the canonical source quickstart.
 
@@ -450,13 +451,13 @@ running the example below:
 ```bash
 export SYNON_RELEASE_VERSION=vX.Y.Z
 mkdir -p /tmp/synon-download
-oras pull "ghcr.io/victor-xu-1/synon-biomed:${SYNON_RELEASE_VERSION}" --output /tmp/synon-download
+oras pull "ghcr.io/victor-xu-1/x-science:${SYNON_RELEASE_VERSION}" --output /tmp/synon-download
 cd /tmp/synon-download
-sha256sum --check "synon-biomed-${SYNON_RELEASE_VERSION#v}-linux-amd64.tar.gz.sha256"
-sha256sum --check "synon-biomed-${SYNON_RELEASE_VERSION#v}-windows-amd64.tar.gz.sha256"
+sha256sum --check "x-science-${SYNON_RELEASE_VERSION#v}-linux-amd64.tar.gz.sha256"
+sha256sum --check "x-science-${SYNON_RELEASE_VERSION#v}-windows-amd64.tar.gz.sha256"
 ```
 
-For automated deployment, pin `ghcr.io/victor-xu-1/synon-biomed@sha256:DIGEST`
+For automated deployment, pin `ghcr.io/victor-xu-1/x-science@sha256:DIGEST`
 from the package's publication result. Public downloads do not require a token.
 GitHub may display a generic Docker pull command for this registry; use ORAS
 for this artifact type. Do not extract or execute an archive before checking
@@ -491,7 +492,7 @@ The provenance is an in-toto/SLSA statement with SHA-256 source and binary subje
 ```bash
 export SYNON_RELEASE_VERSION="${SYNON_RELEASE_VERSION:-vX.Y.Z}"
 export SYNON_RELEASE_DIR="$HOME/.local/opt/synon-biomed"
-./scripts/install-release.sh ./synon-biomed-${SYNON_RELEASE_VERSION#v}-linux-amd64.tar.gz "$SYNON_RELEASE_DIR"
+./scripts/install-release.sh ./x-science-${SYNON_RELEASE_VERSION#v}-linux-amd64.tar.gz "$SYNON_RELEASE_DIR"
 "$SYNON_RELEASE_DIR/synon-go" --health-json
 ```
 
@@ -709,7 +710,7 @@ The service environment and `SYNON_HOME` are intentionally preserved. Delete the
 $env:SYNON_RELEASE_VERSION = if ($env:SYNON_RELEASE_VERSION) { $env:SYNON_RELEASE_VERSION } else { 'vX.Y.Z' }
 $env:SYNON_RELEASE_DIR = if ($env:SYNON_RELEASE_DIR) { $env:SYNON_RELEASE_DIR } else { 'C:\Tools\SynonBiomed' }
 powershell -ExecutionPolicy Bypass -File .\scripts\install-release.ps1 `
-  -Archive ".\synon-biomed-$($env:SYNON_RELEASE_VERSION.TrimStart('v'))-windows-amd64.tar.gz" `
+  -Archive ".\x-science-$($env:SYNON_RELEASE_VERSION.TrimStart('v'))-windows-amd64.tar.gz" `
   -InstallDir $env:SYNON_RELEASE_DIR
 $env:SYNON_RELEASE_DIR\synon-go.exe --health-json
 $env:SYNON_RELEASE_DIR\synon-go.exe release-manifest verify `
@@ -755,10 +756,10 @@ $Deadline = [DateTime]::UtcNow.AddSeconds(30)
 $Health = $null
 do {
   $Process.Refresh()
-  if ($Process.HasExited) { throw "Synon Biomed exited with code $($Process.ExitCode)" }
+  if ($Process.HasExited) { throw "X-Science exited with code $($Process.ExitCode)" }
   try {
     $Health = Invoke-RestMethod -Uri 'http://127.0.0.1:8765/api/health' -TimeoutSec 2
-    if ($Health.status -eq 'healthy' -and $Health.name -eq 'Synon Biomed' -and $Health.version -eq '0.1.1') {
+    if ($Health.status -eq 'healthy' -and $Health.name -eq 'X-Science' -and $Health.version -eq '0.1.1') {
       break
     }
   } catch {
@@ -767,7 +768,7 @@ do {
   Start-Sleep -Milliseconds 250
 } while ([DateTime]::UtcNow -lt $Deadline)
 if ($null -eq $Health -or $Health.status -ne 'healthy') {
-  throw 'Synon Biomed did not become healthy within 30 seconds'
+  throw 'X-Science did not become healthy within 30 seconds'
 }
 ```
 
@@ -785,16 +786,16 @@ if (-not [string]::Equals(
     [IO.Path]::GetFullPath($Runtime.ExecutablePath),
     $ExpectedBinary,
     [StringComparison]::OrdinalIgnoreCase)) {
-  throw "Port 8765 is not owned by the expected Synon Biomed release"
+  throw "Port 8765 is not owned by the expected X-Science release"
 }
 $RuntimePID = $Listener.OwningProcess
 $StoppedProcess = Stop-Process -Id $RuntimePID -PassThru -ErrorAction Stop
 $StoppedProcess | Wait-Process -Timeout 30 -ErrorAction Stop
 if (Get-Process -Id $RuntimePID -ErrorAction SilentlyContinue) {
-  throw 'Synon Biomed process did not exit within 30 seconds'
+  throw 'X-Science process did not exit within 30 seconds'
 }
 if (Get-NetTCPConnection -State Listen -LocalPort 8765 -ErrorAction SilentlyContinue) {
-  throw 'Synon Biomed did not release port 8765'
+  throw 'X-Science did not release port 8765'
 }
 ```
 
@@ -985,12 +986,12 @@ completion.
 ### Hosted MCP credentials (BYOK)
 
 Hosted scientific MCPs that require an account use a user-owned credential;
-Synon Biomed does not bundle provider keys or run their compute workloads
+X-Science does not bundle provider keys or run their compute workloads
 locally. Open **Settings -> Connectors**, then choose **Configure** on the
 connector. The configuration dialog separates the current connection state,
 official application/login links, account authorization and API Key / Token
 entry. Only supported methods are shown; provider account passwords are entered
-on the provider's own login page, never in Synon Biomed. The current contracts are:
+on the provider's own login page, never in X-Science. The current contracts are:
 
 | Connector | Credential | Transport injection |
 |---|---|---|

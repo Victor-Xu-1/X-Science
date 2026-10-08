@@ -216,7 +216,7 @@ describe('ipcBridge conversation adapter', () => {
     );
   });
 
-  it('stops the active Synon Biomed frame and releases the native composer runtime gate', async () => {
+  it('stops the active X-Science frame and releases the native composer runtime gate', async () => {
     const { conversation } = await import('@/common/adapter/ipcBridge');
     httpBridgeMocks.responses.set('/api/frames/frame%2Fwith%20space/cancel?reason=user', {
       root_frame_id: 'frame/with space',

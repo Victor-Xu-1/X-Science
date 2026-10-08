@@ -33,8 +33,8 @@ async function waitForConnectedMcpServer(serverId: string) {
   return servers;
 }
 
-describe('Synon Biomed capability gateway integration', () => {
-  it('reads the dedicated Synon Biomed expert registry without generic agent endpoints', async () => {
+describe('X-Science capability gateway integration', () => {
+  it('reads the dedicated X-Science expert registry without generic agent endpoints', async () => {
     const agents = await loadSynonBiomedAgents({ baseUrl: gatewayBaseUrl, fetchImpl: await authenticatedFetch });
 
     expect(agents.length).toBeGreaterThan(0);
@@ -73,7 +73,7 @@ describe('Synon Biomed capability gateway integration', () => {
     ).toBe(true);
   });
 
-  it('reads real MCP directory health and tool permissions from the Synon Biomed backend', async () => {
+  it('reads real MCP directory health and tool permissions from the X-Science backend', async () => {
     const [health, permissions] = await Promise.all([
       loadSynonBiomedMcpDirectoryHealth({
         baseUrl: backendBaseUrl,

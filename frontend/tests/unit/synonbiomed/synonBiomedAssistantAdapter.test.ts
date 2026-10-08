@@ -62,7 +62,7 @@ describe('toSynonAIAssistant', () => {
       id: 'synonbiomed:proteomics',
       enabled: false,
       agent_status: 'offline',
-      agent_status_message: 'Synon Biomed expert is not healthy.',
+      agent_status_message: 'X-Science expert is not healthy.',
     });
   });
 });

@@ -37,7 +37,7 @@ async function jsonMutation(path: string, method: 'POST' | 'PATCH' | 'PUT', body
   });
 }
 
-describe('Synon Biomed real compute provider lifecycle', () => {
+describe('X-Science real compute provider lifecycle', () => {
   it('creates, probes, edits and removes inference and SSH providers through the SynonAI gateway', async () => {
     const initial = await requestJson<Provider[]>('/api/compute/providers');
     const initialNames = new Set(initial.map((provider) => provider.name));

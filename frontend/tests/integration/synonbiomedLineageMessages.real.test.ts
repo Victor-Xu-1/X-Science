@@ -5,7 +5,7 @@ import { createSynonBiomedTestFetch } from './synonbiomedTestAuth';
 
 const gatewayBaseUrl = process.env.SYNON_BIOMED_GATEWAY_URL ?? 'http://127.0.0.1:8766';
 
-describe('Synon Biomed lineage messages real gateway', () => {
+describe('X-Science lineage messages real gateway', () => {
   it('loads native message rows from the deployed WebHost mapping', async () => {
     const authenticatedFetch = await createSynonBiomedTestFetch(gatewayBaseUrl);
     const fetchImpl = ((input: string | URL | Request, init?: RequestInit) =>

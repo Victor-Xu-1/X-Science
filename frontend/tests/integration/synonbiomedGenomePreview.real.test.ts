@@ -32,7 +32,7 @@ afterEach(async () => {
   conversationFixture = null;
 });
 
-describe('Synon Biomed genome preview gateway', () => {
+describe('X-Science genome preview gateway', () => {
   it('uploads, range-reads, classifies, and removes a real VCF artifact through SynonAI', async () => {
     conversationFixture = await createRealConversationFixture({ gatewayBaseUrl });
     const fetchImpl = conversationFixture.fetchImpl;

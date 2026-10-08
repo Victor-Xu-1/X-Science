@@ -67,7 +67,7 @@ describe('GuidWorkspaceFootnote', () => {
     addRecentWorkspaceMock.mockReset();
   });
 
-  it('selects a Synon Biomed backend project without storing it as a local recent folder', () => {
+  it('selects a X-Science backend project without storing it as a local recent folder', () => {
     const onSelectWorkspace = vi.fn();
 
     render(
@@ -86,7 +86,7 @@ describe('GuidWorkspaceFootnote', () => {
     expect(addRecentWorkspaceMock).not.toHaveBeenCalled();
   });
 
-  it('shows the Synon Biomed project name in the active workspace pill', () => {
+  it('shows the X-Science project name in the active workspace pill', () => {
     render(
       <GuidWorkspaceFootnote
         workspaceDir={stat6WorkspaceUri}

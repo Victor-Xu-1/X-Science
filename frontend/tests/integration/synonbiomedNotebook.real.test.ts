@@ -10,7 +10,7 @@ afterEach(async () => {
   fixture = null;
 });
 
-describe('Synon Biomed notebook gateway', () => {
+describe('X-Science notebook gateway', () => {
   it('returns the real v1.1 kernel inventory for a newly created frame', async () => {
     fixture = await createRealConversationFixture({ gatewayBaseUrl });
 

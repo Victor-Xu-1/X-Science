@@ -31,7 +31,7 @@ describe('usePendingConfirmationsRecovery', () => {
     mocks.removeOn.mockReturnValue(() => {});
   });
 
-  it('stays inactive when Synon Biomed owns pending input recovery', async () => {
+  it('stays inactive when X-Science owns pending input recovery', async () => {
     renderHook(() => usePendingConfirmationsRecovery('frame-stat6', { enabled: false }));
 
     await Promise.resolve();

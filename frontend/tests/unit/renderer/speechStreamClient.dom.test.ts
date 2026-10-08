@@ -156,7 +156,7 @@ afterEach(() => {
 // 1. Start frame
 // ---------------------------------------------------------------------------
 
-describe('native Synon Biomed handshake', () => {
+describe('native X-Science handshake', () => {
   it('does not send a legacy start frame and carries language in the URL', () => {
     const callbacks = makeCallbacks();
     startSpeechStream({ languageHint: 'zh', callbacks, createSocket });

@@ -9,7 +9,7 @@ import { createSynonBiomedTestFetch } from './synonbiomedTestAuth';
 
 const gatewayBaseUrl = process.env.SYNON_BIOMED_GATEWAY_URL ?? 'http://127.0.0.1:8766';
 const genBankFixture = `LOCUS       SYNON001                 120 bp    DNA     circular SYN 11-JUL-2026
-DEFINITION  Synthetic Synon Biomed test plasmid.
+DEFINITION  Synthetic X-Science test plasmid.
 ACCESSION   SYNON001
 VERSION     SYNON001.1
 FEATURES             Location/Qualifiers
@@ -32,7 +32,7 @@ const notebookFixture = JSON.stringify({
     language_info: { name: 'python' },
   },
   cells: [
-    { cell_type: 'markdown', source: ['# STAT6 validation\n', 'Synon Biomed notebook fixture'] },
+    { cell_type: 'markdown', source: ['# STAT6 validation\n', 'X-Science notebook fixture'] },
     {
       cell_type: 'code',
       execution_count: 7,
@@ -42,7 +42,7 @@ const notebookFixture = JSON.stringify({
   ],
 });
 const latexFixture = String.raw`\documentclass{article}
-\title{Synon Biomed Assay Report}
+\title{X-Science Assay Report}
 \begin{document}
 \maketitle
 \section{STAT6 response}
@@ -74,7 +74,7 @@ afterEach(async () => {
   conversationFixture = null;
 });
 
-describe('Synon Biomed sequence and notebook preview gateway', () => {
+describe('X-Science sequence and notebook preview gateway', () => {
   it('uploads, classifies, reads, and parses real GenBank, ipynb, and LaTeX artifacts', async () => {
     conversationFixture = await createRealConversationFixture({ gatewayBaseUrl });
     const fetchImpl = conversationFixture.fetchImpl;

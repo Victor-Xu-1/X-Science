@@ -148,7 +148,7 @@ func TestComputeBYOCModalFullControlLifecycle(t *testing.T) {
 	}
 	if status["provider"] != "modal" || status["enabled"] != false || status["hasStoredCredential"] != true ||
 		status["tomlMissing"] != true || status["credsError"] != nil ||
-		len(status["profiles"].([]any)) != 1 || status["profiles"].([]any)[0].(map[string]any)["name"] != "Synon Biomed (stored)" ||
+		len(status["profiles"].([]any)) != 1 || status["profiles"].([]any)[0].(map[string]any)["name"] != "X-Science (stored)" ||
 		strings.Contains(initial.Body.String(), "as-fixture-secret") {
 		t.Fatalf("initial=%#v", status)
 	}

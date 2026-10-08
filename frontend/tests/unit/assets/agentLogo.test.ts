@@ -120,7 +120,7 @@ describe('agentLogo', () => {
   });
 
   describe('fetchAgentLogos', () => {
-    it('builds the logo catalog from Synon Biomed /api/agents/management rows', async () => {
+    it('builds the logo catalog from X-Science /api/agents/management rows', async () => {
       bridgeMocks.getManagedAgents.mockResolvedValue([
         {
           id: 'AIDD_EXPERT',

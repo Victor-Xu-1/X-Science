@@ -70,7 +70,7 @@ describe('ensureBackendMcpCatalog', () => {
     ]);
   });
 
-  it('does not mirror backend-owned Synon Biomed connectors into SynonAI local MCP transports', async () => {
+  it('does not mirror backend-owned X-Science connectors into SynonAI local MCP transports', async () => {
     const result = await ensureBackendMcpCatalog();
 
     expect(result.userServers.map((server) => server.id)).toEqual(['user-1']);

@@ -17,7 +17,7 @@ export type MessageApi = ReturnType<typeof Message.useMessage>[0];
 export interface WorkspaceProps {
   workspace: string;
   conversation_id: string;
-  /** Root frame used by the Synon Biomed Compute side panel. */
+  /** Root frame used by the X-Science Compute side panel. */
   projectName?: string;
   sessionTitle?: string;
   rootFrameId?: string;

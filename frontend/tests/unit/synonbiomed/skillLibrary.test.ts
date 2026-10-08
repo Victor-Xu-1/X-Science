@@ -11,7 +11,7 @@ import {
   saveSynonBiomedSkillDraftFile,
 } from '@/renderer/services/skills/synonBiomedSkillLibrary';
 
-describe('Synon Biomed skill library service', () => {
+describe('X-Science skill library service', () => {
   it('normalizes drafts, imported sources, repository previews and file content', async () => {
     const fetchImpl = vi.fn<typeof fetch>(async (input) => {
       const url = String(input);

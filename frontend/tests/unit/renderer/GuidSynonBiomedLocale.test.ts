@@ -12,7 +12,7 @@ const readGuidLocale = (locale: string): GuidLocale => {
   return JSON.parse(fs.readFileSync(filePath, 'utf8')) as GuidLocale;
 };
 
-describe('Guid Synon Biomed locale', () => {
+describe('Guid X-Science locale', () => {
   it('uses biomedical workflow prompt examples instead of generic SynonAI capability questions', () => {
     const zh = readGuidLocale('zh-CN');
     const en = readGuidLocale('en-US');

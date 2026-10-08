@@ -68,10 +68,10 @@ export async function loadSynonBiomedDelegateLineage(
     signal: options.signal,
   });
   if (!response.ok) {
-    throw new Error(`Synon Biomed delegate lineage request failed with ${response.status}`);
+    throw new Error(`X-Science delegate lineage request failed with ${response.status}`);
   }
   const payload: unknown = await response.json();
-  if (!isDelegateLineage(payload)) throw new Error('Synon Biomed delegate lineage payload is invalid');
+  if (!isDelegateLineage(payload)) throw new Error('X-Science delegate lineage payload is invalid');
   return payload;
 }
 

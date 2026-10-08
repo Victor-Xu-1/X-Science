@@ -183,7 +183,9 @@ def main() -> int:
         paths = changed_paths(repo, args.base, args.head)
         behavior_paths, metadata_paths, build_defaults = behavior_scope(repo, args.base, args.head, paths)
         groups = verification_scope.matched(repo, behavior_paths)
-        if not args.frontend and not args.vet and not args.matrix:
+        if not 1 <= args.shard_count <= pr_test_partition.MAX_SHARDS or not 0 <= args.shard_index < args.shard_count:
+            raise ValueError("invalid affected-test partition")
+        if not args.frontend and not args.vet and not args.matrix and args.shard_index == 0:
             for command in verification_scope.checks(groups):
                 result = run(repo, *command)
                 if result.returncode:

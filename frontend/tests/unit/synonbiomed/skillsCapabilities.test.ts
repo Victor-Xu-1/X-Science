@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { loadSynonBiomedSkills, setSynonBiomedSkillEnabled } from '@/renderer/services/synonBiomedCapabilities';
 
-describe('Synon Biomed skill capabilities', () => {
+describe('X-Science skill capabilities', () => {
   it('loads rich catalog metadata with the durable enabled preference', async () => {
     const fetchImpl = vi.fn<typeof fetch>(async (input) => {
       const url = String(input);

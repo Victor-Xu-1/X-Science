@@ -23,7 +23,7 @@ describe('useConversationAssistants', () => {
     vi.clearAllMocks();
   });
 
-  it('loads only enabled Synon Biomed assistants from the backend catalog', async () => {
+  it('loads only enabled X-Science assistants from the backend catalog', async () => {
     (ipcBridge.assistants.list.invoke as never as ReturnType<typeof vi.fn>).mockResolvedValue([
       { id: 'bare-unsupportedRuntime', name: 'Unsupported runtime', enabled: true, source: 'generated' },
       {

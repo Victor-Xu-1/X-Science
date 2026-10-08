@@ -198,7 +198,7 @@ describe('ComputeSettingsContent', () => {
       egressPolicy: { mode: 'allowlist', mirror: true, additional: ['api.example.com'] },
       maxConcurrentJobs: 10,
       maxTimeoutSec: 43200,
-      profiles: [{ name: 'Synon Biomed (stored)', active: true, tokenIdMasked: 'ak-a····test' }],
+      profiles: [{ name: 'X-Science (stored)', active: true, tokenIdMasked: 'ak-a····test' }],
       ignoredProfiles: [],
       tomlMissing: true,
       credsError: null,
@@ -330,7 +330,7 @@ describe('ComputeSettingsContent', () => {
     expect(within(modalDialog).getByLabelText('默认应用')).toHaveValue('synonbiomed-research');
     expect(within(modalDialog).getByLabelText('环境')).toHaveValue('main');
     expect(within(modalDialog).getByLabelText('允许域名')).toHaveValue('api.example.com');
-    expect(within(modalDialog).getByText('Synon Biomed (stored)')).toBeInTheDocument();
+    expect(within(modalDialog).getByText('X-Science (stored)')).toBeInTheDocument();
     expect(within(modalDialog).getByLabelText('并发任务')).toHaveValue('10');
     expect(within(modalDialog).getByLabelText('默认容器超时')).toHaveValue('12');
 

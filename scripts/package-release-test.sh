@@ -54,7 +54,7 @@ PY
 
 verify_packaged_readme_contract() {
 	test -f "$1"
-	grep -Fxq '# Synon Biomed' "$1"
+	grep -Fxq '# X-Science' "$1"
 	if ! cmp -s README.md "$1"; then
 		echo "packaged README differs from the current source README" >&2
 		exit 1
@@ -162,7 +162,7 @@ test -f "$package_dir/.env.example"
 test -f "$package_dir/docs/THIRD_PARTY.md"
 test -f "$package_dir/docs/operations-runbook.md"
 test -f "$package_dir/docs/release-acceptance-contract.md"
-grep -Fxq '# Synon Biomed Release Acceptance Contract' \
+grep -Fxq '# X-Science Release Acceptance Contract' \
 	"$package_dir/docs/release-acceptance-contract.md"
 grep -Fq 'never represents current release authorization' \
 	"$package_dir/docs/release-acceptance-contract.md"

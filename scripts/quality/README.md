@@ -167,6 +167,10 @@ Go tests share the existing inventory/evidence executor in one to four bounded,
 disjoint partitions and batches of at most 64 top-level tests. All discovered
 tests and subtests remain covered; every partition's failure propagates to the
 required aggregate. Distinct artifacts retain complete planned/executed inventories.
+Shared verification-only checks run once in partition zero; the required
+aggregate still depends on that partition succeeding. Invalid partition inputs
+fail before they can skip this verification. Other partitions keep all their
+assigned Go tests without repeating identical Python/CI checks.
 
 The authoritative full workflow is `.github/workflows/quality.yml`. It runs by
 manual dispatch and daily at 02:00 in the explicit `Asia/Shanghai` timezone on

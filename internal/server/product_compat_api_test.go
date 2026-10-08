@@ -79,7 +79,7 @@ func TestSynonBiomedCatalogUsesLiveOwnerScopedRuntimeData(t *testing.T) {
 	if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
 		t.Fatal(err)
 	}
-	if payload.Product != "Synon Biomed" || payload.Backend.BaseURL != "http://localhost:8765" {
+	if payload.Product != "X-Science" || payload.Backend.BaseURL != "http://localhost:8765" {
 		t.Fatalf("product/base URL = %q %q", payload.Product, payload.Backend.BaseURL)
 	}
 	assertSameTestPath(t, payload.Runtime.RuntimeAssetsDir, assetsRoot)

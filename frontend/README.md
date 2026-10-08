@@ -11,6 +11,17 @@ React/TypeScript Web 应用。目录名称 `packages/desktop` 被保留，
 - [tests](tests/)：状态/组件、真实后端、打包资源及浏览器测试。
 - 路由、跨层边界与按行为选测试：[Workbench 模块](../docs/modules/workbench.md)。
 
+## Languages · 语言
+
+English is the default for first use and missing translations. The login shell
+and system settings support switching between English and 简体中文. Saved user
+choices survive refresh, login and upgrades; changing the default does not
+overwrite an existing preference. All pages use the shared
+[i18n configuration](packages/desktop/src/common/config/i18n-config.json) and
+bundled locale dictionaries, including lazy-loaded workspace translations.
+
+首次使用及缺失译文默认英语；登录入口和系统设置支持中英文切换，已有用户选择不因升级被覆盖。
+
 ## Local checks · 本地检查
 
 需要满足 [package.json](package.json) 的 Node.js 版本范围。以下命令从仓库根目录开始：

@@ -10,8 +10,8 @@ import { isSynonBiomedAssistant, type Assistant } from '@/common/types/agent/ass
  * Single source of truth for which assistants appear in a *selection* list
  * (home expert picker, scheduled-task dropdown, and related surfaces) and in what order.
  *
- * Rules for the Synon Biomed fusion build:
- *  - Only enabled Synon Biomed expert assistants are selectable.
+ * Rules for the X-Science fusion build:
+ *  - Only enabled X-Science expert assistants are selectable.
  *  - Groups are ordered by source as a deterministic fallback, but old bare
  *    CLI and user-created non-biomedical assistants are filtered out first.
  *  - Within a group, order follows `sort_order` (which the user controls for

@@ -254,7 +254,7 @@ describe('previewUrls', () => {
       expect(result).toBe('data:application/pdf;base64,JVBERi0=');
     });
 
-    it('uses the authenticated content URL for a Synon Biomed virtual project file', () => {
+    it('uses the authenticated content URL for a X-Science virtual project file', () => {
       const result = buildPdfSrc(
         'synonbiomed://project/proj_123/project-files/report.pdf',
         '/api/projects/proj_123/artifacts/artifact_123/content'
@@ -262,7 +262,7 @@ describe('previewUrls', () => {
       expect(result).toBe('/api/projects/proj_123/artifacts/artifact_123/content');
     });
 
-    it('does not coerce a Synon Biomed virtual project file into a file URL without content', () => {
+    it('does not coerce a X-Science virtual project file into a file URL without content', () => {
       const result = buildPdfSrc('synonbiomed://project/proj_123/project-files/report.pdf');
       expect(result).toBe('');
     });

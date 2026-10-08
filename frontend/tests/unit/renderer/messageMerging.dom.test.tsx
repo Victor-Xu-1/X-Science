@@ -598,7 +598,7 @@ describe('message merging', () => {
       content_mode: 'compact',
     });
   });
-  it('returns a stable refresh function for persisted Synon Biomed message polling', async () => {
+  it('returns a stable refresh function for persisted X-Science message polling', async () => {
     const invoke = vi.mocked(ipcBridge.database.getConversationMessages.invoke);
     invoke.mockClear();
     invoke.mockResolvedValue({

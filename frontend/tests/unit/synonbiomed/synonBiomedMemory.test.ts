@@ -9,7 +9,7 @@ function json(data: unknown): Response {
   return new Response(JSON.stringify(data), { status: 200, headers: { 'content-type': 'application/json' } });
 }
 
-describe('Synon Biomed memory settings service', () => {
+describe('X-Science memory settings service', () => {
   it('keeps automatic extraction on a dedicated preference without changing the master memory endpoint', async () => {
     const fetchImpl = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = String(input);

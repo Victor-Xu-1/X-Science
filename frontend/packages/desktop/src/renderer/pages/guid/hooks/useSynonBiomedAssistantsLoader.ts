@@ -42,7 +42,7 @@ export type SynonBiomedAssistantCatalogStatus = 'loading' | 'ready' | 'error';
 
 type UseSynonBiomedAssistantsLoaderResult = {
   /**
-   * User-visible Synon Biomed profile catalog returned by the backend.
+   * User-visible X-Science profile catalog returned by the backend.
    * Guid, conversation, cron, and settings share this cache and ordering.
    */
   assistants: Assistant[];
@@ -61,7 +61,7 @@ export const useSynonBiomedAssistantsLoader = (): UseSynonBiomedAssistantsLoader
   const [catalogRecoveryExhausted, setCatalogRecoveryExhausted] = useState(
     () => recovery.initialRequestAttempts >= MAX_INITIAL_CATALOG_REQUEST_ATTEMPTS
   );
-  // Synon Biomed assistants share their own cache so settings / guid / conversation
+  // X-Science assistants share their own cache so settings / guid / conversation
   // all see the same list without duplicate HTTP calls.
   const {
     data: assistantList,
@@ -73,7 +73,7 @@ export const useSynonBiomedAssistantsLoader = (): UseSynonBiomedAssistantsLoader
       if (!recovery.hasLoadedSuccessfully) {
         if (recovery.initialRequestAttempts >= MAX_INITIAL_CATALOG_REQUEST_ATTEMPTS) {
           setCatalogRecoveryExhausted(true);
-          throw new Error('Synon Biomed assistant catalog automatic recovery is exhausted');
+          throw new Error('X-Science assistant catalog automatic recovery is exhausted');
         }
         recovery.initialRequestAttempts += 1;
       }

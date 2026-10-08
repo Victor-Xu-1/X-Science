@@ -260,7 +260,7 @@ describe('ChatWorkspace preview selection', () => {
     expect(mocks.handlePreviewFile).toHaveBeenCalledWith(selectedFile);
   });
 
-  it('replaces the generic workspace tree with the v0.1.0 artifact library for Synon Biomed workspaces', () => {
+  it('replaces the generic workspace tree with the v0.1.0 artifact library for X-Science workspaces', () => {
     render(<ChatWorkspace conversation_id='conversation-1' workspace='synonbiomed://projects/project-a' />);
 
     expect(screen.getByTestId('synon-biomed-artifact-library')).toBeInTheDocument();

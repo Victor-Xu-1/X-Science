@@ -70,8 +70,8 @@
     },
     {
       "path": "onboarding/metadata.yaml",
-      "sha256": "41581153211890c5d98b8da6c4bfabe475a3ad2bbfedf0ec762341f2e19cbba7",
-      "bytes": 16955
+      "sha256": "0e584ff30069fd58fedbcdaee9489b8f0497d8755be67e39fd5b0df6f7cbd6a9",
+      "bytes": 16919
     },
     {
       "path": "oncology-expert/metadata.yaml",
@@ -85,13 +85,13 @@
     },
     {
       "path": "operon/metadata.yaml",
-      "sha256": "fccce831e5aab10ab514f98ed463025376270d2bc41c2269e679338bbe236cc9",
-      "bytes": 3247
+      "sha256": "0594507aaa99361671add0185df5e8c41106a26759e475157c68d6afd201ff15",
+      "bytes": 3241
     },
     {
       "path": "reviewer/metadata.yaml",
-      "sha256": "f96619750d2401a6bca6b406e56eeab5d3b07d4a234ee721a86f579d9f0490a6",
-      "bytes": 3421
+      "sha256": "c48901bf51e43c0114266726539f68e1e823ea8367dd049699e604235f8d220d",
+      "bytes": 3415
     },
     {
       "path": "structural-biology-expert/metadata.yaml",
