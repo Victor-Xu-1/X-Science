@@ -342,7 +342,7 @@ class ProductIdentityGateTests(unittest.TestCase):
                 repo = pathlib.Path(directory); seed(repo, version)
                 current = identity(); current["version"] = version
                 write_json(repo / "product-identity.json", current)
-                (repo / "README.md").write_text(f"# Synon Biomed v{version}\n")
+                (repo / "README.md").write_text(f"# {current['display_name']} v{version}\n")
                 result = gate.audit(repo, current, reference(), release_policy(), matrix())
                 self.assertEqual(result["drifts"], [])
                 # Numeric reuse never permits a hard-coded runtime consumer.
