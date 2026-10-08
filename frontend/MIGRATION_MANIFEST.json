@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "5f82d96d7de16b1efc195d256be45a787ba2e67966668391c0af7bb5ada1b159",
+  "adaptationFingerprintSHA256": "29f4a3cc83817aabcc5b72beec19b124f7c7cc4a873322645c6b1a1cdcae704a",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "578357f6a19f0e1660692feb91dcf197e8293864a8f898801fd977de067baa8e",
+  "additionFingerprintSHA256": "ac183b067893cb5c571ca61c0e2a777e9f5a073b150c56429e8104bfb1a2fa6d",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 347,
@@ -4693,8 +4693,8 @@
     {
       "path": "tests/unit/synonbiomed/skillsCapabilities.test.ts",
       "sourceSHA256": "2a04769434bbb4e92a0d930d2bdc213b31ab3e61b2b9925703ebd26b336dca3b",
-      "targetSHA256": "45212a4b68ca5d8108dbe456ece8a05993e3dfca52b3ed3e01fb8469e3a512a1",
-      "bytes": 2146,
+      "targetSHA256": "04f51a4c1c516637367b9406bcd65f70a6bfa602df9c01a47d6b094e920c8d87",
+      "bytes": 2318,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -7976,8 +7976,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/dockingEnsemble.ts",
-      "sha256": "ffbf750ec7b4cd82c24625e19568df963a2bf15266995fdd9c7437fc02374d3c",
-      "bytes": 7188,
+      "sha256": "18c791454de09db47840e54c2ca36f5ad003a37c630fe29d6a5a929de3e72bc4",
+      "bytes": 7358,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9968,8 +9968,8 @@
     },
     {
       "path": "tests/unit/previews/dockingEnsemble.test.ts",
-      "sha256": "240b588ec5d76cc7c0abc1abc9eb3ae35df7e0fad730e2b7b1c40bea0a37c8f9",
-      "bytes": 7510,
+      "sha256": "099ba9aff8f3d68ea118d16fd06f616b3785cb76900fe10897de2dc1f010a63f",
+      "bytes": 8322,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -10874,8 +10874,8 @@
     },
     {
       "path": "tests/unit/settings/SkillLibraryCard.dom.test.tsx",
-      "sha256": "7bdf239b9e6c9a49edfd31380bf0f4d6f280fd146220092e8ad1d088743600a2",
-      "bytes": 1546,
+      "sha256": "0f9b4900b0045dfa4b807224a8a788b65c1dc7f56db063a18685109c8e0a6cb5",
+      "bytes": 2829,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
