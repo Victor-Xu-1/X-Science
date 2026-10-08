@@ -49,24 +49,20 @@ export const FilesOverlay: React.FC<{
           },
           ...providers
             .filter((provider) => provider.family === 'ssh' || provider.name.startsWith('ssh:'))
-            .map(
-              (provider): SynonBiomedFilesHost => ({
-                id: provider.name,
-                kind: 'ssh',
-                label: provider.displayName,
-                detail: provider.probeError,
-                providerName: provider.name,
-              })
-            ),
-          ...credentials.map(
-            (credential): SynonBiomedFilesHost => ({
-              id: 'cloud:' + credential.id,
-              kind: 'cloud',
-              label: credential.name,
-              detail: credential.connected ? credential.provider : t('conversation.fileBrowser.notConnected'),
-              credential,
-            })
-          ),
+            .map((provider): SynonBiomedFilesHost => ({
+              id: provider.name,
+              kind: 'ssh',
+              label: provider.displayName,
+              detail: provider.probeError,
+              providerName: provider.name,
+            })),
+          ...credentials.map((credential): SynonBiomedFilesHost => ({
+            id: 'cloud:' + credential.id,
+            kind: 'cloud',
+            label: credential.name,
+            detail: credential.connected ? credential.provider : t('conversation.fileBrowser.notConnected'),
+            credential,
+          })),
         ];
         setHosts(nextHosts);
         setSelectedHostId((current) => (nextHosts.some((host) => host.id === current) ? current : 'local'));
