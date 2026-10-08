@@ -3,7 +3,7 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "17b821219deb5d2b7970b85080a79885afec83e2a607d4de77d94bf649516ddb",
+  "adaptationFingerprintSHA256": "7f82d91ab8decb5ed087bc71f799d4645cc674da45ce0e263d193aa934fbc4fd",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
   "additionFingerprintSHA256": "f3745772151b427630bc2957ee74bc2315c3eba0147b96ef0c1eac0d8bfaafff",
   "summary": {
@@ -4826,8 +4826,8 @@
     {
       "path": "tests/web-e2e/synonbiomedBranding.e2e.ts",
       "sourceSHA256": "a511e62c3f838db160ae006174e800d8fa15ad04bf64c5353c5783255fb1166f",
-      "targetSHA256": "a43448b4eca8c3467ef39577211f478d2a6c5edb75f524ad559df35a137c44fb",
-      "bytes": 3086,
+      "targetSHA256": "63ed2033c80177ff5cdb883f784dc61b360eb4aa9fe9eaaa252ccca9e99926fa",
+      "bytes": 2706,
       "reason": "Exercise authenticated Go runtime, project, conversation, delegation, settings, and preview workflows in real responsive Chromium."
     },
     {

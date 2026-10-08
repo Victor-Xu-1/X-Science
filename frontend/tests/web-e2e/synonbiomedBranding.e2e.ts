@@ -1,4 +1,5 @@
 import { expect, test, type Locator } from '@playwright/test';
+import { createHash } from 'node:crypto';
 import { webPassword, webUsername } from './synonGoWebCredentials';
 
 const viewports = [
@@ -24,25 +25,14 @@ const expectTransparentImage = async (image: Locator, requireVisible = true) => 
   expect(alpha).toBe(0);
 };
 
-const expectCircuitTreeImage = async (image: Locator) => {
-  await expect(image).toBeVisible();
-  await expect.poll(() => image.evaluate((node: HTMLImageElement) => node.naturalWidth)).toBeGreaterThan(0);
-
-  const pixels = await image.evaluate((node: HTMLImageElement) => {
-    const canvas = document.createElement('canvas');
-    canvas.width = node.naturalWidth;
-    canvas.height = node.naturalHeight;
-    const context = canvas.getContext('2d', { willReadFrequently: true });
-    if (!context) throw new Error('2D canvas is unavailable');
-    context.drawImage(node, 0, 0);
-    const corner = [...context.getImageData(0, 0, 1, 1).data];
-    const center = [...context.getImageData(Math.floor(canvas.width / 2), Math.floor(canvas.height / 2), 1, 1).data];
-    return { corner, center };
-  });
-
-  expect(pixels.corner[3]).toBe(0);
-  expect(pixels.center[3]).toBeGreaterThan(180);
-  expect(pixels.center[2]).toBeGreaterThan(pixels.center[0]);
+const expectApprovedMark = async (image: Locator) => {
+  await expectTransparentImage(image);
+  const source = await image.evaluate((node: HTMLImageElement) => node.currentSrc);
+  const response = await image.page().request.get(source);
+  expect(response.ok()).toBe(true);
+  expect(createHash('sha256').update(await response.body()).digest('hex')).toBe(
+    '627c51b57fe4f46f91a3d1effcd87d2698c006da82e8770ffee6404edaeb50fa'
+  );
 };
 
 for (const viewport of viewports) {
@@ -53,7 +43,7 @@ for (const viewport of viewports) {
       await page.goto('/#/login', { waitUntil: 'domcontentloaded' });
 
       await expect(page).toHaveTitle('X-Science');
-      await expectCircuitTreeImage(page.locator('.login-page__logo img'));
+      await expectApprovedMark(page.locator('.login-page__logo img'));
       await expect(page.getByRole('heading', { name: 'X-Science', exact: true })).toBeVisible();
       await expect(page.locator('body')).not.toContainText(/SynonAI/i);
 
@@ -63,7 +53,9 @@ for (const viewport of viewports) {
       await expect(page).toHaveURL(/#\/guid/);
 
       await expect(page).toHaveTitle('X-Science');
-      await expectTransparentImage(page.getByTestId('synon-biomed-brand-lockup'), viewport.name === 'desktop');
+      const brand = page.getByTestId('synon-biomed-brand-lockup');
+      await expectTransparentImage(brand.locator('img'), viewport.name === 'desktop');
+      await expect(brand).toContainText('X-Science');
       await expect(page.locator('body')).not.toContainText(/SynonAI/i);
     });
   });
