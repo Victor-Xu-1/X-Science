@@ -159,6 +159,22 @@ describe('Artifact preview interaction ownership', () => {
   it.each([
     ['Annotate', 'Add selection annotation'],
     ['Refine', 'Refine selection'],
+  ])('returns to the source preview after closing the transient %s toolbar dialog', async (actionName, dialogName) => {
+    await renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Select fixture passage' }));
+    const opener = within(screen.getByRole('toolbar')).getByRole('button', { name: actionName });
+    act(() => opener.focus());
+    fireEvent.click(opener);
+    const dialog = await screen.findByRole('dialog', { name: dialogName });
+    fireEvent.click(within(dialog).getByLabelText('Close'));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('region', { name: 'File preview' })).toHaveFocus());
+    expect(state.apply).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['Annotate', 'Add selection annotation'],
+    ['Refine', 'Refine selection'],
   ])('supports the keyboard-generated click for %s', async (actionName, dialogName) => {
     await renderPage();
     fireEvent.click(screen.getByRole('button', { name: 'Select fixture passage' }));

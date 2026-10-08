@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "632cb5b76db7eadbba1fbbe36904aa793bd71743c1cfbe2fdc2b17a210292fea",
+  "adaptationFingerprintSHA256": "9c000bc44c2f5a3264a21003e24d62f9137bbf0d75fdfe77a1a1de9658459e45",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
-  "additionFingerprintSHA256": "5103a1abbea11de7e3e55ffc29571c7422e64b87b073e09d83f6c8f630bdbacf",
+  "additionFingerprintSHA256": "fdd302c8bc246da9523d9c4b347137b2fd01b7f440de4e360d5516f6f46aa9cf",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 392,
@@ -857,8 +857,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/artifact/ArtifactPreview.tsx",
       "sourceSHA256": "21d3998423856a474f4e13516869e446beaebf11fab0597fc9e7a3d732d624d1",
-      "targetSHA256": "9c763dc224b5d762db783465bc1212cc551a4fec33dada47d31ae35e6c92482b",
-      "bytes": 42978,
+      "targetSHA256": "51d3408b513acad24d34888ec1736fec36f2a195661f7252772a5c8b943760a4",
+      "bytes": 43402,
       "reason": "Connect immutable Go artifacts, annotations, refinement, and native viewers with bounded localized failure handling."
     },
     {
@@ -6614,8 +6614,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/base/WorkbenchModal.tsx",
-      "sha256": "5f252f84f2ddd38e94b0a06db171d19e539a0096850b81870456cbdaa297d0ac",
-      "bytes": 3291,
+      "sha256": "baeaa64e0100e8273ec0d55de39ded0ffedf77c15ab0ff60ffb20e8756e3fc9a",
+      "bytes": 3765,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9650,8 +9650,8 @@
     },
     {
       "path": "tests/unit/renderer/ArtifactPreviewInteraction.dom.test.tsx",
-      "sha256": "68114867cf308a03a961e1c94e13773501f506ac880acb15d6f6e7a1cae6c374",
-      "bytes": 7954,
+      "sha256": "8aa211512a431f71720620b7b2d210927b9052552a8ee9cdc11573dcbcb48c1b",
+      "bytes": 8815,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -9794,8 +9794,8 @@
     },
     {
       "path": "tests/unit/renderer/WorkbenchModal.dom.test.tsx",
-      "sha256": "7a6c3fb38457fa63a10aa9dbc57a872a37211892560be5bbc69458a4201fa455",
-      "bytes": 7313,
+      "sha256": "e7e994c0053f2a03f611913df678bb9502b3ed24fc636ebb53a27c16c770622e",
+      "bytes": 11040,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

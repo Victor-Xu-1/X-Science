@@ -113,6 +113,7 @@ const ArtifactPreview: React.FC = () => {
   const [mutating, setMutating] = useState(false);
   const [notesVisible, setNotesVisible] = useState(false);
   const [messageApi, messageContextHolder] = Message.useMessage();
+  const previewReturnRef = useRef<HTMLElement | null>(null);
   const versionRefreshRevision = useRef(0);
   const viewOwner = useRef({ artifactId, selectedVersionId });
   useLayoutEffect(() => {
@@ -399,6 +400,8 @@ const ArtifactPreview: React.FC = () => {
 
         <div className='min-h-0 flex-1 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px]'>
           <section
+            ref={previewReturnRef}
+            tabIndex={-1}
             className='artifact-preview-pane min-h-360px overflow-hidden bg-fill-1'
             aria-label={t('preview.artifact.filePreview')}
           >
@@ -487,6 +490,9 @@ const ArtifactPreview: React.FC = () => {
             icon={<Comment theme='outline' size={14} />}
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => {
+              // The transient toolbar is removed on activation. Capture the
+              // persistent source region for native dialog focus restoration.
+              previewReturnRef.current?.focus({ preventScroll: true });
               setAnnotationSelection(canvasSelection);
               setCanvasSelection(null);
             }}
@@ -500,6 +506,7 @@ const ArtifactPreview: React.FC = () => {
               icon={<Magic theme='outline' size={14} />}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => {
+                previewReturnRef.current?.focus({ preventScroll: true });
                 setRefinementSelection(canvasSelection);
                 setCanvasSelection(null);
               }}

@@ -36,7 +36,100 @@ function Fixture({ afterClose }: { afterClose: () => void }) {
     </>
   );
 }
+
+function ConditionalFixture() {
+  const [visible, setVisible] = React.useState(false);
+  return (
+    <>
+      <button onClick={() => setVisible(true)}>Open conditional dialog</button>
+      {visible && (
+        <WorkbenchModal visible title='Conditional dialog' footer={null} onCancel={() => setVisible(false)}>
+          <button onClick={() => setVisible(false)}>Unmount dialog</button>
+        </WorkbenchModal>
+      )}
+      <button>Outside destination</button>
+    </>
+  );
+}
 describe('Workbench modal lifecycle adapter', () => {
+  it('returns keyboard focus when the caller removes the visible dialog instead of animating it closed', async () => {
+    await renderWithI18n(<ConditionalFixture />, 'en-US');
+    const opener = screen.getByRole('button', { name: 'Open conditional dialog' });
+    act(() => opener.focus());
+    fireEvent.click(opener);
+    const dismiss = await screen.findByRole('button', { name: 'Unmount dialog' });
+    act(() => dismiss.focus());
+    fireEvent.click(dismiss);
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    await waitFor(() => expect(opener).toHaveFocus());
+  });
+
+  it('does not steal deliberate outside focus when a visible dialog is conditionally removed', async () => {
+    const view = await renderWithI18n(
+      <>
+        <button>Outside destination</button>
+        <WorkbenchModal visible title='Removed dialog' footer={null} focusLock={false}>
+          <button>Inner action</button>
+        </WorkbenchModal>
+      </>
+    );
+    const outside = screen.getByRole('button', { name: 'Outside destination' });
+    act(() => outside.focus());
+    view.rerender(<button>Outside destination</button>);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(screen.getByRole('button', { name: 'Outside destination' })).toHaveFocus();
+  });
+
+  it('does not restore the opener during Strict Mode effect replay', async () => {
+    await renderWithI18n(
+      <React.StrictMode>
+        <ConditionalFixture />
+      </React.StrictMode>,
+      'en-US'
+    );
+    const opener = screen.getByRole('button', { name: 'Open conditional dialog' });
+    act(() => opener.focus());
+    const focus = vi.spyOn(opener, 'focus');
+    fireEvent.click(opener);
+    const inner = await screen.findByRole('button', { name: 'Unmount dialog' });
+    await waitFor(() => expect(inner).toHaveFocus());
+    expect(focus).not.toHaveBeenCalled();
+    fireEvent.click(inner);
+    await waitFor(() => expect(opener).toHaveFocus());
+    focus.mockRestore();
+  });
+
+  it('does not restore an old opener over a replacement dialog', async () => {
+    function ReplacementFixture() {
+      const [dialog, setDialog] = React.useState<'old' | 'new' | null>(null);
+      return (
+        <>
+          <button onClick={() => setDialog('old')}>Open first dialog</button>
+          {dialog === 'old' && (
+            <WorkbenchModal key='old' visible title='First' footer={null}>
+              <button onClick={() => setDialog('new')}>Replace dialog</button>
+            </WorkbenchModal>
+          )}
+          {dialog === 'new' && (
+            <WorkbenchModal key='new' visible title='Replacement' footer={null}>
+              <button>Replacement action</button>
+            </WorkbenchModal>
+          )}
+        </>
+      );
+    }
+    await renderWithI18n(<ReplacementFixture />);
+    const opener = screen.getByRole('button', { name: 'Open first dialog' });
+    act(() => opener.focus());
+    fireEvent.click(opener);
+    fireEvent.click(await screen.findByRole('button', { name: 'Replace dialog' }));
+    const replacement = await screen.findByRole('button', { name: 'Replacement action' });
+    await waitFor(() => expect(replacement).toHaveFocus());
+    expect(opener).not.toHaveFocus();
+  });
+
   it('localizes a keyboard-reachable close control and returns focus after close without losing callbacks', async () => {
     const afterClose = vi.fn();
     await renderWithI18n(<Fixture afterClose={afterClose} />, 'zh-CN');

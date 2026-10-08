@@ -1,6 +1,6 @@
 import { Modal as ArcoModal, type ModalProps } from '@arco-design/web-react';
 import { Close } from '@icon-park/react';
-import React, { useId, useLayoutEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useId, useLayoutEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { uuid } from '@/common/utils/utils';
 import { restoreScopedFocus } from '@/renderer/utils/focusScope';
@@ -33,6 +33,19 @@ function WorkbenchModal(props: React.PropsWithChildren<ModalProps>) {
   useLayoutEffect(() => {
     if (props.visible && opener) openerRef.current = opener;
   }, [props.visible, opener]);
+  useEffect(
+    () => () => {
+      const root = document.querySelector<HTMLElement>(selector);
+      const target = openerRef.current;
+      // Native portals/focus locks finish disposal before this microtask. Strict
+      // effect replay leaves this scope mounted and must not restore the opener.
+      queueMicrotask(() => {
+        if (document.querySelector(selector)) return;
+        restoreScopedFocus(target, root);
+      });
+    },
+    [selector]
+  );
   return (
     <ArcoModal
       {...props}
