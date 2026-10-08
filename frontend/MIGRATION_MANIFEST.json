@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "6052f2ecebdf038ae07ba0c13d32339e5f889fa26270b2c10739087bfc8e7433",
+  "adaptationFingerprintSHA256": "1f81a9135a01ed88e461d473cf197acddc22e9c9b22fe267f8cb4e5ca87953a5",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "8fb9aa28bc75c31501c3016acc67de3f5006e685b9b4eccd9bb07fbcb3444b8c",
+  "additionFingerprintSHA256": "88d556abfc67d78abecf1088240c9674adcd18b1e957e890102dad670913238d",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 352,
     "adaptedSourceFiles": 709,
     "removedSourceFiles": 293,
-    "addedFiles": 752
+    "addedFiles": 753
   },
   "adaptations": [
     {
@@ -108,15 +108,15 @@
     {
       "path": "packages/desktop/src/common/config/i18n-config.json",
       "sourceSHA256": "de90fa68bf4a9c7b6ef2c8aaa1c49265709a25a17c84d7cace0f949534b64373",
-      "targetSHA256": "b44b2506c0e6d59c8c1c9e239939606d4de71f55a6404efdb3c8d7a48fa73db4",
+      "targetSHA256": "1c733879a621ce8f197276640b75ffc5705a361144e3bbe50242a43af42d8fa5",
       "bytes": 385,
       "reason": "Narrow the product language contract to fully maintained Simplified Chinese and English bundles."
     },
     {
       "path": "packages/desktop/src/common/config/i18n.ts",
       "sourceSHA256": "39b94be06178a5be155abc95b25bcf8d255fb0195ba2a901190599c1a6c280c7",
-      "targetSHA256": "ce60a790423f33341b9f20d0dc7cdca828e732621d3e5edfeaacb0f8c1b1d95f",
-      "bytes": 2787,
+      "targetSHA256": "47c880411b3d24500ebddeac06ba043737808af2ae865fd7b16b902fcbd53201",
+      "bytes": 2750,
       "reason": "Align shared browser contracts, configuration, themes, and typed preview/provider models with the Go-owned Synon Biomed runtime."
     },
     {
@@ -2460,8 +2460,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/index.ts",
       "sourceSHA256": "5ff1ce7207d75f9d04586fbeb64f30690b63016eaa43f685d315e1c7a657e6af",
-      "targetSHA256": "7638e28b6918ee352901815e86a3e314f0de4246a10b299aafd5df165fd35833",
-      "bytes": 8392,
+      "targetSHA256": "e480f1dd342679f2f7b8decf8a2b3fbee1f8939da3e067fb399dd4b4bdf6a0bb",
+      "bytes": 8570,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -3461,8 +3461,8 @@
     {
       "path": "tests/unit/common/i18n.test.ts",
       "sourceSHA256": "b32eacedc213f31e609dc8ee580a7a5c2cd048bc16328150b9ec833e047a7bf4",
-      "targetSHA256": "7b056f5ced8e0888a19942159be927042f8f4e58af2912196c43d299117d1d69",
-      "bytes": 2667,
+      "targetSHA256": "e54c5633f4b8d97041c1b2facb2174d7d55deebb8a3ef0d4244eba8dcb552af5",
+      "bytes": 2681,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -6741,8 +6741,8 @@
   "additions": [
     {
       "path": "README.md",
-      "sha256": "079da9fcc2f41480c356d64d0bf45e022937748cf589579fc131c1068c68a663",
-      "bytes": 2104,
+      "sha256": "d425d1727e88fdc2f7761829ef27d7c5a67c1cf44e14fbd50508acc9dd9ebbd4",
+      "bytes": 2715,
       "reason": "Document the browser-only source boundary, dependency authority, scoped checks, and isolated real-backend testing prerequisites."
     },
     {
@@ -9912,6 +9912,12 @@
       "sha256": "1e205a2623da32982e41f7d540766b63eac0f22ec9b4d0651bcce869e747913b",
       "bytes": 2225,
       "reason": "Verify current public identity, browser metadata, PWA references and exact original mark/browser-icon hashes."
+    },
+    {
+      "path": "tests/unit/renderer/api/i18nInitialization.dom.test.ts",
+      "sha256": "3973aaf8fc713c956253e71d7f91d6ce274964a6ad6eac280a6c0f198435d8dd",
+      "bytes": 3662,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/unit/renderer/artifactReferenceModel.test.ts",
