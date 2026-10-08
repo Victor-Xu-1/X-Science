@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "package": "@x-science/workbench-web",
-  "lockfileSHA256": "e7f9e404ab09224bf42c0cb355839d7334be998aa886da06ac637382bc8ac9ce",
+  "lockfileSHA256": "72c6a1809ec264ab8d6fcf9e317d49aa62f78fa759315a4050a48ed903280a52",
   "summary": {
     "records": 1129,
     "workspaceLinkRecords": 1,
@@ -6417,7 +6417,7 @@
     },
     {
       "name": "proxy-addr",
-      "version": "2.0.7",
+      "version": "2.0.8",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -7938,7 +7938,7 @@
   "workspaceLinks": [
     {
       "name": "@x-science/workbench-renderer",
-      "version": "0.1.11",
+      "version": "0.1.12",
       "path": "packages/desktop",
       "basis": "local workspace package; source licensing reviewed separately"
     }
