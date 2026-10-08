@@ -9,71 +9,86 @@ Do not add a second `VERSION` file or hard-coded product version.
 [`product-identity.json`](../../product-identity.json) 是唯一的产品版本权威源。
 代码、安装包、健康接口和界面版本必须由它派生，不再增加第二份 `VERSION` 文件或硬编码版本。
 
-## Automatic version proposals / 自动版本提案
+## One increment per merged PR / 每次 PR 合并递增
 
-The pinned Release Please action opens or updates one version PR after changes
-land on `main`. It never merges that PR or publishes a release by itself.
-The current release line is deliberately limited to `v0.1.x`: every automated
-proposal advances only the patch component, regardless of whether the change
-is a fix, feature, or marked incompatible. Use Conventional Commit titles when
-squash-merging ordinary PRs:
+Starting from the current main version, every successfully merged PR advances
+the product counter exactly once. The PR type, title and number of internal
+commits do not change the increment. Unmerged/closed PRs, failed merges, CI
+reruns and repeated preparation do not consume a version. Historical versions
+are not renumbered.
 
-- `fix:`, `feat:`, `feat!:` and a `BREAKING CHANGE:` footer are all recorded
-  in the changelog and advance the `v0.1.x` patch version.
-- `feat!:` or a `BREAKING CHANGE:` footer still requires maintainer review for
-  compatibility, but does not silently move the project to `v0.2.0`.
-- Documentation and maintenance commits do not automatically force a release.
+The canonical shape is `MAJOR.MINOR.PATCH`: `MAJOR >= 0`, `0 <= MINOR < 10`,
+`0 <= PATCH < 100`, without leading zeroes, prerelease or build suffixes.
+Increment PATCH by one; at 100 reset it to zero and increment MINOR; at 10
+reset MINOR to zero and increment MAJOR. Examples:
 
-Moving to a new minor line (for example `v0.2.0`) is a deliberate release
-policy change and requires an explicit maintainer decision followed by a
-reviewed configuration PR; it is not inferred from a commit type.
+| Current / 当前 | Next merged PR / 下一次合并 |
+| --- | --- |
+| `v0.1.2` | `v0.1.3` |
+| `v0.1.99` | `v0.2.0` |
+| `v0.9.99` | `v1.0.0` |
 
-The version PR updates `product-identity.json`, its frontend projections and
-`docs/CHANGELOG.md`. The file `.github/release-please-manifest.json` is bot
-bookkeeping only; no runtime reads it. The identity gate prevents projection
-drift. The version configuration and identity gate reject versions outside
-`0.1.x`. `initial-version` applies only to the first release, not every release.
-Published versions are never moved; fixes are delivered in a new version.
+This is a per-PR numeric counter, not Semantic Versioning's compatibility
+meaning. Compatibility, API, persistence schema and dependency changes still
+require their own review; their versions must not be overwritten by this counter.
 
-After proposing a version, trusted tooling from the exact main revision validates
-the complete proposal delta. Only the registered version fields, changelog and
-derived provenance outputs may differ. It refreshes the frontend migration
-fingerprints and license report in a separate non-force commit on the version
-PR. Dependencies and all non-version JSON fields must remain unchanged; proposal
-code is never executed. Concurrent main/PR edits fail closed. Normal PR review
-and CI still apply, and no tag, release or main-branch write is performed.
+从当前 main 版本开始，每个成功合并的 PR 只递增一次，包括功能、修复、文档和维护
+PR；一个 PR 内有多少提交都不影响计数。未合并、关闭、合并失败、重跑 CI、重复准备
+均不占用版本号，不追溯重编号。补丁号满 100、次版本号满 10 时进位。
+这是按 PR 计数的版本规则，不表示语义化版本的兼容性承诺；API、数据库和依赖版本保持独立。
 
-After reviewing and merging a version PR, run the existing full quality
-workflow once for that exact revision, then promote its verified artifacts to
-the matching immutable Release. Its publication triggers the Packages workflow.
-PR/main affected checks and the release quality matrix have different purposes;
-ordinary changes do not trigger a full release matrix.
+### Prepare before review and merge / 合并前自动准备
 
-### One-time bot setup
+Prepare metadata on the clean, named task branch before reviewing its final head.
+Run the tool from a separate, independently reviewed tooling checkout at its
+verified revision, not from the candidate checkout. The controller verifies
+that tooling revision and its clean state before invoking it:
 
-Register a private GitHub App and install it on **this repository only**.
-Grant repository Contents, Pull requests and Issues read/write (Issues is needed
-for release lifecycle labels); Metadata read is automatic. No organization,
-administration or user-data permissions and no webhook are needed.
-Create a `release-automation` GitHub Environment restricted to the `main`
-branch, set repository variable `RELEASE_APP_ID` to the App's **Client ID**
-(the value expected by `client-id`), and store
-`RELEASE_APP_PRIVATE_KEY` as an **environment secret**, not a repository-wide
-secret. Never paste the private key into issues, PRs or chats.
+```sh
+python3 -B /absolute/reviewed/tooling/scripts/packaging/prepare_pr_version.py \
+  --repo /absolute/task/worktree --base EXACT_CURRENT_MAIN --head EXACT_TASK_HEAD
+# Review the local plan, then apply the same exact binding:
+python3 -B /absolute/reviewed/tooling/scripts/packaging/prepare_pr_version.py \
+  --repo /absolute/task/worktree --base EXACT_CURRENT_MAIN --head EXACT_TASK_HEAD --apply
+```
 
-The workflow creates a short-lived token restricted to this repository and
-these permissions. Using an App ensures the generated PR triggers normal CI;
-the default `GITHUB_TOKEN` would suppress those follow-on workflow events.
-Do not substitute a broad personal token. Missing bot configuration is a setup
-error, not a reason to skip PR review or the required checks.
+The tool computes the next version from main, not from an already-prepared
+candidate. It changes only root authority, registered JSON version projections,
+and their three derived frontend provenance outputs. It validates fresh baseline
+bytes using the separate reviewed tooling auditor; candidate audit code is not
+executed. A same-checkout invocation or an alias of the tooling auditor is
+rejected before loading the auditor. Changes to the audit implementation need
+an independently reviewed tooling update, not self-approval by the candidate.
+It refuses main/detached/dirty worktrees, stale heads, unrelated ancestry,
+unexpected version edits and unsafe paths. It does not commit, push or merge.
+Commit the generated metadata on the task branch and review/test that new exact
+head through the existing controller. Do not attach old gate evidence to it.
 
-See the upstream [Release Please action](https://github.com/googleapis/release-please-action)
-and [GitHub App token action](https://github.com/actions/create-github-app-token).
+`pr_version_gate.py` checks the exact main-to-candidate Git objects in the
+existing required PR policy job, and the exact previous-main-to-actual-main
+objects in the existing main integration job. The controller also supplies both
+SHA bindings to its existing CI-contract command. Root shape and all projections
+remain covered by the identity gate. Only explicit initial main creation has no
+previous PR to count; a normal PR cannot use that exception.
+
+Merge PRs serially with up-to-date main protection. If main advances, update
+the task branch normally, stop on conflicts, prepare the next version against
+that new main and review/test the new head. Never silently overwrite a competing
+implementation or force-update main. The version therefore lands atomically
+with its successful PR, not through a later bot commit or separate version PR.
+No new GitHub App, token, secret, write permission, tag or release is needed.
+The superseded Release Please workflow and secondary bookkeeping are removed;
+no account credentials or existing published releases are deleted.
+
+版本字段在任务分支准备并随 PR 一起进入 main。自动准备不提交、不推送、不合并；
+生成后的精确 head 必须重新审阅并通过原有门禁。重复准备不再次加号；main 前进后重新
+按新基线准备，冲突必须先解决，不能靠硬覆盖通过。PR 和 main 校验都只读，不增加凭据或权限。
+正式发布仍是单独授权流程，普通 PR 不因此运行完整发布矩阵。
 
 ## Release promotion / 正式发布
 
-- Use Semantic Versioning: `MAJOR.MINOR.PATCH`; the active policy currently
-  permits only `0.1.PATCH` releases.
+- Use the product's canonical `MAJOR.MINOR.PATCH` counter for release names.
+  A counter increment is not tag or release authorization.
 - Tracked source defines only the static [release policy](release-policy.json);
   it can never grant current release or tag authorization.
 - Build release candidates once in the full quality workflow. Bind the exact
@@ -89,7 +104,7 @@ and [GitHub App token action](https://github.com/actions/create-github-app-token
 - Bind development evidence to a commit SHA. A branch, workflow artifact,
   candidate manifest, or build output is not a release.
 
-- 使用语义化版本 `MAJOR.MINOR.PATCH`；当前活动策略只允许 `0.1.PATCH` 发布。
+- 正式发布名使用产品 `MAJOR.MINOR.PATCH` 计数值；版本递增本身不授予 Tag 或发布权限。
 - 源码只保存静态 [发布策略](release-policy.json)，不能授予当前发布或 Tag 权限。
 - 完整质量工作流只构建一次候选制品，并由 `RELEASE_CANDIDATE.json`
   绑定源码提交/tree 及每个文件的名称、大小和 SHA-256。

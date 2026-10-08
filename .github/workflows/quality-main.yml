@@ -38,6 +38,12 @@ jobs:
           go-version-file: go.mod
           cache-dependency-path: go.sum
 
+      - name: Verify one PR version increment
+        run: |
+          PYTHONDONTWRITEBYTECODE=1 python3 -B scripts/packaging/pr_version_gate.py \
+            --base '${{ github.event.before }}' --candidate '${{ github.sha }}' \
+            --initial-main '${{ github.event.created }}'
+
       - name: Verify integrated source policy
         run: |
           go mod verify
