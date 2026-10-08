@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "1f81a9135a01ed88e461d473cf197acddc22e9c9b22fe267f8cb4e5ca87953a5",
+  "adaptationFingerprintSHA256": "e7b2f390389e512f98f20b0cb0cf740f3cdd78330841ac8af4314ec17a7612aa",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "88d556abfc67d78abecf1088240c9674adcd18b1e957e890102dad670913238d",
+  "additionFingerprintSHA256": "b389eec423ce2d076928bc04ba69057cee5ca77cc1d181db8808619a855092fb",
   "summary": {
     "sourceFiles": 1354,
-    "unchangedSourceFiles": 352,
-    "adaptedSourceFiles": 709,
+    "unchangedSourceFiles": 351,
+    "adaptedSourceFiles": 710,
     "removedSourceFiles": 293,
-    "addedFiles": 753
+    "addedFiles": 755
   },
   "adaptations": [
     {
@@ -344,6 +344,13 @@
       "reason": "Connect the composer, queue, attachments, and chat actions to the Go-owned conversation runtime with localized responsive states."
     },
     {
+      "path": "packages/desktop/src/renderer/components/layout/AppLoader.tsx",
+      "sourceSHA256": "13cb4394f936d44e9c7898687ed93de4e9dfcf3a3ee537e055ecccc2239e79b4",
+      "targetSHA256": "a1ff898a47e45822cf1c02670d03e062290dd34aa1616c62800bf7f5ca12d137",
+      "bytes": 334,
+      "reason": "Adapt the desktop layout, command palette, navigation, and window controls to authenticated responsive browser operation."
+    },
+    {
       "path": "packages/desktop/src/renderer/components/layout/Layout.tsx",
       "sourceSHA256": "35ef10ff243ca3acfdb7b10692ab15cc3f722d85877e6935bff78f06507791b7",
       "targetSHA256": "137970e2910b9e12fea1f81ef572e1b998842ad2fa67bda58cc9b98af54653e9",
@@ -444,8 +451,8 @@
     {
       "path": "packages/desktop/src/renderer/components/media/PreviewLoadingState.tsx",
       "sourceSHA256": "d65f23ccf7cecdebf49f2df21eac2e094d9774cc132516881d834c5b1576a524",
-      "targetSHA256": "b168dd25481d460b85b9886dcc57b1cadb8033843161c8e10316c0cba44e2c70",
-      "bytes": 1225,
+      "targetSHA256": "abfb8e66dca5d1a0667f49f690166768c586455388040823c8898f71257b344d",
+      "bytes": 1368,
       "reason": "Harden media selection, upload, diff, preview, and embedded-content states for the Go Web trust boundary."
     },
     {
@@ -9800,6 +9807,12 @@
       "reason": "Verify focus, keyboard dismissal, labels, and content bounds for the shared dialog."
     },
     {
+      "path": "tests/unit/renderer/AppLoader.dom.test.tsx",
+      "sha256": "c1fcb9e6e815fb500c38db677c6800df35681eea565dd581eadf9c20bf9c4246",
+      "bytes": 1219,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/unit/renderer/AuthenticatedWorkspace.dom.test.tsx",
       "sha256": "d624236c179a847d3dd8f72946059a39d1a27bace61391cd24f2e3606a7b88b4",
       "bytes": 4721,
@@ -9872,6 +9885,12 @@
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
+      "path": "tests/unit/renderer/PreviewLoadingState.dom.test.tsx",
+      "sha256": "85f26d2efdb9f80ac0a60add902ea8f366ca9dc353c54cf2bff0ef009709fed2",
+      "bytes": 1607,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/unit/renderer/ProductBrand.dom.test.tsx",
       "sha256": "d0b6fed95037446b1b9343ae5c7bcc12b9dacaee88c0ea58ee27adfac91e06f7",
       "bytes": 1163,
@@ -9885,8 +9904,8 @@
     },
     {
       "path": "tests/unit/renderer/RouterStartupBoundary.dom.test.tsx",
-      "sha256": "4e95cccf7f3d5b8476dcc44b596e954973b0a2290c7934bfcfd54f7f592f49d4",
-      "bytes": 4203,
+      "sha256": "85e9459c5a3c8a9d1501a527c71c567f15e9fd1a4b038d0918252fa8921ab687",
+      "bytes": 4746,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

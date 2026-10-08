@@ -1,12 +1,10 @@
-import { Spin } from '@arco-design/web-react';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
+import PreviewLoadingState from '@/renderer/components/media/PreviewLoadingState';
 
 const AppLoader: React.FC = () => {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
-      <Spin dot />
-    </div>
-  );
+  const { t } = useTranslation();
+  return <PreviewLoadingState label={t('common.loading')} fitContainer />;
 };
 
 export default AppLoader;

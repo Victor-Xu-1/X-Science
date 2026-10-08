@@ -33,6 +33,17 @@ vi.mock('@/renderer/components/layout/routeModules', () => ({
 import Router from '@/renderer/components/layout/Router';
 
 describe('Router startup boundary', () => {
+  it.each(['#/login', '#/settings/experts'])(
+    'keeps the %s authentication wait named without loading protected content',
+    async (route) => {
+      state.auth = { status: 'checking', user: null, failure: null };
+      window.location.hash = route;
+      await renderWithI18n(<Router />, 'en-US');
+      expect(screen.getByRole('status')).toHaveTextContent('Please wait...');
+      expect(state.workspaceLoads).toBe(0);
+      expect(screen.queryByRole('heading', { name: 'Authenticated workspace' })).not.toBeInTheDocument();
+    }
+  );
   afterEach(() => {
     sessionStorage.removeItem(onboardingCompletionStorageKey('owner-a'));
     sessionStorage.removeItem(AUTH_RETURN_PATH_KEY);
