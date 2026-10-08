@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "package": "@x-science/workbench-web",
-  "lockfileSHA256": "142b10c312bd2756f164ea230d30b2748a36d65263ccb1df50b069d857274fbe",
+  "lockfileSHA256": "9d4d12443b2c9099f96dceb7f07eeb73ce64b6769b6c4854de5528b448b1f71d",
   "summary": {
     "records": 1129,
     "workspaceLinkRecords": 1,
@@ -1167,133 +1167,133 @@
     },
     {
       "name": "@oxfmt/binding-android-arm-eabi",
-      "version": "0.41.0",
+      "version": "0.72.0",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
     },
     {
       "name": "@oxfmt/binding-android-arm64",
-      "version": "0.41.0",
+      "version": "0.72.0",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
     },
     {
       "name": "@oxfmt/binding-darwin-arm64",
-      "version": "0.41.0",
+      "version": "0.72.0",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
     },
     {
       "name": "@oxfmt/binding-darwin-x64",
-      "version": "0.41.0",
+      "version": "0.72.0",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
     },
     {
       "name": "@oxfmt/binding-freebsd-x64",
-      "version": "0.41.0",
+      "version": "0.72.0",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
     },
     {
       "name": "@oxfmt/binding-linux-arm-gnueabihf",
-      "version": "0.41.0",
+      "version": "0.72.0",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
     },
     {
       "name": "@oxfmt/binding-linux-arm-musleabihf",
-      "version": "0.41.0",
+      "version": "0.72.0",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
     },
     {
       "name": "@oxfmt/binding-linux-arm64-gnu",
-      "version": "0.41.0",
+      "version": "0.72.0",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
     },
     {
       "name": "@oxfmt/binding-linux-arm64-musl",
-      "version": "0.41.0",
+      "version": "0.72.0",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
     },
     {
       "name": "@oxfmt/binding-linux-ppc64-gnu",
-      "version": "0.41.0",
+      "version": "0.72.0",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
     },
     {
       "name": "@oxfmt/binding-linux-riscv64-gnu",
-      "version": "0.41.0",
+      "version": "0.72.0",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
     },
     {
       "name": "@oxfmt/binding-linux-riscv64-musl",
-      "version": "0.41.0",
+      "version": "0.72.0",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
     },
     {
       "name": "@oxfmt/binding-linux-s390x-gnu",
-      "version": "0.41.0",
+      "version": "0.72.0",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
     },
     {
       "name": "@oxfmt/binding-linux-x64-gnu",
-      "version": "0.41.0",
+      "version": "0.72.0",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
     },
     {
       "name": "@oxfmt/binding-linux-x64-musl",
-      "version": "0.41.0",
+      "version": "0.72.0",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
     },
     {
       "name": "@oxfmt/binding-openharmony-arm64",
-      "version": "0.41.0",
+      "version": "0.72.0",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
     },
     {
       "name": "@oxfmt/binding-win32-arm64-msvc",
-      "version": "0.41.0",
+      "version": "0.72.0",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
     },
     {
       "name": "@oxfmt/binding-win32-ia32-msvc",
-      "version": "0.41.0",
+      "version": "0.72.0",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
     },
     {
       "name": "@oxfmt/binding-win32-x64-msvc",
-      "version": "0.41.0",
+      "version": "0.72.0",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -6200,7 +6200,7 @@
     },
     {
       "name": "oxfmt",
-      "version": "0.41.0",
+      "version": "0.72.0",
       "license": "MIT",
       "directKind": "development",
       "basis": "package-lock metadata"
@@ -7250,7 +7250,7 @@
     },
     {
       "name": "tinypool",
-      "version": "2.1.0",
+      "version": "2.2.0",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
