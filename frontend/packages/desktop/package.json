@@ -1,6 +1,6 @@
 {
   "name": "@synon-go/workbench-renderer",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "private": true,
   "description": "Synon Biomed scientific workbench browser renderer."
 }
