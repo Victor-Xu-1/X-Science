@@ -357,6 +357,7 @@ html body .synon-biomed-task-center-popover {
   padding: 0;
   background: transparent;
   border: 0;
+  flex: 0 0 auto;
 }
 
 .synon-biomed-task-center-panel__summary-icon {
@@ -389,6 +390,7 @@ html body .synon-biomed-task-center-popover {
   padding: 10px 11px;
   background: color-mix(in srgb, var(--workspace-overlay-surface-muted, #f3f2ef) 72%, transparent);
   border-radius: var(--ui-radius-lg);
+  flex: 0 0 auto;
 }
 
 .synon-biomed-task-center-panel__title {
@@ -397,6 +399,30 @@ html body .synon-biomed-task-center-popover {
   font-size: var(--ui-font-subtitle);
   font-weight: var(--ui-weight-semibold);
   line-height: 20px;
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.synon-biomed-task-center-panel__title:focus {
+  outline: none;
+}
+.synon-biomed-task-center-panel__close {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  border-radius: var(--ui-radius-md);
+  background: transparent;
+  color: var(--workspace-text-secondary);
+  cursor: pointer;
+}
+.synon-biomed-task-center-panel__close:focus-visible {
+  outline: 2px solid var(--workspace-text);
+  outline-offset: 2px;
 }
 
 .synon-biomed-task-center-panel__timeline {
@@ -478,6 +504,7 @@ html body .synon-biomed-task-center-popover {
   display: flex;
   flex-direction: column;
   gap: 9px;
+  flex: 0 0 auto;
 }
 
 .synon-biomed-task-center-panel__section-heading {
@@ -557,6 +584,21 @@ html body .synon-biomed-task-center-popover {
   line-height: 18px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+@media (max-width: 380px) {
+  .synon-biomed-task-center-panel__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 12px;
+  }
+  .synon-biomed-task-center-panel__metric-card {
+    padding: 0;
+  }
+  .synon-biomed-task-center-panel__action-label,
+  .synon-biomed-task-center-panel__action-meta {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
 }
 
 .synon-biomed-task-center-panel__action-meta {

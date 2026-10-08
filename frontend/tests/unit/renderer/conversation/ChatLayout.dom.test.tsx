@@ -99,11 +99,27 @@ describe('ChatLayout preview split', () => {
     );
 
     const conversationContent = screen.getByTestId('conversation-content');
-    const chatArea = conversationContent.closest('main')?.parentElement;
+    const chatArea = conversationContent.closest('[data-testid="chat-preview-pane"]');
     expect(chatArea).toHaveStyle({ display: 'flex' });
 
     await waitFor(() => expect(screen.getByTestId('preview-panel-mock')).toBeInTheDocument());
     expect(screen.getByTestId('preview-drag-handle')).toBeInTheDocument();
+  });
+
+  it('leaves the outer workspace as the single main landmark and hides collapsed file controls', async () => {
+    render(
+      <main>
+        <ChatLayout title='Research task' sider={<button>File action</button>}>
+          <p>Transcript</p>
+        </ChatLayout>
+      </main>
+    );
+    await screen.findByTestId('preview-panel-mock');
+    expect(screen.getAllByRole('main')).toHaveLength(1);
+    expect(screen.getByRole('heading', { level: 1, name: 'Research task' })).toBeInTheDocument();
+    const files = screen.getByText('File action').closest('[data-testid="desktop-workspace-panel"]');
+    expect(files).toHaveAttribute('inert');
+    expect(files).toHaveAttribute('aria-hidden', 'true');
   });
 
   it('reserves a safe desktop gap so preview resizing cannot cover conversation text', async () => {
@@ -114,7 +130,7 @@ describe('ChatLayout preview split', () => {
     );
 
     const conversationContent = screen.getByTestId('conversation-content');
-    const chatArea = conversationContent.closest('main')?.parentElement;
+    const chatArea = conversationContent.closest('[data-testid="chat-preview-pane"]');
     const splitRow = chatArea?.parentElement;
 
     expect(chatArea).toHaveStyle({ minWidth: '360px' });

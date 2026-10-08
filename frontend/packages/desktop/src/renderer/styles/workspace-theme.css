@@ -165,7 +165,7 @@ html body button.synon-biomed-brand {
     opacity 120ms ease;
 }
 .arco-btn:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--workspace-text) 42%, transparent) !important;
+  outline: 2px solid var(--workspace-text) !important;
   outline-offset: 2px !important;
   box-shadow: none !important;
 }
@@ -318,16 +318,6 @@ html body .arco-select-single .arco-select-suffix {
   justify-content: center;
 }
 
-.arco-input:focus,
-.arco-input-inner-wrapper-focus,
-.arco-textarea:focus,
-.arco-select-focused .arco-select-view,
-.arco-picker-focused {
-  border-color: var(--workspace-border-strong) !important;
-  outline: none !important;
-  outline-width: 0 !important;
-  box-shadow: none !important;
-}
 .arco-card,
 .arco-collapse,
 .arco-list,
@@ -615,7 +605,7 @@ html body [role='dialog']:has([data-testid^='mobile-action-sheet-']) [role='menu
 
 html body [role='dialog']:has([data-testid^='mobile-action-sheet-']) [role='menuitem']:focus-visible,
 html body [role='dialog']:has([data-testid^='mobile-action-sheet-']) [role='menuitemradio']:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--workspace-text) 42%, transparent) !important;
+  outline: 2px solid var(--workspace-text) !important;
   outline-offset: -2px;
 }
 
@@ -780,7 +770,7 @@ html body [role='menu'] :is(button, [role^='menuitem']):focus-visible,
 html body [role='listbox'] [role='option']:focus-visible,
 html body .arco-dropdown-menu-item:focus-visible,
 html body .arco-select-option:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--workspace-text) 42%, transparent) !important;
+  outline: 2px solid var(--workspace-text) !important;
   outline-offset: -1px !important;
 }
 
@@ -1388,7 +1378,7 @@ html body [role='dialog'] button:focus-visible,
 html body [role='alertdialog'] button:focus-visible,
 html body [role='menu'] :is(button, [role^='menuitem']):focus-visible,
 html body [role='listbox'] [role='option']:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--workspace-text) 42%, transparent) !important;
+  outline: 2px solid var(--workspace-text) !important;
   outline-offset: 2px !important;
 }
 
@@ -1429,7 +1419,7 @@ html body .arco-tag {
 html body button.settings-action-button,
 html body button.settings-icon-button,
 html body button.settings-text-danger-button,
-html body .arco-modal button.text-left {
+html body .arco-modal button.text-left:where(:not([role='option'])) {
   border: 1px solid transparent !important;
   box-shadow: 0 1px 2px rgb(0 0 0 / 6%) !important;
 }
@@ -1440,7 +1430,7 @@ html body button.settings-icon-button {
 }
 
 html body button.settings-text-danger-button,
-html body .arco-modal button.text-left {
+html body .arco-modal button.text-left:where(:not([role='option'])) {
   background: transparent !important;
   box-shadow: none !important;
 }
@@ -1769,7 +1759,7 @@ html body .arco-switch-checked .arco-switch-dot {
 }
 
 html body .arco-switch:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--workspace-text) 42%, transparent) !important;
+  outline: 2px solid var(--workspace-text) !important;
   outline-offset: 2px !important;
 }
 
@@ -1864,7 +1854,7 @@ html body .sendbox-panel [contenteditable='true'] {
 }
 
 html body .css-theme-card:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--workspace-text) 42%, transparent) !important;
+  outline: 2px solid var(--workspace-text) !important;
   outline-offset: 2px !important;
 }
 
@@ -1978,10 +1968,8 @@ html body .message-scientific-files__more {
 /* Ask User is one calm decision surface. Options and secondary actions stay
  * borderless; only the custom-answer composer receives a soft fill and focus
  * halo, avoiding the previous card + divider + input + button frame stack. */
-/* Text fields use their own one-pixel border as the focus affordance. Do not
- * stack a browser outline, an Arco focus shadow, and a dialog focus ring. The
- * surrounding composer/card may still provide its single intentional focus
- * surface, but the field itself stays flat and neutral. */
+/* Pointer focus stays flat. Keyboard focus gets one high-contrast outline;
+ * remove Arco shadows so the control does not accumulate competing rings. */
 html
   body
   :is(
@@ -2006,6 +1994,52 @@ html
   outline-width: 0 !important;
   outline-offset: 0 !important;
   box-shadow: none !important;
+}
+
+html
+  body
+  :is(
+    input:not([type='hidden']):not([type='checkbox']):not([type='radio']):not([type='range']),
+    textarea,
+    select,
+    .arco-select-view,
+    .arco-cascader-view,
+    .arco-tree-select-view
+  ):focus-visible:where(
+    :not(.conversation-search-modal__searchbar input, .project-command-palette .arco-input-inner-wrapper input)
+  ) {
+  outline: 2px solid var(--workspace-text) !important;
+  outline-width: 2px !important;
+  outline-offset: 2px !important;
+  box-shadow: none !important;
+}
+
+/* The composer is a single control surface; its inner textarea must not
+ * acquire another ring inside the surrounding keyboard indicator. */
+html body .conversation-search-modal__searchbar:has(input:focus-visible),
+html body .project-command-palette .arco-input-inner-wrapper:has(input:focus-visible),
+html body :is(.guid-input-card-shell, .sendbox-panel):has(textarea:focus-visible) {
+  outline: 2px solid var(--workspace-text) !important;
+  outline-offset: 2px !important;
+}
+html body :is(.guid-input-card-shell, .sendbox-panel) textarea:focus-visible {
+  outline: none !important;
+  outline-width: 0 !important;
+  box-shadow: none !important;
+}
+
+.workbench-modal-close {
+  display: grid;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--ui-radius-md);
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
 }
 
 @media (max-width: 800px) {

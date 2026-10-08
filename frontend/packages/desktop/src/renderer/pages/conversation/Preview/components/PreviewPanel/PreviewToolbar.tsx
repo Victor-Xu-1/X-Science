@@ -209,6 +209,7 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
             ) : null}
             <ToolbarButton
               label={isFullscreen ? t('preview.exitFullscreen') : t('preview.openFullscreen')}
+              className='preview-toolbar__fullscreen'
               onClick={onFullscreenToggle}
               pressed={isFullscreen}
             >

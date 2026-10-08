@@ -119,4 +119,28 @@ describe('X-Science artifact lifecycle service', () => {
       },
     ]);
   });
+
+  it('reads and validates the explicitly selected immutable lineage version', async () => {
+    const fetchMock = vi.fn(async (url: string) =>
+      url === '/api/artifacts/versions/version%2F1/lineage?slim=1'
+        ? Response.json({ artifact_id: 'artifact-1', version_id: 'version/1', version_number: 1, pending: true })
+        : Response.json({ detail: 'unexpected current-version request' }, { status: 404 })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(
+      loadSynonBiomedArtifactLineage('artifact-1', { slim: true, versionId: 'version/1' })
+    ).resolves.toMatchObject({ versionId: 'version/1', pending: true });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    { artifact_id: 'another-file', version_id: 'version-1' },
+    { artifact_id: 'artifact-1', version_id: 'another-version' },
+  ])('rejects lineage belonging to a different requested owner', async (identity) => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json({ ...identity, version_number: 1 }))
+    );
+    await expect(loadSynonBiomedArtifactLineage('artifact-1', { versionId: 'version-1' })).rejects.toThrow('identity');
+  });
 });

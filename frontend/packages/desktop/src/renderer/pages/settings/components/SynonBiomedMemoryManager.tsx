@@ -1,4 +1,5 @@
-import { Button, Input, Message, Modal, Select, Spin, Switch, Tag, Tooltip } from '@arco-design/web-react';
+import { Button, Input, Message, Select, Spin, Switch, Tag, Tooltip } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import { Check, Copy, Delete, Edit, Plus, Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -92,7 +93,9 @@ export const SynonBiomedMemoryManager: React.FC<{ onChanged?: () => void | Promi
       setLoadError('');
       try {
         const [nextContext, nextEnabled, nextAutoEnabled] = await Promise.all([
-          loadSynonBiomedMemoryContext(projectId ? { projectId } : {}, { signal: controller.signal }),
+          loadSynonBiomedMemoryContext(projectId ? { projectId } : {}, {
+            signal: controller.signal,
+          }),
           projectId ? Promise.resolve(null) : loadSynonBiomedMemoryEnabled({ signal: controller.signal }),
           projectId ? Promise.resolve(null) : loadSynonBiomedAutoMemoryEnabled({ signal: controller.signal }),
         ]);
@@ -518,7 +521,7 @@ export const SynonBiomedMemoryManager: React.FC<{ onChanged?: () => void | Promi
 
   return (
     <section data-testid='memory-manager' className='memory-manager'>
-      <div role='tablist' aria-label={t('settings.memoryLayers')} className='memory-manager__layer-stack'>
+      <div role='group' aria-label={t('settings.memoryLayers')} className='memory-manager__layer-stack'>
         <section
           role='presentation'
           data-memory-module='global'
@@ -984,9 +987,8 @@ const MemoryLayerButton: React.FC<{
 }> = ({ testId, active, icon, label, description, onClick }) => (
   <button
     type='button'
-    role='tab'
     data-testid={testId}
-    aria-selected={active}
+    aria-pressed={active}
     className={`memory-layer-tab ${active ? 'memory-layer-tab--active' : ''}`}
     onClick={onClick}
   >

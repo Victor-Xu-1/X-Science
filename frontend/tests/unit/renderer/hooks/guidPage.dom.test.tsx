@@ -392,6 +392,7 @@ describe('GuidPage', () => {
     expect(welcome.querySelector('img')).toHaveAttribute('src', './branding/x-science-mark.png');
     expect(screen.getByText('X-Science')).toBeVisible();
     expect(screen.getByText('guid.emptyState.guidance')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'common.newTask' })).toBeInTheDocument();
     const latestGuidActionRowProps = capturedGuidActionRowProps.at(-1);
     const latestGuidInputCardProps = capturedGuidInputCardProps.at(-1);
 
@@ -517,6 +518,7 @@ describe('GuidPage', () => {
 
     fireEvent.click(screen.getByTestId('guid-action-row'));
     expect(screen.getByTestId('guid-page')).toHaveAttribute('data-composer-position', 'docked');
+    expect(screen.getByRole('heading', { level: 1, name: 'common.newTask' })).toBeInTheDocument();
 
     await act(async () => resolveSend(false));
     expect(screen.getByTestId('guid-page')).toHaveAttribute('data-composer-position', 'centered');

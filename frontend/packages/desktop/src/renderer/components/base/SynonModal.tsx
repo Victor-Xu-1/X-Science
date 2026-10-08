@@ -5,11 +5,12 @@
  */
 
 import type { ModalProps } from '@arco-design/web-react';
-import { Modal, Button } from '@arco-design/web-react';
+import { Button } from '@arco-design/web-react';
+import Modal from './WorkbenchModal';
 import { Close } from '@icon-park/react';
 import classNames from 'classnames';
 import type { CSSProperties } from 'react';
-import React from 'react';
+import React, { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
 
@@ -99,7 +100,7 @@ export interface SynonModalProps extends Omit<ModalProps, 'title' | 'footer'> {
 const HEADER_BASE_CLASS = 'flex items-center justify-between pb-20px';
 const TITLE_BASE_CLASS = 'text-18px font-500 text-t-primary m-0';
 const CLOSE_BUTTON_CLASS =
-  'w-32px h-32px flex items-center justify-center rd-8px transition-colors duration-200 cursor-pointer border-0 bg-transparent p-0 hover:bg-2 focus:outline-none';
+  'w-32px h-32px flex items-center justify-center rd-8px transition-colors duration-200 cursor-pointer border-0 bg-transparent p-0 text-t-secondary hover:bg-2';
 const FOOTER_BASE_CLASS = 'flex-shrink-0 bg-transparent';
 
 /**
@@ -178,6 +179,7 @@ const SynonModal: React.FC<SynonModalProps> = ({
 }) => {
   const { fontScale } = useThemeContext();
   const { t } = useTranslation();
+  const titleId = useId();
   // 处理 contentStyle 配置，转换为 CSS 变量
   const contentBg = contentStyle?.background || 'var(--dialog-fill-0)';
   const contentBorderRadius = contentStyle?.borderRadius || '16px';
@@ -343,10 +345,14 @@ const SynonModal: React.FC<SynonModalProps> = ({
 
     return (
       <div className={headerClassName} style={headerStyle}>
-        {headerConfig.title && <h3 className={TITLE_BASE_CLASS}>{headerConfig.title}</h3>}
+        {headerConfig.title && (
+          <h3 id={titleId} className={TITLE_BASE_CLASS}>
+            {headerConfig.title}
+          </h3>
+        )}
         {headerConfig.showClose && (
-          <button onClick={onCancel} className={CLOSE_BUTTON_CLASS} aria-label={t('common.close')}>
-            {headerConfig.closeIcon || <Close size={20} fill='#86909c' />}
+          <button type='button' onClick={onCancel} className={CLOSE_BUTTON_CLASS} aria-label={t('common.close')}>
+            {headerConfig.closeIcon || <Close size={20} fill='currentColor' />}
           </button>
         )}
       </div>
@@ -378,6 +384,15 @@ const SynonModal: React.FC<SynonModalProps> = ({
       closable={false}
       footer={null}
       onCancel={onCancel}
+      modalRender={(modalNode) => {
+        const namedNode =
+          headerConfig.title && React.isValidElement(modalNode)
+            ? React.cloneElement(modalNode as React.ReactElement<React.HTMLAttributes<HTMLDivElement>>, {
+                'aria-labelledby': titleId,
+              })
+            : modalNode;
+        return props.modalRender ? props.modalRender(namedNode) : namedNode;
+      }}
       className={`synon-ai-modal ${className}`}
       style={finalStyle}
       getPopupContainer={() => document.body}

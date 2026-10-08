@@ -86,7 +86,7 @@
     {"path": "frontend/public/manifest.webmanifest", "kind": "json-prefix", "pointer": "/name", "value_field": "display_name"},
     {"path": "frontend/public/manifest.webmanifest", "kind": "json-prefix", "pointer": "/short_name", "value_field": "display_name"},
     {"path": "frontend/public/manifest.webmanifest", "kind": "json-prefix", "pointer": "/description", "value_field": "display_name"},
-    {"path": "frontend/packages/desktop/src/renderer/index.html", "kind": "text-occurrence", "value_field": "display_name", "occurrences": 4}
+    {"path": "frontend/packages/desktop/src/renderer/index.html", "kind": "text-occurrence", "value_field": "display_name", "occurrences": 3}
   ],
   "consumer_inventory": [
     {

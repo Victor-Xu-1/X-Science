@@ -13,9 +13,10 @@ import {
   type LightweightOfficeWorkbook,
 } from '@/renderer/services/lightweightOfficePreview';
 import { Button, Empty } from '@arco-design/web-react';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import MarkdownViewer from './MarkdownViewer';
+import { handleTabListKeyDown } from '@/renderer/utils/tabListKeyboard';
 
 export type LightweightOfficeViewerProps = {
   docType: LightweightOfficeKind;
@@ -98,6 +99,7 @@ const LightweightOfficeViewer: React.FC<LightweightOfficeViewerProps> = ({
 
 const WorkbookPreview: React.FC<{ workbook: LightweightOfficeWorkbook }> = ({ workbook }) => {
   const { t } = useTranslation();
+  const scopeId = useId();
   const sheets = Array.isArray(workbook.sheets) ? workbook.sheets : [];
   const [activeIndex, setActiveIndex] = useState(0);
   useEffect(() => setActiveIndex(0), [workbook]);
@@ -117,12 +119,16 @@ const WorkbookPreview: React.FC<{ workbook: LightweightOfficeWorkbook }> = ({ wo
         className='shrink-0 flex items-center gap-4px overflow-x-auto border-0 border-b border-solid border-[var(--color-border-2)] px-10px py-8px'
         role='tablist'
         aria-label={t('preview.lightweightOffice.worksheets')}
+        onKeyDown={handleTabListKeyDown}
       >
         {sheets.map((sheet, index) => (
           <button
             key={`${sheet.name}-${index}`}
             type='button'
             role='tab'
+            id={`${scopeId}-sheet-${index}`}
+            tabIndex={index === activeIndex ? 0 : -1}
+            aria-controls={`${scopeId}-panel`}
             aria-selected={index === activeIndex}
             className={`shrink-0 border-0 px-10px py-6px text-12px cursor-pointer ${
               index === activeIndex ? 'bg-fill-2 text-t-primary' : 'bg-transparent text-t-secondary hover:bg-fill-1'
@@ -133,12 +139,24 @@ const WorkbookPreview: React.FC<{ workbook: LightweightOfficeWorkbook }> = ({ wo
           </button>
         ))}
       </div>
-      <div className='min-h-0 flex-1 overflow-auto bg-1 p-12px'>
-        <table className='min-w-full border-collapse text-12px leading-18px text-t-primary'>
+      <div
+        className='min-h-0 flex-1 overflow-auto bg-1 p-12px'
+        role='tabpanel'
+        id={`${scopeId}-panel`}
+        aria-labelledby={`${scopeId}-sheet-${activeIndex}`}
+        tabIndex={0}
+      >
+        <table
+          className='min-w-full border-collapse text-12px leading-18px text-t-primary'
+          aria-label={activeSheet.name || t('preview.lightweightOffice.worksheetNumber', { number: activeIndex + 1 })}
+        >
           <tbody>
             {activeSheet.data.map((row, rowIndex) => (
               <tr key={rowIndex}>
-                <th className='sticky left-0 min-w-42px border border-solid border-[var(--color-border-2)] bg-fill-1 px-8px py-6px text-center font-normal text-t-tertiary'>
+                <th
+                  scope='row'
+                  className='sticky left-0 min-w-42px border border-solid border-[var(--color-border-2)] bg-fill-1 px-8px py-6px text-center font-normal text-t-tertiary'
+                >
                   {rowIndex + 1}
                 </th>
                 {Array.from({ length: columnCount }, (_, columnIndex) => (
@@ -187,8 +205,8 @@ const PresentationPreview: React.FC<{ presentation: LightweightOfficePresentatio
                 {t('preview.lightweightOffice.slideNumber', { number: slide.slideNumber })}
               </div>
               <div
-                className='relative flex min-h-360px flex-col justify-center overflow-hidden bg-white text-black shadow-sm'
-                style={{ aspectRatio: '16 / 9', padding: '8% 10%' }}
+                className='relative flex flex-col justify-center bg-white text-black shadow-sm'
+                style={{ minHeight: 'clamp(220px, 45vw, 540px)', padding: '8% 10%' }}
               >
                 {paragraphs.map((paragraph, index) => (
                   <p

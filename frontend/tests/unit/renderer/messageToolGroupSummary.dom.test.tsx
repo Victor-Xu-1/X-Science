@@ -74,6 +74,10 @@ describe('MessageToolGroupSummary', () => {
       },
     })) as ToolMessage[];
     render(<MessageToolGroupSummary messages={messages} />);
+    const summary = screen.getByTestId('tool-group-header');
+    expect(summary).toHaveAttribute('aria-expanded', 'false');
+    expect(summary).toHaveTextContent('data.csv · study.md');
+    fireEvent.click(summary);
     expect(screen.getAllByTestId('tool-chip')[0]).toHaveTextContent('data.csv');
     expect(screen.getAllByTestId('tool-chip')[1]).toHaveTextContent('study.md');
     expect(document.querySelector('.tool-public-detail')).toBeNull();
@@ -175,7 +179,7 @@ describe('MessageToolGroupSummary', () => {
     expect(screen.getByTestId('tool-public-detail')).not.toHaveTextContent('Setup milestones');
   });
 
-  it('shows completed history rows by default while keeping their detail cards collapsed', () => {
+  it('summarizes completed history by default and keeps each expanded row detail independently collapsed', () => {
     const messages = [
       {
         id: 'message-search',
@@ -214,6 +218,9 @@ describe('MessageToolGroupSummary', () => {
     const group = summary.closest('.tool-group-summary');
     const details = group?.querySelector('.tool-group-summary__details');
     expect(summary.querySelector('.tool-group-summary__status')).not.toBeInTheDocument();
+    expect(summary).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByTestId('tool-chip')).not.toBeInTheDocument();
+    fireEvent.click(summary);
     expect(summary).toHaveAttribute('aria-expanded', 'true');
     expect(group).toHaveClass('tool-group-summary--expanded');
     expect(details).toHaveAttribute('aria-hidden', 'false');
@@ -305,7 +312,7 @@ describe('MessageToolGroupSummary', () => {
   });
 
   it.each(['running', 'completed', 'error', 'interrupted'])(
-    'keeps rows visible and their cards collapsed through %s updates',
+    'keeps manually expanded rows visible and their cards collapsed through %s updates',
     (status) => {
       const messages = (count: number, state: string) =>
         Array.from({ length: count }, (_, index) => ({
@@ -323,6 +330,8 @@ describe('MessageToolGroupSummary', () => {
       const { rerender } = render(<MessageToolGroupSummary messages={messages(2, 'running')} />);
       const header = screen.getByTestId('tool-group-header');
       expect(header).toHaveAttribute('aria-expanded', 'true');
+      fireEvent.click(header);
+      fireEvent.click(header);
       rerender(<MessageToolGroupSummary messages={messages(3, status)} />);
       expect(header).toHaveAttribute('aria-expanded', 'true');
       expect(screen.getAllByTestId('tool-chip')).toHaveLength(3);
@@ -554,6 +563,8 @@ describe('MessageToolGroupSummary', () => {
     render(<MessageToolGroupSummary messages={messages} />);
 
     const summary = screen.getByTestId('tool-group-header');
+    expect(summary).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(summary);
     expect(summary).toHaveAttribute('aria-expanded', 'true');
     expect(summary).not.toHaveTextContent('6 steps');
     expect(screen.getAllByTestId('tool-chip')).toHaveLength(6);
@@ -658,6 +669,8 @@ describe('MessageToolGroupSummary', () => {
     expect(summary).toHaveTextContent('17 not executed · 1 failed');
     expect(summary).not.toHaveTextContent('1 step');
     expect(summary).not.toHaveTextContent('18 failed');
+    expect(summary).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(summary);
     expect(summary).toHaveAttribute('aria-expanded', 'true');
 
     const rows = screen.getAllByTestId('tool-chip');
@@ -685,6 +698,8 @@ describe('MessageToolGroupSummary', () => {
     render(<MessageToolGroupSummary messages={messages} />);
 
     const summary = screen.getByTestId('tool-group-header');
+    expect(summary).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(summary);
     expect(summary).toHaveAttribute('aria-expanded', 'true');
     expect(screen.queryByTestId('tool-activity-section-header')).not.toBeInTheDocument();
     expect(screen.getAllByTestId('tool-chip')).toHaveLength(5);
@@ -720,6 +735,8 @@ describe('MessageToolGroupSummary', () => {
     render(<MessageToolGroupSummary messages={messages} />);
 
     const summary = screen.getByTestId('tool-group-header');
+    expect(summary).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(summary);
     expect(summary).toHaveAttribute('aria-expanded', 'true');
     expect(screen.queryByTestId('tool-activity-section-header')).not.toBeInTheDocument();
     const rows = screen.getAllByTestId('tool-chip');
@@ -1500,6 +1517,8 @@ describe('MessageToolGroupSummary', () => {
     })) as unknown as ToolMessage[];
 
     const first = render(<MessageToolGroupSummary messages={messages} />);
+    expect(screen.getByTestId('tool-group-header')).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(screen.getByTestId('tool-group-header'));
     expect(screen.getByTestId('tool-group-header')).toHaveAttribute('aria-expanded', 'true');
     fireEvent.click(screen.getByTestId('tool-group-header'));
     expect(screen.getByTestId('tool-group-header')).toHaveAttribute('aria-expanded', 'false');

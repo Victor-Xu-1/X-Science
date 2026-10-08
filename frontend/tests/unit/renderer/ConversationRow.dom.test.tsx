@@ -3,6 +3,7 @@ import { Message } from '@arco-design/web-react';
 import type { TChatConversation } from '@/common/config/storage';
 import type { ConversationRowProps } from '@/renderer/pages/conversation/GroupedHistory/types';
 import React from 'react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { renderWithI18n } from '../i18nTestUtils';
 
@@ -67,7 +68,18 @@ describe('ConversationRow v1.1 session actions', () => {
       ...callbacks,
     };
 
-    const { i18n } = await renderWithI18n(<ConversationRow {...props} />);
+    const { i18n, rerender } = await renderWithI18n(<ConversationRow {...props} menuVisible={false} />);
+
+    const open = screen.getByRole('button', { name: 'STAT6 analysis', exact: true });
+    expect(open).toHaveAttribute('type', 'button');
+    open.focus();
+    const user = userEvent.setup();
+    await user.keyboard('{Enter}');
+    await user.keyboard(' ');
+    expect(props.onConversationClick).toHaveBeenCalledTimes(2);
+    expect(props.onConversationClick).toHaveBeenLastCalledWith(conversation);
+
+    rerender(<ConversationRow {...props} />);
 
     expect(await screen.findByText('重命名')).toBeInTheDocument();
     expect(screen.queryByText('任务 ID')).not.toBeInTheDocument();
@@ -364,9 +376,9 @@ describe('ConversationRow v1.1 session actions', () => {
     expect(trigger).toHaveAttribute('aria-haspopup', 'menu');
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
 
-    const menu = await screen.findByRole('menu', { name: 'More' });
+    const menu = await screen.findByRole('menu', { name: 'More · Menu target' });
     expect(menu).toHaveStyle({
-      backgroundColor: '#fff',
+      backgroundColor: 'var(--workspace-overlay-surface, var(--color-bg-1))',
       opacity: '1',
       maxWidth: 'calc(100vw - 16px)',
     });

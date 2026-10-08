@@ -1,6 +1,7 @@
 import type { TChatConversation } from '@/common/config/storage';
 import type { SynonBiomedSessionUpdate } from '@/renderer/services/synonBiomedSessionActions';
-import { Alert, Input, Modal } from '@arco-design/web-react';
+import { Alert, Input } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 

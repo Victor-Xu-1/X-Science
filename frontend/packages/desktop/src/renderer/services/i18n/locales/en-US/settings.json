@@ -1603,6 +1603,7 @@
       },
       "detail": {
         "fileLoadFailed": "Unable to read the skill files.",
+        "refreshFailed": "The change was completed, but the skill library could not refresh.",
         "draftSaved": "Skill draft saved",
         "draftSaveFailed": "Failed to save the skill draft.",
         "published": "Skill published",
@@ -1993,6 +1994,7 @@
       "configured": "Configured",
       "paired": "Paired",
       "loading": "Checking",
+      "statusUnavailable": "Status unavailable",
       "scanToPair": "Scan to pair",
       "regenerate": "Generate new QR code",
       "unpair": "Unpair",

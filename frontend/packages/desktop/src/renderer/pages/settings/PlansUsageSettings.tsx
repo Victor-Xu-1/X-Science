@@ -34,6 +34,10 @@ const PlansUsageSettings: React.FC = () => {
           description={t('settings.plansUsageSettings.usageDescription')}
           icon='plans'
         >
+          <p className='plans-usage-draft-notice' data-testid='billing-draft-notice'>
+            <strong>{t('settings.plansUsageSettings.draftTag')}</strong>
+            {t('settings.plansUsageSettings.draftExplanation')}
+          </p>
           <div className='plans-usage-balance-content py-14px flex flex-col gap-16px'>
             <div className='plans-usage-plan-identity flex items-center justify-between gap-16px flex-wrap'>
               <div className='flex items-center gap-11px min-w-0'>
@@ -49,7 +53,6 @@ const PlansUsageSettings: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <Tag color='arcoblue'>{t('settings.plansUsageSettings.draftTag')}</Tag>
             </div>
 
             <div className='plans-usage-stat-grid grid grid-cols-1 md:grid-cols-3 gap-10px'>
@@ -90,9 +93,6 @@ const PlansUsageSettings: React.FC = () => {
                   }}
                 />
               </div>
-              <p className='mt-10px mb-0 text-11px leading-5 text-t-tertiary'>
-                {t('settings.plansUsageSettings.draftExplanation')}
-              </p>
             </div>
           </div>
         </SettingsSection>

@@ -48,8 +48,8 @@ describe('GovernanceSettingsContent', () => {
 
     await waitFor(() => expect(screen.getByTestId('memory-manager')).toBeInTheDocument());
     expect(screen.getByTestId('memory-header')).toHaveTextContent('Memory');
-    expect(screen.getByTestId('memory-layer-global')).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByTestId('memory-layer-project')).toHaveAttribute('aria-selected', 'false');
+    expect(screen.getByTestId('memory-layer-global')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('memory-layer-project')).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByTestId('memory-workspace')).toBeInTheDocument();
     expect(document.querySelectorAll('[data-memory-module]')).toHaveLength(3);
     expect(document.querySelector('.memory-manager__editor-kicker')).not.toBeInTheDocument();

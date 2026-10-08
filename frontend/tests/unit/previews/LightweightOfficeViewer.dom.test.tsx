@@ -1,5 +1,5 @@
 import LightweightOfficeViewer from '@/renderer/pages/conversation/Preview/components/viewers/LightweightOfficeViewer';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithI18n } from '../i18nTestUtils';
@@ -53,12 +53,39 @@ describe('LightweightOfficeViewer', () => {
 
   it('renders presentation pages as white slide canvases without an external Office runtime', async () => {
     loadPreview.mockResolvedValue({
-      slides: [{ slideNumber: 1, content: { text: 'Discovery plan', paragraphs: ['Discovery plan', 'Evidence'] } }],
+      slides: [
+        {
+          slideNumber: 1,
+          content: { text: 'Discovery plan', paragraphs: ['Discovery plan', 'Evidence'] },
+        },
+      ],
     });
     await renderWithI18n(<LightweightOfficeViewer docType='ppt' artifactId='artifact-3' />, 'zh-CN');
 
     const slide = await screen.findByRole('region', { name: '幻灯片 1' });
     expect(slide).toHaveTextContent('Discovery plan');
     expect(slide.querySelector('.bg-white')).toBeTruthy();
+    expect(slide.querySelector('.bg-white')).not.toHaveClass('overflow-hidden');
+  });
+
+  it('switches worksheets with keyboard tabs and exposes the actual selected table without changing cell values', async () => {
+    loadPreview.mockResolvedValue({
+      sheets: [
+        { name: 'First', data: [['A', 1]] },
+        { name: 'Second', data: [['B', 2]] },
+      ],
+    });
+    await renderWithI18n(<LightweightOfficeViewer docType='excel' artifactId='sheet-keyboard-fixture' />, 'en-US');
+    const first = await screen.findByRole('tab', { name: 'First' });
+    expect(first).toHaveAttribute('tabindex', '0');
+    first.focus();
+    fireEvent.keyDown(first, { key: 'ArrowRight' });
+    const second = screen.getByRole('tab', { name: 'Second' });
+    expect(second).toHaveAttribute('aria-selected', 'true');
+    expect(second).toHaveFocus();
+    expect(first).toHaveAttribute('tabindex', '-1');
+    expect(screen.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', second.id);
+    expect(screen.getByRole('table', { name: 'Second' })).toHaveTextContent('B2');
+    expect(screen.getByRole('rowheader', { name: '1' })).toHaveAttribute('scope', 'row');
   });
 });

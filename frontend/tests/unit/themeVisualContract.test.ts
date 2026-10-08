@@ -208,13 +208,14 @@ describe('shared visual shell contract', () => {
     );
   });
 
-  it('keeps text-field focus to one neutral border without an outer ring', () => {
+  it('keeps pointer fields flat and keyboard fields visibly focused with only one indicator', () => {
     expect(shellCss).toMatch(
-      /\.arco-input:focus,[\s\S]*?\.arco-picker-focused\s*\{[\s\S]*?outline:\s*none\s*!important;[\s\S]*?box-shadow:\s*none\s*!important;/i
+      /Pointer focus stays flat[\s\S]*?input:not\(\[type='checkbox'\]\)[\s\S]*?\):focus,[\s\S]*?outline:\s*none\s*!important;[\s\S]*?box-shadow:\s*none\s*!important;/i
     );
     expect(shellCss).toMatch(
-      /Text fields use their own one-pixel border[\s\S]*?input:not\(\[type='checkbox'\]\)[\s\S]*?\):focus,[\s\S]*?outline:\s*none\s*!important;[\s\S]*?box-shadow:\s*none\s*!important;/i
+      /:focus-visible\s*\{[^}]*outline:\s*2px solid var\(--workspace-text\)\s*!important[^}]*box-shadow:\s*none\s*!important/s
     );
+    expect(shellCss).toContain(':has(textarea:focus-visible)');
     expect(shellCss).not.toMatch(/\[role='dialog'\]\s*:is\(button,\s*input,\s*textarea,\s*select\):focus-visible/i);
   });
 
@@ -245,7 +246,7 @@ describe('shared visual shell contract', () => {
     );
     expect(shellCss).toMatch(/\.message-scientific-files__metadata\s*\{[^}]*background:\s*var\(--workspace-canvas\)/i);
     expect(messageChannelsCss).toMatch(
-      /\.message-channel-card__status\s*\{[^}]*color:\s*var\(--workspace-text-tertiary,[^}]*font-size:\s*12px[^}]*line-height:\s*18px/i
+      /\.message-channel-card__status\s*\{[^}]*color:\s*var\(--settings-text-secondary\)[^}]*font-size:\s*12px[^}]*line-height:\s*18px/i
     );
     expect(shellCss).toMatch(/\.arco-tag \.arco-tag-content\s*\{[^}]*color:\s*var\(--workspace-text-secondary\)/i);
     expect(shellCss).toMatch(
@@ -401,11 +402,12 @@ describe('shared visual shell contract', () => {
     expect(shellCss).not.toContain('.settings-list');
     expect(settingsCoreCss).toMatch(/\.settings-list\s*\{[^}]*border-radius:\s*16px\s*!important/i);
     expect(settingsCardSurfacesCss).toMatch(
-      /\.settings-summary-strip,[\s\S]*?\.settings-section,[\s\S]*?\)\s*\{[^}]*border-radius:\s*(?:16px|var\(--ui-radius-2xl\))\s*!important/i
+      /\.settings-summary-strip,[\s\S]*?\.settings-section,[\s\S]*?\)\s*\{[^}]*border-radius:\s*(?:16px|var\(--ui-radius-2xl\));/i
     );
     expect(shellCss).not.toContain('tool-detail-content');
     expect(shellCss).toMatch(/:is\(\.arco-card,[\s\S]*?\.arco-table-container,[\s\S]*?\)\s*\{[^}]*overflow:\s*hidden/i);
-    expect(messageChannelsCss).toMatch(/\.message-channel-card\s*\{[^}]*overflow:\s*hidden/i);
+    expect(messageChannelsCss).toMatch(/\.message-channel-card\s*\{[^}]*min-width:\s*0/i);
+    expect(messageChannelsCss).not.toMatch(/\.message-channel-card\s*\{[^}]*overflow:\s*hidden/i);
     expect(shellCss).toMatch(
       /:is\(\.arco-modal,\s*\.accessible-content-dialog__surface,\s*\.accessible-action-dialog__dialog\)\s*\{[^}]*border-radius:\s*(?:16px|var\(--ui-radius-2xl\))/i
     );

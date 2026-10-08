@@ -1,4 +1,5 @@
-import { Message, Modal, Select, Spin } from '@arco-design/web-react';
+import { Message, Select, Spin } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import { Download, FolderClose, Left, Refresh, Upload } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';

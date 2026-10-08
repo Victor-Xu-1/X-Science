@@ -101,7 +101,7 @@ describe('GuidInputCard shared composer surface', () => {
     fireEvent.change(input, { target: { value: '请分析这个文件' } });
     expect(onInputChangeHandler).toHaveBeenCalledWith('请分析这个文件');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Remove results.csv' }));
+    fireEvent.click(screen.getByRole('button', { name: /results\.csv$/ }));
     expect(onRemoveLocalFile).toHaveBeenCalledTimes(1);
   });
 
@@ -122,5 +122,12 @@ describe('GuidInputCard shared composer surface', () => {
     expect(screen.getByTestId('composer-context-chips')).toHaveTextContent('report.mdautodock-vinaPubMed');
     fireEvent.click(screen.getByRole('button', { name: 'Remove report.md' }));
     expect(onRemoveContextItem).toHaveBeenCalledWith('artifact:artifact-1:version-1');
+  });
+
+  it('names the editable input independently of the animated placeholder', () => {
+    renderComposer();
+    const input = screen.getByTestId('guid-input');
+    expect(input.getAttribute('aria-label')).toBeTruthy();
+    expect(input.getAttribute('aria-label')).not.toBe('Send a message');
   });
 });

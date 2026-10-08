@@ -354,9 +354,8 @@
 }
 
 .root :where(input, textarea, select):focus-visible {
-  outline: none;
-  outline-offset: 0;
-  box-shadow: none;
+  outline: 2px solid var(--workspace-text, var(--color-text-1));
+  outline-offset: 3px;
 }
 .root h1:focus {
   outline: none;
@@ -463,6 +462,9 @@
   display: flex;
   flex: none;
   gap: var(--ui-space-4);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 50%;
 }
 .modelForm {
   display: grid;
@@ -476,6 +478,7 @@
   grid-column: 1 / -1;
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 @media (max-width: 640px) {
@@ -529,5 +532,23 @@
 @media (prefers-reduced-motion: reduce) {
   .dropZone {
     transition: none;
+  }
+}
+
+/* A fixed wizard sheet cannot contain its header and actions at high zoom or
+   in landscape. Short viewports use one natural page scroll, with no clipping. */
+@media (max-height: 520px) {
+  .root {
+    height: auto;
+    min-height: 100dvh;
+    justify-content: flex-start;
+  }
+  .flow {
+    height: auto;
+    min-height: 0;
+    grid-template-rows: auto auto auto;
+  }
+  .step {
+    overflow: visible;
   }
 }

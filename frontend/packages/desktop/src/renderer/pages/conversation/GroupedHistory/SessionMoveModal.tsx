@@ -1,6 +1,7 @@
 import type { TChatConversation } from '@/common/config/storage';
 import type { SynonBiomedProject } from '@/renderer/services/synonBiomedGateway';
-import { Alert, Empty, Modal, Select, Spin } from '@arco-design/web-react';
+import { Alert, Empty, Select, Spin } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 

@@ -107,4 +107,26 @@ describe('ThirdPartyLicensesModal', () => {
     expect(await screen.findByTestId('third-party-license-content')).toHaveTextContent('Ketcher 3.12.0');
     await waitFor(() => expect(mocks.load).toHaveBeenCalledTimes(2));
   });
+
+  it('names the modal, closes with Escape, and restores the trigger focus', async () => {
+    const Host = () => {
+      const [visible, setVisible] = React.useState(false);
+      return (
+        <>
+          <button onClick={() => setVisible(true)}>许可证入口</button>
+          <ThirdPartyLicensesModal visible={visible} onClose={() => setVisible(false)} />
+        </>
+      );
+    };
+    await renderWithI18n(<Host />, 'zh-CN');
+    const trigger = screen.getByRole('button', { name: '许可证入口' });
+    trigger.focus();
+    fireEvent.click(trigger);
+    const dialog = screen.getByRole('dialog', { name: '第三方许可证' });
+    expect(dialog).toHaveAttribute('aria-modal', 'true');
+    expect(dialog).toContainElement(document.activeElement as HTMLElement);
+    fireEvent.keyDown(dialog, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
 });

@@ -1,22 +1,23 @@
 import type { SettingsRouteId } from '../settingsRouteLoaders';
 
 /**
- * The image-generation set is the visual source of truth for the settings
- * surface.  This manifest keeps the acceptance criteria close to the shared
- * shell instead of scattering route-specific numbers through tests and CSS.
+ * Shared presentation contracts for the responsive scientific workbench.
+ * Historical reference assets retain their provenance; they do not dictate
+ * fixed coordinates, page scaling or fictional content in the live product.
  *
  * Values describe presentation only.  They never imply that a design-sheet
  * label, sample value, or future control should be added to a live module.
  */
 export const SETTINGS_VISUAL_SYSTEM_ID = 'scientific-connectors-v3';
+export const SETTINGS_LAYOUT_REVISION = 'intrinsic-responsive-v1';
 
 export const SETTINGS_DESKTOP_VIEWPORT = { width: 1536, height: 1024 } as const;
 export const SETTINGS_MOBILE_VIEWPORT = { width: 390, height: 844 } as const;
 
 /**
- * Desktop sheets supplied by the user for the current visual acceptance
- * baseline. Credentials has no supplied sheet yet and therefore intentionally
- * remains on the shared visual grammar until one is approved.
+ * Historical desktop sheets. Keep hashes/assets auditable, but the current
+ * quality upgrade supersedes their screenshot-specific geometry. No active
+ * route claims pixel equivalence to these images or an unreviewed mobile sheet.
  */
 export const SETTINGS_LOCKED_DESKTOP_REFERENCE_SRC = {
   account: '/branding/settings-generated-v3/references/account.png',
@@ -41,7 +42,7 @@ type GridContract = {
 export type SettingsVisualContract = {
   route: SettingsRouteId;
   reference: {
-    /** Locked image-2 desktop sheet, or null when no sheet was supplied. */
+    /** Active comparison reference, null when using intrinsic layout review. */
     desktop: string | null;
     /** Mobile sheet is intentionally null until a matching image-2 review is supplied. */
     mobile: string | null;
@@ -60,7 +61,7 @@ export const SETTINGS_VISUAL_CONTRACTS = {
   account: contract({
     route: 'account',
     reference: {
-      desktop: SETTINGS_LOCKED_DESKTOP_REFERENCE_SRC.account,
+      desktop: null,
       mobile: null,
     },
     rootTestId: 'synon-account-settings',
@@ -72,7 +73,7 @@ export const SETTINGS_VISUAL_CONTRACTS = {
   'plans-usage': contract({
     route: 'plans-usage',
     reference: {
-      desktop: SETTINGS_LOCKED_DESKTOP_REFERENCE_SRC['plans-usage'],
+      desktop: null,
       mobile: null,
     },
     rootTestId: 'synon-plans-usage-settings',
@@ -91,8 +92,8 @@ export const SETTINGS_VISUAL_CONTRACTS = {
     },
     rootTestId: 'expert-list-page',
     primarySelectors: ['.expert-grid', '.expert-card', '.expert-card__artwork'],
-    grid: { desktopColumns: 4, mobileColumns: 1, cardMinHeight: 220 },
-    interactionSelectors: ['.expert-card__main', '.expert-card [role="switch"]'],
+    grid: { desktopColumns: 4, mobileColumns: 1, cardMinHeight: 192 },
+    interactionSelectors: ['.expert-card__main', '.expert-card [role="switch"]', '.expert-card [role="status"]'],
     dynamicStates: ['loading', 'empty', 'search-empty'],
   }),
   skills: contract({
@@ -107,9 +108,9 @@ export const SETTINGS_VISUAL_CONTRACTS = {
       '.settings-skill-library-toolbar',
       '.settings-entity-grid',
       '.settings-entity-card',
-      '.settings-skill-library-footer',
+      '.settings-library-search',
     ],
-    grid: { desktopColumns: 4, mobileColumns: 1, cardMinHeight: 236 },
+    grid: { desktopColumns: 4, mobileColumns: 1, cardMinHeight: 192 },
     interactionSelectors: [
       '.settings-skill-library-toolbar select',
       '[data-testid="input-search-synon-biomed-skills"]',
@@ -121,19 +122,19 @@ export const SETTINGS_VISUAL_CONTRACTS = {
   tools: contract({
     route: 'tools',
     reference: {
-      desktop: SETTINGS_LOCKED_DESKTOP_REFERENCE_SRC.tools,
+      desktop: null,
       mobile: null,
     },
     rootTestId: 'synon-biomed-mcp-settings',
-    primarySelectors: ['.synon-mcp-grid', '.synon-mcp-card', '.mcp-library-toolbar', '.mcp-library-footer'],
-    grid: { desktopColumns: 4, mobileColumns: 1, cardMinHeight: 236 },
+    primarySelectors: ['.synon-mcp-grid', '.synon-mcp-card', '.settings-library-search', '.mcp-library-maintenance'],
+    grid: { desktopColumns: 4, mobileColumns: 1, cardMinHeight: 192 },
     interactionSelectors: ['.synon-mcp-card__configure', '.synon-mcp-card__more', '.synon-mcp-card__status-control'],
     dynamicStates: ['catalog-loading', 'catalog-error', 'connected', 'attention', 'marketplace'],
   }),
   models: contract({
     route: 'models',
     reference: {
-      desktop: SETTINGS_LOCKED_DESKTOP_REFERENCE_SRC.models,
+      desktop: null,
       mobile: null,
     },
     rootTestId: 'models-header',
@@ -144,7 +145,7 @@ export const SETTINGS_VISUAL_CONTRACTS = {
   compute: contract({
     route: 'compute',
     reference: {
-      desktop: SETTINGS_LOCKED_DESKTOP_REFERENCE_SRC.compute,
+      desktop: null,
       mobile: null,
     },
     rootTestId: 'synon-biomed-compute-section',
@@ -156,7 +157,7 @@ export const SETTINGS_VISUAL_CONTRACTS = {
   governance: contract({
     route: 'governance',
     reference: {
-      desktop: SETTINGS_LOCKED_DESKTOP_REFERENCE_SRC.governance,
+      desktop: null,
       mobile: null,
     },
     rootTestId: 'memory-header',
@@ -167,7 +168,7 @@ export const SETTINGS_VISUAL_CONTRACTS = {
   network: contract({
     route: 'network',
     reference: {
-      desktop: SETTINGS_LOCKED_DESKTOP_REFERENCE_SRC.network,
+      desktop: null,
       mobile: null,
     },
     rootTestId: 'synon-network-settings',
@@ -195,7 +196,7 @@ export const SETTINGS_VISUAL_CONTRACTS = {
   storage: contract({
     route: 'storage',
     reference: {
-      desktop: SETTINGS_LOCKED_DESKTOP_REFERENCE_SRC.storage,
+      desktop: null,
       mobile: null,
     },
     rootTestId: 'synon-storage-settings',
@@ -209,14 +210,14 @@ export const SETTINGS_VISUAL_CONTRACTS = {
     reference: { desktop: null, mobile: null },
     rootTestId: 'scientific-environments',
     primarySelectors: ['.environment-grid'],
-    grid: { desktopColumns: 3, mobileColumns: 1 },
+    grid: { desktopColumns: 4, mobileColumns: 1, cardMinHeight: 192 },
     interactionSelectors: ['input', 'select', 'button'],
     dynamicStates: ['loading', 'error', 'empty', 'preparing', 'ready', 'failed'],
   }),
   general: contract({
     route: 'general',
     reference: {
-      desktop: SETTINGS_LOCKED_DESKTOP_REFERENCE_SRC.general,
+      desktop: null,
       mobile: null,
     },
     rootTestId: 'synon-general-settings',

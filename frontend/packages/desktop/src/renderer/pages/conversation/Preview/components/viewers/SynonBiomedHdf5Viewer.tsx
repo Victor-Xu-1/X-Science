@@ -187,13 +187,13 @@ const SynonBiomedHdf5Viewer: React.FC<Props> = ({ filename, contentUrl }) => {
         </div>
       </header>
       {activeView === 'overview' ? (
-        <main className='min-h-0 flex-1 overflow-auto' aria-label={t('preview.scientific.hdf5.annDataOverview')}>
+        <section className='min-h-0 flex-1 overflow-auto' aria-label={t('preview.scientific.hdf5.annDataOverview')}>
           {state.overview ? (
             <AnnDataOverviewView overview={state.overview} />
           ) : (
             <GenericHdf5Overview filename={filename} nodeCount={state.nodeCount} />
           )}
-        </main>
+        </section>
       ) : (
         <div className='min-h-0 flex-1 grid grid-cols-[minmax(180px,34%)_minmax(0,1fr)]'>
           <aside
