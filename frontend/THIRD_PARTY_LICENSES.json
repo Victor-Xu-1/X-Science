@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "package": "@x-science/workbench-web",
-  "lockfileSHA256": "3c3a8ef5d421b8341913f01838fa7214bb7a25f22725f2ee918509ebd67bac1e",
+  "lockfileSHA256": "e883f17b6fa3d6a759e4e5f9b2cb6f7923a2cc9f59dc71f9fd4ee26d75665e77",
   "summary": {
     "records": 1131,
     "workspaceLinkRecords": 1,
@@ -7033,7 +7033,7 @@
     },
     {
       "name": "source-map-js",
-      "version": "1.2.1",
+      "version": "1.2.2",
       "license": "BSD-3-Clause",
       "directKind": null,
       "basis": "package-lock metadata"

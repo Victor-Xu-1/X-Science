@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "693f708b1bd473fb04f05c0a243f23f2be76aaccd827fdf256c135a9cf0b1c46",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "a54335c30a08c2404db36ce90863afa47f347c1a203d956f3c9b1d0dbd964ad9",
+  "additionFingerprintSHA256": "0d36bd4b0568562b94f2374d815e5fde4e0d01daac7045bf9161652e08b64d40",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 347,
@@ -6782,7 +6782,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "3c3a8ef5d421b8341913f01838fa7214bb7a25f22725f2ee918509ebd67bac1e",
+      "sha256": "e883f17b6fa3d6a759e4e5f9b2cb6f7923a2cc9f59dc71f9fd4ee26d75665e77",
       "bytes": 557888,
       "reason": "Deterministic npm build dependency lock."
     },
