@@ -82,12 +82,6 @@
   opacity: 0.94;
 }
 
-.synon-sidebar-header .synon-biomed-brand__lockup {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
 .synon-sidebar-content {
   padding: 0 8px 8px !important;
   overflow-x: hidden !important;
@@ -370,20 +364,14 @@ html body .sider-account-menu-icon-slot > .i-icon svg {
 }
 
 .synon-biomed-brand {
+  display: flex;
+  align-items: center;
   width: 186px;
   max-width: 100%;
-  aspect-ratio: 3 / 1;
 }
 
 .layout-sider-header--mobile .synon-biomed-brand {
   max-width: calc(100% - 44px);
-}
-
-.synon-biomed-brand__lockup {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
 }
 
 .layout-sider-content {

@@ -1,4 +1,4 @@
-"""Independent publication renderer for Synon Biomed 2D interaction diagrams."""
+"""Independent publication renderer for X-Science 2D interaction diagrams."""
 
 from __future__ import annotations
 

@@ -26,7 +26,7 @@ function normalizeSubagentState(subagent: IToolCallSubagent): SubagentVisualStat
 }
 
 function subagentName(subagent: IToolCallSubagent): string {
-  return subagent.delegateName || subagent.agentName || 'Synon Biomed';
+  return subagent.delegateName || subagent.agentName || 'X-Science';
 }
 
 const MessageSubagentTurn: React.FC<{ message: IMessageToolCall }> = ({ message }) => {

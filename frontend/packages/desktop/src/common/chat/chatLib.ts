@@ -114,7 +114,7 @@ interface IMessage<T extends TMessageType, Content> {
    * 消息状态
    */
   status?: 'finish' | 'pending' | 'error' | 'work';
-  /** Durable terminal state projected by the Synon Biomed transcript backend. */
+  /** Durable terminal state projected by the X-Science transcript backend. */
   terminal_status?: 'completed' | 'failed' | 'cancelled';
   /** True after a later attempt for the same logical input has been accepted. */
   terminal_superseded?: boolean;
@@ -268,11 +268,11 @@ export type IMessageToolCall = IMessage<
     revision?: number;
     phase?: string;
     settlement_reason?: string;
-    /** Linked child-frame state for Synon Biomed delegate/send_message turns. */
+    /** Linked child-frame state for X-Science delegate/send_message turns. */
     subagent?: IToolCallSubagent;
-    /** Completion and message notifications returned by Synon Biomed child frames. */
+    /** Completion and message notifications returned by X-Science child frames. */
     subagentEvents?: IToolCallSubagentEvent[];
-    /** Live Synon Biomed stdout is merged into this durable tool call. */
+    /** Live X-Science stdout is merged into this durable tool call. */
     streaming?: boolean;
     /** The auxiliary stdout snapshot could not be recovered after a gap or reconnect. */
     streamingRecoveryError?: boolean;

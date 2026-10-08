@@ -27,7 +27,7 @@ export interface SynonBiomedModeSelectorProps {
   backend?: string;
   /** Display name for the agent / 代理显示名称 */
   agent_name?: string;
-  /** Synon Biomed runtime logo (SVG path or emoji) */
+  /** X-Science runtime logo (SVG path or emoji) */
   agentLogo?: string;
   /** Whether the logo is an emoji / logo 是否为 emoji */
   agentLogoIsEmoji?: boolean;
@@ -64,7 +64,7 @@ export interface SynonBiomedModeSelectorProps {
 }
 
 /**
- * SynonBiomedModeSelector - dropdown for switching Synon Biomed runtime modes.
+ * SynonBiomedModeSelector - dropdown for switching X-Science runtime modes.
  * Displays runtime logo and name, with dropdown menu for mode selection.
  *
  * 代理模式选择器 - 用于切换代理模式的下拉组件

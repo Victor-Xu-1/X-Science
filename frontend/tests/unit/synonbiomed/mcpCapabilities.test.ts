@@ -9,7 +9,7 @@ import {
   updateSynonBiomedMcpToolPermission,
 } from '@/renderer/services/synonBiomedCapabilities';
 
-describe('Synon Biomed MCP capability service', () => {
+describe('X-Science MCP capability service', () => {
   it('normalizes real directory health payloads', async () => {
     const fetchImpl = vi.fn(
       async () =>

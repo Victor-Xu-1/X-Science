@@ -15,7 +15,7 @@ import { useBtwCommand } from '@/renderer/components/chat/BtwOverlay/useBtwComma
 describe('useBtwCommand', () => {
   beforeEach(() => askAside.mockReset());
 
-  it('uses a hidden Synon Biomed aside and aborts an in-flight question when dismissed', async () => {
+  it('uses a hidden X-Science aside and aborts an in-flight question when dismissed', async () => {
     askAside.mockResolvedValueOnce({ status: 'ok', answer: 'Evidence answer', frameId: 'aside-1' });
     const { result } = renderHook(() => useBtwCommand('root-1'));
 

@@ -138,7 +138,7 @@ const ChatConversation: React.FC<{
   });
   const workspaceEnabled = Boolean(conversation?.extra?.workspace);
   const resolvedHideSendBox = hideSendBox;
-  // Use unified hook for Synon Biomed ACP assistant info.
+  // Use unified hook for X-Science ACP assistant info.
   const { info: presetAssistantInfo, isLoading: isLoadingPreset } = usePresetAssistantInfo(conversation);
   const acpAssistantId = presetAssistantInfo?.assistantId;
   const resolvedConversationBackend = resolveConversationBackend(conversation, presetAssistantInfo?.backend);

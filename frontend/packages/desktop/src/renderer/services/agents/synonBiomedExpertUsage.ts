@@ -52,12 +52,12 @@ export async function loadSynonBiomedExpertUsage(
 
     if (!page.hasMore) return usageByName;
     if (!page.nextCursor || page.nextCursor === cursor) {
-      throw new Error('Synon Biomed expert usage response contains an invalid pagination cursor');
+      throw new Error('X-Science expert usage response contains an invalid pagination cursor');
     }
     cursor = page.nextCursor;
   }
 
-  throw new Error('Synon Biomed expert usage exceeded the pagination safety limit');
+  throw new Error('X-Science expert usage exceeded the pagination safety limit');
 }
 
 export function findSynonBiomedExpertUsage(
@@ -97,12 +97,12 @@ export function aggregateSynonBiomedExpertUsage(
 function parseConversationPage(payload: unknown): ConversationPage {
   const root = asRecord(payload);
   if (!root || !Array.isArray(root.items) || typeof root.has_more !== 'boolean') {
-    throw new Error('Synon Biomed conversation list response is invalid');
+    throw new Error('X-Science conversation list response is invalid');
   }
 
   const nextCursor = root.next_cursor;
   if (nextCursor !== null && nextCursor !== undefined && typeof nextCursor !== 'string') {
-    throw new Error('Synon Biomed conversation list response is invalid');
+    throw new Error('X-Science conversation list response is invalid');
   }
 
   return {

@@ -20,7 +20,7 @@ function categoryForName(name: string) {
   return resolveSynonBiomedSkillCategory({ name, ...presentation.skills[name] });
 }
 
-describe('Synon Biomed broad skill areas', () => {
+describe('X-Science broad skill areas', () => {
   it('maps the complete drug-development lifecycle into broad research areas', () => {
     expect(categoryForName('medicinal-chemistry-optimization')).toBe('drug-discovery');
     expect(categoryForName('single-cell-rna-analysis')).toBe('omics-bioinformatics');

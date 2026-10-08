@@ -682,7 +682,7 @@ const ArtifactDetails: React.FC<{
         })}
       />
       <Detail label={t('preview.artifact.details.folder')} value={folder?.name ?? t('preview.artifact.projectRoot')} />
-      <Detail label={t('preview.artifact.details.agent')} value={artifact.agentName ?? 'Synon Biomed'} />
+      <Detail label={t('preview.artifact.details.agent')} value={artifact.agentName ?? 'X-Science'} />
       <Detail
         label={t('preview.artifact.details.project')}
         value={artifact.projectId ?? t('preview.artifact.notLinked')}

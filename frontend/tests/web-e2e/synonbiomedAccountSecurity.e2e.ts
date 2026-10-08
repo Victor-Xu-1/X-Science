@@ -9,7 +9,7 @@ async function login(page: Page): Promise<void> {
   await expect(page).toHaveURL(/#\/guid/);
 }
 
-test.describe('Synon Biomed account security', () => {
+test.describe('X-Science account security', () => {
   test('shows OIDC capability and revokes durable browser sessions without losing the current session', async ({
     browser,
     page,

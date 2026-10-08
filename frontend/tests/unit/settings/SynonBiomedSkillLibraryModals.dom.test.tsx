@@ -59,7 +59,7 @@ const bundledSkill = {
   ],
 };
 
-describe('Synon Biomed skill library detail modal', () => {
+describe('X-Science skill library detail modal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.loadFiles.mockResolvedValue(['SKILL.md']);
@@ -119,7 +119,7 @@ describe('Synon Biomed skill library detail modal', () => {
     expect(screen.getByText('预测蛋白质结构。')).toBeInTheDocument();
     expect(screen.getByText('结构生物学与蛋白质工程')).toBeInTheDocument();
     expect(screen.queryByText('structural-biology')).not.toBeInTheDocument();
-    expect(screen.queryByText('Synon Biomed')).not.toBeInTheDocument();
+    expect(screen.queryByText('X-Science')).not.toBeInTheDocument();
     expect(screen.queryByText(/provenance metadata/)).not.toBeInTheDocument();
   });
 

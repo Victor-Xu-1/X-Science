@@ -43,7 +43,7 @@ class ResizeObserverMock {
 const renderTitle = () =>
   render(
     <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
-      <DesktopConversationTitle conversationId='conversation-1' fallbackTitle='Synon Biomed' />
+      <DesktopConversationTitle conversationId='conversation-1' fallbackTitle='X-Science' />
     </SWRConfig>
   );
 

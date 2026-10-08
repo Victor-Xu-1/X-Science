@@ -19,7 +19,7 @@ const localExecRequest = {
   questions: [],
 };
 
-describe('Synon Biomed approval scope model', () => {
+describe('X-Science approval scope model', () => {
   it('keeps persistent scopes available but defaults every discretionary grant to once', () => {
     expect(getSynonBiomedApprovalScopePolicy('local_exec')).toEqual({
       scopes: ['once', 'conversation', 'project', 'always'],

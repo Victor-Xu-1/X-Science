@@ -1055,7 +1055,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "TaskGet",
-			Description:  "Retrieve one delegated/background structured task by its task-* ID. This tool does not read Synon Biomed project IDs or UUID-shaped frame/conversation IDs; those identities are supplied by the trusted runtime context.",
+			Description:  "Retrieve one delegated/background structured task by its task-* ID. This tool does not read X-Science project IDs or UUID-shaped frame/conversation IDs; those identities are supplied by the trusted runtime context.",
 			Capabilities: []string{"tasks", "durable-state", "original-task-contract", "read-only"},
 			Input: map[string]Field{
 				"taskId": {Type: "string", Required: true},
@@ -1099,7 +1099,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "TaskList",
-			Description:  "List delegated/background structured tasks with task-* IDs and blocked-by state. This is not the Synon Biomed project or conversation list and must not be used to validate UUID-shaped frame IDs.",
+			Description:  "List delegated/background structured tasks with task-* IDs and blocked-by state. This is not the X-Science project or conversation list and must not be used to validate UUID-shaped frame IDs.",
 			Capabilities: []string{"tasks", "durable-state", "original-task-contract", "read-only"},
 			Input:        map[string]Field{},
 			Executable:   true,

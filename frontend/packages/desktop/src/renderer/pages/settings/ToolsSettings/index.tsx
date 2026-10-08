@@ -5,7 +5,7 @@
  */
 
 /**
- * ToolsSettings renders Synon Biomed MCP runtime tools as an SynonAI settings module.
+ * ToolsSettings renders X-Science MCP runtime tools as an SynonAI settings module.
  */
 
 import React from 'react';

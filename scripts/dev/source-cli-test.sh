@@ -49,6 +49,8 @@ grep -Fq '[synon-install] installed:' "$TMP_DIR/install.log"
 grep -Fq "export PATH=\"$TMP_DIR/home/.local/bin:\$PATH\"" "$TMP_DIR/install.log"
 [[ ! -e "$TMP_DIR/home/.bashrc" ]]
 [[ "$(realpath -e "$TMP_DIR/home/.local/bin/synon")" == "$SOURCE_ROOT/scripts/dev/synon" ]]
+[[ "$(realpath -e "$TMP_DIR/home/.local/bin/x-science")" == "$SOURCE_ROOT/scripts/dev/synon" ]]
+grep -Fq 'next command: x-science start' "$TMP_DIR/install.log"
 
 HOME="$TMP_DIR/home" PATH="/usr/bin:/bin" \
   bash "$SOURCE_ROOT/scripts/dev/install-source-cli.sh" >"$TMP_DIR/install-again.log"
@@ -62,6 +64,7 @@ if HOME="$TMP_DIR/conflict" PATH="/usr/bin:/bin" \
   exit 1
 fi
 grep -Fq 'refusing to replace an existing non-Synon command' "$TMP_DIR/conflict.log"
+[[ ! -e "$TMP_DIR/conflict/.local/bin/x-science" ]]
 
 ln -s /bin/sh "$TMP_DIR/conflict-link/.local/bin/synon"
 if HOME="$TMP_DIR/conflict-link" PATH="/usr/bin:/bin" \
@@ -74,7 +77,7 @@ grep -Fq 'refusing to replace an existing non-Synon command' "$TMP_DIR/conflict-
 STATE_DIR="$TMP_DIR/state"
 mkdir -p "$STATE_DIR"
 HOME="$TMP_DIR/home" SYNON_SOURCE_STATE_DIR="$STATE_DIR" \
-  "$TMP_DIR/home/.local/bin/synon" start --timeout-seconds 4 >"$TMP_DIR/start.log" 2>&1 &
+  "$TMP_DIR/home/.local/bin/x-science" start --timeout-seconds 4 >"$TMP_DIR/start.log" 2>&1 &
 START_PID=$!
 for _ in $(seq 1 100); do
   [[ -f "$STATE_DIR/quickstart.pid" ]] && break
@@ -151,7 +154,7 @@ SLEEP_PID=''
 ROOT_DIR=$(cd "$SCRIPT_DIR/../.." && pwd -P)
 make -C "$ROOT_DIR" -n source-cli-install | grep -Fq 'bash scripts/dev/install-source-cli.sh'
 make -C "$ROOT_DIR" -n source-cli-test | grep -Fq 'bash scripts/dev/source-cli-test.sh'
-grep -Fq 'synon start' "$ROOT_DIR/README.md"
+grep -Fq 'x-science start' "$ROOT_DIR/README.md"
 grep -Fq 'synon start' "$ROOT_DIR/docs/operations-runbook.md"
 
 echo 'source CLI tests passed'

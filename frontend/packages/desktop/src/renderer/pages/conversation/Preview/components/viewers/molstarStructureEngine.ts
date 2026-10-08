@@ -600,7 +600,7 @@ export const createSynonViewRepresentationPreset = (
 ) =>
   StructureRepresentationPresetProvider({
     id: `preset-synon-biomed-${representation}`,
-    display: { name: `Synon Biomed ${representation}` },
+    display: { name: `X-Science ${representation}` },
     params: () => SYNON_VIEW_PRESET_PARAMS,
     async apply(ref, params, plugin) {
       const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);

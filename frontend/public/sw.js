@@ -10,8 +10,9 @@ const PRECACHE_URLS = [
   new URL('./', self.location.href).toString(),
   OFFLINE_PAGE_URL,
   new URL('./manifest.webmanifest', self.location.href).toString(),
-  new URL('./pwa/icon-192.png?v=9b986028', self.location.href).toString(),
-  new URL('./pwa/icon-512.png?v=9b986028', self.location.href).toString(),
+  new URL('./branding/x-science-mark.png', self.location.href).toString(),
+  new URL('./branding/x-science-favicon.png', self.location.href).toString(),
+  new URL('./branding/x-science-touch-icon.png', self.location.href).toString(),
 ];
 
 self.addEventListener('install', (event) => {

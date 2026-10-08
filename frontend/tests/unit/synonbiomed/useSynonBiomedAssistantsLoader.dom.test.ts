@@ -93,7 +93,7 @@ describe('useSynonBiomedAssistantsLoader integration', () => {
     vi.unstubAllGlobals();
   });
 
-  it('uses Synon Biomed expert assistants as the only Guid agent catalog without reading old agents', async () => {
+  it('uses X-Science expert assistants as the only Guid agent catalog without reading old agents', async () => {
     const fetchImpl = vi.fn().mockImplementation(async () => expertCatalogResponse());
     vi.stubGlobal('fetch', fetchImpl);
 

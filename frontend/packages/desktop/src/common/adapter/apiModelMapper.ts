@@ -26,7 +26,7 @@ export type CreateConversationBodyInput = {
 /**
  * Build the HTTP body for `POST /api/conversations`.
  *
- * Synon Biomed conversations are assistant-first ACP conversations. Runtime
+ * X-Science conversations are assistant-first ACP conversations. Runtime
  * model defaults are carried in assistant/config options, not in the retired
  * generic top-level `model` field.
  */

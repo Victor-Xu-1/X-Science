@@ -1,14 +1,14 @@
 # Security policy
 
 Help us protect research data, credentials, workspaces, and the people using
-Synon Biomed. Please report exploitable security issues privately.
+X-Science. Please report exploitable security issues privately.
 
 安全漏洞请私下报告，不要把利用细节、访问令牌、个人数据或未公开研究发到公开 Issue、
 Pull Request 或截图中。
 
 ## Reporting a vulnerability
 
-1. Open this repository's [Security page](https://github.com/Victor-Xu-1/synon-biomed/security).
+1. Open this repository's [Security page](https://github.com/Victor-Xu-1/X-Science/security).
    If **Report a vulnerability** is available, use it to submit a private
    advisory.
 2. If private reporting is unavailable, contact the

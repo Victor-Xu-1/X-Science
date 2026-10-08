@@ -36,7 +36,7 @@ interface UseSettingsModalReturn {
  * return (
  *   <>
  *     <Button onClick={() => openSettings()}>Open Settings</Button>
- *     <Button onClick={() => openSettings('experts')}>Open Synon Biomed Experts</Button>
+ *     <Button onClick={() => openSettings('experts')}>Open X-Science Experts</Button>
  *     {settingsModal}
  *   </>
  * );

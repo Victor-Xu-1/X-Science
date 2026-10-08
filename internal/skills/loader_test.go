@@ -59,8 +59,8 @@ func TestBuiltinRuntimeCatalogUsesProductIdentity(t *testing.T) {
 	if len(loaded) != 1 {
 		t.Fatalf("builtin skills = %#v", loaded)
 	}
-	if !strings.Contains(loaded[0].Description, "Synon Biomed runtime") ||
-		!strings.Contains(loaded[0].Body, "Synon Biomed runtime contract") ||
+	if !strings.Contains(loaded[0].Description, "X-Science runtime") ||
+		!strings.Contains(loaded[0].Body, "X-Science runtime contract") ||
 		strings.Contains(loaded[0].Description, "Synon Go") || strings.Contains(loaded[0].Body, "Synon Go") {
 		t.Fatalf("builtin runtime identity description=%q body=%q", loaded[0].Description, loaded[0].Body)
 	}

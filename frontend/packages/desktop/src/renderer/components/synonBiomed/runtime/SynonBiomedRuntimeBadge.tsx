@@ -10,11 +10,11 @@ import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router';
 
 export type SynonBiomedRuntimeBadgeProps = {
-  /** Synon Biomed runtime backend type */
+  /** X-Science runtime backend type */
   backend?: string;
-  /** Display name for the Synon Biomed runtime */
+  /** Display name for the X-Science runtime */
   agent_name?: string;
-  /** Synon Biomed runtime logo (SVG path or emoji string) */
+  /** X-Science runtime logo (SVG path or emoji string) */
   agentLogo?: string;
   /** Whether the logo is an emoji */
   agentLogoIsEmoji?: boolean;
@@ -24,7 +24,7 @@ export type SynonBiomedRuntimeBadgeProps = {
   assistantId?: string;
 };
 
-/** Render Synon Biomed runtime logo from catalog metadata or the shared avatar. */
+/** Render X-Science runtime logo from catalog metadata or the shared avatar. */
 export const SynonBiomedRuntimeLogoIcon: React.FC<
   Pick<
     SynonBiomedRuntimeBadgeProps,
@@ -57,7 +57,7 @@ export const SynonBiomedRuntimeLogoIcon: React.FC<
 };
 
 /**
- * SynonBiomedRuntimeBadge - Synon Biomed runtime identity badge (logo + name)
+ * SynonBiomedRuntimeBadge - X-Science runtime identity badge (logo + name)
  *
  * When `assistantId` is provided, clicking navigates to SynonBiomedExpertsSettings editor.
  * Otherwise renders as a static display badge.

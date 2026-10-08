@@ -6,9 +6,9 @@ import type { AgentLogoMap } from '@/renderer/utils/synonBiomed/runtime/runtimeL
 import { isRobotAvatar } from '@/renderer/components/synonBiomed/SynonBiomedAvatar';
 
 /**
- * Resolve the effective Synon Biomed runtime backend for a conversation.
+ * Resolve the effective X-Science runtime backend for a conversation.
  *
- * Synon Biomed assistant-led flows pass the assistant backend explicitly when known.
+ * X-Science assistant-led flows pass the assistant backend explicitly when known.
  * Active ACP conversations may still fall back to extra.backend.
  */
 export function resolveConversationBackend(

@@ -1,4 +1,4 @@
-# Synon Biomed module topology
+# X-Science module topology
 
 `docs/governance/module-topology.json` is the machine-checked authority for
 repository placement. Production files are organized by stable responsibility:

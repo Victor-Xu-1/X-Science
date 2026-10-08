@@ -161,7 +161,7 @@ func (s *Server) projectRichWebConversationMessages(
 					content["status"] = "error"
 					content["error"] = result.Output
 					if result.Output == "" {
-						content["error"] = "Synon Biomed tool call failed"
+						content["error"] = "X-Science tool call failed"
 					}
 					messageStatus = "error"
 				case isRunning:
@@ -753,7 +753,7 @@ func richWebSubagentNotification(
 		childName = child.AgentName
 	}
 	if childName == "" {
-		childName = "Synon Biomed"
+		childName = "X-Science"
 	}
 	ordinal := ordinalByID[frameID]
 	if ordinal == 0 {
@@ -808,7 +808,7 @@ func richWebCollectedCompletion(
 		childName = child.AgentName
 	}
 	if childName == "" {
-		childName = "Synon Biomed"
+		childName = "X-Science"
 	}
 	ordinal := ordinalByID[frameID]
 	if ordinal == 0 {
@@ -1069,19 +1069,19 @@ func richWebJSON(value any) string {
 
 func richWebImageMarkdown(block map[string]any) string {
 	if direct := strings.TrimSpace(webString(block["url"])); direct != "" {
-		return "![Synon Biomed image](" + direct + ")"
+		return "![X-Science image](" + direct + ")"
 	}
 	source, _ := block["source"].(map[string]any)
 	if source == nil {
 		return ""
 	}
 	if direct := strings.TrimSpace(webString(source["url"])); direct != "" {
-		return "![Synon Biomed image](" + direct + ")"
+		return "![X-Science image](" + direct + ")"
 	}
 	data := strings.TrimSpace(webString(source["data"]))
 	mediaType := strings.TrimSpace(webString(source["media_type"]))
 	if data != "" && strings.HasPrefix(mediaType, "image/") {
-		return "![Synon Biomed image](data:" + mediaType + ";base64," + data + ")"
+		return "![X-Science image](data:" + mediaType + ";base64," + data + ")"
 	}
 	return ""
 }

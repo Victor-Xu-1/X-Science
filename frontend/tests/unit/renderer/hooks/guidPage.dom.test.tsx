@@ -388,10 +388,9 @@ describe('GuidPage', () => {
     expect(screen.queryByLabelText('Assistant Details')).not.toBeInTheDocument();
     expect(screen.queryByText('conversation.welcome.title')).not.toBeInTheDocument();
     expect(screen.queryByTestId('assistant-selection-area')).not.toBeInTheDocument();
-    expect(screen.getByRole('img', { name: 'SYNON-Biomed' })).toHaveAttribute(
-      'src',
-      './branding/synon-biomed-lockup.png'
-    );
+    const welcome = screen.getByRole('region', { name: 'X-Science' });
+    expect(welcome.querySelector('img')).toHaveAttribute('src', './branding/x-science-mark.png');
+    expect(screen.getByText('X-Science')).toBeVisible();
     expect(screen.getByText('guid.emptyState.guidance')).toBeInTheDocument();
     const latestGuidActionRowProps = capturedGuidActionRowProps.at(-1);
     const latestGuidInputCardProps = capturedGuidInputCardProps.at(-1);
@@ -657,7 +656,7 @@ describe('GuidPage', () => {
 
   it('keeps project selection in the sidebar instead of duplicating it below the composer', async () => {
     loadSynonBiomedCatalogSummaryMock.mockResolvedValue({
-      product: 'Synon Biomed',
+      product: 'X-Science',
       backendStatus: 'healthy',
       runtimeAssetsDir: '/home/victor_1/synonbiomed-workbench/synonbiomed/runtime/assets',
       backendBaseUrl: 'http://127.0.0.1:8892',
@@ -743,7 +742,7 @@ describe('GuidPage', () => {
     });
   });
 
-  it('applies a Synon Biomed assistant default model through runtime model metadata', async () => {
+  it('applies a X-Science assistant default model through runtime model metadata', async () => {
     swrMock.useSWRMock.mockReturnValue({ data: assistantDetailFixture });
     resolveGuidAssistantDefaultsMock.mockReturnValue({
       modelId: 'synonbiomed-deep-research',
@@ -754,9 +753,9 @@ describe('GuidPage', () => {
     });
     agentSelectionMock.currentAcpCachedModelInfo = {
       current_model_id: 'synonbiomed-default',
-      current_model_label: 'Synon Biomed Default',
+      current_model_label: 'X-Science Default',
       available_models: [
-        { id: 'synonbiomed-default', label: 'Synon Biomed Default' },
+        { id: 'synonbiomed-default', label: 'X-Science Default' },
         { id: 'synonbiomed-deep-research', label: 'Deep Research' },
       ],
     };
@@ -769,14 +768,14 @@ describe('GuidPage', () => {
     });
   });
 
-  it('exposes the Synon Biomed draft model selector and forwards its model state to send', async () => {
+  it('exposes the X-Science draft model selector and forwards its model state to send', async () => {
     agentSelectionMock.selectedAcpModel = 'synonbiomed-deep-research';
     agentSelectionMock.selectedAssistantBackend = 'synonbiomed';
     agentSelectionMock.currentAcpCachedModelInfo = {
       current_model_id: 'synonbiomed-default',
-      current_model_label: 'Synon Biomed Default',
+      current_model_label: 'X-Science Default',
       available_models: [
-        { id: 'synonbiomed-default', label: 'Synon Biomed Default' },
+        { id: 'synonbiomed-default', label: 'X-Science Default' },
         { id: 'synonbiomed-deep-research', label: 'Deep Research' },
       ],
     };

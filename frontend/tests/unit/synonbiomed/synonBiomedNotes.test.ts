@@ -28,7 +28,7 @@ const note = {
   message_preview: 'Observed response',
 };
 
-describe('Synon Biomed notes service', () => {
+describe('X-Science notes service', () => {
   it('loads and strictly filters notes for one message target', async () => {
     const fetchImpl = vi.fn(
       async () =>

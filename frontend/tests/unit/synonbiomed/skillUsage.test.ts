@@ -5,7 +5,7 @@ import {
   loadSynonBiomedSkillUsage,
 } from '@/renderer/services/skills/synonBiomedSkillUsage';
 
-describe('Synon Biomed skill usage service', () => {
+describe('X-Science skill usage service', () => {
   it('aggregates durable invocation records and keeps the latest valid timestamp', () => {
     const usage = aggregateSynonBiomedSkillUsage([
       {

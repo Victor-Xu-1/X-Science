@@ -25,12 +25,12 @@ export interface ConversationContextValue {
   workspace?: string;
 
   /**
-   * Synon Biomed project that owns this conversation.
+   * X-Science project that owns this conversation.
    */
   projectId?: string;
 
   /**
-   * Synon Biomed root frame for excluding self-references.
+   * X-Science root frame for excluding self-references.
    */
   currentFrameId?: string;
 

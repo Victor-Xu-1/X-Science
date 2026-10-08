@@ -1,4 +1,4 @@
-name: Synon Biomed PR Fast Gate
+name: X-Science PR Fast Gate
 
 on:
   pull_request:

@@ -234,7 +234,7 @@ const COMPUTE_BIONEMO_ENDPOINT = '/api/compute/bionemo/enabled';
 
 export async function loadSynonBiomedModalSettings(fetchImpl: FetchLike = fetch): Promise<SynonBiomedModalSettings> {
   const record = objectRecord(await requestJson<unknown>(COMPUTE_MODAL_ENDPOINT, undefined, fetchImpl));
-  if (!record) throw new Error('Synon Biomed returned invalid Modal settings');
+  if (!record) throw new Error('X-Science returned invalid Modal settings');
   return {
     provider: stringValue(record.provider) || 'modal',
     enabled: record.enabled === true,
@@ -262,7 +262,7 @@ export async function loadSynonBiomedBioNemoSettings(
   fetchImpl: FetchLike = fetch
 ): Promise<SynonBiomedBioNemoSettings> {
   const record = objectRecord(await requestJson<unknown>(COMPUTE_BIONEMO_ENDPOINT, undefined, fetchImpl));
-  if (!record) throw new Error('Synon Biomed returned invalid BioNeMo settings');
+  if (!record) throw new Error('X-Science returned invalid BioNeMo settings');
   const mode = record.mode === 'local' ? 'local' : 'hosted';
   return {
     enabled: record.enabled === true,
@@ -279,7 +279,7 @@ export async function setSynonBiomedBioNemoSettings(
   const record = objectRecord(
     await requestJson<unknown>(COMPUTE_BIONEMO_ENDPOINT, jsonRequest('PUT', input), fetchImpl)
   );
-  if (!record) throw new Error('Synon Biomed returned invalid BioNeMo settings');
+  if (!record) throw new Error('X-Science returned invalid BioNeMo settings');
   return {
     enabled: record.enabled === true,
     override: typeof record.override === 'boolean' ? record.override : null,
@@ -290,7 +290,7 @@ export async function setSynonBiomedBioNemoSettings(
 
 export async function loadSynonBiomedComputeGpuInfo(fetchImpl: FetchLike = fetch): Promise<SynonBiomedComputeGpuInfo> {
   const record = objectRecord(await requestJson<unknown>(COMPUTE_GPU_ENDPOINT, undefined, fetchImpl));
-  if (!record) throw new Error('Synon Biomed returned invalid GPU information');
+  if (!record) throw new Error('X-Science returned invalid GPU information');
   return {
     available: record.available === true,
     name: nullableString(record.gpu_name ?? record.name) ?? null,
@@ -304,7 +304,7 @@ export async function loadSynonBiomedComputeGpuEnabled(
   fetchImpl: FetchLike = fetch
 ): Promise<SynonBiomedComputeGpuEnabled> {
   const record = objectRecord(await requestJson<unknown>(COMPUTE_GPU_ENABLED_ENDPOINT, undefined, fetchImpl));
-  if (!record) throw new Error('Synon Biomed returned an invalid GPU enabled state');
+  if (!record) throw new Error('X-Science returned an invalid GPU enabled state');
   return {
     enabled: record.enabled === true,
     override: typeof record.override === 'boolean' ? record.override : null,
@@ -360,9 +360,9 @@ export async function loadSynonBiomedComputeJob(
     undefined,
     fetchImpl
   );
-  if (payload === null) throw new Error(`Synon Biomed compute job does not exist: ${jobId}`);
+  if (payload === null) throw new Error(`X-Science compute job does not exist: ${jobId}`);
   const job = toComputeJob(payload);
-  if (!job) throw new Error(`Synon Biomed returned an invalid compute job: ${jobId}`);
+  if (!job) throw new Error(`X-Science returned an invalid compute job: ${jobId}`);
   return job;
 }
 
@@ -382,7 +382,7 @@ export async function loadSynonBiomedComputeJobLog(
   );
   if (typeof payload === 'string') return { exists: true, size: payload.length, content: payload, truncated: false };
   const record = objectRecord(payload);
-  if (!record) throw new Error(`Synon Biomed returned invalid compute job logs: ${jobId}`);
+  if (!record) throw new Error(`X-Science returned invalid compute job logs: ${jobId}`);
   return {
     exists: record.exists !== false,
     size: numberValue(record.size) ?? 0,
@@ -431,7 +431,7 @@ export async function loadSynonBiomedComputeProvider(
 ): Promise<SynonBiomedComputeProvider> {
   const payload = await requestJson<unknown>(providerEndpoint(name), undefined, fetchImpl);
   const provider = toComputeProvider(payload);
-  if (!provider) throw new Error(`Synon Biomed returned an invalid compute provider: ${name}`);
+  if (!provider) throw new Error(`X-Science returned an invalid compute provider: ${name}`);
   return provider;
 }
 
@@ -520,7 +520,7 @@ export async function deleteSynonBiomedComputeProvider(
 
 export async function loadSynonBiomedLocalHostInfo(fetchImpl: FetchLike = fetch): Promise<SynonBiomedLocalHostInfo> {
   const record = objectRecord(await requestJson<unknown>('/api/compute/local/hostinfo', undefined, fetchImpl));
-  if (!record) throw new Error('Synon Biomed returned invalid local host information');
+  if (!record) throw new Error('X-Science returned invalid local host information');
   return {
     hostLabel: stringValue(record.hostLabel) || 'Local',
     hostDetail: stringValue(record.hostDetail),
@@ -583,7 +583,7 @@ async function loadHostDirectory(
 ): Promise<SynonBiomedHostDirectory> {
   const query = path ? '?path=' + encodeURIComponent(path) : '';
   const record = objectRecord(await requestJson<unknown>(endpoint + query, undefined, fetchImpl));
-  if (!record) throw new Error('Synon Biomed returned an invalid directory response');
+  if (!record) throw new Error('X-Science returned an invalid directory response');
   return {
     entries: Array.isArray(record.entries)
       ? record.entries.map(toHostFileEntry).filter((entry): entry is SynonBiomedHostFileEntry => entry !== null)
@@ -603,7 +603,7 @@ async function importHostFile(
   const response = await fetchImpl(endpoint, jsonRequest('POST', { path, projectId }));
   const record = objectRecord(await readSynonBiomedFileImportResponse(response));
   const artifactId = stringValue(record?.artifactId ?? record?.artifact_id);
-  if (!artifactId) throw new Error('Synon Biomed import response is missing an artifact ID');
+  if (!artifactId) throw new Error('X-Science import response is missing an artifact ID');
   return {
     artifactId,
     versionId: nullableString(record?.versionId ?? record?.version_id) ?? null,
@@ -635,7 +635,7 @@ async function requestJson<T = unknown>(
   try {
     return JSON.parse(text) as T;
   } catch {
-    throw new Error(`Synon Biomed compute API returned invalid JSON: ${endpoint}`);
+    throw new Error(`X-Science compute API returned invalid JSON: ${endpoint}`);
   }
 }
 
@@ -657,7 +657,7 @@ function readBackendError(text: string, status: number): string {
       return text;
     }
   }
-  return `Synon Biomed compute API request failed: ${status}`;
+  return `X-Science compute API request failed: ${status}`;
 }
 
 function toComputeProvider(value: unknown): SynonBiomedComputeProvider | null {

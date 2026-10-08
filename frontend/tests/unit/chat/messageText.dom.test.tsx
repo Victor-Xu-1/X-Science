@@ -234,7 +234,7 @@ describe('MessageText attachment paths', () => {
     );
   };
 
-  it('passes relative assistant links to the Synon Biomed artifact preview handler', () => {
+  it('passes relative assistant links to the X-Science artifact preview handler', () => {
     const message: IMessageText = {
       id: 'msg-artifact-link',
       msg_id: 'msg-artifact-link',

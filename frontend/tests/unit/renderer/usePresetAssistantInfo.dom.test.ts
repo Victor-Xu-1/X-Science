@@ -51,7 +51,7 @@ describe('usePresetAssistantInfo', () => {
     currentLanguage = 'en-US';
   });
 
-  it('prefers explicit Synon Biomed preset assistant identity over runtime metadata', () => {
+  it('prefers explicit X-Science preset assistant identity over runtime metadata', () => {
     useSWRMock.mockImplementation((key: unknown) => {
       if (key === 'assistants') {
         return {
@@ -306,7 +306,7 @@ describe('usePresetAssistantInfo', () => {
     });
   });
 
-  it('does not fall back to runtime metadata when no Synon Biomed assistant identity exists', () => {
+  it('does not fall back to runtime metadata when no X-Science assistant identity exists', () => {
     useSWRMock.mockImplementation((key: unknown) => {
       if (key === 'assistants') return { data: [], isLoading: false };
       if (key === 'extensions.acpAdapters') return { data: [], isLoading: false };
@@ -324,7 +324,7 @@ describe('usePresetAssistantInfo', () => {
     expect(result.current.info).toBeNull();
   });
 
-  it('ignores legacy custom agent row ids when no Synon Biomed assistant identity exists', () => {
+  it('ignores legacy custom agent row ids when no X-Science assistant identity exists', () => {
     useSWRMock.mockImplementation((key: unknown) => {
       if (key === 'assistants') return { data: [], isLoading: false };
       if (key === 'extensions.acpAdapters') return { data: [], isLoading: false };
@@ -428,7 +428,7 @@ describe('usePresetAssistantInfo', () => {
     });
   });
 
-  it('infers assistant info from Synon Biomed preset payload without custom agent ids', () => {
+  it('infers assistant info from X-Science preset payload without custom agent ids', () => {
     useSWRMock.mockImplementation((key: unknown) => {
       if (key === 'assistants') {
         return {

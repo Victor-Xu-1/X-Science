@@ -59,10 +59,11 @@ test.describe('unified settings visual system', () => {
       } else {
         await expect(wrapper).not.toHaveAttribute('data-settings-reference-desktop');
       }
-      await expect(page.getByTestId('synon-biomed-brand-lockup')).toHaveAttribute(
+      await expect(page.getByTestId('synon-biomed-brand-lockup').locator('img')).toHaveAttribute(
         'src',
-        './branding/synon-biomed-lockup.png?v=0cac2ebf'
+        './branding/x-science-mark.png'
       );
+      await expect(page.getByTestId('synon-biomed-brand-lockup')).toHaveText('X-Science');
 
       await assertInsideViewport(wrapper, 1536);
       await assertNoHorizontalPageOverflow(page);

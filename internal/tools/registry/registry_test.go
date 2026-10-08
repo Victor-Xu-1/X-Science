@@ -132,7 +132,7 @@ func TestTaskReadToolDescriptionsDisambiguateFrameAndBackgroundTaskIDs(t *testin
 		required []string
 	}{
 		{name: "TaskGet", required: []string{"task-*", "UUID-shaped frame/conversation IDs", "trusted runtime context"}},
-		{name: "TaskList", required: []string{"task-*", "not the Synon Biomed project or conversation list", "UUID-shaped frame IDs"}},
+		{name: "TaskList", required: []string{"task-*", "not the X-Science project or conversation list", "UUID-shaped frame IDs"}},
 	} {
 		tool, ok := reg.Get(test.name)
 		if !ok {

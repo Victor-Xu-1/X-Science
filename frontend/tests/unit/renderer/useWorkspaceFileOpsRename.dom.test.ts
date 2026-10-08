@@ -171,7 +171,7 @@ describe('useWorkspaceFileOps rename', () => {
     expect(messageApi.success).toHaveBeenCalledWith('conversation.workspace.contextMenu.addedToChat');
   });
 
-  it('renames a Synon Biomed artifact through the conversation-scoped backend contract', async () => {
+  it('renames a X-Science artifact through the conversation-scoped backend contract', async () => {
     const target: IDirOrFile = {
       name: 'STAT6_report.md',
       fullPath: 'synonbiomed://proj_stat6/frame-stat6/artifact-report',
@@ -222,7 +222,7 @@ describe('useWorkspaceFileOps rename', () => {
     expect(refreshWorkspace).toHaveBeenCalledTimes(1);
   });
 
-  it('deletes a Synon Biomed artifact through the conversation-scoped backend contract', async () => {
+  it('deletes a X-Science artifact through the conversation-scoped backend contract', async () => {
     const target: IDirOrFile = {
       name: 'STAT6_report.md',
       fullPath: 'synonbiomed://proj_stat6/frame-stat6/artifact-report',
@@ -274,7 +274,7 @@ describe('useWorkspaceFileOps rename', () => {
     expect(refreshWorkspace).toHaveBeenCalledTimes(1);
   });
 
-  it('previews a read-only Synon Biomed markdown artifact from its real content URL', async () => {
+  it('previews a read-only X-Science markdown artifact from its real content URL', async () => {
     const artifact: IDirOrFile = {
       name: 'STAT6_report.md',
       fullPath: 'synonbiomed://proj_stat6/frame-stat6/artifact-report',
@@ -358,7 +358,7 @@ describe('useWorkspaceFileOps rename', () => {
       { presentation: 'board' }
     );
   });
-  it('downloads a read-only Synon Biomed artifact from its content URL', async () => {
+  it('downloads a read-only X-Science artifact from its content URL', async () => {
     const artifact: IDirOrFile = {
       name: 'STAT6_report.md',
       fullPath: 'synonbiomed://proj_stat6/frame-stat6/artifact-report',

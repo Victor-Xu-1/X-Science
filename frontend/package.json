@@ -1,8 +1,8 @@
 {
-  "name": "@synon-go/workbench-web",
+  "name": "@x-science/workbench-web",
   "version": "0.1.2",
   "private": true,
-  "description": "Synon Biomed scientific workbench Web application.",
+  "description": "X-Science scientific workbench Web application.",
   "license": "Apache-2.0",
   "author": {
     "name": "Synon-AI"
@@ -133,5 +133,5 @@
   "engines": {
     "node": ">=22.22.0 <25"
   },
-  "productName": "Synon Biomed"
+  "productName": "X-Science"
 }

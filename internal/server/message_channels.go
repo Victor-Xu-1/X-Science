@@ -466,7 +466,7 @@ func (s *Server) persistMessageChannelConnection(platform, ownerUserID, userID, 
 
 func (s *Server) messageChannelPairingNotice(platform string) string {
 	if s.restartRuntime == nil {
-		return platform + " paired; restart Synon Biomed to activate message delivery"
+		return platform + " paired; restart X-Science to activate message delivery"
 	}
 	if err := s.restartRuntime("message_channel_pairing:" + strings.ToLower(strings.TrimSpace(platform))); err != nil {
 		log.Printf("message channel %s paired but runtime restart was not scheduled: %v", platform, err)

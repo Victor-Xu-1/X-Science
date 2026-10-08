@@ -4,7 +4,7 @@ import { createSynonBiomedTestFetch } from './synonbiomedTestAuth';
 
 const gatewayBaseUrl = process.env.SYNON_BIOMED_GATEWAY_URL ?? 'http://127.0.0.1:8766';
 
-describe('Synon Biomed governance integration', () => {
+describe('X-Science governance integration', () => {
   it('reads memory, approvals and provenance from the real backend', async () => {
     const snapshot = await loadSynonBiomedGovernance({
       baseUrl: gatewayBaseUrl,

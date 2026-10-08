@@ -145,7 +145,7 @@ function projectWorkspaceFromComposerArtifacts(
       .map((item) => (item.kind === 'artifact' ? item.projectId! : ''))
   );
   if (projectIds.size > 1) {
-    throw new Error('Selected project artifacts must belong to one Synon Biomed project');
+    throw new Error('Selected project artifacts must belong to one X-Science project');
   }
   const projectId = projectIds.values().next().value as string | undefined;
   return projectId
@@ -166,7 +166,7 @@ function resolveGuidProjectAuthority(
     throw new Error('Project artifacts cannot be combined with a custom local workspace');
   }
   if (selectedProject && selectedProject.projectId !== artifactProject.projectId) {
-    throw new Error('Selected project artifacts conflict with the active Synon Biomed project');
+    throw new Error('Selected project artifacts conflict with the active X-Science project');
   }
   return selectedProject ?? artifactProject;
 }
@@ -177,14 +177,14 @@ async function resolveGuidAttachmentProject(
 ): Promise<SynonBiomedProjectWorkspace> {
   if (selectedProject) return selectedProject;
   if (hasCustomWorkspace) {
-    throw new Error('Local attachments require a Synon Biomed project workspace');
+    throw new Error('Local attachments require a X-Science project workspace');
   }
 
   const projects = await loadSynonBiomedProjects();
   const personalWorkspace = projects.find((project) => project.name.trim().toLowerCase() === 'personal workspace');
   const fallbackProject = personalWorkspace ?? projects[0];
   if (!fallbackProject) {
-    throw new Error('No Synon Biomed project is available for local attachments');
+    throw new Error('No X-Science project is available for local attachments');
   }
 
   return {
@@ -197,7 +197,7 @@ async function resolveGuidAttachmentProject(
 }
 
 /**
- * Hook that manages the send logic for Synon Biomed assistant conversations.
+ * Hook that manages the send logic for X-Science assistant conversations.
  */
 function normalizeSynonBiomedEffort(value?: string): SynonBiomedSessionDefaults['effort'] {
   return value === 'low' || value === 'medium' || value === 'high' ? value : undefined;

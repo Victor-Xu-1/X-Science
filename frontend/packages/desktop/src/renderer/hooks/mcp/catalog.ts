@@ -57,7 +57,7 @@ export const toSessionMcpServer = (server: Pick<IMcpServer, 'id' | 'name' | 'tra
 });
 
 /**
- * Synon Biomed connectors execute inside the backend agent runtime and do not
+ * X-Science connectors execute inside the backend agent runtime and do not
  * expose browser-executable transports. This catalog therefore contains only
  * explicitly configured SynonAI user servers during the remaining migration.
  */

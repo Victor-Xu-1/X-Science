@@ -43,7 +43,7 @@ func TestBundledAgentsCompatibilityAPIListsV11Catalog(t *testing.T) {
 	if operon["systemPrompt"] != "" || operon["iconKey"] != "lightning" || operon["colorKey"] != "accent-main" {
 		t.Fatalf("OPERON compatibility fields=%#v", operon)
 	}
-	wantGreeting := "Hi, let's set Synon Biomed up for your science.\n\nSynon Biomed works best when it understands what you research and how you research it."
+	wantGreeting := "Hi, let's set X-Science up for your science.\n\nX-Science works best when it understands what you research and how you research it."
 	if agents[9]["greeting"] != wantGreeting {
 		t.Fatalf("ONBOARDING greeting=%q", agents[9]["greeting"])
 	}

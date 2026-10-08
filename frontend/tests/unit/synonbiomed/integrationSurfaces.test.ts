@@ -7,8 +7,8 @@
 import { describe, expect, it } from 'vitest';
 import { buildSynonBiomedIntegrationSurfaces } from '@/renderer/services/synonBiomedCatalog';
 
-describe('Synon Biomed system integration surfaces', () => {
-  it('maps Synon Biomed capabilities across SynonAI primary layouts without exposing old frontend module lists', () => {
+describe('X-Science system integration surfaces', () => {
+  it('maps X-Science capabilities across SynonAI primary layouts without exposing old frontend module lists', () => {
     const surfaces = buildSynonBiomedIntegrationSurfaces();
 
     expect(surfaces.map((surface) => surface.id)).toEqual([

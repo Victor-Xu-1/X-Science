@@ -18,7 +18,7 @@ vi.mock('@/renderer/hooks/synonBiomed/runtime/usePresetAssistantInfo', () => ({
   usePresetAssistantInfo: () => ({
     info: {
       assistantId: 'assistant-test',
-      name: 'Synon Biomed',
+      name: 'X-Science',
       logo: undefined,
       isEmoji: false,
       isFallback: false,

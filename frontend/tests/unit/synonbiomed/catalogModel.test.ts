@@ -69,7 +69,7 @@ it('loads Guid assistants from the user-visible expert profiles instead of the r
 });
 
 const catalog: SynonBiomedCatalog = {
-  product: 'Synon Biomed',
+  product: 'X-Science',
   runtime: {
     runtimeAssetsDir: '/home/victor_1/synonbiomed-workbench/synonbiomed/runtime/assets',
     agents: { count: 2, names: ['Gene Analysis', 'Variant Review'] },
@@ -134,11 +134,11 @@ const catalog: SynonBiomedCatalog = {
   },
 };
 
-describe('Synon Biomed catalog model', () => {
+describe('X-Science catalog model', () => {
   it('summarizes runtime capability counts for the settings UI', () => {
     const summary = summarizeSynonBiomedCatalog(catalog);
 
-    expect(summary.product).toBe('Synon Biomed');
+    expect(summary.product).toBe('X-Science');
     expect(summary.backendStatus).toBe('healthy');
     expect(summary.counts).toEqual({
       agents: 2,
@@ -177,7 +177,7 @@ describe('Synon Biomed catalog model', () => {
     expect(skills).toEqual([
       {
         name: 'alphafold2',
-        description: 'Synon Biomed skill from runtime assets: alphafold2.',
+        description: 'X-Science skill from runtime assets: alphafold2.',
         location: `${catalog.runtime.runtimeAssetsDir}/skills/alphafold2/SKILL.md`,
         relative_location: 'synonbiomed/skills/alphafold2/SKILL.md',
         is_auto_inject: false,
@@ -186,7 +186,7 @@ describe('Synon Biomed catalog model', () => {
       },
       {
         name: 'cheminfo-render',
-        description: 'Synon Biomed skill from runtime assets: cheminfo-render.',
+        description: 'X-Science skill from runtime assets: cheminfo-render.',
         location: `${catalog.runtime.runtimeAssetsDir}/skills/cheminfo-render/SKILL.md`,
         relative_location: 'synonbiomed/skills/cheminfo-render/SKILL.md',
         is_auto_inject: false,
@@ -231,7 +231,7 @@ describe('Synon Biomed catalog model', () => {
     });
   });
 
-  it('uses Synon Biomed runtime skills as the native catalog and removes unrelated SynonAI builtin skills', () => {
+  it('uses X-Science runtime skills as the native catalog and removes unrelated SynonAI builtin skills', () => {
     const baseSkills = [
       { name: 'cron', description: 'Scheduled tasks', source: 'builtin', is_custom: false },
       { name: 'xiaohongshu-post', description: 'Social media copywriting', source: 'builtin', is_custom: false },
@@ -251,13 +251,13 @@ describe('Synon Biomed catalog model', () => {
     ]);
   });
 
-  it('does not fall back to the original skill catalog when Synon Biomed skills are unavailable', () => {
+  it('does not fall back to the original skill catalog when X-Science skills are unavailable', () => {
     const baseSkills = [{ name: 'cron', description: 'Scheduled tasks', source: 'builtin', is_custom: false }];
 
     expect(mergeSynonBiomedSkills(baseSkills, [])).toEqual([]);
   });
 
-  it('uses Synon Biomed MCP servers as the native builtin tool catalog and removes unrelated builtin tools', () => {
+  it('uses X-Science MCP servers as the native builtin tool catalog and removes unrelated builtin tools', () => {
     const baseServers = [
       {
         id: 'builtin-browser',
@@ -295,7 +295,7 @@ describe('Synon Biomed catalog model', () => {
     ]);
   });
 
-  it('keeps the original MCP catalog when Synon Biomed MCP servers are unavailable', () => {
+  it('keeps the original MCP catalog when X-Science MCP servers are unavailable', () => {
     const baseServers = [
       {
         id: 'builtin-browser',
@@ -311,7 +311,7 @@ describe('Synon Biomed catalog model', () => {
 
     expect(mergeSynonBiomedMcpServers(baseServers, [])).toEqual(baseServers);
   });
-  it('fetches the Synon Biomed catalog from the web host API', async () => {
+  it('fetches the X-Science catalog from the web host API', async () => {
     const fetchImpl = vi.fn(async () => new Response(JSON.stringify(catalog), { status: 200 }));
 
     await expect(fetchSynonBiomedCatalog(fetchImpl)).resolves.toEqual(catalog);
@@ -321,7 +321,7 @@ describe('Synon Biomed catalog model', () => {
     });
   });
 
-  it('creates a Synon Biomed backend project through the SynonAI web host and returns a selectable workspace', async () => {
+  it('creates a X-Science backend project through the SynonAI web host and returns a selectable workspace', async () => {
     const fetchImpl = vi.fn(
       async () =>
         new Response(

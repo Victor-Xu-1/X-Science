@@ -49,12 +49,12 @@ for (const viewport of viewports) {
   test.describe(viewport.name, () => {
     test.use({ viewport: { width: viewport.width, height: viewport.height } });
 
-    test('shows the transparent Synon Biomed brand before and after authentication', async ({ page }) => {
+    test('shows the transparent X-Science brand before and after authentication', async ({ page }) => {
       await page.goto('/#/login', { waitUntil: 'domcontentloaded' });
 
-      await expect(page).toHaveTitle('Synon Biomed');
+      await expect(page).toHaveTitle('X-Science');
       await expectCircuitTreeImage(page.locator('.login-page__logo img'));
-      await expect(page.getByRole('heading', { name: 'Synon Biomed', exact: true })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'X-Science', exact: true })).toBeVisible();
       await expect(page.locator('body')).not.toContainText(/SynonAI/i);
 
       await page.locator('input[name="username"]').fill(webUsername);
@@ -62,7 +62,7 @@ for (const viewport of viewports) {
       await page.locator('button[type="submit"]').click();
       await expect(page).toHaveURL(/#\/guid/);
 
-      await expect(page).toHaveTitle('Synon Biomed');
+      await expect(page).toHaveTitle('X-Science');
       await expectTransparentImage(page.getByTestId('synon-biomed-brand-lockup'), viewport.name === 'desktop');
       await expect(page.locator('body')).not.toContainText(/SynonAI/i);
     });

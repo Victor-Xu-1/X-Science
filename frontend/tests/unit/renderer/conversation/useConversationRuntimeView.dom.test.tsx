@@ -329,7 +329,7 @@ describe('useConversationRuntimeView hydration authority', () => {
     await waitFor(() => expect(mocks.getConversation).toHaveBeenCalledTimes(1));
   });
 
-  it('reconciles a Synon Biomed terminal notification against current backend authority', async () => {
+  it('reconciles a X-Science terminal notification against current backend authority', async () => {
     const initialConversation = {
       id: 'conversation-1',
       extra: { backend: 'synonbiomed' },

@@ -42,7 +42,7 @@ describe('checkSynonBiomedRuntimeUpdate', () => {
     );
 
     await expect(checkSynonBiomedRuntimeUpdate({ fetchImpl })).rejects.toThrow(
-      'Synon Biomed update status response is invalid'
+      'X-Science update status response is invalid'
     );
   });
 });

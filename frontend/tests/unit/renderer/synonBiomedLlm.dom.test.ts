@@ -30,7 +30,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('Synon Biomed LLM service', () => {
+describe('X-Science LLM service', () => {
   it('preserves explicit null budgets on the wire instead of dropping the reset', async () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ ok: true, profile })));
     await saveSynonBiomedLlmProfile({ ...profile, maxTokens: null, contextWindow: null }, fetchMock);

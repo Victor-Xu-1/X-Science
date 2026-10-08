@@ -1,4 +1,5 @@
 import type { SynonBiomedMcpAppTool, SynonBiomedMcpAppToolResult } from '@/renderer/services/mcp/synonBiomedMcpApps';
+import { PRODUCT_NAME } from '@/common/config/productIdentity';
 
 declare const __APP_VERSION__: string;
 
@@ -40,7 +41,7 @@ export function mcpAppInitializeResult(protocolVersion: unknown, darkMode: boole
   if (protocolVersion !== MCP_APP_PROTOCOL_VERSION) throw new Error('MCP_APP_PROTOCOL_UNSUPPORTED');
   return {
     protocolVersion: MCP_APP_PROTOCOL_VERSION,
-    hostInfo: { name: 'Synon Biomed', version: __APP_VERSION__ },
+    hostInfo: { name: PRODUCT_NAME, version: __APP_VERSION__ },
     hostCapabilities: { serverTools: { listChanged: false }, logging: {} },
     hostContext: {
       displayMode: 'inline',

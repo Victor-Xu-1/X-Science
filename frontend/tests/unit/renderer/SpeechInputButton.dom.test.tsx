@@ -55,7 +55,7 @@ describe('SpeechInputButton', () => {
     vi.clearAllMocks();
   });
 
-  it('starts the native Synon Biomed voice flow without a legacy STT setting', async () => {
+  it('starts the native X-Science voice flow without a legacy STT setting', async () => {
     render(<SpeechInputButton onTranscript={vi.fn()} />);
 
     const button = await screen.findByRole('button', { name: '开始语音输入' });

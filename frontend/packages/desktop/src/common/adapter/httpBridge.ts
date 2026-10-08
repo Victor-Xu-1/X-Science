@@ -1,5 +1,5 @@
 /**
- * HTTP bridge factory and Electron event adapter for the Synon Biomed backend.
+ * HTTP bridge factory and Electron event adapter for the X-Science backend.
  *
  * Exported helpers produce objects with the same shape as @office-ai/platform bridge,
  * so existing renderer code works without changes.
@@ -25,7 +25,7 @@ declare global {
  *   the first HTTP call, so reading from window is authoritative.
  * - Renderer (WebUI browser): no preload, so `window.__backendPort` is missing.
  *   Requests must go to the same origin that served the page; web-host's
- *   static-server reverse-proxies supported backend HTTP paths. Synon Biomed
+ *   static-server reverse-proxies supported backend HTTP paths. X-Science
  *   conversation updates are synchronized through its HTTP polling adapter.
  * - Main process: `window` is undefined. `src/index.ts` writes the port to
  *   `globalThis.__backendPort` immediately after `backendManager.start()`

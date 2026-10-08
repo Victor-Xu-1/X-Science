@@ -2,7 +2,7 @@
   "emptyState": {
     "guidance": "Describe your research goal or upload files to begin a new biomedical research task."
   },
-  "promptExamplesHint": "Try Synon Biomed workflows",
+  "promptExamplesHint": "Try X-Science workflows",
   "defaultPrompts": {
     "capabilities": "Design a STAT6 SBDD PPI analysis workflow",
     "skills": "Run Boltz2 to generate and evaluate a protein-ligand complex",
@@ -24,7 +24,7 @@
     "noProject": "No Project",
     "recentLabel": "Recent",
     "chooseDifferentFolder": "Choose a different folder",
-    "synonBiomedProjects": "Synon Biomed projects",
+    "synonBiomedProjects": "X-Science projects",
     "seedWorkflows": "Seed workflows"
   },
   "quickActions": {
@@ -34,7 +34,7 @@
     "runtime": "Runtime status"
   },
   "onboarding": {
-    "brand": "Synon Biomed Workbench",
+    "brand": "X-Science Workbench",
     "account": {
       "current": "Current account: {{username}}",
       "switch": "Switch account",
@@ -73,9 +73,9 @@
       "runtimeReady": "ready",
       "runtimeQueued": "prepared in the background after setup",
       "runtimeUnavailable": "Local scientific runtimes are unavailable on this system",
-      "runtimePythonTitle": "Synon Biomed Python",
+      "runtimePythonTitle": "X-Science Python",
       "runtimePythonDescription": "Required Python runtime for scientific tasks; installed once and reused from the managed environment store.",
-      "runtimeRTitle": "Synon Biomed R",
+      "runtimeRTitle": "X-Science R",
       "runtimeRDescription": "Required R runtime for scientific tasks; installed once and reused from the managed environment store.",
       "runtimeCommonTitle": "Common structure toolkit",
       "runtimeCommonDescription": "RDKit, BioPython, Gemmi, and PyYAML for molecules, sequences, and PDB/mmCIF files.",
@@ -174,8 +174,8 @@
       "sessionInvalid": "The secure session could not be verified. Sign in again and retry.",
       "permissionDenied": "One or more selected capabilities are not available to this research assistant. Review the capability selection.",
       "configuration": "The selected project or assistant configuration is no longer available. Review the setup and retry.",
-      "network": "Synon Biomed could not reach the local service. Check the connection and retry.",
-      "service": "Synon Biomed could not start the task. Your setup is saved; retry when the service is available."
+      "network": "X-Science could not reach the local service. Check the connection and retry.",
+      "service": "X-Science could not start the task. Your setup is saved; retry when the service is available."
     }
   }
 }

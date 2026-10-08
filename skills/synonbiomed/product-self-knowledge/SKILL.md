@@ -1,14 +1,14 @@
 ---
 name: product-self-knowledge
-description: "Use this skill only when the user asks about Synon Biomed product behavior, local deployment, third-party LLM configuration, project files, built-in capabilities, or runtime boundaries."
+description: "Use this skill only when the user asks about X-Science product behavior, local deployment, third-party LLM configuration, project files, built-in capabilities, or runtime boundaries."
 license: Apache-2.0
 ---
 
-# Synon Biomed Product Knowledge
+# X-Science Product Knowledge
 
 ## Core Principles
 
-1. Synon Biomed is a local-first biomedical agent workspace.
+1. X-Science is a local-first biomedical agent workspace.
 2. Model access is configured through third-party LLM providers in the local LLM settings.
 3. Project data, generated artifacts, conversations, and runtime state should stay in the configured local data directory unless the user explicitly enables a network-backed feature.
 4. Answers about project behavior should be grounded in the local runtime configuration and files, not in external product documentation.

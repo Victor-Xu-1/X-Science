@@ -28,7 +28,7 @@ const workspaceArtifactUrl = ({ conversationId, artifactId }: SynonBiomedArtifac
 async function readJsonResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const detail = await response.text().catch(() => '');
-    throw new Error(`Synon Biomed workspace request failed: ${response.status}${detail ? ` ${detail}` : ''}`);
+    throw new Error(`X-Science workspace request failed: ${response.status}${detail ? ` ${detail}` : ''}`);
   }
   return response.json() as Promise<T>;
 }
@@ -77,7 +77,7 @@ export async function uploadSynonBiomedArtifact(
   const uploadId = typeof init.upload_id === 'string' ? init.upload_id : '';
   const backendChunkSize = typeof init.chunk_size === 'number' ? init.chunk_size : requestedChunkSize;
   if (!uploadId || !Number.isSafeInteger(backendChunkSize) || backendChunkSize <= 0) {
-    throw new Error('Synon Biomed upload initialization returned an invalid contract');
+    throw new Error('X-Science upload initialization returned an invalid contract');
   }
 
   const uploadChunk = async (offset: number, chunkIndex: number): Promise<void> => {

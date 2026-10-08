@@ -248,7 +248,7 @@ func modalProfiles(path string, secret secretstore.Secret, hasStored bool) ([]ma
 	}
 	if tomlMissing && hasStored {
 		profiles = append(profiles, map[string]any{
-			"name": "Synon Biomed (stored)", "active": true,
+			"name": "X-Science (stored)", "active": true,
 			"tokenIdMasked": compute.MaskModalToken(secret.Credentials["token_id"]),
 		})
 		return profiles, true, nil

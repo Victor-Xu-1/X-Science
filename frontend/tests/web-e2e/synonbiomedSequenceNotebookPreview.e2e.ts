@@ -10,7 +10,7 @@ import {
 } from './synonBiomedScientificFixture';
 
 const GENBANK_FIXTURE = `LOCUS       SYNON001                 120 bp    DNA     circular SYN 11-JUL-2026
-DEFINITION  Synthetic Synon Biomed test plasmid.
+DEFINITION  Synthetic X-Science test plasmid.
 ACCESSION   SYNON001
 VERSION     SYNON001.1
 FEATURES             Location/Qualifiers
@@ -34,7 +34,7 @@ const NOTEBOOK_FIXTURE = JSON.stringify({
     language_info: { name: 'python' },
   },
   cells: [
-    { cell_type: 'markdown', source: ['# STAT6 validation\n', 'Synon Biomed notebook fixture'] },
+    { cell_type: 'markdown', source: ['# STAT6 validation\n', 'X-Science notebook fixture'] },
     {
       cell_type: 'code',
       execution_count: 7,

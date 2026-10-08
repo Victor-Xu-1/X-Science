@@ -11,7 +11,7 @@ import {
 } from '@/renderer/components/synonBiomed/runtime/runtimeOperationsModel';
 import { describe, expect, it } from 'vitest';
 
-describe('Synon Biomed runtime operations model', () => {
+describe('X-Science runtime operations model', () => {
   it('retains only valid server-derived stage progress in a decision question', () => {
     const stage_progress = {
       schema: 'synon.plan_stage_progress.v1',

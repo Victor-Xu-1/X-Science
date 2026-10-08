@@ -403,7 +403,7 @@ describe('useSynonBiomedArtifactLinkPreview', () => {
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
       const url = String(input);
       if (url === '/api/artifacts/artifact-report/versions/version-report') {
-        return new Response('# Synon Biomed report', {
+        return new Response('# X-Science report', {
           status: 200,
           headers: { 'content-type': 'text/markdown' },
         });
@@ -430,7 +430,7 @@ describe('useSynonBiomedArtifactLinkPreview', () => {
       headers: { accept: SYNON_BIOMED_TEXT_ACCEPT_HEADER },
     });
     expect(previewMocks.openPreview).toHaveBeenCalledWith(
-      '# Synon Biomed report',
+      '# X-Science report',
       'markdown',
       expect.objectContaining({
         title: 'README.md',

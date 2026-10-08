@@ -31,7 +31,7 @@ const mk = (id: string, source: Assistant['source'], sort_order: number, enabled
   }) as Assistant;
 
 describe('selectableAssistants', () => {
-  it('orders Synon Biomed experts by group and then sort_order', () => {
+  it('orders X-Science experts by group and then sort_order', () => {
     const result = selectableAssistants([
       mk('builtin-a', 'builtin', 5),
       mk('user-b', 'user', 20),

@@ -36,7 +36,12 @@ describe('github star badge next to the history-forward arrow', () => {
 
     expect(titlebar).toContain("data-testid='github-star-button'");
     expect(titlebar).toContain('GITHUB_REPO_URL');
-    expect(titlebar).toContain("'https://github.com/Victor-Xu-1/synon-biomed'");
+    expect(titlebar).toContain('const GITHUB_REPO_URL = PRODUCT_REPOSITORY_URL');
+    const identity = await readFile(
+      new URL('../../../packages/desktop/src/common/config/productIdentity.ts', import.meta.url),
+      'utf8'
+    );
+    expect(identity).toContain("'https://github.com/Victor-Xu-1/X-Science'");
     expect(titlebar).toContain('void openExternalUrl(GITHUB_REPO_URL)');
     expect(titlebar).toContain("aria-label={t('common.starOnGitHub')}");
     expect(titlebar).toContain("<Tooltip content={t('common.starOnGitHub')} position='bottom'>");

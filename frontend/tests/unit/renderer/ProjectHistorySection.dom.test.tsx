@@ -140,7 +140,7 @@ describe('ProjectHistorySection', () => {
     saveProjectOrderMock.mockResolvedValue(undefined);
   });
 
-  it('renders Synon Biomed projects from the real gateway client and opens the SynonAI project route', async () => {
+  it('renders X-Science projects from the real gateway client and opens the SynonAI project route', async () => {
     const onProjectsChange = vi.fn();
     const onProjectSelect = vi.fn();
     const onPrepareNavigation = vi.fn().mockResolvedValue(undefined);

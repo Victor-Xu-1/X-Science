@@ -19,7 +19,7 @@ const atomLine = (x: number, y: number, element: string) =>
 async function shapeFromMol(atoms: string[], bonds: Array<[number, number, number]>) {
   const source = [
     'Synthetic bond-order regression',
-    '  Synon Biomed',
+    '  X-Science',
     '',
     `${integer(atoms.length)}${integer(bonds.length)}  0  0  0  0            999 V2000`,
     ...atoms,

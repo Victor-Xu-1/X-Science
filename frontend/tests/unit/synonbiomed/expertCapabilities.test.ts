@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { loadSynonBiomedAgents, toSynonAIAssistant } from '@/renderer/services/synonBiomedCapabilities';
 
-describe('Synon Biomed expert capabilities', () => {
+describe('X-Science expert capabilities', () => {
   it('loads the rich profile catalog, hides technical agents, and preserves user ownership', async () => {
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
       new Response(
@@ -120,7 +120,7 @@ describe('Synon Biomed expert capabilities', () => {
         return new Promise<Response>((_resolve, reject) => {
           init?.signal?.addEventListener(
             'abort',
-            () => reject(new DOMException('Synon Biomed request timed out', 'TimeoutError')),
+            () => reject(new DOMException('X-Science request timed out', 'TimeoutError')),
             { once: true }
           );
         });

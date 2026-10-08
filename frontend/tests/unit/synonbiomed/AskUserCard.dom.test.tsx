@@ -170,7 +170,7 @@ describe('AskUserCard', () => {
     );
 
     rerender(<AskUserCard question={questionWithoutMolecule} onResolve={onResolve} />);
-    const agentChoice = screen.getByRole('radio', { name: /让 Synon Biomed 决定/ });
+    const agentChoice = screen.getByRole('radio', { name: /让 X-Science 决定/ });
     await waitFor(() => expect(agentChoice).toBeEnabled());
     fireEvent.click(agentChoice);
     await waitFor(() => expect(onResolve).toHaveBeenLastCalledWith({ action: 'decide_for_me' }));
@@ -256,7 +256,7 @@ describe('AskUserCard', () => {
     expect(screen.getByText('Note: Moderate clearance')).toBeInTheDocument();
     expect(screen.getByText('Recommended')).toBeInTheDocument();
     expect(screen.getByText('Verified ready')).toBeInTheDocument();
-    expect(screen.getByRole('radio', { name: /Let Synon Biomed decide/ })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /Let X-Science decide/ })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Custom answer' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Discuss' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Skip' })).toBeInTheDocument();

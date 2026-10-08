@@ -2,7 +2,7 @@
   "emptyState": {
     "guidance": "描述你的研究目标，或上传文件，开始一项新的生物医药研究任务。"
   },
-  "promptExamplesHint": "试试这些 Synon Biomed 工作流",
+  "promptExamplesHint": "试试这些 X-Science 工作流",
   "defaultPrompts": {
     "capabilities": "设计一个 STAT6 SBDD PPI 分析流程",
     "skills": "调用 Boltz2 生成并评估蛋白-配体复合物结构",
@@ -24,7 +24,7 @@
     "noProject": "不使用项目",
     "recentLabel": "最近使用",
     "chooseDifferentFolder": "选择其他文件夹",
-    "synonBiomedProjects": "Synon Biomed 项目",
+    "synonBiomedProjects": "X-Science 项目",
     "seedWorkflows": "Seed 工作流"
   },
   "quickActions": {
@@ -34,7 +34,7 @@
     "runtime": "运行状态"
   },
   "onboarding": {
-    "brand": "Synon Biomed 科研工作台",
+    "brand": "X-Science 科研工作台",
     "account": {
       "current": "当前账号：{{username}}",
       "switch": "切换账号",
@@ -73,9 +73,9 @@
       "runtimeReady": "已就绪",
       "runtimeQueued": "完成设置后后台准备",
       "runtimeUnavailable": "此系统未启用本地科学运行时",
-      "runtimePythonTitle": "Synon Biomed Python",
+      "runtimePythonTitle": "X-Science Python",
       "runtimePythonDescription": "科研任务必需的 Python 环境，只安装一次并从统一环境仓库复用。",
-      "runtimeRTitle": "Synon Biomed R",
+      "runtimeRTitle": "X-Science R",
       "runtimeRDescription": "科研任务必需的 R 环境，只安装一次并从统一环境仓库复用。",
       "runtimeCommonTitle": "常用结构工具",
       "runtimeCommonDescription": "RDKit、BioPython、Gemmi 与 PyYAML，用于分子、序列及 PDB/mmCIF 处理。",
@@ -174,7 +174,7 @@
       "sessionInvalid": "无法验证安全会话。请重新登录后重试。",
       "permissionDenied": "部分所选能力不属于当前科研助手的权限范围，请检查能力选择。",
       "configuration": "所选项目或科研助手配置已不可用，请检查初始化设置后重试。",
-      "network": "无法连接本地 Synon Biomed 服务，请检查连接后重试。",
+      "network": "无法连接本地 X-Science 服务，请检查连接后重试。",
       "service": "暂时无法启动任务。初始化内容已保存，可在服务恢复后重试。"
     }
   }

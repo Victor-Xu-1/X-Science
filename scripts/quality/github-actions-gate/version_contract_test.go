@@ -69,7 +69,7 @@ func TestVersionBotOnlyProposesReviewedSingleRepositoryUpdates(t *testing.T) {
 		"client-id":                "$" + "{{ vars.RELEASE_APP_ID }}",
 		"private-key":              "$" + "{{ secrets.RELEASE_APP_PRIVATE_KEY }}",
 		"owner":                    "$" + "{{ github.repository_owner }}",
-		"repositories":             "synon-biomed",
+		"repositories":             "X-Science",
 		"permission-contents":      "write",
 		"permission-issues":        "write",
 		"permission-pull-requests": "write",

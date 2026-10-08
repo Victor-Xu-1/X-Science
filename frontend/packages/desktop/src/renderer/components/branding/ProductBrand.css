@@ -1,0 +1,38 @@
+.x-science-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  color: var(--color-text-1);
+  white-space: nowrap;
+}
+
+.x-science-brand__mark {
+  display: block;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.x-science-brand__name {
+  overflow: hidden;
+  font-size: 18px;
+  font-weight: 650;
+  line-height: 1.3;
+  letter-spacing: -0.025em;
+  text-overflow: ellipsis;
+}
+
+.x-science-brand--prominent {
+  gap: 12px;
+}
+
+.x-science-brand--prominent .x-science-brand__mark {
+  width: 48px;
+  height: 48px;
+}
+
+.x-science-brand--prominent .x-science-brand__name {
+  font-size: 30px;
+}

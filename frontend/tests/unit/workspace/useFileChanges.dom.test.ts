@@ -30,7 +30,7 @@ vi.mock('@/common', () => ({
 }));
 
 describe('useFileChanges', () => {
-  it('does not initialize local file snapshots for a read-only Synon Biomed workspace', async () => {
+  it('does not initialize local file snapshots for a read-only X-Science workspace', async () => {
     const { unmount } = renderHook(() => useFileChanges({ workspace: 'synonbiomed://proj_stat6', enabled: false }));
     await Promise.resolve();
     unmount();

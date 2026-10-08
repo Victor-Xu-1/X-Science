@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Small ViennaRNA MCP adapter.
 
-The adapter is part of Synon Biomed source, while the ViennaRNA wheel is
+The adapter is part of X-Science source, while the ViennaRNA wheel is
 installed into the user-managed MCP directory only after explicit action.
 No RNA sequence is sent to an external service by this server.
 """
@@ -86,7 +86,7 @@ def design_rna_sequence(target_structure: str, sequence_template: str = "") -> d
 def main() -> None:
     from mcp.server.fastmcp import FastMCP
 
-    server = FastMCP("Synon Biomed ViennaRNA")
+    server = FastMCP("X-Science ViennaRNA")
     server.tool()(fold_rna)
     server.tool()(fold_rna_pair)
     server.tool()(evaluate_rna_structure)

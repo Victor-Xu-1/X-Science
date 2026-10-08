@@ -17,7 +17,7 @@ func runWorkspaceImportCLI(ctx context.Context, args []string, output io.Writer)
 		return errors.New("workspace import output is required")
 	}
 	if len(args) == 0 || (args[0] != "inspect" && args[0] != "plan") {
-		return errors.New("usage: Synon Biomed workspace-import inspect|plan --source <path> [--target-home <path>] [--include-paths]")
+		return errors.New("usage: X-Science workspace-import inspect|plan --source <path> [--target-home <path>] [--include-paths]")
 	}
 	mode := args[0]
 	flags := flag.NewFlagSet("workspace-import "+mode, flag.ContinueOnError)

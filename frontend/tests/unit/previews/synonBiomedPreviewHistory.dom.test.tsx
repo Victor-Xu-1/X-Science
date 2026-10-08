@@ -67,7 +67,7 @@ vi.mock('@/renderer/services/synonBiomedArtifacts', () => ({
 
 import { usePreviewHistory } from '@/renderer/pages/conversation/Preview/hooks/usePreviewHistory';
 
-describe('Synon Biomed preview history integration', () => {
+describe('X-Science preview history integration', () => {
   afterEach(() => {
     vi.clearAllMocks();
   });

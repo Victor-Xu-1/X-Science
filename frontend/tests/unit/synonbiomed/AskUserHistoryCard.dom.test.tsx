@@ -261,7 +261,7 @@ describe('AskUserHistoryCard', () => {
     expect(card.className).not.toMatch(/(?:^|\s)border(?:\s|$)/);
     expect(card.className).not.toMatch(/(?:^|\s)border-solid(?:\s|$)/);
     expect(within(card).getByTestId('synon-biomed-ask-user-history-answer')).toHaveTextContent(
-      '已交由 Synon Biomed 决定'
+      '已交由 X-Science 决定'
     );
   });
 
@@ -307,7 +307,7 @@ describe('AskUserHistoryCard', () => {
     [
       'deferred',
       JSON.stringify({ version: 1, status: 'deferred', action: 'decide_for_me' }),
-      '已交由 Synon Biomed 决定',
+      '已交由 X-Science 决定',
     ],
     ['unavailable', JSON.stringify({ version: 2, status: 'cancelled', action: 'cancel' }), '回复不可用'],
   ])(

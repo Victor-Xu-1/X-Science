@@ -1,4 +1,4 @@
-name: Synon Biomed Main Integration Gate
+name: X-Science Main Integration Gate
 
 on:
   push:

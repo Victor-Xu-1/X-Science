@@ -67,7 +67,7 @@ export async function loadSynonBiomedMcpAppViewerBindings(
 ): Promise<SynonBiomedMcpAppViewerBinding[]> {
   const payload = asRecord(await requestJson('/api/mcp-apps/viewer-bindings', undefined, options));
   if (!payload || !Array.isArray(payload.bindings))
-    throw new Error('Synon Biomed MCP App bindings response is invalid');
+    throw new Error('X-Science MCP App bindings response is invalid');
   return payload.bindings
     .map(toViewerBinding)
     .filter((binding): binding is SynonBiomedMcpAppViewerBinding => binding !== null);

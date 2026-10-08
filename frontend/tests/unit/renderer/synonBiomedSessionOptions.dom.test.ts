@@ -12,7 +12,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('Synon Biomed session options service', () => {
+describe('X-Science session options service', () => {
   it('owns one immutable optional-features-off default and returns isolated draft copies', () => {
     const first = createSynonBiomedSessionDefaults('AIDD_EXPERT');
     const second = createSynonBiomedSessionDefaults('AIDD_EXPERT');
@@ -148,7 +148,7 @@ describe('Synon Biomed session options service', () => {
     );
 
     const request = loadSynonBiomedSessionOptions('frame-stalled', fetchMock);
-    const rejection = expect(request).rejects.toThrow('Synon Biomed session request timed out');
+    const rejection = expect(request).rejects.toThrow('X-Science session request timed out');
     await vi.advanceTimersByTimeAsync(8_000);
 
     await rejection;
@@ -174,7 +174,7 @@ describe('Synon Biomed session options service', () => {
     );
 
     const request = loadSynonBiomedSessionOptions('frame-stalled-body', fetchMock);
-    const rejection = expect(request).rejects.toThrow('Synon Biomed session request timed out');
+    const rejection = expect(request).rejects.toThrow('X-Science session request timed out');
     await vi.advanceTimersByTimeAsync(8_000);
 
     await rejection;

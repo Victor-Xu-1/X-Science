@@ -12,7 +12,7 @@ import {
 } from '@/common/adapter/workspaceMapper';
 
 describe('workspaceMapper', () => {
-  it('preserves stable artifact paths and remote preview metadata for Synon Biomed workspace nodes', () => {
+  it('preserves stable artifact paths and remote preview metadata for X-Science workspace nodes', () => {
     const [root] = fromBackendWorkspaceList(
       [
         {

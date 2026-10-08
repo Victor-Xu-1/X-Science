@@ -53,7 +53,7 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
   const availableBackends = agent.availableBackends;
 
   // Render the agent's own avatar (icon/logo) for a dropdown row. Falls back to
-  // the shared Synon Biomed avatar when the catalog has no explicit logo.
+  // the shared X-Science avatar when the catalog has no explicit logo.
   const renderAgentAvatar = (option: AvailableBackend) => {
     const avatar = resolveAgentAvatar(agentLogos, {
       icon: option.icon,

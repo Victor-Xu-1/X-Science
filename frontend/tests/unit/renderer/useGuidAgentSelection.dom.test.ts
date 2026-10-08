@@ -101,7 +101,7 @@ describe('useGuidAssistantSelection', () => {
     });
   });
 
-  it('restores the last selected guid assistant before falling back to the Synon Biomed default', async () => {
+  it('restores the last selected guid assistant before falling back to the X-Science default', async () => {
     mockAssistants = [
       assistantFixture({ id: 'synonbiomed:aidd-expert', runtimeKey: 'synonbiomed', source: 'generated', sortOrder: 1 }),
       assistantFixture({
@@ -269,7 +269,7 @@ describe('useGuidAssistantSelection', () => {
           current_model_id: 'synonbiomed-deep-research',
           current_model_label: 'Deep Research',
           available_models: [
-            { id: 'synonbiomed-default', label: 'Synon Biomed Default' },
+            { id: 'synonbiomed-default', label: 'X-Science Default' },
             { id: 'synonbiomed-deep-research', label: 'Deep Research' },
           ],
         },
@@ -298,7 +298,7 @@ describe('useGuidAssistantSelection', () => {
       current_model_id: 'synonbiomed-deep-research',
       current_model_label: 'Deep Research',
       available_models: [
-        { id: 'synonbiomed-default', label: 'Synon Biomed Default' },
+        { id: 'synonbiomed-default', label: 'X-Science Default' },
         { id: 'synonbiomed-deep-research', label: 'Deep Research' },
       ],
     });
@@ -438,7 +438,7 @@ describe('useGuidAssistantSelection', () => {
       {
         id: 'assistant-synonbiomed-empty',
         source: 'generated',
-        name: 'Synon Biomed',
+        name: 'X-Science',
         name_i18n: {},
         description_i18n: {},
         enabled: true,
@@ -472,7 +472,7 @@ describe('useGuidAssistantSelection', () => {
     expect(result.current.selectedMode).toBe('default');
   });
 
-  it('reads Synon Biomed mode options from the managed agent catalog', async () => {
+  it('reads X-Science mode options from the managed agent catalog', async () => {
     mockAssistants = [
       {
         id: 'synonbiomed:aidd-expert',
@@ -568,7 +568,7 @@ describe('assistant model helpers', () => {
         available_models: [
           {
             id: 'synonbiomed-default',
-            label: 'Synon Biomed Default',
+            label: 'X-Science Default',
             description: 'Default biomedical workflow model',
           },
           {
@@ -591,7 +591,7 @@ describe('assistant model helpers', () => {
       current_model_id: 'synonbiomed-deep-research',
       current_model_label: 'Deep Research',
       available_models: [
-        { id: 'synonbiomed-default', label: 'Synon Biomed Default', description: 'Default biomedical workflow model' },
+        { id: 'synonbiomed-default', label: 'X-Science Default', description: 'Default biomedical workflow model' },
         {
           id: 'synonbiomed-deep-research',
           label: 'Deep Research',

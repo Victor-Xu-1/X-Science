@@ -25,7 +25,7 @@ type MyAssistantRowProps = {
 };
 
 /**
- * A single Synon Biomed expert row. Clicking the row opens its settings.
+ * A single X-Science expert row. Clicking the row opens its settings.
  */
 const MyAssistantRow: React.FC<MyAssistantRowProps> = ({
   assistant,

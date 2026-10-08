@@ -53,7 +53,7 @@ afterEach(async () => {
   conversationFixture = null;
 });
 
-describe('Synon Biomed real workspace lifecycle', () => {
+describe('X-Science real workspace lifecycle', () => {
   it('uploads, groups, renames, downloads, and deletes a project artifact through SynonAI', async () => {
     conversationFixture = await createRealConversationFixture({ gatewayBaseUrl: webBaseUrl });
     const conversation: Conversation = {

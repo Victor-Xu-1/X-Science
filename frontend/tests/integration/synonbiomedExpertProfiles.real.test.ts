@@ -14,7 +14,7 @@ type ExpertProfile = {
   enabled: boolean;
 };
 
-describe('Synon Biomed expert profile gateway', () => {
+describe('X-Science expert profile gateway', () => {
   it('creates, projects, updates, disables, and deletes a user expert through the authenticated WebHost', async () => {
     const fetchImpl = await createSynonBiomedTestFetch(gatewayBaseUrl);
 

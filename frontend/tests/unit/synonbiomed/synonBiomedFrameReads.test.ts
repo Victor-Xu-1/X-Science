@@ -13,7 +13,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('Synon Biomed frame read cache', () => {
+describe('X-Science frame read cache', () => {
   it('coalesces frame and artifact reads while keeping the resources distinct', async () => {
     const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
@@ -86,7 +86,7 @@ describe('Synon Biomed frame read cache', () => {
         return new Promise<Response>((_resolve, reject) => {
           init?.signal?.addEventListener(
             'abort',
-            () => reject(new DOMException('Synon Biomed request timed out', 'TimeoutError')),
+            () => reject(new DOMException('X-Science request timed out', 'TimeoutError')),
             { once: true }
           );
         });

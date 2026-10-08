@@ -1718,7 +1718,7 @@ func TestToolsAPIExecutesAgentRuntimeDoctorParityAudit(t *testing.T) {
 	}
 	contract, ok := result["contract"].(map[string]any)
 	if !ok || contract["source"] != "synon-harness" || contract["target"] != "synon-biomed" ||
-		contract["productName"] != "Synon Biomed" || contract["productVersion"] != buildinfo.Release().Version {
+		contract["productName"] != "X-Science" || contract["productVersion"] != buildinfo.Release().Version {
 		t.Fatalf("AgentRuntimeDoctor product contract = %#v", result["contract"])
 	}
 	contractJSON, err := json.Marshal(contract)

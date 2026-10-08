@@ -114,7 +114,7 @@ const renderContent = () =>
     </SWRConfig>
   );
 
-describe('SystemModalContent Synon Biomed settings', () => {
+describe('SystemModalContent X-Science settings', () => {
   beforeEach(() => {
     cleanup();
     vi.clearAllMocks();

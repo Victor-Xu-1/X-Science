@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { PRODUCT_NAME, PRODUCT_REPOSITORY_URL } from '@/common/config/productIdentity';
 import classNames from 'classnames';
 import { ArrowCircleLeft, ArrowLeft, ArrowRight, ExpandLeft, ExpandRight, Search, Star } from '@icon-park/react';
 import { Tooltip } from '@arco-design/web-react';
@@ -56,7 +57,7 @@ const SidebarIcon: React.FC<{ size?: number; strokeWidth?: number }> = ({ size =
   </svg>
 );
 
-const GITHUB_REPO_URL = 'https://github.com/Victor-Xu-1/synon-biomed';
+const GITHUB_REPO_URL = PRODUCT_REPOSITORY_URL;
 
 /**
  * Star shortcut rendered right after the history-forward arrow: hovering
@@ -87,7 +88,7 @@ const GitHubStarButton: React.FC<{ iconSize: number; iconStroke?: number }> = ({
 
 const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   const { t } = useTranslation();
-  const appTitle = useMemo(() => 'Synon Biomed', []);
+  const appTitle = useMemo(() => PRODUCT_NAME, []);
   const [workspaceCollapsed, setWorkspaceCollapsed] = useState(true);
   const [workspaceStateReady, setWorkspaceStateReady] = useState(false);
   const [mobileCenterTitle, setMobileCenterTitle] = useState(appTitle);

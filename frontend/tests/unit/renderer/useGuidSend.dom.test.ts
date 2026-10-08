@@ -341,7 +341,7 @@ describe('useGuidSend', () => {
 
     const { result } = renderHook(() => useGuidSend(deps));
     await act(async () => {
-      await expect(result.current.handleSend()).rejects.toThrow('must belong to one Synon Biomed project');
+      await expect(result.current.handleSend()).rejects.toThrow('must belong to one X-Science project');
     });
     expect(createConversationInvokeMock).not.toHaveBeenCalled();
   });
@@ -361,7 +361,7 @@ describe('useGuidSend', () => {
 
     const { result } = renderHook(() => useGuidSend(deps));
     await act(async () => {
-      await expect(result.current.handleSend()).rejects.toThrow('conflict with the active Synon Biomed project');
+      await expect(result.current.handleSend()).rejects.toThrow('conflict with the active X-Science project');
     });
     expect(createConversationInvokeMock).not.toHaveBeenCalled();
   });
@@ -434,7 +434,7 @@ describe('useGuidSend', () => {
     );
   });
 
-  it('carries session controls into the executable first Synon Biomed message', async () => {
+  it('carries session controls into the executable first X-Science message', async () => {
     const deps = createDeps();
     deps.sessionOptions = {
       delegation: true,
@@ -478,7 +478,7 @@ describe('useGuidSend', () => {
     expect(stored.session_options).toEqual(expect.objectContaining({ plan_mode: true }));
   });
 
-  it('passes selected mode into assistant conversation overrides when creating a Synon Biomed conversation', async () => {
+  it('passes selected mode into assistant conversation overrides when creating a X-Science conversation', async () => {
     const deps = createDeps();
     deps.selectedThoughtLevelValue = 'high';
 
@@ -658,7 +658,7 @@ describe('useGuidSend', () => {
     expect(payload.extra.preset_assistant_id).toBeUndefined();
   });
 
-  it('forwards local skill overrides through assistant conversation overrides for Synon Biomed assistants', async () => {
+  it('forwards local skill overrides through assistant conversation overrides for X-Science assistants', async () => {
     const deps = createDeps();
     deps.guidEnabledSkills = ['pdf-reader'];
     deps.guidDisabledBuiltinSkills = ['todo-tracker'];
@@ -675,7 +675,7 @@ describe('useGuidSend', () => {
     expect(payload.assistant?.conversation_overrides?.disabled_builtin_skill_ids).toEqual(['todo-tracker']);
   });
 
-  it('creates Synon Biomed project conversations with backend project identity instead of a custom folder', async () => {
+  it('creates X-Science project conversations with backend project identity instead of a custom folder', async () => {
     const deps = createDeps();
     deps.dir = 'synonbiomed://project/proj_stat6?name=STAT6&artifacts=23&conversations=2';
 

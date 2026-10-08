@@ -638,7 +638,7 @@ function toHostGrant(value: unknown): SynonBiomedHostGrant | null {
 
 function requireHostGrant(value: unknown): SynonBiomedHostGrant {
   const grant = toHostGrant(value);
-  if (!grant) throw new Error('Synon Biomed returned an invalid host grant response.');
+  if (!grant) throw new Error('X-Science returned an invalid host grant response.');
   return grant;
 }
 

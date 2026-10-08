@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { askSynonBiomedAsideQuestion, createSynonBiomedBranchSession } from '@/renderer/services/synonBiomedAside';
 
-describe('Synon Biomed aside service', () => {
+describe('X-Science aside service', () => {
   it('creates a hidden v1.1 aside and returns the persisted frame response', async () => {
     const fetchImpl = vi
       .fn()

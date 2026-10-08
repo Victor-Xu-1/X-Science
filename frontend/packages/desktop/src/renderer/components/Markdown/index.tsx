@@ -274,7 +274,7 @@ const ResolvedArtifactLink: React.FC<ResolvedArtifactLinkProps> = ({ originalHre
         if (active) setResolution({ key: originalHref, value: nextHref });
       })
       .catch((error) => {
-        console.warn('[MarkdownView] Failed to resolve Synon Biomed artifact link:', error);
+        console.warn('[MarkdownView] Failed to resolve X-Science artifact link:', error);
         if (active) setResolution({ key: originalHref, value: null });
       });
     return () => {
@@ -320,7 +320,7 @@ const ResolvedArtifactImage: React.FC<{
         if (active) setResolution({ key: src, value: nextSrc });
       })
       .catch((error) => {
-        console.warn('[MarkdownView] Failed to resolve Synon Biomed artifact image:', error);
+        console.warn('[MarkdownView] Failed to resolve X-Science artifact image:', error);
         if (active) setResolution({ key: src, value: null });
       });
     return () => {

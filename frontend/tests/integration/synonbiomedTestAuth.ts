@@ -22,13 +22,13 @@ export async function createSynonBiomedTestFetch(baseUrl: string): Promise<typeo
     }),
   });
   if (!login.ok) {
-    throw new Error(`Synon Biomed test login failed: ${login.status} ${await login.text()}`);
+    throw new Error(`X-Science test login failed: ${login.status} ${await login.text()}`);
   }
   const setCookie = login.headers.get('set-cookie') ?? '';
   const session = setCookie.match(/(?:^|,\s*)(synon_session=[^;,\s]+)/)?.[1];
   const csrfToken = setCookie.match(/(?:^|,\s*)synon_csrf=([^;,\s]+)/)?.[1];
   if (!session || !csrfToken) {
-    throw new Error('Synon Biomed test login did not return session and CSRF cookies');
+    throw new Error('X-Science test login did not return session and CSRF cookies');
   }
 
   return ((input: string | URL | Request, init: RequestInit = {}) => {

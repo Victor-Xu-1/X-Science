@@ -6,7 +6,7 @@ import {
   SYNON_BIOMED_INITIAL_CREDITS,
 } from '@/renderer/services/synonBiomedBilling';
 
-describe('Synon Biomed credit draft', () => {
+describe('X-Science credit draft', () => {
   it('uses 10,000 credits and 1,000 tokens per credit as the standard baseline', () => {
     const overview = getSynonBiomedBillingOverview();
 
