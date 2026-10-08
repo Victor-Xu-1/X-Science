@@ -17,7 +17,7 @@ usage() {
   cat <<'EOF'
 Usage: scripts/dev/source-quickstart.sh [options]
 
-Start the existing Synon Biomed source backend watcher and Vite frontend host.
+Start the existing X-Science source backend watcher and Vite frontend host.
 This is a development checkout entry, not a packaged release installer.
 
 Options:

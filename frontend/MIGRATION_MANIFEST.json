@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "693f708b1bd473fb04f05c0a243f23f2be76aaccd827fdf256c135a9cf0b1c46",
+  "adaptationFingerprintSHA256": "5f82d96d7de16b1efc195d256be45a787ba2e67966668391c0af7bb5ada1b159",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "a54335c30a08c2404db36ce90863afa47f347c1a203d956f3c9b1d0dbd964ad9",
+  "additionFingerprintSHA256": "578357f6a19f0e1660692feb91dcf197e8293864a8f898801fd977de067baa8e",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 347,
@@ -33,7 +33,7 @@
       "sourceSHA256": "9efbaf1bd4937b93a7bb760b0d43290f1399bdd99677be159bab2766b48f6ba7",
       "targetSHA256": "c1fa8714620d01261a3ba6ad1b38b2640eed2ed6af0f6b38967db3e85bcdb19d",
       "bytes": 2953,
-      "reason": "Align shared browser contracts, configuration, themes, and typed preview/provider models with the Go-owned Synon Biomed runtime."
+      "reason": "Align shared browser contracts, configuration, themes, and typed preview/provider models with the Go-owned X-Science runtime."
     },
     {
       "path": "packages/desktop/src/common/adapter/browser.ts",
@@ -61,14 +61,14 @@
       "sourceSHA256": "57b9a2fd3bd75f633dcbaf0098fdb23576b0d1fac81f565e9132c0dad1b54dc5",
       "targetSHA256": "ecb50e89293e079df416eabbdf33c71f5532bed436522e4e028101a9a22ceab2",
       "bytes": 1748,
-      "reason": "Align shared browser contracts, configuration, themes, and typed preview/provider models with the Go-owned Synon Biomed runtime."
+      "reason": "Align shared browser contracts, configuration, themes, and typed preview/provider models with the Go-owned X-Science runtime."
     },
     {
       "path": "packages/desktop/src/common/adapter/workspaceMapper.ts",
       "sourceSHA256": "9be0cb114bd4f5170b944ee0310bc27f6898e41f2128dd7963da35793d753541",
       "targetSHA256": "a2bf4b4f787391ca71d0260394a488375c82900204b6674a9215980d34ca3c46",
       "bytes": 5380,
-      "reason": "Align shared browser contracts, configuration, themes, and typed preview/provider models with the Go-owned Synon Biomed runtime."
+      "reason": "Align shared browser contracts, configuration, themes, and typed preview/provider models with the Go-owned X-Science runtime."
     },
     {
       "path": "packages/desktop/src/common/chat/chatLib.ts",
@@ -96,14 +96,14 @@
       "sourceSHA256": "660205b015317c88f9bb885f9637d0117632caf080cf8a8d93adb1f2c3dbd8eb",
       "targetSHA256": "9a9d8908bbf236a81aec32c38596136f6437468389187ca55384daa40696603b",
       "bytes": 5921,
-      "reason": "Align shared browser contracts, configuration, themes, and typed preview/provider models with the Go-owned Synon Biomed runtime."
+      "reason": "Align shared browser contracts, configuration, themes, and typed preview/provider models with the Go-owned X-Science runtime."
     },
     {
       "path": "packages/desktop/src/common/config/fontSizes.ts",
       "sourceSHA256": "6df9cd1099ee3247e4cbde4636da291d279afc1f187be902ff8d5147107d6e07",
       "targetSHA256": "01ca422dab9949d0f5dde26556bbbaf7d139e0bd052715a9319b29bd75e4ee15",
       "bytes": 1516,
-      "reason": "Align shared browser contracts, configuration, themes, and typed preview/provider models with the Go-owned Synon Biomed runtime."
+      "reason": "Align shared browser contracts, configuration, themes, and typed preview/provider models with the Go-owned X-Science runtime."
     },
     {
       "path": "packages/desktop/src/common/config/i18n-config.json",
@@ -117,7 +117,7 @@
       "sourceSHA256": "39b94be06178a5be155abc95b25bcf8d255fb0195ba2a901190599c1a6c280c7",
       "targetSHA256": "47c880411b3d24500ebddeac06ba043737808af2ae865fd7b16b902fcbd53201",
       "bytes": 2750,
-      "reason": "Align shared browser contracts, configuration, themes, and typed preview/provider models with the Go-owned Synon Biomed runtime."
+      "reason": "Align shared browser contracts, configuration, themes, and typed preview/provider models with the Go-owned X-Science runtime."
     },
     {
       "path": "packages/desktop/src/common/config/storage.ts",
@@ -131,42 +131,42 @@
       "sourceSHA256": "c9df79392564ef5cd58233b4ca38f93219c2f7565627ce405c606c2d5ea98ba6",
       "targetSHA256": "623fc4dfab88aecb52755c04f15e2daa22d20f7f330caf3899646572b480ee1f",
       "bytes": 2575,
-      "reason": "Align shared browser contracts, configuration, themes, and typed preview/provider models with the Go-owned Synon Biomed runtime."
+      "reason": "Align shared browser contracts, configuration, themes, and typed preview/provider models with the Go-owned X-Science runtime."
     },
     {
       "path": "packages/desktop/src/common/theme/migrateThemeConfig.ts",
       "sourceSHA256": "150be2ea66f601c34e52c29c80bedf33e6f2b115e41b995b0f71778d0bb53649",
       "targetSHA256": "5dd6fb5125b3c7400233ea9492864e205ff16b26c043d7c3376e4314b34cea5a",
       "bytes": 1574,
-      "reason": "Align shared browser contracts, configuration, themes, and typed preview/provider models with the Go-owned Synon Biomed runtime."
+      "reason": "Align shared browser contracts, configuration, themes, and typed preview/provider models with the Go-owned X-Science runtime."
     },
     {
       "path": "packages/desktop/src/common/theme/resolveTheme.ts",
       "sourceSHA256": "fb0db9e7371c5327056dafb2b55c2dcc5a08b202b1fe9dd9e5d591c0e6f3d688",
       "targetSHA256": "378f44eff5c141c4bf5a59e9e4016dc0af2aa0d0d275d49798aad261c6041a5c",
       "bytes": 817,
-      "reason": "Align shared browser contracts, configuration, themes, and typed preview/provider models with the Go-owned Synon Biomed runtime."
+      "reason": "Align shared browser contracts, configuration, themes, and typed preview/provider models with the Go-owned X-Science runtime."
     },
     {
       "path": "packages/desktop/src/common/types/conversation/messageSearch.ts",
       "sourceSHA256": "83ed4574e3572efa3ff89717a41d634c82d64c4e32b1d80c0766f2051d6e71c3",
       "targetSHA256": "340875c7911a685536709987e710a31cd0bfdd125c0ec79bb3187929c6468e4e",
       "bytes": 588,
-      "reason": "Align shared browser contracts, configuration, themes, and typed preview/provider models with the Go-owned Synon Biomed runtime."
+      "reason": "Align shared browser contracts, configuration, themes, and typed preview/provider models with the Go-owned X-Science runtime."
     },
     {
       "path": "packages/desktop/src/common/types/office/preview.ts",
       "sourceSHA256": "3edf739d5242a8f8fcd8c88d0348a605dc3d68bfc1307899df3a26b9d2b93f9d",
       "targetSHA256": "cde37ee0079a93365a7e114b352ee7087394b070fa7781258596a6203569beb4",
       "bytes": 942,
-      "reason": "Align shared browser contracts, configuration, themes, and typed preview/provider models with the Go-owned Synon Biomed runtime."
+      "reason": "Align shared browser contracts, configuration, themes, and typed preview/provider models with the Go-owned X-Science runtime."
     },
     {
       "path": "packages/desktop/src/common/types/provider/speech.ts",
       "sourceSHA256": "352919472717f0c0b578babe014d1f8039cba7fdc506dc531663cdcb063b8f82",
       "targetSHA256": "3c3a734eff7328f7a8565e9b0cca7ef9b02150aab9ec9d56ffc790023295daf1",
       "bytes": 1192,
-      "reason": "Align shared browser contracts, configuration, themes, and typed preview/provider models with the Go-owned Synon Biomed runtime."
+      "reason": "Align shared browser contracts, configuration, themes, and typed preview/provider models with the Go-owned X-Science runtime."
     },
     {
       "path": "packages/desktop/src/common/utils/appConfig.ts",
@@ -880,7 +880,7 @@
       "sourceSHA256": "793dd2aa0767028be35aea2fb67c833fc890236132cbdecfd2f0363611ced836",
       "targetSHA256": "14ed362231577a0bc7a58bac83c66d5f36aa1af1b63dee4ae82b9c349aaacc4b",
       "bytes": 4697,
-      "reason": "Project the root Synon Biomed product identity and load the CSP-compatible pre-render theme bootstrap without creating a second version authority."
+      "reason": "Project the root X-Science product identity and load the CSP-compatible pre-render theme bootstrap without creating a second version authority."
     },
     {
       "path": "packages/desktop/src/renderer/main.tsx",
@@ -2208,8 +2208,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/settings/SynonBiomedExpertsSettings/ExpertWorkbench.tsx",
       "sourceSHA256": "d16cf7d5e33fa81c06a9ed7482450fd70309a8441f161575985c24d55f73caf9",
-      "targetSHA256": "54b133d089e1384c4e10dcd971e578d025f7258299d84fd6d5183bd9ba5e0a95",
-      "bytes": 39656,
+      "targetSHA256": "67a10c924d48576b6ec70a87156e151d1c59bdddcbb96e1573bf450fa1504cce",
+      "bytes": 39816,
       "reason": "Improve responsive expert rows and compact long descriptions without dropping source detail."
     },
     {
@@ -2306,8 +2306,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/settings/SynonBiomedSkillsSettings.tsx",
       "sourceSHA256": "c3df56872aa6777496e50f80a282ca30eed7a1d43b538bc5eb3e0cf767a635db",
-      "targetSHA256": "75e6f97318cadf230b4180e48ed340663562ddbf06d8ed9ba5b960cb93b50074",
-      "bytes": 24598,
+      "targetSHA256": "5e62bc4d061a18fdbe8fa83bd1777ca7c1666c3da0f936dbb98597110b73bb4a",
+      "bytes": 24833,
       "reason": "Unify installed Skill sources in one searchable library and consolidate acquisition into one action while preserving personal, import, toggle, and market workflows."
     },
     {
@@ -2453,8 +2453,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/settings/skills/SynonBiomedSkillLibraryModals.tsx",
       "sourceSHA256": "9492e57942849493523265d620c77a96a1fae42069b838f6076c5293ef4e4b1e",
-      "targetSHA256": "9d127a62c01ab77246afc37e36ffe738f96333cc255bac3cd8767c6a431929f7",
-      "bytes": 25991,
+      "targetSHA256": "234e87ce2c01803f528bb1958dc79b9f1f61aacc2f77ff4ef6487e777062a589",
+      "bytes": 26508,
       "reason": "Expose Go-owned agents, skills, MCP, models, compute, memory, permissions, credentials, storage, and governance settings."
     },
     {
@@ -2663,8 +2663,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/settings.json",
       "sourceSHA256": "3afd2c67b5d1a42960c03d5e70dbdb23c3b6b1a3981665ac37919e199dc814c0",
-      "targetSHA256": "988d9dc694692fe3edb549fe000433bda7a92ae4c0a35d28294c02d344e4f6f5",
-      "bytes": 132576,
+      "targetSHA256": "ba039b258c9b4a36c9a7f58a15d826bfe8eccd8a178e28431daffcc279b3b16e",
+      "bytes": 132587,
       "reason": "Explain required scientific runtimes, unified user-managed storage, and Synon Go service guidance."
     },
     {
@@ -2747,8 +2747,8 @@
     {
       "path": "packages/desktop/src/renderer/services/synonBiomedArtifacts.ts",
       "sourceSHA256": "a2b9dc567dc942b1ca0f0013ec6ddf49e5f2e8f0ca3ce68782538a39fbae550e",
-      "targetSHA256": "b88778e7ad9bc6576ef614d025f51169d30d94e215d500f1075cf615a471b5a9",
-      "bytes": 9027,
+      "targetSHA256": "30f5fc53a475f4c885f7617266a77346145c503804a708deea4f1267de520e7c",
+      "bytes": 9095,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2761,8 +2761,8 @@
     {
       "path": "packages/desktop/src/renderer/services/synonBiomedCapabilities.ts",
       "sourceSHA256": "5802a108f6a91475b7e428abfa89e0efa07ef36a9a2d4545c0f0a8e721434029",
-      "targetSHA256": "ecc157a8f491cd8ff666ab4328b3dacfcfb634e4a3d89cb2f4c35d72ef7a427a",
-      "bytes": 23075,
+      "targetSHA256": "7c741fdd541ddc1f4ae173c235099d773a3b5a90609b3e58cc0bba975945eb16",
+      "bytes": 23161,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -3057,7 +3057,7 @@
       "sourceSHA256": "aae920d8f0c1734b0c4cd1f5f76db43f83f9a475f4d965e15c36b2204ac26aa0",
       "targetSHA256": "962a07732d17aaf63017fa87bd0b2165455aabb903c2db274aee7a16472c0987",
       "bytes": 390,
-      "reason": "Project the root Synon Biomed identity into installable PWA metadata and retain the text-free molecular icon set."
+      "reason": "Project the root X-Science identity into installable PWA metadata and retain the text-free molecular icon set."
     },
     {
       "path": "public/sw.js",
@@ -7058,8 +7058,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/media/ComposerCapabilityPicker.tsx",
-      "sha256": "581d2771d5dc4549d295b99e5ec6edc28781ab740f9a1c8f5780b3adc40ec600",
-      "bytes": 14896,
+      "sha256": "a9580ce0c51962117c1526c2e694aa907c532487405f96b76eff928bad4d5629",
+      "bytes": 15086,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8702,8 +8702,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/settings/skills/SkillLibraryCard.tsx",
-      "sha256": "196de324933c87e5c47912c40be29c4108a667755c6fadd77689b20bb8e40c4d",
-      "bytes": 7418,
+      "sha256": "570e00fa73d5021f11bbe152c1f660708bc9341495e5ddd7889039b7547dbc4a",
+      "bytes": 7541,
       "reason": "Render installed and draft skills with complete readable copy, declared-category icons and isolated keyboard actions."
     },
     {
@@ -9008,8 +9008,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/services/skills/synonBiomedSkillDescriptions.ts",
-      "sha256": "4879658ae39134e08c2244f4efbfc967e44154156474247a43398d59cc099db2",
-      "bytes": 765,
+      "sha256": "92918726b8b4d4cd3c209f8f7356f391e948d644bfd4047a65209974cd445340",
+      "bytes": 1169,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9142,373 +9142,373 @@
       "path": "public/branding/settings-generated-v3/artwork/account-network.png",
       "sha256": "09412fff9d396f62ec6a2981938dbb238db6f2710b2cea708adcd23ef388e52e",
       "bytes": 1091309,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/artwork/book.png",
       "sha256": "197568cda63cf57e283757fab05841939fc91d1e87e07f88a43488e338011edb",
       "bytes": 54431,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/artwork/chemistry.png",
       "sha256": "811f30ac28b4ef79de5aaaaf7dbde72cb6c1f51433d20f83978925c81b360d4f",
       "bytes": 34304,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/artwork/clinical.png",
       "sha256": "8e4f1262ac046cec7fa820fd6eeb1101da4e47945bcf550bea0023dc69db4716",
       "bytes": 26041,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/artwork/database.png",
       "sha256": "feb16d2baa35f41f6bcf6fc8eb5bcdde9a099c78d7b1a25a7a65ff952720d65e",
       "bytes": 31828,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/artwork/dna.png",
       "sha256": "5675bce7175daace1477fef0398f1d92865095ba65ff69d99673b7eb008ee544",
       "bytes": 44030,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/artwork/expression.png",
       "sha256": "9794bf24fedc4c0aad82127ac5d98e6da1a11e7da949ec02a5abd6aab2d322b3",
       "bytes": 66907,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/artwork/network-globe.png",
       "sha256": "9103c361907e600011356e082e3e85747868d83c89f7b7d775c7653800750716",
       "bytes": 844887,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/artwork/protein.png",
       "sha256": "3278b34580f57ebc06646ba527afc2084746e58be07cf983f1a3012f7c236d75",
       "bytes": 48748,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/artwork/regulation.png",
       "sha256": "b0694bfe9c1a9b1f10f20e845b61e53c0c7cf613880268263823f1688605e1bb",
       "bytes": 35704,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/artwork/rna.png",
       "sha256": "1bf2e0bc964a97fa16a0bfe55d86cb05e4a45632799f3016a1d75bf2b1d737b8",
       "bytes": 38551,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/artwork/structures.png",
       "sha256": "6e8ef0ab20578f03f283b1e17d901b953b9bc93fc2816a2ecf20081cd78e21eb",
       "bytes": 33740,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/empty/account.png",
       "sha256": "315565be4315399fafc188771e4da2e284b6421f1c7fac72178ead10c4835eca",
       "bytes": 76377,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/empty/compute.png",
       "sha256": "121a7652ec389b8464e20fbf48e7a9c0bace59bd0dd50eca432a3cf98e487024",
       "bytes": 62331,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/empty/experts.png",
       "sha256": "b68c32946264c45a3084c0dcc017842c92fa0d0da10b186ede5680c4fa30d106",
       "bytes": 77261,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/empty/governance.png",
       "sha256": "9347405bd83c1fa936115adf25d7e70d08ae292ca20482eb97723243e0036cc9",
       "bytes": 68478,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/empty/plans.png",
       "sha256": "a00e38b429870d5c734006f01c32c9a8eefeb43925f18694253502a929afb1e6",
       "bytes": 67249,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/empty/storage.png",
       "sha256": "16bef5a2c53d3d2e7caa066e8e2bdec868e0a21f5c801c9fa85f488ab7905ab1",
       "bytes": 61876,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/icons/account.png",
       "sha256": "7149657a25aabcddbd6d29af12c004482a622366702a70273a0d6b33507a3503",
       "bytes": 69693,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/icons/compute.png",
       "sha256": "9aa1ac4eef456e9cb339c2531336a22c91864d9859c11990fa7067e5cd6625c6",
       "bytes": 69163,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/icons/connector-bars.png",
       "sha256": "54eb54baf356e619c17fbf531995dcb2c3822961717377ea96e5fd2d1d23130d",
       "bytes": 41788,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/icons/connector-book.png",
       "sha256": "857f9c079dcf30cca4260badfeabd9cdc5a85c43077a145509ed2a4c52529e8a",
       "bytes": 52069,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/icons/connector-clipboard.png",
       "sha256": "0cf765c6101f45ce892b8907bbb8f92197cc3e857bc1d4378cc5ba3d8f545124",
       "bytes": 47057,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/icons/connector-cube.png",
       "sha256": "56817d12c036a3d4d26c93fdb221c306342f2a7120fa2a926300007b5b9ebd1b",
       "bytes": 51278,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/icons/connector-database.png",
       "sha256": "3444508a5697a920ab5d59973df04d3f9a5d5c32711dd8547adc31e2b0bf38d2",
       "bytes": 63563,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/icons/connector-dna.png",
       "sha256": "bf6e50f18c79d9a1a77f8dcc2ada7d0581fc444386c66bae0a5e764f0881c03b",
       "bytes": 53437,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/icons/connector-molecule.png",
       "sha256": "09cb5330515634aeefbe1589323dc982c37f57b622820192e13ded58ed97e413",
       "bytes": 52688,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/icons/connector-protein.png",
       "sha256": "c3be78568d689989b65f6c209de645443d884e5d324661df2e2afe7af5e87bd5",
       "bytes": 61960,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/icons/connector-regulation.png",
       "sha256": "48023078403d01380ded0d47d510ac4b4a196804f3117d420fa538d1dd283bcd",
       "bytes": 56050,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/icons/connector-rna.png",
       "sha256": "b9e5a87bf07290bd5b660dd8b08b61a4e7f9d8b849a0354c39681d083fd8d5c5",
       "bytes": 45764,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/icons/credentials.png",
       "sha256": "96037b4407331b3004b5c7db9481d07e2da9f9e80ab570e215d1004b2fcef736",
       "bytes": 68321,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/icons/experts.png",
       "sha256": "5d7c62d784c685aaa77a59c0d9e90ec92ab2fdfba5f0c0b44fcfd6ad17f87183",
       "bytes": 69579,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/icons/general.png",
       "sha256": "403958143904e9fb43598ce683c2bcfca6acbcee62d3c631811ffe225cabdef3",
       "bytes": 60024,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/icons/governance.png",
       "sha256": "af8efb31b9a151080581981ab4fdadd8da138a1f12dcb5235c8c75d80b00ec9e",
       "bytes": 71863,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/icons/models.png",
       "sha256": "d974afb16c6254d582b6b58dbc84cc3fe1d55fa7d0b5fd0e1a98c20346ec4c3a",
       "bytes": 77489,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/icons/nav-compute.png",
       "sha256": "40820f21ce9be47f2332f62465c794d85cd6a9fffecd1996d1e3184e61a5984a",
       "bytes": 14024,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/icons/nav-credentials.png",
       "sha256": "1aeb4cb4c5b84f0c358856990d26ff0d3bcd820a1587cf10d3beb6c502d4ecf4",
       "bytes": 16128,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/icons/nav-experts.png",
       "sha256": "8d5ddb3dadebf1406fff00036784e9e9e32ba071d05f644fc720e3d9d9b40579",
       "bytes": 14192,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/icons/nav-general.png",
       "sha256": "3ba3cccacd896ab2d6c002905693366028f76305eb4c56242b26fe6a04a9affe",
       "bytes": 11297,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/icons/nav-governance.png",
       "sha256": "4e69e21d4b157a066fff5a13653b91cac7f28c643cc7485895cca62c7973ea47",
       "bytes": 12522,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/icons/nav-models.png",
       "sha256": "4cfac4ca0e3c8af8340e79c6011e167930c3300b157d813127b221663738a1d4",
       "bytes": 18101,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/icons/nav-network.png",
       "sha256": "beb0f0b3e7ab19dae3cf4f7db2ca3751461773b8a94ed71ffba98f18089583f1",
       "bytes": 19542,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/icons/nav-skills.png",
       "sha256": "6c57fe9e306c57bf76a6bdedf8ede347574e328f38bf9522b4fd9b1ce8196319",
       "bytes": 10796,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/icons/nav-storage.png",
       "sha256": "5100cf954d457738c4ff58792edaad1d53132e9ba41c6a20a130f40215306275",
       "bytes": 10657,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/icons/nav-tools.png",
       "sha256": "3f27b7c9bda5995a5d409712f100d311f50f9d40ed991d113270126d4b5339aa",
       "bytes": 11790,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/icons/network.png",
       "sha256": "ab63fcdb1e0635eccdc853148c0e215738d8d1f2c27e357104eb90a529a7e76b",
       "bytes": 79392,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/icons/plans.png",
       "sha256": "ebd12937406d96ec189f1b35c61d9f255a2c1b73b5beb2afb61254378b1612f0",
       "bytes": 65551,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/icons/skills.png",
       "sha256": "83c08a893fa6fcfb85d67469ba942da8bd543f73b588b558ed60cdfbde2090c0",
       "bytes": 62606,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/icons/storage.png",
       "sha256": "ffd5d5011d353df437d72574f3a5e900ad5d1ce607dd2f4b1f8bc11409aa22df",
       "bytes": 59140,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/icons/tools.png",
       "sha256": "ff87a518cf1e471b868c8478b10b950963ae2c0895286d9aa707b12ce5cbedf6",
       "bytes": 65639,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/references/account.png",
       "sha256": "ac218c0ff98883ed6b314bc6f157f5ffbe21c6949370a2276dae489bc3d10ffe",
       "bytes": 1424973,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/references/compute.png",
       "sha256": "36bff1c0ab98f65316dcfb9a75ba000d942c9bbace2f7bdc4596bf39aeddcb13",
       "bytes": 1290335,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/references/experts.png",
       "sha256": "502f4ab876cba384069947497379fef0c9ac160e3f23d613563de40b9821403a",
       "bytes": 1417493,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/references/general.png",
       "sha256": "d047da7c20807040410c1c654f51ae77e16eb040e411307cef465e41a27a6035",
       "bytes": 1280719,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/references/governance.png",
       "sha256": "6749a2633357a24fb3f6c071345db4f5ad908b93c62eaf6c25ff96eabba984c3",
       "bytes": 1304754,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/references/manifest.json",
       "sha256": "8f79ce2b7f63de088130860b75c1def1e506260fd6d082315e5f12a3a22832d4",
       "bytes": 1970,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/references/models.png",
       "sha256": "a1e006af215aa908613e9ae03279ef15dfe98d0a42846c7f268b400b0ec98681",
       "bytes": 1395825,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/references/network.png",
       "sha256": "a7a0a4cd35920c1a7131823aa3ab752119bd34505bea9df8bb41b6c355b28ab9",
       "bytes": 1332333,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/references/plans-usage.png",
       "sha256": "a3becf192003969688db6dba0865dec521d855bc3d35d541d1a4a6fb7fd96526",
       "bytes": 1320075,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/references/skills.png",
       "sha256": "ab91636078146b6cb2a079296b99b5dad8c89a2b1918b02604c6ba9c1c6946ff",
       "bytes": 1439004,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/references/storage.png",
       "sha256": "ef0da7b4003cf080f467513a7638850f8346e1381a421ae7e79b866d4bf6c412",
       "bytes": 1289033,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/settings-generated-v3/references/tools.png",
       "sha256": "fcb789ce6123895df659b491a9537ddf7ccb1271fbc8389bbcb2775cf951c5ac",
       "bytes": 1518495,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/branding/x-science-favicon.png",
@@ -9538,7 +9538,7 @@
       "path": "public/dev-sw-cleanup.js",
       "sha256": "84ce15f6cbc7a01d2bd254303382406039b2d7be1ff9be38d22204f16db86932",
       "bytes": 1282,
-      "reason": "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup."
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
       "path": "public/genomes/ucsc/NOTICE.txt",
@@ -11138,8 +11138,8 @@
     },
     {
       "path": "tests/unit/synonbiomed/skillDescriptions.test.ts",
-      "sha256": "bddda0c1ded48c83751df2c7169b0a6f1fd3794ddd1483247cd7f137b215e134",
-      "bytes": 938,
+      "sha256": "72e7730968113cf62c26403147fea2c3de3d698e811bbfc9f44a7c0fd2949b35",
+      "bytes": 1634,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

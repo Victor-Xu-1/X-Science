@@ -10,7 +10,7 @@ metadata:
       - mcp-synon-research
 ---
 
-# Synon-research
+# X-Science Research
 
 Use this workflow for broad, comparative, or deliverable-oriented biomedical research. Keep a simple lookup simple.
 

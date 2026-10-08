@@ -15,7 +15,7 @@ critical-constraints:
   - User-visible questions, progress, and setup summaries follow the conversation language while exact CLI names, paths required by the scientific program, versions, units, and identifiers remain unchanged.
 ---
 
-<!-- Modified for Synon Biomed. Upstream attribution and terms: docs/licenses/bionemo-agent-toolkit/NOTICE.md. -->
+<!-- Modified for X-Science. Upstream attribution and terms: docs/licenses/bionemo-agent-toolkit/NOTICE.md. -->
 
 # Complexa Setup
 

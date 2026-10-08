@@ -1,6 +1,6 @@
 # Troubleshooting — `complexa-slurm`
 
-<!-- Modified for Synon Biomed. Source and license terms: ../THIRD_PARTY_NOTICES.md. -->
+<!-- Modified for X-Science. Source and license terms: ../THIRD_PARTY_NOTICES.md. -->
 
 Symptom-first lookup. For each entry: what you see, why, the fix.
 

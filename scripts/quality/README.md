@@ -1,6 +1,6 @@
 # Repository quality tools
 
-These scripts enforce the current Synon Biomed repository boundaries.
+These scripts enforce the current X-Science repository boundaries.
 They are verification gates: passing one gate proves only the contract named by
 that gate, not complete product acceptance.
 

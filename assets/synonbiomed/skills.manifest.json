@@ -132,8 +132,8 @@
     },
     {
       "path": "autodock-vina/scripts/autodock_vina.py",
-      "sha256": "d4d3bb8d4589d1ce82e42fbfdd181a9b3195c0fbd142b66ed2bb3672703b1394",
-      "bytes": 66547
+      "sha256": "bf8acf8423ae13e621545282a0d46f126fb157504d8eeed838d3064523dd5f33",
+      "bytes": 66544
     },
     {
       "path": "autodock-vina/scripts/autodock_vina_inputs.py",
@@ -202,8 +202,8 @@
     },
     {
       "path": "boltz2-nim/SKILL.md",
-      "sha256": "97f2d6d21d6d9ce36b1870135295e19b330403ef4b6e35ed2441fecb7d7e9b88",
-      "bytes": 6192
+      "sha256": "988b6811ff66c844d8ec39df23afdcab0dec608822df059bbd934bc8da4aa88f",
+      "bytes": 6189
     },
     {
       "path": "borzoi/SKILL.md",
@@ -222,8 +222,8 @@
     },
     {
       "path": "catalog-ui.json",
-      "sha256": "3b9ee71cdb757527298bf4d79bbf03b48476eb5b364e2581f2f330f102fb818d",
-      "bytes": 20296
+      "sha256": "5762e5915f1594ca39e967c9f78c969ee8239968a6b43548ca25283602a2d1fb",
+      "bytes": 20451
     },
     {
       "path": "chai1/SKILL.md",
@@ -297,48 +297,48 @@
     },
     {
       "path": "complexa-design/reference/overrides.md",
-      "sha256": "f1523d0d97bfa5cd1ef7484781a952ead817e68a4e570cb431280fdf45b60d4e",
-      "bytes": 23688
+      "sha256": "6d53fa4848b146b54309a65047c36ca7ff4acd74653d1d2577b0439ce9b76e97",
+      "bytes": 23685
     },
     {
       "path": "complexa-design/reference/pipelines.md",
-      "sha256": "9c05cac96905196f410109b53fb3424350154d5fec17a6d332c90a1142db3913",
-      "bytes": 8486
+      "sha256": "8aea40700fb808caf510434dc780662a669e9989d1822fd008a2c89471addf22",
+      "bytes": 8483
     },
     {
       "path": "complexa-design/reference/troubleshooting.md",
-      "sha256": "5a0916fba22eb7f994026a953598f2388e8cbd8f8eee64907c395400218a4eec",
-      "bytes": 10050
+      "sha256": "e912e0715d0dc421e52fd1eeb2ab9cb1eb3586a6b6f764897d9d763d889d8980",
+      "bytes": 10047
     },
     {
       "path": "complexa-design/SKILL.md",
-      "sha256": "d736788cde1e4de07d3471161703412395a8229b2e5111b1f66b7dfc78ccc0f5",
-      "bytes": 20342
+      "sha256": "acce7d51aa3ff90225c9ba33600d5de2418614761aec2e37ae96518ac73199e3",
+      "bytes": 20339
     },
     {
       "path": "complexa-evaluate-pdbs/reference/eval_configs.md",
-      "sha256": "b2aa12f2f350f469d433088bb047656c32b8701ed77231c2e0af07e53595dfc8",
-      "bytes": 10558
+      "sha256": "4e5955a011f195b2f186cb3ce099c6fceba0a2e1b85a932fd26cac1b39faedb8",
+      "bytes": 10555
     },
     {
       "path": "complexa-evaluate-pdbs/SKILL.md",
-      "sha256": "5743adccdca8ad969fe8ee1e5921429af66a6573ca67a13a85b87e192999b3e4",
-      "bytes": 14320
+      "sha256": "111d8b93701a1abb31442514e8868f34d87ccce8de638a0296e64f174c043c11",
+      "bytes": 14317
     },
     {
       "path": "complexa-setup/reference/downloads.md",
-      "sha256": "5bd88bfa4a5ff6913cb0a82e9c01a05368aa348c2b26696f9d56b8fe49a3e3d6",
-      "bytes": 8432
+      "sha256": "96e76521133b9772693abf603edf181310581f8f5039d0fce1fe19b6731a494c",
+      "bytes": 8429
     },
     {
       "path": "complexa-setup/reference/env_keys.md",
-      "sha256": "8ff17e3bb5c954cc3309790e2c42869969ba1e89379e24cdc07b5aa38786eae3",
-      "bytes": 11398
+      "sha256": "9022e94f5b9e1d4a7d41893558572e7243c029442b091771a268f75466dc3c62",
+      "bytes": 11395
     },
     {
       "path": "complexa-setup/SKILL.md",
-      "sha256": "db0acef4ceee62e56d03f8686f048728f8619f76dbf162fca50b8d46c8e98fd8",
-      "bytes": 8967
+      "sha256": "9ea0eda8b3941e744c6033578135026748183057d0ce970a4b63bb463d2cc77e",
+      "bytes": 8964
     },
     {
       "path": "complexa-slurm/reference/cluster_env.md",
@@ -352,18 +352,18 @@
     },
     {
       "path": "complexa-slurm/reference/troubleshooting.md",
-      "sha256": "90eba116a4c2ce3de127dc98c2cbfc4392b3d68fb3e8cd17d8ba67b058a6b9e4",
-      "bytes": 10207
+      "sha256": "c50c698b01a7c12dacb036d1a60753811699ef64880f308aa659ed873be9e2cb",
+      "bytes": 10204
     },
     {
       "path": "complexa-slurm/scripts/cluster_preflight.sh",
-      "sha256": "47137935034aa330717382ba868d7ca1a1b56b646188be71479df234c9cd888f",
-      "bytes": 8760
+      "sha256": "d5c9f08ea2db1d199f5cfe25493b182a5258fd2a23be5a35449afcf524751c31",
+      "bytes": 8757
     },
     {
       "path": "complexa-slurm/SKILL.md",
-      "sha256": "fb5bb344d4fece07f8cd82cbfa67c4cebd11b19be027ee55cf7c2824ee0c4861",
-      "bytes": 14870
+      "sha256": "fce75353b159fe66442fcec369c9024c85c95011c34c91d3733ae5231088c1bd",
+      "bytes": 14867
     },
     {
       "path": "complexa-slurm/THIRD_PARTY_NOTICES.md",
@@ -372,23 +372,23 @@
     },
     {
       "path": "complexa-sweep/reference/sweep_axes.md",
-      "sha256": "7fe24b8b9fef52abe971ba6c2171e1483e2bf9055866a1fcd092d67e4c9bdba0",
-      "bytes": 11149
+      "sha256": "37befabf63e4cbc248653f038e6a546d2ca671b41c6bd26b41db64b56fd35cf6",
+      "bytes": 11146
     },
     {
       "path": "complexa-sweep/SKILL.md",
-      "sha256": "51ebd1b9393400aed569c5d95639fd5ef210d6332b7bc11e15e362c0dacc2c09",
-      "bytes": 14337
+      "sha256": "30704495fb73c80293141260e9eda163df9c12de60132480e411df72d57213e2",
+      "bytes": 14334
     },
     {
       "path": "complexa-target/reference/target_schema.md",
-      "sha256": "2d1f1a82bab36753273ea06b3fc27bb3b58634b43331fbf27df6e08bcd1dee3f",
-      "bytes": 10113
+      "sha256": "11d1ce41971bcf48d44db3dc941f1d592a11e22ebf421ccc0f5e3e2056348790",
+      "bytes": 10110
     },
     {
       "path": "complexa-target/SKILL.md",
-      "sha256": "cc4565c4073a850437e917922dc2ef394c6d80c680cd10f23394099fab479233",
-      "bytes": 17237
+      "sha256": "cd6ffff2c3c858c17e737a63c242e5aec2045f72e928d107dc0ec8d5151f7fa2",
+      "bytes": 17234
     },
     {
       "path": "compound-sourcing/SKILL.md",
@@ -397,13 +397,13 @@
     },
     {
       "path": "compute-env-setup/references/envs_reference.md",
-      "sha256": "38fb57ba577e1676f1b4955a4044a5e535bda1a6dba23ea6737b47d8cf3d328d",
-      "bytes": 18247
+      "sha256": "c192ef150aa87561e6f993731ee89d5405ded2793a2a12d973927713bdecb3e6",
+      "bytes": 18244
     },
     {
       "path": "compute-env-setup/SKILL.md",
-      "sha256": "f7f2f516a34b817a6c5d70abaaf126b57fddf4ffeead46ee349db3aba08c153f",
-      "bytes": 17844
+      "sha256": "6425d59f4926642837e8511c0d6102cb129ba4b9502c20c3af6517f1332cf9d4",
+      "bytes": 17826
     },
     {
       "path": "cuequivariance/SKILL.md",
@@ -412,8 +412,8 @@
     },
     {
       "path": "customize/SKILL.md",
-      "sha256": "c0465ac5cd4913821780609cc93f0bbd1dbed9e87a07192c5be1a1bf96a6d4dc",
-      "bytes": 21872
+      "sha256": "af262bebcb93eb3a425bdae4d98bf1edd1c9fbe819166c71affcba505a60523d",
+      "bytes": 21869
     },
     {
       "path": "deep-literature-investigation/SKILL.md",
@@ -432,18 +432,18 @@
     },
     {
       "path": "diffdock-nim/references/api.md",
-      "sha256": "a63c7349a3374b5110f8cf38dcdbaaff1915b29b516afcf89344092636882bbe",
-      "bytes": 4755
+      "sha256": "4d2e9d7545d0f4038b498cd5b9bfb0b542945f162def5e9f8401e3517b1eb173",
+      "bytes": 4752
     },
     {
       "path": "diffdock-nim/references/examples.md",
-      "sha256": "93a13d335e3ebae3d7ac394c40df0c85a25a35d692b213326880192b3e2ac966",
-      "bytes": 2208
+      "sha256": "5b64e04e2ad2d81bd0290c1bd92e50724b2a2a4c35f0bccf300d1246c007a1fe",
+      "bytes": 2205
     },
     {
       "path": "diffdock-nim/references/parameters.md",
-      "sha256": "9c5d4c82fb22448f71bd5431ea21ea575fd7722ddb9e72378923f8906d9b28b0",
-      "bytes": 1854
+      "sha256": "9bdf1dc62b3d5ebc9491e91647f5cc3a5b458711228afc31c33b2f830b3b07cc",
+      "bytes": 1851
     },
     {
       "path": "diffdock-nim/references/science.md",
@@ -457,8 +457,8 @@
     },
     {
       "path": "diffdock-nim/SKILL.md",
-      "sha256": "3c288df2af8fec17e4d93e7ade529b1a19c8722ebfba1292efce2abfebc6e2cd",
-      "bytes": 6007
+      "sha256": "ac321400a39b144b29f461744a27d4ebacce46f824037818c0f2f8bc9e92ebfe",
+      "bytes": 6004
     },
     {
       "path": "dmpk-adme-strategy/agents/openai.yaml",
@@ -477,8 +477,8 @@
     },
     {
       "path": "document-workbench/examples/deck.json",
-      "sha256": "23311a5f65e4a46d1adda3475bcb99b4e2e310944652a7508d9f6fcee7b1e895",
-      "bytes": 424
+      "sha256": "93b0442057e6336bcbda3769c0256b82fd03924de210db15a276984b4aaa7aca",
+      "bytes": 421
     },
     {
       "path": "document-workbench/examples/notebook.json",
@@ -487,8 +487,8 @@
     },
     {
       "path": "document-workbench/examples/report.json",
-      "sha256": "2350b7a1802d89baee4f2a08180256979f4c6e61d52eda7747cb33c9a142dd0e",
-      "bytes": 842
+      "sha256": "89f2c7ea0e332ab5e28188e9b5b078473bbe97f66b6571f6a54dd98575490dd7",
+      "bytes": 836
     },
     {
       "path": "document-workbench/examples/workbook.json",
@@ -497,8 +497,8 @@
     },
     {
       "path": "document-workbench/references/contract.md",
-      "sha256": "d5025e574c0e6cba600e54813e7ff22772dc9b9cb77f51ce887ef0dccfc3fea7",
-      "bytes": 6966
+      "sha256": "456a61e048f5e3063410d5ed9a89031f1e7e1861b64ab6b114497c01670bda67",
+      "bytes": 6960
     },
     {
       "path": "document-workbench/requirements.lock",
@@ -507,18 +507,18 @@
     },
     {
       "path": "document-workbench/scripts/document_workbench.py",
-      "sha256": "251fdfff856b1341cf0600503eebb86575d7c9bad0352c2ccffcead1ef482a48",
-      "bytes": 79645
+      "sha256": "79e3af68239bcd319c5bc3250c57e8378b3ecc99219e8838a8e2baa7be9ca6ab",
+      "bytes": 79788
     },
     {
       "path": "document-workbench/scripts/test_document_workbench.py",
-      "sha256": "94bc73c421ec8517537f4a2b71b79028823087315dc7112dd846f8fca86cd164",
-      "bytes": 12997
+      "sha256": "a4910ca6884bf7ba565b9d8d334481f6ab827b15e1a47a510a097b8cd9636208",
+      "bytes": 13369
     },
     {
       "path": "document-workbench/SKILL.md",
-      "sha256": "4056d0d6c8d09f8a9dfe3d6ff1626753bee8b084613a30e44cc1ac1f49288818",
-      "bytes": 9797
+      "sha256": "225adfeb51a78ff1789efe73858c6eadc3e3d1be7e5e07c7a4ec1ea7386870e3",
+      "bytes": 9794
     },
     {
       "path": "document-workbench/THIRD_PARTY_NOTICES.md",
@@ -542,8 +542,8 @@
     },
     {
       "path": "drug-discovery-pipeline/SKILL.md",
-      "sha256": "3a78d9cd845f68d9cc6395628f409d2453cc9cf9f90ffbdce5f4dae8bbb5d632",
-      "bytes": 14229
+      "sha256": "85f6ed1929e7d21fec4df92632641750442c8973b4a908cd6db2120b5265ba25",
+      "bytes": 14223
     },
     {
       "path": "electronic-lab-notebook/SKILL.md",
@@ -572,13 +572,13 @@
     },
     {
       "path": "evo2-nim/references/api.md",
-      "sha256": "24b190d47b99c071b28b9587e37a5825d6c105bc9756c0997dff4b73576eebe0",
-      "bytes": 8981
+      "sha256": "d83b110af9a25db1e686f4880a6d90106898652885d4f76839d95615d48c8dee",
+      "bytes": 8978
     },
     {
       "path": "evo2-nim/references/examples.md",
-      "sha256": "1dbec9fb4e6696d6418068e17246bc55c969d92d4289edb3b1f8c99acb685689",
-      "bytes": 1170
+      "sha256": "cc1516f6bcb0537d87cd563760a1a9b911e5d137e1945d95a59a76ab593da515",
+      "bytes": 1167
     },
     {
       "path": "evo2-nim/references/parameters.md",
@@ -597,8 +597,8 @@
     },
     {
       "path": "evo2-nim/SKILL.md",
-      "sha256": "1873c9cf54c328f46a6999fbd04eea4ff6be1af342544fe466fe74823d948329",
-      "bytes": 7259
+      "sha256": "3a5da7b734ffcb35b9a9bf372796900a2d6b6cbee5b182735580479d3195ff7c",
+      "bytes": 7256
     },
     {
       "path": "fair-esm2/SKILL.md",
@@ -637,33 +637,33 @@
     },
     {
       "path": "genmol-nim/references/api.md",
-      "sha256": "5de0d51e3af9a8b40037d46711d409ad2101d37f9c0651d00b8a45dc921417dc",
-      "bytes": 6832
+      "sha256": "b3d402b6f1394e070e6243d9cd2b9f6baef774041a6d11c0bb934af0dfda1ac2",
+      "bytes": 6829
     },
     {
       "path": "genmol-nim/references/examples.md",
-      "sha256": "630cfd5f731f8cb45bd940b0125dd27292b652ee1cd5ff25116de6c39080704c",
-      "bytes": 1547
+      "sha256": "7dec57fce601db6481aaff56ced64a090494b6e659e60b6fc43ee7ce17885de7",
+      "bytes": 1544
     },
     {
       "path": "genmol-nim/references/parameters.md",
-      "sha256": "f95c81ff32fcce091f35f7a939bcebe0afad35252f55f8d47c815bb429060240",
-      "bytes": 1872
+      "sha256": "3de6ef307663d10f64aa9cc0406c0454813936e8f2bce4abb4d74a1afae803a9",
+      "bytes": 1869
     },
     {
       "path": "genmol-nim/references/science.md",
-      "sha256": "444b2e9b9b45bb706e0f15c995642a074fb876ce1ae4c7e96737ca156c282385",
-      "bytes": 1860
+      "sha256": "6a113ab6db345704ca20d9860faafbca05a6a2437dc888c8203e3ae531724d09",
+      "bytes": 1857
     },
     {
       "path": "genmol-nim/references/validation.md",
-      "sha256": "d5afe08d1df0bab03cc49793601c6c98c2f52f3d18d07847401faf97ac938022",
-      "bytes": 1549
+      "sha256": "854543e1c2c6e68478ce58c83284b7ab30d33bc4b44872c663535c30cb8ad2aa",
+      "bytes": 1546
     },
     {
       "path": "genmol-nim/SKILL.md",
-      "sha256": "85a27d313228ef720649b5c63eaefd5541d585ba4ec3b5aabfec4dcf75a314f3",
-      "bytes": 8511
+      "sha256": "a2348ecc31a300b5e1d783c55ffe08d92836e37405c00b4c46934b6367b409e1",
+      "bytes": 8508
     },
     {
       "path": "genomics-workflow-acceleration/references/comparison-checklist.md",
@@ -697,8 +697,8 @@
     },
     {
       "path": "genomics-workflow-acceleration/references/workflow-layout.md",
-      "sha256": "85f904d15f4293034dc1e450f51d6b16ac173b50abc791c9f31dfb641d4b7b95",
-      "bytes": 3674
+      "sha256": "777192f24f9b374dc6596d438a835050937a19fda78551a45b60216eb4230159",
+      "bytes": 3671
     },
     {
       "path": "genomics-workflow-acceleration/SKILL.md",
@@ -787,18 +787,18 @@
     },
     {
       "path": "instrument-data-to-allotrope/scripts/convert_to_asm.py",
-      "sha256": "5b351c9eac11de1e0d5b2f670fc13c2c0dde436fe16b9f5ffd2764f20dfe3acf",
-      "bytes": 17920
+      "sha256": "5557baab6801094c62a88caf95aae2ecc46a299cf250a111c6a4dbcc8d210a78",
+      "bytes": 17917
     },
     {
       "path": "instrument-data-to-allotrope/scripts/export_parser.py",
-      "sha256": "667185a6f076ab1cef858349cbe7f14f0b1b429581669d99eedb1ba81920c44f",
-      "bytes": 14508
+      "sha256": "eb1b24cd5d1db9ee382dd30ede7bd42e03b85064ffd99aa77d3ee7537931ad40",
+      "bytes": 14497
     },
     {
       "path": "instrument-data-to-allotrope/scripts/flatten_asm.py",
-      "sha256": "5eeaa3f57cfe93d4bd2e3c9de963063309644ffa3e521e6fa0f78bc98639dc1d",
-      "bytes": 7741
+      "sha256": "6a199ce3a24283c7cf33e6966585523e4b4d710409c6ad1e45f37b3cd839261e",
+      "bytes": 7738
     },
     {
       "path": "instrument-data-to-allotrope/scripts/validate_asm.py",
@@ -812,43 +812,43 @@
     },
     {
       "path": "kermt-add-cmim-pretrain/SKILL.md",
-      "sha256": "2e834e23b04a9a120b24151614500c4074bfd0b552efb8ae5a066a489092e7e2",
-      "bytes": 8164
+      "sha256": "f61828fc4d8aa5adb7bb01478bf04a9c6bdaaedae595cfa4fe74ccf91aaa002e",
+      "bytes": 8161
     },
     {
       "path": "kermt-continue-pretrain/SKILL.md",
-      "sha256": "cba87183b53d757d42e93331980cac368ef4e817e01c15ce8b9b7a37a2cf9034",
-      "bytes": 12802
+      "sha256": "abe287f0a08d4c2d43de626543e59adfc17e268948c96b30a83db00e68fac47b",
+      "bytes": 12799
     },
     {
       "path": "kermt-embed/SKILL.md",
-      "sha256": "b7f2726ff1d78406daf6336678019f7189af865599bfdc0339228ccc857f6c1c",
-      "bytes": 4800
+      "sha256": "000ba387f1afeac0837d67e6569d83cf9f5c5140cde3994ef4502cf4af369a76",
+      "bytes": 4797
     },
     {
       "path": "kermt-finetune/SKILL.md",
-      "sha256": "6c1515d8520d6c6076bffbf8cb047910bc79abde6a490d1093197018943134ff",
-      "bytes": 13220
+      "sha256": "ad7382bc7fa0f08b4206c3d347317e8cca2e90a587085c545f72054094542680",
+      "bytes": 13217
     },
     {
       "path": "kermt-infer/SKILL.md",
-      "sha256": "a4a80273f4fb9248be76e23011680325cdc9ff34ef9ad520a41fdb73eb2718d9",
-      "bytes": 5749
+      "sha256": "bca6949d515487a4841b77483913fa49457d6bc5579c9365fb991d40902178fc",
+      "bytes": 5746
     },
     {
       "path": "kermt-monitor/SKILL.md",
-      "sha256": "0c1fc4ccda1f6b630466398859a7feff1a223ab230a6a812cbf0b9e64a896cf8",
-      "bytes": 7175
+      "sha256": "7ac98a40e8656517d31bbd4f9040156bc4a2aa4ab81b362c02fa71105693ef83",
+      "bytes": 7172
     },
     {
       "path": "kermt-pretrain-scratch/SKILL.md",
-      "sha256": "99f2107d127fc914b3105624924a017c0201ed787cb25b21da74f0e502569bf4",
-      "bytes": 9043
+      "sha256": "ed0fd6772c010070d29aafca4964f396d5e43ef1f4cc3b41e1ce41e9ffaad666",
+      "bytes": 9040
     },
     {
       "path": "kermt-setup/SKILL.md",
-      "sha256": "d042008da9bbc09eedd52975fc1f80b51920e538af3476ebdd0f2e8cf3ca5c30",
-      "bytes": 6385
+      "sha256": "0ba0ad4b422978f7f943674650aa0fd663f0cd5aafe9d8e9aeefd0400b1d3fa2",
+      "bytes": 6382
     },
     {
       "path": "ligandmpnn/SKILL.md",
@@ -887,13 +887,13 @@
     },
     {
       "path": "molmim-nim/references/api.md",
-      "sha256": "5a4f8bd1f14b0d5b8c7761bdacbe73f9ee8ba3c1eaddc2ed7940ab6c3f7c2ad7",
-      "bytes": 4684
+      "sha256": "65f9f4a99ecdb510afeecdc1bbe556a5701cbc02f5ab2b22513095fe1a0054a0",
+      "bytes": 4681
     },
     {
       "path": "molmim-nim/references/examples.md",
-      "sha256": "463d14b9895bf07dd684aafc004cd779cdd9fe345adb8e28decf6e391e741a51",
-      "bytes": 2285
+      "sha256": "dd642ef7f0f204e9c1e64ae789382f36fbe8d6292286b4c5fef6b12c7911c9f5",
+      "bytes": 2282
     },
     {
       "path": "molmim-nim/references/parameters.md",
@@ -912,23 +912,23 @@
     },
     {
       "path": "molmim-nim/SKILL.md",
-      "sha256": "21345f2688356aca169f5fd38037dfab75debab4f2bf84e4d0ec01c3a8d780d1",
-      "bytes": 9233
+      "sha256": "9cb07e57d9211159581090e9a40f5958370a111c41a7a78c7e3ffee576c7ee79",
+      "bytes": 9230
     },
     {
       "path": "msa-search-nim/references/api.md",
-      "sha256": "a2aac550b9fb2ba0ee06095f089c8f93856c172d08fe79f877fdb7746ce46224",
-      "bytes": 5547
+      "sha256": "9957d3d92e0003eacd7265f12ab9c79162a8226fe4746ffea119ce430b296466",
+      "bytes": 5544
     },
     {
       "path": "msa-search-nim/references/examples.md",
-      "sha256": "4232c5a77e061159a823f14988857081a9c32f5ccd41bfe546a3a01d8b009f5d",
-      "bytes": 1208
+      "sha256": "04233caa73973055951bd870cb20532900cf4de27adba0fc7b6c9d5c0f372b6d",
+      "bytes": 1205
     },
     {
       "path": "msa-search-nim/references/parameters.md",
-      "sha256": "aa537cb208996ae3d1d0eb8cf7dbe45e3b2d38833d01723564e0fccbca0a3a73",
-      "bytes": 1241
+      "sha256": "9e7ad4c659b1af9c7ed63eadb2acf9b4057a3a7fe0b1846b8fd66af36fdbf149",
+      "bytes": 1238
     },
     {
       "path": "msa-search-nim/references/science.md",
@@ -942,13 +942,13 @@
     },
     {
       "path": "msa-search-nim/SKILL.md",
-      "sha256": "a6c424562c50780615edaa9ed32af07105a83996aa27185e29b606df0a79563d",
-      "bytes": 6809
+      "sha256": "3f447baaf2b74a8781fa528c4d8a427d59c15860e640a3856ab3223d5ef9b659",
+      "bytes": 6806
     },
     {
       "path": "msa-structure-prediction-pipeline/SKILL.md",
-      "sha256": "ad4c1b705c0d4283fe51f329bf90fde412b2f6a84e756512afabd891a5b4a328",
-      "bytes": 6482
+      "sha256": "fda4d51409d118967461bf9969d233e6a1675b87eb1649c4a06297efc0fc95b6",
+      "bytes": 6479
     },
     {
       "path": "nextflow-development/agents/openai.yaml",
@@ -962,13 +962,13 @@
     },
     {
       "path": "nextflow-development/references/geo-sra-acquisition.md",
-      "sha256": "b92a599b590739dc1de7f32919879648dd348c824b0f5324b75fe978d43476b4",
-      "bytes": 14750
+      "sha256": "ae7878baba5334d1cd3618a9820033a675936eec9ad9573b3a55fea5ea1504cc",
+      "bytes": 14743
     },
     {
       "path": "nextflow-development/references/installation.md",
-      "sha256": "deb05a837ca7213967a2b4e41fe1b221f1a1e2169178cff261da82be3c560832",
-      "bytes": 1856
+      "sha256": "37f4224fe4681fe53eb889a8f576a9c4f19a81fb2a79ce789922c36d3c03bada",
+      "bytes": 1853
     },
     {
       "path": "nextflow-development/references/pipelines/atacseq.md",
@@ -992,8 +992,8 @@
     },
     {
       "path": "nextflow-development/scripts/check_environment.py",
-      "sha256": "061f219a5f2f8d8907ae5a39d40e8685289ffff9100f6d900bd26f7a2ea38598",
-      "bytes": 14776
+      "sha256": "dc24afe83a8af446a949ccab64c343944ea4c0849292084f35b96b41b497c722",
+      "bytes": 14773
     },
     {
       "path": "nextflow-development/scripts/config/genomes.yaml",
@@ -1027,8 +1027,8 @@
     },
     {
       "path": "nextflow-development/scripts/manage_genomes.py",
-      "sha256": "76981f7fd6f1187e2f6f345cfb7a8b62ae6a09f4dc105a8475e626abfb1c566c",
-      "bytes": 17407
+      "sha256": "b18855cfd991201ffb6638a7fd89dc150025c8fc12c3bd6ff92ae80db2009372",
+      "bytes": 17404
     },
     {
       "path": "nextflow-development/scripts/sra_geo_fetch.py",
@@ -1077,8 +1077,8 @@
     },
     {
       "path": "ngs-analysis-router/SKILL.md",
-      "sha256": "bdc2cdd83c5d4870060f049d5e97bb9b37704dc53c9c15975e08a951f204e538",
-      "bytes": 7727
+      "sha256": "4e7e2b71022ce7e4f942213d3dcd2d69ae22f1032abea9ff489dda7a954eb04e",
+      "bytes": 7724
     },
     {
       "path": "ngs-analysis-router/THIRD_PARTY_NOTICES.md",
@@ -1097,18 +1097,18 @@
     },
     {
       "path": "nvmolkit-usage/SKILL.md",
-      "sha256": "b6bfae93d788088b3e5d4ad1924bb914616f5aa54a814dfb401c6b726c171466",
-      "bytes": 15800
+      "sha256": "88bfe737750a87765d1b8f6850bff9efb2afcfe4eafdf5ac42bdec205e8b7da7",
+      "bytes": 15797
     },
     {
       "path": "openfold2-nim/references/api.md",
-      "sha256": "e614c809233bb1a03f3405eeee44db48c227a7e52d6a7d53cc25c4091e94547c",
-      "bytes": 4659
+      "sha256": "84397da3c14a0ec67732c38d76f92299df3f262e09195c6677a1798f69c522d7",
+      "bytes": 4656
     },
     {
       "path": "openfold2-nim/references/examples.md",
-      "sha256": "ebf0736f50bc953ae72c34caf102a399c1f55f0345451e9bdc8a5dce4fc3b1b4",
-      "bytes": 2000
+      "sha256": "e804a0a74eb9403859e34047750a38a30f155fe060d6f011f7bedf15fd5aaa46",
+      "bytes": 1997
     },
     {
       "path": "openfold2-nim/references/parameters.md",
@@ -1127,8 +1127,8 @@
     },
     {
       "path": "openfold2-nim/SKILL.md",
-      "sha256": "7e44b28b5d418973a013bb0b719997dc12752fb5cdf715672a3587cdc7df2715",
-      "bytes": 7968
+      "sha256": "aede7a0e83e3a7296a8eed4edf48d3c4ffa1f845f52ab17bbecc789d27ee061c",
+      "bytes": 7965
     },
     {
       "path": "openfold3/SKILL.md",
@@ -1137,18 +1137,18 @@
     },
     {
       "path": "openfold3-nim/references/api.md",
-      "sha256": "f71bfb3593287d79a86ce69627aa5de4c5c3858a9c1a859516b10bdccb63b294",
-      "bytes": 5518
+      "sha256": "fdd97d3d824f10731e53cadb3f9bb77d67773b762981758dd41f1e2c6900646a",
+      "bytes": 5515
     },
     {
       "path": "openfold3-nim/references/examples.md",
-      "sha256": "96545d286adb5e4af7d19b3f0a46a1dd04bbc80e5810e7eba1e2466ae59905b4",
-      "bytes": 2419
+      "sha256": "778bca1513fb0dd4d33cb7fea6ad65387d92b576c0689710d39697d4be85fe86",
+      "bytes": 2416
     },
     {
       "path": "openfold3-nim/references/parameters.md",
-      "sha256": "e761afbbb9b05e52d722e54d526b82fe70cc61f524b37f9f9afdbd82613bb696",
-      "bytes": 2935
+      "sha256": "cbe9107304776a9d6db29c23101be1340d9889ba7d423e03e4a0824a1b0d6789",
+      "bytes": 2932
     },
     {
       "path": "openfold3-nim/references/science.md",
@@ -1162,8 +1162,8 @@
     },
     {
       "path": "openfold3-nim/SKILL.md",
-      "sha256": "e5b1fe56bd1b2106ee5b6d96667831f967705847d813bc9f6b92417c6e02a588",
-      "bytes": 8096
+      "sha256": "3b27006a12b11978d9afe1dccd3353d26cb29a60b9fb67761ad63ab7e994e180",
+      "bytes": 8093
     },
     {
       "path": "p2rank-pocket-detection/scripts/p2rank_binding_pockets.py",
@@ -1177,8 +1177,8 @@
     },
     {
       "path": "p2rank-pocket-detection/SKILL.md",
-      "sha256": "28b6609449b524f7862a6c30bdd782bd941cc2ffcd5550c066c1f26d05864aa8",
-      "bytes": 6072
+      "sha256": "9fe12c81afdc1f4331c484aeb2a3755decacb90603bdc83c92252771fb049150",
+      "bytes": 6069
     },
     {
       "path": "paper-narrative/kernel.py",
@@ -1197,148 +1197,148 @@
     },
     {
       "path": "parabricks/references/pbrun-applybqsr.md",
-      "sha256": "dd3480dd275277e9de247135009a0bd03863adfcb044c57c64d243d9d37e7457",
-      "bytes": 4556
+      "sha256": "f02606e6898cfdda1e2a7f8245119dfb844ceea80ee515db6d5b6435bd52780a",
+      "bytes": 4553
     },
     {
       "path": "parabricks/references/pbrun-bam2fq.md",
-      "sha256": "8119d47d5465ed4e157ff90d4c413d9e62355f070e6bb1abd948bc910cdf8ddf",
-      "bytes": 4561
+      "sha256": "41e2fbcd37625bb70a7737a26848d15f07a70358605dbbb63be13037c42b341d",
+      "bytes": 4558
     },
     {
       "path": "parabricks/references/pbrun-bammetrics.md",
-      "sha256": "ecebbc7950bdf5b4f9f9825e644204aa6fe15b035cd76477ad8341695df947f9",
-      "bytes": 6992
+      "sha256": "992228d21a318b73ae4d704594dd738a50131f4019c99ca875dddc06b67f7ccb",
+      "bytes": 6989
     },
     {
       "path": "parabricks/references/pbrun-bamsort.md",
-      "sha256": "b46002a8e323a7f3ae982fc72b146e670700c82ba46860c6f7b97ae29f2c2ac3",
-      "bytes": 4399
+      "sha256": "a8d401bc5ae632056618680d6308b8e58cb670678609ced8ec0f1137930f2818",
+      "bytes": 4396
     },
     {
       "path": "parabricks/references/pbrun-bqsr.md",
-      "sha256": "2e62873a247c10e50dba1e718038bfd3dcc683870d2e972f0648efeb3d889c1a",
-      "bytes": 4172
+      "sha256": "041a296685a3db8ddeed3d3ce69113cee0b1d331d9ff6ffc4b872160a641c9c9",
+      "bytes": 4169
     },
     {
       "path": "parabricks/references/pbrun-collectmultiplemetrics.md",
-      "sha256": "a9520580499dcfb03ae42266894200d84a0faf2bf5aa7520db37078ae78905aa",
-      "bytes": 8164
+      "sha256": "bfa78cd99715a3cd7f7572bca4c42c4c68c5fe5349f05fa186f653913b67c238",
+      "bytes": 8161
     },
     {
       "path": "parabricks/references/pbrun-dbsnp.md",
-      "sha256": "94281451e5d1b20f9f486607e8380ca46a61d3aec39f35eb6f83f62159c79191",
-      "bytes": 3180
+      "sha256": "d089998100a04f1c037565edf1d90b3b8db0aba8cfee126303487636401760e2",
+      "bytes": 3177
     },
     {
       "path": "parabricks/references/pbrun-deepsomatic.md",
-      "sha256": "ccdb1d822de4641721e4d34159c0577a2492db44a7e2dcd6f1ec4949266bd8f2",
-      "bytes": 4657
+      "sha256": "325434e529ab3607303d4b8217cec9e17ecac113bc7770228a4bf1c1f84f6830",
+      "bytes": 4654
     },
     {
       "path": "parabricks/references/pbrun-deepvariant.md",
-      "sha256": "6b5f554b8986173a59e24b4a5b775ef73f796802c9d5aaadbdbfb7b395137998",
-      "bytes": 5330
+      "sha256": "9a8e61f8f3fa1d7d88ed50bd50d31cccf799f2a48e9658dcc57eee78bbde2b10",
+      "bytes": 5327
     },
     {
       "path": "parabricks/references/pbrun-deepvariant_germline.md",
-      "sha256": "29d81a47f2662e05e6e35bfbf5fd5fd66ff784e40c7a9eb8bf16b66f06620ca4",
-      "bytes": 5683
+      "sha256": "1973961c97a62136d95ebfbff6d6bf83930c9e80b0b6d74dee3cc9d9390d6bf5",
+      "bytes": 5680
     },
     {
       "path": "parabricks/references/pbrun-fq2bam.md",
-      "sha256": "86221771172c705292ffcac1cc558ec02b796d05b69dbb2694238596ace67b9c",
-      "bytes": 11387
+      "sha256": "44a3dc29a24c6d38e64bd2c74b3de74bb7d6d0c0378329a8bb5cef9293b9beb6",
+      "bytes": 11384
     },
     {
       "path": "parabricks/references/pbrun-fq2bam_meth.md",
-      "sha256": "ddc810886d2405b3beefcded3fa95a2469e8f1214c75dc3870b4ca412b075253",
-      "bytes": 8486
+      "sha256": "9cac875a62ffa09be90cef05c9752ec15fcad8f1cf599df8663378c614c49a64",
+      "bytes": 8483
     },
     {
       "path": "parabricks/references/pbrun-genotypegvcf.md",
-      "sha256": "8bf78857f350104ff527c2616ec0402c803cb735602c83a506aee3d33f0a187c",
-      "bytes": 3440
+      "sha256": "51e2a82bc9821cb009b34c341cfdf1c6419c93b2702cf5fc72579109e791e24a",
+      "bytes": 3437
     },
     {
       "path": "parabricks/references/pbrun-germline.md",
-      "sha256": "7b7272b76fab10abf36e1259bce5882bb59d37b724a9da4128365ba83b866011",
-      "bytes": 5530
+      "sha256": "b3bdf212e4058e39c014bc8b323ec67a3a1883c781fb894fe4102e3d23534ffd",
+      "bytes": 5527
     },
     {
       "path": "parabricks/references/pbrun-giraffe.md",
-      "sha256": "ed30e556ea9073cf6e76eaa05eb9497c057fd18074e26dc4e6cc328032e3b47a",
-      "bytes": 7415
+      "sha256": "dcac9d6ccdb8430d8cdc83615803ba7ef23ed5141538aae4ea9a0a48fdddf27d",
+      "bytes": 7412
     },
     {
       "path": "parabricks/references/pbrun-haplotypecaller.md",
-      "sha256": "4b0bc12b074f843426b3bb5e9aa0605046144adb54a8269d75b248226524f050",
-      "bytes": 5771
+      "sha256": "aeebbf41f10378584b667ff306701df7763725a7e17835d7005d97ac69bb4764",
+      "bytes": 5768
     },
     {
       "path": "parabricks/references/pbrun-indexgvcf.md",
-      "sha256": "3b5f6477f84f11c0eac4042b7decddad1fded3e156a156775860d1e7da8e2566",
-      "bytes": 3203
+      "sha256": "d65cbea82aea55ce69749415efe2f2d13ff31f55d6de170c71736cc494de1b27",
+      "bytes": 3200
     },
     {
       "path": "parabricks/references/pbrun-markdup.md",
-      "sha256": "f3ecb8dfa763d8905144a59912ea8258c8f8faac4771fc36e939820a8e127c4c",
-      "bytes": 5703
+      "sha256": "3b65a5334ec8af727073f8f34386578e6b93c7b13f4589c23bd9c0e71c32ddf9",
+      "bytes": 5700
     },
     {
       "path": "parabricks/references/pbrun-minimap2.md",
-      "sha256": "0dc59b1232d3027273062f2dda626d385ec265521c0facce909b3ae5117783be",
-      "bytes": 6263
+      "sha256": "9e072677304cc5fad4606add650d4c21a7a254c68fea78b7c4f80839244bd402",
+      "bytes": 6260
     },
     {
       "path": "parabricks/references/pbrun-mutectcaller.md",
-      "sha256": "89a40a2973fe85d8e4ed4663ac41eee3f5f120fa04189695a1f1e4388533fcc8",
-      "bytes": 4618
+      "sha256": "e352b65dd9e70320a515af9e8e8095c55a7e2c91344b8b718af934a85b846eba",
+      "bytes": 4615
     },
     {
       "path": "parabricks/references/pbrun-ont_germline.md",
-      "sha256": "5c1848897f7126e78a68299e89516a3471267c6fafee7a93900f68bde14b9268",
-      "bytes": 4671
+      "sha256": "210f35c8b1bc1f91d40610a5316ec6ce6d1dd1fc811889279acf4f9ee05088e7",
+      "bytes": 4668
     },
     {
       "path": "parabricks/references/pbrun-pacbio_germline.md",
-      "sha256": "5958d6d8287b05d7a7fb6c99e5aa475b12f6f3c85de5599b95577348bc5a5105",
-      "bytes": 5037
+      "sha256": "759cdabca3664cf056398d33f6638678a13523a1ba3f440a50416be22f37d63b",
+      "bytes": 5034
     },
     {
       "path": "parabricks/references/pbrun-pangenome_aware_deepvariant.md",
-      "sha256": "069c90d0c8d689a067d89752541e9537ba6ce05d9ac73905f99b7ca4c6a1f175",
-      "bytes": 4455
+      "sha256": "46a073b81b1755670b9053463311a1f4e2c066c9fe75f97d4793efc2cfa770ab",
+      "bytes": 4452
     },
     {
       "path": "parabricks/references/pbrun-pangenome_germline.md",
-      "sha256": "e8635415d0288dc6159d4b32335deb55670676f6cff36f187a637ac85558a355",
-      "bytes": 4964
+      "sha256": "4761e91fe1e057cfc5030c9c08a2657f67ee0b867f2f76fe5ee62a24f86b3212",
+      "bytes": 4961
     },
     {
       "path": "parabricks/references/pbrun-postpon.md",
-      "sha256": "e0cdf66148db92514eeb53d436bcc425113108654068e238525a847a9a587bf9",
-      "bytes": 3243
+      "sha256": "4a14b3c9ca3dc8d78adde8fc404653c69158f36ed5b36afa4061e527cd60c877",
+      "bytes": 3240
     },
     {
       "path": "parabricks/references/pbrun-prepon.md",
-      "sha256": "329fe06dd47fb84b1d8bb4296d1abf8179f8794a49234436a06197975e6b7bc4",
-      "bytes": 3423
+      "sha256": "b78b68a4c92234e6ea6dbe74b6798b3254b8d25a6534dbe832fbbc118b9e8f90",
+      "bytes": 3420
     },
     {
       "path": "parabricks/references/pbrun-rna_fq2bam.md",
-      "sha256": "ee9fef9b21a462077c54c6f41feeb3d64b00a7ec6f2789b9fc154802fe7e079d",
-      "bytes": 10840
+      "sha256": "1bff08c93397dd9e63ec0ff983c57b4f2b115346340d2867e9400aa856dff8b4",
+      "bytes": 10837
     },
     {
       "path": "parabricks/references/pbrun-somatic.md",
-      "sha256": "882b7fe4884afad618778292027c5b5c58ee58fa0ec0f6d7cc43b6b820d06e54",
-      "bytes": 5149
+      "sha256": "15dc5dcab02647e9b1d90a22b7d7e7dbee2993a62834ef6f45e93febd60fd3bd",
+      "bytes": 5146
     },
     {
       "path": "parabricks/references/pbrun-starfusion.md",
-      "sha256": "56d5bc57e29469d235909727cab3f360faff1dd7b803932319345d2dab625333",
-      "bytes": 10487
+      "sha256": "9cdcb684083e8eec633881ecee7f8e5683eedc237765463e60991e5aac7ccdc6",
+      "bytes": 10484
     },
     {
       "path": "parabricks/references/runtime-environment.md",
@@ -1347,8 +1347,8 @@
     },
     {
       "path": "parabricks/references/tool-index.md",
-      "sha256": "c951f9aa8f8adb57ce6233bd0837684b91bf0171153168aa0903deb470b98b03",
-      "bytes": 3583
+      "sha256": "305a444d2007a4da2f43709eceb34a37a167a0a76431ec149f95aa1e0fcc8ae9",
+      "bytes": 3580
     },
     {
       "path": "parabricks/scripts/check_parabricks_runtime.py",
@@ -1402,8 +1402,8 @@
     },
     {
       "path": "pocket2mol-local/SKILL.md",
-      "sha256": "6ddba04daf097a660024ad7fd1afc85a32879474efc0c548f31573983b96e904",
-      "bytes": 12281
+      "sha256": "1f24dd0390e26db08b8234fdfdfe95c0f181894cd63863df93fc0a8abe930fed",
+      "bytes": 12278
     },
     {
       "path": "postmarketing-lifecycle-management/agents/openai.yaml",
@@ -1417,8 +1417,8 @@
     },
     {
       "path": "presentations/SKILL.md",
-      "sha256": "b172f8c2dabd7439fa6b94dcee2805bc77e4005443e16eb67cffc8ded7852757",
-      "bytes": 3745
+      "sha256": "2c79e754c2499470c3a3b3283fdb499477748c67ac477b153c3f9642d8a00fc1",
+      "bytes": 3742
     },
     {
       "path": "process-development-scale-up/agents/openai.yaml",
@@ -1452,8 +1452,8 @@
     },
     {
       "path": "proteinmpnn-nim/references/api.md",
-      "sha256": "81c4fe07cd2edd38c251a1209592bb1d4e56e633a6f3af356947c6fd2933eaab",
-      "bytes": 4345
+      "sha256": "3abaac916923d95ab9e60663b097809936ddaaf92d6b68d7862a4425f5eabcd1",
+      "bytes": 4342
     },
     {
       "path": "proteinmpnn-nim/references/examples.md",
@@ -1477,8 +1477,8 @@
     },
     {
       "path": "proteinmpnn-nim/SKILL.md",
-      "sha256": "96cb57cb92d1a32572ea61c8550f57d25f12c02ca2492db3d78375d2c8f8fa1a",
-      "bytes": 5675
+      "sha256": "2ab25dfcb337c5317826e799f84df9ab3299117b6cfbbff7c0e1ff269adaf758",
+      "bytes": 5672
     },
     {
       "path": "quantum-chemistry-postprocessing/SKILL.md",
@@ -1562,8 +1562,8 @@
     },
     {
       "path": "remote-compute-modal/provider.py",
-      "sha256": "0674970dc5483334c6be21ba226f0bd95c9830eba5398a94f192ab296b6723b9",
-      "bytes": 45103
+      "sha256": "5dba3dfd01e260d37ffbcbbecf73cf75ee9f4908d326fa2de47abfaddcdd2328",
+      "bytes": 45097
     },
     {
       "path": "remote-compute-modal/requirements.lock",
@@ -1572,8 +1572,8 @@
     },
     {
       "path": "remote-compute-modal/SKILL.md",
-      "sha256": "0e61af1f71cf079df84079e71ccfe002bbb95891afb8d32120e64046fa433a38",
-      "bytes": 43921
+      "sha256": "6c4d5d39aa114c149692f150c4c94b7e731fba9e8f61aac804eccd41768f2755",
+      "bytes": 43910
     },
     {
       "path": "remote-compute-ssh/SKILL.md",
@@ -1582,8 +1582,8 @@
     },
     {
       "path": "rfdiffusion-nim/references/api.md",
-      "sha256": "22c4740501b8d81c75a6df8ee8f8e77abca364260e2c86b1e3dd03ae41ef5a1c",
-      "bytes": 4212
+      "sha256": "2871b6e9f9090721c10b75385e863ecb6dd50b550d0301c34866572131fdcd10",
+      "bytes": 4209
     },
     {
       "path": "rfdiffusion-nim/references/examples.md",
@@ -1592,8 +1592,8 @@
     },
     {
       "path": "rfdiffusion-nim/references/parameters.md",
-      "sha256": "80544cbfc63d739f5e7c76c987bd17ea860a719a2a381dc21662517c3ba7a5a6",
-      "bytes": 1015
+      "sha256": "1686ee72cd380126dd2053007cf9cf0495958dd9e15dd50bf9a66484e5464f80",
+      "bytes": 1012
     },
     {
       "path": "rfdiffusion-nim/references/science.md",
@@ -1602,13 +1602,13 @@
     },
     {
       "path": "rfdiffusion-nim/references/validation.md",
-      "sha256": "e4dc872d573810f63e2d9791fe3ff7bd6a5322ce4d523144556267d11dbfc148",
-      "bytes": 855
+      "sha256": "38d93260a1f956f1a61324d8f35c5000b1b608b5395796eeb48c650a5dbe72c9",
+      "bytes": 852
     },
     {
       "path": "rfdiffusion-nim/SKILL.md",
-      "sha256": "78e27ac7e9cd21258f7f33f59b937d160f440ff0418c935ca2c261bced288379",
-      "bytes": 6213
+      "sha256": "86d25aede06bcaae3777ca3e74970b8e5bbf75f8ff47348a80da416cbf027354",
+      "bytes": 6210
     },
     {
       "path": "rna-design-strategy/references/methods.md",
@@ -1622,8 +1622,8 @@
     },
     {
       "path": "sbdd-ppi-workflow/SKILL.md",
-      "sha256": "a41f166f9c505b0b42406d2d4d2a6303e8b28ea64cf23b5c6ebed2919786d334",
-      "bytes": 5868
+      "sha256": "0872cbf30c80a6a5d9be542592fe4236310eafd09202566070d4a71dea9f2ad8",
+      "bytes": 5865
     },
     {
       "path": "scgpt/SKILL.md",
@@ -1642,18 +1642,18 @@
     },
     {
       "path": "scientific-problem-selection/references/01-intuition-pumps.md",
-      "sha256": "2104e2a252c76e8b9758cb8366c6e7ceeaf5aef7e5899b7ce31fcf28be8a3d26",
-      "bytes": 12948
+      "sha256": "db8014157448f49b0a516a62353578f6fe82ee178c45617d3b239f6a9a25e480",
+      "bytes": 12913
     },
     {
       "path": "scientific-problem-selection/references/02-risk-assessment.md",
-      "sha256": "cb79e871d4d907dca1d60c2ed3eeee10626e2dd3a3285b362bb1118ec65716b8",
-      "bytes": 13713
+      "sha256": "d4737b0df8f7ed461f100e9f9f7029bbb7ed6b03973e401a8a8744cde290affd",
+      "bytes": 13662
     },
     {
       "path": "scientific-problem-selection/references/03-optimization-function.md",
-      "sha256": "0816152325f88f6aebf98deb6c9bab2eac912cfdd4b880c749c84d16c288f01b",
-      "bytes": 18831
+      "sha256": "c592d5f5dd04ce6ba118df35567c5553ee0f88f3ef0d4acc9eda91925ba9f647",
+      "bytes": 18800
     },
     {
       "path": "scientific-problem-selection/references/04-parameter-strategy.md",
@@ -1772,18 +1772,18 @@
     },
     {
       "path": "skill-creator/agents/analyzer.md",
-      "sha256": "7346037b62ace5ef79113a1e26a223b49974de82b6eeab6306237bbd711a2e61",
-      "bytes": 10677
+      "sha256": "83fc7dd0e41456248369c56315551e78077efb562965e35d53794b9f3d911e15",
+      "bytes": 10674
     },
     {
       "path": "skill-creator/agents/comparator.md",
-      "sha256": "8ad26b18b62332467631e5f261e5a1a8016a74e7dfa4c3165d98a5b3ddfa7d4b",
-      "bytes": 7501
+      "sha256": "bd398599f5975fa7698b14407459b6e71bc373e640774c2e9975448e0405c85e",
+      "bytes": 7498
     },
     {
       "path": "skill-creator/agents/grader.md",
-      "sha256": "1e55e3cd0ac4aadb1541448041dac63a067c202edf7448c3d9e11016743a4ce2",
-      "bytes": 9184
+      "sha256": "1fc89416e14cf0165f328e296f981dc01a8d9ab76ea65fa972af81fdc2a2738b",
+      "bytes": 9181
     },
     {
       "path": "skill-creator/assets/eval_review.html",
@@ -1807,13 +1807,13 @@
     },
     {
       "path": "skill-creator/NOTICE.md",
-      "sha256": "bf5f3eb550eb3ea9783d713de0507b66f20d771d4c5d89e2cdf332108ef8ed8a",
-      "bytes": 1176
+      "sha256": "83aaa9c159f8b571cc9685eb9a9996639fcce71eb8aa95d91dd76ae8e8af2d12",
+      "bytes": 1173
     },
     {
       "path": "skill-creator/references/schemas.md",
-      "sha256": "844f13f84ad29aafdb3e74935cb79c48e77608bd746a8b0dbc4a58eb223a6aaa",
-      "bytes": 12219
+      "sha256": "eaa2b9f03b5e798b7c592e10f7307580e797dcb27aa9b9eb1e54fb744e00d3dc",
+      "bytes": 12216
     },
     {
       "path": "skill-creator/scripts/__init__.py",
@@ -1822,23 +1822,23 @@
     },
     {
       "path": "skill-creator/scripts/aggregate_benchmark.py",
-      "sha256": "923173248e761ba7326a67b13f767570e6174129a5ce459c88008f2f65ad20a0",
-      "bytes": 14626
+      "sha256": "880a5593b87e676453353bfb08d1886b45ea104cd6b46b2a9988f6650c5d41b4",
+      "bytes": 14623
     },
     {
       "path": "skill-creator/scripts/generate_report.py",
-      "sha256": "affd30b3b160ad0becab4ddee328c890cce3855ed17865c9d9578b3fffe9b978",
-      "bytes": 13012
+      "sha256": "28b921a94440bdfd2f46ab4c756a49b8a9faa0261efd61fee1526e51f9ff8fe8",
+      "bytes": 13009
     },
     {
       "path": "skill-creator/scripts/package_skill.py",
-      "sha256": "cdd1a898263498ecd6c08092cf602c64ffe256772d9451400b4b503b5e634a47",
-      "bytes": 4324
+      "sha256": "72019440ed3710342f95bdc79bbaaf3146600f232c0d371bfb1f50f194a4cc0e",
+      "bytes": 4321
     },
     {
       "path": "skill-creator/scripts/quick_validate.py",
-      "sha256": "1e99018154b26982880ff1fd08c55a7e4fa7f089f7120fba6dbf6429d017ea6d",
-      "bytes": 7638
+      "sha256": "947b25d0b52c80386f92ccc58e45e7d3818edbd9124ece37257daa005e0fd5eb",
+      "bytes": 7635
     },
     {
       "path": "skill-creator/scripts/test_quick_validate.py",
@@ -1852,8 +1852,8 @@
     },
     {
       "path": "skill-creator/SKILL.md",
-      "sha256": "d5eac7c20035b36ce8d9f1ca45bb52befa722cbc447ec229f786d8cd2c103fc7",
-      "bytes": 38033
+      "sha256": "ccf70dccc52c657026d6db22ec1debeeb30e906504093da0e22bc8a5cd2aabf2",
+      "bytes": 38027
     },
     {
       "path": "solublempnn/SKILL.md",
@@ -1907,8 +1907,8 @@
     },
     {
       "path": "synon-research/SKILL.md",
-      "sha256": "4ccefb765b78dc649419529f2e01c17414004fbdeb2a7f27ff2aa74aaf5a4c65",
-      "bytes": 2492
+      "sha256": "ca97da5d7c2d683266e7c2c91e1ddc4cf080a7b2601105791b75ceb722de9249",
+      "bytes": 2496
     },
     {
       "path": "THIRD_PARTY_LICENSES.md",

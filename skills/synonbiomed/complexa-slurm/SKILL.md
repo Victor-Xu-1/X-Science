@@ -22,7 +22,7 @@ allowed-tools: search_skills, skill, ask_user, repl, list_compute, bash, read_fi
 
 # Complexa SLURM Skill
 
-<!-- Modified for Synon Biomed. Source and license terms: THIRD_PARTY_NOTICES.md. -->
+<!-- Modified for X-Science. Source and license terms: THIRD_PARTY_NOTICES.md. -->
 
 Drive `slurm_utils/launch_protein_binder_search.sh`,
 `slurm_utils/launch_laproteina_design_pipeline.sh`,

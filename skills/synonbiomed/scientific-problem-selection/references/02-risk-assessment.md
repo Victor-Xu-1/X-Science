@@ -1,6 +1,6 @@
 # SKILL 2: Risk Assessment and Assumption Analysis
 
-> Modified for Synon Biomed's managed scientific workflows. Upstream attribution
+> Modified for X-Science's managed scientific workflows. Upstream attribution
 > and Apache-2.0 terms remain in the skill/catalog notices.
 
 ## Overview
@@ -24,7 +24,7 @@ A project with a high-risk assumption that won't read out for >2 years is proble
 
 ### Phase 1: Extract Project Assumptions (10-15 minutes)
 
-First, Synon Biomed should gather information about the user's project from Skill 1:
+First, X-Science should gather information about the user's project from Skill 1:
 
 1. **Project Summary** (from Skill 1):
    - The biological question
@@ -41,7 +41,7 @@ First, Synon Biomed should gather information about the user's project from Skil
 
 ### Phase 2: Comprehensive Assumption Listing
 
-Synon Biomed should work with the user to list EVERY assumption the project makes from inception through conclusion. Assumptions fall into two categories:
+X-Science should work with the user to list EVERY assumption the project makes from inception through conclusion. Assumptions fall into two categories:
 
 #### Type A: Assumptions About Biological Reality
 These are facts about the world that either are or aren't true. They won't change during the project.
@@ -63,7 +63,7 @@ These are about whether technology can do what's needed. These CAN change during
 - Computational analysis can distinguish signal from noise
 - Gene editing will work in the system
 
-**Synon Biomed should ask:**
+**X-Science should ask:**
 1. What must be true about the biology for this to work?
 2. What must the technology be able to do?
 3. What about the experimental design—what assumptions are built in?
@@ -73,7 +73,7 @@ These are about whether technology can do what's needed. These CAN change during
 
 ### Phase 3: Risk Scoring (The Assumption Analysis Table)
 
-For each assumption, Synon Biomed should help the user assign two scores:
+For each assumption, X-Science should help the user assign two scores:
 
 #### Risk Level (1-5 scale):
 - **1** = Very likely to be true/work (>90% confidence)
@@ -93,7 +93,7 @@ How long before the user will know if this assumption is valid?
 
 ### Phase 4: Risk Profile Evaluation
 
-Once the complete table is ready, Synon Biomed should analyze the risk profile:
+Once the complete table is ready, X-Science should analyze the risk profile:
 
 #### Red Flags to Identify:
 1. **The Late High-Risk Problem:** Risk level 4-5 assumption that won't read out until >18 months
@@ -111,7 +111,7 @@ Once the complete table is ready, Synon Biomed should analyze the risk profile:
 
 ### Phase 5: Risk Mitigation Strategies
 
-For each high-risk assumption (level 4-5), Synon Biomed should help develop mitigation strategies:
+For each high-risk assumption (level 4-5), X-Science should help develop mitigation strategies:
 
 #### Strategy 1: Move High-Risk Tests Earlier
 **Question:** Can a quicker, cruder test be designed that answers most of what's needed?
@@ -152,7 +152,7 @@ For each high-risk assumption (level 4-5), Synon Biomed should help develop miti
 
 ### Phase 6: Go/No-Go Experiment Design
 
-For the top 3 highest-risk assumptions, Synon Biomed should help design the critical go/no-go experiments:
+For the top 3 highest-risk assumptions, X-Science should help design the critical go/no-go experiments:
 
 **For each, specify:**
 1. **The Question:** Exactly what is being tested?
@@ -166,7 +166,7 @@ For the top 3 highest-risk assumptions, Synon Biomed should help design the crit
 
 ### Phase 7: Literature Validation
 
-Synon Biomed should search PubMed to help calibrate risk assessments:
+X-Science should search PubMed to help calibrate risk assessments:
 
 **Search for:**
 1. **Precedents:** Has anyone done something similar? (Reduces technical risk)
@@ -181,7 +181,7 @@ Synon Biomed should search PubMed to help calibrate risk assessments:
 
 ### Phase 8: Revised Project Plan
 
-Based on the risk analysis, Synon Biomed should help create a revised plan:
+Based on the risk analysis, X-Science should help create a revised plan:
 
 #### Option A: De-Risk the Current Plan
 - Reorder experiments to test high-risk assumptions early
@@ -198,7 +198,7 @@ Sometimes the honest answer is: "This has too many miracles." That's valuable to
 
 ## Output Deliverable
 
-Synon Biomed should produce a **2-page Risk Assessment Document**:
+X-Science should produce a **2-page Risk Assessment Document**:
 
 ### Page 1: Assumption Analysis Table
 
@@ -314,12 +314,12 @@ Month 18+:   [...]
 
 ## Getting Started
 
-Synon Biomed should begin with Phase 1 by asking for:
+X-Science should begin with Phase 1 by asking for:
 1. The project summary from Skill 1
 2. Project timeline expectations
 3. What concerns the user most about this project
 
-Together, Synon Biomed and the user will build a rigorous risk assessment that dramatically improves the likelihood of success by helping avoid years of work on projects with insurmountable obstacles.
+Together, X-Science and the user will build a rigorous risk assessment that dramatically improves the likelihood of success by helping avoid years of work on projects with insurmountable obstacles.
 
 ---
 

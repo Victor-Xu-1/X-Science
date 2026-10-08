@@ -26,7 +26,7 @@ critical-constraints:
 
 # Pocket2Mol Local
 
-Run the selected Pocket2Mol route through Synon Biomed's managed environment
+Run the selected Pocket2Mol route through X-Science's managed environment
 and public-file authorities. Do not ask the user to execute setup commands.
 
 ## 1. Inspect before installing

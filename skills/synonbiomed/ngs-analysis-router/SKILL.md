@@ -3,7 +3,7 @@ name: ngs-analysis-router
 description: >
   Inspect local BCL, FASTQ, BAM, CRAM, VCF, count-matrix, H5AD, and sequencing
   metadata; ask only the missing assay-specific questions; and route NGS work
-  to Synon Biomed's existing Parabricks, genomics acceleration, scVI, scGPT,
+  to X-Science's existing Parabricks, genomics acceleration, scVI, scGPT,
   and public bio-tools MCP capabilities. Use for broad or ambiguous sequencing,
   RNA-seq, DNA variant, single-cell, epigenomics, amplicon, or metagenomics
   requests before choosing or installing a workflow. This Skill plans and

@@ -1,6 +1,6 @@
-# Synon 2D Interaction Runtime Notice
+# X-Science 2D Interaction Runtime Notice
 
-The Synon 2D Interaction Engine is independently implemented by Synon Biomed.
+The X-Science 2D Interaction Engine is independently implemented by this project.
 It does not contain or invoke Schrödinger source code or executables.
 
 The server declares the following exact Python distributions to the governed

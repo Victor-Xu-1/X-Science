@@ -176,7 +176,7 @@ class ModalProvider:
         os.environ["MODAL_TOKEN_SECRET"] = creds["token_secret"]
 
     def set_app_name(self, name: Any) -> None:
-        """Configured Modal app for Synon Biomed sandboxes (compute_providers.
+        """Configured Modal app for X-Science sandboxes (compute_providers.
         app_name, rides every op's req.json). Called by run_oneshot AFTER
         import_and_patch — which is why the App.lookup is lazy (_get_app),
         not eager here. Falsy/non-str → keep FALLBACK_APP_NAME."""
@@ -425,7 +425,7 @@ class ModalProvider:
         return combos
 
     def list_owned(self, install_id: str) -> list[dict[str, Any]]:
-        """Union of every (app, owner-key) combination a Synon Biomed sandbox of
+        """Union of every (app, owner-key) combination a X-Science sandbox of
         this install can exist under, deduped by object_id:
           - configured app + new key       (anything created post-rename)
           - configured app + each legacy key (created mid-rollout under the

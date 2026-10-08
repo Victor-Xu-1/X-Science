@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Modified for Synon Biomed. Source attribution and Apache-2.0 terms
+# Modified for X-Science. Source attribution and Apache-2.0 terms
 # are retained in the Skill's NOTICE.md and LICENSE.txt.
 """
 Quick validation script for skills - minimal version
