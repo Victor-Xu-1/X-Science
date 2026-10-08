@@ -374,6 +374,9 @@ func validateWorkflow(relative string, root *yaml.Node, state *workflowState) er
 	if bootstrapJob == "" {
 		return errors.New("actions_bootstrap_workflow_invalid")
 	}
+	if err := validateVersionTransitionStep(relative, jobs, bootstrapJob); err != nil {
+		return err
+	}
 	aggregate, requiresAggregate := state.policy.RequiredAggregates[relative]
 	aggregateFound := false
 	for index := 0; index < len(jobs.Content); index += 2 {
@@ -501,7 +504,7 @@ func validateStep(step *yaml.Node, state *workflowState, bootstrapJob, requireCh
 		(!state.policy.Requirements.UnconditionalTestEvidenceAllowed || requireCheckout || requireGate || !unconditionalTestEvidenceStep(step)) {
 		return errors.New("actions_conditional_forbidden")
 	}
-	if mappingValue(step, "env") != nil && !packageTokenStep(step, state) && !versionTokenStep(step, state) {
+	if mappingValue(step, "env") != nil && !packageTokenStep(step, state) {
 		return errors.New("actions_environment_override_forbidden")
 	}
 	if err := validateContinueOnError(step); err != nil {

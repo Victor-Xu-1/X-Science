@@ -1,25 +1,51 @@
 package main
 
-import "gopkg.in/yaml.v3"
+import (
+	"errors"
+	"strings"
 
-// Only the trusted proposal tool receives the repository-scoped short-lived token.
-func versionTokenStep(step *yaml.Node, state *workflowState) bool {
-	if state.currentWorkflow != ".github/workflows/version-pr.yml" || state.currentJob != "propose-version" {
-		return false
+	"gopkg.in/yaml.v3"
+)
+
+const versionStepName = "Verify one PR version increment"
+
+func versionCommand(relative string) string {
+	prefix := "PYTHONDONTWRITEBYTECODE=1 python3 -B scripts/packaging/pr_version_gate.py \\\n"
+	switch relative {
+	case ".github/workflows/quality-pr.yml":
+		return prefix + "  --base '${{ github.event.pull_request.base.sha }}' --candidate '${{ github.sha }}'"
+	case ".github/workflows/quality-main.yml":
+		return prefix + "  --base '${{ github.event.before }}' --candidate '${{ github.sha }}' \\\n" +
+			"  --initial-main '${{ github.event.created }}'"
+	default:
+		return ""
 	}
-	env, run := mappingValue(step, "env"), mappingValue(step, "run")
-	if env == nil || env.Kind != yaml.MappingNode || len(env.Content) != 4 ||
-		run == nil || run.Value != "python3 -B scripts/packaging/sync_version_proposal.py" {
-		return false
+}
+
+// The counter is read-only and shares the existing required policy job.
+// It cannot be replaced by a constant revision, post-merge writer or PR bypass.
+func validateVersionTransitionStep(relative string, jobs *yaml.Node, bootstrap string) error {
+	want := versionCommand(relative)
+	if want == "" {
+		return nil
 	}
-	for key, want := range map[string]string{
-		"GH_TOKEN":    "$" + "{{ steps.app-token.outputs.token }}",
-		"VERSION_PRS": "$" + "{{ steps.version.outputs.prs }}",
-	} {
-		value := mappingValue(env, key)
-		if value == nil || value.Kind != yaml.ScalarNode || value.Value != want {
-			return false
+	steps := mappingValue(mappingValue(jobs, bootstrap), "steps")
+	count := 0
+	if steps != nil {
+		for _, step := range steps.Content {
+			name := mappingValue(step, "name")
+			if name == nil || name.Value != versionStepName {
+				continue
+			}
+			count++
+			run := mappingValue(step, "run")
+			if run == nil || strings.TrimSpace(run.Value) != want {
+				return errors.New("actions_version_transition_invalid")
+			}
 		}
 	}
-	return true
+	if count != 1 {
+		return errors.New("actions_version_transition_invalid")
+	}
+	return nil
 }
