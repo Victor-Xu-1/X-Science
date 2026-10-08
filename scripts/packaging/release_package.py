@@ -121,6 +121,7 @@ def main() -> None:
     with tempfile.TemporaryDirectory(prefix="synon-package-") as temp:
         root = Path(temp)
         tag, revision, artifacts = prepare(event, root)
+        identity, _ = candidate.load_controls(ROOT)
         remote = f"ghcr.io/{REPOSITORY.lower()}:{tag}"
         layout = root / "layout"
         digest = build_layout(artifacts, layout, tag, revision, REPOSITORY)
@@ -131,7 +132,7 @@ def main() -> None:
              "--username", os.environ["GITHUB_ACTOR"], "--password-stdin"],
             input=os.environ["GH_TOKEN"], text=True, check=True,
         )
-        ensure_unused_package_tag(tag)
+        ensure_unused_package_tag(tag, identity["machine_slug"])
         subprocess.run(
             ["oras", "copy", "--from-oci-layout", f"{layout}@{digest}", remote,
              "--registry-config", registry_config], check=True,

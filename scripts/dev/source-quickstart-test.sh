@@ -205,7 +205,7 @@ grep -Fq 'state directory must be a dedicated path outside the source tree' "$TM
 ROOT_DIR=$(cd "$SCRIPT_DIR/../.." && pwd -P)
 make -C "$ROOT_DIR" -n source-quickstart | grep -Fq 'bash scripts/dev/source-quickstart.sh'
 for document in "$ROOT_DIR/README.md" "$ROOT_DIR/docs/operations-runbook.md"; do
-  grep -Fq 'git clone https://github.com/Victor-Xu-1/synon-biomed.git' "$document"
+  grep -Fq 'git clone https://github.com/Victor-Xu-1/X-Science.git' "$document"
   grep -Fq 'READY_URL=http://127.0.0.1:8765/#/login' "$document"
 done
 

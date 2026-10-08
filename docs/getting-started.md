@@ -79,7 +79,8 @@ export PATH="$HOME/.local/bin:$PATH"
 synon help
 ```
 
-安装器只创建当前 Linux 用户的 `$HOME/.local/bin/synon` 符号链接，指向**这份源码**的
+安装器创建当前 Linux 用户的 `$HOME/.local/bin/x-science` 和兼容的
+`$HOME/.local/bin/synon` 两个符号链接，均指向**这份源码**的
 `scripts/dev/synon`；不安装系统服务，也不修改 shell 启动文件。
 上面的 PATH 设置只影响当前终端。新终端找不到命令时，可重新设置该 PATH，
 或在同一源码根目录直接使用 `bash scripts/dev/synon`。

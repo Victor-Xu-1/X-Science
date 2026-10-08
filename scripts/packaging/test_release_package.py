@@ -1,6 +1,9 @@
 """Regression contracts for published-release package inputs."""
 
 import copy
+import contextlib
+import io
+import json
 import os
 import shutil
 import tempfile
@@ -13,6 +16,24 @@ from scripts.packaging import oci_bundle
 
 
 class ReleasePackageTest(unittest.TestCase):
+    def test_post_login_tag_check_keeps_the_authoritative_package_slug(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            event = root / 'event.json'
+            event.write_text('{}')
+            environment = {'GITHUB_EVENT_NAME': 'release', 'GITHUB_EVENT_PATH': str(event),
+                           'GITHUB_ACTOR': 'fixture', 'GH_TOKEN': 'synthetic-not-a-token',
+                           'GITHUB_STEP_SUMMARY': str(root / 'summary.md')}
+            with patch.dict(os.environ, environment), patch.object(
+                packaging, 'prepare', return_value=('v0.1.5', 'a' * 40, root),
+            ), patch.object(packaging.candidate, 'load_controls', return_value=({'machine_slug': 'x-science'}, {})), \
+                    patch.object(packaging, 'build_layout', return_value='sha256:' + 'a' * 64), \
+                    patch.object(packaging, 'verify_roundtrip'), patch.object(packaging.subprocess, 'run'), \
+                    patch.object(packaging, 'ensure_unused_package_tag', autospec=True) as guard:
+                with contextlib.redirect_stdout(io.StringIO()):
+                    packaging.main()
+            guard.assert_called_once_with('v0.1.5', 'x-science')
+
     def test_package_tag_check_uses_the_authoritative_slug_and_rejects_reuse(self):
         with patch.object(packaging, 'api_json', return_value=None) as request:
             packaging.ensure_unused_package_tag('v0.1.3', 'x-science')
