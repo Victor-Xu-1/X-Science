@@ -4,6 +4,15 @@ set -euo pipefail
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 WORKFLOW="$ROOT_DIR/.github/workflows/quality.yml"
 
+if [[ $# -ne 0 ]]; then
+  if [[ $# -ne 4 || "$1" != '--base' || "$3" != '--candidate' ]]; then
+    echo 'ERROR: expected --base EXACT_SHA --candidate EXACT_SHA' >&2
+    exit 1
+  fi
+  python3 -B "$ROOT_DIR/scripts/packaging/pr_version_gate.py" \
+    --repo "$ROOT_DIR" --base "$2" --candidate "$4"
+fi
+
 if [[ ! -f "$WORKFLOW" ]]; then
   echo "ERROR: quality workflow is missing" >&2
   exit 1
@@ -65,7 +74,7 @@ required_fragments=(
   'timezone: Asia/Shanghai'
 )
 for fragment in "${required_fragments[@]}"; do
-  if ! grep -Fq "$fragment" "$WORKFLOW"; then
+  if ! grep -Fq -- "$fragment" "$WORKFLOW"; then
     echo "ERROR: quality workflow is missing required gate: $fragment" >&2
     exit 1
   fi
@@ -86,8 +95,10 @@ for fragment in \
   'needs.pr-quality.result' \
   'scripts/quality/pr_fast_scope.py' \
   'scripts/quality/pr_fast_scope.py --vet' \
+  'scripts/packaging/pr_version_gate.py' \
+  "--base '\${{ github.event.pull_request.base.sha }}' --candidate '\${{ github.sha }}'" \
   'needs: pr-quality'; do
-  if ! grep -Fq "$fragment" "$PR_WORKFLOW"; then
+  if ! grep -Fq -- "$fragment" "$PR_WORKFLOW"; then
     echo "ERROR: PR fast workflow is missing required gate: $fragment" >&2
     exit 1
   fi
@@ -105,8 +116,10 @@ for fragment in \
   'needs: [main-frontend-tests, main-go-tests, main-quality]' \
   'needs.main-quality.result' \
   'github.event.before' \
-  'github.sha'; do
-  if ! grep -Fq "$fragment" "$MAIN_WORKFLOW"; then
+  'github.sha' \
+  'scripts/packaging/pr_version_gate.py' \
+  "--initial-main '\${{ github.event.created }}'"; do
+  if ! grep -Fq -- "$fragment" "$MAIN_WORKFLOW"; then
     echo "ERROR: main integration workflow is missing required gate: $fragment" >&2
     exit 1
   fi

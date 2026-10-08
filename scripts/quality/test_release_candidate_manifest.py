@@ -100,6 +100,7 @@ class ReleaseCandidateManifestTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="synon-release-entrypoint-") as directory:
             root = Path(directory)
             for name in (
+                "product_version.py",
                 "product_identity_gate.py",
                 "release_contract_io.py",
                 "release_candidate_manifest.py",

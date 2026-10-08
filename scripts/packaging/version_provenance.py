@@ -1,4 +1,4 @@
-"""Derive provenance for a version-only proposal without approving source changes."""
+"""Derive one candidate's version-only provenance without approving source changes."""
 
 from __future__ import annotations
 
@@ -8,13 +8,16 @@ import importlib.util
 import json
 from pathlib import Path
 import re
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.quality.product_version import require_next_version
 
 AUDIT = "scripts/audit/audit_frontend_migration.py"
 MIGRATION = "frontend/MIGRATION_MANIFEST.json"
 LICENSES = "frontend/THIRD_PARTY_LICENSES.json"
 DERIVED = {AUDIT, MIGRATION, LICENSES}
 IDENTITY = "product-identity.json"
-BOOKKEEPING = ".github/release-please-manifest.json"
 
 
 def document(raw: bytes) -> dict:
@@ -33,7 +36,7 @@ def document(raw: bytes) -> dict:
 
 def projections(root: Path) -> dict[str, list[str]]:
     matrix = document((root / "docs/governance/product-identity-consumer-matrix.json").read_bytes())
-    result = {IDENTITY: ["/version"], BOOKKEEPING: ["/."]}
+    result = {IDENTITY: ["/version"]}
     for entry in matrix["product_version_projections"]:
         if entry["kind"] == "json-pointer":
             result.setdefault(entry["path"], []).append(entry["pointer"])
@@ -50,17 +53,42 @@ def replace_pointer(value: dict, pointer: str, old: str, new: str) -> None:
     target[keys[-1]] = new
 
 
+def reviewed_audit(root: Path):
+    """Execute only the tooling checkout's auditor; candidate code is data."""
+    tooling = Path(__file__).resolve().parents[2]
+    trusted = tooling / AUDIT
+    target = root / AUDIT
+    # A candidate cannot establish its own trust by invoking its local copy.
+    # samefile also rejects symlink/hardlink aliases across distinct roots.
+    if root.resolve() == tooling or target.samefile(trusted):
+        raise ValueError("version preparation requires separate reviewed tooling")
+    candidate = target.read_text()
+    pattern = r'(?m)^APPROVED_(ADAPTATION|ADDITION|REMOVAL)_FINGERPRINT = "([0-9a-f]{64})"$'
+    pins = dict(re.findall(pattern, candidate))
+    if set(pins) != {"ADAPTATION", "ADDITION", "REMOVAL"}:
+        raise ValueError("unexpected candidate audit fingerprint contract")
+    normalize = lambda source: re.sub(pattern, lambda match: f'APPROVED_{match[1]}_FINGERPRINT = "REVIEWED"', source)
+    if normalize(candidate) != normalize(trusted.read_text()):
+        raise ValueError("candidate audit implementation requires a reviewed tooling update")
+    spec = importlib.util.spec_from_file_location("version_baseline_audit", trusted)
+    audit = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(audit)
+    # Validate the candidate's existing recorded claims against fresh bytes,
+    # not the tooling revision's old fingerprints or a previous test result.
+    for kind, digest in pins.items():
+        setattr(audit, f"APPROVED_{kind}_FINGERPRINT", digest)
+    audit.main(["--root", str(root), "--check"])
+    return audit
+
+
 def plan(root: Path, proposed: dict[str, bytes], changed: set[str]) -> dict[str, bytes]:
     """Check the complete PR delta, then derive only the three audit outputs."""
     projected = projections(root)
-    config = document((root / ".github/release-please-config.json").read_bytes())
-    changelog = config["packages"]["."]["changelog-path"]
-    if changed - (set(projected) | DERIVED | {changelog}):
+    if changed - (set(projected) | DERIVED):
         raise ValueError("version proposal contains non-version changes")
     old = document((root / IDENTITY).read_bytes())["version"]
     new = document(proposed[IDENTITY])["version"]
-    if not re.fullmatch(r"0\.1\.(0|[1-9][0-9]*)", new) or new != f"0.1.{int(old.split('.')[-1]) + 1}":
-        raise ValueError("version proposal must advance one patch")
+    require_next_version(old, new)
     for path, pointers in projected.items():
         expected = document((root / path).read_bytes())
         for pointer in pointers:
@@ -68,11 +96,7 @@ def plan(root: Path, proposed: dict[str, bytes], changed: set[str]) -> dict[str,
         if document(proposed[path]) != expected:
             raise ValueError(f"non-version JSON change: {path}")
 
-    # Only trusted baseline code is imported. Proposal code is never executed.
-    spec = importlib.util.spec_from_file_location("version_baseline_audit", root / AUDIT)
-    audit = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(audit)
-    audit.main(["--root", str(root), "--check"])
+    audit = reviewed_audit(root)
     migration = document((root / MIGRATION).read_bytes())
     for category, hash_key in (("adaptations", "targetSHA256"), ("additions", "sha256")):
         for record in migration[category]:

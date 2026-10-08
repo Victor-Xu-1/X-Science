@@ -37,9 +37,12 @@ the impact, and coordinate a fix or mitigation. Release notes should identify
 affected versions and remediation without exposing private report contents.
 This policy does not promise a response deadline.
 
-The current development and release line is `v0.1.x`; see the
-[versioning policy](docs/governance/versioning.md). A branch checkout is not a
-published release. Any security backport must be verifiable without weakening
+The current development version is defined by
+[`product-identity.json`](product-identity.json). The per-PR counter can carry
+into later minor and major numbers; see the
+[versioning policy](docs/governance/versioning.md). Published releases identify
+their own exact versions; a branch checkout is not a published release.
+Any security backport must be verifiable without weakening
 the current security boundary; do not assume that every historical revision
 receives fixes.
 

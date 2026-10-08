@@ -35,19 +35,22 @@
       ]
     },
     {
-      "name": "version-proposal",
+      "name": "pr-version-counter",
       "paths": [
-        ".github/workflows/version-pr.yml",
-        ".github/release-please-config.json",
-        ".github/release-please-manifest.json",
+        "docs/governance/versioning.md",
+        "scripts/quality/product_version.py",
+        "scripts/packaging/test_product_version.py",
+        "scripts/packaging/pr_version_gate.py",
+        "scripts/packaging/test_pr_version_gate.py",
+        "scripts/packaging/prepare_pr_version.py",
+        "scripts/packaging/test_prepare_pr_version.py",
         "scripts/packaging/test_version_config.py",
         "scripts/packaging/version_provenance.py",
-        "scripts/packaging/sync_version_proposal.py",
         "scripts/packaging/test_version_provenance.py"
       ],
       "frontend": false,
       "checks": [
-        ["python3", "-B", "-m", "unittest", "scripts.packaging.test_version_config", "scripts.packaging.test_version_provenance"]
+        ["python3", "-B", "-m", "unittest", "scripts.packaging.test_product_version", "scripts.packaging.test_pr_version_gate", "scripts.packaging.test_prepare_pr_version", "scripts.packaging.test_version_config", "scripts.packaging.test_version_provenance"]
       ]
     },
     {

@@ -162,6 +162,10 @@ jobs:
           go test -buildvcs=false ./scripts/quality/github-actions-gate
           go run -buildvcs=false ./scripts/quality/github-actions-gate --repo . --policy docs/governance/github-actions-pins.json
       - uses: actions/setup-go@` + setupGoSHA + ` # v6.5.0
+      - name: Verify one PR version increment
+        run: |
+          PYTHONDONTWRITEBYTECODE=1 python3 -B scripts/packaging/pr_version_gate.py \
+            --base '${{ github.event.pull_request.base.sha }}' --candidate '${{ github.sha }}'
   tests:
     needs: pr
     runs-on: ubuntu-24.04

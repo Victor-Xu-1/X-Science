@@ -26,19 +26,19 @@ kept separate from product behavior and from external task evidence.
 
 ## Version and release line
 
-`product-identity.json` is the product-version authority. The active community
-line is `v0.1.x`; changing the minor line requires a separately reviewed policy
-change. Releases use an annotated `vMAJOR.MINOR.PATCH` tag, exact source and
+`product-identity.json` is the product-version authority. Every successfully
+merged PR advances its patch counter once, with patch radix 100 and minor
+radix 10, as specified in [versioning](versioning.md). Prepare the registered
+version projections on the task branch before final head review and merge;
+retries do not increment again. Releases use an annotated `vMAJOR.MINOR.PATCH` tag, exact source and
 artifact checksums, a release candidate manifest, and the repository's release
 authorization contract. No release is complete merely because a build passed.
 
 ## Automation and permissions
 
-Release automation must use a GitHub App installed only on this repository.
-Store the App's Client ID in repository variable `RELEASE_APP_ID` and its
-private key in the `release-automation` environment secret
-`RELEASE_APP_PRIVATE_KEY`. The environment is restricted to `main`. Personal tokens,
-private keys, and credentials must never appear in source, issues, pull
+Version preparation is local, and its PR/main checks are read-only. It does
+not need a separate bot, App, token, secret or post-merge main writer. Personal
+tokens, private keys, and credentials must never appear in source, issues, pull
 requests, logs, or release assets.
 
 Workflow files are pinned to reviewed immutable action commits and checked by
