@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN" data-theme="light" data-theme-family="warm" data-color-scheme="default">
+<html lang="__APP_BOOT_LOCALE__" data-theme="light" data-theme-family="warm" data-color-scheme="default">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -53,6 +53,9 @@
         display: flex;
         align-items: center;
         gap: 12px;
+        flex-wrap: wrap;
+        max-width: 32rem;
+        padding: 24px;
       }
 
       .app-boot-loading__mark {
@@ -69,6 +72,57 @@
         font-weight: 600;
         line-height: 22px;
         letter-spacing: 0.01em;
+      }
+
+      .app-boot-loading__description,
+      .app-boot-loading__reload {
+        flex-basis: 100%;
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .app-boot-loading__reload {
+        display: inline-flex;
+        align-items: center;
+        min-height: 32px;
+        color: inherit;
+        border: 0;
+        padding: 4px 0;
+        background: transparent;
+        cursor: pointer;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      .app-boot-loading__recovery {
+        flex-basis: 100%;
+      }
+
+      .app-boot-loading__reload:focus-visible {
+        outline: 2px solid currentColor;
+        outline-offset: 4px;
+      }
+
+      .app-boot-loading[data-state='failed'] .app-boot-loading__mark {
+        animation: none;
+        position: relative;
+        border-color: currentColor;
+      }
+
+      .app-boot-loading[data-state='failed'] .app-boot-loading__mark::before {
+        content: '×';
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        font-size: 15px;
+        line-height: 1;
+      }
+
+      .app-boot-loading[data-state='failed'] .app-boot-loading__label {
+        font-size: 18px;
+        line-height: 26px;
       }
 
       @keyframes app-boot-spin {
@@ -89,10 +143,16 @@
       <div class="app-boot-loading" role="status" aria-live="polite">
         <div class="app-boot-loading__content">
           <span class="app-boot-loading__mark" aria-hidden="true"></span>
-          <span class="app-boot-loading__label">Synon Biomed 正在启动…</span>
+          <span class="app-boot-loading__label" data-app-boot-label>__APP_BOOT_LOADING__</span>
+          <p class="app-boot-loading__description" data-app-boot-description hidden></p>
+          <form class="app-boot-loading__recovery" action="" method="get">
+            <button class="app-boot-loading__reload" data-app-boot-reload type="submit">__APP_BOOT_RELOAD__</button>
+          </form>
         </div>
       </div>
     </div>
-    <script type="module" src="./main.tsx"></script>
+    <script id="app-boot-config" type="application/json">__APP_BOOT_CONFIGURATION__</script>
+    <script src="./app-boot.js"></script>
+    <script type="module" data-app-entry src="./main.tsx"></script>
   </body>
 </html>

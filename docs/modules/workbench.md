@@ -144,6 +144,16 @@ Enter 选中上一查询的结果；关闭后的迟到响应不能覆盖下一�
 
 ## Follow a change · 追踪一次改动
 
+### Startup recovery · 启动恢复
+
+主模块加载前的页面也使用统一语言资源和根产品身份。启动壳保留原生重新加载表单；
+独立的小型脚本读取已有语言提示，不写入或覆盖用户选择。加载较慢时提示仍在等待，
+不会把它判为已失败；入口资源明确失败时显示安全的恢复说明，不暴露原始错误。
+仅由用户主动重新加载，不进行自动重载循环。React 接管页面后移除计时器与监听，
+迟到的启动事件不能覆盖已挂载页面、草稿或任务状态。公共启动脚本在部署后须重新验证缓存。
+
+对应验证只覆盖启动壳、主入口边界、语言及资源缓存，不启动科研任务。
+
 输入框先在前端形成类型化的组合输入，随后经传输适配器交给服务端。
 [web_composer_capabilities.go](../../internal/server/web_composer_capabilities.go)
 及 [web_composer_runtime_context.go](../../internal/server/web_composer_runtime_context.go)

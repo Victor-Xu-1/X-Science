@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "aedbec05bf9b19751b6124fb4dd2a8120c8b048d9ee38cddd0b643fc015ff06f",
+  "adaptationFingerprintSHA256": "b340014f3f37f7792cdef8bfca3ca90612c596d5aef615e43dc0ca205ca6a4e3",
   "removalFingerprintSHA256": "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c",
-  "additionFingerprintSHA256": "ff7581b93c130bb2a23ea2aacaf9e1e02d7731be358bc3cb542b96fba20249a3",
+  "additionFingerprintSHA256": "6e967cf6e395471b6d4b1e5adfd90aac14dc58361114e5471da01e6bde12b2a7",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 391,
     "adaptedSourceFiles": 673,
     "removedSourceFiles": 290,
-    "addedFiles": 806
+    "addedFiles": 809
   },
   "adaptations": [
     {
@@ -829,8 +829,8 @@
     {
       "path": "packages/desktop/src/renderer/index.html",
       "sourceSHA256": "793dd2aa0767028be35aea2fb67c833fc890236132cbdecfd2f0363611ced836",
-      "targetSHA256": "0227e1a22b6d6f8f8c5be2d8c1e3aa0f22533da5dbd7b3c454d67401c49840f9",
-      "bytes": 2846,
+      "targetSHA256": "e8ba370178797a9cd5c7194dde4b5b026188d005b82a844848642467dd90e259",
+      "bytes": 4655,
       "reason": "Project the root Synon Biomed product identity and load the CSP-compatible pre-render theme bootstrap without creating a second version authority."
     },
     {
@@ -2439,8 +2439,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "647303b9e551d0927cce06c845c99bd6b4b6d94b26405c6ff65c64ba1e6f2c5f",
-      "bytes": 252467,
+      "targetSHA256": "dacc62a7394e66e1ce54b6cebcb152bb86d5ef9e78bf9145bf73d4683151586e",
+      "bytes": 252641,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2467,8 +2467,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/common.json",
       "sourceSHA256": "7f0551495cb6843a54ed515cfc052468d8857ceec658f91f76b852690339c8db",
-      "targetSHA256": "b3d090a40a291c25bb731ca5326dc967e83ecf24fbe2764e93e8641e57dd9e99",
-      "bytes": 4699,
+      "targetSHA256": "709dbbd2aa6d3403f5b4be95faf9f59cc7911b4c246cd0e2ca5ad7d93161dffd",
+      "bytes": 5069,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2558,8 +2558,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/common.json",
       "sourceSHA256": "58e5974433b46b9f30c07816e305c5b4f792710e487ac50ca3d2e1c96f1c197e",
-      "targetSHA256": "7506e4c2f2a5af30cc62ea4317f5948425860ca04e2613b15af5251a44e589d0",
-      "bytes": 4684,
+      "targetSHA256": "c6776ba5c816daea9368c23355a2b98d3157375521ef93ebbfe74871286cfc84",
+      "bytes": 5034,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -4714,8 +4714,8 @@
     {
       "path": "vite.config.ts",
       "sourceSHA256": "71a926e99f8994aaabf2b98ac6e24e768b0656135e071c75f4ca479200fa7d7b",
-      "targetSHA256": "62a8fd29709a5e2877f0760dafa546c8a4166d371732ac2a416dacb81b428bdb",
-      "bytes": 10952,
+      "targetSHA256": "96914d70aa9c4d2d34d4bdbfdd114fce648283442483ac3c2ec13cd91e81c5fd",
+      "bytes": 12125,
       "reason": "Use the granular UnoCSS Vite integration."
     },
     {
@@ -8792,6 +8792,12 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "public/app-boot.js",
+      "sha256": "166dda62fd829fa02e6df3c00424823a96181f87eb2400572483037cd19e30ca",
+      "bytes": 3396,
+      "reason": "Provide bounded localized startup recovery before the main module loads, with explicit reload and cleanup after mounting."
+    },
+    {
       "path": "public/branding/settings-generated-v3/artwork/account-network.png",
       "sha256": "09412fff9d396f62ec6a2981938dbb238db6f2710b2cea708adcd23ef388e52e",
       "bytes": 1091309,
@@ -9252,6 +9258,12 @@
       "sha256": "367f52e6d2e57fcaa3bc8993a82e8c21b73ac706643a0a17d00e16c439513830",
       "bytes": 1331,
       "reason": "Restore the validated cached light or dark appearance before renderer startup without allowing inline scripts."
+    },
+    {
+      "path": "scripts/rendererBoot.ts",
+      "sha256": "ea797f3014ad9235587400b4fdea8c5753084f5ff6444f1b627613c467989093",
+      "bytes": 1700,
+      "reason": "Project root identity and shared locale resources into the pre-JavaScript document without inline executable code."
     },
     {
       "path": "tests/fixtures/structureLigands.ts",
@@ -9917,6 +9929,12 @@
       "path": "tests/unit/renderer/WorkbenchModal.dom.test.tsx",
       "sha256": "e7e994c0053f2a03f611913df678bb9502b3ed24fc636ebb53a27c16c770622e",
       "bytes": 11040,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/appBootRecovery.dom.test.ts",
+      "sha256": "7193c7c64a330aed44af43511441332728be9e094a92a5faf0be3e3409aea742",
+      "bytes": 5898,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

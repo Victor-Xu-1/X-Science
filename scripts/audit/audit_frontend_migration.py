@@ -188,6 +188,8 @@ ALLOWED_ADDITIONS = {
     "packages/desktop/src/renderer/services/synonBiomedConversationTitle.ts": "Create bounded scientific conversation titles without exposing raw task content or adding model-side title authority.",
     "packages/desktop/src/renderer/services/agents/synonBiomedExpertLocalization.ts": "Localize authoritative expert profiles without changing their runtime identities or capabilities.",
     "public/theme-init.js": "Restore the validated cached light or dark appearance before renderer startup without allowing inline scripts.",
+    "public/app-boot.js": "Provide bounded localized startup recovery before the main module loads, with explicit reload and cleanup after mounting.",
+    "scripts/rendererBoot.ts": "Project root identity and shared locale resources into the pre-JavaScript document without inline executable code.",
     "public/genomes/ucsc/NOTICE.txt": "Record the UCSC chromosome-size attribution and redistribution notice shipped with offline genome references.",
     "public/genomes/ucsc/PROVENANCE.json": "Pin the source URLs, hashes, and retrieval provenance for packaged UCSC genome references.",
     "public/genomes/ucsc/hg19.chrom.sizes": "Package checksum-bound hg19 chromosome sizes for offline genome preview.",
@@ -507,9 +509,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "aedbec05bf9b19751b6124fb4dd2a8120c8b048d9ee38cddd0b643fc015ff06f"
+APPROVED_ADAPTATION_FINGERPRINT = "b340014f3f37f7792cdef8bfca3ca90612c596d5aef615e43dc0ca205ca6a4e3"
 APPROVED_REMOVAL_FINGERPRINT = "70a676732efea3030080147fc7100096248f3fc0ce13b80256726d97fef98b5c"
-APPROVED_ADDITION_FINGERPRINT = "ff7581b93c130bb2a23ea2aacaf9e1e02d7731be358bc3cb542b96fba20249a3"
+APPROVED_ADDITION_FINGERPRINT = "6e967cf6e395471b6d4b1e5adfd90aac14dc58361114e5471da01e6bde12b2a7"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {
