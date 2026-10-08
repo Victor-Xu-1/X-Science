@@ -1,4 +1,17 @@
-/* Route-scoped desktop geometry from the accepted settings visual contract. */
+/* Local-plan provenance is primary information, not a billing promise. */
+.plans-usage-draft-notice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+  margin: 0 0 var(--ui-space-6);
+  padding: var(--ui-space-5) var(--ui-space-6);
+  border: 1px solid var(--settings-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--settings-surface-subtle);
+  color: var(--settings-text-secondary);
+  font-size: var(--ui-font-body);
+  line-height: var(--ui-line-height-body);
+}
 
 @media (min-width: 768px) {
   /* Plans and usage: enlarge the plan identity and statistic hierarchy to

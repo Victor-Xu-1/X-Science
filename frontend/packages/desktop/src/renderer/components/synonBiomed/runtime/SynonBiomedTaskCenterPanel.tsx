@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Attention, CheckOne, CloseOne, PauseOne, Right } from '@icon-park/react';
-import React from 'react';
+import { Attention, CheckOne, Close, CloseOne, PauseOne, Right } from '@icon-park/react';
+import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { SynonBiomedLongTaskPhase } from './longTaskStatusModel';
 import type { SynonBiomedReviewVerdict } from './runtimeOperationsModel';
@@ -160,6 +160,20 @@ const SynonBiomedTaskCenterPanel: React.FC<SynonBiomedTaskCenterPanelProps> = ({
   onOpenPendingInput,
 }) => {
   const { t, i18n } = useTranslation();
+  const panelRef = useRef<HTMLDivElement>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const panel = panelRef.current;
+    headingRef.current?.focus({ preventScroll: true });
+    return () => {
+      // An outside pointer action may already have focused another control.
+      // Restore only when focus belonged to this popover or was removed with it.
+      const focus = document.activeElement;
+      if (opener?.isConnected && (focus === document.body || panel?.contains(focus)))
+        opener.focus({ preventScroll: true });
+    };
+  }, []);
   const numberFormatter = new Intl.NumberFormat(i18n.language);
   const taskTokenUsage = metrics?.total.tokenUsage ?? null;
   const latestTokenUsage = metrics?.latest.tokenUsage ?? null;
@@ -200,18 +214,36 @@ const SynonBiomedTaskCenterPanel: React.FC<SynonBiomedTaskCenterPanelProps> = ({
 
   return (
     <div
+      ref={panelRef}
       className='synon-biomed-task-center-panel'
       data-testid='synon-biomed-task-status-panel'
       data-phase={phase ?? 'unavailable'}
       role='dialog'
       aria-modal='false'
       aria-label={t('conversation.synonRuntime.runtimeOperations.taskDetails')}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          event.stopPropagation();
+          onClose();
+        }
+      }}
     >
       <header className='synon-biomed-task-center-panel__summary'>
         <div className='synon-biomed-task-center-panel__summary-icon' aria-hidden='true'>
           <StatusGlyph phase={phase} />
         </div>
-        <h2 className='synon-biomed-task-center-panel__title'>{statusTitle}</h2>
+        <h2 ref={headingRef} tabIndex={-1} className='synon-biomed-task-center-panel__title'>
+          {statusTitle}
+        </h2>
+        <button
+          type='button'
+          className='synon-biomed-task-center-panel__close'
+          aria-label={t('common.close')}
+          onClick={onClose}
+        >
+          <Close size={16} aria-hidden='true' />
+        </button>
       </header>
 
       <div className='synon-biomed-task-center-panel__body'>

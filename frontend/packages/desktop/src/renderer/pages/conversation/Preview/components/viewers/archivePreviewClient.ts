@@ -35,7 +35,34 @@ export class ArchivePreviewError extends Error {
 
 const DEFAULT_RETRY_DELAYS = [250, 750];
 
+/** Archive traversal is served by the authenticated same-origin content host. */
+export function archivePreviewEndpoint(
+  contentUrl: string,
+  containers: readonly string[],
+  entry?: string
+): string | null {
+  try {
+    const source = new URL(contentUrl, window.location.origin);
+    if (
+      source.origin !== window.location.origin ||
+      source.username ||
+      source.password ||
+      !/^https?:$/.test(source.protocol)
+    )
+      return null;
+    source.hash = '';
+    source.search = '';
+    source.pathname = `${source.pathname.replace(/\/$/, '')}/archive${entry ? '/content' : ''}`;
+    containers.forEach((container) => source.searchParams.append('container', container));
+    if (entry) source.searchParams.set('entry', entry);
+    return source.href;
+  } catch {
+    return null;
+  }
+}
+
 function waitForRetry(delay: number, signal?: AbortSignal): Promise<void> {
+  signal?.throwIfAborted();
   if (delay <= 0) return Promise.resolve();
   return new Promise((resolve, reject) => {
     const onAbort = () => {
@@ -88,14 +115,17 @@ export async function fetchArchiveListing(
 ): Promise<ArchiveListing> {
   const retryDelays = options.retryDelays ?? DEFAULT_RETRY_DELAYS;
   const runAttempt = async (attempt: number): Promise<ArchiveListing> => {
+    options.signal?.throwIfAborted();
     try {
       const response = await fetch(endpoint, {
         credentials: 'same-origin',
         headers: { accept: 'application/json' },
         signal: options.signal,
       });
+      options.signal?.throwIfAborted();
       if (response.ok) {
         const payload: unknown = await response.json();
+        options.signal?.throwIfAborted();
         const listing = parseArchiveListing(payload);
         if (!listing) throw new ArchivePreviewError('unavailable');
         return listing;
@@ -104,6 +134,7 @@ export async function fetchArchiveListing(
         throw new ArchivePreviewError(classifyFailure(response.status), response.status);
       }
     } catch (error) {
+      if (options.signal?.aborted) throw error;
       if (error instanceof ArchivePreviewError || (error instanceof DOMException && error.name === 'AbortError')) {
         throw error;
       }

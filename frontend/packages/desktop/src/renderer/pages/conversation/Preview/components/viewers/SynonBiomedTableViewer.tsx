@@ -122,6 +122,7 @@ const SynonBiomedTableViewer: React.FC<SynonBiomedTableViewerProps> = ({ content
             <tr>
               {columns.map((column, index) => (
                 <th
+                  scope='col'
                   key={`${column}-${index}`}
                   className='preview-table__heading min-w-140px max-w-420px text-left font-[600] text-t-primary whitespace-nowrap'
                 >

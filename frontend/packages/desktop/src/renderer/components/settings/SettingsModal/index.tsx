@@ -2,7 +2,7 @@ import SynonModal from '@/renderer/components/base/SynonModal';
 import SynonScrollArea from '@/renderer/components/base/SynonScrollArea';
 import SynonBiomedAvatar from '@/renderer/components/synonBiomed/SynonBiomedAvatar';
 import { iconColors } from '@/renderer/styles/colors';
-import { Tabs } from '@arco-design/web-react';
+import Tabs from '@/renderer/components/base/WorkbenchTabs';
 import { Brain, Computer, Info, Lightning, Shield, System, Toolkit } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -198,6 +198,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
   const mobileMenu = (
     <div className='mt-16px mb-20px overflow-x-auto'>
       <Tabs
+        aria-label={t('settings.title')}
         activeTab={activeTab}
         onChange={handleTabChange}
         type='line'

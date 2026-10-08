@@ -4,12 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Button, Dropdown, Menu, Message, Modal, Spin } from '@arco-design/web-react';
+import { Button, Dropdown, Menu, Message, Spin } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import { FileZip, Github, Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import SettingsPageHeader from './components/SettingsPageHeader';
 import SettingsLibraryTabHeader from './components/SettingsLibraryTabHeader';
+import SettingsLibrarySearch from './components/SettingsLibrarySearch';
 import SettingsLibraryFilterSelect from './components/SettingsLibraryFilterSelect';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
 import { SkillRow, SkillDraftRow, type SkillInfo } from './skills/SkillLibraryCard';
@@ -430,7 +432,15 @@ const SynonBiomedSkillsSettings: React.FC<SynonBiomedSkillsSettingsProps> = ({
       ) : compactHeader ? (
         <SettingsLibraryTabHeader
           title={t('settings.skillsSettings.title')}
-          count={availableSkills.length + drafts.length}
+          count={filteredSkills.length + filteredDrafts.length}
+          search={
+            <SettingsLibrarySearch
+              label={t('settings.skillsSettings.search')}
+              value={searchQuery}
+              onChange={setSearchQuery}
+              data-testid='input-search-synon-biomed-skills'
+            />
+          }
           filters={
             <SettingsLibraryFilterSelect
               aria-label={t('settings.skillsSettings.researchField')}
@@ -478,7 +488,6 @@ const SynonBiomedSkillsSettings: React.FC<SynonBiomedSkillsSettingsProps> = ({
         <div ref={listScrollRef} className='settings-skill-library-scroll' data-testid='skill-library-scroll'>
           {list}
         </div>
-        <div className='settings-skill-library-footer' />
       </section>
       <SkillMarketModal
         visible={marketVisible}

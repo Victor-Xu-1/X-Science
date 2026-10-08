@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useId, useState } from 'react';
+import React, { useId, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type ContextUsageHistory } from '@/renderer/services/contextUsage';
 import {
@@ -16,16 +16,41 @@ import {
 import styles from './ContextUsagePanel.module.css';
 
 /** Compact numeric history, with each receipt bound to its own model/window. */
-export default function ContextWindowHistory({ history }: { history: ContextUsageHistory }) {
+export default function ContextWindowHistory({
+  history,
+  interactive = true,
+}: {
+  history: ContextUsageHistory;
+  interactive?: boolean;
+}) {
   const { t } = useTranslation();
   const [selected, setSelected] = useState<string>();
   const [expanded, setExpanded] = useState(false);
   const chartId = useId();
+  const pointNodes = useRef(new Map<string, HTMLButtonElement>());
+  const removedFocusedPoint = useRef(false);
+  const positionedPoint = useRef<string | undefined>(undefined);
   const points = contextWindowChart(history);
   const point = points.find((candidate) => candidate.sample.requestId === selected) ?? points.at(-1)!;
   const { peak, truncated } = summarizeContextWindowHistory(history);
   const peakWindow = peak ? contextDisplayWindow(peak) : undefined;
   const prefix = 'conversation.contextUsage.';
+  useLayoutEffect(() => {
+    const restore = removedFocusedPoint.current;
+    removedFocusedPoint.current = false;
+    if (!expanded || !interactive) {
+      positionedPoint.current = undefined;
+      return;
+    }
+    const target = pointNodes.current.get(point.sample.requestId);
+    if (restore && document.activeElement === document.body) {
+      target?.focus({ preventScroll: true });
+    }
+    if (positionedPoint.current !== point.sample.requestId) {
+      positionedPoint.current = point.sample.requestId;
+      target?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+  });
   if (history.samples.length < 2 && history.totalObserved <= 1) {
     return (
       <div className={styles.historyMeta} data-testid='context-window-history'>
@@ -43,7 +68,10 @@ export default function ContextWindowHistory({ history }: { history: ContextUsag
         data-testid='context-window-history-toggle'
         aria-expanded={expanded}
         aria-controls={chartId}
-        onClick={() => setExpanded(!expanded)}
+        onClick={() => {
+          if (!expanded) setSelected(point.sample.requestId);
+          setExpanded(!expanded);
+        }}
       >
         <strong>{t(`${prefix}historyTitle`)}</strong>
         <span>
@@ -83,10 +111,38 @@ export default function ContextWindowHistory({ history }: { history: ContextUsag
                   <button
                     type='button'
                     key={sample.requestId}
+                    ref={(node) => {
+                      const previous = pointNodes.current.get(sample.requestId);
+                      if (node) pointNodes.current.set(sample.requestId, node);
+                      else {
+                        if (previous === document.activeElement) removedFocusedPoint.current = true;
+                        pointNodes.current.delete(sample.requestId);
+                      }
+                    }}
                     title={label}
                     aria-label={label}
                     aria-pressed={sample.requestId === point.sample.requestId}
+                    tabIndex={sample.requestId === point.sample.requestId ? 0 : -1}
+                    onFocus={() => setSelected(sample.requestId)}
                     onClick={() => setSelected(sample.requestId)}
+                    onKeyDown={(event) => {
+                      if (!interactive || event.nativeEvent.isComposing || event.defaultPrevented) return;
+                      const next =
+                        event.key === 'Home'
+                          ? 0
+                          : event.key === 'End'
+                            ? points.length - 1
+                            : event.key === 'ArrowLeft'
+                              ? Math.max(0, index - 1)
+                              : event.key === 'ArrowRight'
+                                ? Math.min(points.length - 1, index + 1)
+                                : undefined;
+                      if (next === undefined) return;
+                      event.preventDefault();
+                      const requestId = points[next].sample.requestId;
+                      setSelected(requestId);
+                      pointNodes.current.get(requestId)?.focus({ preventScroll: true });
+                    }}
                     className={styles.historyPoint}
                     data-source={sample.source}
                     data-phase={sample.progress?.phase}

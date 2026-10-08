@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from '@/common';
 import type { IMessageSearchItem } from '@/common/types/conversation/messageSearch';
 import SynonModal from '@/renderer/components/base/SynonModal';
 import SynonBiomedAvatar from '@/renderer/components/synonBiomed/SynonBiomedAvatar';
@@ -15,14 +14,13 @@ import { useAgentLogos } from '@/renderer/utils/synonBiomed/runtime/runtimeLogo'
 import { Spin } from '@arco-design/web-react';
 import { Close, CloseSmall, MessageOne, Search } from '@icon-park/react';
 import classNames from 'classnames';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import './ConversationSearchPopover.css';
+import { useConversationSearchResults } from './useConversationSearchResults';
 
-const PAGE_SIZE = 30;
-const SEARCH_DEBOUNCE_MS = 120;
 const PAGE_KEYBOARD_STEP = 6;
 const MRU_STORAGE_KEY = 'conversation.search.mru.v1';
 const MRU_MAX_ENTRIES = 200;
@@ -170,72 +168,23 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
   const navigate = useNavigate();
   const [visible, setVisible] = useState(false);
   const [keyword, setKeyword] = useState('');
-  const [debouncedKeyword, setDebouncedKeyword] = useState('');
-  const [items, setItems] = useState<IMessageSearchItem[]>([]);
-  const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [loadFailed, setLoadFailed] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [announcement, setAnnouncement] = useState('');
   const [mruEntries, setMruEntries] = useState<SearchMruEntry[]>(readSearchMru);
-  const requestGeneration = useRef(0);
+  const titleId = useId();
+  const resultsId = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!visible) return;
-    const timer = window.setTimeout(() => setDebouncedKeyword(keyword.trim()), SEARCH_DEBOUNCE_MS);
-    return () => window.clearTimeout(timer);
-  }, [keyword, visible]);
-
-  const runSearch = useCallback(
-    async (pageToLoad: number, append: boolean) => {
-      const generation = ++requestGeneration.current;
-      setLoadFailed(false);
-      if (append) {
-        setLoadingMore(true);
-      } else {
-        setLoading(true);
-      }
-      try {
-        const result = await ipcBridge.database.searchConversationMessages.invoke({
-          keyword: debouncedKeyword,
-          page: pageToLoad,
-          page_size: PAGE_SIZE,
-        });
-        if (requestGeneration.current !== generation) return;
-        const ranked = rankSearchItems(result.items, debouncedKeyword, mruEntries);
-        setItems((previous) => (append ? [...previous, ...ranked] : ranked));
-        setPage(pageToLoad);
-        setHasMore(result.has_more);
-        if (!append) setActiveIndex(0);
-      } catch (error) {
-        if (requestGeneration.current !== generation) return;
-        console.error('[ConversationSearchPopover] Search failed:', error);
-        setLoadFailed(true);
-        if (!append) {
-          setItems([]);
-          setPage(0);
-          setHasMore(false);
-        }
-      } finally {
-        if (requestGeneration.current === generation) {
-          setLoading(false);
-          setLoadingMore(false);
-        }
-      }
-    },
-    [debouncedKeyword, mruEntries]
+  const query = keyword.trim();
+  const rankItems = useCallback(
+    (rows: IMessageSearchItem[], currentQuery: string) => rankSearchItems(rows, currentQuery, mruEntries),
+    [mruEntries]
   );
-
-  useEffect(() => {
-    if (!visible) return;
-    void runSearch(0, false);
-    return () => {
-      requestGeneration.current += 1;
-    };
-  }, [runSearch, visible]);
+  const { items, loading, loadingMore, loadFailed, loadMore, retry } = useConversationSearchResults({
+    visible,
+    keyword,
+    rankItems,
+  });
 
   useEffect(() => {
     if (!visible || loading || loadFailed) return;
@@ -254,17 +203,19 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
     active?.scrollIntoView({ block: 'nearest' });
   }, [activeIndex]);
 
+  useEffect(() => {
+    setActiveIndex((index) => Math.min(index, Math.max(0, items.length - 1)));
+  }, [items.length]);
+
   const resetSearchState = useCallback(() => {
-    requestGeneration.current += 1;
     setVisible(false);
     setKeyword('');
-    setDebouncedKeyword('');
-    setItems([]);
-    setPage(0);
-    setHasMore(false);
-    setLoading(false);
-    setLoadingMore(false);
-    setLoadFailed(false);
+    setActiveIndex(0);
+    setAnnouncement('');
+  }, []);
+
+  const handleKeywordChange = useCallback((value: string) => {
+    setKeyword(value);
     setActiveIndex(0);
     setAnnouncement('');
   }, []);
@@ -293,6 +244,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
 
   const handleResultClick = useCallback(
     async (item: IMessageSearchItem) => {
+      if (!visible || loading || loadFailed) return;
       blockMobileInputFocus();
       blurActiveElement();
       rememberConversation(item.conversation.id);
@@ -308,13 +260,17 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
       );
       onSessionClick?.();
     },
-    [navigate, onConversationSelect, onSessionClick, rememberConversation, resetSearchState]
+    [
+      loadFailed,
+      loading,
+      navigate,
+      onConversationSelect,
+      onSessionClick,
+      rememberConversation,
+      resetSearchState,
+      visible,
+    ]
   );
-
-  const handleLoadMore = useCallback(() => {
-    if (!visible || loading || loadingMore || !hasMore) return;
-    void runSearch(page + 1, true);
-  }, [hasMore, loading, loadingMore, page, runSearch, visible]);
 
   const handleOpen = useCallback(() => {
     if (!disabled) setVisible(true);
@@ -351,7 +307,8 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
         resetSearchState();
         return;
       }
-      if (items.length === 0) return;
+      if (event.key === 'Enter') event.preventDefault();
+      if (!visible || loading || loadFailed || !items[activeIndex]) return;
       let nextIndex = activeIndex;
       switch (event.key) {
         case 'ArrowDown':
@@ -382,11 +339,11 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
       event.preventDefault();
       setActiveIndex(nextIndex);
     },
-    [activeIndex, handleResultClick, items, resetSearchState]
+    [activeIndex, handleResultClick, items, loadFailed, loading, resetSearchState, visible]
   );
 
   const resultContent = useMemo(() => {
-    if (loading && items.length === 0) {
+    if (loading) {
       return (
         <div className='conversation-search-modal__loading'>
           <Spin size={18} />
@@ -398,7 +355,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
       return (
         <div className='conversation-search-modal__state conversation-search-modal__state--error'>
           <span>{t('conversation.historySearch.loadFailed')}</span>
-          <button type='button' onClick={() => void runSearch(0, false)}>
+          <button type='button' onClick={retry}>
             {t('conversation.historySearch.retry')}
           </button>
         </div>
@@ -409,30 +366,28 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
     }
     return (
       <div
-        id='conversation-search-results'
         ref={resultsRef}
-        role='listbox'
-        aria-label={t('conversation.historySearch.results')}
         className='conversation-search-modal__result-scroll'
         onScroll={(event) => {
           const target = event.currentTarget;
-          if (target.scrollHeight - target.scrollTop - target.clientHeight < 56) handleLoadMore();
+          if (target.scrollHeight - target.scrollTop - target.clientHeight < 56) loadMore();
         }}
       >
         {groupedResults.map(([projectName, group]) => (
           <section key={projectName} className='conversation-search-modal__group'>
             <div className='conversation-search-modal__group-title'>{projectName}</div>
             {group.map(({ item, index }) => {
-              const snippet = buildSnippet(item.preview_text, debouncedKeyword);
+              const snippet = buildSnippet(item.preview_text, query);
               const timestamp = item.message_created_at || item.conversation.modified_at;
               return (
                 <button
-                  id={`conversation-search-result-${index}`}
+                  id={`${resultsId}-${index}`}
                   data-search-index={index}
                   role='option'
                   aria-selected={index === activeIndex}
                   key={`${item.conversation.id}-${item.message_id || 'conversation'}`}
                   type='button'
+                  tabIndex={-1}
                   className={classNames('conversation-search-modal__result', {
                     'conversation-search-modal__result--active': index === activeIndex,
                   })}
@@ -442,14 +397,11 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
                   <ConversationAgentMark conversation={item.conversation} />
                   <span className='conversation-search-modal__result-copy'>
                     <span className='conversation-search-modal__result-title'>
-                      {renderHighlightedText(
-                        item.conversation.name || t('conversation.historySearch.untitled'),
-                        debouncedKeyword
-                      )}
+                      {renderHighlightedText(item.conversation.name || t('conversation.historySearch.untitled'), query)}
                     </span>
                     <span className='conversation-search-modal__result-detail'>
                       {snippet
-                        ? renderHighlightedText(snippet, debouncedKeyword)
+                        ? renderHighlightedText(snippet, query)
                         : t('conversation.historySearch.recentConversation')}
                     </span>
                   </span>
@@ -474,15 +426,16 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
     );
   }, [
     activeIndex,
-    debouncedKeyword,
     groupedResults,
-    handleLoadMore,
+    loadMore,
     handleResultClick,
     items,
     loadFailed,
     loading,
     loadingMore,
-    runSearch,
+    query,
+    resultsId,
+    retry,
     t,
   ]);
 
@@ -527,10 +480,19 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
         maskStyle={{ backdropFilter: 'none', WebkitBackdropFilter: 'none' }}
         style={{ width: 'min(620px, calc(100vw - 32px))' }}
         contentStyle={{ background: 'transparent', overflow: 'hidden', maxHeight: 'min(72vh, 560px)' }}
+        modalRender={(node) =>
+          React.isValidElement(node)
+            ? React.cloneElement(node as React.ReactElement<React.HTMLAttributes<HTMLDivElement>>, {
+                'aria-labelledby': titleId,
+              })
+            : node
+        }
       >
         <div className='conversation-search-modal__panel'>
           <div className='conversation-search-modal__topline'>
-            <span className='conversation-search-modal__title'>{t('conversation.historySearch.title')}</span>
+            <h2 id={titleId} className='conversation-search-modal__title'>
+              {t('conversation.historySearch.title')}
+            </h2>
             <span className='conversation-search-modal__shortcut'>{t('conversation.historySearch.shortcut')}</span>
             <button
               type='button'
@@ -544,15 +506,19 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
           <div className='conversation-search-modal__searchbar'>
             <Search theme='outline' size='17' className='conversation-search-modal__search-icon' />
             <input
+              ref={inputRef}
               autoFocus
               value={keyword}
               placeholder={t('conversation.historySearch.placeholder')}
-              onChange={(event) => setKeyword(event.target.value)}
+              onChange={(event) => handleKeywordChange(event.target.value)}
               onKeyDown={handleInputKeyDown}
               role='combobox'
-              aria-expanded='true'
-              aria-controls='conversation-search-results'
-              aria-activedescendant={items[activeIndex] ? `conversation-search-result-${activeIndex}` : undefined}
+              aria-label={t('conversation.historySearch.placeholder')}
+              aria-expanded={visible}
+              aria-controls={resultsId}
+              aria-activedescendant={
+                !loading && !loadFailed && items[activeIndex] ? `${resultsId}-${activeIndex}` : undefined
+              }
               aria-autocomplete='list'
               className='conversation-search-modal__search-input'
             />
@@ -560,7 +526,10 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
               <button
                 type='button'
                 className='conversation-search-modal__clear-btn'
-                onClick={() => setKeyword('')}
+                onClick={() => {
+                  handleKeywordChange('');
+                  inputRef.current?.focus();
+                }}
                 aria-label={t('common.clearSearch')}
               >
                 <CloseSmall theme='outline' size='14' />
@@ -570,7 +539,17 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
           <div aria-live='polite' aria-atomic='true' className='conversation-search-modal__live'>
             {announcement}
           </div>
-          <div className='conversation-search-modal__body'>{resultContent}</div>
+          <div className='conversation-search-modal__body'>
+            <div
+              id={resultsId}
+              role='listbox'
+              aria-label={t('conversation.historySearch.results')}
+              aria-busy={loading || loadingMore}
+            >
+              {!loading && !loadFailed && items.length > 0 ? resultContent : null}
+            </div>
+            {loading || loadFailed || items.length === 0 ? resultContent : null}
+          </div>
           <div className='conversation-search-modal__footer' aria-hidden='true'>
             <span>
               <kbd>↑</kbd>

@@ -99,7 +99,7 @@
   min-width: 0;
 }
 
-.account-profile-hero__copy h2 {
+.account-profile-hero__copy h1 {
   overflow: hidden;
   margin: 0;
   color: var(--account-text);

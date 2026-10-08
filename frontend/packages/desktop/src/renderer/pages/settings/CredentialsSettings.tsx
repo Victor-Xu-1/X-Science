@@ -1,4 +1,5 @@
-import { Message, Modal, Select, Tag } from '@arco-design/web-react';
+import { Message, Select, Tag } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import { Delete, Edit } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -26,7 +27,10 @@ import {
 } from './models/credentialCatalog';
 import { EmptyText, RefreshButton, SettingsSection } from './components/SettingsPrimitives';
 
-type EditorState = { provider: LocalizedCredentialProviderDefinition; secret: SynonBiomedSecret | null } | null;
+type EditorState = {
+  provider: LocalizedCredentialProviderDefinition;
+  secret: SynonBiomedSecret | null;
+} | null;
 
 export const CredentialsSettingsContent: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -211,6 +215,7 @@ export const CredentialsSettingsContent: React.FC = () => {
                     <button
                       type='button'
                       className='settings-action-button'
+                      aria-label={`${primary ? t('common.edit') : t('settings.credentialsSettings.connect')} · ${provider.label}`}
                       onClick={() => setEditor({ provider, secret: primary })}
                     >
                       {primary ? <Edit size='13' /> : null}
@@ -220,6 +225,7 @@ export const CredentialsSettingsContent: React.FC = () => {
                       <button
                         type='button'
                         className='settings-text-danger-button'
+                        aria-label={`${t('settings.credentialsSettings.disconnect')} · ${provider.label}`}
                         onClick={() => setDeleteTarget(primary)}
                       >
                         {t('settings.credentialsSettings.disconnect')}
@@ -280,11 +286,23 @@ const CredentialRow: React.FC<{
       <span className='text-11px text-t-tertiary'>
         {secret.maskedPreview || t('settings.credentialsSettings.configured')}
       </span>
-      <button type='button' className='settings-icon-button' title={t('common.edit')} onClick={onEdit}>
+      <button
+        type='button'
+        className='settings-icon-button'
+        title={t('common.edit')}
+        aria-label={`${t('common.edit')} · ${secret.name || provider.label}`}
+        onClick={onEdit}
+      >
         <Edit size='14' />
       </button>
-      <button type='button' className='settings-icon-button' title={t('common.delete')} onClick={onDelete}>
-        <Delete size='14' />
+      <button
+        type='button'
+        className='settings-icon-button'
+        title={t('common.delete')}
+        aria-label={`${t('common.delete')} · ${secret.name || provider.label}`}
+        onClick={onDelete}
+      >
+        <Delete size='14' aria-hidden='true' />
       </button>
     </div>
   );

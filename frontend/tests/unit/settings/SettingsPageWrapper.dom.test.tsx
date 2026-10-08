@@ -68,6 +68,31 @@ describe('SettingsPageWrapper mobile navigation', () => {
     expect(wrapper).toHaveAttribute('data-settings-route', 'general');
     expect(wrapper).toHaveClass('settings-page-wrapper--transitioning');
   });
+  it('starts settings navigation at the page heading and marks the active mobile destination', () => {
+    render(
+      <MemoryRouter>
+        <SettingsPageWrapper>
+          <h1>General preferences</h1>
+          <button>First action</button>
+        </SettingsPageWrapper>
+      </MemoryRouter>
+    );
+    expect(screen.getByRole('heading', { name: 'General preferences' })).toHaveFocus();
+    expect(screen.getByRole('heading', { name: 'General preferences' })).toHaveAttribute('tabindex', '-1');
+    expect(screen.getByRole('link', { name: 'settings.general' })).toHaveAttribute('aria-current', 'page');
+  });
+  it('preserves modified-click link behavior instead of changing the current mobile route', () => {
+    renderWrapper();
+    const destination = screen.getByRole('link', { name: 'settings.models' });
+    const modifiedClick = new MouseEvent('click', {
+      bubbles: true,
+      cancelable: true,
+      ctrlKey: true,
+    });
+    act(() => destination.dispatchEvent(modifiedClick));
+    expect(modifiedClick.defaultPrevented).toBe(false);
+    expect(window.location.hash).toBe('#/settings/general');
+  });
 });
 
 function renderWrapper() {

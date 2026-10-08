@@ -12,7 +12,7 @@
 
 .account-metrics {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   overflow: hidden;
   border: 1px solid var(--account-border);
   min-height: 96px;
@@ -26,8 +26,8 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 18px 24px;
+  gap: var(--ui-space-5);
+  padding: var(--ui-space-6);
 }
 
 .account-metric + .account-metric::before {
@@ -41,10 +41,10 @@
 }
 
 .account-metric__icon {
-  width: 54px;
-  height: 54px;
+  width: 40px;
+  height: 40px;
   display: inline-flex;
-  flex: 0 0 54px;
+  flex: 0 0 40px;
   align-items: center;
   justify-content: center;
   overflow: hidden;
@@ -96,6 +96,7 @@
   font-variant-numeric: tabular-nums;
   font-weight: var(--ui-weight-semibold);
   line-height: 28px;
+  overflow-wrap: anywhere;
 }
 
 .account-metric__value span {
@@ -110,16 +111,14 @@
 }
 
 .account-metric__label {
-  overflow: hidden;
   margin-top: 1px;
   color: var(--account-text-tertiary);
   font-size: var(--ui-font-body);
   line-height: 19px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
-@media (max-width: 920px) {
+@container (max-width: 840px) {
   .account-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -135,6 +134,18 @@
 
   .account-metric:nth-child(n + 3) {
     border-top: 1px solid var(--account-border);
+  }
+}
+
+@container (max-width: 440px) {
+  .account-metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .account-metric + .account-metric {
+    border-top: 1px solid var(--account-border);
+  }
+  .account-metric::before {
+    display: none;
   }
 }
 

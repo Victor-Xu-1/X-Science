@@ -125,6 +125,7 @@ describe('AccountSettings', () => {
     expect(screen.queryByRole('heading', { name: '个人账户' })).not.toBeInTheDocument();
     expect(screen.queryByText('管理个人资料，并查看基于本地工作记录生成的账户概览。')).not.toBeInTheDocument();
     expect(screen.getByText('Victor')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Victor' })).toBeInTheDocument();
     expect(screen.getByText('113')).toBeInTheDocument();
     expect(screen.getByText('183')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '工作活动' })).toBeInTheDocument();

@@ -26,6 +26,25 @@ export type SynonBiomedArtifactCanvasSelection =
   | SynonBiomedArtifactPointSelection
   | SynonBiomedArtifactHtmlElementSelection;
 
+/** Source anchors own a draft; screen coordinates only place its toolbar. */
+export function artifactCanvasSelectionIdentity(selection: SynonBiomedArtifactCanvasSelection): string {
+  if (selection.type === 'text_selection') {
+    return JSON.stringify([
+      selection.type,
+      selection.text,
+      selection.selectionPrefix,
+      selection.startLine,
+      selection.startColumn,
+      selection.endLine,
+      selection.endColumn,
+      selection.pageNumber,
+    ]);
+  }
+  if (selection.type === 'point')
+    return JSON.stringify([selection.type, selection.xPercent, selection.yPercent, selection.pageNumber]);
+  return JSON.stringify([selection.type, selection.text, selection.elementSelector]);
+}
+
 export function clampPercent(value: number): number {
   return Math.min(100, Math.max(0, Number(value.toFixed(4))));
 }

@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Checkbox, Modal } from '@arco-design/web-react';
+import { Checkbox } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import { FileText, FolderOpen } from '@icon-park/react';
 import React from 'react';
 import type { TFunction } from 'i18next';

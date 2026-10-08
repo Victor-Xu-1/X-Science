@@ -73,6 +73,9 @@ const AccountProfileHero: React.FC<AccountProfileHeroProps> = ({
 
         {editing ? (
           <div className='account-profile-editor'>
+            <h1 id='account-profile-name' className='sr-only'>
+              {displayName}
+            </h1>
             <Input
               value={nameDraft}
               maxLength={SYNON_BIOMED_DISPLAY_NAME_MAX_LENGTH}
@@ -104,7 +107,7 @@ const AccountProfileHero: React.FC<AccountProfileHeroProps> = ({
           </div>
         ) : (
           <div className='account-profile-hero__copy'>
-            <h2 id='account-profile-name'>{displayName}</h2>
+            <h1 id='account-profile-name'>{displayName}</h1>
             <div className='account-profile-hero__handle'>
               <span>@{username}</span>
               <span className='account-profile-hero__separator' aria-hidden='true'>

@@ -1,4 +1,5 @@
-import { Button, Input, InputNumber, Message, Modal, Select, Spin, Tag, Tooltip } from '@arco-design/web-react';
+import { Button, Input, InputNumber, Message, Select, Spin, Tag, Tooltip } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import { CheckOne, Delete, Edit, Refresh } from '@icon-park/react';
 import type { TFunction } from 'i18next';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -339,7 +340,7 @@ const StatusItem: React.FC<{ icon: SettingsGeneratedIconId; label: string; value
     <SettingsGeneratedIcon id={icon} className='settings-summary-item__icon' />
     <div className='settings-summary-item__copy min-w-0'>
       <span className='settings-summary-item__label'>{label}</span>
-      <strong className='text-t-primary font-600 truncate'>{value}</strong>
+      <strong className='text-t-primary font-600'>{value}</strong>
     </div>
   </div>
 );

@@ -81,14 +81,18 @@ export async function loadSynonBiomedArtifactVersions(artifactId: string): Promi
 
 export async function loadSynonBiomedArtifactLineage(
   artifactId: string,
-  options: { slim?: boolean } = {}
+  options: { slim?: boolean; versionId?: string } = {}
 ): Promise<SynonBiomedArtifactLineage> {
   const query = options.slim ? '?slim=1' : '';
-  const lineage = toArtifactLineage(
-    await requestJson<unknown>(`/api/artifacts/${encodeURIComponent(artifactId)}/lineage${query}`)
-  );
+  const path = options.versionId
+    ? `/api/artifacts/versions/${encodeURIComponent(options.versionId)}/lineage`
+    : `/api/artifacts/${encodeURIComponent(artifactId)}/lineage`;
+  const lineage = toArtifactLineage(await requestJson<unknown>(`${path}${query}`));
   if (!lineage) {
     throw new Error(`X-Science artifact lineage response is invalid: ${artifactId}`);
+  }
+  if (lineage.artifactId !== artifactId || (options.versionId && lineage.versionId !== options.versionId)) {
+    throw new Error('Synon Biomed artifact lineage response identity does not match the requested version');
   }
   return lineage;
 }

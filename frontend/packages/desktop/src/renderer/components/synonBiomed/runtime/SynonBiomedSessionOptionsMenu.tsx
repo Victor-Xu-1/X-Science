@@ -13,6 +13,7 @@ import { Check, Right, SettingConfig } from '@icon-park/react';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
+import { useNestedMenuKeyboard } from '@/renderer/hooks/ui/useNestedMenuKeyboard';
 
 type SpecialistOption = { id: string; label: string; agentId: string };
 type Submenu = 'specialist' | 'compute' | null;
@@ -31,7 +32,7 @@ export type SynonBiomedSessionOptionsMenuProps = {
 
 const rowClass =
   'composer-control-menu__row session-options-menu__row box-border flex h-32px w-full cursor-pointer items-center border-0 bg-transparent px-12px text-left font-inherit text-14px leading-none text-t-primary outline-none hover:bg-[var(--color-fill-2)] focus-visible:bg-[var(--color-fill-2)] disabled:cursor-default disabled:opacity-50';
-const checkedSwitchStyle: React.CSSProperties = { backgroundColor: '#2b7fdc' };
+const checkedSwitchStyle: React.CSSProperties = { backgroundColor: 'var(--workspace-accent)' };
 const clampToRange = (candidate: number, minimum: number, maximum: number) =>
   Math.min(Math.max(candidate, minimum), maximum);
 
@@ -61,8 +62,6 @@ const SynonBiomedSessionOptionsMenu: React.FC<SynonBiomedSessionOptionsMenuProps
   const [enabledComputeProviders, setEnabledComputeProviders] = useState<string[]>(
     (computeSelection ?? []).filter((provider) => provider !== 'local')
   );
-  const menuSurfaceRef = useRef<HTMLDivElement>(null);
-  const submenuRef = useRef<HTMLDivElement>(null);
   const submenuCloseTimerRef = useRef<number | null>(null);
   const [submenuPosition, setSubmenuPosition] = useState<React.CSSProperties>();
 
@@ -71,6 +70,15 @@ const SynonBiomedSessionOptionsMenu: React.FC<SynonBiomedSessionOptionsMenuProps
     window.clearTimeout(submenuCloseTimerRef.current);
     submenuCloseTimerRef.current = null;
   };
+
+  const keyboard = useNestedMenuKeyboard<Exclude<Submenu, null>>({
+    open: visible,
+    setOpen: setVisible,
+    submenu,
+    setSubmenu,
+    cancelHoverClose: cancelSubmenuClose,
+  });
+  const { menuRef: menuSurfaceRef, submenuRef, triggerRef, menuId } = keyboard;
 
   const scheduleSubmenuClose = () => {
     cancelSubmenuClose();
@@ -181,7 +189,9 @@ const SynonBiomedSessionOptionsMenu: React.FC<SynonBiomedSessionOptionsMenuProps
       const selected = computeProviders.find((provider) => provider.name === enabledComputeProviders[0]);
       return selected?.displayName || enabledComputeProviders[0];
     }
-    return t('conversation.synonRuntime.sessionOptions.providerCount', { count: enabledComputeProviders.length });
+    return t('conversation.synonRuntime.sessionOptions.providerCount', {
+      count: enabledComputeProviders.length,
+    });
   }, [computeProviders, enabledComputeProviders, t]);
 
   const updateComputeProvider = async (providerName: string, checked: boolean) => {
@@ -287,6 +297,7 @@ const SynonBiomedSessionOptionsMenu: React.FC<SynonBiomedSessionOptionsMenuProps
       }}
       onMouseEnter={cancelSubmenuClose}
       onMouseLeave={scheduleSubmenuClose}
+      onKeyDown={keyboard.onSubmenuKeyDown}
     >
       {submenu === 'specialist' ? (
         <>
@@ -309,7 +320,9 @@ const SynonBiomedSessionOptionsMenu: React.FC<SynonBiomedSessionOptionsMenuProps
               type='button'
               role='menuitemradio'
               aria-checked={specialist.agentId === value.targetAgent}
-              aria-label={t('conversation.synonRuntime.sessionOptions.selectExpert', { name: specialist.label })}
+              aria-label={t('conversation.synonRuntime.sessionOptions.selectExpert', {
+                name: specialist.label,
+              })}
               className={rowClass}
               onClick={() => onChange({ ...value, targetAgent: specialist.agentId })}
             >
@@ -399,13 +412,15 @@ const SynonBiomedSessionOptionsMenu: React.FC<SynonBiomedSessionOptionsMenuProps
 
   const dropdownContent = (
     <div
-      ref={menuSurfaceRef}
+      ref={keyboard.bindMenu}
       className='app-overlay-menu composer-control-menu relative box-border overflow-visible rd-8px py-6px'
       role='menu'
+      id={menuId}
       aria-label={t('conversation.synonRuntime.sessionOptions.title')}
       onClick={(event) => event.stopPropagation()}
       onMouseEnter={cancelSubmenuClose}
       onMouseLeave={scheduleSubmenuClose}
+      onKeyDown={keyboard.onMenuKeyDown}
       style={{
         width: 'min(210px, calc(100vw - 24px))',
         maxWidth: 'calc(100vw - 24px)',
@@ -430,7 +445,7 @@ const SynonBiomedSessionOptionsMenu: React.FC<SynonBiomedSessionOptionsMenuProps
               <span
                 aria-hidden='true'
                 className={`relative inline-flex h-20px w-36px shrink-0 items-center rounded-full transition-colors ${
-                  option.checked ? 'bg-[#2b7fdc]' : 'bg-fill-4'
+                  option.checked ? 'bg-[var(--workspace-accent)]' : 'bg-fill-4'
                 } ${pendingOption !== null ? 'opacity-60' : ''}`}
               >
                 {optionPending ? (
@@ -439,8 +454,13 @@ const SynonBiomedSessionOptionsMenu: React.FC<SynonBiomedSessionOptionsMenuProps
                   </span>
                 ) : (
                   <span
-                    className='h-16px w-16px rounded-full bg-white transition-transform'
-                    style={{ transform: `translateX(${option.checked ? 18 : 2}px)` }}
+                    className='h-16px w-16px rounded-full transition-transform'
+                    style={{
+                      transform: `translateX(${option.checked ? 18 : 2}px)`,
+                      backgroundColor: option.checked
+                        ? 'var(--workspace-accent-contrast)'
+                        : 'var(--workspace-overlay-surface)',
+                    }}
                   />
                 )}
               </span>
@@ -480,6 +500,7 @@ const SynonBiomedSessionOptionsMenu: React.FC<SynonBiomedSessionOptionsMenuProps
         aria-haspopup='menu'
         aria-expanded={submenu === 'specialist'}
         data-testid='session-config-row-specialist'
+        data-submenu='specialist'
         className={`${rowClass} justify-between`}
         onMouseEnter={() => {
           cancelSubmenuClose();
@@ -488,7 +509,7 @@ const SynonBiomedSessionOptionsMenu: React.FC<SynonBiomedSessionOptionsMenuProps
         onMouseLeave={() => {
           if (submenu === 'specialist') scheduleSubmenuClose();
         }}
-        onFocus={() => setSubmenu('specialist')}
+        onKeyDown={(event) => keyboard.onSubmenuTriggerKeyDown(event, 'specialist')}
         onClick={() => {
           cancelSubmenuClose();
           setSubmenu('specialist');
@@ -506,6 +527,7 @@ const SynonBiomedSessionOptionsMenu: React.FC<SynonBiomedSessionOptionsMenuProps
         aria-haspopup='menu'
         aria-expanded={submenu === 'compute'}
         data-testid='session-config-row-compute'
+        data-submenu='compute'
         className={`${rowClass} justify-between`}
         onMouseEnter={() => {
           cancelSubmenuClose();
@@ -514,7 +536,7 @@ const SynonBiomedSessionOptionsMenu: React.FC<SynonBiomedSessionOptionsMenuProps
         onMouseLeave={() => {
           if (submenu === 'compute') scheduleSubmenuClose();
         }}
-        onFocus={() => setSubmenu('compute')}
+        onKeyDown={(event) => keyboard.onSubmenuTriggerKeyDown(event, 'compute')}
         onClick={() => {
           cancelSubmenuClose();
           setSubmenu('compute');
@@ -547,9 +569,14 @@ const SynonBiomedSessionOptionsMenu: React.FC<SynonBiomedSessionOptionsMenuProps
       droplist={dropdownContent}
     >
       <button
+        ref={triggerRef}
         type='button'
         aria-label={t('conversation.synonRuntime.sessionOptions.title')}
         data-testid='synon-biomed-session-options-trigger'
+        aria-haspopup='menu'
+        aria-expanded={visible}
+        aria-controls={visible ? menuId : undefined}
+        onKeyDown={(event) => keyboard.onTriggerKeyDown(event, disabled)}
         disabled={disabled}
         className='composer-icon-control relative'
       >

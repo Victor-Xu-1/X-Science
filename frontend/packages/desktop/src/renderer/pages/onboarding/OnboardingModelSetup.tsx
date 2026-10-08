@@ -6,7 +6,7 @@
 
 import { Button, Input, Message, Select, Spin } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   activateSynonBiomedLlmProfile,
@@ -25,8 +25,6 @@ type ModelDraft = {
   apiKey: string;
 };
 
-const EMPTY_SNAPSHOT: SynonBiomedLlmProvidersSnapshot = { profiles: [], templates: [] };
-
 /**
  * Compact first-run model configuration. Setup is optional: finishing the
  * onboarding flow never requires a profile here because deployments can also
@@ -39,20 +37,32 @@ const OnboardingModelSetup: React.FC = () => {
   const [draft, setDraft] = useState<ModelDraft | null>(null);
   const [saving, setSaving] = useState(false);
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const loadGeneration = useRef(0);
 
   const load = useCallback(async () => {
+    const generation = ++loadGeneration.current;
+    setLoading(true);
     try {
-      setSnapshot(await loadSynonBiomedLlmProviders());
+      const result = await loadSynonBiomedLlmProviders();
+      if (generation !== loadGeneration.current) return;
+      setSnapshot(result);
       setLoadFailed(false);
     } catch (error) {
+      if (generation !== loadGeneration.current) return;
       console.error('[OnboardingModelSetup] llm_profiles_failed', error);
-      setSnapshot(EMPTY_SNAPSHOT);
+      setSnapshot(null);
       setLoadFailed(true);
+    } finally {
+      if (generation === loadGeneration.current) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     void load();
+    return () => {
+      loadGeneration.current += 1;
+    };
   }, [load]);
 
   const profiles = snapshot?.profiles ?? [];
@@ -141,19 +151,21 @@ const OnboardingModelSetup: React.FC = () => {
   };
 
   return (
-    <div className={styles.modelSetup} data-testid='onboarding-model-setup'>
-      {snapshot === null ? (
-        <div className={styles.modelLoading}>
+    <div className={styles.modelSetup} data-testid='onboarding-model-setup' aria-busy={loading}>
+      {snapshot === null && !loadFailed ? (
+        <div className={styles.modelLoading} role='status' aria-label={t('common.loading')}>
           <Spin size={16} />
         </div>
       ) : (
         <>
-          <div className={styles.modelStatus} data-testid='onboarding-model-status'>
-            <span>
-              <strong>{activeProfile?.name ?? t('guid.onboarding.model.unconfigured')}</strong>
-              <small>{activeProfile?.model ?? t('guid.onboarding.model.unconfiguredHint')}</small>
-            </span>
-          </div>
+          {!loadFailed ? (
+            <div className={styles.modelStatus} data-testid='onboarding-model-status'>
+              <span>
+                <strong>{activeProfile?.name ?? t('guid.onboarding.model.unconfigured')}</strong>
+                <small>{activeProfile?.model ?? t('guid.onboarding.model.unconfiguredHint')}</small>
+              </span>
+            </div>
+          ) : null}
           {profiles.length > 0 && (
             <div className={styles.optionList} data-testid='onboarding-model-profiles'>
               {profiles.map((profile) => {
@@ -184,19 +196,27 @@ const OnboardingModelSetup: React.FC = () => {
               })}
             </div>
           )}
-          {loadFailed && <p className={styles.suggestionStatus}>{t('guid.onboarding.model.loadError')}</p>}
+          {loadFailed && (
+            <div className={styles.modelStatus}>
+              <p role='alert'>{t('guid.onboarding.model.loadError')}</p>
+              <Button disabled={loading} onClick={() => void load()}>
+                {t('common.retry')}
+              </Button>
+            </div>
+          )}
           {draft === null ? (
             <Button
               type='secondary'
               icon={<Plus theme='outline' size='14' />}
               onClick={openDraft}
               data-testid='onboarding-model-add'
+              disabled={loading || loadFailed || templates.length === 0}
             >
               {t('guid.onboarding.model.add')}
             </Button>
           ) : (
             <div className={styles.modelForm} data-testid='onboarding-model-form'>
-              <label className={styles.fieldLabel}>
+              <div className={styles.fieldLabel}>
                 <span>{t('guid.onboarding.model.provider')}</span>
                 <Select
                   aria-label={t('guid.onboarding.model.provider')}
@@ -209,7 +229,7 @@ const OnboardingModelSetup: React.FC = () => {
                     </Select.Option>
                   ))}
                 </Select>
-              </label>
+              </div>
               <label className={styles.fieldLabel}>
                 <span>{t('guid.onboarding.model.modelId')}</span>
                 <Input

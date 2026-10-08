@@ -44,6 +44,7 @@
   --ui-font-section: 16px;
   --ui-font-lead: 18px;
   --ui-font-display: 20px;
+  --ui-font-document-title: 22px;
   --ui-font-hero: 24px;
   --ui-font-hero-lg: 26px;
   --ui-font-headline: 28px;
@@ -59,6 +60,7 @@
   --ui-line-height-section: 24px;
   --ui-line-height-lead: 26px;
   --ui-line-height-display: 28px;
+  --ui-line-height-document-title: 28px;
   --ui-line-height-hero: 32px;
   --ui-line-height-hero-lg: 36px;
   --ui-line-height-headline: 36px;

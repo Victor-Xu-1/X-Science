@@ -1,4 +1,5 @@
-import { Checkbox, Input, Message, Modal } from '@arco-design/web-react';
+import { Checkbox, Input, Message } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import React, { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';

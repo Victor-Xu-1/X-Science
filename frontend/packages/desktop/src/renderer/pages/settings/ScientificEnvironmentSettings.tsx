@@ -1,4 +1,5 @@
-import { Button, Modal } from '@arco-design/web-react';
+import { Button } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import { Down, Refresh, Search } from '@icon-park/react';
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -14,6 +15,7 @@ import { scientificRuntimePresentation } from '@/renderer/utils/scientificRuntim
 import SettingsPageWrapper from './components/SettingsPageWrapper';
 import SettingsPageHeader from './components/SettingsPageHeader';
 import SettingsLibraryTabHeader from './components/SettingsLibraryTabHeader';
+import SettingsLibrarySearch from './components/SettingsLibrarySearch';
 import SettingsLibraryFilterSelect from './components/SettingsLibraryFilterSelect';
 import { RefreshButton } from './components/SettingsPrimitives';
 import { useStorageResource } from './storage/useStorageResource';
@@ -206,7 +208,15 @@ export default function ScientificEnvironmentSettings({
       ) : compactHeader ? (
         <SettingsLibraryTabHeader
           title={t('settings.environments.title')}
-          count={items.length}
+          count={filtered.length}
+          search={
+            <SettingsLibrarySearch
+              label={t('settings.environments.search')}
+              value={query}
+              onChange={setQuery}
+              data-testid='environment-search'
+            />
+          }
           filters={
             <SettingsLibraryFilterSelect
               aria-label={t('settings.environments.category')}
@@ -306,7 +316,10 @@ export default function ScientificEnvironmentSettings({
           <>
             {!compactHeader ? (
               <div className='environment-results' role='status'>
-                {t('settings.environments.results', { count: filtered.length, total: items.length })}
+                {t('settings.environments.results', {
+                  count: filtered.length,
+                  total: items.length,
+                })}
               </div>
             ) : null}
             <div className='environment-grid' role='list'>

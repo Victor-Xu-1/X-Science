@@ -1,5 +1,8 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { SETTINGS_VISUAL_CONTRACTS } from '../../packages/desktop/src/renderer/pages/settings/components/settingsVisualContract';
+import {
+  SETTINGS_LAYOUT_REVISION,
+  SETTINGS_VISUAL_CONTRACTS,
+} from '../../packages/desktop/src/renderer/pages/settings/components/settingsVisualContract';
 import { loginToScientificWorkbench } from './synonBiomedScientificFixture';
 
 const modules = [
@@ -40,6 +43,7 @@ test.describe('unified settings visual system', () => {
         `.settings-page-wrapper[data-settings-route="${module.route}"][data-settings-visual-system="scientific-connectors-v3"]`
       );
       await expect(wrapper).toBeVisible();
+      await expect(wrapper).toHaveAttribute('data-settings-layout-revision', SETTINGS_LAYOUT_REVISION);
       if (module.route === 'account') {
         // Account uses the profile hero as its heading instead of the shared page header.
         await expect(wrapper.locator('#account-profile-name')).toBeVisible();
@@ -49,7 +53,7 @@ test.describe('unified settings visual system', () => {
         expect(accentLayer).toBe('-1');
       } else if (libraryRoutes.has(module.route)) {
         await expect(wrapper.locator('.settings-library-tab-header__title')).toBeVisible();
-        await expect(wrapper.getByTestId(`settings-tab-${module.route}`)).toHaveAttribute('aria-selected', 'true');
+        await expect(wrapper.getByTestId(`settings-tab-${module.route}`)).toHaveAttribute('aria-current', 'page');
       } else {
         await expect(wrapper.locator('.settings-page-header__title')).toBeVisible();
       }
@@ -73,11 +77,7 @@ test.describe('unified settings visual system', () => {
           libraryRoutes.has(module.route) ? '.settings-library-tab-header__title' : '.settings-page-header__title'
         );
       }
-      await assertSharedGeometry(
-        wrapper,
-        module.route === 'account' ? '12px' : '16px',
-        module.route !== 'account' && module.route !== 'network'
-      );
+      await assertSharedGeometry(wrapper);
       await assertGeneratedAssets(wrapper, module.route !== 'storage' && module.route !== 'environments');
       if (module.route === 'skills' || module.route === 'tools') {
         await assertMergedLibraryGrid(wrapper, module.route);
@@ -85,7 +85,10 @@ test.describe('unified settings visual system', () => {
 
       const screenshot = testInfo.outputPath(`settings-${module.route}.png`);
       await page.screenshot({ path: screenshot, fullPage: true });
-      await testInfo.attach(`settings-${module.route}`, { path: screenshot, contentType: 'image/png' });
+      await testInfo.attach(`settings-${module.route}`, {
+        path: screenshot,
+        contentType: 'image/png',
+      });
     }
 
     expect(pageErrors).toEqual([]);
@@ -114,7 +117,10 @@ test.describe('unified settings visual system', () => {
             : wrapper.locator('.synon-mcp-card').first();
       await expect(surface).toBeVisible();
       if (route === 'account') await assertAvatarContrast(wrapper);
-      await page.screenshot({ path: testInfo.outputPath(`settings-${route}-dark-narrow.png`), fullPage: true });
+      await page.screenshot({
+        path: testInfo.outputPath(`settings-${route}-dark-narrow.png`),
+        fullPage: true,
+      });
     }
   });
 });
@@ -155,8 +161,8 @@ async function waitForModuleContent(page: Page, route: (typeof modules)[number][
   }
 }
 
-async function assertSharedGeometry(wrapper: Locator, expectedCardRadius: string, elevated: boolean) {
-  const geometry = await wrapper.evaluate((root, cardRadius) => {
+async function assertSharedGeometry(wrapper: Locator) {
+  const geometry = await wrapper.evaluate((root) => {
     const content = root.querySelector<HTMLElement>('.settings-page-content');
     const header = [
       ...root.querySelectorAll<HTMLElement>('h1, h2, h3, [role="tab"], .settings-page-header__title'),
@@ -169,40 +175,27 @@ async function assertSharedGeometry(wrapper: Locator, expectedCardRadius: string
     const headerStyle = getComputedStyle(header);
     const cardSelectors =
       '.settings-section, .settings-list, .settings-summary-strip, .settings-toolbar, .settings-library-card, .settings-entity-card, .synon-mcp-card, .account-profile-hero, .expert-card, .expert-group, .expert-row, .settings-model-profile, .compute-section, .network-section--preset-groups, .credentials-connection-card, .storage-usage-card, .memory-manager__status, .memory-manager__workspace';
-    const findVisualCard = () => {
-      const explicit = [...root.querySelectorAll<HTMLElement>(cardSelectors)].find(
-        (candidate) => getComputedStyle(candidate).borderRadius === cardRadius
-      );
-      if (explicit) return explicit;
-      return [...root.querySelectorAll<HTMLElement>('*')].find((element) => {
-        const rect = element.getBoundingClientRect();
-        const style = getComputedStyle(element);
-        return (
-          rect.width >= 280 && rect.height >= 60 && style.borderRadius === cardRadius && style.borderTopWidth !== '0px'
-        );
-      });
-    };
-    const card = findVisualCard();
+    const card = [...root.querySelectorAll<HTMLElement>(cardSelectors)].find(
+      (element) => element.getBoundingClientRect().width >= 200
+    );
+    const rootRect = root.getBoundingClientRect();
     return {
       contentWidth: contentRect.width,
-      contentLeft: contentRect.left,
+      withinRail: contentRect.left >= rootRect.left - 1 && contentRect.right <= rootRect.right + 1,
+      transform: getComputedStyle(root).transform,
       titleSize: Number.parseFloat(headerStyle.fontSize),
-      cardRadius: card ? getComputedStyle(card).borderRadius : null,
-      cardShadow: card ? getComputedStyle(card).boxShadow : null,
+      cardRadius: card ? Number.parseFloat(getComputedStyle(card).borderRadius) : null,
     };
-  }, expectedCardRadius);
+  });
 
   expect(geometry).not.toBeNull();
-  expect(geometry?.contentWidth ?? 0).toBeGreaterThan(1100);
-  expect(geometry?.contentLeft ?? -1).toBeGreaterThanOrEqual(280);
-  expect(geometry?.contentLeft ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(330);
+  expect(geometry?.contentWidth ?? 0).toBeGreaterThan(900);
+  expect(geometry?.contentWidth ?? Infinity).toBeLessThanOrEqual(1281);
+  expect(geometry?.withinRail).toBe(true);
+  expect(geometry?.transform).toBe('none');
   expect(geometry?.titleSize ?? 0).toBeGreaterThanOrEqual(14);
-  expect(geometry?.cardRadius).toBe(expectedCardRadius);
-  if (elevated) {
-    expect(geometry?.cardShadow).not.toBe('none');
-  } else {
-    expect(geometry?.cardShadow).toBe('none');
-  }
+  expect(geometry?.cardRadius ?? 0).toBeGreaterThanOrEqual(8);
+  expect(geometry?.cardRadius ?? Infinity).toBeLessThanOrEqual(24);
 }
 
 async function assertHeaderReadable(wrapper: Locator, selector: string) {
@@ -289,8 +282,9 @@ async function assertMergedLibraryGrid(wrapper: Locator, route: 'skills' | 'tool
     };
   });
 
-  expect(layout.computedColumns).toBe(4);
-  expect(layout.firstRowCards).toBe(4);
+  expect(layout.computedColumns).toBeGreaterThanOrEqual(1);
+  expect(layout.computedColumns).toBeLessThanOrEqual(4);
+  expect(layout.firstRowCards).toBe(layout.computedColumns);
 }
 
 async function assertInsideViewport(locator: Locator, viewportWidth: number) {

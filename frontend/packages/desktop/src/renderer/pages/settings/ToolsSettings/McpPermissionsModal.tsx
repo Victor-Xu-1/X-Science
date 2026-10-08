@@ -1,4 +1,5 @@
-import { Button, Empty, Message, Modal, Spin, Switch, Tag } from '@arco-design/web-react';
+import { Button, Empty, Message, Spin, Switch, Tag } from '@arco-design/web-react';
+import Modal from '@/renderer/components/base/WorkbenchModal';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {

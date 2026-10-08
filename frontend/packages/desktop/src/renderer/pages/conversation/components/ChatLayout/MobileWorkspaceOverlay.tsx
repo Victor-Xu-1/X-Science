@@ -1,8 +1,8 @@
 import WorkspacePanelHeader from './WorkspacePanelHeader';
 import { WORKSPACE_HEADER_HEIGHT } from '@/renderer/pages/conversation/utils/layoutCalc';
 import { dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspace/workspaceEvents';
-import { Layout as ArcoLayout } from '@arco-design/web-react';
-import React from 'react';
+import { containTabFocus, focusableElements, restoreScopedFocus } from '@/renderer/utils/focusScope';
+import React, { useLayoutEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 type MobileWorkspaceOverlayProps = {
@@ -26,6 +26,26 @@ const MobileWorkspaceOverlay: React.FC<MobileWorkspaceOverlayProps> = ({
   isTemporaryWorkspace,
 }) => {
   const { t } = useTranslation();
+  const panelRef = useRef<HTMLDivElement>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    const root = panelRef.current;
+    if (rightSiderCollapsed) {
+      // Run after React restores selection for the retained DOM, not during
+      // the old effect's mutation-phase cleanup where it can be overwritten.
+      restoreScopedFocus(openerRef.current, root);
+      openerRef.current = null;
+      return;
+    }
+    const current = document.activeElement;
+    openerRef.current =
+      current instanceof HTMLElement && current !== document.body && !root?.contains(current) ? current : null;
+    (focusableElements(root)[0] ?? root)?.focus();
+  }, [rightSiderCollapsed]);
+  useLayoutEffect(() => {
+    const root = panelRef.current;
+    return () => restoreScopedFocus(openerRef.current, root);
+  }, []);
   return (
     <>
       {/* Backdrop */}
@@ -39,15 +59,30 @@ const MobileWorkspaceOverlay: React.FC<MobileWorkspaceOverlayProps> = ({
 
       {/* Fixed workspace panel */}
       <div
+        ref={panelRef}
+        role={rightSiderCollapsed ? undefined : 'dialog'}
+        aria-modal={!rightSiderCollapsed || undefined}
+        aria-label={t('common.workspace')}
+        aria-hidden={rightSiderCollapsed || undefined}
+        inert={rightSiderCollapsed || undefined}
+        tabIndex={-1}
         className='!bg-1 relative chat-layout-right-sider'
+        onKeyDown={(event) => {
+          if (rightSiderCollapsed || event.defaultPrevented || !event.currentTarget.contains(event.target as Node))
+            return;
+          if (event.key === 'Escape') {
+            event.preventDefault();
+            setRightSiderCollapsed(true);
+          } else containTabFocus(panelRef.current, event);
+        }}
         style={{
           position: 'fixed',
           right: 0,
           top: 0,
-          height: '100vh',
+          height: '100dvh',
           width: `${Math.round(workspaceWidthPx)}px`,
           zIndex: 100,
-          transform: rightSiderCollapsed ? 'translateX(100%)' : 'translateX(0)',
+          transform: rightSiderCollapsed ? 'translateX(100%)' : 'none',
           transition: 'none',
           pointerEvents: rightSiderCollapsed ? 'none' : 'auto',
         }}
@@ -60,9 +95,9 @@ const MobileWorkspaceOverlay: React.FC<MobileWorkspaceOverlayProps> = ({
           workspacePath={workspacePath}
           isTemporaryWorkspace={isTemporaryWorkspace}
         />
-        <ArcoLayout.Content className='bg-1' style={{ height: `calc(100% - ${WORKSPACE_HEADER_HEIGHT}px)` }}>
+        <div className='arco-layout-content bg-1' style={{ height: `calc(100% - ${WORKSPACE_HEADER_HEIGHT}px)` }}>
           {sider}
-        </ArcoLayout.Content>
+        </div>
       </div>
 
       {/* Floating collapse handle */}
@@ -74,7 +109,7 @@ const MobileWorkspaceOverlay: React.FC<MobileWorkspaceOverlayProps> = ({
             top: '50%',
             right: `${mobileWorkspaceHandleRight}px`,
             transform: 'translateY(-50%)',
-            width: '20px',
+            width: '28px',
             height: '64px',
             borderTopLeftRadius: '10px',
             borderBottomLeftRadius: '10px',

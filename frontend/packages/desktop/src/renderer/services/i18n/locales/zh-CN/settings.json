@@ -1603,6 +1603,7 @@
       },
       "detail": {
         "fileLoadFailed": "无法读取 Skill 文件。",
+        "refreshFailed": "变更已完成，但 Skill 库刷新失败。",
         "draftSaved": "Skill 草稿已保存",
         "draftSaveFailed": "Skill 草稿保存失败。",
         "published": "Skill 已发布",
@@ -1993,6 +1994,7 @@
       "configured": "已配置",
       "paired": "已配对",
       "loading": "正在检查",
+      "statusUnavailable": "状态不可用",
       "scanToPair": "扫码配对",
       "regenerate": "重新生成二维码",
       "unpair": "取消配对",
