@@ -367,6 +367,7 @@
     "exportSucceeded": "文件已导出到云存储",
     "exportFailed": "云存储导出失败。",
     "backToProject": "返回项目",
+    "backToWorkspace": "返回工作区",
     "unknownType": "未知类型",
     "unknown": "未知",
     "versionLabel": "版本 {{version}}",

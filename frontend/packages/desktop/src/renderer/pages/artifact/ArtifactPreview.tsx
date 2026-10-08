@@ -37,13 +37,14 @@ import { ArtifactAnnotationsPanel, ArtifactVerificationPanel } from './ArtifactA
 import { ArtifactEditRefinementPanel } from './ArtifactEditRefinementPanel';
 import { ArtifactSelectionAnnotationModal } from './ArtifactSelectionAnnotationModal';
 import { ArtifactFileActionModal } from './ArtifactFileActionModal';
+import { ArtifactPageState } from './ArtifactPageState';
 import type { ArtifactFileAction } from './useArtifactFileActionEditor';
 import {
   loadSynonBiomedArtifactAnnotations,
   type SynonBiomedAppliedArtifactEdit,
   type SynonBiomedArtifactAnnotation,
 } from '@/renderer/services/synonBiomedAnnotations';
-import { Button, Empty, Message, Spin } from '@arco-design/web-react';
+import { Button, Empty, Message } from '@arco-design/web-react';
 import Tabs from '@/renderer/components/base/WorkbenchTabs';
 import { Comment, Copy, Download, FileText, FolderOpen, Left, Magic, Notes, Upload } from '@icon-park/react';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -84,6 +85,8 @@ const ArtifactPreview: React.FC = () => {
   const [snapshot, setSnapshot] = useState<ArtifactSnapshot | null>(null);
   const [loading, setLoading] = useState(Boolean(artifactId));
   const [failed, setFailed] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const [requestOwnerId, setRequestOwnerId] = useState(artifactId);
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
   const [activeInspectorTab, setActiveInspectorTab] = useState(() => inspectorTabFromSearch(location.search));
   const [canvasSelection, setCanvasSelection] = useState<SynonBiomedArtifactCanvasSelection | null>(null);
@@ -95,6 +98,8 @@ const ArtifactPreview: React.FC = () => {
   const [notesVisible, setNotesVisible] = useState(false);
   const [messageApi, messageContextHolder] = Message.useMessage();
   const previewReturnRef = useRef<HTMLElement | null>(null);
+  const pageHeadingRef = useRef<HTMLHeadingElement | null>(null);
+  const retryFocusIntent = useRef(false);
   const versionRefreshRevision = useRef(0);
   const viewOwner = useRef({ artifactId, selectedVersionId });
   useLayoutEffect(() => {
@@ -107,15 +112,23 @@ const ArtifactPreview: React.FC = () => {
   useLayoutEffect(() => {
     setFileAction(null);
     setNotesVisible(false);
+    retryFocusIntent.current = false;
   }, [artifactId]);
+  useLayoutEffect(() => {
+    if (!retryFocusIntent.current || loading || failed || snapshot?.artifact.artifactId !== artifactId) return;
+    retryFocusIntent.current = false;
+    pageHeadingRef.current?.focus({ preventScroll: true });
+  }, [artifactId, failed, loading, snapshot]);
 
   useEffect(() => {
     setActiveInspectorTab(inspectorTabFromSearch(location.search));
   }, [location.search]);
 
   useEffect(() => {
+    setRequestOwnerId(artifactId);
     if (!artifactId) {
       setLoading(false);
+      setFailed(false);
       setSnapshot(null);
       return;
     }
@@ -147,7 +160,7 @@ const ArtifactPreview: React.FC = () => {
     return () => {
       active = false;
     };
-  }, [artifactId]);
+  }, [artifactId, loadAttempt]);
 
   const selectedVersion = useMemo(
     () => snapshot?.versions.find((version) => version.versionId === selectedVersionId) ?? null,
@@ -173,19 +186,18 @@ const ArtifactPreview: React.FC = () => {
     };
   }, [annotationRevision, annotationVersionId, snapshot]);
 
-  if (loading) {
+  const currentLoading = Boolean(artifactId) && (loading || requestOwnerId !== artifactId);
+  if (currentLoading || !snapshot || failed) {
     return (
-      <div className='size-full flex-center'>
-        <Spin />
-      </div>
-    );
-  }
-
-  if (!snapshot || failed) {
-    return (
-      <div className='size-full flex-center px-24px'>
-        <Empty description={failed ? t('preview.artifact.loadFailed') : t('preview.artifact.notFound')} />
-      </div>
+      <ArtifactPageState
+        state={currentLoading ? 'loading' : failed ? 'failed' : 'missing'}
+        onRetry={() => {
+          if (currentLoading || !artifactId) return;
+          retryFocusIntent.current = true;
+          setLoading(true);
+          setLoadAttempt((attempt) => attempt + 1);
+        }}
+      />
     );
   }
 
@@ -236,7 +248,13 @@ const ArtifactPreview: React.FC = () => {
           />
           <FileText theme='outline' size={21} className='shrink-0 text-t-secondary' />
           <div className='min-w-180px flex-1'>
-            <h1 className='m-0 truncate text-17px leading-24px font-[600] text-t-primary'>{artifact.filename}</h1>
+            <h1
+              ref={pageHeadingRef}
+              tabIndex={-1}
+              className='m-0 truncate text-17px leading-24px font-[600] text-t-primary'
+            >
+              {artifact.filename}
+            </h1>
             <div className='mt-2px text-11px text-t-tertiary'>
               {displayContentType ?? t('preview.artifact.unknownType')} · {formatBytes(displaySize)} ·{' '}
               {t('preview.artifact.versionLabel', {

@@ -202,6 +202,68 @@ beforeEach(() => {
 });
 
 describe('Artifact preview interaction ownership', () => {
+  it('provides a same-page retry and restores reading focus after a failed file read', async () => {
+    state.load.mockRejectedValueOnce(new Error('fixture read failure'));
+    await renderWithI18n(<ArtifactPreview />, 'en-US');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Failed to load file');
+    expect(screen.getByRole('heading', { name: 'File preview' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to workspace' })).toHaveAttribute('href', '#/guid');
+    state.load.mockRejectedValueOnce(new Error('fixture repeated read failure'));
+    fireEvent.click(screen.getByRole('button', { name: 'Retry', exact: true }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Failed to load file');
+    expect(state.load).toHaveBeenCalledTimes(2);
+    fireEvent.click(screen.getByRole('button', { name: 'Retry', exact: true }));
+    const heading = await screen.findByRole('heading', { name: 'artifact-1.txt' });
+    expect(heading).toHaveFocus();
+    expect(state.load).toHaveBeenCalledTimes(3);
+  });
+
+  it('keeps a missing file distinct from a failed read and localizes the recovery surface', async () => {
+    state.artifactId = '';
+    await renderWithI18n(<ArtifactPreview />, 'zh-CN');
+    expect(screen.getByRole('heading', { name: '文件预览' })).toBeInTheDocument();
+    expect(screen.getByText('未找到文件')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '返回工作区' })).toHaveAttribute('href', '#/guid');
+    expect(screen.queryByRole('button', { name: '重试' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(state.load).not.toHaveBeenCalled();
+  });
+
+  it('announces the loading page without presenting a false empty result', async () => {
+    const pending = deferred<SynonBiomedProjectArtifact>();
+    state.load.mockReturnValueOnce(pending.promise);
+    const view = await renderWithI18n(<ArtifactPreview />, 'en-US');
+    expect(await screen.findByRole('status')).toHaveTextContent('Please wait...');
+    expect(screen.getByRole('heading', { name: 'File preview' })).toBeInTheDocument();
+    expect(screen.queryByText('File not found')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to workspace' })).toBeInTheDocument();
+    view.unmount();
+    await act(async () => {
+      pending.resolve(artifact('artifact-1'));
+      await pending.promise;
+    });
+  });
+
+  it('does not replace a newer file when a previous retry finishes late', async () => {
+    state.load.mockRejectedValueOnce(new Error('fixture first failure'));
+    const view = await renderWithI18n(<ArtifactPreview />, 'en-US');
+    const retry = await screen.findByRole('button', { name: 'Retry', exact: true });
+    const pending = deferred<SynonBiomedProjectArtifact>();
+    state.load.mockReturnValueOnce(pending.promise);
+    fireEvent.click(retry);
+    state.artifactId = 'artifact-2';
+    view.rerender(<ArtifactPreview />);
+    await screen.findByRole('heading', { name: 'artifact-2.txt' });
+    await act(async () => {
+      pending.resolve(artifact('artifact-1'));
+      await pending.promise;
+    });
+    expect(screen.getByRole('heading', { name: 'artifact-2.txt' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'artifact-1.txt' })).not.toBeInTheDocument();
+    expect(state.load).toHaveBeenCalledTimes(3);
+  });
+
   it('keeps download as one native link rather than two nested interactive controls', async () => {
     await renderPage();
     const download = screen.getByRole('link', { name: 'Download', exact: true });

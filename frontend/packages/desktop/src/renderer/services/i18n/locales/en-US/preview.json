@@ -367,6 +367,7 @@
     "exportSucceeded": "File exported to cloud storage",
     "exportFailed": "Failed to export to cloud storage.",
     "backToProject": "Back to project",
+    "backToWorkspace": "Back to workspace",
     "unknownType": "Unknown type",
     "unknown": "Unknown",
     "versionLabel": "Version {{version}}",
