@@ -13,7 +13,7 @@ import {
   type LightweightOfficeWorkbook,
 } from '@/renderer/services/lightweightOfficePreview';
 import { Button, Empty } from '@arco-design/web-react';
-import React, { useEffect, useId, useMemo, useState } from 'react';
+import React, { useEffect, useId, useLayoutEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import MarkdownViewer from './MarkdownViewer';
 import { handleTabListKeyDown } from '@/renderer/utils/tabListKeyboard';
@@ -102,7 +102,9 @@ const WorkbookPreview: React.FC<{ workbook: LightweightOfficeWorkbook }> = ({ wo
   const scopeId = useId();
   const sheets = Array.isArray(workbook.sheets) ? workbook.sheets : [];
   const [activeIndex, setActiveIndex] = useState(0);
-  useEffect(() => setActiveIndex(0), [workbook]);
+  // Reset a newly loaded workbook before its tabs become interactive. A passive
+  // effect can run after the first keyboard selection and silently undo it.
+  useLayoutEffect(() => setActiveIndex(0), [workbook]);
   const activeSheet = sheets[Math.min(activeIndex, Math.max(0, sheets.length - 1))];
   const columnCount = useMemo(
     () => activeSheet?.data.reduce((maximum, row) => Math.max(maximum, row.length), 0) ?? 0,

@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "96c491999e11d3eab06b952a7dd5159973b8e3d7262bf11fe58a5d1c81374471",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "62d4205fab44f7415af1f1e689477a16ecca0f2036ed6ba4054a10500fa9465a",
+  "additionFingerprintSHA256": "03a01d12297bb7d480ace94b7ac06085f72fab0f0f2f23e82bc6833db7293366",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 347,
@@ -7922,8 +7922,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/LightweightOfficeViewer.tsx",
-      "sha256": "0484140f1ced10a53d359ad17e4680e3349fd7dbc9361f0f7cfef9cf5cc58f67",
-      "bytes": 8708,
+      "sha256": "09b825fce98894abb583f45a3a1fbfd35693e6ca443276c63220de0a7648c4a1",
+      "bytes": 8889,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9896,8 +9896,8 @@
     },
     {
       "path": "tests/unit/previews/LightweightOfficeViewer.dom.test.tsx",
-      "sha256": "4f7ca36cea24c6c820d504f55ee160801fa58eb29eac6a9022822cdef2f60dc2",
-      "bytes": 4010,
+      "sha256": "0b38efe2d93a1b3c2b40a6c17c0ed3d71253becf932fe3dd4255c248c817ed76",
+      "bytes": 5455,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
