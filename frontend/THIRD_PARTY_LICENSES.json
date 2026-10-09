@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "package": "@x-science/workbench-web",
-  "lockfileSHA256": "9d4d12443b2c9099f96dceb7f07eeb73ce64b6769b6c4854de5528b448b1f71d",
+  "lockfileSHA256": "7d431fff14d460ad56ebe251a97657a283904953499a7b389175e055bc2dd3b5",
   "summary": {
-    "records": 1129,
+    "records": 1130,
     "workspaceLinkRecords": 1,
     "directRuntimeBuildDependencies": 62,
     "directDevelopmentDependencies": 26,
@@ -20,7 +20,7 @@
       "CC-BY-4.0": 1,
       "CC0-1.0": 2,
       "ISC": 53,
-      "MIT": 1006,
+      "MIT": 1007,
       "MIT-0": 2,
       "Python-2.0": 1,
       "SEE LICENSE IN LICENSE.txt": 1,
@@ -3050,7 +3050,7 @@
     },
     {
       "name": "@vue/compiler-core",
-      "version": "3.5.39",
+      "version": "3.5.43",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -3071,14 +3071,14 @@
     },
     {
       "name": "@vue/compiler-dom",
-      "version": "3.5.39",
+      "version": "3.5.43",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
     },
     {
       "name": "@vue/compiler-sfc",
-      "version": "3.5.39",
+      "version": "3.5.43",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -3092,42 +3092,42 @@
     },
     {
       "name": "@vue/compiler-ssr",
-      "version": "3.5.39",
+      "version": "3.5.43",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
     },
     {
       "name": "@vue/reactivity",
-      "version": "3.5.39",
+      "version": "3.5.43",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
     },
     {
       "name": "@vue/runtime-core",
-      "version": "3.5.39",
+      "version": "3.5.43",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
     },
     {
       "name": "@vue/runtime-dom",
-      "version": "3.5.39",
+      "version": "3.5.43",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
     },
     {
       "name": "@vue/server-renderer",
-      "version": "3.5.39",
+      "version": "3.5.43",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
     },
     {
       "name": "@vue/shared",
-      "version": "3.5.39",
+      "version": "3.5.43",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -3260,7 +3260,7 @@
     },
     {
       "name": "axios",
-      "version": "1.18.1",
+      "version": "1.20.0",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -3533,7 +3533,7 @@
     },
     {
       "name": "compression",
-      "version": "1.8.1",
+      "version": "1.8.2",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -4052,6 +4052,13 @@
     {
       "name": "destr",
       "version": "2.0.5",
+      "license": "MIT",
+      "directKind": null,
+      "basis": "package-lock metadata"
+    },
+    {
+      "name": "destroy",
+      "version": "1.2.0",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -6347,14 +6354,14 @@
     },
     {
       "name": "postcss",
-      "version": "8.5.26",
+      "version": "8.5.29",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
     },
     {
       "name": "nanoid",
-      "version": "3.3.18",
+      "version": "3.3.20",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -6417,7 +6424,7 @@
     },
     {
       "name": "proxy-addr",
-      "version": "2.0.7",
+      "version": "2.0.8",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -7789,7 +7796,7 @@
     },
     {
       "name": "vue",
-      "version": "3.5.39",
+      "version": "3.5.43",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -7938,7 +7945,7 @@
   "workspaceLinks": [
     {
       "name": "@x-science/workbench-renderer",
-      "version": "0.1.10",
+      "version": "0.1.14",
       "path": "packages/desktop",
       "basis": "local workspace package; source licensing reviewed separately"
     }

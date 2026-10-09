@@ -1,5 +1,5 @@
 import LightweightOfficeViewer from '@/renderer/pages/conversation/Preview/components/viewers/LightweightOfficeViewer';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithI18n } from '../i18nTestUtils';
@@ -87,5 +87,38 @@ describe('LightweightOfficeViewer', () => {
     expect(screen.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', second.id);
     expect(screen.getByRole('table', { name: 'Second' })).toHaveTextContent('B2');
     expect(screen.getByRole('rowheader', { name: '1' })).toHaveAttribute('scope', 'row');
+  });
+
+  it('retains the first keyboard selection after effects settle and resets only for a new workbook', async () => {
+    loadPreview
+      .mockResolvedValueOnce({
+        sheets: [
+          { name: 'First', data: [['A', 1]] },
+          { name: 'Second', data: [['B', 2]] },
+        ],
+      })
+      .mockResolvedValueOnce({
+        sheets: [
+          { name: 'New first', data: [['C', 3]] },
+          { name: 'New second', data: [['D', 4]] },
+        ],
+      });
+    const view = await renderWithI18n(
+      <LightweightOfficeViewer docType='excel' artifactId='selection-lifecycle-fixture' versionId='first' />,
+      'en-US'
+    );
+    const first = await screen.findByRole('tab', { name: 'First' });
+    await act(async () => {
+      first.focus();
+      fireEvent.keyDown(first, { key: 'ArrowRight' });
+    });
+    expect(screen.getByRole('tab', { name: 'Second' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('table', { name: 'Second' })).toHaveTextContent('B2');
+    view.rerender(
+      <LightweightOfficeViewer docType='excel' artifactId='selection-lifecycle-fixture' versionId='second' />
+    );
+    expect(await screen.findByRole('tab', { name: 'New first' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'New second' })).toHaveAttribute('aria-selected', 'false');
+    expect(screen.getByRole('table', { name: 'New first' })).toHaveTextContent('C3');
   });
 });
