@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "package": "@x-science/workbench-web",
-  "lockfileSHA256": "737f4c5e32f7a324403f50c92b3addd34215ee5afab1507a571278973a18ec9d",
+  "lockfileSHA256": "b902eeeade1c6929c1a1c97c8096826bedeb92746d621e49694f7954082dd1a4",
   "summary": {
     "records": 1130,
     "workspaceLinkRecords": 1,
@@ -7432,7 +7432,7 @@
     },
     {
       "name": "undici",
-      "version": "7.29.0",
+      "version": "7.30.0",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
