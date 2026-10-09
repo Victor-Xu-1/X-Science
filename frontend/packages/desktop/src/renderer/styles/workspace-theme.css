@@ -2006,7 +2006,11 @@ html
     .arco-cascader-view,
     .arco-tree-select-view
   ):focus-visible:where(
-    :not(.conversation-search-modal__searchbar input, .project-command-palette .arco-input-inner-wrapper input)
+    :not(
+      .conversation-search-modal__searchbar input,
+      .project-command-palette .arco-input-inner-wrapper input,
+      .settings-library-search input
+    )
   ) {
   outline: 2px solid var(--workspace-text) !important;
   outline-width: 2px !important;

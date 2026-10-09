@@ -9,6 +9,7 @@ function Fixture() {
     <Tabs aria-label='Artifact inspector' activeTab={active} onChange={setActive}>
       <Tabs.TabPane key='details' title='Details'>
         Metadata
+        <input aria-label='Metadata notes' defaultValue='' />
       </Tabs.TabPane>
       <Tabs.TabPane key='unavailable' title='Unavailable' disabled />
       <Tabs.TabPane key='versions' title='Versions'>
@@ -36,5 +37,29 @@ describe('Arco header keyboard adapter', () => {
     fireEvent.keyDown(tabs[2], { key: 'Home' });
     expect(tabs[0]).toHaveFocus();
     expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('makes inactive mounted panels inert while preserving their draft and native active-tab authority', () => {
+    render(<Fixture />);
+    const detailsTab = screen.getByRole('tab', { name: 'Details' });
+    const versionsTab = screen.getByRole('tab', { name: 'Versions' });
+    const detailsPanel = screen.getByRole('tabpanel', { name: 'Details' });
+    const versionsPanel = document.getElementById(versionsTab.getAttribute('aria-controls')!);
+    const notes = screen.getByRole('textbox', { name: 'Metadata notes' });
+    fireEvent.change(notes, { target: { value: 'Retain this draft' } });
+    expect(detailsPanel).not.toHaveAttribute('inert');
+    expect(versionsPanel).toHaveAttribute('inert');
+
+    fireEvent.click(versionsTab);
+    expect(versionsTab).toHaveAttribute('aria-selected', 'true');
+    expect(detailsPanel).toHaveAttribute('inert');
+    expect(versionsPanel).not.toHaveAttribute('inert');
+    expect(notes).toBeInTheDocument();
+    expect(notes).toHaveValue('Retain this draft');
+
+    fireEvent.click(detailsTab);
+    expect(detailsPanel).not.toHaveAttribute('inert');
+    expect(versionsPanel).toHaveAttribute('inert');
+    expect(notes).toHaveValue('Retain this draft');
   });
 });

@@ -20,4 +20,10 @@ describe('expert capability reading presentation', () => {
     expect(css).toContain('.settings-library-search input:focus-visible');
     expect(css).not.toContain('.settings-library-search *:focus-visible');
   });
+
+  it('excludes library search inputs from the stronger generic control-focus rule', () => {
+    const css = readFileSync(new URL('styles/workspace-theme.css', renderer), 'utf8');
+    const inputRuleExclusions = css.match(/:focus-visible:where\(\s*:not\(([\s\S]*?)\)\s*\)/)?.[1];
+    expect(inputRuleExclusions).toContain('.settings-library-search input');
+  });
 });

@@ -1,4 +1,4 @@
-"""Independent Synon-research MCP server."""
+"""X-Science research MCP server."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from .bridge import PackError, call_source_async, describe_source, list_sources
 
 
 READ_ONLY = ToolAnnotations(readOnlyHint=True)
-mcp = MCPServer("Synon-research")
+mcp = MCPServer("X-Science Research")
 
 
 def _error(exc: PackError) -> dict[str, Any]:
@@ -21,7 +21,7 @@ def _error(exc: PackError) -> dict[str, Any]:
 
 @mcp.tool(annotations=READ_ONLY)
 def life_science_sources(query: str = "", max_results: int = 20) -> dict[str, Any]:
-    """List executable sources in the configured Synon-research pack.
+    """List executable sources in the configured research capability pack.
 
     This is capability discovery, not scientific evidence. Use a focused query
     or pagination-friendly max_results, then inspect one exact source contract.
