@@ -124,7 +124,7 @@ describe('intrinsic settings presentation contract', () => {
       });
     }
     for (const source of [
-      'SynonBiomedExpertsSettings/ExpertWorkbench.tsx',
+      'SynonBiomedExpertsSettings/ExpertCatalogGroup.tsx',
       'skills/SkillLibraryCard.tsx',
       'ToolsSettings/McpConnectorCard.tsx',
       'environments/EnvironmentCard.tsx',
@@ -135,6 +135,9 @@ describe('intrinsic settings presentation contract', () => {
         expect(file, `${source} ${part}`).toContain(part);
       }
     }
+    const expertRoute = read('SynonBiomedExpertsSettings/ExpertWorkbench.tsx');
+    expect(expertRoute).toContain("import ExpertCatalogGroup from './ExpertCatalogGroup'");
+    expect(expertRoute).toContain('<ExpertCatalogGroup');
   });
 
   it('preserves hover/focus affordances and reduced motion without permanent GPU layers', () => {
