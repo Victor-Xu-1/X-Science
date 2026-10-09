@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "e99e0791ac4cc47986c95c0a83e6d7e3c6d0e8ad49f97cd14be82854efaa9046",
+  "adaptationFingerprintSHA256": "49beaf7ff7bf8c2419b4062d46c37b70fe8970a8efc3604769ea2187a1b7741c",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "ce604725b373357ed82c69a42d71956974f6187606bdb6c6fddaa2f2204baae4",
+  "additionFingerprintSHA256": "e4558f9c1ebd9c85532806be9f97c2f29cccbf5358df377461aeecaf9450ea65",
   "summary": {
     "sourceFiles": 1354,
-    "unchangedSourceFiles": 346,
-    "adaptedSourceFiles": 715,
+    "unchangedSourceFiles": 345,
+    "adaptedSourceFiles": 716,
     "removedSourceFiles": 293,
-    "addedFiles": 819
+    "addedFiles": 821
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "fb9c29a627f131ec4f3e4d327986d9a4d2c44ddaec1293be5b48660240a524e3",
+      "targetSHA256": "bd5e8bac4abb7c42a403e9ef5a84d2d2f7c53263cb8dce54d2cc24c42f8a5c19",
       "bytes": 4378,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "bb71efb810813927322d759022fdfb90125ef3fe9d57ccd837d06bc7f5f955a5",
+      "targetSHA256": "921273903edccf05616dae922280e88e38d37b3983e3a384621dd4bc7253273a",
       "bytes": 157,
       "reason": "Remove @synon-ai/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -351,6 +351,13 @@
       "reason": "Connect the composer, queue, attachments, and chat actions to the Go-owned conversation runtime with localized responsive states."
     },
     {
+      "path": "packages/desktop/src/renderer/components/layout/AppLoader.tsx",
+      "sourceSHA256": "13cb4394f936d44e9c7898687ed93de4e9dfcf3a3ee537e055ecccc2239e79b4",
+      "targetSHA256": "a1ff898a47e45822cf1c02670d03e062290dd34aa1616c62800bf7f5ca12d137",
+      "bytes": 334,
+      "reason": "Adapt the desktop layout, command palette, navigation, and window controls to authenticated responsive browser operation."
+    },
+    {
       "path": "packages/desktop/src/renderer/components/layout/Layout.tsx",
       "sourceSHA256": "35ef10ff243ca3acfdb7b10692ab15cc3f722d85877e6935bff78f06507791b7",
       "targetSHA256": "efcf7fcdb65857e4c98f35aa37d9fa1645b5a1c685e9fef8f2d65047334092a2",
@@ -451,8 +458,8 @@
     {
       "path": "packages/desktop/src/renderer/components/media/PreviewLoadingState.tsx",
       "sourceSHA256": "d65f23ccf7cecdebf49f2df21eac2e094d9774cc132516881d834c5b1576a524",
-      "targetSHA256": "b168dd25481d460b85b9886dcc57b1cadb8033843161c8e10316c0cba44e2c70",
-      "bytes": 1225,
+      "targetSHA256": "abfb8e66dca5d1a0667f49f690166768c586455388040823c8898f71257b344d",
+      "bytes": 1368,
       "reason": "Harden media selection, upload, diff, preview, and embedded-content states for the Go Web trust boundary."
     },
     {
@@ -6789,7 +6796,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "c6e123433c66eea1f581f2aec8ba8b7877b829bf87646aa2744df9524c9cdf9a",
+      "sha256": "c7c77c4e37eb358aa94fc536dd367ccaf154c63f96194d1dd6c4b937673705ec",
       "bytes": 558186,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -9951,8 +9958,8 @@
     },
     {
       "path": "tests/unit/previews/PreviewTransitionSnapshot.dom.test.tsx",
-      "sha256": "1771ea7d1fc6fb8b1177cd2037cf75c9edf1ed373a7c7e2b99d25d109d61a0f5",
-      "bytes": 1032,
+      "sha256": "dbec5eaead1f9b318f8a7aab6adf9f02a4f7df396d9b1b25abdf6f365032dd0f",
+      "bytes": 3916,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -10106,6 +10113,12 @@
       "reason": "Verify focus, keyboard dismissal, labels, and content bounds for the shared dialog."
     },
     {
+      "path": "tests/unit/renderer/AppLoader.dom.test.tsx",
+      "sha256": "c1fcb9e6e815fb500c38db677c6800df35681eea565dd581eadf9c20bf9c4246",
+      "bytes": 1219,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/unit/renderer/ArcoTabListHeader.dom.test.tsx",
       "sha256": "6fd7ad970b8f68d999a2c297522276e8a45bf4b7f37b1cae43afe318f9f6b931",
       "bytes": 1776,
@@ -10226,6 +10239,12 @@
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
+      "path": "tests/unit/renderer/PreviewLoadingState.dom.test.tsx",
+      "sha256": "85f26d2efdb9f80ac0a60add902ea8f366ca9dc353c54cf2bff0ef009709fed2",
+      "bytes": 1607,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/unit/renderer/ProductBrand.dom.test.tsx",
       "sha256": "d0b6fed95037446b1b9343ae5c7bcc12b9dacaee88c0ea58ee27adfac91e06f7",
       "bytes": 1163,
@@ -10239,8 +10258,8 @@
     },
     {
       "path": "tests/unit/renderer/RouterStartupBoundary.dom.test.tsx",
-      "sha256": "4e95cccf7f3d5b8476dcc44b596e954973b0a2290c7934bfcfd54f7f592f49d4",
-      "bytes": 4203,
+      "sha256": "85e9459c5a3c8a9d1501a527c71c567f15e9fd1a4b038d0918252fa8921ab687",
+      "bytes": 4746,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
