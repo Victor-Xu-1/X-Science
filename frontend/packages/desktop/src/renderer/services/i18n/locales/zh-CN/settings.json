@@ -1061,7 +1061,7 @@
   "bugReportModuleChat": "对话与会话",
   "bugReportModuleScheduledTask": "定时任务",
   "bugReportModuleSynonBiomed": "X-Science",
-  "bugReportModuleSynonBiomedDescription": "For X-Science agent, workbench, runtime, and biomedical workflow issues.",
+  "bugReportModuleSynonBiomedDescription": "用于 X-Science 智能体、工作台、运行时及生物医药工作流问题。",
   "bugReportModuleLlmConfig": "模型与认证",
   "bugReportModuleAssistant": "助手与预设",
   "bugReportModulePermission": "Agent 检测与连接",

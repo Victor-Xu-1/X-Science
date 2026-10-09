@@ -17,6 +17,7 @@ import (
 type compatibilitySkillCatalogEntry struct {
 	Name            string            `json:"name"`
 	DisplayName     string            `json:"displayName"`
+	NameI18n        map[string]string `json:"name_i18n,omitempty"`
 	Description     string            `json:"description"`
 	DescriptionI18n map[string]string `json:"description_i18n,omitempty"`
 	Category        string            `json:"category,omitempty"`
@@ -66,9 +67,12 @@ func (s *Server) handleCompatibilitySkillCatalog(w http.ResponseWriter, r *http.
 			packagedDirectorySkills++
 		}
 		entry := compatibilitySkillCatalogEntry{
-			Name: skill.Name, DisplayName: skill.Name, Description: skill.Description,
+			Name: skill.Name, DisplayName: skill.DisplayName, NameI18n: skill.NameI18n, Description: skill.Description,
 			DescriptionI18n: skill.DescriptionI18n, Category: skill.Category,
 			Source: source, AttachedAgents: uniqueSortedStrings(attached[skill.Name]),
+		}
+		if entry.DisplayName == "" {
+			entry.DisplayName = skill.Name
 		}
 		if source == "synon_llm" {
 			entry.SkillID = "bundled:" + skill.Name

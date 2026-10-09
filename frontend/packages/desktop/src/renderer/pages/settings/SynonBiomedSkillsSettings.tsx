@@ -30,7 +30,10 @@ import {
   type SynonBiomedSkillCategorySelection,
 } from '@/renderer/services/skills/synonBiomedSkillCategories';
 import { setSynonBiomedSkillEnabled } from '@/renderer/services/synonBiomedCapabilities';
-import { resolveSkillDescription } from '@/renderer/services/skills/synonBiomedSkillDescriptions';
+import {
+  resolveSkillDescription,
+  resolveSkillDisplayName,
+} from '@/renderer/services/skills/synonBiomedSkillDescriptions';
 import {
   deleteSynonBiomedPersonalSkill,
   importSynonBiomedSkillFile,
@@ -614,7 +617,16 @@ function filterSkills(
       language,
       skill.description_i18n
     );
-    return [skill.name, skill.displayName, skill.description, localizedDescription, skill.category, skill.source]
+    const localizedName = resolveSkillDisplayName(skill.name, skill.displayName, language, skill.name_i18n);
+    return [
+      skill.name,
+      skill.displayName,
+      localizedName,
+      skill.description,
+      localizedDescription,
+      skill.category,
+      skill.source,
+    ]
       .filter((value): value is string => Boolean(value))
       .some((value) => value.toLowerCase().includes(query));
   });
@@ -633,6 +645,7 @@ function toModalItem(skill: SkillInfo): SkillModalItem {
   return {
     name: skill.name,
     displayName: skill.displayName || skill.name,
+    name_i18n: skill.name_i18n,
     description: skill.description,
     description_i18n: skill.description_i18n,
     source: skill.source || 'bundled',

@@ -39,6 +39,12 @@ def write_json(path: Path, payload: dict[str, object]) -> None:
 class DocumentWorkbenchTests(unittest.TestCase):
     maxDiff = None
 
+    def test_current_brand_author_default_preserves_explicit_author(self) -> None:
+        self.assertEqual(workbench.document_author({}), "X-Science")
+        self.assertEqual(workbench.document_author({"author": "Research Team"}), "Research Team")
+        with self.assertRaises(workbench.WorkbenchError):
+            workbench.document_author({"author": ["invalid"]})
+
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory(prefix="document-workbench-test-")
         self.root = Path(self.temp.name)

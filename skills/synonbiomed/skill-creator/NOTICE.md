@@ -8,7 +8,7 @@ This Skill retains and adapts material from Anthropic's `skill-creator`:
 - Copyright: 2026 Anthropic, PBC.
 - License: Apache License 2.0; complete upstream text is in `LICENSE.txt`.
 
-Synon Biomed adapts the workflow to its existing tool names, scoped execution,
+X-Science adapts the workflow to its existing tool names, scoped execution,
 managed environments, validation rules and review surfaces. The retained
 evaluation helpers remain part of this licensed Skill, not a separately
 installed upstream application. Modified files carry an adaptation statement.

@@ -33,12 +33,12 @@ the corresponding Skill sources; external model and service terms are separate.
 
 | Component | Target path | Source | Runtime | License pointer |
 | --- | --- | --- | --- | --- |
-| SynonBiomed Agents | `assets/synonbiomed/agents/` | v1.1 Agent metadata | Go loader | Root license for first-party content; component notices for third-party material |
-| SynonBiomed Skills | `skills/synonbiomed/` | v1.1 Skill source | Go plus declared sidecars | `skills/synonbiomed/THIRD_PARTY_LICENSES.md` |
+| X-Science Agents | `assets/synonbiomed/agents/` | v1.1 Agent metadata | Go loader | Root license for first-party content; component notices for third-party material |
+| X-Science Skills | `skills/synonbiomed/` | v1.1 Skill source | Go plus declared sidecars | `skills/synonbiomed/THIRD_PARTY_LICENSES.md` |
 | Biomedical MCP tools | `assets/optional/mcp-servers/bio-tools/` | v1.1 Python source | Optional Python 3.11+ | Component notices; the inventory is not a blanket license grant |
 | Ketcher Chemistry MCP App | `assets/optional/mcp-servers/ketcher-chemistry/` | v1.1 widget, Ketcher 3.12.0 | Native Go stdio MCP server plus browser JavaScript widget | `assets/optional/mcp-servers/ketcher-chemistry/NOTICE` and checksum manifest |
 | Kernel and compute sidecars | `assets/optional/kernels/`, `assets/optional/compute/` | v1.1 Python and shell source | Optional Python/shell | Component notices and the unresolved-provenance scope below |
-| Synon 2D Interaction Runtime | Governed immutable `local-conda` generation | ProLIF 2.2.1, RDKit 2024.3.5, CairoSVG 2.8.2, MDAnalysis 2.10.0, Pillow 12.3.0, NumPy 2.4.6 | Server-side Python analysis and publication rendering | `docs/licenses/synon-2d-interaction-runtime/NOTICE.md` |
+| X-Science 2D Interaction Runtime | Governed immutable `local-conda` generation | ProLIF 2.2.1, RDKit 2024.3.5, CairoSVG 2.8.2, MDAnalysis 2.10.0, Pillow 12.3.0, NumPy 2.4.6 | Server-side Python analysis and publication rendering | `docs/licenses/synon-2d-interaction-runtime/NOTICE.md` |
 | Biomolecular electrostatics runtime | Governed immutable `local-conda` generation | APBS 3.4.1, PDB2PQR 3.7.1, RDKit 2024.3.5, NumPy 2.4.6 | Server-side PQR preparation, aligned protein/ligand Poisson-Boltzmann OpenDX generation, and Mol* surface coloring | `docs/licenses/synon-scientific-runtime-warmups/NOTICE.md` |
 | Scientific runtime warmups | Governed immutable `local-conda` generations | Common structure toolkit; optional AutoDock Vina stack | Post-install background preparation selected during first-run setup | `docs/licenses/synon-scientific-runtime-warmups/NOTICE.md` |
 | P2Rank pocket prediction runtime | External governed download plus immutable `local-conda` generation | P2Rank 2.5.1 archive and OpenJDK 17 | Registered binding-pocket prediction execution pack | `docs/licenses/p2rank-runtime/NOTICE.md`; operations: `docs/engineering/p2rank-runtime.md` |

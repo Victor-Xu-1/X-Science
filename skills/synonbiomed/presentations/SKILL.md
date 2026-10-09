@@ -7,7 +7,7 @@ license: Apache-2.0
 
 # Presentations
 
-This is the Synon Biomed adaptation of the Codex Presentations Skill. It adds a
+This is the X-Science adaptation of the Codex Presentations Skill. It adds a
 dedicated presentation-design and quality-assurance entry point while keeping
 `document-workbench` as the single file-engine for PPTX creation, editing,
 validation, rendering, publishing, and preview. Do not create a second PPTX

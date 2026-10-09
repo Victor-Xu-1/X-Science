@@ -1,12 +1,12 @@
 # Instrument Data to Allotrope Skill - Pinned Dependencies
-# Modified for Synon Biomed's managed scientific workflows.
+# Modified for X-Science's managed scientific workflows.
 # Upstream attribution and Apache-2.0 terms remain in the skill/catalog notices.
 #
 # These versions are pinned for reproducibility and determinism.
 # All scientists using this skill should install these exact versions
 # to ensure identical ASM output from the same input files.
 #
-# Provision these exact packages in a dedicated Synon managed environment.
+# Provision these exact packages in a dedicated X-Science managed environment.
 # Do not install them into the system interpreter.
 #
 # Note: Versions pinned as of 2025-01-05

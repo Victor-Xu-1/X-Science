@@ -441,7 +441,7 @@ in a `[note]` line on the submit result.
 `submit_job()` after job N's `compute_done` notification arrives; for
 parallel jobs use separate handles. A second `create()` with different
 `{gpu, cpu, memory}` is a separate container and a separate card. The
-detached wrapper survives a Synon Biomed daemon restart — on restart you'll see
+detached wrapper survives an X-Science daemon restart — on restart you'll see
 "1 job reattached" rather than a cold start.
 
 **Multiple parallel jobs** (separate handles): submit all in one `repl`
@@ -458,7 +458,7 @@ down job-surface containers with `c.close()`, never a raw
 `sb.terminate()` — only `close()` consults the host's
 recoverable-outputs gate. Reserve `sb.terminate()` for sandboxes you
 created in the kernel, and only ones you recognise from this session —
-warm containers from other Synon Biomed installs share the same app.
+warm containers from other X-Science installs share the same app.
 
 ## When the job fails
 
@@ -524,7 +524,7 @@ affordance that re-streams without re-running. The sandbox holds the only
 copy of the output — do **not** `c.close()` until it's resolved, and
 surface it to the user now, not at end of task: the Compute panel lists
 the job as recoverable for 24 h, but that listing only blocks
-Synon Biomed-side kills (a queued `close()` is deferred ~15 min, then
+X-Science-side kills (a queued `close()` is deferred ~15 min, then
 executes) — the in-sandbox idle watchdog still terminates the sandbox
 after ~15 min of inactivity, only copy included.
 
@@ -590,7 +590,7 @@ Volume's *name*, not a mount path. For scripted listing use a
 Optional, beside the *Default app* setting. A Modal **Environment** is
 the workspace namespace apps, images, volumes and sandboxes live in —
 with the app, one of the two coordinates every Modal name resolves
-under. Synon Biomed resolves every named object it touches (`App.lookup`,
+under. X-Science resolves every named object it touches (`App.lookup`,
 `Volume.from_name`) in the configured Environment, and the
 `compute_provider` kernel is started inside it, so `build_env()` /
 `HYDRATE` and an env file's own `modal.Volume.from_name(...)` calls

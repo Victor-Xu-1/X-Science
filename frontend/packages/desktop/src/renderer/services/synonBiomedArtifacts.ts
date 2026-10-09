@@ -1,3 +1,5 @@
+import { PRODUCT_NAME } from '@/common/config/productIdentity';
+
 export type SynonBiomedArtifactVersion = {
   versionId: string;
   versionNumber: number;
@@ -92,7 +94,7 @@ export async function loadSynonBiomedArtifactLineage(
     throw new Error(`X-Science artifact lineage response is invalid: ${artifactId}`);
   }
   if (lineage.artifactId !== artifactId || (options.versionId && lineage.versionId !== options.versionId)) {
-    throw new Error('Synon Biomed artifact lineage response identity does not match the requested version');
+    throw new Error(`${PRODUCT_NAME} artifact lineage response identity does not match the requested version`);
   }
   return lineage;
 }

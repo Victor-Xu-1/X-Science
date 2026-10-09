@@ -25,6 +25,8 @@ type presentationCatalog struct {
 }
 
 type presentationMetadata struct {
+	DisplayName     string            `json:"display_name,omitempty"`
+	NameI18n        map[string]string `json:"name_i18n,omitempty"`
 	Category        string            `json:"category"`
 	DescriptionI18n map[string]string `json:"description_i18n"`
 }
@@ -64,6 +66,11 @@ func (p *presentationLoader) apply(skill *Skill, relative string) {
 				return
 			}
 			metadata.seen[skill.Name] = true
+			skill.DisplayName = entry.DisplayName
+			skill.NameI18n = make(map[string]string, len(entry.NameI18n))
+			for locale, name := range entry.NameI18n {
+				skill.NameI18n[locale] = name
+			}
 			skill.Category = entry.Category
 			skill.DescriptionI18n = make(map[string]string, len(entry.DescriptionI18n))
 			for locale, description := range entry.DescriptionI18n {
@@ -139,6 +146,14 @@ func readPresentationCatalog(root *os.Root, dir string) (*presentationCatalog, e
 		}
 		if len(entry.DescriptionI18n) == 0 {
 			return nil, fmt.Errorf("presentation skill %q has no localized description", name)
+		}
+		if entry.DisplayName != strings.TrimSpace(entry.DisplayName) || len([]rune(entry.DisplayName)) > 128 || strings.ContainsAny(entry.DisplayName, "\x00\r\n") {
+			return nil, fmt.Errorf("presentation skill %q has an invalid display name", name)
+		}
+		for locale, label := range entry.NameI18n {
+			if locale == "" || locale != strings.TrimSpace(locale) || label == "" || label != strings.TrimSpace(label) || len([]rune(label)) > 128 || strings.ContainsAny(locale+label, "\x00\r\n") {
+				return nil, fmt.Errorf("presentation skill %q has an invalid localized name", name)
+			}
 		}
 		for locale, description := range entry.DescriptionI18n {
 			if strings.TrimSpace(locale) == "" || locale != strings.TrimSpace(locale) || strings.TrimSpace(description) == "" || len([]rune(description)) > 1000 || strings.ContainsAny(locale+description, "\x00") {

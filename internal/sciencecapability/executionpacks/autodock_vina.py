@@ -464,7 +464,7 @@ def build_docking_complex_ensemble(
     protein_chains = sorted({str(atom["chain_id"]) for atom in receptor_atoms})
     component_chain = next((chain for chain in PDB_CHAIN_CANDIDATES if chain not in protein_chains), "Z")
     output: list[str] = [
-        "REMARK 900 SYNON BIOMED DOCKING COMPLEX ENSEMBLE\n",
+        "REMARK 900 X-SCIENCE DOCKING COMPLEX ENSEMBLE\n",
         "REMARK 900 FIXED RECEPTOR APPEARS ONCE; EACH LIGAND IS A SEPARATE RESIDUE COMPONENT\n",
     ]
     component_rows: list[dict[str, object]] = []

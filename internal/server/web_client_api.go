@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	productidentity "synon-go"
 	workspace "synon-go/internal/persistence/workspace"
 )
 
@@ -314,6 +315,10 @@ func webConversation(frame workspace.CompatibilityFrame, projectName string) map
 	if agentName == "" {
 		agentName = "SYNON_BIOMED"
 	}
+	displayAgentName := agentName
+	if agentName == "SYNON_BIOMED" {
+		displayAgentName = productidentity.Current().DisplayName
+	}
 	if projectName == "" {
 		projectName = frame.ProjectID
 	}
@@ -323,7 +328,7 @@ func webConversation(frame workspace.CompatibilityFrame, projectName string) map
 		"source": "synonbiomed", "created_at": frame.CreatedAt.UnixMilli(), "modified_at": frame.UpdatedAt.UnixMilli(),
 		"status":    status,
 		"runtime":   webConversationRuntime(frame),
-		"assistant": map[string]any{"id": webAssistantID(agentName), "source": "builtin", "name": agentName, "avatar": "", "backend": "synonbiomed"},
+		"assistant": map[string]any{"id": webAssistantID(agentName), "source": "builtin", "name": displayAgentName, "avatar": "", "backend": "synonbiomed"},
 		"extra":     map[string]any{"backend": "synonbiomed", "agent_name": agentName, "project_id": frame.ProjectID, "project_name": projectName, "root_frame_id": frame.RootFrameID, "parent_frame_id": frame.ParentFrameID, "conversation_type": frame.ConversationType, "frame_status": frame.Status, "status_description": frame.StatusDescription, "workspace": "synonbiomed://" + frame.ProjectID, "custom_workspace": false},
 	}
 }

@@ -4,7 +4,7 @@ description: Use this skill whenever the user wants to run a parameter sweep ove
 allowed-tools: search_skills, skill, ask_user, repl, list_compute, manage_environments, manage_packages, bash, read_file, edit_file, save_artifacts
 ---
 
-<!-- Modified for Synon Biomed. Upstream attribution and terms: docs/licenses/bionemo-agent-toolkit/NOTICE.md. -->
+<!-- Modified for X-Science. Upstream attribution and terms: docs/licenses/bionemo-agent-toolkit/NOTICE.md. -->
 
 # complexa-sweep
 
