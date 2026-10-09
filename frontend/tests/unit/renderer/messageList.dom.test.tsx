@@ -235,16 +235,13 @@ describe('MessageList', () => {
   });
 
   it('virtualizes a long history into real rows without placeholder flashes', async () => {
-    const messages = Array.from(
-      { length: 160 },
-      (_, index): IMessageText => ({
-        ...createTextMessage(),
-        id: `message-${index}`,
-        msg_id: `msg-${index}`,
-        content: { content: `message ${index}` },
-        created_at: index + 1,
-      })
-    );
+    const messages = Array.from({ length: 160 }, (_, index): IMessageText => ({
+      ...createTextMessage(),
+      id: `message-${index}`,
+      msg_id: `msg-${index}`,
+      content: { content: `message ${index}` },
+      created_at: index + 1,
+    }));
 
     const view = await render(<MessageList />, {
       wrapper: ({ children }) => <Wrapper messages={messages}>{children}</Wrapper>,
@@ -262,16 +259,13 @@ describe('MessageList', () => {
   });
 
   it('moves the virtual window to an off-screen message without mounting the full history', async () => {
-    const messages = Array.from(
-      { length: 200 },
-      (_, index): IMessageText => ({
-        ...createTextMessage(),
-        id: `stable-message-${index}`,
-        msg_id: `stable-msg-${index}`,
-        content: { content: `stable message ${index}` },
-        created_at: index + 1,
-      })
-    );
+    const messages = Array.from({ length: 200 }, (_, index): IMessageText => ({
+      ...createTextMessage(),
+      id: `stable-message-${index}`,
+      msg_id: `stable-msg-${index}`,
+      content: { content: `stable message ${index}` },
+      created_at: index + 1,
+    }));
 
     const view = await render(<MessageList />, {
       wrapper: ({ children }) => <Wrapper messages={messages}>{children}</Wrapper>,

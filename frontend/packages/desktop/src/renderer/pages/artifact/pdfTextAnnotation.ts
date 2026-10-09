@@ -95,7 +95,7 @@ function findExactMatch(
   prefixMatches: (index: number) => boolean
 ): { start: number; end: number } | null {
   let firstMatch: { start: number; end: number } | null = null;
-  for (let offset = 0; offset < fullText.length; ) {
+  for (let offset = 0; offset < fullText.length;) {
     const index = fullText.indexOf(selectedText, offset);
     if (index < 0) break;
     const match = { start: index, end: index + selectedText.length };

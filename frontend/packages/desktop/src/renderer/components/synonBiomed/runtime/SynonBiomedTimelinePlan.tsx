@@ -30,15 +30,13 @@ const SynonBiomedTimelinePlan: React.FC<{ message: IMessagePlan }> = ({ message 
           id: `timeline-plan-${message.content.session_id || message.id}`,
           name: toolPublicDetailText(chinese, 'planSteps'),
           delegations: [],
-          steps: message.content.entries.map(
-            (entry, index): SynonBiomedPlanStep => ({
-              id: `timeline-plan-step-${message.content.session_id || message.id}-${index}`,
-              title: entry.content,
-              description: '',
-              status:
-                entry.status === 'completed' ? 'completed' : entry.status === 'in_progress' ? 'in_progress' : 'pending',
-            })
-          ),
+          steps: message.content.entries.map((entry, index): SynonBiomedPlanStep => ({
+            id: `timeline-plan-step-${message.content.session_id || message.id}-${index}`,
+            title: entry.content,
+            description: '',
+            status:
+              entry.status === 'completed' ? 'completed' : entry.status === 'in_progress' ? 'in_progress' : 'pending',
+          })),
         },
       ],
       feasibility: null,

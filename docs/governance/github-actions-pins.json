@@ -40,7 +40,7 @@
     }
   },
   "actions": {
-    "oras-project/setup-oras": {"sha": "1d808f7d7f6995cc68b7bf507bfe5c5446e1dc9d", "version": "v2.0.1"},
+    "oras-project/setup-oras": {"sha": "005458ad77f1c8facd38a094e4af2e69e5607ff4", "version": "v2.0.2"},
     "actions/checkout": {"sha": "3d3c42e5aac5ba805825da76410c181273ba90b1", "version": "v7.0.1"},
     "actions/setup-go": {"sha": "b7ad1dad31e06c5925ef5d2fc7ad053ef454303e", "version": "v7.0.0"},
     "actions/setup-node": {"sha": "820762786026740c76f36085b0efc47a31fe5020", "version": "v7.0.0"},
