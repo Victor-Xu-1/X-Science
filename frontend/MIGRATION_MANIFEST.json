@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "b42e10cdf1f170a2b4a568652a0d85010e1e0a4857dd6e83ba25820e95335350",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "4c659228d4e7c6e93efa8be78939dbae12f41480074dc19f0fdf9b0ec6f6086b",
+  "additionFingerprintSHA256": "628290dd30d8d8d15f9d2f425c612c315bd3b9c2f343a5c85e88610e342ec3c5",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 345,
@@ -8104,8 +8104,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/structureElectrostaticMap.ts",
-      "sha256": "38050dea0a559451aa904041141c386ed77185c0bf57a957de5a50a4e8d6f344",
-      "bytes": 13635,
+      "sha256": "130497f1d501141ff032b9ab49e208a34fc41d48834d672914a6efdfe7c6155f",
+      "bytes": 13812,
       "reason": "Validate and decode bounded aligned protein and ligand APBS maps before they enter the unified molecular preview."
     },
     {
@@ -10126,8 +10126,8 @@
     },
     {
       "path": "tests/unit/previews/structureElectrostaticMap.test.ts",
-      "sha256": "ab2534557f43ebabc08ccf1ae9e6b463d95af279bcb5c8876a4c36498ee62a7a",
-      "bytes": 9280,
+      "sha256": "87c347ef757ef9067d4ccefff9f5052c45227da472c85c597b92be7aed6d732a",
+      "bytes": 10149,
       "reason": "Verify aligned dual-component APBS response validation, bounded decoding, and malformed-map rejection."
     },
     {
