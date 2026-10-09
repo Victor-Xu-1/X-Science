@@ -24,6 +24,7 @@ repository placement. Production files are organized by stable responsibility:
 | Frontend conversation controllers | `frontend/packages/desktop/src/renderer/pages/conversation/` | composer draft/mobile controllers consume the typed file/artifact/Skill/MCP composition model under `components/chat/SendBox/`; owner-scoped reload persistence lives in `hooks/chat/sendBoxDraftPersistence.ts`; shared SendBox catalog/selection/history/overlay presenters, message projection/navigation and runtime operation controller/presenters; tests under `frontend/tests/` |
 | Web composer authority | `internal/server/web_composer_capabilities.go`, `web_composer_runtime_context.go` | conversation-authorized Skill/MCP identities, exact artifact versions, bounded input-file materialization and one message submission contract |
 | Frontend compute settings | `frontend/packages/desktop/src/renderer/pages/settings/components/compute/` | page composition delegates jobs, providers, provider dialogs and shared presentation primitives to independent modules |
+| Frontend model configuration | `frontend/packages/desktop/src/renderer/pages/settings/models/` | scoped provider-metadata reads, editor-opening draft ownership and shared localized presentation; the settings page composes these over the unchanged typed LLM service |
 | Compatibility HTTP boundary | `internal/server/*_compat_*` | project/frame routing, read cursor, lifecycle, messages and projection remain thin consumed adapters over canonical Transcript and workspace authorities |
 | Persistence | `internal/persistence/` | API and runner services consume repositories rather than raw databases |
 | Message adapters | `internal/adapters/{common,feishu,wechat}` | server routes and delivery workers |
@@ -65,7 +66,7 @@ authority instead of duplicating its business logic.
 
 The documented product contracts are the Harness design baseline. Every
 applicable task, tool, state, persistence, recovery, security, process and
-UI-control boundary must have independently observable behavior. Synon
-Biomed uses its own product requirements and explicit module interfaces.
+UI-control boundary must have independently observable behavior. X-Science
+uses its own product requirements and explicit module interfaces.
 Architecture claims must be supported by the actual source and executable
 contracts; an unverified required behavior blocks completion.

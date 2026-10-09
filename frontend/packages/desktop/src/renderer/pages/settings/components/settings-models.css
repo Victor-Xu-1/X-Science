@@ -35,6 +35,25 @@
 .settings-summary-action:hover {
   background: var(--settings-surface-subtle);
 }
+.settings-summary-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  background: transparent;
+}
+.settings-model-feedback {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--ui-space-5);
+  padding: var(--ui-space-5) var(--ui-space-6);
+  border: 1px solid var(--settings-border);
+  border-radius: var(--ui-radius-lg);
+  background: var(--settings-surface-subtle);
+  color: var(--settings-text);
+  font-size: var(--ui-font-body);
+  line-height: var(--ui-line-height-body);
+}
 .settings-summary-action__label {
   font-weight: var(--ui-weight-semibold);
   font-size: var(--ui-font-title);
@@ -83,6 +102,12 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--ui-space-2);
+}
+.settings-model-profile__identity-tags .arco-tag {
+  max-width: 100%;
+  height: auto;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .settings-model-profile__detail-label {
   color: var(--settings-text-secondary);
