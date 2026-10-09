@@ -411,7 +411,11 @@ const Layout: React.FC<{
           <Titlebar workspaceAvailable={workspaceAvailable} />
           {/* 移动端左侧边栏蒙板 / Mobile left sider backdrop */}
           {isMobile && !collapsed && (
-            <div className='fixed inset-0 bg-black/30 z-90' onClick={() => setCollapsed(true)} aria-hidden='true' />
+            <div
+              className='workbench-modal-backdrop fixed inset-0 z-90'
+              onClick={() => setCollapsed(true)}
+              aria-hidden='true'
+            />
           )}
 
           <ArcoLayout className={'size-full layout flex-1 min-h-0'}>

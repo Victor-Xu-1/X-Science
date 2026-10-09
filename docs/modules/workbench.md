@@ -32,6 +32,18 @@
 
 ### Presentation and keyboard contracts · 显示与键盘契约
 
+Modal backdrops use one lightweight, non-darkening token in light and dark
+appearance modes. Dialogs, confirmations, drawers, image previews and custom
+mobile/BTW overlays keep the underlying page visible without full-page blur.
+The backdrop remains an interaction boundary; focus containment, busy-state
+dismissal rules, approvals and close/opener restoration keep their existing
+owners. Image-preview controls have their own readable surfaces; image pixels
+and scientific viewers are unchanged.
+
+弹窗、确认框、抽屉、图片预览以及移动端和 BTW 浮层共用轻浅遮罩，不再将周围页面
+变黑或整页模糊。遮罩仍保留交互边界，原有焦点限制、忙碌时的关闭限制、审批和返回
+入口规则不变。图片预览控件使用独立可读背景，不改动图片或科学结构内容。
+
 工作台和设置使用同一组主题、字体、间距与控件状态。设置页面采用自然响应式内容栏，
 不通过整页缩放、固定截图坐标或裁切内容来适配视窗。工具集的助手、Skill、连接器和
 环境共享目录卡片结构；搜索沿现有目录过滤链路处理，标题数量表示当前可见结果。
