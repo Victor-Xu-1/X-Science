@@ -8,10 +8,17 @@ type Props = {
   value: string;
   onChange: (value: string) => void;
   'data-testid'?: string;
+  'aria-controls'?: string;
 };
 
 /** Presentation only: each catalog retains its existing query/filter authority. */
-export default function SettingsLibrarySearch({ label, value, onChange, 'data-testid': testId }: Props) {
+export default function SettingsLibrarySearch({
+  label,
+  value,
+  onChange,
+  'data-testid': testId,
+  'aria-controls': controlsId,
+}: Props) {
   const { t } = useTranslation();
   const root = useRef<HTMLDivElement>(null);
   const clear = () => {
@@ -23,6 +30,7 @@ export default function SettingsLibrarySearch({ label, value, onChange, 'data-te
       <Input
         type='search'
         aria-label={label}
+        aria-controls={controlsId}
         placeholder={label}
         value={value}
         onChange={onChange}

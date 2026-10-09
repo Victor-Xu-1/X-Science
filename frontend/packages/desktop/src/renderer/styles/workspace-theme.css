@@ -2028,6 +2028,19 @@ html body :is(.guid-input-card-shell, .sendbox-panel) textarea:focus-visible {
   box-shadow: none !important;
 }
 
+/* A library search is one input surface; Clear keeps its own button focus. */
+html body .settings-library-search .arco-input-inner-wrapper:has(input:focus-visible) {
+  outline: 2px solid var(--workspace-text) !important;
+  outline-offset: 2px !important;
+  box-shadow: none !important;
+}
+html body .settings-library-search :is(.arco-input-group-wrapper, .arco-input-group),
+html body .settings-library-search input:focus-visible {
+  outline: none !important;
+  outline-width: 0 !important;
+  box-shadow: none !important;
+}
+
 .workbench-modal-close {
   display: grid;
   width: 32px;

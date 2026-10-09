@@ -1,5 +1,161 @@
 /* Single route authority for the expert catalog layout. */
 
+/* Portalled expert details share the workspace palette, not route-local vars. */
+.expert-detail-modal__body {
+  max-height: min(70vh, 640px);
+  min-width: 0;
+  overflow-y: auto;
+  color: var(--workspace-text);
+}
+.expert-detail-modal__header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--ui-space-6);
+}
+.expert-detail-modal__avatar {
+  display: grid;
+  width: calc(var(--ui-control-md) + var(--ui-space-5));
+  height: calc(var(--ui-control-md) + var(--ui-space-5));
+  place-items: center;
+  border-radius: var(--ui-radius-md);
+  background: var(--workspace-subtle);
+}
+.expert-detail-modal__identity h1 {
+  margin: 0;
+  font-size: var(--ui-font-document-title);
+  font-weight: var(--ui-weight-semibold);
+  line-height: var(--ui-line-height-document-title);
+}
+.expert-detail-modal__identity p,
+.expert-detail-modal__form p {
+  margin: var(--ui-space-2) 0 0;
+  color: var(--workspace-text-secondary);
+  font-size: var(--ui-font-meta);
+  line-height: var(--ui-line-height-meta);
+  overflow-wrap: anywhere;
+}
+.expert-detail-modal__actions,
+.expert-detail-modal__coverage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-4);
+}
+.expert-detail-modal__coverage {
+  margin: var(--ui-space-5) 0;
+}
+.expert-detail-modal__coverage span,
+.expert-detail-modal__status {
+  padding: var(--ui-space-1) var(--ui-space-3);
+  border-radius: var(--ui-radius-xs);
+  background: var(--workspace-subtle);
+  color: var(--workspace-text-secondary);
+  font-size: var(--ui-font-meta);
+  line-height: var(--ui-line-height-meta);
+}
+.expert-detail-modal__form {
+  display: grid;
+  gap: var(--ui-space-5);
+  padding-block: var(--ui-space-5);
+}
+.expert-detail-modal__form label {
+  display: grid;
+  gap: var(--ui-space-3);
+  color: var(--workspace-text-secondary);
+  font-size: var(--ui-font-meta);
+}
+.expert-detail-modal__pending {
+  color: var(--workspace-text-secondary);
+  font-size: var(--ui-font-meta);
+}
+.expert-capability-picker {
+  min-width: 0;
+  padding-block: var(--ui-space-5);
+}
+.expert-capability-picker__toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 230px);
+  align-items: center;
+  gap: var(--ui-space-5);
+}
+.expert-capability-picker__toolbar .settings-library-search,
+.expert-capability-picker__toolbar .arco-select {
+  width: 100%;
+  min-width: 0;
+}
+.expert-capability-picker__count {
+  margin: var(--ui-space-4) 0;
+  color: var(--workspace-text-tertiary);
+  font-size: var(--ui-font-meta);
+  line-height: var(--ui-line-height-meta);
+}
+.expert-capability-picker__viewport {
+  max-height: min(40vh, calc(var(--ui-control-lg) * 10));
+  padding-inline: var(--ui-space-1);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  border-block: 1px solid var(--workspace-border);
+}
+.expert-capability-picker__viewport:focus-visible {
+  outline: 2px solid var(--workspace-text);
+  outline-offset: 2px;
+}
+.expert-capability-picker__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.expert-capability-picker__row {
+  display: flex;
+  min-height: calc(var(--ui-control-md) + var(--ui-space-6));
+  align-items: center;
+  gap: var(--ui-space-5);
+  padding-block: var(--ui-space-4);
+  border-bottom: 1px solid var(--workspace-border);
+}
+.expert-capability-picker__row:last-child {
+  border-bottom: 0;
+}
+.expert-capability-picker__identity {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: var(--ui-space-1);
+  overflow-wrap: anywhere;
+}
+.expert-capability-picker__label {
+  color: var(--workspace-text);
+  font-size: var(--ui-font-body);
+  line-height: var(--ui-line-height-body);
+}
+.expert-capability-picker__id,
+.expert-capability-picker__empty {
+  color: var(--workspace-text-secondary);
+  font-size: var(--ui-font-meta);
+  line-height: var(--ui-line-height-meta);
+}
+.expert-capability-picker__row button {
+  width: var(--ui-control-md);
+  min-width: var(--ui-control-md);
+  height: var(--ui-control-md);
+}
+.expert-capability-picker__empty {
+  margin: var(--ui-space-6) 0;
+}
+@media (max-width: 680px) {
+  .expert-capability-picker__toolbar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .expert-detail-modal__header {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .expert-detail-modal__actions {
+    grid-column: 2;
+  }
+}
+
 .settings-page-wrapper[data-settings-route='experts'] .settings-toolbar {
   min-height: 48px !important;
   padding: 0 !important;

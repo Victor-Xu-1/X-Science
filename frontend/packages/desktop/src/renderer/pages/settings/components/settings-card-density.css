@@ -226,11 +226,11 @@ html
   border: 0;
   border-radius: var(--ui-radius-sm);
   background: transparent;
-  color: var(--settings-text-secondary);
+  color: var(--settings-text-secondary, var(--workspace-text-secondary));
   cursor: pointer;
 }
 .settings-library-search__clear:hover {
-  background: var(--settings-surface-subtle);
+  background: var(--settings-surface-subtle, var(--workspace-hover));
 }
 .settings-library-tab-header__search {
   margin-top: var(--ui-space-6);

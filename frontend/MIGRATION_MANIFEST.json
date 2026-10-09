@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "8097292e7d6ea68d3ba0e1aad07c8071148fb3d6189c61df95f0c4b3e014b8bc",
+  "adaptationFingerprintSHA256": "85ec0a4a187c308a85e73cbfce76c9fb1e37e047d625dd8f819e4a1c9a6b55c7",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "251beb0639d421fb0f38ad5d17111a020c9c7471826d4dcedbefc0a8b5cb1814",
+  "additionFingerprintSHA256": "b5be8e00e6b7527210521331d00f418eb83b0ff23c353a074d0c612a8b4b4d52",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 345,
     "adaptedSourceFiles": 716,
     "removedSourceFiles": 293,
-    "addedFiles": 825
+    "addedFiles": 831
   },
   "adaptations": [
     {
@@ -2222,8 +2222,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/settings/SynonBiomedExpertsSettings/ExpertWorkbench.tsx",
       "sourceSHA256": "d16cf7d5e33fa81c06a9ed7482450fd70309a8441f161575985c24d55f73caf9",
-      "targetSHA256": "d36a83e2890f779a1df458029d8a8316dae36b4bb346bcbc2ad313d02719d240",
-      "bytes": 40079,
+      "targetSHA256": "3cf0ca4a486a371895e7699d147a141de0dfa9b2fb2f21c95877e7d72165faf9",
+      "bytes": 9562,
       "reason": "Improve responsive expert rows and compact long descriptions without dropping source detail."
     },
     {
@@ -2502,8 +2502,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "1834410c8c7498ce33b0665479eddc40c19d3ec84a269e9ac0fa4f63e360c688",
-      "bytes": 252813,
+      "targetSHA256": "42d88a3d5fe4f37482fbc9c23ca856e77153856395cebb778331204d82e1c4b0",
+      "bytes": 253206,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2586,8 +2586,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/settings.json",
       "sourceSHA256": "d7c89e27673b4245d2efeb4216c9768e08420beabd9294779d4d099207ea5e7a",
-      "targetSHA256": "e25b996df2ae1abc4841170f37a613f44ad0fded706b644435e45f6ca7610986",
-      "bytes": 138117,
+      "targetSHA256": "3163e22e03f1a8097d2ca97a4fbae87bb8518c42979c1aaa09e5110fa4f9af9b",
+      "bytes": 138620,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2677,8 +2677,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/settings.json",
       "sourceSHA256": "3afd2c67b5d1a42960c03d5e70dbdb23c3b6b1a3981665ac37919e199dc814c0",
-      "targetSHA256": "186a55740ddadd6ac5c6f24d855e64d4e5b1ef4fa95915dcb890de467ea54483",
-      "bytes": 132809,
+      "targetSHA256": "b8c7f750baa03f127e3e8516f5a02ce252daf046715c3272fe3447545cae5313",
+      "bytes": 133283,
       "reason": "Explain required scientific runtimes, unified user-managed storage, and Synon Go service guidance."
     },
     {
@@ -8367,9 +8367,39 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/settings/SynonBiomedExpertsSettings/ExpertCapabilities.tsx",
+      "sha256": "a1b99316b6ce6d71593fe5b7c13d72bd9f2483af448c7234e67d94972507dc18",
+      "bytes": 2127,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/settings/SynonBiomedExpertsSettings/ExpertCapabilityPicker.tsx",
+      "sha256": "b5377c1d029e542070f3a6183a7e4034e94c80d26672f0eaa93773f6075886a6",
+      "bytes": 4385,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/settings/SynonBiomedExpertsSettings/ExpertCatalogGroup.tsx",
+      "sha256": "792d1c62a67edbecef2ff601e7bf24ae8b0d53bc879cd4114e5e51a19423a645",
+      "bytes": 5439,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/settings/SynonBiomedExpertsSettings/ExpertDetailModal.tsx",
+      "sha256": "d06c083c5ae1234934c08a8254da823dbcf22c5575b07e6216036a0e61504c61",
+      "bytes": 8431,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/settings/SynonBiomedExpertsSettings/ExpertUsageSummary.tsx",
       "sha256": "447527e9ad52d22dc2da6169ecf58844790b4ac3a99e95f8a63ecedec4862808",
       "bytes": 1912,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/settings/SynonBiomedExpertsSettings/useExpertWorkbenchController.ts",
+      "sha256": "14ea25354a1ecb3ef3dd96020818616c5905ca18dd6b6527bd1c69ac2205ab6f",
+      "bytes": 15162,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8506,8 +8536,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/settings/components/SettingsLibrarySearch.tsx",
-      "sha256": "83cdd2d9b92a54318439496b7e492e834251bd2ca68f522469bfdcc5ab6713f1",
-      "bytes": 1529,
+      "sha256": "f1f4417e4c970999971ca2a8f9619779a73360177bca801bcc82bf5433b62128",
+      "bytes": 1632,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8554,8 +8584,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/settings/components/settings-card-density.css",
-      "sha256": "32fdf7186604782cf61e2cb3970fc6dd4c65eda4f1c61f0be32bf71352770399",
-      "bytes": 7451,
+      "sha256": "a9fa5c3a0cecf734b4173a12ce49c95ac96621533f51b0b05030720f67dff55e",
+      "bytes": 7508,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8590,8 +8620,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/settings/components/settings-experts.css",
-      "sha256": "e8e8c2664e8ed28e3135a6fffc554c0ff6951dc6febc5a364ab95ee4fa2d5211",
-      "bytes": 4600,
+      "sha256": "9e08bb703f3f600f6fb4c54aea3696c1f2fd4d0cd25b3c6f77997103a9df93f1",
+      "bytes": 8874,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9124,8 +9154,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/styles/workspace-theme.css",
-      "sha256": "3bf34a22a84b4cd402aba82fb1aa28c1733ab2511025ee7fa2fa883d37a8ceeb",
-      "bytes": 65616,
+      "sha256": "7766ce531db16a7b9b5ecf9782293028a616f4e0f80652dbb3e194c9301bb7d8",
+      "bytes": 66141,
       "reason": "Provide the shared visual shell under a product-neutral filename and CSS custom-property namespace."
     },
     {
@@ -10858,8 +10888,8 @@
     },
     {
       "path": "tests/unit/settings/ExpertWorkbenchSkillLabels.dom.test.tsx",
-      "sha256": "3e6af55faf905d39226cb58f670ee1cf3917f2c1b7e1975945fedade5a01cd6b",
-      "bytes": 5748,
+      "sha256": "89b03a4e4e1ef6e361b0c58143b93d537db66a0daa1a5250571802229f1d65c2",
+      "bytes": 18910,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -10938,6 +10968,12 @@
       "path": "tests/unit/settings/computeJobPresentation.test.ts",
       "sha256": "2ca724311ac11cc2f47d5a939f101f5a575f668c2cf915c596001ad2423b68e9",
       "bytes": 1321,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/settings/expertCapabilityPresentation.test.ts",
+      "sha256": "66e323b3244dee67d9c5fb37fe438b40090e9394c563219fa1018347c50a3e6f",
+      "bytes": 1269,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
