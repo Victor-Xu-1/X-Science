@@ -1702,6 +1702,14 @@
     "noMatches": "No matching experts",
     "yourExperts": "Your experts",
     "removeNamed": "Remove {{name}}",
+    "configuration": "Expert configuration",
+    "searchSelectedSkills": "Search selected skills",
+    "searchSelectedConnectors": "Search selected connectors",
+    "selectedSkills": "Selected skills",
+    "selectedConnectors": "Selected connectors",
+    "selectedMatches": "{{count}} of {{total}} selected",
+    "noSelectedMatches": "No matching selected capabilities",
+    "otherSavePending": "Another expert update is still finishing. You can review this draft; saving will be available afterward.",
     "builtinProfiles": {
       "operon": {
         "displayName": "General Research Assistant",

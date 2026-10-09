@@ -1702,6 +1702,14 @@
     "noMatches": "没有匹配的专家",
     "yourExperts": "你的专家",
     "removeNamed": "移除 {{name}}",
+    "configuration": "专家配置",
+    "searchSelectedSkills": "搜索已选技能",
+    "searchSelectedConnectors": "搜索已选连接器",
+    "selectedSkills": "已选技能",
+    "selectedConnectors": "已选连接器",
+    "selectedMatches": "显示 {{count}} 项，共选择 {{total}} 项",
+    "noSelectedMatches": "没有匹配的已选能力",
+    "otherSavePending": "另一位专家的更新仍在完成。你可以核对当前草稿，稍后即可保存。",
     "builtinProfiles": {
       "operon": {
         "displayName": "通用科研助手",
