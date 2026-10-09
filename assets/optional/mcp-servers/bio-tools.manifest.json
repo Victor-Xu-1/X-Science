@@ -1180,18 +1180,18 @@
         },
         {
             "path": "lib/mcp_synon_research/__init__.py",
-            "sha256": "9cdce79b09f173a9bc6befaf2ab60c94800149e07192e00ae09b21675dbc358d",
-            "bytes": 34
+            "sha256": "18ae345bfbd9328b50f5a051a7138d5ec7713aeceb1fb312d077ca2eadb9d3e0",
+            "bytes": 78
         },
         {
             "path": "lib/mcp_synon_research/bridge.py",
-            "sha256": "c4b56c6e2169a4a076780842b08afd3d50ea14e6aad4f99aaf78f28ceee3994b",
-            "bytes": 24109
+            "sha256": "b40cac2554b5247c86827f1a711fb537064f6ff9397e087d4fca63503f300ef5",
+            "bytes": 24093
         },
         {
             "path": "lib/mcp_synon_research/server.py",
-            "sha256": "79a1e33b4347751beef4f4b86381f0cd6bfad5e71acc54b1bf0fd9b3f97f532c",
-            "bytes": 2125
+            "sha256": "24ad9b3ca9a69aa7befa4f740f1fa8b7867a2fa69560695ebd2f695689e97695",
+            "bytes": 2126
         },
         {
             "path": "lib/mcp_structures_interactions/__init__.py",
