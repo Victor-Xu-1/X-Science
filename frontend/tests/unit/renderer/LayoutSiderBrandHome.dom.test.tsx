@@ -79,7 +79,7 @@ const readBrandLockupAlpha = () => {
   let colorType = 0;
   let interlace = 0;
 
-  for (let offset = 8; offset < png.length; ) {
+  for (let offset = 8; offset < png.length;) {
     const length = png.readUInt32BE(offset);
     const type = png.toString('ascii', offset + 4, offset + 8);
     const dataStart = offset + 8;
