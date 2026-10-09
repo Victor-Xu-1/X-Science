@@ -1,6 +1,6 @@
-# Synon Scientific Runtime Warmups Notice
+# X-Science Scientific Runtime Warmups Notice
 
-Synon Biomed can prepare optional scientific software after the Web gateway is
+X-Science can prepare optional scientific software after the Web gateway is
 available. These distributions are downloaded into immutable local runtime
 generations under the operator's external state directory. They are not
 committed to the source repository or copied into a release archive.

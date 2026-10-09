@@ -1,6 +1,6 @@
 ---
 name: sbdd-ppi-workflow
-description: Route evidence-based structure-guided design at protein-protein interfaces through the canonical Synon Biomed structure, medicinal-chemistry, docking, interaction-analysis, and reporting Skills. Use for PPI interface characterization, pocket or hotspot assessment, ligand design, docking, and auditable PPI design reports.
+description: Route evidence-based structure-guided design at protein-protein interfaces through the canonical X-Science structure, medicinal-chemistry, docking, interaction-analysis, and reporting Skills. Use for PPI interface characterization, pocket or hotspot assessment, ligand design, docking, and auditable PPI design reports.
 license: Apache-2.0
 allowed-tools: search_skills, skill, ask_user, repl, manage_environments, python, read_file, download_public_scientific_file, save_artifacts
 ---

@@ -7,7 +7,7 @@ compatibility: "safe-mol>=0.1.14; requests>=2.28"
 allowed-tools: search_skills, skill, ask_user
 ---
 
-<!-- Modified for Synon Biomed. Upstream attribution and terms: docs/licenses/bionemo-agent-toolkit/NOTICE.md. -->
+<!-- Modified for X-Science. Upstream attribution and terms: docs/licenses/bionemo-agent-toolkit/NOTICE.md. -->
 
 # GenMol NIM
 

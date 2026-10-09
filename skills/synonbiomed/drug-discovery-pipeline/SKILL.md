@@ -1,9 +1,9 @@
 ---
-# Modified for Synon Biomed. Upstream terms: docs/licenses/bionemo-agent-toolkit/NOTICE.md.
+# Modified for X-Science. Upstream terms: docs/licenses/bionemo-agent-toolkit/NOTICE.md.
 name: drug-discovery-pipeline
 description: >
   Evidence-first medicinal-chemistry and structure-guided drug-discovery router.
-  Reuse Synon Biomed's existing ChEMBL, PubChem, BindingDB, UniProt, PDB,
+  Reuse X-Science's existing ChEMBL, PubChem, BindingDB, UniProt, PDB,
   AlphaFold, and PubMed MCP tools, normalize compound and target identifiers,
   and synthesize measured evidence with provenance. When generation, docking,
   virtual screening, or affinity prediction is requested, orchestrate the

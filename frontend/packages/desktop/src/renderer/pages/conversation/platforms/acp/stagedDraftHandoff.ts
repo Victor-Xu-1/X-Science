@@ -59,16 +59,14 @@ export function applyStagedDraft(
   if (payload.input.trim()) apply.setContent(payload.input);
   if (payload.files.length > 0) apply.setUploadFile(payload.files);
   const stagedItems: ComposerContextItem[] = [
-    ...payload.artifactRefs.map(
-      (reference): ComposerContextItem => ({
-        kind: 'artifact',
-        artifactId: reference.artifact_id,
-        versionId: reference.version_id,
-        label: reference.filename || reference.artifact_id,
-        ...(reference.content_type ? { contentType: reference.content_type } : {}),
-        ...(reference.size_bytes === undefined ? {} : { sizeBytes: reference.size_bytes }),
-      })
-    ),
+    ...payload.artifactRefs.map((reference): ComposerContextItem => ({
+      kind: 'artifact',
+      artifactId: reference.artifact_id,
+      versionId: reference.version_id,
+      label: reference.filename || reference.artifact_id,
+      ...(reference.content_type ? { contentType: reference.content_type } : {}),
+      ...(reference.size_bytes === undefined ? {} : { sizeBytes: reference.size_bytes }),
+    })),
     ...payload.injectSkills.map((name): ComposerContextItem => ({ kind: 'skill', name, label: name })),
     ...payload.injectMcpServerIds.map((serverId): ComposerContextItem => ({ kind: 'mcp', serverId, label: serverId })),
   ];

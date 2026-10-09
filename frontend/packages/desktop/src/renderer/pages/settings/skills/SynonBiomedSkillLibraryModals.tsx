@@ -7,7 +7,10 @@ import { skillSourceLabel } from './skillSourceLabel';
 import { useSkillDetailSession } from './useSkillDetailSession';
 import { useSkillDetailFiles } from './useSkillDetailFiles';
 import { detailSuccessKeys, useSkillDetailMutations } from './useSkillDetailMutations';
-import { resolveSkillDescription } from '@/renderer/services/skills/synonBiomedSkillDescriptions';
+import {
+  resolveSkillDescription,
+  resolveSkillDisplayName,
+} from '@/renderer/services/skills/synonBiomedSkillDescriptions';
 import { getSynonBiomedSkillCategoryLabel } from '@/renderer/services/skills/synonBiomedSkillCategories';
 import {
   importSynonBiomedSkillFile,
@@ -19,6 +22,7 @@ import {
 export type SkillModalItem = {
   name: string;
   displayName: string;
+  name_i18n?: Record<string, string>;
   description: string;
   description_i18n?: Record<string, string>;
   source: string;
@@ -380,7 +384,16 @@ export function SkillDetailModal({
   return (
     <>
       <Modal
-        title={presentedSkill?.displayName || 'Skill'}
+        title={
+          presentedSkill
+            ? resolveSkillDisplayName(
+                presentedSkill.name,
+                presentedSkill.displayName,
+                i18n.language,
+                presentedSkill.name_i18n
+              )
+            : 'Skill'
+        }
         visible={visible}
         onCancel={onClose}
         afterClose={() => {
@@ -412,7 +425,14 @@ export function SkillDetailModal({
           {presentedSkill ? (
             <header className='border-b border-arco-2 pb-16px'>
               <div className='flex min-w-0 flex-wrap items-center gap-8px'>
-                <span className='break-words text-20px font-semibold text-t-primary'>{presentedSkill.displayName}</span>
+                <span className='break-words text-20px font-semibold text-t-primary'>
+                  {resolveSkillDisplayName(
+                    presentedSkill.name,
+                    presentedSkill.displayName,
+                    i18n.language,
+                    presentedSkill.name_i18n
+                  )}
+                </span>
               </div>
               <p className='mb-0 mt-8px text-13px leading-21px text-t-secondary'>
                 {resolveSkillDescription(

@@ -20,7 +20,7 @@ DEFAULT_BACKEND_PLAN = [
     "wikipedia",
 ]
 
-USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) SynonBiomed/0.1 local websearch"
+USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) X-Science local websearch"
 
 
 def result_url(result: dict) -> str:

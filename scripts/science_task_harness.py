@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Audit one real Synon Biomed scientific task without trusting model prose.
+"""Audit one real X-Science scientific task without trusting model prose.
 
 The harness is deliberately read-only.  It combines canonical SQLite facts
 with a separately captured Codex built-in-browser evidence document.  A task

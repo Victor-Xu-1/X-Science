@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -23,6 +23,38 @@ async function card() {
   return { onOpen, onToggle };
 }
 describe('Independent catalog card actions', () => {
+  it('switches display labels without changing the execution identity or actions', async () => {
+    const skill = {
+      name: 'synon-runtime',
+      displayName: 'X-Science Runtime',
+      name_i18n: { 'en-US': 'X-Science Runtime', 'zh-CN': 'X-Science 运行时' },
+      description: 'Runtime tools',
+      enabled: true,
+    };
+    const onOpen = vi.fn();
+    const onToggle = vi.fn();
+    const view = await renderWithSettingsI18n(
+      <SkillRow
+        skill={skill}
+        pendingSkill={null}
+        personal={false}
+        usage={null}
+        usageAvailable={false}
+        onOpen={onOpen}
+        onToggle={onToggle}
+        onRemove={vi.fn()}
+      />,
+      'en-US'
+    );
+    fireEvent.click(screen.getByRole('button', { name: /X-Science Runtime/ }));
+    expect(onOpen).toHaveBeenCalledWith(skill);
+    expect(screen.getByTestId('synon-biomed-skill-row-synon-runtime')).toBeInTheDocument();
+    await act(() => view.i18n.changeLanguage('zh-CN'));
+    expect(screen.getByRole('button', { name: /X-Science 运行时/ })).toBeInTheDocument();
+    expect(screen.queryByText('synon-runtime')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('switch', { name: /X-Science 运行时/ }));
+    expect(onToggle).toHaveBeenCalledWith(skill, false);
+  });
   it('does not nest the enable switch inside a button-role container', async () => {
     const { onOpen, onToggle } = await card();
     const toggle = screen.getByRole('switch');

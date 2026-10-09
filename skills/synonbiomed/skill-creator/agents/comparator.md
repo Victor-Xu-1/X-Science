@@ -1,6 +1,6 @@
 # Blind Comparator Agent
 
-> Modified for Synon Biomed. Source attribution and Apache-2.0 terms are
+> Modified for X-Science. Source attribution and Apache-2.0 terms are
 > retained in the Skill's `NOTICE.md` and `LICENSE.txt`.
 
 Compare two outputs WITHOUT knowing which skill produced them.

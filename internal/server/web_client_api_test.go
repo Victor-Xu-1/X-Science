@@ -452,6 +452,27 @@ func TestWebClientSettingsPersistFilterAndProtectBusinessValues(t *testing.T) {
 	}
 }
 
+func TestWebConversationDefaultDisplayNameKeepsLegacyIdentity(t *testing.T) {
+	for _, name := range []string{"", "SYNON_BIOMED"} {
+		frame := workspace.CompatibilityFrame{}
+		frame.ID, frame.ProjectID, frame.AgentName = "frame-brand", "project-brand", name
+		projected := webConversation(frame, "Project")
+		assistant := projected["assistant"].(map[string]any)
+		if assistant["name"] != "X-Science" || assistant["id"] != webAssistantID("SYNON_BIOMED") {
+			t.Fatalf("brand must change display only, not identity: %#v", assistant)
+		}
+		if projected["extra"].(map[string]any)["agent_name"] != "SYNON_BIOMED" {
+			t.Fatal("legacy persisted agent identity changed")
+		}
+	}
+	frame := workspace.CompatibilityFrame{}
+	frame.AgentName = "User Researcher"
+	projected := webConversation(frame, "Project")
+	if projected["assistant"].(map[string]any)["name"] != "User Researcher" {
+		t.Fatal("branding must not overwrite a user's expert name")
+	}
+}
+
 func TestWebConversationsMapsDurableRootFrames(t *testing.T) {
 	store, err := workspace.Open(filepath.Join(t.TempDir(), "workspace.db"))
 	if err != nil {

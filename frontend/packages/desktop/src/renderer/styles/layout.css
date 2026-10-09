@@ -49,12 +49,7 @@
   --synon-sidebar-muted: #85827b;
   background: var(--synon-sidebar-bg) !important;
   border-right-color: var(--synon-sidebar-border) !important;
-  font-family:
-    ui-sans-serif,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
+  font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 

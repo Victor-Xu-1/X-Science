@@ -21,6 +21,24 @@ const fixture = [
 ].join('\n');
 
 describe('docking ensemble projection', () => {
+  it.each(['X-SCIENCE', 'SYNON BIOMED', 'OTHER-SCIENCE', ''])(
+    'identifies the format independently of supplier label %s',
+    (supplier) => {
+      const source = fixture.replace('SYNON BIOMED ', supplier ? `${supplier} ` : '');
+      const ensemble = parseDockingEnsemble(source);
+      expect(ensemble?.entries).toHaveLength(4);
+      for (let index = 0; index < ensemble!.entries.length; index += 1) {
+        const selected = selectDockingEnsembleEntry(ensemble!, index);
+        expect(selected.match(/^ATOM/gm)).toHaveLength(1);
+        expect(selected.match(/^HETATM/gm)).toHaveLength(1);
+      }
+    }
+  );
+
+  it('does not use a quoted marker in another record as an ensemble header', () => {
+    expect(parseDockingEnsemble(fixture.replace(/^REMARK 900/, 'COMMENT REMARK 900'))).toBeNull();
+  });
+
   it('accepts ranked poses without a co-crystal reference and projects only the selected ligand', () => {
     const withoutReference = fixture
       .split('\n')

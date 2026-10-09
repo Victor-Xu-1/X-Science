@@ -596,6 +596,11 @@
       }
     },
     "synon-research": {
+      "display_name": "X-Science Research",
+      "name_i18n": {
+        "en-US": "X-Science Research",
+        "zh-CN": "X-Science 科研研究"
+      },
       "category": "research-workflows",
       "description_i18n": {
         "zh-CN": "组织可追溯的科研问题、证据检索、分析和结果交付。"
