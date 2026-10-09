@@ -17,6 +17,7 @@ import {
   type SynonBiomedSkill,
 } from '@/renderer/services/synonBiomedCapabilities';
 import { localizeSynonBiomedExpertProfile } from '@/renderer/services/agents/synonBiomedExpertLocalization';
+import { resolveSkillDisplayName } from '@/renderer/services/skills/synonBiomedSkillDescriptions';
 import SynonBiomedAvatar from '@/renderer/components/synonBiomed/SynonBiomedAvatar';
 import {
   loadSynonBiomedExpertUsage,
@@ -135,7 +136,7 @@ function resolveExpertArtwork(
 }
 
 const ExpertWorkbench: React.FC<ExpertWorkbenchProps> = ({ withHeader = true, compactHeader = false }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [message, messageContext] = Message.useMessage({ maxCount: 4 });
   const [profiles, setProfiles] = useState<SynonBiomedExpertProfile[]>([]);
   const [skills, setSkills] = useState<SynonBiomedSkill[]>([]);
@@ -566,7 +567,7 @@ const ExpertWorkbench: React.FC<ExpertWorkbenchProps> = ({ withHeader = true, co
                       >
                         <TabPane
                           key='skills'
-                          title={`Skills${draft.skillNames.length ? ` ${draft.skillNames.length}` : ''}`}
+                          title={`${t('settings.skills')}${draft.skillNames.length ? ` ${draft.skillNames.length}` : ''}`}
                         >
                           <Select
                             aria-label={t('settings.expertsSettings.addSkill')}
@@ -581,7 +582,7 @@ const ExpertWorkbench: React.FC<ExpertWorkbenchProps> = ({ withHeader = true, co
                           >
                             {availableSkills.map((skill) => (
                               <Select.Option key={skill.name} value={skill.name}>
-                                {skill.displayName || skill.name}
+                                {resolveSkillDisplayName(skill.name, skill.displayName, i18n.language, skill.name_i18n)}
                               </Select.Option>
                             ))}
                           </Select>
@@ -594,7 +595,12 @@ const ExpertWorkbench: React.FC<ExpertWorkbenchProps> = ({ withHeader = true, co
                                 return (
                                   <CapabilityRow
                                     key={skillName}
-                                    label={skill?.displayName || skillName}
+                                    label={resolveSkillDisplayName(
+                                      skillName,
+                                      skill?.displayName,
+                                      i18n.language,
+                                      skill?.name_i18n
+                                    )}
                                     onRemove={() =>
                                       setDraft({
                                         ...draft,

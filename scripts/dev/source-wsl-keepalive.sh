@@ -26,7 +26,7 @@ done
 if [[ "$ready" != true ]] ||
   ! runuser -u "$synon_user" -- env XDG_RUNTIME_DIR="$runtime_dir" \
     systemctl --user is-active --quiet "${units[@]}"; then
-  echo "Synon Biomed source services did not become active" >&2
+  echo "X-Science source services did not become active" >&2
   exit 1
 fi
 

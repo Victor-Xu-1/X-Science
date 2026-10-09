@@ -7,7 +7,7 @@ compatibility: "requests>=2.28; numpy>=1.24"
 allowed-tools: bash, read_file, edit_file, ask_user
 ---
 
-<!-- Modified for Synon Biomed. Upstream attribution and terms: docs/licenses/bionemo-agent-toolkit/NOTICE.md. -->
+<!-- Modified for X-Science. Upstream attribution and terms: docs/licenses/bionemo-agent-toolkit/NOTICE.md. -->
 
 # Evo 2 NIM
 

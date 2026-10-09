@@ -1,8 +1,8 @@
 # P2Rank Runtime Notice
 
-Synon Biomed can acquire and run P2Rank as an optional scientific runtime. The
+X-Science can acquire and run P2Rank as an optional scientific runtime. The
 P2Rank archive and Java environment are external runtime state: they are not
-committed to this repository and are not silently included in a Synon release.
+committed to this repository and are not silently included in an X-Science release.
 
 | Component | Pinned version | Upstream | License |
 | --- | ---: | --- | --- |

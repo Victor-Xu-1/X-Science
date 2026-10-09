@@ -53,7 +53,7 @@ ALLOWED_ADAPTATIONS = {
     "packages/desktop/src/renderer/hooks/mcp/useMcpOAuth.ts": "Complete MCP OAuth in WebUI through a bounded popup-and-status-poll flow backed by the Go server.",
     "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/MarkdownViewer.tsx": "Use the locked Streamdown 1.5.1 contract and avoid its redundant runtime KaTeX CSS import because styles are bundled statically.",
     "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedStructureViewer.tsx": "Unify PDB, mmCIF, SDF, and related molecular formats on one Molstar preview with composition-aware controls, collapsed auxiliary panels, and source-fenced 2D interaction refresh.",
-    "packages/desktop/src/renderer/index.html": "Project the root Synon Biomed product identity and load the CSP-compatible pre-render theme bootstrap without creating a second version authority.",
+    "packages/desktop/src/renderer/index.html": "Project the root X-Science product identity and load the CSP-compatible pre-render theme bootstrap without creating a second version authority.",
     "packages/desktop/src/renderer/pages/conversation/platforms/acp/AcpE2EStreamInjector.tsx": "Expose a session-gated E2E assistant-message injector so browser preview tests do not require a paid live model.",
     "packages/desktop/src/renderer/pages/onboarding/OnboardingFlow.tsx": "Keep bundled Python and R required while preserving optional first-run scientific-runtime choices, informational storage estimates, authenticated drafts, capability allowlists, and one recoverable launch.",
     "packages/desktop/src/renderer/pages/onboarding/OnboardingElicitCard.tsx": "Give the custom onboarding task input an explicit accessible label while preserving the task-selection contract.",
@@ -91,7 +91,7 @@ ALLOWED_ADAPTATIONS = {
     "packages/desktop/src/renderer/styles/workspace-theme.css": "Provide a visible keyboard focus indicator for shared buttons across the migrated Web surface.",
     "packages/desktop/src/renderer/styles/themes/base.css": "Allow the authenticated onboarding and workbench layout to fit the supported 320px viewport without horizontal clipping.",
     "playwright.webui.config.ts": "Point browser acceptance at the future Go same-origin host and standardize disposable output.",
-    "public/manifest.webmanifest": "Project the root Synon Biomed identity into installable PWA metadata and retain the text-free molecular icon set.",
+    "public/manifest.webmanifest": "Project the root X-Science identity into installable PWA metadata and retain the text-free molecular icon set.",
     "tests/integration/i18n-packaged.test.ts": "Reference the browser-only production build command used by Synon Go.",
     "tests/integration/synonbiomedTestAuth.ts": "Provide an origin-scoped session and CSRF fetch client for authenticated Go integration tests.",
     "tests/unit/common-adapter/browserRealtimeError.test.ts": "Verify the browser adapter uses the authenticated Go event WebSocket and preserves runtime event and control envelopes.",
@@ -305,7 +305,7 @@ ALLOWED_ADDITION_RULES = (
     ),
     (
         ("public/branding/", "public/dev-sw-cleanup.js"),
-        "Add provenance-bound Synon Biomed branding assets and bounded development service-worker cleanup.",
+        "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup.",
     ),
 )
 
@@ -415,7 +415,7 @@ ALLOWED_ADAPTATION_RULES = (
             "packages/desktop/src/common/theme/",
             "packages/desktop/src/common/types/",
         ),
-        "Align shared browser contracts, configuration, themes, and typed preview/provider models with the Go-owned Synon Biomed runtime.",
+        "Align shared browser contracts, configuration, themes, and typed preview/provider models with the Go-owned X-Science runtime.",
     ),
     (
         (
@@ -526,9 +526,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "5ad7487f50ea3057b722e9042e0bd001786ee86e4d15cf22449de73dba5683ee"
+APPROVED_ADAPTATION_FINGERPRINT = "69bb03166bc33d283d48247bddf561e04f1524576b540f8ccaefc4b74fe2505a"
 APPROVED_REMOVAL_FINGERPRINT = "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119"
-APPROVED_ADDITION_FINGERPRINT = "3bc83c671d50180ab5d249306b40a60b93c32efdb0928bbcfa7bea2bfb7472f5"
+APPROVED_ADDITION_FINGERPRINT = "0bddb70e99da04edcf053201b58f53aaf63ddc284fe982e901f98e84482b0dd6"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

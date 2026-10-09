@@ -11,7 +11,7 @@ metadata:
 # alongside agent/scripts/kermt_container.sh.
 ---
 
-<!-- Modified for Synon Biomed. Upstream attribution and terms: docs/licenses/bionemo-agent-toolkit/NOTICE.md. -->
+<!-- Modified for X-Science. Upstream attribution and terms: docs/licenses/bionemo-agent-toolkit/NOTICE.md. -->
 
 # kermt-setup
 

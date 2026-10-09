@@ -11,7 +11,7 @@ metadata:
 # shared with kermt-continue-pretrain; the differences are documented below.
 ---
 
-<!-- Modified for Synon Biomed. Upstream attribution and terms: docs/licenses/bionemo-agent-toolkit/NOTICE.md. -->
+<!-- Modified for X-Science. Upstream attribution and terms: docs/licenses/bionemo-agent-toolkit/NOTICE.md. -->
 
 # kermt-pretrain-scratch
 

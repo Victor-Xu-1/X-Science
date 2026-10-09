@@ -6,7 +6,7 @@ license: Apache-2.0
 
 # Skill Creator
 
-> Modified for Synon Biomed's governed tool and evaluation workflow.
+> Modified for X-Science's governed tool and evaluation workflow.
 > Source attribution and Apache-2.0 terms are retained in `NOTICE.md` and `LICENSE.txt`.
 
 A skill for creating new skills and iteratively improving them.
@@ -536,7 +536,7 @@ old_string=old_description)`. Show the user before/after and report the scores.
 
 ### Package and Present (only if `present_files` tool is available)
 
-In Synon Biomed, publishing is `host.skills.publish(name)` — that promotes the
+In X-Science, publishing is `host.skills.publish(name)` — that promotes the
 draft into the live skill set so any agent can `skill({skill: <name>})` it. The
 packaging step below is for environments that ship `.skill` bundles instead.
 

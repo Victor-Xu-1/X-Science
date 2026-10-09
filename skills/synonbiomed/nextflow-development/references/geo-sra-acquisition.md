@@ -1,6 +1,6 @@
 # GEO/SRA Data Acquisition
 
-> Modified for Synon Biomed's managed scientific workflows. Upstream attribution
+> Modified for X-Science's managed scientific workflows. Upstream attribution
 > and Apache-2.0 terms remain in the skill/catalog notices.
 
 Download raw sequencing data from NCBI GEO/SRA and prepare it for nf-core pipelines.
@@ -97,7 +97,7 @@ Example: "Find differentially expressed genes in GSE309891 (drug-treated vs cont
 
 ---
 
-## Instructions for Synon Biomed
+## Instructions for X-Science
 
 When assisting users with GEO/SRA data acquisition:
 

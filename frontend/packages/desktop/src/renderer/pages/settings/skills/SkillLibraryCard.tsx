@@ -6,13 +6,17 @@ import {
   getSynonBiomedSkillCategoryLabel,
   resolveSynonBiomedSkillCategory,
 } from '@/renderer/services/skills/synonBiomedSkillCategories';
-import { resolveSkillDescription } from '@/renderer/services/skills/synonBiomedSkillDescriptions';
+import {
+  resolveSkillDescription,
+  resolveSkillDisplayName,
+} from '@/renderer/services/skills/synonBiomedSkillDescriptions';
 import type { SynonBiomedSkillDraft } from '@/renderer/services/skills/synonBiomedSkillLibrary';
 import type { SynonBiomedSkillUsage } from '@/renderer/services/skills/synonBiomedSkillUsage';
 
 export interface SkillInfo {
   name: string;
   displayName?: string;
+  name_i18n?: Record<string, string>;
   description: string;
   description_i18n?: Record<string, string>;
   source?: string;
@@ -71,7 +75,7 @@ export function SkillRow({
   onRemove: (skill: SkillInfo) => void;
 }) {
   const { i18n, t } = useTranslation();
-  const displayName = skill.displayName || skill.name;
+  const displayName = resolveSkillDisplayName(skill.name, skill.displayName, i18n.language, skill.name_i18n);
   const categoryLabel = getSynonBiomedSkillCategoryLabel(skill.category, i18n.language);
   const description = resolveSkillDescription(skill.name, skill.description, i18n.language, skill.description_i18n);
   return (

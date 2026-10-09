@@ -1,6 +1,6 @@
 # SKILL: Intuition Pumps for Scientific Problem Ideation
 
-> Modified for Synon Biomed's managed scientific workflows. Upstream attribution
+> Modified for X-Science's managed scientific workflows. Upstream attribution
 > and Apache-2.0 terms remain in the skill/catalog notices.
 
 ## Overview
@@ -29,7 +29,7 @@ Understanding which quadrant resonates with the user can help identify their nic
 
 ### Phase 1: Initial Discovery Questions (5-10 minutes)
 
-Before diving into intuition pumps, Synon Biomed should gather context by asking the user:
+Before diving into intuition pumps, X-Science should gather context by asking the user:
 
 1. **What is the user's general research area or field?** (e.g., immunology, synthetic biology, neuroscience, protein engineering)
 
@@ -56,7 +56,7 @@ Before diving into intuition pumps, Synon Biomed should gather context by asking
 
 ### Phase 2: Applying Intuition Pumps
 
-Based on the user's responses, Synon Biomed should guide them through relevant intuition pumps from this list:
+Based on the user's responses, X-Science should guide them through relevant intuition pumps from this list:
 
 #### Intuition Pump #1: Make It Systematic
 **Prompt:** Take any one-off perturbation or measurement and make it systematic.
@@ -147,7 +147,7 @@ After generating ideas, we must evaluate them critically. Here are the most comm
 **When It Works:** The user is enabling a field that truly needs this capability
 **When It Fails:** The tool is already widely applied; the contribution will be incremental
 
-**Self-Check:** Will this tool application open new biological questions, or just extend existing observations? Synon Biomed should help the user evaluate this honestly.
+**Self-Check:** Will this tool application open new biological questions, or just extend existing observations? X-Science should help the user evaluate this honestly.
 
 #### Trap #3: Jumping on the First Idea
 **Warning:** Treating ideas with reverence instead of skepticism. Confirmation bias sets in quickly.
@@ -174,7 +174,7 @@ After generating ideas, we must evaluate them critically. Here are the most comm
 
 ### Phase 4: Literature Integration
 
-To ensure the idea has appropriate scope and hasn't been thoroughly explored, Synon Biomed should ask:
+To ensure the idea has appropriate scope and hasn't been thoroughly explored, X-Science should ask:
 
 1. **What are 2-3 key questions or gaps the idea addresses?**
 
@@ -183,7 +183,7 @@ To ensure the idea has appropriate scope and hasn't been thoroughly explored, Sy
    - Identify related approaches?
    - Find empirical knowledge from adjacent domains that could inform the approach?
 
-Synon Biomed should use PubMed to:
+X-Science should use PubMed to:
 - Assess how general/specific the problem is
 - Identify relevant methodological advances
 - Find analogous systems or approaches in other fields
@@ -191,7 +191,7 @@ Synon Biomed should use PubMed to:
 
 ### Phase 5: Idea Refinement and Output
 
-After working through intuition pumps, avoiding traps, and reviewing literature, Synon Biomed should help the user:
+After working through intuition pumps, avoiding traps, and reviewing literature, X-Science should help the user:
 
 1. **Crystallize the Idea:**
    - Biological question
@@ -212,7 +212,7 @@ After working through intuition pumps, avoiding traps, and reviewing literature,
 
 ## Output Deliverable
 
-At the end of this skill, Synon Biomed should produce a **2-page Problem Ideation Document** containing:
+At the end of this skill, X-Science should produce a **2-page Problem Ideation Document** containing:
 
 ### Page 1: Core Idea
 - **Title:** Concise project name
@@ -260,7 +260,7 @@ At the end of this skill, Synon Biomed should produce a **2-page Problem Ideatio
 
 ## Getting Started
 
-When the user is ready, Synon Biomed should guide them through the Phase 1 questions to begin the systematic ideation process. The key message: spending extra time on problem choice is the highest-leverage activity in science. A well-chosen problem executed reasonably well will have more impact than a mediocre problem executed brilliantly.
+When the user is ready, X-Science should guide them through the Phase 1 questions to begin the systematic ideation process. The key message: spending extra time on problem choice is the highest-leverage activity in science. A well-chosen problem executed reasonably well will have more impact than a mediocre problem executed brilliantly.
 
 ---
 

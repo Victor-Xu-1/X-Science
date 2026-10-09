@@ -10,7 +10,7 @@ compatibility: "complexa CLI in a governed immutable environment; selected confi
 allowed-tools: search_skills, skill, ask_user, repl, list_compute, manage_environments, manage_packages, bash, read_file, edit_file, save_artifacts
 ---
 
-<!-- Modified for Synon Biomed. Upstream attribution and terms: docs/licenses/bionemo-agent-toolkit/NOTICE.md. -->
+<!-- Modified for X-Science. Upstream attribution and terms: docs/licenses/bionemo-agent-toolkit/NOTICE.md. -->
 
 # Complexa Design Skill
 

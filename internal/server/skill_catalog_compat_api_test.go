@@ -33,6 +33,8 @@ func TestCompatibilitySkillCatalogUserStateContentAndPathSafety(t *testing.T) {
 	}
 	catalog := skills.Load([]string{skillRoot})
 	for _, item := range catalog.Skills() {
+		item.DisplayName = "X-Science Research"
+		item.NameI18n = map[string]string{"en-US": "X-Science Research", "zh-CN": "X-Science 科研研究"}
 		item.Category = "research-workflows"
 		item.DescriptionI18n = map[string]string{"zh-CN": "核查研究证据。"}
 		catalog.UpsertSkill(item)
@@ -67,6 +69,9 @@ func TestCompatibilitySkillCatalogUserStateContentAndPathSafety(t *testing.T) {
 		t.Fatalf("catalog governance metadata=%#v", listed)
 	}
 	demo := compatibilityCatalogEntryByName(t, listed, "demo")
+	if demo["displayName"] != "X-Science Research" || demo["name_i18n"].(map[string]any)["zh-CN"] != "X-Science 科研研究" {
+		t.Fatalf("localized label lost while retaining raw demo identity: %#v", demo)
+	}
 	if demo["source"] != "personal" || demo["skillId"] != "local:demo" {
 		t.Fatalf("demo catalog entry = %#v", demo)
 	}

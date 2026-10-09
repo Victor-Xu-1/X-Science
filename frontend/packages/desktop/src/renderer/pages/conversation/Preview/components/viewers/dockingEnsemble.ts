@@ -14,7 +14,9 @@ export type DockingEnsemble = {
   ligandLinesByResidue: ReadonlyMap<string, readonly string[]>;
 };
 
-const ENSEMBLE_MARKER = 'REMARK 900 SYNON BIOMED DOCKING COMPLEX ENSEMBLE';
+// Supplier branding is display metadata, not the format discriminator.
+// Keep historical branded records and canonical unbranded records readable.
+const ENSEMBLE_MARKER = /^REMARK 900 (?:[A-Z0-9][A-Z0-9 _-]* )?DOCKING COMPLEX ENSEMBLE[ \t]*\r?$/m;
 const REFERENCE_PATTERN =
   /^REMARK 900 REFERENCE LIGAND (\S+) SOURCE (\S+) CHAIN \S+ RESIDUE \S+(?: AFFINITY (-?\d+(?:\.\d+)?) KCAL\/MOL)?\s*$/;
 const CANDIDATE_PATTERN =
@@ -26,7 +28,7 @@ const CANDIDATE_PATTERN =
  * ordinary PDB files keep the standard Mol* path unchanged.
  */
 export const parseDockingEnsemble = (source: string): DockingEnsemble | null => {
-  if (!source.includes(ENSEMBLE_MARKER)) return null;
+  if (!ENSEMBLE_MARKER.test(source)) return null;
 
   let reference: DockingEnsembleEntry | undefined;
   const candidates: DockingEnsembleEntry[] = [];

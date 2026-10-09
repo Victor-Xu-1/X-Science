@@ -24,6 +24,7 @@ from typing import Any, Iterable
 
 
 SCHEMA_VERSION = 1
+DEFAULT_DOCUMENT_AUTHOR = "X-Science"
 MAX_INPUT_BYTES = 250 * 1024 * 1024
 MAX_ZIP_ENTRIES = 20_000
 MAX_ZIP_UNCOMPRESSED = 1024 * 1024 * 1024
@@ -164,6 +165,11 @@ def bounded_integer(value: Any, label: str, minimum: int, maximum: int) -> int:
     if parsed < minimum or parsed > maximum:
         raise WorkbenchError(f"{label} must be between {minimum} and {maximum}")
     return parsed
+
+
+def document_author(spec: dict[str, Any]) -> str:
+    """One default for generated document metadata; explicit author is unchanged."""
+    return bounded_text(spec.get("author", DEFAULT_DOCUMENT_AUTHOR), "author")
 
 
 def notebook_text(value: Any, label: str) -> str:
@@ -409,7 +415,7 @@ def create_docx(spec: dict[str, Any], output: Path) -> None:
     styles["Normal"].font.size = Pt(10.5)
     title = bounded_text(spec.get("title", "Untitled document"), "title")
     subtitle = bounded_text(spec.get("subtitle", ""), "subtitle")
-    author = bounded_text(spec.get("author", "Synon Biomed"), "author")
+    author = document_author(spec)
     document.core_properties.title = title
     document.core_properties.author = author
     paragraph = document.add_paragraph()
@@ -592,7 +598,7 @@ def create_pptx(spec: dict[str, Any], output: Path) -> None:
     presentation.slide_width = Inches(13.333)
     presentation.slide_height = Inches(7.5)
     presentation.core_properties.title = bounded_text(spec.get("title", "Presentation"), "title")
-    presentation.core_properties.author = bounded_text(spec.get("author", "Synon Biomed"), "author")
+    presentation.core_properties.author = document_author(spec)
     for index, slide_spec in enumerate(slides):
         if not isinstance(slide_spec, dict):
             raise WorkbenchError(f"slides[{index}] must be an object")
@@ -743,7 +749,7 @@ def create_pdf(spec: dict[str, Any], output: Path) -> None:
                     story.append(Paragraph(pdf_text(caption, "image caption"), styles["CaptionSafe"]))
             else:
                 raise WorkbenchError(f"unsupported PDF block type: {kind!r}")
-    document = SimpleDocTemplate(str(temporary), pagesize=A4, title=title, author=bounded_text(spec.get("author", "Synon Biomed"), "author"), rightMargin=42, leftMargin=42, topMargin=42, bottomMargin=42)
+    document = SimpleDocTemplate(str(temporary), pagesize=A4, title=title, author=document_author(spec), rightMargin=42, leftMargin=42, topMargin=42, bottomMargin=42)
     try:
         document.build(story)
         atomic_commit(temporary, output)

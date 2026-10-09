@@ -1,6 +1,6 @@
 # Governed runtime setup
 
-> Modified for Synon Biomed's managed scientific workflows. Upstream attribution
+> Modified for X-Science's managed scientific workflows. Upstream attribution
 > and Apache-2.0 terms remain in the skill/catalog notices.
 
 Provision workflow dependencies through `manage_environments` and
