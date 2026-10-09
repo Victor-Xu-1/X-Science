@@ -86,7 +86,8 @@ describe('MessageChannelsSettings', () => {
   it('renders a QR returned by the backend and completes pairing without exposing credentials', async () => {
     renderSettings();
 
-    await waitFor(() => expect(mocks.loadStatuses).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getAllByRole('button', { name: '扫码配对' })[0]).toBeEnabled());
+    expect(mocks.loadStatuses).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getAllByRole('button', { name: '扫码配对' })[0]);
 
     expect(await screen.findByTestId('message-channel-qr-feishu')).toBeInTheDocument();
@@ -150,10 +151,19 @@ describe('MessageChannelsSettings', () => {
 
   it('requires confirmation before unpairing and refreshes the paired state afterward', async () => {
     let paired = true;
-    mocks.loadStatuses.mockImplementation(async () => ({
+    let resolveInitialStatus!: () => void;
+    const statuses = () => ({
       feishu: { configured: paired, paired },
       wechat: { configured: false, paired: false },
-    }));
+    });
+    mocks.loadStatuses
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveInitialStatus = () => resolve(statuses());
+          })
+      )
+      .mockImplementation(async () => statuses());
     mocks.unpair.mockImplementation(async () => {
       paired = false;
       return { unpaired: true, pairedUsersRevoked: 1, restartScheduled: false };
@@ -163,7 +173,10 @@ describe('MessageChannelsSettings', () => {
     await waitFor(() => expect(mocks.loadStatuses).toHaveBeenCalledTimes(1));
 
     const card = screen.getByTestId('message-channel-card-feishu');
-    fireEvent.click(screen.getByRole('button', { name: '取消配对' }));
+    expect(within(card).getByRole('button', { name: '扫码配对' })).toBeDisabled();
+    expect(within(card).queryByRole('button', { name: '取消配对' })).not.toBeInTheDocument();
+    await act(async () => resolveInitialStatus());
+    fireEvent.click(await within(card).findByRole('button', { name: '取消配对' }));
     const dialog = await screen.findByRole('alertdialog', { name: '取消飞书配对' });
     expect(dialog).toHaveTextContent('取消飞书配对');
     expect(dialog).toHaveTextContent('清除当前工作台保存的飞书授权');
@@ -174,8 +187,9 @@ describe('MessageChannelsSettings', () => {
 
     await waitFor(() => expect(mocks.unpair).toHaveBeenCalledWith('feishu'));
     await waitFor(() => expect(mocks.loadStatuses).toHaveBeenCalledTimes(2));
-    expect(card).not.toHaveTextContent('已配对');
-    expect(screen.queryByRole('button', { name: '取消配对' })).not.toBeInTheDocument();
+    await waitFor(() => expect(card).not.toHaveTextContent('已配对'));
+    await waitFor(() => expect(screen.queryByRole('button', { name: '取消配对' })).not.toBeInTheDocument());
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
   });
 });
 

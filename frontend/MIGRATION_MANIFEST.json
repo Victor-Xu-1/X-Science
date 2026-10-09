@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "49beaf7ff7bf8c2419b4062d46c37b70fe8970a8efc3604769ea2187a1b7741c",
+  "adaptationFingerprintSHA256": "a58b295eaaad4ef76b01a067d2318347728adf265603501132ca1a4384df8156",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "e4558f9c1ebd9c85532806be9f97c2f29cccbf5358df377461aeecaf9450ea65",
+  "additionFingerprintSHA256": "5f9df8af130266e08c1f956c3bdc799a30d42b5a1fddc374ea2937ec0362201d",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 345,
@@ -17,14 +17,14 @@
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "bd5e8bac4abb7c42a403e9ef5a84d2d2f7c53263cb8dce54d2cc24c42f8a5c19",
+      "targetSHA256": "1182e85ffab64dabb09754c8b158e50efed66f815dd21b3f29846a57be9c6c90",
       "bytes": 4378,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "921273903edccf05616dae922280e88e38d37b3983e3a384621dd4bc7253273a",
+      "targetSHA256": "8b9bf84125a568549cf8c77bf322f756358920670aad7e72ec610ea8f0a6d1d7",
       "bytes": 157,
       "reason": "Remove @synon-ai/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -6796,7 +6796,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "c7c77c4e37eb358aa94fc536dd367ccaf154c63f96194d1dd6c4b937673705ec",
+      "sha256": "659fad89ee1b0a85bfd627266edd5ed4489842cf15908697aa6a1f621624b0c0",
       "bytes": 558186,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -10864,8 +10864,8 @@
     },
     {
       "path": "tests/unit/settings/MessageChannelsSettings.dom.test.tsx",
-      "sha256": "26241146fae38c074334ba0221a60aa048c8e2eefc0298cb154402540706d116",
-      "bytes": 7958,
+      "sha256": "04010dc214a542313f00942920770eea9e71183faf3c9e3b952e6c9f50d06fb7",
+      "bytes": 8660,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
