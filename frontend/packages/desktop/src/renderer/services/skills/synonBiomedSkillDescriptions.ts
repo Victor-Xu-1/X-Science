@@ -17,3 +17,19 @@ export function resolveSkillDescription(
   if (localized?.trim()) return localized.trim();
   return description.trim() || name;
 }
+
+export function resolveSkillDisplayName(
+  name: string,
+  displayName: string | undefined,
+  language: string | undefined,
+  nameI18n?: Record<string, string>
+): string {
+  const locale = normalizeSkillDescriptionLocale(language);
+  return (
+    nameI18n?.[locale]?.trim() ||
+    nameI18n?.[locale.split('-')[0]]?.trim() ||
+    nameI18n?.['en-US']?.trim() ||
+    displayName?.trim() ||
+    name
+  );
+}

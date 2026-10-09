@@ -1,6 +1,6 @@
 # SKILL 3: Optimization Function Selection
 
-> Modified for Synon Biomed's managed scientific workflows. Upstream attribution
+> Modified for X-Science's managed scientific workflows. Upstream attribution
 > and Apache-2.0 terms remain in the skill/catalog notices.
 
 ## Overview
@@ -25,7 +25,7 @@ Scientists must actively work against these defaults by choosing the right metri
 
 ### Phase 1: Project Categorization (5 minutes)
 
-First, Synon Biomed should determine what type of project the user is pursuing:
+First, X-Science should determine what type of project the user is pursuing:
 
 **Question 1: What is the primary goal?**
 A. Understand how biology works (fundamental knowledge)
@@ -44,7 +44,7 @@ D. Something else (please describe)
 - General public or specific communities?
 - All of the above?
 
-Based on the answers, Synon Biomed should help identify the right optimization function.
+Based on the answers, X-Science should help identify the right optimization function.
 
 ### Phase 2: Understanding the Three Main Frameworks
 
@@ -217,7 +217,7 @@ For your project and two alternatives (either from literature or hypothetical):
 
 ### Phase 7: Value System Discussion
 
-This is where Synon Biomed explicitly discusses the user's belief system about what matters:
+This is where X-Science explicitly discusses the user's belief system about what matters:
 
 **Questions for Reflection:**
 
@@ -252,7 +252,7 @@ This is where Synon Biomed explicitly discusses the user's belief system about w
 
 ### Phase 8: Literature Benchmarking
 
-Synon Biomed should use PubMed to benchmark impact in the user's area:
+X-Science should use PubMed to benchmark impact in the user's area:
 
 **Searches should include:**
 
@@ -308,7 +308,7 @@ Once the framework is selected, here's how to lead with it:
 
 ## Output Deliverable
 
-Synon Biomed should produce a **2-page Impact Assessment Document**:
+X-Science should produce a **2-page Impact Assessment Document**:
 
 ### Page 1: Framework and Scoring
 
@@ -472,12 +472,12 @@ Reference projects plotted for context
 
 ## Getting Started
 
-Synon Biomed should begin Phase 1 by asking:
+X-Science should begin Phase 1 by asking:
 1. What is the primary goal? (A/B/C/D)
 2. What would success look like in 3-5 years?
 3. Who cares if this succeeds?
 
-Together, Synon Biomed and the user will select the right optimization function and position the work for maximum impact.
+Together, X-Science and the user will select the right optimization function and position the work for maximum impact.
 
 ---
 

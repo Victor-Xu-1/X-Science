@@ -12,6 +12,7 @@ describe('X-Science skill capabilities', () => {
               {
                 name: 'alphafold2',
                 displayName: 'AlphaFold2',
+                name_i18n: { 'en-US': 'AlphaFold2', 'zh-CN': 'AlphaFold2 结构预测' },
                 description: 'Protein structure prediction',
                 source: 'synon_llm',
                 category: 'biomodels',
@@ -31,6 +32,7 @@ describe('X-Science skill capabilities', () => {
       {
         name: 'alphafold2',
         displayName: 'AlphaFold2',
+        name_i18n: { 'en-US': 'AlphaFold2', 'zh-CN': 'AlphaFold2 结构预测' },
         description: 'Protein structure prediction',
         source: 'synon_llm',
         category: 'biomodels',

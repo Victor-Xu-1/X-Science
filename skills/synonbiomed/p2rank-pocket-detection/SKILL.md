@@ -32,7 +32,7 @@ routes such as:
 - provide a known center or validated pocket artifact;
 - provide a receptor containing a reference ligand or annotated site.
 
-If the user chooses `让 Synon Biomed 决定`, that delegates the method choice;
+If the user chooses `让 X-Science 决定`, that delegates the method choice;
 select P2Rank by its public implementation name and use rank 1. Do not insert
 numeric coordinates in the option. The execution pack computes them only after
 the user decision and emits the exact receipt consumed downstream.

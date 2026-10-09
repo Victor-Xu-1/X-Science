@@ -18,6 +18,7 @@ import {
 } from '@/renderer/services/synonBiomedCapabilities';
 import { iconColors } from '@/renderer/styles/colors';
 import { resolveLocaleKey } from '@/common/utils';
+import { resolveSkillDisplayName } from '@/renderer/services/skills/synonBiomedSkillDescriptions';
 
 type ComposerCapabilityPickerProps = {
   skillNames: string[];
@@ -171,6 +172,7 @@ function catalogMap(
   entries: Array<{
     name: string;
     displayName: string;
+    name_i18n?: Record<string, string>;
     description: string;
     description_i18n?: Record<string, string>;
   }>,
@@ -181,7 +183,7 @@ function catalogMap(
     entries.map((entry) => [
       entry.name,
       {
-        label: entry.displayName || entry.name,
+        label: resolveSkillDisplayName(entry.name, entry.displayName, localeKey, entry.name_i18n),
         description:
           zhFor?.(entry.name) ||
           (entry.description_i18n &&

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0 OR CC-BY-4.0
-# Modified for Synon Biomed. Source and license terms: ../THIRD_PARTY_NOTICES.md.
+# Modified for X-Science. Source and license terms: ../THIRD_PARTY_NOTICES.md.
 
 # cluster_preflight.sh — standalone SLURM readiness probe.
 #

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the governed Synon Biomed repository module topology."""
+"""Validate the governed X-Science repository module topology."""
 
 from __future__ import annotations
 

@@ -35,7 +35,7 @@ The root is a JSON object. Unknown fields are rejected so misspellings do not si
 {
   "title": "Study report",
   "subtitle": "Validated evidence summary",
-  "author": "Synon Biomed",
+  "author": "X-Science",
   "sections": [
     {
       "heading": "Summary",
@@ -77,7 +77,7 @@ Cell values beginning with `=` are formulas only when the specification sets `al
 ```json
 {
   "title": "Program review",
-  "author": "Synon Biomed",
+  "author": "X-Science",
   "slides": [
     {"layout": "title", "title": "Program review", "subtitle": "Decision meeting"},
     {"layout": "content", "title": "Evidence", "bullets": ["Validated assay", "Reproducible result"]},

@@ -14,7 +14,7 @@ license: Apache-2.0 AND CC-BY-4.0
 allowed-tools: bash, read_file, edit_file, ask_user
 ---
 
-<!-- Modified for Synon Biomed. Upstream attribution and terms: docs/licenses/bionemo-agent-toolkit/NOTICE.md. -->
+<!-- Modified for X-Science. Upstream attribution and terms: docs/licenses/bionemo-agent-toolkit/NOTICE.md. -->
 
 # MSA Structure Prediction Pipeline
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Modified for Synon Biomed's managed scientific workflows.
+# Modified for X-Science's managed scientific workflows.
 # Upstream attribution and Apache-2.0 terms remain in the skill/catalog notices.
 """
 Pre-flight environment validation for nf-core pipelines.

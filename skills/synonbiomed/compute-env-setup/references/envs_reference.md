@@ -1,6 +1,6 @@
 ---
 name: compute-envs-reference
-description: The Synon Biomed compute environments as worked examples of the generalized build-spec pattern. Read alongside compute-env-setup. Triggers on "what's in proteomics-gpu", "which env has X", "rebuild <env>", "weight cache for <tool>".
+description: The X-Science compute environments as worked examples of the generalized build-spec pattern. Read alongside compute-env-setup. Triggers on "what's in proteomics-gpu", "which env has X", "rebuild <env>", "weight cache for <tool>".
 ---
 
 # Compute environment reference — worked examples

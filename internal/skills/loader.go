@@ -20,6 +20,8 @@ import (
 
 type Skill struct {
 	Name                        string            `json:"name"`
+	DisplayName                 string            `json:"display_name,omitempty"`
+	NameI18n                    map[string]string `json:"name_i18n,omitempty"`
 	Description                 string            `json:"description"`
 	DescriptionI18n             map[string]string `json:"description_i18n,omitempty"`
 	Category                    string            `json:"category,omitempty"`
@@ -177,6 +179,11 @@ When a task requires delegation, use host.delegate from the persistent repl kern
 For capability discovery, call search_skills and then load the selected workflow with skill. Connected MCP methods are advertised directly and share one connector pool with host.mcp inside repl. Use only exact names from the current snapshot and preserve any unavailable capability as a diagnostic blocker.`, productName))
 	catalog.AddSkill(Skill{
 		Name:        "synon-runtime",
+		DisplayName: productName + " Runtime",
+		NameI18n: map[string]string{
+			"en-US": productName + " Runtime",
+			"zh-CN": productName + " 运行时",
+		},
 		Description: "Built-in " + productName + " runtime operating guidance for sessions, tools, permissions, supervised delegation, artifacts, and connectors.",
 		DescriptionI18n: map[string]string{
 			"zh-CN": "了解 " + productName + " 的运行时能力、工具边界和本地工作方式。",

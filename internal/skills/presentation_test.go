@@ -47,6 +47,21 @@ func TestPresentationLoadsFromBundledRootAndParentRoot(t *testing.T) {
 	}
 }
 
+func TestPresentationDisplayNamesDoNotChangeExecutableIdentity(t *testing.T) {
+	root := t.TempDir()
+	writePresentationFixture(t, root, "demo")
+	metadata := strings.Replace(testPresentation, `"category":`, `"display_name":"X-Science Research","name_i18n":{"en-US":"X-Science Research","zh-CN":"X-Science 科研研究"},"category":`, 1)
+	writePresentation(t, root, metadata)
+	catalog := Load([]string{root})
+	if len(catalog.LoadErrors()) != 0 {
+		t.Fatal(catalog.LoadErrors())
+	}
+	skill := catalog.Skills()[0]
+	if skill.Name != "demo" || skill.DisplayName != "X-Science Research" || skill.NameI18n["zh-CN"] != "X-Science 科研研究" || skill.Body != "Preserve primary evidence." {
+		t.Fatalf("presentation must change labels only: %#v", skill)
+	}
+}
+
 func TestPresentationNeverBorrowsMetadataAcrossRootsOrNestedCatalogs(t *testing.T) {
 	parent := t.TempDir()
 	writePresentation(t, parent, testPresentation)
@@ -82,6 +97,8 @@ func TestPresentationRejectsMalformedCatalogButPreservesSkills(t *testing.T) {
 		strings.Replace(testPresentation, `"zh-CN":"可追溯的证据研究。"`, `"zh-CN":"first","zh-CN":"second"`, 1),
 		strings.Replace(testPresentation, `"schema_version":1`, `"schema_version":2`, 1),
 		strings.Repeat(" ", maxPresentationBytes+1),
+		strings.Replace(testPresentation, `"category":`, `"display_name":"bad\nlabel","category":`, 1),
+		strings.Replace(testPresentation, `"category":`, `"name_i18n":{"zh-CN":""},"category":`, 1),
 	} {
 		root := t.TempDir()
 		writePresentationFixture(t, root, "demo")

@@ -24,6 +24,7 @@ export type SynonBiomedAgent = {
 export type SynonBiomedSkill = {
   name: string;
   displayName: string;
+  name_i18n?: Record<string, string>;
   description: string;
   description_i18n?: Record<string, string>;
   source: string;
@@ -467,6 +468,7 @@ function toSkill(value: unknown): SynonBiomedSkill | null {
   return {
     name,
     displayName: stringValue(record?.displayName) || name,
+    name_i18n: stringRecord(record?.name_i18n),
     description: stringValue(record?.description),
     description_i18n: stringRecord(record?.description_i18n ?? record?.descriptionI18n),
     source: stringValue(record?.source) || 'unknown',

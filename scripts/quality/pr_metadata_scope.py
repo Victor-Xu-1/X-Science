@@ -9,7 +9,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from scripts.packaging.version_provenance import AUDIT, IDENTITY, LICENSES, MIGRATION, document, replace_pointer
+from scripts.packaging.version_provenance import AUDIT, IDENTITY, LICENSES, MIGRATION, NOTICES, document, replace_pointer
 from scripts.quality.product_version import require_next_version
 
 MATRIX = "docs/governance/product-identity-consumer-matrix.json"
@@ -84,11 +84,42 @@ def metadata_paths(repo: Path, base: str, head: str) -> set[str]:
                 link["version"] = new
         if licenses != document(snapshot(repo, head, LICENSES)):
             return set()
-        return set(projected) | {AUDIT, MIGRATION, LICENSES}
+        notice = snapshot(repo, base, NOTICES)
+        previous_lock = hashlib.sha256(snapshot(repo, base, 'frontend/package-lock.json')).hexdigest()
+        binding = ('Package lock SHA-256: ' + previous_lock).encode()
+        if notice.count(binding) != 1:
+            return set()
+        expected_notice = notice.replace(binding, ('Package lock SHA-256: ' + licenses['lockfileSHA256']).encode())
+        if expected_notice != snapshot(repo, head, NOTICES):
+            return set()
+        return set(projected) | {AUDIT, MIGRATION, LICENSES, NOTICES}
     except (OSError, ValueError, KeyError, TypeError, UnicodeError, subprocess.SubprocessError):
         return set()
 
 
 def filter_paths(repo: Path, base: str, head: str, paths: list[str]) -> tuple[list[str], list[str]]:
     ignored = metadata_paths(repo, base, head) if IDENTITY in paths else set()
+    if IDENTITY in paths and IDENTITY not in ignored and identity_version_only(repo, base, head):
+        # A dependency/UI edit may legitimately change the rest of the metadata.
+        # Exempt only this independently proved file; every other path keeps its
+        # existing dependency, frontend, tooling or unknown-runtime coverage.
+        ignored.add(IDENTITY)
     return [path for path in paths if path not in ignored], sorted(set(paths) & ignored)
+
+
+def identity_version_only(repo: Path, base: str, head: str) -> bool:
+    """Prove a single counter-field delta without trusting candidate code.
+
+    This does not approve projections, provenance or tests. Their mandatory
+    checks remain separate, and changed/unknown authority fails conservatively.
+    """
+    try:
+        if snapshot(repo, base, MATRIX) != snapshot(repo, head, MATRIX):
+            return False
+        before = document(snapshot(repo, base, IDENTITY))
+        after = document(snapshot(repo, head, IDENTITY))
+        require_next_version(before['version'], after['version'])
+        replace_pointer(before, '/version', before['version'], after['version'])
+        return before == after
+    except (OSError, ValueError, KeyError, TypeError, UnicodeError, subprocess.SubprocessError):
+        return False
