@@ -114,6 +114,7 @@ const molstarMocks = vi.hoisted(() => {
       ligands: [{ key: 'LIG', molBlock: 'validated mol block', atomCount: 4 }],
       atomCount: 1,
     })),
+    hasElectrostaticLigandInput: vi.fn(() => true),
     setElectrostaticPotentials: vi.fn(async () => undefined),
     advanceTrajectoryModel: vi.fn(async () => ({ index: 0, count: 1 })),
     exportCurrentPose: vi.fn(() => ({
@@ -478,6 +479,7 @@ describe('SynonBiomedStructureViewer', () => {
     molstarMocks.engine.getSelectedLigandResidueName.mockReturnValue(undefined);
     molstarMocks.engine.getPrimaryLigandDepictionSource.mockReturnValue(undefined);
     molstarMocks.engine.getElectrostaticInputSource.mockReset();
+    molstarMocks.engine.hasElectrostaticLigandInput.mockReset().mockReturnValue(true);
     molstarMocks.engine.getElectrostaticInputSource.mockReturnValue({
       content: 'ATOM      1  N   ALA A   1       0.000   0.000   0.000  1.00  0.00           N\nEND\n',
       ligands: [{ key: 'LIG', molBlock: 'validated mol block', atomCount: 4 }],
@@ -2446,6 +2448,34 @@ describe('SynonBiomedStructureViewer', () => {
       report_only: false,
     });
   });
+
+  it.each([
+    ['en-US', 'Ligand surface', 'This action needs verified ligand bond orders. 3D coordinates alone are not enough.'],
+    ['zh-CN', 'Ligand 表面', '此操作需要可核实的配体键级信息，只有三维坐标不足以执行。'],
+  ])(
+    'does not offer impossible ligand electrostatics for coordinate-only input in %s',
+    async (locale, label, reason) => {
+      molstarMocks.engine.load.mockResolvedValueOnce(ordinaryMultiLigandComposition());
+      molstarMocks.engine.hasElectrostaticLigandInput.mockReturnValue(false);
+      await renderWithI18n(
+        <SynonBiomedStructureViewer filename='complex.pdb' content='ATOM' conversationId='frame-1' />,
+        locale as 'en-US' | 'zh-CN'
+      );
+      await waitFor(() => expect(molstarMocks.engine.applyPocketFocus).toHaveBeenCalled());
+      const expand = locale === 'en-US' ? 'Expand the left toolbar' : '展开左侧工具栏';
+      fireEvent.click(await screen.findByRole('button', { name: expand }));
+      const ligand = screen.getByRole('button', { name: label });
+      expect(ligand).toBeDisabled();
+      expect(ligand).toHaveAttribute('title', reason);
+      expect(ligand).toHaveAttribute('aria-description', reason);
+      const proteinLabel = locale === 'en-US' ? 'Protein surface' : '蛋白表面';
+      const pocketLabel = locale === 'en-US' ? 'Pocket surface' : '口袋表面';
+      expect(screen.getByRole('button', { name: proteinLabel })).toBeEnabled();
+      expect(screen.getByRole('button', { name: pocketLabel })).toBeEnabled();
+      fireEvent.click(ligand);
+      expect(molstarMocks.engine.getElectrostaticInputSource).not.toHaveBeenCalled();
+    }
+  );
 
   it('shows only the protein component for a parsed receptor-only structure', async () => {
     molstarMocks.engine.load.mockResolvedValueOnce({

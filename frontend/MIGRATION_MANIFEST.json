@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "6fc96b4491e7fed1588188f984128a56991383fddbea93953608a38d4c6d1e9c",
+  "adaptationFingerprintSHA256": "8f86a67f0dd88b8953c6814f21a107f18c1666fc1c7005c9a1c7f275f647fb20",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "821ad6b240aa148706eff8f406f6e7c26bd4afef95a4ce52c5581b8d01eb84d4",
+  "additionFingerprintSHA256": "a34a2ec5c41b75812b446352fa53f3de755a8e4d84ac6d46b2e35fb4c3e456be",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 345,
@@ -17,14 +17,14 @@
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "d05feddf7b9ed18956de7bcad027a685903acc1f45f75b71d1ef3784838f8389",
+      "targetSHA256": "b46d13f0a74b5d8eb8eae07db9fad6ffc913a5b86ab8e1f5240fcb958eb5b34c",
       "bytes": 4378,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "b5c560e8b9b6b15b4ff12ab95412b98313f82ec489c65e679f62699e3f29402b",
+      "targetSHA256": "ad84e96d9188aa0d95e72a4a5c2cf7bed220cea6e70ce34f70bfe727c4415b03",
       "bytes": 157,
       "reason": "Remove @synon-ai/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -1501,8 +1501,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedStructureViewer.tsx",
       "sourceSHA256": "6cb430ff6d16123ef3da68f5af29d4dc093a1e5bb9e9b2655a3c01e2d1e2ecb1",
-      "targetSHA256": "db8455cf5006b000ffbeeec3db46e03849138c13625fa7548ac87e6e3c3ba22a",
-      "bytes": 140038,
+      "targetSHA256": "54f6c6e7f70dc80b27ffce45fba9a4c86bd89c56893d725ff47d048152a20c5e",
+      "bytes": 141403,
       "reason": "Unify PDB, mmCIF, SDF, and related molecular formats on one Molstar preview with composition-aware controls, collapsed auxiliary panels, and source-fenced 2D interaction refresh."
     },
     {
@@ -2502,8 +2502,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "42d88a3d5fe4f37482fbc9c23ca856e77153856395cebb778331204d82e1c4b0",
-      "bytes": 253206,
+      "targetSHA256": "d4469390c4cf80e7d6cbf9cf8fd44d8eb44b7e63d39630e5d10453a4794b9aab",
+      "bytes": 253278,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2579,8 +2579,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/preview.json",
       "sourceSHA256": "bf530f4a992cc14652500390e715b7add84853e9b0757158c718244cf4cd8f32",
-      "targetSHA256": "7c951460ea358681384d4aee96d5291920a5609bb4f22461aa30aebe51b60b9e",
-      "bytes": 41603,
+      "targetSHA256": "ed18749ce05bd3ba760eb86c1bd982e04daba797fe52a4017460c49617fd5c39",
+      "bytes": 41725,
       "reason": "Add English labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls."
     },
     {
@@ -2670,8 +2670,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/preview.json",
       "sourceSHA256": "6b772273972756a3407fee8fe7b4503e992964a8de901375f06bfd2faacf2ba0",
-      "targetSHA256": "af80171045d8d9927675f2609f38943d0cb73258ea2b0dd00d92c7a404038b85",
-      "bytes": 40158,
+      "targetSHA256": "c50861d74c0d73828f2f9234c6cb83676a4d77a93662a669a6d3e02be4480c1b",
+      "bytes": 40281,
       "reason": "Add Simplified Chinese labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls."
     },
     {
@@ -3671,8 +3671,8 @@
     {
       "path": "tests/unit/previews/SynonBiomedStructureViewer.dom.test.tsx",
       "sourceSHA256": "ba8c8acb753fdac5f71871a9aeba75f7dd569f1f82eca75dae7e0c76fa5f1c54",
-      "targetSHA256": "c1fab4a3e40a578e4bb63d2fdc057d9429ff3f518d0cf1c145b0f4370f9a0b60",
-      "bytes": 140779,
+      "targetSHA256": "c845ca3014bfac882fa06313488cfcd647da68485e2d61ea9f824d66ef0dafbf",
+      "bytes": 142585,
       "reason": "Verify format-neutral composition controls, collapsed 2D panels, and source-invalidated interactions after minimization."
     },
     {
@@ -6796,7 +6796,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "e1f8ccc559143a7e5296105f49a84daf1681694287dd6cfa631ab6fe2cf76400",
+      "sha256": "d5527ed277ef8cbc90a81fe48bf381e9c8836d890d94a35c19fa2ecd8f16e839",
       "bytes": 558186,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -8062,8 +8062,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/molstarStructureEngine.ts",
-      "sha256": "1fcaa47e25c5ae08ed6bf9725f2185e142de5d6f52c8b0712d91c1e7bc699efa",
-      "bytes": 146675,
+      "sha256": "51915c32d70ddd2f91beec56f50b1f037902a53028143206d2e6022563880799",
+      "bytes": 147649,
       "reason": "Own format-neutral Molstar loading, structure composition, surface styling, ligand extraction, and object visibility operations."
     },
     {

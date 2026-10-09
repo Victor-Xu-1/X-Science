@@ -417,10 +417,19 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
   const hasLigandContent = Boolean(
     dockingEnsemble ? selectedDockingIndices.length > 0 : structureComposition?.hasLigand
   );
+  const surfaceDockingIndices = dockingEntry
+    ? selectedDockingIndices.length > 0
+      ? selectedDockingIndices
+      : [dockingEntryIndex]
+    : [];
+  const surfaceDockingResidueNames = surfaceDockingIndices.map((index) => dockingEnsemble!.entries[index].residueName);
+  const hasLigandElectrostaticInput = Boolean(
+    engineRef.current?.hasElectrostaticLigandInput?.(dockingEntry ? surfaceDockingResidueNames : undefined)
+  );
   const isRepresentationAvailable = (representation: DisplayRepresentation): boolean => {
     if (representation === 'surface') return hasProteinContent;
     if (representation === 'pocket-surface') return hasProteinContent && hasLigandContent;
-    if (representation === 'ligand-surface') return hasLigandContent;
+    if (representation === 'ligand-surface') return hasLigandContent && hasLigandElectrostaticInput;
     return true;
   };
   const smilesCompanionUrl = resolveCandidateSmilesCompanionUrl(companionArtifactUrls);
@@ -620,7 +629,21 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
     engine: MolstarStructureEngine,
     ligandResidueNames?: readonly string[]
   ): Promise<void> => {
-    const source = engine.getElectrostaticInputSource(ligandResidueNames);
+    let source: ReturnType<MolstarStructureEngine['getElectrostaticInputSource']>;
+    try {
+      source = engine.getElectrostaticInputSource(ligandResidueNames);
+    } catch (reason) {
+      if (
+        reason instanceof Error &&
+        (reason.message === 'MOLSTAR_LIGAND_TOPOLOGY_UNAVAILABLE' ||
+          reason.message.startsWith('MOLSTAR_ELECTROSTATIC_LIGAND_INPUT_MISSING:'))
+      ) {
+        throw new StructureElectrostaticUserError(
+          t('preview.scientific.structure.quickActions.ligandChemistryRequired')
+        );
+      }
+      throw reason;
+    }
     if (!operationFrameId || !source) {
       throw new StructureElectrostaticUserError(
         t('preview.scientific.structure.quickActions.electrostaticMapUnavailable')
@@ -1294,13 +1317,8 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
         : dockingEntry || preservePocket
           ? toggleStructureDisplayLayer(viewLayers, representation)
           : [representation];
-    const dockingResidueIndices =
-      dockingEntry && dockingEnsemble
-        ? selectedDockingIndices.length > 0
-          ? selectedDockingIndices
-          : [dockingEntryIndex]
-        : [];
-    const dockingResidueNames = dockingResidueIndices.map((index) => dockingEnsemble!.entries[index].residueName);
+    const dockingResidueIndices = surfaceDockingIndices;
+    const dockingResidueNames = surfaceDockingResidueNames;
     const succeeded = await runEngineAction(`view-${representation}`, async (engine) => {
       if (nextLayers.some((layer) => isElectrostaticSurfaceRepresentation(layer))) {
         await ensureElectrostaticPotential(
@@ -3017,6 +3035,16 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
                         : viewLayers.includes(representation)
                     }
                     disabled={!canInteract || !isRepresentationAvailable(representation)}
+                    title={
+                      representation === 'ligand-surface' && hasLigandContent && !hasLigandElectrostaticInput
+                        ? t('preview.scientific.structure.quickActions.ligandChemistryRequired')
+                        : undefined
+                    }
+                    aria-description={
+                      representation === 'ligand-surface' && hasLigandContent && !hasLigandElectrostaticInput
+                        ? t('preview.scientific.structure.quickActions.ligandChemistryRequired')
+                        : undefined
+                    }
                     onClick={() => void handleViewRepresentation(representation)}
                   >
                     {label}

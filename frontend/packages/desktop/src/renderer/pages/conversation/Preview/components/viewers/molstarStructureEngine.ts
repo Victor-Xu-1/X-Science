@@ -519,6 +519,7 @@ export type MolstarStructureEngine = {
   readonly getTrajectoryModelState: () => MolstarTrajectoryModelState;
   readonly getStructureComposition: () => MolstarStructureComposition;
   readonly getPrimaryLigandDepictionSource: () => MolstarLigandDepictionSource | undefined;
+  readonly hasElectrostaticLigandInput: (ligandResidueNames?: readonly string[]) => boolean;
   readonly getElectrostaticInputSource: (
     ligandResidueNames?: readonly string[]
   ) => MolstarElectrostaticInputSource | undefined;
@@ -2189,7 +2190,8 @@ export async function createMolstarStructureEngine(
 
   const createLigandDepictionSource = (
     structure: Structure,
-    candidateLigands: StructureElement.Loci
+    candidateLigands: StructureElement.Loci,
+    includeComplexPdb = true
   ): MolstarLigandDepictionSource | undefined => {
     const primaryLigand = selectPrimaryPocketLigandLoci(candidateLigands);
     if (StructureElement.Loci.isEmpty(primaryLigand)) return undefined;
@@ -2219,7 +2221,7 @@ export async function createMolstarStructureEngine(
     const protein = StructureQuery.loci(StructureSelectionQueries.protein.query, structure);
     const hasProtein = !StructureElement.Loci.isEmpty(protein);
     let complexPdb: string | undefined;
-    if (hasProtein) {
+    if (hasProtein && includeComplexPdb) {
       const poseAtoms = createPoseAtoms(structure, StructureElement.Loci.union(protein, primaryLigand)).map((atom) =>
         atom.recordName === 'HETATM' ? Object.assign({}, atom, { residueName: interactionResidueName }) : atom
       );
@@ -2237,7 +2239,7 @@ export async function createMolstarStructureEngine(
     };
   };
 
-  const getPrimaryLigandDepictionSource = (): MolstarLigandDepictionSource | undefined => {
+  const getPrimaryLigandDepictionSource = (includeComplexPdb = true): MolstarLigandDepictionSource | undefined => {
     const structure = getCurrentStructure();
     if (!structure) return undefined;
     const composition = getStructureComposition();
@@ -2253,14 +2255,15 @@ export async function createMolstarStructureEngine(
     const selected = structureLigands.depictionLoci();
     const depiction = createLigandDepictionSource(
       structure,
-      selected ? StructureElement.Loci.intersect(displayLigands, selected) : displayLigands
+      selected ? StructureElement.Loci.intersect(displayLigands, selected) : displayLigands,
+      includeComplexPdb
     );
     return depiction ? { ...depiction, instanceId: structureLigands.selectedIds().at(-1) } : undefined;
   };
 
-  const getElectrostaticInputSource = (
+  const getElectrostaticLigandInput = (
     ligandResidueNames?: readonly string[]
-  ): MolstarElectrostaticInputSource | undefined => {
+  ): { structure: Structure; ligands: MolstarElectrostaticLigandInputSource[] } | undefined => {
     const requestedLigands = [
       ...new Set((ligandResidueNames ?? []).map(normalizeElectrostaticLigandKey).filter(Boolean)),
     ];
@@ -2268,13 +2271,11 @@ export async function createMolstarStructureEngine(
     const useRequestedLigands = ligandResidueNames !== undefined;
     const structure = useRequestedLigands && dockingStructure ? dockingStructure : getCurrentStructure();
     if (!structure) return undefined;
-    const atoms = createPoseAtoms(structure, undefined);
-    if (atoms.length === 0) return undefined;
     const ligands: MolstarElectrostaticLigandInputSource[] = [];
     if (useRequestedLigands) {
       const allLigands = StructureQuery.loci(StructureSelectionQueries.ligand.query, structure);
       for (const key of requestedLigands) {
-        const ligand = createLigandDepictionSource(structure, filterStructureLociByResidueName(allLigands, key));
+        const ligand = createLigandDepictionSource(structure, filterStructureLociByResidueName(allLigands, key), false);
         if (!ligand?.molBlock) throw new Error(`MOLSTAR_ELECTROSTATIC_LIGAND_INPUT_MISSING:${key}`);
         ligands.push({
           key,
@@ -2283,7 +2284,7 @@ export async function createMolstarStructureEngine(
         });
       }
     } else {
-      const ligand = getPrimaryLigandDepictionSource();
+      const ligand = getPrimaryLigandDepictionSource(false);
       if (ligand && !ligand.topologyAvailable) throw new Error('MOLSTAR_LIGAND_TOPOLOGY_UNAVAILABLE');
       if (ligand?.molBlock) {
         ligands.push({
@@ -2293,9 +2294,29 @@ export async function createMolstarStructureEngine(
         });
       }
     }
+    return { structure, ligands };
+  };
+
+  // Availability and execution consume the same verified chemistry resolver.
+  // Do not serialize the whole protein merely to enable a toolbar button.
+  const hasElectrostaticLigandInput = (ligandResidueNames?: readonly string[]): boolean => {
+    try {
+      return Boolean(getElectrostaticLigandInput(ligandResidueNames)?.ligands.length);
+    } catch {
+      return false;
+    }
+  };
+
+  const getElectrostaticInputSource = (
+    ligandResidueNames?: readonly string[]
+  ): MolstarElectrostaticInputSource | undefined => {
+    const source = getElectrostaticLigandInput(ligandResidueNames);
+    if (!source) return undefined;
+    const atoms = createPoseAtoms(source.structure, undefined);
+    if (atoms.length === 0) return undefined;
     return {
       content: formatMolstarPosePdb(atoms),
-      ligands,
+      ligands: source.ligands,
       atomCount: atoms.length,
     };
   };
@@ -3617,6 +3638,7 @@ export async function createMolstarStructureEngine(
     getTrajectoryModelState,
     getStructureComposition,
     getPrimaryLigandDepictionSource,
+    hasElectrostaticLigandInput,
     getElectrostaticInputSource,
     setElectrostaticPotentials,
     setStructureObjectVisible,

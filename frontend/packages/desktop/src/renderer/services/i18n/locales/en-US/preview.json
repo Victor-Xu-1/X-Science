@@ -660,6 +660,7 @@
         "ligandDepictionAlt": "2D structure of {{ligand}}",
         "ligandDepictionUnavailable": "2D structure unavailable",
         "ligandTopologyUnavailable": "Verified bond-order information is missing. A reliable 2D structure cannot be drawn; 3D coordinates remain available.",
+        "ligandChemistryRequired": "This action needs verified ligand bond orders. 3D coordinates alone are not enough.",
         "previousSelectedLigand": "Previous selected ligand",
         "nextSelectedLigand": "Next selected ligand",
         "interactionLegendTitle": "Interaction lines",

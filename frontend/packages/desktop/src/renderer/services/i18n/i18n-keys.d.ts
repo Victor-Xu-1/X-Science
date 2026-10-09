@@ -3200,6 +3200,7 @@ export type I18nKey =
   | 'preview.scientific.structure.quickActions.interactionStrengthLoading'
   | 'preview.scientific.structure.quickActions.interactionStrengthScale'
   | 'preview.scientific.structure.quickActions.interactionStrengthUnavailable'
+  | 'preview.scientific.structure.quickActions.ligandChemistryRequired'
   | 'preview.scientific.structure.quickActions.ligandColor'
   | 'preview.scientific.structure.quickActions.ligandDepiction'
   | 'preview.scientific.structure.quickActions.ligandDepictionAlt'
