@@ -567,7 +567,7 @@ const ExpertWorkbench: React.FC<ExpertWorkbenchProps> = ({ withHeader = true, co
                       >
                         <TabPane
                           key='skills'
-                          title={`Skills${draft.skillNames.length ? ` ${draft.skillNames.length}` : ''}`}
+                          title={`${t('settings.skills')}${draft.skillNames.length ? ` ${draft.skillNames.length}` : ''}`}
                         >
                           <Select
                             aria-label={t('settings.expertsSettings.addSkill')}
@@ -595,7 +595,12 @@ const ExpertWorkbench: React.FC<ExpertWorkbenchProps> = ({ withHeader = true, co
                                 return (
                                   <CapabilityRow
                                     key={skillName}
-                                    label={skill?.displayName || skillName}
+                                    label={resolveSkillDisplayName(
+                                      skillName,
+                                      skill?.displayName,
+                                      i18n.language,
+                                      skill?.name_i18n
+                                    )}
                                     onRemove={() =>
                                       setDraft({
                                         ...draft,
