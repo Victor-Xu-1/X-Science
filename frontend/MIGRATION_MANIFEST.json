@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "de1943dae5e0d163637c204cc9385e01acf4710327068271db42a2abfa4e7351",
+  "adaptationFingerprintSHA256": "8097292e7d6ea68d3ba0e1aad07c8071148fb3d6189c61df95f0c4b3e014b8bc",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "b35f1a0eebbb72ee6c936ee629e629eb1bc332a0f272cf0585fd4b9ce8d21a61",
+  "additionFingerprintSHA256": "251beb0639d421fb0f38ad5d17111a020c9c7471826d4dcedbefc0a8b5cb1814",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 345,
     "adaptedSourceFiles": 716,
     "removedSourceFiles": 293,
-    "addedFiles": 821
+    "addedFiles": 825
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "43849138491576ad13272c5068f01f1a3af1b931b2491d8f0cfb6284fb7ea32c",
+      "targetSHA256": "4844b4dbbe2d205b3e5869425186dae44930f577847029c4fa395acccb5c8156",
       "bytes": 4378,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "8a9fcafb3039b25a8724cd01d0e5db63396ad4a3117ecf9827d06deb37fe21e6",
+      "targetSHA256": "b454b4be40ca3cddd98505941c724b7b14aaf9c24916d87fdcb19208492d6a48",
       "bytes": 157,
       "reason": "Remove @synon-ai/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -2313,8 +2313,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/settings/SynonBiomedModelsSettings.tsx",
       "sourceSHA256": "7f6e314cb5ff00276774dc19dcd6c820b5c95621cff0c4eed4658584fc6e1b21",
-      "targetSHA256": "53add21eb54364175e55fd59bcbcf008c99367cd67043f7ba79d4c9e9c77fc6b",
-      "bytes": 24063,
+      "targetSHA256": "491de4f003f550f2b7549d6a677a2ca21709f23e3ac0199cd488fcc751b60d0a",
+      "bytes": 14552,
       "reason": "Condense model-provider settings copy for the migrated Web surface."
     },
     {
@@ -2502,8 +2502,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "5604319b735d9d0e3d08fc5fbbc811743ae365e83210bac57c808422092d1edd",
-      "bytes": 252699,
+      "targetSHA256": "1834410c8c7498ce33b0665479eddc40c19d3ec84a269e9ac0fa4f63e360c688",
+      "bytes": 252813,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2586,8 +2586,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/settings.json",
       "sourceSHA256": "d7c89e27673b4245d2efeb4216c9768e08420beabd9294779d4d099207ea5e7a",
-      "targetSHA256": "20cf944f452695f1308b3f7c403fe237293ab7e620b7425a72fd597c8f6161e7",
-      "bytes": 137883,
+      "targetSHA256": "e25b996df2ae1abc4841170f37a613f44ad0fded706b644435e45f6ca7610986",
+      "bytes": 138117,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2677,8 +2677,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/settings.json",
       "sourceSHA256": "3afd2c67b5d1a42960c03d5e70dbdb23c3b6b1a3981665ac37919e199dc814c0",
-      "targetSHA256": "ba039b258c9b4a36c9a7f58a15d826bfe8eccd8a178e28431daffcc279b3b16e",
-      "bytes": 132587,
+      "targetSHA256": "186a55740ddadd6ac5c6f24d855e64d4e5b1ef4fa95915dcb890de467ea54483",
+      "bytes": 132809,
       "reason": "Explain required scientific runtimes, unified user-managed storage, and Synon Go service guidance."
     },
     {
@@ -6796,7 +6796,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "6e62da819348d5fd6a871a75ffde5a3410b021b03d79b36378a3ab24c7fa1349",
+      "sha256": "7646ba140b38e31320df7d24532a95db5f799d9567a9c2a8c382074cab21884c",
       "bytes": 558186,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -8626,8 +8626,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/settings/components/settings-models.css",
-      "sha256": "27e1189093c132f8176af28168fc46ff7208941e74fe2a301f8d4aa43062e2a3",
-      "bytes": 3474,
+      "sha256": "afcfb4948c2933eda119861a32ee9f820bded62af25642d7d41efa8058c6a040",
+      "bytes": 4149,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8706,6 +8706,24 @@
       "path": "packages/desktop/src/renderer/pages/settings/environments/environments.css",
       "sha256": "91cd8c517b290569ff1156445988073613f173db56908aed99324293b67aabe0",
       "bytes": 11191,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/settings/models/ModelProfileEditor.tsx",
+      "sha256": "bba7c6d485691d97ce6ccf933946ce8bf8215f84d86e1cf02dd0eafbc67f5d53",
+      "bytes": 9598,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/settings/models/modelProfilePresentation.ts",
+      "sha256": "3d139034d13ea04e7f78f3de6190504149195901bb082282221b30fc7c80b2d5",
+      "bytes": 2150,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/settings/models/useModelProfileSnapshot.ts",
+      "sha256": "9e8c46004e276e647ccbacc909771874f26bd8203587be8e1356cb0a39baf301",
+      "bytes": 1979,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10866,6 +10884,12 @@
       "path": "tests/unit/settings/MessageChannelsSettings.dom.test.tsx",
       "sha256": "04010dc214a542313f00942920770eea9e71183faf3c9e3b952e6c9f50d06fb7",
       "bytes": 8660,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/settings/ModelProfileReadLifecycle.dom.test.tsx",
+      "sha256": "39c0037e9e55672c8f891e120dad557df9c708dc9ce0f67c31638811318632a1",
+      "bytes": 16547,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
