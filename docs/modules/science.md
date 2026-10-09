@@ -55,9 +55,17 @@ must share that same budget. The 64 MiB per-map / 128 MiB aggregate decoded
 limits and grid, atom, identity, alignment, and scientific-report checks remain.
 This does not resample grids, round potentials, or fabricate missing ligand bond orders.
 
+Ligand-surface availability uses the same verified chemistry resolver as the
+calculation input. Coordinate-only ligands remain viewable in 3D, while their
+unsupported electrostatic action is disabled with a localized explanation;
+structures with declared ligand chemistry keep that action available.
+
 APBS OpenDX 通过无损 gzip/base64 逐字节传输。单张图可使用现有 36 MiB 总编码预算，
 多张图仍共享该预算；解压后单图 64 MiB、合计 128 MiB 的限制及网格、原子、身份、
 对齐和科学回执检查不变。不降低网格精度，不对电势值舍入，也不虚构配体键级。
+
+配体表面按钮与计算输入共用已验证的化学来源。只有坐标的配体仍可查看三维结构，
+但不支持的电性操作会禁用并说明原因；带有可靠配体化学信息的文件继续支持该操作。
 
 ```sh
 go test ./internal/server -run '^TestStructurePreviewKernel|^TestEncodeStructureElectrostaticDX' -count=1
