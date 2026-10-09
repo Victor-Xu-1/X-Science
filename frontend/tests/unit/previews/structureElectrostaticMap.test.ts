@@ -103,6 +103,23 @@ const batchResponse = (): StructureElectrostaticMapResponse => {
 };
 
 describe('structure electrostatic map transport', () => {
+  it('allows one real-sized map within the existing total encoded budget', () => {
+    const value = response();
+    value.potential_maps.protein!.dx_gzip_base64 = 'A'.repeat(28 << 20);
+    expect(isStructureElectrostaticMapResponse(value)).toBe(true);
+  });
+
+  it('keeps the total encoded budget unchanged for single and multiple maps', () => {
+    const value = response();
+    value.potential_maps.protein!.dx_gzip_base64 = 'A'.repeat(22 << 20);
+    value.potential_maps.ligand!.dx_gzip_base64 = 'A'.repeat(14 << 20);
+    expect(isStructureElectrostaticMapResponse(value)).toBe(true);
+    value.potential_maps.ligand!.dx_gzip_base64 += 'AAAA';
+    expect(isStructureElectrostaticMapResponse(value)).toBe(false);
+    value.potential_maps.protein!.dx_gzip_base64 = 'A'.repeat((36 << 20) + 4);
+    expect(isStructureElectrostaticMapResponse(value)).toBe(false);
+  });
+
   it('validates and decodes the bounded APBS OpenDX response', async () => {
     const value = response();
     expect(isStructureElectrostaticMapResponse(value)).toBe(true);

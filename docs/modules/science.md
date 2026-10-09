@@ -39,6 +39,31 @@ Linux/WSL。不要把 native 安装成功写成该平台已能执行科学任务
 
 ## Focused verification · 验证入口
 
+### Interactive structure calculations · 交互式结构计算
+
+Electrostatic maps, 2D interaction diagrams, and energy minimization use one
+request-scoped kernel lifecycle in [structure_preview_kernel.go](../../internal/server/structure_preview_kernel.go).
+Completing the parent task does not make a running preview calculation idle.
+Request timeout/cancellation and explicit kernel/workspace cleanup still apply.
+
+电性图、2D 相互作用图和能量优化统一由预览请求管理内核生命周期；父任务已完成
+不代表正在运行的预览计算空闲。原有请求超时、取消及内核/工作目录清理保持有效。
+
+APBS OpenDX values are transmitted byte-for-byte through lossless gzip/base64.
+One map may use the existing 36 MiB aggregate encoded budget; multiple maps
+must share that same budget. The 64 MiB per-map / 128 MiB aggregate decoded
+limits and grid, atom, identity, alignment, and scientific-report checks remain.
+This does not resample grids, round potentials, or fabricate missing ligand bond orders.
+
+APBS OpenDX 通过无损 gzip/base64 逐字节传输。单张图可使用现有 36 MiB 总编码预算，
+多张图仍共享该预算；解压后单图 64 MiB、合计 128 MiB 的限制及网格、原子、身份、
+对齐和科学回执检查不变。不降低网格精度，不对电势值舍入，也不虚构配体键级。
+
+```sh
+go test ./internal/server -run '^TestStructurePreviewKernel|^TestEncodeStructureElectrostaticDX' -count=1
+cd frontend && npx vitest run tests/unit/previews/structureElectrostaticMap.test.ts
+```
+
 从仓库根目录执行：
 
 ```sh
