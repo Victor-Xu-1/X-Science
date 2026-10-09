@@ -1,4 +1,4 @@
-"""Bounded execution bridge for an operator-installed Synon-research pack.
+"""Bounded execution bridge for an operator-installed research capability pack.
 
 The external package remains outside X-Science source.  This module exposes
 its compact JSON helpers through one MCP domain without registering every
@@ -200,7 +200,7 @@ def load_pack() -> Pack:
     if not configured:
         raise PackError(
             "package_unavailable",
-            f"Set {ROOT_ENV} to an operator-verified Synon-research upstream package directory.",
+            f"Set {ROOT_ENV} to an operator-verified research capability package directory.",
         )
     raw_root = Path(configured).expanduser()
     if not raw_root.is_absolute():
@@ -212,7 +212,7 @@ def load_pack() -> Pack:
     except (OSError, ValueError) as exc:
         raise PackError("invalid_manifest", "The external plugin manifest is not valid JSON.") from exc
     if metadata.get("name") != UPSTREAM_PLUGIN_NAME:
-        raise PackError("invalid_manifest", f"Configured Synon-research upstream package has an unexpected identity.")
+        raise PackError("invalid_manifest", "Configured research capability package has an unexpected identity.")
     version = str(metadata.get("version") or "").strip()
     if not version:
         raise PackError("invalid_manifest", "The external plugin manifest has no version.")
@@ -312,7 +312,7 @@ def describe_source(source_id: str) -> dict[str, Any]:
     pack = load_pack()
     source = next((item for item in pack.sources if item.source_id == source_id), None)
     if source is None:
-        raise PackError("source_not_found", f"Unknown Synon-research source {source_id!r}.")
+        raise PackError("source_not_found", f"Unknown research source {source_id!r}.")
     return {
         "source": PUBLIC_NAME,
         "version": pack.version,
@@ -580,7 +580,7 @@ def _prepare_source_call(
     pack = load_pack()
     source = next((item for item in pack.sources if item.source_id == source_id), None)
     if source is None:
-        raise PackError("source_not_found", f"Unknown Synon-research source {source_id!r}.")
+        raise PackError("source_not_found", f"Unknown research source {source_id!r}.")
     selected = next((item for item in source.operations if item.name == operation), None)
     if selected is None:
         raise PackError("operation_not_found", f"Source {source_id!r} has no operation {operation!r}.")

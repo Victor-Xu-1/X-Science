@@ -383,6 +383,9 @@ func TestBundledConnectorRosterMatchesVendoredMethodAuthority(t *testing.T) {
 	if !found || synonResearch.Name != "synon-research" || synonResearch.Package != "mcp_synon_research" {
 		t.Fatalf("Synon-research connector = %#v", synonResearch)
 	}
+	if synonResearch.DisplayName != "X-Science Research" || strings.Contains(synonResearch.Description, "Synon-research") {
+		t.Fatalf("current research connector presentation = %#v", synonResearch)
+	}
 	if synonResearch.Config.Type != "stdio" || len(synonResearch.Config.Args) != 2 || synonResearch.Config.Args[1] != "mcp_synon_research" {
 		t.Fatalf("Synon-research stdio config = %#v", synonResearch.Config)
 	}

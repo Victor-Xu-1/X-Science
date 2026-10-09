@@ -125,8 +125,8 @@
     ]
   },
   {
-    "id": "bundled:synon-research", "name": "synon-research", "displayName": "Synon-research", "package": "mcp_synon_research",
-    "description": "Independent Synon-research MCP — compact discovery and bounded execution of an operator-verified research capability pack without exposing each source as a separate Skill.",
+    "id": "bundled:synon-research", "name": "synon-research", "displayName": "X-Science Research", "package": "mcp_synon_research",
+    "description": "X-Science research connector — compact discovery and bounded execution of an operator-verified research capability pack without exposing each source as a separate Skill.",
     "runtimeEnvironment": ["SYNON_RESEARCH_ROOT", "SYNON_RESEARCH_EXPECTED_VERSION"],
     "upstreams": [
       {"name": "OpenAI Life Science Research capability pack", "license": "Proprietary", "infoUrl": "https://github.com/openai/plugins/tree/main/plugins/life-science-research"}
