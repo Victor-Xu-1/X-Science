@@ -248,7 +248,7 @@ func (s *Server) executeStructureInteractionDiagram(
 	}
 
 	kernelID := softwareRuntimeKernelID(operationID)
-	worker, err := s.kernelManager.StartSession(kernelruntime.SessionSpec{
+	worker, err := s.startStructurePreviewKernel(kernelruntime.SessionSpec{
 		KernelID:               kernelID,
 		OwnerID:                access.UserID,
 		ProjectID:              access.Frame.ProjectID,

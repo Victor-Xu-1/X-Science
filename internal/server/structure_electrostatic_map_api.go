@@ -44,10 +44,12 @@ const (
 	maxStructureElectrostaticPerLigand      = 2_048
 	maxStructureElectrostaticLigandAtoms    = 8_192
 	maxStructureElectrostaticReportBytes    = 1 << 20
-	maxStructureElectrostaticEncodedBytes   = 24 << 20
-	maxStructureElectrostaticTotalEncoded   = 36 << 20
-	structureElectrostaticRuntimeTimeout    = 12 * time.Minute
-	maxStructureElectrostaticTimeout        = 16 * time.Minute
+	// A single map can use the existing aggregate wire budget. Base64 overhead
+	// must not impose a smaller, conflicting limit on an admitted APBS grid.
+	maxStructureElectrostaticEncodedBytes = maxStructureElectrostaticTotalEncoded
+	maxStructureElectrostaticTotalEncoded = 36 << 20
+	structureElectrostaticRuntimeTimeout  = 12 * time.Minute
+	maxStructureElectrostaticTimeout      = 16 * time.Minute
 )
 
 var structureElectrostaticLigandKeyPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$`)
@@ -418,7 +420,7 @@ func (s *Server) executeStructureElectrostaticMap(
 		}
 	}
 	kernelID := softwareRuntimeKernelID(operationID)
-	worker, err := s.kernelManager.StartSession(kernelruntime.SessionSpec{
+	worker, err := s.startStructurePreviewKernel(kernelruntime.SessionSpec{
 		KernelID: kernelID, OwnerID: access.UserID, ProjectID: access.Frame.ProjectID,
 		FrameID: access.Frame.ID, FrameIncarnationID: access.Frame.IncarnationID,
 		RootFrameID: access.Frame.RootFrameID, RootFrameIncarnationID: access.RootFrameIncarnationID,
@@ -718,7 +720,7 @@ func sameStructureElectrostaticGridFrame(left, right structureElectrostaticGridR
 
 func encodeStructureElectrostaticDX(dx []byte) (string, error) {
 	var compressed bytes.Buffer
-	writer, err := gzip.NewWriterLevel(&compressed, gzip.BestSpeed)
+	writer, err := gzip.NewWriterLevel(&compressed, gzip.DefaultCompression)
 	if err != nil {
 		return "", err
 	}

@@ -58,8 +58,10 @@ export type StructureElectrostaticMapResponse = {
 };
 
 export const MAX_STRUCTURE_ELECTROSTATIC_BATCH_LIGANDS = 8;
-const MAX_COMPRESSED_BASE64_LENGTH = 24 << 20;
 const MAX_TOTAL_COMPRESSED_BASE64_LENGTH = 36 << 20;
+// One map shares the existing aggregate budget; do not reject an admitted
+// APBS grid solely because base64 expands its lossless compressed payload.
+const MAX_COMPRESSED_BASE64_LENGTH = MAX_TOTAL_COMPRESSED_BASE64_LENGTH;
 const MAX_DECOMPRESSED_DX_LENGTH = 64 << 20;
 const MAX_TOTAL_DECOMPRESSED_DX_LENGTH = 128 << 20;
 const MAX_GRID_VALUES = 6_000_000;

@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "b42e10cdf1f170a2b4a568652a0d85010e1e0a4857dd6e83ba25820e95335350",
+  "adaptationFingerprintSHA256": "6fc96b4491e7fed1588188f984128a56991383fddbea93953608a38d4c6d1e9c",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "4c659228d4e7c6e93efa8be78939dbae12f41480074dc19f0fdf9b0ec6f6086b",
+  "additionFingerprintSHA256": "821ad6b240aa148706eff8f406f6e7c26bd4afef95a4ce52c5581b8d01eb84d4",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 345,
@@ -17,14 +17,14 @@
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "c99f9350140039bc66721d18c14351e778f39abc8d9f5cb523081f5cbcbacddf",
+      "targetSHA256": "d05feddf7b9ed18956de7bcad027a685903acc1f45f75b71d1ef3784838f8389",
       "bytes": 4378,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "876d307d76dc8273f1d1b7644f007d7854121bde66d3306fc983cd4b623997cb",
+      "targetSHA256": "b5c560e8b9b6b15b4ff12ab95412b98313f82ec489c65e679f62699e3f29402b",
       "bytes": 157,
       "reason": "Remove @synon-ai/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -6796,7 +6796,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "e4c2ff8a119fb42d682299e7beafcd7b21a2fb7aa3ae0431b38810207ef46495",
+      "sha256": "e1f8ccc559143a7e5296105f49a84daf1681694287dd6cfa631ab6fe2cf76400",
       "bytes": 558186,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -8104,8 +8104,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/structureElectrostaticMap.ts",
-      "sha256": "38050dea0a559451aa904041141c386ed77185c0bf57a957de5a50a4e8d6f344",
-      "bytes": 13635,
+      "sha256": "130497f1d501141ff032b9ab49e208a34fc41d48834d672914a6efdfe7c6155f",
+      "bytes": 13812,
       "reason": "Validate and decode bounded aligned protein and ligand APBS maps before they enter the unified molecular preview."
     },
     {
@@ -10126,8 +10126,8 @@
     },
     {
       "path": "tests/unit/previews/structureElectrostaticMap.test.ts",
-      "sha256": "ab2534557f43ebabc08ccf1ae9e6b463d95af279bcb5c8876a4c36498ee62a7a",
-      "bytes": 9280,
+      "sha256": "87c347ef757ef9067d4ccefff9f5052c45227da472c85c597b92be7aed6d732a",
+      "bytes": 10149,
       "reason": "Verify aligned dual-component APBS response validation, bounded decoding, and malformed-map rejection."
     },
     {
