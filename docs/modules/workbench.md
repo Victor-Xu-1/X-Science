@@ -165,10 +165,10 @@ conditional section's pending focus intent, not the server-side read or write.
 Pocket entry frames the selected ligand together with the contact residues that
 are actually labelled. Compact native tethered residue callouts preserve every
 existing identifier and contact; no coordinates, topology, selection or computed
-values are changed. This automatic framing runs only on explicit pocket entry;
+values are changed. This automatic framing runs only on explicit pocket or pocket-surface entry;
 pose/color refinements keep the existing camera-preservation guard.
 
-口袋视图首次进入时，将所选配体与实际显示标签的接触残基一同纳入镜头。紧凑原生
+口袋或口袋表面明确进入时，将所选配体与实际显示标签的接触残基一同纳入镜头。紧凑原生
 标签保留既有残基标识与接触，不改变坐标、拓扑、选择或计算值。后续构象、颜色更新
 继续遵循既有镜头保护，不重新覆盖用户视角。
 
@@ -189,6 +189,23 @@ This does not claim that every camera angle is free from label overlap.
 入口；换文件、收起工具栏不宣称取消服务端工作。输入条件满足不冒称计算环境已执行。
 原生残基文字保留对比背景，去除额外边距以减少文字框遮挡，不删标签、不改变科学值；
 这不代表所有镜头角度都不会出现标签重叠。
+
+Surface geometry uses one resolver for preset, pocket and docking-layer paths.
+Local pocket/ligand detail follows Mol*'s size-aware quality policy for the actual
+represented component, not the whole parent protein; the full-protein budget is
+unchanged. Probe radius, opacity, source coordinates and APBS field/color scale
+retain their existing authority. Finer display geometry does not recompute or
+improve the scientific potential. Explicit pocket-surface activation reframes
+once; removal, pose/color updates and interaction refinements do not reframe.
+The ordinary preset reports its committed pocket loci to the same native framing
+helper, rather than selecting contacts by filename or creating another camera.
+
+预设、口袋和对接图层共用表面几何解析器。局部口袋、配体按实际显示组件使用 Mol*
+原生的大小适配质量，不沿用整蛋白父结构的粗网格；整蛋白显示预算不变。探针半径、
+透明度、原坐标和 APBS 电势／色标仍由原链路管理。更细的展示几何不代表重新计算或
+提高了科学电势的准确度。明确打开口袋表面时聚焦一次；关闭图层、构象、颜色及
+相互作用细化不覆盖用户镜头。普通预设将已提交的口袋 loci 交给同一原生聚焦助手，
+不按文件名选择接触，也不另建镜头实现。
 
 图片预览提供适应窗口、原始尺寸和逐级缩放；超出视口的原图可滚动阅读，切换缩放
 保留当前阅读中心，不裁切或改写原始像素。图片视口获得焦点后，`+`/`-` 缩放，`0`

@@ -5,6 +5,7 @@ import { StructureElement, type Structure, type Unit } from 'molstar/lib/mol-mod
 import { OrderedSet } from 'molstar/lib/mol-data/int';
 import {
   POCKET_RESIDUE_LABEL_TYPE_PARAMS,
+  resolvePocketReadingCameraOptions,
   resolvePocketReadingFocusRadius,
 } from '@/renderer/pages/conversation/Preview/components/viewers/molstarPocketReading';
 
@@ -63,8 +64,23 @@ describe('pocket reading presentation', () => {
     );
     expect(source).toContain('...POCKET_RESIDUE_LABEL_TYPE_PARAMS');
     expect(source).toMatch(
-      /if \(shouldFocusPocketCamera\(options\)\)\s*\{\s*plugin\.managers\.camera\.focusLoci\(ligandLoci,/
+      /if \(shouldFocusPocketCamera\(options\)\)\s*\{\s*plugin\.managers\.camera\.focusLoci\(\s*ligandLoci,/
     );
-    expect(source).toContain('minRadius: resolvePocketReadingFocusRadius(');
+    expect(source).toContain('resolvePocketReadingCameraOptions(ligandLoci, contactResidueLoci, boundedExpandRadius)');
+  });
+
+  it('shares bounded native pocket framing without changing either selection', () => {
+    const ligand = locus(0, 1),
+      contacts = locus(1, 3);
+    expect(resolvePocketReadingCameraOptions(ligand, contacts, 4.5)).toEqual({
+      durationMs: 260,
+      extraRadius: 2.25,
+      minRadius: 10,
+      optimizeDirection: true,
+    });
+    expect(resolvePocketReadingCameraOptions(ligand, contacts, 99).extraRadius).toBe(2.5);
+    expect(resolvePocketReadingCameraOptions(ligand, contacts, 0).extraRadius).toBe(1.5);
+    expect(StructureElement.Loci.size(ligand)).toBe(1);
+    expect(StructureElement.Loci.size(contacts)).toBe(2);
   });
 });

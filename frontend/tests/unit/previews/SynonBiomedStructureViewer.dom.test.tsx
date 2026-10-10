@@ -1825,7 +1825,7 @@ describe('SynonBiomedStructureViewer', () => {
         'D01',
         expect.objectContaining({
           displayLayers: ['ligand-surface', 'pocket-surface'],
-          focusCamera: false,
+          focusCamera: true,
         })
       )
     );
@@ -3119,7 +3119,7 @@ describe('SynonBiomedStructureViewer', () => {
     await waitFor(() =>
       expect(molstarMocks.engine.applyPocketFocus).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          focusCamera: false,
+          focusCamera: true,
           displayLayers: ['ligand-surface', 'pocket-surface'],
         })
       )
@@ -3158,6 +3158,12 @@ describe('SynonBiomedStructureViewer', () => {
 
     expect(screen.queryByRole('button', { name: '开启鼠标选择' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '清除选择' })).not.toBeInTheDocument();
+    fireEvent.click(pocketSurface);
+    await waitFor(() =>
+      expect(molstarMocks.engine.applyPocketFocus).toHaveBeenLastCalledWith(
+        expect.objectContaining({ focusCamera: false, displayLayers: ['ligand-surface'] })
+      )
+    );
   });
 
   it('submits minimization to the unified backend and reloads the returned coordinates', async () => {

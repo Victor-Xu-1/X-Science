@@ -68,6 +68,7 @@ import {
 } from '@/renderer/pages/conversation/Preview/components/viewers/molstarDockingLigandShape';
 import { selectMolstarInteractionFeatureAnchors } from '@/renderer/pages/conversation/Preview/components/viewers/molstarInteractionAnchors';
 import { Color } from 'molstar/lib/mol-util/color';
+import { getQualityProps } from 'molstar/lib/mol-repr/util';
 import { Vec3 } from 'molstar/lib/mol-math/linear-algebra';
 import { createMolstarInteractionStrengthLabelData } from '@/renderer/pages/conversation/Preview/components/viewers/molstarInteractionStrengthLabels';
 import { isDisplayLigandResidueName } from '@/renderer/pages/conversation/Preview/components/viewers/structureComposition';
@@ -761,11 +762,19 @@ describe('molstarStructureEngine protein surface and ligand representation', () 
     expect(POCKET_SURFACE_TYPE_PARAMS).toEqual({
       probeRadius: 1.4,
       alpha: 0.7,
-      quality: 'medium',
+      quality: 'higher',
     });
     expect(shouldIncludeProteinContextForSurface('pocket')).toBe(true);
     expect(shouldIncludeProteinContextForSurface('ligand')).toBe(true);
     expect(shouldIncludeProteinContextForSurface('protein')).toBe(false);
+  });
+
+  it('uses a finer native grid for local pocket reading without changing the probe or opacity', () => {
+    const proteinGrid = getQualityProps(STANDARD_PROTEIN_SURFACE_TYPE_PARAMS);
+    const pocketGrid = getQualityProps(POCKET_SURFACE_TYPE_PARAMS);
+    expect(pocketGrid.resolution).toBeLessThan(proteinGrid.resolution);
+    expect(POCKET_SURFACE_TYPE_PARAMS.probeRadius).toBe(STANDARD_PROTEIN_SURFACE_TYPE_PARAMS.probeRadius);
+    expect(POCKET_SURFACE_TYPE_PARAMS.alpha).toBe(STANDARD_PROTEIN_SURFACE_TYPE_PARAMS.alpha);
   });
 
   it('keeps compatible electrostatic surfaces in the pocket layer plan', () => {

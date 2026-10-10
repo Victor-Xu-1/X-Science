@@ -1361,6 +1361,8 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
           : [representation];
     const dockingResidueIndices = surfaceDockingIndices;
     const dockingResidueNames = surfaceDockingResidueNames;
+    // Only an explicit local-surface entry reframes; removal and refinements keep the user's camera.
+    const focusCamera = representation === 'pocket-surface' && nextLayers.includes('pocket-surface');
     const succeeded = await runEngineAction(`view-${representation}`, async (engine) => {
       if (nextLayers.some((layer) => isElectrostaticSurfaceRepresentation(layer))) {
         await ensureElectrostaticPotential(
@@ -1372,7 +1374,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
         if (preservePocket) {
           await engine.applyPocketFocus({
             ...pocketSettings,
-            focusCamera: false,
+            focusCamera,
             displayLayers: nextLayers,
           });
         } else {
@@ -1386,14 +1388,14 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
       if (preservePocket && residueNames.length === 1) {
         await engine.applyDockingPocket(residueNames[0], {
           ...pocketSettings,
-          focusCamera: false,
+          focusCamera,
           displayLayers: nextLayers,
           ligandColor: dockingColorValue(residueIndices[0]),
         });
       } else if (preservePocket && residueNames.length === 2) {
         await engine.replaceDockingComparison(residueNames[0], residueNames[1], {
           ...pocketSettings,
-          focusCamera: false,
+          focusCamera,
           displayLayers: nextLayers,
           primaryColor: dockingColorValue(residueIndices[0]),
           secondaryColor: dockingColorValue(residueIndices[1]),
@@ -1401,7 +1403,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
       } else if (preservePocket) {
         await engine.replaceDockingSelection(residueNames, {
           ...pocketSettings,
-          focusCamera: false,
+          focusCamera,
           displayLayers: nextLayers,
           ligandColor: dockingColorValue(residueIndices[0]),
           ligandColors: residueIndices.map((index) => dockingColorValue(index)),
