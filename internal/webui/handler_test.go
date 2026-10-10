@@ -135,6 +135,29 @@ func TestHandlerRevalidatesThemeBootstrapWithoutRelaxingPageCSP(t *testing.T) {
 	}
 }
 
+func TestHandlerRevalidatesServiceWorkerWithoutRelaxingPageCSP(t *testing.T) {
+	root := t.TempDir()
+	writeTestAsset(t, root, "index.html", `<script src="/theme-init.js"></script><main>X-Science</main>`)
+	writeTestAsset(t, root, serviceWorkerPath, "self.addEventListener('fetch', function () {})")
+	handler, err := New(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	request := httptest.NewRequest(http.MethodGet, "/sw.js", nil)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("service worker status = %d", response.Code)
+	}
+	if got := response.Header().Get("Cache-Control"); got != "no-cache, must-revalidate" {
+		t.Fatalf("service worker cache control = %q", got)
+	}
+	if got := response.Header().Get("Content-Security-Policy"); got != pageContentSecurityPolicy || strings.Contains(got, "script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline'") {
+		t.Fatalf("service worker CSP = %q", got)
+	}
+}
+
 func TestHandlerRejectsUnsafePathsMethodsAndSymlinks(t *testing.T) {
 	root := t.TempDir()
 	writeTestAsset(t, root, "index.html", "index")

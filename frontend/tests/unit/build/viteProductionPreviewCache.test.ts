@@ -16,4 +16,8 @@ describe('production preview cache policy', () => {
     expect(productionPreviewCacheControl('/ws/session')).toBeUndefined();
     expect(productionPreviewCacheControl('/rdkit/RDKit_minimal.wasm')).toBe('no-cache, must-revalidate');
   });
+
+  it('revalidates the production service worker script', () => {
+    expect(productionPreviewCacheControl('/sw.js')).toBe('no-cache, must-revalidate');
+  });
 });

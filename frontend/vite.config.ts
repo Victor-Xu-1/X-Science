@@ -58,7 +58,12 @@ export function productionPreviewCacheControl(pathname: string): string | undefi
   ) {
     return 'no-cache';
   }
-  if (normalized === '/theme-init.js' || normalized === '/app-boot.js' || normalized.startsWith('/rdkit/')) {
+  if (
+    normalized === '/theme-init.js' ||
+    normalized === '/app-boot.js' ||
+    normalized === '/sw.js' ||
+    normalized.startsWith('/rdkit/')
+  ) {
     return 'no-cache, must-revalidate';
   }
   return previewHashedAssetName.test(normalized) ? 'public, max-age=31536000, immutable' : 'public, max-age=3600';
