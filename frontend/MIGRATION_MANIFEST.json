@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "ffe6de0db2243899f2abef1d391a21fe3fc6b693571e999042193d700ba4505f",
+  "adaptationFingerprintSHA256": "798212f9010a33677416f1e7d20a9dd57785eba71368be9521a7d9a6c3009e91",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "017ddf7604d13c77ed7ad0045e4e652e624802c489c0c1aca376bf5f87924fe1",
+  "additionFingerprintSHA256": "fc87239028757fbfdb7412efdd72e072d39f731d46c66c9750020a7bc6a68b23",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 345,
     "adaptedSourceFiles": 716,
     "removedSourceFiles": 293,
-    "addedFiles": 848
+    "addedFiles": 849
   },
   "adaptations": [
     {
@@ -2775,8 +2775,8 @@
     {
       "path": "packages/desktop/src/renderer/services/synonBiomedCapabilities.ts",
       "sourceSHA256": "5802a108f6a91475b7e428abfa89e0efa07ef36a9a2d4545c0f0a8e721434029",
-      "targetSHA256": "7c741fdd541ddc1f4ae173c235099d773a3b5a90609b3e58cc0bba975945eb16",
-      "bytes": 23161,
+      "targetSHA256": "01c26dc88b99ca2261577a59e09d3c07540a1731c88d62a9afbef67c4d72e535",
+      "bytes": 24287,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -11305,6 +11305,12 @@
       "sha256": "95e3cd733e347c426da76be8466c29b3b4fb0762b63fea144d1c1c653936c45d",
       "bytes": 2667,
       "reason": "Verify expert localization preserves authoritative profile fields and fallbacks."
+    },
+    {
+      "path": "tests/unit/synonbiomed/expertProfilesSharedReads.test.ts",
+      "sha256": "3d7d38742ec5152392e852a318af03014d296a2b0d117b95706d1d26260f2828",
+      "bytes": 2195,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/unit/synonbiomed/fileImportError.test.ts",

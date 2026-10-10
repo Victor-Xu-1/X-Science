@@ -1,6 +1,7 @@
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { resolveSynonBiomedBuiltinExpertText } from './agents/synonBiomedExpertLocalization';
 import { isSynonBiomedHttpError, requestSynonBiomedJson } from './synonBiomedHttp';
+import { registerRendererAccountReset, rendererAccountScopedKey } from './rendererAccountScope';
 
 export type SynonBiomedCapabilityOptions = {
   baseUrl?: string;
@@ -153,13 +154,41 @@ type SkillsPayload = {
 
 const CAPABILITY_REQUEST_TIMEOUT_MS = 15_000;
 const SYNON_AI_ASSISTANT_SORT_BASE = 10000;
+const expertProfileReads = new Map<string, Promise<SynonBiomedAgent[]>>();
+
+function isIsolatedCapabilityTransport(options: SynonBiomedCapabilityOptions): boolean {
+  return Boolean(options.fetchImpl || options.baseUrl);
+}
+
+function coalesceExpertProfileRead(
+  options: SynonBiomedCapabilityOptions,
+  load: () => Promise<SynonBiomedAgent[]>
+): Promise<SynonBiomedAgent[]> {
+  if (isIsolatedCapabilityTransport(options)) return load();
+  const key = rendererAccountScopedKey('expert-profiles');
+  const active = expertProfileReads.get(key);
+  if (active) return active;
+  const request = load().finally(() => {
+    if (expertProfileReads.get(key) === request) expertProfileReads.delete(key);
+  });
+  expertProfileReads.set(key, request);
+  return request;
+}
+
+export function clearSynonBiomedExpertProfileReads(): void {
+  expertProfileReads.clear();
+}
+
+registerRendererAccountReset('synon-biomed-expert-profile-reads', clearSynonBiomedExpertProfileReads);
 
 export async function loadSynonBiomedAgents(options: SynonBiomedCapabilityOptions = {}): Promise<SynonBiomedAgent[]> {
-  const payload = await getJson<unknown>('/api/synonbiomed/expert-profiles', options);
-  const payloadRecord = asRecord(payload);
-  const agents = Array.isArray(payload) ? payload : Array.isArray(payloadRecord?.data) ? payloadRecord.data : [];
+  return coalesceExpertProfileRead(options, async () => {
+    const payload = await getJson<unknown>('/api/synonbiomed/expert-profiles', options);
+    const payloadRecord = asRecord(payload);
+    const agents = Array.isArray(payload) ? payload : Array.isArray(payloadRecord?.data) ? payloadRecord.data : [];
 
-  return agents.map(toAgent).filter((agent): agent is SynonBiomedAgent => agent !== null && agent.userHidden === false);
+    return agents.map(toAgent).filter((agent): agent is SynonBiomedAgent => agent !== null && agent.userHidden === false);
+  });
 }
 
 export async function loadSynonBiomedSkills(options: SynonBiomedCapabilityOptions = {}): Promise<SynonBiomedSkill[]> {
