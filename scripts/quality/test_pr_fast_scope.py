@@ -172,9 +172,9 @@ class FrontendProvenanceGateTests(unittest.TestCase):
             repo, sys.executable, 'scripts/audit/audit_frontend_migration.py', '--root', str(repo), '--check', '--require-clean',
         ))
 
-    def test_verified_frontend_keeps_every_existing_test_and_build_step(self):
+    def test_verified_frontend_uses_related_tests_and_keeps_static_build_and_packaged_checks(self):
         argv = ['pr_fast_scope.py', '--base', 'a' * 40, '--head', 'b' * 40, '--frontend']
-        with patch.object(sys, 'argv', argv), patch.object(scope, 'changed_paths', return_value=['frontend/App.tsx']), patch.object(
+        with patch.object(sys, 'argv', argv), patch.object(scope, 'changed_paths', return_value=['frontend/packages/desktop/src/App.tsx']), patch.object(
             scope, 'run', return_value=subprocess.CompletedProcess([], 0),
         ) as invoke:
             self.assertEqual(scope.main(), 0)
@@ -186,7 +186,8 @@ class FrontendProvenanceGateTests(unittest.TestCase):
             ('npx', '--no-install', 'playwright', 'install', 'chromium'),
             ('npm', 'run', 'i18n:types'),
             ('npm', 'run', 'typecheck'), ('npm', 'run', 'lint'),
-            ('npm', 'run', 'format:check'), ('npm', 'run', 'test'),
+            ('npm', 'run', 'format:check'),
+            ('npx', '--no-install', 'vitest', 'related', '--run', '--project', 'node', '--project', 'dom', 'packages/desktop/src/App.tsx'),
             ('npm', 'run', 'build'), ('npm', 'run', 'test:packaged'),
         ])
 

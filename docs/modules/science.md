@@ -67,6 +67,18 @@ APBS OpenDX 通过无损 gzip/base64 逐字节传输。单张图可使用现有 
 配体表面按钮与计算输入共用已验证的化学来源。只有坐标的配体仍可查看三维结构，
 但不支持的电性操作会禁用并说明原因；带有可靠配体化学信息的文件继续支持该操作。
 
+Structure previews distinguish viewer initialization, source retrieval, and
+structure parsing failures. An explicit, localized Retry reloads the same
+displayed source through the existing lifecycle, aborts the previous request,
+and disposes its engine. Switching files fences out late responses. There is
+no automatic retry loop, source rewriting, or scientific computation rerun;
+successful recovery restores reading focus without stealing another control's focus.
+
+结构预览明确区分初始化、文件读取及结构解析失败。原地“重试”只沿现有生命周期
+重载当前显示的来源，取消旧请求并释放旧引擎；切换文件后旧响应不能覆盖新结构。
+不自动循环重试、不改写来源文件、不重跑科研任务。恢复后保持阅读焦点，
+也不抢走用户已转移到其他控件的焦点。
+
 ```sh
 go test ./internal/server -run '^TestStructurePreviewKernel|^TestEncodeStructureElectrostaticDX' -count=1
 cd frontend && npx vitest run tests/unit/previews/structureElectrostaticMap.test.ts

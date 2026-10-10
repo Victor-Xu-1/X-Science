@@ -1635,6 +1635,12 @@
   background: rgba(255, 255, 255, 0.92);
 }
 
+.synon-biomed-molstar__overlay--error {
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+
 .synon-biomed-molstar__instructions {
   min-height: 28px;
   justify-content: center;

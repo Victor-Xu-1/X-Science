@@ -526,6 +526,143 @@ describe('SynonBiomedStructureViewer', () => {
     vi.unstubAllGlobals();
   });
 
+  it.each(['en-US', 'zh-CN'])('recovers a failed structure read on explicit retry in %s', async (locale) => {
+    const sourceUrl = '/api/artifacts/complex/versions/source-v1';
+    const read = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockResolvedValueOnce(new Response('original structure bytes'));
+    vi.stubGlobal('fetch', read);
+    const view = await renderWithI18n(
+      <SynonBiomedStructureViewer filename='complex.pdb' contentUrl={sourceUrl} />,
+      locale
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      view.i18n.t('preview.scientific.errors.requestFailed', {
+        kind: view.i18n.t('preview.scientific.structure.kind'),
+      })
+    );
+    expect(read).toHaveBeenCalledTimes(1);
+    const retry = screen.getByRole('button', { name: view.i18n.t('preview.scientific.retry'), exact: true });
+    act(() => retry.focus());
+    fireEvent.click(retry);
+    await waitFor(() =>
+      expect(molstarMocks.engine.load).toHaveBeenCalledWith('original structure bytes', 'complex.pdb', 'pdb')
+    );
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+    expect(read).toHaveBeenCalledTimes(2);
+    expect(read.mock.calls.map(([url]) => url)).toEqual([sourceUrl, sourceUrl]);
+    expect(molstarMocks.engine.dispose).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('synon-biomed-molstar-viewer')).toHaveFocus();
+  });
+
+  it('keeps initialization failure distinct and retries only on user action', async () => {
+    molstarMocks.create.mockRejectedValueOnce(new Error('WebGL initialization unavailable'));
+    const view = await renderWithI18n(
+      <SynonBiomedStructureViewer filename='complex.pdb' content='original bytes' />,
+      'en-US'
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      view.i18n.t('preview.scientific.errors.initializeFailed', {
+        kind: view.i18n.t('preview.scientific.structure.kind'),
+      })
+    );
+    expect(molstarMocks.create).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Retry', exact: true }));
+    await waitFor(() => expect(molstarMocks.engine.load).toHaveBeenCalledWith('original bytes', 'complex.pdb', 'pdb'));
+    expect(molstarMocks.create).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps an actual parse failure distinct from a source read failure', async () => {
+    molstarMocks.engine.load.mockRejectedValueOnce(new Error('Invalid structure record'));
+    const view = await renderWithI18n(
+      <SynonBiomedStructureViewer filename='complex.pdb' content='original bytes' />,
+      'en-US'
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      view.i18n.t('preview.scientific.errors.parseFailed', {
+        kind: view.i18n.t('preview.scientific.structure.kind'),
+      })
+    );
+    expect(molstarMocks.engine.load).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Retry', exact: true }));
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+    expect(molstarMocks.engine.load).toHaveBeenCalledTimes(2);
+  });
+
+  it('aborts an obsolete retry and does not replace the newly selected structure', async () => {
+    let finishOldRead!: (response: Response) => void;
+    const read = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockImplementationOnce(
+        () =>
+          new Promise<Response>((resolve) => {
+            finishOldRead = resolve;
+          })
+      )
+      .mockResolvedValueOnce(new Response('new structure bytes'));
+    vi.stubGlobal('fetch', read);
+    const view = await renderWithI18n(
+      <SynonBiomedStructureViewer filename='old.pdb' contentUrl='/old-source' />,
+      'en-US'
+    );
+    const retry = await screen.findByRole('button', { name: 'Retry', exact: true });
+    fireEvent.click(retry);
+    await waitFor(() => expect(read).toHaveBeenCalledTimes(2));
+    const oldSignal = read.mock.calls[1][1].signal as AbortSignal;
+    view.rerender(<SynonBiomedStructureViewer filename='new.pdb' contentUrl='/new-source' />);
+    await waitFor(() => expect(molstarMocks.engine.load).toHaveBeenCalledWith('new structure bytes', 'new.pdb', 'pdb'));
+    expect(oldSignal.aborted).toBe(true);
+    await act(async () => finishOldRead(new Response('obsolete original bytes')));
+    expect(molstarMocks.engine.load).not.toHaveBeenCalledWith('obsolete original bytes', 'old.pdb', 'pdb');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('keeps a repeated read failure recoverable without starting automatic retries', async () => {
+    const read = vi.fn().mockRejectedValue(new TypeError('Connection unavailable'));
+    vi.stubGlobal('fetch', read);
+    await renderWithI18n(<SynonBiomedStructureViewer filename='complex.pdb' contentUrl='/original-source' />, 'en-US');
+    const retry = await screen.findByRole('button', { name: 'Retry', exact: true });
+    act(() => retry.focus());
+    fireEvent.click(retry);
+    await waitFor(() => expect(read).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Retry', exact: true })).toHaveFocus());
+    expect(screen.getByRole('alert')).toHaveTextContent('Failed to load 3D structure.');
+    await act(async () => {});
+    expect(read).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not steal focus from another control when a structure retry completes', async () => {
+    let finishRead!: (response: Response) => void;
+    const read = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockImplementationOnce(
+        () =>
+          new Promise<Response>((resolve) => {
+            finishRead = resolve;
+          })
+      );
+    vi.stubGlobal('fetch', read);
+    await renderWithI18n(
+      <>
+        <SynonBiomedStructureViewer filename='complex.pdb' contentUrl='/original-source' />
+        <button type='button'>Keep editing</button>
+      </>,
+      'en-US'
+    );
+    const retry = await screen.findByRole('button', { name: 'Retry', exact: true });
+    act(() => retry.focus());
+    fireEvent.click(retry);
+    await waitFor(() => expect(read).toHaveBeenCalledTimes(2));
+    const destination = screen.getByRole('button', { name: 'Keep editing' });
+    act(() => destination.focus());
+    await act(async () => finishRead(new Response('original structure bytes')));
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+    expect(destination).toHaveFocus();
+  });
+
   it.each(['standalone.sdf', 'mother.pdb'])('does not inject companion scene structures into %s', async (filename) => {
     const fetchMock = vi.fn(
       async () =>

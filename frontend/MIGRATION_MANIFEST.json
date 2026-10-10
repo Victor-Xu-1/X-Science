@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "8f86a67f0dd88b8953c6814f21a107f18c1666fc1c7005c9a1c7f275f647fb20",
+  "adaptationFingerprintSHA256": "05e1b32a735eee7198f79903348408f10e0a26d11ed87883504d57167f35371f",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "a34a2ec5c41b75812b446352fa53f3de755a8e4d84ac6d46b2e35fb4c3e456be",
+  "additionFingerprintSHA256": "a9468a9ef6d9a23182b3f4bb11242fa8c597676fa7e95f0e8e15689e34e51b0e",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 345,
     "adaptedSourceFiles": 716,
     "removedSourceFiles": 293,
-    "addedFiles": 832
+    "addedFiles": 834
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "b46d13f0a74b5d8eb8eae07db9fad6ffc913a5b86ab8e1f5240fcb958eb5b34c",
+      "targetSHA256": "d36115396b6b0fc8a5536962d2921c69daff3965bd5f88300b5092eb422a3af7",
       "bytes": 4378,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "ad84e96d9188aa0d95e72a4a5c2cf7bed220cea6e70ce34f70bfe727c4415b03",
+      "targetSHA256": "862b5142d0922dd8aacd040db627cacf9abe414cab58c25aa05eb955c72091b8",
       "bytes": 157,
       "reason": "Remove @synon-ai/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -1501,8 +1501,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedStructureViewer.tsx",
       "sourceSHA256": "6cb430ff6d16123ef3da68f5af29d4dc093a1e5bb9e9b2655a3c01e2d1e2ecb1",
-      "targetSHA256": "54f6c6e7f70dc80b27ffce45fba9a4c86bd89c56893d725ff47d048152a20c5e",
-      "bytes": 141403,
+      "targetSHA256": "40f352f8a5e246c5c42bc0295e2581d37d8421ef9a3eaffeecc9219753f5a0df",
+      "bytes": 141375,
       "reason": "Unify PDB, mmCIF, SDF, and related molecular formats on one Molstar preview with composition-aware controls, collapsed auxiliary panels, and source-fenced 2D interaction refresh."
     },
     {
@@ -3671,8 +3671,8 @@
     {
       "path": "tests/unit/previews/SynonBiomedStructureViewer.dom.test.tsx",
       "sourceSHA256": "ba8c8acb753fdac5f71871a9aeba75f7dd569f1f82eca75dae7e0c76fa5f1c54",
-      "targetSHA256": "c845ca3014bfac882fa06313488cfcd647da68485e2d61ea9f824d66ef0dafbf",
-      "bytes": 142585,
+      "targetSHA256": "a2be057cb7ea349bcc4938480fbfc578be204a093bc1214bc47a45c8fc26de05",
+      "bytes": 149117,
       "reason": "Verify format-neutral composition controls, collapsed 2D panels, and source-invalidated interactions after minimization."
     },
     {
@@ -6796,7 +6796,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "d5527ed277ef8cbc90a81fe48bf381e9c8836d890d94a35c19fa2ecd8f16e839",
+      "sha256": "a4ccd33e38871a7a93ac6ca99bea2ca5d2d8ba589c8e0bd8d63b056faa293a04",
       "bytes": 558186,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -7953,6 +7953,12 @@
       "reason": "Render one composition-derived protein and ligand list with shared visibility, color, select-all, and clear controls."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/StructurePreviewStatus.tsx",
+      "sha256": "b710de29d413e34a12670a2a90a5ca0c36364d51a28144b93425ae0d7469c685",
+      "bytes": 2546,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedMcpAppArtifactViewer.tsx",
       "sha256": "58dbdb2eb266c136c5915c4343d977953ea7cc369c0261f77333740cdfe8d2b5",
       "bytes": 3514,
@@ -7972,8 +7978,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedStructureViewer.css",
-      "sha256": "e715eeaf5b93227a55cdab41745307cb945b7022bb33921326bb52b14cc7721f",
-      "bytes": 38083,
+      "sha256": "1ae1fcf4d51bc112268926d1f081a94d9e69895aa9e8770722059f439bf318bc",
+      "bytes": 38182,
       "reason": "Style the unified molecular composition panel and collapsed 2D controls without resizing or replacing the established preview canvas."
     },
     {
@@ -8134,8 +8140,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/structureSource.ts",
-      "sha256": "b9f468d15893fc47dfb25c1327e29e458d28ec4493ad6c5d93ef2dee4dde5192",
-      "bytes": 2879,
+      "sha256": "9bf8b0583a06c34a8a3482f1ef52cd3dce141a8fab064002b21619760d655ba0",
+      "bytes": 3082,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10140,6 +10146,12 @@
       "path": "tests/unit/previews/structureLigandSelection.test.ts",
       "sha256": "e297360c7830abb8706b88fee61b452f7665cf93c3e60f35cc1ea7fe95223358",
       "bytes": 8762,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/previews/structureSource.test.ts",
+      "sha256": "71dd9705d59fad7566f6b382d7e49f0f1a451a4f03d6a89a3e701e7092758b78",
+      "bytes": 3307,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

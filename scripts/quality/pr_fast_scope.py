@@ -18,11 +18,12 @@ import subprocess
 import sys
 
 if __package__:
-    from . import pr_build_scope, pr_dependency_scope, pr_metadata_scope, pr_test_partition, runtime_input_scope, verification_scope
+    from . import pr_build_scope, pr_dependency_scope, pr_frontend_scope, pr_metadata_scope, pr_test_partition, runtime_input_scope, verification_scope
     from .runtime_test_inventory import discover, execution_plan
     from .runtime_test_shards import execute
 else:
     import pr_dependency_scope
+    import pr_frontend_scope
     import pr_build_scope
     import pr_metadata_scope
     import pr_test_partition
@@ -204,12 +205,16 @@ def main() -> int:
             if not affected:
                 print("Only proved version metadata changed; fresh provenance passed, no frontend suite/build required.")
                 return 0
+            projections = pr_metadata_scope.version_projection_paths(repo, args.base, args.head)
+            related = pr_frontend_scope.related_command([path for path in behavior_paths if path not in projections])
+            print(json.dumps({"frontend_test_inputs": related[9:] if related else [],
+                              "selection": "Vitest dependency-related; no global fallback"}))
             commands = [
                 ["npm", "ci", "--ignore-scripts"],
                 ["npx", "--no-install", "playwright", "install", "chromium"],
                 ["npm", "run", "i18n:types"],
                 ["npm", "run", "typecheck"], ["npm", "run", "lint"],
-                ["npm", "run", "format:check"], ["npm", "run", "test"], ["npm", "run", "build"],
+                ["npm", "run", "format:check"], *([related] if related else []), ["npm", "run", "build"],
                 ["npm", "run", "test:packaged"],
             ]
             for command in commands:

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ScientificPreviewError } from './scientificPreviewError';
+import { ScientificPreviewError, resolveScientificPreviewError } from './scientificPreviewError';
 
 const MAX_STRUCTURE_SOURCE_BYTES = 64 * 1024 * 1024;
 
@@ -47,18 +47,23 @@ export async function loadStructureContent({
 }): Promise<string | ArrayBuffer> {
   if (contentUrl) {
     const binary = format === 'mmcif' && normalizedStructureFilename(filename).endsWith('.bcif');
-    const response = await fetch(contentUrl, {
-      signal,
-      headers: { accept: binary ? 'application/octet-stream, chemical/*' : 'text/plain, chemical/*' },
-    });
-    if (!response.ok) {
-      throw new ScientificPreviewError('request-failed', { status: response.status });
+    try {
+      const response = await fetch(contentUrl, {
+        signal,
+        headers: { accept: binary ? 'application/octet-stream, chemical/*' : 'text/plain, chemical/*' },
+      });
+      if (!response.ok) {
+        throw new ScientificPreviewError('request-failed', { status: response.status });
+      }
+      const declaredLength = Number(response.headers.get('content-length'));
+      if (Number.isFinite(declaredLength)) assertStructureSize(declaredLength);
+      const source = binary ? await response.arrayBuffer() : await response.text();
+      assertStructureSize(new Blob([source]).size);
+      return source;
+    } catch (reason) {
+      if (signal.aborted) throw reason;
+      throw resolveScientificPreviewError(reason, 'request-failed');
     }
-    const declaredLength = Number(response.headers.get('content-length'));
-    if (Number.isFinite(declaredLength)) assertStructureSize(declaredLength);
-    const source = binary ? await response.arrayBuffer() : await response.text();
-    assertStructureSize(new Blob([source]).size);
-    return source;
   }
   if (content != null) {
     assertStructureSize(new Blob([content]).size);
