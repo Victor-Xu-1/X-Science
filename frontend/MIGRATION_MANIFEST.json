@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "ffe6de0db2243899f2abef1d391a21fe3fc6b693571e999042193d700ba4505f",
+  "adaptationFingerprintSHA256": "685b8d62bc75c98b7e3647e442f71370dfc921c505e6af536353575e9a616cc4",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "017ddf7604d13c77ed7ad0045e4e652e624802c489c0c1aca376bf5f87924fe1",
+  "additionFingerprintSHA256": "b40eb883bbe9d875828a0910681385834f6daac8f2793768aec43c85ec84ae9e",
   "summary": {
     "sourceFiles": 1354,
-    "unchangedSourceFiles": 345,
-    "adaptedSourceFiles": 716,
+    "unchangedSourceFiles": 344,
+    "adaptedSourceFiles": 717,
     "removedSourceFiles": 293,
-    "addedFiles": 848
+    "addedFiles": 851
   },
   "adaptations": [
     {
@@ -190,6 +190,13 @@
       "reason": "Keep shared browser-safe utility behavior aligned with the complete migrated locale and runtime contracts."
     },
     {
+      "path": "packages/desktop/src/renderer/components/Markdown/CodeBlock.tsx",
+      "sourceSHA256": "628dff7dba1df8e3ad54823d235925cf523a6609153e21c9fff0ba5146c2e713",
+      "targetSHA256": "849336285649297dcbb1eeed0525a148947314451969b149ba89fda21a3fd035",
+      "bytes": 8652,
+      "reason": "Adapt shared renderer primitives for safe native previews, localized errors, accessibility, and responsive Web use."
+    },
+    {
       "path": "packages/desktop/src/renderer/components/Markdown/LocalFileLink.tsx",
       "sourceSHA256": "b41057a1e37d4808f80cf4f00ba6528a310f8f943a2d12d8e528c815c993b0fe",
       "targetSHA256": "19c2df5f545441dcdcb97117c038673245179b682ae0a4b2b3af130deb90e5d7",
@@ -199,8 +206,8 @@
     {
       "path": "packages/desktop/src/renderer/components/Markdown/MermaidBlock.tsx",
       "sourceSHA256": "0e98eab1738cd4c63f3ff018407ff9186d2209a198a254b49747e4bccdeaf099",
-      "targetSHA256": "a672fe084ac088a58566b37bcb3714f5c83dff3d11dfe0e3690f5ba6f0303e66",
-      "bytes": 10163,
+      "targetSHA256": "b819bd45c9ccb927609de74a8164e31823d60b99c8577374fca64c831f93fb85",
+      "bytes": 10513,
       "reason": "Adapt shared renderer primitives for safe native previews, localized errors, accessibility, and responsive Web use."
     },
     {
@@ -1382,8 +1389,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/DiffViewer.tsx",
       "sourceSHA256": "70fa2b9679b7877ee6a9bf9360e064865158700ab0d86fc2b5abf14b7db7af43",
-      "targetSHA256": "8ba1f008bf5887e70692e88e3e9f4bc06481e3ab8d18658b9a472f4e048a058c",
-      "bytes": 7626,
+      "targetSHA256": "2744c03df7dbb52e832e5613e2c6753435d9a87a46c7388b1719dfe4b6b3ff19",
+      "bytes": 7647,
       "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -6939,6 +6946,12 @@
       "reason": "Allow only bounded inert raster data URLs from streamed model and tool image blocks while rejecting active SVG and malformed payloads."
     },
     {
+      "path": "packages/desktop/src/renderer/components/Markdown/syntaxHighlighterLanguage.ts",
+      "sha256": "62245c20bbde35d700e94235c2859786b3770db401ae073615cd444033ae27f4",
+      "bytes": 7915,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/components/base/ArcoTabListHeader.tsx",
       "sha256": "c35b70340b047e3421343e1df685f20fe003775f8a4ad321d4a494ff6af2317d",
       "bytes": 1459,
@@ -10653,6 +10666,12 @@
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
+      "path": "tests/unit/renderer/markdownHeavyDependencyBoundary.test.ts",
+      "sha256": "a132ee456d2adb9e2d8023e66f24d479e781462e8277aa9a01c9d21711c4ff50",
+      "bytes": 1536,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/unit/renderer/markdownImageUrlPolicy.test.ts",
       "sha256": "cb3436a288fb57dcaf55830691a448fae7662eb53fd51b81e061c7ab6d081024",
       "bytes": 830,
@@ -10848,6 +10867,12 @@
       "path": "tests/unit/renderer/synonBiomedUserProfile.dom.test.ts",
       "sha256": "6d7d7faba0ec24d9472c5ed67923ffd533c81f62df47bfe375783edeb8a4c9e1",
       "bytes": 1935,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/syntaxHighlighterLanguage.test.ts",
+      "sha256": "727be391fc1d6977ed007569090c002cd12a9d8561194dcda8865246d2637e56",
+      "bytes": 1866,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
