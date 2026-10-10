@@ -627,7 +627,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
 
   const runEngineAction = async (
     actionId: string,
-    operation: (engine: MolstarStructureEngine) => Promise<void> | void
+    operation: (engine: MolstarStructureEngine, isCurrent: () => boolean) => Promise<void> | void
   ): Promise<boolean> => {
     const engine = engineRef.current;
     if (!engine || loading || error || busyActionRef.current) return false;
@@ -647,7 +647,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
     }
     setActionFeedback(null);
     try {
-      const result = operation(engine);
+      const result = operation(engine, ownsAction);
       if (result && typeof result.then === 'function') await result;
       return ownsAction();
     } catch (reason) {
@@ -1873,7 +1873,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
   };
 
   const handleMinimize = async () => {
-    await runEngineAction('minimize', async (engine) => {
+    await runEngineAction('minimize', async (engine, isCurrent) => {
       if (!operationFrameId) throw new Error('STRUCTURE_MINIMIZATION_CONTEXT_MISSING');
       const ligandResidueName = engine.getSelectedLigandResidueName();
       if (!ligandResidueName) throw new Error('STRUCTURE_MINIMIZATION_LIGAND_NOT_SELECTED');
@@ -1910,6 +1910,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
         },
         { timeoutMs: 360000 }
       );
+      if (!isCurrent()) return;
       if (!response.ok || !response.content || !response.filename || !response.format) {
         throw new Error(response.message || 'STRUCTURE_MINIMIZATION_FAILED');
       }
@@ -1919,6 +1920,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
       pocketStrengthContextRef.current = null;
       pocketStrengthRecordsRef.current = [];
       await pocketStrengthRenderQueueRef.current;
+      if (!isCurrent()) return;
 
       if (dockingEnsemble) {
         const nextEnsemble = mergeDockingEnsembleLigandCoordinates(
@@ -1946,6 +1948,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
           focusCamera: false,
           ligandColor: dockingColorValue(minimizedIndex),
         });
+        if (!isCurrent()) return;
         let restoredLayers = viewLayers;
         if (refreshElectrostatic) {
           try {
@@ -1954,6 +1957,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
               viewLayers.includes('ligand-surface') ? selectedResidueNames : []
             );
           } catch {
+            if (!isCurrent()) return;
             // The minimized coordinates remain authoritative even if the
             // replacement APBS map is unavailable. Retire every electrostatic
             // surface rather than applying a categorical fallback under stale
@@ -1962,6 +1966,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
             setViewLayers(nonElectrostaticLayers);
           }
         }
+        if (!isCurrent()) return;
         if (!pocketVisible) {
           await engine.replaceDockingLayers(
             selectedResidueNames,
@@ -1992,6 +1997,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
             ligandColors: nextSelectedIndices.map((index) => dockingColorValue(index)),
           });
         }
+        if (!isCurrent()) return;
         engine.setDockingProteinVisible(dockingProteinVisible);
         setDockingEnsemble(nextEnsemble);
         invalidateInteractionDiagramSource();
@@ -2010,8 +2016,10 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
         }
       } else {
         const nextComposition = await engine.load(response.content, response.filename, response.format);
+        if (!isCurrent()) return;
         if (response.format === 'pdb')
           await engine.setStructureLigandSelectionByAtomSerial(currentPose.ligandAtomSerial);
+        if (!isCurrent()) return;
         // Replacing coordinates invalidates both completed and in-flight 2D
         // interaction reports, even when the minimized ligand retains the same
         // residue name and atom count used by the cache key.
@@ -2028,6 +2036,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
         sourceRef.current = response.content;
         loadedFilenameRef.current = response.filename;
       }
+      if (!isCurrent()) return;
       setTrajectoryModel(engine.getTrajectoryModelState());
       setSelectedLigandResidueName(undefined);
       setActionFeedback(

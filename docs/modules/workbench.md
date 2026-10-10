@@ -384,7 +384,8 @@ between conformers; an exclusive picked atom identifies the intended alternate.
 Original artifacts are not overwritten. Source coordinates incompatible with an
 assembly transform and ambiguous legacy name-only requests fail explicitly.
 After an ordinary minimization reload, the exact ligand selection is restored and
-old pocket/field/interaction overlays are retired. Force-field parameters and
+old pocket/field/interaction overlays are retired. A retired calculation cannot
+load its coordinates or commit UI state into a newly opened source. Force-field parameters and
 limits are unchanged; technical success is not scientific or experimental acceptance.
 
 能量最小化通过所选原生原子定位唯一完整残基实例，不把同名残基一起选入。其他真实
@@ -392,7 +393,8 @@ limits are unchanged; technical success is not scientific or experimental accept
 多模型 PDB 提交当前模型的原始记录与连接信息。共享原子不能替用户选择交替构象，
 该构象的独占原子用于精确定位。原始产物不覆盖；与组装变换不一致的原坐标输入，以及
 有歧义的旧名称请求均明确失败。普通结构最小化重新加载后恢复原生配体选择，清退旧口袋、
-电势与相互作用层。力场参数、既有边界不变；技术执行成功不代表科学或实验验收。
+电势与相互作用层。旧计算完成时不能向新文件加载坐标或提交界面状态。力场参数、
+既有边界不变；技术执行成功不代表科学或实验验收。
 
 Ordinary ligand electrostatics serializes every selected native instance and
 binds each surface to its matching returned field. API keys derive from the full

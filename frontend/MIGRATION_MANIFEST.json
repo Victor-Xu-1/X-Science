@@ -3,7 +3,7 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "b0799c74cec9610c6d2c681daf572702433b5f458e5506abd5c9f0008a3d6e83",
+  "adaptationFingerprintSHA256": "709688af0f50535a46f615b4f52ed447dedac0814c939e5fe35bedd120f487c0",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
   "additionFingerprintSHA256": "c153e31e8eba3a5206339c63fdaaef6f24095aef882db697e614693934bddd1c",
   "summary": {
@@ -1501,8 +1501,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedStructureViewer.tsx",
       "sourceSHA256": "6cb430ff6d16123ef3da68f5af29d4dc093a1e5bb9e9b2655a3c01e2d1e2ecb1",
-      "targetSHA256": "dac21aa32828e530d38d2e72e9d5177a9a8de44f51a068dcb92bf385170585cf",
-      "bytes": 147098,
+      "targetSHA256": "ec81a1f69709c04e6f297d859539927627740e450ee3530c6e3fbff206e34132",
+      "bytes": 147451,
       "reason": "Unify PDB, mmCIF, SDF, and related molecular formats on one Molstar preview with composition-aware controls, collapsed auxiliary panels, and source-fenced 2D interaction refresh."
     },
     {
@@ -3671,8 +3671,8 @@
     {
       "path": "tests/unit/previews/SynonBiomedStructureViewer.dom.test.tsx",
       "sourceSHA256": "ba8c8acb753fdac5f71871a9aeba75f7dd569f1f82eca75dae7e0c76fa5f1c54",
-      "targetSHA256": "0982c734757d9be5ec256166f15e15ed7b0d7acf916cd3f2f8bfb1709a2c295f",
-      "bytes": 158665,
+      "targetSHA256": "27927fd29b4d1bb8651e3cda59689d21cbad568209bfc522f4ebda40a145d235",
+      "bytes": 160166,
       "reason": "Verify format-neutral composition controls, collapsed 2D panels, and source-invalidated interactions after minimization."
     },
     {

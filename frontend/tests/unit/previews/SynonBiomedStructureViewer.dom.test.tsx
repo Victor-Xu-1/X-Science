@@ -3471,6 +3471,37 @@ describe('SynonBiomedStructureViewer', () => {
     ]);
   });
 
+  it('does not load a retired minimization response into a newly opened file', async () => {
+    let finishResponse!: (response: Response) => void;
+    const fetchMock = vi.fn(
+      () =>
+        new Promise<Response>((resolve) => {
+          finishResponse = resolve;
+        })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    molstarMocks.engine.getSelectedLigandResidueName.mockReturnValue('LIG');
+    const view = await renderWithI18n(
+      <SynonBiomedStructureViewer filename='old.sdf' content='old source' rootFrameId='frame-1' />,
+      'en-US'
+    );
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Energy minimization' })).toBeEnabled());
+    fireEvent.click(screen.getByRole('button', { name: 'Energy minimization' }));
+    await waitFor(() => expect(finishResponse).toBeDefined());
+    view.rerender(<SynonBiomedStructureViewer filename='new.sdf' content='new source' rootFrameId='frame-1' />);
+    await waitFor(() => expect(molstarMocks.engine.load).toHaveBeenCalledWith('new source', 'new.sdf', 'sdf'));
+    await act(async () => {
+      finishResponse(
+        new Response(
+          JSON.stringify({ ok: true, content: 'retired result', filename: 'old-result.pdb', format: 'pdb' }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        )
+      );
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(molstarMocks.engine.load).not.toHaveBeenCalledWith('retired result', 'old-result.pdb', 'pdb');
+  });
+
   it('does not allow minimization until a ligand has been selected in the 3D canvas', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
