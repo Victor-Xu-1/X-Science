@@ -19,7 +19,7 @@ const ASSET_ROOT = './branding/settings-generated-v3';
  * though the file is present.  One shared revision keeps every module on the
  * same visual asset release.
  */
-export const SETTINGS_GENERATED_ASSET_REVISION = '20260831a';
+export const SETTINGS_GENERATED_ASSET_REVISION = '20261010a';
 
 const generatedAssetSrc = (path: string) => `${ASSET_ROOT}/${path}?v=${SETTINGS_GENERATED_ASSET_REVISION}`;
 

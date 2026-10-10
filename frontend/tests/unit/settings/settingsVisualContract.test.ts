@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   SETTINGS_LAYOUT_REVISION,
@@ -216,6 +216,17 @@ describe('historical asset provenance remains intact', () => {
       expect(source).toContain(`?v=${SETTINGS_GENERATED_ASSET_REVISION}`);
       const relative = source.split('?')[0].replace(/^\.?\//, '');
       expect(existsSync(new URL(`../../../public/${relative}`, import.meta.url)), source).toBe(true);
+    }
+  });
+
+  it('keeps decorative runtime artwork well below their original megabyte payloads', () => {
+    const budgets: Record<string, number> = {
+      'public/branding/settings-generated-v3/artwork/account-network.png': 250_000,
+      'public/branding/settings-generated-v3/artwork/network-globe.png': 150_000,
+    };
+    for (const [relative, budget] of Object.entries(budgets)) {
+      const file = new URL(`../../../${relative}`, import.meta.url);
+      expect(statSync(file).size, relative).toBeLessThan(budget);
     }
   });
 });
