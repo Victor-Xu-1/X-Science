@@ -1,4 +1,5 @@
 import { readSynonBiomedFileImportResponse } from './synonBiomedFileImportError';
+import { registerRendererAccountReset, rendererAccountScopedKey } from './rendererAccountScope';
 
 export type SynonBiomedComputeCredentialStatus = {
   name: string;
@@ -231,6 +232,30 @@ const COMPUTE_JOBS_ENDPOINT = '/api/compute/jobs';
 const COMPUTE_SESSION_ENDPOINT = '/api/compute/session';
 const COMPUTE_MODAL_ENDPOINT = '/api/compute/byoc/modal';
 const COMPUTE_BIONEMO_ENDPOINT = '/api/compute/bionemo/enabled';
+const computeReads = new Map<string, Promise<unknown>>();
+
+/**
+ * Coalesces concurrent default-transport compute catalog reads. Settled
+ * requests are evicted immediately so later callers still revalidate. Custom
+ * fetch implementations stay isolated from the shared map.
+ */
+function coalesceComputeRead<T>(kind: string, isolated: boolean, load: () => Promise<T>): Promise<T> {
+  if (isolated) return load();
+  const key = rendererAccountScopedKey(kind);
+  const active = computeReads.get(key);
+  if (active) return active as Promise<T>;
+  const request = load().finally(() => {
+    if (computeReads.get(key) === request) computeReads.delete(key);
+  });
+  computeReads.set(key, request);
+  return request as Promise<T>;
+}
+
+export function clearSynonBiomedComputeReads(): void {
+  computeReads.clear();
+}
+
+registerRendererAccountReset('synon-biomed-compute-reads', clearSynonBiomedComputeReads);
 
 export async function loadSynonBiomedModalSettings(fetchImpl: FetchLike = fetch): Promise<SynonBiomedModalSettings> {
   const record = objectRecord(await requestJson<unknown>(COMPUTE_MODAL_ENDPOINT, undefined, fetchImpl));
@@ -395,13 +420,17 @@ export async function loadSynonBiomedSessionComputeProviders(
   rootFrameId: string,
   fetchImpl: FetchLike = fetch
 ): Promise<string[]> {
-  return stringArray(
-    await requestJson<unknown>(
-      `${COMPUTE_SESSION_ENDPOINT}/${encodeURIComponent(rootFrameId)}/enabled`,
-      undefined,
-      fetchImpl
-    )
-  );
+  const normalizedRootFrameId = rootFrameId.trim();
+  const load = async () =>
+    stringArray(
+      await requestJson<unknown>(
+        `${COMPUTE_SESSION_ENDPOINT}/${encodeURIComponent(normalizedRootFrameId)}/enabled`,
+        undefined,
+        fetchImpl
+      )
+    );
+  if (!normalizedRootFrameId) return load();
+  return coalesceComputeRead(`session-providers:${normalizedRootFrameId}`, fetchImpl !== fetch, load);
 }
 
 export async function setSynonBiomedSessionComputeProvider(
@@ -420,9 +449,13 @@ export async function setSynonBiomedSessionComputeProvider(
 export async function loadSynonBiomedComputeProviders(
   fetchImpl: FetchLike = fetch
 ): Promise<SynonBiomedComputeProvider[]> {
-  const payload = await requestJson<unknown>(COMPUTE_PROVIDERS_ENDPOINT, undefined, fetchImpl);
-  if (!Array.isArray(payload)) return [];
-  return payload.map(toComputeProvider).filter((provider): provider is SynonBiomedComputeProvider => Boolean(provider));
+  return coalesceComputeRead('providers', fetchImpl !== fetch, async () => {
+    const payload = await requestJson<unknown>(COMPUTE_PROVIDERS_ENDPOINT, undefined, fetchImpl);
+    if (!Array.isArray(payload)) return [];
+    return payload
+      .map(toComputeProvider)
+      .filter((provider): provider is SynonBiomedComputeProvider => Boolean(provider));
+  });
 }
 
 export async function loadSynonBiomedComputeProvider(

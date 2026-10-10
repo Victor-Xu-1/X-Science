@@ -7,6 +7,7 @@
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import type { IMcpServer } from '@/common/config/storage';
 import { loadSynonBiomedAgents, toSynonAIAssistant } from './synonBiomedCapabilities';
+import { registerRendererAccountReset, rendererAccountScopedKey } from './rendererAccountScope';
 
 export const SYNON_BIOMED_ASSISTANTS_CACHE_KEY = 'synonbiomed.assistants.catalog.v1';
 
@@ -149,6 +150,32 @@ const PROJECTS_ENDPOINT = '/api/synonbiomed/projects';
 const FEATURED_LIMIT = 8;
 const SYNON_BIOMED_ASSISTANT_SORT_BASE = 900_000;
 const SYNON_BIOMED_AGENT_BACKEND = 'synonbiomed';
+const catalogReads = new Map<string, Promise<unknown>>();
+
+type CatalogReadKind = 'catalog' | 'assistants';
+
+/**
+ * Coalesces concurrent default-transport catalog reads. Settled requests are
+ * evicted immediately so a later caller still receives a fresh authoritative
+ * response. Custom fetch implementations stay isolated.
+ */
+function coalesceCatalogRead<T>(kind: CatalogReadKind, isolated: boolean, load: () => Promise<T>): Promise<T> {
+  if (isolated) return load();
+  const key = rendererAccountScopedKey(kind);
+  const active = catalogReads.get(key);
+  if (active) return active as Promise<T>;
+  const request = load().finally(() => {
+    if (catalogReads.get(key) === request) catalogReads.delete(key);
+  });
+  catalogReads.set(key, request);
+  return request as Promise<T>;
+}
+
+export function clearSynonBiomedCatalogReads(): void {
+  catalogReads.clear();
+}
+
+registerRendererAccountReset('synon-biomed-catalog-reads', clearSynonBiomedCatalogReads);
 
 const SURFACE_DEFINITIONS: SynonBiomedIntegrationSurface[] = [
   {
@@ -201,16 +228,18 @@ export class SynonBiomedAssistantCatalogError extends Error {
 }
 
 export async function fetchSynonBiomedCatalog(fetchImpl: FetchLike = fetch): Promise<SynonBiomedCatalog> {
-  const response = await fetchImpl(CATALOG_ENDPOINT, {
-    method: 'GET',
-    headers: { Accept: 'application/json' },
+  return coalesceCatalogRead('catalog', fetchImpl !== fetch, async () => {
+    const response = await fetchImpl(CATALOG_ENDPOINT, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+    });
+
+    if (!response.ok) {
+      throw new SynonBiomedCatalogError(response.status, await readErrorMessage(response));
+    }
+
+    return (await response.json()) as SynonBiomedCatalog;
   });
-
-  if (!response.ok) {
-    throw new SynonBiomedCatalogError(response.status, await readErrorMessage(response));
-  }
-
-  return (await response.json()) as SynonBiomedCatalog;
 }
 
 export function summarizeSynonBiomedCatalog(catalog: SynonBiomedCatalog): SynonBiomedCatalogSummary {
@@ -458,12 +487,14 @@ function isSynonBiomedAssistant(assistant: Assistant): boolean {
   return assistant.id.startsWith('synonbiomed:') || assistant.agent?.type === 'synonbiomed';
 }
 export async function loadSynonBiomedAssistants(fetchImpl: FetchLike = fetch): Promise<Assistant[]> {
-  try {
-    const agents = await loadSynonBiomedAgents({ fetchImpl: fetchImpl as typeof fetch });
-    return await Promise.all(agents.map(toSynonAIAssistant));
-  } catch (error) {
-    throw new SynonBiomedAssistantCatalogError(error);
-  }
+  return coalesceCatalogRead('assistants', fetchImpl !== fetch, async () => {
+    try {
+      const agents = await loadSynonBiomedAgents({ fetchImpl: fetchImpl as typeof fetch });
+      return await Promise.all(agents.map(toSynonAIAssistant));
+    } catch (error) {
+      throw new SynonBiomedAssistantCatalogError(error);
+    }
+  });
 }
 
 async function readErrorMessage(response: Response): Promise<string> {

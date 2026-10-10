@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  clearSynonBiomedComputeReads,
   addSynonBiomedInferenceProvider,
   addSynonBiomedSshHost,
   deleteSynonBiomedComputeProvider,
@@ -32,6 +33,7 @@ import {
 } from '@/renderer/services/synonBiomedCompute';
 
 afterEach(() => {
+  clearSynonBiomedComputeReads();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
