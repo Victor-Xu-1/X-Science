@@ -87,6 +87,12 @@ const molstarMocks = vi.hoisted(() => {
     })),
     clearPocketFocus: vi.fn(async () => undefined),
     getSelectedLigandResidueName: vi.fn(() => undefined as string | undefined),
+    exportMinimizationPose: vi.fn((sourcePdb?: string) => ({
+      content: sourcePdb ?? 'current pose structure',
+      ligandResidueName: 'LIG',
+      ligandAtomSerial: 1,
+    })),
+    setStructureLigandSelectionByAtomSerial: vi.fn(async () => undefined),
     getTrajectoryModelState: vi.fn(() => ({ index: 0, count: 1 })),
     getStructureComposition: vi.fn(() => ({
       objects: [],
@@ -477,6 +483,12 @@ describe('SynonBiomedStructureViewer', () => {
       ligand: electrostaticTransportMocks.dx,
     });
     molstarMocks.engine.getSelectedLigandResidueName.mockReturnValue(undefined);
+    molstarMocks.engine.exportMinimizationPose.mockReset().mockImplementation((sourcePdb?: string) => ({
+      content: sourcePdb ?? molstarMocks.engine.exportCurrentPose().content,
+      ligandResidueName: molstarMocks.engine.getSelectedLigandResidueName() ?? 'LIG',
+      ligandAtomSerial: 1,
+    }));
+    molstarMocks.engine.setStructureLigandSelectionByAtomSerial.mockReset().mockResolvedValue(undefined);
     molstarMocks.engine.getPrimaryLigandDepictionSource.mockReturnValue(undefined);
     molstarMocks.engine.getElectrostaticInputSource.mockReset();
     molstarMocks.engine.hasElectrostaticLigandInput.mockReset().mockReturnValue(true);
@@ -3322,6 +3334,7 @@ describe('SynonBiomedStructureViewer', () => {
       scope: 'ligand',
       protein_environment: 'fixed',
       ligand_residue_name: 'LIG',
+      ligand_atom_serial: 1,
       max_iterations: 200,
       tolerance: 1e-4,
     });
@@ -3443,6 +3456,9 @@ describe('SynonBiomedStructureViewer', () => {
       expect(screen.queryByTestId('synon-biomed-molstar-interaction-diagram')).not.toBeInTheDocument()
     );
     await waitFor(() => expect(interactionButton).toBeEnabled());
+
+    expect(molstarMocks.engine.setStructureLigandSelectionByAtomSerial).toHaveBeenCalledWith(1);
+    expect(screen.getByRole('button', { name: 'Pocket', exact: true })).toHaveAttribute('aria-pressed', 'false');
 
     fireEvent.click(interactionButton);
     await waitFor(() => expect(fullInteractionRequests()).toHaveLength(2));

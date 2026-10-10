@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "d1e3d359f0d7883e73b97b67ec58f5ccadfa71e6da9c403f34c57372bb30cf5f",
+  "adaptationFingerprintSHA256": "b0799c74cec9610c6d2c681daf572702433b5f458e5506abd5c9f0008a3d6e83",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "5bf4199ce29b6414b8dee215b7943b1e0a293e703e418a10ad1aa2227506f2a2",
+  "additionFingerprintSHA256": "c153e31e8eba3a5206339c63fdaaef6f24095aef882db697e614693934bddd1c",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 345,
     "adaptedSourceFiles": 716,
     "removedSourceFiles": 293,
-    "addedFiles": 851
+    "addedFiles": 853
   },
   "adaptations": [
     {
@@ -1501,8 +1501,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedStructureViewer.tsx",
       "sourceSHA256": "6cb430ff6d16123ef3da68f5af29d4dc093a1e5bb9e9b2655a3c01e2d1e2ecb1",
-      "targetSHA256": "7f4eb5155d4aa40e14cb8c8a3085ca9d1fbefcde4162891a3e83b0172b521ad1",
-      "bytes": 146183,
+      "targetSHA256": "dac21aa32828e530d38d2e72e9d5177a9a8de44f51a068dcb92bf385170585cf",
+      "bytes": 147098,
       "reason": "Unify PDB, mmCIF, SDF, and related molecular formats on one Molstar preview with composition-aware controls, collapsed auxiliary panels, and source-fenced 2D interaction refresh."
     },
     {
@@ -3671,8 +3671,8 @@
     {
       "path": "tests/unit/previews/SynonBiomedStructureViewer.dom.test.tsx",
       "sourceSHA256": "ba8c8acb753fdac5f71871a9aeba75f7dd569f1f82eca75dae7e0c76fa5f1c54",
-      "targetSHA256": "c221b68bbf89105135bc58f4cfcbd27f8590ebc7a872deb851ab90e72dde5ba6",
-      "bytes": 157756,
+      "targetSHA256": "0982c734757d9be5ec256166f15e15ed7b0d7acf916cd3f2f8bfb1709a2c295f",
+      "bytes": 158665,
       "reason": "Verify format-neutral composition controls, collapsed 2D panels, and source-invalidated interactions after minimization."
     },
     {
@@ -8104,14 +8104,14 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/molstarPose.ts",
-      "sha256": "ed6820f91b4899aa1f2527778452d92c180fd4b2aeb8b56728218b07be487a88",
-      "bytes": 5739,
+      "sha256": "624bfa7858b75782bdf2eb2f5da6bd7b3e5a0a22d891497be9e50d6f44bd0254",
+      "bytes": 5874,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/molstarStructureEngine.ts",
-      "sha256": "58a2de16b34fbbd35d2554ff1bd624073e76b74cfbb7ff1707cec72881f82122",
-      "bytes": 148834,
+      "sha256": "e3b56eb69ee48effee9236c3da66d0aabf24b5ebdc2b3c73d1ffd6a8af636560",
+      "bytes": 149812,
       "reason": "Own format-neutral Molstar loading, structure composition, surface styling, ligand extraction, and object visibility operations."
     },
     {
@@ -8188,8 +8188,14 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/structureLigandSelection.ts",
-      "sha256": "6e13dc8546907a492a3322f2cfbf0a45ee8f4ae8f7a73428f959e09c9931b5d9",
-      "bytes": 5726,
+      "sha256": "dd936437dbe9513e888f16a95a9321c2dd53e9c719909e113feb331aa60361a8",
+      "bytes": 7612,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/structureMinimizationInput.ts",
+      "sha256": "6e01453580cd8d5be553a50ce5593779c22326a362cb8492ba3769c17bb8c98f",
+      "bytes": 2005,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10236,6 +10242,12 @@
       "path": "tests/unit/previews/structureLigandSelection.test.ts",
       "sha256": "8f424653a2ab51935921e4b0c0942f08c7216437e49e66b6ea5bdcaf33eaf8f2",
       "bytes": 17007,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/previews/structureMinimizationInput.test.ts",
+      "sha256": "6e7ad053555bbc89fdc2f505518eae4ab9c89eb3520b3df2d4d2010cc3422ef6",
+      "bytes": 3856,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

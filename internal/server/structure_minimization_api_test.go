@@ -48,6 +48,9 @@ func TestDecodeStructureMinimizationRequestRejectsAmbiguousPayloads(t *testing.T
 		{name: "unsupported scope", body: `{"content":"x","filename":"a.sdf","scope":"whole-structure"}`},
 		{name: "movable protein", body: `{"content":"x","filename":"a.sdf","protein_environment":"movable"}`},
 		{name: "invalid ligand residue", body: `{"content":"x","filename":"a.sdf","ligand_residue_name":"LIGAND"}`},
+		{name: "zero atom serial", body: `{"content":"x","filename":"a.pdb","ligand_atom_serial":0}`},
+		{name: "unbounded atom serial", body: `{"content":"x","filename":"a.pdb","ligand_atom_serial":100000}`},
+		{name: "atom serial outside PDB", body: `{"content":"x","filename":"a.sdf","ligand_atom_serial":5}`},
 	}
 
 	for _, test := range tests {
@@ -57,6 +60,51 @@ func TestDecodeStructureMinimizationRequestRejectsAmbiguousPayloads(t *testing.T
 				t.Fatalf("expected %s to be rejected", test.name)
 			}
 		})
+	}
+}
+
+func TestDecodeStructureMinimizationRequestBindsNativeAtom(t *testing.T) {
+	request, err := decodeStructureMinimizationRequest(httptest.NewRequest("POST", "/", strings.NewReader(`{"content":"pdb","filename":"pose.pdb","ligand_residue_name":"UNL","ligand_atom_serial":13}`)))
+	if err != nil || request.LigandAtomSerial == nil || *request.LigandAtomSerial != 13 {
+		t.Fatalf("native atom binding lost: %+v %v", request, err)
+	}
+}
+
+func TestStructureMinimizationNativeAtomBindsRuntimeRequestDigest(t *testing.T) {
+	request := software.Request{Capability: "structure-energy-minimization", Language: "python", SourceEnvironment: "synon-biomed-python", InputSHA256: strings.Repeat("a", 64), Imports: []string{"rdkit"}, Executable: "python", Arguments: []string{"_structure_minimize.py", "--ligand-atom-serial", "13"}}
+	first, err := software.RequestDigest(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Arguments = []string{"_structure_minimize.py", "--ligand-atom-serial", "9"}
+	second, err := software.RequestDigest(request)
+	if err != nil || first == second {
+		t.Fatalf("different native selections reused a runtime digest: %v", err)
+	}
+}
+
+func TestStructureMinimizationProgramMovesOnlySelectedSameNameInstance(t *testing.T) {
+	content := strings.ReplaceAll(testProteinMultipleLigandsPDB, "DRG", "LIG")
+	result := runStructureMinimizationProgram(t, "same-name.pdb", "selected-output.pdb", "pdb", content, "--ligand-residue-name", "LIG", "--ligand-atom-serial", "7")
+	if result.err != nil {
+		t.Fatalf("selected instance failed: %v\n%s", result.err, result.output)
+	}
+	output, err := os.ReadFile(result.outputPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	before, after := pdbCoordinatesBySerial(t, content), pdbCoordinatesBySerial(t, string(output))
+	for serial := 1; serial <= 6; serial++ {
+		if coordinateDistance(before[serial], after[serial]) > 1e-6 {
+			t.Fatalf("fixed receptor/other ligand atom %d moved", serial)
+		}
+	}
+	if coordinateDistance(before[7], after[7]) < 0.01 && coordinateDistance(before[8], after[8]) < 0.01 {
+		t.Fatal("selected instance did not move")
+	}
+	report := readTestStructureMinimizationReport(t, result.reportPath)
+	if report["ligand_atom_count"] != float64(2) || report["fixed_atom_count"] != float64(6) || report["ligand_residue"] != "LIG:Y:201" {
+		t.Fatalf("wrong native instance partition: %#v", report)
 	}
 }
 
@@ -228,6 +276,9 @@ func runStructureMinimizationProgram(
 	reportPath := filepath.Join(tempDir, "report.json")
 	if err := os.WriteFile(scriptPath, structureMinimizationProgram, 0o600); err != nil {
 		t.Fatalf("write runtime program: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(tempDir, "structure_minimization_selection.py"), structureMinimizationSelectionProgram, 0o600); err != nil {
+		t.Fatalf("write runtime selection module: %v", err)
 	}
 	if err := os.WriteFile(inputPath, []byte(content), 0o600); err != nil {
 		t.Fatalf("write minimization fixture: %v", err)

@@ -9,11 +9,10 @@ from typing import Any
 
 from rdkit import Chem
 from rdkit.Chem import AllChem
+from structure_minimization_selection import prepare_pdb_selection, select_pdb_ligand
 
 MAX_MOLECULES = 64
 MAX_HEAVY_ATOMS = 512
-MAX_CONTEXT_ATOMS = 20000
-WATER_RESIDUES = {"DOD", "HOH", "H2O", "WAT"}
 VALID_ELEMENTS = frozenset(
     Chem.GetPeriodicTable().GetElementSymbol(atomic_number)
     for atomic_number in range(1, 119)
@@ -94,7 +93,7 @@ def normalize_pdb_block(content: str) -> str:
     return "\n".join(normalized_lines) + "\n"
 
 
-def parse_molecules(input_path: str, input_format: str) -> list[Chem.Mol]:
+def parse_molecules(input_path: str, input_format: str, ligand_atom_serial: int | None = None) -> list[Chem.Mol]:
     if input_format == "sdf":
         supplier = Chem.SDMolSupplier(input_path, removeHs=False, sanitize=True)
         molecules = []
@@ -112,7 +111,7 @@ def parse_molecules(input_path: str, input_format: str) -> list[Chem.Mol]:
     elif input_format == "pdb":
         with open(input_path, "r", encoding="utf-8") as handle:
             molecule = Chem.MolFromPDBBlock(
-                normalize_pdb_block(handle.read()),
+                prepare_pdb_selection(normalize_pdb_block(handle.read()), ligand_atom_serial),
                 removeHs=False,
                 sanitize=True,
             )
@@ -183,109 +182,14 @@ def ensure_3d_conformer(
     return True
 
 
-def pdb_residue_key(atom: Chem.Atom) -> tuple[str, str, int, str] | None:
-    info = atom.GetPDBResidueInfo()
-    if info is None:
-        return None
-    return (
-        info.GetResidueName().strip().upper(),
-        info.GetChainId().strip(),
-        int(info.GetResidueNumber()),
-        info.GetInsertionCode().strip(),
-    )
-
-
-def select_pdb_ligand(
-    molecule: Chem.Mol,
-    ligand_residue_name: str | None,
-) -> tuple[list[int], list[int], bool, str | None]:
-    if molecule.GetNumAtoms() > MAX_CONTEXT_ATOMS:
-        raise ValueError("protein-ligand context exceeds the bounded atom limit")
-
-    if ligand_residue_name:
-        ligand_indices = [
-            atom.GetIdx()
-            for atom in molecule.GetAtoms()
-            if (pdb_residue_key(atom) or ("", "", 0, ""))[0] == ligand_residue_name
-        ]
-        if not ligand_indices:
-            raise ValueError("specified ligand residue is not present in the current pose")
-        ligand_index_set = set(ligand_indices)
-        fixed_indices = [
-            atom.GetIdx()
-            for atom in molecule.GetAtoms()
-            if atom.GetIdx() not in ligand_index_set
-        ]
-        protein_present = any(
-            atom.GetIdx() not in ligand_index_set
-            and atom.GetPDBResidueInfo() is not None
-            and not atom.GetPDBResidueInfo().GetIsHeteroAtom()
-            for atom in molecule.GetAtoms()
-        )
-        return ligand_indices, fixed_indices, protein_present, f"{ligand_residue_name}:*"
-
-    protein_indices: list[int] = []
-    ligand_groups: dict[tuple[str, str, int, str], list[int]] = {}
-    standalone_indices: list[int] = []
-    for atom in molecule.GetAtoms():
-        index = atom.GetIdx()
-        info = atom.GetPDBResidueInfo()
-        key = pdb_residue_key(atom)
-        residue_name = key[0] if key else ""
-        if residue_name in WATER_RESIDUES:
-            continue
-        if info is not None and not info.GetIsHeteroAtom():
-            protein_indices.append(index)
-            continue
-        standalone_indices.append(index)
-        if key is not None:
-            ligand_groups.setdefault(key, []).append(index)
-
-    protein_present = bool(protein_indices)
-    if not protein_present:
-        if not standalone_indices:
-            raise ValueError("input contains no ligand")
-        ligand_indices = standalone_indices
-        ligand_index_set = set(ligand_indices)
-        fixed_indices = [
-            atom.GetIdx()
-            for atom in molecule.GetAtoms()
-            if atom.GetIdx() not in ligand_index_set
-        ]
-        return ligand_indices, fixed_indices, False, None
-
-    candidates = []
-    for key, indices in ligand_groups.items():
-        heavy_atoms = [index for index in indices if molecule.GetAtomWithIdx(index).GetAtomicNum() > 1]
-        has_carbon = any(molecule.GetAtomWithIdx(index).GetAtomicNum() == 6 for index in heavy_atoms)
-        if len(heavy_atoms) >= 2 and has_carbon:
-            candidates.append((key, indices))
-    if not candidates:
-        raise ValueError("input contains no ligand")
-    if len(candidates) != 1:
-        raise ValueError(
-            "the protein complex contains multiple ligand candidates; open one ligand pose before minimizing"
-        )
-
-    ligand_key, ligand_indices = candidates[0]
-    ligand_index_set = set(ligand_indices)
-    fixed_indices = [
-        atom.GetIdx()
-        for atom in molecule.GetAtoms()
-        if atom.GetIdx() not in ligand_index_set
-    ]
-    residue_name, chain_id, residue_number, insertion_code = ligand_key
-    descriptor = f"{residue_name}:{chain_id or '-'}:{residue_number}{insertion_code}"
-    return ligand_indices, fixed_indices, True, descriptor
-
-
 def minimization_partition(
     molecule: Chem.Mol,
     input_format: str,
     ligand_residue_name: str | None,
+    ligand_atom_serial: int | None = None,
 ) -> tuple[list[int], list[int], bool, str | None]:
     if input_format == "pdb":
-        return select_pdb_ligand(molecule, ligand_residue_name)
+        return select_pdb_ligand(molecule, ligand_residue_name, ligand_atom_serial)
     ligand_indices = [atom.GetIdx() for atom in molecule.GetAtoms()]
     if not ligand_indices:
         raise ValueError("input contains no ligand")
@@ -364,7 +268,8 @@ def write_output(
 
 def minimize(args: argparse.Namespace) -> dict[str, Any]:
     report = base_report(args.force_field, args.format, args.scope, args.protein_environment)
-    molecules = parse_molecules(args.input, args.format)
+    ligand_atom_serial = getattr(args, "ligand_atom_serial", None)
+    molecules = parse_molecules(args.input, args.format, ligand_atom_serial)
     if not molecules:
         raise ValueError("input contains no molecules")
     if len(molecules) != 1:
@@ -382,7 +287,7 @@ def minimize(args: argparse.Namespace) -> dict[str, Any]:
 
     for molecule in molecules:
         ligand_indices, fixed_indices, molecule_has_protein, molecule_ligand_residue = (
-            minimization_partition(molecule, args.format, args.ligand_residue_name or None)
+            minimization_partition(molecule, args.format, args.ligand_residue_name or None, ligand_atom_serial)
         )
         ligand_heavy_atoms = sum(
             1 for index in ligand_indices if molecule.GetAtomWithIdx(index).GetAtomicNum() > 1
@@ -453,10 +358,13 @@ def main() -> int:
     parser.add_argument("--scope", choices=("ligand",), required=True)
     parser.add_argument("--protein-environment", choices=("fixed",), required=True)
     parser.add_argument("--ligand-residue-name", default="")
+    parser.add_argument("--ligand-atom-serial", type=int)
     parser.add_argument("--max-iterations", type=int, default=200)
     parser.add_argument("--tolerance", type=float, default=1e-4)
     args = parser.parse_args()
     args.ligand_residue_name = args.ligand_residue_name.strip().upper()
+    if args.ligand_atom_serial is not None and not 1 <= args.ligand_atom_serial <= 99999:
+        raise ValueError("ligand-atom-serial is outside the PDB range")
 
     for path in (args.input, args.output, args.report):
         if os.path.basename(path) != path or not path or path.startswith(".") or "/" in path or "\\" in path:
