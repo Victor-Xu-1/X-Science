@@ -4,10 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useLayoutEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import { Button, Spin } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
 import type { ArtifactReadState } from './useArtifactMetadataReads';
+import { useArtifactRecoveryFocus } from './useArtifactRecoveryFocus';
 
 export function ArtifactMetadataState({
   state,
@@ -18,6 +19,7 @@ export function ArtifactMetadataState({
   showKnownContent = false,
   className,
   compact = false,
+  regionRef,
   children,
 }: {
   state: ArtifactReadState<unknown>;
@@ -28,21 +30,13 @@ export function ArtifactMetadataState({
   showKnownContent?: boolean;
   className?: string;
   compact?: boolean;
+  regionRef?: React.RefObject<HTMLDivElement | null>;
   children?: React.ReactNode;
 }) {
   const { t } = useTranslation();
-  const region = useRef<HTMLDivElement>(null);
-  const returnIntent = useRef(false);
-  useLayoutEffect(() => {
-    returnIntent.current = false;
-  }, [owner]);
-  useLayoutEffect(() => {
-    if (state.status !== 'ready' || !returnIntent.current) return;
-    returnIntent.current = false;
-    const target = region.current;
-    if (document.activeElement === document.body && !target?.closest('[hidden],[aria-hidden="true"]'))
-      target?.focus({ preventScroll: true });
-  }, [state.status]);
+  const internalRegion = useRef<HTMLDivElement>(null);
+  const region = regionRef ?? internalRegion;
+  const intendRecoveryFocus = useArtifactRecoveryFocus(owner, state.status, region);
   return (
     <div
       ref={region}
@@ -64,7 +58,7 @@ export function ArtifactMetadataState({
               className='self-start'
               aria-label={t('preview.artifact.metadata.retry', { section: label })}
               onClick={() => {
-                returnIntent.current = true;
+                intendRecoveryFocus();
                 onRetry();
               }}
             >

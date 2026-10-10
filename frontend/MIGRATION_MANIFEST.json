@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "beabfba7c6359aa17df6225e553cef13c14ec937e76317ea8069e4a72d214062",
+  "adaptationFingerprintSHA256": "7c5b55ccdf3769f8140886d90c16d934b2a81784667580c57105f985e3b4c0e9",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "e6dc6f18fd7ce264389debb160ee7600e15cf1681a57fb4bce815cf940850dfe",
+  "additionFingerprintSHA256": "6fa3080e37cf29bf69ef6c964ea62c7440ede0a20346689fc389030fecb6209f",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 345,
     "adaptedSourceFiles": 716,
     "removedSourceFiles": 293,
-    "addedFiles": 838
+    "addedFiles": 843
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "abdbd61b4a2d28de54c061695a8a81e7bb1a6789813ff7f84190eedc3bac0578",
+      "targetSHA256": "3215e1a33c3a97d18bda42d636a81bdb6c366b990dda3819cf896ae0786d96f0",
       "bytes": 4378,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "53a0a66d903b388aa51860df7fef4860b176752c232ba380f15f7f902e801c74",
+      "targetSHA256": "20ffdc5b6e932098a7f93a071f9395ac2857dea8d18f534315f4d80a774745dd",
       "bytes": 157,
       "reason": "Remove @synon-ai/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -913,8 +913,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/artifact/ArtifactPreview.tsx",
       "sourceSHA256": "21d3998423856a474f4e13516869e446beaebf11fab0597fc9e7a3d732d624d1",
-      "targetSHA256": "62045de6dccaadd5436c6482735a7f554e942c60d81159a46f7dbaa89a17fa45",
-      "bytes": 37040,
+      "targetSHA256": "e13dc594c3daf61787be44767eff807273f5bbc36dfd2f8a2cee20e1856f6734",
+      "bytes": 37599,
       "reason": "Connect immutable Go artifacts, annotations, refinement, and native viewers with bounded localized failure handling."
     },
     {
@@ -2579,8 +2579,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/preview.json",
       "sourceSHA256": "bf530f4a992cc14652500390e715b7add84853e9b0757158c718244cf4cd8f32",
-      "targetSHA256": "f799b688915855ec7309ad76bc4a03c8431e5ed8dc8873cb9209f7241b44dfba",
-      "bytes": 41988,
+      "targetSHA256": "dda15267a9570fafdff0a95d4efaead83d65915c6e4dfad394fbc4dc378a3af9",
+      "bytes": 41931,
       "reason": "Add English labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls."
     },
     {
@@ -2670,8 +2670,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/preview.json",
       "sourceSHA256": "6b772273972756a3407fee8fe7b4503e992964a8de901375f06bfd2faacf2ba0",
-      "targetSHA256": "7c28d5d2ae400fca7d44e6ee019c940faa92567068912c3e6fb91d20f3718ccc",
-      "bytes": 40530,
+      "targetSHA256": "26fdeefd1a81a1e4f147967e9c8cf57fcb3beeccc53ea05627be1fe2e8b41c7f",
+      "bytes": 40464,
       "reason": "Add Simplified Chinese labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls."
     },
     {
@@ -3671,8 +3671,8 @@
     {
       "path": "tests/unit/previews/SynonBiomedStructureViewer.dom.test.tsx",
       "sourceSHA256": "ba8c8acb753fdac5f71871a9aeba75f7dd569f1f82eca75dae7e0c76fa5f1c54",
-      "targetSHA256": "a2be057cb7ea349bcc4938480fbfc578be204a093bc1214bc47a45c8fc26de05",
-      "bytes": 149117,
+      "targetSHA256": "5b0d4f214fbd8474faecb4dd213ca7e7b1bcfc71724beae7f3e95766ec9ac757",
+      "bytes": 149094,
       "reason": "Verify format-neutral composition controls, collapsed 2D panels, and source-invalidated interactions after minimization."
     },
     {
@@ -6796,7 +6796,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "263b90e10f27bf2ace53ae71f95878d1dcb1b87f40396e417245fcb57a2cb7de",
+      "sha256": "72025264c2c333dd3ec87cb91a1ff4564ef46ad9687c20a4ed8ddd794f2b2c28",
       "bytes": 558186,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -7396,8 +7396,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/artifact/ArtifactMetadataState.tsx",
-      "sha256": "76b5a08249a5eead0141df1bd946ee8904c584a07f51af2f4c70d7838c79546a",
-      "bytes": 2514,
+      "sha256": "553fd2769f2fde45b857a747f86b1e209776d88d9980603011cea51d835671ce",
+      "bytes": 2322,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -7464,6 +7464,12 @@
       "path": "packages/desktop/src/renderer/pages/artifact/useArtifactMetadataReads.ts",
       "sha256": "d310a4b413ed6d3238265280ba4d294a429b9d4379e08c1a4d9a96b648419779",
       "bytes": 6912,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/artifact/useArtifactRecoveryFocus.ts",
+      "sha256": "750d4992283e12c8f258c4db331ea4e23d7fd7ff84c4edff1aca4c65d8126f50",
+      "bytes": 1409,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8079,6 +8085,12 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/molstarPocketReading.ts",
+      "sha256": "eeec7e55f7f11ebba1c336f7f0c150daec43eec28d762869916128c42a228ab1",
+      "bytes": 1264,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/molstarPose.ts",
       "sha256": "ed6820f91b4899aa1f2527778452d92c180fd4b2aeb8b56728218b07be487a88",
       "bytes": 5739,
@@ -8086,8 +8098,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/molstarStructureEngine.ts",
-      "sha256": "51915c32d70ddd2f91beec56f50b1f037902a53028143206d2e6022563880799",
-      "bytes": 147649,
+      "sha256": "b6993ad78addc294c6d0ce2efd923097a064a7a09a3de29585f7713e41f21c19",
+      "bytes": 147701,
       "reason": "Own format-neutral Molstar loading, structure composition, surface styling, ligand extraction, and object visibility operations."
     },
     {
@@ -10101,6 +10113,12 @@
       "reason": "Verify bounded MCP App host protocol validation and exact input round trips."
     },
     {
+      "path": "tests/unit/previews/molstarPocketReading.test.ts",
+      "sha256": "8b6a00f1bdfe99b97ae066a216c2aad0fef974080c7e29229565410bb9fe051d",
+      "bytes": 2889,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/unit/previews/molstarStructureEngine.test.ts",
       "sha256": "49e91a80667251f14ea3e8715eb2979e3ac120d94f82dcf71f55ce3b0d3b340f",
       "bytes": 41359,
@@ -10153,6 +10171,12 @@
       "sha256": "87c347ef757ef9067d4ccefff9f5052c45227da472c85c597b92be7aed6d732a",
       "bytes": 10149,
       "reason": "Verify aligned dual-component APBS response validation, bounded decoding, and malformed-map rejection."
+    },
+    {
+      "path": "tests/unit/previews/structureInteractionCopy.test.ts",
+      "sha256": "3b0ab2250d91323171a92ecda88c83b21698964f383c6b39e0fe5f1ce3e78e4f",
+      "bytes": 816,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/unit/previews/structureInteractionReportCache.test.ts",
@@ -10216,8 +10240,8 @@
     },
     {
       "path": "tests/unit/renderer/ArtifactPreviewInteraction.dom.test.tsx",
-      "sha256": "0398b01d67bff6fd13b1f114b81485be0761c0b427c1d9cd19dea0f9284dd1ad",
-      "bytes": 36599,
+      "sha256": "7fe5d2e79397a2f59c88f6a70f388f3d454fb57e50eed042fdd097f03bb92d70",
+      "bytes": 38911,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -10842,6 +10866,12 @@
       "path": "tests/unit/renderer/useArtifactMetadataReads.dom.test.tsx",
       "sha256": "f95d0d1f3a2b30896c9306b1b465d54fc82c643ad9c6d1aee08e406245dc5e84",
       "bytes": 5190,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/useArtifactRecoveryFocus.dom.test.tsx",
+      "sha256": "d1102c24732c70206f4ad091698db44d5df59bf04c342070946fddf2641a0146",
+      "bytes": 3574,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

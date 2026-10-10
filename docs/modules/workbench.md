@@ -150,6 +150,28 @@ latest checksum is shown only for that matching version, not an older selection.
 详情与预览、标题共享所选版本元数据；历史版本缺失的字段不冒用最新版本。
 文件的最新校验值只在对应版本显示，不用它标注历史版本。
 
+Manual metadata recovery preserves keyboard continuity even when its error
+section disappears. Success returns to the stable file-preview region; repeated
+failure returns to the available error group. The shared owner-scoped focus rule
+never adds a Tab stop, focuses hidden/disconnected content, or steals another
+connected focus destination. Changing the file, version or inspector cancels the
+conditional section's pending focus intent, not the server-side read or write.
+
+手动重试后的错误区即使消失，也保留键盘操作落点：成功回到稳定文件预览，重复失败
+回到可操作的错误区。共享焦点规则按当前视图身份隔离，不增加 Tab 停靠点，不聚焦
+隐藏或已移除内容，也不抢走其他控件焦点。切换文件、版本或检查页会撤销该条件区域
+的旧焦点意图，不宣称取消服务端读取或写入。
+
+Pocket entry frames the selected ligand together with the contact residues that
+are actually labelled. Compact native tethered residue callouts preserve every
+existing identifier and contact; no coordinates, topology, selection or computed
+values are changed. This automatic framing runs only on explicit pocket entry;
+pose/color refinements keep the existing camera-preservation guard.
+
+口袋视图首次进入时，将所选配体与实际显示标签的接触残基一同纳入镜头。紧凑原生
+标签保留既有残基标识与接触，不改变坐标、拓扑、选择或计算值。后续构象、颜色更新
+继续遵循既有镜头保护，不重新覆盖用户视角。
+
 图片预览提供适应窗口、原始尺寸和逐级缩放；超出视口的原图可滚动阅读，切换缩放
 保留当前阅读中心，不裁切或改写原始像素。图片视口获得焦点后，`+`/`-` 缩放，`0`
 恢复原始尺寸，`F` 适应窗口，方向键平移；浏览器组合快捷键及批注按钮的键盘操作

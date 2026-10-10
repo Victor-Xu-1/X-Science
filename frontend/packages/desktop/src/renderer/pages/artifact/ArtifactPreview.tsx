@@ -35,6 +35,7 @@ import { ArtifactFileActionModal } from './ArtifactFileActionModal';
 import { ArtifactPageState } from './ArtifactPageState';
 import { ArtifactMetadataState } from './ArtifactMetadataState';
 import { useArtifactMetadataReads } from './useArtifactMetadataReads';
+import { useArtifactRecoveryFocus } from './useArtifactRecoveryFocus';
 import { ArtifactDetails } from './ArtifactDetails';
 import { formatBytes, formatDate } from './artifactPresentation';
 import type { ArtifactFileAction } from './useArtifactFileActionEditor';
@@ -97,6 +98,7 @@ const ArtifactPreview: React.FC = () => {
   const [notesVisible, setNotesVisible] = useState(false);
   const [messageApi, messageContextHolder] = Message.useMessage();
   const previewReturnRef = useRef<HTMLElement | null>(null);
+  const resourcesFailureRef = useRef<HTMLDivElement | null>(null);
   const pageHeadingRef = useRef<HTMLHeadingElement | null>(null);
   const retryFocusIntent = useRef(false);
   const versionRefreshRevision = useRef(0);
@@ -173,6 +175,15 @@ const ArtifactPreview: React.FC = () => {
       ? snapshot.artifact
       : null;
   const metadata = useArtifactMetadataReads(metadataArtifact, metadataRevision, selectedVersionId);
+  const intendResourceRecovery = useArtifactRecoveryFocus(
+    JSON.stringify([metadata.owner, selectedVersionId, activeInspectorTab]),
+    metadata.resources.status,
+    metadata.resources.status === 'failed' ? resourcesFailureRef : previewReturnRef
+  );
+  const retryResources = () => {
+    intendResourceRecovery();
+    metadata.retry('resources');
+  };
   const selectedVersion = useMemo(
     () =>
       metadata.versions.value.find((version) => version.versionId === selectedVersionId) ??
@@ -349,7 +360,8 @@ const ArtifactPreview: React.FC = () => {
                   state={metadata.resources}
                   label={t('preview.artifact.metadata.resources')}
                   owner={metadata.owner}
-                  onRetry={() => metadata.retry('resources')}
+                  onRetry={retryResources}
+                  regionRef={resourcesFailureRef}
                 />
               ) : (
                 <ArtifactContent
@@ -389,7 +401,8 @@ const ArtifactPreview: React.FC = () => {
                     state={metadata.resources}
                     label={t('preview.artifact.metadata.resources')}
                     owner={metadata.owner}
-                    onRetry={() => metadata.retry('resources')}
+                    onRetry={retryResources}
+                    regionRef={resourcesFailureRef}
                   />
                 )}
               </Tabs.TabPane>
