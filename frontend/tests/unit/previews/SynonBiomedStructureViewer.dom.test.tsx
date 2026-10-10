@@ -87,6 +87,12 @@ const molstarMocks = vi.hoisted(() => {
     })),
     clearPocketFocus: vi.fn(async () => undefined),
     getSelectedLigandResidueName: vi.fn(() => undefined as string | undefined),
+    exportMinimizationPose: vi.fn((sourcePdb?: string) => ({
+      content: sourcePdb ?? 'current pose structure',
+      ligandResidueName: 'LIG',
+      ligandAtomSerial: 1,
+    })),
+    setStructureLigandSelectionByAtomSerial: vi.fn(async () => undefined),
     getTrajectoryModelState: vi.fn(() => ({ index: 0, count: 1 })),
     getStructureComposition: vi.fn(() => ({
       objects: [],
@@ -477,6 +483,12 @@ describe('SynonBiomedStructureViewer', () => {
       ligand: electrostaticTransportMocks.dx,
     });
     molstarMocks.engine.getSelectedLigandResidueName.mockReturnValue(undefined);
+    molstarMocks.engine.exportMinimizationPose.mockReset().mockImplementation((sourcePdb?: string) => ({
+      content: sourcePdb ?? molstarMocks.engine.exportCurrentPose().content,
+      ligandResidueName: molstarMocks.engine.getSelectedLigandResidueName() ?? 'LIG',
+      ligandAtomSerial: 1,
+    }));
+    molstarMocks.engine.setStructureLigandSelectionByAtomSerial.mockReset().mockResolvedValue(undefined);
     molstarMocks.engine.getPrimaryLigandDepictionSource.mockReturnValue(undefined);
     molstarMocks.engine.getElectrostaticInputSource.mockReset();
     molstarMocks.engine.hasElectrostaticLigandInput.mockReset().mockReturnValue(true);
@@ -3322,6 +3334,7 @@ describe('SynonBiomedStructureViewer', () => {
       scope: 'ligand',
       protein_environment: 'fixed',
       ligand_residue_name: 'LIG',
+      ligand_atom_serial: 1,
       max_iterations: 200,
       tolerance: 1e-4,
     });
@@ -3444,6 +3457,9 @@ describe('SynonBiomedStructureViewer', () => {
     );
     await waitFor(() => expect(interactionButton).toBeEnabled());
 
+    expect(molstarMocks.engine.setStructureLigandSelectionByAtomSerial).toHaveBeenCalledWith(1);
+    expect(screen.getByRole('button', { name: 'Pocket', exact: true })).toHaveAttribute('aria-pressed', 'false');
+
     fireEvent.click(interactionButton);
     await waitFor(() => expect(fullInteractionRequests()).toHaveLength(2));
     const interactionBodies = fullInteractionRequests().map(([, init]) =>
@@ -3453,6 +3469,37 @@ describe('SynonBiomedStructureViewer', () => {
       'ATOM before minimization\nHETATM ligand before minimization\nEND\n',
       'ATOM after minimization\nHETATM ligand after minimization\nEND\n',
     ]);
+  });
+
+  it('does not load a retired minimization response into a newly opened file', async () => {
+    let finishResponse!: (response: Response) => void;
+    const fetchMock = vi.fn(
+      () =>
+        new Promise<Response>((resolve) => {
+          finishResponse = resolve;
+        })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    molstarMocks.engine.getSelectedLigandResidueName.mockReturnValue('LIG');
+    const view = await renderWithI18n(
+      <SynonBiomedStructureViewer filename='old.sdf' content='old source' rootFrameId='frame-1' />,
+      'en-US'
+    );
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Energy minimization' })).toBeEnabled());
+    fireEvent.click(screen.getByRole('button', { name: 'Energy minimization' }));
+    await waitFor(() => expect(finishResponse).toBeDefined());
+    view.rerender(<SynonBiomedStructureViewer filename='new.sdf' content='new source' rootFrameId='frame-1' />);
+    await waitFor(() => expect(molstarMocks.engine.load).toHaveBeenCalledWith('new source', 'new.sdf', 'sdf'));
+    await act(async () => {
+      finishResponse(
+        new Response(
+          JSON.stringify({ ok: true, content: 'retired result', filename: 'old-result.pdb', format: 'pdb' }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        )
+      );
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(molstarMocks.engine.load).not.toHaveBeenCalledWith('retired result', 'old-result.pdb', 'pdb');
   });
 
   it('does not allow minimization until a ligand has been selected in the 3D canvas', async () => {

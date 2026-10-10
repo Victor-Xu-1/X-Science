@@ -375,6 +375,33 @@ completion cannot steal focus from another viewer or from a newly opened file.
 结构操作完成后，键盘焦点返回原操作控件；原按钮已禁用时返回邻近可用控件。用户已经
 转移的焦点、文件替换、隐藏查看器或卸载优先，旧操作完成不能抢走其他查看器或新文件的焦点。
 
+Energy minimization binds a picked native atom to exactly one complete residue
+instance, not all residues sharing a name. Selection follows the declared PDB
+record semantics: a selected ATOM/polymer record cannot be admitted as a ligand
+through either an atom serial or a name.
+The canonical normalized PDB parser, including supported ENT inputs, is reused.
+Other physical ligands and the receptor remain fixed even when hidden. Docking
+comparison poses are alternatives: only the
+picked pose is submitted with its receptor. A multi-model PDB submits the active
+model's original records/connectivity. Shared alternate atoms alone cannot choose
+between conformers; an exclusive picked atom identifies the intended alternate.
+Original artifacts are not overwritten. Source coordinates incompatible with an
+assembly transform and ambiguous legacy name-only requests fail explicitly.
+After an ordinary minimization reload, the exact ligand selection is restored and
+old pocket/field/interaction overlays are retired. A retired calculation cannot
+load its coordinates or commit UI state into a newly opened source. Force-field parameters and
+limits are unchanged; technical success is not scientific or experimental acceptance.
+
+能量最小化通过所选原生原子定位唯一完整残基实例，不把同名残基一起选入。按 PDB
+记录声明区分配体与聚合物，不能以原子编号或名称将 ATOM／受体记录当作配体。
+复用现有 PDB 格式归一化器，包含受支持的 ENT 输入。其他真实
+配体和受体即使隐藏仍保持固定；对接比较的姿势是替代方案，仅提交所选姿势及其受体。
+多模型 PDB 提交当前模型的原始记录与连接信息。共享原子不能替用户选择交替构象，
+该构象的独占原子用于精确定位。原始产物不覆盖；与组装变换不一致的原坐标输入，以及
+有歧义的旧名称请求均明确失败。普通结构最小化重新加载后恢复原生配体选择，清退旧口袋、
+电势与相互作用层。旧计算完成时不能向新文件加载坐标或提交界面状态。力场参数、
+既有边界不变；技术执行成功不代表科学或实验验收。
+
 Ordinary ligand electrostatics serializes every selected native instance and
 binds each surface to its matching returned field. API keys derive from the full
 native instance order, so same-name ligands and alternate conformers do not merge

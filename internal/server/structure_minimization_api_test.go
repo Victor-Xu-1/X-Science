@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
 	"net/http/httptest"
 	"os"
@@ -48,6 +49,9 @@ func TestDecodeStructureMinimizationRequestRejectsAmbiguousPayloads(t *testing.T
 		{name: "unsupported scope", body: `{"content":"x","filename":"a.sdf","scope":"whole-structure"}`},
 		{name: "movable protein", body: `{"content":"x","filename":"a.sdf","protein_environment":"movable"}`},
 		{name: "invalid ligand residue", body: `{"content":"x","filename":"a.sdf","ligand_residue_name":"LIGAND"}`},
+		{name: "zero atom serial", body: `{"content":"x","filename":"a.pdb","ligand_atom_serial":0}`},
+		{name: "unbounded atom serial", body: `{"content":"x","filename":"a.pdb","ligand_atom_serial":100000}`},
+		{name: "atom serial outside PDB", body: `{"content":"x","filename":"a.sdf","ligand_atom_serial":5}`},
 	}
 
 	for _, test := range tests {
@@ -57,6 +61,54 @@ func TestDecodeStructureMinimizationRequestRejectsAmbiguousPayloads(t *testing.T
 				t.Fatalf("expected %s to be rejected", test.name)
 			}
 		})
+	}
+}
+
+func TestDecodeStructureMinimizationRequestBindsNativeAtom(t *testing.T) {
+	for _, filename := range []string{"pose.pdb", "pose.ent", "pose.ENT"} {
+		body := fmt.Sprintf(`{"content":"pdb","filename":%q,"ligand_residue_name":"UNL","ligand_atom_serial":13}`, filename)
+		request, err := decodeStructureMinimizationRequest(httptest.NewRequest("POST", "/", strings.NewReader(body)))
+		if err != nil || request.LigandAtomSerial == nil || *request.LigandAtomSerial != 13 {
+			t.Fatalf("native atom binding lost for %s: %+v %v", filename, request, err)
+		}
+	}
+}
+
+func TestStructureMinimizationNativeAtomBindsRuntimeRequestDigest(t *testing.T) {
+	request := software.Request{Capability: "structure-energy-minimization", Language: "python", SourceEnvironment: "synon-biomed-python", InputSHA256: strings.Repeat("a", 64), Imports: []string{"rdkit"}, Executable: "python", Arguments: []string{"_structure_minimize.py", "--ligand-atom-serial", "13"}}
+	first, err := software.RequestDigest(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Arguments = []string{"_structure_minimize.py", "--ligand-atom-serial", "9"}
+	second, err := software.RequestDigest(request)
+	if err != nil || first == second {
+		t.Fatalf("different native selections reused a runtime digest: %v", err)
+	}
+}
+
+func TestStructureMinimizationProgramMovesOnlySelectedSameNameInstance(t *testing.T) {
+	content := strings.ReplaceAll(testProteinMultipleLigandsPDB, "DRG", "LIG")
+	result := runStructureMinimizationProgram(t, "same-name.pdb", "selected-output.pdb", "pdb", content, "--ligand-residue-name", "LIG", "--ligand-atom-serial", "7")
+	if result.err != nil {
+		t.Fatalf("selected instance failed: %v\n%s", result.err, result.output)
+	}
+	output, err := os.ReadFile(result.outputPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	before, after := pdbCoordinatesBySerial(t, content), pdbCoordinatesBySerial(t, string(output))
+	for serial := 1; serial <= 6; serial++ {
+		if coordinateDistance(before[serial], after[serial]) > 1e-6 {
+			t.Fatalf("fixed receptor/other ligand atom %d moved", serial)
+		}
+	}
+	if coordinateDistance(before[7], after[7]) < 0.01 && coordinateDistance(before[8], after[8]) < 0.01 {
+		t.Fatal("selected instance did not move")
+	}
+	report := readTestStructureMinimizationReport(t, result.reportPath)
+	if report["ligand_atom_count"] != float64(2) || report["fixed_atom_count"] != float64(6) || report["ligand_residue"] != "LIG:Y:201" {
+		t.Fatalf("wrong native instance partition: %#v", report)
 	}
 }
 
@@ -197,6 +249,29 @@ func TestStructureMinimizationProgramUsesExplicitLigandIdentityFromCurrentPose(t
 	}
 }
 
+func TestStructureMinimizationProgramRejectsPolymerRecordsAsLigands(t *testing.T) {
+	content := strings.ReplaceAll(testProteinLigandCurrentPosePDB, "HETATM", "ATOM  ")
+	selections := [][]string{
+		{"--ligand-atom-serial", "1"},
+		{"--ligand-residue-name", "ALA", "--ligand-atom-serial", "1"},
+		{"--ligand-residue-name", "LIG", "--ligand-atom-serial", "5"},
+		{"--ligand-residue-name", "LIG"},
+	}
+	for _, arguments := range selections {
+		result := runStructureMinimizationProgram(t, "polymer-records.pdb", "rejected-output.pdb", "pdb", content, arguments...)
+		if result.err == nil {
+			t.Fatal("polymer records admitted as a movable ligand")
+		}
+		report := readTestStructureMinimizationReport(t, result.reportPath)
+		if report["ok"] != false || report["message"] != "selected residue is not a declared non-polymer ligand" {
+			t.Fatalf("incorrect safe rejection: %#v", report)
+		}
+		if _, err := os.Stat(result.outputPath); !os.IsNotExist(err) {
+			t.Fatalf("invalid selection produced coordinates: %v", err)
+		}
+	}
+}
+
 type structureMinimizationProgramResult struct {
 	outputPath string
 	reportPath string
@@ -228,6 +303,9 @@ func runStructureMinimizationProgram(
 	reportPath := filepath.Join(tempDir, "report.json")
 	if err := os.WriteFile(scriptPath, structureMinimizationProgram, 0o600); err != nil {
 		t.Fatalf("write runtime program: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(tempDir, "structure_minimization_selection.py"), structureMinimizationSelectionProgram, 0o600); err != nil {
+		t.Fatalf("write runtime selection module: %v", err)
 	}
 	if err := os.WriteFile(inputPath, []byte(content), 0o600); err != nil {
 		t.Fatalf("write minimization fixture: %v", err)
@@ -347,9 +425,9 @@ const testProteinLigandCurrentPosePDB = `ATOM      1  N   ALA A   1      -4.000 
 ATOM      2  CA  ALA A   1      -2.550   0.000   0.000  1.00 20.00           C
 ATOM      3  C   ALA A   1      -1.800   1.250   0.000  1.00 20.00           C
 ATOM      4  O   ALA A   1      -2.300   2.350   0.000  1.00 20.00           O
-ATOM      5  C1  LIG A  22       0.000   0.000   0.000  1.00 20.00           A
-ATOM      6  C2  LIG A  22       1.400   0.000   0.000  1.00 20.00           A
-ATOM      7 Cl   LIG A  22       3.400   0.000   0.000  1.00 20.00           C
+HETATM    5  C1  LIG A  22       0.000   0.000   0.000  1.00 20.00           A
+HETATM    6  C2  LIG A  22       1.400   0.000   0.000  1.00 20.00           A
+HETATM    7 Cl   LIG A  22       3.400   0.000   0.000  1.00 20.00           C
 CONECT    5    6
 CONECT    6    5    7
 CONECT    7    6
@@ -437,6 +515,11 @@ func TestStructureMinimizationFailureMessageDoesNotExposeRuntimeDetails(t *testi
 		"message": "a 3D conformer could not be generated for the input molecule",
 	}); got != "a 3D conformer could not be generated for the input molecule" {
 		t.Fatalf("expected safe helper message to be preserved, got %q", got)
+	}
+	if got := structureMinimizationFailureMessage(map[string]any{
+		"message": "selected residue is not a declared non-polymer ligand",
+	}); got != "selected residue is not a declared non-polymer ligand" {
+		t.Fatalf("expected safe selection rejection to be preserved, got %q", got)
 	}
 }
 

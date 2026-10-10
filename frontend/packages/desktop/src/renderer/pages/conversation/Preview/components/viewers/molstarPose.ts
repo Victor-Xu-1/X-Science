@@ -5,6 +5,9 @@
  */
 
 export type MolstarPoseAtom = {
+  /** Ephemeral native identity and source serial; not serialized into PDB metadata. */
+  nativeKey?: string;
+  sourceSerial?: number;
   recordName: 'ATOM' | 'HETATM';
   serial: number;
   atomName: string;
