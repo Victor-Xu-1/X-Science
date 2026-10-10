@@ -18,6 +18,7 @@ import {
   type ScientificPreviewErrorCode,
 } from './scientificPreviewError';
 import { StructurePreviewStatus, useStructurePreviewRetry } from './StructurePreviewStatus';
+import { captureStructureActionFocus, useStructureActionFocus } from './structureActionFocus';
 import './SynonBiomedStructureViewer.css';
 import { isSynonBiomedHttpError, requestSynonBiomedJson } from '@/renderer/services/synonBiomedHttp';
 import {
@@ -351,6 +352,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
     loading,
     error,
   });
+  const actionFocus = useStructureActionFocus([content, contentUrl, filename, loadRevision]);
   const [tooltip, setTooltip] = useState<MolstarControlTooltip | null>(null);
   const [activePanel, setActivePanel] = useState<QuickPanel>(null);
   const quickPanelId = useId();
@@ -630,6 +632,9 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
     if (!engine || loading || error || busyActionRef.current) return false;
     const generation = structureGenerationRef.current;
     const ownsAction = () => engineRef.current === engine && structureGenerationRef.current === generation;
+    actionFocus.cancel();
+    const focus =
+      captureStructureActionFocus(statusRootRef.current) ?? captureStructureActionFocus(quickPanelRef.current);
 
     busyActionRef.current = actionId;
     if (busyIndicatorTimerRef.current) clearTimeout(busyIndicatorTimerRef.current);
@@ -665,6 +670,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
         }
         if (busyActionRef.current === actionId) busyActionRef.current = null;
         setBusyAction(null);
+        actionFocus.restore(focus, () => ownsAction() && busyActionRef.current === null);
       }
     }
   };

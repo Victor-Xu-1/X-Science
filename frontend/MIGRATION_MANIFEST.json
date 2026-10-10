@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "8f06212dee3b03959c651899859780135995586c5a09f9c053491847063fb4e0",
+  "adaptationFingerprintSHA256": "7b1a4691654273770d4a816ef4257c9f9145fc140ebc7eddf60199351c176959",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "09995494efd9d6018b21a25b4f3fe89c16eabdc1d9086778727c2d6c8a2b7c91",
+  "additionFingerprintSHA256": "a499f10cbccee9e71316d349ebf42ad76c427cdc80ffd462825e265418fe3339",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 345,
     "adaptedSourceFiles": 716,
     "removedSourceFiles": 293,
-    "addedFiles": 849
+    "addedFiles": 851
   },
   "adaptations": [
     {
@@ -1501,8 +1501,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedStructureViewer.tsx",
       "sourceSHA256": "6cb430ff6d16123ef3da68f5af29d4dc093a1e5bb9e9b2655a3c01e2d1e2ecb1",
-      "targetSHA256": "93378472b11efa721c9f15ee9e69f553ee89688ec628e80d715460254d5af58e",
-      "bytes": 145748,
+      "targetSHA256": "7f4eb5155d4aa40e14cb8c8a3085ca9d1fbefcde4162891a3e83b0172b521ad1",
+      "bytes": 146183,
       "reason": "Unify PDB, mmCIF, SDF, and related molecular formats on one Molstar preview with composition-aware controls, collapsed auxiliary panels, and source-fenced 2D interaction refresh."
     },
     {
@@ -3671,8 +3671,8 @@
     {
       "path": "tests/unit/previews/SynonBiomedStructureViewer.dom.test.tsx",
       "sourceSHA256": "ba8c8acb753fdac5f71871a9aeba75f7dd569f1f82eca75dae7e0c76fa5f1c54",
-      "targetSHA256": "6352f70db9d60ab21fe2b0f2bbe00d0dfd609b8f2e69f32f04d3c0746e3fba92",
-      "bytes": 155658,
+      "targetSHA256": "c221b68bbf89105135bc58f4cfcbd27f8590ebc7a872deb851ab90e72dde5ba6",
+      "bytes": 157756,
       "reason": "Verify format-neutral composition controls, collapsed 2D panels, and source-invalidated interactions after minimization."
     },
     {
@@ -8157,6 +8157,12 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/structureActionFocus.ts",
+      "sha256": "59a19f27d3312b619cac4398fba6ed65ac7e5a5c579349cea1d40c5ff194f71a",
+      "bytes": 3256,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/structureComposition.ts",
       "sha256": "d5d7a40124e4efbf7ed838873f7b7f272f3b11baa0edbfa2a8b54fce4d215d42",
       "bytes": 2865,
@@ -9220,8 +9226,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/utils/focusScope.ts",
-      "sha256": "6af57310da96f7665c4de080881c36b156f13358a389d872bf3b908db03e1880",
-      "bytes": 2131,
+      "sha256": "2bf0300af25c6316fdbd886d58620e25d1cb9a1f359ea9bef29e45ea8b6fd963",
+      "bytes": 2203,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10200,6 +10206,12 @@
       "path": "tests/unit/previews/structureActionAvailability.test.ts",
       "sha256": "78c184dbbc95c696b9f2732daa185a6967d054afb579aa1ca1c764bf8b224fa0",
       "bytes": 2796,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/previews/structureActionFocus.dom.test.tsx",
+      "sha256": "45c92f802d0f4a84d6b49ce0d215ce2211bd15432e7efa7a2b50c3e03bdb12a5",
+      "bytes": 5236,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
