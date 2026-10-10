@@ -41,6 +41,8 @@ import { CCDFormat, MmcifFormat } from 'molstar/lib/mol-model-formats/structure/
 import { parseSmilesMolBlock } from '@/renderer/services/rdkitBrowser';
 import { hasDeclaredLigandTopology } from './ligandTopology';
 import { createStructureLigandController } from './structureLigandController';
+import { resolveStructureViewLigandLoci, resolveStructureViewLigandInstances } from './structureLigandSelection';
+import { createLigandSurfaceComponents, resolveNativeLigandSurfacePlans } from './molstarLigandSurfaces';
 import { restorePdbqtTopology } from './pdbqtTopology';
 import { resolveSurfaceColorSettings, type MolstarElectrostaticVolume } from './molstarElectrostaticTheme';
 import {
@@ -583,10 +585,16 @@ const SYNON_VIEW_PRESET_PARAMS = {
  * this provider commits its new representations, so the canvas never enters
  * the empty intermediate state produced by applying the `empty` preset first.
  */
+export interface MolstarViewPresetOptions {
+  ligandLoci?: StructureElement.Loci;
+  format?: string;
+  onPocketReady?: (ligand: StructureElement.Loci, contacts: StructureElement.Loci) => void;
+}
+
 export const createSynonViewRepresentationPreset = (
   representation: Exclude<MolstarViewRepresentation, 'initial'>,
   electrostaticVolumes: MolstarElectrostaticVolumes = {},
-  onPocketReady?: (ligand: StructureElement.Loci, contacts: StructureElement.Loci) => void
+  options: MolstarViewPresetOptions = {}
 ) =>
   StructureRepresentationPresetProvider({
     id: `preset-synon-biomed-${representation}`,
@@ -596,13 +604,7 @@ export const createSynonViewRepresentationPreset = (
       const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
       const structureData = structureCell?.obj?.data;
       if (!structureCell || !structureData) return {};
-      const ligandObject = summarizeStructureComposition(structureData).objects.find(
-        (object) => object.kind === 'ligand'
-      );
-      const allLigandLoci = StructureQuery.loci(StructureSelectionQueries.ligand.query, structureData);
-      const displayLigandLoci = ligandObject?.residueNames.length
-        ? filterStructureLociByResidueNames(allLigandLoci, ligandObject.residueNames)
-        : allLigandLoci;
+      const displayLigandLoci = resolveStructureViewLigandLoci(structureData, options.ligandLoci, options.format);
       const displayLigandExpression = StructureElement.Bundle.toExpression(
         StructureElement.Bundle.fromLoci(displayLigandLoci)
       );
@@ -616,32 +618,78 @@ export const createSynonViewRepresentationPreset = (
         );
       };
 
-      if (
-        representation === 'surface' ||
-        representation === 'pocket-surface' ||
-        representation === 'ligand-surface' ||
-        representation === 'electrostatic'
-      ) {
+      const buildProteinContext = (
+        graph: ReturnType<typeof StructureRepresentationPresetProvider.reprBuilder>,
+        component: Awaited<ReturnType<typeof presetStaticComponent>>
+      ) =>
+        graph.builder.buildRepresentation(
+          graph.update,
+          component,
+          {
+            type: 'cartoon',
+            typeParams: { alpha: 0.24, sizeFactor: 0.16 },
+            color: 'uniform',
+            colorParams: { value: POCKET_COLORS.outsideProtein },
+          },
+          { tag: 'synon-biomed-view-style-protein-context' }
+        );
+
+      if (representation === 'ligand-surface') {
+        const plans = resolveNativeLigandSurfacePlans(
+          structureData,
+          displayLigandLoci,
+          options.format ?? '',
+          electrostaticVolumes
+        );
+        const surfaces = await createLigandSurfaceComponents(
+          plugin,
+          structureCell,
+          plans,
+          'synon-biomed-view-ligand-surface'
+        );
+        const proteinContext = await presetStaticComponent(plugin, structureCell, 'protein', {
+          label: 'Protein context',
+        });
+        const graph = StructureRepresentationPresetProvider.reprBuilder(plugin, params, structureData);
+        const components = {
+          proteinContext,
+          ...Object.fromEntries(surfaces.map((component, index) => [`ligand-${index}`, component])),
+        };
+        const representations = {
+          proteinContext: buildProteinContext(graph, proteinContext),
+          ...Object.fromEntries(
+            surfaces.map((component, index) => [
+              `ligand-${index}`,
+              graph.builder.buildRepresentation(
+                graph.update,
+                component,
+                {
+                  type: 'molecular-surface',
+                  typeParams: resolveSurfaceGeometryParams('ligand', component.obj?.data),
+                  ...resolveSurfaceColorSettings(component.obj!.data, plans[index].volume),
+                },
+                { tag: `synon-biomed-view-style-ligand-surface-${index}` }
+              ),
+            ])
+          ),
+        };
+        await graph.update.commit({ revertOnError: true });
+        return { components, representations };
+      }
+
+      if (representation === 'surface' || representation === 'pocket-surface' || representation === 'electrostatic') {
         // All surface scopes share one physical color scale, but protein and
         // pocket surfaces use the receptor-only field while ligand surfaces
         // use the ligand-only field. Opposing interface patches therefore
         // remain comparable without sampling one combined complex potential.
         const electrostatic = isElectrostaticSurfaceRepresentation(representation);
-        const surfaceScope: MolstarSurfaceScope =
-          representation === 'pocket-surface' ? 'pocket' : representation === 'ligand-surface' ? 'ligand' : 'protein';
+        const surfaceScope: MolstarSurfaceScope = representation === 'pocket-surface' ? 'pocket' : 'protein';
 
         const protein =
           surfaceScope === 'protein'
             ? await presetStaticComponent(plugin, structureCell, 'protein', {
                 label: electrostatic ? 'Protein electrostatic surface' : 'Protein surface',
               })
-            : undefined;
-        const standaloneLigand =
-          surfaceScope === 'ligand'
-            ? await createDisplayLigandComponent(
-                electrostatic ? 'Ligand electrostatic surface' : 'Ligand surface',
-                'synon-biomed-view-ligand-surface-component'
-              )
             : undefined;
         const pocket =
           surfaceScope === 'pocket'
@@ -662,7 +710,7 @@ export const createSynonViewRepresentationPreset = (
                 { label: 'Pocket surface' }
               )
             : undefined;
-        const surfaceComponentType = resolveSurfaceComponentType(Boolean(protein), Boolean(standaloneLigand));
+        const surfaceComponentType = resolveSurfaceComponentType(Boolean(protein), false);
         const all =
           surfaceScope !== 'pocket' && surfaceComponentType === 'all'
             ? await presetStaticComponent(plugin, structureCell, 'all', {
@@ -675,16 +723,13 @@ export const createSynonViewRepresentationPreset = (
                 label: 'Protein surface',
               })
             : undefined;
-        const surfaceComponent = pocket ?? protein ?? standaloneLigand ?? fallbackProtein ?? all;
+        const surfaceComponent = pocket ?? protein ?? fallbackProtein ?? all;
         // A charged ligand in mmCIF must not select the protein's color theme.
         const surfaceStructure = surfaceComponent?.obj?.data ?? structureData;
         const surfaceComposition = summarizeStructureComposition(surfaceStructure);
         const surfaceVolumeRole = resolveElectrostaticSurfaceVolumeRole(surfaceScope, surfaceComposition);
         const surfaceColors = resolveSurfaceColorSettings(surfaceStructure, electrostaticVolumes[surfaceVolumeRole]);
-        const ligand =
-          surfaceScope !== 'ligand'
-            ? await createDisplayLigandComponent('Ligand sticks', 'synon-biomed-view-ligand-sticks-component')
-            : undefined;
+        const ligand = await createDisplayLigandComponent('Ligand sticks', 'synon-biomed-view-ligand-sticks-component');
         const proteinContext = shouldIncludeProteinContextForSurface(surfaceScope)
           ? await presetStaticComponent(plugin, structureCell, 'protein', {
               label: 'Protein context',
@@ -692,7 +737,6 @@ export const createSynonViewRepresentationPreset = (
           : undefined;
         const components = {
           protein,
-          standaloneLigand,
           pocket,
           fallbackProtein,
           all,
@@ -703,7 +747,8 @@ export const createSynonViewRepresentationPreset = (
         // representation transaction afterwards so it sees those new refs;
         // creating this builder earlier can retain a stale state snapshot and
         // fail with "Could not find node" during a rapid docking style swap.
-        const { update, builder } = StructureRepresentationPresetProvider.reprBuilder(plugin, params, structureData);
+        const graph = StructureRepresentationPresetProvider.reprBuilder(plugin, params, structureData);
+        const { update, builder } = graph;
         const representations = {
           surface: builder.buildRepresentation(
             update,
@@ -725,20 +770,10 @@ export const createSynonViewRepresentationPreset = (
             },
             { tag: 'synon-biomed-view-style-ligand' }
           ),
-          proteinContext: builder.buildRepresentation(
-            update,
-            proteinContext,
-            {
-              type: 'cartoon',
-              typeParams: { alpha: 0.24, sizeFactor: 0.16 },
-              color: 'uniform',
-              colorParams: { value: POCKET_COLORS.outsideProtein },
-            },
-            { tag: 'synon-biomed-view-style-protein-context' }
-          ),
+          proteinContext: buildProteinContext(graph, proteinContext),
         };
         await update.commit({ revertOnError: true });
-        if (pocket?.obj?.data) onPocketReady?.(displayLigandLoci, StructureElement.Loci.all(pocket.obj.data));
+        if (pocket?.obj?.data) options.onPocketReady?.(displayLigandLoci, StructureElement.Loci.all(pocket.obj.data));
         return { components, representations };
       }
 
@@ -1609,10 +1644,21 @@ export async function createMolstarStructureEngine(
       return;
     }
 
-    await clearPocketState();
-
     const structures = [...plugin.managers.structure.hierarchy.current.structures];
     if (structures.length === 0) return;
+    if (representation === 'ligand-surface') {
+      for (const current of structures) {
+        const data = current.cell.obj?.data;
+        if (!data) continue;
+        resolveNativeLigandSurfacePlans(
+          data,
+          resolveStructureViewLigandLoci(data, structureLigands.selectedLoci(), loadedFormat),
+          loadedFormat,
+          electrostaticVolumes
+        );
+      }
+    }
+    await clearPocketState();
 
     // ComponentManager applies the provider and only then synchronizes away
     // obsolete components. This create-before-retire transition keeps at least
@@ -1620,8 +1666,12 @@ export async function createMolstarStructureEngine(
     let pocketFocus: { ligand: StructureElement.Loci; contacts: StructureElement.Loci } | undefined;
     await plugin.managers.structure.component.applyPreset(
       structures,
-      createSynonViewRepresentationPreset(representation, electrostaticVolumes, (ligand, contacts) => {
-        pocketFocus ??= { ligand, contacts };
+      createSynonViewRepresentationPreset(representation, electrostaticVolumes, {
+        ligandLoci: structureLigands.selectedLoci(),
+        format: loadedFormat,
+        onPocketReady: (ligand, contacts) => {
+          pocketFocus ??= { ligand, contacts };
+        },
       })
     );
 
@@ -1681,7 +1731,6 @@ export async function createMolstarStructureEngine(
     // A docking replacement is assembled below a hidden candidate trajectory.
     // Keep the visible pose and its distance graph intact until the candidate
     // has every pocket representation ready for the atomic visibility swap.
-    if (!targetStructure) await clearPocketState();
     const stagedRepresentationOptions = (tag: string) => ({
       tag,
       initialState: targetStructure ? { isHidden: true } : undefined,
@@ -1689,13 +1738,23 @@ export async function createMolstarStructureEngine(
 
     const ligandLoci = requestedLigandLoci ? ligandSelectionLoci : selectPrimaryPocketLigandLoci(ligandSelectionLoci);
     const layerPlan = resolvePocketLayerPlan(options.displayLayers ?? []);
-    const ligandSurfaceResidueNames = resolveStructureLociResidueNames(ligandLoci);
     const ligandSurfacePlans = layerPlan.hasLigandSurface
-      ? resolveDockingLigandElectrostaticSurfaces(ligandSurfaceResidueNames, electrostaticVolumes)
+      ? targetStructure
+        ? resolveDockingLigandElectrostaticSurfaces(
+            resolveStructureLociResidueNames(ligandLoci),
+            electrostaticVolumes
+          ).map(({ residueName, volume }) => ({
+            key: residueName,
+            label: residueName,
+            volume,
+            loci: filterStructureLociByResidueName(ligandLoci, residueName),
+          }))
+        : resolveNativeLigandSurfacePlans(structure, ligandLoci, loadedFormat, electrostaticVolumes)
       : [];
     if ((layerPlan.hasProteinSurface || layerPlan.hasPocketSurface) && !electrostaticVolumes.protein) {
       throw new Error('MOLSTAR_ELECTROSTATIC_PROTEIN_VOLUME_MISSING');
     }
+    if (!targetStructure) await clearPocketState();
     host.dataset.synonPocketLigandAtomCount = String(StructureElement.Loci.size(ligandLoci));
     {
       const completeInteractionProps = createPocketInteractionProps(
@@ -1754,22 +1813,11 @@ export async function createMolstarStructureEngine(
       `${graphKey}-ligand`,
       { label: 'Pocket ligand' }
     );
-    const ligandSurfaceComponents = await Promise.all(
-      ligandSurfacePlans.map(async ({ residueName }, index) => {
-        const selected = filterStructureLociByResidueName(ligandLoci, residueName);
-        if (StructureElement.Loci.isEmpty(selected)) {
-          throw new Error(`MOLSTAR_DOCKING_LIGAND_MISSING:${residueName}`);
-        }
-        const expression = StructureElement.Bundle.toExpression(StructureElement.Bundle.fromLoci(selected));
-        const component = await plugin.builders.structure.tryCreateComponentFromSelection(
-          structureCell,
-          StructureSelectionQuery(`Pocket ligand surface ${residueName}`, expression),
-          `${graphKey}-ligand-surface-${index}`,
-          { label: `Pocket ligand surface ${residueName}` }
-        );
-        if (!component) throw new Error(`MOLSTAR_DOCKING_LIGAND_MISSING:${residueName}`);
-        return component;
-      })
+    const ligandSurfaceComponents = await createLigandSurfaceComponents(
+      plugin,
+      structureCell,
+      ligandSurfacePlans,
+      `${graphKey}-ligand-surface`
     );
     const pocketInteractionComponent = await plugin.builders.structure.tryCreateComponentFromSelection(
       structureCell,
@@ -2267,11 +2315,15 @@ export async function createMolstarStructureEngine(
         });
       }
     } else {
-      const ligand = getPrimaryLigandDepictionSource(false);
-      if (ligand && !ligand.topologyAvailable) throw new Error('MOLSTAR_LIGAND_TOPOLOGY_UNAVAILABLE');
-      if (ligand?.molBlock) {
+      for (const instance of resolveStructureViewLigandInstances(
+        structure,
+        structureLigands.selectedLoci(),
+        loadedFormat
+      )) {
+        const ligand = createLigandDepictionSource(structure, instance.loci, false);
+        if (!ligand?.topologyAvailable || !ligand.molBlock) throw new Error('MOLSTAR_LIGAND_TOPOLOGY_UNAVAILABLE');
         ligands.push({
-          key: normalizeElectrostaticLigandKey(ligand.residueName) || 'LIGAND',
+          key: instance.key,
           molBlock: ligand.molBlock,
           atomCount: ligand.atomCount,
         });
@@ -3097,7 +3149,14 @@ export async function createMolstarStructureEngine(
     const ligandExpression = StructureElement.Bundle.toExpression(StructureElement.Bundle.fromLoci(ligandLoci));
     const structureCell = structureRef.cell;
     const ligandSurfacePlans = hasLigandSurface
-      ? resolveDockingLigandElectrostaticSurfaces(ligandResidueNames, electrostaticVolumes)
+      ? resolveDockingLigandElectrostaticSurfaces(ligandResidueNames, electrostaticVolumes).map(
+          ({ residueName, volume }) => ({
+            key: residueName,
+            label: residueName,
+            volume,
+            loci: filterStructureLociByResidueName(ligandLoci, residueName),
+          })
+        )
       : [];
     if ((hasProteinSurface || hasPocketSurface) && !electrostaticVolumes.protein) {
       throw new Error('MOLSTAR_ELECTROSTATIC_PROTEIN_VOLUME_MISSING');
@@ -3132,22 +3191,11 @@ export async function createMolstarStructureEngine(
           { label: 'Layered pocket surface' }
         )
       : undefined;
-    const ligandSurfaceComponents = await Promise.all(
-      ligandSurfacePlans.map(async ({ residueName }, index) => {
-        const selected = filterStructureLociByResidueName(ligandLoci, residueName);
-        if (StructureElement.Loci.isEmpty(selected)) {
-          throw new Error(`MOLSTAR_DOCKING_LIGAND_MISSING:${residueName}`);
-        }
-        const expression = StructureElement.Bundle.toExpression(StructureElement.Bundle.fromLoci(selected));
-        const component = await plugin.builders.structure.tryCreateComponentFromSelection(
-          structureCell,
-          StructureSelectionQuery(`Layered ligand surface ${residueName}`, expression),
-          `synon-biomed-layered-ligand-surface-${index}`,
-          { label: `Layered ligand surface ${residueName}` }
-        );
-        if (!component) throw new Error(`MOLSTAR_DOCKING_LIGAND_MISSING:${residueName}`);
-        return component;
-      })
+    const ligandSurfaceComponents = await createLigandSurfaceComponents(
+      plugin,
+      structureCell,
+      ligandSurfacePlans,
+      'synon-biomed-layered-ligand-surface'
     );
 
     if (hasBallAndStick && all) {
@@ -3639,7 +3687,9 @@ export async function createMolstarStructureEngine(
     setStructureObjectVisible,
     setStructureLigandColor,
     setStructureLigandSelection: async (ids) => {
+      const previous = structureLigands.selectedIds();
       await structureLigands.select(ids);
+      if (previous.length !== ids.length || previous.some((id, index) => id !== ids[index])) clearSelection();
       applyStructureObjectVisibility();
     },
     getStructureLigandSelection: structureLigands.selectedIds,

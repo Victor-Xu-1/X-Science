@@ -785,6 +785,64 @@ describe('SynonBiomedStructureViewer', () => {
     expect(first).toHaveAttribute('aria-pressed', 'true');
   });
 
+  it.each(['en-US', 'zh-CN'] as const)(
+    'reflects an empty compound selection in pocket actions (%s)',
+    async (locale) => {
+      molstarMocks.engine.load.mockResolvedValueOnce(ordinaryMultiLigandComposition());
+      molstarMocks.engine.getStructureLigandSelection.mockReturnValueOnce(['first']);
+      const view = await renderWithI18n(
+        <SynonBiomedStructureViewer filename='multi.cif' content='data_multi' rootFrameId='empty-selection-frame' />,
+        locale
+      );
+      fireEvent.click(
+        await screen.findByRole('button', {
+          name: view.i18n.t('preview.scientific.structure.quickActions.expandDockingPanel'),
+        })
+      );
+      const list = screen.getByTestId('synon-biomed-structure-object-list');
+      fireEvent.click(
+        within(list).getByRole('button', {
+          name: view.i18n.t('preview.scientific.structure.quickActions.clearAllCompounds'),
+        })
+      );
+      await waitFor(() => expect(molstarMocks.engine.setStructureLigandSelection).toHaveBeenLastCalledWith([]));
+      const pocket = screen.getByTestId('synon-biomed-molstar-quick-pocket');
+      await waitFor(() => expect(pocket).toBeDisabled());
+      expect(pocket).toHaveAttribute('aria-pressed', 'false');
+      expect(pocket).toHaveAttribute(
+        'title',
+        view.i18n.t('preview.scientific.structure.quickActions.availability.ligand')
+      );
+    }
+  );
+
+  it('restores a sole ligand after clearing the compound selection', async () => {
+    const composition = ordinaryMultiLigandComposition();
+    composition.objects = composition.objects.filter((object) => object.kind === 'protein' || object.id === 'first');
+    composition.atomCount = composition.objects.reduce((count, object) => count + object.atomCount, 0);
+    molstarMocks.engine.load.mockResolvedValueOnce(composition);
+    molstarMocks.engine.getStructureLigandSelection.mockReturnValueOnce(['first']);
+    const view = await renderWithI18n(
+      <SynonBiomedStructureViewer filename='single.cif' content='data_single' />,
+      'en-US'
+    );
+    await expandCompoundListFromRight();
+    const list = screen.getByTestId('synon-biomed-structure-object-list');
+    fireEvent.click(
+      within(list).getByRole('button', {
+        name: view.i18n.t('preview.scientific.structure.quickActions.clearAllCompounds'),
+      })
+    );
+    await waitFor(() => expect(molstarMocks.engine.setStructureLigandSelection).toHaveBeenLastCalledWith([]));
+    const toggle = within(list).getByRole('button', {
+      name: view.i18n.t('preview.scientific.structure.quickActions.toggleLigandObject'),
+    });
+    await waitFor(() => expect(toggle).not.toBeDisabled());
+    fireEvent.click(toggle);
+    await waitFor(() => expect(molstarMocks.engine.setStructureLigandSelection).toHaveBeenLastCalledWith(['first']));
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+  });
+
   it('restores the old ordinary selection if pocket rebuilding fails', async () => {
     molstarMocks.engine.load.mockResolvedValueOnce(ordinaryMultiLigandComposition());
     molstarMocks.engine.getStructureLigandSelection.mockReturnValueOnce(['first']);
