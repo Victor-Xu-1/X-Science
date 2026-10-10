@@ -13,6 +13,7 @@ import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import MarkdownView from '@renderer/components/Markdown';
 import CollapsibleContent from '@renderer/components/chat/CollapsibleContent';
+import { areMessageTipsPropsEqual } from '../messageItemMemoModel';
 
 const icon = {
   success: <CheckOne theme='filled' size='16' fill={theme.Color.FunctionalColor.success} className='m-t-2px' />,
@@ -69,7 +70,7 @@ const resolveAgentTipBody = (
   return exists(key) ? t(key, params) : content;
 };
 
-const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
+const MessageTips = React.memo<{ message: IMessageTips }>(({ message }) => {
   const { t, i18n } = useTranslation();
   const { content, type, code, params } = message.content;
   const structuredError = type === 'error' ? message.content.error : undefined;
@@ -193,6 +194,7 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
       </div>
     </div>
   );
-};
+}, areMessageTipsPropsEqual);
+MessageTips.displayName = 'MessageTips';
 
 export default MessageTips;

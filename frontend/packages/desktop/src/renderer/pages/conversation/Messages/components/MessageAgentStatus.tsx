@@ -8,6 +8,7 @@ import type { IMessageAgentStatus } from '@/common/chat/chatLib';
 import { Badge, Typography } from '@arco-design/web-react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { areMessageAgentStatusPropsEqual } from '../messageItemMemoModel';
 
 const { Text } = Typography;
 
@@ -18,7 +19,7 @@ interface MessageAgentStatusProps {
 /**
  * Unified agent status message component for all ACP-based agents (Claude, Qwen, Codex, etc.)
  */
-const MessageAgentStatus: React.FC<MessageAgentStatusProps> = ({ message }) => {
+const MessageAgentStatus = React.memo<MessageAgentStatusProps>(({ message }) => {
   const { t } = useTranslation();
   const { backend, status, agent_name } = message.content;
 
@@ -74,6 +75,7 @@ const MessageAgentStatus: React.FC<MessageAgentStatusProps> = ({ message }) => {
       <div className='flex-1 flex items-center gap-6px'>{getStatusBadge()}</div>
     </div>
   );
-};
+}, areMessageAgentStatusPropsEqual);
+MessageAgentStatus.displayName = 'MessageAgentStatus';
 
 export default MessageAgentStatus;

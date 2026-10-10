@@ -10,14 +10,13 @@ import React from 'react';
 import MessageSubagentEvents from './MessageSubagentEvents';
 import MessageSubagentTurn from './MessageSubagentTurn';
 import MessageToolGroupSummary from './MessageToolGroupSummary';
+import { areMessageToolCallPropsEqual } from '../messageItemMemoModel';
 
 // Standalone tool calls are limited to dedicated interactive projections.
 // Every ordinary tool call, including unexpected compatibility input, reuses
 // the same public summary boundary as grouped transcript tools so no second raw
 // name/input/output renderer can compete with the canonical conversation UI.
-const MessageToolCall: React.FC<{
-  message: IMessageToolCall;
-}> = ({ message }) => {
+const MessageToolCall = React.memo<{ message: IMessageToolCall }>(({ message }) => {
   if (message.content.name === 'ask_user') {
     return (
       <AskUserHistoryCard
@@ -33,6 +32,7 @@ const MessageToolCall: React.FC<{
   if (message.content.subagent) return <MessageSubagentTurn message={message} />;
   if (message.content.subagentEvents) return <MessageSubagentEvents message={message} />;
   return <MessageToolGroupSummary messages={[message]} />;
-};
+}, areMessageToolCallPropsEqual);
+MessageToolCall.displayName = 'MessageToolCall';
 
 export default MessageToolCall;
