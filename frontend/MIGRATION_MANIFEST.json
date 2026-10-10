@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "ffe6de0db2243899f2abef1d391a21fe3fc6b693571e999042193d700ba4505f",
+  "adaptationFingerprintSHA256": "156b79b468a4092d3d8e8312ab5ca07a493f210345f75e7f87503edc971e0242",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "017ddf7604d13c77ed7ad0045e4e652e624802c489c0c1aca376bf5f87924fe1",
+  "additionFingerprintSHA256": "38acd4584fb91ff1aa258cb5862ee0d55cd743ab2ec486d962f98c005f1b1bc1",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 345,
@@ -2810,8 +2810,8 @@
     {
       "path": "packages/desktop/src/renderer/services/synonBiomedGateway.ts",
       "sourceSHA256": "a2dce38ff921a8e8c772b5866e3d3a6409c52a87a3b2ea10384f491333764f76",
-      "targetSHA256": "c80e0b25c426ad858a542dad2e8b1a2f592ef919eb880ecb1fff1dbe00c927ed",
-      "bytes": 18026,
+      "targetSHA256": "3d1402dfbd2d15e5e671bd3428b2aff8529c83e291abe908fbac22b66511cfb3",
+      "bytes": 19494,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -10828,8 +10828,8 @@
     },
     {
       "path": "tests/unit/renderer/synonBiomedGateway.test.ts",
-      "sha256": "d4fb99029472eb2c45ed83d6b4b49a09132d3a54ddb37c59b4966460bb7b9b0d",
-      "bytes": 8053,
+      "sha256": "a010eb45d93eef78e6e0581199b4c99ac9dbad464909b42657a1f708198e010e",
+      "bytes": 10862,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
