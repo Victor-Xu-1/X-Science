@@ -2,6 +2,17 @@
   "schema": "synon.verification-scope.v1",
   "groups": [
     {
+      "name": "frontend-related-selection",
+      "paths": [
+        "scripts/quality/pr_frontend_scope.py",
+        "scripts/quality/test_pr_frontend_scope.py"
+      ],
+      "frontend": false,
+      "checks": [
+        ["python3", "-B", "-m", "unittest", "scripts.quality.test_pr_frontend_scope"]
+      ]
+    },
+    {
       "name": "frontend-license-notices",
       "paths": [
         "docs/licenses/frontend-bundle/NOTICE.txt",

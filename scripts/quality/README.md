@@ -6,6 +6,19 @@ that gate, not complete product acceptance.
 
 ## Run affected verification
 
+Normal PR/main frontend gates use Vitest's dependency-related selection against
+the exact changed source and test paths, not the global frontend unit suite.
+Canonical provenance, type/lint/format, build and the existing single packaged
+artifact contract remain. No `passWithNoTests`, retry, target-specific mapping,
+or global fallback is used. Unknown shared configuration/dependency ownership
+fails clearly until focused coverage is bound; it does not silently run all
+tests. Separately authorized real integration/full qualification remains separate.
+
+普通 PR/main 前端门禁按精确变更的源码和测试路径，使用 Vitest 的依赖关系选择
+相关测试，不默认执行全量前端单测。保留规范溯源、类型/静态/格式、构建和已有
+单一打包制品契约。无测试、未知共享配置/依赖范围不会被伪装成通过或自动全量；
+须先明确专项覆盖。真实集成与全量资格验证仍属独立授权流程。
+
 Select the changed tools and their directly related tests. The following whole
 quality-tool suite is for explicit comprehensive qualification, not the default
 for every PR:

@@ -90,6 +90,26 @@ class MetadataScopeTest(unittest.TestCase):
         self.assertEqual(filtered, ['internal/runtime/lease.go', 'frontend/App.tsx'])
         self.assertEqual(len(ignored), 8)
 
+    def test_counter_projections_stay_inert_when_source_provenance_also_changes(self):
+        original_snapshot = metadata.snapshot
+        def changed(repo, revision, path):
+            raw = original_snapshot(repo, revision, path)
+            return json.dumps({**json.loads(raw), 'new-source-record': True}).encode() if revision == self.head and path == metadata.MIGRATION else raw
+        with patch.object(metadata, 'snapshot', side_effect=changed):
+            self.assertEqual(metadata.metadata_paths(self.repo, self.base, self.head), set())
+            self.assertEqual(metadata.version_projection_paths(self.repo, self.base, self.head),
+                             {'product-identity.json', 'frontend/package.json', 'frontend/package-lock.json',
+                              'frontend/packages/desktop/package.json'})
+
+    def test_projection_selection_never_hides_manifest_behavior_or_dependency_edits(self):
+        original_snapshot = metadata.snapshot
+        for target in ['frontend/package.json', 'frontend/package-lock.json', metadata.MATRIX, metadata.IDENTITY]:
+            def changed(repo, revision, path):
+                raw = original_snapshot(repo, revision, path)
+                return json.dumps({**json.loads(raw), 'unreviewed': True}).encode() if revision == self.head and path == target else raw
+            with self.subTest(target=target), patch.object(metadata, 'snapshot', side_effect=changed):
+                self.assertEqual(metadata.version_projection_paths(self.repo, self.base, self.head), set())
+
     def test_dependency_script_identity_auditor_and_provenance_edits_are_not_hidden(self):
         original_snapshot = metadata.snapshot
         mutations = [

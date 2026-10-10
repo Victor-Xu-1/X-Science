@@ -123,3 +123,29 @@ def identity_version_only(repo: Path, base: str, head: str) -> bool:
         return before == after
     except (OSError, ValueError, KeyError, TypeError, UnicodeError, subprocess.SubprocessError):
         return False
+
+
+def version_projection_paths(repo: Path, base: str, head: str) -> set[str]:
+    """Prove version-field-only manifests within a mixed implementation PR.
+
+    This does not exempt source provenance, audits, dependencies, or static/build
+    checks. It only prevents inert counter fields being treated as test inputs.
+    """
+    try:
+        if not identity_version_only(repo, base, head):
+            return set()
+        projected = {IDENTITY: ["/version"]}
+        for entry in document(snapshot(repo, base, MATRIX))["product_version_projections"]:
+            if entry["kind"] == "json-pointer":
+                projected.setdefault(entry["path"], []).append(entry["pointer"])
+        old = document(snapshot(repo, base, IDENTITY))["version"]
+        new = document(snapshot(repo, head, IDENTITY))["version"]
+        for path, pointers in projected.items():
+            expected = document(snapshot(repo, base, path))
+            for pointer in pointers:
+                replace_pointer(expected, pointer, old, new)
+            if expected != document(snapshot(repo, head, path)):
+                return set()
+        return set(projected)
+    except (OSError, ValueError, KeyError, TypeError, UnicodeError, subprocess.SubprocessError):
+        return set()
