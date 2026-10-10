@@ -5,8 +5,16 @@
  */
 
 import { LanguageDescription, type LanguageSupport } from '@codemirror/language';
-import { languages } from '@codemirror/language-data';
 import { LARGE_TEXT_VIEWER_THRESHOLD } from '../constants';
+
+type LanguageCatalog = typeof import('@codemirror/language-data').languages;
+
+let languageCatalogPromise: Promise<LanguageCatalog> | null = null;
+
+const loadLanguageCatalog = (): Promise<LanguageCatalog> => {
+  languageCatalogPromise ??= import('@codemirror/language-data').then((module) => module.languages);
+  return languageCatalogPromise;
+};
 
 /**
  * Resolve a CodeMirror language description by an explicit language name first,
@@ -14,7 +22,11 @@ import { LARGE_TEXT_VIEWER_THRESHOLD } from '../constants';
  * aliases (e.g. "typescript") resolve correctly. Returns null when nothing
  * matches so callers can fall back to plain text.
  */
-export const matchLanguageDescription = (languageName?: string, fileName?: string): LanguageDescription | null => {
+export const matchLanguageDescription = async (
+  languageName?: string,
+  fileName?: string
+): Promise<LanguageDescription | null> => {
+  const languages = await loadLanguageCatalog();
   if (languageName) {
     const byName = LanguageDescription.matchLanguageName(languages, languageName, true);
     if (byName) return byName;
@@ -35,7 +47,7 @@ export const loadLanguageSupport = async (
   languageName?: string,
   fileName?: string
 ): Promise<LanguageSupport | null> => {
-  const desc = matchLanguageDescription(languageName, fileName);
+  const desc = await matchLanguageDescription(languageName, fileName);
   if (!desc) return null;
   try {
     return await desc.load();

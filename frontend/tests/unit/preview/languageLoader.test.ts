@@ -5,16 +5,16 @@ import {
 } from '@/renderer/pages/conversation/Preview/theme/languageLoader';
 
 describe('matchLanguageDescription', () => {
-  it('matches by explicit language name', () => {
-    expect(matchLanguageDescription('typescript')?.name).toBe('TypeScript');
+  it('matches by explicit language name', async () => {
+    expect((await matchLanguageDescription('typescript'))?.name).toBe('TypeScript');
   });
 
-  it('matches by file name extension when language name is absent', () => {
-    expect(matchLanguageDescription(undefined, 'main.py')?.name).toBe('Python');
+  it('matches by file name extension when language name is absent', async () => {
+    expect((await matchLanguageDescription(undefined, 'main.py'))?.name).toBe('Python');
   });
 
-  it('returns null for unknown language and file', () => {
-    expect(matchLanguageDescription('not-a-language', 'file.unknownext')).toBeNull();
+  it('returns null for unknown language and file', async () => {
+    expect(await matchLanguageDescription('not-a-language', 'file.unknownext')).toBeNull();
   });
 });
 
