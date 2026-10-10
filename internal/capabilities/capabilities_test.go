@@ -192,6 +192,90 @@ func TestCompactSynonCapabilitiesExposeOnlyRetainedSurface(t *testing.T) {
 	}
 }
 
+func TestCompactSynonCapabilityReportInvariants(t *testing.T) {
+	report := CompactSynon()
+
+	seenModules := map[string]bool{}
+	for _, module := range report.Modules {
+		if module.ID == "" || module.Label == "" || module.Status == "" {
+			t.Errorf("module %q has empty identity or status: %#v", module.ID, module)
+		}
+		if seenModules[module.ID] {
+			t.Errorf("duplicate module id %q in capability report", module.ID)
+		}
+		seenModules[module.ID] = true
+		if len(module.Actions) == 0 {
+			t.Errorf("module %q exposes no actions", module.ID)
+		}
+		if len(module.Capabilities) == 0 {
+			t.Errorf("module %q exposes no capability ids", module.ID)
+		}
+		seenActions := map[string]bool{}
+		for _, action := range module.Actions {
+			if action == "" {
+				t.Errorf("module %q has an empty action entry", module.ID)
+			}
+			if seenActions[action] {
+				t.Errorf("module %q advertises duplicate action %q", module.ID, action)
+			}
+			seenActions[action] = true
+		}
+		seenCapabilities := map[string]bool{}
+		for _, capability := range module.Capabilities {
+			if capability == "" {
+				t.Errorf("module %q has an empty capability entry", module.ID)
+			}
+			if seenCapabilities[capability] {
+				t.Errorf("module %q advertises duplicate capability %q", module.ID, capability)
+			}
+			seenCapabilities[capability] = true
+		}
+	}
+
+	seenWorkflows := map[string]bool{}
+	for _, workflow := range report.Workflows {
+		if workflow.ID == "" || workflow.Label == "" || workflow.Status == "" || workflow.Summary == "" {
+			t.Errorf("workflow %q has empty identity or summary: %#v", workflow.ID, workflow)
+		}
+		if seenWorkflows[workflow.ID] {
+			t.Errorf("duplicate workflow id %q in capability report", workflow.ID)
+		}
+		seenWorkflows[workflow.ID] = true
+		if len(workflow.Steps) == 0 {
+			t.Errorf("workflow %q has no steps", workflow.ID)
+		}
+		for _, step := range workflow.Steps {
+			if step == "" {
+				t.Errorf("workflow %q has an empty step entry", workflow.ID)
+			}
+		}
+	}
+
+	for _, id := range []string{"synon-link", "im-message-core", "runtime-store", "tool-registry", "service-operations", "plugin-host"} {
+		if !report.ContainsModule(id) {
+			t.Errorf("capability report missing retained module %q", id)
+		}
+	}
+	if len(report.Modules) != 6 || len(report.Workflows) != 5 {
+		t.Fatalf("capability report lost module/workflow surface: modules=%d workflows=%d", len(report.Modules), len(report.Workflows))
+	}
+}
+
+func TestCompactSynonCapabilityWorkflowsStayStable(t *testing.T) {
+	report := CompactSynon()
+	for _, id := range []string{
+		"browser-bridge-runtime",
+		"im-message-normalization",
+		"runtime-event-replay",
+		"tool-execution-contracts",
+		"plugin-host-runtime",
+	} {
+		if !report.ContainsWorkflow(id) {
+			t.Fatalf("capability report missing durable workflow %q: %#v", id, report.Workflows)
+		}
+	}
+}
+
 func TestCompactSynonCapabilityReportTracksRegisteredRuntimeTools(t *testing.T) {
 	report := CompactSynon()
 	reg := registry.Default()

@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"synon-go/internal/persistence/workspace"
 )
@@ -365,6 +367,102 @@ func TestFutureRoutineWaitsWithoutBusyPolling(t *testing.T) {
 		t.Fatalf("claim calls in idle window = %d, want 1", calls)
 	}
 	stopScheduler(t, scheduler)
+}
+
+func TestNewRejectsUnsafeSchedulerOptions(t *testing.T) {
+	invalid := map[string]Options{
+		"nil repository": {Executor: executorFunc(nil)},
+		"nil executor":   {Repository: stubRoutineRepository{}},
+		"negative lock ttl": {
+			Repository: stubRoutineRepository{}, Executor: executorFunc(nil),
+			LockTTL: -time.Second, TickTimeout: 500 * time.Millisecond,
+		},
+		"tick timeout at lock ttl": {
+			Repository: stubRoutineRepository{}, Executor: executorFunc(nil),
+			LockTTL: time.Second, TickTimeout: time.Second,
+		},
+		"tick timeout above lock ttl": {
+			Repository: stubRoutineRepository{}, Executor: executorFunc(nil),
+			LockTTL: time.Second, TickTimeout: 2 * time.Second,
+		},
+		"unbounded ticks without claim renewal": {
+			Repository: stubRoutineRepository{}, Executor: executorFunc(nil),
+			LockTTL: time.Second, UnboundedTicks: true,
+		},
+		"negative error backoff": {
+			Repository: stubRoutineRepository{}, Executor: executorFunc(nil),
+			ErrorBackoff: -time.Second,
+		},
+		"negative minimum delay": {
+			Repository: stubRoutineRepository{}, Executor: executorFunc(nil),
+			MinimumDelay: -time.Millisecond,
+		},
+		"negative result limit": {
+			Repository: stubRoutineRepository{}, Executor: executorFunc(nil),
+			MaxResultBytes: -1,
+		},
+	}
+	for name, options := range invalid {
+		t.Run(name, func(t *testing.T) {
+			if _, err := New(options); err == nil {
+				t.Fatal("unsafe scheduler options were accepted")
+			}
+		})
+	}
+}
+
+// stubRoutineRepository implements only the required Repository surface, so it
+// can prove that unbounded ticks demand a claim renewal repository.
+type stubRoutineRepository struct{}
+
+func (stubRoutineRepository) ClaimNextDueRoutine(time.Time, time.Duration) (workspace.Routine, bool, error) {
+	return workspace.Routine{}, false, nil
+}
+
+func (stubRoutineRepository) CompleteRoutineTick(string, time.Time, bool, string) error { return nil }
+
+func (stubRoutineRepository) NextRoutineWakeAt(time.Duration) (time.Time, bool, error) {
+	return time.Time{}, false, nil
+}
+
+func TestTruncateUTF8NeverSplitsRunes(t *testing.T) {
+	cases := []struct {
+		name     string
+		value    string
+		maxBytes int
+		want     string
+	}{
+		{"short value", "ok", 64, "ok"},
+		{"exactly at limit", "hello", 5, "hello"},
+		{"ascii truncation", "hello!", 5, "hello"},
+		{"zero limit", "hello", 0, ""},
+		{"two byte runes at limit", "éééé", 8, "éééé"},
+		{"two byte rune split", "éééé", 7, "ééé"},
+		{"four byte emoji split", "🙂🙂", 5, "🙂"},
+		{"four byte emoji below rune size", "🙂🙂", 3, ""},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			got := truncateUTF8(testCase.value, testCase.maxBytes)
+			if got != testCase.want {
+				t.Fatalf("truncateUTF8(%q, %d) = %q, want %q", testCase.value, testCase.maxBytes, got, testCase.want)
+			}
+			if len(got) > testCase.maxBytes {
+				t.Fatalf("truncated result %q is %d bytes, above limit %d", got, len(got), testCase.maxBytes)
+			}
+		})
+	}
+}
+
+func TestTruncateUTF8PreservesLargeMultibyteSummary(t *testing.T) {
+	summary := strings.Repeat("αβγδ", 500)
+	truncated := truncateUTF8(summary, 999)
+	if len(truncated) > 999 {
+		t.Fatalf("truncated length = %d, above limit 999", len(truncated))
+	}
+	if !utf8.ValidString(truncated) || !strings.HasPrefix(summary, truncated) {
+		t.Fatalf("truncated summary is not a valid UTF-8 prefix: %q", truncated)
+	}
 }
 
 func newTestScheduler(t *testing.T, repository Repository, executor Executor, clock Clock) *Scheduler {

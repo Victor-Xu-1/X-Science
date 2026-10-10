@@ -118,6 +118,87 @@ func TestValidateWitnessRejectsDuplicateArtifactsFutureCompletionAndOptionalDige
 	}
 }
 
+func TestEvaluateFailsClosedOnMissingIncompleteAndUnknownWitnesses(t *testing.T) {
+	catalog, err := Decode(strings.NewReader(`{
+  "schemaVersion": 2,
+  "capabilities": [{
+    "id": "molecular-docking",
+    "description": "Generate receptor-bound ligand poses",
+    "acceptedEngines": [{
+      "id": "diffdock",
+      "requiredInputs": ["receptor", "ligand"],
+      "scoreKinds": ["pose-confidence"],
+      "requiredArtifacts": ["ranked-pose", "execution-log"],
+      "requiresWeights": true,
+      "executionPack": {"id":"molecular-docking.diffdock","mode":"unavailable","skill":"diffdock","unavailableReason":"fixture is unavailable"}
+    }]
+  }]
+}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	valid := Witness{
+		Version: WitnessVersion, Capability: "molecular-docking", Engine: "diffdock",
+		EnginePackage: "diffdock", EngineVersion: "9a22cbcbc761",
+		ProfileSHA256: digestFixture, CodeSHA256: digestFixture, WeightsSHA256: digestFixture,
+		EnvironmentSHA256: digestFixture, Provider: "byoc:modal", JobID: "job-1", State: "completed",
+		ScoreKind: "pose-confidence", Inputs: map[string]string{"receptor": digestFixture, "ligand": digestFixture},
+		Artifacts:   []ArtifactWitness{{Kind: "ranked-pose", SHA256: digestFixture}, {Kind: "execution-log", SHA256: digestFixture}},
+		CompletedAt: time.Now().UTC(),
+	}
+
+	t.Run("unknown capability", func(t *testing.T) {
+		result := Evaluate(catalog, []string{"unknown-capability"}, []Witness{valid})
+		if len(result.Satisfied) != 0 || len(result.Missing) != 0 || len(result.Invalid) != 1 || result.Invalid[0] != "unknown-capability:unknown_capability" {
+			t.Fatalf("unknown capability evaluation=%#v", result)
+		}
+	})
+	t.Run("missing witness", func(t *testing.T) {
+		result := Evaluate(catalog, []string{"molecular-docking"}, nil)
+		if len(result.Satisfied) != 0 || len(result.Missing) != 1 || result.Missing[0] != "molecular-docking" || len(result.Invalid) != 0 {
+			t.Fatalf("missing witness evaluation=%#v", result)
+		}
+	})
+	t.Run("not completed", func(t *testing.T) {
+		witness := valid
+		witness.State = "running"
+		result := Evaluate(catalog, []string{"molecular-docking"}, []Witness{witness})
+		if len(result.Satisfied) != 0 || len(result.Missing) != 1 || len(result.Invalid) != 1 || result.Invalid[0] != "molecular-docking:not_completed" {
+			t.Fatalf("running witness evaluation=%#v", result)
+		}
+	})
+	t.Run("missing required input", func(t *testing.T) {
+		witness := valid
+		witness.Inputs = map[string]string{"receptor": digestFixture}
+		result := Evaluate(catalog, []string{"molecular-docking"}, []Witness{witness})
+		if len(result.Satisfied) != 0 || len(result.Missing) != 1 || len(result.Invalid) != 1 || result.Invalid[0] != "molecular-docking:missing_input_ligand" {
+			t.Fatalf("missing input evaluation=%#v", result)
+		}
+	})
+	t.Run("missing required artifact", func(t *testing.T) {
+		witness := valid
+		witness.Artifacts = []ArtifactWitness{{Kind: "ranked-pose", SHA256: digestFixture}}
+		result := Evaluate(catalog, []string{"molecular-docking"}, []Witness{witness})
+		if len(result.Satisfied) != 0 || len(result.Missing) != 1 || len(result.Invalid) != 1 || result.Invalid[0] != "molecular-docking:missing_artifact_execution-log" {
+			t.Fatalf("missing artifact evaluation=%#v", result)
+		}
+	})
+	t.Run("unapproved engine", func(t *testing.T) {
+		witness := valid
+		witness.Engine = "heuristic-ranker"
+		result := Evaluate(catalog, []string{"molecular-docking"}, []Witness{witness})
+		if len(result.Satisfied) != 0 || len(result.Missing) != 1 || len(result.Invalid) != 1 || result.Invalid[0] != "molecular-docking:unapproved_engine" {
+			t.Fatalf("unapproved engine evaluation=%#v", result)
+		}
+	})
+	t.Run("duplicate required ids stay unique", func(t *testing.T) {
+		result := Evaluate(catalog, []string{"molecular-docking", "molecular-docking"}, []Witness{valid})
+		if len(result.Satisfied) != 1 || result.Satisfied[0] != "molecular-docking" || len(result.Missing) != 0 || len(result.Invalid) != 0 {
+			t.Fatalf("deduplicated evaluation=%#v", result)
+		}
+	})
+}
+
 func TestRepositoryScientificCapabilityCatalogIsValid(t *testing.T) {
 	catalog, err := DefaultCatalog()
 	if err != nil {
