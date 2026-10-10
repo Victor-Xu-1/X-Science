@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"synon-go/internal/buildinfo"
+	"synon-go/internal/httpreliability"
 	"synon-go/internal/tools/securefetch"
 )
 
@@ -257,12 +258,23 @@ func readResponse(response *securefetch.Response) ([]byte, error) {
 	body, err := io.ReadAll(response.Body)
 	closeErr := response.Body.Close()
 	if err != nil {
-		return nil, errors.New("rcsb_search_response_read_failed")
+		return nil, mapReadError(err)
 	}
 	if closeErr != nil {
-		return nil, errors.New("rcsb_search_response_read_failed")
+		return nil, mapReadError(closeErr)
 	}
 	return body, nil
+}
+
+func mapReadError(err error) error {
+	if transientRCSBSearchError(err) {
+		return errors.New("rcsb_search_upstream_unavailable")
+	}
+	return errors.New("rcsb_search_response_read_failed")
+}
+
+func transientRCSBSearchError(err error) bool {
+	return httpreliability.TransientError(err) || securefetch.IsCode(err, securefetch.CodeTransport)
 }
 
 func mapUpstreamError(stage string, err error) error {
@@ -275,6 +287,9 @@ func mapUpstreamError(stage string, err error) error {
 		default:
 			return fmt.Errorf("rcsb_search_%s_failed", stage)
 		}
+	}
+	if transientRCSBSearchError(err) {
+		return errors.New("rcsb_search_upstream_unavailable")
 	}
 	return err
 }

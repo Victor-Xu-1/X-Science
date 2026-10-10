@@ -61,6 +61,55 @@ func TestAgentRCSBSearchUsesValidatedHostSourceAndReturnsProvenance(t *testing.T
 	}
 }
 
+func TestAgentRCSBSearchMapsTransientUpstreamToStructuredUnavailable(t *testing.T) {
+	for _, test := range []struct {
+		name       string
+		err        error
+		wantReason string
+	}{
+		{name: "dropped body", err: errors.New("rcsb_search_upstream_unavailable"), wantReason: "temporary_network_error"},
+		{name: "rate limited", err: errors.New("rcsb_search_rate_limited"), wantReason: "upstream_rate_limited"},
+		{name: "deadline", err: context.DeadlineExceeded, wantReason: "request_timeout"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			fixture := newAgentSaveArtifactsFixture(t)
+			searcher := &agentRCSBSearcher{err: test.err}
+			fixture.server.rcsbSearch = searcher
+			input := map[string]any{"query": "KEAP1 NRF2"}
+			result, err := fixture.server.executeAgentRCSBSearch(
+				fixture.toolContext(t, "rcsb-search-unavailable", input), fixture.identity, input,
+			)
+			if err != nil {
+				t.Fatalf("transient RCSB error should be a structured source outcome: %v", err)
+			}
+			if result["sourceUnavailable"] != true || result["retryable"] != true ||
+				result["status"] != "source_unavailable" || result["code"] != "source_temporarily_unavailable" ||
+				result["reason"] != test.wantReason {
+				t.Fatalf("unavailable result=%#v", result)
+			}
+			if got := agentruntime.ClassifyToolResult(result); got != agentruntime.ToolResultUnavailable {
+				t.Fatalf("outcome=%s", got)
+			}
+			if len(searcher.calls) != 1 {
+				t.Fatalf("calls=%#v", searcher.calls)
+			}
+		})
+	}
+}
+
+func TestAgentRCSBSearchKeepsHardFailuresForInvalidResponses(t *testing.T) {
+	fixture := newAgentSaveArtifactsFixture(t)
+	searcher := &agentRCSBSearcher{err: errors.New("rcsb_search_response_invalid")}
+	fixture.server.rcsbSearch = searcher
+	input := map[string]any{"query": "KEAP1 NRF2"}
+	result, err := fixture.server.executeAgentRCSBSearch(
+		fixture.toolContext(t, "rcsb-search-invalid", input), fixture.identity, input,
+	)
+	if err == nil || err.Error() != "rcsb_search_response_invalid" || result != nil {
+		t.Fatalf("result=%#v err=%v", result, err)
+	}
+}
+
 func TestAgentRCSBSearchRejectsStaleAuthorityBeforeNetwork(t *testing.T) {
 	fixture := newAgentSaveArtifactsFixture(t)
 	searcher := &agentRCSBSearcher{}

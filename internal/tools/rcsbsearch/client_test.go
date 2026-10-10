@@ -107,6 +107,84 @@ func TestSearchReportsContinuationForBroadStructureDiscovery(t *testing.T) {
 	}
 }
 
+type eofBody struct{}
+
+func (eofBody) Read([]byte) (int, error) { return 0, io.ErrUnexpectedEOF }
+func (eofBody) Close() error             { return nil }
+
+type statusFetcher struct {
+	status    int
+	body      io.ReadCloser
+	fetchErr  error
+	urls      []string
+}
+
+func (f *statusFetcher) Fetch(_ context.Context, target string, _ securefetch.Policy) (*securefetch.Response, error) {
+	f.urls = append(f.urls, target)
+	if f.fetchErr != nil {
+		return nil, f.fetchErr
+	}
+	return &securefetch.Response{Body: f.body, StatusCode: f.status, ContentType: "application/json"}, nil
+}
+
+func TestSearchMapsDroppedSuccessBodyToUpstreamUnavailable(t *testing.T) {
+	t.Run("truncated search envelope", func(t *testing.T) {
+		client := New(Options{
+			Fetcher: &statusFetcher{status: 200, body: eofBody{}},
+			MaxBytes: 1 << 20, Timeout: time.Second,
+		})
+		_, err := client.Search(context.Background(), Input{Query: "KEAP1 NRF2"})
+		if err == nil || err.Error() != "rcsb_search_upstream_unavailable" {
+			t.Fatalf("dropped search body err=%v", err)
+		}
+	})
+
+	t.Run("truncated metadata after successful search", func(t *testing.T) {
+		fetcher := &sequenceFetcher{responses: []fetchResponse{
+			{status: 200, body: io.NopCloser(strings.NewReader(`{"total_count":1,"result_set":[{"identifier":"8EHV","score":1}]}`))},
+			{status: 200, body: eofBody{}},
+		}}
+		client := New(Options{Fetcher: fetcher, MaxBytes: 1 << 20, Timeout: time.Second})
+		_, err := client.Search(context.Background(), Input{Query: "KEAP1 NRF2"})
+		if err == nil || err.Error() != "rcsb_search_upstream_unavailable" {
+			t.Fatalf("dropped metadata body err=%v", err)
+		}
+	})
+
+	t.Run("fetch-level disconnect", func(t *testing.T) {
+		client := New(Options{
+			Fetcher: &statusFetcher{fetchErr: io.ErrUnexpectedEOF},
+			MaxBytes: 1 << 20, Timeout: time.Second,
+		})
+		_, err := client.Search(context.Background(), Input{Query: "KEAP1 NRF2"})
+		if err == nil || err.Error() != "rcsb_search_upstream_unavailable" {
+			t.Fatalf("fetch disconnect err=%v", err)
+		}
+	})
+}
+
+type fetchResponse struct {
+	status int
+	body   io.ReadCloser
+	err    error
+}
+
+type sequenceFetcher struct {
+	responses []fetchResponse
+}
+
+func (f *sequenceFetcher) Fetch(_ context.Context, _ string, _ securefetch.Policy) (*securefetch.Response, error) {
+	if len(f.responses) == 0 {
+		return nil, io.ErrUnexpectedEOF
+	}
+	next := f.responses[0]
+	f.responses = f.responses[1:]
+	if next.err != nil {
+		return nil, next.err
+	}
+	return &securefetch.Response{Body: next.body, StatusCode: next.status, ContentType: "application/json"}, nil
+}
+
 func TestSearchRejectsMalformedInputBeforeNetwork(t *testing.T) {
 	fetcher := &fixtureFetcher{}
 	client := New(Options{Fetcher: fetcher, MaxBytes: 1 << 20, Timeout: time.Second})

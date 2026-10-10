@@ -130,6 +130,12 @@ func (s *Server) executeAgentRCSBSearch(
 	}
 	result, err := s.rcsbSearch.Search(ctx, request)
 	if err != nil {
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		if unavailable, handled := agentRCSBSearchSourceUnavailable(err); handled {
+			return unavailable, nil
+		}
 		return nil, err
 	}
 	encoded, err := json.Marshal(result)
@@ -141,6 +147,31 @@ func (s *Server) executeAgentRCSBSearch(
 		return nil, errors.New("rcsb search result encoding failed")
 	}
 	return output, nil
+}
+
+func agentRCSBSearchSourceUnavailable(err error) (map[string]any, bool) {
+	if err == nil {
+		return nil, false
+	}
+	reason := "temporary_network_error"
+	switch {
+	case err.Error() == "rcsb_search_rate_limited":
+		reason = "upstream_rate_limited"
+	case err.Error() == "rcsb_search_upstream_unavailable":
+		reason = "temporary_network_error"
+	case errors.Is(err, context.DeadlineExceeded):
+		reason = "request_timeout"
+	default:
+		return nil, false
+	}
+	return map[string]any{
+		"sourceUnavailable": true,
+		"retryable":         true,
+		"status":            "source_unavailable",
+		"code":              "source_temporarily_unavailable",
+		"reason":            reason,
+		"message":           "RCSB Search is temporarily unavailable",
+	}, true
 }
 
 func parseAgentRCSBSearchInput(input map[string]any) (rcsbsearch.Input, error) {
