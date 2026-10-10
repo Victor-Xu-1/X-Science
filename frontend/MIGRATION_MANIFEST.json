@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "ffe6de0db2243899f2abef1d391a21fe3fc6b693571e999042193d700ba4505f",
+  "adaptationFingerprintSHA256": "e80cc4d269215ae65851afc9f50ed7a99d6733b4279cd0beda3805bb0999ed69",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "017ddf7604d13c77ed7ad0045e4e652e624802c489c0c1aca376bf5f87924fe1",
+  "additionFingerprintSHA256": "f37fa598588e9b335e6bdf13ce5c268f6dae246cf2677c1569324f3ad6282696",
   "summary": {
     "sourceFiles": 1354,
-    "unchangedSourceFiles": 345,
-    "adaptedSourceFiles": 716,
+    "unchangedSourceFiles": 344,
+    "adaptedSourceFiles": 717,
     "removedSourceFiles": 293,
-    "addedFiles": 848
+    "addedFiles": 849
   },
   "adaptations": [
     {
@@ -1319,8 +1319,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/PreviewPanel/PreviewPanel.tsx",
       "sourceSHA256": "10c226da920132b34cbec848a0c83997c1477132b93449e4d3a7140f0b819404",
-      "targetSHA256": "22d5e45fc3f9abc8b65cc214b60fa7983ce5230abfc544dfc51434f052e4c475",
-      "bytes": 26811,
+      "targetSHA256": "505c9f20dc76bc328709c88738cf53d3c8113b87388646271d8ffae0546b9024",
+      "bytes": 26855,
       "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -1410,8 +1410,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/MarkdownViewer.tsx",
       "sourceSHA256": "6d4a5326fc2fad1f0a22970bbf3c648251fcaa4420877f60e5c8205c0bacbd3d",
-      "targetSHA256": "c26b20b31b24d3a76587538c80f60f7ad12ba4671a8a7a7f6c4cb4177d2a85eb",
-      "bytes": 13457,
+      "targetSHA256": "80a332892389079c49daa2d96e258c51cdaa72fea8d0609edf5c84063b5a5e17",
+      "bytes": 13471,
       "reason": "Use the locked Streamdown 1.5.1 contract and avoid its redundant runtime KaTeX CSS import because styles are bundled statically."
     },
     {
@@ -1618,10 +1618,17 @@
       "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/conversation/Preview/theme/index.ts",
+      "sourceSHA256": "bef49feff6ea04e4bdf8f672257072608ea881cffd45d1acd9e904f7cc2578d2",
+      "targetSHA256": "b19e914482a43f81cb78357ba8a032c98e5fa6079212c916562cbc60eecfc417",
+      "bytes": 233,
+      "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/conversation/Workspace/components/FileChangeList.tsx",
       "sourceSHA256": "da8670e0d64668e562e42c3fd6840eb6f47432255073e43e87bc81fcefbb3107",
-      "targetSHA256": "5e092e315fbc6475f9952554d1385e2c7fc2d460fda0ec8bd2868a5e8b064da3",
-      "bytes": 16007,
+      "targetSHA256": "5547588b75a982f0c42fe2348e98b76c9b699a3d0c0a7427b7a30ab630e9b75a",
+      "bytes": 16388,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -7840,8 +7847,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/PreviewPanel/PreviewBoard.tsx",
-      "sha256": "bd3d9ea42ae734bb7b403612ddb9739ab52664d73baf941f06ec2df3fc7a9371",
-      "bytes": 28742,
+      "sha256": "4b2f1501cb01ce726bc4ae3a55eb4e7c534a152c66ddbab6155260ec78961ea9",
+      "bytes": 28786,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10042,8 +10049,8 @@
     },
     {
       "path": "tests/unit/previews/PreviewBoard.dom.test.tsx",
-      "sha256": "5dea9c77f2302d5841daa8bc68838f735b6b131e2cb9a590507a95e403e45a2d",
-      "bytes": 13304,
+      "sha256": "4abc0f9c169f095a0bb1e9f77afa5ed4dfd20cba0c28c6e004d53281687fb861",
+      "bytes": 13494,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -10186,8 +10193,8 @@
     },
     {
       "path": "tests/unit/previews/scientificPreviewLoaders.dom.test.tsx",
-      "sha256": "84fbafb9349c40c5a09eabfd5ed3dfdf00d51f15c86424f05a836805651309c2",
-      "bytes": 4915,
+      "sha256": "338d2c5b1e52ee07031c928690d0eee828502c8c810c08980f80bf2fa641bb2f",
+      "bytes": 5456,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -10746,6 +10753,12 @@
       "path": "tests/unit/renderer/pdfDocumentSource.test.ts",
       "sha256": "48c9241f844798094000ac0672f1ed8910c82d930f1e821b247244ba01d12cb1",
       "bytes": 2879,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/previewEditorLazyBoundary.test.ts",
+      "sha256": "d28ed0756f9224f5302eaf8b161f1214cd48781c74f51ded2c74f9b55ccdea92",
+      "bytes": 1876,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
