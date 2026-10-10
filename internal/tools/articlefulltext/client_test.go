@@ -207,6 +207,84 @@ func TestClientReturnsStructuredUnavailableForTransientTimeout(t *testing.T) {
 	}
 }
 
+func TestClientReturnsStructuredUnavailableForDroppedSuccessBody(t *testing.T) {
+	t.Run("truncated full text after headers", func(t *testing.T) {
+		server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "application/xml")
+			w.Header().Set("Content-Length", "256")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("<article><body>partial"))
+		}))
+		defer server.Close()
+		options, _ := pinnedTestOptions(t, server, map[string][]netip.Addr{
+			"www.ebi.ac.uk": {netip.MustParseAddr("1.1.1.1")},
+		})
+		result, err := NewClient(options).Fetch(context.Background(), Input{PMCID: "PMC2"})
+		if err != nil {
+			t.Fatalf("dropped 2xx body should be a structured source outcome: %v", err)
+		}
+		if result.Available || !result.SourceUnavailable || !result.Retryable ||
+			result.Status != "source_unavailable" || result.Reason != "temporary_network_error" ||
+			result.PMCID != "PMC2" || !strings.Contains(result.SourceURL, "/PMC2/fullTextXML") {
+			t.Fatalf("dropped full-text result=%#v", result)
+		}
+	})
+
+	t.Run("DOI metadata survives truncated full-text read", func(t *testing.T) {
+		server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch r.URL.Path {
+			case "/search":
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{"resultList":{"result":[{"pmcid":"PMC12345","doi":"10.1000/test.1","pmid":"12345","title":"Measured source title","abstractText":"Measured endpoints and source conclusions."}]}}`))
+			case "/PMC12345/fullTextXML":
+				w.Header().Set("Content-Type", "application/xml")
+				w.Header().Set("Content-Length", "256")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("<article><body>partial"))
+			default:
+				http.NotFound(w, r)
+			}
+		}))
+		defer server.Close()
+		options, _ := pinnedTestOptions(t, server, map[string][]netip.Addr{
+			"www.ebi.ac.uk": {netip.MustParseAddr("8.8.8.8")},
+		})
+		result, err := NewClient(options).Fetch(context.Background(), Input{DOI: "10.1000/test.1"})
+		if err != nil {
+			t.Fatalf("dropped 2xx full-text body should keep resolved metadata: %v", err)
+		}
+		if result.Available || !result.SourceUnavailable || !result.Retryable ||
+			result.Status != "source_unavailable" || result.Reason != "temporary_network_error" ||
+			result.DOI != "10.1000/test.1" || result.PMCID != "PMC12345" || result.PMID != "12345" ||
+			result.Title != "Measured source title" || result.AbstractText != "Measured endpoints and source conclusions." ||
+			!result.RecordAvailable {
+			t.Fatalf("dropped full-text after DOI lookup result=%#v", result)
+		}
+	})
+
+	t.Run("truncated DOI lookup after headers", func(t *testing.T) {
+		server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Content-Length", "256")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"resultList":{"result":[`))
+		}))
+		defer server.Close()
+		options, _ := pinnedTestOptions(t, server, map[string][]netip.Addr{
+			"www.ebi.ac.uk": {netip.MustParseAddr("1.1.1.1")},
+		})
+		result, err := NewClient(options).Fetch(context.Background(), Input{DOI: "10.1000/retry"})
+		if err != nil {
+			t.Fatalf("dropped 2xx DOI lookup should be a structured source outcome: %v", err)
+		}
+		if result.Available || !result.SourceUnavailable || !result.Retryable ||
+			result.Status != "source_unavailable" || result.Reason != "temporary_network_error" ||
+			result.DOI != "10.1000/retry" || !strings.Contains(result.SourceURL, `DOI%3A%2210.1000%2Fretry%22`) {
+			t.Fatalf("dropped DOI lookup result=%#v", result)
+		}
+	})
+}
+
 func TestClientReturnsStructuredUnavailableForTransientHTTPStatus(t *testing.T) {
 	for _, test := range []struct {
 		name       string

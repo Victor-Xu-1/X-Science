@@ -217,7 +217,7 @@ func unavailableArticleSource(doi, pmcid, sourceURL string, err error) Result {
 }
 
 func transientArticleSourceError(err error) bool {
-	if errors.Is(err, context.DeadlineExceeded) {
+	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
 		return true
 	}
 	var statusError articleSourceHTTPError
