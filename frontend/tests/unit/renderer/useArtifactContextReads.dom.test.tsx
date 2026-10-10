@@ -2,10 +2,11 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useArtifactContextReads } from '@/renderer/pages/artifact/useArtifactContextReads';
 
-const api = vi.hoisted(() => ({ project: vi.fn(), benches: vi.fn() }));
+const api = vi.hoisted(() => ({ project: vi.fn(), benches: vi.fn(), task: vi.fn() }));
 vi.mock('@/renderer/services/synonBiomedGateway', () => ({
   loadSynonBiomedProject: api.project,
   loadSynonBiomedProjectBenches: api.benches,
+  loadSynonBiomedLinkedTask: api.task,
 }));
 
 function deferred<T>() {
@@ -23,12 +24,25 @@ beforeEach(() => {
   api.benches
     .mockReset()
     .mockImplementation(async (projectId: string) => [{ frameId: projectId, projectId, name: `Task ${projectId}` }]);
+  api.task.mockReset().mockImplementation(async (frameId: string) => ({ frameId, name: `Task ${frameId}` }));
 });
 afterEach(() => vi.useRealTimers());
 
 describe('artifact context name reads', () => {
+  it('reads a recorded older task directly without relying on a capped project list', async () => {
+    api.benches.mockResolvedValueOnce(
+      Array.from({ length: 200 }, (_, index) => ({ frameId: `recent-${index}`, projectId: 'p', name: 'Recent task' }))
+    );
+    api.task.mockResolvedValueOnce({ frameId: 'old-task', projectId: 'p', name: 'Recorded older task' });
+    const view = renderHook(() => useArtifactContextReads('p', 'old-task'));
+    await waitFor(() => expect(view.result.current.task.status).toBe('ready'));
+    expect(view.result.current.task.value?.name).toBe('Recorded older task');
+    expect(api.task).toHaveBeenCalledWith('old-task', expect.objectContaining({ signal: expect.any(AbortSignal) }));
+    expect(api.benches).not.toHaveBeenCalled();
+  });
+
   it('does not invent requests for unlinked projects or after queued unmount', async () => {
-    const noProject = renderHook(() => useArtifactContextReads(null, 'known-task'));
+    const noProject = renderHook(() => useArtifactContextReads(null, null));
     expect(noProject.result.current.task).toEqual({ status: 'ready', value: null });
     noProject.unmount();
     const queued = renderHook(() => useArtifactContextReads('project-a', 'project-a'));
@@ -36,6 +50,14 @@ describe('artifact context name reads', () => {
     await act(async () => {
       await Promise.resolve();
     });
+    expect(api.project).not.toHaveBeenCalled();
+    expect(api.benches).not.toHaveBeenCalled();
+    expect(api.task).not.toHaveBeenCalled();
+  });
+
+  it('reads an exact linked task without requiring an artifact project identity', async () => {
+    const view = renderHook(() => useArtifactContextReads(null, 'known-task'));
+    await waitFor(() => expect(view.result.current.task.value?.name).toBe('Task known-task'));
     expect(api.project).not.toHaveBeenCalled();
     expect(api.benches).not.toHaveBeenCalled();
   });
@@ -52,7 +74,7 @@ describe('artifact context name reads', () => {
       result.current.retry('project');
     });
     await waitFor(() => expect(api.project).toHaveBeenCalledTimes(2));
-    expect(api.benches).toHaveBeenCalledTimes(1);
+    expect(api.task).toHaveBeenCalledTimes(1);
     await act(async () => {
       pending.resolve({ projectId: 'project-a', name: 'Recovered' });
     });
@@ -75,15 +97,8 @@ describe('artifact context name reads', () => {
     expect(result.current.task.value?.name).toBe('Task b');
   });
 
-  it('does not substitute another task with a shared root or mismatched project', async () => {
-    api.benches.mockResolvedValueOnce([
-      { frameId: 'other', rootFrameId: 'expected', projectId: 'p', name: 'Wrong task' },
-    ]);
-    const first = renderHook(() => useArtifactContextReads('p', 'expected'));
-    await waitFor(() => expect(first.result.current.task.status).toBe('ready'));
-    expect(first.result.current.task.value).toBeNull();
-    first.unmount();
-    api.benches.mockResolvedValueOnce([{ frameId: 'expected', projectId: 'another-project', name: 'Wrong owner' }]);
+  it('rejects exact task metadata with a mismatched project', async () => {
+    api.task.mockResolvedValueOnce({ frameId: 'expected', projectId: 'another-project', name: 'Wrong owner' });
     const second = renderHook(() => useArtifactContextReads('p', 'expected'));
     await waitFor(() => expect(second.result.current.task.status).toBe('failed'));
     expect(second.result.current.task.value).toBeNull();
@@ -100,7 +115,7 @@ describe('artifact context name reads', () => {
     await waitFor(() => expect(result.current.task.status).toBe('ready'));
     rerender({ revision: 1 });
     expect(api.project).toHaveBeenCalledTimes(1);
-    expect(api.benches).toHaveBeenCalledTimes(1);
+    expect(api.task).toHaveBeenCalledTimes(1);
   });
 
   it('ends an owned slow read at the deadline without automatic retries', async () => {

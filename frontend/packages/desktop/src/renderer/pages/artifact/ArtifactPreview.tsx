@@ -377,6 +377,9 @@ const ArtifactPreview: React.FC = () => {
               <Tabs.TabPane key='details' title={t('preview.artifact.tabs.details')}>
                 <ArtifactDetails
                   artifact={artifact}
+                  displayMetadata={displayMetadata}
+                  displayVersion={displayVersion}
+                  versionId={activeVersionId}
                   folders={metadata.folders}
                   owner={metadata.owner}
                   onRetryFolders={() => metadata.retry('folders')}

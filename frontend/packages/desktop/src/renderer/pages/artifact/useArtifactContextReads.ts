@@ -7,13 +7,13 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import {
   loadSynonBiomedProject,
-  loadSynonBiomedProjectBenches,
+  loadSynonBiomedLinkedTask,
   type SynonBiomedProject,
-  type SynonBiomedProjectBench,
+  type SynonBiomedLinkedTask,
 } from '@/renderer/services/synonBiomedGateway';
 import type { ArtifactReadState } from './useArtifactMetadataReads';
 
-type Values = { project: SynonBiomedProject | null; task: SynonBiomedProjectBench | null };
+type Values = { project: SynonBiomedProject | null; task: SynonBiomedLinkedTask | null };
 type Section = keyof Values;
 type Snapshot = { owner: string; sections: { [K in Section]: ArtifactReadState<Values[K]> } };
 type Pending = { controller: AbortController; timer: ReturnType<typeof setTimeout> };
@@ -25,7 +25,7 @@ function initial(owner: string, projectId: string | null, taskId: string | null)
     owner,
     sections: {
       project: { status: projectId ? 'loading' : 'ready', value: null },
-      task: { status: projectId && taskId ? 'loading' : 'ready', value: null },
+      task: { status: taskId ? 'loading' : 'ready', value: null },
     },
   };
 }
@@ -41,7 +41,7 @@ export function useArtifactContextReads(projectId: string | null, taskId: string
       !captured?.active ||
       captured.owner !== owner ||
       captured.pending.has(key) ||
-      !projectId ||
+      (key === 'project' && !projectId) ||
       (key === 'task' && !taskId)
     )
       return;
@@ -67,10 +67,11 @@ export function useArtifactContextReads(projectId: string | null, taskId: string
     void Promise.resolve()
       .then(async () => {
         if (!current()) throw new Error('obsolete_artifact_context_read');
-        if (key === 'project') return loadSynonBiomedProject(projectId, { signal: controller.signal });
-        const benches = await loadSynonBiomedProjectBenches(projectId, { signal: controller.signal });
-        const task = benches.find((bench) => bench.frameId === taskId) ?? null;
-        if (task?.projectId && task.projectId !== projectId) throw new Error('artifact_context_project_mismatch');
+        if (key === 'project' && projectId) return loadSynonBiomedProject(projectId, { signal: controller.signal });
+        if (!taskId) return null;
+        const task = await loadSynonBiomedLinkedTask(taskId, { signal: controller.signal });
+        if (projectId && task.projectId && task.projectId !== projectId)
+          throw new Error('artifact_context_project_mismatch');
         return task;
       })
       .then((value) => {

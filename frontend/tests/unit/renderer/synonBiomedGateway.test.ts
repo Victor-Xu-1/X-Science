@@ -4,6 +4,7 @@ import {
   loadSynonBiomedComposerCapabilities,
   loadSynonBiomedProjectBenches,
   loadSynonBiomedProject,
+  loadSynonBiomedLinkedTask,
   loadSynonBiomedProjectWorkbench,
 } from '@/renderer/services/synonBiomedGateway';
 
@@ -17,6 +18,37 @@ function deferred<T>() {
 
 describe('X-Science project gateway request authority', () => {
   afterEach(() => vi.unstubAllGlobals());
+
+  it('reads one exact task record without capped collections or message history', async () => {
+    const controller = new AbortController();
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          id: 'older/task',
+          name: 'Original older task',
+          extra: { project_id: 'p' },
+        })
+      )
+    );
+    expect(await loadSynonBiomedLinkedTask('older/task', { fetchImpl: fetchMock, signal: controller.signal })).toEqual({
+      frameId: 'older/task',
+      name: 'Original older task',
+      projectId: 'p',
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/conversations/older%2Ftask',
+      expect.objectContaining({ signal: controller.signal })
+    );
+  });
+
+  it.each([
+    { id: 'another-task', name: 'Wrong task' },
+    { id: 'expected', name: '' },
+  ])('rejects mismatching or incomplete exact task metadata: %o', async (payload) => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify(payload)));
+    await expect(loadSynonBiomedLinkedTask('expected', { fetchImpl: fetchMock })).rejects.toThrow('identity');
+  });
 
   it('reads only exact project metadata, with encoded identity and caller cancellation', async () => {
     const controller = new AbortController();

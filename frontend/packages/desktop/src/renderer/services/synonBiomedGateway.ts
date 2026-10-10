@@ -60,6 +60,8 @@ export type SynonBiomedProjectBench = {
   hasImageOutput: boolean;
 };
 
+export type SynonBiomedLinkedTask = Pick<SynonBiomedProjectBench, 'frameId' | 'projectId' | 'name'>;
+
 export type SynonBiomedProjectFolder = {
   folderId: string;
   projectId: string | null;
@@ -115,6 +117,17 @@ export async function loadSynonBiomedProject(
   const project = toProject(await getJson<unknown>(`/api/projects/${encodeURIComponent(projectId)}`, options));
   if (!project || project.projectId !== projectId) throw new Error('X-Science project metadata identity is invalid');
   return project;
+}
+
+/** Reads the exact conversation record, not a capped list or its message history. */
+export async function loadSynonBiomedLinkedTask(
+  frameId: string,
+  options: SynonBiomedGatewayOptions = {}
+): Promise<SynonBiomedLinkedTask> {
+  const record = asRecord(await getJson<unknown>(`/api/conversations/${encodeURIComponent(frameId)}`, options));
+  const name = stringValue(record?.name);
+  if (stringValue(record?.id) !== frameId || !name) throw new Error('X-Science linked task identity is invalid');
+  return { frameId, name, projectId: nullableStringValue(asRecord(record?.extra)?.project_id) };
 }
 
 export async function loadSynonBiomedComposerCapabilities(

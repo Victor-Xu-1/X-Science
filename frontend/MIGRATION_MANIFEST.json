@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "53a29b81ad0204ae89fbd327b3d0d0de74e83518f6ad488ea24ce26fbd2340db",
+  "adaptationFingerprintSHA256": "beabfba7c6359aa17df6225e553cef13c14ec937e76317ea8069e4a72d214062",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "eed1aac96e8ca46427bf7820e22d57a531ccf88d4ed7af18c8facab021719bde",
+  "additionFingerprintSHA256": "e6dc6f18fd7ce264389debb160ee7600e15cf1681a57fb4bce815cf940850dfe",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 345,
@@ -913,8 +913,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/artifact/ArtifactPreview.tsx",
       "sourceSHA256": "21d3998423856a474f4e13516869e446beaebf11fab0597fc9e7a3d732d624d1",
-      "targetSHA256": "ef77b87aa7d846acb0f76ebf319dd464bae3e9b32312f2ff6ebc2bab64ca82c9",
-      "bytes": 36892,
+      "targetSHA256": "62045de6dccaadd5436c6482735a7f554e942c60d81159a46f7dbaa89a17fa45",
+      "bytes": 37040,
       "reason": "Connect immutable Go artifacts, annotations, refinement, and native viewers with bounded localized failure handling."
     },
     {
@@ -2810,8 +2810,8 @@
     {
       "path": "packages/desktop/src/renderer/services/synonBiomedGateway.ts",
       "sourceSHA256": "a2dce38ff921a8e8c772b5866e3d3a6409c52a87a3b2ea10384f491333764f76",
-      "targetSHA256": "6d4dcba40e6f8637cb2000f10f5f77850e008d8b2c4e0d4a43146faa8b9dee13",
-      "bytes": 17323,
+      "targetSHA256": "c80e0b25c426ad858a542dad2e8b1a2f592ef919eb880ecb1fff1dbe00c927ed",
+      "bytes": 18026,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -3776,8 +3776,8 @@
     {
       "path": "tests/unit/renderer/ArtifactPreview.dom.test.tsx",
       "sourceSHA256": "35fcf88c79cd262a41b65d79e70c4ec8a97ede955c9b4f8d3fefe3fc536d2bd9",
-      "targetSHA256": "cf312c4dfc2670ece16e4352dec9b95e6ec40d7798e3e5443faf5516a19c99cd",
-      "bytes": 15774,
+      "targetSHA256": "8ebbfe0998389b1b06c43761ee538485e415897d5667a7922633d98c267500d1",
+      "bytes": 15835,
       "reason": "Isolate persisted client configuration while testing native artifact preview and cloud export behavior."
     },
     {
@@ -7384,8 +7384,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/artifact/ArtifactDetails.tsx",
-      "sha256": "310062165df1108b00bc7c62020ac435f9c045be174616294b3216399421e63c",
-      "bytes": 6147,
+      "sha256": "5fdea927e985219f15b3380ee0a9f461d0f7e3d1312cc5ff63de51138b114a85",
+      "bytes": 6624,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -7450,8 +7450,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/artifact/useArtifactContextReads.ts",
-      "sha256": "cde6216b27a38034108f511553692b6262a39d25e4c3c2534ceed96622c09107",
-      "bytes": 4034,
+      "sha256": "9ead481183a8fd1ee517855acb09b573ef35bba5b0122f07f9262bc8b42e65e9",
+      "bytes": 4015,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10216,8 +10216,8 @@
     },
     {
       "path": "tests/unit/renderer/ArtifactPreviewInteraction.dom.test.tsx",
-      "sha256": "4f352f0ddaf7a78de65a2732a74445c316e7155647111ef917ec9125edcab446",
-      "bytes": 33858,
+      "sha256": "0398b01d67bff6fd13b1f114b81485be0761c0b427c1d9cd19dea0f9284dd1ad",
+      "bytes": 36599,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -10774,8 +10774,8 @@
     },
     {
       "path": "tests/unit/renderer/synonBiomedGateway.test.ts",
-      "sha256": "0ba571794e69aefeb54b175f0cd2cb9f0fb3a89fe9c1137e9eb022b892f789ac",
-      "bytes": 6819,
+      "sha256": "d4fb99029472eb2c45ed83d6b4b49a09132d3a54ddb37c59b4966460bb7b9b0d",
+      "bytes": 8053,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -10834,8 +10834,8 @@
     },
     {
       "path": "tests/unit/renderer/useArtifactContextReads.dom.test.tsx",
-      "sha256": "537122e5b403457ecf526cec23ad333524030f91a3f64c8be08745bf38da1578",
-      "bytes": 5549,
+      "sha256": "61dd1e0eea0543c0eba5df98ea7f0043d70e80817dee589c1bd654a3f4b13d7e",
+      "bytes": 6498,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

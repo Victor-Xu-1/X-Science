@@ -128,8 +128,8 @@ or scientific content is rewritten for this presentation.
 身份仍完整保留在可展开的技术信息中，与文件名、MIME、文件/版本 ID 和校验值一起
 查看。显示优化不改写存储记录或科研内容。
 
-Optional context names use small project metadata and task-summary reads, not a
-full conversation or workbench fetch. Reads are independent, owner-fenced,
+Optional context names use small project metadata and an exact conversation-record
+read, not capped task collections, message history or an aggregate workbench. Reads are independent, owner-fenced,
 cancelled on departure and bounded to 15 seconds; failures remain recoverable
 without automatic retries or rereading healthy peers. A known navigation
 identity stays usable while its display name is unavailable. Locale or displayed
@@ -137,10 +137,18 @@ version changes do not refresh unchanged context identity; source-owned names
 are not translated. Caller-owned cancellation never cancels shared bench reads
 or claims cancellation of server-side writes.
 
-辅助名称只读取小型项目元数据与任务摘要，不获取完整对话或工作台。读取独立管理，
+辅助名称只读取小型项目元数据与精确任务记录，不依赖截断列表，也不获取消息历史或
+完整工作台。读取独立管理，
 切换上下文/离开时取消，15 秒超时可重试，不自动循环或重读健康同伴。名称暂不可用
 时，已知关联入口仍能使用；语言或显示版本变化不重读未变的上下文身份，也不翻译
 源记录名称。请求取消不影响其他共享读取，不宣称取消服务端写入。
+
+Displayed details use the same selected-version metadata as the preview/header;
+missing historical fields are not replaced by the latest version. The artifact's
+latest checksum is shown only for that matching version, not an older selection.
+
+详情与预览、标题共享所选版本元数据；历史版本缺失的字段不冒用最新版本。
+文件的最新校验值只在对应版本显示，不用它标注历史版本。
 
 图片预览提供适应窗口、原始尺寸和逐级缩放；超出视口的原图可滚动阅读，切换缩放
 保留当前阅读中心，不裁切或改写原始像素。图片视口获得焦点后，`+`/`-` 缩放，`0`
