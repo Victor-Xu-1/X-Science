@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { focusableElements, isVisibleFocusable } from '@/renderer/utils/focusScope';
 
 type ActionFocus = {
@@ -45,10 +45,14 @@ export function restoreStructureActionFocus(snapshot: ActionFocus | null, isCurr
   }
 }
 
-/** Wait one paint for the caller's final selection/busy render. New actions,
- * file generations and unmount invalidate restoration instead of retrying. */
+/** Restoration is queued by a committed render, not by the engine promise.
+ * New actions, file generations and unmount invalidate it instead of retrying. */
 export function useStructureActionFocus(sourceKey: readonly unknown[]) {
   const pending = useRef<number | null>(null);
+  const queued = useRef<{ snapshot: ActionFocus; isCurrent: () => boolean; sourceKey: readonly unknown[] } | null>(
+    null
+  );
+  const [revision, requestCommit] = useState(0);
   const mounted = useRef(true);
   const currentSource = useRef(sourceKey);
   useLayoutEffect(() => {
@@ -57,6 +61,7 @@ export function useStructureActionFocus(sourceKey: readonly unknown[]) {
   const cancel = useCallback(() => {
     if (pending.current !== null) cancelAnimationFrame(pending.current);
     pending.current = null;
+    queued.current = null;
   }, []);
   useEffect(() => {
     mounted.current = true;
@@ -65,19 +70,26 @@ export function useStructureActionFocus(sourceKey: readonly unknown[]) {
       cancel();
     };
   }, [cancel]);
+  useLayoutEffect(() => {
+    const request = queued.current;
+    queued.current = null;
+    if (!request) return;
+    pending.current = requestAnimationFrame(() => {
+      pending.current = null;
+      if (
+        mounted.current &&
+        request.sourceKey.length === currentSource.current.length &&
+        request.sourceKey.every((value, index) => value === currentSource.current[index])
+      )
+        restoreStructureActionFocus(request.snapshot, request.isCurrent);
+    });
+  }, [revision]);
   const restore = useCallback(
     (snapshot: ActionFocus | null, isCurrent: () => boolean) => {
       cancel();
-      if (!snapshot) return;
-      pending.current = requestAnimationFrame(() => {
-        pending.current = null;
-        if (
-          mounted.current &&
-          sourceKey.length === currentSource.current.length &&
-          sourceKey.every((value, index) => value === currentSource.current[index])
-        )
-          restoreStructureActionFocus(snapshot, isCurrent);
-      });
+      if (!snapshot || !mounted.current) return;
+      queued.current = { snapshot, isCurrent, sourceKey };
+      requestCommit((value) => value + 1);
     },
     [cancel, sourceKey]
   );
