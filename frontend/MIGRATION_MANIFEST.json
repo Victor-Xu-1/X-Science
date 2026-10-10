@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "38f4773755444c82802d38f7b6a45b336df9e72a250eaeef298e754907ca6380",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "e0e4fcbfb6347ad8daf720e59cb4e4887071aa58937899f427b29c81a5c90335",
+  "additionFingerprintSHA256": "3349ad995deccf1d0b00757af89fc15c645349495ba047c9d7646915a44de00a",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 345,
@@ -8194,8 +8194,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/structureMinimizationInput.ts",
-      "sha256": "6e01453580cd8d5be553a50ce5593779c22326a362cb8492ba3769c17bb8c98f",
-      "bytes": 2005,
+      "sha256": "9c67e4af20b832948638fea00568cec4ab6130e3af487dec8f08eb0182f6ce37",
+      "bytes": 2015,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {

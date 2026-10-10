@@ -2,7 +2,7 @@ import { formatMolstarPosePdb, type MolstarPoseAtom } from './molstarPose';
 
 /** Keep the selected active model's original records/connectivity, not another frame. */
 export function selectCurrentPdbModel(source: string, index: number): string {
-  const lines = source.match(/[^\n]*\n|[^\n]+$/g) ?? [];
+  const lines: string[] = source.match(/[^\n]*\n|[^\n]+$/g) ?? [];
   const count = lines.filter((line) => line.startsWith('MODEL ')).length;
   if (!Number.isSafeInteger(index) || index < 0 || index >= Math.max(count, 1)) {
     throw new Error('MOLSTAR_MINIMIZATION_MODEL_INVALID');
