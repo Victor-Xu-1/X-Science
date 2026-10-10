@@ -20,13 +20,13 @@ const snapshot: ConversationContextValue = {
 };
 
 describe('ConversationProvider', () => {
-  it('does not rerender consumers when only the value object identity changes', () => {
+  it('does not rerender memoized consumers when only the value object identity changes', () => {
     let renders = 0;
-    const Consumer = () => {
+    const Consumer = React.memo(() => {
       useConversationContext();
       renders += 1;
       return null;
-    };
+    });
 
     const { rerender } = render(
       <ConversationProvider value={{ ...snapshot }}>
