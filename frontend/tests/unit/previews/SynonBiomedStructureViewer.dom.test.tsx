@@ -800,11 +800,11 @@ describe('SynonBiomedStructureViewer', () => {
         })
       );
       const list = screen.getByTestId('synon-biomed-structure-object-list');
-      fireEvent.click(
-        within(list).getByRole('button', {
-          name: view.i18n.t('preview.scientific.structure.quickActions.clearAllCompounds'),
-        })
-      );
+      const clear = within(list).getByRole('button', {
+        name: view.i18n.t('preview.scientific.structure.quickActions.clearAllCompounds'),
+      });
+      clear.focus();
+      fireEvent.click(clear);
       await waitFor(() => expect(molstarMocks.engine.setStructureLigandSelection).toHaveBeenLastCalledWith([]));
       const pocket = screen.getByTestId('synon-biomed-molstar-quick-pocket');
       await waitFor(() => expect(pocket).toBeDisabled());
@@ -813,8 +813,52 @@ describe('SynonBiomedStructureViewer', () => {
         'title',
         view.i18n.t('preview.scientific.structure.quickActions.availability.ligand')
       );
+      await waitFor(() =>
+        expect(
+          within(list).getByRole('button', {
+            name: view.i18n.t('preview.scientific.structure.quickActions.selectAllCompounds'),
+          })
+        ).toHaveFocus()
+      );
     }
   );
+
+  it.each([false, true])('settles action focus without taking a newer destination (%s)', async (moveFocus) => {
+    const composition = ordinaryMultiLigandComposition();
+    composition.objects = composition.objects.filter((object) => object.id === 'first');
+    composition.hasProtein = false;
+    composition.atomCount = composition.objects[0].atomCount;
+    molstarMocks.engine.load.mockResolvedValueOnce(composition);
+    await renderWithI18n(<SynonBiomedStructureViewer filename='ligand.sdf' content='synthetic mol block' />, 'en-US');
+    fireEvent.click(await screen.findByRole('button', { name: 'Expand the left toolbar' }));
+    const line = screen.getByRole('button', { name: 'Line' });
+    await waitFor(() => expect(line).toBeEnabled());
+    let finish!: () => void;
+    molstarMocks.engine.applyRepresentationStyle.mockImplementationOnce(
+      () => new Promise<void>((resolve) => (finish = resolve))
+    );
+    line.focus();
+    fireEvent.click(line);
+    await waitFor(() => expect(line).toBeDisabled());
+    // Model native disabled-button focus loss explicitly: jsdom's blur on a
+    // disabled button otherwise leaves it active and masks this regression.
+    const bodyTabIndex = document.body.getAttribute('tabindex');
+    document.body.tabIndex = -1;
+    document.body.focus();
+    if (bodyTabIndex === null) document.body.removeAttribute('tabindex');
+    else document.body.setAttribute('tabindex', bodyTabIndex);
+    expect(document.activeElement).toBe(document.body);
+    const newer = document.createElement('button');
+    document.body.append(newer);
+    if (moveFocus) newer.focus();
+    try {
+      await act(async () => finish());
+      await waitFor(() => expect(line).toBeEnabled());
+      await waitFor(() => expect(moveFocus ? newer : line).toHaveFocus());
+    } finally {
+      newer.remove();
+    }
+  });
 
   it('restores a sole ligand after clearing the compound selection', async () => {
     const composition = ordinaryMultiLigandComposition();

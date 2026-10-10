@@ -367,6 +367,14 @@ old3D atom selection, so refinement cannot silently target a previously hidden l
 说明配体操作当前不可用；单配体开关可以重新选择。切换实例清除旧三维原子选择，
 不让后续优化静默作用于之前隐藏的配体。
 
+After a structure action settles, keyboard focus returns to its initiating control
+or a nearby available control when that action has disabled its own button. A newer
+focus destination, source replacement, hidden viewer or unmount takes precedence;
+completion cannot steal focus from another viewer or from a newly opened file.
+
+结构操作完成后，键盘焦点返回原操作控件；原按钮已禁用时返回邻近可用控件。用户已经
+转移的焦点、文件替换、隐藏查看器或卸载优先，旧操作完成不能抢走其他查看器或新文件的焦点。
+
 Ordinary ligand electrostatics serializes every selected native instance and
 binds each surface to its matching returned field. API keys derive from the full
 native instance order, so same-name ligands and alternate conformers do not merge

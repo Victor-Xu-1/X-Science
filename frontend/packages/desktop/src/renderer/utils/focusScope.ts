@@ -12,20 +12,23 @@ export function restoreScopedFocus(opener: HTMLElement | null, root: HTMLElement
     opener.focus({ preventScroll: true });
 }
 
+export function isVisibleFocusable(element: HTMLElement): boolean {
+  if (
+    !element.matches(FOCUSABLE_SELECTOR) ||
+    element.tabIndex < 0 ||
+    element.matches(':disabled') ||
+    element.closest('[hidden], [inert], [aria-hidden="true"]')
+  )
+    return false;
+  for (let ancestor: HTMLElement | null = element; ancestor; ancestor = ancestor.parentElement) {
+    const style = getComputedStyle(ancestor);
+    if (style.display === 'none' || style.visibility === 'hidden' || style.visibility === 'collapse') return false;
+  }
+  return true;
+}
+
 export function focusableElements(root: HTMLElement | null): HTMLElement[] {
-  return [...(root?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR) ?? [])].filter((element) => {
-    if (
-      element.tabIndex < 0 ||
-      element.matches(':disabled') ||
-      element.closest('[hidden], [inert], [aria-hidden="true"]')
-    )
-      return false;
-    for (let ancestor: HTMLElement | null = element; ancestor && ancestor !== root; ancestor = ancestor.parentElement) {
-      const style = getComputedStyle(ancestor);
-      if (style.display === 'none' || style.visibility === 'hidden' || style.visibility === 'collapse') return false;
-    }
-    return true;
-  });
+  return [...(root?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR) ?? [])].filter(isVisibleFocusable);
 }
 
 export function containTabFocus(
