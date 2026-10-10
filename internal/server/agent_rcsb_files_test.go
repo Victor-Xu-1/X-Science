@@ -402,6 +402,40 @@ func TestNormalizeAgentRCSBFilenameKeepsFlatValidatedTarget(t *testing.T) {
 	}
 }
 
+func TestAgentRCSBDownloadMapsTransientUpstreamToStructuredUnavailable(t *testing.T) {
+	for _, test := range []struct {
+		name       string
+		err        error
+		wantReason string
+	}{
+		{name: "upstream unavailable", err: errors.New("rcsb_file_upstream_unavailable"), wantReason: "temporary_network_error"},
+		{name: "rate limited", err: errors.New("rcsb_file_rate_limited"), wantReason: "upstream_rate_limited"},
+		{name: "deadline", err: context.DeadlineExceeded, wantReason: "request_timeout"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			fixture := newAgentSaveArtifactsFixture(t)
+			fixture.server.rcsbFiles = &agentRCSBFetcher{err: test.err}
+			input := map[string]any{
+				"resource_kind": "entry", "entry_id": "4TZ4", "format": "pdb", "human_description": "Downloading coordinates",
+			}
+			result, err := fixture.server.executeAgentRCSBFileDownload(
+				fixture.toolContext(t, "rcsb-unavailable", input), fixture.identity, "rcsb-unavailable", input,
+			)
+			if err != nil {
+				t.Fatalf("transient RCSB error should be a structured source outcome: %v", err)
+			}
+			if result["sourceUnavailable"] != true || result["retryable"] != true ||
+				result["status"] != "source_unavailable" || result["code"] != "source_temporarily_unavailable" ||
+				result["reason"] != test.wantReason {
+				t.Fatalf("unavailable result=%#v", result)
+			}
+			if got := agentruntime.ClassifyToolResult(result); got != agentruntime.ToolResultUnavailable {
+				t.Fatalf("outcome=%s", got)
+			}
+		})
+	}
+}
+
 func TestAgentRCSBDownloadBodyFailureLeavesNoWorkspaceOrArtifactState(t *testing.T) {
 	fixture := newAgentSaveArtifactsFixture(t)
 	fixture.server.rcsbFiles = &agentRCSBFetcher{reader: &failingRCSBReader{}}

@@ -161,6 +161,12 @@ func (s *Server) executeAgentRCSBFileDownload(
 		result, err = s.rcsbFiles.Fetch(ctx, request)
 	}
 	if err != nil {
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		if unavailable, handled := agentRCSBFileSourceUnavailable(err); handled {
+			return unavailable, nil
+		}
 		return nil, err
 	}
 	if result.Body == nil || result.ResourceKind != prepared.ResourceKind || result.Identifier != prepared.Identifier ||
@@ -176,6 +182,12 @@ func (s *Server) executeAgentRCSBFileDownload(
 		err = closeErr
 	}
 	if err != nil {
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		if unavailable, handled := agentRCSBFileSourceUnavailable(err); handled {
+			return unavailable, nil
+		}
 		return nil, err
 	}
 	defer staged.close()
@@ -219,6 +231,31 @@ func (s *Server) executeAgentRCSBFileDownload(
 		return nil, err
 	}
 	return s.agentRCSBFileResult(stream, artifact, version, prepared, description), nil
+}
+
+func agentRCSBFileSourceUnavailable(err error) (map[string]any, bool) {
+	if err == nil {
+		return nil, false
+	}
+	reason := "temporary_network_error"
+	switch {
+	case err.Error() == "rcsb_file_rate_limited":
+		reason = "upstream_rate_limited"
+	case err.Error() == "rcsb_file_upstream_unavailable":
+		reason = "temporary_network_error"
+	case errors.Is(err, context.DeadlineExceeded):
+		reason = "request_timeout"
+	default:
+		return nil, false
+	}
+	return map[string]any{
+		"sourceUnavailable": true,
+		"retryable":         true,
+		"status":            "source_unavailable",
+		"code":              "source_temporarily_unavailable",
+		"reason":            reason,
+		"message":           "RCSB file download is temporarily unavailable",
+	}, true
 }
 
 func inferAgentRCSBResourceKind(input map[string]any) rcsbfiles.ResourceKind {
@@ -397,7 +434,13 @@ func stageAgentRCSBFile(ctx context.Context, body io.Reader) (*agentRCSBStagedFi
 		io.MultiWriter(file, hasher),
 		io.LimitReader(&contextReader{ctx: ctx, reader: body}, agentRCSBFileLimit+1),
 	)
-	if err != nil || written <= 0 || written > agentRCSBFileLimit || file.Sync() != nil {
+	if err != nil {
+		if rcsbfiles.TransientOperationError(err) {
+			return nil, errors.New("rcsb_file_upstream_unavailable")
+		}
+		return nil, errors.New("rcsb download staging failed")
+	}
+	if written <= 0 || written > agentRCSBFileLimit || file.Sync() != nil {
 		return nil, errors.New("rcsb download staging failed")
 	}
 	if err := file.Chmod(0o400); err != nil {

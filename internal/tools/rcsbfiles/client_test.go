@@ -45,6 +45,37 @@ func (f *fakeFetcher) Fetch(_ context.Context, target string, policy securefetch
 	}, nil
 }
 
+type eofReadCloser struct{}
+
+func (eofReadCloser) Read([]byte) (int, error) { return 0, io.ErrUnexpectedEOF }
+func (eofReadCloser) Close() error             { return nil }
+
+func TestClientMapsDroppedSuccessBodyToUpstreamUnavailable(t *testing.T) {
+	t.Run("truncated body during prefix probe", func(t *testing.T) {
+		client := New(Options{Fetcher: &probeBodyFetcher{}, MaxBytes: 50 << 20, Timeout: 30 * time.Second})
+		_, err := client.Fetch(context.Background(), Input{EntryID: "4TZ4", Format: FormatCIF})
+		if err == nil || err.Error() != "rcsb_file_upstream_unavailable" {
+			t.Fatalf("dropped body err=%v", err)
+		}
+	})
+
+	t.Run("fetch-level disconnect", func(t *testing.T) {
+		client := New(Options{Fetcher: &fakeFetcher{err: io.ErrUnexpectedEOF}, MaxBytes: 50 << 20, Timeout: 30 * time.Second})
+		_, err := client.Fetch(context.Background(), Input{EntryID: "4TZ4", Format: FormatCIF})
+		if err == nil || err.Error() != "rcsb_file_upstream_unavailable" {
+			t.Fatalf("fetch disconnect err=%v", err)
+		}
+	})
+}
+
+type probeBodyFetcher struct{}
+
+func (f *probeBodyFetcher) Fetch(_ context.Context, _ string, _ securefetch.Policy) (*securefetch.Response, error) {
+	return &securefetch.Response{
+		Body: eofReadCloser{}, StatusCode: 200, ContentType: "chemical/x-cif",
+	}, nil
+}
+
 func TestClientBuildsClosedRCSBEntryAndLigandRequests(t *testing.T) {
 	for _, test := range []struct {
 		name        string

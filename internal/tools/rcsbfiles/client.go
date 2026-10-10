@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"synon-go/internal/buildinfo"
+	"synon-go/internal/httpreliability"
 	"synon-go/internal/tools/securefetch"
 )
 
@@ -130,6 +131,18 @@ func New(options Options) *Client {
 	}
 }
 
+// TransientOperationError reports whether an RCSB file fetch or body read may be retried.
+func TransientOperationError(err error) bool {
+	return httpreliability.TransientError(err) || securefetch.IsCode(err, securefetch.CodeTransport)
+}
+
+func mapFetchTransportError(err error) error {
+	if TransientOperationError(err) {
+		return errors.New("rcsb_file_upstream_unavailable")
+	}
+	return err
+}
+
 func (c *Client) Fetch(ctx context.Context, input Input) (Result, error) {
 	if c.configErr != nil {
 		return Result{}, c.configErr
@@ -157,12 +170,15 @@ func (c *Client) Fetch(ctx context.Context, input Input) (Result, error) {
 				return Result{}, errors.New("rcsb_file_download_failed")
 			}
 		}
-		return Result{}, err
+		return Result{}, mapFetchTransportError(err)
 	}
 	reader := bufio.NewReaderSize(response.Body, probeBytes)
 	probe, probeErr := reader.Peek(probeBytes)
 	if probeErr != nil && !errors.Is(probeErr, io.EOF) && !errors.Is(probeErr, bufio.ErrBufferFull) {
 		response.Body.Close()
+		if TransientOperationError(probeErr) {
+			return Result{}, errors.New("rcsb_file_upstream_unavailable")
+		}
 		return Result{}, errors.New("rcsb_file_read_failed")
 	}
 	if err := validatePrefix(probe); err != nil {
