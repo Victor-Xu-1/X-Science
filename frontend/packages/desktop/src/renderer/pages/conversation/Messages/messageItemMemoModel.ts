@@ -1,4 +1,4 @@
-import type { TMessage } from '@/common/chat/chatLib';
+import type { IMessageText, TMessage } from '@/common/chat/chatLib';
 
 export type MessageItemMemoProps = {
   message: TMessage;
@@ -36,7 +36,7 @@ export const areMessageItemPropsEqual = (prev: MessageItemMemoProps, next: Messa
   prev.readCursorAgo === next.readCursorAgo;
 
 export type MessageTextMemoProps = {
-  message: TMessage;
+  message: IMessageText;
   messageIndex?: number;
   showCopyRow?: boolean;
 };

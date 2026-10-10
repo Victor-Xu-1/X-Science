@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "d710e87e898e0a4e6ca6cced18558898063f4a9a0480b7dd2870ebcd3bc99d51",
+  "adaptationFingerprintSHA256": "bb1a48a412ad2fc3581c3284390b8e0c225022a9dbb2adad6cc48e93235985d7",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "c870cf70f48b87f0fc7d5af924af75aeb857e2f010869260f7a43b49cfbdd534",
+  "additionFingerprintSHA256": "6810e846f1608b00a6f88d7326cdbfeed6e3abd504e0729f435dcb574284b9b3",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 345,
@@ -1186,8 +1186,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/components/MessageText.tsx",
       "sourceSHA256": "d985f0bfdc719a845cd19aa11d5be56766d937f168c65df91c9cc522c06cb4fc",
-      "targetSHA256": "af4ffd16de08409dd261307b363c331ea7e280a307d42e00f6aa751055571fbb",
-      "bytes": 13798,
+      "targetSHA256": "d3b31bfbef95b78dc1dc02c554548a2086e385c6104b8d6eefcfaf2656095098",
+      "bytes": 13872,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -7654,8 +7654,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/messageItemMemoModel.ts",
-      "sha256": "f62f93e8a9064b12a66840df7a088f7cc2d049ab140c4fa0691c7e7189f649a7",
-      "bytes": 2605,
+      "sha256": "c73b53758d34f577106f4b67592015d1707fcb59b4d0a5d68239a03ffccef1aa",
+      "bytes": 2623,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {

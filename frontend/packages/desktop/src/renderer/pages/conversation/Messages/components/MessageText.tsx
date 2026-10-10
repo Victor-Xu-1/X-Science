@@ -79,11 +79,13 @@ const useFormatContent = (content: string) => {
   }, [content]);
 };
 
-const MessageText: React.FC<{
+type MessageTextProps = {
   message: IMessageText;
   messageIndex?: number;
   showCopyRow?: boolean;
-}> = React.memo(({ message, showCopyRow = true }) => {
+};
+
+const MessageText = React.memo<MessageTextProps>(({ message, showCopyRow = true }) => {
   // Filter think tags from content before rendering
   // 在渲染前过滤 think 标签
   const contentToRender = useMemo(() => {
@@ -332,5 +334,6 @@ const MessageText: React.FC<{
     </>
   );
 }, areMessageTextPropsEqual);
+MessageText.displayName = 'MessageText';
 
 export default MessageText;
