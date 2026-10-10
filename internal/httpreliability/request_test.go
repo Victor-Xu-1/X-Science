@@ -79,6 +79,75 @@ func TestAttemptHeaderBudgetAndParentCancellation(t *testing.T) {
 	}
 }
 
+func TestIdleBodyKeepsLastChunkWhenTimerRacesWithProgress(t *testing.T) {
+	body := IdleBody(&delayedReadCloser{delay: 25 * time.Millisecond, data: []byte("complete")}, 10*time.Millisecond)
+	value, err := io.ReadAll(body)
+	_ = body.Close()
+	if err != nil || string(value) != "complete" {
+		t.Fatalf("raced progress=%q error=%v", value, err)
+	}
+}
+
+func TestIdleBodyKeepsCleanEOFWhenTimerRacesWithCompletion(t *testing.T) {
+	body := IdleBody(&delayedReadCloser{delay: 25 * time.Millisecond}, 10*time.Millisecond)
+	value, err := io.ReadAll(body)
+	_ = body.Close()
+	if err != nil || len(value) != 0 {
+		t.Fatalf("clean EOF raced with idle timer: %q error=%v", value, err)
+	}
+}
+
+func TestIdleBodyStillTimesOutWhenNoBytesArrive(t *testing.T) {
+	body := IdleBody(&hangUntilClose{closed: make(chan struct{})}, 15*time.Millisecond)
+	_, err := io.ReadAll(body)
+	_ = body.Close()
+	if !errors.Is(err, ErrBodyIdleTimeout) {
+		t.Fatalf("idle error=%v", err)
+	}
+}
+
+type delayedReadCloser struct {
+	delay time.Duration
+	data  []byte
+	slept bool
+}
+
+func (body *delayedReadCloser) Read(target []byte) (int, error) {
+	if !body.slept {
+		time.Sleep(body.delay)
+		body.slept = true
+	}
+	if len(body.data) == 0 {
+		return 0, io.EOF
+	}
+	count := copy(target, body.data)
+	body.data = body.data[count:]
+	if len(body.data) == 0 {
+		return count, io.EOF
+	}
+	return count, nil
+}
+
+func (body *delayedReadCloser) Close() error { return nil }
+
+type hangUntilClose struct {
+	closed chan struct{}
+}
+
+func (body *hangUntilClose) Read([]byte) (int, error) {
+	<-body.closed
+	return 0, io.ErrClosedPipe
+}
+
+func (body *hangUntilClose) Close() error {
+	select {
+	case <-body.closed:
+	default:
+		close(body.closed)
+	}
+	return nil
+}
+
 func TestRetryAdviceNeverRetriesEarlyAndRemainsCancelable(t *testing.T) {
 	now := time.Now().UTC().Truncate(time.Second)
 	if RetryAfter("120", now) != 2*time.Minute || RetryAfter(now.Add(2*time.Minute).Format(http.TimeFormat), now) != 2*time.Minute {
