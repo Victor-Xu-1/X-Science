@@ -6,7 +6,7 @@ import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithI18n } from '../i18nTestUtils';
 import type { StructureMinimizationPose } from '@/renderer/pages/conversation/Preview/components/viewers/structureMinimizationInput';
-import { DOUBLE_BOND_MOL, DOUBLE_BOND_SDF } from '../../fixtures/structureChemicalSources';
+import { DOUBLE_BOND_MOL, DOUBLE_BOND_SDF } from '../../fixtures/structureLigands';
 
 const structureViewerCss = readFileSync(
   resolve(

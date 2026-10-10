@@ -7,7 +7,7 @@ import { Structure } from 'molstar/lib/mol-model/structure';
 import { createPoseAtoms } from '@/renderer/pages/conversation/Preview/components/viewers/molstarStructureEngine';
 import { resolveStructureLigandInstanceByAtomSerial } from '@/renderer/pages/conversation/Preview/components/viewers/structureLigandSelection';
 import { restoreChemicalPoseResult } from '@/renderer/pages/conversation/Preview/components/viewers/structureChemicalPoseResult';
-import { DOUBLE_BOND_MOL as mol, DOUBLE_BOND_SDF as sdf } from '../../fixtures/structureChemicalSources';
+import { DOUBLE_BOND_MOL as mol, DOUBLE_BOND_SDF as sdf } from '../../fixtures/structureLigands';
 
 const atoms: MolstarPoseAtom[] = [1, 2].map((serial) => ({
   nativeKey: `unit:${serial}`,
