@@ -399,6 +399,10 @@ describe('ComputeSettingsContent', () => {
     fireEvent.click(within(row).getByRole('button', { name: '查看作业 compute-fixture-job-0001' }));
 
     const dialog = await screen.findByRole('dialog', { name: '计算作业详情' });
+    expect(within(dialog).getByRole('link', { name: '打开远程作业' })).toHaveAttribute(
+      'href',
+      'https://compute.example/jobs/sandbox-1'
+    );
     expect(within(dialog).getByText('complete')).toBeInTheDocument();
     expect(within(dialog).getByRole('switch', { name: '会话计算 infer:fixture-nim' })).toBeChecked();
     fireEvent.click(within(dialog).getByRole('tab', { name: '标准错误' }));
@@ -406,5 +410,21 @@ describe('ComputeSettingsContent', () => {
 
     fireEvent.click(within(dialog).getByRole('switch', { name: '会话计算 infer:fixture-nim' }));
     await waitFor(() => expect(mocks.setSessionProvider).toHaveBeenCalledWith('root-a', 'infer:fixture-nim', false));
+  });
+
+  it('does not render a non-HTTP remote job URL from persisted provider data', async () => {
+    mocks.loadJobs.mockResolvedValue([{ ...computeJob, externalUrl: 'javascript:alert(1)' }]);
+    mocks.loadJob.mockResolvedValue({
+      ...computeJob,
+      externalUrl: 'javascript:alert(1)',
+      harvest: { stdout: { exists: true, size: 8 }, stderr: { exists: true, size: 0 } },
+    });
+    await renderWithSettingsI18n(<ComputeSettingsContent />);
+
+    const row = await screen.findByTestId('compute-job-compute-fixture-job-0001');
+    fireEvent.click(within(row).getByRole('button', { name: '查看作业 compute-fixture-job-0001' }));
+
+    const dialog = await screen.findByRole('dialog', { name: '计算作业详情' });
+    expect(within(dialog).queryByRole('link', { name: '打开远程作业' })).toBeNull();
   });
 });

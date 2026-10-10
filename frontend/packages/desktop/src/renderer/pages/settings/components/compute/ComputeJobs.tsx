@@ -18,6 +18,7 @@ import {
   computeJobVisibleState,
   isComputeControlUnavailable,
 } from '@/renderer/services/compute/jobPresentation';
+import { sanitizeExternalHttpUrl } from '@/renderer/utils/platform';
 
 export const ComputeJobRow: React.FC<{
   job: SynonBiomedComputeJob;
@@ -150,6 +151,7 @@ export const ComputeJobDetailModal: React.FC<{
   };
 
   const activeLog = logs[activeStream];
+  const externalUrl = sanitizeExternalHttpUrl(detail?.externalUrl);
   return (
     <Modal
       visible={Boolean(job)}
@@ -182,8 +184,8 @@ export const ComputeJobDetailModal: React.FC<{
               </div>
               <div className='mt-4px text-12px text-t-tertiary font-mono break-all'>{detail.jobId}</div>
             </div>
-            {detail.externalUrl ? (
-              <a href={detail.externalUrl} target='_blank' rel='noreferrer' className='text-12px text-link-6 shrink-0'>
+            {externalUrl ? (
+              <a href={externalUrl} target='_blank' rel='noreferrer' className='text-12px text-link-6 shrink-0'>
                 {t('settings.computeOpenRemoteJob')}
               </a>
             ) : null}

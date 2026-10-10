@@ -16,6 +16,7 @@ import {
   type SynonBiomedComputeJob,
   type SynonBiomedComputeJobLog,
 } from '@/renderer/services/synonBiomedCompute';
+import { sanitizeExternalHttpUrl } from '@/renderer/utils/platform';
 import { Button, Tag } from '@arco-design/web-react';
 import Modal from '@/renderer/components/base/WorkbenchModal';
 import { ArrowLeft, Copy, LinkOne, Right } from '@icon-park/react';
@@ -250,7 +251,7 @@ const ComputeJobDetail: React.FC<{
   const activeLog = logs[stream];
   const visibleState = computeJobVisibleState(detail);
   const controlHint = computeJobControlHintKey(detail);
-  const externalUrl = safeExternalURL(detail.externalUrl);
+  const externalUrl = sanitizeExternalHttpUrl(detail.externalUrl);
   const harvestWarning =
     isTerminalJob(detail) && (detail.errorKind === 'harvest_failed' || detail.errorKind === 'over_cap');
 
@@ -473,16 +474,6 @@ const displayJobState = (state: string): string => {
 };
 
 const compactId = (value: string): string => (value.length > 12 ? `${value.slice(0, 10)}…` : value);
-
-const safeExternalURL = (value: string | null): string | null => {
-  if (!value) return null;
-  try {
-    const parsed = new URL(value);
-    return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? parsed.href : null;
-  } catch {
-    return null;
-  }
-};
 
 const formatBytes = (value: number): string => {
   if (!Number.isFinite(value) || value <= 0) return '0 B';
