@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "ffe6de0db2243899f2abef1d391a21fe3fc6b693571e999042193d700ba4505f",
+  "adaptationFingerprintSHA256": "d644209ac2a96cb62f57b93d4bda88974ecae9197b875565f59e210806aca8f5",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "017ddf7604d13c77ed7ad0045e4e652e624802c489c0c1aca376bf5f87924fe1",
+  "additionFingerprintSHA256": "8cc9368d5573132e420e0a46c4e57d536f8b9036008c5bf74b09be729c3e8ea8",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 345,
@@ -17,14 +17,14 @@
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "17603d1adf27412dc467b753c5225a5a875390e2dc2c9784acd32262c901833b",
+      "targetSHA256": "c27b143675efc27a6c46febc0d4d85b32b2872feb56c5449dbbef382601f9ad6",
       "bytes": 4378,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "0b683905930eae7915ef3380d549a1dd1753e539a8f1bb2ced97badee8a3fc60",
+      "targetSHA256": "4c772f8951880dd3d2a4a6e7d7623510b56b62ab368d73c7cd3937367144f22e",
       "bytes": 157,
       "reason": "Remove @synon-ai/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -1123,8 +1123,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/components/MessageAgentStatus.tsx",
       "sourceSHA256": "2a95c281495eebb34d3e66f875976bf69fe334e891859f539c6c21a5383280df",
-      "targetSHA256": "137b2f4bf04b56fe7b93c8bce3866cc6fbf42b09155a4cde48453de9d3b36af3",
-      "bytes": 2806,
+      "targetSHA256": "da52c942902bf8138ec07fdcc72874a4a9f4c6cc917ba944d944c0f0e28c0f7b",
+      "bytes": 2971,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -1207,15 +1207,15 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/components/MessageTips.tsx",
       "sourceSHA256": "c968e3f5356a1a051ac874f4302191203ee895e41bee5f061e053c765892263e",
-      "targetSHA256": "3734fdaac7d943451c87d22de28a2bf85ca4cbbe01e0745d20f2d8ae957cc704",
-      "bytes": 7119,
+      "targetSHA256": "52f00f9373723597c700d5cb30de7fd5f2a5624b9c99bf7a1aec727a3382d05e",
+      "bytes": 7256,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/components/MessageToolCall.tsx",
       "sourceSHA256": "6be4e426ee2d5d9e60970a662f0d4ff0cfd6e8136db3733e78aca5b6f9dab1ac",
-      "targetSHA256": "64f424230fa66e816106cd675e64d060e20941323fd630327d7467fd480ffc90",
-      "bytes": 1493,
+      "targetSHA256": "54a2ffcc99752e2b35141a6a583ccaa812f06f10e8e1bea56099bc2d7f48bae5",
+      "bytes": 1643,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -6796,7 +6796,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "109a7b7695b8c604ad154eb522b9effba0b3e0a708974cbe887bc33a3ce2f3ba",
+      "sha256": "52440b180a5972e84ed259a3d16ed3660bb70bc2fbd9e8e87fbbb4caca72c8ee",
       "bytes": 558186,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -7654,8 +7654,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/messageItemMemoModel.ts",
-      "sha256": "8ad290901ad9965ff809715ad6328f3f1ca63502d3c579167f5a559061677053",
-      "bytes": 1380,
+      "sha256": "3e400020509610ad34a7dbf2f3ac144685fa2c6d775c5955577e4e6fa21bb5d7",
+      "bytes": 2678,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10678,8 +10678,8 @@
     },
     {
       "path": "tests/unit/renderer/messageItemMemoModel.test.ts",
-      "sha256": "82ff820c1f7d7644740fa7148041342a6ffe98f5310d322cc745afb79c505d2b",
-      "bytes": 982,
+      "sha256": "7720337d39edbe71953b1ed3b9df6486b28a24f888a4d97ec859ed8a4b46d6fd",
+      "bytes": 2584,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
