@@ -335,28 +335,14 @@ func (s *Server) terminalizeUnrecoverableRunnerCandidate(
 	if s == nil || s.workspaceStore == nil || s.transcriptStore == nil || strings.TrimSpace(candidate.FrameID) == "" {
 		return
 	}
-	frame, found, err := s.workspaceStore.GetFrame(candidate.FrameID)
-	if err != nil || !found || isFrameResumeTerminalStatus(frame.Status) {
+	applied, err := s.transcriptStore.TerminalizeUnrecoverableRunnerCandidate(ctx, candidate)
+	if err != nil {
+		log.Printf("unrecoverable_runner_terminalize_failed frame_id=%s attempt=%d checkpoint=%d error=%v",
+			candidate.FrameID, candidate.Attempt, candidate.CheckpointSequence, err)
 		return
 	}
-	state, found, err := s.transcriptStore.GetLatestRunnerRuntimeState(ctx, candidate.StreamUID, candidate.OwnerID)
-	if err != nil || !found || state.Status != "running" || state.ExpiresAt.After(time.Now().UTC()) {
-		return
-	}
-	failed := "failed"
-	if _, err := s.workspaceStore.UpdateFrame(candidate.FrameID, workspace.UpdateFrameInput{Status: &failed}); err != nil {
-		log.Printf("unrecoverable_runner_terminalize_failed frame_id=%s stage=frame error=%v", candidate.FrameID, err)
-		return
-	}
-	reason := strings.TrimSpace(candidate.ReasonCode)
-	if reason == "" {
-		reason = "unrecoverable_runner_recovery"
-	}
-	_ = s.workspaceStore.UpdateFrameRuntimePresentation(candidate.FrameID, workspace.FrameRuntimePresentationInput{
-		StatusDescription: &reason,
-	})
-	if _, err := s.transcriptStore.ReconcileTerminalFrameRunnerAttempts(ctx, autoResumeCandidateLimit); err != nil {
-		log.Printf("unrecoverable_runner_terminalize_failed frame_id=%s stage=transcript error=%v", candidate.FrameID, err)
+	if applied {
+		s.workspaceStore.NotifyKernelRunnerStateChanged()
 	}
 }
 

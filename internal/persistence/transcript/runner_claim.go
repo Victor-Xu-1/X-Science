@@ -142,7 +142,7 @@ func (r *Repository) claimNextRunner(
 							AND json_extract(resume.payload, '$.dispatch.status') IN ('registered','claimed','blocked')
 					)
 				)
-			ORDER BY stream.updated_at,stream.stream_uid LIMIT 1`, includeStandalone, now, now,
+			ORDER BY stream.updated_at,stream.stream_uid LIMIT 1`, includeStandalone, now, now, now,
 		).Scan(
 			&stream.UID, &stream.OwnerID, &stream.ExternalID, &stream.SessionID, &kind,
 			&stream.ProjectID, &stream.RootFrameID, &stream.FrameID, &stream.Epoch,
