@@ -30,6 +30,10 @@ export function useArtifactRecoveryFocus(
       destination.closest('[hidden],[aria-hidden="true"],[inert]')
     )
       return;
+    for (let element: HTMLElement | null = destination; element; element = element.parentElement) {
+      const style = window.getComputedStyle(element);
+      if (style.display === 'none' || style.visibility === 'hidden' || style.visibility === 'collapse') return;
+    }
     destination.focus({ preventScroll: true });
   }, [owner, status, target]);
   return useCallback(() => {

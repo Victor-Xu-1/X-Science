@@ -65,4 +65,30 @@ describe('artifact recovery focus ownership', () => {
     view.rerender({ owner: 'file-a', status: 'ready' });
     expect(destination).not.toHaveFocus();
   });
+  it.each([
+    ['display: none', 'ready'],
+    ['display: none', 'failed'],
+    ['visibility: hidden', 'ready'],
+    ['visibility: hidden', 'failed'],
+    ['visibility: collapse', 'ready'],
+    ['visibility: collapse', 'failed'],
+  ] as const)('does not focus a CSS-hidden tab pane (%s) after %s', (css, status) => {
+    const pane = document.createElement('div');
+    const styles = document.createElement('style');
+    pane.className = 'inactive-recovery-pane';
+    styles.textContent = `.inactive-recovery-pane { ${css}; }`;
+    document.head.append(styles);
+    document.body.append(pane);
+    pane.append(destination);
+    try {
+      const view = setup();
+      act(() => view.result.current());
+      view.rerender({ owner: 'file-a', status: 'loading' });
+      view.rerender({ owner: 'file-a', status });
+      expect(destination).not.toHaveFocus();
+    } finally {
+      pane.remove();
+      styles.remove();
+    }
+  });
 });

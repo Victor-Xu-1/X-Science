@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "f1e6ce72ef7fbc0626eaf31851aeacd8911dac5d4621ca3ec1c028d8e418349d",
+  "adaptationFingerprintSHA256": "7c5b55ccdf3769f8140886d90c16d934b2a81784667580c57105f985e3b4c0e9",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "412b8d693eb057a96b7d9cbedd2746a98967d6ea4cb1260fed7827cbbae7489b",
+  "additionFingerprintSHA256": "6fa3080e37cf29bf69ef6c964ea62c7440ede0a20346689fc389030fecb6209f",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 345,
     "adaptedSourceFiles": 716,
     "removedSourceFiles": 293,
-    "addedFiles": 842
+    "addedFiles": 843
   },
   "adaptations": [
     {
@@ -2579,8 +2579,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/preview.json",
       "sourceSHA256": "bf530f4a992cc14652500390e715b7add84853e9b0757158c718244cf4cd8f32",
-      "targetSHA256": "6c86b70c6b5ffa827b99376b2aebb05ad6472d6e1653812724cd9541b31c72bd",
-      "bytes": 41954,
+      "targetSHA256": "dda15267a9570fafdff0a95d4efaead83d65915c6e4dfad394fbc4dc378a3af9",
+      "bytes": 41931,
       "reason": "Add English labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls."
     },
     {
@@ -2670,8 +2670,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/preview.json",
       "sourceSHA256": "6b772273972756a3407fee8fe7b4503e992964a8de901375f06bfd2faacf2ba0",
-      "targetSHA256": "6207b1133da315f1929eb67c4ad5b5eb2336b5377375c87487deb61971e4c2a5",
-      "bytes": 40508,
+      "targetSHA256": "26fdeefd1a81a1e4f147967e9c8cf57fcb3beeccc53ea05627be1fe2e8b41c7f",
+      "bytes": 40464,
       "reason": "Add Simplified Chinese labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls."
     },
     {
@@ -3671,8 +3671,8 @@
     {
       "path": "tests/unit/previews/SynonBiomedStructureViewer.dom.test.tsx",
       "sourceSHA256": "ba8c8acb753fdac5f71871a9aeba75f7dd569f1f82eca75dae7e0c76fa5f1c54",
-      "targetSHA256": "a2be057cb7ea349bcc4938480fbfc578be204a093bc1214bc47a45c8fc26de05",
-      "bytes": 149117,
+      "targetSHA256": "5b0d4f214fbd8474faecb4dd213ca7e7b1bcfc71724beae7f3e95766ec9ac757",
+      "bytes": 149094,
       "reason": "Verify format-neutral composition controls, collapsed 2D panels, and source-invalidated interactions after minimization."
     },
     {
@@ -7468,8 +7468,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/artifact/useArtifactRecoveryFocus.ts",
-      "sha256": "9b908d0a4080bf245e08228e2b2d43a8eae0043f6ccf1406bf0c284f94fc3e80",
-      "bytes": 1137,
+      "sha256": "750d4992283e12c8f258c4db331ea4e23d7fd7ff84c4edff1aca4c65d8126f50",
+      "bytes": 1409,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10173,6 +10173,12 @@
       "reason": "Verify aligned dual-component APBS response validation, bounded decoding, and malformed-map rejection."
     },
     {
+      "path": "tests/unit/previews/structureInteractionCopy.test.ts",
+      "sha256": "3b0ab2250d91323171a92ecda88c83b21698964f383c6b39e0fe5f1ce3e78e4f",
+      "bytes": 816,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/unit/previews/structureInteractionReportCache.test.ts",
       "sha256": "b7dd8d93569d51e6f6be40846f9fd9bdb56de1fb10dc380981c319b1ce2ca257",
       "bytes": 4839,
@@ -10864,8 +10870,8 @@
     },
     {
       "path": "tests/unit/renderer/useArtifactRecoveryFocus.dom.test.tsx",
-      "sha256": "c39c1779d57c32401ec89e50cff9a556190f9d51c0038d90463868c9309c4d9b",
-      "bytes": 2643,
+      "sha256": "d1102c24732c70206f4ad091698db44d5df59bf04c342070946fddf2641a0146",
+      "bytes": 3574,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
