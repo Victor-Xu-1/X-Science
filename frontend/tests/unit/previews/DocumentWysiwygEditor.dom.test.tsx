@@ -275,6 +275,16 @@ describe('DocumentWysiwygEditor', () => {
 });
 
 describe('documentWysiwygModel', () => {
+  it('sanitizes active markup before converting editable HTML to markdown', () => {
+    const markdown = markdownFromEditableHtml(
+      '<p>Safe text</p><img src="x" onerror="alert(1)"><script>alert(1)</script>'
+    );
+
+    expect(markdown).toContain('Safe text');
+    expect(markdown).not.toMatch(/<script/i);
+    expect(markdown).not.toContain('onerror');
+  });
+
   it('preserves GFM structure, artifact image references and mathematical source', () => {
     const markdown = markdownFromEditableHtml(`
       <h2>Results</h2>

@@ -14,7 +14,7 @@ export function restoreMarkdownResourceSource(source: string): string {
 
 export function markdownFromEditableHtml(html: string): string {
   const container = document.createElement('div');
-  container.innerHTML = html;
+  container.innerHTML = sanitizeEditableHtmlForTurndown(html);
   container
     .querySelectorAll('[data-document-selected]')
     .forEach((node) => node.removeAttribute('data-document-selected'));
@@ -114,6 +114,17 @@ export function sanitizeDocumentPasteHtml(html: string): string {
     USE_PROFILES: { html: true },
     FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed'],
     FORBID_ATTR: ['srcdoc'],
+  });
+}
+
+/** Sanitize editor HTML before Turndown while preserving KaTeX source annotations. */
+export function sanitizeEditableHtmlForTurndown(html: string): string {
+  return DOMPurify.sanitize(html, {
+    USE_PROFILES: { html: true },
+    FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed'],
+    FORBID_ATTR: ['srcdoc', 'onerror', 'onclick', 'onload'],
+    ADD_TAGS: ['math', 'semantics', 'annotation', 'mrow', 'mi', 'mn', 'mo', 'msup', 'mfrac', 'mspace', 'mtext'],
+    ADD_ATTR: ['encoding', 'class'],
   });
 }
 

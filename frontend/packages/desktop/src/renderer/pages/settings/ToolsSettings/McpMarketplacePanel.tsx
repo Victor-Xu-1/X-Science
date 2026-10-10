@@ -8,6 +8,7 @@ import {
 } from '@/renderer/services/synonBiomedCapabilities';
 import { resolveSynonBiomedMcpDescription } from '@/renderer/services/mcp/synonBiomedMcpDescriptions';
 import { searchMcpMarketplace, type McpMarketplaceEntry } from '@/renderer/services/mcp/mcpMarketplace';
+import { sanitizeExternalHttpUrl } from '@/renderer/utils/platform';
 
 type Props = {
   onInstalled: () => Promise<void>;
@@ -202,6 +203,7 @@ const MarketplaceEntryCard: React.FC<{
 }> = ({ entry, pending, onInstall }) => {
   const { i18n, t } = useTranslation();
   const canInstall = Boolean(entry.remoteUrl && entry.transport && !entry.authRequired);
+  const registryUrl = sanitizeExternalHttpUrl(entry.registryUrl);
   const connectorId = connectorName(entry);
   const description = resolveSynonBiomedMcpDescription(connectorId, entry.description, i18n.language);
   return (
@@ -261,14 +263,16 @@ const MarketplaceEntryCard: React.FC<{
             ? t('settings.synonBiomedMcpMarketplaceInstall')
             : t('settings.synonBiomedMcpMarketplaceViewSource')}
         </Button>
-        <a
-          className='text-11px text-t-tertiary underline underline-offset-3px'
-          href={entry.registryUrl}
-          target='_blank'
-          rel='noreferrer'
-        >
-          {t('settings.synonBiomedMcpMarketplaceDetails')}
-        </a>
+        {registryUrl ? (
+          <a
+            className='text-11px text-t-tertiary underline underline-offset-3px'
+            href={registryUrl}
+            target='_blank'
+            rel='noreferrer'
+          >
+            {t('settings.synonBiomedMcpMarketplaceDetails')}
+          </a>
+        ) : null}
       </div>
     </div>
   );

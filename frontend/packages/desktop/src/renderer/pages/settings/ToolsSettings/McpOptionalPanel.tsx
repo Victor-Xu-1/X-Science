@@ -7,6 +7,7 @@ import {
   startSynonBiomedOptionalMcpInstall,
   type SynonBiomedOptionalMcp,
 } from '@/renderer/services/synonBiomedCapabilities';
+import { sanitizeExternalHttpUrl } from '@/renderer/utils/platform';
 import { McpConnectorVisualMark, resolveMcpConnectorVisual } from './mcpConnectorVisuals';
 
 type Props = {
@@ -152,6 +153,7 @@ const OptionalMcpCard: React.FC<{
           ? t('settings.synonBiomedMcpOptionalStatusFailed')
           : t('settings.synonBiomedMcpOptionalStatusNotInstalled');
   const canInstall = !item.installed && item.status !== 'installing';
+  const sourceUrl = sanitizeExternalHttpUrl(item.sourceRef);
   return (
     <article
       role='listitem'
@@ -212,14 +214,16 @@ const OptionalMcpCard: React.FC<{
                   : t('settings.synonBiomedMcpOptionalInstall')}
           </Button>
         </div>
-        <a
-          className='synon-mcp-card__more inline-flex items-center justify-center text-12px'
-          href={item.sourceRef}
-          target='_blank'
-          rel='noreferrer'
-        >
-          {t('settings.synonBiomedMcpOptionalSource')}
-        </a>
+        {sourceUrl ? (
+          <a
+            className='synon-mcp-card__more inline-flex items-center justify-center text-12px'
+            href={sourceUrl}
+            target='_blank'
+            rel='noreferrer'
+          >
+            {t('settings.synonBiomedMcpOptionalSource')}
+          </a>
+        ) : null}
       </div>
     </article>
   );

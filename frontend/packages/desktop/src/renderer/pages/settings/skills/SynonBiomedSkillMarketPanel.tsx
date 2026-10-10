@@ -8,6 +8,7 @@ import {
   type SynonBiomedSkillRepoEntry,
   type SynonBiomedSkillRepoPreview,
 } from '@/renderer/services/skills/synonBiomedSkillLibrary';
+import { sanitizeExternalHttpUrl } from '@/renderer/utils/platform';
 import { getSkillMarketplaceCopy } from './skillMarketplaceCopy';
 
 export type SkillMarketSource = {
@@ -484,6 +485,7 @@ function SourceFilterCard({
   testId: string;
 }) {
   const displayLabel = statusLabel || `${count} 个`;
+  const repositoryUrl = repository ? sanitizeExternalHttpUrl(repository) : null;
   return (
     <div
       className={`flex min-w-0 flex-col overflow-hidden border rd-9px ${active ? 'border-primary-4' : 'border-arco-2'}`}
@@ -513,14 +515,14 @@ function SourceFilterCard({
         </div>
         <div className='mt-8px line-clamp-1 break-words text-11px leading-4 text-t-secondary'>{descriptionZh}</div>
       </button>
-      {repository && onBrowse && browseLabel && openLabel ? (
+      {repositoryUrl && onBrowse && browseLabel && openLabel ? (
         <div className='flex flex-wrap items-center justify-between gap-6px border-t border-arco-2 px-9px py-6px'>
           <Button size='mini' type='text' disabled={status === 'loading'} onClick={onBrowse}>
             {browseLabel}
           </Button>
           <a
             className='break-words text-11px text-t-secondary underline underline-offset-3px'
-            href={repository}
+            href={repositoryUrl}
             target='_blank'
             rel='noreferrer'
           >
@@ -550,6 +552,7 @@ function SkillMarketCard({
   const englishName = skill.displayName && skill.displayName !== skill.name ? skill.displayName : skill.name;
   const skillPath = displaySkillPath(skill.path);
   const license = skill.preview.license || t('settings.skillsSettings.marketplace.notProvided');
+  const repositoryUrl = sanitizeExternalHttpUrl(skill.source.repo);
   return (
     <article
       role='listitem'
@@ -607,14 +610,16 @@ function SkillMarketCard({
       </details>
 
       <div className='mt-auto flex flex-wrap items-center gap-6px pt-8px'>
-        <a
-          className='break-words px-4px text-10px text-t-secondary underline underline-offset-3px'
-          href={skill.source.repo}
-          target='_blank'
-          rel='noreferrer'
-        >
-          {t('settings.skillsSettings.marketplace.openSource')}
-        </a>
+        {repositoryUrl ? (
+          <a
+            className='break-words px-4px text-10px text-t-secondary underline underline-offset-3px'
+            href={repositoryUrl}
+            target='_blank'
+            rel='noreferrer'
+          >
+            {t('settings.skillsSettings.marketplace.openSource')}
+          </a>
+        ) : null}
         <Button
           size='mini'
           className='!min-w-0 !flex-1'
