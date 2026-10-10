@@ -23,6 +23,16 @@ def duplicate_name_pose():
 
 
 class LigandInstanceSelection(unittest.TestCase):
+    def test_protein_atom_cannot_be_admitted_as_a_ligand(self):
+        for declared in (None, "ALA"):
+            with self.subTest(declared=declared):
+                with self.assertRaisesRegex(ValueError, "non-polymer ligand"):
+                    minimization.select_pdb_ligand(duplicate_name_pose(), declared, 1)
+
+    def test_legacy_name_cannot_make_a_receptor_residue_movable(self):
+        with self.assertRaisesRegex(ValueError, "non-polymer ligand"):
+            minimization.select_pdb_ligand(duplicate_name_pose(), "ALA")
+
     def test_name_only_cannot_silently_combine_distinct_residues(self):
         with self.assertRaisesRegex(ValueError, "multiple ligand"):
             minimization.select_pdb_ligand(duplicate_name_pose(), "UNL")

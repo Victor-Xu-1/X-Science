@@ -14,6 +14,10 @@ def pdb_residue_key(atom):
 
 
 def _partition(molecule, indices, label):
+    if any(molecule.GetAtomWithIdx(index).GetPDBResidueInfo() is None
+           or not molecule.GetAtomWithIdx(index).GetPDBResidueInfo().GetIsHeteroAtom()
+           for index in indices):
+        raise ValueError("selected residue is not a declared non-polymer ligand")
     selected = set(indices)
     fixed = [atom.GetIdx() for atom in molecule.GetAtoms() if atom.GetIdx() not in selected]
     protein = any(atom.GetIdx() not in selected and atom.GetPDBResidueInfo() is not None

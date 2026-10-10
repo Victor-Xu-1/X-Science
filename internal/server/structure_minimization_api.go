@@ -326,8 +326,11 @@ func decodeStructureMinimizationRequest(r *http.Request) (structureMinimizationR
 			return structureMinimizationRequest{}, errors.New("ligand_residue_name must be a PDB residue name")
 		}
 	}
-	if request.LigandAtomSerial != nil && (*request.LigandAtomSerial < 1 || *request.LigandAtomSerial > 99999 || strings.ToLower(filepath.Ext(request.Filename)) != ".pdb") {
-		return structureMinimizationRequest{}, errors.New("ligand_atom_serial must identify an atom in a PDB current pose")
+	if request.LigandAtomSerial != nil {
+		format, err := normalizeStructureMinimizationFormat(request.Filename)
+		if *request.LigandAtomSerial < 1 || *request.LigandAtomSerial > 99999 || err != nil || format.input != "pdb" {
+			return structureMinimizationRequest{}, errors.New("ligand_atom_serial must identify an atom in a PDB current pose")
+		}
 	}
 	if request.MaxIterations == 0 {
 		request.MaxIterations = 200
@@ -470,6 +473,7 @@ func structureMinimizationFailureMessage(report map[string]any) string {
 		"specified ligand atom does not belong to the requested ligand residue",
 		"PDB atom serials are missing or ambiguous",
 		"selected ligand conformer is ambiguous",
+		"selected residue is not a declared non-polymer ligand",
 		"current pose contains multiple PDB models; choose one active model before minimizing",
 		"the protein complex contains multiple ligand candidates; open one ligand pose before minimizing",
 		"a conformer could not be generated for the input molecule",
