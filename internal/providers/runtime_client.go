@@ -347,7 +347,9 @@ func (c *runtimeModelClient) completeJSON(ctx context.Context, attempt int, endp
 		record.DurationMs = record.FinishedAt.Sub(record.StartedAt).Milliseconds()
 		record.Error = c.redactSensitiveText(readErr.Error())
 		c.emitAudit(record)
-		retryable := !errors.Is(readErr, errProviderResponseTooLarge) && providerHTTPStatusRetryable(response.StatusCode, nil)
+		retryable := !errors.Is(readErr, errProviderResponseTooLarge) && requestCtx.Err() == nil &&
+			(providerHTTPStatusRetryable(response.StatusCode, nil) ||
+				(response.StatusCode >= http.StatusOK && response.StatusCode < http.StatusMultipleChoices))
 		return agentruntime.ModelResponse{}, retryable, readErr
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {

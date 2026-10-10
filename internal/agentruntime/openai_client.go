@@ -97,7 +97,9 @@ func (c OpenAIChatClient) completeAttempt(ctx context.Context, rawRequest []byte
 	defer response.Body.Close()
 	body, err := io.ReadAll(io.LimitReader(response.Body, maxOpenAIChatResponseBytes+1))
 	if err != nil {
-		return ModelResponse{}, false, err
+		// A dropped connection after headers is the same class of failure as a
+		// failed dial. Retry only while the caller still owns the attempt.
+		return ModelResponse{}, requestCtx.Err() == nil, err
 	}
 	if len(body) > maxOpenAIChatResponseBytes {
 		return ModelResponse{}, false, fmt.Errorf("OpenAI chat response exceeds %d bytes", maxOpenAIChatResponseBytes)

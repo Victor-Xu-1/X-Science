@@ -48,8 +48,15 @@ func (e Engine) Run(ctx context.Context, request RunRequest) (RunResult, error) 
 	consecutiveNoProgressRounds := 0
 	noProgressRecoveryCalls := []ToolCall{}
 	for {
+		// A cancelled or timed-out run must stop before the next model request
+		// so completed tool rounds stay available to the caller. Emitting
+		// EventModelRequest after cancellation would invent a request that
+		// never happened.
+		if err := ctx.Err(); err != nil {
+			return interruptedRun(messages, err)
+		}
 		if err := e.emit(Event{Type: EventModelRequest}); err != nil {
-			return RunResult{}, err
+			return interruptedRun(messages, err)
 		}
 		modelRequest := ModelRequest{Messages: modelMessages, Tools: activeTools, Metadata: request.Metadata, Headers: request.Headers, MediaPolicy: normalized.MediaPolicy}
 		toolChoice := any(nil)
@@ -67,7 +74,7 @@ func (e Engine) Run(ctx context.Context, request RunRequest) (RunResult, error) 
 			var available bool
 			roundTools, available = roundConstraint.requestTools(activeTools)
 			if !available {
-				return RunResult{}, &InitialToolChoiceViolationError{RequiredTool: roundConstraint.name}
+				return interruptedRun(messages, &InitialToolChoiceViolationError{RequiredTool: roundConstraint.name})
 			}
 		}
 		modelRequest.ToolChoice = toolChoice
@@ -75,12 +82,12 @@ func (e Engine) Run(ctx context.Context, request RunRequest) (RunResult, error) 
 		enforceToolChoice := roundConstraint.required || roundConstraint.forbidden
 		response, bufferedDeltas, err := e.completeModelRound(ctx, modelRequest, enforceToolChoice)
 		if err != nil {
-			return RunResult{}, err
+			return interruptedRun(messages, err)
 		}
 		message := response.Message
 		preamble, bufferedDeltas, err := e.publishToolPreamble(enforceToolChoice, message, bufferedDeltas)
 		if err != nil {
-			return RunResult{}, err
+			return interruptedRun(messages, err)
 		}
 		if enforceToolChoice && !roundConstraint.satisfied(message.ToolCalls) {
 			resolution, retry, resolutionErr := resolveToolChoiceViolation(
@@ -88,7 +95,7 @@ func (e Engine) Run(ctx context.Context, request RunRequest) (RunResult, error) 
 				modelMessages, activeTools,
 			)
 			if resolutionErr != nil {
-				return RunResult{}, resolutionErr
+				return interruptedRun(messages, resolutionErr)
 			}
 			if retry {
 				toolChoiceRepairs++
@@ -101,12 +108,12 @@ func (e Engine) Run(ctx context.Context, request RunRequest) (RunResult, error) 
 		if enforceToolChoice {
 			toolChoiceRepairs = 0
 			if err := e.publishBufferedModelDeltas(bufferedDeltas); err != nil {
-				return RunResult{}, err
+				return interruptedRun(messages, err)
 			}
 		}
 		if len(message.ToolCalls) > 0 {
 			if err := validateToolCallBatch(message.ToolCalls, request.MaxToolCallsPerRound); err != nil {
-				return RunResult{}, err
+				return interruptedRun(messages, err)
 			}
 		}
 		var rejectedToolCalls map[int]toolCallRejection
@@ -129,13 +136,13 @@ func (e Engine) Run(ctx context.Context, request RunRequest) (RunResult, error) 
 				ctx, message.ToolCalls, modelRequest.Tools, admission, preflight,
 			)
 			if err != nil {
-				return RunResult{}, err
+				return interruptedRun(messages, err)
 			}
 			applyToolCallRejectionFamilyBudget(message.ToolCalls, rejectedToolCalls, rejectionFamilyAttempts)
 			if consecutivePrivatePreflightRepairs < maxPrivatePreflightRepairAttempts {
 				feedback, repairable, repairErr := privatePreflightRepairMessages(message.ToolCalls, rejectedToolCalls)
 				if repairErr != nil {
-					return RunResult{}, repairErr
+					return interruptedRun(messages, repairErr)
 				}
 				if repairable {
 					consecutivePrivatePreflightRepairs++
@@ -166,10 +173,10 @@ func (e Engine) Run(ctx context.Context, request RunRequest) (RunResult, error) 
 				lastToolCallRoundSignature = signature
 				if request.MaxConsecutiveIdenticalToolRounds > 0 &&
 					consecutiveIdenticalToolRounds >= request.MaxConsecutiveIdenticalToolRounds {
-					return RunResult{}, &ToolRoundNoProgressError{
+					return interruptedRun(messages, &ToolRoundNoProgressError{
 						Limit: request.MaxConsecutiveIdenticalToolRounds,
 						Calls: appendNoProgressRecoveryCalls(noProgressRecoveryCalls, message.ToolCalls),
-					}
+					})
 				}
 			} else {
 				lastToolCallRoundSignature = ""
@@ -177,14 +184,14 @@ func (e Engine) Run(ctx context.Context, request RunRequest) (RunResult, error) 
 			}
 			if request.ToolRoundBudget != nil {
 				if err := request.ToolRoundBudget.consume(); err != nil {
-					return RunResult{}, err
+					return interruptedRun(messages, err)
 				}
 			} else if maxToolRounds > 0 && toolRounds >= maxToolRounds {
-				return RunResult{}, &ToolRoundLimitError{Limit: maxToolRounds}
+				return interruptedRun(messages, &ToolRoundLimitError{Limit: maxToolRounds})
 			}
 		}
 		if err := e.emit(Event{Type: EventModelResponse, Message: message.Content, ToolCalls: append([]ToolCall(nil), message.ToolCalls...)}); err != nil {
-			return RunResult{}, err
+			return interruptedRun(messages, err)
 		}
 		if len(message.ToolCalls) == 0 {
 			return e.finishRun(messages, message)
@@ -226,10 +233,10 @@ func (e Engine) Run(ctx context.Context, request RunRequest) (RunResult, error) 
 			lastToolCallRoundSignature = roundSignature
 			if request.MaxConsecutiveIdenticalToolRounds > 0 &&
 				consecutiveIdenticalToolRounds >= request.MaxConsecutiveIdenticalToolRounds {
-				return RunResult{}, &ToolRoundNoProgressError{
+				return interruptedRun(messages, &ToolRoundNoProgressError{
 					Limit: request.MaxConsecutiveIdenticalToolRounds,
 					Calls: appendNoProgressRecoveryCalls(noProgressRecoveryCalls, message.ToolCalls),
-				}
+				})
 			}
 		}
 		if batch.NoProgress {
@@ -247,7 +254,7 @@ func (e Engine) Run(ctx context.Context, request RunRequest) (RunResult, error) 
 		}
 		mediaBytesUsed = batch.MediaBytesUsed
 		if toolErr != nil {
-			return RunResult{Messages: messages}, toolErr
+			return interruptedRun(messages, toolErr)
 		}
 		if batch.Terminal {
 			if err := e.emit(Event{Type: EventFinal, Message: message.Content}); err != nil {
@@ -257,12 +264,20 @@ func (e Engine) Run(ctx context.Context, request RunRequest) (RunResult, error) 
 		}
 		if request.MaxConsecutiveIdenticalToolRounds > 0 &&
 			consecutiveNoProgressRounds >= request.MaxConsecutiveIdenticalToolRounds {
-			return RunResult{Messages: messages}, &ToolRoundNoProgressError{
+			return interruptedRun(messages, &ToolRoundNoProgressError{
 				Limit: request.MaxConsecutiveIdenticalToolRounds,
 				Calls: append([]ToolCall(nil), noProgressRecoveryCalls...),
-			}
+			})
 		}
 		activeTools = expandEngineToolSchemas(e.Tools, toolSchemaExpansion, hasToolSchemaExpansion, activeTools)
 		toolRounds++
 	}
+}
+
+// interruptedRun keeps completed conversation state when a later model or
+// control-plane failure ends the attempt. Callers such as plan-mode repair
+// and in-process recovery must see the same tool receipts the durable
+// journal already recorded, not an empty result.
+func interruptedRun(messages []Message, err error) (RunResult, error) {
+	return RunResult{Messages: messages}, err
 }
