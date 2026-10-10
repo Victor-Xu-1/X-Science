@@ -2,6 +2,7 @@ package providers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -234,5 +235,64 @@ func TestToolPlanningPrivateStallPreservesAcceptedPrefix(t *testing.T) {
 	}, func(event agentruntime.ModelStreamEvent) error { accepted.WriteString(event.ContentDelta); return nil })
 	if !IsRecoverableStreamInterruption(err) || IsProviderEmptyResponse(err) || accepted.String() != "Accepted prefix." || requests.Load() != 1 {
 		t.Fatalf("prefix was discarded/replayed or private stall persisted: err=%v text=%q requests=%d", err, accepted.String(), requests.Load())
+	}
+}
+
+func TestProviderStreamHeaderDeadlineTimesOutWhenHeadersNeverArrive(t *testing.T) {
+	ctx, cancel := context.WithCancelCause(context.Background())
+	stop := providerStreamHeaderDeadline(agentruntime.ModelRequest{}, 15*time.Millisecond, cancel)
+	defer stop()
+	time.Sleep(35 * time.Millisecond)
+	if !errors.Is(context.Cause(ctx), errOpenAIChatStreamFirstByteTimeout) {
+		t.Fatalf("cause=%v", context.Cause(ctx))
+	}
+}
+
+func TestProviderStreamHeaderDeadlineSurvivesStopRaceWithTimer(t *testing.T) {
+	for attempt := 0; attempt < 40; attempt++ {
+		ctx, cancel := context.WithCancelCause(context.Background())
+		delay := 8 * time.Millisecond
+		stop := providerStreamHeaderDeadline(agentruntime.ModelRequest{}, delay, cancel)
+		go func() {
+			time.Sleep(delay)
+			stop()
+		}()
+		time.Sleep(delay * 4)
+		if errors.Is(context.Cause(ctx), errOpenAIChatStreamFirstByteTimeout) {
+			t.Fatalf("attempt %d: spurious first-byte timeout after headers", attempt)
+		}
+	}
+}
+
+func TestProviderStreamHeaderDeadlineAllowsSlowHeadersBeforeDeadline(t *testing.T) {
+	const headerDelay = 25 * time.Millisecond
+	const deadline = 60 * time.Millisecond
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(headerDelay)
+		w.Header().Set("Content-Type", "text/event-stream")
+		_, _ = w.Write([]byte("data: {\"choices\":[{\"delta\":{\"content\":\"ok\"},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n"))
+	}))
+	defer server.Close()
+
+	client, err := NewRuntimeModelClient(ModelProfile{
+		Provider: ProviderProfile{ID: "header-race", Type: "openai", Protocol: ProtocolOpenAICompatible, Endpoint: server.URL},
+		Model:    "model", Request: RequestProfile{Timeout: deadline, MaxAttempts: 1, MaxResponseBytes: 64 << 10},
+	}, server.Client(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	parent, cancel := context.WithCancelCause(context.Background())
+	defer cancel(nil)
+	result, err := client.(agentruntime.StreamingModelClient).CompleteStream(parent, agentruntime.ModelRequest{
+		Messages: []agentruntime.Message{{Role: "user", Content: "stream"}},
+	}, func(agentruntime.ModelStreamEvent) error { return nil })
+	if err != nil {
+		t.Fatalf("slow headers cancelled productive stream: %v", err)
+	}
+	if strings.TrimSpace(result.Message.Content) != "ok" {
+		t.Fatalf("content=%q", result.Message.Content)
+	}
+	if cause := context.Cause(parent); cause != nil {
+		t.Fatalf("spurious cancel cause=%v", cause)
 	}
 }

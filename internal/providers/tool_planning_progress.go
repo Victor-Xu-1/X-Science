@@ -25,8 +25,29 @@ func providerStreamHeaderDeadline(request agentruntime.ModelRequest, timeout tim
 	if len(request.Tools) > 0 {
 		return func() {}
 	}
-	timer := time.AfterFunc(timeout, func() { cancel(errOpenAIChatStreamFirstByteTimeout) })
-	return func() { timer.Stop() }
+	var mu sync.Mutex
+	var stopped bool
+	var generation uint64
+	mu.Lock()
+	generation++
+	currentGeneration := generation
+	timer := time.AfterFunc(timeout, func() {
+		mu.Lock()
+		if stopped || generation != currentGeneration {
+			mu.Unlock()
+			return
+		}
+		mu.Unlock()
+		cancel(errOpenAIChatStreamFirstByteTimeout)
+	})
+	mu.Unlock()
+	return func() {
+		mu.Lock()
+		stopped = true
+		generation++
+		mu.Unlock()
+		_ = timer.Stop()
+	}
 }
 
 // A tool-enabled request must produce a public answer/progress or begin an
