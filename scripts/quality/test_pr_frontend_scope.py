@@ -1,6 +1,8 @@
 """Focused regressions for the existing CI's frontend test selection."""
 import unittest
-from scripts.quality.pr_frontend_scope import related_command
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from scripts.quality.pr_frontend_scope import fixture_command, related_command
 
 
 class FrontendRelatedScopeTests(unittest.TestCase):
@@ -24,6 +26,40 @@ class FrontendRelatedScopeTests(unittest.TestCase):
                                          "frontend/MIGRATION_MANIFEST.json",
                                          "frontend/THIRD_PARTY_LICENSES.json",
                                          "scripts/quality/pr_frontend_scope.py"]))
+
+    def test_shared_fixture_data_uses_the_vitest_import_graph(self):
+        command = related_command(["frontend/tests/fixtures/ligands.ts"])
+        self.assertEqual(command[-1], "tests/fixtures/ligands.ts")
+        self.assertEqual(command[2:5], ["vitest", "related", "--run"])
+
+    def test_browser_fixture_is_bundled_once_not_misreported_as_a_unit_test(self):
+        with TemporaryDirectory() as directory:
+            repo = Path(directory)
+            html = repo / "frontend/tests/web-e2e/example.fixture.html"
+            html.parent.mkdir(parents=True)
+            html.write_text('<script type="module" src="./example.fixture.tsx"></script>')
+            paths = [str(html.relative_to(repo)),
+                     "frontend/tests/web-e2e/example.fixture.tsx"]
+            self.assertIsNone(related_command(paths))
+            command = fixture_command(paths, repo)
+            self.assertEqual(command[:4], ["node", "--max-old-space-size=4096", "--input-type=module", "--eval"])
+            self.assertEqual(command[5:], ["tests/web-e2e/example.fixture.html"])
+            self.assertIn("emptyOutDir: false", command[4])
+            self.assertIsNone(fixture_command(["frontend/tests/fixtures/ligands.ts"], repo))
+
+    def test_missing_or_external_browser_fixture_entry_fails_closed(self):
+        with TemporaryDirectory() as directory:
+            repo = Path(directory)
+            path = "frontend/tests/web-e2e/example.fixture.tsx"
+            with self.assertRaisesRegex(ValueError, "HTML entry"):
+                fixture_command([path], repo)
+            frontend = repo / "frontend"
+            (frontend / "tests").mkdir(parents=True)
+            outside = repo / "outside.fixture.html"
+            outside.write_text("fixture")
+            (frontend / "tests/web-e2e").symlink_to(repo, target_is_directory=True)
+            with self.assertRaisesRegex(ValueError, "HTML entry"):
+                fixture_command(["frontend/tests/web-e2e/outside.fixture.html"], repo)
 
     def test_unknown_configuration_or_dependency_scope_fails_closed(self):
         for path in ["frontend/package-lock.json", "frontend/package.json", "frontend/vitest.config.ts",

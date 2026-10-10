@@ -191,6 +191,25 @@ class FrontendProvenanceGateTests(unittest.TestCase):
             ('npm', 'run', 'build'), ('npm', 'run', 'test:packaged'),
         ])
 
+    def test_changed_browser_fixture_build_failure_stops_frontend_gate(self):
+        argv = ['pr_fast_scope.py', '--base', 'a' * 40, '--head', 'b' * 40, '--frontend']
+        fixture = ['node', '--max-old-space-size=4096', '--input-type=module', '--eval',
+                   'fixture build', 'tests/web-e2e/example.fixture.html']
+
+        def result(_repo, *command):
+            return subprocess.CompletedProcess(command, 17 if list(command) == fixture else 0)
+
+        with patch.object(sys, 'argv', argv), patch.object(scope, 'changed_paths', return_value=[
+            'frontend/packages/desktop/src/App.tsx',
+        ]), patch.object(scope.pr_frontend_scope, 'fixture_command', return_value=fixture), patch.object(
+            scope, 'run', side_effect=result,
+        ) as invoke:
+            self.assertEqual(scope.main(), 17)
+        commands = [call.args[1:] for call in invoke.call_args_list]
+        self.assertEqual(commands[-1], tuple(fixture))
+        self.assertNotIn(('npm', 'run', 'build'), commands)
+        self.assertNotIn(('npm', 'run', 'test:packaged'), commands)
+
 
 if __name__ == "__main__":
     unittest.main()
