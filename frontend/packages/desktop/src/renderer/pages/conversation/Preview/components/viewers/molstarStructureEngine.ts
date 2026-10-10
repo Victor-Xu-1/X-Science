@@ -50,6 +50,7 @@ import {
   type StructureObjectKind,
 } from './structureComposition';
 import { Color } from 'molstar/lib/mol-util/color/index';
+import { POCKET_RESIDUE_LABEL_TYPE_PARAMS, resolvePocketReadingFocusRadius } from './molstarPocketReading';
 import 'molstar/build/viewer/molstar.css';
 import { formatMolstarPosePdb, type MolstarPoseAtom } from './molstarPose';
 import {
@@ -2027,14 +2028,8 @@ export async function createMolstarStructureEngine(
           {
             type: 'label',
             typeParams: {
-              level: 'residue',
-              background: true,
+              ...POCKET_RESIDUE_LABEL_TYPE_PARAMS,
               backgroundColor: POCKET_COLORS.labelBackground,
-              backgroundOpacity: 0.9,
-              borderWidth: 0,
-              tether: true,
-              tetherLength: 0.5,
-              sizeFactor: 0.68,
             },
             color: 'uniform',
             colorParams: { value: POCKET_COLORS.label },
@@ -2100,11 +2095,15 @@ export async function createMolstarStructureEngine(
     if (shouldFocusPocketCamera(options)) {
       plugin.managers.camera.focusLoci(ligandLoci, {
         durationMs: 260,
-        // Initial pocket entry frames the ligand once. Subsequent pose or
+        // Initial entry includes the labelled contact context once. Subsequent pose or
         // color changes rebuild representations with focusCamera=false so the
         // user's receptor viewpoint remains untouched.
         extraRadius: Math.max(1.5, Math.min(2.5, boundedExpandRadius * 0.5)),
-        minRadius: Math.max(5.5, boundedExpandRadius * 1.2),
+        minRadius: resolvePocketReadingFocusRadius(
+          ligandLoci,
+          contactResidueLoci,
+          Math.max(5.5, boundedExpandRadius * 1.2)
+        ),
         optimizeDirection: true,
       });
     }

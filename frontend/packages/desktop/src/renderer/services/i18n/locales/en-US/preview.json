@@ -601,7 +601,7 @@
         "compareLigandsDescription": "Keep the pocket camera fixed while comparing any two ligands or poses.",
         "comparisonSelector": "Select ligand {{slot}} pose",
         "interactionDiagram": "2D interactions",
-        "interactionDiagramDescription": "Generate a publication-grade vector diagram from the currently committed pose with the independent Synon 2D interaction engine.",
+        "interactionDiagramDescription": "View a 2D vector interaction diagram for the current pose. Requires ligand bond connectivity.",
         "interactionDiagramAlt": "2D protein-ligand interaction diagram for {{ligand}}",
         "interactionDiagramSummary": "{{engine}} {{release}} · vector SVG · {{dpi}} DPI PNG · active real pose",
         "interactionDiagramUnavailable": "A publication diagram could not be generated. Verify that the selected pose has matching SMILES and the Synon interaction runtime is available.",

@@ -483,6 +483,52 @@ describe('Artifact preview interaction ownership', () => {
     expect(state.load).toHaveBeenCalledTimes(1);
   });
 
+  it.each(['en-US', 'zh-CN'])('returns empty related recovery to the stable file preview in %s', async (locale) => {
+    state.related.mockRejectedValueOnce(new Error('fixture related-file failure'));
+    const view = await renderWithI18n(<ArtifactPreview />, locale);
+    const retry = await screen.findByRole('button', {
+      name: view.i18n.t('preview.artifact.metadata.retry', {
+        section: view.i18n.t('preview.artifact.metadata.resources'),
+      }),
+    });
+    act(() => retry.focus());
+    fireEvent.click(retry);
+    const preview = screen.getByRole('region', { name: view.i18n.t('preview.artifact.filePreview') });
+    await waitFor(() => expect(preview).toHaveFocus());
+    expect(preview).toHaveAttribute('tabindex', '-1');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(state.related).toHaveBeenCalledTimes(2);
+    expect(state.load).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps a repeated related recovery failure keyboard reachable', async () => {
+    state.related.mockRejectedValue(new Error('fixture repeated failure'));
+    await renderPage();
+    const retry = await screen.findByRole('button', { name: 'Retry Related files' });
+    act(() => retry.focus());
+    fireEvent.click(retry);
+    await waitFor(() => expect(state.related).toHaveBeenCalledTimes(2));
+    const region = await screen.findByRole('group', { name: 'Related files', exact: true });
+    await waitFor(() => expect(region).toHaveFocus());
+    expect(within(region).getByRole('button', { name: 'Retry Related files' })).toBeVisible();
+  });
+
+  it('preserves an external focus destination while an empty related recovery finishes', async () => {
+    state.related.mockRejectedValueOnce(new Error('fixture related-file failure'));
+    await renderPage();
+    const pending = deferred<SynonBiomedProjectArtifact[]>();
+    state.related.mockReturnValueOnce(pending.promise);
+    fireEvent.click(await screen.findByRole('button', { name: 'Retry Related files' }));
+    const destination = screen.getByRole('button', { name: 'Export to cloud storage' });
+    act(() => destination.focus());
+    await act(async () => {
+      pending.resolve([]);
+      await pending.promise;
+    });
+    expect(destination).toHaveFocus();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
   it('does not start a resource-dependent preview using a failed empty resource fallback', async () => {
     state.load.mockResolvedValue({ ...artifact('artifact-1'), filename: 'report.tex', contentType: 'text/x-tex' });
     state.related.mockRejectedValueOnce(new Error('fixture resources failure'));
