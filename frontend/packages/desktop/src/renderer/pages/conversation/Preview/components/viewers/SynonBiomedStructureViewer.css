@@ -868,6 +868,43 @@
   padding: 10px;
 }
 
+.synon-biomed-molstar__action-requirements {
+  padding: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.synon-biomed-molstar__action-requirements h3 {
+  margin: 0;
+  font-size: 12px;
+}
+
+.synon-biomed-molstar__action-requirements header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.synon-biomed-molstar__action-requirements dl,
+.synon-biomed-molstar__action-requirements p {
+  margin: 0;
+}
+
+.synon-biomed-molstar__action-requirements dl > div + div {
+  margin-top: 10px;
+}
+
+.synon-biomed-molstar__action-requirements dt {
+  font-weight: 600;
+}
+
+.synon-biomed-molstar__action-requirements dd {
+  margin: 3px 0 0;
+  color: #52525b;
+}
+
 .synon-biomed-molstar__quick-panel .synon-biomed-molstar__quick-chip {
   display: inline-flex;
   width: auto;

@@ -583,6 +583,19 @@
       },
       "quickActions": {
         "toolbarLabel": "结构快捷操作",
+        "availability": {
+          "title": "操作条件",
+          "inputsReady": "当前输入满足这些操作的前置条件。",
+          "loading": "结构仍在加载。",
+          "busy": "另一项结构操作正在运行，请稍候。",
+          "unavailable": "结构尚未就绪，请检查加载状态。",
+          "receptor": "当前文件没有受体。",
+          "ligand": "当前没有显示配体。",
+          "chemistry": "需要可核实的配体键连接信息。",
+          "task": "请从任务中打开该文件，以运行计算。",
+          "diagram": "当前构象需要匹配的配体化学信息。",
+          "selection": "请先在三维视图中选择一个配体。"
+        },
         "modelNavigation": "结构模型",
         "modelPosition": "模型 {{current}} / {{total}}",
         "previousModel": "上一个模型",

@@ -12,7 +12,7 @@ export const POCKET_RESIDUE_LABEL_TYPE_PARAMS = {
   level: 'residue',
   background: true,
   backgroundOpacity: 0.92,
-  backgroundMargin: 0.1,
+  backgroundMargin: 0,
   borderWidth: 0,
   tether: true,
   tetherLength: 0.45,

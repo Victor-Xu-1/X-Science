@@ -2587,8 +2587,8 @@ describe('SynonBiomedStructureViewer', () => {
   });
 
   it.each([
-    ['en-US', 'Ligand surface', 'This action needs verified ligand bond orders. 3D coordinates alone are not enough.'],
-    ['zh-CN', 'Ligand 表面', '此操作需要可核实的配体键级信息，只有三维坐标不足以执行。'],
+    ['en-US', 'Ligand surface', 'Verified ligand bond information is required.'],
+    ['zh-CN', 'Ligand 表面', '需要可核实的配体键连接信息。'],
   ])(
     'does not offer impossible ligand electrostatics for coordinate-only input in %s',
     async (locale, label, reason) => {
@@ -2714,6 +2714,68 @@ describe('SynonBiomedStructureViewer', () => {
     expect(screen.getByTestId('synon-biomed-structure-canvas')).toBeInTheDocument();
   });
 
+  it.each([
+    ['en-US', 'No receptor in this file.', 'Select a ligand in the 3D view.', 'Action requirements'],
+    ['zh-CN', '当前文件没有受体。', '请先在三维视图中选择一个配体。', '操作条件'],
+  ])(
+    'explains absent prerequisites through keyboard-accessible help in %s',
+    async (locale, receptor, selection, label) => {
+      molstarMocks.engine.load.mockResolvedValueOnce({
+        objects: [{ id: 'ligand', kind: 'ligand', atomCount: 34, residueNames: ['LIG'] }],
+        atomCount: 34,
+        hasProtein: false,
+        hasLigand: true,
+      });
+      molstarMocks.engine.hasElectrostaticLigandInput.mockReturnValue(true);
+      await renderWithI18n(
+        <SynonBiomedStructureViewer filename='ligand.sdf' content='ligand' rootFrameId='frame-1' />,
+        locale
+      );
+      await waitFor(() => expect(screen.getByTestId('synon-biomed-molstar-quick-snapshot')).toBeEnabled());
+      expect(screen.getByTestId('synon-biomed-molstar-quick-pocket')).toHaveAttribute('title', receptor);
+      expect(screen.getByTestId('synon-biomed-molstar-minimize')).toHaveAttribute('title', selection);
+      const opener = screen.getByRole('button', { name: label, exact: true });
+      fireEvent.click(opener);
+      const panel = screen.getByRole('dialog', { name: label });
+      expect(within(panel).getByText(receptor)).toBeInTheDocument();
+      expect(within(panel).getByText(selection)).toBeInTheDocument();
+      expect(panel).toHaveFocus();
+      fireEvent.keyDown(panel, { key: 'Escape' });
+      await waitFor(() => expect(screen.queryByRole('dialog', { name: label })).not.toBeInTheDocument());
+      expect(opener).toHaveFocus();
+      fireEvent.click(opener);
+      const reopened = screen.getByRole('dialog', { name: label });
+      fireEvent.click(within(reopened).getByRole('button', { name: locale === 'en-US' ? 'Close' : '关闭' }));
+      expect(screen.queryByRole('dialog', { name: label })).not.toBeInTheDocument();
+      expect(opener).toHaveFocus();
+    }
+  );
+
+  it('does not enable server calculations without an actual task context', async () => {
+    molstarMocks.engine.load.mockResolvedValueOnce({
+      objects: [
+        { id: 'protein', kind: 'protein', atomCount: 100, residueNames: ['ALA'] },
+        { id: 'ligand', kind: 'ligand', atomCount: 12, residueNames: ['LIG'] },
+      ],
+      atomCount: 112,
+      hasProtein: true,
+      hasLigand: true,
+    });
+    molstarMocks.engine.hasElectrostaticLigandInput.mockReturnValue(true);
+    molstarMocks.engine.getSelectedLigandResidueName.mockReturnValue('LIG');
+    await renderWithI18n(<SynonBiomedStructureViewer filename='local.pdb' content='fixture' />, 'en-US');
+    await waitFor(() => expect(screen.getByTestId('synon-biomed-molstar-quick-snapshot')).toBeEnabled());
+    const styles = screen.getByRole('group', { name: 'Display style', exact: true });
+    expect(within(styles).getByRole('button', { name: 'Protein surface' })).toBeDisabled();
+    expect(within(styles).getByRole('button', { name: 'Ligand surface' })).toBeDisabled();
+    expect(screen.getByTestId('synon-biomed-molstar-minimize')).toBeDisabled();
+    expect(within(styles).getByRole('button', { name: 'Protein surface' })).toHaveAttribute(
+      'title',
+      'Open this file in a task to run calculations.'
+    );
+    expect(within(styles).getByRole('button', { name: 'Line' })).toBeEnabled();
+  });
+
   it('adds localized hover and focus descriptions to native Mol* controls', async () => {
     await renderWithI18n(
       <SynonBiomedStructureViewer
@@ -2808,6 +2870,7 @@ describe('SynonBiomedStructureViewer', () => {
       'White',
       'Snapshot',
       'Save fixed pose',
+      'Action requirements',
       'Collapse the left toolbar',
     ]);
     expect(screen.getByRole('button', { name: 'Initial' })).toHaveAttribute('aria-pressed', 'true');
@@ -2954,7 +3017,11 @@ describe('SynonBiomedStructureViewer', () => {
     });
 
     await renderWithI18n(
-      <SynonBiomedStructureViewer filename='receptor.pdbqt' content='ATOM      1  N   MET A   1' />,
+      <SynonBiomedStructureViewer
+        filename='receptor.pdbqt'
+        content='ATOM      1  N   MET A   1'
+        rootFrameId='frame-1'
+      />,
       'en-US'
     );
 
@@ -2977,7 +3044,11 @@ describe('SynonBiomedStructureViewer', () => {
     ].join('\n');
 
     await renderWithI18n(
-      <SynonBiomedStructureViewer filename='ligand_only_docking_ensemble.pdb' content={ensemble} />,
+      <SynonBiomedStructureViewer
+        filename='ligand_only_docking_ensemble.pdb'
+        content={ensemble}
+        rootFrameId='frame-1'
+      />,
       'en-US'
     );
 

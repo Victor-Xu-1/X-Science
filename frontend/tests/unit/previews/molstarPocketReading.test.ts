@@ -49,7 +49,9 @@ describe('pocket reading presentation', () => {
     });
     expect(POCKET_RESIDUE_LABEL_TYPE_PARAMS.sizeFactor).toBeLessThan(0.68);
     expect(POCKET_RESIDUE_LABEL_TYPE_PARAMS.sizeFactor).toBeGreaterThan(0);
+    expect(POCKET_RESIDUE_LABEL_TYPE_PARAMS.background).toBe(true);
     expect(POCKET_RESIDUE_LABEL_TYPE_PARAMS.backgroundOpacity).toBeGreaterThan(0.75);
+    expect(POCKET_RESIDUE_LABEL_TYPE_PARAMS.backgroundMargin).toBe(0);
   });
   it('is consumed by the existing native label graph and guarded camera path', () => {
     const source = readFileSync(
