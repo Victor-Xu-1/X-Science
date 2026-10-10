@@ -428,7 +428,9 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
     dockingEnsemble ? dockingEnsemble.proteinLines.length > 0 : structureComposition?.hasProtein
   );
   const hasLigandContent = Boolean(
-    dockingEnsemble ? selectedDockingIndices.length > 0 : structureComposition?.hasLigand
+    dockingEnsemble
+      ? selectedDockingIndices.length > 0
+      : structureComposition?.hasLigand && selectedStructureLigandIds.length > 0
   );
   const surfaceDockingIndices = dockingEntry
     ? selectedDockingIndices.length > 0
@@ -1660,6 +1662,13 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
   };
 
   const handleStructureObjectToggle = (kind: StructureObjectKind) => {
+    if (kind === 'ligand' && !structureObjectVisibility.ligand && selectedStructureLigandIds.length === 0) {
+      const ligands = structureComposition?.objects.filter((object) => object.kind === 'ligand') ?? [];
+      if (ligands.length === 1) {
+        void selectStructureLigands([ligands[0].id]);
+        return;
+      }
+    }
     setStructureObjectVisibility((current) => {
       const nextVisible = !current[kind];
       engineRef.current?.setStructureObjectVisible(kind, nextVisible);
@@ -1720,6 +1729,10 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
     });
     if (!succeeded || !current()) return false;
     setSelectedStructureLigandIds([...ids]);
+    if (ids.length === 0) setPocketVisible(false);
+    if (previous.length !== ids.length || previous.some((id, index) => id !== ids[index])) {
+      setSelectedLigandResidueName(undefined);
+    }
     setStructureLigandVisible(ids.length > 0);
     setStructureLigandColorExpanded(false);
     electrostaticMapRequestRef.current += 1;
@@ -2542,7 +2555,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
             structureComposition.objects.filter((object) => object.kind === 'ligand').map((object) => object.id)
           );
         }}
-        onClearAll={() => setStructureLigandVisible(false)}
+        onClearAll={() => void selectStructureLigands([])}
         labels={{
           title: t('preview.scientific.structure.quickActions.compoundList'),
           protein: t('preview.scientific.structure.quickActions.proteinObject'),

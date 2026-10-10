@@ -347,6 +347,38 @@ npm run test:unit -- tests/unit/synonbiomed/SynonBiomedRuntimeOperations.dom.tes
 相互作用缓存跟随当前实例；模型切换重新绑定组件，已关闭或切换文件的迟到结果不能覆盖
 新预览。保存姿势只导出当前显示的受体和选择，不修改原始文件。
 
+Ordinary coordinate presets consume the same native selected atom identities as
+the compound list, pocket and2D source. Switching ball/line or surface scopes must
+not replace a non-first ligand with the first residue name. Same-name instances
+remain distinct; explicit comparison retains the selected union, while an explicit
+empty selection does not silently select another ligand. Native model/structure
+remapping does not alter source coordinates, topology or receptor identity.
+
+普通坐标样式预设与化合物列表、口袋及2D来源共用原生原子身份选择。球棍、线和表面
+切换不能重新按首个残基名称选配体；同名实例保持独立，明确叠加时保留所选集合，
+明确空选择不自动代选另一个配体。模型/结构重映射不改变原坐标、拓扑或受体身份。
+
+Clear all empties the native selection rather than hiding a stale selected set.
+An empty selection closes the pocket state and explains ligand-dependent actions;
+the sole-ligand toggle can select it again. Changing selected instances clears an
+old3D atom selection, so refinement cannot silently target a previously hidden ligand.
+
+一键取消清空原生选择，不只是隐藏仍被选中的集合。空选择同时退出口袋状态，并明确
+说明配体操作当前不可用；单配体开关可以重新选择。切换实例清除旧三维原子选择，
+不让后续优化静默作用于之前隐藏的配体。
+
+Ordinary ligand electrostatics serializes every selected native instance and
+binds each surface to its matching returned field. API keys derive from the full
+native instance order, so same-name ligands and alternate conformers do not merge
+and selection order cannot reassign fields. Comparison never reuses one ligand's
+field for another; missing chemistry/fields remain explicit errors. The existing
+bounded batch, charge preparation and potential scale are unchanged.
+
+普通配体电性为每个选中原生实例分别提交化学输入，并将每个表面绑定到对应电势。
+接口键从完整原生实例顺序派生，同名配体和交替构象不合并，改变选择顺序不重分配
+电势。比较不能借用另一个配体的电势；缺失化学信息或电势仍明确报错。既有批量
+边界、电荷准备方法和电势标尺保持不变。
+
 每个文件画板窗口只加载所点击的不可变坐标文件，不因同一交付集合存在场景 JSON 而
 注入母结构、其他复合物或 SDF。场景清单保留版本/截图来源记录；跨文件比较通过明确
 打开各文件进行，同文件多配体通过上述列表选择。SDF/PDBQT 的多记录或多姿势仍使用

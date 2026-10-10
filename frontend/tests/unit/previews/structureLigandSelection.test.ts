@@ -8,12 +8,46 @@ import { createStructureLigandController } from '@/renderer/pages/conversation/P
 import { PluginContext } from 'molstar/lib/mol-plugin/context';
 import { DefaultPluginSpec } from 'molstar/lib/mol-plugin/spec';
 import { StructureElement } from 'molstar/lib/mol-model/structure';
-import { MULTI_LIGAND_PDB as source, MULTI_LIGAND_CIF, MULTI_LIGAND_MODELS } from '../../fixtures/structureLigands';
+import {
+  MULTI_LIGAND_PDB as source,
+  MULTI_LIGAND_CIF,
+  MULTI_LIGAND_MODELS,
+  MULTI_NAMED_LIGAND_PDB,
+} from '../../fixtures/structureLigands';
+import { createSynonViewRepresentationPreset } from '@/renderer/pages/conversation/Preview/components/viewers/molstarStructureEngine';
+import {
+  resolveStructureViewLigandLoci,
+  resolveStructureViewLigandInstances,
+} from '@/renderer/pages/conversation/Preview/components/viewers/structureLigandSelection';
+import { resolveNativeLigandSurfacePlans } from '@/renderer/pages/conversation/Preview/components/viewers/molstarLigandSurfaces';
 import { CIF } from 'molstar/lib/mol-io/reader/cif';
 import { trajectoryFromMmCIF } from 'molstar/lib/mol-model-formats/structure/mmcif';
 import { PresetStructureRepresentations } from 'molstar/lib/mol-plugin-state/builder/structure/representation-preset';
 import { StateTransforms } from 'molstar/lib/mol-plugin-state/transforms';
 import { waitFor } from '@testing-library/react';
+import { DxProvider } from 'molstar/lib/mol-plugin-state/formats/volume';
+
+/** Parsed synthetic contract grids, not APBS or experimental results. */
+async function createContractField(plugin: PluginContext, label: string, value: number) {
+  const data = [
+    'object 1 class gridpositions counts 2 2 2',
+    'origin 0 0 0',
+    'delta 1 0 0',
+    'delta 0 1 0',
+    'delta 0 0 1',
+    'object 2 class gridconnections counts 2 2 2',
+    'object 3 class array type double rank 0 items 8 data follows',
+    Array(8).fill(value).join(' '),
+    'attribute "dep" string "positions"',
+    'object "field" class field',
+    'component "positions" value 1',
+    'component "connections" value 2',
+    'component "data" value 3',
+  ].join('\n');
+  const raw = await plugin.builders.data.rawData({ data, label });
+  const parsed = await DxProvider.parse(plugin, raw);
+  return { ref: parsed.volume.ref, range: [-5, 5] as const };
+}
 
 export async function parseLigandSelectionFixture(text = source) {
   const parsed = await parsePDB(text, 'ligand-selection').run();
@@ -23,6 +57,152 @@ export async function parseLigandSelectionFixture(text = source) {
 }
 
 describe('one-receptor multi-ligand parsed composition', () => {
+  it('binds separate native comparison ligand components to their own potential references', async () => {
+    const plugin = new PluginContext(DefaultPluginSpec());
+    await plugin.init();
+    try {
+      const raw = await plugin.builders.data.rawData({ data: MULTI_NAMED_LIGAND_PDB, label: 'named-ligands.pdb' });
+      const trajectory = await plugin.builders.structure.parseTrajectory(raw, 'pdb');
+      await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default');
+      const getRoot = () => plugin.managers.structure.hierarchy.current.structures[0]?.cell.obj?.data;
+      const ligands = summarizeStructureComposition(getRoot(), 'pdb').objects.filter(
+        (object) => object.kind === 'ligand'
+      );
+      const controller = createStructureLigandController(
+        plugin,
+        getRoot,
+        () => 'pdb',
+        () => {}
+      );
+      await controller.select([ligands[0].id, ligands[2].id]);
+      const firstField = await createContractField(plugin, 'synthetic first field', 1);
+      const thirdField = await createContractField(plugin, 'synthetic third field', -1);
+      await plugin.managers.structure.component.applyPreset(
+        [...plugin.managers.structure.hierarchy.current.structures],
+        createSynonViewRepresentationPreset(
+          'ligand-surface',
+          {
+            ligand: thirdField,
+            ligands: {
+              LIGAND_1: firstField,
+              LIGAND_3: thirdField,
+            },
+          },
+          { ligandLoci: controller.selectedLoci(), format: 'pdb' }
+        )
+      );
+      const bindings = [...plugin.state.data.cells.values()].flatMap((cell) => {
+        const params = cell.transform.params as {
+          type?: { name: string };
+          colorTheme?: { name: string; params: { volume: { ref: string } } };
+        };
+        if (params.type?.name !== 'molecular-surface') return [];
+        const parent = plugin.state.data.cells.get(cell.transform.parent)?.obj?.data;
+        return [
+          {
+            residues: summarizeStructureComposition(parent, 'pdb').objects.flatMap((object) => object.residueNames),
+            field: params.colorTheme?.params.volume?.ref,
+          },
+        ];
+      });
+      expect(bindings).toEqual([
+        { residues: ['L01'], field: firstField.ref },
+        { residues: ['L03'], field: thirdField.ref },
+      ]);
+      controller.dispose();
+    } finally {
+      plugin.dispose();
+    }
+  });
+
+  it.each(['ball-and-stick', 'line', 'surface', 'pocket-surface', 'ligand-surface'] as const)(
+    'keeps the selected non-first identity visible after switching to %s',
+    async (representation) => {
+      const plugin = new PluginContext(DefaultPluginSpec());
+      await plugin.init();
+      try {
+        const raw = await plugin.builders.data.rawData({ data: MULTI_NAMED_LIGAND_PDB, label: 'named-ligands.pdb' });
+        const trajectory = await plugin.builders.structure.parseTrajectory(raw, 'pdb');
+        await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default');
+        const getRoot = () => plugin.managers.structure.hierarchy.current.structures[0]?.cell.obj?.data;
+        const root = getRoot()!;
+        const ligands = summarizeStructureComposition(root, 'pdb').objects.filter((object) => object.kind === 'ligand');
+        const controller = createStructureLigandController(
+          plugin,
+          getRoot,
+          () => 'pdb',
+          () => {}
+        );
+        await controller.apply();
+        await controller.select([ligands[2].id]);
+        const field = await createContractField(plugin, 'synthetic selected field', 0);
+        await plugin.managers.structure.component.applyPreset(
+          [...plugin.managers.structure.hierarchy.current.structures],
+          createSynonViewRepresentationPreset(
+            representation,
+            {
+              ligands: { LIGAND_3: field },
+            },
+            { ligandLoci: controller.selectedLoci(), format: 'pdb' }
+          )
+        );
+        await controller.apply();
+        const visible = plugin.managers.structure.hierarchy.current.structures[0].components.flatMap((component) =>
+          summarizeStructureComposition(component.cell.obj?.data, 'pdb').objects.filter(
+            (object) => object.kind === 'ligand'
+          )
+        );
+        expect(controller.selectedIds()).toEqual([ligands[2].id]);
+        expect(visible.map((object) => object.residueNames)).toEqual([['L03']]);
+        expect(visible.map((object) => object.atomCount)).toEqual([2]);
+        expect(getRoot()).toBe(root);
+        expect(summarizeStructureComposition(root, 'pdb').atomCount).toBe(14);
+        controller.dispose();
+      } finally {
+        plugin.dispose();
+      }
+    }
+  );
+
+  it('uses native instance identity for same-name, multiple and explicit empty selections', async () => {
+    const structure = await parseLigandSelectionFixture();
+    const entries = summarizeStructureComposition(structure, 'pdb').objects.filter(
+      (object) => object.kind === 'ligand'
+    );
+    const { queryStructureLigands, splitStructureLigands, selectStructureLigandLoci } =
+      await import('@/renderer/pages/conversation/Preview/components/viewers/structureLigandSelection');
+    const instances = splitStructureLigands(queryStructureLigands(structure, 'pdb'), true);
+    const selected = selectStructureLigandLoci(structure, instances, [entries[2].id]);
+    const displayed = resolveStructureViewLigandLoci(structure, selected, 'pdb');
+    expect(StructureElement.Loci.areEqual(displayed, selected)).toBe(true);
+    expect(StructureElement.Loci.size(displayed)).toBe(2);
+    const comparison = selectStructureLigandLoci(structure, instances, [entries[0].id, entries[2].id]);
+    expect(resolveStructureViewLigandInstances(structure, comparison, 'pdb').map((entry) => entry.key)).toEqual([
+      'LIGAND_1',
+      'LIGAND_3',
+    ]);
+    expect(resolveStructureViewLigandInstances(structure, selected, 'pdb').map((entry) => entry.key)).toEqual([
+      'LIGAND_3',
+    ]);
+    expect(() =>
+      resolveNativeLigandSurfacePlans(structure, comparison, 'pdb', {
+        ligand: { ref: 'single-field-must-not-color-two-instances', range: [-5, 5] },
+      })
+    ).toThrow('MOLSTAR_ELECTROSTATIC_LIGAND_VOLUME_MISSING:LIGAND_1');
+    expect(resolveStructureViewLigandInstances(structure, StructureElement.Loci.none(structure), 'pdb')).toEqual([]);
+    expect(
+      StructureElement.Loci.areEqual(resolveStructureViewLigandLoci(structure, comparison, 'pdb'), comparison)
+    ).toBe(true);
+    expect(
+      StructureElement.Loci.size(
+        resolveStructureViewLigandLoci(structure, StructureElement.Loci.none(structure), 'pdb')
+      )
+    ).toBe(0);
+    expect(
+      StructureElement.Loci.areEqual(resolveStructureViewLigandLoci(structure, undefined, 'pdb'), instances[0].loci)
+    ).toBe(true);
+  });
+
   it('parses the same three independently named instances from real mmCIF', async () => {
     const parsed = await CIF.parse(MULTI_LIGAND_CIF).run();
     if (parsed.isError) throw new Error(parsed.message);

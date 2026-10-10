@@ -18,6 +18,15 @@ export const MULTI_LIGAND_PDB = [
   'END',
 ].join('\n');
 
+/** Different chemical identities expose presets that incorrectly select by first residue name. */
+export const MULTI_NAMED_LIGAND_PDB = MULTI_LIGAND_PDB.split('\n')
+  .map((line) => {
+    if (!line.startsWith('HETATM')) return line;
+    const instance = Math.floor((Number(line.slice(6, 11)) - 9) / 2) + 1;
+    return line.slice(0, 17) + `L0${instance}` + line.slice(20);
+  })
+  .join('\n');
+
 export const MULTI_LIGAND_MODELS =
   [1, 2]
     .map(
@@ -84,3 +93,18 @@ export const MULTI_LIGAND_CIF = [
     }),
   '#',
 ].join('\n');
+
+/** Declared carbonyl bonds for native input/field contracts; still synthetic, not a scientific result. */
+export const MULTI_LIGAND_BONDED_CIF =
+  MULTI_LIGAND_CIF +
+  '\n' +
+  [
+    'loop_',
+    '_chem_comp_bond.comp_id',
+    '_chem_comp_bond.atom_id_1',
+    '_chem_comp_bond.atom_id_2',
+    '_chem_comp_bond.value_order',
+    '_chem_comp_bond.pdbx_aromatic_flag',
+    'UNL C1 O1 DOUB N',
+    '#',
+  ].join('\n');

@@ -206,15 +206,19 @@ def main() -> int:
                 print("Only proved version metadata changed; fresh provenance passed, no frontend suite/build required.")
                 return 0
             projections = pr_metadata_scope.version_projection_paths(repo, args.base, args.head)
-            related = pr_frontend_scope.related_command([path for path in behavior_paths if path not in projections])
+            frontend_inputs = [path for path in behavior_paths if path not in projections]
+            related = pr_frontend_scope.related_command(frontend_inputs)
+            fixtures = pr_frontend_scope.fixture_command(frontend_inputs, repo)
             print(json.dumps({"frontend_test_inputs": related[9:] if related else [],
-                              "selection": "Vitest dependency-related; no global fallback"}))
+                              "browser_fixture_entries": fixtures[5:] if fixtures else [],
+                              "selection": "Vitest dependency-related and changed fixture build; no global fallback"}))
             commands = [
                 ["npm", "ci", "--ignore-scripts"],
                 ["npx", "--no-install", "playwright", "install", "chromium"],
                 ["npm", "run", "i18n:types"],
                 ["npm", "run", "typecheck"], ["npm", "run", "lint"],
-                ["npm", "run", "format:check"], *([related] if related else []), ["npm", "run", "build"],
+                ["npm", "run", "format:check"], *([related] if related else []),
+                *([fixtures] if fixtures else []), ["npm", "run", "build"],
                 ["npm", "run", "test:packaged"],
             ]
             for command in commands:
