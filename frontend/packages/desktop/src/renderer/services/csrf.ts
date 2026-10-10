@@ -25,9 +25,20 @@ export function hasValidCsrfToken(): boolean {
   return validCsrfToken(readCsrfToken());
 }
 
+/**
+ * Cookie-clear directive for the double-submit CSRF cookie.
+ * HTTPS pages must include Secure so a Secure-flagged cookie actually expires.
+ */
+export function csrfCookieClearDirective(
+  protocol: string = typeof location !== 'undefined' ? location.protocol : 'http:'
+): string {
+  const secure = protocol === 'https:' ? '; Secure' : '';
+  return `${CSRF_COOKIE_NAME}=; Path=/; Max-Age=0; SameSite=Strict${secure}`;
+}
+
 export function clearCsrfCookie(): void {
   if (typeof document === 'undefined') return;
-  document.cookie = `${CSRF_COOKIE_NAME}=; Path=/; Max-Age=0; SameSite=Strict`;
+  document.cookie = csrfCookieClearDirective();
 }
 
 async function fetchCsrfToken(fetchImpl: typeof fetch): Promise<string | null> {
