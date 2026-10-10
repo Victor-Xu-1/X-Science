@@ -25,6 +25,14 @@ class FrontendRelatedScopeTests(unittest.TestCase):
                                          "frontend/THIRD_PARTY_LICENSES.json",
                                          "scripts/quality/pr_frontend_scope.py"]))
 
+    def test_settings_generated_public_artwork_binds_visual_contract_tests(self):
+        command = related_command([
+            "frontend/public/branding/settings-generated-v3/artwork/account-network.png",
+            "frontend/packages/desktop/src/renderer/pages/settings/components/SettingsGeneratedAsset.tsx",
+        ])
+        self.assertIn("tests/unit/settings/settingsVisualContract.test.ts", command)
+        self.assertNotIn("public/branding/settings-generated-v3/artwork/account-network.png", command)
+
     def test_vite_config_binds_preview_cache_policy_tests(self):
         command = related_command([
             "frontend/vite.config.ts",
