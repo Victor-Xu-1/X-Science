@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "ffe6de0db2243899f2abef1d391a21fe3fc6b693571e999042193d700ba4505f",
+  "adaptationFingerprintSHA256": "bbc8caa3f9898263d23547eb509599a131d23c02fe47bc64418d214aa02795ef",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "017ddf7604d13c77ed7ad0045e4e652e624802c489c0c1aca376bf5f87924fe1",
+  "additionFingerprintSHA256": "8f259ee5279dc0945928ba08a9366c863bce0864be994bd39e25047bb18f847b",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 345,
     "adaptedSourceFiles": 716,
     "removedSourceFiles": 293,
-    "addedFiles": 848
+    "addedFiles": 852
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "17603d1adf27412dc467b753c5225a5a875390e2dc2c9784acd32262c901833b",
+      "targetSHA256": "c27b143675efc27a6c46febc0d4d85b32b2872feb56c5449dbbef382601f9ad6",
       "bytes": 4378,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "0b683905930eae7915ef3380d549a1dd1753e539a8f1bb2ced97badee8a3fc60",
+      "targetSHA256": "4c772f8951880dd3d2a4a6e7d7623510b56b62ab368d73c7cd3937367144f22e",
       "bytes": 157,
       "reason": "Remove @synon-ai/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -731,8 +731,8 @@
     {
       "path": "packages/desktop/src/renderer/hooks/context/ConversationContext.tsx",
       "sourceSHA256": "484079c85e09b6a2dd59d48c480af08466d463b984cc2bb746e72ff0c7dad75d",
-      "targetSHA256": "413148a532f6f7f702cb5133f15ba81fb6c5b2073f2e9cbc03858c6ea55c42e6",
-      "bytes": 2712,
+      "targetSHA256": "d2de7f1cac821f00778a0047e38ba8fea01ca7ab676ae4b298ee0f078671e8ab",
+      "bytes": 4586,
       "reason": "Bootstrap authenticated Web runtime state and adapt assistant and MCP hooks without retaining Electron server authority."
     },
     {
@@ -983,8 +983,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/GroupedHistory/ConversationRow.tsx",
       "sourceSHA256": "2acf7cd13e664fca0fd642fe0d213d9a7fd1475aee6cc63d5d87487a29b304fd",
-      "targetSHA256": "6277aa1b216b046f1bb104cc98f14291078be5794d9b0904d5c010db76453d80",
-      "bytes": 17119,
+      "targetSHA256": "d08c4cd23cc1c295ce246684301e6e788f032cdcbf37f4869834bcc7ea5c4c7b",
+      "bytes": 17131,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -1095,8 +1095,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/MessageList.tsx",
       "sourceSHA256": "4f24db9de35b76ad7e4e842aa6298165645c2c1542f27eb22ea42a565dee0d8c",
-      "targetSHA256": "dd9d75b30dcdbfadd640f9b2d624651cd11d945a906e7364e7885340db845e34",
-      "bytes": 42010,
+      "targetSHA256": "37ca51a60f4d1c9ad70dc7115bd829af08dfd9ca3054b92acfecd082f2861a9c",
+      "bytes": 42673,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -6796,7 +6796,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "109a7b7695b8c604ad154eb522b9effba0b3e0a708974cbe887bc33a3ce2f3ba",
+      "sha256": "52440b180a5972e84ed259a3d16ed3660bb70bc2fbd9e8e87fbbb4caca72c8ee",
       "bytes": 558186,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -7662,6 +7662,12 @@
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/messageListProjection.ts",
       "sha256": "c33ca6b87ccbace75790cdfcc9ee6c40704f77a1f069f8a682f7c981d6088800",
       "bytes": 10470,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/Messages/messageListRenderStability.ts",
+      "sha256": "ecebb1d6cae71ee4df89f445e1497f0ed4305127da2529db311cabf845c173b2",
+      "bytes": 1062,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10581,6 +10587,18 @@
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
+      "path": "tests/unit/renderer/conversationContextProvider.dom.test.tsx",
+      "sha256": "ec7009c5ec3d3f4ac3baa9bb04e79a5ab6926ecf222de60c2665a67d48413f40",
+      "bytes": 1308,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/conversationContextValue.test.ts",
+      "sha256": "c3fdf3d75208ca1fcf9e564d8a613b6b31f4cb6b2934ec535ed21ed19fc2a4ac",
+      "bytes": 1414,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/unit/renderer/conversationDisclosureStore.dom.test.tsx",
       "sha256": "f610b53a3bcbcb85ee6e77219f802ec76bf01bc4fb225353725ac3c69535d73b",
       "bytes": 2368,
@@ -10680,6 +10698,12 @@
       "path": "tests/unit/renderer/messageItemMemoModel.test.ts",
       "sha256": "82ff820c1f7d7644740fa7148041342a6ffe98f5310d322cc745afb79c505d2b",
       "bytes": 982,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/messageListRenderStability.test.ts",
+      "sha256": "ca790ccd5352f597d8865c4c7b2a5c2fe1ce3726eaf6e1db70fc891871c45f83",
+      "bytes": 1398,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
