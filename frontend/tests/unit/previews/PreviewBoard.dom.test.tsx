@@ -41,6 +41,10 @@ vi.mock('@/renderer/pages/conversation/Preview/components/editors/DocumentWysiwy
   ),
 }));
 
+vi.mock('@/renderer/pages/conversation/Preview/components/editors/CodeEditor', () => ({
+  default: ({ value }: { value: string }) => <pre aria-label='Board code editor'>{value}</pre>,
+}));
+
 vi.mock('@/renderer/services/synonBiomedArtifacts', () => ({
   createSynonBiomedTextArtifactVersion: commonMocks.createArtifactVersion,
   getSynonBiomedArtifactVersionContentUrl: (versionId: string) => `/api/artifact-versions/${versionId}/content`,

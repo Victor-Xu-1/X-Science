@@ -11,8 +11,6 @@ import { usePreviewContext } from '../../context/PreviewContext';
 import { Link } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { PreviewFullscreenLayer } from './PreviewFullscreenLayer';
-import CodeEditor from '../editors/CodeEditor';
-import DelimitedTableEditor from '../editors/DelimitedTableEditor';
 import { getPreviewEditingMode } from '../editors/previewEditingPolicy';
 import {
   LazyDiffPreview as DiffPreview,
@@ -53,6 +51,8 @@ import { formatPreviewRegionCommentForComposer } from './previewRegionCommentMod
 import './preview.css';
 
 const DocumentWysiwygEditor = React.lazy(() => import('../editors/DocumentWysiwygEditor'));
+const CodeEditor = React.lazy(() => import('../editors/CodeEditor'));
+const DelimitedTableEditor = React.lazy(() => import('../editors/DelimitedTableEditor'));
 
 export { PreviewFullscreenLayer } from './PreviewFullscreenLayer';
 

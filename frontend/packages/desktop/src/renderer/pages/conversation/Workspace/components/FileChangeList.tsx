@@ -6,13 +6,14 @@
 
 import { ipcBridge } from '@/common';
 import type { FileChangeInfo, SnapshotInfo } from '@/common/types/platform/fileSnapshot';
-import Diff2Html from '@/renderer/components/media/Diff2Html';
 import { Button, Empty, Spin, Tooltip } from '@arco-design/web-react';
 import { Down, Minus, Plus, PreviewOpen, Redo, Refresh, Right } from '@icon-park/react';
 import { createTwoFilesPatch } from 'diff';
 import type { TFunction } from 'i18next';
 import React, { useCallback, useMemo, useState } from 'react';
 import { isDiffableWorkspaceFile, resolveWorkspaceChangeReadPath } from '../utils/fileChangePaths';
+
+const Diff2Html = React.lazy(() => import('@/renderer/components/media/Diff2Html'));
 
 type FileChangeListProps = {
   t: TFunction;
@@ -450,7 +451,15 @@ const FileChangeList: React.FC<FileChangeListProps> = ({
                     }
                   >
                     {diffState ? (
-                      <Diff2Html diff={diffState.diff} title={change.relativePath} file_path={readPath} />
+                      <React.Suspense
+                        fallback={
+                          <div className='flex items-center justify-center py-12px text-12px text-t-quaternary'>
+                            <Spin size={14} />
+                          </div>
+                        }
+                      >
+                        <Diff2Html diff={diffState.diff} title={change.relativePath} file_path={readPath} />
+                      </React.Suspense>
                     ) : isLoadingDiff ? (
                       <div className='flex items-center justify-center py-12px text-12px text-t-quaternary'>
                         <Spin size={14} />

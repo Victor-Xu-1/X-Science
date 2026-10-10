@@ -10,6 +10,8 @@ const moduleLoads = vi.hoisted(() => ({
   artifactImage: vi.fn(),
   audio: vi.fn(),
   video: vi.fn(),
+  codeEditor: vi.fn(),
+  delimitedTable: vi.fn(),
 }));
 
 vi.mock('@/renderer/pages/conversation/Preview/components/viewers/SynonBiomedStructureViewer', () => {
@@ -47,6 +49,16 @@ vi.mock('@/renderer/pages/artifact/VideoPreview', () => {
   return { default: () => <div>video-viewer</div> };
 });
 
+vi.mock('@/renderer/pages/conversation/Preview/components/editors/CodeEditor', () => {
+  moduleLoads.codeEditor();
+  return { default: () => <div>code-editor</div> };
+});
+
+vi.mock('@/renderer/pages/conversation/Preview/components/editors/DelimitedTableEditor', () => {
+  moduleLoads.delimitedTable();
+  return { default: () => <div>delimited-table-editor</div> };
+});
+
 describe('scientific preview module loading', () => {
   beforeAll(() => {
     vi.stubGlobal(
@@ -81,6 +93,8 @@ describe('scientific preview module loading', () => {
     expect(moduleLoads.structure).not.toHaveBeenCalled();
     expect(moduleLoads.table).not.toHaveBeenCalled();
     expect(moduleLoads.molecule).not.toHaveBeenCalled();
+    expect(moduleLoads.codeEditor).not.toHaveBeenCalled();
+    expect(moduleLoads.delimitedTable).not.toHaveBeenCalled();
   });
 
   it('does not execute scientific or media viewers when the artifact preview entry module is imported', async () => {

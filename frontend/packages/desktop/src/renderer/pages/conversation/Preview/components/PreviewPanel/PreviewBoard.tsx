@@ -30,8 +30,6 @@ import { useTranslation } from 'react-i18next';
 import { PreviewToolbarExtrasProvider } from '../../context/PreviewToolbarExtrasContext';
 import { type PreviewTab, usePreviewContext } from '../../context/PreviewContext';
 import { getPreviewVersionContentType } from '../../previewContentPersistence';
-import CodeEditor from '../editors/CodeEditor';
-import DelimitedTableEditor from '../editors/DelimitedTableEditor';
 import { isPreviewTabEditable } from '../editors/previewEditingPolicy';
 import {
   LazyDiffPreview as DiffPreview,
@@ -66,6 +64,8 @@ import { formatPreviewRegionCommentForComposer } from './previewRegionCommentMod
 const noopToolbarExtras = { setExtras: (): void => undefined };
 const PREVIEW_BOARD_COLUMNS_KEY = 'synon-ai_preview_board_columns';
 const DocumentWysiwygEditor = React.lazy(() => import('../editors/DocumentWysiwygEditor'));
+const CodeEditor = React.lazy(() => import('../editors/CodeEditor'));
+const DelimitedTableEditor = React.lazy(() => import('../editors/DelimitedTableEditor'));
 
 type PreviewBoardColumns = 1 | 2 | 3;
 

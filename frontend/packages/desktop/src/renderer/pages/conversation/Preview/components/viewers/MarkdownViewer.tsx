@@ -17,7 +17,7 @@ import remarkBreaks from 'remark-breaks';
 import { Streamdown, defaultRehypePlugins, defaultRemarkPlugins } from 'streamdown';
 import { useContainerScroll, useContainerScrollTarget } from '../../hooks/useScrollSyncHelpers';
 import { useLocalFilePreview, useThemeDetection } from '../../hooks';
-import { getMarkdownShikiThemes, getMermaidTheme } from '../../theme';
+import { getMarkdownShikiThemes, getMermaidTheme } from '../../theme/markdownTheme';
 import { convertLatexDelimiters } from '@/renderer/utils/chat/latexDelimiters';
 import {
   createMarkdownArtifactReferenceResolverPlugin,
