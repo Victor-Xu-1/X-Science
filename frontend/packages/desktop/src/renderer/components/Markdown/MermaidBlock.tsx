@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import mermaid from 'mermaid';
-import SyntaxHighlighter from 'react-syntax-highlighter';
+import type { Mermaid } from 'mermaid';
+import SyntaxHighlighter from 'react-syntax-highlighter/dist/esm/light-async';
 import { vs, vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 
 import { copyText } from '@/renderer/utils/ui/clipboard';
@@ -22,7 +22,12 @@ type MermaidBlockProps = {
 };
 
 let initializedTheme: 'light' | 'dark' | null = null;
-const ensureMermaidInitialized = (theme: 'light' | 'dark') => {
+let mermaidModulePromise: Promise<Mermaid> | null = null;
+const loadMermaid = (): Promise<Mermaid> => {
+  mermaidModulePromise ??= import('mermaid').then((module) => module.default);
+  return mermaidModulePromise;
+};
+const ensureMermaidInitialized = (mermaid: Mermaid, theme: 'light' | 'dark') => {
   if (initializedTheme === theme) return;
   mermaid.initialize({
     startOnLoad: false,
@@ -98,7 +103,9 @@ function MermaidBlock({ code, style, showOpenInPanelButton = true }: MermaidBloc
 
     const renderDiagram = async () => {
       try {
-        ensureMermaidInitialized(currentTheme);
+        const mermaid = await loadMermaid();
+        if (cancelled) return;
+        ensureMermaidInitialized(mermaid, currentTheme);
 
         const { svg: renderedSvg } = await mermaid.render(`${blockIdRef.current}-${Date.now()}`, source);
 

@@ -9,11 +9,12 @@ import { Copy, Down, Up } from '@icon-park/react';
 import katex from 'katex';
 import React, { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import SyntaxHighlighter from 'react-syntax-highlighter';
+import SyntaxHighlighter from 'react-syntax-highlighter/dist/esm/light-async';
 import { vs, vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import MermaidBlock from './MermaidBlock';
 import { formatCode, getDiffLineStyle } from './markdownUtils';
+import { normalizeSyntaxHighlighterLanguage } from './syntaxHighlighterLanguage';
 
 const PREVIEW_LINES = 3;
 // code span: font-size 13px, line-height 20px (per ShadowView injection)
@@ -187,7 +188,7 @@ function CodeBlock(props: CodeBlockProps) {
         >
           <SyntaxHighlighter
             children={formattedContent}
-            language={language}
+            language={normalizeSyntaxHighlighterLanguage(language)}
             style={codeTheme}
             PreTag='div'
             wrapLines={isDiff}
