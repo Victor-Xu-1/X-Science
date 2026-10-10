@@ -583,6 +583,19 @@
       },
       "quickActions": {
         "toolbarLabel": "Structure quick actions",
+        "availability": {
+          "title": "Action requirements",
+          "inputsReady": "The current inputs satisfy these action requirements.",
+          "loading": "The structure is still loading.",
+          "busy": "Another structure action is running. Please wait.",
+          "unavailable": "The structure is not ready. Check its loading status.",
+          "receptor": "No receptor in this file.",
+          "ligand": "No ligand is currently displayed.",
+          "chemistry": "Verified ligand bond information is required.",
+          "task": "Open this file in a task to run calculations.",
+          "diagram": "The current pose needs matching ligand chemistry.",
+          "selection": "Select a ligand in the 3D view."
+        },
         "modelNavigation": "Structure models",
         "modelPosition": "Model {{current}} / {{total}}",
         "previousModel": "Previous model",

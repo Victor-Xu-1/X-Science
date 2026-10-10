@@ -172,6 +172,24 @@ pose/color refinements keep the existing camera-preservation guard.
 标签保留既有残基标识与接触，不改变坐标、拓扑、选择或计算值。后续构象、颜色更新
 继续遵循既有镜头保护，不重新覆盖用户视角。
 
+Structure actions share one input-prerequisite resolver. Disabled controls explain
+the missing receptor, displayed ligand, verified chemistry, task context or native
+ligand selection; local coordinate styles remain usable without a task. The
+keyboard-accessible action-requirements panel groups repeated reasons, uses the
+existing non-modal panel lifecycle and returns focus on Escape or explicit close.
+Changing the file or collapsing the toolbar closes it without cancelling server
+work. Input readiness is not a claim that the calculation environment has run.
+Native residue labels retain their contrasting backgrounds with no extra margin,
+reducing text-box coverage without removing labels or changing scientific values.
+This does not claim that every camera angle is free from label overlap.
+
+结构操作共用输入前置条件解析器；禁用控件说明缺少的受体、当前配体、可靠化学信息、
+任务上下文或三维配体选择。只查看坐标的样式不依赖任务。可由键盘打开的“操作条件”
+面板合并相同原因，沿原有非模态面板生命周期处理关闭，Escape 或显式关闭安全返回
+入口；换文件、收起工具栏不宣称取消服务端工作。输入条件满足不冒称计算环境已执行。
+原生残基文字保留对比背景，去除额外边距以减少文字框遮挡，不删标签、不改变科学值；
+这不代表所有镜头角度都不会出现标签重叠。
+
 图片预览提供适应窗口、原始尺寸和逐级缩放；超出视口的原图可滚动阅读，切换缩放
 保留当前阅读中心，不裁切或改写原始像素。图片视口获得焦点后，`+`/`-` 缩放，`0`
 恢复原始尺寸，`F` 适应窗口，方向键平移；浏览器组合快捷键及批注按钮的键盘操作

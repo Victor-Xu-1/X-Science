@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "7c5b55ccdf3769f8140886d90c16d934b2a81784667580c57105f985e3b4c0e9",
+  "adaptationFingerprintSHA256": "d949b156dad82bee5ebc72cde061e9f039626ce8497c55cbf647302236432476",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "6fa3080e37cf29bf69ef6c964ea62c7440ede0a20346689fc389030fecb6209f",
+  "additionFingerprintSHA256": "a7e3f8a33d3a7f95304d99f4b54ddcf088c2ac5caec012477718111e76128502",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 345,
     "adaptedSourceFiles": 716,
     "removedSourceFiles": 293,
-    "addedFiles": 843
+    "addedFiles": 846
   },
   "adaptations": [
     {
@@ -1501,8 +1501,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedStructureViewer.tsx",
       "sourceSHA256": "6cb430ff6d16123ef3da68f5af29d4dc093a1e5bb9e9b2655a3c01e2d1e2ecb1",
-      "targetSHA256": "40f352f8a5e246c5c42bc0295e2581d37d8421ef9a3eaffeecc9219753f5a0df",
-      "bytes": 141375,
+      "targetSHA256": "ca8616938e8ce57d8a2c6d22775a157572f73528fac2510c2dbb4bb8669f3365",
+      "bytes": 144992,
       "reason": "Unify PDB, mmCIF, SDF, and related molecular formats on one Molstar preview with composition-aware controls, collapsed auxiliary panels, and source-fenced 2D interaction refresh."
     },
     {
@@ -2502,8 +2502,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "cbf03942dc6253e1fb686943ed437a9b9e29d7d4338a22feeb2247ab5f7c0788",
-      "bytes": 253575,
+      "targetSHA256": "bef43a941b894b8bd4a20d91201f2fdfbcba91994aef9adf2027a81b063af524",
+      "bytes": 254338,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2579,8 +2579,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/preview.json",
       "sourceSHA256": "bf530f4a992cc14652500390e715b7add84853e9b0757158c718244cf4cd8f32",
-      "targetSHA256": "dda15267a9570fafdff0a95d4efaead83d65915c6e4dfad394fbc4dc378a3af9",
-      "bytes": 41931,
+      "targetSHA256": "9e736bcf1d1da502f752ef35bd168d4177bf7f90e0be17d0fefdfba598cc6ec3",
+      "bytes": 42679,
       "reason": "Add English labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls."
     },
     {
@@ -2670,8 +2670,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/preview.json",
       "sourceSHA256": "6b772273972756a3407fee8fe7b4503e992964a8de901375f06bfd2faacf2ba0",
-      "targetSHA256": "26fdeefd1a81a1e4f147967e9c8cf57fcb3beeccc53ea05627be1fe2e8b41c7f",
-      "bytes": 40464,
+      "targetSHA256": "4d1d2c4827495123809786d60bccc98d8baa72cf10ff390cca2a5d127f43319a",
+      "bytes": 41193,
       "reason": "Add Simplified Chinese labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls."
     },
     {
@@ -3671,8 +3671,8 @@
     {
       "path": "tests/unit/previews/SynonBiomedStructureViewer.dom.test.tsx",
       "sourceSHA256": "ba8c8acb753fdac5f71871a9aeba75f7dd569f1f82eca75dae7e0c76fa5f1c54",
-      "targetSHA256": "5b0d4f214fbd8474faecb4dd213ca7e7b1bcfc71724beae7f3e95766ec9ac757",
-      "bytes": 149094,
+      "targetSHA256": "e50ad58c6c6b5d328ec7664690b2146ba1b427ccbb3dfc42c7d090e4f5ab0470",
+      "bytes": 152547,
       "reason": "Verify format-neutral composition controls, collapsed 2D panels, and source-invalidated interactions after minimization."
     },
     {
@@ -7971,6 +7971,12 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/StructureActionRequirements.tsx",
+      "sha256": "6f644db97472b75bd6620e3f509c6f6cba8c1fe2848b75d5b5a1e170f3348c6e",
+      "bytes": 1551,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/StructureObjectList.tsx",
       "sha256": "65e57bbf991172c652844459f20245046216545e2249f68d1e215e2e16c6361c",
       "bytes": 6408,
@@ -8002,8 +8008,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedStructureViewer.css",
-      "sha256": "1ae1fcf4d51bc112268926d1f081a94d9e69895aa9e8770722059f439bf318bc",
-      "bytes": 38182,
+      "sha256": "8b09177eeb658611185c0fee35040c03da5190a4c926e633d358bd1fa7aeb9da",
+      "bytes": 38894,
       "reason": "Style the unified molecular composition panel and collapsed 2D controls without resizing or replacing the established preview canvas."
     },
     {
@@ -8086,8 +8092,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/molstarPocketReading.ts",
-      "sha256": "eeec7e55f7f11ebba1c336f7f0c150daec43eec28d762869916128c42a228ab1",
-      "bytes": 1264,
+      "sha256": "5c65ebe983a77998eef55778d417f0a62db794fc4ba173fe4d4686c6fc56819a",
+      "bytes": 1262,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8130,6 +8136,12 @@
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/scientificPreviewLoaders.tsx",
       "sha256": "5c2e906f6c5153370cddd9241f9aa6556f61b9408bd3bce13ee2cfaa6c916e32",
       "bytes": 4346,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/structureActionAvailability.ts",
+      "sha256": "ae19699eff53b60002d3811bf9430de83611f397d668ae1c303e421bbce56dfa",
+      "bytes": 1661,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10114,8 +10126,8 @@
     },
     {
       "path": "tests/unit/previews/molstarPocketReading.test.ts",
-      "sha256": "8b6a00f1bdfe99b97ae066a216c2aad0fef974080c7e29229565410bb9fe051d",
-      "bytes": 2889,
+      "sha256": "c7787581bafcd2708e0f5eb655cc151e971f412cc2bbc80214e45769be94e413",
+      "bytes": 3028,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -10164,6 +10176,12 @@
       "path": "tests/unit/previews/scientificPreviewLoaders.dom.test.tsx",
       "sha256": "84fbafb9349c40c5a09eabfd5ed3dfdf00d51f15c86424f05a836805651309c2",
       "bytes": 4915,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/previews/structureActionAvailability.test.ts",
+      "sha256": "78c184dbbc95c696b9f2732daa185a6967d054afb579aa1ca1c764bf8b224fa0",
+      "bytes": 2796,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

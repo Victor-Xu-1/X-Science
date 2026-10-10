@@ -8,7 +8,7 @@ import { Spin } from '@arco-design/web-react';
 import { Camera, Down, Left, Lightning, MoreOne, PreviewOpen, Right, Up } from '@icon-park/react';
 import { Color } from 'molstar/lib/mol-util/color/index';
 import { createPortal } from 'react-dom';
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import DOMPurify from 'dompurify';
 import { useTranslation } from 'react-i18next';
 import {
@@ -66,6 +66,8 @@ import {
   type StructureInteractionReportResponse,
 } from './structureInteractionReportCache';
 import { StructureObjectList } from './StructureObjectList';
+import { StructureActionRequirements } from './StructureActionRequirements';
+import { structureActionUnavailableReason, type StructureAction } from './structureActionAvailability';
 import type { MolstarStructureComposition, StructureObjectKind } from './structureComposition';
 
 export { resolveStructureFormat } from './structureSource';
@@ -98,7 +100,7 @@ type MolstarControlTooltip = {
   top: number;
 };
 
-type QuickPanel = 'more' | null;
+type QuickPanel = 'more' | 'requirements' | null;
 type CanvasBackground = 'white' | 'dark';
 type DisplayRepresentation = Exclude<MolstarViewRepresentation, 'electrostatic'>;
 type DisplayLayer = MolstarViewLayer;
@@ -351,6 +353,9 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
   });
   const [tooltip, setTooltip] = useState<MolstarControlTooltip | null>(null);
   const [activePanel, setActivePanel] = useState<QuickPanel>(null);
+  const quickPanelId = useId();
+  const quickPanelRef = useRef<HTMLDivElement | null>(null);
+  const quickPanelOpenerRef = useRef<HTMLButtonElement | null>(null);
   const [pocketVisible, setPocketVisible] = useState(false);
   const [pocketInteractionVisibility, setPocketInteractionVisibility] = useState<MolstarPocketInteractionVisibility>(
     DEFAULT_POCKET_INTERACTION_VISIBILITY
@@ -434,18 +439,46 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
   const hasLigandElectrostaticInput = Boolean(
     engineRef.current?.hasElectrostaticLigandInput?.(dockingEntry ? surfaceDockingResidueNames : undefined)
   );
-  const isRepresentationAvailable = (representation: DisplayRepresentation): boolean => {
-    if (representation === 'surface') return hasProteinContent;
-    if (representation === 'pocket-surface') return hasProteinContent && hasLigandContent;
-    if (representation === 'ligand-surface') return hasLigandContent && hasLigandElectrostaticInput;
-    return true;
-  };
   const smilesCompanionUrl = resolveCandidateSmilesCompanionUrl(companionArtifactUrls);
   const hasInteractionDiagramContext = Boolean(
     dockingEnsemble
       ? dockingEntry && operationFrameId && smilesCompanionUrl
       : structureLigandDepiction?.complexPdb && structureLigandDepiction.smiles && operationFrameId
   );
+  const actionReason = (action: StructureAction) =>
+    structureActionUnavailableReason(action, {
+      canInteract,
+      loading,
+      busy: Boolean(busyAction),
+      hasProtein: hasProteinContent,
+      hasLigand: hasLigandContent,
+      hasLigandChemistry: hasLigandElectrostaticInput,
+      hasTaskContext: Boolean(operationFrameId),
+      hasDiagramInput: hasInteractionDiagramContext,
+      hasSelectedLigand: Boolean(selectedLigandResidueName),
+    });
+  const actionDescription = (action: StructureAction, description?: string) => {
+    const reason = actionReason(action);
+    return reason ? t(`preview.scientific.structure.quickActions.availability.${reason}`) : description;
+  };
+  const toggleQuickPanel = (panel: Exclude<QuickPanel, null>, opener: HTMLButtonElement) => {
+    quickPanelOpenerRef.current = opener;
+    setActivePanel((current) => (current === panel ? null : panel));
+  };
+  const closeQuickPanel = useCallback(() => {
+    const ownedFocus =
+      document.activeElement === document.body || controlDockRef.current?.contains(document.activeElement);
+    setActivePanel(null);
+    if (ownedFocus && quickPanelOpenerRef.current?.isConnected)
+      quickPanelOpenerRef.current.focus({ preventScroll: true });
+  }, []);
+  useLayoutEffect(() => {
+    if (
+      activePanel === 'requirements' &&
+      (document.activeElement === document.body || document.activeElement === quickPanelOpenerRef.current)
+    )
+      quickPanelRef.current?.focus({ preventScroll: true });
+  }, [activePanel]);
   const dockingPoseCount = (entry: DockingEnsembleEntry): number =>
     dockingEnsemble?.entries.filter(
       (candidate) => candidate.kind === 'candidate' && candidate.candidateId === entry.candidateId
@@ -461,6 +494,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
   useEffect(() => {
     setRightPanelExpanded(false);
     setLigandComparisonMode(false);
+    setActivePanel(null);
   }, [content, contentUrl, filename]);
 
   useEffect(() => {
@@ -1659,7 +1693,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
             viewLayers.find((layer) => !isElectrostaticSurfaceRepresentation(layer)) ?? 'initial'
           );
         }
-      } catch (error) {
+      } catch (selectionError) {
         if (!current()) return;
         try {
           await engine.setStructureLigandSelection(previous);
@@ -1670,9 +1704,16 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
           }
         } catch (rollbackError) {
           setError(resolveScientificPreviewError(rollbackError, 'parse-failed'));
-          throw new AggregateError([error, rollbackError], 'Structure selection could not be restored');
+          const recoveryFailure = new AggregateError(
+            [selectionError, rollbackError],
+            'Structure selection could not be restored',
+            {
+              cause: rollbackError,
+            }
+          );
+          throw recoveryFailure;
         }
-        throw error;
+        throw selectionError;
       }
     });
     if (!succeeded || !current()) return false;
@@ -1682,7 +1723,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
     electrostaticMapRequestRef.current += 1;
     electrostaticMapCacheRef.current = null;
     setElectrostaticMapReport(null);
-    setViewLayers((current) => current.filter((layer) => !isElectrostaticSurfaceRepresentation(layer)));
+    setViewLayers((layers) => layers.filter((layer) => !isElectrostaticSurfaceRepresentation(layer)));
     interactionReportCacheRef.current.clear();
     cancelScheduledPocketInteractionStrengthRefresh();
     pocketStrengthRequestRef.current += 1;
@@ -2318,7 +2359,8 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
       if (event.target instanceof Node && !controlDockRef.current?.contains(event.target)) setActivePanel(null);
     };
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setActivePanel(null);
+      if (event.key !== 'Escape') return;
+      closeQuickPanel();
     };
 
     document.addEventListener('pointerdown', handlePointerDown);
@@ -2327,20 +2369,51 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
       document.removeEventListener('pointerdown', handlePointerDown);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [activePanel]);
+  }, [activePanel, closeQuickPanel]);
 
   const renderQuickPanel = (): React.ReactNode => {
     if (!activePanel) return null;
 
-    const panelLabel = t('preview.scientific.structure.quickActions.moreActions');
+    const panelLabel = t(
+      activePanel === 'requirements'
+        ? 'preview.scientific.structure.quickActions.availability.title'
+        : 'preview.scientific.structure.quickActions.moreActions'
+    );
 
     return (
       <div
         className='synon-biomed-molstar__quick-panel'
+        ref={quickPanelRef}
+        id={quickPanelId}
         role='dialog'
+        tabIndex={-1}
+        onKeyDown={(event) => {
+          if (event.key !== 'Escape') return;
+          event.preventDefault();
+          event.stopPropagation();
+          closeQuickPanel();
+        }}
         aria-label={panelLabel}
         data-testid={`synon-biomed-molstar-panel-${activePanel}`}
       >
+        {activePanel === 'requirements' && (
+          <StructureActionRequirements
+            onClose={closeQuickPanel}
+            actions={(
+              [
+                ['pocket', 'pocket'],
+                ['surface', 'viewSurface'],
+                ['pocket-surface', 'viewPocketSurface'],
+                ['ligand-surface', 'viewLigandSurface'],
+                ['diagram', 'interactionDiagram'],
+                ['minimize', 'minimization'],
+              ] as const
+            ).map(([action, key]) => ({
+              label: t(`preview.scientific.structure.quickActions.${key}`),
+              reason: actionReason(action),
+            }))}
+          />
+        )}
         {activePanel === 'more' && (
           <div className='synon-biomed-molstar__quick-panel-content'>
             <span className='synon-biomed-molstar__quick-section-label'>
@@ -2386,8 +2459,12 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
                   data-testid='synon-biomed-molstar-overflow-minimize'
                   aria-label={t('preview.scientific.structure.quickActions.minimization')}
                   onClick={() => void handleMinimize()}
-                  disabled={!canInteract || !selectedLigandResidueName}
-                  title={t('preview.scientific.structure.quickActions.minimizationDescription')}
+                  disabled={Boolean(actionReason('minimize'))}
+                  title={actionDescription(
+                    'minimize',
+                    t('preview.scientific.structure.quickActions.minimizationDescription')
+                  )}
+                  aria-description={actionDescription('minimize')}
                 >
                   <Lightning size={14} />
                   <span>{t('preview.scientific.structure.quickActions.minimization')}</span>
@@ -3004,8 +3081,9 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
                 aria-pressed={pocketVisible}
                 data-active={pocketVisible ? 'true' : undefined}
                 onClick={() => void handlePocketAction()}
-                disabled={!canInteract || !hasProteinContent || !hasLigandContent}
-                title={t('preview.scientific.structure.quickActions.pocketDescription')}
+                disabled={Boolean(actionReason('pocket'))}
+                title={actionDescription('pocket', t('preview.scientific.structure.quickActions.pocketDescription'))}
+                aria-description={actionDescription('pocket')}
               >
                 {t('preview.scientific.structure.quickActions.pocket')}
               </button>
@@ -3043,17 +3121,9 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
                         ? !pocketVisible && viewLayers.length === 0
                         : viewLayers.includes(representation)
                     }
-                    disabled={!canInteract || !isRepresentationAvailable(representation)}
-                    title={
-                      representation === 'ligand-surface' && hasLigandContent && !hasLigandElectrostaticInput
-                        ? t('preview.scientific.structure.quickActions.ligandChemistryRequired')
-                        : undefined
-                    }
-                    aria-description={
-                      representation === 'ligand-surface' && hasLigandContent && !hasLigandElectrostaticInput
-                        ? t('preview.scientific.structure.quickActions.ligandChemistryRequired')
-                        : undefined
-                    }
+                    disabled={Boolean(actionReason(representation))}
+                    title={actionDescription(representation)}
+                    aria-description={actionDescription(representation)}
                     onClick={() => void handleViewRepresentation(representation)}
                   >
                     {label}
@@ -3068,8 +3138,12 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
                 aria-pressed={interactionDiagramOpen}
                 data-active={interactionDiagramOpen ? 'true' : undefined}
                 onClick={handleInteractionDiagramToggle}
-                disabled={!canInteract || !hasInteractionDiagramContext}
-                title={t('preview.scientific.structure.quickActions.interactionDiagramDescription')}
+                disabled={Boolean(actionReason('diagram'))}
+                title={actionDescription(
+                  'diagram',
+                  t('preview.scientific.structure.quickActions.interactionDiagramDescription')
+                )}
+                aria-description={actionDescription('diagram')}
               >
                 {toolbarDensity === 'minimal'
                   ? '2D'
@@ -3082,8 +3156,12 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
                   data-testid='synon-biomed-molstar-minimize'
                   aria-label={t('preview.scientific.structure.quickActions.minimization')}
                   onClick={() => void handleMinimize()}
-                  disabled={!canInteract || !selectedLigandResidueName}
-                  title={t('preview.scientific.structure.quickActions.minimizationDescription')}
+                  disabled={Boolean(actionReason('minimize'))}
+                  title={actionDescription(
+                    'minimize',
+                    t('preview.scientific.structure.quickActions.minimizationDescription')
+                  )}
+                  aria-description={actionDescription('minimize')}
                 >
                   {t('preview.scientific.structure.quickActions.minimization')}
                 </button>
@@ -3177,11 +3255,23 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
                   aria-expanded={activePanel === 'more'}
                   title={t('preview.scientific.structure.quickActions.moreActionsDescription')}
                   disabled={!canInteract}
-                  onClick={() => setActivePanel((current) => (current === 'more' ? null : 'more'))}
+                  aria-controls={activePanel === 'more' ? quickPanelId : undefined}
+                  onClick={(event) => toggleQuickPanel('more', event.currentTarget)}
                 >
                   <MoreOne size={15} />
                 </button>
               )}
+              <button
+                type='button'
+                className='synon-biomed-molstar__toolbar-action'
+                aria-label={t('preview.scientific.structure.quickActions.availability.title')}
+                aria-haspopup='dialog'
+                aria-expanded={activePanel === 'requirements'}
+                aria-controls={activePanel === 'requirements' ? quickPanelId : undefined}
+                onClick={(event) => toggleQuickPanel('requirements', event.currentTarget)}
+              >
+                {t('preview.scientific.structure.quickActions.availability.title')}
+              </button>
               <button
                 type='button'
                 className='synon-biomed-molstar__toolbar-collapse'
@@ -3192,7 +3282,10 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
                     : 'preview.scientific.structure.quickActions.expandToolbar'
                 )}
                 aria-expanded={leftToolbarExpanded}
-                onClick={() => setLeftToolbarExpanded((current) => !current)}
+                onClick={() => {
+                  setActivePanel(null);
+                  setLeftToolbarExpanded((current) => !current);
+                }}
               >
                 {leftToolbarExpanded ? <Up size={12} /> : <Down size={12} />}
               </button>
