@@ -389,8 +389,20 @@ Original artifacts are not overwritten. Source coordinates incompatible with an
 assembly transform and ambiguous legacy name-only requests fail explicitly.
 After an ordinary minimization reload, the exact ligand selection is restored and
 old pocket/field/interaction overlays are retired. A retired calculation cannot
-load its coordinates or commit UI state into a newly opened source. Force-field parameters and
-limits are unchanged; technical success is not scientific or experimental acceptance.
+load its coordinates or commit UI state into a newly opened source.
+
+Chemical trajectories retain the exact MOL/SDF/MOL2 input handed to the native
+parser, including already-restored chemical input, bound to its model. Only the
+active record's coordinate columns change; bonds, charges, isotopes, stereo
+declarations and source properties are not replaced by atom-only PDB. Native
+source rows bind reordered atoms; partial, missing or duplicate mappings fail
+rather than dropping physical context. The existing managed API receives the
+chemical format. Returned SDF coordinates are checked against the source atom
+count and element order, then applied to the original chemical record; normalized
+output cannot discard MOL2 partial charges or SDF properties. Repeated operations keep the
+original filename base instead of accumulating generated suffixes. Force-field
+parameters and limits are unchanged; technical success is not scientific or
+experimental acceptance.
 
 能量最小化通过所选原生原子定位唯一完整残基实例，不把同名残基一起选入。按 PDB
 记录声明区分配体与聚合物，不能以原子编号或名称将 ATOM／受体记录当作配体。
@@ -399,8 +411,15 @@ limits are unchanged; technical success is not scientific or experimental accept
 多模型 PDB 提交当前模型的原始记录与连接信息。共享原子不能替用户选择交替构象，
 该构象的独占原子用于精确定位。原始产物不覆盖；与组装变换不一致的原坐标输入，以及
 有歧义的旧名称请求均明确失败。普通结构最小化重新加载后恢复原生配体选择，清退旧口袋、
-电势与相互作用层。旧计算完成时不能向新文件加载坐标或提交界面状态。力场参数、
-既有边界不变；技术执行成功不代表科学或实验验收。
+电势与相互作用层。旧计算完成时不能向新文件加载坐标或提交界面状态。
+
+化学轨迹将实际交给原生解析器的 MOL／SDF／MOL2 输入绑定到对应模型，包含已有
+解析流程恢复的化学输入。仅更新当前记录的坐标列，保留键级、电荷、同位素、立体
+声明和来源字段，不转为仅含原子的 PDB。按原生来源行关联排序后的原子；部分选择、
+缺失或重复映射明确拒绝，不丢弃真实上下文。现有托管 API 接收化学格式；对返回的
+SDF 坐标校验原子数和元素顺序后，仅将坐标应用到原化学记录，不因归一化输出丢弃
+MOL2 部分电荷或 SDF 属性。重复操作保持原始文件名主体，不累积生成后缀。力场参数与既有边界不变，
+技术执行成功不代表科学或实验验收。
 
 Ordinary ligand electrostatics serializes every selected native instance and
 binds each surface to its matching returned field. API keys derive from the full
