@@ -50,7 +50,8 @@ import {
   type StructureObjectKind,
 } from './structureComposition';
 import { Color } from 'molstar/lib/mol-util/color/index';
-import { POCKET_RESIDUE_LABEL_TYPE_PARAMS, resolvePocketReadingFocusRadius } from './molstarPocketReading';
+import { POCKET_RESIDUE_LABEL_TYPE_PARAMS, resolvePocketReadingCameraOptions } from './molstarPocketReading';
+import { resolveSurfaceGeometryParams, type MolstarSurfaceScope } from './molstarSurfaceGeometry';
 import 'molstar/build/viewer/molstar.css';
 import { formatMolstarPosePdb, type MolstarPoseAtom } from './molstarPose';
 import {
@@ -358,25 +359,11 @@ export type MolstarScreenRectangle = {
   height: number;
 };
 
-export const STANDARD_PROTEIN_SURFACE_TYPE_PARAMS = {
-  // Keep every molecular surface on one opacity contract so stacked protein,
-  // pocket, and ligand layers remain predictable.
-  probeRadius: 1.4,
-  alpha: 0.7,
-  quality: 'medium',
-} as const;
-
-export const ELECTROSTATIC_SURFACE_TYPE_PARAMS = {
-  ...STANDARD_PROTEIN_SURFACE_TYPE_PARAMS,
-  alpha: 0.7,
-} as const;
-
-export const POCKET_SURFACE_TYPE_PARAMS = {
-  ...STANDARD_PROTEIN_SURFACE_TYPE_PARAMS,
-  alpha: 0.7,
-} as const;
-
-type MolstarSurfaceScope = 'protein' | 'pocket' | 'ligand';
+export {
+  STANDARD_PROTEIN_SURFACE_TYPE_PARAMS,
+  ELECTROSTATIC_SURFACE_TYPE_PARAMS,
+  POCKET_SURFACE_TYPE_PARAMS,
+} from './molstarSurfaceGeometry';
 
 export const shouldIncludeProteinContextForSurface = (scope: MolstarSurfaceScope): boolean => scope !== 'protein';
 
@@ -598,7 +585,8 @@ const SYNON_VIEW_PRESET_PARAMS = {
  */
 export const createSynonViewRepresentationPreset = (
   representation: Exclude<MolstarViewRepresentation, 'initial'>,
-  electrostaticVolumes: MolstarElectrostaticVolumes = {}
+  electrostaticVolumes: MolstarElectrostaticVolumes = {},
+  onPocketReady?: (ligand: StructureElement.Loci, contacts: StructureElement.Loci) => void
 ) =>
   StructureRepresentationPresetProvider({
     id: `preset-synon-biomed-${representation}`,
@@ -722,12 +710,7 @@ export const createSynonViewRepresentationPreset = (
             surfaceComponent,
             {
               type: 'molecular-surface',
-              typeParams:
-                surfaceScope === 'pocket'
-                  ? POCKET_SURFACE_TYPE_PARAMS
-                  : electrostatic
-                    ? ELECTROSTATIC_SURFACE_TYPE_PARAMS
-                    : STANDARD_PROTEIN_SURFACE_TYPE_PARAMS,
+              typeParams: resolveSurfaceGeometryParams(surfaceScope, surfaceStructure),
               ...surfaceColors,
             },
             { tag: 'synon-biomed-view-style-surface' }
@@ -755,6 +738,7 @@ export const createSynonViewRepresentationPreset = (
           ),
         };
         await update.commit({ revertOnError: true });
+        if (pocket?.obj?.data) onPocketReady?.(displayLigandLoci, StructureElement.Loci.all(pocket.obj.data));
         return { components, representations };
       }
 
@@ -1633,15 +1617,24 @@ export async function createMolstarStructureEngine(
     // ComponentManager applies the provider and only then synchronizes away
     // obsolete components. This create-before-retire transition keeps at least
     // one representation on canvas throughout every style switch.
+    let pocketFocus: { ligand: StructureElement.Loci; contacts: StructureElement.Loci } | undefined;
     await plugin.managers.structure.component.applyPreset(
       structures,
-      createSynonViewRepresentationPreset(representation, electrostaticVolumes)
+      createSynonViewRepresentationPreset(representation, electrostaticVolumes, (ligand, contacts) => {
+        pocketFocus ??= { ligand, contacts };
+      })
     );
 
     await structureLigands.apply();
     applyStructureObjectVisibility();
     await applyStructureLigandColor();
     plugin.handleResize();
+    if (pocketFocus && !disposed) {
+      plugin.managers.camera.focusLoci(
+        pocketFocus.ligand,
+        resolvePocketReadingCameraOptions(pocketFocus.ligand, pocketFocus.contacts, DEFAULT_POCKET_EXPAND_RADIUS)
+      );
+    }
   };
 
   const applyPocketFocus = async (
@@ -1902,7 +1895,7 @@ export async function createMolstarStructureEngine(
 
     const addPocketElectrostaticSurface = async (
       component: typeof layeredProteinComponent,
-      typeParams: typeof ELECTROSTATIC_SURFACE_TYPE_PARAMS | typeof POCKET_SURFACE_TYPE_PARAMS,
+      scope: MolstarSurfaceScope,
       tag: string,
       volume: MolstarElectrostaticVolume | undefined
     ) => {
@@ -1912,7 +1905,7 @@ export async function createMolstarStructureEngine(
         component,
         {
           type: 'molecular-surface',
-          typeParams,
+          typeParams: resolveSurfaceGeometryParams(scope, component.obj?.data ?? structure),
           ...resolveSurfaceColorSettings(component.obj?.data ?? structure, volume),
         },
         stagedRepresentationOptions(tag)
@@ -1922,7 +1915,7 @@ export async function createMolstarStructureEngine(
     if (layerPlan.hasProteinSurface) {
       await addPocketElectrostaticSurface(
         layeredProteinComponent,
-        ELECTROSTATIC_SURFACE_TYPE_PARAMS,
+        'protein',
         'synon-biomed-pocket-layer-protein-surface',
         electrostaticVolumes.protein
       );
@@ -1930,7 +1923,7 @@ export async function createMolstarStructureEngine(
     if (layerPlan.hasPocketSurface) {
       await addPocketElectrostaticSurface(
         pocketResidueComponent,
-        POCKET_SURFACE_TYPE_PARAMS,
+        'pocket',
         'synon-biomed-pocket-layer-pocket-surface',
         electrostaticVolumes.protein
       );
@@ -1939,7 +1932,7 @@ export async function createMolstarStructureEngine(
       ligandSurfacePlans.map((plan, index) =>
         addPocketElectrostaticSurface(
           ligandSurfaceComponents[index],
-          ELECTROSTATIC_SURFACE_TYPE_PARAMS,
+          'ligand',
           `synon-biomed-pocket-layer-ligand-surface-${index}`,
           plan.volume
         )
@@ -2093,19 +2086,10 @@ export async function createMolstarStructureEngine(
     }
 
     if (shouldFocusPocketCamera(options)) {
-      plugin.managers.camera.focusLoci(ligandLoci, {
-        durationMs: 260,
-        // Initial entry includes the labelled contact context once. Subsequent pose or
-        // color changes rebuild representations with focusCamera=false so the
-        // user's receptor viewpoint remains untouched.
-        extraRadius: Math.max(1.5, Math.min(2.5, boundedExpandRadius * 0.5)),
-        minRadius: resolvePocketReadingFocusRadius(
-          ligandLoci,
-          contactResidueLoci,
-          Math.max(5.5, boundedExpandRadius * 1.2)
-        ),
-        optimizeDirection: true,
-      });
+      plugin.managers.camera.focusLoci(
+        ligandLoci,
+        resolvePocketReadingCameraOptions(ligandLoci, contactResidueLoci, boundedExpandRadius)
+      );
     }
     if (!targetStructure) plugin.handleResize();
     return {
@@ -3201,6 +3185,7 @@ export async function createMolstarStructureEngine(
 
     const addElectrostaticSurface = async (
       component: typeof protein,
+      scope: MolstarSurfaceScope,
       tag: string,
       volume: MolstarElectrostaticVolume | undefined
     ) => {
@@ -3210,7 +3195,7 @@ export async function createMolstarStructureEngine(
         component,
         {
           type: 'molecular-surface',
-          typeParams: ELECTROSTATIC_SURFACE_TYPE_PARAMS,
+          typeParams: resolveSurfaceGeometryParams(scope, component.obj?.data ?? structure),
           ...resolveSurfaceColorSettings(component.obj?.data ?? structure, volume),
         },
         { tag }
@@ -3218,15 +3203,26 @@ export async function createMolstarStructureEngine(
     };
 
     if (hasProteinSurface) {
-      await addElectrostaticSurface(protein, 'synon-biomed-layer-protein-surface', electrostaticVolumes.protein);
+      await addElectrostaticSurface(
+        protein,
+        'protein',
+        'synon-biomed-layer-protein-surface',
+        electrostaticVolumes.protein
+      );
     }
     if (hasPocketSurface) {
-      await addElectrostaticSurface(pocket, 'synon-biomed-layer-pocket-surface', electrostaticVolumes.protein);
+      await addElectrostaticSurface(
+        pocket,
+        'pocket',
+        'synon-biomed-layer-pocket-surface',
+        electrostaticVolumes.protein
+      );
     }
     await Promise.all(
       ligandSurfacePlans.map((plan, index) =>
         addElectrostaticSurface(
           ligandSurfaceComponents[index],
+          'ligand',
           `synon-biomed-layer-ligand-surface-${index}`,
           plan.volume
         )

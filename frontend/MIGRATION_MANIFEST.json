@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "cab52a6964c3b546251f0482f635624622c7f7679b6266d194279e21991ecff3",
+  "adaptationFingerprintSHA256": "ffe6de0db2243899f2abef1d391a21fe3fc6b693571e999042193d700ba4505f",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "9cfaae314ce16b9fc2eb6b2d3844b29f3493744acf27952ba0a6fdeab5d476bf",
+  "additionFingerprintSHA256": "017ddf7604d13c77ed7ad0045e4e652e624802c489c0c1aca376bf5f87924fe1",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 345,
     "adaptedSourceFiles": 716,
     "removedSourceFiles": 293,
-    "addedFiles": 846
+    "addedFiles": 848
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "1abaa7ac316ad0bfe17aabe628b6737f255994c441118aad72eea4e88989417a",
+      "targetSHA256": "17603d1adf27412dc467b753c5225a5a875390e2dc2c9784acd32262c901833b",
       "bytes": 4378,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "32c71bc69702bb276dc6ea45ac4a95248dff1fa83e6620d32cb322689960d248",
+      "targetSHA256": "0b683905930eae7915ef3380d549a1dd1753e539a8f1bb2ced97badee8a3fc60",
       "bytes": 157,
       "reason": "Remove @synon-ai/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -1501,8 +1501,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedStructureViewer.tsx",
       "sourceSHA256": "6cb430ff6d16123ef3da68f5af29d4dc093a1e5bb9e9b2655a3c01e2d1e2ecb1",
-      "targetSHA256": "ca8616938e8ce57d8a2c6d22775a157572f73528fac2510c2dbb4bb8669f3365",
-      "bytes": 144992,
+      "targetSHA256": "b8930cac1ce0c71c0805f4fad51937c545c7d93789b89f17384217d44821a978",
+      "bytes": 145168,
       "reason": "Unify PDB, mmCIF, SDF, and related molecular formats on one Molstar preview with composition-aware controls, collapsed auxiliary panels, and source-fenced 2D interaction refresh."
     },
     {
@@ -3671,8 +3671,8 @@
     {
       "path": "tests/unit/previews/SynonBiomedStructureViewer.dom.test.tsx",
       "sourceSHA256": "ba8c8acb753fdac5f71871a9aeba75f7dd569f1f82eca75dae7e0c76fa5f1c54",
-      "targetSHA256": "e50ad58c6c6b5d328ec7664690b2146ba1b427ccbb3dfc42c7d090e4f5ab0470",
-      "bytes": 152547,
+      "targetSHA256": "57278f96e30f25183af456a733f46cb7dd7eb1ef6fae27c9c61d7a2537919327",
+      "bytes": 152788,
       "reason": "Verify format-neutral composition controls, collapsed 2D panels, and source-invalidated interactions after minimization."
     },
     {
@@ -6796,7 +6796,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "71928b4092e4f242e3bed83fbc6cf77bd1c4095b8ce3946d6aba7e21227396a3",
+      "sha256": "109a7b7695b8c604ad154eb522b9effba0b3e0a708974cbe887bc33a3ce2f3ba",
       "bytes": 558186,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -8092,8 +8092,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/molstarPocketReading.ts",
-      "sha256": "5c65ebe983a77998eef55778d417f0a62db794fc4ba173fe4d4686c6fc56819a",
-      "bytes": 1262,
+      "sha256": "9590bdc2c41a0919b1a63e81c6301d228cae1724b5c687f8608f0045883deda2",
+      "bytes": 1758,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8104,9 +8104,15 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/molstarStructureEngine.ts",
-      "sha256": "b6993ad78addc294c6d0ce2efd923097a064a7a09a3de29585f7713e41f21c19",
-      "bytes": 147701,
+      "sha256": "29f605d7d8a0ac4a89616805fa48279cd75cc62f40e68cfd42af83f791c5535c",
+      "bytes": 147555,
       "reason": "Own format-neutral Molstar loading, structure composition, surface styling, ligand extraction, and object visibility operations."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/molstarSurfaceGeometry.ts",
+      "sha256": "f0525008199ef20c0a577a54f27f0d1eb6621674a2d60d7b4e2ae78725874795",
+      "bytes": 1018,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/molstarViewportPerformance.ts",
@@ -10126,15 +10132,21 @@
     },
     {
       "path": "tests/unit/previews/molstarPocketReading.test.ts",
-      "sha256": "c7787581bafcd2708e0f5eb655cc151e971f412cc2bbc80214e45769be94e413",
-      "bytes": 3028,
+      "sha256": "e8fa6d3272e5c69958ea02420a960638473ca151978e50135386c196c6185c1a",
+      "bytes": 3749,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/unit/previews/molstarStructureEngine.test.ts",
-      "sha256": "49e91a80667251f14ea3e8715eb2979e3ac120d94f82dcf71f55ce3b0d3b340f",
-      "bytes": 41359,
+      "sha256": "3070bf9b834ba3bf0be45be8e4fbfa006dddab2e7223a2c575089e0186e20345",
+      "bytes": 41952,
       "reason": "Verify unified molecular parsing, composition classification, electrostatic surfaces, ligand extraction, and visibility behavior."
+    },
+    {
+      "path": "tests/unit/previews/molstarSurfaceGeometry.test.ts",
+      "sha256": "d67ce246c0144de9c4b42962acaad4adda7940f004c9fc5362a004c6d22a0766",
+      "bytes": 1848,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/unit/previews/molstarViewportPerformance.test.ts",

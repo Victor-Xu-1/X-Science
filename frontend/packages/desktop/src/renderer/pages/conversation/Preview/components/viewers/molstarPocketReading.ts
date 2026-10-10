@@ -33,3 +33,18 @@ export function resolvePocketReadingFocusRadius(
   const contactBounds = StructureElement.Loci.getBoundingSphere(mappedContacts);
   return Math.max(minimum, Vec3.distance(ligandBounds.center, contactBounds.center) + contactBounds.radius);
 }
+
+/** One native framing contract for explicit local pocket entry. */
+export function resolvePocketReadingCameraOptions(
+  ligand: StructureElement.Loci,
+  contacts: StructureElement.Loci,
+  expandRadius: number
+) {
+  const radius = Math.max(3, Math.min(8, expandRadius));
+  return {
+    durationMs: 260,
+    extraRadius: Math.max(1.5, Math.min(2.5, radius * 0.5)),
+    minRadius: resolvePocketReadingFocusRadius(ligand, contacts, Math.max(5.5, radius * 1.2)),
+    optimizeDirection: true,
+  };
+}
