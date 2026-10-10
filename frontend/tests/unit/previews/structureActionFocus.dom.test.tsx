@@ -1,4 +1,5 @@
 import { act, renderHook } from '@testing-library/react';
+import { useLayoutEffect, useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { focusableElements } from '@/renderer/utils/focusScope';
 import {
@@ -139,5 +140,39 @@ describe('owned structure action focus', () => {
     hook.rerender({ source: 'new' });
     act(() => frames.forEach((frame) => frame(0)));
     expect(document.activeElement).toBe(document.body);
+  });
+
+  it('restores only after the caller has committed availability, not at an earlier paint', () => {
+    const frames = new Map<number, FrameRequestCallback>();
+    let id = 0;
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      frames.set(++id, callback);
+      return id;
+    });
+    vi.stubGlobal('cancelAnimationFrame', (frame: number) => frames.delete(frame));
+    const flushPaint = () => {
+      const pending = [...frames.values()];
+      frames.clear();
+      pending.forEach((callback) => callback(0));
+    };
+    const snapshot = captureStructureActionFocus(root);
+    const hook = renderHook(() => {
+      const focus = useStructureActionFocus(['source']);
+      const [committed, setCommitted] = useState(false);
+      useLayoutEffect(() => {
+        if (!committed) return;
+        opener.disabled = true;
+        parkOnBody();
+      }, [committed]);
+      return { focus, setCommitted };
+    });
+    act(() => {
+      hook.result.current.setCommitted(true);
+      hook.result.current.focus.restore(snapshot, () => true);
+      // A paint can arrive before concurrent React processes the state update.
+      flushPaint();
+    });
+    act(() => flushPaint());
+    expect(next).toHaveFocus();
   });
 });
