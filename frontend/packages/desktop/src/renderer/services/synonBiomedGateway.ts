@@ -103,7 +103,13 @@ type RecordValue = Record<string, unknown>;
 const DEFAULT_GATEWAY_BASE_URL = '';
 const sharedGatewayReads = new Map<string, Promise<unknown>>();
 
-type SharedReadKind = 'projects' | 'project-artifacts' | 'project-folders' | 'project-benches';
+type SharedReadKind =
+  | 'projects'
+  | 'project-artifacts'
+  | 'project-folders'
+  | 'project-benches'
+  | 'conversation-composer-capabilities'
+  | 'assistant-composer-capabilities';
 
 /**
  * Coalesces concurrent identical read-only gateway requests into one HTTP
@@ -171,10 +177,12 @@ export async function loadSynonBiomedComposerCapabilities(
 ): Promise<SynonBiomedComposerCapabilities> {
   const normalizedConversationId = conversationId.trim();
   if (!normalizedConversationId) throw new Error('X-Science conversation id is required');
-  return decodeSynonBiomedComposerCapabilities(
-    await getJson<unknown>(
-      `/api/conversations/${encodeURIComponent(normalizedConversationId)}/composer-capabilities`,
-      options
+  return coalesceSharedGatewayRead('conversation-composer-capabilities', normalizedConversationId, options, async () =>
+    decodeSynonBiomedComposerCapabilities(
+      await getJson<unknown>(
+        `/api/conversations/${encodeURIComponent(normalizedConversationId)}/composer-capabilities`,
+        options
+      )
     )
   );
 }
@@ -185,10 +193,12 @@ export async function loadSynonBiomedAssistantComposerCapabilities(
 ): Promise<SynonBiomedComposerCapabilities> {
   const normalizedAssistantId = assistantId.trim();
   if (!normalizedAssistantId) throw new Error('X-Science assistant id is required');
-  return decodeSynonBiomedComposerCapabilities(
-    await getJson<unknown>(
-      `/api/assistants/${encodeURIComponent(normalizedAssistantId)}/composer-capabilities`,
-      options
+  return coalesceSharedGatewayRead('assistant-composer-capabilities', normalizedAssistantId, options, async () =>
+    decodeSynonBiomedComposerCapabilities(
+      await getJson<unknown>(
+        `/api/assistants/${encodeURIComponent(normalizedAssistantId)}/composer-capabilities`,
+        options
+      )
     )
   );
 }

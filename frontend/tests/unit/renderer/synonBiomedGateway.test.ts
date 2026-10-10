@@ -209,6 +209,44 @@ describe('X-Science project gateway request authority', () => {
     );
   });
 
+  it('coalesces concurrent composer capability reads without later stale reuse', async () => {
+    const composerPayload = JSON.stringify({
+      skills: ['single-cell-analysis'],
+      mcp_statuses: [{ id: 'pubmed-id', name: 'PubMed', status: 'loaded' }],
+    });
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.endsWith('/conversation-1/composer-capabilities')) {
+        return new Response(composerPayload, { status: 200, headers: { 'content-type': 'application/json' } });
+      }
+      if (url.endsWith('/synonbiomed%3Aoperon/composer-capabilities')) {
+        return new Response(
+          JSON.stringify({
+            skills: ['autodock-vina'],
+            mcp_statuses: [{ id: 'bundled:pubmed', name: 'PubMed', status: 'loaded' }],
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } }
+        );
+      }
+      throw new Error(`unexpected fetch: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const [conversationA, conversationB, assistantA, assistantB] = await Promise.all([
+      loadSynonBiomedComposerCapabilities('conversation-1'),
+      loadSynonBiomedComposerCapabilities('conversation-1'),
+      loadSynonBiomedAssistantComposerCapabilities('synonbiomed:operon'),
+      loadSynonBiomedAssistantComposerCapabilities('synonbiomed:operon'),
+    ]);
+
+    expect(conversationA).toEqual(conversationB);
+    expect(assistantA).toEqual(assistantB);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    await expect(loadSynonBiomedComposerCapabilities('conversation-1')).resolves.toEqual(conversationA);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
   it('coalesces concurrent project list, artifact, and folder reads without later stale reuse', async () => {
     const fetchMock = vi.fn<typeof fetch>().mockImplementation(async (input) => {
       const url = String(input);
