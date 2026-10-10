@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "ffe6de0db2243899f2abef1d391a21fe3fc6b693571e999042193d700ba4505f",
+  "adaptationFingerprintSHA256": "0134677f59603a83f7b6234de48ba11acf6dbda64a809d61f39f28b637ee0ba1",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "017ddf7604d13c77ed7ad0045e4e652e624802c489c0c1aca376bf5f87924fe1",
+  "additionFingerprintSHA256": "f47ce38f8d842c96b4215ce89d1e77d7b13d225c8e98f60c8c3d03c93dc36f7d",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 345,
     "adaptedSourceFiles": 716,
     "removedSourceFiles": 293,
-    "addedFiles": 848
+    "addedFiles": 849
   },
   "adaptations": [
     {
@@ -2782,15 +2782,15 @@
     {
       "path": "packages/desktop/src/renderer/services/synonBiomedCatalog.ts",
       "sourceSHA256": "bbd92fa2351766b0e83bc5cfa5a3cfc09223c05a32816224d3a69d7e248ab097",
-      "targetSHA256": "ee7e5fac966161fda10c7a4ef8d3de8f3d385a0e13a7074b005e6349c7aa40c0",
-      "bytes": 16857,
+      "targetSHA256": "dfde19f3a40a97ed79c9a63f81b63bb4b540f34ab79fd406a1cdd7a168e215c9",
+      "bytes": 18106,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
       "path": "packages/desktop/src/renderer/services/synonBiomedCompute.ts",
       "sourceSHA256": "aa7268d47ba256aec5146ff8986ee1423771bc3a3d4dc7d99fffa0c233fcb74f",
-      "targetSHA256": "880571e488be08df1bca6589e243e62abf41eb14f6f197ff3c7aa654234eb399",
-      "bytes": 31999,
+      "targetSHA256": "1f755055f6dda26a8941db9e0ac1a727411e9c8b10b469541ca0130b66e387bc",
+      "bytes": 33341,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -4238,8 +4238,8 @@
     {
       "path": "tests/unit/renderer/synonBiomedCompute.dom.test.ts",
       "sourceSHA256": "7c5437924bdee7aea91671097da683679d887a00d2f3fd443fba1f95ce273fe4",
-      "targetSHA256": "f8b5da34b1d93a87bfcc47446a26e1f1728899c1b4737413c7def86a6fc235d6",
-      "bytes": 19995,
+      "targetSHA256": "f65cd190cb593ca9506dc5e169fc1d04d49faa7585a47e907cf44faf3c87a1d6",
+      "bytes": 20061,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -11257,6 +11257,12 @@
       "sha256": "779bd97e9f004a56d84e8824d01e70315fa09c0ea291872a523ff4fe105f86cd",
       "bytes": 17203,
       "reason": "Verify localized edit, retry, and branch actions on user messages."
+    },
+    {
+      "path": "tests/unit/synonbiomed/catalogComputeSharedReads.test.ts",
+      "sha256": "2ff5635b9b6d0ff93c74c03972b6ad8b97c380e3bf4681e58053724dcb6fa5e9",
+      "bytes": 5522,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/unit/synonbiomed/computeExecutionObservation.test.ts",
