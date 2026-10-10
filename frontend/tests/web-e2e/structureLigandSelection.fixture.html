@@ -1,11 +1,17 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="__APP_BOOT_LOCALE__">
   <head>
     <meta charset="utf-8" />
     <title>Synthetic ligand selection regression</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <p role="status">__APP_BOOT_LOADING__</p>
+      <button type="button" onclick="location.reload()">__APP_BOOT_RELOAD__</button>
+    </div>
+    <script type="application/json" id="app-boot-config">
+      __APP_BOOT_CONFIGURATION__
+    </script>
     <script type="module" src="./structureLigandSelection.fixture.tsx"></script>
   </body>
 </html>

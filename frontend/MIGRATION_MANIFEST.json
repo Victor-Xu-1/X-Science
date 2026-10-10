@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "ffe6de0db2243899f2abef1d391a21fe3fc6b693571e999042193d700ba4505f",
+  "adaptationFingerprintSHA256": "91516ba53f19330ee1d882320ec39316a48aeb2dcc909dc22f3b6e4a568d85dc",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "017ddf7604d13c77ed7ad0045e4e652e624802c489c0c1aca376bf5f87924fe1",
+  "additionFingerprintSHA256": "e0a2b32de2a8ad818ee75084939d1c418a4c5abf492d392da25d9241cee3b0f4",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 345,
     "adaptedSourceFiles": 716,
     "removedSourceFiles": 293,
-    "addedFiles": 848
+    "addedFiles": 849
   },
   "adaptations": [
     {
@@ -1501,8 +1501,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedStructureViewer.tsx",
       "sourceSHA256": "6cb430ff6d16123ef3da68f5af29d4dc093a1e5bb9e9b2655a3c01e2d1e2ecb1",
-      "targetSHA256": "b8930cac1ce0c71c0805f4fad51937c545c7d93789b89f17384217d44821a978",
-      "bytes": 145168,
+      "targetSHA256": "93378472b11efa721c9f15ee9e69f553ee89688ec628e80d715460254d5af58e",
+      "bytes": 145748,
       "reason": "Unify PDB, mmCIF, SDF, and related molecular formats on one Molstar preview with composition-aware controls, collapsed auxiliary panels, and source-fenced 2D interaction refresh."
     },
     {
@@ -3671,8 +3671,8 @@
     {
       "path": "tests/unit/previews/SynonBiomedStructureViewer.dom.test.tsx",
       "sourceSHA256": "ba8c8acb753fdac5f71871a9aeba75f7dd569f1f82eca75dae7e0c76fa5f1c54",
-      "targetSHA256": "57278f96e30f25183af456a733f46cb7dd7eb1ef6fae27c9c61d7a2537919327",
-      "bytes": 152788,
+      "targetSHA256": "6352f70db9d60ab21fe2b0f2bbe00d0dfd609b8f2e69f32f04d3c0746e3fba92",
+      "bytes": 155658,
       "reason": "Verify format-neutral composition controls, collapsed 2D panels, and source-invalidated interactions after minimization."
     },
     {
@@ -8091,6 +8091,12 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/molstarLigandSurfaces.ts",
+      "sha256": "135700a1890a8b42e192991a2a2003566959669c8659280215612f73764d4df7",
+      "bytes": 2782,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/molstarPocketReading.ts",
       "sha256": "9590bdc2c41a0919b1a63e81c6301d228cae1724b5c687f8608f0045883deda2",
       "bytes": 1758,
@@ -8104,8 +8110,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/molstarStructureEngine.ts",
-      "sha256": "29f605d7d8a0ac4a89616805fa48279cd75cc62f40e68cfd42af83f791c5535c",
-      "bytes": 147555,
+      "sha256": "58a2de16b34fbbd35d2554ff1bd624073e76b74cfbb7ff1707cec72881f82122",
+      "bytes": 148834,
       "reason": "Own format-neutral Molstar loading, structure composition, surface styling, ligand extraction, and object visibility operations."
     },
     {
@@ -8176,8 +8182,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/structureLigandSelection.ts",
-      "sha256": "513c4abde750465fd820976c18a0074ae2facc5558e71f86b2145cd8676cd365",
-      "bytes": 4255,
+      "sha256": "6e13dc8546907a492a3322f2cfbf0a45ee8f4ae8f7a73428f959e09c9931b5d9",
+      "bytes": 5726,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9712,8 +9718,8 @@
     },
     {
       "path": "tests/fixtures/structureLigands.ts",
-      "sha256": "24e17822c299ddbb4221664e53e2c45681af322ca22aa94919bd370c51c6cc13",
-      "bytes": 2933,
+      "sha256": "27fa54bf05e36f72e7850cf5cdbcbfd4d878ca6b1ba938cce41c32c46e673f5e",
+      "bytes": 3744,
       "reason": "Share explicitly synthetic receptor/ligand coordinates across parsed-state and native viewer selection regressions; never substitute them for user artifacts or research results."
     },
     {
@@ -10216,8 +10222,8 @@
     },
     {
       "path": "tests/unit/previews/structureLigandSelection.test.ts",
-      "sha256": "e297360c7830abb8706b88fee61b452f7665cf93c3e60f35cc1ea7fe95223358",
-      "bytes": 8762,
+      "sha256": "8f424653a2ab51935921e4b0c0942f08c7216437e49e66b6ea5bdcaf33eaf8f2",
+      "bytes": 17007,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -11584,14 +11590,14 @@
     },
     {
       "path": "tests/web-e2e/structureLigandSelection.fixture.html",
-      "sha256": "0b96996d2406701614a24a85a2a541f8a65603454cba038fbc7b52cf6a43f8af",
-      "bytes": 275,
+      "sha256": "c57125ab5662c980372c571165fdec20f226ed4c3ad4b0dadbc021746c67b52d",
+      "bytes": 532,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/web-e2e/structureLigandSelection.fixture.tsx",
-      "sha256": "15ed76f62546fed360266fb33fc0a8f665826da536bab4c65b499ce94cb6144e",
-      "bytes": 2157,
+      "sha256": "36e2643903c3759b3fa951e66fb21042905e275aa471be13d0330cd8fbef95a4",
+      "bytes": 7421,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

@@ -92,3 +92,33 @@ export function selectStructureLigandLoci(
       StructureElement.Loci.none(structure)
     );
 }
+
+/** A preset consumes native selected atom identities; an explicit empty selection stays empty. */
+export function resolveStructureViewLigandLoci(
+  structure: Structure,
+  selected?: StructureElement.Loci,
+  format = ''
+): StructureElement.Loci {
+  const ligands = queryStructureLigands(structure, format);
+  if (selected !== undefined) {
+    return StructureElement.Loci.intersect(ligands, StructureElement.Loci.remap(selected, structure));
+  }
+  const protein = StructureQuery.loci(StructureSelectionQueries.protein.query, structure);
+  return (
+    splitStructureLigands(ligands, !StructureElement.Loci.isEmpty(protein))[0]?.loci ??
+    StructureElement.Loci.none(structure)
+  );
+}
+
+/** Stable API keys derive from the complete native instance order, never residue names or selection order. */
+export function resolveStructureViewLigandInstances(
+  structure: Structure,
+  selected?: StructureElement.Loci,
+  format = ''
+): Array<StructureLigandInstance & { key: string }> {
+  const displayed = resolveStructureViewLigandLoci(structure, selected, format);
+  const protein = StructureQuery.loci(StructureSelectionQueries.protein.query, structure);
+  return splitStructureLigands(queryStructureLigands(structure, format), !StructureElement.Loci.isEmpty(protein))
+    .map((instance, index) => Object.assign({ key: `LIGAND_${index + 1}` }, instance))
+    .filter((instance) => StructureElement.Loci.isEmpty(StructureElement.Loci.subtract(instance.loci, displayed)));
+}
