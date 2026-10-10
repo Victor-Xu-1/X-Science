@@ -1,7 +1,7 @@
 import { isSynonBiomedHttpError, SynonBiomedHttpError } from './synonBiomedHttp';
 import { clearSynonBiomedFrameReads } from './synonBiomedFrameReads';
 import type { IConversationMcpStatus, IConversationMcpStatusKind } from '@/common/config/storage';
-import { rendererAccountScopedKey } from './rendererAccountScope';
+import { registerRendererAccountReset, rendererAccountScopedKey } from './rendererAccountScope';
 
 export type SynonBiomedProject = {
   projectId: string;
@@ -101,13 +101,48 @@ type ProjectPayload = {
 type RecordValue = Record<string, unknown>;
 
 const DEFAULT_GATEWAY_BASE_URL = '';
-const projectBenchRequests = new Map<string, Promise<SynonBiomedProjectBench[]>>();
+const sharedGatewayReads = new Map<string, Promise<unknown>>();
+
+type SharedReadKind = 'projects' | 'project-artifacts' | 'project-folders' | 'project-benches';
+
+/**
+ * Coalesces concurrent identical read-only gateway requests into one HTTP
+ * call. Only requests in flight at the same moment are shared: settled reads
+ * are always evicted, so a later caller still receives a fresh authoritative
+ * response instead of stale data. Custom transports and explicit origins are
+ * isolation boundaries and never share response state with the shared map.
+ */
+function coalesceSharedGatewayRead<T>(
+  kind: SharedReadKind,
+  resourceId: string,
+  options: SynonBiomedGatewayOptions,
+  load: () => Promise<T>
+): Promise<T> {
+  // A caller-owned abort must not cancel another consumer's shared read.
+  if (options.fetchImpl || options.baseUrl || options.signal) return load();
+  const key = rendererAccountScopedKey(`${kind}:${resourceId}`);
+  const active = sharedGatewayReads.get(key);
+  if (active) return active as Promise<T>;
+  const request = load().finally(() => {
+    if (sharedGatewayReads.get(key) === request) sharedGatewayReads.delete(key);
+  });
+  sharedGatewayReads.set(key, request);
+  return request as Promise<T>;
+}
+
+export function clearSharedGatewayReads(): void {
+  sharedGatewayReads.clear();
+}
+
+registerRendererAccountReset('synon-biomed-gateway-reads', clearSharedGatewayReads);
 
 export async function loadSynonBiomedProjects(options: SynonBiomedGatewayOptions = {}): Promise<SynonBiomedProject[]> {
-  const payload = await getJson<ProjectPayload>('/api/projects', options);
-  const projects = Array.isArray(payload.projects) ? payload.projects : [];
+  return coalesceSharedGatewayRead('projects', '', options, async () => {
+    const payload = await getJson<ProjectPayload>('/api/projects', options);
+    const projects = Array.isArray(payload.projects) ? payload.projects : [];
 
-  return projects.map(toProject).filter((project): project is SynonBiomedProject => project !== null);
+    return projects.map(toProject).filter((project): project is SynonBiomedProject => project !== null);
+  });
 }
 
 export async function loadSynonBiomedProject(
@@ -225,10 +260,16 @@ export async function loadSynonBiomedProjectArtifacts(
   projectId: string,
   options: SynonBiomedGatewayOptions = {}
 ): Promise<SynonBiomedProjectArtifact[]> {
-  const artifacts = await getJson<unknown[]>(`/api/projects/${encodeURIComponent(projectId)}/artifacts`, options);
-  return artifacts
-    .map(toProjectArtifact)
-    .filter((artifact): artifact is SynonBiomedProjectArtifact => artifact !== null);
+  const normalizedProjectId = projectId.trim();
+  return coalesceSharedGatewayRead('project-artifacts', normalizedProjectId, options, async () => {
+    const artifacts = await getJson<unknown[]>(
+      `/api/projects/${encodeURIComponent(normalizedProjectId)}/artifacts`,
+      options
+    );
+    return artifacts
+      .map(toProjectArtifact)
+      .filter((artifact): artifact is SynonBiomedProjectArtifact => artifact !== null);
+  });
 }
 
 export async function loadSynonBiomedProjectBenches(
@@ -243,25 +284,23 @@ export async function loadSynonBiomedProjectBenches(
     );
     return benches.map(toProjectBench).filter((bench): bench is SynonBiomedProjectBench => bench !== null);
   };
-  // A caller-owned abort must not cancel another consumer's shared read.
-  if (!normalizedProjectId || options.baseUrl || options.fetchImpl || options.signal) return load();
-
-  const requestKey = rendererAccountScopedKey(normalizedProjectId);
-  const active = projectBenchRequests.get(requestKey);
-  if (active) return active;
-  const request = load().finally(() => {
-    if (projectBenchRequests.get(requestKey) === request) projectBenchRequests.delete(requestKey);
-  });
-  projectBenchRequests.set(requestKey, request);
-  return request;
+  // An empty project id is a caller error; keep those requests unshared.
+  if (!normalizedProjectId) return load();
+  return coalesceSharedGatewayRead('project-benches', normalizedProjectId, options, load);
 }
 
 export async function loadSynonBiomedProjectFolders(
   projectId: string,
   options: SynonBiomedGatewayOptions = {}
 ): Promise<SynonBiomedProjectFolder[]> {
-  const folders = await getJson<unknown[]>(`/api/projects/${encodeURIComponent(projectId)}/folders`, options);
-  return folders.map(toProjectFolder).filter((folder): folder is SynonBiomedProjectFolder => folder !== null);
+  const normalizedProjectId = projectId.trim();
+  return coalesceSharedGatewayRead('project-folders', normalizedProjectId, options, async () => {
+    const folders = await getJson<unknown[]>(
+      `/api/projects/${encodeURIComponent(normalizedProjectId)}/folders`,
+      options
+    );
+    return folders.map(toProjectFolder).filter((folder): folder is SynonBiomedProjectFolder => folder !== null);
+  });
 }
 
 export async function loadSynonBiomedArtifact(
