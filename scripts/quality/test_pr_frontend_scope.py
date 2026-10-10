@@ -25,6 +25,15 @@ class FrontendRelatedScopeTests(unittest.TestCase):
                                          "frontend/THIRD_PARTY_LICENSES.json",
                                          "scripts/quality/pr_frontend_scope.py"]))
 
+    def test_vite_config_binds_preview_cache_policy_tests(self):
+        command = related_command([
+            "frontend/vite.config.ts",
+            "frontend/tests/unit/build/viteProductionPreviewCache.test.ts",
+        ])
+        self.assertIn("tests/unit/build/viteProductionPreviewCache.test.ts", command)
+        self.assertNotIn("vite.config.ts", command)
+        self.assertNotIn("--passWithNoTests", command)
+
     def test_unknown_configuration_or_dependency_scope_fails_closed(self):
         for path in ["frontend/package-lock.json", "frontend/package.json", "frontend/vitest.config.ts",
                      "frontend/tests/vitest.dom.setup.ts"]:
