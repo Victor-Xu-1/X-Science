@@ -15,7 +15,10 @@ export type MessageItemMemoProps = {
 
 export const areMessageItemPropsEqual = (prev: MessageItemMemoProps, next: MessageItemMemoProps): boolean =>
   prev.message.id === next.message.id &&
+  prev.message.msg_id === next.message.msg_id &&
+  prev.message.conversation_id === next.message.conversation_id &&
   prev.message.content === next.message.content &&
+  prev.message.artifact_refs === next.message.artifact_refs &&
   prev.message.position === next.message.position &&
   prev.message.type === next.message.type &&
   prev.message.status === next.message.status &&
@@ -31,3 +34,25 @@ export const areMessageItemPropsEqual = (prev: MessageItemMemoProps, next: Messa
   prev.showReadCursorDivider === next.showReadCursorDivider &&
   prev.readCursorDividerFaded === next.readCursorDividerFaded &&
   prev.readCursorAgo === next.readCursorAgo;
+
+export type MessageTextMemoProps = {
+  message: TMessage;
+  messageIndex?: number;
+  showCopyRow?: boolean;
+};
+
+/** MessageText renders artifact links from refs that can arrive after content. */
+export const areMessageTextPropsEqual = (prev: MessageTextMemoProps, next: MessageTextMemoProps): boolean =>
+  prev.showCopyRow === next.showCopyRow &&
+  prev.messageIndex === next.messageIndex &&
+  (prev.message === next.message ||
+    (prev.message.id === next.message.id &&
+      prev.message.msg_id === next.message.msg_id &&
+      prev.message.conversation_id === next.message.conversation_id &&
+      prev.message.content === next.message.content &&
+      prev.message.artifact_refs === next.message.artifact_refs &&
+      prev.message.position === next.message.position &&
+      prev.message.status === next.message.status &&
+      prev.message.terminal_status === next.message.terminal_status &&
+      prev.message.terminal_superseded === next.message.terminal_superseded &&
+      prev.message.round_summary === next.message.round_summary));

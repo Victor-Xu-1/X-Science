@@ -26,6 +26,7 @@ import { useConversationArtifactIndex } from '../artifacts';
 import { presentArtifactReferenceContent } from './artifactReferencePresentation';
 import MessageCronBadge from './MessageCronBadge';
 import { hasRenderableMessageText } from './messageTextVisibility';
+import { areMessageTextPropsEqual } from '../messageItemMemoModel';
 import { splitDeliveryListPresentation } from './deliveryListPresentation';
 import { decodeRoundSummary } from '@/common/chat/roundSummary';
 import MessageRoundFooter from './MessageRoundFooter';
@@ -82,7 +83,7 @@ const MessageText: React.FC<{
   message: IMessageText;
   messageIndex?: number;
   showCopyRow?: boolean;
-}> = ({ message, showCopyRow = true }) => {
+}> = React.memo(({ message, showCopyRow = true }) => {
   // Filter think tags from content before rendering
   // 在渲染前过滤 think 标签
   const contentToRender = useMemo(() => {
@@ -330,6 +331,6 @@ const MessageText: React.FC<{
       )}
     </>
   );
-};
+}, areMessageTextPropsEqual);
 
 export default MessageText;

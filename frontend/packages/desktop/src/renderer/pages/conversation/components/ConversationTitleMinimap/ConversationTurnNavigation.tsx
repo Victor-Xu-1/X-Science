@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TMessage } from '@/common/chat/chatLib';
 import { dispatchChatMessageJump } from '@/renderer/utils/chat/chatMinimapEvents';
@@ -18,6 +18,18 @@ export default function ConversationTurnNavigation({
 }) {
   const { t } = useTranslation();
   const { items, loading, failed, retry } = useTurnIndex(conversationId, messages, windowBranchId);
+  const onJump = useCallback(
+    (messageId: string) => {
+      if (!conversationId) return;
+      dispatchChatMessageJump({
+        conversation_id: conversationId,
+        messageId,
+        align: 'start',
+        behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      });
+    },
+    [conversationId]
+  );
   if (!conversationId || loading) return null;
   if (failed)
     return (
@@ -25,19 +37,5 @@ export default function ConversationTurnNavigation({
         {t('conversation.minimap.retryNavigation')}
       </button>
     );
-  return (
-    <ConversationTurnRail
-      key={conversationId}
-      items={items}
-      viewport={viewport}
-      onJump={(messageId) => {
-        dispatchChatMessageJump({
-          conversation_id: conversationId,
-          messageId,
-          align: 'start',
-          behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
-        });
-      }}
-    />
-  );
+  return <ConversationTurnRail key={conversationId} items={items} viewport={viewport} onJump={onJump} />;
 }
