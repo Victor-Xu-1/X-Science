@@ -6,6 +6,11 @@ from pathlib import Path, PurePosixPath
 # selector runs. Version-only manifests are filtered by pr_metadata_scope.
 PROVENANCE = {"frontend/MIGRATION_MANIFEST.json", "frontend/THIRD_PARTY_LICENSES.json"}
 
+# Static generated settings artwork is not a Vitest module. Bind it to the
+# visual-contract tests that already require and size-budget those files.
+SETTINGS_GENERATED_PREFIX = "frontend/public/branding/settings-generated-v3/"
+SETTINGS_GENERATED_TESTS = ("tests/unit/settings/settingsVisualContract.test.ts",)
+
 
 def _frontend_paths(paths: list[str]) -> list[str]:
     result = []
@@ -30,6 +35,9 @@ def related_command(paths: list[str]) -> list[str] | None:
         # Browser entrypoints are compiled by fixture_command, not claimed as
         # Vitest coverage. Shared data retains its actual test import owners.
         if _browser_fixture(value):
+            continue
+        if value.startswith(SETTINGS_GENERATED_PREFIX):
+            selected.update(SETTINGS_GENERATED_TESTS)
             continue
         if not value.startswith(("frontend/packages/", "frontend/tests/unit/",
                                  "frontend/tests/integration/", "frontend/tests/regression/",
