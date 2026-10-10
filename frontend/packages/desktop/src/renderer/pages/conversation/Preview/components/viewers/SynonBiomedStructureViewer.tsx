@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Empty, Spin } from '@arco-design/web-react';
+import { Spin } from '@arco-design/web-react';
 import { Camera, Down, Left, Lightning, MoreOne, PreviewOpen, Right, Up } from '@icon-park/react';
 import { Color } from 'molstar/lib/mol-util/color/index';
 import { createPortal } from 'react-dom';
@@ -15,8 +15,9 @@ import {
   logScientificPreviewError,
   resolveScientificPreviewError,
   type ScientificPreviewError,
-  scientificPreviewErrorKey,
+  type ScientificPreviewErrorCode,
 } from './scientificPreviewError';
+import { StructurePreviewStatus, useStructurePreviewRetry } from './StructurePreviewStatus';
 import './SynonBiomedStructureViewer.css';
 import { isSynonBiomedHttpError, requestSynonBiomedJson } from '@/renderer/services/synonBiomedHttp';
 import {
@@ -341,6 +342,13 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
   const loadedFilenameRef = useRef(filename);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ScientificPreviewError | null>(null);
+  const { loadRevision, statusRootRef, retryStructure } = useStructurePreviewRetry({
+    content,
+    contentUrl,
+    filename,
+    loading,
+    error,
+  });
   const [tooltip, setTooltip] = useState<MolstarControlTooltip | null>(null);
   const [activePanel, setActivePanel] = useState<QuickPanel>(null);
   const [pocketVisible, setPocketVisible] = useState(false);
@@ -2100,6 +2108,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
     setInteractionDiagramError(null);
     const controller = new AbortController();
     let active = true;
+    let failureCode: ScientificPreviewErrorCode = 'initialize-failed';
     let engine: MolstarStructureEngine | undefined;
     let resizeObserver: ResizeObserver | undefined;
     let resizeScheduler: MolstarViewportResizeScheduler | undefined;
@@ -2183,6 +2192,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
       });
       resizeObserver.observe(host);
 
+      failureCode = 'request-failed';
       const source = await loadStructureContent({
         contentUrl,
         content,
@@ -2191,6 +2201,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
         signal: controller.signal,
       });
       if (!active) return;
+      failureCode = 'parse-failed';
 
       const ensemble = format === 'pdb' && typeof source === 'string' ? parseDockingEnsemble(source) : null;
       const initialDockingIndex = ensemble
@@ -2265,12 +2276,8 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
       }
     })().catch((reason) => {
       if (!active || controller.signal.aborted) return;
-      logScientificPreviewError(
-        '[SynonBiomedStructureViewer] Failed to load structure in Mol*',
-        reason,
-        'parse-failed'
-      );
-      setError(resolveScientificPreviewError(reason, 'parse-failed'));
+      logScientificPreviewError('[SynonBiomedStructureViewer] Failed to load structure in Mol*', reason, failureCode);
+      setError(resolveScientificPreviewError(reason, failureCode));
       setLoading(false);
     });
 
@@ -2288,7 +2295,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
       if (engineRef.current === null) sourceRef.current = null;
       engine?.dispose();
     };
-  }, [content, contentUrl, filename, format]);
+  }, [content, contentUrl, filename, format, loadRevision]);
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -2954,6 +2961,8 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
 
   return (
     <section
+      ref={statusRootRef}
+      tabIndex={-1}
       className='synon-biomed-molstar size-full min-h-0'
       aria-label={t('preview.scientific.structure.preview')}
       data-testid='synon-biomed-molstar-viewer'
@@ -3264,25 +3273,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
             </aside>
           )}
         </div>
-        {loading && !error && (
-          <div
-            className='synon-biomed-molstar__overlay'
-            aria-label={t('preview.scientific.loadingNamed', {
-              name: filename,
-            })}
-          >
-            <Spin />
-          </div>
-        )}
-        {error && (
-          <Empty
-            className='synon-biomed-molstar__overlay'
-            description={t(scientificPreviewErrorKey(error), {
-              kind: t('preview.scientific.structure.kind'),
-              ...error.details,
-            })}
-          />
-        )}
+        <StructurePreviewStatus filename={filename} loading={loading} error={error} onRetry={retryStructure} />
       </div>
       <footer className='synon-biomed-molstar__instructions'>{t('preview.scientific.structure.instructions')}</footer>
       {tooltip && typeof document !== 'undefined'
