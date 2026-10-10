@@ -60,6 +60,8 @@ export type SynonBiomedProjectBench = {
   hasImageOutput: boolean;
 };
 
+export type SynonBiomedLinkedTask = Pick<SynonBiomedProjectBench, 'frameId' | 'projectId' | 'name'>;
+
 export type SynonBiomedProjectFolder = {
   folderId: string;
   projectId: string | null;
@@ -82,6 +84,8 @@ export type SynonBiomedProjectWorkbench = {
 export type SynonBiomedGatewayOptions = {
   baseUrl?: string;
   fetchImpl?: typeof fetch;
+  /** Cancels owned reads; write requests retain their existing server lifecycle. */
+  signal?: AbortSignal;
 };
 
 export type SynonBiomedProjectInput = {
@@ -104,6 +108,26 @@ export async function loadSynonBiomedProjects(options: SynonBiomedGatewayOptions
   const projects = Array.isArray(payload.projects) ? payload.projects : [];
 
   return projects.map(toProject).filter((project): project is SynonBiomedProject => project !== null);
+}
+
+export async function loadSynonBiomedProject(
+  projectId: string,
+  options: SynonBiomedGatewayOptions = {}
+): Promise<SynonBiomedProject> {
+  const project = toProject(await getJson<unknown>(`/api/projects/${encodeURIComponent(projectId)}`, options));
+  if (!project || project.projectId !== projectId) throw new Error('X-Science project metadata identity is invalid');
+  return project;
+}
+
+/** Reads the exact conversation record, not a capped list or its message history. */
+export async function loadSynonBiomedLinkedTask(
+  frameId: string,
+  options: SynonBiomedGatewayOptions = {}
+): Promise<SynonBiomedLinkedTask> {
+  const record = asRecord(await getJson<unknown>(`/api/conversations/${encodeURIComponent(frameId)}`, options));
+  const name = stringValue(record?.name);
+  if (stringValue(record?.id) !== frameId || !name) throw new Error('X-Science linked task identity is invalid');
+  return { frameId, name, projectId: nullableStringValue(asRecord(record?.extra)?.project_id) };
 }
 
 export async function loadSynonBiomedComposerCapabilities(
@@ -219,7 +243,8 @@ export async function loadSynonBiomedProjectBenches(
     );
     return benches.map(toProjectBench).filter((bench): bench is SynonBiomedProjectBench => bench !== null);
   };
-  if (!normalizedProjectId || options.baseUrl || options.fetchImpl) return load();
+  // A caller-owned abort must not cancel another consumer's shared read.
+  if (!normalizedProjectId || options.baseUrl || options.fetchImpl || options.signal) return load();
 
   const requestKey = rendererAccountScopedKey(normalizedProjectId);
   const active = projectBenchRequests.get(requestKey);
@@ -261,17 +286,12 @@ export async function loadSynonBiomedProjectWorkbench(
   options: SynonBiomedGatewayOptions = {}
 ): Promise<SynonBiomedProjectWorkbench> {
   const encodedProjectId = encodeURIComponent(projectId);
-  const [projectPayload, benches, artifactsPayload, foldersPayload] = await Promise.all([
-    getJson<unknown>(`/api/projects/${encodedProjectId}`, options),
+  const [project, benches, artifactsPayload, foldersPayload] = await Promise.all([
+    loadSynonBiomedProject(projectId, options),
     loadSynonBiomedProjectBenches(projectId, options),
     getJson<unknown[]>(`/api/projects/${encodedProjectId}/artifacts`, options),
     getJson<unknown[]>(`/api/projects/${encodedProjectId}/folders`, options),
   ]);
-  const project = toProject(projectPayload);
-  if (!project) {
-    throw new Error(`X-Science project response is invalid: ${projectId}`);
-  }
-
   return {
     project,
     benches,
@@ -288,6 +308,7 @@ async function getJson<T>(path: string, options: SynonBiomedGatewayOptions): Pro
   const fetchImpl = options.fetchImpl ?? fetch;
   const response = await fetchImpl(toGatewayUrl(path, options.baseUrl), {
     headers: { Accept: 'application/json' },
+    ...(options.signal ? { signal: options.signal } : {}),
   });
 
   if (!response.ok) {

@@ -19,6 +19,8 @@ const state = vi.hoisted(() => ({
   lineage: vi.fn(),
   folders: vi.fn(),
   related: vi.fn(),
+  project: vi.fn(),
+  task: vi.fn(),
   suggest: vi.fn(),
   apply: vi.fn(),
   navigate: vi.fn(),
@@ -49,6 +51,8 @@ vi.mock('@/renderer/services/synonBiomedGateway', async (importOriginal) => ({
   loadSynonBiomedArtifact: state.load,
   loadSynonBiomedProjectArtifacts: state.related,
   loadSynonBiomedProjectFolders: state.folders,
+  loadSynonBiomedProject: state.project,
+  loadSynonBiomedLinkedTask: state.task,
 }));
 vi.mock('@/renderer/services/synonBiomedArtifacts', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/renderer/services/synonBiomedArtifacts')>()),
@@ -177,6 +181,8 @@ beforeEach(() => {
   );
   state.lineage.mockReset().mockResolvedValue(null);
   state.related.mockReset().mockResolvedValue([]);
+  state.project.mockReset().mockResolvedValue({ projectId: 'project', name: 'Original project name' });
+  state.task.mockReset().mockResolvedValue({ frameId: 'frame', projectId: 'project', name: 'Original task name' });
   state.folders.mockReset().mockResolvedValue(
     ['artifact-1', 'artifact-2'].map((id) => ({
       folderId: `folder-${id}`,
@@ -217,6 +223,122 @@ beforeEach(() => {
 });
 
 describe('Artifact preview interaction ownership', () => {
+  it('binds details to a selected historical version rather than the latest artifact', async () => {
+    state.load.mockResolvedValueOnce({
+      ...artifact('artifact-1', 2),
+      sizeBytes: 4096,
+      checksum: 'latest-only-checksum',
+    });
+    state.versions.mockResolvedValueOnce([
+      {
+        artifactId: 'artifact-1',
+        versionId: 'artifact-1-v1',
+        versionNumber: 1,
+        contentType: 'text/plain; charset=iso-8859-1',
+        sizeBytes: 1234,
+        createdAt: '2001-01-02T03:04:05Z',
+        frameId: 'old-frame',
+        agentName: 'Original agent',
+      },
+      {
+        artifactId: 'artifact-1',
+        versionId: 'artifact-1-v2',
+        versionNumber: 2,
+        contentType: 'text/plain',
+        sizeBytes: 4096,
+      },
+    ]);
+    await renderPage();
+    fireEvent.click(screen.getByRole('tab', { name: 'Versions' }));
+    const historicalVersion = await screen.findByRole('button', { name: /Version 1/ });
+    await act(async () => {
+      fireEvent.click(historicalVersion);
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('tab', { name: 'Details' }));
+    });
+    const details = screen.getByRole('tabpanel', { name: 'Details' });
+    expect(within(details).getByText('Version 1', { exact: true })).toBeVisible();
+    expect(within(details).getByText('1 KB', { exact: true })).toBeVisible();
+    expect(within(details).getByText('Original agent', { exact: true })).toBeVisible();
+    expect(within(details).getByText(new Date('2001-01-02T03:04:05Z').toLocaleString('en-US'))).toBeVisible();
+    const technical = within(details).getByTestId('artifact-technical-details');
+    fireEvent.click(within(technical).getByText('Technical information'));
+    expect(within(technical).getByText('artifact-1-v1', { exact: true })).toBeVisible();
+    expect(within(technical).getByText('text/plain; charset=iso-8859-1')).toBeVisible();
+    expect(within(technical).getByText('old-frame', { exact: true })).toBeVisible();
+    expect(within(technical).queryByText('latest-only-checksum')).not.toBeInTheDocument();
+    expect(screen.getByTestId('current-preview-url')).toHaveTextContent('/api/artifacts/versions/artifact-1-v1');
+  });
+
+  it.each(['en-US', 'zh-CN'])(
+    'shows real linked context and keeps complete technical data behind disclosure in %s',
+    async (locale) => {
+      const view = await renderWithI18n(<ArtifactPreview />, locale);
+      await screen.findByRole('heading', { name: 'artifact-1.txt' });
+      expect(await screen.findByRole('link', { name: 'Original project name', exact: true })).toHaveAttribute(
+        'href',
+        '#/projects/project'
+      );
+      expect(await screen.findByRole('link', { name: 'Original task name', exact: true })).toHaveAttribute(
+        'href',
+        '#/conversation/frame'
+      );
+      const technical = screen.getByTestId('artifact-technical-details');
+      expect(within(technical).getByText('fixture-checksum')).not.toBeVisible();
+      const summary = within(technical).getByText(view.i18n.t('preview.artifact.details.technical'));
+      fireEvent.click(summary);
+      await waitFor(() => expect(within(technical).getByText('fixture-checksum')).toBeVisible());
+      expect(within(technical).getByText('artifact-1-v1')).toBeVisible();
+      expect(screen.getByTestId('current-preview-url')).toHaveTextContent('/api/artifacts/artifact-1');
+    }
+  );
+
+  it('keeps an available context link and retries only its failed name read', async () => {
+    state.project.mockRejectedValueOnce(new Error('fixture project metadata failure'));
+    await renderPage();
+    expect(await screen.findByRole('link', { name: 'Open project', exact: true })).toHaveAttribute(
+      'href',
+      '#/projects/project'
+    );
+    expect(await screen.findByRole('link', { name: 'Original task name', exact: true })).toBeVisible();
+    const retry = await screen.findByRole('button', { name: 'Retry Project', exact: true });
+    act(() => retry.focus());
+    fireEvent.click(retry);
+    expect(await screen.findByRole('link', { name: 'Original project name', exact: true })).toBeVisible();
+    expect(state.project).toHaveBeenCalledTimes(2);
+    expect(state.task).toHaveBeenCalledTimes(1);
+    expect(state.load).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('current-preview-url')).toHaveTextContent('/api/artifacts/artifact-1');
+  });
+
+  it('links the real root task rather than a generating child and retains original identities', async () => {
+    state.load.mockImplementation(async (id: string) => ({
+      ...artifact(id),
+      rootFrameId: 'parent/task',
+      frameId: 'child',
+    }));
+    state.task.mockResolvedValue({ frameId: 'parent/task', projectId: 'project', name: '用户的原始任务名称' });
+    state.versions.mockResolvedValueOnce([
+      { artifactId: 'artifact-1', versionId: 'artifact-1-v1', versionNumber: 1, frameId: 'child', sizeBytes: 50 },
+    ]);
+    await renderPage();
+    expect(await screen.findByRole('link', { name: '用户的原始任务名称', exact: true })).toHaveAttribute(
+      'href',
+      '#/conversation/parent%2Ftask'
+    );
+    expect(screen.queryByRole('link', { name: 'Child workbench' })).not.toBeInTheDocument();
+    const technical = screen.getByTestId('artifact-technical-details');
+    fireEvent.click(within(technical).getByText('Technical information'));
+    await waitFor(() => expect(within(technical).getByText('child')).toBeVisible());
+    expect(within(technical).getByText('parent/task')).toBeVisible();
+    expect(state.project).toHaveBeenCalledTimes(1);
+    expect(state.task).toHaveBeenCalledWith(
+      'parent/task',
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    );
+  });
+
   it('shows the file before slow auxiliary metadata without hiding healthy peers', async () => {
     state.versions.mockReturnValueOnce(new Promise(() => {}));
     await renderPage();
@@ -311,12 +433,17 @@ describe('Artifact preview interaction ownership', () => {
     await renderPage();
     await openRefinement();
     state.versions.mockReturnValueOnce(new Promise(() => {}));
-    state.load.mockResolvedValueOnce(artifact('artifact-1', 2));
+    state.load.mockResolvedValueOnce({ ...artifact('artifact-1', 2), checksum: 'new-version-checksum' });
     fireEvent.click(screen.getByRole('button', { name: 'Apply as new version' }));
     await waitFor(() =>
       expect(screen.getByTestId('current-preview-url')).toHaveTextContent('/api/artifacts/versions/artifact-1-v2')
     );
     expect(state.apply).toHaveBeenCalledTimes(1);
+    const technical = screen.getByTestId('artifact-technical-details');
+    fireEvent.click(within(technical).getByText('Technical information'));
+    expect(within(technical).getByText('artifact-1-v2', { exact: true })).toBeInTheDocument();
+    expect(within(technical).queryByText('fixture-checksum')).not.toBeInTheDocument();
+    expect(within(technical).getByText('new-version-checksum')).toBeInTheDocument();
   });
 
   it('ignores a previous file folder read finishing after the route changed', async () => {

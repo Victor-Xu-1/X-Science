@@ -465,6 +465,13 @@
     "projectRoot": "项目根目录",
     "details": {
       "filename": "文件名",
+      "technical": "技术信息",
+      "displayedVersion": "显示版本",
+      "openProject": "打开项目",
+      "openTask": "打开任务",
+      "artifactId": "文件 ID",
+      "versionId": "版本 ID",
+      "rootTaskId": "主任务 ID",
       "contentType": "内容类型",
       "size": "大小",
       "currentVersion": "当前版本",

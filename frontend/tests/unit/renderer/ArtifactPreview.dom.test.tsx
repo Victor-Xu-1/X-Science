@@ -118,6 +118,8 @@ vi.mock('react-router', () => ({
 }));
 
 vi.mock('@/renderer/services/synonBiomedGateway', () => ({
+  loadSynonBiomedProject: async (projectId: string) => ({ projectId, name: 'Fixture project' }),
+  loadSynonBiomedLinkedTask: async (frameId: string) => ({ frameId, name: 'Fixture task', projectId: null }),
   loadSynonBiomedArtifact: (...args: unknown[]) => loadArtifactMock(...args),
   loadSynonBiomedProjectArtifacts: async () => [await loadArtifactMock()],
   getSynonBiomedArtifactContentUrl: (artifactId: string) => `/api/artifacts/${artifactId}`,

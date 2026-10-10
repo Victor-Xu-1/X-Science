@@ -465,6 +465,13 @@
     "projectRoot": "Project root",
     "details": {
       "filename": "Filename",
+      "technical": "Technical information",
+      "displayedVersion": "Displayed version",
+      "openProject": "Open project",
+      "openTask": "Open task",
+      "artifactId": "Artifact ID",
+      "versionId": "Version ID",
+      "rootTaskId": "Root task ID",
       "contentType": "Content type",
       "size": "Size",
       "currentVersion": "Current version",

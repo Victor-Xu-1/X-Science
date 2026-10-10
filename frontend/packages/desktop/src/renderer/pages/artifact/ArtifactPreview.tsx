@@ -7,7 +7,6 @@ import {
   getSynonBiomedArtifactContentUrl,
   loadSynonBiomedArtifact,
   type SynonBiomedProjectArtifact,
-  type SynonBiomedProjectFolder,
 } from '@/renderer/services/synonBiomedGateway';
 import { resolveSynonBiomedArtifactPreviewPlan } from '@/renderer/services/synonBiomedArtifactPreview';
 import {
@@ -26,7 +25,6 @@ import {
   LazyUnsupportedPreview as UnsupportedPreview,
 } from '@/renderer/pages/conversation/Preview/components/viewers/scientificPreviewLoaders';
 import PreviewLoadingState from '@/renderer/components/media/PreviewLoadingState';
-import { PRODUCT_NAME } from '@/common/config/productIdentity';
 import SynonBiomedNotesModal from '@/renderer/components/synonBiomed/notes/SynonBiomedNotesModal';
 import type { SynonBiomedArtifactTextSelection } from './artifactTextSelection';
 import type { SynonBiomedArtifactCanvasSelection } from './artifactCanvasSelection';
@@ -36,7 +34,9 @@ import { ArtifactSelectionAnnotationModal } from './ArtifactSelectionAnnotationM
 import { ArtifactFileActionModal } from './ArtifactFileActionModal';
 import { ArtifactPageState } from './ArtifactPageState';
 import { ArtifactMetadataState } from './ArtifactMetadataState';
-import { useArtifactMetadataReads, type ArtifactReadState } from './useArtifactMetadataReads';
+import { useArtifactMetadataReads } from './useArtifactMetadataReads';
+import { ArtifactDetails } from './ArtifactDetails';
+import { formatBytes, formatDate } from './artifactPresentation';
 import type { ArtifactFileAction } from './useArtifactFileActionEditor';
 import {
   loadSynonBiomedArtifactAnnotations,
@@ -377,6 +377,9 @@ const ArtifactPreview: React.FC = () => {
               <Tabs.TabPane key='details' title={t('preview.artifact.tabs.details')}>
                 <ArtifactDetails
                   artifact={artifact}
+                  displayMetadata={displayMetadata}
+                  displayVersion={displayVersion}
+                  versionId={activeVersionId}
                   folders={metadata.folders}
                   owner={metadata.owner}
                   onRetryFolders={() => metadata.retry('folders')}
@@ -565,73 +568,6 @@ async function loadArtifactSnapshot(artifactId: string): Promise<ArtifactSnapsho
   const artifact = await loadSynonBiomedArtifact(artifactId);
   return { artifact };
 }
-
-const ArtifactDetails: React.FC<{
-  artifact: SynonBiomedProjectArtifact;
-  folders: ArtifactReadState<SynonBiomedProjectFolder[]>;
-  owner: string;
-  onRetryFolders: () => void;
-}> = ({ artifact, folders, owner, onRetryFolders }) => {
-  const { t, i18n } = useTranslation();
-  const folder = folders.value.find((item) => item.folderId === artifact.folderId);
-  return (
-    <dl className='m-0 px-16px pb-18px grid grid-cols-[92px_minmax(0,1fr)] gap-x-10px gap-y-12px text-12px'>
-      <Detail label={t('preview.artifact.details.filename')} value={artifact.filename} />
-      <Detail
-        label={t('preview.artifact.details.contentType')}
-        value={artifact.contentType ?? t('preview.artifact.unknown')}
-      />
-      <Detail label={t('preview.artifact.details.size')} value={formatBytes(artifact.sizeBytes)} />
-      <Detail
-        label={t('preview.artifact.details.currentVersion')}
-        value={t('preview.artifact.versionLabel', {
-          version: artifact.versionNumber || 1,
-        })}
-      />
-      <dt className='text-t-tertiary'>{t('preview.artifact.details.folder')}</dt>
-      <dd className='m-0 min-w-0 break-all text-t-primary'>
-        <ArtifactMetadataState
-          state={folders}
-          label={t('preview.artifact.details.folder')}
-          owner={owner}
-          compact
-          onRetry={onRetryFolders}
-        >
-          {!artifact.folderId
-            ? t('preview.artifact.projectRoot')
-            : (folder?.name ?? t('preview.artifact.metadata.folderMissing'))}
-        </ArtifactMetadataState>
-      </dd>
-      <Detail label={t('preview.artifact.details.agent')} value={artifact.agentName ?? PRODUCT_NAME} />
-      <Detail
-        label={t('preview.artifact.details.project')}
-        value={artifact.projectId ?? t('preview.artifact.notLinked')}
-        mono
-      />
-      <Detail
-        label={t('preview.artifact.details.task')}
-        value={artifact.frameId ?? artifact.rootFrameId ?? t('preview.artifact.notLinked')}
-        mono
-      />
-      <Detail
-        label={t('preview.artifact.details.checksum')}
-        value={artifact.checksum ?? t('preview.artifact.notProvided')}
-        mono
-      />
-      <Detail
-        label={t('preview.artifact.details.createdAt')}
-        value={formatDate(artifact.createdAt, i18n.language, t('preview.artifact.unknown'))}
-      />
-    </dl>
-  );
-};
-
-const Detail: React.FC<{ label: string; value: string; mono?: boolean }> = ({ label, value, mono }) => (
-  <>
-    <dt className='text-t-tertiary'>{label}</dt>
-    <dd className={`m-0 min-w-0 break-all text-t-primary ${mono ? 'font-mono text-11px' : ''}`}>{value}</dd>
-  </>
-);
 
 const ArtifactVersions: React.FC<{
   versions: SynonBiomedArtifactVersion[];
@@ -949,18 +885,6 @@ function selectionToolbarStyle(selection: SynonBiomedArtifactCanvasSelection): R
   const left = Math.max(68, Math.min(selection.x, window.innerWidth - 68));
   const top = Math.max(12, Math.min(selection.y + 8, window.innerHeight - 48));
   return { left, top, transform: 'translateX(-50%)' };
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function formatDate(value: string | null, language: string, unknownLabel: string): string {
-  if (!value) return unknownLabel;
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString(language);
 }
 
 function formatStructuredValue(value: unknown): string {
