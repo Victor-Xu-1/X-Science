@@ -16,7 +16,8 @@ def related_command(paths: list[str]) -> list[str] | None:
         if not value.startswith("frontend/") or value in PROVENANCE:
             continue
         if not value.startswith(("frontend/packages/", "frontend/tests/unit/",
-                                 "frontend/tests/integration/", "frontend/tests/regression/")):
+                                 "frontend/tests/integration/", "frontend/tests/regression/",
+                                 "frontend/tests/fixtures/", "frontend/tests/web-e2e/")):
             raise ValueError("frontend test ownership is not known for " + value +
                              "; bind focused coverage instead of running a global suite")
         if value.endswith(".real.test.ts"):

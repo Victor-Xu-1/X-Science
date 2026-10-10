@@ -19,6 +19,22 @@ class FrontendRelatedScopeTests(unittest.TestCase):
         self.assertNotIn("--passWithNoTests", command)
         self.assertNotIn("--retry", command)
 
+    def test_shared_fixtures_and_browser_fixtures_are_related_inputs(self):
+        command = related_command([
+            "frontend/tests/fixtures/structureLigands.ts",
+            "frontend/tests/web-e2e/structureLigandSelection.fixture.tsx",
+            "frontend/tests/web-e2e/structureLigandSelection.fixture.html",
+            "frontend/tests/unit/previews/structureLigandSelection.test.ts",
+        ])
+        self.assertEqual(command, ["npx", "--no-install", "vitest", "related", "--run",
+                                  "--project", "node", "--project", "dom",
+                                  "tests/fixtures/structureLigands.ts",
+                                  "tests/unit/previews/structureLigandSelection.test.ts",
+                                  "tests/web-e2e/structureLigandSelection.fixture.html",
+                                  "tests/web-e2e/structureLigandSelection.fixture.tsx"])
+        self.assertNotIn("--passWithNoTests", command)
+        self.assertNotIn("--retry", command)
+
     def test_provenance_and_non_frontend_inputs_do_not_authorize_global_tests(self):
         self.assertIsNone(related_command(["docs/modules/science.md",
                                          "frontend/MIGRATION_MANIFEST.json",
