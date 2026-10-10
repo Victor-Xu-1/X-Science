@@ -1,7 +1,4 @@
-import {
-  clearSynonBiomedExpertProfileReads,
-  loadSynonBiomedAgents,
-} from '@/renderer/services/synonBiomedCapabilities';
+import { clearSynonBiomedExpertProfileReads, loadSynonBiomedAgents } from '@/renderer/services/synonBiomedCapabilities';
 import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 

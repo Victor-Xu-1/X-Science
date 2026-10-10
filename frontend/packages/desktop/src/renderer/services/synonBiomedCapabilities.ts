@@ -187,7 +187,9 @@ export async function loadSynonBiomedAgents(options: SynonBiomedCapabilityOption
     const payloadRecord = asRecord(payload);
     const agents = Array.isArray(payload) ? payload : Array.isArray(payloadRecord?.data) ? payloadRecord.data : [];
 
-    return agents.map(toAgent).filter((agent): agent is SynonBiomedAgent => agent !== null && agent.userHidden === false);
+    return agents
+      .map(toAgent)
+      .filter((agent): agent is SynonBiomedAgent => agent !== null && agent.userHidden === false);
   });
 }
 
