@@ -113,10 +113,10 @@ func (eofBody) Read([]byte) (int, error) { return 0, io.ErrUnexpectedEOF }
 func (eofBody) Close() error             { return nil }
 
 type statusFetcher struct {
-	status    int
-	body      io.ReadCloser
-	fetchErr  error
-	urls      []string
+	status   int
+	body     io.ReadCloser
+	fetchErr error
+	urls     []string
 }
 
 func (f *statusFetcher) Fetch(_ context.Context, target string, _ securefetch.Policy) (*securefetch.Response, error) {
@@ -130,7 +130,7 @@ func (f *statusFetcher) Fetch(_ context.Context, target string, _ securefetch.Po
 func TestSearchMapsDroppedSuccessBodyToUpstreamUnavailable(t *testing.T) {
 	t.Run("truncated search envelope", func(t *testing.T) {
 		client := New(Options{
-			Fetcher: &statusFetcher{status: 200, body: eofBody{}},
+			Fetcher:  &statusFetcher{status: 200, body: eofBody{}},
 			MaxBytes: 1 << 20, Timeout: time.Second,
 		})
 		_, err := client.Search(context.Background(), Input{Query: "KEAP1 NRF2"})
@@ -153,7 +153,7 @@ func TestSearchMapsDroppedSuccessBodyToUpstreamUnavailable(t *testing.T) {
 
 	t.Run("fetch-level disconnect", func(t *testing.T) {
 		client := New(Options{
-			Fetcher: &statusFetcher{fetchErr: io.ErrUnexpectedEOF},
+			Fetcher:  &statusFetcher{fetchErr: io.ErrUnexpectedEOF},
 			MaxBytes: 1 << 20, Timeout: time.Second,
 		})
 		_, err := client.Search(context.Background(), Input{Query: "KEAP1 NRF2"})
