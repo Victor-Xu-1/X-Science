@@ -30,6 +30,7 @@ describe('owned structure action focus', () => {
   afterEach(() => {
     wrapper.remove();
     outside.remove();
+    opener.remove();
     vi.unstubAllGlobals();
   });
 
@@ -93,6 +94,14 @@ describe('owned structure action focus', () => {
     root.remove();
     restoreStructureActionFocus(snapshot, () => true);
     expect(document.activeElement).toBe(document.body);
+  });
+
+  it('does not reclaim a control relocated to another owner', () => {
+    const snapshot = captureStructureActionFocus(root);
+    document.body.append(opener);
+    opener.focus();
+    restoreStructureActionFocus(snapshot, () => true);
+    expect(opener).toHaveFocus();
   });
 
   it.each(['new-action', 'unmount'] as const)('cancels a queued restoration on %s', (reason) => {

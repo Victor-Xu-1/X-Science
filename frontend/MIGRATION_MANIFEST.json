@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "5ac8772a54180d6874d39a9d269dacbe8d1725cf4358620e229b32f40333a1ed",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "0198350d51fe7544cbc0447eae52bddc0c446c593abb4284b7fb663a6a6410b7",
+  "additionFingerprintSHA256": "46196983fce0dfcce2d86db62702b0705733c5318a326b5630a72f8707b8682f",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 345,
@@ -8158,8 +8158,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/structureActionFocus.ts",
-      "sha256": "59a19f27d3312b619cac4398fba6ed65ac7e5a5c579349cea1d40c5ff194f71a",
-      "bytes": 3256,
+      "sha256": "f58b3958ebdbd628ed6d87f41e539961a10921df7aefce2ab8a3e9caaf1402c3",
+      "bytes": 3316,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10210,8 +10210,8 @@
     },
     {
       "path": "tests/unit/previews/structureActionFocus.dom.test.tsx",
-      "sha256": "45c92f802d0f4a84d6b49ce0d215ce2211bd15432e7efa7a2b50c3e03bdb12a5",
-      "bytes": 5236,
+      "sha256": "528e2f87904e45cba69ef859f03eba1f89c18a8efd0262f754159bcf609f9a59",
+      "bytes": 5533,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

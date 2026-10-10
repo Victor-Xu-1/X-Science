@@ -22,6 +22,7 @@ export function captureStructureActionFocus(root: HTMLElement | null): ActionFoc
 export function restoreStructureActionFocus(snapshot: ActionFocus | null, isCurrent: () => boolean): void {
   if (!snapshot || !isCurrent() || !snapshot.root.isConnected) return;
   const { root, opener, parents } = snapshot;
+  if (opener.isConnected && !root.contains(opener)) return;
   const current = root.ownerDocument.activeElement;
   // Another destination, including one in this same viewer, wins. A native
   // disabled button can instead leave focus on itself or on BODY.
