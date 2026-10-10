@@ -70,6 +70,7 @@ import { StructureObjectList } from './StructureObjectList';
 import { StructureActionRequirements } from './StructureActionRequirements';
 import { structureActionUnavailableReason, type StructureAction } from './structureActionAvailability';
 import { selectCurrentPdbModel } from './structureMinimizationInput';
+import { restoreChemicalPoseResult } from './structureChemicalPoseResult';
 import type { MolstarStructureComposition, StructureObjectKind } from './structureComposition';
 
 export { resolveStructureFormat } from './structureSource';
@@ -1889,7 +1890,8 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
           ? selectCurrentPdbModel(sourceRef.current, engine.getTrajectoryModelState().index)
           : undefined;
       const currentPose = engine.exportMinimizationPose(authoritativePdb);
-      const basename = (loadedFilenameRef.current || filename).replace(/\.[^.]+$/, '') || 'ligand';
+      // Keep the original basename; repeated minimization must not accumulate output suffixes.
+      const basename = filename.replace(/\.[^.]+$/, '') || 'ligand';
 
       const response = await requestSynonBiomedJson<StructureMinimizationResponse>(
         `/api/frames/${encodeURIComponent(operationFrameId)}/structure-minimization`,
@@ -1898,11 +1900,11 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             content: currentPose.content,
-            filename: `${basename}-current-pose.pdb`,
+            filename: `${basename}-current-pose.${currentPose.format}`,
             force_field: 'uff',
             scope: 'ligand',
             protein_environment: 'fixed',
-            ligand_residue_name: ligandResidueName,
+            ligand_residue_name: currentPose.ligandResidueName,
             ligand_atom_serial: currentPose.ligandAtomSerial,
             max_iterations: 200,
             tolerance: 1e-4,
@@ -1914,6 +1916,15 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
       if (!response.ok || !response.content || !response.filename || !response.format) {
         throw new Error(response.message || 'STRUCTURE_MINIMIZATION_FAILED');
       }
+      const loadedResult =
+        currentPose.format === 'pdb'
+          ? { content: response.content, filename: response.filename, format: response.format }
+          : await restoreChemicalPoseResult(currentPose, {
+              content: response.content,
+              filename: response.filename,
+              format: response.format,
+            });
+      if (!isCurrent()) return;
 
       cancelScheduledPocketInteractionStrengthRefresh();
       pocketStrengthRequestRef.current += 1;
@@ -2015,9 +2026,9 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
           });
         }
       } else {
-        const nextComposition = await engine.load(response.content, response.filename, response.format);
+        const nextComposition = await engine.load(loadedResult.content, loadedResult.filename, loadedResult.format);
         if (!isCurrent()) return;
-        if (response.format === 'pdb')
+        if (response.format === 'pdb' && currentPose.format === 'pdb')
           await engine.setStructureLigandSelectionByAtomSerial(currentPose.ligandAtomSerial);
         if (!isCurrent()) return;
         // Replacing coordinates invalidates both completed and in-flight 2D
@@ -2033,8 +2044,8 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
         setStructureComposition(nextComposition);
         setSelectedStructureLigandIds(engine.getStructureLigandSelection());
         setStructureObjectVisibility({ protein: true, ligand: true });
-        sourceRef.current = response.content;
-        loadedFilenameRef.current = response.filename;
+        sourceRef.current = loadedResult.content;
+        loadedFilenameRef.current = loadedResult.filename;
       }
       if (!isCurrent()) return;
       setTrajectoryModel(engine.getTrajectoryModelState());

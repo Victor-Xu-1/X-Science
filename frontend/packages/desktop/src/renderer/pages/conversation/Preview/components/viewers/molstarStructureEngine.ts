@@ -48,6 +48,7 @@ import {
   resolveStructureLigandInstanceByAtomSerial,
 } from './structureLigandSelection';
 import { createStructureMinimizationPose, type StructureMinimizationPose } from './structureMinimizationInput';
+import { isChemicalPoseFormat, type ChemicalPoseSource } from './structureChemicalPoseInput';
 import { createLigandSurfaceComponents, resolveNativeLigandSurfacePlans } from './molstarLigandSurfaces';
 import { restorePdbqtTopology } from './pdbqtTopology';
 import { resolveSurfaceColorSettings, type MolstarElectrostaticVolume } from './molstarElectrostaticTheme';
@@ -1389,6 +1390,7 @@ export function createPoseAtoms(structure: Structure, selection: StructureElemen
       atoms.push({
         nativeKey: atomKey,
         sourceSerial: readPoseNumber(atomicConformation.atomId, atomIndex, 0),
+        sourceIndex: hierarchy.atomSourceIndex?.value(atomIndex),
         recordName: isProteinAtom(unit, atomIndex) ? 'ATOM' : 'HETATM',
         serial: atoms.length + 1,
         atomName: readPoseString(
@@ -1466,11 +1468,18 @@ export async function createMolstarStructureEngine(
   };
   let selectedDockingLigandResidueName: string | undefined;
   let loadedFormat = '';
+  const chemicalSources = new WeakMap<Model, ChemicalPoseSource>();
   const restoredSmiles = new WeakMap<Model, string>();
   const parseChemicalTrajectory = async (source: string | ArrayBuffer, filename: string, format: string) => {
     const restored =
       format === 'pdbqt' && typeof source === 'string'
         ? await restorePdbqtTopology(source, parseSmilesMolBlock)
+        : undefined;
+    const chemicalFormat = restored ? 'sdf' : format;
+    const chemicalContent = restored?.source ?? source;
+    const chemicalSource =
+      isChemicalPoseFormat(chemicalFormat) && typeof chemicalContent === 'string'
+        ? { content: chemicalContent, format: chemicalFormat }
         : undefined;
     const raw = await plugin.builders.data.rawData({
       data: restored?.source ?? source,
@@ -1481,11 +1490,14 @@ export async function createMolstarStructureEngine(
       (restored ? 'sdf' : format) as MolstarTrajectoryFormat
     );
     const data = trajectory.cell?.obj?.data;
-    if (restored && data) {
+    if ((restored || chemicalSource) && data) {
       const models = await Promise.all(
         Array.from({ length: data.frameCount }, (_, index) => Task.resolveInContext(data.getFrameAtIndex(index)))
       );
-      models.forEach((model, index) => restoredSmiles.set(model, restored.smiles[index]));
+      models.forEach((model, index) => {
+        if (restored) restoredSmiles.set(model, restored.smiles[index]);
+        if (chemicalSource) chemicalSources.set(model, { ...chemicalSource, modelIndex: index });
+      });
     }
     return trajectory;
   };
@@ -2592,7 +2604,8 @@ export async function createMolstarStructureEngine(
     ) {
       throw new Error('MOLSTAR_MINIMIZATION_SOURCE_COORDINATES_TRANSFORMED');
     }
-    return createStructureMinimizationPose(atoms, keys, instance.residueName, sourcePdb);
+    const chemicalSource = chemicalSources.get(instance.loci.elements[0].unit.model);
+    return createStructureMinimizationPose(atoms, keys, instance.residueName, sourcePdb, chemicalSource);
   };
   const notifySelectionChange = () => onSelectionChange?.(getSelectionSummary());
   const selectionSubscription = plugin.managers.structure.selection.events.changed.subscribe(notifySelectionChange);

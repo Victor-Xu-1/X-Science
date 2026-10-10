@@ -46,7 +46,12 @@ describe('native minimization input authority', () => {
     const selected = createPoseAtoms(structure, instances[2].loci);
     const keys = new Set(selected.flatMap((atom) => (atom.nativeKey ? [atom.nativeKey] : [])));
     const original = createStructureMinimizationPose(atoms, keys, 'UNL', MULTI_LIGAND_PDB);
-    expect(original).toEqual({ content: MULTI_LIGAND_PDB, ligandResidueName: 'UNL', ligandAtomSerial: 13 });
+    expect(original).toEqual({
+      content: MULTI_LIGAND_PDB,
+      format: 'pdb',
+      ligandResidueName: 'UNL',
+      ligandAtomSerial: 13,
+    });
     const projected = createStructureMinimizationPose(atoms, keys, 'UNL');
     expect(projected.content.split('\n').filter((line) => /^(ATOM  |HETATM)/.test(line))).toHaveLength(14);
     const chosen = atoms.find((atom) => atom.nativeKey && keys.has(atom.nativeKey))!;
