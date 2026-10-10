@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "8f06212dee3b03959c651899859780135995586c5a09f9c053491847063fb4e0",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "09995494efd9d6018b21a25b4f3fe89c16eabdc1d9086778727c2d6c8a2b7c91",
+  "additionFingerprintSHA256": "067e3c97914600ed75fe3c292910ab1e775b2cb3477e77a21816eb82bd5373c1",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 345,
@@ -8584,7 +8584,7 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/settings/components/SettingsGeneratedAsset.tsx",
-      "sha256": "c8d64677a8275a2b6223b0c23b658adf4bcb7e09870104e98d2d0d1081ab07c9",
+      "sha256": "a90fa9d573c778644a5181c35427f6a97b9ec21ba8b49928d6a7578b10f2c6ae",
       "bytes": 6318,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
@@ -8692,7 +8692,7 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/settings/components/settings-generated-v3.provenance.json",
-      "sha256": "836ba69f0858c64ea160fa7d62dbdd3024fb4136e0f13a86a2cff8763d7785a5",
+      "sha256": "bc0870d193bd87913d782f82c199e3980b3130721954a2d9cf42f6476af00844",
       "bytes": 1185,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
@@ -9262,8 +9262,8 @@
     },
     {
       "path": "public/branding/settings-generated-v3/artwork/account-network.png",
-      "sha256": "09412fff9d396f62ec6a2981938dbb238db6f2710b2cea708adcd23ef388e52e",
-      "bytes": 1091309,
+      "sha256": "a5f5479ff2204af1a0c79e4dc551a724d66fba52c4d4e5f2a397807d42087a3f",
+      "bytes": 210838,
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
@@ -9304,8 +9304,8 @@
     },
     {
       "path": "public/branding/settings-generated-v3/artwork/network-globe.png",
-      "sha256": "9103c361907e600011356e082e3e85747868d83c89f7b7d775c7653800750716",
-      "bytes": 844887,
+      "sha256": "2c0a9308cbfffb7c3f79767a6557648faa7ec81257c7100d08b26ab9ac23bea5",
+      "bytes": 106419,
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
@@ -11152,8 +11152,8 @@
     },
     {
       "path": "tests/unit/settings/settingsVisualContract.test.ts",
-      "sha256": "04a5b5f7504b1b8846e720ea176f9f1042dc4d61c1efbda8f1ed423382fe42e7",
-      "bytes": 12374,
+      "sha256": "2051f85a9d3ad7044cd9d926eedd4a1fe33f1bd98c678d9e01f7021a919541de",
+      "bytes": 12908,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
