@@ -15,6 +15,7 @@ export function ArtifactMetadataState({
   owner,
   onRetry,
   hasCachedValue = false,
+  showKnownContent = false,
   className,
   compact = false,
   children,
@@ -24,6 +25,7 @@ export function ArtifactMetadataState({
   owner: string;
   onRetry: () => void;
   hasCachedValue?: boolean;
+  showKnownContent?: boolean;
   className?: string;
   compact?: boolean;
   children?: React.ReactNode;
@@ -72,7 +74,7 @@ export function ArtifactMetadataState({
           {hasCachedValue && <p className='m-0 text-11px text-t-tertiary'>{t('preview.artifact.metadata.cached')}</p>}
         </div>
       )}
-      {(state.status === 'ready' || hasCachedValue) && children}
+      {(state.status === 'ready' || hasCachedValue || showKnownContent) && children}
     </div>
   );
 }

@@ -116,6 +116,32 @@ Skill 详情的文件读取及保存、发布、删除和复制回执同样归�
 不能覆盖新选择；服务校验返回的文件与版本身份。`pending` 表示来源记录尚未就绪，
 不是仍有后台生成过程在运行的证据，因此界面不据此宣称历史任务仍在生成。
 
+File details prioritize the displayed version, location, origin, and real linked
+project/task names. Native hash links retain browser keyboard and modified-click
+behavior. Task navigation uses the recorded root task when present, while the
+original frame identity remains in the collapsed technical information together
+with complete filename, MIME, artifact/version IDs and checksum. No stored data
+or scientific content is rewritten for this presentation.
+
+文件详情默认突出显示版本、所在位置、来源和真实项目/任务名称。原生内部链接保留
+键盘及修饰键点击行为；有根任务身份时，关联任务进入原根任务，原始生成 frame
+身份仍完整保留在可展开的技术信息中，与文件名、MIME、文件/版本 ID 和校验值一起
+查看。显示优化不改写存储记录或科研内容。
+
+Optional context names use small project metadata and task-summary reads, not a
+full conversation or workbench fetch. Reads are independent, owner-fenced,
+cancelled on departure and bounded to 15 seconds; failures remain recoverable
+without automatic retries or rereading healthy peers. A known navigation
+identity stays usable while its display name is unavailable. Locale or displayed
+version changes do not refresh unchanged context identity; source-owned names
+are not translated. Caller-owned cancellation never cancels shared bench reads
+or claims cancellation of server-side writes.
+
+辅助名称只读取小型项目元数据与任务摘要，不获取完整对话或工作台。读取独立管理，
+切换上下文/离开时取消，15 秒超时可重试，不自动循环或重读健康同伴。名称暂不可用
+时，已知关联入口仍能使用；语言或显示版本变化不重读未变的上下文身份，也不翻译
+源记录名称。请求取消不影响其他共享读取，不宣称取消服务端写入。
+
 图片预览提供适应窗口、原始尺寸和逐级缩放；超出视口的原图可滚动阅读，切换缩放
 保留当前阅读中心，不裁切或改写原始像素。图片视口获得焦点后，`+`/`-` 缩放，`0`
 恢复原始尺寸，`F` 适应窗口，方向键平移；浏览器组合快捷键及批注按钮的键盘操作

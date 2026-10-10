@@ -3,6 +3,8 @@ import {
   loadSynonBiomedAssistantComposerCapabilities,
   loadSynonBiomedComposerCapabilities,
   loadSynonBiomedProjectBenches,
+  loadSynonBiomedProject,
+  loadSynonBiomedProjectWorkbench,
 } from '@/renderer/services/synonBiomedGateway';
 
 function deferred<T>() {
@@ -15,6 +17,57 @@ function deferred<T>() {
 
 describe('X-Science project gateway request authority', () => {
   afterEach(() => vi.unstubAllGlobals());
+
+  it('reads only exact project metadata, with encoded identity and caller cancellation', async () => {
+    const controller = new AbortController();
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(JSON.stringify({ project_id: 'project/a', name: '原始项目名称' })));
+    expect(
+      await loadSynonBiomedProject('project/a', { fetchImpl: fetchMock, signal: controller.signal })
+    ).toMatchObject({ projectId: 'project/a', name: '原始项目名称' });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/projects/project%2Fa',
+      expect.objectContaining({ signal: controller.signal })
+    );
+  });
+
+  it('rejects a project metadata response for another identity', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(JSON.stringify({ project_id: 'other', name: 'Wrong project' })));
+    await expect(loadSynonBiomedProject('expected', { fetchImpl: fetchMock })).rejects.toThrow('identity');
+  });
+
+  it('isolates a caller-owned bench abort from concurrent shared readers', async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(async () => new Response('[]'));
+    vi.stubGlobal('fetch', fetchMock);
+    const controller = new AbortController();
+    await Promise.all([
+      loadSynonBiomedProjectBenches('isolated', { signal: controller.signal }),
+      loadSynonBiomedProjectBenches('isolated'),
+    ]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({ signal: controller.signal });
+    expect(fetchMock.mock.calls[1][1]).not.toHaveProperty('signal');
+  });
+
+  it('keeps the existing workbench on the same project metadata decoder', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockImplementation(
+        async (url) =>
+          new Response(String(url).endsWith('/p') ? JSON.stringify({ project_id: 'p', name: 'Project p' }) : '[]')
+      );
+    expect(await loadSynonBiomedProjectWorkbench('p', { fetchImpl: fetchMock })).toMatchObject({
+      project: { projectId: 'p', name: 'Project p' },
+      benches: [],
+      artifacts: [],
+      folders: [],
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
 
   it('coalesces only concurrent default bench reads and revalidates after settlement', async () => {
     const first = deferred<Response>();
