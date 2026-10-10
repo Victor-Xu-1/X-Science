@@ -21,6 +21,23 @@ class FrontendRelatedScopeTests(unittest.TestCase):
         self.assertNotIn("--passWithNoTests", command)
         self.assertNotIn("--retry", command)
 
+    def test_shared_and_browser_fixtures_use_distinct_bounded_checks(self):
+        paths = [
+            "frontend/tests/fixtures/structureLigands.ts",
+            "frontend/tests/web-e2e/structureLigandSelection.fixture.tsx",
+            "frontend/tests/web-e2e/structureLigandSelection.fixture.html",
+            "frontend/tests/unit/previews/structureLigandSelection.test.ts",
+        ]
+        command = related_command(paths)
+        self.assertEqual(command, ["npx", "--no-install", "vitest", "related", "--run",
+                                  "--project", "node", "--project", "dom",
+                                  "tests/fixtures/structureLigands.ts",
+                                  "tests/unit/previews/structureLigandSelection.test.ts"])
+        fixtures = fixture_command(paths, Path(__file__).resolve().parents[2])
+        self.assertEqual(fixtures[5:], ["tests/web-e2e/structureLigandSelection.fixture.html"])
+        self.assertNotIn("--passWithNoTests", command)
+        self.assertNotIn("--retry", command)
+
     def test_provenance_and_non_frontend_inputs_do_not_authorize_global_tests(self):
         self.assertIsNone(related_command(["docs/modules/science.md",
                                          "frontend/MIGRATION_MANIFEST.json",
@@ -63,7 +80,7 @@ class FrontendRelatedScopeTests(unittest.TestCase):
 
     def test_unknown_configuration_or_dependency_scope_fails_closed(self):
         for path in ["frontend/package-lock.json", "frontend/package.json", "frontend/vitest.config.ts",
-                     "frontend/tests/vitest.dom.setup.ts"]:
+                     "frontend/tests/vitest.dom.setup.ts", "frontend/tests/web-e2e/example.browser.mjs"]:
             with self.subTest(path=path), self.assertRaisesRegex(ValueError, "ownership is not known"):
                 related_command(["frontend/packages/desktop/src/viewer.tsx", path])
 
