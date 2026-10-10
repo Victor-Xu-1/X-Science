@@ -36,3 +36,11 @@ func (e Engine) finishRun(messages []Message, message Message) (RunResult, error
 	}
 	return RunResult{FinalMessage: message, Messages: messages}, nil
 }
+
+// interruptedRun keeps completed conversation state when a later model or
+// control-plane failure ends the attempt. Callers such as plan-mode repair
+// and in-process recovery must see the same tool receipts the durable
+// journal already recorded, not an empty result.
+func interruptedRun(messages []Message, err error) (RunResult, error) {
+	return RunResult{Messages: messages}, err
+}

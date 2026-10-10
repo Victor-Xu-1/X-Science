@@ -48,10 +48,7 @@ func (e Engine) Run(ctx context.Context, request RunRequest) (RunResult, error) 
 	consecutiveNoProgressRounds := 0
 	noProgressRecoveryCalls := []ToolCall{}
 	for {
-		// A cancelled or timed-out run must stop before the next model request
-		// so completed tool rounds stay available to the caller. Emitting
-		// EventModelRequest after cancellation would invent a request that
-		// never happened.
+		// Stop before inventing a model request after cancel or timeout.
 		if err := ctx.Err(); err != nil {
 			return interruptedRun(messages, err)
 		}
@@ -272,12 +269,4 @@ func (e Engine) Run(ctx context.Context, request RunRequest) (RunResult, error) 
 		activeTools = expandEngineToolSchemas(e.Tools, toolSchemaExpansion, hasToolSchemaExpansion, activeTools)
 		toolRounds++
 	}
-}
-
-// interruptedRun keeps completed conversation state when a later model or
-// control-plane failure ends the attempt. Callers such as plan-mode repair
-// and in-process recovery must see the same tool receipts the durable
-// journal already recorded, not an empty result.
-func interruptedRun(messages []Message, err error) (RunResult, error) {
-	return RunResult{Messages: messages}, err
 }
