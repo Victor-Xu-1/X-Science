@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "ef68924b33852e49bc51bffb2934e49107a329943c4e6594a9e923278788f760",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "f6aeb1f4da3a643ef66d7c88c042e7fab4e1d6b4c983e1fffe88e02aff7221b3",
+  "additionFingerprintSHA256": "5155f20aab516da78e105f3280d78d1a6b1354fa2cf81096f257fdd60ec5aa28",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 343,
@@ -7974,8 +7974,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/editors/documentWysiwygModel.ts",
-      "sha256": "ffb0baf24456d3f33d3d4d3ec5670d28af9d258dbe979ac49d8c3088d8edbc15",
-      "bytes": 7355,
+      "sha256": "a3531d2b6d48f65e66d1779ff3f30ec651168e4c930c9fbf0862ed5451a018eb",
+      "bytes": 7443,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10398,8 +10398,8 @@
     },
     {
       "path": "tests/unit/previews/DocumentWysiwygEditor.dom.test.tsx",
-      "sha256": "691142aff82b7e7fccb24c884ae54b38fc41431f0fce1d3642f08b0efa3b7972",
-      "bytes": 21918,
+      "sha256": "24bf20d5be416cf560e235e213825fb0125c76e22dd6158980f449704fbfa652",
+      "bytes": 23969,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
