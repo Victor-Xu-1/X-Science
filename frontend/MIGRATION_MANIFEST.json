@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "4e8f1b540f2ade00a9c2b19716c9818301a3d3697b7c109a0aad5362a7d91bdd",
+  "adaptationFingerprintSHA256": "eed18a2d3f1508a8356a2ad7fb6859cc472d5933c5c82dc75812ff446c8746b6",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "99535032b73dcd6ee594e8634f7cb9ef47e9d818173cddbb3c3f92d00dc1f06a",
+  "additionFingerprintSHA256": "08a14fb8e2191d7880a0dc522d94bfc56116c9aee01473e8348ed611cfb866f2",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 344,
     "adaptedSourceFiles": 717,
     "removedSourceFiles": 293,
-    "addedFiles": 865
+    "addedFiles": 870
   },
   "adaptations": [
     {
@@ -1074,8 +1074,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/GroupedHistory/index.tsx",
       "sourceSHA256": "3ea1400c80e1d877f49270803b1aa590aa6c248205b365792947cc912f3a55fa",
-      "targetSHA256": "a3a74df1c9b222d08e0a8eb9a55ad18a8558c47133c223cdce87f16fe94ad79a",
-      "bytes": 20173,
+      "targetSHA256": "bb3c9dfad46dfc7c58f31a7ded720d66b32ebea8c21bad434fd9fbf4bb4596f6",
+      "bytes": 20497,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -10442,6 +10442,12 @@
       "sha256": "4455926976a805989314091ed8dd7e774dd18d01d4664cca54ec7e901b1361b3",
       "bytes": 5241,
       "reason": "Verify authenticated first-use recovery, retry, and preserved onboarding draft state."
+    },
+    {
+      "path": "tests/unit/renderer/GroupedHistoryRowMemo.dom.test.tsx",
+      "sha256": "66e80c005d8b8ed0296c40dfbfa7e49ddf40389fc998000d0f45f2322fd03aa3",
+      "bytes": 6348,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/unit/renderer/LocalImageView.dom.test.tsx",
