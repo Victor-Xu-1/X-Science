@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "57906e43f5c6a0a23b6c34e2bfdeae4cae78b7b6ed2f47c9b697f6bd53958481",
+  "adaptationFingerprintSHA256": "ef68924b33852e49bc51bffb2934e49107a329943c4e6594a9e923278788f760",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "d341403c53d4bde9142909ba448bf63da9aa660c484cfdc1033e887789a00d89",
+  "additionFingerprintSHA256": "5155f20aab516da78e105f3280d78d1a6b1354fa2cf81096f257fdd60ec5aa28",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 343,
@@ -17,14 +17,14 @@
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "16e9546a270e68166bcca0373251859043aff7d976c4934011e3e4bf6845fb30",
+      "targetSHA256": "888d2d0a1eb5dac877fc798273f82a2b9b2a6038729769b79b432d465e5405e3",
       "bytes": 4378,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "bd610daed5d019c3ce562ff00441733afafb340ae7ba0c5edcc9f4ae3e0a54b2",
+      "targetSHA256": "b37c2bb6fd25918130ab4e31a6bb5c1a4e9d5dcd2ea9bf75393c839444f556bc",
       "bytes": 157,
       "reason": "Remove @synon-ai/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -2474,8 +2474,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/settings/skills/SynonBiomedSkillLibraryModals.tsx",
       "sourceSHA256": "9492e57942849493523265d620c77a96a1fae42069b838f6076c5293ef4e4b1e",
-      "targetSHA256": "234e87ce2c01803f528bb1958dc79b9f1f61aacc2f77ff4ef6487e777062a589",
-      "bytes": 26508,
+      "targetSHA256": "e0126726b50c024d23e32be96257e28eb77aa742ef3f57d76536c0b2c199941b",
+      "bytes": 26860,
       "reason": "Expose Go-owned agents, skills, MCP, models, compute, memory, permissions, credentials, storage, and governance settings."
     },
     {
@@ -6810,7 +6810,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "cd609d1e3000f89950ccfa679874bad61cf2081869f4493a11cf8b39960128aa",
+      "sha256": "447b1ba1adf0303849d61af5f50d45f6eb51280791056e7236ffdf5cf7de6952",
       "bytes": 558186,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -7974,8 +7974,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/editors/documentWysiwygModel.ts",
-      "sha256": "bb589e9380ef2408ba6366d11591fe1a531122d43c534b98627d457906c5d282",
-      "bytes": 5413,
+      "sha256": "a3531d2b6d48f65e66d1779ff3f30ec651168e4c930c9fbf0862ed5451a018eb",
+      "bytes": 7443,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8550,14 +8550,14 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/settings/ToolsSettings/McpMarketplacePanel.tsx",
-      "sha256": "8aec11c0e445fea70ca72195dcdf036a2f7c548e603968c024646877ad5fa117",
-      "bytes": 11388,
+      "sha256": "f6fb6a22b64591cb752021ba9f7a59a984549ee6909c79cb3b0e7ee7b894caa2",
+      "bytes": 11576,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
       "path": "packages/desktop/src/renderer/pages/settings/ToolsSettings/McpOptionalPanel.tsx",
-      "sha256": "680c8ca76636c7f9f4609069b6f978bd9bbdfd3c6987590f347bcd605818d776",
-      "bytes": 8706,
+      "sha256": "23a17aa7c79e3992a39fb3c94ae8e828a0b8fce9da53e2e13cecf0575efbfb32",
+      "bytes": 8888,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8922,8 +8922,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/settings/skills/SynonBiomedSkillMarketPanel.tsx",
-      "sha256": "8502d387c62dfffc00ef7a86d03666a2fdaa5fc33b0cf479f073241b11e29497",
-      "bytes": 25969,
+      "sha256": "05ade09804e61af47e44cdda2973f2691e8092ad4b7789159a5c4cf1900f464f",
+      "bytes": 26250,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10398,8 +10398,8 @@
     },
     {
       "path": "tests/unit/previews/DocumentWysiwygEditor.dom.test.tsx",
-      "sha256": "cd51e1652c39532286601b8fbd97bdecb42c4d48505790ac1ed7745a3064e7d6",
-      "bytes": 15742,
+      "sha256": "24bf20d5be416cf560e235e213825fb0125c76e22dd6158980f449704fbfa652",
+      "bytes": 23969,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

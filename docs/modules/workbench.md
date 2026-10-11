@@ -598,6 +598,29 @@ SYNON_REPLY_BRANCH_BROWSER=1 go test ./internal/server -run '^TestWebReplyBranch
 
 ### Document preview · 文档预览
 
+Document-editor resource provenance attributes remain untrusted after HTML
+sanitization. Markdown export and HTML source restoration revalidate them using
+the same resource policy as insertion. An unsafe original source cannot override
+a valid rendered source; when neither is admissible, no resource URL is emitted.
+Valid artifact references, local paths, link-only mailto/tel and approved raster
+image data retain their existing meaning. Markdown destination delimiters,
+image captions and quoted titles are escaped without granting URL authority.
+Literal entity text, backslashes and a leading `>` in image captions and titles
+must survive the actual Markdown parser roundtrip unchanged.
+Whitespace destinations use CommonMark's angle-delimited form, preserving local
+filenames and Windows paths rather than emitting broken link/image syntax.
+KaTeX source annotations remain part
+of mathematical export. A preserved path is not a filesystem authorization.
+
+文档编辑器中的资源来源属性在 HTML 净化后仍是不可信数据。Markdown 导出及 HTML
+来源还原使用与插入相同的资源校验；危险的原始来源不能覆盖合法的显示来源，两者
+均非法时不输出资源地址。合法产物引用、本地路径、链接的 mailto/tel 和允许的位图
+数据仍保留；地址分隔符、图片说明和标题沿 Markdown 语法转义，不因此授予 URL
+权限。图片说明与标题的字面实体、反斜杠和前导 `>` 须经真实 Markdown 解析往返保留。
+含空格的地址使用 CommonMark 尖括号形式，保留本地文件名及 Windows 路径，
+不输出无法解析的链接或图片语法。数学导出保留 KaTeX 原始公式。保留路径不代表
+授予文件系统访问权限。
+
 Code highlighting loads only when a code view is opened. Source text remains
 readable while loading or after an import failure; a failure is reported without
 an unhandled rejection, and a later mount may retry the same loader. Concurrent

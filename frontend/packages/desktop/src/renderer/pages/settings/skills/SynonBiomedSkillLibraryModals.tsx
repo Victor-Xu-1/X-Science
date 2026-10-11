@@ -18,6 +18,7 @@ import {
   previewSynonBiomedSkillRepository,
   type SynonBiomedSkillRepoPreview,
 } from '@/renderer/services/skills/synonBiomedSkillLibrary';
+import { sanitizeExternalHttpUrl } from '@/renderer/utils/platform';
 
 export type SkillModalItem = {
   name: string;
@@ -551,28 +552,33 @@ export function SkillDetailModal({
                     {t('settings.skillsSettings.modals.detail.thirdParty')}
                   </div>
                   <div className='divide-y divide-[var(--color-border-2)] border-y border-arco-2'>
-                    {presentedSkill.thirdParty.map((item) => (
-                      <div key={`${item.kind}:${item.name}`} className='flex gap-12px py-9px text-12px'>
-                        <span className='w-90px shrink-0 text-t-tertiary'>{thirdPartyKindLabel(item.kind, t)}</span>
-                        <span className='min-w-0 flex-1 text-t-primary'>
-                          {item.name}
-                          {item.provider ? ` · ${item.provider}` : ''}
-                          {item.license ? ` (${item.license})` : ''}
-                        </span>
-                        {item.termsUrl || item.infoUrl ? (
-                          <a
-                            href={item.termsUrl || item.infoUrl}
-                            target='_blank'
-                            rel='noreferrer'
-                            className='shrink-0 text-link-6 hover:underline'
-                          >
-                            {item.termsUrl
-                              ? t('settings.skillsSettings.modals.detail.terms')
-                              : t('settings.skillsSettings.modals.detail.info')}
-                          </a>
-                        ) : null}
-                      </div>
-                    ))}
+                    {presentedSkill.thirdParty.map((item) => {
+                      const termsUrl = sanitizeExternalHttpUrl(item.termsUrl);
+                      const infoUrl = sanitizeExternalHttpUrl(item.infoUrl);
+                      const thirdPartyHref = termsUrl ?? infoUrl;
+                      return (
+                        <div key={`${item.kind}:${item.name}`} className='flex gap-12px py-9px text-12px'>
+                          <span className='w-90px shrink-0 text-t-tertiary'>{thirdPartyKindLabel(item.kind, t)}</span>
+                          <span className='min-w-0 flex-1 text-t-primary'>
+                            {item.name}
+                            {item.provider ? ` · ${item.provider}` : ''}
+                            {item.license ? ` (${item.license})` : ''}
+                          </span>
+                          {thirdPartyHref ? (
+                            <a
+                              href={thirdPartyHref}
+                              target='_blank'
+                              rel='noreferrer'
+                              className='shrink-0 text-link-6 hover:underline'
+                            >
+                              {termsUrl
+                                ? t('settings.skillsSettings.modals.detail.terms')
+                                : t('settings.skillsSettings.modals.detail.info')}
+                            </a>
+                          ) : null}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               ) : null}

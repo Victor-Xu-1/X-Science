@@ -1,5 +1,6 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import DocumentWysiwygEditor from '@/renderer/pages/conversation/Preview/components/editors/DocumentWysiwygEditor';
 import {
@@ -9,6 +10,7 @@ import {
 } from '@/renderer/pages/conversation/Preview/components/editors/documentWysiwygModel';
 import {
   buildDocumentLinkHtml,
+  buildDocumentImageHtml,
   buildDocumentTableHtml,
   validateDocumentResourceSource,
 } from '@/renderer/pages/conversation/Preview/components/editors/documentResourceModel';
@@ -275,6 +277,195 @@ describe('DocumentWysiwygEditor', () => {
 });
 
 describe('documentWysiwygModel', () => {
+  it.each([
+    {
+      case: 'repeated backslash metacharacters',
+      alt: String.raw`\>meta \\ \] [square] <angle> "quoted"`,
+      title: String.raw`Title \\ \" <angle> [square]`,
+    },
+    {
+      case: 'literal entities',
+      alt: 'Caption &amp; &lt; &gt; &#x5D; &quot;',
+      title: 'Title &amp; &lt; &gt; &#34; &quot;',
+    },
+    {
+      case: 'markup payloads',
+      alt: String.raw`Caption \\] ![injected](javascript:bad()) <img src=x onerror=bad()>`,
+      title: String.raw`Title \\" onclick="bad() <svg onload=bad()>`,
+    },
+    {
+      case: 'leading quote marker',
+      alt: '>meta',
+      title: '>title &amp;',
+    },
+  ])('roundtrips escaped image captions and resource titles: $case', async ({ alt, title }) => {
+    const image = document.createElement('img');
+    image.setAttribute('src', '../My Figures/chart.png');
+    image.setAttribute('alt', alt);
+    image.setAttribute('title', title);
+    const link = document.createElement('a');
+    link.setAttribute('href', 'https://safe.example/evidence');
+    link.setAttribute('title', title);
+    link.textContent = 'Evidence';
+    const markdown = markdownFromEditableHtml(image.outerHTML + link.outerHTML);
+    const destinations: string[] = [];
+    const { container } = await renderWithI18n(
+      <ReactMarkdown
+        urlTransform={(source) => {
+          destinations.push(decodeURIComponent(source));
+          return source;
+        }}
+      >
+        {markdown}
+      </ReactMarkdown>
+    );
+
+    expect(destinations).toEqual(['../My Figures/chart.png', 'https://safe.example/evidence']);
+    expect(container.querySelectorAll('img')).toHaveLength(1);
+    expect(container.querySelectorAll('a')).toHaveLength(1);
+    expect.soft(container.querySelector('img')).toHaveAttribute('alt', alt);
+    expect.soft(container.querySelector('img')).toHaveAttribute('title', title);
+    expect.soft(container.querySelector('a')).toHaveAttribute('title', title);
+    expect(container.querySelector('script, svg, iframe, [onerror], [onclick], [onload]')).toBeNull();
+  });
+
+  it('does not restore executable resource sources hidden in provenance attributes', () => {
+    const html =
+      '<a href="https://safe.example" data-synon-original-href="javascript:alert(1)">Evidence</a>' +
+      '<img src="https://safe.example/plot.png" data-synon-original-src="data:text/html,bad" style="width:20px" alt="Plot">';
+
+    const markdown = markdownFromEditableHtml(html);
+    const document = replaceHtmlDocumentBody('<!doctype html><html><body>Before</body></html>', html);
+
+    expect(markdown).not.toContain('javascript:');
+    expect(markdown).not.toContain('data:text/html');
+    expect(markdown).toContain('https://safe.example');
+    expect(document).not.toContain('javascript:');
+    expect(document).not.toContain('data:text/html');
+    expect(document).toContain('https://safe.example');
+  });
+
+  it('keeps valid durable and local sources through sanitized resource export', () => {
+    const html =
+      '<a href="/api/artifacts/versions/de03acd4-6097-4fe9-a3af-f8fa47341850" data-synon-original-href="{{artifact:de03acd4-6097-4fe9-a3af-f8fa47341850}}">Evidence</a>' +
+      '<a href="C:\\Research\\report.md" data-synon-original-href="C:\\Research\\report.md">Local</a>' +
+      '<img src="data:image/png;base64,Y2hhcnQ=" data-synon-original-src="../figures/chart.png" alt="Plot">';
+    const markdown = markdownFromEditableHtml(html);
+    const document = replaceHtmlDocumentBody('<html><body></body></html>', html);
+
+    expect(markdown).toContain('[Evidence]({{artifact:de03acd4-6097-4fe9-a3af-f8fa47341850}})');
+    expect(markdown).toContain('[Local](C:\\\\Research\\\\report.md)');
+    expect(markdown).toContain('![Plot](../figures/chart.png)');
+    expect(document).toContain('src="../figures/chart.png"');
+    expect(document).toContain('href="C:\\Research\\report.md"');
+    expect(document).not.toContain('data-synon-original-');
+  });
+
+  it('drops unsafe sources when neither original nor rendered source is admissible', () => {
+    const html =
+      '<a href="javascript:bad()" data-synon-original-href="javascript:bad()">Keep text</a>' +
+      '<img src="data:text/html,bad" data-synon-original-src="data:text/html,bad" alt="Unsafe">';
+    const markdown = markdownFromEditableHtml(html);
+    const document = replaceHtmlDocumentBody('<html><body></body></html>', html);
+
+    expect(markdown).toContain('Keep text');
+    expect(markdown).not.toContain('javascript:');
+    expect(markdown).not.toContain('data:text/html');
+    expect(document).not.toContain('javascript:');
+    expect(document).not.toContain('data:text/html');
+  });
+
+  it('does not let resource destinations break out of Markdown link syntax', async () => {
+    const html =
+      '<a href="https://safe.example" data-synon-original-href="https://safe.example/) [Injected](javascript:bad())">Evidence</a>';
+    const markdown = markdownFromEditableHtml(html);
+
+    expect(markdown).not.toContain(') [Injected](javascript:');
+    expect(markdown).toContain('https://safe.example/\\) \\[Injected\\]\\(javascript:bad\\(\\)\\)');
+    const destinations: string[] = [];
+    await renderWithI18n(
+      <ReactMarkdown
+        urlTransform={(source) => {
+          destinations.push(decodeURIComponent(source));
+          return source;
+        }}
+      >
+        {markdown}
+      </ReactMarkdown>
+    );
+    expect(destinations).toEqual(['https://safe.example/) [Injected](javascript:bad())']);
+    expect(screen.getAllByRole('link')).toHaveLength(1);
+  });
+
+  it('roundtrips whitespace resource paths through the actual CommonMark parser', async () => {
+    const sources = [
+      '../My Results/report (final).md',
+      'C:\\Research Files\\report (final).md',
+      'https://safe.example/My Paper (draft).html',
+    ];
+    const imageSource = '../My Figures/chart (final).png';
+    const html =
+      sources.map((source, index) => buildDocumentLinkHtml(source, `Evidence ${index}`)).join('') +
+      buildDocumentImageHtml(imageSource, 'Plot', '/safe-display.png');
+    const markdown = markdownFromEditableHtml(html);
+    const destinations: string[] = [];
+    await renderWithI18n(
+      <ReactMarkdown
+        urlTransform={(source) => {
+          destinations.push(decodeURIComponent(source));
+          return source;
+        }}
+      >
+        {markdown}
+      </ReactMarkdown>
+    );
+    expect(destinations).toEqual([...sources, imageSource]);
+    expect(screen.getAllByRole('link')).toHaveLength(sources.length);
+  });
+
+  it.each(['ftp://example.org/file', 'sms:+15551234567', 'cid:attachment'])(
+    'keeps rejected retained-DOM anchor %s as plain content',
+    async (source) => {
+      expect(validateDocumentResourceSource(source, 'link').valid).toBe(false);
+      const markdown = markdownFromEditableHtml(`<a href="${source}">Evidence</a>`);
+      const destinations: string[] = [];
+      await renderWithI18n(
+        <ReactMarkdown
+          urlTransform={(destination) => {
+            destinations.push(destination);
+            return destination;
+          }}
+        >
+          {markdown}
+        </ReactMarkdown>
+      );
+      expect(destinations).toEqual([]);
+      expect(markdown).toBe('Evidence');
+      expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    }
+  );
+
+  it('keeps resource metadata from becoming raw HTML in exported Markdown', () => {
+    const markdown = markdownFromEditableHtml(
+      '<a href="https://safe.example" data-synon-original-href="https://safe.example/&lt;img src=x onerror=bad&gt;">Evidence</a>' +
+        '<img src="../chart.png" alt="&lt;img src=x onerror=bad&gt;" title="&lt;svg onload=bad&gt;">'
+    );
+
+    expect(markdown).not.toMatch(/(?<!\\)<(?:img|svg)/);
+    expect(markdown).toContain('\\<img');
+    expect(markdown).toContain('\\<svg');
+  });
+
+  it('sanitizes active markup before converting editable HTML to markdown', () => {
+    const markdown = markdownFromEditableHtml(
+      '<p>Safe text</p><img src="x" onerror="alert(1)"><script>alert(1)</script>'
+    );
+
+    expect(markdown).toContain('Safe text');
+    expect(markdown).not.toMatch(/<script/i);
+    expect(markdown).not.toContain('onerror');
+  });
+
   it('preserves GFM structure, artifact image references and mathematical source', () => {
     const markdown = markdownFromEditableHtml(`
       <h2>Results</h2>
