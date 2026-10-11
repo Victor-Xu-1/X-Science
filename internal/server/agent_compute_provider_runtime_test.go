@@ -261,6 +261,9 @@ PROVIDER = TestProvider
 		defer cancel()
 		_ = server.Close(ctx)
 	})
+	if _, err := server.upsertHostGrant("owner-provider", workspaceDir, "read_write"); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := server.settingsStore.Set(approvalDefaultsSettingKey, map[string]any{"mode": "ask"}); err != nil {
 		t.Fatal(err)
 	}

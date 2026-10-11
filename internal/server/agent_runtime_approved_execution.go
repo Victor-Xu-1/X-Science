@@ -40,15 +40,32 @@ func agentRuntimeApprovalStatus(status string, result any) string {
 	return status
 }
 
-func (s *Server) resolveApprovedAgentToolContext(ctx context.Context, sessionID string) *agentKernelContext {
+func (s *Server) resolveApprovedAgentToolContext(ctx context.Context, sessionID, toolName string) *agentKernelContext {
 	if identity := s.resolveAgentKernelContext(ctx, sessionID); identity != nil {
 		return identity
 	}
 	access, workspaceDir, authorized := s.resolveAgentWorkspaceAuthority(ctx, sessionID)
-	if !authorized {
+	if authorized {
+		return &agentKernelContext{access: access, workspaceDir: workspaceDir}
+	}
+	// Direct capability approvals can precede creation of a conversation stream.
+	// Native file tools and ordinary execution never receive this admission.
+	if !isAgentPermissionTool(toolName) && !isAgentComputeTool(toolName) {
 		return nil
 	}
-	return &agentKernelContext{access: access, workspaceDir: workspaceDir}
+	access, admitted := s.resolveUnprojectedApprovedFrame(ctx, sessionID)
+	if !admitted {
+		return nil
+	}
+	identity := &agentKernelContext{access: access}
+	if isAgentComputeTool(toolName) {
+		var err error
+		identity.workspaceDir, err = s.admitAgentWorkspace(access, access.ProjectPath)
+		if err != nil {
+			return nil
+		}
+	}
+	return identity
 }
 
 func (s *Server) applyAgentRuntimePreToolHooks(ctx context.Context, toolName string, call agentruntime.ToolCall, input map[string]any) (map[string]any, map[string]any) {
