@@ -49,6 +49,13 @@ class FrontendRelatedScopeTests(unittest.TestCase):
         self.assertEqual(command[-1], "tests/fixtures/ligands.ts")
         self.assertEqual(command[2:5], ["vitest", "related", "--run"])
 
+    def test_build_modules_use_import_owners_without_a_global_fallback(self):
+        command = related_command(["frontend/scripts/exampleTransform.ts", "frontend/vite.config.ts"])
+        self.assertEqual(command[9:], ["scripts/exampleTransform.ts", "vite.config.ts"])
+        self.assertNotIn("--passWithNoTests", command)
+        with self.assertRaisesRegex(ValueError, "ownership is not known"):
+            related_command(["frontend/scripts/unowned.sh"])
+
     def test_browser_fixture_is_bundled_once_not_misreported_as_a_unit_test(self):
         with TemporaryDirectory() as directory:
             repo = Path(directory)

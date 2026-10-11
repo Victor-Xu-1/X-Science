@@ -8,6 +8,7 @@ import UnoCSS from '@unocss/vite';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 import unoConfig from './uno.config';
 import { renderBootDocument } from './scripts/rendererBoot';
+import { molstarPickingBuildPlugin, molstarPickingPrebundlePlugin } from './scripts/molstarPickingPatch';
 import i18nConfig from './packages/desktop/src/common/config/i18n-config.json';
 import enCommon from './packages/desktop/src/renderer/services/i18n/locales/en-US/common.json';
 import zhCommon from './packages/desktop/src/renderer/services/i18n/locales/zh-CN/common.json';
@@ -229,6 +230,7 @@ export default defineConfig(({ mode }) => {
     base: './',
     publicDir: resolve(repoRoot, 'public'),
     esbuild: { legalComments: 'none' },
+    optimizeDeps: { esbuildOptions: { plugins: [molstarPickingPrebundlePlugin()] } },
     server: {
       host: process.env.SYNON_DEV_WEB_HOST?.trim() || '127.0.0.1',
       port: devPort,
@@ -261,6 +263,7 @@ export default defineConfig(({ mode }) => {
       ],
     },
     plugins: [
+      molstarPickingBuildPlugin(),
       ...createRendererPlugins(),
       {
         name: 'renderer-boot-shell',

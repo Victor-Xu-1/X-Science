@@ -31,7 +31,12 @@ def related_command(paths: list[str]) -> list[str] | None:
         # Vitest coverage. Shared data retains its actual test import owners.
         if _browser_fixture(value):
             continue
-        if not value.startswith(("frontend/packages/", "frontend/tests/unit/",
+        build_module = (value == "frontend/vite.config.ts" or
+                        (value.startswith("frontend/scripts/") and value.endswith((".ts", ".js", ".mjs"))))
+        # Build modules have normal import owners in the focused test graph;
+        # the existing product build also checks their emitted application.
+        # Runner configuration/dependencies still cannot imply a global suite.
+        if not build_module and not value.startswith(("frontend/packages/", "frontend/tests/unit/",
                                  "frontend/tests/integration/", "frontend/tests/regression/",
                                  "frontend/tests/fixtures/")):
             raise ValueError("frontend test ownership is not known for " + value +
