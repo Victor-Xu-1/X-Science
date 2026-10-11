@@ -6,7 +6,6 @@
 
 import type { TChatConversation } from '@/common/config/storage';
 import type { SynonBiomedExecutionRecord } from '@/renderer/components/synonBiomed/runtime/runtimeOperationsModel';
-import type { SynonBiomedProject } from '@/renderer/services/synonBiomedGateway';
 import type { SynonBiomedSessionUpdate } from '@/renderer/services/synonBiomedSessionActions';
 import { emitter } from '@/renderer/utils/emitter';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/ui/focus';
@@ -18,6 +17,7 @@ import { redactErrorText } from '@/renderer/pages/conversation/platforms/acp/err
 import { useAuth } from '@/renderer/hooks/context/AuthContext';
 import { prefetchConversationRoute, warmConversationNavigation } from '@/renderer/pages/conversation/conversationRoute';
 import { beginConversationRoutePerformance } from '@/renderer/pages/conversation/conversationRoutePerformance';
+import { useSessionMove } from './useSessionMove';
 
 type UseConversationActionsParams = {
   batchMode: boolean;
@@ -54,10 +54,6 @@ export const useConversationActions = ({
   const [editorTarget, setEditorTarget] = useState<TChatConversation | null>(null);
   const [editorLoading, setEditorLoading] = useState(false);
   const [editorError, setEditorError] = useState<string | null>(null);
-  const [moveTarget, setMoveTarget] = useState<TChatConversation | null>(null);
-  const [moveProjects, setMoveProjects] = useState<SynonBiomedProject[]>([]);
-  const [moveLoading, setMoveLoading] = useState(false);
-  const [moveError, setMoveError] = useState<string | null>(null);
   const [notebookTarget, setNotebookTarget] = useState<TChatConversation | null>(null);
   const [notebookRecords, setNotebookRecords] = useState<SynonBiomedExecutionRecord[]>([]);
   const [notebookLoading, setNotebookLoading] = useState(false);
@@ -75,6 +71,7 @@ export const useConversationActions = ({
   const refreshHistory = useCallback(() => {
     emitter.emit('chat.history.refresh');
   }, []);
+  const move = useSessionMove(loadConversationActionRuntime, refreshHistory);
 
   const handleConversationPrefetch = useCallback(
     (_conversation: TChatConversation) => {
@@ -233,48 +230,10 @@ export const useConversationActions = ({
   const handleMoveStart = useCallback(
     async (conversation: TChatConversation) => {
       setDropdownVisibleId(null);
-      setMoveTarget(conversation);
-      setMoveProjects([]);
-      setMoveError(null);
-      setMoveLoading(true);
-      try {
-        const { loadSynonBiomedProjects } = await loadConversationActionRuntime();
-        setMoveProjects(await loadSynonBiomedProjects());
-      } catch (error) {
-        console.warn('[ConversationActions] Failed to load projects for move:', diagnostic(error));
-        setMoveError(t('conversation.history.sessionMove.loadFailed'));
-      } finally {
-        setMoveLoading(false);
-      }
+      await move.handleMoveStart(conversation);
     },
-    [t]
+    [move.handleMoveStart]
   );
-
-  const handleMoveConfirm = useCallback(
-    async (projectId: string) => {
-      if (!moveTarget || moveLoading) return;
-      setMoveLoading(true);
-      setMoveError(null);
-      try {
-        const { moveSynonBiomedSession } = await loadConversationActionRuntime();
-        await moveSynonBiomedSession(moveTarget.id, projectId);
-        refreshHistory();
-        emitter.emit('synonbiomed.projects.refresh');
-        setMoveTarget(null);
-        Message.success(t('conversation.history.sessionMove.success'));
-      } catch (error) {
-        console.warn('[ConversationActions] Failed to move session:', diagnostic(error));
-        setMoveError(t('conversation.history.sessionMove.failed'));
-      } finally {
-        setMoveLoading(false);
-      }
-    },
-    [moveLoading, moveTarget, refreshHistory, t]
-  );
-
-  const handleMoveCancel = useCallback(() => {
-    if (!moveLoading) setMoveTarget(null);
-  }, [moveLoading]);
 
   const handleExport = useCallback(
     async (conversation: TChatConversation) => {
@@ -353,14 +312,9 @@ export const useConversationActions = ({
     handleEditStart,
     handleEditorSubmit,
     handleEditorCancel,
-    moveTarget,
-    moveProjects,
-    moveCurrentProjectId: conversationProjectId(moveTarget),
-    moveLoading,
-    moveError,
+    ...move,
+    moveCurrentProjectId: conversationProjectId(move.moveTarget),
     handleMoveStart,
-    handleMoveConfirm,
-    handleMoveCancel,
     notebookTarget,
     notebookRecords,
     notebookLoading,

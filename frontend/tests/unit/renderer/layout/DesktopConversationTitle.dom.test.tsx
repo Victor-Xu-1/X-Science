@@ -107,4 +107,26 @@ describe('DesktopConversationTitle', () => {
       expect(titleButton).toHaveStyle({ left: '240px', width: '820px' });
     });
   });
+
+  it.each(['lifecycle', 'native-flag', 'legacy-keycode'] as const)(
+    'keeps IME confirmation Enter in the editor via %s and saves on the next ordinary Enter',
+    async (signal) => {
+      renderTitle();
+      fireEvent.click(await screen.findByRole('button', { name: 'A complete scientific conversation title' }));
+      const input = await screen.findByRole('textbox');
+      if (signal === 'lifecycle') fireEvent.compositionStart(input);
+      fireEvent.change(input, { target: { value: '中文研究标题' } });
+      fireEvent.keyDown(input, {
+        key: 'Enter',
+        isComposing: signal === 'native-flag',
+        keyCode: signal === 'legacy-keycode' ? 229 : 13,
+      });
+      expect(input).toHaveFocus();
+      expect(updateConversation).not.toHaveBeenCalled();
+      if (signal === 'lifecycle') fireEvent.compositionEnd(input);
+      fireEvent.keyDown(input, { key: 'Enter', keyCode: 13 });
+      await waitFor(() => expect(updateConversation).toHaveBeenCalledOnce());
+      expect(updateConversation).toHaveBeenCalledWith({ id: 'conversation-1', updates: { name: '中文研究标题' } });
+    }
+  );
 });

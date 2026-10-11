@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import i18next from 'i18next';
 import React from 'react';
 import { I18nextProvider } from 'react-i18next';
@@ -23,6 +23,11 @@ vi.mock('@/renderer/services/synonBiomedWorkspaceSettings', () => ({
   setSynonBiomedContactEmail: mocks.setContact,
   removeSynonBiomedContactEmail: mocks.removeContact,
 }));
+
+vi.mock('@arco-design/web-react', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@arco-design/web-react')>();
+  return { ...actual, Message: { ...actual.Message, error: vi.fn() } };
+});
 
 vi.mock('@/renderer/hooks/context/ThemeContext', () => ({
   useThemeContext: () => ({
@@ -182,6 +187,77 @@ describe('GeneralSettings', () => {
     await waitFor(() => {
       expect(mocks.loadContact).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('keeps unread contact data unavailable and retries a failed read without a write', async () => {
+    await testI18n.changeLanguage('en-US');
+    mocks.loadContact.mockRejectedValueOnce(new Error('offline'));
+    renderGeneralSettings();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Unable to load the contact email');
+    expect(screen.queryByText('Not set')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Set' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry contact email' }));
+    expect(await screen.findByText('Not set')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Set' })).toBeEnabled();
+    expect(mocks.setContact).not.toHaveBeenCalled();
+  });
+
+  it('coalesces pending contact saves from the button and Enter key', async () => {
+    await testI18n.changeLanguage('en-US');
+    let finishSave!: () => void;
+    mocks.setContact.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        finishSave = resolve;
+      })
+    );
+    renderGeneralSettings();
+    await screen.findByText('Not set');
+    fireEvent.click(screen.getByRole('button', { name: 'Set' }));
+    fireEvent.change(screen.getByPlaceholderText('you@example.com'), { target: { value: 'lab@example.org' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Agree and save' }));
+    fireEvent.keyDown(screen.getByPlaceholderText('you@example.com'), { key: 'Enter', code: 'Enter' });
+    expect(mocks.setContact).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'Agree and save' })).toBeDisabled();
+    finishSave();
+    await waitFor(() => expect(screen.queryByPlaceholderText('you@example.com')).not.toBeInTheDocument());
+  });
+
+  it('does not expose an editable empty state while contact metadata is still loading', async () => {
+    let finishRead!: (value: unknown) => void;
+    mocks.loadContact.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finishRead = resolve;
+      })
+    );
+    renderGeneralSettings();
+    expect(screen.getByRole('status')).toHaveTextContent('正在读取联系邮箱');
+    expect(screen.queryByText('未设置')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '设置' })).toBeDisabled();
+    await act(async () =>
+      finishRead({
+        decision: null,
+        email: null,
+        noticeVersion: 'notice-1',
+        noticeText: 'Contact disclosure',
+        noticeStale: false,
+      })
+    );
+    expect(screen.getByText('未设置')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '设置' })).toBeEnabled();
+  });
+
+  it('retries only the read when contact saving succeeded but refreshing failed', async () => {
+    renderGeneralSettings();
+    await screen.findByText('未设置');
+    fireEvent.click(screen.getByRole('button', { name: '设置' }));
+    fireEvent.change(screen.getByPlaceholderText('you@example.com'), { target: { value: 'lab@example.org' } });
+    mocks.loadContact.mockRejectedValueOnce(new Error('refresh offline'));
+    fireEvent.click(screen.getByRole('button', { name: '同意并保存' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('无法读取联系邮箱');
+    fireEvent.click(screen.getByRole('button', { name: '重试读取联系邮箱' }));
+    await screen.findByText('未设置');
+    expect(mocks.setContact).toHaveBeenCalledTimes(1);
+    expect(mocks.loadContact).toHaveBeenCalledTimes(3);
   });
 });
 
