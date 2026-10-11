@@ -4,11 +4,24 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 )
+
+// webFSLegacyLocalReadAllowed reports whether the host-root read fallback may be
+// used at all. Password and external authentication both disable it.
+func (s *Server) webFSLegacyLocalReadAllowed() bool {
+	return s != nil && !s.webAuthenticationEnabled()
+}
+
+// allowWebFSLocalRead permits the legacy host-root read scope for unauthenticated
+// loopback local deployments only.
+func (s *Server) allowWebFSLocalRead(r *http.Request) bool {
+	return s.webFSLegacyLocalReadAllowed() && isLoopbackRequest(r)
+}
 
 func (s *Server) resolveWebFSPath(
 	userID string,
@@ -108,11 +121,8 @@ func (s *Server) webFSRoots(userID string, includeLocalRead bool) ([]webFSRoot, 
 				return nil, err
 			}
 			for _, project := range projects {
-				if strings.TrimSpace(project.Path) == "" {
-					continue
-				}
-				if path, err := canonicalWebFSDirectory(project.Path); err == nil {
-					roots = append(roots, webFSRoot{Path: path, Writable: true})
+				if root, ok := s.authorizedProjectWebFSRoot(userID, project.ID, project.Path); ok {
+					roots = append(roots, root)
 				}
 			}
 			if len(projects) < 1000 {

@@ -461,6 +461,11 @@ func agentWorkspaceAbsolutePathParts(path string) []string {
 	return parts
 }
 
+// canonicalAgentWorkspaceRoot rejects protected-path overlap. Live host-grant
+// admission for persisted project.Path is applied by
+// resolveAgentWorkspaceAuthority (via liveWritableProjectWorkspace) before this
+// root is used as a writable kernel workspace. Callers that construct a
+// synthetic workspaceDir must not treat this helper as grant admission.
 func (s *Server) canonicalAgentWorkspaceRoot(identity *agentKernelContext) (string, error) {
 	if identity == nil || strings.TrimSpace(identity.workspaceDir) == "" || !filepath.IsAbs(identity.workspaceDir) {
 		return "", errors.New("workspace file authority is unavailable")

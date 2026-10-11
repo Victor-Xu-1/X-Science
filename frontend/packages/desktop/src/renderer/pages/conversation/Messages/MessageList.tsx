@@ -68,6 +68,7 @@ import SelectionReplyButton from './components/SelectionReplyButton';
 import ConversationTurnNavigation from '../components/ConversationTitleMinimap/ConversationTurnNavigation';
 import { ConversationAnnotationsProvider } from './components/ConversationAnnotationsContext';
 import { areMessageItemPropsEqual } from './messageItemMemoModel';
+import { areStringNumberMapsEqual, areStringSetsEqual, reuseIfEqual } from './messageListRenderStability';
 import { projectTerminalFailuresForDisplay } from '../runtime/terminalFailureMessagesModel';
 import {
   buildMessagePresentationList,
@@ -135,6 +136,8 @@ const highlightStyle: React.CSSProperties = {
   boxShadow: '0 0 0 1px var(--color-aou-6-brand) inset',
   borderRadius: '12px',
 };
+
+const IMAGE_PREVIEW_GROUP_VALUE = { inPreviewGroup: true };
 
 const getUnhandledMessageType = (_message: never): string => 'unknown';
 
@@ -389,7 +392,8 @@ const MessageList: React.FC<{
     };
   }, [conversationId, hasBranchCoordinates]);
 
-  const messageIndexById = useMemo(() => {
+  const messageIndexByIdRef = useRef<Map<string, number> | undefined>(undefined);
+  const nextMessageIndexById = useMemo(() => {
     const indexes = new Map<string, number>();
     list.forEach((message, index) => {
       // Preserve findIndex semantics if malformed history contains duplicate IDs.
@@ -397,6 +401,8 @@ const MessageList: React.FC<{
     });
     return indexes;
   }, [list]);
+  const messageIndexById = reuseIfEqual(messageIndexByIdRef.current, nextMessageIndexById, areStringNumberMapsEqual);
+  messageIndexByIdRef.current = messageIndexById;
 
   const processedList = useMemo(
     () => buildMessagePresentationList(presentationList, artifacts, pagination.groupBoundaryMessageIds ?? []),
@@ -427,7 +433,8 @@ const MessageList: React.FC<{
   // While the conversation is still streaming, the final turn's
   // row is withheld (it would otherwise appear then shift down as more text
   // streams in); earlier, already-finished turns always keep their row.
-  const aiCopyRowTextIds = useMemo(() => {
+  const aiCopyRowTextIdsRef = useRef<Set<string> | undefined>(undefined);
+  const nextAiCopyRowTextIds = useMemo(() => {
     const ids = new Set<string>();
     let pendingTextId: string | undefined;
     let pendingTextFollowedByTool = false;
@@ -464,6 +471,8 @@ const MessageList: React.FC<{
     if (isProcessing && lastTurnTextId) ids.delete(lastTurnTextId);
     return ids;
   }, [processedList, isProcessing]);
+  const aiCopyRowTextIds = reuseIfEqual(aiCopyRowTextIdsRef.current, nextAiCopyRowTextIds, areStringSetsEqual);
+  aiCopyRowTextIdsRef.current = aiCopyRowTextIds;
 
   const lastUserMessageId = useMemo(() => {
     for (let index = processedList.length - 1; index >= 0; index -= 1) {
@@ -930,7 +939,7 @@ const MessageList: React.FC<{
       <div className={classNames('relative flex flex-col flex-1 min-h-0 h-full', className)}>
         {/* Use PreviewGroup to wrap all messages for cross-message image preview */}
         <Image.PreviewGroup actionsLayout={['zoomIn', 'zoomOut', 'originalSize', 'rotateLeft', 'rotateRight']}>
-          <ImagePreviewContext.Provider value={{ inPreviewGroup: true }}>
+          <ImagePreviewContext.Provider value={IMAGE_PREVIEW_GROUP_VALUE}>
             <Virtuoso<MessageListProcessedItem, MessageVirtuosoContext>
               key={`${conversationId}:${processedList.length > 0 ? 'ready' : 'empty'}:${anchorViewportRevision}`}
               ref={virtuosoRef}

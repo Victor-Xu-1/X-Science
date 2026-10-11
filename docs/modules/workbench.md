@@ -30,6 +30,17 @@
 - `/#/artifacts/:artifactId`：产物预览。
 - `/#/settings/:section`：设置；旧入口可由路由重定向到对应页。
 
+Sidebar task rows keep stable click adapters while their action dependencies are
+unchanged, allowing the existing row memoization to skip unchanged neighbors.
+Task selection and pinned navigation use distinct adapters; both follow the
+current route, batch mode and session callback. Changed task snapshots, unread
+state, menus and other behaviorful props still update normally. This is a
+row-render contract, not a claim about end-to-end task execution speed.
+
+侧栏任务行在操作依赖不变时保持稳定点击回调，让既有缓存跳过未变的相邻行。任务
+选择与置顶导航分别绑定回调，但都使用当前路由、批量模式与会话回调；任务快照、
+未读状态、菜单和其他交互属性变化仍正常更新，不以忽略交互属性的比较器换取缓存。
+
 ### Presentation and keyboard contracts · 显示与键盘契约
 
 Modal backdrops use one lightweight, non-darkening token in light and dark
@@ -586,6 +597,16 @@ SYNON_REPLY_BRANCH_BROWSER=1 go test ./internal/server -run '^TestWebReplyBranch
 ```
 
 ### Document preview · 文档预览
+
+Code highlighting loads only when a code view is opened. Source text remains
+readable while loading or after an import failure; a failure is reported without
+an unhandled rejection, and a later mount may retry the same loader. Concurrent
+views share the chunk and still update when its cache fills before a passive
+effect runs. Unmounting prevents late state updates; task execution is unchanged.
+
+代码高亮按需加载，等待或读取失败时原始代码仍可阅读。加载错误不会变成未处理的
+Promise 拒绝，后续重新打开可沿同一入口重试。多个视图共享加载缓存，不因缓存先于
+当前视图的效果完成而永久停在纯文本；关闭视图后不再更新旧状态，不改变任务执行。
 
 回答中的生成文件链接以蓝色粗体显示，点击或键盘激活进入应用内预览；
 下载是预览内的独立操作。产物引用、文件名和产物内容 URL 共用会话产物

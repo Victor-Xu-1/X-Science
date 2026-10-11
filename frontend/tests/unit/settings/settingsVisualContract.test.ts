@@ -16,6 +16,7 @@ import {
   SETTINGS_GENERATED_EMPTY_SRC,
   SETTINGS_GENERATED_ICON_SRC,
   SETTINGS_GENERATED_NAV_SRC,
+  settingsGeneratedWebpSrc,
 } from '@/renderer/pages/settings/components/SettingsGeneratedAsset';
 
 // These are source/contract guards. Actual geometry, focus, contrast and visual
@@ -217,5 +218,38 @@ describe('historical asset provenance remains intact', () => {
       const relative = source.split('?')[0].replace(/^\.?\//, '');
       expect(existsSync(new URL(`../../../public/${relative}`, import.meta.url)), source).toBe(true);
     }
+  });
+  it('keeps lossless WebP siblings for every live generated asset', () => {
+    const sources = [
+      ...Object.values(SETTINGS_GENERATED_ICON_SRC),
+      ...Object.values(SETTINGS_GENERATED_ARTWORK_SRC),
+      ...Object.values(SETTINGS_GENERATED_EMPTY_SRC),
+      ...Object.values(SETTINGS_GENERATED_NAV_SRC),
+    ];
+    for (const source of sources) {
+      const webpSource = settingsGeneratedWebpSrc(source);
+      expect(webpSource).toContain('.webp?');
+      const pngRelative = source.split('?')[0].replace(/^\.?\//, '');
+      const webpRelative = webpSource.split('?')[0].replace(/^\.?\//, '');
+      const png = new URL(`../../../public/${pngRelative}`, import.meta.url);
+      const webp = new URL(`../../../public/${webpRelative}`, import.meta.url);
+      expect(existsSync(webp), webpSource).toBe(true);
+      expect(readFileSync(webp).byteLength).toBeLessThan(readFileSync(png).byteLength);
+    }
+  });
+
+  it('keeps generated picture as the containing-block/flex box without dropping PNG fallbacks', () => {
+    const asset = read('components/SettingsGeneratedAsset.tsx');
+    expect(asset).toContain('className={className ??');
+    expect(asset).toContain('settings-generated-picture--passthrough');
+    expect(asset).toMatch(/<img\s+src=\{src\}/);
+    expect(asset).not.toMatch(/<img\b[^>]*className=\{className\}/);
+    expect(layout).toMatch(/\.settings-generated-picture--passthrough\s*\{\s*display:\s*contents;/);
+    expect(core).toMatch(
+      /picture:not\(\.settings-generated-picture--passthrough\)\s*>\s*img\[data-settings-generated-asset\]/
+    );
+    expect(css('settings-experts')).toContain('.expert-card > :not(.expert-card__artwork)');
+    expect(css('settings-route-layouts')).toContain('.network-section--allowed > :not(.network-section__artwork)');
+    expect(core).toContain('flex: 0 0 36px');
   });
 });
