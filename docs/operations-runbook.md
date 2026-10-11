@@ -1130,6 +1130,14 @@ Never paste the secret vault, environment file, channel tokens, model keys, or u
 
 ### File-tool feedback and structured source inspection
 
+Stream header and private-planning deadlines share an ordered cancellation
+boundary. If stopping a deadline wins first, a queued timer cannot cancel the
+request afterwards; if expiry wins first, stopping waits for that native context
+cancellation to complete and preserves its original cause. Header absence retains
+the bounded transport retry classification. Private-only generation after headers
+retains its action-progress limit; useful output and caller cancellation keep their
+existing contracts. This is not a total deadline for a scientific task.
+
 OpenAI-compatible streamed function arguments retain complete assembly before
 attempting compatibility recovery. Recovery recognizes root-level object
 snapshots only; it cannot promote an element of an array or an object inside an
