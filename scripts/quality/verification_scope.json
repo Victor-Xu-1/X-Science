@@ -2,6 +2,21 @@
   "schema": "synon.verification-scope.v1",
   "groups": [
     {
+      "name": "source-backend-watcher",
+      "paths": [
+        "scripts/dev/source-backend-watch.sh",
+        "scripts/dev/source-backend-watch-test.sh"
+      ],
+      "frontend": false,
+      "packages": [
+        "synon-go/cmd/synon",
+        "synon-go/internal/config"
+      ],
+      "checks": [
+        ["bash", "scripts/dev/source-backend-watch-test.sh"]
+      ]
+    },
+    {
       "name": "frontend-related-selection",
       "paths": [
         "scripts/quality/pr_frontend_scope.py",
