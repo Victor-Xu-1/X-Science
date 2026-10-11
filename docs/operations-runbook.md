@@ -317,6 +317,16 @@ an independent private generation directory, so changing configuration while
 an older child runs cannot redirect its probe to another listener. Unspecified
 IPv4 and IPv6 bindings are probed through their matching loopback family.
 
+When a failed build or an unaccepted migration keeps an older verified binary,
+the watcher first probes its read-only `serve --help` capability with a bounded
+wait. A binary without endpoint receipt support starts with its existing serve
+arguments, not an unsupported new flag. Without a trusted receipt the watcher
+keeps that child running and defers automatic cutover; it does not guess the
+port or reparse configuration. Existing explicit idle-drain handoff remains
+available to the operator. A newly built receipt-capable binary resumes the
+same native endpoint path after handoff. This legacy upgrade boundary does not
+change the normal receipt-capable startup or weaken active-task admission.
+
 ### First-run scientific runtime preparation
 
 On every supported native target (Linux/WSL amd64, Windows x64, macOS Intel,

@@ -80,6 +80,10 @@ fi
 cat >"$output" <<'FAKE_BACKEND'
 #!/usr/bin/env bash
 set -Eeuo pipefail
+if [[ "${1:-}" == "serve" && "${2:-}" == "--help" ]]; then
+  printf 'Usage of serve:\n  -runtime-endpoint-file string\n'
+  exit 0
+fi
 if [[ "${1:-}" == "runtime-endpoint" ]]; then
   shift
   python3 - "$@" <<'PY'
@@ -334,6 +338,80 @@ grep -q 'retrying failed digest' "$TMP_DIR/resumed-watcher.log" || {
   exit 1
 }
 
+kill -TERM "$WATCHER_PID"
+wait "$WATCHER_PID"
+WATCHER_PID=""
+
+# An accepted binary predating endpoint receipts must still start when the
+# first build fails. It explicitly rejects the new flag, rather than ignoring it.
+LEGACY_STATE="$TMP_DIR/legacy-state"
+LEGACY_CHILD_PID="$TMP_DIR/legacy-child.pid"
+LEGACY_BUILD_COUNT="$TMP_DIR/legacy-build-count"
+LEGACY_START_COUNT="$TMP_DIR/legacy-start-count"
+mkdir -p "$LEGACY_STATE"
+cp "$STATE/accepted-migration-digest" "$LEGACY_STATE/accepted-migration-digest"
+printf '0\n' >"$LEGACY_BUILD_COUNT"
+printf '0\n' >"$LEGACY_START_COUNT"
+cat >"$LEGACY_STATE/synon-go" <<'LEGACY_BACKEND'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+if [[ "${1:-}" == "serve" && "${2:-}" == "--help" ]]; then
+  printf 'Usage of serve:\n  -health-json\n  -version\n'
+  exit 0
+fi
+if [[ "$*" == *'--runtime-endpoint-file'* ]]; then
+  echo 'legacy rejected unsupported endpoint flag' >&2
+  exit 2
+fi
+printf '%s\n' "$$" >"$FAKE_LEGACY_CHILD_PID"
+count=$(<"$FAKE_START_COUNT")
+printf '%s\n' "$((count + 1))" >"$FAKE_START_COUNT"
+trap 'exit 0' INT TERM USR1
+while true; do sleep .05; done
+LEGACY_BACKEND
+chmod 0755 "$LEGACY_STATE/synon-go"
+touch "$FAIL_NEXT_BUILD"
+FAKE_BUILD_COUNT="$LEGACY_BUILD_COUNT" \
+FAKE_START_COUNT="$LEGACY_START_COUNT" \
+FAKE_LEGACY_CHILD_PID="$LEGACY_CHILD_PID" \
+FAKE_FAIL_NEXT_BUILD="$FAIL_NEXT_BUILD" \
+FAKE_FAIL_NEXT_ASSET_VERIFY="$FAIL_NEXT_ASSET_VERIFY" \
+SYNON_SOURCE_ROOT="$ROOT" \
+SYNON_DEV_BUILD_DIR="$LEGACY_STATE" \
+SYNON_DEV_POLL_SECONDS=.05 \
+SYNON_DEV_BUILD_RETRY_MIN_SECONDS=1 \
+SYNON_DEV_BUILD_RETRY_MAX_SECONDS=2 \
+GO="$TMP_DIR/fake-go" \
+  bash "$WATCHER" >"$TMP_DIR/legacy-watcher.log" 2>&1 &
+WATCHER_PID=$!
+wait_for_value "$LEGACY_START_COUNT" 1
+wait_for_value "$LEGACY_BUILD_COUNT" 2
+sleep .15
+[[ -f "$LEGACY_CHILD_PID" ]] || {
+  echo 'legacy accepted child never started' >&2
+  tail -20 "$TMP_DIR/legacy-watcher.log" >&2
+  exit 1
+}
+[[ "$(<"$LEGACY_START_COUNT")" == 1 ]] && kill -0 "$(<"$LEGACY_CHILD_PID")" || {
+  echo 'legacy accepted child was stopped or entered a restart loop' >&2
+  exit 1
+}
+! grep -Fq 'legacy rejected unsupported endpoint flag' "$TMP_DIR/legacy-watcher.log" || {
+  echo 'legacy accepted child received the unsupported endpoint flag' >&2
+  exit 1
+}
+grep -Fq 'automatic cutover is deferred until an explicit idle-drain handoff' "$TMP_DIR/legacy-watcher.log" || {
+  echo 'missing legacy endpoint limitation was not diagnosed' >&2
+  exit 1
+}
+# With no trusted legacy receipt, automatic activation stays fail-closed. An
+# explicit native idle-drain signal can then hand off to the built new binary.
+kill -USR1 "$(<"$LEGACY_CHILD_PID")"
+wait_for_value "$LEGACY_START_COUNT" 2
+find "$LEGACY_STATE" -maxdepth 2 -name endpoint.json -type f | grep -q . || {
+  echo 'new child did not publish its owned endpoint after legacy handoff' >&2
+  exit 1
+}
 kill -TERM "$WATCHER_PID"
 wait "$WATCHER_PID"
 WATCHER_PID=""

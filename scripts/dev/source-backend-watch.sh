@@ -43,10 +43,12 @@ LOCK_FILE="$BUILD_DIR/backend-watch.lock"
 HOST_PID_FILE="$BUILD_DIR/backend-watch.pid"
 ACCEPTED_MIGRATION_DIGEST_FILE="$BUILD_DIR/accepted-migration-digest"
 PENDING_MIGRATION_DIGEST_FILE="$BUILD_DIR/pending-migration-digest"
-command -v flock >/dev/null 2>&1 || {
-  echo "[source-backend] required command not found: flock" >&2
-  exit 1
-}
+for command_name in flock timeout; do
+  command -v "$command_name" >/dev/null 2>&1 || {
+    echo "[source-backend] required command not found: $command_name" >&2
+    exit 1
+  }
+done
 exec {LOCK_FD}>"$LOCK_FILE"
 if ! flock -n "$LOCK_FD"; then
   existing_pid="unknown"
@@ -281,10 +283,24 @@ build_candidate() {
   mv -f "$CANDIDATE" "$BINARY"
 }
 
+supports_runtime_endpoint_receipt() {
+  local help_output=""
+  # Both the current and accepted older CLI handle serve --help before config
+  # loading or binding a listener. Probe capability, never a version/name.
+  help_output=$(timeout 5 "$BINARY" serve --help 2>&1) || return 1
+  grep -Eq '^[[:space:]]+-runtime-endpoint-file([[:space:]]|$)' <<<"$help_output"
+}
+
 start_candidate() {
 	cleanup_runtime_endpoint
-	RUNTIME_ENDPOINT_DIR=$(mktemp -d "$BUILD_DIR/runtime-endpoint.XXXXXX") || return 1
-	chmod 700 "$RUNTIME_ENDPOINT_DIR" || return 1
+	local serve_args=(serve)
+	if supports_runtime_endpoint_receipt; then
+		RUNTIME_ENDPOINT_DIR=$(mktemp -d "$BUILD_DIR/runtime-endpoint.XXXXXX") || return 1
+		chmod 700 "$RUNTIME_ENDPOINT_DIR" || return 1
+		serve_args+=(--runtime-endpoint-file "$RUNTIME_ENDPOINT_DIR/endpoint.json")
+	else
+		echo '[source-backend] accepted runtime has no owned-listener receipt; automatic cutover is deferred until an explicit idle-drain handoff' >&2
+	fi
 	local source_skill_dirs="${SYNON_SKILL_DIRS:-}"
 	local model_env="${SYNON_DEV_MODEL_ENV_FILE:-${XDG_CONFIG_HOME:-$HOME/.config}/synon-go/workbench-model.env}"
 	if [[ -f "$model_env" ]]; then
@@ -298,8 +314,7 @@ start_candidate() {
 		fi
 	fi
   echo "[source-backend] starting $BINARY serve"
-  (cd "$ROOT" && SYNON_SKILL_DIRS="$source_skill_dirs" exec "$BINARY" serve \
-      --runtime-endpoint-file "$RUNTIME_ENDPOINT_DIR/endpoint.json") &
+  (cd "$ROOT" && SYNON_SKILL_DIRS="$source_skill_dirs" exec "$BINARY" "${serve_args[@]}") &
   CHILD_PID=$!
   RUNTIME_ENDPOINT_PID="$CHILD_PID"
 }
