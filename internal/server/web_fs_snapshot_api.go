@@ -69,7 +69,7 @@ func (s *Server) handleWebFSSnapshot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	mutation := webFSSnapshotMutationRoute(r.URL.Path)
-	allowLocalRead := (s.synonLinkAuth == nil || !s.synonLinkAuth.enabled) && isLoopbackRequest(r)
+	allowLocalRead := s.allowWebFSLocalRead(r)
 	access, err := s.resolveWebFSPath(
 		userID, input.Workspace, input.Workspace, mutation, true, allowLocalRead,
 	)

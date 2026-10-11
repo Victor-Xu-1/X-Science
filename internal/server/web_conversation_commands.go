@@ -28,7 +28,7 @@ func (s *Server) handleWebConversationMessageSubmission(w http.ResponseWriter, r
 		return
 	}
 	originalFiles := append([]string(nil), input.Files...)
-	materializedFiles, err := s.materializeWebConversationInputFiles(r.Context(), frame, input.Files)
+	materializedFiles, err := s.materializeWebConversationInputFiles(r.Context(), r, frame, input.Files)
 	if err != nil {
 		writeWebConversationError(w, err)
 		return

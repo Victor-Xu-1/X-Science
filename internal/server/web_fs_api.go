@@ -75,7 +75,7 @@ func (s *Server) handleWebFS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, maxWebFSRequestBytes)
-	allowLocalRead := (s.synonLinkAuth == nil || !s.synonLinkAuth.enabled) && isLoopbackRequest(r)
+	allowLocalRead := s.allowWebFSLocalRead(r)
 
 	switch r.URL.Path {
 	case "/api/fs/dir":

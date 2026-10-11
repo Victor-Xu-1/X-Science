@@ -59,7 +59,9 @@ func TestWebFSUploadFeedsAuthenticatedConversationInputAuthority(t *testing.T) {
 		t.Fatalf("uploaded bytes=%q err=%v", uploaded, err)
 	}
 	app.synonLinkAuth.enabled = true
-	materialized, err := app.materializeWebConversationInputFiles(context.Background(), compatFrame, []string{result.Data})
+	materializeRequest := httptest.NewRequest(http.MethodPost, "/", nil)
+	materializeRequest.RemoteAddr = "127.0.0.1:12345"
+	materialized, err := app.materializeWebConversationInputFiles(context.Background(), materializeRequest, compatFrame, []string{result.Data})
 	if err != nil || len(materialized) != 1 || materialized[0] != "inputs/组合验收.csv" {
 		t.Fatalf("authenticated materialization=%#v err=%v", materialized, err)
 	}
@@ -134,7 +136,9 @@ func TestWebConversationInputRejectsUnscopedAbsoluteFileWithWebAuthentication(t 
 		t.Fatal(err)
 	}
 
-	_, err = app.materializeWebConversationInputFiles(context.Background(), compatFrame, []string{source})
+	scopedRequest := httptest.NewRequest(http.MethodPost, "/", nil)
+	scopedRequest.RemoteAddr = "127.0.0.1:12345"
+	_, err = app.materializeWebConversationInputFiles(context.Background(), scopedRequest, compatFrame, []string{source})
 	if err == nil || !strings.Contains(err.Error(), "could not be imported") {
 		t.Fatalf("unscoped input err=%v", err)
 	}

@@ -28,7 +28,7 @@ func (s *Server) handleWebShell(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, 64<<10)
-	allowLocalRead := (s.synonLinkAuth == nil || !s.synonLinkAuth.enabled) && isLoopbackRequest(r)
+	allowLocalRead := s.allowWebFSLocalRead(r)
 
 	switch r.URL.Path {
 	case "/api/shell/check-tool-installed":

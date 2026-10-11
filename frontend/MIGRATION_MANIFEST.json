@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "e608847c26d2cc081fe255720a6af18171fbf54089ab9b9bc421fd5d1a15f06d",
+  "adaptationFingerprintSHA256": "a92de974c0ce232cb2433a04c570e76388f2ef9d1587dc6c7ef2141a877c3529",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "c6b0115df46daaf1d3dae25b987b7d2581fbbceec1aff7d1c0e5c8b79dc51c51",
+  "additionFingerprintSHA256": "9cbfe602e51bd71636cc5d90471eff9325826868c84bfb46134682a017753647",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 343,

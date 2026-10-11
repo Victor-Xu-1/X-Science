@@ -75,7 +75,7 @@ func (s *Server) handleWebZip(w http.ResponseWriter, r *http.Request) {
 		s.handleWebZipCancel(w, r)
 		return
 	}
-	allowLocalRead := (s.synonLinkAuth == nil || !s.synonLinkAuth.enabled) && isLoopbackRequest(r)
+	allowLocalRead := s.allowWebFSLocalRead(r)
 	var input struct {
 		Path       string              `json:"path"`
 		Workspace  string              `json:"workspace,omitempty"`
