@@ -13,29 +13,32 @@ export function useSettingsReadResource<T>(key: string | null, load: () => Promi
   const generation = useRef(0);
   const inFlight = useRef<Promise<void> | null>(null);
 
-  const refresh = useCallback((): Promise<void> => {
-    if (!key || owner.current !== key) return Promise.resolve();
-    if (inFlight.current) return inFlight.current;
-    const current = ++generation.current;
-    setState((previous) => ({ key, data: previous.key === key ? previous.data : null, status: 'loading' }));
-    const request = Promise.resolve()
-      .then(load)
-      .then(
-        (data) => {
-          if (owner.current === key && generation.current === current) setState({ key, data, status: 'ready' });
-        },
-        () => {
-          if (owner.current === key && generation.current === current) {
-            setState((previous) => ({ ...previous, status: 'failed' }));
+  const refresh = useCallback(
+    (afterWrite = false): Promise<void> => {
+      if (!key || owner.current !== key) return Promise.resolve();
+      if (inFlight.current && !afterWrite) return inFlight.current;
+      const current = ++generation.current;
+      setState((previous) => ({ key, data: previous.key === key ? previous.data : null, status: 'loading' }));
+      const request = Promise.resolve()
+        .then(load)
+        .then(
+          (data) => {
+            if (owner.current === key && generation.current === current) setState({ key, data, status: 'ready' });
+          },
+          () => {
+            if (owner.current === key && generation.current === current) {
+              setState((previous) => ({ ...previous, status: 'failed' }));
+            }
           }
-        }
-      )
-      .finally(() => {
-        if (generation.current === current) inFlight.current = null;
-      });
-    inFlight.current = request;
-    return request;
-  }, [key, load]);
+        )
+        .finally(() => {
+          if (generation.current === current) inFlight.current = null;
+        });
+      inFlight.current = request;
+      return request;
+    },
+    [key, load]
+  );
 
   const replace = useCallback(
     (data: T) => {

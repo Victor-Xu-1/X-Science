@@ -513,4 +513,113 @@ describe('ComputeSettingsContent', () => {
     expect(mocks.loadJob).toHaveBeenCalledTimes(2);
     expect(mocks.setSessionProvider).not.toHaveBeenCalled();
   });
+
+  it.each(['reopen', 'same-root-job'] as const)(
+    'reconciles a delayed provider write after %s without another PUT',
+    async (mode) => {
+      let finishWrite!: () => void;
+      let enabled = true;
+      mocks.setSessionProvider.mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            finishWrite = () => {
+              enabled = false;
+              resolve();
+            };
+          })
+      );
+      mocks.loadJob.mockImplementation(async (jobId) => ({ ...computeJob, jobId, rootFrameId: 'shared-root' }));
+      mocks.loadSessionProviders.mockImplementation(async () => (enabled ? ['infer:fixture-nim'] : []));
+      const props = { providerNames: ['infer:fixture-nim'], onClose: vi.fn() };
+      const view = await renderWithSettingsI18n(
+        <ComputeJobDetailModal {...props} job={{ ...computeJob, jobId: 'first' }} />,
+        'en-US'
+      );
+      fireEvent.click(await screen.findByRole('switch'));
+      await waitFor(() => expect(mocks.setSessionProvider).toHaveBeenCalledTimes(1));
+      if (mode === 'reopen') view.rerender(<ComputeJobDetailModal {...props} job={null} />);
+      view.rerender(
+        <ComputeJobDetailModal {...props} job={{ ...computeJob, jobId: mode === 'reopen' ? 'first' : 'second' }} />
+      );
+      await waitFor(() => expect(mocks.loadSessionProviders).toHaveBeenCalledTimes(2));
+      const pendingSwitch = await screen.findByRole('switch');
+      expect(pendingSwitch).toBeDisabled();
+      fireEvent.click(pendingSwitch);
+      expect(mocks.setSessionProvider).toHaveBeenCalledTimes(1);
+      await act(async () => finishWrite());
+      await waitFor(() => expect(mocks.loadSessionProviders).toHaveBeenCalledTimes(3));
+      const updatedSwitch = await screen.findByRole('switch');
+      expect(updatedSwitch).not.toBeChecked();
+      expect(updatedSwitch).toBeEnabled();
+      expect(mocks.setSessionProvider).toHaveBeenCalledTimes(1);
+    }
+  );
+
+  it('supersedes a pre-write GET still pending when the same-root PUT completes', async () => {
+    let finishWrite!: () => void;
+    let finishStaleRead!: (value: string[]) => void;
+    mocks.setSessionProvider.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        finishWrite = resolve;
+      })
+    );
+    mocks.loadJob.mockImplementation(async (jobId) => ({ ...computeJob, jobId, rootFrameId: 'shared-root' }));
+    mocks.loadSessionProviders
+      .mockResolvedValueOnce(['infer:fixture-nim'])
+      .mockImplementationOnce(
+        () =>
+          new Promise<string[]>((resolve) => {
+            finishStaleRead = resolve;
+          })
+      )
+      .mockResolvedValueOnce([]);
+    const props = { providerNames: ['infer:fixture-nim'], onClose: vi.fn() };
+    const view = await renderWithSettingsI18n(
+      <ComputeJobDetailModal {...props} job={{ ...computeJob, jobId: 'first' }} />,
+      'en-US'
+    );
+    fireEvent.click(await screen.findByRole('switch'));
+    await waitFor(() => expect(mocks.setSessionProvider).toHaveBeenCalledTimes(1));
+    view.rerender(<ComputeJobDetailModal {...props} job={{ ...computeJob, jobId: 'second' }} />);
+    await waitFor(() => expect(mocks.loadSessionProviders).toHaveBeenCalledTimes(2));
+    await act(async () => finishWrite());
+    const currentSwitch = await screen.findByRole('switch');
+    expect(mocks.loadSessionProviders).toHaveBeenCalledTimes(3);
+    expect(currentSwitch).not.toBeChecked();
+    await act(async () => finishStaleRead(['infer:fixture-nim']));
+    expect(currentSwitch).not.toBeChecked();
+    expect(mocks.setSessionProvider).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets a different session root write while an older root is pending', async () => {
+    let finishOld!: () => void;
+    const enabled = new Set(['old-root', 'new-root']);
+    mocks.loadJob.mockImplementation(async (jobId) => ({ ...computeJob, jobId, rootFrameId: jobId }));
+    mocks.loadSessionProviders.mockImplementation(async (rootId) => (enabled.has(rootId) ? ['infer:fixture-nim'] : []));
+    mocks.setSessionProvider.mockImplementation(async (rootId) => {
+      if (rootId === 'old-root')
+        await new Promise<void>((resolve) => {
+          finishOld = resolve;
+        });
+      enabled.delete(rootId);
+    });
+    const props = { providerNames: ['infer:fixture-nim'], onClose: vi.fn() };
+    const view = await renderWithSettingsI18n(
+      <ComputeJobDetailModal {...props} job={{ ...computeJob, jobId: 'old-root' }} />,
+      'en-US'
+    );
+    fireEvent.click(await screen.findByRole('switch'));
+    await waitFor(() => expect(mocks.setSessionProvider).toHaveBeenCalledTimes(1));
+    view.rerender(<ComputeJobDetailModal {...props} job={{ ...computeJob, jobId: 'new-root' }} />);
+    const newSwitch = await screen.findByRole('switch');
+    expect(newSwitch).toBeEnabled();
+    fireEvent.click(newSwitch);
+    await waitFor(() => expect(mocks.setSessionProvider).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.getByRole('switch')).toBeEnabled());
+    expect(screen.getByRole('switch')).not.toBeChecked();
+    const readsBeforeOldSettles = mocks.loadSessionProviders.mock.calls.length;
+    await act(async () => finishOld());
+    expect(mocks.loadSessionProviders).toHaveBeenCalledTimes(readsBeforeOldSettles);
+    expect(screen.getByRole('switch')).not.toBeChecked();
+  });
 });

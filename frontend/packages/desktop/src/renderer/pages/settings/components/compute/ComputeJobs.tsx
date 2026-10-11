@@ -1,9 +1,8 @@
 import { Button, Message, Spin, Switch, Tag } from '@arco-design/web-react';
 import Modal from '@/renderer/components/base/WorkbenchModal';
-import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  setSynonBiomedSessionComputeProvider,
   type SynonBiomedComputeJob,
   type SynonBiomedComputeProvider,
   type SynonBiomedManagedEndpoint,
@@ -16,6 +15,7 @@ import {
 } from '@/renderer/services/compute/jobPresentation';
 import { handleTabListKeyDown } from '@/renderer/utils/tabListKeyboard';
 import { useComputeJobReads } from './useComputeJobReads';
+import { useSessionProviderWrites } from './useSessionProviderWrites';
 
 export const ComputeJobRow: React.FC<{
   job: SynonBiomedComputeJob;
@@ -77,50 +77,24 @@ export const ComputeJobDetailModal: React.FC<{
   const logPanelId = useId();
   const [activeStream, setActiveStream] = useState<'stdout' | 'stderr'>('stdout');
   const enabledProviders = reads.providers.data ?? [];
-  const [pendingProvider, setPendingProvider] = useState<string | null>(null);
-  const mutationOwner = useRef<object | null>(null);
-  const pendingWrite = useRef(false);
+  const { pendingProvider, toggle: toggleSessionProvider } = useSessionProviderWrites(
+    job?.jobId ?? null,
+    detail?.rootFrameId ?? null,
+    reads.providers,
+    (error) => {
+      console.error('Failed to update session compute provider:', error);
+      Message.error(t('settings.computeWorkspace.sessionUpdateFailed'));
+    }
+  );
 
   useEffect(() => {
-    mutationOwner.current = {};
-    pendingWrite.current = false;
-    setPendingProvider(null);
     setActiveStream('stdout');
-    return () => {
-      mutationOwner.current = null;
-    };
   }, [job?.jobId]);
 
   const visibleProviders = useMemo(
     () => Array.from(new Set([...providerNames, ...enabledProviders])).sort((left, right) => left.localeCompare(right)),
     [enabledProviders, providerNames]
   );
-
-  const toggleSessionProvider = async (providerName: string, checked: boolean) => {
-    if (!detail?.rootFrameId || reads.providers.status !== 'ready' || pendingWrite.current) return;
-    const owner = mutationOwner.current;
-    pendingWrite.current = true;
-    const previous = enabledProviders;
-    reads.providers.replace(
-      checked
-        ? Array.from(new Set([...enabledProviders, providerName]))
-        : enabledProviders.filter((name) => name !== providerName)
-    );
-    setPendingProvider(providerName);
-    try {
-      await setSynonBiomedSessionComputeProvider(detail.rootFrameId, providerName, checked);
-    } catch (error) {
-      if (mutationOwner.current !== owner) return;
-      reads.providers.replace(previous);
-      console.error('Failed to update session compute provider:', error);
-      Message.error(t('settings.computeWorkspace.sessionUpdateFailed'));
-    } finally {
-      if (mutationOwner.current === owner) {
-        pendingWrite.current = false;
-        setPendingProvider(null);
-      }
-    }
-  };
 
   const activeRead = reads[activeStream];
   const activeLog = activeRead.data;
