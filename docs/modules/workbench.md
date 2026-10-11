@@ -587,6 +587,16 @@ SYNON_REPLY_BRANCH_BROWSER=1 go test ./internal/server -run '^TestWebReplyBranch
 
 ### Document preview · 文档预览
 
+Code highlighting loads only when a code view is opened. Source text remains
+readable while loading or after an import failure; a failure is reported without
+an unhandled rejection, and a later mount may retry the same loader. Concurrent
+views share the chunk and still update when its cache fills before a passive
+effect runs. Unmounting prevents late state updates; task execution is unchanged.
+
+代码高亮按需加载，等待或读取失败时原始代码仍可阅读。加载错误不会变成未处理的
+Promise 拒绝，后续重新打开可沿同一入口重试。多个视图共享加载缓存，不因缓存先于
+当前视图的效果完成而永久停在纯文本；关闭视图后不再更新旧状态，不改变任务执行。
+
 回答中的生成文件链接以蓝色粗体显示，点击或键盘激活进入应用内预览；
 下载是预览内的独立操作。产物引用、文件名和产物内容 URL 共用会话产物
 解析器；`#/artifacts/` 工作台链接也沿此入口打开，不另开网页。内容 URL 与工作台

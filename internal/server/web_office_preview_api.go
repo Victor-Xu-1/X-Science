@@ -71,7 +71,7 @@ func (s *Server) handleWebOfficePreview(w http.ResponseWriter, r *http.Request) 
 		}
 		filePath = resolvedPath
 	} else {
-		allowLocalRead := (s.synonLinkAuth == nil || !s.synonLinkAuth.enabled) && isLoopbackRequest(r)
+		allowLocalRead := s.allowWebFSLocalRead(r)
 		access, resolveErr := s.resolveWebFSPath(userID, filePath, input.Workspace, false, true, allowLocalRead)
 		if resolveErr != nil {
 			writeWebOfficeError(w, resolveErr)

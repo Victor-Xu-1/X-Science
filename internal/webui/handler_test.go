@@ -112,26 +112,29 @@ func TestHandlerConfinesRDKitUnsafeEvalToTheDedicatedWorker(t *testing.T) {
 	}
 }
 
-func TestHandlerRevalidatesThemeBootstrapWithoutRelaxingPageCSP(t *testing.T) {
+func TestHandlerRevalidatesFixedNameBootScriptsWithoutRelaxingPageCSP(t *testing.T) {
 	root := t.TempDir()
-	writeTestAsset(t, root, "index.html", `<script src="/theme-init.js"></script><main>X-Science</main>`)
+	writeTestAsset(t, root, "index.html", `<script src="/theme-init.js"></script><script src="./app-boot.js"></script><main>X-Science</main>`)
 	writeTestAsset(t, root, themeInitPath, "document.documentElement.dataset.theme = 'dark'")
+	writeTestAsset(t, root, appBootPath, "document.documentElement.dataset.boot = 'ready'")
 	handler, err := New(root)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	request := httptest.NewRequest(http.MethodGet, "/theme-init.js", nil)
-	response := httptest.NewRecorder()
-	handler.ServeHTTP(response, request)
-	if response.Code != http.StatusOK {
-		t.Fatalf("theme bootstrap status = %d", response.Code)
-	}
-	if got := response.Header().Get("Cache-Control"); got != "no-cache, must-revalidate" {
-		t.Fatalf("theme bootstrap cache control = %q", got)
-	}
-	if got := response.Header().Get("Content-Security-Policy"); got != pageContentSecurityPolicy || strings.Contains(got, "script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline'") {
-		t.Fatalf("theme bootstrap CSP = %q", got)
+	for _, requestPath := range []string{"/theme-init.js", "/app-boot.js"} {
+		request := httptest.NewRequest(http.MethodGet, requestPath, nil)
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, request)
+		if response.Code != http.StatusOK {
+			t.Fatalf("%s status = %d", requestPath, response.Code)
+		}
+		if got := response.Header().Get("Cache-Control"); got != "no-cache, must-revalidate" {
+			t.Fatalf("%s cache control = %q", requestPath, got)
+		}
+		if got := response.Header().Get("Content-Security-Policy"); got != pageContentSecurityPolicy || strings.Contains(got, "script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline'") {
+			t.Fatalf("%s CSP = %q", requestPath, got)
+		}
 	}
 }
 

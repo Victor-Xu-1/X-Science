@@ -115,7 +115,7 @@ func (s *Server) normalizeWebPreviewTarget(
 	if !identity {
 		return target, fmt.Errorf("%w: preview target identity is required", errWebFSInvalid)
 	}
-	allowLocalRead := (s.synonLinkAuth == nil || !s.synonLinkAuth.enabled) && isLoopbackRequest(r)
+	allowLocalRead := s.allowWebFSLocalRead(r)
 	if target.FilePath != "" {
 		access, err := s.resolveWebFSPath(
 			userID, target.FilePath, target.Workspace, false, false, allowLocalRead,

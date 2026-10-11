@@ -4,6 +4,8 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -99,7 +101,9 @@ func TestWebInputPublicationRejectsEscapedTaskInputDirectory(t *testing.T) {
 	if err := os.WriteFile(source, []byte("evidence"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := app.materializeWebConversationInputFiles(context.Background(), compat, []string{source}); err == nil {
+	request := httptest.NewRequest(http.MethodPost, "/", nil)
+	request.RemoteAddr = "127.0.0.1:12345"
+	if _, err := app.materializeWebConversationInputFiles(context.Background(), request, compat, []string{source}); err == nil {
 		t.Error("escaped task input root accepted")
 	}
 	entries, err := os.ReadDir(outside)

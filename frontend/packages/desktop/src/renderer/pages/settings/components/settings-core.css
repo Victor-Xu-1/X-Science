@@ -568,3 +568,12 @@ html
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
+
+/* Generated <picture> is the box child/flex CSS sees. The PNG fallback img
+   fills that box so object-fit/size rules keep applying to the pixels. */
+.settings-page-wrapper picture:not(.settings-generated-picture--passthrough) > img[data-settings-generated-asset] {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: inherit;
+}

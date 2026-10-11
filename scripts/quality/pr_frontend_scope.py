@@ -6,6 +6,16 @@ from pathlib import Path, PurePosixPath
 # selector runs. Version-only manifests are filtered by pr_metadata_scope.
 PROVENANCE = {"frontend/MIGRATION_MANIFEST.json", "frontend/THIRD_PARTY_LICENSES.json"}
 
+# Static branding files are not Vitest modules. Bind them to the existing
+# identity/visual tests that already hash and require those assets.
+BRANDING_PREFIX = "frontend/public/branding/"
+BRANDING_TESTS = (
+    "tests/unit/settings/settingsVisualContract.test.ts",
+    "tests/unit/renderer/XScienceIdentity.test.ts",
+    "tests/unit/renderer/ProductBrand.dom.test.tsx",
+    "tests/unit/renderer/SynonBiomedBranding.test.ts",
+)
+
 
 def _frontend_paths(paths: list[str]) -> list[str]:
     result = []
@@ -27,6 +37,9 @@ def _browser_fixture(value: str) -> bool:
 def related_command(paths: list[str]) -> list[str] | None:
     selected: set[str] = set()
     for value in _frontend_paths(paths):
+        if value.startswith(BRANDING_PREFIX):
+            selected.update(BRANDING_TESTS)
+            continue
         # Browser entrypoints are compiled by fixture_command, not claimed as
         # Vitest coverage. Shared data retains its actual test import owners.
         if _browser_fixture(value):
