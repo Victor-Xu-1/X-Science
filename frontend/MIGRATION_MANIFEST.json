@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "4560a3a7e2bbad3d850251c45e08c6ee8a9154fe2daf6f1c4bb2f29f02c3f89a",
+  "adaptationFingerprintSHA256": "b2acae215b71ab3bb3966324c43cbd25382a1a9571d0e52621e5b315dbca37e2",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "3ec9bd259ef10c734c5b35571c5b6bdaa25eb9e6b470c0dc7c554555f31671d8",
+  "additionFingerprintSHA256": "a808a8ba121254ef81bc97cdd0de8bfc17fb761b74bb91b39fa3a391b1901c7b",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 343,
     "adaptedSourceFiles": 718,
     "removedSourceFiles": 293,
-    "addedFiles": 921
+    "addedFiles": 926
   },
   "adaptations": [
     {
@@ -10761,6 +10761,12 @@
       "sha256": "4455926976a805989314091ed8dd7e774dd18d01d4664cca54ec7e901b1361b3",
       "bytes": 5241,
       "reason": "Verify authenticated first-use recovery, retry, and preserved onboarding draft state."
+    },
+    {
+      "path": "tests/unit/renderer/GroupedHistoryRowMemo.dom.test.tsx",
+      "sha256": "66e80c005d8b8ed0296c40dfbfa7e49ddf40389fc998000d0f45f2322fd03aa3",
+      "bytes": 6348,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/unit/renderer/LazySyntaxHighlighter.dom.test.tsx",
