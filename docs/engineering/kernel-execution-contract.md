@@ -79,6 +79,12 @@ Focused lifecycle regressions use temporary persistence and controlled process
 identity. They establish these recovery contracts, not a guarantee of uninterrupted
 24-hour hardware availability or scientific validity.
 
+Recovery terminalization is fenced to the active stream, input revision, exact
+expired attempt and current non-resumable checkpoint in one transaction. An
+already-failed Frame can still receive its missing runner receipt, without
+replacing the original failure description, completion time or context data.
+Newer claims, input, checkpoints and live leases remain outside that settlement.
+
 ## Progress and transfer supervision
 
 Progress observation waits for the authoritative execution result, not a total
