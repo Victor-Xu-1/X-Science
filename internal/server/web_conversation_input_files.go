@@ -40,14 +40,12 @@ func (s *Server) materializeWebConversationInputFiles(
 	}
 	// Repository-backed conversations retain their existing explicit-path
 	// contract. Managed Web workspaces require task-local materialization.
-	if strings.TrimSpace(access.ProjectPath) != "" {
-		return append([]string(nil), files...), nil
-	}
-	taskRoot, err := s.defaultAgentKernelTaskWorkspace(
-		access.Frame.ProjectID, access.Frame.RootFrameID, access.RootFrameIncarnationID,
-	)
+	taskRoot, managed, err := s.selectAgentWorkspace(access, access.ProjectPath)
 	if err != nil {
 		return nil, transcriptWebStorageError(err)
+	}
+	if !managed {
+		return append([]string(nil), files...), nil
 	}
 	taskRoot, err = canonicalOrCreateAgentWorkspaceDirectory(taskRoot, 0o700)
 	if err != nil {
