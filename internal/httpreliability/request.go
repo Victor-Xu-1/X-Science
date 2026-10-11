@@ -93,27 +93,3 @@ func IdleBody(body io.ReadCloser, timeout time.Duration) io.ReadCloser {
 	}
 	return &idleBody{body: body, timeout: timeout}
 }
-
-type idleBody struct {
-	body    io.ReadCloser
-	timeout time.Duration
-}
-
-func (body *idleBody) Read(target []byte) (int, error) {
-	if len(target) == 0 {
-		return 0, nil
-	}
-	timedOut := make(chan struct{})
-	timer := time.AfterFunc(body.timeout, func() {
-		_ = body.body.Close()
-		close(timedOut)
-	})
-	count, err := body.body.Read(target)
-	if !timer.Stop() {
-		// Do not allow a late callback from this read to close the next one.
-		<-timedOut
-		return count, ErrBodyIdleTimeout
-	}
-	return count, err
-}
-func (body *idleBody) Close() error { return body.body.Close() }
