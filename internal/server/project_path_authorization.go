@@ -12,38 +12,56 @@ import (
 
 var errProjectPathForbidden = errors.New("project path is not authorized")
 
-func (s *Server) resolveAuthorizedProjectPath(userID, projectID, requested string, createManaged bool) (string, error) {
+type hostPathCoverage struct {
+	writable bool
+}
+
+func (s *Server) resolveAuthorizedProjectPath(userID, projectID, requested string, createManaged bool) (string, bool, error) {
 	userID = strings.TrimSpace(userID)
 	projectID = strings.TrimSpace(projectID)
 	requested = strings.TrimSpace(requested)
 	if requested == "" {
 		if !createManaged {
-			return "", errors.New("project path is required")
+			return "", false, errors.New("project path is required")
 		}
 		if strings.TrimSpace(s.fileRoot) == "" {
-			return "", nil
+			return "", false, nil
 		}
 		managed, err := s.defaultAgentKernelWorkspace(projectID)
 		if err != nil {
-			return "", err
+			return "", false, err
 		}
-		created, err := canonicalOrCreateAgentWorkspaceDirectory(managed, 0o700)
-		if err != nil {
-			return "", fmt.Errorf("prepare managed project workspace: %w", err)
-		}
-		return created, nil
+		// Persist first; materializeManagedProjectWorkspace creates the inode
+		// only after the project row exists.
+		return filepath.Clean(managed), true, nil
 	}
 	path, err := canonicalHostDirectory(requested)
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
 	if err := s.validateProjectPathAuthority(userID, projectID, path); err != nil {
-		return "", err
+		return "", false, err
 	}
-	return path, nil
+	return path, false, nil
+}
+
+func (s *Server) materializeManagedProjectWorkspace(path string) (string, error) {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return "", nil
+	}
+	created, err := canonicalOrCreateAgentWorkspaceDirectory(path, 0o700)
+	if err != nil {
+		return "", fmt.Errorf("prepare managed project workspace: %w", err)
+	}
+	return created, nil
 }
 
 func (s *Server) validateProjectPathAuthority(userID, projectID, path string) error {
+	return s.validateProjectPathAdmission(userID, projectID, path, true)
+}
+
+func (s *Server) validateProjectPathAdmission(userID, projectID, path string, requireWrite bool) error {
 	if err := kernelruntime.ValidateHostMountPath(path); err != nil {
 		return err
 	}
@@ -66,12 +84,28 @@ func (s *Server) validateProjectPathAuthority(userID, projectID, path string) er
 	if s.settingsStore == nil {
 		return errProjectPathForbidden
 	}
-	grants, err := s.loadHostGrants(userID)
+	coverage, covered, err := s.coveringHostPathGrant(userID, path)
 	if err != nil {
 		return errors.New("project path authorization could not be verified")
 	}
+	if !covered || (requireWrite && !coverage.writable) {
+		return errProjectPathForbidden
+	}
+	return nil
+}
+
+func (s *Server) coveringHostPathGrant(userID, path string) (hostPathCoverage, bool, error) {
+	if s == nil || s.settingsStore == nil {
+		return hostPathCoverage{}, false, nil
+	}
+	grants, err := s.loadHostGrants(userID)
+	if err != nil {
+		return hostPathCoverage{}, false, err
+	}
+	covered := false
+	writable := false
 	for _, grant := range grants {
-		if grant.Mode != "read_write" {
+		if grant.Mode != "read" && grant.Mode != "read_write" {
 			continue
 		}
 		root, resolveErr := canonicalHostDirectory(grant.Path)
@@ -81,11 +115,15 @@ func (s *Server) validateProjectPathAuthority(userID, projectID, path string) er
 		if err := kernelruntime.ValidateHostMountPath(root); err != nil {
 			continue
 		}
-		if hostPathWithin(root, path) {
-			return nil
+		if !hostPathWithin(root, path) {
+			continue
+		}
+		covered = true
+		if grant.Mode == "read_write" {
+			writable = true
 		}
 	}
-	return errProjectPathForbidden
+	return hostPathCoverage{writable: writable}, covered, nil
 }
 
 func (s *Server) managedProjectWorkspacePath(projectID string) (string, error) {
@@ -130,24 +168,34 @@ func (s *Server) authorizedProjectWebFSRoot(userID, projectID, projectPath strin
 	if err != nil {
 		return webFSRoot{}, false
 	}
-	if err := s.validateProjectPathAuthority(userID, projectID, path); err != nil {
+	if err := s.validateProjectPathAdmission(userID, projectID, path, false); err != nil {
 		return webFSRoot{}, false
 	}
 	managed, managedErr := s.managedProjectWorkspacePath(projectID)
 	if managedErr == nil && hostPathWithin(managed, path) {
 		return webFSRoot{Path: path, Writable: true}, true
 	}
-	if s.settingsStore != nil {
-		grants, err := s.loadHostGrants(userID)
-		if err == nil {
-			for _, grant := range grants {
-				root, resolveErr := canonicalHostDirectory(grant.Path)
-				if resolveErr != nil || !hostPathWithin(root, path) {
-					continue
-				}
-				return webFSRoot{Path: path, Writable: grant.Mode == "read_write"}, true
-			}
-		}
+	coverage, covered, err := s.coveringHostPathGrant(userID, path)
+	if err != nil || !covered {
+		return webFSRoot{}, false
 	}
-	return webFSRoot{}, false
+	return webFSRoot{Path: path, Writable: coverage.writable}, true
+}
+
+// liveWritableProjectWorkspace re-checks persisted project.Path against the
+// current write grant or this project's managed workspace. Revoked or
+// read-only host paths must not become a writable kernel workdir.
+func (s *Server) liveWritableProjectWorkspace(userID, projectID, workdir string) (string, bool) {
+	workdir = strings.TrimSpace(workdir)
+	if workdir == "" || !filepath.IsAbs(workdir) {
+		return "", false
+	}
+	target, err := canonicalAgentWorkspaceDirectoryTarget(workdir)
+	if err != nil {
+		return "", false
+	}
+	if err := s.validateProjectPathAdmission(userID, projectID, target, true); err != nil {
+		return "", false
+	}
+	return target, true
 }

@@ -112,7 +112,7 @@ func (s *Server) handleWorkspaceProjects(w http.ResponseWriter, r *http.Request)
 	if projectID == "" {
 		projectID = uuid.NewString()
 	}
-	projectPath, err := s.resolveAuthorizedProjectPath(userID, projectID, input.Path, true)
+	projectPath, managed, err := s.resolveAuthorizedProjectPath(userID, projectID, input.Path, true)
 	if err != nil {
 		writeWorkspaceJSON(w, projectPathStatus(err), map[string]any{"ok": false, "error": err.Error()})
 		return
@@ -121,6 +121,12 @@ func (s *Server) handleWorkspaceProjects(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 		return
+	}
+	if managed {
+		if _, err := s.materializeManagedProjectWorkspace(project.Path); err != nil {
+			writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
+			return
+		}
 	}
 	writeWorkspaceJSON(w, http.StatusOK, map[string]any{"ok": true, "project": project})
 }
@@ -716,18 +722,27 @@ func (s *Server) handleWorkspaceProject(w http.ResponseWriter, r *http.Request) 
 				return
 			}
 			update := workspace.UpdateProjectInput{Name: input.Name, Path: input.Path}
+			managed := false
 			if input.Path != nil {
-				authorized, err := s.resolveAuthorizedProjectPath(userID, projectID, *input.Path, false)
+				createManaged := strings.TrimSpace(*input.Path) == ""
+				authorized, createdManaged, err := s.resolveAuthorizedProjectPath(userID, projectID, *input.Path, createManaged)
 				if err != nil {
 					writeWorkspaceJSON(w, projectPathStatus(err), map[string]any{"ok": false, "error": err.Error()})
 					return
 				}
 				update.Path = &authorized
+				managed = createdManaged
 			}
 			project, err := store.UpdateProjectRealtime(r.Context(), projectID, userID, update, "")
 			if err != nil {
 				writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 				return
+			}
+			if managed {
+				if _, err := s.materializeManagedProjectWorkspace(project.Path); err != nil {
+					writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
+					return
+				}
 			}
 			writeWorkspaceJSON(w, http.StatusOK, map[string]any{"ok": true, "project": project})
 		case http.MethodDelete:
