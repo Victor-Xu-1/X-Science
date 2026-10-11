@@ -220,3 +220,14 @@ Go kernel tests separately exercise real confinement, host calls, provider
 credentials, session identity, cancellation and restart through the manager.
 Full application acceptance and distribution licensing are separate gates;
 passing these tests is not permission to publish unreviewed third-party assets.
+
+The protocol regression entry supports both direct-file and package-module
+invocation without adding the repository root to global PYTHONPATH. Choose
+the named cases relevant to a change rather than adding this module's entire
+suite to every PR. For example:
+
+    python3 -B scripts/quality/test_kernel_worker_protocol.py WorkerProtocolTests.test_discarded_nonzero_results_are_executed_failures
+    python3 -B -m unittest scripts.quality.test_kernel_worker_protocol.WorkerProtocolTests.test_persistent_namespace_and_expression
+
+These fixtures use temporary worker processes and real interpreter pipes;
+they do not run a user research task or establish long-duration endurance.
