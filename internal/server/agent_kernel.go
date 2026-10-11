@@ -142,6 +142,10 @@ func (s *Server) resolveAgentWorkspaceAuthority(
 			return workspace.KernelFrameAccess{}, "", false
 		}
 	}
+	workdir, err = s.materializeAdmittedManagedWorkspace(access.Frame.ProjectID, workdir)
+	if err != nil {
+		return workspace.KernelFrameAccess{}, "", false
+	}
 	identity := &agentKernelContext{access: access, workspaceDir: workdir}
 	canonicalWorkspace, err := s.canonicalAgentWorkspaceRoot(identity)
 	if err != nil {

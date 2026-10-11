@@ -15,8 +15,8 @@ func TestAgentRuntimeToolSchemasHideWorktreeToolsOutsideGitProject(t *testing.T)
 	store, manager, app, identity := newKernelHostTestRuntime(t, filepath.Join(t.TempDir(), "workspace.db"), true)
 	defer closeKernelHostTestRuntime(t, app, manager, store)
 
-	nonGit := identity.workspaceDir
-	if err := os.MkdirAll(nonGit, 0o700); err != nil {
+	nonGit, err := app.defaultAgentKernelWorkspace(identity.access.Frame.ProjectID)
+	if err != nil {
 		t.Fatal(err)
 	}
 	if _, err := store.UpdateProject(identity.access.Frame.ProjectID, workspace.UpdateProjectInput{Path: &nonGit}); err != nil {

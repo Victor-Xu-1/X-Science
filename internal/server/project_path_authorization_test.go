@@ -447,6 +447,9 @@ func TestRevokedGrantDoesNotRemainWritableKernelWorkspace(t *testing.T) {
 	if !strings.Contains(afterRevoke, "-workspaces") {
 		t.Fatalf("fallback workspace=%q", afterRevoke)
 	}
+	if info, err := os.Stat(afterRevoke); err != nil || !info.IsDir() {
+		t.Fatalf("fallback workspace missing: %v", err)
+	}
 
 	if _, err := app.upsertHostGrant("local", granted, "read"); err != nil {
 		t.Fatal(err)

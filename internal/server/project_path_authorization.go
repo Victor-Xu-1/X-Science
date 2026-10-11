@@ -57,6 +57,28 @@ func (s *Server) materializeManagedProjectWorkspace(path string) (string, error)
 	return created, nil
 }
 
+// materializeAdmittedManagedWorkspace creates this project's managed workspace
+// inode after admission (project or task path). Host-granted paths are left
+// unchanged so grant authorization never creates directories.
+func (s *Server) materializeAdmittedManagedWorkspace(projectID, workdir string) (string, error) {
+	workdir = strings.TrimSpace(workdir)
+	if workdir == "" {
+		return "", nil
+	}
+	managed, err := s.managedProjectWorkspacePath(projectID)
+	if err != nil {
+		return workdir, nil
+	}
+	target, err := canonicalAgentWorkspaceDirectoryTarget(workdir)
+	if err != nil {
+		return "", err
+	}
+	if !hostPathWithin(managed, target) {
+		return workdir, nil
+	}
+	return s.materializeManagedProjectWorkspace(target)
+}
+
 func (s *Server) validateProjectPathAuthority(userID, projectID, path string) error {
 	return s.validateProjectPathAdmission(userID, projectID, path, true)
 }
