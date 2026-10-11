@@ -61,7 +61,7 @@ func (s *Server) handleWebDocumentConvert(w http.ResponseWriter, r *http.Request
 			writeWebOfficeError(w, fmt.Errorf("%w: version_id requires artifact_id", errWebFSInvalid))
 			return
 		}
-		allowLocalRead := (s.synonLinkAuth == nil || !s.synonLinkAuth.enabled) && isLoopbackRequest(r)
+		allowLocalRead := s.allowWebFSLocalRead(r)
 		access, err := s.resolveWebFSPath(
 			userID, filePath, input.Workspace, false, true, allowLocalRead,
 		)
