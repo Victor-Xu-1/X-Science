@@ -76,6 +76,15 @@ completed change refreshes the currently open matching root from the server,
 superseding any pre-change read without reissuing the write. Other roots remain
 independently usable.
 
+Concurrent browser-origin project catalogue reads share only their in-flight
+request, scoped to the authenticated account. Settled requests are evicted;
+successful project writes, including an already-absent deletion, invalidate the
+pre-write generation before its refresh. A delayed old response cannot evict a
+newer shared request. Custom transports, explicit origins and caller-owned
+abort signals remain isolated, and a previous owner's late mutation cannot
+invalidate the current owner's reads. The project workbench uses these same
+artifact and folder loaders rather than a competing read path.
+
 The conversation Move dialog can be cancelled while its project catalogue is
 loading. Closing or reopening it invalidates the previous read. Once a move is
 submitted, the dialog waits for its server outcome and prevents duplicate writes;

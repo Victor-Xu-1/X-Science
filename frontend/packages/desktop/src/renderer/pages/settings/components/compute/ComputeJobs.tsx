@@ -14,6 +14,7 @@ import {
   isComputeControlUnavailable,
 } from '@/renderer/services/compute/jobPresentation';
 import { handleTabListKeyDown } from '@/renderer/utils/tabListKeyboard';
+import { sanitizeExternalHttpUrl } from '@/renderer/utils/platform';
 import { useComputeJobReads } from './useComputeJobReads';
 import { useSessionProviderWrites } from './useSessionProviderWrites';
 
@@ -99,6 +100,7 @@ export const ComputeJobDetailModal: React.FC<{
   const activeRead = reads[activeStream];
   const activeLog = activeRead.data;
   const streamLabel = t(activeStream === 'stdout' ? 'settings.computeStdout' : 'settings.computeStderr');
+  const externalUrl = sanitizeExternalHttpUrl(detail?.externalUrl);
   return (
     <Modal
       visible={Boolean(job)}
@@ -134,8 +136,8 @@ export const ComputeJobDetailModal: React.FC<{
               </div>
               <div className='mt-4px text-12px text-t-tertiary font-mono break-all'>{detail.jobId}</div>
             </div>
-            {detail.externalUrl ? (
-              <a href={detail.externalUrl} target='_blank' rel='noreferrer' className='text-12px text-link-6 shrink-0'>
+            {externalUrl ? (
+              <a href={externalUrl} target='_blank' rel='noreferrer' className='text-12px text-link-6 shrink-0'>
                 {t('settings.computeOpenRemoteJob')}
               </a>
             ) : null}

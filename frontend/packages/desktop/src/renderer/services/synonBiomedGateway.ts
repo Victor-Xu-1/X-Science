@@ -324,23 +324,13 @@ export async function loadSynonBiomedProjectWorkbench(
   projectId: string,
   options: SynonBiomedGatewayOptions = {}
 ): Promise<SynonBiomedProjectWorkbench> {
-  const encodedProjectId = encodeURIComponent(projectId);
-  const [project, benches, artifactsPayload, foldersPayload] = await Promise.all([
+  const [project, benches, artifacts, folders] = await Promise.all([
     loadSynonBiomedProject(projectId, options),
     loadSynonBiomedProjectBenches(projectId, options),
-    getJson<unknown[]>(`/api/projects/${encodedProjectId}/artifacts`, options),
-    getJson<unknown[]>(`/api/projects/${encodedProjectId}/folders`, options),
+    loadSynonBiomedProjectArtifacts(projectId, options),
+    loadSynonBiomedProjectFolders(projectId, options),
   ]);
-  return {
-    project,
-    benches,
-    artifacts: artifactsPayload
-      .map(toProjectArtifact)
-      .filter((artifact): artifact is SynonBiomedProjectArtifact => artifact !== null),
-    folders: foldersPayload
-      .map(toProjectFolder)
-      .filter((folder): folder is SynonBiomedProjectFolder => folder !== null),
-  };
+  return { project, benches, artifacts, folders };
 }
 
 async function getJson<T>(path: string, options: SynonBiomedGatewayOptions): Promise<T> {
@@ -362,6 +352,7 @@ async function requestJson<T>(
   options: SynonBiomedGatewayOptions,
   request: { method: 'POST' | 'PATCH' | 'DELETE'; body?: unknown }
 ): Promise<T> {
+  const accountScope = rendererAccountScopedKey('');
   const fetchImpl = options.fetchImpl ?? fetch;
   const response = await fetchImpl(toGatewayUrl(path, options.baseUrl), {
     method: request.method,
@@ -373,6 +364,19 @@ async function requestJson<T>(
     ...(request.body === undefined ? {} : { body: JSON.stringify(request.body) }),
   });
 
+  // A successful write ends the pre-mutation read generation before callers
+  // emit refresh events. An idempotent DELETE 404 confirms absence as well.
+  // Custom origins/transports and a previous authenticated owner cannot clear
+  // the current browser-origin generation. Old completions retain their own
+  // callers but the identity-checked eviction cannot remove a newer request.
+  if (
+    (response.ok || (request.method === 'DELETE' && response.status === 404)) &&
+    !options.fetchImpl &&
+    !options.baseUrl &&
+    accountScope === rendererAccountScopedKey('')
+  ) {
+    clearSharedGatewayReads();
+  }
   if (!response.ok) {
     const detail = await response.text().catch(() => '');
     let body: unknown = detail;

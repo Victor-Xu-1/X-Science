@@ -71,6 +71,43 @@ export const resolveExtensionAssetUrl = (url: string | undefined): string | unde
   return resolveBackendAssetUrl(url);
 };
 
+/** Schemes a user-initiated window.open may follow. Private/intranet HTTP(S) stays allowed. */
+const SAFE_WINDOW_SCHEMES = new Set(['http:', 'https:', 'mailto:', 'tel:']);
+const SAFE_HTTP_SCHEMES = new Set(['http:', 'https:']);
+
+function parseExternalUrl(url: string, base?: string): URL | null {
+  const trimmed = url.trim();
+  if (!trimmed || /\p{Cc}/u.test(trimmed)) return null;
+  try {
+    return base ? new URL(trimmed, base) : new URL(trimmed);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * True when `url` is a navigable http(s)/mailto/tel destination.
+ * Relative paths resolve against `base` (typically the current page) so existing
+ * same-origin markdown links keep working. javascript:, data:, file:, and other
+ * active schemes are rejected. Private-network HTTP(S) is not blocked.
+ */
+export function isSafeExternalUrl(url: string, base?: string): boolean {
+  const parsed = parseExternalUrl(url, base);
+  return parsed !== null && SAFE_WINDOW_SCHEMES.has(parsed.protocol);
+}
+
+/**
+ * Canonical http(s) href for persisted provider/job destinations.
+ * Matches the existing compute-job remote-link contract: no mailto/tel, no
+ * credentials stripping beyond what URL serialization already does, and no
+ * private-IP block (science clusters are often on intranet hosts).
+ */
+export function sanitizeExternalHttpUrl(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const parsed = parseExternalUrl(value);
+  return parsed && SAFE_HTTP_SCHEMES.has(parsed.protocol) ? parsed.href : null;
+}
+
 /**
  * Open external URL in the appropriate context
  * - Electron: uses shell.openExternal via IPC (opens on local machine)
@@ -82,6 +119,8 @@ export const resolveExtensionAssetUrl = (url: string | undefined): string | unde
  */
 export const openExternalUrl = async (url: string): Promise<void> => {
   if (!url) return;
+  const base = typeof window !== 'undefined' ? window.location.href : undefined;
+  if (!isSafeExternalUrl(url, base)) return;
 
-  window.open(url, '_blank', 'noopener,noreferrer');
+  window.open(url.trim(), '_blank', 'noopener,noreferrer');
 };

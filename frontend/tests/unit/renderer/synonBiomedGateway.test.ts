@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   clearSharedGatewayReads,
+  createSynonBiomedProject,
+  deleteSynonBiomedProject,
   loadSynonBiomedAssistantComposerCapabilities,
   loadSynonBiomedComposerCapabilities,
   loadSynonBiomedProjectArtifacts,
@@ -10,6 +12,7 @@ import {
   loadSynonBiomedProjects,
   loadSynonBiomedLinkedTask,
   loadSynonBiomedProjectWorkbench,
+  updateSynonBiomedProject,
 } from '@/renderer/services/synonBiomedGateway';
 import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 
@@ -265,5 +268,108 @@ describe('X-Science project gateway request authority', () => {
 
     await Promise.all([expect(ownerA).resolves.toHaveLength(1), expect(ownerB).resolves.toHaveLength(1)]);
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it.each(['create', 'update', 'delete', 'already-deleted'] as const)(
+    'does not join a pre-%s project read after the mutation succeeds',
+    async (operation) => {
+      const older = deferred<Response>();
+      const current = deferred<Response>();
+      const oldProject = { project_id: 'p', name: 'Old name' };
+      const newProject = { project_id: 'p', name: 'Current name' };
+      const oldProjects = operation === 'create' ? [] : [oldProject];
+      const deleting = operation === 'delete' || operation === 'already-deleted';
+      const currentProjects = deleting ? [] : [newProject];
+      let reads = 0;
+      const fetchMock = vi.fn<typeof fetch>().mockImplementation((_input, init) => {
+        if (init?.method) {
+          return Promise.resolve(
+            deleting
+              ? new Response(null, { status: operation === 'already-deleted' ? 404 : 204 })
+              : new Response(JSON.stringify(newProject))
+          );
+        }
+        reads += 1;
+        return reads === 1 ? older.promise : current.promise;
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      const beforeMutation = loadSynonBiomedProjects();
+      const input = { name: newProject.name, description: null, context: null };
+      if (operation === 'create') await createSynonBiomedProject(input);
+      if (operation === 'update') await updateSynonBiomedProject('p', input);
+      if (deleting) await deleteSynonBiomedProject('p');
+
+      const afterMutation = loadSynonBiomedProjects();
+      expect(reads).toBe(2);
+      older.resolve(new Response(JSON.stringify({ projects: oldProjects })));
+      await beforeMutation;
+      // Settling the older request must not evict the current generation.
+      const concurrentRefresh = loadSynonBiomedProjects();
+      expect(reads).toBe(2);
+      current.resolve(new Response(JSON.stringify({ projects: currentProjects })));
+      await expect(Promise.all([afterMutation, concurrentRefresh])).resolves.toEqual([
+        currentProjects.map((project) =>
+          expect.objectContaining({ projectId: project.project_id, name: project.name })
+        ),
+        currentProjects.map((project) =>
+          expect.objectContaining({ projectId: project.project_id, name: project.name })
+        ),
+      ]);
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+    }
+  );
+
+  it('shares the workbench artifact and folder reads with other project surfaces', async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(async (input) => {
+      const url = String(input);
+      return new Response(url.endsWith('/p') ? JSON.stringify({ project_id: 'p', name: 'Project p' }) : '[]');
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    await Promise.all([
+      loadSynonBiomedProjectWorkbench('p'),
+      loadSynonBiomedProjectArtifacts('p'),
+      loadSynonBiomedProjectFolders('p'),
+    ]);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+
+  it('does not invalidate another owner when an older owner mutation completes', async () => {
+    const mutation = deferred<Response>();
+    const current = deferred<Response>();
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation((_input, init) => {
+      return init?.method ? mutation.promise : current.promise;
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    setRendererAccountOwner('owner-a');
+    const write = updateSynonBiomedProject('p', { name: 'P', description: null, context: null });
+    setRendererAccountOwner('owner-b');
+    const first = loadSynonBiomedProjects();
+    mutation.resolve(new Response(JSON.stringify({ project_id: 'p', name: 'P' })));
+    await write;
+    const second = loadSynonBiomedProjects();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    current.resolve(new Response(JSON.stringify({ projects: [] })));
+    await Promise.all([first, second]);
+  });
+
+  it.each(['transport', 'origin'] as const)('isolates a custom %s mutation from shared default reads', async (kind) => {
+    const current = deferred<Response>();
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation((_input, init) => {
+      return init?.method
+        ? Promise.resolve(new Response(JSON.stringify({ project_id: 'p', name: 'P' })))
+        : current.promise;
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const first = loadSynonBiomedProjects();
+    await updateSynonBiomedProject(
+      'p',
+      { name: 'P', description: null, context: null },
+      kind === 'transport' ? { fetchImpl: fetchMock } : { baseUrl: 'https://other.invalid' }
+    );
+    const second = loadSynonBiomedProjects();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    current.resolve(new Response(JSON.stringify({ projects: [] })));
+    await Promise.all([first, second]);
   });
 });
