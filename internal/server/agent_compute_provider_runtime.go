@@ -345,7 +345,9 @@ func (s *Server) executeAgentComputeProvider(
 		KernelKind: "provider", Language: "python", Environment: authority.Definition.Environment,
 		WorkspaceDir: identity.workspaceDir,
 	}
-	worker, _, err := s.kernelManager.StartProviderSession(ctx, spec, authority.Definition)
+	worker, _, err := s.kernelManager.StartProviderSession(ctx, spec, authority.Definition, func(register func() error) error {
+		return s.admitAgentComputeProviderWorkspace(ctx, access, spec.WorkspaceDir, register)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -354,13 +356,18 @@ func (s *Server) executeAgentComputeProvider(
 	hostCalls := s.agentKernelHostCallPolicy(ctx, access, identity.workspaceDir, []string{computeProviderToolName}, false)
 	hostCalls.AllowedMethods = []string{"host.credentials.get", "host.compute.config_get"}
 	hostCalls.MaxCalls = 128
-	handle, err := s.kernelManager.Submit(kernelruntime.SubmitRequest{
-		KernelID: spec.KernelID, ExpectedGeneration: worker.Generation(),
-		OwnerID: spec.OwnerID, ProjectID: spec.ProjectID, FrameID: spec.FrameID,
-		FrameIncarnationID: spec.FrameIncarnationID, RootFrameIncarnationID: spec.RootFrameIncarnationID,
-		KernelKind: "provider", Language: "python", Environment: spec.Environment,
-		ExecID: execID, ToolUseID: call.ID, ToolName: computeProviderToolName,
-		Code: code, Origin: "agent", Timeout: 30 * time.Minute, HostCalls: hostCalls,
+	var handle *kernelruntime.ExecutionHandle
+	err = s.admitAgentComputeProviderWorkspace(ctx, access, spec.WorkspaceDir, func() error {
+		var submitErr error
+		handle, submitErr = s.kernelManager.Submit(kernelruntime.SubmitRequest{
+			KernelID: spec.KernelID, ExpectedGeneration: worker.Generation(),
+			OwnerID: spec.OwnerID, ProjectID: spec.ProjectID, FrameID: spec.FrameID,
+			FrameIncarnationID: spec.FrameIncarnationID, RootFrameIncarnationID: spec.RootFrameIncarnationID,
+			KernelKind: "provider", Language: "python", Environment: spec.Environment,
+			ExecID: execID, ToolUseID: call.ID, ToolName: computeProviderToolName,
+			Code: code, Origin: "agent", Timeout: 30 * time.Minute, HostCalls: hostCalls,
+		})
+		return submitErr
 	})
 	if err != nil {
 		return nil, err
