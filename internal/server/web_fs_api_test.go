@@ -283,6 +283,131 @@ func TestWebFSAuthorizationGrantsTraversalAndCopy(t *testing.T) {
 	}
 }
 
+func TestWebFSLocalReadAuthenticationBoundary(t *testing.T) {
+	stateRoot := t.TempDir()
+	ownedRoot := filepath.Join(stateRoot, "owned")
+	secretRoot := filepath.Join(stateRoot, "secret")
+	ungrantedRoot := filepath.Join(stateRoot, "ungranted")
+	for _, path := range []string{ownedRoot, secretRoot, ungrantedRoot} {
+		if err := os.MkdirAll(path, 0o700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	secretPath := filepath.Join(secretRoot, "outside.txt")
+	if err := os.WriteFile(secretPath, []byte("outside"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	ungrantedPath := filepath.Join(ungrantedRoot, "private.txt")
+	if err := os.WriteFile(ungrantedPath, []byte("private"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	store, err := workspace.Open(filepath.Join(stateRoot, "workspace.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	if _, err := store.CreateProject(workspace.CreateProjectInput{
+		ID: "owned", UserID: "alice", Name: "Owned", Path: ownedRoot,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	baseOptions := Options{
+		FileRoot:  filepath.Join(stateRoot, "runtime"),
+		Workspace: store,
+	}
+
+	t.Run("unauthenticated_loopback", func(t *testing.T) {
+		srv := New(baseOptions)
+		handler := http.HandlerFunc(srv.handleWebFS)
+		response := webFSTestLoopbackProxyRequest(t, handler, http.MethodPost, "/api/fs/read", "alice", map[string]any{
+			"path": secretPath,
+		}, "localhost:8765")
+		requireWebFSStatus(t, response, http.StatusOK)
+		var text string
+		decodeWebFSTestResponse(t, response, &text)
+		if text != "outside" {
+			t.Fatalf("local read = %q", text)
+		}
+	})
+
+	t.Run("password_only_loopback", func(t *testing.T) {
+		options := baseOptions
+		options.SynonLinkAuth = SynonLinkAuthOptions{
+			Username: "operator", Password: "strong-password", UserID: "alice",
+		}
+		srv := New(options)
+		handler := http.HandlerFunc(srv.handleWebFS)
+		denied := webFSTestLoopbackProxyRequest(t, handler, http.MethodPost, "/api/fs/read", "alice", map[string]any{
+			"path": ungrantedPath,
+		}, "localhost:8765")
+		requireWebFSStatus(t, denied, http.StatusForbidden)
+		if _, err := srv.upsertHostGrant("alice", secretRoot, "read"); err != nil {
+			t.Fatal(err)
+		}
+		granted := webFSTestLoopbackProxyRequest(t, handler, http.MethodPost, "/api/fs/read", "alice", map[string]any{
+			"path": filepath.Join(secretRoot, "outside.txt"), "workspace": secretRoot,
+		}, "localhost:8765")
+		requireWebFSStatus(t, granted, http.StatusOK)
+	})
+
+	t.Run("oidc_only_reverse_proxy", func(t *testing.T) {
+		srv := New(Options{
+			FileRoot:  baseOptions.FileRoot,
+			Workspace: store,
+			WebAuth: WebAuthOptions{
+				PublicBaseURL: "https://biomed.example",
+				Google: WebOIDCProviderOptions{
+					ClientID:     "test-client",
+					ClientSecret: "test-secret",
+				},
+			},
+		})
+		handler := http.HandlerFunc(srv.handleWebFS)
+		denied := webFSTestLoopbackProxyRequest(t, handler, http.MethodPost, "/api/fs/read", "alice", map[string]any{
+			"path": ungrantedPath,
+		}, "biomed.example")
+		requireWebFSStatus(t, denied, http.StatusForbidden)
+		if _, err := srv.upsertHostGrant("alice", secretRoot, "read"); err != nil {
+			t.Fatal(err)
+		}
+		granted := webFSTestLoopbackProxyRequest(t, handler, http.MethodPost, "/api/fs/read", "alice", map[string]any{
+			"path": filepath.Join(secretRoot, "outside.txt"), "workspace": secretRoot,
+		}, "biomed.example")
+		requireWebFSStatus(t, granted, http.StatusOK)
+	})
+}
+
+func webFSTestLoopbackProxyRequest(
+	t *testing.T,
+	handler http.Handler,
+	method string,
+	path string,
+	userID string,
+	body any,
+	host string,
+) *httptest.ResponseRecorder {
+	t.Helper()
+	var reader *strings.Reader
+	if body == nil {
+		reader = strings.NewReader("")
+	} else {
+		raw, err := json.Marshal(body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		reader = strings.NewReader(string(raw))
+	}
+	request := httptest.NewRequest(method, path, reader)
+	request.RemoteAddr = "127.0.0.1:12345"
+	request.Host = host
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-Synon-User-Id", userID)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	return response
+}
+
 func TestWebFSRemoteImageEnforcesOutboundAndContentPolicy(t *testing.T) {
 	png := []byte{0x89, 'P', 'N', 'G', 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0}
 	fixture := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

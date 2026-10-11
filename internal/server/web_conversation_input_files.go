@@ -83,7 +83,7 @@ func (s *Server) materializeWebConversationInputFiles(
 			continue
 		}
 
-		allowLocalRead := (s.synonLinkAuth == nil || !s.synonLinkAuth.enabled)
+		allowLocalRead := s.webFSLegacyLocalReadAllowed()
 		sourceAccess, err := s.resolveWebFSPath(access.UserID, requested, "", false, true, allowLocalRead)
 		if err != nil {
 			return nil, invalidWebConversationInputFile()
