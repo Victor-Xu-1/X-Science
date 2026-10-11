@@ -116,6 +116,16 @@ func (s *Server) resolveAgentWorkspaceAuthority(
 	}
 
 	if frameID == "" {
+		// Deferred approvals and some integration fixtures resume with the durable
+		// frame id even when transcript or legacy session aliases are absent.
+		if access, found, err := s.workspaceStore.GetKernelFrameAccessContext(ctx, sessionID); err == nil && found {
+			frameID = sessionID
+			if workdir == "" {
+				workdir = strings.TrimSpace(access.ProjectPath)
+			}
+		}
+	}
+	if frameID == "" {
 		return workspace.KernelFrameAccess{}, "", false
 	}
 	access, found, err := s.workspaceStore.GetKernelFrameAccessContext(ctx, frameID)
