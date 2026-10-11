@@ -11,9 +11,12 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from scripts.packaging.version_provenance import AUDIT, IDENTITY, LICENSES, MIGRATION, NOTICES, document, replace_pointer
 from scripts.quality.product_version import require_next_version
+from scripts.quality import product_identity_gate as identity_gate
 
 MATRIX = "docs/governance/product-identity-consumer-matrix.json"
 PINS = r'(?m)^APPROVED_(ADAPTATION|ADDITION)_FINGERPRINT = "[0-9a-f]{64}"$'
+REFERENCE = "docs/governance/product-identity.json"
+VALIDATOR = "scripts/quality/product_identity_gate.py"
 
 
 def snapshot(repo: Path, revision: str, path: str) -> bytes:
@@ -33,6 +36,54 @@ def snapshot(repo: Path, revision: str, path: str) -> bytes:
                                     stderr=subprocess.PIPE, timeout=15)
 
 
+def matrix_version_authority_compatible(repo: Path, base: str, head: str) -> bool:
+    """Prove control-plane equality apart from a synchronized schema fact.
+
+    This only classifies inert product-version projections. The schema source,
+    reference and matrix themselves retain their behavior/verification owners.
+    Reuse the canonical pure validators, never a candidate gate's exit status.
+    """
+    try:
+        validator = snapshot(repo, base, VALIDATOR)
+        if (validator != snapshot(repo, head, VALIDATOR)
+                or validator != Path(identity_gate.__file__).read_bytes()):
+            return False
+        before_raw, after_raw = snapshot(repo, base, MATRIX), snapshot(repo, head, MATRIX)
+        before = identity_gate._load_bytes(before_raw, "metadata_matrix_invalid")
+        after = identity_gate._load_bytes(after_raw, "metadata_matrix_invalid")
+        references = []
+        for revision, matrix in ((base, before), (head, after)):
+            reference = identity_gate._load_bytes(snapshot(repo, revision, REFERENCE),
+                                                  "metadata_reference_invalid")
+            identity_gate.validate_reference(reference)
+            identity_gate.validate_matrix(matrix, reference)
+            current = reference["current_workspace_schema"]
+            source = snapshot(repo, revision, current["authority_path"]).decode("utf-8")
+            if identity_gate.SCHEMA_CONST.findall(source) != [str(current["target"])]:
+                return False
+            references.append(reference)
+        old_target = references[0]["current_workspace_schema"]["target"]
+        new_target = references[1]["current_workspace_schema"]["target"]
+        references[0]["current_workspace_schema"]["target"] = new_target
+        if references[0] != references[1]:
+            return False
+        if before_raw == after_raw:
+            return True
+        # Preserve the prior conservative handling of formatting-only churn.
+        # The sole new allowance is the canonically validated numeric update.
+        if old_target == new_target:
+            return False
+        old_stanza = next(item for item in before["consumer_inventory"]
+                          if item["surface_id"] == "workspace-schema-and-contracts")
+        new_stanza = next(item for item in after["consumer_inventory"]
+                          if item["surface_id"] == "workspace-schema-and-contracts")
+        old_stanza["current_disposition"] = new_stanza["current_disposition"]
+        return before == after
+    except (OSError, ValueError, KeyError, TypeError, UnicodeError,
+            subprocess.SubprocessError, identity_gate.IdentityError):
+        return False
+
+
 def metadata_paths(repo: Path, base: str, head: str) -> set[str]:
     """Only ignore a complete, exact version-only projection/provenance delta.
 
@@ -40,9 +91,9 @@ def metadata_paths(repo: Path, base: str, head: str) -> set[str]:
     provenance validation remain required. Any uncertainty retains old scope.
     """
     try:
-        before = snapshot(repo, base, MATRIX)
-        if before != snapshot(repo, head, MATRIX):
+        if not matrix_version_authority_compatible(repo, base, head):
             return set()
+        before = snapshot(repo, base, MATRIX)
         projected = {IDENTITY: ["/version"]}
         for entry in document(before)["product_version_projections"]:
             if entry["kind"] == "json-pointer":
@@ -114,7 +165,7 @@ def identity_version_only(repo: Path, base: str, head: str) -> bool:
     checks remain separate, and changed/unknown authority fails conservatively.
     """
     try:
-        if snapshot(repo, base, MATRIX) != snapshot(repo, head, MATRIX):
+        if not matrix_version_authority_compatible(repo, base, head):
             return False
         before = document(snapshot(repo, base, IDENTITY))
         after = document(snapshot(repo, head, IDENTITY))
