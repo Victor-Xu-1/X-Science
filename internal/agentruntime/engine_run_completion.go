@@ -28,7 +28,7 @@ func (e Engine) publishBufferedModelDeltas(events []ModelStreamEvent) error {
 
 func (e Engine) finishRun(messages []Message, message Message) (RunResult, error) {
 	if strings.TrimSpace(message.Content) == "" {
-		return RunResult{}, errors.New("agent runtime response message is empty")
+		return interruptedRun(messages, errors.New("agent runtime response message is empty"))
 	}
 	messages = append(messages, message)
 	if err := e.emit(Event{Type: EventFinal, Message: message.Content}); err != nil {

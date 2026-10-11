@@ -91,6 +91,34 @@ func TestEnginePreservesCompletedRoundsWhenLaterModelRoundFails(t *testing.T) {
 	}
 }
 
+func TestEnginePreservesCompletedRoundsWhenLaterFinalMessageIsEmpty(t *testing.T) {
+	model := &staticModelClient{responses: []ModelResponse{
+		{Message: Message{Role: "assistant", ToolCalls: []ToolCall{{
+			ID: "work-1", Name: "noop", Arguments: json.RawMessage(`{"step":1}`),
+		}}}},
+		{Message: Message{Role: "assistant", Content: " \n\t"}},
+	}}
+	engine := Engine{
+		Model: model,
+		Tools: FuncToolGateway(func(context.Context, ToolCall) (ToolResult, error) {
+			return ToolResult{Value: map[string]any{"ok": true}}, nil
+		}),
+	}
+	result, err := engine.Run(t.Context(), RunRequest{
+		Messages: []Message{{Role: "user", Content: "continue"}},
+		Tools:    []ToolSchema{{Name: "noop", Parameters: map[string]any{"type": "object"}}},
+	})
+	if err == nil || err.Error() != "agent runtime response message is empty" {
+		t.Fatalf("error=%v", err)
+	}
+	if !hasCompletedToolReceipt(result.Messages, "work-1") {
+		t.Fatal("empty later final message discarded completed tool receipts")
+	}
+	if result.FinalMessage.Role != "" {
+		t.Fatal("empty failed final message was published as success")
+	}
+}
+
 func TestEnginePreservesCompletedRoundsWhenToolRoundLimitStopsLaterProposal(t *testing.T) {
 	model := &staticModelClient{responses: []ModelResponse{
 		{Message: Message{Role: "assistant", ToolCalls: []ToolCall{{
