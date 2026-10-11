@@ -65,6 +65,8 @@ func run() error {
 			return runAssetsCLI(args[1:], os.Stdout)
 		case "doctor":
 			return runDoctorCLI(context.Background(), args[1:], os.Stdout)
+		case "runtime-endpoint":
+			return runRuntimeEndpointCLI(args[1:], os.Stdout)
 		case "model-smoke":
 			return runModelSmokeCLI(context.Background(), args[1:], os.Stdout)
 		case "mcp-ketcher":
@@ -101,12 +103,13 @@ func run() error {
 	tlsResolver := networktls.NewResolver(networktls.Config{
 		Mode: cfg.Network.MCPX509Strict, CABundle: cfg.Network.CABundle,
 	})
-	return runServer(info, cfg, tlsResolver)
+	return runServer(info, cfg, tlsResolver, serveFlags.runtimeEndpointFile)
 }
 
 type serveCommandFlags struct {
-	version bool
-	health  bool
+	version             bool
+	health              bool
+	runtimeEndpointFile string
 }
 
 func parseServeCommandFlags(args []string, output io.Writer) (serveCommandFlags, bool, error) {
@@ -114,6 +117,7 @@ func parseServeCommandFlags(args []string, output io.Writer) (serveCommandFlags,
 	flags.SetOutput(output)
 	version := flags.Bool("version", false, "print version")
 	health := flags.Bool("health-json", false, "print health JSON and exit")
+	runtimeEndpointFile := flags.String("runtime-endpoint-file", "", "publish a private owned-listener receipt to a new file")
 	if err := flags.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return serveCommandFlags{}, true, nil
@@ -123,10 +127,10 @@ func parseServeCommandFlags(args []string, output io.Writer) (serveCommandFlags,
 	if flags.NArg() != 0 {
 		return serveCommandFlags{}, false, fmt.Errorf("unexpected positional arguments: %s", strings.Join(flags.Args(), " "))
 	}
-	return serveCommandFlags{version: *version, health: *health}, false, nil
+	return serveCommandFlags{version: *version, health: *health, runtimeEndpointFile: *runtimeEndpointFile}, false, nil
 }
 
-func runServer(info buildinfo.Info, cfg config.Config, tlsResolver *networktls.Resolver) error {
+func runServer(info buildinfo.Info, cfg config.Config, tlsResolver *networktls.Resolver, runtimeEndpointFile string) error {
 	operationalLog, err := operationlog.Open(filepath.Join(cfg.HomeDir, "logs"))
 	if err != nil {
 		return fmt.Errorf("configure operational log retention: %w", err)
@@ -364,6 +368,11 @@ func runServer(info buildinfo.Info, cfg config.Config, tlsResolver *networktls.R
 		return err
 	}
 	defer listener.Close()
+	cleanupEndpoint, err := publishRuntimeEndpoint(runtimeEndpointFile, listener.Addr())
+	if err != nil {
+		return fmt.Errorf("publish owned runtime endpoint: %w", err)
+	}
+	defer cleanupEndpoint()
 	serverErrCh := make(chan error, 1)
 	go func() {
 		serverErrCh <- srv.Serve(listener)

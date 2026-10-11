@@ -12,6 +12,19 @@ import re
 
 
 CONTRACT = "scripts/quality/verification_scope.json"
+GROUP_FIELDS = {"name", "paths", "frontend", "checks"}
+
+
+def _validate_packages(packages: object) -> None:
+    if not isinstance(packages, list) or not packages:
+        raise ValueError("verification Go owners require a nonempty package list")
+    for package in packages:
+        if (not isinstance(package, str)
+                or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._~-]*(?:/[A-Za-z0-9_][A-Za-z0-9._~-]*)*", package)
+                or PurePosixPath(package).as_posix() != package):
+            raise ValueError("invalid verification Go package owner")
+    if len(set(packages)) != len(packages):
+        raise ValueError("duplicate verification Go package owner")
 
 
 def load(repo: Path) -> list[dict]:
@@ -28,7 +41,8 @@ def load(repo: Path) -> list[dict]:
     names: set[str] = set()
     paths: set[str] = set()
     for group in value["groups"]:
-        if (not isinstance(group, dict) or set(group) != {"name", "paths", "frontend", "checks"}
+        if (not isinstance(group, dict) or not GROUP_FIELDS.issubset(group)
+                or set(group) - GROUP_FIELDS - {"packages"}
                 or not isinstance(group["name"], str)
                 or not re.fullmatch(r"[a-z][a-z0-9-]{0,63}", group["name"])
                 or group["name"] in names or type(group["frontend"]) is not bool
@@ -36,6 +50,8 @@ def load(repo: Path) -> list[dict]:
                 or not isinstance(group["checks"], list) or not group["checks"]):
             raise ValueError("invalid verification scope group")
         names.add(group["name"])
+        if "packages" in group:
+            _validate_packages(group["packages"])
         for item in group["paths"]:
             if (not isinstance(item, str) or not item.startswith(("scripts/", ".github/", "docs/governance/", "docs/licenses/"))
                     or PurePosixPath(item).as_posix() != item
@@ -53,6 +69,12 @@ def load(repo: Path) -> list[dict]:
     if CONTRACT not in paths:
         raise ValueError("verification scope contract must retain its own verification group")
     return value["groups"]
+
+
+def package_owners(groups: list[dict]) -> dict[str, set[str]]:
+    """Go roots and checker ownership share one validated declaration."""
+    return {path: set(group["packages"]) for group in groups if "packages" in group
+            for path in group["paths"]}
 
 
 def matched(repo: Path, changed: list[str]) -> list[dict]:

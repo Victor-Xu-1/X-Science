@@ -21,16 +21,12 @@ if [[ -z "$product_slug" ]]; then
   exit 1
 fi
 BUILD_DIR="${SYNON_DEV_BUILD_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/${product_slug}-dev}"
-BINARY="$BUILD_DIR/synon-go"
-CANDIDATE="$BUILD_DIR/synon-go.next"
-LOCK_FILE="$BUILD_DIR/backend-watch.lock"
-HOST_PID_FILE="$BUILD_DIR/backend-watch.pid"
-ACCEPTED_MIGRATION_DIGEST_FILE="$BUILD_DIR/accepted-migration-digest"
-PENDING_MIGRATION_DIGEST_FILE="$BUILD_DIR/pending-migration-digest"
 POLL_SECONDS="${SYNON_DEV_POLL_SECONDS:-1}"
 BUILD_RETRY_MIN_SECONDS="${SYNON_DEV_BUILD_RETRY_MIN_SECONDS:-5}"
 BUILD_RETRY_MAX_SECONDS="${SYNON_DEV_BUILD_RETRY_MAX_SECONDS:-60}"
 CHILD_PID=""
+RUNTIME_ENDPOINT_DIR=""
+RUNTIME_ENDPOINT_PID=""
 
 if ! [[ "$BUILD_RETRY_MIN_SECONDS" =~ ^[1-9][0-9]*$ ]] ||
   ! [[ "$BUILD_RETRY_MAX_SECONDS" =~ ^[1-9][0-9]*$ ]] ||
@@ -40,10 +36,19 @@ if ! [[ "$BUILD_RETRY_MIN_SECONDS" =~ ^[1-9][0-9]*$ ]] ||
 fi
 
 mkdir -p "$BUILD_DIR"
-command -v flock >/dev/null 2>&1 || {
-  echo "[source-backend] required command not found: flock" >&2
-  exit 1
-}
+BUILD_DIR=$(cd "$BUILD_DIR" && pwd -P)
+BINARY="$BUILD_DIR/synon-go"
+CANDIDATE="$BUILD_DIR/synon-go.next"
+LOCK_FILE="$BUILD_DIR/backend-watch.lock"
+HOST_PID_FILE="$BUILD_DIR/backend-watch.pid"
+ACCEPTED_MIGRATION_DIGEST_FILE="$BUILD_DIR/accepted-migration-digest"
+PENDING_MIGRATION_DIGEST_FILE="$BUILD_DIR/pending-migration-digest"
+for command_name in flock timeout; do
+  command -v "$command_name" >/dev/null 2>&1 || {
+    echo "[source-backend] required command not found: $command_name" >&2
+    exit 1
+  }
+done
 exec {LOCK_FD}>"$LOCK_FILE"
 if ! flock -n "$LOCK_FD"; then
   existing_pid="unknown"
@@ -152,6 +157,23 @@ stop_child() {
   CHILD_PID=""
 }
 
+cleanup_runtime_endpoint() {
+  local owned_pid="$RUNTIME_ENDPOINT_PID"
+  [[ -n "$RUNTIME_ENDPOINT_DIR" && "$RUNTIME_ENDPOINT_DIR" == "$BUILD_DIR/runtime-endpoint."* ]] || return 0
+  local receipt="$RUNTIME_ENDPOINT_DIR/endpoint.json"
+  # The service normally removes its own receipt. Remove a crash-retained
+  # receipt only when its native validator still binds it to this exact child.
+  if [[ -n "$owned_pid" && -e "$receipt" ]] &&
+      "$BINARY" runtime-endpoint --file "$receipt" --pid "$owned_pid" >/dev/null 2>&1; then
+    rm -f -- "$receipt"
+  fi
+  if ! rmdir -- "$RUNTIME_ENDPOINT_DIR" 2>/dev/null; then
+    echo '[source-backend] preserving an endpoint generation containing unexpected or unavailable files' >&2
+  fi
+  RUNTIME_ENDPOINT_DIR=""
+  RUNTIME_ENDPOINT_PID=""
+}
+
 runtime_health_json() {
   if [[ -n "${SYNON_DEV_RUNTIME_HEALTH_FILE:-}" ]]; then
     [[ -f "$SYNON_DEV_RUNTIME_HEALTH_FILE" ]] || return 1
@@ -159,11 +181,14 @@ runtime_health_json() {
     return 0
   fi
   command -v curl >/dev/null 2>&1 || return 1
+  local health_url=""
+  [[ -n "$CHILD_PID" && -n "$RUNTIME_ENDPOINT_DIR" ]] || return 1
+  health_url="$("$BINARY" runtime-endpoint --file "$RUNTIME_ENDPOINT_DIR/endpoint.json" --pid "$CHILD_PID")" || return 1
   # A degraded backend intentionally answers /health with a non-2xx status but
   # still returns the authoritative runtime counters needed for a safe idle
   # activation.  Treat transport failure as unavailable, while preserving any
   # well-formed health body for the fail-closed parser below.
-  curl --silent --show-error --max-time 1 http://127.0.0.1:8766/health 2>/dev/null
+  curl --noproxy '*' --silent --show-error --max-time 1 "$health_url" 2>/dev/null
 }
 
 activate_candidate_if_idle() {
@@ -219,6 +244,7 @@ activate_candidate_if_idle() {
 
 cleanup() {
   stop_child
+  cleanup_runtime_endpoint
   rm -f "$CANDIDATE"
   remove_owned_pid_file
 }
@@ -257,9 +283,26 @@ build_candidate() {
   mv -f "$CANDIDATE" "$BINARY"
 }
 
+supports_runtime_endpoint_receipt() {
+  local help_output=""
+  # Both the current and accepted older CLI handle serve --help before config
+  # loading or binding a listener. Probe capability, never a version/name.
+  help_output=$(timeout --kill-after=1 5 "$BINARY" serve --help 2>&1) || return 1
+  grep -Eq '^[[:space:]]+-runtime-endpoint-file([[:space:]]|$)' <<<"$help_output"
+}
+
 start_candidate() {
+	cleanup_runtime_endpoint
+	local serve_args=(serve)
+	if supports_runtime_endpoint_receipt; then
+		RUNTIME_ENDPOINT_DIR=$(mktemp -d "$BUILD_DIR/runtime-endpoint.XXXXXX") || return 1
+		chmod 700 "$RUNTIME_ENDPOINT_DIR" || return 1
+		serve_args+=(--runtime-endpoint-file "$RUNTIME_ENDPOINT_DIR/endpoint.json")
+	else
+		echo '[source-backend] accepted runtime has no owned-listener receipt; automatic cutover is deferred until an explicit idle-drain handoff' >&2
+	fi
 	local source_skill_dirs="${SYNON_SKILL_DIRS:-}"
-	local model_env="/home/victor_1/.config/synon-go/workbench-model.env"
+	local model_env="${SYNON_DEV_MODEL_ENV_FILE:-${XDG_CONFIG_HOME:-$HOME/.config}/synon-go/workbench-model.env}"
 	if [[ -f "$model_env" ]]; then
 		set -a; source "$model_env"; set +a
 	fi
@@ -271,8 +314,9 @@ start_candidate() {
 		fi
 	fi
   echo "[source-backend] starting $BINARY serve"
-  (cd "$ROOT" && SYNON_SKILL_DIRS="$source_skill_dirs" exec "$BINARY" serve) &
+  (cd "$ROOT" && SYNON_SKILL_DIRS="$source_skill_dirs" exec "$BINARY" "${serve_args[@]}") &
   CHILD_PID=$!
+  RUNTIME_ENDPOINT_PID="$CHILD_PID"
 }
 
 last_successful_digest=""

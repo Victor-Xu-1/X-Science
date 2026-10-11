@@ -171,6 +171,75 @@ class VerificationOwnershipTests(unittest.TestCase):
         entries = [{"ImportPath": "fixture/runtime", "Dir": str(repo / "internal/runtime")}]
         self.assertEqual(scope.select_packages(repo, paths, entries)[0], [])
 
+    def test_optional_go_owners_seed_real_consumers_and_keep_unknown_inputs_conservative(self):
+        group = self.value['groups'][0]
+        group['packages'] = ['fixture/cmd', 'fixture/config']
+        self.save()
+        entries = [
+            {'ImportPath': 'fixture/cmd', 'Dir': str(self.repo / 'cmd'), 'Imports': ['fixture/config']},
+            {'ImportPath': 'fixture/config', 'Dir': str(self.repo / 'config')},
+            {'ImportPath': 'fixture/client', 'Dir': str(self.repo / 'client'), 'TestImports': ['fixture/config']},
+            {'ImportPath': 'fixture/unrelated', 'Dir': str(self.repo / 'unrelated')},
+        ]
+        expected = ['fixture/client', 'fixture/cmd', 'fixture/config']
+        self.assertEqual(scope.select_packages(self.repo, ['scripts/check.py'], entries)[0], expected)
+        group['paths'].append('docs/governance/runner.md')
+        self.save()
+        self.assertEqual(scope.select_packages(self.repo, ['docs/governance/runner.md'], entries)[0], expected)
+        # An actual embed retains its owner in addition to the declared roots.
+        entries[-1]['Dir'] = str(self.repo)
+        entries[-1]['EmbedFiles'] = ['scripts/check.py']
+        all_packages = sorted(entry['ImportPath'] for entry in entries)
+        self.assertEqual(scope.select_packages(self.repo, ['scripts/check.py'], entries)[0], all_packages)
+        self.assertEqual(scope.select_packages(self.repo, ['scripts/check.py.old'], entries)[0], all_packages)
+        group['packages'] = ['fixture/unavailable']
+        self.save()
+        selected, reason = scope.select_packages(self.repo, ['scripts/check.py'], entries)
+        self.assertEqual(selected, all_packages)
+        self.assertIn('unavailable', reason)
+
+    def test_optional_go_owner_contract_is_strict_and_legacy_groups_remain_valid(self):
+        self.assertNotIn('packages', contract.load(self.repo)[0])
+        group = self.value['groups'][0]
+        for owners in [[], 'fixture/cmd', ['fixture/cmd', 'fixture/cmd'], ['/fixture/cmd'],
+                       ['../fixture'], ['fixture/../cmd'], ['fixture//cmd'], ['fixture/*'],
+                       ['fixture/cmd@v1'], ['fixture:cmd'], ['fixture/cmd\n'], [False]]:
+            with self.subTest(owners=owners):
+                group['packages'] = owners
+                self.save()
+                with self.assertRaises(ValueError):
+                    contract.load(self.repo)
+        group.pop('packages')
+        group['skip_runtime'] = True
+        self.save()
+        with self.assertRaises(ValueError):
+            contract.load(self.repo)
+
+    def test_repository_watcher_has_one_shell_checker_and_real_go_ownership(self):
+        repo = Path(__file__).resolve().parents[2]
+        paths = ['scripts/dev/source-backend-watch.sh', 'scripts/dev/source-backend-watch-test.sh']
+        groups = contract.matched(repo, paths)
+        self.assertEqual(len(groups), 1)
+        self.assertEqual(groups[0]['paths'], paths)
+        self.assertEqual(groups[0]['packages'], ['synon-go/cmd/synon', 'synon-go/internal/config'])
+        self.assertFalse(groups[0]['frontend'])
+        self.assertEqual(contract.checks(groups + groups), [['bash', paths[1]]])
+        entries = scope.packages(repo)  # Read the actual Go graph; do not execute Go tests.
+        expected = ['synon-go/cmd/synon', 'synon-go/internal/config', 'synon-go/scripts/smoke-live-im']
+        for path in paths:
+            self.assertEqual(scope.select_packages(repo, [path], entries)[0], expected)
+
+    def test_watcher_checker_failure_blocks_go_discovery(self):
+        repo = Path(__file__).resolve().parents[2]
+        argv = ['pr_fast_scope.py', '--repo', str(repo), '--base', 'a' * 40, '--head', 'b' * 40]
+        paths = ['scripts/dev/source-backend-watch.sh', 'scripts/dev/source-backend-watch-test.sh']
+        with patch.object(sys, 'argv', argv), patch.object(scope, 'changed_paths', return_value=paths), \
+                patch.object(scope, 'run', return_value=subprocess.CompletedProcess([], 17)) as invoke, \
+                patch.object(scope, 'resolve_packages', return_value=([], 'fixture')) as discover:
+            self.assertEqual(scope.main(), 17)
+        discover.assert_not_called()
+        invoke.assert_called_once_with(repo, 'bash', paths[1])
+
 
 if __name__ == "__main__":
     unittest.main()

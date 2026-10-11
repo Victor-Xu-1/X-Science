@@ -648,7 +648,11 @@ func validateRuntimeBinding(cfg Config) error {
 }
 
 func (c Config) Address() string {
-	return fmt.Sprintf("%s:%d", c.Host, c.Port)
+	host := c.Host
+	if strings.HasPrefix(host, "[") && strings.HasSuffix(host, "]") {
+		host = host[1 : len(host)-1]
+	}
+	return net.JoinHostPort(host, strconv.Itoa(c.Port))
 }
 
 func defaultHome() string {

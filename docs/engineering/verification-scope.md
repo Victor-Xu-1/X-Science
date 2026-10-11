@@ -4,6 +4,14 @@
 
 Verification-only scripts, workflow files and static governance inputs can declare exact ownership in `scripts/quality/verification_scope.json`. Each group lists its files, mandatory executable checks, and whether changes also require the frontend provenance, test, and build gate. The selector executes the declared checks and propagates any failure before running the Go scope. A Go package's embedded input or testdata ownership always takes precedence over a declaration. Wildcards, Go source and module manifests cannot be declared verification-only. Workflow and Action-pin changes run the CI contract tests, not unrelated product tests.
 
+Launcher groups may additionally declare a nonempty, unique `packages` list of
+exact Go roots in the same registry. Valid roots join embedded/runtime ownership
+and retain the normal import-consumer closure; a missing graph owner stays
+conservative, never an exemption. Groups without this field remain compatible.
+The backend watcher binds both scripts, its complete injected shell check, and
+the real CLI/config consumers together. Shell fixtures do not replace native
+endpoint validation; the declared Go scope still runs, and checker failure stops it.
+
 Frontend migration audit scripts belong to the frontend provenance group. Their changes run the two audit regression suites and the existing complete frontend gate; they do not by themselves trigger unrelated Go tests. Scope selection changes run the real Git/Go graph and verification-contract regressions. Unregistered scripts still select the conservative Go graph, so adding a declaration requires review of its actual consumers.
 
 Run the selector regressions with:

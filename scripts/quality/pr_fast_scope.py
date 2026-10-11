@@ -93,7 +93,9 @@ def documentation_only(path: str) -> bool:
 
 def select_packages(repo: Path, paths: list[str], entries: list[dict],
                     dependency_owners: set[str] | None = None) -> tuple[list[str], str]:
-    verification_paths = {path for group in verification_scope.load(repo) for path in group["paths"]}
+    verification_groups = verification_scope.load(repo)
+    verification_paths = {path for group in verification_groups for path in group["paths"]}
+    verification_owners = verification_scope.package_owners(verification_groups)
     runtime_owners = runtime_input_scope.load(repo)
     local = [entry for entry in entries if Path(entry["Dir"]).is_relative_to(repo)]
     all_packages = sorted(entry["ImportPath"] for entry in local)
@@ -107,9 +109,11 @@ def select_packages(repo: Path, paths: list[str], entries: list[dict],
                 changed.update(dependency_owners.intersection(all_packages))
                 continue
             return all_packages, "Go dependency authority changed"
-        if documentation_only(path) or path.startswith("frontend/") and not path.endswith(".go"):
+        if (documentation_only(path) and path not in verification_owners
+                or path.startswith("frontend/") and not path.endswith(".go")):
             continue
         owners = set(runtime_owners.get(path, set()))
+        owners.update(verification_owners.get(path, set()))
         if not owners.issubset(all_packages):
             return all_packages, "Declared runtime consumer is unavailable"
         for entry in local:
