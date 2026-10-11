@@ -133,9 +133,12 @@ func TestParkAskUserWithTranscriptAtomicallyBindsActiveBranchAndPausesClaim(t *t
 	projected, err := repo.ListProjectedEvents(context.Background(), transcriptstore.ListProjectedEventsInput{
 		StreamUID: stream.UID, OwnerID: stream.OwnerID, Limit: 20,
 	})
-	if err != nil || len(projected) != 6 || projected[1].Event.Type != "assistant_message" ||
-		projected[2].Event.Type != "user_message" || projected[3].Event.Type != transcriptstore.AskUserPromptEventType ||
-		projected[4].Event.Type != transcriptstore.AskUserResultEventType || projected[5].Event.Type != "runner_checkpoint" {
+	if err != nil || len(projected) != 6+transcriptstore.EventsPerFreshRunnerClaim ||
+		projected[1].Event.Type != transcriptstore.RunnerPreparationAdmissionEventType ||
+		projected[2].Event.Type != "assistant_message" || projected[3].Event.Type != "user_message" ||
+		projected[4].Event.Type != transcriptstore.AskUserPromptEventType ||
+		projected[5].Event.Type != transcriptstore.AskUserResultEventType ||
+		projected[6].Event.Type != "runner_checkpoint" {
 		t.Fatalf("projected=%#v err=%v", projected, err)
 	}
 	newerProjected, err := repo.ListProjectedEvents(context.Background(), transcriptstore.ListProjectedEventsInput{
@@ -145,7 +148,7 @@ func TestParkAskUserWithTranscriptAtomicallyBindsActiveBranchAndPausesClaim(t *t
 		t.Fatalf("newer epoch projected=%#v err=%v", newerProjected, err)
 	}
 	var resolvedResult map[string]any
-	if err := json.Unmarshal(projected[2].ResolvedPayloadJSON, &resolvedResult); err != nil {
+	if err := json.Unmarshal(projected[3].ResolvedPayloadJSON, &resolvedResult); err != nil {
 		t.Fatal(err)
 	}
 	if resolvedResult["role"] != "user" {
@@ -172,7 +175,7 @@ func TestParkAskUserWithTranscriptAtomicallyBindsActiveBranchAndPausesClaim(t *t
 	projected, err = repo.ListProjectedEvents(context.Background(), transcriptstore.ListProjectedEventsInput{
 		StreamUID: stream.UID, OwnerID: stream.OwnerID, Limit: 20,
 	})
-	if err != nil || len(projected) != 6 {
+	if err != nil || len(projected) != 6+transcriptstore.EventsPerFreshRunnerClaim {
 		t.Fatalf("idempotent projected=%#v err=%v", projected, err)
 	}
 	branchState, err := repo.GetBranchState(context.Background(), stream.UID, stream.OwnerID)
@@ -226,7 +229,8 @@ func TestParkAskUserWithTranscriptRollsBackAllFrameFactsForStaleClaim(t *testing
 	projected, err := repo.ListProjectedEvents(context.Background(), transcriptstore.ListProjectedEventsInput{
 		StreamUID: stream.UID, OwnerID: stream.OwnerID, Limit: 20,
 	})
-	if err != nil || len(projected) != 1 {
+	if err != nil || len(projected) != 1+transcriptstore.EventsPerFreshRunnerClaim ||
+		projected[1].Event.Type != transcriptstore.RunnerPreparationAdmissionEventType {
 		t.Fatalf("projected=%#v err=%v", projected, err)
 	}
 }

@@ -12,6 +12,10 @@ import (
 // RunnerPreparationAdmissionEventType is an internal, typed ownership fact.
 // It has no model-history, tool-progress or user-message projection.
 const RunnerPreparationAdmissionEventType = "runner_preparation_admitted"
+
+// EventsPerFreshRunnerClaim is the number of internal journal events appended with
+// each fresh runner claim (currently one typed preparation-admission fact).
+const EventsPerFreshRunnerClaim = 1
 const runnerUnknownAdmissionReason = "runner_execution_outcome_unknown"
 const runnerExecutionAdmissionState = "execution_admitted"
 

@@ -99,8 +99,7 @@ func newTranscriptRepository(t *testing.T) (*Repository, *sql.DB, string) {
 	return NewRepository(db), db, dsn
 }
 
-// Each fresh runner claim journals one typed preparation-admission event.
-const eventsPerFreshRunnerClaim = 1
+const eventsPerFreshRunnerClaim = EventsPerFreshRunnerClaim
 
 func runnerPreparationAdmissionClientMessage(streamUID string, attempt int64) string {
 	return "runner-preparation:" + streamUID + ":" + fmt.Sprintf("%d", attempt)
