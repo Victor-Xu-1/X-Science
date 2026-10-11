@@ -219,7 +219,7 @@ func TestSessionRunActivityRemainsAvailableDuringTryDrainIdleDurableChecks(t *te
 	if elapsed := time.Since(start); elapsed > 200*time.Millisecond {
 		t.Fatalf("sessionRunActivity blocked %s while TryDrainIdle held durable liveness checks", elapsed)
 	}
-	if active != 0 || draining {
+	if active != 0 || !draining {
 		t.Fatalf("unexpected activity active=%d draining=%t", active, draining)
 	}
 	close(releaseDurableChecks)

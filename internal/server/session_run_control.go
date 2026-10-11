@@ -64,7 +64,7 @@ func (s *Server) registerActiveSessionRun(parent context.Context, sessionID, run
 	run := &activeSessionRun{runnerID: runnerID, cancel: cancel, done: make(chan struct{})}
 	ctx = context.WithValue(ctx, sessionRunLifetimeContextKey{}, ctx)
 	s.sessionRunsMu.Lock()
-	if s.sessionRunsDraining || s.sessionRunsDrainEvaluating {
+	if s.sessionRunsDraining {
 		s.sessionRunsMu.Unlock()
 		cancel(ErrRuntimeDraining)
 		return nil, nil, nil, ErrRuntimeDraining
@@ -120,7 +120,7 @@ func (s *Server) sessionRunActivity() (active int, draining bool) {
 	}
 	s.sessionRunsMu.Lock()
 	defer s.sessionRunsMu.Unlock()
-	return len(s.sessionRuns), s.sessionRunsDraining
+	return len(s.sessionRuns), s.sessionRunsDraining || s.sessionRunsDrainEvaluating
 }
 
 func (s *Server) activeKernelExecutionCount() int {
