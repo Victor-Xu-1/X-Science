@@ -136,7 +136,8 @@ func (r *recordingProviderOperationRunner) RunProviderOperation(ctx context.Cont
 	}
 }
 
-func TestComputeProviderApprovalRunsOneConfinedPersistentKernelAndRecordsExecution(t *testing.T) {
+func newComputeProviderRuntimeTestFixture(t *testing.T, startupHook string) (*Server, *kernelruntime.Manager, *workspace.Store, *agentKernelContext, *recordingProviderOperationRunner) {
+	t.Helper()
 	repositoryRoot := repositoryRootForServerTest(t)
 	optional := filepath.Join(repositoryRoot, "assets", "optional")
 	state := t.TempDir()
@@ -216,6 +217,9 @@ class TestProvider:
 
 PROVIDER = TestProvider
 `
+	if startupHook != "" {
+		providerSource = strings.Replace(providerSource, "    def import_and_patch(self):\n", "    def import_and_patch(self):\n"+startupHook, 1)
+	}
 	if err := os.WriteFile(filepath.Join(skillRoot, "provider.py"), []byte(providerSource), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -272,6 +276,68 @@ PROVIDER = TestProvider
 		t.Fatalf("provider frame found=%t err=%v", found, err)
 	}
 	identity := &agentKernelContext{access: access, workspaceDir: workspaceDir}
+	return server, manager, store, identity, operationRunner
+}
+
+func TestComputeProviderStartupRechecksGrantAfterUnregisteredWorkerRevocation(t *testing.T) {
+	server, manager, _, identity, _ := newComputeProviderRuntimeTestFixture(t, `        import time
+        from pathlib import Path
+        Path("provider-starting").write_text("started")
+        deadline = time.monotonic() + 10
+        while not Path("provider-release").exists():
+            if time.monotonic() >= deadline:
+                raise RuntimeError("owned startup gate timed out")
+            time.sleep(0.01)
+`)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	result := make(chan error, 1)
+	go func() {
+		_, err := server.executeAgentComputeProvider(ctx, identity, identity.access,
+			agentruntime.ToolCall{ID: "revoked-provider-start", Name: computeProviderToolName},
+			map[string]any{"provider": "modal", "code": `open("unauthorized-result", "w").write("executed")`})
+		result <- err
+	}()
+	releasePath := filepath.Join(identity.workspaceDir, "provider-release")
+	defer func() { _ = os.WriteFile(releasePath, []byte("release"), 0o600) }()
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		if _, err := os.Stat(filepath.Join(identity.workspaceDir, "provider-starting")); err == nil {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("provider did not reach the owned pre-registration startup gate")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if removed, err := server.revokeHostGrant(identity.access.UserID, identity.workspaceDir); err != nil || !removed {
+		t.Fatalf("startup grant revocation failed: removed=%t err=%v", removed, err)
+	}
+	if manager.ActiveCount() != 0 {
+		t.Fatalf("revocation returned while the bootstrap worker remained alive: %d", manager.ActiveCount())
+	}
+	if err := os.WriteFile(releasePath, []byte("release"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case err := <-result:
+		if err == nil {
+			t.Fatal("provider executed after its unregistered startup workspace grant was revoked")
+		}
+	case <-ctx.Done():
+		t.Fatal("revoked startup did not settle within its owned deadline")
+	}
+	if _, err := os.Stat(filepath.Join(identity.workspaceDir, "unauthorized-result")); !os.IsNotExist(err) {
+		t.Fatalf("revoked startup produced an unauthorized side effect: %v", err)
+	}
+	if manager.ActiveCount() != 0 {
+		t.Fatalf("rejected newly created provider worker remained active: %d", manager.ActiveCount())
+	}
+}
+
+func TestComputeProviderApprovalRunsOneConfinedPersistentKernelAndRecordsExecution(t *testing.T) {
+	server, _, store, identity, operationRunner := newComputeProviderRuntimeTestFixture(t, "")
+	access, workspaceDir := identity.access, identity.workspaceDir
 	if !agentRuntimeToolSchemaNamed(server.agentKernelToolSchemas(identity, nil), computeProviderToolName) {
 		t.Fatal("ready compute_provider schema was not exposed")
 	}
