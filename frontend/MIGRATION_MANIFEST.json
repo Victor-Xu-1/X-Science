@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "fc00e6b2d473d51689463d32d5bb2976fa8a42464c1cce7e45d8d2d510d4a7d7",
+  "adaptationFingerprintSHA256": "cd6764617b64d66774731eeadd67fa59835d49909d400773fa20dd10c918b764",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "910d0506e4470d9cf210d2598ef2e597241461646431c7c05487d95a0f425f41",
+  "additionFingerprintSHA256": "aab62293d9a6de5a28864470fdc50e25e6ea92b97393358984dfe5013d937d0f",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 345,
     "adaptedSourceFiles": 716,
     "removedSourceFiles": 293,
-    "addedFiles": 858
+    "addedFiles": 862
   },
   "adaptations": [
     {
@@ -1053,8 +1053,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/GroupedHistory/hooks/useConversationActions.ts",
       "sourceSHA256": "4601db2a380398c8f189573b84ae649dc40a6176ffc2ed2c5ad929c5424a041d",
-      "targetSHA256": "d61026bed9bb4bd18e3233b81e71f6e7f3f0f617845ea0d505eeb6e512bdf328",
-      "bytes": 14328,
+      "targetSHA256": "6981f77936e526be5de6218c810f5a44a9df3b4fdb462eb828de32ec4fd8f375",
+      "bytes": 12617,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -2159,8 +2159,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/settings/GeneralSettings.tsx",
       "sourceSHA256": "c6bd94f6ae1436cc0fc6cc1bff7ab0ad9097a3a8d312e981ba3520718af48973",
-      "targetSHA256": "534fa661946f7f4526f3da65285289ea05a3e5474b0615bca0cc9ba7214b364c",
-      "bytes": 11282,
+      "targetSHA256": "f7c652aa6a5327e4845b5521bc4ddfc84d3dce7541d9369f174f6f713322d72a",
+      "bytes": 12778,
       "reason": "Remove duplicated model controls and simplify local Go deployment guidance."
     },
     {
@@ -2502,8 +2502,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "bef43a941b894b8bd4a20d91201f2fdfbcba91994aef9adf2027a81b063af524",
-      "bytes": 254338,
+      "targetSHA256": "edcecc2a1fcb07c5893e23c9f51da06597cac63f939f4b8a5ef7e22938dc32f9",
+      "bytes": 254663,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2586,8 +2586,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/settings.json",
       "sourceSHA256": "d7c89e27673b4245d2efeb4216c9768e08420beabd9294779d4d099207ea5e7a",
-      "targetSHA256": "3163e22e03f1a8097d2ca97a4fbae87bb8518c42979c1aaa09e5110fa4f9af9b",
-      "bytes": 138620,
+      "targetSHA256": "c69a5f6b37ff477a90d1b0d73349f5c14a6277b78363cf82ef876adf36bd223c",
+      "bytes": 139036,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2677,8 +2677,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/settings.json",
       "sourceSHA256": "3afd2c67b5d1a42960c03d5e70dbdb23c3b6b1a3981665ac37919e199dc814c0",
-      "targetSHA256": "b8c7f750baa03f127e3e8516f5a02ce252daf046715c3272fe3447545cae5313",
-      "bytes": 133283,
+      "targetSHA256": "2159f5597e9add251bcd18fa7ab47e860e2ffa1ac614e2d6e71f850e1b19c92b",
+      "bytes": 133709,
       "reason": "Explain required scientific runtimes, unified user-managed storage, and Synon Go service guidance."
     },
     {
@@ -3909,8 +3909,8 @@
     {
       "path": "tests/unit/renderer/SessionActionModals.dom.test.tsx",
       "sourceSHA256": "65826760185916627f4eb96bfbce7152045f99f6b015097c7bddbcda5ae1c0c1",
-      "targetSHA256": "0f44f736fd35fb50c3339da9ca19203a24b2c7b5410147a5524a4c989652fe01",
-      "bytes": 4696,
+      "targetSHA256": "bf1ce7ae238d4da5131c1586339246a69f414eb60d8edb5970f5c4d7f082c659",
+      "bytes": 5530,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -4427,8 +4427,8 @@
     {
       "path": "tests/unit/settings/ComputeSettings.dom.test.tsx",
       "sourceSHA256": "514a9881f5abb94f7a2bb27878040b9af8929f5cd2b40a34df788ee5b8fdd515",
-      "targetSHA256": "0a18bb77ca6b5c77178771989220f7714f77a61228b931f2edaa09aa7a6a9984",
-      "bytes": 17684,
+      "targetSHA256": "a75127e45ccc144597153343aebe0b89d5f7232dcf0c380c6f226cbba0a33c0b",
+      "bytes": 29557,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -4441,8 +4441,8 @@
     {
       "path": "tests/unit/settings/GeneralSettings.dom.test.tsx",
       "sourceSHA256": "b9fb0e5683d6aae34ef95f3c8c3ff8decbc667861fc313530241b6158ba535e5",
-      "targetSHA256": "f350807783bddb4bea130881006199b26883a84fd92495eb6913853cefb847f4",
-      "bytes": 8078,
+      "targetSHA256": "d42ff535a1217671e7280befeecc858e3089163a4fd87f30fa9c1ea2f17a708b",
+      "bytes": 11777,
       "reason": "Verify the streamlined general settings information architecture."
     },
     {
@@ -7060,8 +7060,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/layout/Titlebar/DesktopConversationTitle.tsx",
-      "sha256": "78376652b4ab5246d9b14eb35e1bad5bd0dc5b04e947e5ddec94118484db494f",
-      "bytes": 5316,
+      "sha256": "dcef9bd223476d4b0aa38be0369d099909008e0b3151aaac03c6ab92bdae8d3d",
+      "bytes": 5617,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -7506,6 +7506,12 @@
       "path": "packages/desktop/src/renderer/pages/conversation/GroupedHistory/conversationTaskIndicatorModel.ts",
       "sha256": "cecd10cbdee9fd28465124955e1aecdd975571a2a9c54d56b1f9dc1dfd803cd1",
       "bytes": 14307,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/GroupedHistory/hooks/useSessionMove.ts",
+      "sha256": "adcc5e6bb27fa7bf2f7ca0562cbad3906459168733abf020f7de018849664f29",
+      "bytes": 4137,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8638,8 +8644,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/settings/components/compute/ComputeJobs.tsx",
-      "sha256": "0323bdddb39daef81386be8d579da675334e12600c8e3eddf6a2dda0f48af30e",
-      "bytes": 15113,
+      "sha256": "a4b073e0d1675d208364b4e197e6947d78034d73dfdccd4f010ca0fdc2bb0d41",
+      "bytes": 15348,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8658,6 +8664,18 @@
       "path": "packages/desktop/src/renderer/pages/settings/components/compute/ComputeSettingsPrimitives.tsx",
       "sha256": "96c2b80eef71c4237f9129c0897a8ef30f594be7425bbc47a34a669f75435d06",
       "bytes": 3841,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/settings/components/compute/useComputeJobReads.ts",
+      "sha256": "60b2f727ac90f7be73de2bf230cb47946f414f783b07af38d9d7251426d6b4e8",
+      "bytes": 1272,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/settings/components/compute/useSessionProviderWrites.ts",
+      "sha256": "f41ea8311266fe4ee0ee3d34c0423e208db778f9371a5b6bab7a8b55bb5e2114",
+      "bytes": 2432,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8802,6 +8820,12 @@
       "path": "packages/desktop/src/renderer/pages/settings/components/settingsVisualContract.ts",
       "sha256": "f1e97b9c3aa3aa6169783896cc8ff82a56030c848877bc869c16c4ac4659a9b7",
       "bytes": 9215,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/settings/components/useSettingsReadResource.ts",
+      "sha256": "176540c3a37ecff7465d0565932d3447279ee85ddb5eb1d978c603d512b16df7",
+      "bytes": 2272,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10702,8 +10726,8 @@
     },
     {
       "path": "tests/unit/renderer/layout/DesktopConversationTitle.dom.test.tsx",
-      "sha256": "e4ba1b2ac0ed205c87481c280c1498bce064c41d904264dd4ff9e44eb40761d8",
-      "bytes": 4031,
+      "sha256": "a0eed14fedb6e140ab7a73897bfeb19a057e32a3bddb01100a4fff383d2051a8",
+      "bytes": 5154,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -10972,8 +10996,8 @@
     },
     {
       "path": "tests/unit/renderer/useConversationActions.dom.test.tsx",
-      "sha256": "d77b99ee7b165f0652f66e2dc60ae633a4e6795ebf4949b9c394d6871bbaf9cd",
-      "bytes": 2959,
+      "sha256": "8e3e40ee2ca755b4424715ba2177640d73f8a56c20d0f542de039aea0febdfce",
+      "bytes": 9514,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

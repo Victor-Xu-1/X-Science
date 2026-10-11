@@ -59,6 +59,30 @@ authorize a release.
 
 ## Public source checkout
 
+### Recoverable settings and workbench interactions
+
+Contact email reads distinguish loading, unavailable and known values. Changes
+are disabled until the current notice and contact state are known. Retry reloads
+only the contact read; it never repeats a successful save or removal. Concurrent
+button and keyboard submissions are serialized.
+
+Compute job metadata, stdout, stderr and session providers have independent
+read states. A failed log is not an empty log, and an unavailable provider list
+does not mean all providers are disabled. Retry reloads the failed section;
+switching jobs discards replies belonging to the previous job. Log tabs support
+arrow keys and Home/End using the shared keyboard navigation behavior.
+Provider changes stay bound to their session root across dialog openings. A
+completed change refreshes the currently open matching root from the server,
+superseding any pre-change read without reissuing the write. Other roots remain
+independently usable.
+
+The conversation Move dialog can be cancelled while its project catalogue is
+loading. Closing or reopening it invalidates the previous read. Once a move is
+submitted, the dialog waits for its server outcome and prevents duplicate writes;
+a failed move keeps the original task and target selection available for retry.
+Title editing distinguishes input-method composition confirmation from a normal
+Enter submission, preserving Chinese and other composed input.
+
 ### Scientific Toolkit and skills library
 
 Settings → Scientific Toolkit combines Experts, Skills, Connectors and Scientific
