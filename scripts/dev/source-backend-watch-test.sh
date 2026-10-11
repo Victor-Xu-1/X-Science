@@ -10,6 +10,8 @@ BUILD_COUNT="$TMP_DIR/build-count"
 START_COUNT="$TMP_DIR/start-count"
 FAIL_NEXT_BUILD="$TMP_DIR/fail-next-build"
 FAIL_NEXT_ASSET_VERIFY="$TMP_DIR/fail-next-asset-verify"
+export SYNON_DEV_MODEL_ENV_FILE="$TMP_DIR/synthetic-model.env"
+printf '# owned empty test configuration\n' >"$SYNON_DEV_MODEL_ENV_FILE"
 RUNTIME_HEALTH="$TMP_DIR/runtime-health.json"
 WATCHER_PID=""
 
@@ -78,6 +80,21 @@ fi
 cat >"$output" <<'FAKE_BACKEND'
 #!/usr/bin/env bash
 set -Eeuo pipefail
+if [[ "${1:-}" == "runtime-endpoint" ]]; then
+  shift
+  python3 - "$@" <<'PY'
+import argparse, json
+parser = argparse.ArgumentParser()
+parser.add_argument('--file', required=True)
+parser.add_argument('--pid', required=True, type=int)
+args = parser.parse_args()
+with open(args.file) as handle:
+    receipt = json.load(handle)
+assert receipt['schema'] == 1 and receipt['pid'] == args.pid
+print(receipt['health_url'])
+PY
+  exit 0
+fi
 if [[ "${1:-}" == "assets" && "${2:-}" == "verify" ]]; then
   if [[ -f "$FAKE_FAIL_NEXT_ASSET_VERIFY" ]]; then
     rm -f "$FAKE_FAIL_NEXT_ASSET_VERIFY"
@@ -85,6 +102,14 @@ if [[ "${1:-}" == "assets" && "${2:-}" == "verify" ]]; then
     exit 1
   fi
   exit 0
+fi
+if [[ "${1:-}" == "serve" && "${2:-}" == "--runtime-endpoint-file" ]]; then
+  python3 - "$3" "$$" "${FAKE_HEALTH_URL:-http://127.0.0.1:18886/health}" <<'PY'
+import json, os, sys
+with open(sys.argv[1], 'x') as handle:
+    os.chmod(sys.argv[1], 0o600)
+    json.dump({'schema': 1, 'pid': int(sys.argv[2]), 'health_url': sys.argv[3]}, handle)
+PY
 fi
 count=0
 [[ ! -f "$FAKE_START_COUNT" ]] || count=$(<"$FAKE_START_COUNT")
@@ -313,8 +338,9 @@ kill -TERM "$WATCHER_PID"
 wait "$WATCHER_PID"
 WATCHER_PID=""
 
-# HTTP health probes must follow SYNON_ADDRESS instead of a hard-coded 8766
-# listener. These cases intentionally omit SYNON_DEV_RUNTIME_HEALTH_FILE.
+# HTTP probes follow the owned child's bound endpoint, not a reconstructed
+# environment address or a fixed port. No formal listener is occupied or changed.
+# These cases intentionally omit SYNON_DEV_RUNTIME_HEALTH_FILE.
 find_free_port() {
   python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()'
 }
@@ -413,18 +439,19 @@ run_http_watcher() {
   FAKE_START_COUNT="$HTTP_START_COUNT" \
   FAKE_FAIL_NEXT_BUILD="$FAIL_NEXT_BUILD" \
   FAKE_FAIL_NEXT_ASSET_VERIFY="$FAIL_NEXT_ASSET_VERIFY" \
+  FAKE_HEALTH_URL="http://127.0.0.1:$SUPERVISED_HEALTH_PORT/health" \
   SYNON_SOURCE_ROOT="$ROOT" \
   SYNON_DEV_BUILD_DIR="$HTTP_STATE" \
   SYNON_DEV_POLL_SECONDS=0.05 \
   SYNON_DEV_BUILD_RETRY_MIN_SECONDS=1 \
   SYNON_DEV_BUILD_RETRY_MAX_SECONDS=2 \
-  SYNON_ADDRESS="127.0.0.1:$SUPERVISED_HEALTH_PORT" \
+  SYNON_ADDRESS="${MISLEADING_ADDRESS:-127.0.0.1:$SUPERVISED_HEALTH_PORT}" \
   GO="$TMP_DIR/fake-go" \
     bash "$WATCHER" >"$log_file" 2>&1 &
   HTTP_WATCHER_PID=$!
 }
 
-run_http_watcher "$TMP_DIR/http-watcher-missing-8766.log"
+run_http_watcher "$TMP_DIR/http-watcher-owned-endpoint.log"
 wait_for_value "$HTTP_BUILD_COUNT" 1
 wait_for_value "$HTTP_START_COUNT" 1
 
@@ -434,18 +461,15 @@ wait_for_value "$HTTP_START_COUNT" 2
 
 http_health_cleanup
 
-if ! port_is_open 8766; then
-  start_health_server 8766 "$DECOY_HEALTH"
-  DECOY_HEALTH_PID="$HEALTH_SERVER_PID"
-  if ! wait_for_port 8766; then
-    echo 'decoy health server did not bind on 8766' >&2
-    exit 1
-  fi
-else
-  echo 'port 8766 is already in use; cannot run busy-decoy health regression' >&2
+DECOY_HEALTH_PORT="$(find_free_port)"
+start_health_server "$DECOY_HEALTH_PORT" "$DECOY_HEALTH"
+DECOY_HEALTH_PID="$HEALTH_SERVER_PID"
+if ! wait_for_port "$DECOY_HEALTH_PORT"; then
+  echo 'isolated decoy health server did not bind' >&2
   exit 1
 fi
 
+SUPERVISED_HEALTH_PORT="$(find_free_port)"
 start_health_server "$SUPERVISED_HEALTH_PORT" "$SUPERVISED_HEALTH"
 SUPERVISED_HEALTH_PID="$HEALTH_SERVER_PID"
 if ! wait_for_port "$SUPERVISED_HEALTH_PORT"; then
@@ -460,7 +484,7 @@ mkdir -p "$HTTP_STATE"
 printf '{"active_session_runs":0,"runtime_draining":false}\n' >"$SUPERVISED_HEALTH"
 printf '{"active_session_runs":1,"runtime_draining":false}\n' >"$DECOY_HEALTH"
 
-run_http_watcher "$TMP_DIR/http-watcher-busy-decoy.log"
+MISLEADING_ADDRESS="127.0.0.1:$DECOY_HEALTH_PORT" run_http_watcher "$TMP_DIR/http-watcher-busy-decoy.log"
 wait_for_value "$HTTP_BUILD_COUNT" 1
 wait_for_value "$HTTP_START_COUNT" 1
 
@@ -469,6 +493,10 @@ wait_for_value "$HTTP_BUILD_COUNT" 2
 wait_for_value "$HTTP_START_COUNT" 2
 
 http_health_cleanup
+if find "$HTTP_STATE" -maxdepth 1 -type d -name 'runtime-endpoint.*' | grep -q .; then
+  echo 'owned endpoint generation survived watcher cleanup' >&2
+  exit 1
+fi
 trap cleanup EXIT INT TERM
 
 echo 'source-backend-watch-test: ok'

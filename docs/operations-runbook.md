@@ -292,6 +292,31 @@ flow; complete that first-use flow before entering the workbench. Use
 terminal has desktop-browser access. The browser action is never implicit. No
 Web password is compiled into the repository.
 
+The source backend watcher loads its optional trusted local environment file
+from `${XDG_CONFIG_HOME:-$HOME/.config}/synon-go/workbench-model.env`.
+`SYNON_DEV_MODEL_ENV_FILE` selects an explicit alternative file; it does not
+change the saved workspace provider authority. Keep this file private and
+outside source. The default retains the existing installation path rather
+than embedding a developer's home directory.
+
+Watcher health probes use the current owned child's actual bound listener,
+including configuration-file settings and environment overrides. An optional
+`serve --runtime-endpoint-file PATH` publishes a bounded private JSON receipt
+only after `net.Listen` succeeds. It contains schema `1`, that process's PID
+and its numeric-host HTTP `/health` URL, never configuration or credentials.
+The parent directory must be private and non-symlink; publication is atomic,
+mode `0600` on Unix, and never replaces an existing path. Publication failure
+fails startup. The service removes only its unchanged own receipt on exit.
+
+`runtime-endpoint --file PATH --pid PID` is a read-only native validator which
+prints that URL only for the matching owned child. It rejects links, nonregular
+or oversized files, unsafe URLs and mismatching PIDs without loading config or
+calling tools. The watcher keeps its separate child-liveness and idle-drain
+checks; a receipt alone does not prove that a process is alive. Each child has
+an independent private generation directory, so changing configuration while
+an older child runs cannot redirect its probe to another listener. Unspecified
+IPv4 and IPv6 bindings are probed through their matching loopback family.
+
 ### First-run scientific runtime preparation
 
 On every supported native target (Linux/WSL amd64, Windows x64, macOS Intel,
