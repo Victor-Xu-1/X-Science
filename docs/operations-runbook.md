@@ -319,7 +319,9 @@ IPv4 and IPv6 bindings are probed through their matching loopback family.
 
 When a failed build or an unaccepted migration keeps an older verified binary,
 the watcher first probes its read-only `serve --help` capability with a bounded
-wait. A binary without endpoint receipt support starts with its existing serve
+wait and forced-stop grace if that probe ignores termination. This boundary
+applies only to the read-only capability probe, not a running research process.
+A binary without endpoint receipt support starts with its existing serve
 arguments, not an unsupported new flag. Without a trusted receipt the watcher
 keeps that child running and defers automatic cutover; it does not guess the
 port or reparse configuration. Existing explicit idle-drain handoff remains

@@ -14,8 +14,21 @@ export SYNON_DEV_MODEL_ENV_FILE="$TMP_DIR/synthetic-model.env"
 printf '# owned empty test configuration\n' >"$SYNON_DEV_MODEL_ENV_FILE"
 RUNTIME_HEALTH="$TMP_DIR/runtime-health.json"
 WATCHER_PID=""
+PROBE_HELP_PID_FILE="$TMP_DIR/probe-help.pid"
+PROBE_LEGACY_PID_FILE="$TMP_DIR/probe-legacy.pid"
+PROBE_BINARY="$TMP_DIR/probe-state/synon-go"
 
 cleanup() {
+  # The intentionally broken help fixture ignores TERM. Kill only its recorded
+  # owned fixture process; its bounded sleep finishes naturally, and GNU timeout
+  # then reaps its child. Do this before waiting for the outer watcher.
+  if [[ -f "$PROBE_HELP_PID_FILE" ]]; then
+    local probe_pid="$(<"$PROBE_HELP_PID_FILE")"
+    if kill -0 "$probe_pid" 2>/dev/null &&
+        grep -aFq "$PROBE_BINARY" "/proc/$probe_pid/cmdline" 2>/dev/null; then
+      kill -KILL "$probe_pid" 2>/dev/null || true
+    fi
+  fi
   if [[ -n "$WATCHER_PID" ]] && kill -0 "$WATCHER_PID" 2>/dev/null; then
     kill -TERM "$WATCHER_PID" 2>/dev/null || true
     wait "$WATCHER_PID" 2>/dev/null || true
@@ -152,6 +165,69 @@ wait_for_value() {
   echo "timed out waiting for $file=$expected" >&2
   return 1
 }
+
+run_probe_timeout_regression() {
+  local probe_state="$TMP_DIR/probe-state"
+  mkdir -p "$probe_state"
+  # A cached accepted binary starts through the migration-deferral path.
+  printf 'previous-accepted-migration\n' >"$probe_state/accepted-migration-digest"
+  cat >"$PROBE_BINARY" <<'PROBE_BINARY'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+if [[ "${1:-}" == "serve" && "${2:-}" == "--help" ]]; then
+  printf '%s\n' "$$" >"$FAKE_PROBE_HELP_PID"
+  trap '' TERM
+  while true; do sleep .05; done
+fi
+[[ "$*" != *'--runtime-endpoint-file'* ]] || exit 2
+printf '%s\n' "$$" >"$FAKE_PROBE_LEGACY_PID"
+trap 'exit 0' INT TERM USR1
+while true; do sleep .05; done
+PROBE_BINARY
+  chmod 0755 "$PROBE_BINARY"
+  FAKE_PROBE_HELP_PID="$PROBE_HELP_PID_FILE" \
+  FAKE_PROBE_LEGACY_PID="$PROBE_LEGACY_PID_FILE" \
+  SYNON_SOURCE_ROOT="$ROOT" \
+  SYNON_DEV_BUILD_DIR="$probe_state" \
+  SYNON_DEV_POLL_SECONDS=.05 \
+  GO="$TMP_DIR/fake-go" \
+    bash "$WATCHER" >"$TMP_DIR/probe-watcher.log" 2>&1 &
+  WATCHER_PID=$!
+  # This independent outer deadline fails rather than hanging if timeout's
+  # initial TERM is ignored. Startup must complete by the eighth second.
+  for _ in $(seq 1 160); do
+    [[ -f "$PROBE_LEGACY_PID_FILE" ]] && break
+    kill -0 "$WATCHER_PID" 2>/dev/null || break
+    sleep .05
+  done
+  [[ -f "$PROBE_LEGACY_PID_FILE" ]] || {
+    echo 'read-only legacy help probe exceeded its outer deadline' >&2
+    return 1
+  }
+  [[ -f "$PROBE_HELP_PID_FILE" ]] || { echo 'help fixture never ran' >&2; return 1; }
+  ! kill -0 "$(<"$PROBE_HELP_PID_FILE")" 2>/dev/null || {
+    echo 'read-only legacy help process survived the bounded probe' >&2
+    return 1
+  }
+  kill -0 "$(<"$PROBE_LEGACY_PID_FILE")" 2>/dev/null || {
+    echo 'legacy accepted child did not remain usable after failed probe' >&2
+    return 1
+  }
+  grep -Fq 'automatic cutover is deferred until an explicit idle-drain handoff' "$TMP_DIR/probe-watcher.log"
+  kill -TERM "$WATCHER_PID"
+  wait "$WATCHER_PID"
+  WATCHER_PID=""
+  ! kill -0 "$(<"$PROBE_LEGACY_PID_FILE")" 2>/dev/null || {
+    echo 'owned legacy child survived watcher cleanup' >&2
+    return 1
+  }
+}
+
+if [[ "${1:-}" == "--probe-timeout-only" ]]; then
+  run_probe_timeout_regression
+  echo 'source-backend-watch-probe-timeout: ok'
+  exit 0
+fi
 
 FAKE_BUILD_COUNT="$BUILD_COUNT" \
 FAKE_START_COUNT="$START_COUNT" \
@@ -576,5 +652,7 @@ if find "$HTTP_STATE" -maxdepth 1 -type d -name 'runtime-endpoint.*' | grep -q .
   exit 1
 fi
 trap cleanup EXIT INT TERM
+
+run_probe_timeout_regression
 
 echo 'source-backend-watch-test: ok'
