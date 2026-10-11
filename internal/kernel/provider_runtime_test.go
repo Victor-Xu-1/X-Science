@@ -16,7 +16,8 @@ import (
 	"time"
 )
 
-func TestProviderKernelUsesConfinedCredentialFDAndDomainProxy(t *testing.T) {
+func newProviderKernelTestFixture(t *testing.T) (*Manager, SessionSpec, ProviderRuntimeSpec, string) {
+	t.Helper()
 	root := repositoryRootForCondaRuntimeTest(t)
 	optional := filepath.Join(root, "assets", "optional")
 	state := t.TempDir()
@@ -85,7 +86,6 @@ PROVIDER = FixtureProvider
 	t.Cleanup(func() { _, _ = manager.CloseAll(context.Background()) })
 
 	secret := "super-secret-token"
-	digest := fmt.Sprintf("%x", sha256.Sum256([]byte(secret)))
 	workspace := t.TempDir()
 	spec := SessionSpec{
 		KernelID: "provider-fixture-kernel", FrameID: "provider-frame", RootFrameID: "provider-frame",
@@ -112,6 +112,29 @@ PROVIDER = FixtureProvider
 			return client, nil
 		},
 	}
+	return manager, spec, runtimeSpec, secret
+}
+
+func TestProviderKernelRefusesChangedWorkspaceWithoutStoppingExistingWorker(t *testing.T) {
+	manager, spec, runtimeSpec, _ := newProviderKernelTestFixture(t)
+	worker, _, err := manager.StartProviderSession(context.Background(), spec, runtimeSpec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	changed := spec
+	changed.WorkspaceDir = t.TempDir()
+	if reused, _, err := manager.StartProviderSession(context.Background(), changed, runtimeSpec); err == nil || reused != nil {
+		t.Fatalf("changed workspace reused original worker: worker=%p reused=%p err=%v", worker, reused, err)
+	}
+	response, err := worker.Execute(context.Background(), `print("original-worker-still-usable")`, "agent")
+	if err != nil || response.Error != "" || !strings.Contains(response.Stdout, "original-worker-still-usable") {
+		t.Fatalf("workspace mismatch stopped the existing worker: %#v %v", response, err)
+	}
+}
+
+func TestProviderKernelUsesConfinedCredentialFDAndDomainProxy(t *testing.T) {
+	manager, spec, runtimeSpec, secret := newProviderKernelTestFixture(t)
+	digest := fmt.Sprintf("%x", sha256.Sum256([]byte(secret)))
 	worker, configHash, err := manager.StartProviderSession(context.Background(), spec, runtimeSpec)
 	if err != nil {
 		t.Fatal(err)

@@ -155,7 +155,7 @@ func TestWorkspaceClaimedWriteMemoryHonorsSessionAndFrameOptOut(t *testing.T) {
 				t.Fatalf("memory count=%d err=%v", count, err)
 			}
 			stream, err := server.transcriptStore.GetStream(context.Background(), "frame:"+test.frameID, "user-1")
-			if err != nil || stream.NextEventID != 3 {
+			if err != nil || stream.NextEventID != 4 {
 				t.Fatalf("stream=%#v err=%v", stream, err)
 			}
 		})

@@ -40,6 +40,7 @@ vi.mock('@icon-park/react', () => ({
 
 import MessageScientificFiles, {
   ScientificFilePreviewStrip,
+  areScientificFilePreviewListsEqual,
 } from '@/renderer/pages/conversation/Messages/components/MessageScientificFiles';
 
 const artifact: IScientificFilesArtifact = {
@@ -86,6 +87,21 @@ const artifact: IScientificFilesArtifact = {
   created_at: 30,
   updated_at: 30,
 };
+
+describe('areScientificFilePreviewListsEqual', () => {
+  it('treats rebuilt file arrays with the same displayed versions as equal', () => {
+    const files = artifact.payload.files;
+    expect(
+      areScientificFilePreviewListsEqual(
+        files,
+        files.map((file) => ({ ...file }))
+      )
+    ).toBe(true);
+    expect(
+      areScientificFilePreviewListsEqual(files, [{ ...files[0], content_url: '/api/artifacts/changed' }, files[1]])
+    ).toBe(false);
+  });
+});
 
 describe('MessageScientificFiles', () => {
   beforeEach(() => {

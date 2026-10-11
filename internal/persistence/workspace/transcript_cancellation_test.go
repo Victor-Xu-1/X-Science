@@ -81,10 +81,7 @@ func TestCancelFrameWithTranscriptRollsBackFrameWhenTerminalReceiptFails(t *test
 }
 
 func TestCancelFrameWithTranscriptCreatesTerminalAttemptBeforeAdmission(t *testing.T) {
-	store, repo, stream, claim := newTranscriptCancellationFixture(t)
-	if _, err := store.db.Exec(`DELETE FROM transcript_runner_attempts WHERE stream_uid=? AND attempt=?`, stream.UID, claim.Attempt); err != nil {
-		t.Fatal(err)
-	}
+	store, repo, stream := newTranscriptCancellationFixtureWithoutRunnerClaim(t)
 	frame, event, err := store.CancelFrameWithTranscript(context.Background(), "frame-a")
 	if err != nil || event == nil || frame.Status != "cancelled" {
 		t.Fatalf("frame=%#v event=%#v err=%v", frame, event, err)
@@ -207,6 +204,41 @@ func newTranscriptCancellationFixture(t *testing.T) (*Store, *transcriptstore.Re
 		t.Fatalf("claim=%#v err=%v", claimed, err)
 	}
 	return store, repo, stream, claimed.Claim
+}
+
+func newTranscriptCancellationFixtureWithoutRunnerClaim(t *testing.T) (*Store, *transcriptstore.Repository, transcriptstore.Stream) {
+	t.Helper()
+	store, err := Open(filepath.Join(t.TempDir(), "workspace.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = store.Close() })
+	if _, err := store.CreateProject(CreateProjectInput{ID: "project-a", UserID: "owner-a", Name: "Project"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.CreateFrame(CreateFrameInput{
+		ID: "frame-a", ProjectID: "project-a", AgentName: "agent", Status: "processing", ConversationType: "task",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	repo, err := store.TranscriptRepository(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	stream, err := repo.CreateStream(context.Background(), transcriptstore.CreateStreamInput{
+		UID: "frame:frame-a", OwnerID: "owner-a", ExternalID: "frame-a", SessionID: "frame-a",
+		Kind: transcriptstore.StreamKindFrameRef, ProjectID: "project-a", RootFrameID: "frame-a", FrameID: "frame-a", Epoch: 1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, created, err := repo.AppendFrameUserEvent(context.Background(), transcriptstore.AppendFrameUserEventInput{
+		StreamUID: stream.UID, OwnerID: stream.OwnerID, ClientMessageID: "user-a", FrameEventID: "frame-user-a",
+		MessageUUID: "message-a", Text: "cancel this run", Destinations: []string{"ws"},
+	}); err != nil || !created {
+		t.Fatalf("append created=%t err=%v", created, err)
+	}
+	return store, repo, stream
 }
 
 func addTranscriptCancellationFrame(

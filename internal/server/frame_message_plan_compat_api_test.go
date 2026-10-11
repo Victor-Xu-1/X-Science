@@ -758,9 +758,11 @@ func TestCompatibilityApprovePlanPreservesCanonicalTaskIntent(t *testing.T) {
 	events, err := repo.ListProjectedEvents(context.Background(), transcriptstore.ListProjectedEventsInput{
 		StreamUID: stream.UID, OwnerID: stream.OwnerID, Limit: 100,
 	})
-	if err != nil || len(events) != 4 || events[1].Event.Type != "runner_checkpoint" ||
-		events[2].Event.Type != "runner_checkpoint" || events[3].Event.Type != "user_input_response" ||
-		!strings.Contains(string(events[3].ResolvedPayloadJSON), "approved the proposed plan") {
+	if err != nil || len(events) != 5 || events[0].Event.Type != "user_message" ||
+		events[1].Event.Type != "runner_preparation_admitted" ||
+		events[2].Event.Type != "runner_checkpoint" || events[3].Event.Type != "runner_checkpoint" ||
+		events[4].Event.Type != "user_input_response" ||
+		!strings.Contains(string(events[4].ResolvedPayloadJSON), "approved the proposed plan") {
 		t.Fatalf("events=%#v err=%v", events, err)
 	}
 	chat := SessionRunnerChatOptions{

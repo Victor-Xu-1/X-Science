@@ -109,7 +109,7 @@ func TestFrameRunnerUsesTranscriptAuthorityEndToEnd(t *testing.T) {
 	}
 	if len(types) < 4 || types[0] != "user_message" || types[len(types)-2] != "assistant_message" ||
 		types[len(types)-1] != "runner_finished" || countStrings(types, "runner_finished") != 1 ||
-		countStrings(types, "assistant_message") != 1 || !onlyStringValues(types[1:len(types)-2], "runner_checkpoint") {
+		countStrings(types, "assistant_message") != 1 || !onlyStringValuesExcept(types[1:len(types)-2], "runner_checkpoint", transcriptstore.RunnerPreparationAdmissionEventType) {
 		t.Fatalf("projected event types=%v", types)
 	}
 	history, authoritative, err := server.loadTranscriptWebHistory(context.Background(), "local", "frame-a")
@@ -633,7 +633,7 @@ func TestFrameRunnerPublishesValidatedFinalCandidateBeforeTerminal(t *testing.T)
 	if len(types) < 4 || types[0] != "user_message" || assistantIndex <= 0 || terminalIndex != len(types)-1 ||
 		assistantIndex != terminalIndex-1 || countStrings(types, "assistant_message") != 1 || terminals != 1 ||
 		countStrings(types, "content_delta") != 0 || deltaText != "" || assistantText != "streamed authority" ||
-		!onlyStringValuesExcept(types[1:assistantIndex], "runner_checkpoint", "content_delta") {
+		!onlyStringValuesExcept(types[1:assistantIndex], "runner_checkpoint", "content_delta", transcriptstore.RunnerPreparationAdmissionEventType) {
 		t.Fatalf("types=%v deltas=%q assistant=%q terminals=%d", types, deltaText, assistantText, terminals)
 	}
 }
