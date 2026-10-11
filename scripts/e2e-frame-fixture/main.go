@@ -146,17 +146,12 @@ func run() error {
 		return json.NewEncoder(os.Stdout).Encode(response)
 	}
 	if request.Action == "remove-delegate" {
-		_, found, err := store.GetProject(delegatefixture.ProjectID)
+		removed, err := delegatefixture.Clear(store)
 		if err != nil {
-			return fmt.Errorf("inspect delegate browser fixture: %w", err)
-		}
-		if found {
-			if err := store.DeleteProject(delegatefixture.ProjectID); err != nil {
-				return fmt.Errorf("remove delegate browser fixture: %w", err)
-			}
+			return fmt.Errorf("remove delegate browser fixture: %w", err)
 		}
 		return json.NewEncoder(os.Stdout).Encode(map[string]any{
-			"ok": true, "projectId": delegatefixture.ProjectID, "removed": found,
+			"ok": true, "projectId": delegatefixture.ProjectID, "removed": removed,
 		})
 	}
 	if _, found, err := store.GetFrame(request.FrameID); err != nil {
