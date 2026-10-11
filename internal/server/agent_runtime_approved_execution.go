@@ -44,14 +44,11 @@ func (s *Server) resolveApprovedAgentToolContext(ctx context.Context, sessionID 
 	if identity := s.resolveAgentKernelContext(ctx, sessionID); identity != nil {
 		return identity
 	}
-	if s == nil || s.workspaceStore == nil || ctx == nil || strings.TrimSpace(sessionID) == "" {
+	access, workspaceDir, authorized := s.resolveAgentWorkspaceAuthority(ctx, sessionID)
+	if !authorized {
 		return nil
 	}
-	access, found, err := s.workspaceStore.GetKernelFrameAccessContext(ctx, strings.TrimSpace(sessionID))
-	if err != nil || !found {
-		return nil
-	}
-	return &agentKernelContext{access: access, workspaceDir: strings.TrimSpace(access.ProjectPath)}
+	return &agentKernelContext{access: access, workspaceDir: workspaceDir}
 }
 
 func (s *Server) applyAgentRuntimePreToolHooks(ctx context.Context, toolName string, call agentruntime.ToolCall, input map[string]any) (map[string]any, map[string]any) {

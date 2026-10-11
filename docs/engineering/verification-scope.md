@@ -23,8 +23,11 @@ Use immutable full commit IDs and keep evidence outside the source checkout.
 
 An independently proved `product-identity.json` counter-only change does not
 broaden a mixed frontend/dependency PR to every Go package. The identity matrix
-must be unchanged and the complete JSON must differ only by one valid version
-step. This exemption applies to that file alone: mixed lockfile, dependency,
+must be unchanged, except for its unique canonical workspace-schema declaration
+when both exact-tree references and compiled schema targets agree and unchanged
+validators prove every other authority, projection and consumer field identical.
+The complete product JSON must differ only by one valid version step. This
+exemption applies to that file alone: mixed lockfile, dependency,
 auditor and runtime changes retain their existing checks. Missing proof, a name/
 schema edit or unknown input keeps conservative coverage. Version/projection,
 fresh provenance and protected security checks still run; this is scope selection,
