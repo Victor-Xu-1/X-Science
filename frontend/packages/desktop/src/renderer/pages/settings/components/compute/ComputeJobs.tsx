@@ -1,14 +1,9 @@
 import { Button, Message, Spin, Switch, Tag } from '@arco-design/web-react';
 import Modal from '@/renderer/components/base/WorkbenchModal';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  loadSynonBiomedComputeJob,
-  loadSynonBiomedComputeJobLog,
-  loadSynonBiomedSessionComputeProviders,
-  setSynonBiomedSessionComputeProvider,
   type SynonBiomedComputeJob,
-  type SynonBiomedComputeJobLog,
   type SynonBiomedComputeProvider,
   type SynonBiomedManagedEndpoint,
 } from '@/renderer/services/synonBiomedCompute';
@@ -18,6 +13,9 @@ import {
   computeJobVisibleState,
   isComputeControlUnavailable,
 } from '@/renderer/services/compute/jobPresentation';
+import { handleTabListKeyDown } from '@/renderer/utils/tabListKeyboard';
+import { useComputeJobReads } from './useComputeJobReads';
+import { useSessionProviderWrites } from './useSessionProviderWrites';
 
 export const ComputeJobRow: React.FC<{
   job: SynonBiomedComputeJob;
@@ -74,82 +72,33 @@ export const ComputeJobDetailModal: React.FC<{
   onClose: () => void;
 }> = ({ job, providerNames, onClose }) => {
   const { t, i18n } = useTranslation();
-  const [detail, setDetail] = useState<SynonBiomedComputeJob | null>(null);
-  const [logs, setLogs] = useState<Record<'stdout' | 'stderr', SynonBiomedComputeJobLog | null>>({
-    stdout: null,
-    stderr: null,
-  });
+  const reads = useComputeJobReads(job?.jobId ?? null);
+  const detail = reads.detail.data;
+  const logPanelId = useId();
   const [activeStream, setActiveStream] = useState<'stdout' | 'stderr'>('stdout');
-  const [enabledProviders, setEnabledProviders] = useState<string[]>([]);
-  const [pendingProvider, setPendingProvider] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [loadFailed, setLoadFailed] = useState(false);
+  const enabledProviders = reads.providers.data ?? [];
+  const { pendingProvider, toggle: toggleSessionProvider } = useSessionProviderWrites(
+    job?.jobId ?? null,
+    detail?.rootFrameId ?? null,
+    reads.providers,
+    (error) => {
+      console.error('Failed to update session compute provider:', error);
+      Message.error(t('settings.computeWorkspace.sessionUpdateFailed'));
+    }
+  );
 
   useEffect(() => {
-    if (!job) return;
-    let alive = true;
-    setLoading(true);
-    setLoadFailed(false);
-    setDetail(null);
-    setLogs({ stdout: null, stderr: null });
     setActiveStream('stdout');
-    void loadSynonBiomedComputeJob(job.jobId)
-      .then(async (nextDetail) => {
-        const [stdout, stderr, sessionProviders] = await Promise.all([
-          loadSynonBiomedComputeJobLog(job.jobId, {
-            stream: 'stdout',
-            tail: 65536,
-          }).catch((): null => null),
-          loadSynonBiomedComputeJobLog(job.jobId, {
-            stream: 'stderr',
-            tail: 65536,
-          }).catch((): null => null),
-          nextDetail.rootFrameId
-            ? loadSynonBiomedSessionComputeProviders(nextDetail.rootFrameId).catch((): string[] => [])
-            : Promise.resolve([]),
-        ]);
-        if (!alive) return;
-        setDetail(nextDetail);
-        setLogs({ stdout, stderr });
-        setEnabledProviders(sessionProviders);
-      })
-      .catch((error) => {
-        if (!alive) return;
-        console.error('Failed to load compute job details:', error);
-        setLoadFailed(true);
-      })
-      .finally(() => {
-        if (alive) setLoading(false);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [job]);
+  }, [job?.jobId]);
 
   const visibleProviders = useMemo(
     () => Array.from(new Set([...providerNames, ...enabledProviders])).sort((left, right) => left.localeCompare(right)),
     [enabledProviders, providerNames]
   );
 
-  const toggleSessionProvider = async (providerName: string, checked: boolean) => {
-    if (!detail?.rootFrameId) return;
-    const previous = enabledProviders;
-    setEnabledProviders((current) =>
-      checked ? Array.from(new Set([...current, providerName])) : current.filter((name) => name !== providerName)
-    );
-    setPendingProvider(providerName);
-    try {
-      await setSynonBiomedSessionComputeProvider(detail.rootFrameId, providerName, checked);
-    } catch (error) {
-      setEnabledProviders(previous);
-      console.error('Failed to update session compute provider:', error);
-      Message.error(t('settings.computeWorkspace.sessionUpdateFailed'));
-    } finally {
-      setPendingProvider(null);
-    }
-  };
-
-  const activeLog = logs[activeStream];
+  const activeRead = reads[activeStream];
+  const activeLog = activeRead.data;
+  const streamLabel = t(activeStream === 'stdout' ? 'settings.computeStdout' : 'settings.computeStderr');
   return (
     <Modal
       visible={Boolean(job)}
@@ -159,13 +108,16 @@ export const ComputeJobDetailModal: React.FC<{
       unmountOnExit
       style={{ width: 'min(860px, 94vw)' }}
     >
-      {loading ? (
-        <div className='h-260px flex items-center justify-center'>
+      {reads.detail.status === 'loading' ? (
+        <div role='status' aria-label={t('common.loading')} className='h-260px flex items-center justify-center'>
           <Spin />
         </div>
-      ) : loadFailed ? (
+      ) : reads.detail.status === 'failed' ? (
         <div role='alert' className='px-14px py-12px border border-red-2 bg-red-1 rd-6px text-12px text-red-6'>
           {t('settings.computeWorkspace.jobDetailLoadFailed')}
+          <Button className='ml-8px' onClick={() => void reads.detail.refresh()}>
+            {t('common.retry')}
+          </Button>
         </div>
       ) : detail ? (
         <div className='flex flex-col gap-16px'>
@@ -233,7 +185,12 @@ export const ComputeJobDetailModal: React.FC<{
           <section>
             <div className='flex items-center justify-between gap-8px mb-8px'>
               <h4 className='m-0 text-13px font-650 text-t-primary'>{t('settings.computeLogs')}</h4>
-              <div role='tablist' aria-label={t('settings.computeLogs')} className='flex p-2px bg-fill-2 rd-6px'>
+              <div
+                role='tablist'
+                aria-label={t('settings.computeLogs')}
+                className='flex p-2px bg-fill-2 rd-6px'
+                onKeyDown={handleTabListKeyDown}
+              >
                 {(['stdout', 'stderr'] as const).map((stream) => (
                   <Button
                     key={stream}
@@ -241,6 +198,9 @@ export const ComputeJobDetailModal: React.FC<{
                     size='mini'
                     role='tab'
                     aria-selected={activeStream === stream}
+                    id={`${logPanelId}-${stream}`}
+                    aria-controls={logPanelId}
+                    tabIndex={activeStream === stream ? 0 : -1}
                     onClick={() => setActiveStream(stream)}
                   >
                     {stream === 'stdout' ? t('settings.computeStdout') : t('settings.computeStderr')}
@@ -248,38 +208,63 @@ export const ComputeJobDetailModal: React.FC<{
                 ))}
               </div>
             </div>
-            <pre className='m-0 min-h-120px max-h-260px overflow-auto whitespace-pre-wrap break-words bg-fill-1 border border-arco-2 rd-6px px-12px py-10px text-12px leading-5 font-mono text-t-secondary'>
-              {activeLog?.content || t('settings.computeLogEmpty')}
-            </pre>
-            {activeLog ? (
-              <div className='mt-5px text-11px text-t-tertiary'>
-                {formatBytes(activeLog.size)}
-                {activeLog.truncated ? ` · ${t('settings.computeLogTruncated')}` : ''}
-              </div>
-            ) : null}
+            <div id={logPanelId} role='tabpanel' aria-labelledby={`${logPanelId}-${activeStream}`} tabIndex={0}>
+              {activeRead.status === 'loading' ? <p role='status'>{t('common.loading')}</p> : null}
+              {activeRead.status === 'failed' ? (
+                <div role='alert'>
+                  <p>{t('settings.computeWorkspace.logLoadFailed', { stream: streamLabel })}</p>
+                  <Button onClick={() => void activeRead.refresh()}>
+                    {t('settings.computeWorkspace.retryLog', { stream: streamLabel })}
+                  </Button>
+                </div>
+              ) : null}
+              {activeRead.status === 'ready' ? (
+                <pre className='m-0 min-h-120px max-h-260px overflow-auto whitespace-pre-wrap break-words bg-fill-1 border border-arco-2 rd-6px px-12px py-10px text-12px leading-5 font-mono text-t-secondary'>
+                  {activeLog?.content || t('settings.computeLogEmpty')}
+                </pre>
+              ) : null}
+              {activeLog ? (
+                <div className='mt-5px text-11px text-t-tertiary'>
+                  {formatBytes(activeLog.size)}
+                  {activeLog.truncated ? ` · ${t('settings.computeLogTruncated')}` : ''}
+                </div>
+              ) : null}
+            </div>
           </section>
 
-          {detail.rootFrameId && visibleProviders.length > 0 ? (
+          {detail.rootFrameId && (visibleProviders.length > 0 || reads.providers.status !== 'ready') ? (
             <section className='border-t border-arco-2 pt-14px'>
               <h4 className='m-0 text-13px font-650 text-t-primary'>{t('settings.computeSessionProviders')}</h4>
               <p className='m-0 mt-3px mb-9px text-12px text-t-tertiary'>{t('settings.computeSessionProvidersHint')}</p>
-              <div className='flex flex-col border border-arco-2 rd-6px overflow-hidden'>
-                {visibleProviders.map((providerName) => (
-                  <div
-                    key={providerName}
-                    className='flex items-center justify-between gap-10px px-12px py-9px border-b border-arco-2 last:border-b-0'
-                  >
-                    <span className='text-12px text-t-primary font-mono break-all'>{providerName}</span>
-                    <Switch
-                      size='small'
-                      aria-label={`${t('settings.computeSessionToggle')} ${providerName}`}
-                      checked={enabledProviders.includes(providerName)}
-                      loading={pendingProvider === providerName}
-                      onChange={(checked) => void toggleSessionProvider(providerName, checked)}
-                    />
-                  </div>
-                ))}
-              </div>
+              {reads.providers.status === 'loading' ? <p role='status'>{t('common.loading')}</p> : null}
+              {reads.providers.status === 'failed' ? (
+                <div role='alert'>
+                  <p>{t('settings.computeWorkspace.providersLoadFailed')}</p>
+                  <Button onClick={() => void reads.providers.refresh()}>
+                    {t('settings.computeWorkspace.retryProviders')}
+                  </Button>
+                </div>
+              ) : null}
+              {reads.providers.status === 'ready' ? (
+                <div className='flex flex-col border border-arco-2 rd-6px overflow-hidden'>
+                  {visibleProviders.map((providerName) => (
+                    <div
+                      key={providerName}
+                      className='flex items-center justify-between gap-10px px-12px py-9px border-b border-arco-2 last:border-b-0'
+                    >
+                      <span className='text-12px text-t-primary font-mono break-all'>{providerName}</span>
+                      <Switch
+                        size='small'
+                        aria-label={`${t('settings.computeSessionToggle')} ${providerName}`}
+                        checked={enabledProviders.includes(providerName)}
+                        loading={pendingProvider === providerName}
+                        disabled={pendingProvider !== null}
+                        onChange={(checked) => void toggleSessionProvider(providerName, checked)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </section>
           ) : null}
         </div>

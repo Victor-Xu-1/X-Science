@@ -1,5 +1,6 @@
 import { useTitleRename } from '@/renderer/pages/conversation/hooks/useTitleRename';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { useCompositionInput } from '@/renderer/hooks/chat/useCompositionInput';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
@@ -22,6 +23,7 @@ const DesktopConversationTitle: React.FC<DesktopConversationTitleProps> = ({ con
   const title = conversation?.name?.trim() || fallbackTitle;
   const titleRef = useRef<HTMLSpanElement | null>(null);
   const cancelBlurRef = useRef(false);
+  const { isComposing, compositionHandlers } = useCompositionInput();
   const [isOverflowing, setIsOverflowing] = useState(false);
   const [alignment, setAlignment] = useState<ChatSurfaceAlignment | null>(null);
   const { editingTitle, setEditingTitle, titleDraft, setTitleDraft, renameLoading, submitTitleRename } = useTitleRename(
@@ -114,6 +116,7 @@ const DesktopConversationTitle: React.FC<DesktopConversationTitleProps> = ({ con
           className='app-titlebar-conversation__input'
           aria-label={t('conversation.history.renamePlaceholder')}
           onChange={(event) => setTitleDraft(event.target.value)}
+          {...compositionHandlers}
           onFocus={(event) => event.currentTarget.select()}
           onBlur={() => {
             if (cancelBlurRef.current) {
@@ -123,6 +126,7 @@ const DesktopConversationTitle: React.FC<DesktopConversationTitleProps> = ({ con
             void submitTitleRename();
           }}
           onKeyDown={(event) => {
+            if (isComposing.current || event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return;
             if (event.key === 'Enter') event.currentTarget.blur();
             if (event.key === 'Escape') {
               cancelBlurRef.current = true;
