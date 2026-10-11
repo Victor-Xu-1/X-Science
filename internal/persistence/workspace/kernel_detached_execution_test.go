@@ -544,9 +544,9 @@ func TestKernelDetachedExecutionLifecyclePersistsFencedFacts(t *testing.T) {
 	if err != nil || !found || startedOperation.State != KernelLocalOperationStateStarted {
 		t.Fatalf("started operation before terminal receipt=%#v found=%t err=%v", startedOperation, found, err)
 	}
-	if candidates, more, err := store.ListDetachedKernelExecutionRecoveryCandidates(ctx, startedOperation.BootID, 10); err != nil ||
-		more || len(candidates) != 0 {
-		t.Fatalf("same-boot nonterminal recovery candidates=%#v more=%t err=%v", candidates, more, err)
+	if page, err := store.ListDetachedKernelExecutionRecoveryPage(ctx, "", 10); err != nil ||
+		page.NextCursor != "" || len(page.Candidates) != 1 {
+		t.Fatalf("same-boot nonterminal recovery page=%#v err=%v", page, err)
 	}
 
 	resultJSON := `{"ok":false,"error":"cancelled"}`
@@ -591,14 +591,14 @@ func TestKernelDetachedExecutionLifecyclePersistsFencedFacts(t *testing.T) {
 	if err != nil || !found || operation.State != KernelLocalOperationStateStarted {
 		t.Fatalf("started operation=%#v found=%t err=%v", operation, found, err)
 	}
-	if candidates, more, err := store.ListDetachedKernelExecutionRecoveryCandidates(ctx, operation.BootID, 10); err != nil ||
-		more || len(candidates) != 1 || candidates[0].Execution.ExecutionID != execution.ExecutionID {
-		t.Fatalf("same-boot detached recovery candidates=%#v more=%t err=%v", candidates, more, err)
+	if page, err := store.ListDetachedKernelExecutionRecoveryPage(ctx, "", 10); err != nil ||
+		page.NextCursor != "" || len(page.Candidates) != 1 || page.Candidates[0].Execution.ExecutionID != execution.ExecutionID {
+		t.Fatalf("same-boot detached recovery page=%#v err=%v", page, err)
 	}
-	candidates, more, err := store.ListDetachedKernelExecutionRecoveryCandidates(ctx, "service-boot-restarted", 10)
-	if err != nil || more || len(candidates) != 1 ||
-		candidates[0].Execution.ExecutionID != execution.ExecutionID {
-		t.Fatalf("detached recovery candidates=%#v more=%t err=%v", candidates, more, err)
+	page, err := store.ListDetachedKernelExecutionRecoveryPage(ctx, "", 10)
+	if err != nil || page.NextCursor != "" || len(page.Candidates) != 1 ||
+		page.Candidates[0].Execution.ExecutionID != execution.ExecutionID {
+		t.Fatalf("detached recovery page=%#v err=%v", page, err)
 	}
 	finishInput := FinishKernelLocalOperationInput{
 		OwnerUserID: operation.OwnerUserID, OperationID: operation.OperationID,
@@ -625,9 +625,9 @@ func TestKernelDetachedExecutionLifecyclePersistsFencedFacts(t *testing.T) {
 		replay.Created || replay.Operation.StateVersion != settled.Operation.StateVersion {
 		t.Fatalf("detached settlement replay=%#v err=%v", replay, err)
 	}
-	if candidates, more, err := store.ListDetachedKernelExecutionRecoveryCandidates(ctx, "service-boot-restarted", 10); err != nil ||
-		more || len(candidates) != 0 {
-		t.Fatalf("settled detached recovery candidates=%#v more=%t err=%v", candidates, more, err)
+	if page, err := store.ListDetachedKernelExecutionRecoveryPage(ctx, "", 10); err != nil ||
+		page.NextCursor != "" || len(page.Candidates) != 0 {
+		t.Fatalf("settled detached recovery page=%#v err=%v", page, err)
 	}
 }
 
@@ -937,14 +937,15 @@ func newAcceptedDetachedKernelExecutionFixture(
 	return acceptDetachedKernelExecutionFixture(t, store, repo, claim)
 }
 
-func acceptDetachedKernelExecutionFixture(t *testing.T, store *Store, repo *transcriptstore.Repository, claim transcriptstore.RunnerClaim) (*Store, KernelExecutionBackend, KernelExecutionControlLease, DetachedKernelExecution) {
+func acceptDetachedKernelExecutionFixture(t *testing.T, store *Store, repo *transcriptstore.Repository, claim transcriptstore.RunnerClaim, suffix ...string) (*Store, KernelExecutionBackend, KernelExecutionControlLease, DetachedKernelExecution) {
 	t.Helper()
 	ctx := context.Background()
-	operation := createKernelLocalOperationForTest(t, store, repo, claim, "detached-lifecycle", "call-detached-lifecycle")
+	identitySuffix := strings.Join(suffix, "")
+	operation := createKernelLocalOperationForTest(t, store, repo, claim, "detached-lifecycle"+identitySuffix, "call-detached-lifecycle"+identitySuffix)
 	approved, err := store.ResolveKernelLocalOperationApproval(ctx, ResolveKernelLocalOperationApprovalInput{
 		OwnerUserID: "owner", OperationID: operation.OperationID, ExpectedStateVersion: 1,
 		ApprovalRequestID: operation.ApprovalRequestID, Approved: true,
-		DecisionID: "decision-detached-lifecycle", Scope: "once", Source: "user", ActorID: "owner",
+		DecisionID: "decision-detached-lifecycle" + identitySuffix, Scope: "once", Source: "user", ActorID: "owner",
 		CurrentClaim: claim,
 	})
 	if err != nil {
@@ -952,20 +953,20 @@ func acceptDetachedKernelExecutionFixture(t *testing.T, store *Store, repo *tran
 	}
 	prepared, err := store.PrepareKernelLocalOperation(ctx, PrepareKernelLocalOperationInput{
 		OwnerUserID: "owner", OperationID: operation.OperationID, ExpectedStateVersion: approved.StateVersion,
-		Claim: claim, BootID: "service-boot-lifecycle", KernelID: "kernel-detached-lifecycle", KernelGeneration: 1,
+		Claim: claim, BootID: "service-boot-lifecycle", KernelID: "kernel-detached-lifecycle" + identitySuffix, KernelGeneration: 1,
 		ConfinementSHA256: strings.Repeat("b", 64),
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	backend, err := store.CreateKernelExecutionBackend(ctx, CreateKernelExecutionBackendInput{
-		BackendID: "backend-detached-lifecycle", OwnerUserID: prepared.OwnerUserID,
+		BackendID: "backend-detached-lifecycle" + identitySuffix, OwnerUserID: prepared.OwnerUserID,
 		ProjectID: prepared.ProjectID, RootFrameID: prepared.RootFrameID,
 		RootFrameIncarnationID: prepared.RootFrameIncarnationID, FrameID: prepared.FrameID,
 		FrameIncarnationID: prepared.FrameIncarnationID, KernelID: prepared.KernelID,
-		KernelGeneration: prepared.KernelGeneration, ExecutorInstanceID: "executor-detached-lifecycle",
+		KernelGeneration: prepared.KernelGeneration, ExecutorInstanceID: "executor-detached-lifecycle" + identitySuffix,
 		MachineBootID: "machine-boot-lifecycle",
-		SocketPath:    "/run/user/1000/synon-biomed/backend-detached-lifecycle.sock", BackendGeneration: 1,
+		SocketPath:    "/run/user/1000/synon-biomed/backend-detached-lifecycle" + identitySuffix + ".sock", BackendGeneration: 1,
 		SessionSpec: kernelExecutionSessionSpecForTest(prepared),
 	})
 	if err != nil {
@@ -990,10 +991,10 @@ func acceptDetachedKernelExecutionFixture(t *testing.T, store *Store, repo *tran
 	_, execution, err := store.StartDetachedKernelLocalOperation(ctx, StartDetachedKernelLocalOperationInput{
 		Start: StartKernelLocalOperationInput{
 			OwnerUserID: "owner", OperationID: prepared.OperationID, ExpectedStateVersion: prepared.StateVersion,
-			Claim: claim, BootID: prepared.BootID, ExecutionID: "execution-detached-lifecycle",
+			Claim: claim, BootID: prepared.BootID, ExecutionID: "execution-detached-lifecycle" + identitySuffix,
 		}, BackendID: backend.BackendID, BackendGeneration: backend.BackendGeneration,
 		ControllerEpoch: lease.Epoch, ControllerToken: lease.Token,
-		Request: kernelDetachedExecutionRequestForTest(prepared, "execution-detached-lifecycle",
+		Request: kernelDetachedExecutionRequestForTest(prepared, "execution-detached-lifecycle"+identitySuffix,
 			kernelExecutionSessionSpecForTest(prepared)),
 	})
 	if err != nil {

@@ -31,6 +31,24 @@ type detachedKernelTerminalSettlementError struct {
 	cause     error
 }
 
+// After durable acceptance, observation, lease renewal and result persistence
+// failures cannot stand in for a physical terminal result. Retain recovery
+// ownership unless the caller's exact execution/claim authority was rejected.
+func detachedKernelWaitNeedsRecovery(err error) bool {
+	if err == nil {
+		return false
+	}
+	for _, fence := range []error{workspace.ErrDetachedKernelExecutionConflict,
+		workspace.ErrKernelExecutionBackendStale, workspace.ErrKernelExecutionBackendConflict,
+		workspace.ErrKernelLocalOperationStale, workspace.ErrKernelLocalOperationConflict,
+		transcriptstore.ErrClaimStale} {
+		if errors.Is(err, fence) {
+			return false
+		}
+	}
+	return true
+}
+
 func (e *detachedKernelTerminalSettlementError) Error() string {
 	if e == nil || e.cause == nil {
 		return "detached kernel terminal settlement failed"
@@ -119,6 +137,19 @@ func (s *Server) executeDetachedAgentKernel(
 	}
 	executionID := uuid.NewString()
 	toolUseID := operation.ToolCallID
+	// Reserve before durable acceptance becomes visible to recovery. Foreground
+	// waits and background observers share this ownership; recovery must not
+	// acquire a competing control lease during the acceptance/dispatch window.
+	observerCtx, cancelObserver, reserved := s.reserveDetachedKernelObserver(context.Background(), executionID)
+	if !reserved {
+		return releasePrepared(errors.New("detached kernel observer is draining"))
+	}
+	observerLaunched := false
+	defer func() {
+		if !observerLaunched {
+			s.releaseDetachedKernelObserver(executionID, cancelObserver)
+		}
+	}()
 	var startedOperation workspace.KernelLocalOperation
 	var execution workspace.DetachedKernelExecution
 	err = s.withKernelHostGrantAdmission(access.UserID, func() error {
@@ -161,10 +192,11 @@ func (s *Server) executeDetachedAgentKernel(
 		cancelErr := s.deliverPersistedDetachedCancellation(cancelCtx, ref, lease)
 		cancel()
 		if cancelErr == nil {
-			s.startDetachedAgentKernelObserver(
-				context.Background(), access, spec, backendSession, started, ref, lease,
+			s.launchReservedDetachedKernelObserver(
+				observerCtx, cancelObserver, access, spec, backendSession, started, ref, lease,
 				outputLimitBytes, operation, &claim,
 			)
+			observerLaunched = true
 			return nil, errors.New("kernel execution was cancelled before dispatch")
 		}
 		return nil, err
@@ -173,20 +205,24 @@ func (s *Server) executeDetachedAgentKernel(
 		if err := s.recordAgentKernelBackgroundStart(access, started); err != nil {
 			return nil, fmt.Errorf("record detached kernel background execution: %w", err)
 		}
-		s.startDetachedAgentKernelObserver(
-			context.Background(), access, spec, backendSession, started, ref, lease,
+		s.launchReservedDetachedKernelObserver(
+			observerCtx, cancelObserver, access, spec, backendSession, started, ref, lease,
 			outputLimitBytes, operation, &claim,
 		)
+		observerLaunched = true
 		return map[string]any{
 			"status": "running", "exec_id": executionID,
 			"message": "Kernel cell is running in the background.",
 		}, nil
 	}
 	waitBudget := s.agentKernelForegroundWaitBudget(access.Frame.RootFrameID)
-	waitCtx := ctx
+	foregroundCtx, cancelForeground := context.WithCancel(ctx)
+	stopObserverCancellation := context.AfterFunc(observerCtx, cancelForeground)
+	defer func() { stopObserverCancellation(); cancelForeground() }()
+	waitCtx := foregroundCtx
 	var cancel context.CancelFunc
 	if waitBudget > 0 {
-		waitCtx, cancel = context.WithTimeout(ctx, waitBudget)
+		waitCtx, cancel = context.WithTimeout(foregroundCtx, waitBudget)
 		defer cancel()
 	}
 	result, err := s.waitDetachedAgentKernelExecution(
@@ -196,13 +232,14 @@ func (s *Server) executeDetachedAgentKernel(
 	if err == nil {
 		return result, nil
 	}
-	if !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
+	if !detachedKernelWaitNeedsRecovery(err) {
 		return nil, err
 	}
-	s.startDetachedAgentKernelObserver(
-		context.Background(), access, spec, backendSession, started, ref, lease,
+	s.launchReservedDetachedKernelObserver(
+		observerCtx, cancelObserver, access, spec, backendSession, started, ref, lease,
 		outputLimitBytes, operation, &claim,
 	)
+	observerLaunched = true
 	// Foreground calls retain their original protocol identity until the
 	// detached supervisor commits the real terminal result. Returning a normal
 	// "running" value here would let the engine checkpoint that provisional
@@ -212,8 +249,8 @@ func (s *Server) executeDetachedAgentKernel(
 		operationID: operation.OperationID,
 		state:       operation.State,
 		cause: fmt.Errorf(
-			"kernel foreground execution %s remains under detached supervision",
-			executionID,
+			"kernel foreground execution %s remains under detached supervision: %w",
+			executionID, err,
 		),
 	}
 }
@@ -468,29 +505,6 @@ func (s *Server) launchReservedDetachedKernelObserver(
 	}()
 }
 
-func (s *Server) startDetachedAgentKernelObserver(
-	ctx context.Context,
-	access workspace.KernelFrameAccess,
-	spec kernelruntime.SessionSpec,
-	backendSession kernelruntime.BackendSessionRef,
-	started kernelruntime.ExecutionStarted,
-	ref kernelruntime.BackendExecutionRef,
-	lease kernelruntime.BackendControlLease,
-	outputLimitBytes int64,
-	operation workspace.KernelLocalOperation,
-	claim *transcriptstore.RunnerClaim,
-) bool {
-	observerCtx, cancel, reserved := s.reserveDetachedKernelObserver(ctx, ref.ExecutionID)
-	if !reserved {
-		return false
-	}
-	s.launchReservedDetachedKernelObserver(
-		observerCtx, cancel, access, spec, backendSession, started, ref, lease,
-		outputLimitBytes, operation, claim,
-	)
-	return true
-}
-
 func (s *Server) waitDetachedAgentKernelExecution(
 	ctx context.Context,
 	access workspace.KernelFrameAccess,
@@ -519,25 +533,55 @@ func (s *Server) waitDetachedAgentKernelExecution(
 				return nil, err
 			}
 		case <-poll.C:
-			snapshot, err := s.kernelExecutionBackend.Probe(ctx, ref, lease)
-			if err != nil {
-				return nil, err
-			}
-			if !publishedStart && snapshot.StartedAt != nil {
-				started.StartedAt = snapshot.StartedAt.UTC()
-				s.publishAgentKernelEvent(access, started, "start", map[string]any{
-					"source": started.Code, "started_at": started.StartedAt.Format(time.RFC3339Nano),
-				})
-				publishedStart = true
-			}
 			execution, found, getErr := s.workspaceStore.GetDetachedKernelExecution(ctx, ref.ExecutionID)
 			if getErr != nil || !found {
 				if getErr != nil {
 					return nil, getErr
 				}
-				return nil, errors.New("detached kernel execution disappeared")
+				return nil, workspace.ErrDetachedKernelExecutionConflict
+			}
+			if !detachedExecutionMatchesRef(execution, ref) {
+				return nil, workspace.ErrDetachedKernelExecutionConflict
 			}
 			if execution.TerminalReceiptID == "" {
+				snapshot, err := s.kernelExecutionBackend.Probe(ctx, ref, lease)
+				if err != nil {
+					// Completion may have committed while the observation failed.
+					latest, found, readErr := s.workspaceStore.GetDetachedKernelExecution(ctx, ref.ExecutionID)
+					if readErr != nil {
+						return nil, errors.Join(err, readErr)
+					}
+					if !found || !detachedExecutionMatchesRef(latest, ref) {
+						return nil, workspace.ErrDetachedKernelExecutionConflict
+					}
+					if latest.TerminalReceiptID != "" {
+						continue
+					}
+					// The socket is an observation channel, not the result authority.
+					// A live exact process can reconnect; a proven-dead incarnation
+					// must not retain an indefinitely running operation.
+					settled, recoveryErr := s.reconcileDetachedKernelObservationFailure(ctx, latest, operation)
+					if recoveryErr != nil {
+						// The receipt writer may win the evidence-loss transaction.
+						// Honor that result before propagating a stale loss fence.
+						committed, found, readErr := s.workspaceStore.GetDetachedKernelExecution(ctx, ref.ExecutionID)
+						if readErr == nil && found && detachedExecutionMatchesRef(committed, ref) && committed.TerminalReceiptID != "" {
+							continue
+						}
+						return nil, errors.Join(err, recoveryErr)
+					}
+					if settled {
+						return decodeMaterializedAgentKernelResult(operation.ResultJSON)
+					}
+					return nil, err
+				}
+				if !publishedStart && snapshot.StartedAt != nil {
+					started.StartedAt = snapshot.StartedAt.UTC()
+					s.publishAgentKernelEvent(access, started, "start", map[string]any{
+						"source": started.Code, "started_at": started.StartedAt.Format(time.RFC3339Nano),
+					})
+					publishedStart = true
+				}
 				continue
 			}
 			visible, settleErr := s.settleDetachedAgentKernelExecution(

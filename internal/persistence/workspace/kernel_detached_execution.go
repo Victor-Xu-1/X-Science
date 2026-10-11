@@ -670,75 +670,82 @@ func (s *Store) HasActiveDetachedKernelExecutionForFrame(ctx context.Context, fr
 	return count > 0, err
 }
 
-// ListDetachedKernelExecutionRecoveryCandidates returns durable executions
-// whose local operation has not yet been terminally materialized. Restarted
-// executions are always eligible; a same-boot execution is eligible only after
-// its immutable terminal receipt exists, so a lost observer cannot strand it
-// while live physical work remains owned by its original observer.
-func (s *Store) ListDetachedKernelExecutionRecoveryCandidates(
+type DetachedKernelExecutionRecoveryPage struct {
+	Candidates []DetachedKernelExecutionRecoveryCandidate
+	NextCursor string
+}
+
+// ListDetachedKernelExecutionRecoveryPage includes every unfinished operation,
+// including same-boot execution and partially committed evidence loss. The
+// immutable execution ID advances a scan past live or temporarily blocked rows.
+// Observer ownership, not inventory exclusion, prevents duplicate observation.
+func (s *Store) ListDetachedKernelExecutionRecoveryPage(
 	ctx context.Context,
-	currentBootID string,
+	afterExecutionID string,
 	limit int,
-) ([]DetachedKernelExecutionRecoveryCandidate, bool, error) {
-	currentBootID = strings.TrimSpace(currentBootID)
-	if s == nil || s.db == nil || ctx == nil || !validDetachedIdentity(currentBootID) || limit <= 0 || limit > 1000 {
-		return nil, false, errors.New("detached kernel recovery limit must be between 1 and 1000")
+) (DetachedKernelExecutionRecoveryPage, error) {
+	if s == nil || s.db == nil || ctx == nil ||
+		(afterExecutionID != "" && !validDetachedIdentity(afterExecutionID)) || limit <= 0 || limit > 1000 {
+		return DetachedKernelExecutionRecoveryPage{}, errors.New("detached kernel recovery cursor or page size is invalid")
 	}
 	rows, err := s.db.QueryContext(ctx, `SELECT detached.execution_id
 		FROM kernel_detached_executions detached
 		JOIN kernel_local_operations operation ON operation.operation_id=detached.operation_id
-		WHERE operation.state='started' AND (operation.boot_id!=? OR detached.state='terminal')
-			AND detached.state!='evidence_lost'
+		WHERE operation.state='started' AND detached.execution_id>?
 			AND NOT EXISTS (
 				SELECT 1 FROM kernel_local_operation_materializations materialization
 				WHERE materialization.operation_id=operation.operation_id
 			)
-		ORDER BY detached.updated_at,detached.execution_id LIMIT ?`, currentBootID, limit+1)
+		ORDER BY detached.execution_id LIMIT ?`, afterExecutionID, limit+1)
 	if err != nil {
-		return nil, false, err
+		return DetachedKernelExecutionRecoveryPage{}, err
 	}
 	defer rows.Close()
 	ids := make([]string, 0, limit+1)
 	for rows.Next() {
 		var id string
 		if err := rows.Scan(&id); err != nil {
-			return nil, false, err
+			return DetachedKernelExecutionRecoveryPage{}, err
 		}
 		ids = append(ids, id)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, false, err
+		return DetachedKernelExecutionRecoveryPage{}, err
 	}
-	more := len(ids) > limit
-	if more {
+	page := DetachedKernelExecutionRecoveryPage{}
+	if len(ids) > limit {
 		ids = ids[:limit]
+		page.NextCursor = ids[len(ids)-1]
 	}
 	candidates := make([]DetachedKernelExecutionRecoveryCandidate, 0, len(ids))
 	for _, id := range ids {
 		execution, found, err := getDetachedKernelExecutionQuery(ctx, s.db, id)
 		if err != nil {
-			return nil, false, err
+			return DetachedKernelExecutionRecoveryPage{}, err
 		}
 		if !found {
-			return nil, false, ErrDetachedKernelExecutionConflict
+			continue // A settled/deleted snapshot must not block later identities.
 		}
 		request, err := DecodeKernelDetachedExecutionRequestV1(execution.RequestJSON)
 		if err != nil {
-			return nil, false, err
+			return DetachedKernelExecutionRecoveryPage{}, err
 		}
 		operation, found, err := getKernelLocalOperationQuery(ctx, s.db, execution.OperationID)
 		if err != nil {
-			return nil, false, err
+			return DetachedKernelExecutionRecoveryPage{}, err
 		}
-		if !found || operation.OwnerUserID != request.OwnerUserID ||
-			operation.State != KernelLocalOperationStateStarted || operation.ExecutionID != execution.ExecutionID {
-			return nil, false, ErrDetachedKernelExecutionConflict
+		if !found || operation.State != KernelLocalOperationStateStarted {
+			continue
+		}
+		if operation.OwnerUserID != request.OwnerUserID || operation.ExecutionID != execution.ExecutionID {
+			return DetachedKernelExecutionRecoveryPage{}, ErrDetachedKernelExecutionConflict
 		}
 		candidates = append(candidates, DetachedKernelExecutionRecoveryCandidate{
 			Operation: operation, Execution: execution,
 		})
 	}
-	return candidates, more, nil
+	page.Candidates = candidates
+	return page, nil
 }
 
 func acceptDetachedKernelExecutionTx(
