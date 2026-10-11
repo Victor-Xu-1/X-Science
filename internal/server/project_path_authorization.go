@@ -31,7 +31,8 @@ func (s *Server) resolveAuthorizedProjectPath(userID, projectID, requested strin
 		if err != nil {
 			return "", false, err
 		}
-		// HTTP create/update prepares the inode before the project row commits.
+		// HTTP create/update prepares the inode inside the shared row/outbox
+		// transaction, after validation and before the project row commits.
 		return filepath.Clean(managed), true, nil
 	}
 	path, err := canonicalHostDirectory(requested)

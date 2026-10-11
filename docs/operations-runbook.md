@@ -59,6 +59,41 @@ authorize a release.
 
 ## Public source checkout
 
+### Project workspace admission and preparation
+
+Project paths require a live writable host grant or the project's managed
+workspace. Read-only grants remain usable for Web-FS reads, not writable kernel
+mounts. Revoked or downgraded paths are rechecked before workspace admission.
+An empty project path creates or resets to the managed workspace.
+
+Project creation and path reset validate the row and realtime outbox inside one
+transaction, then prepare the managed directory before committing. A directory
+failure therefore publishes neither a changed project nor a success event, and
+a failed reset retains the prior path, name and timestamp. Invalid persistence
+never creates an unreferenced project directory. Host-granted paths are not
+created by this preparation.
+
+The managed create/reset callback independently binds the project ID and path
+to its exact server-derived project root before filesystem I/O. Canonically
+equivalent lexical expressions are normalized to that root; foreign roots,
+parent roots, child-path mismatches and symbolic redirects are rejected.
+This check does not narrow separately authorized host-grant paths or admitted
+task workspace children, which retain their existing admission/materialization.
+
+If a commit fails after directory preparation, reconciliation uses a fresh
+transactional read with write intent before compensating, preventing another
+database connection/process from committing a new reference during that decision.
+The parent and prepared directory remain open through commit and compensation,
+preventing reuse of the captured inode. Only an unreferenced, newly owned empty
+directory with unchanged checked identity is eligible for non-recursive removal.
+Pre-existing directories, new contents, changed identities, durable references
+and uncertain persistence outcomes are preserved, with the error available for
+recovery. Inspect the project row and retained workspace before retrying; a
+commit error alone is not proof that the project did not persist. Portable path
+removal is not an atomic compare-and-unlink guarantee against every hostile local
+filesystem rename; observed replacements are retained and removal never recurses
+into contents. Keep managed parent namespaces outside untrusted host grants.
+
 ### Recoverable settings and workbench interactions
 
 Contact email reads distinguish loading, unavailable and known values. Changes

@@ -13,42 +13,6 @@ import (
 	"github.com/google/uuid"
 )
 
-func (s *Store) CreateProjectRealtime(ctx context.Context, input CreateProjectInput, eventID string) (Project, error) {
-	eventID = mutationRealtimeID(eventID)
-	var project Project
-	err := s.WithTransaction(ctx, func(tx *sql.Tx) error {
-		var err error
-		project, err = s.CreateProjectOutboxTx(ctx, tx, input)
-		if err != nil {
-			return err
-		}
-		_, err = s.EnqueueRealtimeOutboxTx(ctx, tx, RealtimeEventInput{
-			ID: eventID, UserID: normalizedProjectUserID(input.UserID), ProjectID: project.ID,
-			Type: "frame_update", Payload: map[string]any{"project_id": project.ID, "action": "project_created"},
-		}, "")
-		return err
-	})
-	return project, err
-}
-
-func (s *Store) UpdateProjectRealtime(ctx context.Context, id, ownerUserID string, input UpdateProjectInput, eventID string) (Project, error) {
-	eventID = mutationRealtimeID(eventID)
-	var project Project
-	err := s.WithTransaction(ctx, func(tx *sql.Tx) error {
-		var err error
-		project, err = s.UpdateProjectOutboxTx(ctx, tx, id, ownerUserID, input)
-		if err != nil {
-			return err
-		}
-		_, err = s.EnqueueRealtimeOutboxTx(ctx, tx, RealtimeEventInput{
-			ID: eventID, UserID: ownerUserID, ProjectID: project.ID,
-			Type: "frame_update", Payload: map[string]any{"project_id": project.ID, "action": "project_updated"},
-		}, "")
-		return err
-	})
-	return project, err
-}
-
 func (s *Store) DeleteProjectRealtime(ctx context.Context, id, ownerUserID, eventID string) ([]string, error) {
 	eventID = mutationRealtimeID(eventID)
 	var blobPaths []string

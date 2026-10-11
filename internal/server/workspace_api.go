@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -118,30 +117,10 @@ func (s *Server) handleWorkspaceProjects(w http.ResponseWriter, r *http.Request)
 		writeWorkspaceJSON(w, projectPathStatus(err), map[string]any{"ok": false, "error": err.Error()})
 		return
 	}
-	if strings.TrimSpace(input.Name) == "" {
-		writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "project name is required"})
-		return
-	}
-	var managedPrep *managedProjectWorkspacePreparation
-	if managed {
-		managedPrep, err = s.prepareManagedProjectWorkspaceForMutation(r.Context(), store, projectID, projectPath)
-		if err != nil {
-			writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
-			return
-		}
-	}
-	project, err := store.CreateProjectRealtime(r.Context(), workspace.CreateProjectInput{ID: projectID, UserID: userID, Name: input.Name, Path: projectPath}, "")
+	project, err := store.CreateProjectRealtimeWithPreparation(r.Context(), workspace.CreateProjectInput{ID: projectID, UserID: userID, Name: input.Name, Path: projectPath}, "", s.managedProjectPreparation(managed))
 	if err != nil {
-		if managedPrep != nil {
-			if compensateErr := managedPrep.Compensate(r.Context(), store, projectID); compensateErr != nil {
-				err = fmt.Errorf("%w (compensate managed workspace: %v)", err, compensateErr)
-			}
-		}
 		writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 		return
-	}
-	if managedPrep != nil {
-		managedPrep.Commit()
 	}
 	writeWorkspaceJSON(w, http.StatusOK, map[string]any{"ok": true, "project": project})
 }
@@ -737,7 +716,7 @@ func (s *Server) handleWorkspaceProject(w http.ResponseWriter, r *http.Request) 
 				return
 			}
 			update := workspace.UpdateProjectInput{Name: input.Name, Path: input.Path}
-			var managedPrep *managedProjectWorkspacePreparation
+			managed := false
 			if input.Path != nil {
 				createManaged := strings.TrimSpace(*input.Path) == ""
 				authorized, createdManaged, err := s.resolveAuthorizedProjectPath(userID, projectID, *input.Path, createManaged)
@@ -746,26 +725,12 @@ func (s *Server) handleWorkspaceProject(w http.ResponseWriter, r *http.Request) 
 					return
 				}
 				update.Path = &authorized
-				if createdManaged {
-					managedPrep, err = s.prepareManagedProjectWorkspaceForMutation(r.Context(), store, projectID, authorized)
-					if err != nil {
-						writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
-						return
-					}
-				}
+				managed = createdManaged
 			}
-			project, err := store.UpdateProjectRealtime(r.Context(), projectID, userID, update, "")
+			project, err := store.UpdateProjectRealtimeWithPreparation(r.Context(), projectID, userID, update, "", s.managedProjectPreparation(managed))
 			if err != nil {
-				if managedPrep != nil {
-					if compensateErr := managedPrep.Compensate(r.Context(), store, projectID); compensateErr != nil {
-						err = fmt.Errorf("%w (compensate managed workspace: %v)", err, compensateErr)
-					}
-				}
 				writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 				return
-			}
-			if managedPrep != nil {
-				managedPrep.Commit()
 			}
 			writeWorkspaceJSON(w, http.StatusOK, map[string]any{"ok": true, "project": project})
 		case http.MethodDelete:
