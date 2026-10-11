@@ -102,8 +102,6 @@ mkdir -p "$LOG_DIR" "$STATE_DIR/data" "$STATE_DIR/backend-build" "$STATE_DIR/fro
 chmod 700 "$LOG_DIR" "$STATE_DIR/data" "$STATE_DIR/backend-build" "$STATE_DIR/frontend-host"
 BACKEND_LOG="$LOG_DIR/backend.log"
 FRONTEND_LOG="$LOG_DIR/frontend.log"
-: >"$BACKEND_LOG"
-: >"$FRONTEND_LOG"
 
 port_is_open() {
   timeout 1 bash -c "exec 3<>/dev/tcp/127.0.0.1/$1" >/dev/null 2>&1
@@ -145,6 +143,8 @@ trap shutdown INT TERM
 exec {LOCK_FD}>"$STATE_DIR/quickstart.lock"
 flock -n "$LOCK_FD" || fail "another quickstart owns this state directory: $STATE_DIR"
 printf '%s\n' "$$" >"$STATE_DIR/quickstart.pid"
+: >"$BACKEND_LOG"
+: >"$FRONTEND_LOG"
 
 SYNON_SOURCE_ROOT="$ROOT_DIR" \
 SYNON_ADDRESS="127.0.0.1:$BACKEND_PORT" \
