@@ -37,6 +37,25 @@ func TestObserveReturnsSuccessfulResult(t *testing.T) {
 	}
 }
 
+func TestObserveSettlesNilPanicWithCompatibilitySetting(t *testing.T) {
+	t.Setenv("GODEBUG", "panicnil=1")
+	done := make(chan error, 1)
+	go func() {
+		_, err := Observe(t.Context(), time.Millisecond, func(context.Context) (string, error) {
+			panic(nil)
+		}, func(*Update, time.Duration, int) {})
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		if err == nil {
+			t.Fatal("nil panic incorrectly reported success")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("observer hung when recover returned nil")
+	}
+}
+
 func TestObserveSurfacesExecutionPanicInsteadOfHanging(t *testing.T) {
 	done := make(chan error, 1)
 	go func() {

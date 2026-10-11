@@ -31,6 +31,30 @@ type trackedReadCloser struct {
 
 func (body *trackedReadCloser) Close() error { body.closed = true; return nil }
 
+func TestIdleCommittedDeadlineRetainsCauseEvenForLateEOF(t *testing.T) {
+	for _, data := range []string{"", "complete"} {
+		t.Run(data, func(t *testing.T) {
+			body := &lateEOFBody{data: data}
+			buffer := make([]byte, 32)
+			count, err := readWithIdleDeadline(body, buffer, func(expire func()) func() bool {
+				expire() // The deadline commits before the read returns.
+				return func() bool { return false }
+			})
+			if string(buffer[:count]) != data || !errors.Is(err, ErrBodyIdleTimeout) || !errors.Is(err, io.EOF) {
+				t.Fatalf("late=%q error=%v; EOF cannot erase an already committed deadline", buffer[:count], err)
+			}
+		})
+	}
+}
+
+type lateEOFBody struct{ data string }
+
+func (body *lateEOFBody) Read(target []byte) (int, error) {
+	return copy(target, body.data), io.EOF
+}
+
+func (*lateEOFBody) Close() error { return nil }
+
 // Buffering decoders may return useful bytes with a close-induced read error.
 // Those bytes are not proof that the response finished successfully.
 func TestIdleBodyRetainsPartialBytesAndTimeoutCauseOnRealHTTP(t *testing.T) {

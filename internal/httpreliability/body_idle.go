@@ -46,10 +46,10 @@ func readWithIdleDeadline(body io.ReadCloser, target []byte, arm func(func()) fu
 		// A committed close finishes before another read can start.
 		<-timerDone
 	}
-	if !expired || errors.Is(err, io.EOF) {
+	if !expired {
 		return count, err
 	}
-	// Partial bytes are retained, but only explicit EOF proves completion.
-	// Preserve the causal timeout and the underlying read failure.
+	// Returned bytes and eventual EOF do not erase a deadline that already
+	// committed. Preserve both the causal timeout and the underlying outcome.
 	return count, errors.Join(ErrBodyIdleTimeout, err)
 }

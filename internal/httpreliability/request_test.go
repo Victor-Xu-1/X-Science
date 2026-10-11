@@ -79,20 +79,20 @@ func TestAttemptHeaderBudgetAndParentCancellation(t *testing.T) {
 	}
 }
 
-func TestIdleBodyKeepsLastChunkWhenTimerRacesWithProgress(t *testing.T) {
+func TestIdleBodyRetainsLateChunkAndCommittedTimeout(t *testing.T) {
 	body := IdleBody(&delayedReadCloser{delay: 25 * time.Millisecond, data: []byte("complete")}, 10*time.Millisecond)
 	value, err := io.ReadAll(body)
 	_ = body.Close()
-	if err != nil || string(value) != "complete" {
+	if !errors.Is(err, ErrBodyIdleTimeout) || !errors.Is(err, io.EOF) || string(value) != "complete" {
 		t.Fatalf("raced progress=%q error=%v", value, err)
 	}
 }
 
-func TestIdleBodyKeepsCleanEOFWhenTimerRacesWithCompletion(t *testing.T) {
+func TestIdleBodyPreservesTimeoutWhenLateEOFReturns(t *testing.T) {
 	body := IdleBody(&delayedReadCloser{delay: 25 * time.Millisecond}, 10*time.Millisecond)
 	value, err := io.ReadAll(body)
 	_ = body.Close()
-	if err != nil || len(value) != 0 {
+	if !errors.Is(err, ErrBodyIdleTimeout) || !errors.Is(err, io.EOF) || len(value) != 0 {
 		t.Fatalf("clean EOF raced with idle timer: %q error=%v", value, err)
 	}
 }

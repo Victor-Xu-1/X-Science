@@ -88,10 +88,11 @@ running forever. Ordinary execution errors and successful results remain intact.
 
 An HTTP idle deadline is committed separately from received bytes. Read completion
 invalidates a queued close; a committed close finishes before the next read starts.
-Only explicit EOF establishes completed transfer after a deadline race. Partial
-bytes remain available, with both the causal idle timeout and the underlying read
-error retained. Transport retry, authorization and persistence remain with their
-existing callers.
+Received bytes and eventual EOF cannot erase a deadline that committed before
+read completion. Bytes remain available, with both the causal idle timeout and
+the underlying read outcome retained; a read that wins the race is not closed
+by a late callback. Transport retry, authorization and persistence remain with
+their existing callers.
 
 ## Observation effects
 
