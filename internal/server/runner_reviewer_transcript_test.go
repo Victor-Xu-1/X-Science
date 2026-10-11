@@ -31,7 +31,8 @@ func TestSessionReviewerFrameTerminalUsesTranscriptAndRecoversProjection(t *test
 		t.Fatalf("reviewer stream=%#v found=%t err=%v", stream, found, err)
 	}
 	state, found, err := repo.GetLatestRunnerRuntimeState(context.Background(), stream.UID, "owner")
-	if err != nil || !found || state.Status != "running" || state.Phase != transcriptstore.RunnerPhaseClaimed {
+	if err != nil || !found || state.Status != "running" || state.Phase != transcriptstore.RunnerPhaseExecuting ||
+		state.LastCheckpointSequence != 1 {
 		t.Fatalf("reviewer runtime=%#v found=%t err=%v", state, found, err)
 	}
 	metadata, found, err := store.GetFrameRuntimeMetadata(frame.ID)

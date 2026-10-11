@@ -79,6 +79,23 @@ Focused lifecycle regressions use temporary persistence and controlled process
 identity. They establish these recovery contracts, not a guarantee of uninterrupted
 24-hour hardware availability or scientific validity.
 
+Recovery terminalization is fenced to the active stream, input revision, exact
+expired attempt and current non-resumable checkpoint in one transaction. An
+already-failed Frame can still receive its missing runner receipt, without
+replacing the original failure description, completion time or context data.
+Newer claims, input, checkpoints and live leases remain outside that settlement.
+
+Checkpoint absence alone never proves that a provider or tool has not executed.
+A fresh claim journals a typed preparation admission, bound to its attempt and
+input revision. Checkpointless fresh recovery additionally requires that the
+preparation phase and active-branch proof remain intact. The internal execution
+handoff writes a non-resumable admission checkpoint in that same transaction,
+before returning execution authority; it cannot be reclaimed as generic work.
+Legacy ambiguous Frame admissions settle with an unknown-outcome reason under
+the same recovery fences, without replaying or aborting physical work. Deliberate
+input, approval and external waits remain waits. Admission facts are internal
+journal evidence, not tool activity, user messages, or provider history.
+
 ## Progress and transfer supervision
 
 Progress observation waits for the authoritative execution result, not a total
