@@ -5,56 +5,113 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	workspace "synon-go/internal/persistence/workspace"
 )
 
 type managedProjectWorkspacePreparation struct {
-	path         string
-	createdFresh bool
-	committed    bool
+	path           string
+	workspacesRoot string
+	createdFresh   bool
+	committed      bool
 }
 
 func (s *Server) prepareManagedProjectWorkspaceForMutation(ctx context.Context, store *workspace.Store, projectID, path string) (*managedProjectWorkspacePreparation, error) {
+	contained, workspacesRoot, err := s.constrainManagedProjectWorkspaceMutationPath(projectID, path)
+	if err != nil {
+		return nil, err
+	}
+	existedBefore, err := managedProjectWorkspaceExistedUnderRoot(workspacesRoot, contained)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := s.materializeManagedProjectWorkspace(contained); err != nil {
+		return nil, err
+	}
+	return &managedProjectWorkspacePreparation{path: contained, workspacesRoot: workspacesRoot, createdFresh: !existedBefore}, nil
+}
+
+// constrainManagedProjectWorkspaceMutationPath proves the caller path stays
+// inside this project's managed workspace, then returns the server-derived
+// managed path reconstructed under the authorized workspaces root. Filesystem
+// mutation never uses the raw caller expression.
+func (s *Server) constrainManagedProjectWorkspaceMutationPath(projectID, path string) (string, string, error) {
 	path = strings.TrimSpace(path)
 	if path == "" {
-		return nil, errors.New("managed project workspace path is required")
+		return "", "", errors.New("managed project workspace path is required")
 	}
-	if err := s.validateManagedProjectWorkspaceMutationPath(projectID, path); err != nil {
-		return nil, err
-	}
-	existedBefore, err := managedProjectWorkspaceExisted(path)
+	workspacesRoot, err := s.managedProjectWorkspacesRoot()
 	if err != nil {
-		return nil, err
+		return "", "", err
 	}
-	if _, err := s.materializeManagedProjectWorkspace(path); err != nil {
-		return nil, err
-	}
-	return &managedProjectWorkspacePreparation{path: path, createdFresh: !existedBefore}, nil
-}
-
-func (s *Server) validateManagedProjectWorkspaceMutationPath(projectID, path string) error {
 	managed, err := s.managedProjectWorkspacePath(projectID)
 	if err != nil {
-		return err
+		return "", "", err
 	}
+	managed = filepath.Clean(managed)
 	target, err := canonicalAgentWorkspaceDirectoryTarget(path)
 	if err != nil {
-		return err
+		return "", "", err
 	}
+	target = filepath.Clean(target)
 	if !hostPathWithin(managed, target) {
-		return errors.New("managed project workspace path is not authorized")
+		return "", "", errors.New("managed project workspace path is not authorized")
 	}
-	return nil
+	contained, err := containedPathJoin(workspacesRoot, managed)
+	if err != nil {
+		return "", "", err
+	}
+	if !hostPathWithin(managed, contained) {
+		return "", "", errors.New("managed project workspace path is not authorized")
+	}
+	return contained, workspacesRoot, nil
 }
 
-func managedProjectWorkspaceExisted(path string) (bool, error) {
-	target, err := canonicalAgentWorkspaceDirectoryTarget(path)
+func (s *Server) managedProjectWorkspacesRoot() (string, error) {
+	if s == nil || strings.TrimSpace(s.fileRoot) == "" {
+		return "", errors.New("managed project workspace path is not authorized")
+	}
+	fileRoot, err := canonicalHostDirectory(s.fileRoot)
+	if err != nil {
+		return "", errors.New("managed project workspace path is not authorized")
+	}
+	root := filepath.Clean(fileRoot + "-workspaces")
+	if root == "" || !filepath.IsAbs(root) {
+		return "", errors.New("managed project workspace path is not authorized")
+	}
+	return root, nil
+}
+
+func containedPathJoin(root, target string) (string, error) {
+	root = filepath.Clean(root)
+	target = filepath.Clean(target)
+	relative, err := filepath.Rel(root, target)
+	if err != nil || relative == "." || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) || filepath.IsAbs(relative) {
+		return "", errors.New("managed project workspace path is not authorized")
+	}
+	contained := filepath.Join(root, relative)
+	if contained == root || !strings.HasPrefix(contained, root+string(filepath.Separator)) {
+		return "", errors.New("managed project workspace path is not authorized")
+	}
+	return contained, nil
+}
+
+func managedProjectWorkspaceExistedUnderRoot(workspacesRoot, path string) (bool, error) {
+	relative, err := authorizedManagedWorkspaceRelative(workspacesRoot, path)
 	if err != nil {
 		return false, err
 	}
-	info, err := os.Lstat(target)
+	held, err := os.OpenRoot(workspacesRoot)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return false, nil
+		}
+		return false, err
+	}
+	defer held.Close()
+	info, err := held.Lstat(relative)
 	if errors.Is(err, os.ErrNotExist) {
 		return false, nil
 	}
@@ -62,6 +119,19 @@ func managedProjectWorkspaceExisted(path string) (bool, error) {
 		return false, err
 	}
 	return info.IsDir(), nil
+}
+
+func authorizedManagedWorkspaceRelative(workspacesRoot, path string) (string, error) {
+	workspacesRoot = filepath.Clean(workspacesRoot)
+	path = filepath.Clean(path)
+	relative, err := filepath.Rel(workspacesRoot, path)
+	if err != nil || relative == "." || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) || filepath.IsAbs(relative) {
+		return "", errors.New("managed project workspace path is not authorized")
+	}
+	if !strings.HasPrefix(path, workspacesRoot+string(filepath.Separator)) {
+		return "", errors.New("managed project workspace path is not authorized")
+	}
+	return relative, nil
 }
 
 func (prep *managedProjectWorkspacePreparation) Commit() {
@@ -84,21 +154,40 @@ func (prep *managedProjectWorkspacePreparation) Compensate(ctx context.Context, 
 	if refs > 0 {
 		return nil
 	}
-	target, err := canonicalAgentWorkspaceDirectoryTarget(prep.path)
+	relative, err := authorizedManagedWorkspaceRelative(prep.workspacesRoot, prep.path)
 	if err != nil {
 		return err
 	}
-	entries, err := os.ReadDir(target)
+	held, err := os.OpenRoot(prep.workspacesRoot)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil
 		}
 		return fmt.Errorf("inspect managed project workspace before compensation: %w", err)
 	}
+	defer held.Close()
+	directory, err := held.OpenRoot(relative)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return fmt.Errorf("inspect managed project workspace before compensation: %w", err)
+	}
+	file, err := directory.Open(".")
+	if err != nil {
+		_ = directory.Close()
+		return fmt.Errorf("inspect managed project workspace before compensation: %w", err)
+	}
+	entries, err := file.ReadDir(-1)
+	_ = file.Close()
+	_ = directory.Close()
+	if err != nil {
+		return fmt.Errorf("inspect managed project workspace before compensation: %w", err)
+	}
 	if len(entries) != 0 {
 		return nil
 	}
-	if err := os.Remove(target); err != nil && !errors.Is(err, os.ErrNotExist) {
+	if err := held.Remove(relative); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("compensate managed project workspace: %w", err)
 	}
 	return nil
