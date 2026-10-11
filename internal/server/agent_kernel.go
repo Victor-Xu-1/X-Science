@@ -131,16 +131,7 @@ func (s *Server) resolveAgentWorkspaceAuthority(
 	if transcriptStream != nil {
 		workdir = strings.TrimSpace(access.ProjectPath)
 	}
-	workdir, _, err = s.selectAgentWorkspace(access, workdir)
-	if err != nil {
-		return workspace.KernelFrameAccess{}, "", false
-	}
-	workdir, err = s.materializeAdmittedManagedWorkspace(access.Frame.ProjectID, workdir)
-	if err != nil {
-		return workspace.KernelFrameAccess{}, "", false
-	}
-	identity := &agentKernelContext{access: access, workspaceDir: workdir}
-	canonicalWorkspace, err := s.canonicalAgentWorkspaceRoot(identity)
+	canonicalWorkspace, err := s.admitAgentWorkspace(access, workdir)
 	if err != nil {
 		return workspace.KernelFrameAccess{}, "", false
 	}
