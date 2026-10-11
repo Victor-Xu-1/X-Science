@@ -10,6 +10,12 @@ describe('external URL safety', () => {
     expect(isSafeExternalUrl('tel:+15551212')).toBe(true);
   });
 
+  it('accepts http(s) paths with emoji and zero-width joiners', () => {
+    const emojiPath = 'https://example.org/people/👩‍🔬';
+    expect(isSafeExternalUrl(emojiPath)).toBe(true);
+    expect(sanitizeExternalHttpUrl(emojiPath)).toBe(new URL(emojiPath).href);
+  });
+
   it('rejects executable, local-file, and control-character schemes', () => {
     expect(isSafeExternalUrl('javascript:alert(1)')).toBe(false);
     expect(isSafeExternalUrl('  javascript:alert(1)')).toBe(false);

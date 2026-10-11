@@ -77,7 +77,7 @@ const SAFE_HTTP_SCHEMES = new Set(['http:', 'https:']);
 
 function parseExternalUrl(url: string, base?: string): URL | null {
   const trimmed = url.trim();
-  if (!trimmed || /\p{C}/u.test(trimmed)) return null;
+  if (!trimmed || /\p{Cc}/u.test(trimmed)) return null;
   try {
     return base ? new URL(trimmed, base) : new URL(trimmed);
   } catch {
