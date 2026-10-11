@@ -5,6 +5,7 @@ package httpreliability
 
 import (
 	"context"
+	"errors"
 	"io"
 	"sync"
 	"time"
@@ -109,11 +110,16 @@ func (body *idleBody) Read(target []byte) (int, error) {
 		close(timedOut)
 	})
 	count, err := body.body.Read(target)
-	if !timer.Stop() {
-		// Do not allow a late callback from this read to close the next one.
-		<-timedOut
-		return count, ErrBodyIdleTimeout
+	if timer.Stop() {
+		return count, err
 	}
-	return count, err
+	// The idle callback already started. Drain it so it cannot close the
+	// next read. Bytes or a clean EOF from this read are observed progress,
+	// not an idle timeout that would discard a completed transfer.
+	<-timedOut
+	if count > 0 || errors.Is(err, io.EOF) {
+		return count, err
+	}
+	return 0, ErrBodyIdleTimeout
 }
 func (body *idleBody) Close() error { return body.body.Close() }
