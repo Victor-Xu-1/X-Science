@@ -152,6 +152,54 @@ stop_child() {
   CHILD_PID=""
 }
 
+trim_env_value() {
+  local value="$1"
+  value="${value#"${value%%[![:space:]]*}"}"
+  value="${value%"${value##*[![:space:]]}"}"
+  printf '%s' "$value"
+}
+
+backend_runtime_health_url() {
+  local host="127.0.0.1" port="8765"
+  local address host_part port_part authority
+
+  address="$(trim_env_value "${SYNON_ADDRESS:-}")"
+  if [[ -n "$address" ]]; then
+    if [[ "$address" == \[*\]* ]]; then
+      host_part="${address#\[}"
+      host_part="${host_part%%\]*}"
+      port_part="${address##*:}"
+    elif [[ "$address" == *:* ]]; then
+      host_part="${address%%:*}"
+      port_part="${address#*:}"
+    else
+      return 1
+    fi
+    host_part="$(trim_env_value "$host_part")"
+    port_part="$(trim_env_value "$port_part")"
+    [[ -n "$port_part" ]] || return 1
+    if [[ -n "$host_part" ]]; then
+      host="$host_part"
+    else
+      host="127.0.0.1"
+    fi
+    port="$port_part"
+  fi
+
+  address="$(trim_env_value "${SYNON_HOST:-}")"
+  [[ -n "$address" ]] && host="$address"
+
+  address="$(trim_env_value "${SYNON_PORT:-}")"
+  [[ -n "$address" ]] && port="$address"
+
+  if [[ "$host" == *:* && "$host" != \[*\]* ]]; then
+    authority="[$host]:$port"
+  else
+    authority="$host:$port"
+  fi
+  printf 'http://%s/health' "$authority"
+}
+
 runtime_health_json() {
   if [[ -n "${SYNON_DEV_RUNTIME_HEALTH_FILE:-}" ]]; then
     [[ -f "$SYNON_DEV_RUNTIME_HEALTH_FILE" ]] || return 1
@@ -159,11 +207,13 @@ runtime_health_json() {
     return 0
   fi
   command -v curl >/dev/null 2>&1 || return 1
+  local health_url=""
+  health_url="$(backend_runtime_health_url)" || return 1
   # A degraded backend intentionally answers /health with a non-2xx status but
   # still returns the authoritative runtime counters needed for a safe idle
   # activation.  Treat transport failure as unavailable, while preserving any
   # well-formed health body for the fail-closed parser below.
-  curl --silent --show-error --max-time 1 http://127.0.0.1:8766/health 2>/dev/null
+  curl --silent --show-error --max-time 1 "$health_url" 2>/dev/null
 }
 
 activate_candidate_if_idle() {

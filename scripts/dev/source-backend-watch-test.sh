@@ -313,4 +313,162 @@ kill -TERM "$WATCHER_PID"
 wait "$WATCHER_PID"
 WATCHER_PID=""
 
+# HTTP health probes must follow SYNON_ADDRESS instead of a hard-coded 8766
+# listener. These cases intentionally omit SYNON_DEV_RUNTIME_HEALTH_FILE.
+find_free_port() {
+  python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()'
+}
+
+port_is_open() {
+  timeout 1 bash -c "exec 3<>/dev/tcp/127.0.0.1/$1" >/dev/null 2>&1
+}
+
+wait_for_port() {
+  local port="$1"
+  for _ in $(seq 1 100); do
+    if port_is_open "$port"; then
+      return 0
+    fi
+    sleep 0.05
+  done
+  return 1
+}
+
+cat >"$TMP_DIR/health-server.py" <<'PY'
+import sys
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+port = int(sys.argv[1])
+body_path = sys.argv[2]
+
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path != "/health":
+            self.send_response(404)
+            self.end_headers()
+            return
+        with open(body_path, "rb") as handle:
+            payload = handle.read()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(payload)
+
+    def log_message(self, _format, *_args):
+        return
+
+HTTPServer(("127.0.0.1", port), Handler).serve_forever()
+PY
+
+start_health_server() {
+  local port="$1"
+  local body_file="$2"
+  python3 "$TMP_DIR/health-server.py" "$port" "$body_file" &
+  HEALTH_SERVER_PID=$!
+}
+
+HTTP_STATE="$TMP_DIR/http-state"
+HTTP_BUILD_COUNT="$TMP_DIR/http-build-count"
+HTTP_START_COUNT="$TMP_DIR/http-start-count"
+SUPERVISED_HEALTH="$TMP_DIR/supervised-health.json"
+DECOY_HEALTH="$TMP_DIR/decoy-health.json"
+HTTP_WATCHER_PID=""
+SUPERVISED_HEALTH_PID=""
+DECOY_HEALTH_PID=""
+
+http_health_cleanup() {
+  if [[ -n "$HTTP_WATCHER_PID" ]] && kill -0 "$HTTP_WATCHER_PID" 2>/dev/null; then
+    kill -TERM "$HTTP_WATCHER_PID" 2>/dev/null || true
+    wait "$HTTP_WATCHER_PID" 2>/dev/null || true
+    HTTP_WATCHER_PID=""
+  fi
+  for pid_var in SUPERVISED_HEALTH_PID DECOY_HEALTH_PID; do
+    local pid="${!pid_var}"
+    if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+      kill -TERM "$pid" 2>/dev/null || true
+      wait "$pid" 2>/dev/null || true
+      printf -v "$pid_var" ''
+    fi
+  done
+}
+trap 'http_health_cleanup; cleanup' EXIT INT TERM
+
+mkdir -p "$HTTP_STATE"
+printf '0\n' >"$HTTP_BUILD_COUNT"
+printf '0\n' >"$HTTP_START_COUNT"
+printf '{"active_session_runs":0,"runtime_draining":false}\n' >"$SUPERVISED_HEALTH"
+printf '{"active_session_runs":1,"runtime_draining":false}\n' >"$DECOY_HEALTH"
+
+SUPERVISED_HEALTH_PORT="$(find_free_port)"
+start_health_server "$SUPERVISED_HEALTH_PORT" "$SUPERVISED_HEALTH"
+SUPERVISED_HEALTH_PID="$HEALTH_SERVER_PID"
+if ! wait_for_port "$SUPERVISED_HEALTH_PORT"; then
+  echo "supervised health server did not bind: $SUPERVISED_HEALTH_PORT" >&2
+  exit 1
+fi
+
+run_http_watcher() {
+  local log_file="$1"
+  FAKE_BUILD_COUNT="$HTTP_BUILD_COUNT" \
+  FAKE_START_COUNT="$HTTP_START_COUNT" \
+  FAKE_FAIL_NEXT_BUILD="$FAIL_NEXT_BUILD" \
+  FAKE_FAIL_NEXT_ASSET_VERIFY="$FAIL_NEXT_ASSET_VERIFY" \
+  SYNON_SOURCE_ROOT="$ROOT" \
+  SYNON_DEV_BUILD_DIR="$HTTP_STATE" \
+  SYNON_DEV_POLL_SECONDS=0.05 \
+  SYNON_DEV_BUILD_RETRY_MIN_SECONDS=1 \
+  SYNON_DEV_BUILD_RETRY_MAX_SECONDS=2 \
+  SYNON_ADDRESS="127.0.0.1:$SUPERVISED_HEALTH_PORT" \
+  GO="$TMP_DIR/fake-go" \
+    bash "$WATCHER" >"$log_file" 2>&1 &
+  HTTP_WATCHER_PID=$!
+}
+
+run_http_watcher "$TMP_DIR/http-watcher-missing-8766.log"
+wait_for_value "$HTTP_BUILD_COUNT" 1
+wait_for_value "$HTTP_START_COUNT" 1
+
+printf '// http custom-port candidate changed\n' >>"$ROOT/internal/backend.go"
+wait_for_value "$HTTP_BUILD_COUNT" 2
+wait_for_value "$HTTP_START_COUNT" 2
+
+http_health_cleanup
+
+if ! port_is_open 8766; then
+  start_health_server 8766 "$DECOY_HEALTH"
+  DECOY_HEALTH_PID="$HEALTH_SERVER_PID"
+  if ! wait_for_port 8766; then
+    echo 'decoy health server did not bind on 8766' >&2
+    exit 1
+  fi
+else
+  echo 'port 8766 is already in use; cannot run busy-decoy health regression' >&2
+  exit 1
+fi
+
+start_health_server "$SUPERVISED_HEALTH_PORT" "$SUPERVISED_HEALTH"
+SUPERVISED_HEALTH_PID="$HEALTH_SERVER_PID"
+if ! wait_for_port "$SUPERVISED_HEALTH_PORT"; then
+  echo "supervised health server did not restart on: $SUPERVISED_HEALTH_PORT" >&2
+  exit 1
+fi
+
+printf '0\n' >"$HTTP_BUILD_COUNT"
+printf '0\n' >"$HTTP_START_COUNT"
+rm -rf "$HTTP_STATE"
+mkdir -p "$HTTP_STATE"
+printf '{"active_session_runs":0,"runtime_draining":false}\n' >"$SUPERVISED_HEALTH"
+printf '{"active_session_runs":1,"runtime_draining":false}\n' >"$DECOY_HEALTH"
+
+run_http_watcher "$TMP_DIR/http-watcher-busy-decoy.log"
+wait_for_value "$HTTP_BUILD_COUNT" 1
+wait_for_value "$HTTP_START_COUNT" 1
+
+printf '// http busy-decoy candidate changed\n' >>"$ROOT/internal/backend.go"
+wait_for_value "$HTTP_BUILD_COUNT" 2
+wait_for_value "$HTTP_START_COUNT" 2
+
+http_health_cleanup
+trap cleanup EXIT INT TERM
+
 echo 'source-backend-watch-test: ok'
