@@ -14,6 +14,11 @@ from scripts.packaging.version_provenance import AUDIT, IDENTITY, LICENSES, MIGR
 from scripts.quality.product_version import require_next_version
 
 MATRIX = "docs/governance/product-identity-consumer-matrix.json"
+REFERENCE = "docs/governance/product-identity.json"
+WORKSPACE_SCHEMA_SURFACE = "workspace-schema-and-contracts"
+WORKSPACE_SCHEMA_AUTHORITY = "internal/persistence/workspace/versioned_schema.go"
+SCHEMA_DISPOSITION_PREFIX = "production workspace schema target is "
+WORKSPACE_SCHEMA_CONST = re.compile(r"(?m)^\s*const\s+workspaceSchemaVersion\s*=\s*([0-9]+)\s*$")
 PINS = r'(?m)^APPROVED_(ADAPTATION|ADDITION)_FINGERPRINT = "[0-9a-f]{64}"$'
 
 
@@ -98,22 +103,75 @@ def metadata_paths(repo: Path, base: str, head: str) -> set[str]:
         return set()
 
 
-def _matrix_for_projection_selection(value: dict) -> dict:
-    normalized = copy.deepcopy(value)
-    inventory = normalized.get("consumer_inventory")
-    if isinstance(inventory, list):
-        for entry in inventory:
-            if isinstance(entry, dict):
-                entry.pop("current_disposition", None)
-    return normalized
+def _schema_disposition(target: int) -> str:
+    return f"{SCHEMA_DISPOSITION_PREFIX}{target} with no pending schema cohort"
+
+
+def _compiled_workspace_schema_version(repo: Path, revision: str) -> int:
+    matches = WORKSPACE_SCHEMA_CONST.findall(snapshot(repo, revision, WORKSPACE_SCHEMA_AUTHORITY).decode())
+    if len(matches) != 1:
+        raise ValueError("workspace schema version is ambiguous")
+    return int(matches[0])
+
+
+def _proved_schema_disposition_cohort(repo: Path, base: str, head: str) -> tuple[int, int] | None:
+    """Prove identity target, compiled schema version, and matrix disposition moved together."""
+    before_ref = document(snapshot(repo, base, REFERENCE))
+    after_ref = document(snapshot(repo, head, REFERENCE))
+    old_target = before_ref["current_workspace_schema"]["target"]
+    new_target = after_ref["current_workspace_schema"]["target"]
+    if new_target != old_target + 1:
+        return None
+    normalized_before = copy.deepcopy(before_ref)
+    normalized_before["current_workspace_schema"] = copy.deepcopy(after_ref["current_workspace_schema"])
+    if normalized_before != after_ref:
+        return None
+    if _compiled_workspace_schema_version(repo, base) != old_target:
+        return None
+    if _compiled_workspace_schema_version(repo, head) != new_target:
+        return None
+    return old_target, new_target
+
+
+def _matrix_diff_is_schema_disposition_only(before: dict, after: dict, old_target: int, new_target: int) -> bool:
+    if set(before) != set(after):
+        return False
+    for key in before:
+        if key == "consumer_inventory":
+            continue
+        if before[key] != after[key]:
+            return False
+    inventory_before = before["consumer_inventory"]
+    inventory_after = after["consumer_inventory"]
+    if len(inventory_before) != len(inventory_after):
+        return False
+    workspace_rows = 0
+    for entry_before, entry_after in zip(inventory_before, inventory_after):
+        if entry_before.get("surface_id") == WORKSPACE_SCHEMA_SURFACE:
+            workspace_rows += 1
+            if entry_before.get("class") != "schema-or-contract-version":
+                return False
+            expected_before = {**entry_before, "current_disposition": _schema_disposition(old_target)}
+            expected_after = {**entry_after, "current_disposition": _schema_disposition(new_target)}
+            if entry_before != expected_before or entry_after != expected_after:
+                return False
+            continue
+        if entry_before != entry_after:
+            return False
+    return workspace_rows == 1
 
 
 def version_projection_registry_unchanged(repo: Path, base: str, head: str) -> bool:
-    """Projection registry edits change consumer bindings; disposition notes do not."""
+    """Projection registry edits change consumer bindings; unrelated disposition notes do not."""
     try:
-        before = _matrix_for_projection_selection(document(snapshot(repo, base, MATRIX)))
-        after = _matrix_for_projection_selection(document(snapshot(repo, head, MATRIX)))
-        return before == after
+        before = document(snapshot(repo, base, MATRIX))
+        after = document(snapshot(repo, head, MATRIX))
+        if before == after:
+            return True
+        cohort = _proved_schema_disposition_cohort(repo, base, head)
+        if cohort is None:
+            return False
+        return _matrix_diff_is_schema_disposition_only(before, after, *cohort)
     except (OSError, ValueError, KeyError, TypeError, UnicodeError, subprocess.SubprocessError):
         return False
 

@@ -193,10 +193,11 @@ def main() -> int:
                     return result.returncode
         if args.frontend:
             projections = pr_metadata_scope.version_projection_paths(repo, args.base, args.head)
+            provenance_changed = bool(set(behavior_paths) & pr_frontend_scope.PROVENANCE)
             frontend_behavior = [path for path in behavior_paths
                                  if path not in projections and path not in pr_frontend_scope.PROVENANCE]
             affected = frontend_affected(frontend_behavior, repo)
-            if not affected and not metadata_paths:
+            if not affected and not metadata_paths and not provenance_changed:
                 print("No frontend package is affected by this change; Go and policy gates remain active.")
                 return 0
             # Check reviewed content before npm creates ignored output trees.
