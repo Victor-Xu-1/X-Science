@@ -31,8 +31,7 @@ func (s *Server) resolveAuthorizedProjectPath(userID, projectID, requested strin
 		if err != nil {
 			return "", false, err
 		}
-		// Persist first; materializeManagedProjectWorkspace creates the inode
-		// only after the project row exists.
+		// HTTP create/update prepares the inode before the project row commits.
 		return filepath.Clean(managed), true, nil
 	}
 	path, err := canonicalHostDirectory(requested)
