@@ -42,6 +42,36 @@ Host RPC is implemented by the existing `synon_host_bridge` adapter; Go binds
 each call to the active cell and its allowed methods. Interpreter helpers and
 audit hooks do not replace the OS sandbox or server authorization.
 
+## Durable detached execution recovery
+
+On the supported detached backend, accepting physical work reserves one observer
+before the durable execution becomes visible to recovery. Foreground waiting and
+background supervision share that reservation; reconnecting does not start a
+second execution or replace its operation identity.
+
+The immutable result receipt is authoritative even after the executor socket
+disappears. Settlement retains execution, operation, backend generation, request
+and confinement bindings and verifies the existing result/spool digests. A
+foreground observation, control-renewal or persistence failure is not a terminal
+calculation result: accepted work remains under the existing recovery authority.
+Explicit identity and runner-claim rejection is not converted into authorization.
+
+Proven executor loss without a terminal receipt settles as `outcome_unknown`,
+including during the original service boot. A live process is not declared dead
+because its socket or heartbeat is temporarily unavailable. The detached-only
+transition preserves current owner/frame incarnations and any live source runner;
+cancelled tasks are not requeued. It does not retry the physical calculation.
+
+An interrupted evidence-loss settlement remains eligible until its operation is
+materialized. Operation state, result, terminal event and notification use the
+existing atomic settlement path and idempotency identities. Recovery scans use
+an immutable execution-ID cursor and wait after a complete scan, so a full page
+of active work cannot permanently hide later results.
+
+Focused lifecycle regressions use temporary persistence and controlled process
+identity. They establish these recovery contracts, not a guarantee of uninterrupted
+24-hour hardware availability or scientific validity.
+
 ## Observation effects
 
 Scientific implementation selection does not itself authorize or prohibit a

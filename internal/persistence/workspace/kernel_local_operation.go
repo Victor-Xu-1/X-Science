@@ -1126,6 +1126,14 @@ func (s *Store) MarkKernelLocalOperationOutcomeUnknown(
 	ctx context.Context,
 	input MarkKernelLocalOperationOutcomeUnknownInput,
 ) (KernelLocalOperation, error) {
+	return s.markKernelLocalOperationOutcomeUnknown(ctx, input, nil)
+}
+
+func (s *Store) markKernelLocalOperationOutcomeUnknown(
+	ctx context.Context,
+	input MarkKernelLocalOperationOutcomeUnknownInput,
+	detached *DetachedKernelEvidenceLossFence,
+) (KernelLocalOperation, error) {
 	input.OwnerUserID = strings.TrimSpace(input.OwnerUserID)
 	input.OperationID = strings.TrimSpace(input.OperationID)
 	input.ExecutionID = strings.TrimSpace(input.ExecutionID)
@@ -1139,9 +1147,13 @@ func (s *Store) MarkKernelLocalOperationOutcomeUnknown(
 		input.ExecutionID == "" || input.CurrentBootID == "" || input.ReasonCode == "" {
 		return KernelLocalOperation{}, errors.New("complete unknown-outcome authority is required")
 	}
+	message := "Kernel execution outcome is unknown after service restart; it was not retried."
+	if detached != nil {
+		message = "Kernel execution outcome is unknown after executor loss; it was not retried."
+	}
 	unknownResult, err := json.Marshal(map[string]any{
 		"ok": false, "error": map[string]any{
-			"code": "execution_outcome_unknown", "message": "Kernel execution outcome is unknown after service restart; it was not retried.",
+			"code": "execution_outcome_unknown", "message": message,
 		},
 	})
 	if err != nil {
@@ -1157,6 +1169,9 @@ func (s *Store) MarkKernelLocalOperationOutcomeUnknown(
 		},
 		extraPredicate: `AND execution_id=?`, extraArgs: []any{input.ExecutionID},
 		validate: func(tx *transcriptstore.ImmediateTransaction, operation KernelLocalOperation) error {
+			if detached != nil {
+				return validateDetachedKernelEvidenceLossTx(ctx, tx, operation, input.ExecutionID, *detached)
+			}
 			if operation.BootID == input.CurrentBootID {
 				return ErrKernelLocalOperationStale
 			}
@@ -1171,6 +1186,14 @@ func (s *Store) MarkKernelLocalOperationOutcomeUnknown(
 		},
 		before: func(tx *transcriptstore.ImmediateTransaction, operation KernelLocalOperation) (string, []any, error) {
 			now := s.now().UTC()
+			if detached != nil {
+				// The original live runner consumes this result under its existing
+				// claim. Do not supersede it merely because its executor died.
+				live, err := kernelLocalOperationAttemptIsLive(ctx, tx, operation, now)
+				if err != nil || live {
+					return "", nil, err
+				}
+			}
 			var frameStatus string
 			if err := tx.QueryRowContext(ctx, `SELECT status FROM frames
 				WHERE id=? AND project_id=? AND incarnation_id=?`, operation.FrameID, operation.ProjectID,
@@ -1229,7 +1252,7 @@ func (s *Store) MarkKernelLocalOperationOutcomeUnknown(
 				NotificationType: "cell_result", Payload: map[string]any{
 					"status": "outcome_unknown", "operation_id": operation.OperationID,
 					"exec_id": operation.ExecutionID, "tool_call_id": operation.ToolCallID,
-					"error": "Execution outcome is unknown after service restart and was not retried.",
+					"error": message,
 				},
 			}, operation.UpdatedAt)
 			return err

@@ -26,6 +26,7 @@ func (s *Server) RunDetachedKernelExecutionRecovery(ctx context.Context) error {
 	if s == nil || s.workspaceStore == nil || s.transcriptStore == nil || s.kernelExecutionBackend == nil {
 		return errors.New("detached kernel recovery authority is unavailable")
 	}
+	cursor := ""
 	for {
 		wake := s.workspaceStore.KernelRetentionWake()
 		startupRetry := false
@@ -38,8 +39,8 @@ func (s *Server) RunDetachedKernelExecutionRecovery(ctx context.Context) error {
 				log.Printf("detached kernel startup recovery retained for retry: %v", err)
 			}
 		}
-		candidates, more, err := s.workspaceStore.ListDetachedKernelExecutionRecoveryCandidates(
-			ctx, s.kernelOperationBootID, detachedKernelRecoveryBatchSize,
+		page, err := s.workspaceStore.ListDetachedKernelExecutionRecoveryPage(
+			ctx, cursor, detachedKernelRecoveryBatchSize,
 		)
 		if err != nil {
 			if ctx.Err() != nil {
@@ -47,8 +48,8 @@ func (s *Server) RunDetachedKernelExecutionRecovery(ctx context.Context) error {
 			}
 			return err
 		}
-		retry := more || startupRetry
-		for _, candidate := range candidates {
+		retry := startupRetry
+		for _, candidate := range page.Candidates {
 			if err := s.recoverDetachedKernelExecution(ctx, candidate); err != nil {
 				if ctx.Err() != nil {
 					return nil
@@ -62,7 +63,8 @@ func (s *Server) RunDetachedKernelExecutionRecovery(ctx context.Context) error {
 					candidate.Execution.ExecutionID, candidate.Operation.OperationID, err)
 			}
 		}
-		if more {
+		cursor = page.NextCursor
+		if cursor != "" {
 			continue
 		}
 		waitInterval := detachedKernelRecoveryPollInterval
@@ -140,11 +142,6 @@ func (s *Server) recoverDetachedKernelExecution(
 	} else {
 		started.StartedAt = execution.AcceptedAt.UTC()
 	}
-	if request.Background {
-		if err := s.recordAgentKernelBackgroundStart(access, started); err != nil {
-			return fmt.Errorf("restore detached kernel background execution: %w", err)
-		}
-	}
 	ref := kernelruntime.BackendExecutionRef{
 		ExecutionID: execution.ExecutionID, OperationID: execution.OperationID,
 		BackendID: execution.BackendID, BackendGeneration: execution.BackendGeneration,
@@ -160,6 +157,13 @@ func (s *Server) recoverDetachedKernelExecution(
 			s.releaseDetachedKernelObserver(execution.ExecutionID, cancelObserver)
 		}
 	}()
+	// Existing observers already own their start projection. Avoid replaying
+	// a database transaction and live event on every same-boot recovery scan.
+	if request.Background {
+		if err := s.recordAgentKernelBackgroundStart(access, started); err != nil {
+			return fmt.Errorf("restore detached kernel background execution: %w", err)
+		}
+	}
 	if execution.State == workspace.DetachedKernelExecutionStateTerminal {
 		_, err := s.settleDetachedAgentKernelExecution(
 			ctx, access, spec, backendSession, started, execution,
@@ -179,7 +183,7 @@ func (s *Server) recoverDetachedKernelExecution(
 	// during restart recovery.
 	if backend.State == workspace.KernelExecutionBackendStateStopped ||
 		backend.State == workspace.KernelExecutionBackendStateEvidenceLost {
-		return s.settleDetachedKernelEvidenceLost(ctx, execution, operation)
+		return s.settleDetachedKernelEvidenceLost(ctx, backend, execution, operation)
 	}
 	lease, _, err := s.kernelExecutionBackend.AcquireControl(ctx, ref, detachedKernelControlTTL)
 	if err != nil {
@@ -242,7 +246,7 @@ func (s *Server) reconcileUnreachableDetachedKernelBackend(
 		}); err != nil && !errors.Is(err, workspace.ErrKernelExecutionBackendStale) {
 		return false, err
 	}
-	if err := s.settleDetachedKernelEvidenceLost(ctx, execution, operation); err != nil {
+	if err := s.settleDetachedKernelEvidenceLost(ctx, backend, execution, operation); err != nil {
 		return false, err
 	}
 	return true, nil
@@ -279,6 +283,7 @@ func detachedKernelBackendLivenessExpired(backend workspace.KernelExecutionBacke
 
 func (s *Server) settleDetachedKernelEvidenceLost(
 	ctx context.Context,
+	backend workspace.KernelExecutionBackend,
 	execution workspace.DetachedKernelExecution,
 	operation workspace.KernelLocalOperation,
 ) error {
@@ -289,14 +294,56 @@ func (s *Server) settleDetachedKernelEvidenceLost(
 		}); err != nil {
 		return err
 	}
-	_, err := s.workspaceStore.MarkKernelLocalOperationOutcomeUnknown(ctx,
+	_, err := s.workspaceStore.MarkDetachedKernelLocalOperationOutcomeUnknown(ctx,
 		workspace.MarkKernelLocalOperationOutcomeUnknownInput{
 			OwnerUserID: operation.OwnerUserID, OperationID: operation.OperationID,
 			ExpectedStateVersion: operation.StateVersion, ExecutionID: operation.ExecutionID,
 			CurrentBootID: s.kernelOperationBootID,
 			ReasonCode:    "detached_backend_evidence_lost",
+		}, workspace.DetachedKernelEvidenceLossFence{
+			BackendID: execution.BackendID, BackendGeneration: execution.BackendGeneration,
+			ExecutorInstanceID: backend.ExecutorInstanceID, RequestSHA256: execution.RequestSHA256,
+			ConfinementSHA256: execution.ConfinementSHA256,
 		})
 	return err
+}
+
+func detachedExecutionMatchesRef(execution workspace.DetachedKernelExecution, ref kernelruntime.BackendExecutionRef) bool {
+	return execution.ExecutionID == ref.ExecutionID && execution.OperationID == ref.OperationID &&
+		execution.BackendID == ref.BackendID && execution.BackendGeneration == ref.BackendGeneration &&
+		execution.RequestSHA256 == ref.RequestSHA256 && execution.ConfinementSHA256 == ref.ConfinementSHA256
+}
+
+func (s *Server) reconcileDetachedKernelObservationFailure(ctx context.Context, execution workspace.DetachedKernelExecution, operation *workspace.KernelLocalOperation) (bool, error) {
+	if operation == nil || operation.OperationID != execution.OperationID || operation.ExecutionID != execution.ExecutionID {
+		return false, workspace.ErrDetachedKernelExecutionConflict
+	}
+	backend, found, err := s.workspaceStore.GetKernelExecutionBackend(ctx, execution.BackendID)
+	if err != nil {
+		return false, err
+	}
+	if !found || backend.BackendGeneration != execution.BackendGeneration {
+		return false, workspace.ErrKernelExecutionBackendStale
+	}
+	var settled bool
+	if backend.State == workspace.KernelExecutionBackendStateStopped || backend.State == workspace.KernelExecutionBackendStateEvidenceLost {
+		err = s.settleDetachedKernelEvidenceLost(ctx, backend, execution, *operation)
+		settled = err == nil
+	} else {
+		settled, err = s.reconcileUnreachableDetachedKernelBackend(ctx, backend, execution, *operation)
+	}
+	if err != nil || !settled {
+		return settled, err
+	}
+	current, found, err := s.workspaceStore.GetKernelLocalOperation(ctx, operation.OwnerUserID, operation.OperationID)
+	if err != nil {
+		return false, err
+	}
+	if !found || current.ExecutionID != execution.ExecutionID || current.State != workspace.KernelLocalOperationStateOutcomeUnknown {
+		return false, workspace.ErrKernelLocalOperationConflict
+	}
+	*operation = current
+	return true, nil
 }
 
 func recoveredKernelSessionSpec(input workspace.KernelExecutionSessionSpecV1) kernelruntime.SessionSpec {
