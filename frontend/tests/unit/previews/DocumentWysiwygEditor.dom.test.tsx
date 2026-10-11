@@ -277,6 +277,58 @@ describe('DocumentWysiwygEditor', () => {
 });
 
 describe('documentWysiwygModel', () => {
+  it.each([
+    {
+      case: 'repeated backslash metacharacters',
+      alt: String.raw`\>meta \\ \] [square] <angle> "quoted"`,
+      title: String.raw`Title \\ \" <angle> [square]`,
+    },
+    {
+      case: 'literal entities',
+      alt: 'Caption &amp; &lt; &gt; &#x5D; &quot;',
+      title: 'Title &amp; &lt; &gt; &#34; &quot;',
+    },
+    {
+      case: 'markup payloads',
+      alt: String.raw`Caption \\] ![injected](javascript:bad()) <img src=x onerror=bad()>`,
+      title: String.raw`Title \\" onclick="bad() <svg onload=bad()>`,
+    },
+    {
+      case: 'leading quote marker',
+      alt: '>meta',
+      title: '>title &amp;',
+    },
+  ])('roundtrips escaped image captions and resource titles: $case', async ({ alt, title }) => {
+    const image = document.createElement('img');
+    image.setAttribute('src', '../My Figures/chart.png');
+    image.setAttribute('alt', alt);
+    image.setAttribute('title', title);
+    const link = document.createElement('a');
+    link.setAttribute('href', 'https://safe.example/evidence');
+    link.setAttribute('title', title);
+    link.textContent = 'Evidence';
+    const markdown = markdownFromEditableHtml(image.outerHTML + link.outerHTML);
+    const destinations: string[] = [];
+    const { container } = await renderWithI18n(
+      <ReactMarkdown
+        urlTransform={(source) => {
+          destinations.push(decodeURIComponent(source));
+          return source;
+        }}
+      >
+        {markdown}
+      </ReactMarkdown>
+    );
+
+    expect(destinations).toEqual(['../My Figures/chart.png', 'https://safe.example/evidence']);
+    expect(container.querySelectorAll('img')).toHaveLength(1);
+    expect(container.querySelectorAll('a')).toHaveLength(1);
+    expect.soft(container.querySelector('img')).toHaveAttribute('alt', alt);
+    expect.soft(container.querySelector('img')).toHaveAttribute('title', title);
+    expect.soft(container.querySelector('a')).toHaveAttribute('title', title);
+    expect(container.querySelector('script, svg, iframe, [onerror], [onclick], [onload]')).toBeNull();
+  });
+
   it('does not restore executable resource sources hidden in provenance attributes', () => {
     const html =
       '<a href="https://safe.example" data-synon-original-href="javascript:alert(1)">Evidence</a>' +

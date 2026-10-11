@@ -48,8 +48,10 @@ export function markdownFromEditableHtml(html: string): string {
         const encodedWidth = escapeHtmlAttribute(width);
         return `<img src="${encodedSource}" alt="${encodedAlt}" style="width:${encodedWidth};height:auto">`;
       }
+      // Encode entities before Turndown so a leading > is not escaped twice.
+      const markdownAlt = turndown.escape(escapeHtmlAttribute(alt));
       return source
-        ? `![${turndown.escape(alt).replace(/[<>]/g, '\\$&')}](${escapeMarkdownDestination(source)}${title ? ` "${escapeMarkdownTitle(title)}"` : ''})`
+        ? `![${markdownAlt}](${escapeMarkdownDestination(source)}${title ? ` "${escapeMarkdownTitle(title)}"` : ''})`
         : '';
     },
   });
@@ -138,9 +140,8 @@ function escapeMarkdownDestination(source: string): string {
 
 function escapeMarkdownTitle(title: string): string {
   return title
-    .replaceAll('\\', '\\\\')
-    .replaceAll('"', '\\"')
-    .replace(/[<>]/g, '\\$&')
+    .replaceAll('&', '&amp;')
+    .replace(/[\\"<>]/g, '\\$&')
     .replaceAll('\r', '&#13;')
     .replaceAll('\n', '&#10;');
 }
