@@ -3,10 +3,30 @@ package toolprogress
 import (
 	"context"
 	"errors"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
 )
+
+func TestObserveReportsExecutionExitWithoutResult(t *testing.T) {
+	done := make(chan error, 1)
+	go func() {
+		_, err := Observe(t.Context(), time.Millisecond, func(context.Context) (string, error) {
+			runtime.Goexit()
+			return "", nil
+		}, func(*Update, time.Duration, int) {})
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		if err == nil {
+			t.Fatal("execution without a result was reported as success")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("observer remained running after its execution goroutine exited")
+	}
+}
 
 func TestObserveReturnsSuccessfulResult(t *testing.T) {
 	result, err := Observe(context.Background(), time.Millisecond, func(context.Context) (string, error) {

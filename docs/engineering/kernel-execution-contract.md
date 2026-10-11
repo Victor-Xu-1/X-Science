@@ -79,6 +79,20 @@ Focused lifecycle regressions use temporary persistence and controlled process
 identity. They establish these recovery contracts, not a guarantee of uninterrupted
 24-hour hardware availability or scientific validity.
 
+## Progress and transfer supervision
+
+Progress observation waits for the authoritative execution result, not a total
+calculation duration cap. An execution callback panic or exit without a result
+must produce an error rather than terminate the service or leave its observer
+running forever. Ordinary execution errors and successful results remain intact.
+
+An HTTP idle deadline is committed separately from received bytes. Read completion
+invalidates a queued close; a committed close finishes before the next read starts.
+Only explicit EOF establishes completed transfer after a deadline race. Partial
+bytes remain available, with both the causal idle timeout and the underlying read
+error retained. Transport retry, authorization and persistence remain with their
+existing callers.
+
 ## Observation effects
 
 Scientific implementation selection does not itself authorize or prohibit a

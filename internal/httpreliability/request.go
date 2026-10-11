@@ -5,7 +5,6 @@ package httpreliability
 
 import (
 	"context"
-	"errors"
 	"io"
 	"sync"
 	"time"
@@ -94,32 +93,3 @@ func IdleBody(body io.ReadCloser, timeout time.Duration) io.ReadCloser {
 	}
 	return &idleBody{body: body, timeout: timeout}
 }
-
-type idleBody struct {
-	body    io.ReadCloser
-	timeout time.Duration
-}
-
-func (body *idleBody) Read(target []byte) (int, error) {
-	if len(target) == 0 {
-		return 0, nil
-	}
-	timedOut := make(chan struct{})
-	timer := time.AfterFunc(body.timeout, func() {
-		_ = body.body.Close()
-		close(timedOut)
-	})
-	count, err := body.body.Read(target)
-	if timer.Stop() {
-		return count, err
-	}
-	// The idle callback already started. Drain it so it cannot close the
-	// next read. Bytes or a clean EOF from this read are observed progress,
-	// not an idle timeout that would discard a completed transfer.
-	<-timedOut
-	if count > 0 || errors.Is(err, io.EOF) {
-		return count, err
-	}
-	return 0, ErrBodyIdleTimeout
-}
-func (body *idleBody) Close() error { return body.body.Close() }

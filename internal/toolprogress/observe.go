@@ -2,6 +2,7 @@ package toolprogress
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 )
@@ -47,12 +48,19 @@ func Observe[T any](ctx context.Context, interval time.Duration, execute func(co
 		}
 	})
 	go func() {
+		returned := false
 		defer func() {
+			if returned {
+				return
+			}
 			if recovered := recover(); recovered != nil {
 				done <- outcome{err: fmt.Errorf("tool execution panicked: %v", recovered)}
+			} else {
+				done <- outcome{err: errors.New("tool execution exited without returning a result")}
 			}
 		}()
 		result, err := execute(executionCtx)
+		returned = true
 		done <- outcome{result: result, err: err}
 	}()
 	ticker := time.NewTicker(interval)
