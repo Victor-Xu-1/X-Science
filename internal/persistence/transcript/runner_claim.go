@@ -110,6 +110,11 @@ func (r *Repository) claimNextRunner(
 										)
 									)
 								)
+								OR (
+									latest.status='running' AND latest.expires_at<=?
+									AND latest.claimed_input_revision=stream.input_revision
+									AND `+runnerPreparationProofFor("latest")+`
+								)
 							)
 					)
 				)
@@ -137,7 +142,7 @@ func (r *Repository) claimNextRunner(
 							AND json_extract(resume.payload, '$.dispatch.status') IN ('registered','claimed','blocked')
 					)
 				)
-			ORDER BY stream.updated_at,stream.stream_uid LIMIT 1`, includeStandalone, now, now,
+			ORDER BY stream.updated_at,stream.stream_uid LIMIT 1`, includeStandalone, now, now, now,
 		).Scan(
 			&stream.UID, &stream.OwnerID, &stream.ExternalID, &stream.SessionID, &kind,
 			&stream.ProjectID, &stream.RootFrameID, &stream.FrameID, &stream.Epoch,
@@ -166,6 +171,10 @@ func (r *Repository) claimNextRunner(
 			return err
 		}
 		if claimed.Claimed {
+			stream, err = getStreamConn(ctx, conn, stream.UID, stream.OwnerID)
+			if err != nil {
+				return err
+			}
 			result = ClaimNextRunnerResult{Stream: stream, Claim: claimed.Claim, Claimed: true}
 		}
 		return nil
@@ -223,6 +232,12 @@ func automaticFrameResumeRequestConn(
 		ORDER BY checkpoint.checkpoint_sequence DESC LIMIT 1`, stream.UID, attempt,
 	).Scan(&checkpoint, &resumable, &rawPayload)
 	if errors.Is(err, sql.ErrNoRows) {
+		// Missing checkpoints are not proof of non-dispatch. Only the typed
+		// preparation admission and unchanged phase permit a fresh attempt.
+		if claimedInputRevision == stream.InputRevision {
+			safe, err := runnerPreparationIsSafeConn(ctx, conn, stream.UID, attempt, claimedInputRevision)
+			return ResumeSourceFresh, 0, safe, err
+		}
 		return "", 0, false, nil
 	}
 	if err != nil {
@@ -339,12 +354,12 @@ func (r *Repository) claimRunnerConn(
 		result.OwnerRunnerID = activeRunner
 		return result, nil
 	}
-	var latestAttempt, latestClaimedRevision int64
+	var latestAttempt, latestClaimedRevision, latestCheckpoint int64
 	var latestStatus, latestPhase string
 	latestErr := conn.QueryRowContext(ctx, `
-		SELECT attempt,claimed_input_revision,status,phase
+		SELECT attempt,claimed_input_revision,status,phase,last_checkpoint_sequence
 		FROM transcript_runner_attempts WHERE stream_uid=? ORDER BY attempt DESC LIMIT 1`, stream.UID,
-	).Scan(&latestAttempt, &latestClaimedRevision, &latestStatus, &latestPhase)
+	).Scan(&latestAttempt, &latestClaimedRevision, &latestStatus, &latestPhase, &latestCheckpoint)
 	if latestErr != nil && !errors.Is(latestErr, sql.ErrNoRows) {
 		return result, latestErr
 	}
@@ -385,6 +400,12 @@ func (r *Repository) claimRunnerConn(
 				switch latestStatus {
 				case "completed", "failed", "cancelled", "canceled":
 					return result, nil
+				}
+				if latestCheckpoint == 0 {
+					safe, err := runnerPreparationIsSafeConn(ctx, conn, stream.UID, latestAttempt, latestClaimedRevision)
+					if err != nil || !safe {
+						return result, err
+					}
 				}
 				var resumable bool
 				err := conn.QueryRowContext(ctx, `
@@ -570,6 +591,9 @@ func (r *Repository) claimRunnerConn(
 		ResumeSource: input.ResumeSource, ResumeCheckpoint: input.ResumeCheckpoint,
 		ResumeCheckpointAttempt: checkpointAttempt,
 		ClaimedAt:               now, ExpiresAt: expires,
+	}
+	if err := appendRunnerPreparationAdmissionConn(ctx, conn, stream, result.Claim, now); err != nil {
+		return ClaimRunnerResult{}, err
 	}
 	return result, nil
 }

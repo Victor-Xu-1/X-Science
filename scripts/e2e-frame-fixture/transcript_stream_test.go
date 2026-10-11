@@ -34,16 +34,19 @@ func TestTranscriptStreamFixtureAppendsDurableDeltasAndRejectsTamperedRun(t *tes
 	projected, err := repository.ListProjectedEvents(context.Background(), transcriptstore.ListProjectedEventsInput{
 		StreamUID: stream.UID, OwnerID: stream.OwnerID, Limit: 20,
 	})
-	if err != nil || len(projected) != 4 {
+	if err != nil || len(projected) != 4+transcriptstore.EventsPerFreshRunnerClaim {
 		t.Fatalf("projected=%d err=%v", len(projected), err)
 	}
-	for index, expected := range []string{"user_message", "runner_checkpoint", "content_delta", "content_delta"} {
+	for index, expected := range []string{
+		"user_message", transcriptstore.RunnerPreparationAdmissionEventType,
+		"runner_checkpoint", "content_delta", "content_delta",
+	} {
 		if projected[index].Event.Type != expected {
 			t.Fatalf("event %d type=%q want=%q", index, projected[index].Event.Type, expected)
 		}
 	}
 	var payload map[string]any
-	if err := json.Unmarshal(projected[3].ResolvedPayloadJSON, &payload); err != nil {
+	if err := json.Unmarshal(projected[3+transcriptstore.EventsPerFreshRunnerClaim].ResolvedPayloadJSON, &payload); err != nil {
 		t.Fatal(err)
 	}
 	segment, present, err := transcriptstore.ParseAssistantSegmentV1(payload)
@@ -90,13 +93,15 @@ func TestStreamingParityFixturePersistsToolLifecycleArtifactsAndTerminalReceipt(
 	projected, err := repository.ListProjectedEvents(context.Background(), transcriptstore.ListProjectedEventsInput{
 		StreamUID: stream.UID, OwnerID: stream.OwnerID, Limit: 20,
 	})
-	if err != nil || len(projected) != 9 {
+	if err != nil || len(projected) != 9+transcriptstore.EventsPerFreshRunnerClaim {
 		t.Fatalf("projected=%d err=%v", len(projected), err)
 	}
 	var thinking map[string]any
-	if err := json.Unmarshal(projected[2].ResolvedPayloadJSON, &thinking); err != nil ||
-		projected[2].Event.Type != "content_delta" || thinking["block_type"] != "thinking" {
-		t.Fatalf("thinking event=%#v payload=%#v err=%v", projected[2].Event, thinking, err)
+	if err := json.Unmarshal(projected[2+transcriptstore.EventsPerFreshRunnerClaim].ResolvedPayloadJSON, &thinking); err != nil ||
+		projected[2+transcriptstore.EventsPerFreshRunnerClaim].Event.Type != "content_delta" ||
+		thinking["block_type"] != "thinking" {
+		t.Fatalf("thinking event=%#v payload=%#v err=%v",
+			projected[2+transcriptstore.EventsPerFreshRunnerClaim].Event, thinking, err)
 	}
 	toolStates := map[string][]string{}
 	assistantRefs := 0
@@ -151,7 +156,7 @@ func TestStreamingRecoveryFixtureRetainsFailedOperationBeforeIndependentSuccess(
 	projected, err := repository.ListProjectedEvents(context.Background(), transcriptstore.ListProjectedEventsInput{
 		StreamUID: stream.UID, OwnerID: stream.OwnerID, Limit: 20,
 	})
-	if err != nil || len(projected) != 10 {
+	if err != nil || len(projected) != 10+transcriptstore.EventsPerFreshRunnerClaim {
 		t.Fatalf("projected=%d err=%v", len(projected), err)
 	}
 	toolStates := map[string][]string{}

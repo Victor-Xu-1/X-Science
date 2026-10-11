@@ -99,6 +99,12 @@ func newTranscriptRepository(t *testing.T) (*Repository, *sql.DB, string) {
 	return NewRepository(db), db, dsn
 }
 
+const eventsPerFreshRunnerClaim = EventsPerFreshRunnerClaim
+
+func runnerPreparationAdmissionClientMessage(streamUID string, attempt int64) string {
+	return "runner-preparation:" + streamUID + ":" + fmt.Sprintf("%d", attempt)
+}
+
 func seedTranscriptInput(t *testing.T, repo *Repository, uid, owner string) {
 	t.Helper()
 	if _, err := repo.CreateStream(context.Background(), CreateStreamInput{
@@ -923,15 +929,16 @@ func TestRepositoryClaimNextFrameRunnerResumesExpiredAttemptFromCheckpoint(t *te
 	retried, err := repo.ClaimNextFrameRunner(context.Background(), ClaimNextFrameRunnerInput{
 		RunnerID: "runner-retry", TTL: time.Minute,
 	})
-	if err != nil || retried.Claimed {
-		t.Fatalf("automatic retry=%#v err=%v, want no claim without a durable checkpoint", retried, err)
+	if err != nil || !retried.Claimed || retried.Stream.UID != "stream-retry" ||
+		retried.Claim.Attempt != crashed.Claim.Attempt+1 || retried.Claim.ClaimedInputRevision != 1 ||
+		retried.Claim.ResumeSource != ResumeSourceFresh {
+		t.Fatalf("checkpointless reclaim=%#v err=%v, want a fresh attempt of the same accepted input", retried, err)
 	}
-	var retryAttempts int
-	if err := db.QueryRow(`SELECT COUNT(*) FROM transcript_runner_attempts WHERE stream_uid='stream-retry'`).Scan(&retryAttempts); err != nil {
+	if _, _, _, err := repo.FinishRunner(context.Background(), FinishRunnerInput{
+		Claim: retried.Claim, ClientMessageID: "finish-checkpointless-reclaim", Status: "completed",
+		PayloadJSON: []byte(`{"status":"completed"}`), Destinations: []string{"ws"},
+	}); err != nil {
 		t.Fatal(err)
-	}
-	if retryAttempts != 1 {
-		t.Fatalf("retry attempts=%d, want no automatic parent attempt", retryAttempts)
 	}
 	if _, _, created, err := repo.AppendFrameUserEvent(context.Background(), AppendFrameUserEventInput{
 		StreamUID: "stream-retry", OwnerID: "owner-resume", ClientMessageID: "user-retry-explicit-second",
@@ -944,7 +951,7 @@ func TestRepositoryClaimNextFrameRunnerResumesExpiredAttemptFromCheckpoint(t *te
 		RunnerID: "runner-explicit-second", TTL: time.Minute,
 	})
 	if err != nil || !explicitSecond.Claimed || explicitSecond.Stream.UID != "stream-retry" ||
-		explicitSecond.Claim.Attempt != 2 || explicitSecond.Claim.ClaimedInputRevision != 2 ||
+		explicitSecond.Claim.Attempt != retried.Claim.Attempt+1 || explicitSecond.Claim.ClaimedInputRevision != 2 ||
 		explicitSecond.Claim.ResumeSource != ResumeSourceFresh {
 		t.Fatalf("explicit second task=%#v err=%v", explicitSecond, err)
 	}
@@ -1306,7 +1313,7 @@ func TestRepositoryGenericRunnerEventsCannotBypassTypedAuthorities(t *testing.T)
 	if err := db.QueryRow(`SELECT COUNT(*) FROM transcript_runner_checkpoints WHERE stream_uid=?`, claimed.Claim.StreamUID).Scan(&checkpoints); err != nil {
 		t.Fatal(err)
 	}
-	if events != 1 || receipts != 0 || checkpoints != 0 {
+	if events != 1+eventsPerFreshRunnerClaim || receipts != 0 || checkpoints != 0 {
 		t.Fatalf("events=%d receipts=%d checkpoints=%d", events, receipts, checkpoints)
 	}
 }

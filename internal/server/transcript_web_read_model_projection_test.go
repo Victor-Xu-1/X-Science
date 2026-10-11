@@ -159,19 +159,21 @@ func TestRunTranscriptWebReadModelCycleBuildsAndRefreshesDurableProjection(t *te
 			}},
 		},
 	)
-	if err != nil || !created || len(references) != 1 || assistantEvent.PublicationSeq != 3 {
+	if err != nil || !created || len(references) != 1 ||
+		assistantEvent.PublicationSeq != 3+transcriptstore.EventsPerFreshRunnerClaim {
 		t.Fatalf("assistant event=%#v refs=%#v created=%t err=%v", assistantEvent, references, created, err)
 	}
 	finishEvent, _, _, err := repository.FinishRunner(context.Background(), transcriptstore.FinishRunnerInput{
 		Claim: claimed.Claim, ClientMessageID: "finish-client-1", Status: "completed",
 		PayloadJSON: []byte(`{"status":"completed","assistant_segment":{"version":1,"ordinal":3}}`),
 	})
-	if err != nil || finishEvent.PublicationSeq != 4 {
+	if err != nil || finishEvent.PublicationSeq != 4+transcriptstore.EventsPerFreshRunnerClaim {
 		t.Fatalf("finish event=%#v err=%v", finishEvent, err)
 	}
 	work, err = readModel.ListTranscriptWebProjectionWork(context.Background(), stream.OwnerID, 10)
 	if err != nil || len(work) != 1 || work[0].Status != transcriptstore.TranscriptWebProjectionWorkDirty ||
-		work[0].DirtyFirstAffectedOrdinal != 3 || work[0].DirtyReasonMask&1 == 0 {
+		work[0].DirtyFirstAffectedOrdinal != 3+transcriptstore.EventsPerFreshRunnerClaim ||
+		work[0].DirtyReasonMask&1 == 0 {
 		t.Fatalf("artifact work=%#v err=%v", work, err)
 	}
 	if err := server.runTranscriptWebReadModelCycle(context.Background()); err != nil {
@@ -179,7 +181,8 @@ func TestRunTranscriptWebReadModelCycleBuildsAndRefreshesDurableProjection(t *te
 	}
 	ready = requireTranscriptWebReadModelFence(t, readModel, stream, branch.ActiveBranchID)
 	if ready.StateStatus != "ready" || ready.StateProjectionRevision != 3 ||
-		ready.StateThroughPublicationSequence != 4 || ready.StateSourceRevision != 1 ||
+		ready.StateThroughPublicationSequence != 4+transcriptstore.EventsPerFreshRunnerClaim ||
+		ready.StateSourceRevision != 1 ||
 		ready.StateMessageCount != 3 || ready.StateArtifactReferenceCount != 2 {
 		t.Fatalf("artifact rebuilt fence=%#v", ready)
 	}
@@ -187,7 +190,8 @@ func TestRunTranscriptWebReadModelCycleBuildsAndRefreshesDurableProjection(t *te
 	if len(page.Messages) != 3 {
 		t.Fatalf("artifact page=%#v", page)
 	}
-	assertTranscriptWebReadModelMessage(t, page.Messages[2], 2, assistantMessageID, assistantMessageID, 3, 4)
+	assertTranscriptWebReadModelMessage(t, page.Messages[2], 2, assistantMessageID, assistantMessageID,
+		3+transcriptstore.EventsPerFreshRunnerClaim, 4+transcriptstore.EventsPerFreshRunnerClaim)
 	assertTranscriptWebReadModelRunnerReference(
 		t, page.Messages[2], assistantEvent.EventID, claimed.Claim.Attempt, runnerArtifact,
 	)

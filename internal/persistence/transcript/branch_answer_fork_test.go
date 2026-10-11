@@ -118,13 +118,14 @@ func TestForkFrameAskUserAnswerBranchPersistsStructuredActions(t *testing.T) {
 				stream.UID, result.BranchID).Scan(&oldResultInChild); err != nil {
 				t.Fatal(err)
 			}
-			if kind != "answer" || sourceMessageID != "ask-1" || childEvents != 4 || oldResultInChild != 0 {
+			if kind != "answer" || sourceMessageID != "ask-1" ||
+				childEvents != 4+eventsPerFreshRunnerClaim || oldResultInChild != 0 {
 				t.Fatalf("branch kind=%q source=%q events=%d oldResult=%d", kind, sourceMessageID, childEvents, oldResultInChild)
 			}
 			projected, err := repo.ListProjectedEvents(context.Background(), ListProjectedEventsInput{
 				StreamUID: stream.UID, OwnerID: stream.OwnerID, Limit: 20,
 			})
-			if err != nil || len(projected) != 4 {
+			if err != nil || len(projected) != 4+eventsPerFreshRunnerClaim {
 				t.Fatalf("active projection=%#v err=%v", projected, err)
 			}
 			for _, event := range projected {
@@ -135,7 +136,8 @@ func TestForkFrameAskUserAnswerBranchPersistsStructuredActions(t *testing.T) {
 			replay, err := repo.ListRunnerReplay(context.Background(), ListRunnerReplayInput{
 				StreamUID: stream.UID, OwnerID: stream.OwnerID, MessageLimit: 20, CheckpointLimit: 20,
 			})
-			if err != nil || len(replay) != 4 || replay[len(replay)-1].Event.EventID != result.ReplacementEvent.EventID {
+			if err != nil || len(replay) != 4 ||
+				replay[len(replay)-1].Event.EventID != result.ReplacementEvent.EventID {
 				t.Fatalf("active replay=%#v err=%v", replay, err)
 			}
 			intent, found, err := repo.GetActiveFrameTaskIntent(context.Background(), stream.UID, stream.OwnerID)
@@ -410,7 +412,7 @@ func TestForkFrameAskUserAnswerBranchRejectsInvalidTargetsAndResponsesWithoutMut
 			if err := db.QueryRow(`SELECT COUNT(*) FROM transcript_events WHERE stream_uid=?`, stream.UID).Scan(&eventCount); err != nil {
 				t.Fatal(err)
 			}
-			if branchCount != 1 || eventCount != 4 {
+			if branchCount != 1 || eventCount != 4+eventsPerFreshRunnerClaim {
 				t.Fatalf("branch count=%d event count=%d", branchCount, eventCount)
 			}
 		})
@@ -451,7 +453,7 @@ func TestForkFrameAskUserAnswerBranchRollsBackOnInactiveDeliveryRoute(t *testing
 	if err := db.QueryRow(`SELECT COUNT(*) FROM frame_events WHERE frame_id=?`, stream.FrameID).Scan(&frameEvents); err != nil {
 		t.Fatal(err)
 	}
-	if branches != 1 || events != 4 || frameEvents != 2 {
+	if branches != 1 || events != 4+eventsPerFreshRunnerClaim || frameEvents != 2 {
 		t.Fatalf("branches=%d events=%d frameEvents=%d", branches, events, frameEvents)
 	}
 }

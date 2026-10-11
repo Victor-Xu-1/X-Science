@@ -615,7 +615,9 @@ func (r *Repository) ListAllExpiredRunnerCandidatesPage(
 // ListAllExpiredUnrecoverableRunnerCandidates returns Frame attempts
 // whose lease expired at a latest non-resumable execution checkpoint. These
 // cannot be resumed safely and must be terminalized by the Frame lifecycle;
-// intentional user/approval/external waits are excluded.
+// ambiguous legacy checkpointless admissions are also retained as unknown
+// outcomes instead of being replayed. Intentional user/approval/external waits
+// and positively proved preparation admissions are excluded.
 func (r *Repository) ListAllExpiredUnrecoverableRunnerCandidates(
 	ctx context.Context,
 	limit int,
@@ -638,24 +640,25 @@ func (r *Repository) ListAllExpiredUnrecoverableRunnerCandidatesPage(
 	}
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT attempt.stream_uid, streams.owner_id, streams.frame_id,
-			attempt.attempt, checkpoint.checkpoint_sequence,
-			COALESCE(json_extract(events.payload_json,'$.reason_code'),'automatic_recovery_exhausted')
+			attempt.attempt, COALESCE(checkpoint.checkpoint_sequence,0),
+			CASE WHEN checkpoint.checkpoint_sequence IS NULL THEN '`+runnerUnknownAdmissionReason+`'
+				ELSE COALESCE(json_extract(events.payload_json,'$.reason_code'),'automatic_recovery_exhausted') END
 		FROM transcript_runner_attempts attempt
 		JOIN transcript_streams streams ON streams.stream_uid=attempt.stream_uid
-		JOIN transcript_runner_checkpoints checkpoint
+		LEFT JOIN transcript_runner_checkpoints checkpoint
 			ON checkpoint.stream_uid=attempt.stream_uid
 			AND checkpoint.runner_attempt=attempt.attempt
-		JOIN transcript_events events
+			AND checkpoint.checkpoint_sequence=(SELECT MAX(latest_checkpoint.checkpoint_sequence)
+				FROM transcript_runner_checkpoints latest_checkpoint
+				WHERE latest_checkpoint.stream_uid=attempt.stream_uid AND latest_checkpoint.runner_attempt=attempt.attempt)
+		LEFT JOIN transcript_events events
 			ON events.stream_uid=checkpoint.stream_uid AND events.event_id=checkpoint.event_id
 		WHERE attempt.status='running'
 			AND attempt.expires_at<=?
-			AND checkpoint.resumable=0
-			AND checkpoint.phase NOT IN ('waiting_user','waiting_approval','waiting_external')
-			AND checkpoint.checkpoint_sequence=(
-				SELECT MAX(latest_checkpoint.checkpoint_sequence)
-				FROM transcript_runner_checkpoints latest_checkpoint
-				WHERE latest_checkpoint.stream_uid=attempt.stream_uid
-					AND latest_checkpoint.runner_attempt=attempt.attempt)
+			AND attempt.phase NOT IN ('waiting_user','waiting_approval','waiting_external')
+			AND ((checkpoint.resumable=0 AND checkpoint.phase NOT IN ('waiting_user','waiting_approval','waiting_external'))
+				OR (checkpoint.checkpoint_sequence IS NULL AND attempt.last_checkpoint_sequence=0
+					AND NOT (`+runnerPreparationProofSQL+`)))
 			AND streams.kind='frame_ref'
 			AND attempt.attempt=(
 				SELECT MAX(latest.attempt)

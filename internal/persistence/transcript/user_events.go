@@ -66,7 +66,7 @@ func (r *Repository) appendUserEventConn(
 }
 
 // StartInternalFrameRunner closes the admission-to-claim race for internal
-// reviewer Frames. A failure rolls back the stream, input event, and claim as
+// Frames. A failure rolls back stream, input, claim and execution admission as
 // one unit, so setup cannot leave an orphan transcript behind.
 func (r *Repository) StartInternalFrameRunner(
 	ctx context.Context,
@@ -112,6 +112,15 @@ func (r *Repository) StartInternalFrameRunner(
 		}
 		if !claimed.Claimed && claimed.OwnerRunnerID != input.RunnerID {
 			return ErrEventConflict
+		}
+		if claimed.Claimed {
+			if err := admitInternalRunnerExecutionConn(ctx, conn, claimed.Claim, now); err != nil {
+				return err
+			}
+			stream, err = getStreamConn(ctx, conn, stream.UID, stream.OwnerID)
+			if err != nil {
+				return err
+			}
 		}
 		result = StartInternalFrameRunnerResult{
 			Stream: stream, Event: event, Claim: claimed.Claim,
