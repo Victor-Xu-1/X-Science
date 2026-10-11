@@ -11,9 +11,10 @@ import { html } from 'diff2html';
 import 'diff2html/bundles/css/diff2html.min.css';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
-import SyntaxHighlighter from 'react-syntax-highlighter';
-import { vs, vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+import { default as vs } from 'react-syntax-highlighter/dist/esm/styles/hljs/vs';
+import { default as vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs/vs2015';
 import { useTranslation } from 'react-i18next';
+import LazySyntaxHighlighter from '@renderer/components/Markdown/LazySyntaxHighlighter';
 
 interface DiffPreviewProps {
   content: string; // Diff content
@@ -169,7 +170,7 @@ const DiffPreview: React.FC<DiffPreviewProps> = ({
 
       <div ref={containerRef} className='flex-1 overflow-auto p-16px'>
         {viewMode === 'source' ? (
-          <SyntaxHighlighter
+          <LazySyntaxHighlighter
             style={currentTheme === 'dark' ? vs2015 : vs}
             language='diff'
             PreTag='div'
@@ -178,7 +179,7 @@ const DiffPreview: React.FC<DiffPreviewProps> = ({
             customStyle={{ fontSize: '13px', fontFamily: 'var(--font-mono)', lineHeight: 1.5 }}
           >
             {content}
-          </SyntaxHighlighter>
+          </LazySyntaxHighlighter>
         ) : (
           <div
             ref={diffContainerRef}

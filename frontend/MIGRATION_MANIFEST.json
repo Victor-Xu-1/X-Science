@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "20c23430b616bdcf24d011bbf15f149e88b4b9908fd1b0a9419c9fd31498dd78",
+  "adaptationFingerprintSHA256": "4560a3a7e2bbad3d850251c45e08c6ee8a9154fe2daf6f1c4bb2f29f02c3f89a",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "058217b5e9b7521d39f3f809040bfc55d1deb4b52e8030208383a9b47c448f8d",
+  "additionFingerprintSHA256": "3ec9bd259ef10c734c5b35571c5b6bdaa25eb9e6b470c0dc7c554555f31671d8",
   "summary": {
     "sourceFiles": 1354,
-    "unchangedSourceFiles": 344,
-    "adaptedSourceFiles": 717,
+    "unchangedSourceFiles": 343,
+    "adaptedSourceFiles": 718,
     "removedSourceFiles": 293,
-    "addedFiles": 865
+    "addedFiles": 921
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "af007b9540f2c2a2bc1d4a289847d9278ae8971d9d967defa152de976d1ce42d",
+      "targetSHA256": "eefccdf87a5c4b8b45fc2524d57674c5bed25ad9e150561220e1f3504f05c861",
       "bytes": 4378,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "3c2b07886def5615bdf64cdf4980731dcfe00ae9f7bc8c6368015a272fb046dc",
+      "targetSHA256": "bc14e63a229e3f80809d58f255752ea79246d6195c76d384c727590007d1852b",
       "bytes": 157,
       "reason": "Remove @synon-ai/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -190,6 +190,13 @@
       "reason": "Keep shared browser-safe utility behavior aligned with the complete migrated locale and runtime contracts."
     },
     {
+      "path": "packages/desktop/src/renderer/components/Markdown/CodeBlock.tsx",
+      "sourceSHA256": "628dff7dba1df8e3ad54823d235925cf523a6609153e21c9fff0ba5146c2e713",
+      "targetSHA256": "5b8063dac43aaf1cf75df9629b34f992c6062cc6f626ea44fb7bc1c1998ce0c6",
+      "bytes": 8616,
+      "reason": "Adapt shared renderer primitives for safe native previews, localized errors, accessibility, and responsive Web use."
+    },
+    {
       "path": "packages/desktop/src/renderer/components/Markdown/LocalFileLink.tsx",
       "sourceSHA256": "b41057a1e37d4808f80cf4f00ba6528a310f8f943a2d12d8e528c815c993b0fe",
       "targetSHA256": "19c2df5f545441dcdcb97117c038673245179b682ae0a4b2b3af130deb90e5d7",
@@ -199,8 +206,8 @@
     {
       "path": "packages/desktop/src/renderer/components/Markdown/MermaidBlock.tsx",
       "sourceSHA256": "0e98eab1738cd4c63f3ff018407ff9186d2209a198a254b49747e4bccdeaf099",
-      "targetSHA256": "a672fe084ac088a58566b37bcb3714f5c83dff3d11dfe0e3690f5ba6f0303e66",
-      "bytes": 10163,
+      "targetSHA256": "132633c19993978de3e51820ab44b6449b88b10266b39c47b41437fbcd933cc9",
+      "bytes": 10731,
       "reason": "Adapt shared renderer primitives for safe native previews, localized errors, accessibility, and responsive Web use."
     },
     {
@@ -430,8 +437,8 @@
     {
       "path": "packages/desktop/src/renderer/components/media/Diff2Html.tsx",
       "sourceSHA256": "2617ad4fa64e92846df3932b7ffff7104e441eac9c0414ef12d80a49efe3610a",
-      "targetSHA256": "48f73c28861524f420abdef511555fa0f6c8a6c4f2fd82d8f1d88f01110e1908",
-      "bytes": 7466,
+      "targetSHA256": "76e5d79ee32cff2713efd1f70ed6acc5236e92ba3e2855f8d507d53f0b22e30e",
+      "bytes": 7468,
       "reason": "Harden media selection, upload, diff, preview, and embedded-content states for the Go Web trust boundary."
     },
     {
@@ -1382,8 +1389,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/DiffViewer.tsx",
       "sourceSHA256": "70fa2b9679b7877ee6a9bf9360e064865158700ab0d86fc2b5abf14b7db7af43",
-      "targetSHA256": "8ba1f008bf5887e70692e88e3e9f4bc06481e3ab8d18658b9a472f4e048a058c",
-      "bytes": 7626,
+      "targetSHA256": "4c3764185da9f706e3396a5aa63bc4eadbd5d947028b516e3415d890ce6f9e45",
+      "bytes": 7761,
       "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -6803,7 +6810,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "3284055a39f2265902ebd96ef3f63282bec797b588a87b986580ad19ebcb6f35",
+      "sha256": "546d55e90ae37e4ce4ab5713d5f20ec34f990ac9996d4395e5835417743c01f4",
       "bytes": 558186,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -6938,6 +6945,18 @@
       "sha256": "b76c779937c23f313fbefeefbf070f0c817b2e2446d18de43018473275cbca12",
       "bytes": 1559,
       "reason": "Add the text-free Python kernel icon used by the single governed Compute runtime panel."
+    },
+    {
+      "path": "packages/desktop/src/renderer/components/Markdown/CodeHighlighter.tsx",
+      "sha256": "fa79ef6ca6142434a2564e7a0068265657ca4ccad55df70a4f9f453ee93ee7b8",
+      "bytes": 406,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/components/Markdown/LazySyntaxHighlighter.tsx",
+      "sha256": "b1c8aa79ab152568d22a2953ba75daf0097db5ed2d63459483f4023864238135",
+      "bytes": 2887,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
       "path": "packages/desktop/src/renderer/components/Markdown/markdownImageUrlPolicy.ts",
@@ -8621,8 +8640,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/settings/components/SettingsGeneratedAsset.tsx",
-      "sha256": "c8d64677a8275a2b6223b0c23b658adf4bcb7e09870104e98d2d0d1081ab07c9",
-      "bytes": 6318,
+      "sha256": "326ae48035d6e9b5e8344ff917c67d886778da3df4797c3c46139595d8395f3f",
+      "bytes": 6900,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8723,8 +8742,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/settings/components/settings-core.css",
-      "sha256": "b351fe77ff29a470218767e05bc17b2d78cf8d2d2c6d97fb8eab652a791a0ac8",
-      "bytes": 21446,
+      "sha256": "233747135435c547d158b998f1b87c674325473bdadc7b9dd25f133cde9f0050",
+      "bytes": 21788,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8753,8 +8772,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/settings/components/settings-layout.css",
-      "sha256": "5e2930a67d24f322efc1b72b85513d318cba5f0c9cc02cba8af9ef6b0537cc90",
-      "bytes": 4543,
+      "sha256": "966cc18c55dbca423fcca295ea8324a2f6a9e3a58fd1155a8060ddb5694b1d1e",
+      "bytes": 4689,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9322,9 +9341,21 @@
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
+      "path": "public/branding/settings-generated-v3/artwork/account-network.webp",
+      "sha256": "617ec49d0004006ef3b085421189a06d8f1a47ecc1ca11a077b43204346fab82",
+      "bytes": 498366,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
       "path": "public/branding/settings-generated-v3/artwork/book.png",
       "sha256": "197568cda63cf57e283757fab05841939fc91d1e87e07f88a43488e338011edb",
       "bytes": 54431,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
+      "path": "public/branding/settings-generated-v3/artwork/book.webp",
+      "sha256": "3e174bdb8d829955dfa55aa528176055d5222b94669b00592738812749e1441b",
+      "bytes": 36316,
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
@@ -9334,9 +9365,21 @@
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
+      "path": "public/branding/settings-generated-v3/artwork/chemistry.webp",
+      "sha256": "918cd814408cb4ab1bba2f842ffca8bd00cd63561f0a876313a561e70ecf631b",
+      "bytes": 21820,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
       "path": "public/branding/settings-generated-v3/artwork/clinical.png",
       "sha256": "8e4f1262ac046cec7fa820fd6eeb1101da4e47945bcf550bea0023dc69db4716",
       "bytes": 26041,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
+      "path": "public/branding/settings-generated-v3/artwork/clinical.webp",
+      "sha256": "dfd3cae21548af5fc1cb12f7ed4fd4956e3d313b64b212d9f00f942ca21b036e",
+      "bytes": 17100,
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
@@ -9346,9 +9389,21 @@
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
+      "path": "public/branding/settings-generated-v3/artwork/database.webp",
+      "sha256": "833bcccc864bd673bf744c5ae9b4bf2d54637d048772b9e2f40c01b319d2d0e7",
+      "bytes": 20924,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
       "path": "public/branding/settings-generated-v3/artwork/dna.png",
       "sha256": "5675bce7175daace1477fef0398f1d92865095ba65ff69d99673b7eb008ee544",
       "bytes": 44030,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
+      "path": "public/branding/settings-generated-v3/artwork/dna.webp",
+      "sha256": "07627db71dc14d95cd3b919538999333ecb33d8522825d50df708c13ed1cbd8e",
+      "bytes": 27076,
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
@@ -9358,9 +9413,21 @@
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
+      "path": "public/branding/settings-generated-v3/artwork/expression.webp",
+      "sha256": "5876d03762dfba8bcb5458f3d85cd0266e87f24363134cde356f06b7b5138458",
+      "bytes": 37758,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
       "path": "public/branding/settings-generated-v3/artwork/network-globe.png",
       "sha256": "9103c361907e600011356e082e3e85747868d83c89f7b7d775c7653800750716",
       "bytes": 844887,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
+      "path": "public/branding/settings-generated-v3/artwork/network-globe.webp",
+      "sha256": "8aa82329517039a65a8fd29a69ddf2e319137a7981ddd468638d7acda65a5742",
+      "bytes": 527524,
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
@@ -9370,9 +9437,21 @@
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
+      "path": "public/branding/settings-generated-v3/artwork/protein.webp",
+      "sha256": "6d3c5c8a718876467aaaf61c141fa83f947944e545bbde16ac2b76993a00ab66",
+      "bytes": 32888,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
       "path": "public/branding/settings-generated-v3/artwork/regulation.png",
       "sha256": "b0694bfe9c1a9b1f10f20e845b61e53c0c7cf613880268263823f1688605e1bb",
       "bytes": 35704,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
+      "path": "public/branding/settings-generated-v3/artwork/regulation.webp",
+      "sha256": "d367b50ae2c2a072981e596a6fcee664c2ca6da8d78c3501ea37fd8282fcd446",
+      "bytes": 23998,
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
@@ -9382,9 +9461,21 @@
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
+      "path": "public/branding/settings-generated-v3/artwork/rna.webp",
+      "sha256": "577bfb31e01393b9139f6923d52144b3e9724b5ad87464eeb34928a87d8ef307",
+      "bytes": 26276,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
       "path": "public/branding/settings-generated-v3/artwork/structures.png",
       "sha256": "6e8ef0ab20578f03f283b1e17d901b953b9bc93fc2816a2ecf20081cd78e21eb",
       "bytes": 33740,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
+      "path": "public/branding/settings-generated-v3/artwork/structures.webp",
+      "sha256": "94389bf2f0a8428330aed72d1f5855463ee8246020abbd180cdaa7993a509858",
+      "bytes": 25038,
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
@@ -9394,9 +9485,21 @@
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
+      "path": "public/branding/settings-generated-v3/empty/account.webp",
+      "sha256": "c32712de700018d094fd6a58b90745f58baa79b3ff0662f35f4484f686615a4c",
+      "bytes": 52166,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
       "path": "public/branding/settings-generated-v3/empty/compute.png",
       "sha256": "121a7652ec389b8464e20fbf48e7a9c0bace59bd0dd50eca432a3cf98e487024",
       "bytes": 62331,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
+      "path": "public/branding/settings-generated-v3/empty/compute.webp",
+      "sha256": "b9dc2652f93344cf296a1f7b9d2cadd658ab5998272307f8fdc409e898c13a0d",
+      "bytes": 43532,
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
@@ -9406,9 +9509,21 @@
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
+      "path": "public/branding/settings-generated-v3/empty/experts.webp",
+      "sha256": "3e0e2cee92478eb5efa0b396f95d4c5ae51b5387c772459e98cdc52e054ba66e",
+      "bytes": 52932,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
       "path": "public/branding/settings-generated-v3/empty/governance.png",
       "sha256": "9347405bd83c1fa936115adf25d7e70d08ae292ca20482eb97723243e0036cc9",
       "bytes": 68478,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
+      "path": "public/branding/settings-generated-v3/empty/governance.webp",
+      "sha256": "c8de7829b673350758bd7044c990e646db3b277cf3da3cacbc9e50f48a90e89f",
+      "bytes": 49946,
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
@@ -9418,9 +9533,21 @@
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
+      "path": "public/branding/settings-generated-v3/empty/plans.webp",
+      "sha256": "7f09a21fd68240a0f041b1b08fb424e2b8ffbe7ba73722f67e13da4c6b78cef0",
+      "bytes": 44560,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
       "path": "public/branding/settings-generated-v3/empty/storage.png",
       "sha256": "16bef5a2c53d3d2e7caa066e8e2bdec868e0a21f5c801c9fa85f488ab7905ab1",
       "bytes": 61876,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
+      "path": "public/branding/settings-generated-v3/empty/storage.webp",
+      "sha256": "7e0781f8e3031e04a36633b68f5129c56f22c26b0f1d8444a24801c266e45063",
+      "bytes": 43462,
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
@@ -9430,9 +9557,21 @@
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
+      "path": "public/branding/settings-generated-v3/icons/account.webp",
+      "sha256": "c7f4047deb60c4311be523475b4ae8c76b06a02ba13edf0ea5f207a405d769bc",
+      "bytes": 50630,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
       "path": "public/branding/settings-generated-v3/icons/compute.png",
       "sha256": "9aa1ac4eef456e9cb339c2531336a22c91864d9859c11990fa7067e5cd6625c6",
       "bytes": 69163,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
+      "path": "public/branding/settings-generated-v3/icons/compute.webp",
+      "sha256": "b4dfdd704ad5b914cac783b5dcc54de6736ee5a71d840d069a984d9cd841c64e",
+      "bytes": 50490,
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
@@ -9442,9 +9581,21 @@
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
+      "path": "public/branding/settings-generated-v3/icons/connector-bars.webp",
+      "sha256": "8feb60417e183be31a1247ae221ff83f649398f5b2667cd3318fa60ce2bbc7f8",
+      "bytes": 29612,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
       "path": "public/branding/settings-generated-v3/icons/connector-book.png",
       "sha256": "857f9c079dcf30cca4260badfeabd9cdc5a85c43077a145509ed2a4c52529e8a",
       "bytes": 52069,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
+      "path": "public/branding/settings-generated-v3/icons/connector-book.webp",
+      "sha256": "ea1eaedb83583a61f72a7b57ffcf68e284a04ef045931c794744803bab0a6c77",
+      "bytes": 38766,
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
@@ -9454,9 +9605,21 @@
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
+      "path": "public/branding/settings-generated-v3/icons/connector-clipboard.webp",
+      "sha256": "21a6bcbe0a695b6700547750e3cde6716ee732f223b2e4629f1dcc2f34ab8650",
+      "bytes": 33798,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
       "path": "public/branding/settings-generated-v3/icons/connector-cube.png",
       "sha256": "56817d12c036a3d4d26c93fdb221c306342f2a7120fa2a926300007b5b9ebd1b",
       "bytes": 51278,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
+      "path": "public/branding/settings-generated-v3/icons/connector-cube.webp",
+      "sha256": "71c9be2811170bc942d49079af9fe899f24009dbd3902b4a8c7e6196042c6b99",
+      "bytes": 35030,
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
@@ -9466,9 +9629,21 @@
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
+      "path": "public/branding/settings-generated-v3/icons/connector-database.webp",
+      "sha256": "84f20110fb3ecbdf285b5cb22cac0ca8e5a92841dfcf200bf7f3dcd14fcfa36d",
+      "bytes": 45138,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
       "path": "public/branding/settings-generated-v3/icons/connector-dna.png",
       "sha256": "bf6e50f18c79d9a1a77f8dcc2ada7d0581fc444386c66bae0a5e764f0881c03b",
       "bytes": 53437,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
+      "path": "public/branding/settings-generated-v3/icons/connector-dna.webp",
+      "sha256": "66ad32872adf832e22894a9cd288bc4aa47c93d931ebae4178526f37ab4b2e95",
+      "bytes": 37368,
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
@@ -9478,9 +9653,21 @@
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
+      "path": "public/branding/settings-generated-v3/icons/connector-molecule.webp",
+      "sha256": "e28075b72ebbbcaecbfa22a6575ecfd8e7ee4cbb10c735617d5ce30b6314735c",
+      "bytes": 35944,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
       "path": "public/branding/settings-generated-v3/icons/connector-protein.png",
       "sha256": "c3be78568d689989b65f6c209de645443d884e5d324661df2e2afe7af5e87bd5",
       "bytes": 61960,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
+      "path": "public/branding/settings-generated-v3/icons/connector-protein.webp",
+      "sha256": "7d412d0fe34931fc7a8f42346b7932c7af69d36af4e4a1db076e82d1c0bc9b94",
+      "bytes": 46216,
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
@@ -9490,9 +9677,21 @@
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
+      "path": "public/branding/settings-generated-v3/icons/connector-regulation.webp",
+      "sha256": "812b9d708bcd6a65bdc8be22c40196e4b6335dfcd4aae92ba4756b970e3e4b7c",
+      "bytes": 39628,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
       "path": "public/branding/settings-generated-v3/icons/connector-rna.png",
       "sha256": "b9e5a87bf07290bd5b660dd8b08b61a4e7f9d8b849a0354c39681d083fd8d5c5",
       "bytes": 45764,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
+      "path": "public/branding/settings-generated-v3/icons/connector-rna.webp",
+      "sha256": "2468403a83d9db6cbd6b0601bfc2d4a8950f985bbdc000d31a7d64dded69500c",
+      "bytes": 34276,
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
@@ -9502,9 +9701,21 @@
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
+      "path": "public/branding/settings-generated-v3/icons/credentials.webp",
+      "sha256": "31297714d361a466c55ffb3223b51110f6389f1f72429a34401b193e4ca5e524",
+      "bytes": 48522,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
       "path": "public/branding/settings-generated-v3/icons/experts.png",
       "sha256": "5d7c62d784c685aaa77a59c0d9e90ec92ab2fdfba5f0c0b44fcfd6ad17f87183",
       "bytes": 69579,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
+      "path": "public/branding/settings-generated-v3/icons/experts.webp",
+      "sha256": "7eaba913c73d061c2db59eefada41fa8c0c6abbb9025b5afa576f73f3e64845f",
+      "bytes": 50480,
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
@@ -9514,9 +9725,21 @@
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
+      "path": "public/branding/settings-generated-v3/icons/general.webp",
+      "sha256": "1e0b982d1a5f01062e1043b966cf26887ea487df83b60b4d292d25ac6932d07c",
+      "bytes": 42672,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
       "path": "public/branding/settings-generated-v3/icons/governance.png",
       "sha256": "af8efb31b9a151080581981ab4fdadd8da138a1f12dcb5235c8c75d80b00ec9e",
       "bytes": 71863,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
+      "path": "public/branding/settings-generated-v3/icons/governance.webp",
+      "sha256": "6e46a84d6eb88d824a420c1c06df750e5195827f57de1e3a290c170e28034e69",
+      "bytes": 51136,
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
@@ -9526,9 +9749,21 @@
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
+      "path": "public/branding/settings-generated-v3/icons/models.webp",
+      "sha256": "7e42d11d6d8ad39b8cf3df9d3a676d015820d6f884ebbd9a7af642e57ada8d42",
+      "bytes": 55510,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
       "path": "public/branding/settings-generated-v3/icons/nav-compute.png",
       "sha256": "40820f21ce9be47f2332f62465c794d85cd6a9fffecd1996d1e3184e61a5984a",
       "bytes": 14024,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
+      "path": "public/branding/settings-generated-v3/icons/nav-compute.webp",
+      "sha256": "3d5d315e610936ea5a0e6856edca038ba1c67209e15ce0f4b63372c9499a3a9e",
+      "bytes": 10432,
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
@@ -9538,9 +9773,21 @@
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
+      "path": "public/branding/settings-generated-v3/icons/nav-credentials.webp",
+      "sha256": "9a7e723d2a52790cb591c88ed72c15640e427a6bca644ab9676460a0d7c59f10",
+      "bytes": 10682,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
       "path": "public/branding/settings-generated-v3/icons/nav-experts.png",
       "sha256": "8d5ddb3dadebf1406fff00036784e9e9e32ba071d05f644fc720e3d9d9b40579",
       "bytes": 14192,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
+      "path": "public/branding/settings-generated-v3/icons/nav-experts.webp",
+      "sha256": "8170471b792af2a8362384ee091cce01c536a63450761b7baf0891c9d4ad0fa6",
+      "bytes": 9456,
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
@@ -9550,9 +9797,21 @@
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
+      "path": "public/branding/settings-generated-v3/icons/nav-general.webp",
+      "sha256": "ac682be2ddfa156f1ee35312c83500e1ace7795c8b83b997a7ad22c88d6639eb",
+      "bytes": 8126,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
       "path": "public/branding/settings-generated-v3/icons/nav-governance.png",
       "sha256": "4e69e21d4b157a066fff5a13653b91cac7f28c643cc7485895cca62c7973ea47",
       "bytes": 12522,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
+      "path": "public/branding/settings-generated-v3/icons/nav-governance.webp",
+      "sha256": "c990603aa76c55606caa6c8f29a1f59737c2920f1780003cc6331e900a6f807e",
+      "bytes": 8418,
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
@@ -9562,9 +9821,21 @@
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
+      "path": "public/branding/settings-generated-v3/icons/nav-models.webp",
+      "sha256": "9e753ad23c178c962f13c4ab5de521849e1484d8592f79a28ef878cfe1a86d7b",
+      "bytes": 12324,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
       "path": "public/branding/settings-generated-v3/icons/nav-network.png",
       "sha256": "beb0f0b3e7ab19dae3cf4f7db2ca3751461773b8a94ed71ffba98f18089583f1",
       "bytes": 19542,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
+      "path": "public/branding/settings-generated-v3/icons/nav-network.webp",
+      "sha256": "bafb17fb69e9e77b0c3164e1371c53df8f7409db796634965ae5e95155794208",
+      "bytes": 13658,
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
@@ -9574,9 +9845,21 @@
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
+      "path": "public/branding/settings-generated-v3/icons/nav-skills.webp",
+      "sha256": "33bb2e4d8318429057aaa44e7b7ffd7cf766e3402a9597e6bdc8cff64b19615b",
+      "bytes": 6582,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
       "path": "public/branding/settings-generated-v3/icons/nav-storage.png",
       "sha256": "5100cf954d457738c4ff58792edaad1d53132e9ba41c6a20a130f40215306275",
       "bytes": 10657,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
+      "path": "public/branding/settings-generated-v3/icons/nav-storage.webp",
+      "sha256": "860ab2d396fab2ce732069d6e3f1166cab6c1288801f388b1ff1d1fc7321a50e",
+      "bytes": 7290,
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
@@ -9586,9 +9869,21 @@
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
+      "path": "public/branding/settings-generated-v3/icons/nav-tools.webp",
+      "sha256": "dffcff2d469ef5cd2a31e1fb1f9a5408f9858ffbc24c42f089a64d9053319607",
+      "bytes": 8512,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
       "path": "public/branding/settings-generated-v3/icons/network.png",
       "sha256": "ab63fcdb1e0635eccdc853148c0e215738d8d1f2c27e357104eb90a529a7e76b",
       "bytes": 79392,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
+      "path": "public/branding/settings-generated-v3/icons/network.webp",
+      "sha256": "d356e03dfe16afede1f96f014c4a39e2fe367c83ebca5edb1d387e96355dc63b",
+      "bytes": 56622,
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
@@ -9598,9 +9893,21 @@
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
+      "path": "public/branding/settings-generated-v3/icons/plans.webp",
+      "sha256": "38230e8b8fa94033e684e5d19d931d8f682eef4fd9ecb2e69d89a5ba43020e3c",
+      "bytes": 49804,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
       "path": "public/branding/settings-generated-v3/icons/skills.png",
       "sha256": "83c08a893fa6fcfb85d67469ba942da8bd543f73b588b558ed60cdfbde2090c0",
       "bytes": 62606,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
+      "path": "public/branding/settings-generated-v3/icons/skills.webp",
+      "sha256": "3fa6b2c6abe8fac3f0035be43ab2b4e21030f74935e71492afb02d30829075e9",
+      "bytes": 46032,
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
@@ -9610,9 +9917,21 @@
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
+      "path": "public/branding/settings-generated-v3/icons/storage.webp",
+      "sha256": "02e5d59f427722711f07ad4ad186ce2212a7eda67c7dc0aca4eebf5322ca58d2",
+      "bytes": 43972,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
       "path": "public/branding/settings-generated-v3/icons/tools.png",
       "sha256": "ff87a518cf1e471b868c8478b10b950963ae2c0895286d9aa707b12ce5cbedf6",
       "bytes": 65639,
+      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
+    },
+    {
+      "path": "public/branding/settings-generated-v3/icons/tools.webp",
+      "sha256": "0d06471dc52d940770950e18f4b94eb835aa0dc8489fa5bd7c45a3ae8eac5811",
+      "bytes": 47378,
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
@@ -10438,9 +10757,27 @@
       "reason": "Verify authenticated first-use recovery, retry, and preserved onboarding draft state."
     },
     {
+      "path": "tests/unit/renderer/LazySyntaxHighlighter.dom.test.tsx",
+      "sha256": "bd94e8dce570c076569e54db82bd4646e0f4c7ebed1bf2deaed2244604ba21ef",
+      "bytes": 1783,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/LazySyntaxHighlighter.recovery.dom.test.tsx",
+      "sha256": "1117f23e2f144744fc9080d8bbdd4b4244b3f57884ac9a0647626c1fd04984a0",
+      "bytes": 3194,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/unit/renderer/LocalImageView.dom.test.tsx",
       "sha256": "d006f7c6ab2e53652f97015ce4580f7491400668dd8a86cc0dbbb65b7bd7cee4",
       "bytes": 3081,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/MermaidBlock.dom.test.tsx",
+      "sha256": "36abb203269678ba0890e9db1722fef4cbc49b42d6aee3116dcf5bee7bf70b32",
+      "bytes": 1842,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -11146,6 +11483,12 @@
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
+      "path": "tests/unit/settings/SettingsGeneratedAsset.dom.test.tsx",
+      "sha256": "8b2b2a64b9dc456c3219564b7a7b01fa9cb42d91615f5906ba87b6c50df640d3",
+      "bytes": 2645,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/unit/settings/SettingsLibrarySearch.dom.test.tsx",
       "sha256": "7f6126712eda45dbcec161235b998a00c60d577c89b6ac3bc96aa9919c80af9a",
       "bytes": 1419,
@@ -11255,8 +11598,8 @@
     },
     {
       "path": "tests/unit/settings/settingsVisualContract.test.ts",
-      "sha256": "04a5b5f7504b1b8846e720ea176f9f1042dc4d61c1efbda8f1ed423382fe42e7",
-      "bytes": 12374,
+      "sha256": "fc5e12b3a349a467fcf4ad62989142ac33270a46060201b5c34914ddb51eddf2",
+      "bytes": 14240,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

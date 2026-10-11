@@ -84,6 +84,11 @@
 .settings-sider__item[aria-current='page'] .settings-sider__item-label {
   font-weight: var(--ui-weight-semibold);
 }
+/* Nav icons have no layout class; keep the img as the flex item CSS sizes. */
+.settings-generated-picture--passthrough {
+  display: contents;
+}
+
 .settings-sider__item-icon,
 .settings-sider__item-icon img,
 .settings-mobile-top-nav__icon img {
