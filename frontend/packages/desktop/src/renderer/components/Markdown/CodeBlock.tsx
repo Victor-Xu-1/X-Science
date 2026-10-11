@@ -9,9 +9,10 @@ import { Copy, Down, Up } from '@icon-park/react';
 import katex from 'katex';
 import React, { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import SyntaxHighlighter from 'react-syntax-highlighter';
-import { vs, vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+import { default as vs } from 'react-syntax-highlighter/dist/esm/styles/hljs/vs';
+import { default as vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs/vs2015';
 import { copyText } from '@/renderer/utils/ui/clipboard';
+import LazySyntaxHighlighter from './LazySyntaxHighlighter';
 import MermaidBlock from './MermaidBlock';
 import { formatCode, getDiffLineStyle } from './markdownUtils';
 
@@ -185,7 +186,7 @@ function CodeBlock(props: CodeBlockProps) {
             overflowX: 'visible',
           }}
         >
-          <SyntaxHighlighter
+          <LazySyntaxHighlighter
             children={formattedContent}
             language={language}
             style={codeTheme}
