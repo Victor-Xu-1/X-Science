@@ -28,7 +28,11 @@ func newWebFSProjectTestServer(
 	}); err != nil {
 		t.Fatal(err)
 	}
-	return New(Options{FileRoot: filepath.Join(stateRoot, "runtime"), Workspace: store})
+	srv := New(Options{FileRoot: filepath.Join(stateRoot, "runtime"), Workspace: store})
+	if _, err := srv.upsertHostGrant(userID, projectRoot, "read_write"); err != nil {
+		t.Fatal(err)
+	}
+	return srv
 }
 
 func writeWebFSTestFile(t *testing.T, path string, content string) {

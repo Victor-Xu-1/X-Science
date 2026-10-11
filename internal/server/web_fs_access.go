@@ -121,11 +121,8 @@ func (s *Server) webFSRoots(userID string, includeLocalRead bool) ([]webFSRoot, 
 				return nil, err
 			}
 			for _, project := range projects {
-				if strings.TrimSpace(project.Path) == "" {
-					continue
-				}
-				if path, err := canonicalWebFSDirectory(project.Path); err == nil {
-					roots = append(roots, webFSRoot{Path: path, Writable: true})
+				if root, ok := s.authorizedProjectWebFSRoot(userID, project.ID, project.Path); ok {
+					roots = append(roots, root)
 				}
 			}
 			if len(projects) < 1000 {
