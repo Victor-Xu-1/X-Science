@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "7e5887dc6c5c0f329d5a1953972ff4d89c2c2fdc6cfe351a25d3cb2c6899b7ab",
+  "adaptationFingerprintSHA256": "9877051f75db3a917a7d88562f635a676f4b2563bc06e1bb5849e4097e331a6e",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "2a3a1884d7de611d3c32a9d0e6d23c08a1df8a5f4a929428740f457df2e7ac3b",
+  "additionFingerprintSHA256": "dc6b4131c9521b3ed64fca8b7cb17c9c07c97d4c02b4100ec929db962841c519",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 345,
     "adaptedSourceFiles": 716,
     "removedSourceFiles": 293,
-    "addedFiles": 856
+    "addedFiles": 858
   },
   "adaptations": [
     {
@@ -5015,8 +5015,8 @@
     {
       "path": "vite.config.ts",
       "sourceSHA256": "71a926e99f8994aaabf2b98ac6e24e768b0656135e071c75f4ca479200fa7d7b",
-      "targetSHA256": "96914d70aa9c4d2d34d4bdbfdd114fce648283442483ac3c2ec13cd91e81c5fd",
-      "bytes": 12125,
+      "targetSHA256": "acf98f39a4ec71d31bae7fe4eff38b1b07aa7d3d9248f6b7b0d4ae98926cc7fb",
+      "bytes": 12352,
       "reason": "Use the granular UnoCSS Vite integration."
     },
     {
@@ -9735,6 +9735,12 @@
       "reason": "Restore the validated cached light or dark appearance before renderer startup without allowing inline scripts."
     },
     {
+      "path": "scripts/molstarPickingPatch.ts",
+      "sha256": "1cb47ec0a85ea77c34cfd1818a776c51a727cba27635ca592821e8d2efe85754",
+      "bytes": 2077,
+      "reason": "Keep explicit molecular picks synchronous when the locked Molstar hover GPU read is pending, consistently in production and development bundles."
+    },
+    {
       "path": "scripts/rendererBoot.ts",
       "sha256": "ea797f3014ad9235587400b4fdea8c5753084f5ff6444f1b627613c467989093",
       "bytes": 1700,
@@ -10002,6 +10008,12 @@
       "path": "tests/unit/layout/githubStarBadge.test.ts",
       "sha256": "6424c0b75c5d6c03e39e2187e8ae4f94fcd564c1508d3d0f521c0b1fcf639fb9",
       "bytes": 3806,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/molstarPickingPatch.test.ts",
+      "sha256": "3319fe8fded2ef2b4cef1d611166103ff4dee2e6c0101ce63909925bd91c4127",
+      "bytes": 4266,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
