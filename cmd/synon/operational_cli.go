@@ -8,7 +8,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -290,14 +289,11 @@ func resolveDoctorBaseURL(value string) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("load runtime config for doctor: %w", err)
 		}
-		host, port, err := net.SplitHostPort(cfg.Address())
+		address, err := runtimeClientAddress(cfg)
 		if err != nil {
 			return "", fmt.Errorf("resolve runtime address for doctor: %w", err)
 		}
-		if host == "" || host == "0.0.0.0" || host == "::" {
-			host = "127.0.0.1"
-		}
-		value = "http://" + net.JoinHostPort(host, port)
+		value = "http://" + address
 	}
 	parsed, err := url.Parse(value)
 	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {

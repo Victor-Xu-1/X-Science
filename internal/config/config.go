@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/netip"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -629,7 +630,10 @@ func applyAddressEnv(cfg *Config) error {
 }
 
 func validateRuntimeBinding(cfg Config) error {
-	host := strings.Trim(strings.TrimSpace(cfg.Host), "[]")
+	host, err := normalizedRuntimeHost(cfg.Host)
+	if err != nil {
+		return err
+	}
 	if strings.EqualFold(host, "localhost") {
 		return nil
 	}
@@ -648,11 +652,42 @@ func validateRuntimeBinding(cfg Config) error {
 }
 
 func (c Config) Address() string {
-	host := c.Host
-	if strings.HasPrefix(host, "[") && strings.HasSuffix(host, "]") {
-		host = host[1 : len(host)-1]
+	host, err := normalizedRuntimeHost(c.Host)
+	if err != nil {
+		// Load rejects invalid hosts before startup. A manual Config must not
+		// reuse a raw host:port or let an empty string start a wildcard listener.
+		// This missing closing bracket is deliberately unbindable syntax.
+		return "[invalid-runtime-host"
 	}
 	return net.JoinHostPort(host, strconv.Itoa(c.Port))
+}
+
+func normalizedRuntimeHost(raw string) (string, error) {
+	host := strings.TrimSpace(raw)
+	invalid := func() (string, error) {
+		return "", errors.New("invalid runtime host: expected a hostname, IP address, or bracketed IPv6 address")
+	}
+	if host == "" || strings.ContainsRune(host, '\x00') || strings.IndexFunc(host, unicode.IsSpace) >= 0 {
+		return invalid()
+	}
+	if strings.ContainsAny(host, "[]") {
+		if len(host) <= 2 || !strings.HasPrefix(host, "[") || !strings.HasSuffix(host, "]") {
+			return invalid()
+		}
+		inner := host[1 : len(host)-1]
+		address, err := netip.ParseAddr(inner)
+		if err != nil || !address.Is6() {
+			return invalid()
+		}
+		return inner, nil
+	}
+	if strings.ContainsRune(host, ':') {
+		address, err := netip.ParseAddr(host)
+		if err != nil || !address.Is6() {
+			return invalid()
+		}
+	}
+	return host, nil
 }
 
 func defaultHome() string {

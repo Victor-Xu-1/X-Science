@@ -541,17 +541,6 @@ func runServer(info buildinfo.Info, cfg config.Config, tlsResolver *networktls.R
 	}
 }
 
-func browserLoginURL(cfg config.Config) string {
-	host, port, err := net.SplitHostPort(cfg.Address())
-	if err != nil {
-		return "http://" + cfg.Address() + "/#/login"
-	}
-	if host == "" || host == "0.0.0.0" || host == "::" {
-		host = "127.0.0.1"
-	}
-	return "http://" + net.JoinHostPort(host, port) + "/#/login"
-}
-
 func applyRuntimeMemoryConfig(options server.Options, cfg config.Config) server.Options {
 	memory := cfg.Memory
 	options.MemoryConfig = &memory

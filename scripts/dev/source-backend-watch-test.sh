@@ -19,9 +19,9 @@ PROBE_LEGACY_PID_FILE="$TMP_DIR/probe-legacy.pid"
 PROBE_BINARY="$TMP_DIR/probe-state/synon-go"
 
 cleanup() {
-  # The intentionally broken help fixture ignores TERM. Kill only its recorded
-  # owned fixture process; its bounded sleep finishes naturally, and GNU timeout
-  # then reaps its child. Do this before waiting for the outer watcher.
+  # The stalled native help fixture ignores TERM. Kill only its recorded owned
+  # fixture when an assertion interrupts the probe; the foreground timeout
+  # remains its parent and reaps it before we wait for the outer watcher.
   if [[ -f "$PROBE_HELP_PID_FILE" ]]; then
     local probe_pid="$(<"$PROBE_HELP_PID_FILE")"
     if kill -0 "$probe_pid" 2>/dev/null &&
@@ -175,9 +175,16 @@ run_probe_timeout_regression() {
 #!/usr/bin/env bash
 set -Eeuo pipefail
 if [[ "${1:-}" == "serve" && "${2:-}" == "--help" ]]; then
-  printf '%s\n' "$$" >"$FAKE_PROBE_HELP_PID"
-  trap '' TERM
-  while true; do sleep .05; done
+  # A native TERM-ignoring leaf isolates timeout's own wait/reap contract.
+  # Spawning sleep grandchildren would test an unrelated descendant owner.
+  exec python3 - "$FAKE_PROBE_HELP_PID" "$0" <<'PROBE_HELP'
+import os, signal, sys
+signal.signal(signal.SIGTERM, signal.SIG_IGN)
+with open(sys.argv[1], 'w') as handle:
+    handle.write(str(os.getpid()) + '\n')
+while True:
+    signal.pause()
+PROBE_HELP
 fi
 [[ "$*" != *'--runtime-endpoint-file'* ]] || exit 2
 printf '%s\n' "$$" >"$FAKE_PROBE_LEGACY_PID"
@@ -205,7 +212,9 @@ PROBE_BINARY
     return 1
   }
   [[ -f "$PROBE_HELP_PID_FILE" ]] || { echo 'help fixture never ran' >&2; return 1; }
-  ! kill -0 "$(<"$PROBE_HELP_PID_FILE")" 2>/dev/null || {
+  local help_pid="$(<"$PROBE_HELP_PID_FILE")"
+  printf 'source-backend-probe-help-pid:%s\n' "$help_pid"
+  ! kill -0 "$help_pid" 2>/dev/null || {
     echo 'read-only legacy help process survived the bounded probe' >&2
     return 1
   }
