@@ -247,3 +247,21 @@ func TestDetachedRecoveryForegroundWaitRetainsOnlyValidAuthority(t *testing.T) {
 		}
 	}
 }
+
+func TestDetachedRecoverySkipsStartProjectionForOwnedObserver(t *testing.T) {
+	f := newDetachedRecoveryFixture(t, true)
+	ctx := context.Background()
+	_, cancel, reserved := f.server.reserveDetachedKernelObserver(ctx, f.execution.ExecutionID)
+	if !reserved {
+		t.Fatal("observer reservation failed")
+	}
+	defer f.server.releaseDetachedKernelObserver(f.execution.ExecutionID, cancel)
+	candidate := workspace.DetachedKernelExecutionRecoveryCandidate{Operation: f.operation, Execution: f.execution}
+	if err := f.server.recoverDetachedKernelExecution(ctx, candidate); err != nil {
+		t.Fatal(err)
+	}
+	var count int
+	if err := f.db.QueryRow(`SELECT COUNT(*) FROM frame_events WHERE event_type='kernel_execution_background_started'`).Scan(&count); err != nil || count != 0 {
+		t.Fatalf("owned observer caused redundant start projection: count=%d err=%v", count, err)
+	}
+}

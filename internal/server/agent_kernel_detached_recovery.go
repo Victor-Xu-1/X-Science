@@ -142,11 +142,6 @@ func (s *Server) recoverDetachedKernelExecution(
 	} else {
 		started.StartedAt = execution.AcceptedAt.UTC()
 	}
-	if request.Background {
-		if err := s.recordAgentKernelBackgroundStart(access, started); err != nil {
-			return fmt.Errorf("restore detached kernel background execution: %w", err)
-		}
-	}
 	ref := kernelruntime.BackendExecutionRef{
 		ExecutionID: execution.ExecutionID, OperationID: execution.OperationID,
 		BackendID: execution.BackendID, BackendGeneration: execution.BackendGeneration,
@@ -162,6 +157,13 @@ func (s *Server) recoverDetachedKernelExecution(
 			s.releaseDetachedKernelObserver(execution.ExecutionID, cancelObserver)
 		}
 	}()
+	// Existing observers already own their start projection. Avoid replaying
+	// a database transaction and live event on every same-boot recovery scan.
+	if request.Background {
+		if err := s.recordAgentKernelBackgroundStart(access, started); err != nil {
+			return fmt.Errorf("restore detached kernel background execution: %w", err)
+		}
+	}
 	if execution.State == workspace.DetachedKernelExecutionStateTerminal {
 		_, err := s.settleDetachedAgentKernelExecution(
 			ctx, access, spec, backendSession, started, execution,
