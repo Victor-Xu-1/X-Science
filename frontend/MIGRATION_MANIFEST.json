@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "4e8f1b540f2ade00a9c2b19716c9818301a3d3697b7c109a0aad5362a7d91bdd",
+  "adaptationFingerprintSHA256": "f3040dc47d8ac44864a08886d4ce26ee300f8f60d9b5dc54fec8c894a448bc3f",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "99535032b73dcd6ee594e8634f7cb9ef47e9d818173cddbb3c3f92d00dc1f06a",
+  "additionFingerprintSHA256": "23cdf39d2361390793cd0f5dffa441123bdb22e04082ee63fd58200488ac205c",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 344,
@@ -7949,8 +7949,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/editors/documentWysiwygModel.ts",
-      "sha256": "907d4ef8b63b0bb12c51db97fecdd920333253ffc5686e465684a2521830fd6e",
-      "bytes": 5962,
+      "sha256": "ffb0baf24456d3f33d3d4d3ec5670d28af9d258dbe979ac49d8c3088d8edbc15",
+      "bytes": 7355,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10073,8 +10073,8 @@
     },
     {
       "path": "tests/unit/previews/DocumentWysiwygEditor.dom.test.tsx",
-      "sha256": "8693bce5a51706fdbd281eb1781d8b438899461e1b7d5f3eec8a32301901060f",
-      "bytes": 16108,
+      "sha256": "691142aff82b7e7fccb24c884ae54b38fc41431f0fce1d3642f08b0efa3b7972",
+      "bytes": 21918,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
