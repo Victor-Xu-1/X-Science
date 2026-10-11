@@ -1,5 +1,6 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import DocumentWysiwygEditor from '@/renderer/pages/conversation/Preview/components/editors/DocumentWysiwygEditor';
 import {
@@ -9,6 +10,7 @@ import {
 } from '@/renderer/pages/conversation/Preview/components/editors/documentWysiwygModel';
 import {
   buildDocumentLinkHtml,
+  buildDocumentImageHtml,
   buildDocumentTableHtml,
   validateDocumentResourceSource,
 } from '@/renderer/pages/conversation/Preview/components/editors/documentResourceModel';
@@ -321,13 +323,52 @@ describe('documentWysiwygModel', () => {
     expect(document).not.toContain('data:text/html');
   });
 
-  it('does not let resource destinations break out of Markdown link syntax', () => {
+  it('does not let resource destinations break out of Markdown link syntax', async () => {
     const html =
       '<a href="https://safe.example" data-synon-original-href="https://safe.example/) [Injected](javascript:bad())">Evidence</a>';
     const markdown = markdownFromEditableHtml(html);
 
     expect(markdown).not.toContain(') [Injected](javascript:');
     expect(markdown).toContain('https://safe.example/\\) \\[Injected\\]\\(javascript:bad\\(\\)\\)');
+    const destinations: string[] = [];
+    await renderWithI18n(
+      <ReactMarkdown
+        urlTransform={(source) => {
+          destinations.push(decodeURIComponent(source));
+          return source;
+        }}
+      >
+        {markdown}
+      </ReactMarkdown>
+    );
+    expect(destinations).toEqual(['https://safe.example/) [Injected](javascript:bad())']);
+    expect(screen.getAllByRole('link')).toHaveLength(1);
+  });
+
+  it('roundtrips whitespace resource paths through the actual CommonMark parser', async () => {
+    const sources = [
+      '../My Results/report (final).md',
+      'C:\\Research Files\\report (final).md',
+      'https://safe.example/My Paper (draft).html',
+    ];
+    const imageSource = '../My Figures/chart (final).png';
+    const html =
+      sources.map((source, index) => buildDocumentLinkHtml(source, `Evidence ${index}`)).join('') +
+      buildDocumentImageHtml(imageSource, 'Plot', '/safe-display.png');
+    const markdown = markdownFromEditableHtml(html);
+    const destinations: string[] = [];
+    await renderWithI18n(
+      <ReactMarkdown
+        urlTransform={(source) => {
+          destinations.push(decodeURIComponent(source));
+          return source;
+        }}
+      >
+        {markdown}
+      </ReactMarkdown>
+    );
+    expect(destinations).toEqual([...sources, imageSource]);
+    expect(screen.getAllByRole('link')).toHaveLength(sources.length);
   });
 
   it('keeps resource metadata from becoming raw HTML in exported Markdown', () => {

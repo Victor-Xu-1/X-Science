@@ -131,7 +131,8 @@ function validatedResourceSource(
 }
 
 function escapeMarkdownDestination(source: string): string {
-  return source.replace(/[\\()[\]<>]/g, '\\$&');
+  const escaped = source.replace(/[\\()[\]<>]/g, '\\$&');
+  return /\s/.test(source) ? `<${escaped}>` : escaped;
 }
 
 function escapeMarkdownTitle(title: string): string {
