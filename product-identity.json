@@ -1,6 +1,6 @@
 {
   "schema": "synon.product-identity.v1",
   "display_name": "X-Science",
-  "version": "0.1.62",
+  "version": "0.1.63",
   "machine_slug": "x-science"
 }

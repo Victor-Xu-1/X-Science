@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "125562c24466fd565e204d07319b75ffbacf9ce97d15c6d2ae5d48cc0910f892",
+  "adaptationFingerprintSHA256": "f6ec292859ea28e598590b010660dcee654f88acec5b17ebc2684a83a2e8c859",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "7fd4e54c1c0b93c1c058e58d460c4c44c3f893f86df22ca870bb29f676c7609a",
+  "additionFingerprintSHA256": "daf02a73a3dc001b3e6ecfd873dcb9762da044719931394b043f8030ca2ac210",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 343,
@@ -17,14 +17,14 @@
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "f99e8ab33140190585e5db11f163ba5a8dbf2f792909fc085068773719f52b37",
+      "targetSHA256": "6998ea95dbfbfa8a0ef61b0956870a766729f0b512398658e3833b82c5bf8635",
       "bytes": 4378,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "0ed36e4d968301455e00b93e54f02ac28bc729dd6a145546fa4bdf53e96dd947",
+      "targetSHA256": "64d9281bb07d2a6338fc406960f878f3f0bae86b38bf3368bb3cb278dca589ca",
       "bytes": 157,
       "reason": "Remove @synon-ai/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -6810,7 +6810,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "93ca06cb435672f5a83c31feeb47f1ab72249c2fc4d66ea50caaf5a822e2e37f",
+      "sha256": "c20ab52a6de774581f7f27c63069dae8ccf38852ebacf1c9c0e4fd1e2db9ec8b",
       "bytes": 558186,
       "reason": "Deterministic npm build dependency lock."
     },
