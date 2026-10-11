@@ -1165,6 +1165,17 @@ Never paste the secret vault, environment file, channel tokens, model keys, or u
 
 ### File-tool feedback and structured source inspection
 
+An interrupted agent round returns the completed conversation and tool receipts
+with its original error, not an empty history or a fabricated successful final
+answer. Caller cancellation stops before the next model-request event. Rejected
+later proposals are not promoted to completed state.
+
+Non-streaming JSON body-read failures on successful responses can use the
+existing bounded transport retry before decoding or executing any tool. Permanent
+HTTP rejection remains non-retryable even if its body disconnects. Throttling and
+service-outage responses retain their capped Retry-After advice; cancellation,
+response-size limits and the normal attempt cap remain authoritative.
+
 Stream header and private-planning deadlines share an ordered cancellation
 boundary. If stopping a deadline wins first, a queued timer cannot cancel the
 request afterwards; if expiry wins first, stopping waits for that native context

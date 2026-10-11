@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "package": "@x-science/workbench-web",
-  "lockfileSHA256": "235ab2294d07e67d1d60b52a5c279f75a009a61784b61c5104cff48498ea1899",
+  "lockfileSHA256": "9180ca12e95ed0afbcd1b9b5b725e383e1d10191bad852067de50160154c06b0",
   "summary": {
     "records": 1130,
     "workspaceLinkRecords": 1,
@@ -7945,7 +7945,7 @@
   "workspaceLinks": [
     {
       "name": "@x-science/workbench-renderer",
-      "version": "0.1.46",
+      "version": "0.1.48",
       "path": "packages/desktop",
       "basis": "local workspace package; source licensing reviewed separately"
     }

@@ -3,6 +3,8 @@ package providers
 import (
 	"context"
 	"errors"
+	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"sync/atomic"
@@ -89,6 +91,31 @@ func TestParseProviderRetryAfterCapsServerDelay(t *testing.T) {
 		t.Fatalf("retry delay = %s", got)
 	}
 }
+func TestRuntimeModelClientRetriesDroppedSuccessBody(t *testing.T) {
+	var calls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		calls.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"role":"assistant","content":"recovered"}}]}`))
+	}))
+	defer server.Close()
+
+	client, err := NewRuntimeModelClient(ModelProfile{
+		Provider: ProviderProfile{ID: "retry", Type: "openai", Protocol: ProtocolOpenAICompatible, Endpoint: server.URL},
+		Model:    "retry-model", Request: RequestProfile{MaxAttempts: 2},
+	}, &http.Client{Transport: &firstBodyResetTransport{next: server.Client().Transport}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response, err := client.Complete(t.Context(), agentruntime.ModelRequest{Messages: []agentruntime.Message{{Role: "user", Content: "continue"}}})
+	if err != nil || response.Message.Content != "recovered" {
+		t.Fatalf("response=%#v error=%v", response, err)
+	}
+	if calls.Load() != 2 {
+		t.Fatalf("calls = %d", calls.Load())
+	}
+}
+
 func TestRuntimeModelClientDoesNotReplayExhaustedQuota(t *testing.T) {
 	var calls atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -109,4 +136,25 @@ func TestRuntimeModelClientDoesNotReplayExhaustedQuota(t *testing.T) {
 	if err == nil || calls.Load() != 1 {
 		t.Fatalf("error=%v calls=%d; exhausted quota must stop replay", err, calls.Load())
 	}
+}
+
+type firstBodyResetTransport struct {
+	next  http.RoundTripper
+	calls atomic.Int32
+}
+
+func (t *firstBodyResetTransport) RoundTrip(request *http.Request) (*http.Response, error) {
+	response, err := t.next.RoundTrip(request)
+	if err != nil || response == nil || t.calls.Add(1) != 1 {
+		return response, err
+	}
+	_ = response.Body.Close()
+	response.Body = io.NopCloser(&resetBodyReader{})
+	return response, nil
+}
+
+type resetBodyReader struct{}
+
+func (*resetBodyReader) Read([]byte) (int, error) {
+	return 0, &net.OpError{Op: "read", Net: "tcp", Err: errors.New("connection reset by peer")}
 }
