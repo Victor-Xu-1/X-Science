@@ -11,7 +11,10 @@ import tempfile
 import threading
 import unittest
 
-from scripts.quality.kernel_worker_process_outcomes_cases import WorkerProcessOutcomeCases
+if __package__:
+    from .kernel_worker_process_outcomes_cases import WorkerProcessOutcomeCases
+else:
+    from kernel_worker_process_outcomes_cases import WorkerProcessOutcomeCases
 
 WORKER = Path(__file__).resolve().parents[2] / "assets/optional/kernels/kernel_worker.py"
 
