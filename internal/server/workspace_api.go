@@ -108,7 +108,16 @@ func (s *Server) handleWorkspaceProjects(w http.ResponseWriter, r *http.Request)
 		writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": err.Error()})
 		return
 	}
-	project, err := store.CreateProjectRealtime(r.Context(), workspace.CreateProjectInput{ID: input.ID, UserID: userID, Name: input.Name, Path: input.Path}, "")
+	projectID := strings.TrimSpace(input.ID)
+	if projectID == "" {
+		projectID = uuid.NewString()
+	}
+	projectPath, err := s.resolveAuthorizedProjectPath(userID, projectID, input.Path, true)
+	if err != nil {
+		writeWorkspaceJSON(w, projectPathStatus(err), map[string]any{"ok": false, "error": err.Error()})
+		return
+	}
+	project, err := store.CreateProjectRealtime(r.Context(), workspace.CreateProjectInput{ID: projectID, UserID: userID, Name: input.Name, Path: projectPath}, "")
 	if err != nil {
 		writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 		return
@@ -706,7 +715,16 @@ func (s *Server) handleWorkspaceProject(w http.ResponseWriter, r *http.Request) 
 				writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": err.Error()})
 				return
 			}
-			project, err := store.UpdateProjectRealtime(r.Context(), projectID, userID, workspace.UpdateProjectInput{Name: input.Name, Path: input.Path}, "")
+			update := workspace.UpdateProjectInput{Name: input.Name, Path: input.Path}
+			if input.Path != nil {
+				authorized, err := s.resolveAuthorizedProjectPath(userID, projectID, *input.Path, false)
+				if err != nil {
+					writeWorkspaceJSON(w, projectPathStatus(err), map[string]any{"ok": false, "error": err.Error()})
+					return
+				}
+				update.Path = &authorized
+			}
+			project, err := store.UpdateProjectRealtime(r.Context(), projectID, userID, update, "")
 			if err != nil {
 				writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 				return
@@ -1170,4 +1188,11 @@ func workspaceStatus(err error) int {
 		return http.StatusConflict
 	}
 	return http.StatusBadRequest
+}
+
+func projectPathStatus(err error) int {
+	if errors.Is(err, errProjectPathForbidden) {
+		return http.StatusForbidden
+	}
+	return workspaceStatus(err)
 }

@@ -42,6 +42,9 @@ func TestWebFSProjectOperationsUseRealFilesystem(t *testing.T) {
 		t.Fatal(err)
 	}
 	srv := New(Options{FileRoot: filepath.Join(stateRoot, "runtime"), Workspace: store})
+	if _, err := srv.upsertHostGrant("local", projectRoot, "read_write"); err != nil {
+		t.Fatal(err)
+	}
 	handler := srv.Handler()
 
 	dirResponse := webFSTestRequest(t, handler, http.MethodPost, "/api/fs/dir", "local", map[string]any{
@@ -207,6 +210,9 @@ func TestWebFSAuthorizationGrantsTraversalAndCopy(t *testing.T) {
 		SynonLinkAuth: SynonLinkAuthOptions{Username: "operator", Password: "strong-password", UserID: "owner"},
 	})
 	handler := http.HandlerFunc(srv.handleWebFS)
+	if _, err := srv.upsertHostGrant("owner", ownedRoot, "read_write"); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := srv.upsertHostGrant("owner", readRoot, "read"); err != nil {
 		t.Fatal(err)
 	}
