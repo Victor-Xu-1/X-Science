@@ -784,6 +784,10 @@ func TestManagedInferenceComputeProviderUsesExactLoopbackProxyAndBaseURL(t *test
 	if err != nil || !found {
 		t.Fatalf("inference frame found=%t err=%v", found, err)
 	}
+	workspaceDir, err = server.admitAgentWorkspace(access, access.ProjectPath)
+	if err != nil || workspaceDir == access.ProjectPath {
+		t.Fatalf("ungranted inference workspace was not admitted as a managed task: path=%q err=%v", workspaceDir, err)
+	}
 	identity := &agentKernelContext{access: access, workspaceDir: workspaceDir}
 	if !agentRuntimeToolSchemaNamed(server.agentKernelToolSchemas(identity, nil), computeProviderToolName) {
 		t.Fatal("managed inference did not expose compute_provider")
@@ -897,6 +901,10 @@ func TestHostedInferenceProviderInjectsCredentialByFDAndTunnelsExactTLSHost(t *t
 	access, found, err := store.GetKernelFrameAccessContext(context.Background(), "frame-hosted")
 	if err != nil || !found {
 		t.Fatalf("hosted frame found=%t err=%v", found, err)
+	}
+	workspaceDir, err = server.admitAgentWorkspace(access, access.ProjectPath)
+	if err != nil || workspaceDir == access.ProjectPath {
+		t.Fatalf("ungranted hosted workspace was not admitted as a managed task: path=%q err=%v", workspaceDir, err)
 	}
 	identity := &agentKernelContext{access: access, workspaceDir: workspaceDir}
 	code := `
