@@ -110,6 +110,9 @@ func newAgentSaveArtifactsFixtureWithKernelManager(t *testing.T, manager *kernel
 		t.Fatal(err)
 	}
 	app := New(Options{Workspace: store, Transcript: repo, FileRoot: fileRoot, KernelManager: manager})
+	if _, err := app.upsertHostGrant(access.UserID, projectPath, "read_write"); err != nil {
+		t.Fatal(err)
+	}
 	fixture := &agentSaveArtifactsFixture{
 		server: app, store: store, repo: repo, db: db, stream: stream, claim: claimed.Claim,
 		identity:    &agentKernelContext{access: access, workspaceDir: projectPath},

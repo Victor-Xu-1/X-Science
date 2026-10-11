@@ -15,8 +15,8 @@ func TestAgentRuntimeToolSchemasHideWorktreeToolsOutsideGitProject(t *testing.T)
 	store, manager, app, identity := newKernelHostTestRuntime(t, filepath.Join(t.TempDir(), "workspace.db"), true)
 	defer closeKernelHostTestRuntime(t, app, manager, store)
 
-	nonGit := identity.workspaceDir
-	if err := os.MkdirAll(nonGit, 0o700); err != nil {
+	nonGit, err := app.defaultAgentKernelWorkspace(identity.access.Frame.ProjectID)
+	if err != nil {
 		t.Fatal(err)
 	}
 	if _, err := store.UpdateProject(identity.access.Frame.ProjectID, workspace.UpdateProjectInput{Path: &nonGit}); err != nil {
@@ -42,13 +42,31 @@ func TestAgentRuntimeToolSchemasHideWorktreeToolsOutsideGitProject(t *testing.T)
 		}
 	}
 
-	command := exec.Command("git", "init", nonGit)
+	_, admitted, authorized := app.resolveAgentWorkspaceAuthority(context.Background(), identity.access.Frame.ID)
+	if !authorized {
+		t.Fatal("managed project workspace was not admitted before git init")
+	}
+	if info, err := os.Stat(admitted); err != nil || !info.IsDir() {
+		t.Fatalf("managed project workspace missing before git init: %v", err)
+	}
+
+	command := exec.Command("git", "init", admitted)
 	command.Env = append(os.Environ(), "GIT_CONFIG_NOSYSTEM=1")
 	if output, err := command.CombinedOutput(); err != nil {
 		t.Fatalf("git init: %v: %s", err, output)
 	}
+	_, workspaceDir, authorized := app.resolveAgentWorkspaceAuthority(context.Background(), identity.access.Frame.ID)
+	if !authorized {
+		t.Fatal("managed project workspace was not admitted after git init")
+	}
+	if _, err := findGitRoot(context.Background(), workspaceDir); err != nil {
+		t.Fatalf("resolved workspace %q is not a git repository: %v", workspaceDir, err)
+	}
 	resolved := app.resolveAgentKernelContext(context.Background(), identity.access.Frame.ID)
 	if resolved == nil {
+		if !app.kernelConfinementEvidence(false).Available {
+			return
+		}
 		t.Fatal("resolved kernel context is unavailable after git init")
 	}
 	if _, err := findGitRoot(context.Background(), resolved.workspaceDir); err != nil {
