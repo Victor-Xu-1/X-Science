@@ -371,6 +371,28 @@ describe('documentWysiwygModel', () => {
     expect(screen.getAllByRole('link')).toHaveLength(sources.length);
   });
 
+  it.each(['ftp://example.org/file', 'sms:+15551234567', 'cid:attachment'])(
+    'keeps rejected retained-DOM anchor %s as plain content',
+    async (source) => {
+      expect(validateDocumentResourceSource(source, 'link').valid).toBe(false);
+      const markdown = markdownFromEditableHtml(`<a href="${source}">Evidence</a>`);
+      const destinations: string[] = [];
+      await renderWithI18n(
+        <ReactMarkdown
+          urlTransform={(destination) => {
+            destinations.push(destination);
+            return destination;
+          }}
+        >
+          {markdown}
+        </ReactMarkdown>
+      );
+      expect(destinations).toEqual([]);
+      expect(markdown).toBe('Evidence');
+      expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    }
+  );
+
   it('keeps resource metadata from becoming raw HTML in exported Markdown', () => {
     const markdown = markdownFromEditableHtml(
       '<a href="https://safe.example" data-synon-original-href="https://safe.example/&lt;img src=x onerror=bad&gt;">Evidence</a>' +

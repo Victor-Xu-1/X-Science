@@ -54,14 +54,15 @@ export function markdownFromEditableHtml(html: string): string {
     },
   });
   turndown.addRule('synon-artifact-link-source', {
-    filter: (node) =>
-      node.nodeName === 'A' &&
-      Boolean(validatedResourceSource(node as Element, ORIGINAL_LINK_ATTRIBUTE, 'href', 'link')),
+    // Own rejected anchors too: native Turndown would otherwise restore a
+    // protocol that DOMPurify permits but the shared resource policy rejects.
+    filter: 'a',
     replacement: (content, node) => {
       const link = node as HTMLAnchorElement;
       const source = restoreMarkdownResourceSource(
         validatedResourceSource(link, ORIGINAL_LINK_ATTRIBUTE, 'href', 'link')
       );
+      if (!source) return content;
       const title = link.getAttribute('title');
       return `[${content}](${escapeMarkdownDestination(source)}${title ? ` "${escapeMarkdownTitle(title)}"` : ''})`;
     },
