@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import re
 from pathlib import Path
@@ -148,6 +149,26 @@ def metadata_paths(repo: Path, base: str, head: str) -> set[str]:
         return set()
 
 
+def _matrix_for_projection_selection(value: dict) -> dict:
+    normalized = copy.deepcopy(value)
+    inventory = normalized.get("consumer_inventory")
+    if isinstance(inventory, list):
+        for entry in inventory:
+            if isinstance(entry, dict):
+                entry.pop("current_disposition", None)
+    return normalized
+
+
+def version_projection_registry_unchanged(repo: Path, base: str, head: str) -> bool:
+    """Projection registry edits change consumer bindings; disposition notes do not."""
+    try:
+        before = _matrix_for_projection_selection(document(snapshot(repo, base, MATRIX)))
+        after = _matrix_for_projection_selection(document(snapshot(repo, head, MATRIX)))
+        return before == after
+    except (OSError, ValueError, KeyError, TypeError, UnicodeError, subprocess.SubprocessError):
+        return False
+
+
 def filter_paths(repo: Path, base: str, head: str, paths: list[str]) -> tuple[list[str], list[str]]:
     ignored = metadata_paths(repo, base, head) if IDENTITY in paths else set()
     if IDENTITY in paths and IDENTITY not in ignored and identity_version_only(repo, base, head):
@@ -183,7 +204,13 @@ def version_projection_paths(repo: Path, base: str, head: str) -> set[str]:
     checks. It only prevents inert counter fields being treated as test inputs.
     """
     try:
-        if not identity_version_only(repo, base, head):
+        if not version_projection_registry_unchanged(repo, base, head):
+            return set()
+        before = document(snapshot(repo, base, IDENTITY))
+        after = document(snapshot(repo, head, IDENTITY))
+        require_next_version(before["version"], after["version"])
+        replace_pointer(before, "/version", before["version"], after["version"])
+        if before != after:
             return set()
         projected = {IDENTITY: ["/version"]}
         for entry in document(snapshot(repo, base, MATRIX))["product_version_projections"]:

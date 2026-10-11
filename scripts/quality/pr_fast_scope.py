@@ -192,7 +192,10 @@ def main() -> int:
                 if result.returncode:
                     return result.returncode
         if args.frontend:
-            affected = frontend_affected(behavior_paths, repo)
+            projections = pr_metadata_scope.version_projection_paths(repo, args.base, args.head)
+            frontend_behavior = [path for path in behavior_paths
+                                 if path not in projections and path not in pr_frontend_scope.PROVENANCE]
+            affected = frontend_affected(frontend_behavior, repo)
             if not affected and not metadata_paths:
                 print("No frontend package is affected by this change; Go and policy gates remain active.")
                 return 0
@@ -205,7 +208,6 @@ def main() -> int:
             if not affected:
                 print("Only proved version metadata changed; fresh provenance passed, no frontend suite/build required.")
                 return 0
-            projections = pr_metadata_scope.version_projection_paths(repo, args.base, args.head)
             frontend_inputs = [path for path in behavior_paths if path not in projections]
             related = pr_frontend_scope.related_command(frontend_inputs)
             fixtures = pr_frontend_scope.fixture_command(frontend_inputs, repo)
