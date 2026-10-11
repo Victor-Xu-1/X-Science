@@ -139,4 +139,28 @@ describe('v1.1 session action modals', () => {
     expect(screen.getByRole('region', { name: 'Execution cell 1' })).toHaveTextContent('print("STAT6")');
     expect(screen.getByText('STAT6')).toBeInTheDocument();
   });
+
+  it.each(['cancel', 'close', 'escape'] as const)(
+    'keeps %s available while the project catalogue is loading',
+    async (action) => {
+      const onCancel = vi.fn();
+      await renderWithI18n(
+        <SessionMoveModal
+          conversation={conversation}
+          projects={[]}
+          currentProjectId='project-a'
+          loading
+          error={null}
+          onCancel={onCancel}
+          onSubmit={vi.fn()}
+        />,
+        'en-US'
+      );
+      await screen.findByRole('dialog');
+      if (action === 'escape')
+        fireEvent.keyDown(screen.getByRole('button', { name: 'Close', exact: true }), { key: 'Escape', keyCode: 27 });
+      else fireEvent.click(screen.getByRole('button', { name: action === 'close' ? 'Close' : 'Cancel', exact: true }));
+      expect(onCancel).toHaveBeenCalledOnce();
+    }
+  );
 });

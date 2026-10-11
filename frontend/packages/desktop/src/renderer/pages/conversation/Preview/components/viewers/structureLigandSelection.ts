@@ -93,6 +93,49 @@ export function selectStructureLigandLoci(
     );
 }
 
+/** A partial atom pick must belong to exactly one complete native instance. */
+export function resolveSingleStructureLigandInstance(
+  structure: Structure,
+  selection: StructureElement.Loci | undefined,
+  format = '',
+  fallbackResidueName?: string
+): StructureLigandInstance | undefined {
+  const protein = StructureQuery.loci(StructureSelectionQueries.protein.query, structure);
+  const instances = splitStructureLigands(
+    queryStructureLigands(structure, format),
+    !StructureElement.Loci.isEmpty(protein)
+  );
+  const picked = selection && StructureElement.Loci.remap(selection, structure);
+  const candidates =
+    picked && !StructureElement.Loci.isEmpty(picked)
+      ? instances.filter((instance) =>
+          StructureElement.Loci.isEmpty(StructureElement.Loci.subtract(picked, instance.loci))
+        )
+      : fallbackResidueName
+        ? instances.filter((instance) => instance.residueName.toUpperCase() === fallbackResidueName.toUpperCase())
+        : [];
+  return candidates.length === 1 ? candidates[0] : undefined;
+}
+
+/** PDB response serials map back to the same native instance authority. */
+export function resolveStructureLigandInstanceByAtomSerial(structure: Structure, serial: number, format = '') {
+  const protein = StructureQuery.loci(StructureSelectionQueries.protein.query, structure);
+  const candidates = splitStructureLigands(
+    queryStructureLigands(structure, format),
+    !StructureElement.Loci.isEmpty(protein)
+  ).filter((instance) =>
+    instance.loci.elements.some(({ unit, indices }) => {
+      if (!Unit.isAtomic(unit)) return false;
+      for (let i = 0; i < OrderedSet.size(indices); i += 1) {
+        if (unit.model.atomicConformation.atomId.value(unit.elements[OrderedSet.getAt(indices, i)]) === serial)
+          return true;
+      }
+      return false;
+    })
+  );
+  return candidates.length === 1 ? candidates[0] : undefined;
+}
+
 /** A preset consumes native selected atom identities; an explicit empty selection stays empty. */
 export function resolveStructureViewLigandLoci(
   structure: Structure,

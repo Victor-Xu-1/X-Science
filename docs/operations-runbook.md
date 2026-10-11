@@ -59,6 +59,30 @@ authorize a release.
 
 ## Public source checkout
 
+### Recoverable settings and workbench interactions
+
+Contact email reads distinguish loading, unavailable and known values. Changes
+are disabled until the current notice and contact state are known. Retry reloads
+only the contact read; it never repeats a successful save or removal. Concurrent
+button and keyboard submissions are serialized.
+
+Compute job metadata, stdout, stderr and session providers have independent
+read states. A failed log is not an empty log, and an unavailable provider list
+does not mean all providers are disabled. Retry reloads the failed section;
+switching jobs discards replies belonging to the previous job. Log tabs support
+arrow keys and Home/End using the shared keyboard navigation behavior.
+Provider changes stay bound to their session root across dialog openings. A
+completed change refreshes the currently open matching root from the server,
+superseding any pre-change read without reissuing the write. Other roots remain
+independently usable.
+
+The conversation Move dialog can be cancelled while its project catalogue is
+loading. Closing or reopening it invalidates the previous read. Once a move is
+submitted, the dialog waits for its server outcome and prevents duplicate writes;
+a failed move keeps the original task and target selection available for retry.
+Title editing distinguishes input-method composition confirmation from a normal
+Enter submission, preserving Chinese and other composed input.
+
 ### Scientific Toolkit and skills library
 
 Settings → Scientific Toolkit combines Experts, Skills, Connectors and Scientific
@@ -1105,6 +1129,25 @@ Never paste the secret vault, environment file, channel tokens, model keys, or u
 | Native Windows R install reports a path or generation collision | Resolved state root, `conda/envs/.generations/synon-biomed-r` directory, marker's full generation, and `p` package cache | Preserve the failed prefix and installer error; do not rename/delete an active cache or old generation. Use a separate state root only after assessing existing data and path length. |
 
 ### File-tool feedback and structured source inspection
+
+An interrupted agent round returns the completed conversation and tool receipts
+with its original error, not an empty history or a fabricated successful final
+answer. Caller cancellation stops before the next model-request event. Rejected
+later proposals are not promoted to completed state.
+
+Non-streaming JSON body-read failures on successful responses can use the
+existing bounded transport retry before decoding or executing any tool. Permanent
+HTTP rejection remains non-retryable even if its body disconnects. Throttling and
+service-outage responses retain their capped Retry-After advice; cancellation,
+response-size limits and the normal attempt cap remain authoritative.
+
+Stream header and private-planning deadlines share an ordered cancellation
+boundary. If stopping a deadline wins first, a queued timer cannot cancel the
+request afterwards; if expiry wins first, stopping waits for that native context
+cancellation to complete and preserves its original cause. Header absence retains
+the bounded transport retry classification. Private-only generation after headers
+retains its action-progress limit; useful output and caller cancellation keep their
+existing contracts. This is not a total deadline for a scientific task.
 
 OpenAI-compatible streamed function arguments retain complete assembly before
 attempting compatibility recovery. Recovery recognizes root-level object

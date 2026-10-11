@@ -2,6 +2,7 @@ package providers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -234,5 +235,98 @@ func TestToolPlanningPrivateStallPreservesAcceptedPrefix(t *testing.T) {
 	}, func(event agentruntime.ModelStreamEvent) error { accepted.WriteString(event.ContentDelta); return nil })
 	if !IsRecoverableStreamInterruption(err) || IsProviderEmptyResponse(err) || accepted.String() != "Accepted prefix." || requests.Load() != 1 {
 		t.Fatalf("prefix was discarded/replayed or private stall persisted: err=%v text=%q requests=%d", err, accepted.String(), requests.Load())
+	}
+}
+
+func TestProviderStreamHeaderDeadlineTimesOutWhenHeadersNeverArrive(t *testing.T) {
+	ctx, cancel := context.WithCancelCause(context.Background())
+	stop := providerStreamHeaderDeadline(agentruntime.ModelRequest{}, 15*time.Millisecond, cancel)
+	defer stop()
+	select {
+	case <-ctx.Done():
+	case <-time.After(2 * time.Second):
+		t.Fatal("missing headers did not reach the deadline")
+	}
+	if !errors.Is(context.Cause(ctx), errOpenAIChatStreamFirstByteTimeout) {
+		t.Fatalf("cause=%v", context.Cause(ctx))
+	}
+}
+
+func TestProviderStreamHeaderDeadlineStopFirstRetainsLiveRequest(t *testing.T) {
+	ctx, cancel := context.WithCancelCause(t.Context())
+	stop := providerStreamHeaderDeadline(agentruntime.ModelRequest{}, time.Hour, cancel)
+	stop()
+	stop()
+	if cause := context.Cause(ctx); cause != nil {
+		t.Fatalf("stopping a pending header deadline cancelled the request: %v", cause)
+	}
+}
+
+func TestProviderHeaderStopWaitsForCommittedCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancelCause(t.Context())
+	entered := make(chan struct{})
+	release := make(chan struct{})
+	stopReturned := make(chan struct{})
+	stop := providerStreamHeaderDeadline(agentruntime.ModelRequest{}, 0, func(cause error) {
+		close(entered)
+		<-release
+		cancel(cause)
+	})
+	select {
+	case <-entered:
+	case <-time.After(2 * time.Second):
+		t.Fatal("timer did not enter cancellation")
+	}
+	go func() { stop(); close(stopReturned) }()
+	returnedBeforeCancel := false
+	select {
+	case <-stopReturned:
+		returnedBeforeCancel = true
+	case <-time.After(30 * time.Millisecond):
+	}
+	close(release)
+	select {
+	case <-stopReturned:
+	case <-time.After(2 * time.Second):
+		t.Fatal("stop did not complete after cancellation")
+	}
+	if returnedBeforeCancel {
+		t.Fatal("stop returned while a committed cancellation could still cancel the request later")
+	}
+	if !errors.Is(context.Cause(ctx), errOpenAIChatStreamFirstByteTimeout) {
+		t.Fatalf("timer-first ordering lost its timeout cause: %v", context.Cause(ctx))
+	}
+}
+
+func TestProviderStreamHeaderDeadlineAllowsSlowHeadersBeforeDeadline(t *testing.T) {
+	const headerDelay = 25 * time.Millisecond
+	const deadline = time.Second
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(headerDelay)
+		w.Header().Set("Content-Type", "text/event-stream")
+		_, _ = w.Write([]byte("data: {\"choices\":[{\"delta\":{\"content\":\"ok\"},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n"))
+	}))
+	defer server.Close()
+
+	client, err := NewRuntimeModelClient(ModelProfile{
+		Provider: ProviderProfile{ID: "header-race", Type: "openai", Protocol: ProtocolOpenAICompatible, Endpoint: server.URL},
+		Model:    "model", Request: RequestProfile{Timeout: deadline, MaxAttempts: 1, MaxResponseBytes: 64 << 10},
+	}, server.Client(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	parent, cancel := context.WithCancelCause(context.Background())
+	defer cancel(nil)
+	result, err := client.(agentruntime.StreamingModelClient).CompleteStream(parent, agentruntime.ModelRequest{
+		Messages: []agentruntime.Message{{Role: "user", Content: "stream"}},
+	}, func(agentruntime.ModelStreamEvent) error { return nil })
+	if err != nil {
+		t.Fatalf("slow headers cancelled productive stream: %v", err)
+	}
+	if strings.TrimSpace(result.Message.Content) != "ok" {
+		t.Fatalf("content=%q", result.Message.Content)
+	}
+	if cause := context.Cause(parent); cause != nil {
+		t.Fatalf("spurious cancel cause=%v", cause)
 	}
 }

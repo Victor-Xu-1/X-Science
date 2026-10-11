@@ -121,6 +121,7 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "scripts/molstarPickingPatch.ts": "Keep explicit molecular picks synchronous when the locked Molstar hover GPU read is pending, consistently in production and development bundles.",
     "packages/desktop/src/common/config/productIdentity.ts": "Project the singular root product identity into the browser and centralize the current public repository and original brand mark.",
     "packages/desktop/src/renderer/components/branding/ProductBrand.tsx": "Render one original approved mark and root-derived name across current workbench entry points.",
     "packages/desktop/src/renderer/components/branding/ProductBrand.css": "Keep the shared mark unmodified and coordinate compact and prominent responsive brand geometry.",
@@ -526,9 +527,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "eb599bf7d56cc33bc5b156601d60a956f7848856525b92896926018d315b243a"
+APPROVED_ADAPTATION_FINGERPRINT = "0b91ab2947b319d4e35c47f94ddbb150d27ad04517e38816a607f66009efa1ae"
 APPROVED_REMOVAL_FINGERPRINT = "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119"
-APPROVED_ADDITION_FINGERPRINT = "d799bd5d7abd164fd272da9810abe47a9bdd23f57436646c86a2fb71eb1bcf63"
+APPROVED_ADDITION_FINGERPRINT = "3ed770c36ff5aa3eafe6b9e9d1d2073dd19f807085a23a3ac0f4b422519d33c8"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

@@ -42,6 +42,58 @@ Host RPC is implemented by the existing `synon_host_bridge` adapter; Go binds
 each call to the active cell and its allowed methods. Interpreter helpers and
 audit hooks do not replace the OS sandbox or server authorization.
 
+## Durable detached execution recovery
+
+Runner lease renewal retries transient store contention only inside the remaining
+owned grant, rather than the short four-attempt preparation budget. The retry
+requires a deadline before making a write, honors parent cancellation, and returns
+permanent errors immediately. Durable expiry and immutable claim fences are still
+checked by the store after acquiring its lock; retrying does not create or extend
+authority itself. Ordinary preparation writes retain their existing attempt cap.
+
+On the supported detached backend, accepting physical work reserves one observer
+before the durable execution becomes visible to recovery. Foreground waiting and
+background supervision share that reservation; reconnecting does not start a
+second execution or replace its operation identity.
+
+The immutable result receipt is authoritative even after the executor socket
+disappears. Settlement retains execution, operation, backend generation, request
+and confinement bindings and verifies the existing result/spool digests. A
+foreground observation, control-renewal or persistence failure is not a terminal
+calculation result: accepted work remains under the existing recovery authority.
+Explicit identity and runner-claim rejection is not converted into authorization.
+
+Proven executor loss without a terminal receipt settles as `outcome_unknown`,
+including during the original service boot. A live process is not declared dead
+because its socket or heartbeat is temporarily unavailable. The detached-only
+transition preserves current owner/frame incarnations and any live source runner;
+cancelled tasks are not requeued. It does not retry the physical calculation.
+
+An interrupted evidence-loss settlement remains eligible until its operation is
+materialized. Operation state, result, terminal event and notification use the
+existing atomic settlement path and idempotency identities. Recovery scans use
+an immutable execution-ID cursor and wait after a complete scan, so a full page
+of active work cannot permanently hide later results.
+
+Focused lifecycle regressions use temporary persistence and controlled process
+identity. They establish these recovery contracts, not a guarantee of uninterrupted
+24-hour hardware availability or scientific validity.
+
+## Progress and transfer supervision
+
+Progress observation waits for the authoritative execution result, not a total
+calculation duration cap. An execution callback panic or exit without a result
+must produce an error rather than terminate the service or leave its observer
+running forever. Ordinary execution errors and successful results remain intact.
+
+An HTTP idle deadline is committed separately from received bytes. Read completion
+invalidates a queued close; a committed close finishes before the next read starts.
+Received bytes and eventual EOF cannot erase a deadline that committed before
+read completion. Bytes remain available, with both the causal idle timeout and
+the underlying read outcome retained; a read that wins the race is not closed
+by a late callback. Transport retry, authorization and persistence remain with
+their existing callers.
+
 ## Observation effects
 
 Scientific implementation selection does not itself authorize or prohibit a
@@ -190,3 +242,14 @@ Go kernel tests separately exercise real confinement, host calls, provider
 credentials, session identity, cancellation and restart through the manager.
 Full application acceptance and distribution licensing are separate gates;
 passing these tests is not permission to publish unreviewed third-party assets.
+
+The protocol regression entry supports both direct-file and package-module
+invocation without adding the repository root to global PYTHONPATH. Both
+entry modes accept named cases, including inherited process-outcome cases.
+For example:
+
+    python3 -B scripts/quality/test_kernel_worker_protocol.py WorkerProtocolTests.test_discarded_nonzero_results_are_executed_failures
+    python3 -B -m unittest scripts.quality.test_kernel_worker_protocol.WorkerProtocolTests.test_persistent_namespace_and_expression
+
+These fixtures use temporary worker processes and real interpreter pipes;
+they do not run a user research task or establish long-duration endurance.

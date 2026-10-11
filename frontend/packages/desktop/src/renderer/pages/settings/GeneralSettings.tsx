@@ -1,6 +1,6 @@
 import { Input, Message, Select, Tag } from '@arco-design/web-react';
 import Modal from '@/renderer/components/base/WorkbenchModal';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   COOL_DARK_THEME_ID,
@@ -24,6 +24,7 @@ import SettingsPageWrapper from './components/SettingsPageWrapper';
 import ThirdPartyLicensesModal from './components/ThirdPartyLicensesModal';
 import { SettingsSection } from './components/SettingsPrimitives';
 import MessageChannelsSettings from './MessageChannelsSettings';
+import { useSettingsReadResource } from './components/useSettingsReadResource';
 
 declare const __APP_VERSION__: string;
 const APP_VERSION = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'dev';
@@ -46,11 +47,15 @@ function getVisualThemeId(preset: VisualThemePreset): string {
 }
 
 const GeneralSettings: React.FC = () => {
-  const { i18n, t } = useTranslation();
+  const { t } = useTranslation();
   const { selectTheme, activeId: activeThemeId, activeTheme } = useThemeContext();
   const selectedThemeId = activeThemeId ?? SYSTEM_THEME_ID;
   const activeVisualTheme = getVisualThemePreset(selectedThemeId, activeTheme?.id);
-  const [contact, setContact] = useState<SynonBiomedContactEmail | null>(null);
+  const contactRead = useSettingsReadResource('contact', loadSynonBiomedContactEmail);
+  const contact = contactRead.data;
+  const [savingEmail, setSavingEmail] = useState(false);
+  const mutation = useRef(false);
+  const alive = useRef(true);
   const [emailEditor, setEmailEditor] = useState(false);
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState(false);
@@ -58,48 +63,55 @@ const GeneralSettings: React.FC = () => {
   const [removingEmail, setRemovingEmail] = useState(false);
   const [licenseOpen, setLicenseOpen] = useState(false);
 
-  const refresh = useCallback(async () => {
-    try {
-      const nextContact = await loadSynonBiomedContactEmail();
-      setContact(nextContact);
-    } catch (error) {
-      console.error('Failed to load general settings:', error);
-      Message.error(i18n.t('settings.generalSettings.loadGeneralFailed'));
-    }
-  }, [i18n]);
-
-  useEffect(() => void refresh(), [refresh]);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
 
   const saveEmail = async () => {
     const value = email.trim();
-    if (!value || !contact) return;
+    if (!value || !contact || contactRead.status !== 'ready' || mutation.current) return;
     if (!isValidContactEmail(value)) {
       setEmailError(true);
       return;
     }
+    mutation.current = true;
+    setSavingEmail(true);
     try {
       await setSynonBiomedContactEmail(value, contact.noticeVersion);
+      if (!alive.current) return;
       setEmailEditor(false);
       setEmail('');
       setEmailError(false);
-      await refresh();
+      await contactRead.refresh();
     } catch (error) {
+      if (!alive.current) return;
       console.error('Failed to save contact email:', error);
       Message.error(t('settings.generalSettings.saveContactFailed'));
+    } finally {
+      mutation.current = false;
+      if (alive.current) setSavingEmail(false);
     }
   };
 
   const removeEmail = async () => {
+    if (mutation.current || contactRead.status !== 'ready') return;
+    mutation.current = true;
     setRemovingEmail(true);
     try {
       await removeSynonBiomedContactEmail();
+      if (!alive.current) return;
       setRemoveEmailOpen(false);
-      await refresh();
+      await contactRead.refresh();
     } catch (error) {
+      if (!alive.current) return;
       console.error('Failed to remove contact email:', error);
       Message.error(t('settings.generalSettings.removeContactFailed'));
     } finally {
-      setRemovingEmail(false);
+      mutation.current = false;
+      if (alive.current) setRemovingEmail(false);
     }
   };
 
@@ -164,6 +176,7 @@ const GeneralSettings: React.FC = () => {
               <button
                 type='button'
                 className='settings-action-button'
+                disabled={contactRead.status !== 'ready' || savingEmail || removingEmail}
                 onClick={() => {
                   setEmail(contact?.email ?? '');
                   setEmailError(false);
@@ -175,7 +188,12 @@ const GeneralSettings: React.FC = () => {
                   : t('settings.generalSettings.set')}
               </button>
               {contact?.decision && contact.decision !== 'revoked' ? (
-                <button type='button' className='settings-text-danger-button' onClick={() => setRemoveEmailOpen(true)}>
+                <button
+                  type='button'
+                  className='settings-text-danger-button'
+                  disabled={contactRead.status !== 'ready' || savingEmail || removingEmail}
+                  onClick={() => setRemoveEmailOpen(true)}
+                >
                   {t('settings.generalSettings.remove')}
                 </button>
               ) : null}
@@ -183,10 +201,23 @@ const GeneralSettings: React.FC = () => {
           }
         >
           <div className='py-12px'>
-            <div className='flex items-center gap-8px'>
-              <span className='text-13px text-t-primary'>{contactStatus(contact, t)}</span>
-              {contact?.noticeStale ? <Tag color='orange'>{t('settings.generalSettings.contactStale')}</Tag> : null}
-            </div>
+            {contactRead.status === 'loading' ? (
+              <p role='status'>{t('settings.generalSettings.contactLoading')}</p>
+            ) : null}
+            {contactRead.status === 'failed' ? (
+              <div role='alert'>
+                <p>{t('settings.generalSettings.contactLoadFailed')}</p>
+                <button type='button' className='settings-action-button' onClick={() => void contactRead.refresh()}>
+                  {t('settings.generalSettings.contactRetry')}
+                </button>
+              </div>
+            ) : null}
+            {contactRead.status === 'ready' ? (
+              <div className='flex items-center gap-8px'>
+                <span className='text-13px text-t-primary'>{contactStatus(contact, t)}</span>
+                {contact?.noticeStale ? <Tag color='orange'>{t('settings.generalSettings.contactStale')}</Tag> : null}
+              </div>
+            ) : null}
             <p className='m-0 mt-5px text-11px text-t-tertiary'>{t('settings.generalSettings.contactDescription')}</p>
             {emailEditor ? (
               <div className='mt-12px flex flex-col gap-9px'>
@@ -194,6 +225,7 @@ const GeneralSettings: React.FC = () => {
                 <div className='flex gap-8px'>
                   <Input
                     value={email}
+                    disabled={savingEmail || removingEmail}
                     onChange={(value) => {
                       setEmail(value);
                       setEmailError(false);
@@ -207,7 +239,7 @@ const GeneralSettings: React.FC = () => {
                   <button
                     type='button'
                     className='settings-action-button'
-                    disabled={!email.trim()}
+                    disabled={!email.trim() || contactRead.status !== 'ready' || savingEmail || removingEmail}
                     onClick={() => void saveEmail()}
                   >
                     {t('settings.generalSettings.agreeAndSave')}

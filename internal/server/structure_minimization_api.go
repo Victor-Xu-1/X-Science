@@ -34,6 +34,9 @@ const (
 //go:embed structure_minimization.py
 var structureMinimizationProgram []byte
 
+//go:embed structure_minimization_selection.py
+var structureMinimizationSelectionProgram []byte
+
 type structureMinimizationRequest struct {
 	Content            string  `json:"content"`
 	Filename           string  `json:"filename"`
@@ -41,6 +44,7 @@ type structureMinimizationRequest struct {
 	Scope              string  `json:"scope,omitempty"`
 	ProteinEnvironment string  `json:"protein_environment,omitempty"`
 	LigandResidueName  string  `json:"ligand_residue_name,omitempty"`
+	LigandAtomSerial   *int    `json:"ligand_atom_serial,omitempty"`
 	MaxIterations      int     `json:"max_iterations,omitempty"`
 	Tolerance          float64 `json:"tolerance,omitempty"`
 }
@@ -116,6 +120,9 @@ func (s *Server) handleStructureMinimization(w http.ResponseWriter, r *http.Requ
 		},
 		TimeoutSeconds: 5 * 60,
 	}
+	if request.LigandAtomSerial != nil {
+		runtimeRequest.Arguments = append(runtimeRequest.Arguments, "--ligand-atom-serial", strconv.Itoa(*request.LigandAtomSerial))
+	}
 	rawCanonicalRequest, err := software.CanonicalRequestJSON(runtimeRequest)
 	if err != nil {
 		writeStructureMinimizationError(w, http.StatusInternalServerError, "runtime_request_invalid", "the structure minimization runtime request could not be admitted", false)
@@ -157,6 +164,10 @@ func (s *Server) handleStructureMinimization(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	if err := os.WriteFile(scriptPath, structureMinimizationProgram, 0o600); err != nil {
+		writeStructureMinimizationError(w, http.StatusInternalServerError, "runtime_stage_failed", "the structure minimization runtime could not be staged", false)
+		return
+	}
+	if err := os.WriteFile(filepath.Join(operationDir, "structure_minimization_selection.py"), structureMinimizationSelectionProgram, 0o600); err != nil {
 		writeStructureMinimizationError(w, http.StatusInternalServerError, "runtime_stage_failed", "the structure minimization runtime could not be staged", false)
 		return
 	}
@@ -315,6 +326,12 @@ func decodeStructureMinimizationRequest(r *http.Request) (structureMinimizationR
 			return structureMinimizationRequest{}, errors.New("ligand_residue_name must be a PDB residue name")
 		}
 	}
+	if request.LigandAtomSerial != nil {
+		format, err := normalizeStructureMinimizationFormat(request.Filename)
+		if *request.LigandAtomSerial < 1 || *request.LigandAtomSerial > 99999 || err != nil || format.input != "pdb" {
+			return structureMinimizationRequest{}, errors.New("ligand_atom_serial must identify an atom in a PDB current pose")
+		}
+	}
 	if request.MaxIterations == 0 {
 		request.MaxIterations = 200
 	}
@@ -452,6 +469,12 @@ func structureMinimizationFailureMessage(report map[string]any) string {
 		"input contains no ligand",
 		"input contains multiple molecules; open one ligand before minimizing",
 		"specified ligand residue is not present in the current pose",
+		"specified ligand atom is not present in the current pose",
+		"specified ligand atom does not belong to the requested ligand residue",
+		"PDB atom serials are missing or ambiguous",
+		"selected ligand conformer is ambiguous",
+		"selected residue is not a declared non-polymer ligand",
+		"current pose contains multiple PDB models; choose one active model before minimizing",
 		"the protein complex contains multiple ligand candidates; open one ligand pose before minimizing",
 		"a conformer could not be generated for the input molecule",
 		"a 3D conformer could not be generated for the input molecule",

@@ -5,6 +5,8 @@ import { gzipSync } from 'node:zlib';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithI18n } from '../i18nTestUtils';
+import type { StructureMinimizationPose } from '@/renderer/pages/conversation/Preview/components/viewers/structureMinimizationInput';
+import { DOUBLE_BOND_MOL, DOUBLE_BOND_SDF } from '../../fixtures/structureLigands';
 
 const structureViewerCss = readFileSync(
   resolve(
@@ -87,6 +89,13 @@ const molstarMocks = vi.hoisted(() => {
     })),
     clearPocketFocus: vi.fn(async () => undefined),
     getSelectedLigandResidueName: vi.fn(() => undefined as string | undefined),
+    exportMinimizationPose: vi.fn((sourcePdb?: string): StructureMinimizationPose => ({
+      content: sourcePdb ?? 'current pose structure',
+      format: 'pdb',
+      ligandResidueName: 'LIG',
+      ligandAtomSerial: 1,
+    })),
+    setStructureLigandSelectionByAtomSerial: vi.fn(async () => undefined),
     getTrajectoryModelState: vi.fn(() => ({ index: 0, count: 1 })),
     getStructureComposition: vi.fn(() => ({
       objects: [],
@@ -477,6 +486,15 @@ describe('SynonBiomedStructureViewer', () => {
       ligand: electrostaticTransportMocks.dx,
     });
     molstarMocks.engine.getSelectedLigandResidueName.mockReturnValue(undefined);
+    molstarMocks.engine.exportMinimizationPose
+      .mockReset()
+      .mockImplementation((sourcePdb?: string): StructureMinimizationPose => ({
+        content: sourcePdb ?? molstarMocks.engine.exportCurrentPose().content,
+        format: 'pdb',
+        ligandResidueName: molstarMocks.engine.getSelectedLigandResidueName() ?? 'LIG',
+        ligandAtomSerial: 1,
+      }));
+    molstarMocks.engine.setStructureLigandSelectionByAtomSerial.mockReset().mockResolvedValue(undefined);
     molstarMocks.engine.getPrimaryLigandDepictionSource.mockReturnValue(undefined);
     molstarMocks.engine.getElectrostaticInputSource.mockReset();
     molstarMocks.engine.hasElectrostaticLigandInput.mockReset().mockReturnValue(true);
@@ -800,11 +818,11 @@ describe('SynonBiomedStructureViewer', () => {
         })
       );
       const list = screen.getByTestId('synon-biomed-structure-object-list');
-      fireEvent.click(
-        within(list).getByRole('button', {
-          name: view.i18n.t('preview.scientific.structure.quickActions.clearAllCompounds'),
-        })
-      );
+      const clear = within(list).getByRole('button', {
+        name: view.i18n.t('preview.scientific.structure.quickActions.clearAllCompounds'),
+      });
+      clear.focus();
+      fireEvent.click(clear);
       await waitFor(() => expect(molstarMocks.engine.setStructureLigandSelection).toHaveBeenLastCalledWith([]));
       const pocket = screen.getByTestId('synon-biomed-molstar-quick-pocket');
       await waitFor(() => expect(pocket).toBeDisabled());
@@ -813,8 +831,52 @@ describe('SynonBiomedStructureViewer', () => {
         'title',
         view.i18n.t('preview.scientific.structure.quickActions.availability.ligand')
       );
+      await waitFor(() =>
+        expect(
+          within(list).getByRole('button', {
+            name: view.i18n.t('preview.scientific.structure.quickActions.selectAllCompounds'),
+          })
+        ).toHaveFocus()
+      );
     }
   );
+
+  it.each([false, true])('settles action focus without taking a newer destination (%s)', async (moveFocus) => {
+    const composition = ordinaryMultiLigandComposition();
+    composition.objects = composition.objects.filter((object) => object.id === 'first');
+    composition.hasProtein = false;
+    composition.atomCount = composition.objects[0].atomCount;
+    molstarMocks.engine.load.mockResolvedValueOnce(composition);
+    await renderWithI18n(<SynonBiomedStructureViewer filename='ligand.sdf' content='synthetic mol block' />, 'en-US');
+    fireEvent.click(await screen.findByRole('button', { name: 'Expand the left toolbar' }));
+    const line = screen.getByRole('button', { name: 'Line' });
+    await waitFor(() => expect(line).toBeEnabled());
+    let finish!: () => void;
+    molstarMocks.engine.applyRepresentationStyle.mockImplementationOnce(
+      () => new Promise<void>((resolve) => (finish = resolve))
+    );
+    line.focus();
+    fireEvent.click(line);
+    await waitFor(() => expect(line).toBeDisabled());
+    // Model native disabled-button focus loss explicitly: jsdom's blur on a
+    // disabled button otherwise leaves it active and masks this regression.
+    const bodyTabIndex = document.body.getAttribute('tabindex');
+    document.body.tabIndex = -1;
+    document.body.focus();
+    if (bodyTabIndex === null) document.body.removeAttribute('tabindex');
+    else document.body.setAttribute('tabindex', bodyTabIndex);
+    expect(document.activeElement).toBe(document.body);
+    const newer = document.createElement('button');
+    document.body.append(newer);
+    if (moveFocus) newer.focus();
+    try {
+      await act(async () => finish());
+      await waitFor(() => expect(line).toBeEnabled());
+      await waitFor(() => expect(moveFocus ? newer : line).toHaveFocus());
+    } finally {
+      newer.remove();
+    }
+  });
 
   it('restores a sole ligand after clearing the compound selection', async () => {
     const composition = ordinaryMultiLigandComposition();
@@ -3278,10 +3340,68 @@ describe('SynonBiomedStructureViewer', () => {
       scope: 'ligand',
       protein_environment: 'fixed',
       ligand_residue_name: 'LIG',
+      ligand_atom_serial: 1,
       max_iterations: 200,
       tolerance: 1e-4,
     });
     expect(screen.getByText('Ligand energy minimization completed (6 heavy atoms).')).toBeInTheDocument();
+  });
+
+  it('submits the chemical pose without a PDB-only serial and reloads its chemical format', async () => {
+    molstarMocks.engine.getSelectedLigandResidueName.mockReturnValue('MOL');
+    molstarMocks.engine.exportMinimizationPose.mockReturnValue({
+      content: DOUBLE_BOND_SDF,
+      format: 'sdf',
+      atomElements: ['C', 'C'],
+      ligandResidueName: 'MOL',
+    });
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            ok: true,
+            status: 'completed',
+            content: DOUBLE_BOND_MOL.replace('    1.3400', '    1.3257') + '$$$$\n',
+            filename: 'chemical-minimized.sdf',
+            format: 'sdf',
+            atom_count: 2,
+            ligand_atom_count: 2,
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        )
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    await act(async () => {
+      await renderWithI18n(
+        <SynonBiomedStructureViewer filename='chemical.sdf' content={DOUBLE_BOND_SDF} rootFrameId='frame-1' />,
+        'en-US'
+      );
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    const minimize = await screen.findByRole('button', { name: 'Energy minimization' });
+    await waitFor(() => expect(minimize).toBeEnabled());
+    await act(async () => {
+      fireEvent.click(minimize);
+      await vi.waitFor(() =>
+        expect(molstarMocks.engine.load).toHaveBeenCalledWith(
+          DOUBLE_BOND_SDF.replace('    1.3400', '    1.3257'),
+          'chemical-minimized.sdf',
+          'sdf'
+        )
+      );
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    await waitFor(() =>
+      expect(screen.getByText('Ligand energy minimization completed (2 heavy atoms).')).toBeInTheDocument()
+    );
+    const body = JSON.parse(String((fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].body));
+    expect(body).toMatchObject({
+      filename: 'chemical-current-pose.sdf',
+      content: DOUBLE_BOND_SDF,
+      ligand_residue_name: 'MOL',
+    });
+    expect(body).not.toHaveProperty('ligand_atom_serial');
+    expect(molstarMocks.engine.setStructureLigandSelectionByAtomSerial).not.toHaveBeenCalled();
   });
 
   it('invalidates an open ordinary-structure interaction diagram after minimization', async () => {
@@ -3400,6 +3520,9 @@ describe('SynonBiomedStructureViewer', () => {
     );
     await waitFor(() => expect(interactionButton).toBeEnabled());
 
+    expect(molstarMocks.engine.setStructureLigandSelectionByAtomSerial).toHaveBeenCalledWith(1);
+    expect(screen.getByRole('button', { name: 'Pocket', exact: true })).toHaveAttribute('aria-pressed', 'false');
+
     fireEvent.click(interactionButton);
     await waitFor(() => expect(fullInteractionRequests()).toHaveLength(2));
     const interactionBodies = fullInteractionRequests().map(([, init]) =>
@@ -3409,6 +3532,37 @@ describe('SynonBiomedStructureViewer', () => {
       'ATOM before minimization\nHETATM ligand before minimization\nEND\n',
       'ATOM after minimization\nHETATM ligand after minimization\nEND\n',
     ]);
+  });
+
+  it('does not load a retired minimization response into a newly opened file', async () => {
+    let finishResponse!: (response: Response) => void;
+    const fetchMock = vi.fn(
+      () =>
+        new Promise<Response>((resolve) => {
+          finishResponse = resolve;
+        })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    molstarMocks.engine.getSelectedLigandResidueName.mockReturnValue('LIG');
+    const view = await renderWithI18n(
+      <SynonBiomedStructureViewer filename='old.sdf' content='old source' rootFrameId='frame-1' />,
+      'en-US'
+    );
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Energy minimization' })).toBeEnabled());
+    fireEvent.click(screen.getByRole('button', { name: 'Energy minimization' }));
+    await waitFor(() => expect(finishResponse).toBeDefined());
+    view.rerender(<SynonBiomedStructureViewer filename='new.sdf' content='new source' rootFrameId='frame-1' />);
+    await waitFor(() => expect(molstarMocks.engine.load).toHaveBeenCalledWith('new source', 'new.sdf', 'sdf'));
+    await act(async () => {
+      finishResponse(
+        new Response(
+          JSON.stringify({ ok: true, content: 'retired result', filename: 'old-result.pdb', format: 'pdb' }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        )
+      );
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(molstarMocks.engine.load).not.toHaveBeenCalledWith('retired result', 'old-result.pdb', 'pdb');
   });
 
   it('does not allow minimization until a ligand has been selected in the 3D canvas', async () => {

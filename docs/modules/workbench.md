@@ -367,6 +367,60 @@ old3D atom selection, so refinement cannot silently target a previously hidden l
 说明配体操作当前不可用；单配体开关可以重新选择。切换实例清除旧三维原子选择，
 不让后续优化静默作用于之前隐藏的配体。
 
+After a structure action settles, keyboard focus returns to its initiating control
+or a nearby available control when that action has disabled its own button. A newer
+focus destination, source replacement, hidden viewer or unmount takes precedence;
+completion cannot steal focus from another viewer or from a newly opened file.
+
+结构操作完成后，键盘焦点返回原操作控件；原按钮已禁用时返回邻近可用控件。用户已经
+转移的焦点、文件替换、隐藏查看器或卸载优先，旧操作完成不能抢走其他查看器或新文件的焦点。
+
+Energy minimization binds a picked native atom to exactly one complete residue
+instance, not all residues sharing a name. Selection follows the declared PDB
+record semantics: a selected ATOM/polymer record cannot be admitted as a ligand
+through either an atom serial or a name.
+The canonical normalized PDB parser, including supported ENT inputs, is reused.
+Other physical ligands and the receptor remain fixed even when hidden. Docking
+comparison poses are alternatives: only the
+picked pose is submitted with its receptor. A multi-model PDB submits the active
+model's original records/connectivity. Shared alternate atoms alone cannot choose
+between conformers; an exclusive picked atom identifies the intended alternate.
+Original artifacts are not overwritten. Source coordinates incompatible with an
+assembly transform and ambiguous legacy name-only requests fail explicitly.
+After an ordinary minimization reload, the exact ligand selection is restored and
+old pocket/field/interaction overlays are retired. A retired calculation cannot
+load its coordinates or commit UI state into a newly opened source.
+
+Chemical trajectories retain the exact MOL/SDF/MOL2 input handed to the native
+parser, including already-restored chemical input, bound to its model. Only the
+active record's coordinate columns change; bonds, charges, isotopes, stereo
+declarations and source properties are not replaced by atom-only PDB. Native
+source rows bind reordered atoms; partial, missing or duplicate mappings fail
+rather than dropping physical context. The existing managed API receives the
+chemical format. Returned SDF coordinates are checked against the source atom
+count and element order, then applied to the original chemical record; normalized
+output cannot discard MOL2 partial charges or SDF properties. Repeated operations keep the
+original filename base instead of accumulating generated suffixes. Force-field
+parameters and limits are unchanged; technical success is not scientific or
+experimental acceptance.
+
+能量最小化通过所选原生原子定位唯一完整残基实例，不把同名残基一起选入。按 PDB
+记录声明区分配体与聚合物，不能以原子编号或名称将 ATOM／受体记录当作配体。
+复用现有 PDB 格式归一化器，包含受支持的 ENT 输入。其他真实
+配体和受体即使隐藏仍保持固定；对接比较的姿势是替代方案，仅提交所选姿势及其受体。
+多模型 PDB 提交当前模型的原始记录与连接信息。共享原子不能替用户选择交替构象，
+该构象的独占原子用于精确定位。原始产物不覆盖；与组装变换不一致的原坐标输入，以及
+有歧义的旧名称请求均明确失败。普通结构最小化重新加载后恢复原生配体选择，清退旧口袋、
+电势与相互作用层。旧计算完成时不能向新文件加载坐标或提交界面状态。
+
+化学轨迹将实际交给原生解析器的 MOL／SDF／MOL2 输入绑定到对应模型，包含已有
+解析流程恢复的化学输入。仅更新当前记录的坐标列，保留键级、电荷、同位素、立体
+声明和来源字段，不转为仅含原子的 PDB。按原生来源行关联排序后的原子；部分选择、
+缺失或重复映射明确拒绝，不丢弃真实上下文。现有托管 API 接收化学格式；对返回的
+SDF 坐标校验原子数和元素顺序后，仅将坐标应用到原化学记录，不因归一化输出丢弃
+MOL2 部分电荷或 SDF 属性。重复操作保持原始文件名主体，不累积生成后缀。力场参数与既有边界不变，
+技术执行成功不代表科学或实验验收。
+
 Ordinary ligand electrostatics serializes every selected native instance and
 binds each surface to its matching returned field. API keys derive from the full
 native instance order, so same-name ligands and alternate conformers do not merge

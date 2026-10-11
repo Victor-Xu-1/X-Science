@@ -41,7 +41,14 @@ import { CCDFormat, MmcifFormat } from 'molstar/lib/mol-model-formats/structure/
 import { parseSmilesMolBlock } from '@/renderer/services/rdkitBrowser';
 import { hasDeclaredLigandTopology } from './ligandTopology';
 import { createStructureLigandController } from './structureLigandController';
-import { resolveStructureViewLigandLoci, resolveStructureViewLigandInstances } from './structureLigandSelection';
+import {
+  resolveStructureViewLigandLoci,
+  resolveStructureViewLigandInstances,
+  resolveSingleStructureLigandInstance,
+  resolveStructureLigandInstanceByAtomSerial,
+} from './structureLigandSelection';
+import { createStructureMinimizationPose, type StructureMinimizationPose } from './structureMinimizationInput';
+import { isChemicalPoseFormat, type ChemicalPoseSource } from './structureChemicalPoseInput';
 import { createLigandSurfaceComponents, resolveNativeLigandSurfacePlans } from './molstarLigandSurfaces';
 import { restorePdbqtTopology } from './pdbqtTopology';
 import { resolveSurfaceColorSettings, type MolstarElectrostaticVolume } from './molstarElectrostaticTheme';
@@ -506,6 +513,8 @@ export type MolstarStructureEngine = {
   readonly clearSelection: () => MolstarSelectionSummary;
   readonly getSelectionSummary: () => MolstarSelectionSummary;
   readonly getSelectedLigandResidueName: () => string | undefined;
+  readonly exportMinimizationPose: (sourcePdb?: string) => StructureMinimizationPose;
+  readonly setStructureLigandSelectionByAtomSerial: (serial: number) => Promise<void>;
   readonly getTrajectoryModelState: () => MolstarTrajectoryModelState;
   readonly getStructureComposition: () => MolstarStructureComposition;
   readonly getPrimaryLigandDepictionSource: () => MolstarLigandDepictionSource | undefined;
@@ -1379,6 +1388,9 @@ export function createPoseAtoms(structure: Structure, selection: StructureElemen
       const atomicConformation = unit.model.atomicConformation as unknown as Record<string, PoseColumn | undefined>;
 
       atoms.push({
+        nativeKey: atomKey,
+        sourceSerial: readPoseNumber(atomicConformation.atomId, atomIndex, 0),
+        sourceIndex: hierarchy.atomSourceIndex?.value(atomIndex),
         recordName: isProteinAtom(unit, atomIndex) ? 'ATOM' : 'HETATM',
         serial: atoms.length + 1,
         atomName: readPoseString(
@@ -1456,11 +1468,18 @@ export async function createMolstarStructureEngine(
   };
   let selectedDockingLigandResidueName: string | undefined;
   let loadedFormat = '';
+  const chemicalSources = new WeakMap<Model, ChemicalPoseSource>();
   const restoredSmiles = new WeakMap<Model, string>();
   const parseChemicalTrajectory = async (source: string | ArrayBuffer, filename: string, format: string) => {
     const restored =
       format === 'pdbqt' && typeof source === 'string'
         ? await restorePdbqtTopology(source, parseSmilesMolBlock)
+        : undefined;
+    const chemicalFormat = restored ? 'sdf' : format;
+    const chemicalContent = restored?.source ?? source;
+    const chemicalSource =
+      isChemicalPoseFormat(chemicalFormat) && typeof chemicalContent === 'string'
+        ? { content: chemicalContent, format: chemicalFormat }
         : undefined;
     const raw = await plugin.builders.data.rawData({
       data: restored?.source ?? source,
@@ -1471,11 +1490,14 @@ export async function createMolstarStructureEngine(
       (restored ? 'sdf' : format) as MolstarTrajectoryFormat
     );
     const data = trajectory.cell?.obj?.data;
-    if (restored && data) {
+    if ((restored || chemicalSource) && data) {
       const models = await Promise.all(
         Array.from({ length: data.frameCount }, (_, index) => Task.resolveInContext(data.getFrameAtIndex(index)))
       );
-      models.forEach((model, index) => restoredSmiles.set(model, restored.smiles[index]));
+      models.forEach((model, index) => {
+        if (restored) restoredSmiles.set(model, restored.smiles[index]);
+        if (chemicalSource) chemicalSources.set(model, { ...chemicalSource, modelIndex: index });
+      });
     }
     return trajectory;
   };
@@ -2557,29 +2579,33 @@ export async function createMolstarStructureEngine(
   };
 
   const getSelectionSummary = (): MolstarSelectionSummary => summarizeMolstarSelection(getCurrentSelectionLoci());
-  const getSelectedLigandResidueName = (): string | undefined => {
+  const getSelectedLigandInstance = () => {
     const selection = getCurrentSelectionLoci();
     const structure = getCurrentStructure();
-    if (!selection || !structure || StructureElement.Loci.isEmpty(selection)) return selectedDockingLigandResidueName;
-    const ligandLoci = StructureQuery.loci(StructureSelectionQueries.ligand.query, structure);
-    const selectedLigand = StructureElement.Loci.intersect(selection, ligandLoci);
-    if (
-      StructureElement.Loci.isEmpty(selectedLigand) ||
-      StructureElement.Loci.size(selectedLigand) !== StructureElement.Loci.size(selection)
-    )
-      return undefined;
-    const residueNames = new Set<string>();
-    for (const element of selectedLigand.elements) {
-      if (!Unit.isAtomic(element.unit)) return undefined;
-      OrderedSet.forEach(element.indices, (index) => {
-        const atomIndex = element.unit.elements[index];
-        const hierarchy = element.unit.model.atomicHierarchy;
-        const residueName =
-          hierarchy.atoms.auth_comp_id.value(atomIndex).trim() || hierarchy.atoms.label_comp_id.value(atomIndex).trim();
-        if (residueName) residueNames.add(residueName.toUpperCase());
-      });
+    return (
+      structure &&
+      resolveSingleStructureLigandInstance(structure, selection, loadedFormat, selectedDockingLigandResidueName)
+    );
+  };
+  const getSelectedLigandResidueName = () => getSelectedLigandInstance()?.residueName;
+  const exportMinimizationPose = (sourcePdb?: string): StructureMinimizationPose => {
+    const structure = getCurrentStructure();
+    const instance = getSelectedLigandInstance();
+    if (!structure || !instance) throw new Error('STRUCTURE_MINIMIZATION_LIGAND_NOT_SELECTED');
+    const keys = new Set<string>();
+    for (const { unit, indices } of instance.loci.elements) {
+      OrderedSet.forEach(indices, (index) => keys.add(`${unit.id}:${unit.elements[index]}`));
     }
-    return residueNames.size === 1 ? [...residueNames][0] : undefined;
+    // Visibility is presentation, not the fixed calculation environment.
+    const atoms = createPoseAtoms(structure, undefined);
+    if (
+      sourcePdb !== undefined &&
+      structure.units.some((unit) => Unit.isAtomic(unit) && !unit.conformation.operator.isIdentity)
+    ) {
+      throw new Error('MOLSTAR_MINIMIZATION_SOURCE_COORDINATES_TRANSFORMED');
+    }
+    const chemicalSource = chemicalSources.get(instance.loci.elements[0].unit.model);
+    return createStructureMinimizationPose(atoms, keys, instance.residueName, sourcePdb, chemicalSource);
   };
   const notifySelectionChange = () => onSelectionChange?.(getSelectionSummary());
   const selectionSubscription = plugin.managers.structure.selection.events.changed.subscribe(notifySelectionChange);
@@ -3678,6 +3704,15 @@ export async function createMolstarStructureEngine(
     clearSelection,
     getSelectionSummary,
     getSelectedLigandResidueName,
+    exportMinimizationPose,
+    setStructureLigandSelectionByAtomSerial: async (serial) => {
+      const structure = getCurrentStructure();
+      const instance = structure && resolveStructureLigandInstanceByAtomSerial(structure, serial, loadedFormat);
+      if (!instance) throw new Error('MOLSTAR_STRUCTURE_LIGAND_SELECTION_INVALID');
+      await structureLigands.select([instance.id]);
+      clearSelection();
+      applyStructureObjectVisibility();
+    },
     getTrajectoryModelState,
     getStructureComposition,
     getPrimaryLigandDepictionSource,

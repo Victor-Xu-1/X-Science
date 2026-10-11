@@ -1,7 +1,8 @@
-import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ComputeSettingsContent } from '@/renderer/pages/settings/ComputeSettings';
+import { ComputeJobDetailModal } from '@/renderer/pages/settings/components/compute/ComputeJobs';
 import { renderWithSettingsI18n } from './settingsI18nTestUtils';
 
 const mocks = vi.hoisted(() => ({
@@ -403,13 +404,227 @@ describe('ComputeSettingsContent', () => {
       'href',
       'https://compute.example/jobs/sandbox-1'
     );
-    expect(within(dialog).getByText('complete')).toBeInTheDocument();
-    expect(within(dialog).getByRole('switch', { name: '会话计算 infer:fixture-nim' })).toBeChecked();
+    expect(await within(dialog).findByText('complete')).toBeInTheDocument();
+    expect(await within(dialog).findByRole('switch', { name: '会话计算 infer:fixture-nim' })).toBeChecked();
     fireEvent.click(within(dialog).getByRole('tab', { name: '标准错误' }));
     expect(await within(dialog).findByText('warning')).toBeInTheDocument();
 
     fireEvent.click(within(dialog).getByRole('switch', { name: '会话计算 infer:fixture-nim' }));
     await waitFor(() => expect(mocks.setSessionProvider).toHaveBeenCalledWith('root-a', 'infer:fixture-nim', false));
+  });
+
+  it('keeps failed log and provider reads distinct and retries only the failed resources', async () => {
+    mocks.loadJobLog.mockImplementation(async (_jobId, options) => {
+      if (options.stream === 'stderr') throw new Error('log offline');
+      return { content: 'complete\n', size: 9, truncated: false };
+    });
+    mocks.loadSessionProviders.mockRejectedValueOnce(new Error('provider offline'));
+    await renderWithSettingsI18n(<ComputeSettingsContent />, 'en-US');
+    fireEvent.click(await screen.findByRole('button', { name: 'View job compute-fixture-job-0001' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Compute job details' });
+    expect(await within(dialog).findByText('complete')).toBeInTheDocument();
+    expect(within(dialog).queryAllByRole('switch')).toHaveLength(0);
+    expect(within(dialog).getByRole('button', { name: 'Retry session providers' })).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('tab', { name: 'Standard error' }));
+    expect(within(dialog).queryByText('No logs available')).not.toBeInTheDocument();
+    const logCalls = mocks.loadJobLog.mock.calls.length;
+    mocks.loadJobLog.mockResolvedValue({ content: 'recovered warning', size: 17, truncated: false });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Retry Standard error' }));
+    expect(await within(dialog).findByText('recovered warning')).toBeInTheDocument();
+    expect(mocks.loadJobLog).toHaveBeenCalledTimes(logCalls + 1);
+    expect(mocks.loadJobLog).toHaveBeenLastCalledWith('compute-fixture-job-0001', { stream: 'stderr', tail: 65536 });
+    expect(mocks.loadJob).toHaveBeenCalledTimes(1);
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Retry session providers' }));
+    expect(await within(dialog).findByRole('switch', { name: 'Session compute infer:fixture-nim' })).toBeChecked();
+    expect(mocks.setSessionProvider).not.toHaveBeenCalled();
+  });
+
+  it('moves and activates log tabs with arrows and leaves one tab stop', async () => {
+    await renderWithSettingsI18n(<ComputeSettingsContent />, 'en-US');
+    fireEvent.click(await screen.findByRole('button', { name: 'View job compute-fixture-job-0001' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Compute job details' });
+    await within(dialog).findByText('complete');
+    const output = within(dialog).getByRole('tab', { name: 'Standard output' });
+    const error = within(dialog).getByRole('tab', { name: 'Standard error' });
+    output.focus();
+    fireEvent.keyDown(output, { key: 'ArrowRight' });
+    expect(error).toHaveFocus();
+    expect(error).toHaveAttribute('aria-selected', 'true');
+    expect(output).toHaveAttribute('tabindex', '-1');
+    expect(within(dialog).getByRole('tabpanel', { name: 'Standard error' })).toHaveTextContent('warning');
+    fireEvent.keyDown(error, { key: 'Home' });
+    expect(output).toHaveFocus();
+  });
+
+  it('shows each successful read while a peer is pending and fences replies after changing jobs', async () => {
+    let finishOld!: (value: unknown) => void;
+    mocks.loadJob.mockImplementation(async (jobId) => ({ ...computeJob, jobId, rootFrameId: `${jobId}-root` }));
+    mocks.loadJobLog.mockImplementation(async (jobId, options) => {
+      if (jobId === 'old-job' && options.stream === 'stdout')
+        return new Promise((resolve) => {
+          finishOld = resolve;
+        });
+      return { content: `${jobId}-${options.stream}`, size: 3, truncated: false };
+    });
+    const props = { providerNames: ['infer:fixture-nim'], onClose: vi.fn() };
+    const view = await renderWithSettingsI18n(
+      <ComputeJobDetailModal {...props} job={{ ...computeJob, jobId: 'old-job' }} />,
+      'en-US'
+    );
+    const dialog = await screen.findByRole('dialog');
+    expect(await within(dialog).findByRole('switch')).toBeChecked();
+    fireEvent.click(within(dialog).getByRole('tab', { name: 'Standard error' }));
+    expect(await within(dialog).findByText('old-job-stderr')).toBeInTheDocument();
+    view.rerender(<ComputeJobDetailModal {...props} job={{ ...computeJob, jobId: 'new-job' }} />);
+    expect(await within(dialog).findByText('new-job-stdout')).toBeInTheDocument();
+    await act(async () => finishOld({ content: 'obsolete old output', size: 19, truncated: false }));
+    expect(within(dialog).queryByText('obsolete old output')).not.toBeInTheDocument();
+    expect(within(dialog).getByText('new-job-stdout')).toBeInTheDocument();
+  });
+
+  it('ignores an old provider mutation failure after a different job opens', async () => {
+    let rejectOld!: (reason: Error) => void;
+    mocks.setSessionProvider.mockReturnValueOnce(
+      new Promise((_resolve, reject) => {
+        rejectOld = reject;
+      })
+    );
+    mocks.loadJob.mockImplementation(async (jobId) => ({ ...computeJob, jobId, rootFrameId: jobId }));
+    mocks.loadSessionProviders.mockImplementation(async (rootId) => (rootId === 'old' ? ['infer:fixture-nim'] : []));
+    const props = { providerNames: ['infer:fixture-nim'], onClose: vi.fn() };
+    const view = await renderWithSettingsI18n(
+      <ComputeJobDetailModal {...props} job={{ ...computeJob, jobId: 'old' }} />,
+      'en-US'
+    );
+    fireEvent.click(await screen.findByRole('switch'));
+    await waitFor(() => expect(mocks.setSessionProvider).toHaveBeenCalledWith('old', 'infer:fixture-nim', false));
+    view.rerender(<ComputeJobDetailModal {...props} job={{ ...computeJob, jobId: 'new' }} />);
+    const newSwitch = await screen.findByRole('switch');
+    expect(newSwitch).not.toBeChecked();
+    await act(async () => rejectOld(new Error('old write failed')));
+    expect(newSwitch).not.toBeChecked();
+    expect(mocks.error).not.toHaveBeenCalled();
+    expect(mocks.setSessionProvider).toHaveBeenCalledTimes(1);
+  });
+
+  it('allows retrying failed job metadata without issuing provider writes', async () => {
+    mocks.loadJob.mockRejectedValueOnce(new Error('offline'));
+    await renderWithSettingsI18n(<ComputeJobDetailModal job={computeJob} providerNames={[]} onClose={vi.fn()} />);
+    expect(await screen.findByRole('alert')).toHaveTextContent('无法加载计算作业详情');
+    expect(mocks.loadJobLog).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '重试' }));
+    expect(await screen.findByText('complete')).toBeInTheDocument();
+    expect(mocks.loadJob).toHaveBeenCalledTimes(2);
+    expect(mocks.setSessionProvider).not.toHaveBeenCalled();
+  });
+
+  it.each(['reopen', 'same-root-job'] as const)(
+    'reconciles a delayed provider write after %s without another PUT',
+    async (mode) => {
+      let finishWrite!: () => void;
+      let enabled = true;
+      mocks.setSessionProvider.mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            finishWrite = () => {
+              enabled = false;
+              resolve();
+            };
+          })
+      );
+      mocks.loadJob.mockImplementation(async (jobId) => ({ ...computeJob, jobId, rootFrameId: 'shared-root' }));
+      mocks.loadSessionProviders.mockImplementation(async () => (enabled ? ['infer:fixture-nim'] : []));
+      const props = { providerNames: ['infer:fixture-nim'], onClose: vi.fn() };
+      const view = await renderWithSettingsI18n(
+        <ComputeJobDetailModal {...props} job={{ ...computeJob, jobId: 'first' }} />,
+        'en-US'
+      );
+      fireEvent.click(await screen.findByRole('switch'));
+      await waitFor(() => expect(mocks.setSessionProvider).toHaveBeenCalledTimes(1));
+      if (mode === 'reopen') view.rerender(<ComputeJobDetailModal {...props} job={null} />);
+      view.rerender(
+        <ComputeJobDetailModal {...props} job={{ ...computeJob, jobId: mode === 'reopen' ? 'first' : 'second' }} />
+      );
+      await waitFor(() => expect(mocks.loadSessionProviders).toHaveBeenCalledTimes(2));
+      const pendingSwitch = await screen.findByRole('switch');
+      expect(pendingSwitch).toBeDisabled();
+      fireEvent.click(pendingSwitch);
+      expect(mocks.setSessionProvider).toHaveBeenCalledTimes(1);
+      await act(async () => finishWrite());
+      await waitFor(() => expect(mocks.loadSessionProviders).toHaveBeenCalledTimes(3));
+      const updatedSwitch = await screen.findByRole('switch');
+      expect(updatedSwitch).not.toBeChecked();
+      expect(updatedSwitch).toBeEnabled();
+      expect(mocks.setSessionProvider).toHaveBeenCalledTimes(1);
+    }
+  );
+
+  it('supersedes a pre-write GET still pending when the same-root PUT completes', async () => {
+    let finishWrite!: () => void;
+    let finishStaleRead!: (value: string[]) => void;
+    mocks.setSessionProvider.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        finishWrite = resolve;
+      })
+    );
+    mocks.loadJob.mockImplementation(async (jobId) => ({ ...computeJob, jobId, rootFrameId: 'shared-root' }));
+    mocks.loadSessionProviders
+      .mockResolvedValueOnce(['infer:fixture-nim'])
+      .mockImplementationOnce(
+        () =>
+          new Promise<string[]>((resolve) => {
+            finishStaleRead = resolve;
+          })
+      )
+      .mockResolvedValueOnce([]);
+    const props = { providerNames: ['infer:fixture-nim'], onClose: vi.fn() };
+    const view = await renderWithSettingsI18n(
+      <ComputeJobDetailModal {...props} job={{ ...computeJob, jobId: 'first' }} />,
+      'en-US'
+    );
+    fireEvent.click(await screen.findByRole('switch'));
+    await waitFor(() => expect(mocks.setSessionProvider).toHaveBeenCalledTimes(1));
+    view.rerender(<ComputeJobDetailModal {...props} job={{ ...computeJob, jobId: 'second' }} />);
+    await waitFor(() => expect(mocks.loadSessionProviders).toHaveBeenCalledTimes(2));
+    await act(async () => finishWrite());
+    const currentSwitch = await screen.findByRole('switch');
+    expect(mocks.loadSessionProviders).toHaveBeenCalledTimes(3);
+    expect(currentSwitch).not.toBeChecked();
+    await act(async () => finishStaleRead(['infer:fixture-nim']));
+    expect(currentSwitch).not.toBeChecked();
+    expect(mocks.setSessionProvider).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets a different session root write while an older root is pending', async () => {
+    let finishOld!: () => void;
+    const enabled = new Set(['old-root', 'new-root']);
+    mocks.loadJob.mockImplementation(async (jobId) => ({ ...computeJob, jobId, rootFrameId: jobId }));
+    mocks.loadSessionProviders.mockImplementation(async (rootId) => (enabled.has(rootId) ? ['infer:fixture-nim'] : []));
+    mocks.setSessionProvider.mockImplementation(async (rootId) => {
+      if (rootId === 'old-root')
+        await new Promise<void>((resolve) => {
+          finishOld = resolve;
+        });
+      enabled.delete(rootId);
+    });
+    const props = { providerNames: ['infer:fixture-nim'], onClose: vi.fn() };
+    const view = await renderWithSettingsI18n(
+      <ComputeJobDetailModal {...props} job={{ ...computeJob, jobId: 'old-root' }} />,
+      'en-US'
+    );
+    fireEvent.click(await screen.findByRole('switch'));
+    await waitFor(() => expect(mocks.setSessionProvider).toHaveBeenCalledTimes(1));
+    view.rerender(<ComputeJobDetailModal {...props} job={{ ...computeJob, jobId: 'new-root' }} />);
+    const newSwitch = await screen.findByRole('switch');
+    expect(newSwitch).toBeEnabled();
+    fireEvent.click(newSwitch);
+    await waitFor(() => expect(mocks.setSessionProvider).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.getByRole('switch')).toBeEnabled());
+    expect(screen.getByRole('switch')).not.toBeChecked();
+    const readsBeforeOldSettles = mocks.loadSessionProviders.mock.calls.length;
+    await act(async () => finishOld());
+    expect(mocks.loadSessionProviders).toHaveBeenCalledTimes(readsBeforeOldSettles);
+    expect(screen.getByRole('switch')).not.toBeChecked();
   });
 
   it('does not render a non-HTTP remote job URL from persisted provider data', async () => {
