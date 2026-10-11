@@ -54,7 +54,7 @@ func TestProjectCreateAllowsManagedAndGrantedPaths(t *testing.T) {
 	t.Cleanup(func() { _ = store.Close() })
 	app := New(Options{FileRoot: protectedRoot, Workspace: store})
 	handler := app.Handler()
-	if _, err := app.upsertHostGrant("owner", granted, "read_write"); err != nil {
+	if _, err := app.upsertHostGrant("local", granted, "read_write"); err != nil {
 		t.Fatal(err)
 	}
 
