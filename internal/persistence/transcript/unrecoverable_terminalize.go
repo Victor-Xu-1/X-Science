@@ -26,7 +26,7 @@ func (r *Repository) TerminalizeUnrecoverableRunnerCandidate(
 	candidate.FrameID = strings.TrimSpace(candidate.FrameID)
 	candidate.ReasonCode = strings.TrimSpace(candidate.ReasonCode)
 	if candidate.StreamUID == "" || candidate.OwnerID == "" || candidate.FrameID == "" ||
-		candidate.Attempt <= 0 || candidate.CheckpointSequence <= 0 {
+		candidate.Attempt <= 0 || candidate.CheckpointSequence < 0 {
 		return false, errors.New("unrecoverable runner candidate identity is incomplete")
 	}
 	if candidate.ReasonCode == "" {
@@ -68,12 +68,12 @@ func terminalizeUnrecoverableRunnerCandidateTx(
 		return false, nil
 	}
 	var attempt, claimedRevision, lastCheckpoint int64
-	var status string
+	var status, attemptPhase string
 	var expiresAt time.Time
 	err = tx.conn.QueryRowContext(ctx, `
-		SELECT attempt,claimed_input_revision,status,last_checkpoint_sequence,expires_at
+		SELECT attempt,claimed_input_revision,status,last_checkpoint_sequence,expires_at,phase
 		FROM transcript_runner_attempts WHERE stream_uid=? ORDER BY attempt DESC LIMIT 1`, stream.UID,
-	).Scan(&attempt, &claimedRevision, &status, &lastCheckpoint, &expiresAt)
+	).Scan(&attempt, &claimedRevision, &status, &lastCheckpoint, &expiresAt, &attemptPhase)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	}
@@ -81,7 +81,9 @@ func terminalizeUnrecoverableRunnerCandidateTx(
 		return false, err
 	}
 	if attempt != candidate.Attempt || status != "running" || lastCheckpoint != candidate.CheckpointSequence ||
-		claimedRevision != stream.InputRevision || expiresAt.After(now) {
+		claimedRevision != stream.InputRevision || expiresAt.After(now) ||
+		attemptPhase == string(RunnerPhaseWaitingUser) || attemptPhase == string(RunnerPhaseWaitingApproval) ||
+		attemptPhase == string(RunnerPhaseWaitingExternal) {
 		return false, nil
 	}
 	var checkpointSequence, checkpointAttempt int64
@@ -93,15 +95,27 @@ func terminalizeUnrecoverableRunnerCandidateTx(
 		WHERE checkpoint.stream_uid=? AND checkpoint.runner_attempt=?
 		ORDER BY checkpoint.checkpoint_sequence DESC LIMIT 1`, stream.UID, attempt,
 	).Scan(&checkpointSequence, &checkpointAttempt, &resumable, &phase)
-	if errors.Is(err, sql.ErrNoRows) {
+	if candidate.CheckpointSequence == 0 && err == nil {
+		// A checkpoint appeared after the checkpointless recovery snapshot.
 		return false, nil
+	}
+	if errors.Is(err, sql.ErrNoRows) {
+		if candidate.CheckpointSequence != 0 {
+			return false, nil
+		}
+		safe, proofErr := runnerPreparationIsSafeConn(ctx, tx.conn, stream.UID, attempt, claimedRevision)
+		if proofErr != nil || safe {
+			return false, proofErr
+		}
+		candidate.ReasonCode = runnerUnknownAdmissionReason
+		err = nil
 	}
 	if err != nil {
 		return false, err
 	}
-	if checkpointSequence != candidate.CheckpointSequence || checkpointAttempt != attempt || resumable ||
+	if candidate.CheckpointSequence != 0 && (checkpointSequence != candidate.CheckpointSequence || checkpointAttempt != attempt || resumable ||
 		phase == string(RunnerPhaseWaitingUser) || phase == string(RunnerPhaseWaitingApproval) ||
-		phase == string(RunnerPhaseWaitingExternal) {
+		phase == string(RunnerPhaseWaitingExternal)) {
 		return false, nil
 	}
 	var frameStatus string

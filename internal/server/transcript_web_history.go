@@ -450,6 +450,9 @@ func (s *Server) projectTranscriptWebProjectedEvent(
 	ownerID, sessionID string,
 	projected transcriptstore.ProjectedEvent,
 ) error {
+	if transcriptstore.IsRunnerAdmissionFact(projected.Event, projected.ResolvedPayloadJSON) {
+		return nil
+	}
 	payload, err := transcriptPayloadObject(projected.ResolvedPayloadJSON)
 	if err != nil {
 		return err
