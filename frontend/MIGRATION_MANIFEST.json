@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "4560a3a7e2bbad3d850251c45e08c6ee8a9154fe2daf6f1c4bb2f29f02c3f89a",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "42fa8d5457f184dcb651ccfb0e89e82f3d17e966f9728c027aae591d28cb292f",
+  "additionFingerprintSHA256": "3ec9bd259ef10c734c5b35571c5b6bdaa25eb9e6b470c0dc7c554555f31671d8",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 343,
@@ -10158,8 +10158,8 @@
     },
     {
       "path": "tests/unit/build/viteProductionPreviewCache.test.ts",
-      "sha256": "e387b8d99d0406798f21b43c8872efa3806371ae241ae44feb5addc657b37792",
-      "bytes": 1104,
+      "sha256": "460e66a3bfbe7e03a6cf1cabc877da9c2f7582a1677a4295e6b7f52db453e608",
+      "bytes": 1292,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
