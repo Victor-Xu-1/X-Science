@@ -270,7 +270,7 @@ func TestListTranscriptWebProjectionWorkUsesCanonicalAuthorityAndDeterministicBa
 			t.Fatalf("dirty coordinates missing: %#v", item)
 		}
 	}
-	if work[1].DirtyFirstAffectedOrdinal != 2 || work[1].DirtyReasonMask&1 == 0 ||
+	if work[1].DirtyFirstAffectedOrdinal != 2+eventsPerFreshRunnerClaim || work[1].DirtyReasonMask&1 == 0 ||
 		work[2].DirtyFirstAffectedOrdinal != 1 || work[2].DirtyReasonMask&2 == 0 {
 		t.Fatalf("dirty sources artifact=%#v update=%#v", work[1], work[2])
 	}

@@ -48,11 +48,13 @@ func TestRepositoryProjectedEventsUseFixedThroughWatermarkAcrossPages(t *testing
 		BranchGeneration: snapshot.BranchGeneration, AfterPublicationSequence: page[0].Event.PublicationSeq,
 		ThroughPublicationSequence: through, Limit: 10,
 	})
-	if err != nil || len(second) != 1 || second[0].Event.ClientMessageID != "delta-before" {
+	if err != nil || len(second) != 2 ||
+		second[0].Event.Type != RunnerPreparationAdmissionEventType ||
+		second[1].Event.ClientMessageID != "delta-before" {
 		t.Fatalf("second page=%#v err=%v", second, err)
 	}
-	if second[0].Event.PublicationSeq != through {
-		t.Fatalf("second sequence=%d through=%d", second[0].Event.PublicationSeq, through)
+	if second[1].Event.PublicationSeq != through {
+		t.Fatalf("second sequence=%d through=%d", second[1].Event.PublicationSeq, through)
 	}
 }
 
@@ -91,7 +93,7 @@ func TestRepositoryArtifactProjectionMatchesHistoryDeliveryAndTerminalAfterResta
 	projected, err := repo.ListProjectedEvents(context.Background(), ListProjectedEventsInput{
 		StreamUID: claim.StreamUID, OwnerID: claim.OwnerID, Limit: 100,
 	})
-	if err != nil || len(projected) != 3 {
+	if err != nil || len(projected) != 3+eventsPerFreshRunnerClaim {
 		t.Fatalf("projected=%#v err=%v", projected, err)
 	}
 	assertProjectedArtifactRefs(t, projected, assistant.EventID, []string{"version-a1", "version-b1"})
@@ -239,7 +241,7 @@ func TestRepositoryAssistantArtifactAssociationRollsBackAndRejectsTerminalAttemp
 	if err := db.QueryRow(`SELECT COUNT(*) FROM transcript_delivery_intents WHERE stream_uid=?`, claim.StreamUID).Scan(&deliveryCount); err != nil {
 		t.Fatal(err)
 	}
-	if eventCount != 1 || deliveryCount != 1 {
+	if eventCount != 1+eventsPerFreshRunnerClaim || deliveryCount != 1 {
 		t.Fatalf("rolled back events=%d deliveries=%d", eventCount, deliveryCount)
 	}
 	if _, _, _, err := repo.FinishRunner(context.Background(), FinishRunnerInput{

@@ -56,7 +56,7 @@ func TestForkFrameUserMessageBranchFencesRunnerAndCreatesRunnableChild(t *testin
 		stream.UID, result.BranchID).Scan(&childEvents, &replacementOrdinal); err != nil {
 		t.Fatal(err)
 	}
-	if baseEvents != 3 || childEvents != 1 || replacementOrdinal != 1 {
+	if baseEvents != 3+eventsPerFreshRunnerClaim || childEvents != 1 || replacementOrdinal != 1 {
 		t.Fatalf("branch memberships base=%d child=%d ordinal=%d", baseEvents, childEvents, replacementOrdinal)
 	}
 	var sourceMessageID string
@@ -152,7 +152,7 @@ func TestListBranchesAndReadInactiveBranchWithGenerationCursor(t *testing.T) {
 		BranchID: base.ActiveBranchID, BranchGeneration: snapshot.BranchGeneration,
 		ThroughPublicationSequence: snapshot.ThroughPublicationSequence, Limit: 20,
 	})
-	if err != nil || len(page) != 3 || page[0].Event.ClientMessageID != source.ClientMessageID {
+	if err != nil || len(page) != 3+eventsPerFreshRunnerClaim || page[0].Event.ClientMessageID != source.ClientMessageID {
 		t.Fatalf("inactive page=%#v err=%v", page, err)
 	}
 	_, err = repo.ListProjectedEvents(context.Background(), ListProjectedEventsInput{
@@ -166,7 +166,7 @@ func TestListBranchesAndReadInactiveBranchWithGenerationCursor(t *testing.T) {
 }
 
 func TestForkFrameUserMessageBranchReplacesMiddleMessageAndSharesExactPrefix(t *testing.T) {
-	repo, db, stream, _, _ := newFrameBranchForkFixture(t)
+	repo, db, stream, _, claim := newFrameBranchForkFixture(t)
 	second, _, created, err := repo.AppendFrameUserEvent(context.Background(), AppendFrameUserEventInput{
 		StreamUID: stream.UID, OwnerID: stream.OwnerID, ClientMessageID: "source-user-two",
 		FrameEventID: "source-frame-event-two", MessageUUID: "source-message-two", Text: "second request",
@@ -207,34 +207,40 @@ func TestForkFrameUserMessageBranchReplacesMiddleMessageAndSharesExactPrefix(t *
 	if err := rows.Err(); err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"source-user", "assistant-old", "branch-edit:middle-edit"}
-	if len(clientIDs) != len(want) {
+	projectionWant := []string{
+		"source-user",
+		runnerPreparationAdmissionClientMessage(stream.UID, claim.Attempt),
+		"assistant-old",
+		"branch-edit:middle-edit",
+	}
+	replayWant := []string{"source-user", "assistant-old", "branch-edit:middle-edit"}
+	if len(clientIDs) != len(projectionWant) {
 		t.Fatalf("child events=%v", clientIDs)
 	}
-	for index := range want {
-		if clientIDs[index] != want[index] {
+	for index := range projectionWant {
+		if clientIDs[index] != projectionWant[index] {
 			t.Fatalf("child events=%v", clientIDs)
 		}
 	}
 	projected, err := repo.ListProjectedEvents(context.Background(), ListProjectedEventsInput{
 		StreamUID: stream.UID, OwnerID: stream.OwnerID, Limit: 20,
 	})
-	if err != nil || len(projected) != len(want) {
+	if err != nil || len(projected) != len(projectionWant) {
 		t.Fatalf("active projection=%#v err=%v", projected, err)
 	}
-	for index := range want {
-		if projected[index].Event.ClientMessageID != want[index] {
+	for index := range projectionWant {
+		if projected[index].Event.ClientMessageID != projectionWant[index] {
 			t.Fatalf("active projection=%#v", projected)
 		}
 	}
 	replay, err := repo.ListRunnerReplay(context.Background(), ListRunnerReplayInput{
 		StreamUID: stream.UID, OwnerID: stream.OwnerID, MessageLimit: 20, CheckpointLimit: 20,
 	})
-	if err != nil || len(replay) != len(want) {
+	if err != nil || len(replay) != len(replayWant) {
 		t.Fatalf("active replay=%#v err=%v", replay, err)
 	}
-	for index := range want {
-		if replay[index].Event.ClientMessageID != want[index] {
+	for index := range replayWant {
+		if replay[index].Event.ClientMessageID != replayWant[index] {
 			t.Fatalf("active replay=%#v", replay)
 		}
 	}
@@ -478,7 +484,7 @@ func TestForkFrameUserMessageBranchRollsBackEveryAuthorityOnDeliveryFailure(t *t
 	if err := db.QueryRow(`SELECT COUNT(*) FROM frame_events WHERE frame_id=?`, stream.FrameID).Scan(&frameEvents); err != nil {
 		t.Fatal(err)
 	}
-	if branches != 1 || transcriptEvents != 2 || frameEvents != 0 {
+	if branches != 1 || transcriptEvents != 2+eventsPerFreshRunnerClaim || frameEvents != 0 {
 		t.Fatalf("rollback branches=%d transcript=%d frame=%d", branches, transcriptEvents, frameEvents)
 	}
 }

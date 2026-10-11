@@ -99,6 +99,13 @@ func newTranscriptRepository(t *testing.T) (*Repository, *sql.DB, string) {
 	return NewRepository(db), db, dsn
 }
 
+// Each fresh runner claim journals one typed preparation-admission event.
+const eventsPerFreshRunnerClaim = 1
+
+func runnerPreparationAdmissionClientMessage(streamUID string, attempt int64) string {
+	return "runner-preparation:" + streamUID + ":" + fmt.Sprintf("%d", attempt)
+}
+
 func seedTranscriptInput(t *testing.T, repo *Repository, uid, owner string) {
 	t.Helper()
 	if _, err := repo.CreateStream(context.Background(), CreateStreamInput{
@@ -1307,7 +1314,7 @@ func TestRepositoryGenericRunnerEventsCannotBypassTypedAuthorities(t *testing.T)
 	if err := db.QueryRow(`SELECT COUNT(*) FROM transcript_runner_checkpoints WHERE stream_uid=?`, claimed.Claim.StreamUID).Scan(&checkpoints); err != nil {
 		t.Fatal(err)
 	}
-	if events != 1 || receipts != 0 || checkpoints != 0 {
+	if events != 1+eventsPerFreshRunnerClaim || receipts != 0 || checkpoints != 0 {
 		t.Fatalf("events=%d receipts=%d checkpoints=%d", events, receipts, checkpoints)
 	}
 }
