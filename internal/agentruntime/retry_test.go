@@ -3,6 +3,8 @@ package agentruntime
 import (
 	"context"
 	"errors"
+	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"sync/atomic"
@@ -42,6 +44,28 @@ func TestModelRetryTimingMatchesV11Policy(t *testing.T) {
 	}
 	if modelRetryMaxDelay != 6*time.Second {
 		t.Fatalf("modelRetryMaxDelay = %s, want 6s", modelRetryMaxDelay)
+	}
+}
+
+func TestOpenAIChatClientRetriesDroppedSuccessBody(t *testing.T) {
+	var calls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		calls.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"role":"assistant","content":"recovered"}}]}`))
+	}))
+	defer server.Close()
+
+	client := OpenAIChatClient{
+		Endpoint: server.URL, Model: "retry-model", MaxAttempts: 2,
+		HTTPClient: &http.Client{Transport: &firstBodyResetTransport{next: server.Client().Transport}},
+	}
+	response, err := client.Complete(t.Context(), ModelRequest{Messages: []Message{{Role: "user", Content: "continue"}}})
+	if err != nil || response.Message.Content != "recovered" {
+		t.Fatalf("response=%#v error=%v", response, err)
+	}
+	if calls.Load() != 2 {
+		t.Fatalf("calls = %d", calls.Load())
 	}
 }
 
@@ -85,4 +109,25 @@ func TestOpenAIChatClientRetryWaitHonorsCancellation(t *testing.T) {
 	if calls.Load() != 1 {
 		t.Fatalf("calls = %d; cancellation must stop replay", calls.Load())
 	}
+}
+
+type firstBodyResetTransport struct {
+	next  http.RoundTripper
+	calls atomic.Int32
+}
+
+func (t *firstBodyResetTransport) RoundTrip(request *http.Request) (*http.Response, error) {
+	response, err := t.next.RoundTrip(request)
+	if err != nil || response == nil || t.calls.Add(1) != 1 {
+		return response, err
+	}
+	_ = response.Body.Close()
+	response.Body = io.NopCloser(&resetBodyReader{})
+	return response, nil
+}
+
+type resetBodyReader struct{}
+
+func (*resetBodyReader) Read([]byte) (int, error) {
+	return 0, &net.OpError{Op: "read", Net: "tcp", Err: errors.New("connection reset by peer")}
 }
