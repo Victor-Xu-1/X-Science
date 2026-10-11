@@ -19,21 +19,16 @@ func TestAdmitAgentComputeProviderWorkspaceMatchesManagedTaskRemap(t *testing.T)
 	if err != nil || !found {
 		t.Fatalf("frame access found=%t err=%v", found, err)
 	}
-	admitted, err := server.admitAgentWorkspace(access, access.ProjectPath)
-	if err != nil || admitted == access.ProjectPath {
-		t.Fatalf("ungranted project path must remap to managed task workspace: admitted=%q err=%v", admitted, err)
-	}
-	identity := &agentKernelContext{access: access, workspaceDir: admitted}
-	err = server.admitAgentComputeProviderWorkspace(context.Background(), access, identity.workspaceDir, func() error { return nil })
-	if err != nil {
-		t.Fatalf("admitAgentComputeProviderWorkspace failed: %v", err)
-	}
-
-	fromRaw, err := server.admitAgentWorkspace(access, projectPath)
-	if err != nil || fromRaw != admitted {
-		t.Fatalf("raw project path admission=%q admitted=%q err=%v", fromRaw, admitted, err)
+	managed, err := server.reconcileAgentComputeProviderWorkspace(access, projectPath)
+	if err != nil || managed == projectPath {
+		t.Fatalf("reconcile(raw host path) must remap to managed task workspace: managed=%q err=%v", managed, err)
 	}
 	called := false
+	err = server.admitAgentComputeProviderWorkspace(context.Background(), access, managed, func() error { called = true; return nil })
+	if err != nil || !called {
+		t.Fatalf("admit(exact managed cwd) failed: err=%v callback=%t", err, called)
+	}
+	called = false
 	err = server.admitAgentComputeProviderWorkspace(context.Background(), access, projectPath, func() error { called = true; return nil })
 	if err == nil || called {
 		t.Errorf("raw project path cannot stand in for the physical managed cwd: err=%v callback=%t", err, called)
@@ -60,8 +55,8 @@ func TestAdmitAgentComputeProviderWorkspaceMatchesManagedTaskRemap(t *testing.T)
 				t.Errorf("withdrawn host plan reached physical handoff: err=%v callback=%t", err, called)
 			}
 			canonical, err := server.reconcileAgentComputeProviderWorkspace(access, physicalWorkspace)
-			if err != nil || canonical != admitted {
-				t.Fatalf("canonical managed plan=%q want=%q err=%v", canonical, admitted, err)
+			if err != nil || canonical != managed {
+				t.Fatalf("canonical managed plan=%q want=%q err=%v", canonical, managed, err)
 			}
 			called = false
 			err = server.admitAgentComputeProviderWorkspace(context.Background(), access, canonical, func() error { called = true; return nil })
