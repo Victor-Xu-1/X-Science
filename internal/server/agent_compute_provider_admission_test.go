@@ -33,8 +33,41 @@ func TestAdmitAgentComputeProviderWorkspaceMatchesManagedTaskRemap(t *testing.T)
 	if err != nil || fromRaw != admitted {
 		t.Fatalf("raw project path admission=%q admitted=%q err=%v", fromRaw, admitted, err)
 	}
-	err = server.admitAgentComputeProviderWorkspace(context.Background(), access, projectPath, func() error { return nil })
-	if err != nil {
-		t.Fatalf("persisted project path must hand off to the same admitted task workspace: %v", err)
+	called := false
+	err = server.admitAgentComputeProviderWorkspace(context.Background(), access, projectPath, func() error { called = true; return nil })
+	if err == nil || called {
+		t.Errorf("raw project path cannot stand in for the physical managed cwd: err=%v callback=%t", err, called)
+	}
+	for _, mutation := range []string{"revoke", "read_only"} {
+		t.Run(mutation, func(t *testing.T) {
+			if _, err := server.upsertHostGrant(access.UserID, projectPath, "read_write"); err != nil {
+				t.Fatal(err)
+			}
+			physicalWorkspace, err := server.reconcileAgentComputeProviderWorkspace(access, projectPath)
+			if err != nil || physicalWorkspace != projectPath {
+				t.Fatalf("writable host plan=%q err=%v", physicalWorkspace, err)
+			}
+			if mutation == "revoke" {
+				if removed, err := server.revokeHostGrant(access.UserID, projectPath); err != nil || !removed {
+					t.Fatalf("revoke removed=%t err=%v", removed, err)
+				}
+			} else if _, err := server.upsertHostGrant(access.UserID, projectPath, "read"); err != nil {
+				t.Fatal(err)
+			}
+			called := false
+			err = server.admitAgentComputeProviderWorkspace(context.Background(), access, physicalWorkspace, func() error { called = true; return nil })
+			if err == nil || called {
+				t.Errorf("withdrawn host plan reached physical handoff: err=%v callback=%t", err, called)
+			}
+			canonical, err := server.reconcileAgentComputeProviderWorkspace(access, physicalWorkspace)
+			if err != nil || canonical != admitted {
+				t.Fatalf("canonical managed plan=%q want=%q err=%v", canonical, admitted, err)
+			}
+			called = false
+			err = server.admitAgentComputeProviderWorkspace(context.Background(), access, canonical, func() error { called = true; return nil })
+			if err != nil || !called {
+				t.Fatalf("canonical managed handoff was rejected: err=%v callback=%t", err, called)
+			}
+		})
 	}
 }

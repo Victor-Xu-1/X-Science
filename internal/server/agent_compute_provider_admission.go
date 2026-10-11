@@ -21,15 +21,9 @@ func (s *Server) admitAgentComputeProviderWorkspace(ctx context.Context, bound w
 		if err != nil {
 			return err
 		}
-		requested := strings.TrimSpace(expectedWorkspace)
-		if requested == "" {
-			requested = current.ProjectPath
-		}
-		fromBinding, err := s.admitAgentWorkspace(current, requested)
-		if err != nil {
-			return err
-		}
-		if fromProject != fromBinding {
+		// expectedWorkspace is already the reconciled physical session cwd.
+		// Remapping it here could admit an old host mount after grant revocation.
+		if fromProject != expectedWorkspace {
 			return errors.New("compute provider workspace authority changed before admission")
 		}
 		return admit()
