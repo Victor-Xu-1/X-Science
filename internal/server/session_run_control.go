@@ -64,7 +64,7 @@ func (s *Server) registerActiveSessionRun(parent context.Context, sessionID, run
 	run := &activeSessionRun{runnerID: runnerID, cancel: cancel, done: make(chan struct{})}
 	ctx = context.WithValue(ctx, sessionRunLifetimeContextKey{}, ctx)
 	s.sessionRunsMu.Lock()
-	if s.sessionRunsDraining {
+	if s.sessionRunsDraining || s.sessionRunsDrainEvaluating {
 		s.sessionRunsMu.Unlock()
 		cancel(ErrRuntimeDraining)
 		return nil, nil, nil, ErrRuntimeDraining
@@ -182,19 +182,77 @@ func (s *Server) TryDrainIdle() bool {
 		return false
 	}
 	s.sessionRunsMu.Lock()
-	defer s.sessionRunsMu.Unlock()
 	if s.sessionRunsDraining {
+		s.sessionRunsMu.Unlock()
 		return true
+	}
+	if s.sessionRunsDrainEvaluating {
+		s.sessionRunsMu.Unlock()
+		return false
+	}
+	if len(s.sessionRuns) != 0 {
+		s.sessionRunsMu.Unlock()
+		return false
+	}
+	s.sessionRunsDrainEvaluating = true
+	s.sessionRunsMu.Unlock()
+
+	clearDrainEvaluating := func() {
+		s.sessionRunsMu.Lock()
+		s.sessionRunsDrainEvaluating = false
+		s.sessionRunsMu.Unlock()
+	}
+
+	if wait := s.tryDrainIdleDurableWait; wait != nil {
+		wait()
+	}
+	// Durable liveness reads can take hundreds of milliseconds each. Do not hold
+	// sessionRunsMu across them or /health and deployment supervisors stall.
+	if s.activeDurableRunnerAttemptCount() != 0 ||
+		s.activeKernelExecutionCount() != 0 ||
+		s.activeKernelOperationCount() != 0 {
+		clearDrainEvaluating()
+		return false
+	}
+
+	s.sessionRunsMu.Lock()
+	if s.sessionRunsDraining {
+		s.sessionRunsDrainEvaluating = false
+		s.sessionRunsMu.Unlock()
+		return true
+	}
+	if len(s.sessionRuns) != 0 {
+		s.sessionRunsDrainEvaluating = false
+		s.sessionRunsMu.Unlock()
+		return false
+	}
+	s.sessionRunsMu.Unlock()
+
+	if s.activeDurableRunnerAttemptCount() != 0 ||
+		s.activeKernelExecutionCount() != 0 ||
+		s.activeKernelOperationCount() != 0 {
+		clearDrainEvaluating()
+		return false
+	}
+
+	s.sessionRunsMu.Lock()
+	if s.sessionRunsDraining {
+		s.sessionRunsDrainEvaluating = false
+		s.sessionRunsMu.Unlock()
+		return true
+	}
+	if len(s.sessionRuns) != 0 {
+		s.sessionRunsDrainEvaluating = false
+		s.sessionRunsMu.Unlock()
+		return false
 	}
 	// A durable local operation can outlive the runner cycle that submitted it.
 	// Treat that execution as active runtime work as well; otherwise a verified
 	// source update can replace the backend while the kernel is still settling,
 	// leaving replay with a start checkpoint but no live kernel to complete it.
-	if len(s.sessionRuns) != 0 || s.activeDurableRunnerAttemptCount() != 0 ||
-		s.activeKernelExecutionCount() != 0 || s.activeKernelOperationCount() != 0 {
-		return false
-	}
 	s.sessionRunsDraining = true
+	s.sessionRunsDrainEvaluating = false
+	s.sessionRunsMu.Unlock()
 	return true
 }
 

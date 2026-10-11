@@ -196,6 +196,38 @@ func TestDrainLinearizesBeforeTerminalSettlement(t *testing.T) {
 	}
 }
 
+func TestSessionRunActivityRemainsAvailableDuringTryDrainIdleDurableChecks(t *testing.T) {
+	releaseDurableChecks := make(chan struct{})
+	server := New(Options{
+		TryDrainIdleDurableWait: func() { <-releaseDurableChecks },
+	})
+	drainStarted := make(chan struct{})
+	drainDone := make(chan bool, 1)
+	go func() {
+		close(drainStarted)
+		drainDone <- server.TryDrainIdle()
+	}()
+	<-drainStarted
+	select {
+	case finished := <-drainDone:
+		t.Fatalf("TryDrainIdle returned before durable liveness checks completed: %v", finished)
+	case <-time.After(50 * time.Millisecond):
+	}
+
+	start := time.Now()
+	active, draining := server.sessionRunActivity()
+	if elapsed := time.Since(start); elapsed > 200*time.Millisecond {
+		t.Fatalf("sessionRunActivity blocked %s while TryDrainIdle held durable liveness checks", elapsed)
+	}
+	if active != 0 || draining {
+		t.Fatalf("unexpected activity active=%d draining=%t", active, draining)
+	}
+	close(releaseDurableChecks)
+	if !<-drainDone {
+		t.Fatal("idle runtime did not accept verified reload drain")
+	}
+}
+
 func TestTryDrainIdleIsAtomicWithRunnerAdmission(t *testing.T) {
 	idle := New(Options{})
 	if !idle.TryDrainIdle() {

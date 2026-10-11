@@ -117,6 +117,9 @@ type Options struct {
 	VMResources                           *vmresources.Controller
 	CloudFactory                          cloudstore.ClientFactory
 	WebUI                                 http.Handler
+	// TryDrainIdleDurableWait is invoked after idle admission is fenced and
+	// before durable liveness reads. Production callers leave it nil.
+	TryDrainIdleDurableWait func()
 }
 
 type RunnerDiagnostics struct {
@@ -267,6 +270,8 @@ type Server struct {
 	sessionRunsMu                         sync.Mutex
 	sessionRuns                           map[string]*activeSessionRun
 	sessionRunsDraining                   bool
+	sessionRunsDrainEvaluating            bool
+	tryDrainIdleDurableWait               func()
 	manualReviewMu                        sync.Mutex
 	visualReviewChallengeToken            func() (string, error)
 	runtimeComponentsMu                   sync.RWMutex
@@ -638,6 +643,7 @@ func New(options Options) *Server {
 		messageChannelQRBindings:              map[string]messageChannelQRBinding{},
 		sessionSockets:                        newSessionWebSocketHub(),
 		sessionRuns:                           map[string]*activeSessionRun{},
+		tryDrainIdleDurableWait:               options.TryDrainIdleDurableWait,
 		agentKernelForegroundWaitTimeout:      defaultAgentKernelForegroundWaitTimeout,
 		kernelIdleNow:                         time.Now,
 		runtimeComponents:                     map[string]struct{}{},
