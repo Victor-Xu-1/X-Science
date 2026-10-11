@@ -60,6 +60,57 @@ func retryTransientStoreContention(ctx context.Context, operation string, fn fun
 	return errors.New("transient store retry exhausted")
 }
 
+// retryOwnedGrantStoreContention retries an idempotent persistence write for
+// as long as the caller still owns the grant. The context deadline is the
+// remaining lease, not a short preparation slice. Permanent errors still
+// surface immediately. A caller must supply its owned grant deadline.
+func retryOwnedGrantStoreContention(ctx context.Context, operation string, delay time.Duration, fn func() error) error {
+	if fn == nil {
+		return errors.New("transient store operation is required")
+	}
+	if ctx == nil {
+		return errors.New("owned grant deadline is required")
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if _, bounded := ctx.Deadline(); !bounded {
+		return errors.New("owned grant deadline is required")
+	}
+	if delay <= 0 {
+		delay = sessionRunnerStoreContentionRetryDelay
+	}
+	operation = strings.TrimSpace(operation)
+	if operation == "" {
+		operation = "workspace_write"
+	}
+	for attempt := 1; ; attempt++ {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		err := fn()
+		if err == nil {
+			return nil
+		}
+		if !isTransientSQLiteContention(err) && !errors.Is(err, context.DeadlineExceeded) {
+			return err
+		}
+		log.Printf(
+			"session_runner_owned_grant_contention_retry operation=%s attempt=%d next_delay_ms=%d error=%v",
+			operation, attempt, delay.Milliseconds(), err,
+		)
+		timer := time.NewTimer(delay)
+		select {
+		case <-ctx.Done():
+			if !timer.Stop() {
+				<-timer.C
+			}
+			return ctx.Err()
+		case <-timer.C:
+		}
+	}
+}
+
 func isTransientSQLiteContention(err error) bool {
 	return sqliteutil.IsTransientContention(err)
 }

@@ -20,8 +20,9 @@ func (s *Server) renewTranscriptRunnerLease(ctx context.Context, claim transcrip
 	}
 	renewalCtx, cancel := context.WithDeadline(ctx, deadline)
 	defer cancel()
+	delay := max(time.Millisecond, min(ttl/10, 250*time.Millisecond))
 	var result transcriptstore.HeartbeatRunnerResult
-	err := retryTransientStoreContention(renewalCtx, "runner_lease_renewal", func() error {
+	err := retryOwnedGrantStoreContention(renewalCtx, "runner_lease_renewal", delay, func() error {
 		var err error
 		result, err = s.transcriptStore.HeartbeatRunner(renewalCtx, transcriptstore.HeartbeatRunnerInput{Claim: claim, TTL: ttl})
 		return err
