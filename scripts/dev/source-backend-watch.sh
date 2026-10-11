@@ -287,7 +287,9 @@ supports_runtime_endpoint_receipt() {
   local help_output=""
   # Both the current and accepted older CLI handle serve --help before config
   # loading or binding a listener. Probe capability, never a version/name.
-  help_output=$(timeout --kill-after=1 5 "$BINARY" serve --help 2>&1) || return 1
+  # Keep the waiter outside the killed child's group so it survives KILL and
+  # reaps the native help process, including under a non-reaping container init.
+  help_output=$(timeout --foreground --kill-after=1 5 "$BINARY" serve --help 2>&1) || return 1
   grep -Eq '^[[:space:]]+-runtime-endpoint-file([[:space:]]|$)' <<<"$help_output"
 }
 
