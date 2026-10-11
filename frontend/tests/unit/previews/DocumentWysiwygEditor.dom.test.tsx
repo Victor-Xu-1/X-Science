@@ -275,6 +275,72 @@ describe('DocumentWysiwygEditor', () => {
 });
 
 describe('documentWysiwygModel', () => {
+  it('does not restore executable resource sources hidden in provenance attributes', () => {
+    const html =
+      '<a href="https://safe.example" data-synon-original-href="javascript:alert(1)">Evidence</a>' +
+      '<img src="https://safe.example/plot.png" data-synon-original-src="data:text/html,bad" style="width:20px" alt="Plot">';
+
+    const markdown = markdownFromEditableHtml(html);
+    const document = replaceHtmlDocumentBody('<!doctype html><html><body>Before</body></html>', html);
+
+    expect(markdown).not.toContain('javascript:');
+    expect(markdown).not.toContain('data:text/html');
+    expect(markdown).toContain('https://safe.example');
+    expect(document).not.toContain('javascript:');
+    expect(document).not.toContain('data:text/html');
+    expect(document).toContain('https://safe.example');
+  });
+
+  it('keeps valid durable and local sources through sanitized resource export', () => {
+    const html =
+      '<a href="/api/artifacts/versions/de03acd4-6097-4fe9-a3af-f8fa47341850" data-synon-original-href="{{artifact:de03acd4-6097-4fe9-a3af-f8fa47341850}}">Evidence</a>' +
+      '<a href="C:\\Research\\report.md" data-synon-original-href="C:\\Research\\report.md">Local</a>' +
+      '<img src="data:image/png;base64,Y2hhcnQ=" data-synon-original-src="../figures/chart.png" alt="Plot">';
+    const markdown = markdownFromEditableHtml(html);
+    const document = replaceHtmlDocumentBody('<html><body></body></html>', html);
+
+    expect(markdown).toContain('[Evidence]({{artifact:de03acd4-6097-4fe9-a3af-f8fa47341850}})');
+    expect(markdown).toContain('[Local](C:\\\\Research\\\\report.md)');
+    expect(markdown).toContain('![Plot](../figures/chart.png)');
+    expect(document).toContain('src="../figures/chart.png"');
+    expect(document).toContain('href="C:\\Research\\report.md"');
+    expect(document).not.toContain('data-synon-original-');
+  });
+
+  it('drops unsafe sources when neither original nor rendered source is admissible', () => {
+    const html =
+      '<a href="javascript:bad()" data-synon-original-href="javascript:bad()">Keep text</a>' +
+      '<img src="data:text/html,bad" data-synon-original-src="data:text/html,bad" alt="Unsafe">';
+    const markdown = markdownFromEditableHtml(html);
+    const document = replaceHtmlDocumentBody('<html><body></body></html>', html);
+
+    expect(markdown).toContain('Keep text');
+    expect(markdown).not.toContain('javascript:');
+    expect(markdown).not.toContain('data:text/html');
+    expect(document).not.toContain('javascript:');
+    expect(document).not.toContain('data:text/html');
+  });
+
+  it('does not let resource destinations break out of Markdown link syntax', () => {
+    const html =
+      '<a href="https://safe.example" data-synon-original-href="https://safe.example/) [Injected](javascript:bad())">Evidence</a>';
+    const markdown = markdownFromEditableHtml(html);
+
+    expect(markdown).not.toContain(') [Injected](javascript:');
+    expect(markdown).toContain('https://safe.example/\\) \\[Injected\\]\\(javascript:bad\\(\\)\\)');
+  });
+
+  it('keeps resource metadata from becoming raw HTML in exported Markdown', () => {
+    const markdown = markdownFromEditableHtml(
+      '<a href="https://safe.example" data-synon-original-href="https://safe.example/&lt;img src=x onerror=bad&gt;">Evidence</a>' +
+        '<img src="../chart.png" alt="&lt;img src=x onerror=bad&gt;" title="&lt;svg onload=bad&gt;">'
+    );
+
+    expect(markdown).not.toMatch(/(?<!\\)<(?:img|svg)/);
+    expect(markdown).toContain('\\<img');
+    expect(markdown).toContain('\\<svg');
+  });
+
   it('sanitizes active markup before converting editable HTML to markdown', () => {
     const markdown = markdownFromEditableHtml(
       '<p>Safe text</p><img src="x" onerror="alert(1)"><script>alert(1)</script>'

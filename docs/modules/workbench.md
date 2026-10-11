@@ -533,6 +533,22 @@ SYNON_REPLY_BRANCH_BROWSER=1 go test ./internal/server -run '^TestWebReplyBranch
 
 ### Document preview · 文档预览
 
+Document-editor resource provenance attributes remain untrusted after HTML
+sanitization. Markdown export and HTML source restoration revalidate them using
+the same resource policy as insertion. An unsafe original source cannot override
+a valid rendered source; when neither is admissible, no resource URL is emitted.
+Valid artifact references, local paths, link-only mailto/tel and approved raster
+image data retain their existing meaning. Markdown destination delimiters,
+image captions and quoted titles are escaped without granting URL authority.
+KaTeX source annotations remain part
+of mathematical export. A preserved path is not a filesystem authorization.
+
+文档编辑器中的资源来源属性在 HTML 净化后仍是不可信数据。Markdown 导出及 HTML
+来源还原使用与插入相同的资源校验；危险的原始来源不能覆盖合法的显示来源，两者
+均非法时不输出资源地址。合法产物引用、本地路径、链接的 mailto/tel 和允许的位图
+数据仍保留；地址分隔符、图片说明和标题沿 Markdown 语法转义，不因此授予 URL
+权限。数学导出保留 KaTeX 原始公式。保留路径不代表授予文件系统访问权限。
+
 回答中的生成文件链接以蓝色粗体显示，点击或键盘激活进入应用内预览；
 下载是预览内的独立操作。产物引用、文件名和产物内容 URL 共用会话产物
 解析器；`#/artifacts/` 工作台链接也沿此入口打开，不另开网页。内容 URL 与工作台
