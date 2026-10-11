@@ -67,7 +67,7 @@ func (s *Server) materializeAdmittedManagedWorkspace(projectID, workdir string) 
 	}
 	managed, err := s.managedProjectWorkspacePath(projectID)
 	if err != nil {
-		return workdir, nil
+		return "", err
 	}
 	target, err := canonicalAgentWorkspaceDirectoryTarget(workdir)
 	if err != nil {
@@ -153,10 +153,22 @@ func (s *Server) managedProjectWorkspacePath(projectID string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if info, statErr := os.Stat(managed); statErr == nil && info.IsDir() {
-		return canonicalHostDirectory(managed)
+	managed = filepath.Clean(managed)
+	canonical, err := canonicalAgentWorkspaceDirectoryTarget(managed)
+	if err != nil || canonical != managed {
+		return "", errors.New("managed project workspace authority must not follow a symbolic path")
 	}
-	return filepath.Clean(managed), nil
+	info, err := os.Lstat(managed)
+	if errors.Is(err, os.ErrNotExist) {
+		return managed, nil
+	}
+	if err != nil {
+		return "", err
+	}
+	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		return "", errors.New("managed project workspace must be a real directory")
+	}
+	return managed, nil
 }
 
 func (s *Server) rejectForeignManagedProjectWorkspace(projectID, path string) error {
