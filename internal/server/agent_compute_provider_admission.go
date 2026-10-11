@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"strings"
 
 	workspace "synon-go/internal/persistence/workspace"
 )
@@ -16,13 +17,43 @@ func (s *Server) admitAgentComputeProviderWorkspace(ctx context.Context, bound w
 		if err != nil {
 			return err
 		}
-		actual, err := s.admitAgentWorkspace(current, current.ProjectPath)
+		fromProject, err := s.admitAgentWorkspace(current, current.ProjectPath)
 		if err != nil {
 			return err
 		}
-		if actual != expectedWorkspace {
+		requested := strings.TrimSpace(expectedWorkspace)
+		if requested == "" {
+			requested = current.ProjectPath
+		}
+		fromBinding, err := s.admitAgentWorkspace(current, requested)
+		if err != nil {
+			return err
+		}
+		if fromProject != fromBinding {
 			return errors.New("compute provider workspace authority changed before admission")
 		}
 		return admit()
 	})
+}
+
+// reconcileAgentComputeProviderWorkspace returns the admitted cwd for provider
+// startup. A persisted project.Path without a live grant remaps to the managed
+// task workspace; the binding must still match that admission at handoff.
+func (s *Server) reconcileAgentComputeProviderWorkspace(access workspace.KernelFrameAccess, bound string) (string, error) {
+	fromProject, err := s.admitAgentWorkspace(access, access.ProjectPath)
+	if err != nil {
+		return "", err
+	}
+	requested := strings.TrimSpace(bound)
+	if requested == "" {
+		return fromProject, nil
+	}
+	fromBinding, err := s.admitAgentWorkspace(access, requested)
+	if err != nil {
+		return "", err
+	}
+	if fromProject != fromBinding {
+		return "", errors.New("compute provider task workspace is unavailable")
+	}
+	return fromProject, nil
 }
