@@ -91,7 +91,7 @@ class MetadataScopeTest(unittest.TestCase):
         self.assertEqual(filtered, ['internal/runtime/lease.go', 'frontend/App.tsx'])
         self.assertEqual(len(ignored), 8)
 
-    def test_matrix_disposition_change_does_not_block_version_projection_selection(self):
+    def test_other_consumer_disposition_change_is_not_version_metadata(self):
         original_snapshot = metadata.snapshot
         def changed(repo, revision, path):
             raw = original_snapshot(repo, revision, path)
@@ -101,9 +101,29 @@ class MetadataScopeTest(unittest.TestCase):
                 return json.dumps(value).encode()
             return raw
         with patch.object(metadata, 'snapshot', side_effect=changed):
-            self.assertEqual(metadata.version_projection_paths(self.repo, self.base, self.head),
-                             {'product-identity.json', 'frontend/package.json', 'frontend/package-lock.json',
-                              'frontend/packages/desktop/package.json'})
+            paths = scope.changed_paths(self.repo, self.base, self.head)
+            self.assertEqual(metadata.filter_paths(self.repo, self.base, self.head, paths), (paths, []))
+            self.assertEqual(metadata.version_projection_paths(self.repo, self.base, self.head), set())
+
+    def test_changed_provenance_without_counter_delta_still_requires_fresh_audit(self):
+        with tempfile.TemporaryDirectory(prefix='metadata-changed-provenance-') as directory:
+            candidate = Path(directory) / 'candidate'
+            subprocess.run(['git', 'clone', '--quiet', '--shared', '--no-hardlinks',
+                            str(self.repo), str(candidate)], check=True)
+            manifest = candidate / metadata.MIGRATION
+            value = json.loads(manifest.read_bytes())
+            value['unreviewed-source-record'] = True
+            manifest.write_text(json.dumps(value))
+            subprocess.run(['git', '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
+                            'commit', '-qam', 'changed provenance only'], cwd=candidate, check=True)
+            head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=candidate, text=True).strip()
+            self.assertEqual(scope.changed_paths(candidate, self.head, head), [metadata.MIGRATION])
+            argv = ['pr_fast_scope.py', '--repo', str(candidate), '--base', self.head, '--head', head, '--frontend']
+            with patch.object(sys, 'argv', argv), patch.object(
+                scope, 'run', return_value=subprocess.CompletedProcess([], 19)) as invoke:
+                self.assertEqual(scope.main(), 19)
+                self.assertEqual(invoke.call_count, 1)
+                self.assertIn('audit_frontend_migration.py', invoke.call_args.args[2])
 
     def test_counter_projections_stay_inert_when_source_provenance_also_changes(self):
         original_snapshot = metadata.snapshot
