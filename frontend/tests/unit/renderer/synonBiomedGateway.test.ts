@@ -1,12 +1,17 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  clearSharedGatewayReads,
   loadSynonBiomedAssistantComposerCapabilities,
   loadSynonBiomedComposerCapabilities,
+  loadSynonBiomedProjectArtifacts,
   loadSynonBiomedProjectBenches,
+  loadSynonBiomedProjectFolders,
   loadSynonBiomedProject,
+  loadSynonBiomedProjects,
   loadSynonBiomedLinkedTask,
   loadSynonBiomedProjectWorkbench,
 } from '@/renderer/services/synonBiomedGateway';
+import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -17,7 +22,11 @@ function deferred<T>() {
 }
 
 describe('X-Science project gateway request authority', () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    clearSharedGatewayReads();
+    resetRendererAccountScopeForTest();
+    vi.unstubAllGlobals();
+  });
 
   it('reads one exact task record without capped collections or message history', async () => {
     const controller = new AbortController();
@@ -198,5 +207,63 @@ describe('X-Science project gateway request authority', () => {
       '/api/assistants/synonbiomed%3Aoperon/composer-capabilities',
       expect.objectContaining({ headers: { Accept: 'application/json' } })
     );
+  });
+
+  it('coalesces concurrent project list, artifact, and folder reads without later stale reuse', async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(async (input) => {
+      const url = String(input);
+      if (url === '/api/projects') {
+        return new Response(JSON.stringify({ projects: [{ project_id: 'project-1', name: 'Project One' }] }));
+      }
+      if (url.endsWith('/project-1/artifacts')) {
+        return new Response(
+          JSON.stringify([{ id: 'artifact-1', filename: 'artifact-1.txt', project_id: 'project-1' }])
+        );
+      }
+      if (url.endsWith('/project-1/folders')) {
+        return new Response(JSON.stringify([{ id: 'folder-1', name: 'Folder 1', project_id: 'project-1' }]));
+      }
+      if (url.endsWith('/project-2/artifacts')) {
+        return new Response(
+          JSON.stringify([{ id: 'artifact-2', filename: 'artifact-2.txt', project_id: 'project-2' }])
+        );
+      }
+      throw new Error(`unexpected fetch: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const [projectsA, projectsB, artifactsA, artifactsB, foldersA, foldersB, otherProject] = await Promise.all([
+      loadSynonBiomedProjects(),
+      loadSynonBiomedProjects(),
+      loadSynonBiomedProjectArtifacts('project-1'),
+      loadSynonBiomedProjectArtifacts('project-1'),
+      loadSynonBiomedProjectFolders('project-1'),
+      loadSynonBiomedProjectFolders('project-1'),
+      loadSynonBiomedProjectArtifacts('project-2'),
+    ]);
+
+    expect(projectsA).toEqual(projectsB);
+    expect(artifactsA).toEqual(artifactsB);
+    expect(foldersA).toEqual(foldersB);
+    expect(otherProject[0]?.artifactId).toBe('artifact-2');
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+
+    await expect(loadSynonBiomedProjects()).resolves.toEqual(projectsA);
+    expect(fetchMock).toHaveBeenCalledTimes(5);
+  });
+
+  it('does not reuse an in-flight project list across authenticated owners', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockImplementation(async () => new Response(JSON.stringify({ projects: [{ project_id: 'p', name: 'P' }] })));
+    vi.stubGlobal('fetch', fetchMock);
+
+    setRendererAccountOwner('owner-a');
+    const ownerA = loadSynonBiomedProjects();
+    setRendererAccountOwner('owner-b');
+    const ownerB = loadSynonBiomedProjects();
+
+    await Promise.all([expect(ownerA).resolves.toHaveLength(1), expect(ownerB).resolves.toHaveLength(1)]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
