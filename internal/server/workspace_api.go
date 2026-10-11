@@ -727,7 +727,7 @@ func (s *Server) handleWorkspaceProject(w http.ResponseWriter, r *http.Request) 
 				update.Path = &authorized
 				managed = createdManaged
 			}
-			project, err := store.UpdateProjectRealtimeWithPreparation(r.Context(), projectID, userID, update, "", s.managedProjectPreparation(managed))
+			project, err := store.UpdateProjectRealtimeWithPreparation(r.Context(), projectID, userID, update, "", s.managedProjectPreparation(managed, managedProjectPreparationOptions{AllowExisting: true}))
 			if err != nil {
 				writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 				return
