@@ -242,31 +242,65 @@ func TestProviderStreamHeaderDeadlineTimesOutWhenHeadersNeverArrive(t *testing.T
 	ctx, cancel := context.WithCancelCause(context.Background())
 	stop := providerStreamHeaderDeadline(agentruntime.ModelRequest{}, 15*time.Millisecond, cancel)
 	defer stop()
-	time.Sleep(35 * time.Millisecond)
+	select {
+	case <-ctx.Done():
+	case <-time.After(2 * time.Second):
+		t.Fatal("missing headers did not reach the deadline")
+	}
 	if !errors.Is(context.Cause(ctx), errOpenAIChatStreamFirstByteTimeout) {
 		t.Fatalf("cause=%v", context.Cause(ctx))
 	}
 }
 
-func TestProviderStreamHeaderDeadlineSurvivesStopRaceWithTimer(t *testing.T) {
-	for attempt := 0; attempt < 40; attempt++ {
-		ctx, cancel := context.WithCancelCause(context.Background())
-		delay := 8 * time.Millisecond
-		stop := providerStreamHeaderDeadline(agentruntime.ModelRequest{}, delay, cancel)
-		go func() {
-			time.Sleep(delay)
-			stop()
-		}()
-		time.Sleep(delay * 4)
-		if errors.Is(context.Cause(ctx), errOpenAIChatStreamFirstByteTimeout) {
-			t.Fatalf("attempt %d: spurious first-byte timeout after headers", attempt)
-		}
+func TestProviderStreamHeaderDeadlineStopFirstRetainsLiveRequest(t *testing.T) {
+	ctx, cancel := context.WithCancelCause(t.Context())
+	stop := providerStreamHeaderDeadline(agentruntime.ModelRequest{}, time.Hour, cancel)
+	stop()
+	stop()
+	if cause := context.Cause(ctx); cause != nil {
+		t.Fatalf("stopping a pending header deadline cancelled the request: %v", cause)
+	}
+}
+
+func TestProviderHeaderStopWaitsForCommittedCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancelCause(t.Context())
+	entered := make(chan struct{})
+	release := make(chan struct{})
+	stopReturned := make(chan struct{})
+	stop := providerStreamHeaderDeadline(agentruntime.ModelRequest{}, 0, func(cause error) {
+		close(entered)
+		<-release
+		cancel(cause)
+	})
+	select {
+	case <-entered:
+	case <-time.After(2 * time.Second):
+		t.Fatal("timer did not enter cancellation")
+	}
+	go func() { stop(); close(stopReturned) }()
+	returnedBeforeCancel := false
+	select {
+	case <-stopReturned:
+		returnedBeforeCancel = true
+	case <-time.After(30 * time.Millisecond):
+	}
+	close(release)
+	select {
+	case <-stopReturned:
+	case <-time.After(2 * time.Second):
+		t.Fatal("stop did not complete after cancellation")
+	}
+	if returnedBeforeCancel {
+		t.Fatal("stop returned while a committed cancellation could still cancel the request later")
+	}
+	if !errors.Is(context.Cause(ctx), errOpenAIChatStreamFirstByteTimeout) {
+		t.Fatalf("timer-first ordering lost its timeout cause: %v", context.Cause(ctx))
 	}
 }
 
 func TestProviderStreamHeaderDeadlineAllowsSlowHeadersBeforeDeadline(t *testing.T) {
 	const headerDelay = 25 * time.Millisecond
-	const deadline = 60 * time.Millisecond
+	const deadline = time.Second
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(headerDelay)
 		w.Header().Set("Content-Type", "text/event-stream")

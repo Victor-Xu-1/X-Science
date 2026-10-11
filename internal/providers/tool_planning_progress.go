@@ -33,11 +33,13 @@ func providerStreamHeaderDeadline(request agentruntime.ModelRequest, timeout tim
 	currentGeneration := generation
 	timer := time.AfterFunc(timeout, func() {
 		mu.Lock()
+		defer mu.Unlock()
 		if stopped || generation != currentGeneration {
-			mu.Unlock()
 			return
 		}
-		mu.Unlock()
+		stopped = true
+		// The native context cancellation completes before Stop can return.
+		// Otherwise Stop may win after the check but still be cancelled later.
 		cancel(errOpenAIChatStreamFirstByteTimeout)
 	})
 	mu.Unlock()
@@ -91,8 +93,8 @@ func toolPlanningStreamContext(
 				// of private-only generation. Preserve its bounded retry contract.
 				cause = errOpenAIChatStreamFirstByteTimeout
 			}
-			mu.Unlock()
 			cancel(cause)
+			mu.Unlock()
 		})
 	}
 	mu.Lock()
