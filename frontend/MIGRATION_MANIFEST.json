@@ -1144,8 +1144,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/components/MessageScientificFiles.tsx",
       "sourceSHA256": "02e69f4311ad29d19b517704a4852127c8d3485cb4b44eabeaf236153d81f28e",
-      "targetSHA256": "011e268368d869348e2c41f297be776ce2b4992c3ffa8899ae346e2bcf466b51",
-      "bytes": 10328,
+      "targetSHA256": "942b22acae59dc2ccb0adcff531ebda1eebdbf241210eed48ea3d236ab10348d",
+      "bytes": 11626,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -1186,8 +1186,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/components/MessageText.tsx",
       "sourceSHA256": "d985f0bfdc719a845cd19aa11d5be56766d937f168c65df91c9cc522c06cb4fc",
-      "targetSHA256": "b9d6efa496d8291ee19d2e18e284e63225df045e05fddfe6df497bc1d18e13ee",
-      "bytes": 13692,
+      "targetSHA256": "d3b31bfbef95b78dc1dc02c554548a2086e385c6104b8d6eefcfaf2656095098",
+      "bytes": 13872,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -3853,8 +3853,8 @@
     {
       "path": "tests/unit/renderer/MessageScientificFiles.dom.test.tsx",
       "sourceSHA256": "2932f13f5ed03e467bbdaeb80f3de6760a352bda724c275189f361aa449e4a5c",
-      "targetSHA256": "fe6feae64bac8e7c7483cd00483171bb819589bcf7ba8a3607aa647d22382e70",
-      "bytes": 9992,
+      "targetSHA256": "8a160d72e61cadcc41b7566917b50eef08d9ab1c7628c036aa8ca90061b061a6",
+      "bytes": 10508,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -7564,8 +7564,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/components/ToolOperationDetail.tsx",
-      "sha256": "bf28f0d33c4dfac787ae3275c4014d5f8ce0c3503084862c3477389980353588",
-      "bytes": 8899,
+      "sha256": "36752ac070f7006b54560374f26ce19754a7ee859decbe67c804529123ad680d",
+      "bytes": 8984,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -7660,8 +7660,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/messageItemMemoModel.ts",
-      "sha256": "8ad290901ad9965ff809715ad6328f3f1ca63502d3c579167f5a559061677053",
-      "bytes": 1380,
+      "sha256": "c73b53758d34f577106f4b67592015d1707fcb59b4d0a5d68239a03ffccef1aa",
+      "bytes": 2623,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8260,8 +8260,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/components/ConversationTitleMinimap/ConversationTurnNavigation.tsx",
-      "sha256": "f1d3df1fedb1abca701e536061ec1aa77dbff581993a9148ab7d763bec41d899",
-      "bytes": 1357,
+      "sha256": "50990d3511a9af64a3465c64734026fc6f0fd355da65fc588bfd40b13ece6462",
+      "bytes": 1433,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8272,8 +8272,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/components/ConversationTitleMinimap/ConversationTurnRail.tsx",
-      "sha256": "3628c68a6d3134e5fe1868aeb239bd5e28224b946808feb79d3a5fca9035a331",
-      "bytes": 8754,
+      "sha256": "fc9c813819305489f3fcd26a3b111a547c1002627aed45d9635f3f7410fe864f",
+      "bytes": 8789,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10762,8 +10762,8 @@
     },
     {
       "path": "tests/unit/renderer/messageItemMemoModel.test.ts",
-      "sha256": "82ff820c1f7d7644740fa7148041342a6ffe98f5310d322cc745afb79c505d2b",
-      "bytes": 982,
+      "sha256": "08a5a0d3795d5d8db1877e30f7d14c889f9022a13182b31631522a148e4d1f0f",
+      "bytes": 1871,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
