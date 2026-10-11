@@ -344,10 +344,11 @@ func (m *Manager) startWorkerWithAuxiliary(
 	protected []string,
 	restartKey, restartLanguage string,
 	auxiliary []*os.File,
+	registration ...func(*Worker),
 ) (*Worker, error) {
 	return m.startWorkerWithRuntime(
 		id, workspaceDir, executable, arguments, environment, mounts, protected,
-		restartKey, restartLanguage, auxiliary, nil,
+		restartKey, restartLanguage, auxiliary, nil, registration...,
 	)
 }
 
@@ -359,6 +360,7 @@ func (m *Manager) startWorkerWithRuntime(
 	restartKey, restartLanguage string,
 	auxiliary []*os.File,
 	egressProxy *kernelEgressProxy,
+	registration ...func(*Worker),
 ) (*Worker, error) {
 	if egressProxy != nil {
 		child := egressProxy.takeChild()
@@ -401,6 +403,9 @@ func (m *Manager) startWorkerWithRuntime(
 			for _, file := range auxiliary {
 				_ = file.Close()
 			}
+			if len(registration) != 0 {
+				return nil, errors.New("kernel id is already owned by a live worker")
+			}
 			return existing, nil
 		}
 	}
@@ -441,6 +446,9 @@ func (m *Manager) startWorkerWithRuntime(
 		egressProxy: egressProxy,
 	}
 	m.workers[id] = worker
+	for _, register := range registration {
+		register(worker)
+	}
 	go worker.readProtocol(stdout)
 	go func() { _, _ = io.Copy(worker.diagnostics, stderr) }()
 	go worker.wait()

@@ -52,9 +52,13 @@ type providerKernelState struct {
 	once       sync.Once
 }
 
-func (m *Manager) StartProviderSession(ctx context.Context, spec SessionSpec, runtimeSpec ProviderRuntimeSpec) (*Worker, string, error) {
+func (m *Manager) StartProviderSession(ctx context.Context, spec SessionSpec, runtimeSpec ProviderRuntimeSpec, admissions ...ProviderSessionAdmission) (*Worker, string, error) {
 	if m == nil {
 		return nil, "", errors.New("provider kernel manager is unavailable")
+	}
+	admit, err := providerSessionAdmission(admissions)
+	if err != nil {
+		return nil, "", err
 	}
 	if err := m.Verify(); err != nil {
 		return nil, "", err
@@ -73,15 +77,23 @@ func (m *Manager) StartProviderSession(ctx context.Context, spec SessionSpec, ru
 
 	m.providerMu.Lock()
 	if existing := m.providerWorkers[spec.KernelID]; existing != nil {
-		if existing.providerID == normalized.ProviderID && existing.configHash == configHash && existing.worker.TerminalError() == nil {
+		if existing.worker.TerminalError() == nil {
+			if existing.providerID != normalized.ProviderID || existing.configHash != configHash || !providerWorkerMatchesSession(existing.worker, spec) {
+				m.providerMu.Unlock()
+				return nil, "", errors.New("provider session authority changed; existing worker was left running")
+			}
 			worker := existing.worker
+			if err := admit(func() error { return nil }); err != nil {
+				m.providerMu.Unlock()
+				return nil, "", err
+			}
 			m.providerMu.Unlock()
 			return worker, configHash, nil
 		}
 		delete(m.providerWorkers, spec.KernelID)
 		m.providerMu.Unlock()
 		existing.close(context.Background())
-		return m.StartProviderSession(ctx, spec, runtimeSpec)
+		return m.StartProviderSession(ctx, spec, runtimeSpec, admissions...)
 	}
 	defer m.providerMu.Unlock()
 
@@ -160,20 +172,29 @@ func (m *Manager) StartProviderSession(ctx context.Context, spec SessionSpec, ru
 		"MODAL_ENVIRONMENT":            normalized.ModalEnvironment,
 		"OPERON_BYOC_ENVIRONMENT":      normalized.ModalEnvironment,
 	}, normalized.ExtraEnvironment)
-	worker, err := m.startWorkerWithAuxiliary(
-		spec.KernelID, spec.WorkspaceDir, python,
-		[]string{"-I", normalized.BootstrapPath, "repl", normalized.EntrypointPath, normalized.ProviderPath},
-		environment, mounts, spec.ProtectedPaths, "", "python", []*os.File{authChildFile, proxyChildFile},
-	)
-	authChildFile, proxyChildFile = nil, nil
+	var worker *Worker
+	err = admit(func() error {
+		var startErr error
+		worker, startErr = m.startWorkerWithAuxiliary(
+			spec.KernelID, spec.WorkspaceDir, python,
+			[]string{"-I", normalized.BootstrapPath, "repl", normalized.EntrypointPath, normalized.ProviderPath},
+			environment, mounts, spec.ProtectedPaths, "", "python", []*os.File{authChildFile, proxyChildFile},
+			func(started *Worker) { registerProviderWorker(started, spec) },
+		)
+		authChildFile, proxyChildFile = nil, nil
+		return startErr
+	})
 	cleanupFiles()
 	if err != nil {
+		if worker != nil {
+			m.closeProviderStartupWorker(worker)
+		}
 		_ = proxy.Close()
 		_ = authConnection.Close()
 		return nil, "", err
 	}
 	if err := completeProviderKernelHandshake(authConnection, normalized.Credentials); err != nil {
-		_ = worker.Close(context.Background())
+		m.closeProviderStartupWorker(worker)
 		_ = proxy.Close()
 		_ = authConnection.Close()
 		if terminal := worker.TerminalError(); terminal != nil {
@@ -187,7 +208,7 @@ func (m *Manager) StartProviderSession(ctx context.Context, spec SessionSpec, ru
 		}
 		response, executeErr := worker.Execute(ctx, normalized.Prelude, "system")
 		if executeErr != nil || response.Error != "" {
-			_ = worker.Close(context.Background())
+			m.closeProviderStartupWorker(worker)
 			_ = proxy.Close()
 			_ = authConnection.Close()
 			if executeErr != nil {
@@ -196,13 +217,6 @@ func (m *Manager) StartProviderSession(ctx context.Context, spec SessionSpec, ru
 			return nil, "", fmt.Errorf("provider kernel preload failed: %s", strings.TrimSpace(response.Error))
 		}
 	}
-	lifecycleState := &workerLifecycle{
-		spec: spec, generation: lifecycleGeneration.Add(1), lastUsed: time.Now().UTC(), workingDir: spec.WorkspaceDir,
-	}
-	lifecycleRegistry.mu.Lock()
-	lifecycleRegistry.workers[worker] = lifecycleState
-	lifecycleRegistry.mu.Unlock()
-	go releaseLifecycleWorker(worker, worker.done)
 	m.notifyIdleChange()
 	state := &providerKernelState{
 		worker: worker, providerID: normalized.ProviderID, configHash: configHash,

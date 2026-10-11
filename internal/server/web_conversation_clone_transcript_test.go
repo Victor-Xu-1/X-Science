@@ -236,8 +236,9 @@ func TestWebConversationCloneUsesOneCanonicalTranscriptTransaction(t *testing.T)
 	projected, err := repository.ListProjectedEvents(context.Background(), transcriptstore.ListProjectedEventsInput{
 		StreamUID: cloneStream.UID, OwnerID: "local", Limit: 10,
 	})
-	if err != nil || len(projected) != 2 || projected[0].Event.Source != transcriptstore.EventSourcePayload ||
-		projected[1].Event.Source != transcriptstore.EventSourcePayload {
+	if err != nil || len(projected) != 3 || projected[0].Event.Source != transcriptstore.EventSourcePayload ||
+		projected[1].Event.Type != transcriptstore.RunnerPreparationAdmissionEventType ||
+		projected[2].Event.Source != transcriptstore.EventSourcePayload {
 		t.Fatalf("clone projected=%#v err=%v", projected, err)
 	}
 	beforeForeignDelete, err := store.CountOutboxEvents(context.Background())

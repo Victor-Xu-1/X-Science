@@ -4,11 +4,9 @@
 package delegatefixture
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
 	workspace "synon-go/internal/persistence/workspace"
 )
 
@@ -72,25 +70,15 @@ func Seed(store *workspace.Store) (Fixture, error) {
 		GrandchildDelegateName:          GrandchildDelegateName,
 		TracePath:                       "/api/frames/" + ParentFrameID + "/trace-shallow",
 	}
-	repository, err := store.TranscriptRepository(context.Background())
-	if err != nil {
-		return Fixture{}, fmt.Errorf("open fixture transcript repository: %w", err)
-	}
-	if err = repository.RunImmediate(context.Background(), func(tx *transcriptstore.ImmediateTransaction) error {
-		_, deleteErr := transcriptstore.DeleteProjectStreamsTx(context.Background(), tx, UserID, ProjectID)
-		return deleteErr
-	}); err != nil {
-		return Fixture{}, fmt.Errorf("delete existing fixture transcript streams: %w", err)
+	if _, err := Clear(store); err != nil {
+		return Fixture{}, err
 	}
 	if _, found, err := store.GetProject(ProjectID); err != nil {
 		return Fixture{}, fmt.Errorf("inspect existing fixture project: %w", err)
-	} else if found {
-		if err := store.DeleteProject(ProjectID); err != nil {
-			return Fixture{}, fmt.Errorf("replace existing fixture project: %w", err)
+	} else if !found {
+		if _, err := store.CreateProject(workspace.CreateProjectInput{ID: ProjectID, UserID: UserID, Name: "Delegate integration fixture"}); err != nil {
+			return Fixture{}, fmt.Errorf("create fixture project: %w", err)
 		}
-	}
-	if _, err := store.CreateProject(workspace.CreateProjectInput{ID: ProjectID, UserID: UserID, Name: "Delegate integration fixture"}); err != nil {
-		return Fixture{}, fmt.Errorf("create fixture project: %w", err)
 	}
 	if _, err := store.CreateFrame(workspace.CreateFrameInput{
 		ID: ParentFrameID, ProjectID: ProjectID, AgentName: "OPERON",

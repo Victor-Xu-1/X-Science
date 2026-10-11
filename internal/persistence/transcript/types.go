@@ -239,10 +239,10 @@ type AppendUserEventInput struct {
 }
 
 // StartInternalFrameRunnerInput atomically creates an internal Frame stream,
-// admits its initial user event, and claims its runner. Keeping these three
-// mutations in one transaction prevents the general runner dispatcher from
-// claiming internal reviewer work in the gap between input admission and the
-// dedicated reviewer claim.
+// admits its initial user event, claims its runner, and journals non-replayable
+// execution handoff. Keeping these mutations in one transaction prevents the
+// general runner dispatcher from claiming internal work in the gap between
+// input admission and the dedicated execution's durable ownership boundary.
 type StartInternalFrameRunnerInput struct {
 	Stream    CreateStreamInput
 	UserEvent AppendUserEventInput

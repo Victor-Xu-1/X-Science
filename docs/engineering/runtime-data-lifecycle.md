@@ -26,6 +26,7 @@ then once every 24 hours. It logs a compact receipt only when rows were removed.
 | Superseded memories | 90 days | Active memory and safe supersession chains remain |
 | Daily operational logs | 7 days | Current files remain private mode `0600` |
 | Schema rollback snapshots | newest 2 | A newly created migration backup is retained |
+| Successful project identity reservations | permanent | Project deletion must not allow an ID to change entities |
 
 Deleting a task or project removes its SQLite child records, realtime replay
 cohort, outbox cohort, artifact blobs, compatibility session/journal projection,
@@ -37,6 +38,37 @@ The lifecycle never applies a fixed age limit to active tasks. It does not
 delete conversation messages, execution logs attached to a retained frame,
 final artifacts, user uploads, active memory, unresolved approvals, pending
 outbox events, credentials, settings, or account data.
+
+## Project identity retention
+
+Schema 73 keeps successful project IDs in `project_id_history` in the same
+workspace SQLite database. Existing projects are seeded during the additive
+migration. Insert triggers reserve an ID in the project's transaction and
+reject reuse even after project deletion, including SQL conflict modes and
+outbox mutations; project IDs cannot be renamed. Failed statements, rolled-back
+transactions and failed directory preparation do not reserve the ID. Names and
+paths of an existing project remain editable through their usual authority.
+
+A deleted project is not a reusable slot: create a new project with a new UUID
+instead of sending the old ID again. The history contains IDs only, not project
+contents or owner details. Project deletion and lifecycle pruning do not remove
+these identity reservations or authorize deletion of retained workspace files.
+For projects deleted before this ledger existed, no deleted-row history can be
+reconstructed. New managed CREATE must reject a pre-existing managed directory;
+only an existing project's authorized UPDATE may reuse its own directory.
+
+The migration does not move or delete projects or their workspaces. It is
+forward-only: schema-72 binaries refuse a schema-73 database. A binary rollback
+requires the existing verified pre-upgrade database backup and the runbook's
+state-rollback procedure, not deletion of the identity table or migration row.
+Restoring an older backup loses later identity reservations; retain current
+state for diagnosis and do not treat that restore as permission to reuse IDs or
+adopt retained directories.
+
+项目 ID 表示不可复用的实体身份。成功创建后，即使删除项目，也必须使用新的 UUID
+创建下一项目；失败或回滚的创建仍可重试。身份记录与项目共用同一 SQLite 事务，只保存
+ID，不新增所有者或内容存储。升级不移动、删除项目或工作目录。旧版本回滚须按运维手册
+使用已验证的升级前备份；不得通过删除身份记录或迁移日志回退权限边界。
 
 Historical runtime reset and deployment remain integration-controller actions.
 The controller must stop the service, verify the resolved data root, preserve

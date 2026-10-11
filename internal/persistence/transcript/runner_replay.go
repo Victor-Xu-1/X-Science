@@ -88,6 +88,8 @@ seed(event_id) AS (
 		WHERE state.stream_uid=? AND event.event_type='runner_checkpoint'
 			AND event.event_id>(SELECT event_id FROM compact_boundary)
 			AND json_type(event.payload_json,'$.correction_condition_chunk') IS NULL
+			AND NOT (event.client_message_id='runner-execution-admitted:'||event.stream_uid||':'||event.runner_attempt
+				AND COALESCE(json_extract(event.payload_json,'$.dispatch_state'),'')='` + runnerExecutionAdmissionState + `')
 		ORDER BY event.publication_seq DESC LIMIT ?
 	)
 	UNION

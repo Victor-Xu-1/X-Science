@@ -565,6 +565,9 @@ func (s *Server) publishTranscriptWebClaim(ctx context.Context, claim transcript
 	if stream.Kind != transcriptstore.StreamKindFrameRef || stream.SessionID == "" {
 		return transcriptstore.ErrTerminalProjectionUnavailable
 	}
+	if transcriptstore.IsRunnerAdmissionFact(claim.Event, claim.ResolvedPayloadJSON) {
+		return nil
+	}
 	switch claim.Event.Type {
 	case "user_input_response", transcriptstore.TerminalToolRecoveryEventType:
 		// These are durable model/runtime settlement facts. They intentionally have

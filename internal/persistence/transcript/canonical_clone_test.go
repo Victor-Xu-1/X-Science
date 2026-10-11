@@ -652,7 +652,7 @@ func TestCloneFrameHistoryStreamsBeyondFormerBranchInventoryCeiling(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.BranchCount != 1025 || result.BranchEventCount != 1026 || result.EventCount != 2 {
+	if result.BranchCount != 1025 || result.BranchEventCount != 1026+eventsPerFreshRunnerClaim || result.EventCount != 2+eventsPerFreshRunnerClaim {
 		t.Fatalf("clone counts=%#v", result)
 	}
 	retry, err := repo.CloneFrameHistory(context.Background(), CloneFrameHistoryInput{
