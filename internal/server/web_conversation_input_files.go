@@ -24,6 +24,7 @@ const (
 // but unreadable by every runtime tool.
 func (s *Server) materializeWebConversationInputFiles(
 	ctx context.Context,
+	r *http.Request,
 	frame workspace.CompatibilityFrame,
 	files []string,
 ) ([]string, error) {
@@ -83,7 +84,7 @@ func (s *Server) materializeWebConversationInputFiles(
 			continue
 		}
 
-		allowLocalRead := (s.synonLinkAuth == nil || !s.synonLinkAuth.enabled)
+		allowLocalRead := s.allowWebFSLocalRead(r)
 		sourceAccess, err := s.resolveWebFSPath(access.UserID, requested, "", false, true, allowLocalRead)
 		if err != nil {
 			return nil, invalidWebConversationInputFile()

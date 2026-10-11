@@ -258,6 +258,15 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       collapsed,
     });
 
+  const handleTaskRowClick = useCallback(
+    (conversation: TChatConversation) => handleConversationClick(conversation, true),
+    [handleConversationClick]
+  );
+  const handlePinnedRowClick = useCallback(
+    (conversation: TChatConversation) => handleConversationClick(conversation, false),
+    [handleConversationClick]
+  );
+
   const getConversationRowProps = useCallback(
     (conversation: TChatConversation, selectionEnabled = true): ConversationRowProps => ({
       conversation,
@@ -271,7 +280,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       menuVisible: dropdownVisibleId !== null && dropdownVisibleId === conversation.id,
       onConversationPrefetch: handleConversationPrefetch,
       onToggleChecked: toggleSelectedConversation,
-      onConversationClick: (selectedConversation) => handleConversationClick(selectedConversation, selectionEnabled),
+      onConversationClick: selectionEnabled ? handleTaskRowClick : handlePinnedRowClick,
       onOpenMenu: handleOpenMenu,
       onMenuVisibleChange: handleMenuVisibleChange,
       onEditStart: handleEditStart,
@@ -292,7 +301,8 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       dropdownVisibleId,
       toggleSelectedConversation,
       handleConversationPrefetch,
-      handleConversationClick,
+      handleTaskRowClick,
+      handlePinnedRowClick,
       handleOpenMenu,
       handleMenuVisibleChange,
       handleEditStart,

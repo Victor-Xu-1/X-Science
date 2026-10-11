@@ -63,6 +63,9 @@ export const SETTINGS_GENERATED_ARTWORK_SRC = {
   'network-globe': generatedAssetSrc('artwork/network-globe.png'),
 } as const;
 
+/** Derive the lossless WebP sibling URL; the PNG `src` stays the <img> fallback. */
+export const settingsGeneratedWebpSrc = (pngSrc: string): string => pngSrc.replace(/\.png(\?|$)/, '.webp$1');
+
 export const SETTINGS_GENERATED_EMPTY_SRC = {
   account: generatedAssetSrc('empty/account.png'),
   plans: generatedAssetSrc('empty/plans.png'),
@@ -106,20 +109,36 @@ function generatedImageAttributes(alt: string | undefined) {
       };
 }
 
+const SettingsGeneratedPicture: React.FC<
+  GeneratedImageProps & { src: string; assetId: string; loading?: 'lazy' | 'eager' }
+> = ({ src, assetId, className, alt, title, loading }) => (
+  <picture className={className ?? 'settings-generated-picture--passthrough'} data-settings-generated-asset={assetId}>
+    <source type='image/webp' srcSet={settingsGeneratedWebpSrc(src)} />
+    <img
+      src={src}
+      {...generatedImageAttributes(alt)}
+      title={title}
+      draggable={false}
+      decoding='async'
+      loading={loading}
+      data-settings-generated-asset={assetId}
+    />
+  </picture>
+);
+
 export const SettingsGeneratedIcon: React.FC<GeneratedImageProps & { id: SettingsGeneratedIconId }> = ({
   id,
   className,
   alt,
   title,
 }) => (
-  <img
-    className={className}
+  <SettingsGeneratedPicture
     src={SETTINGS_GENERATED_ICON_SRC[id]}
-    {...generatedImageAttributes(alt)}
+    assetId={`icon:${id}`}
+    className={className}
+    alt={alt}
     title={title}
-    draggable={false}
-    decoding='async'
-    data-settings-generated-asset={`icon:${id}`}
+    loading='lazy'
   />
 );
 
@@ -129,14 +148,13 @@ export const SettingsGeneratedArtwork: React.FC<GeneratedImageProps & { id: Sett
   alt,
   title,
 }) => (
-  <img
-    className={className}
+  <SettingsGeneratedPicture
     src={SETTINGS_GENERATED_ARTWORK_SRC[id]}
-    {...generatedImageAttributes(alt)}
+    assetId={`artwork:${id}`}
+    className={className}
+    alt={alt}
     title={title}
-    draggable={false}
-    decoding='async'
-    data-settings-generated-asset={`artwork:${id}`}
+    loading='lazy'
   />
 );
 
@@ -146,14 +164,13 @@ export const SettingsGeneratedEmptyArtwork: React.FC<GeneratedImageProps & { id:
   alt,
   title,
 }) => (
-  <img
-    className={className}
+  <SettingsGeneratedPicture
     src={SETTINGS_GENERATED_EMPTY_SRC[id]}
-    {...generatedImageAttributes(alt)}
+    assetId={`empty:${id}`}
+    className={className}
+    alt={alt}
     title={title}
-    draggable={false}
-    decoding='async'
-    data-settings-generated-asset={`empty:${id}`}
+    loading='lazy'
   />
 );
 
@@ -163,13 +180,11 @@ export const SettingsGeneratedNavIcon: React.FC<GeneratedImageProps & { id: Sett
   alt,
   title,
 }) => (
-  <img
-    className={className}
+  <SettingsGeneratedPicture
     src={SETTINGS_GENERATED_NAV_SRC[id]}
-    {...generatedImageAttributes(alt)}
+    assetId={`nav:${id}`}
+    className={className}
+    alt={alt}
     title={title}
-    draggable={false}
-    decoding='async'
-    data-settings-generated-asset={`nav:${id}`}
   />
 );
