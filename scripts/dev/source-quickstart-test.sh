@@ -7,9 +7,11 @@ TMP_ROOT=$(realpath -e "${TMPDIR:-/tmp}")
 TMP_DIR=$(mktemp -d "$TMP_ROOT/synon-source-quickstart-test.XXXXXX")
 QUICKSTART_PID=''
 OCCUPIED_PID=''
+LOCK_HOLDER_PID=''
+OWNED_START_PID=''
 
 cleanup() {
-  for pid in "$QUICKSTART_PID" "$OCCUPIED_PID"; do
+  for pid in "$QUICKSTART_PID" "$OCCUPIED_PID" "$LOCK_HOLDER_PID" "$OWNED_START_PID"; do
     if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
       kill -TERM "$pid" 2>/dev/null || true
       wait "$pid" 2>/dev/null || true
@@ -184,6 +186,9 @@ FAKE_NODE_VERSION=v21.9.0 run_quickstart >"$TMP_DIR/node-version.log" 2>&1 && {
 }
 grep -Fq 'Node.js >=22.22.0 and <25 is required' "$TMP_DIR/node-version.log"
 
+mkdir -p "$TMP_DIR/state-occupied/logs"
+printf 'port-busy-backend-marker\n' >"$TMP_DIR/state-occupied/logs/backend.log"
+printf 'port-busy-frontend-marker\n' >"$TMP_DIR/state-occupied/logs/frontend.log"
 python3 -m http.server 39855 --bind 127.0.0.1 >"$TMP_DIR/occupied.log" 2>&1 &
 OCCUPIED_PID=$!
 for _ in $(seq 1 50); do
@@ -195,6 +200,84 @@ PATH="$TMP_DIR/bin:/usr/bin:/bin" "$QUICKSTART" --state-dir "$TMP_DIR/state-occu
   echo 'occupied port passed' >&2; exit 1;
 }
 grep -Fq 'port is already in use: 127.0.0.1:39855' "$TMP_DIR/occupied-result.log"
+grep -Fqx 'port-busy-backend-marker' "$TMP_DIR/state-occupied/logs/backend.log" || {
+  echo 'occupied-port rejection truncated backend.log' >&2; exit 1;
+}
+grep -Fqx 'port-busy-frontend-marker' "$TMP_DIR/state-occupied/logs/frontend.log" || {
+  echo 'occupied-port rejection truncated frontend.log' >&2; exit 1;
+}
+
+mkdir -p "$TMP_DIR/lock-state/logs"
+printf 'lock-held-backend-marker\n' >"$TMP_DIR/lock-state/logs/backend.log"
+printf 'lock-held-frontend-marker\n' >"$TMP_DIR/lock-state/logs/frontend.log"
+LOCK_READY="$TMP_DIR/lock-state/lock-holder.ready"
+(
+  exec {held_lock_fd}>"$TMP_DIR/lock-state/quickstart.lock"
+  flock -n "$held_lock_fd" || exit 1
+  : >"$LOCK_READY"
+  while true; do sleep .05; done
+) &
+LOCK_HOLDER_PID=$!
+for _ in $(seq 1 100); do
+  [[ -f "$LOCK_READY" ]] && break
+  kill -0 "$LOCK_HOLDER_PID" 2>/dev/null || {
+    echo 'lock holder exited before acquiring lock' >&2
+    exit 1
+  }
+  sleep .03
+done
+[[ -f "$LOCK_READY" ]] || {
+  echo 'lock holder never signaled readiness' >&2
+  exit 1
+}
+PATH="$TMP_DIR/bin:/usr/bin:/bin" "$QUICKSTART" --state-dir "$TMP_DIR/lock-state" \
+  --backend-port 39859 --web-port 39860 >"$TMP_DIR/lock-held-result.log" 2>&1 && {
+  echo 'lock-held state directory passed' >&2; exit 1;
+}
+grep -Fq 'another quickstart owns this state directory' "$TMP_DIR/lock-held-result.log"
+grep -Fqx 'lock-held-backend-marker' "$TMP_DIR/lock-state/logs/backend.log" || {
+  echo 'lock contention truncated backend.log' >&2; exit 1;
+}
+grep -Fqx 'lock-held-frontend-marker' "$TMP_DIR/lock-state/logs/frontend.log" || {
+  echo 'lock contention truncated frontend.log' >&2; exit 1;
+}
+kill -TERM "$LOCK_HOLDER_PID" 2>/dev/null || true
+wait "$LOCK_HOLDER_PID" 2>/dev/null || true
+LOCK_HOLDER_PID=''
+
+printf '%s\n' '{"status":"healthy","service":"gateway"}' >"$TMP_DIR/health-body"
+mkdir -p "$TMP_DIR/owned-start/logs"
+printf 'stale-backend-line\n' >"$TMP_DIR/owned-start/logs/backend.log"
+printf 'stale-frontend-line\n' >"$TMP_DIR/owned-start/logs/frontend.log"
+env PATH="$TMP_DIR/bin:/usr/bin:/bin" \
+  FAKE_BACKEND_PID="$TMP_DIR/owned-backend.pid" \
+  FAKE_FRONTEND_PID="$TMP_DIR/owned-frontend.pid" \
+  FAKE_OPEN_RECORD="$TMP_DIR/owned-open.txt" \
+  FAKE_HEALTH_BODY_FILE="$TMP_DIR/health-body" \
+  SYNON_QUICKSTART_BACKEND_ENTRY="$TMP_DIR/fake-backend" \
+  SYNON_QUICKSTART_FRONTEND_ENTRY="$TMP_DIR/fake-frontend" \
+  "$QUICKSTART" --state-dir "$TMP_DIR/owned-start" --backend-port 39861 --web-port 39862 \
+    --timeout-seconds 3 >"$TMP_DIR/owned-start-run.log" 2>&1 &
+OWNED_START_PID=$!
+for _ in $(seq 1 200); do
+  grep -Fq 'READY_URL=http://127.0.0.1:39862/#/login' "$TMP_DIR/owned-start-run.log" 2>/dev/null && break
+  kill -0 "$OWNED_START_PID" 2>/dev/null || break
+  sleep .05
+done
+grep -Fq 'READY_URL=http://127.0.0.1:39862/#/login' "$TMP_DIR/owned-start-run.log" || {
+  echo 'owned start did not become ready' >&2
+  cat "$TMP_DIR/owned-start-run.log" >&2
+  exit 1
+}
+grep -Fq 'stale-backend-line' "$TMP_DIR/owned-start/logs/backend.log" && {
+  echo 'owned start did not initialize backend.log' >&2; exit 1;
+}
+grep -Fq 'stale-frontend-line' "$TMP_DIR/owned-start/logs/frontend.log" && {
+  echo 'owned start did not initialize frontend.log' >&2; exit 1;
+}
+kill -TERM "$OWNED_START_PID" 2>/dev/null || true
+wait "$OWNED_START_PID" 2>/dev/null || true
+OWNED_START_PID=''
 
 PATH="$TMP_DIR/bin:/usr/bin:/bin" "$QUICKSTART" --state-dir "$SCRIPT_DIR/state" \
   --backend-port 39857 --web-port 39858 >"$TMP_DIR/source-state.log" 2>&1 && {
