@@ -44,6 +44,13 @@ audit hooks do not replace the OS sandbox or server authorization.
 
 ## Durable detached execution recovery
 
+Runner lease renewal retries transient store contention only inside the remaining
+owned grant, rather than the short four-attempt preparation budget. The retry
+requires a deadline before making a write, honors parent cancellation, and returns
+permanent errors immediately. Durable expiry and immutable claim fences are still
+checked by the store after acquiring its lock; retrying does not create or extend
+authority itself. Ordinary preparation writes retain their existing attempt cap.
+
 On the supported detached backend, accepting physical work reserves one observer
 before the durable execution becomes visible to recovery. Foreground waiting and
 background supervision share that reservation; reconnecting does not start a
