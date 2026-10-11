@@ -347,7 +347,13 @@ func (c *runtimeModelClient) completeJSON(ctx context.Context, attempt int, endp
 		record.DurationMs = record.FinishedAt.Sub(record.StartedAt).Milliseconds()
 		record.Error = c.redactSensitiveText(readErr.Error())
 		c.emitAudit(record)
-		retryable := !errors.Is(readErr, errProviderResponseTooLarge) && providerHTTPStatusRetryable(response.StatusCode, nil)
+		statusRetryable := providerHTTPStatusRetryable(response.StatusCode, nil)
+		retryable := !errors.Is(readErr, errProviderResponseTooLarge) && requestCtx.Err() == nil &&
+			(statusRetryable ||
+				(response.StatusCode >= http.StatusOK && response.StatusCode < http.StatusMultipleChoices))
+		if retryable && statusRetryable {
+			readErr = withProviderRetryAfter(readErr, response.Header, time.Now())
+		}
 		return agentruntime.ModelResponse{}, retryable, readErr
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
@@ -551,11 +557,11 @@ func readBoundedProviderBody(reader io.Reader, limit int64) ([]byte, error) {
 		limit = defaultMaxResponseBytes
 	}
 	body, err := io.ReadAll(io.LimitReader(reader, limit+1))
-	if err != nil {
-		return nil, err
-	}
 	if int64(len(body)) > limit {
 		return nil, fmt.Errorf("%w: response exceeded %d bytes", errProviderResponseTooLarge, limit)
+	}
+	if err != nil {
+		return nil, err
 	}
 	return body, nil
 }

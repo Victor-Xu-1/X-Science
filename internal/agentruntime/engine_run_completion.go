@@ -28,11 +28,19 @@ func (e Engine) publishBufferedModelDeltas(events []ModelStreamEvent) error {
 
 func (e Engine) finishRun(messages []Message, message Message) (RunResult, error) {
 	if strings.TrimSpace(message.Content) == "" {
-		return RunResult{}, errors.New("agent runtime response message is empty")
+		return interruptedRun(messages, errors.New("agent runtime response message is empty"))
 	}
 	messages = append(messages, message)
 	if err := e.emit(Event{Type: EventFinal, Message: message.Content}); err != nil {
 		return RunResult{Messages: messages}, err
 	}
 	return RunResult{FinalMessage: message, Messages: messages}, nil
+}
+
+// interruptedRun keeps completed conversation state when a later model or
+// control-plane failure ends the attempt. Callers such as plan-mode repair
+// and in-process recovery must see the same tool receipts the durable
+// journal already recorded, not an empty result.
+func interruptedRun(messages []Message, err error) (RunResult, error) {
+	return RunResult{Messages: messages}, err
 }
