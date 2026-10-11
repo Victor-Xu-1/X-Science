@@ -4,16 +4,31 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import mermaid from 'mermaid';
-import SyntaxHighlighter from 'react-syntax-highlighter';
-import { vs, vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
-
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import { Message } from '@arco-design/web-react';
 import { Copy, PreviewOpen } from '@icon-park/react';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview/context/PreviewContext';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { default as vs } from 'react-syntax-highlighter/dist/esm/styles/hljs/vs';
+import { default as vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs/vs2015';
+import LazySyntaxHighlighter from './LazySyntaxHighlighter';
+
+type MermaidApi = typeof import('mermaid').default;
+
+let mermaidPromise: Promise<MermaidApi> | null = null;
+
+/** Mermaid is only fetched once an actual mermaid fence is rendered. */
+const loadMermaid = (): Promise<MermaidApi> => {
+  mermaidPromise ??= import('mermaid').then(
+    (module) => module.default,
+    (error: unknown) => {
+      mermaidPromise = null;
+      throw error;
+    }
+  );
+  return mermaidPromise;
+};
 
 type MermaidBlockProps = {
   code: string;
@@ -22,7 +37,7 @@ type MermaidBlockProps = {
 };
 
 let initializedTheme: 'light' | 'dark' | null = null;
-const ensureMermaidInitialized = (theme: 'light' | 'dark') => {
+const ensureMermaidInitialized = (mermaid: MermaidApi, theme: 'light' | 'dark') => {
   if (initializedTheme === theme) return;
   mermaid.initialize({
     startOnLoad: false,
@@ -98,7 +113,8 @@ function MermaidBlock({ code, style, showOpenInPanelButton = true }: MermaidBloc
 
     const renderDiagram = async () => {
       try {
-        ensureMermaidInitialized(currentTheme);
+        const mermaid = await loadMermaid();
+        ensureMermaidInitialized(mermaid, currentTheme);
 
         const { svg: renderedSvg } = await mermaid.render(`${blockIdRef.current}-${Date.now()}`, source);
 
@@ -286,7 +302,7 @@ function MermaidBlock({ code, style, showOpenInPanelButton = true }: MermaidBloc
             <span>{t('preview.loading')}</span>
           </div>
         ) : (
-          <SyntaxHighlighter
+          <LazySyntaxHighlighter
             children={code}
             language='mermaid'
             style={codeTheme}

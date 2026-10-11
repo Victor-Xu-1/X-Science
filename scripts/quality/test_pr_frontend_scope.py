@@ -85,6 +85,22 @@ class FrontendRelatedScopeTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "HTML entry"):
                 fixture_command(["frontend/tests/web-e2e/outside.fixture.html"], repo)
 
+    def test_public_branding_assets_bind_existing_identity_and_visual_tests(self):
+        command = related_command([
+            "frontend/public/branding/settings-generated-v3/artwork/account-network.webp",
+            "frontend/packages/desktop/src/renderer/pages/settings/components/SettingsGeneratedAsset.tsx",
+        ])
+        self.assertEqual(command[:6], ["npx", "--no-install", "vitest", "related", "--run",
+                                       "--project"])
+        self.assertIn("tests/unit/settings/settingsVisualContract.test.ts", command)
+        self.assertIn("tests/unit/renderer/XScienceIdentity.test.ts", command)
+        self.assertIn(
+            "packages/desktop/src/renderer/pages/settings/components/SettingsGeneratedAsset.tsx",
+            command,
+        )
+        self.assertNotIn("public/branding/settings-generated-v3/artwork/account-network.webp", command)
+        self.assertNotIn("--passWithNoTests", command)
+
     def test_unknown_configuration_or_dependency_scope_fails_closed(self):
         for path in ["frontend/package-lock.json", "frontend/package.json", "frontend/vitest.config.ts",
                      "frontend/tests/vitest.dom.setup.ts", "frontend/tests/web-e2e/example.browser.mjs"]:

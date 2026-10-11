@@ -15,7 +15,6 @@ var hashedAssetName = regexp.MustCompile(`-[A-Za-z0-9_-]{8,}\.[A-Za-z0-9]+$`)
 
 const (
 	themeInitPath                    = "theme-init.js"
-	appBootPath                      = "app-boot.js"
 	rdkitWorkerPath                  = "rdkit/rdkit-worker.js"
 	pageContentSecurityPolicy        = "default-src 'self'; base-uri 'self'; connect-src 'self' ws: wss:; font-src 'self' data:; form-action 'self'; frame-ancestors 'none'; frame-src 'self' http://mcp-app.localhost:* https://mcp-app.localhost:*; img-src 'self' data: blob:; object-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:;"
 	rdkitWorkerContentSecurityPolicy = "default-src 'none'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; connect-src 'self';"
@@ -169,10 +168,8 @@ func (h *Handler) serveFile(w http.ResponseWriter, r *http.Request, filename, re
 	}
 	if index {
 		w.Header().Set("Cache-Control", "no-store")
-	} else if requestName == themeInitPath || requestName == appBootPath {
-		// Fixed-name boot scripts must be revalidated after an application upgrade.
-		// Vite preview already uses this policy; a 1-hour max-age would leave
-		// theme restoration or the slow/failed boot shell stale after a release.
+	} else if requestName == themeInitPath {
+		// The fixed-name bootstrap must be revalidated after an application upgrade.
 		w.Header().Set("Cache-Control", "no-cache, must-revalidate")
 	} else if strings.HasPrefix(requestName, "rdkit/") {
 		// The worker protocol, loader, and WASM must advance as one release.
