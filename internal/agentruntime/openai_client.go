@@ -96,14 +96,20 @@ func (c OpenAIChatClient) completeAttempt(ctx context.Context, rawRequest []byte
 	}
 	defer response.Body.Close()
 	body, err := io.ReadAll(io.LimitReader(response.Body, maxOpenAIChatResponseBytes+1))
-	if err != nil {
-		return ModelResponse{}, false, err
-	}
 	if len(body) > maxOpenAIChatResponseBytes {
 		return ModelResponse{}, false, fmt.Errorf("OpenAI chat response exceeds %d bytes", maxOpenAIChatResponseBytes)
 	}
+	if err != nil {
+		statusRetryable := modelHTTPStatusRetryable(response.StatusCode)
+		retryable := requestCtx.Err() == nil && (statusRetryable ||
+			(response.StatusCode >= http.StatusOK && response.StatusCode < http.StatusMultipleChoices))
+		if retryable && statusRetryable {
+			err = withModelRetryAfter(err, response.Header, time.Now())
+		}
+		return ModelResponse{}, retryable, err
+	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		retryable := response.StatusCode == http.StatusTooManyRequests || response.StatusCode >= 500
+		retryable := modelHTTPStatusRetryable(response.StatusCode)
 		responseErr := fmt.Errorf("OpenAI chat endpoint returned %d: %s", response.StatusCode, strings.TrimSpace(string(body)))
 		if retryable {
 			responseErr = withModelRetryAfter(responseErr, response.Header, time.Now())

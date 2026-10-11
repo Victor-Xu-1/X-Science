@@ -24,6 +24,10 @@ type modelRetryError struct {
 func (e *modelRetryError) Error() string { return e.err.Error() }
 func (e *modelRetryError) Unwrap() error { return e.err }
 
+func modelHTTPStatusRetryable(status int) bool {
+	return status == http.StatusTooManyRequests || status >= http.StatusInternalServerError
+}
+
 func withModelRetryAfter(err error, header http.Header, now time.Time) error {
 	if err == nil {
 		return nil
