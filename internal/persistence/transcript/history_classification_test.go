@@ -23,7 +23,8 @@ func TestAuditAskUserHistoryPersistsNativeTypedClassificationIdempotently(t *tes
 		t.Fatalf("first=%#v created=%t err=%v", first, created, err)
 	}
 	if first.Status != AskUserHistoryNativeV1 || first.ReasonCode != AskUserHistoryReasonNativeV1 ||
-		first.CandidateCount != 1 || first.ThroughOrdinal != 5 || first.ThroughPublicationSequence != 5 ||
+		first.CandidateCount != 1 || first.ThroughOrdinal != 5+eventsPerFreshRunnerClaim ||
+		first.ThroughPublicationSequence != 5+eventsPerFreshRunnerClaim ||
 		len(first.SourceSHA256) != 64 || len(first.RunID) != 64 || first.BranchID == "" || first.BranchGeneration != 1 ||
 		len(first.Comparisons) != len(askUserHistoryShadowDimensions) {
 		t.Fatalf("native classification=%#v", first)

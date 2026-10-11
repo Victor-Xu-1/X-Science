@@ -42,6 +42,34 @@ Host RPC is implemented by the existing `synon_host_bridge` adapter; Go binds
 each call to the active cell and its allowed methods. Interpreter helpers and
 audit hooks do not replace the OS sandbox or server authorization.
 
+## Approved capability admission
+
+A direct permission or compute approval can precede conversation projection.
+In that case the server validates the durable Frame, current project owner,
+root relationship and incarnations, and verifies that no Frame authority or
+session stream exists. An orphaned stream, conflicting owner, unavailable
+store or existing runner context is not an unprojected Frame and cannot use
+this admission. Ordinary Transcript and native file authority remain unchanged.
+
+Capability identity is not filesystem or process authority. Permission tools
+still validate their named resource. Compute execution uses the same current
+writable-host-grant or managed-task workspace admission as ordinary execution;
+its manager still enforces containment. A persisted project path is never a
+writable mount solely because the user approved a capability.
+
+Provider reuse requires the existing complete session specification, including
+workspace, mounts, protected paths and frame incarnations, as well as provider
+configuration. A mismatch fails closed and leaves the existing live worker
+untouched rather than restarting an unknown computation.
+
+Provider physical startup and immediate owner/lifecycle registration share the
+short host-grant admission lock. Bootstrap imports, credential handshakes and
+preloads run outside that lock but are already visible to owner revocation.
+The server rechecks current frame and writable-workspace authority both at this
+startup boundary and immediately before queue submission. The lock never spans
+a submitted execution. Only an exact newly created failed startup is cleaned
+up, with a bounded shutdown; a denied reuse does not close another live worker.
+
 ## Durable detached execution recovery
 
 Runner lease renewal retries transient store contention only inside the remaining
@@ -78,6 +106,23 @@ of active work cannot permanently hide later results.
 Focused lifecycle regressions use temporary persistence and controlled process
 identity. They establish these recovery contracts, not a guarantee of uninterrupted
 24-hour hardware availability or scientific validity.
+
+Recovery terminalization is fenced to the active stream, input revision, exact
+expired attempt and current non-resumable checkpoint in one transaction. An
+already-failed Frame can still receive its missing runner receipt, without
+replacing the original failure description, completion time or context data.
+Newer claims, input, checkpoints and live leases remain outside that settlement.
+
+Checkpoint absence alone never proves that a provider or tool has not executed.
+A fresh claim journals a typed preparation admission, bound to its attempt and
+input revision. Checkpointless fresh recovery additionally requires that the
+preparation phase and active-branch proof remain intact. The internal execution
+handoff writes a non-resumable admission checkpoint in that same transaction,
+before returning execution authority; it cannot be reclaimed as generic work.
+Legacy ambiguous Frame admissions settle with an unknown-outcome reason under
+the same recovery fences, without replaying or aborting physical work. Deliberate
+input, approval and external waits remain waits. Admission facts are internal
+journal evidence, not tool activity, user messages, or provider history.
 
 ## Progress and transfer supervision
 

@@ -3,7 +3,10 @@
  */
 
 import type { IMessageText } from '@/common/chat/chatLib';
-import { areMessageItemPropsEqual } from '@/renderer/pages/conversation/Messages/messageItemMemoModel';
+import {
+  areMessageItemPropsEqual,
+  areMessageTextPropsEqual,
+} from '@/renderer/pages/conversation/Messages/messageItemMemoModel';
 import { describe, expect, it } from 'vitest';
 
 const message: IMessageText = {
@@ -33,5 +36,30 @@ describe('areMessageItemPropsEqual', () => {
 
   it('keeps an unchanged row memoized', () => {
     expect(areMessageItemPropsEqual(props, { ...props })).toBe(true);
+  });
+
+  it('invalidates a stable row when artifact references arrive after content', () => {
+    const next = {
+      ...message,
+      artifact_refs: [
+        {
+          artifact_id: 'artifact-1',
+          version_id: 'version-1',
+          relation: 'produced' as const,
+          availability: 'available' as const,
+        },
+      ],
+    };
+    expect(areMessageItemPropsEqual(props, { ...props, message: next })).toBe(false);
+    expect(areMessageTextPropsEqual({ message, showCopyRow: true }, { message: next, showCopyRow: true })).toBe(false);
+  });
+
+  it('keeps MessageText memoized when only unused sibling fields change', () => {
+    expect(
+      areMessageTextPropsEqual(
+        { message, showCopyRow: true, messageIndex: 2 },
+        { message: { ...message, type: 'text' }, showCopyRow: true, messageIndex: 2 }
+      )
+    ).toBe(true);
   });
 });

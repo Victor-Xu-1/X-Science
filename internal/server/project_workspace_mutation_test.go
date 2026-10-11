@@ -127,7 +127,7 @@ func TestPreparedProjectCancellationPreservesExistingDirectory(t *testing.T) {
 	_, err = app.workspaceStore.CreateProjectRealtimeWithPreparation(ctx, workspace.CreateProjectInput{
 		ID: "existing-create", UserID: "local", Name: "Existing", Path: path,
 	}, "", func(project workspace.Project) (workspace.PreparedProjectResource, error) {
-		resource, err := prepareManagedProjectWorkspace(project.Path)
+		resource, err := prepareManagedProjectWorkspace(project.Path, managedProjectPreparationOptions{AllowExisting: true})
 		cancel()
 		return resource, err
 	})

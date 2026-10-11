@@ -174,7 +174,7 @@ func (s *Server) executeExactToolGateway(
 	kernel := options.Kernel
 	if kernel == nil && strings.TrimSpace(sessionID) != "" {
 		if options.ResumeAfterApproval {
-			kernel = s.resolveApprovedAgentToolContext(ctx, strings.TrimSpace(sessionID))
+			kernel = s.resolveApprovedAgentToolContext(ctx, strings.TrimSpace(sessionID), allowedName)
 		} else {
 			kernel = s.resolveAgentKernelContext(ctx, strings.TrimSpace(sessionID))
 		}

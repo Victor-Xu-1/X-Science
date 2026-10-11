@@ -159,6 +159,18 @@ class RevisionTests(unittest.TestCase):
 
 
 class FrontendProvenanceGateTests(unittest.TestCase):
+    def test_frontend_provenance_only_change_still_runs_fresh_provenance_audit(self):
+        repo = Path.cwd().resolve()
+        argv = ['pr_fast_scope.py', '--repo', str(repo), '--base', 'a' * 40,
+                '--head', 'b' * 40, '--frontend']
+        with patch.object(sys, 'argv', argv), patch.object(
+            scope, 'changed_paths', return_value=['frontend/MIGRATION_MANIFEST.json'],
+        ), patch.object(scope, 'run', return_value=subprocess.CompletedProcess([], 0),
+        ) as invoke:
+            self.assertEqual(scope.main(), 0)
+        self.assertEqual(invoke.call_count, 1)
+        self.assertIn('audit_frontend_migration.py', invoke.call_args.args[2])
+
     def test_stale_frontend_provenance_fails_before_install_or_build(self):
         repo = Path.cwd().resolve()
         argv = ['pr_fast_scope.py', '--repo', str(repo), '--base', 'a' * 40,

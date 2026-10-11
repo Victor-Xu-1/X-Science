@@ -332,8 +332,12 @@ func (s *Server) executeAgentComputeProvider(
 	if err != nil {
 		return nil, err
 	}
-	if identity == nil || identity.workspaceDir == "" {
+	if identity == nil {
 		return nil, errors.New("compute_provider task workspace is unavailable")
+	}
+	workspaceDir, err := s.reconcileAgentComputeProviderWorkspace(access, identity.workspaceDir)
+	if err != nil {
+		return nil, err
 	}
 	frame := access.Frame
 	spec := kernelruntime.SessionSpec{
@@ -343,24 +347,31 @@ func (s *Server) executeAgentComputeProvider(
 		RootFrameIncarnationID: access.RootFrameIncarnationID,
 		AgentName:              frame.AgentName, DelegateName: frame.DelegateName,
 		KernelKind: "provider", Language: "python", Environment: authority.Definition.Environment,
-		WorkspaceDir: identity.workspaceDir,
+		WorkspaceDir: workspaceDir,
 	}
-	worker, _, err := s.kernelManager.StartProviderSession(ctx, spec, authority.Definition)
+	worker, _, err := s.kernelManager.StartProviderSession(ctx, spec, authority.Definition, func(register func() error) error {
+		return s.admitAgentComputeProviderWorkspace(ctx, access, spec.WorkspaceDir, register)
+	})
 	if err != nil {
 		return nil, err
 	}
 	reused := worker.ExecutionCount() > 0
 	execID := uuid.NewString()
-	hostCalls := s.agentKernelHostCallPolicy(ctx, access, identity.workspaceDir, []string{computeProviderToolName}, false)
+	hostCalls := s.agentKernelHostCallPolicy(ctx, access, workspaceDir, []string{computeProviderToolName}, false)
 	hostCalls.AllowedMethods = []string{"host.credentials.get", "host.compute.config_get"}
 	hostCalls.MaxCalls = 128
-	handle, err := s.kernelManager.Submit(kernelruntime.SubmitRequest{
-		KernelID: spec.KernelID, ExpectedGeneration: worker.Generation(),
-		OwnerID: spec.OwnerID, ProjectID: spec.ProjectID, FrameID: spec.FrameID,
-		FrameIncarnationID: spec.FrameIncarnationID, RootFrameIncarnationID: spec.RootFrameIncarnationID,
-		KernelKind: "provider", Language: "python", Environment: spec.Environment,
-		ExecID: execID, ToolUseID: call.ID, ToolName: computeProviderToolName,
-		Code: code, Origin: "agent", Timeout: 30 * time.Minute, HostCalls: hostCalls,
+	var handle *kernelruntime.ExecutionHandle
+	err = s.admitAgentComputeProviderWorkspace(ctx, access, spec.WorkspaceDir, func() error {
+		var submitErr error
+		handle, submitErr = s.kernelManager.Submit(kernelruntime.SubmitRequest{
+			KernelID: spec.KernelID, ExpectedGeneration: worker.Generation(),
+			OwnerID: spec.OwnerID, ProjectID: spec.ProjectID, FrameID: spec.FrameID,
+			FrameIncarnationID: spec.FrameIncarnationID, RootFrameIncarnationID: spec.RootFrameIncarnationID,
+			KernelKind: "provider", Language: "python", Environment: spec.Environment,
+			ExecID: execID, ToolUseID: call.ID, ToolName: computeProviderToolName,
+			Code: code, Origin: "agent", Timeout: 30 * time.Minute, HostCalls: hostCalls,
+		})
+		return submitErr
 	})
 	if err != nil {
 		return nil, err

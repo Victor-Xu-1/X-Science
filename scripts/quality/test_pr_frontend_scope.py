@@ -2,7 +2,7 @@
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from scripts.quality.pr_frontend_scope import fixture_command, related_command
+from scripts.quality.pr_frontend_scope import PROVENANCE, fixture_command, related_command
 
 
 class FrontendRelatedScopeTests(unittest.TestCase):
@@ -39,9 +39,10 @@ class FrontendRelatedScopeTests(unittest.TestCase):
         self.assertNotIn("--retry", command)
 
     def test_provenance_and_non_frontend_inputs_do_not_authorize_global_tests(self):
+        for path in sorted(PROVENANCE):
+            self.assertIsNone(related_command([path]))
+            self.assertIsNone(fixture_command([path], Path(__file__).resolve().parents[2]))
         self.assertIsNone(related_command(["docs/modules/science.md",
-                                         "frontend/MIGRATION_MANIFEST.json",
-                                         "frontend/THIRD_PARTY_LICENSES.json",
                                          "scripts/quality/pr_frontend_scope.py"]))
 
     def test_shared_fixture_data_uses_the_vitest_import_graph(self):

@@ -7,7 +7,7 @@ import { useTurnRailGeometry } from './useTurnRailGeometry';
 import styles from './ConversationTurnRail.module.css';
 
 type Props = { items: TurnPreviewItem[]; viewport: HTMLDivElement | null; onJump: (messageId: string) => void };
-export default function ConversationTurnRail({ items, viewport, onJump }: Props) {
+function ConversationTurnRail({ items, viewport, onJump }: Props) {
   const { t } = useTranslation();
   const geometry = useTurnRailGeometry(items, viewport);
   const rail = useRef<HTMLOListElement>(null);
@@ -203,3 +203,5 @@ export default function ConversationTurnRail({ items, viewport, onJump }: Props)
     document.body
   );
 }
+
+export default React.memo(ConversationTurnRail);

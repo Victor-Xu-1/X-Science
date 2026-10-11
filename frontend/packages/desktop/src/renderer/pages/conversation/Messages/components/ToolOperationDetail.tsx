@@ -30,12 +30,15 @@ const ToolOperationDetail: React.FC<{
   const detailsRef = useRef<HTMLDivElement>(null);
   const detailsId = useMemo(() => `tool-step-details-${item.key}`, [item.key]);
   const language = i18n?.language ?? 'en-US';
-  const timelinePresentation = buildToolStepPublicPresentation(item, language);
+  const timelinePresentation = useMemo(() => buildToolStepPublicPresentation(item, language), [item, language]);
   const { displayItem, loadingFull, loadError, loadFullItem, retryFullItem } = useToolOperationDetail(
     item,
     timelinePresentation.shouldLoadFull
   );
-  const detailPresentation = buildToolStepPublicPresentation(displayItem, language);
+  const detailPresentation = useMemo(
+    () => buildToolStepPublicPresentation(displayItem, language),
+    [displayItem, language]
+  );
   const hasDetail = detailPresentation.expandable;
   const isActive = isActiveToolStatus(item.status);
   const continuationLabel =

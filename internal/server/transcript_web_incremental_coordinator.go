@@ -165,6 +165,9 @@ func (s *Server) tryIncrementalTranscriptWebReadModel(
 	}
 	assistantPage := false
 	for _, projected := range page {
+		if transcriptstore.IsRunnerAdmissionFact(projected.Event, projected.ResolvedPayloadJSON) {
+			continue
+		}
 		switch projected.Event.Type {
 		case "content_delta", "content_reset", "assistant_message", "runner_finished":
 			assistantPage = true
@@ -190,10 +193,13 @@ func (s *Server) tryIncrementalTranscriptWebReadModel(
 
 	records := make([]transcriptstore.TranscriptWebMessageRecord, 0, len(page))
 	references := make([]transcriptstore.TranscriptWebMessageArtifactReference, 0)
-	for index, projected := range page {
+	for _, projected := range page {
+		if transcriptstore.IsRunnerAdmissionFact(projected.Event, projected.ResolvedPayloadJSON) {
+			continue
+		}
 		record, eventReferences, err := buildIncrementalTranscriptWebUserMessage(
 			projected, stream.SessionID, work.BranchID,
-			fence.StateMessageCount+index, fence.VisibleMessageCount+index,
+			fence.StateMessageCount+len(records), fence.VisibleMessageCount+len(records),
 		)
 		if err != nil {
 			return transcriptWebIncrementalResult{}, err
@@ -261,6 +267,9 @@ func (s *Server) tryIncrementalTranscriptWebReadModel(
 }
 
 func classifyTranscriptWebIncrementalEvent(projected transcriptstore.ProjectedEvent) transcriptWebIncrementalDisposition {
+	if transcriptstore.IsRunnerAdmissionFact(projected.Event, projected.ResolvedPayloadJSON) {
+		return ""
+	}
 	switch projected.Event.Type {
 	case "user_message":
 		if projected.Event.RunnerAttempt == nil {

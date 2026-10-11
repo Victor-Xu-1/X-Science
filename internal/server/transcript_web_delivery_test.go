@@ -1742,8 +1742,9 @@ func TestTranscriptWebDeliveryRebasesCompletedBacklogAfterRecoveredMarkerRetryFa
 	); err != nil {
 		t.Fatal(err)
 	}
+	firstRunnerDeliverableSeq := int64(2 + transcriptstore.EventsPerFreshRunnerClaim)
 	marker := claimDelivery("rebase-retry-marker")
-	if marker.PublicationSeq != 2 {
+	if marker.PublicationSeq != firstRunnerDeliverableSeq {
 		t.Fatalf("marker delivery=%#v", marker)
 	}
 	if result, err := repo.FailDelivery(context.Background(), transcriptstore.FailDeliveryInput{
@@ -1752,9 +1753,9 @@ func TestTranscriptWebDeliveryRebasesCompletedBacklogAfterRecoveredMarkerRetryFa
 		t.Fatalf("marker failure=%#v err=%v", result, err)
 	}
 	if _, err := db.Exec(`UPDATE transcript_delivery_intents SET attempt_count=?,last_max_attempts=?
-		WHERE stream_uid=? AND publication_seq=2 AND destination=?`,
+		WHERE stream_uid=? AND publication_seq=? AND destination=?`,
 		transcriptProjectionStaleMaxAttempts, transcriptProjectionStaleMaxAttempts,
-		stream.UID, transcriptWebDestination); err != nil {
+		stream.UID, firstRunnerDeliverableSeq, transcriptWebDestination); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1770,7 +1771,7 @@ func TestTranscriptWebDeliveryRebasesCompletedBacklogAfterRecoveredMarkerRetryFa
 		t.Fatalf("recover marker=%d err=%v", recovered, err)
 	}
 	retry := claimDelivery("rebase-retry-failed-retry")
-	if retry.PublicationSeq != 2 || retry.AttemptCount != transcriptProjectionStaleMaxAttempts+1 {
+	if retry.PublicationSeq != firstRunnerDeliverableSeq || retry.AttemptCount != transcriptProjectionStaleMaxAttempts+1 {
 		t.Fatalf("retry delivery=%#v", retry)
 	}
 	if result, err := repo.FailDelivery(context.Background(), transcriptstore.FailDeliveryInput{
@@ -1796,7 +1797,7 @@ func TestTranscriptWebDeliveryRebasesCompletedBacklogAfterRecoveredMarkerRetryFa
 		t.Fatalf("unsettled=%d", unsettled)
 	}
 	markerIntent, err := repo.GetDeliveryIntent(
-		context.Background(), stream.OwnerID, stream.UID, 2, transcriptWebDestination, 1,
+		context.Background(), stream.OwnerID, stream.UID, firstRunnerDeliverableSeq, transcriptWebDestination, 1,
 	)
 	if err != nil || markerIntent.Status != "delivered" ||
 		markerIntent.AttemptCount != transcriptProjectionStaleMaxAttempts+1 {
