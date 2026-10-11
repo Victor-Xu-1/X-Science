@@ -210,13 +210,26 @@ grep -Fqx 'port-busy-frontend-marker' "$TMP_DIR/state-occupied/logs/frontend.log
 mkdir -p "$TMP_DIR/lock-state/logs"
 printf 'lock-held-backend-marker\n' >"$TMP_DIR/lock-state/logs/backend.log"
 printf 'lock-held-frontend-marker\n' >"$TMP_DIR/lock-state/logs/frontend.log"
+LOCK_READY="$TMP_DIR/lock-state/lock-holder.ready"
 (
   exec {held_lock_fd}>"$TMP_DIR/lock-state/quickstart.lock"
   flock -n "$held_lock_fd" || exit 1
+  : >"$LOCK_READY"
   while true; do sleep .05; done
 ) &
 LOCK_HOLDER_PID=$!
-sleep .1
+for _ in $(seq 1 100); do
+  [[ -f "$LOCK_READY" ]] && break
+  kill -0 "$LOCK_HOLDER_PID" 2>/dev/null || {
+    echo 'lock holder exited before acquiring lock' >&2
+    exit 1
+  }
+  sleep .03
+done
+[[ -f "$LOCK_READY" ]] || {
+  echo 'lock holder never signaled readiness' >&2
+  exit 1
+}
 PATH="$TMP_DIR/bin:/usr/bin:/bin" "$QUICKSTART" --state-dir "$TMP_DIR/lock-state" \
   --backend-port 39859 --web-port 39860 >"$TMP_DIR/lock-held-result.log" 2>&1 && {
   echo 'lock-held state directory passed' >&2; exit 1;
