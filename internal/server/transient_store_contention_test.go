@@ -9,8 +9,10 @@ import (
 )
 
 func TestRetryOwnedGrantStoreContentionSurvivesMoreThanFourBusyErrors(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
+	defer cancel()
 	attempts := 0
-	err := retryOwnedGrantStoreContention(context.Background(), "runner_lease_renewal", time.Millisecond, func() error {
+	err := retryOwnedGrantStoreContention(ctx, "runner_lease_renewal", time.Millisecond, func() error {
 		attempts++
 		if attempts <= 6 {
 			return errors.New("SQLITE_BUSY")
@@ -37,9 +39,11 @@ func TestRetryTransientStoreContentionStillCapsPreparationRetries(t *testing.T) 
 }
 
 func TestRetryOwnedGrantStoreContentionStopsOnPermanentError(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
+	defer cancel()
 	attempts := 0
 	want := errors.New("schema is unavailable")
-	err := retryOwnedGrantStoreContention(context.Background(), "runner_lease_renewal", time.Millisecond, func() error {
+	err := retryOwnedGrantStoreContention(ctx, "runner_lease_renewal", time.Millisecond, func() error {
 		attempts++
 		return want
 	})
@@ -71,5 +75,18 @@ func TestRetryOwnedGrantStoreContentionHonorsParentCancel(t *testing.T) {
 	})
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("parent cancel error=%v", err)
+	}
+}
+
+func TestOwnedGrantRetryRequiresDeadlineBeforeWriting(t *testing.T) {
+	for _, ctx := range []context.Context{nil, context.Background()} {
+		called := false
+		err := retryOwnedGrantStoreContention(ctx, "runner_lease_renewal", time.Millisecond, func() error {
+			called = true
+			return nil
+		})
+		if err == nil || !strings.Contains(err.Error(), "deadline") || called {
+			t.Fatalf("unbounded grant accepted: error=%v called=%t", err, called)
+		}
 	}
 }

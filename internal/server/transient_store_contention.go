@@ -63,13 +63,19 @@ func retryTransientStoreContention(ctx context.Context, operation string, fn fun
 // retryOwnedGrantStoreContention retries an idempotent persistence write for
 // as long as the caller still owns the grant. The context deadline is the
 // remaining lease, not a short preparation slice. Permanent errors still
-// surface immediately.
+// surface immediately. A caller must supply its owned grant deadline.
 func retryOwnedGrantStoreContention(ctx context.Context, operation string, delay time.Duration, fn func() error) error {
 	if fn == nil {
 		return errors.New("transient store operation is required")
 	}
 	if ctx == nil {
-		ctx = context.Background()
+		return errors.New("owned grant deadline is required")
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if _, bounded := ctx.Deadline(); !bounded {
+		return errors.New("owned grant deadline is required")
 	}
 	if delay <= 0 {
 		delay = sessionRunnerStoreContentionRetryDelay
