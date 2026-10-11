@@ -90,6 +90,20 @@ class MetadataScopeTest(unittest.TestCase):
         self.assertEqual(filtered, ['internal/runtime/lease.go', 'frontend/App.tsx'])
         self.assertEqual(len(ignored), 8)
 
+    def test_matrix_disposition_change_does_not_block_version_projection_selection(self):
+        original_snapshot = metadata.snapshot
+        def changed(repo, revision, path):
+            raw = original_snapshot(repo, revision, path)
+            if revision == self.head and path == metadata.MATRIX:
+                value = json.loads(raw)
+                value["consumer_inventory"][0]["current_disposition"] = "reviewed disposition-only edit"
+                return json.dumps(value).encode()
+            return raw
+        with patch.object(metadata, 'snapshot', side_effect=changed):
+            self.assertEqual(metadata.version_projection_paths(self.repo, self.base, self.head),
+                             {'product-identity.json', 'frontend/package.json', 'frontend/package-lock.json',
+                              'frontend/packages/desktop/package.json'})
+
     def test_counter_projections_stay_inert_when_source_provenance_also_changes(self):
         original_snapshot = metadata.snapshot
         def changed(repo, revision, path):
