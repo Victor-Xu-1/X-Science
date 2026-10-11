@@ -5,7 +5,7 @@
  */
 
 import type { IConversationMcpStatus } from '@/common/config/storage';
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useRef } from 'react';
 
 /**
  * Conversation context interface
@@ -80,6 +80,48 @@ export interface ConversationContextValue {
  */
 const ConversationContext = createContext<ConversationContextValue | null>(null);
 
+const sameArrayItems = <T,>(left: readonly T[] | undefined, right: readonly T[] | undefined): boolean => {
+  if (left === right) return true;
+  if (!left || !right || left.length !== right.length) return false;
+  return left.every((item, index) => item === right[index]);
+};
+
+const sameMcpStatuses = (
+  left: readonly IConversationMcpStatus[] | undefined,
+  right: readonly IConversationMcpStatus[] | undefined
+): boolean => {
+  if (left === right) return true;
+  if (!left || !right || left.length !== right.length) return false;
+  return left.every((item, index) => {
+    const other = right[index];
+    return (
+      item === other ||
+      (item.id === other.id && item.name === other.name && item.status === other.status && item.reason === other.reason)
+    );
+  });
+};
+
+/**
+ * AcpChat rebuilds this value object on every stream tick. Consumers such as
+ * MessageText sit below a memoized row, so a new object identity would still
+ * rerender every visible message and rerun markdown/artifact work.
+ */
+export const areConversationContextValuesEqual = (
+  previous: ConversationContextValue,
+  next: ConversationContextValue
+): boolean =>
+  previous.conversation_id === next.conversation_id &&
+  previous.workspace === next.workspace &&
+  previous.projectId === next.projectId &&
+  previous.currentFrameId === next.currentFrameId &&
+  previous.type === next.type &&
+  previous.cron_job_id === next.cron_job_id &&
+  previous.hideSendBox === next.hideSendBox &&
+  previous.assistantId === next.assistantId &&
+  sameArrayItems(previous.loadedSkills, next.loadedSkills) &&
+  sameArrayItems(previous.loadedMcpServers, next.loadedMcpServers) &&
+  sameMcpStatuses(previous.loadedMcpStatuses, next.loadedMcpStatuses);
+
 /**
  * Conversation context provider
  * 会话上下文提供者
@@ -88,7 +130,11 @@ export const ConversationProvider: React.FC<{
   children: React.ReactNode;
   value: ConversationContextValue;
 }> = ({ children, value }) => {
-  return <ConversationContext.Provider value={value}>{children}</ConversationContext.Provider>;
+  const valueRef = useRef(value);
+  if (!areConversationContextValuesEqual(valueRef.current, value)) {
+    valueRef.current = value;
+  }
+  return <ConversationContext.Provider value={valueRef.current}>{children}</ConversationContext.Provider>;
 };
 
 /**
