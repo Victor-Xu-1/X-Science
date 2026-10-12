@@ -62,12 +62,32 @@ func TestTaskRunReconcileUsesLatestAssistantEvidenceBeyondFirstJournalPage(t *te
 		t.Fatal(err)
 	}
 	sessions := sessionstore.NewStore(filepath.Join(root, "sessions"))
-	if err := sessions.Upsert(sessionstore.Session{ID: run.SessionID, Runner: &sessionstore.Runner{RunnerID: "test-runner", Status: "completed", Attempt: 1}}); err != nil {
+	journal := eventjournal.NewEventJournal(filepath.Join(root, "journal"))
+	server := &Server{eventJournal: journal, sessionStore: sessions, taskRunStore: runs}
+	if _, err := server.queueTaskRunSession(run, "real pagination input"); err != nil {
 		t.Fatal(err)
 	}
-	journal := eventjournal.NewEventJournal(filepath.Join(root, "journal"))
-	appendTaskRunLatestEvidenceFixture(t, journal, run.SessionID, run.RunID, false)
-	server := &Server{eventJournal: journal, sessionStore: sessions, taskRunStore: runs}
+	admission, err := server.nextSessionRunner(map[string]any{"sessionId": run.SessionID, "runnerId": "test-runner", "limit": 20})
+	if err != nil {
+		t.Fatal(err)
+	}
+	claim := sessionstore.RunnerClaimFromSession(admission["session"].(sessionstore.Session))
+	appendOwned := func(text, id string) {
+		t.Helper()
+		if _, err := server.appendSessionToolEvent(map[string]any{"sessionId": run.SessionID, "runnerId": claim.RunnerID, "runnerAttempt": claim.Attempt, "claimToken": claim.ClaimToken, "role": "assistant", "clientMessageId": id, "message": map[string]any{"text": text}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	appendOwned("old step output", "old-output")
+	for index := range 220 {
+		if _, err := journal.Append(run.SessionID, eventjournal.Message{"type": "taskrun_event", "role": "system", "text": fmt.Sprintf("progress %d", index)}, eventjournal.Metadata{RunID: run.RunID, ClientMessageID: fmt.Sprintf("progress-%d", index)}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	appendOwned("current step output", "latest-output")
+	if _, err := server.finishSessionRunner(map[string]any{"sessionId": run.SessionID, "runnerId": claim.RunnerID, "runnerAttempt": claim.Attempt, "claimToken": claim.ClaimToken, "status": "completed", "clientMessageId": "finished"}); err != nil {
+		t.Fatal(err)
+	}
 	reconciled, err := server.reconcileTaskRun(run.RunID)
 	if err != nil {
 		t.Fatal(err)

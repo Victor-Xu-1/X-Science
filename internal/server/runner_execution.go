@@ -118,6 +118,9 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 	if err := ensureSessionRunnerExecutionPhaseMachine(run); err != nil {
 		return "", err
 	}
+	if err := s.bindTaskRunSessionInput(ctx, session, entries); err != nil {
+		return "", err
+	}
 	if sessionID := strings.TrimSpace(session.ID); sessionID != "" {
 		// Transcript-backed Frames are the runtime authority. Keep the
 		// gateway parent context aligned even when the legacy options path
@@ -187,6 +190,9 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 	}
 	if autoCompactResult.Triggered {
 		entries = updatedEntries
+	}
+	if err := s.bindTaskRunSessionInput(ctx, session, entries); err != nil {
+		return "", err
 	}
 	if err := checkpointPreparationStage("context_replay"); err != nil {
 		return "", err

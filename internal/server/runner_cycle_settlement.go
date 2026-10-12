@@ -227,7 +227,7 @@ func (s *Server) settleSessionRunnerChatOutcome(
 			"message":         message,
 			"afterEventId":    maxInt64(result.CheckpointEventID, result.AssistantEventID),
 			"clientMessageId": runnerCommandClientMessageID(options.RunnerID, session.ID, result.Attempt, claimToken, "chat-finish"),
-		})
+		}, taskRunCancellationSettlementLocked(activeRun, projectionClaim))
 		if err == nil {
 			activeRun.settled = true
 		}

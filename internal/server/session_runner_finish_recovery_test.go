@@ -51,13 +51,17 @@ func runnerFinishRecoveryInput(t *testing.T, srv *Server, sessionID, runnerID, c
 	}
 }
 
-func appendRunnerFinishRecoveryEvent(t *testing.T, srv *Server, input map[string]any) *eventjournal.Entry {
+func appendRunnerFinishRecoveryEvent(t *testing.T, srv *Server, input map[string]any, receipt ...*taskRunCancellationSettlement) *eventjournal.Entry {
 	t.Helper()
 	message := eventjournal.Message{
 		"type": "runner_finished", "role": "system",
 		"runnerId": stringValue(input["runnerId"]), "runnerAttempt": int(numberValue(input["runnerAttempt"])),
 		"status": stringValue(input["status"]), "text": stringValue(input["message"]),
 		"afterEventId": numberValue(input["afterEventId"]),
+	}
+	if len(receipt) == 1 && receipt[0] != nil {
+		message["taskRunInstanceId"] = receipt[0].instance
+		message["taskRunInputEventId"] = receipt[0].consumedUserEventID
 	}
 	entry, _, err := srv.eventJournal.AppendIdempotent(stringValue(input["sessionId"]), message, eventjournal.Metadata{
 		RunID: stringValue(input["runId"]), ClientMessageID: stringValue(input["clientMessageId"]),
@@ -304,14 +308,15 @@ func TestSessionRunnerFinishConvergesTaskRunMirrorExactlyOnce(t *testing.T) {
 	}
 	input := runnerFinishRecoveryInput(t, srv, run.SessionID, "runner-task", "taskrun-finish-recovery", "completed", "task done", claimed.Runner.Attempt)
 	input["runId"] = run.RunID
-	entry := appendRunnerFinishRecoveryEvent(t, srv, input)
+	receipt := taskRunFinishRecoverySettlement(t, srv, claimed)
+	entry := appendRunnerFinishRecoveryEvent(t, srv, input, receipt)
 	if err := srv.mirrorTaskRunRunnerEvent(run.SessionID, entry); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := srv.finishSessionRunner(input); err != nil {
+	if _, err := srv.finishSessionRunner(input, receipt); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := srv.finishSessionRunner(input); err != nil {
+	if _, err := srv.finishSessionRunner(input, receipt); err != nil {
 		t.Fatal(err)
 	}
 	updated, found, err := srv.taskRunStore.Get(run.RunID)
@@ -349,6 +354,7 @@ func TestSessionRunnerFinishRetriesAfterTaskRunMirrorStorageFailure(t *testing.T
 	}
 	input := runnerFinishRecoveryInput(t, srv, run.SessionID, "runner-task", "taskrun-storage-recovery", "completed", "task done", claimed.Runner.Attempt)
 	input["runId"] = run.RunID
+	receipt := taskRunFinishRecoverySettlement(t, srv, claimed)
 	runPath := filepath.Join(srv.fileRoot, "task_runs", run.RunID+".json")
 	original, err := os.ReadFile(runPath)
 	if err != nil {
@@ -357,7 +363,7 @@ func TestSessionRunnerFinishRetriesAfterTaskRunMirrorStorageFailure(t *testing.T
 	if err := os.WriteFile(runPath, []byte("{"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := srv.finishSessionRunner(input); err == nil {
+	if _, err := srv.finishSessionRunner(input, receipt); err == nil {
 		t.Fatal("finish unexpectedly succeeded while TaskRun storage was corrupt")
 	}
 	session, _, _ := srv.sessionStore.Get(run.SessionID)
@@ -374,7 +380,7 @@ func TestSessionRunnerFinishRetriesAfterTaskRunMirrorStorageFailure(t *testing.T
 	if err := os.WriteFile(runPath, original, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := srv.finishSessionRunner(input); err != nil {
+	if _, err := srv.finishSessionRunner(input, receipt); err != nil {
 		t.Fatalf("finish retry after storage recovery: %v", err)
 	}
 	updated, found, err := srv.taskRunStore.Get(run.RunID)

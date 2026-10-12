@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 	eventjournal "x-science/internal/persistence/journal"
+	sessionstore "x-science/internal/persistence/sessions"
 	taskruns "x-science/internal/persistence/taskruns"
 )
 
@@ -50,11 +51,14 @@ func (s *Server) reconcileTaskRun(runID string) (taskruns.Record, error) {
 		}
 		return run, err
 	}
-	assistant, err := s.latestTaskRunAssistantMessage(run.SessionID)
+	assistant, matched, err := s.taskRunTerminalAssistantEvidence(run, session)
 	if err != nil {
 		return taskruns.Record{}, err
 	}
-	reconciled, err := s.taskRunStore.ReconcileWithRunner(run.RunID, session.Runner.Status, assistant)
+	if !matched {
+		return run, s.syncTaskRunGoalLedger(run)
+	}
+	reconciled, err := s.taskRunStore.ReconcileWithRunnerForInstance(run.RunID, taskruns.ExecutionInstance(run), session.Runner.Status, assistant)
 	if err != nil {
 		return taskruns.Record{}, err
 	}
@@ -62,6 +66,50 @@ func (s *Server) reconcileTaskRun(runID string) (taskruns.Record, error) {
 		return taskruns.Record{}, err
 	}
 	return reconciled, nil
+}
+
+// Modern terminal state is consumed only through its exact canonical finish.
+// Legacy graphs retain their historical tolerant reconciliation behavior.
+func (s *Server) taskRunTerminalAssistantEvidence(run taskruns.Record, session sessionstore.Session) (string, bool, error) {
+	if taskruns.ExecutionInstance(run) == "" || !isRunnerFinishStatus(session.Runner.Status) {
+		assistant, err := s.latestTaskRunAssistantMessage(run.SessionID)
+		return assistant, true, err
+	}
+	entries, err := s.eventJournal.ReadAllStrict(run.SessionID)
+	if err != nil {
+		return "", false, err
+	}
+	var finish *eventjournal.Entry
+	for index := range entries {
+		entry := &entries[index]
+		if entry.EventID == session.Runner.LastCheckpointEventID {
+			finish = entry
+			break
+		}
+	}
+	if finish == nil || stringValue(finish.Message["type"]) != "runner_finished" ||
+		stringValue(finish.Message["runnerId"]) != session.Runner.RunnerID || int(numberValue(finish.Message["runnerAttempt"])) != session.Runner.Attempt ||
+		stringValue(finish.Message["status"]) != session.Runner.Status || stringValue(finish.Message["taskRunInstanceId"]) != taskruns.ExecutionInstance(run) {
+		return "", false, nil
+	}
+	consumed := numberValue(finish.Message["taskRunInputEventId"])
+	if consumed <= 0 {
+		return "", false, errors.New("TaskRun terminal receipt has no server-bound input event")
+	}
+	for index := len(entries) - 1; index >= 0; index-- {
+		entry := entries[index]
+		if entry.EventID <= consumed || entry.EventID >= finish.EventID || stringValue(entry.Message["role"]) != "assistant" ||
+			stringValue(entry.Message["runnerId"]) != session.Runner.RunnerID || int(numberValue(entry.Message["runnerAttempt"])) != session.Runner.Attempt {
+			continue
+		}
+		if text := stringValue(entry.Message["text"]); strings.TrimSpace(text) != "" {
+			return text, true, nil
+		}
+		if text := stringValue(mapValue(entry.Message["message"])["text"]); strings.TrimSpace(text) != "" {
+			return text, true, nil
+		}
+	}
+	return "", true, nil
 }
 
 func (s *Server) latestTaskRunAssistantMessage(sessionID string) (string, error) {
@@ -118,6 +166,11 @@ func (s *Server) mirrorTaskRunRunnerEvent(sessionID string, entry *eventjournal.
 	if !found || strings.TrimSpace(run.SessionID) != sessionID {
 		return errors.New("TaskRun runner event has no matching durable run")
 	}
+	if eventType == "runner_finished" && strings.TrimSpace(stringValue(entry.Message["taskRunInstanceId"])) != taskruns.ExecutionInstance(run) {
+		// Missing IDs are compatible only with a legacy graph. A truthful older
+		// finish stays in the session journal but cannot settle a replacement.
+		return nil
+	}
 	now := time.Now().UTC().UnixMilli()
 	trace := taskruns.TraceEvent{
 		At:      now,
@@ -140,6 +193,9 @@ func (s *Server) mirrorTaskRunRunnerEvent(sessionID string, entry *eventjournal.
 		trace.Metadata["modelToolCalls"] = len(calls)
 	}
 	_, err = s.taskRunStore.Update(run.RunID, func(record taskruns.Record) (taskruns.Record, error) {
+		if eventType == "runner_finished" && strings.TrimSpace(stringValue(entry.Message["taskRunInstanceId"])) != taskruns.ExecutionInstance(record) {
+			return record, nil
+		}
 		for _, existing := range record.ExecutionTrace {
 			if existing.Event != trace.Event || existing.Metadata == nil {
 				continue

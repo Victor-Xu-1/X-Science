@@ -165,7 +165,7 @@ func (s *Server) recordInboundLiveSession(record inboundLiveSessionRecord) (stri
 	if !journalProjection {
 		// Session JSON is retained only as a discoverable compatibility shell.
 	} else if journalCreated {
-		if err := s.sessionStore.AppendMessage(sessionID, "user"); err != nil {
+		if err := s.projectSessionJournalMessage(sessionID, "user", entry.EventID); err != nil {
 			return "", 0, err
 		}
 	} else {
@@ -177,7 +177,7 @@ func (s *Server) recordInboundLiveSession(record inboundLiveSessionRecord) (stri
 			return "", 0, errors.New("IM session projection is missing")
 		}
 		projection := sessionWithJournalStats(session, entries)
-		if err := s.sessionStore.ReconcileMessageStats(sessionID, projection.MessageCount, projection.LastRole, projection.LastUserMessageAt); err != nil {
+		if err := s.sessionStore.ReconcileMessageStats(sessionID, projection.MessageCount, projection.LastRole, projection.LastUserMessageAt, projection.LastUserEventID); err != nil {
 			return "", 0, err
 		}
 	}
@@ -406,7 +406,7 @@ func (s *Server) reconcileStagedIMInput(
 		return err
 	}
 	if created {
-		if err := s.sessionStore.AppendMessage(binding.SessionID, "user"); err != nil {
+		if err := s.projectSessionJournalMessage(binding.SessionID, "user", entry.EventID); err != nil {
 			return err
 		}
 	} else {
@@ -419,7 +419,7 @@ func (s *Server) reconcileStagedIMInput(
 		}
 		projection := sessionWithJournalStats(session, entries)
 		if err := s.sessionStore.ReconcileMessageStats(
-			binding.SessionID, projection.MessageCount, projection.LastRole, projection.LastUserMessageAt,
+			binding.SessionID, projection.MessageCount, projection.LastRole, projection.LastUserMessageAt, projection.LastUserEventID,
 		); err != nil {
 			return err
 		}

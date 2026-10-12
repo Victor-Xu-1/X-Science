@@ -337,7 +337,7 @@ func (s *Server) appendClientWebSocketMessageEntry(sessionID string, role string
 	if err != nil {
 		return nil, err
 	}
-	if err := s.sessionStore.AppendMessage(sessionID, role); err != nil {
+	if err := s.projectSessionJournalMessage(sessionID, role, entry.EventID); err != nil {
 		return nil, err
 	}
 	return entry, nil
