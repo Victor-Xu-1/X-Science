@@ -768,7 +768,7 @@ def render_publication_svg(
     return f'''<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="-24 -32 1648 1030" role="img" aria-labelledby="title desc">
 <title id="title">{escape(ligand_label)} protein-ligand interaction diagram</title>
 <desc id="desc">Interactions and solvent accessibility are computed from the selected 3D pose. Blue residue halos show bulk-connected accessible area relative to the same residue isolated in its bound conformation, not tabulated RSA. Pale blue boundary patches project accessible ligand surface directions. Gray dotted curves are schematic proximity boundaries, not measured protein surfaces. Violet atom halos encode ligand exposure, not charge or binding energy.</desc>
-<metadata>{{"engine":"Synon 2D Interaction Engine","pose":"{escape(pose_label)}","analysis":"ProLIF {escape(analysis_version)}","depiction":"RDKit {escape(depiction_version)}"}}</metadata>
+<metadata>{{"engine":"X-Science 2D Interaction Engine","pose":"{escape(pose_label)}","analysis":"ProLIF {escape(analysis_version)}","depiction":"RDKit {escape(depiction_version)}"}}</metadata>
 <defs>
   <linearGradient id="residue-polar" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f3fdff"/><stop offset="1" stop-color="#a7e2f0"/></linearGradient>
   <linearGradient id="residue-neutral" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fffef6"/><stop offset="1" stop-color="#eef0d8"/></linearGradient>

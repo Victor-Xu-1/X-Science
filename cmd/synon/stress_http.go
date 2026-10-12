@@ -82,7 +82,7 @@ func runStressHTTP(args []string, out io.Writer) error {
 func parseStressConfig(args []string) (stressConfig, error) {
 	fs := flag.NewFlagSet("stress-http", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
-	baseURL := fs.String("base-url", "http://127.0.0.1:38080", "base Synon HTTP URL")
+	baseURL := fs.String("base-url", "http://127.0.0.1:38080", "base X-Science HTTP URL")
 	requests := fs.Int("requests", 1000, "logical workload iterations")
 	concurrency := fs.Int("concurrency", 32, "concurrent workers")
 	timeout := fs.Duration("timeout", 5*time.Second, "per-request timeout")

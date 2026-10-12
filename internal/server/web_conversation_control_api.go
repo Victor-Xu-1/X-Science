@@ -479,7 +479,7 @@ func (s *Server) rememberWebApproval(userID string, action string, commandType s
 		UserID:    userID,
 		ClientID:  webApprovalRememberedClient,
 		Action:    webApprovalDecisionAction(action, commandType),
-		Reason:    "approved from Synon Web confirmation",
+		Reason:    "approved from X-Science Web confirmation",
 		CreatedAt: time.Now().UTC(),
 	}
 	if s.approvalDecisionMu != nil {

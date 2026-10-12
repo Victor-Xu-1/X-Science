@@ -4,7 +4,7 @@ This test-only helper creates a deterministic delegation lifecycle without an
 LLM, external provider, production seed endpoint, or persistent user data. It
 uses the real workspace SQLite store and the real runtime HTTP handler.
 
-Run from the Synon Go repository:
+Run from the X-Science repository:
 
 ```bash
 go run ./scripts/compat/delegate-fixture --listen 127.0.0.1:39010

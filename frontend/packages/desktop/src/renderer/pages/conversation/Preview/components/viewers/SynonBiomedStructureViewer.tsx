@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { PRODUCT_NAME } from '@/common/config/productIdentity';
 import { Spin } from '@arco-design/web-react';
 import { Camera, Down, Left, Lightning, MoreOne, PreviewOpen, Right, Up } from '@icon-park/react';
 import { Color } from 'molstar/lib/mol-util/color/index';
@@ -543,7 +544,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
       } catch (reason) {
         if (!active) return;
         logScientificPreviewError(
-          '[SynonBiomedStructureViewer] Failed to render the primary ligand depiction',
+          `[${PRODUCT_NAME} StructureViewer] Failed to render the primary ligand depiction`,
           reason,
           'parse-failed'
         );
@@ -583,7 +584,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
       } catch (reason) {
         if (!active) return;
         logScientificPreviewError(
-          '[SynonBiomedStructureViewer] Failed to render docking ligand depiction',
+          `[${PRODUCT_NAME} StructureViewer] Failed to render docking ligand depiction`,
           reason,
           'parse-failed'
         );
@@ -611,7 +612,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
       svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
     } catch (reason) {
       logScientificPreviewError(
-        '[SynonBiomedStructureViewer] Failed to fit docking ligand depiction',
+        `[${PRODUCT_NAME} StructureViewer] Failed to fit docking ligand depiction`,
         reason,
         'parse-failed'
       );
@@ -654,7 +655,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
     } catch (reason) {
       if (!ownsAction()) return false;
       logScientificPreviewError(
-        `[SynonBiomedStructureViewer] Failed to run ${actionId} action`,
+        `[${PRODUCT_NAME} StructureViewer] Failed to run ${actionId} action`,
         reason,
         'parse-failed'
       );
@@ -789,7 +790,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
       setElectrostaticMapReport(response.report);
     } catch (reason) {
       logScientificPreviewError(
-        '[SynonBiomedStructureViewer] Failed to load the APBS electrostatic potential',
+        `[${PRODUCT_NAME} StructureViewer] Failed to load the APBS electrostatic potential`,
         reason,
         'parse-failed'
       );
@@ -971,7 +972,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
     } catch (reason) {
       if (requestId !== interactionDiagramRequestRef.current || !interactionDiagramOpenRef.current) return;
       logScientificPreviewError(
-        '[SynonBiomedStructureViewer] Failed to derive the active interaction diagram',
+        `[${PRODUCT_NAME} StructureViewer] Failed to derive the active interaction diagram`,
         reason,
         'parse-failed'
       );
@@ -1006,7 +1007,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
     if (!engine) return;
     void queuePocketInteractionStrengthRender(engine, [], pocketInteractionVisibilityRef.current).catch((reason) => {
       logScientificPreviewError(
-        '[SynonBiomedStructureViewer] Failed to clear 3D interaction strengths',
+        `[${PRODUCT_NAME} StructureViewer] Failed to clear 3D interaction strengths`,
         reason,
         'parse-failed'
       );
@@ -1027,7 +1028,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
       await queuePocketInteractionStrengthRender(engine, [], visibility, isCurrent);
     } catch (reason) {
       logScientificPreviewError(
-        '[SynonBiomedStructureViewer] Failed to reset 3D interaction strengths',
+        `[${PRODUCT_NAME} StructureViewer] Failed to reset 3D interaction strengths`,
         reason,
         'parse-failed'
       );
@@ -1083,7 +1084,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
             return await loadRecords();
           } catch (reason) {
             logScientificPreviewError(
-              '[SynonBiomedStructureViewer] Failed to derive 3D interaction strengths',
+              `[${PRODUCT_NAME} StructureViewer] Failed to derive 3D interaction strengths`,
               reason,
               'parse-failed'
             );
@@ -1098,7 +1099,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
         await queuePocketInteractionStrengthRender(engine, records, visibility, isCurrent);
       } catch (reason) {
         logScientificPreviewError(
-          '[SynonBiomedStructureViewer] Failed to render 3D interaction strengths',
+          `[${PRODUCT_NAME} StructureViewer] Failed to render 3D interaction strengths`,
           reason,
           'parse-failed'
         );
@@ -1344,7 +1345,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
           await applyVisibility(engine, previousVisibility);
         } catch (rollbackReason) {
           logScientificPreviewError(
-            '[SynonBiomedStructureViewer] Failed to restore the previous pocket interaction visibility',
+            `[${PRODUCT_NAME} StructureViewer] Failed to restore the previous pocket interaction visibility`,
             rollbackReason,
             'parse-failed'
           );
@@ -1593,7 +1594,7 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
           return true;
         } catch (reason) {
           logScientificPreviewError(
-            '[SynonBiomedStructureViewer] Failed to restore the previous docking selection',
+            `[${PRODUCT_NAME} StructureViewer] Failed to restore the previous docking selection`,
             reason,
             'parse-failed'
           );
@@ -2373,7 +2374,11 @@ const SynonBiomedStructureViewer: React.FC<SynonBiomedStructureViewerProps> = ({
       }
     })().catch((reason) => {
       if (!active || controller.signal.aborted) return;
-      logScientificPreviewError('[SynonBiomedStructureViewer] Failed to load structure in Mol*', reason, failureCode);
+      logScientificPreviewError(
+        `[${PRODUCT_NAME} StructureViewer] Failed to load structure in Mol*`,
+        reason,
+        failureCode
+      );
       setError(resolveScientificPreviewError(reason, failureCode));
       setLoading(false);
     });

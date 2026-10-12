@@ -161,11 +161,13 @@ type FeedbackConfig struct {
 }
 
 func Load() (Config, error) {
+	const bundledBrowserConnector = "assets/synon-link/x-science-browser-extension-v0.6.10.zip"
+	const legacyBundledBrowserConnector = "assets/synon-link/synon-link-extension-v0.6.10.zip"
 	cfg := Config{
 		HomeDir:          defaultHome(),
 		Host:             "127.0.0.1",
 		Port:             8765,
-		SynonLinkPackage: "assets/synon-link/synon-link-extension-v0.6.10.zip",
+		SynonLinkPackage: bundledBrowserConnector,
 		SynonLinkAuth: SynonLinkAuthConfig{
 			Username:          "local",
 			SessionTTLMinutes: defaultSynonLinkSessionTTLMinutes,
@@ -238,8 +240,10 @@ func Load() (Config, error) {
 	if webRoot := strings.TrimSpace(os.Getenv("SYNON_WEB_ROOT")); webRoot != "" {
 		cfg.WebRoot = webRoot
 	}
-	if cfg.SynonLinkPackage == "" {
-		cfg.SynonLinkPackage = "assets/synon-link/synon-link-extension-v0.6.10.zip"
+	if cfg.SynonLinkPackage == "" || cfg.SynonLinkPackage == legacyBundledBrowserConnector {
+		// Only the former exact bundled path aliases the renamed package.
+		// Custom paths and existing runtime data remain under their owner.
+		cfg.SynonLinkPackage = bundledBrowserConnector
 	}
 	if err := applySynonLinkAuthEnv(&cfg); err != nil {
 		return Config{}, err

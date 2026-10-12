@@ -3,9 +3,9 @@
 
 Usage: python run_server.py <package>   e.g. python run_server.py mcp_pubmed
 
-Registered in the Synon bundled connector directory as
+Registered in the X-Science bundled connector directory as
   command: "python", args: ["${MCP_SERVERS_DIR}/bio-tools/run_server.py", "<pkg>"]
-The connector pool resolves `python` to the shared Synon MCP environment and substitutes
+The connector pool resolves `python` to the shared X-Science MCP environment and substitutes
 the staged-assets path; deps come from the registry entry's installPip pins.
 
 All packages (servers + the fleet retrieval packages they import) live flat

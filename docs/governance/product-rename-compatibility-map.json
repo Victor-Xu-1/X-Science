@@ -10,6 +10,9 @@
     "compatibility_launcher": "synon",
     "logo_provenance": "frontend/public/branding/x-science-logo.provenance.json",
     "preserved_identifiers": "Existing Go imports, synon API/schema IDs, scientific component namespaces, service/install roots and user database/state paths remain compatibility identifiers. They do not define the displayed product name or archive identity.",
+    "current_brand_surfaces": "Current UI translations, runtime prompts/errors, CLI/help/report headings, native directory-picker text, installer messages and the adapted bundled browser connector use the root product display name. Unused legacy design-reference images are not shipped as current product assets.",
+    "retained_source_facts": "Original component names, copyright/license notices, adaptation input hashes, immutable import provenance and historical Git commit messages retain their true source identity; scientific synonym fields are not product marks.",
+    "browser_connector_compatibility": "The adapted connector keeps its component version, existing message/storage keys, permissions and origin matches. Existing Synon tab-group titles remain readable, while newly emitted display titles use X-Science. The precise legacy bundled relative-package setting is resolved to the current archive; custom and absolute operator package paths are not rewritten.",
     "rollback": "Revert the focused identity candidate or restore the preceding identified artifact; the shared source-launcher alias does not create a new state owner. GitHub name changes preserve repository ID/history and can be reversed as a separate settings operation."
   },
   "status": "identity-projections-aligned-external-release-authorization-required",

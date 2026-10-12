@@ -2,20 +2,20 @@
 set -Eeuo pipefail
 
 SCRIPT_PATH=$(realpath -e "${BASH_SOURCE[0]}") || {
-  echo "[synon-install] unable to resolve the installer path" >&2
+  echo "[X-Science install] unable to resolve the installer path" >&2
   exit 1
 }
 SOURCE_ROOT=$(cd "$(dirname "$SCRIPT_PATH")/../.." && pwd -P)
 WRAPPER="$SOURCE_ROOT/scripts/dev/synon"
 HOME_DIR=$(realpath -e "$HOME") || {
-  echo "[synon-install] unable to resolve the user home directory" >&2
+  echo "[X-Science install] unable to resolve the user home directory" >&2
   exit 1
 }
 BIN_DIR="$HOME_DIR/.local/bin"
 TARGET="$BIN_DIR/synon"
 
 fail() {
-  echo "[synon-install] $*" >&2
+  echo "[X-Science install] $*" >&2
   exit 1
 }
 
@@ -43,23 +43,23 @@ TARGETS=("$BIN_DIR/x-science" "$TARGET")
 for target in "${TARGETS[@]}"; do
   if [[ -e "$target" || -L "$target" ]]; then
     [[ -L "$target" && "$(realpath -e "$target" 2>/dev/null || true)" == "$WRAPPER" ]] ||
-      fail "refusing to replace an existing non-Synon command: $target"
+      fail "refusing to replace a command not owned by this X-Science checkout: $target"
   fi
 done
 for target in "${TARGETS[@]}"; do
   if [[ -L "$target" ]]; then
-    echo "[synon-install] already installed: $target"
+    echo "[X-Science install] already installed: $target"
   else
     ln -s "$WRAPPER" "$target"
-    echo "[synon-install] installed: $target -> $WRAPPER"
+    echo "[X-Science install] installed: $target -> $WRAPPER"
   fi
   [[ "$(realpath -e "$target")" == "$WRAPPER" ]] || fail "installed launcher target verification failed"
 done
 case ":${PATH:-}:" in
-  *":$BIN_DIR:"*) echo "[synon-install] PATH already contains $BIN_DIR" ;;
+  *":$BIN_DIR:"*) echo "[X-Science install] PATH already contains $BIN_DIR" ;;
   *)
-    echo "[synon-install] add this once to the current shell:"
+    echo "[X-Science install] add this once to the current shell:"
     echo "export PATH=\"$BIN_DIR:\$PATH\""
     ;;
 esac
-echo "[synon-install] next command: x-science start"
+echo "[X-Science install] next command: x-science start"

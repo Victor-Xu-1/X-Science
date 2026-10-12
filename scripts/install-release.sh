@@ -3,11 +3,12 @@ set -euo pipefail
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 source "$script_dir/release-path-policy.sh"
+product_name="$(synon_release_product_name)"
 
 umask 022
 
 if [[ $# -ne 2 ]]; then
-	echo "usage: install-release.sh <synon-go-archive.tar.gz> <install-dir>" >&2
+	echo "usage: install-release.sh <product-archive.tar.gz> <install-dir>" >&2
 	exit 2
 fi
 
@@ -84,7 +85,7 @@ done < <(LC_ALL=C tar -tvzf "$archive")
 tar --no-same-owner --no-same-permissions -xzf "$archive" -C "$tmp"
 package_dir="$(find "$tmp" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
 if [[ -z "$package_dir" || ! -x "$package_dir/synon-go" ]]; then
-	echo "archive does not contain a runnable synon-go package" >&2
+	echo "archive does not contain a runnable product package (synon-go binary)" >&2
 	exit 1
 fi
 if [[ "$(find "$tmp" -mindepth 1 -maxdepth 1 | wc -l)" -ne 1 ]]; then
@@ -131,4 +132,4 @@ if [[ -n "$backup" && -e "$backup" ]]; then
 	rm -rf -- "$backup"
 	backup=""
 fi
-printf 'synon-go installed to %s\n' "$install_dir"
+printf '%s installed to %s\n' "$product_name" "$install_dir"

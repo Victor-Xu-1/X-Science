@@ -239,6 +239,6 @@ func externalIdentityFallbackName(provider string) string {
 	case webWeChatProviderID:
 		return "WeChat user"
 	default:
-		return "Synon user"
+		return "X-Science user"
 	}
 }

@@ -7,11 +7,12 @@ import (
 	"io"
 	"strings"
 
+	"synon-go/internal/buildinfo"
 	"synon-go/internal/ketchermcp"
 )
 
 func runKetcherMCPCLI(ctx context.Context, args []string, input io.Reader, output io.Writer) error {
-	flags := flag.NewFlagSet("synon-go mcp-ketcher", flag.ContinueOnError)
+	flags := flag.NewFlagSet(buildinfo.Release().Name+" mcp-ketcher", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	widget := flags.String("widget-gzip", "", "path to the verified Ketcher widget gzip")
 	if err := flags.Parse(args); err != nil {

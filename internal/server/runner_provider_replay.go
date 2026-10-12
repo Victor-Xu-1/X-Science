@@ -22,7 +22,7 @@ func sessionEntriesToProviderMessages(
 	messages := []chatCompletionMessage{{Role: "system", Content: systemPrompt}}
 	compactSummary, compactEventID, hasCompact := latestCompactModelContext(entries)
 	if hasCompact {
-		messages = append(messages, chatCompletionMessage{Role: "system", Content: "Synon compact handoff context:\n" + compactSummary, ContextUsageSource: agentruntime.ContextUsageMessages})
+		messages = append(messages, chatCompletionMessage{Role: "system", Content: "X-Science compact handoff context:\n" + compactSummary, ContextUsageSource: agentruntime.ContextUsageMessages})
 	}
 	if correctionContext := recoveredRunnerCorrectionContext(entries); correctionContext != "" {
 		messages = append(messages, chatCompletionMessage{Role: "system", Content: correctionContext})
@@ -304,7 +304,7 @@ func recoveredToolFailureContext(entries []eventjournal.Entry, compactEventID in
 	if len(lines) > 8 {
 		lines = lines[len(lines)-8:]
 	}
-	return "Synon task self-repair controller: the prior tool step produced a structured failure. Treat it as an intermediate diagnosis, not a completed result. Do not repeat an identical failed call. For a retryable failure, classify it, apply the stated governed-runtime repair or create a new immutable corrected input, then rerun only the affected step and verify its real output/receipt before continuing. Preserve successful earlier steps, provenance, logs, and task identity. For retryable=false or any unresolved approval/user decision, stop at that boundary and ask or report the exact blocker; never claim success.\n" + strings.Join(lines, "\n")
+	return "X-Science task self-repair controller: the prior tool step produced a structured failure. Treat it as an intermediate diagnosis, not a completed result. Do not repeat an identical failed call. For a retryable failure, classify it, apply the stated governed-runtime repair or create a new immutable corrected input, then rerun only the affected step and verify its real output/receipt before continuing. Preserve successful earlier steps, provenance, logs, and task identity. For retryable=false or any unresolved approval/user decision, stop at that boundary and ask or report the exact blocker; never claim success.\n" + strings.Join(lines, "\n")
 }
 
 func artifactSaveEvidenceRepairReferences(result map[string]any) ([]string, []string, []string) {

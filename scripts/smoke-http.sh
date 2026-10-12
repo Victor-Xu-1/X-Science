@@ -384,7 +384,7 @@ printf '%s' "$capabilities" | grep -q 'append_session_event'
 printf 'CAPABILITIES_HAS_RUNTIME_STORE=yes\n'
 
 if printf '%s' "$link_capabilities" | grep -q 'desktop_'; then
-	echo "Synon Link capabilities still expose removed desktop actions" >&2
+	echo "X-Science browser connector capabilities still expose removed desktop actions" >&2
 	exit 1
 fi
 printf '%s' "$link_capabilities" | grep -q 'open_tab'

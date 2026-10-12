@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from '@/common/config/productIdentity';
 import CodeBlock from '@/renderer/components/Markdown/CodeBlock';
 import MarkdownView from '@/renderer/components/Markdown';
 import { Spin } from '@arco-design/web-react';
@@ -49,7 +50,7 @@ const SynonBiomedNotebookViewer: React.FC<SynonBiomedNotebookViewerProps> = ({ f
       })
       .catch((reason: unknown) => {
         if (!active || controller.signal.aborted) return;
-        logScientificPreviewError('[SynonBiomedNotebookViewer] Failed to load notebook', reason, 'parse-failed');
+        logScientificPreviewError(`[${PRODUCT_NAME} NotebookViewer] Failed to load notebook`, reason, 'parse-failed');
         setError(resolveScientificPreviewError(reason, 'parse-failed'));
       })
       .finally(() => {

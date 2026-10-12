@@ -3,6 +3,7 @@ set -euo pipefail
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 source "$script_dir/release-path-policy.sh"
+product_name="$(synon_release_product_name)"
 
 if [[ $# -ne 2 ]]; then
 	echo "usage: backup-release.sh <install-dir> <backup-dir>" >&2
@@ -57,4 +58,4 @@ synon_release_revalidate_path "$raw_backup_dir" "$backup_dir" backup
 synon_release_revalidate_managed_child "$parent" "$stage" backup-stage
 mv "$stage" "$backup_dir"
 stage=""
-printf 'synon-go release backed up to %s\n' "$backup_dir"
+printf '%s release backed up to %s\n' "$product_name" "$backup_dir"

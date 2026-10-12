@@ -3,6 +3,7 @@ set -euo pipefail
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 source "$script_dir/release-path-policy.sh"
+product_name="$(synon_release_product_name)"
 
 start_service=true
 if [[ "${1:-}" == "--no-start" ]]; then
@@ -130,4 +131,4 @@ if [[ "$start_service" == true ]]; then
 	"$systemctl_bin" --user --no-pager --full status "$unit_name"
 fi
 
-echo "synon-go user service installed at $unit_path using state $state_dir"
+echo "$product_name user service installed at $unit_path using state $state_dir"

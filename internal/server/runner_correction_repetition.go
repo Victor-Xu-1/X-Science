@@ -21,7 +21,7 @@ type runnerCorrectionRepetition struct {
 }
 
 func correctionRepetitionFingerprint(reason, detail string) string {
-	if marker := strings.Index(detail, sessionRunnerNoProgressDetailMarker); marker >= 0 {
+	if marker, _ := sessionRunnerNoProgressMarkerIndex(detail, false); marker >= 0 {
 		detail = detail[:marker]
 	}
 	return runnerRecoveryConditionFingerprint(reason, detail)

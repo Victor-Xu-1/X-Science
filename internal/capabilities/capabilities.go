@@ -393,10 +393,10 @@ func CompactSynon() Report {
 		Modules: []Module{
 			{
 				ID:           "synon-link",
-				Label:        "Synon Link",
+				Label:        "X-Science Link",
 				Status:       status,
 				Endpoint:     "/api/synon-link",
-				Summary:      "Synon Link exposes its browser extension bridge for workspace, navigation, page reading, interaction, screenshots, downloads, browser-local files, bookmarks, progress, results, diagnostics, policy enforcement, and permission lifecycle events.",
+				Summary:      "X-Science Link exposes its browser extension bridge for workspace, navigation, page reading, interaction, screenshots, downloads, browser-local files, bookmarks, progress, results, diagnostics, policy enforcement, and permission lifecycle events.",
 				Actions:      linkActions,
 				Capabilities: linkCapabilityIDs,
 				Metrics: map[string]string{
@@ -449,7 +449,7 @@ func CompactSynon() Report {
 				Label:        "Service Operations",
 				Status:       "started",
 				Endpoint:     "internal/server and compatibility API boundaries",
-				Summary:      "Internal controls and retained compatibility operations use a service-operation catalog that is physically separate from model tools. Exact compatibility identities resolve only for explicit consumers. This boundary retains the Go HTTP WebSearch backend, VisualReview screenshot_command execution and VisualReview dependency diagnostics, bounded artifact_get content retrieval, and original Synon research artifact phase auditing. The compatibility TaskRun boundary accepts explicit task graphs only and delegates execution to the canonical runner; hard-coded task playbooks and keyword auto-selection are absent. TaskRun SynonLink browser executors preserve needsClient/missingCapability blockers, TaskRun monitor ticks reconcile self-check pending completions, and TaskRun direct system steps cover web_research, lsp_diagnostics, patch, read_files, notebook_edit, record_artifact, shell_command, and visual_review. The original tool surface audit and dynamic MCP auth pseudo-tool remain available only through this explicit service boundary.",
+				Summary:      "Internal controls and retained compatibility operations use a service-operation catalog that is physically separate from model tools. Exact compatibility identities resolve only for explicit consumers. This boundary retains the Go HTTP WebSearch backend, VisualReview screenshot_command execution and VisualReview dependency diagnostics, bounded artifact_get content retrieval, and original X-Science research artifact phase auditing. The compatibility TaskRun boundary accepts explicit task graphs only and delegates execution to the canonical runner; hard-coded task playbooks and keyword auto-selection are absent. TaskRun SynonLink browser executors preserve needsClient/missingCapability blockers, TaskRun monitor ticks reconcile self-check pending completions, and TaskRun direct system steps cover web_research, lsp_diagnostics, patch, read_files, notebook_edit, record_artifact, shell_command, and visual_review. The original tool surface audit and dynamic MCP auth pseudo-tool remain available only through this explicit service boundary.",
 				Actions:      serviceOperationNames,
 				Capabilities: serviceOperationCapabilityIDs,
 				Metrics: map[string]string{
@@ -461,7 +461,7 @@ func CompactSynon() Report {
 				Label:        "Plugin Host",
 				Status:       "started",
 				Endpoint:     "/api/plugins",
-				Summary:      "Go plugin host lists the retained built-in Synon plugin, loads external .synon-plugin/plugin.json manifests from configured directories, manages declared external plugin process lifecycles, serves plugin manifests, and routes the compact Synon capabilities and Synon Link download module surfaces without loading excluded side plugins.",
+				Summary:      "Go plugin host lists the retained built-in X-Science plugin, loads external .synon-plugin/plugin.json manifests from configured directories, manages declared external plugin process lifecycles, serves plugin manifests, and routes the compact X-Science capabilities and X-Science Link download module surfaces without loading excluded side plugins.",
 				Actions:      pluginHostActions,
 				Capabilities: pluginHostCapabilityIDs,
 				Metrics: map[string]string{
@@ -475,7 +475,7 @@ func CompactSynon() Report {
 				ID:      "browser-bridge-runtime",
 				Label:   "Browser Bridge Runtime",
 				Status:  status,
-				Summary: "Connect Synon Link WebSocket before browser workspace, navigation, read, interaction, screenshot, download, local-file, or bookmark work is available.",
+				Summary: "Connect X-Science Link WebSocket before browser workspace, navigation, read, interaction, screenshot, download, local-file, or bookmark work is available.",
 				Steps:   []string{"SynonLink:synon_link_ws_connect", "SynonLink:handle_synon_link_hello", "SynonLink:open_tab", "SynonLink:search_web", "SynonLink:read_page", "SynonLink:scroll_page", "SynonLink:visual_element_map", "SynonLink:click_at", "SynonLink:type", "SynonLink:screenshot", "SynonLink:download_file", "SynonLink:local_files_manifest", "SynonLink:bookmarks_profile", "SynonLink:track_synon_link_progress", "SynonLink:complete_synon_link_command"},
 			},
 			{
@@ -496,14 +496,14 @@ func CompactSynon() Report {
 				ID:      "tool-execution-contracts",
 				Label:   "Tool Execution Contracts",
 				Status:  "started",
-				Summary: "List and execute retained tools, including capability-gated Synon Link browser actions and TaskRun direct system steps for web_research, lsp_diagnostics, patch, read_files, notebook_edit, record_artifact, shell_command, and visual_review.",
+				Summary: "List and execute retained tools, including capability-gated X-Science Link browser actions and TaskRun direct system steps for web_research, lsp_diagnostics, patch, read_files, notebook_edit, record_artifact, shell_command, and visual_review.",
 				Steps:   prefixedSteps("Tools", toolRegistryActions),
 			},
 			{
 				ID:      "plugin-host-runtime",
 				Label:   "Plugin Host Runtime",
 				Status:  "started",
-				Summary: "Expose the retained Synon native plugin plus configured external plugin manifests as a Go-managed API module surface, and supervise declared external plugin child processes.",
+				Summary: "Expose the retained X-Science native plugin plus configured external plugin manifests as a Go-managed API module surface, and supervise declared external plugin child processes.",
 				Steps:   []string{"Plugins:list_plugins", "Plugins:read_plugin_manifest", "Plugins:load_external_plugin_manifest", "Plugins:start_external_plugin_process", "Plugins:stop_external_plugin_process", "Plugins:route_synon_plugin_capabilities", "Plugins:route_synon_link_download"},
 			},
 		},

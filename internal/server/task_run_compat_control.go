@@ -189,8 +189,8 @@ func (s *Server) blockTaskRunMissingSynonLinkClient(run taskruns.Record) (taskru
 		record.ActiveChildren = []taskruns.ActiveChild{}
 		record.Blockers = append(record.Blockers, blocker)
 		record.CapabilityGaps = append(record.CapabilityGaps, gap)
-		record.NextActions = []string{"Connect or upgrade the Synon Link browser extension and retry TaskRun action=resume after it advertises the action and capabilities."}
-		record.Completion = taskruns.Completion{State: "waiting_user", Verified: false, Confidence: "high", Reason: message, NextAction: "Connect or upgrade Synon Link, then resume the TaskRun.", UpdatedAt: now}
+		record.NextActions = []string{"Connect or upgrade the X-Science Link browser extension and retry TaskRun action=resume after it advertises the action and capabilities."}
+		record.Completion = taskruns.Completion{State: "waiting_user", Verified: false, Confidence: "high", Reason: message, NextAction: "Connect or upgrade X-Science Link, then resume the TaskRun.", UpdatedAt: now}
 		record.ExecutionTrace = append(record.ExecutionTrace, taskruns.TraceEvent{At: now, Event: "waiting_for_synonlink_client", StepID: step.ID, Message: message, Metadata: map[string]any{"clientKind": clientKind, "action": action}})
 		record.UpdatedAt = now
 		return record, nil
@@ -210,7 +210,7 @@ func (s *Server) taskRunSynonLinkGateIssue(step taskruns.Step) (string, string, 
 	clientID := firstNonEmpty(stringValue(input["clientId"]), stringValue(input["client_id"]))
 	clients := s.synonLink.ListAllClients()
 	if len(clients) == 0 {
-		message := "TaskRun requires a connected " + kind + " client before executing Synon Link action"
+		message := "TaskRun requires a connected " + kind + " client before executing X-Science Link action"
 		if action != "" {
 			message += ": " + action
 		}
@@ -220,25 +220,25 @@ func (s *Server) taskRunSynonLinkGateIssue(step taskruns.Step) (string, string, 
 		if _, ok := s.selectTaskRunSynonLinkClient(kind, action); ok {
 			return "", "", nil, false
 		}
-		return "missingCapability", "No connected " + kind + " client advertises Synon Link action " + action + ".", []string{"action:" + action}, true
+		return "missingCapability", "No connected " + kind + " client advertises X-Science Link action " + action + ".", []string{"action:" + action}, true
 	}
 	for _, client := range clients {
 		if client.ID != clientID || client.UserID != userID {
 			continue
 		}
 		if client.Status != "" && client.Status != "online" {
-			return "needsClient", "TaskRun requires online Synon Link client " + clientID + " before executing action " + action + ".", nil, true
+			return "needsClient", "TaskRun requires online X-Science Link client " + clientID + " before executing action " + action + ".", nil, true
 		}
 		wantKind := strings.TrimPrefix(kind, "synonlink-")
 		if wantKind != "" && client.Kind != wantKind {
-			return "missingCapability", "Synon Link client " + clientID + " is " + client.Kind + " but action " + action + " requires " + wantKind + ".", []string{"clientKind:" + wantKind}, true
+			return "missingCapability", "X-Science Link client " + clientID + " is " + client.Kind + " but action " + action + " requires " + wantKind + ".", []string{"clientKind:" + wantKind}, true
 		}
 		if err := synonlink.ValidateCommandPolicyWithDefaults(client, action, taskRunSynonLinkPayload(input), s.synonLink.PolicyDefaults()); err != nil {
 			return "missingCapability", err.Error(), taskRunSynonLinkMissingCapabilities(err.Error(), action), true
 		}
 		return "", "", nil, false
 	}
-	return "needsClient", "TaskRun requires connected Synon Link client " + clientID + " for user " + userID + ".", nil, true
+	return "needsClient", "TaskRun requires connected X-Science Link client " + clientID + " for user " + userID + ".", nil, true
 }
 
 func taskRunSynonLinkMissingCapabilities(message string, action string) []string {

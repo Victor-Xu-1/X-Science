@@ -32,7 +32,7 @@ source and unresolved submodules are rejected.
 6. official Google Chrome desktop and narrow flows pass against the packaged Go
    service, including realtime recovery, AskUser, branch, artifact, preview,
    long-task, error, keyboard, and no-overflow behavior; and
-7. the Synon Harness contract passes: pinned Python worker, sole
+7. the X-Science Harness contract passes: pinned Python worker, sole
    `generate_plan`/`update_step_status` plan authority, explicit plan-mode
    completion gating, model-judged AskUser decisions, one managed
    environment/package flow, scoped REVIEWER and BOOKMARKER fixed jobs, closed

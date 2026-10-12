@@ -216,7 +216,7 @@ func TestTranscriptRunnerContextPressureInterruptsCompactsAndResumes(t *testing.
 		}
 		var compactContext string
 		for _, message := range request.Messages {
-			if message.Role == "system" && strings.Contains(message.Content, "Synon compact handoff context:") {
+			if message.Role == "system" && strings.Contains(message.Content, "X-Science compact handoff context:") {
 				compactContext = message.Content
 			}
 		}

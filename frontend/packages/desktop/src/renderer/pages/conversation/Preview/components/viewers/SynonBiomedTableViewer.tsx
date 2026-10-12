@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from '@/common/config/productIdentity';
 import { Empty, Spin } from '@arco-design/web-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -41,7 +42,7 @@ const SynonBiomedTableViewer: React.FC<SynonBiomedTableViewerProps> = ({ content
       })
       .catch((reason) => {
         if (!active || controller.signal.aborted) return;
-        logScientificPreviewError('[SynonBiomedTableViewer] Failed to load table', reason, 'parse-failed');
+        logScientificPreviewError(`[${PRODUCT_NAME} TableViewer] Failed to load table`, reason, 'parse-failed');
         setError(resolveScientificPreviewError(reason, 'parse-failed'));
       })
       .finally(() => {

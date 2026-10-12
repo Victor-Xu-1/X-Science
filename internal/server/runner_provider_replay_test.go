@@ -587,7 +587,7 @@ func TestSessionEntriesToProviderMessagesSkipsAuthorizedRecoveryAcrossCompactBou
 		t.Fatal(err)
 	}
 	if len(messages) != 4 || messages[0].Role != "system" ||
-		!strings.Contains(messages[1].Content, "Synon compact handoff context") ||
+		!strings.Contains(messages[1].Content, "X-Science compact handoff context") ||
 		messages[2].Role != "user" || messages[2].Content != "old task" ||
 		messages[3].Role != "user" || messages[3].Content != "continue safely" {
 		t.Fatalf("messages=%#v", messages)

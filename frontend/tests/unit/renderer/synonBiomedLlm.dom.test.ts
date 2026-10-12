@@ -31,6 +31,15 @@ afterEach(() => {
 });
 
 describe('X-Science LLM service', () => {
+  it('uses the current product name for failed requests and invalid profile responses', async () => {
+    const failedRequest = vi.fn<typeof fetch>().mockResolvedValue(new Response('Unavailable', { status: 503 }));
+    await expect(loadSynonBiomedLlmProviders(failedRequest)).rejects.toThrow('X-Science LLM Core request failed: 503');
+    const invalidProfile = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ ok: true })));
+    await expect(saveSynonBiomedLlmProfile(profile, invalidProfile)).rejects.toThrow(
+      'X-Science LLM Core returned an invalid profile'
+    );
+  });
+
   it('preserves explicit null budgets on the wire instead of dropping the reset', async () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ ok: true, profile })));
     await saveSynonBiomedLlmProfile({ ...profile, maxTokens: null, contextWindow: null }, fetchMock);
@@ -39,7 +48,7 @@ describe('X-Science LLM service', () => {
     expect(body).toHaveProperty('contextWindow', null);
     expect(body).not.toHaveProperty('apiKey');
   });
-  it('loads provider profiles and native model selector entries from Synon LLM Core', async () => {
+  it('loads provider profiles and native model selector entries from X-Science LLM Core', async () => {
     const fetchMock = vi
       .fn<typeof fetch>()
       .mockResolvedValueOnce(

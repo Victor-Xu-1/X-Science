@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from '@/common/config/productIdentity';
 import type { SynonBiomedArtifactAnnotation } from '@/renderer/services/synonBiomedAnnotations';
 import {
   logScientificPreviewError,
@@ -87,7 +88,11 @@ export const SynonBiomedLatexArtifactViewer: React.FC<{
       })
       .catch((reason: unknown) => {
         if (controller.signal.aborted) return;
-        logScientificPreviewError('[SynonBiomedLatexArtifactViewer] Failed to load LaTeX', reason, 'request-failed');
+        logScientificPreviewError(
+          `[${PRODUCT_NAME} LatexArtifactViewer] Failed to load LaTeX`,
+          reason,
+          'request-failed'
+        );
         setLoadError(resolveScientificPreviewError(reason, 'request-failed'));
       })
       .finally(() => {
@@ -112,7 +117,7 @@ export const SynonBiomedLatexArtifactViewer: React.FC<{
         error: false,
       };
     } catch (reason) {
-      logScientificPreviewError('[SynonBiomedLatexArtifactViewer] Failed to parse LaTeX', reason, 'parse-failed');
+      logScientificPreviewError(`[${PRODUCT_NAME} LatexArtifactViewer] Failed to parse LaTeX`, reason, 'parse-failed');
       return { html: '', warnings: [], error: true };
     }
   }, [content, resourceUrls]);

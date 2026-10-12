@@ -179,7 +179,7 @@ func (s *Server) executeAgentRuntimeDoctorTool(input map[string]any) (any, error
 			taskRunNext = append(taskRunNext, "Register TeamCreate and TeamDelete with durable TaskRun/runtime/session stores for team subagent orchestration.")
 		}
 		if !hasSynonLinkClientGate || !hasSynonLinkDirectExecutor {
-			taskRunNext = append(taskRunNext, "Enable the Synon Link service, canonical synon_link tool, and durable pairing storage for browser TaskRun executors.")
+			taskRunNext = append(taskRunNext, "Enable the X-Science Link service, canonical synon_link tool, and durable pairing storage for browser TaskRun executors.")
 		}
 		if !hasTaskRunMonitor || !hasTaskRunMonitorSelfCheck {
 			taskRunNext = append(taskRunNext, "Register TaskRun with durable TaskRun/runtime/session runner stores so monitor advance and self-check actions can run.")

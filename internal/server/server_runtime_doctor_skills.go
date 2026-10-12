@@ -107,7 +107,7 @@ func (s *Server) skillsDoctorArea() (string, string, map[string]any, []string) {
 		"skillDirectories":                    s.skillDirectories,
 		"skillCatalogReady":                   skillCatalogReady,
 	}
-	return status, "Go runtime loads self-contained SKILL.md catalogs from the packaged skill tree and explicitly configured directories, supports project-local Synon skill compatibility without default personal-directory leakage, renders inline Skill prompts with argument and skill-directory substitution, invokes skill calls with full source metadata, injects selected skill context with bounded references, and exposes deterministic search_skills diagnostics for replay.", evidence, next
+	return status, "Go runtime loads self-contained SKILL.md catalogs from the packaged skill tree and explicitly configured directories, supports project-local X-Science skill compatibility without default personal-directory leakage, renders inline Skill prompts with argument and skill-directory substitution, invokes skill calls with full source metadata, injects selected skill context with bounded references, and exposes deterministic search_skills diagnostics for replay.", evidence, next
 }
 
 func (s *Server) skillRuntimeDiagnostics() ([]string, []map[string]any) {

@@ -282,7 +282,7 @@ func TestParseServeCommandFlagsTreatsHelpAsSuccessfulOutput(t *testing.T) {
 
 func TestResolveRuntimeAssetPathUsesBundledExecutableRoot(t *testing.T) {
 	root := t.TempDir()
-	relative := "assets/synon-link/synon-link-extension-v0.6.10.zip"
+	relative := "assets/synon-link/x-science-browser-extension-v0.6.10.zip"
 	path := filepath.Join(root, filepath.FromSlash(relative))
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		t.Fatal(err)

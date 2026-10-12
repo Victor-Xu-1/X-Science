@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from '@/common/config/productIdentity';
 import type { TConversationRuntimeSummary } from '@/common/config/storage';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import {
@@ -194,7 +195,7 @@ const SynonBiomedRuntimeOperationsController: React.FC<SynonBiomedRuntimeOperati
         runtime = toSynonAIRuntimeSummary(nextSnapshot);
       } catch (reason) {
         console.error(
-          '[SynonBiomedRuntimeOperations] Failed to derive runtime summary',
+          `[${PRODUCT_NAME} RuntimeOperations] Failed to derive runtime summary`,
           redactErrorText(reason instanceof Error ? reason.message : String(reason))
         );
         return;
@@ -283,7 +284,7 @@ const SynonBiomedRuntimeOperationsController: React.FC<SynonBiomedRuntimeOperati
       .catch((reason: unknown) => {
         if (active) {
           console.error(
-            '[SynonBiomedRuntimeOperations] Failed to load runtime snapshot',
+            `[${PRODUCT_NAME} RuntimeOperations] Failed to load runtime snapshot`,
             redactErrorText(reason instanceof Error ? reason.message : String(reason))
           );
           setSnapshotError(snapshotRef.current ? 'refresh' : 'load');
@@ -349,7 +350,7 @@ const SynonBiomedRuntimeOperationsController: React.FC<SynonBiomedRuntimeOperati
           if (!active) return;
           consecutiveFailures = Math.min(consecutiveFailures + 1, 8);
           console.error(
-            '[SynonBiomedRuntimeOperations] Failed to refresh runtime snapshot',
+            `[${PRODUCT_NAME} RuntimeOperations] Failed to refresh runtime snapshot`,
             redactErrorText(reason instanceof Error ? reason.message : String(reason))
           );
           setSnapshotError('refresh');
@@ -393,7 +394,7 @@ const SynonBiomedRuntimeOperationsController: React.FC<SynonBiomedRuntimeOperati
         .catch((reason: unknown) => {
           if (!active) return;
           console.error(
-            '[SynonBiomedRuntimeOperations] Active runtime heartbeat failed',
+            `[${PRODUCT_NAME} RuntimeOperations] Active runtime heartbeat failed`,
             redactErrorText(reason instanceof Error ? reason.message : String(reason))
           );
           setSnapshotError('refresh');
@@ -467,7 +468,7 @@ const SynonBiomedRuntimeOperationsController: React.FC<SynonBiomedRuntimeOperati
       .catch((reason: unknown) => {
         if (conversationAuthorityRef.current !== owner || reviewRequestRef.current !== request) return;
         console.error(
-          '[SynonBiomedRuntimeOperations] Failed to load review findings',
+          `[${PRODUCT_NAME} RuntimeOperations] Failed to load review findings`,
           redactErrorText(reason instanceof Error ? reason.message : String(reason))
         );
         setReviewError(t('conversation.synonRuntime.runtimeOperations.reviewResultLoadFailed'));
@@ -501,7 +502,7 @@ const SynonBiomedRuntimeOperationsController: React.FC<SynonBiomedRuntimeOperati
       closeReviewFindings();
     } catch (reason) {
       console.error(
-        '[SynonBiomedRuntimeOperations] Failed to repair and regenerate from review findings',
+        `[${PRODUCT_NAME} RuntimeOperations] Failed to repair and regenerate from review findings`,
         redactErrorText(reason instanceof Error ? reason.message : String(reason))
       );
       messageApi.error(t('conversation.synonRuntime.runtimeOperations.repairAndRegenerateFailed'));
@@ -561,7 +562,7 @@ const SynonBiomedRuntimeOperationsController: React.FC<SynonBiomedRuntimeOperati
     } catch (reason) {
       if (conversationAuthorityRef.current !== owner || resumeRequestRef.current !== operation) return;
       console.error(
-        '[SynonBiomedRuntimeOperations] Failed to resume task',
+        `[${PRODUCT_NAME} RuntimeOperations] Failed to resume task`,
         redactErrorText(reason instanceof Error ? reason.message : String(reason))
       );
       onResumeFailed?.(reason instanceof Error ? reason.message : String(reason));
@@ -631,7 +632,7 @@ const SynonBiomedRuntimeOperationsController: React.FC<SynonBiomedRuntimeOperati
       }
       if (conversationAuthorityRef.current !== owner || inputRequestRef.current !== operation) return;
       console.error(
-        '[SynonBiomedRuntimeOperations] Failed to resolve approval request',
+        `[${PRODUCT_NAME} RuntimeOperations] Failed to resolve approval request`,
         redactErrorText(reportedReason instanceof Error ? reportedReason.message : String(reportedReason))
       );
       onResumeFailed?.(reportedReason instanceof Error ? reportedReason.message : String(reportedReason));
@@ -680,7 +681,7 @@ const SynonBiomedRuntimeOperationsController: React.FC<SynonBiomedRuntimeOperati
       }
       if (conversationAuthorityRef.current !== owner || inputRequestRef.current !== operation) return;
       console.error(
-        '[SynonBiomedRuntimeOperations] Failed to resolve user question',
+        `[${PRODUCT_NAME} RuntimeOperations] Failed to resolve user question`,
         redactErrorText(reportedReason instanceof Error ? reportedReason.message : String(reportedReason))
       );
       onResumeFailed?.(reportedReason instanceof Error ? reportedReason.message : String(reportedReason));
@@ -724,7 +725,7 @@ const SynonBiomedRuntimeOperationsController: React.FC<SynonBiomedRuntimeOperati
       .catch((reason: unknown) => {
         if (conversationAuthorityRef.current !== owner || planRequestRef.current !== request) return;
         console.error(
-          '[SynonBiomedRuntimeOperations] Failed to load plan document',
+          `[${PRODUCT_NAME} RuntimeOperations] Failed to load plan document`,
           redactErrorText(reason instanceof Error ? reason.message : String(reason))
         );
         setPlanError(t('conversation.synonRuntime.runtimeOperations.planLoadFailed'));
@@ -797,7 +798,7 @@ const SynonBiomedRuntimeOperationsController: React.FC<SynonBiomedRuntimeOperati
     } catch (reason) {
       if (conversationAuthorityRef.current !== owner || planActionRequestRef.current !== request) return;
       console.error(
-        '[SynonBiomedRuntimeOperations] Failed to complete plan review',
+        `[${PRODUCT_NAME} RuntimeOperations] Failed to complete plan review`,
         redactErrorText(reason instanceof Error ? reason.message : String(reason))
       );
       onResumeFailed?.(reason instanceof Error ? reason.message : String(reason));

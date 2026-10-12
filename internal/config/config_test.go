@@ -1,6 +1,7 @@
 package config
 
 import (
+	"archive/zip"
 	"encoding/base64"
 	"encoding/json"
 	"os"
@@ -49,6 +50,54 @@ func TestDefaultHomeIgnoresForeignHOMEOnWindows(t *testing.T) {
 	}
 	if got, want := defaultHome(), filepath.Join(home, ".synon-go"); got != want {
 		t.Fatalf("defaultHome=%q, want platform user home %q", got, want)
+	}
+}
+
+func TestLoadBrowserConnectorPackageKeepsExactLegacyAliasOnly(t *testing.T) {
+	for _, fixture := range []struct{ name, configured, want string }{
+		{"default", "", "assets/synon-link/x-science-browser-extension-v0.6.10.zip"},
+		{"legacy_relative", "assets/synon-link/synon-link-extension-v0.6.10.zip", "assets/synon-link/x-science-browser-extension-v0.6.10.zip"},
+		{"custom_relative", "custom/synon-link-extension-v0.6.10.zip", "custom/synon-link-extension-v0.6.10.zip"},
+		{"custom_absolute", filepath.Join(t.TempDir(), "synon-link-extension-v0.6.10.zip"), ""},
+	} {
+		t.Run(fixture.name, func(t *testing.T) {
+			want := fixture.want
+			if want == "" {
+				want = fixture.configured
+			}
+			root := t.TempDir()
+			configPath := filepath.Join(root, "browser.json")
+			raw, err := json.Marshal(map[string]string{"synon_link_package": fixture.configured})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(configPath, raw, 0o600); err != nil {
+				t.Fatal(err)
+			}
+			t.Setenv("SYNON_CONFIG", configPath)
+			t.Setenv("SYNON_HOME", filepath.Join(root, "state"))
+			t.Setenv("SYNON_DATA_DIR_CONTROL", filepath.Join(root, "no-control.json"))
+			cfg, err := Load()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if cfg.SynonLinkPackage != want {
+				t.Fatalf("package=%q want=%q", cfg.SynonLinkPackage, want)
+			}
+			if cfg.HomeDir != filepath.Join(root, "state") {
+				t.Fatal("package alias changed runtime state")
+			}
+			if fixture.name == "default" || fixture.name == "legacy_relative" {
+				archive, err := zip.OpenReader(filepath.Join("..", "..", cfg.SynonLinkPackage))
+				if err != nil {
+					t.Fatalf("mapped bundled package cannot be read: %v", err)
+				}
+				defer archive.Close()
+				if len(archive.File) == 0 {
+					t.Fatal("mapped bundled package is empty")
+				}
+			}
+		})
 	}
 }
 
@@ -212,7 +261,7 @@ func TestLoadReadsRealJSONConfigAndEnvironment(t *testing.T) {
 	if cfg.Address() != "127.0.0.1:18080" {
 		t.Fatalf("Address() = %q", cfg.Address())
 	}
-	if cfg.SynonLinkPackage != "assets/synon-link/synon-link-extension-v0.6.10.zip" {
+	if cfg.SynonLinkPackage != "assets/synon-link/x-science-browser-extension-v0.6.10.zip" {
 		t.Fatalf("SynonLinkPackage = %q", cfg.SynonLinkPackage)
 	}
 	if cfg.SynonLinkAuth.Username != "env-link-user" || cfg.SynonLinkAuth.Password != "env-link-password" || cfg.SynonLinkAuth.SessionTTLMinutes != 240 {

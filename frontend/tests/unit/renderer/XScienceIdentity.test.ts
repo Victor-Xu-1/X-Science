@@ -1,9 +1,22 @@
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const read = (path: string) => readFileSync(resolve(process.cwd(), path));
+
+const filesUnder = (directory: string): string[] =>
+  readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const path = resolve(directory, entry.name);
+    return entry.isDirectory() ? filesUnder(path) : [path];
+  });
+
+const displayValues = (value: unknown): string[] => {
+  if (typeof value === 'string') return [value];
+  if (Array.isArray(value)) return value.flatMap(displayValues);
+  if (value && typeof value === 'object') return Object.values(value).flatMap(displayValues);
+  return [];
+};
 
 describe('X-Science current product identity', () => {
   it('keeps the product authority and public repository policy aligned', () => {
@@ -43,5 +56,32 @@ describe('X-Science current product identity', () => {
       })
     );
     expect(html).not.toMatch(/Synon[- ]Biomed|SYNON-Biomed/);
+  });
+
+  it('keeps every shipped translation value on the current brand without changing technical keys', () => {
+    const locales = resolve(process.cwd(), 'packages/desktop/src/renderer/services/i18n/locales');
+    expect(readdirSync(locales)).toEqual(expect.arrayContaining(['en-US', 'zh-CN']));
+    for (const file of filesUnder(locales).filter((path) => path.endsWith('.json'))) {
+      const document = JSON.parse(readFileSync(file, 'utf8'));
+      for (const value of displayValues(document))
+        expect(value, file).not.toMatch(/\bsynon(?:[-_ ]?(?:biomed|ai))?\b/i);
+    }
+    for (const locale of ['en-US', 'zh-CN']) {
+      const conversation = JSON.parse(readFileSync(resolve(locales, locale, 'conversation.json'), 'utf8'));
+      expect(conversation.mcp.descriptions['synon-research']).toContain('X-Science');
+      expect(conversation.synonRuntime).toBeDefined();
+    }
+  });
+
+  it('keeps diagnostic display strings on the shared product identity', () => {
+    const source = resolve(process.cwd(), 'packages/desktop/src');
+    for (const file of filesUnder(source).filter((path) => /\.tsx?$/.test(path))) {
+      const text = readFileSync(file, 'utf8');
+      expect(text, file).not.toMatch(/['"`]\[Synon[^\r\n]*['"`]/);
+      expect(text, file).not.toContain('Synon LLM Core');
+    }
+    const service = read('packages/desktop/src/renderer/services/synonBiomedLlm.ts').toString();
+    expect(service).toContain("import { PRODUCT_NAME } from '@/common/config/productIdentity'");
+    expect(service).toContain('${PRODUCT_NAME} LLM Core');
   });
 });

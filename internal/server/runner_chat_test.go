@@ -598,7 +598,7 @@ func TestSessionRunnerChatUsesCompactSummaryForResumeContext(t *testing.T) {
 		nonSystemRoles := []string{}
 		for _, message := range request.Messages {
 			if message.Role == "system" {
-				if strings.Contains(message.Content, "Synon compact handoff context:") {
+				if strings.Contains(message.Content, "X-Science compact handoff context:") {
 					compactSystem = message.Content
 				}
 				continue
@@ -719,7 +719,7 @@ func TestSessionRunnerChatInjectsProviderResumeCacheMarkers(t *testing.T) {
 		for _, message := range request.Messages {
 			joined += "\n" + message.Content
 		}
-		if !strings.Contains(joined, "Synon provider resume cache context:") ||
+		if !strings.Contains(joined, "X-Science provider resume cache context:") ||
 			!strings.Contains(joined, "compactedThroughEventId=2") ||
 			!strings.Contains(joined, "resumeCacheKeys=tool:Read:call-1") {
 			t.Fatalf("provider resume cache context missing: %#v", request.Messages)
@@ -769,7 +769,7 @@ func TestSessionRunnerChatAutoCompactsWhenContextPressureExceedsThreshold(t *tes
 		var compactSystem string
 		var latestUser string
 		for _, message := range request.Messages {
-			if message.Role == "system" && strings.Contains(message.Content, "Synon compact handoff context:") {
+			if message.Role == "system" && strings.Contains(message.Content, "X-Science compact handoff context:") {
 				compactSystem = message.Content
 			}
 			if message.Role == "user" {
@@ -1030,7 +1030,7 @@ func TestSessionRunnerTrustedRuntimeContextUsesServerTimeAndDurableTaskStart(t *
 		}
 	}
 	combined := appendSessionRunnerTrustedRuntimeContext("Custom agent profile.", context)
-	if !strings.HasPrefix(combined, "Custom agent profile.\n\nTrusted Synon runtime context") ||
+	if !strings.HasPrefix(combined, "Custom agent profile.\n\nTrusted X-Science runtime context") ||
 		!strings.HasSuffix(combined, "the latest check explicitly failed or omitted a required assertion.") {
 		t.Fatalf("combined system prompt ordering = %q", combined)
 	}
@@ -1121,7 +1121,7 @@ func TestSessionRunnerChatDoesNotAutoCompactWhenDisabled(t *testing.T) {
 			t.Fatalf("decode model request: %v", err)
 		}
 		for _, message := range request.Messages {
-			if strings.Contains(message.Content, "Synon compact handoff context:") {
+			if strings.Contains(message.Content, "X-Science compact handoff context:") {
 				sawCompactContext.Store(true)
 			}
 		}
@@ -1202,7 +1202,7 @@ func TestSessionRunnerChatInjectsAllowedDynamicMCPContext(t *testing.T) {
 		for _, message := range request.Messages {
 			joined += "\n" + message.Content
 		}
-		if !strings.Contains(joined, "Synon MCP tool context:") ||
+		if !strings.Contains(joined, "X-Science MCP tool context:") ||
 			!strings.Contains(joined, "Invocation contract:") ||
 			!strings.Contains(joined, "mcp__remote__echo") ||
 			!strings.Contains(joined, "Preserve JSON Schema types exactly") {
@@ -1276,7 +1276,7 @@ func TestSessionRunnerChatRanksMCPContextFromSelectedSkillTools(t *testing.T) {
 			!strings.Contains(joined, "remote-browser") {
 			t.Fatalf("model request missing selected skill context: %#v", request.Messages)
 		}
-		if !strings.Contains(joined, "Synon MCP tool context:") ||
+		if !strings.Contains(joined, "X-Science MCP tool context:") ||
 			!strings.Contains(joined, "mcp__remote__echo") ||
 			!strings.Contains(joined, "selectedBySkill=remote-browser") {
 			t.Fatalf("model request missing skill-ranked MCP context: %#v", request.Messages)

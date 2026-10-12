@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from '@/common/config/productIdentity';
 import { Spin } from '@arco-design/web-react';
 import React, { Suspense, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -47,7 +48,7 @@ const SynonBiomedSequenceViewer: React.FC<SynonBiomedSequenceViewerProps> = ({ f
       })
       .catch((reason: unknown) => {
         if (!active || controller.signal.aborted) return;
-        logScientificPreviewError('[SynonBiomedSequenceViewer] Failed to load sequence', reason, 'parse-failed');
+        logScientificPreviewError(`[${PRODUCT_NAME} SequenceViewer] Failed to load sequence`, reason, 'parse-failed');
         setError(resolveScientificPreviewError(reason, 'parse-failed'));
       })
       .finally(() => {

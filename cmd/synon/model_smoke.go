@@ -17,7 +17,7 @@ import (
 	"synon-go/internal/server"
 )
 
-const modelSmokePrompt = "Reply with a short confirmation that the Synon model protocol smoke request was processed."
+const modelSmokePrompt = "Reply with a short confirmation that the X-Science model protocol smoke request was processed."
 
 type modelSmokeTarget struct {
 	Name                 string `json:"name"`
@@ -44,7 +44,7 @@ type modelSmokeReport struct {
 func runModelSmokeCLI(ctx context.Context, args []string, output io.Writer) error {
 	flags := flag.NewFlagSet("model-smoke", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
-	configPath := flags.String("config", "", "Synon JSON config path")
+	configPath := flags.String("config", "", "X-Science JSON config path")
 	target := flags.String("target", "all", "runner, compact, or all")
 	planOnly := flags.Bool("plan", false, "report readiness without model requests")
 	runLive := flags.Bool("run", false, "perform configured model requests")

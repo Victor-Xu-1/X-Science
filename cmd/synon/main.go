@@ -113,7 +113,7 @@ type serveCommandFlags struct {
 }
 
 func parseServeCommandFlags(args []string, output io.Writer) (serveCommandFlags, bool, error) {
-	flags := flag.NewFlagSet("synon-go serve", flag.ContinueOnError)
+	flags := flag.NewFlagSet(buildinfo.Release().Name+" serve", flag.ContinueOnError)
 	flags.SetOutput(output)
 	version := flags.Bool("version", false, "print version")
 	health := flags.Bool("health-json", false, "print health JSON and exit")

@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { PRODUCT_NAME } from '@/common/config/productIdentity';
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   createSynonBiomedNote,
@@ -53,7 +54,7 @@ export function useSynonBiomedNotesEditor(visible: boolean, target: SynonBiomedN
       if (isCurrent()) setNotes(next);
     } catch (reason) {
       if (!isCurrent()) return;
-      console.warn('[SynonBiomedNotesModal] Failed to load notes:', diagnostic(reason));
+      console.warn(`[${PRODUCT_NAME} NotesModal] Failed to load notes:`, diagnostic(reason));
       setNotes([]);
       setLoadFailed(true);
     } finally {
@@ -99,7 +100,7 @@ export function useSynonBiomedNotesEditor(visible: boolean, target: SynonBiomedN
       setEditingId(null);
     } catch (reason) {
       if (!active.current || lifecycle.current !== scope) return;
-      console.warn('[SynonBiomedNotesModal] Failed to save note:', diagnostic(reason));
+      console.warn(`[${PRODUCT_NAME} NotesModal] Failed to save note:`, diagnostic(reason));
       setMutationFailed('save');
     } finally {
       if (active.current && lifecycle.current === scope) {
@@ -125,7 +126,7 @@ export function useSynonBiomedNotesEditor(visible: boolean, target: SynonBiomedN
       }
     } catch (reason) {
       if (!active.current || lifecycle.current !== scope) return;
-      console.warn('[SynonBiomedNotesModal] Failed to delete note:', diagnostic(reason));
+      console.warn(`[${PRODUCT_NAME} NotesModal] Failed to delete note:`, diagnostic(reason));
       setMutationFailed('delete');
     } finally {
       if (active.current && lifecycle.current === scope) {

@@ -372,7 +372,7 @@ func (s *Server) permissionsDoctorArea() (string, string, map[string]any, []stri
 	next := []string{}
 	if ready {
 		status = "pass"
-		message = "Agent runtime and direct HTTP callers gate mutating and external tools through approval defaults, pending approval queues, SendMessage resolution, exact-input remembered approval reuse, remembered approval inspection/revocation, Synon Link policy enforcement, and deterministic shell sandbox blocking."
+		message = "Agent runtime and direct HTTP callers gate mutating and external tools through approval defaults, pending approval queues, SendMessage resolution, exact-input remembered approval reuse, remembered approval inspection/revocation, X-Science Link policy enforcement, and deterministic shell sandbox blocking."
 	} else {
 		if !hasApprovalStore {
 			next = append(next, "Configure settings storage so approval defaults and remembered decisions are durable.")

@@ -2,8 +2,8 @@ import type { SettingsRouteId } from '../settingsRouteLoaders';
 
 /**
  * Shared presentation contracts for the responsive scientific workbench.
- * Historical reference assets retain their provenance; they do not dictate
- * fixed coordinates, page scaling or fictional content in the live product.
+ * Retired design sheets do not dictate fixed coordinates, page scaling or
+ * fictional content in the live product.
  *
  * Values describe presentation only.  They never imply that a design-sheet
  * label, sample value, or future control should be added to a live module.
@@ -13,25 +13,6 @@ export const SETTINGS_LAYOUT_REVISION = 'intrinsic-responsive-v1';
 
 export const SETTINGS_DESKTOP_VIEWPORT = { width: 1536, height: 1024 } as const;
 export const SETTINGS_MOBILE_VIEWPORT = { width: 390, height: 844 } as const;
-
-/**
- * Historical desktop sheets. Keep hashes/assets auditable, but the current
- * quality upgrade supersedes their screenshot-specific geometry. No active
- * route claims pixel equivalence to these images or an unreviewed mobile sheet.
- */
-export const SETTINGS_LOCKED_DESKTOP_REFERENCE_SRC = {
-  account: '/branding/settings-generated-v3/references/account.png',
-  tools: '/branding/settings-generated-v3/references/tools.png',
-  skills: '/branding/settings-generated-v3/references/skills.png',
-  'plans-usage': '/branding/settings-generated-v3/references/plans-usage.png',
-  experts: '/branding/settings-generated-v3/references/experts.png',
-  models: '/branding/settings-generated-v3/references/models.png',
-  governance: '/branding/settings-generated-v3/references/governance.png',
-  compute: '/branding/settings-generated-v3/references/compute.png',
-  network: '/branding/settings-generated-v3/references/network.png',
-  general: '/branding/settings-generated-v3/references/general.png',
-  storage: '/branding/settings-generated-v3/references/storage.png',
-} as const satisfies Partial<Record<SettingsRouteId, string>>;
 
 type GridContract = {
   desktopColumns?: number;
@@ -82,8 +63,7 @@ export const SETTINGS_VISUAL_CONTRACTS = {
     interactionSelectors: ['[role="progressbar"]'],
     dynamicStates: ['zero-usage', 'empty-bills', 'empty-history'],
   }),
-  // The former horizontal-row sheet is retained only as historical asset
-  // provenance; the active contract follows the shared catalog card system.
+  // The active contract follows the shared catalog card system.
   experts: contract({
     route: 'experts',
     reference: {

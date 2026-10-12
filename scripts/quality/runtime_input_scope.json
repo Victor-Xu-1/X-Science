@@ -2,6 +2,34 @@
   "schema": "synon.runtime-input-scope.v1",
   "groups": [
     {
+      "name": "browser-connector-assets",
+      "paths": [
+        "assets/synon-link/manifest.json",
+        "assets/synon-link/synon-link-extension-v0.6.10.zip",
+        "assets/synon-link/x-science-browser-extension-v0.6.10.zip"
+      ],
+      "packages": ["synon-go/internal/assets", "synon-go/internal/server", "synon-go/cmd/synon"]
+    },
+    {
+      "name": "kernel-host-and-provider-display",
+      "paths": [
+        "assets/optional/kernels/synon_host_bridge.py",
+        "assets/optional/compute/provider_kernel_bootstrap.py",
+        "assets/optional/compute/operon_compute_provider/__init__.py"
+      ],
+      "packages": ["synon-go/internal/assets", "synon-go/internal/kernel", "synon-go/internal/server", "synon-go/internal/compute"]
+    },
+    {
+      "name": "bundled-mcp-display",
+      "paths": [
+        "assets/optional/mcp-servers/bio-tools.manifest.json",
+        "assets/optional/mcp-servers/bio-tools/run_server.py",
+        "assets/optional/mcp-servers/bio-tools/lib/mcp_servers_common/tls_policy.py",
+        "assets/optional/mcp-servers/bio-tools/lib/mcp_servers_common/ua.py"
+      ],
+      "packages": ["synon-go/internal/assets", "synon-go/internal/mcpdirectory", "synon-go/internal/tools/mcpstdio", "synon-go/internal/server"]
+    },
+    {
       "name": "kernel-worker-assets",
       "paths": [
         "assets/optional/kernel-compute.manifest.json",

@@ -86,7 +86,7 @@ func (serverBuiltinModelClient) Complete(ctx context.Context, request agentrunti
 	if latestUser == "" {
 		latestUser = "No user message was available in the replay window."
 	}
-	content := "Synon built-in deterministic runner processed the latest session request.\n\nLatest user request:\n" + latestUser
+	content := "X-Science built-in deterministic runner processed the latest session request.\n\nLatest user request:\n" + latestUser
 	return agentruntime.ModelResponse{Message: agentruntime.Message{Role: "assistant", Content: content}}, nil
 }
 

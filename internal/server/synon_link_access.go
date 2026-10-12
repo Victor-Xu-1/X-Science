@@ -36,7 +36,7 @@ func (s *Server) handleSynonLinkAccessRequests(w http.ResponseWriter, r *http.Re
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"ok": true, "request": request})
 	default:
-		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Synon Link access requests support GET and POST")
+		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "X-Science Link access requests support GET and POST")
 	}
 }
 
@@ -44,7 +44,7 @@ func (s *Server) handleSynonLinkAccessRequest(w http.ResponseWriter, r *http.Req
 	parts := strings.Split(strings.Trim(tail, "/"), "/")
 	if len(parts) == 2 && parts[1] == "decision" {
 		if r.Method != http.MethodPost {
-			writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Synon Link access decision only supports POST")
+			writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "X-Science Link access decision only supports POST")
 			return
 		}
 		var body struct {
@@ -68,7 +68,7 @@ func (s *Server) handleSynonLinkAccessRequest(w http.ResponseWriter, r *http.Req
 
 	if len(parts) == 1 && parts[0] != "" {
 		if r.Method != http.MethodDelete {
-			writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Synon Link access revoke only supports DELETE")
+			writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "X-Science Link access revoke only supports DELETE")
 			return
 		}
 		userID := resolveUserID(r, nil)
@@ -81,5 +81,5 @@ func (s *Server) handleSynonLinkAccessRequest(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	writeError(w, http.StatusNotFound, "NOT_FOUND", "Unknown Synon Link access route")
+	writeError(w, http.StatusNotFound, "NOT_FOUND", "Unknown X-Science Link access route")
 }

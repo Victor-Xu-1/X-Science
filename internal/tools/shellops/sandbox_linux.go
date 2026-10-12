@@ -24,7 +24,7 @@ func init() {
 		return
 	}
 	if err := runLinuxSandboxHelper(); err != nil {
-		_, _ = fmt.Fprintln(os.Stderr, "synon sandbox helper:", err)
+		_, _ = fmt.Fprintln(os.Stderr, "X-Science sandbox helper:", err)
 		os.Exit(125)
 	}
 	os.Exit(126)

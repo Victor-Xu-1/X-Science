@@ -373,7 +373,7 @@ func localIdentityEmail(userID string) string {
 	if local == "" {
 		local = "local"
 	}
-	return local + "@local.synon"
+	return local + "@local.X-Science"
 }
 
 func hasConfiguredModelAPIKey() bool {

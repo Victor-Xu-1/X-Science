@@ -13,6 +13,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot 'release-identity-policy.ps1')
 $script:TrustedIdentityPath = Join-Path $PSScriptRoot '..\product-identity.json'
+$productName = (Read-SynonProductIdentity -Path $script:TrustedIdentityPath).display_name
 
 function Test-ArchiveEntry {
   param([Parameter(Mandatory = $true)][string]$Entry)
@@ -41,7 +42,7 @@ function Get-PackageBinary {
       return $candidate
     }
   }
-  throw "Package does not contain a runnable synon-go binary"
+  throw "Package does not contain a runnable $productName binary (synon-go.exe)"
 }
 
 function Assert-SafeReleasePath {
@@ -209,7 +210,7 @@ try {
     Remove-Item -LiteralPath $backup -Recurse -Force
     $backup = $null
   }
-  Write-Output "synon-go installed to $installPath"
+  Write-Output "$productName installed to $installPath"
 }
 catch {
   $originalError = $_

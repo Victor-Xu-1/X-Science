@@ -747,7 +747,7 @@ def analyze(args: argparse.Namespace) -> dict[str, Any]:
     return {
         "contract": True,
         "ok": True,
-        "engine": "Synon 2D Interaction Engine",
+        "engine": "X-Science 2D Interaction Engine",
         "engine_release": "1.3.0",
         "analysis_engine": {"name": "ProLIF", "version": plf.__version__},
         "depiction_engine": {"name": "RDKit", "version": Chem.rdBase.rdkitVersion},

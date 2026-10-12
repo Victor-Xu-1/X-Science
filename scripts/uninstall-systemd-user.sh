@@ -21,7 +21,7 @@ fi
 unit_path="$(realpath -m "$unit_dir/$unit_name")"
 systemctl_bin="${SYNON_SYSTEMCTL:-systemctl}"
 if [[ ! -f "$unit_path" ]]; then
-	echo "synon-go user service is not installed: $unit_path" >&2
+	echo "X-Science user service is not installed: $unit_path" >&2
 	exit 1
 fi
 if ! grep -Fqx '# Managed biomedical runtime. Use uninstall-systemd-user.sh to remove this unit.' "$unit_path"; then
@@ -42,4 +42,4 @@ if [[ "$stop_service" == true ]]; then
 	"$systemctl_bin" --user reset-failed "$unit_name" >/dev/null 2>&1 || true
 fi
 
-echo "synon-go user service removed; state and environment files were preserved"
+echo "X-Science user service removed; state and environment files were preserved"

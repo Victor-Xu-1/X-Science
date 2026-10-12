@@ -272,7 +272,7 @@ func (s *Server) runAgentRuntimePromptHook(ctx context.Context, eventName string
 	}
 	response, err := client.Complete(ctx, agentruntime.ModelRequest{
 		Messages: []agentruntime.Message{
-			{Role: "system", Content: "You are a Synon hook evaluator. Return one JSON object only. Do not include Markdown."},
+			{Role: "system", Content: "You are an X-Science hook evaluator. Return one JSON object only. Do not include Markdown."},
 			{Role: "user", Content: userPrompt},
 		},
 	})
@@ -357,7 +357,7 @@ func (s *Server) runAgentRuntimeAgentHook(ctx context.Context, eventName string,
 	}
 	result, err := engine.Run(ctx, agentruntime.RunRequest{
 		Messages: []agentruntime.Message{
-			{Role: "system", Content: "You are a Synon agent hook verifier. You may use read-only tools to inspect state. Return one JSON object only. Do not include Markdown."},
+			{Role: "system", Content: "You are an X-Science agent hook verifier. You may use read-only tools to inspect state. Return one JSON object only. Do not include Markdown."},
 			{Role: "user", Content: userPrompt},
 		},
 		Tools:                s.agentRuntimeToolSchemasWithContext(ctx, allowedTools),

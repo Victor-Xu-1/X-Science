@@ -2,6 +2,68 @@
   "schema": "synon.verification-scope.v1",
   "groups": [
     {
+      "name": "browser-connector-packaging",
+      "paths": [
+        "docs/non-web-asset-boundary.json",
+        "scripts/packaging/browser_extension_branding.py",
+        "scripts/packaging/build_browser_extension.py",
+        "scripts/packaging/test_browser_extension_branding.py",
+        "scripts/audit/audit-non-web-boundary.sh"
+      ],
+      "frontend": false,
+      "checks": [
+        ["python3", "-B", "-m", "scripts.packaging.build_browser_extension", "--repo", ".", "--check", "--fetch-source"],
+        ["python3", "-B", "-m", "unittest", "scripts.packaging.test_browser_extension_branding"],
+        ["bash", "scripts/audit/audit-non-web-boundary.sh"]
+      ]
+    },
+    {
+      "name": "example-config-display",
+      "paths": [".env.example"],
+      "packages": ["synon-go/internal/config"],
+      "frontend": false,
+      "checks": [["python3", "-B", "-m", "unittest", "scripts.quality.test_product_identity_gate"]]
+    },
+    {
+      "name": "http-smoke-contract",
+      "paths": ["scripts/smoke-http.sh"],
+      "packages": ["synon-go/cmd/synon", "synon-go/internal/server", "synon-go/internal/config"],
+      "frontend": false,
+      "checks": [["bash", "-n", "scripts/smoke-http.sh"]]
+    },
+    {
+      "name": "current-launcher-and-installer-display",
+      "paths": [
+        "scripts/dev/synon",
+        "scripts/dev/install-source-cli.sh",
+        "scripts/dev/source-cli-test.sh",
+        "scripts/backup-release.sh",
+        "scripts/rollback-release.sh",
+        "scripts/uninstall-release.sh",
+        "scripts/install-release.sh",
+        "scripts/install-systemd-user.sh",
+        "scripts/uninstall-systemd-user.sh",
+        "scripts/install-release.ps1",
+        "scripts/manage-release.ps1",
+        "scripts/release-path-policy.sh",
+        "scripts/release-identity-policy-test.sh",
+        "scripts/goal-run.sh"
+      ],
+      "frontend": false,
+      "checks": [
+        ["bash", "scripts/dev/source-cli-test.sh"],
+        ["bash", "scripts/release-identity-policy-test.sh"],
+        ["python3", "-B", "-m", "unittest", "scripts.quality.test_product_identity_gate"],
+        ["bash", "-n", "scripts/backup-release.sh"],
+        ["bash", "-n", "scripts/rollback-release.sh"],
+        ["bash", "-n", "scripts/uninstall-release.sh"],
+        ["bash", "-n", "scripts/install-release.sh"],
+        ["bash", "-n", "scripts/install-systemd-user.sh"],
+        ["bash", "-n", "scripts/uninstall-systemd-user.sh"],
+        ["bash", "-n", "scripts/goal-run.sh"]
+      ]
+    },
+    {
       "name": "source-backend-watcher",
       "paths": [
         "scripts/dev/source-backend-watch.sh",
@@ -134,6 +196,7 @@
       "paths": [
         "docs/governance/product-identity.json",
         "docs/governance/product-identity-consumer-matrix.json",
+        "docs/governance/product-rename-compatibility-map.json",
         "scripts/quality/test_product_identity_gate.py",
         "scripts/package-release-test.sh"
       ],

@@ -166,6 +166,44 @@ def seed(repo: pathlib.Path, version: str = "0.1.0", commit: bool = False) -> No
 
 
 class ProductIdentityGateTests(unittest.TestCase):
+    def test_current_launcher_and_release_messages_use_product_name(self):
+        name = gate._load(ROOT / "product-identity.json", "test")["display_name"]
+        display_messages = {
+            "scripts/dev/install-source-cli.sh": f"[{name} install] next command: x-science start",
+            "scripts/dev/synon": f"[{name}] source hosts stopped",
+            "scripts/backup-release.sh": '$(synon_release_product_name)',
+            "scripts/rollback-release.sh": '$(synon_release_product_name)',
+            "scripts/uninstall-release.sh": '$(synon_release_product_name)',
+            "scripts/install-release.sh": '$(synon_release_product_name)',
+            "scripts/install-systemd-user.sh": '$(synon_release_product_name)',
+            "scripts/uninstall-systemd-user.sh": f"{name} user service removed",
+            "scripts/install-release.ps1": '$productName installed to',
+            "scripts/manage-release.ps1": '$productName release backed up to',
+            "scripts/goal-run.sh": f"{name} goal runtime log",
+        }
+        for relative, message in display_messages.items():
+            with self.subTest(path=relative):
+                source = (ROOT / relative).read_text(encoding="utf-8")
+                self.assertIn(message, source)
+                self.assertNotIn("[synon]", source)
+                self.assertNotIn("[synon-install]", source)
+        # Native executable and existing launcher/state identifiers remain
+        # functional compatibility contracts, not user-visible product names.
+        launcher = (ROOT / "scripts/dev/synon").read_text(encoding="utf-8")
+        self.assertIn("SYNON_SOURCE_STATE_DIR", launcher)
+        self.assertIn("synon-biomed-source-quickstart", launcher)
+        self.assertIn("synon command remains a compatibility alias", launcher)
+        self.assertIn("synon-go", (ROOT / "scripts/install-release.sh").read_text(encoding="utf-8"))
+        displayed = subprocess.check_output(
+            ["bash", "-c", 'source scripts/release-path-policy.sh; synon_release_product_name'],
+            cwd=ROOT, text=True,
+        ).strip()
+        self.assertEqual(displayed, name)
+        self.assertEqual(
+            (ROOT / "docs/engineering/synon-harness-conformance.md").read_text(encoding="utf-8").splitlines()[0],
+            f"# {name} Harness conformance",
+        )
+
     def test_current_candidate_documents_and_projections_are_aligned(self):
         load = lambda path: gate._load(ROOT / path, "test")
         authority = load("product-identity.json")

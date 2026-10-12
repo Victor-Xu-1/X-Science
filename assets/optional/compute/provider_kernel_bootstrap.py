@@ -101,7 +101,7 @@ class ProxyRelay:
                     self._drop(stream_id)
         except BaseException:
             try:
-                os.write(2, b"synon-provider: proxy transport closed or returned an invalid frame\n")
+                os.write(2, b"X-Science provider: proxy transport closed or returned an invalid frame\n")
             except OSError:
                 pass
             os._exit(70)

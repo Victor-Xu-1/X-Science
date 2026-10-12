@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from '@/common/config/productIdentity';
 import { SYNON_BIOMED_TEXT_ACCEPT_HEADER } from '@/renderer/services/synonBiomedArtifactPreview';
 import type { SynonBiomedArtifactAnnotation } from '@/renderer/services/synonBiomedAnnotations';
 import {
@@ -138,7 +139,7 @@ const SynonBiomedTextArtifactViewer: React.FC<SynonBiomedTextArtifactViewerProps
         if (controller.signal.aborted) return;
         setContent('');
         logScientificPreviewError(
-          '[SynonBiomedTextArtifactViewer] Failed to load text artifact',
+          `[${PRODUCT_NAME} TextArtifactViewer] Failed to load text artifact`,
           requestError,
           'request-failed'
         );

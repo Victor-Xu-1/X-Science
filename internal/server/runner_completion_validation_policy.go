@@ -233,7 +233,7 @@ func sessionRunnerCorrectionOnlyHasAdvisoryEvidenceDepth(detail string) bool {
 func sessionRunnerRemoveRecoveredCorrectionContext(messages []chatCompletionMessage) []chatCompletionMessage {
 	filtered := make([]chatCompletionMessage, 0, len(messages))
 	for _, message := range messages {
-		if message.Role == "system" && strings.Contains(message.Content, sessionRunnerDurableCorrectionContextMarker) {
+		if message.Role == "system" && hasSessionRunnerDurableCorrectionContext(message.Content) {
 			continue
 		}
 		filtered = append(filtered, message)

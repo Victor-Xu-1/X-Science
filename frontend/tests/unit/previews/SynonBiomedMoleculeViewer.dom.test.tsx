@@ -59,7 +59,7 @@ describe('SynonBiomedMoleculeViewer', () => {
 
     expect(await screen.findByText('Failed to initialize the molecule file viewer.')).toBeInTheDocument();
     expect(screen.queryByText('No drawable SMILES')).not.toBeInTheDocument();
-    expect(warning).toHaveBeenCalledWith('[SynonBiomedMoleculeViewer] Failed to load molecules', {
+    expect(warning).toHaveBeenCalledWith('[X-Science MoleculeViewer] Failed to load molecules', {
       code: 'initialize-failed',
       errorName: 'ScientificPreviewError',
       status: undefined,

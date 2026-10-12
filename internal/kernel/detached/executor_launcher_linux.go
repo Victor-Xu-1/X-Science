@@ -146,7 +146,7 @@ func (launcher *SystemdUserExecutorLauncher) Launch(request ExecutorLaunchReques
 	arguments := []string{
 		"--user", "--quiet", "--collect", "--service-type=exec", "--unit=" + unit,
 		"--working-directory=" + request.WorkingDirectory,
-		"--description=Synon detached kernel " + request.BackendID,
+		"--description=X-Science detached kernel " + request.BackendID,
 		"--property=Restart=no",
 		"--property=KillMode=control-group",
 		"--property=TimeoutStopSec=25s",

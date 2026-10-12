@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from '@/common/config/productIdentity';
 import { MODEL_PLATFORMS } from '@/renderer/utils/model/modelPlatforms';
 
 export type SynonBiomedLlmProviderTemplate = {
@@ -138,7 +139,7 @@ async function requestJson<T>(path: string, init?: RequestInit, fetchImpl: Fetch
   });
   if (!response.ok) {
     const detail = await response.text().catch(() => '');
-    throw new Error(`Synon LLM Core request failed: ${response.status}${detail ? ` ${detail}` : ''}`);
+    throw new Error(`${PRODUCT_NAME} LLM Core request failed: ${response.status}${detail ? ` ${detail}` : ''}`);
   }
   return response.json() as Promise<T>;
 }
@@ -207,7 +208,7 @@ export async function saveSynonBiomedLlmProfile(
     fetchImpl
   );
   const profile = toProfile(payload.profile);
-  if (!profile) throw new Error('Synon LLM Core returned an invalid profile');
+  if (!profile) throw new Error(`${PRODUCT_NAME} LLM Core returned an invalid profile`);
   return profile;
 }
 

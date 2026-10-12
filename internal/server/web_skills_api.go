@@ -488,7 +488,7 @@ func webCommonSkillPaths() []webSkillExternalPath {
 	candidates := []webSkillExternalPath{
 		{Name: "Claude", Path: filepath.Join(home, ".claude", "skills")},
 		{Name: "Codex", Path: filepath.Join(home, ".codex", "skills")},
-		{Name: "Synon", Path: filepath.Join(home, ".synon", "skills")},
+		{Name: "X-Science", Path: filepath.Join(home, ".synon", "skills")},
 	}
 	result := make([]webSkillExternalPath, 0, len(candidates))
 	for _, candidate := range candidates {

@@ -56,12 +56,18 @@ class VerificationOwnershipTests(unittest.TestCase):
     def test_invalid_paths_cannot_claim_runtime_or_wildcard_ownership(self):
         for path in ["internal/runner.py", "../scripts/check.py", "scripts/../root.py",
                      "scripts/*.py", "scripts/check.go", "scripts/go.mod", "scripts//check.py",
-                     ".github/workflows/*.yml", "docs/governance/../runtime.json"]:
+                     ".github/workflows/*.yml", "docs/governance/../runtime.json", ".env", ".env.production"]:
             with self.subTest(path=path):
                 self.value["groups"][0]["paths"] = [path]
                 self.save()
                 with self.assertRaises(ValueError):
                     contract.load(self.repo)
+
+    def test_exact_public_templates_do_not_admit_private_environment_files(self):
+        self.value["groups"][0]["paths"] += [".env.example", "docs/non-web-asset-boundary.json"]
+        self.save()
+        self.assertEqual(len(contract.matched(self.repo, [".env.example"])), 1)
+        self.assertEqual(contract.matched(self.repo, [".env"]), [])
 
     def test_workflow_ownership_runs_mandatory_checks_without_runtime_exemptions(self):
         group = self.value["groups"][0]
@@ -150,7 +156,9 @@ class VerificationOwnershipTests(unittest.TestCase):
                 self.assertTrue((repo / path).is_file(), path)
             for command in group["checks"]:
                 if "-m" in command:
-                    for module in command[command.index("unittest") + 1:]:
+                    module = command[command.index("-m") + 1]
+                    modules = command[command.index("unittest") + 1:] if module == "unittest" else [module]
+                    for module in modules:
                         self.assertTrue((repo / (module.replace(".", "/") + ".py")).is_file())
                 else:
                     self.assertTrue((repo / command[-1]).is_file())

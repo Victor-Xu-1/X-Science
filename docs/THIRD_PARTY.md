@@ -1,6 +1,6 @@
 # Third-Party And Reused Runtime Inventory
 
-Synon Go keeps reused and third-party runtime components visible and auditable.
+X-Science keeps reused and third-party runtime components visible and auditable.
 The component inventory below records retained integration and notice surfaces.
 Component-level Skill notices
 are retained in `skills/synonbiomed/THIRD_PARTY_LICENSES.md`.

@@ -213,14 +213,14 @@ func defaultHostDirectoryPicker(ctx context.Context) (string, error) {
 	case "windows":
 		candidates = append(candidates, hostPickerCommand{name: "powershell.exe", args: windowsFolderPickerArguments()})
 	case "darwin":
-		candidates = append(candidates, hostPickerCommand{name: "osascript", args: []string{"-e", `POSIX path of (choose folder with prompt "Select a directory for Synon access")`}})
+		candidates = append(candidates, hostPickerCommand{name: "osascript", args: []string{"-e", `POSIX path of (choose folder with prompt "Select a directory for X-Science access")`}})
 	default:
 		if isWSLRuntime() {
 			candidates = append(candidates, hostPickerCommand{name: "powershell.exe", args: windowsFolderPickerArguments(), wsl: true})
 		}
 		candidates = append(candidates,
-			hostPickerCommand{name: "zenity", args: []string{"--file-selection", "--directory", "--title=Select a directory for Synon access"}},
-			hostPickerCommand{name: "kdialog", args: []string{"--getexistingdirectory", ".", "--title", "Select a directory for Synon access"}},
+			hostPickerCommand{name: "zenity", args: []string{"--file-selection", "--directory", "--title=Select a directory for X-Science access"}},
+			hostPickerCommand{name: "kdialog", args: []string{"--getexistingdirectory", ".", "--title", "Select a directory for X-Science access"}},
 		)
 	}
 	return runHostDirectoryPickerCandidates(ctx, candidates)
@@ -273,7 +273,7 @@ func runHostDirectoryPickerCandidates(ctx context.Context, candidates []hostPick
 }
 
 func windowsFolderPickerArguments() []string {
-	script := `Add-Type -AssemblyName System.Windows.Forms; $dialog = New-Object System.Windows.Forms.FolderBrowserDialog; $dialog.Description = 'Select a directory for Synon access'; if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Write-Output $dialog.SelectedPath } else { exit 2 }`
+	script := `Add-Type -AssemblyName System.Windows.Forms; $dialog = New-Object System.Windows.Forms.FolderBrowserDialog; $dialog.Description = 'Select a directory for X-Science access'; if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Write-Output $dialog.SelectedPath } else { exit 2 }`
 	return []string{"-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script}
 }
 

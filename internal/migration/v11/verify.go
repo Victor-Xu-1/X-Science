@@ -35,7 +35,7 @@ func LoadReport(targetHome string) (Report, error) {
 		return Report{}, fmt.Errorf("decode migration manifest: %w", err)
 	}
 	if report.Schema != SchemaName || report.Status != StatusCompleted || strings.TrimSpace(report.MigrationID) == "" {
-		return Report{}, errors.New("migration manifest is not a completed SynonBiomed v1.1 migration")
+		return Report{}, errors.New("migration manifest is not a completed legacy v1.1 migration")
 	}
 	if filepath.Clean(report.TargetHome) != target {
 		return Report{}, errors.New("migration manifest target does not match its directory")

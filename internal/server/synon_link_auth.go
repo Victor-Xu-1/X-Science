@@ -27,9 +27,9 @@ const (
 )
 
 var (
-	errSynonLinkAuthDisabled   = errors.New("Synon Link login is not configured")
+	errSynonLinkAuthDisabled   = errors.New("X-Science Link login is not configured")
 	errSynonLinkInvalidLogin   = errors.New("invalid username or password")
-	errSynonLinkInvalidSession = errors.New("invalid or expired Synon Link session")
+	errSynonLinkInvalidSession = errors.New("invalid or expired X-Science Link session")
 )
 
 type SynonLinkAuthOptions struct {
@@ -151,7 +151,7 @@ func (a *synonLinkAuthenticator) createSessionForUser(user synonLinkAuthUser, sc
 	}
 	nonceBytes := make([]byte, 18)
 	if _, err := io.ReadFull(a.random, nonceBytes); err != nil {
-		return "", synonLinkAuthUser{}, fmt.Errorf("generate Synon Link session nonce: %w", err)
+		return "", synonLinkAuthUser{}, fmt.Errorf("generate X-Science Link session nonce: %w", err)
 	}
 	payload := synonLinkSessionPayload{
 		Version: synonSessionVersion, UserID: user.UserID, Username: user.Username,
@@ -257,7 +257,7 @@ func (s *Server) handleSynonLinkLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !isLoopbackRequest(r) {
-		writeError(w, http.StatusForbidden, "LOCAL_ONLY", "Synon Link login is available only from the local host")
+		writeError(w, http.StatusForbidden, "LOCAL_ONLY", "X-Science Link login is available only from the local host")
 		return
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, maxSynonLinkLoginBytes)
@@ -293,7 +293,7 @@ func (s *Server) handleSynonLinkLogin(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusUnauthorized, "INVALID_CREDENTIALS", err.Error())
 			return
 		}
-		writeError(w, http.StatusInternalServerError, "AUTH_ERROR", "unable to create Synon Link session")
+		writeError(w, http.StatusInternalServerError, "AUTH_ERROR", "unable to create X-Science Link session")
 		return
 	}
 	s.loginLimiter.RecordSuccess(r, input.Username)

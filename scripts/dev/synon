@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 SCRIPT_PATH=$(realpath -e "${BASH_SOURCE[0]}") || {
-  echo "[synon] unable to resolve the installed launcher path" >&2
+  echo "[X-Science] unable to resolve the installed launcher path" >&2
   exit 1
 }
 SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
@@ -10,7 +10,7 @@ ROOT_DIR=$(cd "$SCRIPT_DIR/../.." && pwd -P)
 QUICKSTART="$ROOT_DIR/scripts/dev/source-quickstart.sh"
 STATE_DIR=${SYNON_SOURCE_STATE_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/synon-biomed-source-quickstart}
 STATE_DIR=$(realpath -m "$STATE_DIR") || {
-  echo "[synon] unable to resolve the source state directory" >&2
+  echo "[X-Science] unable to resolve the source state directory" >&2
   exit 1
 }
 PID_FILE="$STATE_DIR/quickstart.pid"
@@ -33,7 +33,7 @@ EOF
 }
 
 fail() {
-  echo "[synon] $*" >&2
+  echo "[X-Science] $*" >&2
   exit 1
 }
 
@@ -123,13 +123,13 @@ print_status() {
 
 stop_hosts() {
   local pid
-  [[ -f "$LOCK_FILE" ]] || { echo "[synon] source hosts are not running"; return 0; }
+  [[ -f "$LOCK_FILE" ]] || { echo "[X-Science] source hosts are not running"; return 0; }
   pid=$(read_pid) || fail "state has no valid quickstart PID: $PID_FILE"
   owned_pid "$pid" || fail "refusing to signal unverified quickstart PID $pid"
   kill -TERM "$pid" || fail "unable to stop verified quickstart PID $pid"
   for _ in $(seq 1 200); do
     if ! kill -0 "$pid" 2>/dev/null; then
-      echo "[synon] source hosts stopped"
+      echo "[X-Science] source hosts stopped"
       return 0
     fi
     sleep .05
@@ -156,6 +156,6 @@ case "$command_name" in
     usage
     ;;
   *)
-    fail "unknown command: $command_name (try: synon help)"
+    fail "unknown command: $command_name (try: x-science help)"
     ;;
 esac

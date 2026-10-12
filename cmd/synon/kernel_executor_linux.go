@@ -15,13 +15,14 @@ import (
 	"syscall"
 	"time"
 
+	"synon-go/internal/buildinfo"
 	kernelruntime "synon-go/internal/kernel"
 	"synon-go/internal/kernel/detached"
 	workspace "synon-go/internal/persistence/workspace"
 )
 
 func runKernelExecutorCLI(args []string) error {
-	flags := flag.NewFlagSet("synon-biomed kernel-executor", flag.ContinueOnError)
+	flags := flag.NewFlagSet(buildinfo.Release().Name+" kernel-executor", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	home := flags.String("home", "", "X-Science data directory")
 	backendID := flags.String("backend-id", "", "durable backend identity")

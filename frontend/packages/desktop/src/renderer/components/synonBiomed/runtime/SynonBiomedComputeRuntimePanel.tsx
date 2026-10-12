@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from '@/common/config/productIdentity';
 import { ipcBridge } from '@/common';
 import { Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -129,7 +130,7 @@ const SynonBiomedComputeRuntimePanel: React.FC<SynonBiomedComputeRuntimePanelPro
           error: null,
         }));
       } catch (reason) {
-        console.warn('[SynonBiomedComputeRuntimePanel] Failed to refresh kernel inventory', {
+        console.warn(`[${PRODUCT_NAME} ComputeRuntimePanel] Failed to refresh kernel inventory`, {
           errorName: reason instanceof Error ? reason.name : typeof reason,
         });
         setState((current) => ({

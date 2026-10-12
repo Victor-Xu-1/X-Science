@@ -192,7 +192,7 @@ func (s *Service) Register(client Client) error {
 		client.Kind = "browser"
 	}
 	if client.Kind != "browser" {
-		return fmt.Errorf("unsupported Synon Link client kind %s; only browser clients are accepted", client.Kind)
+		return fmt.Errorf("unsupported X-Science Link client kind %s; only browser clients are accepted", client.Kind)
 	}
 	if client.Status == "" {
 		client.Status = "online"

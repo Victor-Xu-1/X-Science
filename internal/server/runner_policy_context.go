@@ -39,12 +39,12 @@ func (s *Server) applySessionRunnerAgentToolPolicy(session sessionstore.Session,
 	switch toolPolicy {
 	case "read_only":
 		options.AllowedTools = readOnlyAgentAllowedTools(options.AllowedTools)
-		return options, "Agent tool policy: read_only. The delegated agent may inspect files, search code, query read-only runtime state, and fetch/read external information, but it must not edit files, run shell commands, launch nested agents, mutate tasks/settings/runtime/session state, call Synon Link actions, or execute MCP tools."
+		return options, "Agent tool policy: read_only. The delegated agent may inspect files, search code, query read-only runtime state, and fetch/read external information, but it must not edit files, run shell commands, launch nested agents, mutate tasks/settings/runtime/session state, call X-Science Link actions, or execute MCP tools."
 	case "restricted":
 		options.AllowedTools = restrictedAgentAllowedTools(options.AllowedTools, s.registeredToolNames())
-		return options, "Agent tool policy: restricted. The delegated agent inherits the parent runner tool boundary and is further limited to low-risk inspection, search, user-question, sleep, and read-only runtime operations. It must not edit files, run shell commands, launch nested agents, mutate settings/runtime/tasks/sessions, call Synon Link actions, or execute MCP tools."
+		return options, "Agent tool policy: restricted. The delegated agent inherits the parent runner tool boundary and is further limited to low-risk inspection, search, user-question, sleep, and read-only runtime operations. It must not edit files, run shell commands, launch nested agents, mutate settings/runtime/tasks/sessions, call X-Science Link actions, or execute MCP tools."
 	case "full_access":
-		return options, "Agent tool policy: full_access. The delegated agent inherits the parent runner tool boundary without an additional Agent policy reduction; mutating, external, MCP, Synon Link, and shell tools still pass through the Go agent runtime approval, hook, and sandbox gates."
+		return options, "Agent tool policy: full_access. The delegated agent inherits the parent runner tool boundary without an additional Agent policy reduction; mutating, external, MCP, X-Science Link, and shell tools still pass through the Go agent runtime approval, hook, and sandbox gates."
 	case "inherit":
 		return options, ""
 	default:
@@ -748,7 +748,7 @@ func appendRuntimeMCPContextMessage(messages []chatCompletionMessage, context st
 	out := append([]chatCompletionMessage(nil), messages...)
 	insert := chatCompletionMessage{
 		Role:               "system",
-		Content:            "Synon MCP tool context:\n" + strings.TrimSpace(context),
+		Content:            "X-Science MCP tool context:\n" + strings.TrimSpace(context),
 		ContextUsageSource: agentruntime.ContextUsageMCP,
 	}
 	if len(out) == 0 {
@@ -840,7 +840,7 @@ func appendRuntimeProviderCacheContextMessage(messages []chatCompletionMessage, 
 	out := append([]chatCompletionMessage(nil), messages...)
 	insert := chatCompletionMessage{
 		Role:    "system",
-		Content: "Synon provider resume cache context:\n" + strings.TrimSpace(context),
+		Content: "X-Science provider resume cache context:\n" + strings.TrimSpace(context),
 	}
 	if len(out) == 0 {
 		return []chatCompletionMessage{insert}
