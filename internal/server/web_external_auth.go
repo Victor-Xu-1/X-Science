@@ -155,7 +155,7 @@ func (s *Server) handleWebAuthProviders(w http.ResponseWriter, r *http.Request) 
 	}
 	writeWorkspaceJSON(w, http.StatusOK, map[string]any{
 		"success":       true,
-		"localPassword": s.synonLinkAuth != nil && s.synonLinkAuth.enabled,
+		"localPassword": s.xscienceLinkAuth != nil && s.xscienceLinkAuth.enabled,
 		"providers":     s.webExternalAuth.statuses(),
 	})
 }

@@ -1,0 +1,120 @@
+.x-science-latex-paper {
+  color: var(--color-text-1);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: var(--ui-font-title);
+  line-height: 1.72;
+}
+
+.x-science-latex-paper h1,
+.x-science-latex-paper h2,
+.x-science-latex-paper h3,
+.x-science-latex-paper h4,
+.x-science-latex-paper h5,
+.x-science-latex-paper h6 {
+  color: var(--color-text-1);
+  font-family: Inter, system-ui, sans-serif;
+  letter-spacing: 0;
+  margin: 1.6em 0 0.65em;
+}
+
+.x-science-latex-paper h1:first-child,
+.x-science-latex-paper h2:first-child,
+.x-science-latex-paper h3:first-child {
+  margin-top: 0;
+}
+
+.x-science-latex-paper h3 {
+  font-size: var(--ui-font-hero);
+}
+
+.x-science-latex-paper h4 {
+  font-size: var(--ui-font-lead);
+}
+
+.x-science-latex-paper h5,
+.x-science-latex-paper h6 {
+  font-size: var(--ui-font-title);
+}
+
+.x-science-latex-paper p {
+  margin: 0.8em 0;
+}
+
+.x-science-latex-paper ul,
+.x-science-latex-paper ol {
+  margin: 0.8em 0;
+  padding-left: 28px;
+}
+
+.x-science-latex-paper blockquote {
+  border-left: 3px solid rgb(var(--primary-5));
+  color: var(--color-text-2);
+  margin: 1em 0;
+  padding: 2px 0 2px 14px;
+}
+
+.x-science-latex-paper pre,
+.x-science-latex-paper code {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+.x-science-latex-paper pre {
+  background: var(--color-fill-2);
+  overflow: auto;
+  padding: var(--ui-space-5);
+}
+
+.x-science-latex-paper table {
+  border-collapse: collapse;
+  display: block;
+  margin: 1em 0;
+  max-width: 100%;
+  overflow-x: auto;
+  width: max-content;
+}
+
+.x-science-latex-paper th,
+.x-science-latex-paper td {
+  border: 1px solid var(--color-border-2);
+  padding: 6px 10px;
+}
+
+.x-science-latex-paper .display-math {
+  margin: 1.25em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 6px 0;
+  text-align: center;
+}
+
+.x-science-latex-paper .inline-math {
+  white-space: nowrap;
+}
+
+.x-science-latex-paper .latex-render-error {
+  background: rgb(var(--danger-1));
+  color: var(--workspace-text, var(--color-text-1));
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  padding: 2px 4px;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 640px) {
+  .x-science-latex-paper {
+    font-size: var(--ui-font-subtitle);
+    line-height: 1.65;
+  }
+
+  .x-science-latex-paper h3 {
+    font-size: var(--ui-font-lead);
+  }
+}
+
+.x-science-latex-paper img.latex-unresolved-resource {
+  display: block;
+  min-height: 72px;
+  border: 1px dashed var(--color-border-3);
+  background: var(--color-fill-1);
+  color: var(--color-text-3);
+  object-fit: contain;
+}

@@ -5,7 +5,7 @@ import {
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 
 const DRAFT_VERSION = 1;
-const DRAFT_STORAGE_PREFIX = 'synonbiomed.composer.draft.v1';
+const DRAFT_STORAGE_PREFIX = 'xscience.composer.draft.v1';
 const MAX_DRAFT_BYTES = 1 << 20;
 const MAX_DRAFT_CONTENT_LENGTH = 1_000_000;
 const MAX_DRAFT_FILE_ITEMS = 100;

@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	secretstore "synon-go/internal/persistence/secrets"
+	secretstore "x-science/internal/persistence/secrets"
 )
 
 const maxBundledMCPAPIKeyBytes = 16 * 1024

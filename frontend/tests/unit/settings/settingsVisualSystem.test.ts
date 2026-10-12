@@ -99,10 +99,10 @@ describe('settings visual system', () => {
 
   it('keeps the merged catalog in one scrolling, content-width-responsive wall', () => {
     for (const relative of [
-      'SynonBiomedSkillsSettings.tsx',
-      'SynonBiomedExpertsSettings/ExpertWorkbench.tsx',
+      'XScienceSkillsSettings.tsx',
+      'XScienceExpertsSettings/ExpertWorkbench.tsx',
       'ScientificEnvironmentSettings.tsx',
-      'ToolsSettings/SynonBiomedMcpSettings.tsx',
+      'ToolsSettings/XScienceMcpSettings.tsx',
     ]) {
       const source = readFileSync(path.join(settingsDir, relative), 'utf8');
       expect(source, relative).not.toMatch(/PAGE_SIZE = 12;/);

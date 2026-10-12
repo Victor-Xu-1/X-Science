@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"math"
 
-	"synon-go/internal/memorypolicy"
+	"x-science/internal/memorypolicy"
 )
 
 type Config struct {

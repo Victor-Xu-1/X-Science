@@ -129,7 +129,7 @@ Manual API verification after starting the helper:
 
 ```bash
 curl -fsS \
-  -H 'X-Synon-User-Id: local' \
+  -H 'X-Science-User-Id: local' \
   'http://127.0.0.1:39010/api/frames/delegate-fixture-parent/trace-shallow?include_messages=true' \
   | jq '{id,status,message_count,children}'
 ```

@@ -107,12 +107,12 @@ The source workflow uses **Ubuntu or WSL**, Git, Go **>=1.26**,
 Node.js **>=22.22 <25**, npm and the Unix utilities checked by the launcher.
 
 The commands below are for a **new installation with free ports 8765/8766**.
-If you already have an instance or a `synon` command, inspect it first; the
+If you already have an instance or an `x-science` command, inspect it first; the
 installer refuses to replace a command owned by another checkout.
 
-The current command is `x-science`; the installer also retains `synon` as a
-compatibility alias to the same launcher and existing state. Renaming the
-product does not move existing databases, project files or running services.
+The sole current command is `x-science`. Existing installations must migrate
+their configuration and state through the reviewed upgrade path, not by moving
+live databases, project files or scientific environment prefixes.
 
 ```bash
 git clone https://github.com/Victor-Xu-1/X-Science.git

@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestPrepareAgentKernelExecutionDoesNotTurnKernelReuseIntoToolReuse(t *testing.T) {
@@ -40,10 +40,10 @@ func TestPrepareAgentKernelExecutionDoesNotTurnKernelReuseIntoToolReuse(t *testi
 
 func TestPrepareAgentKernelExecutionSurfacesWorkspaceJSONAsRecoverableFailure(t *testing.T) {
 	now := time.Now().UTC()
-	spec := kernelruntime.SessionSpec{KernelKind: "analysis", Language: "python", Environment: "synon-biomed-python"}
+	spec := kernelruntime.SessionSpec{KernelKind: "analysis", Language: "python", Environment: "x-science-python"}
 	started := kernelruntime.ExecutionStarted{
 		ExecID: "exec-json-policy", ToolUseID: "tool-json-policy", KernelID: "kernel-json-policy",
-		FrameID: "frame-json-policy", Language: "python", Environment: "synon-biomed-python",
+		FrameID: "frame-json-policy", Language: "python", Environment: "x-science-python",
 		KernelKind: "analysis", Code: "open('results.json', 'w').write('{}')", StartedAt: now,
 	}
 	outcome := kernelruntime.ExecutionOutcome{
@@ -334,10 +334,10 @@ func TestPrepareAgentKernelExecutionPreservesLegacyExecutorJSONWrites(t *testing
 	if err := os.WriteFile(path, []byte(`{"legacy":true}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	spec := kernelruntime.SessionSpec{KernelKind: "analysis", Language: "python", Environment: "synon-biomed-python", WorkspaceDir: workspaceDir}
+	spec := kernelruntime.SessionSpec{KernelKind: "analysis", Language: "python", Environment: "x-science-python", WorkspaceDir: workspaceDir}
 	started := kernelruntime.ExecutionStarted{
 		ExecID: "exec-legacy-json-policy", ToolUseID: "tool-legacy-json-policy", KernelID: "kernel-legacy-json-policy",
-		FrameID: "frame-legacy-json-policy", Language: "python", Environment: "synon-biomed-python",
+		FrameID: "frame-legacy-json-policy", Language: "python", Environment: "x-science-python",
 		KernelKind: "analysis", Code: "open('legacy_executor_output.json', 'w').write('{}')", StartedAt: now,
 	}
 	outcome := kernelruntime.ExecutionOutcome{

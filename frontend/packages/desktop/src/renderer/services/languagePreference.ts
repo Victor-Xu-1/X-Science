@@ -2,7 +2,7 @@ import { configService } from '@/common/config/configService';
 import { normalizeLanguageCode, type SupportedLanguage } from '@/common/config/i18n';
 
 export const LANGUAGE_STORAGE_KEY = 'i18nextLng';
-export const LANGUAGE_PREAUTH_OVERRIDE_KEY = 'synon.language.preAuthOverride';
+export const LANGUAGE_PREAUTH_OVERRIDE_KEY = 'x-science.language.preAuthOverride';
 
 type LanguagePreferenceListener = (language: SupportedLanguage) => void;
 

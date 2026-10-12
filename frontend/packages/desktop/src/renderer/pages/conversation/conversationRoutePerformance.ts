@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const CONVERSATION_ROUTE_PERFORMANCE_STORAGE_KEY = 'synon.performance.conversation-route';
-const PERFORMANCE_PREFIX = 'synon:conversation-route';
+export const CONVERSATION_ROUTE_PERFORMANCE_STORAGE_KEY = 'x-science.performance.conversation-route';
+const PERFORMANCE_PREFIX = 'xscience:conversation-route';
 const MAX_PERFORMANCE_SAMPLES = 32;
 
 export type ConversationRoutePerformanceStage = 'shell' | 'message-first-paint' | 'settled';
@@ -39,7 +39,7 @@ const measurementEnabled = (): boolean => {
 };
 
 const parseMeasure = (entry: PerformanceEntry): ConversationRoutePerformanceSample | null => {
-  const match = /^synon:conversation-route:(shell|message-first-paint|settled):(\d+)$/.exec(entry.name);
+  const match = /^xscience:conversation-route:(shell|message-first-paint|settled):(\d+)$/.exec(entry.name);
   if (!match) return null;
   const navigation = Number(match[2]);
   if (!Number.isSafeInteger(navigation) || navigation <= 0 || !Number.isFinite(entry.duration)) return null;

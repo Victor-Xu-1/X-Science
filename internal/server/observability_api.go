@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	"synon-go/internal/buildinfo"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/tools/shellops"
+	"x-science/internal/buildinfo"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/tools/shellops"
 )
 
 const maxOutboxDiagnosticErrorRunes = 1024

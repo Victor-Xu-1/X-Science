@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const (
@@ -20,10 +20,10 @@ var removedWorkspaceFrameControls = map[string]struct {
 	replacement string
 }{
 	"approve-plan": {
-		code: "synon.frame_control.approve_plan_removed.v1", replacement: "/api/frames/{id}/approve-plan",
+		code: "x-science.frame_control.approve_plan_removed.v1", replacement: "/api/frames/{id}/approve-plan",
 	},
 	"resolve-input": {
-		code: "synon.frame_control.resolve_input_removed.v1", replacement: "/api/frames/{id}/resolve-input",
+		code: "x-science.frame_control.resolve_input_removed.v1", replacement: "/api/frames/{id}/resolve-input",
 	},
 }
 

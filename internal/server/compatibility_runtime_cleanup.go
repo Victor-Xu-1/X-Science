@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	runtimekv "synon-go/internal/persistence/runtimekv"
+	runtimekv "x-science/internal/persistence/runtimekv"
 )
 
 const compatibilityRuntimeCleanupTimeout = 10 * time.Second

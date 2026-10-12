@@ -11,7 +11,7 @@ import (
 )
 
 func TestWorkerProcessContextCancellationDuringWindowsLaunch(t *testing.T) {
-	if os.Getenv("SYNON_KERNEL_CANCEL_LAUNCH_HELPER") == "1" {
+	if os.Getenv("X_SCIENCE_KERNEL_CANCEL_LAUNCH_HELPER") == "1" {
 		time.Sleep(30 * time.Second)
 		return
 	}
@@ -19,7 +19,7 @@ func TestWorkerProcessContextCancellationDuringWindowsLaunch(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		command := newWorkerProcessCommand(ctx, os.Args[0], "-test.run=^TestWorkerProcessContextCancellationDuringWindowsLaunch$")
-		command.Env = append(os.Environ(), "SYNON_KERNEL_CANCEL_LAUNCH_HELPER=1")
+		command.Env = append(os.Environ(), "X_SCIENCE_KERNEL_CANCEL_LAUNCH_HELPER=1")
 		cancelled := make(chan struct{})
 		if attempt%2 == 0 {
 			go func() { runtime.Gosched(); cancel(); close(cancelled) }()

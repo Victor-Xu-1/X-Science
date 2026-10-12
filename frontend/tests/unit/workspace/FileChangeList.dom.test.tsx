@@ -124,7 +124,7 @@ describe('FileChangeList', () => {
       <FileChangeList
         {...baseProps}
         workspace={baseProps.workspace}
-        unstaged={[change({ file_path: 'C:\\Temp\\synon-ai\\src\\app.ts' })]}
+        unstaged={[change({ file_path: 'C:\\Temp\\x-science\\src\\app.ts' })]}
       />
     );
 
@@ -138,7 +138,7 @@ describe('FileChangeList', () => {
       workspace: 'C:\\Users\\demo\\repo',
     });
     expect(ipcBridge.fs.readFile.invoke).toHaveBeenNthCalledWith(2, {
-      path: 'C:\\Temp\\synon-ai\\src\\app.ts',
+      path: 'C:\\Temp\\x-science\\src\\app.ts',
       workspace: 'C:\\Users\\demo\\repo',
     });
   });

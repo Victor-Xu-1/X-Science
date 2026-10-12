@@ -5,7 +5,7 @@ import { join, resolve } from 'node:path';
 import { createServer } from 'vite';
 import { chromium, expect } from '@playwright/test';
 
-const artifacts = await mkdtemp(join(process.env.CONTEXT_USAGE_ARTIFACT_ROOT || tmpdir(), 'synon-context-usage-'));
+const artifacts = await mkdtemp(join(process.env.CONTEXT_USAGE_ARTIFACT_ROOT || tmpdir(), 'x-science-context-usage-'));
 const snapshot = {
   sessionId: 'browser-context-usage',
   requestId: 'browser-request',
@@ -170,7 +170,7 @@ try {
     if (request.url().includes('/api/')) apiPaths.push(new URL(request.url()).pathname);
   });
   const origin = `http://127.0.0.1:${address.port}`;
-  const trigger = page.getByTestId('synon-biomed-context-usage-trigger');
+  const trigger = page.getByTestId('x-science-context-usage-trigger');
   const panel = page.getByTestId('context-usage-panel');
   // Readiness is the rendered control, not unrelated asset load completion.
   // This also bounds cold Vite dependency initialization explicitly.

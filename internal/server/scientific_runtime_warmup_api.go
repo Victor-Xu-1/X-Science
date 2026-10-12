@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
-	kernelruntime "synon-go/internal/kernel"
+	kernelruntime "x-science/internal/kernel"
 )
 
 func (s *Server) handleScientificRuntimeWarmups(w http.ResponseWriter, r *http.Request) {

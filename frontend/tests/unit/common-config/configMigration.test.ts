@@ -17,15 +17,43 @@ vi.mock('@/common/adapter/httpBridge', () => ({
   httpRequest: vi.fn(),
 }));
 
-vi.mock('@/common', () => ({ ipcBridge: {} }));
+vi.mock('@/common', () => ({
+  ipcBridge: {
+    mcpService: {
+      listServers: { invoke: vi.fn() },
+      batchImportServers: { invoke: vi.fn() },
+    },
+  },
+}));
 
 // Import after mocks are registered.
-import { migrateConfigStorage, type ConfigFile } from '@/common/config/configMigration';
+import { migrateConfigStorage, migrateLegacyMcpConfigToDb, type ConfigFile } from '@/common/config/configMigration';
 import { httpRequest } from '@/common/adapter/httpBridge';
+import { ipcBridge } from '@/common';
 
 describe('configMigration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('reads the actual historical builtin name and emits only the current owned name', async () => {
+    const transport = { type: 'stdio', command: 'fixture-not-executed' };
+    const original = [
+      { name: 'SynonAI Image Generation', builtin: true, transport },
+      { name: 'SynonAI Image Generation', builtin: false, transport },
+      { name: 'User configured generation', builtin: true, transport },
+    ];
+    const configFile: ConfigFile = { get: vi.fn().mockResolvedValue(original), set: vi.fn() };
+    vi.mocked(ipcBridge.mcpService.listServers.invoke).mockResolvedValue([]);
+    vi.mocked(ipcBridge.mcpService.batchImportServers.invoke).mockResolvedValue(undefined);
+    vi.mocked(httpRequest).mockImplementation(async (method: string) => (method === 'GET' ? {} : undefined));
+
+    await migrateLegacyMcpConfigToDb(configFile);
+
+    expect(ipcBridge.mcpService.batchImportServers.invoke).toHaveBeenCalledWith({
+      servers: [{ ...original[0], name: 'x-science-image-generation' }, original[1], original[2]],
+    });
+    expect(original[0].name).toBe('SynonAI Image Generation');
   });
 
   describe('migrateConfigStorage', () => {

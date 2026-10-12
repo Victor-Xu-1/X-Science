@@ -7,7 +7,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { SynonBiomedWorkspaceOption } from '@/renderer/services/synonBiomedCatalog';
+import type { XScienceWorkspaceOption } from '@/renderer/services/xScienceCatalog';
 
 const addRecentWorkspaceMock = vi.fn();
 
@@ -47,11 +47,11 @@ vi.mock('react-i18next', () => ({
 
 import GuidWorkspaceFootnote from '@/renderer/pages/guid/components/GuidWorkspaceFootnote';
 
-const stat6WorkspaceUri = 'synonbiomed://project/proj_stat6?name=STAT6&artifacts=23&conversations=2';
+const stat6WorkspaceUri = 'x-science://project/proj_stat6?name=STAT6&artifacts=23&conversations=2';
 
-const workspaceOptions: SynonBiomedWorkspaceOption[] = [
+const workspaceOptions: XScienceWorkspaceOption[] = [
   {
-    id: 'synonbiomed-project:proj_stat6',
+    id: 'xscience-project:proj_stat6',
     name: 'STAT6',
     source: 'backend-project',
     description: 'STAT6 SBDD PPI workflow',
@@ -75,7 +75,7 @@ describe('GuidWorkspaceFootnote', () => {
         workspaceDir=''
         onSelectWorkspace={onSelectWorkspace}
         onClearWorkspace={vi.fn()}
-        synonBiomedWorkspaceOptions={workspaceOptions}
+        xScienceWorkspaceOptions={workspaceOptions}
       />
     );
 
@@ -92,7 +92,7 @@ describe('GuidWorkspaceFootnote', () => {
         workspaceDir={stat6WorkspaceUri}
         onSelectWorkspace={vi.fn()}
         onClearWorkspace={vi.fn()}
-        synonBiomedWorkspaceOptions={workspaceOptions}
+        xScienceWorkspaceOptions={workspaceOptions}
       />
     );
 
@@ -102,10 +102,10 @@ describe('GuidWorkspaceFootnote', () => {
   it('resolves a project navigation URI without catalog query metadata to the project name', () => {
     render(
       <GuidWorkspaceFootnote
-        workspaceDir='synonbiomed://project/proj_stat6'
+        workspaceDir='x-science://project/proj_stat6'
         onSelectWorkspace={vi.fn()}
         onClearWorkspace={vi.fn()}
-        synonBiomedWorkspaceOptions={workspaceOptions}
+        xScienceWorkspaceOptions={workspaceOptions}
       />
     );
 

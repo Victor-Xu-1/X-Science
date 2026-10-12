@@ -9,7 +9,7 @@ import (
 
 	"strings"
 
-	"synon-go/internal/toolcontract"
+	"x-science/internal/toolcontract"
 )
 
 func runtimeToolSchemaKey(name string) string {
@@ -180,12 +180,12 @@ func namespaceReusedToolCallIDs(messages []Message, calls []ToolCall, round int)
 			used[id] = struct{}{}
 			continue
 		}
-		candidate := fmt.Sprintf("%s-synon-%d", id, round)
+		candidate := fmt.Sprintf("%s-x-science-%d", id, round)
 		for suffix := 2; ; suffix++ {
 			if _, exists := used[candidate]; !exists {
 				break
 			}
-			candidate = fmt.Sprintf("%s-synon-%d-%d", id, round, suffix)
+			candidate = fmt.Sprintf("%s-x-science-%d-%d", id, round, suffix)
 		}
 		normalized[index].ID = candidate
 		used[candidate] = struct{}{}

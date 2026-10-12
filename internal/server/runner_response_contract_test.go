@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 func TestResponseContractProjectsProgressWithoutChangingToolAuthority(t *testing.T) {

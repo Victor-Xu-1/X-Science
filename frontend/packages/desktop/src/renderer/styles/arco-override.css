@@ -9,18 +9,18 @@
     ui-monospace, 'SF Mono', SFMono-Regular, Menlo, 'Cascadia Code', 'Roboto Mono', Consolas, 'Liberation Mono',
     monospace;
   --code-font-size: var(--ui-font-body);
-  --synon-ai-overlay-bg: var(--synon-overlay-surface, #ffffff);
-  --synon-ai-overlay-text: var(--workspace-text, #1d2129);
-  --synon-ai-overlay-border: transparent;
-  --synon-ai-overlay-shadow: var(--synon-shadow-soft, 0 8px 24px rgba(15, 23, 42, 0.1));
+  --x-science-overlay-bg: var(--x-science-overlay-surface, #ffffff);
+  --x-science-overlay-text: var(--workspace-text, #1d2129);
+  --x-science-overlay-border: transparent;
+  --x-science-overlay-shadow: var(--x-science-shadow-soft, 0 8px 24px rgba(15, 23, 42, 0.1));
 }
 
 html[data-theme='dark'],
 body[arco-theme='dark'] {
-  --synon-ai-overlay-bg: var(--synon-overlay-surface, #1b252c);
-  --synon-ai-overlay-text: var(--workspace-text, #f2f3f5);
-  --synon-ai-overlay-border: transparent;
-  --synon-ai-overlay-shadow: var(--synon-shadow-soft, 0 12px 32px rgba(0, 0, 0, 0.35));
+  --x-science-overlay-bg: var(--x-science-overlay-surface, #1b252c);
+  --x-science-overlay-text: var(--workspace-text, #f2f3f5);
+  --x-science-overlay-border: transparent;
+  --x-science-overlay-shadow: var(--x-science-shadow-soft, 0 12px 32px rgba(0, 0, 0, 0.35));
 }
 
 /* Arco's arco.css puts 'Inter' first in font-family, which causes very thin
@@ -35,10 +35,10 @@ body {
 html body .arco-tooltip-content,
 html body .arco-popover-content,
 html body .arco-popconfirm-content {
-  background: var(--synon-ai-overlay-bg) !important;
-  color: var(--synon-ai-overlay-text) !important;
-  border: 1px solid var(--synon-ai-overlay-border) !important;
-  box-shadow: var(--synon-ai-overlay-shadow) !important;
+  background: var(--x-science-overlay-bg) !important;
+  color: var(--x-science-overlay-text) !important;
+  border: 1px solid var(--x-science-overlay-border) !important;
+  box-shadow: var(--x-science-overlay-shadow) !important;
 }
 
 html[data-theme='dark'] body .arco-tooltip-content,
@@ -47,10 +47,10 @@ html[data-theme='dark'] body .arco-popconfirm-content,
 body[arco-theme='dark'] .arco-tooltip-content,
 body[arco-theme='dark'] .arco-popover-content,
 body[arco-theme='dark'] .arco-popconfirm-content {
-  background: var(--synon-ai-overlay-bg) !important;
-  color: var(--synon-ai-overlay-text) !important;
-  border: 1px solid var(--synon-ai-overlay-border) !important;
-  box-shadow: var(--synon-ai-overlay-shadow) !important;
+  background: var(--x-science-overlay-bg) !important;
+  color: var(--x-science-overlay-text) !important;
+  border: 1px solid var(--x-science-overlay-border) !important;
+  box-shadow: var(--x-science-overlay-shadow) !important;
 }
 
 html body .arco-tooltip-content-inner,
@@ -58,14 +58,14 @@ html body .arco-popover-title,
 html body .arco-popover-inner-content,
 html body .arco-popconfirm-title,
 html body .arco-popconfirm-inner-content {
-  color: var(--synon-ai-overlay-text) !important;
+  color: var(--x-science-overlay-text) !important;
 }
 
 html body .arco-trigger-arrow.arco-tooltip-arrow,
 html body .arco-popover-arrow.arco-trigger-arrow,
 html body .arco-popconfirm-arrow.arco-trigger-arrow {
-  background: var(--synon-ai-overlay-bg) !important;
-  border: 1px solid var(--synon-ai-overlay-border) !important;
+  background: var(--x-science-overlay-bg) !important;
+  border: 1px solid var(--x-science-overlay-border) !important;
 }
 
 /* Override Arco Design component backgrounds to white in light mode */
@@ -139,24 +139,24 @@ body[arco-theme='dark'] .arco-tag-checked.arco-tag-gray {
   color: rgb(209, 213, 219) !important;
 }
 
-/* SynonAI Steps wrapper styles */
-.synon-ai-steps .arco-steps-item-process .arco-steps-item-icon {
+/* XScience Steps wrapper styles */
+.x-science-steps .arco-steps-item-process .arco-steps-item-icon {
   background-color: var(--aou-6-brand) !important;
   border-color: var(--aou-6-brand) !important;
 }
 
-.synon-ai-steps .arco-steps-item-finish .arco-steps-item-icon {
+.x-science-steps .arco-steps-item-finish .arco-steps-item-icon {
   background-color: #e8f3ff !important;
   border-color: #e8f3ff !important;
   border-radius: var(--ui-radius-circle) !important;
 }
 
-.synon-ai-steps .arco-steps-item-finish .arco-steps-item-icon .arco-steps-icon {
+.x-science-steps .arco-steps-item-finish .arco-steps-item-icon .arco-steps-icon {
   line-height: 28px !important;
 }
 
-/* SynonAI Modal wrapper styles */
-.synon-ai-modal .arco-modal-content {
+/* XScience Modal wrapper styles */
+.x-science-modal .arco-modal-content {
   background: var(--dialog-fill-0) !important;
   border: 1px solid var(--border-base) !important;
   border-radius: var(--ui-radius-2xl) !important;
@@ -271,21 +271,21 @@ body[arco-theme='dark'] .arco-modal-confirm-icon {
   border-color: var(--bg-4) !important;
 }
 
-.synon-ai-modal-header {
+.x-science-modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px 16px;
 }
 
-.synon-ai-modal-title {
+.x-science-modal-title {
   font-size: var(--ui-font-lead);
   font-weight: var(--ui-weight-medium);
   color: var(--text-primary);
   margin: 0;
 }
 
-.synon-ai-modal-close-btn {
+.x-science-modal-close-btn {
   width: 32px;
   height: 32px;
   display: flex;
@@ -299,7 +299,7 @@ body[arco-theme='dark'] .arco-modal-confirm-icon {
   padding: 0;
 }
 
-.synon-ai-modal-close-btn:hover {
+.x-science-modal-close-btn:hover {
   background: var(--color-fill-1);
 }
 
@@ -446,9 +446,9 @@ body[arco-theme='dark'] .arco-modal-confirm-icon {
  * `.arco-dropdown-menu` root, which is also the `overflow:auto` scroll box),
  * not the `.arco-menu-*` one — so we target the dropdown variant here.
  *
- * Scoped to `.synon-ai-model-menu--sticky-group` so it never affects other menus
+ * Scoped to `.x-science-model-menu--sticky-group` so it never affects other menus
  * that group items (e.g. the agent mode switcher). */
-.synon-ai-model-menu--sticky-group .arco-dropdown-menu-group-title {
+.x-science-model-menu--sticky-group .arco-dropdown-menu-group-title {
   position: sticky;
   /* `.arco-dropdown-menu` has `padding: 4px 0`, so `top: 0` pins the title 4px
    * below the scroll-box edge, leaving a strip where the previous item shows
@@ -473,7 +473,7 @@ body[arco-theme='dark'] .arco-modal-confirm-icon {
  * rule (3 classes) out-specifies the 2-class reset above, so the first group's
  * 4px margin-top survives and leaves a transparent strip at the very top. Match
  * its specificity to override it; shift the separation into padding instead. */
-.synon-ai-model-menu--sticky-group .arco-dropdown-menu-group:first-child .arco-dropdown-menu-group-title {
+.x-science-model-menu--sticky-group .arco-dropdown-menu-group:first-child .arco-dropdown-menu-group-title {
   margin-top: 0;
   padding-top: var(--ui-space-2);
 }

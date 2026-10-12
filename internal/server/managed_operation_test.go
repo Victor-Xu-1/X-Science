@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	kernelruntime "synon-go/internal/kernel"
-	"synon-go/internal/outbox"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	kernelruntime "x-science/internal/kernel"
+	"x-science/internal/outbox"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func enqueueManagedOperationTest(t *testing.T, s *Server, identity *agentKernelContext) workspace.OutboxEvent {

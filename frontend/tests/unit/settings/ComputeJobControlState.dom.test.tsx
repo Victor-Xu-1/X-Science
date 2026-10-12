@@ -2,11 +2,11 @@ import { cleanup, screen } from '@testing-library/react';
 import React from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { ComputeJobRow } from '@/renderer/pages/settings/components/compute/ComputeJobs';
-import type { SynonBiomedComputeJob } from '@/renderer/services/synonBiomedCompute';
+import type { XScienceComputeJob } from '@/renderer/services/xScienceCompute';
 import { renderWithSettingsI18n } from './settingsI18nTestUtils';
 
 afterEach(cleanup);
-const job: SynonBiomedComputeJob = {
+const job: XScienceComputeJob = {
   jobId: 'job-control',
   provider: 'ssh:fixture',
   providerLabel: 'Fixture',

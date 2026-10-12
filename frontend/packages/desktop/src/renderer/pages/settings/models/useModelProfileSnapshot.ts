@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { loadSynonBiomedLlmProviders, type SynonBiomedLlmProvidersSnapshot } from '@/renderer/services/synonBiomedLlm';
+import { loadXScienceLlmProviders, type XScienceLlmProvidersSnapshot } from '@/renderer/services/xScienceLlm';
 
 type ReadState = {
-  snapshot: SynonBiomedLlmProvidersSnapshot | null;
+  snapshot: XScienceLlmProvidersSnapshot | null;
   loading: boolean;
   failed: boolean;
 };
@@ -23,7 +23,7 @@ export function useModelProfileSnapshot() {
     const ownsRead = () => activeView.current && epoch.current === owner && !controller.signal.aborted;
     setState((current) => ({ ...current, loading: true, failed: false }));
     try {
-      const snapshot = await loadSynonBiomedLlmProviders((input, init) =>
+      const snapshot = await loadXScienceLlmProviders((input, init) =>
         fetch(input, { ...init, signal: controller.signal })
       );
       if (!ownsRead()) return false;

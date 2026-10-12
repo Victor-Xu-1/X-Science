@@ -7,10 +7,10 @@
 import { requestConversationMessages, type MessageCursorPage } from '@/common/adapter/ipcBridge';
 import type { TMessage } from '@/common/chat/chatLib';
 import {
-  getSelectedSynonBiomedBranch,
-  getSynonBiomedBranchSelectionRevision,
-} from '@/renderer/services/synonBiomedConversationBranches';
-import { withTransientHistoryRetry } from '@/renderer/services/synonBiomedHistoryRetry';
+  getSelectedXScienceBranch,
+  getXScienceBranchSelectionRevision,
+} from '@/renderer/services/xScienceConversationBranches';
+import { withTransientHistoryRetry } from '@/renderer/services/xScienceHistoryRetry';
 
 export type MessageContentMode = 'compact' | 'full';
 
@@ -48,7 +48,7 @@ async function loadConversationMessagePageOnce(
   conversationId: string,
   options: LoadConversationMessagePageOptions = {}
 ): Promise<MessageCursorPage<TMessage>> {
-  const branchId = options.branchId ?? getSelectedSynonBiomedBranch(conversationId);
+  const branchId = options.branchId ?? getSelectedXScienceBranch(conversationId);
   const page = await requestConversationMessages(
     {
       conversation_id: conversationId,
@@ -103,14 +103,14 @@ export async function loadAllConversationMessagesPaged(
 ): Promise<TMessage[]> {
   const limit = options.limit ?? MAX_MESSAGE_PAGE_LIMIT;
   const contentMode = options.contentMode ?? 'full';
-  const selectionRevision = getSynonBiomedBranchSelectionRevision(conversationId);
+  const selectionRevision = getXScienceBranchSelectionRevision(conversationId);
   const latest = await loadConversationMessagePage(conversationId, {
     limit,
     contentMode,
     signal: options.signal,
     ...(options.branchId ? { branchId: options.branchId } : {}),
   });
-  if (selectionRevision !== getSynonBiomedBranchSelectionRevision(conversationId)) {
+  if (selectionRevision !== getXScienceBranchSelectionRevision(conversationId)) {
     throw new Error('conversation_branch_selection_changed');
   }
   const branchId = latest.branch_id;
@@ -122,7 +122,7 @@ export async function loadAllConversationMessagesPaged(
       signal: options.signal,
       ...(branchId ? { branchId } : {}),
     });
-    if (selectionRevision !== getSynonBiomedBranchSelectionRevision(conversationId)) {
+    if (selectionRevision !== getXScienceBranchSelectionRevision(conversationId)) {
       throw new Error('conversation_branch_selection_changed');
     }
     const nextCursor = page.oldest_cursor ?? undefined;

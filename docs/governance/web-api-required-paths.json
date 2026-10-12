@@ -136,9 +136,9 @@
     "/api/skills/{param}/edit",
     "/api/skills/{param}/full",
     "/api/skills/{param}/publish",
-    "/api/synonbiomed/catalog",
-    "/api/synonbiomed/expert-profiles",
-    "/api/synonbiomed/projects",
+    "/api/x-science/catalog",
+    "/api/x-science/expert-profiles",
+    "/api/x-science/projects",
     "/api/system/info"
   ]
 }

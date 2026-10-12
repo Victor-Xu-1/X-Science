@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-func TestSynonPlatformPolicyRequiresSamePassEvidenceReconciliation(t *testing.T) {
-	policy := SynonPlatformPolicy()
+func TestXSciencePlatformPolicyRequiresSamePassEvidenceReconciliation(t *testing.T) {
+	policy := XSciencePlatformPolicy()
 	for _, required := range []string{
 		"reconcile every aggregate, threshold, ranking, range",
 		"average cannot establish per-record",
@@ -23,8 +23,8 @@ func TestSynonPlatformPolicyRequiresSamePassEvidenceReconciliation(t *testing.T)
 	}
 }
 
-func TestSynonPlatformPolicyRequiresBilingualPublicDiscovery(t *testing.T) {
-	policy := strings.ToLower(SynonPlatformPolicy())
+func TestXSciencePlatformPolicyRequiresBilingualPublicDiscovery(t *testing.T) {
+	policy := strings.ToLower(XSciencePlatformPolicy())
 	for _, required := range []string{
 		"both chinese and english query variants",
 		"zero results in one language",
@@ -36,8 +36,8 @@ func TestSynonPlatformPolicyRequiresBilingualPublicDiscovery(t *testing.T) {
 	}
 }
 
-func TestSynonPlatformPolicyRequiresTruthfulRetrievalCompleteness(t *testing.T) {
-	policy := strings.ToLower(SynonPlatformPolicy())
+func TestXSciencePlatformPolicyRequiresTruthfulRetrievalCompleteness(t *testing.T) {
+	policy := strings.ToLower(XSciencePlatformPolicy())
 	for _, required := range []string{
 		"broad candidate pool",
 		"follow advertised cursors or offsets",
@@ -50,8 +50,8 @@ func TestSynonPlatformPolicyRequiresTruthfulRetrievalCompleteness(t *testing.T) 
 	}
 }
 
-func TestSynonPlatformPolicyPreservesCompatibilityAcrossSolverRecovery(t *testing.T) {
-	policy := strings.Join(strings.Fields(strings.ToLower(SynonPlatformPolicy())), " ")
+func TestXSciencePlatformPolicyPreservesCompatibilityAcrossSolverRecovery(t *testing.T) {
+	policy := strings.Join(strings.Fields(strings.ToLower(XSciencePlatformPolicy())), " ")
 	for _, required := range []string{
 		"missing-build result changes the installation plan",
 		"already established compatibility target",

@@ -44,14 +44,14 @@ describe('useWorkspaceTree initial loading', () => {
     const response = [
       {
         name: 'project-files',
-        fullPath: 'synonbiomed://project-1/project-files',
+        fullPath: 'x-science://project-1/project-files',
         relativePath: 'project-files',
         isDir: true,
         isFile: false,
         children: [
           {
             name: 'task-1',
-            fullPath: 'synonbiomed://project-1/project-files/report.md',
+            fullPath: 'x-science://project-1/project-files/report.md',
             relativePath: 'project-files/report.md',
             isDir: false,
             isFile: true,
@@ -63,7 +63,7 @@ describe('useWorkspaceTree initial loading', () => {
     mocks.getWorkspacePage.mockResolvedValue({ items: response, total: 1, hasMore: false });
     const { result } = renderHook(() =>
       useWorkspaceTree({
-        workspace: 'synonbiomed://project-1',
+        workspace: 'x-science://project-1',
         conversation_id: 'conversation-1',
         projectId: 'project-1',
         eventPrefix: 'acp',
@@ -75,8 +75,8 @@ describe('useWorkspaceTree initial loading', () => {
     expect(mocks.getWorkspacePage).toHaveBeenCalledTimes(1);
     expect(mocks.getWorkspacePage).toHaveBeenCalledWith(
       {
-        path: 'synonbiomed://project-1/project-files',
-        workspace: 'synonbiomed://project-1',
+        path: 'x-science://project-1/project-files',
+        workspace: 'x-science://project-1',
         conversation_id: 'conversation-1',
         search: '',
         limit: 24,
@@ -110,7 +110,7 @@ describe('useWorkspaceTree initial loading', () => {
     const treeA = [
       {
         name: 'project-files',
-        fullPath: 'synonbiomed://project-cache/project-files',
+        fullPath: 'x-science://project-cache/project-files',
         relativePath: 'project-files',
         isDir: true,
         isFile: false,
@@ -120,11 +120,11 @@ describe('useWorkspaceTree initial loading', () => {
     const treeB = [
       {
         ...treeA[0],
-        fullPath: 'synonbiomed://project-cache/project-files',
+        fullPath: 'x-science://project-cache/project-files',
         children: [
           {
             name: 'conversation-b.csv',
-            fullPath: 'synonbiomed://project-cache/project-files/conversation-b.csv',
+            fullPath: 'x-science://project-cache/project-files/conversation-b.csv',
             relativePath: 'project-files/conversation-b.csv',
             isDir: false,
             isFile: true,
@@ -139,7 +139,7 @@ describe('useWorkspaceTree initial loading', () => {
     const rendered = renderHook(
       ({ conversation }) =>
         useWorkspaceTree({
-          workspace: 'synonbiomed://project-cache',
+          workspace: 'x-science://project-cache',
           conversation_id: conversation,
           projectId: 'project-cache',
           eventPrefix: 'acp',
@@ -161,8 +161,8 @@ describe('useWorkspaceTree initial loading', () => {
     expect(mocks.getWorkspacePage).toHaveBeenNthCalledWith(
       2,
       {
-        path: 'synonbiomed://project-cache/project-files',
-        workspace: 'synonbiomed://project-cache',
+        path: 'x-science://project-cache/project-files',
+        workspace: 'x-science://project-cache',
         conversation_id: 'conversation-cache-b',
         search: '',
         limit: 24,
@@ -191,7 +191,7 @@ describe('useWorkspaceTree initial loading', () => {
         useWorkspaceTree({ workspace, projectId, conversation_id: conversation, eventPrefix: 'acp' }),
       {
         initialProps: {
-          workspace: 'synonbiomed://project-switch-a',
+          workspace: 'x-science://project-switch-a',
           projectId: 'project-switch-a',
           conversation: 'conversation-switch-a',
         },
@@ -200,7 +200,7 @@ describe('useWorkspaceTree initial loading', () => {
 
     await act(async () => rendered.result.current.ensureWorkspace());
     rendered.rerender({
-      workspace: 'synonbiomed://project-switch-a',
+      workspace: 'x-science://project-switch-a',
       projectId: 'project-switch-a',
       conversation: 'conversation-switch-b',
     });
@@ -208,15 +208,15 @@ describe('useWorkspaceTree initial loading', () => {
     expect(mocks.getWorkspacePage).toHaveBeenCalledTimes(2);
 
     rendered.rerender({
-      workspace: 'synonbiomed://project-switch-b',
+      workspace: 'x-science://project-switch-b',
       projectId: 'project-switch-b',
       conversation: 'conversation-switch-c',
     });
     await act(async () => rendered.result.current.ensureWorkspace());
     expect(mocks.getWorkspacePage).toHaveBeenLastCalledWith(
       {
-        path: 'synonbiomed://project-switch-b/project-files',
-        workspace: 'synonbiomed://project-switch-b',
+        path: 'x-science://project-switch-b/project-files',
+        workspace: 'x-science://project-switch-b',
         conversation_id: 'conversation-switch-c',
         search: '',
         limit: 24,
@@ -231,7 +231,7 @@ describe('useWorkspaceTree initial loading', () => {
       ({ revision }) => {
         void revision;
         return useWorkspaceTree({
-          workspace: 'synonbiomed://project-auth',
+          workspace: 'x-science://project-auth',
           projectId: 'project-auth',
           conversation_id: 'conversation-auth',
           eventPrefix: 'acp',
@@ -255,14 +255,14 @@ describe('useWorkspaceTree initial loading', () => {
     const populated = [
       {
         name: 'project-files',
-        fullPath: 'synonbiomed://project-empty/project-files',
+        fullPath: 'x-science://project-empty/project-files',
         relativePath: 'project-files',
         isDir: true,
         isFile: false,
         children: [
           {
             name: 'old.md',
-            fullPath: 'synonbiomed://project-empty/project-files/old.md',
+            fullPath: 'x-science://project-empty/project-files/old.md',
             relativePath: 'project-files/old.md',
             isDir: false,
             isFile: true,
@@ -276,7 +276,7 @@ describe('useWorkspaceTree initial loading', () => {
       .mockResolvedValueOnce({ items: empty, total: 0, hasMore: false });
     const rendered = renderHook(() =>
       useWorkspaceTree({
-        workspace: 'synonbiomed://project-empty',
+        workspace: 'x-science://project-empty',
         projectId: 'project-empty',
         conversation_id: 'conversation-empty',
         eventPrefix: 'acp',
@@ -293,13 +293,13 @@ describe('useWorkspaceTree initial loading', () => {
     const page = (names: string[]) => [
       {
         name: 'project-files',
-        fullPath: 'synonbiomed://project-large/project-files',
+        fullPath: 'x-science://project-large/project-files',
         relativePath: 'project-files',
         isDir: true,
         isFile: false,
         children: names.map((name) => ({
           name,
-          fullPath: `synonbiomed://project-large/project-files/${name}`,
+          fullPath: `x-science://project-large/project-files/${name}`,
           relativePath: `project-files/${name}`,
           isDir: false,
           isFile: true,
@@ -314,7 +314,7 @@ describe('useWorkspaceTree initial loading', () => {
       .mockResolvedValueOnce({ items: page(['needle.dat']), total: 1, hasMore: false });
     const rendered = renderHook(() =>
       useWorkspaceTree({
-        workspace: 'synonbiomed://project-large',
+        workspace: 'x-science://project-large',
         projectId: 'project-large',
         conversation_id: 'conversation-large',
         eventPrefix: 'acp',
@@ -352,14 +352,14 @@ describe('useWorkspaceTree initial loading', () => {
     const page = (name: string) => [
       {
         name: 'project-files',
-        fullPath: 'synonbiomed://project-stale/project-files',
+        fullPath: 'x-science://project-stale/project-files',
         relativePath: 'project-files',
         isDir: true,
         isFile: false,
         children: [
           {
             name,
-            fullPath: `synonbiomed://project-stale/project-files/${name}`,
+            fullPath: `x-science://project-stale/project-files/${name}`,
             relativePath: `project-files/${name}`,
             isDir: false,
             isFile: true,
@@ -382,7 +382,7 @@ describe('useWorkspaceTree initial loading', () => {
       .mockResolvedValueOnce({ items: page('current.dat'), total: 1, hasMore: false });
     const rendered = renderHook(() =>
       useWorkspaceTree({
-        workspace: 'synonbiomed://project-stale',
+        workspace: 'x-science://project-stale',
         projectId: 'project-stale',
         conversation_id: 'conversation-stale',
         eventPrefix: 'acp',

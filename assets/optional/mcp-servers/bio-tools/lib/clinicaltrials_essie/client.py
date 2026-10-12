@@ -57,7 +57,7 @@ class CTGovClient:
         self.bytes_downloaded = 0
         self._session = session or requests.Session()
         self._session.headers.update(
-            {"User-Agent": "clinicaltrials-essie/0.1 (synon_llm-experimental/bio-tools)"})
+            {"User-Agent": "clinicaltrials-essie/0.1 (x_science_llm-experimental/bio-tools)"})
 
     # -- low level -------------------------------------------------------------
 

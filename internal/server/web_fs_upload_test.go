@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestWebFSUploadFeedsAuthenticatedConversationInputAuthority(t *testing.T) {
@@ -35,7 +35,7 @@ func TestWebFSUploadFeedsAuthenticatedConversationInputAuthority(t *testing.T) {
 	request := newLoopbackTestRequest(http.MethodPost, "/api/fs/upload", body)
 	request.RemoteAddr = "127.0.0.1:12345"
 	request.Header.Set("Content-Type", contentType)
-	request.Header.Set("X-Synon-User-Id", "local")
+	request.Header.Set("X-Science-User-Id", "local")
 	response := httptest.NewRecorder()
 	app.Handler().ServeHTTP(response, request)
 	if response.Code != http.StatusOK {
@@ -58,14 +58,14 @@ func TestWebFSUploadFeedsAuthenticatedConversationInputAuthority(t *testing.T) {
 	if uploaded, err := os.ReadFile(result.Data); err != nil || string(uploaded) != string(payload) {
 		t.Fatalf("uploaded bytes=%q err=%v", uploaded, err)
 	}
-	app.synonLinkAuth.enabled = true
+	app.xscienceLinkAuth.enabled = true
 	materializeRequest := newLoopbackTestRequest(http.MethodPost, "/", nil)
 	materializeRequest.RemoteAddr = "127.0.0.1:12345"
 	materialized, err := app.materializeWebConversationInputFiles(context.Background(), materializeRequest, compatFrame, []string{result.Data})
 	if err != nil || len(materialized) != 1 || materialized[0] != "inputs/组合验收.csv" {
 		t.Fatalf("authenticated materialization=%#v err=%v", materialized, err)
 	}
-	app.synonLinkAuth.enabled = false
+	app.xscienceLinkAuth.enabled = false
 
 	sent := p3JSONRequest(t, app, http.MethodPost, "/api/conversations/"+frame.ID+"/messages", map[string]any{
 		"content": "Read the uploaded CSV.", "files": []string{result.Data},
@@ -100,7 +100,7 @@ func TestWebFSUploadRejectsForeignConversationAndUnsafeFilename(t *testing.T) {
 		request := newLoopbackTestRequest(http.MethodPost, "/api/fs/upload", body)
 		request.RemoteAddr = "127.0.0.1:12345"
 		request.Header.Set("Content-Type", contentType)
-		request.Header.Set("X-Synon-User-Id", user)
+		request.Header.Set("X-Science-User-Id", user)
 		response := httptest.NewRecorder()
 		app.Handler().ServeHTTP(response, request)
 		return response
@@ -118,7 +118,7 @@ func TestWebFSUploadRejectsForeignConversationAndUnsafeFilename(t *testing.T) {
 
 func TestWebConversationInputRejectsUnscopedAbsoluteFileWithWebAuthentication(t *testing.T) {
 	app, store := newP3WebConversationServer(t)
-	app.synonLinkAuth.enabled = true
+	app.xscienceLinkAuth.enabled = true
 	project := createP3Project(t, store, "project-scoped-input", "local")
 	frame, err := store.CreateFrame(workspace.CreateFrameInput{
 		ID: "frame-scoped-input", ProjectID: project.ID, AgentName: "OPERON",

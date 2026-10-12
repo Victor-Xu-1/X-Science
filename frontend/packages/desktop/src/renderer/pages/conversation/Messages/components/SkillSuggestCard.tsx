@@ -13,7 +13,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import MarkdownView from '@renderer/components/Markdown';
 import type { SkillSuggestion } from '@renderer/utils/chat/skillSuggestParser';
-import { saveSynonBiomedConversationAsSkill } from '@/renderer/services/skills/synonBiomedSkillLibrary';
+import { saveXScienceConversationAsSkill } from '@/renderer/services/skills/xScienceSkillLibrary';
 
 interface SkillSuggestCardProps {
   artifact_id: string;
@@ -37,7 +37,7 @@ const SkillSuggestCard: React.FC<SkillSuggestCardProps> = ({ artifact_id, conver
   const handleSave = async () => {
     setSaving(true);
     try {
-      await saveSynonBiomedConversationAsSkill(conversation_id);
+      await saveXScienceConversationAsSkill(conversation_id);
       updateArtifactStatus(artifact_id, 'saved');
       setSaved(true);
       Message.success(t('cron.skill.saveSuccess'));

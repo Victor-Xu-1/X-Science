@@ -73,4 +73,7 @@ func TestStructureInteractionReportPreservesPocketGeometryReceipt(t *testing.T) 
 	if report.PocketGeometryMethod == "" || report.SolventOpeningMethod == "" {
 		t.Fatalf("missing geometry methods: %+v", report)
 	}
+	if !structureInteractionEngineIdentitySupported(report.Engine) || !structureInteractionEngineIdentitySupported("X-Science 2D Interaction Engine") || structureInteractionEngineIdentitySupported("XScience 2D Interaction Engine") {
+		t.Fatal("interaction engine reader invented or lost a producer identity")
+	}
 }

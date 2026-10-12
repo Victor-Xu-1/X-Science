@@ -9,7 +9,7 @@ import (
 const (
 	toolBatchV57CallbackID        = "tool-batch-v57-noop"
 	toolBatchV57PreflightIdentity = "tool-batch-prestart-failure-v1"
-	toolBatchV57RuleSpec          = "synon.workspace.tool-batch-prestart-failure.v57"
+	toolBatchV57RuleSpec          = "x-science.workspace.tool-batch-prestart-failure.v57"
 )
 
 var toolBatchV57Migration = versionedSchemaMigration{

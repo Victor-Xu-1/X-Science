@@ -54,7 +54,7 @@ export function StructurePreviewStatus({ filename, loading, error, onRetry }: St
   const { t } = useTranslation();
   if (error) {
     return (
-      <div className='synon-biomed-molstar__overlay synon-biomed-molstar__overlay--error' role='alert'>
+      <div className='x-science-molstar__overlay x-science-molstar__overlay--error' role='alert'>
         <Empty
           description={t(scientificPreviewErrorKey(error), {
             kind: t('preview.scientific.structure.kind'),
@@ -70,7 +70,7 @@ export function StructurePreviewStatus({ filename, loading, error, onRetry }: St
   if (!loading) return null;
   return (
     <div
-      className='synon-biomed-molstar__overlay'
+      className='x-science-molstar__overlay'
       role='status'
       aria-label={t('preview.scientific.loadingNamed', { name: filename })}
     >

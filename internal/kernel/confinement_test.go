@@ -11,7 +11,9 @@ func TestConfinementDiagnosticsAreStableAndClosed(t *testing.T) {
 		{ConfinementEvidence{Available: true, Mode: "ready"}, "", ""},
 		{ConfinementEvidence{Reason: "bubblewrap is unavailable"}, "kernel_confinement_unavailable", "kernel process confinement is unavailable"},
 		{ConfinementEvidence{Reason: darwinConfinementUnverifiedReason}, "kernel_confinement_unavailable", "kernel process confinement is unavailable"},
+		{ConfinementEvidence{Reason: "X-Science kernel confinement is unavailable on this platform"}, "kernel_confinement_unsupported", "kernel process confinement is unsupported on this platform"},
 		{ConfinementEvidence{Reason: "Synon kernel confinement is unavailable on this platform"}, "kernel_confinement_unsupported", "kernel process confinement is unsupported on this platform"},
+		{ConfinementEvidence{Reason: "XScience kernel confinement is unavailable on this platform"}, "kernel_confinement_probe_failed", "kernel process confinement verification failed"},
 		{ConfinementEvidence{Reason: "private path /secret/bwrap failed"}, "kernel_confinement_probe_failed", "kernel process confinement verification failed"},
 	} {
 		diagnostic := DiagnoseConfinementEvidence(fixture.evidence)

@@ -2,8 +2,8 @@ package server
 
 import (
 	"strings"
-	"synon-go/internal/providers"
-	"synon-go/internal/toolcontract"
+	"x-science/internal/providers"
+	"x-science/internal/toolcontract"
 )
 
 func (s *Server) modelRunnerDoctorArea() (string, string, map[string]any, []string) {
@@ -349,7 +349,7 @@ func (s *Server) permissionsDoctorArea() (string, string, map[string]any, []stri
 	hasPendingApprovalQueue := s.runtimeStore != nil
 	hasRememberedApprovalInspection := hasRegisteredTool(s.tools, "approval_remembered_list")
 	hasRememberedApprovalRevocation := hasRegisteredTool(s.tools, "approval_remembered_revoke")
-	hasSynonLinkPolicies := s.synonLink != nil
+	hasXScienceLinkPolicies := s.xscienceLink != nil
 	hasApprovalResolution := hasRegisteredTool(s.tools, "SendMessage") && hasPendingApprovalQueue
 	hasRememberedApprovals := hasApprovalStore && hasRememberedApprovalInspection && hasRememberedApprovalRevocation
 	hasDirectShellSandboxGate := hasRegisteredTool(s.tools, "Bash") && hasRegisteredTool(s.tools, "powershell")
@@ -366,7 +366,7 @@ func (s *Server) permissionsDoctorArea() (string, string, map[string]any, []stri
 		hasShellSandboxPolicy &&
 		hasRememberedApprovalInspection &&
 		hasRememberedApprovalRevocation &&
-		hasSynonLinkPolicies
+		hasXScienceLinkPolicies
 	status := "partial"
 	message := "Agent runtime and direct HTTP callers gate mutating and external tools through approval defaults, persist ask/confirm requests, resolve pending approvals through SendMessage, support exact-input remembered approvals, and block high-risk shell commands before host execution, including deterministic command-substitution checks for remote scripts hidden inside Bash expansions."
 	next := []string{}
@@ -393,7 +393,7 @@ func (s *Server) permissionsDoctorArea() (string, string, map[string]any, []stri
 	evidence := map[string]any{
 		"hasAskUserQuestion":                    hasAskUser,
 		"hasApprovalStore":                      hasApprovalStore,
-		"synonLinkPolicies":                     hasSynonLinkPolicies,
+		"xscienceLinkPolicies":                     hasXScienceLinkPolicies,
 		"hasMutatingToolGate":                   hasMutatingToolGate,
 		"hasDirectCallerApproval":               hasDirectCallerApproval,
 		"hasPendingApprovalQueue":               hasPendingApprovalQueue,

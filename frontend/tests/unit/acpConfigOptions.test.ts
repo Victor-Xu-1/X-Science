@@ -1,5 +1,5 @@
 import type { AcpConfigOptionDto, SetConfigOptionResponse } from '@/common/types/platform/acpTypes';
-import { deriveSelectOption, hasObservedValue } from '@/renderer/hooks/synonBiomed/runtime/useAcpConfigOptions';
+import { deriveSelectOption, hasObservedValue } from '@/renderer/hooks/xScience/runtime/useAcpConfigOptions';
 import { describe, expect, it } from 'vitest';
 
 const options: AcpConfigOptionDto[] = [

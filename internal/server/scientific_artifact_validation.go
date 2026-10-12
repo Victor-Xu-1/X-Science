@@ -12,7 +12,7 @@ import (
 	"sort"
 	"strings"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 const maxScientificArtifactValidatorOutput = 1 << 20
@@ -187,11 +187,11 @@ func runScientificArtifactValidator(ctx context.Context, reader io.Reader, forma
 	command.Env = []string{
 		"PATH=" + filepath.Join(prefix, "bin"),
 		"CONDA_PREFIX=" + prefix,
-		"CONDA_DEFAULT_ENV=synon-biomed-python",
+		"CONDA_DEFAULT_ENV=x-science-python",
 		"PYTHONNOUSERSITE=1",
 		"PYTHONUNBUFFERED=1",
 		"LANG=C.UTF-8",
-		"SYNON_RUNTIME_GENERATION=" + generation,
+		"X_SCIENCE_RUNTIME_GENERATION=" + generation,
 	}
 	stdout := &cappedScientificOutput{limit: maxScientificArtifactValidatorOutput}
 	stderr := &cappedScientificOutput{limit: maxScientificArtifactValidatorOutput}

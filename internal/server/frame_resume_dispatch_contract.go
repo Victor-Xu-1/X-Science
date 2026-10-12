@@ -4,14 +4,14 @@ import (
 	"errors"
 	"time"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const (
 	defaultFrameResumeDispatchPollInterval = 250 * time.Millisecond
 	frameResumeDispatchClaimLeaseGrace     = time.Minute
 	defaultFrameResumeReservationTTL       = 24 * time.Hour
-	defaultFrameResumeDispatchWorkerID     = "synon-frame-resume-dispatcher"
+	defaultFrameResumeDispatchWorkerID     = "x-science-frame-resume-dispatcher"
 	frameResumePauseRecheckInterval        = 30 * time.Second
 	// Kernel settlement and approval transitions wake the dispatcher through the
 	// workspace retention signal. This bounded backstop is only for a lost

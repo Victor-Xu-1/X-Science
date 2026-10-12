@@ -24,8 +24,8 @@ func TestSearchTransientBackendRecoversWithoutChangingQuery(t *testing.T) {
 		_, _ = w.Write([]byte(`<a class="result__a" href="https://example.org/cohort-analysis">Cohort analysis</a><a class="result__snippet">Cohort analysis methods.</a>`))
 	}))
 	defer server.Close()
-	t.Setenv("SYNON_WEBSEARCH_SCRIPT", "/missing-search-helper")
-	t.Setenv("SYNON_WEBSEARCH_ENDPOINT", server.URL+"/?q={query}")
+	t.Setenv("X_SCIENCE_WEBSEARCH_SCRIPT", "/missing-search-helper")
+	t.Setenv("X_SCIENCE_WEBSEARCH_ENDPOINT", server.URL+"/?q={query}")
 	output, err := Search(context.Background(), Input{Query: "cohort analysis"}, Options{
 		HTTPBackends: []httpSearchBackend{{Name: "controlled", Endpoint: server.URL + "/search?q={query}"}},
 		ClientForURL: testHTTPClientFor(server.Client()),
@@ -49,8 +49,8 @@ func TestSearchSlowBodyHasIdleBudgetNotHeaderDeadline(t *testing.T) {
 		}
 	}))
 	defer server.Close()
-	t.Setenv("SYNON_WEBSEARCH_SCRIPT", "/missing-search-helper")
-	t.Setenv("SYNON_WEBSEARCH_ENDPOINT", server.URL)
+	t.Setenv("X_SCIENCE_WEBSEARCH_SCRIPT", "/missing-search-helper")
+	t.Setenv("X_SCIENCE_WEBSEARCH_ENDPOINT", server.URL)
 	output, err := Search(context.Background(), Input{Query: "cohort analysis"}, Options{
 		Timeout: time.Second, HeaderTimeout: 60 * time.Millisecond, ReadIdleTimeout: 150 * time.Millisecond,
 		HTTPBackends: []httpSearchBackend{{Name: "controlled", Format: searchFormatMediaWikiOpenSearch, Endpoint: server.URL}},
@@ -71,8 +71,8 @@ func TestSearchMixedEmptyAndFailedProvidersRetainsClassification(t *testing.T) {
 		_, _ = w.Write([]byte(`["cohort analysis",[],[],[]]`))
 	}))
 	defer server.Close()
-	t.Setenv("SYNON_WEBSEARCH_SCRIPT", "/missing-search-helper")
-	t.Setenv("SYNON_WEBSEARCH_ENDPOINT", server.URL)
+	t.Setenv("X_SCIENCE_WEBSEARCH_SCRIPT", "/missing-search-helper")
+	t.Setenv("X_SCIENCE_WEBSEARCH_ENDPOINT", server.URL)
 	out, err := Search(context.Background(), Input{Query: "cohort analysis"}, Options{
 		HTTPBackends: []httpSearchBackend{
 			{Name: "empty", Format: searchFormatMediaWikiOpenSearch, Endpoint: server.URL + "/empty"},
@@ -94,8 +94,8 @@ func TestSearchCompletedEmptyResponseIsNotNetworkFailure(t *testing.T) {
 		_, _ = w.Write([]byte(`["cohort analysis",[],[],[]]`))
 	}))
 	defer server.Close()
-	t.Setenv("SYNON_WEBSEARCH_SCRIPT", "/missing-search-helper")
-	t.Setenv("SYNON_WEBSEARCH_ENDPOINT", server.URL+"/?q={query}")
+	t.Setenv("X_SCIENCE_WEBSEARCH_SCRIPT", "/missing-search-helper")
+	t.Setenv("X_SCIENCE_WEBSEARCH_ENDPOINT", server.URL+"/?q={query}")
 	options := Options{HTTPBackends: []httpSearchBackend{{Name: "controlled", Format: searchFormatMediaWikiOpenSearch, Endpoint: server.URL + "/?q={query}"}}, ClientForURL: testHTTPClientFor(server.Client())}
 	output, err := SearchVariants(context.Background(), VariantInput{Query: "cohort analysis"}, options)
 	if err != nil || output.Failure != nil || len(output.Sources) != 0 {

@@ -8,7 +8,7 @@ import (
 )
 
 func TestStructureInteractionPocketGeometryAsset(t *testing.T) {
-	python := os.Getenv("SYNON_STRUCTURE_TEST_PYTHON")
+	python := os.Getenv("X_SCIENCE_STRUCTURE_TEST_PYTHON")
 	if python == "" {
 		var err error
 		python, err = exec.LookPath("python3")
@@ -37,7 +37,7 @@ assert boundary_paths(points,(800,450),[0],[],[])
 assert solvent_boundary_segments(points,{0:(700,450),1:(900,450)},{1:[(1,0)]},[])
 assert 'data-exposure-atom="0"' in solvent_halos({0:(700,350)},[{'atom_index':0,'accessible_fraction':.25}])
 `
-	if os.Getenv("SYNON_STRUCTURE_TEST_PYTHON") != "" {
+	if os.Getenv("X_SCIENCE_STRUCTURE_TEST_PYTHON") != "" {
 		script += `
 import numpy as np
 from structure_interaction_solvent import receptor_surface_exposure

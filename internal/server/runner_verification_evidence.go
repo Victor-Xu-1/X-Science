@@ -12,10 +12,10 @@ import (
 	"sync"
 	"unicode/utf8"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
-const sessionReviewerEvidenceSchema = "synon.runner_completion_review.source_ref.v2"
+const sessionReviewerEvidenceSchema = "x-science.runner_completion_review.source_ref.v2"
 
 // Reviewer evidence must stay comfortably below every supported provider's
 // tool-result envelope. The canonical artifact remains unchanged and its full
@@ -674,7 +674,7 @@ func sessionReviewerReceiptID(
 ) string {
 	hash := sha256.New()
 	for _, value := range []string{
-		"synon.runner-review.read-receipt.v1", streamUID, fmt.Sprint(runnerAttempt), fmt.Sprint(reviewIndex),
+		"x-science.runner-review.read-receipt.v1", streamUID, fmt.Sprint(runnerAttempt), fmt.Sprint(reviewIndex),
 		reviewUnitID, inventorySHA256, toolCallID, artifact.ArtifactID, artifact.VersionID,
 		artifact.ContentSHA256, readScope, resultSHA256,
 	} {

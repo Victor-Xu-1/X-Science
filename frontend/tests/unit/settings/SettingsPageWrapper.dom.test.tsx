@@ -16,8 +16,8 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, options?: { defaultValue?: string }) =>
       ({
-        'settings.synonBiomedOpenAccount': '打开账户侧栏',
-        'settings.synonBiomedAccountMenu': '账户与设置',
+        'settings.xScienceOpenAccount': '打开账户侧栏',
+        'settings.xScienceAccountMenu': '账户与设置',
       })[key] ??
       options?.defaultValue ??
       key,

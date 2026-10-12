@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"synon-go/internal/persistence/workspace"
+	"x-science/internal/persistence/workspace"
 )
 
 type Repository interface {

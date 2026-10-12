@@ -8,7 +8,7 @@ import (
 const (
 	transcriptDeliveryConvergenceV54CallbackID        = "transcript-delivery-convergence-v54-noop"
 	transcriptDeliveryConvergenceV54PreflightIdentity = "transcript-delivery-frontier-index-absent-v1"
-	transcriptDeliveryConvergenceV54RuleSpec          = "synon.workspace.transcript-delivery-convergence.v54"
+	transcriptDeliveryConvergenceV54RuleSpec          = "x-science.workspace.transcript-delivery-convergence.v54"
 )
 
 var transcriptDeliveryConvergenceV54Migration = versionedSchemaMigration{

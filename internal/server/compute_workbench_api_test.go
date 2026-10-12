@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	compute "synon-go/internal/compute"
-	workspace "synon-go/internal/persistence/workspace"
+	compute "x-science/internal/compute"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestComputeWorkbenchHTTPContractsAndOwnerIsolation(t *testing.T) {
@@ -360,7 +360,7 @@ func requestComputeWithHeaders(t *testing.T, handler http.Handler, method, path 
 		reader = strings.NewReader(string(raw))
 	}
 	request := newLoopbackTestRequest(method, path, reader)
-	request.Header.Set("X-Synon-User-Id", user)
+	request.Header.Set("X-Science-User-Id", user)
 	for key, value := range headers {
 		request.Header.Set(key, value)
 	}

@@ -8,7 +8,7 @@ import (
 	"maps"
 	"strings"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 const runnerPublicProgressField = "public_progress"

@@ -19,16 +19,16 @@ else:
     from product_version import ProductVersion
 
 
-IDENTITY_SCHEMA = "synon.product-identity.v1"
-REFERENCE_SCHEMA = "synon.governance.product-identity-reference.v1"
-RELEASE_POLICY_SCHEMA = "synon.governance.release-policy.v1"
-MATRIX_SCHEMA = "synon.governance.product-identity-consumers.v4"
+IDENTITY_SCHEMA = "x-science.product-identity.v1"
+REFERENCE_SCHEMA = "x-science.governance.product-identity-reference.v1"
+RELEASE_POLICY_SCHEMA = "x-science.governance.release-policy.v1"
+MATRIX_SCHEMA = "x-science.governance.product-identity-consumers.v4"
 SEMVER = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
 SLUG = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 SCHEMA_CONST = re.compile(r"(?m)^\s*const\s+workspaceSchemaVersion\s*=\s*([0-9]+)\s*$")
 RETIRED_VERSIONED_RUNTIME_PREFIXES = (
-    "assets/synonbiomed-v1.1/",
-    "skills/synonbiomed-v1.1/",
+    "assets/xscience-v1.1/",
+    "skills/xscience-v1.1/",
 )
 
 
@@ -325,7 +325,7 @@ def validate_release_policy(policy: dict[str, Any]) -> None:
 
     candidate = policy.get("candidate_manifest")
     if candidate != {
-        "schema": "synon.release-candidate.v1",
+        "schema": "x-science.release-candidate.v1",
         "workflow": ".github/workflows/quality.yml",
         "artifact_name_prefix": "x-science-release-candidate-",
         "required_platforms": ["linux-amd64", "windows-amd64"],
@@ -345,7 +345,7 @@ def validate_release_policy(policy: dict[str, Any]) -> None:
             "schema", "tracked_in_source", "signature_algorithm", "max_ttl_seconds",
             "required_bindings",
         }
-        or receipt.get("schema") != "synon.release-authorization-receipt.v1"
+        or receipt.get("schema") != "x-science.release-authorization-receipt.v1"
         or receipt.get("tracked_in_source") is not False
         or receipt.get("signature_algorithm") != "hmac-sha256"
         or type(receipt.get("max_ttl_seconds")) is not int
@@ -639,7 +639,7 @@ def audit(
             drifts.append({"path": relative, "class": "unclassified-product-version", "surface": "legacy-version"})
     drifts = sorted(drifts, key=lambda item: (item["path"], item["class"], item["surface"]))
     return {
-        "schema": "synon.governance.product-identity-audit.v4",
+        "schema": "x-science.governance.product-identity-audit.v4",
         "authority": derived,
         "aligned": not drifts,
         "drift_count": len(drifts),

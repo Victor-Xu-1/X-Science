@@ -3,9 +3,9 @@ package server
 import (
 	"testing"
 
-	"synon-go/internal/agentruntime"
-	eventjournal "synon-go/internal/persistence/journal"
-	"synon-go/internal/skills"
+	"x-science/internal/agentruntime"
+	eventjournal "x-science/internal/persistence/journal"
+	"x-science/internal/skills"
 )
 
 func TestSessionRunnerCapabilityStateRestoresOnlyCompletedToolContracts(t *testing.T) {

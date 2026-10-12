@@ -17,9 +17,9 @@ import (
 
 	"github.com/google/uuid"
 
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/skills"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/skills"
 )
 
 var kernelHostRegistryMethods = []string{
@@ -217,7 +217,7 @@ func (s *Server) kernelHostMarketplaceRequest(ctx context.Context, userID, path 
 	}
 	request := httptest.NewRequestWithContext(ctx, http.MethodPost, path, bytes.NewReader(raw))
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("X-Synon-User-Id", strings.TrimSpace(userID))
+	request.Header.Set("X-Science-User-Id", strings.TrimSpace(userID))
 	response := httptest.NewRecorder()
 	if path == "/api/marketplace/preview" {
 		s.handleWebSkillMarketplacePreview(response, request)
@@ -500,7 +500,7 @@ func (s *Server) kernelHostListAgents(ctx context.Context, userID string) (any, 
 		if source == "user" {
 			source = "personal"
 		} else if source == "builtin" {
-			source = "synon_llm"
+			source = "x_science_llm"
 		}
 		items = append(items, s.kernelHostAgentProjectionWithSource(record.Agent, source))
 	}

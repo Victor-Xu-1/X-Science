@@ -44,6 +44,10 @@ func validSHA(value string) bool {
 // Read consumes bounded JSONL records, not a manifest-sized array. A final
 // commit record is mandatory, so a partial checkpoint cannot become runnable.
 func Read(ctx context.Context, source io.Reader, expectedInput, expectedCommand string, consume func(File) error) (Receipt, error) {
+	return read(ctx, source, expectedInput, expectedCommand, consume, false)
+}
+
+func read(ctx context.Context, source io.Reader, expectedInput, expectedCommand string, consume func(File) error, historical bool) (Receipt, error) {
 	var result Receipt
 	if ctx == nil || source == nil || !validSHA(expectedInput) || !validSHA(expectedCommand) {
 		return result, errors.New("checkpoint observation authority is invalid")
@@ -51,7 +55,13 @@ func Read(ctx context.Context, source io.Reader, expectedInput, expectedCommand 
 	digest := sha256.New()
 	scanner := bufio.NewScanner(io.TeeReader(source, digest))
 	scanner.Buffer(make([]byte, 16<<10), 16<<10)
-	if !scanner.Scan() || decodeRecord(scanner.Bytes(), &result.Header) != nil || result.Schema != Schema || result.Generation < 1 || result.SourceInputSHA256 != expectedInput || result.ResumeCommandSHA256 != expectedCommand {
+	if !scanner.Scan() || decodeRecord(scanner.Bytes(), &result.Header) != nil {
+		return result, errors.New("checkpoint identity header does not match the submitted workload")
+	}
+	if err := namespaceSchemaError(result.Schema, historical); err != nil {
+		return result, err
+	}
+	if !namespaceSchemaMatches(result.Schema, historical) || result.Generation < 1 || result.SourceInputSHA256 != expectedInput || result.ResumeCommandSHA256 != expectedCommand {
 		return result, errors.New("checkpoint identity header does not match the submitted workload")
 	}
 	committed := false

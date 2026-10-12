@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/agentruntime"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	"x-science/internal/agentruntime"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func TestDurableEvidenceRestoresExternalizedPayload(t *testing.T) {

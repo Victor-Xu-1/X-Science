@@ -12,10 +12,10 @@ const gateway = vi.hoisted(() => ({
 }));
 const insertReference = vi.hoisted(() => vi.fn());
 
-vi.mock('@/renderer/services/synonBiomedGateway', () => ({
-  loadSynonBiomedProjects: gateway.projects,
-  loadSynonBiomedProjectArtifacts: gateway.artifacts,
-  loadSynonBiomedProjectBenches: gateway.benches,
+vi.mock('@/renderer/services/xScienceGateway', () => ({
+  loadXScienceProjects: gateway.projects,
+  loadXScienceProjectArtifacts: gateway.artifacts,
+  loadXScienceProjectBenches: gateway.benches,
 }));
 vi.mock('@/renderer/components/chat/SendBox/composerReferenceBridge', () => ({
   insertArtifactReferenceIntoActiveComposer: insertReference,

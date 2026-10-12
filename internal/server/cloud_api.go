@@ -15,10 +15,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"synon-go/internal/cloudstore"
-	"synon-go/internal/compute"
-	secretstore "synon-go/internal/persistence/secrets"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/cloudstore"
+	"x-science/internal/compute"
+	secretstore "x-science/internal/persistence/secrets"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 type cloudCredentialProjection struct {
@@ -337,8 +337,8 @@ func (s *Server) handleCloudImport(w http.ResponseWriter, r *http.Request, userI
 		contentType = "application/octet-stream"
 	}
 	artifactID := uuid.NewString()
-	if key := strings.TrimSpace(firstNonEmpty(r.Header.Get("Idempotency-Key"), r.Header.Get("X-Synon-Idempotency-Key"))); key != "" {
-		artifactID = uuid.NewSHA1(uuid.NameSpaceOID, []byte("synon-cloud-import-v1\x00"+userID+"\x00"+input.ProjectID+"\x00"+key)).String()
+	if key := strings.TrimSpace(firstNonEmpty(r.Header.Get("Idempotency-Key"), r.Header.Get("X-Science-Idempotency-Key"))); key != "" {
+		artifactID = uuid.NewSHA1(uuid.NameSpaceOID, []byte("x-science-cloud-import-v1\x00"+userID+"\x00"+input.ProjectID+"\x00"+key)).String()
 	}
 	artifact, version, err := s.workspaceStore.SaveArtifactVersionFromReaderRealtime(workspaceMutationContext(r), workspace.SaveArtifactVersionReaderInput{
 		ArtifactID: artifactID, ProjectID: input.ProjectID, Name: filename,

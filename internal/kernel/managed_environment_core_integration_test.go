@@ -12,7 +12,7 @@ import (
 // and runs import witnesses, without provisioning, changing pointers, or
 // borrowing task databases. Ordinary CI has no host installation authority.
 func TestInstalledCoreEnvironmentPreflightAndImports(t *testing.T) {
-	root := os.Getenv("SYNON_TEST_INSTALLED_CONDA_ENVS")
+	root := os.Getenv("X_SCIENCE_TEST_INSTALLED_CONDA_ENVS")
 	if root == "" {
 		t.Skip("an explicit installed-runtime root is required")
 	}

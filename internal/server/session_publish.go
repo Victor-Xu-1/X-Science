@@ -3,8 +3,8 @@ package server
 import (
 	"strings"
 
-	adaptercommon "synon-go/internal/adapters/common"
-	eventjournal "synon-go/internal/persistence/journal"
+	adaptercommon "x-science/internal/adapters/common"
+	eventjournal "x-science/internal/persistence/journal"
 )
 
 func (s *Server) publishSessionMessage(sessionID string, eventID int64, message eventjournal.Message) bool {

@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/tools/securefetch"
+	"x-science/internal/tools/securefetch"
 )
 
 type resolverFunc func(context.Context, string, string) ([]netip.Addr, error)
@@ -266,8 +266,8 @@ func TestClientMapsUpstreamStatusWithoutExposingResponseBody(t *testing.T) {
 }
 
 func TestClientFetchesOfficialRCSBFiles(t *testing.T) {
-	if os.Getenv("SYNON_TEST_LIVE_RCSB") != "1" {
-		t.Skip("set SYNON_TEST_LIVE_RCSB=1 for the official RCSB protocol check")
+	if os.Getenv("X_SCIENCE_TEST_LIVE_RCSB") != "1" {
+		t.Skip("set X_SCIENCE_TEST_LIVE_RCSB=1 for the official RCSB protocol check")
 	}
 	client := New(Options{MaxBytes: 50 << 20, Timeout: 2 * time.Minute})
 	for _, input := range []Input{

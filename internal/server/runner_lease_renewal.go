@@ -2,7 +2,7 @@ package server
 
 import (
 	"context"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 	"time"
 )
 

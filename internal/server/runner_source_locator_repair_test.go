@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/agentruntime"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestRecoveredSourceLocatorCorrectionCarriesASemanticRepairContract(t *testing.T) {

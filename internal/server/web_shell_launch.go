@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/desktopopen"
+	"x-science/internal/desktopopen"
 )
 
 func webShellToolInstalled(tool string) bool {

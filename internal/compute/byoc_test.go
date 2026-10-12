@@ -31,7 +31,7 @@ func TestNormalizeBYOCEgressPolicy(t *testing.T) {
 }
 
 func TestValidateBYOCNames(t *testing.T) {
-	for _, name := range []string{"synonbiomed-default", "team.compute_1"} {
+	for _, name := range []string{"xscience-default", "team.compute_1"} {
 		if err := ValidateBYOCAppName(name); err != nil {
 			t.Fatalf("app %q: %v", name, err)
 		}

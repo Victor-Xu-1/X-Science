@@ -79,11 +79,10 @@ export PATH="$HOME/.local/bin:$PATH"
 x-science help
 ```
 
-安装器创建当前 Linux 用户的 `$HOME/.local/bin/x-science` 和兼容的
-`$HOME/.local/bin/synon` 两个符号链接，均指向**这份源码**的
-`scripts/dev/synon`；不安装系统服务，也不修改 shell 启动文件。
+安装器只创建当前 Linux 用户的 `$HOME/.local/bin/x-science` 符号链接，指向**这份源码**的
+`scripts/dev/x-science`；不安装系统服务，也不修改 shell 启动文件。
 上面的 PATH 设置只影响当前终端。新终端找不到命令时，可重新设置该 PATH，
-或在同一源码根目录直接使用 `bash scripts/dev/synon`。
+或在同一源码根目录直接使用 `bash scripts/dev/x-science`。
 
 ### Start and wait for readiness · 启动并等待入口就绪
 
@@ -132,42 +131,41 @@ git status --short
 git branch --show-current
 git remote -v
 command -v x-science
-command -v synon # 只读检查可能存在的兼容入口
 ```
 
-如果 `$HOME/.local/bin/synon` 已存在，可查看它实际指向哪里：
+如果 `$HOME/.local/bin/x-science` 已存在，可查看它实际指向哪里：
 
 ```bash
-readlink -f "$HOME/.local/bin/synon"
+readlink -f "$HOME/.local/bin/x-science"
 ```
 
 - 安装器再次遇到指向**同一份源码**的链接，会提示 `already installed`。
 - 遇到现有文件、其他命令，或指向**另一份源码**的链接，会拒绝替换。
   即使错误提示命令不属于当前 X-Science checkout，也应核对链接目标，不要直接删除。
 - 不要用 `sudo`、强制覆盖链接、清空数据或结束未知进程来绕过这些保护。
-- 只想试用第二份源码时，无需改动全局 `synon` 链接；直接调用该 checkout 的脚本。
+- 只想试用第二份源码时，无需改动全局 `x-science` 链接；直接调用该 checkout 的脚本。
 
 第二份实例必须有**独立状态目录和空闲端口**。以下为明确隔离的示例，先确认示例目录
 不含其他实例的数据、示例端口没有被占用，再在目标源码根目录执行：
 
 ```bash
-export SYNON_SOURCE_STATE_DIR="$HOME/.local/state/x-science-preview"
-bash scripts/dev/synon start --web-port 8785 --backend-port 8875
+export X_SCIENCE_SOURCE_STATE_DIR="$HOME/.local/state/x-science-preview"
+bash scripts/dev/x-science start --web-port 8785 --backend-port 8875
 ```
 
 两端口须不同，且为 1024–65535 内的整数；示例数字不是“当前一定空闲”的保证。
 共享或已被他人使用的实例不应被这个示例替代。新状态目录会呈现一个独立实例，
 不会自动迁移旧账号、项目、模型设置或文件。
 
-`SYNON_SOURCE_STATE_DIR` 控制源码启动器的状态根目录；`start --state-dir PATH` 也可指定它。
+`X_SCIENCE_SOURCE_STATE_DIR` 控制源码启动器的状态根目录；`start --state-dir PATH` 也可指定它。
 **`stop` 和 `status` 不接受 `--state-dir` 参数**：使用非默认目录时，在新终端先设置
-同一个 `SYNON_SOURCE_STATE_DIR`，并调用同一份 checkout 的脚本。
-直接设置 `SYNON_HOME` 不是这条 quickstart 链的状态目录切换方式。
+同一个 `X_SCIENCE_SOURCE_STATE_DIR`，并调用同一份 checkout 的脚本。
+直接设置 `X_SCIENCE_HOME` 不是这条 quickstart 链的状态目录切换方式。
 
 当前产品名称为 X-Science，已安装的源码入口使用 `x-science`。
-兼容入口、真实脚本路径、`SYNON_*` 配置、协议和已有状态目录仍按
-[名称兼容映射](governance/product-rename-compatibility-map.json)保留；
-这些标识不是产品显示名称，也不授权移动旧数据或改写历史来源。
+当前入口、脚本、`X_SCIENCE_*` 配置和协议统一使用新名称。已有状态必须按
+[名称迁移映射](governance/product-rename-compatibility-map.json)升级；
+不要移动正在使用的数据目录，不要改写历史来源。
 
 ## 5. First session · 首次进入与配置
 
@@ -205,7 +203,7 @@ bash scripts/dev/synon start --web-port 8785 --backend-port 8875
 默认源码状态根目录为：
 
 ```text
-${XDG_STATE_HOME:-$HOME/.local/state}/synon-biomed-source-quickstart
+${XDG_STATE_HOME:-$HOME/.local/state}/x-science-source-quickstart
 ```
 
 其中 `data/` 是该源码实例的运行数据根，`logs/` 保存宿主日志，
@@ -220,9 +218,9 @@ ${XDG_STATE_HOME:-$HOME/.local/state}/synon-biomed-source-quickstart
 - 对上节的独立实例，在目标源码根目录的另一终端使用：
 
 ```bash
-export SYNON_SOURCE_STATE_DIR="$HOME/.local/state/x-science-preview"
-bash scripts/dev/synon status
-bash scripts/dev/synon stop
+export X_SCIENCE_SOURCE_STATE_DIR="$HOME/.local/state/x-science-preview"
+bash scripts/dev/x-science status
+bash scripts/dev/x-science stop
 ```
 
 `status` 验证的是源码宿主归属，不是科学任务完成状态。
@@ -280,7 +278,7 @@ GitHub Packages 的 OCI 资产是安装包传输形式，不是可以直接 `doc
 | 现象 | 先检查与处理 |
 | --- | --- |
 | `go` / `node` / `npm` 找不到，或版本被拒绝 | 在同一个 Ubuntu 终端重跑版本检查，确认 PATH 和 Linux 工具版本；不要用 Windows 安装状态替代。 |
-| `x-science: command not found` | 设置 `$HOME/.local/bin` 的 PATH，或从该源码根目录使用 `bash scripts/dev/synon help`。 |
+| `x-science: command not found` | 设置 `$HOME/.local/bin` 的 PATH，或从该源码根目录使用 `bash scripts/dev/x-science help`。 |
 | 安装器拒绝替换现有命令 | 用 `readlink -f` 核对启动器目标；保留现有文件，第二份源码直接调用自己的脚本。 |
 | `port is already in use` | 确认是否已有合法实例；不要结束未知进程，另一个实例需独立端口和数据。 |
 | `another quickstart owns this state directory` | 确认已有启动归属；不要手动删锁来同时打开同一状态目录。 |

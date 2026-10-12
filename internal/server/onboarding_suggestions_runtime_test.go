@@ -19,9 +19,9 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"synon-go/internal/agentruntime"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestStructuredOnboardingCancelWaitsForTranscriptAdmission(t *testing.T) {

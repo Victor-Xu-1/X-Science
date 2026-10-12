@@ -123,7 +123,7 @@ func (m *Manager) CreateManagedEnvironment(ctx context.Context, input CreateMana
 	// recover by the complete normalized environment definition rather than by
 	// an individual tool-call ID, so identical software requirements across
 	// tasks reuse the same verified generation without rerunning installers.
-	operationKey := managedEnvironmentOperationKey("create", struct {
+	definition := struct {
 		Name, Language, SourceEnvironment string
 		Packages                          []string
 		Channels                          []string
@@ -138,8 +138,10 @@ func (m *Manager) CreateManagedEnvironment(ctx context.Context, input CreateMana
 		input.Name, language, sourceEnvironment, packages, channels, pipPhases, pipArgs,
 		pipFindLinks, pipExtraIndexURLs, importNames, strings.ToLower(strings.TrimSpace(input.RequiredAccelerator)),
 		lockedRequirementsSHA256,
-	})
+	}
+	operationKey := managedEnvironmentOperationKey("create", definition)
 	return m.runManagedEnvironmentOperation(ctx, operationKey, func(operationContext context.Context) (ManagedEnvironment, error) {
+		operationContext = previousNamespaceCreateContext(operationContext, definition)
 		sourcePrefix := ""
 		if sourceEnvironment != "" {
 			var sourceErr error
@@ -237,14 +239,16 @@ func (m *Manager) RegisterManagedEnvironment(ctx context.Context, input Register
 	if sourcePath == venvPath || hostPathContains(venvPath, sourcePath) {
 		return ManagedEnvironment{}, errors.New("registered environment venv_path must not contain source_path")
 	}
-	requestKey := managedEnvironmentRequestKey(input.OperationID, "register", struct {
+	registrationDefinition := struct {
 		Name, Language, SourcePath, VenvPath string
 		Create, Force                        bool
 		Extras                               []string
 	}{
 		input.Name, language, sourcePath, venvPath, input.Create, input.Force, append([]string(nil), input.Extras...),
-	})
+	}
+	requestKey := managedEnvironmentRequestKey(input.OperationID, "register", registrationDefinition)
 	return m.runManagedEnvironmentOperation(ctx, requestKey, func(operationContext context.Context) (ManagedEnvironment, error) {
+		operationContext = previousNamespaceRequestContext(operationContext, input.OperationID, "register", registrationDefinition)
 		var prepare func(context.Context) error
 		if input.Create {
 			prepare = func(ctx context.Context) error {
@@ -357,7 +361,7 @@ func (m *Manager) mutateManagedPackages(ctx context.Context, operation string, i
 				UsePip              bool
 				RequiredAccelerator string
 			}{packages, channels, pipArgs, pipFindLinks, pipExtraIndexURLs, input.UsePip, strings.ToLower(strings.TrimSpace(input.RequiredAccelerator))})
-			targetName = "synon-pkg-" + digest[:24]
+			targetName = "x-science-pkg-" + digest[:24]
 		} else {
 			if err := validateManagedEnvironmentName(targetName); err != nil {
 				return ManagedEnvironment{}, err
@@ -404,6 +408,7 @@ func (m *Manager) mutateManagedPackages(ctx context.Context, operation string, i
 		operationRequest.SourceGeneration = ""
 	}
 	operationKey := managedEnvironmentRequestKey(input.OperationID, operation, operationRequest)
+	ctx = previousNamespaceRequestContext(ctx, input.OperationID, operation, operationRequest)
 	if source.Kind == "path-venv" {
 		if !input.UsePip {
 			return ManagedEnvironment{}, errors.New("registered Python environments require use_pip package mutation")

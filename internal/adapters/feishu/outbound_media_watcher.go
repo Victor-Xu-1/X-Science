@@ -1,6 +1,6 @@
 package feishu
 
-import adaptercommon "synon-go/internal/adapters/common"
+import adaptercommon "x-science/internal/adapters/common"
 
 type PendingUploadKind = adaptercommon.PendingUploadKind
 

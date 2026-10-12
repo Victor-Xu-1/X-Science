@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	kernelruntime "synon-go/internal/kernel"
-	"synon-go/internal/processsupervisor"
+	kernelruntime "x-science/internal/kernel"
+	"x-science/internal/processsupervisor"
 	"syscall"
 	"testing"
 	"time"
@@ -26,7 +26,7 @@ func TestExecutorMemoryPressureSupervisorRelievesRealWorker(t *testing.T) {
 
 func runRealPressureService(t *testing.T, mode string) {
 	t.Helper()
-	if os.Getenv("SYNON_TEST_SYSTEMD_PRESSURE") != "1" {
+	if os.Getenv("X_SCIENCE_TEST_SYSTEMD_PRESSURE") != "1" {
 		t.Skip("opt-in isolated systemd memory pressure probe")
 	}
 	id := "kernel-backend-pressure-" + strconv.FormatInt(time.Now().UnixNano(), 10)
@@ -45,7 +45,7 @@ func runRealPressureService(t *testing.T, mode string) {
 	command := exec.CommandContext(ctx, "systemd-run", "--user", "--quiet", "--collect", "--wait", "--pipe", "--unit="+unit,
 		"--working-directory="+workingDirectory,
 		"--property=Delegate=memory", "--property=DelegateSubgroup=control", "--property=MemoryHigh=335544320", "--property=MemoryMax=335544320", "--property=MemorySwapMax=0", "--property=OOMPolicy=continue",
-		"--setenv=SYNON_TEST_PRESSURE_HELPER="+id, "--setenv=SYNON_TEST_PRESSURE_MODE="+mode, "--", os.Args[0], "-test.run=^TestMemoryPressureReliefHelper$", "-test.v")
+		"--setenv=X_SCIENCE_TEST_PRESSURE_HELPER="+id, "--setenv=X_SCIENCE_TEST_PRESSURE_MODE="+mode, "--", os.Args[0], "-test.run=^TestMemoryPressureReliefHelper$", "-test.v")
 	out, err := command.CombinedOutput()
 	if err != nil || !strings.Contains(string(out), "REAL_PRESSURE_RELIEVED_WITHOUT_BUDGET_INCREASE") {
 		t.Fatalf("real resource relief failed: %v\n%s", err, out)
@@ -54,7 +54,7 @@ func runRealPressureService(t *testing.T, mode string) {
 }
 
 func TestMemoryPressureReliefHelper(t *testing.T) {
-	id := os.Getenv("SYNON_TEST_PRESSURE_HELPER")
+	id := os.Getenv("X_SCIENCE_TEST_PRESSURE_HELPER")
 	if id == "" {
 		t.Skip("owned test service helper")
 	}
@@ -65,7 +65,7 @@ func TestMemoryPressureReliefHelper(t *testing.T) {
 		t.Fatalf("resource domain: %v", err)
 	}
 	defer domain.root.Close()
-	if os.Getenv("SYNON_TEST_PRESSURE_MODE") == "supervisor" {
+	if os.Getenv("X_SCIENCE_TEST_PRESSURE_MODE") == "supervisor" {
 		testRealPressureSupervisor(t, domain)
 		return
 	}

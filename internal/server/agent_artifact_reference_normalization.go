@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"synon-go/internal/runtimecontrol"
+	"x-science/internal/runtimecontrol"
 )
 
 var agentSavedArtifactReferencePattern = regexp.MustCompile(
@@ -121,7 +121,7 @@ func (s *Server) normalizeAgentSavedArtifactReferences(
 	if _, err := snapshot.Seek(0, io.SeekStart); err != nil {
 		return false, err
 	}
-	normalized, err := os.CreateTemp(filepath.Dir(snapshot.Name()), "synon-artifact-links-*")
+	normalized, err := os.CreateTemp(filepath.Dir(snapshot.Name()), "x-science-artifact-links-*")
 	if err != nil {
 		return false, err
 	}

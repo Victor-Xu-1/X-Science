@@ -10,7 +10,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"synon-go/internal/persistence/workspace"
+	"x-science/internal/persistence/workspace"
 )
 
 var ErrAlreadyRunning = errors.New("routine scheduler is already running")

@@ -3,7 +3,7 @@ package server
 import (
 	"net/http"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func (s *Server) handleWorkspaceFrameArtifacts(w http.ResponseWriter, r *http.Request, store *workspace.Store, rootFrameID string) {

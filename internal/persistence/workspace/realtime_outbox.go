@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	"synon-go/internal/realtime"
+	"x-science/internal/realtime"
 )
 
 const (

@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"strings"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 // CommitKernelLocalOperationProtocolReceiptTx binds one terminal native tool

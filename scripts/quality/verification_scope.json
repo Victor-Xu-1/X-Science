@@ -1,6 +1,542 @@
 {
-  "schema": "synon.verification-scope.v1",
+  "schema": "x-science.verification-scope.v1",
   "groups": [
+    {
+      "name": "core-policy-and-release-validation",
+      "paths": [
+        "scripts/quality/product_identity_gate.py",
+        "scripts/quality/release_candidate_manifest.py",
+        "scripts/quality/test_release_candidate_manifest.py",
+        "scripts/quality/release_receipt_gate.py",
+        "scripts/quality/test_release_receipt_gate.py",
+        "docs/governance/release-policy.json"
+      ],
+      "frontend": false,
+      "checks": [
+        [
+          "python3",
+          "-B",
+          "-m",
+          "unittest",
+          "scripts.quality.test_product_identity_gate",
+          "scripts.quality.test_release_candidate_manifest",
+          "scripts.quality.test_release_receipt_gate"
+        ]
+      ]
+    },
+    {
+      "name": "module-and-harness-topology",
+      "paths": [
+        "docs/governance/module-topology.json",
+        "docs/governance/harness-architecture.json",
+        "scripts/quality/module_topology_gate.py",
+        "scripts/quality/test_module_topology_gate.py"
+      ],
+      "packages": [
+        "x-science/internal/toolgateway",
+        "x-science/internal/sessionrunner"
+      ],
+      "frontend": false,
+      "checks": [
+        [
+          "python3",
+          "-B",
+          "scripts/quality/test_module_topology_gate.py"
+        ],
+        [
+          "python3",
+          "-B",
+          "scripts/quality/module_topology_gate.py",
+          "--repo",
+          "."
+        ]
+      ]
+    },
+    {
+      "name": "locked-dependency-authority",
+      "paths": [
+        "docs/governance/dependency-authority.json",
+        "scripts/quality/dependency_authority.py",
+        "scripts/quality/python_test_dependencies.py"
+      ],
+      "frontend": false,
+      "checks": [
+        [
+          "python3",
+          "-B",
+          "scripts/quality/test_dependency_authority.py"
+        ],
+        [
+          "python3",
+          "-B",
+          "scripts/quality/test_python_test_dependencies.py"
+        ]
+      ]
+    },
+    {
+      "name": "external-repository-state",
+      "paths": [
+        "scripts/quality/repository_state.py",
+        "scripts/quality/test_repository_state.py"
+      ],
+      "frontend": false,
+      "checks": [
+        [
+          "python3",
+          "-B",
+          "scripts/quality/test_repository_state.py"
+        ]
+      ]
+    },
+    {
+      "name": "full-workflow-shard-contract",
+      "paths": [
+        "scripts/quality/runtime_test_shards.py",
+        "scripts/quality/test_runtime_test_shards.py"
+      ],
+      "frontend": false,
+      "checks": [
+        [
+          "python3",
+          "-B",
+          "scripts/quality/test_runtime_test_shards.py"
+        ]
+      ]
+    },
+    {
+      "name": "clean-clone-command-contract",
+      "paths": [
+        "scripts/quality/clean_clone_gate.py",
+        "scripts/quality/test_clean_clone_gate.py",
+        "docs/governance/templates/clean-clone-command-set.json",
+        "scripts/run-clean-source-test.sh",
+        "scripts/clean-copy-build-test.sh"
+      ],
+      "packages": [
+        "x-science/cmd/x-science",
+        "x-science/scripts/smoke-live-im"
+      ],
+      "frontend": false,
+      "checks": [
+        [
+          "python3",
+          "-B",
+          "scripts/quality/test_clean_clone_gate.py"
+        ],
+        [
+          "bash",
+          "-n",
+          "scripts/run-clean-source-test.sh"
+        ],
+        [
+          "bash",
+          "-n",
+          "scripts/clean-copy-build-test.sh"
+        ]
+      ]
+    },
+    {
+      "name": "source-supervisor-and-local-hosts",
+      "paths": [
+        "scripts/dev/install-source-dev-supervisor.ps1",
+        "scripts/dev/source-dev-supervisor-test.ps1",
+        "scripts/dev/source-dev-supervisor.ps1",
+        "scripts/dev/source-frontend-host-test.sh",
+        "scripts/dev/source-frontend-host.sh",
+        "scripts/dev/source-quickstart-test.sh",
+        "scripts/dev/source-quickstart.sh",
+        "scripts/dev/source-wsl-keepalive.sh"
+      ],
+      "packages": [
+        "x-science/cmd/x-science",
+        "x-science/internal/config"
+      ],
+      "frontend": false,
+      "checks": [
+        [
+          "bash",
+          "scripts/dev/source-frontend-host-test.sh"
+        ],
+        [
+          "bash",
+          "scripts/dev/source-quickstart-test.sh"
+        ],
+        [
+          "bash",
+          "-n",
+          "scripts/dev/source-wsl-keepalive.sh"
+        ]
+      ]
+    },
+    {
+      "name": "native-package-manager-lifecycle",
+      "paths": [
+        "scripts/package-release.sh",
+        "scripts/install-release-test.sh",
+        "scripts/package-windows-release-test.sh",
+        "scripts/release-identity-policy-test.ps1",
+        "scripts/release-identity-policy.ps1",
+        "scripts/release-lifecycle-test.sh",
+        "scripts/release-p8-gate.sh",
+        "scripts/release-test-environment.ps1",
+        "scripts/release-windows-environment-test.ps1",
+        "scripts/release-windows-test.ps1"
+      ],
+      "packages": [
+        "x-science/internal/releasepkg",
+        "x-science/cmd/x-science"
+      ],
+      "frontend": false,
+      "checks": [
+        [
+          "bash",
+          "-n",
+          "scripts/package-release.sh"
+        ],
+        [
+          "bash",
+          "-n",
+          "scripts/install-release-test.sh"
+        ],
+        [
+          "bash",
+          "-n",
+          "scripts/release-lifecycle-test.sh"
+        ],
+        [
+          "bash",
+          "-n",
+          "scripts/release-p8-gate.sh"
+        ],
+        [
+          "bash",
+          "-n",
+          "scripts/package-windows-release-test.sh"
+        ],
+        [
+          "python3",
+          "-B",
+          "-m",
+          "unittest",
+          "scripts.packaging.test_release_package"
+        ]
+      ]
+    },
+    {
+      "name": "isolated-goal-and-harness-wrappers",
+      "paths": [
+        "scripts/audit/audit-agent-runtime-env-test.sh",
+        "scripts/audit/audit-agent-runtime-full-gates-test.sh",
+        "scripts/audit/audit-agent-runtime.sh",
+        "scripts/goal-run-doctor-gate-test.sh",
+        "scripts/goal-run-doctor-gate.sh",
+        "scripts/goal-run-startup-test.sh",
+        "scripts/goal-run-strict-config-test.sh",
+        "scripts/goal-run-strict-config.sh",
+        "scripts/env-example-test.sh"
+      ],
+      "packages": [
+        "x-science/cmd/x-science",
+        "x-science/internal/config"
+      ],
+      "frontend": false,
+      "checks": [
+        [
+          "bash",
+          "scripts/audit/audit-agent-runtime-env-test.sh"
+        ],
+        [
+          "bash",
+          "scripts/audit/audit-agent-runtime-full-gates-test.sh"
+        ],
+        [
+          "bash",
+          "scripts/goal-run-doctor-gate-test.sh"
+        ],
+        [
+          "bash",
+          "scripts/goal-run-startup-test.sh"
+        ],
+        [
+          "bash",
+          "scripts/goal-run-strict-config-test.sh"
+        ],
+        [
+          "bash",
+          "scripts/env-example-test.sh"
+        ]
+      ]
+    },
+    {
+      "name": "compatibility-scenario-inputs",
+      "paths": [
+        "scripts/compat/capture-go.sh",
+        "scripts/compat/capture-v11.sh",
+        "scripts/compat/compare-runtime.sh",
+        "docs/compatibility/scenarios/agent-profile-management.json",
+        "docs/compatibility/scenarios/annotation-core-errors.json",
+        "docs/compatibility/scenarios/artifact-content-download.json",
+        "docs/compatibility/scenarios/artifact-transfer.json",
+        "docs/compatibility/scenarios/chunk-upload-lifecycle.json",
+        "docs/compatibility/scenarios/feedback-opt-out.json",
+        "docs/compatibility/scenarios/mcp-directory-lifecycle.json",
+        "docs/compatibility/scenarios/mcp-permissions-oauth.json",
+        "docs/compatibility/scenarios/mcp-server-lifecycle.json",
+        "docs/compatibility/scenarios/reproducibility-exports.json",
+        "docs/compatibility/scenarios/system-control-feedback.json",
+        "docs/compatibility/scenarios/system-runtime-discovery.json",
+        "docs/compatibility/scenarios/trace-shallow-full-delta.json"
+      ],
+      "packages": [
+        "x-science/internal/compat/contracts",
+        "x-science/internal/compat/oracle",
+        "x-science/cmd/x-science"
+      ],
+      "frontend": false,
+      "checks": [
+        [
+          "bash",
+          "-n",
+          "scripts/compat/capture-go.sh"
+        ],
+        [
+          "bash",
+          "-n",
+          "scripts/compat/capture-v11.sh"
+        ],
+        [
+          "bash",
+          "-n",
+          "scripts/compat/compare-runtime.sh"
+        ]
+      ]
+    },
+    {
+      "name": "runtime-secret-scanner",
+      "paths": [
+        "scripts/audit/audit-secrets-test.sh",
+        "scripts/audit/audit-secrets.py"
+      ],
+      "frontend": false,
+      "checks": [
+        [
+          "bash",
+          "scripts/audit/audit-secrets-test.sh"
+        ]
+      ]
+    },
+    {
+      "name": "frontend-web-api-source-contract",
+      "paths": [
+        "scripts/audit/audit_web_api_contract.py",
+        "scripts/audit/web-api-contract-test.py",
+        "scripts/audit/frontend_source_graph.py",
+        "docs/governance/web-api-contract.json",
+        "docs/governance/web-api-required-paths.json"
+      ],
+      "packages": [
+        "x-science/internal/server"
+      ],
+      "frontend": false,
+      "checks": [
+        [
+          "python3",
+          "-B",
+          "scripts/audit/web-api-contract-test.py"
+        ],
+        [
+          "python3",
+          "-B",
+          "scripts/audit/audit_web_api_contract.py",
+          "--check"
+        ]
+      ]
+    },
+    {
+      "name": "conda-lock-generation",
+      "paths": [
+        "scripts/generate-conda-runtime-lock.mjs",
+        "scripts/generate-conda-runtime-lock.test.mjs",
+        "scripts/conda-lock-source.test.mjs"
+      ],
+      "packages": [
+        "x-science/internal/assets",
+        "x-science/internal/kernel"
+      ],
+      "frontend": false,
+      "checks": [
+        [
+          "node",
+          "--test",
+          "scripts/generate-conda-runtime-lock.test.mjs",
+          "scripts/conda-lock-source.test.mjs"
+        ]
+      ]
+    },
+    {
+      "name": "agent-catalog-generator",
+      "paths": [
+        "scripts/quality/agent_manifest.py"
+      ],
+      "packages": [
+        "x-science/internal/assets",
+        "x-science/internal/agentruntime"
+      ],
+      "frontend": false,
+      "checks": [
+        [
+          "python3",
+          "-B",
+          "scripts/quality/test_agent_manifest.py"
+        ],
+        [
+          "python3",
+          "-B",
+          "scripts/quality/agent_manifest.py",
+          "--repo",
+          ".",
+          "--check"
+        ]
+      ]
+    },
+    {
+      "name": "bio-tools-input-contracts",
+      "paths": [
+        "assets/optional/mcp-servers/bio-tools/tests/test_tls_policy.py",
+        "assets/optional/mcp-servers/bio-tools/tests/test_x_science_research_bridge.py"
+      ],
+      "packages": [
+        "x-science/internal/assets",
+        "x-science/internal/mcpdirectory",
+        "x-science/internal/tools/mcpstdio"
+      ],
+      "frontend": false,
+      "checks": [
+        [
+          "python3",
+          "-B",
+          "assets/optional/mcp-servers/bio-tools/tests/test_tls_policy.py"
+        ],
+        [
+          "python3",
+          "-B",
+          "scripts/quality/verification_scope.py",
+          "--python-syntax",
+          "assets/optional/mcp-servers/bio-tools/tests/test_x_science_research_bridge.py"
+        ]
+      ]
+    },
+    {
+      "name": "optional-websearch-security-contract",
+      "paths": [
+        "scripts/optional/test_security_boundaries.py"
+      ],
+      "packages": [
+        "x-science/internal/tools/websearch"
+      ],
+      "frontend": false,
+      "checks": [
+        [
+          "python3",
+          "-B",
+          "scripts/optional/test_security_boundaries.py"
+        ]
+      ]
+    },
+    {
+      "name": "kernel-parser-and-process-fixtures",
+      "paths": [
+        "scripts/quality/kernel_worker_process_outcomes_cases.py",
+        "scripts/quality/test_cheminfo_render.py"
+      ],
+      "packages": [
+        "x-science/internal/kernel",
+        "x-science/internal/assets"
+      ],
+      "frontend": false,
+      "checks": [
+        [
+          "python3",
+          "-B",
+          "scripts/quality/test_kernel_worker_protocol.py"
+        ],
+        [
+          "python3",
+          "-B",
+          "scripts/quality/verification_scope.py",
+          "--python-syntax",
+          "scripts/quality/test_cheminfo_render.py"
+        ]
+      ]
+    },
+    {
+      "name": "scientific-evidence-validator-not-execution",
+      "paths": [
+        "scripts/science_task_harness.py",
+        "scripts/science_task_harness_test.py",
+        "scripts/testdata/science-task-harness/drug-chemistry-human-workflow.v1.json",
+        "scripts/testdata/science-task-harness/drug-chemistry.v1.json",
+        "scripts/testdata/science-task-harness/guided-intake.v1.json",
+        "scripts/dev/testdata/kras-g12c-browser-evidence.json",
+        "scripts/dev/testdata/kras-g12c-harness-report.json",
+        "scripts/dev/testdata/kras-g12c-suite.json",
+        "scripts/dev/testdata/nlrp3-nek7-browser-evidence.json",
+        "scripts/dev/testdata/nlrp3-nek7-harness-report.json",
+        "scripts/dev/testdata/nlrp3-nek7-suite.json",
+        "scripts/dev/testdata/verification-summary.json",
+        "skills/tests/test_single_cell_analysis.py"
+      ],
+      "packages": [
+        "x-science/internal/assets",
+        "x-science/internal/skills"
+      ],
+      "frontend": false,
+      "checks": [
+        [
+          "python3",
+          "-B",
+          "scripts/science_task_harness_test.py"
+        ],
+        [
+          "python3",
+          "-B",
+          "scripts/quality/verification_scope.py",
+          "--python-syntax",
+          "skills/tests/test_single_cell_analysis.py"
+        ]
+      ]
+    },
+    {
+      "name": "readonly-runtime-diagnostic-tools",
+      "paths": [
+        "scripts/benchmark-runtime.py",
+        "scripts/stress-http.sh",
+        "scripts/audit/reference_harness_inventory.mjs"
+      ],
+      "packages": [
+        "x-science/cmd/x-science",
+        "x-science/internal/server"
+      ],
+      "frontend": false,
+      "checks": [
+        [
+          "bash",
+          "-n",
+          "scripts/stress-http.sh"
+        ],
+        [
+          "python3",
+          "-B",
+          "scripts/benchmark-runtime.py",
+          "--help"
+        ],
+        [
+          "node",
+          "--check",
+          "scripts/audit/reference_harness_inventory.mjs"
+        ]
+      ]
+    },
     {
       "name": "startup-smoke-tool-display",
       "paths": ["scripts/quality/startup_smoke_gate.py", "scripts/quality/test_startup_smoke_gate.py"],
@@ -10,7 +546,7 @@
     {
       "name": "websearch-display",
       "paths": ["scripts/optional/websearch.py"],
-      "packages": ["synon-go/internal/tools/websearch"],
+      "packages": ["x-science/internal/tools/websearch"],
       "frontend": false,
       "checks": [["python3", "-B", "scripts/optional/websearch.py", "--help"]]
     },
@@ -27,33 +563,62 @@
         "scripts/packaging/browser_extension_branding.py",
         "scripts/packaging/build_browser_extension.py",
         "scripts/packaging/test_browser_extension_branding.py",
-        "scripts/audit/audit-non-web-boundary.sh"
+        "scripts/packaging/test_connector_namespace.mjs",
+        "scripts/audit/audit-non-web-boundary.sh",
+        "scripts/audit/audit-non-web-boundary-test.sh",
+        "assets/x-science-link/source/INSTALL.html",
+        "assets/x-science-link/source/approval.html",
+        "assets/x-science-link/source/approval.js",
+        "assets/x-science-link/source/background-download-guard.test.ts",
+        "assets/x-science-link/source/background-tab-groups.test.ts",
+        "assets/x-science-link/source/background.js",
+        "assets/x-science-link/source/content-script.js",
+        "assets/x-science-link/source/icons/x-science-mark.png",
+        "assets/x-science-link/source/link-runtime.js",
+        "assets/x-science-link/source/link-runtime.test.ts",
+        "assets/x-science-link/source/local-files-database.js",
+        "assets/x-science-link/source/manifest.json",
+        "assets/x-science-link/source/options.html",
+        "assets/x-science-link/source/options.js",
+        "assets/x-science-link/source/permission-snapshot.js",
+        "assets/x-science-link/source/personalization.html",
+        "assets/x-science-link/source/personalization.js",
+        "assets/x-science-link/source/popup-ux.test.ts",
+        "assets/x-science-link/source/popup.html",
+        "assets/x-science-link/source/popup.js",
+        "assets/x-science-link/source/styles.css",
+        "assets/x-science-link/source/workspace.html",
+        "assets/x-science-link/source/workspace.js"
       ],
+      "packages": ["x-science/internal/assets", "x-science/internal/server", "x-science/cmd/x-science"],
       "frontend": false,
       "checks": [
         ["python3", "-B", "-m", "scripts.packaging.build_browser_extension", "--repo", ".", "--check", "--fetch-source"],
         ["python3", "-B", "-m", "unittest", "scripts.packaging.test_browser_extension_branding"],
+        ["node", "--test", "scripts/packaging/test_connector_namespace.mjs"],
+        ["bash", "scripts/audit/audit-non-web-boundary-test.sh"],
         ["bash", "scripts/audit/audit-non-web-boundary.sh"]
       ]
     },
     {
       "name": "example-config-display",
       "paths": [".env.example"],
-      "packages": ["synon-go/internal/config"],
+      "packages": ["x-science/internal/config"],
       "frontend": false,
       "checks": [["python3", "-B", "-m", "unittest", "scripts.quality.test_product_identity_gate"]]
     },
     {
       "name": "http-smoke-contract",
       "paths": ["scripts/smoke-http.sh"],
-      "packages": ["synon-go/cmd/synon", "synon-go/internal/server", "synon-go/internal/config"],
+      "packages": ["x-science/cmd/x-science", "x-science/internal/server", "x-science/internal/config"],
       "frontend": false,
       "checks": [["bash", "-n", "scripts/smoke-http.sh"]]
     },
     {
       "name": "current-launcher-and-installer-display",
+      "packages": ["x-science/cmd/x-science", "x-science/internal/config"],
       "paths": [
-        "scripts/dev/synon",
+        "scripts/dev/x-science",
         "scripts/dev/install-source-cli.sh",
         "scripts/dev/source-cli-test.sh",
         "scripts/backup-release.sh",
@@ -90,8 +655,8 @@
       ],
       "frontend": false,
       "packages": [
-        "synon-go/cmd/synon",
-        "synon-go/internal/config"
+        "x-science/cmd/x-science",
+        "x-science/internal/config"
       ],
       "checks": [
         ["bash", "scripts/dev/source-backend-watch-test.sh"]
@@ -175,12 +740,15 @@
       "name": "frontend-provenance",
       "paths": [
         "scripts/audit/audit_frontend_migration.py",
+        "scripts/audit/frontend_source_namespace.py",
+        "scripts/audit/test_frontend_source_namespace.py",
         "scripts/audit/audit_frontend_migration_test.py",
         "scripts/audit/audit-frontend-migration-test.py"
       ],
       "frontend": true,
       "checks": [
         ["python3", "-B", "-m", "unittest", "scripts.audit.audit_frontend_migration_test"],
+        ["python3", "-B", "scripts/audit/test_frontend_source_namespace.py"],
         ["python3", "-B", "scripts/audit/audit-frontend-migration-test.py"]
       ]
     },
@@ -199,6 +767,9 @@
         "scripts/quality/test_pr_build_scope.py",
         "scripts/quality/pr_dependency_scope.py",
         "scripts/quality/test_pr_dependency_scope.py",
+        "scripts/quality/pr_namespace_scope.py",
+        "scripts/quality/test_pr_namespace_scope.py",
+        "scripts/quality/go_namespace_equivalence.go",
         "scripts/quality/pr_test_partition.py",
         "scripts/quality/test_pr_test_partition.py",
         "scripts/quality/runtime_input_scope.py",
@@ -207,7 +778,7 @@
       ],
       "frontend": false,
       "checks": [
-        ["python3", "-B", "-m", "unittest", "scripts.quality.test_pr_fast_scope", "scripts.quality.test_pr_metadata_scope", "scripts.quality.test_pr_build_scope", "scripts.quality.test_pr_dependency_scope", "scripts.quality.test_pr_test_partition", "scripts.quality.test_verification_scope", "scripts.quality.test_runtime_input_scope"]
+        ["python3", "-B", "-m", "unittest", "scripts.quality.test_pr_fast_scope", "scripts.quality.test_pr_metadata_scope", "scripts.quality.test_pr_build_scope", "scripts.quality.test_pr_dependency_scope", "scripts.quality.test_pr_namespace_scope", "scripts.quality.test_pr_test_partition", "scripts.quality.test_verification_scope", "scripts.quality.test_runtime_input_scope"]
       ]
     },
     {

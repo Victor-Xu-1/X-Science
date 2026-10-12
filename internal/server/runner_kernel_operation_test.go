@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestAgentKernelPreflightStatusSettlesEveryNonExecutedCorrection(t *testing.T) {
@@ -166,7 +166,7 @@ func TestCheckpointSessionRunnerToolEventSettlesPendingPreflightWithoutApproval(
 	}
 	call := agentruntime.ToolCall{
 		ID: "kernel-source-preflight-call", Name: "python",
-		Arguments: json.RawMessage(`{"code":"print(1)","environment":"synon-biomed-python"}`),
+		Arguments: json.RawMessage(`{"code":"print(1)","environment":"x-science-python"}`),
 	}
 	options := SessionRunnerChatOptions{RunnerID: claimed.Claim.RunnerID}
 	if err := server.checkpointChatModelToolCalls(options, run, []agentruntime.ToolCall{call}); err != nil {
@@ -233,7 +233,7 @@ func TestCheckpointModelVisiblePreflightFailureDoesNotCreateKernelOperation(t *t
 	}
 	call := agentruntime.ToolCall{
 		ID: "rejected-kernel-call", Name: "python",
-		Arguments:               json.RawMessage(`{"code":"print(1)","environment":"synon-biomed-python"}`),
+		Arguments:               json.RawMessage(`{"code":"print(1)","environment":"x-science-python"}`),
 		RejectedBeforeExecution: true,
 	}
 	options := SessionRunnerChatOptions{RunnerID: claimed.Claim.RunnerID}
@@ -666,7 +666,7 @@ func TestCheckpointChatModelToolCallsCreatesDurableKernelOperationAtomically(t *
 		Transcript: &transcriptRunnerAuthority{Stream: stream, Claim: claimed.Claim},
 	}
 	calls := []agentruntime.ToolCall{
-		{ID: "kernel-call", Name: "python", Arguments: json.RawMessage(`{"code":"print(1)","environment":"synon-biomed-python"}`)},
+		{ID: "kernel-call", Name: "python", Arguments: json.RawMessage(`{"code":"print(1)","environment":"x-science-python"}`)},
 		{ID: "reviewer-repl-call", Name: "repl", Arguments: json.RawMessage(`{"code":"print('review')","fresh":"True","background":"false","human_description":"Checking review evidence"}`)},
 		{ID: "software-runtime-call", Name: softwareRuntimeToolName, Arguments: json.RawMessage(`{"capability":"sequence-alignment","language":"native","packages":[{"manager":"conda","spec":"minimap2"}],"executable":"minimap2","args":["--version"]}`)},
 		{ID: "invalid-software-runtime-call", Name: softwareRuntimeToolName, Arguments: json.RawMessage(`{"capability":"r-summary","language":"r","packages":[{"manager":"conda","spec":"r-jsonlite=2.0.0"}],"imports":["jsonlite"],"executable":"Rscript"}`)},
@@ -756,7 +756,7 @@ func TestCheckpointChatToolDefersPreparedKernelFailureToDurableRecovery(t *testi
 	}
 	call := agentruntime.ToolCall{
 		ID: "kernel-prestart-call", Name: "python",
-		Arguments: json.RawMessage(`{"code":"print(1)","environment":"synon-biomed-python"}`),
+		Arguments: json.RawMessage(`{"code":"print(1)","environment":"x-science-python"}`),
 	}
 	options := SessionRunnerChatOptions{RunnerID: claimed.Claim.RunnerID}
 	if err := server.checkpointChatModelToolCalls(options, run, []agentruntime.ToolCall{call}); err != nil {
@@ -777,7 +777,7 @@ func TestCheckpointChatToolDefersPreparedKernelFailureToDurableRecovery(t *testi
 		t.Fatal(err)
 	}
 	if err := server.checkpointChatTool(options, run, "running", "tool python started", call.ID, "start", map[string]any{
-		"toolName": "python", "toolInput": map[string]any{"code": "print(1)", "environment": "synon-biomed-python"},
+		"toolName": "python", "toolInput": map[string]any{"code": "print(1)", "environment": "x-science-python"},
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -858,7 +858,7 @@ func TestResumePendingKernelToolBatchPreparedOperationInterruptsForDurableRecove
 	}
 	call := agentruntime.ToolCall{
 		ID: "kernel-prepared-resume-call", Name: "python",
-		Arguments: json.RawMessage(`{"code":"print(1)","environment":"synon-biomed-python"}`),
+		Arguments: json.RawMessage(`{"code":"print(1)","environment":"x-science-python"}`),
 	}
 	firstOptions := SessionRunnerChatOptions{RunnerID: first.Claim.RunnerID}
 	if err := server.checkpointChatModelToolCalls(firstOptions, run, []agentruntime.ToolCall{call}); err != nil {
@@ -879,7 +879,7 @@ func TestResumePendingKernelToolBatchPreparedOperationInterruptsForDurableRecove
 		t.Fatal(err)
 	}
 	if err := server.checkpointChatTool(firstOptions, run, "running", "tool python started", call.ID, "start", map[string]any{
-		"toolName": "python", "toolInput": map[string]any{"code": "print(1)", "environment": "synon-biomed-python"},
+		"toolName": "python", "toolInput": map[string]any{"code": "print(1)", "environment": "x-science-python"},
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -983,7 +983,7 @@ func TestCompatibilityResolveKernelOperationApprovalSurvivesWithoutProcessWaiter
 	if err := server.checkpointChatModelToolCalls(SessionRunnerChatOptions{RunnerID: "kernel-approval-runner"}, run,
 		[]agentruntime.ToolCall{{
 			ID: "kernel-approval-call", Name: "python",
-			Arguments: json.RawMessage(`{"code":"print(1)","environment":"synon-biomed-python"}`),
+			Arguments: json.RawMessage(`{"code":"print(1)","environment":"x-science-python"}`),
 		}}); err != nil {
 		t.Fatal(err)
 	}
@@ -996,12 +996,12 @@ func TestCompatibilityResolveKernelOperationApprovalSurvivesWithoutProcessWaiter
 	if err != nil || !found {
 		t.Fatalf("access=%#v found=%t err=%v", access, found, err)
 	}
-	toolInput := map[string]any{"code": "print(1)", "environment": "synon-biomed-python"}
+	toolInput := map[string]any{"code": "print(1)", "environment": "x-science-python"}
 	_, err = server.authorizeAgentKernelLocalOperation(
 		withTranscriptRunnerChatRun(context.Background(), run),
 		&agentKernelContext{access: access, workspaceDir: t.TempDir()},
 		agentruntime.ToolCall{ID: "kernel-approval-call", Name: "python"},
-		"python", toolInput, "synon-biomed-python",
+		"python", toolInput, "x-science-python",
 	)
 	var pause *agentruntime.PauseError
 	if !errors.As(err, &pause) || pause.Status != "awaiting_approval" ||
@@ -1068,7 +1068,7 @@ func TestResumePendingKernelOperationHonorsFullAccessBeforePausing(t *testing.T)
 	if _, err := store.SetFrameRuntimeMetadata("frame-kernel-full-access", workspace.FrameRuntimeMetadata{
 		FrameID: "frame-kernel-full-access",
 		ContextData: map[string]any{"web_assistant": map[string]any{
-			"id": "synonbiomed:operon", "conversation_overrides": map[string]any{"permission": "allow"},
+			"id": "xscience:operon", "conversation_overrides": map[string]any{"permission": "allow"},
 		}},
 	}); err != nil {
 		t.Fatal(err)
@@ -1096,7 +1096,7 @@ func TestResumePendingKernelOperationHonorsFullAccessBeforePausing(t *testing.T)
 	}
 	call := agentruntime.ToolCall{
 		ID: "kernel-full-access-call", Name: "python",
-		Arguments: json.RawMessage(`{"code":"print(1)","environment":"synon-biomed-python"}`),
+		Arguments: json.RawMessage(`{"code":"print(1)","environment":"x-science-python"}`),
 	}
 	options := SessionRunnerChatOptions{RunnerID: claimed.Claim.RunnerID}
 	if err := server.checkpointChatModelToolCalls(options, run, []agentruntime.ToolCall{call}); err != nil {
@@ -1117,7 +1117,7 @@ func TestResumePendingKernelOperationHonorsFullAccessBeforePausing(t *testing.T)
 		t.Fatalf("checkpoint metadata=%#v found=%t err=%v", metadata, found, err)
 	}
 	if err := server.checkpointChatTool(options, run, "running", "tool python started", call.ID, "start", map[string]any{
-		"toolName": "python", "toolInput": map[string]any{"code": "print(1)", "environment": "synon-biomed-python"},
+		"toolName": "python", "toolInput": map[string]any{"code": "print(1)", "environment": "x-science-python"},
 	}); err != nil {
 		t.Fatal(err)
 	}

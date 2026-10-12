@@ -20,9 +20,9 @@ describe('PlansUsageSettings', () => {
     expect(screen.getByText('剩余积分')).toBeInTheDocument();
     expect(screen.getAllByText('10,000')).toHaveLength(2);
     expect(screen.getByRole('heading', { name: '模型折算（草稿）', level: 2 })).toBeInTheDocument();
-    expect(screen.getByTestId('synon-model-rate-light')).toHaveTextContent('轻量模型');
-    expect(screen.getByTestId('synon-model-rate-standard')).toHaveTextContent('标准模型');
-    expect(screen.getByTestId('synon-model-rate-reasoning')).toHaveTextContent('高阶推理模型');
+    expect(screen.getByTestId('x-science-model-rate-light')).toHaveTextContent('轻量模型');
+    expect(screen.getByTestId('x-science-model-rate-standard')).toHaveTextContent('标准模型');
+    expect(screen.getByTestId('x-science-model-rate-reasoning')).toHaveTextContent('高阶推理模型');
     expect(screen.getByText(/积分消耗/)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '账单与发票', level: 2 })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '账单', level: 3 })).toBeInTheDocument();

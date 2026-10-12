@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestAdmitAgentComputeProviderWorkspaceMatchesManagedTaskRemap(t *testing.T) {

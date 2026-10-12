@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"synon-go/internal/agentruntime"
-	eventjournal "synon-go/internal/persistence/journal"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	"x-science/internal/agentruntime"
+	eventjournal "x-science/internal/persistence/journal"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 const runnerCorrectionClosedRouteDiagnostic = `{"code":"correction_route_closed","message":"This unchanged action already led to rejection of the current recovery condition.","recovery":"Reuse its receipt, read the complete recovery condition, or select different execution arguments or another advertised capability. A verified change to this action's material inputs permits re-evaluation; unrelated successes do not discharge the condition."}`

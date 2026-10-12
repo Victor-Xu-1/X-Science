@@ -5,17 +5,17 @@
  */
 
 /**
- * SynonAI应用程序共用常量
+ * XScience应用程序共用常量
  */
 
 // ===== 文件处理相关常量 =====
 
 /** 临时文件时间戳分隔符 */
-export const SYNON_AI_TIMESTAMP_SEPARATOR = '_synon-ai_';
+export const X_SCIENCE_TIMESTAMP_SEPARATOR = '_x-science_';
 
 /** 用于匹配和清理时间戳后缀的正则表达式 */
-export const SYNON_AI_TIMESTAMP_REGEX = /_synon-ai_\d{13}(\.\w+)?$/;
-export const SYNON_AI_FILES_MARKER = '[[SYNON_AI_FILES]]';
+export const X_SCIENCE_TIMESTAMP_REGEX = /_x-science_\d{13}(\.\w+)?$/;
+export const X_SCIENCE_FILES_MARKER = '[[X_SCIENCE_FILES]]';
 
 // ===== 媒体类型相关常量 =====
 
@@ -54,6 +54,6 @@ export const DEFAULT_IMAGE_EXTENSION = '.png';
 /** WebUI default port: 25808 for production, 25809 for development, 25810 for multi-instance dev */
 export const WEBUI_DEFAULT_PORT = (() => {
   if (process.env.NODE_ENV === 'production') return 25808;
-  if (process.env.SYNON_AI_MULTI_INSTANCE === '1') return 25810;
+  if (process.env.X_SCIENCE_MULTI_INSTANCE === '1') return 25810;
   return 25809;
 })();

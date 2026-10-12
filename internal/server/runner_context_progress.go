@@ -8,7 +8,7 @@ import (
 	"time"
 	"unicode"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 // Optional numeric projection: existing request/provider counters keep their

@@ -6,12 +6,12 @@ const mocks = vi.hoisted(() => ({
   resolveAskUser: vi.fn(),
 }));
 
-vi.mock('@/renderer/services/synonBiomedHttp', () => ({
-  requestSynonBiomedJson: mocks.requestJson,
+vi.mock('@/renderer/services/xScienceHttp', () => ({
+  requestXScienceJson: mocks.requestJson,
 }));
-vi.mock('@/renderer/services/synonBiomedRuntimeOperations', () => ({
-  loadSynonBiomedRuntimeSnapshot: mocks.loadSnapshot,
-  resolveSynonBiomedAskUserRequest: mocks.resolveAskUser,
+vi.mock('@/renderer/services/xScienceRuntimeOperations', () => ({
+  loadXScienceRuntimeSnapshot: mocks.loadSnapshot,
+  resolveXScienceAskUserRequest: mocks.resolveAskUser,
 }));
 
 import {

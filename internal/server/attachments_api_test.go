@@ -17,7 +17,7 @@ import (
 	"sync"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestAttachmentStoreErrorReportsInsufficientStorage(t *testing.T) {
@@ -49,7 +49,7 @@ func TestBaselineAttachmentUploadMetadataAndRangeDownload(t *testing.T) {
 	}
 	app := New(Options{Workspace: store}).Handler()
 	notMultipartRequest := newLoopbackTestRequest(http.MethodPost, "/api/projects/project-1/attachments", nil)
-	notMultipartRequest.Header.Set("X-Synon-User-Id", "user-1")
+	notMultipartRequest.Header.Set("X-Science-User-Id", "user-1")
 	notMultipart := httptest.NewRecorder()
 	app.ServeHTTP(notMultipart, notMultipartRequest)
 	if notMultipart.Code != http.StatusNotAcceptable || !strings.Contains(notMultipart.Body.String(), "the request is not multipart") {
@@ -59,7 +59,7 @@ func TestBaselineAttachmentUploadMetadataAndRangeDownload(t *testing.T) {
 	body, contentType := multipartAttachmentBody(t, "file", "evidence.txt", payload, nil)
 	request := newLoopbackTestRequest(http.MethodPost, "/api/projects/project-1/attachments?ephemeral=true", body)
 	request.Header.Set("Content-Type", contentType)
-	request.Header.Set("X-Synon-User-Id", "user-1")
+	request.Header.Set("X-Science-User-Id", "user-1")
 	response := httptest.NewRecorder()
 	app.ServeHTTP(response, request)
 	if response.Code != http.StatusOK {
@@ -75,7 +75,7 @@ func TestBaselineAttachmentUploadMetadataAndRangeDownload(t *testing.T) {
 	}
 
 	metadataRequest := newLoopbackTestRequest(http.MethodGet, "/api/attachments/"+attachmentID+"/metadata", nil)
-	metadataRequest.Header.Set("X-Synon-User-Id", "user-1")
+	metadataRequest.Header.Set("X-Science-User-Id", "user-1")
 	metadata := httptest.NewRecorder()
 	app.ServeHTTP(metadata, metadataRequest)
 	expectedDigest := sha256.Sum256(payload)
@@ -85,14 +85,14 @@ func TestBaselineAttachmentUploadMetadataAndRangeDownload(t *testing.T) {
 	}
 
 	foreignRequest := newLoopbackTestRequest(http.MethodGet, "/api/attachments/"+attachmentID+"/metadata", nil)
-	foreignRequest.Header.Set("X-Synon-User-Id", "user-2")
+	foreignRequest.Header.Set("X-Science-User-Id", "user-2")
 	foreign := httptest.NewRecorder()
 	app.ServeHTTP(foreign, foreignRequest)
 	if foreign.Code != http.StatusNotFound {
 		t.Fatalf("cross-user metadata = %d: %s", foreign.Code, foreign.Body.String())
 	}
 	missingRequest := newLoopbackTestRequest(http.MethodGet, "/api/attachments/missing-attachment/metadata", nil)
-	missingRequest.Header.Set("X-Synon-User-Id", "user-1")
+	missingRequest.Header.Set("X-Science-User-Id", "user-1")
 	missing := httptest.NewRecorder()
 	app.ServeHTTP(missing, missingRequest)
 	if missing.Code != http.StatusNotFound || !strings.Contains(missing.Body.String(), "Attachment missing-attachment not found") {
@@ -100,7 +100,7 @@ func TestBaselineAttachmentUploadMetadataAndRangeDownload(t *testing.T) {
 	}
 
 	downloadRequest := newLoopbackTestRequest(http.MethodGet, "/api/attachments/"+attachmentID, nil)
-	downloadRequest.Header.Set("X-Synon-User-Id", "user-1")
+	downloadRequest.Header.Set("X-Science-User-Id", "user-1")
 	downloadRequest.Header.Set("Range", "bytes=11-15")
 	download := httptest.NewRecorder()
 	app.ServeHTTP(download, downloadRequest)
@@ -127,7 +127,7 @@ func TestAttachmentUploadRejectsForeignProjectBeforeMultipartParsing(t *testing.
 	app := New(Options{Workspace: store}).Handler()
 	request := newLoopbackTestRequest(http.MethodPost, "/api/projects/private-project/attachments", strings.NewReader("not multipart"))
 	request.Header.Set("Content-Type", "text/plain")
-	request.Header.Set("X-Synon-User-Id", "owner-b")
+	request.Header.Set("X-Science-User-Id", "owner-b")
 	response := httptest.NewRecorder()
 	app.ServeHTTP(response, request)
 	if response.Code != http.StatusNotFound || !strings.Contains(response.Body.String(), "project not found") {
@@ -151,7 +151,7 @@ func TestBaselineChunkedAttachmentUploadLifecycle(t *testing.T) {
 	initBody := bytes.NewBufferString(fmt.Sprintf(`{"project_id":"project-1","filename":"large.bin","total_size":%d,"content_type":"application/octet-stream","chunk_size":%d}`, len(payload), chunkSize))
 	initRequest := newLoopbackTestRequest(http.MethodPost, "/api/artifacts/upload/init", initBody)
 	initRequest.Header.Set("Content-Type", "application/json")
-	initRequest.Header.Set("X-Synon-User-Id", "user-1")
+	initRequest.Header.Set("X-Science-User-Id", "user-1")
 	initialized := httptest.NewRecorder()
 	app.ServeHTTP(initialized, initRequest)
 	if initialized.Code != http.StatusOK {
@@ -171,7 +171,7 @@ func TestBaselineChunkedAttachmentUploadLifecycle(t *testing.T) {
 		body, contentType := multipartAttachmentBody(t, "chunk", "chunk.bin", chunk, fields)
 		request := newLoopbackTestRequest(http.MethodPost, "/api/artifacts/upload/chunk", body)
 		request.Header.Set("Content-Type", contentType)
-		request.Header.Set("X-Synon-User-Id", "user-1")
+		request.Header.Set("X-Science-User-Id", "user-1")
 		response := httptest.NewRecorder()
 		app.ServeHTTP(response, request)
 		if response.Code != http.StatusOK {
@@ -186,7 +186,7 @@ func TestBaselineChunkedAttachmentUploadLifecycle(t *testing.T) {
 		}
 	}
 	statusRequest := newLoopbackTestRequest(http.MethodGet, "/api/artifacts/upload/status/"+uploadID, nil)
-	statusRequest.Header.Set("X-Synon-User-Id", "user-1")
+	statusRequest.Header.Set("X-Science-User-Id", "user-1")
 	status := httptest.NewRecorder()
 	app.ServeHTTP(status, statusRequest)
 	if status.Code != http.StatusOK {
@@ -205,7 +205,7 @@ func TestBaselineChunkedAttachmentUploadLifecycle(t *testing.T) {
 		<-start
 		request := newLoopbackTestRequest(http.MethodPost,
 			"/api/artifacts/upload/finalize?upload_id="+uploadID+"&checksum="+hex.EncodeToString(digest[:]), nil)
-		request.Header.Set("X-Synon-User-Id", "user-1")
+		request.Header.Set("X-Science-User-Id", "user-1")
 		request.Header.Set("Idempotency-Key", "attachment-finalize-http-retry")
 		response := httptest.NewRecorder()
 		app.ServeHTTP(response, request)
@@ -253,7 +253,7 @@ func TestBaselineChunkedAttachmentUploadLifecycle(t *testing.T) {
 	}
 	conflictRequest := newLoopbackTestRequest(http.MethodPost,
 		"/api/artifacts/upload/finalize?upload_id="+uploadID+"&checksum="+strings.Repeat("0", 64), nil)
-	conflictRequest.Header.Set("X-Synon-User-Id", "user-1")
+	conflictRequest.Header.Set("X-Science-User-Id", "user-1")
 	conflictRequest.Header.Set("Idempotency-Key", "attachment-finalize-http-retry")
 	conflict := httptest.NewRecorder()
 	app.ServeHTTP(conflict, conflictRequest)
@@ -261,7 +261,7 @@ func TestBaselineChunkedAttachmentUploadLifecycle(t *testing.T) {
 		t.Fatalf("finalize changed retry = %d: %s", conflict.Code, conflict.Body.String())
 	}
 	downloadRequest := newLoopbackTestRequest(http.MethodGet, "/api/artifacts/"+artifactID, nil)
-	downloadRequest.Header.Set("X-Synon-User-Id", "user-1")
+	downloadRequest.Header.Set("X-Science-User-Id", "user-1")
 	download := httptest.NewRecorder()
 	app.ServeHTTP(download, downloadRequest)
 	if download.Code != http.StatusOK || !bytes.Equal(download.Body.Bytes(), payload) {
@@ -275,9 +275,9 @@ func TestBaselineChunkedAttachmentUploadLifecycle(t *testing.T) {
 		`{"project_id":"project-1","filename":"cancel.bin","total_size":%d,"chunk_size":%d}`, chunkSize, chunkSize,
 	)))
 	cancelInit.Header.Set("Content-Type", "application/json")
-	cancelInit.Header.Set("X-Synon-User-Id", "user-1")
+	cancelInit.Header.Set("X-Science-User-Id", "user-1")
 	duplicateRequest := newLoopbackTestRequest(http.MethodGet, "/api/attachments/"+artifactID+"/metadata", nil)
-	duplicateRequest.Header.Set("X-Synon-User-Id", "user-1")
+	duplicateRequest.Header.Set("X-Science-User-Id", "user-1")
 	duplicate := httptest.NewRecorder()
 	app.ServeHTTP(duplicate, duplicateRequest)
 	if duplicate.Code != http.StatusNotFound {
@@ -295,7 +295,7 @@ func TestBaselineChunkedAttachmentUploadLifecycle(t *testing.T) {
 	}
 	cancelID, _ := cancelState["upload_id"].(string)
 	cancelRequest := newLoopbackTestRequest(http.MethodDelete, "/api/artifacts/upload/"+cancelID, nil)
-	cancelRequest.Header.Set("X-Synon-User-Id", "user-1")
+	cancelRequest.Header.Set("X-Science-User-Id", "user-1")
 	cancelled := httptest.NewRecorder()
 	app.ServeHTTP(cancelled, cancelRequest)
 	if cancelled.Code != http.StatusOK || cancelled.Body.String() != fmt.Sprintf("{\"message\":\"Upload %s cancelled\"}\n", cancelID) {

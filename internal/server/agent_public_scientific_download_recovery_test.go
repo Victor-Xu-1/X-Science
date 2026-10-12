@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/tools/securefetch"
+	"x-science/internal/tools/securefetch"
 )
 
 func TestPublicDownloadRetainedProgressDoesNotExhaustLifetimeRetries(t *testing.T) {

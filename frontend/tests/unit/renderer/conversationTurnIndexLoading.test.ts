@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { loadConversationMessagePage } from '@/renderer/utils/chat/messagePagination';
-import { getSynonBiomedBranchSelectionRevision } from '@/renderer/services/synonBiomedConversationBranches';
+import { getXScienceBranchSelectionRevision } from '@/renderer/services/xScienceConversationBranches';
 import {
   loadConversationTurnIndex,
   mergeLiveTurnPreviews,
@@ -8,11 +8,11 @@ import {
 import { buildTurnPreview } from '@/renderer/pages/conversation/components/ConversationTitleMinimap/minimapUtils';
 import type { TMessage } from '@/common/chat/chatLib';
 vi.mock('@/renderer/utils/chat/messagePagination', () => ({ loadConversationMessagePage: vi.fn() }));
-vi.mock('@/renderer/services/synonBiomedConversationBranches', () => ({
-  getSynonBiomedBranchSelectionRevision: vi.fn(),
+vi.mock('@/renderer/services/xScienceConversationBranches', () => ({
+  getXScienceBranchSelectionRevision: vi.fn(),
 }));
 const load = vi.mocked(loadConversationMessagePage);
-const revision = vi.mocked(getSynonBiomedBranchSelectionRevision);
+const revision = vi.mocked(getXScienceBranchSelectionRevision);
 const message = (id: string, position: 'left' | 'right' = 'right', content = id): TMessage => ({
   id,
   conversation_id: 'c',

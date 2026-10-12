@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 const (
 	notificationsV28PreflightIdentity = "canonical-transcript-v27-notifications-empty-v1"
-	notificationsV28RuleSpec          = "synon.workspace.notifications.v28"
+	notificationsV28RuleSpec          = "x-science.workspace.notifications.v28"
 )
 
 var notificationV28ObjectNames = []string{

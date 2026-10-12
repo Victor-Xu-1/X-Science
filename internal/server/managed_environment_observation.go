@@ -9,9 +9,9 @@ import (
 
 	"github.com/google/uuid"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/toolprogress"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/toolprogress"
 )
 
 func (s *Server) recoverManagedEnvironmentObservations() {
@@ -35,7 +35,7 @@ func (s *Server) recoverManagedEnvironmentObservations() {
 				log.Printf("resolve recovered operation stream: %v", err)
 				continue
 			}
-			id := uuid.NewSHA1(uuid.NameSpaceOID, []byte("synon-environment:"+stream.FrameID+":"+stringValue(payload["toolCallId"]))).String()
+			id := uuid.NewSHA1(uuid.NameSpaceOID, []byte("x-science-environment:"+stream.FrameID+":"+stringValue(payload["toolCallId"]))).String()
 			_, _, err = s.workspaceStore.CreateNotification(context.Background(), workspace.CreateNotificationInput{ID: id, SenderFrameID: stream.FrameID, RecipientFrameID: stream.FrameID, RootFrameID: stream.RootFrameID, OwnerUserID: stream.OwnerID, NotificationType: "cell_result", Payload: mapValue(payload["toolResult"])})
 			if err != nil {
 				log.Printf("persist recovered operation notification: %v", err)

@@ -8,11 +8,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestMCPUnifiedCatalogHTTPFiltersSourcesAndPersistsEnabledPerOwner(t *testing.T) {
-	t.Setenv("SYNON_BUNDLED_CONNECTOR_EXECUTABLE", "mcp-ketcher")
+	t.Setenv("X_SCIENCE_BUNDLED_CONNECTOR_EXECUTABLE", "mcp-ketcher")
 	store, err := workspace.Open(filepath.Join(t.TempDir(), "workspace.db"))
 	if err != nil {
 		t.Fatal(err)

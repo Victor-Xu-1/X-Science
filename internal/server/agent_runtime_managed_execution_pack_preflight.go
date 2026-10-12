@@ -6,11 +6,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"synon-go/internal/executionprep"
-	"synon-go/internal/sciencecapability"
+	"x-science/internal/executionprep"
+	"x-science/internal/sciencecapability"
 )
 
-const managedExecutionOutputOwnershipMarker = ".synon-execution-pack.json"
+const managedExecutionOutputOwnershipMarker = ".x-science-execution-pack.json"
 
 // agentRuntimeManagedExecutionOutputMutationPreflight prevents a host file
 // editor from changing an execution-pack-owned output after promotion. The

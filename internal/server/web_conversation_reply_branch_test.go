@@ -15,10 +15,10 @@ import (
 	"testing"
 	"time"
 
-	runtimekv "synon-go/internal/persistence/runtimekv"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/providers"
+	runtimekv "x-science/internal/persistence/runtimekv"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/providers"
 )
 
 func TestWebConversationCloneCompletedReplyBoundary(t *testing.T) {
@@ -207,7 +207,7 @@ func TestWebReplyBranchInactivePrefixAndConcurrentRetry(t *testing.T) {
 // Opt-in real browser integration: temporary SQLite, real HTTP API, production
 // frontend components. Never connects to an existing user conversation.
 func TestWebReplyBranchBrowser(t *testing.T) {
-	if os.Getenv("SYNON_REPLY_BRANCH_BROWSER") != "1" {
+	if os.Getenv("X_SCIENCE_REPLY_BRANCH_BROWSER") != "1" {
 		t.Skip("enable controlled browser integration")
 	}
 	for _, inactive := range []bool{false, true} {
@@ -258,7 +258,7 @@ func testWebReplyBranchBrowser(t *testing.T, inactive bool) {
 		finishRoundPresentation(t, f, "completed")
 	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		r.Header.Set("X-Synon-User-Id", f.stream.OwnerID)
+		r.Header.Set("X-Science-User-Id", f.stream.OwnerID)
 		f.server.Handler().ServeHTTP(w, r)
 	}))
 	defer server.Close()
@@ -269,7 +269,7 @@ func testWebReplyBranchBrowser(t *testing.T, inactive bool) {
 	command := exec.Command("node", "tests/web-e2e/replyBranch.browser.mjs")
 	command.Dir = frontend
 	data, _ := json.Marshal(map[string]any{"source": f.stream.FrameID, "attempt": first, "artifact": artifact, "branch": branchID})
-	command.Env = append(os.Environ(), "SYNON_BRANCH_API="+server.URL, "SYNON_BRANCH_FIXTURE="+string(data))
+	command.Env = append(os.Environ(), "X_SCIENCE_BRANCH_API="+server.URL, "X_SCIENCE_BRANCH_FIXTURE="+string(data))
 	output, err := command.CombinedOutput()
 	if err != nil {
 		t.Fatalf("browser: %v\n%s", err, output)

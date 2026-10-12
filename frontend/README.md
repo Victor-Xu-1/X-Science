@@ -42,8 +42,8 @@ npm run test:packaged
 ## Browser and backend tests · 浏览器与真实后端
 
 `test:integration:real` 和 `test:e2e:web` 会访问真实服务，部分场景会创建或修改数据。
-先准备隔离后端和专用测试账号，再显式设置 `SYNON_GO_WEB_URL`、
-`SYNON_GO_WEB_USERNAME`、`SYNON_GO_WEB_PASSWORD`；不要依赖 fixture 的默认账号。
+先准备隔离后端和专用测试账号，再显式设置 `X_SCIENCE_GO_WEB_URL`、
+`X_SCIENCE_GO_WEB_USERNAME`、`X_SCIENCE_GO_WEB_PASSWORD`；不要依赖 fixture 的默认账号。
 查看 [playwright.webui.config.ts](playwright.webui.config.ts)、
 [globalSetup.ts](tests/web-e2e/globalSetup.ts)及所选测试的前置条件。
 需要附着官方 Chrome 的场景还须配置其 CDP 与独立 profile 身份，不得接管用户现有会话。

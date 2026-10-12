@@ -77,7 +77,7 @@ class ReceiptFixture:
 
 class ReleaseReceiptGateTests(unittest.TestCase):
     def test_valid_receipt_authorizes_only_the_exact_candidate(self) -> None:
-        with tempfile.TemporaryDirectory(prefix="synon-release-receipt-") as directory:
+        with tempfile.TemporaryDirectory(prefix="x-science-release-receipt-") as directory:
             fixture = ReceiptFixture(Path(directory))
             result = receipt.verify(
                 fixture.candidate.repo,
@@ -92,7 +92,7 @@ class ReleaseReceiptGateTests(unittest.TestCase):
             self.assertNotIn("signature", result)
 
     def test_wrong_signature_and_candidate_binding_fail_closed(self) -> None:
-        with tempfile.TemporaryDirectory(prefix="synon-release-receipt-") as directory:
+        with tempfile.TemporaryDirectory(prefix="x-science-release-receipt-") as directory:
             fixture = ReceiptFixture(Path(directory))
             fixture.write(key=b"x" * 32)
             with self.assertRaisesRegex(receipt.ReceiptError, "signature_invalid"):
@@ -112,7 +112,7 @@ class ReleaseReceiptGateTests(unittest.TestCase):
             ("artifact_set_sha256", "c" * 64),
         ):
             with self.subTest(field=field), tempfile.TemporaryDirectory(
-                prefix="synon-release-receipt-"
+                prefix="x-science-release-receipt-"
             ) as directory:
                 fixture = ReceiptFixture(Path(directory))
                 fixture.payload[field] = value
@@ -136,7 +136,7 @@ class ReleaseReceiptGateTests(unittest.TestCase):
         ]
         for issued, expires in cases:
             with self.subTest(issued=issued), tempfile.TemporaryDirectory(
-                prefix="synon-release-receipt-"
+                prefix="x-science-release-receipt-"
             ) as directory:
                 fixture = ReceiptFixture(Path(directory))
                 fixture.payload["issued_at"] = issued
@@ -152,7 +152,7 @@ class ReleaseReceiptGateTests(unittest.TestCase):
                     )
 
     def test_naive_verification_clock_is_rejected(self) -> None:
-        with tempfile.TemporaryDirectory(prefix="synon-release-receipt-") as directory:
+        with tempfile.TemporaryDirectory(prefix="x-science-release-receipt-") as directory:
             fixture = ReceiptFixture(Path(directory))
             with self.assertRaisesRegex(receipt.ReceiptError, "receipt_now_invalid"):
                 receipt.validate_payload(
@@ -171,7 +171,7 @@ class ReleaseReceiptGateTests(unittest.TestCase):
         ]
         for field, value, error in cases:
             with self.subTest(field=field), tempfile.TemporaryDirectory(
-                prefix="synon-release-receipt-"
+                prefix="x-science-release-receipt-"
             ) as directory:
                 fixture = ReceiptFixture(Path(directory))
                 fixture.payload[field] = value
@@ -186,7 +186,7 @@ class ReleaseReceiptGateTests(unittest.TestCase):
                     )
 
     def test_key_permissions_location_and_link_count_are_strict(self) -> None:
-        with tempfile.TemporaryDirectory(prefix="synon-release-receipt-") as directory:
+        with tempfile.TemporaryDirectory(prefix="x-science-release-receipt-") as directory:
             fixture = ReceiptFixture(Path(directory))
             fixture.key.chmod(0o644)
             with self.assertRaisesRegex(receipt.ReceiptError, "receipt_key_invalid"):
@@ -198,7 +198,7 @@ class ReleaseReceiptGateTests(unittest.TestCase):
                     NOW,
                 )
 
-        with tempfile.TemporaryDirectory(prefix="synon-release-receipt-") as directory:
+        with tempfile.TemporaryDirectory(prefix="x-science-release-receipt-") as directory:
             fixture = ReceiptFixture(Path(directory))
             inside = fixture.candidate.repo / "authorization.key"
             inside.write_bytes(b"k" * 32)
@@ -212,7 +212,7 @@ class ReleaseReceiptGateTests(unittest.TestCase):
                     NOW,
                 )
 
-        with tempfile.TemporaryDirectory(prefix="synon-release-receipt-") as directory:
+        with tempfile.TemporaryDirectory(prefix="x-science-release-receipt-") as directory:
             fixture = ReceiptFixture(Path(directory))
             os.link(fixture.key, Path(directory) / "key-copy")
             with self.assertRaisesRegex(receipt.ReceiptError, "receipt_key_invalid"):
@@ -225,7 +225,7 @@ class ReleaseReceiptGateTests(unittest.TestCase):
                 )
 
     def test_receipt_must_be_external_regular_unique_json(self) -> None:
-        with tempfile.TemporaryDirectory(prefix="synon-release-receipt-") as directory:
+        with tempfile.TemporaryDirectory(prefix="x-science-release-receipt-") as directory:
             fixture = ReceiptFixture(Path(directory))
             inside = fixture.candidate.repo / "authorization.json"
             inside.write_bytes(fixture.receipt.read_bytes())
@@ -238,7 +238,7 @@ class ReleaseReceiptGateTests(unittest.TestCase):
                     NOW,
                 )
 
-        with tempfile.TemporaryDirectory(prefix="synon-release-receipt-") as directory:
+        with tempfile.TemporaryDirectory(prefix="x-science-release-receipt-") as directory:
             fixture = ReceiptFixture(Path(directory))
             fixture.receipt.write_text(
                 '{"schema":"one","schema":"two"}\n',

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 func (s *Server) generatedPlanExecutionToolKnown(run *sessionRunnerChatRun, name string) bool {

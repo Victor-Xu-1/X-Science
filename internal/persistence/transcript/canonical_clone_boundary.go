@@ -48,7 +48,7 @@ func scopeCanonicalCloneToReplyConn(ctx context.Context, conn *sql.Conn, source 
 	// Negative temporary ordinals avoid collisions with the UNIQUE target-event key.
 	if _, err := conn.ExecContext(ctx, `WITH numbered AS (SELECT source_key,ROW_NUMBER() OVER(ORDER BY target_event_id) AS n
 		FROM `+canonicalCloneEventTable+` WHERE target_uid=? AND keep=1)
-		UPDATE `+canonicalCloneEventTable+` SET target_event_id=-(SELECT n FROM numbered WHERE numbered.source_key=synon_clone_event_map.source_key)
+		UPDATE `+canonicalCloneEventTable+` SET target_event_id=-(SELECT n FROM numbered WHERE numbered.source_key=x_science_clone_event_map.source_key)
 		WHERE target_uid=? AND keep=1`, target.UID, target.UID); err != nil {
 		return err
 	}

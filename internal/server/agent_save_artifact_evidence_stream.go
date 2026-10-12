@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 // Citation semantics are line/record based. Retain their local scope, but never

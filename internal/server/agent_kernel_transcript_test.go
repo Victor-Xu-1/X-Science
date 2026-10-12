@@ -17,10 +17,10 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"synon-go/internal/agentruntime"
-	kernelruntime "synon-go/internal/kernel"
-	sessionstore "synon-go/internal/persistence/sessions"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	kernelruntime "x-science/internal/kernel"
+	sessionstore "x-science/internal/persistence/sessions"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestTranscriptFrameRunnerExecutesPythonWithoutLegacySession(t *testing.T) {
@@ -324,9 +324,9 @@ func TestAgentKernelProtectedPathsDoNotCreateThroughSymlinkedManagedParent(t *te
 }
 
 func TestAgentKernelExecutesRealReferenceRRuntimeAndRestartsCleanly(t *testing.T) {
-	environmentRoot := strings.TrimSpace(os.Getenv("SYNON_TEST_CLAUDE_R_ENVS"))
+	environmentRoot := strings.TrimSpace(os.Getenv("X_SCIENCE_TEST_CLAUDE_R_ENVS"))
 	if environmentRoot == "" {
-		t.Skip("SYNON_TEST_CLAUDE_R_ENVS is not configured")
+		t.Skip("X_SCIENCE_TEST_CLAUDE_R_ENVS is not configured")
 	}
 	python, err := exec.LookPath("python3")
 	if err != nil {

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/skills"
+	"x-science/internal/skills"
 )
 
 func TestNGSAnalysisRouterReusesExistingCapabilitiesAndKeepsPreflightReadOnly(t *testing.T) {
@@ -20,9 +20,9 @@ func TestNGSAnalysisRouterReusesExistingCapabilitiesAndKeepsPreflightReadOnly(t 
 		t.Fatal("locate repository root")
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
-	skillRoot := filepath.Join(repositoryRoot, "skills", "synonbiomed", "ngs-analysis-router")
+	skillRoot := filepath.Join(repositoryRoot, "skills", "x-science", "ngs-analysis-router")
 
-	manifestContent, err := os.ReadFile(filepath.Join(repositoryRoot, "assets", "synonbiomed", "skills.manifest.json"))
+	manifestContent, err := os.ReadFile(filepath.Join(repositoryRoot, "assets", "x-science", "skills.manifest.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +91,7 @@ func TestNGSAnalysisRouterReusesExistingCapabilitiesAndKeepsPreflightReadOnly(t 
 	skillText := string(skillContent)
 	for _, delegatedSkill := range []string{"parabricks", "genomics-workflow-acceleration", "single-cell-rna-analysis", "scvi-tools", "scgpt", "borzoi"} {
 		if !strings.Contains(skillText, "`"+delegatedSkill+"`") {
-			t.Errorf("existing Synon capability is not delegated through its bundled Skill: %s", delegatedSkill)
+			t.Errorf("existing XScience capability is not delegated through its bundled Skill: %s", delegatedSkill)
 		}
 	}
 	for _, marker := range []string{

@@ -6,9 +6,9 @@ repository placement. Production files are organized by stable responsibility:
 | Responsibility | Canonical source | Derived or boundary consumers |
 |---|---|---|
 | Product identity | `product-identity.json` | build info, frontend version, release metadata |
-| Biomedical Skills | `skills/synonbiomed/` | `assets/synonbiomed/skills.manifest.json`, `internal/skills/`, Skill APIs/UI |
+| Biomedical Skills | `skills/x-science/` | `assets/x-science/skills.manifest.json`, `internal/skills/`, Skill APIs/UI |
 | Core runtime Skill | `internal/skills.BuiltinRuntimeCatalog` | merged into every runtime catalog; no second `SKILL.md` copy |
-| Agent identity and capability defaults | `assets/synonbiomed/agents/` | content-addressed Agent manifest, `internal/agentruntime/`, Agent APIs/UI |
+| Agent identity and capability defaults | `assets/x-science/agents/` | content-addressed Agent manifest, `internal/agentruntime/`, Agent APIs/UI |
 | Native model-tool and service-operation schemas | `internal/tools/registry/catalog.go`, `catalog_boundaries.go` | disjoint model and service catalogs; runtime registration and execution in `registry.go`; implementations under `internal/tools/` |
 | Root Harness tool exposure | `internal/harnesscontract/` | runner snapshots and architecture inventory; dynamic MCP methods still use the MCP pool |
 | Ordered tool execution | `internal/toolgateway/` | server adapters bind model, HTTP, approved-resume and internal calls to one immutable stage order |
@@ -25,7 +25,7 @@ repository placement. Production files are organized by stable responsibility:
 | Web composer authority | `internal/server/web_composer_capabilities.go`, `web_composer_runtime_context.go` | conversation-authorized Skill/MCP identities, exact artifact versions, bounded input-file materialization and one message submission contract |
 | Frontend compute settings | `frontend/packages/desktop/src/renderer/pages/settings/components/compute/` | page composition delegates jobs, providers, provider dialogs and shared presentation primitives to independent modules |
 | Frontend model configuration | `frontend/packages/desktop/src/renderer/pages/settings/models/` | scoped provider-metadata reads, editor-opening draft ownership and shared localized presentation; the settings page composes these over the unchanged typed LLM service |
-| Frontend expert configuration | `frontend/packages/desktop/src/renderer/pages/settings/SynonBiomedExpertsSettings/` | workbench-owned reads/writes and opening identity, dedicated detail/card composition and shared searchable selected-capability presentation; raw Skill/MCP identities remain service-owned |
+| Frontend expert configuration | `frontend/packages/desktop/src/renderer/pages/settings/XScienceExpertsSettings/` | workbench-owned reads/writes and opening identity, dedicated detail/card composition and shared searchable selected-capability presentation; raw Skill/MCP identities remain service-owned |
 | Compatibility HTTP boundary | `internal/server/*_compat_*` | project/frame routing, read cursor, lifecycle, messages and projection remain thin consumed adapters over canonical Transcript and workspace authorities |
 | Persistence | `internal/persistence/` | API and runner services consume repositories rather than raw databases |
 | Message adapters | `internal/adapters/{common,feishu,wechat}` | server routes and delivery workers |

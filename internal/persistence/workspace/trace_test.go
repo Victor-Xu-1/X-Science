@@ -14,7 +14,7 @@ func TestFrameTraceSnapshotUsesDurableMonotonicRevisions(t *testing.T) {
 	if _, err := store.CreateProject(CreateProjectInput{ID: "project-1", UserID: "user-1", Name: "Project"}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := store.CreateFrame(CreateFrameInput{ID: "root", ProjectID: "project-1", AgentName: "synon", Status: "running", ConversationType: "task"}); err != nil {
+	if _, err := store.CreateFrame(CreateFrameInput{ID: "root", ProjectID: "project-1", AgentName: "xscience", Status: "running", ConversationType: "task"}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := store.CreateFrame(CreateFrameInput{ID: "child", ProjectID: "project-1", ParentFrameID: "root", AgentName: "worker", Status: "running", ConversationType: "task"}); err != nil {

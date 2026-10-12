@@ -57,7 +57,7 @@ execution log.
 The pack stages output in a unique task-local directory and promotes it only
 after validation. History and failure directories reject symbolic links,
 non-directory parents, path escape, and replacement during validation. The
-promoted directory contains the common `.synon-execution-pack.json` ownership
+promoted directory contains the common `.x-science-execution-pack.json` ownership
 marker.
 
 Host-owned execution logs bind the canonical pack command to exact file

@@ -332,7 +332,7 @@ describe('useConversationRuntimeView hydration authority', () => {
   it('reconciles a X-Science terminal notification against current backend authority', async () => {
     const initialConversation = {
       id: 'conversation-1',
-      extra: { backend: 'synonbiomed' },
+      extra: { backend: 'xscience' },
       runtime: {
         state: 'running',
         can_send_message: false,
@@ -346,7 +346,7 @@ describe('useConversationRuntimeView hydration authority', () => {
 
     mocks.getConversation.mockResolvedValueOnce({
       id: 'conversation-1',
-      extra: { backend: 'synonbiomed' },
+      extra: { backend: 'xscience' },
       runtime: {
         state: 'running',
         can_send_message: false,

@@ -5,7 +5,7 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 ROOT_DIR=$(cd "$SCRIPT_DIR/../.." && pwd)
 MODE="${1:---quick}"
 GO_BIN="${GO:-go}"
-AUDIT_DIR="${SYNON_AUDIT_DIR:-${TMPDIR:-/tmp}/synon-go-audit}"
+AUDIT_DIR="${X_SCIENCE_AUDIT_DIR:-${TMPDIR:-/tmp}/x-science-audit}"
 
 usage() {
   cat <<'USAGE'
@@ -16,7 +16,7 @@ Usage: scripts/audit/audit-agent-runtime.sh [--quick|--full]
 
 Environment:
   GO                Go executable to use. Defaults to "go".
-  SYNON_AUDIT_DIR   Directory for audit logs. Defaults to "${TMPDIR:-/tmp}/synon-go-audit".
+  X_SCIENCE_AUDIT_DIR   Directory for audit logs. Defaults to "${TMPDIR:-/tmp}/x-science-audit".
 USAGE
 }
 
@@ -71,7 +71,7 @@ else
   run bash scripts/audit/audit-source-clean-test.sh
   run bash scripts/goal-run-startup-test.sh
   run bash scripts/goal-run-strict-config-test.sh
-  run "$GO_BIN" test -count=1 ./internal/agentruntime ./internal/plugins/host ./internal/tools/mcpstdio ./internal/tools/registry ./internal/server ./cmd/synon
+  run "$GO_BIN" test -count=1 ./internal/agentruntime ./internal/plugins/host ./internal/tools/mcpstdio ./internal/tools/registry ./internal/server ./cmd/x-science
   run "$GO_BIN" test -count=1 ./...
   run bash scripts/audit/audit-source-clean.sh
   run bash scripts/package-release-test.sh

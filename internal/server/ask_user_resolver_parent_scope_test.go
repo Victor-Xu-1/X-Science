@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"synon-go/internal/sciencecapability"
-	"synon-go/internal/skills"
+	"x-science/internal/sciencecapability"
+	"x-science/internal/skills"
 )
 
 func TestAnsweredResolverRestoresOnlyCompatiblePrimaryScope(t *testing.T) {

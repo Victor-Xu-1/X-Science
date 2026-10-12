@@ -32,7 +32,7 @@ while [ "$#" -gt 0 ]; do
 done
 test -n "$prefix"
 mkdir -p "$prefix/bin"
-printf '#!/bin/sh\n[ -d "%s" ] || exit 87\necho SYNON_R_VERSION=4.5.3\n' "$prefix" > "$prefix/bin/Rscript"
+printf '#!/bin/sh\n[ -d "%s" ] || exit 87\necho X_SCIENCE_R_VERSION=4.5.3\n' "$prefix" > "$prefix/bin/Rscript"
 chmod 700 "$prefix/bin/Rscript"
 `
 	if err := os.WriteFile(config.Micromamba, []byte(installer), 0o700); err != nil {
@@ -52,7 +52,7 @@ func assertManagedRPrefixRuns(t *testing.T, manager *Manager) {
 		t.Fatal(err)
 	}
 	output, err := exec.Command(rscript, "--vanilla", "-e", "1").CombinedOutput()
-	if err != nil || strings.TrimSpace(string(output)) != "SYNON_R_VERSION=4.5.3" {
+	if err != nil || strings.TrimSpace(string(output)) != "X_SCIENCE_R_VERSION=4.5.3" {
 		t.Fatalf("Rscript at active prefix failed: output=%q err=%v", output, err)
 	}
 }
@@ -193,7 +193,7 @@ func TestManagedRReadinessRechecksAfterExpiryReplacementAndRestart(t *testing.T)
 		t.Fatal(err)
 	}
 	count := filepath.Join(t.TempDir(), "readiness-probes")
-	script := fmt.Sprintf("#!/bin/sh\n[ -d %q ] || exit 87\necho checked >> %q\necho SYNON_R_VERSION=4.5.3\n", prefix, count)
+	script := fmt.Sprintf("#!/bin/sh\n[ -d %q ] || exit 87\necho checked >> %q\necho X_SCIENCE_R_VERSION=4.5.3\n", prefix, count)
 	if err := os.WriteFile(rscript, []byte(script), 0o700); err != nil {
 		t.Fatal(err)
 	}

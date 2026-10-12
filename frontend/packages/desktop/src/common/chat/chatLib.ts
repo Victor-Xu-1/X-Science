@@ -134,7 +134,7 @@ export type CronMessageMeta = {
   triggered_at: number;
 };
 
-export type SynonBiomedMessageCoordinates = {
+export type XScienceMessageCoordinates = {
   messageIndex: number;
   blockIndex: number;
   branchId: string | null;
@@ -151,11 +151,11 @@ export type IMessageText = IMessage<
     /** Exact durable attempt identity; never inferred from msg_id prefixes. */
     assistantAttemptId?: string;
     cronMeta?: CronMessageMeta;
-    synonBiomed?: SynonBiomedMessageCoordinates;
+    xScience?: XScienceMessageCoordinates;
   }
 >;
 
-export type AgentErrorOwnership = 'synon-ai' | 'user_agent' | 'user_llm_provider' | 'unknown_upstream';
+export type AgentErrorOwnership = 'x-science' | 'user_agent' | 'user_llm_provider' | 'unknown_upstream';
 
 export type AgentErrorResolutionKind =
   | 'retry'
@@ -290,7 +290,7 @@ export type IMessageToolCall = IMessage<
       indeterminate?: boolean;
     };
     /** Immutable source coordinates for canonical Transcript history actions. */
-    synonBiomed?: SynonBiomedMessageCoordinates;
+    xScience?: XScienceMessageCoordinates;
   }
 >;
 
@@ -575,7 +575,7 @@ type RawTextMessageContent = {
   assistant_attempt_id?: unknown;
   assistantAttemptId?: unknown;
   cronMeta?: unknown;
-  synonBiomed?: unknown;
+  xScience?: unknown;
 };
 
 type NormalizeTextMessageContentOptions = {
@@ -601,9 +601,9 @@ const isCronMessageMeta = (value: unknown): value is CronMessageMeta =>
   typeof value.cron_job_name === 'string' &&
   typeof value.triggered_at === 'number';
 
-const isSynonBiomedMessageCoordinates = (
+const isXScienceMessageCoordinates = (
   value: unknown
-): value is NonNullable<IMessageText['content']['synonBiomed']> =>
+): value is NonNullable<IMessageText['content']['xScience']> =>
   isObject(value) &&
   Number.isSafeInteger(value.messageIndex) &&
   Number(value.messageIndex) >= 0 &&
@@ -617,7 +617,7 @@ const normalizeTextMessageContentObject = (
 ): IMessageText['content'] => {
   const content = typeof data.content === 'string' ? data.content : String(data.content ?? '');
   const cronMeta = isCronMessageMeta(data.cronMeta) ? data.cronMeta : undefined;
-  const synonBiomed = isSynonBiomedMessageCoordinates(data.synonBiomed) ? data.synonBiomed : undefined;
+  const xScience = isXScienceMessageCoordinates(data.xScience) ? data.xScience : undefined;
   const replace = options?.replace === true || data.replace === true;
   const rawReplaceScope = options?.replaceScope ?? data.replaceScope ?? data.replace_scope;
   const replaceScope = rawReplaceScope === 'attempt' ? rawReplaceScope : undefined;
@@ -630,7 +630,7 @@ const normalizeTextMessageContentObject = (
     ...(replaceScope ? { replaceScope } : {}),
     ...(assistantAttemptId ? { assistantAttemptId } : {}),
     ...(cronMeta ? { cronMeta } : {}),
-    ...(synonBiomed ? { synonBiomed } : {}),
+    ...(xScience ? { xScience } : {}),
   };
 };
 
@@ -669,7 +669,7 @@ export const normalizeTextMessageContent = (
 };
 
 const AGENT_ERROR_OWNERSHIPS = new Set<AgentErrorOwnership>([
-  'synon-ai',
+  'x-science',
   'user_agent',
   'user_llm_provider',
   'unknown_upstream',
@@ -1011,7 +1011,7 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
     case 'cron_trigger':
     case 'info': // Stream retry notifications and similar transient agent updates
     case 'system': // Cron system responses, ignored
-    case 'acp_model_info': // Model info updates are handled by SynonBiomedModelSelector.
+    case 'acp_model_info': // Model info updates are handled by XScienceModelSelector.
     case 'codex_model_info': // Legacy Codex model info updates
     case 'acp_context_usage': // Context usage updates, handled by AcpSendBox
     case 'request_trace': // Request trace events, logged to F12 console (not persisted)

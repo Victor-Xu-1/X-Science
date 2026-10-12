@@ -8,7 +8,7 @@
     "skills": "Run Boltz2 to generate and evaluate a protein-ligand complex",
     "tools": "Organize CRBN project result files and draft a report"
   },
-  "synonBiomedStatus": {
+  "xScienceStatus": {
     "healthy": "healthy",
     "checking": "checking",
     "offline": "offline",
@@ -24,7 +24,7 @@
     "noProject": "No Project",
     "recentLabel": "Recent",
     "chooseDifferentFolder": "Choose a different folder",
-    "synonBiomedProjects": "X-Science projects",
+    "xScienceProjects": "X-Science projects",
     "seedWorkflows": "Seed workflows"
   },
   "quickActions": {

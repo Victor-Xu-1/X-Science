@@ -8,8 +8,8 @@ import (
 	"sort"
 	"strings"
 
-	"synon-go/internal/skills"
-	"synon-go/internal/toolcontract"
+	"x-science/internal/skills"
+	"x-science/internal/toolcontract"
 )
 
 type DependencyClass string

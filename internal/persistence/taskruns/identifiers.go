@@ -39,7 +39,7 @@ func sanitizeStepID(id string) string {
 
 func validExecutorKind(kind string) bool {
 	switch kind {
-	case "system", "agent", "synonlink-browser", "manual":
+	case "system", "agent", "xsciencelink-browser", "manual":
 		return true
 	default:
 		return false
@@ -51,7 +51,7 @@ func executorScope(values []string) []string {
 	if len(cleaned) > 0 {
 		return cleaned
 	}
-	return []string{"system", "agent", "synonlink-browser", "manual"}
+	return []string{"system", "agent", "xsciencelink-browser", "manual"}
 }
 
 func compactStrings(values []string) []string {

@@ -8,7 +8,7 @@ import React from 'react';
 import { Button, Empty, Input, Select, Spin } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
 import Modal from '@/renderer/components/base/WorkbenchModal';
-import type { SynonBiomedProjectArtifact, SynonBiomedProjectFolder } from '@/renderer/services/synonBiomedGateway';
+import type { XScienceProjectArtifact, XScienceProjectFolder } from '@/renderer/services/xScienceGateway';
 import {
   ARTIFACT_ROOT_FOLDER,
   useArtifactFileActionEditor,
@@ -27,8 +27,8 @@ export function ArtifactFileActionModal({
   onCompleted,
 }: {
   action: ArtifactFileAction;
-  artifact: SynonBiomedProjectArtifact;
-  folders: SynonBiomedProjectFolder[];
+  artifact: XScienceProjectArtifact;
+  folders: XScienceProjectFolder[];
   onClose: () => void;
   onCompleted: (result: ArtifactFileActionResult) => void;
 }) {
@@ -170,7 +170,7 @@ function FolderSelect({
   disabled,
 }: {
   value: string;
-  folders: SynonBiomedProjectFolder[];
+  folders: XScienceProjectFolder[];
   onChange: (id: string) => void;
   disabled: boolean;
 }) {

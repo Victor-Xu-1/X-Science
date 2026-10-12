@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"synon-go/internal/sciencecapability"
-	"synon-go/internal/skills"
-	"synon-go/internal/toolcontract"
+	"x-science/internal/sciencecapability"
+	"x-science/internal/skills"
+	"x-science/internal/toolcontract"
 )
 
 func (g serverAgentRuntimeToolGateway) invalidAskUserSelectedImplementationCorrection(

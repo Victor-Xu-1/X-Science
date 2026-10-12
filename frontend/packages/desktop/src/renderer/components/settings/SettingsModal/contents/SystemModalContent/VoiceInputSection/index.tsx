@@ -5,7 +5,7 @@
  */
 
 import type { SpeechToTextConfig } from '@/common/types/provider/speech';
-import SynonSelect from '@/renderer/components/base/SynonSelect';
+import XScienceSelect from '@/renderer/components/base/XScienceSelect';
 import { SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT } from '@/renderer/services/SpeechToTextService';
 import { getClientBusinessSetting, setClientBusinessSetting } from '@/renderer/services/clientBusinessSettings';
 import { Divider, Form, Input, Switch } from '@arco-design/web-react';
@@ -243,12 +243,12 @@ const VoiceInputSection: React.FC<VoiceInputSectionProps> = ({ embedded = false 
 
           <Form layout='horizontal' labelAlign='left' className='space-y-12px'>
             <Form.Item label={t('settings.speechToTextSource')}>
-              <SynonSelect value={source} onChange={handleSourceChange}>
-                <SynonSelect.Option value='local'>{t('settings.speechToTextSourceLocal')}</SynonSelect.Option>
-                <SynonSelect.Option value='openai'>{t('settings.speechToTextSourceOpenAI')}</SynonSelect.Option>
-                <SynonSelect.Option value='deepgram'>{t('settings.speechToTextSourceDeepgram')}</SynonSelect.Option>
-                <SynonSelect.Option value='custom'>{t('settings.speechToTextSourceCustom')}</SynonSelect.Option>
-              </SynonSelect>
+              <XScienceSelect value={source} onChange={handleSourceChange}>
+                <XScienceSelect.Option value='local'>{t('settings.speechToTextSourceLocal')}</XScienceSelect.Option>
+                <XScienceSelect.Option value='openai'>{t('settings.speechToTextSourceOpenAI')}</XScienceSelect.Option>
+                <XScienceSelect.Option value='deepgram'>{t('settings.speechToTextSourceDeepgram')}</XScienceSelect.Option>
+                <XScienceSelect.Option value='custom'>{t('settings.speechToTextSourceCustom')}</XScienceSelect.Option>
+              </XScienceSelect>
             </Form.Item>
 
             {isLocal && <div className='text-13px text-t-secondary'>{t('settings.speechToTextLocalInfo')}</div>}
@@ -278,7 +278,7 @@ const VoiceInputSection: React.FC<VoiceInputSectionProps> = ({ embedded = false 
             )}
 
             <Form.Item label={t('settings.speechToTextModel')}>
-              <SynonSelect
+              <XScienceSelect
                 value={activeModel || undefined}
                 onChange={handleModelChange}
                 allowCreate={isCustom && !isLocal}
@@ -287,23 +287,23 @@ const VoiceInputSection: React.FC<VoiceInputSectionProps> = ({ embedded = false 
               >
                 {buildModelOptions(modelPresets, activeModel).map((model) => {
                   return (
-                    <SynonSelect.Option key={model} value={model}>
+                    <XScienceSelect.Option key={model} value={model}>
                       {model}
                       <span className='text-12px text-t-tertiary ml-8px'>{t('settings.speechToTextWholeBadge')}</span>
-                    </SynonSelect.Option>
+                    </XScienceSelect.Option>
                   );
                 })}
-              </SynonSelect>
+              </XScienceSelect>
             </Form.Item>
 
             <Form.Item label={t('settings.speechToTextLanguage')}>
-              <SynonSelect value={activeLanguage} onChange={handleLanguageChange}>
+              <XScienceSelect value={activeLanguage} onChange={handleLanguageChange}>
                 {SPEECH_LANGUAGE_OPTIONS.map((option) => (
-                  <SynonSelect.Option key={option.value || 'auto'} value={option.value}>
+                  <XScienceSelect.Option key={option.value || 'auto'} value={option.value}>
                     {option.label ?? t('settings.speechToTextLanguageAuto')}
-                  </SynonSelect.Option>
+                  </XScienceSelect.Option>
                 ))}
-              </SynonSelect>
+              </XScienceSelect>
             </Form.Item>
           </Form>
           <SpeechTestPanel config={config} source={source} />

@@ -15,10 +15,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"synon-go/internal/mcpdirectory"
-	secretstore "synon-go/internal/persistence/secrets"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/tools/mcpstdio"
+	"x-science/internal/mcpdirectory"
+	secretstore "x-science/internal/persistence/secrets"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/tools/mcpstdio"
 )
 
 const (

@@ -14,7 +14,7 @@ vi.mock('@/common', () => ({
   ipcBridge: {},
 }));
 
-vi.mock('@/renderer/hooks/synonBiomed/runtime/usePresetAssistantInfo', () => ({
+vi.mock('@/renderer/hooks/xScience/runtime/usePresetAssistantInfo', () => ({
   usePresetAssistantInfo: () => ({
     info: {
       assistantId: 'assistant-test',
@@ -48,7 +48,7 @@ vi.mock('@/renderer/pages/conversation/utils/conversationCreateError', () => ({
 }));
 
 vi.mock('@/renderer/pages/conversation/utils/conversationAssistantIdentity', () => ({
-  resolveConversationBackend: () => 'synonbiomed',
+  resolveConversationBackend: () => 'xscience',
 }));
 
 import ChatConversation from '@/renderer/pages/conversation/components/ChatConversation';
@@ -58,7 +58,7 @@ const conversation = {
   name: '测试会话',
   type: 'acp',
   extra: {
-    workspace: 'synonbiomed://workspace-test',
+    workspace: 'x-science://workspace-test',
   },
 } as TChatConversation;
 

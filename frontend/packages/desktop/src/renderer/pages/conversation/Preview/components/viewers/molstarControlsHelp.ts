@@ -51,7 +51,7 @@ const MOLSTAR_CONTROL_DESCRIPTORS: readonly MolstarControlDescriptor[] = [
   { id: 'selectionMode', titles: ['Toggle Selection Mode'] },
 ];
 
-const MOLSTAR_CONTROL_HELP_ATTRIBUTE = 'data-synon-molstar-control';
+const MOLSTAR_CONTROL_HELP_ATTRIBUTE = 'data-x-science-molstar-control';
 
 function normalizeControlText(value: string | null | undefined): string {
   return value?.replace(/\s+/g, ' ').trim().toLowerCase() ?? '';
@@ -97,6 +97,6 @@ export function annotateMolstarControls(host: HTMLElement, describe: (id: Molsta
     button.setAttribute(MOLSTAR_CONTROL_HELP_ATTRIBUTE, controlId);
     button.setAttribute('title', description);
     button.setAttribute('aria-label', description);
-    button.setAttribute('data-synon-molstar-help', description);
+    button.setAttribute('data-x-science-molstar-help', description);
   });
 }

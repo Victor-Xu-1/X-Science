@@ -129,7 +129,7 @@ func completeEvidenceManifest(t *testing.T, root string) Manifest {
 	baselinePath := filepath.Join(root, "captures", "baseline.json")
 	candidatePath := filepath.Join(root, "captures", "candidate.json")
 	writeCapture(t, baselinePath, "{\"runtime\":\"v1.1\",\"status\":\"ok\"}\n")
-	writeCapture(t, candidatePath, "{\"runtime\":\"synon-go\",\"status\":\"ok\"}\n")
+	writeCapture(t, candidatePath, "{\"runtime\":\"x-science\",\"status\":\"ok\"}\n")
 	baselineHash := fileHash(t, baselinePath)
 	candidateHash := fileHash(t, candidatePath)
 
@@ -154,13 +154,13 @@ func completeEvidenceManifest(t *testing.T, root string) Manifest {
 			BaselineCapture: CaptureRef{
 				Artifact:   "captures/baseline.json",
 				SHA256:     baselineHash,
-				Runtime:    "synonbiomed-v1.1",
+				Runtime:    "xscience-v1.1",
 				CapturedAt: "2026-07-11T00:00:00Z",
 			},
 			CandidateCapture: CaptureRef{
 				Artifact:   "captures/candidate.json",
 				SHA256:     candidateHash,
-				Runtime:    "synon-go-v4.0.2",
+				Runtime:    "x-science-v4.0.2",
 				CapturedAt: "2026-07-11T00:00:01Z",
 			},
 		}

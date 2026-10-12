@@ -54,7 +54,7 @@ func currentCondaSubdir() string {
 }
 
 // ManagedScientificRuntimePlatformSupported reports whether the current
-// process can consume one of the native runtime bundles shipped by Synon.
+// process can consume one of the native runtime bundles shipped by XScience.
 // Unsupported targets remain explicit instead of silently reusing a foreign
 // lock or an incompatible interpreter layout.
 func ManagedScientificRuntimePlatformSupported() bool {
@@ -78,21 +78,21 @@ func managedRuntimePlatformForCurrentHost() (managedRuntimePlatform, error) {
 }
 
 func managedRuntimeStateHome() string {
-	if configured := strings.TrimSpace(os.Getenv("SYNON_HOME")); configured != "" {
+	if configured := strings.TrimSpace(os.Getenv("X_SCIENCE_HOME")); configured != "" {
 		return filepath.Clean(configured)
 	}
 	if runtime.GOOS == "windows" {
 		if home, err := os.UserHomeDir(); err == nil && strings.TrimSpace(home) != "" {
-			return filepath.Join(home, ".synon-go")
+			return filepath.Join(home, ".x-science")
 		}
 	}
 	if home := strings.TrimSpace(os.Getenv("HOME")); home != "" {
-		return filepath.Join(home, ".synon-go")
+		return filepath.Join(home, ".x-science")
 	}
 	if home, err := os.UserHomeDir(); err == nil && strings.TrimSpace(home) != "" {
-		return filepath.Join(home, ".synon-go")
+		return filepath.Join(home, ".x-science")
 	}
-	return ".synon-go"
+	return ".x-science"
 }
 
 func managedRuntimeExecutableDirectories(prefix string) []string {

@@ -8,7 +8,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Net.Http
 . (Join-Path $PSScriptRoot 'release-test-environment.ps1')
-$root = Join-Path ([System.IO.Path]::GetTempPath()) ('synon-go-windows-release-test-' + [Guid]::NewGuid().ToString('N'))
+$root = Join-Path ([System.IO.Path]::GetTempPath()) ('x-science-windows-release-test-' + [Guid]::NewGuid().ToString('N'))
 $install = Join-Path $root 'install'
 $backup = Join-Path $root 'backup'
 $data = Join-Path $root 'user-data'
@@ -81,18 +81,18 @@ function Test-NativeRuntimeWithoutLanguageTools {
   $stderr = Join-Path $Root 'native-runtime.stderr.log'
   $saved = @{
     PATH = $env:PATH
-    SYNON_HOME = $env:SYNON_HOME
-    SYNON_ADDRESS = $env:SYNON_ADDRESS
-    SYNON_RUNNER_ENABLED = $env:SYNON_RUNNER_ENABLED
-    SYNON_ENABLED_ADAPTERS = $env:SYNON_ENABLED_ADAPTERS
+    X_SCIENCE_HOME = $env:X_SCIENCE_HOME
+    X_SCIENCE_ADDRESS = $env:X_SCIENCE_ADDRESS
+    X_SCIENCE_RUNNER_ENABLED = $env:X_SCIENCE_RUNNER_ENABLED
+    X_SCIENCE_ENABLED_ADAPTERS = $env:X_SCIENCE_ENABLED_ADAPTERS
   }
   $process = $null
   try {
     $env:PATH = $emptyPath
-    $env:SYNON_HOME = $runtimeHome
-    $env:SYNON_ADDRESS = "127.0.0.1:$port"
-    $env:SYNON_RUNNER_ENABLED = 'false'
-    $env:SYNON_ENABLED_ADAPTERS = ''
+    $env:X_SCIENCE_HOME = $runtimeHome
+    $env:X_SCIENCE_ADDRESS = "127.0.0.1:$port"
+    $env:X_SCIENCE_RUNNER_ENABLED = 'false'
+    $env:X_SCIENCE_ENABLED_ADAPTERS = ''
     $process = Start-Process -FilePath $Binary -ArgumentList 'serve' -PassThru -WindowStyle Hidden -RedirectStandardOutput $stdout -RedirectStandardError $stderr
   } finally {
     foreach ($key in $saved.Keys) {
@@ -105,7 +105,7 @@ function Test-NativeRuntimeWithoutLanguageTools {
   }
 
   try {
-    $ready = Wait-SynonReleaseHTTPReady -BaseUri "http://127.0.0.1:$port" -HasExited { $process.HasExited }
+    $ready = Wait-XScienceReleaseHTTPReady -BaseUri "http://127.0.0.1:$port" -HasExited { $process.HasExited }
     if (-not $ready) {
       $details = ''
       if (Test-Path -LiteralPath $stderr) { $details = Get-Content -LiteralPath $stderr -Raw }
@@ -119,7 +119,7 @@ function Test-NativeRuntimeWithoutLanguageTools {
   }
 }
 
-Invoke-SynonReleaseTestEnvironment -Root $root -Action {
+Invoke-XScienceReleaseTestEnvironment -Root $root -Action {
 try {
   New-Item -ItemType Directory -Force -Path $data | Out-Null
   Set-Content -LiteralPath (Join-Path $data 'marker') -Value 'preserve-me' -NoNewline
@@ -180,55 +180,55 @@ try {
   $legacyIdentity = (Get-Content -LiteralPath $legacyIdentityPath -Raw) | ConvertFrom-Json
   $legacyIdentity.version = '4.0.2'
   $legacyIdentity | ConvertTo-Json | Set-Content -LiteralPath $legacyIdentityPath -Encoding UTF8
-  $installedSha = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $install 'synon-go.exe')).Hash
+  $installedSha = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $install 'x-science.exe')).Hash
   $legacyRejected = $false
   try { & $manager -Action Rollback -InstallDir $install -BackupDir $legacyBackup } catch {
     if ($_.Exception.Message -ne 'Release product identity does not match the trusted authority') { throw }
     $legacyRejected = $true
   }
-  if (-not $legacyRejected -or $installedSha -ne (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $install 'synon-go.exe')).Hash) {
+  if (-not $legacyRejected -or $installedSha -ne (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $install 'x-science.exe')).Hash) {
     throw 'Release manager accepted or mutated state for a legacy product identity'
   }
   Add-Content -LiteralPath (Join-Path $install 'README.md') -Value 'corrupt'
   & $manager -Action Rollback -InstallDir $install -BackupDir $backup
-  $health = (& (Join-Path $install 'synon-go.exe') --health-json | ConvertFrom-Json)
+  $health = (& (Join-Path $install 'x-science.exe') --health-json | ConvertFrom-Json)
   $identity = (Get-Content -LiteralPath (Join-Path $install 'product-identity.json') -Raw) | ConvertFrom-Json
   if ($health.name -ne $identity.display_name -or $health.version -ne $identity.version) { throw 'Unexpected installed identity' }
-  & (Join-Path $install 'synon-go.exe') tui --help *> $null
+  & (Join-Path $install 'x-science.exe') tui --help *> $null
   if ($LASTEXITCODE -eq 0) { throw 'Retired TUI command is still available' }
-  Test-NativeRuntimeWithoutLanguageTools -Binary (Join-Path $install 'synon-go.exe') -Root $root
-  $previousSynonHome = $env:SYNON_HOME
-  $previousRunnerEnabled = $env:SYNON_RUNNER_ENABLED
-  $previousRunnerProvider = $env:SYNON_RUNNER_PROVIDER
+  Test-NativeRuntimeWithoutLanguageTools -Binary (Join-Path $install 'x-science.exe') -Root $root
+  $previousXScienceHome = $env:X_SCIENCE_HOME
+  $previousRunnerEnabled = $env:X_SCIENCE_RUNNER_ENABLED
+  $previousRunnerProvider = $env:X_SCIENCE_RUNNER_PROVIDER
   try {
-    $env:SYNON_HOME = Join-Path $root 'model-smoke-home'
-    $modelPlanRaw = & (Join-Path $install 'synon-go.exe') model-smoke --target runner --plan --require-all --json
+    $env:X_SCIENCE_HOME = Join-Path $root 'model-smoke-home'
+    $modelPlanRaw = & (Join-Path $install 'x-science.exe') model-smoke --target runner --plan --require-all --json
     if ($LASTEXITCODE -ne 0) { throw "Model smoke plan exited with code $LASTEXITCODE" }
     $modelPlan = $modelPlanRaw | ConvertFrom-Json
     if (-not $modelPlan.secretsRedacted -or $modelPlan.mode -ne 'plan') { throw 'Model smoke plan was not redacted' }
     $runnerPlan = $modelPlan.targets | Where-Object { $_.name -eq 'runner' } | Select-Object -First 1
     if ($null -eq $runnerPlan -or $runnerPlan.provider -ne 'workspace' -or $runnerPlan.status -ne 'skipped_missing_config' -or $runnerPlan.configured) { throw 'Default workspace model authority did not fail closed' }
-    $env:SYNON_RUNNER_ENABLED = 'true'
-    $env:SYNON_RUNNER_PROVIDER = 'go_builtin'
-    $modelRunRaw = & (Join-Path $install 'synon-go.exe') model-smoke --target runner --run --require-all --json
+    $env:X_SCIENCE_RUNNER_ENABLED = 'true'
+    $env:X_SCIENCE_RUNNER_PROVIDER = 'go_builtin'
+    $modelRunRaw = & (Join-Path $install 'x-science.exe') model-smoke --target runner --run --require-all --json
     if ($LASTEXITCODE -ne 0) { throw "Built-in runner model smoke exited with code $LASTEXITCODE" }
     $modelRun = $modelRunRaw | ConvertFrom-Json
     if ($modelRun.status -ne 'passed' -or -not $modelRun.secretsRedacted) { throw 'Built-in runner model smoke failed' }
   } finally {
-    if ($null -eq $previousSynonHome) {
-      Remove-Item Env:SYNON_HOME -ErrorAction SilentlyContinue
+    if ($null -eq $previousXScienceHome) {
+      Remove-Item Env:X_SCIENCE_HOME -ErrorAction SilentlyContinue
     } else {
-      $env:SYNON_HOME = $previousSynonHome
+      $env:X_SCIENCE_HOME = $previousXScienceHome
     }
     if ($null -eq $previousRunnerEnabled) {
-      Remove-Item Env:SYNON_RUNNER_ENABLED -ErrorAction SilentlyContinue
+      Remove-Item Env:X_SCIENCE_RUNNER_ENABLED -ErrorAction SilentlyContinue
     } else {
-      $env:SYNON_RUNNER_ENABLED = $previousRunnerEnabled
+      $env:X_SCIENCE_RUNNER_ENABLED = $previousRunnerEnabled
     }
     if ($null -eq $previousRunnerProvider) {
-      Remove-Item Env:SYNON_RUNNER_PROVIDER -ErrorAction SilentlyContinue
+      Remove-Item Env:X_SCIENCE_RUNNER_PROVIDER -ErrorAction SilentlyContinue
     } else {
-      $env:SYNON_RUNNER_PROVIDER = $previousRunnerProvider
+      $env:X_SCIENCE_RUNNER_PROVIDER = $previousRunnerProvider
     }
   }
   & $installer -Archive $Archive -InstallDir $install

@@ -162,7 +162,7 @@ for line in sys.stdin:
 
 func assertMCPResponseSpoolsRemoved(t *testing.T) {
 	t.Helper()
-	paths, err := filepath.Glob(filepath.Join(os.TempDir(), "synon-mcp-response-*"))
+	paths, err := filepath.Glob(filepath.Join(os.TempDir(), "x-science-mcp-response-*"))
 	if err != nil || len(paths) != 0 {
 		t.Fatalf("MCP transport spool leaked: %v %v", paths, err)
 	}

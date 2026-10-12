@@ -74,8 +74,8 @@ func (r *HTTPRegistry) Wrap(next http.Handler) http.Handler {
 		}
 		w.Header().Set("X-Request-ID", requestID)
 		w.Header().Set("X-Trace-ID", traceID)
-		request.Header.Set("X-Synon-Request-ID", requestID)
-		request.Header.Set("X-Synon-Trace-ID", traceID)
+		request.Header.Set("X-Science-Request-ID", requestID)
+		request.Header.Set("X-Science-Trace-ID", traceID)
 		recorder := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 		started := time.Now()
 		r.inFlight.Add(1)
@@ -182,26 +182,26 @@ func (r *HTTPRegistry) Snapshot() HTTPSnapshot {
 func (r *HTTPRegistry) Prometheus() string {
 	snapshot := r.Snapshot()
 	var builder strings.Builder
-	builder.WriteString("# HELP synon_http_requests_total Completed HTTP requests.\n")
-	builder.WriteString("# TYPE synon_http_requests_total counter\n")
+	builder.WriteString("# HELP x_science_http_requests_total Completed HTTP requests.\n")
+	builder.WriteString("# TYPE x_science_http_requests_total counter\n")
 	for _, metric := range snapshot.Metrics {
 		labels := prometheusLabels(metric)
-		fmt.Fprintf(&builder, "synon_http_requests_total%s %d\n", labels, metric.Requests)
+		fmt.Fprintf(&builder, "x_science_http_requests_total%s %d\n", labels, metric.Requests)
 	}
-	builder.WriteString("# HELP synon_http_request_duration_seconds HTTP request duration.\n")
-	builder.WriteString("# TYPE synon_http_request_duration_seconds summary\n")
+	builder.WriteString("# HELP x_science_http_request_duration_seconds HTTP request duration.\n")
+	builder.WriteString("# TYPE x_science_http_request_duration_seconds summary\n")
 	for _, metric := range snapshot.Metrics {
 		labels := prometheusLabels(metric)
-		fmt.Fprintf(&builder, "synon_http_request_duration_seconds_sum%s %s\n", labels, strconv.FormatFloat(metric.DurationSeconds, 'f', 6, 64))
-		fmt.Fprintf(&builder, "synon_http_request_duration_seconds_count%s %d\n", labels, metric.Requests)
-		fmt.Fprintf(&builder, "synon_http_request_duration_seconds_max%s %s\n", labels, strconv.FormatFloat(metric.MaxSeconds, 'f', 6, 64))
+		fmt.Fprintf(&builder, "x_science_http_request_duration_seconds_sum%s %s\n", labels, strconv.FormatFloat(metric.DurationSeconds, 'f', 6, 64))
+		fmt.Fprintf(&builder, "x_science_http_request_duration_seconds_count%s %d\n", labels, metric.Requests)
+		fmt.Fprintf(&builder, "x_science_http_request_duration_seconds_max%s %s\n", labels, strconv.FormatFloat(metric.MaxSeconds, 'f', 6, 64))
 	}
-	builder.WriteString("# HELP synon_http_requests_in_flight Current HTTP requests.\n")
-	builder.WriteString("# TYPE synon_http_requests_in_flight gauge\n")
-	fmt.Fprintf(&builder, "synon_http_requests_in_flight %d\n", snapshot.InFlight)
-	builder.WriteString("# HELP synon_process_start_time_seconds Process observability start time.\n")
-	builder.WriteString("# TYPE synon_process_start_time_seconds gauge\n")
-	fmt.Fprintf(&builder, "synon_process_start_time_seconds %d\n", snapshot.StartedAt.Unix())
+	builder.WriteString("# HELP x_science_http_requests_in_flight Current HTTP requests.\n")
+	builder.WriteString("# TYPE x_science_http_requests_in_flight gauge\n")
+	fmt.Fprintf(&builder, "x_science_http_requests_in_flight %d\n", snapshot.InFlight)
+	builder.WriteString("# HELP x_science_process_start_time_seconds Process observability start time.\n")
+	builder.WriteString("# TYPE x_science_process_start_time_seconds gauge\n")
+	fmt.Fprintf(&builder, "x_science_process_start_time_seconds %d\n", snapshot.StartedAt.Unix())
 	return builder.String()
 }
 

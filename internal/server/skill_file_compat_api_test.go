@@ -12,8 +12,8 @@ import (
 	"sync"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/skills"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/skills"
 )
 
 func TestCompatibilitySkillFilesDownloadEditConcurrencyAndRestart(t *testing.T) {
@@ -61,7 +61,7 @@ func TestCompatibilitySkillFilesDownloadEditConcurrencyAndRestart(t *testing.T) 
 	}
 	download := httptest.NewRecorder()
 	request := newLoopbackTestRequest(http.MethodGet, "/api/skills/catalog/editable/download", nil)
-	request.Header.Set("X-Synon-User-Id", "user-1")
+	request.Header.Set("X-Science-User-Id", "user-1")
 	app.ServeHTTP(download, request)
 	if download.Code != http.StatusOK || download.Header().Get("Content-Type") != "application/zip" {
 		t.Fatalf("download = %d %#v: %s", download.Code, download.Header(), download.Body.String())
@@ -130,7 +130,7 @@ func TestCompatibilitySkillFilesDownloadEditConcurrencyAndRestart(t *testing.T) 
 			response := httptest.NewRecorder()
 			request := newLoopbackTestRequest(http.MethodPost, "/api/skills/editable/edit", strings.NewReader(string(body)))
 			request.Header.Set("Content-Type", "application/json")
-			request.Header.Set("X-Synon-User-Id", "user-1")
+			request.Header.Set("X-Science-User-Id", "user-1")
 			app.ServeHTTP(response, request)
 			statuses <- response.Code
 		}(replacement)

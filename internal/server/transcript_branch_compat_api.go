@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"strings"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func (s *Server) handleCompatibilityTranscriptBranches(
@@ -274,7 +274,7 @@ func canonicalTranscriptBranchMutationID(r *http.Request, bodyValue string, sema
 	bodyValue = strings.TrimSpace(bodyValue)
 	headerValue := strings.TrimSpace(r.Header.Get("Idempotency-Key"))
 	if headerValue == "" {
-		headerValue = strings.TrimSpace(r.Header.Get("X-Synon-Idempotency-Key"))
+		headerValue = strings.TrimSpace(r.Header.Get("X-Science-Idempotency-Key"))
 	}
 	if bodyValue != "" && headerValue != "" && bodyValue != headerValue {
 		return "", errors.New("branch mutation ids conflict")

@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/tools/fileevents"
+	"x-science/internal/tools/fileevents"
 )
 
 func detectWebFSGitSnapshot(

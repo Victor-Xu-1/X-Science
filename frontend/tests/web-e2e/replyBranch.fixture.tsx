@@ -17,7 +17,7 @@ import {
 } from "@/common/chat/roundSummary";
 import { ScientificFilePreviewStrip } from "@/renderer/pages/conversation/Messages/components/MessageScientificFiles";
 import { PreviewProvider } from "@/renderer/pages/conversation/Preview/context/PreviewContext";
-import type { ISynonBiomedScientificFile } from "@/common/adapter/ipcBridge";
+import type { IXScienceScientificFile } from "@/common/adapter/ipcBridge";
 
 await i18n.use(initReactI18next).init({
   lng: "zh-CN",
@@ -34,7 +34,7 @@ function Page() {
   const { id = "" } = useParams();
   const [history, setHistory] = useState("");
   const [summary, setSummary] = useState<RoundSummary>();
-  const [files, setFiles] = useState<ISynonBiomedScientificFile[]>([]);
+  const [files, setFiles] = useState<IXScienceScientificFile[]>([]);
   useEffect(() => {
     const controller = new AbortController();
     setHistory("");
@@ -89,7 +89,7 @@ function Page() {
           setFiles(
             artifacts.flatMap(
               (artifact: {
-                payload: { files: ISynonBiomedScientificFile[] };
+                payload: { files: IXScienceScientificFile[] };
               }) => artifact.payload.files
             )
           );

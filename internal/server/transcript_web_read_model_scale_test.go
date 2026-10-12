@@ -6,15 +6,15 @@ import (
 	"testing"
 	"time"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 // This is an opt-in scale gate because it constructs the exact 100,000-message
 // Reference server-range boundary. Ordinary focused runs keep using the
-// 10,000-message regression; release/performance windows set SYNON_SCALE_TESTS.
+// 10,000-message regression; release/performance windows set X_SCIENCE_SCALE_TESTS.
 func TestTranscriptWebHundredThousandMessageWindowAndRestart(t *testing.T) {
-	if os.Getenv("SYNON_SCALE_TESTS") == "" {
-		t.Skip("set SYNON_SCALE_TESTS=1 for the 100,000-message scale gate")
+	if os.Getenv("X_SCIENCE_SCALE_TESTS") == "" {
+		t.Skip("set X_SCIENCE_SCALE_TESTS=1 for the 100,000-message scale gate")
 	}
 	store, repository, db := newTranscriptWebFixture(t)
 	seedTranscriptWebFrame(t, store, "owner-scale", "project-scale", "frame-scale")

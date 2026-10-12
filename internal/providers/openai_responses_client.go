@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"strings"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 func (c *runtimeModelClient) completeOpenAIResponses(ctx context.Context, request agentruntime.ModelRequest, attempt int) (agentruntime.ModelResponse, bool, error) {

@@ -29,18 +29,18 @@ vi.mock('@/common', () => ({
   },
 }));
 
-vi.mock('@/renderer/utils/synonBiomed/runtime/runtimeTypes', () => ({
+vi.mock('@/renderer/utils/xScience/runtime/runtimeTypes', () => ({
   MANAGED_AGENTS_SWR_KEY: 'agents.managed',
   fetchManagedAgents: vi.fn(),
 }));
 
-vi.mock('@/renderer/services/synonBiomedCatalog', () => ({
-  SYNON_BIOMED_ASSISTANTS_CACHE_KEY: 'synonbiomed.assistants.catalog.v1',
+vi.mock('@/renderer/services/xScienceCatalog', () => ({
+  X_SCIENCE_ASSISTANTS_CACHE_KEY: 'xscience.assistants.catalog.v1',
 }));
 
-import { getManagedAgents, useManagedAgents } from '@/renderer/hooks/synonBiomed/runtime/useManagedAgents';
+import { getManagedAgents, useManagedAgents } from '@/renderer/hooks/xScience/runtime/useManagedAgents';
 import useSWR, { mutate } from 'swr';
-import { fetchManagedAgents } from '@/renderer/utils/synonBiomed/runtime/runtimeTypes';
+import { fetchManagedAgents } from '@/renderer/utils/xScience/runtime/runtimeTypes';
 
 describe('useManagedAgents', () => {
   beforeEach(() => {
@@ -60,9 +60,9 @@ describe('useManagedAgents', () => {
       {
         id: 'AIDD_EXPERT',
         name: 'AIDD Expert',
-        agent_type: 'synonbiomed',
+        agent_type: 'xscience',
         agent_source: 'builtin',
-        backend: 'synonbiomed',
+        backend: 'xscience',
         enabled: true,
         available: true,
       },
@@ -109,7 +109,7 @@ describe('useManagedAgents', () => {
     expect(mutate).not.toHaveBeenCalledWith('agents.legacyDetected');
   });
 
-  it('refreshCatalog refreshes only the managed and dedicated Synon expert catalogs', async () => {
+  it('refreshCatalog refreshes only the managed and dedicated XScience expert catalogs', async () => {
     (useSWR as any).mockReturnValue({ data: [], error: null, isLoading: false });
 
     const { result } = renderHook(() => useManagedAgents());
@@ -119,7 +119,7 @@ describe('useManagedAgents', () => {
     });
 
     expect(mutate).toHaveBeenCalledWith('agents.managed');
-    expect(mutate).toHaveBeenCalledWith('synonbiomed.assistants.catalog.v1');
+    expect(mutate).toHaveBeenCalledWith('xscience.assistants.catalog.v1');
     expect(mutate).not.toHaveBeenCalledWith('assistants.list');
     expect(mutate).not.toHaveBeenCalledWith('assistants');
   });
@@ -137,9 +137,9 @@ describe('useManagedAgents', () => {
       {
         id: 'ONCOLOGY_EXPERT',
         name: 'Oncology Expert',
-        agent_type: 'synonbiomed',
+        agent_type: 'xscience',
         agent_source: 'builtin',
-        backend: 'synonbiomed',
+        backend: 'xscience',
         enabled: true,
       },
       {

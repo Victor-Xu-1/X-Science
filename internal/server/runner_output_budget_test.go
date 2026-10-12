@@ -11,10 +11,10 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/persistence/runtimekv"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/providers"
+	"x-science/internal/agentruntime"
+	"x-science/internal/persistence/runtimekv"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/providers"
 )
 
 func TestOutputBudgetRecoveryPersistsAcrossModelClientRecreation(t *testing.T) {

@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestObservabilityEndpointsRequireAuthProjectDeadLettersAndEnforceCSRF(t *testing.T) {
@@ -35,7 +35,7 @@ func TestObservabilityEndpointsRequireAuthProjectDeadLettersAndEnforceCSRF(t *te
 		t.Fatalf("dead=%v err=%v", dead, err)
 	}
 
-	app := New(Options{Workspace: store, SynonLinkAuth: SynonLinkAuthOptions{
+	app := New(Options{Workspace: store, XScienceLinkAuth: XScienceLinkAuthOptions{
 		Username: "operator", Password: "test-secret-password", UserID: "user-1",
 	}})
 	handler := app.Handler()
@@ -47,7 +47,7 @@ func TestObservabilityEndpointsRequireAuthProjectDeadLettersAndEnforceCSRF(t *te
 
 	metrics := serveObservabilityRequest(handler, http.MethodGet, "/metrics", sessionCookie, nil, "")
 	if metrics.Code != http.StatusOK || !strings.Contains(metrics.Header().Get("Content-Type"), "text/plain") ||
-		!strings.Contains(metrics.Body.String(), "synon_http_requests_total") {
+		!strings.Contains(metrics.Body.String(), "x_science_http_requests_total") {
 		t.Fatalf("metrics status=%d headers=%v body=%s", metrics.Code, metrics.Header(), metrics.Body.String())
 	}
 	diagnostics := serveObservabilityRequest(handler, http.MethodGet, "/api/go/diagnostics/runtime", sessionCookie, nil, "")

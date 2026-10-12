@@ -6,13 +6,13 @@ SCRIPT_PATH=$(realpath -e "${BASH_SOURCE[0]}") || {
   exit 1
 }
 SOURCE_ROOT=$(cd "$(dirname "$SCRIPT_PATH")/../.." && pwd -P)
-WRAPPER="$SOURCE_ROOT/scripts/dev/synon"
+WRAPPER="$SOURCE_ROOT/scripts/dev/x-science"
 HOME_DIR=$(realpath -e "$HOME") || {
   echo "[X-Science install] unable to resolve the user home directory" >&2
   exit 1
 }
 BIN_DIR="$HOME_DIR/.local/bin"
-TARGET="$BIN_DIR/synon"
+TARGET="$BIN_DIR/x-science"
 
 fail() {
   echo "[X-Science install] $*" >&2
@@ -35,11 +35,10 @@ else
   mkdir "$BIN_DIR"
 fi
 BIN_DIR=$(realpath -e "$BIN_DIR") || fail "unable to resolve user bin directory: $BIN_DIR"
-TARGET="$BIN_DIR/synon"
+TARGET="$BIN_DIR/x-science"
 
-# Preflight both names before writing either link. The legacy launcher shares
-# the same implementation and state; it is not a second runtime owner.
-TARGETS=("$BIN_DIR/x-science" "$TARGET")
+# One canonical command. Never create a competing compatibility launcher.
+TARGETS=("$TARGET")
 for target in "${TARGETS[@]}"; do
   if [[ -e "$target" || -L "$target" ]]; then
     [[ -L "$target" && "$(realpath -e "$target" 2>/dev/null || true)" == "$WRAPPER" ]] ||

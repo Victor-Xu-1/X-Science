@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/harnesscontract"
-	"synon-go/internal/skills"
+	"x-science/internal/agentruntime"
+	"x-science/internal/harnesscontract"
+	"x-science/internal/skills"
 )
 
 func TestProductionRootSnapshotExposesCanonicalWebSearchByDefault(t *testing.T) {

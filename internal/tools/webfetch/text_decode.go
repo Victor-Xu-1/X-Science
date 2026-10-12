@@ -3,7 +3,7 @@ package webfetch
 import (
 	"encoding/base64"
 
-	"synon-go/internal/httptext"
+	"x-science/internal/httptext"
 )
 
 func assignWebResponseText(result *Result, body []byte, incomplete bool) {

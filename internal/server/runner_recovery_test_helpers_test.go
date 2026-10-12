@@ -1,8 +1,8 @@
 package server
 
 import (
-	eventjournal "synon-go/internal/persistence/journal"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	eventjournal "x-science/internal/persistence/journal"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 // Count only the current unchanged obligation. A new typed obligation or user

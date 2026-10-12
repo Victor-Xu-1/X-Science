@@ -9,10 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"synon-go/internal/software"
+	"x-science/internal/software"
 )
 
-const ResultPrefix = "SYNON_SOFTWARE_RESULT="
+const ResultPrefix = "X_SCIENCE_SOFTWARE_RESULT="
 
 const (
 	pythonHarnessPayloadPrefix = `_request = json.loads(base64.b64decode("`
@@ -342,7 +342,7 @@ def _stream_receipt(stream, limit=65536):
     return {"text": text, "bytes": size, "sha256": digest.hexdigest(), "truncated": size > limit}
 
 def _prepare_matplotlib_config():
-    directory = tempfile.mkdtemp(prefix="synon-matplotlib-")
+    directory = tempfile.mkdtemp(prefix="x-science-matplotlib-")
     path = os.path.join(directory, "matplotlibrc")
     with open(path, "w", encoding="utf-8") as handle:
         handle.write(
@@ -960,7 +960,7 @@ finally:
         "cleanup": {"process_group_terminated": _cleanup_group, "process_tree_terminated": _cleanup_tree, "temporary_streams_closed": _temporary_resources_closed},
         "recovery": _recovery,
     }
-    print("SYNON_SOFTWARE_RESULT=" + json.dumps(_receipt, ensure_ascii=False, separators=(",", ":"), sort_keys=True), flush=True)
+    print("X_SCIENCE_SOFTWARE_RESULT=" + json.dumps(_receipt, ensure_ascii=False, separators=(",", ":"), sort_keys=True), flush=True)
     if not _ok:
         raise RuntimeError("software_runtime_failed:" + _code)
 `

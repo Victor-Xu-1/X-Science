@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/agentruntime"
-	kernelruntime "synon-go/internal/kernel"
-	"synon-go/internal/skills"
-	"synon-go/internal/software"
+	"x-science/internal/agentruntime"
+	kernelruntime "x-science/internal/kernel"
+	"x-science/internal/skills"
+	"x-science/internal/software"
 )
 
 func TestRuntimeMCPContextRequiresExactNamesTypesAndBoundedRepair(t *testing.T) {
@@ -756,7 +756,7 @@ func TestAgentRuntimeReadFileScopeErrorReturnsSameTaskRecovery(t *testing.T) {
 func TestAgentRuntimeScientificHostErrorCarriesSameTaskRepairContract(t *testing.T) {
 	result := agentRuntimeToolErrorValue(kernelruntime.NewHostCallError(
 		"invalid_arguments",
-		"scientific docking input is not prepared PDBQT; Synon must prepare the source structure in the governed docking environment before submitting Vina",
+		"scientific docking input is not prepared PDBQT; XScience must prepare the source structure in the governed docking environment before submitting Vina",
 	))
 	if result["code"] != "invalid_arguments" || result["retryable"] != false || result["terminal"] != true ||
 		result["repair_scope"] != "same_logical_task" ||

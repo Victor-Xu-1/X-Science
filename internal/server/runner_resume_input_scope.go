@@ -1,6 +1,6 @@
 package server
 
-import transcriptstore "synon-go/internal/persistence/transcript"
+import transcriptstore "x-science/internal/persistence/transcript"
 
 // runnerResumeContinuesPriorInput is the single boundary for carrying recovery
 // state from one runner attempt into the next. Checkpoints, correction context,

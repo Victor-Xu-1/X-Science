@@ -13,7 +13,7 @@ import (
 
 	"time"
 
-	"synon-go/internal/toolcontract"
+	"x-science/internal/toolcontract"
 )
 
 const teamRuntimeNamespace = "teams"
@@ -67,7 +67,7 @@ func (s *Server) executeTeamTool(toolName string, input map[string]any) (any, er
 		description := stringValue(input["description"])
 		agentType := firstNonEmpty(stringValue(input["agent_type"]), "team-lead")
 		leadAgentID := "team-lead-" + teamName
-		teamFilePath := filepath.ToSlash(filepath.Join(".synon", "teams", teamName+".json"))
+		teamFilePath := filepath.ToSlash(filepath.Join(".xscience", "teams", teamName+".json"))
 		now := time.Now().UTC().Format(time.RFC3339Nano)
 		teamFile := map[string]any{
 			"name":          teamName,
@@ -135,7 +135,7 @@ func (s *Server) executeTeamTool(toolName string, input map[string]any) (any, er
 func (s *Server) uniqueTeamName(name string) string {
 	candidate := name
 	for i := 2; ; i++ {
-		path := filepath.Join(s.fileRoot, ".synon", "teams", candidate+".json")
+		path := filepath.Join(s.fileRoot, ".xscience", "teams", candidate+".json")
 		if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
 			return candidate
 		}

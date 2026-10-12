@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Measure comparable local runtime costs for Synon Go and SynonBiomed v1.1.
+"""Measure comparable local runtime costs for XScience Go and XScience v1.1.
 
 The harness uses only read-only HTTP contracts that exist in both runtimes. It
 starts each runtime with an isolated home/data directory and never inherits
@@ -252,18 +252,18 @@ def build_specs(args: argparse.Namespace, root: pathlib.Path) -> tuple[RuntimeSp
     go_home.mkdir()
     v1_home.mkdir()
     go_env = clean_environment(go_home)
-    go_env.update({"SYNON_HOME": str(go_home), "SYNON_ADDRESS": f"127.0.0.1:{go_port}"})
+    go_env.update({"X_SCIENCE_HOME": str(go_home), "X_SCIENCE_ADDRESS": f"127.0.0.1:{go_port}"})
     v1_env = clean_environment(v1_home)
-    v1_env.update({"SYNON_DISABLE_NETWORK_GUARD": "1", "SYNON_DATA_DIR": str(v1_home / "data")})
+    v1_env.update({"X_SCIENCE_DISABLE_NETWORK_GUARD": "1", "X_SCIENCE_DATA_DIR": str(v1_home / "data")})
     v1_root = pathlib.Path(args.v11_root).resolve()
     return (
-        RuntimeSpec("synon-go-v4.0.2", [str(pathlib.Path(args.go_binary).resolve())], go_env, f"http://127.0.0.1:{go_port}"),
+        RuntimeSpec("x-science-v4.0.2", [str(pathlib.Path(args.go_binary).resolve())], go_env, f"http://127.0.0.1:{go_port}"),
         RuntimeSpec(
-            "synonbiomed-v1.1",
+            "xscience-v1.1",
             [
                 str(pathlib.Path(args.bun).expanduser().resolve()),
-                str(v1_root / "runtime/server/synonbiomed.bundle.js"),
-                "serve", "--config", str(v1_root / "synonbiomed.config.toml"),
+                str(v1_root / "runtime/server/xscience.bundle.js"),
+                "serve", "--config", str(v1_root / "xscience.config.toml"),
                 "--data-dir", str(v1_home / "data"), "--assets-root", str(v1_root / "runtime/assets"),
                 "--host", "127.0.0.1", "--port", str(v1_port),
             ],
@@ -275,9 +275,9 @@ def build_specs(args: argparse.Namespace, root: pathlib.Path) -> tuple[RuntimeSp
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--go-binary", default="dist/synon-go")
+    parser.add_argument("--go-binary", default="dist/x-science")
     parser.add_argument("--go-root", default=".")
-    parser.add_argument("--v11-root", default="/home/victor_1/synonbiomed-v1.1")
+    parser.add_argument("--v11-root", default="/home/victor_1/xscience-v1.1")
     parser.add_argument("--bun", default="~/.bun/bin/bun")
     parser.add_argument("--output", default="docs/compatibility/evidence/runtime-performance-v1.1-vs-go.json")
     parser.add_argument("--startup-repeats", type=int, default=5)
@@ -290,7 +290,7 @@ def main() -> int:
     for value in (args.startup_repeats, args.serial_requests, args.concurrent_requests, args.concurrency):
         if value < 1:
             parser.error("repeat, request, and concurrency values must be positive")
-    with tempfile.TemporaryDirectory(prefix="synon-runtime-benchmark-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="x-science-runtime-benchmark-") as temporary:
         root = pathlib.Path(temporary)
         go_spec, v1_spec = build_specs(args, root)
         candidate = measure_runtime(go_spec, root, args)
@@ -306,7 +306,7 @@ def main() -> int:
     }
     superior = sorted(key for key, value in comparison.items() if value >= 5)
     regressed = sorted(key for key, value in comparison.items() if value <= -5)
-    v1_bundle = pathlib.Path(args.v11_root).resolve() / "runtime/server/synonbiomed.bundle.js"
+    v1_bundle = pathlib.Path(args.v11_root).resolve() / "runtime/server/xscience.bundle.js"
     report = {
         "schemaVersion": 1,
         "capturedAt": datetime.now(timezone.utc).isoformat(),

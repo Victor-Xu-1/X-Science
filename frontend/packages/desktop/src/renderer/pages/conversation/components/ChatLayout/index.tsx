@@ -1,4 +1,4 @@
-import type { PresetAssistantInfo } from '@/renderer/hooks/synonBiomed/runtime/usePresetAssistantInfo';
+import type { PresetAssistantInfo } from '@/renderer/hooks/xScience/runtime/usePresetAssistantInfo';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
 import MobileWorkspaceOverlay from './MobileWorkspaceOverlay';

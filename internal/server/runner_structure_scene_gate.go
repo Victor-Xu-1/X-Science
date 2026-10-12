@@ -8,14 +8,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 // structureSceneManifestSchema is deliberately a single, versioned contract.
 // It is consumed by the existing completion gate and by the existing native
 // structure preview path; it is not a second delivery protocol.
 const (
-	structureSceneManifestSchema   = "synon.structure-scene.v1"
+	structureSceneManifestSchema   = "x-science.structure-scene.v1"
 	maxStructureSceneManifestBytes = 1 << 20
 )
 

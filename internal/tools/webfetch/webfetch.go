@@ -14,8 +14,8 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"synon-go/internal/httpreliability"
-	"synon-go/internal/mcpdirectory"
+	"x-science/internal/httpreliability"
+	"x-science/internal/mcpdirectory"
 )
 
 // MaxResponseLimit is both the model-visible schema ceiling and the in-memory

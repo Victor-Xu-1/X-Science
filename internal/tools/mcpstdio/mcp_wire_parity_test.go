@@ -185,7 +185,7 @@ func TestPackagedBioToolResultsMatchWorkspaceWireShape(t *testing.T) {
 	}
 }
 
-func TestSynonResearchStandaloneMCPStdioDiscoveryAndExecution(t *testing.T) {
+func TestXScienceResearchStandaloneMCPStdioDiscoveryAndExecution(t *testing.T) {
 	_, sourceFile, _, ok := runtime.Caller(0)
 	if !ok {
 		t.Fatal("resolve test source path")
@@ -205,10 +205,10 @@ func TestSynonResearchStandaloneMCPStdioDiscoveryAndExecution(t *testing.T) {
 	mustWrite(".codex-plugin/plugin.json", `{"name":"life-science-research","version":"1.0.3"}`, 0o600)
 	mustWrite("skills/example-source-skill/SKILL.md", "---\nname: example-source-skill\ndescription: Example target evidence source\n---\n", 0o600)
 	mustWrite("skills/example-source-skill/scripts/query.py", "import json,sys\np=json.load(sys.stdin)\nprint(json.dumps({'ok':True,'records':[p]}))\n", 0o700)
-	t.Setenv("SYNON_RESEARCH_ROOT", pack)
-	t.Setenv("SYNON_RESEARCH_EXPECTED_VERSION", "1.0.3")
+	t.Setenv("X_SCIENCE_RESEARCH_ROOT", pack)
+	t.Setenv("X_SCIENCE_RESEARCH_EXPECTED_VERSION", "1.0.3")
 
-	discovery := callPackagedMCPRaw(t, runServer, "mcp_synon_research", "life_science_sources", map[string]any{"query": "target"}, "")
+	discovery := callPackagedMCPRaw(t, runServer, "mcp_x_science_research", "life_science_sources", map[string]any{"query": "target"}, "")
 	if discovery.Tool["name"] != "life_science_sources" {
 		t.Fatalf("discovery tool = %#v", discovery.Tool)
 	}
@@ -224,7 +224,7 @@ func TestSynonResearchStandaloneMCPStdioDiscoveryAndExecution(t *testing.T) {
 		t.Fatalf("discovery payload = %#v", discoveryPayload)
 	}
 
-	execution := callPackagedMCPRaw(t, runServer, "mcp_synon_research", "life_science_source", map[string]any{
+	execution := callPackagedMCPRaw(t, runServer, "mcp_x_science_research", "life_science_source", map[string]any{
 		"source_id": "example-source-skill",
 		"operation": "query",
 		"input":     map[string]any{"target": "USP1"},
@@ -244,10 +244,10 @@ func TestSynonResearchStandaloneMCPStdioDiscoveryAndExecution(t *testing.T) {
 	}
 }
 
-func TestSynonResearchConfiguredPackLiveOpenTargets(t *testing.T) {
-	pack := strings.TrimSpace(os.Getenv("SYNON_TEST_SYNON_RESEARCH_ROOT"))
+func TestXScienceResearchConfiguredPackLiveOpenTargets(t *testing.T) {
+	pack := strings.TrimSpace(os.Getenv("X_SCIENCE_TEST_X_SCIENCE_RESEARCH_ROOT"))
 	if pack == "" {
-		t.Skip("set SYNON_TEST_SYNON_RESEARCH_ROOT for the live external-pack protocol check")
+		t.Skip("set X_SCIENCE_TEST_X_SCIENCE_RESEARCH_ROOT for the live external-pack protocol check")
 	}
 	_, sourceFile, _, ok := runtime.Caller(0)
 	if !ok {
@@ -255,10 +255,10 @@ func TestSynonResearchConfiguredPackLiveOpenTargets(t *testing.T) {
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(sourceFile), "..", "..", ".."))
 	runServer := filepath.Join(repositoryRoot, "assets", "optional", "mcp-servers", "bio-tools", "run_server.py")
-	t.Setenv("SYNON_RESEARCH_ROOT", pack)
-	t.Setenv("SYNON_RESEARCH_EXPECTED_VERSION", "1.0.3")
+	t.Setenv("X_SCIENCE_RESEARCH_ROOT", pack)
+	t.Setenv("X_SCIENCE_RESEARCH_EXPECTED_VERSION", "1.0.3")
 
-	inventory := callPackagedMCPRaw(t, runServer, "mcp_synon_research", "life_science_sources", map[string]any{"max_results": 100}, "")
+	inventory := callPackagedMCPRaw(t, runServer, "mcp_x_science_research", "life_science_sources", map[string]any{"max_results": 100}, "")
 	inventoryBlocks, _ := inventory.Result["content"].([]any)
 	if len(inventoryBlocks) != 1 {
 		t.Fatalf("inventory content = %#v", inventory.Result)
@@ -268,10 +268,10 @@ func TestSynonResearchConfiguredPackLiveOpenTargets(t *testing.T) {
 		t.Fatal(err)
 	}
 	if inventoryPayload["ok"] != true || inventoryPayload["total"] != float64(49) || inventoryPayload["truncated"] != false {
-		t.Fatalf("pinned Synon-research inventory = %#v", inventoryPayload)
+		t.Fatalf("pinned X-Science-research inventory = %#v", inventoryPayload)
 	}
 
-	discovery := callPackagedMCPRaw(t, runServer, "mcp_synon_research", "life_science_sources", map[string]any{"query": "Open Targets", "max_results": 10}, "")
+	discovery := callPackagedMCPRaw(t, runServer, "mcp_x_science_research", "life_science_sources", map[string]any{"query": "Open Targets", "max_results": 10}, "")
 	blocks, _ := discovery.Result["content"].([]any)
 	if len(blocks) != 1 {
 		t.Fatalf("discovery content = %#v", discovery.Result)
@@ -296,7 +296,7 @@ func TestSynonResearchConfiguredPackLiveOpenTargets(t *testing.T) {
 		t.Fatalf("Open Targets source is absent from discovery: %#v", sources)
 	}
 
-	execution := callPackagedMCPRaw(t, runServer, "mcp_synon_research", "life_science_source", map[string]any{
+	execution := callPackagedMCPRaw(t, runServer, "mcp_x_science_research", "life_science_source", map[string]any{
 		"source_id": "opentargets-skill",
 		"operation": "opentargets_graphql",
 		"input": map[string]any{
@@ -397,7 +397,7 @@ try:
         "params": {
             "protocolVersion": LATEST_PROTOCOL_VERSION,
             "capabilities": {},
-            "clientInfo": {"name": "synon-wire-parity", "version": "0.1.0"},
+            "clientInfo": {"name": "x-science-wire-parity", "version": "0.1.0"},
         },
     })
     receive(1)

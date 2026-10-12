@@ -304,7 +304,7 @@ describe('RealtimeClient', () => {
     expect(client.connectionStatus).toBe('idle');
     expect(vi.getTimerCount()).toBe(0);
     const storage = new FakeStorage();
-    const key = `synon.realtime.cursor.v1:${encodeURIComponent('http://example.test')}:scope=global:owner=${'b'.repeat(64)}`;
+    const key = `x-science.realtime.cursor.v1:${encodeURIComponent('http://example.test')}:scope=global:owner=${'b'.repeat(64)}`;
     storage.values.set(key, '7');
     let switched: Promise<void> | undefined;
     let didSwitch = false;
@@ -354,7 +354,7 @@ describe('RealtimeClient', () => {
 
   it('waits for digest and stored cursor binding before online or visibility can connect', async () => {
     const storage = new FakeStorage();
-    const key = `synon.realtime.cursor.v1:${encodeURIComponent('http://example.test')}:scope=global:owner=${'a'.repeat(64)}`;
+    const key = `x-science.realtime.cursor.v1:${encodeURIComponent('http://example.test')}:scope=global:owner=${'a'.repeat(64)}`;
     storage.values.set(key, '7');
     let current: ReturnType<typeof setup>;
     current = setup({
@@ -413,7 +413,7 @@ describe('RealtimeClient', () => {
   it.each(['dispose', 'switch'] as const)('discards an initializing candidate after %s', async (action) => {
     const storage = new FakeStorage();
     const key = (digest: string) =>
-      `synon.realtime.cursor.v1:${encodeURIComponent('http://example.test')}:scope=global:owner=${digest}`;
+      `x-science.realtime.cursor.v1:${encodeURIComponent('http://example.test')}:scope=global:owner=${digest}`;
     storage.values.set(key('a'.repeat(64)), '7');
     storage.values.set(key('b'.repeat(64)), '3');
     let client: RealtimeClient;

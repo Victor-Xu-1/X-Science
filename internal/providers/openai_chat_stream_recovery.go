@@ -5,7 +5,7 @@ import (
 	"log"
 	"strings"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 // No tool in the response has executed yet. A quiet, malformed tool response

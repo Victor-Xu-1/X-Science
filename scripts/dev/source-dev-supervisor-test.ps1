@@ -32,7 +32,7 @@ Assert-Equal 0 $state.FailureCount 'healthy cycle must clear failure evidence'
 
 $keepaliveArguments = @(Get-WslKeepaliveArguments -Distro 'Ubuntu' `
   -User 'victor_1' `
-  -KeepalivePath '/home/victor_1/.synon-biomed-v0.1.0/scripts/dev/source-wsl-keepalive.sh')
+  -KeepalivePath '/home/victor_1/.x-science-v0.1.0/scripts/dev/source-wsl-keepalive.sh')
 Assert-Equal 8 $keepaliveArguments.Count 'keepalive command must have one closed argv shape'
 Assert-Equal '-d' $keepaliveArguments[0] 'keepalive must select an explicit distro'
 Assert-Equal 'Ubuntu' $keepaliveArguments[1] 'keepalive must preserve the selected distro'
@@ -40,7 +40,7 @@ Assert-Equal '-u' $keepaliveArguments[2] 'keepalive must select an explicit laun
 Assert-Equal 'root' $keepaliveArguments[3] 'keepalive bootstrap must run as root'
 Assert-Equal '--exec' $keepaliveArguments[4] 'keepalive must not use a shell command string'
 Assert-Equal '/usr/bin/env' $keepaliveArguments[5] 'keepalive must pass only one bounded environment value'
-Assert-Equal 'SYNON_DEV_WSL_USER=victor_1' $keepaliveArguments[6] 'keepalive must bind the source-service user'
+Assert-Equal 'X_SCIENCE_DEV_WSL_USER=victor_1' $keepaliveArguments[6] 'keepalive must bind the source-service user'
 
 $invalidPathRejected = $false
 try {

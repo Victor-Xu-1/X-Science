@@ -7,7 +7,7 @@ import (
 
 func askUserStageProgressRecord() map[string]any {
 	return map[string]any{
-		"schema": "synon.plan_stage_progress.v1", "plan_artifact_id": "plan-1", "plan_version_id": "version-1",
+		"schema": "x-science.plan_stage_progress.v1", "plan_artifact_id": "plan-1", "plan_version_id": "version-1",
 		"completed_count": 1, "remaining_count": 1,
 		"completed_steps": []any{map[string]any{"id": "step-1", "title": "Inspect evidence", "status": "completed"}},
 		"remaining_steps": []any{map[string]any{"id": "step-2", "title": "Run analysis", "status": "blocked"}},

@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"synon-go/internal/kernelcontract"
-	"synon-go/internal/tools/shellops"
+	"x-science/internal/kernelcontract"
+	"x-science/internal/tools/shellops"
 )
 
 const (

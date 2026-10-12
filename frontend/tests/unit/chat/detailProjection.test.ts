@@ -260,7 +260,7 @@ describe('tool detail projection', () => {
             { name: 'single-cell-analysis', language: 'python' },
             { name: 'swr-00fc4427146ffbdef4ad454e', language: 'python' },
             { name: 'chem_runtime_acceptance_20260813', language: 'python' },
-            { name: 'synon-pkg-99236c85d317c5d7e7ca88a5', language: 'python' },
+            { name: 'x-science-pkg-99236c85d317c5d7e7ca88a5', language: 'python' },
             { name: 'single-cell-analysis', language: 'python' },
           ],
         }),
@@ -282,7 +282,7 @@ describe('tool detail projection', () => {
       items: ['single-cell-analysis · Python'],
       total: 1,
     });
-    expect(JSON.stringify(detail)).not.toMatch(/swr-|acceptance|synon-pkg/u);
+    expect(JSON.stringify(detail)).not.toMatch(/swr-|acceptance|x-science-pkg/u);
   });
 
   it('keeps environment preflight details useful without leaking generated runtime identities', () => {
@@ -734,7 +734,7 @@ describe('tool detail projection', () => {
         name: 'bash',
         input: JSON.stringify({
           command:
-            'python "./.synon/runtime/skills/medicinal-chemistry-optimization/hash/scripts/rdkit_analog_generator.py" --count 30',
+            'python "./.xscience/runtime/skills/medicinal-chemistry-optimization/hash/scripts/rdkit_analog_generator.py" --count 30',
         }),
       }),
       'en-US',
@@ -744,7 +744,7 @@ describe('tool detail projection', () => {
     expect(detail.inputBlocks[0].content).toContain('"./analysis-tools/rdkit_analog_generator.py"');
     expect(detail.inputBlocks[0].content).not.toContain('././analysis-tools');
     expect(detail.inputBlocks[0].content).toContain('--count 30');
-    expect(detail.inputBlocks[0].content).not.toContain('.synon/runtime/skills');
+    expect(detail.inputBlocks[0].content).not.toContain('.xscience/runtime/skills');
   });
 
   it('keeps task diagnostics auditable while redacting host paths', () => {

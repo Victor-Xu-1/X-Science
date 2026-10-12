@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>X-Science Link 个性化授权</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="page approval-page">
+      <section class="panel approval-panel">
+        <img class="brand-mark" src="icons/x-science-mark.png" alt="">
+        <p class="eyebrow">X-Science Link</p>
+        <h1>开启个性化画像</h1>
+        <p id="intro">X-Science 可以读取你的书签标题和网址，生成本地兴趣画像，用于更贴近你的新闻简报、工作信息流和常用数据库检索。</p>
+
+        <div class="permission-card">
+          <div class="permission-row">
+            <span>会读取</span>
+            <strong>书签标题、网址、文件夹名称</strong>
+          </div>
+          <div class="permission-row">
+            <span>不会读取</span>
+            <strong>密码、浏览历史、表单内容</strong>
+          </div>
+          <div class="permission-row">
+            <span>用途</span>
+            <strong>用户画像、新闻简报、数据库偏好</strong>
+          </div>
+        </div>
+
+        <p class="approval-note">
+          你可以拒绝。拒绝后 X-Science Link 仍可连接浏览器，只是不会使用书签做个性化画像。后续可在 X-Science Link 本地授权页重新开启。
+        </p>
+
+        <div id="state" class="state">等待你的确认。</div>
+
+        <div class="actions approval-actions">
+          <button id="deny" class="secondary">暂不授权</button>
+          <button id="allow">同意并授权</button>
+        </div>
+      </section>
+    </main>
+    <script src="personalization.js" type="module"></script>
+  </body>
+</html>

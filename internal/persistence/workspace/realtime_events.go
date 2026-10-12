@@ -11,7 +11,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"synon-go/internal/realtime"
+	"x-science/internal/realtime"
 )
 
 const maxRealtimeEventPayloadBytes = 256 << 10

@@ -5,8 +5,8 @@ import (
 	"os"
 	"sort"
 
-	"synon-go/internal/harnesscontract"
-	"synon-go/internal/tools/registry"
+	"x-science/internal/harnesscontract"
+	"x-science/internal/tools/registry"
 )
 
 func main() {

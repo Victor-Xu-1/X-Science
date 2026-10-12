@@ -14,8 +14,8 @@ import (
 
 	"github.com/google/uuid"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func (s *Server) handleWebConversationActiveCount(w http.ResponseWriter, r *http.Request) {
@@ -23,7 +23,7 @@ func (s *Server) handleWebConversationActiveCount(w http.ResponseWriter, r *http
 		writeWorkspaceJSON(w, http.StatusMethodNotAllowed, map[string]any{"message": "method not allowed"})
 		return
 	}
-	frames, err := s.workspaceStore.ListVisibleCompatibilityFrames(strings.TrimSpace(r.Header.Get("X-Synon-User-Id")), "", true, 1000)
+	frames, err := s.workspaceStore.ListVisibleCompatibilityFrames(strings.TrimSpace(r.Header.Get("X-Science-User-Id")), "", true, 1000)
 	if err != nil {
 		writeWebConversationError(w, err)
 		return
@@ -77,7 +77,7 @@ func (s *Server) handleWebConversationClone(w http.ResponseWriter, r *http.Reque
 		})
 		return
 	}
-	userID := strings.TrimSpace(r.Header.Get("X-Synon-User-Id"))
+	userID := strings.TrimSpace(r.Header.Get("X-Science-User-Id"))
 	targetID := uuid.NewString()
 	if intentID := strings.TrimSpace(body.IntentID); intentID != "" {
 		parsed, err := uuid.Parse(intentID)
@@ -86,7 +86,7 @@ func (s *Server) handleWebConversationClone(w http.ResponseWriter, r *http.Reque
 			return
 		}
 		targetID = uuid.NewSHA1(uuid.NameSpaceOID, []byte(
-			"synon-conversation-clone-intent-v1\x00"+userID+"\x00"+parsed.String(),
+			"x-science-conversation-clone-intent-v1\x00"+userID+"\x00"+parsed.String(),
 		)).String()
 	}
 	cloned, err := s.workspaceStore.CloneConversationWithTranscript(r.Context(), workspace.CloneConversationInput{
@@ -110,7 +110,7 @@ func (s *Server) handleWebConversationClone(w http.ResponseWriter, r *http.Reque
 
 func (s *Server) publishWebConversationListChange(userID, conversationID, action string) error {
 	_, err := s.publishUserEvent(userID, "conversation.listChanged", map[string]any{
-		"conversation_id": conversationID, "action": action, "source": "synonbiomed",
+		"conversation_id": conversationID, "action": action, "source": "xscience",
 	})
 	return err
 }

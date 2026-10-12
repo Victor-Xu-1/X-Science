@@ -45,7 +45,7 @@ export function rendererManualChunk(id: string): string | undefined {
 export const rendererOnlyExplicitManualChunks = false;
 
 const previewHashedAssetName = /-[A-Za-z0-9_-]{8,}\.[A-Za-z0-9]+$/;
-const previewReservedPrefixes = ['/api', '/health', '/login', '/logout', '/synon-link', '/v1', '/ws'];
+const previewReservedPrefixes = ['/api', '/health', '/login', '/logout', '/x-science-link', '/v1', '/ws'];
 
 export function productionPreviewCacheControl(pathname: string): string | undefined {
   const normalized = pathname.split('?', 1)[0] || '/';
@@ -59,7 +59,12 @@ export function productionPreviewCacheControl(pathname: string): string | undefi
   ) {
     return 'no-cache';
   }
-  if (normalized === '/theme-init.js' || normalized === '/app-boot.js' || normalized.startsWith('/rdkit/')) {
+  if (
+    normalized === '/storage-namespace-upgrade.js' ||
+    normalized === '/theme-init.js' ||
+    normalized === '/app-boot.js' ||
+    normalized.startsWith('/rdkit/')
+  ) {
     return 'no-cache, must-revalidate';
   }
   return previewHashedAssetName.test(normalized) ? 'public, max-age=31536000, immutable' : 'public, max-age=3600';
@@ -155,7 +160,7 @@ function positivePort(value: string | undefined, fallback: number): number {
 
 function iconParkPlugin() {
   return {
-    name: 'synon-ai-icon-park',
+    name: 'x-science-icon-park',
     enforce: 'pre' as const,
     transform(source: string, id: string): { code: string; map: null } | null {
       if (!id.endsWith('.tsx') || id.includes('node_modules') || !source.includes('@icon-park/react')) return null;
@@ -214,13 +219,13 @@ export function createRendererPlugins(): PluginOption[] {
 }
 
 export default defineConfig(({ mode }) => {
-  const devPort = positivePort(process.env.SYNON_DEV_WEB_PORT, 5173);
-  const backendTarget = process.env.SYNON_DEV_BACKEND_URL?.trim();
+  const devPort = positivePort(process.env.X_SCIENCE_DEV_WEB_PORT, 5173);
+  const backendTarget = process.env.X_SCIENCE_DEV_BACKEND_URL?.trim();
   const proxy = backendTarget
     ? Object.fromEntries(
-        ['/api', '/health', '/login', '/logout', '/synon-link', '/v1', '/ws'].map((path) => [
+        ['/api', '/health', '/login', '/logout', '/x-science-link', '/v1', '/ws'].map((path) => [
           path,
-          sourceBackendProxy(backendTarget, path === '/api' || path === '/ws' || path === '/synon-link'),
+          sourceBackendProxy(backendTarget, path === '/api' || path === '/ws' || path === '/x-science-link'),
         ])
       )
     : undefined;
@@ -232,14 +237,14 @@ export default defineConfig(({ mode }) => {
     esbuild: { legalComments: 'none' },
     optimizeDeps: { esbuildOptions: { plugins: [molstarPickingPrebundlePlugin()] } },
     server: {
-      host: process.env.SYNON_DEV_WEB_HOST?.trim() || '127.0.0.1',
+      host: process.env.X_SCIENCE_DEV_WEB_HOST?.trim() || '127.0.0.1',
       port: devPort,
       strictPort: true,
       hmr: { host: 'localhost', port: devPort },
       proxy,
     },
     preview: {
-      host: process.env.SYNON_DEV_WEB_HOST?.trim() || '127.0.0.1',
+      host: process.env.X_SCIENCE_DEV_WEB_HOST?.trim() || '127.0.0.1',
       port: devPort,
       strictPort: true,
       proxy,
@@ -313,7 +318,7 @@ export default defineConfig(({ mode }) => {
     define: {
       'process.env.NODE_ENV': JSON.stringify(mode),
       'process.env.env': JSON.stringify(process.env.env),
-      'process.env.SYNON_AI_MULTI_INSTANCE': JSON.stringify(''),
+      'process.env.X_SCIENCE_MULTI_INSTANCE': JSON.stringify(''),
       'process.env.SENTRY_DSN': JSON.stringify(''),
       __APP_VERSION__: JSON.stringify(rootPackage.version),
       global: 'globalThis',

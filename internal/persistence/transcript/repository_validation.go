@@ -11,7 +11,7 @@ import (
 	"reflect"
 	"sort"
 	"strings"
-	"synon-go/internal/sqliteutil"
+	"x-science/internal/sqliteutil"
 )
 
 func (r *Repository) RunImmediate(ctx context.Context, fn func(*ImmediateTransaction) error) error {

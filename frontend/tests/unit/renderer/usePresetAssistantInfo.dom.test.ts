@@ -10,7 +10,7 @@ import type { TChatConversation } from '@/common/config/storage';
 import {
   resolveAssistantConfigId,
   usePresetAssistantInfo,
-} from '@/renderer/hooks/synonBiomed/runtime/usePresetAssistantInfo';
+} from '@/renderer/hooks/xScience/runtime/usePresetAssistantInfo';
 
 const useSWRMock = vi.fn();
 let currentLanguage = 'en-US';
@@ -187,7 +187,7 @@ describe('usePresetAssistantInfo', () => {
         id: 'assistant-local-avatar',
         source: 'user',
         name: 'Local Avatar',
-        avatar: '/Users/demo/.synon-ai/assistant-avatars/assistant-local-avatar.jpg',
+        avatar: '/Users/demo/.x-science/assistant-avatars/assistant-local-avatar.jpg',
         backend: 'codex',
       },
     } as TChatConversation;
@@ -219,7 +219,7 @@ describe('usePresetAssistantInfo', () => {
         id: 'assistant-local-avatar',
         source: 'user',
         name: 'Local Avatar',
-        avatar: '/Users/demo/.synon-ai/assistant-avatars/assistant-local-avatar.jpg',
+        avatar: '/Users/demo/.x-science/assistant-avatars/assistant-local-avatar.jpg',
         backend: 'codex',
       },
     } as TChatConversation;
@@ -508,7 +508,7 @@ function makeConversation(extra: Record<string, unknown>): TChatConversation {
     model: {},
     extra,
     status: 'finished',
-    source: 'synon-ai',
+    source: 'x-science',
     created_at: 1,
     modified_at: 1,
     pinned: false,

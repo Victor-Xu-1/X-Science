@@ -32,13 +32,13 @@ authorize a release.
   Unsupported operating-system/architecture pairs fail closed before any
   installer process starts. Optional kernel and MCP sidecars declare their own
   runtimes.
-- Runtime state is external to the release directory. Set `SYNON_HOME` to a dedicated state directory and preserve it across upgrades.
+- Runtime state is external to the release directory. Set `X_SCIENCE_HOME` to a dedicated state directory and preserve it across upgrades.
 - On native Windows, the installer keeps its package cache under the current
   user's runtime state root (`p` beside `conda` by default) and uses a compact
   32-hex directory key for the required R generation to reduce extraction and
   installed-prefix path length. The R marker and externally reported generation
   remain the full 64-hex SHA-256. It does not require a nondefault short
-  `SYNON_HOME`. Deep paths may still expose upstream installer or filesystem
+  `X_SCIENCE_HOME`. Deep paths may still expose upstream installer or filesystem
   limits; if installation fails, preserve the actual installer error and
   inspect both the configured state and package-cache paths before retrying.
   Do not change the package lock or move a live cache.
@@ -48,12 +48,12 @@ authorize a release.
   status as evidence that scientific task execution is available on those
   platforms; use Linux/WSL until a separately verified native confinement
   implementation is delivered.
-- Advanced deployments may set absolute `SYNON_CONDA_HOME` and
-  `SYNON_CONDA_ENVS_PATH` overrides; otherwise both roots are derived from the
-  current user's `SYNON_HOME`/platform data directory and validated at startup.
+- Advanced deployments may set absolute `X_SCIENCE_CONDA_HOME` and
+  `X_SCIENCE_CONDA_ENVS_PATH` overrides; otherwise both roots are derived from the
+  current user's `X_SCIENCE_HOME`/platform data directory and validated at startup.
 - The default listener is `127.0.0.1:8765`. Non-loopback listening requires either
-  `SYNON_LINK_AUTH_PASSWORD` or a complete supported external authentication
-  configuration with `SYNON_AUTH_PUBLIC_BASE_URL`; unauthenticated binding is rejected.
+  `X_SCIENCE_LINK_AUTH_PASSWORD` or a complete supported external authentication
+  configuration with `X_SCIENCE_AUTH_PUBLIC_BASE_URL`; unauthenticated binding is rejected.
 - The default operator username is `local`. There is no compiled-in password; set a unique deployment password.
 - The production runner uses the active saved workspace model provider. `go_builtin` is a test/development authority only.
 
@@ -264,12 +264,12 @@ from elapsed time. Ready means the managed environment passed its checks, not
 that a scientific task or result has been validated.
 
 Package caches and environment generations use the configured data/conda roots
-shown in Storage. The default root is resolved per user from `SYNON_HOME` or
-the user's `.synon-go` directory (`%USERPROFILE%\.synon-go` on Windows);
+shown in Storage. The default root is resolved per user from `X_SCIENCE_HOME` or
+the user's `.x-science` directory (`%USERPROFILE%\.x-science` on Windows);
 product code and release assets never embed a developer's absolute path. The
 layout is stable and shared by all tasks:
-`${SYNON_HOME}/conda/envs/<environment>` is the active pointer and
-`${SYNON_HOME}/conda/envs/.generations/<environment>/<generation>` stores the
+`${X_SCIENCE_HOME}/conda/envs/<environment>` is the active pointer and
+`${X_SCIENCE_HOME}/conda/envs/.generations/<environment>/<generation>` stores the
 immutable generation. Reopening or restarting the application verifies and
 reuses a matching generation instead of downloading it again. A task discovers
 software through its existing tools and executes under the same managed
@@ -283,7 +283,7 @@ the same short directory key is preserved and rejected, not overwritten.
 An older 64-character R directory is not reused as the new active layout and
 may require a fresh install; inspect and preserve the old directory and any
 user data before deciding on cleanup. For path failures, inspect the actual
-Conda prefix and `${SYNON_HOME}/p` cache path before changing configuration.
+Conda prefix and `${X_SCIENCE_HOME}/p` cache path before changing configuration.
 
 The R installer writes directly to its final generation path because R launchers
 can embed that path. A generation is published only after the R smoke test and
@@ -323,9 +323,8 @@ healthy gateway responses from both routes, and then prints:
 READY_URL=http://127.0.0.1:8765/#/login
 ```
 
-The one-time installer creates the user-level `~/.local/bin/x-science` symlink
-and compatibility `~/.local/bin/synon` symlink, both pointing to this checkout's
-single launcher. It never edits system directories or shell startup files. If it prints a PATH
+The one-time installer creates only the user-level `~/.local/bin/x-science` symlink
+pointing to this checkout's single launcher. It never edits system directories or shell startup files. If it prints a PATH
 hint, run that `export PATH=...` line once in the current shell. From then on,
 use `x-science start`; its options are passed to the canonical source quickstart.
 
@@ -337,8 +336,8 @@ terminal has desktop-browser access. The browser action is never implicit. No
 Web password is compiled into the repository.
 
 The source backend watcher loads its optional trusted local environment file
-from `${XDG_CONFIG_HOME:-$HOME/.config}/synon-go/workbench-model.env`.
-`SYNON_DEV_MODEL_ENV_FILE` selects an explicit alternative file; it does not
+from `${XDG_CONFIG_HOME:-$HOME/.config}/x-science/workbench-model.env`.
+`X_SCIENCE_DEV_MODEL_ENV_FILE` selects an explicit alternative file; it does not
 change the saved workspace provider authority. Keep this file private and
 outside source. The default retains the existing installation path rather
 than embedding a developer's home directory.
@@ -393,8 +392,8 @@ The required core contract is intentionally small and explicit:
 
 | Required runtime | Baseline contract | Why it is required |
 | --- | --- | --- |
-| `synon-biomed-python` | Python 3.11, RDKit and the bundled 2D rendering helpers; native structures are previewed by Mol* in the workbench | Default molecular, structure and general scientific task path |
-| `synon-biomed-r` | R 4.5, `data.table`, `ggplot2`, `jsonlite`, and `tidyverse` namespaces | Supported R analysis and shared report/data handling |
+| `x-science-python` | Python 3.11, RDKit and the bundled 2D rendering helpers; native structures are previewed by Mol* in the workbench | Default molecular, structure and general scientific task path |
+| `x-science-r` | R 4.5, `data.table`, `ggplot2`, `jsonlite`, and `tidyverse` namespaces | Supported R analysis and shared report/data handling |
 
 Shell, Java, GPU frameworks, docking engines, omics stacks and other large
 specialized tools are not hidden additional prerequisites. They remain
@@ -488,7 +487,7 @@ timeout. It never finds and kills a process by port. Persistent source state and
 logs default to:
 
 ```text
-${XDG_STATE_HOME:-$HOME/.local/state}/synon-biomed-source-quickstart
+${XDG_STATE_HOME:-$HOME/.local/state}/x-science-source-quickstart
 ```
 
 Override that dedicated path with `--state-dir`. It must remain outside the
@@ -544,22 +543,22 @@ immutability. Promotion attaches these exact files without rebuilding.
 
 GHCR carries the same Linux and Windows installation archives, checksums and
 candidate manifest as the corresponding GitHub Release. It uses the OCI
-artifact type `application/vnd.synon-biomed.release.v1`. This is an installation
+artifact type `application/vnd.x-science.release.v1`. This is an installation
 bundle, **not a runnable Docker image**: the Linux execution runtime requires
 a systemd user manager and host sandbox support. The existing native install
 and upgrade procedures below remain authoritative.
 
 Install [ORAS](https://oras.land/docs/installation) and select an actually
-published version. Set `SYNON_RELEASE_VERSION` to that published tag before
+published version. Set `X_SCIENCE_RELEASE_VERSION` to that published tag before
 running the example below:
 
 ```bash
-export SYNON_RELEASE_VERSION=vX.Y.Z
+export X_SCIENCE_RELEASE_VERSION=vX.Y.Z
 mkdir -p /tmp/x-science-download
-oras pull "ghcr.io/victor-xu-1/x-science:${SYNON_RELEASE_VERSION}" --output /tmp/x-science-download
+oras pull "ghcr.io/victor-xu-1/x-science:${X_SCIENCE_RELEASE_VERSION}" --output /tmp/x-science-download
 cd /tmp/x-science-download
-sha256sum --check "x-science-${SYNON_RELEASE_VERSION#v}-linux-amd64.tar.gz.sha256"
-sha256sum --check "x-science-${SYNON_RELEASE_VERSION#v}-windows-amd64.tar.gz.sha256"
+sha256sum --check "x-science-${X_SCIENCE_RELEASE_VERSION#v}-linux-amd64.tar.gz.sha256"
+sha256sum --check "x-science-${X_SCIENCE_RELEASE_VERSION#v}-windows-amd64.tar.gz.sha256"
 ```
 
 For automated deployment, pin `ghcr.io/victor-xu-1/x-science@sha256:DIGEST`
@@ -574,9 +573,9 @@ databases, runtime credentials or scientific-task output.
 The installer verifies the package manifest before replacing an installation. For an extracted package:
 
 ```bash
-./synon-go release-supply-chain verify --root .
-./synon-go release-manifest verify --root .
-./synon-go --health-json
+./x-science release-supply-chain verify --root .
+./x-science release-manifest verify --root .
+./x-science --health-json
 ```
 
 Each archive is emitted with a sibling `.sha256` file. Verify that checksum
@@ -594,50 +593,50 @@ The provenance is an in-toto/SLSA statement with SHA-256 source and binary subje
 
 ## Linux or WSL installation
 
-The new-install paths below are operator-selected examples. Existing instances
-keep their actual install and state paths. Packaged native commands still use
-the compatibility binary `synon-go`; `x-science` is the installed source launcher,
-not an alias for every native subcommand.
+The new-install paths below are operator-selected examples. The packaged native
+binary is `x-science`. The source launcher uses the same command name but owns
+source `start`/`stop`/`status`; native subcommands belong to the verified release
+binary. The installer refuses to overwrite a command owned by another checkout.
 
 ```bash
-export SYNON_RELEASE_VERSION="${SYNON_RELEASE_VERSION:-vX.Y.Z}"
-export SYNON_RELEASE_DIR="$HOME/.local/opt/x-science"
-./scripts/install-release.sh ./x-science-${SYNON_RELEASE_VERSION#v}-linux-amd64.tar.gz "$SYNON_RELEASE_DIR"
-"$SYNON_RELEASE_DIR/synon-go" --health-json
+export X_SCIENCE_RELEASE_VERSION="${X_SCIENCE_RELEASE_VERSION:-vX.Y.Z}"
+export X_SCIENCE_RELEASE_DIR="$HOME/.local/opt/x-science"
+./scripts/install-release.sh ./x-science-${X_SCIENCE_RELEASE_VERSION#v}-linux-amd64.tar.gz "$X_SCIENCE_RELEASE_DIR"
+"$X_SCIENCE_RELEASE_DIR/x-science" --health-json
 ```
 
 Install a hardened systemd user service:
 
 ```bash
-"$SYNON_RELEASE_DIR/scripts/install-systemd-user.sh" "$SYNON_RELEASE_DIR" "$HOME/.local/state/synon-go"
+"$X_SCIENCE_RELEASE_DIR/scripts/install-systemd-user.sh" "$X_SCIENCE_RELEASE_DIR" "$HOME/.local/state/x-science"
 ```
 
 The installer creates:
 
-- `~/.config/systemd/user/synon-go.service` with mode `0600`.
-- `~/.config/synon-go/synon-go.env` with mode `0600`.
-- `~/.local/state/synon-go` with mode `0700`, unless another state directory was supplied.
+- `~/.config/systemd/user/x-science.service` with mode `0600`.
+- `~/.config/x-science/x-science.env` with mode `0600`.
+- `~/.local/state/x-science` with mode `0700`, unless another state directory was supplied.
 
 Edit the protected environment file before exposing or enabling integrations:
 
 ```bash
-editor "$HOME/.config/synon-go/synon-go.env"
-systemctl --user restart synon-go.service
-systemctl --user --no-pager --full status synon-go.service
+editor "$HOME/.config/x-science/x-science.env"
+systemctl --user restart x-science.service
+systemctl --user --no-pager --full status x-science.service
 ```
 
 Recommended minimum environment:
 
 ```dotenv
-SYNON_ADDRESS=127.0.0.1:8765
-SYNON_HOME=/home/USER/.local/state/synon-go
-SYNON_LINK_AUTH_USERNAME=local
-SYNON_LINK_AUTH_PASSWORD=replace-with-a-long-random-password
-SYNON_RUNNER_ENABLED=true
-SYNON_RUNNER_PROVIDER=workspace
+X_SCIENCE_ADDRESS=127.0.0.1:8765
+X_SCIENCE_HOME=/home/USER/.local/state/x-science
+X_SCIENCE_LINK_AUTH_USERNAME=local
+X_SCIENCE_LINK_AUTH_PASSWORD=replace-with-a-long-random-password
+X_SCIENCE_RUNNER_ENABLED=true
+X_SCIENCE_RUNNER_PROVIDER=workspace
 ```
 
-The unit uses `ProtectSystem=strict`, `ProtectHome=read-only`, and a writable exception for `SYNON_HOME`. If an approved workflow must write another path, add only that path with a user-unit `ReadWritePaths=` override.
+The unit uses `ProtectSystem=strict`, `ProtectHome=read-only`, and a writable exception for `X_SCIENCE_HOME`. If an approved workflow must write another path, add only that path with a user-unit `ReadWritePaths=` override.
 
 ## Login and Web
 
@@ -651,9 +650,9 @@ variables. Google uses Authorization Code with PKCE and server-side ID-token
 verification:
 
 ```dotenv
-SYNON_AUTH_PUBLIC_BASE_URL=https://biomed.example
-SYNON_AUTH_GOOGLE_CLIENT_ID=google-oauth-client-id
-SYNON_AUTH_GOOGLE_CLIENT_SECRET=google-oauth-client-secret
+X_SCIENCE_AUTH_PUBLIC_BASE_URL=https://biomed.example
+X_SCIENCE_AUTH_GOOGLE_CLIENT_ID=google-oauth-client-id
+X_SCIENCE_AUTH_GOOGLE_CLIENT_SECRET=google-oauth-client-secret
 ```
 
 Register the exact callback `https://biomed.example/api/auth/oidc/google/callback`.
@@ -665,12 +664,12 @@ Sign in with Apple requires the Services ID, Team ID, Key ID, and a private key
 provided by absolute file path or Base64:
 
 ```dotenv
-SYNON_AUTH_APPLE_CLIENT_ID=com.synon.biomed.web
-SYNON_AUTH_APPLE_TEAM_ID=apple-team-id
-SYNON_AUTH_APPLE_KEY_ID=apple-key-id
-SYNON_AUTH_APPLE_PRIVATE_KEY_FILE=/run/secrets/synon-apple-private-key.p8
-# SYNON_AUTH_APPLE_PRIVATE_KEY_B64=base64-encoded-pem
-SYNON_AUTH_PUBLIC_BASE_URL=https://biomed.example
+X_SCIENCE_AUTH_APPLE_CLIENT_ID=com.x-science.biomed.web
+X_SCIENCE_AUTH_APPLE_TEAM_ID=apple-team-id
+X_SCIENCE_AUTH_APPLE_KEY_ID=apple-key-id
+X_SCIENCE_AUTH_APPLE_PRIVATE_KEY_FILE=/run/secrets/x-science-apple-private-key.p8
+# X_SCIENCE_AUTH_APPLE_PRIVATE_KEY_B64=base64-encoded-pem
+X_SCIENCE_AUTH_PUBLIC_BASE_URL=https://biomed.example
 ```
 
 Register `https://biomed.example/api/auth/oidc/apple/callback` in the Apple
@@ -681,9 +680,9 @@ WeChat website login is a separate Open Platform application and requires the
 same public HTTPS origin:
 
 ```dotenv
-SYNON_AUTH_WECHAT_APP_ID=wechat-open-platform-app-id
-SYNON_AUTH_WECHAT_APP_SECRET=wechat-open-platform-app-secret
-SYNON_AUTH_PUBLIC_BASE_URL=https://biomed.example
+X_SCIENCE_AUTH_WECHAT_APP_ID=wechat-open-platform-app-id
+X_SCIENCE_AUTH_WECHAT_APP_SECRET=wechat-open-platform-app-secret
+X_SCIENCE_AUTH_PUBLIC_BASE_URL=https://biomed.example
 ```
 
 Register `https://biomed.example/api/auth/oauth/wechat/callback` and the matching
@@ -699,19 +698,19 @@ product scope and the installed CLI does not expose a `tui` subcommand.
 ## Model authority
 
 1. Save and enable a model provider for the operator in workspace provider settings.
-2. Keep `SYNON_RUNNER_PROVIDER=workspace` and `SYNON_RUNNER_ENABLED=true`.
+2. Keep `X_SCIENCE_RUNNER_PROVIDER=workspace` and `X_SCIENCE_RUNNER_ENABLED=true`.
 3. Run the redacted offline readiness plan:
 
 ```bash
-synon-go model-smoke --plan --require-all --json
-synon-go doctor --json
+x-science model-smoke --plan --require-all --json
+x-science doctor --json
 ```
 
-Only run `synon-go model-smoke --target runner --run --require-all --json` with explicit authorization and known cost. A plan or built-in test response is not evidence that an external provider is reachable.
+Only run `x-science model-smoke --target runner --run --require-all --json` with explicit authorization and known cost. A plan or built-in test response is not evidence that an external provider is reachable.
 
 ## Message channels
 
-Set `SYNON_ENABLED_ADAPTERS` and the matching credentials for Feishu or WeChat. Telegram and DingTalk are not supported by the current runtime. An enabled channel fails startup when its inbound/outbound credential set is incomplete.
+Set `X_SCIENCE_ENABLED_ADAPTERS` and the matching credentials for Feishu or WeChat. Telegram and DingTalk are not supported by the current runtime. An enabled channel fails startup when its inbound/outbound credential set is incomplete.
 
 Inbound users must be paired before a task/session is created. Each accepted chat binds to `im:<platform>:<chat-id>`. Outbound route metadata and terminal delivery checkpoints are durable. WeChat context tokens are stored only in the encrypted secret vault and are hidden from public secret APIs.
 
@@ -724,7 +723,7 @@ After restart, the runtime replays an unfinished response from its last delivere
 Plan a credentialed delivery without exposing credentials:
 
 ```bash
-synon-go-live-im-smoke --plan --require-all --json
+x-science-live-im-smoke --plan --require-all --json
 ```
 
 Run live delivery only in an authorized channel test environment.
@@ -733,7 +732,7 @@ Run live delivery only in an authorized channel test environment.
 
 The repository-level P9 gate combines both production model targets and both
 supported outbound channels. It never reads credentials from command-line values;
-load them from a protected `SYNON_CONFIG` file, the encrypted Workbench state,
+load them from a protected `X_SCIENCE_CONFIG` file, the encrypted Workbench state,
 or a mode-0600 service environment file. The plan is redacted and makes no
 external model or platform request; it does verify the local runtime login and
 audit path:
@@ -741,10 +740,10 @@ audit path:
 ```bash
 python3 -B scripts/p9_external_acceptance.py \
   --mode plan \
-  --synon-binary "$SYNON_RELEASE_DIR/synon-go" \
-  --live-im-binary "$SYNON_RELEASE_DIR/synon-go-live-im-smoke" \
+  --x-science-binary "$X_SCIENCE_RELEASE_DIR/x-science" \
+  --live-im-binary "$X_SCIENCE_RELEASE_DIR/x-science-live-im-smoke" \
   --runtime-url http://127.0.0.1:8765 \
-  --output "$HOME/.local/state/synon-go/p9-external-plan.json"
+  --output "$HOME/.local/state/x-science/p9-external-plan.json"
 ```
 
 Exit code `3` means one or more model, channel, target, or runtime-audit
@@ -758,16 +757,16 @@ Feishu. Use an approved test destination, then provide the
 exact one-shot authorization phrase:
 
 ```bash
-export SYNON_EXTERNAL_TEST_AUTHORIZED=I_ACCEPT_NETWORK_COST_AND_MESSAGES
+export X_SCIENCE_EXTERNAL_TEST_AUTHORIZED=I_ACCEPT_NETWORK_COST_AND_MESSAGES
 python3 -B scripts/p9_external_acceptance.py \
   --mode run \
-  --synon-binary "$SYNON_RELEASE_DIR/synon-go" \
-  --live-im-binary "$SYNON_RELEASE_DIR/synon-go-live-im-smoke" \
+  --x-science-binary "$X_SCIENCE_RELEASE_DIR/x-science" \
+  --live-im-binary "$X_SCIENCE_RELEASE_DIR/x-science-live-im-smoke" \
   --runtime-url http://127.0.0.1:8765 \
   --timeout-seconds 30 \
   --max-attempts 1 \
-  --output "$HOME/.local/state/synon-go/p9-external-run.json"
-unset SYNON_EXTERNAL_TEST_AUTHORIZED
+  --output "$HOME/.local/state/x-science/p9-external-run.json"
+unset X_SCIENCE_EXTERNAL_TEST_AUTHORIZED
 ```
 
 Success requires live, non-empty runner and compact responses, successful
@@ -780,16 +779,16 @@ to require only the two Go binaries.
 
 1. Verify and back up the current release.
 2. Stop the service before taking a consistent state backup.
-3. Back up `SYNON_HOME` separately from the release directory.
+3. Back up `X_SCIENCE_HOME` separately from the release directory.
 4. Install the new archive to the same release path; the installer validates a staging tree before atomic replacement.
 5. Restart and verify health, login, model readiness, channel diagnostics, and one representative flow.
 
 ```bash
-systemctl --user stop synon-go.service
-./scripts/backup-release.sh "$SYNON_RELEASE_DIR" /secure/backup/synon-biomed-release
-tar --xattrs --acls -C "$HOME/.local/state" -czf /secure/backup/synon-go-state.tar.gz synon-go
-./scripts/install-release.sh ./new-release.tar.gz "$SYNON_RELEASE_DIR"
-systemctl --user start synon-go.service
+systemctl --user stop x-science.service
+./scripts/backup-release.sh "$X_SCIENCE_RELEASE_DIR" /secure/backup/x-science-release
+tar --xattrs --acls -C "$HOME/.local/state" -czf /secure/backup/x-science-state.tar.gz x-science
+./scripts/install-release.sh ./new-release.tar.gz "$X_SCIENCE_RELEASE_DIR"
+systemctl --user start x-science.service
 curl --noproxy '*' --fail --silent http://127.0.0.1:8765/api/health
 ```
 
@@ -798,9 +797,9 @@ Do not store state inside the release directory. Release rollback does not impli
 ## Rollback and uninstall
 
 ```bash
-systemctl --user stop synon-go.service
-./scripts/rollback-release.sh "$SYNON_RELEASE_DIR" /secure/backup/synon-biomed-release
-systemctl --user start synon-go.service
+systemctl --user stop x-science.service
+./scripts/rollback-release.sh "$X_SCIENCE_RELEASE_DIR" /secure/backup/x-science-release
+systemctl --user start x-science.service
 ```
 
 Restore a state backup only when the target binary cannot read the upgraded schema and after preserving current state for diagnosis. The v1.1 migration CLI provides inspect, run, verify, activate, rollback-cutover, and rollback operations.
@@ -808,30 +807,30 @@ Restore a state backup only when the target binary cannot read the upgraded sche
 Remove the service before the release:
 
 ```bash
-"$SYNON_RELEASE_DIR/scripts/uninstall-systemd-user.sh"
-./scripts/uninstall-release.sh "$SYNON_RELEASE_DIR"
+"$X_SCIENCE_RELEASE_DIR/scripts/uninstall-systemd-user.sh"
+./scripts/uninstall-release.sh "$X_SCIENCE_RELEASE_DIR"
 ```
 
-The service environment and `SYNON_HOME` are intentionally preserved. Delete them only after a separate retention decision and verified backup.
+The service environment and `X_SCIENCE_HOME` are intentionally preserved. Delete them only after a separate retention decision and verified backup.
 
 ## Windows installation
 
 New installation examples below use X-Science directories chosen by the operator.
-For an existing installation, substitute its actual paths throughout; do not move
-state, credentials or logs merely to rename the product. The packaged `synon-go`
-binary, service names, configuration keys and protocol identifiers are retained
-compatibility interfaces, not the display name or a second source launcher.
-See the [canonical rename compatibility map](governance/product-rename-compatibility-map.json).
+For an existing installation, inspect actual paths and migrate stopped owned
+state through the reviewed upgrade path. The packaged `x-science` binary and
+`X_SCIENCE_*` configuration are canonical; never blindly move live scientific
+prefixes, rewrite credentials or overwrite an existing state directory.
+See the [canonical namespace migration map](governance/product-rename-compatibility-map.json).
 
 ```powershell
-$env:SYNON_RELEASE_VERSION = if ($env:SYNON_RELEASE_VERSION) { $env:SYNON_RELEASE_VERSION } else { 'vX.Y.Z' }
-$env:SYNON_RELEASE_DIR = if ($env:SYNON_RELEASE_DIR) { $env:SYNON_RELEASE_DIR } else { 'C:\Tools\X-Science' }
+$env:X_SCIENCE_RELEASE_VERSION = if ($env:X_SCIENCE_RELEASE_VERSION) { $env:X_SCIENCE_RELEASE_VERSION } else { 'vX.Y.Z' }
+$env:X_SCIENCE_RELEASE_DIR = if ($env:X_SCIENCE_RELEASE_DIR) { $env:X_SCIENCE_RELEASE_DIR } else { 'C:\Tools\X-Science' }
 powershell -ExecutionPolicy Bypass -File .\scripts\install-release.ps1 `
-  -Archive ".\x-science-$($env:SYNON_RELEASE_VERSION.TrimStart('v'))-windows-amd64.tar.gz" `
-  -InstallDir $env:SYNON_RELEASE_DIR
-$env:SYNON_RELEASE_DIR\synon-go.exe --health-json
-$env:SYNON_RELEASE_DIR\synon-go.exe release-manifest verify `
-  --root $env:SYNON_RELEASE_DIR
+  -Archive ".\x-science-$($env:X_SCIENCE_RELEASE_VERSION.TrimStart('v'))-windows-amd64.tar.gz" `
+  -InstallDir $env:X_SCIENCE_RELEASE_DIR
+$env:X_SCIENCE_RELEASE_DIR\x-science.exe --health-json
+$env:X_SCIENCE_RELEASE_DIR\x-science.exe release-manifest verify `
+  --root $env:X_SCIENCE_RELEASE_DIR
 ```
 
 Use `scripts/manage-release.ps1` for backup, rollback, and uninstall. The package does not automatically install a Windows service; run interactively or register it with an operator-managed service account and an ACL-protected environment.
@@ -848,7 +847,7 @@ blank Web credentials are acceptable only for that strictly local deployment.
 $InstallDir = Join-Path $env:LOCALAPPDATA 'X-Science\0.1.1-REVISION'
 $StateDir = Join-Path $env:LOCALAPPDATA 'X-Science\state\8765-REVISION'
 $LogDir = Join-Path $env:LOCALAPPDATA 'X-Science\logs\8765-REVISION'
-$Binary = Join-Path $InstallDir 'synon-go.exe'
+$Binary = Join-Path $InstallDir 'x-science.exe'
 $Stdout = Join-Path $LogDir 'stdout.log'
 $Stderr = Join-Path $LogDir 'stderr.log'
 
@@ -859,12 +858,12 @@ if (Get-NetTCPConnection -State Listen -LocalPort 8765 -ErrorAction SilentlyCont
 }
 New-Item -ItemType Directory -Path $LogDir -Force | Out-Null
 
-$env:SYNON_HOME = $StateDir
-$env:SYNON_ADDRESS = '127.0.0.1:8765'
-$env:SYNON_LINK_AUTH_USERNAME = ''
-$env:SYNON_LINK_AUTH_PASSWORD = ''
-$env:SYNON_RUNNER_ENABLED = 'true'
-$env:SYNON_RUNNER_PROVIDER = 'workspace'
+$env:X_SCIENCE_HOME = $StateDir
+$env:X_SCIENCE_ADDRESS = '127.0.0.1:8765'
+$env:X_SCIENCE_LINK_AUTH_USERNAME = ''
+$env:X_SCIENCE_LINK_AUTH_PASSWORD = ''
+$env:X_SCIENCE_RUNNER_ENABLED = 'true'
+$env:X_SCIENCE_RUNNER_PROVIDER = 'workspace'
 $Process = Start-Process -FilePath $Binary -WorkingDirectory $InstallDir `
   -WindowStyle Hidden -RedirectStandardOutput $Stdout `
   -RedirectStandardError $Stderr -PassThru
@@ -895,7 +894,7 @@ then stop that exact process:
 
 ```powershell
 $InstallDir = Join-Path $env:LOCALAPPDATA 'X-Science\0.1.1-REVISION'
-$ExpectedBinary = [IO.Path]::GetFullPath((Join-Path $InstallDir 'synon-go.exe'))
+$ExpectedBinary = [IO.Path]::GetFullPath((Join-Path $InstallDir 'x-science.exe'))
 $Listener = Get-NetTCPConnection -State Listen -LocalPort 8765 -ErrorAction Stop |
   Select-Object -First 1
 $Runtime = Get-CimInstance Win32_Process -Filter "ProcessId=$($Listener.OwningProcess)"
@@ -1031,9 +1030,9 @@ procedure, restart policy, and rollback procedure.
 ### Skill catalog presentation
 
 Bundled Skill categories and localized UI summaries are maintained in
-`skills/synonbiomed/catalog-ui.json`. English source descriptions and executable
+`skills/x-science/catalog-ui.json`. English source descriptions and executable
 instructions remain in each `SKILL.md`. The loader uses the nearest catalog
-inside its configured root, so loading `skills` or `skills/synonbiomed` produces
+inside its configured root, so loading `skills` or `skills/x-science` produces
 the same bundled presentation. Missing or invalid metadata is reported as a
 catalog diagnostic while the Skill remains available; an external Skill does
 not borrow presentation merely because its name matches a bundled Skill.
@@ -1066,7 +1065,7 @@ go test -race -timeout=0 ./internal/tools/mcpstdio -run 'TestRemoteMetadata|Test
 go test -race -timeout=0 ./internal/server ./internal/kernel -run 'TestKernelMCP|TestReplHostMCP|TestWorkspaceArtifactHandle|TestWorkspaceRecordDirectory' -count=1
 ```
 
-Optional captured-array replay uses `SYNON_TEST_RECORD_SOURCE` with a selected
+Optional captured-array replay uses `X_SCIENCE_TEST_RECORD_SOURCE` with a selected
 read-only JSON array path and `go test -v -timeout=0 ./internal/server -run
 TestWorkspaceRecordDirectoryCapturedReplay -count=1`. No captured scientific
 answer is embedded in production or used as a report-generation template.
@@ -1158,7 +1157,7 @@ responsibility.
 Public connectors such as Open Targets and Imaging Data Commons do not need
 API keys. A TLS handshake or connection timeout is a network-path failure,
 not evidence of missing credentials. If the deployment requires an outbound
-proxy, set `SYNON_NETWORK_PROXY` (an operator-trusted HTTP proxy origin) in the
+proxy, set `X_SCIENCE_NETWORK_PROXY` (an operator-trusted HTTP proxy origin) in the
 service's persistent startup environment, or set `network.proxy` in its startup
 configuration, then restart that service. A proxy exported only in an interactive
 shell does not configure an already-running service. The configured proxy must
@@ -1171,7 +1170,7 @@ The opt-in acceptance tests use the same trusted TLS/proxy and public-address
 client boundary as the server. With the deployment's network environment set:
 
 ```sh
-SYNON_RUN_REAL_REMOTE_MCP=1 go test ./internal/mcpdirectory -run 'TestOfficial(OpenTargetsHostedMCPCompletesRealEGFRResolution|IDCRemoteMCPExposesRealReadOnlyCatalog)' -count=1 -v
+X_SCIENCE_RUN_REAL_REMOTE_MCP=1 go test ./internal/mcpdirectory -run 'TestOfficial(OpenTargetsHostedMCPCompletesRealEGFRResolution|IDCRemoteMCPExposesRealReadOnlyCatalog)' -count=1 -v
 ```
 
 These checks query public data and do not configure credentials or submit paid
@@ -1198,11 +1197,11 @@ recent process exit before restarting. Never paste unredacted environment
 variables, credentials, model payloads, or user state into an issue.
 
 ```bash
-systemctl --user --no-pager --full status synon-go.service
-journalctl --user -u synon-go.service --since today --no-pager
+systemctl --user --no-pager --full status x-science.service
+journalctl --user -u x-science.service --since today --no-pager
 curl --noproxy '*' --fail --silent http://127.0.0.1:8765/api/health
-synon-go doctor --json
-synon-go model-smoke --plan --json
+x-science doctor --json
+x-science model-smoke --plan --json
 ```
 
 Never paste the secret vault, environment file, channel tokens, model keys, or unredacted payloads into logs or issues. Use structured doctor and smoke outputs, which are designed to redact credentials.
@@ -1216,10 +1215,10 @@ Never paste the secret vault, environment file, channel tokens, model keys, or u
 | Runner partial/unavailable | Saved provider, credential reference, model smoke plan | Repair the workspace provider; do not switch production to `go_builtin` |
 | Channel starts inbound only | Enabled adapter diagnostics and outbound credentials | Configure missing robot/card/token values and restart |
 | Repeated IM response after crash | Delivery checkpoint and termination time | Treat as at-least-once replay; verify remote delivery before manual retry |
-| Service cannot write a workspace | systemd `ReadWritePaths` and `SYNON_HOME` | Add only the required absolute path through a unit override |
+| Service cannot write a workspace | systemd `ReadWritePaths` and `X_SCIENCE_HOME` | Add only the required absolute path through a unit override |
 | Release install rejected | Manifest, provenance, archive traversal, binary health | Do not bypass validation; obtain a clean archive |
 | Optional kernel/MCP unavailable | Optional asset manifest and declared runtime | Install that sidecar runtime separately; core remains native |
-| Native Windows R install reports a path or generation collision | Resolved state root, `conda/envs/.generations/synon-biomed-r` directory, marker's full generation, and `p` package cache | Preserve the failed prefix and installer error; do not rename/delete an active cache or old generation. Use a separate state root only after assessing existing data and path length. |
+| Native Windows R install reports a path or generation collision | Resolved state root, `conda/envs/.generations/x-science-r` directory, marker's full generation, and `p` package cache | Preserve the failed prefix and installer error; do not rename/delete an active cache or old generation. Use a separate state root only after assessing existing data and path length. |
 
 ### File-tool feedback and structured source inspection
 
@@ -1374,7 +1373,7 @@ Version-backed reads also return an absolute `file_path` usable by this task's
 analysis runtimes. `file_path_scope: original_source` means the path contains
 the entire original file, even when the displayed view selects a JSON field
 or a line window. The path is resolved through the existing `host.artifact_path`
-materialization implementation into the task's `.synon-artifacts` cache;
+materialization implementation into the task's `.x-science-artifacts` cache;
 display filenames and `/api/artifacts/` links are not computation paths.
 Local workspace reads return their authorized absolute path through the same
 response field. Path metadata is budgeted before preview allocation.
@@ -1448,7 +1447,7 @@ go test -race -timeout=0 ./internal/server -run 'TestWorkspaceHTTPDocument|TestW
 ```
 
 For read-only replay of captured HTTP/search blobs, set
-`SYNON_TEST_SOURCE_BLOBS` to the platform path-list-separated, explicitly selected
+`X_SCIENCE_TEST_SOURCE_BLOBS` to the platform path-list-separated, explicitly selected
 blob paths and run `go test -v -timeout=0 ./internal/server -run
 TestWorkspaceDocumentCapturedSourceReplay -count=1`. This reports presentation
 sizes and pagination, not scientific correctness or new-task acceptance.

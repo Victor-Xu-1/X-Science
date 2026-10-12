@@ -19,7 +19,7 @@ def git(repo, *arguments):
 class PackageScopeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.directory = tempfile.TemporaryDirectory(prefix="synon-pr-go-scope-")
+        cls.directory = tempfile.TemporaryDirectory(prefix="x-science-pr-go-scope-")
         cls.repo = Path(cls.directory.name)
         files = {
             "go.mod": "module example/scope\n\ngo 1.22\n",
@@ -114,7 +114,7 @@ class PackageScopeTests(unittest.TestCase):
 
 class RevisionTests(unittest.TestCase):
     def test_depth_two_merge_checkout_supports_exact_base_to_merge_diff(self):
-        with tempfile.TemporaryDirectory(prefix="synon-pr-revisions-") as directory:
+        with tempfile.TemporaryDirectory(prefix="x-science-pr-revisions-") as directory:
             repo = Path(directory) / "source"
             repo.mkdir()
             git(repo, "init", "-q", "-b", "main")
@@ -144,7 +144,7 @@ class RevisionTests(unittest.TestCase):
             scope.changed_paths(Path.cwd(), "main", "HEAD")
 
     def test_zero_push_base_selects_every_tracked_path(self):
-        with tempfile.TemporaryDirectory(prefix="synon-main-zero-base-") as directory:
+        with tempfile.TemporaryDirectory(prefix="x-science-main-zero-base-") as directory:
             repo = Path(directory)
             git(repo, "init", "-q", "-b", "main")
             (repo / "go.mod").write_text("module example/zero\n\ngo 1.22\n")

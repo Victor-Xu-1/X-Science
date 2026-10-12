@@ -8,7 +8,7 @@ import (
 )
 
 func TestOutboundMediaLocalPathRequiresAuthorizedRootAndRegularFile(t *testing.T) {
-	t.Setenv("SYNON_OUTBOUND_MEDIA_ROOTS", "")
+	t.Setenv("X_SCIENCE_OUTBOUND_MEDIA_ROOTS", "")
 	tempFile := filepath.Join(t.TempDir(), "result.png")
 	if err := os.WriteFile(tempFile, []byte("image"), 0o600); err != nil {
 		t.Fatal(err)
@@ -22,9 +22,9 @@ func TestOutboundMediaLocalPathRequiresAuthorizedRootAndRegularFile(t *testing.T
 
 	root := t.TempDir()
 	if runtime.GOOS == "windows" {
-		t.Setenv("SYNON_OUTBOUND_MEDIA_ROOTS", root)
+		t.Setenv("X_SCIENCE_OUTBOUND_MEDIA_ROOTS", root)
 	} else {
-		t.Setenv("SYNON_OUTBOUND_MEDIA_ROOTS", root+string(filepath.ListSeparator)+"relative-root")
+		t.Setenv("X_SCIENCE_OUTBOUND_MEDIA_ROOTS", root+string(filepath.ListSeparator)+"relative-root")
 	}
 	authorized := filepath.Join(root, "report.pdf")
 	if err := os.WriteFile(authorized, []byte("report"), 0o600); err != nil {
@@ -37,7 +37,7 @@ func TestOutboundMediaLocalPathRequiresAuthorizedRootAndRegularFile(t *testing.T
 
 func TestOutboundMediaLocalPathRejectsSensitiveAndSymlinkEscape(t *testing.T) {
 	root := t.TempDir()
-	t.Setenv("SYNON_OUTBOUND_MEDIA_ROOTS", root)
+	t.Setenv("X_SCIENCE_OUTBOUND_MEDIA_ROOTS", root)
 	secret := filepath.Join(root, ".env.production")
 	if err := os.WriteFile(secret, []byte("TOKEN=secret"), 0o600); err != nil {
 		t.Fatal(err)

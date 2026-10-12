@@ -3,7 +3,7 @@ package server
 import (
 	"strings"
 
-	eventjournal "synon-go/internal/persistence/journal"
+	eventjournal "x-science/internal/persistence/journal"
 )
 
 func runtimeKeyFromSessionID(sessionID string) string {

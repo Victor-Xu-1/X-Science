@@ -467,7 +467,7 @@ describe('ipcBridge conversation adapter', () => {
         turn_id: null,
       },
       workspace: '',
-      model: { platform: 'synon-go', name: 'model-1', use_model: 'model-1' },
+      model: { platform: 'x-science', name: 'model-1', use_model: 'model-1' },
       last_message: {
         id: 'assistant-1',
         type: 'content',

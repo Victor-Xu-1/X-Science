@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/agentruntime"
-	eventjournal "synon-go/internal/persistence/journal"
+	"x-science/internal/agentruntime"
+	eventjournal "x-science/internal/persistence/journal"
 )
 
 const sessionRunnerFreshnessTestVersion = "729b7af7-3f67-4f9b-94af-80eeae747435"
@@ -212,7 +212,7 @@ func TestStaleArtifactPublicationUsesAgentOwnedCorrectionPath(t *testing.T) {
 	}
 	entries := runnerCorrectionEntriesForClassification("artifact_reference_correction_required", detail)
 	context := recoveredRunnerCorrectionContext(entries)
-	for _, required := range []string{"synon.runner_recovery.v1", `"required_transition":"repair_current_candidate"`, "report.md", sessionRunnerArtifactPublicationStaleMarker} {
+	for _, required := range []string{"x-science.runner_recovery.v1", `"required_transition":"repair_current_candidate"`, "report.md", sessionRunnerArtifactPublicationStaleMarker} {
 		if !strings.Contains(context, required) {
 			t.Fatalf("correction context missing %q: %s", required, context)
 		}

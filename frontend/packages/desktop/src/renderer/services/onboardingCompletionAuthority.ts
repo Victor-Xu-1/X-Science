@@ -32,7 +32,7 @@ type OwnerState = {
   inFlight: Promise<void> | null;
 };
 
-const STORAGE_PREFIX = 'synonbiomed.onboarding.complete.v1:';
+const STORAGE_PREFIX = 'xscience.onboarding.complete.v1:';
 const EMPTY_SNAPSHOT: OnboardingCompletionSnapshot = {
   ownerId: null,
   state: 'checking',

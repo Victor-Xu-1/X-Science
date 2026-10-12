@@ -32,8 +32,9 @@ func TestNormalizeRuntimeNameCollapsesRetiredCatalogAliases(t *testing.T) {
 	want := map[string]string{
 		"AgentOutputTool": "TaskOutput", "BashOutputTool": "TaskOutput",
 		"Brief": "SendUserMessage", "KillShell": "TaskStop", "Task": "Agent",
-		"SynonLink": "synon_link",
-		"WebFetch":  "web_fetch", "WebSearch": "web_search", "WebResearch": "web_research",
+		"SynonLink":  "x_science_link",
+		"synon_link": "x_science_link",
+		"WebFetch":   "web_fetch", "WebSearch": "web_search", "WebResearch": "web_research",
 		"file_read_batch": "ReadBatch", "glob": "Glob", "grep": "Grep", "mcp": "MCPTool",
 		"session_compact": "Compact", "sleep": "Sleep", "todo_write": "TodoWrite",
 		"update_step": "update_step_status",

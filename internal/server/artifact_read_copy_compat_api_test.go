@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestCompatibilityArtifactReadAndCopyUseSharedRealBlobsAcrossRestart(t *testing.T) {

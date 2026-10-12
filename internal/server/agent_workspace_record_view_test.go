@@ -39,7 +39,7 @@ func TestWorkspaceRecordDirectoryExposesLateRecordsWithoutDiscardingNestedData(t
 }
 
 func TestWorkspaceRecordDirectoryCapturedReplay(t *testing.T) {
-	path := os.Getenv("SYNON_TEST_RECORD_SOURCE")
+	path := os.Getenv("X_SCIENCE_TEST_RECORD_SOURCE")
 	if path == "" {
 		t.Skip("no record source selected")
 	}

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/toolprogress"
+	"x-science/internal/toolprogress"
 )
 
 func TestEngineKeepsLongToolRunningAndEmitsProgress(t *testing.T) {

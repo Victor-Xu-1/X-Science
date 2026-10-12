@@ -44,7 +44,7 @@ const SidebarIcon: React.FC<{ size?: number; strokeWidth?: number }> = ({ size =
   </svg>
 );
 
-const SynonBiomedBrand = () => <ProductBrand data-testid='synon-biomed-brand-lockup' />;
+const XScienceBrand = () => <ProductBrand data-testid='x-science-brand-lockup' />;
 
 const useDebug = () => {
   const [count, setCount] = useState(0);
@@ -83,7 +83,7 @@ const DESKTOP_SIDER_MAX_WIDTH = 420;
 const SIDER_DRAG_COLLAPSE_THRESHOLD = 180;
 const SIDER_DRAG_HYSTERESIS = 8;
 const SIDER_KEYBOARD_STEP = 16;
-const SIDER_WIDTH_STORAGE_KEY = 'synon-ai:desktop-sider-width';
+const SIDER_WIDTH_STORAGE_KEY = 'x-science:desktop-sider-width';
 const MOBILE_SIDER_WIDTH_RATIO = 0.67;
 const MOBILE_SIDER_MIN_WIDTH = 260;
 const MOBILE_SIDER_MAX_WIDTH = 420;
@@ -165,7 +165,7 @@ const Layout: React.FC<{
     // Mirror Titlebar's handleBackToChat convention: return to the last non-settings path.
     let target: string | null = null;
     try {
-      target = sessionStorage.getItem('synon-ai:last-non-settings-path');
+      target = sessionStorage.getItem('x-science:last-non-settings-path');
     } catch {
       // ignore
     }
@@ -423,7 +423,7 @@ const Layout: React.FC<{
               collapsedWidth={isMobile ? 0 : 0}
               collapsed={collapsed}
               width={siderWidth}
-              className={classNames('!bg-2 layout-sider synon-sidebar-shell', {
+              className={classNames('!bg-2 layout-sider x-science-sidebar-shell', {
                 collapsed,
                 'layout-sider--dragging': isSiderDragging,
                 'settings-layout-sider': isSettingsRoute,
@@ -437,7 +437,7 @@ const Layout: React.FC<{
               >
                 <ArcoLayout.Header
                   className={classNames(
-                    'flex items-center justify-start pt-8px pb-8px pl-18px pr-16px gap-12px layout-sider-header synon-sidebar-header',
+                    'flex items-center justify-start pt-8px pb-8px pl-18px pr-16px gap-12px layout-sider-header x-science-sidebar-header',
                     isMobile && 'layout-sider-header--mobile',
                     {
                       'cursor-pointer group ': collapsed,
@@ -448,16 +448,16 @@ const Layout: React.FC<{
                     <Tooltip content={t('common.back')} position='bottom'>
                       <button
                         type='button'
-                        className='synon-biomed-brand shrink-0 border-0 bg-transparent p-0 cursor-pointer flex items-center'
+                        className='x-science-brand shrink-0 border-0 bg-transparent p-0 cursor-pointer flex items-center'
                         aria-label={t('common.back')}
                         onClick={handleBrandHome}
                       >
-                        <SynonBiomedBrand />
+                        <XScienceBrand />
                       </button>
                     </Tooltip>
                   ) : (
-                    <div className='synon-biomed-brand shrink-0 flex items-center' onClick={onClick}>
-                      <SynonBiomedBrand />
+                    <div className='x-science-brand shrink-0 flex items-center' onClick={onClick}>
+                      <XScienceBrand />
                     </div>
                   )}
                   {isMobile && !collapsed && (
@@ -476,7 +476,7 @@ const Layout: React.FC<{
                 </ArcoLayout.Header>
                 <nav
                   aria-label={isSettingsRoute ? t('common.settings') : t('common.workspace')}
-                  className='arco-layout-content pt-0 px-8px pb-0 layout-sider-content synon-sidebar-content'
+                  className='arco-layout-content pt-0 px-8px pb-0 layout-sider-content x-science-sidebar-content'
                 >
                   {React.isValidElement(sider)
                     ? React.cloneElement(

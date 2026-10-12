@@ -123,7 +123,7 @@ func (s *Store) signalOutboxWake() {
 // DeriveOutboxEventID returns the stable event ID for one topic-specific
 // idempotency key. Reusing the same key with different content is rejected.
 func DeriveOutboxEventID(topic, idempotencyKey string) string {
-	digest := sha256.Sum256([]byte("synon-outbox-v1\x00" + strings.TrimSpace(topic) + "\x00" + strings.TrimSpace(idempotencyKey)))
+	digest := sha256.Sum256([]byte("x-science-outbox-v1\x00" + strings.TrimSpace(topic) + "\x00" + strings.TrimSpace(idempotencyKey)))
 	return "evt_" + hex.EncodeToString(digest[:])
 }
 
@@ -182,6 +182,7 @@ func (s *Store) enqueueOutboxTransaction(
 	input.Type = strings.TrimSpace(input.Type)
 	input.IdempotencyKey = strings.TrimSpace(input.IdempotencyKey)
 	input.ID = strings.TrimSpace(input.ID)
+	derivedID := input.ID == ""
 	input.PartitionKey = strings.TrimSpace(input.PartitionKey)
 	if err := validateOutboxText("topic", input.Topic, outboxMaxTopicBytes, true); err != nil {
 		return OutboxEvent{}, err
@@ -261,6 +262,22 @@ func (s *Store) enqueueOutboxTransaction(
 	}
 	if len(rawHeaders) > outboxMaxHeadersBytes {
 		return OutboxEvent{}, fmt.Errorf("encoded outbox headers exceed %d bytes", outboxMaxHeadersBytes)
+	}
+	if derivedID {
+		var existingID string
+		err := tx.QueryRowContext(ctx, `SELECT event_id FROM workspace_outbox WHERE topic=? AND idempotency_key=?`, input.Topic, input.IdempotencyKey).Scan(&existingID)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return OutboxEvent{}, err
+		}
+		if err == nil && existingID != input.ID {
+			input.ID, err = s.ResolveNamespaceIdentityTx(ctx, tx, "outbox", input.ID, existingID)
+			if err != nil {
+				return OutboxEvent{}, err
+			}
+			if input.ID != existingID {
+				return OutboxEvent{}, errors.New("outbox receipt identity is not bound to the namespace cutover")
+			}
+		}
 	}
 	delayMillis := input.AvailableAfter.Milliseconds()
 	_, err = tx.ExecContext(ctx, `

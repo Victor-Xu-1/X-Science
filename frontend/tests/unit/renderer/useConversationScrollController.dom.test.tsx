@@ -7,7 +7,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { TMessage } from '@/common/chat/chatLib';
-import { SYNON_BIOMED_OPTIMISTIC_USER_MESSAGE_PREFIX } from '@/renderer/pages/conversation/Messages/optimisticUserMessage';
+import { X_SCIENCE_OPTIMISTIC_USER_MESSAGE_PREFIX } from '@/renderer/pages/conversation/Messages/optimisticUserMessage';
 import { useConversationScrollController } from '@/renderer/pages/conversation/Messages/useConversationScrollController';
 
 function textMessage(id: string, position: 'left' | 'right', blockIndex?: number): TMessage {
@@ -19,7 +19,7 @@ function textMessage(id: string, position: 'left' | 'right', blockIndex?: number
     position,
     content: {
       content: id,
-      ...(blockIndex === undefined ? {} : { synonBiomed: { blockIndex } }),
+      ...(blockIndex === undefined ? {} : { xScience: { blockIndex } }),
     },
     created_at: 1,
   } as TMessage;
@@ -291,7 +291,7 @@ describe('useConversationScrollController', () => {
     );
 
     act(() => result.current.handleUserScrollIntent());
-    const optimistic = textMessage(`${SYNON_BIOMED_OPTIMISTIC_USER_MESSAGE_PREFIX}1`, 'right');
+    const optimistic = textMessage(`${X_SCIENCE_OPTIMISTIC_USER_MESSAGE_PREFIX}1`, 'right');
     rerender({ messages: [...initial, optimistic] });
 
     expect(scrollToBottomItem).toHaveBeenCalledWith('auto');

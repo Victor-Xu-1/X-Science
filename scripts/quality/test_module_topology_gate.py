@@ -35,9 +35,9 @@ class ModuleTopologyGateTests(unittest.TestCase):
     def test_valid_topology_and_drift_detection(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)
-            (repo / "skills/synonbiomed/example").mkdir(parents=True)
+            (repo / "skills/x-science/example").mkdir(parents=True)
             (repo / "assets/agents").mkdir(parents=True)
-            (repo / "skills/synonbiomed/example/SKILL.md").write_text("# Skill\n", encoding="utf-8")
+            (repo / "skills/x-science/example/SKILL.md").write_text("# Skill\n", encoding="utf-8")
             (repo / "assets/agents/metadata.yaml").write_text("agent_name: TEST\n", encoding="utf-8")
             (repo / "small.go").write_text("package small\n", encoding="utf-8")
             subprocess.run(["git", "init", "-q", str(repo)], check=True)
@@ -45,12 +45,12 @@ class ModuleTopologyGateTests(unittest.TestCase):
             spec = {
                 "schema": gate.SCHEMA,
                 "authorityOwner": "repository-steward",
-                "requiredDirectories": ["skills/synonbiomed", "assets/agents"],
+                "requiredDirectories": ["skills/xscience", "assets/agents"],
                 "requiredFiles": ["small.go"],
                 "bannedPaths": ["tools"],
                 "allowedTrackedRootEntries": ["assets", "skills", "small.go"],
                 "fileAuthorities": [
-                    {"suffix": "/SKILL.md", "prefix": "skills/synonbiomed/"},
+                    {"suffix": "/SKILL.md", "prefix": "skills/x-science/"},
                     {"suffix": "/metadata.yaml", "prefix": "assets/agents/"},
                 ],
                 "growthCeilings": [{"kind": "lines", "path": "small.go", "maximum": 1}],
@@ -80,18 +80,18 @@ class ModuleTopologyGateTests(unittest.TestCase):
             )
             rule = {
                 "path": "internal/toolgateway",
-                "forbiddenImports": ["net/http", "synon-go/internal/server"],
+                "forbiddenImports": ["net/http", "x-science/internal/server"],
             }
             self.assertEqual(gate.validate_package_dependency_rule(repo, rule), [])
 
             source.write_text(
-                'package toolgateway\n\nimport (\n    "net/http"\n    server "synon-go/internal/server"\n)\n',
+                'package toolgateway\n\nimport (\n    "net/http"\n    server "x-science/internal/server"\n)\n',
                 encoding="utf-8",
             )
             failures = gate.validate_package_dependency_rule(repo, rule)
             self.assertIn("package_dependency_forbidden:internal/toolgateway/pipeline.go:net/http", failures)
             self.assertIn(
-                "package_dependency_forbidden:internal/toolgateway/pipeline.go:synon-go/internal/server",
+                "package_dependency_forbidden:internal/toolgateway/pipeline.go:x-science/internal/server",
                 failures,
             )
 

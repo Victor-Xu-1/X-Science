@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"synon-go/internal/sciencecapability"
+	"x-science/internal/sciencecapability"
 )
 
 type managedExecutionOutputOwnership uint8
@@ -34,7 +34,7 @@ func inspectManagedExecutionOutputOwnership(directory string) (string, managedEx
 	decoder := json.NewDecoder(strings.NewReader(string(raw)))
 	decoder.DisallowUnknownFields()
 	if decoder.Decode(&marker) != nil || decoder.Decode(&struct{}{}) != io.EOF ||
-		marker.Schema != "synon.execution-pack-output-owner.v1" || strings.TrimSpace(marker.ExecutionPackID) == "" {
+		marker.Schema != "x-science.execution-pack-output-owner.v1" || strings.TrimSpace(marker.ExecutionPackID) == "" {
 		return "", managedExecutionOutputOwnershipInvalid
 	}
 	return strings.TrimSpace(marker.ExecutionPackID), managedExecutionOutputOwnershipValid

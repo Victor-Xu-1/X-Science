@@ -1,6 +1,6 @@
 package server
 
-import kernelruntime "synon-go/internal/kernel"
+import kernelruntime "x-science/internal/kernel"
 
 func (s *Server) startStructurePreviewKernel(spec kernelruntime.SessionSpec) (*kernelruntime.Worker, error) {
 	// These one-shot kernels are owned by a bounded HTTP request, not by the

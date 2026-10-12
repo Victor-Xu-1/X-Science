@@ -30,27 +30,27 @@ vi.mock('@arco-design/web-react', async (importOriginal) => {
   };
 });
 
-vi.mock('@/renderer/services/synonBiomedWorkspaceSettings', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/renderer/services/synonBiomedWorkspaceSettings')>();
+vi.mock('@/renderer/services/xScienceWorkspaceSettings', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/renderer/services/xScienceWorkspaceSettings')>();
   return {
     ...actual,
-    loadSynonBiomedSecrets: mocks.loadSecrets,
-    createSynonBiomedSecret: mocks.createSecret,
-    updateSynonBiomedSecret: mocks.updateSecret,
-    deleteSynonBiomedSecret: mocks.deleteSecret,
-    loadSynonBiomedDataDirectory: mocks.loadDirectory,
-    loadSynonBiomedDiskUsage: mocks.loadUsage,
-    loadSynonBiomedStorageRules: mocks.loadStorageRules,
-    saveSynonBiomedStorageRules: mocks.saveStorageRules,
-    loadSynonBiomedCloudCredentials: mocks.loadCloud,
-    changeSynonBiomedDataDirectory: mocks.changeDirectory,
-    clearSynonBiomedLastDataDirectoryMove: mocks.clearLastMove,
-    testSynonBiomedCloudCredential: mocks.testCloud,
+    loadXScienceSecrets: mocks.loadSecrets,
+    createXScienceSecret: mocks.createSecret,
+    updateXScienceSecret: mocks.updateSecret,
+    deleteXScienceSecret: mocks.deleteSecret,
+    loadXScienceDataDirectory: mocks.loadDirectory,
+    loadXScienceDiskUsage: mocks.loadUsage,
+    loadXScienceStorageRules: mocks.loadStorageRules,
+    saveXScienceStorageRules: mocks.saveStorageRules,
+    loadXScienceCloudCredentials: mocks.loadCloud,
+    changeXScienceDataDirectory: mocks.changeDirectory,
+    clearXScienceLastDataDirectoryMove: mocks.clearLastMove,
+    testXScienceCloudCredential: mocks.testCloud,
   };
 });
 
-vi.mock('@/renderer/services/synonBiomedGateway', () => ({
-  loadSynonBiomedProjects: mocks.loadProjects,
+vi.mock('@/renderer/services/xScienceGateway', () => ({
+  loadXScienceProjects: mocks.loadProjects,
 }));
 
 vi.mock('@/renderer/pages/settings/components/SettingsPageWrapper', () => ({
@@ -85,7 +85,7 @@ vi.mock('@/renderer/pages/settings/NetworkSettings', () => ({
   RefreshButton: ({ onClick }: { onClick: () => void }) => <button onClick={onClick}>刷新</button>,
 }));
 
-vi.mock('@/renderer/pages/settings/components/SynonBiomedCloudBrowser', () => ({
+vi.mock('@/renderer/pages/settings/components/XScienceCloudBrowser', () => ({
   default: () => <div>云目录浏览器</div>,
 }));
 
@@ -180,7 +180,7 @@ describe('Credentials and Storage settings', () => {
       usageBytes: 1024,
       freeBytes: 2048,
       activeFrames: 0,
-      configPath: '/config/synonbiomed.toml',
+      configPath: '/config/xscience.toml',
       pendingMove: null,
       lastMove: null,
     });

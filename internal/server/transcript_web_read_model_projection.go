@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 type transcriptWebProjectionSourceMetadata struct {
@@ -390,6 +390,10 @@ func (s *Server) projectTranscriptWebSourceMetadata(
 		return transcriptWebProjectionSourceMetadata{}, err
 	}
 	eventChain, err := transcriptWebSourceEventChain(projectedEvents)
+	if err != nil {
+		return transcriptWebProjectionSourceMetadata{}, err
+	}
+	projectedEvents, err = s.normalizeNamespaceAskUserProjectionEvents(ctx, ownerID, projectedEvents)
 	if err != nil {
 		return transcriptWebProjectionSourceMetadata{}, err
 	}

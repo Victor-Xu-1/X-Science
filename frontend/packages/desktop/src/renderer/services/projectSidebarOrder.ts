@@ -1,7 +1,7 @@
 import { getClientBusinessSetting, setClientBusinessSetting } from './clientBusinessSettings';
 import { normalizeProjectOrder } from '../pages/conversation/GroupedHistory/projectOrderModel';
 
-export const PROJECT_SIDEBAR_ORDER_SETTING = 'synonBiomed.sidebar.projectOrder' as const;
+export const PROJECT_SIDEBAR_ORDER_SETTING = 'xScience.sidebar.projectOrder' as const;
 
 export async function loadProjectSidebarOrder(): Promise<string[]> {
   return normalizeProjectOrder(await getClientBusinessSetting(PROJECT_SIDEBAR_ORDER_SETTING));

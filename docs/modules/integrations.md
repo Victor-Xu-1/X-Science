@@ -7,7 +7,7 @@ Skills 描述如何使用能力，MCP 连接器提供外部工具协议，模型
 
 | 扩展边界 | 源码与内容入口 | 改动时注意 |
 | --- | --- | --- |
-| 随产品发布的 Skills | [skills/synonbiomed](../../skills/synonbiomed/) | `SKILL.md`、相关脚本及资料是内容源 |
+| 随产品发布的 Skills | [skills/x-science](../../skills/x-science/) | `SKILL.md`、相关脚本及资料是内容源 |
 | Skill 解析、检索和加载 | [skills/loader.go](../../internal/skills/loader.go) · [server/skill_catalog_loader.go](../../internal/server/skill_catalog_loader.go) | 只加载明确可信根目录；个人库与内置库有各自来源 |
 | MCP 元数据和用户作用域的执行定义 | [mcpdirectory](../../internal/mcpdirectory/) | 启用状态、凭据授权、目录同步和实际运行身份不能混淆 |
 | MCP 协议及进程/远程连接 | [tools/mcpstdio](../../internal/tools/mcpstdio/) | 传输不由目录页面或 Skill 文本实现 |
@@ -17,9 +17,9 @@ Skills 描述如何使用能力，MCP 连接器提供外部工具协议，模型
 ## Content and execution · 内容与执行
 
 内置 Skill 的内容摘要清单是
-[skills.manifest.json](../../assets/synonbiomed/skills.manifest.json)，生成器为
+[skills.manifest.json](../../assets/x-science/skills.manifest.json)，生成器为
 [scripts/skills-manifest](../../scripts/skills-manifest/)。内容变更后经审阅再重生成，
-不要手工维护第二份清单。核心 `synon-runtime` Skill 由 `BuiltinRuntimeCatalog`
+不要手工维护第二份清单。核心 `x-science-runtime` Skill 由 `BuiltinRuntimeCatalog`
 提供，不在 `skills/` 下再复制一份 `SKILL.md`。
 
 Skill 的检索得分只是发现依据，不授予执行权限。MCP 的 runtime resolver

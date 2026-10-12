@@ -32,7 +32,7 @@ export function markdownFromEditableHtml(html: string): string {
     strongDelimiter: '**',
   });
   turndown.use(gfm);
-  turndown.addRule('synon-original-image-source', {
+  turndown.addRule('x-science-original-image-source', {
     filter: 'img',
     replacement: (_content, node) => {
       const image = node as HTMLImageElement;
@@ -55,7 +55,7 @@ export function markdownFromEditableHtml(html: string): string {
         : '';
     },
   });
-  turndown.addRule('synon-artifact-link-source', {
+  turndown.addRule('x-science-artifact-link-source', {
     // Own rejected anchors too: native Turndown would otherwise restore a
     // protocol that DOMPurify permits but the shared resource policy rejects.
     filter: 'a',
@@ -69,7 +69,7 @@ export function markdownFromEditableHtml(html: string): string {
       return `[${content}](${escapeMarkdownDestination(source)}${title ? ` "${escapeMarkdownTitle(title)}"` : ''})`;
     },
   });
-  turndown.addRule('synon-katex-source', {
+  turndown.addRule('x-science-katex-source', {
     filter: (node) => {
       if (!(node instanceof HTMLElement) || !node.classList.contains('katex')) return false;
       return !node.parentElement?.closest('.katex');

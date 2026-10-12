@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// Mirror of synon-ai-api-types/src/assistant.rs.
+// Mirror of x-science-api-types/src/assistant.rs.
 // Any shape change on either side requires a same-PR update on the other.
 
 export type AssistantSource = 'builtin' | 'generated' | 'user';
@@ -21,8 +21,8 @@ export function assistantRuntimeKey(assistant?: Pick<Assistant, 'agent'> | null)
   return assistant?.agent?.acp_backend || assistant?.agent?.type || '';
 }
 
-export function isSynonBiomedAssistant(assistant?: Pick<Assistant, 'agent'> | null): boolean {
-  return assistant?.agent?.type === 'synonbiomed' || assistant?.agent?.acp_backend === 'synonbiomed';
+export function isXScienceAssistant(assistant?: Pick<Assistant, 'agent'> | null): boolean {
+  return assistant?.agent?.type === 'xscience' || assistant?.agent?.acp_backend === 'xscience';
 }
 
 export interface Assistant {

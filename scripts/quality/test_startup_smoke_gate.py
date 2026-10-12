@@ -19,7 +19,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if self.path != '/health':
             self.send_error(404)
             return
-        body = b'{"status":"healthy","service":"gateway","name":"synon","version":"5.0.0-test","agent_catalog_ready":true,"agents_registered":14}\n'
+        body = b'{"status":"healthy","service":"gateway","name":"xscience","version":"5.0.0-test","agent_catalog_ready":true,"agents_registered":14}\n'
         self.send_response(200)
         self.send_header('Content-Type', 'application/json')
         self.send_header('Content-Length', str(len(body)))
@@ -28,7 +28,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def log_message(self, *_):
         pass
 
-http.server.ThreadingHTTPServer(('127.0.0.1', int(os.environ['SYNON_PORT'])), Handler).serve_forever()
+http.server.ThreadingHTTPServer(('127.0.0.1', int(os.environ['X_SCIENCE_PORT'])), Handler).serve_forever()
 """
 
 
@@ -51,9 +51,9 @@ class StartupSmokeGateTests(unittest.TestCase):
         with self.assertRaisesRegex(startup_smoke_gate.StartupSmokeError, "process_exited"):
             startup_smoke_gate.probe([sys.executable, "-c", "raise SystemExit(3)"], timeout_seconds=2)
 
-    def test_unrelated_http_200_does_not_satisfy_synon_health(self):
+    def test_unrelated_http_200_does_not_satisfy_x_science_health(self):
         unrelated = SERVER.replace(
-            "{\"status\":\"healthy\",\"service\":\"gateway\",\"name\":\"synon\",\"version\":\"5.0.0-test\",\"agent_catalog_ready\":true,\"agents_registered\":14}",
+            "{\"status\":\"healthy\",\"service\":\"gateway\",\"name\":\"xscience\",\"version\":\"5.0.0-test\",\"agent_catalog_ready\":true,\"agents_registered\":14}",
             "{\"ok\":true}",
         )
         with self.assertRaisesRegex(startup_smoke_gate.StartupSmokeError, "health_contract_invalid"):

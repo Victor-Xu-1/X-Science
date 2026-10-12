@@ -3,7 +3,7 @@ set -euo pipefail
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 source "$script_dir/release-path-policy.sh"
-product_name="$(synon_release_product_name)"
+product_name="$(x_science_release_product_name)"
 
 umask 022
 
@@ -14,7 +14,7 @@ fi
 
 archive="$1"
 raw_install_dir="$2"
-install_dir="$(synon_release_safe_path "$raw_install_dir" install)"
+install_dir="$(x_science_release_safe_path "$raw_install_dir" install)"
 tmp="$(mktemp -d)"
 stage=""
 backup=""
@@ -27,7 +27,7 @@ cleanup() {
 		cleanup_failed=1
 	fi
 	if [[ -n "$stage" && -e "$stage" ]]; then
-		if [[ -n "${parent:-}" ]] && synon_release_revalidate_managed_child "$parent" "$stage" install-stage; then
+		if [[ -n "${parent:-}" ]] && x_science_release_revalidate_managed_child "$parent" "$stage" install-stage; then
 			if ! rm -rf -- "$stage"; then
 				printf 'install stage preserved for manual recovery: %s\n' "$stage" >&2 || true
 				cleanup_failed=1
@@ -49,8 +49,8 @@ trap cleanup EXIT
 restore_backup() {
 	if [[ -z "$backup" || ! -e "$backup" ]]; then return 0; fi
 	if [[ -e "$install_dir" ]] ||
-		! synon_release_revalidate_path "$raw_install_dir" "$install_dir" install ||
-		! synon_release_revalidate_managed_child "$parent" "$backup" install-backup; then
+		! x_science_release_revalidate_path "$raw_install_dir" "$install_dir" install ||
+		! x_science_release_revalidate_managed_child "$parent" "$backup" install-backup; then
 		printf 'unable to restore previous installation automatically; preserved at %s\n' "$backup" >&2
 		return 1
 	fi
@@ -84,8 +84,8 @@ done < <(LC_ALL=C tar -tvzf "$archive")
 
 tar --no-same-owner --no-same-permissions -xzf "$archive" -C "$tmp"
 package_dir="$(find "$tmp" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
-if [[ -z "$package_dir" || ! -x "$package_dir/synon-go" ]]; then
-	echo "archive does not contain a runnable product package (synon-go binary)" >&2
+if [[ -z "$package_dir" || ! -x "$package_dir/x-science" ]]; then
+	echo "archive does not contain a runnable product package (x-science binary)" >&2
 	exit 1
 fi
 if [[ "$(find "$tmp" -mindepth 1 -maxdepth 1 | wc -l)" -ne 1 ]]; then
@@ -93,42 +93,42 @@ if [[ "$(find "$tmp" -mindepth 1 -maxdepth 1 | wc -l)" -ne 1 ]]; then
 	exit 1
 fi
 
-synon_release_assert_product_identity "$package_dir"
-"$package_dir/synon-go" release-manifest verify --root "$package_dir" >/dev/null
-"$package_dir/synon-go" --health-json >/dev/null
+x_science_release_assert_product_identity "$package_dir"
+"$package_dir/x-science" release-manifest verify --root "$package_dir" >/dev/null
+"$package_dir/x-science" --health-json >/dev/null
 
 parent="$(dirname "$install_dir")"
 name="$(basename "$install_dir")"
 mkdir -p "$parent"
-synon_release_revalidate_path "$raw_install_dir" "$install_dir" install
+x_science_release_revalidate_path "$raw_install_dir" "$install_dir" install
 stage="$(mktemp -d "$parent/.${name}.stage.XXXXXX")"
-synon_release_revalidate_managed_child "$parent" "$stage" install-stage
+x_science_release_revalidate_managed_child "$parent" "$stage" install-stage
 cp -a "$package_dir"/. "$stage"/
-synon_release_assert_product_identity "$stage"
-"$stage/synon-go" release-manifest verify --root "$stage" >/dev/null
+x_science_release_assert_product_identity "$stage"
+"$stage/x-science" release-manifest verify --root "$stage" >/dev/null
 
 if [[ -e "$install_dir" ]]; then
-	synon_release_revalidate_path "$raw_install_dir" "$install_dir" install
+	x_science_release_revalidate_path "$raw_install_dir" "$install_dir" install
 	backup="$parent/.${name}.backup.$(date +%s).$$"
-	synon_release_revalidate_managed_child "$parent" "$backup" install-backup
+	x_science_release_revalidate_managed_child "$parent" "$backup" install-backup
 	mv "$install_dir" "$backup"
 fi
-synon_release_revalidate_path "$raw_install_dir" "$install_dir" install
-synon_release_revalidate_managed_child "$parent" "$stage" install-stage
+x_science_release_revalidate_path "$raw_install_dir" "$install_dir" install
+x_science_release_revalidate_managed_child "$parent" "$stage" install-stage
 if ! mv "$stage" "$install_dir"; then
 	restore_backup || true
 	exit 1
 fi
 stage=""
 
-if ! synon_release_assert_product_identity "$install_dir" || ! "$install_dir/synon-go" --health-json >/dev/null; then
-	synon_release_revalidate_path "$raw_install_dir" "$install_dir" install
+if ! x_science_release_assert_product_identity "$install_dir" || ! "$install_dir/x-science" --health-json >/dev/null; then
+	x_science_release_revalidate_path "$raw_install_dir" "$install_dir" install
 	rm -rf "$install_dir"
 	restore_backup || true
 	exit 1
 fi
 if [[ -n "$backup" && -e "$backup" ]]; then
-	synon_release_revalidate_managed_child "$parent" "$backup" install-backup
+	x_science_release_revalidate_managed_child "$parent" "$backup" install-backup
 	rm -rf -- "$backup"
 	backup=""
 fi

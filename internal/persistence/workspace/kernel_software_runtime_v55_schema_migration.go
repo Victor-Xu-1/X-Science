@@ -11,7 +11,7 @@ import (
 const (
 	kernelSoftwareRuntimeV55CallbackID        = "kernel-software-runtime-v55-rebuild-operation-head"
 	kernelSoftwareRuntimeV55PreflightIdentity = "kernel-software-runtime-operation-head-v1"
-	kernelSoftwareRuntimeV55RuleSpec          = "synon.workspace.kernel-software-runtime.v55"
+	kernelSoftwareRuntimeV55RuleSpec          = "x-science.workspace.kernel-software-runtime.v55"
 )
 
 var kernelSoftwareRuntimeV55Migration = versionedSchemaMigration{

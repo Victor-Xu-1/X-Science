@@ -23,7 +23,7 @@ func (f resolverFunc) LookupNetIP(ctx context.Context, network, host string) ([]
 
 func TestClientStreamsPinnedHTTPSResponseWithinPolicy(t *testing.T) {
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
-		if request.Host == "" || request.Header.Get("User-Agent") != "synon-biomed-test" {
+		if request.Host == "" || request.Header.Get("User-Agent") != "x-science-test" {
 			t.Fatalf("request host/user agent = %q/%q", request.Host, request.Header.Get("User-Agent"))
 		}
 		w.Header().Set("Content-Type", "chemical/x-pdb")
@@ -500,7 +500,7 @@ func testClientWithResolver(t *testing.T, server *httptest.Server, resolver Addr
 	policy := Policy{
 		AllowedHosts: []string{"files.rcsb.org"}, AllowedPorts: []string{strconv.Itoa(mustPort(t, port))},
 		AcceptedMediaTypes: []string{"chemical/x-pdb"}, MaxRedirects: 3, MaxBytes: 1 << 20,
-		Timeout: 5 * time.Second, UserAgent: "synon-biomed-test",
+		Timeout: 5 * time.Second, UserAgent: "x-science-test",
 	}
 	return client, target, policy
 }

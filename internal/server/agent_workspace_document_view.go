@@ -8,9 +8,9 @@ import (
 	"mime"
 	"strings"
 
-	"synon-go/internal/httptext"
-	"synon-go/internal/sourcecitation"
-	"synon-go/internal/tools/webfetch"
+	"x-science/internal/httptext"
+	"x-science/internal/sourcecitation"
+	"x-science/internal/tools/webfetch"
 )
 
 // Six bounded search providers can together exceed the former eight-MiB JSON

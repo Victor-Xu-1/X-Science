@@ -3,7 +3,7 @@ package server
 import (
 	"fmt"
 	"strings"
-	taskruns "synon-go/internal/persistence/taskruns"
+	taskruns "x-science/internal/persistence/taskruns"
 )
 
 func buildTaskRunSessionPrompt(run taskruns.Record, message string) string {

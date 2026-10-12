@@ -31,7 +31,7 @@ html
 html
   body
   .settings-page-wrapper.settings-library-route
-  :is(.expert-grid, .settings-entity-grid, .synon-mcp-grid, .environment-grid) {
+  :is(.expert-grid, .settings-entity-grid, .x-science-mcp-grid, .environment-grid) {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)) !important;
   grid-auto-rows: auto;
@@ -137,7 +137,7 @@ html
   height: auto;
   font-size: var(--ui-font-meta);
 }
-.settings-page-wrapper.settings-library-route .settings-library-card__control > .synon-mcp-card__more {
+.settings-page-wrapper.settings-library-route .settings-library-card__control > .x-science-mcp-card__more {
   width: 32px;
   height: 32px;
   padding: 0;

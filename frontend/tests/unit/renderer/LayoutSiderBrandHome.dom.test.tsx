@@ -171,7 +171,7 @@ describe('Layout shell behavior', () => {
 
   it('navigates to the recorded last non-settings path when clicked in a settings route', () => {
     currentPathname = '/settings/about';
-    sessionStorage.setItem('synon-ai:last-non-settings-path', '/conversation/abc');
+    sessionStorage.setItem('x-science:last-non-settings-path', '/conversation/abc');
     renderLayout();
 
     fireEvent.click(screen.getByLabelText(BACK_KEY));
@@ -188,7 +188,7 @@ describe('Layout shell behavior', () => {
 
   it('falls back to /guid when the recorded path is itself a settings path', () => {
     currentPathname = '/settings/about';
-    sessionStorage.setItem('synon-ai:last-non-settings-path', '/settings/system');
+    sessionStorage.setItem('x-science:last-non-settings-path', '/settings/system');
     renderLayout();
 
     fireEvent.click(screen.getByLabelText(BACK_KEY));
@@ -197,7 +197,7 @@ describe('Layout shell behavior', () => {
 
   it('activates via keyboard (Enter and Space) in a settings route', async () => {
     currentPathname = '/settings/about';
-    sessionStorage.setItem('synon-ai:last-non-settings-path', '/conversation/abc');
+    sessionStorage.setItem('x-science:last-non-settings-path', '/conversation/abc');
     renderLayout();
 
     const brand = screen.getByLabelText(BACK_KEY);
@@ -211,7 +211,7 @@ describe('Layout shell behavior', () => {
 
   it('ignores non-activation keys in a settings route', () => {
     currentPathname = '/settings/about';
-    sessionStorage.setItem('synon-ai:last-non-settings-path', '/conversation/abc');
+    sessionStorage.setItem('x-science:last-non-settings-path', '/conversation/abc');
     renderLayout();
 
     const brand = screen.getByLabelText(BACK_KEY);
@@ -236,7 +236,7 @@ describe('Layout shell behavior', () => {
     // No actionable role/label in chat routes.
     expect(screen.queryByLabelText(BACK_KEY)).toBeNull();
     expect(screen.getByText('X-Science')).toBeVisible();
-    const brandLockup = screen.getByTestId('synon-biomed-brand-lockup');
+    const brandLockup = screen.getByTestId('x-science-brand-lockup');
     expect(brandLockup.tagName).toBe('SPAN');
     expect(brandLockup.querySelector('img')).toHaveAttribute('alt', '');
     expect(brandLockup.querySelector('img')).toHaveAttribute('src', './branding/x-science-mark.png');
@@ -256,7 +256,7 @@ describe('Layout shell behavior', () => {
     currentPathname = '/conversation/xyz';
     renderLayout();
 
-    fireEvent.click(screen.getByTestId('synon-biomed-brand-lockup'));
+    fireEvent.click(screen.getByTestId('x-science-brand-lockup'));
     expect(navigate).not.toHaveBeenCalled();
   });
 
@@ -264,17 +264,17 @@ describe('Layout shell behavior', () => {
     currentPathname = '/guid';
     renderLayout();
 
-    const icon = screen.getByTestId('synon-biomed-brand-lockup').parentElement as HTMLElement;
+    const icon = screen.getByTestId('x-science-brand-lockup').parentElement as HTMLElement;
     expect(icon).toBeTruthy();
     for (let i = 0; i < 4; i++) fireEvent.click(icon);
     expect(openDevTools).toHaveBeenCalled();
     expect(navigate).not.toHaveBeenCalled();
   });
 
-  it('does not expose the retired SynonAI updater for tray update events', () => {
+  it('does not expose the retired XScience updater for tray update events', () => {
     platformMocks.isElectronDesktopMock.mockReturnValue(true);
     const openListener = vi.fn();
-    window.addEventListener('synon-ai-open-update-modal', openListener);
+    window.addEventListener('x-science-open-update-modal', openListener);
 
     try {
       renderLayout();
@@ -284,7 +284,7 @@ describe('Layout shell behavior', () => {
       expect(navigate).not.toHaveBeenCalled();
       expect(openListener).not.toHaveBeenCalled();
     } finally {
-      window.removeEventListener('synon-ai-open-update-modal', openListener);
+      window.removeEventListener('x-science-open-update-modal', openListener);
     }
   });
 

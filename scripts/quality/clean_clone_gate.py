@@ -19,7 +19,7 @@ from typing import Any
 from urllib.parse import urlsplit
 
 
-SCHEMA = "synon.governance.clean-clone-command-set.v1"
+SCHEMA = "x-science.governance.clean-clone-command-set.v1"
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 SAFE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
 SECRET_ARG_RE = re.compile(r"(?i)(api[_-]?key|token|password|secret)\s*[:=]")
@@ -211,12 +211,12 @@ def run_gate(
     if _run_git(source, "rev-parse", "HEAD") != sha:
         raise CloneGateError("clean_clone_source_head_mismatch")
 
-    clone_root = pathlib.Path(tempfile.mkdtemp(prefix="synon-clean-clone-", dir=temp_root))
+    clone_root = pathlib.Path(tempfile.mkdtemp(prefix="x-science-clean-clone-", dir=temp_root))
     clone = clone_root / "source"
     isolated = clone_root / "isolated"
     isolated.mkdir(mode=0o700)
     result: dict[str, Any] = {
-        "schema": "synon.governance.clean-clone-result.v1",
+        "schema": "x-science.governance.clean-clone-result.v1",
         "source_sha": sha,
         "started": _resource_snapshot(),
         "commands": [],
@@ -265,9 +265,9 @@ def run_gate(
                 "GOMODCACHE": str(isolated / "cache" / "go-mod"),
                 "GOPATH": str(isolated / "gopath"),
                 "npm_config_cache": str(isolated / "cache" / "npm"),
-                "SYNON_CLEAN_CLONE_PYTHON_HOME": str(isolated / "home"),
-                "SYNON_TEST_DATA_DIR": str(isolated / "data"),
-                "SYNON_TEST_LOG_DIR": str(isolated / "logs"),
+                "X_SCIENCE_CLEAN_CLONE_PYTHON_HOME": str(isolated / "home"),
+                "X_SCIENCE_TEST_DATA_DIR": str(isolated / "data"),
+                "X_SCIENCE_TEST_LOG_DIR": str(isolated / "logs"),
             }
         )
         for key, value in environment.items():
@@ -359,7 +359,7 @@ def run_gate(
     finally:
         if not (keep_on_failure and failed):
             resolved_root = clone_root.resolve()
-            if resolved_root.parent != temp_root.resolve() or not resolved_root.name.startswith("synon-clean-clone-"):
+            if resolved_root.parent != temp_root.resolve() or not resolved_root.name.startswith("x-science-clean-clone-"):
                 raise CloneGateError("clean_clone_cleanup_target_invalid")
             _remove_private_tree(resolved_root)
             retained = None

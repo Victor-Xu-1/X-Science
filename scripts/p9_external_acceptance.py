@@ -211,10 +211,10 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         default="all",
         help="accept all external targets, only model targets, or only messaging channels",
     )
-    parser.add_argument("--synon-binary", default=os.environ.get("SYNON_BINARY", "./dist/synon-go"))
+    parser.add_argument("--x-science-binary", default=os.environ.get("X_SCIENCE_BINARY", "./dist/x-science"))
     parser.add_argument(
         "--live-im-binary",
-        default=os.environ.get("SYNON_LIVE_IM_BINARY", "./dist/synon-go-live-im-smoke"),
+        default=os.environ.get("X_SCIENCE_LIVE_IM_BINARY", "./dist/x-science-live-im-smoke"),
     )
     parser.add_argument("--config", help="optional X-Science JSON configuration used by both smoke binaries")
     parser.add_argument("--runtime-url", help="optional runtime URL for durable redacted channel evidence")
@@ -232,8 +232,8 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(sys.argv[1:] if argv is None else argv)
     try:
-        synon = (
-            executable_path(args.synon_binary, "X-Science binary")
+        xscience = (
+            executable_path(args.x_science_binary, "X-Science binary")
             if scope_includes_models(args.scope)
             else None
         )
@@ -243,7 +243,7 @@ def main(argv: list[str] | None = None) -> int:
             else None
         )
         environment = dict(os.environ)
-        environment["SYNON_LIVE_IM_SMOKE_TIMEOUT_SECONDS"] = str(args.timeout_seconds)
+        environment["X_SCIENCE_LIVE_IM_SMOKE_TIMEOUT_SECONDS"] = str(args.timeout_seconds)
 
         model: dict[str, Any] = {"status": "not_requested", "targets": []}
         channels: dict[str, Any] = {
@@ -253,8 +253,8 @@ def main(argv: list[str] | None = None) -> int:
             "platforms": [],
             "results": [],
         }
-        if synon is not None:
-            model_plan_command = [str(synon), "model-smoke", "--plan", "--require-all", "--json"]
+        if xscience is not None:
+            model_plan_command = [str(xscience), "model-smoke", "--plan", "--require-all", "--json"]
             if args.config:
                 model_plan_command.extend(("--config", args.config))
             _, raw_model_plan = run_json(model_plan_command, args.timeout_seconds + 10, environment)
@@ -282,17 +282,17 @@ def main(argv: list[str] | None = None) -> int:
             emit(report, args.output)
             return 0 if ready else 3
 
-        if os.environ.get("SYNON_EXTERNAL_TEST_AUTHORIZED") != AUTHORIZATION:
+        if os.environ.get("X_SCIENCE_EXTERNAL_TEST_AUTHORIZED") != AUTHORIZATION:
             report["status"] = "authorization_required"
-            report["authorizationEnvironment"] = "SYNON_EXTERNAL_TEST_AUTHORIZED"
+            report["authorizationEnvironment"] = "X_SCIENCE_EXTERNAL_TEST_AUTHORIZED"
             emit(report, args.output)
             return 2
 
         model_code = 0
         channel_code = 0
-        if synon is not None:
+        if xscience is not None:
             model_run_command = [
-                str(synon),
+                str(xscience),
                 "model-smoke",
                 "--run",
                 "--require-all",

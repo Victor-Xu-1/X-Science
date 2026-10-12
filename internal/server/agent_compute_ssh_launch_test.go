@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestAgentSSHProbeObservesCompletionAtProcessExit(t *testing.T) {
@@ -19,7 +19,7 @@ func TestAgentSSHProbeObservesCompletionAtProcessExit(t *testing.T) {
 		t.Skip("the production SSH command path requires a Unix shell")
 	}
 	root := t.TempDir()
-	remote := filepath.Join(root, ".synon-biomed", "jobs", "job-completion-identity")
+	remote := filepath.Join(root, ".x-science", "jobs", "job-completion-identity")
 	if err := os.MkdirAll(remote, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +62,7 @@ func TestAgentSSHProbeRejectsReusedPIDIncarnation(t *testing.T) {
 		t.Skip("Linux process identity contract")
 	}
 	root := t.TempDir()
-	remote := filepath.Join(root, ".synon-biomed", "jobs", "job-incarnation-fence")
+	remote := filepath.Join(root, ".x-science", "jobs", "job-incarnation-fence")
 	if err := os.MkdirAll(remote, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +89,7 @@ func TestAgentSSHSlurmControlFailureDoesNotProveProcessLossAcrossNodes(t *testin
 		t.Skip("Linux remote peer fixture")
 	}
 	root := t.TempDir()
-	remote := filepath.Join(root, ".synon-biomed", "jobs", "job-remote-node")
+	remote := filepath.Join(root, ".x-science", "jobs", "job-remote-node")
 	if err := os.MkdirAll(remote, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -124,7 +124,7 @@ func TestAgentSlurmLaunchReconcilesLostAcceptedResponseWithoutResubmission(t *te
 		t.Skip("Linux shell protocol")
 	}
 	root := t.TempDir()
-	remote := filepath.Join(root, ".synon-biomed", "jobs", "job-uncertain-slurm")
+	remote := filepath.Join(root, ".x-science", "jobs", "job-uncertain-slurm")
 	if err := os.MkdirAll(remote, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -174,7 +174,7 @@ func TestAgentSSHLaunchPublishesIdentityBeforeChildStarts(t *testing.T) {
 		t.Fatal(err)
 	}
 	root := t.TempDir()
-	remote := filepath.Join(root, ".synon-biomed", "jobs", "job-startup-identity")
+	remote := filepath.Join(root, ".x-science", "jobs", "job-startup-identity")
 	if err := os.MkdirAll(remote, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -190,7 +190,7 @@ func TestAgentSSHLaunchPublishesIdentityBeforeChildStarts(t *testing.T) {
 	for name, script := range map[string]string{
 		"ssh": "#!/usr/bin/env bash\nset -eu\nexec bash -c \"${!#}\"\n",
 		"nohup": "#!/usr/bin/env bash\nset -eu\nexec " + shellSingleQuote(realNohup) +
-			" bash -c 'while [ ! -f \"$SYNON_TEST_SSH_LAUNCH_GATE\" ]; do " +
+			" bash -c 'while [ ! -f \"$X_SCIENCE_TEST_SSH_LAUNCH_GATE\" ]; do " +
 			"[ \"$SECONDS\" -lt 10 ] || exit 70; sleep 0.01; done; exec \"$@\"' fixture \"$@\"\n",
 	} {
 		if err := os.WriteFile(filepath.Join(root, name), []byte(script), 0o700); err != nil {
@@ -198,7 +198,7 @@ func TestAgentSSHLaunchPublishesIdentityBeforeChildStarts(t *testing.T) {
 		}
 	}
 	t.Setenv("PATH", root+string(os.PathListSeparator)+os.Getenv("PATH"))
-	t.Setenv("SYNON_TEST_SSH_LAUNCH_GATE", gate)
+	t.Setenv("X_SCIENCE_TEST_SSH_LAUNCH_GATE", gate)
 	provider := workspace.ComputeProvider{Name: "ssh:fixture", Family: "ssh"}
 	server := &Server{}
 	t.Cleanup(func() {
@@ -265,7 +265,7 @@ func sshLaunchArchiveFixture(t *testing.T, files map[string]string) []byte {
 	if err != nil {
 		t.Fatal(err)
 	}
-	files["_synon_harvest.sh"] = string(helper)
+	files["_x_science_harvest.sh"] = string(helper)
 	return tarGzipFixture(t, files)
 }
 
@@ -274,7 +274,7 @@ func TestAgentSSHLaunchRequiresNativeHarvestReadinessBeforeSideEffect(t *testing
 		t.Skip("Linux native launch protocol")
 	}
 	root := t.TempDir()
-	remote := filepath.Join(root, ".synon-biomed", "jobs", "job-missing-control")
+	remote := filepath.Join(root, ".x-science", "jobs", "job-missing-control")
 	if err := os.MkdirAll(remote, 0o700); err != nil {
 		t.Fatal(err)
 	}

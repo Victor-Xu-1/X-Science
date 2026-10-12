@@ -1,8 +1,8 @@
 import React from 'react';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import ExpertWorkbench from '@/renderer/pages/settings/SynonBiomedExpertsSettings/ExpertWorkbench';
-import type { SynonBiomedExpertProfile } from '@/renderer/services/agents/synonBiomedExpertProfiles';
+import ExpertWorkbench from '@/renderer/pages/settings/XScienceExpertsSettings/ExpertWorkbench';
+import type { XScienceExpertProfile } from '@/renderer/services/agents/xScienceExpertProfiles';
 import { renderWithI18n, type TestLanguage } from '../i18nTestUtils';
 
 const api = vi.hoisted(() => ({
@@ -15,30 +15,30 @@ const api = vi.hoisted(() => ({
   saveInstructions: vi.fn(),
   enable: vi.fn(),
 }));
-vi.mock('@/renderer/services/agents/synonBiomedExpertProfiles', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/renderer/services/agents/synonBiomedExpertProfiles')>()),
-  loadSynonBiomedExpertProfilesWithRuntimeConnectors: api.profiles,
-  loadSynonBiomedExpertInstructions: api.instructions,
-  updateSynonBiomedExpertSkills: api.saveSkills,
-  saveSynonBiomedExpertInstructions: api.saveInstructions,
-  setSynonBiomedExpertProfileEnabled: api.enable,
+vi.mock('@/renderer/services/agents/xScienceExpertProfiles', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/renderer/services/agents/xScienceExpertProfiles')>()),
+  loadXScienceExpertProfilesWithRuntimeConnectors: api.profiles,
+  loadXScienceExpertInstructions: api.instructions,
+  updateXScienceExpertSkills: api.saveSkills,
+  saveXScienceExpertInstructions: api.saveInstructions,
+  setXScienceExpertProfileEnabled: api.enable,
 }));
-vi.mock('@/renderer/services/synonBiomedCapabilities', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/renderer/services/synonBiomedCapabilities')>()),
-  loadSynonBiomedSkills: api.skills,
-  loadSynonBiomedMcpServers: api.connectors,
+vi.mock('@/renderer/services/xScienceCapabilities', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/renderer/services/xScienceCapabilities')>()),
+  loadXScienceSkills: api.skills,
+  loadXScienceMcpServers: api.connectors,
 }));
-vi.mock('@/renderer/services/agents/synonBiomedExpertUsage', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/renderer/services/agents/synonBiomedExpertUsage')>()),
-  loadSynonBiomedExpertUsage: api.usage,
+vi.mock('@/renderer/services/agents/xScienceExpertUsage', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/renderer/services/agents/xScienceExpertUsage')>()),
+  loadXScienceExpertUsage: api.usage,
 }));
-vi.mock('@/renderer/pages/settings/SynonBiomedExpertsSettings/SynonBiomedExpertProfileModal', () => ({
+vi.mock('@/renderer/pages/settings/XScienceExpertsSettings/XScienceExpertProfileModal', () => ({
   default: () => null,
 }));
 
 let selectedNames: string[];
 let selectedConnectorIds: string[];
-function profile(): SynonBiomedExpertProfile {
+function profile(): XScienceExpertProfile {
   return {
     name: 'test-expert',
     source: 'user',
@@ -266,10 +266,10 @@ describe('reviewing selected expert capabilities', () => {
 
 describe('expert capability editor response ownership', () => {
   it('keeps a different expert open when an older enable operation finishes', async () => {
-    let finish!: (value: SynonBiomedExpertProfile) => void;
+    let finish!: (value: XScienceExpertProfile) => void;
     api.enable.mockImplementationOnce(
       () =>
-        new Promise<SynonBiomedExpertProfile>((resolve) => {
+        new Promise<XScienceExpertProfile>((resolve) => {
           finish = resolve;
         })
     );
@@ -362,10 +362,10 @@ describe('expert capability editor response ownership', () => {
   });
 
   it('does not replace a different expert with an obsolete capability-save result', async () => {
-    let finish!: (value: SynonBiomedExpertProfile) => void;
+    let finish!: (value: XScienceExpertProfile) => void;
     api.saveSkills.mockImplementationOnce(
       () =>
-        new Promise<SynonBiomedExpertProfile>((resolve) => {
+        new Promise<XScienceExpertProfile>((resolve) => {
           finish = resolve;
         })
     );

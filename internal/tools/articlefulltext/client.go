@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/buildinfo"
+	"x-science/internal/buildinfo"
 )
 
 const (

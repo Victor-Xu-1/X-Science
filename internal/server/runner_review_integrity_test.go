@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	sessionstore "synon-go/internal/persistence/sessions"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	sessionstore "x-science/internal/persistence/sessions"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestReviewFailureClassificationDoesNotHideMixedIntegrityFailures(t *testing.T) {
@@ -77,7 +77,7 @@ func TestTranscriptRunnerReviewIntegrityAndAdvisoryDisposition(t *testing.T) {
 			saveArtifact := func(content string) error {
 				_, _, err := store.WriteArtifactVersion(t.Context(), workspace.WriteArtifactVersionInput{
 					ArtifactID: "report", ProjectID: "project-review", Name: "report.md",
-					ContentType: "text/markdown", Content: strings.NewReader(content), CreatedBy: "synon",
+					ContentType: "text/markdown", Content: strings.NewReader(content), CreatedBy: "xscience",
 					RootFrameID: "review-root", FrameID: "review-root",
 				})
 				return err

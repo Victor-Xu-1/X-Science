@@ -10,7 +10,7 @@ import { Message, Tooltip } from '@arco-design/web-react';
 import { ArrowCircleLeft, CloseOne, Down, SettingTwo, UpdateRotation, Wallet } from '@icon-park/react';
 import classNames from 'classnames';
 import type { SiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
-import { checkSynonBiomedRuntimeUpdate } from '@renderer/services/synonBiomedRuntimeUpdate';
+import { checkXScienceRuntimeUpdate } from '@renderer/services/xScienceRuntimeUpdate';
 
 interface SiderFooterProps {
   isMobile: boolean;
@@ -51,7 +51,7 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
   const [menuOpen, setMenuOpen] = useState(false);
   const [checkingUpdates, setCheckingUpdates] = useState(false);
   const footerRef = useRef<HTMLDivElement | null>(null);
-  const displayName = formatUsername(username, t('settings.synonBiomedLocalUser'));
+  const displayName = formatUsername(username, t('settings.xScienceLocalUser'));
   const avatarLetter = displayName.charAt(0).toUpperCase();
   const settingsLabel = isSettings ? t('common.back') : t('common.settings');
 
@@ -87,15 +87,15 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
     setMenuOpen(false);
     setCheckingUpdates(true);
     try {
-      const status = await checkSynonBiomedRuntimeUpdate();
+      const status = await checkXScienceRuntimeUpdate();
       if (status.latest) {
-        Message.info(t('settings.synonBiomedUpdateAvailable', { version: status.latest }));
+        Message.info(t('settings.xScienceUpdateAvailable', { version: status.latest }));
       } else {
-        Message.success(t('settings.synonBiomedUpToDate', { version: status.current }));
+        Message.success(t('settings.xScienceUpToDate', { version: status.current }));
       }
     } catch (error) {
       console.error('Failed to check for X-Science updates:', error);
-      Message.error(t('settings.synonBiomedUpdateCheckFailed'));
+      Message.error(t('settings.xScienceUpdateCheckFailed'));
     } finally {
       setCheckingUpdates(false);
     }
@@ -112,7 +112,7 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
       {menuOpen && (
         <div
           role='menu'
-          aria-label={t('settings.synonBiomedAccountMenu')}
+          aria-label={t('settings.xScienceAccountMenu')}
           className={classNames(
             'app-overlay-menu absolute z-40 bottom-[calc(100%+6px)] p-6px',
             collapsed ? 'left-6px w-184px' : 'left-8px right-8px'
@@ -121,7 +121,7 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
           <button
             type='button'
             role='menuitem'
-            data-testid='synon-account-profile'
+            data-testid='x-science-account-profile'
             className='w-full px-10px py-8px mb-4px border-x-0 border-t-0 border-b border-solid border-[var(--color-border-2)] bg-transparent rd-6px text-left cursor-pointer hover:bg-fill-3'
             onClick={() => runAndClose(onAccountClick)}
           >
@@ -182,7 +182,7 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
                 className={checkingUpdates ? 'animate-spin' : undefined}
               />
             </span>
-            <span>{t('settings.synonBiomedCheckUpdates')}</span>
+            <span>{t('settings.xScienceCheckUpdates')}</span>
           </button>
           {showLogout && onLogoutClick && (
             <button
@@ -203,7 +203,7 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
       <Tooltip {...siderTooltipProps} content={displayName} position='right'>
         <button
           type='button'
-          aria-label={t('settings.synonBiomedOpenAccount')}
+          aria-label={t('settings.xScienceOpenAccount')}
           aria-haspopup='menu'
           aria-expanded={menuOpen}
           className={classNames(

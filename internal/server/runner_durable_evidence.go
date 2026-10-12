@@ -7,11 +7,11 @@ import (
 	"errors"
 	"strings"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/kernelcontract"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/toolcontract"
+	"x-science/internal/agentruntime"
+	"x-science/internal/kernelcontract"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/toolcontract"
 )
 
 const sessionRunnerDurableEvidencePageSize = 1000
@@ -281,7 +281,7 @@ func validSessionRunnerMCPDurableCheckpoint(checkpoint sessionRunnerDurableToolC
 		return false
 	}
 	switch checkpoint.Schema {
-	case "synon.kernel_mcp_evidence.v1":
+	case "x-science.kernel_mcp_evidence.v1":
 		if strings.TrimSpace(checkpoint.OuterToolCallID) == "" ||
 			strings.TrimSpace(checkpoint.KernelOperationID) == "" || strings.TrimSpace(checkpoint.ExecutionID) == "" ||
 			strings.TrimSpace(checkpoint.HostCallID) != strings.TrimSpace(checkpoint.ToolCallID) ||
@@ -303,7 +303,7 @@ func validSessionRunnerMCPDurableCheckpoint(checkpoint sessionRunnerDurableToolC
 	input := bytes.TrimSpace(sessionRunnerDurableExecutedToolInput(checkpoint))
 	result := bytes.TrimSpace(checkpoint.ToolResult)
 	resultSHA := kernelMCPEvidenceSHA256(result)
-	if checkpoint.Schema == "synon.kernel_mcp_evidence.v1" {
+	if checkpoint.Schema == "x-science.kernel_mcp_evidence.v1" {
 		// The committed nested MCP receipt retains the original result digest.
 		// Its full contents are restored and scope/hash-checked by the normal
 		// durable evidence reader before any scientific consumer receives them.

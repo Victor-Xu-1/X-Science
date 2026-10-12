@@ -19,7 +19,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const policySchema = "synon.governance.github-actions-pins.v3"
+const policySchema = "x-science.governance.github-actions-pins.v3"
 
 var (
 	actionNamePattern = regexp.MustCompile(`^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$`)

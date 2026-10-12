@@ -27,7 +27,7 @@ const completed = (overrides: Record<string, unknown> = {}) => ({
   can_send_message: true,
   runtime: runtime(),
   workspace: '',
-  model: { platform: 'synon-go', name: 'model-1', use_model: 'model-1' },
+  model: { platform: 'x-science', name: 'model-1', use_model: 'model-1' },
   last_message: {
     id: 'assistant-1',
     type: 'content',

@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/providers"
+	"x-science/internal/agentruntime"
+	"x-science/internal/providers"
 	"time"
 )
 

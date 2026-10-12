@@ -45,7 +45,7 @@ import { useAbortUploadsOnConversationChange } from '@renderer/hooks/file/useAbo
 import UploadProgressBar from '@renderer/components/media/UploadProgressBar';
 import { allSupportedExts } from '@renderer/services/FileService';
 import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
-import { loadAvailableSkillsWithSynonBiomed } from '@/renderer/services/skills/skillsCatalog';
+import { loadAvailableSkillsWithXScience } from '@/renderer/services/skills/skillsCatalog';
 import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
 import { createChainedDispatch, useLiveTranscriptInsertion } from '@/renderer/hooks/system/useLiveTranscriptInsertion';
 import { getConversationInputHistory } from '@/renderer/utils/chat/messageHistory';
@@ -318,7 +318,7 @@ const SendBox: React.FC<{
   const atFileSessionKey = useMemo(() => {
     if (
       !conversationContext?.workspace ||
-      conversationContext.workspace.startsWith('synonbiomed://') ||
+      conversationContext.workspace.startsWith('x-science://') ||
       activeReferenceQuery?.trigger !== '@'
     ) {
       return null;
@@ -391,7 +391,7 @@ const SendBox: React.FC<{
   // human-readable description; the loadedSkills snapshot decides which appear.
   const loadedSkills = conversationContext?.loadedSkills;
   const { data: skillIndex } = useSWR(loadedSkills && loadedSkills.length > 0 ? 'skills-index' : null, () =>
-    loadAvailableSkillsWithSynonBiomed()
+    loadAvailableSkillsWithXScience()
   );
   const skillSlashCommands = useMemo<SlashCommandItem[]>(() => {
     const descriptionByName = new Map((skillIndex ?? []).map((s) => [s.name, s.description]));
@@ -857,8 +857,8 @@ const SendBox: React.FC<{
       className='bg-animate sendbox-stop-button'
       icon={<div className='mx-auto size-12px bg-6'></div>}
       onClick={stopHandler}
-      aria-label={t('conversation.synonRuntime.sendBox.stopTask')}
-      title={t('conversation.synonRuntime.sendBox.stopTask')}
+      aria-label={t('conversation.xscienceRuntime.sendBox.stopTask')}
+      title={t('conversation.xscienceRuntime.sendBox.stopTask')}
     ></Button>
   );
 

@@ -20,9 +20,9 @@ import (
 
 	"github.com/google/uuid"
 
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/software"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/software"
 )
 
 const (
@@ -304,7 +304,7 @@ func (s *Server) executeStructureInteractionDiagram(
 		return
 	}
 	if reportErr != nil || !report.Contract || !report.OK ||
-		(report.Engine != "X-Science 2D Interaction Engine" && report.Engine != "Synon 2D Interaction Engine") {
+		!structureInteractionEngineIdentitySupported(report.Engine) {
 		writeStructureInteractionDiagramError(w, http.StatusInternalServerError, "interaction_report_invalid", "the X-Science interaction report failed validation", false)
 		return
 	}
@@ -327,6 +327,12 @@ func (s *Server) executeStructureInteractionDiagram(
 		result["png_base64"] = base64.StdEncoding.EncodeToString(png)
 	}
 	writeJSON(w, http.StatusOK, result)
+}
+
+func structureInteractionEngineIdentitySupported(engine string) bool {
+	// These are exact producer identities. Historical receipts retain their
+	// original value; new reports use only the canonical display identity.
+	return engine == "X-Science 2D Interaction Engine" || engine == "Synon 2D Interaction Engine"
 }
 
 func structureInteractionDiagramCacheKey(

@@ -109,11 +109,11 @@ vi.mock('@arco-design/web-react', () => {
     Switch,
   };
 });
-vi.mock('@/renderer/services/synonBiomedLlm', () => ({
-  loadSynonBiomedLlmProviders: mocks.loadLlmProviders,
-  saveSynonBiomedLlmProfile: mocks.saveLlmProfile,
-  activateSynonBiomedLlmProfile: mocks.activateLlmProfile,
-  testSynonBiomedLlmProfile: mocks.testLlmProfile,
+vi.mock('@/renderer/services/xScienceLlm', () => ({
+  loadXScienceLlmProviders: mocks.loadLlmProviders,
+  saveXScienceLlmProfile: mocks.saveLlmProfile,
+  activateXScienceLlmProfile: mocks.activateLlmProfile,
+  testXScienceLlmProfile: mocks.testLlmProfile,
 }));
 vi.mock('@/renderer/services/onboardingService', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/renderer/services/onboardingService')>()),
@@ -135,7 +135,7 @@ import OnboardingFlow from '@/renderer/pages/onboarding/OnboardingFlow';
 function onboardingSnapshot() {
   return {
     complete: false,
-    assistantId: 'synonbiomed:operon',
+    assistantId: 'xscience:operon',
     assistantName: 'OPERON',
     allowedConnectorIds: ['pubmed'],
     allowedSkillNames: ['literature'],
@@ -387,7 +387,7 @@ describe('OnboardingFlow', () => {
       expect.objectContaining({
         projectId: 'project-1',
         projectName: 'Getting started',
-        assistantId: 'synonbiomed:operon',
+        assistantId: 'xscience:operon',
         task: customTask,
         profile: { summary: 'Translational genomics researcher' },
         files: [file],
@@ -511,7 +511,7 @@ describe('OnboardingFlow', () => {
   it('restores the owner-scoped step, text, and attachment reselect notice after reload', async () => {
     const user = userEvent.setup();
     window.localStorage.setItem(
-      'synonbiomed.onboarding.draft.v1:local',
+      'xscience.onboarding.draft.v1:local',
       JSON.stringify({
         version: 1,
         step: 4,
@@ -540,7 +540,7 @@ describe('OnboardingFlow', () => {
     mocks.loadSnapshot.mockReset();
     mocks.loadSnapshot.mockReturnValueOnce(ownerA.promise).mockReturnValueOnce(ownerB.promise);
     window.localStorage.setItem(
-      'synonbiomed.onboarding.draft.v1:owner-b',
+      'xscience.onboarding.draft.v1:owner-b',
       JSON.stringify({
         version: 1,
         step: 4,
@@ -560,7 +560,7 @@ describe('OnboardingFlow', () => {
     expect(await screen.findByTestId('onboarding-task-custom')).toHaveValue('Owner B task');
     await act(async () => ownerA.resolve({ ...onboardingSnapshot(), assistantName: 'STALE OWNER A' }));
     expect(screen.getByTestId('onboarding-task-custom')).toHaveValue('Owner B task');
-    expect(window.localStorage.getItem('synonbiomed.onboarding.draft.v1:owner-a')).toBeNull();
+    expect(window.localStorage.getItem('xscience.onboarding.draft.v1:owner-a')).toBeNull();
   });
 
   it('clears selected File objects before a different owner draft becomes active', async () => {
@@ -579,7 +579,7 @@ describe('OnboardingFlow', () => {
     view.rerender(<OnboardingFlow />);
     expect(await screen.findByTestId('onboarding-welcome')).toBeInTheDocument();
     expect(screen.queryByText('owner-a.csv')).not.toBeInTheDocument();
-    expect(window.localStorage.getItem('synonbiomed.onboarding.draft.v1:owner-b') ?? '').not.toContain('owner-a.csv');
+    expect(window.localStorage.getItem('xscience.onboarding.draft.v1:owner-b') ?? '').not.toContain('owner-a.csv');
   });
 
   it('invalidates an in-flight completion before a different owner can receive later side effects', async () => {

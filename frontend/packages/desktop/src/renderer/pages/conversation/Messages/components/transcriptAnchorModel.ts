@@ -1,4 +1,4 @@
-import type { SynonBiomedTranscriptAnnotation } from '@/renderer/services/synonBiomedAnnotations';
+import type { XScienceTranscriptAnnotation } from '@/renderer/services/xScienceAnnotations';
 
 export type TranscriptAnchorResolution =
   | { status: 'legacy'; startOffset: null; endOffset: null }
@@ -14,7 +14,7 @@ export interface TranscriptSelectionAnchor {
 /** Resolve persisted UTF-16 offsets without guessing when the same text occurs more than once. */
 export function resolveTranscriptAnchor(
   renderedText: string,
-  annotation: Pick<SynonBiomedTranscriptAnnotation, 'anchorText' | 'startOffset' | 'endOffset'>
+  annotation: Pick<XScienceTranscriptAnnotation, 'anchorText' | 'startOffset' | 'endOffset'>
 ): TranscriptAnchorResolution {
   const { anchorText, startOffset, endOffset } = annotation;
   if (startOffset === null && endOffset === null) {

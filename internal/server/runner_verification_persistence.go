@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func (s *Server) sessionRunnerVerificationRoot(sessionID string) (string, error) {
@@ -208,7 +208,7 @@ func sessionRunnerVerificationSourceRef(
 		return nil, errors.New("completion review artifact inventory is incomplete")
 	}
 	candidateHash := sha256.New()
-	writeSessionReviewDigestString(candidateHash, "synon.runner-review.candidate.v1")
+	writeSessionReviewDigestString(candidateHash, "x-science.runner-review.candidate.v1")
 	writeSessionReviewDigestString(candidateHash, answer)
 	artifacts := append([]sessionReviewerArtifactEvidence(nil), workspaceEvidence.Artifacts...)
 	artifactIDs := map[string]struct{}{}
@@ -256,7 +256,7 @@ func sessionRunnerVerificationSourceRef(
 		return artifacts[i].ContentSHA256 < artifacts[j].ContentSHA256
 	})
 	artifactHash := sha256.New()
-	writeSessionReviewDigestString(artifactHash, "synon.runner-review.artifact-inventory.v1")
+	writeSessionReviewDigestString(artifactHash, "x-science.runner-review.artifact-inventory.v1")
 	var count [8]byte
 	binary.BigEndian.PutUint64(count[:], uint64(len(artifacts)))
 	_, _ = artifactHash.Write(count[:])
@@ -317,7 +317,7 @@ func (s *Server) sessionRunnerOpenVerificationCheckIDs(rootFrameID, sessionID st
 
 func runnerReviewCheckID(sessionID string, reviewIndex int, claim string, sourceRef map[string]any) string {
 	digest := sha256.New()
-	writeSessionReviewDigestString(digest, "synon.runner-review.check-id.v1")
+	writeSessionReviewDigestString(digest, "x-science.runner-review.check-id.v1")
 	for _, value := range []string{
 		sessionID,
 		fmt.Sprint(reviewIndex),

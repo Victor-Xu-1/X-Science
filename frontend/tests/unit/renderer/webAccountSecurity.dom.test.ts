@@ -46,7 +46,7 @@ describe('Web account auth and security services', () => {
   });
 
   it('loads device state and uses bounded same-origin mutation endpoints', async () => {
-    document.cookie = `synon_csrf=${'s'.repeat(43)}; Path=/; SameSite=Strict`;
+    document.cookie = `x_science_csrf=${'s'.repeat(43)}; Path=/; SameSite=Strict`;
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(

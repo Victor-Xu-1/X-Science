@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/webui"
+	"x-science/internal/webui"
 )
 
 func TestServerRoutesAPIBeforeWorkbenchSPA(t *testing.T) {

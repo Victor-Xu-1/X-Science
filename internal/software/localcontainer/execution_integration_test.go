@@ -30,7 +30,7 @@ func (r *cancelAtContainerObservation) Run(ctx context.Context, args ...string) 
 // No image pull, shared container, network, user directory or persistent volume
 // is used. Only the uniquely created test container is removed afterwards.
 func TestContainerCancellationRealDaemonConfirmsPhysicalExit(t *testing.T) {
-	image := strings.TrimSpace(os.Getenv("SYNON_TEST_CONTAINER_IMAGE"))
+	image := strings.TrimSpace(os.Getenv("X_SCIENCE_TEST_CONTAINER_IMAGE"))
 	if image == "" {
 		t.Skip("an explicit local immutable test image is required")
 	}
@@ -52,8 +52,8 @@ func TestContainerCancellationRealDaemonConfirmsPhysicalExit(t *testing.T) {
 	}
 	environment := Environment{Name: environmentID, ProviderID: ProviderID, Status: "ready", ImageID: image}
 	out, diagnostic, err := runner.Run(ctx, "create", "--name", name, "--network", "none", "--read-only", "--cap-drop", "ALL",
-		"--security-opt", "no-new-privileges", "--label", "com.synonbiomed.managed=true",
-		"--label", "com.synonbiomed.execution="+executionID, "--label", "com.synonbiomed.environment="+environment.Name,
+		"--security-opt", "no-new-privileges", "--label", "com.xscience.managed=true",
+		"--label", "com.xscience.execution="+executionID, "--label", "com.xscience.environment="+environment.Name,
 		"--entrypoint", "/bin/sh", image, "-c", "exec sleep 60")
 	if err != nil {
 		t.Fatalf("create isolated test container: %v %s", err, diagnostic)

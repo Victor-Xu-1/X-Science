@@ -3,31 +3,31 @@ import { CloudStorage } from '@icon-park/react';
 import React, { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
-import { loadSynonBiomedProjects } from '@/renderer/services/synonBiomedGateway';
+import { loadXScienceProjects } from '@/renderer/services/xScienceGateway';
 import {
-  testSynonBiomedCloudCredential,
-  type SynonBiomedCloudCredential,
-} from '@/renderer/services/synonBiomedWorkspaceSettings';
-import SynonBiomedCloudBrowser from '../components/SynonBiomedCloudBrowser';
+  testXScienceCloudCredential,
+  type XScienceCloudCredential,
+} from '@/renderer/services/xScienceWorkspaceSettings';
+import XScienceCloudBrowser from '../components/XScienceCloudBrowser';
 import { SettingsSection } from '../components/SettingsPrimitives';
 import { StorageError, StorageLoading } from './StorageFeedback';
 import { useStorageResource, type StorageResource } from './useStorageResource';
 
-const loadProjects = () => loadSynonBiomedProjects();
+const loadProjects = () => loadXScienceProjects();
 
-export function StorageCloudPanel({ resource }: { resource: StorageResource<SynonBiomedCloudCredential[]> }) {
+export function StorageCloudPanel({ resource }: { resource: StorageResource<XScienceCloudCredential[]> }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [opened, setOpened] = useState<string | null>(null);
   const [testing, setTesting] = useState<string | null>(null);
   const pending = useRef(false);
   const projects = useStorageResource(loadProjects, false);
-  const test = async (credential: SynonBiomedCloudCredential) => {
+  const test = async (credential: XScienceCloudCredential) => {
     if (pending.current) return;
     pending.current = true;
     setTesting(credential.id);
     try {
-      const result = await testSynonBiomedCloudCredential(credential.id);
+      const result = await testXScienceCloudCredential(credential.id);
       (result.success ? Message.success : Message.error)(
         t(result.success ? 'settings.storageSettings.connectionHealthy' : 'settings.storageSettings.connectionFailed')
       );
@@ -98,7 +98,7 @@ export function StorageCloudPanel({ resource }: { resource: StorageResource<Syno
             <div className='storage-cloud-browser'>
               {projects.loading && !projects.data && <StorageLoading />}
               {projects.failed && <StorageError onRetry={() => void projects.refresh()} />}
-              {projects.data && <SynonBiomedCloudBrowser credential={credential} projects={projects.data} />}
+              {projects.data && <XScienceCloudBrowser credential={credential} projects={projects.data} />}
             </div>
           )}
         </div>

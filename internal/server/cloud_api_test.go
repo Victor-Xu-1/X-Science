@@ -12,9 +12,9 @@ import (
 	"sync"
 	"testing"
 
-	"synon-go/internal/cloudstore"
-	"synon-go/internal/compute"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/cloudstore"
+	"x-science/internal/compute"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestCloudCredentialAPIAndStreamingArtifactTransfer(t *testing.T) {
@@ -74,7 +74,7 @@ func TestCloudCredentialAPIAndStreamingArtifactTransfer(t *testing.T) {
 	}
 
 	downloadRequest := newLoopbackTestRequest(http.MethodGet, "/api/cloud-credentials/cloud-1/download?bucket=bucket&key=source/input.txt&disposition=inline", nil)
-	downloadRequest.Header.Set("X-Synon-User-Id", "user-1")
+	downloadRequest.Header.Set("X-Science-User-Id", "user-1")
 	downloadResponse := httptest.NewRecorder()
 	handler.ServeHTTP(downloadResponse, downloadRequest)
 	if downloadResponse.Code != http.StatusOK || downloadResponse.Body.String() != "cloud payload" || downloadResponse.Header().Get("Content-Type") != "text/plain" {
@@ -96,7 +96,7 @@ func TestCloudCredentialAPIAndStreamingArtifactTransfer(t *testing.T) {
 		t.Fatalf("cloud import realtime events=%#v", events)
 	}
 	rangeRequest := newLoopbackTestRequest(http.MethodGet, "/api/artifacts/"+artifactID, nil)
-	rangeRequest.Header.Set("X-Synon-User-Id", "user-1")
+	rangeRequest.Header.Set("X-Science-User-Id", "user-1")
 	rangeRequest.Header.Set("Range", "bytes=6-12")
 	rangeResponse := httptest.NewRecorder()
 	handler.ServeHTTP(rangeResponse, rangeRequest)
@@ -105,7 +105,7 @@ func TestCloudCredentialAPIAndStreamingArtifactTransfer(t *testing.T) {
 	}
 	for _, endpoint := range []string{"/api/artifacts/" + artifactID, "/api/artifacts/versions/" + version.ID} {
 		foreignDownload := newLoopbackTestRequest(http.MethodGet, endpoint, nil)
-		foreignDownload.Header.Set("X-Synon-User-Id", "user-2")
+		foreignDownload.Header.Set("X-Science-User-Id", "user-2")
 		foreignResponse := httptest.NewRecorder()
 		handler.ServeHTTP(foreignResponse, foreignDownload)
 		if foreignResponse.Code != http.StatusNotFound {
@@ -334,7 +334,7 @@ func cloudRequestAny(t *testing.T, handler http.Handler, method, path, userID st
 		reader = bytes.NewReader(encoded)
 	}
 	request := newLoopbackTestRequest(method, path, reader)
-	request.Header.Set("X-Synon-User-Id", userID)
+	request.Header.Set("X-Science-User-Id", userID)
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, request)
 	if response.Code != wantStatus {

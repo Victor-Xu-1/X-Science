@@ -34,12 +34,12 @@ chmod +x "$TMP_DIR/bin/go" "$TMP_DIR/bin/git"
   PATH="$TMP_DIR/bin:$PATH" GO="$TMP_DIR/bin/go" bash scripts/audit/audit-agent-runtime.sh --quick >/dev/null
 )
 
-if [[ -d "$FIXTURE/.synon-go-audit" ]]; then
+if [[ -d "$FIXTURE/.x-science-audit" ]]; then
   echo "ERROR: default audit run wrote local artifacts into the project root" >&2
   exit 1
 fi
 
-log_count=$(find "${TMPDIR:-/tmp}/synon-go-audit" -type f -name 'agent-runtime-quick-*.log' 2>/dev/null | wc -l | tr -d ' ')
+log_count=$(find "${TMPDIR:-/tmp}/x-science-audit" -type f -name 'agent-runtime-quick-*.log' 2>/dev/null | wc -l | tr -d ' ')
 if [[ "$log_count" -lt 1 ]]; then
   echo "ERROR: default audit run did not write a log under the system temp audit directory" >&2
   exit 1

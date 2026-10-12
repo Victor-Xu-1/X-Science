@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"synon-go/internal/datadir"
-	runtimecontrol "synon-go/internal/runtimecontrol"
+	"x-science/internal/datadir"
+	runtimecontrol "x-science/internal/runtimecontrol"
 )
 
 type setDataDirectoryInput struct {

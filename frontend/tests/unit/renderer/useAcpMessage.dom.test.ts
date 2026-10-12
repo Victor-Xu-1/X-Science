@@ -254,7 +254,7 @@ describe('useAcpMessage', () => {
       id: 'conv-route-owned',
       type: 'acp',
       extra: {
-        backend: 'synonbiomed',
+        backend: 'xscience',
         last_token_usage: { total_tokens: 321 },
         last_context_limit: 4096,
       },
@@ -349,7 +349,7 @@ describe('useAcpMessage', () => {
           type: 'request_trace',
           data: {
             timestamp: Date.now(),
-            backend: 'synonbiomed',
+            backend: 'xscience',
             model_id: 'deepseek-v4-flash',
             session_mode: 'research',
           },
@@ -401,7 +401,7 @@ describe('useAcpMessage', () => {
           type: 'request_trace',
           data: {
             timestamp: Date.now(),
-            backend: 'synonbiomed',
+            backend: 'xscience',
             model_id: 'deepseek-v4-flash',
           },
           msg_id: 'trace-tip-1',
@@ -447,7 +447,7 @@ describe('useAcpMessage', () => {
       act(() => {
         responseStreamHandlerRef.current?.({
           type: 'request_trace',
-          data: { timestamp: Date.now() - eightDaysMs, backend: 'synonbiomed' },
+          data: { timestamp: Date.now() - eightDaysMs, backend: 'xscience' },
           msg_id: 'week-long-trace',
           conversation_id: 'conv-week-long-trace',
         });
@@ -479,7 +479,7 @@ describe('useAcpMessage', () => {
       act(() => {
         responseStreamHandlerRef.current?.({
           type: 'request_trace',
-          data: { timestamp: Date.now(), backend: 'synonbiomed' },
+          data: { timestamp: Date.now(), backend: 'xscience' },
           msg_id: 'owner-a-trace',
           conversation_id: 'conv-trace-owner-a',
         });
@@ -508,7 +508,7 @@ describe('useAcpMessage', () => {
         });
         responseStreamHandlerRef.current?.({
           type: 'request_trace',
-          data: { timestamp: Date.now(), backend: 'synonbiomed' },
+          data: { timestamp: Date.now(), backend: 'xscience' },
           msg_id: 'owner-b-reset-turn',
           conversation_id: 'conv-trace-owner-b',
         });

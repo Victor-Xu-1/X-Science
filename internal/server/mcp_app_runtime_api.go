@@ -13,7 +13,7 @@ import (
 
 	"github.com/google/uuid"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const (
@@ -378,13 +378,13 @@ func decodeMCPAppPinContent(content, encoding string) ([]byte, error) {
 func mcpAppPinMutation(r *http.Request, userID, rootFrameID, filename string) (context.Context, string) {
 	key := strings.TrimSpace(r.Header.Get("Idempotency-Key"))
 	if key == "" {
-		key = strings.TrimSpace(r.Header.Get("X-Synon-Idempotency-Key"))
+		key = strings.TrimSpace(r.Header.Get("X-Science-Idempotency-Key"))
 	}
 	if key == "" {
 		key = uuid.NewString()
 	}
 	identity := strings.Join(
-		[]string{"synon-mcp-app-pin-v1", userID, rootFrameID, filename, key},
+		[]string{"x-science-mcp-app-pin-v1", userID, rootFrameID, filename, key},
 		"\x00",
 	)
 	return workspace.WithMutationIdempotencyKey(r.Context(), key), uuid.NewSHA1(uuid.NameSpaceURL, []byte(identity)).String()

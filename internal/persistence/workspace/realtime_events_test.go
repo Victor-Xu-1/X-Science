@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/compat/contracts"
+	"x-science/internal/compat/contracts"
 )
 
 func TestRealtimeEventsPersistAllBaselineTypesAndRemainUserScoped(t *testing.T) {

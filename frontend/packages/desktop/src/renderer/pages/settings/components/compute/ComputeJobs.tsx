@@ -3,10 +3,10 @@ import Modal from '@/renderer/components/base/WorkbenchModal';
 import React, { useEffect, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  type SynonBiomedComputeJob,
-  type SynonBiomedComputeProvider,
-  type SynonBiomedManagedEndpoint,
-} from '@/renderer/services/synonBiomedCompute';
+  type XScienceComputeJob,
+  type XScienceComputeProvider,
+  type XScienceManagedEndpoint,
+} from '@/renderer/services/xScienceCompute';
 import { ComputeDetail, computeStateLabel, normalizeComputeTestId } from './ComputeSettingsPrimitives';
 import {
   computeJobControlHintKey,
@@ -19,7 +19,7 @@ import { useComputeJobReads } from './useComputeJobReads';
 import { useSessionProviderWrites } from './useSessionProviderWrites';
 
 export const ComputeJobRow: React.FC<{
-  job: SynonBiomedComputeJob;
+  job: XScienceComputeJob;
   onOpen: () => void;
 }> = ({ job, onOpen }) => {
   const { t, i18n } = useTranslation();
@@ -68,7 +68,7 @@ export const ComputeJobRow: React.FC<{
 };
 
 export const ComputeJobDetailModal: React.FC<{
-  job: SynonBiomedComputeJob | null;
+  job: XScienceComputeJob | null;
   providerNames: string[];
   onClose: () => void;
 }> = ({ job, providerNames, onClose }) => {
@@ -293,9 +293,9 @@ const StructuredField: React.FC<{
 );
 
 export function buildSessionProviderNames(
-  providers: SynonBiomedComputeProvider[],
-  endpoints: SynonBiomedManagedEndpoint[],
-  job: SynonBiomedComputeJob | null
+  providers: XScienceComputeProvider[],
+  endpoints: XScienceManagedEndpoint[],
+  job: XScienceComputeJob | null
 ): string[] {
   const names = providers.filter((provider) => provider.family === 'infer').map((provider) => provider.name);
   names.push(...endpoints.map((endpoint) => `infer:${endpoint.name}`));

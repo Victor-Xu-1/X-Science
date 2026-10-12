@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	eventjournal "synon-go/internal/persistence/journal"
+	eventjournal "x-science/internal/persistence/journal"
 )
 
 func TestSessionRunnerToolContinuityPreservesTypedOutcomeAndProvenance(t *testing.T) {

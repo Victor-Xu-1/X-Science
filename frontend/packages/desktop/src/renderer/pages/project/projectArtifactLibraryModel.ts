@@ -1,4 +1,4 @@
-import type { SynonBiomedProjectArtifact, SynonBiomedProjectBench } from '@/renderer/services/synonBiomedGateway';
+import type { XScienceProjectArtifact, XScienceProjectBench } from '@/renderer/services/xScienceGateway';
 
 // Keep this pure model's module stem distinct from the ProjectArtifactLibrary component on case-insensitive filesystems.
 
@@ -12,16 +12,16 @@ export type ProjectArtifactGroup = {
   labelKey?: 'searchResults' | 'uploads' | 'projectFiles';
   rootFrameId: string | null;
   latestAt: string | null;
-  artifacts: SynonBiomedProjectArtifact[];
+  artifacts: XScienceProjectArtifact[];
 };
 
 export type BuildProjectArtifactGroupsInput = {
-  artifacts: SynonBiomedProjectArtifact[];
-  benches: SynonBiomedProjectBench[];
+  artifacts: XScienceProjectArtifact[];
+  benches: XScienceProjectBench[];
   query: string;
 };
 
-export function getVisibleProjectArtifacts(artifacts: SynonBiomedProjectArtifact[]): SynonBiomedProjectArtifact[] {
+export function getVisibleProjectArtifacts(artifacts: XScienceProjectArtifact[]): XScienceProjectArtifact[] {
   return artifacts.filter((artifact) => !artifact.isIntermediate);
 }
 
@@ -50,15 +50,15 @@ export function buildProjectArtifactGroups({
         ];
   }
 
-  const benchByFrameId = new Map<string, SynonBiomedProjectBench>();
+  const benchByFrameId = new Map<string, XScienceProjectBench>();
   benches.forEach((bench) => {
     benchByFrameId.set(bench.frameId, bench);
     benchByFrameId.set(bench.rootFrameId, bench);
   });
 
-  const uploads: SynonBiomedProjectArtifact[] = [];
-  const projectFiles: SynonBiomedProjectArtifact[] = [];
-  const artifactsByRootFrame = new Map<string, SynonBiomedProjectArtifact[]>();
+  const uploads: XScienceProjectArtifact[] = [];
+  const projectFiles: XScienceProjectArtifact[] = [];
+  const artifactsByRootFrame = new Map<string, XScienceProjectArtifact[]>();
 
   visibleArtifacts.forEach((artifact) => {
     if (artifact.isUserUpload) {
@@ -123,7 +123,7 @@ export function buildProjectArtifactGroups({
   return groups;
 }
 
-export function classifyProjectArtifact(artifact: SynonBiomedProjectArtifact): ProjectArtifactVisualKind {
+export function classifyProjectArtifact(artifact: XScienceProjectArtifact): ProjectArtifactVisualKind {
   const filename = artifact.filename.toLocaleLowerCase();
   const contentType = artifact.contentType?.toLocaleLowerCase() ?? '';
   if (contentType.startsWith('image/')) return 'image';
@@ -153,20 +153,20 @@ export function classifyProjectArtifact(artifact: SynonBiomedProjectArtifact): P
   return 'file';
 }
 
-function matchesArtifactQuery(artifact: SynonBiomedProjectArtifact, normalizedQuery: string): boolean {
+function matchesArtifactQuery(artifact: XScienceProjectArtifact, normalizedQuery: string): boolean {
   return [artifact.filename, artifact.contentType, artifact.agentName]
     .filter((value): value is string => Boolean(value))
     .some((value) => value.toLocaleLowerCase().includes(normalizedQuery));
 }
 
-function sortArtifacts(artifacts: SynonBiomedProjectArtifact[]): SynonBiomedProjectArtifact[] {
+function sortArtifacts(artifacts: XScienceProjectArtifact[]): XScienceProjectArtifact[] {
   return artifacts.toSorted((left, right) => {
     const timeDifference = artifactTimestamp(right) - artifactTimestamp(left);
     return timeDifference || left.filename.localeCompare(right.filename, 'zh-CN');
   });
 }
 
-function latestArtifactDate(artifacts: SynonBiomedProjectArtifact[]): string | null {
+function latestArtifactDate(artifacts: XScienceProjectArtifact[]): string | null {
   return artifacts.reduce<string | null>((latest, artifact) => {
     const candidate = artifact.updatedAt ?? artifact.createdAt;
     if (!candidate) return latest;
@@ -174,7 +174,7 @@ function latestArtifactDate(artifacts: SynonBiomedProjectArtifact[]): string | n
   }, null);
 }
 
-function artifactTimestamp(artifact: SynonBiomedProjectArtifact): number {
+function artifactTimestamp(artifact: XScienceProjectArtifact): number {
   const value = artifact.updatedAt ?? artifact.createdAt;
   if (!value) return 0;
   const timestamp = Date.parse(value);

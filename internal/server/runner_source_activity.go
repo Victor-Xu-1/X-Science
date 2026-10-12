@@ -4,7 +4,7 @@ import (
 	"strings"
 	"sync"
 
-	eventjournal "synon-go/internal/persistence/journal"
+	eventjournal "x-science/internal/persistence/journal"
 )
 
 // Source activity is telemetry, not a model policy or a task budget.

@@ -15,13 +15,13 @@ const localeRoot = path.join(rendererRoot, 'services/i18n/locales');
 const resourcePaths = collectResourcePaths(enResources);
 const bilingualOrDomainDataFiles = new Set([
   'packages/desktop/src/renderer/components/settings/SettingsModal/contents/SystemModalContent/VoiceInputSection/speechSettingsUtils.ts',
-  'packages/desktop/src/renderer/components/synonBiomed/runtime/approvalScopeModel.ts',
-  'packages/desktop/src/renderer/components/synonBiomed/runtime/synonBiomedReviewRepair.ts',
+  'packages/desktop/src/renderer/components/xScience/runtime/approvalScopeModel.ts',
+  'packages/desktop/src/renderer/components/xScience/runtime/xScienceReviewRepair.ts',
   'packages/desktop/src/renderer/pages/conversation/Messages/components/toolStepSummaryModel.ts',
-  'packages/desktop/src/renderer/pages/settings/skills/SynonBiomedSkillMarketPanel.tsx',
+  'packages/desktop/src/renderer/pages/settings/skills/XScienceSkillMarketPanel.tsx',
   'packages/desktop/src/renderer/pages/settings/skills/skillMarketplaceCopy.ts',
-  'packages/desktop/src/renderer/services/skills/synonBiomedSkillCategories.ts',
-  'packages/desktop/src/renderer/services/skills/synonBiomedSkillDescriptions.ts',
+  'packages/desktop/src/renderer/services/skills/xScienceSkillCategories.ts',
+  'packages/desktop/src/renderer/services/skills/xScienceSkillDescriptions.ts',
 ]);
 const allowedChineseLiterals: Record<string, RegExp[]> = {
   'packages/desktop/src/renderer/pages/conversation/components/ConversationTitleMinimap/minimapUtils.ts': [
@@ -29,15 +29,15 @@ const allowedChineseLiterals: Record<string, RegExp[]> = {
     /^第$/u,
   ],
   'packages/desktop/src/renderer/pages/conversation/platforms/acp/AcpSendBox.tsx': [/^认证失败$/u],
-  'packages/desktop/src/renderer/services/synonBiomedCapabilities.ts': [/^通用科研助手$/u],
-  'packages/desktop/src/renderer/services/synonBiomedCatalog.ts': [
+  'packages/desktop/src/renderer/services/xScienceCapabilities.ts': [/^通用科研助手$/u],
+  'packages/desktop/src/renderer/services/xScienceCatalog.ts': [
     /^通过 $/u,
     /^ 接入的 X-Science 专家 Agent。$/u,
     /^使用 X-Science 后端专家 $/u,
     /^ 处理生物医药研究任务。$/u,
   ],
   'packages/desktop/src/renderer/theme/builtinThemes.ts': [/^Y2K电子账本 by 椰树女王$/u],
-  'packages/desktop/src/renderer/utils/synonBiomed/runtime/runtimeLogo.ts': [/^默认$/u],
+  'packages/desktop/src/renderer/utils/xScience/runtime/runtimeLogo.ts': [/^默认$/u],
 };
 const technicalUiLiterals = [
   /^(?:X-Science|X-Science|Modal|NVIDIA BioNeMo NIM|NVIDIA_API_KEY|SMILES|conda env|chrome-devtools|playwright)$/u,
@@ -47,7 +47,7 @@ const technicalUiLiterals = [
   /^(?:[\w.-]+\/)+[\w.*-]*$/u,
   /^[A-Z][A-Z0-9_]*$/u,
   /^(?:[a-z0-9-]+\.)+[a-z]{2,}$/u,
-  /^(?:example-custom|my-mcp-server|synonbiomed-\.\.\.)$/u,
+  /^(?:example-custom|my-mcp-server|xscience-\.\.\.)$/u,
   /^read write$/u,
 ];
 const auditedJsxAttributes = new Set(['alt', 'aria-label', 'placeholder', 'title']);

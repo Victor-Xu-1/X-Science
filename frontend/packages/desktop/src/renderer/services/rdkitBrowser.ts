@@ -168,7 +168,7 @@ function currentWorker(): Worker {
   let created: Worker;
   try {
     created = new Worker(resolveRendererAsset(RDKIT_WORKER_PATH), {
-      name: 'synon-rdkit',
+      name: 'x-science-rdkit',
     });
   } catch {
     throw rememberWorkerCreationFailure();

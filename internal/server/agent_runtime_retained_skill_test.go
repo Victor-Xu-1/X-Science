@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/sciencecapability"
-	"synon-go/internal/skills"
+	"x-science/internal/agentruntime"
+	"x-science/internal/sciencecapability"
+	"x-science/internal/skills"
 )
 
 func TestClosedSkillRouteRetainsVerifiedCurrentEntrypoint(t *testing.T) {
@@ -16,12 +16,12 @@ func TestClosedSkillRouteRetainsVerifiedCurrentEntrypoint(t *testing.T) {
 	if err := os.Mkdir(filepath.Join(source, "scripts"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	for name, content := range map[string]string{"SKILL.md": "Use ${SYNON_SKILL_DIR}/scripts/run.py", "scripts/run.py": "print('reviewed')\n"} {
+	for name, content := range map[string]string{"SKILL.md": "Use ${X_SCIENCE_SKILL_DIR}/scripts/run.py", "scripts/run.py": "print('reviewed')\n"} {
 		if err := os.WriteFile(filepath.Join(source, name), []byte(content), 0o600); err != nil {
 			t.Fatal(err)
 		}
 	}
-	skill := skills.Skill{Name: "engine-skill", Path: filepath.Join(source, "SKILL.md"), Body: "Use ${SYNON_SKILL_DIR}/scripts/run.py", ImplementationIdentities: []string{"Engine"}}
+	skill := skills.Skill{Name: "engine-skill", Path: filepath.Join(source, "SKILL.md"), Body: "Use ${X_SCIENCE_SKILL_DIR}/scripts/run.py", ImplementationIdentities: []string{"Engine"}}
 	bundle, resources, err := loadAgentSkillRuntimeBundle(skill)
 	if err != nil || !resources {
 		t.Fatalf("bundle: %v %v", resources, err)

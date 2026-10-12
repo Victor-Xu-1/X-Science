@@ -13,9 +13,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"synon-go/internal/mcpdirectory"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/tools/mcpstdio"
+	"x-science/internal/mcpdirectory"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/tools/mcpstdio"
 )
 
 var compatMCPServerNamePattern = regexp.MustCompile(`^[a-z0-9-]+$`)

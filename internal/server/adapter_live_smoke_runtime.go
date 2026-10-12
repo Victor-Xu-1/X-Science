@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
-	adapterwechat "synon-go/internal/adapters/wechat"
+	adapterwechat "x-science/internal/adapters/wechat"
 	"time"
 )
 

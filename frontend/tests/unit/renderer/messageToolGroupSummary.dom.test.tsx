@@ -1405,7 +1405,7 @@ describe('MessageToolGroupSummary', () => {
   it('shows a safe recovery summary plus redacted auditable diagnostics', () => {
     const rawOutput = [
       'Traceback (most recent call last):',
-      '  File "/home/victor_1/.synon-biomed-v0.1.0/runner.py", line 42, in run',
+      '  File "/home/victor_1/.x-science-v0.1.0/runner.py", line 42, in run',
       'RuntimeError: upstream request failed (api_key=sk-1234567890abcdef)',
     ].join('\n');
 

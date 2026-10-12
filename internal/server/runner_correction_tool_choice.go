@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/toolcontract"
+	"x-science/internal/agentruntime"
+	"x-science/internal/toolcontract"
 )
 
 const sessionRunnerDurableCorrectionContextMarker = "X-Science durable correction state from a prior bounded execution unit"

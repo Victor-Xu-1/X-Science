@@ -25,7 +25,7 @@ const createConversation = (status: TChatConversationStatus = 'running'): TChatC
   modified_at: 2,
   status,
   extra: {
-    backend: 'synonbiomed',
+    backend: 'xscience',
     frame_status: status,
   },
 });

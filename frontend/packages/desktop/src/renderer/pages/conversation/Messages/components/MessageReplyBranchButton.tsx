@@ -5,8 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { emitter } from '@/renderer/utils/emitter';
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
-import { createSynonBiomedBranchMutationId } from '@/renderer/services/synonBiomedConversationBranches';
-import { branchSynonBiomedReply } from '@/renderer/services/synonBiomedReplyBranch';
+import { createXScienceBranchMutationId } from '@/renderer/services/xScienceConversationBranches';
+import { branchXScienceReply } from '@/renderer/services/xScienceReplyBranch';
 import { useConversationRuntimeView } from '../../runtime/useConversationRuntimeView';
 import styles from './MessageRoundFooter.module.css';
 
@@ -37,13 +37,13 @@ export default function MessageReplyBranchButton(props: Props) {
   const branch = async () => {
     if (disabled || request.current?.pending) return;
     const entry =
-      request.current?.key === key ? request.current : { key, id: createSynonBiomedBranchMutationId(), pending: false };
+      request.current?.key === key ? request.current : { key, id: createXScienceBranchMutationId(), pending: false };
     request.current = entry;
     entry.pending = true;
     setPending(true);
     const account = getRendererAccountScopeToken();
     try {
-      const id = await branchSynonBiomedReply({ ...props, intentId: entry.id });
+      const id = await branchXScienceReply({ ...props, intentId: entry.id });
       if (!mounted.current || current.current !== key || getRendererAccountScopeToken() !== account) return;
       emitter.emit('chat.history.refresh');
       void navigate(`/conversation/${encodeURIComponent(id)}`);

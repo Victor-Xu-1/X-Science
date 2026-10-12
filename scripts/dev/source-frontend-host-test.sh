@@ -60,8 +60,8 @@ wait_for_event_count() {
 }
 
 FAKE_NPM_STATE="$fake_state" \
-SYNON_DEV_FRONTEND_SOURCE="$source_frontend" \
-SYNON_DEV_FRONTEND_RUNTIME_STATE="$state_root" \
+X_SCIENCE_DEV_FRONTEND_SOURCE="$source_frontend" \
+X_SCIENCE_DEV_FRONTEND_RUNTIME_STATE="$state_root" \
 NPM="$ROOT_DIR/scripts/dev/testdata/fake-npm.sh" \
   bash "$ROOT_DIR/scripts/dev/source-frontend-host.sh" >"$TMP_DIR/host.log" 2>&1 &
 host_pid=$!
@@ -84,8 +84,8 @@ grep -Fq 'ready = false' "$source_frontend/packages/desktop/src/app.ts"
 # A competing host using the same state root must fail without disturbing the
 # active instance.
 if FAKE_NPM_STATE="$fake_state" \
-  SYNON_DEV_FRONTEND_SOURCE="$source_frontend" \
-  SYNON_DEV_FRONTEND_RUNTIME_STATE="$state_root" \
+  X_SCIENCE_DEV_FRONTEND_SOURCE="$source_frontend" \
+  X_SCIENCE_DEV_FRONTEND_RUNTIME_STATE="$state_root" \
   NPM="$ROOT_DIR/scripts/dev/testdata/fake-npm.sh" \
     bash "$ROOT_DIR/scripts/dev/source-frontend-host.sh" >"$TMP_DIR/second.log" 2>&1; then
   echo "a second frontend host acquired the same runtime lock" >&2
@@ -130,8 +130,8 @@ chmod 755 "$failure_source/node_modules/.bin/vite"
 printf 'not-the-current-key\n' >"$failure_state/dependency-key"
 : >"$failure_fake_state/fail-ci"
 if FAKE_NPM_STATE="$failure_fake_state" \
-  SYNON_DEV_FRONTEND_SOURCE="$failure_source" \
-  SYNON_DEV_FRONTEND_RUNTIME_STATE="$failure_state" \
+  X_SCIENCE_DEV_FRONTEND_SOURCE="$failure_source" \
+  X_SCIENCE_DEV_FRONTEND_RUNTIME_STATE="$failure_state" \
   NPM="$ROOT_DIR/scripts/dev/testdata/fake-npm.sh" \
     bash "$ROOT_DIR/scripts/dev/source-frontend-host.sh" >"$TMP_DIR/failure.log" 2>&1; then
   echo "frontend host hid a dependency installation failure" >&2

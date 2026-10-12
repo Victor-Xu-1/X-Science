@@ -159,7 +159,7 @@ def main() -> None:
     if not entrypoint.is_file() or not provider.is_file():
         raise RuntimeError("provider bootstrap path is unavailable")
 
-    ProxyRelay(_bounded_fd("SYNON_PROVIDER_PROXY_FD")).start()
+    ProxyRelay(_bounded_fd("X_SCIENCE_PROVIDER_PROXY_FD")).start()
     for key in (
         "HTTP_PROXY",
         "HTTPS_PROXY",
@@ -174,7 +174,7 @@ def main() -> None:
     os.environ["HTTPS_PROXY"] = proxy
     os.environ["http_proxy"] = proxy
     os.environ["https_proxy"] = proxy
-    no_proxy = "" if os.environ.get("SYNON_PROVIDER_PROXY_LOCAL_TARGET") == "1" else "localhost,127.0.0.1"
+    no_proxy = "" if os.environ.get("X_SCIENCE_PROVIDER_PROXY_LOCAL_TARGET") == "1" else "localhost,127.0.0.1"
     os.environ["NO_PROXY"] = no_proxy
     os.environ["no_proxy"] = no_proxy
     os.environ["OPERON_BYOC_PROXY_SOCKS"] = str(PROXY_PORT)

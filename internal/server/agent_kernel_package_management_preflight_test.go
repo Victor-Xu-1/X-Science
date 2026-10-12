@@ -3,7 +3,7 @@ package server
 import (
 	"context"
 	"os/exec"
-	kernelruntime "synon-go/internal/kernel"
+	kernelruntime "x-science/internal/kernel"
 	"testing"
 )
 

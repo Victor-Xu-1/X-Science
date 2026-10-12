@@ -14,10 +14,10 @@ import (
 	"testing"
 	"time"
 
-	adaptercommon "synon-go/internal/adapters/common"
-	eventjournal "synon-go/internal/persistence/journal"
-	secretstore "synon-go/internal/persistence/secrets"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	adaptercommon "x-science/internal/adapters/common"
+	eventjournal "x-science/internal/persistence/journal"
+	secretstore "x-science/internal/persistence/secrets"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func TestIMOutboundRecoveryPersistsEncryptedRouteAndReplaysOnlyUncommittedRun(t *testing.T) {

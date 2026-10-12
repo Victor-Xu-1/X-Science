@@ -13,8 +13,8 @@ import (
 	"sort"
 	"strings"
 
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 type managedExecutionOutputAuthority struct {
@@ -315,8 +315,8 @@ func (s *Server) agentKernelWorkspaceImmutableMounts(
 	if err != nil {
 		return nil, errors.New("kernel immutable workspace authority is unavailable")
 	}
-	artifactRoot, err := secureEnsureAgentWorkspaceDirectory(filepath.Join(workspaceRoot, ".synon-artifacts"), 0o700)
-	if err != nil || filepath.Clean(artifactRoot) != filepath.Join(workspaceRoot, ".synon-artifacts") {
+	artifactRoot, err := secureEnsureAgentWorkspaceDirectory(filepath.Join(workspaceRoot, ".x-science-artifacts"), 0o700)
+	if err != nil || filepath.Clean(artifactRoot) != filepath.Join(workspaceRoot, ".x-science-artifacts") {
 		return nil, errors.New("kernel immutable artifact directory is unsafe")
 	}
 	paths := []string{artifactRoot}

@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	sessionstore "synon-go/internal/persistence/sessions"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	sessionstore "x-science/internal/persistence/sessions"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 const sessionRunnerVisualArtifactValidationReasonCode = "visual_artifact_validation_required"
@@ -62,7 +62,7 @@ func (err *sessionRunnerVisualArtifactValidationRequired) runnerCorrection() tra
 		visual.Artifacts = append([]transcriptstore.RunnerVisualConditionArtifact(nil), err.Targets...)
 		visual.UnboundNames = append([]string(nil), err.StructureSceneFailures...)
 	}
-	detail := err.Error() + ". For multiple structures, save a synon.structure-scene.v1 manifest using mother_structure and derived_structures entries with name/version_id, layers with version_id/role/representation/visible, and preview_image with name/version_id/sha256. Use the native Mol* preview and the cheminfo-render contract; do not generate a standalone HTML viewer or substitute a 2D grid for a 3D scene. Preserve coordinates and exact immutable hashes; repair the reported scene or manifest fields."
+	detail := err.Error() + ". For multiple structures, save a x-science.structure-scene.v1 manifest using mother_structure and derived_structures entries with name/version_id, layers with version_id/role/representation/visible, and preview_image with name/version_id/sha256. Use the native Mol* preview and the cheminfo-render contract; do not generate a standalone HTML viewer or substitute a 2D grid for a 3D scene. Preserve coordinates and exact immutable hashes; repair the reported scene or manifest fields."
 	return newRunnerCorrection(sessionRunnerVisualArtifactValidationReasonCode,
 		detail,
 		transcriptstore.RunnerCorrectionCondition{Visual: &visual},

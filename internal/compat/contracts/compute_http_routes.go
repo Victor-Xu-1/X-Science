@@ -1,6 +1,6 @@
 package contracts
 
-const computeRouteSource = "runtime/server/synonbiomed.bundle.js"
+const computeRouteSource = "runtime/server/xscience.bundle.js"
 const computeRouteSourceLine = 20349
 
 // HTTPRoutes is the public compute route surface recovered from the v1.1

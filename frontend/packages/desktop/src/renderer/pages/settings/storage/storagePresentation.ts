@@ -1,7 +1,7 @@
 import type {
-  SynonBiomedDataDirectory,
-  SynonBiomedStorageRuleValues,
-} from '@/renderer/services/synonBiomedWorkspaceSettings';
+  XScienceDataDirectory,
+  XScienceStorageRuleValues,
+} from '@/renderer/services/xScienceWorkspaceSettings';
 
 export function formatStorageBytes(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value) || value < 0) return '—';
@@ -21,11 +21,11 @@ export function directorySourceKey(source: string | undefined): string {
   return `settings.storageSettings.${sources[source ?? ''] ?? 'sourceDefault'}`;
 }
 
-export function directoryChangeAllowed(directory: SynonBiomedDataDirectory | null): boolean {
+export function directoryChangeAllowed(directory: XScienceDataDirectory | null): boolean {
   return directory !== null && directory.activeFrames === 0 && !directory.pendingMove;
 }
 
-export const storageRuleRows: Array<{ key: keyof SynonBiomedStorageRuleValues; label: string; description: string }> = [
+export const storageRuleRows: Array<{ key: keyof XScienceStorageRuleValues; label: string; description: string }> = [
   {
     key: 'taskArtifacts',
     label: 'settings.storageSettings.taskArtifacts',

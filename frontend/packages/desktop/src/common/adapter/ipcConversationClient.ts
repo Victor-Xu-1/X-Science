@@ -60,7 +60,7 @@ import type {
 // Conversation — REST + WS
 // ---------------------------------------------------------------------------
 
-const buildStoppedSynonBiomedRuntime = (): TConversationRuntimeSummary => ({
+const buildStoppedXScienceRuntime = (): TConversationRuntimeSummary => ({
   state: 'idle',
   can_send_message: true,
   has_task: false,
@@ -70,7 +70,7 @@ const buildStoppedSynonBiomedRuntime = (): TConversationRuntimeSummary => ({
   turn_id: null,
 });
 
-const cancelSynonBiomedFrame = httpPost<unknown, { conversation_id: string; turn_id: string }>(
+const cancelXScienceFrame = httpPost<unknown, { conversation_id: string; turn_id: string }>(
   (params) => `/api/frames/${encodeURIComponent(params.conversation_id)}/cancel?reason=user`,
   () => ({})
 );
@@ -274,9 +274,9 @@ export const conversation = {
   stop: {
     provider: () => {},
     invoke: async (params: { conversation_id: string; turn_id: string }) => {
-      const response = await cancelSynonBiomedFrame.invoke(params);
+      const response = await cancelXScienceFrame.invoke(params);
       decodeConversationCancelAcknowledgement(response, params.conversation_id);
-      return { runtime: buildStoppedSynonBiomedRuntime() };
+      return { runtime: buildStoppedXScienceRuntime() };
     },
   },
   activeCount: httpGet<{ count: number }>('/api/conversations/active-count'),

@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/outbox"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/outbox"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func startServerRealtimeOutbox(t *testing.T, store *workspace.Store, app *Server) {

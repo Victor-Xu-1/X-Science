@@ -22,7 +22,7 @@
     body
     .settings-page-wrapper[data-settings-route='models']
     .settings-models-page
-    > [data-testid='synon-biomed-model-profiles'] {
+    > [data-testid='x-science-model-profiles'] {
     margin-top: 0 !important;
   }
 

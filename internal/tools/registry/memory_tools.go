@@ -1,13 +1,13 @@
 package registry
 
-import "synon-go/internal/memorypolicy"
+import "x-science/internal/memorypolicy"
 
 func memoryToolDefinitions() []Tool {
 	return []Tool{
 		{
 			Name:         "read_memory",
 			Description:  "Expand one memory entity to its full row list. `entity` is `profile`, `project:<pid>`, `artifact:<aid>`, `category:<name>` (as returned by `search_memory` / shown in a `[Memory]` recall block), or `frame` for this session's private scratchpad. Each row is prefixed with `[relative age]` (when it was written) and `[evidence]`, suffixed with `[mem_id · ⚠staleness?]`.",
-			Capabilities: []string{"memory", "durable-state", "read", "trusted-session-required", "synon-contract"},
+			Capabilities: []string{"memory", "durable-state", "read", "trusted-session-required", "x-science-contract"},
 			Input: map[string]Field{
 				"entity": {
 					Type:     "string",
@@ -22,7 +22,7 @@ func memoryToolDefinitions() []Tool {
 		{
 			Name:         "write_memory",
 			Description:  "Write durable memory. `entity` defaults to the current project (`project:<pid>`); use `profile` for user-global facts, `artifact:<aid>` for file-specific, or `frame` for a private per-session scratchpad (notes to your future self — what you tried, dead ends, working state — that survive context compaction but are never visible to other sessions and are deleted with this conversation). Pass `append` to add new rows, `replace` (by `mem_id`) to correct existing rows, `remove` (by `mem_id`) to delete. Each row is a single fact with an `evidence` tag (`stated`/`observed`/`inferred`). Future sessions inherit non-`frame` rows — write only what should outlive this conversation.",
-			Capabilities: []string{"memory", "durable-state", "write", "prompt-injection-gated", "trusted-session-required", "synon-contract"},
+			Capabilities: []string{"memory", "durable-state", "write", "prompt-injection-gated", "trusted-session-required", "x-science-contract"},
 			Input: map[string]Field{
 				"entity": {
 					Type: "string",
@@ -66,7 +66,7 @@ func memoryToolDefinitions() []Tool {
 		{
 			Name:         "search_memory",
 			Description:  "Search your persistent memory pool (all entities, all projects) by describing what you're looking for. Each matching row is prefixed with `[relative age]` (when it was written) and `[evidence]`, suffixed with `[mem_id · entity · ⚠staleness?]`. Use when `<memory_recall>` auto-surfacing missed something you suspect you've learned before. For structured queries or joins against artifacts/frames, use `host.query(\"SELECT * FROM memories WHERE …\")` instead.",
-			Capabilities: []string{"memory", "durable-state", "search", "bm25", "trusted-session-required", "synon-contract"},
+			Capabilities: []string{"memory", "durable-state", "search", "bm25", "trusted-session-required", "x-science-contract"},
 			Input: map[string]Field{
 				"query": {
 					Type:     "string",

@@ -10,7 +10,7 @@ import (
 	"os/exec"
 	"regexp"
 	"sync"
-	"synon-go/internal/buildinfo"
+	"x-science/internal/buildinfo"
 )
 
 func productClientInfo() map[string]any {

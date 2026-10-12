@@ -12,10 +12,10 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	secretstore "synon-go/internal/persistence/secrets"
-	settingsstore "synon-go/internal/persistence/settings"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	secretstore "x-science/internal/persistence/secrets"
+	settingsstore "x-science/internal/persistence/settings"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestRuntimeModelClientOpenAIChatEncodesMediaContentParts(t *testing.T) {

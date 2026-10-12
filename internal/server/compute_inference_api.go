@@ -19,8 +19,8 @@ import (
 	"strings"
 	"time"
 
-	compute "synon-go/internal/compute"
-	workspace "synon-go/internal/persistence/workspace"
+	compute "x-science/internal/compute"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const computeProbeTimeout = 10 * time.Second

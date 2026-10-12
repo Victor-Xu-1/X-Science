@@ -8,8 +8,8 @@ import (
 	"net"
 	"time"
 
-	"synon-go/internal/httpreliability"
-	"synon-go/internal/tools/securefetch"
+	"x-science/internal/httpreliability"
+	"x-science/internal/tools/securefetch"
 )
 
 type agentPublicScientificTransferInterrupted struct {

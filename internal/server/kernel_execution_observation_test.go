@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/processsupervisor"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/processsupervisor"
 )
 
 func TestDetachedExecutionObservationFencesTerminalAndReplacementReceipts(t *testing.T) {

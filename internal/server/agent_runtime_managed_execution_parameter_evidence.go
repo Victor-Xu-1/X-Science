@@ -8,7 +8,7 @@ import (
 	"strings"
 	"unicode"
 
-	"synon-go/internal/sciencecapability"
+	"x-science/internal/sciencecapability"
 )
 
 type managedExecutionEvidenceArgument struct {

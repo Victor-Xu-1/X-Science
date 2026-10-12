@@ -19,7 +19,7 @@ func OptimizeMarkdownForFeishu(text string, cardVersion int) string {
 		cardVersion = 2
 	}
 	codeBlocks := make([]string, 0)
-	marker := "___SYNON_FEISHU_CODE_BLOCK_"
+	marker := "___X_SCIENCE_FEISHU_CODE_BLOCK_"
 	codeBlockPattern := regexp.MustCompile("```[\\s\\S]*?```")
 	optimized := codeBlockPattern.ReplaceAllStringFunc(text, func(block string) string {
 		index := len(codeBlocks)

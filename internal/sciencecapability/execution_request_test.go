@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/software"
+	"x-science/internal/software"
 )
 
 func validVinaExecutionRequest() ExecutionRequest {

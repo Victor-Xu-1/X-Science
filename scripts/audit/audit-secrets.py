@@ -13,7 +13,7 @@ EXCLUDED_DIRECTORIES = {
     ".mypy_cache",
     ".pytest_cache",
     ".ruff_cache",
-    ".synon-go-audit",
+    ".x-science-audit",
     "dist",
     "mcp-output",
     "models",
@@ -28,8 +28,8 @@ EXCLUDED_DIRECTORIES = {
 ALLOW_MARKERS = re.compile(
     r"(?i)(?:<redacted>|placeholder|example|dummy|fixture|fake|test[-_ ]secret|"
     r"package[-_ ]secret|legacy[-_ ]secret|changeme|must-not-be-used|"
-    r"wrong-static-key|responses-secret|legacy-plaintext-token|synon-go-smoke-key|"
-      r"synon-local-core|wechat-config-token|feishu-config-secret|local-integration-key)"
+    r"wrong-static-key|responses-secret|legacy-plaintext-token|x-science-smoke-key|"
+      r"x-science-local-core|wechat-config-token|feishu-config-secret|local-integration-key)"
 )
 ENVIRONMENT_KEY_VALUE = re.compile(
     r"[A-Z][A-Z0-9_]{2,}_(?:API_KEY|ACCESS_TOKEN|BOT_TOKEN|CLIENT_SECRET|APP_SECRET|SECRET_ACCESS_KEY)"

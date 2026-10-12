@@ -49,7 +49,7 @@ filesystem_digest() {
     --exclude='*/out' \
     --exclude='*/test-results' \
     --exclude='*/coverage' \
-    --exclude='./.synon-go-audit' \
+    --exclude='./.x-science-audit' \
     -cf - . | sha256sum | cut -d ' ' -f1
 }
 
@@ -63,12 +63,12 @@ copy_digest=$(filesystem_digest "$copy")
 (
   cd "$copy"
   bash scripts/audit/audit-source-clean.sh
-  env GOWORK=off GOCACHE="$cache" "$go_bin" build -mod=readonly -trimpath -buildvcs=false -o "$output/synon-go" ./cmd/synon
-  env GOWORK=off GOCACHE="$cache" "$go_bin" build -mod=readonly -trimpath -buildvcs=false -o "$output/synon-go-live-im-smoke" ./scripts/smoke-live-im
+  env GOWORK=off GOCACHE="$cache" "$go_bin" build -mod=readonly -trimpath -buildvcs=false -o "$output/x-science" ./cmd/x-science
+  env GOWORK=off GOCACHE="$cache" "$go_bin" build -mod=readonly -trimpath -buildvcs=false -o "$output/x-science-live-im-smoke" ./scripts/smoke-live-im
 )
 
-"$output/synon-go" --health-json | grep -Fq "\"version\":\"${product_version}\""
-"$output/synon-go-live-im-smoke" --plan --json | grep -Fq '"secretsRedacted":true'
+"$output/x-science" --health-json | grep -Fq "\"version\":\"${product_version}\""
+"$output/x-science-live-im-smoke" --plan --json | grep -Fq '"secretsRedacted":true'
 
 after_digest=$(filesystem_digest "$copy")
 if [[ "$copy_digest" != "$after_digest" ]]; then

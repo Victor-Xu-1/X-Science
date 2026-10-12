@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"strings"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 const (

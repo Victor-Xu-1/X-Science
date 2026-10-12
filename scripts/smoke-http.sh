@@ -4,7 +4,7 @@ set -euo pipefail
 export NO_PROXY="127.0.0.1,localhost,::1"
 export no_proxy="$NO_PROXY"
 
-binary="${1:-dist/synon-go}"
+binary="${1:-dist/x-science}"
 
 port="$(
 	python3 - <<'PY'
@@ -18,7 +18,7 @@ PY
 )"
 
 tmp="$(mktemp -d)"
-cfg="$tmp/synon.json"
+cfg="$tmp/x-science.json"
 home="$tmp/home"
 adapter_fixture="$tmp/adapter-fixture.py"
 plugin_dir="$tmp/plugins/terminal-tools"
@@ -127,7 +127,7 @@ for _ in $(seq 1 40); do
 done
 curl -fsS "$adapter_origin/health" >/dev/null
 
-mkdir -p "$plugin_dir/.synon-plugin"
+mkdir -p "$plugin_dir/.x-science-plugin"
 if [[ "$host_is_windows" == true ]]; then
 	mkdir -p "$plugin_dir/bin"
 	plugin_process_command="cmd.exe"
@@ -146,7 +146,7 @@ CMD
 else
 	plugin_process_json="$(python3 -c 'import json,sys; print(json.dumps({"command":"/bin/sh","args":["-c", "printf ready >\"" + sys.argv[1] + "\"; while true; do sleep 1; done"]}))' "$plugin_ready")"
 fi
-cat >"$plugin_dir/.synon-plugin/plugin.json" <<JSON
+cat >"$plugin_dir/.x-science-plugin/plugin.json" <<JSON
 {
   "id": "terminal-tools",
   "name": "terminal-tools",
@@ -165,7 +165,7 @@ JSON
 plugin_dir_json="$(python3 -c 'import json,sys; print(json.dumps(sys.argv[1]))' "$plugin_dir")"
 # Adapter credentials and origins are isolated fixture values; no external
 # platform or user account is contacted by this HTTP smoke.
-printf '{"host":"127.0.0.1","port":%s,"synon_link_package":"assets/synon-link/synon-link-extension-v0.6.10.zip","plugin_directories":[%s],"enabled_adapters":["feishu","wechat"],"feishu":{"app_id":"smoke-app","app_secret":"smoke-secret","domain":"%s"},"wechat":{"account_id":"smoke-account","bot_token":"smoke-token","base_url":"%s"}}\n' "$port" "$plugin_dir_json" "$adapter_origin" "$adapter_origin" >"$cfg"
+printf '{"host":"127.0.0.1","port":%s,"x_science_link_package":"assets/x-science-link/x-science-link-extension-v0.6.10.zip","plugin_directories":[%s],"enabled_adapters":["feishu","wechat"],"feishu":{"app_id":"smoke-app","app_secret":"smoke-secret","domain":"%s"},"wechat":{"account_id":"smoke-account","bot_token":"smoke-token","base_url":"%s"}}\n' "$port" "$plugin_dir_json" "$adapter_origin" "$adapter_origin" >"$cfg"
 mkdir -p "$home/smoke" "$home/projects/alpha"
 if [[ "$host_is_windows" == true ]]; then
 	shell_expected_workdir="$(cygpath -w "$home")"
@@ -175,7 +175,7 @@ else
 	tool_shell_payload='{"input":{"command":"/bin/pwd","workdir":".","timeout":2}}'
 fi
 
-SYNON_HOME="$home" SYNON_CONFIG="$cfg" "$binary" >"$tmp/server.log" 2>&1 &
+X_SCIENCE_HOME="$home" X_SCIENCE_CONFIG="$cfg" "$binary" >"$tmp/server.log" 2>&1 &
 pid="$!"
 
 for _ in $(seq 1 40); do
@@ -191,13 +191,13 @@ done
 
 health="$(curl -fsS "http://127.0.0.1:$port/health")"
 plugins="$(curl -fsS "http://127.0.0.1:$port/api/plugins")"
-plugin_manifest="$(curl -fsS "http://127.0.0.1:$port/api/plugins/synon/manifest")"
+plugin_manifest="$(curl -fsS "http://127.0.0.1:$port/api/plugins/x-science/manifest")"
 external_plugin_manifest="$(curl -fsS "http://127.0.0.1:$port/api/plugins/terminal-tools/manifest")"
-capabilities="$(curl -fsS "http://127.0.0.1:$port/api/plugins/synon/capabilities")"
-link_capabilities="$(curl -fsS "http://127.0.0.1:$port/api/synon-link/capabilities")"
-link_doctor="$(curl -fsS "http://127.0.0.1:$port/api/synon-link/doctor?userId=smoke-user")"
-link_package="$tmp/synon-link-extension.zip"
-curl -fsS "http://127.0.0.1:$port/api/plugins/synon/link/download" -o "$link_package"
+capabilities="$(curl -fsS "http://127.0.0.1:$port/api/plugins/x-science/capabilities")"
+link_capabilities="$(curl -fsS "http://127.0.0.1:$port/api/x-science-link/capabilities")"
+link_doctor="$(curl -fsS "http://127.0.0.1:$port/api/x-science-link/doctor?userId=smoke-user")"
+link_package="$tmp/x-science-link-extension.zip"
+curl -fsS "http://127.0.0.1:$port/api/plugins/x-science/link/download" -o "$link_package"
 printf '2cb251ad8aedf940f6d3a11b41b74ed55f9b912ab48257a21789b78a1ca0c90b  %s\n' "$link_package" | sha256sum -c -
 unzip -p "$link_package" manifest.json | grep -q '"version": "0.6.10"'
 tools_file="$tmp/tools.json"
@@ -310,14 +310,14 @@ session_claim_b="$(curl -fsS -X POST "http://127.0.0.1:$port/api/tools/session_c
 printf 'PORT=%s\n' "$port"
 printf 'HEALTH=%s\n' "$health"
 
-printf '%s' "$plugins" | grep -q '"id":"synon"'
+printf '%s' "$plugins" | grep -q '"id":"xscience"'
 printf '%s' "$plugins" | grep -q '"id":"terminal-tools"'
 printf '%s' "$plugins" | grep -q '"status":"running"'
-printf '%s' "$plugins" | grep -q '/api/plugins/synon/capabilities'
+printf '%s' "$plugins" | grep -q '/api/plugins/x-science/capabilities'
 printf '%s' "$plugins" | grep -qi 'admet' && exit 1
-printf '%s' "$plugin_manifest" | grep -q '"pluginFormat":"synon_agent_native"'
-printf '%s' "$plugin_manifest" | grep -q '"apiMount":"/api/plugins/synon"'
-printf '%s' "$external_plugin_manifest" | grep -q '"pluginFormat":"synon_agent_external"'
+printf '%s' "$plugin_manifest" | grep -q '"pluginFormat":"x_science_agent_native"'
+printf '%s' "$plugin_manifest" | grep -q '"apiMount":"/api/plugins/xscience"'
+printf '%s' "$external_plugin_manifest" | grep -q '"pluginFormat":"x_science_agent_external"'
 printf '%s' "$external_plugin_manifest" | grep -q '"apiMount":"/api/plugins/terminal-tools"'
 test -f "$plugin_ready"
 printf 'PLUGIN_HOST_API=yes\n'
@@ -393,12 +393,12 @@ printf '%s' "$link_capabilities" | grep -q 'click_at'
 printf '%s' "$link_capabilities" | grep -q 'screenshot'
 printf '%s' "$link_capabilities" | grep -q 'download_file'
 printf '%s' "$link_capabilities" | grep -q 'bookmarks_profile'
-printf 'SYNON_LINK_BROWSER_CAPABILITIES=yes\n'
-printf 'SYNON_LINK_CAPABILITIES=yes\n'
+printf 'X_SCIENCE_LINK_BROWSER_CAPABILITIES=yes\n'
+printf 'X_SCIENCE_LINK_CAPABILITIES=yes\n'
 
 printf '%s' "$link_doctor" | grep -q '"ok":true'
 printf '%s' "$link_doctor" | grep -q 'policyMatrix'
-printf 'SYNON_LINK_DOCTOR=yes\n'
+printf 'X_SCIENCE_LINK_DOCTOR=yes\n'
 
 python3 - "$tools_file" <<'PY'
 import json
@@ -604,7 +604,7 @@ printf 'IM_LIVE_SESSIONS_JOURNALED=yes\n'
 printf 'FEISHU_EVENT_API=yes\n'
 printf 'WECHAT_EVENT_API=yes\n'
 
-go run ./scripts/smoke-ws-client.go "ws://127.0.0.1:$port/api/synon-link/ws?userId=local"
+go run ./scripts/smoke-ws-client.go "ws://127.0.0.1:$port/api/x-science-link/ws?userId=local"
 curl -fsS -X POST "http://127.0.0.1:$port/api/tools/pairing_allow/execute" -H 'Content-Type: application/json' --data '{"input":{"platform":"feishu","userId":"ou_session_ws_smoke","displayName":"Session WS Smoke"}}' >/dev/null
 go run ./scripts/smoke-session-ws-client "http://127.0.0.1:$port"
 

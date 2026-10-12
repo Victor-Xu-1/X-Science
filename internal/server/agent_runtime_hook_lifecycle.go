@@ -6,8 +6,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"strings"
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/toolcontract"
+	"x-science/internal/agentruntime"
+	"x-science/internal/toolcontract"
 	"time"
 )
 

@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"testing"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 func TestAgentRuntimeGatewayNormalizesObservedChEMBLArgumentsAgainstBundledSchemas(t *testing.T) {

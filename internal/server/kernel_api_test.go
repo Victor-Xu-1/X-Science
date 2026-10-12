@@ -18,8 +18,8 @@ import (
 
 	"github.com/coder/websocket"
 
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestKernelSessionInventoryEnforcesOwnershipAndMatchesV11Shape(t *testing.T) {
@@ -177,7 +177,7 @@ func TestGlobalKernelInventoryIncludesLiveDetachedExecutorAndRejectsStalePID(t *
 			BackendID: backend.BackendID, BackendGeneration: backend.BackendGeneration,
 			ExecutorInstanceID: backend.ExecutorInstanceID, ExecutorPID: pid, ExecutorPIDStartTicks: ticks,
 			WorkerPID: pid, WorkerPIDStartTicks: ticks, WorkerPGID: pid,
-			CgroupPath: "/synon-test.scope", HeartbeatSequence: 1,
+			CgroupPath: "/x-science-test.scope", HeartbeatSequence: 1,
 		}); err != nil {
 			t.Fatal(err)
 		}
@@ -715,7 +715,7 @@ func kernelAPIRequest(t *testing.T, app http.Handler, method, target, userID str
 	recorder := httptest.NewRecorder()
 	request := newLoopbackTestRequest(method, target, bytes.NewReader(raw))
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("X-Synon-User-Id", userID)
+	request.Header.Set("X-Science-User-Id", userID)
 	app.ServeHTTP(recorder, request)
 	if recorder.Code != wantStatus {
 		t.Fatalf("%s %s status=%d body=%s", method, target, recorder.Code, recorder.Body.String())

@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/tools/rcsbsearch"
+	"x-science/internal/agentruntime"
+	"x-science/internal/tools/rcsbsearch"
 )
 
 type agentRCSBSearcher struct {

@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"strings"
 
-	eventjournal "synon-go/internal/persistence/journal"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	eventjournal "x-science/internal/persistence/journal"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 type runnerComposerAttachment struct {

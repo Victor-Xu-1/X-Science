@@ -18,10 +18,10 @@ const mocks = vi.hoisted(() => ({
   loadMessageChannels: vi.fn(),
 }));
 
-vi.mock('@/renderer/services/synonBiomedWorkspaceSettings', () => ({
-  loadSynonBiomedContactEmail: mocks.loadContact,
-  setSynonBiomedContactEmail: mocks.setContact,
-  removeSynonBiomedContactEmail: mocks.removeContact,
+vi.mock('@/renderer/services/xScienceWorkspaceSettings', () => ({
+  loadXScienceContactEmail: mocks.loadContact,
+  setXScienceContactEmail: mocks.setContact,
+  removeXScienceContactEmail: mocks.removeContact,
 }));
 
 vi.mock('@arco-design/web-react', async (importOriginal) => {

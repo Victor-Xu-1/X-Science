@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/uuid"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func (s *Server) handleCompatibilityProjectNotes(w http.ResponseWriter, r *http.Request, projectID string) {

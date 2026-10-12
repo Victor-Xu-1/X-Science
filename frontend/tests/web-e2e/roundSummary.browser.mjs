@@ -5,7 +5,7 @@ import { join, resolve } from 'node:path';
 import { createServer } from 'vite';
 import { chromium, expect } from '@playwright/test';
 
-const artifacts = await mkdtemp(join(tmpdir(), 'synon-round-summary-'));
+const artifacts = await mkdtemp(join(tmpdir(), 'x-science-round-summary-'));
 const full = {
   attempt: 1,
   input_revision: 1,

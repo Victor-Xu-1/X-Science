@@ -1,6 +1,6 @@
 package providers
 
-import "synon-go/internal/agentruntime"
+import "x-science/internal/agentruntime"
 
 // All JSON and streaming transports return the same per-request usage that
 // they audit. Consumers must not need to scan cumulative operational audits.

@@ -32,7 +32,7 @@ type CompatibilityMessageIntent struct {
 }
 
 type compatibilityQueueEnvelope struct {
-	Version         int            `json:"_synonGoQueueVersion"`
+	Version         int            `json:"_xscienceGoQueueVersion"`
 	DedupePayload   map[string]any `json:"dedupe"`
 	DeliveryPayload map[string]any `json:"delivery"`
 	QueuedEventID   string         `json:"queuedEventId,omitempty"`

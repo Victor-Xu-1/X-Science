@@ -62,12 +62,12 @@ def install(*, home: Path, attempts: int, timeout_seconds: int) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--home", default=os.environ.get("SYNON_CLEAN_CLONE_PYTHON_HOME", ""))
+    parser.add_argument("--home", default=os.environ.get("X_SCIENCE_CLEAN_CLONE_PYTHON_HOME", ""))
     parser.add_argument("--attempts", type=int, default=3)
     parser.add_argument("--timeout-seconds", type=int, default=600)
     args = parser.parse_args(argv)
     if not args.home:
-        parser.error("--home or SYNON_CLEAN_CLONE_PYTHON_HOME is required")
+        parser.error("--home or X_SCIENCE_CLEAN_CLONE_PYTHON_HOME is required")
     if not 1 <= args.attempts <= 3:
         parser.error("--attempts must be between 1 and 3")
     if not 60 <= args.timeout_seconds <= 900:

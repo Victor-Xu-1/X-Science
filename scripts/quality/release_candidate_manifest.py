@@ -40,7 +40,7 @@ else:
     )
 
 
-SCHEMA = "synon.release-candidate.v1"
+SCHEMA = "x-science.release-candidate.v1"
 MANIFEST_NAME = "RELEASE_CANDIDATE.json"
 SHA = re.compile(r"^[0-9a-f]{40,64}$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")

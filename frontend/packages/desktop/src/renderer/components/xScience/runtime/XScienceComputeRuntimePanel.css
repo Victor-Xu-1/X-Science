@@ -1,0 +1,206 @@
+.x-science-compute-pane {
+  container-type: inline-size;
+  background: var(--bg-1);
+}
+
+.x-science-compute-header-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ui-space-5);
+}
+
+.x-science-compute-header-metric {
+  min-width: 0;
+  transition: opacity 160ms ease;
+}
+
+.x-science-compute-pane[data-stale='true'] .x-science-compute-header-metric {
+  opacity: 0.5;
+}
+
+.x-science-compute-header-count {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--ui-space-4);
+}
+
+.x-science-compute-meter {
+  height: 4px;
+  width: 100%;
+  overflow: hidden;
+  border-radius: var(--ui-radius-pill);
+  background: var(--color-fill-3);
+}
+
+.x-science-compute-meter__segments {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+.x-science-compute-meter__kernel,
+.x-science-compute-meter__other {
+  height: 100%;
+  transition: width 700ms ease;
+}
+
+.x-science-compute-meter__kernel {
+  border-radius: var(--ui-radius-pill);
+  background: #4f75cf;
+}
+
+.x-science-compute-meter__other {
+  border-radius: 0 999px 999px 0;
+  background: color-mix(in srgb, var(--color-text-3) 35%, transparent);
+}
+
+.x-science-compute-session-row {
+  display: grid;
+  grid-template-columns: 12px 7px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--ui-space-4);
+}
+
+.x-science-compute-running-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-1);
+}
+
+.x-science-compute-running-dots span {
+  width: 3px;
+  height: 3px;
+  border-radius: var(--ui-radius-pill);
+  background: currentcolor;
+}
+
+.x-science-compute-running-dots span:nth-child(2) {
+  opacity: 0.6;
+}
+
+.x-science-compute-running-dots span:nth-child(3) {
+  opacity: 0.35;
+}
+
+.x-science-compute-idle-ring {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border: 1px solid var(--color-text-3);
+  border-radius: var(--ui-radius-pill);
+}
+
+.x-science-compute-kernel-row {
+  display: grid;
+  grid-template-columns: 12px 22px minmax(0, 1fr) 92px 92px minmax(24px, auto);
+  align-items: center;
+  gap: 10px;
+}
+
+.x-science-compute-resource-column {
+  display: flex;
+  width: 92px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--ui-space-1);
+}
+
+.x-science-compute-sparkline {
+  display: block;
+  width: 92px;
+  height: 20px;
+}
+
+.x-science-compute-kernel-row:hover .x-science-compute-row-action,
+.x-science-compute-kernel-row:focus-within .x-science-compute-row-action {
+  opacity: 1;
+}
+
+.x-science-compute-row-action {
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.x-science-compute-row-drawer {
+  margin: 0 10px 6px 54px;
+  border-top: 1px solid color-mix(in srgb, var(--color-border-2) 35%, transparent);
+  padding: 8px 0 10px;
+}
+
+.x-science-compute-session-stop-drawer,
+.x-science-compute-row-stop-drawer {
+  overflow: hidden;
+  animation: x-science-compute-drawer-in 180ms ease-out both;
+  border-top: 1px solid color-mix(in srgb, var(--color-border-2) 35%, transparent);
+  padding: var(--ui-space-5);
+}
+
+.x-science-compute-session-stop-drawer {
+  margin: 0 10px 6px;
+  border-radius: 0 0 10px 10px;
+  background: var(--color-fill-1);
+}
+
+.x-science-compute-row-stop-drawer {
+  margin: 0 0 6px;
+}
+
+.x-science-compute-stop-interrupt {
+  background: #4f75cf;
+}
+
+.x-science-compute-stop-interrupt:hover {
+  background: #4569b8;
+}
+
+.x-science-compute-stop-kill {
+  background: #c95155;
+}
+
+.x-science-compute-stop-kill:hover {
+  background: #b7464a;
+}
+
+@keyframes x-science-compute-drawer-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@container (min-width: 600px) {
+  .x-science-compute-header-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 20px;
+  }
+
+  .x-science-compute-header-total {
+    text-align: right;
+  }
+}
+
+@container (max-width: 459px) {
+  .x-science-compute-kernel-row {
+    grid-template-columns: 12px 22px minmax(0, 1fr) 64px minmax(24px, auto);
+  }
+
+  .x-science-compute-resource-column--cpu {
+    display: none;
+  }
+
+  .x-science-compute-resource-column,
+  .x-science-compute-sparkline {
+    width: 64px;
+  }
+
+  .x-science-compute-session-summary {
+    display: none;
+  }
+}

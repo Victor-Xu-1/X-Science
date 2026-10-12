@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-const ToolEffectSchema = "synon.tool_effect.v1"
+const ToolEffectSchema = "x-science.tool_effect.v1"
 
 type ToolEffectState string
 

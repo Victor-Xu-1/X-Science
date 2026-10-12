@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/persistence/workspace"
-	"synon-go/internal/routinescheduler"
+	"x-science/internal/persistence/workspace"
+	"x-science/internal/routinescheduler"
 )
 
 func TestRoutineOutcomeSurvivesCompletionFailureAndRestartWithoutSecondModelRequest(t *testing.T) {

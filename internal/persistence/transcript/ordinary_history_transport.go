@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-const ordinaryHistoryCursorStageTable = "temp.synon_ordinary_cursor_stage"
+const ordinaryHistoryCursorStageTable = "temp.x_science_ordinary_cursor_stage"
 
 type ordinaryHistoryCursorStage struct {
 	count  int
@@ -163,7 +163,7 @@ func ordinaryPayloadContainsAskUserFact(payload []byte) bool {
 func prepareOrdinaryHistoryCursorStageConn(
 	ctx context.Context, conn *sql.Conn, source, target Stream, stage canonicalCloneStage,
 ) (ordinaryHistoryCursorStage, error) {
-	if _, err := conn.ExecContext(ctx, `CREATE TEMP TABLE IF NOT EXISTS synon_ordinary_cursor_stage(
+	if _, err := conn.ExecContext(ctx, `CREATE TEMP TABLE IF NOT EXISTS x_science_ordinary_cursor_stage(
 		target_uid TEXT NOT NULL,
 		source_branch_id TEXT NOT NULL,
 		target_branch_id TEXT NOT NULL,

@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"synon-go/internal/sciencecapability"
+	"x-science/internal/sciencecapability"
 )
 
 func TestAskUserResolverProseCannotAuthorizeExecution(t *testing.T) {

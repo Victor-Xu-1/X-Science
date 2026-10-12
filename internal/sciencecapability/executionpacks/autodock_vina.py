@@ -52,9 +52,9 @@ PRIMARY_SELECTION_BASES = {
     "best_affinity_then_stable_run_mode_tiebreak",
 }
 EXECUTION_PACK_ID = "molecular-docking.autodock-vina"
-OUTPUT_OWNERSHIP_MARKER = ".synon-execution-pack.json"
+OUTPUT_OWNERSHIP_MARKER = ".x-science-execution-pack.json"
 DEFAULT_OUTPUT_DIR = "out"
-OUTPUT_PROMOTION_RECEIPT_PREFIX = "SYNON_EXECUTION_PACK_OUTPUT_RECEIPT="
+OUTPUT_PROMOTION_RECEIPT_PREFIX = "X_SCIENCE_EXECUTION_PACK_OUTPUT_RECEIPT="
 
 
 def pdb_reference_site_scores(source: Path) -> dict[tuple[str, str, int], int]:
@@ -1074,7 +1074,7 @@ def promote_execution_output(
     atomic_text(
         staging / OUTPUT_OWNERSHIP_MARKER,
         json.dumps(
-            {"execution_pack_id": EXECUTION_PACK_ID, "schema": "synon.execution-pack-output-owner.v1"},
+            {"execution_pack_id": EXECUTION_PACK_ID, "schema": "x-science.execution-pack-output-owner.v1"},
             sort_keys=True,
         )
         + "\n",
@@ -1083,7 +1083,7 @@ def promote_execution_output(
         raise RuntimeError("execution output target was created before promotion")
     staging.rename(target)
     return {
-        "schema": "synon.execution-pack-output-promotion.v1",
+        "schema": "x-science.execution-pack-output-promotion.v1",
         "execution_pack_id": EXECUTION_PACK_ID,
         "generation_id": token,
         "current": str(target.relative_to(root)),
@@ -1455,7 +1455,7 @@ def main() -> int:
             "process_cleanup": not work.exists(),
         }
         validation = {
-            "schema": "synon.execution-pack-validation.v4",
+            "schema": "x-science.execution-pack-validation.v4",
             "execution_pack_id": EXECUTION_PACK_ID,
             "overall_pass": all(checks.values()),
             "checks": checks,
@@ -1504,10 +1504,10 @@ def main() -> int:
         promotion = promote_execution_output(output, target_output, run_token, root)
         print(OUTPUT_PROMOTION_RECEIPT_PREFIX + json.dumps(promotion, sort_keys=True))
         print(
-            "SYNON_EXECUTION_PACK_INPUT_RECEIPT="
+            "X_SCIENCE_EXECUTION_PACK_INPUT_RECEIPT="
             + json.dumps(
                 {
-                    "schema": "synon.execution-pack-input-receipt.v1",
+                    "schema": "x-science.execution-pack-input-receipt.v1",
                     "execution_pack_id": EXECUTION_PACK_ID,
                     "inputs": validation["inputs"],
                 },
@@ -1525,7 +1525,7 @@ def main() -> int:
             failure / "failure.json",
             json.dumps(
                 {
-                    "schema": "synon.execution-pack-failure.v1",
+                    "schema": "x-science.execution-pack-failure.v1",
                     "execution_pack_id": EXECUTION_PACK_ID,
                     "failure_type": type(error).__name__,
                     "message": str(error),

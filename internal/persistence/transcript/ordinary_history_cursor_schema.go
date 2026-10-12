@@ -2,7 +2,7 @@ package transcript
 
 import "strings"
 
-const HistoryOrdinaryCursorContractID = "synon.transcript.history-ordinary-cursor.v34"
+const HistoryOrdinaryCursorContractID = "x-science.transcript.history-ordinary-cursor.v34"
 
 const historyOrdinaryCursorMapV34Statement = `CREATE TABLE transcript_history_ordinary_cursor_map (
 	ordinary_cutover_id BLOB NOT NULL CHECK(length(ordinary_cutover_id) = 32)

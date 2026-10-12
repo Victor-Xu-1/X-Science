@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 // rootDeletionResult is the data-plane result shared by every workspace

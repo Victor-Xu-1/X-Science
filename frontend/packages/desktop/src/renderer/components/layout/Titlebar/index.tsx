@@ -73,7 +73,7 @@ const GitHubStarButton: React.FC<{ iconSize: number; iconStroke?: number }> = ({
     <Tooltip content={t('common.starOnGitHub')} position='bottom'>
       <button
         type='button'
-        className='app-titlebar__button app-titlebar__button--nav synon-biomed-github-star'
+        className='app-titlebar__button app-titlebar__button--nav x-science-github-star'
         data-testid='github-star-button'
         aria-label={t('common.starOnGitHub')}
         onClick={() => {
@@ -180,14 +180,14 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
       const path = `${location.pathname}${location.search}${location.hash}`;
       lastNonSettingsPathRef.current = path;
       try {
-        sessionStorage.setItem('synon-ai:last-non-settings-path', path);
+        sessionStorage.setItem('x-science:last-non-settings-path', path);
       } catch {
         // ignore
       }
       return;
     }
     try {
-      const stored = sessionStorage.getItem('synon-ai:last-non-settings-path');
+      const stored = sessionStorage.getItem('x-science:last-non-settings-path');
       if (stored) {
         lastNonSettingsPathRef.current = stored;
       }

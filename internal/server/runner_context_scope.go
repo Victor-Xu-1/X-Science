@@ -11,10 +11,10 @@ import (
 
 	"unicode"
 
-	eventjournal "synon-go/internal/persistence/journal"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	eventjournal "x-science/internal/persistence/journal"
+	transcriptstore "x-science/internal/persistence/transcript"
 
-	sessionstore "synon-go/internal/persistence/sessions"
+	sessionstore "x-science/internal/persistence/sessions"
 )
 
 func runnerRequiresPublicScientificDownloadRecovery(entries []eventjournal.Entry) bool {

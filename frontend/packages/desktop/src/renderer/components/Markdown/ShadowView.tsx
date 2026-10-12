@@ -92,12 +92,12 @@ const createInitStyleText = (
     outline-offset: 2px;
     border-radius: 3px;
   }
-  .synon-artifact-link {
+  .x-science-artifact-link {
     color: var(--conversation-stream-accent, ${theme.Color.PrimaryColor});
     font-weight: 700;
   }
-  .synon-artifact-link:hover,
-  .synon-artifact-link:focus-visible {
+  .x-science-artifact-link:hover,
+  .x-science-artifact-link:focus-visible {
     color: var(--conversation-stream-accent, ${theme.Color.PrimaryColor});
   }
   .markdown-local-file-link {

@@ -5,7 +5,7 @@
  */
 
 import type { TChatConversation } from '@/common/config/storage';
-import { loadAvailableSkillsWithSynonBiomed } from '@/renderer/services/skills/skillsCatalog';
+import { loadAvailableSkillsWithXScience } from '@/renderer/services/skills/skillsCatalog';
 import { iconColors } from '@/renderer/styles/colors';
 import { Popover } from '@arco-design/web-react';
 import { Lightning } from '@icon-park/react';
@@ -30,7 +30,7 @@ const ConversationSkillsIndicator: React.FC<ConversationSkillsIndicatorProps> = 
   const names = (conversation?.extra as { skills?: string[] } | undefined)?.skills ?? [];
 
   const { data: skillIndex } = useSWR(names.length > 0 ? 'skills-index' : null, () =>
-    loadAvailableSkillsWithSynonBiomed()
+    loadAvailableSkillsWithXScience()
   );
 
   if (names.length === 0) return null;

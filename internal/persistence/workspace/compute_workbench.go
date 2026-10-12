@@ -21,7 +21,7 @@ var ErrManagedEndpointStartInProgress = errors.New("managed endpoint start is al
 var ErrManagedEndpointFailed = errors.New("managed endpoint is failed and must be stopped or re-registered before retry")
 var ErrManagedEndpointOwnerConflict = errors.New("managed endpoint belongs to another owner")
 
-const managedEndpointClaimHandlePrefix = "synon-claim-v1."
+const managedEndpointClaimHandlePrefix = "x-science-claim-v1."
 
 type ComputeGPUSettings struct {
 	Enabled  bool   `json:"enabled"`

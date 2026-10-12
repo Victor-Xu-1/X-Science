@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	"synon-go/internal/toolcontract"
+	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/toolcontract"
 )
 
 func TestKernelMCPLargeReferenceCommitEnforcesOperationAuthority(t *testing.T) {

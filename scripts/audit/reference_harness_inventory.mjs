@@ -5,7 +5,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs"
 import { basename, join, relative, resolve } from "node:path"
 import { pathToFileURL } from "node:url"
 
-const acornPath = process.env.SYNON_ACORN_MODULE ||
+const acornPath = process.env.X_SCIENCE_ACORN_MODULE ||
   resolve(import.meta.dirname, "../../frontend/node_modules/acorn/dist/acorn.mjs")
 const { parse } = await import(pathToFileURL(acornPath).href)
 

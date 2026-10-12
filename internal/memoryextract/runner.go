@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"synon-go/internal/memoryconfig"
-	"synon-go/internal/memorypolicy"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/memoryconfig"
+	"x-science/internal/memorypolicy"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 type Extractor interface {

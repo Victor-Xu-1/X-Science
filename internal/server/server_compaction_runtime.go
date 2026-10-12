@@ -11,13 +11,13 @@ import (
 
 	"time"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 
-	eventjournal "synon-go/internal/persistence/journal"
+	eventjournal "x-science/internal/persistence/journal"
 
-	sessionstore "synon-go/internal/persistence/sessions"
+	sessionstore "x-science/internal/persistence/sessions"
 
-	"synon-go/internal/providers"
+	"x-science/internal/providers"
 )
 
 func (s *Server) executeRuntimeTool(toolName string, input map[string]any) (any, error) {

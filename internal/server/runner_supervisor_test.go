@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	sessionstore "synon-go/internal/persistence/sessions"
+	sessionstore "x-science/internal/persistence/sessions"
 )
 
 func TestSessionRunnerHeartbeatIntervalRenewsBeforeShortLeaseBoundary(t *testing.T) {

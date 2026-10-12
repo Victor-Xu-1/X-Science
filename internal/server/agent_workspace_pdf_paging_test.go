@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 func TestAgentWorkspacePDFTextPagesReachTailWithoutChangingOriginal(t *testing.T) {
@@ -22,7 +22,7 @@ func TestAgentWorkspacePDFTextPagesReachTailWithoutChangingOriginal(t *testing.T
 // Opt-in read-only replay verifies the reader against an operator-selected
 // original. Test work uses an isolated copy, never the captured task's state.
 func TestAgentWorkspacePDFCapturedTextReplay(t *testing.T) {
-	path := os.Getenv("SYNON_TEST_PDF_SOURCE")
+	path := os.Getenv("X_SCIENCE_TEST_PDF_SOURCE")
 	if path == "" {
 		t.Skip("no captured PDF source selected")
 	}

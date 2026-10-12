@@ -7,10 +7,10 @@ import type {
   BuiltinAutoSkill,
   PendingSkill,
   SkillInfo,
-} from '@/renderer/pages/settings/SynonBiomedExpertsSettings/types';
+} from '@/renderer/pages/settings/XScienceExpertsSettings/types';
 import { ensureBackendMcpCatalog } from '@/renderer/hooks/mcp/catalog';
 import { getSkillImportErrorMessage } from '@/renderer/pages/settings/skillImportMessages';
-import { loadAvailableSkillsWithSynonBiomed } from '@/renderer/services/skills/skillsCatalog';
+import { loadAvailableSkillsWithXScience } from '@/renderer/services/skills/skillsCatalog';
 import { emitter } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -32,7 +32,7 @@ const isBuiltinAssistant = (assistant: Assistant | null | undefined): boolean =>
 const isGeneratedAssistant = (assistant: Assistant | null | undefined): boolean => assistant?.source === 'generated';
 
 const loadAvailableSkills = async (): Promise<SkillInfo[]> => {
-  return loadAvailableSkillsWithSynonBiomed<SkillInfo>();
+  return loadAvailableSkillsWithXScience<SkillInfo>();
 };
 
 const resolveLocalizedRecommendedPrompts = (

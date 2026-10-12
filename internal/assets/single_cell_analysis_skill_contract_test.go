@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/skills"
+	"x-science/internal/skills"
 )
 
 func TestSingleCellAnalysisIsTheDefaultLightweightRoute(t *testing.T) {
@@ -17,7 +17,7 @@ func TestSingleCellAnalysisIsTheDefaultLightweightRoute(t *testing.T) {
 		t.Fatal("locate repository root")
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
-	skillRoot := filepath.Join(repositoryRoot, "skills", "synonbiomed")
+	skillRoot := filepath.Join(repositoryRoot, "skills", "x-science")
 	catalog := skills.Load([]string{skillRoot}, skills.LoadOptions{MaxBodyBytes: 20_000})
 	if loadErrors := catalog.LoadErrors(); len(loadErrors) > 0 {
 		t.Fatalf("load bundled skills: %s: %s", loadErrors[0].Path, loadErrors[0].Err)

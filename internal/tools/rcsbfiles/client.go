@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/buildinfo"
-	"synon-go/internal/tools/securefetch"
+	"x-science/internal/buildinfo"
+	"x-science/internal/tools/securefetch"
 )
 
 const (

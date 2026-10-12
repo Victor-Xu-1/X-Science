@@ -40,12 +40,12 @@ TAIL_RING_BYTES = 256 * 1024
 CHUNK = 64 * 1024
 IDLE_TIMEOUT_S = 15 * 60
 # Paired with BYOC_STAGE_PREFIX in cli/src/providers/ByocTransport.ts mkStage().
-STAGE_PREFIX = "/tmp/synon-biomed-provider-stage-"
+STAGE_PREFIX = "/tmp/x-science-provider-stage-"
 # Remote workdir under the provider sandbox; wrapper.sh + harvest paths are
 # all relative to this. __sim/provider.py rewrites it for local-subprocess tests.
 WORK = "/work"
-SUBMISSION_CONTROL = "/tmp/synon-submission-control-v1"
-SUBMISSION_LOCK = "/tmp/synon-submission-control-v1.lock"
+SUBMISSION_CONTROL = "/tmp/x-science-submission-control-v1"
+SUBMISSION_LOCK = "/tmp/x-science-submission-control-v1.lock"
 # Compressed-bytes default if the host omits output_cap_bytes (it normally
 # doesn't). Intentionally 2× the host's 5 GiB decompressed cap.
 COMPRESSED_CAP_DEFAULT = 10 * 2**30
@@ -84,7 +84,7 @@ BASE_ERROR_KINDS = frozenset({
 # line-capped on both sides.
 
 try:
-    FD_CTRL = int(os.environ.get("SYNON_PROVIDER_AUTH_FD", "3"))
+    FD_CTRL = int(os.environ.get("X_SCIENCE_PROVIDER_AUTH_FD", "3"))
 except ValueError:
     FD_CTRL = -1
 if FD_CTRL < 3 or FD_CTRL > 1024:
@@ -152,10 +152,10 @@ class ByocProvider(Protocol):
     def create_sandbox(self, spec: dict[str, Any], install_id: str,
                        tags: dict[str, str] | None = None) -> str:
         """Provision a sandbox. ``tags`` are host-built identity tags
-        (synonbiomed-session/synonbiomed-job/…, already sanitized
+        (xscience-session/xscience-job/…, already sanitized
         to the provider's tag constraints); implementations that support
         tagging MUST apply them at create time and merge the
-        ``synonbiomed-install-id=install_id`` owner tag LAST so an
+        ``xscience-install-id=install_id`` owner tag LAST so an
         incoming entry can never override ownership."""
         ...
     def exec(self, sandbox_id: str, argv: list[str], *, stdin: Iterable[bytes] | None = None, env: dict[str, str] | None = None, timeout: int | None = None) -> ExecResult: ...
@@ -619,8 +619,8 @@ class ByocResident:
                     r = self._p.exec(
                         sid,
                         ["bash", "-c",
-                         "set -eu; archive=$(mktemp /tmp/synon-submission.XXXXXX.tar.gz); "
-                         "next=$(mktemp -d /tmp/synon-work.XXXXXX); "
+                         "set -eu; archive=$(mktemp /tmp/x-science-submission.XXXXXX.tar.gz); "
+                         "next=$(mktemp -d /tmp/x-science-work.XXXXXX); "
                          "trap 'rm -f \"$archive\"; rm -rf \"$next\"' EXIT; "
                          "cat >\"$archive\"; "
                          f"[ \"$(sha256sum \"$archive\" | cut -d' ' -f1)\" = {quoted_archive_sha256} ] || exit 77; "
@@ -665,7 +665,7 @@ class ByocResident:
             remaining_s = max(1, deadline_epoch - int(time.time()))
         wrapper_env = f"OPERON_JOB_TIMEOUT_S={job_timeout}"
         if req.get("output_protocol") == 2:
-            check = self._p.exec(sid, ["bash", "--noprofile", "--norc", "-p", f"{WORK}/_synon_harvest.sh", "check"])
+            check = self._p.exec(sid, ["bash", "--noprofile", "--norc", "-p", f"{WORK}/_x_science_harvest.sh", "check"])
             if self._drain_wait(check) != 0:
                 raise ByocError("invalid_request", "image lacks the native compute control/harvest commands; no workload was launched")
         wrapper_env += f" OPERON_INPUT_SHA256={archive_sha256}"

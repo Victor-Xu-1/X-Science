@@ -218,8 +218,8 @@ vi.mock('@/renderer/pages/conversation/Workspace/components/FileTypeIcon', () =>
   default: () => <span data-testid='file-type-icon' />,
 }));
 
-vi.mock('@/renderer/pages/conversation/Workspace/components/SynonBiomedArtifactLibrary', () => ({
-  default: () => <div data-testid='synon-biomed-artifact-library' />,
+vi.mock('@/renderer/pages/conversation/Workspace/components/XScienceArtifactLibrary', () => ({
+  default: () => <div data-testid='x-science-artifact-library' />,
 }));
 
 describe('ChatWorkspace preview selection', () => {
@@ -263,9 +263,9 @@ describe('ChatWorkspace preview selection', () => {
   });
 
   it('replaces the generic workspace tree with the v0.1.0 artifact library for X-Science workspaces', () => {
-    render(<ChatWorkspace conversation_id='conversation-1' workspace='synonbiomed://projects/project-a' />);
+    render(<ChatWorkspace conversation_id='conversation-1' workspace='x-science://projects/project-a' />);
 
-    expect(screen.getByTestId('synon-biomed-artifact-library')).toBeInTheDocument();
+    expect(screen.getByTestId('x-science-artifact-library')).toBeInTheDocument();
     expect(screen.queryByTestId('workspace-tree')).not.toBeInTheDocument();
     expect(screen.queryByTestId('workspace-toolbar')).not.toBeInTheDocument();
   });

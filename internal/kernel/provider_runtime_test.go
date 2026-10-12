@@ -189,12 +189,12 @@ except PermissionError:
 }
 
 func TestRealModalProviderEnvironmentLoadsInsideConfinedKernel(t *testing.T) {
-	if os.Getenv("SYNON_RUN_REAL_PROVIDER_RUNTIME") != "1" {
-		t.Skip("set SYNON_RUN_REAL_PROVIDER_RUNTIME=1 to provision and verify the real provider SDK runtime")
+	if os.Getenv("X_SCIENCE_RUN_REAL_PROVIDER_RUNTIME") != "1" {
+		t.Skip("set X_SCIENCE_RUN_REAL_PROVIDER_RUNTIME=1 to provision and verify the real provider SDK runtime")
 	}
 	root := repositoryRootForCondaRuntimeTest(t)
 	optional := filepath.Join(root, "assets", "optional")
-	skillRoot := filepath.Join(root, "skills", "synonbiomed", "remote-compute-modal")
+	skillRoot := filepath.Join(root, "skills", "xscience", "remote-compute-modal")
 	state := t.TempDir()
 	manager := NewManager(Config{
 		Python:     "/usr/bin/python3",
@@ -246,8 +246,8 @@ func TestRealModalProviderEnvironmentLoadsInsideConfinedKernel(t *testing.T) {
 }
 
 func TestRealInferenceProviderEnvironmentRoutesRequestsAndHTTPXThroughProxy(t *testing.T) {
-	if os.Getenv("SYNON_RUN_REAL_PROVIDER_RUNTIME") != "1" {
-		t.Skip("set SYNON_RUN_REAL_PROVIDER_RUNTIME=1 to provision and verify the real provider SDK runtime")
+	if os.Getenv("X_SCIENCE_RUN_REAL_PROVIDER_RUNTIME") != "1" {
+		t.Skip("set X_SCIENCE_RUN_REAL_PROVIDER_RUNTIME=1 to provision and verify the real provider SDK runtime")
 	}
 	root := repositoryRootForCondaRuntimeTest(t)
 	optional := filepath.Join(root, "assets", "optional")
@@ -290,7 +290,7 @@ func TestRealInferenceProviderEnvironmentRoutesRequestsAndHTTPXThroughProxy(t *t
 		EgressRules: []ProviderEgressRule{{
 			Host: "127.0.0.1", Port: endpoint.Listener.Addr().(*net.TCPAddr).Port, AllowPrivate: true,
 		}},
-		ExtraEnvironment: map[string]string{"SYNON_PROVIDER_PROXY_LOCAL_TARGET": "1"},
+		ExtraEnvironment: map[string]string{"X_SCIENCE_PROVIDER_PROXY_LOCAL_TARGET": "1"},
 	})
 	if err != nil {
 		t.Fatalf("start real inference kernel: %v", err)

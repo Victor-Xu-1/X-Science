@@ -8,7 +8,7 @@ foreach ($observationModule in @('Microsoft.PowerShell.Utility', 'Microsoft.Powe
     Microsoft.PowerShell.Core\Import-Module -Name $observationManifest -ErrorAction Stop
 }
 
-function Get-SynonObservation([string]$Source) {
+function Get-XScienceObservation([string]$Source) {
     $tokens = $null
     $errors = $null
     $tree = [System.Management.Automation.Language.Parser]::ParseInput($Source, [ref]$tokens, [ref]$errors)
@@ -50,7 +50,7 @@ function Get-SynonObservation([string]$Source) {
     return ,([string[]]($operations | Microsoft.PowerShell.Utility\Sort-Object))
 }
 
-function Assert-SynonObservationBindings([string[]]$Operations) {
+function Assert-XScienceObservationBindings([string[]]$Operations) {
     foreach ($operation in $Operations) {
         if ($operation -eq 'powershell.literal') { continue }
         $name = $null

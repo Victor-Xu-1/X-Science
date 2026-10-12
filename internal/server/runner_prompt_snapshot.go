@@ -8,9 +8,9 @@ import (
 	"sort"
 	"strings"
 
-	"synon-go/internal/agentruntime"
-	sessionstore "synon-go/internal/persistence/sessions"
-	"synon-go/internal/skills"
+	"x-science/internal/agentruntime"
+	sessionstore "x-science/internal/persistence/sessions"
+	"x-science/internal/skills"
 )
 
 type runnerPromptSkillIdentity struct {
@@ -48,7 +48,7 @@ func (s *Server) persistSessionRunnerPromptSnapshot(
 	}
 	sort.Slice(skillIdentities, func(i, j int) bool { return skillIdentities[i].Name < skillIdentities[j].Name })
 	payload := map[string]any{
-		"schema":                  "synon.frame_system_prompt.v1",
+		"schema":                  "x-science.frame_system_prompt.v1",
 		"agentName":               frame.AgentName,
 		"runnerAttempt":           sessionRunnerAttempt(run),
 		"taskIntentId":            sessionRunnerTaskIntentID(run),

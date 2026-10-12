@@ -126,7 +126,7 @@ export function fromBackendWorkspaceArtifactPage(
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('workspace_artifact_page_invalid');
   const page = raw as Partial<RawWorkspaceArtifactPage>;
   if (
-    page.contract !== 'synon.project-artifact-page.v1' ||
+    page.contract !== 'x-science.project-artifact-page.v1' ||
     !Array.isArray(page.items) ||
     typeof page.has_more !== 'boolean' ||
     !Number.isSafeInteger(page.total) ||

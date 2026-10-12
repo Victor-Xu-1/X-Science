@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
-	"synon-go/internal/kernel"
-	"synon-go/internal/toolprogress"
+	"x-science/internal/kernel"
+	"x-science/internal/toolprogress"
 	"testing"
 )
 

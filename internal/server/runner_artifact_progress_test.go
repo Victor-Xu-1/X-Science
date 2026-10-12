@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 func TestRunnerPendingEvidenceRepairRequiresRealFileMutation(t *testing.T) {

@@ -90,7 +90,7 @@ func TestKernelDetachedExecutionV44CreatesStrictFencedAuthority(t *testing.T) {
 		operation.RootFrameIncarnationID, operation.FrameID, operation.FrameIncarnationID,
 		"kernel-v44", 1, sessionSpecJSON, sessionSpecSHA256, 1,
 		"executor-v44", "machine-boot-v44", 101, 1001,
-		102, 1002, 102, "/run/user/1000/synon-biomed/backend-v44.sock", 1,
+		102, 1002, 102, "/run/user/1000/x-science/backend-v44.sock", 1,
 		"ready", 1, now, now,
 	); err != nil {
 		t.Fatal(err)

@@ -82,7 +82,7 @@ func (s *Server) enterWorktree(ctx context.Context, input map[string]any) (map[s
 	if err := validateWorktreeSlug(slug); err != nil {
 		return nil, err
 	}
-	branch := "synon/" + slug
+	branch := "xscience/" + slug
 	targetRoot := managedWorktreeRoot(s.fileRoot, repoRoot)
 	target := filepath.Join(targetRoot, filepath.Base(repoRoot), filepath.FromSlash(slug))
 	if err := ensurePathWithinRoot(targetRoot, target, "worktree path"); err != nil {
@@ -265,15 +265,15 @@ func resolveWorktreeRepoPath(root string, requestedPath string) (string, error) 
 func managedWorktreeRoot(fileRoot string, repoRoot string) string {
 	fileRootAbs, err := filepath.Abs(fileRoot)
 	if err != nil {
-		return filepath.Join(repoRoot, ".synon-worktrees")
+		return filepath.Join(repoRoot, ".x-science-worktrees")
 	}
 	if evaluatedRoot, err := filepath.EvalSymlinks(fileRootAbs); err == nil {
 		fileRootAbs = evaluatedRoot
 	}
 	if samePath(fileRootAbs, repoRoot) {
-		return filepath.Join(filepath.Dir(repoRoot), ".synon-worktrees")
+		return filepath.Join(filepath.Dir(repoRoot), ".x-science-worktrees")
 	}
-	return filepath.Join(fileRootAbs, ".synon-worktrees")
+	return filepath.Join(fileRootAbs, ".x-science-worktrees")
 }
 
 func samePath(left string, right string) bool {

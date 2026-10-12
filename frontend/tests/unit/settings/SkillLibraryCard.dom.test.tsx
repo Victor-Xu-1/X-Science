@@ -25,7 +25,7 @@ async function card() {
 describe('Independent catalog card actions', () => {
   it('switches display labels without changing the execution identity or actions', async () => {
     const skill = {
-      name: 'synon-runtime',
+      name: 'x-science-runtime',
       displayName: 'X-Science Runtime',
       name_i18n: { 'en-US': 'X-Science Runtime', 'zh-CN': 'X-Science 运行时' },
       description: 'Runtime tools',
@@ -48,10 +48,10 @@ describe('Independent catalog card actions', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: /X-Science Runtime/ }));
     expect(onOpen).toHaveBeenCalledWith(skill);
-    expect(screen.getByTestId('synon-biomed-skill-row-synon-runtime')).toBeInTheDocument();
+    expect(screen.getByTestId('x-science-skill-row-x-science-runtime')).toBeInTheDocument();
     await act(() => view.i18n.changeLanguage('zh-CN'));
     expect(screen.getByRole('button', { name: /X-Science 运行时/ })).toBeInTheDocument();
-    expect(screen.queryByText('synon-runtime')).not.toBeInTheDocument();
+    expect(screen.queryByText('x-science-runtime')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('switch', { name: /X-Science 运行时/ }));
     expect(onToggle).toHaveBeenCalledWith(skill, false);
   });

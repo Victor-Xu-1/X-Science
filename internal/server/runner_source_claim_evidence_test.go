@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/agentruntime"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	"synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/persistence/workspace"
 )
 
 func TestValidateRunnerSourceEvidenceDocumentRequiresAttestedClaimExcerpts(t *testing.T) {

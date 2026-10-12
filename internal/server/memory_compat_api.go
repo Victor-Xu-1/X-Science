@@ -14,8 +14,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"synon-go/internal/memorypolicy"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/memorypolicy"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func (s *Server) handleMemoryCompatibility(w http.ResponseWriter, r *http.Request) {

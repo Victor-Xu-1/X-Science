@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/memoryclassifier"
-	"synon-go/internal/memorytools"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/memoryclassifier"
+	"x-science/internal/memorytools"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 type extractionClassifierFunc func(context.Context, []string) ([]memorytools.Classification, error)
@@ -39,7 +39,7 @@ func TestWorkspaceApplyEmittedUsesExtractorScopesAndSuccessorChains(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	createExtractionMemory(t, store, workspace.CreateMemoryInput{ID: "mem_replace", UserID: "user", Body: "Use v4.0.2 at /opt/synon/config.json", Origin: "agent_tool", Evidence: "observed", SubjectProjectID: "current", SourceFrameID: "frame"})
+	createExtractionMemory(t, store, workspace.CreateMemoryInput{ID: "mem_replace", UserID: "user", Body: "Use v4.0.2 at /opt/xscience/config.json", Origin: "agent_tool", Evidence: "observed", SubjectProjectID: "current", SourceFrameID: "frame"})
 	createExtractionMemory(t, store, workspace.CreateMemoryInput{ID: "mem_remove", UserID: "user", Body: "obsolete", Origin: "extractor", Evidence: "inferred", SubjectProjectID: "current", SourceFrameID: "frame"})
 	createExtractionMemory(t, store, workspace.CreateMemoryInput{ID: "mem_user", UserID: "user", Body: "protected", Origin: "user", Evidence: "stated", SubjectProjectID: "current"})
 	createExtractionMemory(t, store, workspace.CreateMemoryInput{ID: "mem_other", UserID: "user", Body: "other", Origin: "extractor", Evidence: "observed", SubjectProjectID: "other"})
@@ -59,7 +59,7 @@ func TestWorkspaceApplyEmittedUsesExtractorScopesAndSuccessorChains(t *testing.T
 		if !strings.Contains(oldText, "v4.0.2") || updatedText != "Use v4.0.3" {
 			t.Fatalf("repair input old=%q updated=%q", oldText, updatedText)
 		}
-		return "Use v4.0.3 (was v4.0.2) at /opt/synon/config.json", nil
+		return "Use v4.0.3 (was v4.0.2) at /opt/xscience/config.json", nil
 	})
 	service := NewService(store, classifier, repairer)
 	ids := []string{"mem_append", "mem_successor"}
@@ -100,7 +100,7 @@ func TestWorkspaceApplyEmittedUsesExtractorScopesAndSuccessorChains(t *testing.T
 		t.Fatalf("appended memory = %#v, %v, %v", appended, found, err)
 	}
 	active, found, err := store.ResolveActiveMemoryOwned(ctx, "user", "mem_replace")
-	if err != nil || !found || active.ID != "mem_successor" || active.Body != "Use v4.0.3 (was v4.0.2) at /opt/synon/config.json" || active.Origin != "agent_tool" {
+	if err != nil || !found || active.ID != "mem_successor" || active.Body != "Use v4.0.3 (was v4.0.2) at /opt/xscience/config.json" || active.Origin != "agent_tool" {
 		t.Fatalf("replacement head = %#v, %v, %v", active, found, err)
 	}
 	if _, found, err := store.GetMemoryOwned(ctx, "user", "mem_remove"); err != nil || found {

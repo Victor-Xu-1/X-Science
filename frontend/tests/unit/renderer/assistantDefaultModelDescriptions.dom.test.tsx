@@ -7,7 +7,7 @@
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import DefaultsSection from '@/renderer/pages/settings/SynonBiomedExpertsSettings/editor/DefaultsSection';
+import DefaultsSection from '@/renderer/pages/settings/XScienceExpertsSettings/editor/DefaultsSection';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({

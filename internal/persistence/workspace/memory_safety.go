@@ -8,7 +8,7 @@ import (
 	"strings"
 	"unicode"
 
-	"synon-go/internal/memorypolicy"
+	"x-science/internal/memorypolicy"
 )
 
 var ErrMemoryPromptInjection = errors.New("Memory write rejected: content flagged as potential prompt injection")

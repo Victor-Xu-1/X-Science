@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/persistence/runtimekv"
+	"x-science/internal/persistence/runtimekv"
 )
 
 const skillInvocationRuntimeNamespace = "skill-invocations"

@@ -1,6 +1,6 @@
 package transcript
 
-const HistoryPayloadGenesisContractID = "synon.transcript.payload-genesis.v32"
+const HistoryPayloadGenesisContractID = "x-science.transcript.payload-genesis.v32"
 
 type payloadGenesisSchemaObject struct {
 	name, statement string

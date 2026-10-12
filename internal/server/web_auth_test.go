@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/persistence/workspace"
+	"x-science/internal/persistence/workspace"
 )
 
 func TestWebAuthProvidesLoopbackLocalModeAndRejectsRemoteBootstrap(t *testing.T) {
@@ -54,7 +54,7 @@ func TestWebAuthLoopbackLocalModeIgnoresStaleSessionCookie(t *testing.T) {
 }
 
 func TestWebAuthPasswordSessionInjectsIdentity(t *testing.T) {
-	app := New(Options{FileRoot: t.TempDir(), SynonLinkAuth: SynonLinkAuthOptions{
+	app := New(Options{FileRoot: t.TempDir(), XScienceLinkAuth: XScienceLinkAuthOptions{
 		Username: "operator", Password: "test-secret-password", UserID: "user-1", TTL: time.Hour,
 	}})
 	login := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(`{"username":"operator","password":"test-secret-password","remember":true}`))
@@ -97,12 +97,12 @@ func TestWebAuthPasswordSessionInjectsIdentity(t *testing.T) {
 func TestWebAuthMigratesLegacySignedBrowserSessionToOpaqueStore(t *testing.T) {
 	app := New(Options{
 		FileRoot: t.TempDir(),
-		SynonLinkAuth: SynonLinkAuthOptions{
+		XScienceLinkAuth: XScienceLinkAuthOptions{
 			Username: "operator", Password: "test-secret-password", UserID: "user-1", TTL: time.Hour,
 		},
 	})
-	legacyToken, _, err := app.synonLinkAuth.LoginForScope(
-		"operator", "test-secret-password", synonSessionScopeWeb,
+	legacyToken, _, err := app.xscienceLinkAuth.LoginForScope(
+		"operator", "test-secret-password", xscienceSessionScopeWeb,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -144,11 +144,11 @@ func TestWebLogoutKeepsLegacyCompatibilityCookieRevocation(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = workspaceStore.Close() })
-	app := New(Options{FileRoot: root, Workspace: workspaceStore, SynonLinkAuth: SynonLinkAuthOptions{
+	app := New(Options{FileRoot: root, Workspace: workspaceStore, XScienceLinkAuth: XScienceLinkAuthOptions{
 		Username: "operator", Password: "test-secret-password", UserID: "user-1",
 	}})
-	legacyToken, _, err := app.synonLinkAuth.LoginForScope(
-		"operator", "test-secret-password", synonSessionScopeWeb,
+	legacyToken, _, err := app.xscienceLinkAuth.LoginForScope(
+		"operator", "test-secret-password", xscienceSessionScopeWeb,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -161,26 +161,26 @@ func TestWebLogoutKeepsLegacyCompatibilityCookieRevocation(t *testing.T) {
 	if response.Code != http.StatusOK {
 		t.Fatalf("legacy logout status=%d body=%s", response.Code, response.Body.String())
 	}
-	if revoked, err := app.synonLinkSessionRevoked(legacyToken); err != nil || !revoked {
+	if revoked, err := app.xscienceLinkSessionRevoked(legacyToken); err != nil || !revoked {
 		t.Fatalf("legacy session revoked=%v err=%v", revoked, err)
 	}
 }
 
 func TestP2PasswordModeDefaultsToDenyAndRejectsSpoofedIdentity(t *testing.T) {
-	app := New(Options{SynonLinkAuth: SynonLinkAuthOptions{
+	app := New(Options{XScienceLinkAuth: XScienceLinkAuthOptions{
 		Username: "operator", Password: "test-secret-password", UserID: "user-1",
 	}})
 	for _, path := range []string{"/api/me", "/api/tools", "/api/events/stream", "/ws/session-1", "/api/mcp/servers", "/api/mcp/test-connection"} {
 		request := newLoopbackTestRequest(http.MethodGet, path, nil)
 		request.RemoteAddr = "127.0.0.1:12345"
-		request.Header.Set("X-Synon-User-Id", "attacker")
+		request.Header.Set("X-Science-User-Id", "attacker")
 		response := httptest.NewRecorder()
 		app.Handler().ServeHTTP(response, request)
 		if response.Code != http.StatusUnauthorized {
 			t.Fatalf("path=%s status=%d body=%s", path, response.Code, response.Body.String())
 		}
-		if response.Header().Get("X-Synon-Auth-Required") != "session" {
-			t.Fatalf("path=%s auth-required=%q", path, response.Header().Get("X-Synon-Auth-Required"))
+		if response.Header().Get("X-Science-Auth-Required") != "session" {
+			t.Fatalf("path=%s auth-required=%q", path, response.Header().Get("X-Science-Auth-Required"))
 		}
 		if response.Header().Get(webErrorCodeHeader) != webAuthRequiredCode ||
 			!strings.Contains(response.Body.String(), `"code":"AUTH_SESSION_REQUIRED"`) {
@@ -212,8 +212,8 @@ func TestP2PasswordModeDefaultsToDenyAndRejectsSpoofedIdentity(t *testing.T) {
 	}
 }
 
-func TestP2WebAndSynonLinkSessionsHaveSeparateScopes(t *testing.T) {
-	app := New(Options{SynonLinkAuth: SynonLinkAuthOptions{
+func TestP2WebAndXScienceLinkSessionsHaveSeparateScopes(t *testing.T) {
+	app := New(Options{XScienceLinkAuth: XScienceLinkAuthOptions{
 		Username: "operator", Password: "test-secret-password", UserID: "user-1",
 	}})
 	webLogin := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(`{"username":"operator","password":"test-secret-password"}`))
@@ -224,7 +224,7 @@ func TestP2WebAndSynonLinkSessionsHaveSeparateScopes(t *testing.T) {
 		t.Fatalf("web login status=%d body=%s", webLoginResponse.Code, webLoginResponse.Body.String())
 	}
 	webCookie := webLoginResponse.Result().Cookies()[0]
-	linkWS := httptest.NewRequest(http.MethodGet, "/synon-link/ws?appSession="+webCookie.Value, nil)
+	linkWS := httptest.NewRequest(http.MethodGet, "/x-science-link/ws?appSession="+webCookie.Value, nil)
 	linkWS.RemoteAddr = "127.0.0.1:12345"
 	linkWSResponse := httptest.NewRecorder()
 	app.Handler().ServeHTTP(linkWSResponse, linkWS)
@@ -256,7 +256,7 @@ func TestP2WebAndSynonLinkSessionsHaveSeparateScopes(t *testing.T) {
 }
 
 func TestP2LoginRateLimitIsSharedAndBoundedAcrossLoginEndpoints(t *testing.T) {
-	app := New(Options{SynonLinkAuth: SynonLinkAuthOptions{
+	app := New(Options{XScienceLinkAuth: XScienceLinkAuthOptions{
 		Username: "operator", Password: "test-secret-password", UserID: "user-1",
 	}})
 	now := time.Date(2026, 7, 15, 0, 0, 0, 0, time.UTC)
@@ -292,7 +292,7 @@ func TestP2LoginRateLimitIsSharedAndBoundedAcrossLoginEndpoints(t *testing.T) {
 func TestP2CookieAuthenticatedMutationsRequireCSRF(t *testing.T) {
 	app := New(Options{
 		FileRoot: t.TempDir(),
-		SynonLinkAuth: SynonLinkAuthOptions{
+		XScienceLinkAuth: XScienceLinkAuthOptions{
 			Username: "operator", Password: "test-secret-password", UserID: "user-1",
 		},
 	})
@@ -353,7 +353,7 @@ func TestP2CookieAuthenticatedMutationsRequireCSRF(t *testing.T) {
 		t.Fatalf("CSRF refresh status=%d cookies=%#v", csrfRefreshResponse.Code, csrfRefreshResponse.Result().Cookies())
 	}
 
-	bearer, _, err := app.synonLinkAuth.LoginForScope("operator", "test-secret-password", synonSessionScopeWeb)
+	bearer, _, err := app.xscienceLinkAuth.LoginForScope("operator", "test-secret-password", xscienceSessionScopeWeb)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -380,7 +380,7 @@ func TestBrowserOriginPolicyRejectsCrossOriginMutation(t *testing.T) {
 	}
 }
 
-func TestBrowserOriginPolicyKeepsSynonLinkExtensionLoginCompatible(t *testing.T) {
+func TestBrowserOriginPolicyKeepsXScienceLinkExtensionLoginCompatible(t *testing.T) {
 	app := New(Options{})
 	request := httptest.NewRequest(http.MethodPost, "/api/auth/login", strings.NewReader(`{"username":"operator","password":"secret"}`))
 	request.RemoteAddr = "127.0.0.1:12345"
@@ -389,7 +389,7 @@ func TestBrowserOriginPolicyKeepsSynonLinkExtensionLoginCompatible(t *testing.T)
 	response := httptest.NewRecorder()
 	app.Handler().ServeHTTP(response, request)
 	if response.Code == http.StatusForbidden {
-		t.Fatalf("Synon Link login was rejected by Web origin policy: body=%s", response.Body.String())
+		t.Fatalf("XScience Link login was rejected by Web origin policy: body=%s", response.Body.String())
 	}
 	if response.Code != http.StatusServiceUnavailable {
 		t.Fatalf("login status=%d body=%s", response.Code, response.Body.String())

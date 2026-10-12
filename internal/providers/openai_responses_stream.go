@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 type openAIResponsesStreamEvent struct {

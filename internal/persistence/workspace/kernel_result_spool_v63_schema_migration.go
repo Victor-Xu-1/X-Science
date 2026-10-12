@@ -8,7 +8,7 @@ import (
 const (
 	kernelResultSpoolV63CallbackID        = "kernel-result-spool-v63-noop"
 	kernelResultSpoolV63PreflightIdentity = "kernel-result-receipt-v44-required"
-	kernelResultSpoolV63RuleSpec          = "synon.workspace.kernel-result-spool.v63"
+	kernelResultSpoolV63RuleSpec          = "x-science.workspace.kernel-result-spool.v63"
 )
 
 var kernelResultSpoolV63Migration = versionedSchemaMigration{

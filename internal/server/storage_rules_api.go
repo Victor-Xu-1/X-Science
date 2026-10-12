@@ -9,7 +9,7 @@ import (
 	"strings"
 	"unicode"
 
-	"synon-go/internal/runtimecontrol"
+	"x-science/internal/runtimecontrol"
 )
 
 const storageRulesSettingKey = "storage.rules"

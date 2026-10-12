@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { resolveAvatarImageSrc } from '@/renderer/pages/settings/SynonBiomedExpertsSettings/assistantUtils';
+import { resolveAvatarImageSrc } from '@/renderer/pages/settings/XScienceExpertsSettings/assistantUtils';
 
 describe('assistantAvatarUtils', () => {
   describe('resolveAvatarImageSrc', () => {

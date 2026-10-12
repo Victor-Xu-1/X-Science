@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/networktls"
-	"synon-go/internal/tools/mcpstdio"
+	"x-science/internal/networktls"
+	"x-science/internal/tools/mcpstdio"
 )
 
 func TestKetcherBundledConnectorHasNativeExecutableTransport(t *testing.T) {
@@ -21,7 +21,7 @@ func TestKetcherBundledConnectorHasNativeExecutableTransport(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("SYNON_BUNDLED_CONNECTOR_EXECUTABLE", executable)
+	t.Setenv("X_SCIENCE_BUNDLED_CONNECTOR_EXECUTABLE", executable)
 	connectors := defaultBundledConnectors()
 	connector, found := connectors["bundled:ketcher-chemistry"]
 	if !found {
@@ -39,8 +39,8 @@ func TestKetcherBundledConnectorHasNativeExecutableTransport(t *testing.T) {
 }
 
 func TestBundledPythonConnectorsServeThroughRealMCPHost(t *testing.T) {
-	if os.Getenv("SYNON_RUN_REAL_MCP_FLEET") != "1" {
-		t.Skip("set SYNON_RUN_REAL_MCP_FLEET=1 for the real 23-server protocol acceptance")
+	if os.Getenv("X_SCIENCE_RUN_REAL_MCP_FLEET") != "1" {
+		t.Skip("set X_SCIENCE_RUN_REAL_MCP_FLEET=1 for the real 23-server protocol acceptance")
 	}
 	connectors := defaultBundledConnectors()
 	checked := 0
@@ -73,8 +73,8 @@ func TestBundledPythonConnectorsServeThroughRealMCPHost(t *testing.T) {
 }
 
 func TestBundledConnectorsCompleteRepresentativeRealTasks(t *testing.T) {
-	if os.Getenv("SYNON_RUN_REAL_MCP_TASKS") != "1" {
-		t.Skip("set SYNON_RUN_REAL_MCP_TASKS=1 for live upstream task acceptance")
+	if os.Getenv("X_SCIENCE_RUN_REAL_MCP_TASKS") != "1" {
+		t.Skip("set X_SCIENCE_RUN_REAL_MCP_TASKS=1 for live upstream task acceptance")
 	}
 	type acceptanceCase struct {
 		connector string
@@ -134,8 +134,8 @@ func TestBundledConnectorsCompleteRepresentativeRealTasks(t *testing.T) {
 }
 
 func TestOfficialOpenTargetsHostedMCPCompletesRealEGFRResolution(t *testing.T) {
-	if os.Getenv("SYNON_RUN_REAL_REMOTE_MCP") != "1" {
-		t.Skip("set SYNON_RUN_REAL_REMOTE_MCP=1 for official hosted MCP acceptance")
+	if os.Getenv("X_SCIENCE_RUN_REAL_REMOTE_MCP") != "1" {
+		t.Skip("set X_SCIENCE_RUN_REAL_REMOTE_MCP=1 for official hosted MCP acceptance")
 	}
 	connector, found := defaultBundledConnectors()["bundled:open-targets-official"]
 	if !found {
@@ -171,8 +171,8 @@ func TestOfficialOpenTargetsHostedMCPCompletesRealEGFRResolution(t *testing.T) {
 }
 
 func TestOfficialIDCRemoteMCPExposesRealReadOnlyCatalog(t *testing.T) {
-	if os.Getenv("SYNON_RUN_REAL_REMOTE_MCP") != "1" {
-		t.Skip("set SYNON_RUN_REAL_REMOTE_MCP=1 for official IDC remote MCP acceptance")
+	if os.Getenv("X_SCIENCE_RUN_REAL_REMOTE_MCP") != "1" {
+		t.Skip("set X_SCIENCE_RUN_REAL_REMOTE_MCP=1 for official IDC remote MCP acceptance")
 	}
 	connector, found := defaultBundledConnectors()["bundled:idc-rest"]
 	if !found {
@@ -195,7 +195,7 @@ func hostedScientificMCPContext(t *testing.T, endpoint string) context.Context {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 	t.Cleanup(cancel)
-	base, err := networktls.HTTPClient(http.DefaultClient, os.Getenv("SYNON_NETWORK_CA_BUNDLE"), os.Getenv("SYNON_NETWORK_PROXY"))
+	base, err := networktls.HTTPClient(http.DefaultClient, os.Getenv("X_SCIENCE_NETWORK_CA_BUNDLE"), os.Getenv("X_SCIENCE_NETWORK_PROXY"))
 	if err != nil {
 		t.Fatalf("configure live MCP TLS/proxy: %v", err)
 	}
@@ -207,8 +207,8 @@ func hostedScientificMCPContext(t *testing.T, endpoint string) context.Context {
 }
 
 func TestHostedScientificMCPsExposeRealOAuthAuthorizationBoundary(t *testing.T) {
-	if os.Getenv("SYNON_RUN_REAL_REMOTE_MCP") != "1" {
-		t.Skip("set SYNON_RUN_REAL_REMOTE_MCP=1 for hosted OAuth discovery and registration acceptance")
+	if os.Getenv("X_SCIENCE_RUN_REAL_REMOTE_MCP") != "1" {
+		t.Skip("set X_SCIENCE_RUN_REAL_REMOTE_MCP=1 for hosted OAuth discovery and registration acceptance")
 	}
 	connectors := defaultBundledConnectors()
 	cases := []struct {
@@ -241,7 +241,7 @@ func TestHostedScientificMCPsExposeRealOAuthAuthorizationBoundary(t *testing.T) 
 			}
 			query := authorizationURL.Query()
 			if started.Status != "auth_url" || authorizationURL.Hostname() != acceptance.authorizationHost ||
-				query.Get("client_id") == "" || (acceptance.requiresDynamicClient && query.Get("client_id") == "synon-go") ||
+				query.Get("client_id") == "" || (acceptance.requiresDynamicClient && query.Get("client_id") == "x-science") ||
 				query.Get("code_challenge_method") != "S256" || query.Get("resource") != connector.Config.URL {
 				t.Fatalf("hosted OAuth result=%#v URL=%s", started, authorizationURL.Redacted())
 			}
@@ -250,8 +250,8 @@ func TestHostedScientificMCPsExposeRealOAuthAuthorizationBoundary(t *testing.T) 
 }
 
 func TestOfficialOmPublicHealthEndpoint(t *testing.T) {
-	if os.Getenv("SYNON_RUN_REAL_REMOTE_MCP") != "1" {
-		t.Skip("set SYNON_RUN_REAL_REMOTE_MCP=1 for the official Om health check")
+	if os.Getenv("X_SCIENCE_RUN_REAL_REMOTE_MCP") != "1" {
+		t.Skip("set X_SCIENCE_RUN_REAL_REMOTE_MCP=1 for the official Om health check")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
@@ -277,12 +277,12 @@ func TestOfficialOmPublicHealthEndpoint(t *testing.T) {
 }
 
 func TestOfficialInductiveMCPProtectedEndpoint(t *testing.T) {
-	if os.Getenv("SYNON_RUN_REAL_REMOTE_MCP") != "1" {
-		t.Skip("set SYNON_RUN_REAL_REMOTE_MCP=1 for the official Inductive MCP boundary check")
+	if os.Getenv("X_SCIENCE_RUN_REAL_REMOTE_MCP") != "1" {
+		t.Skip("set X_SCIENCE_RUN_REAL_REMOTE_MCP=1 for the official Inductive MCP boundary check")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://api.inductive.bio/mcp", strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"synon-acceptance","version":"0.1"}}}`))
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://api.inductive.bio/mcp", strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"x-science-acceptance","version":"0.1"}}}`))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -306,8 +306,8 @@ func TestOfficialInductiveMCPProtectedEndpoint(t *testing.T) {
 }
 
 func TestHostedScientificMCPsRejectMissingOrInvalidCredentialsWithoutLeaking(t *testing.T) {
-	if os.Getenv("SYNON_RUN_REAL_REMOTE_MCP") != "1" {
-		t.Skip("set SYNON_RUN_REAL_REMOTE_MCP=1 for hosted authentication-boundary acceptance")
+	if os.Getenv("X_SCIENCE_RUN_REAL_REMOTE_MCP") != "1" {
+		t.Skip("set X_SCIENCE_RUN_REAL_REMOTE_MCP=1 for hosted authentication-boundary acceptance")
 	}
 	connectors := defaultBundledConnectors()
 	for _, id := range []string{
@@ -320,7 +320,7 @@ func TestHostedScientificMCPsRejectMissingOrInvalidCredentialsWithoutLeaking(t *
 			if !found {
 				t.Fatalf("connector %q is missing", id)
 			}
-			const sentinel = "synon-invalid-acceptance-key-must-not-be-echoed"
+			const sentinel = "x-science-invalid-acceptance-key-must-not-be-echoed"
 			config := connector.Config
 			if connector.APIKeyHeader != "" {
 				config.Headers = map[string]string{
@@ -350,7 +350,7 @@ func TestHostedScientificMCPsRejectMissingOrInvalidCredentialsWithoutLeaking(t *
 }
 
 func TestBundledKetcherConnectorSkippedForGoTestBinaryWithoutOverride(t *testing.T) {
-	t.Setenv("SYNON_BUNDLED_CONNECTOR_EXECUTABLE", "")
+	t.Setenv("X_SCIENCE_BUNDLED_CONNECTOR_EXECUTABLE", "")
 	connectors := defaultBundledConnectors()
 	if _, found := connectors["bundled:ketcher-chemistry"]; found {
 		t.Fatal("go test binary must not be spawned as the native Ketcher connector subprocess")
@@ -371,32 +371,32 @@ func TestBundledPythonConnectorsBindToolCatalogsToAssetIdentity(t *testing.T) {
 }
 
 func TestBundledConnectorRosterMatchesVendoredMethodAuthority(t *testing.T) {
-	t.Setenv("SYNON_BUNDLED_CONNECTOR_EXECUTABLE", "mcp-ketcher")
+	t.Setenv("X_SCIENCE_BUNDLED_CONNECTOR_EXECUTABLE", "mcp-ketcher")
 	researchRoot := t.TempDir()
-	t.Setenv("SYNON_RESEARCH_ROOT", researchRoot)
-	t.Setenv("SYNON_RESEARCH_EXPECTED_VERSION", "1.0.3")
+	t.Setenv("X_SCIENCE_RESEARCH_ROOT", researchRoot)
+	t.Setenv("X_SCIENCE_RESEARCH_EXPECTED_VERSION", "1.0.3")
 	connectors := defaultBundledConnectors()
 	if len(connectors) != 33 {
 		t.Fatalf("bundled connector count=%d, want 33", len(connectors))
 	}
-	synonResearch, found := connectors["bundled:synon-research"]
-	if !found || synonResearch.Name != "synon-research" || synonResearch.Package != "mcp_synon_research" {
-		t.Fatalf("Synon-research connector = %#v", synonResearch)
+	xscienceResearch, found := connectors["bundled:x-science-research"]
+	if !found || xscienceResearch.Name != "x-science-research" || xscienceResearch.Package != "mcp_x_science_research" {
+		t.Fatalf("X-Science-research connector = %#v", xscienceResearch)
 	}
-	if synonResearch.DisplayName != "X-Science Research" || strings.Contains(synonResearch.Description, "Synon-research") {
-		t.Fatalf("current research connector presentation = %#v", synonResearch)
+	if xscienceResearch.DisplayName != "X-Science Research" || strings.Contains(xscienceResearch.Description, "X-Science-research") {
+		t.Fatalf("current research connector presentation = %#v", xscienceResearch)
 	}
-	if synonResearch.Config.Type != "stdio" || len(synonResearch.Config.Args) != 2 || synonResearch.Config.Args[1] != "mcp_synon_research" {
-		t.Fatalf("Synon-research stdio config = %#v", synonResearch.Config)
+	if xscienceResearch.Config.Type != "stdio" || len(xscienceResearch.Config.Args) != 2 || xscienceResearch.Config.Args[1] != "mcp_x_science_research" {
+		t.Fatalf("X-Science-research stdio config = %#v", xscienceResearch.Config)
 	}
-	if synonResearch.Config.Env["SYNON_RESEARCH_ROOT"] != researchRoot ||
-		synonResearch.Config.Env["SYNON_RESEARCH_EXPECTED_VERSION"] != "1.0.3" || len(synonResearch.Config.Env) != 2 {
-		t.Fatalf("Synon-research explicit runtime environment = %#v", synonResearch.Config.Env)
+	if xscienceResearch.Config.Env["X_SCIENCE_RESEARCH_ROOT"] != researchRoot ||
+		xscienceResearch.Config.Env["X_SCIENCE_RESEARCH_EXPECTED_VERSION"] != "1.0.3" || len(xscienceResearch.Config.Env) != 2 {
+		t.Fatalf("X-Science-research explicit runtime environment = %#v", xscienceResearch.Config.Env)
 	}
 	if other := connectors["bundled:drug-regulatory"]; len(other.Config.Env) != 0 {
 		t.Fatalf("connector-local runtime environment leaked into another MCP: %#v", other.Config.Env)
 	}
-	for _, name := range []string{"SYNON_API_KEY", "SYNON_ACCESS_TOKEN", "lowercase", "SYNON_BAD-NAME"} {
+	for _, name := range []string{"X_SCIENCE_API_KEY", "X_SCIENCE_ACCESS_TOKEN", "lowercase", "X_SCIENCE_BAD-NAME"} {
 		if validBundledRuntimeEnvironmentName(name) {
 			t.Fatalf("sensitive or malformed bundled runtime environment %q was accepted", name)
 		}

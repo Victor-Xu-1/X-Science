@@ -14,7 +14,7 @@ def load_documented_input(path: Path, source: Path, group: str, values: dict[str
     expected = {"schema", "evidence_group", "input_sha256", "basis", "method", "sources", "limitations", "values"}
     if not isinstance(record, dict) or set(record) != expected:
         raise ValueError("documented input must contain the documented provenance fields")
-    if record["schema"] != "synon.documented-input.v1" or record["evidence_group"] != group:
+    if record["schema"] != "x-science.documented-input.v1" or record["evidence_group"] != group:
         raise ValueError("documented input schema or group mismatch")
     if record["basis"] not in {"literature-guided", "structure-derived", "user-supplied", "exploratory"}:
         raise ValueError("unknown documented input basis")

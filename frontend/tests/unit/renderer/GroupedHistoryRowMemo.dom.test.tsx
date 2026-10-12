@@ -70,13 +70,13 @@ const conversation = (id: string, name: string): TChatConversation => ({
   created_at: 1,
   modified_at: 1,
   status: 'running',
-  extra: { backend: 'synonbiomed', project_id: 'project-a', frame_status: 'running' },
+  extra: { backend: 'xscience', project_id: 'project-a', frame_status: 'running' },
 });
 
 describe('GroupedHistory production row memoization', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    localStorage.removeItem('synonbiomed.active-project-id');
+    localStorage.removeItem('xscience.active-project-id');
     state.conversations = [conversation('first', 'First task'), conversation('neighbor', 'Neighbor task')];
     state.pinned = [];
   });

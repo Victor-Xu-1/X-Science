@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	"synon-go/internal/software"
+	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/software"
 )
 
 func TestKernelLocalOperationOriginCommitsAndRollsBackWithCheckpoint(t *testing.T) {

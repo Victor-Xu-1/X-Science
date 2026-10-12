@@ -19,13 +19,13 @@ trap cleanup EXIT INT TERM
 
 SOURCE_ROOT="$TMP_DIR/source checkout with spaces"
 mkdir -p "$SOURCE_ROOT/scripts/dev" "$TMP_DIR/home/.local/bin" "$TMP_DIR/conflict/.local/bin" "$TMP_DIR/conflict-link/.local/bin"
-cp "$SCRIPT_DIR/synon" "$SOURCE_ROOT/scripts/dev/synon"
+cp "$SCRIPT_DIR/x-science" "$SOURCE_ROOT/scripts/dev/x-science"
 cp "$SCRIPT_DIR/install-source-cli.sh" "$SOURCE_ROOT/scripts/dev/install-source-cli.sh"
-chmod 0755 "$SOURCE_ROOT/scripts/dev/synon" "$SOURCE_ROOT/scripts/dev/install-source-cli.sh"
+chmod 0755 "$SOURCE_ROOT/scripts/dev/x-science" "$SOURCE_ROOT/scripts/dev/install-source-cli.sh"
 cat >"$SOURCE_ROOT/scripts/dev/source-quickstart.sh" <<'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
-state="${SYNON_SOURCE_STATE_DIR:-$HOME/.local/state/synon-biomed-source-quickstart}"
+state="${X_SCIENCE_SOURCE_STATE_DIR:-$HOME/.local/state/x-science-source-quickstart}"
 for ((index = 1; index <= $#; index++)); do
   argument=${!index}
   case "$argument" in
@@ -48,8 +48,8 @@ HOME="$TMP_DIR/home" PATH="/usr/bin:/bin" \
 grep -Fq '[X-Science install] installed:' "$TMP_DIR/install.log"
 grep -Fq "export PATH=\"$TMP_DIR/home/.local/bin:\$PATH\"" "$TMP_DIR/install.log"
 [[ ! -e "$TMP_DIR/home/.bashrc" ]]
-[[ "$(realpath -e "$TMP_DIR/home/.local/bin/synon")" == "$SOURCE_ROOT/scripts/dev/synon" ]]
-[[ "$(realpath -e "$TMP_DIR/home/.local/bin/x-science")" == "$SOURCE_ROOT/scripts/dev/synon" ]]
+[[ "$(realpath -e "$TMP_DIR/home/.local/bin/x-science")" == "$SOURCE_ROOT/scripts/dev/x-science" ]]
+[[ $(find "$TMP_DIR/home/.local/bin" -mindepth 1 -maxdepth 1 | wc -l) == 1 ]]
 grep -Fq 'next command: x-science start' "$TMP_DIR/install.log"
 
 HOME="$TMP_DIR/home" PATH="/usr/bin:/bin" \
@@ -57,16 +57,16 @@ HOME="$TMP_DIR/home" PATH="/usr/bin:/bin" \
 grep -Fq '[X-Science install] already installed:' "$TMP_DIR/install-again.log"
 
 HOME="$TMP_DIR/conflict" PATH="/usr/bin:/bin" \
-  printf 'existing\n' >"$TMP_DIR/conflict/.local/bin/synon"
+  printf 'existing\n' >"$TMP_DIR/conflict/.local/bin/x-science"
 if HOME="$TMP_DIR/conflict" PATH="/usr/bin:/bin" \
   bash "$SOURCE_ROOT/scripts/dev/install-source-cli.sh" >"$TMP_DIR/conflict.log" 2>&1; then
   echo 'installer replaced an existing command' >&2
   exit 1
 fi
 grep -Fq 'refusing to replace a command not owned by this X-Science checkout' "$TMP_DIR/conflict.log"
-[[ ! -e "$TMP_DIR/conflict/.local/bin/x-science" ]]
+[[ "$(cat "$TMP_DIR/conflict/.local/bin/x-science")" == existing ]]
 
-ln -s /bin/sh "$TMP_DIR/conflict-link/.local/bin/synon"
+ln -s /bin/sh "$TMP_DIR/conflict-link/.local/bin/x-science"
 if HOME="$TMP_DIR/conflict-link" PATH="/usr/bin:/bin" \
   bash "$SOURCE_ROOT/scripts/dev/install-source-cli.sh" >"$TMP_DIR/conflict-link.log" 2>&1; then
   echo 'installer replaced an existing symlink' >&2
@@ -76,7 +76,7 @@ grep -Fq 'refusing to replace a command not owned by this X-Science checkout' "$
 
 STATE_DIR="$TMP_DIR/state"
 mkdir -p "$STATE_DIR"
-HOME="$TMP_DIR/home" SYNON_SOURCE_STATE_DIR="$STATE_DIR" \
+HOME="$TMP_DIR/home" X_SCIENCE_SOURCE_STATE_DIR="$STATE_DIR" \
   "$TMP_DIR/home/.local/bin/x-science" start --timeout-seconds 4 >"$TMP_DIR/start.log" 2>&1 &
 START_PID=$!
 for _ in $(seq 1 100); do
@@ -84,32 +84,32 @@ for _ in $(seq 1 100); do
   sleep .02
 done
 grep -Fq "start-args=--state-dir $STATE_DIR --timeout-seconds 4" "$STATE_DIR/start-args"
-status=$(HOME="$TMP_DIR/home" SYNON_SOURCE_STATE_DIR="$STATE_DIR" \
-  "$TMP_DIR/home/.local/bin/synon" status)
+status=$(HOME="$TMP_DIR/home" X_SCIENCE_SOURCE_STATE_DIR="$STATE_DIR" \
+  "$TMP_DIR/home/.local/bin/x-science" status)
 [[ "$status" == RUNNING* ]]
-HOME="$TMP_DIR/home" SYNON_SOURCE_STATE_DIR="$STATE_DIR" \
-  "$TMP_DIR/home/.local/bin/synon" stop >"$TMP_DIR/stop.log"
+HOME="$TMP_DIR/home" X_SCIENCE_SOURCE_STATE_DIR="$STATE_DIR" \
+  "$TMP_DIR/home/.local/bin/x-science" stop >"$TMP_DIR/stop.log"
 wait "$START_PID"
 START_PID=''
 grep -Fq '[X-Science] source hosts stopped' "$TMP_DIR/stop.log"
-status=$(HOME="$TMP_DIR/home" SYNON_SOURCE_STATE_DIR="$STATE_DIR" \
-  "$TMP_DIR/home/.local/bin/synon" status)
+status=$(HOME="$TMP_DIR/home" X_SCIENCE_SOURCE_STATE_DIR="$STATE_DIR" \
+  "$TMP_DIR/home/.local/bin/x-science" status)
 [[ "$status" == STOPPED* ]]
 
 STATE_EQ="$TMP_DIR/state with spaces"
-HOME="$TMP_DIR/home" SYNON_SOURCE_STATE_DIR="$STATE_EQ" \
-  "$TMP_DIR/home/.local/bin/synon" start --state-dir="$STATE_EQ" --timeout-seconds 4 >"$TMP_DIR/start-equals.log" 2>&1 &
+HOME="$TMP_DIR/home" X_SCIENCE_SOURCE_STATE_DIR="$STATE_EQ" \
+  "$TMP_DIR/home/.local/bin/x-science" start --state-dir="$STATE_EQ" --timeout-seconds 4 >"$TMP_DIR/start-equals.log" 2>&1 &
 START_PID=$!
 for _ in $(seq 1 100); do
   [[ -f "$STATE_EQ/quickstart.pid" ]] && break
   sleep .02
 done
 grep -Fq "start-args=--state-dir=$STATE_EQ --timeout-seconds 4" "$STATE_EQ/start-args"
-status=$(HOME="$TMP_DIR/home" SYNON_SOURCE_STATE_DIR="$STATE_EQ" \
-  "$TMP_DIR/home/.local/bin/synon" status)
+status=$(HOME="$TMP_DIR/home" X_SCIENCE_SOURCE_STATE_DIR="$STATE_EQ" \
+  "$TMP_DIR/home/.local/bin/x-science" status)
 [[ "$status" == RUNNING* ]]
-HOME="$TMP_DIR/home" SYNON_SOURCE_STATE_DIR="$STATE_EQ" \
-  "$TMP_DIR/home/.local/bin/synon" stop >"$TMP_DIR/stop-equals.log"
+HOME="$TMP_DIR/home" X_SCIENCE_SOURCE_STATE_DIR="$STATE_EQ" \
+  "$TMP_DIR/home/.local/bin/x-science" stop >"$TMP_DIR/stop-equals.log"
 wait "$START_PID"
 START_PID=''
 grep -Fq 'source hosts stopped' "$TMP_DIR/stop-equals.log"
@@ -119,8 +119,8 @@ mkdir -p "$TMP_DIR/identity-state"
 sleep 30 &
 SLEEP_PID=$!
 printf '%s\n' "$SLEEP_PID" >"$TMP_DIR/identity-state/quickstart.pid"
-if HOME="$TMP_DIR/home" SYNON_SOURCE_STATE_DIR="$TMP_DIR/identity-state" \
-  "$TMP_DIR/home/.local/bin/synon" stop >"$TMP_DIR/identity.log" 2>&1; then
+if HOME="$TMP_DIR/home" X_SCIENCE_SOURCE_STATE_DIR="$TMP_DIR/identity-state" \
+  "$TMP_DIR/home/.local/bin/x-science" stop >"$TMP_DIR/identity.log" 2>&1; then
   echo 'stop signalled an unverified process' >&2
   exit 1
 fi
@@ -140,8 +140,8 @@ chmod 0755 "$TMP_DIR/disguised.sh"
 SLEEP_PID=$!
 : >"$TMP_DIR/disguised-state/quickstart.lock"
 printf '%s\n' "$SLEEP_PID" >"$TMP_DIR/disguised-state/quickstart.pid"
-if HOME="$TMP_DIR/home" SYNON_SOURCE_STATE_DIR="$TMP_DIR/disguised-state" \
-  "$TMP_DIR/home/.local/bin/synon" stop >"$TMP_DIR/disguised.log" 2>&1; then
+if HOME="$TMP_DIR/home" X_SCIENCE_SOURCE_STATE_DIR="$TMP_DIR/disguised-state" \
+  "$TMP_DIR/home/.local/bin/x-science" stop >"$TMP_DIR/disguised.log" 2>&1; then
   echo 'stop signalled a disguised process without the lock' >&2
   exit 1
 fi

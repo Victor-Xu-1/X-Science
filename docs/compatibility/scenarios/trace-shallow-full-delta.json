@@ -44,7 +44,7 @@
       "name": "full-trace",
       "method": "GET",
       "path": "/api/frames/${capture:rootId}/trace-shallow",
-      "headers": {"X-Synon-User-Id": "local"},
+      "headers": {"X-Science-User-Id": "local"},
       "expectedStatus": [200],
       "async": true,
       "settleMilliseconds": 500
@@ -57,7 +57,7 @@
       "name": "lite-trace",
       "method": "GET",
       "path": "/api/frames/${capture:rootId}/trace-shallow?include_messages=false",
-      "headers": {"X-Synon-User-Id": "local"},
+      "headers": {"X-Science-User-Id": "local"},
       "expectedStatus": [200],
       "capture": {"cursor": "/_trace_cursor"}
     },
@@ -65,7 +65,7 @@
       "name": "trace-delta",
       "method": "GET",
       "path": "/api/frames/${capture:rootId}/trace-shallow?cursor=${capture:cursor}",
-      "headers": {"X-Synon-User-Id": "local"},
+      "headers": {"X-Science-User-Id": "local"},
       "expectedStatus": [200]
     }
   ],

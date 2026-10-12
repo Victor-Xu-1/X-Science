@@ -3,7 +3,7 @@ package server
 import (
 	"net/http"
 
-	"synon-go/internal/mcpdirectory"
+	"x-science/internal/mcpdirectory"
 )
 
 type bundledMCPRuntimeReadiness interface {

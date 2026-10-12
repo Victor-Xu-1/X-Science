@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	eventjournal "synon-go/internal/persistence/journal"
-	secretstore "synon-go/internal/persistence/secrets"
-	sessionstore "synon-go/internal/persistence/sessions"
-	workspace "synon-go/internal/persistence/workspace"
+	eventjournal "x-science/internal/persistence/journal"
+	secretstore "x-science/internal/persistence/secrets"
+	sessionstore "x-science/internal/persistence/sessions"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestSessionRunnerChatOnceUsesSavedAnthropicProviderAuthority(t *testing.T) {

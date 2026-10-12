@@ -138,7 +138,7 @@ vi.mock('@/renderer/pages/conversation/Messages/artifacts', () => {
   };
 });
 
-vi.mock('@/renderer/pages/conversation/Messages/components/SynonBiomedUserMessageActions', () => ({
+vi.mock('@/renderer/pages/conversation/Messages/components/XScienceUserMessageActions', () => ({
   default: ({ children }: PropsWithChildren) => <>{children}</>,
 }));
 
@@ -452,7 +452,7 @@ describe('MessageList streaming scroll behavior', () => {
       position: 'right',
       content: {
         content: 'Branchable prompt',
-        synonBiomed: { messageIndex: 0, blockIndex: 0, branchId: 'br_00000001' },
+        xScience: { messageIndex: 0, blockIndex: 0, branchId: 'br_00000001' },
       },
     };
 

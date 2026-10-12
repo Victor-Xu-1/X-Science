@@ -98,7 +98,7 @@ func TestIMInboundPairingFailsClosedWithoutStore(t *testing.T) {
 func TestAuthenticatedIMPairingWithoutPersistentOwnerFailsClosed(t *testing.T) {
 	srv := New(Options{
 		FileRoot:      t.TempDir(),
-		SynonLinkAuth: SynonLinkAuthOptions{Username: "operator", Password: "secret", UserID: "operator"},
+		XScienceLinkAuth: XScienceLinkAuthOptions{Username: "operator", Password: "secret", UserID: "operator"},
 	})
 	if _, err := srv.pairingStore.Allow("wechat", "101", "legacy"); err != nil {
 		t.Fatal(err)

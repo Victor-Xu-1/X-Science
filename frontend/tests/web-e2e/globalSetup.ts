@@ -1,4 +1,4 @@
-import { createSynonBiomedTestFetch } from '../integration/synonbiomedTestAuth';
+import { createXScienceTestFetch } from '../integration/xscienceTestAuth';
 import {
   assertOfficialGoogleChrome,
   requireOfficialChromeEndpoint,
@@ -8,10 +8,10 @@ import {
 type CDPResult = Record<string, unknown>;
 
 async function verifyConfiguredOfficialChrome(): Promise<void> {
-  const configuredEndpoint = process.env.SYNON_GO_OFFICIAL_CHROME_CDP?.trim();
+  const configuredEndpoint = process.env.X_SCIENCE_GO_OFFICIAL_CHROME_CDP?.trim();
   if (!configuredEndpoint) return;
   const endpoint = requireOfficialChromeEndpoint(configuredEndpoint);
-  const profileId = requireOfficialChromeProfileId(process.env.SYNON_GO_OFFICIAL_CHROME_PROFILE_ID);
+  const profileId = requireOfficialChromeProfileId(process.env.X_SCIENCE_GO_OFFICIAL_CHROME_PROFILE_ID);
   const socket = new WebSocket(endpoint);
   const pending = new Map<
     number,
@@ -98,9 +98,9 @@ async function verifyConfiguredOfficialChrome(): Promise<void> {
 
 export default async function globalSetup(): Promise<void> {
   await verifyConfiguredOfficialChrome();
-  if (process.env.SYNON_GO_E2E_KEEP_ONBOARDING === '1') return;
-  const baseUrl = process.env.SYNON_GO_WEB_URL?.trim() || 'http://127.0.0.1:8080';
-  const fetchImpl = await createSynonBiomedTestFetch(baseUrl);
+  if (process.env.X_SCIENCE_GO_E2E_KEEP_ONBOARDING === '1') return;
+  const baseUrl = process.env.X_SCIENCE_GO_WEB_URL?.trim() || 'http://127.0.0.1:8080';
+  const fetchImpl = await createXScienceTestFetch(baseUrl);
   for (const path of [
     '/api/preferences/builtin-allowlist/onboarding-seen',
     '/api/preferences/first-run-onboarding/complete',

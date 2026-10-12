@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 const sessionRunnerArtifactPublicationStaleMarker = "artifact_publication_stale_after_later_work"

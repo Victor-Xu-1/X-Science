@@ -8,7 +8,7 @@ import (
 	"slices"
 )
 
-const ObservationSchema = "synon.execution-observation.v1"
+const ObservationSchema = "x-science.execution-observation.v1"
 
 // Observation is a fully covered source classification with outstanding runtime
 // binding obligations. It is NOT an execution permission or a sandbox proof.

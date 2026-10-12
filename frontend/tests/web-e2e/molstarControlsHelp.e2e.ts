@@ -5,9 +5,9 @@ import {
   openScientificArtifact,
   removeScientificWorkspace,
   uploadScientificArtifact,
-} from './synonBiomedScientificFixture';
+} from './xScienceScientificFixture';
 
-const PDB_FIXTURE = `HEADER    SYNON BIOMED TOOLTIP ACCEPTANCE
+const PDB_FIXTURE = `HEADER    XSCIENCE BIOMED TOOLTIP ACCEPTANCE
 ATOM      1  N   MET A   1       0.000   0.000   0.000  1.00 20.00           N
 ATOM      2  CA  GLY A   2       3.800   0.000   0.000  1.00 20.00           C
 END
@@ -28,17 +28,17 @@ test('explains every native Mol* preview control on hover and focus', async ({ p
 
     const region = page.getByRole('region', { name: /3D 结构预览/u });
     await expect(region).toBeVisible();
-    await region.getByTestId('synon-biomed-molstar-quick-view').click();
-    await region.getByTestId('synon-biomed-molstar-advanced').click();
-    const controls = region.locator('[data-testid="synon-biomed-structure-canvas"] button[data-synon-molstar-control]');
+    await region.getByTestId('x-science-molstar-quick-view').click();
+    await region.getByTestId('x-science-molstar-advanced').click();
+    const controls = region.locator('[data-testid="x-science-structure-canvas"] button[data-x-science-molstar-control]');
     await expect.poll(async () => controls.count(), { timeout: 30000 }).toBeGreaterThanOrEqual(12);
 
     const controlState = await controls.evaluateAll((buttons) =>
       buttons.map((button) => ({
-        control: button.getAttribute('data-synon-molstar-control'),
+        control: button.getAttribute('data-x-science-molstar-control'),
         title: button.getAttribute('title'),
         aria: button.getAttribute('aria-label'),
-        help: button.getAttribute('data-synon-molstar-help'),
+        help: button.getAttribute('data-x-science-molstar-help'),
       }))
     );
     const controlIds = [...new Set(controlState.map(({ control }) => control))].sort();
@@ -58,7 +58,7 @@ test('explains every native Mol* preview control on hover and focus', async ({ p
     ]);
     expect(controlState.every(({ title, aria, help }) => Boolean(title && aria && help))).toBe(true);
 
-    const selection = region.locator('button[data-synon-molstar-control="selectionMode"]');
+    const selection = region.locator('button[data-x-science-molstar-control="selectionMode"]');
     await selection.hover();
     await expect(page.getByRole('tooltip')).toHaveText('选择模式：开启后可点击选择结构中的原子、残基或其他对象。');
     await selection.focus();

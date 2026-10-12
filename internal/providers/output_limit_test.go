@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 // A syntactically complete JSON envelope does not make a token-limited tool

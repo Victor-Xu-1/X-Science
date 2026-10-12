@@ -1,4 +1,4 @@
-// Package workspace owns durable SynonBiomed-compatible workspace state.
+// Package workspace owns durable XScience-compatible workspace state.
 //
 // It deliberately uses SQLite rather than the legacy JSON indexes because
 // artifact lineage and future cross-process scheduling need transactions.
@@ -19,7 +19,7 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 const sqliteDriver = "sqlite"

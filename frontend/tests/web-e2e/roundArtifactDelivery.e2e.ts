@@ -4,12 +4,12 @@ import {
   loginToScientificWorkbench,
   removeScientificWorkspace,
   uploadScientificArtifact,
-} from './synonBiomedScientificFixture';
+} from './xScienceScientificFixture';
 import {
-  beginSynonGoStreamingParity,
-  beginSynonGoTranscriptStream,
-  completeSynonGoStreamingParity,
-} from './synonGoFrameFixture';
+  beginXScienceGoStreamingParity,
+  beginXScienceGoTranscriptStream,
+  completeXScienceGoStreamingParity,
+} from './xscienceGoFrameFixture';
 
 const copy = {
   thinking: '核对本轮生成文件。',
@@ -43,15 +43,15 @@ for (const viewport of [
           contentType: 'text/csv',
           source: csv,
         });
-        const run = beginSynonGoTranscriptStream(workspace.conversationId);
+        const run = beginXScienceGoTranscriptStream(workspace.conversationId);
         await page.goto(`/#/conversation/${workspace.conversationId}`, { waitUntil: 'domcontentloaded' });
         await expect(page.getByTestId('message-list-scroller')).toBeVisible();
-        beginSynonGoStreamingParity(run, copy);
+        beginXScienceGoStreamingParity(run, copy);
         await expect(page.getByRole('button', { name: /开展分析/ })).toBeVisible();
         const tray = page.getByTestId('message-artifact-references');
         await expect(tray).toHaveCount(0);
 
-        completeSynonGoStreamingParity(
+        completeXScienceGoStreamingParity(
           run,
           copy,
           [report, table].map((artifact) => ({

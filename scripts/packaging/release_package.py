@@ -118,7 +118,7 @@ def main() -> None:
     if os.environ.get("GITHUB_EVENT_NAME") != "release":
         raise ValueError("Package publication only accepts the release event")
     event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
-    with tempfile.TemporaryDirectory(prefix="synon-package-") as temp:
+    with tempfile.TemporaryDirectory(prefix="x-science-package-") as temp:
         root = Path(temp)
         tag, revision, artifacts = prepare(event, root)
         identity, _ = candidate.load_controls(ROOT)

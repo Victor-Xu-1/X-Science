@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	"x-science/internal/persistence/workspace"
 )
 
 func TestResearchSourceRecordViewPresentsJATSBodyBeforeFrontMatter(t *testing.T) {

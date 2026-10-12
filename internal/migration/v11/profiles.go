@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	secretstore "synon-go/internal/persistence/secrets"
-	settingsstore "synon-go/internal/persistence/settings"
+	secretstore "x-science/internal/persistence/secrets"
+	settingsstore "x-science/internal/persistence/settings"
 )
 
 type legacyModelProfiles struct {

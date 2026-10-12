@@ -62,12 +62,15 @@ func TestReviewMarkdownIsDeterministicAndIncludesDisposition(t *testing.T) {
 		t.Fatalf("Build() error = %v", err)
 	}
 	first := ReviewMarkdown(manifest)
+	if manifest.BaselineName != "synonbiomed-v1.1" {
+		t.Fatal("source baseline was mechanically renamed instead of preserved")
+	}
 	second := ReviewMarkdown(manifest)
 	if string(first) != string(second) {
 		t.Fatal("ReviewMarkdown() is not deterministic")
 	}
 	for _, expected := range []string{
-		"# SynonBiomed v1.1 Reuse Review",
+		"# X-Science v1.1 Reuse Review",
 		"agent-operon",
 		"direct_copy",
 		"runtime_state_excluded",

@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { loadSynonBiomedSkills } from '@/renderer/services/synonBiomedCapabilities';
+import { loadXScienceSkills } from '@/renderer/services/xScienceCapabilities';
 
-export type SynonAISkillInfo = {
+export type XScienceSkillInfo = {
   name: string;
   description: string;
   description_i18n?: Record<string, string>;
@@ -23,10 +23,10 @@ export type SynonAISkillInfo = {
   enabled?: boolean;
 };
 
-export async function loadAvailableSkillsWithSynonBiomed<T extends SynonAISkillInfo = SynonAISkillInfo>(): Promise<
+export async function loadAvailableSkillsWithXScience<T extends XScienceSkillInfo = XScienceSkillInfo>(): Promise<
   T[]
 > {
-  const skills = await loadSynonBiomedSkills();
+  const skills = await loadXScienceSkills();
 
   return skills.map((skill) => ({
     name: skill.name,

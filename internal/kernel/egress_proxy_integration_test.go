@@ -14,8 +14,8 @@ import (
 )
 
 func TestKernelEgressProxyLiveHTTPS(t *testing.T) {
-	if os.Getenv("SYNON_RUN_KERNEL_EGRESS_LIVE") != "1" {
-		t.Skip("set SYNON_RUN_KERNEL_EGRESS_LIVE=1 for the live public HTTPS check")
+	if os.Getenv("X_SCIENCE_RUN_KERNEL_EGRESS_LIVE") != "1" {
+		t.Skip("set X_SCIENCE_RUN_KERNEL_EGRESS_LIVE=1 for the live public HTTPS check")
 	}
 	python, err := exec.LookPath("python3")
 	if err != nil {

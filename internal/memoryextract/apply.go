@@ -8,10 +8,10 @@ import (
 	"strings"
 	"unicode"
 
-	"synon-go/internal/memoryclassifier"
-	"synon-go/internal/memorypolicy"
-	"synon-go/internal/memorytools"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/memoryclassifier"
+	"x-science/internal/memorypolicy"
+	"x-science/internal/memorytools"
+	workspace "x-science/internal/persistence/workspace"
 
 	"github.com/google/uuid"
 )

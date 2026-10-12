@@ -8,14 +8,14 @@ import (
 	"testing"
 	"time"
 
-	kernelruntime "synon-go/internal/kernel"
-	runtimekv "synon-go/internal/persistence/runtimekv"
-	sessionstore "synon-go/internal/persistence/sessions"
-	"synon-go/internal/skills"
+	kernelruntime "x-science/internal/kernel"
+	runtimekv "x-science/internal/persistence/runtimekv"
+	sessionstore "x-science/internal/persistence/sessions"
+	"x-science/internal/skills"
 )
 
 func TestBundledAutoDockVinaSkillReturnsWhenInvocationAuditStoreIsUnavailable(t *testing.T) {
-	catalog := skills.Load([]string{filepath.Join("..", "..", "skills", "synonbiomed")})
+	catalog := skills.Load([]string{filepath.Join("..", "..", "skills", "x-science")})
 	if loadErrors := catalog.LoadErrors(); len(loadErrors) != 0 {
 		t.Fatalf("load bundled skills: %#v", loadErrors)
 	}
@@ -66,7 +66,7 @@ func TestBundledAutoDockVinaSkillReturnsWhenInvocationAuditStoreIsUnavailable(t 
 }
 
 func TestAgentUnknownSkillReturnsCatalogPreflightWithoutLoadingIt(t *testing.T) {
-	catalog := skills.Load([]string{filepath.Join("..", "..", "skills", "synonbiomed")})
+	catalog := skills.Load([]string{filepath.Join("..", "..", "skills", "x-science")})
 	server := New(Options{FileRoot: t.TempDir()})
 	server.skillCatalog = catalog
 	run := &sessionRunnerChatRun{}
@@ -91,7 +91,7 @@ func TestMaterializeAgentSkillRuntimeBundleCopiesAndRepairsResources(t *testing.
 		t.Fatal(err)
 	}
 	skillFile := filepath.Join(skillRoot, "SKILL.md")
-	if err := os.WriteFile(skillFile, []byte("---\nname: document-workbench\n---\n\nRun ${SYNON_SKILL_DIR}/scripts/tool.py.\n"), 0o644); err != nil {
+	if err := os.WriteFile(skillFile, []byte("---\nname: document-workbench\n---\n\nRun ${X_SCIENCE_SKILL_DIR}/scripts/tool.py.\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(skillRoot, "scripts", "tool.py"), []byte("print('verified')\n"), 0o644); err != nil {
@@ -110,7 +110,7 @@ func TestMaterializeAgentSkillRuntimeBundleCopiesAndRepairsResources(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !hostPathWithin(workspace, first) || !strings.Contains(first, filepath.Join(".synon", "runtime", "skills")) {
+	if !hostPathWithin(workspace, first) || !strings.Contains(first, filepath.Join(".xscience", "runtime", "skills")) {
 		t.Fatalf("materialized path escaped workspace: %q", first)
 	}
 	script := filepath.Join(first, "scripts", "tool.py")
@@ -141,7 +141,7 @@ func TestMaterializeAgentSkillRuntimeBundleNormalizesPortableShebangAndMode(t *t
 		t.Fatal(err)
 	}
 	skillFile := filepath.Join(skillRoot, "SKILL.md")
-	if err := os.WriteFile(skillFile, []byte("---\nname: portable-script\n---\nRun ${SYNON_SKILL_DIR}/scripts/run.py.\n"), 0o644); err != nil {
+	if err := os.WriteFile(skillFile, []byte("---\nname: portable-script\n---\nRun ${X_SCIENCE_SKILL_DIR}/scripts/run.py.\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(skillRoot, "scripts", "run.py"), []byte("#!/usr/bin/env python3\r\nprint('ok')\r\n"), 0o644); err != nil {
@@ -183,13 +183,13 @@ func TestLoadAgentSkillRuntimeBundleLeavesInstructionOnlySkillInline(t *testing.
 
 func TestRenderSkillPromptSurfacesPreferredExecutionAssets(t *testing.T) {
 	skill := skills.Skill{
-		Name: "analysis-workflow", Path: "/workspace/.synon/runtime/skills/analysis-workflow-abcd/SKILL.md",
+		Name: "analysis-workflow", Path: "/workspace/.xscience/runtime/skills/analysis-workflow-abcd/SKILL.md",
 		Body: "Analyze the supplied cohort.", PreferredExecutionAssets: []string{"scripts/pipeline.py", "templates/report.md"},
 	}
 	prompt := renderSkillPrompt(skill, "")
 	for _, expected := range []string{
-		"Default tested execution route", "/workspace/.synon/runtime/skills/analysis-workflow-abcd/scripts/pipeline.py",
-		"/workspace/.synon/runtime/skills/analysis-workflow-abcd/templates/report.md", "Analyze the supplied cohort.",
+		"Default tested execution route", "/workspace/.xscience/runtime/skills/analysis-workflow-abcd/scripts/pipeline.py",
+		"/workspace/.xscience/runtime/skills/analysis-workflow-abcd/templates/report.md", "Analyze the supplied cohort.",
 		"Inspect the first applicable asset's help and preflight", "preserve bounded-memory loading",
 	} {
 		if !strings.Contains(prompt, expected) {
@@ -261,7 +261,7 @@ name: document-workbench
 description: Generate native documents
 ---
 
-Run ${SYNON_SKILL_DIR}/scripts/document_workbench.py before answering.
+Run ${X_SCIENCE_SKILL_DIR}/scripts/document_workbench.py before answering.
 `), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -293,7 +293,7 @@ Run ${SYNON_SKILL_DIR}/scripts/document_workbench.py before answering.
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(contextText, "${SYNON_SKILL_DIR}") {
+	if strings.Contains(contextText, "${X_SCIENCE_SKILL_DIR}") {
 		t.Fatalf("first-turn skill context retained unresolved runtime placeholder: %s", contextText)
 	}
 	if !strings.Contains(contextText, "Base directory for this skill: "+runtimeDirectory) ||

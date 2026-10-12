@@ -274,35 +274,35 @@ func decodeWebAccountsDocument(raw []byte) (webAccountsDocument, bool, error) {
 	return document, migrated, nil
 }
 
-func (s *webAccountStore) Register(name, email, password string) (synonLinkAuthUser, error) {
+func (s *webAccountStore) Register(name, email, password string) (xscienceLinkAuthUser, error) {
 	displayName, normalizedName, normalizedEmail, err := validateWebAccountInput(name, email, password)
 	if err != nil {
-		return synonLinkAuthUser{}, err
+		return xscienceLinkAuthUser{}, err
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if normalizedName == s.normalizedBootstrap {
-		return synonLinkAuthUser{}, &webAccountValidationError{code: "USERNAME_EXISTS"}
+		return xscienceLinkAuthUser{}, &webAccountValidationError{code: "USERNAME_EXISTS"}
 	}
 	for _, account := range s.accounts {
 		if account.NormalizedUsername == normalizedName {
-			return synonLinkAuthUser{}, &webAccountValidationError{code: "USERNAME_EXISTS"}
+			return xscienceLinkAuthUser{}, &webAccountValidationError{code: "USERNAME_EXISTS"}
 		}
 		if normalizedEmail != "" && account.NormalizedEmail == normalizedEmail {
-			return synonLinkAuthUser{}, &webAccountValidationError{code: "EMAIL_EXISTS"}
+			return xscienceLinkAuthUser{}, &webAccountValidationError{code: "EMAIL_EXISTS"}
 		}
 	}
 	salt := make([]byte, webAccountSaltBytes)
 	if _, err := io.ReadFull(s.random, salt); err != nil {
-		return synonLinkAuthUser{}, fmt.Errorf("generate Web account salt: %w", err)
+		return xscienceLinkAuthUser{}, fmt.Errorf("generate Web account salt: %w", err)
 	}
 	hash, err := deriveWebAccountPassword(password, salt)
 	if err != nil {
-		return synonLinkAuthUser{}, err
+		return xscienceLinkAuthUser{}, err
 	}
 	cleanEmail := strings.TrimSpace(norm.NFKC.String(email))
 	account := storedWebAccount{
-		ID:                 "synonbiomed-web-" + uuid.NewString(),
+		ID:                 "xscience-web-" + uuid.NewString(),
 		Username:           displayName,
 		DisplayName:        displayName,
 		Email:              cleanEmail,
@@ -317,13 +317,13 @@ func (s *webAccountStore) Register(name, email, password string) (synonLinkAuthU
 	}
 	next := append(append([]storedWebAccount(nil), s.accounts...), account)
 	if err := s.persistLocked(next, s.identities); err != nil {
-		return synonLinkAuthUser{}, err
+		return xscienceLinkAuthUser{}, err
 	}
 	s.accounts = next
 	return account.publicUser(), nil
 }
 
-func (s *webAccountStore) Authenticate(username, password string) (synonLinkAuthUser, bool, error) {
+func (s *webAccountStore) Authenticate(username, password string) (xscienceLinkAuthUser, bool, error) {
 	normalized := normalizeWebAccountName(username)
 	s.mu.RLock()
 	var candidate *storedWebAccount
@@ -343,20 +343,20 @@ func (s *webAccountStore) Authenticate(username, password string) (synonLinkAuth
 		var err error
 		salt, err = base64.RawURLEncoding.DecodeString(candidate.PasswordSalt)
 		if err != nil {
-			return synonLinkAuthUser{}, false, fmt.Errorf("decode Web account salt: %w", err)
+			return xscienceLinkAuthUser{}, false, fmt.Errorf("decode Web account salt: %w", err)
 		}
 		expected, err = base64.RawURLEncoding.DecodeString(candidate.PasswordHash)
 		if err != nil {
-			return synonLinkAuthUser{}, false, fmt.Errorf("decode Web account hash: %w", err)
+			return xscienceLinkAuthUser{}, false, fmt.Errorf("decode Web account hash: %w", err)
 		}
 	}
 	actual, err := deriveWebAccountPassword(password, salt)
 	if err != nil {
-		return synonLinkAuthUser{}, false, err
+		return xscienceLinkAuthUser{}, false, err
 	}
 	if candidate == nil || candidate.Status != "active" || candidate.PasswordHash == "" ||
 		subtle.ConstantTimeCompare(actual, expected) != 1 {
-		return synonLinkAuthUser{}, false, nil
+		return xscienceLinkAuthUser{}, false, nil
 	}
 	return candidate.publicUser(), true, nil
 }
@@ -422,8 +422,8 @@ func deriveWebAccountPassword(password string, salt []byte) ([]byte, error) {
 	return hash, nil
 }
 
-func (a storedWebAccount) publicUser() synonLinkAuthUser {
-	return synonLinkAuthUser{
+func (a storedWebAccount) publicUser() xscienceLinkAuthUser {
+	return xscienceLinkAuthUser{
 		ID:          a.ID,
 		UserID:      a.ID,
 		Username:    a.Username,

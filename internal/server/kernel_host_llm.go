@@ -14,11 +14,11 @@ import (
 
 	"github.com/google/uuid"
 
-	"synon-go/internal/agentruntime"
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/providers"
-	"synon-go/internal/toolcontract"
+	"x-science/internal/agentruntime"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/providers"
+	"x-science/internal/toolcontract"
 )
 
 const (

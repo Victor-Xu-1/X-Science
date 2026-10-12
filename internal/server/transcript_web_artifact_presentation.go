@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 // enrichTranscriptWebArtifactPresentation derives one final delivery per round

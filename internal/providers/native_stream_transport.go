@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 type nativeStreamReader func(*runtimeModelClient, http.Response, func(agentruntime.ModelStreamEvent) error) (agentruntime.ModelResponse, string, providerTokenUsage, bool, error)

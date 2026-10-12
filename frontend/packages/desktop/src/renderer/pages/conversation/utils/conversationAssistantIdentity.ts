@@ -1,9 +1,9 @@
 import type { TChatConversation } from '@/common/config/storage';
-import type { PresetAssistantInfo } from '@/renderer/hooks/synonBiomed/runtime/usePresetAssistantInfo';
+import type { PresetAssistantInfo } from '@/renderer/hooks/xScience/runtime/usePresetAssistantInfo';
 import { resolveAssistantAvatar } from '@/renderer/utils/model/assistantAvatar';
-import { resolveAgentLogo } from '@/renderer/utils/synonBiomed/runtime/runtimeLogo';
-import type { AgentLogoMap } from '@/renderer/utils/synonBiomed/runtime/runtimeLogo';
-import { isRobotAvatar } from '@/renderer/components/synonBiomed/SynonBiomedAvatar';
+import { resolveAgentLogo } from '@/renderer/utils/xScience/runtime/runtimeLogo';
+import type { AgentLogoMap } from '@/renderer/utils/xScience/runtime/runtimeLogo';
+import { isRobotAvatar } from '@/renderer/components/xScience/XScienceAvatar';
 
 /**
  * Resolve the effective X-Science runtime backend for a conversation.

@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"strings"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	"synon-go/internal/toolcontract"
+	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/toolcontract"
 )
 
-const kernelMCPEvidenceSchemaV1 = "synon.kernel_mcp_evidence.v1"
+const kernelMCPEvidenceSchemaV1 = "x-science.kernel_mcp_evidence.v1"
 
 const KernelMCPEvidenceClassBundledReadOnly = "bundled-readonly-source-v1"
 

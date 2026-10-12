@@ -1,7 +1,7 @@
 package contracts
 
 // V11ContractSummary is the immutable contract baseline recovered from the
-// SynonBiomed v1.1 client bundle. It is used to prevent Go-runtime regressions.
+// XScience v1.1 client bundle. It is used to prevent Go-runtime regressions.
 type V11ContractSummary struct {
 	ServiceMethodCount int
 	HTTPRouteCount     int

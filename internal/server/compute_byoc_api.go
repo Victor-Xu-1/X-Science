@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	compute "synon-go/internal/compute"
-	kernelruntime "synon-go/internal/kernel"
+	compute "x-science/internal/compute"
+	kernelruntime "x-science/internal/kernel"
 
-	secretstore "synon-go/internal/persistence/secrets"
-	workspace "synon-go/internal/persistence/workspace"
+	secretstore "x-science/internal/persistence/secrets"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const byocLifecycleAuditNamespace = "compute-byoc-lifecycle-audit"

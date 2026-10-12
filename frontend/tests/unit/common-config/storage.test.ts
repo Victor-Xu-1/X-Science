@@ -64,7 +64,7 @@ describe('storage runtime exports', () => {
       expect(EnvStorage.namespace).toBe('agent.env');
     });
 
-    it('set/get roundtrip with synon-ai.dir object', async () => {
+    it('set/get roundtrip with x-science.dir object', async () => {
       const dirs = {
         workDir: '/a',
         cacheDir: '/b',
@@ -76,8 +76,8 @@ describe('storage runtime exports', () => {
         backupDir: '/h',
       };
 
-      await EnvStorage.set('synon-ai.dir', dirs);
-      const result = await EnvStorage.get('synon-ai.dir');
+      await EnvStorage.set('x-science.dir', dirs);
+      const result = await EnvStorage.get('x-science.dir');
 
       expect(result).toEqual(dirs);
     });
@@ -89,7 +89,7 @@ describe('storage runtime exports', () => {
       await ConfigStorage.set('language', 'en');
 
       // Set a different key in EnvStorage
-      await EnvStorage.set('synon-ai.dir', {
+      await EnvStorage.set('x-science.dir', {
         workDir: '/x',
         cacheDir: '/y',
         dataDir: '/z',
@@ -102,7 +102,7 @@ describe('storage runtime exports', () => {
 
       // Verify values are isolated
       const configLang = await ConfigStorage.get('language');
-      const envDir = await EnvStorage.get('synon-ai.dir');
+      const envDir = await EnvStorage.get('x-science.dir');
 
       expect(configLang).toBe('en');
       expect(envDir?.workDir).toBe('/x');

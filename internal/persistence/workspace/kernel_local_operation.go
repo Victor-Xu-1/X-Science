@@ -15,8 +15,8 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"synon-go/internal/kernelcontract"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	"x-science/internal/kernelcontract"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 const (
@@ -29,7 +29,7 @@ const (
 	KernelLocalOperationStateCancelled       = "cancelled"
 	KernelLocalOperationStateOutcomeUnknown  = "outcome_unknown"
 
-	kernelLocalOperationIdentityDomain = "synon.kernel-operation.v1"
+	kernelLocalOperationIdentityDomain = "x-science.kernel-operation.v1"
 )
 
 var (
@@ -388,6 +388,10 @@ func (s *Store) CreateKernelLocalOperationsForCheckpointTx(
 		}
 		branchID, branchGeneration := activeBranchID, activeBranchGeneration
 		if found {
+			operationID, err = s.ResolveNamespaceIdentityTx(ctx, tx, "kernel-operation", operationID, existing.OperationID)
+			if err != nil {
+				return nil, err
+			}
 			branchID, branchGeneration = existing.BranchID, existing.BranchGeneration
 		} else if branchID == "" {
 			if err := tx.QueryRowContext(ctx, `SELECT active_branch_id,generation FROM transcript_branch_state WHERE stream_uid=?`,

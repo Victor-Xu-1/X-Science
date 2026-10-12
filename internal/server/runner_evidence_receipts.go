@@ -3,7 +3,7 @@ package server
 import (
 	"strings"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 type sessionRunnerEvidenceReceipt struct {

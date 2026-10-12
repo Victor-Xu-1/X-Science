@@ -215,13 +215,13 @@
       {
         "name": "frontend-conversation-controllers",
         "target": "conversation hooks and presentational components",
-        "source": "AcpSendBox.tsx, MessageList.tsx and SynonBiomedRuntimeOperations.tsx",
+        "source": "AcpSendBox.tsx, MessageList.tsx and XScienceRuntimeOperations.tsx",
         "modules": [
           "useAcpSendBoxDraftController.ts",
           "useAcpMobileActionSheetController.tsx",
           "messageListProjection.ts",
-          "SynonBiomedRuntimeOperationsController.tsx",
-          "SynonBiomedPlanReviewContent.tsx"
+          "XScienceRuntimeOperationsController.tsx",
+          "XSciencePlanReviewContent.tsx"
         ],
         "owns": [
           "composer controller",

@@ -11,12 +11,12 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/persistence/transcript"
+	"x-science/internal/persistence/transcript"
 )
 
 func TestLoadUsesBoundedRunnerToolRoundDefault(t *testing.T) {
-	t.Setenv("SYNON_CONFIG", "")
-	t.Setenv("SYNON_RUNNER_CHAT_TOOL_ROUND_LIMIT", "")
+	t.Setenv("X_SCIENCE_CONFIG", "")
+	t.Setenv("X_SCIENCE_RUNNER_CHAT_TOOL_ROUND_LIMIT", "")
 
 	cfg, err := Load()
 	if err != nil {
@@ -33,7 +33,7 @@ func TestDefaultHomeUsesPlatformUserHomeWhenHOMEIsUnset(t *testing.T) {
 	if err != nil || strings.TrimSpace(home) == "" {
 		t.Skipf("platform user home is unavailable: %v", err)
 	}
-	if got, want := defaultHome(), filepath.Join(home, ".synon-go"); got != want {
+	if got, want := defaultHome(), filepath.Join(home, ".x-science"); got != want {
 		t.Fatalf("defaultHome=%q, want %q", got, want)
 	}
 }
@@ -48,17 +48,18 @@ func TestDefaultHomeIgnoresForeignHOMEOnWindows(t *testing.T) {
 	if err != nil || strings.TrimSpace(home) == "" {
 		t.Skipf("platform user home is unavailable: %v", err)
 	}
-	if got, want := defaultHome(), filepath.Join(home, ".synon-go"); got != want {
+	if got, want := defaultHome(), filepath.Join(home, ".x-science"); got != want {
 		t.Fatalf("defaultHome=%q, want platform user home %q", got, want)
 	}
 }
 
-func TestLoadBrowserConnectorPackageKeepsExactLegacyAliasOnly(t *testing.T) {
+func TestLoadBrowserConnectorPackageUpgradesPublishedPackageAndPreservesCustomPaths(t *testing.T) {
 	for _, fixture := range []struct{ name, configured, want string }{
-		{"default", "", "assets/synon-link/x-science-browser-extension-v0.6.10.zip"},
-		{"legacy_relative", "assets/synon-link/synon-link-extension-v0.6.10.zip", "assets/synon-link/x-science-browser-extension-v0.6.10.zip"},
-		{"custom_relative", "custom/synon-link-extension-v0.6.10.zip", "custom/synon-link-extension-v0.6.10.zip"},
-		{"custom_absolute", filepath.Join(t.TempDir(), "synon-link-extension-v0.6.10.zip"), ""},
+		{"default", "", "assets/x-science-link/x-science-browser-extension-v0.6.11.zip"},
+		{"published_previous", "assets/synon-link/synon-link-extension-v0.6.10.zip", "assets/x-science-link/x-science-browser-extension-v0.6.11.zip"},
+		{"unpublished_path_is_custom", "assets/x-science-link/x-science-link-extension-v0.6.10.zip", "assets/x-science-link/x-science-link-extension-v0.6.10.zip"},
+		{"custom_relative", "custom/x-science-link-extension-v0.6.10.zip", "custom/x-science-link-extension-v0.6.10.zip"},
+		{"custom_absolute", filepath.Join(t.TempDir(), "x-science-link-extension-v0.6.10.zip"), ""},
 	} {
 		t.Run(fixture.name, func(t *testing.T) {
 			want := fixture.want
@@ -67,28 +68,28 @@ func TestLoadBrowserConnectorPackageKeepsExactLegacyAliasOnly(t *testing.T) {
 			}
 			root := t.TempDir()
 			configPath := filepath.Join(root, "browser.json")
-			raw, err := json.Marshal(map[string]string{"synon_link_package": fixture.configured})
+			raw, err := json.Marshal(map[string]string{"x_science_link_package": fixture.configured})
 			if err != nil {
 				t.Fatal(err)
 			}
 			if err := os.WriteFile(configPath, raw, 0o600); err != nil {
 				t.Fatal(err)
 			}
-			t.Setenv("SYNON_CONFIG", configPath)
-			t.Setenv("SYNON_HOME", filepath.Join(root, "state"))
-			t.Setenv("SYNON_DATA_DIR_CONTROL", filepath.Join(root, "no-control.json"))
+			t.Setenv("X_SCIENCE_CONFIG", configPath)
+			t.Setenv("X_SCIENCE_HOME", filepath.Join(root, "state"))
+			t.Setenv("X_SCIENCE_DATA_DIR_CONTROL", filepath.Join(root, "no-control.json"))
 			cfg, err := Load()
 			if err != nil {
 				t.Fatal(err)
 			}
-			if cfg.SynonLinkPackage != want {
-				t.Fatalf("package=%q want=%q", cfg.SynonLinkPackage, want)
+			if cfg.XScienceLinkPackage != want {
+				t.Fatalf("package=%q want=%q", cfg.XScienceLinkPackage, want)
 			}
 			if cfg.HomeDir != filepath.Join(root, "state") {
 				t.Fatal("package alias changed runtime state")
 			}
 			if fixture.name == "default" || fixture.name == "legacy_relative" {
-				archive, err := zip.OpenReader(filepath.Join("..", "..", cfg.SynonLinkPackage))
+				archive, err := zip.OpenReader(filepath.Join("..", "..", cfg.XScienceLinkPackage))
 				if err != nil {
 					t.Fatalf("mapped bundled package cannot be read: %v", err)
 				}
@@ -102,21 +103,21 @@ func TestLoadBrowserConnectorPackageKeepsExactLegacyAliasOnly(t *testing.T) {
 }
 
 func TestLoadDefaultWebSessionOutlivesTwentyFourHourRun(t *testing.T) {
-	t.Setenv("SYNON_CONFIG", "")
-	t.Setenv("SYNON_LINK_AUTH_SESSION_TTL_MINUTES", "")
+	t.Setenv("X_SCIENCE_CONFIG", "")
+	t.Setenv("X_SCIENCE_LINK_AUTH_SESSION_TTL_MINUTES", "")
 
 	cfg, err := Load()
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
-	if cfg.SynonLinkAuth.SessionTTLMinutes != 48*60 {
-		t.Fatalf("SessionTTLMinutes = %d, want 2880", cfg.SynonLinkAuth.SessionTTLMinutes)
+	if cfg.XScienceLinkAuth.SessionTTLMinutes != 48*60 {
+		t.Fatalf("SessionTTLMinutes = %d, want 2880", cfg.XScienceLinkAuth.SessionTTLMinutes)
 	}
 }
 
 func TestLoadUsesV11RunnerModelRetryDefault(t *testing.T) {
-	t.Setenv("SYNON_CONFIG", "")
-	t.Setenv("SYNON_RUNNER_CHAT_MAX_ATTEMPTS", "")
+	t.Setenv("X_SCIENCE_CONFIG", "")
+	t.Setenv("X_SCIENCE_RUNNER_CHAT_MAX_ATTEMPTS", "")
 
 	cfg, err := Load()
 	if err != nil {
@@ -129,12 +130,12 @@ func TestLoadUsesV11RunnerModelRetryDefault(t *testing.T) {
 
 func TestLoadReadsRealJSONConfigAndEnvironment(t *testing.T) {
 	root := t.TempDir()
-	configPath := filepath.Join(root, "synon.json")
+	configPath := filepath.Join(root, "x-science.json")
 	if err := os.WriteFile(configPath, []byte(`{
   "host": "127.0.0.1",
   "port": 18080,
-  "synon_link_package": "assets/synon-link/synon-link-extension-v0.6.10.zip",
-  "synon_link_auth": {
+  "x_science_link_package": "assets/x-science-link/x-science-browser-extension-v0.6.11.zip",
+  "x_science_link_auth": {
     "username": "file-link-user",
     "password": "file-link-password",
     "session_ttl_minutes": 180
@@ -198,20 +199,20 @@ func TestLoadReadsRealJSONConfigAndEnvironment(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Setenv("SYNON_HOME", filepath.Join(root, "state"))
-	t.Setenv("SYNON_CONFIG", configPath)
-	t.Setenv("SYNON_LINK_AUTH_USERNAME", "env-link-user")
-	t.Setenv("SYNON_LINK_AUTH_PASSWORD", "env-link-password")
-	t.Setenv("SYNON_LINK_AUTH_SESSION_TTL_MINUTES", "240")
-	t.Setenv("SYNON_AUTH_PUBLIC_BASE_URL", "https://biomed.example/")
-	t.Setenv("SYNON_AUTH_GOOGLE_CLIENT_ID", "google-client-id")
-	t.Setenv("SYNON_AUTH_GOOGLE_CLIENT_SECRET", "google-client-secret")
-	t.Setenv("SYNON_AUTH_APPLE_CLIENT_ID", "com.synon.biomed.web")
-	t.Setenv("SYNON_AUTH_APPLE_TEAM_ID", "apple-team-id")
-	t.Setenv("SYNON_AUTH_APPLE_KEY_ID", "apple-key-id")
-	t.Setenv("SYNON_AUTH_APPLE_PRIVATE_KEY_B64", base64.StdEncoding.EncodeToString([]byte("apple-private-key")))
-	t.Setenv("SYNON_AUTH_WECHAT_APP_ID", "wechat-app-id")
-	t.Setenv("SYNON_AUTH_WECHAT_APP_SECRET", "wechat-app-secret")
+	t.Setenv("X_SCIENCE_HOME", filepath.Join(root, "state"))
+	t.Setenv("X_SCIENCE_CONFIG", configPath)
+	t.Setenv("X_SCIENCE_LINK_AUTH_USERNAME", "env-link-user")
+	t.Setenv("X_SCIENCE_LINK_AUTH_PASSWORD", "env-link-password")
+	t.Setenv("X_SCIENCE_LINK_AUTH_SESSION_TTL_MINUTES", "240")
+	t.Setenv("X_SCIENCE_AUTH_PUBLIC_BASE_URL", "https://biomed.example/")
+	t.Setenv("X_SCIENCE_AUTH_GOOGLE_CLIENT_ID", "google-client-id")
+	t.Setenv("X_SCIENCE_AUTH_GOOGLE_CLIENT_SECRET", "google-client-secret")
+	t.Setenv("X_SCIENCE_AUTH_APPLE_CLIENT_ID", "com.x-science.biomed.web")
+	t.Setenv("X_SCIENCE_AUTH_APPLE_TEAM_ID", "apple-team-id")
+	t.Setenv("X_SCIENCE_AUTH_APPLE_KEY_ID", "apple-key-id")
+	t.Setenv("X_SCIENCE_AUTH_APPLE_PRIVATE_KEY_B64", base64.StdEncoding.EncodeToString([]byte("apple-private-key")))
+	t.Setenv("X_SCIENCE_AUTH_WECHAT_APP_ID", "wechat-app-id")
+	t.Setenv("X_SCIENCE_AUTH_WECHAT_APP_SECRET", "wechat-app-secret")
 	t.Setenv("WECHAT_ACCOUNT_ID", "env-account")
 	t.Setenv("WECHAT_BOT_TOKEN", "env-wechat-token")
 	t.Setenv("WECHAT_BASE_URL", "https://env.wechat.example")
@@ -222,34 +223,34 @@ func TestLoadReadsRealJSONConfigAndEnvironment(t *testing.T) {
 	t.Setenv("FEISHU_VERIFICATION_TOKEN", "env-feishu-token")
 	t.Setenv("FEISHU_ENCRYPT_KEY", "env-feishu-encrypt")
 	t.Setenv("FEISHU_DOMAIN", "https://env.feishu.example")
-	t.Setenv("SYNON_PLUGIN_DIRS", "env-plugin-a, env-plugin-b")
-	t.Setenv("SYNON_SKILL_DIRS", "env-skill-a, env-skill-b")
-	t.Setenv("SYNON_ENABLED_ADAPTERS", "feishu, wechat, feishu")
-	t.Setenv("SYNON_RUNNER_ENABLED", "true")
-	t.Setenv("SYNON_RUNNER_ID", "env-runner")
-	t.Setenv("SYNON_RUNNER_PROVIDER", "openai_chat")
-	t.Setenv("SYNON_RUNNER_COMMAND", "env-runner-command")
-	t.Setenv("SYNON_RUNNER_ARGS_JSON", `["--env","1"]`)
-	t.Setenv("SYNON_RUNNER_CHAT_ENDPOINT", "https://env.model.example/v1/chat/completions")
-	t.Setenv("SYNON_RUNNER_CHAT_API_KEY", "env-model-key")
-	t.Setenv("SYNON_RUNNER_CHAT_MODEL", "env-model")
-	t.Setenv("SYNON_RUNNER_CHAT_SYSTEM_PROMPT", "env system prompt")
-	t.Setenv("SYNON_RUNNER_CHAT_TOOLS", "task_create, runtime_set")
-	t.Setenv("SYNON_RUNNER_CHAT_TIMEOUT_SECONDS", "30")
-	t.Setenv("SYNON_RUNNER_CHAT_TOOL_ROUND_LIMIT", "4")
-	t.Setenv("SYNON_RUNNER_CHAT_TOOL_CALL_BATCH_LIMIT", "7")
-	t.Setenv("SYNON_RUNNER_CHAT_MAX_ATTEMPTS", "2")
-	t.Setenv("SYNON_RUNNER_CHAT_WORKERS", "5")
-	t.Setenv("SYNON_RUNNER_COMMAND_TIMEOUT_SECONDS", "90")
-	t.Setenv("SYNON_RUNNER_POLL_INTERVAL_MS", "1250")
-	t.Setenv("SYNON_RUNNER_LEASE_TTL_SECONDS", "180")
-	t.Setenv("SYNON_RUNNER_REPLAY_LIMIT", "50")
-	t.Setenv("SYNON_RUNNER_OUTPUT_LIMIT_BYTES", "4096")
-	t.Setenv("SYNON_COMPACT_SUMMARIZER_ENDPOINT", "https://env.compact.example/v1/chat/completions")
-	t.Setenv("SYNON_COMPACT_SUMMARIZER_API_KEY", "env-compact-key")
-	t.Setenv("SYNON_COMPACT_SUMMARIZER_MODEL", "env-compact-model")
-	t.Setenv("SYNON_COMPACT_SUMMARIZER_TIMEOUT_SECONDS", "25")
-	t.Setenv("SYNON_COMPACT_SUMMARIZER_MAX_ATTEMPTS", "3")
+	t.Setenv("X_SCIENCE_PLUGIN_DIRS", "env-plugin-a, env-plugin-b")
+	t.Setenv("X_SCIENCE_SKILL_DIRS", "env-skill-a, env-skill-b")
+	t.Setenv("X_SCIENCE_ENABLED_ADAPTERS", "feishu, wechat, feishu")
+	t.Setenv("X_SCIENCE_RUNNER_ENABLED", "true")
+	t.Setenv("X_SCIENCE_RUNNER_ID", "env-runner")
+	t.Setenv("X_SCIENCE_RUNNER_PROVIDER", "openai_chat")
+	t.Setenv("X_SCIENCE_RUNNER_COMMAND", "env-runner-command")
+	t.Setenv("X_SCIENCE_RUNNER_ARGS_JSON", `["--env","1"]`)
+	t.Setenv("X_SCIENCE_RUNNER_CHAT_ENDPOINT", "https://env.model.example/v1/chat/completions")
+	t.Setenv("X_SCIENCE_RUNNER_CHAT_API_KEY", "env-model-key")
+	t.Setenv("X_SCIENCE_RUNNER_CHAT_MODEL", "env-model")
+	t.Setenv("X_SCIENCE_RUNNER_CHAT_SYSTEM_PROMPT", "env system prompt")
+	t.Setenv("X_SCIENCE_RUNNER_CHAT_TOOLS", "task_create, runtime_set")
+	t.Setenv("X_SCIENCE_RUNNER_CHAT_TIMEOUT_SECONDS", "30")
+	t.Setenv("X_SCIENCE_RUNNER_CHAT_TOOL_ROUND_LIMIT", "4")
+	t.Setenv("X_SCIENCE_RUNNER_CHAT_TOOL_CALL_BATCH_LIMIT", "7")
+	t.Setenv("X_SCIENCE_RUNNER_CHAT_MAX_ATTEMPTS", "2")
+	t.Setenv("X_SCIENCE_RUNNER_CHAT_WORKERS", "5")
+	t.Setenv("X_SCIENCE_RUNNER_COMMAND_TIMEOUT_SECONDS", "90")
+	t.Setenv("X_SCIENCE_RUNNER_POLL_INTERVAL_MS", "1250")
+	t.Setenv("X_SCIENCE_RUNNER_LEASE_TTL_SECONDS", "180")
+	t.Setenv("X_SCIENCE_RUNNER_REPLAY_LIMIT", "50")
+	t.Setenv("X_SCIENCE_RUNNER_OUTPUT_LIMIT_BYTES", "4096")
+	t.Setenv("X_SCIENCE_COMPACT_SUMMARIZER_ENDPOINT", "https://env.compact.example/v1/chat/completions")
+	t.Setenv("X_SCIENCE_COMPACT_SUMMARIZER_API_KEY", "env-compact-key")
+	t.Setenv("X_SCIENCE_COMPACT_SUMMARIZER_MODEL", "env-compact-model")
+	t.Setenv("X_SCIENCE_COMPACT_SUMMARIZER_TIMEOUT_SECONDS", "25")
+	t.Setenv("X_SCIENCE_COMPACT_SUMMARIZER_MAX_ATTEMPTS", "3")
 
 	cfg, err := Load()
 	if err != nil {
@@ -261,16 +262,16 @@ func TestLoadReadsRealJSONConfigAndEnvironment(t *testing.T) {
 	if cfg.Address() != "127.0.0.1:18080" {
 		t.Fatalf("Address() = %q", cfg.Address())
 	}
-	if cfg.SynonLinkPackage != "assets/synon-link/x-science-browser-extension-v0.6.10.zip" {
-		t.Fatalf("SynonLinkPackage = %q", cfg.SynonLinkPackage)
+	if cfg.XScienceLinkPackage != "assets/x-science-link/x-science-browser-extension-v0.6.11.zip" {
+		t.Fatalf("XScienceLinkPackage = %q", cfg.XScienceLinkPackage)
 	}
-	if cfg.SynonLinkAuth.Username != "env-link-user" || cfg.SynonLinkAuth.Password != "env-link-password" || cfg.SynonLinkAuth.SessionTTLMinutes != 240 {
-		t.Fatalf("SynonLinkAuth = %#v", cfg.SynonLinkAuth)
+	if cfg.XScienceLinkAuth.Username != "env-link-user" || cfg.XScienceLinkAuth.Password != "env-link-password" || cfg.XScienceLinkAuth.SessionTTLMinutes != 240 {
+		t.Fatalf("XScienceLinkAuth = %#v", cfg.XScienceLinkAuth)
 	}
 	if cfg.WebAuth.PublicBaseURL != "https://biomed.example" ||
 		cfg.WebAuth.Google.ClientID != "google-client-id" ||
 		cfg.WebAuth.Google.ClientSecret != "google-client-secret" ||
-		cfg.WebAuth.Apple.ClientID != "com.synon.biomed.web" ||
+		cfg.WebAuth.Apple.ClientID != "com.x-science.biomed.web" ||
 		cfg.WebAuth.Apple.TeamID != "apple-team-id" ||
 		cfg.WebAuth.Apple.KeyID != "apple-key-id" ||
 		cfg.WebAuth.Apple.PrivateKey != "apple-private-key" ||
@@ -377,9 +378,9 @@ func TestLoadReadsRealJSONConfigAndEnvironment(t *testing.T) {
 }
 
 func TestLoadAppliesAddressEnvironmentWithoutConfigFile(t *testing.T) {
-	t.Setenv("SYNON_CONFIG", "")
-	t.Setenv("SYNON_ADDRESS", "0.0.0.0:38123")
-	t.Setenv("SYNON_LINK_AUTH_PASSWORD", "remote-test-password")
+	t.Setenv("X_SCIENCE_CONFIG", "")
+	t.Setenv("X_SCIENCE_ADDRESS", "0.0.0.0:38123")
+	t.Setenv("X_SCIENCE_LINK_AUTH_PASSWORD", "remote-test-password")
 
 	cfg, err := Load()
 	if err != nil {
@@ -391,23 +392,23 @@ func TestLoadAppliesAddressEnvironmentWithoutConfigFile(t *testing.T) {
 }
 
 func TestP2LoadRejectsUnauthenticatedNonLoopbackBinding(t *testing.T) {
-	t.Setenv("SYNON_CONFIG", "")
-	t.Setenv("SYNON_ADDRESS", "0.0.0.0:38123")
-	t.Setenv("SYNON_LINK_AUTH_PASSWORD", "")
+	t.Setenv("X_SCIENCE_CONFIG", "")
+	t.Setenv("X_SCIENCE_ADDRESS", "0.0.0.0:38123")
+	t.Setenv("X_SCIENCE_LINK_AUTH_PASSWORD", "")
 
 	_, err := Load()
-	if err == nil || !strings.Contains(err.Error(), "requires SYNON_LINK_AUTH_PASSWORD") {
+	if err == nil || !strings.Contains(err.Error(), "requires X_SCIENCE_LINK_AUTH_PASSWORD") {
 		t.Fatalf("Load() error = %v", err)
 	}
 }
 
 func TestLoadAllowsNonLoopbackBindingWithGoogleOIDCAndHTTPSOrigin(t *testing.T) {
-	t.Setenv("SYNON_CONFIG", "")
-	t.Setenv("SYNON_ADDRESS", "0.0.0.0:38123")
-	t.Setenv("SYNON_LINK_AUTH_PASSWORD", "")
-	t.Setenv("SYNON_AUTH_PUBLIC_BASE_URL", "https://biomed.example")
-	t.Setenv("SYNON_AUTH_GOOGLE_CLIENT_ID", "google-client-id")
-	t.Setenv("SYNON_AUTH_GOOGLE_CLIENT_SECRET", "google-client-secret")
+	t.Setenv("X_SCIENCE_CONFIG", "")
+	t.Setenv("X_SCIENCE_ADDRESS", "0.0.0.0:38123")
+	t.Setenv("X_SCIENCE_LINK_AUTH_PASSWORD", "")
+	t.Setenv("X_SCIENCE_AUTH_PUBLIC_BASE_URL", "https://biomed.example")
+	t.Setenv("X_SCIENCE_AUTH_GOOGLE_CLIENT_ID", "google-client-id")
+	t.Setenv("X_SCIENCE_AUTH_GOOGLE_CLIENT_SECRET", "google-client-secret")
 
 	cfg, err := Load()
 	if err != nil {
@@ -420,37 +421,37 @@ func TestLoadAllowsNonLoopbackBindingWithGoogleOIDCAndHTTPSOrigin(t *testing.T) 
 }
 
 func TestLoadRejectsInsecureOrPartialGoogleOIDCConfiguration(t *testing.T) {
-	t.Setenv("SYNON_CONFIG", "")
-	t.Setenv("SYNON_AUTH_PUBLIC_BASE_URL", "http://biomed.example")
-	t.Setenv("SYNON_AUTH_GOOGLE_CLIENT_ID", "google-client-id")
+	t.Setenv("X_SCIENCE_CONFIG", "")
+	t.Setenv("X_SCIENCE_AUTH_PUBLIC_BASE_URL", "http://biomed.example")
+	t.Setenv("X_SCIENCE_AUTH_GOOGLE_CLIENT_ID", "google-client-id")
 	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "HTTPS origin") {
 		t.Fatalf("insecure public origin error = %v", err)
 	}
 
-	t.Setenv("SYNON_AUTH_PUBLIC_BASE_URL", "")
-	t.Setenv("SYNON_AUTH_GOOGLE_CLIENT_ID", "")
-	t.Setenv("SYNON_AUTH_GOOGLE_CLIENT_SECRET", "secret-without-client")
-	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "requires SYNON_AUTH_GOOGLE_CLIENT_ID") {
+	t.Setenv("X_SCIENCE_AUTH_PUBLIC_BASE_URL", "")
+	t.Setenv("X_SCIENCE_AUTH_GOOGLE_CLIENT_ID", "")
+	t.Setenv("X_SCIENCE_AUTH_GOOGLE_CLIENT_SECRET", "secret-without-client")
+	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "requires X_SCIENCE_AUTH_GOOGLE_CLIENT_ID") {
 		t.Fatalf("partial Google config error = %v", err)
 	}
 
-	t.Setenv("SYNON_AUTH_PUBLIC_BASE_URL", "https://biomed.example")
-	t.Setenv("SYNON_AUTH_GOOGLE_CLIENT_ID", "google-client-id")
-	t.Setenv("SYNON_AUTH_GOOGLE_CLIENT_SECRET", "")
-	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "requires SYNON_AUTH_GOOGLE_CLIENT_SECRET") {
+	t.Setenv("X_SCIENCE_AUTH_PUBLIC_BASE_URL", "https://biomed.example")
+	t.Setenv("X_SCIENCE_AUTH_GOOGLE_CLIENT_ID", "google-client-id")
+	t.Setenv("X_SCIENCE_AUTH_GOOGLE_CLIENT_SECRET", "")
+	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "requires X_SCIENCE_AUTH_GOOGLE_CLIENT_SECRET") {
 		t.Fatalf("remote public client error = %v", err)
 	}
 }
 
 func TestLoadAllowsNonLoopbackBindingWithWeChatOAuthAndHTTPSOrigin(t *testing.T) {
-	t.Setenv("SYNON_CONFIG", "")
-	t.Setenv("SYNON_ADDRESS", "0.0.0.0:38123")
-	t.Setenv("SYNON_LINK_AUTH_PASSWORD", "")
-	t.Setenv("SYNON_AUTH_GOOGLE_CLIENT_ID", "")
-	t.Setenv("SYNON_AUTH_GOOGLE_CLIENT_SECRET", "")
-	t.Setenv("SYNON_AUTH_PUBLIC_BASE_URL", "https://biomed.example")
-	t.Setenv("SYNON_AUTH_WECHAT_APP_ID", "wechat-app-id")
-	t.Setenv("SYNON_AUTH_WECHAT_APP_SECRET", "wechat-app-secret")
+	t.Setenv("X_SCIENCE_CONFIG", "")
+	t.Setenv("X_SCIENCE_ADDRESS", "0.0.0.0:38123")
+	t.Setenv("X_SCIENCE_LINK_AUTH_PASSWORD", "")
+	t.Setenv("X_SCIENCE_AUTH_GOOGLE_CLIENT_ID", "")
+	t.Setenv("X_SCIENCE_AUTH_GOOGLE_CLIENT_SECRET", "")
+	t.Setenv("X_SCIENCE_AUTH_PUBLIC_BASE_URL", "https://biomed.example")
+	t.Setenv("X_SCIENCE_AUTH_WECHAT_APP_ID", "wechat-app-id")
+	t.Setenv("X_SCIENCE_AUTH_WECHAT_APP_SECRET", "wechat-app-secret")
 
 	cfg, err := Load()
 	if err != nil {
@@ -463,24 +464,24 @@ func TestLoadAllowsNonLoopbackBindingWithWeChatOAuthAndHTTPSOrigin(t *testing.T)
 }
 
 func TestLoadAllowsNonLoopbackBindingWithAppleSignIn(t *testing.T) {
-	t.Setenv("SYNON_CONFIG", "")
-	t.Setenv("SYNON_ADDRESS", "0.0.0.0:38123")
-	t.Setenv("SYNON_LINK_AUTH_PASSWORD", "")
-	t.Setenv("SYNON_AUTH_PUBLIC_BASE_URL", "https://biomed.example")
-	t.Setenv("SYNON_AUTH_GOOGLE_CLIENT_ID", "")
-	t.Setenv("SYNON_AUTH_GOOGLE_CLIENT_SECRET", "")
-	t.Setenv("SYNON_AUTH_WECHAT_APP_ID", "")
-	t.Setenv("SYNON_AUTH_WECHAT_APP_SECRET", "")
-	t.Setenv("SYNON_AUTH_APPLE_CLIENT_ID", "com.synon.biomed.web")
-	t.Setenv("SYNON_AUTH_APPLE_TEAM_ID", "apple-team-id")
-	t.Setenv("SYNON_AUTH_APPLE_KEY_ID", "apple-key-id")
-	t.Setenv("SYNON_AUTH_APPLE_PRIVATE_KEY_B64", base64.StdEncoding.EncodeToString([]byte("apple-private-key")))
+	t.Setenv("X_SCIENCE_CONFIG", "")
+	t.Setenv("X_SCIENCE_ADDRESS", "0.0.0.0:38123")
+	t.Setenv("X_SCIENCE_LINK_AUTH_PASSWORD", "")
+	t.Setenv("X_SCIENCE_AUTH_PUBLIC_BASE_URL", "https://biomed.example")
+	t.Setenv("X_SCIENCE_AUTH_GOOGLE_CLIENT_ID", "")
+	t.Setenv("X_SCIENCE_AUTH_GOOGLE_CLIENT_SECRET", "")
+	t.Setenv("X_SCIENCE_AUTH_WECHAT_APP_ID", "")
+	t.Setenv("X_SCIENCE_AUTH_WECHAT_APP_SECRET", "")
+	t.Setenv("X_SCIENCE_AUTH_APPLE_CLIENT_ID", "com.x-science.biomed.web")
+	t.Setenv("X_SCIENCE_AUTH_APPLE_TEAM_ID", "apple-team-id")
+	t.Setenv("X_SCIENCE_AUTH_APPLE_KEY_ID", "apple-key-id")
+	t.Setenv("X_SCIENCE_AUTH_APPLE_PRIVATE_KEY_B64", base64.StdEncoding.EncodeToString([]byte("apple-private-key")))
 
 	cfg, err := Load()
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
-	if cfg.WebAuth.Apple.ClientID != "com.synon.biomed.web" || cfg.WebAuth.Apple.TeamID != "apple-team-id" {
+	if cfg.WebAuth.Apple.ClientID != "com.x-science.biomed.web" || cfg.WebAuth.Apple.TeamID != "apple-team-id" {
 		t.Fatalf("Apple config = %#v", cfg.WebAuth.Apple)
 	}
 }
@@ -491,16 +492,16 @@ func TestLoadAppliesApplePrivateKeyFile(t *testing.T) {
 	if err := os.WriteFile(keyFile, []byte("apple-private-key"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("SYNON_CONFIG", "")
-	t.Setenv("SYNON_AUTH_PUBLIC_BASE_URL", "https://biomed.example")
-	t.Setenv("SYNON_AUTH_GOOGLE_CLIENT_ID", "")
-	t.Setenv("SYNON_AUTH_GOOGLE_CLIENT_SECRET", "")
-	t.Setenv("SYNON_AUTH_WECHAT_APP_ID", "")
-	t.Setenv("SYNON_AUTH_WECHAT_APP_SECRET", "")
-	t.Setenv("SYNON_AUTH_APPLE_CLIENT_ID", "com.synon.biomed.web")
-	t.Setenv("SYNON_AUTH_APPLE_TEAM_ID", "apple-team-id")
-	t.Setenv("SYNON_AUTH_APPLE_KEY_ID", "apple-key-id")
-	t.Setenv("SYNON_AUTH_APPLE_PRIVATE_KEY_FILE", keyFile)
+	t.Setenv("X_SCIENCE_CONFIG", "")
+	t.Setenv("X_SCIENCE_AUTH_PUBLIC_BASE_URL", "https://biomed.example")
+	t.Setenv("X_SCIENCE_AUTH_GOOGLE_CLIENT_ID", "")
+	t.Setenv("X_SCIENCE_AUTH_GOOGLE_CLIENT_SECRET", "")
+	t.Setenv("X_SCIENCE_AUTH_WECHAT_APP_ID", "")
+	t.Setenv("X_SCIENCE_AUTH_WECHAT_APP_SECRET", "")
+	t.Setenv("X_SCIENCE_AUTH_APPLE_CLIENT_ID", "com.x-science.biomed.web")
+	t.Setenv("X_SCIENCE_AUTH_APPLE_TEAM_ID", "apple-team-id")
+	t.Setenv("X_SCIENCE_AUTH_APPLE_KEY_ID", "apple-key-id")
+	t.Setenv("X_SCIENCE_AUTH_APPLE_PRIVATE_KEY_FILE", keyFile)
 
 	cfg, err := Load()
 	if err != nil {
@@ -512,52 +513,52 @@ func TestLoadAppliesApplePrivateKeyFile(t *testing.T) {
 }
 
 func TestLoadRejectsMultipleApplePrivateKeySources(t *testing.T) {
-	t.Setenv("SYNON_CONFIG", "")
-	t.Setenv("SYNON_AUTH_APPLE_PRIVATE_KEY_B64", base64.StdEncoding.EncodeToString([]byte("apple-private-key")))
-	t.Setenv("SYNON_AUTH_APPLE_PRIVATE_KEY_FILE", filepath.Join(t.TempDir(), "apple-key.p8"))
+	t.Setenv("X_SCIENCE_CONFIG", "")
+	t.Setenv("X_SCIENCE_AUTH_APPLE_PRIVATE_KEY_B64", base64.StdEncoding.EncodeToString([]byte("apple-private-key")))
+	t.Setenv("X_SCIENCE_AUTH_APPLE_PRIVATE_KEY_FILE", filepath.Join(t.TempDir(), "apple-key.p8"))
 	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "configure only one") {
 		t.Fatalf("multiple Apple key sources error = %v", err)
 	}
 }
 
 func TestLoadRejectsPartialAppleSignInConfiguration(t *testing.T) {
-	t.Setenv("SYNON_CONFIG", "")
-	t.Setenv("SYNON_AUTH_PUBLIC_BASE_URL", "https://biomed.example")
-	t.Setenv("SYNON_AUTH_GOOGLE_CLIENT_ID", "")
-	t.Setenv("SYNON_AUTH_GOOGLE_CLIENT_SECRET", "")
-	t.Setenv("SYNON_AUTH_WECHAT_APP_ID", "")
-	t.Setenv("SYNON_AUTH_WECHAT_APP_SECRET", "")
-	t.Setenv("SYNON_AUTH_APPLE_CLIENT_ID", "com.synon.biomed.web")
-	t.Setenv("SYNON_AUTH_APPLE_TEAM_ID", "apple-team-id")
-	t.Setenv("SYNON_AUTH_APPLE_KEY_ID", "")
-	t.Setenv("SYNON_AUTH_APPLE_PRIVATE_KEY_B64", base64.StdEncoding.EncodeToString([]byte("apple-private-key")))
+	t.Setenv("X_SCIENCE_CONFIG", "")
+	t.Setenv("X_SCIENCE_AUTH_PUBLIC_BASE_URL", "https://biomed.example")
+	t.Setenv("X_SCIENCE_AUTH_GOOGLE_CLIENT_ID", "")
+	t.Setenv("X_SCIENCE_AUTH_GOOGLE_CLIENT_SECRET", "")
+	t.Setenv("X_SCIENCE_AUTH_WECHAT_APP_ID", "")
+	t.Setenv("X_SCIENCE_AUTH_WECHAT_APP_SECRET", "")
+	t.Setenv("X_SCIENCE_AUTH_APPLE_CLIENT_ID", "com.x-science.biomed.web")
+	t.Setenv("X_SCIENCE_AUTH_APPLE_TEAM_ID", "apple-team-id")
+	t.Setenv("X_SCIENCE_AUTH_APPLE_KEY_ID", "")
+	t.Setenv("X_SCIENCE_AUTH_APPLE_PRIVATE_KEY_B64", base64.StdEncoding.EncodeToString([]byte("apple-private-key")))
 	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "Apple Sign in with Apple requires") {
 		t.Fatalf("partial Apple config error = %v", err)
 	}
 }
 
 func TestLoadRejectsPartialWeChatOAuthConfiguration(t *testing.T) {
-	t.Setenv("SYNON_CONFIG", "")
-	t.Setenv("SYNON_AUTH_GOOGLE_CLIENT_ID", "")
-	t.Setenv("SYNON_AUTH_GOOGLE_CLIENT_SECRET", "")
-	t.Setenv("SYNON_AUTH_PUBLIC_BASE_URL", "https://biomed.example")
-	t.Setenv("SYNON_AUTH_WECHAT_APP_ID", "wechat-app-id")
-	t.Setenv("SYNON_AUTH_WECHAT_APP_SECRET", "")
+	t.Setenv("X_SCIENCE_CONFIG", "")
+	t.Setenv("X_SCIENCE_AUTH_GOOGLE_CLIENT_ID", "")
+	t.Setenv("X_SCIENCE_AUTH_GOOGLE_CLIENT_SECRET", "")
+	t.Setenv("X_SCIENCE_AUTH_PUBLIC_BASE_URL", "https://biomed.example")
+	t.Setenv("X_SCIENCE_AUTH_WECHAT_APP_ID", "wechat-app-id")
+	t.Setenv("X_SCIENCE_AUTH_WECHAT_APP_SECRET", "")
 	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "requires both") {
 		t.Fatalf("partial WeChat config error = %v", err)
 	}
 
-	t.Setenv("SYNON_AUTH_PUBLIC_BASE_URL", "")
-	t.Setenv("SYNON_AUTH_WECHAT_APP_SECRET", "wechat-app-secret")
-	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "requires SYNON_AUTH_PUBLIC_BASE_URL") {
+	t.Setenv("X_SCIENCE_AUTH_PUBLIC_BASE_URL", "")
+	t.Setenv("X_SCIENCE_AUTH_WECHAT_APP_SECRET", "wechat-app-secret")
+	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "requires X_SCIENCE_AUTH_PUBLIC_BASE_URL") {
 		t.Fatalf("missing public origin error = %v", err)
 	}
 }
 
 func TestLoadAppliesHostPortEnvironmentWithoutConfigFile(t *testing.T) {
-	t.Setenv("SYNON_CONFIG", "")
-	t.Setenv("SYNON_HOST", "127.0.0.2")
-	t.Setenv("SYNON_PORT", "38124")
+	t.Setenv("X_SCIENCE_CONFIG", "")
+	t.Setenv("X_SCIENCE_HOST", "127.0.0.2")
+	t.Setenv("X_SCIENCE_PORT", "38124")
 
 	cfg, err := Load()
 	if err != nil {
@@ -569,20 +570,20 @@ func TestLoadAppliesHostPortEnvironmentWithoutConfigFile(t *testing.T) {
 }
 
 func TestLoadAppliesWebRootEnvironmentWithoutConfigFile(t *testing.T) {
-	t.Setenv("SYNON_CONFIG", "")
-	t.Setenv("SYNON_WEB_ROOT", "/opt/synon-go/web")
+	t.Setenv("X_SCIENCE_CONFIG", "")
+	t.Setenv("X_SCIENCE_WEB_ROOT", "/opt/x-science/web")
 
 	cfg, err := Load()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.WebRoot != "/opt/synon-go/web" {
+	if cfg.WebRoot != "/opt/x-science/web" {
 		t.Fatalf("WebRoot = %q", cfg.WebRoot)
 	}
 }
 
 func TestLoadAppliesWeChatEnvironmentWithoutConfigFile(t *testing.T) {
-	t.Setenv("SYNON_CONFIG", "")
+	t.Setenv("X_SCIENCE_CONFIG", "")
 	t.Setenv("WECHAT_ACCOUNT_ID", "env-only-account")
 	t.Setenv("WECHAT_BOT_TOKEN", "env-only-token")
 	t.Setenv("WECHAT_BASE_URL", "https://env-only.wechat.example")
@@ -603,7 +604,7 @@ func TestLoadAppliesWeChatEnvironmentWithoutConfigFile(t *testing.T) {
 }
 
 func TestLoadAppliesFeishuEnvironmentWithoutConfigFile(t *testing.T) {
-	t.Setenv("SYNON_CONFIG", "")
+	t.Setenv("X_SCIENCE_CONFIG", "")
 	t.Setenv("FEISHU_APP_ID", "env-only-feishu-app")
 	t.Setenv("FEISHU_APP_SECRET", "env-only-feishu-secret")
 	t.Setenv("FEISHU_VERIFICATION_TOKEN", "env-only-feishu-token")
@@ -632,12 +633,12 @@ func TestLoadAppliesFeishuEnvironmentWithoutConfigFile(t *testing.T) {
 }
 
 func TestLoadAppliesFeedbackEnvironmentWithoutConfigFile(t *testing.T) {
-	t.Setenv("SYNON_CONFIG", "")
+	t.Setenv("X_SCIENCE_CONFIG", "")
 	t.Setenv("OPERON_SERVICE_URL", " https://feedback.example/base ")
-	t.Setenv("SYNON_FEEDBACK_TOKEN", " feedback-token ")
-	t.Setenv("SYNON_FEEDBACK_BETA", " beta-a ")
-	t.Setenv("SYNON_FEEDBACK_DISABLED", "true")
-	t.Setenv("SYNON_DISABLE_TELEMETRY", "true")
+	t.Setenv("X_SCIENCE_FEEDBACK_TOKEN", " feedback-token ")
+	t.Setenv("X_SCIENCE_FEEDBACK_BETA", " beta-a ")
+	t.Setenv("X_SCIENCE_FEEDBACK_DISABLED", "true")
+	t.Setenv("X_SCIENCE_DISABLE_TELEMETRY", "true")
 
 	cfg, err := Load()
 	if err != nil {
@@ -651,17 +652,17 @@ func TestLoadAppliesFeedbackEnvironmentWithoutConfigFile(t *testing.T) {
 }
 
 func TestLoadRejectsInvalidFeedbackDisabledEnvironment(t *testing.T) {
-	t.Setenv("SYNON_CONFIG", "")
-	t.Setenv("SYNON_FEEDBACK_DISABLED", "sometimes")
+	t.Setenv("X_SCIENCE_CONFIG", "")
+	t.Setenv("X_SCIENCE_FEEDBACK_DISABLED", "sometimes")
 
 	if _, err := Load(); err == nil {
-		t.Fatal("Load() accepted invalid SYNON_FEEDBACK_DISABLED")
+		t.Fatal("Load() accepted invalid X_SCIENCE_FEEDBACK_DISABLED")
 	}
 }
 
 func TestLoadRejectsUnsupportedEnabledAdapter(t *testing.T) {
-	t.Setenv("SYNON_CONFIG", "")
-	t.Setenv("SYNON_ENABLED_ADAPTERS", "feishu, unknown-channel")
+	t.Setenv("X_SCIENCE_CONFIG", "")
+	t.Setenv("X_SCIENCE_ENABLED_ADAPTERS", "feishu, unknown-channel")
 
 	_, err := Load()
 	if err == nil || !strings.Contains(err.Error(), "unsupported enabled adapter: unknown-channel") {
@@ -672,8 +673,8 @@ func TestLoadRejectsUnsupportedEnabledAdapter(t *testing.T) {
 func TestLoadRejectsRetiredTelegramAndDingTalkAdapters(t *testing.T) {
 	for _, adapter := range []string{"telegram", "dingtalk"} {
 		t.Run(adapter, func(t *testing.T) {
-			t.Setenv("SYNON_CONFIG", "")
-			t.Setenv("SYNON_ENABLED_ADAPTERS", adapter)
+			t.Setenv("X_SCIENCE_CONFIG", "")
+			t.Setenv("X_SCIENCE_ENABLED_ADAPTERS", adapter)
 
 			_, err := Load()
 			if err == nil || !strings.Contains(err.Error(), "unsupported enabled adapter: "+adapter) {
@@ -684,7 +685,7 @@ func TestLoadRejectsRetiredTelegramAndDingTalkAdapters(t *testing.T) {
 }
 
 func TestLoadAcceptsUnlimitedRunnerToolRoundsFromRealConfig(t *testing.T) {
-	configPath := filepath.Join(t.TempDir(), "synon.json")
+	configPath := filepath.Join(t.TempDir(), "x-science.json")
 	if err := os.WriteFile(configPath, []byte(`{
   "runner": {
     "enabled": true,
@@ -694,8 +695,8 @@ func TestLoadAcceptsUnlimitedRunnerToolRoundsFromRealConfig(t *testing.T) {
 }`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("SYNON_CONFIG", configPath)
-	t.Setenv("SYNON_RUNNER_CHAT_TOOL_ROUND_LIMIT", "")
+	t.Setenv("X_SCIENCE_CONFIG", configPath)
+	t.Setenv("X_SCIENCE_RUNNER_CHAT_TOOL_ROUND_LIMIT", "")
 
 	cfg, err := Load()
 	if err != nil {
@@ -707,8 +708,8 @@ func TestLoadAcceptsUnlimitedRunnerToolRoundsFromRealConfig(t *testing.T) {
 }
 
 func TestLoadAcceptsUnlimitedRunnerToolRoundsFromEnvironment(t *testing.T) {
-	t.Setenv("SYNON_CONFIG", "")
-	t.Setenv("SYNON_RUNNER_CHAT_TOOL_ROUND_LIMIT", "0")
+	t.Setenv("X_SCIENCE_CONFIG", "")
+	t.Setenv("X_SCIENCE_RUNNER_CHAT_TOOL_ROUND_LIMIT", "0")
 
 	cfg, err := Load()
 	if err != nil {
@@ -720,8 +721,8 @@ func TestLoadAcceptsUnlimitedRunnerToolRoundsFromEnvironment(t *testing.T) {
 }
 
 func TestLoadAcceptsUnlimitedRunnerToolCallBatchFromEnvironment(t *testing.T) {
-	t.Setenv("SYNON_CONFIG", "")
-	t.Setenv("SYNON_RUNNER_CHAT_TOOL_CALL_BATCH_LIMIT", "0")
+	t.Setenv("X_SCIENCE_CONFIG", "")
+	t.Setenv("X_SCIENCE_RUNNER_CHAT_TOOL_CALL_BATCH_LIMIT", "0")
 
 	cfg, err := Load()
 	if err != nil {
@@ -733,21 +734,21 @@ func TestLoadAcceptsUnlimitedRunnerToolCallBatchFromEnvironment(t *testing.T) {
 }
 
 func TestLoadRejectsNegativeRunnerToolCallBatchLimit(t *testing.T) {
-	t.Setenv("SYNON_CONFIG", "")
-	t.Setenv("SYNON_RUNNER_CHAT_TOOL_CALL_BATCH_LIMIT", "-1")
+	t.Setenv("X_SCIENCE_CONFIG", "")
+	t.Setenv("X_SCIENCE_RUNNER_CHAT_TOOL_CALL_BATCH_LIMIT", "-1")
 
 	_, err := Load()
-	if err == nil || !strings.Contains(err.Error(), "SYNON_RUNNER_CHAT_TOOL_CALL_BATCH_LIMIT") {
+	if err == nil || !strings.Contains(err.Error(), "X_SCIENCE_RUNNER_CHAT_TOOL_CALL_BATCH_LIMIT") {
 		t.Fatalf("Load() error = %v, want invalid negative tool-call batch limit", err)
 	}
 }
 
 func TestLoadRejectsNegativeRunnerToolRoundLimit(t *testing.T) {
-	t.Setenv("SYNON_CONFIG", "")
-	t.Setenv("SYNON_RUNNER_CHAT_TOOL_ROUND_LIMIT", "-1")
+	t.Setenv("X_SCIENCE_CONFIG", "")
+	t.Setenv("X_SCIENCE_RUNNER_CHAT_TOOL_ROUND_LIMIT", "-1")
 
 	_, err := Load()
-	if err == nil || !strings.Contains(err.Error(), "SYNON_RUNNER_CHAT_TOOL_ROUND_LIMIT") {
+	if err == nil || !strings.Contains(err.Error(), "X_SCIENCE_RUNNER_CHAT_TOOL_ROUND_LIMIT") {
 		t.Fatalf("Load() error = %v, want invalid negative tool-round limit", err)
 	}
 }
@@ -764,8 +765,8 @@ func TestLoadValidatesRunnerReplayLimitBoundary(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			t.Setenv("SYNON_CONFIG", "")
-			t.Setenv("SYNON_RUNNER_REPLAY_LIMIT", strconv.FormatInt(test.limit, 10))
+			t.Setenv("X_SCIENCE_CONFIG", "")
+			t.Setenv("X_SCIENCE_RUNNER_REPLAY_LIMIT", strconv.FormatInt(test.limit, 10))
 
 			cfg, err := Load()
 			if test.wantErr {

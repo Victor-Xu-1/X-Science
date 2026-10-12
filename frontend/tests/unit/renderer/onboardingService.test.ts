@@ -24,26 +24,26 @@ vi.mock('@/common', () => ({
   },
 }));
 
-vi.mock('@/renderer/services/synonBiomedCapabilities', () => ({
-  loadSynonBiomedAgents: mocks.loadAgents,
-  loadSynonBiomedMcpServers: mocks.loadConnectors,
-  loadSynonBiomedSkills: mocks.loadSkills,
-  setSynonBiomedMcpConnectorEnabled: mocks.setConnectorEnabled,
-  setSynonBiomedSkillEnabled: mocks.setSkillEnabled,
-  toSynonAIAssistant: (agent: { name: string }) => ({
-    id: `synonbiomed:${agent.name.toLowerCase().replaceAll('_', '-')}`,
+vi.mock('@/renderer/services/xScienceCapabilities', () => ({
+  loadXScienceAgents: mocks.loadAgents,
+  loadXScienceMcpServers: mocks.loadConnectors,
+  loadXScienceSkills: mocks.loadSkills,
+  setXScienceMcpConnectorEnabled: mocks.setConnectorEnabled,
+  setXScienceSkillEnabled: mocks.setSkillEnabled,
+  toXScienceAssistant: (agent: { name: string }) => ({
+    id: `xscience:${agent.name.toLowerCase().replaceAll('_', '-')}`,
   }),
 }));
 
-vi.mock('@/renderer/services/synonBiomedGateway', () => ({
-  createSynonBiomedProject: mocks.createProject,
-  loadSynonBiomedProjects: mocks.loadProjects,
-  updateSynonBiomedProject: mocks.updateProject,
+vi.mock('@/renderer/services/xScienceGateway', () => ({
+  createXScienceProject: mocks.createProject,
+  loadXScienceProjects: mocks.loadProjects,
+  updateXScienceProject: mocks.updateProject,
 }));
 
-vi.mock('@/renderer/services/synonBiomedWorkspaceSettings', () => ({
-  loadSynonBiomedNetworkSettings: mocks.loadNetwork,
-  updateSynonBiomedAllowlistGroups: mocks.updateNetwork,
+vi.mock('@/renderer/services/xScienceWorkspaceSettings', () => ({
+  loadXScienceNetworkSettings: mocks.loadNetwork,
+  updateXScienceAllowlistGroups: mocks.updateNetwork,
 }));
 
 import {
@@ -55,7 +55,7 @@ import {
   prepareOnboardingSuggestionArtifacts,
   saveOnboardingCapabilities,
   uploadOnboardingAttachment,
-  uploadSynonBiomedProjectAttachment,
+  uploadXScienceProjectAttachment,
   type OnboardingArtifactCacheEntry,
 } from '@/renderer/services/onboardingService';
 import { BackendHttpError } from '@/common/adapter/httpBridge';
@@ -170,7 +170,7 @@ describe('onboarding service', () => {
           })
         );
       }
-      if (path === '/api/assistants/synonbiomed%3Aoperon') {
+      if (path === '/api/assistants/xscience%3Aoperon') {
         return Promise.resolve(
           jsonResponse({
             success: true,
@@ -189,7 +189,7 @@ describe('onboarding service', () => {
     const result = await loadOnboardingSnapshot({ fetchImpl });
 
     expect(result.complete).toBe(false);
-    expect(result.assistantId).toBe('synonbiomed:operon');
+    expect(result.assistantId).toBe('xscience:operon');
     expect(result.assistantName).toBe('OPERON');
     expect(result.allowedConnectorIds).toEqual(['pubmed']);
     expect(result.allowedSkillNames).toEqual(['literature']);
@@ -253,7 +253,7 @@ describe('onboarding service', () => {
     const fetchImpl = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ message: 'localized wording is not a contract' }), {
         status: 403,
-        headers: { 'Content-Type': 'application/json', 'X-Synon-Error-Code': 'CSRF_INVALID' },
+        headers: { 'Content-Type': 'application/json', 'X-Science-Error-Code': 'CSRF_INVALID' },
       })
     );
     mocks.updateNetwork.mockImplementation(async (_groups: string[], options: { fetchImpl: typeof fetch }) =>
@@ -472,7 +472,7 @@ describe('onboarding service', () => {
       );
 
     await expect(
-      uploadSynonBiomedProjectAttachment('project-1', file, {
+      uploadXScienceProjectAttachment('project-1', file, {
         fetchImpl,
         pending: { projectId: 'project-1', uploadId: 'upload-resumed' },
       })
@@ -524,13 +524,13 @@ describe('onboarding service', () => {
       );
 
     await expect(
-      uploadSynonBiomedProjectAttachment('project-1', file, { fetchImpl, onInitialized, onAbandoned })
+      uploadXScienceProjectAttachment('project-1', file, { fetchImpl, onInitialized, onAbandoned })
     ).rejects.toThrow('chunk final response lost');
     expect(onInitialized).toHaveBeenCalledWith({ projectId: 'project-1', uploadId: 'upload-recover' });
     expect(onAbandoned).not.toHaveBeenCalled();
 
     await expect(
-      uploadSynonBiomedProjectAttachment('project-1', file, {
+      uploadXScienceProjectAttachment('project-1', file, {
         fetchImpl,
         pending: { projectId: 'project-1', uploadId: 'upload-recover' },
         onAbandoned,
@@ -588,7 +588,7 @@ describe('onboarding service', () => {
       {
         projectId: 'project-1',
         projectName: 'Getting started',
-        assistantId: 'synonbiomed:operon',
+        assistantId: 'xscience:operon',
         assistantName: 'OPERON',
         task,
         profile: { summary: 'Cancer genomics researcher' },
@@ -611,7 +611,7 @@ describe('onboarding service', () => {
     );
     const update = mocks.updateProject.mock.calls[0][1];
     expect(JSON.parse(update.context)).toMatchObject({
-      schema: 'synonbiomed.onboarding-profile.v2',
+      schema: 'xscience.onboarding-profile.v2',
       researcher: {
         summary: 'Cancer genomics researcher',
         attachments: ['cohort.csv'],
@@ -631,10 +631,10 @@ describe('onboarding service', () => {
       expect.objectContaining({
         name: taskTitle,
         assistant: {
-          id: 'synonbiomed:operon',
+          id: 'xscience:operon',
           conversation_overrides: { mcp_ids: ['pubmed'] },
         },
-        extra: expect.objectContaining({ backend: 'synonbiomed', project_id: 'project-1' }),
+        extra: expect.objectContaining({ backend: 'xscience', project_id: 'project-1' }),
       })
     );
     // The first task is staged, never sent: the payload waits in sessionStorage
@@ -721,7 +721,7 @@ describe('onboarding service', () => {
     const input = {
       projectId: 'project-1',
       projectName: 'Getting started',
-      assistantId: 'synonbiomed:operon',
+      assistantId: 'xscience:operon',
       assistantName: 'OPERON',
       task: 'Analyze the uploaded cohort',
       profile: { summary: '' },
@@ -775,7 +775,7 @@ describe('onboarding service', () => {
     const input = {
       projectId: 'project-1',
       projectName: 'Getting started',
-      assistantId: 'synonbiomed:operon',
+      assistantId: 'xscience:operon',
       assistantName: 'OPERON',
       task: 'Start the exact first task',
       profile: { summary: '' },

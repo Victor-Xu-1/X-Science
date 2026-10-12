@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestProvenanceCensusAPIUsesLiveWorkspaceAndV11CacheKeys(t *testing.T) {

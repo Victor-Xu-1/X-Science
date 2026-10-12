@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/skills"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/skills"
 )
 
 func TestKernelHostSkillsAndAgentsRegistryBridge(t *testing.T) {
@@ -96,7 +96,7 @@ func TestKernelCapabilityInstallFullAccessSkipsFrontendApproval(t *testing.T) {
 	if _, err := store.SetFrameRuntimeMetadata(identity.access.Frame.ID, workspace.FrameRuntimeMetadata{
 		FrameID: identity.access.Frame.ID,
 		ContextData: map[string]any{"web_assistant": map[string]any{
-			"id": "synonbiomed:operon", "conversation_overrides": map[string]any{"permission": "allow"},
+			"id": "xscience:operon", "conversation_overrides": map[string]any{"permission": "allow"},
 		}},
 	}); err != nil {
 		t.Fatal(err)
@@ -125,7 +125,7 @@ func TestSwitchingToFullAccessAutoApprovesVisibleCapabilityRequest(t *testing.T)
 	if _, err := store.SetFrameRuntimeMetadata(identity.access.Frame.ID, workspace.FrameRuntimeMetadata{
 		FrameID: identity.access.Frame.ID,
 		ContextData: map[string]any{"web_assistant": map[string]any{
-			"id": "synonbiomed:operon", "conversation_overrides": map[string]any{"permission": "default"},
+			"id": "xscience:operon", "conversation_overrides": map[string]any{"permission": "default"},
 		}},
 	}); err != nil {
 		t.Fatal(err)
@@ -169,7 +169,7 @@ func TestFullAccessConfirmationsReadConvergesLegacyVisibleCapabilityRequest(t *t
 	if _, err := store.SetFrameRuntimeMetadata(identity.access.Frame.ID, workspace.FrameRuntimeMetadata{
 		FrameID: identity.access.Frame.ID,
 		ContextData: map[string]any{"web_assistant": map[string]any{
-			"id": "synonbiomed:operon", "conversation_overrides": map[string]any{"permission": "default"},
+			"id": "xscience:operon", "conversation_overrides": map[string]any{"permission": "default"},
 		}},
 	}); err != nil {
 		t.Fatal(err)
@@ -199,7 +199,7 @@ func TestFullAccessConfirmationsReadConvergesLegacyVisibleCapabilityRequest(t *t
 		t.Fatalf("frame found=%t err=%v", found, err)
 	}
 	request := newLoopbackTestRequest("GET", "/api/conversations/"+current.ID+"/confirmations", nil)
-	request.Header.Set("X-Synon-User-Id", identity.access.UserID)
+	request.Header.Set("X-Science-User-Id", identity.access.UserID)
 	response := httptest.NewRecorder()
 	app.handleWebConversationConfirmations(response, request, current)
 	if response.Code != 200 {
@@ -239,7 +239,7 @@ func TestSwitchingRootToFullAccessReleasesChildCapabilityApproval(t *testing.T) 
 	if _, err := store.SetFrameRuntimeMetadata(rootID, workspace.FrameRuntimeMetadata{
 		FrameID: rootID,
 		ContextData: map[string]any{"web_assistant": map[string]any{
-			"id": "synonbiomed:operon", "conversation_overrides": map[string]any{"permission": "default"},
+			"id": "xscience:operon", "conversation_overrides": map[string]any{"permission": "default"},
 		}},
 	}); err != nil {
 		t.Fatal(err)

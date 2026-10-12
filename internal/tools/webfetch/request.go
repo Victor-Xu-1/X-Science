@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"synon-go/internal/httpreliability"
-	"synon-go/internal/mcpdirectory"
+	"x-science/internal/httpreliability"
+	"x-science/internal/mcpdirectory"
 )
 
 func fetchWebResponse(ctx context.Context, target string, options Options,

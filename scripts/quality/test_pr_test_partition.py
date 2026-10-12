@@ -37,7 +37,7 @@ class AffectedPartitionTests(unittest.TestCase):
             shard.select({"product": ["TestOne", "TestOne"]}, 0, 4)
 
     def test_real_go_shards_retain_subtests_seeds_examples_and_failure(self):
-        with tempfile.TemporaryDirectory(prefix="synon-pr-partition-") as temporary:
+        with tempfile.TemporaryDirectory(prefix="x-science-pr-partition-") as temporary:
             root = Path(temporary)
             repo = root / "source"
             repo.mkdir()

@@ -15,7 +15,7 @@ import (
 
 	"github.com/google/uuid"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 var compatibilityPlanContextKeys = []string{
@@ -483,7 +483,7 @@ func (s *Store) stageCompatibilityEditedPlan(
 	approvalFingerprint string,
 	content []byte,
 ) (*compatibilityEditedPlanStage, error) {
-	versionID := uuid.NewSHA1(uuid.NameSpaceURL, []byte("synon-plan-edit:v1:"+approvalFingerprint)).String()
+	versionID := uuid.NewSHA1(uuid.NameSpaceURL, []byte("x-science-plan-edit:v1:"+approvalFingerprint)).String()
 	temporary, size, digest, err := s.stageArtifactWrite(ctx, bytes.NewReader(content), 4<<20)
 	if err != nil {
 		return nil, err

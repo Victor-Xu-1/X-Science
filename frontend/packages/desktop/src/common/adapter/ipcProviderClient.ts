@@ -34,9 +34,9 @@ export const googleAuth = {
 // X-Science expert diagnostics
 // ---------------------------------------------------------------------------
 
-export const synonBiomed = {
-  getManagedAgents: httpGet<import('@/renderer/utils/synonBiomed/runtime/runtimeTypes').ManagedAgent[], void>(
-    '/api/synonbiomed/experts'
+export const xScience = {
+  getManagedAgents: httpGet<import('@/renderer/utils/xScience/runtime/runtimeTypes').ManagedAgent[], void>(
+    '/api/x-science/experts'
   ),
 };
 

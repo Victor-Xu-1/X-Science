@@ -5,7 +5,7 @@ import (
 	"errors"
 	"os"
 
-	"synon-go/internal/tools/shellops"
+	"x-science/internal/tools/shellops"
 )
 
 // Admission and shutdown share one lock, so Wait cannot race a new zero-to-one

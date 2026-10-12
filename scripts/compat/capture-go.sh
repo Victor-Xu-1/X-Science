@@ -80,10 +80,10 @@ if ss -ltn "( sport = :$PORT )" | grep -q ":$PORT"; then
   exit 1
 fi
 
-STATE_DIR=$(mktemp -d "/tmp/synon-go-oracle.XXXXXX")
+STATE_DIR=$(mktemp -d "/tmp/x-science-oracle.XXXXXX")
 HOME_DIR="$STATE_DIR/home"
 USER_HOME="$STATE_DIR/user-home"
-SERVER_BIN="$STATE_DIR/synon-go"
+SERVER_BIN="$STATE_DIR/x-science"
 SERVER_LOG="$STATE_DIR/server.log"
 SERVER_PID=""
 mkdir -p "$HOME_DIR" "$USER_HOME/.config"
@@ -104,7 +104,7 @@ cleanup() {
     wait "$SERVER_PID" >/dev/null 2>&1 || true
   fi
   case "$STATE_DIR" in
-  /tmp/synon-go-oracle.*)
+  /tmp/x-science-oracle.*)
     rm -rf -- "$STATE_DIR"
     ;;
   *)
@@ -117,16 +117,16 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 cd "$ROOT_DIR"
-go build -trimpath -o "$SERVER_BIN" ./cmd/synon
+go build -trimpath -o "$SERVER_BIN" ./cmd/x-science
 
 SERVER_ENV=(
   "HOME=$USER_HOME"
   "XDG_CONFIG_HOME=$USER_HOME/.config"
-  "SYNON_ADDRESS=127.0.0.1:$PORT"
-  "SYNON_RUNNER_ENABLED=${SYNON_GO_RUNNER_ENABLED:-false}"
+  "X_SCIENCE_ADDRESS=127.0.0.1:$PORT"
+  "X_SCIENCE_RUNNER_ENABLED=${X_SCIENCE_GO_RUNNER_ENABLED:-false}"
 )
-if [[ "${SYNON_GO_ORACLE_DEFAULT_DATA_DIR:-false}" != "true" ]]; then
-  SERVER_ENV+=("SYNON_HOME=$HOME_DIR")
+if [[ "${X_SCIENCE_GO_ORACLE_DEFAULT_DATA_DIR:-false}" != "true" ]]; then
+  SERVER_ENV+=("X_SCIENCE_HOME=$HOME_DIR")
 fi
 env "${SERVER_ENV[@]}" "$SERVER_BIN" serve >"$SERVER_LOG" 2>&1 &
 SERVER_PID=$!
@@ -154,6 +154,6 @@ fi
   --root "$ROOT_DIR" \
   --scenario "$SCENARIO" \
   --base-url "http://127.0.0.1:$PORT" \
-  --runtime synon-go-v4.0.2 \
+  --runtime x-science-v4.0.2 \
   --output "$OUTPUT" \
   --force

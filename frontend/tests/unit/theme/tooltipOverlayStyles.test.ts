@@ -12,11 +12,11 @@ describe('arco tooltip and popover overlay styles', () => {
   it('defines shared light and dark overlay tokens for tooltip-like surfaces', () => {
     const css = fs.readFileSync(arcoOverridePath, 'utf8');
 
-    expect(css).toContain('--synon-ai-overlay-bg: var(--synon-overlay-surface, #ffffff);');
-    expect(css).toContain('--synon-ai-overlay-text: var(--workspace-text, #1d2129);');
+    expect(css).toContain('--x-science-overlay-bg: var(--x-science-overlay-surface, #ffffff);');
+    expect(css).toContain('--x-science-overlay-text: var(--workspace-text, #1d2129);');
     expect(css).toContain("body[arco-theme='dark'] {");
-    expect(css).toContain('--synon-ai-overlay-bg: var(--synon-overlay-surface, #1b252c);');
-    expect(css).toContain('--synon-ai-overlay-text: var(--workspace-text, #f2f3f5);');
+    expect(css).toContain('--x-science-overlay-bg: var(--x-science-overlay-surface, #1b252c);');
+    expect(css).toContain('--x-science-overlay-text: var(--workspace-text, #f2f3f5);');
   });
 
   it('applies the shared overlay tokens to tooltip, popover, and popconfirm surfaces', () => {
@@ -25,9 +25,9 @@ describe('arco tooltip and popover overlay styles', () => {
     expect(css).toContain('.arco-tooltip-content,');
     expect(css).toContain('.arco-popover-content,');
     expect(css).toContain('.arco-popconfirm-content {');
-    expect(css).toContain('background: var(--synon-ai-overlay-bg) !important;');
-    expect(css).toContain('color: var(--synon-ai-overlay-text) !important;');
-    expect(css).toContain('border: 1px solid var(--synon-ai-overlay-border) !important;');
+    expect(css).toContain('background: var(--x-science-overlay-bg) !important;');
+    expect(css).toContain('color: var(--x-science-overlay-text) !important;');
+    expect(css).toContain('border: 1px solid var(--x-science-overlay-border) !important;');
     expect(css).toContain('.arco-trigger-arrow.arco-tooltip-arrow,');
     expect(css).toContain('.arco-popover-arrow.arco-trigger-arrow,');
     expect(css).toContain('.arco-popconfirm-arrow.arco-trigger-arrow {');

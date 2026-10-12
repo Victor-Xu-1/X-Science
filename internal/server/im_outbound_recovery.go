@@ -9,17 +9,17 @@ import (
 	"fmt"
 	"strings"
 
-	adaptercommon "synon-go/internal/adapters/common"
-	eventjournal "synon-go/internal/persistence/journal"
-	secretstore "synon-go/internal/persistence/secrets"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	adaptercommon "x-science/internal/adapters/common"
+	eventjournal "x-science/internal/persistence/journal"
+	secretstore "x-science/internal/persistence/secrets"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 const (
 	imOutboundRouteNamespace      = "im-outbound-routes"
 	imOutboundDeliveryNamespace   = "im-outbound-delivery"
-	internalIMRouteSecretPrefix   = "_synon_internal_im_route_"
-	internalIMRouteSecretProvider = "_synon_internal_im_route"
+	internalIMRouteSecretPrefix   = "_x_science_internal_im_route_"
+	internalIMRouteSecretProvider = "_x_science_internal_im_route"
 	imOutboundRecoveryBatchSize   = 500
 	imOutboundRecoveryLimit       = 5000
 )
@@ -197,7 +197,7 @@ func (s *Server) AuthorizeIMOutbound(binding adaptercommon.IMSessionBinding) err
 		return errors.New("IM outbound route is no longer paired")
 	}
 	ownerUserID := strings.TrimSpace(pairedUser.OwnerUserID)
-	if ownerUserID == "" && (s.synonLinkAuth == nil || !s.synonLinkAuth.enabled) {
+	if ownerUserID == "" && (s.xscienceLinkAuth == nil || !s.xscienceLinkAuth.enabled) {
 		ownerUserID = secretstore.DefaultUserID
 	}
 	if ownerUserID == "" || ownerUserID != strings.TrimSpace(binding.OwnerUserID) {

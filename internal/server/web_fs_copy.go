@@ -31,7 +31,7 @@ func copyWebFSAtomic(source, target string, state *webFSCopyState) error {
 		return err
 	}
 	if info.IsDir() {
-		temp, err := os.MkdirTemp(filepath.Dir(target), ".synon-copy-*")
+		temp, err := os.MkdirTemp(filepath.Dir(target), ".x-science-copy-*")
 		if err != nil {
 			return err
 		}
@@ -48,7 +48,7 @@ func copyWebFSAtomic(source, target string, state *webFSCopyState) error {
 	if state.entries > maxWebFSCopyEntries {
 		return errWebFSTooMany
 	}
-	temp, err := os.CreateTemp(filepath.Dir(target), ".synon-copy-*")
+	temp, err := os.CreateTemp(filepath.Dir(target), ".x-science-copy-*")
 	if err != nil {
 		return err
 	}

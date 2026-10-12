@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestWorkspaceArtifactRoutesEnforceProjectOwnership(t *testing.T) {
@@ -157,7 +157,7 @@ func workspaceArtifactAuthRequest(t *testing.T, method, path, userID string, bod
 		reader = bytes.NewReader(encoded)
 	}
 	request := newLoopbackTestRequest(method, path, reader)
-	request.Header.Set("X-Synon-User-Id", userID)
+	request.Header.Set("X-Science-User-Id", userID)
 	if body != nil {
 		request.Header.Set("Content-Type", "application/json")
 	}

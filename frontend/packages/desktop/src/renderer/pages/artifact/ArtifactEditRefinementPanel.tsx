@@ -1,4 +1,4 @@
-import type { SynonBiomedAppliedArtifactEdit } from '@/renderer/services/synonBiomedAnnotations';
+import type { XScienceAppliedArtifactEdit } from '@/renderer/services/xScienceAnnotations';
 import { Alert, Button, Input, Spin } from '@arco-design/web-react';
 import Modal from '@/renderer/components/base/WorkbenchModal';
 import { CheckOne, Edit, Refresh } from '@icon-park/react';
@@ -15,7 +15,7 @@ export const ArtifactEditRefinementPanel: React.FC<{
   selectedText: string;
   initialInstruction: string;
   onClose: () => void;
-  onApplied: (result: SynonBiomedAppliedArtifactEdit) => void | Promise<void>;
+  onApplied: (result: XScienceAppliedArtifactEdit) => void | Promise<void>;
 }> = ({ artifactId, versionId, selectedText, initialInstruction, onClose, onApplied }) => {
   const { t } = useTranslation();
   const {

@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	eventjournal "synon-go/internal/persistence/journal"
-	sessionstore "synon-go/internal/persistence/sessions"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	eventjournal "x-science/internal/persistence/journal"
+	sessionstore "x-science/internal/persistence/sessions"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestTranscriptCompatibilityCreateAsideUsesSingleAuthority(t *testing.T) {
@@ -161,7 +161,7 @@ func TestTranscriptCompatibilityCreateAsideUsesSingleAuthority(t *testing.T) {
 	seedAnsweredTaskIntake(t, server, "local", asideID)
 	runner, err := server.RunSessionRunnerChatOnce(context.Background(), SessionRunnerChatOptions{
 		SessionID: asideID, RunnerID: "transcript-aside-runner",
-		Endpoint: "builtin://synon-go/deterministic-chat", Model: "synon-go-deterministic",
+		Endpoint: "builtin://x-science/deterministic-chat", Model: "x-science-deterministic",
 		LeaseTTL: time.Minute, ReplayLimit: 20, OutputLimitBytes: 64 * 1024,
 	})
 	if err != nil || !runner.Claimed || runner.Status != "completed" {
@@ -391,8 +391,8 @@ func TestCompatibilityCreateAsideCreatesRunnableRootAndConsumesItWithRealRunner(
 	}
 	runner, err := server.RunSessionRunnerChatOnce(context.Background(), SessionRunnerChatOptions{
 		SessionID: asideID, RunnerID: "aside-runner",
-		Endpoint: "builtin://synon-go/deterministic-chat",
-		Model:    "synon-go-deterministic", LeaseTTL: time.Minute,
+		Endpoint: "builtin://x-science/deterministic-chat",
+		Model:    "x-science-deterministic", LeaseTTL: time.Minute,
 		ReplayLimit: 20, OutputLimitBytes: 64 * 1024,
 	})
 	if err != nil || !runner.Claimed || runner.SessionID != asideID ||

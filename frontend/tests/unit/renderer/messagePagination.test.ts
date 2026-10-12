@@ -5,7 +5,7 @@
  */
 
 import { BackendHttpError } from '@/common/adapter/httpBridge';
-import * as branches from '@/renderer/services/synonBiomedConversationBranches';
+import * as branches from '@/renderer/services/xScienceConversationBranches';
 import * as ipcBridge from '@/common/adapter/ipcBridge';
 import {
   loadAllConversationMessagesPaged,
@@ -22,26 +22,26 @@ vi.mock('@/common/adapter/ipcBridge', async () => {
   };
 });
 
-vi.mock('@/renderer/services/synonBiomedConversationBranches', async () => {
-  const actual = await vi.importActual<typeof import('@/renderer/services/synonBiomedConversationBranches')>(
-    '@/renderer/services/synonBiomedConversationBranches'
+vi.mock('@/renderer/services/xScienceConversationBranches', async () => {
+  const actual = await vi.importActual<typeof import('@/renderer/services/xScienceConversationBranches')>(
+    '@/renderer/services/xScienceConversationBranches'
   );
   return {
     ...actual,
-    getSelectedSynonBiomedBranch: vi.fn(),
-    getSynonBiomedBranchSelectionRevision: vi.fn(),
+    getSelectedXScienceBranch: vi.fn(),
+    getXScienceBranchSelectionRevision: vi.fn(),
   };
 });
 
 const requestConversationMessages = vi.mocked(ipcBridge.requestConversationMessages);
-const getSelectedSynonBiomedBranch = vi.mocked(branches.getSelectedSynonBiomedBranch);
-const getSynonBiomedBranchSelectionRevision = vi.mocked(branches.getSynonBiomedBranchSelectionRevision);
+const getSelectedXScienceBranch = vi.mocked(branches.getSelectedXScienceBranch);
+const getXScienceBranchSelectionRevision = vi.mocked(branches.getXScienceBranchSelectionRevision);
 
 describe('message pagination helpers', () => {
   beforeEach(() => {
     requestConversationMessages.mockReset();
-    getSelectedSynonBiomedBranch.mockReturnValue(null);
-    getSynonBiomedBranchSelectionRevision.mockReturnValue(0);
+    getSelectedXScienceBranch.mockReturnValue(null);
+    getXScienceBranchSelectionRevision.mockReturnValue(0);
   });
 
   it('loads the latest compact page with cursor params', async () => {

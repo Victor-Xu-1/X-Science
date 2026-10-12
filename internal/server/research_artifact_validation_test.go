@@ -46,7 +46,7 @@ func TestResearchProvenanceManifestBindsEveryProducedArtifactHash(t *testing.T) 
 		"manifest-v1": {artifactID: "manifest-artifact", name: "provenance_manifest.json", versionID: "manifest-v1", sha256: strings.Repeat("c", 64)},
 	}
 	failures, _ := validateResearchProvenanceManifest([]byte(`{
-		"schema":"synon.research_provenance_manifest.v1",
+		"schema":"x-science.research_provenance_manifest.v1",
 		"artifacts_produced":[
 			{"artifact_id":"scope-artifact","version_id":"scope-v1","filename":"scope.json","sha256":"`+strings.Repeat("d", 64)+`"},
 			{"artifact_id":"missing-artifact","version_id":"missing-v1","filename":"compute_results.jsonl","sha256":"schema_only_no_data"}
@@ -62,7 +62,7 @@ func TestResearchProvenanceManifestBindsEveryProducedArtifactHash(t *testing.T) 
 	}
 
 	valid, selected := validateResearchProvenanceManifest([]byte(`{
-		"schema":"synon.research_provenance_manifest.v1",
+		"schema":"x-science.research_provenance_manifest.v1",
 		"artifacts_produced":[
 			{"artifact_id":"scope-artifact","version_id":"scope-v1","sha256":"`+scopeHash+`"},
 			{"artifact_id":"graph-artifact","version_id":"graph-v1","filename":"evidence_graph.json","sha256":"`+graphHash+`"}
@@ -73,7 +73,7 @@ func TestResearchProvenanceManifestBindsEveryProducedArtifactHash(t *testing.T) 
 	}
 
 	selfReference, _ := validateResearchProvenanceManifest([]byte(`{
-		"schema":"synon.research_provenance_manifest.v1",
+		"schema":"x-science.research_provenance_manifest.v1",
 		"artifacts_produced":[
 			{"artifact_id":"manifest-artifact","version_id":"manifest-v1","sha256":"`+strings.Repeat("c", 64)+`"}
 		]
@@ -83,7 +83,7 @@ func TestResearchProvenanceManifestBindsEveryProducedArtifactHash(t *testing.T) 
 	}
 
 	unknown, _ := validateResearchProvenanceManifest([]byte(`{
-		"schema":"synon.research_provenance_manifest.v1",
+		"schema":"x-science.research_provenance_manifest.v1",
 		"artifacts_produced":[{"artifact_id":"scope-artifact","version_id":"scope-v1","sha256":"`+scopeHash+`","notes":"not allowed"}]
 	}`), produced)
 	if !slices.Contains(unknown, "provenance_manifest.json:invalid_json") {
@@ -91,7 +91,7 @@ func TestResearchProvenanceManifestBindsEveryProducedArtifactHash(t *testing.T) 
 	}
 
 	stale, _ := validateResearchProvenanceManifest([]byte(`{
-		"schema":"synon.research_provenance_manifest.v1",
+		"schema":"x-science.research_provenance_manifest.v1",
 		"artifacts_produced":[{"artifact_id":"scope-artifact","version_id":"scope-v0","sha256":"`+scopeHash+`"}]
 	}`), produced)
 	if !slices.Contains(stale, "provenance_manifest.json:unbound_version:scope-v0") {

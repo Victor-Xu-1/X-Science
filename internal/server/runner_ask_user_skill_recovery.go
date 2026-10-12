@@ -3,7 +3,7 @@ package server
 import (
 	"encoding/json"
 	"strings"
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 func runnerPendingAskUserRequiredSkillChoice(

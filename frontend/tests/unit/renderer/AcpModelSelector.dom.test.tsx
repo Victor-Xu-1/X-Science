@@ -7,9 +7,9 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import React from 'react';
-import AcpModelSelector from '@/renderer/components/synonBiomed/runtime/SynonBiomedModelSelector';
+import AcpModelSelector from '@/renderer/components/xScience/runtime/XScienceModelSelector';
 import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
-import type { AcpConfigSetStatus, AcpDerivedOption } from '@/renderer/hooks/synonBiomed/runtime/useAcpConfigOptions';
+import type { AcpConfigSetStatus, AcpDerivedOption } from '@/renderer/hooks/xScience/runtime/useAcpConfigOptions';
 import { BackendHttpError } from '@/common/adapter/httpBridge';
 
 const { messageSuccessMock, messageErrorMock, useAcpModelInfoMock } = vi.hoisted(() => ({
@@ -64,7 +64,7 @@ const makeResult = (overrides: Partial<MockAcpModelInfoResult> = {}): MockAcpMod
   ...overrides,
 });
 
-vi.mock('@/renderer/hooks/synonBiomed/runtime/useAcpModelInfo', () => ({
+vi.mock('@/renderer/hooks/xScience/runtime/useAcpModelInfo', () => ({
   useAcpModelInfo: useAcpModelInfoMock,
 }));
 
@@ -72,11 +72,11 @@ vi.mock('@/renderer/hooks/context/LayoutContext', () => ({
   useLayoutContext: () => ({ isMobile: false }),
 }));
 
-vi.mock('@/renderer/components/synonBiomed/runtime/MarqueePillLabel', () => ({
+vi.mock('@/renderer/components/xScience/runtime/MarqueePillLabel', () => ({
   default: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
 }));
 
-vi.mock('@/renderer/utils/synonBiomed/runtime/runtimeLogo', () => ({
+vi.mock('@/renderer/utils/xScience/runtime/runtimeLogo', () => ({
   getModelDisplayLabel: ({
     selectedLabel,
     selected_value,

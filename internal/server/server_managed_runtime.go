@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	kernelruntime "synon-go/internal/kernel"
+	kernelruntime "x-science/internal/kernel"
 )
 
 // RunManagedScientificRuntimeProvisioner binds both required scientific core

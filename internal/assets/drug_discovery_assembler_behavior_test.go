@@ -18,7 +18,7 @@ func TestDrugDiscoveryAssemblerAcceptsPocketGeneratorProperties(t *testing.T) {
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
 	assembler := filepath.Join(
-		repositoryRoot, "skills", "synonbiomed", "drug-discovery-pipeline", "scripts", "assemble_docking_results.py",
+		repositoryRoot, "skills", "x-science", "drug-discovery-pipeline", "scripts", "assemble_docking_results.py",
 	)
 	workspace := t.TempDir()
 	writeFixture(t, workspace, "pocket_candidates.csv", `candidate_id,canonical_smiles,molecular_weight,clogp,tpsa,qed,hbd,hba,rotatable_bonds,lipinski_violations,generator_score,generator_score_kind
@@ -56,7 +56,7 @@ POCKET-001,-8.4,27,3,1,2,1,0.8,0.95,best_affinity_then_reference_geometry_tiebre
 POCKET-002,-7.9,27,3,1,1,3,1.1,0.90,best_affinity_then_reference_geometry_tiebreak,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,1,2,3,20,20,20,42,8,9,2
 `)
 	writeFixture(t, workspace, "generation_validation.json", `{
-  "schema": "synon.pocket-generation.validation.v1",
+  "schema": "x-science.pocket-generation.validation.v1",
   "overall_pass": true,
   "checks": {"requested_count": true, "valid_3d_coordinates": true},
   "provenance": {
@@ -71,7 +71,7 @@ POCKET-002,-7.9,27,3,1,1,3,1.1,0.90,best_affinity_then_reference_geometry_tiebre
   }
 }`)
 	writeFixture(t, workspace, "docking_validation.json", `{
-  "schema": "synon.execution-pack-validation.v4",
+  "schema": "x-science.execution-pack-validation.v4",
   "overall_pass": true,
   "sampling": {
     "primary_selection": "minimum_affinity_then_reference_geometry_on_exact_ties_else_stable_run_mode",
@@ -164,7 +164,7 @@ POCKET-002,-7.9,27,3,1,1,3,1.1,0.90,best_affinity_then_reference_geometry_tiebre
 	if err := json.Unmarshal(summaryContent, &summary); err != nil {
 		t.Fatal(err)
 	}
-	if summary.Schema != "synon.structure-guided-candidate-summary.v4" ||
+	if summary.Schema != "x-science.structure-guided-candidate-summary.v4" ||
 		summary.GenerationProvenance["generation_engine"] != "fixture-pocket-diffusion" ||
 		summary.GenerationProvenance["conditioning_sha256"] != strings.Repeat("b", 64) {
 		t.Fatalf("summary provenance=%#v schema=%q", summary.GenerationProvenance, summary.Schema)

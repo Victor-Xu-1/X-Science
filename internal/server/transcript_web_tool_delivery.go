@@ -1,6 +1,6 @@
 package server
 
-import transcriptstore "synon-go/internal/persistence/transcript"
+import transcriptstore "x-science/internal/persistence/transcript"
 
 // transcriptWebToolStreamPayload projects one durable tool checkpoint onto the
 // existing message.stream lane. History and live delivery deliberately reuse

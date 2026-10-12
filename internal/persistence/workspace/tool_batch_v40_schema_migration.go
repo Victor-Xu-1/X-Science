@@ -9,7 +9,7 @@ const (
 	toolCallBatchV40MigrationName     = "transcript-tool-call-batch-authority"
 	toolCallBatchV40CallbackID        = "tool-call-batch-v40-noop"
 	toolCallBatchV40PreflightIdentity = "transcript-tool-call-batch-empty-cohort-v1"
-	toolCallBatchV40RuleSpec          = "synon.workspace.transcript-tool-call-batch.v40"
+	toolCallBatchV40RuleSpec          = "x-science.workspace.transcript-tool-call-batch.v40"
 	toolCallBatchesDDL                = `CREATE TABLE transcript_tool_call_batches (
 		batch_id TEXT PRIMARY KEY,
 		owner_user_id TEXT NOT NULL,

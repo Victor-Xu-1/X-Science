@@ -27,8 +27,8 @@ $$$$
 `
 
 func TestRealBundledManagedPythonRuntimeProvisionsPinnedRDKitAndStrictSDFValidator(t *testing.T) {
-	if os.Getenv("SYNON_RUN_REAL_CONDA_RUNTIME") != "1" {
-		t.Skip("set SYNON_RUN_REAL_CONDA_RUNTIME=1 to provision the real content-addressed Python runtime")
+	if os.Getenv("X_SCIENCE_RUN_REAL_CONDA_RUNTIME") != "1" {
+		t.Skip("set X_SCIENCE_RUN_REAL_CONDA_RUNTIME=1 to provision the real content-addressed Python runtime")
 	}
 	root := repositoryRootForCondaRuntimeTest(t)
 	optional := filepath.Join(root, "assets", "optional")
@@ -51,10 +51,10 @@ func TestRealBundledManagedPythonRuntimeProvisionsPinnedRDKitAndStrictSDFValidat
 		t.Fatalf("verify kernel assets: %v", err)
 	}
 	provisionContext := t.Context()
-	if rawTimeout := strings.TrimSpace(os.Getenv("SYNON_REAL_CONDA_PROVISION_TIMEOUT")); rawTimeout != "" {
+	if rawTimeout := strings.TrimSpace(os.Getenv("X_SCIENCE_REAL_CONDA_PROVISION_TIMEOUT")); rawTimeout != "" {
 		provisionTimeout, err := time.ParseDuration(rawTimeout)
 		if err != nil || provisionTimeout <= 0 {
-			t.Fatalf("invalid SYNON_REAL_CONDA_PROVISION_TIMEOUT=%q: %v", rawTimeout, err)
+			t.Fatalf("invalid X_SCIENCE_REAL_CONDA_PROVISION_TIMEOUT=%q: %v", rawTimeout, err)
 		}
 		var cancel context.CancelFunc
 		provisionContext, cancel = context.WithTimeout(provisionContext, provisionTimeout)

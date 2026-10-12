@@ -191,10 +191,10 @@ func (journal *windowsConfinementJournal) quarantine() error {
 
 func validateWindowsConfinementReceipt(receipt windowsConfinementReceipt) error {
 	if receipt.Version != windowsConfinementLeaseVersion ||
-		!strings.HasPrefix(receipt.ProfileName, "SynonWorker.") {
+		!strings.HasPrefix(receipt.ProfileName, "XScienceWorker.") {
 		return errors.New("Windows kernel confinement receipt identity is invalid")
 	}
-	if _, err := uuid.Parse(strings.TrimPrefix(receipt.ProfileName, "SynonWorker.")); err != nil {
+	if _, err := uuid.Parse(strings.TrimPrefix(receipt.ProfileName, "XScienceWorker.")); err != nil {
 		return errors.New("Windows kernel confinement receipt identity is invalid")
 	}
 	if err := validateWindowsKernelPath(receipt.Workspace, false, false); err != nil {

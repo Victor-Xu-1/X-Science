@@ -205,7 +205,7 @@ describe('normalizeToolMessages', () => {
             truncated: true,
             human_description: 'Compare the candidate structures',
           },
-          synonBiomed: { messageIndex: 4, blockIndex: 0, branchId: 'br_deadbeef' },
+          xScience: { messageIndex: 4, blockIndex: 0, branchId: 'br_deadbeef' },
         },
       },
     ];

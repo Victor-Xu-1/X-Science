@@ -8,7 +8,7 @@ import { Input } from '@arco-design/web-react';
 import Modal from '@/renderer/components/base/WorkbenchModal';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { SynonBiomedSkillMarketPanel } from './SynonBiomedSkillMarketPanel';
+import { XScienceSkillMarketPanel } from './XScienceSkillMarketPanel';
 
 interface SkillMarketModalProps {
   visible: boolean;
@@ -46,7 +46,7 @@ export function SkillMarketModal({
             placeholder={t('settings.skillsSettings.searchMarket')}
             aria-label={t('settings.skillsSettings.searchMarket')}
           />
-          <SynonBiomedSkillMarketPanel
+          <XScienceSkillMarketPanel
             query={query}
             importedSkillKeys={importedSkillKeys}
             onOpenRepository={(repo) => {

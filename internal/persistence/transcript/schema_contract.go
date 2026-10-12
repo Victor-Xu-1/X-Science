@@ -7,10 +7,10 @@ import (
 )
 
 const (
-	SchemaContractID                = "synon.transcript.v23"
-	ArtifactAssociationContractID   = "synon.transcript.artifacts.v24"
-	BranchLineageContractID         = "synon.transcript.branches.v25"
-	HistoryClassificationContractID = "synon.transcript.history-classification.v27"
+	SchemaContractID                = "x-science.transcript.v23"
+	ArtifactAssociationContractID   = "x-science.transcript.artifacts.v24"
+	BranchLineageContractID         = "x-science.transcript.branches.v25"
+	HistoryClassificationContractID = "x-science.transcript.history-classification.v27"
 )
 
 var schemaV23Statements = []string{

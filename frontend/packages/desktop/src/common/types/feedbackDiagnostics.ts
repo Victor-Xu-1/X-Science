@@ -12,9 +12,9 @@ export type FeedbackModule = {
 
 export const FEEDBACK_MODULES = [
   {
-    i18nKey: 'settings.bugReportModuleSynonBiomed',
-    descriptionI18nKey: 'settings.bugReportModuleSynonBiomedDescription',
-    tag: 'synon-biomed',
+    i18nKey: 'settings.bugReportModuleXScience',
+    descriptionI18nKey: 'settings.bugReportModuleXScienceDescription',
+    tag: 'x-science',
   },
   {
     i18nKey: 'settings.bugReportModuleLlmConfig',

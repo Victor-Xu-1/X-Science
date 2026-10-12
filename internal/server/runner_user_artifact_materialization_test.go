@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	eventjournal "synon-go/internal/persistence/journal"
+	eventjournal "x-science/internal/persistence/journal"
 )
 
 func TestRunnerVerifiesOriginalAttachmentsWithoutEagerWorkspaceCopies(t *testing.T) {
@@ -35,7 +35,7 @@ func TestRunnerVerifiesOriginalAttachmentsWithoutEagerWorkspaceCopies(t *testing
 	if len(projected) != 1 || projected[0].Message == nil {
 		t.Fatalf("projected entries=%#v", projected)
 	}
-	if _, err := os.Stat(filepath.Join(identity.workspaceDir, ".synon-artifacts")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(identity.workspaceDir, ".x-science-artifacts")); !os.IsNotExist(err) {
 		t.Fatalf("provider preparation created an eager attachment copy: %v", err)
 	}
 	modelText := runnerModelMessageText(projected[0].Message)

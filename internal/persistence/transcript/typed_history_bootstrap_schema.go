@@ -1,6 +1,6 @@
 package transcript
 
-const TypedHistoryBootstrapContractID = "synon.transcript.typed-history-bootstrap.v35"
+const TypedHistoryBootstrapContractID = "x-science.transcript.typed-history-bootstrap.v35"
 
 const typedHistoryBootstrapReceiptsV35Statement = `CREATE TABLE transcript_typed_history_bootstrap_receipts (
 	bootstrap_id BLOB PRIMARY KEY CHECK(length(bootstrap_id)=32),

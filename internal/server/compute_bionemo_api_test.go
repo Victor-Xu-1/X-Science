@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	compute "synon-go/internal/compute"
-	secretstore "synon-go/internal/persistence/secrets"
-	workspace "synon-go/internal/persistence/workspace"
+	compute "x-science/internal/compute"
+	secretstore "x-science/internal/persistence/secrets"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestComputeBioNeMoSettingsRequireOwnerCredentialAndPersist(t *testing.T) {

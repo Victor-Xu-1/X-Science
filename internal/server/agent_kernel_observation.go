@@ -3,8 +3,8 @@ package server
 import (
 	"errors"
 
-	"synon-go/internal/executionprep"
-	kernelruntime "synon-go/internal/kernel"
+	"x-science/internal/executionprep"
+	kernelruntime "x-science/internal/kernel"
 )
 
 // Only the kernel host can witness that a proof-bearing invocation terminated

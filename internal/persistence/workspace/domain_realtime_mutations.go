@@ -78,7 +78,7 @@ func isMutationTokenByte(value byte) bool {
 }
 
 func domainRealtimeEventID(ctx context.Context, eventType, aggregateID string) string {
-	digest := sha256.Sum256([]byte("synon-domain-realtime-v2\x00" + mutationIdempotencyKey(ctx) + "\x00" + eventType + "\x00" + aggregateID))
+	digest := sha256.Sum256([]byte("x-science-domain-realtime-v2\x00" + mutationIdempotencyKey(ctx) + "\x00" + eventType + "\x00" + aggregateID))
 	return "domain:" + hex.EncodeToString(digest[:])
 }
 
@@ -94,8 +94,13 @@ func (s *Store) enqueueProjectDomainEventTx(ctx context.Context, tx *sql.Tx, own
 		payload = map[string]any{}
 	}
 	payload["project_id"] = projectID
-	eventID := domainRealtimeEventID(ctx, eventType, aggregateID)
-	_, err := s.EnqueueRealtimeOutboxTx(ctx, tx, RealtimeEventInput{
+	key := mutationIdempotencyKey(ctx)
+	eventID := domainRealtimeEventID(WithMutationIdempotencyKey(ctx, key), eventType, aggregateID)
+	eventID, err := s.resolveHistoricalRealtimeIdentity(ctx, tx, eventID, historicalDomainRealtimeEventID(key, eventType, aggregateID))
+	if err != nil {
+		return err
+	}
+	_, err = s.EnqueueRealtimeOutboxTx(ctx, tx, RealtimeEventInput{
 		ID: eventID, UserID: ownerUserID, ProjectID: projectID, Type: eventType, Payload: payload,
 	}, "")
 	return err

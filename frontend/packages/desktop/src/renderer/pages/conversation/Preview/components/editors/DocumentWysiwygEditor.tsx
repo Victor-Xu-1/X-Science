@@ -139,9 +139,9 @@ const DocumentWysiwygEditor: React.FC<DocumentWysiwygEditorProps> = ({
     frameDocument.designMode = 'on';
     frameDocument.body.contentEditable = 'true';
     frameDocument.body.setAttribute('aria-label', t('preview.documentEditor.namedEditor', { name: fileName }));
-    if (!frameDocument.head.querySelector('[data-synon-document-editor-style]')) {
+    if (!frameDocument.head.querySelector('[data-x-science-document-editor-style]')) {
       const style = frameDocument.createElement('style');
-      style.setAttribute('data-synon-document-editor-style', 'true');
+      style.setAttribute('data-x-science-document-editor-style', 'true');
       style.textContent =
         '[data-document-selected="true"]{outline:2px solid #168cff!important;outline-offset:3px!important}';
       frameDocument.head.appendChild(style);
@@ -383,7 +383,7 @@ const DocumentWysiwygEditor: React.FC<DocumentWysiwygEditorProps> = ({
         {format === 'markdown' ? (
           <div
             ref={markdownSurfaceRef}
-            className='document-wysiwyg-editor__surface synon-ai-markdown preview-markdown__document'
+            className='document-wysiwyg-editor__surface x-science-markdown preview-markdown__document'
             contentEditable
             suppressContentEditableWarning
             role='textbox'

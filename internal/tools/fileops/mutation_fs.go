@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"synon-go/internal/tools/fileevents"
+	"x-science/internal/tools/fileevents"
 )
 
 // mutationFS keeps actual I/O anchored to an opened directory, even if a path

@@ -4,13 +4,13 @@ import { Delete, Edit } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  createSynonBiomedSecret,
-  deleteSynonBiomedSecret,
-  loadSynonBiomedSecrets,
-  updateSynonBiomedSecret,
-  type SynonBiomedSecret,
-  type SynonBiomedSecretInput,
-} from '@/renderer/services/synonBiomedWorkspaceSettings';
+  createXScienceSecret,
+  deleteXScienceSecret,
+  loadXScienceSecrets,
+  updateXScienceSecret,
+  type XScienceSecret,
+  type XScienceSecretInput,
+} from '@/renderer/services/xScienceWorkspaceSettings';
 import CredentialEditorModal from './components/CredentialEditorModal';
 import SettingsPageHeader from './components/SettingsPageHeader';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
@@ -29,22 +29,22 @@ import { EmptyText, RefreshButton, SettingsSection } from './components/Settings
 
 type EditorState = {
   provider: LocalizedCredentialProviderDefinition;
-  secret: SynonBiomedSecret | null;
+  secret: XScienceSecret | null;
 } | null;
 
 export const CredentialsSettingsContent: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const [secrets, setSecrets] = useState<SynonBiomedSecret[]>([]);
+  const [secrets, setSecrets] = useState<XScienceSecret[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState('all');
   const [editor, setEditor] = useState<EditorState>(null);
-  const [deleteTarget, setDeleteTarget] = useState<SynonBiomedSecret | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<XScienceSecret | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      setSecrets(await loadSynonBiomedSecrets());
+      setSecrets(await loadXScienceSecrets());
     } catch (error) {
       console.error('Failed to load credentials:', error);
       Message.error(t('settings.credentialsSettings.loadFailed'));
@@ -82,12 +82,12 @@ export const CredentialsSettingsContent: React.FC = () => {
       : (providers.find((provider) => provider.id === credentialProviderForSecret(deleteTarget)?.id) ?? null)
     : null;
 
-  const save = async (input: SynonBiomedSecretInput) => {
+  const save = async (input: XScienceSecretInput) => {
     if (!editor) return;
     setSaving(true);
     try {
-      if (editor.secret) await updateSynonBiomedSecret(editor.secret.id, input);
-      else await createSynonBiomedSecret(input);
+      if (editor.secret) await updateXScienceSecret(editor.secret.id, input);
+      else await createXScienceSecret(input);
       Message.success(
         editor.secret ? t('settings.credentialsSettings.updated') : t('settings.credentialsSettings.saved')
       );
@@ -106,7 +106,7 @@ export const CredentialsSettingsContent: React.FC = () => {
     if (!deleteTarget) return;
     setSaving(true);
     try {
-      await deleteSynonBiomedSecret(deleteTarget.id);
+      await deleteXScienceSecret(deleteTarget.id);
       Message.success(t('settings.credentialsSettings.disconnected'));
       setDeleteTarget(null);
       await refresh();
@@ -120,7 +120,7 @@ export const CredentialsSettingsContent: React.FC = () => {
 
   return (
     <SettingsPageWrapper>
-      <div className='flex flex-col gap-16px' data-testid='synon-credentials-settings'>
+      <div className='flex flex-col gap-16px' data-testid='x-science-credentials-settings'>
         <SettingsPageHeader
           title={t('settings.credentialsSettings.title')}
           description={t('settings.credentialsSettings.description')}
@@ -269,7 +269,7 @@ export const CredentialsSettingsContent: React.FC = () => {
 };
 
 const CredentialRow: React.FC<{
-  secret: SynonBiomedSecret;
+  secret: XScienceSecret;
   provider: LocalizedCredentialProviderDefinition;
   onEdit: () => void;
   onDelete: () => void;

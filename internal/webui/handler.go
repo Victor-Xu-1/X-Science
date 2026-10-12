@@ -16,6 +16,7 @@ var hashedAssetName = regexp.MustCompile(`-[A-Za-z0-9_-]{8,}\.[A-Za-z0-9]+$`)
 const (
 	themeInitPath                    = "theme-init.js"
 	appBootPath                      = "app-boot.js"
+	storageNamespaceUpgradePath      = "storage-namespace-upgrade.js"
 	rdkitWorkerPath                  = "rdkit/rdkit-worker.js"
 	pageContentSecurityPolicy        = "default-src 'self'; base-uri 'self'; connect-src 'self' ws: wss:; font-src 'self' data:; form-action 'self'; frame-ancestors 'none'; frame-src 'self' http://mcp-app.localhost:* https://mcp-app.localhost:*; img-src 'self' data: blob:; object-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:;"
 	rdkitWorkerContentSecurityPolicy = "default-src 'none'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; connect-src 'self';"
@@ -124,7 +125,7 @@ func cleanRequestPath(requestPath string) (string, bool) {
 }
 
 func reservedPath(relative string) bool {
-	for _, prefix := range []string{"api", "health", "synon-link", "v1", "ws"} {
+	for _, prefix := range []string{"api", "health", "x-science-link", "v1", "ws"} {
 		if relative == prefix || strings.HasPrefix(relative, prefix+"/") {
 			return true
 		}
@@ -169,7 +170,7 @@ func (h *Handler) serveFile(w http.ResponseWriter, r *http.Request, filename, re
 	}
 	if index {
 		w.Header().Set("Cache-Control", "no-store")
-	} else if requestName == themeInitPath || requestName == appBootPath {
+	} else if requestName == themeInitPath || requestName == appBootPath || requestName == storageNamespaceUpgradePath {
 		// Fixed-name boot scripts must be revalidated after an application upgrade.
 		// Vite preview already uses this policy; a 1-hour max-age would leave
 		// theme restoration or the slow/failed boot shell stale after a release.

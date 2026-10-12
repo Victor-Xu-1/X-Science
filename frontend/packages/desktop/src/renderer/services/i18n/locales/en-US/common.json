@@ -38,6 +38,7 @@
   "clearSearch": "Clear search",
   "retry": "Retry",
   "reload": "Reload",
+  "storageNamespaceUpgradeWarning": "Some saved browser preferences could not be upgraded. Your original data is preserved and current preferences are unchanged. Reload to retry; persistent conflicts or storage limits need to be resolved before the upgrade can finish.",
   "appStartup": {
     "loading": "Starting {{productName}}…",
     "slow": "Still starting {{productName}}…",
@@ -93,7 +94,7 @@
   "tray.recentChats": "Recent Chats",
   "tray.untitled": "Untitled",
   "backendStartup": {
-    "synonBiomed": {
+    "xScience": {
       "title": "X-Science backend unavailable",
       "description": "The X-Science backend could not be reached. Verify the WSL backend service and its configured address and port."
     }

@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-const bundledMCPPythonEnvironment = "synon-biomed-mcp-python"
+const bundledMCPPythonEnvironment = "x-science-mcp-python"
 
 //go:embed mcp_requirements.lock
 var bundledMCPPythonRequirementsLock []byte

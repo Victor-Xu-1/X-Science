@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/buildinfo"
-	"synon-go/internal/tools/registry"
+	"x-science/internal/buildinfo"
+	"x-science/internal/tools/registry"
 )
 
 const adapterLiveSmokeRuntimeNamespace = "adapter-live-smoke"
@@ -117,11 +117,11 @@ func (s *Server) executeAgentRuntimeDoctorTool(input map[string]any) (any, error
 	hasTeamCreate := hasRegisteredTool(s.tools, "TeamCreate")
 	hasTeamDelete := hasRegisteredTool(s.tools, "TeamDelete")
 	hasTeamSubagentOrchestration := hasTeamCreate && hasTeamDelete && s.taskRunStore != nil && s.runtimeStore != nil && hasSessionRunnerStores
-	hasSynonLinkService := s.synonLink != nil
-	hasSynonLinkTools := hasRegisteredTool(s.tools, "synon_link")
-	hasSynonLinkPairingStore := s.pairingStore != nil
-	hasSynonLinkClientGate := hasSynonLinkService && hasSynonLinkTools && hasSynonLinkPairingStore
-	hasSynonLinkDirectExecutor := hasSynonLinkClientGate && s.taskRunStore != nil && s.runtimeStore != nil
+	hasXScienceLinkService := s.xscienceLink != nil
+	hasXScienceLinkTools := hasRegisteredTool(s.tools, "x_science_link")
+	hasXScienceLinkPairingStore := s.pairingStore != nil
+	hasXScienceLinkClientGate := hasXScienceLinkService && hasXScienceLinkTools && hasXScienceLinkPairingStore
+	hasXScienceLinkDirectExecutor := hasXScienceLinkClientGate && s.taskRunStore != nil && s.runtimeStore != nil
 	hasTaskRunTool := hasRegisteredTool(s.tools, "TaskRun")
 	hasAgentTool := hasRegisteredTool(s.tools, "Agent")
 	hasTaskRunMonitor := hasTaskRunTool && s.taskRunStore != nil && s.runtimeStore != nil && hasSessionRunnerStores && hasSessionRunnerProtocolTools
@@ -140,8 +140,8 @@ func (s *Server) executeAgentRuntimeDoctorTool(input map[string]any) (any, error
 		hasSessionRunnerProtocolTools &&
 		hasOriginalSystemToolSteps &&
 		hasTeamSubagentOrchestration &&
-		hasSynonLinkClientGate &&
-		hasSynonLinkDirectExecutor &&
+		hasXScienceLinkClientGate &&
+		hasXScienceLinkDirectExecutor &&
 		hasTaskRunMonitor &&
 		hasTaskRunMonitorSelfCheck &&
 		hasAgentReadOnlyPolicy &&
@@ -178,8 +178,8 @@ func (s *Server) executeAgentRuntimeDoctorTool(input map[string]any) (any, error
 		if !hasTeamSubagentOrchestration {
 			taskRunNext = append(taskRunNext, "Register TeamCreate and TeamDelete with durable TaskRun/runtime/session stores for team subagent orchestration.")
 		}
-		if !hasSynonLinkClientGate || !hasSynonLinkDirectExecutor {
-			taskRunNext = append(taskRunNext, "Enable the X-Science Link service, canonical synon_link tool, and durable pairing storage for browser TaskRun executors.")
+		if !hasXScienceLinkClientGate || !hasXScienceLinkDirectExecutor {
+			taskRunNext = append(taskRunNext, "Enable the X-Science Link service, canonical x_science_link tool, and durable pairing storage for browser TaskRun executors.")
 		}
 		if !hasTaskRunMonitor || !hasTaskRunMonitorSelfCheck {
 			taskRunNext = append(taskRunNext, "Register TaskRun with durable TaskRun/runtime/session runner stores so monitor advance and self-check actions can run.")
@@ -209,11 +209,11 @@ func (s *Server) executeAgentRuntimeDoctorTool(input map[string]any) (any, error
 		"hasReadFilesSystemStepTool":                hasReadFilesSystemStepTool,
 		"hasNotebookEditSystemStepTool":             hasNotebookEditSystemStepTool,
 		"hasVisualReviewSystemStepTool":             hasVisualReviewSystemStepTool,
-		"hasSynonLinkService":                       hasSynonLinkService,
-		"hasSynonLinkTools":                         hasSynonLinkTools,
-		"hasSynonLinkPairingStore":                  hasSynonLinkPairingStore,
-		"hasSynonLinkClientGate":                    hasSynonLinkClientGate,
-		"hasSynonLinkDirectExecutor":                hasSynonLinkDirectExecutor,
+		"hasXScienceLinkService":                       hasXScienceLinkService,
+		"hasXScienceLinkTools":                         hasXScienceLinkTools,
+		"hasXScienceLinkPairingStore":                  hasXScienceLinkPairingStore,
+		"hasXScienceLinkClientGate":                    hasXScienceLinkClientGate,
+		"hasXScienceLinkDirectExecutor":                hasXScienceLinkDirectExecutor,
 		"systemStepOperations":                      []string{"record_artifact", "shell_command", "web_research", "lsp_diagnostics", "patch", "read_files", "notebook_edit", "visual_review"},
 		"hasRuntimeProvenance":                      true,
 		"hasAgentReadOnlyPolicy":                    hasAgentReadOnlyPolicy,
@@ -252,8 +252,8 @@ func (s *Server) executeAgentRuntimeDoctorTool(input map[string]any) (any, error
 	}, taskRunNext)
 	mcpStatus, mcpText, mcpEvidence, mcpNext := s.mcpDoctorArea()
 	addArea("mcp", mcpStatus, mcpText, mcpEvidence, mcpNext)
-	synonLinkIMStatus, synonLinkIMText, synonLinkIMEvidence, synonLinkIMNext := s.synonLinkIMDoctorArea()
-	addArea("synon-link-im", synonLinkIMStatus, synonLinkIMText, synonLinkIMEvidence, synonLinkIMNext)
+	xscienceLinkIMStatus, xscienceLinkIMText, xscienceLinkIMEvidence, xscienceLinkIMNext := s.xscienceLinkIMDoctorArea()
+	addArea("x-science-link-im", xscienceLinkIMStatus, xscienceLinkIMText, xscienceLinkIMEvidence, xscienceLinkIMNext)
 
 	summary := map[string]int{"pass": 0, "partial": 0, "missing": 0, "fail": 0}
 	for _, area := range areas {
@@ -269,7 +269,7 @@ func (s *Server) executeAgentRuntimeDoctorTool(input map[string]any) (any, error
 		"summary": summary,
 		"areas":   areas,
 		"contract": map[string]any{
-			"source":         "synon-harness",
+			"source":         "x-science-harness",
 			"target":         release.MachineSlug,
 			"productName":    release.Name,
 			"productVersion": release.Version,
@@ -281,7 +281,7 @@ func (s *Server) executeAgentRuntimeDoctorTool(input map[string]any) (any, error
 
 func validAgentRuntimeDoctorScope(scope string) bool {
 	switch scope {
-	case "all", "query-engine", "model-runner", "tool-gateway", "permissions", "settings-storage", "kernel-compute", "hooks", "skills", "sessions", "artifact-system", "workspace-worktree", "compact-memory", "taskrun-agent", "mcp", "synon-link-im":
+	case "all", "query-engine", "model-runner", "tool-gateway", "permissions", "settings-storage", "kernel-compute", "hooks", "skills", "sessions", "artifact-system", "workspace-worktree", "compact-memory", "taskrun-agent", "mcp", "x-science-link-im":
 		return true
 	default:
 		return false

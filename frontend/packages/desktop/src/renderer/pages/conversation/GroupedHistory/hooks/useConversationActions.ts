@@ -5,8 +5,8 @@
  */
 
 import type { TChatConversation } from '@/common/config/storage';
-import type { SynonBiomedExecutionRecord } from '@/renderer/components/synonBiomed/runtime/runtimeOperationsModel';
-import type { SynonBiomedSessionUpdate } from '@/renderer/services/synonBiomedSessionActions';
+import type { XScienceExecutionRecord } from '@/renderer/components/xScience/runtime/runtimeOperationsModel';
+import type { XScienceSessionUpdate } from '@/renderer/services/xScienceSessionActions';
 import { emitter } from '@/renderer/utils/emitter';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/ui/focus';
 import { Message, Modal } from '@arco-design/web-react';
@@ -55,7 +55,7 @@ export const useConversationActions = ({
   const [editorLoading, setEditorLoading] = useState(false);
   const [editorError, setEditorError] = useState<string | null>(null);
   const [notebookTarget, setNotebookTarget] = useState<TChatConversation | null>(null);
-  const [notebookRecords, setNotebookRecords] = useState<SynonBiomedExecutionRecord[]>([]);
+  const [notebookRecords, setNotebookRecords] = useState<XScienceExecutionRecord[]>([]);
   const [notebookLoading, setNotebookLoading] = useState(false);
   const [notebookError, setNotebookError] = useState<string | null>(null);
   const [dropdownVisibleId, setDropdownVisibleId] = useState<string | null>(null);
@@ -116,10 +116,10 @@ export const useConversationActions = ({
 
   const removeConversation = useCallback(
     async (conversationId: string) => {
-      const { deleteSynonBiomedSession } = await loadConversationActionRuntime();
-      await deleteSynonBiomedSession(conversationId);
+      const { deleteXScienceSession } = await loadConversationActionRuntime();
+      await deleteXScienceSession(conversationId);
       emitter.emit('conversation.deleted', conversationId);
-      emitter.emit('synonbiomed.projects.refresh');
+      emitter.emit('xscience.projects.refresh');
       if (id === conversationId) void navigate('/guid', { replace: true });
       return true;
     },
@@ -202,13 +202,13 @@ export const useConversationActions = ({
   }, []);
 
   const handleEditorSubmit = useCallback(
-    async (update: SynonBiomedSessionUpdate) => {
+    async (update: XScienceSessionUpdate) => {
       if (!editorTarget || editorLoading) return;
       setEditorLoading(true);
       setEditorError(null);
       try {
-        const { updateSynonBiomedSession } = await loadConversationActionRuntime();
-        await updateSynonBiomedSession(editorTarget.id, update);
+        const { updateXScienceSession } = await loadConversationActionRuntime();
+        await updateXScienceSession(editorTarget.id, update);
         refreshHistory();
         setEditorTarget(null);
         Message.success(t('conversation.history.renameSuccess'));
@@ -239,11 +239,11 @@ export const useConversationActions = ({
     async (conversation: TChatConversation) => {
       setDropdownVisibleId(null);
       try {
-        const { downloadFileFromUrl, getSynonBiomedSessionExportUrl, sanitizeFileName } =
+        const { downloadFileFromUrl, getXScienceSessionExportUrl, sanitizeFileName } =
           await loadConversationActionRuntime();
         await downloadFileFromUrl(
-          getSynonBiomedSessionExportUrl(conversation.id),
-          `${sanitizeFileName(conversation.name || conversation.id)}.synon-session.json`
+          getXScienceSessionExportUrl(conversation.id),
+          `${sanitizeFileName(conversation.name || conversation.id)}.x-science-session.json`
         );
       } catch (error) {
         console.error('Failed to export X-Science session:', diagnostic(error));
@@ -257,10 +257,10 @@ export const useConversationActions = ({
     async (conversation: TChatConversation) => {
       setDropdownVisibleId(null);
       try {
-        const { downloadFileFromUrl, getSynonBiomedSessionArtifactsDownloadUrl, sanitizeFileName } =
+        const { downloadFileFromUrl, getXScienceSessionArtifactsDownloadUrl, sanitizeFileName } =
           await loadConversationActionRuntime();
         await downloadFileFromUrl(
-          getSynonBiomedSessionArtifactsDownloadUrl(conversation.id),
+          getXScienceSessionArtifactsDownloadUrl(conversation.id),
           `${sanitizeFileName(conversation.name || conversation.id)}-artifacts.zip`
         );
       } catch (error) {
@@ -279,8 +279,8 @@ export const useConversationActions = ({
       setNotebookError(null);
       setNotebookLoading(true);
       try {
-        const { loadSynonBiomedExecutionLogPage } = await loadConversationActionRuntime();
-        setNotebookRecords((await loadSynonBiomedExecutionLogPage(conversation.id)).records);
+        const { loadXScienceExecutionLogPage } = await loadConversationActionRuntime();
+        setNotebookRecords((await loadXScienceExecutionLogPage(conversation.id)).records);
       } catch (error) {
         console.warn('[ConversationActions] Failed to load session notebook:', diagnostic(error));
         setNotebookError(t('conversation.history.sessionNotebook.loadFailed'));

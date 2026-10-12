@@ -3,9 +3,9 @@ import { Copy, Refresh, Search } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  loadSynonBiomedThirdPartyLicenses,
-  type SynonBiomedThirdPartyLicenses,
-} from '@/renderer/services/synonBiomedLicenses';
+  loadXScienceThirdPartyLicenses,
+  type XScienceThirdPartyLicenses,
+} from '@/renderer/services/xScienceLicenses';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import AccessibleContentDialog from '@/renderer/components/common/AccessibleContentDialog';
 
@@ -22,7 +22,7 @@ type ThirdPartyLicensesModalProps = {
 
 const ThirdPartyLicensesModal: React.FC<ThirdPartyLicensesModalProps> = ({ visible, onClose }) => {
   const { t } = useTranslation();
-  const [snapshot, setSnapshot] = useState<SynonBiomedThirdPartyLicenses | null>(null);
+  const [snapshot, setSnapshot] = useState<XScienceThirdPartyLicenses | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
   const [query, setQuery] = useState('');
@@ -35,7 +35,7 @@ const ThirdPartyLicensesModal: React.FC<ThirdPartyLicensesModalProps> = ({ visib
     const controller = new AbortController();
     setLoading(true);
     setLoadFailed(false);
-    void loadSynonBiomedThirdPartyLicenses({ signal: controller.signal })
+    void loadXScienceThirdPartyLicenses({ signal: controller.signal })
       .then((result) => {
         if (!controller.signal.aborted) setSnapshot(result);
       })

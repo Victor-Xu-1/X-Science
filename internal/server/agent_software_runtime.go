@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/failurecontract"
-	"synon-go/internal/sciencecapability"
-	"synon-go/internal/software"
-	"synon-go/internal/software/localconda"
+	"x-science/internal/failurecontract"
+	"x-science/internal/sciencecapability"
+	"x-science/internal/software"
+	"x-science/internal/software/localconda"
 )
 
 const softwareRuntimeToolName = "software_runtime"

@@ -20,12 +20,12 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/compute"
-	"synon-go/internal/compute/checkpoint"
-	"synon-go/internal/compute/transfer"
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	"x-science/internal/compute"
+	"x-science/internal/compute/checkpoint"
+	"x-science/internal/compute/transfer"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const (
@@ -174,7 +174,7 @@ func (s *Server) submitAgentBYOCJob(
 	if err != nil {
 		return nil, err
 	}
-	providerConfigSHA256 := strings.TrimSpace(authority.Definition.ExtraEnvironment["SYNON_PROVIDER_BOUND_CONFIG_HASH"])
+	providerConfigSHA256 := strings.TrimSpace(authority.Definition.ExtraEnvironment["X_SCIENCE_PROVIDER_BOUND_CONFIG_HASH"])
 	if providerConfigSHA256 == "" {
 		return nil, errors.New("BYOC provider configuration authority is unavailable")
 	}
@@ -189,7 +189,7 @@ func (s *Server) submitAgentBYOCJob(
 		}
 	}()
 	frameID, rootID, originID := access.Frame.ID, access.Frame.RootFrameID, call.ID
-	submissionDigest := sha256.Sum256([]byte("synon-byoc-submission\x00" + jobID))
+	submissionDigest := sha256.Sum256([]byte("x-science-byoc-submission\x00" + jobID))
 	submissionID := "submission-" + hex.EncodeToString(submissionDigest[:12])
 	deadline := time.Now().UTC().Add(spec.Timeout + byocHarvestMargin)
 	if !originalDeadline.IsZero() {
@@ -297,7 +297,7 @@ func (s *Server) createAgentComputeHandle(access workspace.KernelFrameAccess, ca
 		return "", errors.New("compute handle store is unavailable")
 	}
 	raw, _ := json.Marshal(providerParams)
-	digest := sha256.Sum256([]byte("synon-compute-handle-v1\x00" + access.UserID + "\x00" + access.Frame.RootFrameID + "\x00" + callID + "\x00" + provider + "\x00" + string(raw)))
+	digest := sha256.Sum256([]byte("x-science-compute-handle-v1\x00" + access.UserID + "\x00" + access.Frame.RootFrameID + "\x00" + callID + "\x00" + provider + "\x00" + string(raw)))
 	handleID := "compute-handle-" + hex.EncodeToString(digest[:12])
 	paramsDigest := fmt.Sprintf("%x", sha256.Sum256(raw))
 	value := map[string]any{
@@ -561,7 +561,7 @@ func (s *Server) createAgentBYOCSandbox(
 		Request: map[string]any{
 			"spec": providerSpec, "install_id": runtimeSpec.InstallID,
 			"tags": map[string]string{
-				"synonbiomed-job": jobID, "synonbiomed-submission": submissionID,
+				"xscience-job": jobID, "xscience-submission": submissionID,
 			},
 		},
 	})
@@ -676,7 +676,7 @@ func (s *Server) writeAgentBYOCInputArchiveContext(ctx context.Context, stage, w
 		name string
 		mode int64
 		body []byte
-	}{{"_operon_wrapper.sh", 0o755, wrapper}, {"run.sh", 0o755, runScript}, {".job_env", 0o600, jobEnv}, {"_synon_checkpoint.env", 0o600, checkpointEnv}, {"_synon_harvest.sh", 0o700, harvestHelper}} {
+	}{{"_operon_wrapper.sh", 0o755, wrapper}, {"run.sh", 0o755, runScript}, {".job_env", 0o600, jobEnv}, {"_x_science_checkpoint.env", 0o600, checkpointEnv}, {"_x_science_harvest.sh", 0o700, harvestHelper}} {
 		if err := writeBYOCTarBytes(tarWriter, file.name, file.mode, file.body); err != nil {
 			_ = closeArchive()
 			return byocInputArchive{}, err
@@ -901,7 +901,7 @@ func encodeAgentBYOCJobEnvironment(values map[string]any) ([]byte, error) {
 		value, ok := values[key].(string)
 		upper := strings.ToUpper(key)
 		if !ok || !byocJobEnvironmentName.MatchString(key) || len(value) > 16384 ||
-			strings.HasPrefix(upper, "OPERON_") || strings.HasPrefix(upper, "SYNON_") ||
+			strings.HasPrefix(upper, "OPERON_") || strings.HasPrefix(upper, "X_SCIENCE_") ||
 			strings.HasSuffix(upper, "_PROXY") || strings.ContainsAny(value, "\x00") {
 			return nil, fmt.Errorf("BYOC job environment variable %q is not allowed", key)
 		}

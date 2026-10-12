@@ -6,10 +6,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	"synon-go/internal/providers"
-	"synon-go/internal/sciencecapability"
-	runnermachine "synon-go/internal/sessionrunner"
+	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/providers"
+	"x-science/internal/sciencecapability"
+	runnermachine "x-science/internal/sessionrunner"
 )
 
 type SessionRunnerChatOptions struct {

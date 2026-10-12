@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"reflect"
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/skills"
+	"x-science/internal/agentruntime"
+	"x-science/internal/skills"
 	"testing"
 )
 

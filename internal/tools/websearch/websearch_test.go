@@ -17,25 +17,25 @@ import (
 
 func TestSearchUsesGoHTTPBackendWithoutPythonScript(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.Contains(r.URL.Query().Get("q"), "Synon") {
+		if !strings.Contains(r.URL.Query().Get("q"), "XScience") {
 			t.Fatalf("query was not forwarded to Go search backend: %s", r.URL.RawQuery)
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		_, _ = w.Write([]byte(`<!doctype html>
 <html><body>
-<a class="result__a" href="https://example.com/synon-agent">Synon Agent Runtime</a>
+<a class="result__a" href="https://example.com/x-science-agent">XScience Agent Runtime</a>
 <a class="result__snippet">Go native runtime parity result.</a>
-<a class="result__a" href="https://blocked.example/synon">Blocked result</a>
+<a class="result__a" href="https://blocked.example/xscience">Blocked result</a>
 <a class="result__snippet">This result should be filtered.</a>
 </body></html>`))
 	}))
 	defer server.Close()
 
-	t.Setenv("SYNON_WEBSEARCH_SCRIPT", "/missing/websearch.py")
-	t.Setenv("SYNON_WEBSEARCH_ENDPOINT", server.URL+"/search?q={query}")
+	t.Setenv("X_SCIENCE_WEBSEARCH_SCRIPT", "/missing/websearch.py")
+	t.Setenv("X_SCIENCE_WEBSEARCH_ENDPOINT", server.URL+"/search?q={query}")
 
 	out, err := Search(context.Background(), Input{
-		Query:          "Synon agent",
+		Query:          "XScience agent",
 		BlockedDomains: []string{"blocked.example"},
 		MaxResults:     3,
 	}, Options{ClientForURL: testHTTPClientFor(server.Client())})
@@ -45,7 +45,7 @@ func TestSearchUsesGoHTTPBackendWithoutPythonScript(t *testing.T) {
 	if out.Failure != nil {
 		t.Fatalf("Search should not require Python script when Go HTTP backend is configured: %#v", out.Failure)
 	}
-	if len(out.Sources) != 1 || out.Sources[0].URL != "https://example.com/synon-agent" || out.Sources[0].Provider != providerName {
+	if len(out.Sources) != 1 || out.Sources[0].URL != "https://example.com/x-science-agent" || out.Sources[0].Provider != providerName {
 		t.Fatalf("Search sources = %#v", out.Sources)
 	}
 	if out.Diagnostics["backend"] != "go-http" || out.Diagnostics["scriptExists"] != false {
@@ -67,8 +67,8 @@ func TestSearchRejectsUnrelatedNavigationLinksAsEvidence(t *testing.T) {
 	}))
 	defer server.Close()
 
-	t.Setenv("SYNON_WEBSEARCH_SCRIPT", "/missing/websearch.py")
-	t.Setenv("SYNON_WEBSEARCH_ENDPOINT", server.URL+"/search?q={query}")
+	t.Setenv("X_SCIENCE_WEBSEARCH_SCRIPT", "/missing/websearch.py")
+	t.Setenv("X_SCIENCE_WEBSEARCH_ENDPOINT", server.URL+"/search?q={query}")
 	out, err := Search(context.Background(), Input{
 		Query: "MCL1 inhibitor crystal structure PDB BH3 groove drug discovery 2023 2024", MaxResults: 10,
 	}, Options{HTTPBackends: []httpSearchBackend{{Name: "bing-html", Endpoint: server.URL + "/search?q={query}"}}, ClientForURL: testHTTPClientFor(server.Client())})
@@ -110,8 +110,8 @@ func TestSearchRejectsLiveShapedGenericPDBResultsWhenExactIdentifierIsMissing(t 
 			}))
 			defer server.Close()
 
-			t.Setenv("SYNON_WEBSEARCH_SCRIPT", "/missing/websearch.py")
-			t.Setenv("SYNON_WEBSEARCH_ENDPOINT", server.URL+"/search?q={query}")
+			t.Setenv("X_SCIENCE_WEBSEARCH_SCRIPT", "/missing/websearch.py")
+			t.Setenv("X_SCIENCE_WEBSEARCH_ENDPOINT", server.URL+"/search?q={query}")
 			out, err := Search(context.Background(), Input{Query: query, MaxResults: 10}, Options{
 				HTTPBackends: []httpSearchBackend{{Name: "bing-html", Endpoint: server.URL + "/search?q={query}"}},
 				ClientForURL: testHTTPClientFor(server.Client()),
@@ -219,9 +219,9 @@ func TestSearchPrefersGoHTTPBackendWhenPythonScriptExists(t *testing.T) {
 	if err := os.WriteFile(script, []byte("raise SystemExit('python backend must not run')\n"), 0o755); err != nil {
 		t.Fatalf("WriteFile() error = %v", err)
 	}
-	t.Setenv("SYNON_WEBSEARCH_SCRIPT", script)
-	t.Setenv("SYNON_WEBSEARCH_ENDPOINT", server.URL+"/search?q={query}")
-	t.Setenv("SYNON_WEBSEARCH_PYTHON", "/definitely/missing/python")
+	t.Setenv("X_SCIENCE_WEBSEARCH_SCRIPT", script)
+	t.Setenv("X_SCIENCE_WEBSEARCH_ENDPOINT", server.URL+"/search?q={query}")
+	t.Setenv("X_SCIENCE_WEBSEARCH_PYTHON", "/definitely/missing/python")
 
 	out, err := Search(context.Background(), Input{Query: "native backend", MaxResults: 1}, Options{
 		Root: root, ClientForURL: testHTTPClientFor(server.Client()),
@@ -238,9 +238,9 @@ func TestSearchPrefersGoHTTPBackendWhenPythonScriptExists(t *testing.T) {
 }
 
 func TestGoHTTPBackendIsEnabledByDefaultWithExistingScript(t *testing.T) {
-	t.Setenv("SYNON_WEBSEARCH_ENDPOINT", "")
-	t.Setenv("SYNON_WEBSEARCH_GO", "")
-	t.Setenv("SYNON_WEBSEARCH_SCRIPT", "")
+	t.Setenv("X_SCIENCE_WEBSEARCH_ENDPOINT", "")
+	t.Setenv("X_SCIENCE_WEBSEARCH_GO", "")
+	t.Setenv("X_SCIENCE_WEBSEARCH_SCRIPT", "")
 
 	script := filepath.Join(t.TempDir(), "websearch.py")
 	if err := os.WriteFile(script, []byte("# optional fallback\n"), 0o600); err != nil {
@@ -260,11 +260,11 @@ func TestResolveScriptPathRequiresExplicitConfiguration(t *testing.T) {
 	if err := os.WriteFile(implicit, []byte("# implicit helper\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("SYNON_WEBSEARCH_SCRIPT", "")
+	t.Setenv("X_SCIENCE_WEBSEARCH_SCRIPT", "")
 	if got := resolveScriptPath(root); got != "" {
 		t.Fatalf("implicit script path = %q", got)
 	}
-	t.Setenv("SYNON_WEBSEARCH_SCRIPT", implicit)
+	t.Setenv("X_SCIENCE_WEBSEARCH_SCRIPT", implicit)
 	if got := resolveScriptPath(root); got != implicit {
 		t.Fatalf("explicit script path = %q, want %q", got, implicit)
 	}
@@ -290,7 +290,7 @@ func TestSearchReportsItsTotalTimeoutWithoutLeakingProcessKillDetails(t *testing
 	if err := os.WriteFile(script, []byte("import time\ntime.sleep(5)\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("SYNON_WEBSEARCH_SCRIPT", script)
+	t.Setenv("X_SCIENCE_WEBSEARCH_SCRIPT", script)
 	started := time.Now()
 	out, err := Search(context.Background(), Input{Query: "bounded biomedical search", MaxResults: 3}, Options{
 		Root: root, Timeout: 100 * time.Millisecond,
@@ -323,7 +323,7 @@ func TestSearchPropagatesParentCancellation(t *testing.T) {
 	if err := os.WriteFile(script, []byte("import time\ntime.sleep(5)\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("SYNON_WEBSEARCH_SCRIPT", script)
+	t.Setenv("X_SCIENCE_WEBSEARCH_SCRIPT", script)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	if _, err := Search(ctx, Input{Query: "cancelled biomedical search"}, Options{Root: root}); !errors.Is(err, context.Canceled) {

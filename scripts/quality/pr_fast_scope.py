@@ -18,7 +18,7 @@ import subprocess
 import sys
 
 if __package__:
-    from . import pr_build_scope, pr_dependency_scope, pr_frontend_scope, pr_metadata_scope, pr_test_partition, runtime_input_scope, verification_scope
+    from . import pr_build_scope, pr_dependency_scope, pr_frontend_scope, pr_metadata_scope, pr_namespace_scope, pr_test_partition, runtime_input_scope, verification_scope
     from .runtime_test_inventory import discover, execution_plan
     from .runtime_test_shards import execute
 else:
@@ -26,6 +26,7 @@ else:
     import pr_frontend_scope
     import pr_build_scope
     import pr_metadata_scope
+    import pr_namespace_scope
     import pr_test_partition
     import runtime_input_scope
     import verification_scope
@@ -87,7 +88,7 @@ def frontend_affected(paths: list[str], repo: Path | None = None) -> bool:
 
 def documentation_only(path: str) -> bool:
     return (path in {"README.md", "AGENTS.md", "CONTRIBUTING.md", "SECURITY.md", "CODE_OF_CONDUCT.md", "LICENSE", ".gitignore", ".gitattributes", ".editorconfig",
-                    ".github/pull_request_template.md"}
+                    ".github/pull_request_template.md", "assets/x-science-link/README.md", "skills/README.md", "internal/outbox/README.md"}
             or path.startswith("docs/assets/") or path.startswith("docs/") and path.endswith(".md"))
 
 
@@ -163,6 +164,8 @@ def selected_packages(repo: Path, base: str, head: str) -> tuple[list[str], list
 
 def behavior_scope(repo: Path, base: str, head: str, paths: list[str]):
     behavior, metadata = pr_metadata_scope.filter_paths(repo, base, head, paths)
+    if set(base) != {"0"}:
+        behavior = pr_namespace_scope.filter_paths(repo, base, head, behavior)
     build_defaults = []
     if "Makefile" in behavior and pr_build_scope.default_goal_only(repo, base, head):
         behavior.remove("Makefile")
@@ -240,6 +243,7 @@ def main() -> int:
         scope = {"base": args.base, "head": args.head, "changed_paths": paths, "packages": selected,
                  "behavior_paths": behavior_paths, "version_metadata_paths": metadata_paths,
                  "build_default_paths": build_defaults,
+                 "namespace_scope": "SHA-bound AST equivalence; changed literals/directives retain current package ownership",
                  "verification_groups": [group["name"] for group in groups], "reason": reason,
                  "shard_index": args.shard_index, "shard_count": args.shard_count}
         print(json.dumps(scope, ensure_ascii=False))

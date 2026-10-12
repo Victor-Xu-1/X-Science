@@ -3,7 +3,7 @@ package providers
 import (
 	"errors"
 
-	"synon-go/internal/toolcontract"
+	"x-science/internal/toolcontract"
 )
 
 func normalizeModelToolName(name string) (string, error) {

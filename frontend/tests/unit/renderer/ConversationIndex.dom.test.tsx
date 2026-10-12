@@ -221,7 +221,7 @@ describe('ChatConversationIndex unavailable states', () => {
       data: {
         id: 'frame-running',
         name: 'Running chemistry task',
-        extra: { backend: 'synonbiomed' },
+        extra: { backend: 'xscience' },
         runtime: { is_processing: true, has_task: true },
       },
       error: undefined,
@@ -241,7 +241,7 @@ describe('ChatConversationIndex unavailable states', () => {
       data: {
         id: 'frame-running',
         name: 'Running chemistry task',
-        extra: { backend: 'synonbiomed' },
+        extra: { backend: 'xscience' },
         runtime: { is_processing: true, has_task: true },
       },
       error: undefined,

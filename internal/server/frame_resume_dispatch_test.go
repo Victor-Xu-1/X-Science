@@ -16,12 +16,12 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"synon-go/internal/agentruntime"
-	eventjournal "synon-go/internal/persistence/journal"
-	secretstore "synon-go/internal/persistence/secrets"
-	sessionstore "synon-go/internal/persistence/sessions"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	eventjournal "x-science/internal/persistence/journal"
+	secretstore "x-science/internal/persistence/secrets"
+	sessionstore "x-science/internal/persistence/sessions"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestAutoResumeInterruptedFramesCreatesDispatchForExpiredRunnerLease(t *testing.T) {

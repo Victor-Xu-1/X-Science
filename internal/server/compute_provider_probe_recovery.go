@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 // Attempts bound one observation burst, not the lifetime of the logical task.

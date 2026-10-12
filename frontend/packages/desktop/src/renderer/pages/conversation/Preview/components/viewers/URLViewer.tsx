@@ -7,7 +7,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import WebviewHost from '@/renderer/components/media/WebviewHost';
-import { resolveSynonBiomedInternetShortcut } from '@/renderer/services/synonBiomedArtifactPreview';
+import { resolveXScienceInternetShortcut } from '@/renderer/services/xScienceArtifactPreview';
 
 interface URLViewerProps {
   /** URL to display */
@@ -24,7 +24,7 @@ interface URLViewerProps {
  */
 const URLViewer: React.FC<URLViewerProps> = ({ url, title }) => {
   const { t } = useTranslation();
-  const resolvedUrl = resolveSynonBiomedInternetShortcut(url);
+  const resolvedUrl = resolveXScienceInternetShortcut(url);
   if (!resolvedUrl) {
     return (
       <div className='size-full flex-center bg-1 px-24px'>

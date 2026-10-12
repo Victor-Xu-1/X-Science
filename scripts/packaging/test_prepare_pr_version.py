@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 class PreparePrVersionTest(unittest.TestCase):
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix="synon-version-prepare-")
+        self.temporary = tempfile.TemporaryDirectory(prefix="x-science-version-prepare-")
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name) / "candidate"
         subprocess.run(["git", "clone", "--quiet", "--shared", "--no-hardlinks", str(ROOT), str(self.root)], check=True)

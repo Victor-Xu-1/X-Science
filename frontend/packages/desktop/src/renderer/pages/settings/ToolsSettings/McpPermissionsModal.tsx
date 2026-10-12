@@ -3,23 +3,23 @@ import Modal from '@/renderer/components/base/WorkbenchModal';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  loadSynonBiomedMcpToolPermissions,
-  updateSynonBiomedMcpToolPermission,
-  type SynonBiomedMcpServer,
-  type SynonBiomedMcpToolPermission,
-  type SynonBiomedMcpToolPermissionState,
-} from '@/renderer/services/synonBiomedCapabilities';
+  loadXScienceMcpToolPermissions,
+  updateXScienceMcpToolPermission,
+  type XScienceMcpServer,
+  type XScienceMcpToolPermission,
+  type XScienceMcpToolPermissionState,
+} from '@/renderer/services/xScienceCapabilities';
 
 type Props = {
-  server: SynonBiomedMcpServer | null;
+  server: XScienceMcpServer | null;
   onCancel: () => void;
 };
 
-const DECISIONS: SynonBiomedMcpToolPermissionState[] = ['allow', 'ask', 'deny'];
+const DECISIONS: XScienceMcpToolPermissionState[] = ['allow', 'ask', 'deny'];
 
 export const McpPermissionsModal: React.FC<Props> = ({ server, onCancel }) => {
   const { t } = useTranslation();
-  const [tools, setTools] = useState<SynonBiomedMcpToolPermission[]>([]);
+  const [tools, setTools] = useState<XScienceMcpToolPermission[]>([]);
   const [loading, setLoading] = useState(false);
   const [mutatingTool, setMutatingTool] = useState<string | null>(null);
   const [mutatingAll, setMutatingAll] = useState(false);
@@ -36,7 +36,7 @@ export const McpPermissionsModal: React.FC<Props> = ({ server, onCancel }) => {
     }
     setLoading(true);
     try {
-      const permissions = await loadSynonBiomedMcpToolPermissions(server.id);
+      const permissions = await loadXScienceMcpToolPermissions(server.id);
       if (generation === loadGeneration.current) {
         setTools(permissions.tools);
         setSkipApprovalsActive(
@@ -51,7 +51,7 @@ export const McpPermissionsModal: React.FC<Props> = ({ server, onCancel }) => {
       if (generation === loadGeneration.current) {
         setTools([]);
         setSkipApprovalsActive(false);
-        Message.error(t('settings.synonBiomedMcpFetchError'));
+        Message.error(t('settings.xScienceMcpFetchError'));
       }
     } finally {
       if (generation === loadGeneration.current) {
@@ -65,18 +65,18 @@ export const McpPermissionsModal: React.FC<Props> = ({ server, onCancel }) => {
   }, [load]);
 
   const setDecision = useCallback(
-    async (tool: SynonBiomedMcpToolPermission, state: SynonBiomedMcpToolPermissionState) => {
+    async (tool: XScienceMcpToolPermission, state: XScienceMcpToolPermissionState) => {
       if (!server) return;
       setMutatingTool(tool.toolName);
       try {
-        await updateSynonBiomedMcpToolPermission(server.id, tool.toolName, state);
+        await updateXScienceMcpToolPermission(server.id, tool.toolName, state);
         setTools((current) => current.map((item) => (item.toolName === tool.toolName ? { ...item, state } : item)));
         setSkipApprovalsActive(false);
       } catch (error) {
         console.warn('[McpPermissionsModal] Failed to update MCP tool permission', {
           errorName: error instanceof Error ? error.name : typeof error,
         });
-        Message.error(t('settings.synonBiomedMcpMutationError'));
+        Message.error(t('settings.xScienceMcpMutationError'));
       } finally {
         setMutatingTool(null);
       }
@@ -88,16 +88,16 @@ export const McpPermissionsModal: React.FC<Props> = ({ server, onCancel }) => {
     async (allow: boolean) => {
       if (!server || tools.length === 0) return;
       setMutatingAll(true);
-      const state: SynonBiomedMcpToolPermissionState = allow ? 'allow' : 'ask';
+      const state: XScienceMcpToolPermissionState = allow ? 'allow' : 'ask';
       try {
-        await Promise.all(tools.map((tool) => updateSynonBiomedMcpToolPermission(server.id, tool.toolName, state)));
+        await Promise.all(tools.map((tool) => updateXScienceMcpToolPermission(server.id, tool.toolName, state)));
         setTools((current) => current.map((tool) => ({ ...tool, state })));
         setSkipApprovalsActive(allow);
       } catch (error) {
         console.warn('[McpPermissionsModal] Failed to update all MCP tool permissions', {
           errorName: error instanceof Error ? error.name : typeof error,
         });
-        Message.error(t('settings.synonBiomedMcpMutationError'));
+        Message.error(t('settings.xScienceMcpMutationError'));
         await load();
       } finally {
         setMutatingAll(false);
@@ -109,7 +109,7 @@ export const McpPermissionsModal: React.FC<Props> = ({ server, onCancel }) => {
   return (
     <Modal
       visible={Boolean(server)}
-      title={t('settings.synonBiomedMcpPermissionsTitle', { name: server?.displayName ?? '' })}
+      title={t('settings.xScienceMcpPermissionsTitle', { name: server?.displayName ?? '' })}
       footer={null}
       onCancel={onCancel}
       style={{ width: 720, maxWidth: 'calc(100vw - 32px)' }}
@@ -120,17 +120,17 @@ export const McpPermissionsModal: React.FC<Props> = ({ server, onCancel }) => {
           {tools.length > 0 ? (
             <div className='mb-4px flex items-start justify-between gap-16px rounded-8px border border-arco-2 bg-fill-1 px-13px py-12px'>
               <div>
-                <div className='text-13px font-650 text-t-primary'>{t('settings.synonBiomedMcpSkipApprovals')}</div>
+                <div className='text-13px font-650 text-t-primary'>{t('settings.xScienceMcpSkipApprovals')}</div>
                 <div className='mt-3px text-12px leading-5 text-t-secondary'>
-                  {t('settings.synonBiomedMcpSkipApprovalsDetail')}
+                  {t('settings.xScienceMcpSkipApprovalsDetail')}
                 </div>
               </div>
               <Switch
                 checked={skipApprovalsActive}
                 loading={mutatingAll}
                 disabled={mutatingAll || Boolean(mutatingTool)}
-                aria-label={t('settings.synonBiomedMcpSkipApprovals')}
-                data-testid='synon-biomed-mcp-skip-approvals'
+                aria-label={t('settings.xScienceMcpSkipApprovals')}
+                data-testid='x-science-mcp-skip-approvals'
                 onChange={(checked) => void setAllDecisions(checked)}
               />
             </div>
@@ -143,7 +143,7 @@ export const McpPermissionsModal: React.FC<Props> = ({ server, onCancel }) => {
               <div className='min-w-0'>
                 <div className='flex flex-wrap items-center gap-6px'>
                   <span className='text-13px font-600 text-t-primary'>{tool.title || tool.toolName}</span>
-                  {tool.readOnlyHint ? <Tag size='small'>{t('settings.synonBiomedMcpReadOnlyTool')}</Tag> : null}
+                  {tool.readOnlyHint ? <Tag size='small'>{t('settings.xScienceMcpReadOnlyTool')}</Tag> : null}
                 </div>
                 <div className='mt-3px text-11px text-t-tertiary break-all'>{tool.toolName}</div>
                 {tool.description ? (
@@ -158,7 +158,7 @@ export const McpPermissionsModal: React.FC<Props> = ({ server, onCancel }) => {
                     type={tool.state === decision ? 'primary' : 'secondary'}
                     loading={mutatingTool === tool.toolName && tool.state !== decision}
                     disabled={mutatingTool === tool.toolName || mutatingAll}
-                    data-testid={`synon-biomed-mcp-permission-${tool.toolName}-${decision}`}
+                    data-testid={`x-science-mcp-permission-${tool.toolName}-${decision}`}
                     onClick={() => void setDecision(tool, decision)}
                   >
                     {permissionLabel(decision, t)}
@@ -167,15 +167,15 @@ export const McpPermissionsModal: React.FC<Props> = ({ server, onCancel }) => {
               </div>
             </div>
           ))}
-          {!loading && tools.length === 0 ? <Empty description={t('settings.synonBiomedMcpPermissionsEmpty')} /> : null}
+          {!loading && tools.length === 0 ? <Empty description={t('settings.xScienceMcpPermissionsEmpty')} /> : null}
         </div>
       </Spin>
     </Modal>
   );
 };
 
-function permissionLabel(state: SynonBiomedMcpToolPermissionState, t: ReturnType<typeof useTranslation>['t']): string {
-  if (state === 'allow') return t('settings.synonBiomedMcpPermissionAllow');
-  if (state === 'deny') return t('settings.synonBiomedMcpPermissionDeny');
-  return t('settings.synonBiomedMcpPermissionAsk');
+function permissionLabel(state: XScienceMcpToolPermissionState, t: ReturnType<typeof useTranslation>['t']): string {
+  if (state === 'allow') return t('settings.xScienceMcpPermissionAllow');
+  if (state === 'deny') return t('settings.xScienceMcpPermissionDeny');
+  return t('settings.xScienceMcpPermissionAsk');
 }

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 type managedProjectPreparationOptions struct {

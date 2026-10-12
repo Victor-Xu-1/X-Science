@@ -12,8 +12,8 @@ import (
 	"strings"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/software"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/software"
 )
 
 func TestStructureElectrostaticRuntimeUsesPinnedSmallStandardToolchain(t *testing.T) {
@@ -42,7 +42,7 @@ func TestStructureElectrostaticMapUsesTypedPDB2PQRInputAPI(t *testing.T) {
 		[]byte("float(ionic_strength)"),
 		[]byte("CALCULATION_MODE = \"separate-components\""),
 		[]byte("CONTRACT_VERSION = \"2.0\""),
-		[]byte("INPUT_DIGEST_DOMAIN = b\"synon-biomed:structure-electrostatic-input:v1\""),
+		[]byte("INPUT_DIGEST_DOMAIN = b\"x-science:structure-electrostatic-input:v1\""),
 		[]byte("to_bytes(8, \"little\")"),
 		[]byte("component_jobs.append((\"protein\", None, protein_pqr, protein_dx))"),
 		[]byte("component_jobs.extend((\"ligand\", key, ligand_pqr, ligand_dx)"),
@@ -152,7 +152,7 @@ func TestDecodeStructureElectrostaticMapRequestNormalizesScientificSettings(t *t
 	payload, err := json.Marshal(map[string]any{
 		"content":              "ATOM      1  N   ALA A   1       0.000   0.000   0.000  1.00  0.00           N\nEND\n",
 		"filename":             "9R1Z.cif",
-		"ligand_mol_block":     "ligand\n  Synon\n\n  0  0  0  0  0  0  0  0  0  0  1 V2000\nM  END\n",
+		"ligand_mol_block":     "ligand\n  XScience\n\n  0  0  0  0  0  0  0  0  0  0  1 V2000\nM  END\n",
 		"ph":                   7.444,
 		"ionic_strength_molar": 0.1546,
 	})
@@ -174,7 +174,7 @@ func TestDecodeStructureElectrostaticMapRequestNormalizesScientificSettings(t *t
 }
 
 func TestDecodeStructureElectrostaticMapRequestAcceptsAndSortsBoundedLigandBatch(t *testing.T) {
-	molBlock := "ligand\n  Synon\n\n  0  0  0  0  0  0  0  0  0  0  1 V2000\nM  END\n"
+	molBlock := "ligand\n  XScience\n\n  0  0  0  0  0  0  0  0  0  0  1 V2000\nM  END\n"
 	payload, err := json.Marshal(map[string]any{
 		"content":  "ATOM      1  N   ALA A   1       0.000   0.000   0.000  1.00  0.00           N\nEND\n",
 		"filename": "complex.pdb",

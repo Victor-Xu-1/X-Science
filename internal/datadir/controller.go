@@ -15,13 +15,13 @@ import (
 
 	"github.com/google/uuid"
 
-	runtimecontrol "synon-go/internal/runtimecontrol"
+	runtimecontrol "x-science/internal/runtimecontrol"
 )
 
 const (
 	stateSchemaVersion             = 1
-	sourceMarkerPrefix             = ".synon-data-move-source-"
-	completionMarker               = ".synon-data-move-complete"
+	sourceMarkerPrefix             = ".x-science-data-move-source-"
+	completionMarker               = ".x-science-data-move-complete"
 	migrationFreeSpaceReserveBytes = uint64(512 * 1024 * 1024)
 )
 
@@ -424,7 +424,7 @@ func (c *Controller) applyPendingLocked(state *State) error {
 	if err != nil {
 		return err
 	}
-	staging := move.Target + ".synon-migrate-" + move.ID
+	staging := move.Target + ".x-science-migrate-" + move.ID
 	if _, err := os.Lstat(staging); err == nil {
 		return errors.New("migration staging directory already exists; manual inspection is required")
 	} else if !errors.Is(err, os.ErrNotExist) {
@@ -609,7 +609,7 @@ func pathContains(parent, child string) bool {
 }
 
 func writableProbe(directory string) error {
-	file, err := os.CreateTemp(directory, ".synon-write-probe-")
+	file, err := os.CreateTemp(directory, ".x-science-write-probe-")
 	if err != nil {
 		return err
 	}

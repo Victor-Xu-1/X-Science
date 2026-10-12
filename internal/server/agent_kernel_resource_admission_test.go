@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"synon-go/internal/kernel/detached"
+	"x-science/internal/kernel/detached"
 )
 
 func TestKernelResourceAdmissionReturnsUnstartedReceiptNotExecutionFailure(t *testing.T) {

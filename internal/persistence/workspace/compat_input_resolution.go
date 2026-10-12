@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 type CompatibilityInputResolution struct {
@@ -499,7 +499,7 @@ func compatibilityResolvedInputPayload(
 
 func compatibilityInputResponseClientID(streamUID string, payload []byte) string {
 	digest := sha256.Sum256(append(
-		[]byte("synon.transcript.input-response.v1\x00"+strings.TrimSpace(streamUID)+"\x00"), payload...,
+		[]byte("x-science.transcript.input-response.v1\x00"+strings.TrimSpace(streamUID)+"\x00"), payload...,
 	))
 	return fmt.Sprintf("input-response:%x", digest)
 }

@@ -13,7 +13,7 @@ import (
 )
 
 func TestWindowsKernelConfinementIsNotAdvertisedBeforeFullBoundary(t *testing.T) {
-	t.Setenv("SYNON_HOME", t.TempDir())
+	t.Setenv("X_SCIENCE_HOME", t.TempDir())
 	workspace := t.TempDir()
 	executable := windowsConfinementTestExecutable(t)
 	command, err := newConfinedWorkerCommand(workspace, executable, nil, nil, nil, nil)
@@ -200,9 +200,9 @@ func TestWindowsConfinementOverlapUsesCaseInsensitiveBoundaries(t *testing.T) {
 }
 
 func TestWindowsConfinementGrantsDoNotWidenExecutableParent(t *testing.T) {
-	executable := `C:\Program Files\Synon\synon.exe`
-	grants := windowsConfinementGrants(executable, `C:\SynonWork\task`, nil)
-	if len(grants) != 2 || grants[0].path != executable || grants[1].path != `C:\SynonWork\task` {
+	executable := `C:\Program Files\XScience\x-science.exe`
+	grants := windowsConfinementGrants(executable, `C:\XScienceWork\task`, nil)
+	if len(grants) != 2 || grants[0].path != executable || grants[1].path != `C:\XScienceWork\task` {
 		t.Fatalf("unexpected AppContainer grants: %+v", grants)
 	}
 }
@@ -339,7 +339,7 @@ func TestWindowsManagerStartValidatesSupervisorAuthority(t *testing.T) {
 }
 
 func TestWindowsPythonWorkerAlwaysStartsIsolated(t *testing.T) {
-	worker := `C:\Synon\kernels\kernel_worker.py`
+	worker := `C:\XScience\kernels\kernel_worker.py`
 	python := `C:\Runtime\python.exe`
 	arguments := windowsIsolatedWorkerArguments(python, []string{worker})
 	if len(arguments) != 2 || arguments[0] != "-I" || arguments[1] != worker {

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/memorypolicy"
+	"x-science/internal/memorypolicy"
 )
 
 func TestWorkspaceMemoryToolsAreRegisteredButRequireTrustedSessionDispatch(t *testing.T) {

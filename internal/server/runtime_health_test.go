@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	kernelruntime "synon-go/internal/kernel"
+	kernelruntime "x-science/internal/kernel"
 )
 
 func TestRuntimeComponentHealthIsBoundedSortedAndRecoverable(t *testing.T) {

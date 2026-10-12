@@ -14,7 +14,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const testCatalogUUID = "4f5b9638-2dc3-4b70-bbea-9af732ba57ef"

@@ -37,7 +37,7 @@ vi.mock('@/renderer/utils/platform', () => ({
   isElectronDesktop: () => true,
 }));
 
-vi.mock('@/renderer/components/base/SynonScrollArea', () => ({
+vi.mock('@/renderer/components/base/XScienceScrollArea', () => ({
   default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
@@ -150,7 +150,7 @@ describe('SystemModalContent X-Science settings', () => {
     showOpenMock.mockResolvedValue(['/new-logs']);
   });
 
-  it('does not render retired SynonAI directory settings or call legacy system-info endpoints', async () => {
+  it('does not render retired XScience directory settings or call legacy system-info endpoints', async () => {
     renderContent();
 
     expect(await screen.findByText('settings.language')).toBeInTheDocument();

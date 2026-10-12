@@ -138,7 +138,7 @@ func TestCorrectionConditionRejectsMalformedContract(t *testing.T) {
 	}
 	object["unknown"] = true
 	unknown, _ := json.Marshal(object)
-	for _, invalid := range [][]byte{unknown, append(append([]byte(nil), raw...), []byte(" {}")...), []byte(`{"schema":"synon.runner_correction_condition.v1"}`)} {
+	for _, invalid := range [][]byte{unknown, append(append([]byte(nil), raw...), []byte(" {}")...), []byte(`{"schema":"x-science.runner_correction_condition.v1"}`)} {
 		if _, err := DecodeRunnerCorrectionCondition(invalid); err == nil {
 			t.Fatal("unknown, incomplete or trailing condition accepted")
 		}

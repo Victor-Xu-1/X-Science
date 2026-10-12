@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"synon-go/internal/agentruntime"
-	taskruns "synon-go/internal/persistence/taskruns"
-	"synon-go/internal/tools/shellops"
+	"x-science/internal/agentruntime"
+	taskruns "x-science/internal/persistence/taskruns"
+	"x-science/internal/tools/shellops"
 	"time"
 )
 

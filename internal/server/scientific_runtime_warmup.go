@@ -11,9 +11,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"synon-go/internal/failurecontract"
-	"synon-go/internal/software"
-	"synon-go/internal/toolprogress"
+	"x-science/internal/failurecontract"
+	"x-science/internal/software"
+	"x-science/internal/toolprogress"
 )
 
 var scientificRuntimeWarmupRetryDelays = []time.Duration{

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestCompatibilitySessionConfigPersistsMirrorsAndSurvivesRestart(t *testing.T) {
@@ -69,7 +69,7 @@ func TestCompatibilitySessionConfigPersistsMirrorsAndSurvivesRestart(t *testing.
 	restarted := New(Options{FileRoot: root, Workspace: store}).Handler()
 	configResponse := httptest.NewRecorder()
 	configRequest := newLoopbackTestRequest(http.MethodGet, "/api/go/sessions/frame/config", nil)
-	configRequest.Header.Set("X-Synon-User-Id", "local")
+	configRequest.Header.Set("X-Science-User-Id", "local")
 	restarted.ServeHTTP(configResponse, configRequest)
 	if configResponse.Code != http.StatusOK {
 		t.Fatalf("restart config status = %d: %s", configResponse.Code, configResponse.Body.String())

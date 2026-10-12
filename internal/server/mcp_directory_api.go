@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"synon-go/internal/mcpdirectory"
+	"x-science/internal/mcpdirectory"
 )
 
 func (s *Server) handleMCPDirectory(w http.ResponseWriter, r *http.Request) {

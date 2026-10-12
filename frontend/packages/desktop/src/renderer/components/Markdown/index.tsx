@@ -17,9 +17,9 @@ import 'katex/dist/katex.min.css';
 
 import { openExternalUrl } from '@/renderer/utils/platform';
 import {
-  getSynonBiomedArtifactReferenceId,
-  parseSynonBiomedArtifactLink,
-} from '@/renderer/services/synonBiomedArtifactReferences';
+  getXScienceArtifactReferenceId,
+  parseXScienceArtifactLink,
+} from '@/renderer/services/xScienceArtifactReferences';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -114,7 +114,7 @@ const MarkdownView: React.FC<MarkdownViewProps> = React.memo(
       if (currentOnLink && (await currentOnLink(rawHref || resolvedHref))) return;
       // Generated file identities never degrade to browser navigation/downloads,
       // including while metadata is pending or no longer available.
-      const artifactLink = parseSynonBiomedArtifactLink(rawHref);
+      const artifactLink = parseXScienceArtifactLink(rawHref);
       if (artifactLink && (artifactLink.kind !== 'filename' || resolveLinkHrefRef.current)) return;
       openExternalUrl(resolvedHref || rawHref).catch((error: unknown) => {
         console.error(translationRef.current('messages.openLinkFailed'), error);
@@ -141,7 +141,7 @@ const MarkdownView: React.FC<MarkdownViewProps> = React.memo(
         a: ({ node: _node, ...rest }: Record<string, unknown>) => {
           const anchorProps = rest as React.AnchorHTMLAttributes<HTMLAnchorElement>;
           const rawHref = typeof anchorProps.href === 'string' ? anchorProps.href : '';
-          const artifactLink = parseSynonBiomedArtifactLink(rawHref);
+          const artifactLink = parseXScienceArtifactLink(rawHref);
           // Content API identities take precedence over local path heuristics.
           if (artifactLink && (artifactLink.kind !== 'filename' || resolveLinkHrefRef.current)) {
             const fileLinkProps: React.AnchorHTMLAttributes<HTMLAnchorElement> = {
@@ -236,7 +236,7 @@ const MarkdownView: React.FC<MarkdownViewProps> = React.memo(
               rehypePlugins={rehypePlugins}
               components={components}
               urlTransform={(url) =>
-                getSynonBiomedArtifactReferenceId(url) ||
+                getXScienceArtifactReferenceId(url) ||
                 resolveLocalFileLinkPath(url) ||
                 isSafeInlineMarkdownImageUrl(url)
                   ? url
@@ -285,10 +285,10 @@ const ResolvedArtifactLink: React.FC<ResolvedArtifactLinkProps> = ({ originalHre
   return (
     <a
       {...anchorProps}
-      className={classNames(anchorProps.className, 'synon-artifact-link')}
+      className={classNames(anchorProps.className, 'x-science-artifact-link')}
       href={resolvedHref ?? '#'}
       data-original-href={originalHref}
-      data-synon-artifact-link='true'
+      data-x-science-artifact-link='true'
       data-artifact-link-resolution={resolvedHref === undefined ? 'pending' : resolvedHref ? 'resolved' : 'unavailable'}
       aria-busy={resolvedHref === undefined ? true : undefined}
       rel='noreferrer'

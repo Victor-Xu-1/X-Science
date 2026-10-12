@@ -43,7 +43,7 @@ export const consumePendingDeepLink = (): DeepLinkAddProviderDetail | null => {
 const ALLOWED_NAVIGATE_PATTERNS = [/^\/conversation\/[^/]+$/];
 
 /**
- * Hook to listen for synon-ai:// deep link events from main process.
+ * Hook to listen for x-science:// deep link events from main process.
  * Routes retired 'add-provider' actions to X-Science runtime resources.
  * Routes 'navigate' action to the specified route (whitelist-validated).
  */

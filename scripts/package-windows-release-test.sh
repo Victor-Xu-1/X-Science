@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ "${SYNON_CLEAN_SOURCE_TEST:-}" != "1" ]]; then
+if [[ "${X_SCIENCE_CLEAN_SOURCE_TEST:-}" != "1" ]]; then
 	out_dir="$(realpath -m "${1:-release-windows}")"
 	exec scripts/run-clean-source-test.sh scripts/package-windows-release-test.sh "$out_dir"
 fi
@@ -14,7 +14,7 @@ cleanup() {
 	local rc=$?
 	local cleanup_failed=0
 	trap - EXIT
-	if [[ "$passed" == true || "${SYNON_KEEP_FAILURE_ARTIFACTS:-0}" != "1" ]]; then
+	if [[ "$passed" == true || "${X_SCIENCE_KEEP_FAILURE_ARTIFACTS:-0}" != "1" ]]; then
 		if ! rm -rf -- "$tmp"; then
 			printf 'unable to remove Windows package test directory: %s\n' "$tmp" >&2 || true
 			cleanup_failed=1
@@ -34,8 +34,8 @@ mkdir -p "$tmp/unpack"
 tar --same-permissions -xzf "$first" -C "$tmp/unpack"
 package_dir="$(find "$tmp/unpack" -mindepth 1 -maxdepth 1 -type d -print -quit)"
 test -f "$package_dir/web/index.html"
-test -f "$package_dir/synon-go.exe"
-test -f "$package_dir/synon-go-live-im-smoke.exe"
+test -f "$package_dir/x-science.exe"
+test -f "$package_dir/x-science-live-im-smoke.exe"
 test -f "$package_dir/assets/optional/micromamba/windows-x86_64/micromamba.exe"
 test -f "$package_dir/assets/optional/micromamba/windows-x86_64/manifest.json"
 test -f "$package_dir/assets/optional/conda-runtimes/windows-x86_64/manifest.json"
@@ -46,14 +46,14 @@ test ! -e "$package_dir/assets/optional/micromamba/linux-x86_64"
 test ! -e "$package_dir/assets/optional/conda-runtimes/manifest.json"
 python3 scripts/verify-artifact-provenance.py "$package_dir" \
 	"$package_dir/assets/optional/micromamba/windows-x86_64/micromamba.exe"
-if find "$package_dir" -type f ! -name synon-go.exe ! -name synon-go-live-im-smoke.exe \
+if find "$package_dir" -type f ! -name x-science.exe ! -name x-science-live-im-smoke.exe \
 	! -path "$package_dir/assets/optional/micromamba/windows-x86_64/micromamba.exe" \
 	-size +10M -print | grep -q .; then
 	echo "Windows release contains an unclassified file larger than 10MB" >&2
 	exit 1
 fi
 
-GOOS=windows GOARCH=amd64 SYNON_WEB_ASSETS="$package_dir/web" ./scripts/package-release.sh "$tmp/second" >/dev/null
+GOOS=windows GOARCH=amd64 X_SCIENCE_WEB_ASSETS="$package_dir/web" ./scripts/package-release.sh "$tmp/second" >/dev/null
 second="$(find "$tmp/second" -maxdepth 1 -type f -name "${product_slug}-v${product_version}-windows-amd64.tar.gz" -print -quit)"
 if ! cmp -s "$first" "$second"; then
 	echo "Windows release archive is not reproducible" >&2

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"synon-go/internal/runtimecontrol"
+	"x-science/internal/runtimecontrol"
 )
 
 const attachmentUploadReservationTTL = 24 * time.Hour

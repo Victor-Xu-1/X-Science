@@ -9,20 +9,21 @@ import (
 	"unicode/utf8"
 )
 
-const RunnerCorrectionConditionSchema = "synon.runner_correction_condition.v1"
+const RunnerCorrectionConditionSchema = "x-science.runner_correction_condition.v1"
 
 // RunnerCorrectionCondition is the complete host-produced obligation. Detail in
 // RunnerInterruptionCause is only a bounded display; it is never this identity.
 // Exactly one typed body is present. Original ordering and evidence are retained
 // in storage; the separately defined semantic fingerprint normalizes only sets.
 type RunnerCorrectionCondition struct {
-	Schema     string                    `json:"schema"`
-	ReasonCode string                    `json:"reason_code"`
-	Reference  *RunnerReferenceCondition `json:"reference,omitempty"`
-	Review     *RunnerReviewCondition    `json:"review,omitempty"`
-	Plan       *RunnerPlanCondition      `json:"plan,omitempty"`
-	Visual     *RunnerVisualCondition    `json:"visual,omitempty"`
-	Text       *RunnerTextCondition      `json:"text,omitempty"`
+	historicalSchema string
+	Schema           string                    `json:"schema"`
+	ReasonCode       string                    `json:"reason_code"`
+	Reference        *RunnerReferenceCondition `json:"reference,omitempty"`
+	Review           *RunnerReviewCondition    `json:"review,omitempty"`
+	Plan             *RunnerPlanCondition      `json:"plan,omitempty"`
+	Visual           *RunnerVisualCondition    `json:"visual,omitempty"`
+	Text             *RunnerTextCondition      `json:"text,omitempty"`
 }
 
 type RunnerReferenceCondition struct {

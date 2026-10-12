@@ -10,7 +10,7 @@ import (
 )
 
 func TestRParserPreservesEffectsAcrossMissingArguments(t *testing.T) {
-	interpreter := os.Getenv("SYNON_TEST_RSCRIPT")
+	interpreter := os.Getenv("X_SCIENCE_TEST_RSCRIPT")
 	if interpreter == "" {
 		var err error
 		interpreter, err = exec.LookPath("Rscript")

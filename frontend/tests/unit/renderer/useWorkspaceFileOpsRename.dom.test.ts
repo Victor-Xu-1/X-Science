@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import { useWorkspaceFileOps } from '@/renderer/pages/conversation/Workspace/hooks/useWorkspaceFileOps';
-import { SYNON_BIOMED_TEXT_ACCEPT_HEADER } from '@/renderer/services/synonBiomedArtifactPreview';
+import { X_SCIENCE_TEXT_ACCEPT_HEADER } from '@/renderer/services/xScienceArtifactPreview';
 
 const ipcMocks = vi.hoisted(() => ({
   readFile: vi.fn(),
@@ -17,7 +17,7 @@ const downloadMocks = vi.hoisted(() => ({
   fromUrl: vi.fn(),
 }));
 const renameWorkspaceEntry = vi.fn();
-const synonArtifactMocks = vi.hoisted(() => ({
+const xscienceArtifactMocks = vi.hoisted(() => ({
   rename: vi.fn(),
   remove: vi.fn(),
 }));
@@ -56,19 +56,19 @@ vi.mock('@/renderer/utils/emitter', () => ({
   emitter: { emit: emitterMocks.emit },
 }));
 
-vi.mock('@/renderer/services/synonBiomedWorkspaceApi', () => ({
-  renameSynonBiomedArtifact: synonArtifactMocks.rename,
-  deleteSynonBiomedArtifact: synonArtifactMocks.remove,
+vi.mock('@/renderer/services/xScienceWorkspaceApi', () => ({
+  renameXScienceArtifact: xscienceArtifactMocks.rename,
+  deleteXScienceArtifact: xscienceArtifactMocks.remove,
 }));
 
 describe('useWorkspaceFileOps rename', () => {
   beforeEach(() => {
     renameWorkspaceEntry.mockReset();
     renameWorkspaceEntry.mockResolvedValue({ new_path: '\\\\?\\D:\\CODE\\CLAUDE.md1' });
-    synonArtifactMocks.rename.mockReset();
-    synonArtifactMocks.rename.mockResolvedValue({ artifact_id: 'artifact-report', filename: 'renamed.md' });
-    synonArtifactMocks.remove.mockReset();
-    synonArtifactMocks.remove.mockResolvedValue({ deleted: true });
+    xscienceArtifactMocks.rename.mockReset();
+    xscienceArtifactMocks.rename.mockResolvedValue({ artifact_id: 'artifact-report', filename: 'renamed.md' });
+    xscienceArtifactMocks.remove.mockReset();
+    xscienceArtifactMocks.remove.mockResolvedValue({ deleted: true });
     composerReferenceMocks.insert.mockReset();
     composerReferenceMocks.insert.mockReturnValue(true);
     emitterMocks.emit.mockReset();
@@ -124,7 +124,7 @@ describe('useWorkspaceFileOps rename', () => {
   it('adds a remote artifact as an exact composer reference without a local attachment', () => {
     const artifact: IDirOrFile = {
       name: 'STAT6_report.md',
-      fullPath: 'synonbiomed://proj_stat6/frame-stat6/artifact-report',
+      fullPath: 'x-science://proj_stat6/frame-stat6/artifact-report',
       relativePath: 'frame-stat6/artifact-report',
       isDir: false,
       isFile: true,
@@ -137,7 +137,7 @@ describe('useWorkspaceFileOps rename', () => {
     const { result } = renderHook(() =>
       useWorkspaceFileOps({
         conversation_id: 'frame-stat6',
-        workspace: 'synonbiomed://proj_stat6',
+        workspace: 'x-science://proj_stat6',
         eventPrefix: 'acp',
         messageApi,
         t: (key) => key,
@@ -174,7 +174,7 @@ describe('useWorkspaceFileOps rename', () => {
   it('renames a X-Science artifact through the conversation-scoped backend contract', async () => {
     const target: IDirOrFile = {
       name: 'STAT6_report.md',
-      fullPath: 'synonbiomed://proj_stat6/frame-stat6/artifact-report',
+      fullPath: 'x-science://proj_stat6/frame-stat6/artifact-report',
       relativePath: 'frame-stat6/artifact-report',
       isDir: false,
       isFile: true,
@@ -187,7 +187,7 @@ describe('useWorkspaceFileOps rename', () => {
     const { result } = renderHook(() =>
       useWorkspaceFileOps({
         conversation_id: 'frame-stat6',
-        workspace: 'synonbiomed://proj_stat6',
+        workspace: 'x-science://proj_stat6',
         eventPrefix: 'acp',
         messageApi: { success: vi.fn(), error: vi.fn(), warning: vi.fn() },
         t: (key) => key,
@@ -213,7 +213,7 @@ describe('useWorkspaceFileOps rename', () => {
       await result.current.handleRenameConfirm();
     });
 
-    expect(synonArtifactMocks.rename).toHaveBeenCalledWith({
+    expect(xscienceArtifactMocks.rename).toHaveBeenCalledWith({
       conversationId: 'frame-stat6',
       artifactId: 'artifact-report',
       filename: 'renamed.md',
@@ -225,7 +225,7 @@ describe('useWorkspaceFileOps rename', () => {
   it('deletes a X-Science artifact through the conversation-scoped backend contract', async () => {
     const target: IDirOrFile = {
       name: 'STAT6_report.md',
-      fullPath: 'synonbiomed://proj_stat6/frame-stat6/artifact-report',
+      fullPath: 'x-science://proj_stat6/frame-stat6/artifact-report',
       relativePath: 'frame-stat6/artifact-report',
       isDir: false,
       isFile: true,
@@ -238,7 +238,7 @@ describe('useWorkspaceFileOps rename', () => {
     const { result } = renderHook(() =>
       useWorkspaceFileOps({
         conversation_id: 'frame-stat6',
-        workspace: 'synonbiomed://proj_stat6',
+        workspace: 'x-science://proj_stat6',
         eventPrefix: 'acp',
         messageApi: { success: vi.fn(), error: vi.fn(), warning: vi.fn() },
         t: (key) => key,
@@ -264,7 +264,7 @@ describe('useWorkspaceFileOps rename', () => {
       await result.current.handleDeleteConfirm();
     });
 
-    expect(synonArtifactMocks.remove).toHaveBeenCalledWith({
+    expect(xscienceArtifactMocks.remove).toHaveBeenCalledWith({
       conversationId: 'frame-stat6',
       artifactId: 'artifact-report',
     });
@@ -277,7 +277,7 @@ describe('useWorkspaceFileOps rename', () => {
   it('previews a read-only X-Science markdown artifact from its real content URL', async () => {
     const artifact: IDirOrFile = {
       name: 'STAT6_report.md',
-      fullPath: 'synonbiomed://proj_stat6/frame-stat6/artifact-report',
+      fullPath: 'x-science://proj_stat6/frame-stat6/artifact-report',
       relativePath: 'frame-stat6/artifact-report',
       isDir: false,
       isFile: true,
@@ -300,7 +300,7 @@ describe('useWorkspaceFileOps rename', () => {
     const { result } = renderHook(() =>
       useWorkspaceFileOps({
         conversation_id: 'frame-stat6',
-        workspace: 'synonbiomed://proj_stat6',
+        workspace: 'x-science://proj_stat6',
         eventPrefix: 'acp',
         messageApi: { success: vi.fn(), error: vi.fn(), warning: vi.fn() },
         t: (key) => key,
@@ -337,7 +337,7 @@ describe('useWorkspaceFileOps rename', () => {
     });
 
     expect(fetchMock).toHaveBeenCalledWith('/api/artifacts/artifact-report', {
-      headers: { accept: SYNON_BIOMED_TEXT_ACCEPT_HEADER },
+      headers: { accept: X_SCIENCE_TEXT_ACCEPT_HEADER },
     });
     expect(ipcMocks.readFile).not.toHaveBeenCalled();
     expect(openPreview).toHaveBeenCalledWith(
@@ -361,7 +361,7 @@ describe('useWorkspaceFileOps rename', () => {
   it('downloads a read-only X-Science artifact from its content URL', async () => {
     const artifact: IDirOrFile = {
       name: 'STAT6_report.md',
-      fullPath: 'synonbiomed://proj_stat6/frame-stat6/artifact-report',
+      fullPath: 'x-science://proj_stat6/frame-stat6/artifact-report',
       relativePath: 'frame-stat6/artifact-report',
       isDir: false,
       isFile: true,
@@ -371,7 +371,7 @@ describe('useWorkspaceFileOps rename', () => {
     };
     const { result } = renderHook(() =>
       useWorkspaceFileOps({
-        workspace: 'synonbiomed://proj_stat6',
+        workspace: 'x-science://proj_stat6',
         eventPrefix: 'acp',
         messageApi: { success: vi.fn(), error: vi.fn(), warning: vi.fn() },
         t: (key) => key,
@@ -417,7 +417,7 @@ describe('useWorkspaceFileOps rename', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{"id":1}\n', { status: 200 })));
     const { result } = renderHook(() =>
       useWorkspaceFileOps({
-        workspace: 'synonbiomed://proj_stat6',
+        workspace: 'x-science://proj_stat6',
         eventPrefix: 'acp',
         messageApi: { success: vi.fn(), error: vi.fn(), warning: vi.fn() },
         t: (key) => key,

@@ -42,7 +42,7 @@ chmod +x "$TMP_DIR/bin/go" "$TMP_DIR/bin/git"
 
 (
   cd "$FIXTURE"
-  PATH="$TMP_DIR/bin:$PATH" GO="$TMP_DIR/bin/go" SYNON_AUDIT_DIR="$TMP_DIR/audit" bash scripts/audit/audit-agent-runtime.sh --full >/dev/null
+  PATH="$TMP_DIR/bin:$PATH" GO="$TMP_DIR/bin/go" X_SCIENCE_AUDIT_DIR="$TMP_DIR/audit" bash scripts/audit/audit-agent-runtime.sh --full >/dev/null
 )
 
 require_marker() {

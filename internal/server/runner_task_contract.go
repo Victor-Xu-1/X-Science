@@ -4,8 +4,8 @@ import (
 	"sort"
 	"strings"
 
-	"synon-go/internal/toolcontract"
-	"synon-go/internal/tools/registry"
+	"x-science/internal/toolcontract"
+	"x-science/internal/tools/registry"
 )
 
 func hasChatRole(messages []chatCompletionMessage, role string) bool {
@@ -111,7 +111,7 @@ func chatRunnerToolAllowed(name string, allowed map[string]struct{}) bool {
 		return false
 	}
 	switch name {
-	case "synon_link", "shell_exec", "Bash", "Shell", "powershell":
+	case "x_science_link", "shell_exec", "Bash", "Shell", "powershell":
 		return false
 	}
 	if len(allowed) == 0 {

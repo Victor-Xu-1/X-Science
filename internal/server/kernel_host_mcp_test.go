@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/mcpdirectory"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/tools/mcpstdio"
+	"x-science/internal/mcpdirectory"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/tools/mcpstdio"
 )
 
 func TestKernelMCPSourceEvidenceRequiresResolvedBundledReadOnlyTool(t *testing.T) {
@@ -205,11 +205,11 @@ func TestKernelMCPFailureDoesNotCreateTrustedSourceEvidence(t *testing.T) {
 	ctx := context.WithValue(context.Background(), transcriptRunnerChatRunContextKey{}, run)
 	bindKernelMCPTrustedScientificEvidence(ctx, kernelMCPSourceEvidenceAttestation{
 		Class:             workspace.KernelMCPEvidenceClassBundledReadOnly,
-		ConnectorID:       "bundled:synon-research",
+		ConnectorID:       "bundled:x-science-research",
 		ConnectorSource:   "bundled",
 		InputSchemaSHA256: strings.Repeat("a", 64),
 		ReadOnlyHint:      true,
-	}, "mcp__synon-research__life_science_sources", map[string]any{"query": "target"}, `{
+	}, "mcp__x-science-research__life_science_sources", map[string]any{"query": "target"}, `{
 		"ok": false,
 		"error": {"code": "package_unavailable", "message": "missing package"}
 	}`)

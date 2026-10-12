@@ -24,17 +24,17 @@ import (
 
 	"time"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/harnesscontract"
+	"x-science/internal/agentruntime"
+	"x-science/internal/harnesscontract"
 
-	"synon-go/internal/skills"
+	"x-science/internal/skills"
 
-	"synon-go/internal/toolcontract"
-	"synon-go/internal/tools/fileops"
-	"synon-go/internal/tools/lspstatic"
+	"x-science/internal/toolcontract"
+	"x-science/internal/tools/fileops"
+	"x-science/internal/tools/lspstatic"
 
-	"synon-go/internal/tools/notebookedit"
-	"synon-go/internal/tools/registry"
+	"x-science/internal/tools/notebookedit"
+	"x-science/internal/tools/registry"
 )
 
 type fileReadSnapshot struct {
@@ -125,8 +125,8 @@ func (s *Server) executeToolResponse(ctx context.Context, toolName string, input
 	if input == nil {
 		input = map[string]any{}
 	}
-	if toolName == "synon_link" {
-		commandID, result, err := s.executeSynonLinkTool(ctx, input)
+	if toolName == "x_science_link" {
+		commandID, result, err := s.executeXScienceLinkTool(ctx, input)
 		if err != nil {
 			return nil, err
 		}
@@ -846,7 +846,7 @@ func renderSkillPrompt(skill skills.Skill, args string) string {
 		skillDir = filepath.ToSlash(filepath.Dir(skill.Path))
 	}
 	rendered := substituteSkillArguments(body, args, skill.Arguments)
-	rendered = strings.ReplaceAll(rendered, "${SYNON_SKILL_DIR}", skillDir)
+	rendered = strings.ReplaceAll(rendered, "${X_SCIENCE_SKILL_DIR}", skillDir)
 	if skillDir != "" && !strings.Contains(rendered, "Base directory for this skill:") {
 		rendered = "Base directory for this skill: " + skillDir + "\n\n" + rendered
 	}
@@ -1233,7 +1233,7 @@ func (s *Server) runtimeSkillPolicyDiscoverableSet(
 
 // runtimeSkillSearchPrefixMatches accepts both the historical skill-name
 // prefix and a catalog namespace/directory segment. Models commonly use the
-// visible namespace (for example "synonbiomed") as a discovery scope; treating
+// visible namespace (for example "xscience") as a discovery scope; treating
 // it only as a name prefix silently turns a healthy catalog into zero matches.
 func runtimeSkillSearchPrefixMatches(skill skills.Skill, prefix string) bool {
 	prefix = strings.ToLower(strings.TrimSpace(prefix))

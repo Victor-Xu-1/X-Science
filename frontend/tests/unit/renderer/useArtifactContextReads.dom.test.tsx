@@ -3,10 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useArtifactContextReads } from '@/renderer/pages/artifact/useArtifactContextReads';
 
 const api = vi.hoisted(() => ({ project: vi.fn(), benches: vi.fn(), task: vi.fn() }));
-vi.mock('@/renderer/services/synonBiomedGateway', () => ({
-  loadSynonBiomedProject: api.project,
-  loadSynonBiomedProjectBenches: api.benches,
-  loadSynonBiomedLinkedTask: api.task,
+vi.mock('@/renderer/services/xScienceGateway', () => ({
+  loadXScienceProject: api.project,
+  loadXScienceProjectBenches: api.benches,
+  loadXScienceLinkedTask: api.task,
 }));
 
 function deferred<T>() {

@@ -18,8 +18,8 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"synon-go/internal/buildinfo"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/buildinfo"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 var artifactReferencePattern = regexp.MustCompile(`\{\{artifact:([^{}]+)\}\}`)
@@ -162,7 +162,7 @@ func (s *Server) writeScriptReproducibilityBundle(
 			reproducibilityArchiveFile{Name: "operon_tape.json", Data: tape, Modified: version.CreatedAt},
 			// Existing user code can import this captured replay helper by name.
 			// Keep that import contract while using current branding in its prose.
-			reproducibilityArchiveFile{Name: "synon_operon_replay.py", Data: []byte(operonReplayShim), Modified: version.CreatedAt},
+			reproducibilityArchiveFile{Name: "x_science_operon_replay.py", Data: []byte(operonReplayShim), Modified: version.CreatedAt},
 		)
 	}
 	files = append(files,
@@ -393,7 +393,7 @@ func (s *Server) buildSessionBundleFiles(
 		})
 	}
 	manifest := map[string]any{
-		"schema_version": 1, "kind": "synon-session-reproducibility-bundle",
+		"schema_version": 1, "kind": "x-science-session-reproducibility-bundle",
 		"root_frame_id": session.RootFrameID, "project_id": session.ProjectID,
 		"scope": scope, "version_id": nullableBundleString(versionID),
 		"generated_at": session.ExportedAt, "segments": manifestSegments,
@@ -437,7 +437,7 @@ func buildReplayNotebook(segment replaySegment) ([]byte, error) {
 		cells = append(cells, map[string]any{
 			"cell_type": "code", "execution_count": record.CellIndex,
 			"metadata": map[string]any{
-				"synon_execution_id": record.ID, "exit_status": record.ExitStatus,
+				"x_science_execution_id": record.ID, "exit_status": record.ExitStatus,
 				"executed_at": record.ExecutedAt.UTC().Format(time.RFC3339Nano),
 			},
 			"outputs": outputs, "source": splitNotebookLines(record.Source),
@@ -448,7 +448,7 @@ func buildReplayNotebook(segment replaySegment) ([]byte, error) {
 		"metadata": map[string]any{
 			"kernelspec":    map[string]any{"display_name": segment.CondaEnv, "language": segment.Language, "name": segment.CondaEnv},
 			"language_info": map[string]any{"name": segment.Language},
-			"synon":         map[string]any{"frame_id": segment.FrameID, "agent_name": segment.Agent},
+			"xscience":         map[string]any{"frame_id": segment.FrameID, "agent_name": segment.Agent},
 		},
 		"nbformat": 4, "nbformat_minor": 5,
 	}
@@ -604,7 +604,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 if [[ -f ` + environmentFile + ` ]]; then
   command -v conda >/dev/null 2>&1 || { echo "conda is required to recreate this environment" >&2; exit 1; }
-  env_name="synon-` + shortIdentifier(segment.FrameID) + `"
+  env_name="x-science-` + shortIdentifier(segment.FrameID) + `"
   if conda env list | awk '{print $1}' | grep -Fxq "$env_name"; then
     conda env update --name "$env_name" --file ` + environmentFile + ` --prune
   else
@@ -648,7 +648,7 @@ func shortIdentifier(value string) string {
 }
 
 func writeReproducibilityArchive(w http.ResponseWriter, filename string, files []reproducibilityArchiveFile) error {
-	temporary, err := os.CreateTemp("", "synon-reproducibility-*.zip")
+	temporary, err := os.CreateTemp("", "x-science-reproducibility-*.zip")
 	if err != nil {
 		writeAttachmentStoreError(w, fmt.Errorf("create reproducibility archive: %w", err))
 		return err

@@ -51,7 +51,7 @@ The affected test surface is:
 - `go test ./internal/persistence/workspace -run 'Memory|WorkspaceExtraction|WorkspaceExtractor'`
 - `go test ./internal/persistence/transcript -run Memory`
 - `go test ./internal/server -run 'Memory|Workspace|RunnerTaskMemory|SessionRunnerModulesBindOnePhaseMachine'`
-- `vitest run --project node tests/unit/synonbiomed/synonBiomedMemory.test.ts`
-- `vitest run --project dom tests/unit/synonbiomed/SynonBiomedMemoryManager.dom.test.tsx`
+- `vitest run --project node tests/unit/xscience/xScienceMemory.test.ts`
+- `vitest run --project dom tests/unit/xscience/XScienceMemoryManager.dom.test.tsx`
 
 Release acceptance additionally requires a real configured model to complete one root scientific task, create a durable memory, recall it in a fresh session, preserve it across reload/compaction, and prove that an opted-out session and another user cannot receive it.

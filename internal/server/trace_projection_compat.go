@@ -6,7 +6,7 @@ import (
 	"strings"
 	"unicode/utf16"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 var traceLeanContextKeys = []string{

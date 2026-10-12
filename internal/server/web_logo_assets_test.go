@@ -11,7 +11,7 @@ import (
 func TestWebLogoAssetServesEmbeddedAssetsWithCacheAndIsolationHeaders(t *testing.T) {
 	handler := New(Options{}).Handler()
 	request := newLoopbackTestRequest(http.MethodGet, "/api/assets/logos/ai-major/openai.svg", nil)
-	request.Header.Set("X-Synon-User-Id", "local")
+	request.Header.Set("X-Science-User-Id", "local")
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, request)
 	if response.Code != http.StatusOK {
@@ -35,7 +35,7 @@ func TestWebLogoAssetServesEmbeddedAssetsWithCacheAndIsolationHeaders(t *testing
 	}
 
 	cached := newLoopbackTestRequest(http.MethodGet, "/api/assets/logos/ai-major/openai.svg", nil)
-	cached.Header.Set("X-Synon-User-Id", "local")
+	cached.Header.Set("X-Science-User-Id", "local")
 	cached.Header.Set("If-None-Match", "W/"+etag)
 	cachedResponse := httptest.NewRecorder()
 	handler.ServeHTTP(cachedResponse, cached)
@@ -44,7 +44,7 @@ func TestWebLogoAssetServesEmbeddedAssetsWithCacheAndIsolationHeaders(t *testing
 	}
 
 	head := newLoopbackTestRequest(http.MethodHead, "/api/assets/logos/ai-china/minimax.png", nil)
-	head.Header.Set("X-Synon-User-Id", "local")
+	head.Header.Set("X-Science-User-Id", "local")
 	headResponse := httptest.NewRecorder()
 	handler.ServeHTTP(headResponse, head)
 	if headResponse.Code != http.StatusOK || headResponse.Body.Len() != 0 ||
@@ -58,7 +58,7 @@ func TestWebLogoAssetRejectsUnknownInvalidAndUnsupportedRequests(t *testing.T) {
 	srv := New(Options{})
 	handler := srv.Handler()
 	missing := newLoopbackTestRequest(http.MethodGet, "/api/assets/logos/ai-major/missing.svg", nil)
-	missing.Header.Set("X-Synon-User-Id", "local")
+	missing.Header.Set("X-Science-User-Id", "local")
 	missingResponse := httptest.NewRecorder()
 	handler.ServeHTTP(missingResponse, missing)
 	if missingResponse.Code != http.StatusNotFound {
@@ -66,7 +66,7 @@ func TestWebLogoAssetRejectsUnknownInvalidAndUnsupportedRequests(t *testing.T) {
 	}
 
 	method := newLoopbackTestRequest(http.MethodPost, "/api/assets/logos/ai-major/openai.svg", nil)
-	method.Header.Set("X-Synon-User-Id", "local")
+	method.Header.Set("X-Science-User-Id", "local")
 	methodResponse := httptest.NewRecorder()
 	handler.ServeHTTP(methodResponse, method)
 	if methodResponse.Code != http.StatusMethodNotAllowed ||
@@ -75,7 +75,7 @@ func TestWebLogoAssetRejectsUnknownInvalidAndUnsupportedRequests(t *testing.T) {
 	}
 
 	invalid := newLoopbackTestRequest(http.MethodGet, "/api/assets/logos/invalid.txt", nil)
-	invalid.Header.Set("X-Synon-User-Id", "local")
+	invalid.Header.Set("X-Science-User-Id", "local")
 	invalidResponse := httptest.NewRecorder()
 	srv.handleWebLogoAsset(invalidResponse, invalid)
 	if invalidResponse.Code != http.StatusBadRequest {

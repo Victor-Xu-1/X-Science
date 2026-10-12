@@ -59,7 +59,7 @@ func TestRedactJSONRemovesSensitiveValuesBeforePersistence(t *testing.T) {
 
 func TestCompareJSONCandidateSupersetAllowsOnlyAdditionalCandidateObjectFields(t *testing.T) {
 	baseline := []byte("{\"status\":\"healthy\",\"nested\":{\"required\":true}}")
-	candidate := []byte("{\"status\":\"healthy\",\"name\":\"synon-go\",\"nested\":{\"required\":true,\"extra\":1}}")
+	candidate := []byte("{\"status\":\"healthy\",\"name\":\"x-science\",\"nested\":{\"required\":true,\"extra\":1}}")
 	if err := CompareJSONMode(baseline, candidate, nil, CandidateSuperset); err != nil {
 		t.Fatalf("CompareJSONMode(candidate-superset) error = %v", err)
 	}

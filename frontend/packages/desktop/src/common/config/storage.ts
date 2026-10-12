@@ -65,7 +65,7 @@ export interface IConfigStorageRefer {
 }
 
 /**
- * Legacy config keys that may still exist on disk from older SynonAI releases.
+ * Legacy config keys that may still exist on disk from older XScience releases.
  *
  * New business truth must not be added here. Keep this surface migration-only:
  * renderer/process code may read these keys during one-shot imports into the
@@ -88,7 +88,7 @@ export interface ILegacyConfigStorageRefer extends IConfigStorageRefer {
 }
 
 export interface IEnvStorageRefer {
-  'synon-ai.dir': {
+  'x-science.dir': {
     workDir: string;
     cacheDir: string;
     logDir?: string;
@@ -208,9 +208,9 @@ export type TChatConversation =
     >
   | Omit<
       IChatConversation<
-        'synonbiomed-project',
+        'xscience-project',
         {
-          backend: 'synonbiomed';
+          backend: 'xscience';
           workspace: string;
           custom_workspace: false;
           project_id: string;
@@ -359,7 +359,7 @@ export interface IMcpServer {
   created_at: number;
   updated_at: number;
   original_json: string; // 存储原始JSON配置，用于编辑时的准确显示
-  /** Built-in MCP server managed by SynonAI (hide edit/delete in UI) */
+  /** Built-in MCP server managed by XScience (hide edit/delete in UI) */
   builtin?: boolean;
 }
 
@@ -376,7 +376,7 @@ export interface IConversationMcpStatus {
 
 /** Stable ID for the built-in image generation MCP server */
 export const BUILTIN_IMAGE_GEN_ID = 'builtin-image-gen';
-export const BUILTIN_IMAGE_GEN_NAME = 'synon-ai-image-generation';
+export const BUILTIN_IMAGE_GEN_NAME = 'x-science-image-generation';
 export const BUILTIN_IMAGE_GEN_LEGACY_NAMES = ['SynonAI Image Generation', BUILTIN_IMAGE_GEN_ID] as const;
 
 export interface IMcpTool {

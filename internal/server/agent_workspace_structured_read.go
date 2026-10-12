@@ -220,7 +220,7 @@ func agentWorkspaceReaderAt(ctx context.Context, reader io.ReadSeeker, size int6
 	if _, err := reader.Seek(0, io.SeekStart); err != nil {
 		return nil, func() {}, errors.New("read_file could not reset the requested container")
 	}
-	temporary, err := os.CreateTemp("", "synon-read-container-*")
+	temporary, err := os.CreateTemp("", "x-science-read-container-*")
 	if err != nil {
 		return nil, func() {}, errors.New("read_file could not stage the requested container")
 	}

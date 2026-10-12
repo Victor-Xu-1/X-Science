@@ -12,9 +12,9 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/agentruntime"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	"synon-go/internal/tools/rcsbfiles"
+	"x-science/internal/agentruntime"
+	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/tools/rcsbfiles"
 )
 
 type agentRCSBFetcher struct {
@@ -422,8 +422,8 @@ func TestAgentRCSBDownloadBodyFailureLeavesNoWorkspaceOrArtifactState(t *testing
 }
 
 func TestAgentRCSBDownloadLiveOfficialPath(t *testing.T) {
-	if os.Getenv("SYNON_TEST_LIVE_RCSB") != "1" {
-		t.Skip("set SYNON_TEST_LIVE_RCSB=1 for the official RCSB-to-Artifact integration check")
+	if os.Getenv("X_SCIENCE_TEST_LIVE_RCSB") != "1" {
+		t.Skip("set X_SCIENCE_TEST_LIVE_RCSB=1 for the official RCSB-to-Artifact integration check")
 	}
 	fixture := newAgentSaveArtifactsFixture(t)
 	input := map[string]any{

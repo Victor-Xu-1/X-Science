@@ -298,7 +298,7 @@ func startOAuthCallbackServer() (string, *http.Server, <-chan oauthCallbackResul
 }
 
 func buildOAuthAuthURL(endpoint string, resource string, redirectURI string, state string, challenge string) (string, error) {
-	return buildOAuthAuthURLForClient(endpoint, resource, redirectURI, state, challenge, "", "synon-go")
+	return buildOAuthAuthURLForClient(endpoint, resource, redirectURI, state, challenge, "", "x-science")
 }
 
 func buildOAuthAuthURLForClient(endpoint, resource, redirectURI, state, challenge, scope, clientID string) (string, error) {
@@ -339,7 +339,7 @@ func registerOAuthClient(ctx context.Context, metadata oauthMetadata, redirectUR
 		return oauthClientCredentials{}, err
 	}
 	if strings.TrimSpace(metadata.RegistrationEndpoint) == "" {
-		return oauthClientCredentials{ClientID: "synon-go", TokenEndpointAuthMethod: "none"}, nil
+		return oauthClientCredentials{ClientID: "x-science", TokenEndpointAuthMethod: "none"}, nil
 	}
 	method := preferredOAuthClientAuthMethod(metadata.TokenEndpointAuthMethodsSupported)
 	if method == "" {
@@ -436,7 +436,7 @@ func completeOAuthAuthorization(ctx context.Context, root string, serverName str
 }
 
 func exchangeOAuthCode(ctx context.Context, tokenEndpoint string, resource string, code string, redirectURI string, verifier string) (oauthTokenCache, error) {
-	return exchangeOAuthCodeForClient(ctx, tokenEndpoint, resource, code, redirectURI, verifier, oauthClientCredentials{ClientID: "synon-go", TokenEndpointAuthMethod: "none"})
+	return exchangeOAuthCodeForClient(ctx, tokenEndpoint, resource, code, redirectURI, verifier, oauthClientCredentials{ClientID: "x-science", TokenEndpointAuthMethod: "none"})
 }
 
 func exchangeOAuthCodeForClient(ctx context.Context, tokenEndpoint string, resource string, code string, redirectURI string, verifier string, credentials oauthClientCredentials) (oauthTokenCache, error) {

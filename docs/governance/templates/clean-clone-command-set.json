@@ -1,5 +1,5 @@
 {
-  "schema": "synon.governance.clean-clone-command-set.v1",
+  "schema": "x-science.governance.clean-clone-command-set.v1",
   "commands": [
     {
       "name": "dependency-authority",
@@ -39,13 +39,13 @@
     },
     {
       "name": "go-build",
-      "argv": ["go", "build", "-buildvcs=false", "-o", "runtime/.quality-synon-go", "./cmd/synon"],
+      "argv": ["go", "build", "-buildvcs=false", "-o", "runtime/.quality-x-science", "./cmd/x-science"],
       "cwd": ".",
       "timeout_seconds": 900
     },
     {
       "name": "isolated-startup-smoke",
-      "argv": ["python3", "scripts/quality/startup_smoke_gate.py", "--binary", "runtime/.quality-synon-go"],
+      "argv": ["python3", "scripts/quality/startup_smoke_gate.py", "--binary", "runtime/.quality-x-science"],
       "cwd": ".",
       "timeout_seconds": 180
     },

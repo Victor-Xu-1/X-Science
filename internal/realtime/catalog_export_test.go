@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"synon-go/internal/compat/contracts"
+	"x-science/internal/compat/contracts"
 )
 
 // Published catalogs must cover the executable contracts without depending on

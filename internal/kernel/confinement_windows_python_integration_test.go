@@ -24,10 +24,10 @@ import (
 // production (-I) readiness, which also needs site-packages and temp paths.
 func windowsInstalledPythonProbe(t *testing.T) (string, string) {
 	t.Helper()
-	python := os.Getenv("SYNON_TEST_WINDOWS_PYTHON_EXE")
-	assets := os.Getenv("SYNON_TEST_WINDOWS_KERNEL_ASSETS")
+	python := os.Getenv("X_SCIENCE_TEST_WINDOWS_PYTHON_EXE")
+	assets := os.Getenv("X_SCIENCE_TEST_WINDOWS_KERNEL_ASSETS")
 	if python == "" || assets == "" {
-		t.Skip("set SYNON_TEST_WINDOWS_PYTHON_EXE and SYNON_TEST_WINDOWS_KERNEL_ASSETS for the native interpreter probe")
+		t.Skip("set X_SCIENCE_TEST_WINDOWS_PYTHON_EXE and X_SCIENCE_TEST_WINDOWS_KERNEL_ASSETS for the native interpreter probe")
 	}
 	for _, path := range []string{python, filepath.Join(assets, "kernel_worker.py")} {
 		info, err := os.Stat(path)
@@ -59,7 +59,7 @@ func windowsInstalledPythonCommand(t *testing.T, python, assets, workspace, code
 
 func TestWindowsAppContainerInstalledPythonProtocolNoSite(t *testing.T) {
 	python, assets := windowsInstalledPythonProbe(t)
-	t.Setenv("SYNON_HOME", t.TempDir())
+	t.Setenv("X_SCIENCE_HOME", t.TempDir())
 	workspace := t.TempDir()
 	listener, err := net.Listen("tcp4", "127.0.0.1:0")
 	if err != nil {
@@ -124,7 +124,7 @@ func TestWindowsAppContainerInstalledPythonProtocolNoSite(t *testing.T) {
 
 func TestWindowsAppContainerInstalledPythonCancellationNoSite(t *testing.T) {
 	python, assets := windowsInstalledPythonProbe(t)
-	t.Setenv("SYNON_HOME", t.TempDir())
+	t.Setenv("X_SCIENCE_HOME", t.TempDir())
 	workspace := t.TempDir()
 	command := windowsInstalledPythonCommand(t, python, assets, workspace, "import time\ntime.sleep(30)\n")
 	reader, writer := io.Pipe()

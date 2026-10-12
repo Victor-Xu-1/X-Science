@@ -25,12 +25,12 @@ import (
 
 	"golang.org/x/net/publicsuffix"
 
-	"synon-go/internal/agentruntime"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/runtimecontrol"
-	"synon-go/internal/toolcontract"
-	"synon-go/internal/tools/securefetch"
+	"x-science/internal/agentruntime"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/runtimecontrol"
+	"x-science/internal/toolcontract"
+	"x-science/internal/tools/securefetch"
 )
 
 const (

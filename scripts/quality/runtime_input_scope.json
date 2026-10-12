@@ -1,66 +1,103 @@
 {
-  "schema": "synon.runtime-input-scope.v1",
+  "schema": "x-science.runtime-input-scope.v1",
   "groups": [
+    {
+      "name": "canonical-agent-policy-inputs",
+      "paths": ["assets/x_science_system_prompt.txt", "internal/agentruntime/assets/x_science_platform_policy.md"],
+      "packages": ["x-science/internal/assets", "x-science/internal/agentruntime"]
+    },
+    {
+      "name": "native-ketcher-and-local-rna",
+      "paths": ["assets/optional/mcp-servers/ketcher-chemistry.manifest.json", "assets/optional/mcp-servers/rna-design/run_server.py"],
+      "packages": ["x-science/internal/assets", "x-science/internal/ketchermcp", "x-science/internal/mcpdirectory", "x-science/internal/tools/mcpstdio"]
+    },
     {
       "name": "provider-provenance-explanation",
       "paths": ["internal/logoassets/SOURCE.md"],
-      "packages": ["synon-go/internal/assets"]
+      "packages": ["x-science/internal/assets"]
     },
     {
       "name": "model-skill-product-prose",
-      "paths": [
-        "assets/synonbiomed/skills.manifest.json",
-        "skills/synonbiomed/ngs-analysis-router/SKILL.md",
-        "skills/synonbiomed/nextflow-development/references/geo-sra-acquisition.md",
-        "skills/synonbiomed/skill-creator/scripts/quick_validate.py",
-        "skills/synonbiomed/autodock-vina/scripts/autodock_vina.py",
-        "skills/synonbiomed/autodock-vina/scripts/autodock_vina_outputs.py"
+      "manifests": [
+        {"path": "assets/x-science/skills.manifest.json", "root": "skills/x-science", "kind": "asset"}
       ],
-      "packages": ["synon-go/internal/assets", "synon-go/internal/skills", "synon-go/internal/sciencecapability", "synon-go/internal/server"]
+      "paths": [
+        "assets/x-science/skills.manifest.json",
+        "skills/x-science/ngs-analysis-router/SKILL.md",
+        "skills/x-science/nextflow-development/references/geo-sra-acquisition.md",
+        "skills/x-science/skill-creator/scripts/quick_validate.py",
+        "skills/x-science/autodock-vina/scripts/autodock_vina.py",
+        "skills/x-science/autodock-vina/scripts/autodock_vina_outputs.py"
+      ],
+      "packages": ["x-science/internal/assets", "x-science/internal/skills", "x-science/internal/sciencecapability", "x-science/internal/server"]
+    },
+    {
+      "name": "bundled-agent-catalog",
+      "paths": ["assets/x-science/agents.manifest.json"],
+      "manifests": [
+        {"path": "assets/x-science/agents.manifest.json", "root": "assets/x-science/agents", "kind": "asset"}
+      ],
+      "packages": ["x-science/internal/assets", "x-science/internal/agentruntime", "x-science/internal/server"]
     },
     {
       "name": "browser-connector-assets",
       "paths": [
-        "assets/synon-link/manifest.json",
-        "assets/synon-link/synon-link-extension-v0.6.10.zip",
-        "assets/synon-link/x-science-browser-extension-v0.6.10.zip"
+        "assets/x-science-link/manifest.json",
+        "assets/x-science-link/x-science-browser-extension-v0.6.11.zip"
       ],
-      "packages": ["synon-go/internal/assets", "synon-go/internal/server", "synon-go/cmd/synon"]
+      "packages": ["x-science/internal/assets", "x-science/internal/server", "x-science/cmd/x-science"]
     },
     {
       "name": "kernel-host-and-provider-display",
       "paths": [
-        "assets/optional/kernels/synon_host_bridge.py",
+        "assets/optional/kernels/x_science_host_bridge.py",
         "assets/optional/compute/provider_kernel_bootstrap.py",
         "assets/optional/compute/wrapper.sh.tmpl",
         "assets/optional/compute/operon_compute_provider/__init__.py"
       ],
-      "packages": ["synon-go/internal/assets", "synon-go/internal/kernel", "synon-go/internal/server", "synon-go/internal/compute"]
+      "packages": ["x-science/internal/assets", "x-science/internal/kernel", "x-science/internal/server", "x-science/internal/compute"]
     },
     {
       "name": "bundled-mcp-display",
+      "manifests": [
+        {"path": "assets/optional/mcp-servers/bio-tools.manifest.json", "root": "assets/optional/mcp-servers/bio-tools", "kind": "asset"}
+      ],
       "paths": [
         "assets/optional/mcp-servers/bio-tools.manifest.json",
         "assets/optional/mcp-servers/bio-tools/run_server.py",
         "assets/optional/mcp-servers/bio-tools/lib/mcp_servers_common/tls_policy.py",
         "assets/optional/mcp-servers/bio-tools/lib/mcp_servers_common/ua.py"
       ],
-      "packages": ["synon-go/internal/assets", "synon-go/internal/mcpdirectory", "synon-go/internal/tools/mcpstdio", "synon-go/internal/server"]
+      "packages": ["x-science/internal/assets", "x-science/internal/mcpdirectory", "x-science/internal/tools/mcpstdio", "x-science/internal/server"]
     },
     {
       "name": "kernel-worker-assets",
+      "manifests": [
+        {"path": "assets/optional/kernel-compute.manifest.json", "root": "assets/optional", "kind": "asset"}
+      ],
       "paths": [
         "assets/optional/kernel-compute.manifest.json",
-        "assets/optional/kernels/synon_biomed_runtime/worker_execution.py",
-        "assets/optional/kernels/synon_biomed_runtime/worker_effects.py",
-        "assets/optional/kernels/synon_biomed_runtime/worker_streams.py",
-        "assets/optional/kernels/synon_biomed_runtime/worker_reads.py"
+        "assets/optional/kernels/x_science_runtime/worker_execution.py",
+        "assets/optional/kernels/x_science_runtime/worker_effects.py",
+        "assets/optional/kernels/x_science_runtime/worker_streams.py",
+        "assets/optional/kernels/x_science_runtime/worker_reads.py"
       ],
       "packages": [
-        "synon-go/internal/assets",
-        "synon-go/internal/kernel",
-        "synon-go/internal/compat/v11reuse"
+        "x-science/internal/assets",
+        "x-science/internal/kernel",
+        "x-science/internal/compat/v11reuse"
       ]
+    },
+    {
+      "name": "locked-runtime-catalogs",
+      "paths": ["assets/optional/conda-runtimes/manifest.json"],
+      "manifests": [
+        {"path": "assets/optional/conda-runtimes/manifest.json", "root": "assets/optional/conda-runtimes", "kind": "conda-catalog"},
+        {"path": "assets/optional/conda-runtimes/windows-x86_64/manifest.json", "root": "assets/optional/conda-runtimes/windows-x86_64", "kind": "conda-catalog"},
+        {"path": "assets/optional/conda-runtimes/darwin-x86_64/manifest.json", "root": "assets/optional/conda-runtimes/darwin-x86_64", "kind": "conda-catalog"},
+        {"path": "assets/optional/conda-runtimes/darwin-arm64/manifest.json", "root": "assets/optional/conda-runtimes/darwin-arm64", "kind": "conda-catalog"}
+      ],
+      "packages": ["x-science/internal/assets", "x-science/internal/kernel"]
     },
     {
       "name": "managed-installer-assets",
@@ -81,9 +118,9 @@
         "assets/optional/micromamba/manifest.json"
       ],
       "packages": [
-        "synon-go/internal/assets",
-        "synon-go/internal/kernel",
-        "synon-go/internal/compat/v11reuse"
+        "x-science/internal/assets",
+        "x-science/internal/kernel",
+        "x-science/internal/compat/v11reuse"
       ]
     }
   ]

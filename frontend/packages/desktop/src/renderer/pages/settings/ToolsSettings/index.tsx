@@ -5,18 +5,18 @@
  */
 
 /**
- * ToolsSettings renders X-Science MCP runtime tools as an SynonAI settings module.
+ * ToolsSettings renders X-Science MCP runtime tools as an XScience settings module.
  */
 
 import React from 'react';
-import { SynonBiomedMcpSettingsContent } from './SynonBiomedMcpSettings';
+import { XScienceMcpSettingsContent } from './XScienceMcpSettings';
 import SettingsPageWrapper from '../components/SettingsPageWrapper';
 
 const ToolsSettings: React.FC = () => {
   return (
     <SettingsPageWrapper>
       <div className='settings-tools-page flex flex-col'>
-        <SynonBiomedMcpSettingsContent />
+        <XScienceMcpSettingsContent />
       </div>
     </SettingsPageWrapper>
   );

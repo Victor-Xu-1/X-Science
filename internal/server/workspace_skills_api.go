@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"synon-go/internal/skills"
+	"x-science/internal/skills"
 )
 
 const (

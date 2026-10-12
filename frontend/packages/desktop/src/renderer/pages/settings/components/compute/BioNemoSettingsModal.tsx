@@ -3,25 +3,25 @@ import Modal from '@/renderer/components/base/WorkbenchModal';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  loadSynonBiomedBioNemoSettings,
-  setSynonBiomedBioNemoSettings,
-  type SynonBiomedBioNemoSettings,
-  type SynonBiomedComputeProvider,
-} from '@/renderer/services/synonBiomedCompute';
-import { loadSynonBiomedSecrets, type SynonBiomedSecret } from '@/renderer/services/synonBiomedWorkspaceSettings';
+  loadXScienceBioNemoSettings,
+  setXScienceBioNemoSettings,
+  type XScienceBioNemoSettings,
+  type XScienceComputeProvider,
+} from '@/renderer/services/xScienceCompute';
+import { loadXScienceSecrets, type XScienceSecret } from '@/renderer/services/xScienceWorkspaceSettings';
 
 export const BioNemoSettingsModal: React.FC<{
   visible: boolean;
-  providers: SynonBiomedComputeProvider[];
+  providers: XScienceComputeProvider[];
   onClose: () => void;
   onChanged: () => Promise<void>;
   onOpenCredentials: () => void;
   onOpenSkills: () => void;
 }> = ({ visible, providers, onClose, onChanged, onOpenCredentials, onOpenSkills }) => {
   const { t } = useTranslation();
-  const [settings, setSettings] = useState<SynonBiomedBioNemoSettings | null>(null);
-  const [draft, setDraft] = useState<SynonBiomedBioNemoSettings | null>(null);
-  const [secrets, setSecrets] = useState<SynonBiomedSecret[]>([]);
+  const [settings, setSettings] = useState<XScienceBioNemoSettings | null>(null);
+  const [draft, setDraft] = useState<XScienceBioNemoSettings | null>(null);
+  const [secrets, setSecrets] = useState<XScienceSecret[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -31,8 +31,8 @@ export const BioNemoSettingsModal: React.FC<{
     setLoadFailed(false);
     try {
       const [nextSettings, nextSecrets] = await Promise.all([
-        loadSynonBiomedBioNemoSettings(),
-        loadSynonBiomedSecrets().catch((): SynonBiomedSecret[] => []),
+        loadXScienceBioNemoSettings(),
+        loadXScienceSecrets().catch((): XScienceSecret[] => []),
       ]);
       setSettings(nextSettings);
       setDraft(nextSettings);
@@ -63,7 +63,7 @@ export const BioNemoSettingsModal: React.FC<{
     if (!draft || saving) return;
     setSaving(true);
     try {
-      const next = await setSynonBiomedBioNemoSettings({
+      const next = await setXScienceBioNemoSettings({
         enabled,
         mode: draft.mode,
         hostedHost: draft.hostedHost.trim() || 'health.api.nvidia.com',

@@ -328,7 +328,7 @@ observation_refusal <- function(request) {
     return(NULL)
   }
   if (isTRUE(.observation_tainted)) return("runtime_binding_provenance_unproved")
-  if (!identical(proof$schema, "synon.execution-observation.v1") ||
+  if (!identical(proof$schema, "x-science.execution-observation.v1") ||
       !identical(proof$language, "r")) return("diagnostic_contract_invalid")
   # The host checked the raw code digest under its execute lock immediately
   # before sending this request. The worker parses that unchanged code below.
@@ -370,15 +370,15 @@ evaluate_request <- function(request, protocol_connection) {
   if (!is.null(refusal)) {
     return(list(id=request_id, stdout="", stderr="", error=NULL, interrupted=FALSE,
       trace=list(error_lineno=NULL, error_call=NULL), usage=list(),
-      preflight=list(schema="synon.execution-observation.v1", ok=FALSE,
+      preflight=list(schema="x-science.execution-observation.v1", ok=FALSE,
         status="implementation_selection_required", executed=FALSE, decision_required=TRUE,
         reason=refusal,
         message="Diagnostic runtime bindings are unproved; scientific implementation selection remains required.",
         recovery="Inspect the existing runtime and complete the pending implementation choice. Do not retry unchanged or reset the session implicitly.")))
   }
 
-  stdout_path <- tempfile(pattern = "synon-r-stdout-", tmpdir = getwd())
-  stderr_path <- tempfile(pattern = "synon-r-stderr-", tmpdir = getwd())
+  stdout_path <- tempfile(pattern = "x-science-r-stdout-", tmpdir = getwd())
+  stderr_path <- tempfile(pattern = "x-science-r-stderr-", tmpdir = getwd())
   stdout_connection <- file(stdout_path, open = "wt", encoding = "UTF-8")
   stderr_connection <- file(stderr_path, open = "wt", encoding = "UTF-8")
   on.exit(unlink(c(stdout_path, stderr_path), force = TRUE), add = TRUE)

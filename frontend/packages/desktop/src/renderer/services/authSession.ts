@@ -1,10 +1,10 @@
 import { CSRF_HEADER_NAME, refreshCsrfToken, withCsrfHeader } from './csrf';
 
-export const AUTH_SESSION_REQUIRED_HEADER = 'x-synon-auth-required';
-export const AUTH_RETURN_PATH_KEY = 'synonbiomed.auth.returnPath';
-export const AUTH_SESSION_EXPIRED_KEY = 'synonbiomed.auth.sessionExpired';
+export const AUTH_SESSION_REQUIRED_HEADER = 'x-science-auth-required';
+export const AUTH_RETURN_PATH_KEY = 'xscience.auth.returnPath';
+export const AUTH_SESSION_EXPIRED_KEY = 'xscience.auth.sessionExpired';
 const CSRF_INVALID_CODE = 'CSRF_INVALID';
-const ERROR_CODE_HEADER = 'x-synon-error-code';
+const ERROR_CODE_HEADER = 'x-science-error-code';
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 type FetchTarget = {

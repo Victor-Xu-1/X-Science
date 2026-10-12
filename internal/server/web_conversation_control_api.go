@@ -14,19 +14,19 @@ import (
 
 	"github.com/google/uuid"
 
-	"synon-go/internal/synonlink"
+	"x-science/internal/xsciencelink"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
-const webApprovalRememberedClient = "synon-web"
+const webApprovalRememberedClient = "x-science-web"
 
 func (s *Server) handleWebConversationSlashCommands(w http.ResponseWriter, r *http.Request, frame workspace.CompatibilityFrame) {
 	if r.Method != http.MethodGet {
 		writeWorkspaceJSON(w, http.StatusMethodNotAllowed, map[string]any{"message": "method not allowed"})
 		return
 	}
-	commands, err := s.webAgentSlashCommands(strings.TrimSpace(r.Header.Get("X-Synon-User-Id")), frame.AgentName)
+	commands, err := s.webAgentSlashCommands(strings.TrimSpace(r.Header.Get("X-Science-User-Id")), frame.AgentName)
 	if err != nil {
 		writeWebConversationError(w, err)
 		return
@@ -45,7 +45,7 @@ func (s *Server) handleWebConversationConfirmations(w http.ResponseWriter, r *ht
 		return
 	}
 	if mode == "allow" || mode == "smart" || mode == "deny" {
-		userID := strings.TrimSpace(r.Header.Get("X-Synon-User-Id"))
+		userID := strings.TrimSpace(r.Header.Get("X-Science-User-Id"))
 		if userID == "" {
 			if frameContext, found, contextErr := s.workspaceStore.GetFrameRealtimeContext(frame.ID); contextErr != nil {
 				writeWebConversationError(w, contextErr)
@@ -298,7 +298,7 @@ func (s *Server) handleWebConversationConfirmation(
 	warning := ""
 	remembered := false
 	if alwaysAllow {
-		userID := strings.TrimSpace(r.Header.Get("X-Synon-User-Id"))
+		userID := strings.TrimSpace(r.Header.Get("X-Science-User-Id"))
 		if err := s.rememberWebApproval(userID, webConfirmationAction(pending), webConfirmationCommandType(pending)); err != nil {
 			if warning != "" {
 				warning += "; approval preference was not saved"
@@ -409,7 +409,7 @@ func (s *Server) handleWebConversationApprovalCheck(
 		return
 	}
 	approved, err := s.webConversationApproval(
-		strings.TrimSpace(r.Header.Get("X-Synon-User-Id")),
+		strings.TrimSpace(r.Header.Get("X-Science-User-Id")),
 		action,
 		strings.TrimSpace(r.URL.Query().Get("command_type")),
 	)
@@ -432,7 +432,7 @@ func (s *Server) webConversationApproval(userID string, action string, commandTy
 	}
 	defaults := s.agentRuntimeApprovalDefaults()
 	mode := strings.ToLower(strings.TrimSpace(defaults.Mode))
-	profile, knownAction := synonlink.PolicyMatrixWithDefaults(defaults)[action]
+	profile, knownAction := xsciencelink.PolicyMatrixWithDefaults(defaults)[action]
 	if mode == "deny" || (knownAction && profile.EffectiveApprovalPolicy == "deny") {
 		return false, nil
 	}
@@ -450,7 +450,7 @@ func (s *Server) webConversationApproval(userID string, action string, commandTy
 		return false, nil
 	}
 	decisions := rememberedApprovalDecisionsFromSetting(setting.Value)
-	key := synonlink.RememberedApprovalKey(
+	key := xsciencelink.RememberedApprovalKey(
 		userID,
 		webApprovalRememberedClient,
 		webApprovalDecisionAction(action, commandType),
@@ -475,7 +475,7 @@ func (s *Server) rememberWebApproval(userID string, action string, commandType s
 	if strings.EqualFold(strings.TrimSpace(s.agentRuntimeApprovalDefaults().Mode), "deny") {
 		return errors.New("approval defaults deny remembered decisions")
 	}
-	decision := synonlink.RememberedApprovalDecision{
+	decision := xsciencelink.RememberedApprovalDecision{
 		UserID:    userID,
 		ClientID:  webApprovalRememberedClient,
 		Action:    webApprovalDecisionAction(action, commandType),
@@ -490,11 +490,11 @@ func (s *Server) rememberWebApproval(userID string, action string, commandType s
 	if err != nil {
 		return err
 	}
-	decisions := map[string]synonlink.RememberedApprovalDecision{}
+	decisions := map[string]xsciencelink.RememberedApprovalDecision{}
 	if found {
 		decisions = rememberedApprovalDecisionsFromSetting(setting.Value)
 	}
-	key := synonlink.RememberedApprovalKey(decision.UserID, decision.ClientID, decision.Action)
+	key := xsciencelink.RememberedApprovalKey(decision.UserID, decision.ClientID, decision.Action)
 	decisions[key] = decision
 	_, err = s.settingsStore.Set(approvalRememberedSettingKey, rememberedApprovalDecisionsToSetting(decisions))
 	return err
@@ -504,7 +504,7 @@ func webApprovalDecisionAction(action string, commandType string) string {
 	action = strings.ToLower(strings.TrimSpace(action))
 	commandType = strings.ToLower(strings.TrimSpace(commandType))
 	sum := sha256.Sum256([]byte(action + "\x00" + commandType))
-	return "synon-web:" + action + ":" + hex.EncodeToString(sum[:])[:24]
+	return "x-science-web:" + action + ":" + hex.EncodeToString(sum[:])[:24]
 }
 
 func (s *Server) handleWebConversationSideQuestion(

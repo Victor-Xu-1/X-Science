@@ -6,27 +6,27 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
-  createSynonBiomedArtifactAnnotation,
-  deleteSynonBiomedArtifactAnnotation,
-  loadSynonBiomedArtifactAnnotations,
-  updateSynonBiomedArtifactAnnotation,
-  type CreateSynonBiomedArtifactAnnotationInput,
-  type SynonBiomedArtifactAnnotation,
-} from '@/renderer/services/synonBiomedAnnotations';
+  createXScienceArtifactAnnotation,
+  deleteXScienceArtifactAnnotation,
+  loadXScienceArtifactAnnotations,
+  updateXScienceArtifactAnnotation,
+  type CreateXScienceArtifactAnnotationInput,
+  type XScienceArtifactAnnotation,
+} from '@/renderer/services/xScienceAnnotations';
 
 /** One version owns the list, checksum, requests and notifications. */
 export function useArtifactAnnotationStore(
   artifactId: string,
   versionId: string,
   refreshToken: number,
-  onChange?: (annotations: SynonBiomedArtifactAnnotation[]) => void
+  onChange?: (annotations: XScienceArtifactAnnotation[]) => void
 ) {
-  const [annotations, setAnnotations] = useState<SynonBiomedArtifactAnnotation[]>([]);
+  const [annotations, setAnnotations] = useState<XScienceArtifactAnnotation[]>([]);
   const [checksum, setChecksum] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState(false);
-  const items = useRef<SynonBiomedArtifactAnnotation[]>([]);
+  const items = useRef<XScienceArtifactAnnotation[]>([]);
   const notify = useRef(onChange);
   const lifecycle = useRef(0);
   const revision = useRef(0);
@@ -37,7 +37,7 @@ export function useArtifactAnnotationStore(
   useLayoutEffect(() => {
     notify.current = onChange;
   }, [onChange]);
-  const publish = useCallback((next: SynonBiomedArtifactAnnotation[]) => {
+  const publish = useCallback((next: XScienceArtifactAnnotation[]) => {
     items.current = next;
     setAnnotations(next);
     notify.current?.(next);
@@ -56,7 +56,7 @@ export function useArtifactAnnotationStore(
     setLoading(true);
     setFailed(false);
     try {
-      const result = await loadSynonBiomedArtifactAnnotations(artifactId, versionId);
+      const result = await loadXScienceArtifactAnnotations(artifactId, versionId);
       if (!isCurrent()) return;
       publish(result.annotations);
       setChecksum(result.currentChecksum);
@@ -117,9 +117,9 @@ export function useArtifactAnnotationStore(
     }
   };
 
-  const create = (input: CreateSynonBiomedArtifactAnnotationInput) =>
+  const create = (input: CreateXScienceArtifactAnnotationInput) =>
     mutate(
-      () => createSynonBiomedArtifactAnnotation(artifactId, versionId, input),
+      () => createXScienceArtifactAnnotation(artifactId, versionId, input),
       (created) => {
         publish([...items.current, created]);
         setChecksum((current) => created.contentChecksum ?? current);
@@ -127,12 +127,12 @@ export function useArtifactAnnotationStore(
     );
   const update = (id: string, text: string) =>
     mutate(
-      () => updateSynonBiomedArtifactAnnotation(id, { text }),
+      () => updateXScienceArtifactAnnotation(id, { text }),
       (updated) => publish(items.current.map((item) => (item.id === updated.id ? updated : item)))
     );
   const remove = (id: string) =>
     mutate(
-      () => deleteSynonBiomedArtifactAnnotation(id),
+      () => deleteXScienceArtifactAnnotation(id),
       () => publish(items.current.filter((item) => item.id !== id))
     );
 

@@ -14,12 +14,12 @@ func TestCurrentUsesRootProductIdentityAuthority(t *testing.T) {
 
 func TestDecodeProductIdentityFailsClosed(t *testing.T) {
 	for _, raw := range []string{
-		`{"schema":"synon.product-identity.v1","schema":"synon.product-identity.v1","display_name":"Synon Biomed","version":"0.1.1","machine_slug":"synon-biomed"}`,
-		`{"schema":"synon.product-identity.v1","display_name":"Synon Biomed","version":"0.1.1","machine_slug":"synon-biomed","unknown":true}`,
-		`{"schema":"synon.product-identity.v1","display_name":" Synon Biomed","version":"0.1.1","machine_slug":"synon-biomed"}`,
-		`{"schema":"synon.product-identity.v1","display_name":"Synon Biomed","version":"01.0.0","machine_slug":"synon-biomed"}`,
-		`{"schema":"synon.product-identity.v1","display_name":"Synon Biomed","version":"0.1.1","machine_slug":"Synon Biomed"}`,
-		`{"schema":"synon.product-identity.v1","display_name":"Synon Biomed","version":"0.1.1","machine_slug":"synon-biomed"} true`,
+		`{"schema":"x-science.product-identity.v1","schema":"x-science.product-identity.v1","display_name":"X-Science","version":"0.1.1","machine_slug":"x-science"}`,
+		`{"schema":"x-science.product-identity.v1","display_name":"X-Science","version":"0.1.1","machine_slug":"x-science","unknown":true}`,
+		`{"schema":"x-science.product-identity.v1","display_name":" X-Science","version":"0.1.1","machine_slug":"x-science"}`,
+		`{"schema":"x-science.product-identity.v1","display_name":"X-Science","version":"01.0.0","machine_slug":"x-science"}`,
+		`{"schema":"x-science.product-identity.v1","display_name":"X-Science","version":"0.1.1","machine_slug":"X-Science"}`,
+		`{"schema":"x-science.product-identity.v1","display_name":"X-Science","version":"0.1.1","machine_slug":"x-science"} true`,
 	} {
 		if _, err := decode([]byte(raw)); err == nil {
 			t.Fatalf("decode(%s) succeeded", raw)

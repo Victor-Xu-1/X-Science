@@ -1,6 +1,6 @@
 package transcript
 
-const HistoryCutoverContractID = "synon.transcript.history-cutover.v30"
+const HistoryCutoverContractID = "x-science.transcript.history-cutover.v30"
 
 var historyCutoverV30Statements = []string{
 	`CREATE TABLE transcript_history_cutover_runs (

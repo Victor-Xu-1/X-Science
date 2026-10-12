@@ -2,8 +2,8 @@
 set -euo pipefail
 
 DOCTOR_JSON="${1:-}"
-STRICT="${SYNON_GOAL_STRICT:-0}"
-ALLOWED_PARTIAL="${SYNON_GOAL_ALLOWED_PARTIAL:-}"
+STRICT="${X_SCIENCE_GOAL_STRICT:-0}"
+ALLOWED_PARTIAL="${X_SCIENCE_GOAL_ALLOWED_PARTIAL:-}"
 
 if [[ -z "$DOCTOR_JSON" || ! -f "$DOCTOR_JSON" ]]; then
   echo "ERROR: doctor json is required" >&2

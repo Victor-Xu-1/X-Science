@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	eventjournal "synon-go/internal/persistence/journal"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	eventjournal "x-science/internal/persistence/journal"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestTrustedScientificReviewSignalsRestoreOnlyFromSuccessfulServerEvidence(t *testing.T) {
@@ -62,7 +62,7 @@ func TestTrustedScientificReviewSignalsRestoreOnlyFromSuccessfulServerEvidence(t
 		}},
 		{Message: eventjournal.Message{
 			"type": "runner_checkpoint", "status": "completed", "toolPhase": "completed",
-			"schema": "synon.kernel_mcp_evidence.v1", "toolName": "mcp__structures-interactions__pdb_get_ligands",
+			"schema": "x-science.kernel_mcp_evidence.v1", "toolName": "mcp__structures-interactions__pdb_get_ligands",
 			"toolCallId": "host-pdb-1", "toolInput": kernelInput, "toolResult": kernelResult,
 			"evidenceClass": workspace.KernelMCPEvidenceClassBundledReadOnly,
 			"connectorId":   "bundled:structures-interactions", "connectorSource": "bundled", "readOnlyHint": true,
@@ -215,7 +215,7 @@ func TestTrustedScientificReviewSignalsPersistMetadataOnlyOpenAlexRouteExhaustio
 	}
 	entry := eventjournal.Entry{Message: eventjournal.Message{
 		"type": "runner_checkpoint", "status": "completed", "toolPhase": "completed",
-		"schema": "synon.kernel_mcp_evidence.v1", "toolName": "mcp__literature__openalex_get_work",
+		"schema": "x-science.kernel_mcp_evidence.v1", "toolName": "mcp__literature__openalex_get_work",
 		"toolCallId": "host-openalex-1", "toolInput": input, "toolResult": result,
 		"evidenceClass": workspace.KernelMCPEvidenceClassBundledReadOnly,
 		"connectorId":   "bundled:literature", "connectorSource": "bundled", "readOnlyHint": true,
@@ -263,7 +263,7 @@ func TestTrustedScientificReviewSignalsPersistOpenAlexDiscoveryIdentifiers(t *te
 	}
 	entry := eventjournal.Entry{Message: eventjournal.Message{
 		"type": "runner_checkpoint", "status": "completed", "toolPhase": "completed",
-		"schema": "synon.kernel_mcp_evidence.v1", "toolName": "mcp__literature__openalex_search_works",
+		"schema": "x-science.kernel_mcp_evidence.v1", "toolName": "mcp__literature__openalex_search_works",
 		"toolCallId":    "host-openalex-search-1",
 		"toolInput":     input,
 		"toolResult":    result,

@@ -15,10 +15,10 @@ vi.mock('react-router', () => ({ useNavigate: () => state.navigate }));
 vi.mock('@/renderer/pages/conversation/runtime/useConversationRuntimeView', () => ({
   useConversationRuntimeView: () => state.runtime,
 }));
-vi.mock('@/renderer/services/synonBiomedReplyBranch', () => ({ branchSynonBiomedReply: state.request }));
+vi.mock('@/renderer/services/xScienceReplyBranch', () => ({ branchXScienceReply: state.request }));
 vi.mock('@/renderer/services/rendererAccountScope', () => ({ getRendererAccountScopeToken: () => state.account }));
-vi.mock('@/renderer/services/synonBiomedConversationBranches', () => ({
-  createSynonBiomedBranchMutationId: () => 'stable-intent',
+vi.mock('@/renderer/services/xScienceConversationBranches', () => ({
+  createXScienceBranchMutationId: () => 'stable-intent',
 }));
 vi.mock('@arco-design/web-react', async (original) => ({
   ...(await original<object>()),

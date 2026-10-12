@@ -1,7 +1,7 @@
 package kernel
 
 import (
-	"synon-go/internal/processsupervisor"
+	"x-science/internal/processsupervisor"
 	"time"
 )
 

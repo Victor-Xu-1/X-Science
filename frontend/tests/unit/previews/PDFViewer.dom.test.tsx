@@ -10,8 +10,8 @@ import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderWithI18n } from '../i18nTestUtils';
 
-vi.mock('@/renderer/pages/artifact/SynonBiomedPdfArtifactViewer', () => ({
-  SynonBiomedPdfArtifactViewer: ({ filename, contentUrl }: { filename: string; contentUrl: string }) => (
+vi.mock('@/renderer/pages/artifact/XSciencePdfArtifactViewer', () => ({
+  XSciencePdfArtifactViewer: ({ filename, contentUrl }: { filename: string; contentUrl: string }) => (
     <section aria-label={filename} data-testid='shared-pdf-viewer' data-source={contentUrl} />
   ),
 }));
@@ -44,7 +44,7 @@ describe('PDFViewer', () => {
   it('loads a remote project PDF from its authenticated content endpoint', async () => {
     await renderWithI18n(
       <PDFViewer
-        file_path='synonbiomed://project/proj_123/project-files/report.pdf'
+        file_path='x-science://project/proj_123/project-files/report.pdf'
         content='/api/projects/proj_123/artifacts/artifact_123/content'
         hideToolbar
       />,

@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func TestReadCursorForUnprojectedStreamedMessageReturnsConflictInsteadOfInternalError(t *testing.T) {

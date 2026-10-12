@@ -13,7 +13,7 @@ import { AuthContext } from '@/renderer/hooks/context/AuthContext';
 import { RealtimeProvider } from '@/renderer/hooks/context/RealtimeContext';
 import { LayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { createRealtimeRuntime } from '@/common/adapter/realtimeRuntime';
-import SynonBiomedRuntimeOperations from '@/renderer/components/synonBiomed/runtime/SynonBiomedRuntimeOperations';
+import XScienceRuntimeOperations from '@/renderer/components/xScience/runtime/XScienceRuntimeOperations';
 
 await i18n.use(initReactI18next).init({
   lng: 'zh-CN',
@@ -47,7 +47,7 @@ function Task() {
   return (
     <main style={{ padding: 20, maxWidth: 880, margin: 'auto' }}>
       <p>Controlled task-attention regression; not a scientific task.</p>
-      <SynonBiomedRuntimeOperations
+      <XScienceRuntimeOperations
         conversationId={frame}
         runtimeState={state}
         onRuntimeUpdated={(_id, next) => setState(next.state)}

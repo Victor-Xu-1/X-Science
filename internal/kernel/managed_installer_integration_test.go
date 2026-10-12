@@ -20,12 +20,12 @@ import (
 // Local package fixtures exercise the bundled installer protocol, including
 // package-owned link scripts, without network or scientific task data.
 func TestManagedInstallerRealLinkScriptLifecycle(t *testing.T) {
-	if os.Getenv("SYNON_TEST_REAL_INSTALLER") != "1" || runtime.GOOS != "linux" {
+	if os.Getenv("X_SCIENCE_TEST_REAL_INSTALLER") != "1" || runtime.GOOS != "linux" {
 		t.Skip("opt-in Linux installer integration")
 	}
 	_, file, _, _ := runtime.Caller(0)
 	installer := filepath.Join(filepath.Dir(file), "..", "..", "assets", "optional", "micromamba", "linux-x86_64", "micromamba")
-	if configured := os.Getenv("SYNON_TEST_MICROMAMBA"); configured != "" {
+	if configured := os.Getenv("X_SCIENCE_TEST_MICROMAMBA"); configured != "" {
 		installer = configured
 	}
 	for _, tc := range []struct {
@@ -115,9 +115,9 @@ func managedInstallerFixturePackage(t *testing.T, root, script string) string {
 }
 
 func TestManagedRImportWitnessUsesRealRuntime(t *testing.T) {
-	prefix := os.Getenv("SYNON_TEST_R_PREFIX")
+	prefix := os.Getenv("X_SCIENCE_TEST_R_PREFIX")
 	if prefix == "" {
-		t.Skip("SYNON_TEST_R_PREFIX is not configured")
+		t.Skip("X_SCIENCE_TEST_R_PREFIX is not configured")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
@@ -130,12 +130,12 @@ func TestManagedRImportWitnessUsesRealRuntime(t *testing.T) {
 }
 
 func TestManagedInstallerRealPublicationAndRestartRecovery(t *testing.T) {
-	if os.Getenv("SYNON_TEST_REAL_INSTALLER") != "1" || runtime.GOOS != "linux" {
+	if os.Getenv("X_SCIENCE_TEST_REAL_INSTALLER") != "1" || runtime.GOOS != "linux" {
 		t.Skip("opt-in Linux installer integration")
 	}
 	_, file, _, _ := runtime.Caller(0)
 	installer := filepath.Join(filepath.Dir(file), "..", "..", "assets/optional/micromamba/linux-x86_64/micromamba")
-	if configured := os.Getenv("SYNON_TEST_MICROMAMBA"); configured != "" {
+	if configured := os.Getenv("X_SCIENCE_TEST_MICROMAMBA"); configured != "" {
 		installer = configured
 	}
 	root := t.TempDir()
@@ -216,8 +216,8 @@ func TestManagedInstallerRealPublicationAndRestartRecovery(t *testing.T) {
 // The caller supplies an exact hash-pinned public test distribution. This
 // opt-in proves TLS and extraction after the build toolchain is detached.
 func TestManagedInstallerRealHTTPSPackage(t *testing.T) {
-	source, installer := os.Getenv("SYNON_TEST_INSTALLER_PACKAGE_URL"), os.Getenv("SYNON_TEST_MICROMAMBA")
-	if os.Getenv("SYNON_TEST_REAL_INSTALLER") != "1" || source == "" || installer == "" {
+	source, installer := os.Getenv("X_SCIENCE_TEST_INSTALLER_PACKAGE_URL"), os.Getenv("X_SCIENCE_TEST_MICROMAMBA")
+	if os.Getenv("X_SCIENCE_TEST_REAL_INSTALLER") != "1" || source == "" || installer == "" {
 		t.Skip("opt-in real HTTPS installer probe")
 	}
 	u, err := url.Parse(source)

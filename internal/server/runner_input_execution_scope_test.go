@@ -6,9 +6,9 @@ import (
 	"reflect"
 	"testing"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	"synon-go/internal/sciencecapability"
-	"synon-go/internal/skills"
+	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/sciencecapability"
+	"x-science/internal/skills"
 )
 
 func TestFollowOnIntentDoesNotInheritExecutionChoice(t *testing.T) {

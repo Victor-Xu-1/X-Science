@@ -3,7 +3,7 @@ package server
 import (
 	"sort"
 	"strings"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func transcriptWebIncrementalAssistantStateFromReducer(

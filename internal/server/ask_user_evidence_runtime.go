@@ -10,7 +10,7 @@ import (
 )
 
 const askUserCurrentTaskEvidenceReference = "user-input:current-task"
-const askUserReadinessAttestationSchemaV1 = "synon.ask_user.readiness-attestation.v1"
+const askUserReadinessAttestationSchemaV1 = "x-science.ask_user.readiness-attestation.v1"
 
 type askUserEvidenceAuthorityClass string
 

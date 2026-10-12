@@ -1,8 +1,8 @@
 import {
-  getSynonBiomedArtifactContentUrl,
-  type SynonBiomedProjectArtifact,
-  type SynonBiomedProjectBench,
-} from '@/renderer/services/synonBiomedGateway';
+  getXScienceArtifactContentUrl,
+  type XScienceProjectArtifact,
+  type XScienceProjectBench,
+} from '@/renderer/services/xScienceGateway';
 import { Checkbox, Empty } from '@arco-design/web-react';
 import {
   Code,
@@ -30,9 +30,9 @@ import {
 } from './projectArtifactLibraryModel';
 
 type ProjectArtifactLibraryProps = {
-  artifacts: SynonBiomedProjectArtifact[];
-  benches: SynonBiomedProjectBench[];
-  onOpenArtifact: (artifact: SynonBiomedProjectArtifact) => void;
+  artifacts: XScienceProjectArtifact[];
+  benches: XScienceProjectBench[];
+  onOpenArtifact: (artifact: XScienceProjectArtifact) => void;
   onOpenConversation: (frameId: string) => void;
 };
 
@@ -178,7 +178,7 @@ const ArtifactGroup: React.FC<{
   collapsed: boolean;
   viewMode: LibraryViewMode;
   onToggle: () => void;
-  onOpenArtifact: (artifact: SynonBiomedProjectArtifact) => void;
+  onOpenArtifact: (artifact: XScienceProjectArtifact) => void;
   onOpenConversation: (frameId: string) => void;
   selectedIds: ReadonlySet<string>;
   onSelectionChange: (artifactId: string, checked: boolean) => void;
@@ -244,7 +244,7 @@ const ArtifactGroup: React.FC<{
 };
 
 const ArtifactListItem: React.FC<{
-  artifact: SynonBiomedProjectArtifact;
+  artifact: XScienceProjectArtifact;
   onOpen: () => void;
   onOpenConversation: (frameId: string) => void;
   selected: boolean;
@@ -279,7 +279,7 @@ const ArtifactListItem: React.FC<{
 };
 
 const ArtifactGridItem: React.FC<{
-  artifact: SynonBiomedProjectArtifact;
+  artifact: XScienceProjectArtifact;
   onOpen: () => void;
   onOpenConversation: (frameId: string) => void;
   selected: boolean;
@@ -287,7 +287,7 @@ const ArtifactGridItem: React.FC<{
 }> = ({ artifact, onOpen, onOpenConversation, selected, onSelectionChange }) => {
   const { t } = useTranslation();
   const kind = classifyProjectArtifact(artifact);
-  const contentUrl = getSynonBiomedArtifactContentUrl(artifact.artifactId);
+  const contentUrl = getXScienceArtifactContentUrl(artifact.artifactId);
   return (
     <article className='min-w-0 border border-solid border-[var(--color-border-2)] bg-1'>
       <div className='h-30px flex items-center px-8px border-b border-arco-2'>
@@ -327,12 +327,12 @@ const ArtifactGridItem: React.FC<{
 };
 
 const ArtifactActions: React.FC<{
-  artifact: SynonBiomedProjectArtifact;
+  artifact: XScienceProjectArtifact;
   onOpen: () => void;
   onOpenConversation: (frameId: string) => void;
 }> = ({ artifact, onOpen, onOpenConversation }) => {
   const { t } = useTranslation();
-  const contentUrl = getSynonBiomedArtifactContentUrl(artifact.artifactId);
+  const contentUrl = getXScienceArtifactContentUrl(artifact.artifactId);
   const frameId = artifact.rootFrameId ?? artifact.frameId ?? artifact.creatingFrameId;
   return (
     <div className='shrink-0 flex items-center gap-2px'>

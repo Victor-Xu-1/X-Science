@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/tools/securefetch"
+	"x-science/internal/tools/securefetch"
 )
 
 // TestLivePublicElectricLampPatentSearchAndPDF is an opt-in, non-biomedical
@@ -21,9 +21,9 @@ import (
 // downloads it through the same bounded public-network policy used by the
 // product. Run with:
 //
-//	SYNON_PATENT_LIVE_TEST=1 go test ./internal/tools/patentsearch -run TestLivePublicElectricLampPatentSearchAndPDF -count=1 -timeout=180s -v
+//	X_SCIENCE_PATENT_LIVE_TEST=1 go test ./internal/tools/patentsearch -run TestLivePublicElectricLampPatentSearchAndPDF -count=1 -timeout=180s -v
 func TestLivePublicElectricLampPatentSearchAndPDF(t *testing.T) {
-	if strings.TrimSpace(os.Getenv("SYNON_PATENT_LIVE_TEST")) != "1" {
+	if strings.TrimSpace(os.Getenv("X_SCIENCE_PATENT_LIVE_TEST")) != "1" {
 		t.Skip("live public-patent verification is opt-in")
 	}
 
@@ -75,7 +75,7 @@ func TestLivePublicElectricLampPatentSearchAndPDF(t *testing.T) {
 		MaxRedirects:       3,
 		MaxBytes:           32 << 20,
 		Timeout:            90 * time.Second,
-		UserAgent:          "synon-biomed-patent-live-test/1.0",
+		UserAgent:          "x-science-patent-live-test/1.0",
 		IdentityEncoding:   true,
 	})
 	if err != nil {

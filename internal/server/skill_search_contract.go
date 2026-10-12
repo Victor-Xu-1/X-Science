@@ -3,7 +3,7 @@ package server
 import (
 	"strings"
 
-	"synon-go/internal/skills"
+	"x-science/internal/skills"
 )
 
 // runtimeSkillSearchMetadata is the model-facing discovery contract. Skill

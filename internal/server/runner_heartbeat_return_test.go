@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func TestSessionRunnerHeartbeatReturnPreservesCycleErrors(t *testing.T) {

@@ -21,9 +21,9 @@ from pathlib import Path
 from typing import Any
 
 
-SCHEMA = "synon.science-task-audit.v1"
-SUITE_SCHEMA = "synon.science-task-suite.v1"
-BROWSER_SCHEMA = "synon.codex-browser-evidence.v1"
+SCHEMA = "x-science.science-task-audit.v1"
+SUITE_SCHEMA = "x-science.science-task-suite.v1"
+BROWSER_SCHEMA = "x-science.codex-browser-evidence.v1"
 TERMINAL_FRAME_STATUSES = {"completed", "failed", "cancelled", "canceled"}
 TERMINAL_ATTEMPT_STATUSES = {"completed", "failed", "cancelled", "canceled", "reclaimed"}
 FORBIDDEN_DEFAULT_USER_ARTIFACT_SUFFIXES = (".json", ".jsonl")

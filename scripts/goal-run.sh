@@ -3,10 +3,10 @@ set -euo pipefail
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 ROOT_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
-BIN="${1:-$ROOT_DIR/dist/synon-go}"
-HOME_DIR=${SYNON_GOAL_HOME:-/tmp/synon-go-goal-run}
-PORT=${SYNON_GOAL_PORT:-8765}
-HOST=${SYNON_GOAL_HOST:-127.0.0.1}
+BIN="${1:-$ROOT_DIR/dist/x-science}"
+HOME_DIR=${X_SCIENCE_GOAL_HOME:-/tmp/x-science-goal-run}
+PORT=${X_SCIENCE_GOAL_PORT:-8765}
+HOST=${X_SCIENCE_GOAL_HOST:-127.0.0.1}
 BASE="http://$HOST:$PORT"
 CURL=(curl --noproxy 127.0.0.1,localhost --connect-timeout 2 --max-time 15 -fsS)
 
@@ -23,12 +23,12 @@ fi
 
 rm -rf "$HOME_DIR"
 mkdir -p "$HOME_DIR"
-export SYNON_HOME="$HOME_DIR"
-export SYNON_ADDRESS="$HOST:$PORT"
+export X_SCIENCE_HOME="$HOME_DIR"
+export X_SCIENCE_ADDRESS="$HOST:$PORT"
 
 mkdir -p "$HOME_DIR/logs"
-PID_FILE="$HOME_DIR/synon-go-goal.pid"
-LOG_FILE="$HOME_DIR/synon-go-goal.log"
+PID_FILE="$HOME_DIR/x-science-goal.pid"
+LOG_FILE="$HOME_DIR/x-science-goal.log"
 
 cleanup() {
   if [[ -s "$PID_FILE" ]]; then
@@ -118,7 +118,7 @@ fi
 
 echo
 echo "scope-doctors:"
-for scope in query-engine model-runner tool-gateway permissions hooks skills sessions compact-memory taskrun-agent mcp synon-link-im; do
+for scope in query-engine model-runner tool-gateway permissions hooks skills sessions compact-memory taskrun-agent mcp x-science-link-im; do
   SCOPE_RESULT=$("${CURL[@]}" -H "Content-Type: application/json" -d "{\"input\":{\"scope\":\"$scope\"}}" \
     "$BASE/api/tools/AgentRuntimeDoctor/execute" )
   STATUS=$(echo "$SCOPE_RESULT" | jq -r '.result.summary.status? // .result.areas[0].status // "n/a"')

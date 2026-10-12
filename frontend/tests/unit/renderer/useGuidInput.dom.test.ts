@@ -25,14 +25,14 @@ describe('useGuidInput — ELECTRON-1K6', () => {
   it('tracks the project workspace supplied by same-route navigation', () => {
     const { result, rerender } = renderHook(
       ({ workspace }) => useGuidInput({ locationState: workspace ? { workspace } : null }),
-      { initialProps: { workspace: 'synonbiomed://project/proj_example' } }
+      { initialProps: { workspace: 'x-science://project/proj_example' } }
     );
 
-    expect(result.current.dir).toBe('synonbiomed://project/proj_example');
+    expect(result.current.dir).toBe('x-science://project/proj_example');
 
-    rerender({ workspace: 'synonbiomed://project/proj_stat6' });
+    rerender({ workspace: 'x-science://project/proj_stat6' });
 
-    expect(result.current.dir).toBe('synonbiomed://project/proj_stat6');
+    expect(result.current.dir).toBe('x-science://project/proj_stat6');
   });
 
   it('handleFilesPasted preserves the selected workspace dir', () => {

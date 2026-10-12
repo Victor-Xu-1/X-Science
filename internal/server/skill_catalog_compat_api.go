@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strings"
 
-	"synon-go/internal/skills"
+	"x-science/internal/skills"
 )
 
 type compatibilitySkillCatalogEntry struct {
@@ -63,7 +63,7 @@ func (s *Server) handleCompatibilitySkillCatalog(w http.ResponseWriter, r *http.
 		sourceCounts[source]++
 		if compatibilityRequiredPlatformSkill(skill) {
 			builtinPlatformSkills++
-		} else if source == "synon_llm" {
+		} else if source == "x_science_llm" {
 			packagedDirectorySkills++
 		}
 		entry := compatibilitySkillCatalogEntry{
@@ -74,7 +74,7 @@ func (s *Server) handleCompatibilitySkillCatalog(w http.ResponseWriter, r *http.
 		if entry.DisplayName == "" {
 			entry.DisplayName = skill.Name
 		}
-		if source == "synon_llm" {
+		if source == "x_science_llm" {
 			entry.SkillID = "bundled:" + skill.Name
 		} else {
 			entry.SkillID = "local:" + skill.Name
@@ -249,8 +249,8 @@ func compatibilitySkillSource(skill skills.Skill) string {
 	normalizedPath := filepath.ToSlash(skill.Path)
 	if strings.HasPrefix(skill.Path, "builtin:") ||
 		strings.Contains(normalizedPath, "/runtime/assets/skills/") ||
-		strings.Contains(normalizedPath, "/skills/synonbiomed/") {
-		return "synon_llm"
+		strings.Contains(normalizedPath, "/skills/x-science/") {
+		return "x_science_llm"
 	}
 	return "personal"
 }

@@ -17,10 +17,10 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/adapters/feishu"
-	"synon-go/internal/adapters/wechat"
-	"synon-go/internal/buildinfo"
-	"synon-go/internal/config"
+	"x-science/internal/adapters/feishu"
+	"x-science/internal/adapters/wechat"
+	"x-science/internal/buildinfo"
+	"x-science/internal/config"
 )
 
 type liveSmokePlan struct {
@@ -96,7 +96,7 @@ func main() {
 	flag.Parse()
 
 	if configPath := strings.TrimSpace(*configPathFlag); configPath != "" {
-		if err := os.Setenv("SYNON_CONFIG", configPath); err != nil {
+		if err := os.Setenv("X_SCIENCE_CONFIG", configPath); err != nil {
 			fmt.Fprintf(os.Stderr, "set %s config path: %v\n", productName, err)
 			os.Exit(2)
 		}
@@ -117,8 +117,8 @@ func main() {
 				ctx,
 				http.DefaultClient,
 				runtimeURL,
-				cfg.SynonLinkAuth.Username,
-				cfg.SynonLinkAuth.Password,
+				cfg.XScienceLinkAuth.Username,
+				cfg.XScienceLinkAuth.Password,
 			)
 			cancel()
 			if auditErr != nil {
@@ -152,8 +152,8 @@ func main() {
 			ctx,
 			http.DefaultClient,
 			runtimeURL,
-			cfg.SynonLinkAuth.Username,
-			cfg.SynonLinkAuth.Password,
+			cfg.XScienceLinkAuth.Username,
+			cfg.XScienceLinkAuth.Password,
 		)
 		if err != nil {
 			result.Status = "failed"
@@ -287,9 +287,9 @@ func (s *runtimeAuditSession) login(ctx context.Context, username, password stri
 	hasSession := false
 	for _, cookie := range s.client.Jar.Cookies(parsed) {
 		switch cookie.Name {
-		case "synon_session":
+		case "x_science_session":
 			hasSession = strings.TrimSpace(cookie.Value) != ""
-		case "synon_csrf":
+		case "x_science_csrf":
 			s.csrfToken = strings.TrimSpace(cookie.Value)
 		}
 	}
@@ -341,7 +341,7 @@ func (s *runtimeAuditSession) record(ctx context.Context, result liveSmokePlatfo
 	}
 	request.Header.Set("Content-Type", "application/json")
 	if s.csrfToken != "" {
-		request.Header.Set("X-Synon-CSRF-Token", s.csrfToken)
+		request.Header.Set("X-Science-CSRF-Token", s.csrfToken)
 	}
 	response, err := s.client.Do(request)
 	if err != nil {
@@ -366,7 +366,7 @@ func planFromEnv(getenv func(string) string) liveSmokePlan {
 }
 
 func planFromConfigAndEnv(cfg config.Config, getenv func(string) string) liveSmokePlan {
-	message := strings.TrimSpace(firstNonEmpty(getenv("SYNON_LIVE_IM_SMOKE_MESSAGE"), cfg.LiveIMSmoke.Message))
+	message := strings.TrimSpace(firstNonEmpty(getenv("X_SCIENCE_LIVE_IM_SMOKE_MESSAGE"), cfg.LiveIMSmoke.Message))
 	if message == "" {
 		identity := buildinfo.Release()
 		message = identity.Name + " v" + identity.Version + " live IM smoke"
@@ -375,7 +375,7 @@ func planFromConfigAndEnv(cfg config.Config, getenv func(string) string) liveSmo
 	if cfg.LiveIMSmoke.TimeoutSeconds > 0 {
 		timeout = time.Duration(cfg.LiveIMSmoke.TimeoutSeconds) * time.Second
 	}
-	if raw := strings.TrimSpace(getenv("SYNON_LIVE_IM_SMOKE_TIMEOUT_SECONDS")); raw != "" {
+	if raw := strings.TrimSpace(getenv("X_SCIENCE_LIVE_IM_SMOKE_TIMEOUT_SECONDS")); raw != "" {
 		if seconds, err := strconv.Atoi(raw); err == nil && seconds > 0 {
 			timeout = time.Duration(seconds) * time.Second
 		}
@@ -384,8 +384,8 @@ func planFromConfigAndEnv(cfg config.Config, getenv func(string) string) liveSmo
 		Skipped:    map[string]bool{},
 		Message:    message,
 		Timeout:    timeout,
-		RuntimeURL: strings.TrimSpace(firstNonEmpty(getenv("SYNON_LIVE_IM_RUNTIME_URL"), cfg.LiveIMSmoke.RuntimeURL)),
-		RequireAll: cfg.LiveIMSmoke.RequireAll || envBool(getenv("SYNON_LIVE_IM_REQUIRE_ALL")),
+		RuntimeURL: strings.TrimSpace(firstNonEmpty(getenv("X_SCIENCE_LIVE_IM_RUNTIME_URL"), cfg.LiveIMSmoke.RuntimeURL)),
+		RequireAll: cfg.LiveIMSmoke.RequireAll || envBool(getenv("X_SCIENCE_LIVE_IM_REQUIRE_ALL")),
 		WeChat: wechatSmokeConfig{
 			Token:        strings.TrimSpace(firstNonEmpty(getenv("WECHAT_BOT_TOKEN"), cfg.WeChat.BotToken)),
 			BaseURL:      strings.TrimSpace(firstNonEmpty(getenv("WECHAT_BASE_URL"), cfg.WeChat.BaseURL, wechat.DefaultBaseURL)),

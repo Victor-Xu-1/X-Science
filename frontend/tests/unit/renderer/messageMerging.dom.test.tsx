@@ -28,10 +28,10 @@ import {
 } from '@/renderer/pages/conversation/Messages/hooks';
 import { mergeLoadedPageWithCurrent } from '@/renderer/pages/conversation/Messages/messageWindowReconciliation';
 import {
-  getSelectedSynonBiomedBranch,
-  selectSynonBiomedBranch,
-} from '@/renderer/services/synonBiomedConversationBranches';
-import { TRANSIENT_HISTORY_RETRY_DELAYS_MS } from '@/renderer/services/synonBiomedHistoryRetry';
+  getSelectedXScienceBranch,
+  selectXScienceBranch,
+} from '@/renderer/services/xScienceConversationBranches';
+import { TRANSIENT_HISTORY_RETRY_DELAYS_MS } from '@/renderer/services/xScienceHistoryRetry';
 import { INTERACTIVE_MESSAGE_PAGE_LIMIT } from '@/renderer/utils/chat/messagePagination';
 
 const { requestConversationMessagesMock } = vi.hoisted(() => ({
@@ -974,7 +974,7 @@ describe('message merging', () => {
       await Promise.resolve();
     });
     await act(async () => {
-      selectSynonBiomedBranch(CONVERSATION_ID, 'br_00000002');
+      selectXScienceBranch(CONVERSATION_ID, 'br_00000002');
       await Promise.resolve();
     });
     expect(result.current.messages.map((message) => message.msg_id)).toEqual(['b-tail']);
@@ -998,7 +998,7 @@ describe('message merging', () => {
       isLoadingBefore: false,
     });
     unmount();
-    selectSynonBiomedBranch(CONVERSATION_ID, null);
+    selectXScienceBranch(CONVERSATION_ID, null);
   });
 
   it('records the previous window boundary when an older cursor page is prepended', async () => {
@@ -1068,7 +1068,7 @@ describe('message merging', () => {
     expect(result.current.messages.map((item) => item.msg_id)).toEqual(['base']);
 
     await act(async () => {
-      selectSynonBiomedBranch(CONVERSATION_ID, 'br_00000002');
+      selectXScienceBranch(CONVERSATION_ID, 'br_00000002');
       await Promise.resolve();
       await Promise.resolve();
     });
@@ -1076,9 +1076,9 @@ describe('message merging', () => {
     expect(result.current.loadError).toEqual({ source: 'branch' });
     expect(result.current.messages.map((item) => item.msg_id)).toEqual(['base']);
     expect(result.current.pagination.branchId).toBe('br_00000001');
-    expect(getSelectedSynonBiomedBranch(CONVERSATION_ID)).toBe('br_00000001');
+    expect(getSelectedXScienceBranch(CONVERSATION_ID)).toBe('br_00000001');
     unmount();
-    selectSynonBiomedBranch(CONVERSATION_ID, null);
+    selectXScienceBranch(CONVERSATION_ID, null);
   });
 
   it('replaces history once per activation and rejects an older in-flight refresh', async () => {
@@ -1156,7 +1156,7 @@ describe('message merging', () => {
     expect(result.current.messages.map((message) => message.msg_id)).toEqual(['canonical', 'live']);
 
     unmount();
-    act(() => selectSynonBiomedBranch(CONVERSATION_ID, null));
+    act(() => selectXScienceBranch(CONVERSATION_ID, null));
   });
 
   it('reloads canonical history after the server rejects a future realtime cursor', async () => {
@@ -1356,6 +1356,6 @@ describe('message merging', () => {
     });
     expect(invoke).toHaveBeenCalledTimes(3);
     unmount();
-    selectSynonBiomedBranch(CONVERSATION_ID, null);
+    selectXScienceBranch(CONVERSATION_ID, null);
   });
 });

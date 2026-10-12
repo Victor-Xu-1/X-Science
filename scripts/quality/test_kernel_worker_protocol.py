@@ -22,7 +22,7 @@ WORKER = Path(__file__).resolve().parents[2] / "assets/optional/kernels/kernel_w
 @unittest.skipUnless(os.name == "posix", "the worker requires POSIX descriptors and signals")
 class WorkerProtocolTests(WorkerProcessOutcomeCases, unittest.TestCase):
     def setUp(self):
-        self.directory = tempfile.TemporaryDirectory(prefix="synon-worker-test-")
+        self.directory = tempfile.TemporaryDirectory(prefix="x-science-worker-test-")
         self.process = subprocess.Popen(
             [sys.executable, "-u", str(WORKER)], cwd=self.directory.name,
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,

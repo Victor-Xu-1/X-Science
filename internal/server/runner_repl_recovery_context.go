@@ -3,7 +3,7 @@ package server
 import (
 	"strings"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 // sessionRunnerREPLRecoveryContext separates durable task evidence from

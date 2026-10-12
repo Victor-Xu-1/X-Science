@@ -28,12 +28,12 @@ import (
 )
 
 const (
-	synonKernelPolicySHA256      = "dbbc2b1997258c2ec7208561bab49785456fcc95cbf39a535ef16635d17af7f7"
-	kernelConfinementHelperEnv   = "SYNON_INTERNAL_KERNEL_CONFINEMENT_HELPER"
-	kernelConfinementPayloadEnv  = "SYNON_INTERNAL_KERNEL_CONFINEMENT_PAYLOAD"
+	xscienceKernelPolicySHA256      = "dbbc2b1997258c2ec7208561bab49785456fcc95cbf39a535ef16635d17af7f7"
+	kernelConfinementHelperEnv   = "X_SCIENCE_INTERNAL_KERNEL_CONFINEMENT_HELPER"
+	kernelConfinementPayloadEnv  = "X_SCIENCE_INTERNAL_KERNEL_CONFINEMENT_PAYLOAD"
 	kernelConfinementOuter       = "outer"
 	kernelConfinementTarget      = "target"
-	kernelConfinementProbePrefix = "SYNON_KERNEL_CONFINEMENT_PROBE_V1:"
+	kernelConfinementProbePrefix = "X_SCIENCE_KERNEL_CONFINEMENT_PROBE_V1:"
 )
 
 type confinedWorkerRequest struct {
@@ -58,7 +58,7 @@ type confinedWorkerMount struct {
 	Trusted  bool   `json:"trusted,omitempty"`
 }
 
-var synonKernelFilter = buildKernelSyscallFilter()
+var xscienceKernelFilter = buildKernelSyscallFilter()
 
 func init() {
 	phase := os.Getenv(kernelConfinementHelperEnv)
@@ -484,7 +484,7 @@ func enterKernelMountNamespace(request confinedWorkerRequest, encoded string) er
 }
 
 func syntheticKernelEtcFile(name, content string) (int, error) {
-	fd, err := unix.MemfdCreate("synon-kernel-"+name, unix.MFD_CLOEXEC|unix.MFD_ALLOW_SEALING)
+	fd, err := unix.MemfdCreate("x-science-kernel-"+name, unix.MFD_CLOEXEC|unix.MFD_ALLOW_SEALING)
 	if err != nil {
 		return -1, err
 	}
@@ -658,7 +658,7 @@ func kernelWorkspaceSkillRuntimeReadOnlyPath(workspace string) (string, error) {
 	if !filepath.IsAbs(workspace) {
 		return "", errors.New("kernel confinement workspace is invalid")
 	}
-	target := filepath.Join(workspace, ".synon", "runtime", "skills")
+	target := filepath.Join(workspace, ".xscience", "runtime", "skills")
 	info, err := os.Lstat(target)
 	if errors.Is(err, os.ErrNotExist) {
 		return "", nil
@@ -773,8 +773,8 @@ func kernelMountOverlapsProtectedPath(mount string, request confinedWorkerReques
 		"/tmp/operon-sandbox", request.WorkspaceDir,
 		canonicalProtectedPath(environmentValue(request.Environment, "CONDA_PREFIX")),
 		canonicalProtectedPath(environmentValue(request.Environment, "MAMBA_ROOT_PREFIX")),
-		canonicalProtectedPath(environmentValue(request.Environment, "SYNON_DATA_DIR")),
-		canonicalProtectedPath(environmentValue(request.Environment, "SYNON_AUTH_DIR")),
+		canonicalProtectedPath(environmentValue(request.Environment, "X_SCIENCE_DATA_DIR")),
+		canonicalProtectedPath(environmentValue(request.Environment, "X_SCIENCE_AUTH_DIR")),
 		canonicalProtectedPath(helper), canonicalProtectedPath(request.Executable),
 	} {
 		if filepath.IsAbs(protected) && pathsOverlap(mount, protected) {
@@ -879,7 +879,7 @@ func applyKernelConfinementPolicy() error {
 	if err := unix.Prctl(unix.PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0); err != nil {
 		return errors.New("kernel confinement is unavailable")
 	}
-	program := unix.SockFprog{Len: uint16(len(synonKernelFilter)), Filter: &synonKernelFilter[0]}
+	program := unix.SockFprog{Len: uint16(len(xscienceKernelFilter)), Filter: &xscienceKernelFilter[0]}
 	if err := unix.Prctl(unix.PR_SET_SECCOMP, unix.SECCOMP_MODE_FILTER, uintptr(unsafe.Pointer(&program)), 0, 0); err != nil {
 		return errors.New("kernel confinement is unavailable")
 	}
@@ -925,7 +925,7 @@ func platformConfinementEvidence() ConfinementEvidence {
 		return ConfinementEvidence{Available: false, Mode: "unavailable", Reason: "bubblewrap is unavailable"}
 	}
 	return ConfinementEvidence{
-		Available: true, Mode: "synon-bwrap-unix-block-v1", PolicySHA256: synonKernelPolicySHA256,
+		Available: true, Mode: "x-science-bwrap-unix-block-v1", PolicySHA256: xscienceKernelPolicySHA256,
 	}
 }
 
@@ -955,7 +955,7 @@ func probePlatformConfinement() ConfinementEvidence {
 		return ConfinementEvidence{Available: false, Mode: "unavailable", Reason: "kernel confinement probe failed"}
 	}
 	probeToken := hex.EncodeToString(random)
-	workspace, err := os.MkdirTemp("", "synon-kernel-confinement-probe-")
+	workspace, err := os.MkdirTemp("", "x-science-kernel-confinement-probe-")
 	if err != nil {
 		return ConfinementEvidence{Available: false, Mode: "unavailable", Reason: "kernel confinement probe failed"}
 	}

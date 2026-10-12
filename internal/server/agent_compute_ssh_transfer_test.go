@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestAgentSSHTransferUsesVerifiedNativeProtocolBeyondOldSizeLimit(t *testing.T) {
@@ -134,7 +134,7 @@ func TestAgentSSHTransferRetainsInterruptedPartialDirectory(t *testing.T) {
 		t.Fatal("failed transfer deleted existing destination")
 	}
 	args, err := os.ReadFile(argsPath)
-	if err != nil || !strings.Contains(string(args), "--partial-dir=.synon-biomed-partial-") || !strings.Contains(string(args), "--ignore-times\n") || !strings.Contains(string(args), "--timeout=120\n") {
+	if err != nil || !strings.Contains(string(args), "--partial-dir=.x-science-partial-") || !strings.Contains(string(args), "--ignore-times\n") || !strings.Contains(string(args), "--timeout=120\n") {
 		t.Fatalf("missing verified resumable I/O contract: %s %v", args, err)
 	}
 }

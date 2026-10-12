@@ -97,11 +97,11 @@ class WorkerProcessOutcomeCases:
     def test_functions_defined_in_prior_cells_retain_checking(self):
         self.assertIsNone(self.cell(
             "import os\n"
-            "_synon_checked_process_call = 'user-owned'\n"
+            "_x_science_checked_process_call = 'user-owned'\n"
             "def compute():\n    os.system('exit 8')"
         )["error"])
         failed = self.cell("compute()")
         self.assertIn("CalledProcessError", failed["error"] or "")
-        result = self.cell("assert _synon_checked_process_call == 'user-owned'\nprint('preserved')")
+        result = self.cell("assert _x_science_checked_process_call == 'user-owned'\nprint('preserved')")
         self.assertIsNone(result["error"])
         self.assertEqual(result["stdout"], "preserved\n")

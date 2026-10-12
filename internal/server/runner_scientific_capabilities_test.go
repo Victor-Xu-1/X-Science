@@ -14,12 +14,12 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/persistence/journal"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	"synon-go/internal/providers"
-	"synon-go/internal/sciencecapability"
-	"synon-go/internal/skills"
+	"x-science/internal/agentruntime"
+	"x-science/internal/persistence/journal"
+	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/providers"
+	"x-science/internal/sciencecapability"
+	"x-science/internal/skills"
 )
 
 func TestRequiredScientificCapabilitiesComeFromSelectedSkillContract(t *testing.T) {

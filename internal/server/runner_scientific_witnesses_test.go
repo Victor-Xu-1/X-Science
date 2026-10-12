@@ -3,7 +3,7 @@ package server
 import (
 	"testing"
 
-	eventjournal "synon-go/internal/persistence/journal"
+	eventjournal "x-science/internal/persistence/journal"
 )
 
 func TestTrustedScientificCapabilityWitnessesRestoreOnlyFromCompletedDurableEvidence(t *testing.T) {
@@ -57,7 +57,7 @@ func TestTrustedScientificCapabilityWitnessSnapshotIsDeepClone(t *testing.T) {
 
 func TestDecodeScientificCapabilityWitnessesRejectsUnknownFields(t *testing.T) {
 	raw := []any{map[string]any{
-		"version": "synon.scientific-capability-witness.v1", "capability": "molecular-docking",
+		"version": "x-science.scientific-capability-witness.v1", "capability": "molecular-docking",
 		"unknown": true,
 	}}
 	if _, err := decodeScientificCapabilityWitnesses(raw); err == nil {

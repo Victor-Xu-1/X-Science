@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func frameResumeDispatchShouldRequeueActiveRunner(transcriptFrame bool, runErr error) bool {

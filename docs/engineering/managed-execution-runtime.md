@@ -41,8 +41,8 @@ or shell installation path exists.
 ## Installation readiness and reuse
 
 The service-owned scientific bootstrap has one authority for the required
-`synon-biomed-python` and `synon-biomed-r` runtimes. It resolves the managed
-root from the current user's `SYNON_HOME` (falling back to the platform user
+`x-science-python` and `x-science-r` runtimes. It resolves the managed
+root from the current user's `X_SCIENCE_HOME` (falling back to the platform user
 data directory), stores active pointers below `conda/envs/`, and stores
 content-addressed generations below `conda/envs/.generations/`. The root is
 configuration-derived; no developer checkout path is part of the contract.
@@ -92,7 +92,7 @@ structure-derived, user-supplied or exploratory alternative in the same pack.
 It does not require the user to transcribe derived values or an unsuccessful
 resolver to produce a passing receipt.
 
-The document uses `synon.documented-input.v1`: `evidence_group`,
+The document uses `x-science.documented-input.v1`: `evidence_group`,
 `input_sha256`, `basis`, `method`, `sources`, `limitations` and `values`
 (keyed by the registered parameter names). The kernel checks the complete
 parameter tuple, exact source digest and bounded provenance record, then uses
@@ -240,7 +240,7 @@ monitor or an unrelated process. The application writes its PID receipt as
 
 The committed checkpoint manifest is JSONL:
 
-1. A header with `schema=synon.compute-checkpoint.v1`, positive `generation`,
+1. A header with `schema=x-science.compute-checkpoint.v1`, positive `generation`,
    `source_input_sha256` and `resume_command_sha256`.
 2. One record per native file: `path`, `sha256` and integral `bytes`.
 3. A final `commit=complete`, exact `file_count` and exact total `bytes`.
@@ -598,12 +598,12 @@ Playwright browser matching the lockfile. It never uses an installed service,
 user account, model configuration or browser profile:
 
 ```sh
-SYNON_TEST_EXECUTION_OBSERVATION_BROWSER=1 go test ./internal/server \
+X_SCIENCE_TEST_EXECUTION_OBSERVATION_BROWSER=1 go test ./internal/server \
   -run '^TestKernelExecutionObservationRealBrowser$' -count=1 -v -timeout=180s
 ```
 
 Screenshots are written outside the repository to a temporary directory, or to
-the existing directory selected by `SYNON_OBSERVATION_TEST_ARTIFACTS`.
+the existing directory selected by `X_SCIENCE_OBSERVATION_TEST_ARTIFACTS`.
 
 ## Acceptance
 
@@ -690,7 +690,7 @@ replace live phase presentation and expose redacted terminal diagnostics.
 Focused real creation and presentation checks (isolated from running tasks):
 
 ```sh
-SYNON_TEST_REAL_R_CREATE=1 go test ./internal/kernel \
+X_SCIENCE_TEST_REAL_R_CREATE=1 go test ./internal/kernel \
   -run '^TestManagedEnvironmentRealRCreatePublishExecute$' -count=1 -v -timeout=10m
 cd frontend
 node tests/web-e2e/toolPhaseLifecycle.browser.mjs

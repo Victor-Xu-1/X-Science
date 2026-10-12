@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/skills"
+	"x-science/internal/skills"
 )
 
 func TestMedicinalChemistrySkillOwnsCanonicalRDKitAnalogGeneration(t *testing.T) {
@@ -20,7 +20,7 @@ func TestMedicinalChemistrySkillOwnsCanonicalRDKitAnalogGeneration(t *testing.T)
 		t.Fatal("locate repository root")
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
-	skillRoot := filepath.Join(repositoryRoot, "skills", "synonbiomed", "medicinal-chemistry-optimization")
+	skillRoot := filepath.Join(repositoryRoot, "skills", "x-science", "medicinal-chemistry-optimization")
 	skillContent, err := os.ReadFile(filepath.Join(skillRoot, "SKILL.md"))
 	if err != nil {
 		t.Fatal(err)
@@ -29,7 +29,7 @@ func TestMedicinalChemistrySkillOwnsCanonicalRDKitAnalogGeneration(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	manifestContent, err := os.ReadFile(filepath.Join(repositoryRoot, "assets", "synonbiomed", "skills.manifest.json"))
+	manifestContent, err := os.ReadFile(filepath.Join(repositoryRoot, "assets", "x-science", "skills.manifest.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +87,7 @@ func TestMedicinalChemistrySkillOwnsCanonicalRDKitAnalogGeneration(t *testing.T)
 		t.Fatalf("RDKit analog Skill is not discoverable: %v", matches)
 	}
 	for _, marker := range []string{
-		`${SYNON_SKILL_DIR}/scripts/rdkit_analog_generator.py`, "--input-json", "--count 30",
+		`${X_SCIENCE_SKILL_DIR}/scripts/rdkit_analog_generator.py`, "--input-json", "--count 30",
 		"MaxMin", "exactly the requested unique 3D molecules", "Do not hardcode", "complete verified parent heavy-atom graph",
 		"machine-readable calculation outputs", "Lipinski rule of five", "pre-publication step", "not an automatic review after",
 		"QED", "lipinski_violations", "same candidate ID and calculated values",
@@ -101,7 +101,7 @@ func TestMedicinalChemistrySkillOwnsCanonicalRDKitAnalogGeneration(t *testing.T)
 	for _, marker := range []string{
 		"rdFingerprintGenerator.GetMorganGenerator", "rdSimDivPickers.MaxMinPicker", "Chem.RWMol(Chem.CombineMols",
 		"required_core_preserved", "unique_canonical_smiles", "three_dimensional_sdf", `"overall_pass"`, `"errors"`,
-		"QED.qed", "lipinski_violations", "complete_property_table", "synon.rdkit-analog-generation.validation.v2",
+		"QED.qed", "lipinski_violations", "complete_property_table", "x-science.rdkit-analog-generation.validation.v2",
 		`"generation_class": "analog-enumeration"`, `"engine": "rdkit-analog-generator"`,
 		`"kind": "parent-ligand"`, `"input_sha256"`,
 	} {

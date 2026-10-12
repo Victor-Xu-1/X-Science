@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/tools/fileevents"
+	"x-science/internal/tools/fileevents"
 )
 
 func TestPassiveLSPDiagnosticRegistryDeduplicatesAndPreservesOtherFiles(t *testing.T) {

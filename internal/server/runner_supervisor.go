@@ -11,12 +11,12 @@ import (
 	"sync"
 	"time"
 
-	eventjournal "synon-go/internal/persistence/journal"
-	sessionstore "synon-go/internal/persistence/sessions"
+	eventjournal "x-science/internal/persistence/journal"
+	sessionstore "x-science/internal/persistence/sessions"
 )
 
 const (
-	defaultSessionRunnerID               = "synon-go-runner"
+	defaultSessionRunnerID               = "x-science-runner"
 	defaultSessionRunnerLeaseTTL         = 5 * time.Minute
 	defaultSessionRunnerPollInterval     = time.Second
 	defaultSessionRunnerCommandTimeout   = 10 * time.Minute

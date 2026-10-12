@@ -9,8 +9,8 @@ const mocks = vi.hoisted(() => ({
   createServer: vi.fn(),
 }));
 
-vi.mock('@/renderer/services/synonBiomedCapabilities', () => ({
-  createSynonBiomedCustomMcpServer: mocks.createServer,
+vi.mock('@/renderer/services/xScienceCapabilities', () => ({
+  createXScienceCustomMcpServer: mocks.createServer,
 }));
 
 describe('McpMarketplacePanel', () => {
@@ -53,12 +53,12 @@ describe('McpMarketplacePanel', () => {
     await renderWithI18n(<McpMarketplacePanel onInstalled={onInstalled} />, 'zh-CN');
 
     expect(await screen.findByText('PubMed MCP')).toBeInTheDocument();
-    expect(screen.getByTestId('synon-biomed-mcp-marketplace-grid')).toHaveClass(
+    expect(screen.getByTestId('x-science-mcp-marketplace-grid')).toHaveClass(
       'grid-cols-1',
       'xl:grid-cols-3',
       '2xl:grid-cols-4'
     );
-    expect(screen.getByRole('listitem')).toHaveClass('synon-mcp-card');
+    expect(screen.getByRole('listitem')).toHaveClass('x-science-mcp-card');
     expect(screen.getByRole('listitem')).toHaveTextContent('未添加');
     expect(screen.getByRole('listitem')).toHaveTextContent('尚未使用');
     expect(screen.getByRole('listitem')).toHaveTextContent('调用 0 次');

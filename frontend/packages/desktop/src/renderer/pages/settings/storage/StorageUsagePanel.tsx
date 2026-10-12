@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  loadSynonBiomedEnvironmentUsage,
-  type SynonBiomedDiskUsage,
-} from '@/renderer/services/synonBiomedWorkspaceSettings';
+  loadXScienceEnvironmentUsage,
+  type XScienceDiskUsage,
+} from '@/renderer/services/xScienceWorkspaceSettings';
 import { RefreshButton, SettingsSection } from '../components/SettingsPrimitives';
 import { StorageError, StorageLoading } from './StorageFeedback';
 import { formatStorageBytes } from './storagePresentation';
@@ -19,7 +19,7 @@ const categories = [
 ] as const;
 
 const loadEnvironments = (signal: AbortSignal, refresh: boolean) =>
-  loadSynonBiomedEnvironmentUsage({ signal, refresh });
+  loadXScienceEnvironmentUsage({ signal, refresh });
 
 function ScanTime({ value }: { value?: string | null }) {
   const { t, i18n } = useTranslation();
@@ -39,7 +39,7 @@ export function StorageUsagePanel({
   resource,
   onManageSoftware,
 }: {
-  resource: StorageResource<SynonBiomedDiskUsage>;
+  resource: StorageResource<XScienceDiskUsage>;
   onManageSoftware?: () => void;
 }) {
   const { t } = useTranslation();

@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func (s *Server) handleWorkspaceDashboard(w http.ResponseWriter, r *http.Request, store *workspace.Store, userID string) {
@@ -187,7 +187,7 @@ func (s *Server) handleWorkspaceProjectRequest(w http.ResponseWriter, r *http.Re
 		frameID = uuid.NewSHA1(uuid.NameSpaceOID, []byte(projectID+"\x00"+clientMessageID)).String()
 	}
 	messageUUID := firstNonEmpty(input.MessageUUID, input.MessageUUIDSnake, clientMessageID)
-	agentName := firstNonEmpty(input.TargetAgent, input.TargetAgentSnake, "synon")
+	agentName := firstNonEmpty(input.TargetAgent, input.TargetAgentSnake, "xscience")
 	frame, found, err := store.GetFrame(frameID)
 	if err != nil {
 		writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})

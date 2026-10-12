@@ -17,10 +17,10 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"synon-go/internal/agentruntime"
-	eventjournal "synon-go/internal/persistence/journal"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/providers"
+	"x-science/internal/agentruntime"
+	eventjournal "x-science/internal/persistence/journal"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/providers"
 )
 
 const (
@@ -92,7 +92,7 @@ func (s *Server) handleSkillFromConversation(w http.ResponseWriter, r *http.Requ
 	userID := compatAgentUserID(r)
 	ctx, cancel := context.WithTimeout(r.Context(), conversationSkillModelTimeout)
 	defer cancel()
-	w.Header().Set("X-Synon-Background-Operation", "skill-authoring")
+	w.Header().Set("X-Science-Background-Operation", "skill-authoring")
 
 	bundle, source, files, found, err := s.conversationSkillArtifactBundle(ctx, userID, project.ID, rootFrameID)
 	if err != nil {

@@ -64,7 +64,7 @@ func TestWorkspaceFilePublicationCapacityCancellationAndEmptyContent(t *testing.
 				t.Fatal(err)
 			}
 			for _, entry := range entries {
-				if strings.HasPrefix(entry.Name(), ".synon-") {
+				if strings.HasPrefix(entry.Name(), ".x-science-") {
 					t.Fatalf("temporary file leaked: %s", entry.Name())
 				}
 			}

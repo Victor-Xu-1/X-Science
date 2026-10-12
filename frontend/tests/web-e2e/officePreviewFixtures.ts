@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { crc32 } from 'node:zlib';
 import { Document, Packer, Paragraph, Table, TableCell, TableRow } from 'docx';
 import * as XLSX from 'xlsx-republish';
-import { seedSynonGoOfficeArtifact } from './synonGoFrameFixture';
+import { seedXScienceGoOfficeArtifact } from './xscienceGoFrameFixture';
 
 export type OfficePreviewFixture = {
   kind: 'pdf' | 'docx' | 'xlsx' | 'pptx';
@@ -113,7 +113,7 @@ export function createPreviewPdf(marker = 'Actual PDF text and graphic'): Uint8A
 
 /** Seed immutable versions through the existing Go test fixture and Store. */
 export function seedEncodedOfficeArtifact(frameId: string) {
-  return seedSynonGoOfficeArtifact({
+  return seedXScienceGoOfficeArtifact({
     frameId,
     officeArtifact: {
       artifactId: `office artifact/${randomUUID()} 中文`,

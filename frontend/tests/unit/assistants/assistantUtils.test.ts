@@ -3,7 +3,7 @@
  * Copyright 2026 Synon-AI
  * SPDX-License-Identifier: Apache-2.0
  *
- * Unit tests for renderer/pages/settings/SynonBiomedExpertsSettings/assistantUtils.ts (A5 in N4a).
+ * Unit tests for renderer/pages/settings/XScienceExpertsSettings/assistantUtils.ts (A5 in N4a).
  * Tests pure utility functions for assistant list filtering, sorting, and avatar resolution.
  */
 
@@ -16,8 +16,8 @@ import {
   sortAssistants,
   filterAssistants,
   groupAssistantsByEnabled,
-} from '@/renderer/pages/settings/SynonBiomedExpertsSettings/assistantUtils';
-import type { AssistantListItem } from '@/renderer/pages/settings/SynonBiomedExpertsSettings/types';
+} from '@/renderer/pages/settings/XScienceExpertsSettings/assistantUtils';
+import type { AssistantListItem } from '@/renderer/pages/settings/XScienceExpertsSettings/types';
 
 // Mock resolveExtensionAssetUrl
 vi.mock('@/renderer/utils/platform', () => ({

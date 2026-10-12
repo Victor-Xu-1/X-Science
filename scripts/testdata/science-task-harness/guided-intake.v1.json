@@ -1,5 +1,5 @@
 {
-  "schema": "synon.science-task-suite.v1",
+  "schema": "x-science.science-task-suite.v1",
   "suiteId": "guided-drug-discovery-real-v1",
   "browserAuthority": "codex_builtin",
   "scientificDeliverablePolicy": {

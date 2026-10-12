@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestFrameResumeTranscriptHonorsPersistedNonResumableDecision(t *testing.T) {

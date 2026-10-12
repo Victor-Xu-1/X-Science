@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/kernelcontract"
 	"unicode/utf8"
+	"x-science/internal/kernelcontract"
 )
 
 const maxRunnerInterruptionResumeDetailBytes = 4096

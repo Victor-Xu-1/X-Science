@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { parseSynonBiomedArtifactLink } from '@/renderer/services/synonBiomedArtifactReferences';
-import { requestSynonBiomedJson } from '@/renderer/services/synonBiomedHttp';
+import { parseXScienceArtifactLink } from '@/renderer/services/xScienceArtifactReferences';
+import { requestXScienceJson } from '@/renderer/services/xScienceHttp';
 
 type SnapshotArtifact = { artifact_id: string; version_id: string };
 
@@ -15,7 +15,7 @@ export async function saveStructureSnapshot(
   filename: string,
   dataUri: string
 ): Promise<SnapshotArtifact> {
-  const source = parseSynonBiomedArtifactLink(contentUrl);
+  const source = parseXScienceArtifactLink(contentUrl);
   if (source?.kind !== 'content' || !source.versionId) throw new Error('STRUCTURE_SNAPSHOT_VERSION_REQUIRED');
   const prefix = 'data:image/png;base64,';
   if (!dataUri.startsWith(prefix)) throw new Error('STRUCTURE_SNAPSHOT_PNG_REQUIRED');
@@ -31,7 +31,7 @@ export async function saveStructureSnapshot(
     parent_version_id: source.versionId,
     branch_as_filename: name,
   });
-  const result = await requestSynonBiomedJson<SnapshotArtifact>(
+  const result = await requestXScienceJson<SnapshotArtifact>(
     `/api/artifacts/${encodeURIComponent(source.artifactId)}/versions/binary?${query}`,
     { method: 'POST', body },
     { timeoutMs: 60000 }

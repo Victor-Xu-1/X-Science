@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	"synon-go/internal/persistence/workspace"
+	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/persistence/workspace"
 )
 
 func TestTranscriptWebProjectionCacheSingleflightSnapshotOwnerAndErrorIsolation(t *testing.T) {

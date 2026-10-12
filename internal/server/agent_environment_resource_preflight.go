@@ -6,8 +6,8 @@ import (
 	"sort"
 	"strings"
 
-	"synon-go/internal/compute"
-	kernelruntime "synon-go/internal/kernel"
+	"x-science/internal/compute"
+	kernelruntime "x-science/internal/kernel"
 )
 
 const bytesPerMiB = uint64(1024 * 1024)

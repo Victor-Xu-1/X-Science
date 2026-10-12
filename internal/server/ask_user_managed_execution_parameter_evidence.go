@@ -9,9 +9,9 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	"synon-go/internal/sciencecapability"
-	"synon-go/internal/skills"
+	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/sciencecapability"
+	"x-science/internal/skills"
 )
 
 // askUserManagedExecutionParameterEvidenceCorrection prevents model-authored

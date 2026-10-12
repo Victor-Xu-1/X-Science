@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"synon-go/internal/skills"
+	"x-science/internal/skills"
 )
 
 const agentRuntimeSkillMetadataPrefix = `<skill-metadata name=`

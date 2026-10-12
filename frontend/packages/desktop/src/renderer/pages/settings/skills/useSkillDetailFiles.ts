@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  loadSynonBiomedSkillFileContent,
-  loadSynonBiomedSkillFiles,
-} from '@/renderer/services/skills/synonBiomedSkillLibrary';
+  loadXScienceSkillFileContent,
+  loadXScienceSkillFiles,
+} from '@/renderer/services/skills/xScienceSkillLibrary';
 import type { SkillDetailSession } from './useSkillDetailSession';
 
 const emptyFile = {
@@ -46,14 +46,14 @@ export function useSkillDetailFiles(
       try {
         let nextPath = selectedPath;
         if (!nextPath) {
-          const files = await loadSynonBiomedSkillFiles(ticket.name);
+          const files = await loadXScienceSkillFiles(ticket.name);
           if (!current()) return;
           nextPath = files.includes('SKILL.md') ? 'SKILL.md' : (files[0] ?? '');
           setFile({ ...emptyFile, scope: ticket.scope, files, path: nextPath, status: nextPath ? 'loading' : 'ready' });
           if (!nextPath) return;
           failedAt = 'content';
         }
-        const content = await loadSynonBiomedSkillFileContent(ticket.name, nextPath);
+        const content = await loadXScienceSkillFileContent(ticket.name, nextPath);
         if (current())
           setFile((previous) => ({ ...previous, path: nextPath, content, original: content, status: 'ready' }));
       } catch (error) {

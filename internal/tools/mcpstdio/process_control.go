@@ -3,7 +3,7 @@ package mcpstdio
 import (
 	"os/exec"
 
-	"synon-go/internal/subprocess"
+	"x-science/internal/subprocess"
 )
 
 type mcpProcessControl struct {

@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/outbox"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/server"
+	"x-science/internal/outbox"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/server"
 )
 
 func TestArtifactOutboxSurvivesStoppedDispatcherAndPublishesV11Payload(t *testing.T) {
@@ -105,7 +105,7 @@ func requestDomainJSONResult(t *testing.T, target, method string, input any, ide
 		t.Fatal(err)
 	}
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("X-Synon-User-Id", "local")
+	request.Header.Set("X-Science-User-Id", "local")
 	request.Header.Set("Idempotency-Key", idempotencyKey)
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {

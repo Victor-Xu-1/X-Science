@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestWorkspaceProjectControlPlaneHTTPAPI(t *testing.T) {
@@ -104,7 +104,7 @@ func postProjectControlJSON(t *testing.T, app http.Handler, method, target strin
 	response := httptest.NewRecorder()
 	request := newLoopbackTestRequest(method, target, bytes.NewReader(raw))
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("X-Synon-User-Id", "local")
+	request.Header.Set("X-Science-User-Id", "local")
 	app.ServeHTTP(response, request)
 	if response.Code != wantStatus {
 		t.Fatalf("%s %s status = %d: %s", method, target, response.Code, response.Body.String())

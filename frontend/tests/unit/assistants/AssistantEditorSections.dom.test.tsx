@@ -5,8 +5,8 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConfigProvider } from '@arco-design/web-react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import AssistantEditorSections from '@/renderer/pages/settings/SynonBiomedExpertsSettings/AssistantEditorSections';
-import type { AssistantEditorViewModel } from '@/renderer/pages/settings/SynonBiomedExpertsSettings/types';
+import AssistantEditorSections from '@/renderer/pages/settings/XScienceExpertsSettings/AssistantEditorSections';
+import type { AssistantEditorViewModel } from '@/renderer/pages/settings/XScienceExpertsSettings/types';
 import { createTestI18n } from '../i18nTestUtils';
 
 let mockManagedAgentRuntimeCatalog: Array<{
@@ -18,7 +18,7 @@ const showOpenInvokeMock = vi.fn();
 const getImageBase64InvokeMock = vi.fn();
 let testI18n: i18n;
 
-vi.mock('@/renderer/hooks/synonBiomed/runtime/useManagedAgents', () => ({
+vi.mock('@/renderer/hooks/xScience/runtime/useManagedAgents', () => ({
   useManagedAgentRuntimeCatalog: () => mockManagedAgentRuntimeCatalog,
 }));
 
@@ -806,19 +806,19 @@ describe('AssistantEditorSections', () => {
             setDisabledBuiltinSkills: vi.fn(),
           },
           agent: {
-            value: 'synonbiomed:operon',
+            value: 'xscience:operon',
             setValue: vi.fn(),
-            availableBackends: [backendOption('synonbiomed:operon', 'operon', 'synonbiomed')],
+            availableBackends: [backendOption('xscience:operon', 'operon', 'xscience')],
           },
         })}
         activeAssistant={{
-          id: 'synonbiomed:operon',
+          id: 'xscience:operon',
           name: 'OPERON',
           sort_order: 1,
           source: 'builtin',
           enabled: true,
           agent_id: 'OPERON',
-          agent: { type: 'synonbiomed', source: 'builtin', acp_backend: 'synonbiomed' },
+          agent: { type: 'xscience', source: 'builtin', acp_backend: 'xscience' },
         }}
       />
     );

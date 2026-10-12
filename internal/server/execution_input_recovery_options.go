@@ -1,6 +1,6 @@
 package server
 
-import "synon-go/internal/sciencecapability"
+import "x-science/internal/sciencecapability"
 
 // Recovery describes the same registered route that the execution boundary
 // validates. It neither invents an alternative nor authorizes its values.
@@ -29,7 +29,7 @@ func executionDocumentedRecoveryOption(pack sciencecapability.ExecutionPack, gro
 		}
 	}
 	return map[string]any{
-		"schema": "synon.documented-input.v1", "argument": route.Argument,
+		"schema": "x-science.documented-input.v1", "argument": route.Argument,
 		"evidence_group": route.EvidenceGroup, "input_kind": route.InputKind, "input_argument": inputArgument,
 		"parameters": parameters, "replaces_arguments": replaces,
 		"record_fields": []string{"schema", "evidence_group", "input_sha256", "basis", "method", "sources", "limitations", "values"},

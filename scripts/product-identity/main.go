@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	productidentity "synon-go"
+	productidentity "x-science"
 )
 
 func main() {

@@ -321,7 +321,7 @@ func (s *webSessionStore) ValidateCSRF(token, presented string) (bool, error) {
 
 func (s *webSessionStore) RotateCSRF(token string) (string, error) {
 	if s == nil || strings.TrimSpace(token) == "" {
-		return "", errSynonLinkInvalidSession
+		return "", errXScienceLinkInvalidSession
 	}
 	csrf, err := s.randomSecret()
 	if err != nil {
@@ -341,7 +341,7 @@ func (s *webSessionStore) RotateCSRF(token string) (string, error) {
 		}
 		return csrf, nil
 	}
-	return "", errSynonLinkInvalidSession
+	return "", errXScienceLinkInvalidSession
 }
 
 func (s *webSessionStore) Events(accountID string, limit int) []storedWebSecurityEvent {

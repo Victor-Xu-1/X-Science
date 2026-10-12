@@ -5,14 +5,14 @@ import (
 	"strings"
 )
 
-//go:embed assets/synon_platform_policy.md
-var synonPlatformPolicy string
+//go:embed assets/x_science_platform_policy.md
+var xsciencePlatformPolicy string
 
-func SynonPlatformPolicy() string {
-	return strings.TrimSpace(synonPlatformPolicy)
+func XSciencePlatformPolicy() string {
+	return strings.TrimSpace(xsciencePlatformPolicy)
 }
 
-func agentUsesSynonPlatformPolicy(name string) bool {
+func agentUsesXSciencePlatformPolicy(name string) bool {
 	switch strings.ToUpper(strings.TrimSpace(name)) {
 	case "ONBOARDING", "REVIEWER", "BOOKMARKER":
 		return false

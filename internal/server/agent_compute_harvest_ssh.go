@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"synon-go/internal/compute/transfer"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/compute/transfer"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 type sshHarvestTransport struct {
@@ -28,14 +28,14 @@ func (t sshHarvestTransport) command(ctx context.Context, command string) (strin
 }
 
 func (t sshHarvestTransport) Install(ctx context.Context, asset string) error {
-	if _, err := t.command(ctx, "test ! -L _synon_harvest.sh && test ! -L .synon-harvest && mkdir -p .synon-harvest && chmod 700 .synon-harvest"); err != nil {
+	if _, err := t.command(ctx, "test ! -L _x_science_harvest.sh && test ! -L .x-science-harvest && mkdir -p .x-science-harvest && chmod 700 .x-science-harvest"); err != nil {
 		return err
 	}
-	return runAgentSSHCopy(ctx, t.provider, asset, path.Join(t.workdir, "_synon_harvest.sh"), true)
+	return runAgentSSHCopy(ctx, t.provider, asset, path.Join(t.workdir, "_x_science_harvest.sh"), true)
 }
 
 func (t sshHarvestTransport) Control(ctx context.Context, action, source, selection string) (transfer.ControlReceipt, error) {
-	command := "bash --noprofile --norc -p _synon_harvest.sh " + action
+	command := "bash --noprofile --norc -p _x_science_harvest.sh " + action
 	if action == "archive" || action == "checkpoint" {
 		command += " " + shellSingleQuote(source) + " " + shellSingleQuote(selection)
 	}
@@ -47,7 +47,7 @@ func (t sshHarvestTransport) Control(ctx context.Context, action, source, select
 }
 
 func (t sshHarvestTransport) Select(ctx context.Context, local, source, selection string) error {
-	remote := path.Join(t.workdir, ".synon-harvest", "selection-"+selection+".nul")
+	remote := path.Join(t.workdir, ".x-science-harvest", "selection-"+selection+".nul")
 	if _, err := t.command(ctx, "test ! -L "+shellSingleQuote(remote)); err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func (t sshHarvestTransport) Fetch(ctx context.Context, remote, local string, re
 	if filepath.Base(local) != "inventory.nul" && filepath.Base(local) != "out.tar.gz" && filepath.Base(local) != "checkpoint.jsonl" {
 		return errors.New("SSH harvest destination invalid")
 	}
-	if err := runAgentSSHCopy(ctx, t.provider, local, path.Join(t.workdir, ".synon-harvest", remote), false); err != nil {
+	if err := runAgentSSHCopy(ctx, t.provider, local, path.Join(t.workdir, ".x-science-harvest", remote), false); err != nil {
 		return err
 	}
 	return transfer.VerifyFile(ctx, local, receipt.SHA256, receipt.Bytes)

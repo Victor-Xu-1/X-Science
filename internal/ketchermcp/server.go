@@ -418,7 +418,7 @@ func encodeRPCError(encoder *json.Encoder, id json.RawMessage, code int, message
 // DiscoverWidgetPath locates the verified Ketcher payload in source and
 // installed layouts. An explicit environment override wins for managed hosts.
 func DiscoverWidgetPath() string {
-	if configured := strings.TrimSpace(os.Getenv("SYNON_KETCHER_WIDGET_GZIP")); configured != "" {
+	if configured := strings.TrimSpace(os.Getenv("X_SCIENCE_KETCHER_WIDGET_GZIP")); configured != "" {
 		return filepath.Clean(configured)
 	}
 	relative := filepath.Join("assets", "optional", "mcp-servers", "ketcher-chemistry", "widget", "index.html.gz")

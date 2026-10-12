@@ -1,6 +1,6 @@
 package kernel
 
-import "synon-go/internal/processsupervisor"
+import "x-science/internal/processsupervisor"
 
 type ResourcePressureFailure struct {
 	Observation processsupervisor.MemoryPressure

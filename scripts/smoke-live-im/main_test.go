@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/buildinfo"
-	"synon-go/internal/config"
+	"x-science/internal/buildinfo"
+	"x-science/internal/config"
 )
 
 type roundTripFunc func(*http.Request) (*http.Response, error)
@@ -69,9 +69,9 @@ func TestPlanFromConfigReusesAdapterCredentialsAndLiveTargets(t *testing.T) {
 			return "wechat-env-token"
 		case "WECHAT_LIVE_SMOKE_USER_ID":
 			return "wechat-env-user"
-		case "SYNON_LIVE_IM_SMOKE_MESSAGE":
+		case "X_SCIENCE_LIVE_IM_SMOKE_MESSAGE":
 			return "environment live smoke"
-		case "SYNON_LIVE_IM_RUNTIME_URL":
+		case "X_SCIENCE_LIVE_IM_RUNTIME_URL":
 			return "http://127.0.0.1:48080"
 		default:
 			return ""
@@ -132,7 +132,7 @@ func TestRunFeishuSmokeSendsToOpenID(t *testing.T) {
 		OpenID:        "ou_live_user",
 		ReceiveIDType: "open_id",
 		ReceiveID:     "ou_live_user",
-		Message:       "Synon live smoke",
+		Message:       "XScience live smoke",
 	})
 	if err != nil {
 		t.Fatalf("runFeishuSmoke() error = %v", err)
@@ -147,7 +147,7 @@ func TestLiveSmokePlanOutputReportsMissingCredentialFields(t *testing.T) {
 		switch key {
 		case "WECHAT_BOT_TOKEN":
 			return "TOKEN"
-		case "SYNON_LIVE_IM_SMOKE_TIMEOUT_SECONDS":
+		case "X_SCIENCE_LIVE_IM_SMOKE_TIMEOUT_SECONDS":
 			return "7"
 		default:
 			return ""
@@ -239,7 +239,7 @@ func TestPrepareRuntimeAuditSessionAuthenticatesAndSendsCSRF(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.Method == http.MethodGet && r.URL.Path == "/api/auth/user":
-			if cookie, err := r.Cookie("synon_session"); err == nil && cookie.Value == "session-token" {
+			if cookie, err := r.Cookie("x_science_session"); err == nil && cookie.Value == "session-token" {
 				_, _ = w.Write([]byte(`{"success":true,"user":{"id":"local"}}`))
 				return
 			}
@@ -252,13 +252,13 @@ func TestPrepareRuntimeAuditSessionAuthenticatesAndSendsCSRF(t *testing.T) {
 			if input["username"] != username || input["password"] != password {
 				t.Errorf("login input = %#v", input)
 			}
-			http.SetCookie(w, &http.Cookie{Name: "synon_session", Value: "session-token", Path: "/", HttpOnly: true})
-			http.SetCookie(w, &http.Cookie{Name: "synon_csrf", Value: csrf, Path: "/"})
+			http.SetCookie(w, &http.Cookie{Name: "x_science_session", Value: "session-token", Path: "/", HttpOnly: true})
+			http.SetCookie(w, &http.Cookie{Name: "x_science_csrf", Value: csrf, Path: "/"})
 			_, _ = w.Write([]byte(`{"success":true,"user":{"id":"local"}}`))
 		case r.Method == http.MethodPost && r.URL.Path == "/api/tools/runtime_set/execute":
-			cookie, err := r.Cookie("synon_session")
-			if err != nil || cookie.Value != "session-token" || r.Header.Get("X-Synon-CSRF-Token") != csrf {
-				t.Errorf("authenticated audit cookie=%v err=%v csrf=%q", cookie, err, r.Header.Get("X-Synon-CSRF-Token"))
+			cookie, err := r.Cookie("x_science_session")
+			if err != nil || cookie.Value != "session-token" || r.Header.Get("X-Science-CSRF-Token") != csrf {
+				t.Errorf("authenticated audit cookie=%v err=%v csrf=%q", cookie, err, r.Header.Get("X-Science-CSRF-Token"))
 				http.Error(w, "forbidden", http.StatusForbidden)
 				return
 			}

@@ -23,13 +23,13 @@ import { usePendingConfirmationsRecovery } from '@renderer/pages/conversation/Me
 import { useConversationRuntimeView } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import HOC from '@renderer/utils/ui/HOC';
 import React, { useCallback, useEffect, useState } from 'react';
-import SynonBiomedDelegateDock from '../../components/SynonBiomedDelegateDock';
+import XScienceDelegateDock from '../../components/XScienceDelegateDock';
 import AcpSendBox from './AcpSendBox';
 import { useAcpMessage } from './useAcpMessage';
 import {
-  type SynonBiomedConversationSyncIssue,
-  useSynonBiomedConversationSync,
-} from './useSynonBiomedConversationSync';
+  type XScienceConversationSyncIssue,
+  useXScienceConversationSync,
+} from './useXScienceConversationSync';
 
 const AcpChat: React.FC<{
   conversation: TChatConversation;
@@ -65,9 +65,9 @@ const AcpChat: React.FC<{
   assistantId,
 }) => {
   const { user } = useAuth();
-  const [syncIssue, setSyncIssue] = useState<SynonBiomedConversationSyncIssue | null>(null);
-  const isSynonBiomedConversation =
-    backend.trim().toLowerCase() === 'synonbiomed' || Boolean(workspace?.startsWith('synonbiomed://'));
+  const [syncIssue, setSyncIssue] = useState<XScienceConversationSyncIssue | null>(null);
+  const isXScienceConversation =
+    backend.trim().toLowerCase() === 'xscience' || Boolean(workspace?.startsWith('x-science://'));
   const refreshMessages = useMessageLstCache(conversation_id, user?.id ?? '');
   const retryMessageLoad = useCallback(() => {
     void refreshMessages(false, 'refresh').catch((error) => {
@@ -81,22 +81,22 @@ const AcpChat: React.FC<{
     });
   }, [refreshMessages]);
   // X-Science has one approval authority: the runtime snapshot's
-  // pending_input_requests rendered by SynonBiomedRuntimeOperations. Keep the
-  // compatibility confirmation recovery only for non-Synon ACP backends so
+  // pending_input_requests rendered by XScienceRuntimeOperations. Keep the
+  // compatibility confirmation recovery only for non-XScience ACP backends so
   // one request can never produce two competing approval cards.
   usePendingConfirmationsRecovery(conversation_id, {
-    enabled: !isSynonBiomedConversation,
+    enabled: !isXScienceConversation,
   });
   const messageState = useAcpMessage(conversation_id, {
-    skipWarmup: isSynonBiomedConversation,
+    skipWarmup: isXScienceConversation,
     initialConversation: conversation,
   });
   const runtimeView = useConversationRuntimeView(conversation_id, conversation);
-  const handleSyncIssue = useCallback((issue: SynonBiomedConversationSyncIssue | null) => {
+  const handleSyncIssue = useCallback((issue: XScienceConversationSyncIssue | null) => {
     setSyncIssue(issue);
   }, []);
   useEffect(() => setSyncIssue(null), [conversation_id]);
-  useSynonBiomedConversationSync({
+  useXScienceConversationSync({
     conversationId: conversation_id,
     initialConversation: conversation,
     workspace,
@@ -137,8 +137,8 @@ const AcpChat: React.FC<{
               ownerId={user?.id ?? ''}
             />
           </FlexFullContainer>
-          {isSynonBiomedConversation && (
-            <SynonBiomedDelegateDock
+          {isXScienceConversation && (
+            <XScienceDelegateDock
               conversationId={conversation_id}
               polling={messageState.aiProcessing || messageState.running || runtimeView.isProcessing}
             />

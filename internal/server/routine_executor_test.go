@@ -14,10 +14,10 @@ import (
 	"time"
 	"unicode/utf8"
 
-	secretstore "synon-go/internal/persistence/secrets"
-	sessionstore "synon-go/internal/persistence/sessions"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/routinescheduler"
+	secretstore "x-science/internal/persistence/secrets"
+	sessionstore "x-science/internal/persistence/sessions"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/routinescheduler"
 )
 
 func TestDueRoutineUsesSavedProviderAndPersistsRealAgentRun(t *testing.T) {
@@ -185,7 +185,7 @@ func TestRoutineAskUserDefersAndReconcilesTheSameTickAfterResume(t *testing.T) {
 	}
 
 	request := newLoopbackTestRequest(http.MethodPost, "/api/frames/frame-routine/resolve-input", nil)
-	request.Header.Set("X-Synon-User-Id", "user-routine")
+	request.Header.Set("X-Science-User-Id", "user-routine")
 	resolved, err := srv.resolveCompatibilityInput(request, frame, compatibilityResolveInputRequest{Responses: []compatibilityInputResponse{{
 		ToolID: "routine-ask-structure", Action: "answer",
 		Answers: map[string]string{"Which structure should the routine use?": "5FQD"},

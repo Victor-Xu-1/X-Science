@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	sessionstore "synon-go/internal/persistence/sessions"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	sessionstore "x-science/internal/persistence/sessions"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestSessionBookmarkerSchemaAndSubmissionRequireExactEligibleQuotes(t *testing.T) {

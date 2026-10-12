@@ -23,7 +23,7 @@ func TestExtractInboundPayloadFromPostTextAndDownloads(t *testing.T) {
 }
 
 func TestPostContentMentionsBot(t *testing.T) {
-	content := `{"content":[[{"tag":"at","id":{"open_id":"ou_bot_123"},"name":"Synon"},{"tag":"text","text":" 帮我看看这个图"}]]}`
+	content := `{"content":[[{"tag":"at","id":{"open_id":"ou_bot_123"},"name":"XScience"},{"tag":"text","text":" 帮我看看这个图"}]]}`
 	if !PostContentMentionsBot(content, "ou_bot_123") {
 		t.Fatal("post content should mention bot")
 	}

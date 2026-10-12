@@ -16,11 +16,11 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	eventjournal "synon-go/internal/persistence/journal"
-	sessionstore "synon-go/internal/persistence/sessions"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	eventjournal "x-science/internal/persistence/journal"
+	sessionstore "x-science/internal/persistence/sessions"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func seedAnsweredTaskIntake(t *testing.T, server *Server, ownerID, frameID string) {
@@ -169,7 +169,7 @@ func TestRecoveredCompletionReviewCorrectionRemovesRecursiveArtifactSelfLink(t *
 		"detail": "completion reviewer rejected the current candidate; the report self-reference points to an older version",
 	}}}
 	context := recoveredRunnerCorrectionContext(entries)
-	if !strings.Contains(context, "synon.runner_recovery.v1") ||
+	if !strings.Contains(context, "x-science.runner_recovery.v1") ||
 		!strings.Contains(context, `"required_transition":"repair_rejected_acceptance_condition"`) ||
 		!strings.Contains(context, "self-reference points to an older version") ||
 		!recoveredRunnerCorrectionRequiresTool(entries) {
@@ -235,7 +235,7 @@ func TestPersistSessionRunnerReviewLinksFindingToCitedArtifactVersion(t *testing
 	_, version, err := store.SaveArtifactVersion(workspace.SaveArtifactVersionInput{
 		ArtifactID: "review-artifact", ProjectID: "review-artifact-project",
 		Name: "CDK12_project_plan.md", Kind: "markdown",
-		Content: []byte("# CDK12 project plan\n"), CreatedBy: "synon",
+		Content: []byte("# CDK12 project plan\n"), CreatedBy: "xscience",
 	})
 	if err != nil {
 		t.Fatal(err)

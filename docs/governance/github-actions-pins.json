@@ -1,5 +1,5 @@
 {
-  "schema": "synon.governance.github-actions-pins.v3",
+  "schema": "x-science.governance.github-actions-pins.v3",
   "updated_at": "2026-09-17T00:00:00+08:00",
   "source": "official Git tag refs and release metadata reverified read-only with GitHub API",
   "bootstrap_workflow": ".github/workflows/quality.yml",

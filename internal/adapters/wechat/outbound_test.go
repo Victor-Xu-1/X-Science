@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	adaptercommon "synon-go/internal/adapters/common"
+	adaptercommon "x-science/internal/adapters/common"
 )
 
 type capturedWeChatMessage struct {
@@ -52,7 +52,7 @@ func TestOutboundProcessorSendsNormalizedServerMessages(t *testing.T) {
 		Timeout:      time.Second,
 	})
 	messages := []adaptercommon.ServerMessage{
-		{"type": "content_delta", "text": "hello from synon"},
+		{"type": "content_delta", "text": "hello from xscience"},
 		{"type": "tool_use", "toolName": "Bash", "input": map[string]any{"command": "go test ./internal/adapters/wechat"}},
 		{"type": "error", "message": "model failed"},
 		{"type": "message_complete"},
@@ -71,7 +71,7 @@ func TestOutboundProcessorSendsNormalizedServerMessages(t *testing.T) {
 			t.Fatalf("wechat request = %#v", message)
 		}
 	}
-	for _, want := range []string{"hello from synon", "go test ./internal/adapters/wechat", "model failed"} {
+	for _, want := range []string{"hello from xscience", "go test ./internal/adapters/wechat", "model failed"} {
 		if !capturedWeChatMessagesContain(sent, want) {
 			t.Fatalf("sent messages %#v missing %q", sent, want)
 		}

@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestProjectCreateMaterializationFailureDoesNotCommit(t *testing.T) {

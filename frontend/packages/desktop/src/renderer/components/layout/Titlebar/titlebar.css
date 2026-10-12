@@ -271,7 +271,7 @@
 /* GitHub star shortcut (right of the history-forward arrow): shares the
    nav-button chrome and icon spec; only the hover warms up to gold so the
    affordance reads as "favorite this". */
-.synon-biomed-github-star:hover {
+.x-science-github-star:hover {
   color: #f7ba1e;
 }
 

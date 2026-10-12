@@ -14,7 +14,7 @@ import (
 	"sort"
 	"strings"
 
-	"synon-go/internal/sqlitebackup"
+	"x-science/internal/sqlitebackup"
 )
 
 var requiredSourceColumns = map[string][]string{
@@ -109,7 +109,7 @@ func makeTemporarySnapshot(ctx context.Context, sourceDB string) (string, func()
 	if err != nil {
 		return "", func() {}, err
 	}
-	directory, err := os.MkdirTemp("", "synon-v11-inspect-")
+	directory, err := os.MkdirTemp("", "x-science-v11-inspect-")
 	if err != nil {
 		return "", func() {}, err
 	}

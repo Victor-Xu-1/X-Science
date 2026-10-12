@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 type fragmentedStreamTestTool struct{ calls int }
