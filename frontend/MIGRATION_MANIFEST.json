@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "e48cae70079149bd294b0bfa7f7584676eb0fd1f279cf3d7d64d43dcd7b90e34",
+  "adaptationFingerprintSHA256": "f78db94e95437fe0047dac3a1f2024e9529daba2e5be8b8172b3ce852990bb2c",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
-  "additionFingerprintSHA256": "b593371a516732268cc4add0d7a43ac40527ce75675c7f0783d1ba612ff3ad22",
+  "additionFingerprintSHA256": "eb940237b9fd446e4e332842191efbaacc593a7814c63f86a2228d21512accca",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 276,
@@ -17,7 +17,7 @@
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "56a0ead473e1abace8b19f211305c65af97309752cbacf51b626e4a84d40f162",
+      "targetSHA256": "a978b341f3caecc9df2760bc4dc8fce55afb734603ea6f9f06f5d85840bb64c9",
       "bytes": 4392,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
