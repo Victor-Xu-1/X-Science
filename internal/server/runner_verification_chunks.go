@@ -120,9 +120,9 @@ func splitReviewerUTF8Blocks(value string, limit int) []string {
 	if limit <= 0 {
 		return []string{value}
 	}
-	// value is nonempty and limit is positive; subtract first so a very large
-	// caller limit cannot overflow the allocation-size calculation.
-	blocks := make([]string, 0, (len(value)-1)/limit+1)
+	// Grow from real blocks rather than deriving an allocation hint from a
+	// caller-supplied limit. Extreme limits cannot overflow capacity arithmetic.
+	blocks := make([]string, 0)
 	for len(value) > limit {
 		cut := reviewerUTF8PrefixLength(value, limit)
 		if cut <= 0 {

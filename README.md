@@ -146,6 +146,17 @@ Python/R 核心环境首次准备需要网络、时间和磁盘空间；可选�
   owned by that checkout.
 - Source startup uses loopback ports 8765/8766. If occupied, inspect the existing
   instance; do not kill a process merely to make startup pass.
+- Global host-directory grants, data-directory migration, shared skill changes
+  and the host SSH configuration require the authenticated operator identity
+  configured for this installation. Ordinary accounts keep their own projects,
+  granted files and compute jobs; they cannot self-grant access to arbitrary
+  host directories. Passwordless host-wide access is loopback-only.
+- An operator can approve a directory for an existing account through
+  `POST /api/go/preferences/host-grants` with `path`, `mode`, and optional
+  `userId`; omitting `userId` keeps the operator's own grant. OIDC accounts
+  retain normal owned/granted file access. An OIDC operator must have its actual
+  account ID configured as the installation's operator identity; the first
+  external login never becomes a host administrator automatically.
 - Native Python/R installation and scientific execution are separate capabilities.
   A healthy gateway or an installed environment is not proof that an analysis ran.
 - This is actively developed research software. Review task-specific sources,

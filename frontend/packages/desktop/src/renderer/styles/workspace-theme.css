@@ -2019,7 +2019,7 @@ html
       .project-command-palette .arco-input-inner-wrapper input,
       .settings-library-search input,
       .environment-search input,
-      .x-science-ask-user-card__composer input
+      [data-composite-focus-owner] input
     )
   ) {
   outline: var(--ui-focus-width) solid var(--workspace-focus-ring) !important;
@@ -2032,7 +2032,7 @@ html
 html body .conversation-search-modal__searchbar:has(input:focus-visible),
 html body .project-command-palette .arco-input-inner-wrapper:has(input:focus-visible),
 html body .environment-search:has(input:focus-visible),
-html body .x-science-ask-user-card__composer:has(input:focus-visible),
+html body [data-composite-focus-owner]:has(input:focus-visible),
 html body :is(.guid-input-card-shell, .sendbox-panel):has(textarea:focus-visible) {
   outline: var(--ui-focus-width) solid var(--workspace-focus-ring) !important;
   outline-offset: var(--ui-focus-offset) !important;
@@ -2051,7 +2051,7 @@ html body .conversation-search-modal__searchbar input:focus-visible,
 html body .project-command-palette .arco-input-inner-wrapper input:focus-visible,
 html body .settings-library-search input:focus-visible,
 html body .environment-search input:focus-visible,
-html body .x-science-ask-user-card__composer input:focus-visible,
+html body [data-composite-focus-owner] input:focus-visible,
 html body .settings-library-search :is(.arco-input-group-wrapper, .arco-input-group) {
   outline: none !important;
   outline-width: 0 !important;

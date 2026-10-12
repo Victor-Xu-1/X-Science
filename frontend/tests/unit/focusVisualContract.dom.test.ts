@@ -117,7 +117,8 @@ describe('lightweight, non-black keyboard focus', () => {
     ['environment-search', '<input type="search" data-keyboard-focus>'],
     ['x-science-ask-user-card__composer', '<input class="arco-input" data-keyboard-focus>'],
   ])('gives %s exactly one owner indicator, never a competing inner ring', (ownerClass, content) => {
-    document.body.innerHTML = `<div class="${ownerClass}">${content}</div>`;
+    const declarativeOwner = ownerClass === 'x-science-ask-user-card__composer' ? ' data-composite-focus-owner' : '';
+    document.body.innerHTML = `<div class="${ownerClass}"${declarativeOwner}>${content}</div>`;
     const field = document.querySelector('input, textarea')!;
     const owner = document.querySelector('.arco-input-inner-wrapper') ?? field.parentElement!;
     expect(outlinedRulesFor(field)).toHaveLength(0);
@@ -125,6 +126,12 @@ describe('lightweight, non-black keyboard focus', () => {
     expect(matches).toHaveLength(1);
     expect(declarations(matches[0]!).outline).toBe(sharedOutline);
     expect(matches[0]!.selector).toContain(':has(');
+  });
+
+  it('binds decision-card focus ownership to the real component, not its private layout class', () => {
+    expect(read('components/xScience/runtime/AskUserCard.tsx')).toContain('data-composite-focus-owner');
+    expect(read('styles/workspace-theme.css')).not.toContain('.x-science-ask-user-card__composer');
+    expect(read('styles/workspace-theme.css')).toContain('[data-composite-focus-owner]:has(input:focus-visible)');
   });
 
   it('retains a visible standalone input indicator without lowering generic specificity', () => {

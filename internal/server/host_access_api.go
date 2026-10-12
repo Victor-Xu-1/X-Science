@@ -59,11 +59,16 @@ func (s *Server) handleHostGrants(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		var input struct {
-			Path string `json:"path"`
-			Mode string `json:"mode"`
+			Path   string `json:"path"`
+			Mode   string `json:"mode"`
+			UserID string `json:"userId,omitempty"`
 		}
 		if err := decodeWorkspaceJSON(r, &input); err != nil {
 			writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": err.Error()})
+			return
+		}
+		targetUserID, ok := s.hostGrantRecipient(w, userID, input.UserID)
+		if !ok {
 			return
 		}
 		path, err := canonicalHostDirectory(input.Path)
@@ -79,7 +84,7 @@ func (s *Server) handleHostGrants(w http.ResponseWriter, r *http.Request) {
 			writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "host grant mode must be read or read_write"})
 			return
 		}
-		grant, err := s.upsertHostGrant(userID, path, mode)
+		grant, err := s.upsertHostGrant(targetUserID, path, mode)
 		if err != nil {
 			if errors.Is(err, kernelruntime.ErrProtectedHostMount) {
 				writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": err.Error()})
@@ -92,7 +97,7 @@ func (s *Server) handleHostGrants(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPatch {
 			action = "updated"
 		}
-		if _, err := s.publishUserEvent(userID, "host_access_granted", map[string]any{"grant_id": grant.ID, "path": grant.Path, "mode": grant.Mode, "action": action}); err != nil {
+		if _, err := s.publishUserEvent(targetUserID, "host_access_granted", map[string]any{"grant_id": grant.ID, "path": grant.Path, "mode": grant.Mode, "action": action}); err != nil {
 			writeDomainEventError(w, "host grant update", err)
 			return
 		}
