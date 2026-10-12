@@ -127,9 +127,7 @@ export const McpConnectorConfigurationModal: React.FC<{
             <p>
               {t(server.apiKeyConfigured ? 'settings.mcpConfiguration.keyStored' : 'settings.mcpConfiguration.keyHint')}
             </p>
-            <label htmlFor='x-science-mcp-api-key'>
-              {server.apiKeyLabel || t('settings.xScienceMcpApiKeyLabel')}
-            </label>
+            <label htmlFor='x-science-mcp-api-key'>{server.apiKeyLabel || t('settings.xScienceMcpApiKeyLabel')}</label>
             <Input.Password
               id='x-science-mcp-api-key'
               data-testid='x-science-mcp-api-key-input'

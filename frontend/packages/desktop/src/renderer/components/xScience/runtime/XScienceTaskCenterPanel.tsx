@@ -122,10 +122,7 @@ const TaskCenterActionRow: React.FC<TaskCenterActionRowProps> = ({
 );
 
 const TaskCenterRecordRow: React.FC<TaskCenterRecordRowProps> = ({ label, meta, testId }) => (
-  <div
-    className='x-science-task-center-panel__action x-science-task-center-panel__action--static'
-    data-testid={testId}
-  >
+  <div className='x-science-task-center-panel__action x-science-task-center-panel__action--static' data-testid={testId}>
     <span className='x-science-task-center-panel__action-copy'>
       <span className='x-science-task-center-panel__action-label'>{label}</span>
       <span className='x-science-task-center-panel__action-meta'>{meta}</span>
@@ -319,7 +316,9 @@ const XScienceTaskCenterPanel: React.FC<XScienceTaskCenterPanelProps> = ({
             aria-labelledby='x-science-task-center-attention'
           >
             <div className='x-science-task-center-panel__section-heading'>
-              <h3 id='x-science-task-center-attention'>{t('conversation.xscienceRuntime.runtimeOperations.taskAttention')}</h3>
+              <h3 id='x-science-task-center-attention'>
+                {t('conversation.xscienceRuntime.runtimeOperations.taskAttention')}
+              </h3>
               <span className='x-science-task-center-panel__count'>{attentionActionCount}</span>
             </div>
             <div className='x-science-task-center-panel__actions'>
@@ -366,7 +365,9 @@ const XScienceTaskCenterPanel: React.FC<XScienceTaskCenterPanelProps> = ({
 
         {showTaskOverview ? (
           <section className='x-science-task-center-panel__section' aria-labelledby='x-science-task-center-overview'>
-            <h3 id='x-science-task-center-overview'>{t('conversation.xscienceRuntime.runtimeOperations.taskOverview')}</h3>
+            <h3 id='x-science-task-center-overview'>
+              {t('conversation.xscienceRuntime.runtimeOperations.taskOverview')}
+            </h3>
             <div className='x-science-task-center-panel__actions'>
               {planAvailable && !planNeedsApproval && onOpenPlan ? (
                 <TaskCenterActionRow
@@ -396,7 +397,9 @@ const XScienceTaskCenterPanel: React.FC<XScienceTaskCenterPanelProps> = ({
 
         {recoveryAvailable && onRefresh ? (
           <section className='x-science-task-center-panel__section' aria-labelledby='x-science-task-center-recovery'>
-            <h3 id='x-science-task-center-recovery'>{t('conversation.xscienceRuntime.runtimeOperations.taskRecovery')}</h3>
+            <h3 id='x-science-task-center-recovery'>
+              {t('conversation.xscienceRuntime.runtimeOperations.taskRecovery')}
+            </h3>
             <div className='x-science-task-center-panel__actions'>
               {onResume && recoveryResumeLabel ? (
                 <TaskCenterActionRow

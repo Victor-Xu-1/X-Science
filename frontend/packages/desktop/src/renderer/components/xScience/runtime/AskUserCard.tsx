@@ -185,7 +185,9 @@ const AskUserCard: React.FC<AskUserCardProps> = ({
           </ul>
         </div>
       ) : null}
-      {submitFailed ? <p role='alert'>{t('conversation.xscienceRuntime.runtimeOperations.answerSubmitFailed')}</p> : null}
+      {submitFailed ? (
+        <p role='alert'>{t('conversation.xscienceRuntime.runtimeOperations.answerSubmitFailed')}</p>
+      ) : null}
 
       <div
         className='x-science-ask-user-card__options mt-10px flex flex-col gap-2px'

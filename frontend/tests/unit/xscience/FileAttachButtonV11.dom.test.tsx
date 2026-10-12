@@ -94,11 +94,7 @@ describe('v1.1 add-to-message menu', () => {
     const openFileSelector = vi.fn();
     const onLocalFilesSelected = vi.fn();
     await renderWithI18n(
-      <FileAttachButton
-        xScienceV11
-        openFileSelector={openFileSelector}
-        onLocalFilesSelected={onLocalFilesSelected}
-      />,
+      <FileAttachButton xScienceV11 openFileSelector={openFileSelector} onLocalFilesSelected={onLocalFilesSelected} />,
       'zh-CN',
       { wrapper: MemoryRouter }
     );

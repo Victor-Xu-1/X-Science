@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  loadXScienceSkillFileContent,
-  loadXScienceSkillFiles,
-} from '@/renderer/services/skills/xScienceSkillLibrary';
+import { loadXScienceSkillFileContent, loadXScienceSkillFiles } from '@/renderer/services/skills/xScienceSkillLibrary';
 import type { SkillDetailSession } from './useSkillDetailSession';
 
 const emptyFile = {

@@ -105,7 +105,9 @@ const mapSizeToNative = (size?: XScienceSelectSize): NativeSelectSize | undefine
   return size;
 };
 
-type XScienceSelectComponent = React.ForwardRefExoticComponent<XScienceSelectProps & React.RefAttributes<SelectHandle>> & {
+type XScienceSelectComponent = React.ForwardRefExoticComponent<
+  XScienceSelectProps & React.RefAttributes<SelectHandle>
+> & {
   Option: typeof Select.Option;
   OptGroup: typeof Select.OptGroup;
 };

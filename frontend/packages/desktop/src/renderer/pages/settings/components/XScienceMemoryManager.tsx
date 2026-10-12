@@ -422,10 +422,7 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
     async (memoryId: string) => {
       const text = editingMemoryText.trim();
       if (!text) return;
-      const succeeded = await runMutation(
-        () => updateXScienceMemory(memoryId, { text }),
-        t('settings.memoryUpdated')
-      );
+      const succeeded = await runMutation(() => updateXScienceMemory(memoryId, { text }), t('settings.memoryUpdated'));
       if (!succeeded) return;
       setEditingMemoryId(null);
       setEditingMemoryText('');
@@ -463,9 +460,7 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
     };
     const succeeded = await runMutation(
       () =>
-        categoryDraft.id
-          ? updateXScienceMemoryCategory(categoryDraft.id, input)
-          : createXScienceMemoryCategory(input),
+        categoryDraft.id ? updateXScienceMemoryCategory(categoryDraft.id, input) : createXScienceMemoryCategory(input),
       t('settings.memoryCategorySaved')
     );
     if (!succeeded) return;

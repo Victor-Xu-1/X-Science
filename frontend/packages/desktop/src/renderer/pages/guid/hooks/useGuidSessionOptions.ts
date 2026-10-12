@@ -1,7 +1,4 @@
-import {
-  createXScienceSessionDefaults,
-  type XScienceSessionOptions,
-} from '@/renderer/services/xScienceSessionOptions';
+import { createXScienceSessionDefaults, type XScienceSessionOptions } from '@/renderer/services/xScienceSessionOptions';
 import { useEffect, useState } from 'react';
 
 type GuidSessionOptionsInput = {

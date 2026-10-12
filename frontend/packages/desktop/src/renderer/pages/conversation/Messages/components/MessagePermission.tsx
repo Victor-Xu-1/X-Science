@@ -128,7 +128,9 @@ export const ConversationApprovalCard: React.FC<ConversationApprovalCardProps> =
           </>
         ) : null}
         {hasResponded ? (
-          <div className='x-science-conversation-approval-card__success'>✓ {t('messages.responseSentSuccessfully')}</div>
+          <div className='x-science-conversation-approval-card__success'>
+            ✓ {t('messages.responseSentSuccessfully')}
+          </div>
         ) : null}
       </section>
     );

@@ -73,9 +73,7 @@ export const McpConnectorCard: React.FC<{
       }}
     >
       <Menu.Item key='primary' data-testid={`x-science-mcp-${primaryActionKind}-${normalizeTestId(server.name)}`}>
-        {t(
-          primaryActionKind === 'configure' ? 'settings.xScienceMcpConfigure' : 'settings.xScienceMcpPermissions'
-        )}
+        {t(primaryActionKind === 'configure' ? 'settings.xScienceMcpConfigure' : 'settings.xScienceMcpPermissions')}
       </Menu.Item>
       {primaryActionKind !== 'permissions' ? (
         <Menu.Item key='permissions' data-testid={`x-science-mcp-permissions-${normalizeTestId(server.name)}`}>
@@ -95,9 +93,7 @@ export const McpConnectorCard: React.FC<{
       {custom ? (
         <>
           <Menu.Item key='attach'>
-            {server.attachedAgents.length
-              ? t('settings.xScienceMcpDetachAll')
-              : t('settings.xScienceMcpAttachAll')}
+            {server.attachedAgents.length ? t('settings.xScienceMcpDetachAll') : t('settings.xScienceMcpAttachAll')}
           </Menu.Item>
           <Menu.Item key='edit' data-testid={`x-science-mcp-edit-${normalizeTestId(server.name)}`}>
             <span className='flex items-center gap-7px'>

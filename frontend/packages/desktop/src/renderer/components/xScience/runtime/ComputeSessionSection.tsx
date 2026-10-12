@@ -312,7 +312,9 @@ const KernelRow: React.FC<{
             )}
           </div>
           <div className='truncate text-11px text-t-tertiary' title={environmentLabel}>
-            {t('conversation.xscienceRuntime.computeRuntime.environmentLabel', { environment: environmentLabel || '—' })}
+            {t('conversation.xscienceRuntime.computeRuntime.environmentLabel', {
+              environment: environmentLabel || '—',
+            })}
           </div>
           {observation.status === 'partial' && (
             <div className='text-10px text-t-tertiary'>

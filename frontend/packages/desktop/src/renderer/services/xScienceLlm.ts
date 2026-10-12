@@ -144,9 +144,7 @@ async function requestJson<T>(path: string, init?: RequestInit, fetchImpl: Fetch
   return response.json() as Promise<T>;
 }
 
-export async function loadXScienceLlmProviders(
-  fetchImpl: FetchLike = fetch
-): Promise<XScienceLlmProvidersSnapshot> {
+export async function loadXScienceLlmProviders(fetchImpl: FetchLike = fetch): Promise<XScienceLlmProvidersSnapshot> {
   const payload = await requestJson<{
     activeProfileId?: unknown;
     profiles?: unknown;
@@ -168,9 +166,7 @@ function toProvidersSnapshot(payload: {
       ? payload.providers
       : [];
   const templates = Array.isArray(payload.templates)
-    ? payload.templates
-        .map(toTemplate)
-        .filter((template): template is XScienceLlmProviderTemplate => Boolean(template))
+    ? payload.templates.map(toTemplate).filter((template): template is XScienceLlmProviderTemplate => Boolean(template))
     : [];
   return {
     activeProfileId: typeof payload.activeProfileId === 'string' ? payload.activeProfileId : undefined,

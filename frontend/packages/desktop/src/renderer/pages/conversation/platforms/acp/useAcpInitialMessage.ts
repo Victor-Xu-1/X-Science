@@ -260,9 +260,7 @@ export const useAcpInitialMessage = ({
         setAiProcessing(true);
 
         await Promise.all(
-          computeProviders.map((provider: string) =>
-            setXScienceSessionComputeProvider(conversation_id, provider, true)
-          )
+          computeProviders.map((provider: string) => setXScienceSessionComputeProvider(conversation_id, provider, true))
         );
 
         void checkAndUpdateTitle(conversation_id, input);

@@ -116,7 +116,9 @@ const XScienceBranchMenu: React.FC<Props> = ({ rootFrameId, disabled = false }) 
         rows
       )}
       {!loading && !loadFailed && rows.length === 0 ? (
-        <div className='px-12px py-8px text-12px text-t-tertiary'>{t('conversation.xscienceRuntime.branches.empty')}</div>
+        <div className='px-12px py-8px text-12px text-t-tertiary'>
+          {t('conversation.xscienceRuntime.branches.empty')}
+        </div>
       ) : null}
     </div>
   );

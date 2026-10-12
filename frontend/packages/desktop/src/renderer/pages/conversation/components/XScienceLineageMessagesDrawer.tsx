@@ -1,10 +1,7 @@
 import { PRODUCT_NAME } from '@/common/config/productIdentity';
 import MarkdownView from '@/renderer/components/Markdown';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
-import {
-  loadXScienceLineageMessages,
-  type XScienceLineageMessage,
-} from '@/renderer/services/xScienceLineageMessages';
+import { loadXScienceLineageMessages, type XScienceLineageMessage } from '@/renderer/services/xScienceLineageMessages';
 import type { XScienceDelegateFrame } from '@/renderer/services/xScienceDelegateLineage';
 import { Button, Drawer, Empty, Spin } from '@arco-design/web-react';
 import { ArrowRight, Redo } from '@icon-park/react';

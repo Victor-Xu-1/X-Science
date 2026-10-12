@@ -140,10 +140,7 @@ export async function setXScienceExpertProfileEnabled(
   return profile;
 }
 
-export async function deleteXScienceExpertProfile(
-  name: string,
-  options: XScienceGatewayOptions = {}
-): Promise<void> {
+export async function deleteXScienceExpertProfile(name: string, options: XScienceGatewayOptions = {}): Promise<void> {
   await requestXScienceJson(`${EXPERT_PROFILES_PATH}/${encodeURIComponent(name)}`, { method: 'DELETE' }, options);
 }
 

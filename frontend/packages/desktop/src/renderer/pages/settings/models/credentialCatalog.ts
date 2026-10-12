@@ -307,10 +307,7 @@ export function isCustomCredential(secret: XScienceSecret): boolean {
   return credentialProviderForSecret(secret) === null;
 }
 
-export function credentialDisplayName(
-  secret: XScienceSecret,
-  provider: LocalizedCredentialProviderDefinition
-): string {
+export function credentialDisplayName(secret: XScienceSecret, provider: LocalizedCredentialProviderDefinition): string {
   const name = secret.name.trim();
   return !name || name === provider.defaultName ? provider.label : name;
 }

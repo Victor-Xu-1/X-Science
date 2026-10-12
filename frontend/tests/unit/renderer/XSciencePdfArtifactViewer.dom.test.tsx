@@ -143,10 +143,7 @@ describe('X-Science PDF artifact viewer', () => {
   it('rejects empty bytes before invoking the PDF parser', async () => {
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     vi.mocked(fetch).mockResolvedValueOnce(new Response(null));
-    await renderWithI18n(
-      <XSciencePdfArtifactViewer filename='empty.pdf' contentUrl='/api/artifacts/empty' />,
-      'en-US'
-    );
+    await renderWithI18n(<XSciencePdfArtifactViewer filename='empty.pdf' contentUrl='/api/artifacts/empty' />, 'en-US');
     expect(await screen.findByText('Failed to load PDF preview')).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'PDF page 1' })).toBeNull();
   });
@@ -191,10 +188,7 @@ describe('X-Science PDF artifact viewer', () => {
 
   it('keeps large document page canvases bounded by the visible viewport', async () => {
     parser.pages = 500;
-    await renderWithI18n(
-      <XSciencePdfArtifactViewer filename='long.pdf' contentUrl='/api/artifacts/long' />,
-      'en-US'
-    );
+    await renderWithI18n(<XSciencePdfArtifactViewer filename='long.pdf' contentUrl='/api/artifacts/long' />, 'en-US');
     expect(await screen.findByText('500 pages')).toBeInTheDocument();
     await screen.findByRole('region', { name: 'PDF page 1' });
     expect(document.querySelectorAll('[data-pdf-page]').length).toBeLessThan(5);
@@ -203,10 +197,7 @@ describe('X-Science PDF artifact viewer', () => {
 
   it('navigates internal document links to pages outside the mounted window', async () => {
     parser.pages = 500;
-    await renderWithI18n(
-      <XSciencePdfArtifactViewer filename='long.pdf' contentUrl='/api/artifacts/long' />,
-      'en-US'
-    );
+    await renderWithI18n(<XSciencePdfArtifactViewer filename='long.pdf' contentUrl='/api/artifacts/long' />, 'en-US');
     await screen.findByRole('region', { name: 'PDF page 1' });
     expect(screen.queryByRole('region', { name: 'PDF page 400' })).toBeNull();
     const scroller = document.querySelector<HTMLElement>('[data-virtuoso-scroller]')!;

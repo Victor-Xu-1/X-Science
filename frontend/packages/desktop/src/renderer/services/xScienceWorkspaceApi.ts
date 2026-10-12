@@ -42,9 +42,7 @@ function clearProjectGatewayReadsAfterWorkspaceMutation(accountScope: string): v
   }
 }
 
-export async function renameXScienceArtifact(
-  input: XScienceArtifactRenameInput
-): Promise<XScienceArtifactRecord> {
+export async function renameXScienceArtifact(input: XScienceArtifactRenameInput): Promise<XScienceArtifactRecord> {
   const accountScope = rendererAccountScopedKey('');
   const response = await fetch(workspaceArtifactUrl(input), {
     method: 'PATCH',
@@ -57,9 +55,7 @@ export async function renameXScienceArtifact(
   return record;
 }
 
-export async function deleteXScienceArtifact(
-  input: XScienceArtifactMutationInput
-): Promise<Record<string, unknown>> {
+export async function deleteXScienceArtifact(input: XScienceArtifactMutationInput): Promise<Record<string, unknown>> {
   const accountScope = rendererAccountScopedKey('');
   const response = await fetch(workspaceArtifactUrl(input), {
     method: 'DELETE',

@@ -318,11 +318,7 @@ export function useXScienceConversationSync({
         if (disposed) return;
 
         if (heartbeatObservedTerminal) {
-          scheduleRetry(
-            X_SCIENCE_CONVERSATION_TERMINAL_FALLBACK_GRACE_MS,
-            { kind: 'reconcile' },
-            { keepAlive: true }
-          );
+          scheduleRetry(X_SCIENCE_CONVERSATION_TERMINAL_FALLBACK_GRACE_MS, { kind: 'reconcile' }, { keepAlive: true });
         }
 
         // A newly accepted local send can navigate to the conversation before

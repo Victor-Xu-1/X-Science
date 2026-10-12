@@ -2,10 +2,7 @@ import { Button, Input, Message, Select } from '@arco-design/web-react';
 import Modal from '@/renderer/components/base/WorkbenchModal';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type {
-  XScienceCustomMcpServer,
-  XScienceCustomMcpServerInput,
-} from '@/renderer/services/xScienceCapabilities';
+import type { XScienceCustomMcpServer, XScienceCustomMcpServerInput } from '@/renderer/services/xScienceCapabilities';
 
 type Props = {
   visible: boolean;

@@ -88,9 +88,7 @@ export type XScienceKernelStopRequest = {
 
 type RecordValue = Record<string, unknown>;
 
-export async function loadXScienceAllKernels(
-  options: XScienceGatewayOptions = {}
-): Promise<XScienceKernelInventory> {
+export async function loadXScienceAllKernels(options: XScienceGatewayOptions = {}): Promise<XScienceKernelInventory> {
   return loadKernelInventory('/api/kernels', options);
 }
 

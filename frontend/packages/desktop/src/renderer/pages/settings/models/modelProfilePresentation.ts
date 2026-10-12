@@ -32,11 +32,7 @@ const LOCAL_PROVIDER_LABEL_KEYS: Partial<Record<string, string>> = {
   vllm: 'settings.modelsProviderVllmSelfHosted',
 };
 
-export function modelProviderLabel(
-  provider: string,
-  templates: XScienceLlmProviderTemplate[],
-  t: TFunction
-): string {
+export function modelProviderLabel(provider: string, templates: XScienceLlmProviderTemplate[], t: TFunction): string {
   const labelKey = LOCAL_PROVIDER_LABEL_KEYS[provider.toLowerCase()];
   if (labelKey) return t(labelKey);
   return templates.find((template) => template.provider.toLowerCase() === provider.toLowerCase())?.label || provider;

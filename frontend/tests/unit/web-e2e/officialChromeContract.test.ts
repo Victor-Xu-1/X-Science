@@ -55,7 +55,9 @@ describe('official Chrome acceptance contract', () => {
       ['--user-data-dir=relative-profile'],
       ['--user-data-dir=C:\\Users\\Victor\\AppData\\Local\\Google\\Chrome\\User Data'],
       [official.commandLine[1], '--user-data-dir=C:\\Temp\\override'],
-      ['--user-data-dir=C:\\Users\\Victor\\AppData\\Local\\Temp\\x-science-rdkit-chrome-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
+      [
+        '--user-data-dir=C:\\Users\\Victor\\AppData\\Local\\Temp\\x-science-rdkit-chrome-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      ],
     ]) {
       expect(() =>
         assertOfficialGoogleChrome(

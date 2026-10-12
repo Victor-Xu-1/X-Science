@@ -1,9 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import {
-  isXScienceHttpError,
-  requestXScienceJson,
-  XScienceHttpError,
-} from '@/renderer/services/xScienceHttp';
+import { isXScienceHttpError, requestXScienceJson, XScienceHttpError } from '@/renderer/services/xScienceHttp';
 
 const jsonResponse = (value: unknown) =>
   ({

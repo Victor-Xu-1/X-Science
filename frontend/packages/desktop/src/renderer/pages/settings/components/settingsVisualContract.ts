@@ -106,9 +106,18 @@ export const SETTINGS_VISUAL_CONTRACTS = {
       mobile: null,
     },
     rootTestId: 'x-science-mcp-settings',
-    primarySelectors: ['.x-science-mcp-grid', '.x-science-mcp-card', '.settings-library-search', '.mcp-library-maintenance'],
+    primarySelectors: [
+      '.x-science-mcp-grid',
+      '.x-science-mcp-card',
+      '.settings-library-search',
+      '.mcp-library-maintenance',
+    ],
     grid: { desktopColumns: 4, mobileColumns: 1, cardMinHeight: 192 },
-    interactionSelectors: ['.x-science-mcp-card__configure', '.x-science-mcp-card__more', '.x-science-mcp-card__status-control'],
+    interactionSelectors: [
+      '.x-science-mcp-card__configure',
+      '.x-science-mcp-card__more',
+      '.x-science-mcp-card__status-control',
+    ],
     dynamicStates: ['catalog-loading', 'catalog-error', 'connected', 'attention', 'marketplace'],
   }),
   models: contract({

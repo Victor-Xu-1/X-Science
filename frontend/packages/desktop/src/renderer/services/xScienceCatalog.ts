@@ -367,9 +367,7 @@ export function mergeXScienceMcpServers(baseServers: IMcpServer[], xScienceServe
   const xScienceNames = new Set(xScienceServers.map((server) => normalizeCatalogName(server.name)));
   const userServers = baseServers.filter(
     (server) =>
-      server.builtin !== true &&
-      !xScienceIds.has(server.id) &&
-      !xScienceNames.has(normalizeCatalogName(server.name))
+      server.builtin !== true && !xScienceIds.has(server.id) && !xScienceNames.has(normalizeCatalogName(server.name))
   );
 
   return [...xScienceServers.map((server) => existingXScienceServers.get(server.id) ?? server), ...userServers];
@@ -439,16 +437,11 @@ export function buildXScienceAssistants(catalog: XScienceCatalog): Assistant[] {
   });
 }
 
-export function mergeXScienceAssistants(
-  baseAssistants: Assistant[],
-  xScienceAssistants: Assistant[]
-): Assistant[] {
+export function mergeXScienceAssistants(baseAssistants: Assistant[], xScienceAssistants: Assistant[]): Assistant[] {
   if (xScienceAssistants.length === 0) return [];
 
   const existingXScienceAssistants = new Map(
-    baseAssistants
-      .filter((assistant) => isXScienceAssistant(assistant))
-      .map((assistant) => [assistant.id, assistant])
+    baseAssistants.filter((assistant) => isXScienceAssistant(assistant)).map((assistant) => [assistant.id, assistant])
   );
 
   return xScienceAssistants.map((assistant) => existingXScienceAssistants.get(assistant.id) ?? assistant);

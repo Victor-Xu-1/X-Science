@@ -33,7 +33,9 @@ describe('resolveLocalFileLinkPath', () => {
   });
 
   it('recognizes line suffixes without confusing Windows drive letters', () => {
-    const reference = resolveLocalFileLinkReference('C:/Users/Administrator/AppData/Roaming/XScience/logs/app.log:1421');
+    const reference = resolveLocalFileLinkReference(
+      'C:/Users/Administrator/AppData/Roaming/XScience/logs/app.log:1421'
+    );
 
     expect(reference).toEqual({
       filePath: 'C:/Users/Administrator/AppData/Roaming/XScience/logs/app.log',

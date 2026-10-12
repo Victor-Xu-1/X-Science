@@ -101,18 +101,14 @@ export async function loadXScienceArtifactLineage(
   return lineage;
 }
 
-export async function copyXScienceArtifact(
-  input: XScienceArtifactCopyInput
-): Promise<XScienceArtifactMutationResult> {
+export async function copyXScienceArtifact(input: XScienceArtifactCopyInput): Promise<XScienceArtifactMutationResult> {
   return requestArtifactMutation(`/api/artifacts/${encodeURIComponent(input.artifactId)}/copy`, 'POST', {
     ...(input.newFilename ? { new_filename: input.newFilename } : {}),
     ...(input.targetFolderId !== undefined ? { target_folder_id: input.targetFolderId } : {}),
   });
 }
 
-export async function moveXScienceArtifact(
-  input: XScienceArtifactMoveInput
-): Promise<XScienceArtifactMutationResult> {
+export async function moveXScienceArtifact(input: XScienceArtifactMoveInput): Promise<XScienceArtifactMutationResult> {
   return requestArtifactMutation(`/api/artifacts/${encodeURIComponent(input.artifactId)}/folder`, 'PATCH', {
     folder_id: input.folderId,
     ...(input.sortOrder !== undefined ? { sort_order: input.sortOrder } : {}),

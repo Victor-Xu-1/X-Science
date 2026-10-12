@@ -39,9 +39,7 @@ type TreeNodeProps = {
 
 // Reset document-local state at the identity boundary, before it is interactive.
 // A passive mount effect can overwrite an early user selection after paint.
-const XScienceJsonViewer: React.FC<JsonViewerProps> = (props) => (
-  <JsonDocumentViewer key={props.filename} {...props} />
-);
+const XScienceJsonViewer: React.FC<JsonViewerProps> = (props) => <JsonDocumentViewer key={props.filename} {...props} />;
 
 const JsonDocumentViewer: React.FC<JsonViewerProps> = ({
   filename,

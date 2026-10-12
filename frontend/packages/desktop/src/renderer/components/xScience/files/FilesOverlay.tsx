@@ -1,8 +1,5 @@
 import { loadXScienceComputeProviders, loadXScienceLocalHostInfo } from '@/renderer/services/xScienceCompute';
-import {
-  loadXScienceCloudBuckets,
-  loadXScienceCloudCredentials,
-} from '@/renderer/services/xScienceWorkspaceSettings';
+import { loadXScienceCloudBuckets, loadXScienceCloudCredentials } from '@/renderer/services/xScienceWorkspaceSettings';
 import { Alert, Button, Select, Spin } from '@arco-design/web-react';
 import Modal from '@/renderer/components/base/WorkbenchModal';
 import { FolderOpen, Refresh } from '@icon-park/react';
@@ -33,11 +30,7 @@ export const FilesOverlay: React.FC<{
     let active = true;
     setLoading(true);
     setLoadError(false);
-    void Promise.all([
-      loadXScienceLocalHostInfo(),
-      loadXScienceComputeProviders(),
-      loadXScienceCloudCredentials(),
-    ])
+    void Promise.all([loadXScienceLocalHostInfo(), loadXScienceComputeProviders(), loadXScienceCloudCredentials()])
       .then(([local, providers, credentials]) => {
         if (!active) return;
         const nextHosts: XScienceFilesHost[] = [

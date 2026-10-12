@@ -1,7 +1,4 @@
-import {
-  getXScienceArtifactContentUrl,
-  type XScienceProjectArtifact,
-} from '@/renderer/services/xScienceGateway';
+import { getXScienceArtifactContentUrl, type XScienceProjectArtifact } from '@/renderer/services/xScienceGateway';
 import {
   exportXScienceArtifactsToCloud,
   loadXScienceCloudBuckets,

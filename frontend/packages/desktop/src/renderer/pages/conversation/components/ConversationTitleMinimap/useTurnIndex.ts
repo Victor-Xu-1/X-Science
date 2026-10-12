@@ -14,8 +14,7 @@ export function useTurnIndex(conversationId: string | undefined, messages: TMess
   const retry = useCallback(() => setRevision((value) => value + 1), []);
   useEffect(() => {
     const selection = (event: Event) => {
-      if ((event as CustomEvent<XScienceBranchSelectionEventDetail>).detail?.conversationId === conversationId)
-        retry();
+      if ((event as CustomEvent<XScienceBranchSelectionEventDetail>).detail?.conversationId === conversationId) retry();
     };
     window.addEventListener(X_SCIENCE_BRANCH_SELECTION_EVENT, selection);
     const unsubscribe = ipcBridge.conversation.historyRebased.on((payload) => {

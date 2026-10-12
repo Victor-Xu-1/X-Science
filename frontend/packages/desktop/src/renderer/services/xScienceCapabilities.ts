@@ -187,9 +187,7 @@ export async function setXScienceSkillEnabled(
   });
 }
 
-export async function loadXScienceMcpServers(
-  options: XScienceCapabilityOptions = {}
-): Promise<XScienceMcpServer[]> {
+export async function loadXScienceMcpServers(options: XScienceCapabilityOptions = {}): Promise<XScienceMcpServer[]> {
   const payload = await getJson<unknown>('/api/mcp-servers/connectors', options);
   const servers = Array.isArray(payload) ? payload : [];
 

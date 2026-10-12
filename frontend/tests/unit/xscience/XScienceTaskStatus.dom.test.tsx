@@ -277,9 +277,7 @@ describe('XScienceTaskStatus', () => {
 
     fireEvent.click(screen.getByTestId('x-science-task-details-trigger'));
     expect(screen.getByRole('heading', { name: /失败原因|Failure reason/i })).toBeInTheDocument();
-    expect(screen.getByTestId('x-science-task-center-failure-detail')).toHaveTextContent(
-      /任务运行失败|Task failed/i
-    );
+    expect(screen.getByTestId('x-science-task-center-failure-detail')).toHaveTextContent(/任务运行失败|Task failed/i);
     expect(screen.getByTestId('x-science-task-center-failure-detail')).not.toHaveTextContent('provider rejected');
     expect(screen.queryByText('secretValue123456')).not.toBeInTheDocument();
 
@@ -761,12 +759,8 @@ describe('XScienceTaskStatus', () => {
     expect(screen.getByTestId('x-science-task-metric-tools')).toHaveTextContent(/最新一轮 3|Latest 3/i);
     expect(screen.getByTestId('x-science-task-metric-started')).not.toHaveTextContent('—');
     expect(screen.getByTestId('x-science-task-metric-finished')).not.toHaveTextContent('—');
-    expect(screen.getByTestId('x-science-task-metric-started')).toHaveTextContent(
-      /^\d{2}\/\d{2} \d{2}:\d{2}:\d{2}$/
-    );
-    expect(screen.getByTestId('x-science-task-metric-finished')).toHaveTextContent(
-      /^\d{2}\/\d{2} \d{2}:\d{2}:\d{2}$/
-    );
+    expect(screen.getByTestId('x-science-task-metric-started')).toHaveTextContent(/^\d{2}\/\d{2} \d{2}:\d{2}:\d{2}$/);
+    expect(screen.getByTestId('x-science-task-metric-finished')).toHaveTextContent(/^\d{2}\/\d{2} \d{2}:\d{2}:\d{2}$/);
     expect(screen.queryByTestId('x-science-task-panel-drag-handle')).not.toBeInTheDocument();
     expect(screen.queryByTestId('x-science-task-panel-resize-handle')).not.toBeInTheDocument();
 
