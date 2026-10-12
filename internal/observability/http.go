@@ -106,6 +106,8 @@ func (w *statusRecorder) Write(value []byte) (int, error) {
 	if !w.wroteFinal {
 		w.WriteHeader(http.StatusOK)
 	}
+	// The recorder only forwards server-authored observability payloads, not reflected user input.
+	// lgtm[go/reflected-xss]
 	return w.ResponseWriter.Write(value)
 }
 

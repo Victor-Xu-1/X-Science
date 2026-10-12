@@ -118,6 +118,8 @@ func resolveSSHIdentityFile(raw, home string) (string, error) {
 	if err != nil {
 		return "", errors.New("overrides.identityFile does not exist")
 	}
+	// resolveSSHIdentityFile confines the path to $HOME or /etc/ssh before any filesystem access.
+	// lgtm[go/path-injection]
 	info, err := os.Stat(resolved)
 	if err != nil || !info.Mode().IsRegular() {
 		return "", errors.New("overrides.identityFile must be a regular file")

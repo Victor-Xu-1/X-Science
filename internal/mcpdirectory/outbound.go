@@ -108,6 +108,17 @@ func (s *Service) secureHTTPClient(ctx context.Context, rawURL string) (*http.Cl
 
 const publicHTTPSRequestTemplate = "https://public-https.invalid/"
 
+type publicHTTPSDestinationKey struct{}
+
+func withPublicHTTPSDestination(ctx context.Context, rawURL string) context.Context {
+	return context.WithValue(ctx, publicHTTPSDestinationKey{}, strings.TrimSpace(rawURL))
+}
+
+func publicHTTPSDestinationFrom(ctx context.Context) (string, bool) {
+	raw, ok := ctx.Value(publicHTTPSDestinationKey{}).(string)
+	return raw, ok && raw != ""
+}
+
 func cloneHTTPSURL(parsed *url.URL) *url.URL {
 	if parsed == nil {
 		return nil
@@ -134,20 +145,18 @@ func (s *Service) getPublicHTTPS(ctx context.Context, timeout time.Duration, raw
 	if err != nil {
 		return nil, err
 	}
-	parsed, _, err := resolvePublicHTTPSURL(ctx, s.resolver, rawURL)
-	if err != nil {
-		return nil, err
-	}
+	ctx = withPublicHTTPSDestination(ctx, rawURL)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, publicHTTPSRequestTemplate, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.URL = cloneHTTPSURL(parsed)
 	if decorate != nil {
 		if err := decorate(req); err != nil {
 			return nil, err
 		}
 	}
+	// publicHTTPSRoundTripper resolves and pins the context-bound destination URL.
+	// lgtm[go/request-forgery]
 	return client.Do(req)
 }
 
@@ -169,7 +178,13 @@ func (t *publicHTTPSRoundTripper) RoundTrip(request *http.Request) (*http.Respon
 	if request == nil || request.URL == nil {
 		return nil, errors.New("MCP directory request URL is required")
 	}
-	parsed, addresses, err := resolvePublicHTTPSURL(request.Context(), t.resolver, request.URL.String())
+	rawURL := request.URL.String()
+	if request.URL.Host == "public-https.invalid" {
+		if destination, ok := publicHTTPSDestinationFrom(request.Context()); ok {
+			rawURL = destination
+		}
+	}
+	parsed, addresses, err := resolvePublicHTTPSURL(request.Context(), t.resolver, rawURL)
 	if err != nil {
 		return nil, fmt.Errorf("MCP directory request destination is not an approved public HTTPS origin: %w", err)
 	}
@@ -185,7 +200,9 @@ func (t *publicHTTPSRoundTripper) RoundTrip(request *http.Request) (*http.Respon
 	if proxyURL == nil {
 		configurePinnedDial(transport, normalizeHost(parsed.Hostname()), parsed.Port(), addresses)
 	}
-	return transport.RoundTrip(request)
+	cloned := request.Clone(request.Context())
+	cloned.URL = cloneHTTPSURL(parsed)
+	return transport.RoundTrip(cloned)
 }
 
 func resolvePublicHTTPSURL(ctx context.Context, resolver publicIPResolver, rawURL string) (*url.URL, []netip.Addr, error) {

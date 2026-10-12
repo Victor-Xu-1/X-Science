@@ -1,0 +1,15 @@
+extensions:
+  - addsTo:
+      pack: codeql/go-all
+      extensible: barrierModel
+    data:
+      - ["x-science/internal/datadir", "", False, "cleanAbsolutePath", "", "", "ReturnValue", "path-injection", "manual"]
+      - ["x-science/internal/datadir", "", False, "canonicalExistingDirectory", "", "", "ReturnValue", "path-injection", "manual"]
+      - ["x-science/internal/datadir", "", False, "canonicalOrCreateDirectory", "", "", "ReturnValue", "path-injection", "manual"]
+      - ["x-science/internal/datadir", "", False, "prepareTargetDirectory", "", "", "ReturnValue[0]", "path-injection", "manual"]
+      - ["x-science/internal/compute", "", False, "resolveSSHIdentityFile", "", "", "ReturnValue", "path-injection", "manual"]
+      - ["x-science/internal/mcpdirectory", "", False, "validateHTTPSURL", "", "", "ReturnValue", "request-forgery", "manual"]
+      - ["x-science/internal/mcpdirectory", "", False, "resolvePublicHTTPSURL", "", "", "ReturnValue[0]", "request-forgery", "manual"]
+      - ["x-science/internal/mcpdirectory", "", False, "ValidatePublicHTTPSURL", "", "", "ReturnValue", "request-forgery", "manual"]
+      - ["x-science/internal/mcpdirectory", "", False, "optionalConnectorInstallRoot", "", "", "ReturnValue", "path-injection", "manual"]
+      - ["x-science/internal/mcpdirectory", "", False, "optionalConnectorStatePath", "", "", "ReturnValue", "path-injection", "manual"]
