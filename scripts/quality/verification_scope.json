@@ -100,7 +100,9 @@
         [
           "python3",
           "-B",
-          "scripts/quality/test_runtime_test_shards.py"
+          "-m",
+          "unittest",
+          "scripts.quality.test_runtime_test_shards"
         ]
       ]
     },
