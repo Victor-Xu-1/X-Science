@@ -53,7 +53,7 @@ func assertOwnerRequestStatus(t *testing.T, app http.Handler, method, target str
 	if err != nil {
 		t.Fatal(err)
 	}
-	request := httptest.NewRequest(method, target, bytes.NewReader(raw))
+	request := newLoopbackTestRequest(method, target, bytes.NewReader(raw))
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("X-Synon-User-Id", userID)
 	response := httptest.NewRecorder()

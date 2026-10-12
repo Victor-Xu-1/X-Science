@@ -198,7 +198,7 @@ func TestFullAccessConfirmationsReadConvergesLegacyVisibleCapabilityRequest(t *t
 	if err != nil || !found {
 		t.Fatalf("frame found=%t err=%v", found, err)
 	}
-	request := httptest.NewRequest("GET", "/api/conversations/"+current.ID+"/confirmations", nil)
+	request := newLoopbackTestRequest("GET", "/api/conversations/"+current.ID+"/confirmations", nil)
 	request.Header.Set("X-Synon-User-Id", identity.access.UserID)
 	response := httptest.NewRecorder()
 	app.handleWebConversationConfirmations(response, request, current)

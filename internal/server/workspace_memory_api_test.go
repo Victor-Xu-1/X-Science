@@ -34,7 +34,7 @@ func TestWorkspaceMemoryHTTPAPIUsesActiveSupersession(t *testing.T) {
 	}, http.StatusOK)
 
 	response := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodGet, "/api/go/memories?user_id=local&project_id=project-1", nil)
+	request := newLoopbackTestRequest(http.MethodGet, "/api/go/memories?user_id=local&project_id=project-1", nil)
 	request.Header.Set("X-Synon-User-Id", "local")
 	app.ServeHTTP(response, request)
 	if response.Code != http.StatusOK || !bytes.Contains(response.Body.Bytes(), []byte("new decision")) || bytes.Contains(response.Body.Bytes(), []byte("old decision")) {

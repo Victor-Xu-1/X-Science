@@ -31,7 +31,7 @@ func TestWorkspaceModelsAPIListsEnabledProviderModels(t *testing.T) {
 	}
 	app := New(Options{Workspace: store}).Handler()
 	compatibility := httptest.NewRecorder()
-	compatibilityRequest := httptest.NewRequest(http.MethodGet, "/api/models", nil)
+	compatibilityRequest := newLoopbackTestRequest(http.MethodGet, "/api/models", nil)
 	compatibilityRequest.Header.Set("X-Synon-User-Id", "user-1")
 	app.ServeHTTP(compatibility, compatibilityRequest)
 	if compatibility.Code != http.StatusOK || bytes.Contains(compatibility.Body.Bytes(), []byte("secret://")) ||
@@ -53,7 +53,7 @@ func TestWorkspaceModelsAPIListsEnabledProviderModels(t *testing.T) {
 	}
 
 	openAI := httptest.NewRecorder()
-	openAIRequest := httptest.NewRequest(http.MethodGet, "/v1/models", nil)
+	openAIRequest := newLoopbackTestRequest(http.MethodGet, "/v1/models", nil)
 	openAIRequest.Header.Set("X-Synon-User-Id", "user-1")
 	app.ServeHTTP(openAI, openAIRequest)
 	if openAI.Code != http.StatusOK || !bytes.Contains(openAI.Body.Bytes(), []byte("\"id\":\"model-a\"")) ||
@@ -62,7 +62,7 @@ func TestWorkspaceModelsAPIListsEnabledProviderModels(t *testing.T) {
 	}
 
 	unknown := httptest.NewRecorder()
-	unknownRequest := httptest.NewRequest(http.MethodGet, "/api/models?provider=other", nil)
+	unknownRequest := newLoopbackTestRequest(http.MethodGet, "/api/models?provider=other", nil)
 	unknownRequest.Header.Set("X-Synon-User-Id", "user-1")
 	app.ServeHTTP(unknown, unknownRequest)
 	if unknown.Code != http.StatusNotFound {
@@ -105,7 +105,7 @@ func TestWorkspaceModelsAPIProjectsActiveProfileAndStableSelectors(t *testing.T)
 	if _, err := server.settingsStore.Set(webConversationActiveProviderSetting, "profile-active"); err != nil {
 		t.Fatal(err)
 	}
-	request := httptest.NewRequest(http.MethodGet, "/v1/models", nil)
+	request := newLoopbackTestRequest(http.MethodGet, "/v1/models", nil)
 	request.Header.Set("X-Synon-User-Id", "local")
 	response := httptest.NewRecorder()
 	server.Handler().ServeHTTP(response, request)

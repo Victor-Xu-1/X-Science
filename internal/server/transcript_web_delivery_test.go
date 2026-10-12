@@ -662,7 +662,7 @@ func TestWebConversationCreationPersistsImmutableTranscriptMapping(t *testing.T)
 		}
 	})
 	body := []byte(`{"name":"Transcript mapped","extra":{"project_id":"project-a"}}`)
-	request := httptest.NewRequest(http.MethodPost, "/api/conversations", bytes.NewReader(body))
+	request := newLoopbackTestRequest(http.MethodPost, "/api/conversations", bytes.NewReader(body))
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("X-Synon-User-Id", "local")
 	response := httptest.NewRecorder()
@@ -996,7 +996,7 @@ func TestTranscriptContractFailureStopsDeliveryAndRejectsMutationAndReplay(t *te
 	}
 	eventsBefore := transcriptWebEvents(t, store, "local")
 
-	request := httptest.NewRequest(http.MethodPost, "/api/conversations", bytes.NewReader([]byte(
+	request := newLoopbackTestRequest(http.MethodPost, "/api/conversations", bytes.NewReader([]byte(
 		`{"name":"Must not persist","extra":{"project_id":"project-a"}}`,
 	)))
 	request.Header.Set("Content-Type", "application/json")
@@ -1024,7 +1024,7 @@ func TestTranscriptContractFailureStopsDeliveryAndRejectsMutationAndReplay(t *te
 		t.Fatalf("failed contract mutated realtime events: before=%#v after=%#v", eventsBefore, eventsAfter)
 	}
 
-	replay := httptest.NewRequest(http.MethodGet, "/api/events?after_sequence=0", nil)
+	replay := newLoopbackTestRequest(http.MethodGet, "/api/events?after_sequence=0", nil)
 	replay.Header.Set("X-Synon-User-Id", "local")
 	replayResponse := httptest.NewRecorder()
 	server.Handler().ServeHTTP(replayResponse, replay)
@@ -1039,7 +1039,7 @@ func TestTranscriptContractFailureStopsDeliveryAndRejectsMutationAndReplay(t *te
 		t.Fatalf("replay error=%#v", replayError)
 	}
 
-	history := httptest.NewRequest(http.MethodGet, "/api/conversations/frame-existing/messages?limit=100", nil)
+	history := newLoopbackTestRequest(http.MethodGet, "/api/conversations/frame-existing/messages?limit=100", nil)
 	history.Header.Set("X-Synon-User-Id", "local")
 	historyResponse := httptest.NewRecorder()
 	server.Handler().ServeHTTP(historyResponse, history)
@@ -1222,7 +1222,7 @@ func TestTranscriptWebDeliveryUsesTerminalReceiptAndExactArtifactReferences(t *t
 	if after := len(transcriptWebEvents(t, store, "local")); after != len(events) {
 		t.Fatalf("mapped frame used duplicate legacy projection: events=%d want=%d", after, len(events))
 	}
-	request := httptest.NewRequest(http.MethodGet, "/api/conversations/frame-a/messages?limit=100", nil)
+	request := newLoopbackTestRequest(http.MethodGet, "/api/conversations/frame-a/messages?limit=100", nil)
 	request.Header.Set("X-Synon-User-Id", "local")
 	response := httptest.NewRecorder()
 	server.Handler().ServeHTTP(response, request)
@@ -1246,7 +1246,7 @@ func TestTranscriptWebDeliveryUsesTerminalReceiptAndExactArtifactReferences(t *t
 	if !reflect.DeepEqual(historyRefs, terminalRefs) {
 		t.Fatalf("history refs=%#v live refs=%#v", historyRefs, terminalRefs)
 	}
-	messageRequest := httptest.NewRequest(http.MethodGet, "/api/conversations/frame-a/messages/"+historyTerminalMessageID, nil)
+	messageRequest := newLoopbackTestRequest(http.MethodGet, "/api/conversations/frame-a/messages/"+historyTerminalMessageID, nil)
 	messageRequest.Header.Set("X-Synon-User-Id", "local")
 	messageResponse := httptest.NewRecorder()
 	server.Handler().ServeHTTP(messageResponse, messageRequest)
@@ -1274,7 +1274,7 @@ func TestTranscriptWebDeliveryUsesTerminalReceiptAndExactArtifactReferences(t *t
 		)`); err != nil {
 		t.Fatal(err)
 	}
-	replayRequest := httptest.NewRequest(http.MethodGet, "/api/events?after_sequence=0", nil)
+	replayRequest := newLoopbackTestRequest(http.MethodGet, "/api/events?after_sequence=0", nil)
 	replayRequest.Header.Set("X-Synon-User-Id", "local")
 	replayResponse := httptest.NewRecorder()
 	server.Handler().ServeHTTP(replayResponse, replayRequest)
@@ -1292,7 +1292,7 @@ func TestTranscriptWebDeliveryUsesTerminalReceiptAndExactArtifactReferences(t *t
 	if _, err := db.Exec(`DELETE FROM artifact_versions WHERE id=?`, version.ID); err != nil {
 		t.Fatal(err)
 	}
-	reload := httptest.NewRequest(http.MethodGet, "/api/conversations/frame-a/messages?limit=100", nil)
+	reload := newLoopbackTestRequest(http.MethodGet, "/api/conversations/frame-a/messages?limit=100", nil)
 	reload.Header.Set("X-Synon-User-Id", "local")
 	reloaded := httptest.NewRecorder()
 	server.Handler().ServeHTTP(reloaded, reload)
@@ -1989,7 +1989,7 @@ func TestWorkspaceFrameDeleteRetiresExactTranscriptStream(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	request := httptest.NewRequest(http.MethodDelete, "/api/go/frames/frame-raw-delete", nil)
+	request := newLoopbackTestRequest(http.MethodDelete, "/api/go/frames/frame-raw-delete", nil)
 	request.Header.Set("X-Synon-User-Id", "owner-raw")
 	response := httptest.NewRecorder()
 	app.Handler().ServeHTTP(response, request)

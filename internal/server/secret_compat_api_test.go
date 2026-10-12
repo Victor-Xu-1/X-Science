@@ -301,7 +301,7 @@ func compatibilitySecretRequest(t *testing.T, method, target, userID string, bod
 			t.Fatal(err)
 		}
 	}
-	request := httptest.NewRequest(method, target, bytes.NewReader(encoded))
+	request := newLoopbackTestRequest(method, target, bytes.NewReader(encoded))
 	request.RemoteAddr = "127.0.0.1:12345"
 	if userID != "" {
 		request.Header.Set("X-Synon-User-Id", userID)

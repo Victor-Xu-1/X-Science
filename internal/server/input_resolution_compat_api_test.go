@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/http/httptest"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -769,7 +768,7 @@ func TestCompatibilityInputGrantStoresAndCompensatingRollback(t *testing.T) {
 		t.Fatal(err)
 	}
 	srv := New(Options{FileRoot: root, Workspace: store})
-	request := httptest.NewRequest(http.MethodPost, "/api/frames/frame/resolve-input", nil)
+	request := newLoopbackTestRequest(http.MethodPost, "/api/frames/frame/resolve-input", nil)
 	request.Header.Set("X-Synon-User-Id", "local")
 	frame := workspace.CompatibilityFrame{Frame: workspace.Frame{
 		ID: "frame", RootFrameID: "frame", ProjectID: "project", AgentName: "OPERON",
@@ -846,7 +845,7 @@ func TestCompatibilityInputGrantStoresAndCompensatingRollback(t *testing.T) {
 func TestCompatibilityInputAllowWithoutScopeIsOnceAndDoesNotPersistGrant(t *testing.T) {
 	root := t.TempDir()
 	srv := New(Options{FileRoot: root})
-	request := httptest.NewRequest(http.MethodPost, "/api/frames/frame/resolve-input", nil)
+	request := newLoopbackTestRequest(http.MethodPost, "/api/frames/frame/resolve-input", nil)
 	request.Header.Set("X-Synon-User-Id", "local")
 	approved := true
 	content, _, denied, result, rollback, err := srv.resolveCompatibilityInputItem(

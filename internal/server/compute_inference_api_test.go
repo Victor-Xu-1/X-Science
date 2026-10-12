@@ -228,7 +228,7 @@ func TestInferenceProviderCreateThenImmediateAndConcurrentProbe(t *testing.T) {
 		wait.Add(1)
 		go func() {
 			defer wait.Done()
-			request := httptest.NewRequest(http.MethodPost, "/api/compute/providers/infer:fixture-infer/probe", nil)
+			request := newLoopbackTestRequest(http.MethodPost, "/api/compute/providers/infer:fixture-infer/probe", nil)
 			request.Header.Set("X-Synon-User-Id", "local")
 			response := httptest.NewRecorder()
 			app.ServeHTTP(response, request)
@@ -361,7 +361,7 @@ func computeCompatRequestAs(t *testing.T, handler http.Handler, method, path str
 			t.Fatal(err)
 		}
 	}
-	request := httptest.NewRequest(method, path, bytes.NewReader(raw))
+	request := newLoopbackTestRequest(method, path, bytes.NewReader(raw))
 	request.Header.Set("X-Synon-User-Id", userID)
 	if body != nil {
 		request.Header.Set("Content-Type", "application/json")

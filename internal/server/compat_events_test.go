@@ -807,7 +807,7 @@ func TestCompatEventReplayStorageFailureIsDiagnostic(t *testing.T) {
 	}
 	_ = db.Close()
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodGet, "/api/events/stream", nil)
+	request := newLoopbackTestRequest(http.MethodGet, "/api/events/stream", nil)
 	request.Header.Set("X-Synon-User-Id", "owner")
 	srv.Handler().ServeHTTP(recorder, request)
 	if recorder.Code != http.StatusInternalServerError || !strings.Contains(recorder.Body.String(), "realtime event replay failed") || strings.Contains(recorder.Body.String(), "unexpected end") {

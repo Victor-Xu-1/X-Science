@@ -271,9 +271,9 @@ func TestLegacySessionSurfacesRejectSpoofedRemoteLocalMode(t *testing.T) {
 		"/api/go/sessions/legacy-session/config",
 		"/api/tools/session_append/execute",
 	} {
-		request := httptest.NewRequest(http.MethodGet, path, nil)
+		request := newLoopbackTestRequest(http.MethodGet, path, nil)
 		if strings.Contains(path, "/execute") {
-			request = httptest.NewRequest(http.MethodPost, path, strings.NewReader(`{"input":{}}`))
+			request = newLoopbackTestRequest(http.MethodPost, path, strings.NewReader(`{"input":{}}`))
 		}
 		request.RemoteAddr = "198.51.100.10:12345"
 		request.Host = "localhost:8765"

@@ -159,7 +159,7 @@ func TestManagedEnvironmentObservationRetainsOneRowAndFinalFacts(t *testing.T) {
 	if err := srv.drainTranscriptWebOwner(context.Background(), stream.OwnerID, true); err != nil {
 		t.Fatal(err)
 	}
-	request := httptest.NewRequest(http.MethodGet, "/api/events?frame_id="+stream.FrameID+"&limit=1000", nil)
+	request := newLoopbackTestRequest(http.MethodGet, "/api/events?frame_id="+stream.FrameID+"&limit=1000", nil)
 	request.Header.Set("X-Synon-User-Id", stream.OwnerID)
 	recorder := httptest.NewRecorder()
 	srv.Handler().ServeHTTP(recorder, request)

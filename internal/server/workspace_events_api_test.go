@@ -105,14 +105,14 @@ func TestWorkspaceEventsRequireFrameOwnership(t *testing.T) {
 		t.Fatalf("unauthenticated status=%d body=%s", unauthenticated.Code, unauthenticated.Body.String())
 	}
 	foreign := httptest.NewRecorder()
-	foreignRequest := httptest.NewRequest(http.MethodGet, "/api/go/events?frame_id=frame-1", nil)
+	foreignRequest := newLoopbackTestRequest(http.MethodGet, "/api/go/events?frame_id=frame-1", nil)
 	foreignRequest.Header.Set("X-Synon-User-Id", "user-2")
 	app.ServeHTTP(foreign, foreignRequest)
 	if foreign.Code != http.StatusNotFound || strings.Contains(foreign.Body.String(), "private") {
 		t.Fatalf("foreign status=%d body=%s", foreign.Code, foreign.Body.String())
 	}
 	owner := httptest.NewRecorder()
-	ownerRequest := httptest.NewRequest(http.MethodGet, "/api/go/events?frame_id=frame-1", nil)
+	ownerRequest := newLoopbackTestRequest(http.MethodGet, "/api/go/events?frame_id=frame-1", nil)
 	ownerRequest.Header.Set("X-Synon-User-Id", "user-1")
 	app.ServeHTTP(owner, ownerRequest)
 	if owner.Code != http.StatusOK || !strings.Contains(owner.Body.String(), "private") {

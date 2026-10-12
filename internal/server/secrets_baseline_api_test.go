@@ -63,7 +63,7 @@ func secretRequestJSON(t *testing.T, handler http.Handler, method, path, userID 
 		}
 		reader = bytes.NewReader(encoded)
 	}
-	request := httptest.NewRequest(method, path, reader)
+	request := newLoopbackTestRequest(method, path, reader)
 	request.Header.Set("X-Synon-User-Id", userID)
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, request)

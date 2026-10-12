@@ -104,7 +104,7 @@ func TestComputeSSHProviderHTTPFullLifecycleWithRealConfigAndSQLite(t *testing.T
 		t.Fatalf("updated provider=%#v found=%v err=%v", provider, found, err)
 	}
 
-	foreignRequest := httptest.NewRequest(http.MethodGet, "/api/compute/providers/ssh:research-a", nil)
+	foreignRequest := newLoopbackTestRequest(http.MethodGet, "/api/compute/providers/ssh:research-a", nil)
 	missingRoots := computeCompatRequest(t, app, http.MethodPut, "/api/compute/providers/ssh:research-a/data-roots", map[string]any{})
 	if missingRoots.Code != http.StatusBadRequest {
 		t.Fatalf("missing roots status=%d body=%s", missingRoots.Code, missingRoots.Body.String())

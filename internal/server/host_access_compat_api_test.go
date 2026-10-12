@@ -370,7 +370,7 @@ func TestCompatibilityHostGrantDirectoryBrowseMatchesPublicContract(t *testing.T
 func compatibilityHostBrowseJSON(t *testing.T, app http.Handler, target, userID string, wantStatus int) any {
 	t.Helper()
 	response := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodGet, target, nil)
+	request := newLoopbackTestRequest(http.MethodGet, target, nil)
 	request.Header.Set("X-Synon-User-Id", userID)
 	app.ServeHTTP(response, request)
 	if response.Code != wantStatus {

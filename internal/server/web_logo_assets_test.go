@@ -10,7 +10,7 @@ import (
 
 func TestWebLogoAssetServesEmbeddedAssetsWithCacheAndIsolationHeaders(t *testing.T) {
 	handler := New(Options{}).Handler()
-	request := httptest.NewRequest(http.MethodGet, "/api/assets/logos/ai-major/openai.svg", nil)
+	request := newLoopbackTestRequest(http.MethodGet, "/api/assets/logos/ai-major/openai.svg", nil)
 	request.Header.Set("X-Synon-User-Id", "local")
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, request)
@@ -34,7 +34,7 @@ func TestWebLogoAssetServesEmbeddedAssetsWithCacheAndIsolationHeaders(t *testing
 			etag, response.Header().Get("Content-Length"), response.Body.Len())
 	}
 
-	cached := httptest.NewRequest(http.MethodGet, "/api/assets/logos/ai-major/openai.svg", nil)
+	cached := newLoopbackTestRequest(http.MethodGet, "/api/assets/logos/ai-major/openai.svg", nil)
 	cached.Header.Set("X-Synon-User-Id", "local")
 	cached.Header.Set("If-None-Match", "W/"+etag)
 	cachedResponse := httptest.NewRecorder()
@@ -43,7 +43,7 @@ func TestWebLogoAssetServesEmbeddedAssetsWithCacheAndIsolationHeaders(t *testing
 		t.Fatalf("cached status=%d body=%q", cachedResponse.Code, cachedResponse.Body.String())
 	}
 
-	head := httptest.NewRequest(http.MethodHead, "/api/assets/logos/ai-china/minimax.png", nil)
+	head := newLoopbackTestRequest(http.MethodHead, "/api/assets/logos/ai-china/minimax.png", nil)
 	head.Header.Set("X-Synon-User-Id", "local")
 	headResponse := httptest.NewRecorder()
 	handler.ServeHTTP(headResponse, head)
@@ -57,7 +57,7 @@ func TestWebLogoAssetServesEmbeddedAssetsWithCacheAndIsolationHeaders(t *testing
 func TestWebLogoAssetRejectsUnknownInvalidAndUnsupportedRequests(t *testing.T) {
 	srv := New(Options{})
 	handler := srv.Handler()
-	missing := httptest.NewRequest(http.MethodGet, "/api/assets/logos/ai-major/missing.svg", nil)
+	missing := newLoopbackTestRequest(http.MethodGet, "/api/assets/logos/ai-major/missing.svg", nil)
 	missing.Header.Set("X-Synon-User-Id", "local")
 	missingResponse := httptest.NewRecorder()
 	handler.ServeHTTP(missingResponse, missing)
@@ -65,7 +65,7 @@ func TestWebLogoAssetRejectsUnknownInvalidAndUnsupportedRequests(t *testing.T) {
 		t.Fatalf("missing status=%d body=%s", missingResponse.Code, missingResponse.Body.String())
 	}
 
-	method := httptest.NewRequest(http.MethodPost, "/api/assets/logos/ai-major/openai.svg", nil)
+	method := newLoopbackTestRequest(http.MethodPost, "/api/assets/logos/ai-major/openai.svg", nil)
 	method.Header.Set("X-Synon-User-Id", "local")
 	methodResponse := httptest.NewRecorder()
 	handler.ServeHTTP(methodResponse, method)
@@ -74,7 +74,7 @@ func TestWebLogoAssetRejectsUnknownInvalidAndUnsupportedRequests(t *testing.T) {
 		t.Fatalf("method status=%d allow=%q", methodResponse.Code, methodResponse.Header().Get("Allow"))
 	}
 
-	invalid := httptest.NewRequest(http.MethodGet, "/api/assets/logos/invalid.txt", nil)
+	invalid := newLoopbackTestRequest(http.MethodGet, "/api/assets/logos/invalid.txt", nil)
 	invalid.Header.Set("X-Synon-User-Id", "local")
 	invalidResponse := httptest.NewRecorder()
 	srv.handleWebLogoAsset(invalidResponse, invalid)

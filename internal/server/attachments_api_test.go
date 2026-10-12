@@ -48,7 +48,7 @@ func TestBaselineAttachmentUploadMetadataAndRangeDownload(t *testing.T) {
 		t.Fatal(err)
 	}
 	app := New(Options{Workspace: store}).Handler()
-	notMultipartRequest := httptest.NewRequest(http.MethodPost, "/api/projects/project-1/attachments", nil)
+	notMultipartRequest := newLoopbackTestRequest(http.MethodPost, "/api/projects/project-1/attachments", nil)
 	notMultipartRequest.Header.Set("X-Synon-User-Id", "user-1")
 	notMultipart := httptest.NewRecorder()
 	app.ServeHTTP(notMultipart, notMultipartRequest)
@@ -57,7 +57,7 @@ func TestBaselineAttachmentUploadMetadataAndRangeDownload(t *testing.T) {
 	}
 	payload := []byte("attachment-range-content")
 	body, contentType := multipartAttachmentBody(t, "file", "evidence.txt", payload, nil)
-	request := httptest.NewRequest(http.MethodPost, "/api/projects/project-1/attachments?ephemeral=true", body)
+	request := newLoopbackTestRequest(http.MethodPost, "/api/projects/project-1/attachments?ephemeral=true", body)
 	request.Header.Set("Content-Type", contentType)
 	request.Header.Set("X-Synon-User-Id", "user-1")
 	response := httptest.NewRecorder()
@@ -74,7 +74,7 @@ func TestBaselineAttachmentUploadMetadataAndRangeDownload(t *testing.T) {
 		t.Fatalf("uploaded = %#v", uploaded)
 	}
 
-	metadataRequest := httptest.NewRequest(http.MethodGet, "/api/attachments/"+attachmentID+"/metadata", nil)
+	metadataRequest := newLoopbackTestRequest(http.MethodGet, "/api/attachments/"+attachmentID+"/metadata", nil)
 	metadataRequest.Header.Set("X-Synon-User-Id", "user-1")
 	metadata := httptest.NewRecorder()
 	app.ServeHTTP(metadata, metadataRequest)
@@ -84,14 +84,14 @@ func TestBaselineAttachmentUploadMetadataAndRangeDownload(t *testing.T) {
 		t.Fatalf("metadata = %d: %s", metadata.Code, metadata.Body.String())
 	}
 
-	foreignRequest := httptest.NewRequest(http.MethodGet, "/api/attachments/"+attachmentID+"/metadata", nil)
+	foreignRequest := newLoopbackTestRequest(http.MethodGet, "/api/attachments/"+attachmentID+"/metadata", nil)
 	foreignRequest.Header.Set("X-Synon-User-Id", "user-2")
 	foreign := httptest.NewRecorder()
 	app.ServeHTTP(foreign, foreignRequest)
 	if foreign.Code != http.StatusNotFound {
 		t.Fatalf("cross-user metadata = %d: %s", foreign.Code, foreign.Body.String())
 	}
-	missingRequest := httptest.NewRequest(http.MethodGet, "/api/attachments/missing-attachment/metadata", nil)
+	missingRequest := newLoopbackTestRequest(http.MethodGet, "/api/attachments/missing-attachment/metadata", nil)
 	missingRequest.Header.Set("X-Synon-User-Id", "user-1")
 	missing := httptest.NewRecorder()
 	app.ServeHTTP(missing, missingRequest)
@@ -99,7 +99,7 @@ func TestBaselineAttachmentUploadMetadataAndRangeDownload(t *testing.T) {
 		t.Fatalf("missing metadata = %d: %s", missing.Code, missing.Body.String())
 	}
 
-	downloadRequest := httptest.NewRequest(http.MethodGet, "/api/attachments/"+attachmentID, nil)
+	downloadRequest := newLoopbackTestRequest(http.MethodGet, "/api/attachments/"+attachmentID, nil)
 	downloadRequest.Header.Set("X-Synon-User-Id", "user-1")
 	downloadRequest.Header.Set("Range", "bytes=11-15")
 	download := httptest.NewRecorder()
@@ -125,7 +125,7 @@ func TestAttachmentUploadRejectsForeignProjectBeforeMultipartParsing(t *testing.
 		t.Fatal(err)
 	}
 	app := New(Options{Workspace: store}).Handler()
-	request := httptest.NewRequest(http.MethodPost, "/api/projects/private-project/attachments", strings.NewReader("not multipart"))
+	request := newLoopbackTestRequest(http.MethodPost, "/api/projects/private-project/attachments", strings.NewReader("not multipart"))
 	request.Header.Set("Content-Type", "text/plain")
 	request.Header.Set("X-Synon-User-Id", "owner-b")
 	response := httptest.NewRecorder()
@@ -149,7 +149,7 @@ func TestBaselineChunkedAttachmentUploadLifecycle(t *testing.T) {
 	chunkSize := 1 << 20
 	payload := bytes.Repeat([]byte("abcdefghij"), (2*chunkSize+10)/10)
 	initBody := bytes.NewBufferString(fmt.Sprintf(`{"project_id":"project-1","filename":"large.bin","total_size":%d,"content_type":"application/octet-stream","chunk_size":%d}`, len(payload), chunkSize))
-	initRequest := httptest.NewRequest(http.MethodPost, "/api/artifacts/upload/init", initBody)
+	initRequest := newLoopbackTestRequest(http.MethodPost, "/api/artifacts/upload/init", initBody)
 	initRequest.Header.Set("Content-Type", "application/json")
 	initRequest.Header.Set("X-Synon-User-Id", "user-1")
 	initialized := httptest.NewRecorder()
@@ -169,7 +169,7 @@ func TestBaselineChunkedAttachmentUploadLifecycle(t *testing.T) {
 	for index, chunk := range [][]byte{payload[:chunkSize], payload[chunkSize : 2*chunkSize], payload[2*chunkSize:]} {
 		fields := map[string]string{"upload_id": uploadID, "chunk_index": string(rune('0' + index))}
 		body, contentType := multipartAttachmentBody(t, "chunk", "chunk.bin", chunk, fields)
-		request := httptest.NewRequest(http.MethodPost, "/api/artifacts/upload/chunk", body)
+		request := newLoopbackTestRequest(http.MethodPost, "/api/artifacts/upload/chunk", body)
 		request.Header.Set("Content-Type", contentType)
 		request.Header.Set("X-Synon-User-Id", "user-1")
 		response := httptest.NewRecorder()
@@ -185,7 +185,7 @@ func TestBaselineChunkedAttachmentUploadLifecycle(t *testing.T) {
 			t.Fatalf("chunk %d response=%#v", index, chunkResult)
 		}
 	}
-	statusRequest := httptest.NewRequest(http.MethodGet, "/api/artifacts/upload/status/"+uploadID, nil)
+	statusRequest := newLoopbackTestRequest(http.MethodGet, "/api/artifacts/upload/status/"+uploadID, nil)
 	statusRequest.Header.Set("X-Synon-User-Id", "user-1")
 	status := httptest.NewRecorder()
 	app.ServeHTTP(status, statusRequest)
@@ -203,7 +203,7 @@ func TestBaselineChunkedAttachmentUploadLifecycle(t *testing.T) {
 	digest := sha256.Sum256(payload)
 	finalize := func(start <-chan struct{}, responses chan<- *httptest.ResponseRecorder) {
 		<-start
-		request := httptest.NewRequest(http.MethodPost,
+		request := newLoopbackTestRequest(http.MethodPost,
 			"/api/artifacts/upload/finalize?upload_id="+uploadID+"&checksum="+hex.EncodeToString(digest[:]), nil)
 		request.Header.Set("X-Synon-User-Id", "user-1")
 		request.Header.Set("Idempotency-Key", "attachment-finalize-http-retry")
@@ -251,7 +251,7 @@ func TestBaselineChunkedAttachmentUploadLifecycle(t *testing.T) {
 	if err != nil || len(artifacts) != 1 || artifacts[0].ID != artifactID || artifacts[0].VersionID != versionID || !artifacts[0].IsUserUpload {
 		t.Fatalf("finalized project artifact=%#v err=%v", artifacts, err)
 	}
-	conflictRequest := httptest.NewRequest(http.MethodPost,
+	conflictRequest := newLoopbackTestRequest(http.MethodPost,
 		"/api/artifacts/upload/finalize?upload_id="+uploadID+"&checksum="+strings.Repeat("0", 64), nil)
 	conflictRequest.Header.Set("X-Synon-User-Id", "user-1")
 	conflictRequest.Header.Set("Idempotency-Key", "attachment-finalize-http-retry")
@@ -260,7 +260,7 @@ func TestBaselineChunkedAttachmentUploadLifecycle(t *testing.T) {
 	if conflict.Code != http.StatusConflict {
 		t.Fatalf("finalize changed retry = %d: %s", conflict.Code, conflict.Body.String())
 	}
-	downloadRequest := httptest.NewRequest(http.MethodGet, "/api/artifacts/"+artifactID, nil)
+	downloadRequest := newLoopbackTestRequest(http.MethodGet, "/api/artifacts/"+artifactID, nil)
 	downloadRequest.Header.Set("X-Synon-User-Id", "user-1")
 	download := httptest.NewRecorder()
 	app.ServeHTTP(download, downloadRequest)
@@ -271,12 +271,12 @@ func TestBaselineChunkedAttachmentUploadLifecycle(t *testing.T) {
 		t.Fatalf("finalized upload chunks still exist: %v", err)
 	}
 
-	cancelInit := httptest.NewRequest(http.MethodPost, "/api/artifacts/upload/init", bytes.NewBufferString(fmt.Sprintf(
+	cancelInit := newLoopbackTestRequest(http.MethodPost, "/api/artifacts/upload/init", bytes.NewBufferString(fmt.Sprintf(
 		`{"project_id":"project-1","filename":"cancel.bin","total_size":%d,"chunk_size":%d}`, chunkSize, chunkSize,
 	)))
 	cancelInit.Header.Set("Content-Type", "application/json")
 	cancelInit.Header.Set("X-Synon-User-Id", "user-1")
-	duplicateRequest := httptest.NewRequest(http.MethodGet, "/api/attachments/"+artifactID+"/metadata", nil)
+	duplicateRequest := newLoopbackTestRequest(http.MethodGet, "/api/attachments/"+artifactID+"/metadata", nil)
 	duplicateRequest.Header.Set("X-Synon-User-Id", "user-1")
 	duplicate := httptest.NewRecorder()
 	app.ServeHTTP(duplicate, duplicateRequest)
@@ -294,7 +294,7 @@ func TestBaselineChunkedAttachmentUploadLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	cancelID, _ := cancelState["upload_id"].(string)
-	cancelRequest := httptest.NewRequest(http.MethodDelete, "/api/artifacts/upload/"+cancelID, nil)
+	cancelRequest := newLoopbackTestRequest(http.MethodDelete, "/api/artifacts/upload/"+cancelID, nil)
 	cancelRequest.Header.Set("X-Synon-User-Id", "user-1")
 	cancelled := httptest.NewRecorder()
 	app.ServeHTTP(cancelled, cancelRequest)

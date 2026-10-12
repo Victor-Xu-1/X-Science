@@ -15,7 +15,7 @@ import (
 
 func TestCompatibilityExecutionLogAndSessionExport(t *testing.T) {
 	app, rootFrameID, _, firstVersionID, _ := exportFixture(t)
-	logRequest := httptest.NewRequest(http.MethodGet,
+	logRequest := newLoopbackTestRequest(http.MethodGet,
 		"/api/frames/"+rootFrameID+"/execution-log?versionId="+firstVersionID, nil)
 	logRequest.Header.Set("X-Synon-User-Id", "user-1")
 	logResponse := httptest.NewRecorder()
@@ -48,7 +48,7 @@ func TestCompatibilityExecutionLogAndSessionExport(t *testing.T) {
 	}
 
 	// v1.1 accepts an unambiguous root prefix and streams gzip when requested.
-	exportRequest := httptest.NewRequest(http.MethodGet, "/api/frames/frame-ro/export", nil)
+	exportRequest := newLoopbackTestRequest(http.MethodGet, "/api/frames/frame-ro/export", nil)
 	exportRequest.Header.Set("X-Synon-User-Id", "user-1")
 	exportRequest.Header.Set("Accept-Encoding", "gzip")
 	exported := httptest.NewRecorder()
@@ -99,7 +99,7 @@ func TestCompatibilitySessionFullAndSlicedBundles(t *testing.T) {
 		{name: "sliced", target: "/api/frames/" + rootFrameID + "/bundle?scope=sliced&version_id=" + firstVersionID, scope: "sliced"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			request := httptest.NewRequest(http.MethodGet, test.target, nil)
+			request := newLoopbackTestRequest(http.MethodGet, test.target, nil)
 			request.Header.Set("X-Synon-User-Id", "user-1")
 			response := httptest.NewRecorder()
 			app.ServeHTTP(response, request)
@@ -137,7 +137,7 @@ func TestCompatibilitySessionFullAndSlicedBundles(t *testing.T) {
 		})
 	}
 
-	missingVersion := httptest.NewRequest(http.MethodGet, "/api/frames/"+rootFrameID+"/bundle?scope=sliced", nil)
+	missingVersion := newLoopbackTestRequest(http.MethodGet, "/api/frames/"+rootFrameID+"/bundle?scope=sliced", nil)
 	missingVersion.Header.Set("X-Synon-User-Id", "user-1")
 	missingResponse := httptest.NewRecorder()
 	app.ServeHTTP(missingResponse, missingVersion)
@@ -148,7 +148,7 @@ func TestCompatibilitySessionFullAndSlicedBundles(t *testing.T) {
 
 func TestCompatibilityScriptBundleUsesExtractedCodeAndInputs(t *testing.T) {
 	app, _, _, firstVersionID, _ := exportFixture(t)
-	request := httptest.NewRequest(http.MethodGet, "/api/artifacts/"+firstVersionID+"/script-bundle", nil)
+	request := newLoopbackTestRequest(http.MethodGet, "/api/artifacts/"+firstVersionID+"/script-bundle", nil)
 	request.Header.Set("X-Synon-User-Id", "user-1")
 	response := httptest.NewRecorder()
 	app.ServeHTTP(response, request)
@@ -174,7 +174,7 @@ func TestCompatibilityScriptBundleUsesExtractedCodeAndInputs(t *testing.T) {
 		t.Fatalf("script run.sh mode = %v", mode)
 	}
 
-	missing := httptest.NewRequest(http.MethodGet, "/api/artifacts/missing-version/script-bundle", nil)
+	missing := newLoopbackTestRequest(http.MethodGet, "/api/artifacts/missing-version/script-bundle", nil)
 	missing.Header.Set("X-Synon-User-Id", "user-1")
 	missingResponse := httptest.NewRecorder()
 	app.ServeHTTP(missingResponse, missing)

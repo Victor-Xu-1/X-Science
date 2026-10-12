@@ -823,7 +823,7 @@ func p3JSONRequest(
 		}
 		requestBody = bytes.NewReader(raw)
 	}
-	request := httptest.NewRequest(method, path, requestBody)
+	request := newLoopbackTestRequest(method, path, requestBody)
 	request.RemoteAddr = "127.0.0.1:12345"
 	if body != nil {
 		request.Header.Set("Content-Type", "application/json")

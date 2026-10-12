@@ -404,7 +404,7 @@ func webFSTestLoopbackProxyRequest(
 		}
 		reader = strings.NewReader(string(raw))
 	}
-	request := httptest.NewRequest(method, path, reader)
+	request := newLoopbackTestRequest(method, path, reader)
 	request.RemoteAddr = "127.0.0.1:12345"
 	request.Host = host
 	request.Header.Set("Content-Type", "application/json")
@@ -476,7 +476,7 @@ func webFSTestRequest(
 		}
 		reader = strings.NewReader(string(raw))
 	}
-	request := httptest.NewRequest(method, path, reader)
+	request := newLoopbackTestRequest(method, path, reader)
 	request.RemoteAddr = "127.0.0.1:12345"
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("X-Synon-User-Id", userID)

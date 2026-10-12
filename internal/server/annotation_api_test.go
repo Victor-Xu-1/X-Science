@@ -65,7 +65,7 @@ func TestAnnotationHTTPAPIPersistsEditsAndCarriesToNewArtifactVersion(t *testing
 		t.Fatalf("created annotation = %#v", created)
 	}
 	foreign := httptest.NewRecorder()
-	foreignRequest := httptest.NewRequest(http.MethodGet, annotationPath, nil)
+	foreignRequest := newLoopbackTestRequest(http.MethodGet, annotationPath, nil)
 	foreignRequest.Header.Set("X-Synon-User-Id", "user-2")
 	app.ServeHTTP(foreign, foreignRequest)
 	if foreign.Code != http.StatusNotFound {
@@ -73,7 +73,7 @@ func TestAnnotationHTTPAPIPersistsEditsAndCarriesToNewArtifactVersion(t *testing
 	}
 	foreignMutation := httptest.NewRecorder()
 	foreignBody := bytes.NewBufferString(`{"text":"unauthorized"}`)
-	foreignMutationRequest := httptest.NewRequest(http.MethodPatch, "/api/annotations/"+annotationID, foreignBody)
+	foreignMutationRequest := newLoopbackTestRequest(http.MethodPatch, "/api/annotations/"+annotationID, foreignBody)
 	foreignMutationRequest.Header.Set("X-Synon-User-Id", "user-2")
 	foreignMutationRequest.Header.Set("Content-Type", "application/json")
 	app.ServeHTTP(foreignMutation, foreignMutationRequest)
@@ -117,7 +117,7 @@ func TestAnnotationHTTPAPIPersistsEditsAndCarriesToNewArtifactVersion(t *testing
 		t.Fatalf("new version annotations = %#v", listed)
 	}
 
-	request := httptest.NewRequest(http.MethodDelete, "/api/annotations/"+annotationID, nil)
+	request := newLoopbackTestRequest(http.MethodDelete, "/api/annotations/"+annotationID, nil)
 	request.Header.Set("X-Synon-User-Id", "user-1")
 	response := httptest.NewRecorder()
 	app.ServeHTTP(response, request)
@@ -324,7 +324,7 @@ func annotationJSONRequest(t *testing.T, app http.Handler, method, path string, 
 		}
 		reader = bytes.NewReader(raw)
 	}
-	request := httptest.NewRequest(method, path, reader)
+	request := newLoopbackTestRequest(method, path, reader)
 	request.Header.Set("X-Synon-User-Id", "user-1")
 	request.Header.Set("Content-Type", "application/json")
 	response := httptest.NewRecorder()

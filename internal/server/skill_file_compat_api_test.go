@@ -60,7 +60,7 @@ func TestCompatibilitySkillFilesDownloadEditConcurrencyAndRestart(t *testing.T) 
 		t.Fatalf("skill files = %#v", files)
 	}
 	download := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodGet, "/api/skills/catalog/editable/download", nil)
+	request := newLoopbackTestRequest(http.MethodGet, "/api/skills/catalog/editable/download", nil)
 	request.Header.Set("X-Synon-User-Id", "user-1")
 	app.ServeHTTP(download, request)
 	if download.Code != http.StatusOK || download.Header().Get("Content-Type") != "application/zip" {
@@ -128,7 +128,7 @@ func TestCompatibilitySkillFilesDownloadEditConcurrencyAndRestart(t *testing.T) 
 				"path": "references/guide.md", "old_string": "unique new", "new_string": replacement,
 			})
 			response := httptest.NewRecorder()
-			request := httptest.NewRequest(http.MethodPost, "/api/skills/editable/edit", strings.NewReader(string(body)))
+			request := newLoopbackTestRequest(http.MethodPost, "/api/skills/editable/edit", strings.NewReader(string(body)))
 			request.Header.Set("Content-Type", "application/json")
 			request.Header.Set("X-Synon-User-Id", "user-1")
 			app.ServeHTTP(response, request)

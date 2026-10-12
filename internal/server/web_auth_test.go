@@ -153,7 +153,7 @@ func TestWebLogoutKeepsLegacyCompatibilityCookieRevocation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	request := httptest.NewRequest(http.MethodPost, "/logout", strings.NewReader(`{}`))
+	request := newLoopbackTestRequest(http.MethodPost, "/logout", strings.NewReader(`{}`))
 	request.RemoteAddr = "127.0.0.1:12345"
 	request.AddCookie(&http.Cookie{Name: "session", Value: legacyToken})
 	response := httptest.NewRecorder()
@@ -171,7 +171,7 @@ func TestP2PasswordModeDefaultsToDenyAndRejectsSpoofedIdentity(t *testing.T) {
 		Username: "operator", Password: "test-secret-password", UserID: "user-1",
 	}})
 	for _, path := range []string{"/api/me", "/api/tools", "/api/events/stream", "/ws/session-1", "/api/mcp/servers", "/api/mcp/test-connection"} {
-		request := httptest.NewRequest(http.MethodGet, path, nil)
+		request := newLoopbackTestRequest(http.MethodGet, path, nil)
 		request.RemoteAddr = "127.0.0.1:12345"
 		request.Header.Set("X-Synon-User-Id", "attacker")
 		response := httptest.NewRecorder()
@@ -187,7 +187,7 @@ func TestP2PasswordModeDefaultsToDenyAndRejectsSpoofedIdentity(t *testing.T) {
 			t.Fatalf("path=%s error-code=%q body=%s", path, response.Header().Get(webErrorCodeHeader), response.Body.String())
 		}
 	}
-	querySpoof := httptest.NewRequest(http.MethodGet, "/api/me?userId=attacker", nil)
+	querySpoof := newLoopbackTestRequest(http.MethodGet, "/api/me?userId=attacker", nil)
 	querySpoof.RemoteAddr = "127.0.0.1:12345"
 	querySpoofResponse := httptest.NewRecorder()
 	app.Handler().ServeHTTP(querySpoofResponse, querySpoof)
@@ -195,7 +195,7 @@ func TestP2PasswordModeDefaultsToDenyAndRejectsSpoofedIdentity(t *testing.T) {
 		t.Fatalf("query spoof status=%d body=%s", querySpoofResponse.Code, querySpoofResponse.Body.String())
 	}
 
-	health := httptest.NewRequest(http.MethodGet, "/health", nil)
+	health := newLoopbackTestRequest(http.MethodGet, "/health", nil)
 	health.RemoteAddr = "203.0.113.8:12345"
 	healthResponse := httptest.NewRecorder()
 	app.Handler().ServeHTTP(healthResponse, health)
@@ -203,7 +203,7 @@ func TestP2PasswordModeDefaultsToDenyAndRejectsSpoofedIdentity(t *testing.T) {
 		t.Fatalf("health endpoint unexpectedly requires authentication: %s", healthResponse.Body.String())
 	}
 
-	currentUser := httptest.NewRequest(http.MethodGet, "/api/auth/user", nil)
+	currentUser := newLoopbackTestRequest(http.MethodGet, "/api/auth/user", nil)
 	currentUser.RemoteAddr = "127.0.0.1:12345"
 	currentUserResponse := httptest.NewRecorder()
 	app.Handler().ServeHTTP(currentUserResponse, currentUser)

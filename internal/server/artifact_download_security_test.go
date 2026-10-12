@@ -28,7 +28,7 @@ func TestArtifactZIPSanitizesTraversalAndDuplicateNames(t *testing.T) {
 		}
 	}
 	app := New(Options{Workspace: store}).Handler()
-	request := httptest.NewRequest(http.MethodGet, "/api/artifacts/download?ids=artifact-1,artifact-2", nil)
+	request := newLoopbackTestRequest(http.MethodGet, "/api/artifacts/download?ids=artifact-1,artifact-2", nil)
 	request.Header.Set("X-Synon-User-Id", "user-1")
 	response := httptest.NewRecorder()
 	app.ServeHTTP(response, request)
@@ -57,7 +57,7 @@ func TestArtifactDownloadSelectionRejectsMoreThanTwoHundredIDs(t *testing.T) {
 	for index := range ids {
 		ids[index] = "artifact-" + strings.Repeat("x", index+1)
 	}
-	request := httptest.NewRequest(http.MethodGet, "/api/artifacts/download?ids="+strings.Join(ids, ","), nil)
+	request := newLoopbackTestRequest(http.MethodGet, "/api/artifacts/download?ids="+strings.Join(ids, ","), nil)
 	request.Header.Set("X-Synon-User-Id", "user-1")
 	response := httptest.NewRecorder()
 	app.ServeHTTP(response, request)

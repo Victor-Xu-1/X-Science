@@ -435,7 +435,7 @@ func assertLargeResultExactContentHTTP(
 ) {
 	t.Helper()
 	request := func(method string, headers map[string]string) *httptest.ResponseRecorder {
-		req := httptest.NewRequest(method, descriptor.ContentURL, nil)
+		req := newLoopbackTestRequest(method, descriptor.ContentURL, nil)
 		req.Header.Set("X-Synon-User-Id", ownerID)
 		for key, value := range headers {
 			req.Header.Set(key, value)

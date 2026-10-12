@@ -139,7 +139,7 @@ func TestArtifactEncodedIdentityFolderDispatch(t *testing.T) {
 	identity := encodedArtifactIdentity{"folder", "artifact/folder%literal", "version/folder%literal"}
 	app := encodedArtifactFixture(t, []encodedArtifactIdentity{identity})
 	for _, userID := range []string{"owner", "foreign"} {
-		request := httptest.NewRequest(http.MethodPatch, "/api/artifacts/"+url.PathEscape(identity.artifactID)+"/folder", strings.NewReader(`{"folder_id":null}`))
+		request := newLoopbackTestRequest(http.MethodPatch, "/api/artifacts/"+url.PathEscape(identity.artifactID)+"/folder", strings.NewReader(`{"folder_id":null}`))
 		request.Header.Set("X-Synon-User-Id", userID)
 		request.Header.Set("Content-Type", "application/json")
 		response := httptest.NewRecorder()
