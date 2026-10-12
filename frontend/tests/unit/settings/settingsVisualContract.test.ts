@@ -144,7 +144,7 @@ describe('intrinsic settings presentation contract', () => {
     expect(surfaces).toContain(':has(> .settings-skill-card__open:focus-visible)');
     expect(surfaces).toMatch(/\.settings-skill-card__open:focus-visible\s*\{[^}]*outline:\s*none !important/);
     expect(surfaces).not.toContain('.settings-library-card:focus-within');
-    expect(surfaces).toContain('outline: 2px solid var(--settings-accent)');
+    expect(surfaces).toContain('outline: var(--ui-focus-width) solid var(--workspace-focus-ring)');
     expect(surfaces).toContain('@media (hover: hover) and (pointer: fine)');
     expect(surfaces).toContain('transform: translateY(-1px)');
     expect(surfaces).toContain('@media (prefers-reduced-motion: reduce)');

@@ -103,7 +103,7 @@ body[arco-theme='dark'] .x-science-ask-user-history {
 }
 
 .x-science-ask-user-history__edit.arco-btn:focus-visible {
-  outline: 2px solid var(--color-primary-6);
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
   outline-offset: 1px;
 }
 

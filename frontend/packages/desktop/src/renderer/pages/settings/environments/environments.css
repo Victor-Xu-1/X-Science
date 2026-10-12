@@ -47,8 +47,8 @@
 }
 
 .environment-search:focus-within {
-  border-color: color-mix(in srgb, var(--settings-accent, #3b3a37) 42%, var(--settings-border, #dfe7ef));
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--settings-accent, #3b3a37) 12%, transparent);
+  border-color: var(--workspace-border-strong);
+  box-shadow: none;
 }
 
 .environment-toolbar > select,
@@ -81,7 +81,7 @@
 .environment-filter-toggle:focus-visible,
 .environment-filter-panel select:focus-visible,
 .environment-filter-reset:focus-visible {
-  outline: 2px solid var(--settings-accent, #3b3a37);
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
   outline-offset: 2px;
 }
 
@@ -388,7 +388,7 @@
 }
 
 .environment-library :is(button, input, select, summary):focus-visible {
-  outline: 2px solid var(--settings-accent, rgb(var(--primary-6)));
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
   outline-offset: 3px;
 }
 

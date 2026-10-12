@@ -453,7 +453,7 @@ func TestWebClientSettingsPersistFilterAndProtectBusinessValues(t *testing.T) {
 }
 
 func TestWebConversationDefaultDisplayNameKeepsLegacyIdentity(t *testing.T) {
-	for _, name := range []string{"", "X_SCIENCE"} {
+	for _, name := range []string{"", "X_SCIENCE", "SYNON"} {
 		frame := workspace.CompatibilityFrame{}
 		frame.ID, frame.ProjectID, frame.AgentName = "frame-brand", "project-brand", name
 		projected := webConversation(frame, "Project")
@@ -462,7 +462,10 @@ func TestWebConversationDefaultDisplayNameKeepsLegacyIdentity(t *testing.T) {
 			t.Fatalf("brand must change display only, not identity: %#v", assistant)
 		}
 		if projected["extra"].(map[string]any)["agent_name"] != "X_SCIENCE" {
-			t.Fatal("legacy persisted agent identity changed")
+			t.Fatal("current presentation retained a retired default assistant key")
+		}
+		if frame.AgentName != name {
+			t.Fatal("presentation rewrote the original frame")
 		}
 	}
 	frame := workspace.CompatibilityFrame{}
@@ -470,6 +473,10 @@ func TestWebConversationDefaultDisplayNameKeepsLegacyIdentity(t *testing.T) {
 	projected := webConversation(frame, "Project")
 	if projected["assistant"].(map[string]any)["name"] != "User Researcher" {
 		t.Fatal("branding must not overwrite a user's expert name")
+	}
+	frame.DelegateName = "SYNON"
+	if webConversation(frame, "Project")["assistant"].(map[string]any)["name"] != "SYNON" {
+		t.Fatal("custom delegate was renamed")
 	}
 }
 

@@ -1245,10 +1245,10 @@ func TestDefaultSkillCatalogLoadsBundledSkillsWithoutMissingDefaultErrors(t *tes
 func TestDefaultSkillCatalogDoesNotLoadPersonalXScienceSkillPathsByDefault(t *testing.T) {
 	root := t.TempDir()
 	home := filepath.Join(root, "home")
-	if err := os.MkdirAll(filepath.Join(home, ".xscience", "skills", "personal-skill"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(home, ".x-science", "skills", "personal-skill"), 0o755); err != nil {
 		t.Fatalf("mkdir home skill: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(home, ".xscience", "skills", "personal-skill", "SKILL.md"), []byte(`---
+	if err := os.WriteFile(filepath.Join(home, ".x-science", "skills", "personal-skill", "SKILL.md"), []byte(`---
 name: personal-x-science-skill
 description: Personal XScience skill path
 ---
@@ -1278,7 +1278,7 @@ Personal-level original XScience skill.
 	if len(loadErrors) != 0 {
 		t.Fatalf("default skill catalog should ignore absent optional dirs, got %#v", loadErrors)
 	}
-	if stringSliceContains(directories, filepath.Join(home, ".xscience", "skills")) ||
+	if stringSliceContains(directories, filepath.Join(home, ".x-science", "skills")) ||
 		stringSliceContains(directories, filepath.Join(home, ".claude", "skills")) {
 		t.Fatalf("default skill catalog must not depend on personal legacy skill dirs: %#v", directories)
 	}
@@ -1293,7 +1293,7 @@ func TestDefaultSkillCatalogDoesNotLoadAmbientProjectOrAncestorSkills(t *testing
 	nested := filepath.Join(project, "nested")
 	for _, skillRoot := range []string{
 		filepath.Join(project, "skills", "ambient-project"),
-		filepath.Join(project, ".xscience", "skills", "ambient-xscience"),
+		filepath.Join(project, ".x-science", "skills", "ambient-xscience"),
 		filepath.Join(nested, "skills", "ambient-cwd"),
 	} {
 		if err := os.MkdirAll(skillRoot, 0o755); err != nil {
@@ -1360,7 +1360,7 @@ func TestConfiguredSkillCatalogRejectsRelativeDirectoryInsteadOfResolvingAgainst
 
 func TestConfiguredSkillDirectoriesCanLoadProjectXScienceSkillPaths(t *testing.T) {
 	root := t.TempDir()
-	projectSkillDir := filepath.Join(root, "project", ".xscience", "skills")
+	projectSkillDir := filepath.Join(root, "project", ".x-science", "skills")
 	if err := os.MkdirAll(filepath.Join(projectSkillDir, "project-skill"), 0o755); err != nil {
 		t.Fatalf("mkdir project skill: %v", err)
 	}
@@ -2218,7 +2218,7 @@ func TestAgentRuntimeDoctorSkillsAreaRejectsPersonalDefaultDirectories(t *testin
 		t.Fatalf("skills evidence should expose personal default directory usage: %#v", evidence)
 	}
 	if evidence["hasProjectXScienceSkillCompatibility"] != true {
-		t.Fatalf("skills evidence should retain project .xscience/skills compatibility: %#v", evidence)
+		t.Fatalf("skills evidence should retain project .x-science/skills compatibility: %#v", evidence)
 	}
 }
 func TestAgentRuntimeDoctorSkillsAreaRequiresSearchAndInvocationTools(t *testing.T) {

@@ -67,6 +67,20 @@ func namespaceOperationKeyMatches(ctx context.Context, marker managedEnvironment
 	if marker.OperationKey == current {
 		return true
 	}
+	if marker.NamespaceImport != nil {
+		// Imported generations retain the exact original operation receipt,
+		// not a newly minted install operation. Recover it only through the
+		// verified original marker and the same bounded request-key context.
+		verified, err := validateNamespaceRegisteredEnvironmentMarker(marker)
+		if err != nil {
+			return false
+		}
+		original, err := decodeNamespaceRegistrationSource(*verified.NamespaceImport)
+		if err != nil {
+			return false
+		}
+		return namespaceOperationKeyMatches(ctx, original, current)
+	}
 	if marker.PreviousNamespace == nil {
 		return false
 	}

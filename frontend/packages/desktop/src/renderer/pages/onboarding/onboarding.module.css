@@ -348,14 +348,14 @@
   background: var(--color-fill-1);
 }
 .root :where(button, [role='button'], [role='switch'], [role='tab']):focus-visible {
-  outline: 3px solid rgb(var(--primary-6));
-  outline-offset: 3px;
-  box-shadow: 0 0 0 2px var(--color-bg-2);
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
+  outline-offset: var(--ui-focus-offset);
+  box-shadow: none;
 }
 
 .root :where(input, textarea, select):focus-visible {
-  outline: 2px solid var(--workspace-text, var(--color-text-1));
-  outline-offset: 3px;
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
+  outline-offset: var(--ui-focus-offset);
 }
 .root h1:focus {
   outline: none;

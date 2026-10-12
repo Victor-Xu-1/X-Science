@@ -17,7 +17,10 @@ import (
 // immutable generation remains available to running or durable tasks and can
 // be garbage-collected only by a later reference-aware maintenance pass.
 func (m *Manager) DeleteManagedEnvironment(ctx context.Context, input DeleteManagedEnvironmentInput) error {
-	name := input.Name
+	name, aliasErr := m.resolveNamespaceImportedEnvironmentInput(input.Name)
+	if aliasErr != nil {
+		return aliasErr
+	}
 	if err := validateManagedEnvironmentName(name); err != nil {
 		return err
 	}

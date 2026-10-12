@@ -110,7 +110,7 @@ func TestMaterializeAgentSkillRuntimeBundleCopiesAndRepairsResources(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !hostPathWithin(workspace, first) || !strings.Contains(first, filepath.Join(".xscience", "runtime", "skills")) {
+	if !hostPathWithin(workspace, first) || !strings.Contains(first, filepath.Join(".x-science", "runtime", "skills")) {
 		t.Fatalf("materialized path escaped workspace: %q", first)
 	}
 	script := filepath.Join(first, "scripts", "tool.py")
@@ -183,13 +183,13 @@ func TestLoadAgentSkillRuntimeBundleLeavesInstructionOnlySkillInline(t *testing.
 
 func TestRenderSkillPromptSurfacesPreferredExecutionAssets(t *testing.T) {
 	skill := skills.Skill{
-		Name: "analysis-workflow", Path: "/workspace/.xscience/runtime/skills/analysis-workflow-abcd/SKILL.md",
+		Name: "analysis-workflow", Path: "/workspace/.x-science/runtime/skills/analysis-workflow-abcd/SKILL.md",
 		Body: "Analyze the supplied cohort.", PreferredExecutionAssets: []string{"scripts/pipeline.py", "templates/report.md"},
 	}
 	prompt := renderSkillPrompt(skill, "")
 	for _, expected := range []string{
-		"Default tested execution route", "/workspace/.xscience/runtime/skills/analysis-workflow-abcd/scripts/pipeline.py",
-		"/workspace/.xscience/runtime/skills/analysis-workflow-abcd/templates/report.md", "Analyze the supplied cohort.",
+		"Default tested execution route", "/workspace/.x-science/runtime/skills/analysis-workflow-abcd/scripts/pipeline.py",
+		"/workspace/.x-science/runtime/skills/analysis-workflow-abcd/templates/report.md", "Analyze the supplied cohort.",
 		"Inspect the first applicable asset's help and preflight", "preserve bounded-memory loading",
 	} {
 		if !strings.Contains(prompt, expected) {

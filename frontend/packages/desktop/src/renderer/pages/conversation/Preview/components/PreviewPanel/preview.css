@@ -218,7 +218,7 @@
 }
 
 .preview-region-comment-composer textarea:focus {
-  box-shadow: inset 0 0 0 1px var(--preview-comment-accent);
+  box-shadow: none;
 }
 
 .preview-region-comment-composer textarea::placeholder {
@@ -513,7 +513,7 @@
 }
 
 .preview-board__icon-button:focus-visible {
-  outline: 1px solid var(--preview-text);
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
   outline-offset: 1px;
 }
 

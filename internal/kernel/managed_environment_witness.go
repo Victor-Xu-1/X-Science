@@ -45,6 +45,9 @@ func (m *Manager) VerifyManagedEnvironmentImports(ctx context.Context, environme
 	if ctx == nil {
 		ctx = context.Background()
 	}
+	if marker, err := m.activeManagedEnvironmentMarker(environment); err == nil && marker.NamespaceImport != nil {
+		ctx = context.WithValue(ctx, namespaceEnvironmentReadOnlyProbeKey{}, true)
+	}
 	if _, bounded := ctx.Deadline(); !bounded {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, managedEnvironmentHealthTimeout)
@@ -65,6 +68,10 @@ func (m *Manager) managedPythonWitnessPrefix(environment string) (string, error)
 }
 
 func (m *Manager) managedWitnessRuntime(environment string) (string, string, error) {
+	environment, aliasErr := m.resolveNamespaceImportedEnvironmentInput(environment)
+	if aliasErr != nil {
+		return "", "", aliasErr
+	}
 	if err := validateManagedEnvironmentName(environment); err != nil {
 		return "", "", err
 	}
@@ -88,10 +95,10 @@ func (m *Manager) managedWitnessRuntime(environment string) (string, string, err
 	if err != nil || marker.Name != environment || marker.Generation != filepath.Base(prefix) {
 		return "", "", errors.New("managed environment generation marker is invalid")
 	}
-	if needsRebuild, err := managedEnvironmentNeedsRebuild(prefix, marker); err != nil || needsRebuild {
+	if needsRebuild, err := managedEnvironmentNeedsRebuild(managedMarkerRuntimePrefix(prefix, marker), marker); err != nil || needsRebuild {
 		return "", "", ErrManagedEnvironmentRebuildRequired
 	}
-	if marker.Kind == "path-venv" {
+	if managedMarkerUsesExternalRuntime(marker) {
 		prefix = marker.RuntimePath
 	}
 	return prefix, marker.Language, nil

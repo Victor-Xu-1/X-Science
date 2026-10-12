@@ -48,7 +48,7 @@ func TestSelectedImplementationBlocksStaleMaterializedSkillAsset(t *testing.T) {
 		taskRun: &sessionRunnerChatRun{SelectedImplementations: []string{"Engine A"}},
 	}
 	script := filepath.ToSlash(filepath.Join(
-		"/tmp/work/.xscience/runtime/skills", agentSkillRuntimeDirectoryName("engine-b-skill"),
+		"/tmp/work/.x-science/runtime/skills", agentSkillRuntimeDirectoryName("engine-b-skill"),
 		"0123456789abcdef", "scripts", "run.py",
 	))
 	result := gateway.agentRuntimeSelectedImplementationMaterializedSkillPreflight("bash", map[string]any{

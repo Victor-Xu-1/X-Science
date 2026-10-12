@@ -264,7 +264,7 @@ func agentRuntimeUnresolvedSkillDirectoryPreflight(publicName string, input map[
 	}
 	if !unresolved {
 		for _, token := range managedExecutionCommandTokens(content) {
-			if strings.HasPrefix(filepath.ToSlash(strings.TrimSpace(token)), "/.xscience/runtime/skills/") {
+			if strings.HasPrefix(filepath.ToSlash(strings.TrimSpace(token)), "/.x-science/runtime/skills/") {
 				unresolved = true
 				break
 			}

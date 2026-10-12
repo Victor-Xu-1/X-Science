@@ -165,6 +165,88 @@ def seed(repo: pathlib.Path, version: str = "0.1.0", commit: bool = False) -> No
         subprocess.run(["git", "-C", str(repo), "commit", "-qm", "seed"], check=True)
 
 
+class ProductIdentityLiteralPrecisionTests(unittest.TestCase):
+    def present(self, source, *, go=True):
+        source = gate._go_source_without_comments(source)[0] if go else source
+        return gate._identity_literal_present(source, gate.derive_identity(identity()), ["4.0.2", "5.0.0"], go=go)
+
+    def test_real_root_module_imports_are_not_second_identity_authorities(self):
+        for source in (
+            'package buildinfo\nimport productidentity "x-science"\nfunc Value() any { return productidentity.Current() }\n',
+            'package sample\nimport (\n _ `x-science`\n "x-science/internal/buildinfo"\n)\n',
+            'package sample; import _ "x-science"; var Value = 1\n',
+        ):
+            with self.subTest(source=source):
+                self.assertFalse(self.present(source))
+
+    def test_schema_api_css_service_and_header_namespaces_remain_independent(self):
+        for value in ("x-science.product-identity.v1", "/api/x-science/link", ".x-science-card",
+                      "x-science.service", "assets/x-science", "X-Science-CSRF-Token", "X-Science-User-Id"):
+            with self.subTest(value=value):
+                self.assertFalse(self.present('package sample\nconst Qualified = ' + json.dumps(value) + '\n'))
+                self.assertFalse(self.present("const qualified = " + json.dumps(value), go=False))
+
+    def test_typed_asset_path_and_native_command_usage_are_not_slug_authorities(self):
+        for source in (
+            'package sample\nimport "path/filepath"\nvar Path = filepath.Join(root, "assets", "x-science")\n',
+            'package sample\nimport paths "path/filepath"\nvar Path = paths.Join(root, "skills", "x-science", "SKILL.md")\n',
+            'package sample\nvar Launch = map[string]any{"command": "x-science", "args": []string{"serve"}}\n',
+            'package sample\nimport "errors"\nvar Usage = errors.New("usage: x-science assets <list|verify>")\n',
+        ):
+            with self.subTest(source=source):
+                self.assertFalse(self.present(source))
+
+    def test_hardcoded_slug_constant_field_return_and_escaped_literal_still_fail(self):
+        for body in (
+            'const MachineSlug = "x-science"', 'var machineSlug = "x-science"',
+            'func Slug() string { return "x-science" }',
+            'var Identity = map[string]string{"machine_slug": "x-science"}',
+            'const MachineSlug = "x-science.product-identity.v1"',
+            r'const Slug = "\x78-science"',
+            'var MachineSlug = filepath.Join("assets", "x-science")',
+        ):
+            with self.subTest(body=body):
+                self.assertTrue(self.present("package sample\n" + body + "\n"))
+
+    def test_quoted_fake_late_or_malformed_import_cannot_hide_injected_slug(self):
+        for body in (
+            'var Payload = `import "x-science"`',
+            r'var Payload = "import \"x-science\""',
+            'var Slug = "x-science"\nimport _ "x-science"',
+            'import (\n "x-science"',
+            'import func "x-science"',
+        ):
+            with self.subTest(body=body):
+                self.assertTrue(self.present("package sample\n" + body + "\n"))
+
+    def test_shadowed_filepath_and_fake_command_string_have_no_context_grant(self):
+        for source in (
+            'package sample\nimport "path/filepath"\nfunc Value(filepath Custom) string { return filepath.Join("assets", "x-science") }\n',
+            'package sample\nvar Payload = `{"command": "x-science", "args": []string{"serve"}}`\n',
+            'package sample\nvar Other = map[string]any{"command": "x-science"}\n',
+            'package sample\nimport "path/filepath"\nvar Slug = filepath.Join(os.Getenv("assets"), "x-science")\n',
+            'package sample\nimport "path/filepath"\nvar Slug = filepath.Join("assets", "..", "x-science")\n',
+        ):
+            with self.subTest(source=source):
+                self.assertTrue(self.present(source))
+
+    def test_display_and_current_or_retired_numeric_version_literals_still_fail(self):
+        for value in ("X-Science", "X-Science product", "v0.1.0", "4.0.2", "5.0.0"):
+            with self.subTest(value=value):
+                self.assertTrue(self.present('package sample\nconst Other = ' + json.dumps(value) + '\n'))
+                self.assertTrue(self.present("const Other = " + json.dumps(value), go=False))
+
+    def test_power_shell_binary_loop_and_shell_flags_keep_identity_assignment_rejection(self):
+        loop = "foreach ($name in @('x-science.exe', 'x-science')) {\n $candidate = Join-Path $Root $name\n}"
+        self.assertFalse(self.present(loop, go=False))
+        self.assertFalse(self.present('echo "archive missing (x-science binary)" >&2', go=False))
+        self.assertFalse(self.present('--binaries "x-science${binary_suffix},x-science-live-im-smoke${binary_suffix}"', go=False))
+        for source in ('$machineSlug = "x-science"', 'product_slug="x-science"', 'display_name="X-Science"',
+                       '$machineSlug = "x-science.service"', '$machineSlug = "' + loop.replace("\n", " ") + '"'):
+            with self.subTest(source=source):
+                self.assertTrue(self.present(source, go=False))
+
+
 class ProductIdentityGateTests(unittest.TestCase):
     def test_current_launcher_and_release_messages_use_product_name(self):
         name = gate._load(ROOT / "product-identity.json", "test")["display_name"]
@@ -187,12 +269,12 @@ class ProductIdentityGateTests(unittest.TestCase):
                 self.assertIn(message, source)
                 self.assertNotIn("[xscience]", source)
                 self.assertNotIn("[x-science-install]", source)
-        # Native executable and existing launcher/state identifiers remain
-        # functional compatibility contracts, not user-visible product names.
+        # The canonical launcher is the only installed source command; state
+        # overrides remain independent from the user-visible product name.
         launcher = (ROOT / "scripts/dev/x-science").read_text(encoding="utf-8")
         self.assertIn("X_SCIENCE_SOURCE_STATE_DIR", launcher)
         self.assertIn("x-science-source-quickstart", launcher)
-        self.assertIn("xscience command remains a compatibility alias", launcher)
+        self.assertNotIn("xscience command remains a compatibility alias", launcher)
         self.assertIn("x-science", (ROOT / "scripts/install-release.sh").read_text(encoding="utf-8"))
         displayed = subprocess.check_output(
             ["bash", "-c", 'source scripts/release-path-policy.sh; x_science_release_product_name'],
@@ -289,8 +371,8 @@ class ProductIdentityGateTests(unittest.TestCase):
         self.assertNotIn('cp scripts/install-release.sh "$pkg/scripts/install-release.sh"', package_script)
         self.assertNotIn('cp scripts/install-release.ps1 "$pkg/scripts/install-release.ps1"', package_script)
         reference_text = (ROOT / "docs/governance/product-identity.json").read_text(encoding="utf-8")
-        for value in (authority["display_name"], authority["version"], authority["machine_slug"]):
-            self.assertNotIn(value, reference_text)
+        self.assertFalse(gate._identity_literal_present(reference_text, gate.derive_identity(authority), []))
+        self.assertEqual(load("docs/governance/product-identity.json")["schema"], gate.REFERENCE_SCHEMA)
 
     def test_derived_identity_and_schema_separation(self):
         with tempfile.TemporaryDirectory() as directory:

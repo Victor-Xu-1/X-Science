@@ -137,7 +137,7 @@ func TestManagedExecutionOutputAuthorityRequiresExactReceiptDigests(t *testing.T
 		}
 		fileWrites = append(fileWrites, kernelruntime.FileWrite{Path: filepath.ToSlash(relative), SHA256: digest})
 	}
-	script := filepath.Join(workspaceDir, ".xscience", "runtime", "skills", "managed-workflow-abcd", "scripts", "run.py")
+	script := filepath.Join(workspaceDir, ".x-science", "runtime", "skills", "managed-workflow-abcd", "scripts", "run.py")
 	records := []workspace.ExecutionLogRecord{{
 		ID: "execution-one", FrameID: access.Frame.ID, KernelID: kernelID,
 		KernelKind: "bash", CondaEnv: "engine-a-runtime", Language: "python",

@@ -16,24 +16,30 @@ function outlineRules(fragment: string) {
 }
 
 describe('Composite search keyboard indicators', () => {
-  it('keeps the existing high-contrast indicator on the enclosing search surface', () => {
+  it('uses the shared thin indicator on the enclosing search surface', () => {
     expect(outlineRules('.conversation-search-modal__searchbar:has(input:focus-visible)')).toEqual([
-      expect.objectContaining({ outline: '2px solid var(--workspace-text)' }),
+      expect.objectContaining({ outline: 'var(--ui-focus-width) solid var(--workspace-focus-ring)' }),
     ]);
     expect(outlineRules('.project-command-palette .arco-input-inner-wrapper:has(input:focus-visible)')).toEqual([
-      expect.objectContaining({ outline: '2px solid var(--workspace-text)' }),
+      expect.objectContaining({ outline: 'var(--ui-focus-width) solid var(--workspace-focus-ring)' }),
     ]);
   });
 
   it('excludes only the inner search field without changing generic ring specificity', () => {
     const rules = outlineRules(':focus-visible:where(');
     expect(rules).toHaveLength(1);
-    expect(rules[0]).toEqual(expect.objectContaining({ outline: '2px solid var(--workspace-text)' }));
+    expect(rules[0]).toEqual(
+      expect.objectContaining({ outline: 'var(--ui-focus-width) solid var(--workspace-focus-ring)' })
+    );
     expect(rules[0].selector).toContain("input:not([type='hidden'])");
     expect(rules[0].selector).toContain('textarea');
     expect(rules[0].selector).toContain('select');
     expect(rules[0].selector).toContain('.conversation-search-modal__searchbar input');
     expect(rules[0].selector).toContain('.project-command-palette .arco-input-inner-wrapper input');
+    expect(rules[0].selector).toContain('.guid-input-card-shell textarea');
+    expect(rules[0].selector).toContain('.sendbox-panel textarea');
+    expect(rules[0].selector).toContain('.settings-library-search input');
+    expect(rules[0].selector).toContain('.environment-search input');
   });
 
   it('does not flatten semantic options with the ordinary dialog-row reset', () => {

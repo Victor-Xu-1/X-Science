@@ -19,6 +19,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"x-science/internal/persistence/productstate"
 )
 
 const (
@@ -101,7 +102,7 @@ func newLocalSpeechRuntime(fileRoot string, httpClient *http.Client) *localSpeec
 	if root == "" {
 		root = os.TempDir()
 	}
-	root = filepath.Join(root, ".xscience", "local-speech")
+	root = filepath.Join(root, productstate.HiddenDirectory, "local-speech")
 	if httpClient == nil {
 		httpClient = http.DefaultClient
 	}

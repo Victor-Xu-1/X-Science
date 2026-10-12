@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"reflect"
 
 	"strings"
 
@@ -193,7 +194,7 @@ func (m *Manager) findManagedEnvironmentOperationGeneration(
 		if readErr != nil || marker.SchemaVersion != managedEnvironmentMarkerVersion || !namespaceOperationKeyMatches(ctx, marker, operationKey) {
 			continue
 		}
-		if needsRebuild, err := managedEnvironmentNeedsRebuild(path, marker); err != nil || needsRebuild {
+		if needsRebuild, err := managedEnvironmentNeedsRebuild(managedMarkerRuntimePrefix(path, marker), marker); err != nil || needsRebuild {
 			continue
 		}
 		candidate := recoveredManagedEnvironment{path: path, environment: ManagedEnvironment{
@@ -217,7 +218,7 @@ func (m *Manager) findManagedEnvironmentOperationGeneration(
 }
 
 func managedEnvironmentMarkerEquivalent(left, right managedEnvironmentMarker) bool {
-	return left.ValidationRevision == right.ValidationRevision && left.SchemaVersion == right.SchemaVersion && left.Name == right.Name && left.Language == right.Language &&
+	return reflect.DeepEqual(left.NamespaceImport, right.NamespaceImport) && left.ValidationRevision == right.ValidationRevision && left.SchemaVersion == right.SchemaVersion && left.Name == right.Name && left.Language == right.Language &&
 		left.Generation == right.Generation && left.Kind == right.Kind && left.SourcePath == right.SourcePath &&
 		left.RuntimePath == right.RuntimePath && left.OperationKey == right.OperationKey && left.SpecDigest == right.SpecDigest &&
 		left.PipReplayRevision == right.PipReplayRevision && left.PipReplayBaseDigest == right.PipReplayBaseDigest &&
@@ -232,7 +233,7 @@ func managedEnvironmentMarkerEquivalent(left, right managedEnvironmentMarker) bo
 // when every content and validation field matches; operation metadata is not
 // part of the generation payload.
 func managedEnvironmentGenerationEquivalent(left, right managedEnvironmentMarker) bool {
-	return left.ValidationRevision == right.ValidationRevision && left.SchemaVersion == right.SchemaVersion && left.Name == right.Name && left.Language == right.Language &&
+	return reflect.DeepEqual(left.NamespaceImport, right.NamespaceImport) && left.ValidationRevision == right.ValidationRevision && left.SchemaVersion == right.SchemaVersion && left.Name == right.Name && left.Language == right.Language &&
 		left.Generation == right.Generation && left.Kind == right.Kind && left.SourcePath == right.SourcePath &&
 		left.RuntimePath == right.RuntimePath && left.SpecDigest == right.SpecDigest &&
 		left.PipReplayRevision == right.PipReplayRevision && left.PipReplayBaseDigest == right.PipReplayBaseDigest &&

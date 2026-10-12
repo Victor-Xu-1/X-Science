@@ -5,6 +5,7 @@
       "name": "core-policy-and-release-validation",
       "paths": [
         "scripts/quality/product_identity_gate.py",
+        "scripts/quality/product_identity_namespace.py",
         "scripts/quality/release_candidate_manifest.py",
         "scripts/quality/test_release_candidate_manifest.py",
         "scripts/quality/release_receipt_gate.py",

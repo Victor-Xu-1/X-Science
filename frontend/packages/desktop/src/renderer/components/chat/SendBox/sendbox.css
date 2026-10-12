@@ -346,7 +346,9 @@
 .composer-icon-control:focus-visible,
 .composer-icon-control.arco-btn:focus-visible {
   background: var(--color-fill-2) !important;
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--text-primary) 20%, transparent) !important;
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring) !important;
+  outline-offset: var(--ui-focus-offset);
+  box-shadow: none !important;
 }
 
 .composer-icon-control:disabled,

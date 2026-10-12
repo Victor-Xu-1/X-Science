@@ -131,7 +131,8 @@
 
 .conversation-command-queue__drag:focus-visible {
   border-radius: var(--ui-radius-xs);
-  box-shadow: 0 0 0 2px var(--color-primary-light-3);
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
+  outline-offset: var(--ui-focus-offset);
 }
 
 .conversation-command-queue__drag:active {
@@ -248,7 +249,9 @@
 .conversation-command-queue__primary-action:focus-visible,
 .conversation-command-queue__icon-action:focus-visible,
 .conversation-command-queue__resume:focus-visible {
-  box-shadow: 0 0 0 2px var(--color-primary-light-3) !important;
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring) !important;
+  outline-offset: var(--ui-focus-offset);
+  box-shadow: none !important;
 }
 
 .conversation-command-queue__primary-action:disabled {

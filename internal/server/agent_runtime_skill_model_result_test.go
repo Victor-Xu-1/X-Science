@@ -66,7 +66,7 @@ func TestProviderVisibleSkillReceiptsPreserveHistoryWithoutExecutionAuthority(t 
 }
 
 func TestSessionEntriesToProviderMessagesReplacesStaleReadableSkillBodyWithIdentityReceipt(t *testing.T) {
-	const stalePath = "/workspace/.xscience/runtime/skills/analysis-workflow/old/scripts/run.py"
+	const stalePath = "/workspace/.x-science/runtime/skills/analysis-workflow/old/scripts/run.py"
 	entries := []eventjournal.Entry{
 		{EventID: 1, Message: eventjournal.Message{"type": "message", "role": "user", "text": "load it"}},
 		{EventID: 2, Message: eventjournal.Message{"type": "runner_checkpoint", "modelToolCalls": []any{

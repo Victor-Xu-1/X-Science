@@ -31,7 +31,7 @@ func (s *Server) skillsDoctorArea() (string, string, map[string]any, []string) {
 	hasSkillSearch := hasRegisteredTool(s.tools, toolcontract.SearchSkills)
 	skillToolReady := hasRegisteredTool(s.tools, toolcontract.Skill)
 	hasSelfContainedSkillCatalog := skillCatalogSelfContained(s.skillDirectories)
-	// Explicit SkillDirectories still accepts project .xscience/skills paths. That
+	// Explicit SkillDirectories still accepts project .x-science/skills paths. That
 	// compatibility must not be confused with implicitly trusting the process
 	// cwd or its ancestors.
 	hasProjectXScienceSkillCompatibility := len(s.skillDirectories) > 0
