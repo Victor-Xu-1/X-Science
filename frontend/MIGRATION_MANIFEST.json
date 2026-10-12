@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "27fd74d3e8d364631a280db15827e8d14c2c0edea96515fc0d2e5b8f9f70bce8",
+  "adaptationFingerprintSHA256": "12f0168d955530c75971bcb17b886245c24c3d342ff998cf40e64985f6e5a047",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
-  "additionFingerprintSHA256": "0ad5ad1181f7f449b082d4b10e00c20aeed1a9fc39f2a9bfe7b803f621adb733",
+  "additionFingerprintSHA256": "fff6fa76449f78706df2ca0deef0c5bb9c0d34c2c08c419a98d5756998d7d85f",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 276,
     "adaptedSourceFiles": 785,
     "removedSourceFiles": 293,
-    "addedFiles": 921
+    "addedFiles": 922
   },
   "adaptations": [
     {
@@ -1777,8 +1777,8 @@
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/XScienceSequenceViewer.tsx",
       "originalPath": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedSequenceViewer.tsx",
       "sourceSHA256": "eac3d5e7c1bebcdb91eef6b3e226a406380864fc754df294c018a429d51d3419",
-      "targetSHA256": "0f0e5aa5e64fc2692834905ae1aba7a06fb1e6da5065f1146f3354df4d1b9c02",
-      "bytes": 8703,
+      "targetSHA256": "1b5cd77dc05869a5b8af27dfe29cd7f3696ab1380fb722bca7018f29edb24c35",
+      "bytes": 11193,
       "reason": "Move genuine imported source to the current X-Science namespace. Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -11132,6 +11132,12 @@
       "sha256": "e4ce3cf92d488827a3d6cb3c37a0a02dd05169d26ab132d4562bff978d7a12f1",
       "bytes": 19973,
       "reason": "Verify MCP App iframe confinement, loading, errors, read-only state, and lifecycle cleanup."
+    },
+    {
+      "path": "tests/unit/previews/XScienceSequenceViewer.load.test.ts",
+      "sha256": "155880fa05a52d78e7b6d612bf6960e0bead264debd15ec634ed72042a000153",
+      "bytes": 5276,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/unit/previews/archiveArtifactLayout.test.ts",
