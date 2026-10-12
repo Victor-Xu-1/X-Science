@@ -67,3 +67,20 @@ func TestOutboundMediaLocalPathRejectsSensitiveAndSymlinkEscape(t *testing.T) {
 		t.Fatal("symlink escaping the authorized root was accepted")
 	}
 }
+
+func TestOutboundMediaKeepsHistoricalAndCanonicalVaultDirectoriesPrivate(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("X_SCIENCE_OUTBOUND_MEDIA_ROOTS", root)
+	for _, directory := range []string{".synon", ".x-science", ".xscience"} {
+		path := filepath.Join(root, directory, "private.json")
+		if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte("opaque fixture"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if IsSafeOutboundLocalPath(path) {
+			t.Fatalf("private historical/canonical vault path was accepted: %s", directory)
+		}
+	}
+}

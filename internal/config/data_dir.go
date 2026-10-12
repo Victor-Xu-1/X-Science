@@ -90,8 +90,5 @@ func dataDirectoryControlPath() (string, error) {
 	if err := datadir.UpgradeDefaultPointer(previous, current); err != nil {
 		return "", fmt.Errorf("upgrade default data directory pointer: %w", err)
 	}
-	if err := datadir.UpgradeLegacyDefaultHomePointer(current, legacyDefaultHome(), defaultHome()); err != nil {
-		return "", fmt.Errorf("upgrade legacy default home pointer: %w", err)
-	}
 	return current, nil
 }
