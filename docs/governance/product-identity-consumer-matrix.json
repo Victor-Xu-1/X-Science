@@ -8,10 +8,10 @@
   "classes": {
     "product-user-visible": "must project display values derived from the root authority",
     "product-version-projection": "must project the root authority version without defining another value",
-    "machine-compatibility": "retain until all launch, package, service and rollback consumers are proven",
+    "machine-compatibility": "emit the canonical namespace; preserve only exact source-proven upgrade inputs and recovery facts",
     "persisted-format": "rename only through an ordered backup-first migration",
     "dependency-name-or-version": "not a product identity unless explicitly classified as a product projection",
-    "legacy-path": "may retain historical spelling and never becomes a version authority",
+    "legacy-path": "historical user/source locations are facts, never current product defaults or a version authority",
     "historical-evidence": "immutable and excluded from current identity claims",
     "schema-or-contract-version": "independent of product SemVer",
     "test-fixture": "test-only input or assertion that cannot define a runtime product version"
@@ -140,7 +140,7 @@
       "owner": "core-runtime",
       "paths": ["cmd/x-science/main.go", "cmd/x-science/web_ui.go"],
       "current_disposition": "visible CLI and Web identity derives from the embedded root authority",
-      "target": "retain approved command compatibility aliases while keeping display values authority-derived",
+      "target": "use the single canonical launcher and keep display values authority-derived",
       "release_blocking": true
     },
     {
@@ -175,8 +175,8 @@
       "class": "machine-compatibility",
       "owner": "repository-steward",
       "paths": ["Makefile", "scripts/package-release.sh", "scripts/package-release-test.sh", "scripts/package-windows-release-test.sh"],
-      "current_disposition": "archive and provenance identity derive from the root authority; packaged binary names remain compatibility identifiers",
-      "target": "retain derived archive identity while testing compatibility binary upgrade and rollback",
+      "current_disposition": "archive, binary and command identities use the canonical root authority and namespace",
+      "target": "verify package consumers and bounded previous-install upgrade/recovery without a second launcher",
       "release_blocking": true
     },
     {
@@ -184,8 +184,8 @@
       "class": "machine-compatibility",
       "owner": "repository-steward",
       "paths": ["scripts/install-release.sh", "scripts/install-release.ps1", "scripts/install-systemd-user.sh", "scripts/manage-release.ps1", "scripts/release-identity-policy.ps1", "scripts/release-path-policy.sh", "scripts/backup-release.sh", "scripts/rollback-release.sh", "scripts/uninstall-release.sh"],
-      "current_disposition": "legacy install roots and service names remain compatibility identifiers; install, backup, rollback, service creation and normal uninstall compare candidates to the trusted manager tree product identity before candidate execution or mutation",
-      "target": "rename only with Linux and Windows install, upgrade, rollback and uninstall evidence",
+      "current_disposition": "canonical install/service source defaults replace earlier product names; trusted-manager identity checks, original user paths, data protection and platform-qualified lifecycle evidence remain required",
+      "target": "prove each actual installed predecessor handoff and use forward-only recovery after the namespace schema cutover; static checks are not native lifecycle acceptance",
       "release_blocking": true
     },
     {
@@ -194,7 +194,7 @@
       "owner": "core-runtime",
       "paths": ["assets/x-science/agents.manifest.json", "assets/x-science/skills.manifest.json", "internal/sciencecapability/scientific-capabilities.v2.json", "skills/x-science/THIRD_PARTY_LICENSES.md"],
       "current_disposition": "current bundled agents, skills and scientific capability assets use stable unversioned runtime namespaces; their manifests retain v1.1 only as source provenance",
-      "target": "keep runtime paths unversioned and reject reintroduction of retired assets/skills xscience-v1.1 namespaces",
+      "target": "keep current runtime paths unversioned under assets/x-science and skills/x-science; original imported versions remain provenance only",
       "release_blocking": true
     },
     {
@@ -220,8 +220,8 @@
       "class": "dependency-name-or-version",
       "owner": "controller",
       "paths": ["go.mod", "frontend/package.json", "frontend/packages/desktop/package.json"],
-      "current_disposition": "retain module and package scopes; they are dependency authorities",
-      "target": "no rename without import, ecosystem and rollback plan",
+      "current_disposition": "the first-party module is x-science and package scopes are canonical; third-party dependency identities, versions and integrity bytes remain genuine",
+      "target": "validate import consumers, package manifests and namespace-only source proofs without reclassifying dependency changes as a rename",
       "release_blocking": false
     },
     {
@@ -229,8 +229,8 @@
       "class": "persisted-format",
       "owner": "core-runtime",
       "paths": ["internal/config/data_dir.go", "internal/datadir/controller.go", "internal/migration/v11/types.go", "internal/migration/v11/profiles.go"],
-      "current_disposition": "retain database, state and imported identifiers",
-      "target": "backup-first ordered migration only; no string replacement",
+      "current_disposition": "workspace/x-science.sqlite is the single current database path; v74 binds actual prior receipts and preserves immutable source bytes, journal identities and user data",
+      "target": "verified drained database/blob handoff and source-bound aliases only; no string replacement, backup-over-live restore or fabricated execution identity",
       "release_blocking": false
     },
     {
@@ -238,8 +238,8 @@
       "class": "legacy-path",
       "owner": "repository-steward",
       "paths": ["README.md", "scripts/clean-copy-build-test.sh"],
-      "current_disposition": "retain historical path labels during transition",
-      "target": "move only after source, state, service and rollback consumers are proven",
+      "current_disposition": "current source and documented default paths are canonical; actual user-controlled paths and protected historical recovery locations remain facts",
+      "target": "retire running predecessors after verified canonical admission, without moving embedded SDK prefixes or unknown user work",
       "release_blocking": false
     },
     {
@@ -247,16 +247,16 @@
       "class": "schema-or-contract-version",
       "owner": "controller",
       "paths": ["internal/persistence/workspace/versioned_schema.go", "docs/governance/product-identity.json"],
-      "current_disposition": "production workspace schema target is 73 with no pending schema cohort",
+      "current_disposition": "production workspace schema target is 74 with no pending schema cohort",
       "target": "advance only through reviewed migration predecessors and never infer product version",
       "release_blocking": false
     }
   ],
   "classified_legacy_consumers": [
-    {"surface": "go.mod module and package-manager scopes", "class": "dependency-name-or-version", "disposition": "retain until import and package migration plus rollback are complete"},
-    {"surface": "binary, command and service identifiers", "class": "machine-compatibility", "disposition": "retain until launcher, package, service and rollback consumers are mapped"},
-    {"surface": "legacy checkout, install and state paths", "class": "legacy-path", "disposition": "retain and never infer product version from a directory"},
-    {"surface": "database, journal and persisted identifiers", "class": "persisted-format", "disposition": "retain until an explicit backup-first migration is authorized"},
+    {"surface": "go.mod module and package-manager scopes", "class": "dependency-name-or-version", "disposition": "first-party identities are canonical; external dependency identities and historical source receipts remain facts"},
+    {"surface": "binary, command and service identifiers", "class": "machine-compatibility", "disposition": "single canonical current defaults; exact earlier installation names are handoff inputs only"},
+    {"surface": "legacy checkout, install and state paths", "class": "legacy-path", "disposition": "historical recovery or user paths are not current product defaults and never define a product version"},
+    {"surface": "database, journal and persisted identifiers", "class": "persisted-format", "disposition": "canonical v74 storage with sealed original journal/source/runtime identities and backup-first actual data handoff"},
     {"surface": "schema migrations, API contracts and asset schema IDs", "class": "schema-or-contract-version", "disposition": "retain as independent authorities"},
     {"surface": "third-party package and lock-file versions", "class": "dependency-name-or-version", "disposition": "exclude from product-version drift matching"},
     {"surface": "immutable evidence and historical compatibility captures", "class": "historical-evidence", "disposition": "do not rewrite; label Historical at the consuming boundary"}
