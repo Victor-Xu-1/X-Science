@@ -10,7 +10,16 @@ import unittest
 from unittest import mock
 
 from scripts.packaging.browser_extension_branding import MARK_PATH, OLD_ICONS, LEGACY_LOCATION, adapt_entries, archive_entries
-from scripts.packaging.build_browser_extension import build, build_archive, pinned_source, OUTPUT_PATH, SOURCE_REVISION, SOURCE_PATH
+from scripts.packaging.build_browser_extension import (
+    build,
+    build_archive,
+    normalize_public_github_origin,
+    pinned_source,
+    OUTPUT_PATH,
+    PUBLIC_ORIGIN,
+    SOURCE_REVISION,
+    SOURCE_PATH,
+)
 
 
 class BrowserExtensionBrandingTests(unittest.TestCase):
@@ -26,6 +35,17 @@ class BrowserExtensionBrandingTests(unittest.TestCase):
         self.assertTrue(receipt["checked"])
         self.assertEqual(receipt["path"], OUTPUT_PATH)
         self.assertEqual(receipt["bytes"], (self.repo / OUTPUT_PATH).stat().st_size)
+
+    def test_normalize_public_github_origin_accepts_checkout_style_remotes(self):
+        canonical = normalize_public_github_origin(PUBLIC_ORIGIN)
+        self.assertEqual(
+            canonical,
+            normalize_public_github_origin("https://github.com/Victor-Xu-1/X-Science"),
+        )
+        self.assertEqual(
+            canonical,
+            normalize_public_github_origin("https://github.com/Victor-Xu-1/X-Science/"),
+        )
 
     def test_pinned_source_fetch_is_explicit_bounded_and_identity_checked(self):
         original = pinned_source(self.repo)

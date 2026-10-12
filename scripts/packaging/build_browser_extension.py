@@ -19,6 +19,14 @@ OUTPUT_PATH = "assets/synon-link/x-science-browser-extension-v0.6.10.zip"
 PUBLIC_ORIGIN = "https://github.com/Victor-Xu-1/X-Science.git"
 
 
+def normalize_public_github_origin(url: str) -> str:
+    """Canonical form for equivalent GitHub HTTPS remote URLs (actions/checkout omits .git)."""
+    url = url.strip().rstrip("/")
+    if url.endswith(".git"):
+        url = url[:-4]
+    return url.lower()
+
+
 def pinned_source(repo, *, fetch_source=False):
     show = ["git", "-C", str(repo), "show", f"{SOURCE_REVISION}:{SOURCE_PATH}"]
     try:
@@ -31,7 +39,7 @@ def pinned_source(repo, *, fetch_source=False):
         if present.returncode == 0:
             raise ValueError("pinned source commit exists but its package cannot be read") from error
         origin = subprocess.check_output(["git", "-C", str(repo), "remote", "get-url", "origin"], timeout=15).decode().strip()
-        if origin not in (PUBLIC_ORIGIN, PUBLIC_ORIGIN.removesuffix(".git")):
+        if normalize_public_github_origin(origin) != normalize_public_github_origin(PUBLIC_ORIGIN):
             raise ValueError("pinned source fetch requires the exact public X-Science origin")
         subprocess.check_output(["git", "-C", str(repo), "fetch", "--no-tags", "--depth=1",
                                  "--no-write-fetch-head", "origin", SOURCE_REVISION], timeout=60)
