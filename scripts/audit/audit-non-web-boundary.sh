@@ -41,7 +41,8 @@ expected_connector = ["assets/x-science-link/source/" + name for name in (
     "icons/x-science-mark.png", "link-runtime.js", "link-runtime.test.ts",
     "local-files-database.js", "manifest.json", "options.html", "options.js",
     "permission-snapshot.js", "personalization.html", "personalization.js",
-    "popup-ux.test.ts", "popup.html", "popup.js", "styles.css", "workspace.html", "workspace.js",
+    "popup-ux.test.ts", "popup.html", "popup.js", "public-fetch-sanitizer.js", "styles.css",
+    "workspace.html", "workspace.js",
 )]
 actual_tooling = [item.get("path") for item in document.get("allowedToolingFiles", [])]
 actual_connector = document.get("allowedConnectorSources", [])

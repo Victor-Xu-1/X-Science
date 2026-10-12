@@ -706,7 +706,15 @@ func (s *Service) reconcileDirectory(ctx context.Context, userID string, directo
 func (s *Service) fetchManifest(ctx context.Context, directory workspace.MCPDirectory) (manifest, string, bool, error) {
 	requestCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
-	req, err := http.NewRequestWithContext(requestCtx, http.MethodGet, directory.URL, nil)
+	client, err := s.secureHTTPClient(requestCtx, directory.URL)
+	if err != nil {
+		return manifest{}, "", false, err
+	}
+	parsed, _, err := resolvePublicHTTPSURL(requestCtx, s.resolver, directory.URL)
+	if err != nil {
+		return manifest{}, "", false, err
+	}
+	req, err := http.NewRequestWithContext(requestCtx, http.MethodGet, parsed.String(), nil)
 	if err != nil {
 		return manifest{}, "", false, err
 	}
@@ -714,10 +722,6 @@ func (s *Service) fetchManifest(ctx context.Context, directory workspace.MCPDire
 	req.Header.Set("X-Science-Catalog-Uuid", directory.CatalogUUID)
 	if directory.ETag != "" {
 		req.Header.Set("If-None-Match", directory.ETag)
-	}
-	client, err := s.secureHTTPClient(requestCtx, directory.URL)
-	if err != nil {
-		return manifest{}, "", false, err
 	}
 	response, err := client.Do(req)
 	if err != nil {
