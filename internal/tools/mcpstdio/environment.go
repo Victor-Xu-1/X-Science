@@ -30,8 +30,8 @@ func buildMCPEnvironment(layers ...map[string]string) ([]string, error) {
 
 func trustedMCPEnvironment(config ServerConfig, layers ...map[string]string) map[string]string {
 	environment := map[string]string{
-		"PYTHONDONTWRITEBYTECODE": "1",
-		"X_SCIENCE_MCP_X509_STRICT":   "1",
+		"PYTHONDONTWRITEBYTECODE":   "1",
+		"X_SCIENCE_MCP_X509_STRICT": "1",
 	}
 	if config.TrustedTLS != nil {
 		if !config.TrustedTLS.Strict {

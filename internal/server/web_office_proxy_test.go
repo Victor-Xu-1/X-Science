@@ -18,7 +18,7 @@ type webOfficeProxyEcho struct {
 	Query         string `json:"query"`
 	Authorization string `json:"authorization"`
 	Cookie        string `json:"cookie"`
-	XScienceUser     string `json:"x_science_user"`
+	XScienceUser  string `json:"x_science_user"`
 }
 
 func newWebOfficeProxyTestServer(t *testing.T, kind string) (*Server, http.Handler, int) {
@@ -31,7 +31,7 @@ func newWebOfficeProxyTestServer(t *testing.T, kind string) (*Server, http.Handl
 				Method: r.Method, Path: r.URL.Path, Query: r.URL.RawQuery,
 				Authorization: r.Header.Get("Authorization"),
 				Cookie:        r.Header.Get("Cookie"),
-				XScienceUser:     r.Header.Get("X-Science-User-Id"),
+				XScienceUser:  r.Header.Get("X-Science-User-Id"),
 			})
 		case "/redirect":
 			w.Header().Set("Location", "http://"+r.Host+"/deck/2?mode=view#slide")

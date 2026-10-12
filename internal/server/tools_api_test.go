@@ -17,19 +17,19 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"x-science/internal/buildinfo"
 	"testing"
 	"time"
+	"x-science/internal/buildinfo"
 
 	"x-science/internal/harnesscontract"
 	sessionstore "x-science/internal/persistence/sessions"
 	workspace "x-science/internal/persistence/workspace"
 	"x-science/internal/skills"
-	"x-science/internal/xsciencelink"
 	"x-science/internal/tools/bindingmode"
 	toolregistry "x-science/internal/tools/registry"
 	"x-science/internal/tools/webfetch"
 	"x-science/internal/tools/websearch"
+	"x-science/internal/xsciencelink"
 )
 
 func toolsAPITestWebOptions() Options {

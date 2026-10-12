@@ -39,7 +39,7 @@ func TestExecuteWithInputEnvPassesExtraEnvironment(t *testing.T) {
 	root := t.TempDir()
 	result, err := ExecuteWithInputEnv(context.Background(), root, os.Args[0], []string{"-test.run=TestShellExecEnvHelperProcess"}, ".", 5, "", map[string]string{
 		"GO_SHELL_ENV_HELPER": "1",
-		"X_SCIENCE_PLUGIN_ID":     "terminal-tools",
+		"X_SCIENCE_PLUGIN_ID": "terminal-tools",
 	})
 	if err != nil {
 		t.Fatalf("ExecuteWithInputEnv() error = %v", err)

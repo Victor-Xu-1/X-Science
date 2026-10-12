@@ -8,8 +8,8 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	workspace "x-science/internal/persistence/workspace"
 	"unicode/utf8"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const (

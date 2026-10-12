@@ -7,9 +7,9 @@ import (
 	"net/http/httptest"
 	"strings"
 	"sync/atomic"
+	"testing"
 	"x-science/internal/agentruntime"
 	"x-science/internal/skills"
-	"testing"
 )
 
 func TestLiveLoadedContractSurvivesResultExternalization(t *testing.T) {

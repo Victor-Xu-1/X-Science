@@ -7,8 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	transcriptstore "x-science/internal/persistence/transcript"
 	"time"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func (s *Server) applyIncrementalTranscriptWebAssistantPage(

@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"sort"
 	"strings"
-	"x-science/internal/agentruntime"
 	"unicode"
 	"unicode/utf8"
+	"x-science/internal/agentruntime"
 )
 
 func askUserCompletedResultSupportsDecision(content string) bool {

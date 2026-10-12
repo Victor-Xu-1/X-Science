@@ -2,8 +2,8 @@ package server
 
 import (
 	"strings"
-	"x-science/internal/toolcontract"
 	"time"
+	"x-science/internal/toolcontract"
 )
 
 func (s *Server) hooksDoctorArea() (string, string, map[string]any, []string) {
@@ -147,8 +147,8 @@ func (s *Server) xscienceLinkIMDoctorArea() (string, string, map[string]any, []s
 		}
 	}
 	evidence := map[string]any{
-		"hasXScienceLinkService":                     hasXScienceLinkService,
-		"hasXScienceLinkTools":                       hasXScienceLinkTools,
+		"hasXScienceLinkService":                  hasXScienceLinkService,
+		"hasXScienceLinkTools":                    hasXScienceLinkTools,
 		"hasPairingStore":                         hasPairingStore,
 		"hasPairingTools":                         hasPairingTools,
 		"hasIMMessageTool":                        hasIMMessageTool,

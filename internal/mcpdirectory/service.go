@@ -122,7 +122,7 @@ type Connector struct {
 	Transport          string              `json:"transport"`
 	Source             string              `json:"source"`
 	Enabled            bool                `json:"enabled"`
-	HostedByXScience      bool                `json:"hostedByXScience"`
+	HostedByXScience   bool                `json:"hostedByXScience"`
 	AuthRequired       bool                `json:"authRequired,omitempty"`
 	OAuthSupported     bool                `json:"oauthSupported"`
 	AuthState          string              `json:"authState"`

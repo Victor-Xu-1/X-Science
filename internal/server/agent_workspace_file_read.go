@@ -16,8 +16,8 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"x-science/internal/agentruntime"
 	"unicode/utf8"
+	"x-science/internal/agentruntime"
 )
 
 func readAgentWorkspaceFile(

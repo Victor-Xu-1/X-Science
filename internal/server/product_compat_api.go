@@ -35,7 +35,7 @@ type xScienceSeedProject struct {
 }
 
 type xScienceSeedProjectCatalog struct {
-	Count    int                      `json:"count"`
+	Count    int                   `json:"count"`
 	Projects []xScienceSeedProject `json:"projects"`
 }
 
@@ -51,7 +51,7 @@ type xScienceBackendProject struct {
 }
 
 type xScienceBackendProjectCatalog struct {
-	Count    int                         `json:"count"`
+	Count    int                      `json:"count"`
 	Projects []xScienceBackendProject `json:"projects"`
 }
 

@@ -163,7 +163,7 @@ func TestCondaRuntimeStoredIdentityAliasesUseOneResolver(t *testing.T) {
 	for before, after := range map[string]string{
 		"claude-science-python": "x-science-python-baseline",
 		"claude-science-r":      "x-science-r",
-		"x-science-python":   "x-science-python",
+		"x-science-python":      "x-science-python",
 		"custom-runtime":        "custom-runtime",
 	} {
 		if got := managedPythonName(Config{ManagedPythonEnvironment: before}); got != after {

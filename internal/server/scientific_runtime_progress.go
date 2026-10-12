@@ -1,8 +1,8 @@
 package server
 
 import (
-	"x-science/internal/toolprogress"
 	"time"
+	"x-science/internal/toolprogress"
 )
 
 type scientificRuntimeProgress struct {

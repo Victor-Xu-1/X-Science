@@ -164,13 +164,13 @@ func (m *Manager) StartProviderSession(ctx context.Context, spec SessionSpec, ru
 		"X_SCIENCE_PROVIDER_AUTH_FD":       strconv.Itoa(authFD),
 		"X_SCIENCE_PROVIDER_PROXY_FD":      strconv.Itoa(proxyFD),
 		"X_SCIENCE_PROVIDER_CONFIG_SHA256": configHash,
-		"OPERON_BYOC_ENVS_DIR":         normalized.EnvironmentsPath,
-		"OPERON_BYOC_INSTALL_ID":       normalized.InstallID,
-		"OPERON_BYOC_ORG_ID":           normalized.OrganizationID,
-		"OPERON_BYOC_FRAME_ID":         spec.FrameID,
-		"OPERON_HOST_NETNS_INO":        hostNetworkNamespace,
-		"MODAL_ENVIRONMENT":            normalized.ModalEnvironment,
-		"OPERON_BYOC_ENVIRONMENT":      normalized.ModalEnvironment,
+		"OPERON_BYOC_ENVS_DIR":             normalized.EnvironmentsPath,
+		"OPERON_BYOC_INSTALL_ID":           normalized.InstallID,
+		"OPERON_BYOC_ORG_ID":               normalized.OrganizationID,
+		"OPERON_BYOC_FRAME_ID":             spec.FrameID,
+		"OPERON_HOST_NETNS_INO":            hostNetworkNamespace,
+		"MODAL_ENVIRONMENT":                normalized.ModalEnvironment,
+		"OPERON_BYOC_ENVIRONMENT":          normalized.ModalEnvironment,
 	}, normalized.ExtraEnvironment)
 	var worker *Worker
 	err = admit(func() error {
