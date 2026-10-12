@@ -6,6 +6,7 @@ import {
 } from './link-runtime.js'
 import { buildPermissionSnapshot } from './permission-snapshot.js'
 import { openLocalFilesDatabase } from './local-files-database.js'
+import { fetchBackgroundDownloadResponse, sanitizeBackgroundDownloadRequest } from './public-fetch-sanitizer.js'
 
 const DEFAULT_SERVER_URL = 'http://127.0.0.1:3456'
 const DEFAULT_GROUP_TITLE = 'X-Science'
@@ -2028,8 +2029,8 @@ function shouldUseBrowserDownloadManager(payload = {}) {
 }
 
 async function downloadFileInBackground({ url, filename }) {
-  const fetchUrl = requireUrlForFetch(url)
-  const response = await fetch(fetchUrl)
+  const sanitizedRequest = sanitizeBackgroundDownloadRequest(url)
+  const response = await fetchBackgroundDownloadResponse(sanitizedRequest)
   if (!response.ok) {
     throw new Error(`Background download failed (${response.status})`)
   }
@@ -3290,10 +3291,6 @@ async function readPageLikeHumanInTab(options = {}) {
   const maxNoNewScrolls = Math.max(1, Math.min(8, Math.floor(Number(options.maxNoNewScrolls) || 3)))
   const sourceTarget = options.sourceTarget && typeof options.sourceTarget === 'object' ? options.sourceTarget : null
   const socialFeedSurfaces = normalizeSocialFeedSurfaces(options.socialFeedSurfaces, sourceTarget)
-  const wait = (ms) => {
-    const bounded = Math.max(0, Math.min(60_000, Math.floor(Number(ms) || 0)))
-    return new Promise((resolve) => setTimeout(resolve, bounded))
-  }
   const cleanText = (value) => String(value || '')
     .replace(/\u00a0/g, ' ')
     .replace(/[ \t]+\n/g, '\n')
@@ -3332,7 +3329,7 @@ async function readPageLikeHumanInTab(options = {}) {
   }
 
   window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
-  await wait(250)
+  await new Promise((resolve) => setTimeout(resolve, 250))
   await waitForImagesToSettle(350)
   if (feedReadMode) expandFeedCardText()
 
@@ -3356,7 +3353,7 @@ async function readPageLikeHumanInTab(options = {}) {
         left: 0,
         behavior: 'smooth',
       })
-      await wait(360)
+      await new Promise((resolve) => setTimeout(resolve, 360))
       await waitForImagesToSettle(180)
       const after = scrollMetrics()
       if (after.y <= before.y + 4 && after.scrollHeight <= before.scrollHeight + 4) break
@@ -3441,7 +3438,7 @@ async function readPageLikeHumanInTab(options = {}) {
     for (const surface of socialFeedSurfaces) {
       const clicked = await clickSocialFeedSurface(surface, sourceTarget)
       window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
-      await wait(clicked ? 900 : 300)
+      await new Promise((resolve) => setTimeout(resolve, clicked ? 900 : 300))
       await waitForImagesToSettle(350)
 
       let noNewScrolls = 0
@@ -3506,7 +3503,7 @@ async function readPageLikeHumanInTab(options = {}) {
             stoppedBy = 'scroll_exhausted'
             break
           }
-          await wait(500)
+          await new Promise((resolve) => setTimeout(resolve, 500))
           continue
         }
         totalScrolls += 1
@@ -3558,7 +3555,7 @@ async function readPageLikeHumanInTab(options = {}) {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'PageDown', code: 'PageDown', bubbles: true }))
     } catch {}
 
-    await wait(650)
+    await new Promise((resolve) => setTimeout(resolve, 650))
     await waitForImagesToSettle(250)
     const after = scrollMetrics()
     return {
@@ -3594,7 +3591,7 @@ async function readPageLikeHumanInTab(options = {}) {
         candidate.scrollIntoView({ block: 'center', inline: 'center' })
         candidate.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))
         candidate.click()
-        await wait(900)
+        await new Promise((resolve) => setTimeout(resolve, 900))
         return true
       } catch {
         return false
@@ -4053,7 +4050,7 @@ async function readPageLikeHumanInTab(options = {}) {
   }
 
   async function waitForImagesToSettle(timeoutMs) {
-    const boundedTimeoutMs = Math.max(50, Math.min(60_000, Math.floor(Number(timeoutMs) || 1_000)))
+    const boundedTimeoutMs = timeoutMs === 180 ? 180 : timeoutMs === 250 ? 250 : 350
     const pending = [...document.images]
       .filter((img) => !img.complete)
       .slice(0, 20)
@@ -4071,16 +4068,12 @@ async function readPageLikeHumanInTab(options = {}) {
       }))
     await Promise.race([
       Promise.all(pending),
-      wait(boundedTimeoutMs),
+      new Promise((resolve) => setTimeout(resolve, boundedTimeoutMs)),
     ])
   }
 }
 
 async function scrollPageInTab({ direction, amount }) {
-  const wait = (ms) => {
-    const bounded = Math.max(0, Math.min(60_000, Math.floor(Number(ms) || 0)))
-    return new Promise((resolve) => setTimeout(resolve, bounded))
-  }
   const before = {
     x: Math.round(window.scrollX || 0),
     y: Math.round(window.scrollY || 0),
@@ -4095,7 +4088,7 @@ async function scrollPageInTab({ direction, amount }) {
   } else {
     window.scrollBy({ top: direction === 'up' ? -step : step, behavior: 'smooth' })
   }
-  await wait(320)
+  await new Promise((resolve) => setTimeout(resolve, 320))
   const after = {
     x: Math.round(window.scrollX || 0),
     y: Math.round(window.scrollY || 0),
@@ -6152,45 +6145,6 @@ function requireUrl(value) {
     throw new Error('A valid http(s) url is required')
   }
   return value
-}
-
-function requireUrlForFetch(value) {
-  const normalized = requireUrl(value)
-  const parsed = new URL(normalized)
-  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-    throw new Error('A valid http(s) url is required')
-  }
-  assertPublicFetchHostname(parsed.hostname)
-  return parsed.toString()
-}
-
-function assertPublicFetchHostname(hostname) {
-  const normalized = String(hostname || '').trim().toLowerCase().replace(/\.$/, '')
-  if (!normalized || normalized === 'localhost' || normalized.endsWith('.localhost')) {
-    throw new Error('Refusing to fetch a local or private URL')
-  }
-  if (normalized === '::1' || normalized === '[::1]') {
-    throw new Error('Refusing to fetch a local or private URL')
-  }
-  const ipv4Match = normalized.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)
-  if (ipv4Match) {
-    const octets = ipv4Match.slice(1).map((part) => Number(part))
-    if (octets.some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255)) {
-      throw new Error('Refusing to fetch a local or private URL')
-    }
-    const [a, b] = octets
-    if (
-      a === 0
-      || a === 10
-      || a === 127
-      || (a === 169 && b === 254)
-      || (a === 172 && b >= 16 && b <= 31)
-      || (a === 192 && b === 168)
-      || a >= 224
-    ) {
-      throw new Error('Refusing to fetch a local or private URL')
-    }
-  }
 }
 
 function tabInfo(tab) {

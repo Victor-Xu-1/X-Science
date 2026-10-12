@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 
 const scriptDir = dirname(fileURLToPath(import.meta.url))
 const background = readFileSync(join(scriptDir, 'background.js'), 'utf8')
+const fetchPolicy = readFileSync(join(scriptDir, 'public-fetch-sanitizer.js'), 'utf8')
 
 function bodyOf(functionName: string) {
   const marker = `function ${functionName}`
@@ -67,20 +68,20 @@ describe('X-Science Link download guards', () => {
   })
 
   test('rejects private-network fetch targets before background transfer', () => {
-    const requireUrlForFetch = bodyOf('requireUrlForFetch')
-    const assertPublicFetchHostname = bodyOf('assertPublicFetchHostname')
+    const downloadFileInBackground = bodyOf('downloadFileInBackground')
 
-    expect(requireUrlForFetch).toContain('assertPublicFetchHostname(parsed.hostname)')
-    expect(assertPublicFetchHostname).toContain('Refusing to fetch a local or private URL')
-    expect(assertPublicFetchHostname).toContain('localhost')
+    expect(downloadFileInBackground).toContain('sanitizeBackgroundDownloadRequest(url)')
+    expect(downloadFileInBackground).toContain('fetchBackgroundDownloadResponse(sanitizedRequest)')
+    expect(fetchPolicy).toContain('assertPublicFetchHostname')
+    expect(fetchPolicy).toContain('Refusing to fetch a local or private URL')
   })
 
-  test('bounds human-read timers before scheduling setTimeout in the injected page script', () => {
+  test('uses fixed human-read delays instead of user-controlled timer durations', () => {
     const readPageLikeHumanInTab = bodyOf('readPageLikeHumanInTab')
     const waitForImagesToSettle = bodyOf('waitForImagesToSettle')
 
-    expect(readPageLikeHumanInTab).toMatch(/const wait = \(ms\) => \{[\s\S]*Math\.min\(60_000/)
-    expect(waitForImagesToSettle).toContain('boundedTimeoutMs')
-    expect(waitForImagesToSettle).toContain('Math.min(60_000')
+    expect(readPageLikeHumanInTab).not.toMatch(/const wait = \(ms\)/)
+    expect(readPageLikeHumanInTab).toContain('setTimeout(resolve, 250)')
+    expect(waitForImagesToSettle).toContain('timeoutMs === 180 ? 180 : timeoutMs === 250 ? 250 : 350')
   })
 })
