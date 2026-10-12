@@ -119,13 +119,13 @@ test('the serialized search extractor executes without outer helper closures', (
 
 test('background transfer URL parser accepts only complete HTTP(S) URLs', () => {
   const requireUrl = productionFunction('requireUrl')
-  const blocked = productionFunction('isDisallowedBackgroundFetchHost')
-  const parse = productionFunction('requireUrlForFetch', { requireUrl, isDisallowedBackgroundFetchHost: blocked })
+  const parse = productionFunction('requireUrlForFetch', { requireUrl, assertPublicHttpFetchTarget: runtimePolicy.assertPublicHttpFetchTarget })
   for (const value of ['https://papers.example/a.pdf', 'http://papers.example/a.pdf']) assert.equal(parse(value), value)
   for (const value of ['file:///tmp/private', 'data:text/plain,private', 'javascript:alert(1)', 'ftp://papers.example/a', '/relative']) assert.throws(() => parse(value))
   for (const value of ['http://127.0.0.1/a.pdf', 'http://localhost/a.pdf', 'http://192.168.0.4/a.pdf', 'http://10.0.0.2/a.pdf']) assert.throws(() => parse(value))
-  for (const host of ['127.0.0.1', 'localhost', '192.168.1.1', '10.0.0.1', 'papers.example']) {
-    assert.equal(blocked(host), host !== 'papers.example', host)
+  for (const value of ['https://papers.example/a.pdf', 'http://127.0.0.1/a.pdf']) {
+    if (value.includes('127.0.0.1')) assert.throws(() => runtimePolicy.assertPublicHttpFetchTarget(value))
+    else assert.equal(runtimePolicy.assertPublicHttpFetchTarget(value), value)
   }
 })
 

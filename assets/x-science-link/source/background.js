@@ -5,6 +5,8 @@ import {
   buildLocalDoctorReport,
   DEFAULT_X_SCIENCE_SERVER_URL,
   assertRuntimeMessageSender,
+  assertPublicHttpFetchTarget,
+  fetchPublicHttpResource,
   isTrustedAppPage,
 } from './link-runtime.js'
 import { buildPermissionSnapshot } from './permission-snapshot.js'
@@ -6169,43 +6171,8 @@ function requireUrl(value) {
   return value
 }
 
-function isDisallowedBackgroundFetchHost(hostname) {
-  const host = String(hostname || '').toLowerCase().replace(/^\[|\]$/g, '')
-  if (!host || host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local')) return true
-  if (host === '127.0.0.1' || host.startsWith('127.')) return true
-  if (host === '::1' || host === '0:0:0:0:0:0:0:1') return true
-  if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host)) return true
-  if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(host)) return true
-  if (/^172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}$/.test(host)) return true
-  if (host === '0.0.0.0' || host === 'metadata.google.internal') return true
-  return false
-}
-
 function requireUrlForFetch(value) {
-  const normalized = requireUrl(value)
-  const parsed = new URL(normalized)
-  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-    throw new Error('A valid http(s) url is required')
-  }
-  if (parsed.username || parsed.password) {
-    throw new Error('A valid http(s) url is required')
-  }
-  if (isDisallowedBackgroundFetchHost(parsed.hostname)) {
-    throw new Error('Background fetch is not allowed for private or local hosts')
-  }
-  return parsed.toString()
-}
-
-async function fetchPublicHttpResource(validatedUrl) {
-  const parsed = new URL(validatedUrl)
-  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-    throw new Error('A valid http(s) url is required')
-  }
-  if (isDisallowedBackgroundFetchHost(parsed.hostname)) {
-    throw new Error('Background fetch is not allowed for private or local hosts')
-  }
-  const requestUrl = `${parsed.protocol}//${parsed.host}${parsed.pathname}${parsed.search}`
-  return fetch(requestUrl)
+  return assertPublicHttpFetchTarget(requireUrl(value))
 }
 
 function tabInfo(tab) {
