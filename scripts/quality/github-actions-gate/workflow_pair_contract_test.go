@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -8,6 +9,117 @@ import (
 
 	"gopkg.in/yaml.v3"
 )
+
+func controlledArtifactBrowserJobContract(root *yaml.Node, jobID, testStep, expectedRun string, policy actionsPolicy) error {
+	jobs := mappingValue(root, "jobs")
+	job := mappingValue(jobs, jobID)
+	if jobs == nil || len(jobs.Content) != 10 || job == nil || !exactRootPermissions(root) ||
+		mappingValue(job, "env") != nil || mappingValue(job, "permissions") != nil ||
+		mappingValue(job, "container") != nil || mappingValue(job, "services") != nil ||
+		mappingValue(job, "if") != nil {
+		return fmt.Errorf("controlled browser must stay in the existing read-only frontend job")
+	}
+	steps := mappingValue(job, "steps")
+	if steps == nil || steps.Kind != yaml.SequenceNode {
+		return fmt.Errorf("frontend steps missing")
+	}
+	var setup, test, evidence *yaml.Node
+	for _, step := range steps.Content {
+		name := mappingValue(step, "name")
+		if name == nil {
+			continue
+		}
+		switch name.Value {
+		case "Set up controlled browser test Go runtime":
+			if setup != nil {
+				return fmt.Errorf("duplicate controlled browser Go setup")
+			}
+			setup = step
+		case testStep:
+			test = step
+		case "Upload controlled browser test evidence":
+			evidence = step
+		}
+	}
+	goPin := policy.Actions["actions/setup-go"]
+	uploadPin := policy.Actions["actions/upload-artifact"]
+	if setup == nil || !exactString(mappingValue(setup, "uses"), "actions/setup-go@"+goPin.SHA) ||
+		mappingValue(setup, "if") != nil || mappingValue(setup, "env") != nil ||
+		!exactString(mappingValue(mappingValue(setup, "with"), "go-version-file"), "go.mod") ||
+		!exactString(mappingValue(mappingValue(setup, "with"), "cache-dependency-path"), "go.sum") {
+		return fmt.Errorf("controlled browser requires the approved Go runtime")
+	}
+	if test == nil || mappingValue(test, "if") != nil || mappingValue(test, "env") != nil ||
+		strings.TrimSpace(namedRun(root, jobID, testStep)) != expectedRun {
+		return fmt.Errorf("controlled browser scope cannot be skipped or replaced")
+	}
+	retention := mappingValue(mappingValue(evidence, "with"), "retention-days")
+	if evidence == nil || !exactString(mappingValue(evidence, "uses"), "actions/upload-artifact@"+uploadPin.SHA) ||
+		!unconditionalTestEvidenceStep(evidence) || retention == nil || retention.Tag != "!!int" || retention.Value != "7" {
+		return fmt.Errorf("controlled browser evidence must retain the approved bounded upload")
+	}
+	return nil
+}
+
+func TestControlledArtifactBrowserUsesExistingSymmetricFrontendJobs(t *testing.T) {
+	policy, err := loadPolicy(filepath.Join("..", "..", "..", "docs", "governance", "github-actions-pins.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, contract := range []struct {
+		workflow, job, step, base string
+	}{
+		{"quality-pr.yml", "pr-frontend-tests", "Test changed frontend scope", "$" + "{{ github.event.pull_request.base.sha }}"},
+		{"quality-main.yml", "main-frontend-tests", "Test integrated frontend scope", "$" + "{{ github.event.before }}"},
+	} {
+		t.Run(contract.workflow, func(t *testing.T) {
+			expectedRun := "PYTHONDONTWRITEBYTECODE=1 python3 scripts/quality/pr_fast_scope.py --frontend --base '" +
+				contract.base + "' --head '$" + "{{ github.sha }}' --log-dir \"$RUNNER_TEMP/runtime-test-evidence\""
+			root := repositoryWorkflow(t, contract.workflow)
+			if err := controlledArtifactBrowserJobContract(root, contract.job, contract.step, expectedRun, policy); err != nil {
+				t.Fatal(err)
+			}
+			for _, mutation := range []string{"skip-test", "replace-scope", "skip-evidence", "unapproved-go", "global-env", "extra-job"} {
+				t.Run(mutation, func(t *testing.T) {
+					changed := repositoryWorkflow(t, contract.workflow)
+					jobs := mappingValue(changed, "jobs")
+					job := mappingValue(jobs, contract.job)
+					steps := mappingValue(job, "steps")
+					for _, step := range steps.Content {
+						name := mappingValue(step, "name")
+						if name == nil {
+							continue
+						}
+						if mutation == "skip-test" && name.Value == contract.step {
+							step.Content = append(step.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: "if"},
+								&yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: "false"})
+						}
+						if mutation == "replace-scope" && name.Value == contract.step {
+							mappingValue(step, "run").Value = "echo skipped"
+						}
+						if mutation == "skip-evidence" && name.Value == "Upload controlled browser test evidence" {
+							mappingValue(step, "if").Value = "success()"
+						}
+						if mutation == "unapproved-go" && name.Value == "Set up controlled browser test Go runtime" {
+							mappingValue(step, "uses").Value = "actions/setup-go@main"
+						}
+					}
+					if mutation == "global-env" {
+						job.Content = append(job.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: "env"},
+							&yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"})
+					}
+					if mutation == "extra-job" {
+						jobs.Content = append(jobs.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: "browser-matrix"},
+							&yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"})
+					}
+					if err := controlledArtifactBrowserJobContract(changed, contract.job, contract.step, expectedRun, policy); err == nil {
+						t.Fatal("weakened hosted browser workflow was accepted")
+					}
+				})
+			}
+		})
+	}
+}
 
 func TestWorkflowBootstrapMappingRejectsConflictsAndInvalidIDs(t *testing.T) {
 	for _, name := range []string{"main conflict", "invalid PR ID", "invalid workflow path"} {

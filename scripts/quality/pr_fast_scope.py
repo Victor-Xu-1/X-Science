@@ -33,8 +33,37 @@ else:
     from runtime_test_shards import execute
 
 
-def run(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run([*args], cwd=repo, text=True, check=False)
+def run(repo: Path, *args: str, capture_output: bool = False) -> subprocess.CompletedProcess[str]:
+    return subprocess.run([*args], cwd=repo, text=True, check=False,
+                          stdout=subprocess.PIPE if capture_output else None,
+                          stderr=subprocess.STDOUT if capture_output else None)
+
+
+def browser_result_code(result: subprocess.CompletedProcess[str]) -> int:
+    if result.returncode:
+        return result.returncode
+    output = result.stdout or ""
+    if len(output.encode("utf-8")) > 4 * 1024 * 1024:
+        raise ValueError("controlled browser Go evidence exceeds the bounded report")
+    try:
+        events = [json.loads(line) for line in output.splitlines() if line.strip()]
+    except json.JSONDecodeError as error:
+        raise ValueError("controlled browser requires valid Go JSON evidence") from error
+    if not all(isinstance(event, dict) for event in events):
+        raise ValueError("controlled browser requires Go JSON event objects")
+    owner = "synon-go/internal/server"
+    test = "TestArtifactHashLinkBrowser"
+    actions = [event.get("Action") for event in events
+               if event.get("Package") == owner and event.get("Test") == test]
+    package_actions = [event.get("Action") for event in events
+                       if event.get("Package") == owner and "Test" not in event]
+    if (actions.count("run") != 1 or actions.count("pass") != 1
+            or any(action in {"skip", "fail"} for action in actions)
+            or actions.index("run") > actions.index("pass")
+            or package_actions.count("pass") != 1
+            or any(action in {"skip", "fail"} for action in package_actions)):
+        raise ValueError("controlled browser test must run and pass exactly once; empty or skipped coverage is forbidden")
+    return 0
 
 
 def packages(repo: Path, *, dependencies: bool = False) -> list[dict]:
@@ -200,7 +229,8 @@ def main() -> int:
             provenance_changed = bool(set(behavior_paths) & pr_frontend_scope.PROVENANCE)
             frontend_behavior = [path for path in behavior_paths
                                  if path not in projections and path not in pr_frontend_scope.PROVENANCE]
-            affected = frontend_affected(frontend_behavior, repo)
+            browser = pr_frontend_scope.browser_command(frontend_behavior, repo, args.log_dir)
+            affected = frontend_affected(frontend_behavior, repo) or browser is not None
             if not affected and not metadata_paths and not provenance_changed:
                 print("No frontend package is affected by this change; Go and policy gates remain active.")
                 return 0
@@ -218,17 +248,32 @@ def main() -> int:
             fixtures = pr_frontend_scope.fixture_command(frontend_inputs, repo)
             print(json.dumps({"frontend_test_inputs": related[9:] if related else [],
                               "browser_fixture_entries": fixtures[5:] if fixtures else [],
-                              "selection": "Vitest dependency-related and changed fixture build; no global fallback"}))
+                              "browser_test_command": browser,
+                              "selection": "Vitest dependency-related, changed fixture build and exact owned browser; no global fallback"}))
             commands = [
                 ["npm", "ci", "--ignore-scripts"],
                 ["npx", "--no-install", "playwright", "install", "chromium"],
                 ["npm", "run", "i18n:types"],
                 ["npm", "run", "typecheck"], ["npm", "run", "lint"],
                 ["npm", "run", "format:check"], *([related] if related else []),
-                *([fixtures] if fixtures else []), ["npm", "run", "build"],
-                ["npm", "run", "test:packaged"],
+                *([fixtures] if fixtures else []),
             ]
             for command in commands:
+                result = run(repo / "frontend", *command)
+                if result.returncode:
+                    return result.returncode
+            if browser:
+                result = run(repo, *browser, capture_output=True)
+                output = result.stdout or ""
+                print(output, end="" if output.endswith("\n") else "\n")
+                if args.log_dir is not None:
+                    directory = args.log_dir.resolve()
+                    directory.mkdir(parents=True, exist_ok=True)
+                    (directory / "artifact-link-go.jsonl").write_text(output)
+                code = browser_result_code(result)
+                if code:
+                    return code
+            for command in [["npm", "run", "build"], ["npm", "run", "test:packaged"]]:
                 result = run(repo / "frontend", *command)
                 if result.returncode:
                     return result.returncode

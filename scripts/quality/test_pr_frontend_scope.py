@@ -1,8 +1,13 @@
 """Focused regressions for the existing CI's frontend test selection."""
+import json
+import subprocess
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from scripts.quality.pr_frontend_scope import PROVENANCE, fixture_command, related_command
+from scripts.quality.pr_frontend_scope import (
+    ARTIFACT_LINK_BROWSER_DRIVER, ARTIFACT_LINK_BROWSER_INPUTS, PROVENANCE,
+    browser_command, fixture_command, related_command,
+)
 
 
 class FrontendRelatedScopeTests(unittest.TestCase):
@@ -116,6 +121,120 @@ class FrontendRelatedScopeTests(unittest.TestCase):
     def test_real_integration_scope_is_not_implicitly_executed(self):
         with self.assertRaisesRegex(ValueError, "separately authorized"):
             related_command(["frontend/tests/integration/remote.real.test.ts"])
+
+    def test_owned_browser_driver_has_exact_non_vitest_execution(self):
+        repo = Path(__file__).resolve().parents[2]
+        expected = ["env", "SYNON_ARTIFACT_LINK_BROWSER=1", "go", "test", "-buildvcs=false",
+                    "./internal/server", "-run", "^TestArtifactHashLinkBrowser$", "-count=1",
+                    "-timeout=180s", "-json"]
+        self.assertIsNone(related_command([ARTIFACT_LINK_BROWSER_DRIVER]))
+        for owner in sorted(ARTIFACT_LINK_BROWSER_INPUTS):
+            with self.subTest(owner=owner):
+                self.assertEqual(browser_command([owner, owner], repo), expected)
+        command = related_command([ARTIFACT_LINK_BROWSER_DRIVER, "frontend/tests/unit/links.test.ts"])
+        self.assertEqual(command[9:], ["tests/unit/links.test.ts"])
+        self.assertNotIn("--retry", expected)
+        self.assertNotIn("--passWithNoTests", expected)
+
+    def test_unrelated_changes_do_not_run_the_owned_browser(self):
+        repo = Path(__file__).resolve().parents[2]
+        for path in ["docs/modules/science.md", "frontend/packages/desktop/src/renderer/pages/artifact/ArtifactPreview.tsx",
+                     "frontend/tests/web-e2e/example.browser.mjs", "frontend/tests/web-e2e/example.e2e.ts",
+                     "frontend/package.json", *sorted(PROVENANCE)]:
+            with self.subTest(path=path):
+                self.assertIsNone(browser_command([path], repo))
+
+    def test_missing_browser_owners_fail_closed(self):
+        for missing in sorted(ARTIFACT_LINK_BROWSER_INPUTS):
+            with self.subTest(missing=missing), TemporaryDirectory() as directory:
+                repo = Path(directory)
+                for owner in ARTIFACT_LINK_BROWSER_INPUTS - {missing}:
+                    path = repo / owner
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_text("owned")
+                with self.assertRaisesRegex(ValueError, "owned file"):
+                    browser_command([ARTIFACT_LINK_BROWSER_DRIVER], repo)
+
+    def test_browser_owners_cannot_escape_or_alias_through_symlinks(self):
+        for external in (False, True):
+            with self.subTest(external=external), TemporaryDirectory() as directory:
+                root = Path(directory)
+                repo = root / "repo"
+                repo.mkdir()
+                for owner in ARTIFACT_LINK_BROWSER_INPUTS:
+                    path = repo / owner
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_text("owned")
+                driver = repo / ARTIFACT_LINK_BROWSER_DRIVER
+                target = (root if external else repo) / "alias.mjs"
+                target.write_text("unowned")
+                driver.unlink()
+                driver.symlink_to(target)
+                with self.assertRaisesRegex(ValueError, "owned file|symlink"):
+                    browser_command([ARTIFACT_LINK_BROWSER_DRIVER], repo)
+
+    def test_browser_paths_and_source_evidence_locations_are_rejected(self):
+        repo = Path(__file__).resolve().parents[2]
+        for path in ["/frontend/viewer.tsx", "frontend/../secret.ts", "frontend\\viewer.tsx", "frontend//viewer.tsx"]:
+            with self.subTest(path=path), self.assertRaises(ValueError):
+                browser_command([ARTIFACT_LINK_BROWSER_DRIVER, path], repo)
+        for evidence in (repo, repo / "frontend/test-results"):
+            with self.subTest(evidence=evidence), self.assertRaisesRegex(ValueError, "outside source"):
+                browser_command([ARTIFACT_LINK_BROWSER_DRIVER], repo, evidence)
+        with TemporaryDirectory() as directory:
+            command = browser_command([ARTIFACT_LINK_BROWSER_DRIVER], repo, Path(directory))
+            self.assertEqual(command[2], "SYNON_ARTIFACT_LINK_EVIDENCE=" + str(Path(directory).resolve()))
+
+    def test_official_chrome_identity_rejects_impersonation_and_sandbox_bypass(self):
+        repo = Path(__file__).resolve().parents[2]
+        driver = (repo / ARTIFACT_LINK_BROWSER_DRIVER).as_uri()
+        linux = {
+            "product": "Chrome/145.0.7632.6",
+            "commandLine": ["/opt/google/chrome/chrome", "--remote-debugging-pipe",
+                            "--user-data-dir=/tmp/playwright_chromiumdev_profile-Ab12Cd"],
+            "tempDirectory": "/tmp",
+        }
+        mac = {
+            **linux,
+            "commandLine": ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+                            "--user-data-dir=/var/folders/aa/bb/T/playwright_chromiumdev_profile-Ab12Cd"],
+            "tempDirectory": "/var/folders/aa/bb/T/",
+        }
+        windows = {
+            **linux,
+            "commandLine": [r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+                            r"--user-data-dir=C:\Users\runner\AppData\Local\Temp\playwright_chromiumdev_profile-Ab12Cd"],
+            "tempDirectory": "C:\\Users\\runner\\AppData\\Local\\Temp\\",
+        }
+        invalid = [
+            {**linux, "product": "Chromium/145.0.7632.6"},
+            {**linux, "product": "Chrome/145"},
+            {**linux, "commandLine": ["/usr/bin/chromium", *linux["commandLine"][1:]]},
+            {**linux, "commandLine": ["/tmp/google/chrome/chrome", *linux["commandLine"][1:]]},
+            {**linux, "commandLine": [linux["commandLine"][0], "--user-data-dir=/home/user/.config/google-chrome"]},
+            {**linux, "commandLine": [linux["commandLine"][0], "--user-data-dir=/tmp/reused-profile"]},
+            {**linux, "commandLine": [linux["commandLine"][0], "--user-data-dir=/tmp/nested/playwright_chromiumdev_profile-Ab12Cd"]},
+            {**linux, "commandLine": [*linux["commandLine"], linux["commandLine"][-1]]},
+            {**linux, "commandLine": [linux["commandLine"][0], "--user-data-dir", "/tmp/playwright_chromiumdev_profile-Ab12Cd"]},
+        ]
+        for flag in ["--no-sandbox", "--no-sandbox=true", "--disable-setuid-sandbox",
+                     "--disable-seccomp-filter-sandbox", "--disable-namespace-sandbox",
+                     "--disable-features=RendererSandbox", "--single-process", "--no-zygote"]:
+            invalid.append({**linux, "commandLine": [*linux["commandLine"], flag]})
+        script = f"""import assert from 'node:assert/strict';
+import {{ requireOfficialArtifactChromeIdentity as verify }} from {json.dumps(driver)};
+const valid = {json.dumps([[linux, 'linux'], [mac, 'darwin'], [windows, 'win32']])};
+for (const [identity, platform] of valid) {{
+  assert.equal(verify(identity, platform).product, identity.product);
+}}
+for (const identity of {json.dumps(invalid)}) {{ assert.throws(() => verify(identity, 'linux')); }}
+assert.throws(() => verify(valid[0][0], 'unsupported'));
+console.log('3 valid official identities and 18 negative identity cases passed');
+"""
+        result = subprocess.run(["node", "--input-type=module", "--eval", script],
+                                cwd=repo, text=True, capture_output=True, timeout=15, check=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("negative identity cases passed", result.stdout)
 
 
 if __name__ == "__main__":

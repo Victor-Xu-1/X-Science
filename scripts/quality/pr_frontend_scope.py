@@ -1,4 +1,4 @@
-"""Bounded frontend import-graph tests and changed browser-fixture builds."""
+"""Bounded frontend import-graph tests and explicitly owned browser fixtures."""
 from pathlib import Path, PurePosixPath
 
 
@@ -15,6 +15,16 @@ BRANDING_TESTS = (
     "tests/unit/renderer/ProductBrand.dom.test.tsx",
     "tests/unit/renderer/SynonBiomedBranding.test.ts",
 )
+
+# This is one synthetic HTTP/SQLite browser fixture, not the authenticated
+# scientific acceptance workflow. Unknown browser drivers remain unowned.
+ARTIFACT_LINK_BROWSER_DRIVER = "frontend/tests/web-e2e/artifactLinks.browser.mjs"
+ARTIFACT_LINK_BROWSER_INPUTS = frozenset({
+    ARTIFACT_LINK_BROWSER_DRIVER,
+    "frontend/tests/web-e2e/artifactLinks.fixture.tsx",
+    "frontend/tests/web-e2e/artifactLinks.fixture.html",
+    "internal/server/artifact_link_browser_test.go",
+})
 
 
 def _frontend_paths(paths: list[str]) -> list[str]:
@@ -44,6 +54,10 @@ def related_command(paths: list[str]) -> list[str] | None:
         # Vitest coverage. Shared data retains its actual test import owners.
         if _browser_fixture(value):
             continue
+        if value == ARTIFACT_LINK_BROWSER_DRIVER:
+            # browser_command owns this exact driver. Do not claim it as a
+            # Vitest input or allow unrelated browser drivers through.
+            continue
         build_module = (value == "frontend/vite.config.ts" or
                         (value.startswith("frontend/scripts/") and value.endswith((".ts", ".js", ".mjs"))))
         # Build modules have normal import owners in the focused test graph;
@@ -64,6 +78,32 @@ def related_command(paths: list[str]) -> list[str] | None:
     # No passWithNoTests or retry flag: unknown/empty coverage is a failed gate.
     return ["npx", "--no-install", "vitest", "related", "--run",
             "--project", "node", "--project", "dom", *sorted(selected)]
+
+
+def browser_command(paths: list[str], repo: Path, evidence: Path | None = None) -> list[str] | None:
+    # Validate all changed paths, including the non-frontend Go owner, before
+    # matching the one exact fixture. A missing owner cannot silently skip it.
+    _frontend_paths(paths)
+    if not ARTIFACT_LINK_BROWSER_INPUTS.intersection(paths):
+        return None
+    root = repo.resolve()
+    frontend = (root / "frontend").resolve()
+    for value in sorted(ARTIFACT_LINK_BROWSER_INPUTS):
+        path = root / value
+        resolved = path.resolve()
+        owner_root = frontend if value.startswith("frontend/") else root
+        if not resolved.is_relative_to(owner_root) or not resolved.is_file():
+            raise ValueError("artifact-link browser requires an owned file: " + value)
+        if any(parent.is_symlink() for parent in (path, *path.parents) if parent != root and root in parent.parents):
+            raise ValueError("artifact-link browser owner cannot be a symlink: " + value)
+    command = ["env", "SYNON_ARTIFACT_LINK_BROWSER=1"]
+    if evidence is not None:
+        directory = evidence.resolve()
+        if directory == root or root in directory.parents:
+            raise ValueError("browser test evidence must be outside source")
+        command.append("SYNON_ARTIFACT_LINK_EVIDENCE=" + str(directory))
+    return [*command, "go", "test", "-buildvcs=false", "./internal/server",
+            "-run", "^TestArtifactHashLinkBrowser$", "-count=1", "-timeout=180s", "-json"]
 
 
 def fixture_command(paths: list[str], repo: Path) -> list[str] | None:

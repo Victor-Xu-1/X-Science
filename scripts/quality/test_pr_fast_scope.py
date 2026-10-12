@@ -1,6 +1,7 @@
 """Real Git/Go regressions for pull-request test scope and checkout depth."""
 
 from pathlib import Path
+import json
 import subprocess
 import sys
 import tempfile
@@ -9,6 +10,13 @@ from unittest.mock import patch
 
 from scripts.quality import pr_fast_scope as scope
 from scripts.quality.runtime_test_inventory import execution_plan
+
+
+BROWSER_PASS_OUTPUT = "\n".join(json.dumps(event) for event in [
+    {"Action": "run", "Package": "synon-go/internal/server", "Test": "TestArtifactHashLinkBrowser"},
+    {"Action": "pass", "Package": "synon-go/internal/server", "Test": "TestArtifactHashLinkBrowser"},
+    {"Action": "pass", "Package": "synon-go/internal/server"},
+]) + "\n"
 
 
 def git(repo, *arguments):
@@ -219,6 +227,106 @@ class FrontendProvenanceGateTests(unittest.TestCase):
             self.assertEqual(scope.main(), 17)
         commands = [call.args[1:] for call in invoke.call_args_list]
         self.assertEqual(commands[-1], tuple(fixture))
+        self.assertNotIn(('npm', 'run', 'build'), commands)
+        self.assertNotIn(('npm', 'run', 'test:packaged'), commands)
+
+    def test_owned_browser_inputs_run_one_exact_root_command(self):
+        repo = Path.cwd().resolve()
+        argv = ['pr_fast_scope.py', '--repo', str(repo), '--base', 'a' * 40, '--head', 'b' * 40, '--frontend']
+        expected = scope.pr_frontend_scope.browser_command(
+            [scope.pr_frontend_scope.ARTIFACT_LINK_BROWSER_DRIVER], repo,
+        )
+        for owner in sorted(scope.pr_frontend_scope.ARTIFACT_LINK_BROWSER_INPUTS):
+            with self.subTest(owner=owner), patch.object(sys, 'argv', argv), patch.object(
+                scope, 'changed_paths', return_value=[owner],
+            ), patch.object(scope.pr_frontend_scope, 'fixture_command', return_value=None), patch.object(
+                scope, 'run', return_value=subprocess.CompletedProcess([], 0, stdout=BROWSER_PASS_OUTPUT),
+            ) as invoke:
+                self.assertEqual(scope.main(), 0)
+                calls = [call.args for call in invoke.call_args_list]
+                browser = [call for call in calls if call[1:] == tuple(expected)]
+                self.assertEqual(browser, [(repo, *expected)])
+                self.assertIn((repo / 'frontend', 'npm', 'run', 'build'), calls)
+                self.assertIn((repo / 'frontend', 'npm', 'run', 'test:packaged'), calls)
+
+    def test_browser_failure_cannot_be_reported_as_a_frontend_pass(self):
+        repo = Path.cwd().resolve()
+        owner = scope.pr_frontend_scope.ARTIFACT_LINK_BROWSER_DRIVER
+        browser = scope.pr_frontend_scope.browser_command([owner], repo)
+        argv = ['pr_fast_scope.py', '--repo', str(repo), '--base', 'a' * 40, '--head', 'b' * 40, '--frontend']
+
+        def result(_repo, *command, capture_output=False):
+            return subprocess.CompletedProcess(command, 19 if list(command) == browser else 0, stdout=BROWSER_PASS_OUTPUT)
+
+        with patch.object(sys, 'argv', argv), patch.object(scope, 'changed_paths', return_value=[owner]), patch.object(
+            scope, 'run', side_effect=result,
+        ) as invoke:
+            self.assertEqual(scope.main(), 19)
+        commands = [call.args[1:] for call in invoke.call_args_list]
+        self.assertEqual(commands[-1], tuple(browser))
+        self.assertNotIn(('npm', 'run', 'build'), commands)
+        self.assertNotIn(('npm', 'run', 'test:packaged'), commands)
+
+    def test_browser_evidence_is_external_and_not_a_global_suite(self):
+        repo = Path.cwd().resolve()
+        owner = scope.pr_frontend_scope.ARTIFACT_LINK_BROWSER_DRIVER
+        with tempfile.TemporaryDirectory() as directory:
+            argv = ['pr_fast_scope.py', '--repo', str(repo), '--base', 'a' * 40, '--head', 'b' * 40,
+                    '--frontend', '--log-dir', directory]
+            with patch.object(sys, 'argv', argv), patch.object(scope, 'changed_paths', return_value=[owner]), patch.object(
+                scope, 'run', return_value=subprocess.CompletedProcess([], 0, stdout=BROWSER_PASS_OUTPUT),
+            ) as invoke:
+                self.assertEqual(scope.main(), 0)
+            browser = [call.args for call in invoke.call_args_list if call.args[1] == 'env']
+            self.assertEqual(len(browser), 1)
+            self.assertIn('SYNON_ARTIFACT_LINK_EVIDENCE=' + str(Path(directory).resolve()), browser[0])
+            self.assertIn('^TestArtifactHashLinkBrowser$', browser[0])
+            self.assertNotIn('./...', browser[0])
+            self.assertNotIn('--retry', browser[0])
+
+        argv[-1] = str(repo / 'frontend/test-results')
+        with patch.object(sys, 'argv', argv), patch.object(scope, 'changed_paths', return_value=[owner]), patch.object(
+            scope, 'run', return_value=subprocess.CompletedProcess([], 0),
+        ) as invoke:
+            self.assertEqual(scope.main(), 1)
+        invoke.assert_not_called()
+
+    def test_unknown_browser_driver_keeps_frontend_ownership_failure(self):
+        argv = ['pr_fast_scope.py', '--base', 'a' * 40, '--head', 'b' * 40, '--frontend']
+        with patch.object(sys, 'argv', argv), patch.object(scope, 'changed_paths', return_value=[
+            'frontend/tests/web-e2e/unowned.browser.mjs',
+        ]), patch.object(scope, 'run', return_value=subprocess.CompletedProcess([], 0)) as invoke:
+            self.assertEqual(scope.main(), 1)
+        self.assertEqual(invoke.call_count, 1)
+        self.assertIn('audit_frontend_migration.py', invoke.call_args.args[2])
+
+    def test_browser_go_json_proves_the_exact_test_ran_without_skip(self):
+        self.assertEqual(scope.browser_result_code(subprocess.CompletedProcess([], 0, stdout=BROWSER_PASS_OUTPUT)), 0)
+        self.assertEqual(scope.browser_result_code(subprocess.CompletedProcess([], 23, stdout='compile failure')), 23)
+        invalid = [
+            '', 'not JSON', '[]\n',
+            json.dumps({"Action": "pass", "Package": "synon-go/internal/server"}),
+            BROWSER_PASS_OUTPUT.replace('"run"', '"skip"'),
+            BROWSER_PASS_OUTPUT.replace('"pass"', '"skip"'),
+            BROWSER_PASS_OUTPUT.replace('TestArtifactHashLinkBrowser', 'DifferentBrowserTest'),
+            BROWSER_PASS_OUTPUT.replace('synon-go/internal/server', 'unowned/server'),
+            BROWSER_PASS_OUTPUT + BROWSER_PASS_OUTPUT,
+            BROWSER_PASS_OUTPUT.replace('"run"', '"fail"'),
+            '\n'.join(reversed(BROWSER_PASS_OUTPUT.splitlines())),
+            ' ' * (4 * 1024 * 1024 + 1),
+        ]
+        for output in invalid:
+            with self.subTest(output=output[:100]), self.assertRaises(ValueError):
+                scope.browser_result_code(subprocess.CompletedProcess([], 0, stdout=output))
+
+    def test_empty_browser_go_coverage_cannot_pass_the_frontend_gate(self):
+        argv = ['pr_fast_scope.py', '--base', 'a' * 40, '--head', 'b' * 40, '--frontend']
+        with patch.object(sys, 'argv', argv), patch.object(scope, 'changed_paths', return_value=[
+            scope.pr_frontend_scope.ARTIFACT_LINK_BROWSER_DRIVER,
+        ]), patch.object(scope, 'run', return_value=subprocess.CompletedProcess([], 0, stdout='')) as invoke:
+            self.assertEqual(scope.main(), 1)
+        commands = [call.args[1:] for call in invoke.call_args_list]
+        self.assertEqual(commands[-1][-1], '-json')
         self.assertNotIn(('npm', 'run', 'build'), commands)
         self.assertNotIn(('npm', 'run', 'test:packaged'), commands)
 
