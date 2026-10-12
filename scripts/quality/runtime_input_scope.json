@@ -2,6 +2,18 @@
   "schema": "synon.runtime-input-scope.v1",
   "groups": [
     {
+      "name": "model-skill-product-prose",
+      "paths": [
+        "assets/synonbiomed/skills.manifest.json",
+        "skills/synonbiomed/ngs-analysis-router/SKILL.md",
+        "skills/synonbiomed/nextflow-development/references/geo-sra-acquisition.md",
+        "skills/synonbiomed/skill-creator/scripts/quick_validate.py",
+        "skills/synonbiomed/autodock-vina/scripts/autodock_vina.py",
+        "skills/synonbiomed/autodock-vina/scripts/autodock_vina_outputs.py"
+      ],
+      "packages": ["synon-go/internal/assets", "synon-go/internal/skills", "synon-go/internal/sciencecapability", "synon-go/internal/server"]
+    },
+    {
       "name": "browser-connector-assets",
       "paths": [
         "assets/synon-link/manifest.json",

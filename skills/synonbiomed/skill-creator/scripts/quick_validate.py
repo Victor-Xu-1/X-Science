@@ -44,7 +44,7 @@ def validate_skill(skill_path):
     ALLOWED_PROPERTIES = {
         'name', 'description', 'license', 'allowed-tools', 'metadata',
         'compatibility', 'fold_cue', 'required-capabilities',
-        # Synon runtime extensions parsed by internal/skills/loader.go.
+        # X-Science runtime extensions parsed by internal/skills/loader.go.
         'tags', 'keywords', 'tools', 'arguments', 'references',
         'implementation-identities',
         'critical-constraints',
@@ -101,7 +101,7 @@ def validate_skill(skill_path):
         if len(compatibility) > 500:
             return False, f"Compatibility is too long ({len(compatibility)} characters). Maximum is 500 characters."
 
-    # Closed scientific capability contract used by the Synon runtime. Keep
+    # Closed scientific capability contract used by the X-Science runtime. Keep
     # validation aligned with internal/skills so packaging cannot accept a
     # declaration that runtime loading later rejects (or reject a valid one).
     capabilities = frontmatter.get('required-capabilities')

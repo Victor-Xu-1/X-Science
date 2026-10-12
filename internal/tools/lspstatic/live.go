@@ -99,7 +99,7 @@ func runLive(ctx context.Context, input Input, root string, displayPath string) 
 		return Output{}, false, nil
 	}
 	if !isSupportedLiveTransport(config.Transport) {
-		return Output{}, true, fmt.Errorf("LSP server %q transport %q is not supported by synon-go live bridge yet", serverName, config.Transport)
+		return Output{}, true, fmt.Errorf("LSP server %q transport %q is not supported by X-Science live bridge yet", serverName, config.Transport)
 	}
 	timeout := liveLSPTimeout(config)
 	liveCtx, cancel := context.WithTimeout(ctx, timeout)
@@ -686,7 +686,7 @@ func (s *liveLSPSession) respondToServerRequest(msg lspRPCMessage) error {
 	case "workspace/configuration":
 		return s.send(lspRPCMessage{JSONRPC: "2.0", ID: msg.ID, Result: mustRawJSON([]any{})})
 	default:
-		return s.send(lspRPCMessage{JSONRPC: "2.0", ID: msg.ID, Error: &lspRPCError{Code: -32601, Message: "method not supported by synon-go LSP bridge"}})
+		return s.send(lspRPCMessage{JSONRPC: "2.0", ID: msg.ID, Error: &lspRPCError{Code: -32601, Message: "method not supported by X-Science LSP bridge"}})
 	}
 }
 

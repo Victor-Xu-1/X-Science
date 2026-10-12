@@ -46,6 +46,12 @@ class RuntimeInputScopeTests(unittest.TestCase):
         ])
         self.assertEqual(self.selected("assets/runtime.py", "unrelated/other.go"), self.all_packages)
 
+    def test_exact_skill_prose_owns_real_consumers_not_all_skills(self):
+        self.value["groups"][0]["paths"] += ["skills/example/SKILL.md"]
+        self.save()
+        self.assertEqual(self.selected("skills/example/SKILL.md"), self.selected("assets/runtime.py"))
+        self.assertEqual(self.selected("skills/other/SKILL.md"), self.all_packages)
+
     def test_unknown_asset_missing_owner_and_missing_contract_remain_conservative(self):
         self.assertEqual(self.selected("assets/runtime.py.new"), self.all_packages)
         self.value["groups"][0]["packages"] = ["example/scope/deleted"]

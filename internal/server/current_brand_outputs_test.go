@@ -18,6 +18,9 @@ import (
 
 func TestCurrentNativeBrandOutputsKeepMachineCompatibility(t *testing.T) {
 	name := buildinfo.Release().Name
+	if got := localIdentityEmail("Local User"); got != "local-user@local."+buildinfo.Release().MachineSlug {
+		t.Fatalf("synthetic local display email did not use the root identity: %q", got)
+	}
 	plugin, found := pluginhost.NewDefault().Get("synon")
 	if !found || plugin.ID != "synon" || plugin.Name != name || plugin.Mount != "/api/plugins/synon" ||
 		plugin.PluginFormat != "synon_agent_native" || plugin.Server.ContextEntry != "builtin:synon-context" {

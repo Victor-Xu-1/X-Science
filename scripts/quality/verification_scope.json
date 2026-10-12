@@ -2,6 +2,12 @@
   "schema": "synon.verification-scope.v1",
   "groups": [
     {
+      "name": "startup-smoke-tool-display",
+      "paths": ["scripts/quality/startup_smoke_gate.py", "scripts/quality/test_startup_smoke_gate.py"],
+      "frontend": false,
+      "checks": [["python3", "-B", "scripts/quality/test_startup_smoke_gate.py"]]
+    },
+    {
       "name": "websearch-display",
       "paths": ["scripts/optional/websearch.py"],
       "packages": ["synon-go/internal/tools/websearch"],

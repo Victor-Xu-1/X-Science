@@ -17,7 +17,7 @@ allowed-tools: python, read_file, search_skills, skill, ask_user
 
 Use this Skill as the single intake and routing layer for sequencing work. It
 adds the missing NGS entrypoint without copying assay runners already supplied
-by Synon Skills, managed environments, external workflow systems, or MCP
+by X-Science Skills, managed environments, external workflow systems, or MCP
 connectors.
 
 ## Inspect before asking
@@ -149,7 +149,7 @@ Return:
 1. detected local input inventory and any ambiguity;
 2. routed assay/workflow and confidence;
 3. only the missing essential parameters;
-4. selected existing Synon Skill/MCP route, or an explicit execution gap;
+4. selected existing X-Science Skill/MCP route, or an explicit execution gap;
 5. executable readiness separated from reference/database readiness;
 6. privacy, license, storage, and clinical-interpretation boundaries;
 7. the next concrete read-only check, approval request, or execution plan.

@@ -140,7 +140,7 @@ func inspectAndCallRemoteWebSocket(ctx context.Context, serverName, toolName str
 		return "", err
 	}
 	conn.SetReadLimit(-1) // Streaming receiver enforces actual disk capacity.
-	defer conn.Close(websocket.StatusNormalClosure, "synon-go mcp request complete")
+	defer conn.Close(websocket.StatusNormalClosure, "X-Science mcp request complete")
 	sess := &remoteWebSocketSession{conn: conn, secrets: remoteMCPSecretValues(config, headers)}
 	if _, err := sess.request(ctx, 1, "initialize", map[string]any{
 		"protocolVersion": latestLegacyProtocolVersion,

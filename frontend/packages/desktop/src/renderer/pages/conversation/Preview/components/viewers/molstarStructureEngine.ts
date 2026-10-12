@@ -1167,7 +1167,7 @@ export function createMolstarViewportSpec(createDefaultPluginUISpec: CreateDefau
   );
   spec.config = [
     ...(spec.config ?? []),
-    // Synon renders one localized trajectory navigator. Disable Mol*'s native
+    // X-Science renders one localized trajectory navigator. Disable Mol*'s native
     // English duplicate so model switching has one visible control authority.
     [PluginConfig.Viewport.ShowTrajectoryControls, false],
   ];

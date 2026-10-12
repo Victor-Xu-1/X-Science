@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Start an isolated Synon binary, probe /health, and stop it deterministically."""
+"""Start an isolated X-Science binary, probe /health, and stop it deterministically."""
 
 from __future__ import annotations
 

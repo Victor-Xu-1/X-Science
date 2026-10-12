@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"synon-go/internal/buildinfo"
 	kernelruntime "synon-go/internal/kernel"
 )
 
@@ -373,7 +374,7 @@ func localIdentityEmail(userID string) string {
 	if local == "" {
 		local = "local"
 	}
-	return local + "@local.X-Science"
+	return local + "@local." + buildinfo.Release().MachineSlug
 }
 
 func hasConfiguredModelAPIKey() bool {

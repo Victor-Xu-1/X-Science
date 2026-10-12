@@ -132,8 +132,8 @@
     },
     {
       "path": "autodock-vina/scripts/autodock_vina.py",
-      "sha256": "bf8acf8423ae13e621545282a0d46f126fb157504d8eeed838d3064523dd5f33",
-      "bytes": 66544
+      "sha256": "69a22e633decc2f1e5262a55b854a58015c7629aa60d2070908c7bb014fb9b8a",
+      "bytes": 66548
     },
     {
       "path": "autodock-vina/scripts/autodock_vina_inputs.py",
@@ -142,8 +142,8 @@
     },
     {
       "path": "autodock-vina/scripts/autodock_vina_outputs.py",
-      "sha256": "73b7dcc30ac37073b6b4a5a63201d189b2e29af24210f1a6ac5369f29726d7de",
-      "bytes": 10814
+      "sha256": "2ebb9160b3032a26c214a82f57aa336672bd6acc57d59938dd2f419c06518114",
+      "bytes": 10818
     },
     {
       "path": "autodock-vina/scripts/autodock_vina_pockets.py",
@@ -962,8 +962,8 @@
     },
     {
       "path": "nextflow-development/references/geo-sra-acquisition.md",
-      "sha256": "ae7878baba5334d1cd3618a9820033a675936eec9ad9573b3a55fea5ea1504cc",
-      "bytes": 14743
+      "sha256": "36c725039dd16660410219965fbe26f31ba3c875da87e22acd5cdbecbf84723b",
+      "bytes": 14747
     },
     {
       "path": "nextflow-development/references/installation.md",
@@ -1077,8 +1077,8 @@
     },
     {
       "path": "ngs-analysis-router/SKILL.md",
-      "sha256": "4e7e2b71022ce7e4f942213d3dcd2d69ae22f1032abea9ff489dda7a954eb04e",
-      "bytes": 7724
+      "sha256": "d28543fd83c842056193d190017fc1ec5d4790afa50cd7500d5931c4be5302c5",
+      "bytes": 7732
     },
     {
       "path": "ngs-analysis-router/THIRD_PARTY_NOTICES.md",
@@ -1837,8 +1837,8 @@
     },
     {
       "path": "skill-creator/scripts/quick_validate.py",
-      "sha256": "947b25d0b52c80386f92ccc58e45e7d3818edbd9124ece37257daa005e0fd5eb",
-      "bytes": 7635
+      "sha256": "52eb81fc570f66be8841a0eecf675ee1afb4566ae51f5ae5e813c366461db82a",
+      "bytes": 7643
     },
     {
       "path": "skill-creator/scripts/test_quick_validate.py",

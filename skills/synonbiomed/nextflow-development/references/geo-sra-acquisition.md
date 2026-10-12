@@ -414,4 +414,4 @@ nextflow run nf-core/rnaseq --fasta /path/to/genome.fa --gtf /path/to/genes.gtf
 - Network access to NCBI and ENA
 
 Provision the optional `requests` and `pyyaml` packages through the
-governed Synon software runtime before running the acquisition helpers.
+governed X-Science software runtime before running the acquisition helpers.

@@ -14,6 +14,7 @@ import (
 )
 
 var historicalHumanBrand = regexp.MustCompile(`(?i)\bsynon(?:[ -]?biomed)?(?:[ \t\r\n]+|[.,!?;:()\[\]{}](?:[ \t\r\n]+|$)|$)`)
+var historicalBridgeHumanBrand = regexp.MustCompile(`(?i)\bsynon-go[ \t\r\n]+(?:live|LSP|MCP|SDK)(?:[ \t\r\n]+|$)`)
 var runtimeMachineToken = regexp.MustCompile(`^[a-z0-9_.:/-]+$`)
 
 func TestCurrentRuntimeHumanLabelsUseXScience(t *testing.T) {
@@ -63,6 +64,15 @@ func TestCurrentRuntimeHumanLabelsUseXScience(t *testing.T) {
 	for _, relative := range []string{
 		"internal/server/structure_interaction_diagram.py", "internal/server/structure_interaction_renderer.py",
 		"internal/agentruntime/assets/synon_platform_policy.md",
+		"skills/synonbiomed/ngs-analysis-router/SKILL.md",
+		"skills/synonbiomed/nextflow-development/references/geo-sra-acquisition.md",
+		"internal/logoassets/SOURCE.md", "internal/server/assets/THIRD_PARTY_LICENSES.md",
+		"internal/sciencecapability/executionpacks/autodock_vina.py",
+		"internal/sciencecapability/executionpacks/autodock_vina_outputs.py",
+		"skills/synonbiomed/autodock-vina/scripts/autodock_vina.py",
+		"skills/synonbiomed/autodock-vina/scripts/autodock_vina_outputs.py",
+		"internal/server/structure_minimization.py",
+		"skills/synonbiomed/skill-creator/scripts/quick_validate.py",
 	} {
 		raw, err := os.ReadFile(filepath.Join(root, relative))
 		if err != nil {
@@ -77,7 +87,8 @@ func TestCurrentRuntimeHumanLabelsUseXScience(t *testing.T) {
 func containsHistoricalHumanBrand(value string) bool {
 	// A bare lowercase machine ID remains a compatibility contract. Human
 	// prose, capitalized names and sentences are distinct from that ID.
-	return !runtimeMachineToken.MatchString(value) && historicalHumanBrand.MatchString(value)
+	return !runtimeMachineToken.MatchString(value) &&
+		(historicalHumanBrand.MatchString(value) || historicalBridgeHumanBrand.MatchString(value))
 }
 
 func historicalLabelReadCompatibility(path, value string) bool {
@@ -100,12 +111,12 @@ func historicalLabelReadCompatibility(path, value string) bool {
 }
 
 func TestRuntimeHumanLabelBoundaryKeepsMachineCompatibility(t *testing.T) {
-	for _, value := range []string{"Synon", "Synon Link", "Synon Biomed report", "SynonBiomed report", "SynonBiomed", "synon access", "Synon kernel", "You are Synon.", "You are Synon, a concise assistant.", "Synon: warning"} {
+	for _, value := range []string{"Synon", "Synon Link", "Synon Biomed report", "SynonBiomed report", "SynonBiomed", "synon access", "Synon kernel", "You are Synon.", "You are Synon, a concise assistant.", "Synon: warning", "method not supported by synon-go MCP client", "synon-go live bridge"} {
 		if !containsHistoricalHumanBrand(value) {
 			t.Errorf("historical human label was missed: %q", value)
 		}
 	}
-	for _, value := range []string{"synon", "synon-go/internal/config", "synon.kernel.v1", "X-Synon-CSRF-Token", "synonbiomed-v1.1.sqlite", "SYNON_CONFIG", "Synonym", "synonyms", "X-Science"} {
+	for _, value := range []string{"synon", "synon-go/internal/config", "synon.kernel.v1", "X-Synon-CSRF-Token", "synonbiomed-v1.1.sqlite", "SYNON_CONFIG", "Synonym", "synonyms", "X-Science", "synon-go serve --config synon.json", "Usage: synon-go mcp-ketcher --stdio"} {
 		if containsHistoricalHumanBrand(value) {
 			t.Errorf("machine/biological identifier was treated as human branding: %q", value)
 		}

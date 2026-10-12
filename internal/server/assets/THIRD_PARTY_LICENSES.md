@@ -230,7 +230,7 @@ The full license ships alongside the fonts in the bundle (`fonts/LICENSE`).
   licensed to the user in their own environment; each skill's text names the
   packages it uses.
 - Model weights fetched by the user's environment from their original sources
-  (ESM, AlphaFold, Evo 2, …). Synon LLM does not distribute these weights;
+  (ESM, AlphaFold, Evo 2, …). X-Science does not distribute these weights;
   their terms bind the user directly.
 
 ## Full license texts
