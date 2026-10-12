@@ -115,9 +115,12 @@ describe('lightweight, non-black keyboard focus', () => {
     ['project-command-palette', '<div class="arco-input-inner-wrapper"><input data-keyboard-focus></div>'],
     ['settings-library-search', '<div class="arco-input-inner-wrapper"><input data-keyboard-focus></div>'],
     ['environment-search', '<input type="search" data-keyboard-focus>'],
-    ['x-science-ask-user-card__composer', '<input class="arco-input" data-keyboard-focus>'],
+    ['x-science-ask-user-card', '<input class="arco-input" data-keyboard-focus>'],
   ])('gives %s exactly one owner indicator, never a competing inner ring', (ownerClass, content) => {
-    document.body.innerHTML = `<div class="${ownerClass}">${content}</div>`;
+    document.body.innerHTML =
+      ownerClass === 'x-science-ask-user-card'
+        ? `<div data-testid="x-science-ask-user-card">${content}</div>`
+        : `<div class="${ownerClass}">${content}</div>`;
     const field = document.querySelector('input, textarea')!;
     const owner = document.querySelector('.arco-input-inner-wrapper') ?? field.parentElement!;
     expect(outlinedRulesFor(field)).toHaveLength(0);

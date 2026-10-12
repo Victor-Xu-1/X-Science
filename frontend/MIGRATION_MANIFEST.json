@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "01862eed9b1067092db09df67c877282911316fb31f2fb3b21382a7c6bdcea62",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
-  "additionFingerprintSHA256": "f09e1bdf457d9ac04ca4b019856f05eda58224d0ba9ff8987a3366efe77e7c8a",
+  "additionFingerprintSHA256": "55eafa5639686b5efd1d3963ce8e9fc36fac4155952f2671a08bd9cc8d7a958e",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 276,
@@ -11009,8 +11009,8 @@
     },
     {
       "path": "tests/unit/focusVisualContract.dom.test.ts",
-      "sha256": "83ea910cc36288fedb6ae6dea44cbd6711fa94e3dd9c47f4e126e1dddab99b11",
-      "bytes": 8801,
+      "sha256": "09a5fe7114540da536c875f4a42a132a841a44f0f0f80d393619334ea7e7065f",
+      "bytes": 8920,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
