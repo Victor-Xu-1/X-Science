@@ -253,7 +253,10 @@ const AskUserCard: React.FC<AskUserCardProps> = ({
         </div>
       ) : null}
 
-      <div className='x-science-ask-user-card__composer mt-10px flex min-w-0 items-center gap-8px rounded-10px bg-fill-1 px-8px py-4px'>
+      <div
+        className='x-science-ask-user-card__composer mt-10px flex min-w-0 items-center gap-8px rounded-10px bg-fill-1 px-8px py-4px'
+        data-testid='x-science-ask-user-card-composer'
+      >
         <Edit theme='outline' size={15} className='shrink-0 text-t-tertiary' />
         <Input
           className='x-science-ask-user-card__input min-w-0 flex-1'

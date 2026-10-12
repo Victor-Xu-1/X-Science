@@ -15,7 +15,7 @@ export function publicEnvironmentContext(value: unknown): string | null {
   const context = safeShortContext(value);
   if (!context) return null;
   if (
-    /(?:^|[-_])(?:acceptance|internal|private|runtime|workspace)(?:[-_]|$)|^(?:swr-[0-9a-f]{16,}|xscience(?:[-_]|$))|[0-9a-f]{8}-[0-9a-f-]{20,}/iu.test(
+    /(?:^|[-_])(?:acceptance|internal|private|runtime|workspace)(?:[-_]|$)|^(?:swr-[0-9a-f]{16,}|x-science(?:[-_]|$)|xscience(?:[-_]|$))|[0-9a-f]{8}-[0-9a-f-]{20,}/iu.test(
       context
     )
   ) {

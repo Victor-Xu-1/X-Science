@@ -2122,7 +2122,7 @@ const XScienceStructureViewer: React.FC<XScienceStructureViewerProps> = ({
       setTooltip(null);
     };
     const showTooltip = (button: HTMLButtonElement) => {
-      const text = button.dataset.xscienceMolstarHelp?.trim();
+      const text = button.getAttribute('data-x-science-molstar-help')?.trim();
       if (!text) return;
 
       const rect = button.getBoundingClientRect();

@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "893cbe42c022373952198c4d2436346277bb09b0020c58f3b57c1f185bb849e0",
+  "adaptationFingerprintSHA256": "6cabe68f4700151afeef1d8c543228bee6918743dd658fed860ea10dca4c4248",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
-  "additionFingerprintSHA256": "4fc9773ca13f2979586df5b1b8c5acae024a82e4f7794ffa32ad49c2bc998f66",
+  "additionFingerprintSHA256": "63ae5b10b50041d40650b00fdffbc64e577125bfd572e28d15505cbd3a39a4b8",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 276,
@@ -755,8 +755,8 @@
       "path": "packages/desktop/src/renderer/components/xScience/runtime/AskUserCard.tsx",
       "originalPath": "packages/desktop/src/renderer/components/synonBiomed/runtime/AskUserCard.tsx",
       "sourceSHA256": "409d20a59aab7aeedad536829b9b7d5d2285caad4fa85fcae8dc2dcdb83016ec",
-      "targetSHA256": "9d29ec4db9e626ef85eca57074dcc9ab080b3fb1098dcb6e1ed650d649d325df",
-      "bytes": 17073,
+      "targetSHA256": "2ac7500cfe5ddc1088d0abd5eb620adf9fb9a989fcb4b9aa3d767d117487bb59",
+      "bytes": 17143,
       "reason": "Move genuine imported source to the current X-Science namespace. Project authoritative Go files, notes, approvals, models, kernels, sessions, and runtime operations into the migrated workbench."
     },
     {
@@ -1785,8 +1785,8 @@
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/XScienceStructureViewer.tsx",
       "originalPath": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedStructureViewer.tsx",
       "sourceSHA256": "6cb430ff6d16123ef3da68f5af29d4dc093a1e5bb9e9b2655a3c01e2d1e2ecb1",
-      "targetSHA256": "91bbb861161ce16aef2b871159b8ab3a338f4c4b98d19efc47e34ac381de3cb9",
-      "bytes": 147851,
+      "targetSHA256": "b4601b3ac2896feb616e5b408d965236464379aceb88b28e650134e3b3597dd2",
+      "bytes": 147867,
       "reason": "Move genuine imported source to the current X-Science namespace. Unify PDB, mmCIF, SDF, and related molecular formats on one Molstar preview with composition-aware controls, collapsed auxiliary panels, and source-fenced 2D interaction refresh."
     },
     {
@@ -2331,8 +2331,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/guid/hooks/useGuidSend.ts",
       "sourceSHA256": "d2e95e288721282dcba026b0a28a7cba0ddf82c6d15472287a1d5119d28923cd",
-      "targetSHA256": "d5438616eb3fa78fc8543701b9ba26ddccfb60dffac1f1456281dddf1ea85f4a",
-      "bytes": 21042,
+      "targetSHA256": "d97d1d06aec048b8ac0c26cd2ada7070e3ce033923ddccebb18afd991aef34d3",
+      "bytes": 21043,
       "reason": "Migrate authenticated login, onboarding, project workbench, and artifact workflows to the Go product shell."
     },
     {
@@ -8501,8 +8501,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/toolDetails/detailFormatting.ts",
-      "sha256": "a2ee43647898645ba0d311e61156c9c4d90269af64639fff088929548529daaf",
-      "bytes": 12015,
+      "sha256": "9a0469b8d0709f6994dc8480424ea6dcc2956a8175763c4ace3573b5021abd6b",
+      "bytes": 12035,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8537,8 +8537,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/toolDetails/detailValueProjection.ts",
-      "sha256": "adae116f88b28362e8acff1676eba760f76719a5dcb74aa95d5227076f9442a7",
-      "bytes": 5746,
+      "sha256": "91a6ca29195ae5f2048ea8c64af0690280d08274d54f2e1be80cadeab6ab4020",
+      "bytes": 5760,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10013,8 +10013,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/styles/workspace-theme.css",
-      "sha256": "48257b7840333381da63fac64eda97018e8c01f149c26cac0807f697e3f5d595",
-      "bytes": 68345,
+      "sha256": "bae1e2781d39af8ee711eab496f495b2366211db67880f1279a1cdea78eeee2e",
+      "bytes": 68387,
       "reason": "Provide the shared visual shell under a product-neutral filename and CSS custom-property namespace."
     },
     {
@@ -10799,7 +10799,7 @@
     },
     {
       "path": "tests/unit/build/molstarLazyBoundary.test.ts",
-      "sha256": "881adb2179e5d651cd864cb953eb044977ea1ef78df8de7d15942e6093b2242f",
+      "sha256": "2f31d06c52e983e4bf74dd0ba7b3c06e120f42f158b315f3e13849f0ee00dba9",
       "bytes": 5583,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
@@ -11009,8 +11009,8 @@
     },
     {
       "path": "tests/unit/focusVisualContract.dom.test.ts",
-      "sha256": "83ea910cc36288fedb6ae6dea44cbd6711fa94e3dd9c47f4e126e1dddab99b11",
-      "bytes": 8801,
+      "sha256": "141f789c51840cd206fa1c8c1088f0c5c6c79ceb475ab1914161b547d22ac015",
+      "bytes": 8929,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
