@@ -2,14 +2,25 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   copySynonBiomedArtifact,
   createSynonBiomedTextArtifactVersion,
+  deleteSynonBiomedArtifact,
   getSynonBiomedArtifactVersionContentUrl,
   loadSynonBiomedArtifactLineage,
   loadSynonBiomedArtifactVersions,
   moveSynonBiomedArtifact,
 } from '@/renderer/services/synonBiomedArtifacts';
+import { clearSharedGatewayReads, loadSynonBiomedProjectArtifacts } from '@/renderer/services/synonBiomedGateway';
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
+}
 
 describe('X-Science artifact lifecycle service', () => {
   afterEach(() => {
+    clearSharedGatewayReads();
     vi.unstubAllGlobals();
   });
 
@@ -131,6 +142,38 @@ describe('X-Science artifact lifecycle service', () => {
       loadSynonBiomedArtifactLineage('artifact-1', { slim: true, versionId: 'version/1' })
     ).resolves.toMatchObject({ versionId: 'version/1', pending: true });
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not join a pre-delete project artifact read after the mutation succeeds', async () => {
+    const older = deferred<Response>();
+    const current = deferred<Response>();
+    const oldArtifacts = [{ id: 'artifact-1', filename: 'keep.txt', project_id: 'project-p' }];
+    const currentArtifacts: typeof oldArtifacts = [];
+    let reads = 0;
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation((input, init) => {
+      const url = String(input);
+      if (init?.method) {
+        return Promise.resolve(new Response(JSON.stringify({ id: 'artifact-1' })));
+      }
+      if (url.endsWith('/project-p/artifacts')) {
+        reads += 1;
+        return reads === 1 ? older.promise : current.promise;
+      }
+      return Promise.resolve(new Response('[]'));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const beforeMutation = loadSynonBiomedProjectArtifacts('project-p');
+    await deleteSynonBiomedArtifact('artifact-1');
+    const afterMutation = loadSynonBiomedProjectArtifacts('project-p');
+    expect(reads).toBe(2);
+    older.resolve(new Response(JSON.stringify(oldArtifacts)));
+    await beforeMutation;
+    const concurrentRefresh = loadSynonBiomedProjectArtifacts('project-p');
+    expect(reads).toBe(2);
+    current.resolve(new Response(JSON.stringify(currentArtifacts)));
+    await expect(Promise.all([afterMutation, concurrentRefresh])).resolves.toEqual([[], []]);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it.each([
