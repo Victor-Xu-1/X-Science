@@ -316,6 +316,9 @@ func (s *Server) handleComputeSSHConfigAliases(w http.ResponseWriter, r *http.Re
 		writeAgentCompatError(w, http.StatusMethodNotAllowed, errors.New("method not allowed"))
 		return
 	}
+	if !s.requireHostOperator(w, r) {
+		return
+	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		writeAgentCompatError(w, http.StatusInternalServerError, err)

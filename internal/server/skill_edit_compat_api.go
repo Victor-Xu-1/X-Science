@@ -22,6 +22,9 @@ import (
 var errCompatibilitySkillReadOnly = errors.New("skill is read-only")
 
 func (s *Server) handleCompatibilitySkillMutation(w http.ResponseWriter, r *http.Request) {
+	if !s.requireHostOperator(w, r) {
+		return
+	}
 	segments := workspacePathSegments(strings.TrimPrefix(r.URL.Path, "/api/skills/"))
 	if len(segments) < 1 || len(segments) > 2 {
 		writeV11Detail(w, http.StatusNotFound, "Skill endpoint not found")

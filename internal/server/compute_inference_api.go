@@ -236,6 +236,9 @@ func (s *Server) handleComputeSSHHosts(w http.ResponseWriter, r *http.Request) {
 		writeAgentCompatError(w, http.StatusMethodNotAllowed, errors.New("method not allowed"))
 		return
 	}
+	if !s.requireHostOperator(w, r) {
+		return
+	}
 	if s.workspaceStore == nil {
 		writeAgentCompatError(w, http.StatusServiceUnavailable, errors.New("workspace store is unavailable"))
 		return

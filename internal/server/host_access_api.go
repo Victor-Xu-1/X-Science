@@ -55,6 +55,9 @@ func (s *Server) handleHostGrants(w http.ResponseWriter, r *http.Request) {
 		}
 		writeWorkspaceJSON(w, http.StatusOK, map[string]any{"ok": true, "grants": grants})
 	case http.MethodPost, http.MethodPatch:
+		if !s.requireHostOperator(w, r) {
+			return
+		}
 		var input struct {
 			Path string `json:"path"`
 			Mode string `json:"mode"`
@@ -143,6 +146,9 @@ func canonicalHostGrantReference(value string) (string, error) {
 func (s *Server) handleHostGrantPicker(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeWorkspaceJSON(w, http.StatusMethodNotAllowed, map[string]any{"ok": false, "error": "method not allowed"})
+		return
+	}
+	if !s.requireHostOperator(w, r) {
 		return
 	}
 	if s.settingsStore == nil {
