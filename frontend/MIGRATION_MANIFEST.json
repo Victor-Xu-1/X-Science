@@ -3,7 +3,7 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "16c31581c1d1db0a049eadbf8359fc64b099b78cbdaa36172008f0460d6b2351",
+  "adaptationFingerprintSHA256": "b4ba166ea8ca14cdf449c5f981dc3046853efbe256d140d94f55235fe931b5d3",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
   "additionFingerprintSHA256": "ca58c4ecc512bfc01d38e462959f310245a37101cceb62ad4ef5199961ccbc39",
   "summary": {
@@ -115,8 +115,8 @@
     {
       "path": "packages/desktop/src/common/config/constants.ts",
       "sourceSHA256": "60c0f6b931a1d8ff9c38315803fe5f8ce3c9aa9eaae5bbedbfd32ba177fb351a",
-      "targetSHA256": "802a0bc77c872b2c2502a0e6ca7200159d5b65a3416660ff9244f8b8da409750",
-      "bytes": 1602,
+      "targetSHA256": "e92f2be584dce48d253bd5db063c2bd0b63dd6261c74ed56165d5a11a7faae65",
+      "bytes": 1661,
       "reason": "Align shared browser contracts, configuration, themes, and typed preview/provider models with the Go-owned X-Science runtime."
     },
     {
@@ -1445,8 +1445,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/components/MessageText.tsx",
       "sourceSHA256": "d985f0bfdc719a845cd19aa11d5be56766d937f168c65df91c9cc522c06cb4fc",
-      "targetSHA256": "4b5511b1fcfbb406784a6c2515395f079fdfd512ee1ec81d067f27337aeeb678",
-      "bytes": 13822,
+      "targetSHA256": "09cd422f7b26ccfa253f1397a88119fe6a8c333072d17c9fee3c6d6ae3748f9e",
+      "bytes": 14114,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
