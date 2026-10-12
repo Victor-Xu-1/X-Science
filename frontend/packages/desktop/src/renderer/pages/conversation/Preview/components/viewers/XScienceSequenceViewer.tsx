@@ -18,7 +18,8 @@ type XScienceSequenceViewerProps = {
 
 type SequenceViewerMode = 'both' | 'circular' | 'linear';
 
-const MAX_SEQUENCE_BYTES = 10 * 1024 * 1024;
+export const MAX_SEQUENCE_BYTES = 10 * 1024 * 1024;
+const SEQUENCE_SIZE_LIMIT_LABEL = '10 MB';
 const LazySeqViz = React.lazy(async () => {
   const module = await import('seqviz');
   return { default: module.SeqViz };
@@ -160,7 +161,7 @@ const LoadingOverlay: React.FC<{ label: string }> = ({ label }) => (
   </div>
 );
 
-async function loadSequenceContent({
+export async function loadSequenceContent({
   filename,
   content,
   contentUrl,
@@ -184,38 +185,123 @@ async function loadSequenceContent({
   if (!response.ok) throw new ScientificPreviewError('request-failed', { status: response.status });
   const transportDecoded = response.headers.get('content-encoding')?.toLowerCase() === 'gzip';
   if (filename.toLowerCase().endsWith('.gz') && !transportDecoded) {
-    const compressed = await response.arrayBuffer();
-    assertWithinLimit(compressed.byteLength);
-    const decompressed = await decompressGzip(compressed);
-    assertWithinLimit(decompressed.byteLength);
+    rejectDeclaredOversize(response);
+    const compressed = await readBoundedResponseBody(response, MAX_SEQUENCE_BYTES, signal);
+    const decompressed = await decompressGzipBounded(compressed, MAX_SEQUENCE_BYTES, signal);
     if (resolveSequenceFormat(filename) === 'snapgene') return decompressed;
     const source = new TextDecoder('utf-8', { fatal: true }).decode(decompressed);
     assertWithinLimit(new Blob([source]).size);
     return source;
   }
-  const declaredLength = Number(response.headers.get('content-length'));
-  if (Number.isFinite(declaredLength)) assertWithinLimit(declaredLength);
+  rejectDeclaredOversize(response);
 
   if (resolveSequenceFormat(filename) === 'snapgene') {
-    const source = await response.arrayBuffer();
-    assertWithinLimit(source.byteLength);
-    return source;
+    return readBoundedResponseBody(response, MAX_SEQUENCE_BYTES, signal);
   }
-  const source = await response.text();
+  const bytes = await readBoundedResponseBody(response, MAX_SEQUENCE_BYTES, signal);
+  const source = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
   assertWithinLimit(new Blob([source]).size);
   return source;
 }
 
-function assertWithinLimit(size: number): void {
-  if (size > MAX_SEQUENCE_BYTES) throw new ScientificPreviewError('too-large', { limit: '10 MB' });
+function rejectDeclaredOversize(response: Response): void {
+  const declaredLength = Number(response.headers.get('content-length'));
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_SEQUENCE_BYTES) {
+    void response.body?.cancel();
+    throw new ScientificPreviewError('too-large', { limit: SEQUENCE_SIZE_LIMIT_LABEL });
+  }
 }
 
-async function decompressGzip(data: ArrayBuffer): Promise<ArrayBuffer> {
+function assertWithinLimit(size: number): void {
+  if (size > MAX_SEQUENCE_BYTES) throw new ScientificPreviewError('too-large', { limit: SEQUENCE_SIZE_LIMIT_LABEL });
+}
+
+async function readBoundedResponseBody(response: Response, limit: number, signal: AbortSignal): Promise<ArrayBuffer> {
+  if (!response.body) {
+    const data = await response.arrayBuffer();
+    if (data.byteLength > limit) throw new ScientificPreviewError('too-large', { limit: SEQUENCE_SIZE_LIMIT_LABEL });
+    return data;
+  }
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  let complete = false;
+
+  try {
+    while (true) {
+      signal.throwIfAborted();
+      // oxlint-disable-next-line eslint/no-await-in-loop
+      const { done, value } = await reader.read();
+      signal.throwIfAborted();
+      if (done) {
+        complete = true;
+        break;
+      }
+      total += value.byteLength;
+      if (total > limit) {
+        throw new ScientificPreviewError('too-large', { limit: SEQUENCE_SIZE_LIMIT_LABEL });
+      }
+      chunks.push(value);
+    }
+  } finally {
+    try {
+      if (!complete) await reader.cancel();
+    } finally {
+      reader.releaseLock();
+    }
+  }
+
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes.buffer;
+}
+
+async function decompressGzipBounded(data: ArrayBuffer, limit: number, signal: AbortSignal): Promise<ArrayBuffer> {
   if (typeof DecompressionStream === 'undefined') {
     throw new ScientificPreviewError('initialize-failed');
   }
   const stream = new Blob([data]).stream().pipeThrough(new DecompressionStream('gzip'));
-  return new Response(stream).arrayBuffer();
+  const reader = stream.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  let complete = false;
+
+  try {
+    while (true) {
+      signal.throwIfAborted();
+      // oxlint-disable-next-line eslint/no-await-in-loop
+      const { done, value } = await reader.read();
+      signal.throwIfAborted();
+      if (done) {
+        complete = true;
+        break;
+      }
+      total += value.byteLength;
+      if (total > limit) {
+        throw new ScientificPreviewError('too-large', { limit: SEQUENCE_SIZE_LIMIT_LABEL });
+      }
+      chunks.push(value);
+    }
+  } finally {
+    try {
+      if (!complete) await reader.cancel();
+    } finally {
+      reader.releaseLock();
+    }
+  }
+
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes.buffer;
 }
 
 export default XScienceSequenceViewer;
