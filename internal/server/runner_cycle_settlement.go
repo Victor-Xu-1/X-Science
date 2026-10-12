@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 	eventjournal "x-science/internal/persistence/journal"
 	sessionstore "x-science/internal/persistence/sessions"
 	transcriptstore "x-science/internal/persistence/transcript"
-	"time"
 )
 
 func (s *Server) settleSessionRunnerChatOutcome(

@@ -11,8 +11,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"x-science/internal/compute/transfer"
 	"testing"
+	"x-science/internal/compute/transfer"
 
 	workspace "x-science/internal/persistence/workspace"
 )

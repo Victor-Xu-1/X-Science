@@ -3,9 +3,9 @@ package server
 import (
 	"context"
 	"reflect"
+	"testing"
 	"x-science/internal/agentruntime"
 	kernelruntime "x-science/internal/kernel"
-	"testing"
 )
 
 func TestEnvironmentInventoryIgnoresNonExecutingNetworkOption(t *testing.T) {

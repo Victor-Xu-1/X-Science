@@ -737,6 +737,6 @@ var bundledAgentConnectorIDs = map[string]struct{}{
 	"bundled:cancer-models": {}, "bundled:chemistry": {}, "bundled:human-genetics": {}, "bundled:literature": {},
 	"bundled:genomes": {}, "bundled:cellguide": {}, "bundled:zinc": {},
 	"bundled:x-science-research": {},
-	"bundled:omtx-om":        {}, "bundled:patsnap-chemical-molecular": {}, "bundled:inductive-bio": {}, "bundled:boltz-api-official": {},
+	"bundled:omtx-om":            {}, "bundled:patsnap-chemical-molecular": {}, "bundled:inductive-bio": {}, "bundled:boltz-api-official": {},
 	"bundled:ketcher-chemistry": {},
 }

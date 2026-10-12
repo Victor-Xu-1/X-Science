@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"sort"
 	"strings"
-	workspace "x-science/internal/persistence/workspace"
 	"time"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func (s *Server) webConversationConfigOptions(userID string, frame workspace.CompatibilityFrame) ([]map[string]any, error) {

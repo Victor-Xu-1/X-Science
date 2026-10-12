@@ -5,8 +5,8 @@ import (
 	"errors"
 	"runtime/debug"
 	"strings"
-	"x-science/internal/runtimecontrol"
 	"testing"
+	"x-science/internal/runtimecontrol"
 )
 
 func TestMCPResponseDecodeHonorsRuntimeMemoryBudget(t *testing.T) {

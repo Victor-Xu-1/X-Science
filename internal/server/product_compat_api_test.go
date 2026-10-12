@@ -64,7 +64,7 @@ func TestXScienceCatalogUsesLiveOwnerScopedRuntimeData(t *testing.T) {
 	var payload struct {
 		Product string `json:"product"`
 		Runtime struct {
-			RuntimeAssetsDir string                        `json:"runtimeAssetsDir"`
+			RuntimeAssetsDir string                     `json:"runtimeAssetsDir"`
 			Agents           xScienceCountedNames       `json:"agents"`
 			Skills           xScienceCountedNames       `json:"skills"`
 			MCPServers       xScienceCountedNames       `json:"mcpServers"`
@@ -72,7 +72,7 @@ func TestXScienceCatalogUsesLiveOwnerScopedRuntimeData(t *testing.T) {
 			SeedProjects     xScienceSeedProjectCatalog `json:"seedProjects"`
 		} `json:"runtime"`
 		Backend struct {
-			BaseURL  string                           `json:"baseUrl"`
+			BaseURL  string                        `json:"baseUrl"`
 			Projects xScienceBackendProjectCatalog `json:"projects"`
 		} `json:"backend"`
 	}

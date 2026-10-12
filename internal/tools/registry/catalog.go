@@ -1,13 +1,13 @@
 package registry
 
 import (
-	"x-science/internal/xsciencelink"
 	"x-science/internal/toolcontract"
 	"x-science/internal/tools/articlefulltext"
 	"x-science/internal/tools/bindingmode"
 	"x-science/internal/tools/patentsearch"
 	"x-science/internal/tools/webfetch"
 	"x-science/internal/tools/websearch"
+	"x-science/internal/xsciencelink"
 )
 
 func nativeWebSearchTool(name, description string) Tool {
@@ -210,7 +210,7 @@ func defaultCatalog() *Registry {
 				"viewports":                {Type: "array", Required: false},
 				"criteria":                 {Type: "array", Required: false},
 				"style_profile":            {Type: "string", Required: false},
-				"allow_xsciencelink":          {Type: "boolean", Required: false},
+				"allow_xsciencelink":       {Type: "boolean", Required: false},
 				"max_images":               {Type: "number", Required: false},
 			},
 			Executable: true,

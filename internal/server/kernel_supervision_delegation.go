@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"time"
 	"x-science/internal/agentruntime"
 	sessionstore "x-science/internal/persistence/sessions"
 	workspace "x-science/internal/persistence/workspace"
 	"x-science/internal/providers"
-	"time"
 )
 
 func kernelDelegationSpawnCap(access workspace.KernelFrameAccess) int {

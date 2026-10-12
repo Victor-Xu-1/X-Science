@@ -6,13 +6,13 @@ import (
 	"io"
 	"strings"
 	"sync"
+	"testing"
+	"time"
 	"x-science/internal/agentruntime"
 	sessionstore "x-science/internal/persistence/sessions"
 	transcriptstore "x-science/internal/persistence/transcript"
 	workspace "x-science/internal/persistence/workspace"
 	"x-science/internal/toolgateway"
-	"testing"
-	"time"
 )
 
 func revisionPlanInput(steps ...string) map[string]any {

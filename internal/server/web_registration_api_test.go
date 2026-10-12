@@ -177,7 +177,7 @@ func TestWebRegistrationAPIIsDurableAndDoesNotExpandXScienceLinkLogin(t *testing
 func TestWebRegistrationRejectsDuplicateInvalidCrossOriginAndCorruptStore(t *testing.T) {
 	root := t.TempDir()
 	options := Options{
-		FileRoot:      root,
+		FileRoot:         root,
 		XScienceLinkAuth: XScienceLinkAuthOptions{Username: "operator", Password: "test-secret-password"},
 	}
 	app := New(options)
@@ -204,9 +204,9 @@ func TestWebRegistrationRejectsDuplicateInvalidCrossOriginAndCorruptStore(t *tes
 		t.Fatalf("cross-origin status=%d body=%s", crossResponse.Code, crossResponse.Body.String())
 	}
 	remoteApp := New(Options{
-		FileRoot:      t.TempDir(),
+		FileRoot:         t.TempDir(),
 		XScienceLinkAuth: options.XScienceLinkAuth,
-		WebAuth:       WebAuthOptions{PublicBaseURL: "https://biomed.example"},
+		WebAuth:          WebAuthOptions{PublicBaseURL: "https://biomed.example"},
 	})
 	remote := httptest.NewRequest(http.MethodPost, "https://biomed.example/api/auth/register", strings.NewReader(`{"name":"Remote","password":"password-123"}`))
 	remote.RemoteAddr = "203.0.113.8:12345"

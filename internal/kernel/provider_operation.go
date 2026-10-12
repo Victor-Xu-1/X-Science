@@ -141,12 +141,12 @@ func (m *Manager) RunProviderOperation(ctx context.Context, input ProviderOperat
 	environment := m.runtimeEnvironmentAtPrefix(runtimeSpec.Environment, "python", stage, "provider-operation", "", "", "", prefix)
 	environment = mergeProviderKernelEnvironment(environment, map[string]string{
 		"X_SCIENCE_PROVIDER_PROXY_FD": strconv.Itoa(proxyFD),
-		"OPERON_HOST_NETNS_INO":   hostNetworkNamespace,
-		"OPERON_BYOC_ENVS_DIR":    runtimeSpec.EnvironmentsPath,
-		"OPERON_BYOC_INSTALL_ID":  runtimeSpec.InstallID,
-		"OPERON_BYOC_ENVIRONMENT": runtimeSpec.ModalEnvironment,
-		"MODAL_ENVIRONMENT":       runtimeSpec.ModalEnvironment,
-		"OPERON_BYOC_APP_NAME":    runtimeSpec.AppName,
+		"OPERON_HOST_NETNS_INO":       hostNetworkNamespace,
+		"OPERON_BYOC_ENVS_DIR":        runtimeSpec.EnvironmentsPath,
+		"OPERON_BYOC_INSTALL_ID":      runtimeSpec.InstallID,
+		"OPERON_BYOC_ENVIRONMENT":     runtimeSpec.ModalEnvironment,
+		"MODAL_ENVIRONMENT":           runtimeSpec.ModalEnvironment,
+		"OPERON_BYOC_APP_NAME":        runtimeSpec.AppName,
 	}, runtimeSpec.ExtraEnvironment)
 	command, err := newConfinedWorkerCommandWithAuxiliary(
 		stage, python,

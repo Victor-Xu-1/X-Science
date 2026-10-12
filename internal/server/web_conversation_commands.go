@@ -8,8 +8,8 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	workspace "x-science/internal/persistence/workspace"
 	"time"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func (s *Server) handleWebConversationMessageSubmission(w http.ResponseWriter, r *http.Request, frame workspace.CompatibilityFrame) {

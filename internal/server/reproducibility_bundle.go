@@ -448,7 +448,7 @@ func buildReplayNotebook(segment replaySegment) ([]byte, error) {
 		"metadata": map[string]any{
 			"kernelspec":    map[string]any{"display_name": segment.CondaEnv, "language": segment.Language, "name": segment.CondaEnv},
 			"language_info": map[string]any{"name": segment.Language},
-			"xscience":         map[string]any{"frame_id": segment.FrameID, "agent_name": segment.Agent},
+			"xscience":      map[string]any{"frame_id": segment.FrameID, "agent_name": segment.Agent},
 		},
 		"nbformat": 4, "nbformat_minor": 5,
 	}

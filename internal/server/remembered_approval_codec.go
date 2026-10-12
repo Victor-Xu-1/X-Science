@@ -3,8 +3,8 @@ package server
 import (
 	"encoding/json"
 	"sort"
-	"x-science/internal/xsciencelink"
 	"time"
+	"x-science/internal/xsciencelink"
 )
 
 func rememberedApprovalDecisionsFromSetting(value any) map[string]xsciencelink.RememberedApprovalDecision {

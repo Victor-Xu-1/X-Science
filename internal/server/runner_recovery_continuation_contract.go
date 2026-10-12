@@ -7,10 +7,10 @@ import (
 	"errors"
 	"strings"
 
+	"time"
 	"x-science/internal/agentruntime"
 	eventjournal "x-science/internal/persistence/journal"
 	sessionstore "x-science/internal/persistence/sessions"
-	"time"
 )
 
 func sessionRunnerTaskStartedAt(session sessionstore.Session, run *sessionRunnerChatRun) time.Time {

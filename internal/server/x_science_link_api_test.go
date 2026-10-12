@@ -474,7 +474,7 @@ func TestXScienceLinkAccessRequestLifecycle(t *testing.T) {
 		t.Fatalf("create status = %d", createResp.StatusCode)
 	}
 	var created struct {
-		OK      bool                    `json:"ok"`
+		OK      bool                       `json:"ok"`
 		Request xsciencelink.AccessRequest `json:"request"`
 	}
 	if err := json.NewDecoder(createResp.Body).Decode(&created); err != nil {
@@ -546,7 +546,7 @@ func TestXScienceLinkDownloadEndpointServesConfiguredPackage(t *testing.T) {
 	}
 
 	srv := New(Options{
-		XScienceLink:       xsciencelink.NewService(),
+		XScienceLink:    xsciencelink.NewService(),
 		LinkPackagePath: packagePath,
 	})
 	httpServer := httptest.NewServer(srv.Handler())
@@ -696,7 +696,7 @@ func TestXScienceLinkDoctorReportIncludesBrowserOnlyPolicyMatrix(t *testing.T) {
 	var body struct {
 		OK     bool `json:"ok"`
 		Report struct {
-			Clients      []xsciencelink.Client        `json:"clients"`
+			Clients      []xsciencelink.Client     `json:"clients"`
 			Warnings     []string                  `json:"warnings"`
 			PolicyMatrix map[string]map[string]any `json:"policyMatrix"`
 			Server       map[string]any            `json:"server"`

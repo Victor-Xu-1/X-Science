@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"context"
 	"strings"
-	"x-science/internal/agentruntime"
 	"testing"
+	"x-science/internal/agentruntime"
 )
 
 func TestAgentWorkspaceSniffsImageDespiteGenericUploadMIME(t *testing.T) {
