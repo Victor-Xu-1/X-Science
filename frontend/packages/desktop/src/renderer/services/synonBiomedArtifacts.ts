@@ -1,4 +1,6 @@
 import { PRODUCT_NAME } from '@/common/config/productIdentity';
+import { clearSharedGatewayReads } from '@/renderer/services/synonBiomedGateway';
+import { rendererAccountScopedKey } from '@/renderer/services/rendererAccountScope';
 
 export type SynonBiomedArtifactVersion = {
   versionId: string;
@@ -166,14 +168,22 @@ async function requestArtifactMutation(
   method: 'POST' | 'PATCH' | 'DELETE',
   body?: Record<string, unknown>
 ): Promise<SynonBiomedArtifactMutationResult> {
+  const accountScope = rendererAccountScopedKey('');
   const payload = await requestJson<unknown>(path, {
     method,
+    credentials: 'include',
     headers: {
       accept: 'application/json',
       ...(body ? { 'content-type': 'application/json' } : {}),
     },
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
+  // Project artifact lists coalesce in-flight gateway reads. End that generation
+  // before callers refresh project surfaces so a slower pre-mutation read cannot
+  // satisfy a post-mutation reload with deleted or moved artifacts.
+  if (accountScope === rendererAccountScopedKey('')) {
+    clearSharedGatewayReads();
+  }
   const record = asRecord(payload) ?? {};
   return {
     artifactId:
@@ -189,7 +199,7 @@ async function requestArtifactMutation(
 }
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, init);
+  const response = await fetch(path, { credentials: 'include', ...init });
   if (!response.ok) {
     const detail = await response.text().catch(() => '');
     throw new Error(`X-Science artifact request failed: ${response.status}${detail ? ` ${detail}` : ''}`);
