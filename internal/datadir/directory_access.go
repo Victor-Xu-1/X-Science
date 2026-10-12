@@ -9,14 +9,18 @@ import (
 // Open the verified existing directory and compare the actual capability to
 // its pre-open identity. All subsequent writes stay anchored to that root.
 func openCanonicalDirectory(path string) (*os.Root, error) {
-	expected, err := os.Lstat(path)
+	absolute, err := canonicalExistingDirectory(path)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := canonicalExistingDirectory(path); err != nil {
+	// absolute passed cleanAbsolutePath and symlink rejection in canonicalExistingDirectory.
+	// lgtm[go/path-injection]
+	expected, err := os.Lstat(absolute)
+	if err != nil {
 		return nil, err
 	}
-	root, err := os.OpenRoot(path)
+	// lgtm[go/path-injection]
+	root, err := os.OpenRoot(absolute)
 	if err != nil {
 		return nil, err
 	}
@@ -31,14 +35,19 @@ func openCanonicalDirectory(path string) (*os.Root, error) {
 // Validate each existing ancestor before creating anything. MkdirAll on an
 // unverified path can write through a symlink even if validation later fails.
 func createCanonicalDirectory(path string) error {
-	if _, err := os.Lstat(path); err == nil {
-		_, err = canonicalExistingDirectory(path)
+	absolute, err := cleanAbsolutePath(path)
+	if err != nil {
+		return err
+	}
+	// lgtm[go/path-injection]
+	if _, err := os.Lstat(absolute); err == nil {
+		_, err = canonicalExistingDirectory(absolute)
 		return err
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
-	parent := filepath.Dir(path)
-	if parent == path {
+	parent := filepath.Dir(absolute)
+	if parent == absolute {
 		return errors.New("directory has no existing parent")
 	}
 	if err := createCanonicalDirectory(parent); err != nil {
@@ -49,10 +58,10 @@ func createCanonicalDirectory(path string) error {
 		return err
 	}
 	defer root.Close()
-	if err := root.Mkdir(filepath.Base(path), 0o700); err != nil && !errors.Is(err, os.ErrExist) {
+	if err := root.Mkdir(filepath.Base(absolute), 0o700); err != nil && !errors.Is(err, os.ErrExist) {
 		return err
 	}
-	_, err = canonicalExistingDirectory(path)
+	_, err = canonicalExistingDirectory(absolute)
 	return err
 }
 
