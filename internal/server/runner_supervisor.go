@@ -72,6 +72,10 @@ type sessionRunnerCommandOutput struct {
 }
 
 func (s *Server) RunSessionRunnerCommandOnce(ctx context.Context, options SessionRunnerCommandOptions) (SessionRunnerCycleResult, error) {
+	return s.runSessionRunnerCommandOnce(ctx, options, runSessionRunnerCommand)
+}
+
+func (s *Server) runSessionRunnerCommandOnce(ctx context.Context, options SessionRunnerCommandOptions, execute func(context.Context, SessionRunnerCommandOptions, sessionRunnerCommandInput) (sessionRunnerCommandOutput, error)) (SessionRunnerCycleResult, error) {
 	options = normalizeSessionRunnerCommandOptions(options)
 	if strings.TrimSpace(options.Command) == "" {
 		return SessionRunnerCycleResult{}, errors.New("session runner command is required")
@@ -117,6 +121,9 @@ func (s *Server) RunSessionRunnerCommandOnce(ctx context.Context, options Sessio
 		return result, err
 	}
 	defer finishActiveRun()
+	activeRun.settlement.Lock()
+	activeRun.projectionClaim = claim
+	activeRun.settlement.Unlock()
 	ctx = activeCtx
 	if drained, drainErr := s.interruptSessionRunnerForRuntimeDrain(
 		ctx, SessionRunnerChatOptions{RunnerID: options.RunnerID}, &result, activeRun, claim, nil,
@@ -134,34 +141,61 @@ func (s *Server) RunSessionRunnerCommandOnce(ctx context.Context, options Sessio
 	if len(entries) > 0 {
 		result.CheckpointEventID = entries[len(entries)-1].EventID
 	}
-	checkpoint, err := s.checkpointSessionRunner(map[string]any{
-		"sessionId":       session.ID,
-		"runnerId":        options.RunnerID,
-		"runnerAttempt":   result.Attempt,
-		"claimToken":      claimToken,
-		"status":          "running",
-		"message":         "runner command started",
-		"afterEventId":    result.CheckpointEventID,
-		"clientMessageId": runnerCommandClientMessageID(options.RunnerID, session.ID, result.Attempt, claimToken, "checkpoint"),
-	})
-	if err != nil {
-		return result, err
+	var admissionSettlement *taskRunCancellationSettlement
+	if strings.HasPrefix(session.ID, "taskrun:") {
+		// An already-cancelled parent cannot bind an execution handle. Its
+		// truthful early finish may still identify this sole returned input.
+		binding := taskRunBindingFromEntries(session.ID, entries)
+		if binding.userEventID > 0 {
+			admissionSettlement = &taskRunCancellationSettlement{claim: claim, consumedUserEventID: binding.userEventID}
+			if binding.verified {
+				admissionSettlement.instance = binding.instance
+			}
+		}
 	}
-	if event, ok := checkpoint["event"].(*eventjournal.Entry); ok && event != nil {
-		result.CheckpointEventID = event.EventID
+	if err := s.bindTaskRunSessionInput(ctx, session, entries); err != nil && !errors.Is(err, ErrGenerationStopped) {
+		// A parent already cancelled before input binding retains the existing
+		// command checkpoint/executor outcome path. Binding/storage failures do not.
+		if cause := context.Cause(ctx); cause == nil || !errors.Is(err, cause) {
+			return result, err
+		}
+	}
+	var output sessionRunnerCommandOutput
+	var commandErr, heartbeatErr error
+	activeRun.settlement.Lock()
+	skipTaskRunExecution := activeRun.taskRunCancelled && errors.Is(context.Cause(ctx), ErrGenerationStopped)
+	activeRun.settlement.Unlock()
+	if !skipTaskRunExecution {
+		checkpoint, err := s.checkpointSessionRunner(map[string]any{
+			"sessionId":       session.ID,
+			"runnerId":        options.RunnerID,
+			"runnerAttempt":   result.Attempt,
+			"claimToken":      claimToken,
+			"status":          "running",
+			"message":         "runner command started",
+			"afterEventId":    result.CheckpointEventID,
+			"clientMessageId": runnerCommandClientMessageID(options.RunnerID, session.ID, result.Attempt, claimToken, "checkpoint"),
+		})
+		if err != nil {
+			return result, err
+		}
+		if event, ok := checkpoint["event"].(*eventjournal.Entry); ok && event != nil {
+			result.CheckpointEventID = event.EventID
+		}
+
+		runCtx, stopHeartbeat := s.startSessionRunnerCommandHeartbeat(ctx, claim, options)
+		output, commandErr = execute(runCtx, options, sessionRunnerCommandInput{
+			RunnerID:    options.RunnerID,
+			Session:     session,
+			Entries:     entries,
+			Attempt:     result.Attempt,
+			WorkDir:     session.WorkDir,
+			Project:     session.Project,
+			NextEventID: result.CheckpointEventID,
+		})
+		heartbeatErr = stopHeartbeat()
 	}
 
-	runCtx, stopHeartbeat := s.startSessionRunnerCommandHeartbeat(ctx, claim, options)
-	output, commandErr := runSessionRunnerCommand(runCtx, options, sessionRunnerCommandInput{
-		RunnerID:    options.RunnerID,
-		Session:     session,
-		Entries:     entries,
-		Attempt:     result.Attempt,
-		WorkDir:     session.WorkDir,
-		Project:     session.Project,
-		NextEventID: result.CheckpointEventID,
-	})
-	heartbeatErr := stopHeartbeat()
 	if drained, drainErr := s.interruptSessionRunnerForRuntimeDrain(
 		ctx, SessionRunnerChatOptions{RunnerID: options.RunnerID}, &result, activeRun, claim, nil,
 	); drained {
@@ -211,6 +245,10 @@ func (s *Server) RunSessionRunnerCommandOnce(ctx context.Context, options Sessio
 	if cause := context.Cause(ctx); errors.Is(cause, ErrGenerationStopped) {
 		status, message, output.AssistantMessage = "cancelled", cause.Error(), ""
 	}
+	finishSettlement := taskRunCancellationSettlementLocked(activeRun, claim)
+	if finishSettlement == nil && context.Cause(ctx) != nil {
+		finishSettlement = admissionSettlement
+	}
 	finished, err := s.finishSessionRunner(map[string]any{
 		"sessionId":       session.ID,
 		"runnerId":        options.RunnerID,
@@ -220,7 +258,7 @@ func (s *Server) RunSessionRunnerCommandOnce(ctx context.Context, options Sessio
 		"message":         message,
 		"afterEventId":    maxInt64(result.CheckpointEventID, result.AssistantEventID),
 		"clientMessageId": runnerCommandClientMessageID(options.RunnerID, session.ID, result.Attempt, claimToken, "finish"),
-	})
+	}, finishSettlement)
 	if err != nil {
 		activeRun.settlement.Unlock()
 		return result, err

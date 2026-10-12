@@ -110,13 +110,26 @@ func (s *Server) executeTaskRunTool(input map[string]any) (any, error) {
 		if strings.TrimSpace(parsed.RunID) == "" {
 			return nil, errors.New("TaskRun action=cancel requires run_id")
 		}
-		run, err := s.taskRunStore.Cancel(parsed.RunID)
+		target, found, err := s.taskRunStore.Get(parsed.RunID)
 		if err != nil {
 			return nil, err
 		}
+		if !found {
+			return nil, fmt.Errorf("TaskRun not found: %s", parsed.RunID)
+		}
+		propagation := "requested"
+		if taskruns.ExecutionInstance(target) == "" {
+			propagation = "unconfirmed"
+		}
+		result, cancelErr := s.taskRunStore.CancelForInstance(parsed.RunID, taskruns.ExecutionInstance(target), propagation)
+		if !result.JSONCommitted {
+			return nil, cancelErr
+		}
+		run := result.Record
+		s.stopTaskRunSessionInputs(run)
 		_ = s.appendTaskRunSystemEvent(run, "TaskRun cancelled")
-		if err := s.syncTaskRunGoalLedger(run); err != nil {
-			return nil, err
+		if err := errors.Join(cancelErr, s.syncTaskRunGoalLedger(run)); err != nil {
+			return run, err
 		}
 		return run, nil
 	default:

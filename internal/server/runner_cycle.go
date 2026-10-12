@@ -145,6 +145,14 @@ func (s *Server) runSessionRunnerChatOnce(
 	}
 	defer finishActiveRun()
 	ctx = activeCtx
+	admissionSettlement, admissionErr := s.taskRunAdmissionSettlement(session, projectionClaim)
+	if admissionErr != nil {
+		if projectionClaimAcquired {
+			_, _, releaseErr := s.sessionStore.ReleaseRunner(projectionClaim)
+			admissionErr = errors.Join(admissionErr, releaseErr)
+		}
+		return result, admissionErr
+	}
 	if transcriptFrame {
 		if transcriptAuthority == nil {
 			var transcriptClaimed bool
@@ -245,7 +253,7 @@ func (s *Server) runSessionRunnerChatOnce(
 			"sessionId": session.ID, "runnerId": options.RunnerID, "runnerAttempt": result.Attempt,
 			"claimToken": claimToken, "status": "cancelled", "message": message,
 			"clientMessageId": runnerCommandClientMessageID(options.RunnerID, session.ID, result.Attempt, claimToken, "chat-finish"),
-		})
+		}, admissionSettlement)
 		if finishErr == nil {
 			activeRun.settled = true
 		}
@@ -491,7 +499,7 @@ func (s *Server) runSessionRunnerChatOnce(
 				"sessionId": session.ID, "runnerId": options.RunnerID, "runnerAttempt": result.Attempt,
 				"claimToken": claimToken, "status": status, "message": message,
 				"clientMessageId": runnerCommandClientMessageID(options.RunnerID, session.ID, result.Attempt, claimToken, "chat-finish"),
-			})
+			}, admissionSettlement)
 			if err == nil {
 				activeRun.settled = true
 			}
@@ -505,7 +513,7 @@ func (s *Server) runSessionRunnerChatOnce(
 			result.Status = status
 			return result, nil
 		}
-		finishErr := s.finalizeClaimedSessionRunnerFailure(session.ID, options.RunnerID, result.Attempt, claimToken, message, &result)
+		finishErr := s.finalizeClaimedSessionRunnerFailure(session.ID, options.RunnerID, result.Attempt, claimToken, message, &result, admissionSettlement)
 		if finishErr == nil {
 			activeRun.settled = true
 		}
