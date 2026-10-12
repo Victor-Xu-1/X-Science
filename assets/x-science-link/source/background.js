@@ -3290,7 +3290,10 @@ async function readPageLikeHumanInTab(options = {}) {
   const maxNoNewScrolls = Math.max(1, Math.min(8, Math.floor(Number(options.maxNoNewScrolls) || 3)))
   const sourceTarget = options.sourceTarget && typeof options.sourceTarget === 'object' ? options.sourceTarget : null
   const socialFeedSurfaces = normalizeSocialFeedSurfaces(options.socialFeedSurfaces, sourceTarget)
-  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+  const wait = (ms) => {
+    const bounded = Math.max(0, Math.min(60_000, Math.floor(Number(ms) || 0)))
+    return new Promise((resolve) => setTimeout(resolve, bounded))
+  }
   const cleanText = (value) => String(value || '')
     .replace(/\u00a0/g, ' ')
     .replace(/[ \t]+\n/g, '\n')
@@ -4050,12 +4053,13 @@ async function readPageLikeHumanInTab(options = {}) {
   }
 
   async function waitForImagesToSettle(timeoutMs) {
+    const boundedTimeoutMs = Math.max(50, Math.min(60_000, Math.floor(Number(timeoutMs) || 1_000)))
     const pending = [...document.images]
       .filter((img) => !img.complete)
       .slice(0, 20)
       .map((img) => new Promise((resolve) => {
         const done = () => resolve()
-        const timer = setTimeout(done, timeoutMs)
+        const timer = setTimeout(done, boundedTimeoutMs)
         img.addEventListener('load', () => {
           clearTimeout(timer)
           done()
@@ -4067,13 +4071,16 @@ async function readPageLikeHumanInTab(options = {}) {
       }))
     await Promise.race([
       Promise.all(pending),
-      wait(timeoutMs),
+      wait(boundedTimeoutMs),
     ])
   }
 }
 
 async function scrollPageInTab({ direction, amount }) {
-  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+  const wait = (ms) => {
+    const bounded = Math.max(0, Math.min(60_000, Math.floor(Number(ms) || 0)))
+    return new Promise((resolve) => setTimeout(resolve, bounded))
+  }
   const before = {
     x: Math.round(window.scrollX || 0),
     y: Math.round(window.scrollY || 0),
@@ -6153,7 +6160,37 @@ function requireUrlForFetch(value) {
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     throw new Error('A valid http(s) url is required')
   }
+  assertPublicFetchHostname(parsed.hostname)
   return parsed.toString()
+}
+
+function assertPublicFetchHostname(hostname) {
+  const normalized = String(hostname || '').trim().toLowerCase().replace(/\.$/, '')
+  if (!normalized || normalized === 'localhost' || normalized.endsWith('.localhost')) {
+    throw new Error('Refusing to fetch a local or private URL')
+  }
+  if (normalized === '::1' || normalized === '[::1]') {
+    throw new Error('Refusing to fetch a local or private URL')
+  }
+  const ipv4Match = normalized.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)
+  if (ipv4Match) {
+    const octets = ipv4Match.slice(1).map((part) => Number(part))
+    if (octets.some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255)) {
+      throw new Error('Refusing to fetch a local or private URL')
+    }
+    const [a, b] = octets
+    if (
+      a === 0
+      || a === 10
+      || a === 127
+      || (a === 169 && b === 254)
+      || (a === 172 && b >= 16 && b <= 31)
+      || (a === 192 && b === 168)
+      || a >= 224
+    ) {
+      throw new Error('Refusing to fetch a local or private URL')
+    }
+  }
 }
 
 function tabInfo(tab) {

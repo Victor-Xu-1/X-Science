@@ -65,4 +65,22 @@ describe('X-Science Link download guards', () => {
     expect(shouldUseBrowserDownloadManager).toContain("payload.delivery !== 'background_transfer'")
     expect(shouldUseBrowserDownloadManager).toContain('payload.backgroundOnly !== true')
   })
+
+  test('rejects private-network fetch targets before background transfer', () => {
+    const requireUrlForFetch = bodyOf('requireUrlForFetch')
+    const assertPublicFetchHostname = bodyOf('assertPublicFetchHostname')
+
+    expect(requireUrlForFetch).toContain('assertPublicFetchHostname(parsed.hostname)')
+    expect(assertPublicFetchHostname).toContain('Refusing to fetch a local or private URL')
+    expect(assertPublicFetchHostname).toContain('localhost')
+  })
+
+  test('bounds human-read timers before scheduling setTimeout in the injected page script', () => {
+    const readPageLikeHumanInTab = bodyOf('readPageLikeHumanInTab')
+    const waitForImagesToSettle = bodyOf('waitForImagesToSettle')
+
+    expect(readPageLikeHumanInTab).toMatch(/const wait = \(ms\) => \{[\s\S]*Math\.min\(60_000/)
+    expect(waitForImagesToSettle).toContain('boundedTimeoutMs')
+    expect(waitForImagesToSettle).toContain('Math.min(60_000')
+  })
 })
