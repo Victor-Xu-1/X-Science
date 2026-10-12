@@ -110,7 +110,7 @@ func (s *Server) executeTaskRunTool(input map[string]any) (any, error) {
 		if strings.TrimSpace(parsed.RunID) == "" {
 			return nil, errors.New("TaskRun action=cancel requires run_id")
 		}
-		run, err := s.taskRunStore.Cancel(parsed.RunID)
+		run, err := s.cancelTaskRun(parsed.RunID)
 		if err != nil {
 			return nil, err
 		}
