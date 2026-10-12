@@ -1710,7 +1710,7 @@ async function readPageLikeHuman(payload = {}) {
   const maxScrolls = clampNumber(payload.maxScrolls, 0, MAX_HUMAN_READ_SCROLLS, DEFAULT_HUMAN_READ_SCROLLS)
   const initialWaitMs = clampNumber(payload.initialWaitMs, 0, 10_000, 0)
   if (initialWaitMs > 0) {
-    await new Promise((resolve) => setTimeout(resolve, initialWaitMs))
+    await sleepBoundedMs(initialWaitMs, 10_000)
   }
   const includeImages = payload.includeImages !== false
   const [result] = await chrome.scripting.executeScript({
@@ -2028,7 +2028,8 @@ function shouldUseBrowserDownloadManager(payload = {}) {
 }
 
 async function downloadFileInBackground({ url, filename }) {
-  const response = await fetch(url)
+  const fetchUrl = requireUrlForFetch(url)
+  const response = await fetch(fetchUrl)
   if (!response.ok) {
     throw new Error(`Background download failed (${response.status})`)
   }
@@ -3216,11 +3217,17 @@ async function enforceXScienceGroupLimits(groupId, protectedTabId) {
 }
 
 function delay(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+  return sleepBoundedMs(ms, 60_000)
+}
+
+function sleepBoundedMs(ms, maxMs) {
+  const bounded = clampNumber(ms, 0, maxMs, 0)
+  return new Promise((resolve) => setTimeout(resolve, bounded))
 }
 
 function waitForTabComplete(tabId, timeoutMs = 12_000) {
   if (typeof tabId !== 'number') return Promise.resolve()
+  const boundedTimeoutMs = clampNumber(timeoutMs, 300, 60_000, 12_000)
   return new Promise((resolve) => {
     let done = false
     const finish = () => {
@@ -3230,7 +3237,7 @@ function waitForTabComplete(tabId, timeoutMs = 12_000) {
       chrome.tabs.onUpdated.removeListener(listener)
       resolve()
     }
-    const timeout = setTimeout(finish, timeoutMs)
+    const timeout = setTimeout(finish, boundedTimeoutMs)
     const listener = (updatedTabId, changeInfo) => {
       if (updatedTabId === tabId && changeInfo.status === 'complete') {
         finish()
@@ -6138,6 +6145,15 @@ function requireUrl(value) {
     throw new Error('A valid http(s) url is required')
   }
   return value
+}
+
+function requireUrlForFetch(value) {
+  const normalized = requireUrl(value)
+  const parsed = new URL(normalized)
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error('A valid http(s) url is required')
+  }
+  return parsed.toString()
 }
 
 function tabInfo(tab) {
