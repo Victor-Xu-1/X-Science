@@ -1,5 +1,7 @@
 """Keep verification-only declarations narrow and fail closed on test failures."""
 
+import contextlib
+import io
 import json
 from pathlib import Path
 import subprocess
@@ -150,7 +152,7 @@ class VerificationOwnershipTests(unittest.TestCase):
         args = ['pr_fast_scope.py', '--repo', str(self.repo), '--base', 'a' * 40,
                 '--head', 'b' * 40, '--shard-index', '4', '--shard-count', '4']
         with patch.object(sys, 'argv', args), patch.object(scope, 'changed_paths', return_value=['scripts/check.py']), \
-                patch.object(scope, 'run') as invoke:
+                patch.object(scope, 'run') as invoke, contextlib.redirect_stderr(io.StringIO()):
             self.assertEqual(scope.main(), 1)
             invoke.assert_not_called()
 
