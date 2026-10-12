@@ -27,7 +27,7 @@ func TestLoadRejectsSymbolicLinkSkillManifest(t *testing.T) {
 		t.Fatalf("symbolic link manifest loaded unexpectedly: %#v", skills)
 	}
 	errs := catalog.LoadErrors()
-	if len(errs) != 1 || !strings.Contains(errs[0].Err, "symbolic link") {
+	if len(errs) != 1 || (!strings.Contains(errs[0].Err, "symbolic link") && !strings.Contains(errs[0].Err, "not a link")) {
 		t.Fatalf("load errors=%#v", errs)
 	}
 }

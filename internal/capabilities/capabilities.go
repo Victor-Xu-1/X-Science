@@ -400,7 +400,7 @@ func CompactXScience() Report {
 				Actions:      linkActions,
 				Capabilities: linkCapabilityIDs,
 				Metrics: map[string]string{
-					"minimumVersion": "0.6.10",
+					"minimumVersion": "0.6.11",
 					"packageUrl":     "/api/plugins/x-science/link/download",
 				},
 			},

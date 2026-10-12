@@ -160,7 +160,7 @@ func TestFetchReadsRealHTTPServerWithLimit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("bounded truncated read error = %v", err)
 	}
-	if truncated.Body != "XScience Go r" || !truncated.Truncated || truncated.BytesRead != 10 ||
+	if truncated.Body != "XScience G" || !truncated.Truncated || truncated.BytesRead != 10 ||
 		truncated.ContentLength != int64(len("XScience Go rewrite source page")) || truncated.Binary {
 		t.Fatalf("truncated text result = %#v", truncated)
 	}
