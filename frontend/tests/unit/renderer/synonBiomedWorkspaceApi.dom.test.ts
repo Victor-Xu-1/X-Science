@@ -5,6 +5,7 @@ import {
   uploadSynonBiomedArtifact,
 } from '@/renderer/services/synonBiomedWorkspaceApi';
 import { clearSharedGatewayReads, loadSynonBiomedProjectArtifacts } from '@/renderer/services/synonBiomedGateway';
+import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -17,6 +18,7 @@ function deferred<T>() {
 afterEach(() => {
   vi.unstubAllGlobals();
   clearSharedGatewayReads();
+  resetRendererAccountScopeForTest();
 });
 
 describe('X-Science workspace API', () => {
@@ -111,5 +113,31 @@ describe('X-Science workspace API', () => {
     current.resolve(new Response(JSON.stringify(currentArtifacts)));
     await expect(Promise.all([afterMutation, concurrentRefresh])).resolves.toEqual([[], []]);
     expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('does not invalidate another owner when an older owner workspace delete completes', async () => {
+    const mutation = deferred<Response>();
+    const current = deferred<Response>();
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation((input, init) => {
+      const url = String(input);
+      if (init?.method === 'DELETE') {
+        return mutation.promise;
+      }
+      if (url.endsWith('/project-p/artifacts')) {
+        return current.promise;
+      }
+      return Promise.resolve(new Response('[]'));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    setRendererAccountOwner('owner-a');
+    const write = deleteSynonBiomedArtifact({ conversationId: 'frame-1', artifactId: 'artifact-1' });
+    setRendererAccountOwner('owner-b');
+    const first = loadSynonBiomedProjectArtifacts('project-p');
+    mutation.resolve(new Response(JSON.stringify({ deleted: true })));
+    await write;
+    const second = loadSynonBiomedProjectArtifacts('project-p');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    current.resolve(new Response(JSON.stringify([])));
+    await Promise.all([first, second]);
   });
 });
