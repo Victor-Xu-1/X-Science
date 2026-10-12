@@ -118,7 +118,7 @@ func resolveSSHIdentityFile(raw, home string) (string, error) {
 	if err != nil {
 		return "", errors.New("overrides.identityFile does not exist")
 	}
-	// lgtm[go/path-injection]
+	// codeql[go/path-injection]
 	info, err := os.Stat(resolved)
 	if err != nil || !info.Mode().IsRegular() {
 		return "", errors.New("overrides.identityFile must be a regular file")

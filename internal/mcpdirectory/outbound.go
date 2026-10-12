@@ -269,6 +269,29 @@ func normalizeHost(host string) string {
 	return strings.TrimSuffix(strings.ToLower(strings.TrimSpace(host)), ".")
 }
 
+// GetPublicHTTPS performs a GET request after resolvePublicHTTPSURL validation
+// and the shared pinned transport policy.
+func GetPublicHTTPS(ctx context.Context, base *http.Client, rawURL string, prepare func(*http.Request) error) (*http.Response, error) {
+	parsed, _, err := resolvePublicHTTPSURL(ctx, nil, rawURL)
+	if err != nil {
+		return nil, err
+	}
+	client, err := SecureHTTPClient(ctx, rawURL, base)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, parsed.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	if prepare != nil {
+		if err := prepare(req); err != nil {
+			return nil, err
+		}
+	}
+	return client.Do(req)
+}
+
 func isLocalHostname(host string) bool {
 	host = normalizeHost(host)
 	return host == "" || host == "localhost" || strings.HasSuffix(host, ".localhost") ||

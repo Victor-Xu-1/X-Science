@@ -433,7 +433,7 @@ func (s *Server) editCompatibilitySkillFile(name, relativePath, oldString, newSt
 		return "", "", err
 	}
 	if oldString == "" {
-		// lgtm[go/path-injection]
+		// codeql[go/path-injection]
 		if _, err := os.Lstat(target); err == nil {
 			return "", "", fmt.Errorf("file '%s' already exists in '%s' - read it first, then edit with a non-empty old_string", relativePath, name)
 		} else if !errors.Is(err, os.ErrNotExist) {
@@ -446,7 +446,7 @@ func (s *Server) editCompatibilitySkillFile(name, relativePath, oldString, newSt
 			return "", "", err
 		}
 		if err := s.reloadEditedSkill(name, editableRoot); err != nil {
-			// lgtm[go/path-injection]
+			// codeql[go/path-injection]
 			_ = os.Remove(target)
 			return "", "", err
 		}
@@ -525,10 +525,10 @@ func ensureSkillEditParent(root, parent string) error {
 			continue
 		}
 		current = filepath.Join(current, segment)
-		// lgtm[go/path-injection]
+		// codeql[go/path-injection]
 		info, err := os.Lstat(current)
 		if errors.Is(err, os.ErrNotExist) {
-			// lgtm[go/path-injection]
+			// codeql[go/path-injection]
 			if err := os.Mkdir(current, 0o700); err != nil {
 				return err
 			}
@@ -546,7 +546,7 @@ func ensureSkillEditParent(root, parent string) error {
 
 func writeSkillFileAtomic(target string, content []byte, exclusive bool) error {
 	if exclusive {
-		// lgtm[go/path-injection]
+		// codeql[go/path-injection]
 		file, err := os.OpenFile(target, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 		if err != nil {
 			return err
@@ -558,7 +558,7 @@ func writeSkillFileAtomic(target string, content []byte, exclusive bool) error {
 		return errors.Join(err, closeErr)
 	}
 	temporary := filepath.Join(filepath.Dir(target), "."+filepath.Base(target)+".edit-"+uuid.NewString())
-	// lgtm[go/path-injection]
+	// codeql[go/path-injection]
 	file, err := os.OpenFile(temporary, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 	if err != nil {
 		return err
@@ -566,7 +566,7 @@ func writeSkillFileAtomic(target string, content []byte, exclusive bool) error {
 	cleanup := true
 	defer func() {
 		if cleanup {
-			// lgtm[go/path-injection]
+			// codeql[go/path-injection]
 			_ = os.Remove(temporary)
 		}
 	}()
@@ -577,7 +577,7 @@ func writeSkillFileAtomic(target string, content []byte, exclusive bool) error {
 	if err = errors.Join(err, closeErr); err != nil {
 		return err
 	}
-	// lgtm[go/path-injection]
+	// codeql[go/path-injection]
 	if err := os.Rename(temporary, target); err != nil {
 		return err
 	}

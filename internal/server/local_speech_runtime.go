@@ -543,14 +543,10 @@ func extractLocalSpeechTarBz2(archivePath, destination string) error {
 	reader := tar.NewReader(bzip2.NewReader(file))
 	var total int64
 	for {
-		header, err := reader.Next()
+		relative, header, err := nextValidatedLocalSpeechTarEntry(reader)
 		if errors.Is(err, io.EOF) {
 			return nil
 		}
-		if err != nil {
-			return err
-		}
-		relative, err := localSpeechTarPath(header.Name)
 		if err != nil {
 			return err
 		}
@@ -570,7 +566,7 @@ func extractLocalSpeechTarBz2(archivePath, destination string) error {
 			if err := os.MkdirAll(filepath.Dir(target), 0o700); err != nil {
 				return err
 			}
-			// lgtm[go/zipslip]
+			// codeql[go/zipslip]
 			output, err := os.OpenFile(target, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 			if err != nil {
 				return err
@@ -588,6 +584,18 @@ func extractLocalSpeechTarBz2(archivePath, destination string) error {
 			return errors.New("local speech archive contains an unsupported entry")
 		}
 	}
+}
+
+func nextValidatedLocalSpeechTarEntry(reader *tar.Reader) (string, *tar.Header, error) {
+	header, err := reader.Next()
+	if err != nil {
+		return "", nil, err
+	}
+	relative, err := localSpeechTarPath(header.Name)
+	if err != nil {
+		return "", nil, err
+	}
+	return relative, header, nil
 }
 
 func localSpeechTarPath(name string) (string, error) {

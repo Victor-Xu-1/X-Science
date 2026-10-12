@@ -158,7 +158,7 @@ func (s *Server) handleStructureMinimization(w http.ResponseWriter, r *http.Requ
 	inputPath := filepath.Join(operationDir, format.runtimeInputName)
 	scriptPath := filepath.Join(operationDir, "_structure_minimize.py")
 	// runtimeInputName is derived only from the validated format enum and operationDir is server-created.
-	// lgtm[go/path-injection]
+	// codeql[go/path-injection]
 	if err := os.WriteFile(inputPath, []byte(request.Content), 0o600); err != nil {
 		writeStructureMinimizationError(w, http.StatusInternalServerError, "input_stage_failed", "the structure input could not be staged", false)
 		return
@@ -435,7 +435,7 @@ func readStructureMinimizationReport(operationDir string) (map[string]any, error
 
 func readBoundedStructureFile(path string, maxBytes int) ([]byte, error) {
 	// Callers pass only server-created operation paths or fixed report names; the workspace is removed after settlement.
-	// lgtm[go/path-injection]
+	// codeql[go/path-injection]
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err

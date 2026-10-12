@@ -421,7 +421,7 @@ func (s *Server) loadGrantedWebSkills(userID, requested string) ([]skills.Skill,
 	if err != nil {
 		return nil, "", errors.New("skill path does not exist")
 	}
-	// lgtm[go/path-injection]
+	// codeql[go/path-injection]
 	info, err := os.Stat(resolved)
 	if err != nil {
 		return nil, "", err

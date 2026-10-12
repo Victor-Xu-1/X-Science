@@ -106,7 +106,7 @@ func (w *statusRecorder) Write(value []byte) (int, error) {
 	if !w.wroteFinal {
 		w.WriteHeader(http.StatusOK)
 	}
-	// lgtm[go/reflected-xss]
+	// codeql[go/reflected-xss]
 	return w.ResponseWriter.Write(value)
 }
 
