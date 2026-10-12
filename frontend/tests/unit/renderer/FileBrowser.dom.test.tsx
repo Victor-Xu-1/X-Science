@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithI18n } from '../i18nTestUtils';
-import { SynonBiomedFileImportError } from '@/renderer/services/synonBiomedFileImportError';
+import { XScienceFileImportError } from '@/renderer/services/xScienceFileImportError';
 
 const mocks = vi.hoisted(() => ({
   loadLocal: vi.fn(),
@@ -15,24 +15,24 @@ const mocks = vi.hoisted(() => ({
   error: vi.fn(),
 }));
 
-vi.mock('@/renderer/services/synonBiomedCompute', () => ({
-  loadSynonBiomedLocalDirectory: mocks.loadLocal,
-  loadSynonBiomedRemoteDirectory: mocks.loadRemote,
-  importSynonBiomedLocalFile: mocks.importLocal,
-  importSynonBiomedRemoteFile: mocks.importRemote,
-  getSynonBiomedLocalFileUrl: (path: string, disposition: string) =>
+vi.mock('@/renderer/services/xScienceCompute', () => ({
+  loadXScienceLocalDirectory: mocks.loadLocal,
+  loadXScienceRemoteDirectory: mocks.loadRemote,
+  importXScienceLocalFile: mocks.importLocal,
+  importXScienceRemoteFile: mocks.importRemote,
+  getXScienceLocalFileUrl: (path: string, disposition: string) =>
     '/api/compute/local/download?path=' + encodeURIComponent(path) + '&disposition=' + disposition,
-  getSynonBiomedRemoteFileUrl: vi.fn(),
+  getXScienceRemoteFileUrl: vi.fn(),
 }));
 
-vi.mock('@/renderer/services/synonBiomedWorkspaceSettings', () => ({
-  loadSynonBiomedCloudFolder: mocks.loadCloud,
-  importSynonBiomedCloudObject: mocks.importCloud,
-  getSynonBiomedCloudDownloadUrl: vi.fn(),
+vi.mock('@/renderer/services/xScienceWorkspaceSettings', () => ({
+  loadXScienceCloudFolder: mocks.loadCloud,
+  importXScienceCloudObject: mocks.importCloud,
+  getXScienceCloudDownloadUrl: vi.fn(),
 }));
 
-vi.mock('@/renderer/pages/artifact/SynonBiomedPdfArtifactViewer', () => ({
-  SynonBiomedPdfArtifactViewer: () => <div>PDF preview</div>,
+vi.mock('@/renderer/pages/artifact/XSciencePdfArtifactViewer', () => ({
+  XSciencePdfArtifactViewer: () => <div>PDF preview</div>,
 }));
 
 vi.mock('@arco-design/web-react', async (importOriginal) => {
@@ -43,7 +43,7 @@ vi.mock('@arco-design/web-react', async (importOriginal) => {
   };
 });
 
-import { FileBrowser } from '@/renderer/components/synonBiomed/files/FileBrowser';
+import { FileBrowser } from '@/renderer/components/xScience/files/FileBrowser';
 
 describe('FileBrowser', () => {
   beforeEach(() => {
@@ -99,7 +99,7 @@ describe('FileBrowser', () => {
   });
 
   it('shows a stable path-level reason when a file is too large', async () => {
-    mocks.importLocal.mockRejectedValueOnce(new SynonBiomedFileImportError(413, 'too_large'));
+    mocks.importLocal.mockRejectedValueOnce(new XScienceFileImportError(413, 'too_large'));
 
     await renderFileBrowser(
       <FileBrowser

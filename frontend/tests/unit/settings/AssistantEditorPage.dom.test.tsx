@@ -8,8 +8,8 @@ import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ConfigProvider } from '@arco-design/web-react';
-import AssistantEditorPage from '@/renderer/pages/settings/SynonBiomedExpertsSettings/AssistantEditorPage';
-import type { AssistantEditorViewModel } from '@/renderer/pages/settings/SynonBiomedExpertsSettings/types';
+import AssistantEditorPage from '@/renderer/pages/settings/XScienceExpertsSettings/AssistantEditorPage';
+import type { AssistantEditorViewModel } from '@/renderer/pages/settings/XScienceExpertsSettings/types';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -17,7 +17,7 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-vi.mock('@/renderer/pages/settings/SynonBiomedExpertsSettings/AssistantEditorSections', () => ({
+vi.mock('@/renderer/pages/settings/XScienceExpertsSettings/AssistantEditorSections', () => ({
   default: () => <div data-testid='assistant-editor-sections' />,
 }));
 

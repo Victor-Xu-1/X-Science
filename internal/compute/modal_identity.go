@@ -26,11 +26,11 @@ func ModalComputeIdentityTags(identity ModalComputeIdentity) (map[string]string,
 		return nil, errors.New("complete Modal compute identity is required")
 	}
 	return map[string]string{
-		"synonbiomed-org":              identity.InstallID,
-		"synonbiomed-session":          identity.RootFrameID,
-		"synonbiomed-frame":            identity.FrameID,
-		"synonbiomed-job":              identity.JobID,
-		"synonbiomed-project":          identity.ProjectID,
-		"synonbiomed-identity-version": ModalIdentityVersion,
+		"xscience-org":              identity.InstallID,
+		"xscience-session":          identity.RootFrameID,
+		"xscience-frame":            identity.FrameID,
+		"xscience-job":              identity.JobID,
+		"xscience-project":          identity.ProjectID,
+		"xscience-identity-version": ModalIdentityVersion,
 	}, nil
 }

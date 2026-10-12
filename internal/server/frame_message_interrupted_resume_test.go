@@ -8,8 +8,8 @@ import (
 
 	"github.com/google/uuid"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestCompatibilityMessageWakesExpiredTranscriptRunner(t *testing.T) {
@@ -80,7 +80,7 @@ func TestWebConversationMessageStartsFreshDispatchAfterTerminalCorrectionFailure
 		FrameID: "frame-web-blocked-message",
 		ContextData: map[string]any{
 			"web_extra":     map[string]any{},
-			"web_assistant": map[string]any{"id": "synonbiomed:operon", "locale": "zh-CN"},
+			"web_assistant": map[string]any{"id": "xscience:operon", "locale": "zh-CN"},
 		},
 	}); err != nil {
 		t.Fatal(err)
@@ -363,7 +363,7 @@ func TestCompatibilityMessageRetryCompletesTerminalRootResumeAfterInputAdmission
 			mutationID := "retry-after-durable-input"
 			messageID := uuid.NewSHA1(
 				uuid.NameSpaceURL,
-				[]byte("synon-biomed:frame-message:"+frameID+"\x00"+mutationID),
+				[]byte("x-science:frame-message:"+frameID+"\x00"+mutationID),
 			).String()
 			request := map[string]any{"request": "Continue after the input was admitted but before dispatch."}
 			frame, found, err := store.GetCompatibilityFrame(frameID)

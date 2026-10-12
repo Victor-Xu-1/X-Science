@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"time"
 
-	"synon-go/internal/processsupervisor"
+	"x-science/internal/processsupervisor"
 )
 
 type artifactValidatorActivityWriter struct {

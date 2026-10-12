@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-const runnerArtifactTableContractSchema = "synon.artifact-table-contract.v1"
+const runnerArtifactTableContractSchema = "x-science.artifact-table-contract.v1"
 
 type runnerArtifactTableContract struct {
 	ID             string                                  `json:"id"`

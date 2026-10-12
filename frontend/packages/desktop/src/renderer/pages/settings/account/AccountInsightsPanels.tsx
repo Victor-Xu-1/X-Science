@@ -1,12 +1,12 @@
 import { Refresh } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import type { SynonBiomedAccountInsights } from '@/renderer/services/account/accountInsightsModel';
+import type { XScienceAccountInsights } from '@/renderer/services/account/accountInsightsModel';
 import { SettingsGeneratedIcon } from '../components/SettingsGeneratedAsset';
 import './AccountInsightsPanels.css';
 
 type AccountInsightsPanelsProps = {
-  insights: SynonBiomedAccountInsights;
+  insights: XScienceAccountInsights;
   onRetry: () => void;
 };
 

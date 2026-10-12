@@ -15,7 +15,7 @@ import (
 
 	"github.com/google/uuid"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 var compatAgentNamePattern = regexp.MustCompile(`^[A-Z0-9_]{2,32}$`)
@@ -736,7 +736,7 @@ var bundledAgentConnectorIDs = map[string]struct{}{
 	"bundled:omics-archives": {}, "bundled:genes-ontologies": {}, "bundled:drug-regulatory": {}, "bundled:research-resources": {},
 	"bundled:cancer-models": {}, "bundled:chemistry": {}, "bundled:human-genetics": {}, "bundled:literature": {},
 	"bundled:genomes": {}, "bundled:cellguide": {}, "bundled:zinc": {},
-	"bundled:synon-research": {},
+	"bundled:x-science-research": {},
 	"bundled:omtx-om":        {}, "bundled:patsnap-chemical-molecular": {}, "bundled:inductive-bio": {}, "bundled:boltz-api-official": {},
 	"bundled:ketcher-chemistry": {},
 }

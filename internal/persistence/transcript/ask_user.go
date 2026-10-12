@@ -11,7 +11,7 @@ import (
 	"io"
 	"strings"
 
-	"synon-go/internal/toolcontract"
+	"x-science/internal/toolcontract"
 )
 
 const (
@@ -698,6 +698,13 @@ func (r *Repository) GetFrameAskUserPrompt(
 		return AskUserPromptV1{}, ErrEventConflict
 	}
 	prompt, err := DecodeAskUserPromptV1(event.PayloadJSON)
+	if err != nil {
+		if historical, proofErr := isHistoricalNamespaceEventQuery(ctx, conn, input.OwnerID, event); proofErr != nil {
+			return AskUserPromptV1{}, proofErr
+		} else if historical {
+			prompt, err = DecodeHistoricalAskUserPromptV1(event.PayloadJSON)
+		}
+	}
 	if err != nil || prompt.Origin != origin {
 		return AskUserPromptV1{}, ErrEventConflict
 	}

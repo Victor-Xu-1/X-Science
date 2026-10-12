@@ -68,18 +68,18 @@ import {
   createDockingLigandShapeData,
   formatDockingLigandMolBlock,
   resolveDockingLigandShapeResidueNames,
-  SynonBiomedDockingLigandAtoms,
-  SynonBiomedDockingLigandBonds,
+  XScienceDockingLigandAtoms,
+  XScienceDockingLigandBonds,
   type DockingLigandBondDefinition,
 } from './molstarDockingLigandShape';
 import {
   createMolstarInteractionStrengthLabelData,
-  SynonBiomedInteractionStrengthLabels,
+  XScienceInteractionStrengthLabels,
   type MolstarInteractionStrengthRecord,
 } from './molstarInteractionStrengthLabels';
 import {
   createMolstarInteractionFeatureAnchorData,
-  SynonBiomedInteractionFeatureAnchors,
+  XScienceInteractionFeatureAnchors,
 } from './molstarInteractionAnchors';
 import {
   disposeMolstarUiResources,
@@ -559,7 +559,7 @@ type PocketDistancePair = {
   residueKey: string;
 };
 
-const POCKET_DISTANCE_TAG = 'synon-biomed-pocket-distance';
+const POCKET_DISTANCE_TAG = 'x-science-pocket-distance';
 export const POCKET_DISTANCE_MARKER_LIMIT = 8;
 export const STANDARD_LIGAND_STICK_TYPE_PARAMS = {
   // Match Mol*'s native ball-and-stick scale so bonds remain visually
@@ -584,7 +584,7 @@ export const INITIAL_REPRESENTATION_PRESET_PARAMS: StructureRepresentationPreset
   theme: undefined,
 };
 
-const SYNON_VIEW_PRESET_PARAMS = {
+const X_SCIENCE_VIEW_PRESET_PARAMS = {
   ...StructureRepresentationPresetProvider.CommonParams,
 };
 
@@ -600,15 +600,15 @@ export interface MolstarViewPresetOptions {
   onPocketReady?: (ligand: StructureElement.Loci, contacts: StructureElement.Loci) => void;
 }
 
-export const createSynonViewRepresentationPreset = (
+export const createXScienceViewRepresentationPreset = (
   representation: Exclude<MolstarViewRepresentation, 'initial'>,
   electrostaticVolumes: MolstarElectrostaticVolumes = {},
   options: MolstarViewPresetOptions = {}
 ) =>
   StructureRepresentationPresetProvider({
-    id: `preset-synon-biomed-${representation}`,
+    id: `preset-x-science-${representation}`,
     display: { name: `X-Science ${representation}` },
-    params: () => SYNON_VIEW_PRESET_PARAMS,
+    params: () => X_SCIENCE_VIEW_PRESET_PARAMS,
     async apply(ref, params, plugin) {
       const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
       const structureData = structureCell?.obj?.data;
@@ -640,7 +640,7 @@ export const createSynonViewRepresentationPreset = (
             color: 'uniform',
             colorParams: { value: POCKET_COLORS.outsideProtein },
           },
-          { tag: 'synon-biomed-view-style-protein-context' }
+          { tag: 'x-science-view-style-protein-context' }
         );
 
       if (representation === 'ligand-surface') {
@@ -654,7 +654,7 @@ export const createSynonViewRepresentationPreset = (
           plugin,
           structureCell,
           plans,
-          'synon-biomed-view-ligand-surface'
+          'x-science-view-ligand-surface'
         );
         const proteinContext = await presetStaticComponent(plugin, structureCell, 'protein', {
           label: 'Protein context',
@@ -677,7 +677,7 @@ export const createSynonViewRepresentationPreset = (
                   typeParams: resolveSurfaceGeometryParams('ligand', component.obj?.data),
                   ...resolveSurfaceColorSettings(component.obj!.data, plans[index].volume),
                 },
-                { tag: `synon-biomed-view-style-ligand-surface-${index}` }
+                { tag: `x-science-view-style-ligand-surface-${index}` }
               ),
             ])
           ),
@@ -715,7 +715,7 @@ export const createSynonViewRepresentationPreset = (
                     by: StructureSelectionQueries.protein.expression,
                   })
                 ),
-                'synon-biomed-pocket-surface-component',
+                'x-science-pocket-surface-component',
                 { label: 'Pocket surface' }
               )
             : undefined;
@@ -738,7 +738,7 @@ export const createSynonViewRepresentationPreset = (
         const surfaceComposition = summarizeStructureComposition(surfaceStructure);
         const surfaceVolumeRole = resolveElectrostaticSurfaceVolumeRole(surfaceScope, surfaceComposition);
         const surfaceColors = resolveSurfaceColorSettings(surfaceStructure, electrostaticVolumes[surfaceVolumeRole]);
-        const ligand = await createDisplayLigandComponent('Ligand sticks', 'synon-biomed-view-ligand-sticks-component');
+        const ligand = await createDisplayLigandComponent('Ligand sticks', 'x-science-view-ligand-sticks-component');
         const proteinContext = shouldIncludeProteinContextForSurface(surfaceScope)
           ? await presetStaticComponent(plugin, structureCell, 'protein', {
               label: 'Protein context',
@@ -767,7 +767,7 @@ export const createSynonViewRepresentationPreset = (
               typeParams: resolveSurfaceGeometryParams(surfaceScope, surfaceStructure),
               ...surfaceColors,
             },
-            { tag: 'synon-biomed-view-style-surface' }
+            { tag: 'x-science-view-style-surface' }
           ),
           ligand: builder.buildRepresentation(
             update,
@@ -777,7 +777,7 @@ export const createSynonViewRepresentationPreset = (
               typeParams: STANDARD_LIGAND_STICK_TYPE_PARAMS,
               color: 'element-symbol',
             },
-            { tag: 'synon-biomed-view-style-ligand' }
+            { tag: 'x-science-view-style-ligand' }
           ),
           proteinContext: buildProteinContext(graph, proteinContext),
         };
@@ -787,7 +787,7 @@ export const createSynonViewRepresentationPreset = (
       }
 
       const protein = await presetStaticComponent(plugin, structureCell, 'protein', { label: 'Protein' });
-      const ligand = await createDisplayLigandComponent('Ligand', 'synon-biomed-view-ligand-component');
+      const ligand = await createDisplayLigandComponent('Ligand', 'x-science-view-ligand-component');
       const all =
         !protein && !ligand
           ? await presetStaticComponent(plugin, structureCell, 'all', {
@@ -824,9 +824,9 @@ export const createSynonViewRepresentationPreset = (
           { tag }
         );
       const representations = {
-        protein: build(protein, 'synon-biomed-view-style-protein'),
-        ligand: build(ligand, 'synon-biomed-view-style-ligand'),
-        all: build(all, 'synon-biomed-view-style-all'),
+        protein: build(protein, 'x-science-view-style-protein'),
+        ligand: build(ligand, 'x-science-view-style-ligand'),
+        all: build(all, 'x-science-view-style-all'),
       };
       await update.commit({ revertOnError: true });
       return { components, representations };
@@ -841,28 +841,28 @@ const POCKET_COLORS = {
   distance: Color(0x1d4ed8),
 };
 const POCKET_NATIVE_INTERACTION_TAGS = [
-  'synon-biomed-pocket-interactions',
-  'synon-biomed-pocket-water-bridges',
+  'x-science-pocket-interactions',
+  'x-science-pocket-water-bridges',
 ] as const;
 
 /** Every docking visual owned by the receptor-side visibility control. */
 export const DOCKING_PROTEIN_VISIBILITY_TAGS = [
-  'synon-biomed-docking-fixed-protein',
-  'synon-biomed-pocket-protein',
-  'synon-biomed-pocket-residues',
-  'synon-biomed-pocket-labels',
-  'synon-biomed-pocket-layer-ball-and-stick',
-  'synon-biomed-pocket-layer-line',
-  'synon-biomed-pocket-layer-protein-surface',
-  'synon-biomed-pocket-layer-pocket-surface',
-  'synon-biomed-layer-initial-protein',
-  'synon-biomed-layer-ball-and-stick',
-  'synon-biomed-layer-line',
-  'synon-biomed-layer-protein-surface',
-  'synon-biomed-layer-pocket-surface',
-  'synon-biomed-layer-protein-context',
-  'synon-biomed-pocket-interaction-feature-anchors',
-  'synon-biomed-pocket-interaction-strengths',
+  'x-science-docking-fixed-protein',
+  'x-science-pocket-protein',
+  'x-science-pocket-residues',
+  'x-science-pocket-labels',
+  'x-science-pocket-layer-ball-and-stick',
+  'x-science-pocket-layer-line',
+  'x-science-pocket-layer-protein-surface',
+  'x-science-pocket-layer-pocket-surface',
+  'x-science-layer-initial-protein',
+  'x-science-layer-ball-and-stick',
+  'x-science-layer-line',
+  'x-science-layer-protein-surface',
+  'x-science-layer-pocket-surface',
+  'x-science-layer-protein-context',
+  'x-science-pocket-interaction-feature-anchors',
+  'x-science-pocket-interaction-strengths',
   ...POCKET_NATIVE_INTERACTION_TAGS,
 ] as const;
 
@@ -1546,9 +1546,9 @@ export async function createMolstarStructureEngine(
         setSubtreeVisibility(plugin.state.data, cell.transform.ref, hideNative);
       }
     }
-    host.dataset.synonPocketInteractionRenderMode = strengthLabelCount > 0 ? 'native-with-strength-labels' : 'native';
-    host.dataset.synonPocketInteractionStrengthCount = String(strengthLabelCount);
-    host.dataset.synonPocketInteractionVisible = String(dockingProteinVisible);
+    host.dataset.xsciencePocketInteractionRenderMode = strengthLabelCount > 0 ? 'native-with-strength-labels' : 'native';
+    host.dataset.xsciencePocketInteractionStrengthCount = String(strengthLabelCount);
+    host.dataset.xsciencePocketInteractionVisible = String(dockingProteinVisible);
   };
 
   const setPocketInteractionStrengths = async (
@@ -1591,11 +1591,11 @@ export async function createMolstarStructureEngine(
     const update = plugin.state.data.build();
     const strengthProvider = update
       .toRoot()
-      .apply(SynonBiomedInteractionStrengthLabels, { data }, { tags: 'synon-biomed-pocket-interaction-strengths' });
+      .apply(XScienceInteractionStrengthLabels, { data }, { tags: 'x-science-pocket-interaction-strengths' });
     const strengthRepresentation = strengthProvider.apply(
       StateTransforms.Representation.ShapeRepresentation3D,
       { quality: 'high' },
-      { tags: 'synon-biomed-pocket-interaction-strengths-representation' }
+      { tags: 'x-science-pocket-interaction-strengths-representation' }
     );
     await update.commit();
     pocketInteractionStrengthProviderRef = strengthProvider.ref;
@@ -1613,7 +1613,7 @@ export async function createMolstarStructureEngine(
       await update.commit();
     }
     pocketInteractionAnchorProviderRef = undefined;
-    delete host.dataset.synonPocketLigandAtomCount;
+    delete host.dataset.xsciencePocketLigandAtomCount;
   };
 
   const applyRepresentationPreset = async (preset: MolstarRepresentationPreset, options?: MolstarSurfaceOptions) => {
@@ -1688,7 +1688,7 @@ export async function createMolstarStructureEngine(
     let pocketFocus: { ligand: StructureElement.Loci; contacts: StructureElement.Loci } | undefined;
     await plugin.managers.structure.component.applyPreset(
       structures,
-      createSynonViewRepresentationPreset(representation, electrostaticVolumes, {
+      createXScienceViewRepresentationPreset(representation, electrostaticVolumes, {
         ligandLoci: structureLigands.selectedLoci(),
         format: loadedFormat,
         onPocketReady: (ligand, contacts) => {
@@ -1777,7 +1777,7 @@ export async function createMolstarStructureEngine(
       throw new Error('MOLSTAR_ELECTROSTATIC_PROTEIN_VOLUME_MISSING');
     }
     if (!targetStructure) await clearPocketState();
-    host.dataset.synonPocketLigandAtomCount = String(StructureElement.Loci.size(ligandLoci));
+    host.dataset.xsciencePocketLigandAtomCount = String(StructureElement.Loci.size(ligandLoci));
     {
       const completeInteractionProps = createPocketInteractionProps(
         InteractionsProvider.defaultParams,
@@ -1881,7 +1881,7 @@ export async function createMolstarStructureEngine(
           color: 'uniform',
           colorParams: { value: POCKET_COLORS.outsideProtein },
         },
-        stagedRepresentationOptions('synon-biomed-pocket-protein')
+        stagedRepresentationOptions('x-science-pocket-protein')
       );
     }
 
@@ -1909,7 +1909,7 @@ export async function createMolstarStructureEngine(
             },
           },
         },
-        stagedRepresentationOptions('synon-biomed-pocket-residues')
+        stagedRepresentationOptions('x-science-pocket-residues')
       );
     }
 
@@ -1929,7 +1929,7 @@ export async function createMolstarStructureEngine(
             },
           },
         },
-        stagedRepresentationOptions('synon-biomed-pocket-ligand')
+        stagedRepresentationOptions('x-science-pocket-ligand')
       );
     }
 
@@ -1958,7 +1958,7 @@ export async function createMolstarStructureEngine(
               color: 'element-symbol',
             },
         stagedRepresentationOptions(
-          layerPlan.hasBallAndStick ? 'synon-biomed-pocket-layer-ball-and-stick' : 'synon-biomed-pocket-layer-line'
+          layerPlan.hasBallAndStick ? 'x-science-pocket-layer-ball-and-stick' : 'x-science-pocket-layer-line'
         )
       );
     }
@@ -1986,7 +1986,7 @@ export async function createMolstarStructureEngine(
       await addPocketElectrostaticSurface(
         layeredProteinComponent,
         'protein',
-        'synon-biomed-pocket-layer-protein-surface',
+        'x-science-pocket-layer-protein-surface',
         electrostaticVolumes.protein
       );
     }
@@ -1994,7 +1994,7 @@ export async function createMolstarStructureEngine(
       await addPocketElectrostaticSurface(
         pocketResidueComponent,
         'pocket',
-        'synon-biomed-pocket-layer-pocket-surface',
+        'x-science-pocket-layer-pocket-surface',
         electrostaticVolumes.protein
       );
     }
@@ -2003,7 +2003,7 @@ export async function createMolstarStructureEngine(
         addPocketElectrostaticSurface(
           ligandSurfaceComponents[index],
           'ligand',
-          `synon-biomed-pocket-layer-ligand-surface-${index}`,
+          `x-science-pocket-layer-ligand-surface-${index}`,
           plan.volume
         )
       )
@@ -2020,7 +2020,7 @@ export async function createMolstarStructureEngine(
           },
           color: InteractionTypeColorThemeProvider,
         },
-        stagedRepresentationOptions('synon-biomed-pocket-interactions')
+        stagedRepresentationOptions('x-science-pocket-interactions')
       );
     }
 
@@ -2035,7 +2035,7 @@ export async function createMolstarStructureEngine(
           },
           color: InteractionTypeColorThemeProvider,
         },
-        stagedRepresentationOptions('synon-biomed-pocket-water-bridges')
+        stagedRepresentationOptions('x-science-pocket-water-bridges')
       );
     }
 
@@ -2046,15 +2046,15 @@ export async function createMolstarStructureEngine(
         const anchorProvider = update
           .toRoot()
           .apply(
-            SynonBiomedInteractionFeatureAnchors,
+            XScienceInteractionFeatureAnchors,
             { data: interactionAnchorData },
-            { tags: 'synon-biomed-pocket-interaction-feature-anchors' }
+            { tags: 'x-science-pocket-interaction-feature-anchors' }
           );
         anchorProvider.apply(
           StateTransforms.Representation.ShapeRepresentation3D,
           { quality: 'medium' },
           {
-            tags: 'synon-biomed-pocket-interaction-feature-anchors-representation',
+            tags: 'x-science-pocket-interaction-feature-anchors-representation',
           }
         );
         await update.commit();
@@ -2097,7 +2097,7 @@ export async function createMolstarStructureEngine(
             color: 'uniform',
             colorParams: { value: POCKET_COLORS.label },
           },
-          stagedRepresentationOptions('synon-biomed-pocket-labels')
+          stagedRepresentationOptions('x-science-pocket-labels')
         );
       }
     }
@@ -2226,8 +2226,8 @@ export async function createMolstarStructureEngine(
     getCurrentStructure,
     () => loadedFormat,
     (ids, atomCount) => {
-      host.dataset.synonStructureActiveLigands = JSON.stringify(ids);
-      host.dataset.synonStructureLigandAtomCount = String(atomCount);
+      host.dataset.xscienceStructureActiveLigands = JSON.stringify(ids);
+      host.dataset.xscienceStructureLigandAtomCount = String(atomCount);
     },
     async () => {
       await applyRepresentationPreset('auto');
@@ -2739,8 +2739,8 @@ export async function createMolstarStructureEngine(
       )
     );
     setPocketInteractionRenderVisibility(pocketInteractionStrengthLabelCount);
-    host.dataset.synonDockingProteinVisible = String(dockingProteinVisible);
-    host.dataset.synonPocketInteractionVisible = String(dockingProteinVisible);
+    host.dataset.xscienceDockingProteinVisible = String(dockingProteinVisible);
+    host.dataset.xsciencePocketInteractionVisible = String(dockingProteinVisible);
   };
 
   const setDockingProteinVisible = (visible: boolean): void => {
@@ -2876,19 +2876,19 @@ export async function createMolstarStructureEngine(
     const update = plugin.state.data.build();
     const atomProvider = update
       .toRoot()
-      .apply(SynonBiomedDockingLigandAtoms, { data }, { tags: 'synon-biomed-docking-ligand-atoms' });
+      .apply(XScienceDockingLigandAtoms, { data }, { tags: 'x-science-docking-ligand-atoms' });
     const atomRepresentation = atomProvider.apply(
       StateTransforms.Representation.ShapeRepresentation3D,
       { quality: 'medium' },
-      { tags: 'synon-biomed-docking-ligand-atoms-representation' }
+      { tags: 'x-science-docking-ligand-atoms-representation' }
     );
     const bondProvider = update
       .toRoot()
-      .apply(SynonBiomedDockingLigandBonds, { data }, { tags: 'synon-biomed-docking-ligand-bonds' });
+      .apply(XScienceDockingLigandBonds, { data }, { tags: 'x-science-docking-ligand-bonds' });
     const bondRepresentation = bondProvider.apply(
       StateTransforms.Representation.ShapeRepresentation3D,
       { quality: 'medium' },
-      { tags: 'synon-biomed-docking-ligand-bonds-representation' }
+      { tags: 'x-science-docking-ligand-bonds-representation' }
     );
     await update.commit();
     const refs = {
@@ -2941,7 +2941,7 @@ export async function createMolstarStructureEngine(
       })
     );
     const preparedAt = clock?.now() ?? startedAt;
-    host.dataset.synonDockingLigandPrepareProfile = JSON.stringify({
+    host.dataset.xscienceDockingLigandPrepareProfile = JSON.stringify({
       requested: uniqueResidueNames.length,
       cacheHits,
       graphUpdates,
@@ -2969,8 +2969,8 @@ export async function createMolstarStructureEngine(
     if (!visible) activeDockingLigandRefs.forEach((ref) => setDockingRefHidden(ref, true));
 
     activeDockingStructure = StructureElement.Loci.toStructure(prepared.ligandLoci);
-    host.dataset.synonDockingLigandCount = String(prepared.residueNames.length);
-    host.dataset.synonDockingActiveResidues = prepared.residueNames.join(',');
+    host.dataset.xscienceDockingLigandCount = String(prepared.residueNames.length);
+    host.dataset.xscienceDockingActiveResidues = prepared.residueNames.join(',');
     return {
       hasLigand: !StructureElement.Loci.isEmpty(prepared.ligandLoci),
       ligandCount: StructureElement.Loci.size(prepared.ligandLoci),
@@ -2996,7 +2996,7 @@ export async function createMolstarStructureEngine(
     plugin.canvas3d?.requestDraw();
     const committedAt = clock?.now() ?? syncedAt;
 
-    host.dataset.synonDockingSwitchProfile = JSON.stringify({
+    host.dataset.xscienceDockingSwitchProfile = JSON.stringify({
       prepareMs: preparedAt - startedAt,
       visibilityMs: visibilityAt - preparedAt,
       syncMs: syncedAt - visibilityAt,
@@ -3019,8 +3019,8 @@ export async function createMolstarStructureEngine(
       setDockingRefHidden
     );
     applyDockingProteinVisibility();
-    host.dataset.synonDockingProjectionScope = 'overview';
-    host.dataset.synonDockingRefinement = 'manual';
+    host.dataset.xscienceDockingProjectionScope = 'overview';
+    host.dataset.xscienceDockingRefinement = 'manual';
     plugin.canvas3d?.syncVisibility();
     plugin.canvas3d?.requestDraw();
 
@@ -3105,10 +3105,10 @@ export async function createMolstarStructureEngine(
       activeDockingProjectionScope = scope;
       activeDockingDistanceRefs = nextDistanceRefs;
       activeDockingStructure = projection.obj.data;
-      host.dataset.synonDockingLigandCount = String(new Set(residueNames).size);
-      host.dataset.synonDockingActiveResidues = [...new Set(residueNames)].join(',');
-      host.dataset.synonDockingProjectionScope = scope;
-      host.dataset.synonDockingRefinement = 'ready';
+      host.dataset.xscienceDockingLigandCount = String(new Set(residueNames).size);
+      host.dataset.xscienceDockingActiveResidues = [...new Set(residueNames)].join(',');
+      host.dataset.xscienceDockingProjectionScope = scope;
+      host.dataset.xscienceDockingRefinement = 'ready';
 
       await waitForDockingSwapFrame();
       await removePocketDistanceRefs(previousDistanceRefs);
@@ -3155,7 +3155,7 @@ export async function createMolstarStructureEngine(
             },
             color: 'chain-id',
           },
-          { tag: 'synon-biomed-layer-initial-protein' }
+          { tag: 'x-science-layer-initial-protein' }
         );
       }
       return {
@@ -3213,7 +3213,7 @@ export async function createMolstarStructureEngine(
               by: StructureSelectionQueries.protein.expression,
             })
           ),
-          'synon-biomed-layered-pocket-surface',
+          'x-science-layered-pocket-surface',
           { label: 'Layered pocket surface' }
         )
       : undefined;
@@ -3221,7 +3221,7 @@ export async function createMolstarStructureEngine(
       plugin,
       structureCell,
       ligandSurfacePlans,
-      'synon-biomed-layered-ligand-surface'
+      'x-science-layered-ligand-surface'
     );
 
     if (hasBallAndStick && all) {
@@ -3237,7 +3237,7 @@ export async function createMolstarStructureEngine(
           },
           color: 'element-symbol',
         },
-        { tag: 'synon-biomed-layer-ball-and-stick' }
+        { tag: 'x-science-layer-ball-and-stick' }
       );
     }
     if (hasLine && all) {
@@ -3253,7 +3253,7 @@ export async function createMolstarStructureEngine(
           },
           color: 'element-symbol',
         },
-        { tag: 'synon-biomed-layer-line' }
+        { tag: 'x-science-layer-line' }
       );
     }
 
@@ -3280,7 +3280,7 @@ export async function createMolstarStructureEngine(
       await addElectrostaticSurface(
         protein,
         'protein',
-        'synon-biomed-layer-protein-surface',
+        'x-science-layer-protein-surface',
         electrostaticVolumes.protein
       );
     }
@@ -3288,7 +3288,7 @@ export async function createMolstarStructureEngine(
       await addElectrostaticSurface(
         pocket,
         'pocket',
-        'synon-biomed-layer-pocket-surface',
+        'x-science-layer-pocket-surface',
         electrostaticVolumes.protein
       );
     }
@@ -3297,7 +3297,7 @@ export async function createMolstarStructureEngine(
         addElectrostaticSurface(
           ligandSurfaceComponents[index],
           'ligand',
-          `synon-biomed-layer-ligand-surface-${index}`,
+          `x-science-layer-ligand-surface-${index}`,
           plan.volume
         )
       )
@@ -3312,7 +3312,7 @@ export async function createMolstarStructureEngine(
           color: 'uniform',
           colorParams: { value: POCKET_COLORS.outsideProtein },
         },
-        { tag: 'synon-biomed-layer-protein-context' }
+        { tag: 'x-science-layer-protein-context' }
       );
     }
 
@@ -3333,7 +3333,7 @@ export async function createMolstarStructureEngine(
       options.ligandColor ?? POCKET_COLORS.ligandCarbon
     );
     const summary = commitDockingLigandUpdate(preparedLigand, true);
-    host.dataset.synonDockingSwitchComplete = ligandResidueName;
+    host.dataset.xscienceDockingSwitchComplete = ligandResidueName;
     activateDockingOverview([ligandResidueName], false);
     if (shouldFocusPocketCamera(options)) focusDockingLigands([ligandResidueName], 120);
     const projectionScope = resolveDockingProjectionScope(options.displayLayers ?? []);
@@ -3347,7 +3347,7 @@ export async function createMolstarStructureEngine(
           true
         ),
       (state, reason) => {
-        host.dataset.synonDockingRefinement = state;
+        host.dataset.xscienceDockingRefinement = state;
         if (state === 'failed') {
           plugin.log.error(`Failed to refine the active docking pocket: ${String(reason)}`);
         }
@@ -3377,7 +3377,7 @@ export async function createMolstarStructureEngine(
     const colors = [options.primaryColor, options.secondaryColor];
     const preparedLigand = await prepareDockingLigandUpdate(residueNames, options.primaryColor, colors);
     const summary = commitDockingLigandUpdate(preparedLigand, true);
-    host.dataset.synonDockingSwitchComplete = residueNames.join(',');
+    host.dataset.xscienceDockingSwitchComplete = residueNames.join(',');
     activateDockingOverview(residueNames, false);
     if (shouldFocusPocketCamera(options)) focusDockingLigands(residueNames, 120);
     const projectionScope = resolveDockingProjectionScope(options.displayLayers ?? []);
@@ -3397,7 +3397,7 @@ export async function createMolstarStructureEngine(
           true
         ),
       (state, reason) => {
-        host.dataset.synonDockingRefinement = state;
+        host.dataset.xscienceDockingRefinement = state;
         if (state === 'failed') {
           plugin.log.error(`Failed to refine the docking comparison: ${String(reason)}`);
         }
@@ -3425,7 +3425,7 @@ export async function createMolstarStructureEngine(
       options.ligandColors
     );
     const summary = commitDockingLigandUpdate(preparedLigand, true);
-    host.dataset.synonDockingSwitchComplete = uniqueResidueNames.join(',');
+    host.dataset.xscienceDockingSwitchComplete = uniqueResidueNames.join(',');
     activateDockingOverview(uniqueResidueNames, false);
     if (shouldFocusPocketCamera(options)) focusDockingLigands(uniqueResidueNames, 120);
     const projectionScope = resolveDockingProjectionScope(options.displayLayers ?? []);
@@ -3445,7 +3445,7 @@ export async function createMolstarStructureEngine(
           true
         ),
       (state, reason) => {
-        host.dataset.synonDockingRefinement = state;
+        host.dataset.xscienceDockingRefinement = state;
         if (state === 'failed') {
           plugin.log.error(`Failed to refine the docking selection: ${String(reason)}`);
         }
@@ -3469,10 +3469,10 @@ export async function createMolstarStructureEngine(
     activeDockingProjectionScope = 'overview';
     activeDockingDistanceRefs = [];
     activeDockingStructure = dockingBaseStructure?.cell.obj?.data;
-    host.dataset.synonDockingLigandCount = '0';
-    host.dataset.synonDockingActiveResidues = '';
-    host.dataset.synonDockingProjectionScope = 'overview';
-    host.dataset.synonDockingRefinement = 'manual';
+    host.dataset.xscienceDockingLigandCount = '0';
+    host.dataset.xscienceDockingActiveResidues = '';
+    host.dataset.xscienceDockingProjectionScope = 'overview';
+    host.dataset.xscienceDockingRefinement = 'manual';
     applyDockingProteinVisibility();
     plugin.canvas3d?.syncVisibility();
     plugin.canvas3d?.commit(true);
@@ -3497,7 +3497,7 @@ export async function createMolstarStructureEngine(
     );
     const summary = commitDockingLigandUpdate(preparedLigand, true);
     activateDockingOverview(ligandResidueNames, false);
-    host.dataset.synonDockingSwitchComplete = [...new Set(ligandResidueNames)].join(',');
+    host.dataset.xscienceDockingSwitchComplete = [...new Set(ligandResidueNames)].join(',');
     const refinedSummary = await latestDockingRefinement.queue(
       () =>
         replaceDockingProjection(
@@ -3508,7 +3508,7 @@ export async function createMolstarStructureEngine(
           true
         ),
       (state, reason) => {
-        host.dataset.synonDockingRefinement = state;
+        host.dataset.xscienceDockingRefinement = state;
         if (state === 'failed') {
           plugin.log.error(`Failed to refine the active docking layers: ${String(reason)}`);
         }
@@ -3528,15 +3528,15 @@ export async function createMolstarStructureEngine(
     cancelDockingRefinement();
     await plugin.clear();
     electrostaticVolumes = {};
-    delete host.dataset.synonDockingLigandCount;
-    delete host.dataset.synonDockingProjectionScope;
-    delete host.dataset.synonDockingActiveResidues;
-    delete host.dataset.synonDockingRefinement;
-    delete host.dataset.synonDockingSwitchComplete;
-    delete host.dataset.synonDockingProteinVisible;
-    delete host.dataset.synonPocketInteractionRenderMode;
-    delete host.dataset.synonPocketInteractionStrengthCount;
-    delete host.dataset.synonPocketInteractionVisible;
+    delete host.dataset.xscienceDockingLigandCount;
+    delete host.dataset.xscienceDockingProjectionScope;
+    delete host.dataset.xscienceDockingActiveResidues;
+    delete host.dataset.xscienceDockingRefinement;
+    delete host.dataset.xscienceDockingSwitchComplete;
+    delete host.dataset.xscienceDockingProteinVisible;
+    delete host.dataset.xsciencePocketInteractionRenderMode;
+    delete host.dataset.xsciencePocketInteractionStrengthCount;
+    delete host.dataset.xsciencePocketInteractionVisible;
     dockingBaseStructure = undefined;
     fixedDockingProteinRef = undefined;
     dockingProteinVisible = true;
@@ -3586,7 +3586,7 @@ export async function createMolstarStructureEngine(
           color: 'uniform',
           colorParams: { value: POCKET_COLORS.outsideProtein },
         },
-        { tag: 'synon-biomed-docking-fixed-protein' }
+        { tag: 'x-science-docking-fixed-protein' }
       );
     }
 
@@ -3604,7 +3604,7 @@ export async function createMolstarStructureEngine(
       true
     );
     if (shouldFocusPocketCamera(options)) focusDockingLigands([initialLigandResidueName], 260);
-    host.dataset.synonDockingSwitchComplete = initialLigandResidueName;
+    host.dataset.xscienceDockingSwitchComplete = initialLigandResidueName;
     plugin.handleResize();
     return summary;
   };
@@ -3621,15 +3621,15 @@ export async function createMolstarStructureEngine(
       cancelDockingRefinement();
       await plugin.clear();
       electrostaticVolumes = {};
-      delete host.dataset.synonDockingLigandCount;
-      delete host.dataset.synonDockingProjectionScope;
-      delete host.dataset.synonDockingActiveResidues;
-      delete host.dataset.synonDockingRefinement;
-      delete host.dataset.synonDockingSwitchComplete;
-      delete host.dataset.synonDockingProteinVisible;
-      delete host.dataset.synonPocketInteractionRenderMode;
-      delete host.dataset.synonPocketInteractionStrengthCount;
-      delete host.dataset.synonPocketInteractionVisible;
+      delete host.dataset.xscienceDockingLigandCount;
+      delete host.dataset.xscienceDockingProjectionScope;
+      delete host.dataset.xscienceDockingActiveResidues;
+      delete host.dataset.xscienceDockingRefinement;
+      delete host.dataset.xscienceDockingSwitchComplete;
+      delete host.dataset.xscienceDockingProteinVisible;
+      delete host.dataset.xsciencePocketInteractionRenderMode;
+      delete host.dataset.xsciencePocketInteractionStrengthCount;
+      delete host.dataset.xsciencePocketInteractionVisible;
       dockingBaseStructure = undefined;
       fixedDockingProteinRef = undefined;
       activeDockingLigandRefs = [];
@@ -3675,11 +3675,11 @@ export async function createMolstarStructureEngine(
       plugin.canvas3d?.commit(true);
     },
     clickNativeControl: (controlId) => {
-      const button = host.querySelector<HTMLButtonElement>(`button[data-synon-molstar-control="${controlId}"]`);
+      const button = host.querySelector<HTMLButtonElement>(`button[data-x-science-molstar-control="${controlId}"]`);
       button?.click();
     },
     isNativeControlActive: (controlId) => {
-      const button = host.querySelector<HTMLButtonElement>(`button[data-synon-molstar-control="${controlId}"]`);
+      const button = host.querySelector<HTMLButtonElement>(`button[data-x-science-molstar-control="${controlId}"]`);
       return button?.classList.contains('msp-btn-link-toggle-on') ?? false;
     },
     applyRepresentationPreset,

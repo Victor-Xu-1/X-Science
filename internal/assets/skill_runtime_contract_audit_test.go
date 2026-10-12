@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/skills"
+	"x-science/internal/skills"
 )
 
 var positiveToolInvocation = regexp.MustCompile(`(?i)\b(?:call|calling|use|invoke|run|execute|through|via)\s+(?:the\s+)?`)
@@ -21,7 +21,7 @@ func TestBundledSkillRuntimeContractsStayClosed(t *testing.T) {
 		t.Fatal("locate repository root")
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
-	skillsRoot := filepath.Join(repositoryRoot, "skills", "synonbiomed")
+	skillsRoot := filepath.Join(repositoryRoot, "skills", "x-science")
 	catalog := skills.Load([]string{skillsRoot})
 	if loadErrors := catalog.LoadErrors(); len(loadErrors) > 0 {
 		t.Fatal(loadErrors[0].Err)

@@ -296,10 +296,10 @@ func exerciseProtocolClient(t *testing.T, client Client) {
 }
 
 func TestLiveCloudProvider(t *testing.T) {
-	provider := strings.TrimSpace(os.Getenv("SYNON_CLOUD_LIVE_PROVIDER"))
-	rawCredentials := strings.TrimSpace(os.Getenv("SYNON_CLOUD_LIVE_CREDENTIALS_JSON"))
+	provider := strings.TrimSpace(os.Getenv("X_SCIENCE_CLOUD_LIVE_PROVIDER"))
+	rawCredentials := strings.TrimSpace(os.Getenv("X_SCIENCE_CLOUD_LIVE_CREDENTIALS_JSON"))
 	if provider == "" || rawCredentials == "" {
-		t.Skip("set SYNON_CLOUD_LIVE_PROVIDER and SYNON_CLOUD_LIVE_CREDENTIALS_JSON")
+		t.Skip("set X_SCIENCE_CLOUD_LIVE_PROVIDER and X_SCIENCE_CLOUD_LIVE_CREDENTIALS_JSON")
 	}
 	values := map[string]string{}
 	if err := json.Unmarshal([]byte(rawCredentials), &values); err != nil {
@@ -313,8 +313,8 @@ func TestLiveCloudProvider(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if bucket := strings.TrimSpace(os.Getenv("SYNON_CLOUD_LIVE_BUCKET")); bucket != "" {
-		if _, err := client.ListPage(context.Background(), bucket, os.Getenv("SYNON_CLOUD_LIVE_PREFIX"), "", 1, ""); err != nil {
+	if bucket := strings.TrimSpace(os.Getenv("X_SCIENCE_CLOUD_LIVE_BUCKET")); bucket != "" {
+		if _, err := client.ListPage(context.Background(), bucket, os.Getenv("X_SCIENCE_CLOUD_LIVE_PREFIX"), "", 1, ""); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -322,13 +322,13 @@ func TestLiveCloudProvider(t *testing.T) {
 }
 
 func TestMinIOIntegration(t *testing.T) {
-	endpoint := strings.TrimSpace(os.Getenv("SYNON_MINIO_ENDPOINT"))
-	bucket := strings.TrimSpace(os.Getenv("SYNON_MINIO_BUCKET"))
+	endpoint := strings.TrimSpace(os.Getenv("X_SCIENCE_MINIO_ENDPOINT"))
+	bucket := strings.TrimSpace(os.Getenv("X_SCIENCE_MINIO_BUCKET"))
 	if endpoint == "" || bucket == "" {
-		t.Skip("set SYNON_MINIO_ENDPOINT and SYNON_MINIO_BUCKET")
+		t.Skip("set X_SCIENCE_MINIO_ENDPOINT and X_SCIENCE_MINIO_BUCKET")
 	}
-	accessKey := os.Getenv("SYNON_MINIO_ACCESS_KEY")
-	secretKey := os.Getenv("SYNON_MINIO_SECRET_KEY")
+	accessKey := os.Getenv("X_SCIENCE_MINIO_ACCESS_KEY")
+	secretKey := os.Getenv("X_SCIENCE_MINIO_SECRET_KEY")
 	factory := NewFactoryWithOptions(FactoryOptions{
 		HTTPClient: http.DefaultClient, S3Endpoint: endpoint, AllowInsecureTestEndpoints: true,
 	})
@@ -351,7 +351,7 @@ func TestMinIOIntegration(t *testing.T) {
 	if !found {
 		t.Fatalf("MinIO bucket %q is not listed: %v", bucket, buckets)
 	}
-	key := "synon-live/space + unicode-测试.txt"
+	key := "x-science-live/space + unicode-测试.txt"
 	payload := []byte("real MinIO round trip")
 	if _, err := client.PutObject(ctx, bucket, key, bytes.NewReader(payload), int64(len(payload)), "text/plain"); err != nil {
 		t.Fatal(err)
@@ -369,16 +369,16 @@ func TestMinIOIntegration(t *testing.T) {
 	if err != nil || !bytes.Equal(downloaded, payload) {
 		t.Fatalf("MinIO download=%q err=%v", downloaded, err)
 	}
-	page, err := client.ListPage(ctx, bucket, "synon-live/", "", 10, "")
+	page, err := client.ListPage(ctx, bucket, "x-science-live/", "", 10, "")
 	if err != nil || len(page.Objects) == 0 {
 		t.Fatalf("MinIO list=%+v err=%v", page, err)
 	}
 }
 
 func TestAzuriteIntegration(t *testing.T) {
-	endpoint := strings.TrimSpace(os.Getenv("SYNON_AZURITE_ENDPOINT"))
+	endpoint := strings.TrimSpace(os.Getenv("X_SCIENCE_AZURITE_ENDPOINT"))
 	if endpoint == "" {
-		t.Skip("set SYNON_AZURITE_ENDPOINT")
+		t.Skip("set X_SCIENCE_AZURITE_ENDPOINT")
 	}
 	const account = "devstoreaccount1"
 	const key = "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw=="
@@ -393,21 +393,21 @@ func TestAzuriteIntegration(t *testing.T) {
 	}
 	azure := client.(*azureClient)
 	ctx := context.Background()
-	response, err := azure.do(ctx, http.MethodPut, "synon-integration", "", url.Values{"restype": {"container"}}, nil, 0, "")
+	response, err := azure.do(ctx, http.MethodPut, "x-science-integration", "", url.Values{"restype": {"container"}}, nil, 0, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	response.Body.Close()
 	payload := []byte("real Azurite round trip")
 	objectKey := "folder/space + unicode-测试.txt"
-	if _, err := client.PutObject(ctx, "synon-integration", objectKey, bytes.NewReader(payload), int64(len(payload)), "text/plain"); err != nil {
+	if _, err := client.PutObject(ctx, "x-science-integration", objectKey, bytes.NewReader(payload), int64(len(payload)), "text/plain"); err != nil {
 		t.Fatal(err)
 	}
-	info, err := client.HeadObject(ctx, "synon-integration", objectKey)
+	info, err := client.HeadObject(ctx, "x-science-integration", objectKey)
 	if err != nil || info.Size != int64(len(payload)) {
 		t.Fatalf("Azurite head=%+v err=%v", info, err)
 	}
-	reader, _, err := client.OpenObject(ctx, "synon-integration", objectKey)
+	reader, _, err := client.OpenObject(ctx, "x-science-integration", objectKey)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -416,19 +416,19 @@ func TestAzuriteIntegration(t *testing.T) {
 	if err != nil || !bytes.Equal(downloaded, payload) {
 		t.Fatalf("Azurite download=%q err=%v", downloaded, err)
 	}
-	page, err := client.ListPage(ctx, "synon-integration", "folder/", "", 10, "")
+	page, err := client.ListPage(ctx, "x-science-integration", "folder/", "", 10, "")
 	if err != nil || len(page.Objects) != 1 || page.Objects[0].Key != objectKey {
 		t.Fatalf("Azurite list=%+v err=%v", page, err)
 	}
 }
 
 func TestFakeGCSIntegration(t *testing.T) {
-	endpoint := strings.TrimSpace(os.Getenv("SYNON_FAKE_GCS_ENDPOINT"))
+	endpoint := strings.TrimSpace(os.Getenv("X_SCIENCE_FAKE_GCS_ENDPOINT"))
 	if endpoint == "" {
-		t.Skip("set SYNON_FAKE_GCS_ENDPOINT")
+		t.Skip("set X_SCIENCE_FAKE_GCS_ENDPOINT")
 	}
-	createBody := strings.NewReader(`{"name":"synon-integration"}`)
-	request, err := http.NewRequest(http.MethodPost, endpoint+"/storage/v1/b?project=synon-test", createBody)
+	createBody := strings.NewReader(`{"name":"x-science-integration"}`)
+	request, err := http.NewRequest(http.MethodPost, endpoint+"/storage/v1/b?project=x-science-test", createBody)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -447,21 +447,21 @@ func TestFakeGCSIntegration(t *testing.T) {
 	factory := NewFactoryWithOptions(FactoryOptions{
 		HTTPClient: http.DefaultClient, GCSAPIEndpoint: endpoint, AllowInsecureTestEndpoints: true,
 	})
-	client, err := factory.New("gcs", Credentials{Values: map[string]string{"access_token": "emulator-token", "project_id": "synon-test"}})
+	client, err := factory.New("gcs", Credentials{Values: map[string]string{"access_token": "emulator-token", "project_id": "x-science-test"}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	ctx := context.Background()
 	payload := []byte("real fake-gcs-server round trip")
 	objectKey := "folder/space + unicode-测试.txt"
-	if _, err := client.PutObject(ctx, "synon-integration", objectKey, bytes.NewReader(payload), int64(len(payload)), "text/plain"); err != nil {
+	if _, err := client.PutObject(ctx, "x-science-integration", objectKey, bytes.NewReader(payload), int64(len(payload)), "text/plain"); err != nil {
 		t.Fatal(err)
 	}
-	info, err := client.HeadObject(ctx, "synon-integration", objectKey)
+	info, err := client.HeadObject(ctx, "x-science-integration", objectKey)
 	if err != nil || info.Size != int64(len(payload)) {
 		t.Fatalf("fake GCS head=%+v err=%v", info, err)
 	}
-	reader, _, err := client.OpenObject(ctx, "synon-integration", objectKey)
+	reader, _, err := client.OpenObject(ctx, "x-science-integration", objectKey)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -470,7 +470,7 @@ func TestFakeGCSIntegration(t *testing.T) {
 	if err != nil || !bytes.Equal(downloaded, payload) {
 		t.Fatalf("fake GCS download=%q err=%v", downloaded, err)
 	}
-	page, err := client.ListPage(ctx, "synon-integration", "folder/", "", 10, "")
+	page, err := client.ListPage(ctx, "x-science-integration", "folder/", "", 10, "")
 	if err != nil || len(page.Objects) != 1 || page.Objects[0].Key != objectKey {
 		t.Fatalf("fake GCS list=%+v err=%v", page, err)
 	}

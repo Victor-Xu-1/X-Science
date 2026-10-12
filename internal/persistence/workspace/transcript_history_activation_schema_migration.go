@@ -5,12 +5,12 @@ import (
 	"database/sql"
 	"errors"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 const (
 	transcriptHistoryActivationV31PreflightIdentity = "canonical-transcript-v30-history-activation-empty-v1"
-	transcriptHistoryActivationV31RuleSpec          = "synon.workspace.transcript-history-activation.v31"
+	transcriptHistoryActivationV31RuleSpec          = "x-science.workspace.transcript-history-activation.v31"
 	transcriptHistoryActivationV31CallbackID        = "transcript-frame-authority-backfill-v1"
 )
 

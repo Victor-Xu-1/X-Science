@@ -5,10 +5,10 @@ import { join, resolve } from 'node:path';
 import { createServer } from 'vite';
 import { chromium, expect } from '@playwright/test';
 
-const api = process.env.SYNON_ARTIFACT_LINK_API;
-const fixture = JSON.parse(process.env.SYNON_ARTIFACT_LINK_FIXTURE);
+const api = process.env.X_SCIENCE_ARTIFACT_LINK_API;
+const fixture = JSON.parse(process.env.X_SCIENCE_ARTIFACT_LINK_FIXTURE);
 if (!/^http:\/\/127\.0\.0\.1:\d+$/.test(api)) throw new Error('Controlled local API required');
-const artifacts = await mkdtemp(join(tmpdir(), 'synon-artifact-links-'));
+const artifacts = await mkdtemp(join(tmpdir(), 'x-science-artifact-links-'));
 let server, browser;
 try {
   server = await createServer({

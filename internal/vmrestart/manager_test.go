@@ -15,7 +15,7 @@ import (
 
 func TestManagerPrepareWritesSecureServiceWithoutLeakingSecrets(t *testing.T) {
 	root := t.TempDir()
-	executable := filepath.Join(root, "bin", "synon-go")
+	executable := filepath.Join(root, "bin", "x-science")
 	if err := os.MkdirAll(filepath.Dir(executable), 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -30,9 +30,9 @@ func TestManagerPrepareWritesSecureServiceWithoutLeakingSecrets(t *testing.T) {
 	manager, err := New(Options{
 		HomeDir: root, Executable: executable, WorkingDirectory: workingDirectory,
 		UnitDirectory: filepath.Join(root, "user-units"),
-		Distro:        "Ubuntu", User: "victor_1", ServiceName: "synon-go.service",
+		Distro:        "Ubuntu", User: "victor_1", ServiceName: "x-science.service",
 		Environment: map[string]string{
-			"SYNON_HOME": root, "WECHAT_BOT_TOKEN": "secret-token",
+			"X_SCIENCE_HOME": root, "WECHAT_BOT_TOKEN": "secret-token",
 		},
 		RunCommand: func(_ context.Context, name string, args ...string) ([]byte, error) {
 			commands = append(commands, append([]string{name}, args...))
@@ -54,7 +54,7 @@ func TestManagerPrepareWritesSecureServiceWithoutLeakingSecrets(t *testing.T) {
 	if strings.Contains(string(unit), "secret-token") || !strings.Contains(string(unit), "EnvironmentFile=") ||
 		!strings.Contains(string(unit), "Restart=always") ||
 		!strings.Contains(string(unit), "Description=X-Science managed agent runtime") ||
-		strings.Contains(string(unit), "Description=Synon Go") {
+		strings.Contains(string(unit), "Description=XScience Go") {
 		t.Fatalf("unit = %s", unit)
 	}
 	wantWorkingDirectory := "WorkingDirectory=" + strings.ReplaceAll(workingDirectory, " ", "\\x20")
@@ -78,14 +78,14 @@ func TestManagerPrepareWritesSecureServiceWithoutLeakingSecrets(t *testing.T) {
 		}
 	}
 	if len(commands) != 2 || strings.Join(commands[0], " ") != "systemctl --user daemon-reload" ||
-		strings.Join(commands[1], " ") != "systemctl --user enable synon-go.service" {
+		strings.Join(commands[1], " ") != "systemctl --user enable x-science.service" {
 		t.Fatalf("commands = %#v", commands)
 	}
 }
 
 func TestManagerRestartPersistsPendingAndRuntimeCompletion(t *testing.T) {
 	root := t.TempDir()
-	executable := filepath.Join(root, "synon-go")
+	executable := filepath.Join(root, "x-science")
 	if err := os.WriteFile(executable, []byte("binary"), 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -93,8 +93,8 @@ func TestManagerRestartPersistsPendingAndRuntimeCompletion(t *testing.T) {
 	options := Options{
 		HomeDir: root, Executable: executable, WorkingDirectory: root,
 		UnitDirectory: filepath.Join(root, "user-units"),
-		Distro:        "Ubuntu", User: "victor_1", ServiceName: "synon-go.service",
-		Environment: map[string]string{"SYNON_HOME": root},
+		Distro:        "Ubuntu", User: "victor_1", ServiceName: "x-science.service",
+		Environment: map[string]string{"X_SCIENCE_HOME": root},
 		RunCommand:  func(context.Context, string, ...string) ([]byte, error) { return nil, nil },
 		LaunchHost: func(_ context.Context, request HostRestartRequest) error {
 			launched = request
@@ -110,7 +110,7 @@ func TestManagerRestartPersistsPendingAndRuntimeCompletion(t *testing.T) {
 		t.Fatal(err)
 	}
 	if status.State != StatePending || !manager.IsRestarting() || launched.Distro != "Ubuntu" ||
-		launched.ServiceName != "synon-go.service" {
+		launched.ServiceName != "x-science.service" {
 		t.Fatalf("status=%#v launched=%#v", status, launched)
 	}
 	restarted, err := New(options)
@@ -134,7 +134,7 @@ func TestManagerRestartPersistsPendingAndRuntimeCompletion(t *testing.T) {
 
 func TestPowerShellRestartScriptUsesArgumentsAndRetriesServiceStart(t *testing.T) {
 	script, err := PowerShellRestartScript(HostRestartRequest{
-		Distro: "Ubuntu", User: "victor_1", ServiceName: "synon-go.service",
+		Distro: "Ubuntu", User: "victor_1", ServiceName: "x-science.service",
 		ShutdownDelaySeconds: 2, StartAttempts: 12,
 	})
 	if err != nil {
@@ -142,7 +142,7 @@ func TestPowerShellRestartScriptUsesArgumentsAndRetriesServiceStart(t *testing.T
 	}
 	for _, expected := range []string{
 		"wsl.exe", "--shutdown", "--distribution", "'Ubuntu'", "--user", "'victor_1'",
-		"systemctl", "--user", "start", "'synon-go.service'", "Start-Sleep",
+		"systemctl", "--user", "start", "'x-science.service'", "Start-Sleep",
 	} {
 		if !strings.Contains(script, expected) {
 			t.Fatalf("script missing %q: %s", expected, script)
@@ -155,7 +155,7 @@ func TestPowerShellRestartScriptUsesArgumentsAndRetriesServiceStart(t *testing.T
 
 func TestNewRejectsUnsafeServiceAndSymlinkStateRoot(t *testing.T) {
 	root := t.TempDir()
-	executable := filepath.Join(root, "synon-go")
+	executable := filepath.Join(root, "x-science")
 	if err := os.WriteFile(executable, []byte("binary"), 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -172,7 +172,7 @@ func TestNewRejectsUnsafeServiceAndSymlinkStateRoot(t *testing.T) {
 	manager, err := New(Options{
 		HomeDir: root, Executable: executable, WorkingDirectory: root,
 		UnitDirectory: filepath.Join(root, "user-units"),
-		Distro:        "Ubuntu", User: "victor_1", ServiceName: "synon-go.service",
+		Distro:        "Ubuntu", User: "victor_1", ServiceName: "x-science.service",
 		RunCommand: func(context.Context, string, ...string) ([]byte, error) { return nil, nil },
 	})
 	if err != nil {
@@ -194,28 +194,28 @@ func TestManagerRestartUsesRealCommandProcessesAndPersistsLifecycle(t *testing.T
 	}
 	writeExecutableFixture(t, filepath.Join(fixtureDir, "systemctl"), `#!/bin/sh
 set -eu
-: "${SYNON_VM_RESTART_SYSTEMCTL_LOG:?}"
-printf '%s\n' "$*" >> "$SYNON_VM_RESTART_SYSTEMCTL_LOG"
+: "${X_SCIENCE_VM_RESTART_SYSTEMCTL_LOG:?}"
+printf '%s\n' "$*" >> "$X_SCIENCE_VM_RESTART_SYSTEMCTL_LOG"
 `)
 	writeExecutableFixture(t, filepath.Join(fixtureDir, "powershell.exe"), `#!/bin/sh
 set -eu
-: "${SYNON_VM_RESTART_POWERSHELL_LOG:?}"
-printf '%s\n' "$*" > "$SYNON_VM_RESTART_POWERSHELL_LOG"
+: "${X_SCIENCE_VM_RESTART_POWERSHELL_LOG:?}"
+printf '%s\n' "$*" > "$X_SCIENCE_VM_RESTART_POWERSHELL_LOG"
 `)
 	systemctlLog := filepath.Join(root, "systemctl.log")
 	powerShellLog := filepath.Join(root, "powershell.log")
 	t.Setenv("PATH", fixtureDir+string(os.PathListSeparator)+os.Getenv("PATH"))
-	t.Setenv("SYNON_VM_RESTART_SYSTEMCTL_LOG", systemctlLog)
-	t.Setenv("SYNON_VM_RESTART_POWERSHELL_LOG", powerShellLog)
-	executable := filepath.Join(root, "synon-go")
+	t.Setenv("X_SCIENCE_VM_RESTART_SYSTEMCTL_LOG", systemctlLog)
+	t.Setenv("X_SCIENCE_VM_RESTART_POWERSHELL_LOG", powerShellLog)
+	executable := filepath.Join(root, "x-science")
 	if err := os.WriteFile(executable, []byte("#!/bin/sh\nexit 0\n"), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	options := Options{
 		HomeDir: root, Executable: executable, WorkingDirectory: root,
 		UnitDirectory: filepath.Join(root, "user-units"),
-		Distro:        "Ubuntu", User: "victor_1", ServiceName: "synon-go.service",
-		Environment: map[string]string{"SYNON_HOME": root},
+		Distro:        "Ubuntu", User: "victor_1", ServiceName: "x-science.service",
+		Environment: map[string]string{"X_SCIENCE_HOME": root},
 	}
 	manager, err := New(options)
 	if err != nil {
@@ -232,7 +232,7 @@ printf '%s\n' "$*" > "$SYNON_VM_RESTART_POWERSHELL_LOG"
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(systemctl) != "--user daemon-reload\n--user enable synon-go.service\n" {
+	if string(systemctl) != "--user daemon-reload\n--user enable x-science.service\n" {
 		t.Fatalf("systemctl commands = %q", systemctl)
 	}
 	powerShell := waitForFixtureLog(t, powerShellLog)
@@ -241,7 +241,7 @@ printf '%s\n' "$*" > "$SYNON_VM_RESTART_POWERSHELL_LOG"
 		t.Fatalf("PowerShell arguments = %q", powerShell)
 	}
 	script := decodePowerShellFixture(t, arguments[len(arguments)-1])
-	for _, expected := range []string{"wsl.exe", "--shutdown", "--distribution 'Ubuntu'", "systemctl --user start 'synon-go.service'"} {
+	for _, expected := range []string{"wsl.exe", "--shutdown", "--distribution 'Ubuntu'", "systemctl --user start 'x-science.service'"} {
 		if !strings.Contains(script, expected) {
 			t.Fatalf("PowerShell script missing %q: %s", expected, script)
 		}

@@ -7,7 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 func readAgentWorkspacePDF(
@@ -130,7 +130,7 @@ func stageAgentWorkspacePDFSource(ctx context.Context, reader io.ReadSeeker, siz
 	if _, err := reader.Seek(0, io.SeekStart); err != nil {
 		return "", func() {}, errors.New("PDF source could not be reset")
 	}
-	directory, err := os.MkdirTemp("", "synon-read-pdf-text-*")
+	directory, err := os.MkdirTemp("", "x-science-read-pdf-text-*")
 	if err != nil {
 		return "", func() {}, errors.New("PDF text extraction could not prepare a secure workspace")
 	}

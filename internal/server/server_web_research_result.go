@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"synon-go/internal/tools/websearch"
+	"x-science/internal/tools/websearch"
 )
 
 func webResearchSourcesFromSearch(search any, limit int) []any {

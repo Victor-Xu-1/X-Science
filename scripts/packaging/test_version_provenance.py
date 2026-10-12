@@ -4,15 +4,120 @@ import contextlib
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
+import py_compile
 import subprocess
+import sys
 import tempfile
+import types
 import unittest
+from unittest.mock import patch
 
 from scripts.packaging import version_provenance as provenance
 from scripts.quality.product_version import next_version
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+class ReviewedAuditHelperTest(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory(prefix="reviewed-audit-helper-")
+        self.addCleanup(self.temporary.cleanup)
+        self.tooling = Path(self.temporary.name) / "tooling"
+        self.candidate = Path(self.temporary.name) / "candidate"
+        self.audit = (
+            'from frontend_source_namespace import loaded_from\n'
+            + ''.join(f'APPROVED_{kind}_FINGERPRINT = "' + "a" * 64 + '"\n' for kind in ("ADAPTATION", "ADDITION", "REMOVAL"))
+            + 'def main(arguments):\n    return 0\n'
+        )
+        for root in (self.tooling, self.candidate):
+            for relative, body in ((provenance.AUDIT, self.audit),
+                                   (provenance.AUDIT_HELPER, 'loaded_from = __file__\n')):
+                target = root / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text(body)
+        self.package_file = self.tooling / "scripts/packaging/version_provenance.py"
+        self.package_file.parent.mkdir(parents=True)
+        self.package_file.write_text("# reviewed tooling fixture\n")
+
+    def load(self):
+        with patch.object(provenance, "__file__", str(self.package_file)):
+            return provenance.reviewed_audit(self.candidate)
+
+    def test_loads_exact_trusted_helper_and_restores_preexisting_cache(self):
+        cached = types.ModuleType("frontend_source_namespace")
+        cached.loaded_from = "unreviewed cached code"
+        with patch.dict(sys.modules, {"frontend_source_namespace": cached}):
+            audit = self.load()
+            self.assertEqual(audit.loaded_from, str(self.tooling / provenance.AUDIT_HELPER))
+            self.assertIs(sys.modules["frontend_source_namespace"], cached)
+
+    def test_rejects_changed_candidate_helper_without_executing_it(self):
+        marker = Path(self.temporary.name) / "must-not-execute"
+        helper = self.candidate / provenance.AUDIT_HELPER
+        helper.write_text(f'from pathlib import Path\nPath({str(marker)!r}).touch()\n')
+        with self.assertRaisesRegex(ValueError, "helper requires a reviewed tooling update"):
+            self.load()
+        self.assertFalse(marker.exists())
+
+    def test_stale_bytecode_cannot_override_verified_helper_source(self):
+        helper = self.tooling / provenance.AUDIT_HELPER
+        raw = helper.read_bytes()
+        stale = b'loaded_from = "BAD"\n'
+        helper.write_bytes(stale + b" " * (len(raw) - len(stale)))
+        os.utime(helper, (1700000000, 1700000000))
+        py_compile.compile(str(helper), doraise=True)
+        helper.write_bytes(raw)
+        os.utime(helper, (1700000000, 1700000000))
+        self.assertEqual(self.load().loaded_from, str(helper))
+
+    def test_symlink_hardlink_parent_alias_and_traversal_are_rejected(self):
+        helper = self.candidate / provenance.AUDIT_HELPER
+        original = helper.read_bytes()
+        for make in (lambda: helper.symlink_to(self.tooling / provenance.AUDIT_HELPER),
+                     lambda: os.link(self.tooling / provenance.AUDIT_HELPER, helper)):
+            helper.unlink()
+            make()
+            with self.assertRaisesRegex(ValueError, "reviewed tooling"):
+                self.load()
+            helper.unlink()
+            helper.write_bytes(original)
+        for value in ("../audit.py", "/outside.py", "scripts/../audit.py", "scripts\\audit.py"):
+            with self.assertRaisesRegex(ValueError, "exact and contained"):
+                provenance.regular_audit_input(self.candidate, value)
+        with tempfile.TemporaryDirectory() as directory:
+            alias = Path(directory) / "alias"
+            alias.symlink_to(self.candidate / "scripts/audit", target_is_directory=True)
+            with self.assertRaisesRegex(ValueError, "without symlinks"):
+                provenance.regular_audit_input(Path(directory), "alias/frontend_source_namespace.py")
+
+    def test_failed_import_restores_cache_and_never_leaves_helper_authority(self):
+        for root in (self.tooling, self.candidate):
+            (root / provenance.AUDIT).write_text(self.audit + 'raise RuntimeError("fixture import failure")\n')
+        cached = types.ModuleType("frontend_source_namespace")
+        with patch.dict(sys.modules, {"frontend_source_namespace": cached}):
+            with self.assertRaisesRegex(RuntimeError, "fixture import failure"):
+                self.load()
+            self.assertIs(sys.modules["frontend_source_namespace"], cached)
+        previous = sys.modules.pop("frontend_source_namespace", None)
+        try:
+            with self.assertRaises(RuntimeError):
+                self.load()
+            self.assertNotIn("frontend_source_namespace", sys.modules)
+        finally:
+            if previous is not None:
+                sys.modules["frontend_source_namespace"] = previous
+
+    def test_oversized_or_nonregular_helper_fails_before_execution(self):
+        helper = self.candidate / provenance.AUDIT_HELPER
+        helper.write_bytes(b"#" * (4 * 1024 * 1024 + 1))
+        with self.assertRaisesRegex(ValueError, "bounded regular"):
+            self.load()
+        helper.unlink()
+        helper.mkdir()
+        with self.assertRaisesRegex(ValueError, "bounded regular"):
+            self.load()
 
 
 class VersionProvenanceTest(unittest.TestCase):

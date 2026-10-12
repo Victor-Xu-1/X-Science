@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/mcpdirectory"
-	sessionstore "synon-go/internal/persistence/sessions"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/mcpdirectory"
+	sessionstore "x-science/internal/persistence/sessions"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestAgentRuntimeWorkspaceMCPToolSchemasUsesDurablePubMedCatalog(t *testing.T) {

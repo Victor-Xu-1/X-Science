@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func TestSessionRunnerREPLRecoveryContextIsResumeOnlyAndSeparatesDurableState(t *testing.T) {

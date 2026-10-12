@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ArtifactSelectionAnnotationModal } from '@/renderer/pages/artifact/ArtifactSelectionAnnotationModal';
 import { artifactCanvasSelectionIdentity } from '@/renderer/pages/artifact/artifactCanvasSelection';
 import { locateRenderedTextSelection } from '@/renderer/pages/artifact/artifactTextSelection';
-import { SynonBiomedImageArtifactViewer } from '@/renderer/pages/artifact/SynonBiomedImageArtifactViewer';
+import { XScienceImageArtifactViewer } from '@/renderer/pages/artifact/XScienceImageArtifactViewer';
 import { renderWithI18n } from '../i18nTestUtils';
 
 const createAnnotation = vi.hoisted(() => vi.fn());
@@ -27,9 +27,9 @@ const deferred = <T,>() => {
 };
 beforeEach(() => createAnnotation.mockReset());
 
-vi.mock('@/renderer/services/synonBiomedAnnotations', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/renderer/services/synonBiomedAnnotations')>();
-  return { ...actual, createSynonBiomedArtifactAnnotation: createAnnotation };
+vi.mock('@/renderer/services/xScienceAnnotations', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/renderer/services/xScienceAnnotations')>();
+  return { ...actual, createXScienceArtifactAnnotation: createAnnotation };
 });
 
 describe('Artifact selection annotation', () => {
@@ -266,7 +266,7 @@ describe('Artifact selection annotation', () => {
   it('normalizes image clicks against the rendered image and restores existing point markers', async () => {
     const onSelectionChange = vi.fn();
     await renderWithI18n(
-      <SynonBiomedImageArtifactViewer
+      <XScienceImageArtifactViewer
         filename='assay.png'
         contentUrl='/api/artifacts/image-1'
         annotations={[

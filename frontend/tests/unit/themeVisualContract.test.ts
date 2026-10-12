@@ -23,35 +23,35 @@ const settingsCardSurfacesCss = readFileSync(
 const messageChannelsCss = readFileSync(new URL('pages/settings/MessageChannelsSettings.css', rendererRoot), 'utf8');
 const unoConfig = readFileSync(new URL('../../../../uno.config.ts', rendererRoot), 'utf8');
 const planReviewSource = readFileSync(
-  new URL('components/synonBiomed/runtime/SynonBiomedPlanReviewContent.tsx', rendererRoot),
+  new URL('components/xScience/runtime/XSciencePlanReviewContent.tsx', rendererRoot),
   'utf8'
 );
 const planReviewCss = readFileSync(
-  new URL('components/synonBiomed/runtime/SynonBiomedPlanReviewContent.css', rendererRoot),
+  new URL('components/xScience/runtime/XSciencePlanReviewContent.css', rendererRoot),
   'utf8'
 );
 const askUserHistorySource = readFileSync(
-  new URL('components/synonBiomed/runtime/AskUserHistoryCard.tsx', rendererRoot),
+  new URL('components/xScience/runtime/AskUserHistoryCard.tsx', rendererRoot),
   'utf8'
 );
 const askUserHistoryCss = readFileSync(
-  new URL('components/synonBiomed/runtime/AskUserHistoryCard.css', rendererRoot),
+  new URL('components/xScience/runtime/AskUserHistoryCard.css', rendererRoot),
   'utf8'
 );
 const themeInitScript = readFileSync(new URL('../../public/theme-init.js', import.meta.url), 'utf8');
 const textAddActionSources = [
-  'pages/settings/SynonBiomedModelsSettings.tsx',
+  'pages/settings/XScienceModelsSettings.tsx',
   'pages/settings/NetworkSettings.tsx',
   'pages/settings/CredentialsSettings.tsx',
   'pages/settings/ComputeSettings.tsx',
-  'pages/settings/SynonBiomedSkillsSettings.tsx',
-  'pages/settings/ToolsSettings/SynonBiomedMcpSettings.tsx',
-  'pages/settings/SynonBiomedExpertsSettings/ExpertWorkbench.tsx',
-  'pages/settings/SynonBiomedExpertsSettings/home/AssistantHomeTabs.tsx',
+  'pages/settings/XScienceSkillsSettings.tsx',
+  'pages/settings/ToolsSettings/XScienceMcpSettings.tsx',
+  'pages/settings/XScienceExpertsSettings/ExpertWorkbench.tsx',
+  'pages/settings/XScienceExpertsSettings/home/AssistantHomeTabs.tsx',
   'pages/settings/components/ApiKeyEditorModal.tsx',
 ].map((path) => readFileSync(new URL(path, rendererRoot), 'utf8'));
 const memoryManagerSource = readFileSync(
-  new URL('pages/settings/components/SynonBiomedMemoryManager.tsx', rendererRoot),
+  new URL('pages/settings/components/XScienceMemoryManager.tsx', rendererRoot),
   'utf8'
 );
 
@@ -163,8 +163,8 @@ describe('shared visual shell contract', () => {
   });
 
   it('restores both appearance and visual family before React renders', () => {
-    expect(themeInitScript).toContain('__synon-ai_theme');
-    expect(themeInitScript).toContain('__synon-ai_theme_family');
+    expect(themeInitScript).toContain('__x-science_theme');
+    expect(themeInitScript).toContain('__x-science_theme_family');
     expect(themeInitScript).toMatch(/family === 'claude' \? 'warm' : family === 'codex' \? 'cool'/);
     expect(themeInitScript).toMatch(/setAttribute\('data-theme-family', normalizedFamily\)/);
   });
@@ -184,12 +184,12 @@ describe('shared visual shell contract', () => {
     expect(planReviewSource).not.toMatch(/\bborder-l-2\b/);
     expect(planReviewCss).not.toMatch(/border(?:-top|-right|-bottom|-left)?\s*:\s*[2-9]px/i);
     expect(planReviewCss).toMatch(
-      /\.synon-biomed-plan-review__phases\s*\{[\s\S]*?border:\s*0;[\s\S]*?border-top:\s*1px solid/i
+      /\.x-science-plan-review__phases\s*\{[\s\S]*?border:\s*0;[\s\S]*?border-top:\s*1px solid/i
     );
     expect(planReviewCss).toMatch(
-      /\.synon-biomed-plan-review__phase\s*\{[\s\S]*?border:\s*0;[\s\S]*?border-bottom:\s*1px solid/i
+      /\.x-science-plan-review__phase\s*\{[\s\S]*?border:\s*0;[\s\S]*?border-bottom:\s*1px solid/i
     );
-    expect(planReviewCss).toMatch(/\.synon-biomed-plan-review__delegation\s*\{[\s\S]*?border:\s*0;/i);
+    expect(planReviewCss).toMatch(/\.x-science-plan-review__delegation\s*\{[\s\S]*?border:\s*0;/i);
   });
 
   it('keeps historical answers on the shared quiet conversation surface', () => {
@@ -197,14 +197,14 @@ describe('shared visual shell contract', () => {
     expect(askUserHistorySource).not.toMatch(/\bborder-solid\b/);
     expect(askUserHistorySource).not.toMatch(/\bbg-fill-1\b/);
     expect(askUserHistoryCss).toMatch(
-      /\.synon-biomed-ask-user-history\s*\{[\s\S]*?border:\s*0;[\s\S]*?border-radius:\s*(?:12px|var\(--ui-radius-xl\));[\s\S]*?box-shadow:\s*none;/i
+      /\.x-science-ask-user-history\s*\{[\s\S]*?border:\s*0;[\s\S]*?border-radius:\s*(?:12px|var\(--ui-radius-xl\));[\s\S]*?box-shadow:\s*none;/i
     );
     expect(askUserHistoryCss).toMatch(/--ask-user-history-surface:\s*rgb\(18 18 18 \/ 3%\)/i);
     expect(askUserHistoryCss).toMatch(
-      /\.synon-biomed-ask-user-history__edit\.arco-btn\s*\{[\s\S]*?border:\s*0;[\s\S]*?background:\s*transparent;[\s\S]*?opacity:\s*0;/i
+      /\.x-science-ask-user-history__edit\.arco-btn\s*\{[\s\S]*?border:\s*0;[\s\S]*?background:\s*transparent;[\s\S]*?opacity:\s*0;/i
     );
     expect(askUserHistoryCss).toMatch(
-      /\.synon-biomed-ask-user-history:hover \.synon-biomed-ask-user-history__edit\.arco-btn,[\s\S]*?focus-visible\s*\{[\s\S]*?opacity:\s*1;/i
+      /\.x-science-ask-user-history:hover \.x-science-ask-user-history__edit\.arco-btn,[\s\S]*?focus-visible\s*\{[\s\S]*?opacity:\s*1;/i
     );
   });
 
@@ -262,7 +262,7 @@ describe('shared visual shell contract', () => {
     expect(shellCss).not.toContain('.tool-step--error');
     expect(shellCss).not.toContain('conversation-scroll-control__count');
     expect(shellCss).toMatch(
-      /\.synon-sidebar-section-title-button \.sider-section-title,[\s\S]*?\.synon-sidebar-timeline \.text-t-secondary,[\s\S]*?\.synon-sidebar-project-meta\s*\{[^}]*color:\s*var\(--workspace-text-secondary\)/i
+      /\.x-science-sidebar-section-title-button \.sider-section-title,[\s\S]*?\.x-science-sidebar-timeline \.text-t-secondary,[\s\S]*?\.x-science-sidebar-project-meta\s*\{[^}]*color:\s*var\(--workspace-text-secondary\)/i
     );
   });
 
@@ -388,10 +388,10 @@ describe('shared visual shell contract', () => {
 
   it('removes provider-colored frames from step indicators', () => {
     expect(shellCss).toMatch(
-      /\.synon-ai-steps \.arco-steps-item-process \.arco-steps-item-icon,[\s\S]*?border-color:\s*transparent !important/i
+      /\.x-science-steps \.arco-steps-item-process \.arco-steps-item-icon,[\s\S]*?border-color:\s*transparent !important/i
     );
     expect(shellCss).toMatch(
-      /\.synon-ai-steps \.arco-steps-item-finish \.arco-steps-item-icon\s*\{[^}]*background:\s*var\(--workspace-subtle\)/i
+      /\.x-science-steps \.arco-steps-item-finish \.arco-steps-item-icon\s*\{[^}]*background:\s*var\(--workspace-subtle\)/i
     );
   });
 
@@ -422,17 +422,17 @@ describe('shared visual shell contract', () => {
 
   it('normalizes non-shadow Markdown modules as well as streamed Markdown', () => {
     expect(shellCss).toMatch(
-      /\.synon-ai-markdown :where\(img\)\s*\{[^}]*border-radius:\s*(?:12px|var\(--ui-radius-xl\))/i
+      /\.x-science-markdown :where\(img\)\s*\{[^}]*border-radius:\s*(?:12px|var\(--ui-radius-xl\))/i
     );
     expect(shellCss).toMatch(
-      /\.synon-ai-markdown :where\(blockquote\)\s*\{[^}]*border-left:\s*1px solid[^}]*border-radius:\s*(?:10px|var\(--ui-radius-lg\))/i
+      /\.x-science-markdown :where\(blockquote\)\s*\{[^}]*border-left:\s*1px solid[^}]*border-radius:\s*(?:10px|var\(--ui-radius-lg\))/i
     );
     expect(shellCss).toMatch(
-      /\.synon-ai-markdown :where\(pre\),[\s\S]*?\[data-streamdown='code-block'\][\s\S]*?border-color:\s*transparent/i
+      /\.x-science-markdown :where\(pre\),[\s\S]*?\[data-streamdown='code-block'\][\s\S]*?border-color:\s*transparent/i
     );
     expect(shellCss).toMatch(
-      /\.synon-ai-markdown :where\(table\)\s*\{[^}]*border:\s*1px solid transparent[^}]*border-radius:\s*(?:10px|var\(--ui-radius-lg\))/i
+      /\.x-science-markdown :where\(table\)\s*\{[^}]*border:\s*1px solid transparent[^}]*border-radius:\s*(?:10px|var\(--ui-radius-lg\))/i
     );
-    expect(shellCss).toMatch(/\.synon-ai-markdown :where\(hr\)\s*\{[^}]*border-top:\s*1px solid/i);
+    expect(shellCss).toMatch(/\.x-science-markdown :where\(hr\)\s*\{[^}]*border-top:\s*1px solid/i);
   });
 });

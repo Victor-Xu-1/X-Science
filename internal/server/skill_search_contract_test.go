@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/skills"
-	"synon-go/internal/tools/registry"
+	"x-science/internal/skills"
+	"x-science/internal/tools/registry"
 )
 
 func TestSkillSearchReturnsInvocationWithoutHostFilesystemPath(t *testing.T) {

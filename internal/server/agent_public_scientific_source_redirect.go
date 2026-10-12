@@ -7,8 +7,8 @@ import (
 	"net/url"
 	"strings"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/tools/webfetch"
+	"x-science/internal/agentruntime"
+	"x-science/internal/tools/webfetch"
 )
 
 type agentPublicScientificSourceBinding struct {

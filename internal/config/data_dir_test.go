@@ -5,18 +5,18 @@ import (
 	"path/filepath"
 	"testing"
 
-	"synon-go/internal/datadir"
+	"x-science/internal/datadir"
 )
 
 func TestLoadAppliesPendingDataDirectoryMigrationBeforeRuntimeOpen(t *testing.T) {
 	root := t.TempDir()
 	home := filepath.Join(root, "home")
 	t.Setenv("HOME", home)
-	t.Setenv("SYNON_HOME", "")
-	t.Setenv("SYNON_CONFIG", "")
+	t.Setenv("X_SCIENCE_HOME", "")
+	t.Setenv("X_SCIENCE_CONFIG", "")
 	controlPath := filepath.Join(root, "control", "data-dir.json")
-	t.Setenv("SYNON_DATA_DIR_CONTROL", controlPath)
-	source := filepath.Join(home, ".synon-go")
+	t.Setenv("X_SCIENCE_DATA_DIR_CONTROL", controlPath)
+	source := filepath.Join(home, ".x-science")
 	target := filepath.Join(root, "relocated")
 	if err := os.MkdirAll(source, 0o700); err != nil {
 		t.Fatal(err)
@@ -40,7 +40,7 @@ func TestLoadAppliesPendingDataDirectoryMigrationBeforeRuntimeOpen(t *testing.T)
 	}
 }
 
-func TestLoadUsesDataDirectoryPointerAboveExplicitSynonHome(t *testing.T) {
+func TestLoadUsesDataDirectoryPointerAboveExplicitXScienceHome(t *testing.T) {
 	root := t.TempDir()
 	controlPath := filepath.Join(root, "control", "data-dir.json")
 	pointerTarget := filepath.Join(root, "pointer")
@@ -51,9 +51,9 @@ func TestLoadUsesDataDirectoryPointerAboveExplicitSynonHome(t *testing.T) {
 	if _, err := datadir.New(controlPath).Stage(filepath.Join(root, "default"), pointerTarget, false); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("SYNON_DATA_DIR_CONTROL", controlPath)
-	t.Setenv("SYNON_CONFIG", "")
-	t.Setenv("SYNON_HOME", explicit)
+	t.Setenv("X_SCIENCE_DATA_DIR_CONTROL", controlPath)
+	t.Setenv("X_SCIENCE_CONFIG", "")
+	t.Setenv("X_SCIENCE_HOME", explicit)
 
 	cfg, err := Load()
 	if err != nil {
@@ -69,10 +69,10 @@ func TestLoadConfiguresIndependentCondaRoots(t *testing.T) {
 	home := filepath.Join(root, "runtime")
 	condaHome := filepath.Join(root, "conda")
 	condaEnvs := filepath.Join(root, "shared-envs")
-	t.Setenv("SYNON_HOME", home)
-	t.Setenv("SYNON_CONFIG", "")
-	t.Setenv("SYNON_CONDA_HOME", condaHome)
-	t.Setenv("SYNON_CONDA_ENVS_PATH", condaEnvs)
+	t.Setenv("X_SCIENCE_HOME", home)
+	t.Setenv("X_SCIENCE_CONFIG", "")
+	t.Setenv("X_SCIENCE_CONDA_HOME", condaHome)
+	t.Setenv("X_SCIENCE_CONDA_ENVS_PATH", condaEnvs)
 
 	cfg, err := Load()
 	if err != nil {
@@ -84,10 +84,10 @@ func TestLoadConfiguresIndependentCondaRoots(t *testing.T) {
 }
 
 func TestLoadRejectsRelativeCondaRoots(t *testing.T) {
-	t.Setenv("SYNON_HOME", filepath.Join(t.TempDir(), "runtime"))
-	t.Setenv("SYNON_CONFIG", "")
-	t.Setenv("SYNON_CONDA_HOME", "relative-conda")
-	t.Setenv("SYNON_CONDA_ENVS_PATH", "")
+	t.Setenv("X_SCIENCE_HOME", filepath.Join(t.TempDir(), "runtime"))
+	t.Setenv("X_SCIENCE_CONFIG", "")
+	t.Setenv("X_SCIENCE_CONDA_HOME", "relative-conda")
+	t.Setenv("X_SCIENCE_CONDA_ENVS_PATH", "")
 	if _, err := Load(); err == nil {
 		t.Fatal("relative Conda home was accepted")
 	}
@@ -95,10 +95,10 @@ func TestLoadRejectsRelativeCondaRoots(t *testing.T) {
 
 func TestLoadNormalizesAndValidatesNetworkPolicy(t *testing.T) {
 	home := t.TempDir()
-	t.Setenv("SYNON_HOME", home)
-	t.Setenv("SYNON_CONFIG", "")
-	t.Setenv("SYNON_NETWORK_ALLOWED_DOMAINS", "Example.COM,*.example.org")
-	t.Setenv("SYNON_NETWORK_DENIED_DOMAINS", "blocked.example.net")
+	t.Setenv("X_SCIENCE_HOME", home)
+	t.Setenv("X_SCIENCE_CONFIG", "")
+	t.Setenv("X_SCIENCE_NETWORK_ALLOWED_DOMAINS", "Example.COM,*.example.org")
+	t.Setenv("X_SCIENCE_NETWORK_DENIED_DOMAINS", "blocked.example.net")
 	cfg, err := Load()
 	if err != nil {
 		t.Fatal(err)
@@ -107,8 +107,8 @@ func TestLoadNormalizesAndValidatesNetworkPolicy(t *testing.T) {
 		len(cfg.Network.DeniedDomains) != 1 || cfg.Network.DeniedDomains[0] != "blocked.example.net" {
 		t.Fatalf("network policy = %#v", cfg.Network)
 	}
-	t.Setenv("SYNON_NETWORK_ALLOWED_DOMAINS", "api.blocked.example.net")
-	t.Setenv("SYNON_NETWORK_DENIED_DOMAINS", "*.blocked.example.net")
+	t.Setenv("X_SCIENCE_NETWORK_ALLOWED_DOMAINS", "api.blocked.example.net")
+	t.Setenv("X_SCIENCE_NETWORK_DENIED_DOMAINS", "*.blocked.example.net")
 	if _, err := Load(); err == nil {
 		t.Fatal("conflicting network allow and deny policy was accepted")
 	}
@@ -116,7 +116,7 @@ func TestLoadNormalizesAndValidatesNetworkPolicy(t *testing.T) {
 
 func TestLoadNormalizesNetworkTLSConfiguration(t *testing.T) {
 	root := t.TempDir()
-	configPath := filepath.Join(root, "config", "synon.json")
+	configPath := filepath.Join(root, "config", "x-science.json")
 	if err := os.MkdirAll(filepath.Dir(configPath), 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -129,9 +129,9 @@ func TestLoadNormalizesNetworkTLSConfiguration(t *testing.T) {
 }`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("SYNON_HOME", filepath.Join(root, "runtime"))
-	t.Setenv("SYNON_CONFIG", configPath)
-	t.Setenv("SYNON_NETWORK_CA_BUNDLE", "")
+	t.Setenv("X_SCIENCE_HOME", filepath.Join(root, "runtime"))
+	t.Setenv("X_SCIENCE_CONFIG", configPath)
+	t.Setenv("X_SCIENCE_NETWORK_CA_BUNDLE", "")
 
 	cfg, err := Load()
 	if err != nil {
@@ -144,38 +144,38 @@ func TestLoadNormalizesNetworkTLSConfiguration(t *testing.T) {
 }
 
 func TestLoadRejectsInvalidNetworkTLSModeAndRelativeEnvironmentBundle(t *testing.T) {
-	t.Setenv("SYNON_HOME", filepath.Join(t.TempDir(), "runtime"))
-	t.Setenv("SYNON_CONFIG", "")
-	t.Setenv("SYNON_NETWORK_CA_BUNDLE", "relative.pem")
+	t.Setenv("X_SCIENCE_HOME", filepath.Join(t.TempDir(), "runtime"))
+	t.Setenv("X_SCIENCE_CONFIG", "")
+	t.Setenv("X_SCIENCE_NETWORK_CA_BUNDLE", "relative.pem")
 	if _, err := Load(); err == nil {
 		t.Fatal("relative environment CA bundle was accepted")
 	}
 
 	root := t.TempDir()
-	configPath := filepath.Join(root, "synon.json")
+	configPath := filepath.Join(root, "x-science.json")
 	if err := os.WriteFile(configPath, []byte(`{"network":{"mcp_x509_strict":"sometimes"}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("SYNON_CONFIG", configPath)
-	t.Setenv("SYNON_NETWORK_CA_BUNDLE", "")
+	t.Setenv("X_SCIENCE_CONFIG", configPath)
+	t.Setenv("X_SCIENCE_NETWORK_CA_BUNDLE", "")
 	if _, err := Load(); err == nil {
 		t.Fatal("invalid MCP X.509 posture mode was accepted")
 	}
 }
 
 func TestLoadRejectsUnsafeNetworkProxyConfiguration(t *testing.T) {
-	t.Setenv("SYNON_HOME", filepath.Join(t.TempDir(), "runtime"))
-	t.Setenv("SYNON_CONFIG", "")
-	t.Setenv("SYNON_NETWORK_PROXY", "https://proxy.example/path")
+	t.Setenv("X_SCIENCE_HOME", filepath.Join(t.TempDir(), "runtime"))
+	t.Setenv("X_SCIENCE_CONFIG", "")
+	t.Setenv("X_SCIENCE_NETWORK_PROXY", "https://proxy.example/path")
 	if _, err := Load(); err == nil {
 		t.Fatal("unsupported network proxy was accepted")
 	}
 }
 
 func TestLoadInheritsStandardHTTPSProxyForDetachedRuntime(t *testing.T) {
-	t.Setenv("SYNON_HOME", filepath.Join(t.TempDir(), "runtime"))
-	t.Setenv("SYNON_CONFIG", "")
-	t.Setenv("SYNON_NETWORK_PROXY", "")
+	t.Setenv("X_SCIENCE_HOME", filepath.Join(t.TempDir(), "runtime"))
+	t.Setenv("X_SCIENCE_CONFIG", "")
+	t.Setenv("X_SCIENCE_NETWORK_PROXY", "")
 	t.Setenv("HTTPS_PROXY", "http://127.0.0.1:7890")
 	t.Setenv("https_proxy", "")
 	t.Setenv("HTTP_PROXY", "http://fallback.example:8080")
@@ -191,9 +191,9 @@ func TestLoadInheritsStandardHTTPSProxyForDetachedRuntime(t *testing.T) {
 }
 
 func TestLoadProductProxyOverridesStandardEnvironment(t *testing.T) {
-	t.Setenv("SYNON_HOME", filepath.Join(t.TempDir(), "runtime"))
-	t.Setenv("SYNON_CONFIG", "")
-	t.Setenv("SYNON_NETWORK_PROXY", "http://product-proxy.example:8080")
+	t.Setenv("X_SCIENCE_HOME", filepath.Join(t.TempDir(), "runtime"))
+	t.Setenv("X_SCIENCE_CONFIG", "")
+	t.Setenv("X_SCIENCE_NETWORK_PROXY", "http://product-proxy.example:8080")
 	t.Setenv("HTTPS_PROXY", "http://standard-proxy.example:3128")
 
 	cfg, err := Load()

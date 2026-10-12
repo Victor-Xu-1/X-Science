@@ -4,7 +4,7 @@ import (
 	"sync"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestWorkspaceEventHubAllowsConcurrentPublishAndUnsubscribe(t *testing.T) {

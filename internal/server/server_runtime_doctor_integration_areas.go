@@ -2,7 +2,7 @@ package server
 
 import (
 	"strings"
-	"synon-go/internal/toolcontract"
+	"x-science/internal/toolcontract"
 	"time"
 )
 
@@ -101,9 +101,9 @@ func (s *Server) hooksDoctorArea() (string, string, map[string]any, []string) {
 	return status, message, evidence, next
 }
 
-func (s *Server) synonLinkIMDoctorArea() (string, string, map[string]any, []string) {
-	hasSynonLinkService := s != nil && s.synonLink != nil
-	hasSynonLinkTools := hasRegisteredTool(s.tools, "synon_link")
+func (s *Server) xscienceLinkIMDoctorArea() (string, string, map[string]any, []string) {
+	hasXScienceLinkService := s != nil && s.xscienceLink != nil
+	hasXScienceLinkTools := hasRegisteredTool(s.tools, "x_science_link")
 	hasPairingStore := s != nil && s.pairingStore != nil
 	hasPairingTools := hasRegisteredTool(s.tools, "pairing_list") && hasRegisteredTool(s.tools, "pairing_allow") && hasRegisteredTool(s.tools, "pairing_revoke")
 	hasIMMessageTool := hasRegisteredTool(s.tools, "im_message")
@@ -116,15 +116,15 @@ func (s *Server) synonLinkIMDoctorArea() (string, string, map[string]any, []stri
 	hasAnyAdapterCredentialSmokePass := adapterCredentialSmokeHasPass(adapterLiveSmokePlatforms)
 	hasAnyAdapterLiveSmokePass := adapterLiveSmokeHasPass(adapterLiveSmokePlatforms)
 	hasAllAdapterLiveSmokePass := adapterLiveSmokeAllRequiredPass(adapterLiveSmokePlatforms, []string{"feishu", "wechat"})
-	ready := hasSynonLinkService && hasSynonLinkTools && hasPairingStore && hasPairingTools && hasIMMessageTool && hasIMConfigTool && hasSessionEventJournalTool && hasIMLiveSessionJournal && hasAllPlatformDedupManagers && hasAllAdapterLiveSmokePass
+	ready := hasXScienceLinkService && hasXScienceLinkTools && hasPairingStore && hasPairingTools && hasIMMessageTool && hasIMConfigTool && hasSessionEventJournalTool && hasIMLiveSessionJournal && hasAllPlatformDedupManagers && hasAllAdapterLiveSmokePass
 	status := "partial"
 	message := "X-Science Link and Feishu/WeChat channel APIs are implemented in the Go runtime with bridge tools, durable pairing, normalized inbound IM messages, per-channel deduplication, live-session journaling, credential bootstrap diagnostics, and fresh outbound-delivery smoke audits."
 	next := []string{}
 	if ready {
 		status = "pass"
 	} else {
-		if !hasSynonLinkService || !hasSynonLinkTools {
-			next = append(next, "Enable X-Science Link service and register the canonical synon_link tool.")
+		if !hasXScienceLinkService || !hasXScienceLinkTools {
+			next = append(next, "Enable X-Science Link service and register the canonical x_science_link tool.")
 		}
 		if !hasPairingStore || !hasPairingTools {
 			next = append(next, "Configure durable IM pairing store and pairing management tools.")
@@ -143,12 +143,12 @@ func (s *Server) synonLinkIMDoctorArea() (string, string, map[string]any, []stri
 		}
 		if !hasAllAdapterLiveSmokePass {
 			next = append(next, "Run ToolDoctor adapters smoke with real platform credentials before declaring live IM channels ready.")
-			next = append(next, "Run synon-go-live-im-smoke --require-all --json --runtime-url <runtime-url> after exporting the Feishu and WeChat live smoke credentials.")
+			next = append(next, "Run x-science-live-im-smoke --require-all --json --runtime-url <runtime-url> after exporting the Feishu and WeChat live smoke credentials.")
 		}
 	}
 	evidence := map[string]any{
-		"hasSynonLinkService":                     hasSynonLinkService,
-		"hasSynonLinkTools":                       hasSynonLinkTools,
+		"hasXScienceLinkService":                     hasXScienceLinkService,
+		"hasXScienceLinkTools":                       hasXScienceLinkTools,
 		"hasPairingStore":                         hasPairingStore,
 		"hasPairingTools":                         hasPairingTools,
 		"hasIMMessageTool":                        hasIMMessageTool,
@@ -161,9 +161,9 @@ func (s *Server) synonLinkIMDoctorArea() (string, string, map[string]any, []stri
 		"hasAdapterLiveSmokePerPlatformReadiness": len(adapterLiveSmokePlatforms) > 0,
 		"hasLiveIMSmokeScript":                    true,
 		"hasLiveIMSmokeReleaseBinary":             true,
-		"liveSmokePlanCommand":                    "synon-go-live-im-smoke --plan --json",
-		"liveSmokeRequireAllCommand":              "synon-go-live-im-smoke --require-all --json",
-		"liveSmokeRecordCommand":                  "synon-go-live-im-smoke --require-all --json --runtime-url <runtime-url>",
+		"liveSmokePlanCommand":                    "x-science-live-im-smoke --plan --json",
+		"liveSmokeRequireAllCommand":              "x-science-live-im-smoke --require-all --json",
+		"liveSmokeRecordCommand":                  "x-science-live-im-smoke --require-all --json --runtime-url <runtime-url>",
 		"requiresDeliveryChecked":                 true,
 		"deliveryAuditMaxAgeSeconds":              int64(adapterLiveSmokeAuditMaxAge / time.Second),
 		"hasAnyAdapterLiveSmokePass":              hasAnyAdapterLiveSmokePass,

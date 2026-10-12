@@ -1,4 +1,4 @@
-import type { SynonBiomedMcpAppTool, SynonBiomedMcpAppToolResult } from '@/renderer/services/mcp/synonBiomedMcpApps';
+import type { XScienceMcpAppTool, XScienceMcpAppToolResult } from '@/renderer/services/mcp/xScienceMcpApps';
 import { PRODUCT_NAME } from '@/common/config/productIdentity';
 
 declare const __APP_VERSION__: string;
@@ -52,7 +52,7 @@ export function mcpAppInitializeResult(protocolVersion: unknown, darkMode: boole
   };
 }
 
-export function normalizeMCPAppTools(value: unknown): SynonBiomedMcpAppTool[] {
+export function normalizeMCPAppTools(value: unknown): XScienceMcpAppTool[] {
   const result = asRecord(value);
   if (!Array.isArray(result?.tools) || result.tools.length === 0 || result.tools.length > maxMcpAppTools) {
     throw new Error('MCP_APP_TOOLS_INVALID');
@@ -67,13 +67,13 @@ export function normalizeMCPAppTools(value: unknown): SynonBiomedMcpAppTool[] {
     }
     seen.add(name);
     const description = normalizedString(tool?.description);
-    const normalized: SynonBiomedMcpAppTool = { name, inputSchema };
+    const normalized: XScienceMcpAppTool = { name, inputSchema };
     if (description) normalized.description = description;
     return normalized;
   });
 }
 
-export function normalizeMCPAppToolResult(value: unknown): SynonBiomedMcpAppToolResult {
+export function normalizeMCPAppToolResult(value: unknown): XScienceMcpAppToolResult {
   const result = asRecord(value);
   if (!result || !Array.isArray(result.content) || result.content.length > 128) {
     return mcpAppInvalidToolResult();
@@ -106,7 +106,7 @@ export function normalizeMCPAppModelContext(value: unknown): Record<string, unkn
   return context;
 }
 
-function mcpAppInvalidToolResult(): SynonBiomedMcpAppToolResult {
+function mcpAppInvalidToolResult(): XScienceMcpAppToolResult {
   return {
     content: [{ type: 'text', text: 'MCP App returned an invalid result' }],
     isError: true,

@@ -11,18 +11,18 @@ describe('guid assistant selection helpers', () => {
     assistant({ id: 'builtin-writer', source: 'builtin', runtimeKey: 'claude', sort_order: 20 }),
     assistant({ id: 'bare-unsupportedRuntime', source: 'generated', runtimeKey: 'unsupportedRuntime', sort_order: 10 }),
     assistant({ id: 'user-research', source: 'user', runtimeKey: 'gemini', sort_order: 30 }),
-    assistant({ id: 'synonbiomed:aidd-expert', source: 'builtin', runtimeKey: 'synonbiomed', sort_order: 40 }),
+    assistant({ id: 'xscience:aidd-expert', source: 'builtin', runtimeKey: 'xscience', sort_order: 40 }),
     assistant({
-      id: 'synonbiomed:operon',
+      id: 'xscience:operon',
       source: 'builtin',
-      runtimeKey: 'synonbiomed',
+      runtimeKey: 'xscience',
       agent_id: 'OPERON',
       sort_order: 50,
     }),
   ];
 
   it('prefers explicit X-Science assistant keys when the assistant exists', () => {
-    expect(resolveAssistantSelectionKey('custom:synonbiomed:aidd-expert', assistants)).toBe('synonbiomed:aidd-expert');
+    expect(resolveAssistantSelectionKey('custom:xscience:aidd-expert', assistants)).toBe('xscience:aidd-expert');
   });
 
   it('does not accept non-X-Science assistant ids from stale selections', () => {
@@ -36,7 +36,7 @@ describe('guid assistant selection helpers', () => {
   });
 
   it('defaults to the general OPERON expert used by the v1.1 new-task workflow', () => {
-    expect(pickDefaultAssistantSelectionKey(assistants)).toBe('synonbiomed:operon');
+    expect(pickDefaultAssistantSelectionKey(assistants)).toBe('xscience:operon');
   });
 
   it('returns null when no assistants are available', () => {
@@ -47,9 +47,9 @@ describe('guid assistant selection helpers', () => {
 function assistant(
   overrides: Partial<Assistant> & { id: string; source: Assistant['source']; runtimeKey: string }
 ): Assistant {
-  const agentId = overrides.runtimeKey === 'synonbiomed' ? 'AIDD_EXPERT' : `agent-${overrides.runtimeKey}`;
+  const agentId = overrides.runtimeKey === 'xscience' ? 'AIDD_EXPERT' : `agent-${overrides.runtimeKey}`;
   const isUnsupportedRuntime = overrides.runtimeKey === 'unsupportedRuntime';
-  const isSynonBiomed = overrides.runtimeKey === 'synonbiomed';
+  const isXScience = overrides.runtimeKey === 'xscience';
   return {
     id: overrides.id,
     source: overrides.source,
@@ -59,8 +59,8 @@ function assistant(
     enabled: true,
     sort_order: overrides.sort_order ?? 0,
     agent_id: agentId,
-    agent: isSynonBiomed
-      ? { type: 'synonbiomed', source: 'builtin', acp_backend: 'synonbiomed' }
+    agent: isXScience
+      ? { type: 'xscience', source: 'builtin', acp_backend: 'xscience' }
       : isUnsupportedRuntime
         ? { type: 'unsupportedRuntime', source: 'internal' }
         : { type: 'acp', source: 'builtin', acp_backend: overrides.runtimeKey },

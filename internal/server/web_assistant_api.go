@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/buildinfo"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/buildinfo"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const webAssistantSettingNamespace = "assistant."
@@ -67,7 +67,7 @@ func (s *Server) handleWebAssistants(w http.ResponseWriter, r *http.Request) {
 		writeWorkspaceJSON(w, http.StatusServiceUnavailable, map[string]any{"message": "assistant catalog is not configured"})
 		return
 	}
-	userID := strings.TrimSpace(r.Header.Get("X-Synon-User-Id"))
+	userID := strings.TrimSpace(r.Header.Get("X-Science-User-Id"))
 	if userID == "" {
 		writeWorkspaceJSON(w, http.StatusUnauthorized, map[string]any{"message": "authentication required"})
 		return
@@ -490,7 +490,7 @@ func webAssistantProjection(record webAssistantRecord) map[string]any {
 		"description": description, "description_i18n": descriptionI18n,
 		"avatar":  firstNonEmpty(record.Config.Avatar, record.Agent.IconKey, "SB"),
 		"enabled": record.Agent.Enabled, "sort_order": webAssistantSortOrder(record), "agent_id": agentID,
-		"agent":                   map[string]any{"type": "synonbiomed", "source": webAssistantAgentSource(record), "acp_backend": "synonbiomed"},
+		"agent":                   map[string]any{"type": "xscience", "source": webAssistantAgentSource(record), "acp_backend": "xscience"},
 		"enabled_skills":          append([]string(nil), record.Agent.SkillNames...),
 		"custom_skill_names":      append([]string(nil), record.Config.CustomSkillNames...),
 		"disabled_builtin_skills": append([]string(nil), record.Config.DisabledBuiltinSkills...),
@@ -540,7 +540,7 @@ func (s *Server) webAssistantDetail(userID string, record webAssistantRecord) (m
 			"enabled": item["enabled"], "sort_order": item["sort_order"], "last_used_at": item["last_used_at"],
 		},
 		"engine":   map[string]any{"agent_id": item["agent_id"], "agent": item["agent"]},
-		"rules":    map[string]any{"content": item["context"], "storage_mode": "synonbiomed_runtime"},
+		"rules":    map[string]any{"content": item["context"], "storage_mode": "xscience_runtime"},
 		"prompts":  map[string]any{"recommended": item["prompts"], "recommended_i18n": item["prompts_i18n"]},
 		"defaults": defaults,
 		"capabilities": map[string]any{
@@ -574,7 +574,7 @@ func webAssistantAgentSource(record webAssistantRecord) string {
 
 func webAssistantID(agentName string) string {
 	slug := strings.ToLower(strings.ReplaceAll(normalizeBundledAgentName(agentName), "_", "-"))
-	return "synonbiomed:" + slug
+	return "xscience:" + slug
 }
 
 func (s *Server) resolveWebAssistantEngineAgent(userID, value string) (string, error) {
@@ -937,7 +937,7 @@ func (s *Server) handleWebAssistantRules(w http.ResponseWriter, r *http.Request)
 		writeWorkspaceJSON(w, http.StatusServiceUnavailable, map[string]any{"message": "assistant storage is not configured"})
 		return
 	}
-	userID := strings.TrimSpace(r.Header.Get("X-Synon-User-Id"))
+	userID := strings.TrimSpace(r.Header.Get("X-Science-User-Id"))
 	if userID == "" {
 		writeWorkspaceJSON(w, http.StatusUnauthorized, map[string]any{"message": "authentication required"})
 		return
@@ -1038,7 +1038,7 @@ func (s *Server) handleWebManagedExperts(w http.ResponseWriter, r *http.Request)
 		writeWorkspaceJSON(w, http.StatusMethodNotAllowed, map[string]any{"message": "method not allowed"})
 		return
 	}
-	userID := strings.TrimSpace(r.Header.Get("X-Synon-User-Id"))
+	userID := strings.TrimSpace(r.Header.Get("X-Science-User-Id"))
 	if userID == "" {
 		writeWorkspaceJSON(w, http.StatusUnauthorized, map[string]any{"message": "authentication required"})
 		return
@@ -1081,7 +1081,7 @@ func (s *Server) handleWebManagedExperts(w http.ResponseWriter, r *http.Request)
 			"name":   record.Agent.DisplayName, "name_i18n": map[string]string{"en-US": record.Agent.DisplayName, "zh-CN": record.Agent.DisplayName},
 			"description":      record.Agent.Description,
 			"description_i18n": map[string]string{"en-US": record.Agent.Description, "zh-CN": record.Agent.Description},
-			"backend":          "synonbiomed", "agent_type": "synonbiomed", "agent_source": webAssistantAgentSource(record),
+			"backend":          "xscience", "agent_type": "xscience", "agent_source": webAssistantAgentSource(record),
 			"agent_source_info": map[string]any{"version": buildinfo.Release().Version},
 			"enabled":           record.Agent.Enabled, "installed": true, "status": status,
 			"behavior_policy": map[string]any{"supports_side_question": true},
@@ -1098,7 +1098,7 @@ func (s *Server) handleWebManagedExperts(w http.ResponseWriter, r *http.Request)
 				"available_models": modelSnapshot.Available, "available_commands": availableCommandsPayload,
 				"agent_capabilities": map[string]any{"load_session": true, "mcp_capabilities": map[string]bool{"stdio": true, "http": true, "sse": true}},
 			},
-			"command": "synon-go", "args": []string{"serve"},
+			"command": "x-science", "args": []string{"serve"},
 		}
 		items = append(items, item)
 	}

@@ -69,10 +69,10 @@
   --message-tips-bg: var(--workspace-sidebar);
   --workspace-btn-bg: var(--workspace-subtle);
   --color-guid-agent-bar: var(--workspace-subtle);
-  --synon-ai-overlay-bg: var(--workspace-canvas);
-  --synon-ai-overlay-text: var(--workspace-text);
-  --synon-ai-overlay-border: var(--workspace-border);
-  --synon-ai-overlay-shadow: var(--workspace-shadow-popover);
+  --x-science-overlay-bg: var(--workspace-canvas);
+  --x-science-overlay-text: var(--workspace-text);
+  --x-science-overlay-border: var(--workspace-border);
+  --x-science-overlay-shadow: var(--workspace-shadow-popover);
 }
 [data-theme='dark'] {
   --workspace-canvas: #1f1e1c;
@@ -136,7 +136,7 @@ body,
 html body .layout-sider button[data-testid='sider-new-chat'] > span:first-child {
   border-radius: var(--ui-radius-md) !important;
 }
-html body button.synon-biomed-brand {
+html body button.x-science-brand {
   border-radius: var(--ui-radius-lg) !important;
 }
 .chat-history__item:hover,
@@ -803,7 +803,7 @@ html body .arco-modal:not(.arco-modal-simple) {
 }
 
 html body .arco-modal-content,
-html body .synon-ai-modal .arco-modal-content {
+html body .x-science-modal .arco-modal-content {
   min-height: 0;
   overflow-y: auto;
   padding: 18px 20px !important;
@@ -838,26 +838,26 @@ html body .arco-modal-content {
 }
 
 /* Long skill files need a real modal layout: fixed chrome, one bounded scroll region. */
-html body .synon-biomed-skill-detail-modal .arco-modal-header,
-html body .synon-biomed-skill-detail-modal .arco-modal-footer {
+html body .x-science-skill-detail-modal .arco-modal-header,
+html body .x-science-skill-detail-modal .arco-modal-footer {
   flex: 0 0 auto;
 }
 
-html body .synon-biomed-skill-detail-modal {
+html body .x-science-skill-detail-modal {
   display: inline-flex !important;
   flex-direction: column;
   height: auto;
   max-height: min(960px, calc(100dvh - 32px));
 }
 
-html body .synon-biomed-skill-detail-modal > [data-focus-lock-disabled] {
+html body .x-science-skill-detail-modal > [data-focus-lock-disabled] {
   display: flex;
   flex: 1 1 auto;
   min-height: 0;
   flex-direction: column;
 }
 
-html body .synon-biomed-skill-detail-modal .arco-modal-content {
+html body .x-science-skill-detail-modal .arco-modal-content {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
@@ -998,7 +998,7 @@ html body .arco-drawer {
   box-shadow: var(--workspace-dialog-shadow) !important;
 }
 
-html body .synon-approval-scope-drawer .arco-drawer {
+html body .x-science-approval-scope-drawer .arco-drawer {
   border-top: 1px solid var(--workspace-overlay-border) !important;
   border-left: 0 !important;
   border-radius: 14px 14px 0 0;
@@ -1213,7 +1213,7 @@ html body .message-item.justify-end .whitespace-pre-wrap {
   line-height: 20px !important;
 }
 
-html body .synon-biomed-task-status {
+html body .x-science-task-status {
   box-sizing: border-box;
   min-height: 26px;
   width: fit-content;
@@ -1229,8 +1229,8 @@ html body .synon-biomed-task-status {
   line-height: var(--conversation-meta-line-height) !important;
 }
 
-html body .synon-biomed-task-status[data-state='waiting_input'],
-html body .synon-biomed-task-status[data-state='waiting_confirmation'] {
+html body .x-science-task-status[data-state='waiting_input'],
+html body .x-science-task-status[data-state='waiting_confirmation'] {
   background: var(--conversation-stream-accent-soft) !important;
 }
 
@@ -1352,16 +1352,16 @@ html[data-theme][data-color-scheme='default'] body {
   --color-border-2: color-mix(in srgb, var(--workspace-border) 72%, transparent) !important;
   --color-border-3: var(--workspace-border-strong) !important;
   /* First-party surface contract: modules depend on these, not provider names. */
-  --synon-surface-canvas: var(--workspace-canvas) !important;
-  --synon-surface-panel: var(--workspace-sidebar) !important;
-  --synon-surface-card: var(--workspace-overlay-surface) !important;
-  --synon-surface-subtle: var(--workspace-subtle) !important;
-  --synon-surface-hover: var(--workspace-hover) !important;
-  --synon-divider: var(--workspace-border) !important;
-  --synon-divider-strong: var(--workspace-border-strong) !important;
-  --synon-overlay-surface: var(--workspace-overlay-surface) !important;
-  --synon-overlay-muted: var(--workspace-overlay-surface-muted) !important;
-  --synon-shadow-soft: var(--workspace-shadow-popover) !important;
+  --x-science-surface-canvas: var(--workspace-canvas) !important;
+  --x-science-surface-panel: var(--workspace-sidebar) !important;
+  --x-science-surface-card: var(--workspace-overlay-surface) !important;
+  --x-science-surface-subtle: var(--workspace-subtle) !important;
+  --x-science-surface-hover: var(--workspace-hover) !important;
+  --x-science-divider: var(--workspace-border) !important;
+  --x-science-divider-strong: var(--workspace-border-strong) !important;
+  --x-science-overlay-surface: var(--workspace-overlay-surface) !important;
+  --x-science-overlay-muted: var(--workspace-overlay-surface-muted) !important;
+  --x-science-shadow-soft: var(--workspace-shadow-popover) !important;
   --primary: var(--workspace-accent) !important;
   --color-primary: var(--workspace-accent) !important;
   --brand: var(--workspace-accent) !important;
@@ -1371,9 +1371,9 @@ html[data-theme][data-color-scheme='default'] body {
   --message-tips-bg: var(--workspace-sidebar) !important;
   --workspace-btn-bg: var(--workspace-subtle) !important;
   --color-guid-agent-bar: var(--workspace-subtle) !important;
-  --synon-ai-overlay-bg: var(--workspace-overlay-surface) !important;
-  --synon-ai-overlay-text: var(--workspace-text) !important;
-  --synon-ai-overlay-border: var(--workspace-overlay-border) !important;
+  --x-science-overlay-bg: var(--workspace-overlay-surface) !important;
+  --x-science-overlay-text: var(--workspace-text) !important;
+  --x-science-overlay-border: var(--workspace-overlay-border) !important;
   --conversation-user-border: transparent !important;
   --conversation-stream-border: transparent !important;
   --primary-3: var(--theme-primary-3, 225, 223, 218) !important;
@@ -1428,17 +1428,17 @@ html body .arco-checkbox-checked .arco-checkbox-mask {
 }
 
 html body .arco-steps-item-icon,
-html body .synon-ai-steps .arco-steps-item-process .arco-steps-item-icon,
-html body .synon-ai-steps .arco-steps-item-finish .arco-steps-item-icon {
+html body .x-science-steps .arco-steps-item-process .arco-steps-item-icon,
+html body .x-science-steps .arco-steps-item-finish .arco-steps-item-icon {
   border-color: transparent !important;
 }
 
-html body .synon-ai-steps .arco-steps-item-finish .arco-steps-item-icon {
+html body .x-science-steps .arco-steps-item-finish .arco-steps-item-icon {
   color: var(--workspace-text-secondary) !important;
   background: var(--workspace-subtle) !important;
 }
 
-html body .synon-ai-steps .arco-steps-item-process .arco-steps-item-icon {
+html body .x-science-steps .arco-steps-item-process .arco-steps-item-icon {
   color: var(--workspace-accent-contrast) !important;
   background: var(--workspace-accent) !important;
 }
@@ -1480,7 +1480,7 @@ html body .chat-layout-right-sider .border-solid.border-b {
   border-bottom: 1px solid var(--workspace-border) !important;
 }
 
-html body .synon-sidebar-project-row {
+html body .x-science-sidebar-project-row {
   border-width: 0 !important;
 }
 
@@ -1542,11 +1542,11 @@ html
   body
   :is(
     .message-item.justify-end .bg-aou-2,
-    .synon-biomed-task-status,
+    .x-science-task-status,
     .runtime-operations-banner,
-    [data-testid='synon-biomed-ask-user-card'],
-    .synon-approval-card,
-    .synon-approval-card__code
+    [data-testid='x-science-ask-user-card'],
+    .x-science-approval-card,
+    .x-science-approval-card__code
   ) {
   border-width: 1px !important;
   border-color: var(--conversation-stream-border) !important;
@@ -1555,10 +1555,10 @@ html
 html
   body
   :is(
-    .synon-biomed-task-status,
+    .x-science-task-status,
     .runtime-operations-banner,
-    [data-testid='synon-biomed-ask-user-card'],
-    .synon-approval-card
+    [data-testid='x-science-ask-user-card'],
+    .x-science-approval-card
   ) {
   border-left-width: 1px !important;
   box-shadow: 0 1px 2px rgb(0 0 0 / 4%) !important;
@@ -1707,10 +1707,10 @@ html
     .permission-rule,
     .artifact-library__card,
     .message-scientific-files__card,
-    .synon-biomed-task-status,
+    .x-science-task-status,
     .runtime-operations-banner,
-    [data-testid='synon-biomed-ask-user-card'],
-    .synon-approval-card
+    [data-testid='x-science-ask-user-card'],
+    .x-science-approval-card
   ) {
   border-radius: var(--ui-radius-xl) !important;
 }
@@ -1800,26 +1800,26 @@ html body .message-item.justify-end .bg-aou-2 {
   border-radius: var(--ui-radius-2xl) !important;
 }
 
-html body .synon-ai-markdown :where(img) {
+html body .x-science-markdown :where(img) {
   border-radius: var(--ui-radius-xl) !important;
 }
 
-html body .synon-ai-markdown :where(blockquote) {
+html body .x-science-markdown :where(blockquote) {
   padding: 10px 12px !important;
   background: var(--conversation-stream-surface) !important;
   border-left: 1px solid var(--workspace-border-strong) !important;
   border-radius: var(--ui-radius-lg) !important;
 }
 
-html body .synon-ai-markdown :where(pre),
-html body .synon-ai-markdown [data-streamdown='code-block'] {
+html body .x-science-markdown :where(pre),
+html body .x-science-markdown [data-streamdown='code-block'] {
   overflow: auto;
   background: var(--conversation-code-surface) !important;
   border-color: transparent !important;
   border-radius: var(--ui-radius-lg) !important;
 }
 
-html body .synon-ai-markdown :where(table) {
+html body .x-science-markdown :where(table) {
   overflow: hidden;
   background: var(--conversation-stream-surface) !important;
   border: 1px solid transparent !important;
@@ -1828,16 +1828,16 @@ html body .synon-ai-markdown :where(table) {
   border-radius: var(--ui-radius-lg) !important;
 }
 
-html body .synon-ai-markdown :where(code):not(:where(pre code)) {
+html body .x-science-markdown :where(code):not(:where(pre code)) {
   border-radius: var(--ui-radius-sm) !important;
 }
 
-html body .synon-ai-markdown :where(hr) {
+html body .x-science-markdown :where(hr) {
   border: 0 !important;
   border-top: 1px solid var(--workspace-border) !important;
 }
 
-html body .synon-ai-markdown :is(pre, table, blockquote),
+html body .x-science-markdown :is(pre, table, blockquote),
 html body .arco-table-container {
   border-radius: var(--ui-radius-lg) !important;
 }
@@ -1864,14 +1864,14 @@ html body .artifact-library__card .text-10px {
 }
 
 html body .artifact-library__card .text-11px,
-html body .synon-sidebar-project-meta {
+html body .x-science-sidebar-project-meta {
   font-size: var(--ui-font-meta) !important;
   line-height: 18px !important;
 }
 
-html body .synon-sidebar-section-title-button .sider-section-title,
-html body .synon-sidebar-timeline .text-t-secondary,
-html body .synon-sidebar-project-meta {
+html body .x-science-sidebar-section-title-button .sider-section-title,
+html body .x-science-sidebar-timeline .text-t-secondary,
+html body .x-science-sidebar-project-meta {
   color: var(--workspace-text-secondary) !important;
 }
 

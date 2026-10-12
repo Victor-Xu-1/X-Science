@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	sessionstore "synon-go/internal/persistence/sessions"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/routinescheduler"
+	sessionstore "x-science/internal/persistence/sessions"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/routinescheduler"
 )
 
 const routineDeferredOrchestrationKey = "routineDeferred"

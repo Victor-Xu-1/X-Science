@@ -40,6 +40,7 @@ import { bootstrapRendererConfig } from '@renderer/services/bootstrapRenderer';
 import { installWebChunkRecovery } from '@renderer/services/webChunkRecovery';
 
 import Router from './components/layout/Router';
+import StorageNamespaceUpgradeNotice from './components/layout/StorageNamespaceUpgradeNotice';
 import HOC from './utils/ui/HOC';
 import { scheduleReactRootCleanup } from './utils/ui/reactRootLifecycle';
 import type { BackendStartupFailureInfo } from '@/common/types/platform/webRuntime';
@@ -71,7 +72,11 @@ const Config: React.FC<PropsWithChildren> = ({ children }) => {
     document.documentElement.lang = language;
   }, [language]);
 
-  return React.createElement(ConfigProvider, { theme: { primaryColor: '#4e4e4a' }, locale: arcoLocale }, children);
+  return React.createElement(
+    ConfigProvider,
+    { theme: { primaryColor: '#4e4e4a' }, locale: arcoLocale },
+    React.createElement(React.Fragment, null, React.createElement(StorageNamespaceUpgradeNotice), children)
+  );
 };
 
 const Main = () => <Router />;
@@ -80,8 +85,8 @@ const App = HOC.Wrapper(Config)(Main);
 
 const BackendStartupFailureDialog: React.FC<{ failure: BackendStartupFailureInfo }> = ({ failure }) => {
   const { t } = useTranslation();
-  const title = t('common.backendStartup.synonBiomed.title');
-  const description = failure.message || t('common.backendStartup.synonBiomed.description');
+  const title = t('common.backendStartup.xScience.title');
+  const description = failure.message || t('common.backendStartup.xScience.description');
 
   return (
     <div className='min-h-screen bg-1'>
@@ -98,7 +103,7 @@ void registerPwa();
 
 const root = createRoot(document.getElementById('root')!);
 const backendStartupFailure = window.__backendStartupFailure;
-if (backendStartupFailure?.reason === 'synon_biomed_backend_unavailable') {
+if (backendStartupFailure?.reason === 'x_science_backend_unavailable') {
   root.render(
     <Config>
       <BackendStartupFailureDialog failure={backendStartupFailure} />

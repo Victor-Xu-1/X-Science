@@ -18,7 +18,7 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/tools/securefetch"
+	"x-science/internal/tools/securefetch"
 )
 
 type repeatingDownloadBytes struct{}
@@ -32,7 +32,7 @@ func (repeatingDownloadBytes) Read(value []byte) (int, error) {
 
 func TestPublicDownloadRealTLSResumesManyConnectionsAndPublishesExactBytes(t *testing.T) {
 	size := int64(128 << 10)
-	if raw := os.Getenv("SYNON_TEST_TRANSFER_BYTES"); raw != "" {
+	if raw := os.Getenv("X_SCIENCE_TEST_TRANSFER_BYTES"); raw != "" {
 		parsed, err := strconv.ParseInt(raw, 10, 64)
 		if err != nil || parsed < 1024 {
 			t.Fatal("positive transfer size >=1024 required")

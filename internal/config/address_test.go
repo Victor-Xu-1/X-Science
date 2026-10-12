@@ -21,15 +21,15 @@ func TestRuntimeHostRejectsMalformedBracketBindings(t *testing.T) {
 			if err := os.WriteFile(path, raw, 0o600); err != nil {
 				t.Fatal(err)
 			}
-			t.Setenv("SYNON_HOME", root)
-			t.Setenv("SYNON_DATA_DIR_CONTROL", filepath.Join(root, "control.json"))
-			t.Setenv("SYNON_CONFIG", path)
-			t.Setenv("SYNON_ADDRESS", "")
-			t.Setenv("SYNON_HOST", "")
-			t.Setenv("SYNON_PORT", "")
-			t.Setenv("SYNON_LINK_AUTH_PASSWORD", "owned-test-authentication")
-			t.Setenv("SYNON_AUTH_APPLE_PRIVATE_KEY_FILE", "")
-			if err := os.Unsetenv("SYNON_AUTH_APPLE_PRIVATE_KEY_FILE"); err != nil {
+			t.Setenv("X_SCIENCE_HOME", root)
+			t.Setenv("X_SCIENCE_DATA_DIR_CONTROL", filepath.Join(root, "control.json"))
+			t.Setenv("X_SCIENCE_CONFIG", path)
+			t.Setenv("X_SCIENCE_ADDRESS", "")
+			t.Setenv("X_SCIENCE_HOST", "")
+			t.Setenv("X_SCIENCE_PORT", "")
+			t.Setenv("X_SCIENCE_LINK_AUTH_PASSWORD", "owned-test-authentication")
+			t.Setenv("X_SCIENCE_AUTH_APPLE_PRIVATE_KEY_FILE", "")
+			if err := os.Unsetenv("X_SCIENCE_AUTH_APPLE_PRIVATE_KEY_FILE"); err != nil {
 				t.Fatal(err)
 			}
 			if cfg, err := Load(); err == nil || !strings.Contains(err.Error(), "runtime host") {
@@ -44,7 +44,7 @@ func TestRuntimeHostRejectsMalformedBracketBindings(t *testing.T) {
 			}
 		})
 	}
-	if err := validateRuntimeBinding(Config{Host: "::"}); err == nil || !strings.Contains(err.Error(), "requires SYNON_LINK_AUTH_PASSWORD") {
+	if err := validateRuntimeBinding(Config{Host: "::"}); err == nil || !strings.Contains(err.Error(), "requires X_SCIENCE_LINK_AUTH_PASSWORD") {
 		t.Fatalf("unauthenticated wildcard lost the existing authentication guard: %v", err)
 	}
 }
@@ -104,12 +104,12 @@ func TestAddressUsesLoadedConfigAndEnvironmentPrecedence(t *testing.T) {
 			if err := os.WriteFile(path, []byte(`{"host":"127.0.0.1","port":18886}`), 0600); err != nil {
 				t.Fatal(err)
 			}
-			t.Setenv("SYNON_HOME", root)
-			t.Setenv("SYNON_DATA_DIR_CONTROL", filepath.Join(root, "control.json"))
-			t.Setenv("SYNON_CONFIG", path)
-			t.Setenv("SYNON_ADDRESS", test.address)
-			t.Setenv("SYNON_HOST", test.host)
-			t.Setenv("SYNON_PORT", test.port)
+			t.Setenv("X_SCIENCE_HOME", root)
+			t.Setenv("X_SCIENCE_DATA_DIR_CONTROL", filepath.Join(root, "control.json"))
+			t.Setenv("X_SCIENCE_CONFIG", path)
+			t.Setenv("X_SCIENCE_ADDRESS", test.address)
+			t.Setenv("X_SCIENCE_HOST", test.host)
+			t.Setenv("X_SCIENCE_PORT", test.port)
 			cfg, err := Load()
 			if err != nil {
 				t.Fatal(err)

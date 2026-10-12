@@ -4,14 +4,17 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 func TestCurrentRecoveryBrandReadsImmutableLegacyMarkers(t *testing.T) {
+	if legacyDurableCorrectionContextMarker != "Synon durable correction state from a prior bounded execution unit" || legacyNoProgressDetailMarker != "\nSynon no-progress recovery state: " {
+		t.Fatal("historical reader facts were mechanically relabeled")
+	}
 	if !strings.HasPrefix(sessionRunnerDurableCorrectionContextMarker, "X-Science ") {
 		t.Fatal("new recovery prompt retains legacy branding")
 	}
-	for _, marker := range []string{sessionRunnerDurableCorrectionContextMarker, legacyDurableCorrectionContextMarker} {
+	for _, marker := range []string{sessionRunnerDurableCorrectionContextMarker, "Synon durable correction state from a prior bounded execution unit"} {
 		messages := []agentruntime.Message{{Role: "system", Content: marker}}
 		if !hasSessionRunnerDurableCorrectionContext(marker) || runnerCorrectionToolBoundaryIndex(messages) != 0 {
 			t.Fatalf("recovery boundary lost exact current/legacy marker %q", marker)

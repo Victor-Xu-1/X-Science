@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"synon-go/internal/agentruntime"
-	assetmanifest "synon-go/internal/assets"
-	sessionstore "synon-go/internal/persistence/sessions"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	assetmanifest "x-science/internal/assets"
+	sessionstore "x-science/internal/persistence/sessions"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestBundledOperonIgnoresStaleFixedSkillDefaults(t *testing.T) {

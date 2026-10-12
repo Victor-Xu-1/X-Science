@@ -8,13 +8,13 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/networkpolicy"
-	eventjournal "synon-go/internal/persistence/journal"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/sciencecapability"
-	"synon-go/internal/software"
-	"synon-go/internal/toolcontract"
+	"x-science/internal/agentruntime"
+	"x-science/internal/networkpolicy"
+	eventjournal "x-science/internal/persistence/journal"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/sciencecapability"
+	"x-science/internal/software"
+	"x-science/internal/toolcontract"
 )
 
 const trustedScientificReviewSignalsField = "trustedScientificReviewSignals"
@@ -1188,7 +1188,7 @@ func trustedScientificReviewSignalsForMCPCheckpoint(message eventjournal.Message
 		ConnectorID: stringValue(message["connectorId"]), ConnectorSource: stringValue(message["connectorSource"]),
 		ReadOnlyHint: boolValue(message["readOnlyHint"], false),
 	}
-	if attestation.Schema == "synon.kernel_mcp_evidence.v1" {
+	if attestation.Schema == "x-science.kernel_mcp_evidence.v1" {
 		encoded, err := json.Marshal(message)
 		if err != nil {
 			return nil

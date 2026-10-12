@@ -21,7 +21,7 @@ func observationNativeParser(t *testing.T, language string) NativeParser {
 		executable, err = exec.LookPath("python3")
 		arguments = []string{"-I", "-c", PythonParser}
 	case "r":
-		executable = os.Getenv("SYNON_TEST_RSCRIPT")
+		executable = os.Getenv("X_SCIENCE_TEST_RSCRIPT")
 		if executable == "" {
 			executable, err = exec.LookPath("Rscript")
 		}

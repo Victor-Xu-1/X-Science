@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 	"time"
 )
 

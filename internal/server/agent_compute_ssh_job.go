@@ -14,10 +14,11 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/compute/checkpoint"
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	"x-science/internal/compute/checkpoint"
+	"x-science/internal/compute/namespace"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 type agentSSHJobStatus struct {
@@ -276,7 +277,7 @@ func (s *Server) agentSSHRemoteWorkdir(ctx context.Context, provider workspace.C
 	if !agentComputeRemotePathPattern.MatchString(root) || root == "/" || strings.Contains(root, "..") {
 		return "", errors.New("SSH provider scratch root is not a safe absolute path")
 	}
-	workdir := path.Join(root, ".synon-biomed", "jobs", jobID)
+	workdir := path.Join(root, ".x-science", "jobs", jobID)
 	if !validAgentSSHWorkdir(workdir, jobID) {
 		return "", errors.New("SSH job workdir is invalid")
 	}
@@ -332,11 +333,11 @@ func (s *Server) launchAgentSSHJob(
 	command := "set -eu; umask 077; cd " + quoted + "; " + agentSSHProcessIdentityShell +
 		"command -v flock >/dev/null || exit 66; exec 9>.launch.lock; flock -w 10 9 || exit 75; " +
 		"if [ -s .phase ]; then exit 0; fi; " +
-		"if synon_process_alive; then exit 0; fi; "
+		"if x_science_process_alive; then exit 0; fi; "
 	if scheduler == "slurm" {
 		command += agentSSHSlurmRecoveryShell(path.Base(remoteWorkdir))
 	}
-	command += "if [ -e .submit_intent ]; then exit 75; fi; env -u TAR_OPTIONS -u GZIP tar -xzf in.tar.gz; bash --noprofile --norc -p _synon_harvest.sh check; "
+	command += "if [ -e .submit_intent ]; then exit 75; fi; env -u TAR_OPTIONS -u GZIP tar -xzf in.tar.gz; bash --noprofile --norc -p _x_science_harvest.sh check; "
 	for _, remoteInput := range remoteInputs {
 		source := shellSingleQuote(remoteInput.Source)
 		destination := shellSingleQuote(remoteInput.Destination)
@@ -348,19 +349,19 @@ func (s *Server) launchAgentSSHJob(
 		if len(directives) > 0 {
 			script += strings.Join(directives, "\n") + "\n"
 		}
-		script += "set -eu\ncd " + quoted + "\nexport " + environment + "\n" + agentSSHProcessIdentityShell + "\nsynon_publish_identity $$\nexec bash _operon_wrapper.sh\n"
-		command += "printf %s " + shellSingleQuote(script) + " > .synon-slurm.sh; chmod 700 .synon-slurm.sh; " +
+		script += "set -eu\ncd " + quoted + "\nexport " + environment + "\n" + agentSSHProcessIdentityShell + "\nx_science_publish_identity $$\nexec bash _operon_wrapper.sh\n"
+		command += "printf %s " + shellSingleQuote(script) + " > .x-science-slurm.sh; chmod 700 .x-science-slurm.sh; " +
 			"printf '%s\\n' " + shellSingleQuote(path.Base(remoteWorkdir)) + " > .submit_intent; " +
-			"scheduler_id=$(sbatch --parsable --job-name=" + shellSingleQuote(path.Base(remoteWorkdir)) + " --comment=" + shellSingleQuote(path.Base(remoteWorkdir)) + " .synon-slurm.sh 9>&-); scheduler_id=${scheduler_id%%;*}; " +
+			"scheduler_id=$(sbatch --parsable --job-name=" + shellSingleQuote(path.Base(remoteWorkdir)) + " --comment=" + shellSingleQuote(path.Base(remoteWorkdir)) + " .x-science-slurm.sh 9>&-); scheduler_id=${scheduler_id%%;*}; " +
 			"case \"$scheduler_id\" in ''|*[!0-9]*) exit 65;; esac; printf %s \"$scheduler_id\" > .scheduler_id"
 	} else {
 		// Publish the forked process identity before returning to the monitor.
 		// The child may not have been scheduled yet; letting it write the PID
 		// creates a window where a live launch is mistaken for a lost job.
-		child := "set -eu; " + agentSSHProcessIdentityShell + "synon_publish_identity $$; exec bash _operon_wrapper.sh"
+		child := "set -eu; " + agentSSHProcessIdentityShell + "x_science_publish_identity $$; exec bash _operon_wrapper.sh"
 		command += "printf '%s\\n' " + shellSingleQuote(path.Base(remoteWorkdir)) + " > .submit_intent; nohup env " + environment +
 			" bash -c " + shellSingleQuote(child) + " 9>&- </dev/null >/dev/null 2>&1 & " +
-			"pid=$!; synon_publish_identity \"$pid\" || test -s .phase"
+			"pid=$!; x_science_publish_identity \"$pid\" || test -s .phase"
 	}
 	result, err := runKernelComputeSSHCommand(ctx, provider, kernelComputeCommandRequest{
 		Command: command, Intent: "Launch the durable remote job", Timeout: 30 * time.Second,
@@ -486,7 +487,7 @@ func pollAgentSSHJob(ctx context.Context, provider workspace.ComputeProvider, re
 		"if [ -s .phase ]; then cat .phase; exit 0; fi; " +
 		agentSSHSlurmObservationShell(path.Base(remoteWorkdir)) +
 		"if [ -s .phase ]; then cat .phase; " +
-		"elif synon_process_alive; then printf running; " +
+		"elif x_science_process_alive; then printf running; " +
 		"elif [ -s .phase ]; then cat .phase; " +
 		"elif [ -s .wrapper_identity ]; then printf lost; else printf unknown; fi"
 	result, err := runKernelComputeSSHCommand(ctx, provider, kernelComputeCommandRequest{
@@ -521,7 +522,7 @@ func validAgentSSHWorkdir(remoteWorkdir, jobID string) bool {
 	remoteWorkdir = path.Clean(strings.TrimSpace(remoteWorkdir))
 	jobID = strings.TrimSpace(jobID)
 	return computeJobIDPattern.MatchString(jobID) && agentComputeRemotePathPattern.MatchString(remoteWorkdir) &&
-		strings.HasSuffix(remoteWorkdir, "/.synon-biomed/jobs/"+jobID)
+		strings.HasSuffix(remoteWorkdir, "/.x-science/jobs/"+jobID)
 }
 
 func (s *Server) harvestAgentSSHJob(ctx context.Context, owned workspace.OwnedComputeJob, provider workspace.ComputeProvider, status agentSSHJobStatus) bool {
@@ -562,8 +563,11 @@ func (s *Server) harvestAgentSSHJobWithOutcome(
 		return "ssh://" + publicComputeProviderName(provider.Name) + path.Join(remoteWorkdir, filepath.ToSlash(name))
 	}
 	harvest, ready, err := s.harvestSelectedComputeOutputs(ctx, stage, strings.TrimSpace(stringValue(hardware["workspace_dir"])), job.JobID,
-		hardware, remoteURI, sshHarvestTransport{provider: provider, workdir: remoteWorkdir, stage: stage})
+		hardware, remoteURI, sshHarvestTransport{provider: provider, workdir: remoteWorkdir, stage: stage}, owned)
 	if err != nil {
+		if errors.Is(err, namespace.ErrRecoveryUnconfirmed) {
+			return s.holdComputeNamespaceRecovery(owned, err)
+		}
 		return s.handleComputeProviderProbeFailure(owned, err)
 	}
 	if !ready {
@@ -601,7 +605,10 @@ func (s *Server) harvestAgentSSHJobWithOutcome(
 		result["left_on_remote"] = left
 		result["system_hint"] = "One or more unselected or over-limit files remain in the remote workdir; retrieve or chain them before close."
 	}
-	s.attachComputeCheckpointReceipt(ctx, owned, result)
+	if harvest.CheckpointProof != nil {
+		result["checkpoint_manifest_sha256"] = harvest.CheckpointSHA256
+	}
+	s.attachComputeCheckpointReceipt(ctx, owned, result, harvest.CheckpointProof)
 	if err := s.resetOwnedComputeProviderProbe(owned); err != nil {
 		log.Printf("SSH harvest recovery observation could not be committed job=%s", job.JobID)
 		return false
@@ -642,7 +649,7 @@ func (s *Server) cancelManagedAgentSSHJob(ctx context.Context, owned workspace.O
 	}
 	remoteWorkdir := strings.TrimSpace(stringValue(mapValue(owned.Job.HardwareDetails)["remote_workdir"]))
 	_, _ = runKernelComputeSSHCommand(ctx, provider, kernelComputeCommandRequest{
-		Command: "cd " + shellSingleQuote(remoteWorkdir) + " && " + agentSSHProcessIdentityShell + " if [ -s .scheduler_id ]; then scancel \"$(cat .scheduler_id)\" 2>/dev/null || true; elif synon_process_alive; then read -r identity < .wrapper_identity; pid=${identity%%:*}; kill -TERM \"$pid\" 2>/dev/null || true; fi",
+		Command: "cd " + shellSingleQuote(remoteWorkdir) + " && " + agentSSHProcessIdentityShell + " if [ -s .scheduler_id ]; then scancel \"$(cat .scheduler_id)\" 2>/dev/null || true; elif x_science_process_alive; then read -r identity < .wrapper_identity; pid=${identity%%:*}; kill -TERM \"$pid\" 2>/dev/null || true; fi",
 		Intent:  "Cancel the durable remote job", Timeout: 30 * time.Second,
 	})
 	deadline := time.Now().Add(byocTerminationGrace + 15*time.Second)

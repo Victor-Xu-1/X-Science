@@ -18,7 +18,7 @@ const loaderSource = readFileSync(
 
 describe('Mol* lazy runtime boundary', () => {
   it('keeps the broad viewer app and MP4 encoder out while limiting lazy imports to the UI shell', () => {
-    expect(loaderSource).toContain("import('./SynonBiomedStructureViewer')");
+    expect(loaderSource).toContain("import('./XScienceStructureViewer')");
     const dynamicMolstarImports = [...engineSource.matchAll(/\bimport\(['"](molstar\/[^'"]+)['"]\)/gu)].map(
       (match) => match[1]
     );
@@ -38,7 +38,7 @@ describe('Mol* lazy runtime boundary', () => {
       engineSource.indexOf('let ligandFocusInFlight')
     );
 
-    expect(styleTransition).toContain('createSynonViewRepresentationPreset(representation, electrostaticVolumes)');
+    expect(styleTransition).toContain('createXScienceViewRepresentationPreset(representation, electrostaticVolumes)');
     expect(styleTransition).not.toContain('PresetStructureRepresentations.empty');
     expect(pocketTransition).toContain('previousComponentRefs');
     expect(pocketTransition).toContain('retainedComponentRefs');

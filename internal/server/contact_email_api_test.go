@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const referenceContactEmailNoticeVersion = "8cb7a2da25c64d4b79021ee1174beb932f117eab7e027c886f687fc7dd0dd772"

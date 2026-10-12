@@ -1,6 +1,6 @@
 import React from 'react';
-import { SynonBiomedMcpSettingsContent } from '@/renderer/pages/settings/ToolsSettings/SynonBiomedMcpSettings';
+import { XScienceMcpSettingsContent } from '@/renderer/pages/settings/ToolsSettings/XScienceMcpSettings';
 
-const ToolsModalContent: React.FC = () => <SynonBiomedMcpSettingsContent />;
+const ToolsModalContent: React.FC = () => <XScienceMcpSettingsContent />;
 
 export default ToolsModalContent;

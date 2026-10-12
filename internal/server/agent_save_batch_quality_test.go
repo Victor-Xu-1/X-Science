@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestResearchSaveBatchQualityAdvisoryRunsAfterArtifactsExistAndIsStable(t *testing.T) {
@@ -25,7 +25,7 @@ func TestResearchSaveBatchQualityAdvisoryRunsAfterArtifactsExistAndIsStable(t *t
 		}
 	}
 	contract := save("contract", "table-contract.json", "application/json", `{
-		"schema":"synon.artifact-table-contract.v1","tables":[{
+		"schema":"x-science.artifact-table-contract.v1","tables":[{
 			"id":"pipeline","identity_fields":["entity","regimen","as_of"],"compare_fields":["phase"],
 			"records":[{"entity":"C1","regimen":"mono","as_of":"2026-09-10","phase":"Phase 1"}],
 			"projections":[

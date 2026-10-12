@@ -13,8 +13,8 @@ import (
 	"sync"
 	"testing"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	"synon-go/internal/persistence/workspace"
+	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/persistence/workspace"
 )
 
 const (

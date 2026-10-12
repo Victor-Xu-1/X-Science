@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/tools/mcpstdio"
+	"x-science/internal/tools/mcpstdio"
 )
 
 const (
@@ -110,7 +110,7 @@ func registerOptionalConnectorDefinitions(root string, bundled map[string]bundle
 			item.useBundledPython = true
 			item.Config = mcpstdio.ServerConfig{
 				Type: "stdio", Scope: "bundled", Command: "python3", Args: []string{adapter},
-				Env: map[string]string{"SYNON_VIENNARNA_PACKAGE_ROOT": installRoot},
+				Env: map[string]string{"X_SCIENCE_VIENNARNA_PACKAGE_ROOT": installRoot},
 			}
 		default:
 			continue

@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"synon-go/internal/agentruntime"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	"x-science/internal/agentruntime"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 // The adapter only decodes canonical terminal receipts. All retry decisions

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/executionprep"
+	"x-science/internal/executionprep"
 )
 
 type executionSourcePreparer interface {
@@ -58,7 +58,7 @@ func agentExecutionPreparationPreflight(parent context.Context, publicName strin
 		}
 	}
 	return map[string]any{
-		"ok": false, "schema": "synon.execution-preparation.v1", "status": status, "executed": false,
+		"ok": false, "schema": "x-science.execution-preparation.v1", "status": status, "executed": false,
 		"requirements": result.Requirements, "read_files": result.ReadFiles, "unresolved": result.Unresolved,
 		"message":  "Execution preparation found effects owned by an existing durable tool authority. No source ran.",
 		"recovery": "Satisfy managed_environment requirements with manage_environments or manage_packages and verified import witnesses; satisfy durable_download requirements with download_public_scientific_file using the verified source URL. Preserve the chosen computation and completed work, then execute the source with the prepared environment and local input paths.",

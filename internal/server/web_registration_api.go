@@ -21,7 +21,7 @@ func (s *Server) handleWebRegister(w http.ResponseWriter, r *http.Request) {
 		writeWebRegistrationError(w, http.StatusForbidden, "INVALID_REQUEST", "local registration is available only from the local host")
 		return
 	}
-	if s.synonLinkAuth == nil || !s.synonLinkAuth.enabled {
+	if s.xscienceLinkAuth == nil || !s.xscienceLinkAuth.enabled {
 		writeWebRegistrationError(w, http.StatusServiceUnavailable, "SERVER_ERROR", "password authentication is not configured")
 		return
 	}
@@ -35,7 +35,7 @@ func (s *Server) handleWebRegister(w http.ResponseWriter, r *http.Request) {
 		writeWebRegistrationError(w, http.StatusTooManyRequests, "TOO_MANY_ATTEMPTS", "too many registration attempts; try again later")
 		return
 	}
-	r.Body = http.MaxBytesReader(w, r.Body, maxSynonLinkLoginBytes)
+	r.Body = http.MaxBytesReader(w, r.Body, maxXScienceLinkLoginBytes)
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
 	var input struct {
@@ -94,26 +94,26 @@ func (s *Server) handleWebRegister(w http.ResponseWriter, r *http.Request) {
 	s.writeWebSession(w, r, token, csrf, deviceToken, session.ExpiresAt, user, input.Remember)
 }
 
-func (s *Server) authenticateWebLogin(username, password string) (synonLinkAuthUser, string, error) {
-	user, err := s.synonLinkAuth.validateCredentials(username, password)
+func (s *Server) authenticateWebLogin(username, password string) (xscienceLinkAuthUser, string, error) {
+	user, err := s.xscienceLinkAuth.validateCredentials(username, password)
 	if err == nil {
 		return user, "local", nil
 	}
-	if !errors.Is(err, errSynonLinkInvalidLogin) {
-		return synonLinkAuthUser{}, "", err
+	if !errors.Is(err, errXScienceLinkInvalidLogin) {
+		return xscienceLinkAuthUser{}, "", err
 	}
 	if s.webAccountsError != nil {
-		return synonLinkAuthUser{}, "", fmt.Errorf("load local account store: %w", s.webAccountsError)
+		return xscienceLinkAuthUser{}, "", fmt.Errorf("load local account store: %w", s.webAccountsError)
 	}
 	if s.webAccounts == nil {
-		return synonLinkAuthUser{}, "", errSynonLinkInvalidLogin
+		return xscienceLinkAuthUser{}, "", errXScienceLinkInvalidLogin
 	}
 	user, found, err := s.webAccounts.Authenticate(username, password)
 	if err != nil {
-		return synonLinkAuthUser{}, "", err
+		return xscienceLinkAuthUser{}, "", err
 	}
 	if !found {
-		return synonLinkAuthUser{}, "", errSynonLinkInvalidLogin
+		return xscienceLinkAuthUser{}, "", errXScienceLinkInvalidLogin
 	}
 	return user, "local", nil
 }
@@ -125,7 +125,7 @@ func (s *Server) writeWebSession(
 	csrf string,
 	deviceToken string,
 	expiresAt string,
-	user synonLinkAuthUser,
+	user xscienceLinkAuthUser,
 	remember bool,
 ) {
 	s.writeWebSessionCookies(w, r, token, csrf, deviceToken, remember, expiresAt)
@@ -142,6 +142,7 @@ func (s *Server) writeWebSessionCookies(
 	remember bool,
 	expiresAt string,
 ) {
+	s.retirePreviousWebCookies(w, r)
 	cookie := &http.Cookie{
 		Name: webSessionCookieName, Value: token, Path: "/", HttpOnly: true,
 		Secure: s.webCookieSecure(r), SameSite: http.SameSiteLaxMode,
@@ -169,7 +170,7 @@ func (s *Server) writeWebDeviceCookie(w http.ResponseWriter, r *http.Request, de
 	})
 }
 
-func webAuthUserResponse(user synonLinkAuthUser) map[string]any {
+func webAuthUserResponse(user xscienceLinkAuthUser) map[string]any {
 	response := map[string]any{"id": user.ID, "username": user.Username}
 	if user.DisplayName != "" {
 		response["displayName"] = user.DisplayName

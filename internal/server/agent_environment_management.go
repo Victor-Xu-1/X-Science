@@ -11,12 +11,12 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	kernelruntime "synon-go/internal/kernel"
-	"synon-go/internal/processsupervisor"
-	"synon-go/internal/sciencecapability"
-	"synon-go/internal/software"
-	"synon-go/internal/software/localcontainer"
+	"x-science/internal/agentruntime"
+	kernelruntime "x-science/internal/kernel"
+	"x-science/internal/processsupervisor"
+	"x-science/internal/sciencecapability"
+	"x-science/internal/software"
+	"x-science/internal/software/localcontainer"
 )
 
 const (

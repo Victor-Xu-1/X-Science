@@ -7,7 +7,7 @@ import (
 
 const (
 	frameIncarnationV26PreflightIdentity = "canonical-transcript-v25-frame-incarnation-v1"
-	frameIncarnationV26RuleSpec          = "synon.workspace.frame-incarnation-authority.v26"
+	frameIncarnationV26RuleSpec          = "x-science.workspace.frame-incarnation-authority.v26"
 )
 
 var frameIncarnationV26Migration = versionedSchemaMigration{

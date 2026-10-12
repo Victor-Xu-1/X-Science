@@ -1,11 +1,11 @@
-import { getSynonBiomedArtifactVersionContentUrl } from '@/renderer/services/synonBiomedArtifacts';
+import { getXScienceArtifactVersionContentUrl } from '@/renderer/services/xScienceArtifacts';
 
-const SYNON_BIOMED_ARTIFACT_VERSION_REFERENCE =
+const X_SCIENCE_ARTIFACT_VERSION_REFERENCE =
   /\{\{artifact:([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})\}\}/gi;
 
 export const resolveMarkdownArtifactVersionReferences = (markdown: string): string =>
-  markdown.replace(SYNON_BIOMED_ARTIFACT_VERSION_REFERENCE, (_reference, versionId: string) =>
-    getSynonBiomedArtifactVersionContentUrl(versionId)
+  markdown.replace(X_SCIENCE_ARTIFACT_VERSION_REFERENCE, (_reference, versionId: string) =>
+    getXScienceArtifactVersionContentUrl(versionId)
   );
 
 export const isSameOriginArtifactVersionUrl = (value?: string): boolean =>

@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func TestTranscriptHistoryOrdinaryCursorV34InstallsFromV33(t *testing.T) {

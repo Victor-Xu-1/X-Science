@@ -7,7 +7,7 @@ import { chromium, expect } from '@playwright/test';
 
 // Production component, isolated transport/LLM-free state transitions. This
 // tests the presentation contract without touching a user's scientific run.
-const artifacts = await mkdtemp(join(tmpdir(), 'synon-phase-lifecycle-'));
+const artifacts = await mkdtemp(join(tmpdir(), 'x-science-phase-lifecycle-'));
 let server;
 let browser;
 try {

@@ -17,15 +17,15 @@ const {
   capturedAssistantSelectionAreaProps,
   capturedGuidInputCardProps,
   capturedGuidSendDeps,
-  loadSynonBiomedCatalogSummaryMock,
+  loadXScienceCatalogSummaryMock,
   resolveGuidAssistantDefaultsMock,
   sendMock,
   navigateMock,
 } = vi.hoisted(() => ({
   agentSelectionMock: {
-    selectedAssistantId: 'synonbiomed:aidd-expert',
+    selectedAssistantId: 'xscience:aidd-expert',
     selectedAssistant: {
-      id: 'synonbiomed:aidd-expert',
+      id: 'xscience:aidd-expert',
       source: 'generated',
       name: 'AIDD Expert',
       name_i18n: {},
@@ -33,7 +33,7 @@ const {
       enabled: true,
       sort_order: 10,
       agent_id: 'AIDD_EXPERT',
-      agent: { type: 'synonbiomed', source: 'builtin', acp_backend: 'synonbiomed' },
+      agent: { type: 'xscience', source: 'builtin', acp_backend: 'xscience' },
       enabled_skills: [],
       custom_skill_names: [],
       disabled_builtin_skills: [],
@@ -46,7 +46,7 @@ const {
     },
     assistants: [
       {
-        id: 'synonbiomed:aidd-expert',
+        id: 'xscience:aidd-expert',
         source: 'generated',
         name: 'AIDD Expert',
         name_i18n: {},
@@ -54,7 +54,7 @@ const {
         enabled: true,
         sort_order: 10,
         agent_id: 'AIDD_EXPERT',
-        agent: { type: 'synonbiomed', source: 'builtin', acp_backend: 'synonbiomed' },
+        agent: { type: 'xscience', source: 'builtin', acp_backend: 'xscience' },
         enabled_skills: [],
         custom_skill_names: [],
         disabled_builtin_skills: [],
@@ -66,7 +66,7 @@ const {
         deletable: false,
       },
     ],
-    selectedAssistantBackend: 'synonbiomed',
+    selectedAssistantBackend: 'xscience',
     selectedAssistantAvailable: true,
     assistantCatalogStatus: 'ready',
     hasUsableAssistantCatalog: true,
@@ -80,7 +80,7 @@ const {
     selectedThoughtLevelValue: '',
     setSelectedThoughtLevelValue: vi.fn(),
     sessionDefaults: {},
-    defaultAssistantId: 'synonbiomed:aidd-expert',
+    defaultAssistantId: 'xscience:aidd-expert',
     setSelectedAssistantId: vi.fn(),
   },
   guidInputMock: {
@@ -118,7 +118,7 @@ const {
   capturedAssistantSelectionAreaProps: [] as Array<Record<string, unknown>>,
   capturedGuidInputCardProps: [] as Array<Record<string, unknown>>,
   capturedGuidSendDeps: [] as Array<Record<string, unknown>>,
-  loadSynonBiomedCatalogSummaryMock: vi.fn(),
+  loadXScienceCatalogSummaryMock: vi.fn(),
   resolveGuidAssistantDefaultsMock: vi.fn(() => ({
     disabledBuiltinSkillIds: [],
     skillMode: 'fixed' as const,
@@ -157,13 +157,13 @@ vi.mock('@/renderer/hooks/mcp/catalog', () => ({
   ensureBackendMcpCatalog: vi.fn().mockResolvedValue({ allServers: [] }),
 }));
 
-vi.mock('@/renderer/services/synonBiomedCatalog', async () => {
-  const actual = await vi.importActual<typeof import('@/renderer/services/synonBiomedCatalog')>(
-    '@/renderer/services/synonBiomedCatalog'
+vi.mock('@/renderer/services/xScienceCatalog', async () => {
+  const actual = await vi.importActual<typeof import('@/renderer/services/xScienceCatalog')>(
+    '@/renderer/services/xScienceCatalog'
   );
   return {
     ...actual,
-    loadSynonBiomedCatalogSummary: loadSynonBiomedCatalogSummaryMock,
+    loadXScienceCatalogSummary: loadXScienceCatalogSummaryMock,
   };
 });
 
@@ -247,7 +247,7 @@ vi.mock('@/renderer/components/chat/SpeechInputButton', () => ({
   default: () => null,
 }));
 
-vi.mock('@/renderer/components/synonBiomed/runtime/SynonBiomedSessionOptionsMenu', () => ({
+vi.mock('@/renderer/components/xScience/runtime/XScienceSessionOptionsMenu', () => ({
   default: () => <div data-testid='guid-session-options' />,
 }));
 
@@ -333,8 +333,8 @@ describe('GuidPage', () => {
     capturedAssistantSelectionAreaProps.length = 0;
     capturedGuidInputCardProps.length = 0;
     capturedGuidSendDeps.length = 0;
-    loadSynonBiomedCatalogSummaryMock.mockReset();
-    loadSynonBiomedCatalogSummaryMock.mockResolvedValue(null);
+    loadXScienceCatalogSummaryMock.mockReset();
+    loadXScienceCatalogSummaryMock.mockResolvedValue(null);
     useGuidAssistantSelectionMock.mockClear();
     resolveGuidAssistantDefaultsMock.mockReturnValue({
       disabledBuiltinSkillIds: [],
@@ -347,7 +347,7 @@ describe('GuidPage', () => {
     agentSelectionMock.selectedAcpModel = null;
     agentSelectionMock.currentThoughtLevelOption = null;
     agentSelectionMock.selectedThoughtLevelValue = '';
-    agentSelectionMock.selectedAssistantBackend = 'synonbiomed';
+    agentSelectionMock.selectedAssistantBackend = 'xscience';
     agentSelectionMock.setSelectedAcpModel.mockReset();
     agentSelectionMock.setSelectedThoughtLevelValue.mockReset();
     agentSelectionMock.setSelectedMode.mockReset();
@@ -356,7 +356,7 @@ describe('GuidPage', () => {
     agentSelectionMock.hasUsableAssistantCatalog = true;
     agentSelectionMock.assistants = [
       {
-        id: 'synonbiomed:aidd-expert',
+        id: 'xscience:aidd-expert',
         source: 'generated',
         name: 'AIDD Expert',
         name_i18n: {},
@@ -364,7 +364,7 @@ describe('GuidPage', () => {
         enabled: true,
         sort_order: 10,
         agent_id: 'AIDD_EXPERT',
-        agent: { type: 'synonbiomed', source: 'builtin', acp_backend: 'synonbiomed' },
+        agent: { type: 'xscience', source: 'builtin', acp_backend: 'xscience' },
         enabled_skills: [],
         custom_skill_names: [],
         disabled_builtin_skills: [],
@@ -376,7 +376,7 @@ describe('GuidPage', () => {
         deletable: false,
       },
     ];
-    agentSelectionMock.selectedAssistantId = 'synonbiomed:aidd-expert';
+    agentSelectionMock.selectedAssistantId = 'xscience:aidd-expert';
     agentSelectionMock.selectedAssistant = agentSelectionMock.assistants[0];
   });
 
@@ -402,7 +402,7 @@ describe('GuidPage', () => {
     expect(latestGuidActionRowProps?.permissionNode).toBeTruthy();
     expect(capturedGuidInputCardProps.length).toBeGreaterThan(0);
     expect(latestGuidInputCardProps).not.toHaveProperty('workspaceDir');
-    expect(latestGuidInputCardProps).not.toHaveProperty('synonBiomedWorkspaceOptions');
+    expect(latestGuidInputCardProps).not.toHaveProperty('xScienceWorkspaceOptions');
   });
 
   it('uses the shared typed composer context for first-turn artifact, Skill, and MCP selections', async () => {
@@ -561,7 +561,7 @@ describe('GuidPage', () => {
   it('consumes one-shot assistant state without dropping the selected project workspace', async () => {
     locationMock.state = {
       resetAssistant: true,
-      workspace: 'synonbiomed://project/proj_stat6',
+      workspace: 'x-science://project/proj_stat6',
     };
 
     await renderGuidPage();
@@ -569,7 +569,7 @@ describe('GuidPage', () => {
     await vi.waitFor(() =>
       expect(navigateMock).toHaveBeenCalledWith('/guid', {
         replace: true,
-        state: { workspace: 'synonbiomed://project/proj_stat6' },
+        state: { workspace: 'x-science://project/proj_stat6' },
       })
     );
   });
@@ -577,7 +577,7 @@ describe('GuidPage', () => {
   it('preserves the first-turn draft while one-shot new-task state is removed', async () => {
     locationMock.state = {
       resetAssistant: true,
-      workspace: 'synonbiomed://project/proj_stat6',
+      workspace: 'x-science://project/proj_stat6',
     };
     const view = await renderGuidPage();
 
@@ -589,7 +589,7 @@ describe('GuidPage', () => {
     guidInputMock.setDir.mockClear();
 
     locationMock.key = 'guid-location-cleaned';
-    locationMock.state = { workspace: 'synonbiomed://project/proj_stat6' };
+    locationMock.state = { workspace: 'x-science://project/proj_stat6' };
     await act(async () => {
       view.rerender(<GuidPage />);
       await Promise.resolve();
@@ -605,7 +605,7 @@ describe('GuidPage', () => {
   it('does not render assistant prompt cards on the empty-task canvas', async () => {
     agentSelectionMock.assistants = [
       {
-        id: 'synonbiomed:aidd-expert',
+        id: 'xscience:aidd-expert',
         source: 'generated',
         name: 'AIDD Expert',
         name_i18n: {},
@@ -613,7 +613,7 @@ describe('GuidPage', () => {
         enabled: true,
         sort_order: 10,
         agent_id: 'AIDD_EXPERT',
-        agent: { type: 'synonbiomed', source: 'builtin', acp_backend: 'synonbiomed' },
+        agent: { type: 'xscience', source: 'builtin', acp_backend: 'xscience' },
         enabled_skills: [],
         custom_skill_names: [],
         disabled_builtin_skills: [],
@@ -657,10 +657,10 @@ describe('GuidPage', () => {
   });
 
   it('keeps project selection in the sidebar instead of duplicating it below the composer', async () => {
-    loadSynonBiomedCatalogSummaryMock.mockResolvedValue({
+    loadXScienceCatalogSummaryMock.mockResolvedValue({
       product: 'X-Science',
       backendStatus: 'healthy',
-      runtimeAssetsDir: '/home/victor_1/synonbiomed-workbench/synonbiomed/runtime/assets',
+      runtimeAssetsDir: '/home/victor_1/xscience-workbench/xscience/runtime/assets',
       backendBaseUrl: 'http://127.0.0.1:8892',
       counts: {
         agents: 14,
@@ -678,7 +678,7 @@ describe('GuidPage', () => {
           slug: 'crispr_screen',
           name: 'CRISPR Screen',
           manifestPath:
-            '/home/victor_1/synonbiomed-workbench/synonbiomed/runtime/assets/seed/manifest_crispr_screen.json',
+            '/home/victor_1/xscience-workbench/xscience/runtime/assets/seed/manifest_crispr_screen.json',
           rootFrameId: 'd3da0234-5a7c-4d1e-a4a8-8967a35666b9',
           artifactCount: 12,
           childFrameCount: 3,
@@ -704,14 +704,14 @@ describe('GuidPage', () => {
 
     await renderGuidPage();
 
-    expect(capturedGuidInputCardProps.at(-1)).not.toHaveProperty('synonBiomedWorkspaceOptions');
-    expect(loadSynonBiomedCatalogSummaryMock).not.toHaveBeenCalled();
+    expect(capturedGuidInputCardProps.at(-1)).not.toHaveProperty('xScienceWorkspaceOptions');
+    expect(loadXScienceCatalogSummaryMock).not.toHaveBeenCalled();
   });
 
   it('does not seed skill defaults from the assistant list while detail is loading', async () => {
     agentSelectionMock.assistants = [
       {
-        id: 'synonbiomed:aidd-expert',
+        id: 'xscience:aidd-expert',
         source: 'generated',
         name: 'AIDD Expert',
         name_i18n: {},
@@ -719,7 +719,7 @@ describe('GuidPage', () => {
         enabled: true,
         sort_order: 10,
         agent_id: 'AIDD_EXPERT',
-        agent: { type: 'synonbiomed', source: 'builtin', acp_backend: 'synonbiomed' },
+        agent: { type: 'xscience', source: 'builtin', acp_backend: 'xscience' },
         enabled_skills: ['stale-list-skill'],
         custom_skill_names: [],
         disabled_builtin_skills: ['stale-disabled-builtin'],
@@ -747,38 +747,38 @@ describe('GuidPage', () => {
   it('applies a X-Science assistant default model through runtime model metadata', async () => {
     swrMock.useSWRMock.mockReturnValue({ data: assistantDetailFixture });
     resolveGuidAssistantDefaultsMock.mockReturnValue({
-      modelId: 'synonbiomed-deep-research',
+      modelId: 'xscience-deep-research',
       disabledBuiltinSkillIds: [],
       skillMode: 'fixed',
       skillIds: [],
       mcpIds: [],
     });
     agentSelectionMock.currentAcpCachedModelInfo = {
-      current_model_id: 'synonbiomed-default',
+      current_model_id: 'xscience-default',
       current_model_label: 'X-Science Default',
       available_models: [
-        { id: 'synonbiomed-default', label: 'X-Science Default' },
-        { id: 'synonbiomed-deep-research', label: 'Deep Research' },
+        { id: 'xscience-default', label: 'X-Science Default' },
+        { id: 'xscience-deep-research', label: 'Deep Research' },
       ],
     };
     await renderGuidPage();
 
     await vi.waitFor(() => {
-      expect(agentSelectionMock.setSelectedAcpModel).toHaveBeenCalledWith('synonbiomed-deep-research', {
+      expect(agentSelectionMock.setSelectedAcpModel).toHaveBeenCalledWith('xscience-deep-research', {
         persistPreference: false,
       });
     });
   });
 
   it('exposes the X-Science draft model selector and forwards its model state to send', async () => {
-    agentSelectionMock.selectedAcpModel = 'synonbiomed-deep-research';
-    agentSelectionMock.selectedAssistantBackend = 'synonbiomed';
+    agentSelectionMock.selectedAcpModel = 'xscience-deep-research';
+    agentSelectionMock.selectedAssistantBackend = 'xscience';
     agentSelectionMock.currentAcpCachedModelInfo = {
-      current_model_id: 'synonbiomed-default',
+      current_model_id: 'xscience-default',
       current_model_label: 'X-Science Default',
       available_models: [
-        { id: 'synonbiomed-default', label: 'X-Science Default' },
-        { id: 'synonbiomed-deep-research', label: 'Deep Research' },
+        { id: 'xscience-default', label: 'X-Science Default' },
+        { id: 'xscience-deep-research', label: 'Deep Research' },
       ],
     };
     agentSelectionMock.currentThoughtLevelOption = {
@@ -799,14 +799,14 @@ describe('GuidPage', () => {
       expect(capturedGuidActionRowProps.at(-1)?.modelSelectorNode).toMatchObject({
         props: {
           modelInfo: agentSelectionMock.currentAcpCachedModelInfo,
-          selectedModelId: 'synonbiomed-deep-research',
+          selectedModelId: 'xscience-deep-research',
           thoughtLevelOption: agentSelectionMock.currentThoughtLevelOption,
           selectedThoughtLevel: 'high',
         },
       });
       expect(capturedGuidSendDeps.at(-1)).toMatchObject({
-        selectedAssistantBackend: 'synonbiomed',
-        selectedAcpModel: 'synonbiomed-deep-research',
+        selectedAssistantBackend: 'xscience',
+        selectedAcpModel: 'xscience-deep-research',
         currentAcpCachedModelInfo: agentSelectionMock.currentAcpCachedModelInfo,
       });
     });

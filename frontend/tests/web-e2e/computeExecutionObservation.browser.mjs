@@ -5,10 +5,10 @@ import { resolve, join } from 'node:path';
 import { createServer } from 'vite';
 import { chromium, expect } from '@playwright/test';
 
-const target = new URL(process.env.SYNON_OBSERVATION_TEST_API ?? '');
+const target = new URL(process.env.X_SCIENCE_OBSERVATION_TEST_API ?? '');
 assert.equal(target.hostname, '127.0.0.1');
 const artifacts =
-  process.env.SYNON_OBSERVATION_TEST_ARTIFACTS || (await mkdtemp(join(tmpdir(), 'synon-execution-observation-')));
+  process.env.X_SCIENCE_OBSERVATION_TEST_ARTIFACTS || (await mkdtemp(join(tmpdir(), 'x-science-execution-observation-')));
 let vite;
 let browser;
 const pageErrors = [];
@@ -21,7 +21,7 @@ try {
       strictPort: false,
       hmr: false,
       fs: { allow: [process.cwd()] },
-      proxy: { '/api': { target: target.origin, headers: { 'X-Synon-User-Id': 'observation-owner' } } },
+      proxy: { '/api': { target: target.origin, headers: { 'X-Science-User-Id': 'observation-owner' } } },
     },
     plugins: [
       {

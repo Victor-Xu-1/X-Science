@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 func TestToolPlanningReasoningOnlyStreamHasBoundedProgress(t *testing.T) {

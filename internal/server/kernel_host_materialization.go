@@ -12,9 +12,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/runtimecontrol"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/runtimecontrol"
 )
 
 var errKernelArtifactContentIntegrity = errors.New("immutable source content verification failed")
@@ -84,7 +84,7 @@ func materializeKernelImmutableContent(
 	if name == "." || name == "" {
 		name = "artifact"
 	}
-	relative := filepath.Join(".synon-artifacts", versionID+"-"+name)
+	relative := filepath.Join(".x-science-artifacts", versionID+"-"+name)
 	destination := filepath.Join(workspaceDir, relative)
 	receiptPath := kernelMaterializationReceiptPath(receiptRoot, workspaceDir, versionID)
 	lock := agentWorkspaceEditLock(workspaceDir + "\x00" + relative)

@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"testing"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	"synon-go/internal/skills"
+	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/skills"
 )
 
 func TestCanonicalManagedEnvironmentSourceURLNormalizesPipAndVCSForms(t *testing.T) {

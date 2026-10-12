@@ -25,14 +25,14 @@ export const getConversationPinnedAt = (conversation: TChatConversation): number
   return 0;
 };
 
-const isSynonBiomedProjectConversation = (conversation: TChatConversation): boolean => {
+const isXScienceProjectConversation = (conversation: TChatConversation): boolean => {
   const extra = conversation.extra as { backend?: unknown; project_id?: unknown; workspace?: unknown } | undefined;
   return (
-    conversation.type === 'synonbiomed-project' &&
-    extra?.backend === 'synonbiomed' &&
+    conversation.type === 'xscience-project' &&
+    extra?.backend === 'xscience' &&
     typeof extra.project_id === 'string' &&
     typeof extra.workspace === 'string' &&
-    extra.workspace.startsWith('synonbiomed://')
+    extra.workspace.startsWith('x-science://')
   );
 };
 
@@ -47,7 +47,7 @@ export const groupConversationsByWorkspace = (
     const workspace = conv.extra?.workspace;
     const custom_workspace = conv.extra?.custom_workspace;
 
-    if ((custom_workspace && workspace) || isSynonBiomedProjectConversation(conv)) {
+    if ((custom_workspace && workspace) || isXScienceProjectConversation(conv)) {
       const workspaceKey = String(workspace);
       if (!allWorkspaceGroups.has(workspaceKey)) {
         allWorkspaceGroups.set(workspaceKey, []);
@@ -75,7 +75,7 @@ export const groupConversationsByWorkspace = (
         // and never reach this helper. Passing `false` is therefore correct
         // without consulting `extra.is_temporary_workspace` per-row.
         display_name:
-          sortedConvs[0]?.type === 'synonbiomed-project'
+          sortedConvs[0]?.type === 'xscience-project'
             ? sortedConvs[0].name
             : getWorkspaceDisplayName(workspace, false, t),
         conversations: sortedConvs,

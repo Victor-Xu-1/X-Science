@@ -14,10 +14,10 @@ import (
 	"testing"
 	"time"
 
-	eventjournal "synon-go/internal/persistence/journal"
-	sessionstore "synon-go/internal/persistence/sessions"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	eventjournal "x-science/internal/persistence/journal"
+	sessionstore "x-science/internal/persistence/sessions"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestP3WebConversationLifecycleUsesDurableFrameRuntime(t *testing.T) {
@@ -27,7 +27,7 @@ func TestP3WebConversationLifecycleUsesDurableFrameRuntime(t *testing.T) {
 	create := p3JSONRequest(t, app, http.MethodPost, "/api/conversations", map[string]any{
 		"name": "Evidence review",
 		"assistant": map[string]any{
-			"id":                     "synonbiomed:OPERON",
+			"id":                     "xscience:OPERON",
 			"conversation_overrides": map[string]any{"model": "test-model"},
 		},
 		"extra": map[string]any{"project_id": project.ID, "project_name": project.Name},
@@ -314,7 +314,7 @@ func TestP3WebConversationDeleteReturnsSuccessAfterRuntimeCleanupWarnings(t *tes
 	project := createP3Project(t, store, "project-delete-web-runtime", "local")
 	create := p3JSONRequest(t, app, http.MethodPost, "/api/conversations", map[string]any{
 		"name":      "Delete runtime conversation",
-		"assistant": map[string]any{"id": "synonbiomed:OPERON"},
+		"assistant": map[string]any{"id": "xscience:OPERON"},
 		"extra":     map[string]any{"project_id": project.ID, "project_name": project.Name},
 	}, "")
 	if create.Code != http.StatusCreated {
@@ -498,7 +498,7 @@ func TestP3WebConversationProjectsRunnerTextAlongsideRichUserMessage(t *testing.
 	if _, err := store.AppendFrameEvent(workspace.FrameEventInput{
 		FrameID: frame.ID, Type: "assistant_message",
 		Payload: map[string]any{
-			"type": "assistant_message", "role": "assistant", "text": "SYNON_DEEPSEEK_RUNTIME_OK",
+			"type": "assistant_message", "role": "assistant", "text": "X_SCIENCE_DEEPSEEK_RUNTIME_OK",
 			"clientMessageId": "runner-assistant-mixed-1",
 		},
 	}); err != nil {
@@ -516,7 +516,7 @@ func TestP3WebConversationProjectsRunnerTextAlongsideRichUserMessage(t *testing.
 	assistant, _ := items[1].(map[string]any)
 	content, _ := assistant["content"].(map[string]any)
 	if webString(assistant["type"]) != "text" || webString(assistant["position"]) != "left" ||
-		webString(content["content"]) != "SYNON_DEEPSEEK_RUNTIME_OK" {
+		webString(content["content"]) != "X_SCIENCE_DEEPSEEK_RUNTIME_OK" {
 		t.Fatalf("assistant projection=%#v", assistant)
 	}
 }
@@ -721,7 +721,7 @@ func TestP3WebConversationPermissionSelectorIsSoleRuntimeAuthority(t *testing.T)
 	}
 	created := p3JSONRequest(t, app, http.MethodPost, "/api/conversations", map[string]any{
 		"name":      "Permission authority",
-		"assistant": map[string]any{"id": "synonbiomed:OPERON"},
+		"assistant": map[string]any{"id": "xscience:OPERON"},
 		"extra":     map[string]any{"project_id": project.ID, "project_name": project.Name},
 	}, "local")
 	if created.Code != http.StatusCreated {
@@ -829,7 +829,7 @@ func p3JSONRequest(
 		request.Header.Set("Content-Type", "application/json")
 	}
 	if userID != "" {
-		request.Header.Set("X-Synon-User-Id", userID)
+		request.Header.Set("X-Science-User-Id", userID)
 	}
 	response := httptest.NewRecorder()
 	app.Handler().ServeHTTP(response, request)

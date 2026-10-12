@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/agentruntime"
-	sessionstore "synon-go/internal/persistence/sessions"
+	"x-science/internal/agentruntime"
+	sessionstore "x-science/internal/persistence/sessions"
 )
 
 const recoveryValidCIF = "data_example\nloop_\n_atom_site.group_PDB\n_atom_site.Cartn_x\n_atom_site.Cartn_y\n_atom_site.Cartn_z\nATOM 1 2 3\n"

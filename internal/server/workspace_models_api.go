@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 type workspaceModelProjection struct {
@@ -78,8 +78,8 @@ func (s *Server) handleWorkspaceModels(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.URL.Path == "/api/models" {
 		provider := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("provider")))
-		if provider != "" && provider != "synon_llm" {
-			writeV11Detail(w, http.StatusNotFound, "Provider '"+r.URL.Query().Get("provider")+"' not found. Available: [\"synon_llm\"]")
+		if provider != "" && provider != "x_science_llm" {
+			writeV11Detail(w, http.StatusNotFound, "Provider '"+r.URL.Query().Get("provider")+"' not found. Available: [\"x_science_llm\"]")
 			return
 		}
 		sort.Slice(compatibilityModels, func(i, j int) bool {

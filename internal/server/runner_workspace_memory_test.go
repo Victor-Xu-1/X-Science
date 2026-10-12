@@ -6,11 +6,11 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/memoryconfig"
-	"synon-go/internal/memoryprompt"
-	runtimekv "synon-go/internal/persistence/runtimekv"
-	sessionstore "synon-go/internal/persistence/sessions"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/memoryconfig"
+	"x-science/internal/memoryprompt"
+	runtimekv "x-science/internal/persistence/runtimekv"
+	sessionstore "x-science/internal/persistence/sessions"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestWorkspaceRunnerWorkspaceMemoryInjectsFactsAndRecallAtTrustedBoundaries(t *testing.T) {

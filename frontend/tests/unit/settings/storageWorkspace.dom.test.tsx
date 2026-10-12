@@ -5,16 +5,16 @@ import { describe, expect, it, vi } from 'vitest';
 import { StorageUsagePanel } from '@/renderer/pages/settings/storage/StorageUsagePanel';
 import { StorageLocationPanel } from '@/renderer/pages/settings/storage/StorageLocationPanel';
 import { StorageRulesDialog } from '@/renderer/pages/settings/storage/StorageDialogs';
-import { SynonBiomedSettingsRequestError } from '@/renderer/services/synonBiomedWorkspaceSettings';
+import { XScienceSettingsRequestError } from '@/renderer/services/xScienceWorkspaceSettings';
 import { formatStorageBytes, directoryChangeAllowed } from '@/renderer/pages/settings/storage/storagePresentation';
 import { useStorageResource, type StorageResource } from '@/renderer/pages/settings/storage/useStorageResource';
-import type { SynonBiomedDiskUsage, SynonBiomedDataDirectory } from '@/renderer/services/synonBiomedWorkspaceSettings';
+import type { XScienceDiskUsage, XScienceDataDirectory } from '@/renderer/services/xScienceWorkspaceSettings';
 import { renderWithSettingsI18n } from './settingsI18nTestUtils';
 
 const saveRules = vi.hoisted(() => vi.fn());
-vi.mock('@/renderer/services/synonBiomedWorkspaceSettings', async (load) => ({
-  ...(await load<typeof import('@/renderer/services/synonBiomedWorkspaceSettings')>()),
-  saveSynonBiomedStorageRules: saveRules,
+vi.mock('@/renderer/services/xScienceWorkspaceSettings', async (load) => ({
+  ...(await load<typeof import('@/renderer/services/xScienceWorkspaceSettings')>()),
+  saveXScienceStorageRules: saveRules,
 }));
 
 function deferred<T>() {
@@ -38,7 +38,7 @@ function resource<T>(data: T | null): StorageResource<T> {
   };
 }
 
-const directory: SynonBiomedDataDirectory = {
+const directory: XScienceDataDirectory = {
   current: '/data/research',
   resolved: null,
   defaultPath: '/data/default',
@@ -50,7 +50,7 @@ const directory: SynonBiomedDataDirectory = {
   pendingMove: null,
   lastMove: null,
 };
-const usage: SynonBiomedDiskUsage = {
+const usage: XScienceDiskUsage = {
   artifactsBytes: 1024,
   workspaceBytes: 2048,
   condaBytes: 0,
@@ -155,7 +155,7 @@ describe('storage presentation and safety', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(onClose).not.toHaveBeenCalled();
     await act(async () => {
-      pending.reject(new SynonBiomedSettingsRequestError('conflict', 409));
+      pending.reject(new XScienceSettingsRequestError('conflict', 409));
     });
     expect(await screen.findByRole('alert')).toHaveTextContent('Storage state changed or tasks are active.');
     expect(onSaved).not.toHaveBeenCalled();

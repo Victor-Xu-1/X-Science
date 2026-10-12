@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"synon-go/internal/processsupervisor"
+	"x-science/internal/processsupervisor"
 	"testing"
 	"time"
 )

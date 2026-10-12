@@ -12,10 +12,10 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	sessionstore "synon-go/internal/persistence/sessions"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/providers"
+	"x-science/internal/agentruntime"
+	sessionstore "x-science/internal/persistence/sessions"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/providers"
 )
 
 type preResolvedDynamicModelClient struct {
@@ -101,7 +101,7 @@ func TestSessionRunnerDynamicModelClientObservesConversationSwitchOnNextCall(t *
 	}
 	if _, err := store.SetFrameRuntimeMetadata(frame.ID, workspace.FrameRuntimeMetadata{
 		ContextData: map[string]any{"web_assistant": map[string]any{
-			"id": "synonbiomed:operon", "conversation_overrides": map[string]any{"model": "ark-code-latest"},
+			"id": "xscience:operon", "conversation_overrides": map[string]any{"model": "ark-code-latest"},
 		}},
 	}); err != nil {
 		t.Fatal(err)
@@ -188,7 +188,7 @@ func newDynamicModelTestRuntime(
 	if strings.TrimSpace(initialModel) != "" {
 		if _, err := store.SetFrameRuntimeMetadata(frame.ID, workspace.FrameRuntimeMetadata{
 			ContextData: map[string]any{"web_assistant": map[string]any{
-				"id": "synonbiomed:operon", "conversation_overrides": map[string]any{"model": initialModel},
+				"id": "xscience:operon", "conversation_overrides": map[string]any{"model": initialModel},
 			}},
 		}); err != nil {
 			t.Fatal(err)

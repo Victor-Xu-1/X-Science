@@ -430,7 +430,7 @@ const EMOJI_CATEGORIES = {
 
 type CategoryKey = keyof typeof EMOJI_CATEGORIES;
 
-const RECENT_EMOJIS_KEY = 'synon-ai.emoji.recent';
+const RECENT_EMOJIS_KEY = 'x-science.emoji.recent';
 const MAX_RECENT_EMOJIS = 24;
 
 // Arco Design Popover position types

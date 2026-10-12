@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/skills"
+	"x-science/internal/skills"
 )
 
 func TestPatentSearchSkillUsesCurrentBoundedDownloadPath(t *testing.T) {
@@ -16,7 +16,7 @@ func TestPatentSearchSkillUsesCurrentBoundedDownloadPath(t *testing.T) {
 		t.Fatal("locate repository root")
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
-	skillPath := filepath.Join(repositoryRoot, "skills", "synonbiomed", "patent-search", "SKILL.md")
+	skillPath := filepath.Join(repositoryRoot, "skills", "x-science", "patent-search", "SKILL.md")
 	content, err := os.ReadFile(skillPath)
 	if err != nil {
 		t.Fatal(err)

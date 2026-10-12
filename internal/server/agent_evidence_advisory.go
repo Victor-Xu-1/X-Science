@@ -26,7 +26,7 @@ func annotateAgentSavedArtifactEvidenceAdvisory(warning map[string]any) {
 		warning["quality_findings"] = references
 	}
 	fingerprintValues := append([]string{legacyCode, strings.TrimSpace(stringValue(warning["path"]))}, references...)
-	digest := sha256.Sum256([]byte("synon.research-quality-advisory.v1\n" + strings.Join(fingerprintValues, "\n")))
+	digest := sha256.Sum256([]byte("x-science.research-quality-advisory.v1\n" + strings.Join(fingerprintValues, "\n")))
 	warning["quality_snapshot_id"] = hex.EncodeToString(digest[:])
 	conflicts, unbound := []string{}, []string{}
 	for _, reference := range references {

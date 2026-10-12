@@ -2,7 +2,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$root = Join-Path ([System.IO.Path]::GetTempPath()) ('synon-release-identity-test-' + [Guid]::NewGuid().ToString('N'))
+$root = Join-Path ([System.IO.Path]::GetTempPath()) ('x-science-release-identity-test-' + [Guid]::NewGuid().ToString('N'))
 $trusted = Join-Path $root 'trusted.json'
 $current = Join-Path $root 'current'
 $legacy = Join-Path $root 'legacy'
@@ -17,13 +17,13 @@ try {
   $legacyIdentity | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $legacy 'product-identity.json') -Encoding UTF8
 
   . (Join-Path $PSScriptRoot 'release-identity-policy.ps1')
-  $identity = Assert-SynonProductIdentity -TrustedIdentityPath $trusted -CandidateRoot $current
+  $identity = Assert-XScienceProductIdentity -TrustedIdentityPath $trusted -CandidateRoot $current
   $expectedIdentity = (Get-Content -LiteralPath $trusted -Raw) | ConvertFrom-Json
   if ($identity.display_name -ne $expectedIdentity.display_name -or $identity.version -ne $expectedIdentity.version) {
     throw 'Trusted identity projection is incorrect'
   }
   $rejected = $false
-  try { [void](Assert-SynonProductIdentity -TrustedIdentityPath $trusted -CandidateRoot $legacy) } catch {
+  try { [void](Assert-XScienceProductIdentity -TrustedIdentityPath $trusted -CandidateRoot $legacy) } catch {
     if ($_.Exception.Message -ne 'Release product identity does not match the trusted authority') { throw }
     $rejected = $true
   }
@@ -35,7 +35,7 @@ try {
   Copy-Item -LiteralPath $trusted -Destination (Join-Path $junctionTarget 'trusted.json')
   New-Item -ItemType Junction -Path $junction -Target $junctionTarget | Out-Null
   $reparseRejected = $false
-  try { [void](Assert-SynonProductIdentity -TrustedIdentityPath (Join-Path $junction 'trusted.json') -CandidateRoot $current) } catch {
+  try { [void](Assert-XScienceProductIdentity -TrustedIdentityPath (Join-Path $junction 'trusted.json') -CandidateRoot $current) } catch {
     if ($_.Exception.Message -ne 'Trusted product identity path must not traverse a reparse point') { throw }
     $reparseRejected = $true
   }
@@ -49,7 +49,7 @@ try {
     $testTempPrefix = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath()).TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar
     $testResolvedRoot = [System.IO.Path]::GetFullPath($root)
     if (-not $testResolvedRoot.StartsWith($testTempPrefix, [System.StringComparison]::OrdinalIgnoreCase) -or
-        -not ([System.IO.Path]::GetFileName($testResolvedRoot)).StartsWith('synon-release-identity-test-')) {
+        -not ([System.IO.Path]::GetFileName($testResolvedRoot)).StartsWith('x-science-release-identity-test-')) {
       throw 'Test cleanup target is outside the isolated temporary directory'
     }
     Remove-Item -LiteralPath $root -Recurse -Force

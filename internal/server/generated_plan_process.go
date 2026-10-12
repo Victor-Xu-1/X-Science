@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 // RecoverRequiredToolCall reconstructs deterministic plan bookkeeping and an

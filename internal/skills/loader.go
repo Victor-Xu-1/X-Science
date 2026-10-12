@@ -14,8 +14,8 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"synon-go/internal/buildinfo"
-	"synon-go/internal/discoveryquery"
+	"x-science/internal/buildinfo"
+	"x-science/internal/discoveryquery"
 )
 
 type Skill struct {
@@ -178,7 +178,7 @@ When a task requires delegation, use host.delegate from the persistent repl kern
 
 For capability discovery, call search_skills and then load the selected workflow with skill. Connected MCP methods are advertised directly and share one connector pool with host.mcp inside repl. Use only exact names from the current snapshot and preserve any unavailable capability as a diagnostic blocker.`, productName))
 	catalog.AddSkill(Skill{
-		Name:        "synon-runtime",
+		Name:        "x-science-runtime",
 		DisplayName: productName + " Runtime",
 		NameI18n: map[string]string{
 			"en-US": productName + " Runtime",
@@ -189,11 +189,11 @@ For capability discovery, call search_skills and then load the selected workflow
 			"zh-CN": "了解 " + productName + " 的运行时能力、工具边界和本地工作方式。",
 		},
 		Category:   "compute-platform",
-		Tags:       []string{"runtime", "synon", "agent"},
+		Tags:       []string{"runtime", "xscience", "agent"},
 		Keywords:   []string{"session", "tool", "permission", "hook", "delegation", "artifact", "mcp", "connector"},
 		Tools:      []string{"search_skills", "skill", "repl", "save_artifacts"},
-		References: []string{"builtin:synon-runtime/runtime-contract"},
-		Path:       "builtin:synon-runtime",
+		References: []string{"builtin:x-science-runtime/runtime-contract"},
+		Path:       "builtin:x-science-runtime",
 		Body:       body,
 		BodyHash:   sha1Hex(body),
 	})

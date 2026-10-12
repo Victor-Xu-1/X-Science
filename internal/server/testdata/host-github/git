@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-if [ "${SYNON_HOST_GITHUB_FIXTURE_MODE:-gh}" != "git" ]; then
+if [ "${X_SCIENCE_HOST_GITHUB_FIXTURE_MODE:-gh}" != "git" ]; then
   exit 1
 fi
 if [ "${1-} ${2-} ${3-} ${4-}" != "-c credential.interactive=never credential fill" ]; then

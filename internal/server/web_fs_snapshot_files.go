@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"synon-go/internal/tools/fileevents"
+	"x-science/internal/tools/fileevents"
 )
 
 func captureWebFSFileSnapshot(
@@ -272,7 +272,7 @@ func restoreWebFSSnapshotFile(source, target string, expected int64) error {
 	if err := os.MkdirAll(filepath.Dir(target), 0o700); err != nil {
 		return err
 	}
-	temp, err := os.CreateTemp(filepath.Dir(target), ".synon-restore-*")
+	temp, err := os.CreateTemp(filepath.Dir(target), ".x-science-restore-*")
 	if err != nil {
 		return err
 	}

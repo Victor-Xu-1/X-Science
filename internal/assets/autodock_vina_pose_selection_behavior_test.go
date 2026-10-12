@@ -14,7 +14,7 @@ func TestAutoDockVinaPrimaryPoseSelectionKeepsBestScoreAndUsesReferenceOnlyForTi
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
 	scriptPath := filepath.Join(
-		repositoryRoot, "skills", "synonbiomed", "autodock-vina", "scripts", "autodock_vina.py",
+		repositoryRoot, "skills", "x-science", "autodock-vina", "scripts", "autodock_vina.py",
 	)
 	command := exec.Command("python3", "-c", `
 import importlib.util
@@ -177,7 +177,7 @@ with tempfile.TemporaryDirectory() as temporary:
     source = root / "observed.pdb"
     source.write_text("real input bytes for parser test")
     record = {
-        "schema": "synon.documented-input.v1", "evidence_group": "binding-site-center",
+        "schema": "x-science.documented-input.v1", "evidence_group": "binding-site-center",
         "input_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
         "basis": "structure-derived", "method": "A reproducible selection from observed coordinates",
         "sources": ["observed.pdb"], "limitations": "An exploratory definition, not a predictor result",
@@ -228,7 +228,7 @@ with tempfile.TemporaryDirectory() as temporary:
     prior = root / "out"
     prior.mkdir()
     (prior / module.OUTPUT_OWNERSHIP_MARKER).write_text(
-        '{"execution_pack_id":"molecular-docking.autodock-vina","schema":"synon.execution-pack-output-owner.v1"}\n',
+        '{"execution_pack_id":"molecular-docking.autodock-vina","schema":"x-science.execution-pack-output-owner.v1"}\n',
         encoding="utf-8",
     )
     (prior / "completed.txt").write_text("preserve", encoding="utf-8")

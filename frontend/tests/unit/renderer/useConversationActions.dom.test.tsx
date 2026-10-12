@@ -12,8 +12,8 @@ const moveRuntime = vi.hoisted(() => ({ projects: vi.fn(), move: vi.fn() }));
 afterEach(() => vi.restoreAllMocks());
 
 vi.mock('@/renderer/pages/conversation/GroupedHistory/conversationActionRuntime', () => ({
-  loadSynonBiomedProjects: moveRuntime.projects,
-  moveSynonBiomedSession: moveRuntime.move,
+  loadXScienceProjects: moveRuntime.projects,
+  moveXScienceSession: moveRuntime.move,
 }));
 
 vi.mock('react-router', () => ({
@@ -49,7 +49,7 @@ const conversation: TChatConversation = {
   created_at: 1,
   modified_at: 1,
   status: 'finished',
-  extra: { backend: 'synonbiomed' },
+  extra: { backend: 'xscience' },
 };
 
 describe('useConversationActions route intent', () => {

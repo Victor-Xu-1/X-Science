@@ -8,13 +8,13 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/harnesscontract"
-	"synon-go/internal/skills"
-	"synon-go/internal/toolcontract"
+	"x-science/internal/harnesscontract"
+	"x-science/internal/skills"
+	"x-science/internal/toolcontract"
 )
 
 func TestAuditSkillDependencyClosureCoversAllV11Skills(t *testing.T) {
-	catalog := skills.Load([]string{filepath.Join("..", "..", "..", "skills", "synonbiomed")})
+	catalog := skills.Load([]string{filepath.Join("..", "..", "..", "skills", "x-science")})
 	if errors := catalog.LoadErrors(); len(errors) != 0 {
 		t.Fatalf("skill load errors = %#v", errors)
 	}
@@ -152,7 +152,7 @@ func TestAuditSkillDependencyClosureCoversAllV11Skills(t *testing.T) {
 }
 
 func TestPackagedSkillsDeclareCanonicalToolNames(t *testing.T) {
-	catalog := skills.Load([]string{filepath.Join("..", "..", "..", "skills", "synonbiomed")})
+	catalog := skills.Load([]string{filepath.Join("..", "..", "..", "skills", "x-science")})
 	if errors := catalog.LoadErrors(); len(errors) != 0 {
 		t.Fatalf("skill load errors = %#v", errors)
 	}

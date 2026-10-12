@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestAgentComputeAskUserProducesEvidenceBackedBilingualDecisionCards(t *testing.T) {
@@ -86,7 +86,7 @@ func TestAgentComputeRuntimeListsExecutesAndCompletesOneDurableSSHJob(t *testing
 		t.Fatal(err)
 	}
 	ssh := filepath.Join(root, "ssh")
-	if err := os.WriteFile(ssh, []byte("#!/usr/bin/env bash\nset -eu\nwhile [[ $1 == -* ]]; do shift 2; done\nshift\ncommand=\"$*\"\nexport HOME=\"$SYNON_TEST_REMOTE_HOME\"\nexec bash -c \"$command\"\n"), 0o700); err != nil {
+	if err := os.WriteFile(ssh, []byte("#!/usr/bin/env bash\nset -eu\nwhile [[ $1 == -* ]]; do shift 2; done\nshift\ncommand=\"$*\"\nexport HOME=\"$X_SCIENCE_TEST_REMOTE_HOME\"\nexec bash -c \"$command\"\n"), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(root, "sbatch"), []byte("#!/usr/bin/env bash\nset -eu\nscript=${!#}\nfor arg in \"$@\"; do [[ $arg == --comment=* ]] && printf '%s' \"${arg#--comment=}\" > .fixture_scheduler_tag; done\nbash \"$script\" >/dev/null 2>&1 &\necho $!\n"), 0o700); err != nil {
@@ -99,7 +99,7 @@ func TestAgentComputeRuntimeListsExecutesAndCompletesOneDurableSSHJob(t *testing
 		t.Fatal(err)
 	}
 	t.Setenv("PATH", root+string(os.PathListSeparator)+os.Getenv("PATH"))
-	t.Setenv("SYNON_TEST_REMOTE_HOME", remoteHome)
+	t.Setenv("X_SCIENCE_TEST_REMOTE_HOME", remoteHome)
 
 	store, _, _ := newTranscriptWebFixture(t)
 	seedTranscriptWebFrame(t, store, "owner-compute", "project-compute", "frame-compute")
@@ -202,7 +202,7 @@ func TestAgentComputeRuntimeListsExecutesAndCompletesOneDurableSSHJob(t *testing
 	recoveryFrame, recoveryRoot, recoveryOrigin := "frame-compute", "frame-compute", "ssh-recovery-origin"
 	recoveryHardware := map[string]any{
 		"managed_ssh": true, "workspace_dir": root,
-		"remote_workdir": filepath.ToSlash(filepath.Join(remoteHome, ".synon-biomed", "jobs", recoveryJobID)),
+		"remote_workdir": filepath.ToSlash(filepath.Join(remoteHome, ".x-science", "jobs", recoveryJobID)),
 		"staging_dir":    recoveryStage, "archive_sha256": recoveryArchive.SHA256, "archive_bytes": recoveryArchive.Bytes,
 		"outputs": []any{"out/recovered.txt"}, "timeout_seconds": 30,
 	}

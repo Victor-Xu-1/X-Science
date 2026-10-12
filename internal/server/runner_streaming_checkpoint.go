@@ -13,13 +13,13 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/kernelcontract"
-	eventjournal "synon-go/internal/persistence/journal"
+	"x-science/internal/agentruntime"
+	"x-science/internal/kernelcontract"
+	eventjournal "x-science/internal/persistence/journal"
 
-	sessionstore "synon-go/internal/persistence/sessions"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	sessionstore "x-science/internal/persistence/sessions"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func (s *Server) checkpointChatContentDelta(

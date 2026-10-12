@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/memoryconfig"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/memoryconfig"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 type testClassifier struct {

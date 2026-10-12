@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	"x-science/internal/agentruntime"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func appendAdaptiveToolReceipt(t *testing.T, f *agentSaveArtifactsFixture, id, tool string, result map[string]any) {
@@ -244,7 +244,7 @@ func TestStageProgressUsesCurrentPlanWithoutDeclaringWholeTaskComplete(t *testin
 		t.Fatal(err)
 	}
 	progress := server.generatedPlanStageProgressSnapshot(frameID, nil)
-	if progress == nil || progress.Schema != "synon.plan_stage_progress.v1" ||
+	if progress == nil || progress.Schema != "x-science.plan_stage_progress.v1" ||
 		progress.CompletedCount != 1 || progress.RemainingCount != 2 ||
 		progress.CompletedSteps[0].ID != "module-1" || progress.RemainingSteps[0].Status != "blocked" {
 		t.Fatalf("stage snapshot hid unfinished work: %#v", progress)
@@ -281,7 +281,7 @@ func TestAskUserPauseCarriesStageProgressInExistingQuestion(t *testing.T) {
 	}
 	questions := anySliceValue(pause.Data["questions"])
 	stage := mapValue(mapValue(questions[0])["stage_progress"])
-	if stage["schema"] != "synon.plan_stage_progress.v1" || numberValue(stage["remaining_count"]) != 1 ||
+	if stage["schema"] != "x-science.plan_stage_progress.v1" || numberValue(stage["remaining_count"]) != 1 ||
 		stringValue(mapValue(anySliceValue(stage["remaining_steps"])[0])["title"]) != "Choose next computation" {
 		t.Fatalf("AskUser pause omitted the server plan snapshot: %#v", stage)
 	}
@@ -375,7 +375,7 @@ func TestAskUserStageProgressPersistsThroughRealRunnerPause(t *testing.T) {
 		t.Fatalf("stage question was not durably normalized: %#v", pending[0])
 	}
 	stage := mapValue(mapValue(questions[0])["stage_progress"])
-	if stage["schema"] != "synon.plan_stage_progress.v1" || numberValue(stage["completed_count"]) != 1 ||
+	if stage["schema"] != "x-science.plan_stage_progress.v1" || numberValue(stage["completed_count"]) != 1 ||
 		numberValue(stage["remaining_count"]) != 1 ||
 		stringValue(mapValue(anySliceValue(stage["remaining_steps"])[0])["title"]) != "Choose next computation" {
 		t.Fatalf("durable AskUser stage scope is wrong: %#v", stage)

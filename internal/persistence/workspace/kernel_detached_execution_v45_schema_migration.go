@@ -8,7 +8,7 @@ import (
 const (
 	kernelDetachedExecutionV45CallbackID        = "kernel-detached-execution-v45-noop"
 	kernelDetachedExecutionV45PreflightIdentity = "kernel-detached-execution-v44-empty-upgrade-v1"
-	kernelDetachedExecutionV45RuleSpec          = "synon.workspace.kernel-detached-execution-payload.v45"
+	kernelDetachedExecutionV45RuleSpec          = "x-science.workspace.kernel-detached-execution-payload.v45"
 	kernelDetachedExecutionV45EmptySHA256       = "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
 )
 

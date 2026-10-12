@@ -9,7 +9,7 @@ describe('HTML annotation inspect script', () => {
     const script = generateInspectScript(true, { copySuccess: 'selected' });
     expect(() => new Function(script)).not.toThrow();
     expect(script).toContain('getStableSelector');
-    expect(script).toContain('__SYNON_AI_INSPECT_ELEMENT__');
+    expect(script).toContain('__X_SCIENCE_INSPECT_ELEMENT__');
     expect(script).toContain('elementText');
     expect(script).toContain('viewportWidth');
   });
@@ -19,8 +19,8 @@ describe('HTML annotation inspect script', () => {
       { id: 'annotation-1', label: '①', text: 'Review row', selector: '#results > tr:nth-of-type(2)' },
     ]);
     expect(() => new Function(script)).not.toThrow();
-    expect(script).toContain('data-synon-ai-html-annotation');
-    expect(script).toContain('__SYNON_AI_HTML_ANNOTATION_CLICK__');
+    expect(script).toContain('data-x-science-html-annotation');
+    expect(script).toContain('__X_SCIENCE_HTML_ANNOTATION_CLICK__');
     expect(script).toContain('#results > tr:nth-of-type(2)');
   });
 });

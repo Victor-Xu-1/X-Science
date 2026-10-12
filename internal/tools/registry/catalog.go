@@ -1,13 +1,13 @@
 package registry
 
 import (
-	"synon-go/internal/synonlink"
-	"synon-go/internal/toolcontract"
-	"synon-go/internal/tools/articlefulltext"
-	"synon-go/internal/tools/bindingmode"
-	"synon-go/internal/tools/patentsearch"
-	"synon-go/internal/tools/webfetch"
-	"synon-go/internal/tools/websearch"
+	"x-science/internal/xsciencelink"
+	"x-science/internal/toolcontract"
+	"x-science/internal/tools/articlefulltext"
+	"x-science/internal/tools/bindingmode"
+	"x-science/internal/tools/patentsearch"
+	"x-science/internal/tools/webfetch"
+	"x-science/internal/tools/websearch"
 )
 
 func nativeWebSearchTool(name, description string) Tool {
@@ -180,7 +180,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "VisualReview",
-			Description:  "Canonical top-level tool for auditable image quality when the user explicitly requests independent visual review, verifier_mode is on, or the server requires visual_artifact_validation. Do not invoke it solely because a routine task produced PNG, chart, or HTML output; use deterministic renderer and file-integrity validation for those deliverables. For requested semantic inspection, use collect/run_loop with image_path(s), inspect the attached image plus visual challenge, then record_assessment. For required review of generated labeled plots or diagrams, export a renderer-derived synon.visual-layout.v1 JSON manifest (image_path, image_sha256, canvas width/height, and text_boxes with id/text/x0/y0/x1/y1), then call validate_layout with render_manifest_path; repair every reported overlap or clipped box before delivery. Do not call or emulate host.view_image from repl.",
+			Description:  "Canonical top-level tool for auditable image quality when the user explicitly requests independent visual review, verifier_mode is on, or the server requires visual_artifact_validation. Do not invoke it solely because a routine task produced PNG, chart, or HTML output; use deterministic renderer and file-integrity validation for those deliverables. For requested semantic inspection, use collect/run_loop with image_path(s), inspect the attached image plus visual challenge, then record_assessment. For required review of generated labeled plots or diagrams, export a renderer-derived x-science.visual-layout.v1 JSON manifest (image_path, image_sha256, canvas width/height, and text_boxes with id/text/x0/y0/x1/y1), then call validate_layout with render_manifest_path; repair every reported overlap or clipped box before delivery. Do not call or emulate host.view_image from repl.",
 			Capabilities: []string{"visual-review", "image-evidence", "ui-audit", "original-visualreview-contract", "read-only"},
 			Input: map[string]Field{
 				"action":                   {Type: "string", Required: false},
@@ -210,19 +210,19 @@ func defaultCatalog() *Registry {
 				"viewports":                {Type: "array", Required: false},
 				"criteria":                 {Type: "array", Required: false},
 				"style_profile":            {Type: "string", Required: false},
-				"allow_synonlink":          {Type: "boolean", Required: false},
+				"allow_xsciencelink":          {Type: "boolean", Required: false},
 				"max_images":               {Type: "number", Required: false},
 			},
 			Executable: true,
 		},
 		{
-			Name:         "synon_link",
+			Name:         "x_science_link",
 			Description:  "Route browser actions through the X-Science Link API.",
 			Capabilities: []string{"browser-bridge"},
 			Input: map[string]Field{
 				"userId":   {Type: "string", Required: true},
 				"clientId": {Type: "string", Required: true},
-				"action":   {Type: "string", Required: true, Schema: map[string]any{"enum": synonlink.ActionNames()}},
+				"action":   {Type: "string", Required: true, Schema: map[string]any{"enum": xsciencelink.ActionNames()}},
 				"payload":  {Type: "object", Required: false},
 			},
 			Executable: true,
@@ -1214,10 +1214,10 @@ func defaultCatalog() *Registry {
 		{
 			Name:         "AgentRuntimeDoctor",
 			Description:  "Audit Go agent runtime parity against the original X-Science runtime contract and report missing, partial, and passing runtime areas.",
-			Capabilities: []string{"diagnostics", "agent-runtime", "query-engine", "parity-audit", "original-synon-contract"},
+			Capabilities: []string{"diagnostics", "agent-runtime", "query-engine", "parity-audit", "original-x-science-contract"},
 			Input: map[string]Field{
 				"scope": {Type: "string", Required: false, Schema: map[string]any{
-					"enum": []string{"all", "query-engine", "model-runner", "tool-gateway", "permissions", "settings-storage", "kernel-compute", "compute", "molecular-docking", "hooks", "skills", "sessions", "artifact-system", "workspace-worktree", "compact-memory", "taskrun-agent", "mcp", "synon-link-im"},
+					"enum": []string{"all", "query-engine", "model-runner", "tool-gateway", "permissions", "settings-storage", "kernel-compute", "compute", "molecular-docking", "hooks", "skills", "sessions", "artifact-system", "workspace-worktree", "compact-memory", "taskrun-agent", "mcp", "x-science-link-im"},
 				}},
 			},
 			Executable: true,

@@ -9,7 +9,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	kernelruntime "synon-go/internal/kernel"
+	kernelruntime "x-science/internal/kernel"
 )
 
 const (

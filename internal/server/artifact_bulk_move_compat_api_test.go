@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestCompatibilityArtifactBulkMoveIsAtomicDurableAndPublishesExactEvents(t *testing.T) {

@@ -1,5 +1,5 @@
 {
-  "schema": "synon.governance.dependency-authority.v1",
+  "schema": "x-science.governance.dependency-authority.v1",
   "go": {
     "manifest": "go.mod",
     "lock": "go.sum"

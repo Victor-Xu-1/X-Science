@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	adaptercommon "synon-go/internal/adapters/common"
-	runtimekv "synon-go/internal/persistence/runtimekv"
+	adaptercommon "x-science/internal/adapters/common"
+	runtimekv "x-science/internal/persistence/runtimekv"
 )
 
 const (

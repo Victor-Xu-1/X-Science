@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 // transcriptWebSyntheticProgressNormalizer removes transient progress events

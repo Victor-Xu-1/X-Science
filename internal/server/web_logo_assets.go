@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"synon-go/internal/logoassets"
+	"x-science/internal/logoassets"
 )
 
 const webLogoAssetPrefix = "/api/assets/logos/"

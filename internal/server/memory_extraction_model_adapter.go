@@ -8,10 +8,10 @@ import (
 	"io"
 	"strings"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/memoryextract"
-	"synon-go/internal/memorypolicy"
-	"synon-go/internal/memorytools"
+	"x-science/internal/agentruntime"
+	"x-science/internal/memoryextract"
+	"x-science/internal/memorypolicy"
+	"x-science/internal/memorytools"
 )
 
 type serverMemoryCompactExtractor struct {

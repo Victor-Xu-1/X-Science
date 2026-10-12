@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"synon-go/internal/compat/contracts"
+	"x-science/internal/compat/contracts"
 )
 
 type DeliveryKind string
@@ -84,15 +84,15 @@ var eventSpecs = map[string]EventSpec{
 }
 
 var extensionEventSpecs = map[string]EventSpec{
-	"confirmation.add":            {Name: "confirmation.add", Kind: DeliveryFanout, Owner: "synon-web"},
-	"confirmation.remove":         {Name: "confirmation.remove", Kind: DeliveryFanout, Owner: "synon-web"},
-	"confirmation.update":         {Name: "confirmation.update", Kind: DeliveryFanout, Owner: "synon-web"},
-	"conversation.listChanged":    {Name: "conversation.listChanged", Kind: DeliveryFanout, Owner: "synon-web"},
+	"confirmation.add":            {Name: "confirmation.add", Kind: DeliveryFanout, Owner: "x-science-web"},
+	"confirmation.remove":         {Name: "confirmation.remove", Kind: DeliveryFanout, Owner: "x-science-web"},
+	"confirmation.update":         {Name: "confirmation.update", Kind: DeliveryFanout, Owner: "x-science-web"},
+	"conversation.listChanged":    {Name: "conversation.listChanged", Kind: DeliveryFanout, Owner: "x-science-web"},
 	"conversation.historyRebased": {Name: "conversation.historyRebased", Kind: DeliveryInvalidate, Owner: "transcript-history"},
-	"message.stream":              {Name: "message.stream", Kind: DeliveryFanout, Owner: "synon-web"},
-	"message.userCreated":         {Name: "message.userCreated", Kind: DeliveryFanout, Owner: "synon-web"},
-	"runtime.statusChanged":       {Name: "runtime.statusChanged", Kind: DeliveryFanout, Owner: "synon-web"},
-	"turn.completed":              {Name: "turn.completed", Kind: DeliveryFanout, Owner: "synon-web"},
+	"message.stream":              {Name: "message.stream", Kind: DeliveryFanout, Owner: "x-science-web"},
+	"message.userCreated":         {Name: "message.userCreated", Kind: DeliveryFanout, Owner: "x-science-web"},
+	"runtime.statusChanged":       {Name: "runtime.statusChanged", Kind: DeliveryFanout, Owner: "x-science-web"},
+	"turn.completed":              {Name: "turn.completed", Kind: DeliveryFanout, Owner: "x-science-web"},
 }
 
 func LookupEvent(name string) (EventSpec, bool) {

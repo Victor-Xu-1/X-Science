@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestLLMProvidersAPIRestoresTemplatesAndNativeProfileLifecycle(t *testing.T) {
@@ -196,7 +196,7 @@ func requestLLMProviders(t *testing.T, app http.Handler, method, path string, bo
 	}
 	request := newLoopbackTestRequest(method, path, requestBody)
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("X-Synon-User-Id", "local")
+	request.Header.Set("X-Science-User-Id", "local")
 	response := httptest.NewRecorder()
 	app.ServeHTTP(response, request)
 	if response.Code != wantStatus {

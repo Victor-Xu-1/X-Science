@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 func prepareApprovedNativeConflict(t *testing.T) (*correctionRouteFixture, SessionRunnerChatOptions, agentruntime.ToolCall, string) {

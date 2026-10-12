@@ -2,7 +2,7 @@ import { Button, Input } from '@arco-design/web-react';
 import { Camera, CopyOne, Delete, Edit, Lock } from '@icon-park/react';
 import React, { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { SYNON_BIOMED_DISPLAY_NAME_MAX_LENGTH } from '@/renderer/services/synonBiomedUserProfile';
+import { X_SCIENCE_DISPLAY_NAME_MAX_LENGTH } from '@/renderer/services/xScienceUserProfile';
 import { SettingsGeneratedArtwork } from '../components/SettingsGeneratedAsset';
 import './AccountProfileHero.css';
 
@@ -78,7 +78,7 @@ const AccountProfileHero: React.FC<AccountProfileHeroProps> = ({
             </h1>
             <Input
               value={nameDraft}
-              maxLength={SYNON_BIOMED_DISPLAY_NAME_MAX_LENGTH}
+              maxLength={X_SCIENCE_DISPLAY_NAME_MAX_LENGTH}
               autoFocus
               aria-label={t('settings.accountSettings.displayNameLabel')}
               placeholder={t('settings.accountSettings.displayNamePlaceholder')}

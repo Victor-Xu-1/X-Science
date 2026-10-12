@@ -12,12 +12,12 @@ describe('Vite static-copy source paths', () => {
   });
 
   it('normalizes Windows paths before they enter the glob boundary', () => {
-    expect(portableStaticCopySource(String.raw`C:\synon-biomed\frontend\LICENSE`)).toBe(
-      'C:/synon-biomed/frontend/LICENSE'
+    expect(portableStaticCopySource(String.raw`C:\x-science\frontend\LICENSE`)).toBe(
+      'C:/x-science/frontend/LICENSE'
     );
   });
 
   it('preserves already portable paths', () => {
-    expect(portableStaticCopySource('/opt/synon-biomed/frontend/LICENSE')).toBe('/opt/synon-biomed/frontend/LICENSE');
+    expect(portableStaticCopySource('/opt/x-science/frontend/LICENSE')).toBe('/opt/x-science/frontend/LICENSE');
   });
 });

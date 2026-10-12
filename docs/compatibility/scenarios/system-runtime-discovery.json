@@ -18,21 +18,21 @@
       "name": "models",
       "method": "GET",
       "path": "/api/models",
-      "headers": {"Origin": "${origin}", "X-Synon-User-Id": "local-dev"},
+      "headers": {"Origin": "${origin}", "X-Science-User-Id": "local-dev"},
       "expectedStatus": [200]
     },
     {
       "name": "current-user",
       "method": "GET",
       "path": "/api/me",
-      "headers": {"Origin": "${origin}", "X-Synon-User-Id": "local-dev"},
+      "headers": {"Origin": "${origin}", "X-Science-User-Id": "local-dev"},
       "expectedStatus": [200]
     },
     {
       "name": "environment-status",
       "method": "GET",
       "path": "/api/environments/status",
-      "headers": {"Origin": "${origin}", "X-Synon-User-Id": "local-dev"},
+      "headers": {"Origin": "${origin}", "X-Science-User-Id": "local-dev"},
       "expectedStatus": [200]
     }
   ],

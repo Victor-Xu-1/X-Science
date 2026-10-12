@@ -13,11 +13,11 @@ import (
 	"testing"
 	"time"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestWebOfficeCLIHelperProcess(t *testing.T) {
-	if os.Getenv("SYNON_TEST_OFFICECLI_HELPER") != "1" {
+	if os.Getenv("X_SCIENCE_TEST_OFFICECLI_HELPER") != "1" {
 		return
 	}
 	port := ""
@@ -50,9 +50,9 @@ func configureWebOfficeHelper(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("SYNON_OFFICECLI_PATH", os.Args[0])
-	t.Setenv("SYNON_OFFICECLI_ARGS_JSON", string(prefix))
-	t.Setenv("SYNON_TEST_OFFICECLI_HELPER", "1")
+	t.Setenv("X_SCIENCE_OFFICECLI_PATH", os.Args[0])
+	t.Setenv("X_SCIENCE_OFFICECLI_ARGS_JSON", string(prefix))
+	t.Setenv("X_SCIENCE_TEST_OFFICECLI_HELPER", "1")
 }
 
 func TestWebOfficePreviewStartsReusesStopsAndCloses(t *testing.T) {
@@ -172,7 +172,7 @@ func TestWebOfficePreviewReportsMissingCLIAndInvalidFiles(t *testing.T) {
 	writeWebFSTestFile(t, textPath, "fixture")
 	srv := newWebFSProjectTestServer(t, stateRoot, projectRoot, "local")
 
-	t.Setenv("SYNON_OFFICECLI_PATH", filepath.Join(stateRoot, "missing-officecli"))
+	t.Setenv("X_SCIENCE_OFFICECLI_PATH", filepath.Join(stateRoot, "missing-officecli"))
 	missing := webFSTestRequest(t, srv.Handler(), http.MethodPost,
 		"/api/word-preview/start", "local", map[string]any{"file_path": docxPath})
 	requireWebFSStatus(t, missing, http.StatusOK)

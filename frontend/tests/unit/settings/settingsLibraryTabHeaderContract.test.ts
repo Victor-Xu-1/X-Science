@@ -4,8 +4,8 @@ import { describe, expect, it } from 'vitest';
 const root = new URL('../../../packages/desktop/src/renderer/pages/settings/', import.meta.url);
 const read = (name: string) => readFileSync(new URL(name, root), 'utf8');
 const catalogs = {
-  experts: read('SynonBiomedExpertsSettings/ExpertWorkbench.tsx'),
-  skills: read('SynonBiomedSkillsSettings.tsx'),
+  experts: read('XScienceExpertsSettings/ExpertWorkbench.tsx'),
+  skills: read('XScienceSkillsSettings.tsx'),
   tools: read('ToolsSettings/McpLibraryToolbar.tsx'),
   environments: read('ScientificEnvironmentSettings.tsx'),
 };

@@ -2,8 +2,8 @@
 // (index.html) for failed script requests, causing "module script MIME text/html"
 // errors when the server was down or served a different asset hash. The v2
 // activate handler deletes v1, flushing any poisoned cached entries.
-const CACHE_PREFIX = 'synon-ai-webui-';
-const CACHE_NAME = 'synon-ai-webui-v2';
+const CACHE_PREFIX = 'x-science-webui-';
+const CACHE_NAME = 'x-science-webui-v2';
 const NON_CACHEABLE_PATHS = new Set(['/qr-login']);
 const OFFLINE_PAGE_URL = new URL('./index.html', self.location.href).toString();
 const PRECACHE_URLS = [
@@ -36,7 +36,7 @@ self.addEventListener('activate', (event) => {
       .then(async (deletedCaches) => {
         await self.clients.claim();
 
-        // A first installation has no obsolete SynonAI cache. Navigating in that
+        // A first installation has no obsolete XScience cache. Navigating in that
         // case aborts the page's authentication and settings bootstrap requests.
         if (!deletedCaches.some(Boolean)) return;
 
@@ -45,6 +45,17 @@ self.addEventListener('activate', (event) => {
           client.navigate(client.url).catch(() => undefined);
         }
       })
+  );
+});
+
+// Only the new worker can answer this namespace probe. Startup checks the
+// response's actual controller identity before retiring previous caches.
+self.addEventListener('message', (event) => {
+  if (event.data?.type !== 'x-science-cache-namespace-probe-v1' || !event.source?.postMessage) return;
+  event.waitUntil(
+    self.clients
+      .claim()
+      .then(() => event.source.postMessage({ type: 'x-science-cache-namespace-ready-v1', cache: CACHE_NAME }))
   );
 });
 

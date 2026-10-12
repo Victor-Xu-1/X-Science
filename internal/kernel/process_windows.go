@@ -8,7 +8,7 @@ import (
 	"os"
 	"os/exec"
 
-	"synon-go/internal/processsupervisor"
+	"x-science/internal/processsupervisor"
 )
 
 func configureWorkerProcess(_ *exec.Cmd) {}

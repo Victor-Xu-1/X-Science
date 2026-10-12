@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"synon-go/internal/agentruntime"
-	eventjournal "synon-go/internal/persistence/journal"
-	sessionstore "synon-go/internal/persistence/sessions"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	"synon-go/internal/providers"
+	"x-science/internal/agentruntime"
+	eventjournal "x-science/internal/persistence/journal"
+	sessionstore "x-science/internal/persistence/sessions"
+	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/providers"
 )
 
 func (s *Server) handleSessionRunnerChatInterruption(
@@ -215,13 +215,27 @@ func (s *Server) handleSessionRunnerChatInterruption(
 	var kernelRecovery *kernelLocalOperationPendingRecoveryError
 	if errors.As(chatErr, &kernelRecovery) {
 		result.KernelOperationID = strings.TrimSpace(kernelRecovery.operationID)
+		reason := sessionRunnerKernelOperationPendingRecoveryReasonCode
+		detail := "kernel local execution is pending durable recovery; recover the exact tool batch before continuing"
+		if transcriptAuthority != nil && s.workspaceStore != nil {
+			held, err := s.kernelNamespaceRecoveryInterruption(ctx, transcriptAuthority.Stream.OwnerID, kernelRecovery.operationID)
+			if err != nil {
+				return true, err
+			}
+			if held {
+				reason = sessionRunnerExecutionIdentityRecoveryReasonCode
+				detail = (&kernelNamespaceRecoveryRequiredError{}).Error()
+			}
+		} else if kernelNamespaceRecoveryError(chatErr) {
+			reason = sessionRunnerExecutionIdentityRecoveryReasonCode
+			detail = (&kernelNamespaceRecoveryRequiredError{}).Error()
+		}
 		if chatRun.AfterEventID > result.CheckpointEventID {
 			result.CheckpointEventID = chatRun.AfterEventID
 		}
 		if err := s.interruptClaimedSessionRunner(
 			options, result, activeRun, projectionClaim, transcriptAuthority,
-			sessionRunnerKernelOperationPendingRecoveryReasonCode,
-			"kernel local execution is pending durable recovery; recover the exact tool batch before continuing",
+			reason, detail,
 		); err != nil {
 			return true, err
 		}

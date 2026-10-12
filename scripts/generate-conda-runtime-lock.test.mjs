@@ -23,7 +23,7 @@ const metadata = (name, version, build, sha256, overrides = {}) => ({
   ...overrides,
 });
 
-const runGenerator = (prefix, outputDirectory, extra = [], name = 'synon-biomed-python-baseline') =>
+const runGenerator = (prefix, outputDirectory, extra = [], name = 'x-science-python-baseline') =>
   spawnSync(
     process.execPath,
     [
@@ -41,7 +41,7 @@ const runGenerator = (prefix, outputDirectory, extra = [], name = 'synon-biomed-
   );
 
 test('generates deterministic manifest and explicit lock from verified metadata', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'synon-conda-lock-'));
+  const root = await mkdtemp(join(tmpdir(), 'x-science-conda-lock-'));
   try {
     const metadataRoot = join(root, 'prefix', 'conda-meta');
     await mkdir(metadataRoot, { recursive: true });
@@ -102,7 +102,7 @@ test('generates deterministic manifest and explicit lock from verified metadata'
     assert.equal('oracle' in catalog, false);
     assert.equal(catalog.runtimes.length, 1);
     assert.deepEqual(catalog.runtimes[0], {
-      name: 'synon-biomed-python-baseline',
+      name: 'x-science-python-baseline',
       platform: 'linux-x86_64',
       packageCount: 2,
       generation,
@@ -133,7 +133,7 @@ test('generates deterministic manifest and explicit lock from verified metadata'
 });
 
 test('generates a platform-bound Windows catalog and rejects foreign package subdirs', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'synon-conda-lock-platform-'));
+  const root = await mkdtemp(join(tmpdir(), 'x-science-conda-lock-platform-'));
   try {
     const prefix = join(root, 'prefix');
     const metadataRoot = join(prefix, 'conda-meta');
@@ -167,7 +167,7 @@ test('generates a platform-bound Windows catalog and rejects foreign package sub
 });
 
 test('generates a native-platform lock from a bounded solver receipt', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'synon-conda-solve-lock-'));
+  const root = await mkdtemp(join(tmpdir(), 'x-science-conda-solve-lock-'));
   try {
     const packageRecord = metadata('r-base', '4.5.3', 'h0', 'b'.repeat(64), {
       subdir: 'osx-arm64',
@@ -178,11 +178,11 @@ test('generates a native-platform lock from a bounded solver receipt', async () 
     await writeFile(solve, JSON.stringify({ success: true, actions: { LINK: [packageRecord] } }));
     const outputDirectory = join(root, 'locks');
     const result = runGenerator(join(root, 'does-not-exist'), outputDirectory,
-      ['--solve-json', solve, '--platform', 'darwin-arm64'], 'synon-biomed-r');
+      ['--solve-json', solve, '--platform', 'darwin-arm64'], 'x-science-r');
     assert.equal(result.status, 0, result.stderr);
     const catalog = JSON.parse(await readFile(join(root, 'manifest.json'), 'utf8'));
     assert.equal(catalog.platform, 'darwin-arm64');
-    assert.equal(catalog.runtimes[0].name, 'synon-biomed-r');
+    assert.equal(catalog.runtimes[0].name, 'x-science-r');
     const generation = catalog.runtimes[0].generation;
     const manifest = JSON.parse(await readFile(join(outputDirectory, generation, 'manifest.json'), 'utf8'));
     assert.equal(manifest.packages[0].subdir, 'osx-arm64');
@@ -190,7 +190,7 @@ test('generates a native-platform lock from a bounded solver receipt', async () 
     const inventory = JSON.parse(await readFile(join(outputDirectory, generation, 'licenses.json'), 'utf8'));
     assert.deepEqual(inventory.unresolvedLicensePackages, ['r-base']);
     const rejected = runGenerator(join(root, 'does-not-exist'), join(root, 'foreign'),
-      ['--solve-json', solve, '--platform', 'windows-x86_64'], 'synon-biomed-r');
+      ['--solve-json', solve, '--platform', 'windows-x86_64'], 'x-science-r');
     assert.notEqual(rejected.status, 0);
     assert.match(rejected.stderr, /subdir is not supported for windows-x86_64/u);
   } finally {
@@ -199,7 +199,7 @@ test('generates a native-platform lock from a bounded solver receipt', async () 
 });
 
 test('reconstructs missing licenses from a verified package cache and enforces required capabilities', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'synon-conda-lock-cache-'));
+  const root = await mkdtemp(join(tmpdir(), 'x-science-conda-lock-cache-'));
   try {
     const prefix = join(root, 'prefix');
     const metadataRoot = join(prefix, 'conda-meta');
@@ -226,13 +226,13 @@ test('reconstructs missing licenses from a verified package cache and enforces r
       JSON.stringify({ name: 'rdkit', version: '2024.03.5', build: 'py311h0', license: 'BSD-3-Clause' }),
     );
 
-    const outputDirectory = join(root, 'locks', 'synon-biomed-python');
+    const outputDirectory = join(root, 'locks', 'x-science-python');
     const result = runGenerator(prefix, outputDirectory, [
       '--package-cache',
       packageCache,
       '--required-packages',
       'python=3.11.*,rdkit=2024.03.5',
-    ], 'synon-biomed-python');
+    ], 'x-science-python');
     assert.equal(result.status, 0, result.stderr);
     const generation = result.stdout.match(/sha256=([a-f0-9]{64})/u)?.[1];
     const manifest = JSON.parse(await readFile(join(outputDirectory, generation, 'manifest.json'), 'utf8'));
@@ -258,7 +258,7 @@ test('reconstructs missing licenses from a verified package cache and enforces r
 });
 
 test('merges stable runtime entries into one root catalog', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'synon-conda-lock-catalog-'));
+  const root = await mkdtemp(join(tmpdir(), 'x-science-conda-lock-catalog-'));
   try {
     for (const [runtime, packageName] of [
       ['python', 'python'],
@@ -274,14 +274,14 @@ test('merges stable runtime entries into one root catalog', async () => {
         join(root, runtime),
         join(root, 'locks', runtime),
         [],
-        `synon-biomed-${runtime}`,
+        `x-science-${runtime}`,
       );
       assert.equal(result.status, 0, result.stderr);
     }
     const catalog = JSON.parse(await readFile(join(root, 'locks', 'manifest.json'), 'utf8'));
     assert.deepEqual(
       catalog.runtimes.map((runtime) => runtime.name),
-      ['synon-biomed-python', 'synon-biomed-r'],
+      ['x-science-python', 'x-science-r'],
     );
   } finally {
     await rm(root, { recursive: true, force: true });
@@ -289,7 +289,7 @@ test('merges stable runtime entries into one root catalog', async () => {
 });
 
 test('rejects unsupported catalog metadata even with a recomputed digest', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'synon-conda-lock-schema-'));
+  const root = await mkdtemp(join(tmpdir(), 'x-science-conda-lock-schema-'));
   try {
     const prefix = join(root, 'prefix');
     await mkdir(join(prefix, 'conda-meta'), { recursive: true });
@@ -313,7 +313,7 @@ test('rejects unsupported catalog metadata even with a recomputed digest', async
 });
 
 test('accepts the audited Conda metadata size range', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'synon-conda-lock-large-metadata-'));
+  const root = await mkdtemp(join(tmpdir(), 'x-science-conda-lock-large-metadata-'));
   try {
     const metadataRoot = join(root, 'prefix', 'conda-meta');
     await mkdir(metadataRoot, { recursive: true });
@@ -339,7 +339,7 @@ test('accepts the audited Conda metadata size range', async () => {
 });
 
 test('rejects untrusted metadata and unknown or duplicate options', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'synon-conda-lock-invalid-'));
+  const root = await mkdtemp(join(tmpdir(), 'x-science-conda-lock-invalid-'));
   try {
     const metadataRoot = join(root, 'prefix', 'conda-meta');
     await mkdir(metadataRoot, { recursive: true });

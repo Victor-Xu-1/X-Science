@@ -15,8 +15,8 @@ import { ConfigProvider } from '@arco-design/web-react';
 import type { i18n } from 'i18next';
 import { I18nextProvider } from 'react-i18next';
 
-import DeleteAssistantModal from '@/renderer/pages/settings/SynonBiomedExpertsSettings/DeleteAssistantModal';
-import type { AssistantListItem } from '@/renderer/pages/settings/SynonBiomedExpertsSettings/types';
+import DeleteAssistantModal from '@/renderer/pages/settings/XScienceExpertsSettings/DeleteAssistantModal';
+import type { AssistantListItem } from '@/renderer/pages/settings/XScienceExpertsSettings/types';
 import { createTestI18n } from '../i18nTestUtils';
 
 let testI18n: i18n;

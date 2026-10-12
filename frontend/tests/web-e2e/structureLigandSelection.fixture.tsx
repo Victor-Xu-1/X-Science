@@ -9,7 +9,7 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import preview from '@/renderer/services/i18n/locales/zh-CN/preview.json';
 import common from '@/renderer/services/i18n/locales/zh-CN/common.json';
-import SynonBiomedStructureViewer from '@/renderer/pages/conversation/Preview/components/viewers/SynonBiomedStructureViewer';
+import XScienceStructureViewer from '@/renderer/pages/conversation/Preview/components/viewers/XScienceStructureViewer';
 import {
   MULTI_LIGAND_PDB,
   MULTI_LIGAND_CIF,
@@ -175,13 +175,13 @@ async function start() {
         </nav>
         <div style={{ display: 'flex', gap: 16, height: 740 }}>
           <section aria-label='预览 A' style={{ width: 580 }}>
-            <SynonBiomedStructureViewer
+            <XScienceStructureViewer
               filename={'synthetic.' + (selected === 'cif' ? 'cif' : 'pdb')}
               content={inputs[selected]}
             />
           </section>
           <section aria-label='预览 B' style={{ width: 580 }}>
-            <SynonBiomedStructureViewer filename='independent.pdb' content={MULTI_LIGAND_PDB} />
+            <XScienceStructureViewer filename='independent.pdb' content={MULTI_LIGAND_PDB} />
           </section>
           <NativeContractProbe />
         </div>

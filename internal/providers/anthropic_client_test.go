@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestBuildModelProfileNormalizesAnthropicMessagesEndpoint(t *testing.T) {

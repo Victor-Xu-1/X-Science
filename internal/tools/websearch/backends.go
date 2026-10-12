@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/buildinfo"
-	"synon-go/internal/httpreliability"
+	"x-science/internal/buildinfo"
+	"x-science/internal/httpreliability"
 )
 
 func webSearchUserAgent() string {
@@ -249,7 +249,7 @@ func resolveHTTPBackends(options Options) []httpSearchBackend {
 	if len(options.HTTPBackends) > 0 {
 		return append([]httpSearchBackend(nil), options.HTTPBackends...)
 	}
-	if endpoint := strings.TrimSpace(os.Getenv("SYNON_WEBSEARCH_ENDPOINT")); endpoint != "" {
+	if endpoint := strings.TrimSpace(os.Getenv("X_SCIENCE_WEBSEARCH_ENDPOINT")); endpoint != "" {
 		return []httpSearchBackend{{Name: "configured", Endpoint: endpoint}}
 	}
 	return append([]httpSearchBackend(nil), defaultHTTPBackends...)
@@ -457,7 +457,7 @@ func parseEuropePMCResults(body []byte) ([]scriptResult, error) {
 }
 
 func searchHTTPEndpoint(query string) (string, string) {
-	endpoint := strings.TrimSpace(os.Getenv("SYNON_WEBSEARCH_ENDPOINT"))
+	endpoint := strings.TrimSpace(os.Getenv("X_SCIENCE_WEBSEARCH_ENDPOINT"))
 	if endpoint == "" {
 		endpoint = defaultHTTPEndpoint
 	}

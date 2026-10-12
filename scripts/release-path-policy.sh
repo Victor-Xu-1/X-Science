@@ -3,7 +3,7 @@
 # Resolve a release-management target without allowing the target, one of its
 # existing ancestors, or the current working directory to be reached through a
 # symbolic link. Callers must revalidate immediately before destructive moves.
-synon_release_safe_path() {
+x_science_release_safe_path() {
 	local raw_path="${1:-}"
 	local purpose="${2:-release}"
 	if [[ -z "$raw_path" ]]; then
@@ -27,19 +27,19 @@ synon_release_safe_path() {
 	printf '%s\n' "$resolved_path"
 }
 
-synon_release_revalidate_path() {
+x_science_release_revalidate_path() {
 	local raw_path="$1"
 	local expected_path="$2"
 	local purpose="${3:-release}"
 	local current_path
-	current_path="$(synon_release_safe_path "$raw_path" "$purpose")" || return 1
+	current_path="$(x_science_release_safe_path "$raw_path" "$purpose")" || return 1
 	if [[ "$current_path" != "$expected_path" ]]; then
 		echo "$purpose path changed during the operation" >&2
 		return 1
 	fi
 }
 
-synon_release_managed_child() {
+x_science_release_managed_child() {
 	local parent_path="$1"
 	local child_path="$2"
 	local purpose="${3:-managed release}"
@@ -54,19 +54,19 @@ synon_release_managed_child() {
 	printf '%s\n' "$resolved_child"
 }
 
-synon_release_revalidate_managed_child() {
+x_science_release_revalidate_managed_child() {
 	local parent_path="$1"
 	local child_path="$2"
 	local purpose="${3:-managed release}"
 	local current_path
-	current_path="$(synon_release_managed_child "$parent_path" "$child_path" "$purpose")" || return 1
+	current_path="$(x_science_release_managed_child "$parent_path" "$child_path" "$purpose")" || return 1
 	if [[ "$current_path" != "$child_path" ]]; then
 		echo "generated $purpose path changed during the operation" >&2
 		return 1
 	fi
 }
 
-synon_release_trusted_identity_path() {
+x_science_release_trusted_identity_path() {
 	local policy_dir trusted_identity
 	policy_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)" || return 1
 	trusted_identity="$policy_dir/../product-identity.json"
@@ -79,9 +79,9 @@ synon_release_trusted_identity_path() {
 
 # Read the canonical, unescaped display-name line without adding an installer
 # dependency. Unsupported/ambiguous authority formatting fails closed.
-synon_release_product_name() {
+x_science_release_product_name() {
 	local trusted_identity display_name
-	trusted_identity="$(synon_release_trusted_identity_path)" || return 1
+	trusted_identity="$(x_science_release_trusted_identity_path)" || return 1
 	display_name=$(sed -nE 's/^[[:space:]]*"display_name": "([^"\\]+)",?[[:space:]]*$/\1/p' "$trusted_identity")
 	if [[ -z "$display_name" || "$display_name" == *$'\n'* ]]; then
 		echo "trusted product display name is unavailable" >&2
@@ -90,10 +90,10 @@ synon_release_product_name() {
 	printf '%s\n' "$display_name"
 }
 
-synon_release_assert_product_identity() {
+x_science_release_assert_product_identity() {
 	local candidate_root="$1"
 	local trusted_identity candidate_identity
-	trusted_identity="$(synon_release_trusted_identity_path)" || return 1
+	trusted_identity="$(x_science_release_trusted_identity_path)" || return 1
 	candidate_identity="$candidate_root/product-identity.json"
 	if [[ ! -f "$candidate_identity" || -L "$candidate_identity" ]]; then
 		echo "release product identity is unavailable" >&2

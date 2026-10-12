@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestMCPDiscoverySemaphoreBoundsConcurrentConnectorProbes(t *testing.T) {

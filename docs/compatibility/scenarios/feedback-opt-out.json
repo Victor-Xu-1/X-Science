@@ -17,7 +17,7 @@
       "name": "availability",
       "method": "GET",
       "path": "/api/feedback/available",
-      "headers": {"X-Synon-User-Id": "local"},
+      "headers": {"X-Science-User-Id": "local"},
       "expectedStatus": [200]
     },
     {
@@ -28,7 +28,7 @@
         "Origin": "${origin}",
         "X-Operon-CSRF": "${cookie:operon_csrf}",
         "Content-Type": "application/json",
-        "X-Synon-User-Id": "local"
+        "X-Science-User-Id": "local"
       },
       "body": {"sentiment": "up", "description": "compatibility probe"},
       "expectedStatus": [403]

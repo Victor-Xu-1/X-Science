@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"strings"
 
-	"synon-go/internal/agentruntime"
-	sessionstore "synon-go/internal/persistence/sessions"
-	"synon-go/internal/providers"
+	"x-science/internal/agentruntime"
+	sessionstore "x-science/internal/persistence/sessions"
+	"x-science/internal/providers"
 )
 
 func (s *Server) reviewSessionRunnerCompletion(

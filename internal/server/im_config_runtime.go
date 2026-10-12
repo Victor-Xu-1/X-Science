@@ -66,7 +66,7 @@ func (s *Server) executeIMConfigTool(input map[string]any) (any, error) {
 			"env":                      adapterCredentialEnvKeys(name),
 			"config":                   adapterCredentialConfigKeys(name),
 			"enableValue":              name,
-			"liveSmokeCommand":         "synon-go-live-im-smoke --require-all --json --runtime-url http://127.0.0.1:8765",
+			"liveSmokeCommand":         "x-science-live-im-smoke --require-all --json --runtime-url http://127.0.0.1:8765",
 			"liveSmokeMethod":          adapterSmokeMethod(name),
 			"smoke":                    smokeResult,
 			"pairingStoreConfigured":   s != nil && s.pairingStore != nil,
@@ -100,7 +100,7 @@ func (s *Server) executeIMConfigTool(input map[string]any) (any, error) {
 			"missingCredentialPlatforms": missingCredentialPlatforms,
 		},
 		"secretsRedacted":         true,
-		"credentialStoragePolicy": "Use SYNON_CONFIG or platform environment variables; im_config never returns secret values.",
+		"credentialStoragePolicy": "Use X_SCIENCE_CONFIG or platform environment variables; im_config never returns secret values.",
 		"auditNamespace":          adapterLiveSmokeRuntimeNamespace,
 	}, nil
 }
@@ -149,9 +149,9 @@ func adapterCredentialFieldOrder(platform string, fields map[string]bool) []stri
 func adapterCredentialEnvKeys(platform string) map[string]string {
 	switch strings.ToLower(strings.TrimSpace(platform)) {
 	case "feishu":
-		return map[string]string{"app_id": "FEISHU_APP_ID", "app_secret": "FEISHU_APP_SECRET", "verification_token": "FEISHU_VERIFICATION_TOKEN", "encrypt_key": "FEISHU_ENCRYPT_KEY", "endpoint": "FEISHU_DOMAIN", "enabled": "SYNON_ENABLED_ADAPTERS=feishu"}
+		return map[string]string{"app_id": "FEISHU_APP_ID", "app_secret": "FEISHU_APP_SECRET", "verification_token": "FEISHU_VERIFICATION_TOKEN", "encrypt_key": "FEISHU_ENCRYPT_KEY", "endpoint": "FEISHU_DOMAIN", "enabled": "X_SCIENCE_ENABLED_ADAPTERS=feishu"}
 	case "wechat":
-		return map[string]string{"account_id": "WECHAT_ACCOUNT_ID", "bot_token": "WECHAT_BOT_TOKEN", "user_id": "WECHAT_USER_ID", "endpoint": "WECHAT_BASE_URL", "enabled": "SYNON_ENABLED_ADAPTERS=wechat"}
+		return map[string]string{"account_id": "WECHAT_ACCOUNT_ID", "bot_token": "WECHAT_BOT_TOKEN", "user_id": "WECHAT_USER_ID", "endpoint": "WECHAT_BASE_URL", "enabled": "X_SCIENCE_ENABLED_ADAPTERS=wechat"}
 	default:
 		return map[string]string{}
 	}

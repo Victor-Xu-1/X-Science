@@ -168,9 +168,9 @@ const createInteractionStrengthLabelShapeProvider = (data: MolstarInteractionStr
   geometryUtils: Text.Utils,
 });
 
-const InteractionStrengthLabelTransform = StateTransformer.builderFactory('synon-biomed');
+const InteractionStrengthLabelTransform = StateTransformer.builderFactory('x-science');
 
-export const SynonBiomedInteractionStrengthLabels = InteractionStrengthLabelTransform({
+export const XScienceInteractionStrengthLabels = InteractionStrengthLabelTransform({
   name: 'interaction-strength-labels',
   display: { name: 'Relative interaction strengths' },
   from: PluginStateObject.Root,

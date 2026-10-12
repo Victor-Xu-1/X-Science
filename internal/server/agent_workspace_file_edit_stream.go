@@ -151,7 +151,7 @@ func protectedAgentWorkspaceEditPathWithContext(path, goos, home string) bool {
 	}
 	for _, protected := range [][]string{
 		{".ssh"}, {".aws"}, {".gcloud"}, {".vscode"}, {".idea"},
-		{".synon", "runtime", "skills"},
+		{".xscience", "runtime", "skills"},
 		{".git", "hooks"}, {".git", "modules"}, {".git", "worktrees"},
 	} {
 		if containsAgentWorkspacePathSequence(normalized, protected) {

@@ -264,7 +264,7 @@ func AttachToolResultModelContext(content string, modelContext any) (string, err
 	if err := contextDecoder.Decode(&contextValue); err != nil {
 		return "", fmt.Errorf("decode tool result model context: %w", err)
 	}
-	const contextKey = "_synon_model_context"
+	const contextKey = "_x_science_model_context"
 	if object, ok := toolResult.(map[string]any); ok {
 		if _, collision := object[contextKey]; !collision {
 			object[contextKey] = contextValue

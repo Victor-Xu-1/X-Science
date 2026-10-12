@@ -10,8 +10,8 @@ import (
 
 	"github.com/google/uuid"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 type compatibilityFrameMessageRequest struct {
@@ -149,7 +149,7 @@ func (s *Server) submitCompatibilityFrameMessage(
 	if input.ClientMutationID != "" {
 		messageID = uuid.NewSHA1(
 			uuid.NameSpaceURL,
-			[]byte("synon-biomed:frame-message:"+current.ID+"\x00"+input.ClientMutationID),
+			[]byte("x-science:frame-message:"+current.ID+"\x00"+input.ClientMutationID),
 		).String()
 	}
 	if requestText != "" && input.ClientMutationID != "" {

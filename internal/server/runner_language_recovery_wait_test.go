@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"testing"
 
-	eventjournal "synon-go/internal/persistence/journal"
-	sessionstore "synon-go/internal/persistence/sessions"
+	eventjournal "x-science/internal/persistence/journal"
+	sessionstore "x-science/internal/persistence/sessions"
 )
 
 func TestLanguageRecoveryParksUnchangedProviderOnlyLoopAfterDatabaseReopen(t *testing.T) {

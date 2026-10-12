@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	eventjournal "synon-go/internal/persistence/journal"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	eventjournal "x-science/internal/persistence/journal"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 // trustedScientificTaskReplayReceipt compacts the immutable completed-tool

@@ -93,7 +93,7 @@ func (s *Server) handleWebAccountSecurity(w http.ResponseWriter, r *http.Request
 func (s *Server) handleWebAccountSecurityOverview(
 	w http.ResponseWriter,
 	r *http.Request,
-	user synonLinkAuthUser,
+	user xscienceLinkAuthUser,
 	currentToken string,
 ) {
 	metadata, deviceToken, err := s.webSessions.metadataForSessionCreation(r)
@@ -111,7 +111,7 @@ func (s *Server) handleWebAccountSecurityOverview(
 	if s.webAccounts != nil {
 		methods = s.webAccounts.LoginMethods(user.ID)
 	}
-	if s.synonLinkAuth != nil && s.synonLinkAuth.enabled && user.ID == s.synonLinkAuth.user().ID &&
+	if s.xscienceLinkAuth != nil && s.xscienceLinkAuth.enabled && user.ID == s.xscienceLinkAuth.user().ID &&
 		!slices.Contains(methods, "local") {
 		methods = append(methods, "local")
 	}
@@ -126,6 +126,7 @@ func (s *Server) handleWebAccountSecurityOverview(
 }
 
 func (s *Server) clearWebAuthCookies(w http.ResponseWriter, r *http.Request) {
+	s.retirePreviousWebCookies(w, r)
 	for _, name := range []string{webSessionCookieName, webCSRFCookieName} {
 		http.SetCookie(w, &http.Cookie{
 			Name: name, Value: "", Path: "/", MaxAge: -1,

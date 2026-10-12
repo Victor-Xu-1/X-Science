@@ -1,4 +1,4 @@
-export type SynonBiomedMcpAppSaveContract = {
+export type XScienceMcpAppSaveContract = {
   appTool: string;
   resultField: string;
   mimeType: string;
@@ -8,7 +8,7 @@ export type SynonBiomedMcpAppSaveContract = {
   emptyTemplate?: string;
 };
 
-export const ketcherMcpAppSaveContract: SynonBiomedMcpAppSaveContract = Object.freeze({
+export const ketcherMcpAppSaveContract: XScienceMcpAppSaveContract = Object.freeze({
   appTool: 'get_structure',
   resultField: 'ket',
   mimeType: 'application/json',

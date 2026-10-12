@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 func autonomousGeneratedPlan(data map[string]any) bool {

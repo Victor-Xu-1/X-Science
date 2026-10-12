@@ -87,20 +87,20 @@ func validateSchemaMigrationRemediationRegistry(migrations []versionedSchemaMigr
 }
 
 func rebindActivatedFrameAuthorityAfterV33ReceiptRebuild(ctx context.Context, tx *sql.Tx) error {
-	if _, err := tx.ExecContext(ctx, `CREATE TEMP TABLE synon_v33_authority_rebind AS
+	if _, err := tx.ExecContext(ctx, `CREATE TEMP TABLE x_science_v33_authority_rebind AS
 		SELECT owner_id,session_id,active_stream_uid,active_epoch,authority_generation,
 			read_authority,write_authority,activation_id,genesis_id,updated_at
 		FROM transcript_frame_authority WHERE 0`); err != nil {
 		return errors.New("prepare activated frame authority receipt rebind")
 	}
-	if _, err := tx.ExecContext(ctx, `INSERT INTO synon_v33_authority_rebind
+	if _, err := tx.ExecContext(ctx, `INSERT INTO x_science_v33_authority_rebind
 		SELECT owner_id,session_id,active_stream_uid,active_epoch,authority_generation,
 			read_authority,write_authority,activation_id,genesis_id,updated_at
 		FROM transcript_frame_authority WHERE activation_id IS NOT NULL`); err != nil {
 		return errors.New("stage activated frame authority receipt rebind")
 	}
 	var expected int64
-	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM synon_v33_authority_rebind`).Scan(&expected); err != nil {
+	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM x_science_v33_authority_rebind`).Scan(&expected); err != nil {
 		return errors.New("count activated frame authority receipt rebind")
 	}
 	deleted, err := tx.ExecContext(ctx, `DELETE FROM transcript_frame_authority WHERE activation_id IS NOT NULL`)
@@ -115,14 +115,14 @@ func rebindActivatedFrameAuthorityAfterV33ReceiptRebuild(ctx context.Context, tx
 		read_authority,write_authority,activation_id,genesis_id,updated_at)
 		SELECT owner_id,session_id,active_stream_uid,active_epoch,authority_generation,
 			read_authority,write_authority,activation_id,genesis_id,updated_at
-		FROM synon_v33_authority_rebind ORDER BY owner_id,session_id`)
+		FROM x_science_v33_authority_rebind ORDER BY owner_id,session_id`)
 	if err != nil {
 		return errors.New("restore activated frame authority after receipt rebuild")
 	}
 	if count, err := inserted.RowsAffected(); err != nil || count != expected {
 		return errors.New("restore activated frame authority count mismatch")
 	}
-	if _, err := tx.ExecContext(ctx, `DROP TABLE synon_v33_authority_rebind`); err != nil {
+	if _, err := tx.ExecContext(ctx, `DROP TABLE x_science_v33_authority_rebind`); err != nil {
 		return errors.New("remove activated frame authority receipt rebind staging")
 	}
 	rows, err := tx.QueryContext(ctx, `PRAGMA foreign_key_check`)

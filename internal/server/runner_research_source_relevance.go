@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"strings"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/httptext"
+	"x-science/internal/agentruntime"
+	"x-science/internal/httptext"
 )
 
 // researchArticleRecordRelevantToInvestigation applies the same bounded,

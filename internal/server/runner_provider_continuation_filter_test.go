@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 func TestSessionRunnerContinuationPreservesToolBoundaryAfterPrefixFiltering(t *testing.T) {

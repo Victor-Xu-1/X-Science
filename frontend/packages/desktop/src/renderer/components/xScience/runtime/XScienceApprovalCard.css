@@ -1,0 +1,414 @@
+.x-science-approval-card {
+  position: relative;
+  font-family: var(--conversation-font-sans, system-ui);
+  font-size: var(--ui-font-body);
+  line-height: 22px;
+  font-style: normal;
+  min-width: 0;
+  padding: 14px 16px 12px;
+  color: var(--workspace-text, #171717);
+  background: var(--workspace-canvas, #fff);
+  border: 1px solid var(--workspace-border, #e2e2e2);
+  border-radius: var(--ui-radius-xl);
+}
+
+.x-science-approval-card__header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ui-space-5);
+  margin-bottom: 10px;
+}
+
+.x-science-approval-card__heading {
+  min-width: 0;
+  flex: 1;
+}
+
+.x-science-approval-card__title {
+  font-size: var(--ui-font-title);
+  font-weight: var(--ui-weight-medium);
+  line-height: 22px;
+}
+
+.x-science-approval-card__meta,
+.x-science-approval-card__queue,
+.x-science-approval-card__hint {
+  color: var(--workspace-text-secondary, #525252);
+  font-size: var(--ui-font-meta);
+  line-height: 22px;
+}
+
+.x-science-approval-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-3);
+  margin-top: var(--ui-space-2);
+}
+
+.x-science-approval-card__meta code {
+  color: var(--workspace-text-secondary, #525252);
+  font-size: var(--ui-font-meta);
+}
+
+.x-science-approval-card__queue {
+  flex: none;
+  padding-top: 3px;
+  white-space: nowrap;
+}
+
+.x-science-approval-card__log {
+  width: 28px;
+  min-width: 28px !important;
+  min-height: 28px !important;
+  padding: 0 !important;
+}
+
+.x-science-approval-card__description {
+  font-style: normal;
+  margin: 0 0 10px;
+  color: var(--workspace-text-secondary, #525252);
+  font-size: var(--ui-font-body);
+  line-height: 22px;
+}
+
+.x-science-approval-card__code-label {
+  margin-bottom: 5px;
+  color: var(--workspace-text-secondary, #525252);
+  font-size: var(--ui-font-meta);
+  font-weight: var(--ui-weight-medium);
+}
+
+.x-science-approval-card__code {
+  max-height: 200px;
+  margin: 0;
+  padding: 10px 12px;
+  overflow: auto;
+  color: var(--workspace-text, #171717);
+  background: var(--workspace-subtle, #f7f7f7);
+  border: 1px solid var(--workspace-border, #e2e2e2);
+  border-radius: var(--ui-radius-md);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: var(--ui-font-meta);
+  line-height: 22px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.x-science-approval-card__sandbox-note {
+  margin: 9px 0 0;
+  color: var(--workspace-text-secondary, #525252);
+  font-size: var(--ui-font-meta);
+  line-height: 1.5;
+}
+
+.x-science-approval-card__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-4);
+  margin-top: var(--ui-space-5);
+}
+
+.x-science-approval-card__allow-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.x-science-approval-card__allow,
+.x-science-approval-card__scope-toggle,
+.x-science-approval-card__deny {
+  min-height: 32px;
+  border: 1px solid var(--workspace-accent, #171717);
+  font-size: var(--ui-font-body);
+  font-weight: var(--ui-weight-medium);
+  cursor: pointer;
+  transition:
+    opacity 120ms ease,
+    background-color 120ms ease;
+}
+
+.x-science-approval-card__allow,
+.x-science-approval-card__scope-toggle {
+  color: var(--workspace-accent-contrast, #fff);
+  background: var(--workspace-accent, #171717);
+}
+
+.x-science-approval-card__allow {
+  min-width: 108px;
+  padding: 0 13px;
+  border-radius: 8px 0 0 8px;
+}
+
+.x-science-approval-card__allow--single {
+  border-radius: var(--ui-radius-md);
+}
+
+.x-science-approval-card__scope-toggle {
+  width: 34px;
+  padding: 0;
+  border-left-color: rgb(255 255 255 / 24%);
+  border-radius: 0 8px 8px 0;
+}
+
+.x-science-approval-card__deny {
+  padding: 0 13px;
+  color: var(--workspace-text, #171717);
+  background: var(--workspace-canvas, #fff);
+  border-color: var(--workspace-border, #e2e2e2);
+  border-radius: var(--ui-radius-md);
+}
+
+.x-science-approval-card__allow:hover,
+.x-science-approval-card__scope-toggle:hover {
+  opacity: 0.86;
+}
+
+.x-science-approval-card__deny:hover {
+  background: var(--workspace-subtle, #f7f7f7);
+  border-color: var(--workspace-border-strong, #d2d2d2);
+}
+
+.x-science-approval-card__allow:disabled,
+.x-science-approval-card__scope-toggle:disabled,
+.x-science-approval-card__deny:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.x-science-approval-card__scope-menu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: var(--ui-z-sticky);
+  min-width: 210px;
+  padding: 5px;
+}
+
+.x-science-approval-card__scope-option {
+  display: flex;
+  width: 100%;
+  min-height: 43px;
+  align-items: flex-start;
+  gap: var(--ui-space-4);
+  padding: 7px 8px;
+  color: var(--workspace-text, #171717);
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: var(--ui-radius-sm);
+  cursor: pointer;
+}
+
+.x-science-approval-card__scope-option:hover,
+.x-science-approval-card__scope-option[aria-checked='true'] {
+  background: var(--workspace-subtle, #f7f7f7);
+}
+
+.x-science-approval-card__scope-check {
+  width: 15px;
+  flex: none;
+  padding-top: 1px;
+}
+
+.x-science-approval-card__scope-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.x-science-approval-card__scope-label {
+  font-size: var(--ui-font-body);
+  font-weight: var(--ui-weight-medium);
+}
+
+.x-science-approval-card__scope-hint {
+  color: var(--workspace-text-secondary, #525252);
+  font-size: var(--ui-font-meta);
+}
+
+.x-science-approval-card__hint {
+  flex-basis: 100%;
+}
+
+.x-science-approval-card--compact {
+  padding: 12px 14px;
+  border-radius: var(--ui-radius-xl);
+}
+
+.x-science-approval-card--compact .x-science-approval-card__header {
+  align-items: center;
+  margin-bottom: var(--ui-space-4);
+}
+
+.x-science-approval-card--compact .x-science-approval-card__title {
+  font-size: var(--ui-font-title);
+  line-height: 20px;
+}
+
+.x-science-approval-card--compact .x-science-approval-card__footer {
+  margin-top: 10px;
+}
+
+.x-science-approval-card--compact .x-science-approval-card__allow {
+  min-width: 92px;
+}
+
+.x-science-approval-card__details {
+  margin: 0;
+  color: var(--workspace-text-secondary, #525252);
+  font-size: var(--ui-font-meta);
+}
+
+.x-science-approval-card__details summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.x-science-approval-card__details summary::-webkit-details-marker {
+  display: none;
+}
+
+.x-science-approval-card__details summary::before {
+  content: '›';
+  display: inline-block;
+  font-size: var(--ui-font-title);
+  line-height: 1;
+  transform: rotate(0deg);
+  transition: transform 100ms ease;
+}
+
+.x-science-approval-card__details[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.x-science-approval-card__details-content {
+  display: grid;
+  gap: var(--ui-space-4);
+  margin-top: var(--ui-space-4);
+  padding-top: var(--ui-space-4);
+  border-top: 1px solid var(--workspace-border, #e2e2e2);
+}
+
+.x-science-approval-card__details-content .x-science-approval-card__meta,
+.x-science-approval-card__details-content .x-science-approval-card__description,
+.x-science-approval-card__details-content .x-science-approval-card__sandbox-note {
+  margin: 0;
+}
+
+.x-science-conversation-approval-card__command {
+  display: block;
+  padding: 8px 10px;
+  overflow-wrap: anywhere;
+  color: var(--workspace-text, #171717);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: var(--ui-font-meta);
+  line-height: 22px;
+  background: var(--workspace-subtle, #f7f7f7);
+  border: 1px solid var(--workspace-border, #e2e2e2);
+  border-radius: var(--ui-radius-md);
+}
+
+.x-science-conversation-approval-card__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-3);
+  margin-top: 10px;
+}
+
+.x-science-conversation-approval-card__option {
+  min-height: 30px;
+  padding: 0 10px;
+  color: var(--workspace-text-secondary, #525252);
+  font-size: var(--ui-font-meta);
+  line-height: 1;
+  background: var(--workspace-canvas, #fff);
+  border: 1px solid var(--workspace-border, #e2e2e2);
+  border-radius: var(--ui-radius-md);
+  cursor: pointer;
+}
+
+.x-science-conversation-approval-card__option:hover,
+.x-science-conversation-approval-card__option.is-selected {
+  color: var(--workspace-text, #171717);
+  background: var(--workspace-subtle, #f7f7f7);
+  border-color: var(--workspace-border-strong, #bdbdbd);
+}
+
+.x-science-conversation-approval-card__option[aria-checked='true'] {
+  box-shadow: inset 0 0 0 1px var(--workspace-accent, #171717);
+}
+
+.x-science-conversation-approval-card__success {
+  margin-top: 10px;
+  color: var(--workspace-text-secondary, #525252);
+  font-size: var(--ui-font-meta);
+}
+
+.x-science-approval-scope-drawer .arco-drawer-content {
+  border-radius: 14px 14px 0 0;
+}
+
+.x-science-approval-scope-drawer .x-science-approval-card__scope-options {
+  padding: 0;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.x-science-approval-scope-drawer .x-science-approval-card__scope-option {
+  min-height: 52px;
+  align-items: center;
+  padding: 9px 12px;
+}
+
+@media (max-width: 519px) {
+  .x-science-approval-card {
+    padding: 13px 14px 12px;
+    border-radius: var(--ui-radius-xl);
+  }
+
+  .x-science-approval-card__footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .x-science-approval-card__allow-wrap,
+  .x-science-approval-card__deny {
+    width: 100%;
+  }
+
+  .x-science-approval-card__allow {
+    min-height: 44px;
+    flex: 1;
+  }
+
+  .x-science-approval-card__scope-toggle {
+    width: 44px;
+    min-height: 44px;
+  }
+
+  .x-science-approval-card__deny {
+    min-height: 44px;
+  }
+}
+
+.x-science-approval-card__allow:focus-visible,
+.x-science-approval-card__deny:focus-visible,
+.x-science-approval-card__scope-toggle:focus-visible,
+.x-science-approval-card__scope-option:focus-visible,
+.x-science-approval-card__details summary:focus-visible {
+  outline: 2px solid var(--workspace-accent);
+  outline-offset: 3px;
+}
+.x-science-approval-card [role='alert'] {
+  color: var(--color-danger-6);
+  font-size: var(--ui-font-body);
+}

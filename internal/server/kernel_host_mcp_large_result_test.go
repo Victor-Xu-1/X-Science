@@ -6,11 +6,11 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/agentruntime"
-	kernelruntime "synon-go/internal/kernel"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/toolcontract"
+	"x-science/internal/agentruntime"
+	kernelruntime "x-science/internal/kernel"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/toolcontract"
 )
 
 func TestKernelMCPLargeEvidenceRetainsStructuredSourceSemanticsOnReplay(t *testing.T) {

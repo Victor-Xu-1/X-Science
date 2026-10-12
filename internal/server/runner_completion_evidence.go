@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 func sessionRunnerCandidateOutputTool(name string) bool {

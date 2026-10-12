@@ -9,28 +9,28 @@ import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { ArtifactReferenceWire } from '@/common/adapter/messageStreamProtocol';
 import type { TChatConversation } from '@/common/config/storage';
 import {
-  loadSynonBiomedAgents,
-  loadSynonBiomedMcpServers,
-  loadSynonBiomedSkills,
-  setSynonBiomedMcpConnectorEnabled,
-  setSynonBiomedSkillEnabled,
-  toSynonAIAssistant,
-  type SynonBiomedAgent,
-  type SynonBiomedMcpServer,
-  type SynonBiomedSkill,
-} from '@/renderer/services/synonBiomedCapabilities';
+  loadXScienceAgents,
+  loadXScienceMcpServers,
+  loadXScienceSkills,
+  setXScienceMcpConnectorEnabled,
+  setXScienceSkillEnabled,
+  toXScienceAssistant,
+  type XScienceAgent,
+  type XScienceMcpServer,
+  type XScienceSkill,
+} from '@/renderer/services/xScienceCapabilities';
 import {
-  createSynonBiomedProject,
-  loadSynonBiomedProjects,
-  updateSynonBiomedProject,
-  type SynonBiomedProject,
-} from '@/renderer/services/synonBiomedGateway';
+  createXScienceProject,
+  loadXScienceProjects,
+  updateXScienceProject,
+  type XScienceProject,
+} from '@/renderer/services/xScienceGateway';
 import {
-  loadSynonBiomedNetworkSettings,
-  updateSynonBiomedAllowlistGroups,
-  type SynonBiomedAllowlistGroup,
-} from '@/renderer/services/synonBiomedWorkspaceSettings';
-import { buildSynonBiomedConversationTitle } from '@/renderer/services/synonBiomedConversationTitle';
+  loadXScienceNetworkSettings,
+  updateXScienceAllowlistGroups,
+  type XScienceAllowlistGroup,
+} from '@/renderer/services/xScienceWorkspaceSettings';
+import { buildXScienceConversationTitle } from '@/renderer/services/xScienceConversationTitle';
 
 export type OnboardingSnapshot = {
   complete: boolean;
@@ -38,10 +38,10 @@ export type OnboardingSnapshot = {
   assistantName: string | null;
   allowedConnectorIds: string[];
   allowedSkillNames: string[];
-  networkGroups: SynonBiomedAllowlistGroup[];
+  networkGroups: XScienceAllowlistGroup[];
   disabledNetworkGroupIds: string[];
-  connectors: SynonBiomedMcpServer[];
-  skills: SynonBiomedSkill[];
+  connectors: XScienceMcpServer[];
+  skills: XScienceSkill[];
   scientificRuntimes: OnboardingScientificRuntimeOption[];
 };
 
@@ -122,7 +122,7 @@ export type OnboardingServiceOptions = {
   signal?: AbortSignal;
 };
 
-export type SynonBiomedProjectAttachmentUploadOptions = OnboardingServiceOptions & {
+export type XScienceProjectAttachmentUploadOptions = OnboardingServiceOptions & {
   pending?: OnboardingPendingUpload;
   onInitialized?: (pending: OnboardingPendingUpload) => void;
   onAbandoned?: () => void;
@@ -148,8 +148,8 @@ export type OnboardingArtifactPreparationOptions = OnboardingServiceOptions & {
   onUploadAbandoned?: (file: File) => void;
 };
 
-const PENDING_PROJECT_KEY = 'synonbiomed.onboarding.pending-project.v1';
-const SYNON_ERROR_CODE_HEADER = 'X-Synon-Error-Code';
+const PENDING_PROJECT_KEY = 'xscience.onboarding.pending-project.v1';
+const X_SCIENCE_ERROR_CODE_HEADER = 'X-Science-Error-Code';
 const AUTH_SESSION_REQUIRED_CODE = 'AUTH_SESSION_REQUIRED';
 const CSRF_INVALID_CODE = 'CSRF_INVALID';
 
@@ -193,15 +193,15 @@ export async function loadOnboardingSnapshot(options: OnboardingServiceOptions =
   const fetchImpl = options.fetchImpl ?? fetch;
   const [completion, network, connectors, skills, agents, scientificRuntimes] = await Promise.all([
     requestJson('/api/preferences/first-run-onboarding', { fetchImpl }),
-    loadSynonBiomedNetworkSettings({ fetchImpl }),
-    loadSynonBiomedMcpServers({ fetchImpl }),
-    loadSynonBiomedSkills({ fetchImpl }),
-    loadSynonBiomedAgents({ fetchImpl }),
+    loadXScienceNetworkSettings({ fetchImpl }),
+    loadXScienceMcpServers({ fetchImpl }),
+    loadXScienceSkills({ fetchImpl }),
+    loadXScienceAgents({ fetchImpl }),
     loadOnboardingScientificRuntimes({ fetchImpl }),
   ]);
   const selectedIndex = preferredOnboardingAgentIndex(agents);
   const selectedAgent = selectedIndex >= 0 ? agents[selectedIndex] : null;
-  const assistantId = selectedIndex >= 0 ? toSynonAIAssistant(agents[selectedIndex], selectedIndex).id : null;
+  const assistantId = selectedIndex >= 0 ? toXScienceAssistant(agents[selectedIndex], selectedIndex).id : null;
   const authority = assistantId ? await loadOnboardingAssistantAuthority(assistantId, fetchImpl) : null;
   const allowedConnectorSet = new Set(authority?.connectorIds ?? []);
   const allowedSkillSet = new Set(authority?.skillNames ?? []);
@@ -246,17 +246,17 @@ export async function loadOnboardingCompletion(options: OnboardingServiceOptions
 export async function ensureOnboardingProject(
   initialProjectName: string,
   options: OnboardingServiceOptions = {}
-): Promise<SynonBiomedProject> {
+): Promise<XScienceProject> {
   const fetchImpl = onboardingMutationFetch(options.fetchImpl ?? fetch);
   const pendingId = readSessionValue(PENDING_PROJECT_KEY);
   if (pendingId) {
-    const projects = await loadSynonBiomedProjects({ fetchImpl });
+    const projects = await loadXScienceProjects({ fetchImpl });
     const pending = projects.find((project) => project.projectId === pendingId);
     if (pending) return pending;
     removeSessionValue(PENDING_PROJECT_KEY);
   }
 
-  const project = await createSynonBiomedProject(
+  const project = await createXScienceProject(
     {
       name: initialProjectName.trim(),
       description: null,
@@ -275,7 +275,7 @@ export async function saveOnboardingCapabilities(
 ): Promise<void> {
   const fetchImpl = onboardingMutationFetch(options.fetchImpl ?? fetch);
   const operations: Promise<unknown>[] = [
-    updateSynonBiomedAllowlistGroups(selection.disabledNetworkGroupIds, { fetchImpl }),
+    updateXScienceAllowlistGroups(selection.disabledNetworkGroupIds, { fetchImpl }),
     saveOnboardingScientificRuntimes(selection.scientificRuntimeEnabled, { fetchImpl }),
   ];
 
@@ -285,14 +285,14 @@ export async function saveOnboardingCapabilities(
     if (!allowedConnectorIds.has(connector.id)) continue;
     const enabled = selection.connectorEnabled[connector.id] ?? connector.enabled;
     if (enabled !== connector.enabled) {
-      operations.push(setSynonBiomedMcpConnectorEnabled(connector.id, enabled, { fetchImpl }));
+      operations.push(setXScienceMcpConnectorEnabled(connector.id, enabled, { fetchImpl }));
     }
   }
   for (const skill of snapshot.skills) {
     if (!allowedSkillNames.has(skill.name)) continue;
     const enabled = selection.skillEnabled[skill.name] ?? skill.enabled;
     if (enabled !== skill.enabled) {
-      operations.push(setSynonBiomedSkillEnabled(skill.name, enabled, { fetchImpl }));
+      operations.push(setXScienceSkillEnabled(skill.name, enabled, { fetchImpl }));
     }
   }
 
@@ -377,7 +377,7 @@ export async function stageOnboardingTask(
 
   assertAuthority();
   const context = JSON.stringify({
-    schema: 'synonbiomed.onboarding-profile.v2',
+    schema: 'xscience.onboarding-profile.v2',
     researcher: {
       summary: input.profile.summary.trim() || null,
       attachments: uploadedArtifacts.map((artifact) => artifact.filename),
@@ -400,10 +400,10 @@ export async function stageOnboardingTask(
     },
   });
 
-  await updateSynonBiomedProject(
+  await updateXScienceProject(
     input.projectId,
     {
-      name: task ? buildSynonBiomedConversationTitle(task) : input.projectName.trim(),
+      name: task ? buildXScienceConversationTitle(task) : input.projectName.trim(),
       description: input.profile.summary.trim() || null,
       context,
     },
@@ -415,11 +415,11 @@ export async function stageOnboardingTask(
   if (task) {
     if (!conversationId) {
       const conversationExtra: ICreateConversationParams['extra'] & {
-        backend: 'synonbiomed';
+        backend: 'xscience';
         project_id: string;
       } = {
-        workspace: `synonbiomed://project/${encodeURIComponent(input.projectId)}`,
-        backend: 'synonbiomed',
+        workspace: `x-science://project/${encodeURIComponent(input.projectId)}`,
+        backend: 'xscience',
         project_id: input.projectId,
         custom_workspace: false,
         default_files: [],
@@ -427,7 +427,7 @@ export async function stageOnboardingTask(
         selected_session_mcp_servers: [],
       };
       const conversation = await ipcBridge.conversation.create.invoke({
-        name: buildSynonBiomedConversationTitle(task),
+        name: buildXScienceConversationTitle(task),
         assistant: {
           id: input.assistantId,
           conversation_overrides: {
@@ -569,7 +569,7 @@ export async function uploadOnboardingAttachment(
   file: File,
   options: OnboardingServiceOptions = {}
 ): Promise<OnboardingUploadedArtifact> {
-  return uploadSynonBiomedProjectAttachment(projectId, file, options);
+  return uploadXScienceProjectAttachment(projectId, file, options);
 }
 
 /**
@@ -580,10 +580,10 @@ export async function uploadOnboardingAttachment(
  * user sends; the caller supplies the resulting artifact references with the
  * first conversation message.
  */
-export async function uploadSynonBiomedProjectAttachment(
+export async function uploadXScienceProjectAttachment(
   projectId: string,
   file: File,
-  options: SynonBiomedProjectAttachmentUploadOptions = {}
+  options: XScienceProjectAttachmentUploadOptions = {}
 ): Promise<OnboardingUploadedArtifact> {
   if (!projectId.trim()) throw new Error('A project is required for attachment upload');
   if (!file.name.trim()) throw new Error('Attachment filename is required');
@@ -856,7 +856,7 @@ function enabledKeys(values: Record<string, boolean>): string[] {
     .toSorted();
 }
 
-function preferredOnboardingAgentIndex(agents: SynonBiomedAgent[]): number {
+function preferredOnboardingAgentIndex(agents: XScienceAgent[]): number {
   const operon = agents.findIndex((agent) => eligibleOnboardingAgent(agent) && isOperon(agent));
   if (operon >= 0) return operon;
   const unrestricted = agents.findIndex((agent) => eligibleOnboardingAgent(agent) && agent.unrestricted);
@@ -866,11 +866,11 @@ function preferredOnboardingAgentIndex(agents: SynonBiomedAgent[]): number {
   return agents.findIndex((agent) => agent.enabled && !agent.userHidden);
 }
 
-function eligibleOnboardingAgent(agent: SynonBiomedAgent): boolean {
+function eligibleOnboardingAgent(agent: XScienceAgent): boolean {
   return agent.enabled && agent.healthy && !agent.userHidden;
 }
 
-function isOperon(agent: Pick<SynonBiomedAgent, 'name'>): boolean {
+function isOperon(agent: Pick<XScienceAgent, 'name'>): boolean {
   return agent.name.trim().toUpperCase() === 'OPERON';
 }
 
@@ -944,7 +944,7 @@ function onboardingMutationFetch(fetchImpl: typeof fetch): typeof fetch {
       method: init?.method ?? (input instanceof Request ? input.method : 'GET'),
       path,
       status: response.status,
-      body: { code: response.headers.get(SYNON_ERROR_CODE_HEADER) ?? '' },
+      body: { code: response.headers.get(X_SCIENCE_ERROR_CODE_HEADER) ?? '' },
     });
   };
 }

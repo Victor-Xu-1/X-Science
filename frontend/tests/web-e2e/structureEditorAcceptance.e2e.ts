@@ -6,9 +6,9 @@ import {
   openScientificArtifact,
   removeScientificWorkspace,
   uploadScientificArtifact,
-} from './synonBiomedScientificFixture';
+} from './xScienceScientificFixture';
 
-const PDB_FIXTURE = `HEADER    SYNON BIOMED READ ONLY INTERACTION ACCEPTANCE
+const PDB_FIXTURE = `HEADER    XSCIENCE BIOMED READ ONLY INTERACTION ACCEPTANCE
 ATOM      1  ND2 ASN A  42       0.000   0.000   0.000  1.00 20.00           N
 ATOM      2  CA  GLY A  43       3.800   3.000   0.000  1.00 20.00           C
 HETATM    3  O1  ATP C 101       2.800   0.000   0.000  1.00 20.00           O
@@ -18,7 +18,7 @@ TER
 END
 `;
 
-const PDB_ENSEMBLE_FIXTURE = `HEADER    SYNON BIOMED MULTI MODEL ACCEPTANCE
+const PDB_ENSEMBLE_FIXTURE = `HEADER    XSCIENCE BIOMED MULTI MODEL ACCEPTANCE
 MODEL        1
 HETATM    1  C1  LIG L   1      -1.450   0.000   0.000  1.00 20.00           C
 HETATM    2  C2  LIG L   1       0.000   0.000   0.000  1.00 20.00           C
@@ -47,12 +47,12 @@ test.use({ viewport: { width: 1440, height: 900 } });
 test('keeps structure preview read-only and displays interactions through the real Mol* renderer', async ({ page }) => {
   const structureErrors: string[] = [];
   page.on('console', (message) => {
-    if (message.type() === 'error' && /SynonBiomedStructureViewer|Mol\*|removeChild/iu.test(message.text())) {
+    if (message.type() === 'error' && /XScienceStructureViewer|Mol\*|removeChild/iu.test(message.text())) {
       structureErrors.push(message.text());
     }
   });
   page.on('pageerror', (error) => {
-    if (/SynonBiomedStructureViewer|Mol\*|removeChild/iu.test(error.message)) structureErrors.push(error.message);
+    if (/XScienceStructureViewer|Mol\*|removeChild/iu.test(error.message)) structureErrors.push(error.message);
   });
 
   await loginToScientificWorkbench(page);
@@ -74,7 +74,7 @@ test('keeps structure preview read-only and displays interactions through the re
 
     // One pocket action owns residue, interaction, and distance rendering;
     // the retired independent toggles must not reintroduce competing state.
-    const pocketMode = region.getByTestId('synon-biomed-molstar-quick-pocket');
+    const pocketMode = region.getByTestId('x-science-molstar-quick-pocket');
     await expect(pocketMode).toBeEnabled();
     if ((await pocketMode.getAttribute('aria-pressed')) === 'true') {
       await pocketMode.click();
@@ -86,7 +86,7 @@ test('keeps structure preview read-only and displays interactions through the re
     const canvas = region.locator('canvas');
     await expect(canvas).toHaveCount(1);
     await expect.poll(async () => (await inspectRenderedPixels(canvas)).nonWhite).toBeGreaterThan(100);
-    const quickToolbar = region.getByTestId('synon-biomed-molstar-quick-toolbar');
+    const quickToolbar = region.getByTestId('x-science-molstar-quick-toolbar');
     expect(await quickToolbar.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
     expect(structureErrors).toEqual([]);
   } finally {
@@ -97,12 +97,12 @@ test('keeps structure preview read-only and displays interactions through the re
 test('switches a multi-model complex inside the built-in 3D preview', async ({ page }) => {
   const structureErrors: string[] = [];
   page.on('console', (message) => {
-    if (message.type() === 'error' && /SynonBiomedStructureViewer|Mol\*|removeChild/iu.test(message.text())) {
+    if (message.type() === 'error' && /XScienceStructureViewer|Mol\*|removeChild/iu.test(message.text())) {
       structureErrors.push(message.text());
     }
   });
   page.on('pageerror', (error) => {
-    if (/SynonBiomedStructureViewer|Mol\*|removeChild/iu.test(error.message)) structureErrors.push(error.message);
+    if (/XScienceStructureViewer|Mol\*|removeChild/iu.test(error.message)) structureErrors.push(error.message);
   });
 
   await loginToScientificWorkbench(page);
@@ -152,7 +152,7 @@ test('persists a native structure snapshot without changing its coordinate versi
     const region = page.getByRole('region', { name: /3D 结构预览/u });
     await expect(region).toBeVisible();
     await region.getByRole('button', { name: '展开左侧工具栏', exact: true }).click();
-    const capture = region.getByTestId('synon-biomed-molstar-quick-snapshot');
+    const capture = region.getByTestId('x-science-molstar-quick-snapshot');
     await expect(capture).toBeEnabled();
     await expect
       .poll(async () => (await inspectRenderedPixels(region.locator('canvas'))).nonWhite)
@@ -187,7 +187,7 @@ test('persists a native structure snapshot without changing its coordinate versi
     expect(await (await page.request.get(imagePath)).body()).toEqual(imageBytes);
     const reloadedRegion = page.getByRole('region', { name: /3D 结构预览/u });
     await expect(reloadedRegion).toBeVisible();
-    await expect(reloadedRegion.getByTestId('synon-biomed-molstar-quick-snapshot')).toBeEnabled();
+    await expect(reloadedRegion.getByTestId('x-science-molstar-quick-snapshot')).toBeEnabled();
     await expect
       .poll(async () => (await inspectRenderedPixels(reloadedRegion.locator('canvas'))).nonWhite)
       .toBeGreaterThan(100);

@@ -10,7 +10,7 @@ Skill/documentation content is additionally available under CC-BY-4.0.
 Existing file-level declarations and third-party attributions remain in force.
 
 The following directories retain or adapt identified upstream material.
-Modified Markdown files carry a short modification notice. Synon changes
+Modified Markdown files carry a short modification notice. X-Science changes
 include runtime/tool routing, scientific handoffs, source-field conventions
 and environment-specific guidance. The table below identifies the upstream
 directories at the pinned source revision.
@@ -57,6 +57,6 @@ The additional `complexa-slurm` Skill is retained from the earlier upstream
 revision `4e8fda769bd773538cb7168c849bd712c1b51b7b`, directory
 `open-models-skills/proteina-complexa/complexa-slurm`. That revision's four
 license/notice texts match this retained bundle. Its five source files and
-Synon adaptations are covered by the scoped notice at
-`skills/synonbiomed/complexa-slurm/THIRD_PARTY_NOTICES.md`; the default revision
+X-Science adaptations are covered by the scoped notice at
+`skills/x-science/complexa-slurm/THIRD_PARTY_NOTICES.md`; the default revision
 above is not asserted as the source of this additional directory.

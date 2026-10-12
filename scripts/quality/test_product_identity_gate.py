@@ -19,7 +19,7 @@ def write_json(path: pathlib.Path, value: object) -> None:
 
 
 def identity() -> dict:
-    return {"schema": gate.IDENTITY_SCHEMA, "display_name": "X-Science", "version": "0.1.0", "machine_slug": "synon-biomed"}
+    return {"schema": gate.IDENTITY_SCHEMA, "display_name": "X-Science", "version": "0.1.0", "machine_slug": "x-science"}
 
 
 def reference() -> dict:
@@ -40,14 +40,14 @@ def release_policy() -> dict:
         "repository": "Victor-Xu-1/X-Science",
         "product_identity_authority": "product-identity.json",
         "candidate_manifest": {
-            "schema": "synon.release-candidate.v1",
+            "schema": "x-science.release-candidate.v1",
             "workflow": ".github/workflows/quality.yml",
             "artifact_name_prefix": "x-science-release-candidate-",
             "required_platforms": ["linux-amd64", "windows-amd64"],
             "build_once": True,
         },
         "authorization_receipt": {
-            "schema": "synon.release-authorization-receipt.v1",
+            "schema": "x-science.release-authorization-receipt.v1",
             "tracked_in_source": False,
             "signature_algorithm": "hmac-sha256",
             "max_ttl_seconds": 86400,
@@ -128,7 +128,7 @@ def seed(repo: pathlib.Path, version: str = "0.1.0", commit: bool = False) -> No
     write_json(repo / "docs/governance/product-identity-consumer-matrix.json", matrix())
     write_json(repo / "package.json", {"version": version, "description": "X-Science workbench"})
     (repo / "version.go").write_text(f'const Version = "{version}"\nconst Name = "X-Science"\n', encoding="utf-8")
-    (repo / "go.mod").write_text("module synon-go\n\ngo 1.24\n", encoding="utf-8")
+    (repo / "go.mod").write_text("module x-science\n\ngo 1.24\n", encoding="utf-8")
     (repo / "identity.go").write_text(
         'package productidentity\n\nimport (\n    _ "embed"\n    "encoding/json"\n)\n\n'
         '//go:embed product-identity.json\nvar embeddedAuthority []byte\n\n'
@@ -139,19 +139,19 @@ def seed(repo: pathlib.Path, version: str = "0.1.0", commit: bool = False) -> No
     )
     (repo / "identity_test.go").write_text(
         'package productidentity\nimport "testing"\n'
-        'func TestCurrentUsesRootProductIdentityAuthority(t *testing.T) { value := Current(); if value.DisplayName != "X-Science" || value.Version != "0.1.0" || value.MachineSlug != "synon-biomed" { t.Fatal(value) } }\n',
+        'func TestCurrentUsesRootProductIdentityAuthority(t *testing.T) { value := Current(); if value.DisplayName != "X-Science" || value.Version != "0.1.0" || value.MachineSlug != "x-science" { t.Fatal(value) } }\n',
         encoding="utf-8",
     )
     buildinfo = repo / "internal/buildinfo"; buildinfo.mkdir(parents=True, exist_ok=True)
     (buildinfo / "buildinfo.go").write_text(
-        'package buildinfo\nimport productidentity "synon-go"\n'
+        'package buildinfo\nimport productidentity "x-science"\n'
         'type Info struct { Name, Version, MachineSlug string }\n'
         'func Release() Info { value := productidentity.Current(); return Info{Name: value.DisplayName, Version: value.Version, MachineSlug: value.MachineSlug} }\n',
         encoding="utf-8",
     )
     (buildinfo / "buildinfo_test.go").write_text(
         'package buildinfo\nimport "testing"\n'
-        'func TestReleaseInfoUsesSynonBiomedIdentity(t *testing.T) { value := Release(); if value.Name != "X-Science" || value.Version != "0.1.0" || value.MachineSlug != "synon-biomed" { t.Fatal(value) } }\n',
+        'func TestReleaseInfoUsesXScienceIdentity(t *testing.T) { value := Release(); if value.Name != "X-Science" || value.Version != "0.1.0" || value.MachineSlug != "x-science" { t.Fatal(value) } }\n',
         encoding="utf-8",
     )
     (repo / "README.md").write_text("# X-Science v0.1.0\n", encoding="utf-8")
@@ -170,12 +170,12 @@ class ProductIdentityGateTests(unittest.TestCase):
         name = gate._load(ROOT / "product-identity.json", "test")["display_name"]
         display_messages = {
             "scripts/dev/install-source-cli.sh": f"[{name} install] next command: x-science start",
-            "scripts/dev/synon": f"[{name}] source hosts stopped",
-            "scripts/backup-release.sh": '$(synon_release_product_name)',
-            "scripts/rollback-release.sh": '$(synon_release_product_name)',
-            "scripts/uninstall-release.sh": '$(synon_release_product_name)',
-            "scripts/install-release.sh": '$(synon_release_product_name)',
-            "scripts/install-systemd-user.sh": '$(synon_release_product_name)',
+            "scripts/dev/x-science": f"[{name}] source hosts stopped",
+            "scripts/backup-release.sh": '$(x_science_release_product_name)',
+            "scripts/rollback-release.sh": '$(x_science_release_product_name)',
+            "scripts/uninstall-release.sh": '$(x_science_release_product_name)',
+            "scripts/install-release.sh": '$(x_science_release_product_name)',
+            "scripts/install-systemd-user.sh": '$(x_science_release_product_name)',
             "scripts/uninstall-systemd-user.sh": f"{name} user service removed",
             "scripts/install-release.ps1": '$productName installed to',
             "scripts/manage-release.ps1": '$productName release backed up to',
@@ -185,22 +185,22 @@ class ProductIdentityGateTests(unittest.TestCase):
             with self.subTest(path=relative):
                 source = (ROOT / relative).read_text(encoding="utf-8")
                 self.assertIn(message, source)
-                self.assertNotIn("[synon]", source)
-                self.assertNotIn("[synon-install]", source)
+                self.assertNotIn("[xscience]", source)
+                self.assertNotIn("[x-science-install]", source)
         # Native executable and existing launcher/state identifiers remain
         # functional compatibility contracts, not user-visible product names.
-        launcher = (ROOT / "scripts/dev/synon").read_text(encoding="utf-8")
-        self.assertIn("SYNON_SOURCE_STATE_DIR", launcher)
-        self.assertIn("synon-biomed-source-quickstart", launcher)
-        self.assertIn("synon command remains a compatibility alias", launcher)
-        self.assertIn("synon-go", (ROOT / "scripts/install-release.sh").read_text(encoding="utf-8"))
+        launcher = (ROOT / "scripts/dev/x-science").read_text(encoding="utf-8")
+        self.assertIn("X_SCIENCE_SOURCE_STATE_DIR", launcher)
+        self.assertIn("x-science-source-quickstart", launcher)
+        self.assertIn("xscience command remains a compatibility alias", launcher)
+        self.assertIn("x-science", (ROOT / "scripts/install-release.sh").read_text(encoding="utf-8"))
         displayed = subprocess.check_output(
-            ["bash", "-c", 'source scripts/release-path-policy.sh; synon_release_product_name'],
+            ["bash", "-c", 'source scripts/release-path-policy.sh; x_science_release_product_name'],
             cwd=ROOT, text=True,
         ).strip()
         self.assertEqual(displayed, name)
         self.assertEqual(
-            (ROOT / "docs/engineering/synon-harness-conformance.md").read_text(encoding="utf-8").splitlines()[0],
+            (ROOT / "docs/engineering/x-science-harness-conformance.md").read_text(encoding="utf-8").splitlines()[0],
             f"# {name} Harness conformance",
         )
 
@@ -259,7 +259,7 @@ class ProductIdentityGateTests(unittest.TestCase):
         )
         self.assertIn(
             {
-                "glob": "docs/licenses/synon-scientific-runtime-warmups/NOTICE.md",
+                "glob": "docs/licenses/x-science-scientific-runtime-warmups/NOTICE.md",
                 "class": "dependency-name-or-version",
                 "disposition": "documented third-party scientific runtime dependency versions",
             },
@@ -270,7 +270,7 @@ class ProductIdentityGateTests(unittest.TestCase):
         rename_map = load("docs/governance/product-rename-compatibility-map.json")
         self.assertEqual(
             rename_map["status"],
-            "identity-projections-aligned-external-release-authorization-required",
+            "canonical-namespace-with-bounded-state-upgrade",
         )
         # Historical task snapshots are not product identity consumers or
         # clone prerequisites. Their absence must not weaken the real gate.
@@ -339,14 +339,14 @@ class ProductIdentityGateTests(unittest.TestCase):
     def test_retired_versioned_runtime_namespace_is_ineligible(self):
         with tempfile.TemporaryDirectory() as directory:
             repo = pathlib.Path(directory); seed(repo)
-            retired = repo / "skills/synonbiomed-v1.1/example/SKILL.md"
+            retired = repo / "skills/xscience-v1.1/example/SKILL.md"
             retired.parent.mkdir(parents=True)
             retired.write_text("# retired namespace\n", encoding="utf-8")
             result, code = gate.evaluate(repo, identity(), reference(), release_policy(), matrix(), "candidate")
             self.assertEqual(code, 3)
             self.assertIn(
                 {
-                    "path": "skills/synonbiomed-v1.1/example/SKILL.md",
+                    "path": "skills/xscience-v1.1/example/SKILL.md",
                     "class": "product-version-path-drift",
                     "surface": "retired-versioned-runtime-namespace",
                 },
@@ -402,7 +402,7 @@ class ProductIdentityGateTests(unittest.TestCase):
             repo = pathlib.Path(directory); seed(repo)
             (repo / "internal/buildinfo/buildinfo.go").write_text(
                 'package buildinfo\ntype Info struct { Name, Version, MachineSlug string }\n'
-                'func Release() Info { return Info{Name: "X-Science", Version: "4.0.2", MachineSlug: "synon-go"} }\n',
+                'func Release() Info { return Info{Name: "X-Science", Version: "4.0.2", MachineSlug: "x-science"} }\n',
                 encoding="utf-8",
             )
             result, code = gate.evaluate(repo, identity(), reference(), release_policy(), matrix(), "candidate")

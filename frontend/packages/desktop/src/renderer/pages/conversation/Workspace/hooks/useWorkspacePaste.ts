@@ -9,7 +9,7 @@ import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import { configService } from '@/common/config/configService';
 import { usePasteService } from '@/renderer/hooks/file/usePasteService';
 import { UPLOAD_ABORTED_ERROR, uploadFileViaHttp } from '@/renderer/services/FileService';
-import { uploadSynonBiomedArtifact } from '@/renderer/services/synonBiomedWorkspaceApi';
+import { uploadXScienceArtifact } from '@/renderer/services/xScienceWorkspaceApi';
 import { trackUpload } from '@/renderer/hooks/file/useUploadState';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -122,8 +122,8 @@ export function useWorkspacePaste(options: UseWorkspacePasteOptions) {
               onAbort: () => controller.abort(),
             });
             try {
-              if (workspace.startsWith('synonbiomed://')) {
-                await uploadSynonBiomedArtifact(file, conversation_id, tracker.onProgress, {
+              if (workspace.startsWith('x-science://')) {
+                await uploadXScienceArtifact(file, conversation_id, tracker.onProgress, {
                   signal: controller.signal,
                 });
               } else {

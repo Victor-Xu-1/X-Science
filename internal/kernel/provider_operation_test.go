@@ -90,7 +90,7 @@ PROVIDER = FixtureProvider
 		Operation: "create",
 		Request: map[string]any{
 			"spec": map[string]any{"image": "fixture"}, "install_id": "operation-install",
-			"tags": map[string]string{"synonbiomed-job": "job-fixture"},
+			"tags": map[string]string{"xscience-job": "job-fixture"},
 		},
 	})
 	if err != nil {

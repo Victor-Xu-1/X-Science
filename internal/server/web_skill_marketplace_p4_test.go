@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const marketplaceTestSHA = "0123456789abcdef0123456789abcdef01234567"

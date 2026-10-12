@@ -193,7 +193,7 @@
     },
     "staleRunningAttempts": []
   },
-  "schema": "synon.science-task-audit.v1",
+  "schema": "x-science.science-task-audit.v1",
   "status": "pass",
   "taskId": "kras-g12c-design",
   "tools": {

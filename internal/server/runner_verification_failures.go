@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/providers"
+	"x-science/internal/agentruntime"
+	"x-science/internal/providers"
 )
 
 // Only reviewer protocol, provider availability and bounded generation limits

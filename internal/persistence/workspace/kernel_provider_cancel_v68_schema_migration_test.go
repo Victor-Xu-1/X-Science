@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
-	transcriptstore "synon-go/internal/persistence/transcript"
 	"testing"
 	"time"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func providerCancellationV67Fixture(t *testing.T) (*Store, KernelExecutionBackend, DetachedKernelExecution) {

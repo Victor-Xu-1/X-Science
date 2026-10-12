@@ -1,7 +1,7 @@
 package server
 
 import (
-	"synon-go/internal/toolprogress"
+	"x-science/internal/toolprogress"
 	"time"
 )
 

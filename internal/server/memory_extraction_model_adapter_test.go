@@ -11,11 +11,11 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/memoryextract"
-	"synon-go/internal/memorypolicy"
-	"synon-go/internal/memorytools"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	"x-science/internal/memoryextract"
+	"x-science/internal/memorypolicy"
+	"x-science/internal/memorytools"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const memoryExtractionTestModel = "memory-test-model"

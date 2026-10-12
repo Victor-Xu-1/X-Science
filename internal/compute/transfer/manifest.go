@@ -17,7 +17,7 @@ import (
 	"unicode/utf8"
 )
 
-const ManifestSchema = "synon.compute-output-manifest.v1"
+const ManifestSchema = "x-science.compute-output-manifest.v1"
 const manifestPreviewRecords = 32
 
 var modifiedPattern = regexp.MustCompile(`^-?[0-9]{1,20}(?:\.[0-9]{1,12})?$`)

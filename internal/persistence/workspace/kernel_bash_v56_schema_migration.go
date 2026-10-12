@@ -11,7 +11,7 @@ import (
 const (
 	kernelBashV56CallbackID        = "kernel-bash-v56-rebuild-operation-head"
 	kernelBashV56PreflightIdentity = "kernel-bash-operation-head-v1"
-	kernelBashV56RuleSpec          = "synon.workspace.kernel-bash.v56"
+	kernelBashV56RuleSpec          = "x-science.workspace.kernel-bash.v56"
 )
 
 var kernelBashV56Migration = versionedSchemaMigration{

@@ -12,14 +12,14 @@ if (( $# != 0 )); then
 fi
 
 config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
-unit_dir="${SYNON_SYSTEMD_USER_DIR:-$config_home/systemd/user}"
-unit_name="${SYNON_SYSTEMD_UNIT_NAME:-synon-go.service}"
+unit_dir="${X_SCIENCE_SYSTEMD_USER_DIR:-$config_home/systemd/user}"
+unit_name="${X_SCIENCE_SYSTEMD_UNIT_NAME:-x-science.service}"
 if [[ ! "$unit_name" =~ ^[A-Za-z0-9_.@-]+\.service$ ]]; then
 	echo "invalid systemd user unit name: $unit_name" >&2
 	exit 1
 fi
 unit_path="$(realpath -m "$unit_dir/$unit_name")"
-systemctl_bin="${SYNON_SYSTEMCTL:-systemctl}"
+systemctl_bin="${X_SCIENCE_SYSTEMCTL:-systemctl}"
 if [[ ! -f "$unit_path" ]]; then
 	echo "X-Science user service is not installed: $unit_path" >&2
 	exit 1

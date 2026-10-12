@@ -15,8 +15,8 @@ import (
 	"testing"
 	"time"
 
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestRuntimeSystemAndFeedbackCompatibilityAPI(t *testing.T) {
@@ -33,8 +33,8 @@ func TestRuntimeSystemAndFeedbackCompatibilityAPI(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, frame := range []workspace.CreateFrameInput{
-		{ID: "frame-1", ProjectID: "project-1", AgentName: "synon", Status: "failed", ConversationType: "task"},
-		{ID: "frame-2", ProjectID: "project-2", AgentName: "synon", Status: "failed", ConversationType: "task"},
+		{ID: "frame-1", ProjectID: "project-1", AgentName: "xscience", Status: "failed", ConversationType: "task"},
+		{ID: "frame-2", ProjectID: "project-2", AgentName: "xscience", Status: "failed", ConversationType: "task"},
 	} {
 		if _, err := store.CreateFrame(frame); err != nil {
 			t.Fatal(err)
@@ -85,8 +85,8 @@ func TestRuntimeSystemAndFeedbackCompatibilityAPI(t *testing.T) {
 	}
 	invalidEmail := httptest.NewRecorder()
 	invalidEmailRequest := newLoopbackTestRequest(http.MethodGet, "/api/me", nil)
-	invalidEmailRequest.Header.Set("X-Synon-User-Id", "user-1")
-	invalidEmailRequest.Header["X-Synon-User-Email"] = []string{"victim@example.test\r\nX-Injected: true"}
+	invalidEmailRequest.Header.Set("X-Science-User-Id", "user-1")
+	invalidEmailRequest.Header["X-Science-User-Email"] = []string{"victim@example.test\r\nX-Injected: true"}
 	app.ServeHTTP(invalidEmail, invalidEmailRequest)
 	if invalidEmail.Code != http.StatusBadRequest || strings.Contains(invalidEmail.Header().Get("X-Injected"), "true") {
 		t.Fatalf("invalid email = %d headers=%#v body=%s", invalidEmail.Code, invalidEmail.Header(), invalidEmail.Body.String())
@@ -94,7 +94,7 @@ func TestRuntimeSystemAndFeedbackCompatibilityAPI(t *testing.T) {
 
 	environments := runtimeCompatJSON(t, app, http.MethodGet, "/api/environments/status", "user-1", nil, http.StatusOK)
 	items, ok := environments["environments"].([]any)
-	if !ok || len(items) == 0 || items[0].(map[string]any)["env_name"] != "synon-go-runtime" || items[0].(map[string]any)["status"] != "ready" {
+	if !ok || len(items) == 0 || items[0].(map[string]any)["env_name"] != "x-science-runtime" || items[0].(map[string]any)["status"] != "ready" {
 		t.Fatalf("environment status=%#v", environments)
 	}
 	kernelStatus := items[len(items)-1].(map[string]any)
@@ -151,7 +151,7 @@ func TestRuntimeSystemAndFeedbackCompatibilityAPI(t *testing.T) {
 	logoutResponse := httptest.NewRecorder()
 	logoutRequest := newLoopbackTestRequest(http.MethodPost, "/api/auth/logout", bytes.NewReader([]byte(`{}`)))
 	logoutRequest.Header.Set("Content-Type", "application/json")
-	logoutRequest.Header.Set("X-Synon-User-Id", "user-1")
+	logoutRequest.Header.Set("X-Science-User-Id", "user-1")
 	app.ServeHTTP(logoutResponse, logoutRequest)
 	if logoutResponse.Code != http.StatusOK || !strings.Contains(logoutResponse.Header().Get("Set-Cookie"), "Max-Age=0") {
 		t.Fatalf("logout status=%d cookie=%q body=%s", logoutResponse.Code, logoutResponse.Header().Get("Set-Cookie"), logoutResponse.Body.String())
@@ -195,9 +195,9 @@ func TestKernelDiscoveryFailureIsVisibleAndRedacted(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			t.Setenv("SYNON_KERNEL_ASSET_ROOT", assetRoot)
-			t.Setenv("SYNON_KERNEL_PYTHON", executable)
-			t.Setenv("SYNON_MICROMAMBA", executable)
+			t.Setenv("X_SCIENCE_KERNEL_ASSET_ROOT", assetRoot)
+			t.Setenv("X_SCIENCE_KERNEL_PYTHON", executable)
+			t.Setenv("X_SCIENCE_MICROMAMBA", executable)
 
 			store, err := workspace.Open(filepath.Join(t.TempDir(), "workspace.db"))
 			if err != nil {
@@ -269,7 +269,7 @@ func TestKernelConfinementFailureControlsStatusRetryAndDiagnostics(t *testing.T)
 	status := runtimeCompatJSON(t, app.Handler(), http.MethodGet, "/api/environments/status", "user-1", nil, http.StatusOK)
 	for _, raw := range status["environments"].([]any)[1:] {
 		environment := raw.(map[string]any)
-		if environment["env_name"] == "synon-biomed-python" {
+		if environment["env_name"] == "x-science-python" {
 			if environment["status"] != "failed" || environment["failure_source"] != "runtime" ||
 				environment["error"] != "managed Python scientific runtime is unavailable" {
 				t.Fatalf("managed python environment=%#v", environment)
@@ -289,13 +289,13 @@ func TestKernelConfinementFailureControlsStatusRetryAndDiagnostics(t *testing.T)
 	retry := runtimeCompatJSON(t, app.Handler(), http.MethodPost, "/api/environments/retry", "user-1", map[string]any{}, http.StatusOK)
 	if retryCalls != 1 || len(retry["retried"].([]any)) != 3 || retry["disabled_reason"] != nil ||
 		len(retry["repair_errors"].(map[string]any)) != 1 ||
-		stringValue(retry["repair_errors"].(map[string]any)["synon-biomed-python"]) != "managed Python scientific runtime repair failed" {
+		stringValue(retry["repair_errors"].(map[string]any)["x-science-python"]) != "managed Python scientific runtime repair failed" {
 		t.Fatalf("confinement retry=%#v calls=%d", retry, retryCalls)
 	}
 	after := runtimeCompatJSON(t, app.Handler(), http.MethodGet, "/api/environments/status", "user-1", nil, http.StatusOK)
 	for _, raw := range after["environments"].([]any)[1:] {
 		environment := raw.(map[string]any)
-		if environment["env_name"] == "synon-biomed-python" {
+		if environment["env_name"] == "x-science-python" {
 			if environment["status"] != "failed" || environment["failure_source"] != "runtime" {
 				t.Fatalf("managed python environment after retry=%#v", environment)
 			}
@@ -424,9 +424,9 @@ func assertEnvironmentRetryRepairsFailedAssets(t *testing.T, root string) {
 	repairApp := repairServer.Handler()
 	retry := runtimeCompatJSON(t, repairApp, http.MethodPost, "/api/environments/retry", "user-1", map[string]any{}, http.StatusOK)
 	retried := retry["retried"].([]any)
-	if len(retried) != 2 || retried[0] != "python-kernel-sidecar" || retried[1] != "synon-biomed-python" ||
+	if len(retried) != 2 || retried[0] != "python-kernel-sidecar" || retried[1] != "x-science-python" ||
 		retry["disabled_reason"] != nil ||
-		stringValue(retry["repair_errors"].(map[string]any)["synon-biomed-python"]) != "managed Python scientific runtime repair failed" {
+		stringValue(retry["repair_errors"].(map[string]any)["x-science-python"]) != "managed Python scientific runtime repair failed" {
 		t.Fatalf("repair retry=%#v", retry)
 	}
 	status := runtimeCompatJSON(t, repairApp, http.MethodGet, "/api/environments/status", "user-1", nil, http.StatusOK)
@@ -452,7 +452,7 @@ func runtimeCompatJSON(t *testing.T, app http.Handler, method, target, userID st
 		request.Header.Set("Content-Type", "application/json")
 	}
 	if userID != "" {
-		request.Header.Set("X-Synon-User-Id", userID)
+		request.Header.Set("X-Science-User-Id", userID)
 	}
 	app.ServeHTTP(response, request)
 	if response.Code != wantStatus {

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/skills"
+	"x-science/internal/skills"
 )
 
 func TestDocumentWorkbenchSkillIsWorkspaceBoundedAndUsesManagedExecution(t *testing.T) {
@@ -20,8 +20,8 @@ func TestDocumentWorkbenchSkillIsWorkspaceBoundedAndUsesManagedExecution(t *test
 		t.Fatal("locate repository root")
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
-	skillRoot := filepath.Join(repositoryRoot, "skills", "synonbiomed", "document-workbench")
-	manifestContent, err := os.ReadFile(filepath.Join(repositoryRoot, "assets", "synonbiomed", "skills.manifest.json"))
+	skillRoot := filepath.Join(repositoryRoot, "skills", "x-science", "document-workbench")
+	manifestContent, err := os.ReadFile(filepath.Join(repositoryRoot, "assets", "x-science", "skills.manifest.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +92,7 @@ func TestDocumentWorkbenchSkillIsWorkspaceBoundedAndUsesManagedExecution(t *test
 	}
 	for _, marker := range []string{
 		`manage_environments(mode="list"`, `manage_packages(..., use_pip=true)`,
-		`${SYNON_SKILL_DIR}/scripts/document_workbench.py --help`, "at most one materially corrected call",
+		`${X_SCIENCE_SKILL_DIR}/scripts/document_workbench.py --help`, "at most one materially corrected call",
 	} {
 		if !strings.Contains(string(skillText), marker) {
 			t.Errorf("document-workbench managed execution boundary is missing: %s", marker)

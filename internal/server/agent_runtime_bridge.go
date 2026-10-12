@@ -1,8 +1,8 @@
 package server
 
 import (
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/providers"
+	"x-science/internal/agentruntime"
+	"x-science/internal/providers"
 )
 
 const agentRuntimeApprovalNamespace = "agent-runtime-approvals"

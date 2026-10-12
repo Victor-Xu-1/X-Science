@@ -3,8 +3,8 @@ package server
 import (
 	"context"
 	"reflect"
-	"synon-go/internal/agentruntime"
-	kernelruntime "synon-go/internal/kernel"
+	"x-science/internal/agentruntime"
+	kernelruntime "x-science/internal/kernel"
 	"testing"
 )
 

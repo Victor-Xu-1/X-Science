@@ -5,7 +5,7 @@ package server
 import (
 	"os/exec"
 
-	"synon-go/internal/processsupervisor"
+	"x-science/internal/processsupervisor"
 )
 
 type runnerProcess struct {

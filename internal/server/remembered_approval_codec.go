@@ -3,26 +3,26 @@ package server
 import (
 	"encoding/json"
 	"sort"
-	"synon-go/internal/synonlink"
+	"x-science/internal/xsciencelink"
 	"time"
 )
 
-func rememberedApprovalDecisionsFromSetting(value any) map[string]synonlink.RememberedApprovalDecision {
+func rememberedApprovalDecisionsFromSetting(value any) map[string]xsciencelink.RememberedApprovalDecision {
 	if value == nil {
-		return map[string]synonlink.RememberedApprovalDecision{}
+		return map[string]xsciencelink.RememberedApprovalDecision{}
 	}
 	raw, err := json.Marshal(value)
 	if err != nil {
-		return map[string]synonlink.RememberedApprovalDecision{}
+		return map[string]xsciencelink.RememberedApprovalDecision{}
 	}
-	decisions := map[string]synonlink.RememberedApprovalDecision{}
+	decisions := map[string]xsciencelink.RememberedApprovalDecision{}
 	if err := json.Unmarshal(raw, &decisions); err != nil {
-		return map[string]synonlink.RememberedApprovalDecision{}
+		return map[string]xsciencelink.RememberedApprovalDecision{}
 	}
 	return decisions
 }
 
-func rememberedApprovalDecisionsToSetting(decisions map[string]synonlink.RememberedApprovalDecision) map[string]any {
+func rememberedApprovalDecisionsToSetting(decisions map[string]xsciencelink.RememberedApprovalDecision) map[string]any {
 	result := make(map[string]any, len(decisions))
 	keys := make([]string, 0, len(decisions))
 	for key := range decisions {

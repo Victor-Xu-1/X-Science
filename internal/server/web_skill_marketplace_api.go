@@ -22,8 +22,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"synon-go/internal/buildinfo"
-	"synon-go/internal/skills"
+	"x-science/internal/buildinfo"
+	"x-science/internal/skills"
 )
 
 const (
@@ -385,7 +385,7 @@ func (s *Server) downloadGitHubSkillRepository(
 	if len(raw) == 0 || len(raw) > maxMarketplaceArchiveBytes {
 		return nil, nil, errors.New("GitHub archive exceeds the 50MB download limit")
 	}
-	staging, err := os.MkdirTemp("", "synon-skill-marketplace-")
+	staging, err := os.MkdirTemp("", "x-science-skill-marketplace-")
 	if err != nil {
 		return nil, nil, err
 	}

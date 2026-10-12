@@ -56,7 +56,7 @@ interface AuthContextValue {
 }
 
 type AuthContextHost = Window & {
-  __synonBiomedAuthContextV1?: React.Context<AuthContextValue | undefined>;
+  __xScienceAuthContextV1?: React.Context<AuthContextValue | undefined>;
 };
 
 // Vite can reconnect after the local backend or WSL restarts without replacing
@@ -65,8 +65,8 @@ type AuthContextHost = Window & {
 // owns the previous module instance.
 const authContextHost = typeof window === 'undefined' ? undefined : (window as AuthContextHost);
 export const AuthContext =
-  authContextHost?.__synonBiomedAuthContextV1 ?? createContext<AuthContextValue | undefined>(undefined);
-if (authContextHost) authContextHost.__synonBiomedAuthContextV1 = AuthContext;
+  authContextHost?.__xScienceAuthContextV1 ?? createContext<AuthContextValue | undefined>(undefined);
+if (authContextHost) authContextHost.__xScienceAuthContextV1 = AuthContext;
 
 const AUTH_USER_ENDPOINT = '/api/auth/user';
 const AUTH_REFRESH_TIMEOUT_MS = 8_000;

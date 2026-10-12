@@ -15,8 +15,8 @@ import (
 
 	"strings"
 
-	sessionstore "synon-go/internal/persistence/sessions"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	sessionstore "x-science/internal/persistence/sessions"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func (s *Server) unresolvedSessionRunnerArtifactReferenceCount(
@@ -461,7 +461,7 @@ func (s *Server) sessionRunnerResearchArtifactManifestLedger(
 		entries = entries[:maxLedgerEntries]
 	}
 	payload, err := json.Marshal(map[string]any{
-		"schema": "synon.current_artifact_ledger.v1", "entries": entries, "truncated": truncated,
+		"schema": "x-science.current_artifact_ledger.v1", "entries": entries, "truncated": truncated,
 	})
 	if err != nil {
 		return "", err

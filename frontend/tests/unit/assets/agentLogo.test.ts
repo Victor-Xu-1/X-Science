@@ -5,14 +5,14 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { AgentLogoMap } from '@/renderer/utils/synonBiomed/runtime/runtimeLogo';
+import type { AgentLogoMap } from '@/renderer/utils/xScience/runtime/runtimeLogo';
 import {
   fetchAgentLogos,
   resolveAgentAvatar,
   resolveAgentLogo,
   isDefaultModel,
   getModelDisplayLabel,
-} from '@/renderer/utils/synonBiomed/runtime/runtimeLogo';
+} from '@/renderer/utils/xScience/runtime/runtimeLogo';
 
 const bridgeMocks = vi.hoisted(() => ({
   getManagedAgents: vi.fn(),
@@ -20,7 +20,7 @@ const bridgeMocks = vi.hoisted(() => ({
 
 vi.mock('@/common', () => ({
   ipcBridge: {
-    synonBiomed: {
+    xScience: {
       getManagedAgents: { invoke: bridgeMocks.getManagedAgents },
     },
   },
@@ -90,7 +90,7 @@ describe('agentLogo', () => {
     });
 
     it('does not expose local absolute paths as logo sources', () => {
-      expect(resolveAgentLogo(LOGOS, { icon: '/Users/demo/.synon-ai/agent-avatars/custom.png' })).toBeNull();
+      expect(resolveAgentLogo(LOGOS, { icon: '/Users/demo/.x-science/agent-avatars/custom.png' })).toBeNull();
     });
   });
 
@@ -104,7 +104,7 @@ describe('agentLogo', () => {
 
     it('falls back to backend catalog logos when explicit local paths leak through', () => {
       expect(
-        resolveAgentAvatar(LOGOS, { icon: '/Users/demo/.synon-ai/agent-avatars/custom.png', backend: 'claude' })
+        resolveAgentAvatar(LOGOS, { icon: '/Users/demo/.x-science/agent-avatars/custom.png', backend: 'claude' })
       ).toEqual({
         kind: 'image',
         value: '/api/assets/logos/ai-major/claude.svg',
@@ -125,19 +125,19 @@ describe('agentLogo', () => {
         {
           id: 'AIDD_EXPERT',
           name: 'AIDD Expert',
-          agent_type: 'synonbiomed',
+          agent_type: 'xscience',
           agent_source: 'builtin',
-          backend: 'synonbiomed',
+          backend: 'xscience',
           enabled: true,
           installed: true,
           status: 'online',
-          icon: '/api/assets/logos/synonbiomed.svg',
+          icon: '/api/assets/logos/xscience.svg',
         },
       ]);
 
       await expect(fetchAgentLogos()).resolves.toEqual({
-        aidd_expert: '/api/assets/logos/synonbiomed.svg',
-        synonbiomed: '/api/assets/logos/synonbiomed.svg',
+        aidd_expert: '/api/assets/logos/xscience.svg',
+        xscience: '/api/assets/logos/xscience.svg',
       });
       expect(bridgeMocks.getManagedAgents).toHaveBeenCalledTimes(1);
     });

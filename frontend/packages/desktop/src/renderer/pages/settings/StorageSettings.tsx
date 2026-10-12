@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  loadSynonBiomedCloudCredentials,
-  loadSynonBiomedDataDirectory,
-  loadSynonBiomedDiskUsage,
-  loadSynonBiomedStorageRules,
-} from '@/renderer/services/synonBiomedWorkspaceSettings';
+  loadXScienceCloudCredentials,
+  loadXScienceDataDirectory,
+  loadXScienceDiskUsage,
+  loadXScienceStorageRules,
+} from '@/renderer/services/xScienceWorkspaceSettings';
 import SettingsPageHeader from './components/SettingsPageHeader';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
 import { StorageCloudPanel } from './storage/StorageCloudPanel';
@@ -17,10 +17,10 @@ import { navigateSettingsRoute } from './settingsNavigation';
 import { directoryChangeAllowed } from './storage/storagePresentation';
 import { useStorageResource } from './storage/useStorageResource';
 
-const loadDirectory = (signal: AbortSignal) => loadSynonBiomedDataDirectory({ signal, includeUsage: false });
-const loadUsage = (signal: AbortSignal, refresh: boolean) => loadSynonBiomedDiskUsage({ signal, refresh });
-const loadRules = (signal: AbortSignal) => loadSynonBiomedStorageRules({ signal });
-const loadCloud = (signal: AbortSignal) => loadSynonBiomedCloudCredentials({ signal });
+const loadDirectory = (signal: AbortSignal) => loadXScienceDataDirectory({ signal, includeUsage: false });
+const loadUsage = (signal: AbortSignal, refresh: boolean) => loadXScienceDiskUsage({ signal, refresh });
+const loadRules = (signal: AbortSignal) => loadXScienceStorageRules({ signal });
+const loadCloud = (signal: AbortSignal) => loadXScienceCloudCredentials({ signal });
 
 export const StorageSettingsContent: React.FC = () => {
   const { t } = useTranslation();
@@ -37,7 +37,7 @@ export const StorageSettingsContent: React.FC = () => {
   };
   return (
     <SettingsPageWrapper>
-      <div className='settings-storage-workspace' data-testid='synon-storage-settings'>
+      <div className='settings-storage-workspace' data-testid='x-science-storage-settings'>
         <SettingsPageHeader
           title={t('settings.storageSettings.title')}
           description={t('settings.storageSettings.description')}

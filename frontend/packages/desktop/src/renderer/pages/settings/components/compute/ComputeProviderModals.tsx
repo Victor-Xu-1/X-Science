@@ -3,26 +3,26 @@ import Modal from '@/renderer/components/base/WorkbenchModal';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  addSynonBiomedInferenceProvider,
-  addSynonBiomedSshHost,
-  loadSynonBiomedComputeProvider,
-  probeSynonBiomedComputeProvider,
-  saveSynonBiomedComputeProviderDetails,
-  type SynonBiomedComputeProvider,
-  type SynonBiomedComputeProviderDetailsInput,
-  type SynonBiomedInferenceProviderInput,
-  type SynonBiomedSshAliasesSnapshot,
-  type SynonBiomedSshHostInput,
-} from '@/renderer/services/synonBiomedCompute';
+  addXScienceInferenceProvider,
+  addXScienceSshHost,
+  loadXScienceComputeProvider,
+  probeXScienceComputeProvider,
+  saveXScienceComputeProviderDetails,
+  type XScienceComputeProvider,
+  type XScienceComputeProviderDetailsInput,
+  type XScienceInferenceProviderInput,
+  type XScienceSshAliasesSnapshot,
+  type XScienceSshHostInput,
+} from '@/renderer/services/xScienceCompute';
 
 export const EditProviderModal: React.FC<{
-  provider: SynonBiomedComputeProvider | null;
+  provider: XScienceComputeProvider | null;
   onClose: () => void;
   onSaved: () => Promise<void>;
 }> = ({ provider, onClose, onSaved }) => {
   const { t } = useTranslation();
   const supportsWorkspaceSettings = provider?.family === 'ssh' || provider?.family === 'byoc';
-  const [draft, setDraft] = useState<SynonBiomedComputeProviderDetailsInput>({
+  const [draft, setDraft] = useState<XScienceComputeProviderDetailsInput>({
     detailsMd: '',
     scratchRoot: null,
     dataRoots: [],
@@ -35,7 +35,7 @@ export const EditProviderModal: React.FC<{
     if (!provider) return;
     let alive = true;
     setLoading(true);
-    void loadSynonBiomedComputeProvider(provider.name)
+    void loadXScienceComputeProvider(provider.name)
       .then((details) => {
         if (!alive) return;
         setDraft({
@@ -61,7 +61,7 @@ export const EditProviderModal: React.FC<{
     if (!provider || saving) return;
     setSaving(true);
     try {
-      await saveSynonBiomedComputeProviderDetails(provider.name, {
+      await saveXScienceComputeProviderDetails(provider.name, {
         detailsMd: draft.detailsMd?.trim() ?? '',
         ...(supportsWorkspaceSettings
           ? {
@@ -155,7 +155,7 @@ export const EditProviderModal: React.FC<{
 
 export const AddSshHostModal: React.FC<{
   visible: boolean;
-  aliases: SynonBiomedSshAliasesSnapshot;
+  aliases: XScienceSshAliasesSnapshot;
   onClose: () => void;
   onAdded: () => Promise<void>;
 }> = ({ visible, aliases, onClose, onAdded }) => {
@@ -191,12 +191,12 @@ export const AddSshHostModal: React.FC<{
         port: draft.port,
         identityFile: draft.identityFile.trim() || undefined,
       });
-      const input: SynonBiomedSshHostInput = {
+      const input: XScienceSshHostInput = {
         alias: draft.alias.trim(),
         ...(draft.initialContext.trim() ? { initialContext: draft.initialContext.trim() } : {}),
         ...(Object.keys(overrides).length > 0 ? { overrides } : {}),
       };
-      await addSynonBiomedSshHost(input);
+      await addXScienceSshHost(input);
       await onAdded();
     } catch (error) {
       console.error('Failed to add SSH host:', error);
@@ -312,7 +312,7 @@ export const AddSshHostModal: React.FC<{
 };
 
 type EndpointPreset = 'openfold3' | 'boltz2' | 'custom';
-type EndpointDraft = Omit<SynonBiomedInferenceProviderInput, 'endpoint'> & {
+type EndpointDraft = Omit<XScienceInferenceProviderInput, 'endpoint'> & {
   endpoint: string;
 };
 const endpointPresets: Record<EndpointPreset, EndpointDraft> = {
@@ -333,7 +333,7 @@ const endpointPresets: Record<EndpointPreset, EndpointDraft> = {
 
 export const InferenceEndpointModal: React.FC<{
   visible: boolean;
-  providers: SynonBiomedComputeProvider[];
+  providers: XScienceComputeProvider[];
   onClose: () => void;
   onAdded: () => Promise<void>;
 }> = ({ visible, providers, onClose, onAdded }) => {
@@ -362,7 +362,7 @@ export const InferenceEndpointModal: React.FC<{
     }
     setProbing(true);
     try {
-      await probeSynonBiomedComputeProvider(existing.name);
+      await probeXScienceComputeProvider(existing.name);
       Message.success(t('settings.computeWorkspace.inference.probeComplete'));
       await onAdded();
     } catch (error) {
@@ -377,18 +377,18 @@ export const InferenceEndpointModal: React.FC<{
     if (!valid || saving) return;
     setSaving(true);
     try {
-      const input: SynonBiomedInferenceProviderInput = {
+      const input: XScienceInferenceProviderInput = {
         name: draft.name.trim(),
         endpoint: draft.endpoint.trim(),
         skillName: draft.skillName.trim(),
         ...(draft.credentialName?.trim() ? { credentialName: draft.credentialName.trim() } : {}),
       };
-      const result = await addSynonBiomedInferenceProvider(input);
+      const result = await addXScienceInferenceProvider(input);
       if (result.warning) {
         console.warn('Inference endpoint warning:', result.warning);
         Message.warning(t('settings.computeWorkspace.inference.savedWithWarning'));
       }
-      await probeSynonBiomedComputeProvider(`infer:${input.name}`);
+      await probeXScienceComputeProvider(`infer:${input.name}`);
       Message.success(t('settings.computeWorkspace.inference.savedAndProbed'));
       await onAdded();
     } catch (error) {

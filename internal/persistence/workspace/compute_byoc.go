@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-const DefaultModalAppName = "synonbiomed-default"
+const DefaultModalAppName = "xscience-default"
 
 var ErrBYOCRevisionConflict = errors.New("BYOC settings revision conflict")
 

@@ -24,24 +24,24 @@ import {
   LazyOfficeDocPreview as OfficeDocPreview,
   LazyPDFPreview as PDFPreview,
   LazyPptPreview as PptViewer,
-  LazySynonBiomedGenomeViewer as SynonBiomedGenomeViewer,
-  LazySynonBiomedHdf5Viewer as SynonBiomedHdf5Viewer,
-  LazySynonBiomedJsonViewer as SynonBiomedJsonViewer,
-  LazySynonBiomedMcpAppArtifactViewer as SynonBiomedMcpAppArtifactViewer,
-  LazySynonBiomedMcpAppViewer as SynonBiomedMcpAppViewer,
-  LazySynonBiomedMoleculeViewer as SynonBiomedMoleculeViewer,
-  LazySynonBiomedMsaViewer as SynonBiomedMsaViewer,
-  LazySynonBiomedNotebookViewer as SynonBiomedNotebookViewer,
-  LazySynonBiomedSequenceViewer as SynonBiomedSequenceViewer,
-  LazySynonBiomedStructureViewer as SynonBiomedStructureViewer,
-  LazySynonBiomedTableViewer as SynonBiomedTableViewer,
+  LazyXScienceGenomeViewer as XScienceGenomeViewer,
+  LazyXScienceHdf5Viewer as XScienceHdf5Viewer,
+  LazyXScienceJsonViewer as XScienceJsonViewer,
+  LazyXScienceMcpAppArtifactViewer as XScienceMcpAppArtifactViewer,
+  LazyXScienceMcpAppViewer as XScienceMcpAppViewer,
+  LazyXScienceMoleculeViewer as XScienceMoleculeViewer,
+  LazyXScienceMsaViewer as XScienceMsaViewer,
+  LazyXScienceNotebookViewer as XScienceNotebookViewer,
+  LazyXScienceSequenceViewer as XScienceSequenceViewer,
+  LazyXScienceStructureViewer as XScienceStructureViewer,
+  LazyXScienceTableViewer as XScienceTableViewer,
   LazyUnsupportedPreview as UnsupportedPreview,
   LazyArchivePreview as ArchivePreview,
   LazyURLPreview as URLViewer,
 } from '../viewers/scientificPreviewLoaders';
 import { ketcherMcpAppSaveContract } from '../viewers/mcpAppSaveContracts';
 import PreviewLoadingState from '@/renderer/components/media/PreviewLoadingState';
-import { normalizeSynonBiomedJsonLines } from '@/renderer/services/synonBiomedArtifactPreview';
+import { normalizeXScienceJsonLines } from '@/renderer/services/xScienceArtifactPreview';
 import { PreviewToolbar, PreviewConfirmModals, type CloseTabConfirmState, type PreviewTab } from '.';
 import PreviewArtifactActions from './PreviewArtifactActions';
 import { usePreviewHistory } from '../../hooks';
@@ -370,13 +370,13 @@ const SinglePreviewPanel: React.FC<{ conversationId?: string }> = ({ conversatio
         let jsonContent = content;
         if (isJsonLines) {
           try {
-            jsonContent = normalizeSynonBiomedJsonLines(content);
+            jsonContent = normalizeXScienceJsonLines(content);
           } catch {
             // Keep the exact source visible; the JSON viewer reports a bounded invalid-document state.
           }
         }
         return (
-          <SynonBiomedJsonViewer
+          <XScienceJsonViewer
             key={activeTabId ?? undefined}
             filename={metadata?.file_name || activeTab.title}
             content={jsonContent}
@@ -460,7 +460,7 @@ const SinglePreviewPanel: React.FC<{ conversationId?: string }> = ({ conversatio
       );
     } else if (content_type === 'structure') {
       return (
-        <SynonBiomedStructureViewer
+        <XScienceStructureViewer
           filename={metadata?.file_name || activeTab.title}
           contentUrl={metadata?.contentUrl}
           content={metadata?.contentUrl ? undefined : content}
@@ -475,7 +475,7 @@ const SinglePreviewPanel: React.FC<{ conversationId?: string }> = ({ conversatio
       if (interactiveFormat === 'ket' || interactiveFormat === 'rxn') {
         if (metadata?.contentUrl) {
           return (
-            <SynonBiomedMcpAppArtifactViewer
+            <XScienceMcpAppArtifactViewer
               filename={filename}
               contentUrl={metadata.contentUrl}
               contentParam={interactiveFormat}
@@ -486,7 +486,7 @@ const SinglePreviewPanel: React.FC<{ conversationId?: string }> = ({ conversatio
           );
         }
         return (
-          <SynonBiomedMcpAppViewer
+          <XScienceMcpAppViewer
             serverId='bundled:ketcher-chemistry'
             serverName='Ketcher Chemistry'
             openTool='open_sketcher'
@@ -501,7 +501,7 @@ const SinglePreviewPanel: React.FC<{ conversationId?: string }> = ({ conversatio
         );
       }
       return (
-        <SynonBiomedMoleculeViewer
+        <XScienceMoleculeViewer
           filename={filename}
           contentUrl={metadata?.contentUrl}
           content={metadata?.contentUrl ? undefined : content}
@@ -519,7 +519,7 @@ const SinglePreviewPanel: React.FC<{ conversationId?: string }> = ({ conversatio
         );
       }
       return (
-        <SynonBiomedTableViewer
+        <XScienceTableViewer
           filename={metadata?.file_name || activeTab.title}
           contentUrl={metadata?.contentUrl}
           content={metadata?.contentUrl ? undefined : content}
@@ -527,7 +527,7 @@ const SinglePreviewPanel: React.FC<{ conversationId?: string }> = ({ conversatio
       );
     } else if (content_type === 'msa') {
       return (
-        <SynonBiomedMsaViewer
+        <XScienceMsaViewer
           filename={metadata?.file_name || activeTab.title}
           contentUrl={metadata?.contentUrl}
           content={metadata?.contentUrl ? undefined : content}
@@ -535,7 +535,7 @@ const SinglePreviewPanel: React.FC<{ conversationId?: string }> = ({ conversatio
       );
     } else if (content_type === 'genome') {
       return (
-        <SynonBiomedGenomeViewer
+        <XScienceGenomeViewer
           filename={metadata?.file_name || activeTab.title}
           contentUrl={metadata?.contentUrl}
           content={metadata?.contentUrl ? undefined : content}
@@ -543,7 +543,7 @@ const SinglePreviewPanel: React.FC<{ conversationId?: string }> = ({ conversatio
       );
     } else if (content_type === 'sequence') {
       return (
-        <SynonBiomedSequenceViewer
+        <XScienceSequenceViewer
           filename={metadata?.file_name || activeTab.title}
           contentUrl={metadata?.contentUrl}
           content={metadata?.contentUrl ? undefined : content}
@@ -551,7 +551,7 @@ const SinglePreviewPanel: React.FC<{ conversationId?: string }> = ({ conversatio
       );
     } else if (content_type === 'notebook') {
       return (
-        <SynonBiomedNotebookViewer
+        <XScienceNotebookViewer
           filename={metadata?.file_name || activeTab.title}
           contentUrl={metadata?.contentUrl}
           content={metadata?.contentUrl ? undefined : content}
@@ -559,7 +559,7 @@ const SinglePreviewPanel: React.FC<{ conversationId?: string }> = ({ conversatio
       );
     } else if (content_type === 'hdf5') {
       return (
-        <SynonBiomedHdf5Viewer filename={metadata?.file_name || activeTab.title} contentUrl={metadata?.contentUrl} />
+        <XScienceHdf5Viewer filename={metadata?.file_name || activeTab.title} contentUrl={metadata?.contentUrl} />
       );
     } else if (content_type === 'archive') {
       return <ArchivePreview filename={metadata?.file_name || activeTab.title} contentUrl={metadata?.contentUrl} />;

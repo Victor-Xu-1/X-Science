@@ -14,10 +14,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"synon-go/internal/skills"
+	"x-science/internal/skills"
 )
 
-const agentSkillRuntimeMarker = ".synon-skill-bundle.sha256"
+const agentSkillRuntimeMarker = ".x-science-skill-bundle.sha256"
 const agentSkillRuntimePreparationTimeout = 15 * time.Second
 
 type agentSkillRuntimeFile struct {
@@ -40,7 +40,7 @@ func (s *Server) materializeAgentSkillRuntime(
 	if strings.HasPrefix(skill.Path, "builtin:") {
 		return skill, nil
 	}
-	if !strings.Contains(skill.Body, "${SYNON_SKILL_DIR}") {
+	if !strings.Contains(skill.Body, "${X_SCIENCE_SKILL_DIR}") {
 		return skill, nil
 	}
 	bundle, hasRuntimeResources, err := loadAgentSkillRuntimeBundle(skill)
@@ -91,7 +91,7 @@ func (s *Server) prepareAgentSkillRuntimeContexts(
 		if err != nil {
 			return nil, fmt.Errorf("materialize selected skill %q runtime: %w", skill.Name, err)
 		}
-		if strings.Contains(effective.Body, "${SYNON_SKILL_DIR}") {
+		if strings.Contains(effective.Body, "${X_SCIENCE_SKILL_DIR}") {
 			effective.Body = renderSkillPrompt(effective, "")
 		}
 		prepared[index] = effective
@@ -166,7 +166,7 @@ func materializeAgentSkillRuntimeBundle(
 		return "", errors.New("skill runtime bundle digest is invalid")
 	}
 	cacheRoot, err := secureEnsureAgentWorkspaceDirectory(
-		filepath.Join(workspaceRoot, ".synon", "runtime", "skills", agentSkillRuntimeDirectoryName(skillName)),
+		filepath.Join(workspaceRoot, ".xscience", "runtime", "skills", agentSkillRuntimeDirectoryName(skillName)),
 		0o700,
 	)
 	if err != nil {

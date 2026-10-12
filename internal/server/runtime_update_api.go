@@ -14,7 +14,7 @@ import (
 
 	"golang.org/x/mod/semver"
 
-	"synon-go/internal/buildinfo"
+	"x-science/internal/buildinfo"
 )
 
 type RuntimeUpdateOptions struct {

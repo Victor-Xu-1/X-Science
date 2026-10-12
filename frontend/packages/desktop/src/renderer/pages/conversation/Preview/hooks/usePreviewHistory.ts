@@ -12,11 +12,11 @@ import { useTranslation } from 'react-i18next';
 import { SNAPSHOT_DEBOUNCE_TIME } from '../constants';
 import { getPreviewVersionContentType, isPreviewContentStoredAsText } from '../previewContentPersistence';
 import {
-  createSynonBiomedTextArtifactVersion,
-  getSynonBiomedArtifactVersionContentUrl,
-  loadSynonBiomedArtifactVersions,
-  loadSynonBiomedArtifactVersionText,
-} from '@/renderer/services/synonBiomedArtifacts';
+  createXScienceTextArtifactVersion,
+  getXScienceArtifactVersionContentUrl,
+  loadXScienceArtifactVersions,
+  loadXScienceArtifactVersionText,
+} from '@/renderer/services/xScienceArtifacts';
 
 /**
  * 预览历史 Hook 配置
@@ -169,7 +169,7 @@ export const usePreviewHistory = ({
     setHistoryError(false);
     try {
       if (historyTarget.artifact_id) {
-        const versions = await loadSynonBiomedArtifactVersions(historyTarget.artifact_id);
+        const versions = await loadXScienceArtifactVersions(historyTarget.artifact_id);
         setHistoryVersions(
           versions.map((version) => ({
             id: version.versionId,
@@ -178,7 +178,7 @@ export const usePreviewHistory = ({
             size: version.sizeBytes,
             contentType: historyTarget.contentType,
             file_name: historyTarget.file_name,
-            file_path: getSynonBiomedArtifactVersionContentUrl(version.versionId),
+            file_path: getXScienceArtifactVersionContentUrl(version.versionId),
           }))
         );
         setHistoryError(false);
@@ -218,7 +218,7 @@ export const usePreviewHistory = ({
       setSnapshotSaving(true);
       lastSnapshotTimeRef.current = now; // 更新最后保存时间 / Update last save time
       if (historyTarget.artifact_id) {
-        const created = await createSynonBiomedTextArtifactVersion({
+        const created = await createXScienceTextArtifactVersion({
           artifactId: historyTarget.artifact_id,
           content: activeTab.content,
           contentType: getPreviewVersionContentType(historyTarget.contentType, historyTarget.file_name),
@@ -227,7 +227,7 @@ export const usePreviewHistory = ({
         if (!created.versionId) throw new Error('Artifact version response is missing version_id');
         markContentSaved({
           versionId: created.versionId,
-          contentUrl: getSynonBiomedArtifactVersionContentUrl(created.versionId),
+          contentUrl: getXScienceArtifactVersionContentUrl(created.versionId),
         });
       } else {
         await ipcBridge.previewHistory.save.invoke({
@@ -256,12 +256,12 @@ export const usePreviewHistory = ({
       try {
         if (historyTarget.artifact_id) {
           const remoteContent = isPreviewContentStoredAsText(historyTarget.contentType, historyTarget.file_name)
-            ? await loadSynonBiomedArtifactVersionText(snapshot.id)
-            : getSynonBiomedArtifactVersionContentUrl(snapshot.id);
+            ? await loadXScienceArtifactVersionText(snapshot.id)
+            : getXScienceArtifactVersionContentUrl(snapshot.id);
           updateContent(remoteContent);
           markContentSaved({
             versionId: snapshot.id,
-            contentUrl: getSynonBiomedArtifactVersionContentUrl(snapshot.id),
+            contentUrl: getXScienceArtifactVersionContentUrl(snapshot.id),
           });
           messageApi.success(t('preview.historyLoaded'));
           return;

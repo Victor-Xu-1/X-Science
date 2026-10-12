@@ -16,7 +16,7 @@ class WorkerStreamShutdownTests(unittest.TestCase):
             import sys
             import threading
             from unittest.mock import patch
-            from synon_biomed_runtime import worker_streams
+            from x_science_runtime import worker_streams
 
             for descriptor in (1, 2):
                 entered = threading.Event()

@@ -3,8 +3,8 @@ package server
 import (
 	"context"
 
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 // Resource sampling takes place outside the durable execution transaction. A

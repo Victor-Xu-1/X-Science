@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestBuildModelProfileNormalizesOpenAIResponsesEndpoint(t *testing.T) {
@@ -196,7 +196,7 @@ func TestRuntimeModelClientOpenAIResponsesSupportsFunctionCallsAndOutputs(t *tes
 	if request.Method != http.MethodPost || request.Path != "/v1/responses" {
 		t.Fatalf("request = %s %s", request.Method, request.Path)
 	}
-	if request.Authorization != "Bearer responses-secret" || !strings.HasPrefix(request.RequestID, "synon-") {
+	if request.Authorization != "Bearer responses-secret" || !strings.HasPrefix(request.RequestID, "x-science-") {
 		t.Fatalf("request headers = %#v", request)
 	}
 	if request.Model != "gpt-5.4" || request.Store == nil || *request.Store {

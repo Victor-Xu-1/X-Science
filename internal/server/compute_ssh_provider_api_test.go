@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestComputeSSHProviderHTTPFullLifecycleWithRealConfigAndSQLite(t *testing.T) {
@@ -113,7 +113,7 @@ func TestComputeSSHProviderHTTPFullLifecycleWithRealConfigAndSQLite(t *testing.T
 	if missingScratch.Code != http.StatusBadRequest {
 		t.Fatalf("missing scratch status=%d body=%s", missingScratch.Code, missingScratch.Body.String())
 	}
-	foreignRequest.Header.Set("X-Synon-User-Id", "owner-b")
+	foreignRequest.Header.Set("X-Science-User-Id", "owner-b")
 	foreignResponse := httptest.NewRecorder()
 	app.ServeHTTP(foreignResponse, foreignRequest)
 	if foreignResponse.Code != http.StatusNotFound {

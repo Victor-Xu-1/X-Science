@@ -8,7 +8,7 @@ import (
 const (
 	kernelDetachedExecutionV44CallbackID        = "kernel-detached-execution-v44-noop"
 	kernelDetachedExecutionV44PreflightIdentity = "kernel-detached-execution-empty-cohort-v1"
-	kernelDetachedExecutionV44RuleSpec          = "synon.workspace.kernel-detached-execution.v44"
+	kernelDetachedExecutionV44RuleSpec          = "x-science.workspace.kernel-detached-execution.v44"
 )
 
 var kernelDetachedExecutionV44Migration = versionedSchemaMigration{

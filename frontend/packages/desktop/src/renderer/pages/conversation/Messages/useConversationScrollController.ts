@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { TMessage } from '@/common/chat/chatLib';
-import { isSynonBiomedOptimisticUserMessage } from './optimisticUserMessage';
+import { isXScienceOptimisticUserMessage } from './optimisticUserMessage';
 
 type ScrollElementIntoViewOptions = {
   behavior?: ScrollBehavior;
@@ -223,7 +223,7 @@ export function useConversationScrollController({
     const previousTailId = previousTailIdRef.current;
     previousTailIdRef.current = tail?.id ?? null;
     if (!tail || tail.id === previousTailId || tail.position !== 'right') return;
-    if (!isSynonBiomedOptimisticUserMessage(tail.id)) return;
+    if (!isXScienceOptimisticUserMessage(tail.id)) return;
     userDetachedRef.current = false;
     messageAnchorRef.current = null;
     userTowardTailIntentRef.current = false;

@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"errors"
 	"sync/atomic"
-	"synon-go/internal/sqliteutil"
 	"testing"
 	"time"
+	"x-science/internal/sqliteutil"
 )
 
 func TestClaimContentionDoesNotMasqueradeAsSchemaLoss(t *testing.T) {

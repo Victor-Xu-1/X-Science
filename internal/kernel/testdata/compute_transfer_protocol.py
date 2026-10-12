@@ -56,11 +56,11 @@ class ProtocolTests(unittest.TestCase):
         self.stage = self.root / "stage"
         self.stage.mkdir(mode=0o700)
         transfer.WORK = str(self.root / "remote")
-        remote = Path(transfer.WORK) / ".synon-harvest"
+        remote = Path(transfer.WORK) / ".x-science-harvest"
         remote.mkdir(parents=True)
         self.name = "archive-" + "a" * 64 + "-" + "b" * 64 + ".tar.gz"
         self.remote = remote / self.name
-        (Path(transfer.WORK) / "_synon_harvest.sh").write_bytes((Path(transfer.__file__).parent.parent / "harvest.sh.tmpl").read_bytes())
+        (Path(transfer.WORK) / "_x_science_harvest.sh").write_bytes((Path(transfer.__file__).parent.parent / "harvest.sh.tmpl").read_bytes())
         self.body = b"controlled bytes\n" * 10000
         self.remote.write_bytes(self.body)
         self.sha = hashlib.sha256(self.body).hexdigest()

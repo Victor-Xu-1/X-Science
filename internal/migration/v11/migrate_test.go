@@ -18,9 +18,9 @@ import (
 	"testing"
 	"time"
 
-	secretstore "synon-go/internal/persistence/secrets"
-	settingsstore "synon-go/internal/persistence/settings"
-	workspace "synon-go/internal/persistence/workspace"
+	secretstore "x-science/internal/persistence/secrets"
+	settingsstore "x-science/internal/persistence/settings"
+	workspace "x-science/internal/persistence/workspace"
 
 	_ "modernc.org/sqlite"
 )

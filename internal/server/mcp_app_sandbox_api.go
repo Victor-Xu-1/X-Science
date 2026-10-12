@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"synon-go/internal/ketchermcp"
+	"x-science/internal/ketchermcp"
 )
 
 const (

@@ -27,6 +27,10 @@ type ExecutionRequest struct {
 	Code        string
 	Workspace   string
 	WorkingDir  string
+	// Identity is a previously persisted actual runtime receipt, not a name hint.
+	Identity               *RuntimeIdentity
+	BeforeNamespaceCutover bool
+	RecordIdentity         func(RuntimeIdentity) error
 }
 
 type ExecutionResult struct {
@@ -72,21 +76,36 @@ func (m *Manager) RunExecution(
 		return ExecutionResult{}, err
 	}
 	name := containerName(request.ExecutionID)
+	if request.BeforeNamespaceCutover && request.Identity == nil {
+		return ExecutionResult{}, errors.Join(ErrExecutionOutcomeUnconfirmed, errors.New("historical container execution requires its actual persisted runtime identity"))
+	}
+	if request.Identity != nil {
+		if err := validateRuntimeIdentity(*request.Identity, environment, request.ExecutionID); err != nil {
+			return ExecutionResult{}, errors.Join(ErrExecutionOutcomeUnconfirmed, err)
+		}
+		name = request.Identity.ContainerID
+	}
 	container, found, err := m.inspectContainer(ctx, name)
 	if err != nil {
 		return ExecutionResult{}, err
 	}
 	resumed := found
 	if found {
-		if err := validateExistingContainer(container, environment, request.ExecutionID); err != nil {
+		if err := validateContainerRuntimeReceipt(container, environment, request); err != nil {
+			if request.Identity != nil {
+				return ExecutionResult{}, errors.Join(ErrExecutionOutcomeUnconfirmed, err)
+			}
 			return ExecutionResult{}, err
 		}
 	} else {
+		if request.Identity != nil {
+			return ExecutionResult{}, errors.Join(ErrExecutionOutcomeUnconfirmed, errors.New("persisted managed container is missing; duplicate execution is prohibited"))
+		}
 		arguments := []string{
 			"create", "--name", name,
-			"--label", "com.synonbiomed.managed=true",
-			"--label", "com.synonbiomed.execution=" + request.ExecutionID,
-			"--label", "com.synonbiomed.environment=" + environment.Name,
+			"--label", "com.xscience.managed=true",
+			"--label", "com.xscience.execution=" + request.ExecutionID,
+			"--label", "com.xscience.environment=" + environment.Name,
 			"--network", dockerNetwork(environment.Network),
 			"--user", strconv.Itoa(os.Getuid()) + ":" + strconv.Itoa(os.Getgid()),
 			"--mount", "type=bind,src=" + request.Workspace + ",dst=/workspace",
@@ -114,6 +133,12 @@ func (m *Manager) RunExecution(
 		}
 		if err := validateExistingContainer(container, environment, request.ExecutionID); err != nil {
 			return ExecutionResult{}, err
+		}
+	}
+	if request.RecordIdentity != nil {
+		identity := RuntimeIdentity{ExecutionID: request.ExecutionID, ContainerID: container.ID, ImageID: environment.ImageID, Environment: environment.Name, EnvironmentGeneration: environment.HostGeneration}
+		if err := request.RecordIdentity(identity); err != nil {
+			return ExecutionResult{}, errors.Join(ErrExecutionOutcomeUnconfirmed, err)
 		}
 	}
 	if !container.State.Running && container.State.Status != "exited" && container.State.Status != "dead" {
@@ -232,7 +257,7 @@ func normalizeExecutionRequest(environment Environment, input ExecutionRequest) 
 
 func containerName(executionID string) string {
 	digest := sha256.Sum256([]byte(strings.TrimSpace(executionID)))
-	return "synon-task-" + hex.EncodeToString(digest[:12])
+	return "x-science-task-" + hex.EncodeToString(digest[:12])
 }
 
 func dockerNetwork(value string) string {
@@ -261,9 +286,9 @@ func (m *Manager) inspectContainer(ctx context.Context, name string) (dockerCont
 func validateExistingContainer(container dockerContainer, environment Environment, executionID string) error {
 	labels := container.Config.Labels
 	if strings.TrimSpace(container.ID) == "" || container.Image != environment.ImageID ||
-		labels["com.synonbiomed.managed"] != "true" ||
-		labels["com.synonbiomed.execution"] != executionID ||
-		labels["com.synonbiomed.environment"] != environment.Name {
+		labels["com.xscience.managed"] != "true" ||
+		labels["com.xscience.execution"] != executionID ||
+		labels["com.xscience.environment"] != environment.Name {
 		return errors.New("existing managed container conflicts with the durable execution authority")
 	}
 	return nil

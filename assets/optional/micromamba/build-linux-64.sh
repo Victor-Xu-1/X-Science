@@ -21,8 +21,8 @@ build_root=$(cd -- "$build_root" && pwd -P)
 mkdir -p -- "$build_root/bootstrap"
 # Upstream activation requires the executable basename to remain micromamba.
 bootstrap="$build_root/bootstrap/micromamba"
-if [[ -n ${SYNON_INSTALLER_BOOTSTRAP:-} ]]; then
-  install -m 700 -- "$SYNON_INSTALLER_BOOTSTRAP" "$bootstrap"
+if [[ -n ${X_SCIENCE_INSTALLER_BOOTSTRAP:-} ]]; then
+  install -m 700 -- "$X_SCIENCE_INSTALLER_BOOTSTRAP" "$bootstrap"
 else
   curl --silent --show-error --fail --location --retry 3 --connect-timeout 20 --max-time 600 \
     https://github.com/mamba-org/micromamba-releases/releases/download/2.9.0-0/micromamba-linux-64 \
@@ -46,8 +46,8 @@ export MAMBA_DOWNLOAD_THREADS=4 MAMBA_EXTRACT_THREADS=4
     -DCMAKE_PREFIX_PATH="$build_root/environment" -DCMAKE_INSTALL_PREFIX="$build_root/environment" \
     -DCMAKE_BUILD_TYPE=Release -DBUILD_LIBMAMBA=ON -DBUILD_LIBMAMBA_SPDLOG=ON \
     -DBUILD_MICROMAMBA=ON -DMAMBA_LTO=OFF -DCMAKE_SKIP_RPATH=ON \
-    "-DCMAKE_C_FLAGS=$CFLAGS -ffile-prefix-map=$build_root=/usr/src/synon-managed-installer" \
-    "-DCMAKE_CXX_FLAGS=$CXXFLAGS -ffile-prefix-map=$build_root=/usr/src/synon-managed-installer"
+    "-DCMAKE_C_FLAGS=$CFLAGS -ffile-prefix-map=$build_root=/usr/src/x-science-managed-installer" \
+    "-DCMAKE_CXX_FLAGS=$CXXFLAGS -ffile-prefix-map=$build_root=/usr/src/x-science-managed-installer"
 ' bash "$build_root"
 "$bootstrap" run -p "$build_root/environment" cmake --build "$build_root/build" --target micromamba --parallel 3
 "$build_root/environment/bin/x86_64-conda-linux-gnu-strip" --strip-unneeded \

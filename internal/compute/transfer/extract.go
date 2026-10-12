@@ -24,6 +24,10 @@ type Extraction struct {
 // decompressed bytes. It checks replayed payloads, never trusts an existing
 // directory as proof, and atomically publishes only a complete extraction.
 func ExtractSelected(ctx context.Context, archivePath, manifestPath, target string, selection Selection) (Extraction, error) {
+	return extractSelected(ctx, archivePath, manifestPath, target, selection, false)
+}
+
+func extractSelected(ctx context.Context, archivePath, manifestPath, target string, selection Selection, historical bool) (Extraction, error) {
 	result := Extraction{Files: []string{}}
 	manifestInfo, err := os.Lstat(manifestPath)
 	if err != nil || !manifestInfo.Mode().IsRegular() {
@@ -43,7 +47,13 @@ func ExtractSelected(ctx context.Context, archivePath, manifestPath, target stri
 		return result, errors.New("output manifest header missing")
 	}
 	header := map[string]string{}
-	if json.Unmarshal(scanner.Bytes(), &header) != nil || header["schema"] != ManifestSchema ||
+	if json.Unmarshal(scanner.Bytes(), &header) != nil {
+		return result, errors.New("output manifest identity mismatch")
+	}
+	if err := namespaceManifestSchemaError(header["schema"], historical); err != nil {
+		return result, err
+	}
+	if !namespaceManifestSchemaMatches(header["schema"], historical) ||
 		header["source_sha256"] != selection.SourceSHA256 || header["policy_sha256"] != selection.PolicySHA256 {
 		return result, errors.New("output manifest identity mismatch")
 	}

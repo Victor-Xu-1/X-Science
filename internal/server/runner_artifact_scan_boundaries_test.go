@@ -74,7 +74,7 @@ func TestArtifactScanPropagatesStorageErrorsAndCancellation(t *testing.T) {
 	if _, err := scanRunnerMachineValidation(context.Background(), broken(`{"passed":true}`), "validation.json"); !errors.Is(err, cause) {
 		t.Fatalf("machine error=%v", err)
 	}
-	if _, err := probeRunnerArtifactContract(context.Background(), broken(`{"schema":"synon.artifact-table-contract.v1"}`)); !errors.Is(err, cause) {
+	if _, err := probeRunnerArtifactContract(context.Background(), broken(`{"schema":"x-science.artifact-table-contract.v1"}`)); !errors.Is(err, cause) {
 		t.Fatalf("contract error=%v", err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())

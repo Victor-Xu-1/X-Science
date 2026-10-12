@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	eventjournal "synon-go/internal/persistence/journal"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	"x-science/internal/agentruntime"
+	eventjournal "x-science/internal/persistence/journal"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func TestNoProgressRecoveryDoesNotRestoreSupersededQuarantine(t *testing.T) {
@@ -39,7 +39,7 @@ func TestRepeatedCompletionCorrectionIsBoundedByItsDurableFingerprint(t *testing
 		}},
 		{Message: eventjournal.Message{
 			"type": "runner_checkpoint", "reason_code": "artifact_reference_correction_required",
-			"resume_detail": detail + sessionRunnerNoProgressDetailMarker + `{"schema":"synon.runner_no_progress.v1"}`,
+			"resume_detail": detail + sessionRunnerNoProgressDetailMarker + `{"schema":"x-science.runner_no_progress.v1"}`,
 		}},
 	}
 	if got := runnerRepeatedCorrectionInterruptionCount(entries, transcriptstore.RunnerInterruptionCause{ReasonCode: "artifact_reference_correction_required", Detail: detail}); got != 2 {

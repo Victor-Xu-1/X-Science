@@ -1,4 +1,4 @@
-export interface SynonBiomedArtifactTextSelection {
+export interface XScienceArtifactTextSelection {
   type: 'text_selection';
   text: string;
   x: number;
@@ -16,7 +16,7 @@ export function locateRenderedTextSelection(
   selectedText: string,
   x: number,
   y: number
-): SynonBiomedArtifactTextSelection {
+): XScienceArtifactTextSelection {
   const startOffset = content.indexOf(selectedText);
   if (startOffset < 0) {
     return {

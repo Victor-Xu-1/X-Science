@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	eventjournal "synon-go/internal/persistence/journal"
-	taskruns "synon-go/internal/persistence/taskruns"
+	eventjournal "x-science/internal/persistence/journal"
+	taskruns "x-science/internal/persistence/taskruns"
 	"time"
 )
 

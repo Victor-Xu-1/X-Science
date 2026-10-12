@@ -93,7 +93,7 @@ SOURCE_CONFIG_NAMES = SAFE_ENV_TEMPLATE_NAMES | {
     "pnpm-workspace.yaml",
 }
 ROOT_RUNTIME_DATABASE_NAMES = {"mcp-ketcher", "mcp-ketcher-shm", "mcp-ketcher-wal"}
-ROOT_BUILD_OUTPUT_NAMES = {"server.test", "synon"}
+ROOT_BUILD_OUTPUT_NAMES = {"server.test", "xscience"}
 KNOWN_ONE_OFF_FRONTEND_PROBE_PATHS = {
     "frontend/complex_probe_no_composer.png",
     "frontend/complex_task_probe.mjs",

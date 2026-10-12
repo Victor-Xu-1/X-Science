@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/executionprep"
-	kernelruntime "synon-go/internal/kernel"
-	"synon-go/internal/skills"
+	"x-science/internal/executionprep"
+	kernelruntime "x-science/internal/kernel"
+	"x-science/internal/skills"
 )
 
 func observationPreflightManager(t *testing.T, language string) *kernelruntime.Manager {
@@ -25,9 +25,9 @@ func observationPreflightManager(t *testing.T, language string) *kernelruntime.M
 		}
 	}
 	if language == "r" {
-		interpreter := os.Getenv("SYNON_TEST_RSCRIPT")
+		interpreter := os.Getenv("X_SCIENCE_TEST_RSCRIPT")
 		if interpreter == "" {
-			t.Skip("set SYNON_TEST_RSCRIPT to an existing native Rscript")
+			t.Skip("set X_SCIENCE_TEST_RSCRIPT to an existing native Rscript")
 		}
 		prefix := filepath.Dir(filepath.Dir(interpreter))
 		config.CondaEnvsPath, config.DefaultREnv = filepath.Dir(prefix), filepath.Base(prefix)

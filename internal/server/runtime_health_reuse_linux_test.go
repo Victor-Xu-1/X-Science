@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestScientificCoreHealthReadyAfterServiceRestartReusesInstalledGenerations(t *testing.T) {
@@ -42,11 +42,11 @@ done
 test -n "$prefix"
 mkdir -p "$prefix/bin"
 case "$prefix" in
-  */synon-biomed-r/*)
-    printf '%s\n' '#!/bin/sh' "printf '%s\\n' 'SYNON_R_VERSION=4.5.3'" > "$prefix/bin/Rscript"
+  */x-science-r/*)
+    printf '%s\n' '#!/bin/sh' "printf '%s\\n' 'X_SCIENCE_R_VERSION=4.5.3'" > "$prefix/bin/Rscript"
     chmod 755 "$prefix/bin/Rscript"
     ;;
-  */synon-biomed-python/*)
+  */x-science-python/*)
     printf '%s\n' '#!/bin/sh' "printf '%s\\n' '{\"ok\":true,\"rdkit\":\"2024.03.5\"}'" > "$prefix/bin/python"
     chmod 755 "$prefix/bin/python"
     ;;

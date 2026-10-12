@@ -3,8 +3,8 @@ import { ipcBridge } from '@/common';
 import type { NormalizedToolCall, ToolMessage } from '@/common/chat/normalizeToolCall';
 import { normalizeToolMessages } from '@/common/chat/normalizeToolCall';
 import { parseLargeToolResultReference } from '@/common/chat/largeToolResultReference';
-import { withTransientHistoryRetry } from '@/renderer/services/synonBiomedHistoryRetry';
-import { getSelectedSynonBiomedBranch } from '@/renderer/services/synonBiomedConversationBranches';
+import { withTransientHistoryRetry } from '@/renderer/services/xScienceHistoryRetry';
+import { getSelectedXScienceBranch } from '@/renderer/services/xScienceConversationBranches';
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
 import { mergePublicToolOutputEvidence } from '../toolSummaryGroupingModel';
 
@@ -67,7 +67,7 @@ export function useToolOperationDetail(item: NormalizedToolCall, shouldLoadFull:
   const [loadError, setLoadError] = useState(false);
   const generationRef = useRef(0);
   const requestRef = useRef<AbortController | null>(null);
-  const branchId = item.branchId ?? (item.conversationId ? getSelectedSynonBiomedBranch(item.conversationId) : null);
+  const branchId = item.branchId ?? (item.conversationId ? getSelectedXScienceBranch(item.conversationId) : null);
   const scope = JSON.stringify([
     getRendererAccountScopeToken(),
     branchId,
@@ -205,7 +205,7 @@ export function useToolOperationDetail(item: NormalizedToolCall, shouldLoadFull:
       }
       if (
         generation === generationRef.current &&
-        (item.branchId ?? getSelectedSynonBiomedBranch(item.conversationId)) === branchId
+        (item.branchId ?? getSelectedXScienceBranch(item.conversationId)) === branchId
       ) {
         setHydrated({ scope, item: enriched });
       }

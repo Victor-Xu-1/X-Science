@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestTraceShallowFullDeltaAndBackendBenchCompatibility(t *testing.T) {
@@ -24,10 +24,10 @@ func TestTraceShallowFullDeltaAndBackendBenchCompatibility(t *testing.T) {
 		}
 	}
 	for _, frame := range []workspace.CreateFrameInput{
-		{ID: "root", ProjectID: "project-1", AgentName: "synon", Status: "running", ConversationType: "task", Name: "Root"},
+		{ID: "root", ProjectID: "project-1", AgentName: "xscience", Status: "running", ConversationType: "task", Name: "Root"},
 		{ID: "child", ProjectID: "project-1", ParentFrameID: "root", AgentName: "worker", Status: "running", ConversationType: "task", Name: "Child"},
 		{ID: "grandchild", ProjectID: "project-1", ParentFrameID: "child", AgentName: "worker", Status: "queued", ConversationType: "task", Name: "Grandchild"},
-		{ID: "foreign", ProjectID: "project-2", AgentName: "synon", Status: "running", ConversationType: "task"},
+		{ID: "foreign", ProjectID: "project-2", AgentName: "xscience", Status: "running", ConversationType: "task"},
 	} {
 		if _, err := store.CreateFrame(frame); err != nil {
 			t.Fatal(err)

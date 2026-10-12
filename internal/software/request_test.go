@@ -336,7 +336,7 @@ func TestSourceEnvironmentReusesManagedNameAndBindsInputDigest(t *testing.T) {
 	request := Request{
 		Capability:        "structure-energy-minimization",
 		Language:          "python",
-		SourceEnvironment: "synon-biomed-python",
+		SourceEnvironment: "x-science-python",
 		InputSHA256:       strings.Repeat("a", 64),
 		Executable:        "python",
 		Arguments:         []string{"_structure_minimize.py"},

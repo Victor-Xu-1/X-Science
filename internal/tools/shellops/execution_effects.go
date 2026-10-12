@@ -3,7 +3,7 @@ package shellops
 import (
 	"context"
 
-	"synon-go/internal/executionprep"
+	"x-science/internal/executionprep"
 )
 
 // shellExecutionCommand retains the existing process/sandbox path. Only a

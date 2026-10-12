@@ -159,7 +159,7 @@ func TestManagedRReadyGenerationIsReusedWithoutReinstall(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(rscript), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(rscript, []byte("#!/bin/sh\necho SYNON_R_VERSION=4.5.3\n"), 0o700); err != nil {
+	if err := os.WriteFile(rscript, []byte("#!/bin/sh\necho X_SCIENCE_R_VERSION=4.5.3\n"), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	if err := writeManagedRuntimeMarker(filepath.Join(generation, managedRuntimeMarkerName), manager.managedRMarker(runtime)); err != nil {

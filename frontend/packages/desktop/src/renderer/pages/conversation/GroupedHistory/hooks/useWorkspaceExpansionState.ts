@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
-export const WORKSPACE_EXPANSION_STORAGE_KEY = 'synon-ai_workspace_expansion';
-export const WORKSPACE_EXPANSION_EVENT = 'synon-ai:workspace-expansion-changed';
+export const WORKSPACE_EXPANSION_STORAGE_KEY = 'x-science_workspace_expansion';
+export const WORKSPACE_EXPANSION_EVENT = 'x-science:workspace-expansion-changed';
 
 type WorkspaceExpansionChangeDetail = {
   expandedWorkspaces: string[];

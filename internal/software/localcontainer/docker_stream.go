@@ -6,7 +6,7 @@ import (
 	"io"
 	"sync"
 
-	"synon-go/internal/processsupervisor"
+	"x-science/internal/processsupervisor"
 )
 
 const (

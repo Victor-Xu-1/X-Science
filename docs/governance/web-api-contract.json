@@ -5652,7 +5652,7 @@
       }
     },
     {
-      "path": "/api/synonbiomed/catalog",
+      "path": "/api/x-science/catalog",
       "sources": [
         "confirmed-ipcBridge-production-caller",
         "declared-web-api-contract",
@@ -5660,10 +5660,10 @@
       ],
       "covered": true,
       "coveredBy": [
-        "/api/synonbiomed/catalog"
+        "/api/x-science/catalog"
       ],
       "routeLocations": {
-        "/api/synonbiomed/catalog": [
+        "/api/x-science/catalog": [
           {
             "file": "internal/server/server.go",
             "line": 716
@@ -5672,17 +5672,17 @@
       }
     },
     {
-      "path": "/api/synonbiomed/expert-profiles",
+      "path": "/api/x-science/expert-profiles",
       "sources": [
         "declared-web-api-contract",
         "target-frontend-active-graph"
       ],
       "covered": true,
       "coveredBy": [
-        "/api/synonbiomed/expert-profiles"
+        "/api/x-science/expert-profiles"
       ],
       "routeLocations": {
-        "/api/synonbiomed/expert-profiles": [
+        "/api/x-science/expert-profiles": [
           {
             "file": "internal/server/server.go",
             "line": 887
@@ -5691,16 +5691,16 @@
       }
     },
     {
-      "path": "/api/synonbiomed/experts",
+      "path": "/api/x-science/experts",
       "sources": [
         "target-frontend-active-graph"
       ],
       "covered": true,
       "coveredBy": [
-        "/api/synonbiomed/experts"
+        "/api/x-science/experts"
       ],
       "routeLocations": {
-        "/api/synonbiomed/experts": [
+        "/api/x-science/experts": [
           {
             "file": "internal/server/server.go",
             "line": 715
@@ -5709,17 +5709,17 @@
       }
     },
     {
-      "path": "/api/synonbiomed/projects",
+      "path": "/api/x-science/projects",
       "sources": [
         "declared-web-api-contract",
         "target-frontend-active-graph"
       ],
       "covered": true,
       "coveredBy": [
-        "/api/synonbiomed/projects"
+        "/api/x-science/projects"
       ],
       "routeLocations": {
-        "/api/synonbiomed/projects": [
+        "/api/x-science/projects": [
           {
             "file": "internal/server/server.go",
             "line": 717

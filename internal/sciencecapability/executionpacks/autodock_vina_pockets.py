@@ -51,9 +51,9 @@ def load_validated_pocket_selection(
 ) -> dict[str, object]:
     selection = _load_object(selection_path, "pocket selection")
     validation = _load_object(validation_path, "pocket validation")
-    if selection.get("schema") != "synon.binding-pocket-prediction.v1" or selection.get("status") != "passed":
+    if selection.get("schema") != "x-science.binding-pocket-prediction.v1" or selection.get("status") != "passed":
         raise ValueError("pocket selection does not use the passing prediction schema")
-    if validation.get("schema") != "synon.execution-pack-validation.v4" or validation.get("execution_pack_id") != "binding-pocket-prediction.p2rank" or validation.get("overall_pass") is not True:
+    if validation.get("schema") != "x-science.execution-pack-validation.v4" or validation.get("execution_pack_id") != "binding-pocket-prediction.p2rank" or validation.get("overall_pass") is not True:
         raise ValueError("pocket validation is not a passing P2Rank execution receipt")
     checks = validation.get("checks")
     required_checks = {

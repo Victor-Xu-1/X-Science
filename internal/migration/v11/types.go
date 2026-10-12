@@ -1,11 +1,15 @@
 package v11
 
-import "time"
+import (
+	"time"
+
+	workspace "x-science/internal/persistence/workspace"
+)
 
 const (
-	SchemaName                    = "synonbiomed-v1.1"
+	SchemaName                    = "xscience-v1.1"
 	ManifestFilename              = "MIGRATION_V1_1.json"
-	WorkspaceDatabaseRelativePath = "workspace/synonbiomed-v1.1.sqlite"
+	WorkspaceDatabaseRelativePath = workspace.DatabaseRelativePath
 	StatusCompleted               = "completed"
 	StatusRolledBack              = "rolled_back"
 )

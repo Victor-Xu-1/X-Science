@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/tools/websearch"
+	"x-science/internal/tools/websearch"
 )
 
 func TestSearchRunsQueryVariantsConcurrentlyAndKeepsQueryOrder(t *testing.T) {

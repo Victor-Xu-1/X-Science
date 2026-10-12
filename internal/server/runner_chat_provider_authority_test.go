@@ -11,12 +11,12 @@ import (
 	"testing"
 	"time"
 
-	eventjournal "synon-go/internal/persistence/journal"
-	runtimekv "synon-go/internal/persistence/runtimekv"
-	secretstore "synon-go/internal/persistence/secrets"
-	sessionstore "synon-go/internal/persistence/sessions"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/providers"
+	eventjournal "x-science/internal/persistence/journal"
+	runtimekv "x-science/internal/persistence/runtimekv"
+	secretstore "x-science/internal/persistence/secrets"
+	sessionstore "x-science/internal/persistence/sessions"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/providers"
 )
 
 func TestSessionRunnerChatOnceUsesSavedProviderProfileAuthorityOverStaticOptions(t *testing.T) {

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestWorkspaceMemoryHTTPAPIUsesActiveSupersession(t *testing.T) {
@@ -35,7 +35,7 @@ func TestWorkspaceMemoryHTTPAPIUsesActiveSupersession(t *testing.T) {
 
 	response := httptest.NewRecorder()
 	request := newLoopbackTestRequest(http.MethodGet, "/api/go/memories?user_id=local&project_id=project-1", nil)
-	request.Header.Set("X-Synon-User-Id", "local")
+	request.Header.Set("X-Science-User-Id", "local")
 	app.ServeHTTP(response, request)
 	if response.Code != http.StatusOK || !bytes.Contains(response.Body.Bytes(), []byte("new decision")) || bytes.Contains(response.Body.Bytes(), []byte("old decision")) {
 		t.Fatalf("active memories = %d: %s", response.Code, response.Body.String())

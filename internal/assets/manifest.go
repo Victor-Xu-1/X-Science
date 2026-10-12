@@ -14,18 +14,19 @@ import (
 )
 
 type Manifest struct {
-	SchemaVersion int      `json:"schemaVersion"`
-	Source        string   `json:"source,omitempty"`
-	Version       string   `json:"version,omitempty"`
-	SourceURL     string   `json:"sourceUrl,omitempty"`
-	License       string   `json:"license,omitempty"`
-	LicenseFile   string   `json:"licenseFile,omitempty"`
-	Entrypoint    string   `json:"entrypoint,omitempty"`
-	Runtime       Runtime  `json:"runtime,omitempty"`
-	Excluded      []string `json:"excluded,omitempty"`
-	Skills        []string `json:"skills,omitempty"`
-	Agents        []string `json:"agents,omitempty"`
-	Files         []File   `json:"files"`
+	SchemaVersion int                 `json:"schemaVersion"`
+	Source        string              `json:"source,omitempty"`
+	Provenance    *ImportedProvenance `json:"provenance,omitempty"`
+	Version       string              `json:"version,omitempty"`
+	SourceURL     string              `json:"sourceUrl,omitempty"`
+	License       string              `json:"license,omitempty"`
+	LicenseFile   string              `json:"licenseFile,omitempty"`
+	Entrypoint    string              `json:"entrypoint,omitempty"`
+	Runtime       Runtime             `json:"runtime,omitempty"`
+	Excluded      []string            `json:"excluded,omitempty"`
+	Skills        []string            `json:"skills,omitempty"`
+	Agents        []string            `json:"agents,omitempty"`
+	Files         []File              `json:"files"`
 }
 
 // Runtime declares the interpreter boundary for an optional asset pack.
@@ -34,6 +35,15 @@ type Runtime struct {
 	Kind           string `json:"kind,omitempty"`
 	MinimumVersion string `json:"minimumVersion,omitempty"`
 	Optional       bool   `json:"optional,omitempty"`
+}
+
+// ImportedProvenance identifies the actual source input, not current product
+// branding or a runtime trust grant. Artifact verification still binds every
+// current file's bytes, while nested unknown fields remain rejected by Load.
+type ImportedProvenance struct {
+	OriginalComponent     string `json:"originalComponent"`
+	OriginalGitRevision   string `json:"originalGitRevision"`
+	OriginalArchiveSHA256 string `json:"originalArchiveSHA256"`
 }
 
 type File struct {
@@ -73,6 +83,15 @@ func Verify(root string, manifest Manifest) (Report, error) {
 	if manifest.SchemaVersion != 1 {
 		return Report{}, fmt.Errorf("unsupported asset manifest schema version %d", manifest.SchemaVersion)
 	}
+	if manifest.Provenance != nil {
+		value := manifest.Provenance
+		if len(value.OriginalComponent) == 0 || len(value.OriginalComponent) > 256 ||
+			strings.TrimSpace(value.OriginalComponent) != value.OriginalComponent ||
+			strings.ContainsAny(value.OriginalComponent, "\x00\r\n") ||
+			!validSourceDigest(value.OriginalGitRevision, 20) || !validSourceDigest(value.OriginalArchiveSHA256, 32) {
+			return Report{}, errors.New("asset import provenance has invalid source identity")
+		}
+	}
 	if strings.TrimSpace(root) == "" {
 		return Report{}, errors.New("asset root is required")
 	}
@@ -109,6 +128,11 @@ func Verify(root string, manifest Manifest) (Report, error) {
 		report.TotalBytes += entry.Bytes
 	}
 	return report, nil
+}
+
+func validSourceDigest(value string, size int) bool {
+	decoded, err := hex.DecodeString(value)
+	return err == nil && len(decoded) == size && len(value) == size*2 && value == strings.ToLower(value)
 }
 
 func verifyFile(rootAbs, rootResolved string, entry File) error {

@@ -1,6 +1,6 @@
 package buildinfo
 
-import productidentity "synon-go"
+import productidentity "x-science"
 
 type Info struct {
 	Name          string `json:"name"`

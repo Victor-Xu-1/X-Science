@@ -3,7 +3,7 @@ package server
 import (
 	"encoding/json"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func cloneTranscriptWebIncrementalRecord(

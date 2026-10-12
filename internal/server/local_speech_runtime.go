@@ -101,7 +101,7 @@ func newLocalSpeechRuntime(fileRoot string, httpClient *http.Client) *localSpeec
 	if root == "" {
 		root = os.TempDir()
 	}
-	root = filepath.Join(root, ".synon", "local-speech")
+	root = filepath.Join(root, ".xscience", "local-speech")
 	if httpClient == nil {
 		httpClient = http.DefaultClient
 	}
@@ -182,7 +182,7 @@ func (s *Server) handleLocalSpeechStatus(w http.ResponseWriter, request *http.Re
 		writeWebSpeechError(w, newWebSpeechError(http.StatusMethodNotAllowed, "STT_METHOD_NOT_ALLOWED", "local speech status requires GET"))
 		return
 	}
-	userID := strings.TrimSpace(request.Header.Get("X-Synon-User-Id"))
+	userID := strings.TrimSpace(request.Header.Get("X-Science-User-Id"))
 	if userID == "" {
 		writeWebSpeechError(w, newWebSpeechError(http.StatusUnauthorized, "STT_AUTH_REQUIRED", "authentication is required"))
 		return
@@ -217,7 +217,7 @@ func (s *Server) handleLocalSpeechPrepare(w http.ResponseWriter, request *http.R
 		writeWebSpeechError(w, newWebSpeechError(http.StatusMethodNotAllowed, "STT_METHOD_NOT_ALLOWED", "local speech preparation requires POST"))
 		return
 	}
-	userID := strings.TrimSpace(request.Header.Get("X-Synon-User-Id"))
+	userID := strings.TrimSpace(request.Header.Get("X-Science-User-Id"))
 	if userID == "" {
 		writeWebSpeechError(w, newWebSpeechError(http.StatusUnauthorized, "STT_AUTH_REQUIRED", "authentication is required"))
 		return

@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/software"
+	"x-science/internal/software"
 )
 
 func TestBuildPythonHarnessKeepsArgumentsOutOfSource(t *testing.T) {

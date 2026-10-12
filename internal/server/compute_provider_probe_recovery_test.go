@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	kernelruntime "synon-go/internal/kernel"
-	"synon-go/internal/persistence/runtimekv"
-	workspace "synon-go/internal/persistence/workspace"
+	kernelruntime "x-science/internal/kernel"
+	"x-science/internal/persistence/runtimekv"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestComputeProbeRecoveryRetainsRemoteIdentityAcrossReconstruction(t *testing.T) {

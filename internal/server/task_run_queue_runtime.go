@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	sessionstore "synon-go/internal/persistence/sessions"
-	taskruns "synon-go/internal/persistence/taskruns"
+	sessionstore "x-science/internal/persistence/sessions"
+	taskruns "x-science/internal/persistence/taskruns"
 	"time"
 )
 

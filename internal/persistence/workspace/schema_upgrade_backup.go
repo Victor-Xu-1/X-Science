@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"synon-go/internal/sqlitebackup"
+	"x-science/internal/sqlitebackup"
 )
 
 const workspaceSchemaBackupRetention = 2

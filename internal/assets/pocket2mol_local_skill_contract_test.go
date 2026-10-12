@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/skills"
+	"x-science/internal/skills"
 )
 
 func TestPocket2MolLocalSkillOwnsManagedSetupAndRepresentativeGeneration(t *testing.T) {
@@ -19,7 +19,7 @@ func TestPocket2MolLocalSkillOwnsManagedSetupAndRepresentativeGeneration(t *test
 		t.Fatal("locate repository root")
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
-	skillDir := filepath.Join(repositoryRoot, "skills", "synonbiomed", "pocket2mol-local")
+	skillDir := filepath.Join(repositoryRoot, "skills", "x-science", "pocket2mol-local")
 	skillPath := filepath.Join(skillDir, "SKILL.md")
 	content, err := os.ReadFile(skillPath)
 	if err != nil {
@@ -40,7 +40,7 @@ func TestPocket2MolLocalSkillOwnsManagedSetupAndRepresentativeGeneration(t *test
 		"torch.cuda.get_arch_list()",
 		"never a silent CPU rewrite",
 		"representative real pocket",
-		"synon.binding-pocket-handoff.v1",
+		"x-science.binding-pocket-handoff.v1",
 		"Never derive a pocket center with an ad hoc residue loop",
 		"does not publish a universal RAM or VRAM minimum",
 		"A folder ID is not a file ID",

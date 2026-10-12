@@ -10,7 +10,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"synon-go/internal/compute/transfer"
+	"x-science/internal/compute/namespace"
+	"x-science/internal/compute/transfer"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 type computeHarvestTransport interface {
@@ -28,20 +30,31 @@ type computeHarvestSelection struct {
 }
 
 type computeHarvestResult struct {
-	Files          []string
-	Count          int64
-	Left           []map[string]any
-	RemoteCount    int64
-	Manifest       string
-	ManifestSHA256 string
+	Files            []string
+	Count            int64
+	Left             []map[string]any
+	RemoteCount      int64
+	Manifest         string
+	ManifestSHA256   string
+	CheckpointSHA256 string
+	CheckpointProof  *namespace.SourceProof
 }
 
 // One authority selects before native packaging for every compute transport.
 // A control pass is bounded; detached packaging and durable partial transport
 // survive the next probe or controller reconstruction without rerunning work.
 func (s *Server) harvestSelectedComputeOutputs(ctx context.Context, stage, workspaceDir, jobID string,
-	hardware map[string]any, remoteURI func(string) string, transport computeHarvestTransport,
+	hardware map[string]any, remoteURI func(string) string, transport computeHarvestTransport, owned ...workspace.OwnedComputeJob,
 ) (result computeHarvestResult, ready bool, err error) {
+	if len(owned) > 1 || len(owned) == 1 && owned[0].Job.JobID != jobID {
+		return result, false, namespace.ErrRecoveryUnconfirmed
+	}
+	if len(owned) == 1 {
+		ctx, err = s.computeNamespaceContext(ctx, owned[0])
+		if err != nil {
+			return result, false, err
+		}
+	}
 	if err := os.MkdirAll(stage, 0o700); err != nil {
 		return result, false, err
 	}
@@ -104,7 +117,21 @@ func (s *Server) harvestSelectedComputeOutputs(ctx context.Context, stage, works
 		return result, false, err
 	}
 	target := filepath.Join(workspaceRoot, "hpc", jobID)
-	extracted, err := transfer.ExtractSelected(ctx, archivePath, filepath.Join(stage, "output-manifest.jsonl"), target, selection.Selection)
+	manifestPath := filepath.Join(stage, "output-manifest.jsonl")
+	extracted, err := transfer.ExtractSelected(ctx, archivePath, manifestPath, target, selection.Selection)
+	if errors.Is(err, namespace.ErrRecoveryUnconfirmed) {
+		// An old output schema needs its original durable digest. A mutable
+		// staging summary alone cannot mint authority for an unknown job.
+		observation, ok := ctx.Value(computeNamespaceObservationKey{}).(*computeNamespaceObservation)
+		if !ok || observation.outputManifestSHA256 != selection.Selection.ManifestSHA256 {
+			return result, false, namespace.ErrRecoveryUnconfirmed
+		}
+		proof, proofErr := computeNamespaceSourceProof(ctx, observation.outputManifestSHA256)
+		if proofErr != nil {
+			return result, false, proofErr
+		}
+		extracted, err = transfer.ExtractSelectedWithHistoricalProof(ctx, archivePath, manifestPath, target, selection.Selection, stringValue(hardware["archive_sha256"]), *proof)
+	}
 	if err != nil {
 		return result, false, err
 	}
@@ -114,6 +141,13 @@ func (s *Server) harvestSelectedComputeOutputs(ctx context.Context, stage, works
 	result.Count, result.RemoteCount = extracted.Count, selection.Selection.RemoteFiles
 	result.Manifest = filepath.ToSlash(filepath.Join("hpc", jobID, "output-manifest.jsonl"))
 	result.ManifestSHA256 = selection.Selection.ManifestSHA256
+	if observation, ok := ctx.Value(computeNamespaceObservationKey{}).(*computeNamespaceObservation); ok && observation.checkpointSHA256 != "" {
+		result.CheckpointSHA256 = observation.checkpointSHA256
+		result.CheckpointProof, err = computeNamespaceSourceProof(ctx, result.CheckpointSHA256)
+		if err != nil {
+			return result, false, err
+		}
+	}
 	if err := publishComputeOutputManifest(ctx, filepath.Join(stage, "output-manifest.jsonl"), filepath.Join(target, "output-manifest.jsonl"), result.ManifestSHA256); err != nil {
 		return result, false, err
 	}

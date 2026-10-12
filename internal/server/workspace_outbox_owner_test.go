@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestOutboxProjectFrameAndRoutineMutationsPreserveOwnerScope(t *testing.T) {
@@ -55,7 +55,7 @@ func assertOwnerRequestStatus(t *testing.T, app http.Handler, method, target str
 	}
 	request := newLoopbackTestRequest(method, target, bytes.NewReader(raw))
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("X-Synon-User-Id", userID)
+	request.Header.Set("X-Science-User-Id", userID)
 	response := httptest.NewRecorder()
 	app.ServeHTTP(response, request)
 	if response.Code != want {

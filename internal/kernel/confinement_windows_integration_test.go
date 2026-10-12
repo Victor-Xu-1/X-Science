@@ -21,7 +21,7 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-const windowsConfinementTestChildEnv = "SYNON_WINDOWS_CONFINEMENT_TEST_CHILD"
+const windowsConfinementTestChildEnv = "X_SCIENCE_WINDOWS_CONFINEMENT_TEST_CHILD"
 
 type windowsConfinementTestResult struct {
 	AppContainer      bool `json:"app_container"`
@@ -41,8 +41,8 @@ func TestWindowsKernelAppContainerRealBoundary(t *testing.T) {
 		return
 	}
 	workspace := t.TempDir()
-	t.Setenv("SYNON_HOME", t.TempDir())
-	t.Setenv("SYNON_TEST_HOST_SECRET_SENTINEL", "not-for-worker")
+	t.Setenv("X_SCIENCE_HOME", t.TempDir())
+	t.Setenv("X_SCIENCE_TEST_HOST_SECRET_SENTINEL", "not-for-worker")
 	outside := t.TempDir()
 	runtimeRoot := t.TempDir()
 	runtimeFile := filepath.Join(runtimeRoot, "library.dat")
@@ -76,11 +76,11 @@ func TestWindowsKernelAppContainerRealBoundary(t *testing.T) {
 		[]string{"-test.run=TestWindowsKernelAppContainerRealBoundary"},
 		[]string{
 			windowsConfinementTestChildEnv + "=1",
-			"SYNON_WINDOWS_CONFINEMENT_TEST_WORKSPACE=" + workspace,
-			"SYNON_WINDOWS_CONFINEMENT_TEST_OUTSIDE=" + privateFile,
-			"SYNON_WINDOWS_CONFINEMENT_TEST_ADDRESS=" + listener.Addr().String(),
-			"SYNON_WINDOWS_CONFINEMENT_TEST_RUNTIME=" + runtimeRoot,
-			"SYNON_WINDOWS_CONFINEMENT_TEST_OPLOG=" + operationLog,
+			"X_SCIENCE_WINDOWS_CONFINEMENT_TEST_WORKSPACE=" + workspace,
+			"X_SCIENCE_WINDOWS_CONFINEMENT_TEST_OUTSIDE=" + privateFile,
+			"X_SCIENCE_WINDOWS_CONFINEMENT_TEST_ADDRESS=" + listener.Addr().String(),
+			"X_SCIENCE_WINDOWS_CONFINEMENT_TEST_RUNTIME=" + runtimeRoot,
+			"X_SCIENCE_WINDOWS_CONFINEMENT_TEST_OPLOG=" + operationLog,
 		},
 		[]string{runtimeRoot}, nil, []string{operationLog}, []windowsConfinementFrozenPath{operationLogIdentity},
 	)
@@ -173,11 +173,11 @@ func runWindowsConfinementTestChild(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	workspace := os.Getenv("SYNON_WINDOWS_CONFINEMENT_TEST_WORKSPACE")
-	outside := os.Getenv("SYNON_WINDOWS_CONFINEMENT_TEST_OUTSIDE")
-	address := os.Getenv("SYNON_WINDOWS_CONFINEMENT_TEST_ADDRESS")
-	runtimeRoot := os.Getenv("SYNON_WINDOWS_CONFINEMENT_TEST_RUNTIME")
-	operationLog := os.Getenv("SYNON_WINDOWS_CONFINEMENT_TEST_OPLOG")
+	workspace := os.Getenv("X_SCIENCE_WINDOWS_CONFINEMENT_TEST_WORKSPACE")
+	outside := os.Getenv("X_SCIENCE_WINDOWS_CONFINEMENT_TEST_OUTSIDE")
+	address := os.Getenv("X_SCIENCE_WINDOWS_CONFINEMENT_TEST_ADDRESS")
+	runtimeRoot := os.Getenv("X_SCIENCE_WINDOWS_CONFINEMENT_TEST_RUNTIME")
+	operationLog := os.Getenv("X_SCIENCE_WINDOWS_CONFINEMENT_TEST_OPLOG")
 	runtimeFile := filepath.Join(runtimeRoot, "library.dat")
 	runtimeRaw, runtimeReadErr := os.ReadFile(runtimeFile)
 	runtimeWriteErr := os.WriteFile(runtimeFile, []byte("changed"), 0o600)
@@ -196,7 +196,7 @@ func runWindowsConfinementTestChild(t *testing.T) {
 	result := windowsConfinementTestResult{
 		AppContainer: tokenValue != 0, StdinDelivered: string(stdin) == "cell-input",
 		WorkspaceWrite: writeErr == nil, OutsideRead: readErr == nil, DirectNetwork: dialErr == nil,
-		HostSecretVisible: os.Getenv("SYNON_TEST_HOST_SECRET_SENTINEL") != "",
+		HostSecretVisible: os.Getenv("X_SCIENCE_TEST_HOST_SECRET_SENTINEL") != "",
 		RuntimeRead:       runtimeReadErr == nil && string(runtimeRaw) == "verified-library",
 		RuntimeWrite:      runtimeWriteErr == nil || runtimeCreateErr == nil,
 		OperationLogWrite: logErr == nil,
@@ -210,17 +210,17 @@ func runWindowsConfinementTestChild(t *testing.T) {
 }
 
 func TestWindowsKernelAppContainerCancellationKillsDescendants(t *testing.T) {
-	switch os.Getenv("SYNON_WINDOWS_CONFINEMENT_CANCEL_MODE") {
+	switch os.Getenv("X_SCIENCE_WINDOWS_CONFINEMENT_CANCEL_MODE") {
 	case "root":
-		workspace := os.Getenv("SYNON_WINDOWS_CONFINEMENT_CANCEL_WORKSPACE")
+		workspace := os.Getenv("X_SCIENCE_WINDOWS_CONFINEMENT_CANCEL_WORKSPACE")
 		childEnv := make([]string, 0, len(os.Environ())+1)
 		for _, entry := range os.Environ() {
 			key, _, _ := strings.Cut(entry, "=")
-			if !strings.EqualFold(key, "SYNON_WINDOWS_CONFINEMENT_CANCEL_MODE") {
+			if !strings.EqualFold(key, "X_SCIENCE_WINDOWS_CONFINEMENT_CANCEL_MODE") {
 				childEnv = append(childEnv, entry)
 			}
 		}
-		childEnv = append(childEnv, "SYNON_WINDOWS_CONFINEMENT_CANCEL_MODE=descendant")
+		childEnv = append(childEnv, "X_SCIENCE_WINDOWS_CONFINEMENT_CANCEL_MODE=descendant")
 		child, err := os.StartProcess(os.Args[0],
 			[]string{os.Args[0], "-test.run=TestWindowsKernelAppContainerCancellationKillsDescendants"},
 			&os.ProcAttr{Dir: workspace, Env: childEnv, Files: []*os.File{os.Stdin, os.Stdout, os.Stderr}})
@@ -234,7 +234,7 @@ func TestWindowsKernelAppContainerCancellationKillsDescendants(t *testing.T) {
 		time.Sleep(30 * time.Second)
 		return
 	case "descendant":
-		workspace := os.Getenv("SYNON_WINDOWS_CONFINEMENT_CANCEL_WORKSPACE")
+		workspace := os.Getenv("X_SCIENCE_WINDOWS_CONFINEMENT_CANCEL_WORKSPACE")
 		var tokenValue, size uint32
 		err := windows.GetTokenInformation(windows.GetCurrentProcessToken(), 29,
 			(*byte)(unsafe.Pointer(&tokenValue)), uint32(unsafe.Sizeof(tokenValue)), &size)
@@ -249,13 +249,13 @@ func TestWindowsKernelAppContainerCancellationKillsDescendants(t *testing.T) {
 		return
 	}
 	workspace := t.TempDir()
-	t.Setenv("SYNON_HOME", t.TempDir())
+	t.Setenv("X_SCIENCE_HOME", t.TempDir())
 	command, err := newWindowsConfinedCommand(
 		workspace, os.Args[0],
 		[]string{"-test.run=TestWindowsKernelAppContainerCancellationKillsDescendants"},
 		[]string{
-			"SYNON_WINDOWS_CONFINEMENT_CANCEL_MODE=root",
-			"SYNON_WINDOWS_CONFINEMENT_CANCEL_WORKSPACE=" + workspace,
+			"X_SCIENCE_WINDOWS_CONFINEMENT_CANCEL_MODE=root",
+			"X_SCIENCE_WINDOWS_CONFINEMENT_CANCEL_WORKSPACE=" + workspace,
 		},
 		nil,
 	)
@@ -320,7 +320,7 @@ func TestWindowsKernelAppContainerCancellationKillsDescendants(t *testing.T) {
 }
 
 func TestWindowsKernelAppContainerRecoversAbandonedLease(t *testing.T) {
-	t.Setenv("SYNON_HOME", t.TempDir())
+	t.Setenv("X_SCIENCE_HOME", t.TempDir())
 	workspace := t.TempDir()
 	runtimeRoot := t.TempDir()
 	runtimeFile := filepath.Join(runtimeRoot, "existing.dat")
@@ -390,10 +390,10 @@ func TestWindowsKernelAppContainerRecoversAbandonedLease(t *testing.T) {
 }
 
 func TestWindowsKernelAppContainerRecoversCrashedHost(t *testing.T) {
-	if os.Getenv("SYNON_WINDOWS_CONFINEMENT_CRASH_HOST") == "1" {
+	if os.Getenv("X_SCIENCE_WINDOWS_CONFINEMENT_CRASH_HOST") == "1" {
 		request := &windowsConfinedRequest{
-			ProfileName: "SynonWorker." + os.Getenv("SYNON_WINDOWS_CONFINEMENT_CRASH_ID"),
-			Workspace:   os.Getenv("SYNON_WINDOWS_CONFINEMENT_CRASH_WORKSPACE"),
+			ProfileName: "XScienceWorker." + os.Getenv("X_SCIENCE_WINDOWS_CONFINEMENT_CRASH_ID"),
+			Workspace:   os.Getenv("X_SCIENCE_WINDOWS_CONFINEMENT_CRASH_WORKSPACE"),
 			Executable:  os.Args[0],
 		}
 		for _, grant := range windowsConfinementRequestGrants(request) {
@@ -411,14 +411,14 @@ func TestWindowsKernelAppContainerRecoversCrashedHost(t *testing.T) {
 	}
 	state := t.TempDir()
 	workspace := t.TempDir()
-	t.Setenv("SYNON_HOME", state)
+	t.Setenv("X_SCIENCE_HOME", state)
 	identifier := uuid.NewString()
-	profileName := "SynonWorker." + identifier
+	profileName := "XScienceWorker." + identifier
 	command := exec.Command(os.Args[0], "-test.run=^TestWindowsKernelAppContainerRecoversCrashedHost$")
 	command.Env = append(os.Environ(),
-		"SYNON_WINDOWS_CONFINEMENT_CRASH_HOST=1",
-		"SYNON_WINDOWS_CONFINEMENT_CRASH_ID="+identifier,
-		"SYNON_WINDOWS_CONFINEMENT_CRASH_WORKSPACE="+workspace,
+		"X_SCIENCE_WINDOWS_CONFINEMENT_CRASH_HOST=1",
+		"X_SCIENCE_WINDOWS_CONFINEMENT_CRASH_ID="+identifier,
+		"X_SCIENCE_WINDOWS_CONFINEMENT_CRASH_WORKSPACE="+workspace,
 	)
 	output, err := command.CombinedOutput()
 	if err == nil || !strings.Contains(err.Error(), "exit status 91") {
@@ -452,7 +452,7 @@ func TestWindowsKernelAppContainerRecoversCrashedHost(t *testing.T) {
 }
 
 func TestWindowsKernelAppContainerQuarantinesReplacedWorkspace(t *testing.T) {
-	t.Setenv("SYNON_HOME", t.TempDir())
+	t.Setenv("X_SCIENCE_HOME", t.TempDir())
 	parent := t.TempDir()
 	workspace := filepath.Join(parent, "workspace")
 	if err := os.Mkdir(workspace, 0o700); err != nil {
@@ -517,7 +517,7 @@ func TestWindowsKernelAppContainerQuarantinesReplacedWorkspace(t *testing.T) {
 func TestWindowsKernelRequestRejectsReplacedOrdinaryAuthority(t *testing.T) {
 	for _, targetKind := range []string{"workspace", "runtime", "executable"} {
 		t.Run(targetKind, func(t *testing.T) {
-			t.Setenv("SYNON_HOME", t.TempDir())
+			t.Setenv("X_SCIENCE_HOME", t.TempDir())
 			root := t.TempDir()
 			workspace := filepath.Join(root, "workspace")
 			runtimeRoot := filepath.Join(root, "runtime")

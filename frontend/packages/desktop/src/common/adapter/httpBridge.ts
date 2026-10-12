@@ -469,7 +469,7 @@ type RealtimeBridgeState = {
 // Keep the single composition-root binding and logical subscriptions in a
 // realm-wide slot so old and new module instances do not disagree about
 // whether the runtime is available.
-const REALTIME_BRIDGE_STATE = Symbol.for('synon-biomed.realtime-bridge-state.v1');
+const REALTIME_BRIDGE_STATE = Symbol.for('x-science.realtime-bridge-state.v1');
 const realtimeBridgeGlobal = globalThis as typeof globalThis & {
   [key: symbol]: RealtimeBridgeState | undefined;
 };

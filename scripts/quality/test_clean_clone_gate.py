@@ -72,7 +72,7 @@ class CleanCloneGateTests(unittest.TestCase):
 
     def test_strips_inherited_secrets_and_isolates_home(self):
         with tempfile.TemporaryDirectory() as directory, mock.patch.dict(
-            "os.environ", {"SYNON_TEST_SECRET": "must-not-cross-boundary"}
+            "os.environ", {"X_SCIENCE_TEST_SECRET": "must-not-cross-boundary"}
         ):
             root = pathlib.Path(directory)
             repo, sha = self.make_repo(root)
@@ -80,7 +80,7 @@ class CleanCloneGateTests(unittest.TestCase):
             temp_root.mkdir()
             probe = (
                 "import os,pathlib; "
-                "assert 'SYNON_TEST_SECRET' not in os.environ; "
+                "assert 'X_SCIENCE_TEST_SECRET' not in os.environ; "
                 "assert 'isolated/home' in pathlib.Path(os.environ['HOME']).as_posix()"
             )
             result, _ = clean_clone_gate.run_gate(
@@ -94,7 +94,7 @@ class CleanCloneGateTests(unittest.TestCase):
             {
                 "HTTPS_PROXY": "http://127.0.0.1:9080",
                 "https_proxy": "http://127.0.0.1:9080",
-                "SYNON_TEST_SECRET": "must-not-cross-boundary",
+                "X_SCIENCE_TEST_SECRET": "must-not-cross-boundary",
             },
             clear=True,
         ):
@@ -106,7 +106,7 @@ class CleanCloneGateTests(unittest.TestCase):
                 "import os; "
                 "assert os.environ['HTTPS_PROXY'] == 'http://127.0.0.1:9080'; "
                 "assert os.environ['https_proxy'] == 'http://127.0.0.1:9080'; "
-                "assert 'SYNON_TEST_SECRET' not in os.environ"
+                "assert 'X_SCIENCE_TEST_SECRET' not in os.environ"
             )
             result, _ = clean_clone_gate.run_gate(
                 repo, sha, command_set([sys.executable, "-c", probe]), temp_root

@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"sort"
 	"strings"
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 	"time"
 )
 
@@ -241,7 +241,7 @@ func (s *Server) reconcileWebConversationPendingTools(
 		if err != nil {
 			return err
 		}
-		request.Header.Set("X-Synon-User-Id", strings.TrimSpace(userID))
+		request.Header.Set("X-Science-User-Id", strings.TrimSpace(userID))
 		if _, err := s.resolveCompatibilityInput(request, current, compatibilityResolveInputRequest{
 			Responses: []compatibilityInputResponse{{
 				RequestID: requestID, Action: action, Approved: &approved, Scope: "once",

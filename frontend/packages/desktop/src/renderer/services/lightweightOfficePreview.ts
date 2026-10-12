@@ -1,4 +1,4 @@
-import { requestSynonBiomedJson, type SynonBiomedGatewayOptions } from './synonBiomedHttp';
+import { requestXScienceJson, type XScienceGatewayOptions } from './xScienceHttp';
 
 export type LightweightOfficeKind = 'word' | 'excel' | 'ppt';
 
@@ -44,7 +44,7 @@ const targetFormat: Record<LightweightOfficeKind, string> = {
 export async function loadLightweightOfficePreview(
   kind: LightweightOfficeKind,
   source: LightweightOfficeSource,
-  options: SynonBiomedGatewayOptions = {}
+  options: XScienceGatewayOptions = {}
 ): Promise<LightweightOfficePreviewData> {
   const artifactId = source.artifactId?.trim();
   const filePath = artifactId ? undefined : source.filePath?.trim();
@@ -56,7 +56,7 @@ export async function loadLightweightOfficePreview(
     throw new Error('Office preview version requires an artifact source');
   }
 
-  const payload = await requestSynonBiomedJson<DocumentConversionEnvelope>(
+  const payload = await requestXScienceJson<DocumentConversionEnvelope>(
     '/api/document/convert',
     {
       method: 'POST',

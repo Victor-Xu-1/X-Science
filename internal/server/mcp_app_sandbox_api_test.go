@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestMCPAppSandboxAuthorityIsExactASCIIAndPortBound(t *testing.T) {
@@ -54,7 +54,7 @@ func TestMCPAppSandboxTicketIsOwnerResolvedSingleUseAndHostBound(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = store.Close() })
-	t.Setenv("SYNON_BUNDLED_CONNECTOR_EXECUTABLE", "mcp-ketcher")
+	t.Setenv("X_SCIENCE_BUNDLED_CONNECTOR_EXECUTABLE", "mcp-ketcher")
 	app := newV11TestServer(t, Options{Workspace: store, FileRoot: root})
 	handler := app.Handler()
 
@@ -139,7 +139,7 @@ func TestMCPAppSandboxTicketIsOwnerResolvedSingleUseAndHostBound(t *testing.T) {
 				http.MethodPost, "/api/mcp/apps/resource-tickets", strings.NewReader(requestBody),
 			)
 			largeTicketRequest.Header.Set("Content-Type", "application/json")
-			largeTicketRequest.Header.Set("X-Synon-User-Id", "owner-a")
+			largeTicketRequest.Header.Set("X-Science-User-Id", "owner-a")
 			largeTicketRequest.Host = "localhost:38180"
 			largeTicketResponse := httptest.NewRecorder()
 			handler.ServeHTTP(largeTicketResponse, largeTicketRequest)
@@ -301,7 +301,7 @@ func TestMCPAppSandboxTicketsAreRevokedWhenServerCloses(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = store.Close() })
-	t.Setenv("SYNON_BUNDLED_CONNECTOR_EXECUTABLE", "mcp-ketcher")
+	t.Setenv("X_SCIENCE_BUNDLED_CONNECTOR_EXECUTABLE", "mcp-ketcher")
 	app := newV11TestServer(t, Options{Workspace: store, FileRoot: root})
 	handler := app.Handler()
 	issue := func() *httptest.ResponseRecorder {

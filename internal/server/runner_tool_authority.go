@@ -4,9 +4,9 @@ import (
 	"context"
 	"strings"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/harnesscontract"
-	sessionstore "synon-go/internal/persistence/sessions"
+	"x-science/internal/agentruntime"
+	"x-science/internal/harnesscontract"
+	sessionstore "x-science/internal/persistence/sessions"
 )
 
 type sessionRunnerToolAuthority struct {

@@ -11,9 +11,9 @@ from pathlib import Path
 import stat
 
 
-SOURCE = "synonbiomed-v1.1/runtime/assets/agents"
-AGENT_ROOT = Path("assets/synonbiomed/agents")
-MANIFEST_PATH = Path("assets/synonbiomed/agents.manifest.json")
+SOURCE = "assets/x-science/agents"
+AGENT_ROOT = Path("assets/x-science/agents")
+MANIFEST_PATH = Path("assets/x-science/agents.manifest.json")
 
 
 def build_manifest(repo: Path) -> dict[str, object]:

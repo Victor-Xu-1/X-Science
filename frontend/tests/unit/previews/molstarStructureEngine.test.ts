@@ -825,16 +825,16 @@ describe('molstarStructureEngine protein surface and ligand representation', () 
   it('assigns every receptor-owned docking layer to the protein visibility control', () => {
     expect(DOCKING_PROTEIN_VISIBILITY_TAGS).toEqual(
       expect.arrayContaining([
-        'synon-biomed-pocket-layer-protein-surface',
-        'synon-biomed-pocket-layer-pocket-surface',
-        'synon-biomed-layer-protein-surface',
-        'synon-biomed-layer-pocket-surface',
-        'synon-biomed-pocket-interactions',
-        'synon-biomed-pocket-interaction-strengths',
+        'x-science-pocket-layer-protein-surface',
+        'x-science-pocket-layer-pocket-surface',
+        'x-science-layer-protein-surface',
+        'x-science-layer-pocket-surface',
+        'x-science-pocket-interactions',
+        'x-science-pocket-interaction-strengths',
       ])
     );
-    expect(DOCKING_PROTEIN_VISIBILITY_TAGS).not.toContain('synon-biomed-pocket-interaction-strength-lines');
-    expect(DOCKING_PROTEIN_VISIBILITY_TAGS).not.toContain('synon-biomed-pocket-ligand');
+    expect(DOCKING_PROTEIN_VISIBILITY_TAGS).not.toContain('x-science-pocket-interaction-strength-lines');
+    expect(DOCKING_PROTEIN_VISIBILITY_TAGS).not.toContain('x-science-pocket-ligand');
   });
 
   it('keeps the ligand at the native Mol* stick scale instead of enlarging its atom spheres', () => {

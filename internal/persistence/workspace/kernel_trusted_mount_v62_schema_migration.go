@@ -11,7 +11,7 @@ import (
 const (
 	kernelTrustedMountV62CallbackID        = "kernel-trusted-mount-v62-backfill"
 	kernelTrustedMountV62PreflightIdentity = "kernel-trusted-mount-v62-session-spec-v1"
-	kernelTrustedMountV62RuleSpec          = "synon.workspace.kernel-trusted-readonly-mount.v62"
+	kernelTrustedMountV62RuleSpec          = "x-science.workspace.kernel-trusted-readonly-mount.v62"
 )
 
 var kernelTrustedMountV62Migration = versionedSchemaMigration{

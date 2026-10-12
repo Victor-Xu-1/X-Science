@@ -10,7 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	runnermachine "synon-go/internal/sessionrunner"
+	runnermachine "x-science/internal/sessionrunner"
 )
 
 var (

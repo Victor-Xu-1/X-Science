@@ -7,8 +7,8 @@ let _services: IPlatformServices | null = null;
  * Centralised so that every call-site stays in sync.
  */
 export function getDevAppName(): string {
-  const isMultiInstance = process.env.SYNON_AI_MULTI_INSTANCE === '1';
-  return isMultiInstance ? 'SynonAI-Dev-2' : 'SynonAI-Dev';
+  const isMultiInstance = process.env.X_SCIENCE_MULTI_INSTANCE === '1';
+  return isMultiInstance ? 'X-Science-Dev-2' : 'X-Science-Dev';
 }
 
 export function registerPlatformServices(services: IPlatformServices): void {

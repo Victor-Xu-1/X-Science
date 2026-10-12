@@ -1,6 +1,6 @@
 package server
 
-import "synon-go/internal/agentruntime"
+import "x-science/internal/agentruntime"
 
 // Keep the outer transport result and its documented result envelope together.
 // Success in a payload cannot erase a failed or non-executing wrapper. Only

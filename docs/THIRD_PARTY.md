@@ -3,7 +3,7 @@
 X-Science keeps reused and third-party runtime components visible and auditable.
 The component inventory below records retained integration and notice surfaces.
 Component-level Skill notices
-are retained in `skills/synonbiomed/THIRD_PARTY_LICENSES.md`.
+are retained in `skills/x-science/THIRD_PARTY_LICENSES.md`.
 
 Version-pinned evidence for upstream module archives that omit a license file
 is stored under `docs/licenses/<module>@<version>/`. Generated release records
@@ -33,17 +33,17 @@ the corresponding Skill sources; external model and service terms are separate.
 
 | Component | Target path | Source | Runtime | License pointer |
 | --- | --- | --- | --- | --- |
-| X-Science Agents | `assets/synonbiomed/agents/` | v1.1 Agent metadata | Go loader | Root license for first-party content; component notices for third-party material |
-| X-Science Skills | `skills/synonbiomed/` | v1.1 Skill source | Go plus declared sidecars | `skills/synonbiomed/THIRD_PARTY_LICENSES.md` |
+| X-Science Agents | `assets/x-science/agents/` | v1.1 Agent metadata | Go loader | Root license for first-party content; component notices for third-party material |
+| X-Science Skills | `skills/x-science/` | v1.1 Skill source | Go plus declared sidecars | `skills/x-science/THIRD_PARTY_LICENSES.md` |
 | Biomedical MCP tools | `assets/optional/mcp-servers/bio-tools/` | v1.1 Python source | Optional Python 3.11+ | Component notices; the inventory is not a blanket license grant |
 | Ketcher Chemistry MCP App | `assets/optional/mcp-servers/ketcher-chemistry/` | v1.1 widget, Ketcher 3.12.0 | Native Go stdio MCP server plus browser JavaScript widget | `assets/optional/mcp-servers/ketcher-chemistry/NOTICE` and checksum manifest |
 | Kernel and compute sidecars | `assets/optional/kernels/`, `assets/optional/compute/` | v1.1 Python and shell source | Optional Python/shell | Component notices and the unresolved-provenance scope below |
-| X-Science 2D Interaction Runtime | Governed immutable `local-conda` generation | ProLIF 2.2.1, RDKit 2024.3.5, CairoSVG 2.8.2, MDAnalysis 2.10.0, Pillow 12.3.0, NumPy 2.4.6 | Server-side Python analysis and publication rendering | `docs/licenses/synon-2d-interaction-runtime/NOTICE.md` |
-| Biomolecular electrostatics runtime | Governed immutable `local-conda` generation | APBS 3.4.1, PDB2PQR 3.7.1, RDKit 2024.3.5, NumPy 2.4.6 | Server-side PQR preparation, aligned protein/ligand Poisson-Boltzmann OpenDX generation, and Mol* surface coloring | `docs/licenses/synon-scientific-runtime-warmups/NOTICE.md` |
-| Scientific runtime warmups | Governed immutable `local-conda` generations | Common structure toolkit; optional AutoDock Vina stack | Post-install background preparation selected during first-run setup | `docs/licenses/synon-scientific-runtime-warmups/NOTICE.md` |
+| X-Science 2D Interaction Runtime | Governed immutable `local-conda` generation | ProLIF 2.2.1, RDKit 2024.3.5, CairoSVG 2.8.2, MDAnalysis 2.10.0, Pillow 12.3.0, NumPy 2.4.6 | Server-side Python analysis and publication rendering | `docs/licenses/x-science-2d-interaction-runtime/NOTICE.md` |
+| Biomolecular electrostatics runtime | Governed immutable `local-conda` generation | APBS 3.4.1, PDB2PQR 3.7.1, RDKit 2024.3.5, NumPy 2.4.6 | Server-side PQR preparation, aligned protein/ligand Poisson-Boltzmann OpenDX generation, and Mol* surface coloring | `docs/licenses/x-science-scientific-runtime-warmups/NOTICE.md` |
+| Scientific runtime warmups | Governed immutable `local-conda` generations | Common structure toolkit; optional AutoDock Vina stack | Post-install background preparation selected during first-run setup | `docs/licenses/x-science-scientific-runtime-warmups/NOTICE.md` |
 | P2Rank pocket prediction runtime | External governed download plus immutable `local-conda` generation | P2Rank 2.5.1 archive and OpenJDK 17 | Registered binding-pocket prediction execution pack | `docs/licenses/p2rank-runtime/NOTICE.md`; operations: `docs/engineering/p2rank-runtime.md` |
-| Micromamba 2.9.0+synon.1 (Linux), 2.9.0 (Windows/macOS) | `assets/optional/micromamba/` | Linux uses the controlled build from source `2676ec2050f7dd5b8a524287526f50a8a4fb9652`; Windows x64 and macOS Intel/Apple Silicon use the official `micromamba-releases@2.9.0-0` binaries with independent SHA-256 manifests | One platform-selected native environment manager | BSD-3-Clause; root `LICENSE` and each native platform `LICENSE`, `manifest.json`; Linux build notices in `DEPENDENCY-NOTICES.txt` |
-| Synon Link extension | `assets/synon-link/` | Pinned v0.6.10 package | Chromium extension | Local manifest and upstream package notices |
+| Micromamba 2.9.0+x-science.1 (Linux), 2.9.0 (Windows/macOS) | `assets/optional/micromamba/` | Linux uses the controlled build from source `2676ec2050f7dd5b8a524287526f50a8a4fb9652`; Windows x64 and macOS Intel/Apple Silicon use the official `micromamba-releases@2.9.0-0` binaries with independent SHA-256 manifests | One platform-selected native environment manager | BSD-3-Clause; root `LICENSE` and each native platform `LICENSE`, `manifest.json`; Linux build notices in `DEPENDENCY-NOTICES.txt` |
+| X-Science Browser Connector | `assets/x-science-link/` | Current v0.6.11 source and reproducible archive; original component revision/digest retained as provenance | Chromium extension | Local manifest, source and upgrade guide |
 | AionCore provider/tool logos | `internal/logoassets/assets/` | iOfficeAI/AionCore commit `020a27a77aeb2b5be7a2b4380aab8ae2686311c4` | Embedded Go Web assets | Source: `internal/logoassets/{LICENSE,SOURCE.md}`; release: `docs/licenses/aioncore-logos/` (Apache-2.0; third-party trademarks remain with their owners) |
 | UCSC chromosome-size metadata | `frontend/public/genomes/ucsc/` | UCSC hg38, hg19, mm39, and mm10 assembly metadata | Offline IGV coordinate references | `frontend/public/genomes/ucsc/{NOTICE.txt,PROVENANCE.json}` and UCSC Conditions of Use |
 | Go dependencies | `go.mod`, `go.sum` | Versioned Go modules | Compiled into release | Generated `SBOM.spdx.json` and `THIRD_PARTY_LICENSES.json` |
@@ -60,10 +60,10 @@ The original redistribution license has not been established for the complete
 retained contents of these legacy components:
 
 - `assets/optional/kernels/kernel_worker.R`;
-- `assets/optional/kernels/synon_host_bridge.py`;
+- `assets/optional/kernels/x_science_host_bridge.py`;
 - `assets/optional/compute/operon_compute_provider/` and
   `assets/optional/compute/provider_kernel_bootstrap.py`;
-- `assets/synonbiomed/agents/bookmarker/metadata.yaml`.
+- `assets/x-science/agents/bookmarker/metadata.yaml`.
 
 Publication does not establish a redistribution grant for this material.
 Neither the first-party AGPL license nor a first-party commercial agreement
@@ -100,9 +100,9 @@ they do not require a separately installed application or recovered prompt
 bundle. Historical assets are not part of the current source distribution.
 
 The Python worker entrypoint and the `worker_*` modules under
-`assets/optional/kernels/synon_biomed_runtime/`, the Linux syscall-policy builder
+`assets/optional/kernels/x_science_runtime/`, the Linux syscall-policy builder
 in `internal/kernel/confinement_filter_linux_amd64.go`, and the research/reviewer
-definitions in `assets/synonbiomed/agents/{operon,reviewer}/metadata.yaml` are
+definitions in `assets/x-science/agents/{operon,reviewer}/metadata.yaml` are
 maintained as first-party implementations under the root license. Their current
 behavioral contract is documented in `docs/engineering/kernel-execution-contract.md`.
 They do not load a frozen interpreter implementation. This scope does not

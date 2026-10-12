@@ -3,7 +3,7 @@ package server
 import (
 	"testing"
 
-	eventjournal "synon-go/internal/persistence/journal"
+	eventjournal "x-science/internal/persistence/journal"
 )
 
 func TestSessionRunnerArtifactReferencesUseScopedImmutableReceipts(t *testing.T) {

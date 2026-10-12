@@ -61,7 +61,7 @@ func TestKernelMaterializationPreservesSourceAndRejectsUnsafeTargets(t *testing.
 			if err := os.WriteFile(external, source, 0o600); err != nil {
 				t.Fatal(err)
 			}
-			directory := filepath.Join(root, ".synon-artifacts")
+			directory := filepath.Join(root, ".x-science-artifacts")
 			version, filename := "version-source", "source.json"
 			target := filepath.Join(directory, version+"-"+filename)
 			ctx := context.Background()
@@ -174,7 +174,7 @@ func TestKernelMaterializationCancellationDuringCopyDoesNotPublish(t *testing.T)
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("mid-copy cancellation became %v", err)
 	}
-	files, err := os.ReadDir(filepath.Join(root, ".synon-artifacts"))
+	files, err := os.ReadDir(filepath.Join(root, ".x-science-artifacts"))
 	if err != nil || len(files) != 0 {
 		t.Fatal("cancelled copy left partial or published evidence")
 	}

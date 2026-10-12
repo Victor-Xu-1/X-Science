@@ -13,7 +13,7 @@ type webAuthenticationState struct {
 
 func newWebAuthenticationState(
 	options Options,
-	linkAuth *synonLinkAuthenticator,
+	linkAuth *xscienceLinkAuthenticator,
 	httpClient *http.Client,
 ) webAuthenticationState {
 	state := webAuthenticationState{}

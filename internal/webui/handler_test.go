@@ -12,7 +12,7 @@ import (
 
 func TestHandlerServesSPAAndAssetsWithoutOwningAPIRoutes(t *testing.T) {
 	root := t.TempDir()
-	writeTestAsset(t, root, "index.html", "<!doctype html><title>Synon Go</title>")
+	writeTestAsset(t, root, "index.html", "<!doctype html><title>XScience Go</title>")
 	writeTestAsset(t, root, "assets/app-12345678.js", "console.log('ok')")
 	handler, err := New(root)
 	if err != nil {
@@ -24,7 +24,7 @@ func TestHandlerServesSPAAndAssetsWithoutOwningAPIRoutes(t *testing.T) {
 		request.Header.Set("Accept", "text/html")
 		response := httptest.NewRecorder()
 		handler.ServeHTTP(response, request)
-		if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), "Synon Go") {
+		if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), "XScience Go") {
 			t.Fatalf("%s: status=%d body=%q", requestPath, response.Code, response.Body.String())
 		}
 		if got := response.Header().Get("Cache-Control"); got != "no-store" {
@@ -57,7 +57,7 @@ func TestHandlerServesSPAAndAssetsWithoutOwningAPIRoutes(t *testing.T) {
 		request.Header.Set("Accept", "text/html")
 		response := httptest.NewRecorder()
 		handler.ServeHTTP(response, request)
-		if response.Code != http.StatusNotFound || strings.Contains(response.Body.String(), "Synon Go") {
+		if response.Code != http.StatusNotFound || strings.Contains(response.Body.String(), "XScience Go") {
 			t.Fatalf("%s leaked SPA fallback: status=%d body=%q", requestPath, response.Code, response.Body.String())
 		}
 	}
@@ -117,12 +117,13 @@ func TestHandlerRevalidatesFixedNameBootScriptsWithoutRelaxingPageCSP(t *testing
 	writeTestAsset(t, root, "index.html", `<script src="/theme-init.js"></script><script src="./app-boot.js"></script><main>X-Science</main>`)
 	writeTestAsset(t, root, themeInitPath, "document.documentElement.dataset.theme = 'dark'")
 	writeTestAsset(t, root, appBootPath, "document.documentElement.dataset.boot = 'ready'")
+	writeTestAsset(t, root, storageNamespaceUpgradePath, "window.__XScienceStorageNamespaceUpgrade = {failures: 0}")
 	handler, err := New(root)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	for _, requestPath := range []string{"/theme-init.js", "/app-boot.js"} {
+	for _, requestPath := range []string{"/theme-init.js", "/app-boot.js", "/storage-namespace-upgrade.js"} {
 		request := httptest.NewRequest(http.MethodGet, requestPath, nil)
 		response := httptest.NewRecorder()
 		handler.ServeHTTP(response, request)

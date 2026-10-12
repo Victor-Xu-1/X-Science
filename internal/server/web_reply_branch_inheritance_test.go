@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	runtimekv "synon-go/internal/persistence/runtimekv"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/providers"
+	runtimekv "x-science/internal/persistence/runtimekv"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/providers"
 )
 
 func cloneReplyForTest(t *testing.T, f *agentSaveArtifactsFixture, source string, attempt int64) string {

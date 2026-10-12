@@ -7,7 +7,7 @@ import (
 	"strings"
 	"unicode"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 const (

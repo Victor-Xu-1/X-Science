@@ -18,11 +18,11 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/compute"
-	kernelruntime "synon-go/internal/kernel"
-	secretstore "synon-go/internal/persistence/secrets"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	"x-science/internal/compute"
+	kernelruntime "x-science/internal/kernel"
+	secretstore "x-science/internal/persistence/secrets"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 type recordingProviderOperationRunner struct {
@@ -111,7 +111,7 @@ func (r *recordingProviderOperationRunner) RunProviderOperation(ctx context.Cont
 			map[string]any{"name": "subdir", "type": "dir", "size": 0, "mtime": 1236},
 		}}, nil
 	case "read_file":
-		stage, err := os.MkdirTemp("/tmp", "synon-provider-file-")
+		stage, err := os.MkdirTemp("/tmp", "x-science-provider-file-")
 		if err != nil {
 			return nil, err
 		}
@@ -652,7 +652,7 @@ s.close()
 			"handle_id": "", "sandbox_hint": "",
 			"staging_dir": stage, "archive_sha256": archive.SHA256, "archive_bytes": archive.Bytes,
 			"provider_spec": providerSpec, "provider_spec_sha256": providerSpecSHA256,
-			"provider_config_sha256": cleanupAuthority.Definition.ExtraEnvironment["SYNON_PROVIDER_BOUND_CONFIG_HASH"],
+			"provider_config_sha256": cleanupAuthority.Definition.ExtraEnvironment["X_SCIENCE_PROVIDER_BOUND_CONFIG_HASH"],
 		}
 		origin := "recovery-origin-" + jobID
 		job, createErr := store.CreateComputeJob("owner-provider", workspace.ComputeJob{
@@ -773,7 +773,7 @@ func TestManagedInferenceComputeProviderUsesExactLoopbackProxyAndBaseURL(t *test
 	}
 	server := New(Options{
 		Workspace: store, Transcript: repo, FileRoot: state, RuntimeAssetsDir: optional,
-		SkillDirectories: []string{filepath.Join(repositoryRoot, "skills", "synonbiomed")}, KernelManager: manager,
+		SkillDirectories: []string{filepath.Join(repositoryRoot, "skills", "x-science")}, KernelManager: manager,
 	})
 	t.Cleanup(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -879,7 +879,7 @@ func TestHostedInferenceProviderInjectsCredentialByFDAndTunnelsExactTLSHost(t *t
 	}
 	server := New(Options{
 		Workspace: store, Transcript: repo, FileRoot: state, RuntimeAssetsDir: optional,
-		SkillDirectories: []string{filepath.Join(repositoryRoot, "skills", "synonbiomed")}, KernelManager: manager,
+		SkillDirectories: []string{filepath.Join(repositoryRoot, "skills", "x-science")}, KernelManager: manager,
 		ComputeProviderDial: func(_ context.Context, host string, port int, allowPrivate bool) (net.Conn, error) {
 			if host != "api.inference.test" || port != 443 || allowPrivate {
 				return nil, fmt.Errorf("unexpected hosted target %s:%d private=%t", host, port, allowPrivate)

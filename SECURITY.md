@@ -63,8 +63,8 @@ commands, scientific kernels, or other explicitly authorized host processes.
 - Keep runtime state separate from source and release files, and back it up
   before upgrades or data migrations.
 - There is no compiled-in Web password. The gateway rejects unauthenticated
-  non-loopback listening. Configure either `SYNON_LINK_AUTH_PASSWORD` or a
-  supported external authentication provider with `SYNON_AUTH_PUBLIC_BASE_URL`;
+  non-loopback listening. Configure either `X_SCIENCE_LINK_AUTH_PASSWORD` or a
+  supported external authentication provider with `X_SCIENCE_AUTH_PUBLIC_BASE_URL`;
   follow the [operations runbook](docs/operations-runbook.md) for deployment configuration.
 - Models, connectors, and scientific tools may involve external services or
   host processes. Review their permissions, credentials, and data destinations

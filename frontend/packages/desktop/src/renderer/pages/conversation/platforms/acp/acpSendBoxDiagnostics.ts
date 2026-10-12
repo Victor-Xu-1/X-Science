@@ -1,4 +1,4 @@
-import { classifyConfigSetError } from '@/renderer/hooks/synonBiomed/runtime/useAcpConfigOptions';
+import { classifyConfigSetError } from '@/renderer/hooks/xScience/runtime/useAcpConfigOptions';
 import { parseError } from '@/common/utils';
 import { redactErrorText } from './errorDiagnostics';
 

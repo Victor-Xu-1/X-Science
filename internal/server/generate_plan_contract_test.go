@@ -3,10 +3,10 @@ package server
 import (
 	"testing"
 
-	"synon-go/internal/tools/registry"
+	"x-science/internal/tools/registry"
 )
 
-func TestSynonPlanContractHasOneRuntimeAuthority(t *testing.T) {
+func TestXSciencePlanContractHasOneRuntimeAuthority(t *testing.T) {
 	server := New(Options{FileRoot: t.TempDir()})
 	for _, retired := range []string{"EnterPlanMode", "ExitPlanMode"} {
 		if _, found := server.tools.Get(retired); found {

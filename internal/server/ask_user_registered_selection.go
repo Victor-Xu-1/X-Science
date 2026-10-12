@@ -6,8 +6,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	"synon-go/internal/sciencecapability"
+	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/sciencecapability"
 )
 
 // Registered labels are protocol identities, not arbitrary prose. A compound

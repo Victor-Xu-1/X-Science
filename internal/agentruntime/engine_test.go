@@ -16,7 +16,7 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	"synon-go/internal/tools/webfetch"
+	"x-science/internal/tools/webfetch"
 )
 
 func TestEngineRunsOpenAICompatibleToolLoopThroughGateway(t *testing.T) {
@@ -29,8 +29,8 @@ func TestEngineRunsOpenAICompatibleToolLoopThroughGateway(t *testing.T) {
 		if r.Header.Get("Authorization") != "Bearer test-key" {
 			t.Fatalf("Authorization = %q", r.Header.Get("Authorization"))
 		}
-		if r.Header.Get("X-Synon-Provider-Cache") != "1" {
-			t.Fatalf("provider cache header = %q", r.Header.Get("X-Synon-Provider-Cache"))
+		if r.Header.Get("X-Science-Provider-Cache") != "1" {
+			t.Fatalf("provider cache header = %q", r.Header.Get("X-Science-Provider-Cache"))
 		}
 		var request map[string]any
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -40,7 +40,7 @@ func TestEngineRunsOpenAICompatibleToolLoopThroughGateway(t *testing.T) {
 			t.Fatalf("model = %#v", request["model"])
 		}
 		metadata, _ := request["metadata"].(map[string]any)
-		cache, _ := metadata["synon_provider_cache"].(map[string]any)
+		cache, _ := metadata["x_science_provider_cache"].(map[string]any)
 		if cache["resumeCacheKeys"] == nil {
 			t.Fatalf("provider cache metadata missing: %#v", request["metadata"])
 		}
@@ -130,10 +130,10 @@ func TestEngineRunsOpenAICompatibleToolLoopThroughGateway(t *testing.T) {
 			},
 		}},
 		MaxToolRounds: 2,
-		Metadata: map[string]any{"synon_provider_cache": map[string]any{
+		Metadata: map[string]any{"x_science_provider_cache": map[string]any{
 			"resumeCacheKeys": []string{"tool:echo:call_echo_1"},
 		}},
-		Headers: map[string]string{"X-Synon-Provider-Cache": "1"},
+		Headers: map[string]string{"X-Science-Provider-Cache": "1"},
 	})
 	if err != nil {
 		t.Fatalf("Run() error = %v", err)
@@ -174,7 +174,7 @@ func TestEngineAppliesToolSchemaDefaultsBeforeExecution(t *testing.T) {
 				"type": "object",
 				"properties": map[string]any{
 					"code":        map[string]any{"type": "string"},
-					"environment": map[string]any{"type": "string", "default": "synon-biomed-python"},
+					"environment": map[string]any{"type": "string", "default": "x-science-python"},
 				},
 				"required": []string{"code", "environment"},
 			},
@@ -187,7 +187,7 @@ func TestEngineAppliesToolSchemaDefaultsBeforeExecution(t *testing.T) {
 	if err := json.Unmarshal(received.Arguments, &input); err != nil {
 		t.Fatalf("decode normalized arguments: %v", err)
 	}
-	if input["environment"] != "synon-biomed-python" || result.FinalMessage.Content != "analysis complete" {
+	if input["environment"] != "x-science-python" || result.FinalMessage.Content != "analysis complete" {
 		t.Fatalf("received=%#v result=%#v", received, result)
 	}
 }
@@ -782,17 +782,17 @@ func TestEngineNamespacesProviderToolCallIDsReusedAcrossRounds(t *testing.T) {
 		t.Fatal(err)
 	}
 	if result.FinalMessage.Content != "finished" || len(executed) != 2 ||
-		executed[0] != "call_0" || executed[1] != "call_0-synon-2" {
+		executed[0] != "call_0" || executed[1] != "call_0-x-science-2" {
 		t.Fatalf("result=%#v executed=%#v", result, executed)
 	}
 	if len(result.Messages) != 6 || result.Messages[1].ToolCalls[0].ID != "call_0" ||
-		result.Messages[3].ToolCalls[0].ID != "call_0-synon-2" ||
-		result.Messages[2].ToolCallID != "call_0" || result.Messages[4].ToolCallID != "call_0-synon-2" {
+		result.Messages[3].ToolCalls[0].ID != "call_0-x-science-2" ||
+		result.Messages[2].ToolCallID != "call_0" || result.Messages[4].ToolCallID != "call_0-x-science-2" {
 		t.Fatalf("messages=%#v", result.Messages)
 	}
 	if len(client.requests) != 3 || len(client.requests[2].Messages) < 5 ||
-		client.requests[2].Messages[3].ToolCalls[0].ID != "call_0-synon-2" ||
-		client.requests[2].Messages[4].ToolCallID != "call_0-synon-2" {
+		client.requests[2].Messages[3].ToolCalls[0].ID != "call_0-x-science-2" ||
+		client.requests[2].Messages[4].ToolCallID != "call_0-x-science-2" {
 		t.Fatalf("provider requests=%#v", client.requests)
 	}
 }

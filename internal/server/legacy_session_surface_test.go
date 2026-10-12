@@ -15,9 +15,9 @@ import (
 
 	"github.com/coder/websocket"
 
-	eventjournal "synon-go/internal/persistence/journal"
-	sessionstore "synon-go/internal/persistence/sessions"
-	workspace "synon-go/internal/persistence/workspace"
+	eventjournal "x-science/internal/persistence/journal"
+	sessionstore "x-science/internal/persistence/sessions"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const legacySurfaceSessionID = "legacy-session"
@@ -55,7 +55,7 @@ func newLegacySurfaceFixture(t *testing.T, authenticationEnabled bool) legacySur
 
 	options := Options{FileRoot: root, Workspace: workspaceStore}
 	if authenticationEnabled {
-		options.SynonLinkAuth = SynonLinkAuthOptions{
+		options.XScienceLinkAuth = XScienceLinkAuthOptions{
 			Username: "operator", Password: "test-secret-password", UserID: "owner-a", TTL: time.Hour,
 		}
 	}
@@ -85,8 +85,8 @@ func newLegacySurfaceFixture(t *testing.T, authenticationEnabled bool) legacySur
 
 	fixture := legacySurfaceFixture{server: app}
 	if authenticationEnabled {
-		fixture.token, _, err = app.synonLinkAuth.LoginForScope(
-			"operator", "test-secret-password", synonSessionScopeWeb,
+		fixture.token, _, err = app.xscienceLinkAuth.LoginForScope(
+			"operator", "test-secret-password", xscienceSessionScopeWeb,
 		)
 		if err != nil {
 			t.Fatal(err)
@@ -279,7 +279,7 @@ func TestLegacySessionSurfacesRejectSpoofedRemoteLocalMode(t *testing.T) {
 		request.Host = "localhost:8765"
 		request.Header.Set("X-Forwarded-For", "127.0.0.1")
 		request.Header.Set("X-Real-IP", "127.0.0.1")
-		request.Header.Set("X-Synon-User-Id", "local")
+		request.Header.Set("X-Science-User-Id", "local")
 		response := httptest.NewRecorder()
 		fixture.server.Handler().ServeHTTP(response, request)
 		if response.Code != http.StatusUnauthorized {

@@ -29,7 +29,7 @@ claim → recovery → context → snapshot → provider ⇄ tool → verify →
 
 工具处理的顺序由 `NewPipeline` 检查。权限拒绝等提前结束路径仍需进入审计，
 不能用新的 HTTP 路由或恢复回调绕开原有执行入口。详细不变量见
-[Harness conformance](../engineering/synon-harness-conformance.md) 和
+[Harness conformance](../engineering/x-science-harness-conformance.md) 和
 [架构机器契约](../governance/harness-architecture.json)。
 
 恢复会检查任务归属、执行身份和已有回执；可持久化的文件与检查点不等同于解释器内存快照。

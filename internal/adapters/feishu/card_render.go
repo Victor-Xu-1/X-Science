@@ -113,7 +113,7 @@ func MarkdownToLarkMDForFinalCard(markdown string) string {
 
 func NormalizeReplyMarkdownForCompactCard(markdown string) string {
 	codeBlocks := make([]string, 0)
-	marker := "___SYNON_CODE_BLOCK_"
+	marker := "___X_SCIENCE_CODE_BLOCK_"
 	text := regexp.MustCompile("```[\\s\\S]*?```").ReplaceAllStringFunc(markdown, func(block string) string {
 		index := len(codeBlocks)
 		codeBlocks = append(codeBlocks, block)

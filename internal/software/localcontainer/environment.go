@@ -21,10 +21,10 @@ import (
 	"time"
 	"unicode"
 
-	kernelruntime "synon-go/internal/kernel"
-	"synon-go/internal/processsupervisor"
-	"synon-go/internal/software"
-	"synon-go/internal/toolprogress"
+	kernelruntime "x-science/internal/kernel"
+	"x-science/internal/processsupervisor"
+	"x-science/internal/software"
+	"x-science/internal/toolprogress"
 )
 
 const (

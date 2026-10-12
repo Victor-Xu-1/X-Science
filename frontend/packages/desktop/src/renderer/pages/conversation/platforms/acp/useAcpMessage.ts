@@ -50,16 +50,16 @@ const slashCommandsInFlight = new Map<string, Promise<SlashCommandItem[]>>();
 
 type RequestTraceState = {
   startTime: number;
-  backendCategory: 'synon_biomed' | 'acp' | 'anthropic' | 'openai_compatible' | 'unknown';
+  backendCategory: 'x_science' | 'acp' | 'anthropic' | 'openai_compatible' | 'unknown';
   modelFamily: 'anthropic' | 'deepseek' | 'gemini' | 'openai' | 'local' | 'unknown';
   sessionCategory: 'default' | 'research' | 'plan' | 'manual' | 'auto' | 'unknown';
 };
 
 function classifyRequestBackend(value: unknown): RequestTraceState['backendCategory'] {
   switch (typeof value === 'string' ? value.trim().toLowerCase() : '') {
-    case 'synonbiomed':
-    case 'synon-biomed':
-      return 'synon_biomed';
+    case 'xscience':
+    case 'x-science':
+      return 'x_science';
     case 'acp':
       return 'acp';
     case 'anthropic':
@@ -582,7 +582,7 @@ export const useAcpMessage = (
           mergeLiveMessage(transformedMessage);
           break;
         case 'acp_model_info':
-          // Model info updates are handled by SynonBiomedModelSelector, no action needed here.
+          // Model info updates are handled by XScienceModelSelector, no action needed here.
           break;
         case 'slash_commands_updated':
           // Slash commands became available (often during bootstrap when

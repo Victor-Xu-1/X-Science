@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestWebFSProjectOperationsUseRealFilesystem(t *testing.T) {
@@ -207,7 +207,7 @@ func TestWebFSAuthorizationGrantsTraversalAndCopy(t *testing.T) {
 	}
 	srv := New(Options{
 		FileRoot: filepath.Join(stateRoot, "runtime"), Workspace: store,
-		SynonLinkAuth: SynonLinkAuthOptions{Username: "operator", Password: "strong-password", UserID: "owner"},
+		XScienceLinkAuth: XScienceLinkAuthOptions{Username: "operator", Password: "strong-password", UserID: "owner"},
 	})
 	handler := http.HandlerFunc(srv.handleWebFS)
 	if _, err := srv.upsertHostGrant("owner", ownedRoot, "read_write"); err != nil {
@@ -339,7 +339,7 @@ func TestWebFSLocalReadAuthenticationBoundary(t *testing.T) {
 
 	t.Run("password_only_loopback", func(t *testing.T) {
 		options := baseOptions
-		options.SynonLinkAuth = SynonLinkAuthOptions{
+		options.XScienceLinkAuth = XScienceLinkAuthOptions{
 			Username: "operator", Password: "strong-password", UserID: "alice",
 		}
 		srv := New(options)
@@ -408,7 +408,7 @@ func webFSTestLoopbackProxyRequest(
 	request.RemoteAddr = "127.0.0.1:12345"
 	request.Host = host
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("X-Synon-User-Id", userID)
+	request.Header.Set("X-Science-User-Id", userID)
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, request)
 	return response
@@ -479,7 +479,7 @@ func webFSTestRequest(
 	request := newLoopbackTestRequest(method, path, reader)
 	request.RemoteAddr = "127.0.0.1:12345"
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("X-Synon-User-Id", userID)
+	request.Header.Set("X-Science-User-Id", userID)
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, request)
 	return response

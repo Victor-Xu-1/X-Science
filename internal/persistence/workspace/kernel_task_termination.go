@@ -4,8 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	transcriptstore "synon-go/internal/persistence/transcript"
 	"time"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 // ReconcileKernelTaskTermination joins the task's canonical lifetime to the

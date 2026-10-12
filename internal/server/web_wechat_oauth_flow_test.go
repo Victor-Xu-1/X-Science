@@ -26,7 +26,7 @@ type testWeChatOAuthProvider struct {
 
 func newTestWeChatOAuthProvider(t *testing.T) *testWeChatOAuthProvider {
 	t.Helper()
-	fixture := &testWeChatOAuthProvider{appID: "wx-synon-test", appSecret: "wechat-test-secret"}
+	fixture := &testWeChatOAuthProvider{appID: "wx-science-test", appSecret: "wechat-test-secret"}
 	fixture.server = httptest.NewServer(http.HandlerFunc(fixture.serveHTTP))
 	t.Cleanup(fixture.server.Close)
 	return fixture

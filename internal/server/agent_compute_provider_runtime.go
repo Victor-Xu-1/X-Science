@@ -18,10 +18,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/compute"
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	"x-science/internal/compute"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const (
@@ -515,7 +515,7 @@ func (s *Server) agentComputeProviderAuthority(
 			Dial:             s.computeProviderDial,
 			ExtraEnvironment: map[string]string{
 				"OPERON_BYOC_APP_NAME":             appName,
-				"SYNON_PROVIDER_BOUND_CONFIG_HASH": configurationHash,
+				"X_SCIENCE_PROVIDER_BOUND_CONFIG_HASH": configurationHash,
 			},
 			Prelude: prelude,
 		},
@@ -615,9 +615,9 @@ func (s *Server) agentInferenceProviderAuthority(
 			Host: parsed.Hostname(), Port: port, AllowPrivate: allowPrivate,
 		}},
 		ExtraEnvironment: map[string]string{
-			"SYNON_PROVIDER_ENDPOINT_URL":       parsed.String(),
-			"SYNON_PROVIDER_CONFIG_REVISION":    credentialRevision,
-			"SYNON_PROVIDER_PROXY_LOCAL_TARGET": map[bool]string{true: "1", false: "0"}[allowPrivate],
+			"X_SCIENCE_PROVIDER_ENDPOINT_URL":       parsed.String(),
+			"X_SCIENCE_PROVIDER_CONFIG_REVISION":    credentialRevision,
+			"X_SCIENCE_PROVIDER_PROXY_LOCAL_TARGET": map[bool]string{true: "1", false: "0"}[allowPrivate],
 		},
 		Dial: s.computeProviderDial,
 	}}, nil
@@ -660,7 +660,7 @@ func agentComputeProviderConfigurationHash(
 		"requirements_sha256": definition.Requirements.SHA256,
 		"egress":              agentComputeProviderEgressRules(definition),
 	})
-	digest := sha256.Sum256(append([]byte("synon-provider-config-v1\x00"), raw...))
+	digest := sha256.Sum256(append([]byte("x-science-provider-config-v1\x00"), raw...))
 	return hex.EncodeToString(digest[:16])
 }
 
@@ -677,9 +677,9 @@ func loadAgentModalProviderPrelude(runtimeAssets, appName, configHash, providerI
 	}
 	prelude := string(raw)
 	replacements := map[string]string{
-		"__SYNON_APP_NAME__":    strconv.Quote(appName),
-		"__SYNON_CONFIG_HASH__": strconv.Quote(configHash),
-		"__SYNON_PROVIDER_ID__": strconv.Quote(providerID),
+		"__X_SCIENCE_APP_NAME__":    strconv.Quote(appName),
+		"__X_SCIENCE_CONFIG_HASH__": strconv.Quote(configHash),
+		"__X_SCIENCE_PROVIDER_ID__": strconv.Quote(providerID),
 	}
 	for marker, value := range replacements {
 		if strings.Count(prelude, marker) != 1 {
@@ -787,7 +787,7 @@ func (s *Server) agentComputeProviderCredentials(userID, providerID string) (map
 
 func agentComputeProviderKernelID(access workspace.KernelFrameAccess, providerID string) string {
 	digest := sha256.Sum256([]byte(
-		"synon-provider-kernel-v1\x00" + access.UserID + "\x00" + access.Frame.ProjectID + "\x00" +
+		"x-science-provider-kernel-v1\x00" + access.UserID + "\x00" + access.Frame.ProjectID + "\x00" +
 			access.Frame.ID + "\x00" + access.Frame.IncarnationID + "\x00" + strings.TrimSpace(providerID),
 	))
 	return "provider-" + hex.EncodeToString(digest[:16])

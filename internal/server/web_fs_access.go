@@ -176,7 +176,7 @@ func (s *Server) webFSRoots(userID string, includeLocalRead bool) ([]webFSRoot, 
 func (s *Server) webFSTempRoot(userID string) (string, error) {
 	base := strings.TrimSpace(s.fileRoot)
 	if base == "" {
-		base = filepath.Join(os.TempDir(), "synon-go")
+		base = filepath.Join(os.TempDir(), "x-science")
 	}
 	sum := sha256.Sum256([]byte(strings.TrimSpace(userID)))
 	root := filepath.Join(base, "web-fs-temp", fmt.Sprintf("%x", sum[:8]))

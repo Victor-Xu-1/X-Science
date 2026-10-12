@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"synon-go/internal/agentruntime"
-	eventjournal "synon-go/internal/persistence/journal"
+	"x-science/internal/agentruntime"
+	eventjournal "x-science/internal/persistence/journal"
 )
 
 // One active selection cursor is derived from existing native read receipts.

@@ -13,11 +13,11 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	sessionstore "synon-go/internal/persistence/sessions"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
-	toolregistry "synon-go/internal/tools/registry"
+	"x-science/internal/agentruntime"
+	sessionstore "x-science/internal/persistence/sessions"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
+	toolregistry "x-science/internal/tools/registry"
 )
 
 type artifactReferenceRepairModel struct {
@@ -169,7 +169,7 @@ func (model *referenceEvidenceLedgerRepairModel) Complete(
 	}
 	last := request.Messages[len(request.Messages)-1]
 	for _, required := range []string{
-		`"schema":"synon.reference_evidence_ledger.v1"`,
+		`"schema":"x-science.reference_evidence_ledger.v1"`,
 		`"tool_call_id":"prior-crossref-real"`,
 		`"value":"10.1038/s41586-019-1295-z"`,
 		"Never invent or rename a tool_call_id",
@@ -986,7 +986,7 @@ func TestSessionRunnerDurableEvidenceAcceptsOnlyAttestedBundledMCPCheckpoint(t *
 		t.Fatal(err)
 	}
 	payload := map[string]any{
-		"schema": "synon.kernel_mcp_evidence.v1", "status": "completed", "toolPhase": "completed",
+		"schema": "x-science.kernel_mcp_evidence.v1", "status": "completed", "toolPhase": "completed",
 		"toolName": "mcp__pubmed__search_articles", "toolCallId": "host-pubmed-1",
 		"toolInput": toolInput, "toolResult": toolResult,
 		"evidenceClass": workspace.KernelMCPEvidenceClassBundledReadOnly,
@@ -1627,7 +1627,7 @@ func TestSessionRunnerCitationGroundingDistinguishesStrictCrossref404FromPositiv
 
 func TestSessionRunnerRejectedReferenceV1RejectsCrossref200BibliographicMismatch(t *testing.T) {
 	const doi = "10.1158/0008-5472.can-23-0456"
-	content := `{"schema":"synon.rejected_reference.v1","records":[{"reference":{"kind":"doi","value":"` + doi + `"},"disposition":"bibliographic_mismatch","evidence":{"provider":"crossref","tool_call_id":"crossref-mismatch","http_status":200,"observed_doi":"` + doi + `","observed_title":"Unrelated Crossref work"}}]}`
+	content := `{"schema":"x-science.rejected_reference.v1","records":[{"reference":{"kind":"doi","value":"` + doi + `"},"disposition":"bibliographic_mismatch","evidence":{"provider":"crossref","tool_call_id":"crossref-mismatch","http_status":200,"observed_doi":"` + doi + `","observed_title":"Unrelated Crossref work"}}]}`
 	rejected, recognized, failure := decodeSessionRunnerRejectedReferenceV1(content, "artifact:rejected.json@version-a")
 	if !recognized || !strings.Contains(failure, "invalid_disposition") || len(rejected) != 0 {
 		t.Fatalf("recognized=%v failure=%q rejected=%#v", recognized, failure, rejected)
@@ -1658,7 +1658,7 @@ func TestSessionRunnerReferenceEvidenceLedgerUsesOnlyUniqueBoundTranscriptPairs(
 		}}},
 		{Role: "tool", ToolCallID: "call_failed", Content: `{"ok":false,"error":{"code":"upstream_failed"}}`},
 	}
-	want := `{"schema":"synon.reference_evidence_ledger.v1","crossref":[{"reference":{"kind":"doi","value":"10.1038/s41586-019-1295-z"},"provider":"crossref","tool_call_id":"call_crossref_real","http_status":200,"observed_doi":"10.1038/s41586-019-1295-z","observed_title":"Cryo-EM structure of the active NLRP3 inflammasome"}]}`
+	want := `{"schema":"x-science.reference_evidence_ledger.v1","crossref":[{"reference":{"kind":"doi","value":"10.1038/s41586-019-1295-z"},"provider":"crossref","tool_call_id":"call_crossref_real","http_status":200,"observed_doi":"10.1038/s41586-019-1295-z","observed_title":"Cryo-EM structure of the active NLRP3 inflammasome"}]}`
 	if got := sessionRunnerReferenceEvidenceLedgerJSON(messages); got != want {
 		t.Fatalf("reference evidence ledger=%s want=%s", got, want)
 	}
@@ -1682,7 +1682,7 @@ func TestSessionRunnerRejectedReferenceV1Crossref200NeverGroundsPositiveScientif
 
 func TestSessionRunnerRejectedReferenceV1RejectsBibliographicMismatchBeforeEvidenceLookup(t *testing.T) {
 	const doi = "10.1158/0008-5472.can-23-0456"
-	content := `{"schema":"synon.rejected_reference.v1","records":[{"reference":{"kind":"doi","value":"` + doi + `"},"disposition":"bibliographic_mismatch","evidence":{"provider":"crossref","tool_call_id":"crossref-mismatch","http_status":200,"observed_doi":"` + doi + `","observed_title":"Expected observed title"}}]}`
+	content := `{"schema":"x-science.rejected_reference.v1","records":[{"reference":{"kind":"doi","value":"` + doi + `"},"disposition":"bibliographic_mismatch","evidence":{"provider":"crossref","tool_call_id":"crossref-mismatch","http_status":200,"observed_doi":"` + doi + `","observed_title":"Expected observed title"}}]}`
 	rejected, recognized, failure := decodeSessionRunnerRejectedReferenceV1(content, "artifact:rejected.json@version-a")
 	if !recognized || !strings.Contains(failure, "invalid_disposition") || len(rejected) != 0 {
 		t.Fatalf("recognized=%v failure=%q rejected=%#v", recognized, failure, rejected)
@@ -1694,10 +1694,10 @@ func TestSessionRunnerRejectedReferenceV1RejectsUnknownFieldsFreeTextAndNonCanon
 		name    string
 		content string
 	}{
-		{name: "unknown field", content: `{"schema":"synon.rejected_reference.v1","records":[{"reference":{"kind":"doi","value":"10.1000/example"},"disposition":"not_found","evidence":{"provider":"crossref","tool_call_id":"call-a","http_status":404},"reason":"free prose"}]}`},
-		{name: "free text field", content: `{"schema":"synon.rejected_reference.v1","records":[{"reference":{"kind":"doi","value":"10.1000/example"},"disposition":"not_found","evidence":{"provider":"crossref","tool_call_id":"call-a","http_status":404,"notes":"not found"}}]}`},
-		{name: "non canonical DOI", content: `{"schema":"synon.rejected_reference.v1","records":[{"reference":{"kind":"doi","value":"10.1000/EXAMPLE"},"disposition":"not_found","evidence":{"provider":"crossref","tool_call_id":"call-a","http_status":404}}]}`},
-		{name: "unknown schema version", content: `{"schema":"synon.rejected_reference.v2","records":[]}`},
+		{name: "unknown field", content: `{"schema":"x-science.rejected_reference.v1","records":[{"reference":{"kind":"doi","value":"10.1000/example"},"disposition":"not_found","evidence":{"provider":"crossref","tool_call_id":"call-a","http_status":404},"reason":"free prose"}]}`},
+		{name: "free text field", content: `{"schema":"x-science.rejected_reference.v1","records":[{"reference":{"kind":"doi","value":"10.1000/example"},"disposition":"not_found","evidence":{"provider":"crossref","tool_call_id":"call-a","http_status":404,"notes":"not found"}}]}`},
+		{name: "non canonical DOI", content: `{"schema":"x-science.rejected_reference.v1","records":[{"reference":{"kind":"doi","value":"10.1000/EXAMPLE"},"disposition":"not_found","evidence":{"provider":"crossref","tool_call_id":"call-a","http_status":404}}]}`},
+		{name: "unknown schema version", content: `{"schema":"x-science.rejected_reference.v2","records":[]}`},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -1713,7 +1713,7 @@ func TestSessionRunnerRejectedReferenceV1AcceptsExactCrossref404NotFound(t *test
 		doi      = "10.1158/0008-5472.can-23-0456"
 		endpoint = "https://api.crossref.org/works/10.1158/0008-5472.can-23-0456"
 	)
-	content := `{"schema":"synon.rejected_reference.v1","records":[{"reference":{"kind":"doi","value":"` + doi + `"},"disposition":"not_found","evidence":{"provider":"crossref","tool_call_id":"crossref-not-found","http_status":404}}]}`
+	content := `{"schema":"x-science.rejected_reference.v1","records":[{"reference":{"kind":"doi","value":"` + doi + `"},"disposition":"not_found","evidence":{"provider":"crossref","tool_call_id":"crossref-not-found","http_status":404}}]}`
 	rejected, recognized, failure := decodeSessionRunnerRejectedReferenceV1(content, "artifact:rejected.json@version-a")
 	if !recognized || failure != "" {
 		t.Fatalf("recognized=%v failure=%q", recognized, failure)
@@ -1736,7 +1736,7 @@ func TestSessionRunnerRejectedReferenceV1AcceptsEquivalentDurableCurrentReplayEv
 		doi      = "10.1158/0008-5472.can-23-0456"
 		endpoint = "https://api.crossref.org/works/10.1158/0008-5472.can-23-0456"
 	)
-	content := `{"schema":"synon.rejected_reference.v1","records":[{"reference":{"kind":"doi","value":"` + doi + `"},"disposition":"not_found","evidence":{"provider":"crossref","tool_call_id":"crossref-replay","http_status":404}}]}`
+	content := `{"schema":"x-science.rejected_reference.v1","records":[{"reference":{"kind":"doi","value":"` + doi + `"},"disposition":"not_found","evidence":{"provider":"crossref","tool_call_id":"crossref-replay","http_status":404}}]}`
 	rejected, recognized, failure := decodeSessionRunnerRejectedReferenceV1(content, "artifact:rejected.json@version-replay")
 	if !recognized || failure != "" || len(rejected) != 1 {
 		t.Fatalf("recognized=%v failure=%q rejected=%#v", recognized, failure, rejected)
@@ -1773,7 +1773,7 @@ func TestSessionRunnerRejectedReferenceV1UsesLatestProducedAndExplicitArtifactVe
 	}
 	_, goodVersion, err := store.SaveArtifactVersion(workspace.SaveArtifactVersionInput{
 		ArtifactID: artifact.ID, ProjectID: "project-a", Name: "rejected-references.json", Kind: "application/json",
-		Content: []byte(`{"schema":"synon.rejected_reference.v1","records":[{"reference":{"kind":"doi","value":"` + doi + `"},"disposition":"not_found","evidence":{"provider":"crossref","tool_call_id":"crossref-not-found","http_status":404}}]}`), CreatedBy: "runner",
+		Content: []byte(`{"schema":"x-science.rejected_reference.v1","records":[{"reference":{"kind":"doi","value":"` + doi + `"},"disposition":"not_found","evidence":{"provider":"crossref","tool_call_id":"crossref-not-found","http_status":404}}]}`), CreatedBy: "runner",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -1822,7 +1822,7 @@ func TestSessionRunnerRejectedReferenceV1UsesNewestProducedReservedArtifactAcros
 	oldArtifact, oldVersion, err := store.SaveArtifactVersion(workspace.SaveArtifactVersionInput{
 		ArtifactID: "artifact-rejected-old", ProjectID: "project-a",
 		Name: sessionRunnerRejectedReferenceArtifactNameV1, Kind: "application/json",
-		Content:   []byte(`{"schema":"synon.rejected_reference.v1","records":[{"reference":{"kind":"doi","value":"10.1000/old-invalid"},"disposition":"not_found","evidence":{"provider":"crossref","tool_call_id":"old","http_status":404},"unexpected":true}]}`),
+		Content:   []byte(`{"schema":"x-science.rejected_reference.v1","records":[{"reference":{"kind":"doi","value":"10.1000/old-invalid"},"disposition":"not_found","evidence":{"provider":"crossref","tool_call_id":"old","http_status":404},"unexpected":true}]}`),
 		CreatedBy: "runner",
 	})
 	if err != nil {
@@ -1831,7 +1831,7 @@ func TestSessionRunnerRejectedReferenceV1UsesNewestProducedReservedArtifactAcros
 	newArtifact, newVersion, err := store.SaveArtifactVersion(workspace.SaveArtifactVersionInput{
 		ArtifactID: "artifact-rejected-new", ProjectID: "project-a",
 		Name: sessionRunnerRejectedReferenceArtifactNameV1, Kind: "application/json",
-		Content:   []byte(`{"schema":"synon.rejected_reference.v1","records":[{"reference":{"kind":"doi","value":"` + doi + `"},"disposition":"not_found","evidence":{"provider":"crossref","tool_call_id":"crossref-new","http_status":404}}]}`),
+		Content:   []byte(`{"schema":"x-science.rejected_reference.v1","records":[{"reference":{"kind":"doi","value":"` + doi + `"},"disposition":"not_found","evidence":{"provider":"crossref","tool_call_id":"crossref-new","http_status":404}}]}`),
 		CreatedBy: "runner",
 	})
 	if err != nil {
@@ -1863,7 +1863,7 @@ func TestSessionRunnerRejectedReferenceV1UsesNewestProducedReservedArtifactAcros
 	latestArtifact, latestInvalidVersion, err := store.SaveArtifactVersion(workspace.SaveArtifactVersionInput{
 		ArtifactID: "artifact-rejected-latest-invalid", ProjectID: "project-a",
 		Name: sessionRunnerRejectedReferenceArtifactNameV1, Kind: "application/json",
-		Content: []byte(`{"schema":"synon.rejected_reference.v1","records":[]}`), CreatedBy: "runner",
+		Content: []byte(`{"schema":"x-science.rejected_reference.v1","records":[]}`), CreatedBy: "runner",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -1884,7 +1884,7 @@ func TestSessionRunnerRejectedReferenceV1MalformedArtifactFailsClosedWithoutPros
 	store := openRunnerArtifactCompletionStore(t)
 	artifact, version, err := store.SaveArtifactVersion(workspace.SaveArtifactVersionInput{
 		ArtifactID: "artifact-invalid-rejected-ledger", ProjectID: "project-a", Name: "rejected-references.json", Kind: "application/json",
-		Content: []byte(`{"schema":"synon.rejected_reference.v1","records":[{"reference":{"kind":"doi","value":"10.1000/example"},"disposition":"not_found","evidence":{"provider":"crossref","tool_call_id":"call-a","http_status":404},"reason":"free prose"}]}`), CreatedBy: "runner",
+		Content: []byte(`{"schema":"x-science.rejected_reference.v1","records":[{"reference":{"kind":"doi","value":"10.1000/example"},"disposition":"not_found","evidence":{"provider":"crossref","tool_call_id":"call-a","http_status":404},"reason":"free prose"}]}`), CreatedBy: "runner",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -3035,7 +3035,7 @@ func TestSessionRunnerResearchArtifactGateReusesVersionsWithinSameAttemptAfterRe
 		t.Fatalf("reclaim=%#v err=%v", reclaimed, err)
 	}
 	manifest := fmt.Sprintf(`{
-		"schema":"synon.research_provenance_manifest.v1",
+		"schema":"x-science.research_provenance_manifest.v1",
 		"artifacts_produced":[{
 			"artifact_id":%q,"version_id":%q,"filename":"scope.json","sha256":%q
 		}]

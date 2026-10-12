@@ -18,7 +18,7 @@ import (
 // every existing derived view is rebuilt from its immutable Transcript source.
 // Version 12 recognizes resumed tools after inferred cancellation, including
 // histories quarantined by the previous reducer. Source events remain immutable.
-const TranscriptWebProjectorVersion = 12
+const TranscriptWebProjectorVersion = 13
 
 var ErrTranscriptWebProjectionStale = errors.New("transcript Web projection state is stale")
 

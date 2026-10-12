@@ -4,10 +4,10 @@ set -euo pipefail
 export NO_PROXY="127.0.0.1,localhost,::1"
 export no_proxy="$NO_PROXY"
 
-binary="${1:-dist/synon-go}"
-requests="${SYNON_STRESS_REQUESTS:-1000}"
-concurrency="${SYNON_STRESS_CONCURRENCY:-64}"
-timeout="${SYNON_STRESS_TIMEOUT:-5s}"
+binary="${1:-dist/x-science}"
+requests="${X_SCIENCE_STRESS_REQUESTS:-1000}"
+concurrency="${X_SCIENCE_STRESS_CONCURRENCY:-64}"
+timeout="${X_SCIENCE_STRESS_TIMEOUT:-5s}"
 
 port="$(
 	python3 - <<'PY'
@@ -21,7 +21,7 @@ PY
 )"
 
 tmp="$(mktemp -d)"
-cfg="$tmp/synon.json"
+cfg="$tmp/x-science.json"
 home="$tmp/home"
 log="$tmp/server.log"
 
@@ -44,7 +44,7 @@ cat >"$cfg" <<JSON
 }
 JSON
 
-SYNON_CONFIG="$cfg" SYNON_HOME="$home" "$binary" >"$log" 2>&1 &
+X_SCIENCE_CONFIG="$cfg" X_SCIENCE_HOME="$home" "$binary" >"$log" 2>&1 &
 pid="$!"
 
 for _ in $(seq 1 80); do

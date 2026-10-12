@@ -2,8 +2,8 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const askAside = vi.fn();
-vi.mock('@/renderer/services/synonBiomedAside', () => ({
-  askSynonBiomedAsideQuestion: (...args: unknown[]) => askAside(...args),
+vi.mock('@/renderer/services/xScienceAside', () => ({
+  askXScienceAsideQuestion: (...args: unknown[]) => askAside(...args),
 }));
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 vi.mock('@arco-design/web-react', () => ({

@@ -182,7 +182,7 @@ func TestKernelEgressRuntimeInjectsOneProxyAndCABundle(t *testing.T) {
 	manager := &Manager{config: Config{AssetRoot: assetRoot}}
 	_, _, environment, err := manager.wrapKernelEgressRuntime(
 		"/usr/bin/python3", []string{"worker.py"}, []string{"PATH=/usr/bin", "SSL_CERT_FILE=/old.pem"},
-		23456, "/etc/synon/company.pem",
+		23456, "/etc/xscience/company.pem",
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -190,9 +190,9 @@ func TestKernelEgressRuntimeInjectsOneProxyAndCABundle(t *testing.T) {
 	joined := strings.Join(environment, "\n")
 	for _, required := range []string{
 		"HTTPS_PROXY=http://127.0.0.1:23456",
-		"SSL_CERT_FILE=/etc/synon/company.pem",
-		"REQUESTS_CA_BUNDLE=/etc/synon/company.pem",
-		"CURL_CA_BUNDLE=/etc/synon/company.pem",
+		"SSL_CERT_FILE=/etc/xscience/company.pem",
+		"REQUESTS_CA_BUNDLE=/etc/xscience/company.pem",
+		"CURL_CA_BUNDLE=/etc/xscience/company.pem",
 	} {
 		if !strings.Contains(joined, required) {
 			t.Fatalf("kernel egress environment missing %q: %s", required, joined)
@@ -204,8 +204,8 @@ func TestKernelEgressRuntimeInjectsOneProxyAndCABundle(t *testing.T) {
 }
 
 func TestKernelEgressProxyLiveUpstreamChain(t *testing.T) {
-	if os.Getenv("SYNON_RUN_KERNEL_EGRESS_LIVE") != "1" {
-		t.Skip("set SYNON_RUN_KERNEL_EGRESS_LIVE=1 for the live upstream-proxy check")
+	if os.Getenv("X_SCIENCE_RUN_KERNEL_EGRESS_LIVE") != "1" {
+		t.Skip("set X_SCIENCE_RUN_KERNEL_EGRESS_LIVE=1 for the live upstream-proxy check")
 	}
 	proxy, err := startKernelEgressProxy(t.TempDir(), "kernel-live-chain", []string{"example.com"}, nil)
 	if err != nil {
@@ -258,8 +258,8 @@ func TestKernelEgressForwarderPassesAcceptedSocketsToPolicy(t *testing.T) {
 	command := exec.Command(python, forwarder)
 	command.ExtraFiles = []*os.File{child}
 	command.Env = append(os.Environ(),
-		"SYNON_KERNEL_EGRESS_CONTROL_FD=3",
-		"SYNON_KERNEL_EGRESS_PORT="+strconv.Itoa(proxy.port),
+		"X_SCIENCE_KERNEL_EGRESS_CONTROL_FD=3",
+		"X_SCIENCE_KERNEL_EGRESS_PORT="+strconv.Itoa(proxy.port),
 		"PYTHONDONTWRITEBYTECODE=1",
 	)
 	if err := command.Start(); err != nil {

@@ -5,7 +5,7 @@
  */
 
 /**
- * SynonAI 基础组件库统一导出 / SynonAI base components unified exports
+ * XScience 基础组件库统一导出 / XScience base components unified exports
  *
  * 提供所有基础组件和类型的统一导出入口
  * Provides unified export entry for all base components and types
@@ -13,29 +13,29 @@
 
 // ==================== 组件导出 / Component Exports ====================
 
-export { default as SynonModal } from './SynonModal';
-export { default as SynonCollapse } from './SynonCollapse';
-export { default as SynonSelect } from './SynonSelect';
-export { default as SynonScrollArea } from './SynonScrollArea';
-export { default as SynonSteps } from './SynonSteps';
+export { default as XScienceModal } from './XScienceModal';
+export { default as XScienceCollapse } from './XScienceCollapse';
+export { default as XScienceSelect } from './XScienceSelect';
+export { default as XScienceScrollArea } from './XScienceScrollArea';
+export { default as XScienceSteps } from './XScienceSteps';
 
 // ==================== 类型导出 / Type Exports ====================
 
-// SynonModal 类型 / SynonModal types
+// XScienceModal 类型 / XScienceModal types
 export type {
   ModalSize,
   ModalHeaderConfig,
   ModalFooterConfig,
   ModalContentStyleConfig,
-  SynonModalProps,
-} from './SynonModal';
-export { MODAL_SIZES } from './SynonModal';
+  XScienceModalProps,
+} from './XScienceModal';
+export { MODAL_SIZES } from './XScienceModal';
 
-// SynonCollapse 类型 / SynonCollapse types
-export type { SynonCollapseProps, SynonCollapseItemProps } from './SynonCollapse';
+// XScienceCollapse 类型 / XScienceCollapse types
+export type { XScienceCollapseProps, XScienceCollapseItemProps } from './XScienceCollapse';
 
-// SynonSelect 类型 / SynonSelect types
-export type { SynonSelectProps } from './SynonSelect';
+// XScienceSelect 类型 / XScienceSelect types
+export type { XScienceSelectProps } from './XScienceSelect';
 
-// SynonSteps 类型 / SynonSteps types
-export type { SynonStepsProps } from './SynonSteps';
+// XScienceSteps 类型 / XScienceSteps types
+export type { XScienceStepsProps } from './XScienceSteps';

@@ -15,7 +15,7 @@ func TestSkillCreatorUsesOneInProcessModelEvaluationAuthority(t *testing.T) {
 		t.Fatal("locate repository root")
 	}
 	root := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
-	raw, err := os.ReadFile(filepath.Join(root, "skills", "synonbiomed", "skill-creator", "SKILL.md"))
+	raw, err := os.ReadFile(filepath.Join(root, "skills", "x-science", "skill-creator", "SKILL.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -25,7 +25,7 @@ func TestSkillCreatorUsesOneInProcessModelEvaluationAuthority(t *testing.T) {
 		t.Fatalf("Skill creator model-evaluation authority drifted")
 	}
 	for _, retired := range []string{"run_eval.py", "run_loop.py", "improve_description.py"} {
-		if _, err := os.Stat(filepath.Join(root, "skills", "synonbiomed", "skill-creator", "scripts", retired)); !os.IsNotExist(err) {
+		if _, err := os.Stat(filepath.Join(root, "skills", "x-science", "skill-creator", "scripts", retired)); !os.IsNotExist(err) {
 			t.Fatalf("retired competing evaluator %s still exists: %v", retired, err)
 		}
 	}
@@ -41,7 +41,7 @@ func TestRemoteComputeProviderAppliesIdentityAndKernelBounds(t *testing.T) {
 		t.Fatal("locate repository root")
 	}
 	root := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
-	provider := filepath.Join(root, "skills", "synonbiomed", "remote-compute-modal", "provider.py")
+	provider := filepath.Join(root, "skills", "x-science", "remote-compute-modal", "provider.py")
 	script := `
 import importlib.util
 import os
@@ -60,7 +60,7 @@ stub.ByocError = ByocError
 stub.ExecResult = object
 sys.modules["operon_compute_provider"] = stub
 
-spec = importlib.util.spec_from_file_location("synon_modal_provider", sys.argv[1])
+spec = importlib.util.spec_from_file_location("x_science_modal_provider", sys.argv[1])
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 assert module.IDLE_EXIT_S == 900
@@ -94,8 +94,8 @@ provider._install_gpu_guard(Modal)
 Modal.Sandbox.create("bash")
 created = Sandbox.created[-1]
 assert created["tags"][module.OWNER_TAG] == "install-owned"
-assert created["tags"]["synon-biomed-org"] == "owner-user"
-assert created["tags"]["synon-biomed-frame"] == "frame-owned"
+assert created["tags"]["x-science-org"] == "owner-user"
+assert created["tags"]["x-science-frame"] == "frame-owned"
 
 for kwargs in ({"gpu": "A100"}, {"timeout": 1801}):
     try:
@@ -105,10 +105,10 @@ for kwargs in ({"gpu": "A100"}, {"timeout": 1801}):
     else:
         raise AssertionError(f"unsafe repl create was accepted: {kwargs!r}")
 
-owned = Sandbox({module.OWNER_TAG: "install-owned", "synon-biomed-frame": "frame-owned"})
+owned = Sandbox({module.OWNER_TAG: "install-owned", "x-science-frame": "frame-owned"})
 owned.set_tags({module.OWNER_TAG: "foreign", "experiment": "r2"})
 assert owned.written[module.OWNER_TAG] == "install-owned"
-assert owned.written["synon-biomed-frame"] == "frame-owned"
+assert owned.written["x-science-frame"] == "frame-owned"
 assert owned.written["experiment"] == "r2"
 
 foreign = Sandbox({"experiment": "foreign"})
@@ -137,7 +137,7 @@ func TestRemoteComputeProviderIncludesPinnedOpenMMEnvironment(t *testing.T) {
 		t.Fatal("locate repository root")
 	}
 	root := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
-	path := filepath.Join(root, "skills", "synonbiomed", "remote-compute-modal", "envs", "md_openmm_gpu.py")
+	path := filepath.Join(root, "skills", "x-science", "remote-compute-modal", "envs", "md_openmm_gpu.py")
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
@@ -184,7 +184,7 @@ modal.Image = Image
 modal.Volume = object
 sys.modules["modal"] = modal
 
-spec = importlib.util.spec_from_file_location("synon_md_openmm_gpu", sys.argv[1])
+spec = importlib.util.spec_from_file_location("x_science_md_openmm_gpu", sys.argv[1])
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 image, volumes, environment = module.build(secrets={"ignored": "value"})
@@ -223,7 +223,7 @@ import os
 import sys
 
 sys.dont_write_bytecode = True
-spec = importlib.util.spec_from_file_location("synon_inference_provider", sys.argv[1])
+spec = importlib.util.spec_from_file_location("x_science_inference_provider", sys.argv[1])
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 provider = module.InferenceProvider(repl=True)

@@ -1,6 +1,6 @@
 package workspace
 
-import transcriptstore "synon-go/internal/persistence/transcript"
+import transcriptstore "x-science/internal/persistence/transcript"
 
 const compatibilityInheritedArtifactCTE = transcriptstore.InheritedArtifactScopeCTE
 

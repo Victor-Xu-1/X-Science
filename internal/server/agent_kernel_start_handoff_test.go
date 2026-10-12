@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	kernelruntime "synon-go/internal/kernel"
+	kernelruntime "x-science/internal/kernel"
 )
 
 func TestAwaitAgentKernelExecutionStartJoinsTerminalAfterClosedStart(t *testing.T) {

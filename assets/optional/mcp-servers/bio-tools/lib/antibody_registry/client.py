@@ -30,7 +30,7 @@ from typing import Any
 import requests
 
 BASE_URL = "https://www.antibodyregistry.org/api"
-USER_AGENT = "bio-tools/antibody-registry (synon_llm-experimental)"
+USER_AGENT = "bio-tools/antibody-registry (x_science_llm-experimental)"
 
 #: deepest row reachable without authentication on /fts-antibodies
 #: (page * size > this -> HTTP 401; measured 2026-06-08).

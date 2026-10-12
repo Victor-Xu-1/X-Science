@@ -22,20 +22,20 @@ cleanup() {
 trap cleanup EXIT
 
 archive="$tmp/${product_slug}-v${product_version}-linux-amd64.tar.gz"
-SYNON_KEEP_FAILURE_ARTIFACTS=1 SYNON_RELEASE_TEST_ARCHIVE="$archive" \
+X_SCIENCE_KEEP_FAILURE_ARTIFACTS=1 X_SCIENCE_RELEASE_TEST_ARCHIVE="$archive" \
 	bash scripts/package-release-test.sh 2>&1 | tee "$tmp/package-release-test.log"
 test -f "$archive"
 test -f "$archive.sha256"
-SYNON_KEEP_FAILURE_ARTIFACTS=1 SYNON_RELEASE_TEST_ARCHIVE="$archive" \
+X_SCIENCE_KEEP_FAILURE_ARTIFACTS=1 X_SCIENCE_RELEASE_TEST_ARCHIVE="$archive" \
 	bash scripts/install-release-test.sh 2>&1 | tee "$tmp/install-release-test.log"
-SYNON_KEEP_FAILURE_ARTIFACTS=1 SYNON_RELEASE_TEST_ARCHIVE="$archive" \
+X_SCIENCE_KEEP_FAILURE_ARTIFACTS=1 X_SCIENCE_RELEASE_TEST_ARCHIVE="$archive" \
 	bash scripts/release-lifecycle-test.sh 2>&1 | tee "$tmp/release-lifecycle-test.log"
 
 mkdir -p "$tmp/linux-unpack"
 tar --same-permissions -xzf "$archive" -C "$tmp/linux-unpack"
 linux_package="$(find "$tmp/linux-unpack" -mindepth 1 -maxdepth 1 -type d -print -quit)"
 test -f "$linux_package/web/index.html"
-SYNON_KEEP_FAILURE_ARTIFACTS=1 SYNON_WEB_ASSETS="$linux_package/web" \
+X_SCIENCE_KEEP_FAILURE_ARTIFACTS=1 X_SCIENCE_WEB_ASSETS="$linux_package/web" \
 	bash scripts/package-windows-release-test.sh "$tmp/windows" \
 	2>&1 | tee "$tmp/package-windows-release-test.log"
 windows_archive="$(find "$tmp/windows" -maxdepth 1 -type f -name "${product_slug}-v${product_version}-windows-amd64.tar.gz" -print -quit)"

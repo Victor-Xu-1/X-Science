@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 // A host callback is already executing and waiting for this decision. Resolve

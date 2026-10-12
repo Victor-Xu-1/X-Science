@@ -42,8 +42,8 @@ if [ "$OPW_REMAINING" -gt 0 ] 2>/dev/null; then
 else
   OPW_DEADLINE=$OPW_EPOCH
 fi
-if [ -f _synon_checkpoint.env ] && [ ! -L _synon_checkpoint.env ]; then
-  source ./_synon_checkpoint.env
+if [ -f _x_science_checkpoint.env ] && [ ! -L _x_science_checkpoint.env ]; then
+  source ./_x_science_checkpoint.env
 fi
 OPW_CHECKPOINT_SIGNAL=${OPERON_CHECKPOINT_SIGNAL:-}
 OPW_CHECKPOINT_PID_FILE=${OPERON_CHECKPOINT_PID_FILE:-}

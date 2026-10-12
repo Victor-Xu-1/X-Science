@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/mcpdirectory"
-	"synon-go/internal/tools/mcpstdio"
+	"x-science/internal/mcpdirectory"
+	"x-science/internal/tools/mcpstdio"
 )
 
 const mcpInvocationRuntimeNamespace = "mcp-invocations"

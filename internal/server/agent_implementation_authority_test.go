@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"reflect"
 	"strings"
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 	"testing"
 )
 

@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/persistence/workspace"
+	"x-science/internal/persistence/workspace"
 )
 
 func TestWebFSOIDCHandlerRequiresSessionAndExplicitHostGrant(t *testing.T) {
@@ -70,7 +70,7 @@ func TestWebFSOIDCHandlerRequiresSessionAndExplicitHostGrant(t *testing.T) {
 		}
 		request.Header.Set("Content-Type", "application/json")
 		request.Header.Set("Origin", server.URL)
-		request.Header.Set("X-Synon-User-Id", forged)
+		request.Header.Set("X-Science-User-Id", forged)
 		if client.Jar != nil {
 			for _, cookie := range client.Jar.Cookies(baseURL) {
 				if cookie.Name == webCSRFCookieName {

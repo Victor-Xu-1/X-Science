@@ -70,11 +70,11 @@ func TestRunHTTPScenarioCapturesRealOrderedRequestsAndResponses(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	baseline, err := RunHTTPScenario(ctx, baselineServer.Client(), baselineServer.URL, "synonbiomed-v1.1", spec)
+	baseline, err := RunHTTPScenario(ctx, baselineServer.Client(), baselineServer.URL, "xscience-v1.1", spec)
 	if err != nil {
 		t.Fatalf("RunHTTPScenario(baseline) error = %v", err)
 	}
-	candidate, err := RunHTTPScenario(ctx, candidateServer.Client(), candidateServer.URL, "synon-go-v4.0.2", spec)
+	candidate, err := RunHTTPScenario(ctx, candidateServer.Client(), candidateServer.URL, "x-science-v4.0.2", spec)
 	if err != nil {
 		t.Fatalf("RunHTTPScenario(candidate) error = %v", err)
 	}

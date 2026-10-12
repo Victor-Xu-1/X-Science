@@ -4,7 +4,7 @@ set -Eeuo pipefail
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 QUICKSTART="$SCRIPT_DIR/source-quickstart.sh"
 TMP_ROOT=$(realpath -e "${TMPDIR:-/tmp}")
-TMP_DIR=$(mktemp -d "$TMP_ROOT/synon-source-quickstart-test.XXXXXX")
+TMP_DIR=$(mktemp -d "$TMP_ROOT/x-science-source-quickstart-test.XXXXXX")
 QUICKSTART_PID=''
 OCCUPIED_PID=''
 LOCK_HOLDER_PID=''
@@ -20,7 +20,7 @@ cleanup() {
   # Clean only this invocation's directory, including under an isolated TMPDIR.
   # A location-specific false condition must not turn passing assertions into
   # a failure exit from the EXIT trap.
-  if [[ "$TMP_DIR" == "$TMP_ROOT"/synon-source-quickstart-test.* && -d "$TMP_DIR" && ! -L "$TMP_DIR" ]]; then
+  if [[ "$TMP_DIR" == "$TMP_ROOT"/x-science-source-quickstart-test.* && -d "$TMP_DIR" && ! -L "$TMP_DIR" ]]; then
     rm -rf -- "$TMP_DIR"
   else
     echo 'refusing an unverified quickstart test cleanup path' >&2
@@ -84,8 +84,8 @@ run_quickstart() {
   FAKE_FRONTEND_PID="$TMP_DIR/frontend.pid" \
   FAKE_OPEN_RECORD="$TMP_DIR/open.txt" \
   FAKE_HEALTH_BODY_FILE="$TMP_DIR/health-body" \
-  SYNON_QUICKSTART_BACKEND_ENTRY="$TMP_DIR/fake-backend" \
-  SYNON_QUICKSTART_FRONTEND_ENTRY="$TMP_DIR/fake-frontend" \
+  X_SCIENCE_QUICKSTART_BACKEND_ENTRY="$TMP_DIR/fake-backend" \
+  X_SCIENCE_QUICKSTART_FRONTEND_ENTRY="$TMP_DIR/fake-frontend" \
   "$QUICKSTART" --state-dir "$TMP_DIR/state" --backend-port 39851 --web-port 39852 \
     --timeout-seconds 3 "$@"
 }
@@ -96,8 +96,8 @@ run_quickstart_exec() {
   FAKE_FRONTEND_PID="$TMP_DIR/frontend.pid" \
   FAKE_OPEN_RECORD="$TMP_DIR/open.txt" \
   FAKE_HEALTH_BODY_FILE="$TMP_DIR/health-body" \
-  SYNON_QUICKSTART_BACKEND_ENTRY="$TMP_DIR/fake-backend" \
-  SYNON_QUICKSTART_FRONTEND_ENTRY="$TMP_DIR/fake-frontend" \
+  X_SCIENCE_QUICKSTART_BACKEND_ENTRY="$TMP_DIR/fake-backend" \
+  X_SCIENCE_QUICKSTART_FRONTEND_ENTRY="$TMP_DIR/fake-frontend" \
   "$QUICKSTART" --state-dir "$TMP_DIR/state" --backend-port 39851 --web-port 39852 \
     --timeout-seconds 3 "$@"
 }
@@ -254,8 +254,8 @@ env PATH="$TMP_DIR/bin:/usr/bin:/bin" \
   FAKE_FRONTEND_PID="$TMP_DIR/owned-frontend.pid" \
   FAKE_OPEN_RECORD="$TMP_DIR/owned-open.txt" \
   FAKE_HEALTH_BODY_FILE="$TMP_DIR/health-body" \
-  SYNON_QUICKSTART_BACKEND_ENTRY="$TMP_DIR/fake-backend" \
-  SYNON_QUICKSTART_FRONTEND_ENTRY="$TMP_DIR/fake-frontend" \
+  X_SCIENCE_QUICKSTART_BACKEND_ENTRY="$TMP_DIR/fake-backend" \
+  X_SCIENCE_QUICKSTART_FRONTEND_ENTRY="$TMP_DIR/fake-frontend" \
   "$QUICKSTART" --state-dir "$TMP_DIR/owned-start" --backend-port 39861 --web-port 39862 \
     --timeout-seconds 3 >"$TMP_DIR/owned-start-run.log" 2>&1 &
 OWNED_START_PID=$!

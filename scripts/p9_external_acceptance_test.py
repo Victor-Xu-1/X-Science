@@ -60,8 +60,8 @@ class ExternalAcceptanceTest(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary.name)
-        self.model = self.root / "synon-go"
-        self.channels = self.root / "synon-go-live-im-smoke"
+        self.model = self.root / "x-science"
+        self.channels = self.root / "x-science-live-im-smoke"
         self.events = self.root / "events"
         for binary in (self.model, self.channels):
             binary.write_text(FAKE_BINARY, encoding="utf-8")
@@ -92,15 +92,15 @@ class ExternalAcceptanceTest(unittest.TestCase):
             }
         )
         if authorized:
-            environment["SYNON_EXTERNAL_TEST_AUTHORIZED"] = AUTHORIZATION
+            environment["X_SCIENCE_EXTERNAL_TEST_AUTHORIZED"] = AUTHORIZATION
         else:
-            environment.pop("SYNON_EXTERNAL_TEST_AUTHORIZED", None)
+            environment.pop("X_SCIENCE_EXTERNAL_TEST_AUTHORIZED", None)
         result = subprocess.run(
             [
                 "python3",
                 "-B",
                 str(GATE),
-                "--synon-binary",
+                "--x-science-binary",
                 str(self.model),
                 "--live-im-binary",
                 str(self.channels),

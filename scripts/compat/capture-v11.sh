@@ -2,13 +2,13 @@
 set -euo pipefail
 
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
-BASELINE_ROOT="${SYNON_V11_ROOT:-/home/victor_1/synonbiomed-v1.1}"
+BASELINE_ROOT="${X_SCIENCE_V11_ROOT:-/home/victor_1/xscience-v1.1}"
 SCENARIO=""
 OUTPUT=""
 PORT="38990"
 STARTUP_TIMEOUT_SECONDS="30"
 BUN_BIN="${BUN_BIN:-}"
-ORACLE_BIN="${SYNON_ORACLE_BIN:-}"
+ORACLE_BIN="${X_SCIENCE_ORACLE_BIN:-}"
 
 usage() {
   cat <<'USAGE'
@@ -73,9 +73,9 @@ if [[ ! "$STARTUP_TIMEOUT_SECONDS" =~ ^[0-9]+$ ]] || ((STARTUP_TIMEOUT_SECONDS <
 fi
 
 BASELINE_ROOT=$(realpath "$BASELINE_ROOT")
-SERVER_ENTRY="$BASELINE_ROOT/runtime/server/synonbiomed.bundle.js"
+SERVER_ENTRY="$BASELINE_ROOT/runtime/server/xscience.bundle.js"
 ASSETS_ROOT="$BASELINE_ROOT/runtime/assets"
-CONFIG_PATH="$BASELINE_ROOT/synonbiomed.config.toml"
+CONFIG_PATH="$BASELINE_ROOT/xscience.config.toml"
 for required in "$SERVER_ENTRY" "$ASSETS_ROOT" "$CONFIG_PATH"; do
   if [[ ! -e "$required" ]]; then
     echo "ERROR: missing v1.1 baseline component $required" >&2
@@ -99,10 +99,10 @@ if ss -ltn "( sport = :$PORT )" | grep -q ":$PORT"; then
   exit 1
 fi
 
-STATE_DIR=$(mktemp -d "/tmp/synon-v11-oracle.XXXXXX")
+STATE_DIR=$(mktemp -d "/tmp/x-science-v11-oracle.XXXXXX")
 USER_HOME="$STATE_DIR/user-home"
 SERVER_LOG="$STATE_DIR/server.log"
-ORACLE_CONFIG="$STATE_DIR/synonbiomed.config.toml"
+ORACLE_CONFIG="$STATE_DIR/xscience.config.toml"
 SERVER_PID=""
 mkdir -p "$USER_HOME/.config"
 
@@ -136,7 +136,7 @@ cleanup() {
     wait "$SERVER_PID" >/dev/null 2>&1 || true
   fi
   case "$STATE_DIR" in
-  /tmp/synon-v11-oracle.*)
+  /tmp/x-science-v11-oracle.*)
     rm -rf -- "$STATE_DIR"
     ;;
   *)
@@ -155,11 +155,11 @@ export PYTHONPATH="$ASSETS_ROOT/skills/cheminfo-render${PYTHONPATH:+:$PYTHONPATH
 SERVER_ENV=(
   "HOME=$USER_HOME"
   "XDG_CONFIG_HOME=$USER_HOME/.config"
-  "SYNON_SESSION_DIR=$STATE_DIR/session"
-  "SYNON_CONDA_HOME=$STATE_DIR/conda"
-  "SYNON_ASSETS_ROOT=$ASSETS_ROOT"
-  "SYNON_LLM_BASE_URL=${SYNON_V11_LLM_BASE_URL:-http://127.0.0.1:$PORT/synon-llm}"
-  "SYNON_LLM_API_KEY=synon-local-core"
+  "X_SCIENCE_SESSION_DIR=$STATE_DIR/session"
+  "X_SCIENCE_CONDA_HOME=$STATE_DIR/conda"
+  "X_SCIENCE_ASSETS_ROOT=$ASSETS_ROOT"
+  "X_SCIENCE_LLM_BASE_URL=${X_SCIENCE_V11_LLM_BASE_URL:-http://127.0.0.1:$PORT/x-science-llm}"
+  "X_SCIENCE_LLM_API_KEY=x-science-local-core"
 )
 SERVER_ARGS=(
   "$SERVER_ENTRY" serve
@@ -168,8 +168,8 @@ SERVER_ARGS=(
   --host 127.0.0.1
   --port "$PORT"
 )
-if [[ "${SYNON_V11_ORACLE_DEFAULT_DATA_DIR:-false}" != "true" ]]; then
-  SERVER_ENV+=("SYNON_DATA_DIR=$STATE_DIR")
+if [[ "${X_SCIENCE_V11_ORACLE_DEFAULT_DATA_DIR:-false}" != "true" ]]; then
+  SERVER_ENV+=("X_SCIENCE_DATA_DIR=$STATE_DIR")
   SERVER_ARGS+=(--data-dir "$STATE_DIR")
 fi
 env "${SERVER_ENV[@]}" "$BUN_BIN" "${SERVER_ARGS[@]}" >"$SERVER_LOG" 2>&1 &
@@ -200,7 +200,7 @@ if [[ -n "$ORACLE_BIN" ]]; then
     --root "$ROOT_DIR" \
     --scenario "$SCENARIO" \
     --base-url "http://127.0.0.1:$PORT" \
-    --runtime synonbiomed-v1.1 \
+    --runtime xscience-v1.1 \
     --output "$OUTPUT" \
     --force
 else
@@ -216,11 +216,11 @@ else
     echo "ERROR: Go is required to run the development capture CLI" >&2
     exit 1
   fi
-  go run ./cmd/synon contracts capture-http \
+  go run ./cmd/x-science contracts capture-http \
     --root "$ROOT_DIR" \
     --scenario "$SCENARIO" \
     --base-url "http://127.0.0.1:$PORT" \
-	  --runtime synonbiomed-v1.1 \
+	  --runtime xscience-v1.1 \
 	  --output "$OUTPUT" \
 	  --force
 fi

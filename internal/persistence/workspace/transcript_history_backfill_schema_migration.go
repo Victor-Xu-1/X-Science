@@ -5,12 +5,12 @@ import (
 	"errors"
 	"strings"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 const (
 	transcriptHistoryBackfillV29PreflightIdentity = "canonical-transcript-v28-history-backfill-empty-v1"
-	transcriptHistoryBackfillV29RuleSpec          = "synon.workspace.transcript-history-backfill.v29"
+	transcriptHistoryBackfillV29RuleSpec          = "x-science.workspace.transcript-history-backfill.v29"
 )
 
 var transcriptHistoryBackfillV29Migration = versionedSchemaMigration{

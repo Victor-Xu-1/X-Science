@@ -13,8 +13,8 @@ import (
 	"strings"
 	"testing"
 
-	secretstore "synon-go/internal/persistence/secrets"
-	workspace "synon-go/internal/persistence/workspace"
+	secretstore "x-science/internal/persistence/secrets"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestAnnotationHTTPAPIPersistsEditsAndCarriesToNewArtifactVersion(t *testing.T) {
@@ -66,7 +66,7 @@ func TestAnnotationHTTPAPIPersistsEditsAndCarriesToNewArtifactVersion(t *testing
 	}
 	foreign := httptest.NewRecorder()
 	foreignRequest := newLoopbackTestRequest(http.MethodGet, annotationPath, nil)
-	foreignRequest.Header.Set("X-Synon-User-Id", "user-2")
+	foreignRequest.Header.Set("X-Science-User-Id", "user-2")
 	app.ServeHTTP(foreign, foreignRequest)
 	if foreign.Code != http.StatusNotFound {
 		t.Fatalf("cross-user annotation read = %d: %s", foreign.Code, foreign.Body.String())
@@ -74,7 +74,7 @@ func TestAnnotationHTTPAPIPersistsEditsAndCarriesToNewArtifactVersion(t *testing
 	foreignMutation := httptest.NewRecorder()
 	foreignBody := bytes.NewBufferString(`{"text":"unauthorized"}`)
 	foreignMutationRequest := newLoopbackTestRequest(http.MethodPatch, "/api/annotations/"+annotationID, foreignBody)
-	foreignMutationRequest.Header.Set("X-Synon-User-Id", "user-2")
+	foreignMutationRequest.Header.Set("X-Science-User-Id", "user-2")
 	foreignMutationRequest.Header.Set("Content-Type", "application/json")
 	app.ServeHTTP(foreignMutation, foreignMutationRequest)
 	if foreignMutation.Code != http.StatusNotFound {
@@ -118,7 +118,7 @@ func TestAnnotationHTTPAPIPersistsEditsAndCarriesToNewArtifactVersion(t *testing
 	}
 
 	request := newLoopbackTestRequest(http.MethodDelete, "/api/annotations/"+annotationID, nil)
-	request.Header.Set("X-Synon-User-Id", "user-1")
+	request.Header.Set("X-Science-User-Id", "user-1")
 	response := httptest.NewRecorder()
 	app.ServeHTTP(response, request)
 	if response.Code != http.StatusNoContent {
@@ -325,7 +325,7 @@ func annotationJSONRequest(t *testing.T, app http.Handler, method, path string, 
 		reader = bytes.NewReader(raw)
 	}
 	request := newLoopbackTestRequest(method, path, reader)
-	request.Header.Set("X-Synon-User-Id", "user-1")
+	request.Header.Set("X-Science-User-Id", "user-1")
 	request.Header.Set("Content-Type", "application/json")
 	response := httptest.NewRecorder()
 	app.ServeHTTP(response, request)

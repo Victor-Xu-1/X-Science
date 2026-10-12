@@ -11,7 +11,7 @@ import (
 
 	"github.com/google/uuid"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 type CloneConversationInput struct {
@@ -118,6 +118,10 @@ func (s *Store) CloneConversationWithTranscript(
 			return fmt.Errorf("clone canonical transcript history: %w", err)
 		}
 		frameEventID := cloneConversationStableID("frame-created", target.ID)
+		frameEventID, err = s.ResolveNamespaceIdentityTx(ctx, tx, "frame-event", frameEventID, historicalConversationCloneID("frame-created", target.ID))
+		if err != nil {
+			return err
+		}
 		frameEvent, err := s.appendFrameOutboxEventTransaction(ctx, tx, FrameEventInput{
 			ID: frameEventID, FrameID: target.ID, Type: "frame_created",
 			Payload: map[string]any{
@@ -129,16 +133,24 @@ func (s *Store) CloneConversationWithTranscript(
 		if err != nil {
 			return fmt.Errorf("append clone frame lifecycle: %w", err)
 		}
+		frameRealtimeID, err := s.resolveHistoricalRealtimeIdentity(ctx, tx, cloneConversationStableID("frame-realtime", target.ID), historicalConversationCloneID("frame-realtime", target.ID))
+		if err != nil {
+			return err
+		}
 		if _, err := s.enqueueRealtimeOutboxTransaction(ctx, tx,
-			frameRealtimeInput(cloneConversationStableID("frame-realtime", target.ID), input.OwnerUserID, target, frameEvent),
+			frameRealtimeInput(frameRealtimeID, input.OwnerUserID, target, frameEvent),
 			frameEvent.ID, ""); err != nil {
 			return fmt.Errorf("enqueue clone frame realtime: %w", err)
 		}
+		listRealtimeID, err := s.resolveHistoricalRealtimeIdentity(ctx, tx, cloneConversationStableID("list-changed", target.ID), historicalConversationCloneID("list-changed", target.ID))
+		if err != nil {
+			return err
+		}
 		if _, err := s.enqueueRealtimeOutboxTransaction(ctx, tx, RealtimeEventInput{
-			ID: cloneConversationStableID("list-changed", target.ID), UserID: input.OwnerUserID,
+			ID: listRealtimeID, UserID: input.OwnerUserID,
 			ProjectID: target.ProjectID, RootFrameID: target.RootFrameID, FrameID: target.ID,
 			Type: "conversation.listChanged", Payload: map[string]any{
-				"conversation_id": target.ID, "action": "created", "source": "synonbiomed",
+				"conversation_id": target.ID, "action": "created", "source": "xscience",
 			},
 		}, "", ""); err != nil {
 			return fmt.Errorf("enqueue clone conversation list change: %w", err)
@@ -223,7 +235,7 @@ func validateExistingConversationCloneTarget(
 }
 
 func cloneConversationStableID(kind, targetFrameID string) string {
-	return uuid.NewSHA1(uuid.NameSpaceOID, []byte("synon-conversation-clone-v1\x00"+kind+"\x00"+targetFrameID)).String()
+	return uuid.NewSHA1(uuid.NameSpaceOID, []byte("x-science-conversation-clone-v1\x00"+kind+"\x00"+targetFrameID)).String()
 }
 
 var _ workspaceTransaction = (*sql.Tx)(nil)

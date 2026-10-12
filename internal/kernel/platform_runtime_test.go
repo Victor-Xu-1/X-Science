@@ -94,8 +94,8 @@ func TestManagedRuntimeInstallLockSerializesAndCancelsWaiter(t *testing.T) {
 
 func TestManagedRuntimePointerActivationReplacesAndResolvesAtomically(t *testing.T) {
 	root := t.TempDir()
-	active := filepath.Join(root, "envs", "synon-biomed-python")
-	generation := filepath.Join(root, "envs", ".generations", "synon-biomed-python", "generation-a")
+	active := filepath.Join(root, "envs", "x-science-python")
+	generation := filepath.Join(root, "envs", ".generations", "x-science-python", "generation-a")
 	if err := os.MkdirAll(generation, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -110,7 +110,7 @@ func TestManagedRuntimePointerActivationReplacesAndResolvesAtomically(t *testing
 	if err != nil || resolved != generation {
 		t.Fatalf("resolved=%q err=%v want=%q", resolved, err, generation)
 	}
-	second := filepath.Join(root, "envs", ".generations", "synon-biomed-python", "generation-b")
+	second := filepath.Join(root, "envs", ".generations", "x-science-python", "generation-b")
 	if err := os.MkdirAll(second, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -121,14 +121,14 @@ func TestManagedRuntimePointerActivationReplacesAndResolvesAtomically(t *testing
 	if err != nil || resolved != second {
 		t.Fatalf("replaced resolved=%q err=%v want=%q", resolved, err, second)
 	}
-	if _, err := os.Stat(filepath.Join(root, "envs", ".generations", "synon-biomed-python", "generation-a")); err != nil {
+	if _, err := os.Stat(filepath.Join(root, "envs", ".generations", "x-science-python", "generation-a")); err != nil {
 		t.Fatal("activation replaced the immutable generation")
 	}
 }
 
 func TestManagedRuntimePointerRejectsEscapingGeneration(t *testing.T) {
 	root := t.TempDir()
-	active := filepath.Join(root, "envs", "synon-biomed-python")
+	active := filepath.Join(root, "envs", "x-science-python")
 	if err := os.MkdirAll(filepath.Dir(active), 0o700); err != nil {
 		t.Fatal(err)
 	}

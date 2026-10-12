@@ -10,7 +10,7 @@ import type {
   IConversationArtifact,
   IConversationArtifactStatus,
   IScientificFilesArtifact,
-  ISynonBiomedScientificFile,
+  IXScienceScientificFile,
 } from '@/common/adapter/ipcBridge';
 import { useAuth } from '@/renderer/hooks/context/AuthContext';
 import { createKeyedSnapshotStore } from '@/renderer/services/keyedSnapshotStore';
@@ -38,9 +38,9 @@ type ConversationArtifactContextValue = {
 };
 
 export type ConversationArtifactIndex = {
-  byFilename: Map<string, ISynonBiomedScientificFile>;
-  byArtifactId: Map<string, ISynonBiomedScientificFile>;
-  byVersionId: Map<string, ISynonBiomedScientificFile>;
+  byFilename: Map<string, IXScienceScientificFile>;
+  byArtifactId: Map<string, IXScienceScientificFile>;
+  byVersionId: Map<string, IXScienceScientificFile>;
 };
 
 const EMPTY_ARTIFACT_INDEX: ConversationArtifactIndex = {
@@ -195,7 +195,7 @@ function isAbortError(error: unknown): boolean {
   return Boolean(error && typeof error === 'object' && 'name' in error && error.name === 'AbortError');
 }
 
-const compareScientificFileVersions = (left: ISynonBiomedScientificFile, right: ISynonBiomedScientificFile): number => {
+const compareScientificFileVersions = (left: IXScienceScientificFile, right: IXScienceScientificFile): number => {
   if (left.version_number !== right.version_number) return left.version_number - right.version_number;
   if (left.updated_at !== right.updated_at) return left.updated_at - right.updated_at;
   if (left.created_at !== right.created_at) return left.created_at - right.created_at;
@@ -203,9 +203,9 @@ const compareScientificFileVersions = (left: ISynonBiomedScientificFile, right: 
 };
 
 export function createConversationArtifactIndex(collections: IConversationArtifact[]): ConversationArtifactIndex {
-  const byFilename = new Map<string, ISynonBiomedScientificFile>();
-  const byArtifactId = new Map<string, ISynonBiomedScientificFile>();
-  const byVersionId = new Map<string, ISynonBiomedScientificFile>();
+  const byFilename = new Map<string, IXScienceScientificFile>();
+  const byArtifactId = new Map<string, IXScienceScientificFile>();
+  const byVersionId = new Map<string, IXScienceScientificFile>();
   for (const collection of collections) {
     if (collection.kind !== 'scientific_files') continue;
     for (const file of (collection as IScientificFilesArtifact).payload.files) {

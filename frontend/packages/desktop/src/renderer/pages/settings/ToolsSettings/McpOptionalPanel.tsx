@@ -3,10 +3,10 @@ import { Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  loadSynonBiomedOptionalMcps,
-  startSynonBiomedOptionalMcpInstall,
-  type SynonBiomedOptionalMcp,
-} from '@/renderer/services/synonBiomedCapabilities';
+  loadXScienceOptionalMcps,
+  startXScienceOptionalMcpInstall,
+  type XScienceOptionalMcp,
+} from '@/renderer/services/xScienceCapabilities';
 import { sanitizeExternalHttpUrl } from '@/renderer/utils/platform';
 import { McpConnectorVisualMark, resolveMcpConnectorVisual } from './mcpConnectorVisuals';
 
@@ -16,7 +16,7 @@ type Props = {
 
 export const McpOptionalPanel: React.FC<Props> = ({ onInstalled }) => {
   const { t } = useTranslation();
-  const [items, setItems] = useState<SynonBiomedOptionalMcp[]>([]);
+  const [items, setItems] = useState<XScienceOptionalMcp[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -28,7 +28,7 @@ export const McpOptionalPanel: React.FC<Props> = ({ onInstalled }) => {
       const generation = ++generationRef.current;
       if (showSpinner) setRefreshing(true);
       try {
-        const nextItems = await loadSynonBiomedOptionalMcps();
+        const nextItems = await loadXScienceOptionalMcps();
         if (generation === generationRef.current) {
           setItems((current) => {
             const currentByID = new Map(current.map((item) => [item.id, item]));
@@ -37,7 +37,7 @@ export const McpOptionalPanel: React.FC<Props> = ({ onInstalled }) => {
               if (item.installed && !installedNoticeRef.current.has(item.id) && previous?.installed === false) {
                 installedNoticeRef.current.add(item.id);
                 void onInstalled();
-                Message.success(t('settings.synonBiomedMcpOptionalInstalled'));
+                Message.success(t('settings.xScienceMcpOptionalInstalled'));
               }
             }
             return nextItems;
@@ -46,7 +46,7 @@ export const McpOptionalPanel: React.FC<Props> = ({ onInstalled }) => {
       } catch (error) {
         if (generation === generationRef.current) {
           console.error('Failed to load optional X-Science MCPs:', error);
-          Message.error(t('settings.synonBiomedMcpOptionalLoadError'));
+          Message.error(t('settings.xScienceMcpOptionalLoadError'));
         }
       } finally {
         if (generation === generationRef.current) setRefreshing(false);
@@ -73,22 +73,22 @@ export const McpOptionalPanel: React.FC<Props> = ({ onInstalled }) => {
   }, [hasInstalling, refresh]);
 
   const install = useCallback(
-    async (item: SynonBiomedOptionalMcp) => {
+    async (item: XScienceOptionalMcp) => {
       if (busyId || item.status === 'installing' || item.installed) return;
       setBusyId(item.id);
       try {
-        const result = await startSynonBiomedOptionalMcpInstall(item.id);
+        const result = await startXScienceOptionalMcpInstall(item.id);
         if (result.installed) installedNoticeRef.current.add(result.id);
         setItems((current) => current.map((candidate) => (candidate.id === result.id ? result : candidate)));
         if (result.status === 'installing') {
-          Message.info(t('settings.synonBiomedMcpOptionalInstallStarted'));
+          Message.info(t('settings.xScienceMcpOptionalInstallStarted'));
         } else if (result.installed) {
-          Message.success(t('settings.synonBiomedMcpOptionalInstalled'));
+          Message.success(t('settings.xScienceMcpOptionalInstalled'));
           await onInstalled();
         }
       } catch (error) {
         console.error('Failed to start optional X-Science MCP installation:', error);
-        Message.error(t('settings.synonBiomedMcpOptionalInstallError'));
+        Message.error(t('settings.xScienceMcpOptionalInstallError'));
         await refresh(false);
       } finally {
         setBusyId(null);
@@ -98,12 +98,12 @@ export const McpOptionalPanel: React.FC<Props> = ({ onInstalled }) => {
   );
 
   return (
-    <div className='flex flex-col gap-14px' data-testid='synon-biomed-mcp-optional'>
+    <div className='flex flex-col gap-14px' data-testid='x-science-mcp-optional'>
       <div className='flex items-start justify-between gap-10px border-y border-arco-2 py-12px'>
         <div className='min-w-0'>
-          <h2 className='m-0 text-16px font-650 text-t-primary'>{t('settings.synonBiomedMcpOptionalTitle')}</h2>
+          <h2 className='m-0 text-16px font-650 text-t-primary'>{t('settings.xScienceMcpOptionalTitle')}</h2>
           <p className='m-0 mt-3px max-w-760px text-12px leading-5 text-t-tertiary'>
-            {t('settings.synonBiomedMcpOptionalDescription')}
+            {t('settings.xScienceMcpOptionalDescription')}
           </p>
         </div>
         <Button
@@ -112,14 +112,14 @@ export const McpOptionalPanel: React.FC<Props> = ({ onInstalled }) => {
           icon={<Refresh size='13' />}
           loading={refreshing}
           aria-label={t('common.refresh')}
-          data-testid='synon-biomed-mcp-optional-refresh'
+          data-testid='x-science-mcp-optional-refresh'
           onClick={() => void refresh()}
         />
       </div>
 
       <Spin loading={loading} className='w-full'>
         {items.length > 0 ? (
-          <div className='synon-mcp-grid grid grid-cols-1 items-stretch sm:grid-cols-2 xl:grid-cols-3' role='list'>
+          <div className='x-science-mcp-grid grid grid-cols-1 items-stretch sm:grid-cols-2 xl:grid-cols-3' role='list'>
             {items.map((item) => (
               <OptionalMcpCard
                 key={item.id}
@@ -130,7 +130,7 @@ export const McpOptionalPanel: React.FC<Props> = ({ onInstalled }) => {
             ))}
           </div>
         ) : !loading ? (
-          <Empty description={t('settings.synonBiomedMcpOptionalEmpty')} />
+          <Empty description={t('settings.xScienceMcpOptionalEmpty')} />
         ) : null}
       </Spin>
     </div>
@@ -138,7 +138,7 @@ export const McpOptionalPanel: React.FC<Props> = ({ onInstalled }) => {
 };
 
 const OptionalMcpCard: React.FC<{
-  item: SynonBiomedOptionalMcp;
+  item: XScienceOptionalMcp;
   busy: boolean;
   onInstall: () => void;
 }> = ({ item, busy, onInstall }) => {
@@ -146,47 +146,47 @@ const OptionalMcpCard: React.FC<{
   const visual = resolveMcpConnectorVisual(item.name, item.displayName);
   const status =
     item.status === 'installed' && item.installed
-      ? t('settings.synonBiomedMcpOptionalStatusInstalled')
+      ? t('settings.xScienceMcpOptionalStatusInstalled')
       : item.status === 'installing'
-        ? t('settings.synonBiomedMcpOptionalStatusInstalling')
+        ? t('settings.xScienceMcpOptionalStatusInstalling')
         : item.status === 'failed' || item.status === 'broken'
-          ? t('settings.synonBiomedMcpOptionalStatusFailed')
-          : t('settings.synonBiomedMcpOptionalStatusNotInstalled');
+          ? t('settings.xScienceMcpOptionalStatusFailed')
+          : t('settings.xScienceMcpOptionalStatusNotInstalled');
   const canInstall = !item.installed && item.status !== 'installing';
   const sourceUrl = sanitizeExternalHttpUrl(item.sourceRef);
   return (
     <article
       role='listitem'
-      className='synon-mcp-card flex min-w-0 flex-col border border-arco-2 bg-fill-1 transition-colors'
-      data-testid={`synon-biomed-mcp-optional-${item.name}`}
+      className='x-science-mcp-card flex min-w-0 flex-col border border-arco-2 bg-fill-1 transition-colors'
+      data-testid={`x-science-mcp-optional-${item.name}`}
       data-mcp-tone={visual.tone}
       data-mcp-visual={visual.glyph}
       data-mcp-install-status={item.status}
       aria-label={`${item.displayName}. ${status}`}
     >
-      <div className='synon-mcp-card__top flex min-w-0 items-center'>
-        <div className='synon-mcp-card__icon flex shrink-0 items-center justify-center'>
+      <div className='x-science-mcp-card__top flex min-w-0 items-center'>
+        <div className='x-science-mcp-card__icon flex shrink-0 items-center justify-center'>
           <McpConnectorVisualMark visual={visual} />
         </div>
-        <div className='synon-mcp-card__identity min-w-0 flex-1'>
-          <div className='synon-mcp-card__title-row'>
+        <div className='x-science-mcp-card__identity min-w-0 flex-1'>
+          <div className='x-science-mcp-card__title-row'>
             <span className='min-w-0 font-650 text-t-primary' title={item.displayName}>
               {item.displayName}
             </span>
           </div>
         </div>
       </div>
-      <p className='synon-mcp-card__description' title={item.description}>
+      <p className='x-science-mcp-card__description' title={item.description}>
         {item.description}
       </p>
       <div className='flex flex-col gap-3px text-12px leading-5 text-t-tertiary break-words'>
         <span>
-          {t('settings.synonBiomedMcpOptionalLicense')}: {item.license}
+          {t('settings.xScienceMcpOptionalLicense')}: {item.license}
         </span>
         <span>{item.sizeLabel}</span>
         {item.installPath ? (
           <span title={item.installPath}>
-            {t('settings.synonBiomedMcpOptionalPath')}: {item.installPath}
+            {t('settings.xScienceMcpOptionalPath')}: {item.installPath}
           </span>
         ) : null}
         {item.error ? (
@@ -195,33 +195,33 @@ const OptionalMcpCard: React.FC<{
           </span>
         ) : null}
       </div>
-      <div className='synon-mcp-card__actions flex items-center justify-between'>
-        <div className='synon-mcp-card__action-cluster flex items-center'>
+      <div className='x-science-mcp-card__actions flex items-center justify-between'>
+        <div className='x-science-mcp-card__action-cluster flex items-center'>
           <Button
             size='small'
             type='secondary'
             loading={busy || item.status === 'installing'}
             disabled={!canInstall || busy}
-            data-testid={`synon-biomed-mcp-optional-install-${item.name}`}
+            data-testid={`x-science-mcp-optional-install-${item.name}`}
             onClick={onInstall}
           >
             {item.status === 'installing'
-              ? t('settings.synonBiomedMcpOptionalInstalling')
+              ? t('settings.xScienceMcpOptionalInstalling')
               : item.status === 'failed' || item.status === 'broken'
-                ? t('settings.synonBiomedMcpOptionalRetry')
+                ? t('settings.xScienceMcpOptionalRetry')
                 : item.installed
-                  ? t('settings.synonBiomedMcpOptionalInstalledAction')
-                  : t('settings.synonBiomedMcpOptionalInstall')}
+                  ? t('settings.xScienceMcpOptionalInstalledAction')
+                  : t('settings.xScienceMcpOptionalInstall')}
           </Button>
         </div>
         {sourceUrl ? (
           <a
-            className='synon-mcp-card__more inline-flex items-center justify-center text-12px'
+            className='x-science-mcp-card__more inline-flex items-center justify-center text-12px'
             href={sourceUrl}
             target='_blank'
             rel='noreferrer'
           >
-            {t('settings.synonBiomedMcpOptionalSource')}
+            {t('settings.xScienceMcpOptionalSource')}
           </a>
         ) : null}
       </div>

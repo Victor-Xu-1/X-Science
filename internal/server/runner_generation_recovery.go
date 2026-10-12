@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	eventjournal "synon-go/internal/persistence/journal"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	"synon-go/internal/sessionrunner"
+	eventjournal "x-science/internal/persistence/journal"
+	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/sessionrunner"
 )
 
 const providerGenerationRecoveryField = "provider_generation_recovery"

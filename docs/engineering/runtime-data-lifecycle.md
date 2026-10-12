@@ -3,7 +3,7 @@
 X-Science has one task-history authority and one bounded operational-state
 store:
 
-- `workspace/synonbiomed-v1.1.sqlite` owns projects, frames, canonical
+- `workspace/x-science.sqlite` owns projects, frames, canonical
   transcript messages, execution evidence, tool records, memories, and artifact
   lineage.
 - `runtime-state.sqlite` owns non-conversation operational state such as

@@ -24,16 +24,16 @@ pick_port() {
   return 1
 }
 
-BIN="$TMP_DIR/synon-go"
+BIN="$TMP_DIR/x-science"
 (
   cd "$ROOT_DIR"
-  "$GO_BIN" build -buildvcs=false -o "$BIN" ./cmd/synon
+  "$GO_BIN" build -buildvcs=false -o "$BIN" ./cmd/x-science
 )
 
 PORT=$(pick_port)
 OUT="$TMP_DIR/goal-run-strict.out"
-SYNON_GOAL_HOME="$TMP_DIR/home" \
-SYNON_GOAL_PORT="$PORT" \
+X_SCIENCE_GOAL_HOME="$TMP_DIR/home" \
+X_SCIENCE_GOAL_PORT="$PORT" \
   bash "$SCRIPT_DIR/goal-run-strict-config.sh" "$BIN" >"$OUT"
 
 grep -q 'doctor-gate: .*strict=1' "$OUT"

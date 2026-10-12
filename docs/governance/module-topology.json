@@ -1,9 +1,9 @@
 {
-  "schema": "synon.governance.module-topology.v1",
+  "schema": "x-science.governance.module-topology.v1",
   "authorityOwner": "repository-steward",
   "requiredDirectories": [
     "assets/optional/mcp-servers",
-    "assets/synonbiomed/agents",
+    "assets/x-science/agents",
     "frontend/packages/desktop/src/renderer",
     "frontend/packages/desktop/src/renderer/services/agents",
     "frontend/packages/desktop/src/renderer/services/mcp",
@@ -20,12 +20,12 @@
     "internal/toolgateway",
     "scripts/audit",
     "scripts/optional",
-    "skills/synonbiomed"
+    "skills/x-science"
   ],
   "requiredFiles": [
-    "assets/synonbiomed/agents.manifest.json",
-    "assets/synonbiomed/agents/capabilities.json",
-    "assets/synonbiomed/skills.manifest.json",
+    "assets/x-science/agents.manifest.json",
+    "assets/x-science/agents/capabilities.json",
+    "assets/x-science/skills.manifest.json",
     "docs/engineering/module-topology.md",
     "frontend/packages/desktop/src/common/adapter/ipcBridge.ts",
     "frontend/packages/desktop/src/common/adapter/ipcConversationClient.ts",
@@ -33,7 +33,7 @@
     "frontend/packages/desktop/src/renderer/pages/conversation/Messages/messageListProjection.ts",
     "frontend/packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpSendBoxDraftController.ts",
     "frontend/packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpMobileActionSheetController.tsx",
-    "frontend/packages/desktop/src/renderer/components/synonBiomed/runtime/SynonBiomedRuntimeOperationsController.tsx",
+    "frontend/packages/desktop/src/renderer/components/xScience/runtime/XScienceRuntimeOperationsController.tsx",
     "internal/mcpdirectory/bundled_metadata.json",
     "internal/harnesscontract/tools.go",
     "internal/server/skill_catalog_loader.go",
@@ -47,7 +47,7 @@
     "scripts/optional/websearch.py"
   ],
   "bannedPaths": [
-    "skills/synon-runtime",
+    "skills/x-science-runtime",
     "tools"
   ],
   "allowedTrackedRootEntries": [
@@ -77,8 +77,8 @@
     "skills"
   ],
   "fileAuthorities": [
-    {"suffix": "/SKILL.md", "prefix": "skills/synonbiomed/"},
-    {"suffix": "/metadata.yaml", "prefix": "assets/synonbiomed/agents/"}
+    {"suffix": "/SKILL.md", "prefix": "skills/x-science/"},
+    {"suffix": "/metadata.yaml", "prefix": "assets/x-science/agents/"}
   ],
   "architectureAuthorities": [
     {
@@ -104,11 +104,11 @@
   "packageDependencyRules": [
     {
       "path": "internal/toolgateway",
-      "forbiddenImports": ["net/http", "synon-go/internal/agentruntime", "synon-go/internal/server"]
+      "forbiddenImports": ["net/http", "x-science/internal/agentruntime", "x-science/internal/server"]
     },
     {
       "path": "internal/sessionrunner",
-      "forbiddenImports": ["net/http", "synon-go/internal/agentruntime", "synon-go/internal/server"]
+      "forbiddenImports": ["net/http", "x-science/internal/agentruntime", "x-science/internal/server"]
     }
   ],
   "growthCeilings": [
@@ -148,9 +148,9 @@
     {"kind": "lines", "path": "frontend/packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpMobileActionSheetController.tsx", "maximum": 440},
     {"kind": "lines", "path": "frontend/packages/desktop/src/renderer/pages/conversation/Messages/MessageList.tsx", "maximum": 1160},
     {"kind": "lines", "path": "frontend/packages/desktop/src/renderer/pages/conversation/Messages/messageListProjection.ts", "maximum": 280},
-    {"kind": "lines", "path": "frontend/packages/desktop/src/renderer/components/synonBiomed/runtime/SynonBiomedRuntimeOperations.tsx", "maximum": 12},
-    {"kind": "lines", "path": "frontend/packages/desktop/src/renderer/components/synonBiomed/runtime/SynonBiomedRuntimeOperationsController.tsx", "maximum": 1130},
-    {"kind": "lines", "path": "frontend/packages/desktop/src/renderer/components/synonBiomed/runtime/SynonBiomedPlanReviewContent.tsx", "maximum": 145},
+    {"kind": "lines", "path": "frontend/packages/desktop/src/renderer/components/xScience/runtime/XScienceRuntimeOperations.tsx", "maximum": 12},
+    {"kind": "lines", "path": "frontend/packages/desktop/src/renderer/components/xScience/runtime/XScienceRuntimeOperationsController.tsx", "maximum": 1130},
+    {"kind": "lines", "path": "frontend/packages/desktop/src/renderer/components/xScience/runtime/XSciencePlanReviewContent.tsx", "maximum": 145},
     {"kind": "direct-files", "path": "frontend/packages/desktop/src/renderer/services", "maximum": 58},
     {"kind": "direct-files", "path": "scripts", "maximum": 53}
   ]

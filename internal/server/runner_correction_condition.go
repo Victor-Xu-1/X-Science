@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 // All producers retain their complete typed input. This display projection is

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func (s *Server) publishProjectEvent(projectID, eventType string, payload map[string]any) (workspace.RealtimeEvent, error) {

@@ -10,12 +10,12 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/executionprep"
-	kernelruntime "synon-go/internal/kernel"
-	"synon-go/internal/kernelcontract"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/skills"
-	"synon-go/internal/toolgateway"
+	"x-science/internal/executionprep"
+	kernelruntime "x-science/internal/kernel"
+	"x-science/internal/kernelcontract"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/skills"
+	"x-science/internal/toolgateway"
 )
 
 func TestObservationRefusalSettlementPreservesNonExecution(t *testing.T) {

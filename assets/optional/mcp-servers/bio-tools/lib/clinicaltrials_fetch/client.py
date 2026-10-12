@@ -49,7 +49,7 @@ class CTGovClient:
         self._client = httpx.Client(
             timeout=timeout,
             transport=transport,
-            headers={"User-Agent": "clinicaltrials-fetch/0.1 (synon_llm-experimental/bio-tools)"},
+            headers={"User-Agent": "clinicaltrials-fetch/0.1 (x_science_llm-experimental/bio-tools)"},
         )
 
     # -- low level -------------------------------------------------------------

@@ -10,9 +10,9 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"synon-go/internal/sciencecapability"
-	"synon-go/internal/software"
-	"synon-go/internal/software/localconda"
+	"x-science/internal/sciencecapability"
+	"x-science/internal/software"
+	"x-science/internal/software/localconda"
 )
 
 // LegacyWorkspaceAlias identifies only the narrow absolute path shapes that

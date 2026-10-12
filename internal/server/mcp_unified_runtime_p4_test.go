@@ -8,14 +8,14 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/agentruntime"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/tools/mcpstdio"
+	"x-science/internal/agentruntime"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/tools/mcpstdio"
 )
 
 func TestAgentRuntimeListMCPToolsUsesUnifiedWorkspaceCatalog(t *testing.T) {
-	t.Setenv("SYNON_MCP_CONFIG", "")
-	t.Setenv("SYNON_MCP_CONFIG_JSON", "")
+	t.Setenv("X_SCIENCE_MCP_CONFIG", "")
+	t.Setenv("X_SCIENCE_MCP_CONFIG_JSON", "")
 	root := t.TempDir()
 	mcpURL, mcpClient, _ := workspaceMCPCompatibilityFixture(t)
 	store, err := workspace.Open(filepath.Join(root, "workspace.db"))

@@ -4,9 +4,9 @@ import (
 	"reflect"
 	"testing"
 
-	eventjournal "synon-go/internal/persistence/journal"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	"synon-go/internal/sciencecapability"
+	eventjournal "x-science/internal/persistence/journal"
+	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/sciencecapability"
 )
 
 func TestSelectedAskUserImplementationsComeOnlyFromDurableAnsweredChoices(t *testing.T) {

@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	"synon-go/internal/buildinfo"
+	"x-science/internal/buildinfo"
 )
 
 const (
@@ -93,7 +93,7 @@ func New(options Options) (*Manager, error) {
 	options.User = strings.TrimSpace(options.User)
 	options.ServiceName = strings.TrimSpace(options.ServiceName)
 	if options.ServiceName == "" {
-		options.ServiceName = "synon-go.service"
+		options.ServiceName = "x-science.service"
 	}
 	if !filepath.IsAbs(options.HomeDir) || !filepath.IsAbs(options.Executable) ||
 		!filepath.IsAbs(options.WorkingDirectory) {

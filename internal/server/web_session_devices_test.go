@@ -12,7 +12,7 @@ import (
 func TestWebAccountSecurityAPIProjectsAndRevokesDevices(t *testing.T) {
 	app := New(Options{
 		FileRoot: t.TempDir(),
-		SynonLinkAuth: SynonLinkAuthOptions{
+		XScienceLinkAuth: XScienceLinkAuthOptions{
 			Username: "operator", Password: "test-secret-password", UserID: "account-1",
 		},
 	})
@@ -68,7 +68,7 @@ func TestWebAccountSecurityAPIProjectsAndRevokesDevices(t *testing.T) {
 func TestWebAccountSecurityAPISeparatesTrustedDevicesFromLegacySessions(t *testing.T) {
 	app := New(Options{
 		FileRoot: t.TempDir(),
-		SynonLinkAuth: SynonLinkAuthOptions{
+		XScienceLinkAuth: XScienceLinkAuthOptions{
 			Username: "operator", Password: "test-secret-password", UserID: "account-1",
 		},
 	})

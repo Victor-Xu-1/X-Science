@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"synon-go/internal/software"
+	"x-science/internal/software"
 )
 
 const (

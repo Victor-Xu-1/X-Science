@@ -123,9 +123,9 @@ func windowsManagedRTestAssetRoot(t *testing.T) string {
 		}
 		return true
 	}
-	if configured := strings.TrimSpace(os.Getenv("SYNON_TEST_NATIVE_ASSET_ROOT")); configured != "" {
+	if configured := strings.TrimSpace(os.Getenv("X_SCIENCE_TEST_NATIVE_ASSET_ROOT")); configured != "" {
 		if !filepath.IsAbs(configured) || !validate(configured) {
-			t.Fatalf("SYNON_TEST_NATIVE_ASSET_ROOT is not an absolute checked-out asset directory: %q", configured)
+			t.Fatalf("X_SCIENCE_TEST_NATIVE_ASSET_ROOT is not an absolute checked-out asset directory: %q", configured)
 		}
 		return configured
 	}
@@ -142,7 +142,7 @@ func windowsManagedRTestAssetRoot(t *testing.T) string {
 			break
 		}
 	}
-	t.Fatal("cannot locate checked-out Windows runtime assets; set SYNON_TEST_NATIVE_ASSET_ROOT for a standalone test binary")
+	t.Fatal("cannot locate checked-out Windows runtime assets; set X_SCIENCE_TEST_NATIVE_ASSET_ROOT for a standalone test binary")
 	return ""
 }
 
@@ -163,11 +163,11 @@ func TestWindowsBundledInstallerStartsWithoutDownload(t *testing.T) {
 // This opt-in test requires a caller-owned, absent state root with roughly the
 // same depth as the default user home. It never uses the running service's data.
 func TestRealWindowsManagedRColdInstallImportAndReuse(t *testing.T) {
-	if os.Getenv("SYNON_TEST_NATIVE_R_COLD_INSTALL") != "1" {
+	if os.Getenv("X_SCIENCE_TEST_NATIVE_R_COLD_INSTALL") != "1" {
 		t.Skip("Windows R cold installation is opt-in")
 	}
-	assetRoot := strings.TrimSpace(os.Getenv("SYNON_TEST_NATIVE_ASSET_ROOT"))
-	stateRoot := strings.TrimSpace(os.Getenv("SYNON_TEST_NATIVE_STATE_ROOT"))
+	assetRoot := strings.TrimSpace(os.Getenv("X_SCIENCE_TEST_NATIVE_ASSET_ROOT"))
+	stateRoot := strings.TrimSpace(os.Getenv("X_SCIENCE_TEST_NATIVE_STATE_ROOT"))
 	if !filepath.IsAbs(assetRoot) || !filepath.IsAbs(stateRoot) {
 		t.Fatal("Windows R cold installation requires absolute asset and disposable state roots")
 	}
@@ -175,7 +175,7 @@ func TestRealWindowsManagedRColdInstallImportAndReuse(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.EqualFold(stateRoot, filepath.Join(home, ".synon-go")) {
+	if strings.EqualFold(stateRoot, filepath.Join(home, ".x-science")) {
 		t.Fatal("cold installation must not use the real default user state root")
 	}
 	if _, err := os.Lstat(stateRoot); err == nil {
@@ -190,11 +190,11 @@ func TestRealWindowsManagedRColdInstallImportAndReuse(t *testing.T) {
 // allowing another installer run. It is useful when a host-level failure
 // interrupts verification after the generation has already been installed.
 func TestRealWindowsManagedRExistingInstallImportAndReuse(t *testing.T) {
-	if os.Getenv("SYNON_TEST_NATIVE_R_REUSE_EXISTING") != "1" {
+	if os.Getenv("X_SCIENCE_TEST_NATIVE_R_REUSE_EXISTING") != "1" {
 		t.Skip("Windows R existing installation verification is opt-in")
 	}
-	assetRoot := strings.TrimSpace(os.Getenv("SYNON_TEST_NATIVE_ASSET_ROOT"))
-	stateRoot := strings.TrimSpace(os.Getenv("SYNON_TEST_NATIVE_STATE_ROOT"))
+	assetRoot := strings.TrimSpace(os.Getenv("X_SCIENCE_TEST_NATIVE_ASSET_ROOT"))
+	stateRoot := strings.TrimSpace(os.Getenv("X_SCIENCE_TEST_NATIVE_STATE_ROOT"))
 	if !filepath.IsAbs(assetRoot) || !filepath.IsAbs(stateRoot) {
 		t.Fatal("Windows R reuse verification requires absolute asset and state roots")
 	}
@@ -202,7 +202,7 @@ func TestRealWindowsManagedRExistingInstallImportAndReuse(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.EqualFold(stateRoot, filepath.Join(home, ".synon-go")) {
+	if strings.EqualFold(stateRoot, filepath.Join(home, ".x-science")) {
 		t.Fatal("reuse verification must not use the real default user state root")
 	}
 	info, err := os.Lstat(stateRoot)
@@ -214,8 +214,8 @@ func TestRealWindowsManagedRExistingInstallImportAndReuse(t *testing.T) {
 
 func verifyRealWindowsManagedRInstallAndReuse(t *testing.T, assetRoot, stateRoot string, reuseOnly bool) {
 	t.Helper()
-	t.Setenv("SYNON_KERNEL_ASSET_ROOT", assetRoot)
-	t.Setenv("SYNON_MICROMAMBA", "")
+	t.Setenv("X_SCIENCE_KERNEL_ASSET_ROOT", assetRoot)
+	t.Setenv("X_SCIENCE_MICROMAMBA", "")
 	condaHome := filepath.Join(stateRoot, "conda")
 	envs := filepath.Join(condaHome, "envs")
 	manager, err := DiscoverManagerWithPathsAndProxy(condaHome, envs, "")

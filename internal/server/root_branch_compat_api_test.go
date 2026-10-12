@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const branchAuthorityUnavailableTestDetail = "Conversation branching is unavailable until unified transcript authority is enabled"
@@ -134,7 +134,7 @@ func TestBranchMembershipStorageFailureIsRedactedAndReadOnly(t *testing.T) {
 	server := New(Options{FileRoot: root, Workspace: store, SkillDirectories: []string{v11SkillsDir(t)}})
 	project := createP3Project(t, store, "storage-fault-project", "local")
 	created := p3JSONRequest(t, server, http.MethodPost, "/api/conversations", map[string]any{
-		"name": "Storage fault", "assistant": map[string]any{"id": "synonbiomed:OPERON"},
+		"name": "Storage fault", "assistant": map[string]any{"id": "xscience:OPERON"},
 		"extra": map[string]any{"project_id": project.ID, "project_name": project.Name},
 	}, "")
 	if created.Code != http.StatusCreated {

@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	kernelruntime "synon-go/internal/kernel"
+	"x-science/internal/agentruntime"
+	kernelruntime "x-science/internal/kernel"
 )
 
 func TestManagedEnvironmentReuseBindsRequestedNameToSelectedEnvironment(t *testing.T) {

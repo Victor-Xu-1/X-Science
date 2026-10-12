@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestManagedProjectSymlinkDoesNotExpandAdmission(t *testing.T) {
@@ -23,7 +23,7 @@ func TestManagedProjectSymlinkDoesNotExpandAdmission(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			fixture, _, stateRoot := newProjectPathAuthTestApp(t)
 			app := New(Options{FileRoot: stateRoot, Workspace: fixture.workspaceStore,
-				SynonLinkAuth: SynonLinkAuthOptions{Username: "operator", Password: "test-password", UserID: "local"},
+				XScienceLinkAuth: XScienceLinkAuthOptions{Username: "operator", Password: "test-password", UserID: "local"},
 			})
 			const projectID = "retained-managed"
 			managed, err := app.defaultAgentKernelWorkspace(projectID)

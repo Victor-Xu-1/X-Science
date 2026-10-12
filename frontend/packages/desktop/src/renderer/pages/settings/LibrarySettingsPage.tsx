@@ -11,15 +11,15 @@ import { useTranslation } from 'react-i18next';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
 import { navigateSettingsRoute } from './settingsNavigation';
 import type { SettingsRouteId } from './settingsRouteLoaders';
-import { ExpertWorkbenchContent } from './SynonBiomedExpertsSettings/ExpertWorkbench';
-import { SynonBiomedSkillsSettingsContent } from './SynonBiomedSkillsSettings';
-import { SynonBiomedMcpSettingsContent } from './ToolsSettings/SynonBiomedMcpSettings';
+import { ExpertWorkbenchContent } from './XScienceExpertsSettings/ExpertWorkbench';
+import { XScienceSkillsSettingsContent } from './XScienceSkillsSettings';
+import { XScienceMcpSettingsContent } from './ToolsSettings/XScienceMcpSettings';
 import { ScientificEnvironmentSettingsContent } from './ScientificEnvironmentSettings';
 
 type LibraryTabKey = 'experts' | 'skills' | 'tools' | 'environments';
 
 const LIBRARY_TABS: { key: LibraryTabKey; labelKey: string }[] = [
-  { key: 'experts', labelKey: 'settings.synonBiomedExperts' },
+  { key: 'experts', labelKey: 'settings.xScienceExperts' },
   { key: 'skills', labelKey: 'settings.skills' },
   { key: 'tools', labelKey: 'settings.tools' },
   { key: 'environments', labelKey: 'settings.environments.title' },
@@ -83,8 +83,8 @@ const LibrarySettingsPage: React.FC = () => {
         </div>
         <div className='settings-library-page__content min-h-0 flex-1 pt-8px'>
           {activeTab === 'experts' ? <ExpertWorkbenchContent /> : null}
-          {activeTab === 'skills' ? <SynonBiomedSkillsSettingsContent /> : null}
-          {activeTab === 'tools' ? <SynonBiomedMcpSettingsContent compactHeader /> : null}
+          {activeTab === 'skills' ? <XScienceSkillsSettingsContent /> : null}
+          {activeTab === 'tools' ? <XScienceMcpSettingsContent compactHeader /> : null}
           {activeTab === 'environments' ? <ScientificEnvironmentSettingsContent /> : null}
         </div>
       </div>

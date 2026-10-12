@@ -1,5 +1,5 @@
 {
-  "schema": "synon.first-party-brand-assets.v1",
+  "schema": "x-science.first-party-brand-assets.v1",
   "product_identity_authority": "../../../product-identity.json",
   "derivation": "Unmodified byte-for-byte copies of the user's approved orange molecular mark and existing browser icons. No wordmark containing the other product name is used.",
   "source": {

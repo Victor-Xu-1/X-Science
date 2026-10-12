@@ -2,7 +2,7 @@
 
 GO ?= go
 NPM ?= npm
-BINARY ?= dist/synon-go
+BINARY ?= dist/x-science
 
 .PHONY: test build dev-backend dev-frontend source-quickstart source-quickstart-test source-cli-install source-cli-test source-backend-watch-test source-frontend-host-test frontend-install frontend-typecheck frontend-lint frontend-test frontend-build frontend-test-packaged frontend-audit smoke smoke-http smoke-live-im smoke-v11-chembl-admet stress-http benchmark-runtime benchmark-runtime-test external-acceptance-test package package-test package-windows-test install-test release-lifecycle-test release-p8-test conda-runtime-lock-test supply-chain-test release-candidate-contract-test clean-copy-build-test clean goal-run goal-run-gate-test goal-run-strict-config-test audit-agent-runtime-env-test audit-agent-runtime-full-gates-test audit-agent-runtime-quick audit-agent-runtime-full audit-source-clean audit-source-clean-test audit-non-web-boundary audit-non-web-boundary-test env-example-test ci-contract-test
 
@@ -11,13 +11,13 @@ test:
 
 build:
 	mkdir -p dist
-	$(GO) build -buildvcs=false -o $(BINARY) ./cmd/synon
+	$(GO) build -buildvcs=false -o $(BINARY) ./cmd/x-science
 
 dev-backend:
 	GO=$(GO) bash scripts/dev/source-backend-watch.sh
 
 dev-frontend:
-	SYNON_DEV_WEB_PORT=$${SYNON_DEV_WEB_PORT:-8765} SYNON_DEV_BACKEND_URL=$${SYNON_DEV_BACKEND_URL:-http://127.0.0.1:8766} NPM=$(NPM) bash scripts/dev/source-frontend-host.sh
+	X_SCIENCE_DEV_WEB_PORT=$${X_SCIENCE_DEV_WEB_PORT:-8765} X_SCIENCE_DEV_BACKEND_URL=$${X_SCIENCE_DEV_BACKEND_URL:-http://127.0.0.1:8766} NPM=$(NPM) bash scripts/dev/source-frontend-host.sh
 
 source-quickstart:
 	bash scripts/dev/source-quickstart.sh
@@ -105,7 +105,7 @@ conda-runtime-lock-test:
 	node --test scripts/generate-conda-runtime-lock.test.mjs
 
 supply-chain-test: conda-runtime-lock-test release-candidate-contract-test
-	$(GO) test ./internal/releasepkg -run '^TestGenerateAndVerifySupplyChainForRealSynonBinary$$' -count=1
+	$(GO) test ./internal/releasepkg -run '^TestGenerateAndVerifySupplyChainForRealXScienceBinary$$' -count=1
 	bash scripts/source-tree-digest-test.sh
 
 release-candidate-contract-test:
@@ -117,16 +117,16 @@ clean-copy-build-test:
 	GO=$(GO) bash scripts/clean-copy-build-test.sh
 
 goal-run:
-	@if [ -z "$${SYNON_BINARY}" ]; then \
-		SYNON_BINARY=$(BINARY); \
+	@if [ -z "$${X_SCIENCE_BINARY}" ]; then \
+		X_SCIENCE_BINARY=$(BINARY); \
 	else \
-		SYNON_BINARY=$${SYNON_BINARY}; \
+		X_SCIENCE_BINARY=$${X_SCIENCE_BINARY}; \
 	fi; \
-	if [ ! -x "$$SYNON_BINARY" ]; then \
-		echo "SYNON_BINARY not found or not executable: $$SYNON_BINARY"; \
+	if [ ! -x "$$X_SCIENCE_BINARY" ]; then \
+		echo "X_SCIENCE_BINARY not found or not executable: $$X_SCIENCE_BINARY"; \
 		exit 1; \
 	fi; \
-	bash scripts/goal-run.sh $$SYNON_BINARY
+	bash scripts/goal-run.sh $$X_SCIENCE_BINARY
 
 goal-run-gate-test:
 	bash scripts/goal-run-doctor-gate-test.sh

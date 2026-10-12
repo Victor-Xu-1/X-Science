@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 const (
 	transcriptPayloadGenesisV32PreflightIdentity = "canonical-transcript-v31-payload-genesis-empty-v1"
-	transcriptPayloadGenesisV32RuleSpec          = "synon.workspace.transcript-payload-genesis.v32"
+	transcriptPayloadGenesisV32RuleSpec          = "x-science.workspace.transcript-payload-genesis.v32"
 )
 
 var transcriptPayloadGenesisV32Migration = versionedSchemaMigration{

@@ -1,13 +1,13 @@
 import {
-  getSynonBiomedArtifactContentUrl,
-  type SynonBiomedProjectArtifact,
-} from '@/renderer/services/synonBiomedGateway';
+  getXScienceArtifactContentUrl,
+  type XScienceProjectArtifact,
+} from '@/renderer/services/xScienceGateway';
 import {
-  exportSynonBiomedArtifactsToCloud,
-  loadSynonBiomedCloudBuckets,
-  loadSynonBiomedCloudCredentials,
-  type SynonBiomedCloudCredential,
-} from '@/renderer/services/synonBiomedWorkspaceSettings';
+  exportXScienceArtifactsToCloud,
+  loadXScienceCloudBuckets,
+  loadXScienceCloudCredentials,
+  type XScienceCloudCredential,
+} from '@/renderer/services/xScienceWorkspaceSettings';
 import { Button, Empty, Input, Message, Progress, Select } from '@arco-design/web-react';
 import Modal from '@/renderer/components/base/WorkbenchModal';
 import { Download, UploadOne } from '@icon-park/react';
@@ -22,14 +22,14 @@ type BatchStatus = {
 };
 
 export const ArtifactBatchActions: React.FC<{
-  artifacts: SynonBiomedProjectArtifact[];
+  artifacts: XScienceProjectArtifact[];
   onSelectionChange: (artifactIds: string[]) => void;
 }> = ({ artifacts, onSelectionChange }) => {
   const { t } = useTranslation();
   const [status, setStatus] = useState<BatchStatus | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [exportVisible, setExportVisible] = useState(false);
-  const [credentials, setCredentials] = useState<SynonBiomedCloudCredential[]>([]);
+  const [credentials, setCredentials] = useState<XScienceCloudCredential[]>([]);
   const [credentialId, setCredentialId] = useState('');
   const [buckets, setBuckets] = useState<string[]>([]);
   const [bucket, setBucket] = useState('');
@@ -48,7 +48,7 @@ export const ArtifactBatchActions: React.FC<{
       try {
         // Keep browser downloads sequential to preserve prompt order and bound blob memory.
         // eslint-disable-next-line no-await-in-loop
-        const response = await fetch(getSynonBiomedArtifactContentUrl(artifact.artifactId), {
+        const response = await fetch(getXScienceArtifactContentUrl(artifact.artifactId), {
           credentials: 'same-origin',
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -92,7 +92,7 @@ export const ArtifactBatchActions: React.FC<{
     setBucket('');
     if (!nextCredentialId) return;
     try {
-      const nextBuckets = await loadSynonBiomedCloudBuckets(nextCredentialId);
+      const nextBuckets = await loadXScienceCloudBuckets(nextCredentialId);
       const credential = nextCredentials.find((item) => item.id === nextCredentialId);
       setBuckets(nextBuckets);
       setBucket(
@@ -114,7 +114,7 @@ export const ArtifactBatchActions: React.FC<{
     setPrefix('');
     setStatus(null);
     try {
-      const connected = (await loadSynonBiomedCloudCredentials()).filter((credential) => credential.connected);
+      const connected = (await loadXScienceCloudCredentials()).filter((credential) => credential.connected);
       setCredentials(connected);
       await loadBuckets(connected[0]?.id ?? '', connected);
     } catch (error) {
@@ -133,7 +133,7 @@ export const ArtifactBatchActions: React.FC<{
     try {
       const items = buildCloudExportItems(artifacts, prefix);
       setStatus({ kind: 'cloud', completed: 0, total: items.length, failed: [] });
-      const result = await exportSynonBiomedArtifactsToCloud(credentialId, { bucket, items }, (progress) => {
+      const result = await exportXScienceArtifactsToCloud(credentialId, { bucket, items }, (progress) => {
         setStatus((current) => ({
           kind: 'cloud',
           completed: progress.completed,
@@ -291,7 +291,7 @@ export const ArtifactBatchActions: React.FC<{
 };
 
 export function buildCloudExportItems(
-  artifacts: SynonBiomedProjectArtifact[],
+  artifacts: XScienceProjectArtifact[],
   prefix: string
 ): Array<{ artifactId: string; key: string }> {
   const normalizedPrefix = prefix.trim().replace(/^\/+|\/+$/g, '');
@@ -313,7 +313,7 @@ function withArtifactSuffix(filename: string, artifactId: string): string {
   return dot > 0 ? filename.slice(0, dot) + suffix + filename.slice(dot) : filename + suffix;
 }
 
-function artifactFilename(artifacts: SynonBiomedProjectArtifact[], artifactId: string): string {
+function artifactFilename(artifacts: XScienceProjectArtifact[], artifactId: string): string {
   return artifacts.find((artifact) => artifact.artifactId === artifactId)?.filename ?? artifactId;
 }
 

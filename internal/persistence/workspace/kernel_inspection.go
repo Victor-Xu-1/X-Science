@@ -96,9 +96,12 @@ func (s *Store) RecordArtifactVersionDependency(ctx context.Context, versionID, 
 	if outputOwner != inputOwner {
 		return ArtifactVersionDependency{}, errors.New("artifact dependency versions belong to different owners")
 	}
-	dependency := ArtifactVersionDependency{ID: uuid.NewSHA1(uuid.NameSpaceOID, []byte("synon-artifact-dependency\x00"+versionID+"\x00"+dependsOnVersionID)).String(), VersionID: versionID, DependsOnVersionID: dependsOnVersionID, ReferenceName: referenceName, CreatedAt: s.now().UTC()}
+	dependency := ArtifactVersionDependency{ID: uuid.NewSHA1(uuid.NameSpaceOID, []byte("x-science-artifact-dependency\x00"+versionID+"\x00"+dependsOnVersionID)).String(), VersionID: versionID, DependsOnVersionID: dependsOnVersionID, ReferenceName: referenceName, CreatedAt: s.now().UTC()}
 	if _, err := tx.ExecContext(ctx, `INSERT INTO artifact_version_dependencies(id,artifact_version_id,depends_on_version_id,reference_name,created_at) VALUES(?,?,?,?,?) ON CONFLICT(artifact_version_id,depends_on_version_id) DO UPDATE SET reference_name=excluded.reference_name`, dependency.ID, dependency.VersionID, dependency.DependsOnVersionID, nullableString(dependency.ReferenceName), dependency.CreatedAt); err != nil {
 		return ArtifactVersionDependency{}, fmt.Errorf("record artifact version dependency: %w", err)
+	}
+	if err := tx.QueryRowContext(ctx, `SELECT id,created_at FROM artifact_version_dependencies WHERE artifact_version_id=? AND depends_on_version_id=?`, versionID, dependsOnVersionID).Scan(&dependency.ID, &dependency.CreatedAt); err != nil {
+		return ArtifactVersionDependency{}, fmt.Errorf("read artifact version dependency receipt: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
 		return ArtifactVersionDependency{}, err

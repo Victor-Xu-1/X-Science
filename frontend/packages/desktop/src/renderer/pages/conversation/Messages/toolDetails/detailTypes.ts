@@ -1,6 +1,6 @@
 import type { ToolPublicDetailKind } from '../toolActivityPresentationRegistry';
 import type { ToolPublicDetailBlock } from '../components/toolPublicDetailBlocks';
-import type { SynonBiomedPlanDocument } from '@/renderer/components/synonBiomed/runtime/runtimeOperationsModel';
+import type { XSciencePlanDocument } from '@/renderer/components/xScience/runtime/runtimeOperationsModel';
 
 export type ToolPublicDetailRow = {
   label: string;
@@ -56,7 +56,7 @@ export type ToolPublicDetailPresentation = {
   outputTree: ToolDetailValueNode | null;
   narrative: string[];
   notices: string[];
-  planDocument: SynonBiomedPlanDocument | null;
+  planDocument: XSciencePlanDocument | null;
   planAssessment: ToolPublicPlanAssessment | null;
   showIdentity: boolean;
   showGenericOutput: boolean;

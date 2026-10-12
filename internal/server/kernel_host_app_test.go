@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestKernelHostAppRelaysThroughAuthenticatedLiveViewerProtocol(t *testing.T) {
@@ -172,7 +172,7 @@ func mcpAppHTTPJSON(
 	}
 	response := httptest.NewRecorder()
 	request := newLoopbackTestRequest(method, target, bytes.NewReader(payload))
-	request.Header.Set("X-Synon-User-Id", userID)
+	request.Header.Set("X-Science-User-Id", userID)
 	if body != nil {
 		request.Header.Set("Content-Type", "application/json")
 	}
@@ -199,7 +199,7 @@ func mcpAppHTTPNoContent(t *testing.T, handler http.Handler, method, target, use
 	}
 	response := httptest.NewRecorder()
 	request := newLoopbackTestRequest(method, target, bytes.NewReader(payload))
-	request.Header.Set("X-Synon-User-Id", userID)
+	request.Header.Set("X-Science-User-Id", userID)
 	if body != nil {
 		request.Header.Set("Content-Type", "application/json")
 	}

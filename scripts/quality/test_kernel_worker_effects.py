@@ -15,7 +15,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 PYTHON_WORKER = ROOT / 'assets/optional/kernels/kernel_worker.py'
 R_WORKER = ROOT / 'assets/optional/kernels/kernel_worker.R'
-RSCRIPT = os.environ.get('SYNON_TEST_RSCRIPT') or shutil.which('Rscript')
+RSCRIPT = os.environ.get('X_SCIENCE_TEST_RSCRIPT') or shutil.which('Rscript')
 
 
 def observation(language, source):
@@ -38,7 +38,7 @@ def observation(language, source):
 
 class NativeWorker:
     def __init__(self, language):
-        self.directory = tempfile.TemporaryDirectory(prefix='synon-observation-')
+        self.directory = tempfile.TemporaryDirectory(prefix='x-science-observation-')
         command = [sys.executable, '-u', str(PYTHON_WORKER)] if language == 'python' else [RSCRIPT, '--vanilla', str(R_WORKER)]
         self.process = subprocess.Popen(command, cwd=self.directory.name, stdin=subprocess.PIPE,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8',
@@ -138,7 +138,7 @@ class ObservationWorkerTests(unittest.TestCase):
         self.assertEqual(result['stdout'], '1\n')
 
     def test_python_runtime_identity_without_invoking_shadow(self):
-        path = ROOT / 'assets/optional/kernels/synon_biomed_runtime/worker_effects.py'
+        path = ROOT / 'assets/optional/kernels/x_science_runtime/worker_effects.py'
         spec = importlib.util.spec_from_file_location('observation_guard_test', path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)

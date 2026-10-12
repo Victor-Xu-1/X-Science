@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	sessionstore "synon-go/internal/persistence/sessions"
-	taskruns "synon-go/internal/persistence/taskruns"
-	workspace "synon-go/internal/persistence/workspace"
+	sessionstore "x-science/internal/persistence/sessions"
+	taskruns "x-science/internal/persistence/taskruns"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestSessionRunnerDelegationToggleUsesOnlyKernelHostAuthority(t *testing.T) {

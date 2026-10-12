@@ -8,8 +8,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"synon-go/internal/compute/checkpoint"
-	"synon-go/internal/compute/transfer"
+	"x-science/internal/compute/checkpoint"
+	"x-science/internal/compute/namespace"
+	"x-science/internal/compute/transfer"
 )
 
 func fetchComputeCheckpointManifest(ctx context.Context, stage string, hardware map[string]any, transport computeHarvestTransport) (bool, error) {
@@ -31,11 +32,21 @@ func fetchComputeCheckpointManifest(ctx context.Context, stage string, hardware 
 	if receipt.State != "ready" {
 		return false, nil
 	}
-	err = transport.Fetch(ctx, "checkpoint-"+key+".jsonl", filepath.Join(stage, "checkpoint.jsonl"), receipt)
+	manifestPath := filepath.Join(stage, "checkpoint.jsonl")
+	err = transport.Fetch(ctx, "checkpoint-"+key+".jsonl", manifestPath, receipt)
 	if errors.Is(err, errComputeHarvestPending) {
 		return false, nil
 	}
-	return true, err
+	if err != nil {
+		return false, err
+	}
+	if err := transfer.VerifyFile(ctx, manifestPath, receipt.SHA256, receipt.Bytes); err != nil {
+		return false, err
+	}
+	if observation, ok := ctx.Value(computeNamespaceObservationKey{}).(*computeNamespaceObservation); ok {
+		observation.checkpointSHA256 = receipt.SHA256
+	}
+	return true, nil
 }
 
 // Only files in a complete, identity-bound native manifest become required.
@@ -60,11 +71,35 @@ func computeCheckpointSelection(ctx context.Context, stage string, hardware map[
 	if err != nil {
 		return nil, "", err
 	}
-	receipt, err := checkpoint.Read(ctx, manifest, stringValue(hardware["archive_sha256"]), contract.CommandSHA256(), func(file checkpoint.File) error { return index.Add(ctx, file.Path) })
+	var receipt checkpoint.Receipt
+	consume := func(file checkpoint.File) error { return index.Add(ctx, file.Path) }
+	if observation, ok := ctx.Value(computeNamespaceObservationKey{}).(*computeNamespaceObservation); ok {
+		proof, proofErr := computeNamespaceSourceProof(ctx, observation.checkpointSHA256)
+		if proofErr != nil {
+			_ = index.Close()
+			return nil, "", proofErr
+		}
+		receipt, err = checkpoint.ReadWithHistoricalProof(ctx, manifest, stringValue(hardware["archive_sha256"]), contract.CommandSHA256(), observation.checkpointSHA256, consume, *proof)
+	} else {
+		receipt, err = checkpoint.Read(ctx, manifest, stringValue(hardware["archive_sha256"]), contract.CommandSHA256(), consume)
+	}
 	if err != nil {
 		_ = index.Close()
+		if errors.Is(err, namespace.ErrRecoveryUnconfirmed) {
+			return nil, "", err
+		}
 		return nil, "", nil
 	} // Keep ordinary results deliverable; no restartability is claimed.
+	if observation, ok := ctx.Value(computeNamespaceObservationKey{}).(*computeNamespaceObservation); ok {
+		if observation.recordCheckpoint == nil {
+			_ = index.Close()
+			return nil, "", namespace.ErrRecoveryUnconfirmed
+		}
+		if err := observation.recordCheckpoint(ctx, receipt.ManifestSHA256); err != nil {
+			_ = index.Close()
+			return nil, "", errors.Join(namespace.ErrRecoveryUnconfirmed, err)
+		}
+	}
 	if err := index.Add(ctx, contract.Manifest); err != nil {
 		_ = index.Close()
 		return nil, "", nil

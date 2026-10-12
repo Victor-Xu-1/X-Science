@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/tools/shellops"
+	"x-science/internal/tools/shellops"
 )
 
 func TestAgentBashSchemaUsesTheSelectedManagedEnvironment(t *testing.T) {

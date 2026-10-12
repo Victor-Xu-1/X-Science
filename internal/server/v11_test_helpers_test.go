@@ -49,7 +49,7 @@ func sameStringSet(left, right []string) bool {
 }
 
 // v11SkillsDir resolves the repository's bundled v1.1 skills root, mirroring
-// how production serve is launched with SYNON_SKILL_DIRS=<repo>/skills.
+// how production serve is launched with X_SCIENCE_SKILL_DIRS=<repo>/skills.
 func v11SkillsDir(t *testing.T) string {
 	t.Helper()
 	_, file, _, ok := runtime.Caller(0)
@@ -68,8 +68,8 @@ func v11AgentCatalogRoot(t *testing.T) (string, string) {
 		t.Fatal("locate repository root")
 	}
 	root := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
-	return filepath.Join(root, "assets", "synonbiomed", "agents"),
-		filepath.Join(root, "assets", "synonbiomed", "agents.manifest.json")
+	return filepath.Join(root, "assets", "x-science", "agents"),
+		filepath.Join(root, "assets", "x-science", "agents.manifest.json")
 }
 
 // newV11TestServer builds a server with the real v1.1 skill and agent

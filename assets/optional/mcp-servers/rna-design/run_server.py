@@ -14,7 +14,7 @@ from typing import Any
 
 
 def _load_runtime() -> Any:
-    root = os.environ.get("SYNON_VIENNARNA_PACKAGE_ROOT", "").strip()
+    root = os.environ.get("X_SCIENCE_VIENNARNA_PACKAGE_ROOT", "").strip()
     if not root:
         raise RuntimeError("ViennaRNA managed package root is not configured")
     sys.path.insert(0, root)

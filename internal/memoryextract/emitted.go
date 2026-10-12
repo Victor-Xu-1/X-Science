@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"synon-go/internal/memorypolicy"
+	"x-science/internal/memorypolicy"
 )
 
 var recalledWhitespace = regexp.MustCompile(`\s+`)

@@ -9,9 +9,9 @@ import { Down, Search } from '@icon-park/react';
 import React, { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type {
-  SynonBiomedSkillCategoryOption,
-  SynonBiomedSkillCategorySelection,
-} from '@/renderer/services/skills/synonBiomedSkillCategories';
+  XScienceSkillCategoryOption,
+  XScienceSkillCategorySelection,
+} from '@/renderer/services/skills/xScienceSkillCategories';
 
 export type SkillStatusFilter = 'all' | 'enabled' | 'disabled';
 export type SkillSourceFilter = 'all' | 'recommended' | 'imported' | 'personal';
@@ -19,9 +19,9 @@ export type SkillSourceFilter = 'all' | 'recommended' | 'imported' | 'personal';
 interface SkillLibraryToolbarProps {
   query: string;
   onQueryChange: (value: string) => void;
-  category: SynonBiomedSkillCategorySelection;
-  categories: SynonBiomedSkillCategoryOption[];
-  onCategoryChange: (value: SynonBiomedSkillCategorySelection) => void;
+  category: XScienceSkillCategorySelection;
+  categories: XScienceSkillCategoryOption[];
+  onCategoryChange: (value: XScienceSkillCategorySelection) => void;
   source: SkillSourceFilter;
   sourceCounts: Record<SkillSourceFilter, number>;
   onSourceChange: (value: SkillSourceFilter) => void;
@@ -47,7 +47,7 @@ export function SkillLibraryToolbar(props: SkillLibraryToolbarProps) {
       <div className='settings-skill-library-toolbar' role='search' aria-label={t('settings.skillsSettings.title')}>
         <div className='settings-skill-library-search'>
           <Input
-            data-testid='input-search-synon-biomed-skills'
+            data-testid='input-search-x-science-skills'
             value={props.query}
             onChange={props.onQueryChange}
             allowClear
@@ -61,7 +61,7 @@ export function SkillLibraryToolbar(props: SkillLibraryToolbarProps) {
           data-testid='skill-category-filter'
           aria-label={t('settings.skillsSettings.researchField')}
           value={props.category}
-          onChange={(event) => props.onCategoryChange(event.target.value as SynonBiomedSkillCategorySelection)}
+          onChange={(event) => props.onCategoryChange(event.target.value as XScienceSkillCategorySelection)}
         >
           {props.categories.map((option) => (
             <option key={option.id} value={option.id}>
@@ -70,7 +70,7 @@ export function SkillLibraryToolbar(props: SkillLibraryToolbarProps) {
           ))}
         </select>
         <Button
-          data-testid='synon-biomed-skills-filter'
+          data-testid='x-science-skills-filter'
           aria-expanded={expanded}
           aria-controls={panelId}
           onClick={() => setExpanded((value) => !value)}

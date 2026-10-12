@@ -3,7 +3,7 @@ package server
 import (
 	"net/http"
 
-	"synon-go/internal/account"
+	"x-science/internal/account"
 )
 
 // handleAccountManagement exposes the versioned read model used by the

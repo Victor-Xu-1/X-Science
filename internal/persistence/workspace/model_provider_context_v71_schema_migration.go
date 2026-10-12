@@ -8,7 +8,7 @@ import (
 const (
 	modelProviderContextV71CallbackID        = "model-provider-context-window-v71-noop"
 	modelProviderContextV71PreflightIdentity = "model-provider-context-window-v71-upgrade-v1"
-	modelProviderContextV71RuleSpec          = "synon.workspace.model-provider.context-window.v71"
+	modelProviderContextV71RuleSpec          = "x-science.workspace.model-provider.context-window.v71"
 )
 
 // NULL is deliberately unknown. Output limits and alias names are not evidence

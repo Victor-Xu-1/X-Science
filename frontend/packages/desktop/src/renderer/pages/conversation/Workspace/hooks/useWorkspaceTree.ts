@@ -84,24 +84,24 @@ function isAbortError(error: unknown): boolean {
 export function useWorkspaceTree({ workspace, conversation_id, projectId, eventPrefix }: UseWorkspaceTreeOptions) {
   const { user } = useAuth();
   const ownerId = user?.id?.trim() ?? '';
-  const isSynonBiomedWorkspace = workspace.startsWith('synonbiomed://');
+  const isXScienceWorkspace = workspace.startsWith('x-science://');
   const canonicalProjectId = projectId?.trim() ?? '';
-  const canLoadWorkspace = !isSynonBiomedWorkspace || (ownerId !== '' && canonicalProjectId !== '');
+  const canLoadWorkspace = !isXScienceWorkspace || (ownerId !== '' && canonicalProjectId !== '');
   // X-Science's project-files endpoint is filtered by the active
   // conversation on the backend. Keep both the snapshot and page caches
   // conversation-scoped so switching conversations never flashes another
   // conversation's files while the new page is loading.
-  const workspaceAuthorityId = isSynonBiomedWorkspace
+  const workspaceAuthorityId = isXScienceWorkspace
     ? `conversation:${conversation_id}:project:${canonicalProjectId}`
     : `conversation:${conversation_id}:workspace:${workspace}`;
-  const rootRequestPath = isSynonBiomedWorkspace ? `${workspace}/project-files` : workspace;
-  const rootRequestIdentity = isSynonBiomedWorkspace ? 'project-files' : rootRequestPath;
+  const rootRequestPath = isXScienceWorkspace ? `${workspace}/project-files` : workspace;
+  const rootRequestIdentity = isXScienceWorkspace ? 'project-files' : rootRequestPath;
   const rootSnapshotKey = canLoadWorkspace
     ? workspaceSnapshotKey(ownerId, workspaceAuthorityId, rootRequestIdentity)
     : '';
   const initialSnapshot = rootSnapshotKey ? workspaceSnapshotStore.read(rootSnapshotKey) : undefined;
   const initialProjectPageKey =
-    isSynonBiomedWorkspace && canLoadWorkspace
+    isXScienceWorkspace && canLoadWorkspace
       ? projectArtifactPageKey(ownerId, canonicalProjectId, conversation_id, '')
       : '';
   const initialProjectPage = initialProjectPageKey ? projectArtifactPageStore.read(initialProjectPageKey) : undefined;
@@ -159,7 +159,7 @@ export function useWorkspaceTree({ workspace, conversation_id, projectId, eventP
       for (const key of activeLoadKeysRef.current) workspaceSnapshotStore.cancel(key);
       activeLoadKeysRef.current.clear();
     };
-  }, [initialProjectPageKey, isSynonBiomedWorkspace, rootSnapshotKey]);
+  }, [initialProjectPageKey, isXScienceWorkspace, rootSnapshotKey]);
 
   // Loading time tracker / 加载时间追踪
   const lastLoadingTime = useRef(Date.now());
@@ -186,7 +186,7 @@ export function useWorkspaceTree({ workspace, conversation_id, projectId, eventP
 
   const requestProjectArtifactPage = useCallback(
     (query: string, cursor: string | undefined, mode: 'load' | 'ensure' | 'force'): Promise<IDirOrFile[]> => {
-      if (!canLoadWorkspace || !rootSnapshotKey || !isSynonBiomedWorkspace) {
+      if (!canLoadWorkspace || !rootSnapshotKey || !isXScienceWorkspace) {
         return Promise.resolve([] as IDirOrFile[]);
       }
       const normalizedQuery = query.trim();
@@ -260,7 +260,7 @@ export function useWorkspaceTree({ workspace, conversation_id, projectId, eventP
       canLoadWorkspace,
       canonicalProjectId,
       conversation_id,
-      isSynonBiomedWorkspace,
+      isXScienceWorkspace,
       ownerId,
       rootRequestPath,
       rootSnapshotKey,
@@ -276,7 +276,7 @@ export function useWorkspaceTree({ workspace, conversation_id, projectId, eventP
   // Track the latest request to ignore stale/aborted responses
   const requestWorkspace = useCallback(
     (path: string, search: string | undefined, mode: 'load' | 'ensure' | 'force') => {
-      if (isSynonBiomedWorkspace) {
+      if (isXScienceWorkspace) {
         return requestProjectArtifactPage(search ?? '', undefined, mode);
       }
       if (!canLoadWorkspace || !rootSnapshotKey) {
@@ -286,9 +286,9 @@ export function useWorkspaceTree({ workspace, conversation_id, projectId, eventP
         return Promise.resolve([] as IDirOrFile[]);
       }
       const seq = ++loadSeqRef.current;
-      const requestPath = isSynonBiomedWorkspace && path === workspace ? `${workspace}/project-files` : path;
+      const requestPath = isXScienceWorkspace && path === workspace ? `${workspace}/project-files` : path;
       const requestIdentity =
-        isSynonBiomedWorkspace && requestPath.startsWith(`${workspace}/`)
+        isXScienceWorkspace && requestPath.startsWith(`${workspace}/`)
           ? requestPath.slice(workspace.length + 1)
           : requestPath;
       const requestKey = workspaceSnapshotKey(ownerId, workspaceAuthorityId, requestIdentity, search || '');
@@ -317,7 +317,7 @@ export function useWorkspaceTree({ workspace, conversation_id, projectId, eventP
           // user had expanded via loadMore. Skipped for searches and the very
           // first load (no prior tree to merge). Functional setState reads the
           // latest files snapshot without a stale closure.
-          if (!isSynonBiomedWorkspace && !search && !isFirstLoadRef.current) {
+          if (!isXScienceWorkspace && !search && !isFirstLoadRef.current) {
             setFiles((prev) => {
               const next = mergeLoadedChildren(res, prev);
               workspaceSnapshotStore.write(requestKey, next);
@@ -377,7 +377,7 @@ export function useWorkspaceTree({ workspace, conversation_id, projectId, eventP
     [
       canLoadWorkspace,
       conversation_id,
-      isSynonBiomedWorkspace,
+      isXScienceWorkspace,
       ownerId,
       requestProjectArtifactPage,
       rootSnapshotKey,
@@ -394,10 +394,10 @@ export function useWorkspaceTree({ workspace, conversation_id, projectId, eventP
 
   const ensureWorkspace = useCallback(
     () =>
-      isSynonBiomedWorkspace
+      isXScienceWorkspace
         ? requestProjectArtifactPage(projectArtifactPage.query, undefined, 'ensure')
         : requestWorkspace(workspace, undefined, 'ensure'),
-    [isSynonBiomedWorkspace, projectArtifactPage.query, requestProjectArtifactPage, requestWorkspace, workspace]
+    [isXScienceWorkspace, projectArtifactPage.query, requestProjectArtifactPage, requestWorkspace, workspace]
   );
 
   const searchWorkspace = useCallback(
@@ -421,10 +421,10 @@ export function useWorkspaceTree({ workspace, conversation_id, projectId, eventP
    * Refresh workspace
    */
   const refreshWorkspace = useCallback(() => {
-    return isSynonBiomedWorkspace
+    return isXScienceWorkspace
       ? requestProjectArtifactPage(projectArtifactPage.query, undefined, 'force')
       : loadWorkspace(workspace, undefined, true);
-  }, [isSynonBiomedWorkspace, loadWorkspace, projectArtifactPage.query, requestProjectArtifactPage, workspace]);
+  }, [isXScienceWorkspace, loadWorkspace, projectArtifactPage.query, requestProjectArtifactPage, workspace]);
 
   /**
    * 确保节点被选中，并可选地发送事件

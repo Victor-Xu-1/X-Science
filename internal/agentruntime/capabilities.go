@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"synon-go/internal/assets"
+	"x-science/internal/assets"
 )
 
 type agentCapabilityAssignment struct {

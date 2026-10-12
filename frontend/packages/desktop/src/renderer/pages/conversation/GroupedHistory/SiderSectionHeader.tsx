@@ -23,13 +23,13 @@ export const SiderSectionHeader: React.FC<SiderSectionHeaderProps> = ({
 }) => (
   <div
     data-testid={testId}
-    className='group/label sider-section-label synon-sidebar-section-header flex items-center px-8px h-28px select-none sticky top-0 z-10 mt-8px'
+    className='group/label sider-section-label x-science-sidebar-section-header flex items-center px-8px h-28px select-none sticky top-0 z-10 mt-8px'
   >
     <button
       type='button'
       aria-label={toggleLabel}
       aria-expanded={expanded}
-      className='synon-sidebar-section-toggle size-24px shrink-0 flex items-center justify-center border-none bg-transparent rd-5px cursor-pointer text-t-tertiary hover:text-t-primary hover:bg-fill-3'
+      className='x-science-sidebar-section-toggle size-24px shrink-0 flex items-center justify-center border-none bg-transparent rd-5px cursor-pointer text-t-tertiary hover:text-t-primary hover:bg-fill-3'
       onClick={onToggle}
     >
       <Right
@@ -40,7 +40,7 @@ export const SiderSectionHeader: React.FC<SiderSectionHeaderProps> = ({
     </button>
     <button
       type='button'
-      className='synon-sidebar-section-title-button min-w-0 flex-1 h-28px px-4px flex items-center border-none bg-transparent cursor-pointer text-left'
+      className='x-science-sidebar-section-title-button min-w-0 flex-1 h-28px px-4px flex items-center border-none bg-transparent cursor-pointer text-left'
       onClick={onTitleClick ?? onToggle}
     >
       <span

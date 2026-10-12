@@ -16,41 +16,41 @@ import (
 	"strings"
 	"unicode"
 
-	"synon-go/internal/memoryconfig"
-	"synon-go/internal/networkpolicy"
-	"synon-go/internal/networktls"
-	"synon-go/internal/persistence/transcript"
+	"x-science/internal/memoryconfig"
+	"x-science/internal/networkpolicy"
+	"x-science/internal/networktls"
+	"x-science/internal/persistence/transcript"
 )
 
-const defaultSynonLinkSessionTTLMinutes = 48 * 60
+const defaultXScienceLinkSessionTTLMinutes = 48 * 60
 
 const webApplePrivateKeyMaxBytes = 16 * 1024
 
 type Config struct {
-	HomeDir            string                  `json:"home_dir"`
-	DataDirSource      string                  `json:"-"`
-	DataDirControlPath string                  `json:"-"`
-	DefaultDataDir     string                  `json:"-"`
-	CondaHome          string                  `json:"conda_home"`
-	CondaEnvsPath      string                  `json:"conda_envs_path"`
-	Network            NetworkPolicyConfig     `json:"network"`
-	Host               string                  `json:"host"`
-	Port               int                     `json:"port"`
-	WebRoot            string                  `json:"web_root"`
-	SynonLinkPackage   string                  `json:"synon_link_package"`
-	SynonLinkAuth      SynonLinkAuthConfig     `json:"synon_link_auth"`
-	WebAuth            WebAuthConfig           `json:"web_auth"`
-	PluginDirectories  []string                `json:"plugin_directories"`
-	SkillDirectories   []string                `json:"skill_directories"`
-	EnabledAdapters    []string                `json:"enabled_adapters"`
-	Feishu             FeishuConfig            `json:"feishu"`
-	WeChat             WeChatConfig            `json:"wechat"`
-	LiveIMSmoke        LiveIMSmokeConfig       `json:"live_im_smoke"`
-	Runner             RunnerConfig            `json:"runner"`
-	Memory             memoryconfig.Config     `json:"memory"`
-	DisableTelemetry   bool                    `json:"disable_telemetry"`
-	CompactSummarizer  CompactSummarizerConfig `json:"compact_summarizer"`
-	Feedback           FeedbackConfig          `json:"feedback"`
+	HomeDir             string                  `json:"home_dir"`
+	DataDirSource       string                  `json:"-"`
+	DataDirControlPath  string                  `json:"-"`
+	DefaultDataDir      string                  `json:"-"`
+	CondaHome           string                  `json:"conda_home"`
+	CondaEnvsPath       string                  `json:"conda_envs_path"`
+	Network             NetworkPolicyConfig     `json:"network"`
+	Host                string                  `json:"host"`
+	Port                int                     `json:"port"`
+	WebRoot             string                  `json:"web_root"`
+	XScienceLinkPackage string                  `json:"x_science_link_package"`
+	XScienceLinkAuth    XScienceLinkAuthConfig  `json:"x_science_link_auth"`
+	WebAuth             WebAuthConfig           `json:"web_auth"`
+	PluginDirectories   []string                `json:"plugin_directories"`
+	SkillDirectories    []string                `json:"skill_directories"`
+	EnabledAdapters     []string                `json:"enabled_adapters"`
+	Feishu              FeishuConfig            `json:"feishu"`
+	WeChat              WeChatConfig            `json:"wechat"`
+	LiveIMSmoke         LiveIMSmokeConfig       `json:"live_im_smoke"`
+	Runner              RunnerConfig            `json:"runner"`
+	Memory              memoryconfig.Config     `json:"memory"`
+	DisableTelemetry    bool                    `json:"disable_telemetry"`
+	CompactSummarizer   CompactSummarizerConfig `json:"compact_summarizer"`
+	Feedback            FeedbackConfig          `json:"feedback"`
 }
 
 type NetworkPolicyConfig struct {
@@ -65,7 +65,7 @@ type NetworkPolicyConfig struct {
 	MCPX509Strict                string   `json:"mcp_x509_strict"`
 }
 
-type SynonLinkAuthConfig struct {
+type XScienceLinkAuthConfig struct {
 	Username          string `json:"username"`
 	Password          string `json:"password"`
 	SessionTTLMinutes int    `json:"session_ttl_minutes"`
@@ -161,16 +161,15 @@ type FeedbackConfig struct {
 }
 
 func Load() (Config, error) {
-	const bundledBrowserConnector = "assets/synon-link/x-science-browser-extension-v0.6.10.zip"
-	const legacyBundledBrowserConnector = "assets/synon-link/synon-link-extension-v0.6.10.zip"
+	const bundledBrowserConnector = "assets/x-science-link/x-science-browser-extension-v0.6.11.zip"
 	cfg := Config{
-		HomeDir:          defaultHome(),
-		Host:             "127.0.0.1",
-		Port:             8765,
-		SynonLinkPackage: bundledBrowserConnector,
-		SynonLinkAuth: SynonLinkAuthConfig{
+		HomeDir:             defaultHome(),
+		Host:                "127.0.0.1",
+		Port:                8765,
+		XScienceLinkPackage: bundledBrowserConnector,
+		XScienceLinkAuth: XScienceLinkAuthConfig{
 			Username:          "local",
-			SessionTTLMinutes: defaultSynonLinkSessionTTLMinutes,
+			SessionTTLMinutes: defaultXScienceLinkSessionTTLMinutes,
 		},
 		EnabledAdapters: []string{},
 		Network: NetworkPolicyConfig{
@@ -181,7 +180,7 @@ func Load() (Config, error) {
 			PollIntervalMS: 1000,
 		},
 		Runner: RunnerConfig{
-			ID:                 "synon-go-runner",
+			ID:                 "x-science-runner",
 			PollIntervalMS:     1000,
 			LeaseTTLSeconds:    300,
 			ChatTimeoutSeconds: 120,
@@ -199,15 +198,19 @@ func Load() (Config, error) {
 		Memory: memoryconfig.Default(),
 	}
 
-	if home := os.Getenv("SYNON_HOME"); home != "" {
+	if home := os.Getenv("X_SCIENCE_HOME"); home != "" {
 		cfg.HomeDir = home
 	}
 
-	configPath := os.Getenv("SYNON_CONFIG")
+	configPath := os.Getenv("X_SCIENCE_CONFIG")
 	if configPath != "" {
 		raw, err := os.ReadFile(configPath)
 		if err != nil {
 			return Config{}, fmt.Errorf("read config %s: %w", configPath, err)
+		}
+		raw, err = upgradeConfigNamespace(raw)
+		if err != nil {
+			return Config{}, fmt.Errorf("upgrade config namespace: %w", err)
 		}
 		if err := json.Unmarshal(raw, &cfg); err != nil {
 			return Config{}, fmt.Errorf("parse config %s: %w", configPath, err)
@@ -216,7 +219,7 @@ func Load() (Config, error) {
 	if cfg.HomeDir == "" {
 		cfg.HomeDir = defaultHome()
 	}
-	if home := os.Getenv("SYNON_HOME"); home != "" {
+	if home := os.Getenv("X_SCIENCE_HOME"); home != "" {
 		cfg.HomeDir = home
 	}
 	if err := applyDataDirectoryControl(&cfg, configPath); err != nil {
@@ -237,15 +240,13 @@ func Load() (Config, error) {
 	if err := applyAddressEnv(&cfg); err != nil {
 		return Config{}, err
 	}
-	if webRoot := strings.TrimSpace(os.Getenv("SYNON_WEB_ROOT")); webRoot != "" {
+	if webRoot := strings.TrimSpace(os.Getenv("X_SCIENCE_WEB_ROOT")); webRoot != "" {
 		cfg.WebRoot = webRoot
 	}
-	if cfg.SynonLinkPackage == "" || cfg.SynonLinkPackage == legacyBundledBrowserConnector {
-		// Only the former exact bundled path aliases the renamed package.
-		// Custom paths and existing runtime data remain under their owner.
-		cfg.SynonLinkPackage = bundledBrowserConnector
+	if cfg.XScienceLinkPackage == "" {
+		cfg.XScienceLinkPackage = bundledBrowserConnector
 	}
-	if err := applySynonLinkAuthEnv(&cfg); err != nil {
+	if err := applyXScienceLinkAuthEnv(&cfg); err != nil {
 		return Config{}, err
 	}
 	if err := applyWebAuthEnv(&cfg); err != nil {
@@ -272,23 +273,23 @@ func Load() (Config, error) {
 	if value, found := os.LookupEnv("OPERON_SERVICE_URL"); found {
 		cfg.Feedback.ServiceURL = strings.TrimSpace(value)
 	}
-	if value, found := os.LookupEnv("SYNON_FEEDBACK_TOKEN"); found {
+	if value, found := os.LookupEnv("X_SCIENCE_FEEDBACK_TOKEN"); found {
 		cfg.Feedback.Token = strings.TrimSpace(value)
 	}
-	if value, found := os.LookupEnv("SYNON_FEEDBACK_BETA"); found {
+	if value, found := os.LookupEnv("X_SCIENCE_FEEDBACK_BETA"); found {
 		cfg.Feedback.Beta = strings.TrimSpace(value)
 	}
-	if value, found := os.LookupEnv("SYNON_FEEDBACK_DISABLED"); found {
+	if value, found := os.LookupEnv("X_SCIENCE_FEEDBACK_DISABLED"); found {
 		disabled, err := strconv.ParseBool(strings.TrimSpace(value))
 		if err != nil {
-			return Config{}, fmt.Errorf("SYNON_FEEDBACK_DISABLED: %w", err)
+			return Config{}, fmt.Errorf("X_SCIENCE_FEEDBACK_DISABLED: %w", err)
 		}
 		cfg.Feedback.Disabled = disabled
 	}
-	if value, found := os.LookupEnv("SYNON_DISABLE_TELEMETRY"); found {
+	if value, found := os.LookupEnv("X_SCIENCE_DISABLE_TELEMETRY"); found {
 		disabled, err := strconv.ParseBool(strings.TrimSpace(value))
 		if err != nil {
-			return Config{}, fmt.Errorf("SYNON_DISABLE_TELEMETRY: %w", err)
+			return Config{}, fmt.Errorf("X_SCIENCE_DISABLE_TELEMETRY: %w", err)
 		}
 		cfg.DisableTelemetry = disabled
 	}
@@ -302,16 +303,16 @@ func applyNetworkPolicy(cfg *Config, configPath string) error {
 	if err := applyNetworkTimeouts(&cfg.Network); err != nil {
 		return err
 	}
-	if value, found := os.LookupEnv("SYNON_NETWORK_ALLOWED_DOMAINS"); found {
+	if value, found := os.LookupEnv("X_SCIENCE_NETWORK_ALLOWED_DOMAINS"); found {
 		cfg.Network.AllowedDomains = splitCSV(value)
 	}
-	if value, found := os.LookupEnv("SYNON_NETWORK_DENIED_DOMAINS"); found {
+	if value, found := os.LookupEnv("X_SCIENCE_NETWORK_DENIED_DOMAINS"); found {
 		cfg.Network.DeniedDomains = splitCSV(value)
 	}
-	if value := strings.TrimSpace(os.Getenv("SYNON_NETWORK_CA_BUNDLE")); value != "" {
+	if value := strings.TrimSpace(os.Getenv("X_SCIENCE_NETWORK_CA_BUNDLE")); value != "" {
 		cfg.Network.CABundle = value
 	}
-	if value := strings.TrimSpace(os.Getenv("SYNON_NETWORK_PROXY")); value != "" {
+	if value := strings.TrimSpace(os.Getenv("X_SCIENCE_NETWORK_PROXY")); value != "" {
 		cfg.Network.Proxy = value
 	}
 	if strings.TrimSpace(cfg.Network.Proxy) == "" {
@@ -367,7 +368,7 @@ func applyNetworkPolicy(cfg *Config, configPath string) error {
 // environment, causing model/API traffic to use the working host route while
 // scientific downloads silently fall back to a much slower direct path.
 // Unsupported standard proxy values are ignored here; only the product-specific
-// SYNON_NETWORK_PROXY remains a strict configuration error.
+// X_SCIENCE_NETWORK_PROXY remains a strict configuration error.
 func inheritedHTTPProxy() string {
 	for _, key := range []string{"HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy"} {
 		candidate := strings.TrimSpace(os.Getenv(key))
@@ -383,10 +384,10 @@ func inheritedHTTPProxy() string {
 }
 
 func applyCondaPaths(cfg *Config) error {
-	if value := strings.TrimSpace(os.Getenv("SYNON_CONDA_HOME")); value != "" {
+	if value := strings.TrimSpace(os.Getenv("X_SCIENCE_CONDA_HOME")); value != "" {
 		cfg.CondaHome = value
 	}
-	if value := strings.TrimSpace(os.Getenv("SYNON_CONDA_ENVS_PATH")); value != "" {
+	if value := strings.TrimSpace(os.Getenv("X_SCIENCE_CONDA_ENVS_PATH")); value != "" {
 		cfg.CondaEnvsPath = value
 	}
 	if strings.TrimSpace(cfg.CondaHome) == "" {
@@ -413,14 +414,14 @@ func applyCondaPaths(cfg *Config) error {
 }
 
 func applyPluginDirectoryEnv(cfg *Config) {
-	if directories := os.Getenv("SYNON_PLUGIN_DIRS"); directories != "" {
+	if directories := os.Getenv("X_SCIENCE_PLUGIN_DIRS"); directories != "" {
 		cfg.PluginDirectories = splitCSV(directories)
 	}
 }
 
 func applyEnabledAdaptersEnv(cfg *Config) error {
 	adapters := cfg.EnabledAdapters
-	if value, found := os.LookupEnv("SYNON_ENABLED_ADAPTERS"); found {
+	if value, found := os.LookupEnv("X_SCIENCE_ENABLED_ADAPTERS"); found {
 		adapters = splitCSV(value)
 	}
 	supported := map[string]struct{}{
@@ -448,66 +449,66 @@ func applyEnabledAdaptersEnv(cfg *Config) error {
 }
 
 func applySkillDirectoryEnv(cfg *Config) {
-	if directories := os.Getenv("SYNON_SKILL_DIRS"); directories != "" {
+	if directories := os.Getenv("X_SCIENCE_SKILL_DIRS"); directories != "" {
 		cfg.SkillDirectories = splitCSV(directories)
 	}
 }
 
-func applySynonLinkAuthEnv(cfg *Config) error {
-	if username := strings.TrimSpace(os.Getenv("SYNON_LINK_AUTH_USERNAME")); username != "" {
-		cfg.SynonLinkAuth.Username = username
+func applyXScienceLinkAuthEnv(cfg *Config) error {
+	if username := strings.TrimSpace(os.Getenv("X_SCIENCE_LINK_AUTH_USERNAME")); username != "" {
+		cfg.XScienceLinkAuth.Username = username
 	}
-	if password, ok := os.LookupEnv("SYNON_LINK_AUTH_PASSWORD"); ok {
-		cfg.SynonLinkAuth.Password = password
+	if password, ok := os.LookupEnv("X_SCIENCE_LINK_AUTH_PASSWORD"); ok {
+		cfg.XScienceLinkAuth.Password = password
 	}
-	if ttlText := strings.TrimSpace(os.Getenv("SYNON_LINK_AUTH_SESSION_TTL_MINUTES")); ttlText != "" {
+	if ttlText := strings.TrimSpace(os.Getenv("X_SCIENCE_LINK_AUTH_SESSION_TTL_MINUTES")); ttlText != "" {
 		ttl, err := strconv.Atoi(ttlText)
 		if err != nil || ttl <= 0 || ttl > 7*24*60 {
-			return fmt.Errorf("invalid SYNON_LINK_AUTH_SESSION_TTL_MINUTES: %s", ttlText)
+			return fmt.Errorf("invalid X_SCIENCE_LINK_AUTH_SESSION_TTL_MINUTES: %s", ttlText)
 		}
-		cfg.SynonLinkAuth.SessionTTLMinutes = ttl
+		cfg.XScienceLinkAuth.SessionTTLMinutes = ttl
 	}
-	if strings.TrimSpace(cfg.SynonLinkAuth.Username) == "" {
-		cfg.SynonLinkAuth.Username = "local"
+	if strings.TrimSpace(cfg.XScienceLinkAuth.Username) == "" {
+		cfg.XScienceLinkAuth.Username = "local"
 	}
-	if cfg.SynonLinkAuth.SessionTTLMinutes == 0 {
-		cfg.SynonLinkAuth.SessionTTLMinutes = defaultSynonLinkSessionTTLMinutes
+	if cfg.XScienceLinkAuth.SessionTTLMinutes == 0 {
+		cfg.XScienceLinkAuth.SessionTTLMinutes = defaultXScienceLinkSessionTTLMinutes
 	}
-	if cfg.SynonLinkAuth.SessionTTLMinutes < 1 || cfg.SynonLinkAuth.SessionTTLMinutes > 7*24*60 {
-		return fmt.Errorf("synon_link_auth.session_ttl_minutes must be between 1 and 10080")
+	if cfg.XScienceLinkAuth.SessionTTLMinutes < 1 || cfg.XScienceLinkAuth.SessionTTLMinutes > 7*24*60 {
+		return fmt.Errorf("x_science_link_auth.session_ttl_minutes must be between 1 and 10080")
 	}
-	if len(cfg.SynonLinkAuth.Username) > 128 || len(cfg.SynonLinkAuth.Password) > 1024 {
-		return fmt.Errorf("synon_link_auth credentials exceed the configured size limit")
+	if len(cfg.XScienceLinkAuth.Username) > 128 || len(cfg.XScienceLinkAuth.Password) > 1024 {
+		return fmt.Errorf("x_science_link_auth credentials exceed the configured size limit")
 	}
 	return nil
 }
 
 func applyWebAuthEnv(cfg *Config) error {
-	if value, ok := os.LookupEnv("SYNON_AUTH_PUBLIC_BASE_URL"); ok {
+	if value, ok := os.LookupEnv("X_SCIENCE_AUTH_PUBLIC_BASE_URL"); ok {
 		cfg.WebAuth.PublicBaseURL = strings.TrimSpace(value)
 	}
-	if value, ok := os.LookupEnv("SYNON_AUTH_GOOGLE_CLIENT_ID"); ok {
+	if value, ok := os.LookupEnv("X_SCIENCE_AUTH_GOOGLE_CLIENT_ID"); ok {
 		cfg.WebAuth.Google.ClientID = strings.TrimSpace(value)
 	}
-	if value, ok := os.LookupEnv("SYNON_AUTH_GOOGLE_CLIENT_SECRET"); ok {
+	if value, ok := os.LookupEnv("X_SCIENCE_AUTH_GOOGLE_CLIENT_SECRET"); ok {
 		cfg.WebAuth.Google.ClientSecret = strings.TrimSpace(value)
 	}
-	if value, ok := os.LookupEnv("SYNON_AUTH_APPLE_CLIENT_ID"); ok {
+	if value, ok := os.LookupEnv("X_SCIENCE_AUTH_APPLE_CLIENT_ID"); ok {
 		cfg.WebAuth.Apple.ClientID = strings.TrimSpace(value)
 	}
-	if value, ok := os.LookupEnv("SYNON_AUTH_APPLE_TEAM_ID"); ok {
+	if value, ok := os.LookupEnv("X_SCIENCE_AUTH_APPLE_TEAM_ID"); ok {
 		cfg.WebAuth.Apple.TeamID = strings.TrimSpace(value)
 	}
-	if value, ok := os.LookupEnv("SYNON_AUTH_APPLE_KEY_ID"); ok {
+	if value, ok := os.LookupEnv("X_SCIENCE_AUTH_APPLE_KEY_ID"); ok {
 		cfg.WebAuth.Apple.KeyID = strings.TrimSpace(value)
 	}
 	if err := applyApplePrivateKeyEnv(cfg); err != nil {
 		return err
 	}
-	if value, ok := os.LookupEnv("SYNON_AUTH_WECHAT_APP_ID"); ok {
+	if value, ok := os.LookupEnv("X_SCIENCE_AUTH_WECHAT_APP_ID"); ok {
 		cfg.WebAuth.WeChat.AppID = strings.TrimSpace(value)
 	}
-	if value, ok := os.LookupEnv("SYNON_AUTH_WECHAT_APP_SECRET"); ok {
+	if value, ok := os.LookupEnv("X_SCIENCE_AUTH_WECHAT_APP_SECRET"); ok {
 		cfg.WebAuth.WeChat.AppSecret = strings.TrimSpace(value)
 	}
 	if len(cfg.WebAuth.Google.ClientID) > 512 || len(cfg.WebAuth.Google.ClientSecret) > 2048 {
@@ -521,7 +522,7 @@ func applyWebAuthEnv(cfg *Config) error {
 		return errors.New("web_auth WeChat credentials exceed the configured size limit")
 	}
 	if cfg.WebAuth.Google.ClientSecret != "" && cfg.WebAuth.Google.ClientID == "" {
-		return errors.New("SYNON_AUTH_GOOGLE_CLIENT_SECRET requires SYNON_AUTH_GOOGLE_CLIENT_ID")
+		return errors.New("X_SCIENCE_AUTH_GOOGLE_CLIENT_SECRET requires X_SCIENCE_AUTH_GOOGLE_CLIENT_ID")
 	}
 	appleConfigured := cfg.WebAuth.Apple.ClientID != "" || cfg.WebAuth.Apple.TeamID != "" ||
 		cfg.WebAuth.Apple.KeyID != "" || cfg.WebAuth.Apple.PrivateKey != ""
@@ -530,10 +531,10 @@ func applyWebAuthEnv(cfg *Config) error {
 		return errors.New("Apple Sign in with Apple requires client ID, team ID, key ID, and private key")
 	}
 	if (cfg.WebAuth.WeChat.AppID == "") != (cfg.WebAuth.WeChat.AppSecret == "") {
-		return errors.New("WeChat login requires both SYNON_AUTH_WECHAT_APP_ID and SYNON_AUTH_WECHAT_APP_SECRET")
+		return errors.New("WeChat login requires both X_SCIENCE_AUTH_WECHAT_APP_ID and X_SCIENCE_AUTH_WECHAT_APP_SECRET")
 	}
 	if cfg.WebAuth.WeChat.AppID != "" && cfg.WebAuth.PublicBaseURL == "" {
-		return errors.New("WeChat login requires SYNON_AUTH_PUBLIC_BASE_URL")
+		return errors.New("WeChat login requires X_SCIENCE_AUTH_PUBLIC_BASE_URL")
 	}
 	if cfg.WebAuth.PublicBaseURL == "" {
 		return nil
@@ -541,21 +542,21 @@ func applyWebAuthEnv(cfg *Config) error {
 	parsed, err := url.Parse(cfg.WebAuth.PublicBaseURL)
 	if err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil ||
 		parsed.RawQuery != "" || parsed.Fragment != "" || (parsed.Path != "" && parsed.Path != "/") {
-		return errors.New("SYNON_AUTH_PUBLIC_BASE_URL must be an HTTPS origin without path, query, credentials, or fragment")
+		return errors.New("X_SCIENCE_AUTH_PUBLIC_BASE_URL must be an HTTPS origin without path, query, credentials, or fragment")
 	}
 	cfg.WebAuth.PublicBaseURL = strings.TrimSuffix(parsed.String(), "/")
 	if cfg.WebAuth.Google.ClientID != "" && cfg.WebAuth.Google.ClientSecret == "" {
-		return errors.New("remote Google OIDC requires SYNON_AUTH_GOOGLE_CLIENT_SECRET")
+		return errors.New("remote Google OIDC requires X_SCIENCE_AUTH_GOOGLE_CLIENT_SECRET")
 	}
 	return nil
 }
 
 func applyApplePrivateKeyEnv(cfg *Config) error {
-	if _, rawKeySet := os.LookupEnv("SYNON_AUTH_APPLE_PRIVATE_KEY"); rawKeySet {
-		return errors.New("SYNON_AUTH_APPLE_PRIVATE_KEY is not supported; use SYNON_AUTH_APPLE_PRIVATE_KEY_B64 or SYNON_AUTH_APPLE_PRIVATE_KEY_FILE")
+	if _, rawKeySet := os.LookupEnv("X_SCIENCE_AUTH_APPLE_PRIVATE_KEY"); rawKeySet {
+		return errors.New("X_SCIENCE_AUTH_APPLE_PRIVATE_KEY is not supported; use X_SCIENCE_AUTH_APPLE_PRIVATE_KEY_B64 or X_SCIENCE_AUTH_APPLE_PRIVATE_KEY_FILE")
 	}
-	encodedKey, encodedKeySet := os.LookupEnv("SYNON_AUTH_APPLE_PRIVATE_KEY_B64")
-	keyFile, keyFileSet := os.LookupEnv("SYNON_AUTH_APPLE_PRIVATE_KEY_FILE")
+	encodedKey, encodedKeySet := os.LookupEnv("X_SCIENCE_AUTH_APPLE_PRIVATE_KEY_B64")
+	keyFile, keyFileSet := os.LookupEnv("X_SCIENCE_AUTH_APPLE_PRIVATE_KEY_FILE")
 	configured := 0
 	for _, present := range []bool{encodedKeySet, keyFileSet} {
 		if present {
@@ -563,41 +564,41 @@ func applyApplePrivateKeyEnv(cfg *Config) error {
 		}
 	}
 	if configured > 1 {
-		return errors.New("configure only one of SYNON_AUTH_APPLE_PRIVATE_KEY, SYNON_AUTH_APPLE_PRIVATE_KEY_B64, or SYNON_AUTH_APPLE_PRIVATE_KEY_FILE")
+		return errors.New("configure only one of X_SCIENCE_AUTH_APPLE_PRIVATE_KEY, X_SCIENCE_AUTH_APPLE_PRIVATE_KEY_B64, or X_SCIENCE_AUTH_APPLE_PRIVATE_KEY_FILE")
 	}
 	switch {
 	case encodedKeySet:
 		decoded, err := base64.StdEncoding.DecodeString(strings.TrimSpace(encodedKey))
 		if err != nil {
-			return fmt.Errorf("SYNON_AUTH_APPLE_PRIVATE_KEY_B64 is invalid: %w", err)
+			return fmt.Errorf("X_SCIENCE_AUTH_APPLE_PRIVATE_KEY_B64 is invalid: %w", err)
 		}
 		cfg.WebAuth.Apple.PrivateKey = strings.TrimSpace(string(decoded))
 	case keyFileSet:
 		path := strings.TrimSpace(keyFile)
 		if path == "" || !filepath.IsAbs(path) || strings.IndexFunc(path, unicode.IsControl) >= 0 {
-			return errors.New("SYNON_AUTH_APPLE_PRIVATE_KEY_FILE must be an absolute path without control characters")
+			return errors.New("X_SCIENCE_AUTH_APPLE_PRIVATE_KEY_FILE must be an absolute path without control characters")
 		}
 		info, err := os.Stat(path)
 		if err != nil {
-			return fmt.Errorf("read SYNON_AUTH_APPLE_PRIVATE_KEY_FILE: %w", err)
+			return fmt.Errorf("read X_SCIENCE_AUTH_APPLE_PRIVATE_KEY_FILE: %w", err)
 		}
 		if !info.Mode().IsRegular() {
-			return errors.New("SYNON_AUTH_APPLE_PRIVATE_KEY_FILE must refer to a regular file")
+			return errors.New("X_SCIENCE_AUTH_APPLE_PRIVATE_KEY_FILE must refer to a regular file")
 		}
 		if info.Size() > webApplePrivateKeyMaxBytes {
-			return errors.New("SYNON_AUTH_APPLE_PRIVATE_KEY_FILE exceeds the configured size limit")
+			return errors.New("X_SCIENCE_AUTH_APPLE_PRIVATE_KEY_FILE exceeds the configured size limit")
 		}
 		file, err := os.Open(path)
 		if err != nil {
-			return fmt.Errorf("open SYNON_AUTH_APPLE_PRIVATE_KEY_FILE: %w", err)
+			return fmt.Errorf("open X_SCIENCE_AUTH_APPLE_PRIVATE_KEY_FILE: %w", err)
 		}
 		defer file.Close()
 		contents, err := io.ReadAll(io.LimitReader(file, webApplePrivateKeyMaxBytes+1))
 		if err != nil {
-			return fmt.Errorf("read SYNON_AUTH_APPLE_PRIVATE_KEY_FILE: %w", err)
+			return fmt.Errorf("read X_SCIENCE_AUTH_APPLE_PRIVATE_KEY_FILE: %w", err)
 		}
 		if len(contents) > webApplePrivateKeyMaxBytes {
-			return errors.New("SYNON_AUTH_APPLE_PRIVATE_KEY_FILE exceeds the configured size limit")
+			return errors.New("X_SCIENCE_AUTH_APPLE_PRIVATE_KEY_FILE exceeds the configured size limit")
 		}
 		cfg.WebAuth.Apple.PrivateKey = strings.TrimSpace(string(contents))
 	}
@@ -605,14 +606,14 @@ func applyApplePrivateKeyEnv(cfg *Config) error {
 }
 
 func applyAddressEnv(cfg *Config) error {
-	if address := strings.TrimSpace(os.Getenv("SYNON_ADDRESS")); address != "" {
+	if address := strings.TrimSpace(os.Getenv("X_SCIENCE_ADDRESS")); address != "" {
 		host, portText, err := net.SplitHostPort(address)
 		if err != nil {
-			return fmt.Errorf("invalid SYNON_ADDRESS: %s", address)
+			return fmt.Errorf("invalid X_SCIENCE_ADDRESS: %s", address)
 		}
 		port, err := strconv.Atoi(portText)
 		if err != nil || port <= 0 || port > 65535 {
-			return fmt.Errorf("invalid SYNON_ADDRESS port: %s", portText)
+			return fmt.Errorf("invalid X_SCIENCE_ADDRESS port: %s", portText)
 		}
 		if strings.TrimSpace(host) == "" {
 			host = "127.0.0.1"
@@ -620,13 +621,13 @@ func applyAddressEnv(cfg *Config) error {
 		cfg.Host = host
 		cfg.Port = port
 	}
-	if host := strings.TrimSpace(os.Getenv("SYNON_HOST")); host != "" {
+	if host := strings.TrimSpace(os.Getenv("X_SCIENCE_HOST")); host != "" {
 		cfg.Host = host
 	}
-	if portText := strings.TrimSpace(os.Getenv("SYNON_PORT")); portText != "" {
+	if portText := strings.TrimSpace(os.Getenv("X_SCIENCE_PORT")); portText != "" {
 		port, err := strconv.Atoi(portText)
 		if err != nil || port <= 0 || port > 65535 {
-			return fmt.Errorf("invalid SYNON_PORT: %s", portText)
+			return fmt.Errorf("invalid X_SCIENCE_PORT: %s", portText)
 		}
 		cfg.Port = port
 	}
@@ -649,8 +650,8 @@ func validateRuntimeBinding(cfg Config) error {
 			(strings.TrimSpace(cfg.WebAuth.Apple.ClientID) != "" && strings.TrimSpace(cfg.WebAuth.Apple.TeamID) != "" &&
 				strings.TrimSpace(cfg.WebAuth.Apple.KeyID) != "" && strings.TrimSpace(cfg.WebAuth.Apple.PrivateKey) != "") ||
 			(strings.TrimSpace(cfg.WebAuth.WeChat.AppID) != "" && strings.TrimSpace(cfg.WebAuth.WeChat.AppSecret) != ""))
-	if strings.TrimSpace(cfg.SynonLinkAuth.Password) == "" && !externalAuthConfigured {
-		return fmt.Errorf("non-loopback runtime binding %q requires SYNON_LINK_AUTH_PASSWORD or configured external authentication with SYNON_AUTH_PUBLIC_BASE_URL", cfg.Host)
+	if strings.TrimSpace(cfg.XScienceLinkAuth.Password) == "" && !externalAuthConfigured {
+		return fmt.Errorf("non-loopback runtime binding %q requires X_SCIENCE_LINK_AUTH_PASSWORD or configured external authentication with X_SCIENCE_AUTH_PUBLIC_BASE_URL", cfg.Host)
 	}
 	return nil
 }
@@ -697,16 +698,16 @@ func normalizedRuntimeHost(raw string) (string, error) {
 func defaultHome() string {
 	if runtime.GOOS == "windows" {
 		if home, err := os.UserHomeDir(); err == nil && strings.TrimSpace(home) != "" {
-			return filepath.Join(home, ".synon-go")
+			return filepath.Join(home, ".x-science")
 		}
 	}
 	if home := os.Getenv("HOME"); home != "" {
-		return filepath.Join(home, ".synon-go")
+		return filepath.Join(home, ".x-science")
 	}
 	if home, err := os.UserHomeDir(); err == nil && strings.TrimSpace(home) != "" {
-		return filepath.Join(home, ".synon-go")
+		return filepath.Join(home, ".x-science")
 	}
-	return ".synon-go"
+	return ".x-science"
 }
 
 func applyWeChatEnv(cfg *Config) error {
@@ -758,7 +759,7 @@ func applyFeishuEnv(cfg *Config) {
 
 func applyRunnerEnv(cfg *Config) error {
 	if cfg.Runner.ID == "" {
-		cfg.Runner.ID = "synon-go-runner"
+		cfg.Runner.ID = "x-science-runner"
 	}
 	if cfg.Runner.PollIntervalMS == 0 {
 		cfg.Runner.PollIntervalMS = 1000
@@ -787,109 +788,109 @@ func applyRunnerEnv(cfg *Config) error {
 	if cfg.Runner.OutputLimitBytes == 0 {
 		cfg.Runner.OutputLimitBytes = 1024 * 1024
 	}
-	if value := os.Getenv("SYNON_RUNNER_ENABLED"); value != "" {
+	if value := os.Getenv("X_SCIENCE_RUNNER_ENABLED"); value != "" {
 		enabled, err := strconv.ParseBool(value)
 		if err != nil {
-			return fmt.Errorf("invalid SYNON_RUNNER_ENABLED: %s", value)
+			return fmt.Errorf("invalid X_SCIENCE_RUNNER_ENABLED: %s", value)
 		}
 		cfg.Runner.Enabled = enabled
 	}
-	if id := os.Getenv("SYNON_RUNNER_ID"); id != "" {
+	if id := os.Getenv("X_SCIENCE_RUNNER_ID"); id != "" {
 		cfg.Runner.ID = id
 	}
-	if provider := os.Getenv("SYNON_RUNNER_PROVIDER"); provider != "" {
+	if provider := os.Getenv("X_SCIENCE_RUNNER_PROVIDER"); provider != "" {
 		cfg.Runner.Provider = provider
 	}
-	if command := os.Getenv("SYNON_RUNNER_COMMAND"); command != "" {
+	if command := os.Getenv("X_SCIENCE_RUNNER_COMMAND"); command != "" {
 		cfg.Runner.Command = command
 	}
-	if rawArgs := os.Getenv("SYNON_RUNNER_ARGS_JSON"); rawArgs != "" {
+	if rawArgs := os.Getenv("X_SCIENCE_RUNNER_ARGS_JSON"); rawArgs != "" {
 		var args []string
 		if err := json.Unmarshal([]byte(rawArgs), &args); err != nil {
-			return fmt.Errorf("invalid SYNON_RUNNER_ARGS_JSON: %w", err)
+			return fmt.Errorf("invalid X_SCIENCE_RUNNER_ARGS_JSON: %w", err)
 		}
 		cfg.Runner.Args = args
 	}
-	if endpoint := os.Getenv("SYNON_RUNNER_CHAT_ENDPOINT"); endpoint != "" {
+	if endpoint := os.Getenv("X_SCIENCE_RUNNER_CHAT_ENDPOINT"); endpoint != "" {
 		cfg.Runner.ChatEndpoint = endpoint
 	}
-	if apiKey := os.Getenv("SYNON_RUNNER_CHAT_API_KEY"); apiKey != "" {
+	if apiKey := os.Getenv("X_SCIENCE_RUNNER_CHAT_API_KEY"); apiKey != "" {
 		cfg.Runner.ChatAPIKey = apiKey
 	}
-	if model := os.Getenv("SYNON_RUNNER_CHAT_MODEL"); model != "" {
+	if model := os.Getenv("X_SCIENCE_RUNNER_CHAT_MODEL"); model != "" {
 		cfg.Runner.ChatModel = model
 	}
-	if systemPrompt := os.Getenv("SYNON_RUNNER_CHAT_SYSTEM_PROMPT"); systemPrompt != "" {
+	if systemPrompt := os.Getenv("X_SCIENCE_RUNNER_CHAT_SYSTEM_PROMPT"); systemPrompt != "" {
 		cfg.Runner.ChatSystemPrompt = systemPrompt
 	}
-	if tools := os.Getenv("SYNON_RUNNER_CHAT_TOOLS"); tools != "" {
+	if tools := os.Getenv("X_SCIENCE_RUNNER_CHAT_TOOLS"); tools != "" {
 		cfg.Runner.ChatTools = splitCSV(tools)
 	}
-	if value := os.Getenv("SYNON_RUNNER_CHAT_TIMEOUT_SECONDS"); value != "" {
-		parsed, err := positiveIntEnv("SYNON_RUNNER_CHAT_TIMEOUT_SECONDS", value)
+	if value := os.Getenv("X_SCIENCE_RUNNER_CHAT_TIMEOUT_SECONDS"); value != "" {
+		parsed, err := positiveIntEnv("X_SCIENCE_RUNNER_CHAT_TIMEOUT_SECONDS", value)
 		if err != nil {
 			return err
 		}
 		cfg.Runner.ChatTimeoutSeconds = parsed
 	}
-	if value := os.Getenv("SYNON_RUNNER_CHAT_TOOL_ROUND_LIMIT"); value != "" {
-		parsed, err := nonNegativeIntEnv("SYNON_RUNNER_CHAT_TOOL_ROUND_LIMIT", value)
+	if value := os.Getenv("X_SCIENCE_RUNNER_CHAT_TOOL_ROUND_LIMIT"); value != "" {
+		parsed, err := nonNegativeIntEnv("X_SCIENCE_RUNNER_CHAT_TOOL_ROUND_LIMIT", value)
 		if err != nil {
 			return err
 		}
 		cfg.Runner.ChatToolRoundLimit = parsed
 	}
-	if value := os.Getenv("SYNON_RUNNER_CHAT_TOOL_CALL_BATCH_LIMIT"); value != "" {
-		parsed, err := nonNegativeIntEnv("SYNON_RUNNER_CHAT_TOOL_CALL_BATCH_LIMIT", value)
+	if value := os.Getenv("X_SCIENCE_RUNNER_CHAT_TOOL_CALL_BATCH_LIMIT"); value != "" {
+		parsed, err := nonNegativeIntEnv("X_SCIENCE_RUNNER_CHAT_TOOL_CALL_BATCH_LIMIT", value)
 		if err != nil {
 			return err
 		}
 		cfg.Runner.ChatToolCallBatchLimit = parsed
 	}
-	if value := os.Getenv("SYNON_RUNNER_CHAT_MAX_ATTEMPTS"); value != "" {
-		parsed, err := positiveIntEnv("SYNON_RUNNER_CHAT_MAX_ATTEMPTS", value)
+	if value := os.Getenv("X_SCIENCE_RUNNER_CHAT_MAX_ATTEMPTS"); value != "" {
+		parsed, err := positiveIntEnv("X_SCIENCE_RUNNER_CHAT_MAX_ATTEMPTS", value)
 		if err != nil {
 			return err
 		}
 		cfg.Runner.ChatMaxAttempts = parsed
 	}
-	if value := os.Getenv("SYNON_RUNNER_CHAT_WORKERS"); value != "" {
-		parsed, err := nonNegativeIntEnv("SYNON_RUNNER_CHAT_WORKERS", value)
+	if value := os.Getenv("X_SCIENCE_RUNNER_CHAT_WORKERS"); value != "" {
+		parsed, err := nonNegativeIntEnv("X_SCIENCE_RUNNER_CHAT_WORKERS", value)
 		if err != nil {
 			return err
 		}
 		cfg.Runner.ChatWorkers = parsed
 	}
-	if value := os.Getenv("SYNON_RUNNER_COMMAND_TIMEOUT_SECONDS"); value != "" {
-		parsed, err := positiveIntEnv("SYNON_RUNNER_COMMAND_TIMEOUT_SECONDS", value)
+	if value := os.Getenv("X_SCIENCE_RUNNER_COMMAND_TIMEOUT_SECONDS"); value != "" {
+		parsed, err := positiveIntEnv("X_SCIENCE_RUNNER_COMMAND_TIMEOUT_SECONDS", value)
 		if err != nil {
 			return err
 		}
 		cfg.Runner.CommandTimeoutSeconds = parsed
 	}
-	if value := os.Getenv("SYNON_RUNNER_POLL_INTERVAL_MS"); value != "" {
-		parsed, err := positiveIntEnv("SYNON_RUNNER_POLL_INTERVAL_MS", value)
+	if value := os.Getenv("X_SCIENCE_RUNNER_POLL_INTERVAL_MS"); value != "" {
+		parsed, err := positiveIntEnv("X_SCIENCE_RUNNER_POLL_INTERVAL_MS", value)
 		if err != nil {
 			return err
 		}
 		cfg.Runner.PollIntervalMS = parsed
 	}
-	if value := os.Getenv("SYNON_RUNNER_LEASE_TTL_SECONDS"); value != "" {
-		parsed, err := positiveIntEnv("SYNON_RUNNER_LEASE_TTL_SECONDS", value)
+	if value := os.Getenv("X_SCIENCE_RUNNER_LEASE_TTL_SECONDS"); value != "" {
+		parsed, err := positiveIntEnv("X_SCIENCE_RUNNER_LEASE_TTL_SECONDS", value)
 		if err != nil {
 			return err
 		}
 		cfg.Runner.LeaseTTLSeconds = parsed
 	}
-	if value := os.Getenv("SYNON_RUNNER_REPLAY_LIMIT"); value != "" {
-		parsed, err := positiveInt64Env("SYNON_RUNNER_REPLAY_LIMIT", value)
+	if value := os.Getenv("X_SCIENCE_RUNNER_REPLAY_LIMIT"); value != "" {
+		parsed, err := positiveInt64Env("X_SCIENCE_RUNNER_REPLAY_LIMIT", value)
 		if err != nil {
 			return err
 		}
 		cfg.Runner.ReplayLimit = parsed
 	}
-	if value := os.Getenv("SYNON_RUNNER_OUTPUT_LIMIT_BYTES"); value != "" {
-		parsed, err := positiveInt64Env("SYNON_RUNNER_OUTPUT_LIMIT_BYTES", value)
+	if value := os.Getenv("X_SCIENCE_RUNNER_OUTPUT_LIMIT_BYTES"); value != "" {
+		parsed, err := positiveInt64Env("X_SCIENCE_RUNNER_OUTPUT_LIMIT_BYTES", value)
 		if err != nil {
 			return err
 		}
@@ -932,24 +933,24 @@ func applyRunnerEnv(cfg *Config) error {
 }
 
 func applyCompactSummarizerEnv(cfg *Config) error {
-	if endpoint := os.Getenv("SYNON_COMPACT_SUMMARIZER_ENDPOINT"); endpoint != "" {
+	if endpoint := os.Getenv("X_SCIENCE_COMPACT_SUMMARIZER_ENDPOINT"); endpoint != "" {
 		cfg.CompactSummarizer.Endpoint = endpoint
 	}
-	if apiKey := os.Getenv("SYNON_COMPACT_SUMMARIZER_API_KEY"); apiKey != "" {
+	if apiKey := os.Getenv("X_SCIENCE_COMPACT_SUMMARIZER_API_KEY"); apiKey != "" {
 		cfg.CompactSummarizer.APIKey = apiKey
 	}
-	if model := os.Getenv("SYNON_COMPACT_SUMMARIZER_MODEL"); model != "" {
+	if model := os.Getenv("X_SCIENCE_COMPACT_SUMMARIZER_MODEL"); model != "" {
 		cfg.CompactSummarizer.Model = model
 	}
-	if value := os.Getenv("SYNON_COMPACT_SUMMARIZER_TIMEOUT_SECONDS"); value != "" {
-		parsed, err := positiveIntEnv("SYNON_COMPACT_SUMMARIZER_TIMEOUT_SECONDS", value)
+	if value := os.Getenv("X_SCIENCE_COMPACT_SUMMARIZER_TIMEOUT_SECONDS"); value != "" {
+		parsed, err := positiveIntEnv("X_SCIENCE_COMPACT_SUMMARIZER_TIMEOUT_SECONDS", value)
 		if err != nil {
 			return err
 		}
 		cfg.CompactSummarizer.TimeoutSeconds = parsed
 	}
-	if value := os.Getenv("SYNON_COMPACT_SUMMARIZER_MAX_ATTEMPTS"); value != "" {
-		parsed, err := positiveIntEnv("SYNON_COMPACT_SUMMARIZER_MAX_ATTEMPTS", value)
+	if value := os.Getenv("X_SCIENCE_COMPACT_SUMMARIZER_MAX_ATTEMPTS"); value != "" {
+		parsed, err := positiveIntEnv("X_SCIENCE_COMPACT_SUMMARIZER_MAX_ATTEMPTS", value)
 		if err != nil {
 			return err
 		}

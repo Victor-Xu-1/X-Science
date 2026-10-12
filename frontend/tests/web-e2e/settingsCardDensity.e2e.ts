@@ -1,5 +1,5 @@
 import { expect, test } from './officialChromeTest';
-import { webPassword, webUsername } from './synonGoWebCredentials';
+import { webPassword, webUsername } from './xscienceGoWebCredentials';
 
 async function signIn(page: import('@playwright/test').Page) {
   await page.goto('/#/login', { waitUntil: 'domcontentloaded' });
@@ -18,9 +18,9 @@ for (const route of ['skills', 'tools', 'environments'] as const) {
     await expect(root).toBeVisible();
     const grid = page.locator(
       route === 'skills'
-        ? '[data-testid="synon-biomed-skill-grid"]'
+        ? '[data-testid="x-science-skill-grid"]'
         : route === 'tools'
-          ? '[data-testid="synon-biomed-mcp-grid"]'
+          ? '[data-testid="x-science-mcp-grid"]'
           : '[data-testid="scientific-environments"] .environment-grid'
     );
     await expect(grid).toBeVisible({ timeout: 20_000 });
@@ -36,9 +36,9 @@ for (const route of ['skills', 'tools', 'environments'] as const) {
       );
       const grid = document.querySelector(
         routeName === 'skills'
-          ? '[data-testid="synon-biomed-skill-grid"]'
+          ? '[data-testid="x-science-skill-grid"]'
           : routeName === 'tools'
-            ? '[data-testid="synon-biomed-mcp-grid"]'
+            ? '[data-testid="x-science-mcp-grid"]'
             : '[data-testid="scientific-environments"] .environment-grid'
       );
       const scrollOwner = grid?.parentElement;

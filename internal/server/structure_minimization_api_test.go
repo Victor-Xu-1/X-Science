@@ -14,7 +14,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/software"
+	"x-science/internal/software"
 )
 
 func TestDecodeStructureMinimizationRequestAppliesBoundedDefaults(t *testing.T) {
@@ -75,7 +75,7 @@ func TestDecodeStructureMinimizationRequestBindsNativeAtom(t *testing.T) {
 }
 
 func TestStructureMinimizationNativeAtomBindsRuntimeRequestDigest(t *testing.T) {
-	request := software.Request{Capability: "structure-energy-minimization", Language: "python", SourceEnvironment: "synon-biomed-python", InputSHA256: strings.Repeat("a", 64), Imports: []string{"rdkit"}, Executable: "python", Arguments: []string{"_structure_minimize.py", "--ligand-atom-serial", "13"}}
+	request := software.Request{Capability: "structure-energy-minimization", Language: "python", SourceEnvironment: "x-science-python", InputSHA256: strings.Repeat("a", 64), Imports: []string{"rdkit"}, Executable: "python", Arguments: []string{"_structure_minimize.py", "--ligand-atom-serial", "13"}}
 	first, err := software.RequestDigest(request)
 	if err != nil {
 		t.Fatal(err)
@@ -113,7 +113,7 @@ func TestStructureMinimizationProgramMovesOnlySelectedSameNameInstance(t *testin
 }
 
 func TestStructureMinimizationProgramMovesOnlyLigandInFixedProteinPocket(t *testing.T) {
-	preservedPDB := "REMARK 900 SYNON BIOMED DOCKING COMPLEX ENSEMBLE\n" +
+	preservedPDB := "REMARK 900 XSCIENCE BIOMED DOCKING COMPLEX ENSEMBLE\n" +
 		"HELIX    1   1 ALA A    1  ALA A    1  1                                  1\n" +
 		testProteinLigandComplexPDB
 	result := runStructureMinimizationProgram(
@@ -132,7 +132,7 @@ func TestStructureMinimizationProgramMovesOnlyLigandInFixedProteinPocket(t *test
 		t.Fatalf("read minimized complex: %v", err)
 	}
 	minimizedText := string(minimized)
-	if !strings.Contains(minimizedText, "REMARK 900 SYNON BIOMED DOCKING COMPLEX ENSEMBLE") ||
+	if !strings.Contains(minimizedText, "REMARK 900 XSCIENCE BIOMED DOCKING COMPLEX ENSEMBLE") ||
 		!strings.Contains(minimizedText, "HELIX    1   1 ALA A    1  ALA A    1") {
 		t.Fatalf("minimized PDB lost receptor metadata:\n%s", minimizedText)
 	}

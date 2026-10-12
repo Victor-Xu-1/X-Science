@@ -1,8 +1,8 @@
 import type { IMessageText } from '@/common/chat/chatLib';
 import type {
-  SynonBiomedTranscriptAnnotation,
-  SynonBiomedTranscriptAnnotationKind,
-} from '@/renderer/services/synonBiomedAnnotations';
+  XScienceTranscriptAnnotation,
+  XScienceTranscriptAnnotationKind,
+} from '@/renderer/services/xScienceAnnotations';
 import { Button, Input, Message, Select, Spin, Tooltip } from '@arco-design/web-react';
 import Modal from '@/renderer/components/base/WorkbenchModal';
 import { Bookmark, Delete, Refresh } from '@icon-park/react';
@@ -21,7 +21,7 @@ import {
 const MAX_ANCHOR_LENGTH = 1200;
 
 type Highlight = {
-  annotation: SynonBiomedTranscriptAnnotation;
+  annotation: XScienceTranscriptAnnotation;
   resolution: TranscriptAnchorResolution;
   rects: Array<{ left: number; top: number; width: number; height: number }>;
 };
@@ -38,8 +38,8 @@ const MessageTranscriptAnnotations: React.FC<{
   const context = useConversationAnnotations();
   const [visible, setVisible] = useState(false);
   const [note, setNote] = useState('');
-  const [kind, setKind] = useState<SynonBiomedTranscriptAnnotationKind>('bookmark');
-  const [editing, setEditing] = useState<SynonBiomedTranscriptAnnotation | null>(null);
+  const [kind, setKind] = useState<XScienceTranscriptAnnotationKind>('bookmark');
+  const [editing, setEditing] = useState<XScienceTranscriptAnnotation | null>(null);
   const [selectionAnchor, setSelectionAnchor] = useState<TranscriptSelectionAnchor | null>(null);
   const [draftAnchor, setDraftAnchor] = useState<TranscriptSelectionAnchor | null>(null);
   const [saving, setSaving] = useState(false);
@@ -52,7 +52,7 @@ const MessageTranscriptAnnotations: React.FC<{
   );
 
   const openEdit = useCallback(
-    (annotation: SynonBiomedTranscriptAnnotation) => {
+    (annotation: XScienceTranscriptAnnotation) => {
       setEditing(annotation);
       setSelectionAnchor(null);
       setDraftAnchor(null);
@@ -206,7 +206,7 @@ const MessageTranscriptAnnotations: React.FC<{
     }
   };
 
-  const remove = async (annotation: SynonBiomedTranscriptAnnotation) => {
+  const remove = async (annotation: XScienceTranscriptAnnotation) => {
     setDeleting(true);
     try {
       await context.remove(annotation.id);

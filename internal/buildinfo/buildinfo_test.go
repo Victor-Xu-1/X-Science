@@ -3,10 +3,10 @@ package buildinfo
 import (
 	"testing"
 
-	productidentity "synon-go"
+	productidentity "x-science"
 )
 
-func TestReleaseInfoUsesSynonBiomedIdentity(t *testing.T) {
+func TestReleaseInfoUsesXScienceIdentity(t *testing.T) {
 	info := Release()
 	if info.Name != "X-Science" {
 		t.Fatalf("Name = %q, want X-Science", info.Name)

@@ -27,11 +27,11 @@ describe('useConversationAssistants', () => {
     (ipcBridge.assistants.list.invoke as never as ReturnType<typeof vi.fn>).mockResolvedValue([
       { id: 'bare-unsupportedRuntime', name: 'Unsupported runtime', enabled: true, source: 'generated' },
       {
-        id: 'synonbiomed:aidd-expert',
+        id: 'xscience:aidd-expert',
         name: 'AIDD Expert',
         enabled: true,
         source: 'builtin',
-        agent: { type: 'synonbiomed', source: 'builtin', acp_backend: 'synonbiomed' },
+        agent: { type: 'xscience', source: 'builtin', acp_backend: 'xscience' },
       },
       { id: 'disabled-writer', name: 'Writer', enabled: false, source: 'user' },
       { id: 'assistant-1', name: 'Researcher', source: 'user' },
@@ -41,18 +41,18 @@ describe('useConversationAssistants', () => {
 
     await waitFor(() => expect(result.current.presetAssistants).toHaveLength(1));
 
-    expect(result.current.presetAssistants.map((assistant) => assistant.id)).toEqual(['synonbiomed:aidd-expert']);
+    expect(result.current.presetAssistants.map((assistant) => assistant.id)).toEqual(['xscience:aidd-expert']);
   });
 
   it('keeps the filtered assistant list stable across rerenders when SWR data is unchanged', async () => {
     const catalog = [
       { id: 'bare-unsupportedRuntime', name: 'Unsupported runtime', enabled: true, source: 'generated' },
       {
-        id: 'synonbiomed:aidd-expert',
+        id: 'xscience:aidd-expert',
         name: 'AIDD Expert',
         enabled: true,
         source: 'builtin',
-        agent: { type: 'synonbiomed', source: 'builtin', acp_backend: 'synonbiomed' },
+        agent: { type: 'xscience', source: 'builtin', acp_backend: 'xscience' },
       },
     ] satisfies Partial<Assistant>[];
 

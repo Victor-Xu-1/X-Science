@@ -13,9 +13,9 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"synon-go/internal/agentruntime"
-	kernelruntime "synon-go/internal/kernel"
-	"synon-go/internal/skills"
+	"x-science/internal/agentruntime"
+	kernelruntime "x-science/internal/kernel"
+	"x-science/internal/skills"
 )
 
 func TestExpandRuntimeSkillDependenciesOrdersAndDeduplicatesClosure(t *testing.T) {
@@ -437,7 +437,7 @@ func TestDeepLiteratureDependencyRestoresCanonicalMethodologyFromLeafSelection(t
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(currentFile), "..", ".."))
 	server := New(Options{FileRoot: t.TempDir()})
 	productionCatalog, _, loadErrors := loadSkillCatalog(
-		nil, []string{filepath.Join(repositoryRoot, "skills", "synonbiomed")}, t.TempDir(),
+		nil, []string{filepath.Join(repositoryRoot, "skills", "x-science")}, t.TempDir(),
 	)
 	if len(loadErrors) != 0 {
 		t.Fatalf("production Skill catalog errors=%#v", loadErrors)
@@ -478,13 +478,13 @@ func TestOperonCanDiscoverAndLoadStructureBasedMoleculeGenerationEngines(t *test
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(currentFile), "..", ".."))
 	productionCatalog, _, loadErrors := loadSkillCatalog(
-		nil, []string{filepath.Join(repositoryRoot, "skills", "synonbiomed")}, t.TempDir(),
+		nil, []string{filepath.Join(repositoryRoot, "skills", "x-science")}, t.TempDir(),
 	)
 	if len(loadErrors) != 0 {
 		t.Fatalf("production Skill catalog errors=%#v", loadErrors)
 	}
 	rawManifest, err := os.ReadFile(filepath.Join(
-		repositoryRoot, "assets", "synonbiomed", "agents", "operon-skills.json",
+		repositoryRoot, "assets", "x-science", "agents", "operon-skills.json",
 	))
 	if err != nil {
 		t.Fatal(err)
@@ -660,7 +660,7 @@ func TestExplicitDeepLiteratureSkillReturnsCompleteRealDependencyContract(t *tes
 		}
 	})
 	productionCatalog, _, loadErrors := loadSkillCatalog(
-		nil, []string{filepath.Join(repositoryRoot, "skills", "synonbiomed")}, t.TempDir(),
+		nil, []string{filepath.Join(repositoryRoot, "skills", "x-science")}, t.TempDir(),
 	)
 	if len(loadErrors) != 0 {
 		t.Fatalf("production Skill catalog errors=%#v", loadErrors)

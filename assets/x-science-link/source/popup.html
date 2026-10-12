@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>X-Science Link</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body class="popup">
+    <section class="panel compact">
+      <div class="popup-header">
+        <img class="brand-mark small-brand-mark" src="icons/x-science-mark.png" alt="">
+        <div>
+          <h1>X-Science Link</h1>
+          <p>浏览器与本地授权连接</p>
+        </div>
+      </div>
+      <div id="state" class="state">正在检查连接...</div>
+      <dl class="status-list">
+        <div>
+          <dt>账号</dt>
+          <dd id="user">-</dd>
+        </div>
+        <div>
+          <dt>版本</dt>
+          <dd id="version">-</dd>
+        </div>
+        <div>
+          <dt>本地授权</dt>
+          <dd id="localFiles">0 个文件夹</dd>
+        </div>
+        <div>
+          <dt>个性化</dt>
+          <dd id="bookmarks">未授权</dd>
+        </div>
+      </dl>
+      <div class="actions vertical">
+        <button id="openXScience">打开 X-Science</button>
+        <button id="connect" class="secondary">连接 / 重新连接</button>
+        <button id="workspace" class="secondary">本地文件授权</button>
+        <button id="personalization" class="secondary">个性化画像授权</button>
+        <button id="doctor" class="secondary">连接诊断</button>
+        <button id="disconnect" class="secondary danger">断开连接</button>
+        <button id="options" class="link-button">高级设置</button>
+      </div>
+      <section id="doctorPanel" class="doctor-panel" hidden>
+        <div class="doctor-panel-header">
+          <strong>Doctor</strong>
+          <span id="doctorState">-</span>
+        </div>
+        <dl class="doctor-grid">
+          <div>
+            <dt>协议</dt>
+            <dd id="doctorProtocol">-</dd>
+          </div>
+          <div>
+            <dt>策略</dt>
+            <dd id="doctorPolicy">-</dd>
+          </div>
+          <div>
+            <dt>能力</dt>
+            <dd id="doctorActions">-</dd>
+          </div>
+          <div>
+            <dt>警告</dt>
+            <dd id="doctorWarnings">-</dd>
+          </div>
+        </dl>
+      </section>
+    </section>
+    <script src="popup.js" type="module"></script>
+  </body>
+</html>

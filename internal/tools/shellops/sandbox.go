@@ -11,9 +11,9 @@ import (
 )
 
 const (
-	sandboxRuntimeDirectory = ".synon-runtime"
-	sandboxHelperEnv        = "SYNON_INTERNAL_SANDBOX_HELPER"
-	sandboxPayloadEnv       = "SYNON_INTERNAL_SANDBOX_PAYLOAD"
+	sandboxRuntimeDirectory = ".x-science-runtime"
+	sandboxHelperEnv        = "X_SCIENCE_INTERNAL_SANDBOX_HELPER"
+	sandboxPayloadEnv       = "X_SCIENCE_INTERNAL_SANDBOX_PAYLOAD"
 )
 
 type sandboxCommand struct {
@@ -169,7 +169,7 @@ func validateSandboxEnvironmentEntry(key, value string) error {
 		return errors.New("sandbox environment contains an invalid key or value")
 	}
 	upper := strings.ToUpper(key)
-	if strings.HasPrefix(upper, "SYNON_INTERNAL_") || sensitiveSandboxEnvironmentKey(upper) {
+	if strings.HasPrefix(upper, "X_SCIENCE_INTERNAL_") || sensitiveSandboxEnvironmentKey(upper) {
 		return fmt.Errorf("sandbox environment variable %q is not allowed", key)
 	}
 	return nil

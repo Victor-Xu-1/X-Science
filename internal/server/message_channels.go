@@ -11,16 +11,16 @@ import (
 	"strings"
 	"time"
 
-	adapterfeishu "synon-go/internal/adapters/feishu"
-	adapterqrimage "synon-go/internal/adapters/qrimage"
-	adapterwechat "synon-go/internal/adapters/wechat"
-	secretstore "synon-go/internal/persistence/secrets"
+	adapterfeishu "x-science/internal/adapters/feishu"
+	adapterqrimage "x-science/internal/adapters/qrimage"
+	adapterwechat "x-science/internal/adapters/wechat"
+	secretstore "x-science/internal/persistence/secrets"
 )
 
 const (
 	messageChannelRuntimeNamespace       = "message-channels"
-	messageChannelSecretPrefix           = "_synon_internal_message_channel_"
-	messageChannelSecretProvider         = "_synon_internal_message_channel"
+	messageChannelSecretPrefix           = "_x_science_internal_message_channel_"
+	messageChannelSecretProvider         = "_x_science_internal_message_channel"
 	messageChannelMaxSessionKeyLength    = 256
 	messageChannelMaxDisplayNameLength   = 256
 	messageChannelMaxCredentialValueSize = 4096

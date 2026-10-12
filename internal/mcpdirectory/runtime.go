@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/tools/mcpstdio"
+	"x-science/internal/tools/mcpstdio"
 )
 
 var ErrConnectorNotFound = errors.New("MCP connector not found")

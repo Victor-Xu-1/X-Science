@@ -21,8 +21,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"synon-go/internal/mcpdirectory"
-	secretstore "synon-go/internal/persistence/secrets"
+	"x-science/internal/mcpdirectory"
+	secretstore "x-science/internal/persistence/secrets"
 )
 
 const (
@@ -174,7 +174,7 @@ func (s *Server) handleWebSpeechToText(w http.ResponseWriter, r *http.Request) {
 		writeWebSpeechError(w, newWebSpeechError(http.StatusMethodNotAllowed, "STT_METHOD_NOT_ALLOWED", "speech-to-text requires POST"))
 		return
 	}
-	userID := strings.TrimSpace(r.Header.Get("X-Synon-User-Id"))
+	userID := strings.TrimSpace(r.Header.Get("X-Science-User-Id"))
 	if userID == "" {
 		writeWebSpeechError(w, newWebSpeechError(http.StatusUnauthorized, "STT_AUTH_REQUIRED", "authentication is required"))
 		return

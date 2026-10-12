@@ -23,10 +23,10 @@ interface EventTypes {
   'acp.selected.file.clear': void;
   'acp.workspace.refresh': void;
   'chat.history.refresh': void;
-  'synonbiomed.projects.refresh': void;
-  'synonbiomed.projects.create': void;
-  'synonbiomed.runtime.plan.open': [string];
-  'synonbiomed.runtime.reconciled': [string, TConversationRuntimeSummary];
+  'xscience.projects.refresh': void;
+  'xscience.projects.create': void;
+  'xscience.runtime.plan.open': [string];
+  'xscience.runtime.reconciled': [string, TConversationRuntimeSummary];
   // 会话删除事件 / Conversation deletion event
   'conversation.deleted': [string]; // conversation_id
   // 预览面板事件 / Preview panel events

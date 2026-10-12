@@ -5,10 +5,10 @@ if (( $# == 0 )); then
 	echo "usage: $0 <repository-relative-test-script> [args...]" >&2
 	exit 2
 fi
-if [[ "${SYNON_CLEAN_SOURCE_TEST:-}" == "1" ]] ||
+if [[ "${X_SCIENCE_CLEAN_SOURCE_TEST:-}" == "1" ]] ||
 	! git rev-parse --is-inside-work-tree >/dev/null 2>&1 ||
 	[[ -z "$(git status --porcelain --untracked-files=normal)" ]]; then
-	SYNON_CLEAN_SOURCE_TEST=1 exec bash "$@"
+	X_SCIENCE_CLEAN_SOURCE_TEST=1 exec bash "$@"
 fi
 
 tmp="$(mktemp -d)"
@@ -31,9 +31,9 @@ tar \
 (
 	cd "$snapshot"
 	git init -q
-	git config user.name 'Synon Release Test'
+	git config user.name 'XScience Release Test'
 	git config user.email 'release-test@localhost.invalid'
 	git add -A
 	git commit -q -m 'test: clean release snapshot'
-	SYNON_CLEAN_SOURCE_TEST=1 bash "$@"
+	X_SCIENCE_CLEAN_SOURCE_TEST=1 bash "$@"
 )

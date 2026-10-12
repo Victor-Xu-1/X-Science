@@ -206,7 +206,7 @@ func (authority *agentWorkspaceEditAuthority) createStaging(mode os.FileMode) (*
 		mode = 0o600
 	}
 	for attempt := 0; attempt < 16; attempt++ {
-		name := ".synon-edit-" + uuid.NewString()
+		name := ".x-science-edit-" + uuid.NewString()
 		handle, err := openAgentWorkspaceWindowsObject(
 			authority.parent, name,
 			windows.FILE_GENERIC_READ|windows.FILE_GENERIC_WRITE|windows.DELETE,

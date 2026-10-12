@@ -51,7 +51,7 @@ const useFormatContent = (content: string) => {
 };
 
 const ownershipColor = {
-  'synon-ai': 'red',
+  'x-science': 'red',
   user_agent: 'orange',
   user_llm_provider: 'arcoblue',
   unknown_upstream: 'gray',

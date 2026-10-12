@@ -1,6 +1,6 @@
 package feishu
 
-import adapterqrimage "synon-go/internal/adapters/qrimage"
+import adapterqrimage "x-science/internal/adapters/qrimage"
 
 // EncodeDeviceVerificationURL returns an in-memory QR image suitable for the
 // authenticated settings response. The URL is never sent to a QR SaaS.

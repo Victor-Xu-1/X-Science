@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	kernelruntime "synon-go/internal/kernel"
+	kernelruntime "x-science/internal/kernel"
 )
 
 type managedPythonSourcePreflighter interface {

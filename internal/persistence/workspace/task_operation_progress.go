@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 // AppendTaskOperationProgress only observes the currently owned delivery. The

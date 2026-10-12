@@ -31,7 +31,7 @@ func TestScientificArtifactFailureFeedbackPreservesParserDiagnosis(t *testing.T)
 func TestAgentSaveArtifactsScientificFailureThenRepair(t *testing.T) {
 	fixture := newAgentSaveArtifactsFixtureWithKernelManager(t, realManagedScientificKernelManagerForServerTest(t))
 	const name = "out/molecules.smi"
-	input := map[string]any{"files": []any{name}, "language": "python", "environment": "synon-biomed-python", "human_description": "Save molecular data"}
+	input := map[string]any{"files": []any{name}, "language": "python", "environment": "x-science-python", "human_description": "Save molecular data"}
 	const original = "smiles name\nCCO first\nnot_a_molecule invalid\nCCC third\n"
 	write := writeAgentSaveArtifactsFile(t, fixture.projectPath, name, original)
 	fixture.saveExecution(t, fixture.identity.access, fixture.projectPath, "invalid-source", 1, write)
@@ -64,9 +64,9 @@ func TestAgentSaveArtifactsScientificFailureThenRepair(t *testing.T) {
 }
 
 func TestScientificArtifactValidatorExitContract(t *testing.T) {
-	python := os.Getenv("SYNON_TEST_SCIENTIFIC_PYTHON")
+	python := os.Getenv("X_SCIENCE_TEST_SCIENTIFIC_PYTHON")
 	if python == "" {
-		t.Skip("set SYNON_TEST_SCIENTIFIC_PYTHON for real subprocess protocol tests")
+		t.Skip("set X_SCIENCE_TEST_SCIENTIFIC_PYTHON for real subprocess protocol tests")
 	}
 	for _, test := range []struct {
 		name string

@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"testing"
 
-	"synon-go/internal/executionprep"
+	"x-science/internal/executionprep"
 )
 
 func TestExecutionPreparationUsesRealParsersAcrossEntryPoints(t *testing.T) {

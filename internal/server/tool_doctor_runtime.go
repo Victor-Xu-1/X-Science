@@ -4,10 +4,10 @@ import (
 	"fmt"
 	osexec "os/exec"
 	"strings"
-	"synon-go/internal/toolcontract"
-	"synon-go/internal/tools/lspstatic"
-	"synon-go/internal/tools/mcpstdio"
-	"synon-go/internal/tools/registry"
+	"x-science/internal/toolcontract"
+	"x-science/internal/tools/lspstatic"
+	"x-science/internal/tools/mcpstdio"
+	"x-science/internal/tools/registry"
 )
 
 func (s *Server) executeToolDoctorTool(input map[string]any) (any, error) {
@@ -105,10 +105,10 @@ func (s *Server) executeToolDoctorTool(input map[string]any) (any, error) {
 		}
 		addCheck("compute", "durable-kernel-runner", status, message, map[string]any{"agentRuntimeDoctorRegistered": hasRegisteredTool(s.tools, "AgentRuntimeDoctor")})
 	}
-	if shouldRun("synonlink") {
-		clients := s.synonLink.ListAllClients()
-		running := s.synonLink.ListAllRunning()
-		addCheck("synonlink", "synon-link-service", "pass", fmt.Sprintf("%d connected clients; %d running tasks.", len(clients), len(running)), map[string]any{
+	if shouldRun("xsciencelink") {
+		clients := s.xscienceLink.ListAllClients()
+		running := s.xscienceLink.ListAllRunning()
+		addCheck("xsciencelink", "x-science-link-service", "pass", fmt.Sprintf("%d connected clients; %d running tasks.", len(clients), len(running)), map[string]any{
 			"clients":      len(clients),
 			"runningTasks": len(running),
 		})
@@ -200,7 +200,7 @@ func (s *Server) executeToolDoctorTool(input map[string]any) (any, error) {
 			message := fmt.Sprintf("%d MCP servers configured; %d stdio, %d HTTP/SSE, %d WebSocket, and %d SDK bridge servers callable by the Go runtime.", len(servers), stdioCount, remoteHTTPCount, remoteWebSocketCount, sdkBridgeCount)
 			if len(servers) == 0 {
 				status = "info"
-				message = "No MCP servers are configured in SYNON_MCP_CONFIG, SYNON_MCP_CONFIG_JSON, or FileRoot .mcp.json."
+				message = "No MCP servers are configured in X_SCIENCE_MCP_CONFIG, X_SCIENCE_MCP_CONFIG_JSON, or FileRoot .mcp.json."
 			} else if unsupportedCount > 0 {
 				status = "warn"
 				message = fmt.Sprintf("%d MCP servers configured; %d stdio, %d HTTP/SSE, %d WebSocket, and %d SDK bridge callable, %d unsupported servers require an external bridge or supported transport.", len(servers), stdioCount, remoteHTTPCount, remoteWebSocketCount, sdkBridgeCount, unsupportedCount)
@@ -215,7 +215,7 @@ func (s *Server) executeToolDoctorTool(input map[string]any) (any, error) {
 		} else if liveCount > 0 {
 			addCheck("lsp", "lsp-runtime", "pass", fmt.Sprintf("%d external stdio/socket LSP server(s) configured; LSP tool will prefer live language-server JSON-RPC and fall back to static scanning when unavailable.", liveCount), map[string]any{"liveServers": liveCount})
 		} else {
-			addCheck("lsp", "lsp-runtime", "info", "No external LSP servers configured in SYNON_LSP_CONFIG, SYNON_LSP_CONFIG_JSON, or FileRoot .lsp.json; LSP tool uses static code intelligence fallback.", map[string]any{"liveServers": 0})
+			addCheck("lsp", "lsp-runtime", "info", "No external LSP servers configured in X_SCIENCE_LSP_CONFIG, X_SCIENCE_LSP_CONFIG_JSON, or FileRoot .lsp.json; LSP tool uses static code intelligence fallback.", map[string]any{"liveServers": 0})
 		}
 	}
 	if shouldRun("permissions") {
@@ -257,7 +257,7 @@ func (s *Server) executeToolDoctorTool(input map[string]any) (any, error) {
 
 func validToolDoctorScope(scope string) bool {
 	switch scope {
-	case "all", "tools", "mcp", "lsp", "shell", "web", "task", "compute", "synonlink", "adapters", "permissions", "feature-gates", "smoke":
+	case "all", "tools", "mcp", "lsp", "shell", "web", "task", "compute", "xsciencelink", "adapters", "permissions", "feature-gates", "smoke":
 		return true
 	default:
 		return false

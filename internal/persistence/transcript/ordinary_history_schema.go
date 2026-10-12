@@ -2,7 +2,7 @@ package transcript
 
 import "strings"
 
-const HistoryOrdinaryCutoverContractID = "synon.transcript.history-ordinary-cutover.v33"
+const HistoryOrdinaryCutoverContractID = "x-science.transcript.history-ordinary-cutover.v33"
 
 const historyOrdinaryCutoverRunsV33Statement = `CREATE TABLE transcript_history_ordinary_cutover_runs (
 	ordinary_cutover_id BLOB PRIMARY KEY CHECK(length(ordinary_cutover_id) = 32),

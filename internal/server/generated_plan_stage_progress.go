@@ -3,7 +3,7 @@ package server
 import (
 	"strings"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 type generatedPlanStageStep = transcriptstore.AskUserStageStepV1
@@ -22,7 +22,7 @@ func (s *Server) generatedPlanStageProgressSnapshot(frameID string, run *session
 		return nil
 	}
 	progress := &generatedPlanStageProgress{
-		Schema:         "synon.plan_stage_progress.v1",
+		Schema:         "x-science.plan_stage_progress.v1",
 		PlanArtifactID: strings.TrimSpace(stringValue(snapshot.data["_plan_artifact_id"])),
 		PlanVersionID:  strings.TrimSpace(stringValue(snapshot.data["_plan_version_id"])),
 		CompletedSteps: make([]generatedPlanStageStep, 0),

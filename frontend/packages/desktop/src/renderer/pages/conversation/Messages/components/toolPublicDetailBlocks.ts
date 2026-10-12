@@ -98,7 +98,7 @@ export function formatPublicTaskPath(value: string): string | null {
   if (!normalized) return null;
   const taskRelative = normalized
     .replace(
-      /(?:\/home\/[^\s/]+\/\.local\/state\/synon-biomed[^\s]*\/data-workspaces\/[A-Za-z0-9-]+\/tasks\/[A-Za-z0-9-]+\/)/giu,
+      /(?:\/home\/[^\s/]+\/\.local\/state\/x-science[^\s]*\/data-workspaces\/[A-Za-z0-9-]+\/tasks\/[A-Za-z0-9-]+\/)/giu,
       './'
     )
     .replace(/(?:[A-Za-z]:\\[^\s]+\\data-workspaces\\[A-Za-z0-9-]+\\tasks\\[A-Za-z0-9-]+\\)/giu, '.\\');
@@ -120,11 +120,11 @@ export function sanitizePublicTaskText(value: string): string | null {
       .replace(/\bmem_[A-Za-z0-9_-]+\b/gu, '[memory record]')
       .replace(/\b(?:project|artifact|frame):[A-Za-z0-9_-]{8,}\b/gu, (scope) => scope.split(':')[0])
       .replace(
-        /\.synon[\\/]+runtime[\\/]+skills[\\/]+[^\\/\s"']+[\\/]+[^\\/\s"']+[\\/]+scripts[\\/]+([^\\/\s"']+)/giu,
+        /\.xscience[\\/]+runtime[\\/]+skills[\\/]+[^\\/\s"']+[\\/]+[^\\/\s"']+[\\/]+scripts[\\/]+([^\\/\s"']+)/giu,
         'analysis-tools/$1'
       )
       .replace(
-        /\/home\/[^\s/]+\/\.local\/state\/synon-biomed[^\s]*\/data-workspaces\/[A-Za-z0-9-]+\/tasks\/[A-Za-z0-9-]+\//giu,
+        /\/home\/[^\s/]+\/\.local\/state\/x-science[^\s]*\/data-workspaces\/[A-Za-z0-9-]+\/tasks\/[A-Za-z0-9-]+\//giu,
         './'
       )
       .replace(/\/workspace(?:\/[^\s"'<>]+)?/giu, (path) =>

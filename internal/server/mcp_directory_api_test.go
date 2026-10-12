@@ -19,7 +19,7 @@ import (
 
 	"github.com/coder/websocket"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestMCPDirectoryHTTPAPIUsesBaselineRoutes(t *testing.T) {
@@ -29,8 +29,8 @@ func TestMCPDirectoryHTTPAPIUsesBaselineRoutes(t *testing.T) {
 			http.NotFound(w, r)
 			return
 		}
-		if r.Header.Get("X-Synon-Catalog-Uuid") != "4f5b9638-2dc3-4b70-bbea-9af732ba57ef" {
-			t.Errorf("catalog UUID header = %q", r.Header.Get("X-Synon-Catalog-Uuid"))
+		if r.Header.Get("X-Science-Catalog-Uuid") != "4f5b9638-2dc3-4b70-bbea-9af732ba57ef" {
+			t.Errorf("catalog UUID header = %q", r.Header.Get("X-Science-Catalog-Uuid"))
 		}
 		if r.Header.Get("If-None-Match") == etag {
 			w.WriteHeader(http.StatusNotModified)
@@ -175,7 +175,7 @@ func TestMCPDirectoryHTTPAPIUsesBaselineRoutes(t *testing.T) {
 }
 func TestMCPDirectoryConnectorDiscoveryUsesV11ArrayShapeOwnerScopeFilteringAndDurableHealth(t *testing.T) {
 	var toolListCalls atomic.Int64
-	t.Setenv("SYNON_BUNDLED_CONNECTOR_EXECUTABLE", "mcp-ketcher")
+	t.Setenv("X_SCIENCE_BUNDLED_CONNECTOR_EXECUTABLE", "mcp-ketcher")
 	catalog := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/catalog":

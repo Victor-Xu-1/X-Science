@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/skills"
+	"x-science/internal/skills"
 )
 
 func TestLiteratureReviewSkillUsesBroadQueryTracksAndAuditableSourceLedger(t *testing.T) {
@@ -19,7 +19,7 @@ func TestLiteratureReviewSkillUsesBroadQueryTracksAndAuditableSourceLedger(t *te
 		t.Fatal("locate repository root")
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
-	skillRoot := filepath.Join(repositoryRoot, "skills", "synonbiomed", "literature-review")
+	skillRoot := filepath.Join(repositoryRoot, "skills", "x-science", "literature-review")
 	content, err := os.ReadFile(filepath.Join(skillRoot, "SKILL.md"))
 	if err != nil {
 		t.Fatal(err)
@@ -69,7 +69,7 @@ func TestLiteratureReviewSkillUsesBroadQueryTracksAndAuditableSourceLedger(t *te
 		}
 	}
 
-	manifestContent, err := os.ReadFile(filepath.Join(repositoryRoot, "assets", "synonbiomed", "skills.manifest.json"))
+	manifestContent, err := os.ReadFile(filepath.Join(repositoryRoot, "assets", "x-science", "skills.manifest.json"))
 	if err != nil {
 		t.Fatal(err)
 	}

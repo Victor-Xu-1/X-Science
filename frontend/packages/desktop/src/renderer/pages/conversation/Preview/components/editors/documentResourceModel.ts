@@ -1,5 +1,5 @@
-export const ORIGINAL_RESOURCE_ATTRIBUTE = 'data-synon-original-src';
-export const ORIGINAL_LINK_ATTRIBUTE = 'data-synon-original-href';
+export const ORIGINAL_RESOURCE_ATTRIBUTE = 'data-x-science-original-src';
+export const ORIGINAL_LINK_ATTRIBUTE = 'data-x-science-original-href';
 
 export type DocumentResourceKind = 'link' | 'image';
 export type DocumentResourceValidation =

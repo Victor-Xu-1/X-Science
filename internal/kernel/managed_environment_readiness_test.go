@@ -242,7 +242,7 @@ func TestManagedLegacyReadinessChecksBothExecutableLayouts(t *testing.T) {
 }
 
 func TestManagedImportWitnessRequiresOwnSentinelAndSuccessfulExit(t *testing.T) {
-	for _, script := range []string{"#!/bin/sh\nprintf '{\"ok\":true}'\n", "#!/bin/sh\nprintf 'SYNON_IMPORT_WITNESS_OK\\n'\nexit 3\n"} {
+	for _, script := range []string{"#!/bin/sh\nprintf '{\"ok\":true}'\n", "#!/bin/sh\nprintf 'X_SCIENCE_IMPORT_WITNESS_OK\\n'\nexit 3\n"} {
 		prefix := t.TempDir()
 		if err := os.MkdirAll(filepath.Join(prefix, "bin"), 0700); err != nil {
 			t.Fatal(err)

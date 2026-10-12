@@ -1,4 +1,4 @@
-import type { ISynonBiomedScientificFile } from '@/common/adapter/ipcBridge';
+import type { IXScienceScientificFile } from '@/common/adapter/ipcBridge';
 import type { ArtifactReferenceRelation, ArtifactReferenceWire } from '@/common/adapter/messageStreamProtocol';
 import type { TMessage } from '@/common/chat/chatLib';
 
@@ -18,9 +18,9 @@ export function deliveredMessageArtifactReferences(message: TMessage): ArtifactR
 }
 
 export function indexScientificFilesByArtifactReference(
-  files: ISynonBiomedScientificFile[]
-): ReadonlyMap<string, ISynonBiomedScientificFile> {
-  const byVersion = new Map<string, ISynonBiomedScientificFile>();
+  files: IXScienceScientificFile[]
+): ReadonlyMap<string, IXScienceScientificFile> {
+  const byVersion = new Map<string, IXScienceScientificFile>();
   for (const file of files) {
     if (file.version_id === null) continue;
     byVersion.set(artifactReferenceKey(file.artifact_id, file.version_id), file);
@@ -30,13 +30,13 @@ export function indexScientificFilesByArtifactReference(
 
 export function matchScientificFilesToArtifactReferences(
   references: ArtifactReferenceWire[] | undefined,
-  files: ISynonBiomedScientificFile[],
+  files: IXScienceScientificFile[],
   relations: ReadonlySet<ArtifactReferenceRelation>,
-  indexedFiles?: ReadonlyMap<string, ISynonBiomedScientificFile>
-): ISynonBiomedScientificFile[] {
+  indexedFiles?: ReadonlyMap<string, IXScienceScientificFile>
+): IXScienceScientificFile[] {
   if (!references?.length) return [];
   const byVersion = indexedFiles ?? indexScientificFilesByArtifactReference(files);
-  const matched: ISynonBiomedScientificFile[] = [];
+  const matched: IXScienceScientificFile[] = [];
   for (const reference of references) {
     if (!relations.has(reference.relation)) continue;
     if (reference.availability === 'deleted' || reference.availability === 'missing') {

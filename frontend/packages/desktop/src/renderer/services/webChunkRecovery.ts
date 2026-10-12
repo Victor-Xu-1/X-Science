@@ -1,4 +1,4 @@
-const RECOVERY_MARKER_KEY = 'synon.webChunkRecovery.v1';
+const RECOVERY_MARKER_KEY = 'x-science.webChunkRecovery.v1';
 const DEFAULT_RECOVERY_GUARD_MS = 5 * 60 * 1000;
 
 type RecoveryStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;

@@ -7,8 +7,8 @@ import (
 	"log"
 	"time"
 
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const (
@@ -121,6 +121,9 @@ func (s *Server) recoverDetachedKernelExecution(
 		backend.RootFrameID != request.RootFrameID || backend.FrameID != request.FrameID ||
 		backend.KernelID != request.KernelID || backend.KernelGeneration != request.KernelGeneration {
 		return workspace.ErrDetachedKernelExecutionConflict
+	}
+	if kernelNamespaceRecoveryHeld(execution) {
+		return nil // Explicit observation hold, not physical loss or redispatch.
 	}
 	persistedSpec, err := workspace.DecodeKernelExecutionSessionSpecV1(backend.SessionSpecJSON)
 	if err != nil {

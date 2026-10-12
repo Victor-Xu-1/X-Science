@@ -19,7 +19,7 @@ func TestSystemdUserExecutorLauncherUsesOneIndependentService(t *testing.T) {
 	if err := os.WriteFile(runner, []byte(script), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	executable := filepath.Join(root, "synon-go")
+	executable := filepath.Join(root, "x-science")
 	logPath := filepath.Join(root, "executor.log")
 	meminfo := filepath.Join(root, "meminfo")
 	if err := os.WriteFile(meminfo, []byte("MemTotal:       12582912 kB\nMemAvailable:   10485760 kB\n"), 0o600); err != nil {
@@ -41,7 +41,7 @@ func TestSystemdUserExecutorLauncherUsesOneIndependentService(t *testing.T) {
 	for _, required := range []string{
 		"--user\n", "--collect\n", "--service-type=exec\n",
 		"--working-directory=" + root + "\n",
-		"--unit=synon-kernel-executor-01234567-89ab-cdef-0123-456789abcdef-g3.service\n",
+		"--unit=x-science-kernel-executor-01234567-89ab-cdef-0123-456789abcdef-g3.service\n",
 		"--property=KillMode=control-group\n", "--property=MemoryHigh=5583457485\n",
 		"--property=Delegate=memory\n", "--property=DelegateSubgroup=control\n",
 		"--property=MemoryMax=5583457485\n", "--property=MemorySwapMax=536870912\n",
@@ -121,7 +121,7 @@ func TestDefaultSharedSocketRootUsesPrivateRuntimeDirectory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if filepath.Dir(root) != runtimeDir || !strings.HasPrefix(filepath.Base(root), "synon-kernel-") {
+	if filepath.Dir(root) != runtimeDir || !strings.HasPrefix(filepath.Base(root), "x-science-kernel-") {
 		t.Fatalf("shared socket root=%q", root)
 	}
 	if err := os.Chmod(runtimeDir, 0o755); err != nil {

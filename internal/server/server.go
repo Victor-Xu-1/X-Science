@@ -13,51 +13,51 @@ import (
 	"sync"
 	"time"
 
-	"synon-go/internal/account"
-	adaptercommon "synon-go/internal/adapters/common"
-	adapterfeishu "synon-go/internal/adapters/feishu"
-	adapterwechat "synon-go/internal/adapters/wechat"
-	"synon-go/internal/agentruntime"
+	"x-science/internal/account"
+	adaptercommon "x-science/internal/adapters/common"
+	adapterfeishu "x-science/internal/adapters/feishu"
+	adapterwechat "x-science/internal/adapters/wechat"
+	"x-science/internal/agentruntime"
 
-	"synon-go/internal/capabilities"
-	"synon-go/internal/cloudstore"
-	compute "synon-go/internal/compute"
-	"synon-go/internal/datadir"
-	kernelruntime "synon-go/internal/kernel"
-	"synon-go/internal/mcpdirectory"
-	"synon-go/internal/memoryconfig"
-	"synon-go/internal/observability"
-	eventjournal "synon-go/internal/persistence/journal"
-	pairingstore "synon-go/internal/persistence/pairing"
-	runtimekv "synon-go/internal/persistence/runtimekv"
-	secretstore "synon-go/internal/persistence/secrets"
-	sessionstore "synon-go/internal/persistence/sessions"
-	settingsstore "synon-go/internal/persistence/settings"
-	taskruns "synon-go/internal/persistence/taskruns"
-	taskstore "synon-go/internal/persistence/tasks"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
-	pluginhost "synon-go/internal/plugins/host"
+	"x-science/internal/capabilities"
+	"x-science/internal/cloudstore"
+	compute "x-science/internal/compute"
+	"x-science/internal/datadir"
+	kernelruntime "x-science/internal/kernel"
+	"x-science/internal/mcpdirectory"
+	"x-science/internal/memoryconfig"
+	"x-science/internal/observability"
+	eventjournal "x-science/internal/persistence/journal"
+	pairingstore "x-science/internal/persistence/pairing"
+	runtimekv "x-science/internal/persistence/runtimekv"
+	secretstore "x-science/internal/persistence/secrets"
+	sessionstore "x-science/internal/persistence/sessions"
+	settingsstore "x-science/internal/persistence/settings"
+	taskruns "x-science/internal/persistence/taskruns"
+	taskstore "x-science/internal/persistence/tasks"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
+	pluginhost "x-science/internal/plugins/host"
 
-	runtimecontrol "synon-go/internal/runtimecontrol"
-	"synon-go/internal/sciencecapability"
-	"synon-go/internal/skills"
-	"synon-go/internal/synonlink"
+	runtimecontrol "x-science/internal/runtimecontrol"
+	"x-science/internal/sciencecapability"
+	"x-science/internal/skills"
+	"x-science/internal/xsciencelink"
 
-	"synon-go/internal/tools/mcpstdio"
+	"x-science/internal/tools/mcpstdio"
 
-	"synon-go/internal/tools/registry"
-	"synon-go/internal/tools/shellops"
-	"synon-go/internal/tools/webfetch"
-	"synon-go/internal/tools/websearch"
-	"synon-go/internal/vmresources"
-	"synon-go/internal/vmrestart"
+	"x-science/internal/tools/registry"
+	"x-science/internal/tools/shellops"
+	"x-science/internal/tools/webfetch"
+	"x-science/internal/tools/websearch"
+	"x-science/internal/vmresources"
+	"x-science/internal/vmrestart"
 )
 
 type Options struct {
 	Capabilities                          capabilities.Report
-	SynonLink                             *synonlink.Service
-	SynonLinkAuth                         SynonLinkAuthOptions
+	XScienceLink                             *xsciencelink.Service
+	XScienceLinkAuth                         XScienceLinkAuthOptions
 	WebAuth                               WebAuthOptions
 	LinkPackagePath                       string
 	Tools                                 *registry.Registry
@@ -157,8 +157,8 @@ type AdapterPlatformDiagnostics struct {
 
 type Server struct {
 	capabilities  capabilities.Report
-	synonLink     *synonlink.Service
-	synonLinkAuth *synonLinkAuthenticator
+	xscienceLink     *xsciencelink.Service
+	xscienceLinkAuth *xscienceLinkAuthenticator
 	loginLimiter  *loginRateLimiter
 	webAuthenticationState
 	accountManagementReader               account.ManagementReader
@@ -343,11 +343,11 @@ func New(options Options) *Server {
 	}
 	report := options.Capabilities
 	if report.Status == "" {
-		report = capabilities.CompactSynon()
+		report = capabilities.CompactXScience()
 	}
-	link := options.SynonLink
+	link := options.XScienceLink
 	if link == nil {
-		link = synonlink.NewService()
+		link = xsciencelink.NewService()
 	}
 	remoteDialer := options.ComputeRemoteDialer
 	if remoteDialer == nil {
@@ -473,39 +473,39 @@ func New(options Options) *Server {
 	}
 	approvalDecisionMu := &sync.Mutex{}
 	if settings != nil {
-		link.SetPolicyDefaultsProvider(func() synonlink.PolicyDefaults {
+		link.SetPolicyDefaultsProvider(func() xsciencelink.PolicyDefaults {
 			setting, ok, err := settings.Get(approvalDefaultsSettingKey)
 			if err != nil || !ok {
-				return synonlink.PolicyDefaults{}
+				return xsciencelink.PolicyDefaults{}
 			}
-			defaults, err := synonlink.NormalizePolicyDefaults(setting.Value)
+			defaults, err := xsciencelink.NormalizePolicyDefaults(setting.Value)
 			if err != nil {
-				return synonlink.PolicyDefaults{}
+				return xsciencelink.PolicyDefaults{}
 			}
 			return defaults
 		})
 		link.SetRememberedApprovalStore(
-			func(userID, clientID, action string) (synonlink.RememberedApprovalDecision, bool) {
+			func(userID, clientID, action string) (xsciencelink.RememberedApprovalDecision, bool) {
 				setting, ok, err := settings.Get(approvalRememberedSettingKey)
 				if err != nil || !ok {
-					return synonlink.RememberedApprovalDecision{}, false
+					return xsciencelink.RememberedApprovalDecision{}, false
 				}
 				decisions := rememberedApprovalDecisionsFromSetting(setting.Value)
-				decision, ok := decisions[synonlink.RememberedApprovalKey(userID, clientID, action)]
+				decision, ok := decisions[xsciencelink.RememberedApprovalKey(userID, clientID, action)]
 				return decision, ok
 			},
-			func(decision synonlink.RememberedApprovalDecision) error {
+			func(decision xsciencelink.RememberedApprovalDecision) error {
 				approvalDecisionMu.Lock()
 				defer approvalDecisionMu.Unlock()
 				setting, ok, err := settings.Get(approvalRememberedSettingKey)
 				if err != nil {
 					return err
 				}
-				decisions := map[string]synonlink.RememberedApprovalDecision{}
+				decisions := map[string]xsciencelink.RememberedApprovalDecision{}
 				if ok {
 					decisions = rememberedApprovalDecisionsFromSetting(setting.Value)
 				}
-				decisions[synonlink.RememberedApprovalKey(decision.UserID, decision.ClientID, decision.Action)] = decision
+				decisions[xsciencelink.RememberedApprovalKey(decision.UserID, decision.ClientID, decision.Action)] = decision
 				_, err = settings.Set(approvalRememberedSettingKey, rememberedApprovalDecisionsToSetting(decisions))
 				return err
 			},
@@ -541,7 +541,7 @@ func New(options Options) *Server {
 			modalConfigPath = filepath.Join(home, ".modal.toml")
 		}
 	}
-	linkAuth := newSynonLinkAuthenticator(options.SynonLinkAuth)
+	linkAuth := newXScienceLinkAuthenticator(options.XScienceLinkAuth)
 	webAuthState := newWebAuthenticationState(options, linkAuth, httpClient)
 	var transcriptContractErr error
 	if options.Transcript != nil {
@@ -552,8 +552,8 @@ func New(options Options) *Server {
 	}
 	server := &Server{
 		capabilities:           report,
-		synonLink:              link,
-		synonLinkAuth:          linkAuth,
+		xscienceLink:              link,
+		xscienceLinkAuth:          linkAuth,
 		loginLimiter:           newLoginRateLimiter(),
 		webAuthenticationState: webAuthState,
 		accountManagementReader: newLocalAccountManagementReaderWithConfig(webAuthState, linkAuth, localAccountManagementConfig{
@@ -728,10 +728,10 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/conversations", s.handleWebConversations)
 	mux.HandleFunc("/api/conversations/", s.handleWebConversation)
 	mux.HandleFunc("/api/contact-email", s.handleContactEmail)
-	mux.HandleFunc("/api/synonbiomed/licenses/third-party", s.handleThirdPartyLicenses)
-	mux.HandleFunc("/api/synonbiomed/experts", s.handleWebManagedExperts)
-	mux.HandleFunc("/api/synonbiomed/catalog", s.handleSynonBiomedCatalog)
-	mux.HandleFunc("/api/synonbiomed/projects", s.handleSynonBiomedProjects)
+	mux.HandleFunc("/api/x-science/licenses/third-party", s.handleThirdPartyLicenses)
+	mux.HandleFunc("/api/x-science/experts", s.handleWebManagedExperts)
+	mux.HandleFunc("/api/x-science/catalog", s.handleXScienceCatalog)
+	mux.HandleFunc("/api/x-science/projects", s.handleXScienceProjects)
 	mux.HandleFunc("/api/system/info", s.handleSystemInfo)
 	mux.HandleFunc("/api/system/provenance-census", s.handleProvenanceCensus)
 	mux.HandleFunc("/api/fs/dir", s.handleWebFS)
@@ -783,12 +783,12 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/assets/logos/", s.handleWebLogoAsset)
 	mux.HandleFunc("/api/environments/status", s.handleEnvironmentStatus)
 	mux.HandleFunc("/api/environments/retry", s.handleEnvironmentRetry)
-	mux.HandleFunc("/api/auth/login", s.handleSynonLinkLogin)
+	mux.HandleFunc("/api/auth/login", s.handleXScienceLinkLogin)
 	mux.HandleFunc("/api/auth/logout", s.handleLogout)
 	mux.HandleFunc("/login", s.handleWebLogin)
 	mux.HandleFunc("/register", s.handleWebRegister)
 	mux.HandleFunc("/logout", s.handleLogout)
-	mux.HandleFunc("/synon-link/ws", s.handleSynonLinkCompatibilityWebSocket)
+	mux.HandleFunc("/x-science-link/ws", s.handleXScienceLinkCompatibilityWebSocket)
 	mux.HandleFunc("/api/feedback/available", s.handleFeedbackAvailability)
 	mux.HandleFunc("/api/feedback/safety", s.handleSafetyFeedback)
 	mux.HandleFunc("/api/feedback", s.handleFeedback)
@@ -901,8 +901,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/csrf", s.handleCSRF)
 	mux.HandleFunc("/api/agents", s.handleAgentCompatibility)
 	mux.HandleFunc("/api/agents/", s.handleAgentProfileCompatibility)
-	mux.HandleFunc("/api/synonbiomed/expert-profiles", s.handleSynonBiomedExpertProfiles)
-	mux.HandleFunc("/api/synonbiomed/expert-profiles/", s.handleSynonBiomedExpertProfiles)
+	mux.HandleFunc("/api/x-science/expert-profiles", s.handleXScienceExpertProfiles)
+	mux.HandleFunc("/api/x-science/expert-profiles/", s.handleXScienceExpertProfiles)
 	mux.HandleFunc("/api/compute/inference-providers", s.handleInferenceProviders)
 	mux.HandleFunc("/api/compute/inference-providers/", s.handleInferenceProvider)
 	mux.HandleFunc("/api/compute/providers", s.handleComputeProviders)
@@ -969,12 +969,12 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/mcp/apps/pin", s.handleMCPAppPin)
 	mux.HandleFunc("/api/models", s.handleWorkspaceModels)
 	mux.HandleFunc("/v1/models", s.handleWorkspaceModels)
-	mux.HandleFunc("/api/plugins/synon/capabilities", s.handleCapabilities)
-	mux.HandleFunc("/api/plugins/synon/link/download", s.handleSynonLinkDownload)
+	mux.HandleFunc("/api/plugins/x-science/capabilities", s.handleCapabilities)
+	mux.HandleFunc("/api/plugins/x-science/link/download", s.handleXScienceLinkDownload)
 	mux.HandleFunc("/api/plugins", s.handlePlugins)
 	mux.HandleFunc("/api/plugins/", s.handlePlugins)
-	mux.HandleFunc("/api/synon-link", s.handleSynonLink)
-	mux.HandleFunc("/api/synon-link/", s.handleSynonLink)
+	mux.HandleFunc("/api/x-science-link", s.handleXScienceLink)
+	mux.HandleFunc("/api/x-science-link/", s.handleXScienceLink)
 	mux.HandleFunc("/api/adapters/feishu/event", s.handleFeishuEvent)
 	mux.HandleFunc("/api/adapters/wechat/event", s.handleWeChatEvent)
 	mux.HandleFunc("/api/adapters/message-channels", s.handleMessageChannelStatuses)

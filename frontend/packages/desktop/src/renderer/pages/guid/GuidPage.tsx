@@ -12,7 +12,7 @@ import type { SlashCommandItem } from '@/common/chat/slash/types';
 import type { IConversationMcpStatus, IMcpServer } from '@/common/config/storage';
 import { resolveLocaleKey } from '@/common/utils';
 import type { AssistantDetail } from '@/common/types/agent/assistantTypes';
-import type { AgentModeOption } from '@/renderer/utils/synonBiomed/runtime/runtimeTypes';
+import type { AgentModeOption } from '@/renderer/utils/xScience/runtime/runtimeTypes';
 
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import { useAuth } from '@/renderer/hooks/context/AuthContext';
@@ -21,26 +21,26 @@ import SlashCommandMenu, { type SlashCommandMenuItem } from '@/renderer/componen
 import GuidActionRow from './components/GuidActionRow';
 import GuidProjectFilesModal from './components/GuidProjectFilesModal';
 import GuidInputCard from './components/GuidInputCard';
-import SynonBiomedDraftModelSelector from '@/renderer/components/synonBiomed/runtime/SynonBiomedDraftModelSelector';
+import XScienceDraftModelSelector from '@/renderer/components/xScience/runtime/XScienceDraftModelSelector';
 import { useGuidAssistantSelection } from './hooks/useGuidAssistantSelection';
 import { useGuidInput } from './hooks/useGuidInput';
-import { parseSynonBiomedProjectWorkspace, useGuidSend } from './hooks/useGuidSend';
+import { parseXScienceProjectWorkspace, useGuidSend } from './hooks/useGuidSend';
 import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
 import { ensureBackendMcpCatalog } from '@/renderer/hooks/mcp/catalog';
 import { resolveGuidAssistantDefaults } from './utils/assistantDefaults';
 import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
-import SynonBiomedSessionOptionsMenu from '@/renderer/components/synonBiomed/runtime/SynonBiomedSessionOptionsMenu';
-import SynonBiomedPermissionMenu from '@/renderer/components/synonBiomed/runtime/SynonBiomedPermissionMenu';
-import SynonBiomedSendOptionsMenu, {
-  type SynonBiomedSendIntent,
-} from '@/renderer/components/synonBiomed/runtime/SynonBiomedSendOptionsMenu';
+import XScienceSessionOptionsMenu from '@/renderer/components/xScience/runtime/XScienceSessionOptionsMenu';
+import XSciencePermissionMenu from '@/renderer/components/xScience/runtime/XSciencePermissionMenu';
+import XScienceSendOptionsMenu, {
+  type XScienceSendIntent,
+} from '@/renderer/components/xScience/runtime/XScienceSendOptionsMenu';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
-import { loadAvailableSkillsWithSynonBiomed } from '@/renderer/services/skills/skillsCatalog';
+import { loadAvailableSkillsWithXScience } from '@/renderer/services/skills/skillsCatalog';
 import {
-  loadSynonBiomedAssistantComposerCapabilities,
-  type SynonBiomedComposerCapabilities,
-  type SynonBiomedProjectArtifact,
-} from '@/renderer/services/synonBiomedGateway';
+  loadXScienceAssistantComposerCapabilities,
+  type XScienceComposerCapabilities,
+  type XScienceProjectArtifact,
+} from '@/renderer/services/xScienceGateway';
 import {
   addComposerContextItem,
   composerContextItemKey,
@@ -52,7 +52,7 @@ import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
 import { useGuidSessionOptions } from './hooks/useGuidSessionOptions';
 import { useLiveTranscriptInsertion } from '@/renderer/hooks/system/useLiveTranscriptInsertion';
 import { ConfigProvider } from '@arco-design/web-react';
-import type { AcpDerivedOption } from '@/renderer/hooks/synonBiomed/runtime/useAcpConfigOptions';
+import type { AcpDerivedOption } from '@/renderer/hooks/xScience/runtime/useAcpConfigOptions';
 import { buildProjectArtifactContext } from './utils/guidProjectFilesModel';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -89,7 +89,7 @@ const GuidPage: React.FC = () => {
   const [availableMcpServers, setAvailableMcpServers] = useState<IMcpServer[]>([]);
   const [guidSelectedMcpServerIds, setGuidSelectedMcpServerIds] = useState<string[] | undefined>(undefined);
   useEffect(() => {
-    loadAvailableSkillsWithSynonBiomed()
+    loadAvailableSkillsWithXScience()
       .then((availableSkills) => {
         setAllSkills(
           availableSkills.map((s) => ({
@@ -140,11 +140,11 @@ const GuidPage: React.FC = () => {
   const { openFileSelector, onSlashBuiltinCommand } = useOpenFileSelector({
     onFilesSelected: appendSelectedFiles,
   });
-  const projectWorkspace = useMemo(() => parseSynonBiomedProjectWorkspace(guidInput.dir), [guidInput.dir]);
+  const projectWorkspace = useMemo(() => parseXScienceProjectWorkspace(guidInput.dir), [guidInput.dir]);
   const [projectFilesOpen, setProjectFilesOpen] = useState(false);
   const openProjectFiles = useCallback(() => setProjectFilesOpen(true), []);
   const handleProjectArtifactsSelected = useCallback(
-    (selectedArtifacts: SynonBiomedProjectArtifact[]) => {
+    (selectedArtifacts: XScienceProjectArtifact[]) => {
       const contexts = selectedArtifacts
         .map(buildProjectArtifactContext)
         .filter((item): item is ComposerArtifactContext => item !== null);
@@ -164,9 +164,9 @@ const GuidPage: React.FC = () => {
   const selectedAssistantId = agentSelection.selectedAssistantId;
   const hasSelectedAssistant = selectedAssistantId !== null;
   const selectedAssistantAgentId = agentSelection.selectedAssistant?.agent_id ?? 'OPERON';
-  const { data: guidComposerCapabilities } = useSWR<SynonBiomedComposerCapabilities>(
+  const { data: guidComposerCapabilities } = useSWR<XScienceComposerCapabilities>(
     selectedAssistantId ? `guid.assistant.composer-capabilities.${selectedAssistantId}` : null,
-    () => loadSynonBiomedAssistantComposerCapabilities(selectedAssistantId!)
+    () => loadXScienceAssistantComposerCapabilities(selectedAssistantId!)
   );
   const { sessionOptions, setSessionOptions, sessionComputeProviders, setSessionComputeProviders } =
     useGuidSessionOptions({
@@ -357,7 +357,7 @@ const GuidPage: React.FC = () => {
   }, [send.isButtonDisabled, send.sendMessageHandler]);
 
   const handleGuidSendOption = useCallback(
-    (intent: SynonBiomedSendIntent) => {
+    (intent: XScienceSendIntent) => {
       if (intent === 'plan_first') {
         guidPlanModeRef.current = true;
       }
@@ -607,7 +607,7 @@ const GuidPage: React.FC = () => {
   ]);
 
   const modelSelectorNode = (
-    <SynonBiomedDraftModelSelector
+    <XScienceDraftModelSelector
       modelInfo={agentSelection.currentAcpCachedModelInfo}
       selectedModelId={agentSelection.selectedAcpModel}
       onSelectModel={(modelId) => setGuidSelectedAcpModel(modelId)}
@@ -668,7 +668,7 @@ const GuidPage: React.FC = () => {
       onSelectMcpServer={handleComposerMcpSelected}
       modelSelectorNode={modelSelectorNode}
       sessionOptionsNode={
-        <SynonBiomedSessionOptionsMenu
+        <XScienceSessionOptionsMenu
           value={sessionOptions}
           onChange={setSessionOptions}
           computeSelection={sessionComputeProviders}
@@ -677,7 +677,7 @@ const GuidPage: React.FC = () => {
         />
       }
       permissionNode={
-        <SynonBiomedPermissionMenu
+        <XSciencePermissionMenu
           option={permissionOption}
           setStatus={{ state: 'idle' }}
           setConfigOption={setGuidPermissionMode}
@@ -698,11 +698,11 @@ const GuidPage: React.FC = () => {
           guidInput.files.length > 0 ||
           guidInput.localFiles.length > 0 ||
           guidInput.contextItems.length > 0) ? (
-          <SynonBiomedSendOptionsMenu
+          <XScienceSendOptionsMenu
             disabled={guidInput.loading}
             hasDraft
             disabledIntentHints={{
-              side_chat: t('conversation.synonRuntime.sendBox.sideChatInConversation'),
+              side_chat: t('conversation.xscienceRuntime.sendBox.sideChatInConversation'),
             }}
             onSelect={handleGuidSendOption}
           />

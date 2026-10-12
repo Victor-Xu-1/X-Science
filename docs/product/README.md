@@ -108,7 +108,7 @@ Skills 库支持筛选、查看详情与添加入口；连接器也有独立的�
 科学与二进制查看器主要用于检查和下载；支持的文本型产物有各自的编辑路径。
 Notebook 预览不等于执行全部单元格，结构显示也不等于完成对接、亲和力预测或模拟。
 具体操作见[使用手册](../user-guide.md)，格式路由见
-[预览实现](../../frontend/packages/desktop/src/renderer/services/synonBiomedArtifactPreview.ts)。
+[预览实现](../../frontend/packages/desktop/src/renderer/services/xScienceArtifactPreview.ts)。
 
 ### Computation and environment preparation / 计算与环境准备
 

@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/persistence/runtimekv"
-	"synon-go/internal/persistence/workspace"
+	"x-science/internal/persistence/runtimekv"
+	"x-science/internal/persistence/workspace"
 )
 
 func TestAccountOverviewAPIUsesOwnerScopedSnapshotAndSkillProjection(t *testing.T) {

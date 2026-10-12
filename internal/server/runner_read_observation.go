@@ -6,14 +6,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 func withFileReadProgressReserve(ctx context.Context) context.Context {
 	reserved, _ := ctx.Value(agentWorkspaceReadLocationReserveKey{}).(int)
 	// Reserve the largest control envelope before the reader allocates text.
 	// Adding flags afterwards must not externalize a page that was in budget.
-	const metadata = `,"reused":true,"effect":{"schema":"synon.tool_effect.v1","state":"unchanged","categories":["evidence-read"]}`
+	const metadata = `,"reused":true,"effect":{"schema":"x-science.tool_effect.v1","state":"unchanged","categories":["evidence-read"]}`
 	return context.WithValue(ctx, agentWorkspaceReadLocationReserveKey{}, reserved+len(metadata))
 }
 

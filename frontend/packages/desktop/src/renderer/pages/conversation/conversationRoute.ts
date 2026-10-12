@@ -6,7 +6,7 @@
 
 import type { TChatConversation } from '@/common/config/storage';
 import { prefetchConversationMessages } from './Messages/messageWindowPrefetch';
-import { getSynonBiomedBranchSelectionRevision } from '@/renderer/services/synonBiomedConversationBranches';
+import { getXScienceBranchSelectionRevision } from '@/renderer/services/xScienceConversationBranches';
 import {
   beginConversationDetailHandoff,
   getConversationOrNullShared,
@@ -63,7 +63,7 @@ export async function warmConversationNavigation({
   void prefetchConversationMessages({
     ownerId: normalizedOwnerId,
     conversationId: normalizedConversationId,
-    branchRevision: getSynonBiomedBranchSelectionRevision(normalizedConversationId),
+    branchRevision: getXScienceBranchSelectionRevision(normalizedConversationId),
     retryTransient: false,
   }).catch((): undefined => undefined);
 

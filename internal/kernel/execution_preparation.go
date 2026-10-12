@@ -6,7 +6,7 @@ import (
 	"errors"
 	"strings"
 
-	"synon-go/internal/executionprep"
+	"x-science/internal/executionprep"
 )
 
 // PrepareExecutionSource shares one effect plan across direct language calls,

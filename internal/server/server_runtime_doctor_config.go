@@ -58,16 +58,16 @@ func supportedSessionRunnerProvider(provider string) bool {
 }
 
 func runnerSetupHints(provider string) []string {
-	base := []string{"Set SYNON_RUNNER_ENABLED=true"}
+	base := []string{"Set X_SCIENCE_RUNNER_ENABLED=true"}
 	switch strings.TrimSpace(provider) {
 	case "command":
 		return append(base,
-			"Set SYNON_RUNNER_PROVIDER=command",
-			"Set SYNON_RUNNER_COMMAND to the runner command",
+			"Set X_SCIENCE_RUNNER_PROVIDER=command",
+			"Set X_SCIENCE_RUNNER_COMMAND to the runner command",
 		)
 	case "go_builtin":
 		return append(base,
-			"Set SYNON_RUNNER_PROVIDER=go_builtin",
+			"Set X_SCIENCE_RUNNER_PROVIDER=go_builtin",
 			"Use the deterministic endpoint only for explicit test or development execution",
 		)
 	case WorkspaceSessionRunnerProvider:
@@ -78,15 +78,15 @@ func runnerSetupHints(provider string) []string {
 		}
 	case "openai_chat", "", "disabled":
 		return append(base,
-			"Set SYNON_RUNNER_PROVIDER=openai_chat",
-			"Set SYNON_RUNNER_CHAT_ENDPOINT to an OpenAI-compatible /v1/chat/completions endpoint",
-			"Set SYNON_RUNNER_CHAT_MODEL to the model name",
-			"Set SYNON_RUNNER_CHAT_API_KEY when the endpoint requires authentication",
-			"Optionally set SYNON_RUNNER_CHAT_TOOLS to a comma-separated allowed tool list",
+			"Set X_SCIENCE_RUNNER_PROVIDER=openai_chat",
+			"Set X_SCIENCE_RUNNER_CHAT_ENDPOINT to an OpenAI-compatible /v1/chat/completions endpoint",
+			"Set X_SCIENCE_RUNNER_CHAT_MODEL to the model name",
+			"Set X_SCIENCE_RUNNER_CHAT_API_KEY when the endpoint requires authentication",
+			"Optionally set X_SCIENCE_RUNNER_CHAT_TOOLS to a comma-separated allowed tool list",
 		)
 	default:
 		return append(base,
-			"Set SYNON_RUNNER_PROVIDER to one of workspace, openai_chat, command, or go_builtin",
+			"Set X_SCIENCE_RUNNER_PROVIDER to one of workspace, openai_chat, command, or go_builtin",
 		)
 	}
 }

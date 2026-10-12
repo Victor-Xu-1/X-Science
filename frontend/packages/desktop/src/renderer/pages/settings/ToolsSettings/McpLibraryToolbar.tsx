@@ -44,14 +44,14 @@ export function McpLibraryToolbar(props: Props) {
         <Menu
           onClickMenuItem={(key) => (key === 'custom' ? props.onCreate() : props.onBrowse(key as ConnectorBrowseView))}
         >
-          <Menu.Item key='custom'>{t('settings.synonBiomedMcpCustom')}</Menu.Item>
-          <Menu.Item key='optional'>{t('settings.synonBiomedMcpOptionalTab')}</Menu.Item>
-          <Menu.Item key='marketplace'>{t('settings.synonBiomedMcpMarketplaceTab')}</Menu.Item>
+          <Menu.Item key='custom'>{t('settings.xScienceMcpCustom')}</Menu.Item>
+          <Menu.Item key='optional'>{t('settings.xScienceMcpOptionalTab')}</Menu.Item>
+          <Menu.Item key='marketplace'>{t('settings.xScienceMcpMarketplaceTab')}</Menu.Item>
         </Menu>
       }
     >
-      <Button type='primary' icon={<Plus size={15} />} data-testid='synon-biomed-mcp-add'>
-        {t('settings.synonBiomedMcpAddConnector')}
+      <Button type='primary' icon={<Plus size={15} />} data-testid='x-science-mcp-add'>
+        {t('settings.xScienceMcpAddConnector')}
         <Down size={14} />
       </Button>
     </Dropdown>
@@ -63,10 +63,10 @@ export function McpLibraryToolbar(props: Props) {
         icon={<Refresh size={14} />}
         loading={props.reconciling}
         disabled={props.loading}
-        data-testid='synon-biomed-mcp-reconcile'
+        data-testid='x-science-mcp-reconcile'
         onClick={props.onReconcile}
       >
-        {t('settings.synonBiomedMcpReconcile')}
+        {t('settings.xScienceMcpReconcile')}
       </Button>
     </>
   );
@@ -78,22 +78,22 @@ export function McpLibraryToolbar(props: Props) {
           count={props.visibleCount}
           search={
             <SettingsLibrarySearch
-              label={t('settings.synonBiomedMcpSearch')}
+              label={t('settings.xScienceMcpSearch')}
               value={props.search}
               onChange={props.onSearch}
-              data-testid='synon-biomed-mcp-search'
+              data-testid='x-science-mcp-search'
             />
           }
           filters={
             <SettingsLibraryFilterSelect
-              aria-label={t('settings.synonBiomedMcpDomain')}
-              data-testid='synon-biomed-mcp-filter'
+              aria-label={t('settings.xScienceMcpDomain')}
+              data-testid='x-science-mcp-filter'
               value={props.domainFilter}
               onChange={(value) => props.onDomainFilter(value as ConnectorDomainId)}
             >
               {props.domainOptions.map((option) => (
                 <option key={option.id} value={option.id}>
-                  {t(`settings.synonBiomedMcpDomains.${option.id}`)} ({option.count})
+                  {t(`settings.xScienceMcpDomains.${option.id}`)} ({option.count})
                 </option>
               ))}
             </SettingsLibraryFilterSelect>
@@ -114,7 +114,7 @@ export function McpLibraryToolbar(props: Props) {
       <div
         className={props.compactHeader ? 'mcp-library-maintenance' : 'mcp-library-toolbar'}
         role={props.compactHeader ? 'group' : 'search'}
-        aria-label={t('settings.synonBiomedMcpConnectors')}
+        aria-label={t('settings.xScienceMcpConnectors')}
       >
         {!props.compactHeader && (
           <>
@@ -123,26 +123,26 @@ export function McpLibraryToolbar(props: Props) {
                 value={props.search}
                 allowClear
                 prefix={<Search size={15} />}
-                data-testid='synon-biomed-mcp-search'
-                placeholder={t('settings.synonBiomedMcpSearch')}
-                aria-label={t('settings.synonBiomedMcpSearch')}
+                data-testid='x-science-mcp-search'
+                placeholder={t('settings.xScienceMcpSearch')}
+                aria-label={t('settings.xScienceMcpSearch')}
                 onChange={props.onSearch}
               />
             </div>
             <select
               className='mcp-library-select'
               value={props.filter}
-              data-testid='synon-biomed-mcp-filter'
+              data-testid='x-science-mcp-filter'
               aria-label={t('settings.skillsSettings.filters')}
               onChange={(event) => props.onFilter(event.target.value as ConnectorFilter)}
             >
               <option value='all'>
-                {t('settings.synonBiomedMcpAll')} ({props.count})
+                {t('settings.xScienceMcpAll')} ({props.count})
               </option>
-              <option value='connected'>{t('settings.synonBiomedMcpConnected')}</option>
-              <option value='needs-attention'>{t('settings.synonBiomedMcpNeedsAttention')}</option>
+              <option value='connected'>{t('settings.xScienceMcpConnected')}</option>
+              <option value='needs-attention'>{t('settings.xScienceMcpNeedsAttention')}</option>
               <option value='custom'>
-                {t('settings.synonBiomedMcpCustom')} ({props.customCount})
+                {t('settings.xScienceMcpCustom')} ({props.customCount})
               </option>
             </select>
           </>

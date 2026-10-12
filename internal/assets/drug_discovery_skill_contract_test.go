@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/skills"
+	"x-science/internal/skills"
 )
 
 func TestDrugDiscoverySkillUsesBundledMCPContracts(t *testing.T) {
@@ -21,7 +21,7 @@ func TestDrugDiscoverySkillUsesBundledMCPContracts(t *testing.T) {
 		t.Fatal("locate repository root")
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
-	skillPath := filepath.Join(repositoryRoot, "skills", "synonbiomed", "drug-discovery-pipeline", "SKILL.md")
+	skillPath := filepath.Join(repositoryRoot, "skills", "x-science", "drug-discovery-pipeline", "SKILL.md")
 	content, err := os.ReadFile(skillPath)
 	if err != nil {
 		t.Fatal(err)
@@ -31,7 +31,7 @@ func TestDrugDiscoverySkillUsesBundledMCPContracts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	manifestPath := filepath.Join(repositoryRoot, "assets", "synonbiomed", "skills.manifest.json")
+	manifestPath := filepath.Join(repositoryRoot, "assets", "x-science", "skills.manifest.json")
 	manifestContent, err := os.ReadFile(manifestPath)
 	if err != nil {
 		t.Fatal(err)
@@ -201,7 +201,7 @@ func TestDrugDiscoverySkillUsesBundledMCPContracts(t *testing.T) {
 		t.Fatal("drug-discovery result assembly does not preserve generator provenance")
 	}
 	for _, marker := range []string{
-		`${SYNON_SKILL_DIR}/scripts/assemble_docking_results.py`, "candidate_ranking.csv", "results_summary.json",
+		`${X_SCIENCE_SKILL_DIR}/scripts/assemble_docking_results.py`, "candidate_ranking.csv", "results_summary.json",
 		"project_report.md", "--report-language", "docking_complex_ensemble.pdb", "docking_components.csv",
 		"--structures-sdf", "--structures-smiles", "candidate IDs and canonical SMILES across", "Header-only",
 		"docking_pose_scores.csv", "docking_pose_samples.csv", "one primary best-scoring pose",
@@ -216,7 +216,7 @@ func TestDrugDiscoverySkillUsesBundledMCPContracts(t *testing.T) {
 	}
 	for _, marker := range []string{
 		"candidate identity mismatch", "candidate_ranking.csv", "results_summary.json", "project_report.md",
-		"read_smiles_records", "read_sdf_records", "structure_set_integrity", "synon.structure-guided-candidate-summary.v4",
+		"read_smiles_records", "read_sdf_records", "structure_set_integrity", "x-science.structure-guided-candidate-summary.v4",
 		"repeat_count", "poses_per_candidate", "exactly one primary pose",
 		"source_sha256", "lipinski_violations", "Recommended review sequence", "建议的项目复核顺序",
 	} {

@@ -18,8 +18,8 @@ import (
 
 	"github.com/coder/websocket"
 
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/realtime"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/realtime"
 )
 
 func TestRuntimeAuxiliaryEventsUseRealProducersLiveDeliveryAndReplay(t *testing.T) {
@@ -41,7 +41,7 @@ func TestRuntimeAuxiliaryEventsUseRealProducersLiveDeliveryAndReplay(t *testing.
 		t.Fatal(err)
 	}
 
-	prepared := filepath.Join(root, "synon-go-next")
+	prepared := filepath.Join(root, "x-science-next")
 	if err := os.WriteFile(prepared, []byte("#!/bin/sh\nexit 0\n"), 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -151,7 +151,7 @@ fileChanged:
 		"status": "done", "n": 1, "verdict": "pass", "count": 0,
 		"version_ids": []string{},
 	}, map[string]string{
-		"X-Synon-Verification-Token": "verifier-test-token",
+		"X-Science-Verification-Token": "verifier-test-token",
 	}, 202)
 	if verification["sequence"] == nil {
 		t.Fatalf("verification=%#v", verification)
@@ -439,7 +439,7 @@ func runtimeAuxJSONWithHeaders(
 		reader = bytes.NewReader(raw)
 	}
 	request := newLoopbackTestRequest(method, path, reader)
-	request.Header.Set("X-Synon-User-ID", userID)
+	request.Header.Set("X-Science-User-ID", userID)
 	if body != nil {
 		request.Header.Set("Content-Type", "application/json")
 	}

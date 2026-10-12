@@ -43,9 +43,9 @@ func managedEnvironmentGeneration(name, language string, packages []string, spec
 
 func managedEnvironmentGenerationAtValidation(name, language string, packages []string, specDigest string, revision int) string {
 	hash := sha256.New()
-	contract := "synon-managed-environment-v3-final-prefix\x00" + name + "\x00" + language + "\x00"
+	contract := "x-science-managed-environment-v3-final-prefix\x00" + name + "\x00" + language + "\x00"
 	if revision > 0 {
-		contract = "synon-managed-environment-v4-verified-installation\x00" + name + "\x00" + language + "\x00"
+		contract = "x-science-managed-environment-v4-verified-installation\x00" + name + "\x00" + language + "\x00"
 	}
 	if specDigest != "" {
 		contract += specDigest + "\x00"
@@ -59,9 +59,9 @@ func managedEnvironmentGenerationAtValidation(name, language string, packages []
 
 func managedEnvironmentLegacyGeneration(name, language string, packages []string, specDigest string) string {
 	hash := sha256.New()
-	contract := "synon-managed-environment-v1\x00" + name + "\x00" + language + "\x00"
+	contract := "x-science-managed-environment-v1\x00" + name + "\x00" + language + "\x00"
 	if specDigest != "" {
-		contract = "synon-managed-environment-v2\x00" + name + "\x00" + language + "\x00" + specDigest + "\x00"
+		contract = "x-science-managed-environment-v2\x00" + name + "\x00" + language + "\x00" + specDigest + "\x00"
 	}
 	_, _ = io.WriteString(hash, contract)
 	for _, item := range packages {
@@ -81,13 +81,13 @@ func managedEnvironmentSpecDigest(pipPhases [][]string, importNames []string) st
 	if err != nil {
 		panic("managed environment specification contains an unsupported value")
 	}
-	digest := sha256.Sum256(append([]byte("synon-managed-environment-spec-v1\x00"), raw...))
+	digest := sha256.Sum256(append([]byte("x-science-managed-environment-spec-v1\x00"), raw...))
 	return hex.EncodeToString(digest[:])
 }
 
 func managedRegisteredEnvironmentGeneration(name, language, sourcePath, runtimePath string, packages []string) string {
 	hash := sha256.New()
-	_, _ = io.WriteString(hash, "synon-managed-registered-environment-v1\x00"+name+"\x00"+language+"\x00"+sourcePath+"\x00"+runtimePath+"\x00")
+	_, _ = io.WriteString(hash, "x-science-managed-registered-environment-v1\x00"+name+"\x00"+language+"\x00"+sourcePath+"\x00"+runtimePath+"\x00")
 	for _, item := range packages {
 		_, _ = io.WriteString(hash, item+"\x00")
 	}
@@ -99,7 +99,7 @@ func managedEnvironmentOperationKey(kind string, input any) string {
 	if err != nil {
 		panic("managed environment operation key contains an unsupported value")
 	}
-	digest := sha256.Sum256(append([]byte("synon-managed-environment-operation-v1\x00"+kind+"\x00"), raw...))
+	digest := sha256.Sum256(append([]byte("x-science-managed-environment-operation-v1\x00"+kind+"\x00"), raw...))
 	return hex.EncodeToString(digest[:])
 }
 
@@ -190,7 +190,7 @@ func (m *Manager) findManagedEnvironmentOperationGeneration(
 		}
 		path := filepath.Join(generationRoot, entry.Name())
 		marker, readErr := readManagedEnvironmentMarker(path)
-		if readErr != nil || marker.SchemaVersion != managedEnvironmentMarkerVersion || marker.OperationKey != operationKey {
+		if readErr != nil || marker.SchemaVersion != managedEnvironmentMarkerVersion || !namespaceOperationKeyMatches(ctx, marker, operationKey) {
 			continue
 		}
 		if needsRebuild, err := managedEnvironmentNeedsRebuild(path, marker); err != nil || needsRebuild {

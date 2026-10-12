@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/httpreliability"
+	"x-science/internal/httpreliability"
 )
 
 // These budgets have different lifecycle meanings. In particular there is no
@@ -24,10 +24,10 @@ func applyNetworkTimeouts(network *NetworkPolicyConfig) error {
 		{"TRANSFER_IDLE_TIMEOUT_SECONDS", &network.TransferIdleTimeoutSeconds, httpreliability.DefaultTransferIdleTimeout},
 		{"SEARCH_TIMEOUT_SECONDS", &network.SearchTimeoutSeconds, httpreliability.DefaultSearchTimeout},
 	} {
-		if raw, present := os.LookupEnv("SYNON_NETWORK_" + field.name); present {
+		if raw, present := os.LookupEnv("X_SCIENCE_NETWORK_" + field.name); present {
 			value, err := strconv.ParseInt(strings.TrimSpace(raw), 10, 64)
 			if err != nil || value <= 0 {
-				return errors.New("SYNON_NETWORK_" + field.name + " must be positive seconds")
+				return errors.New("X_SCIENCE_NETWORK_" + field.name + " must be positive seconds")
 			}
 			*field.value = value
 		}

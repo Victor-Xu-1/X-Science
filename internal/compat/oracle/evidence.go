@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/compat/contracts"
+	"x-science/internal/compat/contracts"
 )
 
 var (
@@ -155,7 +155,7 @@ func Scaffold() Manifest {
 	}
 	return Manifest{
 		SchemaVersion: 2,
-		Baseline:      "synonbiomed-v1.1",
+		Baseline:      "xscience-v1.1",
 		Summary: BaselineSummary{
 			Services:   summary.ServiceMethodCount,
 			HTTPRoutes: summary.HTTPRouteCount,
@@ -178,7 +178,7 @@ func Verify(evidenceRoot string, manifest Manifest) (Report, error) {
 	if manifest.SchemaVersion != 2 {
 		return report, fmt.Errorf("%w: schemaVersion=%d, want 2", ErrInvalidEvidence, manifest.SchemaVersion)
 	}
-	if manifest.Baseline != "synonbiomed-v1.1" {
+	if manifest.Baseline != "xscience-v1.1" {
 		return report, fmt.Errorf("%w: baseline=%q", ErrInvalidEvidence, manifest.Baseline)
 	}
 	expectedSummary := contracts.V11Summary()

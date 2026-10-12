@@ -264,7 +264,7 @@ func FetchRemoteFile(ctx context.Context, dialer RemoteDialer, alias, requestedP
 		return RemoteDownload{}, classifyRemoteError(err, "Download failed")
 	}
 	defer source.Close()
-	directory, err := os.MkdirTemp("", "synon-ssh-download-")
+	directory, err := os.MkdirTemp("", "x-science-ssh-download-")
 	if err != nil {
 		return RemoteDownload{}, remoteError("other", "could not create transfer directory", err)
 	}

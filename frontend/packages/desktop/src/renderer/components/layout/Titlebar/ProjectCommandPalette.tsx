@@ -1,10 +1,10 @@
 import { insertArtifactReferenceIntoActiveComposer } from '@/renderer/components/chat/SendBox/composerReferenceBridge';
 import {
-  loadSynonBiomedProjectArtifacts,
-  loadSynonBiomedProjectBenches,
-  loadSynonBiomedProjects,
-  type SynonBiomedProject,
-} from '@/renderer/services/synonBiomedGateway';
+  loadXScienceProjectArtifacts,
+  loadXScienceProjectBenches,
+  loadXScienceProjects,
+  type XScienceProject,
+} from '@/renderer/services/xScienceGateway';
 import { Empty, Input, Spin } from '@arco-design/web-react';
 import Modal from '@/renderer/components/base/WorkbenchModal';
 import { FileCode, FolderOpen, MessageOne, Plus, Search } from '@icon-park/react';
@@ -59,12 +59,12 @@ const ProjectCommandPalette: React.FC = () => {
     setItems([]);
     setActiveIndex(0);
     try {
-      const projects = await loadSynonBiomedProjects();
+      const projects = await loadXScienceProjects();
       const projectResults = await Promise.allSettled(
         projects.map(async (project) => {
           const [artifacts, benches] = await Promise.allSettled([
-            loadSynonBiomedProjectArtifacts(project.projectId),
-            loadSynonBiomedProjectBenches(project.projectId),
+            loadXScienceProjectArtifacts(project.projectId),
+            loadXScienceProjectBenches(project.projectId),
           ]);
           return {
             project,
@@ -297,9 +297,9 @@ const ProjectCommandPalette: React.FC = () => {
 };
 
 function toPaletteItems(
-  project: SynonBiomedProject,
-  artifacts: Awaited<ReturnType<typeof loadSynonBiomedProjectArtifacts>>,
-  benches: Awaited<ReturnType<typeof loadSynonBiomedProjectBenches>>,
+  project: XScienceProject,
+  artifacts: Awaited<ReturnType<typeof loadXScienceProjectArtifacts>>,
+  benches: Awaited<ReturnType<typeof loadXScienceProjectBenches>>,
   labels: { openProject: string; session: string; file: string }
 ): PaletteItem[] {
   return [

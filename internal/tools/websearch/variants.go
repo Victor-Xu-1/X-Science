@@ -192,7 +192,7 @@ func MergeVariantOutputs(queries []string, outputs []Output, errorsByQuery []err
 				return merged, nil
 			}
 		}
-		merged.Results = []any{"The completed search returned no relevant sources.", SearchResult{ToolUseID: "synon-websearch-web-search", Content: []Hit{}}}
+		merged.Results = []any{"The completed search returned no relevant sources.", SearchResult{ToolUseID: "x-science-websearch-web-search", Content: []Hit{}}}
 		return merged, nil
 	}
 	hits := make([]Hit, 0, len(merged.Sources))
@@ -200,7 +200,7 @@ func MergeVariantOutputs(queries []string, outputs []Output, errorsByQuery []err
 		hits = append(hits, Hit{Title: source.Title, URL: source.URL, Snippet: source.Snippet})
 	}
 	merged.Results = []any{"Search provider: " + providerName, SearchResult{
-		ToolUseID: "synon-websearch-web-search", Content: searchDisplayHits(hits),
+		ToolUseID: "x-science-websearch-web-search", Content: searchDisplayHits(hits),
 	}}
 	return merged, nil
 }

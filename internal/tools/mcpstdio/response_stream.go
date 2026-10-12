@@ -10,7 +10,7 @@ import (
 	"mime"
 	"os"
 
-	"synon-go/internal/runtimecontrol"
+	"x-science/internal/runtimecontrol"
 )
 
 const mcpResponseBufferBytes = 64 << 10
@@ -37,7 +37,7 @@ func (b *mcpResponseBuffer) Write(data []byte) (int, error) {
 		return n, err
 	}
 	if b.file == nil {
-		file, err := os.CreateTemp("", "synon-mcp-response-*")
+		file, err := os.CreateTemp("", "x-science-mcp-response-*")
 		if err != nil {
 			return 0, err
 		}

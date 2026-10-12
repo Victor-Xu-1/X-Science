@@ -15,10 +15,10 @@ import (
 
 	"time"
 
-	taskstore "synon-go/internal/persistence/tasks"
+	taskstore "x-science/internal/persistence/tasks"
 
-	"synon-go/internal/executionprep"
-	"synon-go/internal/tools/shellops"
+	"x-science/internal/executionprep"
+	"x-science/internal/tools/shellops"
 )
 
 func (s *Server) executeShellTool(ctx context.Context, toolName string, input map[string]any) (any, error) {

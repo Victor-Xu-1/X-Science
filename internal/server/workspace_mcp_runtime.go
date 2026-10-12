@@ -10,10 +10,10 @@ import (
 	"sync"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/mcpdirectory"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/tools/mcpstdio"
+	"x-science/internal/agentruntime"
+	"x-science/internal/mcpdirectory"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/tools/mcpstdio"
 )
 
 type workspaceMCPRuntimeConnector struct {
@@ -51,7 +51,7 @@ type workspaceMCPConnectorProbeResult struct {
 	Err   error
 }
 
-const workspaceMCPSourceEvidenceSchemaV1 = "synon.workspace_mcp_evidence.v1"
+const workspaceMCPSourceEvidenceSchemaV1 = "x-science.workspace_mcp_evidence.v1"
 
 type workspaceMCPSourceEvidenceAttestation struct {
 	Schema            string
@@ -551,7 +551,7 @@ func decodeWorkspaceMCPToolOutput(output string) any {
 
 // executeWorkspaceListMCPTools keeps agent-session discovery on the same
 // owner-scoped connector authority used by dynamic mcp__ execution. The
-// process-wide SYNON_MCP_CONFIG catalog remains available only to legacy
+// process-wide X_SCIENCE_MCP_CONFIG catalog remains available only to legacy
 // non-session callers; it is never a fallback for a workspace conversation.
 func (s *Server) executeWorkspaceListMCPTools(
 	ctx context.Context,

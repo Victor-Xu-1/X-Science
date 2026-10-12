@@ -1,9 +1,9 @@
 #!/bin/sh
 set -eu
 
-case "${SYNON_HOST_PICKER_FIXTURE_MODE:-select}" in
+case "${X_SCIENCE_HOST_PICKER_FIXTURE_MODE:-select}" in
   select)
-    printf '%s\n' "${SYNON_HOST_PICKER_FIXTURE_PATH:?fixture path is required}"
+    printf '%s\n' "${X_SCIENCE_HOST_PICKER_FIXTURE_PATH:?fixture path is required}"
     ;;
   cancel)
     exit 1

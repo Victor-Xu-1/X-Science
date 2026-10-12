@@ -24,7 +24,7 @@ func projectIdentityHTTP(t *testing.T, client *http.Client, base, method, path, 
 	// Match the existing loopback test account boundary; requests still traverse
 	// a real TCP listener and the production handler, SQLite and filesystem.
 	request.Host = "localhost"
-	request.Header.Set("X-Synon-User-Id", owner)
+	request.Header.Set("X-Science-User-Id", owner)
 	request.Header.Set("Content-Type", "application/json")
 	response, err := client.Do(request)
 	if err != nil {

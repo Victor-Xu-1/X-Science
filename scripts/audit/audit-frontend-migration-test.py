@@ -130,6 +130,50 @@ class FrontendMigrationAuditTest(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "unclassified migrated-source change"):
             audit.migration_manifest(self.frontend, self.source)
 
+    def rename_source_fixture(self, content: bytes) -> None:
+        (self.frontend / "source.ts").rename(self.frontend / "XScience.ts")
+        (self.frontend / "XScience.ts").write_bytes(content)
+        self.source["files"][0]["path"] = "SynonBiomed.ts"
+        (self.frontend / audit.SOURCE_MANIFEST).write_text(json.dumps(self.source), encoding="utf-8")
+        audit.ALLOWED_ADAPTATIONS = {}
+        audit.APPROVED_ADAPTATION_FINGERPRINT = audit.adaptation_fingerprint([
+            {
+                "path": "XScience.ts",
+                "originalPath": "SynonBiomed.ts",
+                "sourceSHA256": self.source["files"][0]["sha256"],
+                "targetSHA256": audit.sha256_file(self.frontend / "XScience.ts"),
+            }
+        ])
+
+    def test_allows_unclassified_namespace_move_only_with_original_bytes(self) -> None:
+        self.rename_source_fixture(b"source version\n")
+        manifest = audit.migration_manifest(self.frontend, self.source)
+        adaptation = manifest["adaptations"][0]
+        self.assertEqual(adaptation["originalPath"], "SynonBiomed.ts")
+        self.assertEqual(adaptation["sourceSHA256"], adaptation["targetSHA256"])
+        self.assertIn("original bytes without content adaptation", adaptation["reason"])
+
+    def test_namespace_move_does_not_classify_changed_contents(self) -> None:
+        self.rename_source_fixture(b"changed target behavior\n")
+        with self.assertRaisesRegex(RuntimeError, "unclassified migrated-source change: XScience.ts"):
+            audit.migration_manifest(self.frontend, self.source)
+
+    def test_changed_namespace_move_requires_explicit_classification(self) -> None:
+        self.rename_source_fixture(b"changed target behavior\n")
+        audit.ALLOWED_ADAPTATIONS = {"XScience.ts": "Test explicit content adaptation."}
+        manifest = audit.migration_manifest(self.frontend, self.source)
+        self.assertIn("Test explicit content adaptation.", manifest["adaptations"][0]["reason"])
+
+    def test_namespace_move_fingerprint_binds_original_source_path(self) -> None:
+        self.rename_source_fixture(b"source version\n")
+        original = audit.APPROVED_ADAPTATION_FINGERPRINT
+        other_source = [{
+            "path": "XScience.ts", "originalPath": "Synon.ts",
+            "sourceSHA256": self.source["files"][0]["sha256"],
+            "targetSHA256": audit.sha256_file(self.frontend / "XScience.ts"),
+        }]
+        self.assertNotEqual(original, audit.adaptation_fingerprint(other_source))
+
     def test_rejects_adaptation_hash_drift(self) -> None:
         (self.frontend / "source.ts").write_bytes(b"changed again\n")
         with self.assertRaisesRegex(RuntimeError, "adaptation fingerprint mismatch"):

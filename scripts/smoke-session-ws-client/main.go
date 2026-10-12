@@ -26,7 +26,7 @@ func main() {
 
 	sessionID := createSession(ctx, baseURL)
 	wsURL := sessionWebSocketURL(baseURL, sessionID, 0)
-	conn, _, err := websocket.Dial(ctx, wsURL, &websocket.DialOptions{HTTPHeader: http.Header{"X-Synon-User-Id": []string{"session-ws-smoke"}}})
+	conn, _, err := websocket.Dial(ctx, wsURL, &websocket.DialOptions{HTTPHeader: http.Header{"X-Science-User-Id": []string{"session-ws-smoke"}}})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "dial session websocket: %v\n", err)
 		os.Exit(1)

@@ -13,14 +13,14 @@ import (
 	"strings"
 	"testing"
 
-	sessionstore "synon-go/internal/persistence/sessions"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	sessionstore "x-science/internal/persistence/sessions"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestCheminfoSkillSceneExampleUsesNativeContract(t *testing.T) {
 	_, source, _, _ := runtime.Caller(0)
-	path := filepath.Join(filepath.Dir(source), "..", "..", "skills", "synonbiomed", "cheminfo-render", "SKILL.md")
+	path := filepath.Join(filepath.Dir(source), "..", "..", "skills", "x-science", "cheminfo-render", "SKILL.md")
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
@@ -157,7 +157,7 @@ func TestStructureSceneCompletionGateBindsPreviewBeforeIndependentReview(t *test
 	// Retain a failed earlier attempt. It must not shadow the valid immutable
 	// replacement merely because its filename sorts before the new manifest.
 	writeSceneTestArtifactBytes(t, store, "old-manifest", "project-scene-valid", "0-old-scene.json",
-		[]byte(`{"schema":"synon.structure-scene.v1","preview_image":"old.png"}`), "application/json", "frame-scene-valid")
+		[]byte(`{"schema":"x-science.structure-scene.v1","preview_image":"old.png"}`), "application/json", "frame-scene-valid")
 	srv := New(Options{FileRoot: root, Workspace: store})
 	disabled := sessionForSceneTest("frame-scene-valid", root)
 	if err := srv.verifySessionRunnerVisualArtifactEvidence(disabled, nil); err != nil {

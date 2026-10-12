@@ -13,8 +13,8 @@ import (
 func evaluateKernelFilter(t *testing.T, arch, number, argument uint32) uint32 {
 	t.Helper()
 	var accumulator uint32
-	for pc := 0; pc < len(synonKernelFilter); pc++ {
-		instruction := synonKernelFilter[pc]
+	for pc := 0; pc < len(xscienceKernelFilter); pc++ {
+		instruction := xscienceKernelFilter[pc]
 		switch instruction.Code {
 		case unix.BPF_LD | unix.BPF_W | unix.BPF_ABS:
 			switch instruction.K {

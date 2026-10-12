@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import type { SynonBiomedStorageRules } from '@/renderer/services/synonBiomedWorkspaceSettings';
+import type { XScienceStorageRules } from '@/renderer/services/xScienceWorkspaceSettings';
 import { SettingsSection } from '../components/SettingsPrimitives';
 import { StorageError, StorageLoading } from './StorageFeedback';
 import { StoragePath } from './StoragePath';
@@ -12,7 +12,7 @@ export function StorageRulesPanel({
   canEdit,
   onEdit,
 }: {
-  resource: StorageResource<SynonBiomedStorageRules>;
+  resource: StorageResource<XScienceStorageRules>;
   canEdit: boolean;
   onEdit: () => void;
 }) {

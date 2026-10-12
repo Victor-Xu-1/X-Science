@@ -129,10 +129,10 @@ func (m *Manager) wrapKernelEgressRuntime(
 	}
 	const script = `
 set -eu
-/usr/bin/python3 "$SYNON_KERNEL_EGRESS_FORWARDER" </dev/null >/dev/null 2>&1 &
+/usr/bin/python3 "$X_SCIENCE_KERNEL_EGRESS_FORWARDER" </dev/null >/dev/null 2>&1 &
 proxy_pid=$!
 for attempt in $(seq 1 100); do
-  if /usr/bin/python3 -c 'import os,socket; s=socket.create_connection(("127.0.0.1",int(os.environ["SYNON_KERNEL_EGRESS_PORT"])),0.1); s.close()' 2>/dev/null; then
+  if /usr/bin/python3 -c 'import os,socket; s=socket.create_connection(("127.0.0.1",int(os.environ["X_SCIENCE_KERNEL_EGRESS_PORT"])),0.1); s.close()' 2>/dev/null; then
     exec "$@"
   fi
   sleep 0.01
@@ -140,15 +140,15 @@ done
 kill "$proxy_pid" 2>/dev/null || true
 exit 70
 `
-	wrapperArguments := []string{"-c", script, "synon-kernel-egress", executable}
+	wrapperArguments := []string{"-c", script, "x-science-kernel-egress", executable}
 	wrapperArguments = append(wrapperArguments, arguments...)
 	if port < 1024 || port > 65535 {
 		return "", nil, nil, errors.New("kernel egress loopback port is invalid")
 	}
 	proxyURL := fmt.Sprintf("http://127.0.0.1:%d", port)
 	overrides := map[string]string{
-		"SYNON_KERNEL_EGRESS_PORT":      fmt.Sprintf("%d", port),
-		"SYNON_KERNEL_EGRESS_FORWARDER": forwarder,
+		"X_SCIENCE_KERNEL_EGRESS_PORT":      fmt.Sprintf("%d", port),
+		"X_SCIENCE_KERNEL_EGRESS_FORWARDER": forwarder,
 		"HTTP_PROXY":                    proxyURL, "HTTPS_PROXY": proxyURL,
 		"http_proxy": proxyURL, "https_proxy": proxyURL,
 		"NO_PROXY": "localhost,127.0.0.1,::1", "no_proxy": "localhost,127.0.0.1,::1",

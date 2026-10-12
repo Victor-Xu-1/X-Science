@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/realtime"
+	"x-science/internal/realtime"
 )
 
 type ActivateAskUserHistoryCutoverInput struct {

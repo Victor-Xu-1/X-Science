@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	secretstore "synon-go/internal/persistence/secrets"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	secretstore "x-science/internal/persistence/secrets"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 // All recovery paths must preserve work and bound an unchanged generation route.

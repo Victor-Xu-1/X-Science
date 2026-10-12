@@ -78,4 +78,4 @@ observation <- function(expressions) {
   sort(unique(operations))
 }
 observed <- observation(tree)
-if (!is.null(observed)) emit("observation", "synon.execution-observation.v1", observed)
+if (!is.null(observed)) emit("observation", "x-science.execution-observation.v1", observed)

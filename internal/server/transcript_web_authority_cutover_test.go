@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"testing"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/realtime"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/realtime"
 )
 
 func TestPublicConversationHistoryFailsClosedOutsideActivatedTranscriptAuthority(t *testing.T) {

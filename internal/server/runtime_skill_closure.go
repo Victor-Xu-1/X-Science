@@ -1,6 +1,6 @@
 package server
 
-import "synon-go/internal/skills"
+import "x-science/internal/skills"
 
 // runtimeSkillClosure resolves one selected Skill and its dependencies against
 // the immutable turn authority. Selection itself remains model- or user-owned;

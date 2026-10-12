@@ -6,9 +6,9 @@ import (
 	"strings"
 	"unicode"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/sciencecapability"
-	"synon-go/internal/toolcontract"
+	"x-science/internal/agentruntime"
+	"x-science/internal/sciencecapability"
+	"x-science/internal/toolcontract"
 )
 
 // sanitizeManagedAskUserModelTurnForCheckpoint keeps the model narration and

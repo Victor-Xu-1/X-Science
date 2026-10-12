@@ -22,9 +22,9 @@ type webExternalIdentityClaims struct {
 	RequireVerifiedEmail bool
 }
 
-func (s *webAccountStore) UserByID(accountID string) (synonLinkAuthUser, bool) {
+func (s *webAccountStore) UserByID(accountID string) (xscienceLinkAuthUser, bool) {
 	if s == nil {
-		return synonLinkAuthUser{}, false
+		return xscienceLinkAuthUser{}, false
 	}
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -33,14 +33,14 @@ func (s *webAccountStore) UserByID(accountID string) (synonLinkAuthUser, bool) {
 			return account.publicUser(), true
 		}
 	}
-	return synonLinkAuthUser{}, false
+	return xscienceLinkAuthUser{}, false
 }
 
 func (s *webAccountStore) ResolveExternalIdentity(
 	claims webExternalIdentityClaims,
-) (synonLinkAuthUser, bool, error) {
+) (xscienceLinkAuthUser, bool, error) {
 	if s == nil {
-		return synonLinkAuthUser{}, false, errors.New("Web account store is unavailable")
+		return xscienceLinkAuthUser{}, false, errors.New("Web account store is unavailable")
 	}
 	claims.Provider = strings.ToLower(strings.TrimSpace(claims.Provider))
 	claims.Issuer = strings.TrimSpace(claims.Issuer)
@@ -49,11 +49,11 @@ func (s *webAccountStore) ResolveExternalIdentity(
 	if !validExternalIdentityPart(claims.Provider, 128) ||
 		!validExternalIdentityPart(claims.Issuer, 2048) ||
 		!validExternalIdentityPart(claims.Subject, 1024) {
-		return synonLinkAuthUser{}, false, &webAccountValidationError{code: "EXTERNAL_IDENTITY_INVALID"}
+		return xscienceLinkAuthUser{}, false, &webAccountValidationError{code: "EXTERNAL_IDENTITY_INVALID"}
 	}
 	normalizedEmail, err := validatedExternalIdentityEmail(claims)
 	if err != nil {
-		return synonLinkAuthUser{}, false, err
+		return xscienceLinkAuthUser{}, false, err
 	}
 	now := s.now().UTC().Format(time.RFC3339Nano)
 	s.mu.Lock()
@@ -70,7 +70,7 @@ func (s *webAccountStore) ResolveExternalIdentity(
 	if normalizedEmail != "" {
 		for _, account := range s.accounts {
 			if account.NormalizedEmail == normalizedEmail {
-				return synonLinkAuthUser{}, false, &webAccountValidationError{code: "EXTERNAL_EMAIL_LINK_REQUIRED"}
+				return xscienceLinkAuthUser{}, false, &webAccountValidationError{code: "EXTERNAL_EMAIL_LINK_REQUIRED"}
 			}
 		}
 	}
@@ -100,7 +100,7 @@ func (s *webAccountStore) updateResolvedExternalIdentityLocked(
 	claims webExternalIdentityClaims,
 	normalizedEmail string,
 	now string,
-) (synonLinkAuthUser, bool, error) {
+) (xscienceLinkAuthUser, bool, error) {
 	identity := s.identities[identityIndex]
 	for accountIndex := range s.accounts {
 		account := s.accounts[accountIndex]
@@ -110,7 +110,7 @@ func (s *webAccountStore) updateResolvedExternalIdentityLocked(
 		if normalizedEmail != "" {
 			for _, other := range s.accounts {
 				if other.ID != account.ID && other.NormalizedEmail == normalizedEmail {
-					return synonLinkAuthUser{}, false, &webAccountValidationError{code: "EXTERNAL_EMAIL_LINK_REQUIRED"}
+					return xscienceLinkAuthUser{}, false, &webAccountValidationError{code: "EXTERNAL_EMAIL_LINK_REQUIRED"}
 				}
 			}
 		}
@@ -130,7 +130,7 @@ func (s *webAccountStore) updateResolvedExternalIdentityLocked(
 		nextIdentities[identityIndex] = identity
 		nextAccounts[accountIndex] = account
 		if err := s.persistLocked(nextAccounts, nextIdentities); err != nil {
-			return synonLinkAuthUser{}, false, err
+			return xscienceLinkAuthUser{}, false, err
 		}
 		s.accounts = nextAccounts
 		s.identities = nextIdentities
@@ -138,31 +138,31 @@ func (s *webAccountStore) updateResolvedExternalIdentityLocked(
 		user.Provider = claims.Provider
 		return user, false, nil
 	}
-	return synonLinkAuthUser{}, false, &webAccountValidationError{code: "ACCOUNT_DISABLED"}
+	return xscienceLinkAuthUser{}, false, &webAccountValidationError{code: "ACCOUNT_DISABLED"}
 }
 
 func (s *webAccountStore) createExternalIdentityLocked(
 	claims webExternalIdentityClaims,
 	normalizedEmail string,
 	now string,
-) (synonLinkAuthUser, bool, error) {
+) (xscienceLinkAuthUser, bool, error) {
 	displayName := externalIdentityDisplayName(claims.DisplayName, claims.Email, claims.Provider)
 	username := s.availableExternalIdentityUsernameLocked(displayName, claims.Provider)
 	account := storedWebAccount{
-		ID: "synonbiomed-web-" + uuid.NewString(), Username: username, DisplayName: displayName,
+		ID: "xscience-web-" + uuid.NewString(), Username: username, DisplayName: displayName,
 		Email: claims.Email, NormalizedUsername: normalizeWebAccountName(username),
 		NormalizedEmail: normalizedEmail, EmailVerified: normalizedEmail != "", Status: "active",
 		CreatedAt: now, UpdatedAt: now,
 	}
 	identity := storedWebExternalIdentity{
-		ID: "synonbiomed-identity-" + uuid.NewString(), AccountID: account.ID,
+		ID: "xscience-identity-" + uuid.NewString(), AccountID: account.ID,
 		Provider: claims.Provider, Issuer: claims.Issuer, Subject: claims.Subject,
 		Email: claims.Email, EmailVerified: normalizedEmail != "", CreatedAt: now, LastUsedAt: now,
 	}
 	nextAccounts := append(append([]storedWebAccount(nil), s.accounts...), account)
 	nextIdentities := append(append([]storedWebExternalIdentity(nil), s.identities...), identity)
 	if err := s.persistLocked(nextAccounts, nextIdentities); err != nil {
-		return synonLinkAuthUser{}, false, err
+		return xscienceLinkAuthUser{}, false, err
 	}
 	s.accounts = nextAccounts
 	s.identities = nextIdentities

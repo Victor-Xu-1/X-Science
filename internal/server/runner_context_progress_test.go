@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/persistence/runtimekv"
+	"x-science/internal/agentruntime"
+	"x-science/internal/persistence/runtimekv"
 )
 
 type contextProgressModel struct{ observe func() }

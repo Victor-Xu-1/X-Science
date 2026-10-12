@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/tools/mcpstdio"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/tools/mcpstdio"
 )
 
 const bundledProbeConcurrency = 8
@@ -61,7 +61,7 @@ func (s *Service) ListUnifiedConnectors(ctx context.Context, userID string) ([]C
 		connector := Connector{
 			ID: item.ID, Name: item.Name, DisplayName: item.DisplayName, Description: item.Description,
 			URL: item.Config.URL, Transport: transportLabel(item.Config), Source: "bundled", Enabled: true,
-			HostedBySynon: item.HostedBySynon, AuthRequired: item.AuthRequired, OAuthSupported: item.OAuthSupported,
+			HostedByXScience: item.HostedByXScience, AuthRequired: item.AuthRequired, OAuthSupported: item.OAuthSupported,
 			AuthState: authState, AuthHint: item.AuthHint, ConnectionStatus: connectionStatus,
 			APIKeyConfigurable: item.APIKeyHeader != "" || item.APIKeyQueryParam != "", APIKeyConfigured: apiKeyConfigured,
 			APIKeyLabel:    item.APIKeyLabel,
@@ -387,7 +387,7 @@ func (s *Service) setBundledEnabled(ctx context.Context, userID, id string, enab
 	connector := Connector{
 		ID: item.ID, Name: item.Name, DisplayName: item.DisplayName, Description: item.Description,
 		URL: item.Config.URL, Transport: transportLabel(item.Config), Source: "bundled", Enabled: enabled,
-		HostedBySynon: item.HostedBySynon, AuthRequired: item.AuthRequired, OAuthSupported: item.OAuthSupported, AuthHint: item.AuthHint,
+		HostedByXScience: item.HostedByXScience, AuthRequired: item.AuthRequired, OAuthSupported: item.OAuthSupported, AuthHint: item.AuthHint,
 		APIKeyConfigurable: item.APIKeyHeader != "" || item.APIKeyQueryParam != "", APIKeyLabel: item.APIKeyLabel,
 		AuthState: "not-required", AttachedAgents: []string{"OPERON"}, Upstreams: item.Upstreams,
 	}

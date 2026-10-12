@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	providerOperationStagePrefix = "synon-biomed-provider-stage-"
+	providerOperationStagePrefix = "x-science-provider-stage-"
 	providerOperationMaxRequest  = 1 << 20
 	providerOperationMaxReply    = 1 << 20
 	providerOperationMaxOutput   = 64 << 10
@@ -140,7 +140,7 @@ func (m *Manager) RunProviderOperation(ctx context.Context, input ProviderOperat
 	}
 	environment := m.runtimeEnvironmentAtPrefix(runtimeSpec.Environment, "python", stage, "provider-operation", "", "", "", prefix)
 	environment = mergeProviderKernelEnvironment(environment, map[string]string{
-		"SYNON_PROVIDER_PROXY_FD": strconv.Itoa(proxyFD),
+		"X_SCIENCE_PROVIDER_PROXY_FD": strconv.Itoa(proxyFD),
 		"OPERON_HOST_NETNS_INO":   hostNetworkNamespace,
 		"OPERON_BYOC_ENVS_DIR":    runtimeSpec.EnvironmentsPath,
 		"OPERON_BYOC_INSTALL_ID":  runtimeSpec.InstallID,

@@ -982,7 +982,7 @@ func (s *Store) DeleteCompatibilityFrameTree(
 		if _, err := s.EnqueueRealtimeOutboxTx(ctx, tx, RealtimeEventInput{
 			ID: uuid.NewString(), UserID: ownerUserID, ProjectID: projectID,
 			RootFrameID: rootID, FrameID: rootID, Type: "conversation.listChanged",
-			Payload: map[string]any{"conversation_id": rootID, "action": "deleted", "source": "synonbiomed"},
+			Payload: map[string]any{"conversation_id": rootID, "action": "deleted", "source": "xscience"},
 		}, ""); err != nil {
 			return DeleteCompatibilityFrameResult{}, fmt.Errorf("enqueue compatibility conversation delete: %w", err)
 		}

@@ -8,7 +8,7 @@ import { ipcBridge } from '@/common';
 import type { IConversationMcpStatus, TChatConversation } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
 import addChatIcon from '@/renderer/assets/icons/add-chat.svg';
-import { usePresetAssistantInfo } from '@/renderer/hooks/synonBiomed/runtime/usePresetAssistantInfo';
+import { usePresetAssistantInfo } from '@/renderer/hooks/xScience/runtime/usePresetAssistantInfo';
 import { iconColors } from '@/renderer/styles/colors';
 import { Button, Dropdown, Menu, Message, Tooltip, Typography } from '@arco-design/web-react';
 import { History } from '@icon-park/react';
@@ -134,7 +134,7 @@ const ChatConversation: React.FC<{
 }> = ({ conversation, hideSendBox }) => {
   useActiveLease({
     id: conversation?.id,
-    enabled: conversation?.type === 'acp' && !conversation?.extra?.workspace?.startsWith('synonbiomed://'),
+    enabled: conversation?.type === 'acp' && !conversation?.extra?.workspace?.startsWith('x-science://'),
   });
   const workspaceEnabled = Boolean(conversation?.extra?.workspace);
   const resolvedHideSendBox = hideSendBox;

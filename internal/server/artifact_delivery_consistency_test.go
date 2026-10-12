@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func deliveryCollection(t *testing.T, f *agentSaveArtifactsFixture) workspace.CompatibilityProjectArtifactPage {

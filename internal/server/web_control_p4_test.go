@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	sessionstore "synon-go/internal/persistence/sessions"
-	workspace "synon-go/internal/persistence/workspace"
+	sessionstore "x-science/internal/persistence/sessions"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestP4AssistantListUsesPrivateConditionalCompression(t *testing.T) {
@@ -203,7 +203,7 @@ func TestP4AssistantDetailReturnsEffectiveAuthority(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	record, found, err := app.webAssistantRecord("local", "synonbiomed:operon")
+	record, found, err := app.webAssistantRecord("local", "xscience:operon")
 	if err != nil || !found {
 		t.Fatalf("OPERON record found=%v err=%v", found, err)
 	}
@@ -235,7 +235,7 @@ func TestP4AssistantDetailReturnsEffectiveAuthority(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	detailResponse := p3JSONRequest(t, app, http.MethodGet, "/api/assistants/synonbiomed%3Aoperon", nil, "")
+	detailResponse := p3JSONRequest(t, app, http.MethodGet, "/api/assistants/xscience%3Aoperon", nil, "")
 	if detailResponse.Code != http.StatusOK {
 		t.Fatalf("detail status=%d body=%s", detailResponse.Code, detailResponse.Body.String())
 	}
@@ -255,7 +255,7 @@ func TestP4AssistantDetailReturnsEffectiveAuthority(t *testing.T) {
 	create := func(skills, mcps []string) *httptest.ResponseRecorder {
 		return p3JSONRequest(t, app, http.MethodPost, "/api/conversations", map[string]any{
 			"name": "Effective authority", "assistant": map[string]any{
-				"id": "synonbiomed:operon", "conversation_overrides": map[string]any{
+				"id": "xscience:operon", "conversation_overrides": map[string]any{
 					"skill_ids": skills, "mcp_ids": mcps,
 				},
 			},
@@ -276,7 +276,7 @@ func TestP4AssistantDetailReturnsEffectiveAuthority(t *testing.T) {
 func TestP4OperonConversationWithoutMCPOverrideKeepsConnectedAuthority(t *testing.T) {
 	app, store := newP3WebConversationServer(t)
 	project := createP3Project(t, store, "p4-operon-default-mcp-project", "local")
-	record, found, err := app.webAssistantRecord("local", "synonbiomed:operon")
+	record, found, err := app.webAssistantRecord("local", "xscience:operon")
 	if err != nil || !found {
 		t.Fatalf("OPERON record found=%v err=%v", found, err)
 	}
@@ -291,7 +291,7 @@ func TestP4OperonConversationWithoutMCPOverrideKeepsConnectedAuthority(t *testin
 		t,
 		app,
 		http.MethodGet,
-		"/api/assistants/synonbiomed%3Aoperon/composer-capabilities",
+		"/api/assistants/xscience%3Aoperon/composer-capabilities",
 		nil,
 		"",
 	)
@@ -315,7 +315,7 @@ func TestP4OperonConversationWithoutMCPOverrideKeepsConnectedAuthority(t *testin
 	created := p3JSONRequest(t, app, http.MethodPost, "/api/conversations", map[string]any{
 		"name": "OPERON default MCP authority",
 		"assistant": map[string]any{
-			"id": "synonbiomed:operon",
+			"id": "xscience:operon",
 		},
 		"extra": map[string]any{"project_id": project.ID},
 	}, "")
@@ -419,7 +419,7 @@ func TestP4OperonDefaultsKeepDynamicSkillDiscovery(t *testing.T) {
 		t.Fatalf("materialized OPERON profile unrestricted=%v", profile.Unrestricted)
 	}
 
-	detailResponse := p3JSONRequest(t, app, http.MethodGet, "/api/assistants/synonbiomed%3Aoperon", nil, "")
+	detailResponse := p3JSONRequest(t, app, http.MethodGet, "/api/assistants/xscience%3Aoperon", nil, "")
 	if detailResponse.Code != http.StatusOK {
 		t.Fatalf("detail status=%d body=%s", detailResponse.Code, detailResponse.Body.String())
 	}
@@ -435,7 +435,7 @@ func TestP4OperonDefaultsKeepDynamicSkillDiscovery(t *testing.T) {
 	created := p3JSONRequest(t, app, http.MethodPost, "/api/conversations", map[string]any{
 		"name": "OPERON dynamic skill discovery",
 		"assistant": map[string]any{
-			"id": "synonbiomed:operon",
+			"id": "xscience:operon",
 		},
 		"extra": map[string]any{"project_id": project.ID},
 	}, "")
@@ -463,7 +463,7 @@ func TestP4OperonDefaultsKeepDynamicSkillDiscovery(t *testing.T) {
 
 func TestP4RestrictedAssistantRejectsUnattachedEnabledMCPDefault(t *testing.T) {
 	app, _ := newP3WebConversationServer(t)
-	operon, found, err := app.webAssistantRecord("local", "synonbiomed:operon")
+	operon, found, err := app.webAssistantRecord("local", "xscience:operon")
 	if err != nil || !found {
 		t.Fatalf("OPERON record found=%v err=%v", found, err)
 	}

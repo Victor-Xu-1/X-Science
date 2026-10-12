@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"path/filepath"
 	"strings"
-	"synon-go/internal/agentruntime"
-	runtimekv "synon-go/internal/persistence/runtimekv"
+	"x-science/internal/agentruntime"
+	runtimekv "x-science/internal/persistence/runtimekv"
 	"testing"
 )
 

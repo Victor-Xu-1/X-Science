@@ -12,7 +12,7 @@ import httpx
 from mcp_servers_common.ratelimit import retry_after_seconds
 
 DEFAULT_BASE_URL = "https://www.ebi.ac.uk/ols4/api"
-USER_AGENT = "bio-tools/ols-ontologies 0.1.0 (https://github.com/synon_llm-experimental/bio-tools)"
+USER_AGENT = "bio-tools/ols-ontologies 0.1.0 (https://github.com/x_science_llm-experimental/bio-tools)"
 
 
 class OLSClient:

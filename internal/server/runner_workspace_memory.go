@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/memoryprompt"
-	sessionstore "synon-go/internal/persistence/sessions"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	"x-science/internal/memoryprompt"
+	sessionstore "x-science/internal/persistence/sessions"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 var (
@@ -19,7 +19,7 @@ var (
 	workspaceMemoryRecallIDPattern    = regexp.MustCompile(`(?i)\[(mem_[a-z0-9]+)\b`)
 )
 
-const workspaceMemoryServedRuntimeNamespace = "synon-memory-served"
+const workspaceMemoryServedRuntimeNamespace = "x-science-memory-served"
 
 type workspaceMemoryRecallScope struct {
 	ownerUserID   string

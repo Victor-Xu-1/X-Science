@@ -8,11 +8,11 @@ import (
 	"reflect"
 	"testing"
 
-	"synon-go/internal/agentruntime"
-	eventjournal "synon-go/internal/persistence/journal"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	"synon-go/internal/sciencecapability"
-	"synon-go/internal/skills"
+	"x-science/internal/agentruntime"
+	eventjournal "x-science/internal/persistence/journal"
+	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/sciencecapability"
+	"x-science/internal/skills"
 )
 
 func TestAskUserResolverTopLevelIdentityRemainsAuxiliaryThroughPersistence(t *testing.T) {

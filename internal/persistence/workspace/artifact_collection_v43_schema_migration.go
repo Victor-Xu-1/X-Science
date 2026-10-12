@@ -8,7 +8,7 @@ import (
 const (
 	artifactCollectionV43CallbackID        = "artifact-collection-v43-noop"
 	artifactCollectionV43PreflightIdentity = "artifact-project-index-v1"
-	artifactCollectionV43RuleSpec          = "synon.workspace.artifact-collection-index.v43"
+	artifactCollectionV43RuleSpec          = "x-science.workspace.artifact-collection-index.v43"
 )
 
 var artifactCollectionV43Migration = versionedSchemaMigration{

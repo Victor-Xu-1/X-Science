@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/memorypolicy"
+	"x-science/internal/memorypolicy"
 )
 
 func TestMemoryRecallRanksScopesSupportsChineseAndRecordsAccess(t *testing.T) {

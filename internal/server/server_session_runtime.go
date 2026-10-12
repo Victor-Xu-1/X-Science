@@ -16,21 +16,21 @@ import (
 
 	"time"
 
-	eventjournal "synon-go/internal/persistence/journal"
+	eventjournal "x-science/internal/persistence/journal"
 
-	sessionstore "synon-go/internal/persistence/sessions"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	sessionstore "x-science/internal/persistence/sessions"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
-func (s *Server) executeSynonLinkTool(ctx context.Context, input map[string]any) (string, any, error) {
-	if err := s.validateRegisteredTool("synon_link", input); err != nil {
+func (s *Server) executeXScienceLinkTool(ctx context.Context, input map[string]any) (string, any, error) {
+	if err := s.validateRegisteredTool("x_science_link", input); err != nil {
 		return "", nil, err
 	}
 	userID := stringValue(input["userId"])
 	clientID := stringValue(input["clientId"])
 	action := stringValue(input["action"])
 	payload := mapValue(input["payload"])
-	command, resultCh, err := s.synonLink.SendCommand(ctx, userID, clientID, action, payload)
+	command, resultCh, err := s.xscienceLink.SendCommand(ctx, userID, clientID, action, payload)
 	if err != nil {
 		return "", nil, err
 	}

@@ -1,4 +1,4 @@
-import SynonSelect from '@/renderer/components/base/SynonSelect';
+import XScienceSelect from '@/renderer/components/base/XScienceSelect';
 import type { SelectHandle } from '@arco-design/web-react/es/Select/interface';
 import React, { useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -34,7 +34,7 @@ const LanguageSwitcher: React.FC = () => {
 
   return (
     <div className='flex items-center gap-8px'>
-      <SynonSelect
+      <XScienceSelect
         ref={selectRef}
         className='w-160px'
         value={selectedLanguage}
@@ -43,11 +43,11 @@ const LanguageSwitcher: React.FC = () => {
         onChange={handleLanguageChange}
       >
         {SUPPORTED_LANGUAGES.map((language) => (
-          <SynonSelect.Option key={language} value={language}>
+          <XScienceSelect.Option key={language} value={language}>
             {SUPPORTED_LANGUAGE_LABELS[language]}
-          </SynonSelect.Option>
+          </XScienceSelect.Option>
         ))}
-      </SynonSelect>
+      </XScienceSelect>
     </div>
   );
 };

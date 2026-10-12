@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	runtimekv "synon-go/internal/persistence/runtimekv"
+	runtimekv "x-science/internal/persistence/runtimekv"
 )
 
 func TestCompactAgentRuntimeListToolResponseBoundsLargeValues(t *testing.T) {
@@ -107,7 +107,7 @@ func TestCompactUpdateStepStatusResponseKeepsControlStateInline(t *testing.T) {
 			"next_actions": []any{map[string]any{"action": "search_more", "query": "follow-up evidence"}},
 		},
 		"research_transition": map[string]any{
-			"schema": "synon.research_transition.v1", "new_source_receipts": receipts,
+			"schema": "x-science.research_transition.v1", "new_source_receipts": receipts,
 			"updated_investigation": map[string]any{"id": "module-1", "status": "in_progress", "source_receipts": receipts},
 			"next_investigations":   []any{map[string]any{"id": "module-1", "status": "in_progress", "source_receipts": receipts}},
 		},
@@ -159,7 +159,7 @@ func TestCompactUpdateStepStatusKeepsCrossModuleSynthesisContext(t *testing.T) {
 	response := map[string]any{
 		"ok": true, "status": "completed", "step": "module-2",
 		"research_transition": map[string]any{
-			"schema": "synon.research_transition.v1", "navigation_state_only": true,
+			"schema": "x-science.research_transition.v1", "navigation_state_only": true,
 			"synthesis_context":   synthesis,
 			"next_investigations": []any{map[string]any{"id": "delivery", "status": "pending", "kind": "delivery"}},
 		},

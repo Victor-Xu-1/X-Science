@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	"synon-go/internal/tools/rcsbsearch"
+	"x-science/internal/agentruntime"
+	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/tools/rcsbsearch"
 )
 
 const (

@@ -21,8 +21,8 @@ import (
 
 	"github.com/google/uuid"
 
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const (
@@ -42,7 +42,7 @@ func DefaultSocketRoot(homeDir string) (string, error) {
 		return "", errors.New("detached kernel home must be absolute")
 	}
 	digest := sha256.Sum256([]byte(homeDir))
-	root := filepath.Join("/tmp", fmt.Sprintf("synon-kernel-%d-%s", os.Geteuid(), hex.EncodeToString(digest[:6])))
+	root := filepath.Join("/tmp", fmt.Sprintf("x-science-kernel-%d-%s", os.Geteuid(), hex.EncodeToString(digest[:6])))
 	longest := filepath.Join(root, "kernel-backend-"+strings.Repeat("0", 36)+".sock")
 	if len([]byte(longest)) > maxUnixSocketPathBytes {
 		return "", errors.New("detached kernel socket root exceeds the unix path budget")

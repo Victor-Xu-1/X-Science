@@ -32,7 +32,7 @@ async function embedded() {
 describe('embedded preview ownership', () => {
   it('does not read or inherit the workspace preview history', async () => {
     localStorage.setItem(
-      'synon-ai_preview_tabs',
+      'x-science_preview_tabs',
       JSON.stringify([
         { id: 'workspace-draft', title: 'workspace.md', content: '# Keep this', content_type: 'markdown' },
       ])

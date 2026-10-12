@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"synon-go/internal/mcpdirectory"
-	runtimekv "synon-go/internal/persistence/runtimekv"
+	"x-science/internal/mcpdirectory"
+	runtimekv "x-science/internal/persistence/runtimekv"
 )
 
 func TestMCPConnectorUsageProjectionAggregatesPerUserAndExposesZero(t *testing.T) {

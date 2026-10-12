@@ -12,7 +12,7 @@ import (
 	"sort"
 	"strings"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 const maxResearchIntegrityArtifactBytes = 16 << 20
@@ -27,7 +27,7 @@ type researchProducedArtifact struct {
 	content    []byte
 }
 
-const researchProvenanceManifestSchemaV1 = "synon.research_provenance_manifest.v1"
+const researchProvenanceManifestSchemaV1 = "x-science.research_provenance_manifest.v1"
 
 type researchProvenanceManifestV1 struct {
 	Schema            string                         `json:"schema"`

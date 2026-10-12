@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"math"
 
-	kernelruntime "synon-go/internal/kernel"
+	kernelruntime "x-science/internal/kernel"
 )
 
 func validateComputeProviderProbeReceipt(probe map[string]any) error {

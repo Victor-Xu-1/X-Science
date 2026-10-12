@@ -224,27 +224,27 @@ vi.mock('@/renderer/components/chat/BtwOverlay/useBtwCommand', () => ({
     dismiss: vi.fn(),
   }),
 }));
-vi.mock('@/renderer/components/synonBiomed/runtime/SynonBiomedModelSelector', () => ({
+vi.mock('@/renderer/components/xScience/runtime/XScienceModelSelector', () => ({
   default: ({ conversation_id }: { conversation_id: string }) => (
     <button type='button' data-testid='composer-model-selector'>
       模型 {conversation_id}
     </button>
   ),
 }));
-vi.mock('@/renderer/components/synonBiomed/runtime/SynonBiomedSessionOptionsMenu', () => ({
+vi.mock('@/renderer/components/xScience/runtime/XScienceSessionOptionsMenu', () => ({
   default: (props: Record<string, unknown>) => {
     sessionOptionsProps.current = props;
     return null;
   },
 }));
-vi.mock('@/renderer/components/synonBiomed/runtime/SynonBiomedBranchMenu', () => ({
+vi.mock('@/renderer/components/xScience/runtime/XScienceBranchMenu', () => ({
   default: ({ rootFrameId }: { rootFrameId: string }) => (
     <button data-testid='branch-menu' data-root-frame-id={rootFrameId}>
       branches
     </button>
   ),
 }));
-vi.mock('@/renderer/components/synonBiomed/runtime/SynonBiomedRuntimeOperations', () => ({
+vi.mock('@/renderer/components/xScience/runtime/XScienceRuntimeOperations', () => ({
   default: (props: {
     runtimeState?: string;
     runtimeAuthorityUnavailable?: boolean;
@@ -270,16 +270,16 @@ vi.mock('@/renderer/components/synonBiomed/runtime/SynonBiomedRuntimeOperations'
     return null;
   },
 }));
-vi.mock('@/renderer/services/synonBiomedRuntimeOperations', () => ({
-  loadSynonBiomedFramePlanArtifact: (...args: unknown[]) => loadFramePlanMock(...args),
-  notifySynonBiomedRuntimeInvalidation: (...args: unknown[]) => notifyRuntimeInvalidationMock(...args),
-  resumeSynonBiomedFrame: (...args: unknown[]) => resumeFrameMock(...args),
+vi.mock('@/renderer/services/xScienceRuntimeOperations', () => ({
+  loadXScienceFramePlanArtifact: (...args: unknown[]) => loadFramePlanMock(...args),
+  notifyXScienceRuntimeInvalidation: (...args: unknown[]) => notifyRuntimeInvalidationMock(...args),
+  resumeXScienceFrame: (...args: unknown[]) => resumeFrameMock(...args),
 }));
-vi.mock('@/renderer/services/skills/synonBiomedSkillLibrary', () => ({
-  saveSynonBiomedConversationAsSkill: (...args: unknown[]) => saveConversationAsSkillMock(...args),
+vi.mock('@/renderer/services/skills/xScienceSkillLibrary', () => ({
+  saveXScienceConversationAsSkill: (...args: unknown[]) => saveConversationAsSkillMock(...args),
 }));
-vi.mock('@/renderer/services/synonBiomedAnnotations', () => ({
-  requestSynonBiomedFrameAudit: (...args: unknown[]) => requestFrameAuditMock(...args),
+vi.mock('@/renderer/services/xScienceAnnotations', () => ({
+  requestXScienceFrameAudit: (...args: unknown[]) => requestFrameAuditMock(...args),
 }));
 vi.mock('@/renderer/components/chat/CommandQueuePanel', () => ({
   default: () => null,
@@ -317,13 +317,13 @@ vi.mock('@/renderer/components/media/FilePreview', () => ({
 vi.mock('@/renderer/components/media/HorizontalFileList', () => ({
   default: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
 }));
-vi.mock('@/renderer/services/synonBiomedGateway', () => ({
-  loadSynonBiomedComposerCapabilities: (...args: unknown[]) => loadComposerCapabilitiesMock(...args),
+vi.mock('@/renderer/services/xScienceGateway', () => ({
+  loadXScienceComposerCapabilities: (...args: unknown[]) => loadComposerCapabilitiesMock(...args),
 }));
-vi.mock('@/renderer/hooks/synonBiomed/runtime/useAcpModelInfo', () => ({
+vi.mock('@/renderer/hooks/xScience/runtime/useAcpModelInfo', () => ({
   useAcpModelInfo: (...args: unknown[]) => useAcpModelInfoMock(...args),
 }));
-vi.mock('@/renderer/hooks/synonBiomed/runtime/useAcpConfigOptions', () => ({
+vi.mock('@/renderer/hooks/xScience/runtime/useAcpConfigOptions', () => ({
   classifyConfigSetError: () => 'unknown',
   useAcpConfigOptions: (...args: unknown[]) => useAcpConfigOptionsMock(...args),
 }));
@@ -405,11 +405,11 @@ vi.mock('@/renderer/pages/conversation/platforms/useConversationCommandQueue', (
     resetActiveExecution: vi.fn(),
   }),
 }));
-vi.mock('@/renderer/services/synonBiomedConversationBranches', () => ({
-  getSelectedSynonBiomedBranch: (...args: unknown[]) => getSelectedBranchMock(...args),
-  getSynonBiomedBranchSelectionRevision: (...args: unknown[]) => getBranchRevisionMock(...args),
-  loadSynonBiomedConversationBranches: (...args: unknown[]) => loadBranchStateMock(...args),
-  selectSynonBiomedBranch: (...args: unknown[]) => selectBranchMock(...args),
+vi.mock('@/renderer/services/xScienceConversationBranches', () => ({
+  getSelectedXScienceBranch: (...args: unknown[]) => getSelectedBranchMock(...args),
+  getXScienceBranchSelectionRevision: (...args: unknown[]) => getBranchRevisionMock(...args),
+  loadXScienceConversationBranches: (...args: unknown[]) => loadBranchStateMock(...args),
+  selectXScienceBranch: (...args: unknown[]) => selectBranchMock(...args),
 }));
 vi.mock('@/renderer/pages/conversation/runtime/useConversationRuntimeView', () => ({
   useConversationRuntimeView: () => runtimeViewMock,
@@ -422,8 +422,8 @@ vi.mock('@/renderer/pages/conversation/Preview/context/PreviewContext', () => ({
 vi.mock('@/renderer/services/FileService', () => ({
   allSupportedExts: [],
 }));
-vi.mock('@/renderer/services/synonBiomedSessionOptions', () => ({
-  createSynonBiomedSessionDefaults: (targetAgent = 'OPERON') => ({
+vi.mock('@/renderer/services/xScienceSessionOptions', () => ({
+  createXScienceSessionDefaults: (targetAgent = 'OPERON') => ({
     delegation: false,
     autoReview: false,
     memory: false,
@@ -431,8 +431,8 @@ vi.mock('@/renderer/services/synonBiomedSessionOptions', () => ({
     goalText: null,
     asRoutine: false,
   }),
-  loadSynonBiomedSessionOptions: (...args: unknown[]) => loadSessionOptionsMock(...args),
-  toSynonBiomedMessageSessionOptions: (
+  loadXScienceSessionOptions: (...args: unknown[]) => loadSessionOptionsMock(...args),
+  toXScienceMessageSessionOptions: (
     value: Record<string, unknown>,
     overrides?: {
       planMode?: boolean;
@@ -447,15 +447,15 @@ vi.mock('@/renderer/services/synonBiomedSessionOptions', () => ({
     ...(overrides?.expectedBranchId ? { expected_branch_id: overrides.expectedBranchId } : {}),
     ...(overrides?.expectedGeneration ? { expected_generation: overrides.expectedGeneration } : {}),
   }),
-  updateSynonBiomedSessionConfig: (...args: unknown[]) => updateSessionConfigMock(...args),
+  updateXScienceSessionConfig: (...args: unknown[]) => updateSessionConfigMock(...args),
 }));
-vi.mock('@/renderer/services/synonBiomedCatalog', () => ({
-  loadSynonBiomedAssistants: (...args: unknown[]) => loadAssistantsMock(...args),
+vi.mock('@/renderer/services/xScienceCatalog', () => ({
+  loadXScienceAssistants: (...args: unknown[]) => loadAssistantsMock(...args),
 }));
-vi.mock('@/renderer/services/synonBiomedCompute', () => ({
-  loadSynonBiomedComputeProviders: (...args: unknown[]) => loadComputeProvidersMock(...args),
-  loadSynonBiomedSessionComputeProviders: (...args: unknown[]) => loadSessionComputeProvidersMock(...args),
-  setSynonBiomedSessionComputeProvider: (...args: unknown[]) => setSessionComputeProviderMock(...args),
+vi.mock('@/renderer/services/xScienceCompute', () => ({
+  loadXScienceComputeProviders: (...args: unknown[]) => loadComputeProvidersMock(...args),
+  loadXScienceSessionComputeProviders: (...args: unknown[]) => loadSessionComputeProvidersMock(...args),
+  setXScienceSessionComputeProvider: (...args: unknown[]) => setSessionComputeProviderMock(...args),
 }));
 vi.mock('@/renderer/utils/emitter', () => ({
   emitter: {
@@ -649,7 +649,7 @@ describe('AcpSendBox', () => {
     runtimeViewMock.hydrationError = 'gateway unavailable';
     loadFramePlanMock.mockImplementationOnce(() => new Promise(() => {}));
 
-    await render(<AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />);
+    await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />);
 
     expect(runtimeOperationsProps.current?.runtimeAuthorityUnavailable).toBe(true);
     expect(screen.queryByRole('alert', { name: '运行状态不可用' })).not.toBeInTheDocument();
@@ -686,7 +686,7 @@ describe('AcpSendBox', () => {
       } as TMessage,
     ];
 
-    await render(<AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={messageState} />);
+    await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={messageState} />);
 
     expect(runtimeOperationsProps.current?.runtimeState).toBe('running');
     expect(runtimeOperationsProps.current?.onStop).toBeTypeOf('function');
@@ -694,11 +694,11 @@ describe('AcpSendBox', () => {
       total: { tokenUsage: 24_576, modelCallCount: null, toolCallCount: 1 },
       latest: { tokenUsage: 24_576, modelCallCount: null, toolCallCount: 1 },
     });
-    expect(screen.queryByTestId('synon-biomed-runtime-status')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('x-science-runtime-status')).not.toBeInTheDocument();
   });
 
   it('keeps the composer available for queued follow-up tasks while the current task runs', async () => {
-    await render(<AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />);
+    await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />);
 
     expect(screen.getByTestId('sendbox-bottom-hint')).toHaveTextContent('');
     expect(screen.getByTestId('sendbox-placeholder').parentElement).toHaveAttribute(
@@ -713,7 +713,7 @@ describe('AcpSendBox', () => {
     runtimeViewMock.canSendMessage = true;
     loadFramePlanMock.mockImplementationOnce(() => new Promise(() => {}));
 
-    await render(<AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />);
+    await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />);
 
     expect(screen.getByRole('button', { name: 'send' })).toBeDisabled();
     expect(screen.queryByRole('alert', { name: '运行状态不可用' })).not.toBeInTheDocument();
@@ -735,7 +735,7 @@ describe('AcpSendBox', () => {
     loadFramePlanMock.mockImplementation(() => new Promise(() => {}));
 
     try {
-      await render(<AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />);
+      await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />);
       expect(screen.queryByText('正在加载会话选项')).not.toBeInTheDocument();
       await act(async () => {
         failed.reject(new Error('memory_request_failed_503'));
@@ -767,9 +767,9 @@ describe('AcpSendBox', () => {
     );
 
     const view = await render(
-      <AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />
+      <AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />
     );
-    view.rerender(<AcpSendBox conversation_id='conv-2' backend='synonbiomed' messageState={makeMessageState()} />);
+    view.rerender(<AcpSendBox conversation_id='conv-2' backend='xscience' messageState={makeMessageState()} />);
     await act(async () => {
       current.resolve({
         delegation: false,
@@ -801,7 +801,7 @@ describe('AcpSendBox', () => {
   it('keeps the task running and exposes recovery when stop fails', async () => {
     stopInvokeMock.mockRejectedValueOnce(new Error('gateway unavailable'));
 
-    await render(<AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />);
+    await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />);
 
     await act(async () => {
       await runtimeOperationsProps.current?.onStop?.();
@@ -815,7 +815,7 @@ describe('AcpSendBox', () => {
   });
 
   it('exposes one authoritative cancellation handler through the status center only', async () => {
-    await render(<AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />);
+    await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />);
 
     expect(screen.queryByRole('button', { name: 'stop' })).not.toBeInTheDocument();
     await act(async () => {
@@ -836,7 +836,7 @@ describe('AcpSendBox', () => {
     await render(
       <AcpSendBox
         conversation_id='conv-1'
-        backend='synonbiomed'
+        backend='xscience'
         messageState={makeMessageState()}
         onRuntimeMutation={onRuntimeMutation}
       />
@@ -862,7 +862,7 @@ describe('AcpSendBox', () => {
   });
 
   it('applies a passive runtime refresh through the authoritative conversation gate', async () => {
-    await render(<AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />);
+    await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />);
 
     act(() => {
       runtimeOperationsProps.current?.onRuntimeUpdated?.('turn-3', {
@@ -881,7 +881,7 @@ describe('AcpSendBox', () => {
       expect.objectContaining({ state: 'idle', task_status: 'finished' })
     );
     expect(emitterEmitMock).toHaveBeenCalledWith(
-      'synonbiomed.runtime.reconciled',
+      'xscience.runtime.reconciled',
       'conv-1',
       expect.objectContaining({ state: 'idle', task_status: 'finished' })
     );
@@ -894,7 +894,7 @@ describe('AcpSendBox', () => {
     runtimeViewMock.view.hasTask = false;
     runtimeViewMock.view.hasBackendRuntime = true;
     runtimeViewMock.view.taskStatus = 'error';
-    await render(<AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />);
+    await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />);
 
     expect(sessionOptionsProps.current).not.toHaveProperty('onResume');
     expect(sessionOptionsProps.current).not.toHaveProperty('resumeInFlight');
@@ -915,7 +915,7 @@ describe('AcpSendBox', () => {
       },
     });
 
-    await render(<AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />);
+    await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />);
 
     await act(async () => {
       await runtimeOperationsProps.current?.onStop?.();
@@ -934,14 +934,14 @@ describe('AcpSendBox', () => {
     stopInvokeMock.mockReturnValueOnce(pendingStop.promise);
     loadFramePlanMock.mockImplementation(() => new Promise(() => {}));
     const view = await render(
-      <AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />
+      <AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />
     );
 
     await act(async () => {
       void runtimeOperationsProps.current?.onStop?.();
       await Promise.resolve();
     });
-    view.rerender(<AcpSendBox conversation_id='conv-2' backend='synonbiomed' messageState={makeMessageState()} />);
+    view.rerender(<AcpSendBox conversation_id='conv-2' backend='xscience' messageState={makeMessageState()} />);
     runtimeViewMock.markStopAcknowledged.mockClear();
     setAiProcessingMock.mockClear();
     resetStateMock.mockClear();
@@ -971,14 +971,14 @@ describe('AcpSendBox', () => {
     stopInvokeMock.mockReturnValueOnce(pendingStop.promise);
     loadFramePlanMock.mockImplementation(() => new Promise(() => {}));
     const view = await render(
-      <AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />
+      <AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />
     );
 
     await act(async () => {
       void runtimeOperationsProps.current?.onStop?.();
       await Promise.resolve();
     });
-    view.rerender(<AcpSendBox conversation_id='conv-2' backend='synonbiomed' messageState={makeMessageState()} />);
+    view.rerender(<AcpSendBox conversation_id='conv-2' backend='xscience' messageState={makeMessageState()} />);
     runtimeViewMock.resetLocalGate.mockClear();
     messageErrorMock.mockClear();
 
@@ -996,7 +996,7 @@ describe('AcpSendBox', () => {
 
     await render(<AcpSendBox conversation_id='conv-1' backend='claude' messageState={makeMessageState()} />);
 
-    expect(screen.queryByTestId('synon-biomed-context-usage-trigger')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('x-science-context-usage-trigger')).not.toBeInTheDocument();
 
     await act(async () => {
       await runtimeOperationsProps.current?.onStop?.();
@@ -1011,7 +1011,7 @@ describe('AcpSendBox', () => {
   it('cancels a X-Science frame when the live task is ahead of the conversation turn projection', async () => {
     runtimeViewMock.activeTurnId = null;
 
-    await render(<AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />);
+    await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />);
 
     await act(async () => {
       await runtimeOperationsProps.current?.onStop?.();
@@ -1101,7 +1101,7 @@ describe('AcpSendBox', () => {
       new Error('provider rejected sk-live-secret-value for alice@example.com token=private-token-value')
     );
     loadFramePlanMock.mockImplementation(() => new Promise(() => {}));
-    await render(<AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />);
+    await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />);
     await waitFor(() => expect(screen.getByRole('button', { name: 'send' })).toBeEnabled());
 
     await act(async () => {
@@ -1128,7 +1128,7 @@ describe('AcpSendBox', () => {
     );
     loadFramePlanMock.mockImplementation(() => new Promise(() => {}));
     try {
-      await render(<AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />);
+      await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />);
 
       await act(async () => {
         await runtimeOperationsProps.current?.onStop?.();
@@ -1154,14 +1154,14 @@ describe('AcpSendBox', () => {
     sendMessageInvokeMock.mockReturnValueOnce(pendingSend.promise);
     loadFramePlanMock.mockImplementation(() => new Promise(() => {}));
     const view = await render(
-      <AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />
+      <AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />
     );
 
     await act(async () => {
       screen.getByRole('button', { name: 'send' }).click();
       await Promise.resolve();
     });
-    view.rerender(<AcpSendBox conversation_id='conv-2' backend='synonbiomed' messageState={makeMessageState()} />);
+    view.rerender(<AcpSendBox conversation_id='conv-2' backend='xscience' messageState={makeMessageState()} />);
     runtimeViewMock.markSendAccepted.mockClear();
     emitterEmitMock.mockClear();
 
@@ -1183,14 +1183,14 @@ describe('AcpSendBox', () => {
     sendMessageInvokeMock.mockReturnValueOnce(pendingSend.promise);
     loadFramePlanMock.mockImplementation(() => new Promise(() => {}));
     const view = await render(
-      <AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />
+      <AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />
     );
 
     await act(async () => {
       screen.getByRole('button', { name: 'send' }).click();
       await Promise.resolve();
     });
-    view.rerender(<AcpSendBox conversation_id='conv-2' backend='synonbiomed' messageState={makeMessageState()} />);
+    view.rerender(<AcpSendBox conversation_id='conv-2' backend='xscience' messageState={makeMessageState()} />);
     runtimeViewMock.markSendFailed.mockClear();
     addOrUpdateMessageMock.mockClear();
     resetStateMock.mockClear();
@@ -1235,7 +1235,7 @@ describe('AcpSendBox', () => {
       await render(
         <AcpSendBox
           conversation_id='conv-1'
-          backend='synonbiomed'
+          backend='xscience'
           agent_name='OPERON'
           workspacePath='/tmp/workspace'
           messageState={makeMessageState()}
@@ -1257,7 +1257,7 @@ describe('AcpSendBox', () => {
       turn_id: 'turn-1',
       runtime: { state: 'running', is_processing: true },
     });
-    await render(<AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />);
+    await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />);
     await waitFor(() => expect(screen.getByRole('button', { name: 'send' })).toBeEnabled());
 
     expect(screen.getAllByRole('button', { name: 'send' })).toHaveLength(1);
@@ -1281,14 +1281,14 @@ describe('AcpSendBox', () => {
       turn_id: 'turn-1',
       runtime: { state: 'running', is_processing: true },
     });
-    await render(<AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />);
+    await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />);
 
     await act(async () => {
       screen.getByRole('button', { name: 'send' }).click();
       await Promise.resolve();
     });
 
-    expect(removeMessageByMsgIdMock).toHaveBeenCalledWith(expect.stringMatching(/^synonbiomed-optimistic-user:/));
+    expect(removeMessageByMsgIdMock).toHaveBeenCalledWith(expect.stringMatching(/^xscience-optimistic-user:/));
     expect(addOrUpdateMessageMock).toHaveBeenLastCalledWith(
       expect.objectContaining({
         id: 'message-1',
@@ -1317,7 +1317,7 @@ describe('AcpSendBox', () => {
       turn_id: 'turn-context',
       runtime: { state: 'running', is_processing: true },
     });
-    await render(<AcpSendBox conversation_id='conv-context' backend='synonbiomed' messageState={makeMessageState()} />);
+    await render(<AcpSendBox conversation_id='conv-context' backend='xscience' messageState={makeMessageState()} />);
 
     await act(async () => {
       screen.getByRole('button', { name: 'send' }).click();
@@ -1347,7 +1347,7 @@ describe('AcpSendBox', () => {
       mcpStatuses: [{ id: 'pubmed-id', name: 'PubMed', status: 'loaded' }],
     });
     await render(
-      <AcpSendBox conversation_id='conv-capabilities' backend='synonbiomed' messageState={makeMessageState()} />
+      <AcpSendBox conversation_id='conv-capabilities' backend='xscience' messageState={makeMessageState()} />
     );
 
     await waitFor(() => {
@@ -1375,7 +1375,7 @@ describe('AcpSendBox', () => {
       turn_id: 'turn-branch',
       runtime: { state: 'running', is_processing: true },
     });
-    await render(<AcpSendBox conversation_id='conv-branch' backend='synonbiomed' messageState={makeMessageState()} />);
+    await render(<AcpSendBox conversation_id='conv-branch' backend='xscience' messageState={makeMessageState()} />);
     await waitFor(() => expect(screen.getByRole('button', { name: 'send' })).toBeEnabled());
 
     await act(async () => {
@@ -1402,7 +1402,7 @@ describe('AcpSendBox', () => {
       turn_id: 'turn-retry',
       runtime: { state: 'running', is_processing: true },
     });
-    await render(<AcpSendBox conversation_id='conv-retry' backend='synonbiomed' messageState={makeMessageState()} />);
+    await render(<AcpSendBox conversation_id='conv-retry' backend='xscience' messageState={makeMessageState()} />);
     await waitFor(() => expect(screen.getByRole('button', { name: 'send' })).toBeEnabled());
 
     screen.getByRole('button', { name: 'send' }).click();
@@ -1460,7 +1460,7 @@ describe('AcpSendBox', () => {
         runtime: { state: 'running', is_processing: true },
       });
     await render(
-      <AcpSendBox conversation_id='conv-branch-retry' backend='synonbiomed' messageState={makeMessageState()} />
+      <AcpSendBox conversation_id='conv-branch-retry' backend='xscience' messageState={makeMessageState()} />
     );
     await waitFor(() => expect(screen.getByRole('button', { name: 'send' })).toBeEnabled());
 
@@ -1498,7 +1498,7 @@ describe('AcpSendBox', () => {
       await render(
         <AcpSendBox
           conversation_id='conv-1'
-          backend='synonbiomed'
+          backend='xscience'
           workspacePath='/tmp/workspace'
           messageState={makeMessageState()}
         />
@@ -1512,7 +1512,7 @@ describe('AcpSendBox', () => {
 
   it('does not expose a composer-global branch selector on mobile', async () => {
     isMobileMock.current = true;
-    await render(<AcpSendBox conversation_id='conv-mobile' backend='synonbiomed' messageState={makeMessageState()} />);
+    await render(<AcpSendBox conversation_id='conv-mobile' backend='xscience' messageState={makeMessageState()} />);
 
     expect(screen.queryByTestId('branch-menu')).not.toBeInTheDocument();
   });
@@ -1533,7 +1533,7 @@ describe('AcpSendBox', () => {
       await render(
         <AcpSendBox
           conversation_id='conv-1'
-          backend='synonbiomed'
+          backend='xscience'
           workspacePath='/tmp/workspace'
           messageState={makeMessageState()}
         />
@@ -1551,7 +1551,7 @@ describe('AcpSendBox', () => {
   it('keeps a read-only model identity in the mobile sheet when switching is unavailable', async () => {
     isMobileMock.current = true;
 
-    await render(<AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />);
+    await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />);
 
     expect(mobileActionSheetEntries.current.find((entry) => entry.key === 'model')).toMatchObject({
       label: '模型',
@@ -1572,7 +1572,7 @@ describe('AcpSendBox', () => {
     await render(
       <AcpSendBox
         conversation_id='conv-1'
-        backend='synonbiomed'
+        backend='xscience'
         workspacePath='/tmp/workspace'
         messageState={makeMessageState()}
       />
@@ -1589,7 +1589,7 @@ describe('AcpSendBox', () => {
     isMobileMock.current = true;
     loadFramePlanMock.mockRejectedValue(new Error('plan unavailable'));
 
-    await render(<AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />);
+    await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />);
 
     expect(mobileActionSheetEntries.current.find((entry) => entry.key === 'view-plan')).toBeUndefined();
     expect(loadFramePlanMock).not.toHaveBeenCalled();
@@ -1621,7 +1621,7 @@ describe('AcpSendBox', () => {
       reload: vi.fn(),
     });
 
-    await render(<AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />);
+    await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />);
     await act(async () => {
       screen.getByRole('button', { name: 'mobile more' }).click();
     });
@@ -1657,7 +1657,7 @@ describe('AcpSendBox', () => {
       reload: vi.fn(),
     });
 
-    await render(<AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />);
+    await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />);
     await act(async () => {
       mobileActionSheetEntries.current.find((entry) => entry.key === 'send-mode')?.submenu?.onSelect?.('plan');
       await Promise.resolve();
@@ -1677,7 +1677,7 @@ describe('AcpSendBox', () => {
       filename: 'plan_conv-1.json',
       createdAt: null,
     });
-    await render(<AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />);
+    await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />);
     expect(fileAttachProps.current?.onViewPlan).toBeUndefined();
     expect(fileAttachProps.current?.onRequestReview).toEqual(expect.any(Function));
     expect(fileAttachProps.current?.reviewInFlight).toBe(false);
@@ -1700,7 +1700,7 @@ describe('AcpSendBox', () => {
   });
 
   it('keeps manual review state on the add menu only', async () => {
-    await render(<AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />);
+    await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />);
     expect(runtimeOperationsProps.current?.onReviewActivityChange).toEqual(expect.any(Function));
 
     await act(async () => {
@@ -1721,7 +1721,7 @@ describe('AcpSendBox', () => {
     runtimeViewMock.canSendMessage = true;
     runtimeViewMock.state = 'idle';
     runtimeViewMock.view.taskStatus = 'finished';
-    await render(<AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />);
+    await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />);
     expect(fileAttachProps.current?.saveAsSkillDisabled).toBe(false);
     const saveAsSkill = fileAttachProps.current?.onSaveSkill;
     if (typeof saveAsSkill !== 'function') throw new Error('Expected a save-as-skill handler');
@@ -1744,7 +1744,7 @@ describe('AcpSendBox', () => {
     requestFrameAuditMock.mockReturnValueOnce(pendingReview.promise);
     loadFramePlanMock.mockImplementation(() => new Promise(() => {}));
     const view = await render(
-      <AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />
+      <AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />
     );
     const requestReview = fileAttachProps.current?.onRequestReview;
     if (typeof requestReview !== 'function') throw new Error('Expected a frame audit handler');
@@ -1754,7 +1754,7 @@ describe('AcpSendBox', () => {
       request = requestReview() as Promise<void>;
       await Promise.resolve();
     });
-    view.rerender(<AcpSendBox conversation_id='conv-2' backend='synonbiomed' messageState={makeMessageState()} />);
+    view.rerender(<AcpSendBox conversation_id='conv-2' backend='xscience' messageState={makeMessageState()} />);
     messageSuccessMock.mockClear();
     emitterEmitMock.mockClear();
 
@@ -1777,7 +1777,7 @@ describe('AcpSendBox', () => {
     requestFrameAuditMock.mockReturnValueOnce(pendingReview.promise);
     loadFramePlanMock.mockImplementation(() => new Promise(() => {}));
     const view = await render(
-      <AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />
+      <AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />
     );
     const requestReview = fileAttachProps.current?.onRequestReview;
     if (typeof requestReview !== 'function') throw new Error('Expected a frame audit handler');
@@ -1787,7 +1787,7 @@ describe('AcpSendBox', () => {
       request = requestReview() as Promise<void>;
       await Promise.resolve();
     });
-    view.rerender(<AcpSendBox conversation_id='conv-2' backend='synonbiomed' messageState={makeMessageState()} />);
+    view.rerender(<AcpSendBox conversation_id='conv-2' backend='xscience' messageState={makeMessageState()} />);
     messageErrorMock.mockClear();
 
     await act(async () => {
@@ -1803,7 +1803,7 @@ describe('AcpSendBox', () => {
     updateSessionConfigMock.mockReturnValueOnce(pendingUpdate.promise);
     loadFramePlanMock.mockImplementation(() => new Promise(() => {}));
     const view = await render(
-      <AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />
+      <AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />
     );
     const updateOption = sessionOptionsProps.current?.onPersistentOptionChange;
     if (typeof updateOption !== 'function') throw new Error('Expected a persistent option handler');
@@ -1813,7 +1813,7 @@ describe('AcpSendBox', () => {
       request = updateOption('autoReview', true) as Promise<void>;
       await Promise.resolve();
     });
-    view.rerender(<AcpSendBox conversation_id='conv-2' backend='synonbiomed' messageState={makeMessageState()} />);
+    view.rerender(<AcpSendBox conversation_id='conv-2' backend='xscience' messageState={makeMessageState()} />);
 
     await act(async () => {
       pendingUpdate.resolve();
@@ -1828,7 +1828,7 @@ describe('AcpSendBox', () => {
     updateSessionConfigMock.mockReturnValueOnce(pendingUpdate.promise);
     loadFramePlanMock.mockImplementation(() => new Promise(() => {}));
     const view = await render(
-      <AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />
+      <AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />
     );
     const clearGoal = sessionOptionsProps.current?.onClearGoal;
     if (typeof clearGoal !== 'function') throw new Error('Expected a clear goal handler');
@@ -1838,7 +1838,7 @@ describe('AcpSendBox', () => {
       request = clearGoal() as Promise<void>;
       await Promise.resolve();
     });
-    view.rerender(<AcpSendBox conversation_id='conv-2' backend='synonbiomed' messageState={makeMessageState()} />);
+    view.rerender(<AcpSendBox conversation_id='conv-2' backend='xscience' messageState={makeMessageState()} />);
     messageSuccessMock.mockClear();
 
     await act(async () => {
@@ -1871,12 +1871,12 @@ describe('AcpSendBox', () => {
       reload: vi.fn(),
     });
     const view = await render(
-      <AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />
+      <AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />
     );
 
     mobileActionSheetEntries.current.find((entry) => entry.key === 'send-mode')?.submenu?.onSelect?.('plan');
     await act(async () => Promise.resolve());
-    view.rerender(<AcpSendBox conversation_id='conv-2' backend='synonbiomed' messageState={makeMessageState()} />);
+    view.rerender(<AcpSendBox conversation_id='conv-2' backend='xscience' messageState={makeMessageState()} />);
     messageSuccessMock.mockClear();
 
     await act(async () => {
@@ -1896,7 +1896,7 @@ describe('AcpSendBox', () => {
     loadSessionComputeProvidersMock.mockResolvedValue([]);
     setSessionComputeProviderMock.mockReturnValueOnce(pendingCompute.promise);
     const view = await render(
-      <AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />
+      <AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />
     );
     await waitFor(() =>
       expect(mobileActionSheetEntries.current.find((entry) => entry.key === 'session-compute')).toBeDefined()
@@ -1907,7 +1907,7 @@ describe('AcpSendBox', () => {
     loadAssistantsMock.mockImplementationOnce(() => new Promise(() => {}));
     loadComputeProvidersMock.mockImplementationOnce(() => new Promise(() => {}));
     loadSessionComputeProvidersMock.mockImplementationOnce(() => new Promise(() => {}));
-    view.rerender(<AcpSendBox conversation_id='conv-2' backend='synonbiomed' messageState={makeMessageState()} />);
+    view.rerender(<AcpSendBox conversation_id='conv-2' backend='xscience' messageState={makeMessageState()} />);
 
     await act(async () => {
       pendingCompute.resolve();
@@ -1926,7 +1926,7 @@ describe('AcpSendBox', () => {
     loadSessionComputeProvidersMock.mockResolvedValue([]);
     setSessionComputeProviderMock.mockReturnValueOnce(pendingCompute.promise);
     const view = await render(
-      <AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />
+      <AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />
     );
     await waitFor(() =>
       expect(mobileActionSheetEntries.current.find((entry) => entry.key === 'session-compute')).toBeDefined()
@@ -1934,7 +1934,7 @@ describe('AcpSendBox', () => {
 
     mobileActionSheetEntries.current.find((entry) => entry.key === 'session-compute')?.submenu?.onSelect?.('local-cpu');
     await act(async () => Promise.resolve());
-    view.rerender(<AcpSendBox conversation_id='conv-2' backend='synonbiomed' messageState={makeMessageState()} />);
+    view.rerender(<AcpSendBox conversation_id='conv-2' backend='xscience' messageState={makeMessageState()} />);
     messageErrorMock.mockClear();
 
     await act(async () => {
@@ -2074,12 +2074,12 @@ describe('AcpSendBox', () => {
       reload: vi.fn(),
     });
     const view = await render(
-      <AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />
+      <AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />
     );
 
     mobileActionSheetEntries.current.find((entry) => entry.key === 'thought-level')?.submenu?.onSelect?.('high');
     await act(async () => Promise.resolve());
-    view.rerender(<AcpSendBox conversation_id='conv-2' backend='synonbiomed' messageState={makeMessageState()} />);
+    view.rerender(<AcpSendBox conversation_id='conv-2' backend='xscience' messageState={makeMessageState()} />);
     messageSuccessMock.mockClear();
 
     await act(async () => {
@@ -2109,12 +2109,12 @@ describe('AcpSendBox', () => {
       reload: vi.fn(),
     });
     const view = await render(
-      <AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />
+      <AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />
     );
 
     mobileActionSheetEntries.current.find((entry) => entry.key === 'thought-level')?.submenu?.onSelect?.('high');
     await act(async () => Promise.resolve());
-    view.rerender(<AcpSendBox conversation_id='conv-2' backend='synonbiomed' messageState={makeMessageState()} />);
+    view.rerender(<AcpSendBox conversation_id='conv-2' backend='xscience' messageState={makeMessageState()} />);
     messageErrorMock.mockClear();
 
     await act(async () => {
@@ -2130,33 +2130,33 @@ describe('AcpSendBox', () => {
     runtimeViewMock.canSendMessage = true;
     runtimeViewMock.state = 'idle';
     runtimeViewMock.view.taskStatus = 'finished';
-    await render(<AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />);
+    await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />);
 
-    expect(screen.getByTestId('synon-biomed-context-usage-trigger')).toBeInTheDocument();
-    expect(screen.queryByTestId('synon-biomed-optimize-prompt-trigger')).not.toBeInTheDocument();
+    expect(screen.getByTestId('x-science-context-usage-trigger')).toBeInTheDocument();
+    expect(screen.queryByTestId('x-science-optimize-prompt-trigger')).not.toBeInTheDocument();
 
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'change' }));
     });
 
-    expect(screen.queryByTestId('synon-biomed-context-usage-trigger')).not.toBeInTheDocument();
-    expect(screen.getByTestId('synon-biomed-optimize-prompt-trigger')).toBeInTheDocument();
+    expect(screen.queryByTestId('x-science-context-usage-trigger')).not.toBeInTheDocument();
+    expect(screen.getByTestId('x-science-optimize-prompt-trigger')).toBeInTheDocument();
   });
 
   it('keeps the ring while running and shows both icons when typing during a run', async () => {
     runtimeViewMock.isProcessing = true;
     runtimeViewMock.canSendMessage = false;
     runtimeViewMock.state = 'running';
-    await render(<AcpSendBox conversation_id='conv-1' backend='synonbiomed' messageState={makeMessageState()} />);
+    await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />);
 
-    expect(screen.getByTestId('synon-biomed-context-usage-trigger')).toBeInTheDocument();
-    expect(screen.queryByTestId('synon-biomed-optimize-prompt-trigger')).not.toBeInTheDocument();
+    expect(screen.getByTestId('x-science-context-usage-trigger')).toBeInTheDocument();
+    expect(screen.queryByTestId('x-science-optimize-prompt-trigger')).not.toBeInTheDocument();
 
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'change' }));
     });
 
-    expect(screen.getByTestId('synon-biomed-context-usage-trigger')).toBeInTheDocument();
-    expect(screen.getByTestId('synon-biomed-optimize-prompt-trigger')).toBeInTheDocument();
+    expect(screen.getByTestId('x-science-context-usage-trigger')).toBeInTheDocument();
+    expect(screen.getByTestId('x-science-optimize-prompt-trigger')).toBeInTheDocument();
   });
 });

@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestWorkspaceEventSSEReplaysDurableFrameEvents(t *testing.T) {
@@ -39,7 +39,7 @@ func TestWorkspaceEventSSEReplaysDurableFrameEvents(t *testing.T) {
 	if err != nil {
 		t.Fatalf("new request: %v", err)
 	}
-	request.Header.Set("X-Synon-User-Id", "local")
+	request.Header.Set("X-Science-User-Id", "local")
 	response, err := server.Client().Do(request)
 	if err != nil {
 		t.Fatalf("open sse: %v", err)
@@ -106,14 +106,14 @@ func TestWorkspaceEventsRequireFrameOwnership(t *testing.T) {
 	}
 	foreign := httptest.NewRecorder()
 	foreignRequest := newLoopbackTestRequest(http.MethodGet, "/api/go/events?frame_id=frame-1", nil)
-	foreignRequest.Header.Set("X-Synon-User-Id", "user-2")
+	foreignRequest.Header.Set("X-Science-User-Id", "user-2")
 	app.ServeHTTP(foreign, foreignRequest)
 	if foreign.Code != http.StatusNotFound || strings.Contains(foreign.Body.String(), "private") {
 		t.Fatalf("foreign status=%d body=%s", foreign.Code, foreign.Body.String())
 	}
 	owner := httptest.NewRecorder()
 	ownerRequest := newLoopbackTestRequest(http.MethodGet, "/api/go/events?frame_id=frame-1", nil)
-	ownerRequest.Header.Set("X-Synon-User-Id", "user-1")
+	ownerRequest.Header.Set("X-Science-User-Id", "user-1")
 	app.ServeHTTP(owner, ownerRequest)
 	if owner.Code != http.StatusOK || !strings.Contains(owner.Body.String(), "private") {
 		t.Fatalf("owner status=%d body=%s", owner.Code, owner.Body.String())

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 func (client *sessionRunnerResponseLanguageModelClient) translateBoundPresentation(ctx context.Context, request agentruntime.ModelRequest, original agentruntime.ModelResponse, template responseLanguageTemplate) (agentruntime.ModelResponse, error) {

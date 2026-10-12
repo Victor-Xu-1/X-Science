@@ -4,7 +4,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 // A short tail can be either an intentional repetition or a failed resumption.

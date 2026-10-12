@@ -10,11 +10,11 @@ const mocks = vi.hoisted(() => ({
   activate: vi.fn(),
   test: vi.fn(),
 }));
-vi.mock('@/renderer/services/synonBiomedLlm', () => ({
-  loadSynonBiomedLlmProviders: mocks.load,
-  saveSynonBiomedLlmProfile: mocks.save,
-  activateSynonBiomedLlmProfile: mocks.activate,
-  testSynonBiomedLlmProfile: mocks.test,
+vi.mock('@/renderer/services/xScienceLlm', () => ({
+  loadXScienceLlmProviders: mocks.load,
+  saveXScienceLlmProfile: mocks.save,
+  activateXScienceLlmProfile: mocks.activate,
+  testXScienceLlmProfile: mocks.test,
 }));
 const empty = { profiles: [], templates: [] };
 

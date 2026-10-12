@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"synon-go/internal/processsupervisor"
+	"x-science/internal/processsupervisor"
 	"time"
 )
 

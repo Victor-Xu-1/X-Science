@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"synon-go/internal/synonlink"
+	"x-science/internal/xsciencelink"
 	"time"
 )
 
@@ -31,7 +31,7 @@ func (s *Server) listRememberedApprovals(input map[string]any) (any, error) {
 	if sourceFilter == "" {
 		sourceFilter = "all"
 	}
-	if sourceFilter != "all" && sourceFilter != "agent-runtime" && sourceFilter != "synon-link" && sourceFilter != "synon-web" {
+	if sourceFilter != "all" && sourceFilter != "agent-runtime" && sourceFilter != "x-science-link" && sourceFilter != "x-science-web" {
 		return nil, fmt.Errorf("approval remembered source is unsupported: %s", sourceFilter)
 	}
 	decisions, err := s.loadRememberedApprovalDecisions()
@@ -88,7 +88,7 @@ func (s *Server) revokeRememberedApproval(input map[string]any) (any, error) {
 	}, nil
 }
 
-func (s *Server) loadRememberedApprovalDecisions() (map[string]synonlink.RememberedApprovalDecision, error) {
+func (s *Server) loadRememberedApprovalDecisions() (map[string]xsciencelink.RememberedApprovalDecision, error) {
 	if s == nil || s.settingsStore == nil {
 		return nil, errors.New("approval remembered decision store is not configured")
 	}
@@ -97,12 +97,12 @@ func (s *Server) loadRememberedApprovalDecisions() (map[string]synonlink.Remembe
 		return nil, err
 	}
 	if !ok {
-		return map[string]synonlink.RememberedApprovalDecision{}, nil
+		return map[string]xsciencelink.RememberedApprovalDecision{}, nil
 	}
 	return rememberedApprovalDecisionsFromSetting(setting.Value), nil
 }
 
-func resolveRememberedApprovalRevokeKey(decisions map[string]synonlink.RememberedApprovalDecision, input map[string]any) (string, error) {
+func resolveRememberedApprovalRevokeKey(decisions map[string]xsciencelink.RememberedApprovalDecision, input map[string]any) (string, error) {
 	key := strings.TrimSpace(stringValue(input["key"]))
 	if key != "" {
 		return key, nil
@@ -143,17 +143,17 @@ func resolveRememberedApprovalRevokeKey(decisions map[string]synonlink.Remembere
 	return matches[0], nil
 }
 
-func rememberedApprovalSource(decision synonlink.RememberedApprovalDecision) string {
+func rememberedApprovalSource(decision xsciencelink.RememberedApprovalDecision) string {
 	if decision.UserID == agentRuntimeRememberedApprovalUser && decision.ClientID == agentRuntimeRememberedApprovalClient {
 		return "agent-runtime"
 	}
 	if decision.ClientID == webApprovalRememberedClient {
-		return "synon-web"
+		return "x-science-web"
 	}
-	return "synon-link"
+	return "x-science-link"
 }
 
-func rememberedApprovalDecisionRow(key string, source string, decision synonlink.RememberedApprovalDecision) map[string]any {
+func rememberedApprovalDecisionRow(key string, source string, decision xsciencelink.RememberedApprovalDecision) map[string]any {
 	row := map[string]any{
 		"key":       key,
 		"source":    source,

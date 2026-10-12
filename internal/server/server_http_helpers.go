@@ -7,7 +7,7 @@ import (
 
 	"strconv"
 
-	"synon-go/internal/synonlink"
+	"x-science/internal/xsciencelink"
 )
 
 func writeJSON(w http.ResponseWriter, status int, value any) {
@@ -24,7 +24,7 @@ func writeError(w http.ResponseWriter, status int, code string, message string) 
 }
 
 func resolveUserID(r *http.Request, body map[string]any) string {
-	if value := r.Header.Get("X-Synon-User-Id"); value != "" {
+	if value := r.Header.Get("X-Science-User-Id"); value != "" {
 		return value
 	}
 	if value := r.URL.Query().Get("userId"); value != "" {
@@ -43,4 +43,4 @@ func stringInt(value int64) string {
 	return strconv.FormatInt(value, 10)
 }
 
-func synonLinkWarnings([]synonlink.Client) []string { return nil }
+func xscienceLinkWarnings([]xsciencelink.Client) []string { return nil }

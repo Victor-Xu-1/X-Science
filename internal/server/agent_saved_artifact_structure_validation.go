@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"synon-go/internal/tools/rcsbfiles"
+	"x-science/internal/tools/rcsbfiles"
 )
 
 var errAgentSavedArtifactStructureEmpty = errors.New("saved PDB/PDBQT artifact contains no atom records")

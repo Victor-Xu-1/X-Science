@@ -3,7 +3,7 @@ package software
 import (
 	"strings"
 
-	"synon-go/internal/failurecontract"
+	"x-science/internal/failurecontract"
 )
 
 // OperationError is the provider-independent repair contract returned to the

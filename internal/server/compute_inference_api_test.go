@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestComputeProviderHTTPAuthorizationMatrix(t *testing.T) {
@@ -229,7 +229,7 @@ func TestInferenceProviderCreateThenImmediateAndConcurrentProbe(t *testing.T) {
 		go func() {
 			defer wait.Done()
 			request := newLoopbackTestRequest(http.MethodPost, "/api/compute/providers/infer:fixture-infer/probe", nil)
-			request.Header.Set("X-Synon-User-Id", "local")
+			request.Header.Set("X-Science-User-Id", "local")
 			response := httptest.NewRecorder()
 			app.ServeHTTP(response, request)
 			statuses <- response.Code
@@ -362,7 +362,7 @@ func computeCompatRequestAs(t *testing.T, handler http.Handler, method, path str
 		}
 	}
 	request := newLoopbackTestRequest(method, path, bytes.NewReader(raw))
-	request.Header.Set("X-Synon-User-Id", userID)
+	request.Header.Set("X-Science-User-Id", userID)
 	if body != nil {
 		request.Header.Set("Content-Type", "application/json")
 	}

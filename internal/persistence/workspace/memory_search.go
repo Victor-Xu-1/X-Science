@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/memoryconfig"
-	"synon-go/internal/memorypolicy"
+	"x-science/internal/memoryconfig"
+	"x-science/internal/memorypolicy"
 )
 
 const defaultMemorySearchLimit = memorypolicy.SearchToolMax

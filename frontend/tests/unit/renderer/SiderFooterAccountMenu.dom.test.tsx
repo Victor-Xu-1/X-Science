@@ -15,8 +15,8 @@ vi.mock('@arco-design/web-react', async (importOriginal) => {
   };
 });
 
-vi.mock('@/renderer/services/synonBiomedRuntimeUpdate', () => ({
-  checkSynonBiomedRuntimeUpdate: updateMocks.check,
+vi.mock('@/renderer/services/xScienceRuntimeUpdate', () => ({
+  checkXScienceRuntimeUpdate: updateMocks.check,
 }));
 
 import SiderFooter from '@/renderer/components/layout/Sider/SiderFooter';
@@ -78,7 +78,7 @@ describe('SiderFooter account menu', () => {
       expect(menuItem.querySelector('.sider-account-menu-icon-slot > .i-icon')).toBeInTheDocument();
     }
 
-    fireEvent.click(screen.getByTestId('synon-account-profile'));
+    fireEvent.click(screen.getByTestId('x-science-account-profile'));
     expect(onAccountClick).toHaveBeenCalledTimes(1);
 
     fireEvent.click(account);
@@ -157,7 +157,7 @@ describe('SiderFooter account menu', () => {
     const account = screen.getByRole('button', { name: 'Open account and settings' });
     expect(account.querySelector('img')).toBeInTheDocument();
     fireEvent.click(account);
-    expect(screen.getByTestId('synon-account-profile').querySelector('img')).toBeInTheDocument();
+    expect(screen.getByTestId('x-science-account-profile').querySelector('img')).toBeInTheDocument();
   });
 
   it('closes on escape and outside pointer input', async () => {

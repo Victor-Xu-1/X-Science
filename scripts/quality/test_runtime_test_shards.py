@@ -50,7 +50,7 @@ class PartitionTests(unittest.TestCase):
 class GoExecutionTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.directory = tempfile.TemporaryDirectory(prefix="synon-shard-regression-")
+        cls.directory = tempfile.TemporaryDirectory(prefix="x-science-shard-regression-")
         cls.repo = Path(cls.directory.name) / "source"
         cls.repo.mkdir()
         cls.repo.joinpath("go.mod").write_text("module fixture\n\ngo 1.22\n")
@@ -102,7 +102,7 @@ var batchCount int
             test_plan["selected"] = {"fixture/internal/server": names}
             test_plan["commands"] = [["go", "test", "-json", "-count=1", "-timeout=1m", "-run",
                                      "^(?:" + "|".join(names) + ")$", "fixture/internal/server"]]
-            with tempfile.TemporaryDirectory(prefix="synon-shard-events-") as log_dir:
+            with tempfile.TemporaryDirectory(prefix="x-science-shard-events-") as log_dir:
                 with contextlib.redirect_stdout(io.StringIO()):
                     result = shards.execute(self.repo, test_plan, Path(log_dir))
                 self.assertEqual(result, want)
@@ -119,7 +119,7 @@ var batchCount int
         test_plan["commands"] = [["go", "test", "-json", "-count=1", "-run", "^TestNonexistent$", "fixture/internal/server"]]
         with self.assertRaises(ValueError):
             shards.execute(self.repo, test_plan, self.repo / "logs")
-        with tempfile.TemporaryDirectory(prefix="synon-shard-missing-") as log_dir:
+        with tempfile.TemporaryDirectory(prefix="x-science-shard-missing-") as log_dir:
             with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
                 self.assertEqual(shards.execute(self.repo, test_plan, Path(log_dir)), 1)
 
@@ -153,7 +153,7 @@ var batchCount int
         self.assertNotEqual(unbounded.returncode, 0)
         test_plan = dict(self.initial_plan, selected={"fixture/internal/server": names},
                          commands=[command(batch) for batch in shards.test_batches(names, race=True)])
-        with tempfile.TemporaryDirectory(prefix="synon-shard-batches-") as log_dir:
+        with tempfile.TemporaryDirectory(prefix="x-science-shard-batches-") as log_dir:
             with contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(shards.execute(self.repo, test_plan, Path(log_dir)), 0)
             summary = json.loads(Path(log_dir, "summary.json").read_text())
@@ -161,7 +161,7 @@ var batchCount int
             self.assertEqual(summary["executed_top_level"], 16)
         test_plan.update(selected={"fixture/internal/server": ["TestFailure", "TestNested"]},
                          commands=[command(["TestFailure"]), command(["TestNested"])])
-        with tempfile.TemporaryDirectory(prefix="synon-shard-failure-batches-") as log_dir:
+        with tempfile.TemporaryDirectory(prefix="x-science-shard-failure-batches-") as log_dir:
             with contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(shards.execute(self.repo, test_plan, Path(log_dir)), 1)
             summary = json.loads(Path(log_dir, "summary.json").read_text())
@@ -176,7 +176,7 @@ var batchCount int
                  dict(self.initial_plan, selected={"fixture/internal/server": ["TestAlpha"],
                                                    "fixture/core": ["TestAlpha"]}, commands=[command])]
         for test_plan in cases:
-            with tempfile.TemporaryDirectory(prefix="synon-shard-identity-") as log_dir:
+            with tempfile.TemporaryDirectory(prefix="x-science-shard-identity-") as log_dir:
                 with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
                     self.assertEqual(shards.execute(self.repo, test_plan, Path(log_dir)), 1)
 

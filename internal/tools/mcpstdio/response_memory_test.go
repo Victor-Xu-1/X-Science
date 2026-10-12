@@ -5,7 +5,7 @@ import (
 	"errors"
 	"runtime/debug"
 	"strings"
-	"synon-go/internal/runtimecontrol"
+	"x-science/internal/runtimecontrol"
 	"testing"
 )
 

@@ -11,7 +11,7 @@ import (
 	"regexp"
 	"strings"
 
-	"synon-go/internal/tools/fileevents"
+	"x-science/internal/tools/fileevents"
 )
 
 type Input struct {

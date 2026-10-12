@@ -1,5 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { setSynonBiomedSessionComputeProvider } from '@/renderer/services/synonBiomedCompute';
+import { setXScienceSessionComputeProvider } from '@/renderer/services/xScienceCompute';
 import type { useComputeJobReads } from './useComputeJobReads';
 
 type Providers = ReturnType<typeof useComputeJobReads>['providers'];
@@ -37,7 +37,7 @@ export function useSessionProviderWrites(
       checked ? Array.from(new Set([...previous, providerName])) : previous.filter((name) => name !== providerName)
     );
     try {
-      await setSynonBiomedSessionComputeProvider(root, providerName, checked);
+      await setXScienceSessionComputeProvider(root, providerName, checked);
       // A reopened job can already have read the pre-write value. Replace that
       // read with a fresh server read, never project an old optimistic snapshot.
       if (current.current?.rootFrameId === root) await current.current.providers.refresh(true);

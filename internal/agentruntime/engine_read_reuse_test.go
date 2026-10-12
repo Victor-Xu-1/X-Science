@@ -73,13 +73,13 @@ func TestToolResultReportsNoProgressRequiresExplicitEffect(t *testing.T) {
 	}
 	if !toolResultReportsNoProgress(map[string]any{
 		"ok":     true,
-		"effect": map[string]any{"schema": "synon.tool_effect.v1", "state": "unchanged"},
+		"effect": map[string]any{"schema": "x-science.tool_effect.v1", "state": "unchanged"},
 	}) {
 		t.Fatal("an explicit unchanged effect was not recognized")
 	}
 	if toolResultReportsNoProgress(map[string]any{
 		"ok":     true,
-		"effect": map[string]any{"schema": "synon.tool_effect.v1", "state": "changed"},
+		"effect": map[string]any{"schema": "x-science.tool_effect.v1", "state": "changed"},
 	}) {
 		t.Fatal("a changed effect was treated as no progress")
 	}
@@ -113,7 +113,7 @@ func (g *idempotentUpdateGateway) Execute(_ context.Context, _ ToolCall) (ToolRe
 	g.calls++
 	return ToolResult{Value: map[string]any{
 		"ok": true, "idempotent": true,
-		"effect": map[string]any{"schema": "synon.tool_effect.v1", "state": "unchanged"},
+		"effect": map[string]any{"schema": "x-science.tool_effect.v1", "state": "unchanged"},
 	}}, nil
 }
 

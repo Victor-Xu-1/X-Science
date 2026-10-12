@@ -16,9 +16,9 @@ import (
 	"strings"
 	"time"
 
-	compute "synon-go/internal/compute"
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
+	compute "x-science/internal/compute"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func isKernelMiscHostMethod(method string) bool {

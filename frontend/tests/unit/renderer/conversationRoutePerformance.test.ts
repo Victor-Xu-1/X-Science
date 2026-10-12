@@ -61,13 +61,13 @@ describe('conversation route performance measurements', () => {
     performanceModule.scheduleConversationRoutePerformanceStage('shell');
     animationFrames.shift()?.(0);
     expect(performance.measure).toHaveBeenCalledWith(
-      `synon:conversation-route:shell:${token}`,
-      expect.objectContaining({ start: `synon:conversation-route:click:${token}` })
+      `xscience:conversation-route:shell:${token}`,
+      expect.objectContaining({ start: `xscience:conversation-route:click:${token}` })
     );
 
     TestPerformanceObserver.emit([
       {
-        name: `synon:conversation-route:shell:${token}`,
+        name: `xscience:conversation-route:shell:${token}`,
         duration: 12,
         entryType: 'measure',
         startTime: 0,

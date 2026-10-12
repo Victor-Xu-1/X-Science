@@ -20,28 +20,28 @@
       "name": "missing-version-save-as-preflight",
       "method": "GET",
       "path": "/api/artifacts/versions/missing-version?filename=saved.txt",
-      "headers": {"Range": "bytes=0-0", "X-Synon-User-Id": "local"},
+      "headers": {"Range": "bytes=0-0", "X-Science-User-Id": "local"},
       "expectedStatus": [404]
     },
     {
       "name": "missing-attachment-blob",
       "method": "GET",
       "path": "/api/attachments/missing-attachment",
-      "headers": {"X-Synon-User-Id": "local"},
+      "headers": {"X-Science-User-Id": "local"},
       "expectedStatus": [404]
     },
     {
       "name": "missing-conversation-artifacts",
       "method": "GET",
       "path": "/api/frames/missing-frame/artifacts/download",
-      "headers": {"X-Synon-User-Id": "local"},
+      "headers": {"X-Science-User-Id": "local"},
       "expectedStatus": [404, 500]
     },
     {
       "name": "reject-empty-selection",
       "method": "GET",
       "path": "/api/artifacts/download",
-      "headers": {"X-Synon-User-Id": "local"},
+      "headers": {"X-Science-User-Id": "local"},
       "expectedStatus": [400]
     },
     {
@@ -51,7 +51,7 @@
       "headers": {
         "Origin": "${origin}",
         "X-Operon-CSRF": "${cookie:operon_csrf}",
-        "X-Synon-User-Id": "local"
+        "X-Science-User-Id": "local"
       },
       "expectedStatus": [400, 406]
     }

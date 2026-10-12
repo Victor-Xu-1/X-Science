@@ -7,10 +7,10 @@ import (
 	"strconv"
 	"strings"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
-const runnerArtifactRepairContractSchema = "synon.artifact-repair.v1"
+const runnerArtifactRepairContractSchema = "x-science.artifact-repair.v1"
 
 var runnerMissingSourceLocatorPattern = regexp.MustCompile(
 	`(?i)evidence_source_locator_missing:(.+?)\s+row=([1-9][0-9]*)\s+source_type=([^,;\r\n]+)`,

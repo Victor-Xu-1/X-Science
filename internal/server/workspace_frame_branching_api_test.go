@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestWorkspaceFrameBranchingHTTPAPIPreservesRunnableContext(t *testing.T) {
@@ -105,7 +105,7 @@ func TestWorkspaceFrameBranchingHTTPAPIPreservesRunnableContext(t *testing.T) {
 		t.Fatalf("rejected workspace branches mutated foreign state: before=%s after=%s", beforeForeign, after)
 	}
 
-	authServer := New(Options{FileRoot: t.TempDir(), Workspace: store, SynonLinkAuth: SynonLinkAuthOptions{
+	authServer := New(Options{FileRoot: t.TempDir(), Workspace: store, XScienceLinkAuth: XScienceLinkAuthOptions{
 		Username: "operator", Password: "test-secret-password", UserID: "local",
 	}})
 	authHandler := authServer.Handler()
@@ -172,7 +172,7 @@ func postWorkspaceBranch(t *testing.T, app http.Handler, target string, body map
 	response := httptest.NewRecorder()
 	request := newLoopbackTestRequest(http.MethodPost, target, bytes.NewReader(raw))
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("X-Synon-User-Id", "local")
+	request.Header.Set("X-Science-User-Id", "local")
 	app.ServeHTTP(response, request)
 	if response.Code != http.StatusOK {
 		t.Fatalf("POST %s status = %d: %s", target, response.Code, response.Body.String())

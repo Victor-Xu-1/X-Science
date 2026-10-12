@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	adaptercommon "synon-go/internal/adapters/common"
+	adaptercommon "x-science/internal/adapters/common"
 )
 
 func RegisterOutboundBridge(bridge *adaptercommon.WsBridge, chatKey string, targetUserID string, processor *OutboundProcessor, options adaptercommon.OutboundBridgeOptions) {

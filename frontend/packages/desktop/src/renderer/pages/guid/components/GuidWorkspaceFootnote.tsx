@@ -12,13 +12,13 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import styles from '../index.module.css';
-import type { SynonBiomedWorkspaceOption } from '@/renderer/services/synonBiomedCatalog';
+import type { XScienceWorkspaceOption } from '@/renderer/services/xScienceCatalog';
 
 type GuidWorkspaceFootnoteProps = {
   workspaceDir: string;
   onSelectWorkspace: (dir: string) => void;
   onClearWorkspace: () => void;
-  synonBiomedWorkspaceOptions?: SynonBiomedWorkspaceOption[];
+  xScienceWorkspaceOptions?: XScienceWorkspaceOption[];
 };
 
 const isSameWorkspace = (left: string | undefined, right: string): boolean =>
@@ -56,7 +56,7 @@ const GuidWorkspaceFootnote: React.FC<GuidWorkspaceFootnoteProps> = ({
   workspaceDir,
   onSelectWorkspace,
   onClearWorkspace,
-  synonBiomedWorkspaceOptions = [],
+  xScienceWorkspaceOptions = [],
 }) => {
   const { t } = useTranslation();
   const recentWorkspaces = getRecentWorkspaces();
@@ -92,8 +92,8 @@ const GuidWorkspaceFootnote: React.FC<GuidWorkspaceFootnoteProps> = ({
     [onSelectWorkspace]
   );
 
-  const handleSelectSynonBiomedWorkspace = useCallback(
-    (option: SynonBiomedWorkspaceOption) => {
+  const handleSelectXScienceWorkspace = useCallback(
+    (option: XScienceWorkspaceOption) => {
       if (!option.workspaceUri) return;
       onSelectWorkspace(option.workspaceUri);
       setOpen(false);
@@ -154,20 +154,20 @@ const GuidWorkspaceFootnote: React.FC<GuidWorkspaceFootnoteProps> = ({
     );
   });
 
-  const synonBiomedBackendProjects = synonBiomedWorkspaceOptions.filter(
+  const xScienceBackendProjects = xScienceWorkspaceOptions.filter(
     (option) => option.source === 'backend-project'
   );
-  const synonBiomedSeedProjects = synonBiomedWorkspaceOptions.filter((option) => option.source === 'seed-project');
-  const hasSynonBiomedProjects = synonBiomedWorkspaceOptions.length > 0;
-  const hasDropdownOptions = recentWorkspaces.length > 0 || hasSynonBiomedProjects;
-  const activeSynonBiomedWorkspace = synonBiomedWorkspaceOptions.find((option) =>
+  const xScienceSeedProjects = xScienceWorkspaceOptions.filter((option) => option.source === 'seed-project');
+  const hasXScienceProjects = xScienceWorkspaceOptions.length > 0;
+  const hasDropdownOptions = recentWorkspaces.length > 0 || hasXScienceProjects;
+  const activeXScienceWorkspace = xScienceWorkspaceOptions.find((option) =>
     isSameWorkspace(option.workspaceUri, workspaceDir)
   );
   const workspaceName = workspaceDir
-    ? activeSynonBiomedWorkspace?.name || workspaceDir.split(/[\\/]/).pop() || workspaceDir
+    ? activeXScienceWorkspace?.name || workspaceDir.split(/[\\/]/).pop() || workspaceDir
     : '';
 
-  const renderSynonBiomedOption = (option: SynonBiomedWorkspaceOption) => {
+  const renderXScienceOption = (option: XScienceWorkspaceOption) => {
     const isSelectable = option.source === 'backend-project' && !!option.workspaceUri;
     const isActive = isSameWorkspace(option.workspaceUri, workspaceDir);
 
@@ -177,7 +177,7 @@ const GuidWorkspaceFootnote: React.FC<GuidWorkspaceFootnoteProps> = ({
         className={`${styles.wsDropdownItem} ${isActive ? styles.wsDropdownItemActive : ''} ${
           isSelectable ? '' : styles.wsDropdownItemReadonly
         }`}
-        onClick={isSelectable ? () => handleSelectSynonBiomedWorkspace(option) : undefined}
+        onClick={isSelectable ? () => handleSelectXScienceWorkspace(option) : undefined}
       >
         <FolderIcon size={13} />
         <span className={styles.wsDropdownItemName}>{option.name}</span>
@@ -228,18 +228,18 @@ const GuidWorkspaceFootnote: React.FC<GuidWorkspaceFootnoteProps> = ({
             />
           </div>
 
-          {hasSynonBiomedProjects && (
+          {hasXScienceProjects && (
             <>
-              {synonBiomedBackendProjects.length > 0 && (
+              {xScienceBackendProjects.length > 0 && (
                 <>
-                  <div className={styles.wsDropdownSectionLabel}>{t('guid.workspace.synonBiomedProjects')}</div>
-                  {synonBiomedBackendProjects.map(renderSynonBiomedOption)}
+                  <div className={styles.wsDropdownSectionLabel}>{t('guid.workspace.xScienceProjects')}</div>
+                  {xScienceBackendProjects.map(renderXScienceOption)}
                 </>
               )}
-              {synonBiomedSeedProjects.length > 0 && (
+              {xScienceSeedProjects.length > 0 && (
                 <>
                   <div className={styles.wsDropdownSectionLabel}>{t('guid.workspace.seedWorkflows')}</div>
-                  {synonBiomedSeedProjects.map(renderSynonBiomedOption)}
+                  {xScienceSeedProjects.map(renderXScienceOption)}
                 </>
               )}
               <div className={styles.wsDropdownSep} />

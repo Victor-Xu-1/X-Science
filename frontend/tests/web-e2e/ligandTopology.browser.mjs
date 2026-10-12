@@ -5,7 +5,7 @@ import { join, resolve } from 'node:path';
 import { build, preview as previewBuild } from 'vite';
 import { chromium, expect } from '@playwright/test';
 
-const artifacts = await mkdtemp(join(tmpdir(), 'synon-ligand-topology-'));
+const artifacts = await mkdtemp(join(tmpdir(), 'x-science-ligand-topology-'));
 let vite, browser, page;
 const errors = [];
 const diagnostics = [];
@@ -58,8 +58,8 @@ try {
       waitUntil: 'domcontentloaded',
     }),
   ]);
-  const depiction = page.locator('.synon-biomed-molstar__ligand-depiction');
-  const svg = depiction.locator('.synon-biomed-molstar__ligand-depiction-svg svg');
+  const depiction = page.locator('.x-science-molstar__ligand-depiction');
+  const svg = depiction.locator('.x-science-molstar__ligand-depiction-svg svg');
   // Mol* rebuilds asynchronously after a format/model change. Use one bounded
   // visual-readiness budget; keep all chemistry and model assertions intact.
   const visualReadiness = { timeout: 45000 };
@@ -93,11 +93,11 @@ try {
       path: join(artifacts, format + '-bond-orders.png'),
     });
   }
-  await expect(page.getByTestId('synon-biomed-molstar-model-navigator')).toContainText('模型 1 / 9');
+  await expect(page.getByTestId('x-science-molstar-model-navigator')).toContainText('模型 1 / 9');
   const nextModel = page.getByRole('button', { name: '下一个模型', exact: true });
-  if (!(await nextModel.isVisible())) await page.getByTestId('synon-biomed-molstar-toolbar-collapse').click();
+  if (!(await nextModel.isVisible())) await page.getByTestId('x-science-molstar-toolbar-collapse').click();
   await nextModel.click();
-  await expect(page.getByTestId('synon-biomed-molstar-model-navigator')).toContainText('模型 2 / 9');
+  await expect(page.getByTestId('x-science-molstar-model-navigator')).toContainText('模型 2 / 9');
   await expect(svg).toBeVisible(visualReadiness);
   assert.deepEqual(await svg.evaluate(bondPathCounts), expected);
   const unknownStarted = Date.now();
@@ -109,7 +109,7 @@ try {
     timeout: 30000,
   });
   await expect(svg).toHaveCount(0);
-  await expect(page.getByTestId('synon-biomed-structure-canvas').locator('canvas').first()).toBeVisible(
+  await expect(page.getByTestId('x-science-structure-canvas').locator('canvas').first()).toBeVisible(
     visualReadiness
   );
   readinessMeasurements.push({ format: 'pdb', readyAfterMs: Date.now() - unknownStarted });

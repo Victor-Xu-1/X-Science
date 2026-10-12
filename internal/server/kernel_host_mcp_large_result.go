@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 
-	"synon-go/internal/agentruntime"
-	kernelruntime "synon-go/internal/kernel"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	kernelruntime "x-science/internal/kernel"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func (s *Server) commitKernelMCPSourceEvidence(ctx context.Context, authority *kernelMCPTranscriptEvidenceAuthority,
@@ -29,7 +29,7 @@ func (s *Server) commitKernelMCPSourceEvidence(ctx context.Context, authority *k
 	}
 	operation, claim := authority.operation, authority.identity.RunnerClaim
 	payload := map[string]any{
-		"schema": "synon.kernel_mcp_evidence.v1", "status": "completed", "toolPhase": "completed",
+		"schema": "x-science.kernel_mcp_evidence.v1", "status": "completed", "toolPhase": "completed",
 		"toolName": toolName, "toolCallId": call.ID, "toolInput": input, "toolResult": checkpointResult,
 		"outerToolCallId": operation.ToolCallID, "kernelOperationId": operation.OperationID,
 		"executionId": operation.ExecutionID, "hostCallId": call.ID, "kernelId": operation.KernelID,

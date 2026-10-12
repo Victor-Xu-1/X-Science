@@ -1,8 +1,8 @@
-export const WORKSPACE_TOGGLE_EVENT = 'synon-ai-workspace-toggle';
-export const WORKSPACE_OPEN_EVENT = 'synon-ai-workspace-open';
-export const WORKSPACE_STATE_EVENT = 'synon-ai-workspace-state';
-export const WORKSPACE_STATE_REQUEST_EVENT = 'synon-ai-workspace-state-request';
-export const WORKSPACE_HAS_FILES_EVENT = 'synon-ai-workspace-has-files';
+export const WORKSPACE_TOGGLE_EVENT = 'x-science-workspace-toggle';
+export const WORKSPACE_OPEN_EVENT = 'x-science-workspace-open';
+export const WORKSPACE_STATE_EVENT = 'x-science-workspace-state';
+export const WORKSPACE_STATE_REQUEST_EVENT = 'x-science-workspace-state-request';
+export const WORKSPACE_HAS_FILES_EVENT = 'x-science-workspace-has-files';
 
 export interface WorkspaceStateDetail {
   collapsed: boolean;

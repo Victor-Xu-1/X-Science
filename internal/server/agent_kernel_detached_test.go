@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	kernelruntime "synon-go/internal/kernel"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	kernelruntime "x-science/internal/kernel"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestDetachedBackgroundCompletionProducesCellResultNotification(t *testing.T) {
@@ -313,7 +313,7 @@ func TestDetachedKernelRequestUsesDurableModelToolCallIdentity(t *testing.T) {
 		OperationID: "kop-request-identity", OwnerUserID: "owner", ProjectID: "project",
 		RootFrameID: "root", RootFrameIncarnationID: "root-incarnation",
 		FrameID: "frame", FrameIncarnationID: "frame-incarnation",
-		ToolCallID: "call-model-authority", Tool: "python", Environment: "synon-biomed-python",
+		ToolCallID: "call-model-authority", Tool: "python", Environment: "x-science-python",
 		KernelID: "kernel", KernelGeneration: 3,
 	}
 	request := newDetachedKernelExecutionRequest(
@@ -345,10 +345,10 @@ func TestRecoveredKernelSessionSpecPreservesConfinementAndNetworkPolicy(t *testi
 		AgentName: "OPERON", KernelKind: "operon", Language: "python", Environment: "analysis",
 		WorkspaceDir: "/tmp/workspace",
 		Mounts: []workspace.KernelExecutionMountSpecV1{
-			{Path: "/opt/synon/skills", Trusted: true},
+			{Path: "/opt/xscience/skills", Trusted: true},
 			{Path: "/tmp/shared", Writable: true},
 		},
-		ProtectedPaths:       []string{"/opt/synon"},
+		ProtectedPaths:       []string{"/opt/xscience"},
 		EgressAllowedDomains: []string{"example.org"},
 		EgressDeniedDomains:  []string{"blocked.example.org"},
 		CABundle:             "/etc/ssl/custom.pem", UpstreamProxy: "http://proxy.example:8080", Fresh: true,

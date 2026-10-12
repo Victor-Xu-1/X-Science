@@ -9,7 +9,7 @@ import (
 	"time"
 	"unicode"
 
-	"synon-go/internal/memorypolicy"
+	"x-science/internal/memorypolicy"
 )
 
 var memoryStalenessRoleMarker = regexp.MustCompile(`\[([A-Za-z]+)\]`)

@@ -33,7 +33,7 @@ const conversationQueueDockCssPath = fileURLToPath(
 );
 const userMessageActionsCssPath = fileURLToPath(
   new URL(
-    '../../../../packages/desktop/src/renderer/pages/conversation/Messages/components/SynonBiomedUserMessageActions.css',
+    '../../../../packages/desktop/src/renderer/pages/conversation/Messages/components/XScienceUserMessageActions.css',
     import.meta.url
   )
 );
@@ -50,7 +50,7 @@ describe('conversation visual system CSS', () => {
     const transcriptCss = readFileSync(messagesCssPath, 'utf8');
     const askUserCss = readFileSync(
       new URL(
-        '../../../../packages/desktop/src/renderer/components/synonBiomed/runtime/AskUserCard.css',
+        '../../../../packages/desktop/src/renderer/components/xScience/runtime/AskUserCard.css',
         import.meta.url
       ),
       'utf8'
@@ -80,16 +80,16 @@ describe('conversation visual system CSS', () => {
     expect(css).toContain('max-width: min(100%, var(--conversation-content-max-width, 56rem)) !important');
     expect(css).not.toContain('max-width: min(85%, 56rem) !important');
     expect(transcriptCss).toContain('font-size: var(--chat-font-size, 15px);');
-    expect(css).toContain("[data-testid='synon-biomed-ask-user-card']");
+    expect(css).toContain("[data-testid='x-science-ask-user-card']");
     for (const selector of [
-      '.synon-ask-user-card__composer',
-      '.synon-ask-user-card__input',
-      '.synon-ask-user-card__action--quiet',
+      '.x-science-ask-user-card__composer',
+      '.x-science-ask-user-card__input',
+      '.x-science-ask-user-card__action--quiet',
     ]) {
       expect(css).not.toContain(selector);
       expect(askUserCss).toContain(selector);
     }
-    expect(css).toContain('.synon-approval-card');
+    expect(css).toContain('.x-science-approval-card');
     expect(css).toContain('.runtime-operations-banner');
     expect(css).toContain(".app-overlay-menu [role='menuitem']");
     expect(css).toContain("[role='dialog']:has([data-testid^='mobile-action-sheet-'])");
@@ -100,9 +100,9 @@ describe('conversation visual system CSS', () => {
     const css = readFileSync(userMessageActionsCssPath, 'utf8');
     const messageText = readFileSync(messageTextPath, 'utf8');
 
-    expect(css).toMatch(/\.synon-biomed-user-message__row\s*\{[^}]*gap:\s*8px/s);
+    expect(css).toMatch(/\.x-science-user-message__row\s*\{[^}]*gap:\s*8px/s);
     expect(css).toMatch(
-      /\.synon-biomed-user-message__content\s*\{[^}]*width:\s*fit-content[^}]*max-width:\s*calc\(100% - 32px\)/s
+      /\.x-science-user-message__content\s*\{[^}]*width:\s*fit-content[^}]*max-width:\s*calc\(100% - 32px\)/s
     );
     expect(messageText).toContain('message-text-layout--user');
     expect(messageText).toContain('message-text-bubble--user');
@@ -157,7 +157,7 @@ describe('conversation visual system CSS', () => {
       /\.sendbox-joined-actions \.send-button-custom,[\s\S]*?display:\s*inline-flex[^}]*width:\s*32px[^}]*height:\s*32px[^}]*align-items:\s*center[^}]*justify-content:\s*center[^}]*border-radius:\s*10px[^}]*background-color:\s*var\(--workspace-accent\)/
     );
     expect(css).toMatch(
-      /\.sendbox-joined-actions \.synon-biomed-more-send-options\s*\{[^}]*display:\s*inline-flex[^}]*width:\s*32px[^}]*height:\s*32px[^}]*align-items:\s*center[^}]*justify-content:\s*center[^}]*border-radius:\s*10px[^}]*background:\s*var\(--workspace-subtle\)[^}]*box-shadow:\s*none/s
+      /\.sendbox-joined-actions \.x-science-more-send-options\s*\{[^}]*display:\s*inline-flex[^}]*width:\s*32px[^}]*height:\s*32px[^}]*align-items:\s*center[^}]*justify-content:\s*center[^}]*border-radius:\s*10px[^}]*background:\s*var\(--workspace-subtle\)[^}]*box-shadow:\s*none/s
     );
     expect(css).toMatch(
       /\.sendbox-joined-actions \.sendbox-action-icon\s*\{[^}]*display:\s*inline-flex[^}]*width:\s*16px[^}]*height:\s*16px[^}]*align-items:\s*center[^}]*justify-content:\s*center[^}]*line-height:\s*0/s
@@ -172,14 +172,14 @@ describe('conversation visual system CSS', () => {
     const css = readFileSync(layoutCssPath, 'utf8');
 
     expect(css).toMatch(
-      /\.synon-sidebar-new-chat > span:first-child\s*\{[^}]*box-sizing:\s*border-box[^}]*width:\s*28px[^}]*height:\s*28px[^}]*border:\s*0[^}]*border-radius:\s*8px[^}]*background:\s*var\(--synon-sidebar-hover\)/s
+      /\.x-science-sidebar-new-chat > span:first-child\s*\{[^}]*box-sizing:\s*border-box[^}]*width:\s*28px[^}]*height:\s*28px[^}]*border:\s*0[^}]*border-radius:\s*8px[^}]*background:\s*var\(--x-science-sidebar-hover\)/s
     );
     expect(css).toMatch(
-      /\.synon-sidebar-new-chat \.i-icon\s*\{[^}]*display:\s*inline-flex[^}]*align-items:\s*center[^}]*justify-content:\s*center[^}]*line-height:\s*0/s
+      /\.x-science-sidebar-new-chat \.i-icon\s*\{[^}]*display:\s*inline-flex[^}]*align-items:\s*center[^}]*justify-content:\s*center[^}]*line-height:\s*0/s
     );
-    expect(css).toMatch(/\.synon-sidebar-new-chat \.i-icon svg\s*\{[^}]*display:\s*block/s);
+    expect(css).toMatch(/\.x-science-sidebar-new-chat \.i-icon svg\s*\{[^}]*display:\s*block/s);
     expect(css).toMatch(
-      /\.synon-sidebar-new-chat > span:last-child\s*\{[^}]*display:\s*flex[^}]*align-items:\s*center[^}]*min-height:\s*24px[^}]*line-height:\s*24px/s
+      /\.x-science-sidebar-new-chat > span:last-child\s*\{[^}]*display:\s*flex[^}]*align-items:\s*center[^}]*min-height:\s*24px[^}]*line-height:\s*24px/s
     );
   });
 });

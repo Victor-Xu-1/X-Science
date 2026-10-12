@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import type { SynonBiomedProjectBench } from '@/renderer/services/synonBiomedGateway';
+import type { XScienceProjectBench } from '@/renderer/services/xScienceGateway';
 import {
   resolveLatestProjectConversationId,
   resolveProjectNavigationTarget,
   resolveProjectSummaryNavigationTarget,
 } from '@/renderer/pages/project/projectNavigationModel';
 
-const bench = (overrides: Partial<SynonBiomedProjectBench>): SynonBiomedProjectBench => ({
+const bench = (overrides: Partial<XScienceProjectBench>): XScienceProjectBench => ({
   frameId: 'frame-default',
   rootFrameId: 'frame-default',
   parentFrameId: null,
@@ -101,7 +101,7 @@ describe('resolveLatestProjectConversationId', () => {
       pathname: '/guid',
       state: {
         resetAssistant: true,
-        workspace: 'synonbiomed://project/project%20a',
+        workspace: 'x-science://project/project%20a',
       },
     });
   });

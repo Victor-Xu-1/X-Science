@@ -1,7 +1,7 @@
 import type { OnboardingStep } from '@/renderer/pages/onboarding/onboardingModel';
 
 const DRAFT_VERSION = 1;
-const DRAFT_PREFIX = 'synonbiomed.onboarding.draft.v1';
+const DRAFT_PREFIX = 'xscience.onboarding.draft.v1';
 const MAX_TEXT_LENGTH = 16_384;
 const MAX_SELECTION_ENTRIES = 512;
 

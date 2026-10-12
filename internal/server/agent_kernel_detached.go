@@ -13,12 +13,12 @@ import (
 
 	"github.com/google/uuid"
 
-	"synon-go/internal/agentruntime"
-	kernelruntime "synon-go/internal/kernel"
-	kerneldetached "synon-go/internal/kernel/detached"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/software/localcontainer"
+	"x-science/internal/agentruntime"
+	kernelruntime "x-science/internal/kernel"
+	kerneldetached "x-science/internal/kernel/detached"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/software/localcontainer"
 )
 
 const (
@@ -232,6 +232,9 @@ func (s *Server) executeDetachedAgentKernel(
 	if err == nil {
 		return result, nil
 	}
+	if kernelNamespaceRecoveryError(err) {
+		return nil, err // Keep the tool provisional; no unchanged observer retry.
+	}
 	if !detachedKernelWaitNeedsRecovery(err) {
 		return nil, err
 	}
@@ -363,7 +366,7 @@ func (s *Server) observeDetachedAgentKernelExecution(
 				outputLimitBytes, &operation, claim,
 			)
 		}
-		if err == nil || errors.Is(err, context.Canceled) {
+		if err == nil || errors.Is(err, context.Canceled) || kernelNamespaceRecoveryError(err) {
 			return
 		}
 		if terminal == nil {
@@ -542,6 +545,9 @@ func (s *Server) waitDetachedAgentKernelExecution(
 			}
 			if !detachedExecutionMatchesRef(execution, ref) {
 				return nil, workspace.ErrDetachedKernelExecutionConflict
+			}
+			if kernelNamespaceRecoveryHeld(execution) {
+				return nil, kernelNamespaceRecoveryPending(execution.OperationID)
 			}
 			if execution.TerminalReceiptID == "" {
 				snapshot, err := s.kernelExecutionBackend.Probe(ctx, ref, lease)

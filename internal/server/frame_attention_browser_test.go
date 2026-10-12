@@ -14,14 +14,14 @@ import (
 	"testing"
 	"time"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 // Real SQLite, frame/plan APIs and production React controllers. The isolated
 // service does not start a model runner or reuse an installed user's data.
 func TestFrameAttentionBrowser(t *testing.T) {
-	if os.Getenv("SYNON_FRAME_ATTENTION_BROWSER") != "1" {
+	if os.Getenv("X_SCIENCE_FRAME_ATTENTION_BROWSER") != "1" {
 		t.Skip("enable controlled task-attention browser integration")
 	}
 	root := t.TempDir()
@@ -105,7 +105,7 @@ func TestFrameAttentionBrowser(t *testing.T) {
 	t.Cleanup(func() { _ = app.Close(context.Background()) })
 	var approvals atomic.Int64
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		r.Header.Set("X-Synon-User-Id", "local")
+		r.Header.Set("X-Science-User-Id", "local")
 		if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/approve-plan") {
 			approvals.Add(1)
 		}
@@ -118,7 +118,7 @@ func TestFrameAttentionBrowser(t *testing.T) {
 	}
 	command := exec.CommandContext(t.Context(), "node", "tests/web-e2e/taskAttention.browser.mjs")
 	command.Dir = frontend
-	command.Env = append(os.Environ(), "SYNON_FRAME_ATTENTION_API="+server.URL)
+	command.Env = append(os.Environ(), "X_SCIENCE_FRAME_ATTENTION_API="+server.URL)
 	output, err := command.CombinedOutput()
 	if err != nil {
 		t.Fatalf("browser: %v\n%s", err, output)

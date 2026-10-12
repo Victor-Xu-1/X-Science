@@ -7,7 +7,7 @@
 import { act, fireEvent, screen, within } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import ContextWindowHistory from '@/renderer/components/synonBiomed/runtime/ContextWindowHistory';
+import ContextWindowHistory from '@/renderer/components/xScience/runtime/ContextWindowHistory';
 import type { ContextUsageHistory, ContextUsageSnapshot } from '@/renderer/services/contextUsage';
 import { renderWithI18n } from '../i18nTestUtils';
 

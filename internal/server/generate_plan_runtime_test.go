@@ -13,10 +13,10 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	eventjournal "synon-go/internal/persistence/journal"
-	sessionstore "synon-go/internal/persistence/sessions"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	"x-science/internal/agentruntime"
+	eventjournal "x-science/internal/persistence/journal"
+	sessionstore "x-science/internal/persistence/sessions"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func TestGeneratePlanPersistsOneArtifactPausesAndResumesAfterExactApproval(t *testing.T) {
@@ -440,7 +440,7 @@ func TestOrdinaryMultiStageTaskRecordsPlanAndContinuesWithoutApprovalPause(t *te
 		t.Fatalf("ordinary working plan was not preserved as executable state: %#v", metadata.ContextData)
 	}
 	context := server.generatedPlanDesiredOutputsContext(frameID)
-	for _, required := range []string{"synon.research_navigation.v1", "desired_outputs", "checked result", "Inspect and verify"} {
+	for _, required := range []string{"x-science.research_navigation.v1", "desired_outputs", "checked result", "Inspect and verify"} {
 		if !strings.Contains(context, required) {
 			t.Fatalf("autonomous plan context missing %q: %s", required, context)
 		}

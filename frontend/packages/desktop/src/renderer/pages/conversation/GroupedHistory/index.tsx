@@ -12,7 +12,7 @@ import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useParams } from 'react-router';
-import type { SynonBiomedProject } from '@/renderer/services/synonBiomedGateway';
+import type { XScienceProject } from '@/renderer/services/xScienceGateway';
 import { getActivityTime } from '@/renderer/utils/chat/timeline';
 import { emitter } from '@/renderer/utils/emitter';
 
@@ -99,7 +99,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     const value = (currentConversation?.extra as Record<string, unknown> | undefined)?.project_id;
     return typeof value === 'string' && value ? value : null;
   }, [conversations, id]);
-  const [availableProjects, setAvailableProjects] = useState<SynonBiomedProject[] | null>(null);
+  const [availableProjects, setAvailableProjects] = useState<XScienceProject[] | null>(null);
   const [preferredProjectId, setPreferredProjectId] = useState<string | undefined>(readPreferredProjectId);
   const mostRecentProjectId = useMemo(
     () => (availableProjects ? resolveMostRecentProjectId(availableProjects) : null),
@@ -137,7 +137,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     onActiveProjectChange?.(activeProjectId);
   }, [activeProjectId, availableProjects, onActiveProjectChange, selectLatestProjectOnLanding]);
 
-  const handleProjectsChange = useCallback((projects: SynonBiomedProject[]) => {
+  const handleProjectsChange = useCallback((projects: XScienceProject[]) => {
     setAvailableProjects(projects);
   }, []);
 
@@ -356,7 +356,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     [activeProjectId, timelineSections]
   );
   const handleStartTask = onStartTask
-    ? () => (activeProjectId ? onStartTask(activeProjectId) : emitter.emit('synonbiomed.projects.create'))
+    ? () => (activeProjectId ? onStartTask(activeProjectId) : emitter.emit('xscience.projects.create'))
     : undefined;
   const shouldRenderTaskSection = taskSections.length > 0 || !!onStartTask;
 
@@ -398,15 +398,15 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
         </React.Suspense>
       )}
 
-      <div className='synon-sidebar-navigation'>
+      <div className='x-science-sidebar-navigation'>
         {handleStartTask && (
-          <div className={classNames('synon-sidebar-new-chat-wrap px-8px pt-4px pb-2px', collapsed && 'px-4px')}>
+          <div className={classNames('x-science-sidebar-new-chat-wrap px-8px pt-4px pb-2px', collapsed && 'px-4px')}>
             <button
               type='button'
               data-testid='sider-new-chat'
               aria-label={t('conversation.history.newChat')}
               className={classNames(
-                'synon-sidebar-new-chat w-full h-32px flex items-center border-none bg-transparent rd-8px cursor-pointer text-t-tertiary hover:text-t-primary hover:bg-fill-2 transition-colors',
+                'x-science-sidebar-new-chat w-full h-32px flex items-center border-none bg-transparent rd-8px cursor-pointer text-t-tertiary hover:text-t-primary hover:bg-fill-2 transition-colors',
                 collapsed ? 'justify-center px-0' : 'gap-6px px-4px text-left'
               )}
               onClick={handleStartTask}
@@ -475,7 +475,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
         {/* L1: Tasks section — peer to projects, internally split by timeline */}
         {shouldRenderTaskSection && (
           <div
-            className='synon-sidebar-task-section min-w-0'
+            className='x-science-sidebar-task-section min-w-0'
             data-testid='sider-task-section'
             data-project-id={activeProjectId ?? undefined}
           >
@@ -493,7 +493,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
             {taskSections.map((section) => (
               <div key={section.timeline} className='min-w-0'>
                 {!collapsed && (
-                  <div className='synon-sidebar-timeline flex items-center px-16px h-24px select-none'>
+                  <div className='x-science-sidebar-timeline flex items-center px-16px h-24px select-none'>
                     <span className='text-12px text-t-secondary font-[500] leading-none'>{section.timeline}</span>
                   </div>
                 )}

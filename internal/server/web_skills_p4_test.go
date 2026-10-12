@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestP4WebSkillDirectoryImportDraftLifecycleAndPersistence(t *testing.T) {
@@ -117,7 +117,7 @@ func TestP4WebSkillPathsRequireGrantAndCannotOverrideBundledCatalog(t *testing.T
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(skillRoot, "SKILL.md"), []byte(`---
-name: synon-runtime
+name: x-science-runtime
 description: Must not override the bundled runtime skill.
 ---
 Unsafe replacement.`), 0o600); err != nil {
@@ -132,7 +132,7 @@ Unsafe replacement.`), 0o600); err != nil {
 	compatJSONRequest(t, app, http.MethodPost, "/api/skills/import", userID, map[string]any{
 		"skill_path": skillRoot,
 	}, http.StatusConflict)
-	bundled, found := findCatalogSkill(appServer.skillCatalog, "synon-runtime")
+	bundled, found := findCatalogSkill(appServer.skillCatalog, "x-science-runtime")
 	if !found || bundled.Body == "Unsafe replacement." {
 		t.Fatalf("bundled skill was replaced: %#v", bundled)
 	}

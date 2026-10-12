@@ -16,9 +16,9 @@ import (
 	"syscall"
 	"time"
 
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/server"
-	delegatefixture "synon-go/internal/testsupport/delegatefixture"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/server"
+	delegatefixture "x-science/internal/testsupport/delegatefixture"
 )
 
 type readyReport struct {
@@ -56,7 +56,7 @@ func run(ctx context.Context, args []string, output io.Writer) error {
 	var temporaryRoot string
 	if temporary {
 		var err error
-		temporaryRoot, err = os.MkdirTemp("", "synon-delegate-fixture-*")
+		temporaryRoot, err = os.MkdirTemp("", "x-science-delegate-fixture-*")
 		if err != nil {
 			return fmt.Errorf("create temporary fixture root: %w", err)
 		}
@@ -86,8 +86,8 @@ func run(ctx context.Context, args []string, output io.Writer) error {
 	defer listener.Close()
 	productionHandler := server.New(server.Options{Workspace: store}).Handler()
 	testHandler := http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
-		if strings.TrimSpace(request.Header.Get("X-Synon-User-Id")) == "" {
-			request.Header.Set("X-Synon-User-Id", delegatefixture.UserID)
+		if strings.TrimSpace(request.Header.Get("X-Science-User-Id")) == "" {
+			request.Header.Set("X-Science-User-Id", delegatefixture.UserID)
 		}
 		productionHandler.ServeHTTP(response, request)
 	})

@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	sessionstore "synon-go/internal/persistence/sessions"
-	"synon-go/internal/runtimecontrol"
+	sessionstore "x-science/internal/persistence/sessions"
+	"x-science/internal/runtimecontrol"
 )
 
 func TestAgentSaveArtifactsLargeOrdinaryBytesPersistWithoutCheckpointFlag(t *testing.T) {

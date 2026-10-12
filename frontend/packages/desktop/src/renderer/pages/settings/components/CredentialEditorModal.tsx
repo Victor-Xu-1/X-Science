@@ -2,7 +2,7 @@ import { Input } from '@arco-design/web-react';
 import Modal from '@/renderer/components/base/WorkbenchModal';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { SynonBiomedSecret, SynonBiomedSecretInput } from '@/renderer/services/synonBiomedWorkspaceSettings';
+import type { XScienceSecret, XScienceSecretInput } from '@/renderer/services/xScienceWorkspaceSettings';
 import {
   buildCredentialInput,
   initialCredentialValues,
@@ -15,10 +15,10 @@ import {
 type Props = {
   visible: boolean;
   provider: LocalizedCredentialProviderDefinition | null;
-  secret: SynonBiomedSecret | null;
+  secret: XScienceSecret | null;
   saving: boolean;
   onCancel: () => void;
-  onSave: (input: SynonBiomedSecretInput) => Promise<void>;
+  onSave: (input: XScienceSecretInput) => Promise<void>;
 };
 
 const CredentialEditorModal: React.FC<Props> = ({ visible, provider, secret, saving, onCancel, onSave }) => {

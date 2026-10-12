@@ -15,16 +15,16 @@
  */
 export const STORAGE_KEYS = {
   /** Workspace tree collapse state / 工作空间目录树折叠状态 */
-  WORKSPACE_TREE_COLLAPSE: 'synon-ai_workspace_collapse_state',
+  WORKSPACE_TREE_COLLAPSE: 'x-science_workspace_collapse_state',
 
   /** Sidebar collapse state / 侧边栏折叠状态 */
-  SIDEBAR_COLLAPSE: 'synon-ai_sider_collapsed',
+  SIDEBAR_COLLAPSE: 'x-science_sider_collapsed',
 
   /** Theme preference / 主题偏好 */
-  THEME: 'synon-ai_theme',
+  THEME: 'x-science_theme',
 
   /** Language preference / 语言偏好 */
-  LANGUAGE: 'synon-ai_language',
+  LANGUAGE: 'x-science_language',
 } as const;
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];

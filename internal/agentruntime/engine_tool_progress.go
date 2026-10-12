@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/toolcontract"
-	"synon-go/internal/toolprogress"
+	"x-science/internal/toolcontract"
+	"x-science/internal/toolprogress"
 )
 
 // executeToolGatewayWithProgress keeps the gateway call alive while the

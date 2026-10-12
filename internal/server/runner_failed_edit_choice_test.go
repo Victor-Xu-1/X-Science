@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 func TestCorrectionFailedNativeEditAllowsAlternateToolStrategy(t *testing.T) {

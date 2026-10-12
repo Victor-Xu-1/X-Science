@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"synon-go/internal/agentruntime"
-	taskruns "synon-go/internal/persistence/taskruns"
+	"x-science/internal/agentruntime"
+	taskruns "x-science/internal/persistence/taskruns"
 	"time"
 )
 

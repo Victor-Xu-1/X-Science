@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/executionprep"
+	"x-science/internal/executionprep"
 )
 
 func observationSessionSpec(t *testing.T) SessionSpec {

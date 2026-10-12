@@ -9,7 +9,7 @@
     "useCliModel": "Select Model",
     "modelSwitchNotSupported": "Model list will be available after first connection. Send a message to connect and load available models.",
     "assistantUnavailable": "X-Science expert information is still loading. Please try again.",
-    "synonBiomedOnly": "Only X-Science experts are supported.",
+    "xScienceOnly": "Only X-Science experts are supported.",
     "modelListLoading": "Loading models",
     "modelListUnavailable": "Model list unavailable",
     "modelListUnavailableHint": "The live model list failed to load. Click to retry.",
@@ -238,29 +238,29 @@
       "send_feedback": "Send feedback with logs so the team can investigate."
     },
     "ownership": {
-      "synon-ai": "App",
+      "x-science": "App",
       "user_agent": "Agent",
       "user_llm_provider": "Model provider",
       "unknown_upstream": "Upstream"
     },
     "codes": {
-      "SYNON_AI_STREAM_BROKEN": {
+      "X_SCIENCE_STREAM_BROKEN": {
         "title": "Response stream was interrupted",
         "body": "The app accepted your message but the response stream ended unexpectedly. Please retry; if it happens again, send feedback."
       },
-      "SYNON_AI_STATE_INCONSISTENT": {
+      "X_SCIENCE_STATE_INCONSISTENT": {
         "title": "Conversation state is out of sync",
         "body": "The conversation state is out of sync. Restart this chat or reload the app before retrying."
       },
-      "SYNON_AI_PERMISSION_ERROR": {
+      "X_SCIENCE_PERMISSION_ERROR": {
         "title": "Could not access the requested resource",
         "body": "A local permission or filesystem check failed. Check the project path and app permissions, then retry."
       },
-      "SYNON_AI_INTERNAL_ERROR": {
+      "X_SCIENCE_INTERNAL_ERROR": {
         "title": "Request failed in the app",
         "body": "The request failed while the app was processing it. Please retry once; if it repeats, send feedback."
       },
-      "SYNON_AI_CONVERSATION_BUSY": {
+      "X_SCIENCE_CONVERSATION_BUSY": {
         "title": "Conversation is busy",
         "body": "Another response is still running. Wait for it to finish before sending a new message."
       },
@@ -727,7 +727,7 @@
       "genes-ontologies": "Gene identity and ontologies — MyGene queries, OLS4 ontology terms, GO annotations (QuickGO), UniProt entries, Reactome pathways.",
       "drug-regulatory": "FDA drug data — Drugs@FDA applications, approvals, pharmacologic classes, generic equivalents, SPL drug labels.",
       "research-resources": "Research resources — Grants.gov funding opportunity search, Antibody Registry lookups.",
-      "synon-research": "Independent X-Science research MCP — compact discovery and bounded execution of an operator-verified research capability pack without exposing each source as a separate Skill.",
+      "x-science-research": "Independent X-Science research MCP — compact discovery and bounded execution of an operator-verified research capability pack without exposing each source as a separate Skill.",
       "cancer-models": "Cancer genomics cohorts — cBioPortal studies, mutations, copy-number alterations, clinical attributes.",
       "chemistry": "Small-molecule chemistry — PubChem compounds/properties/similarity, ChEBI ontology, Rhea reactions, BindingDB affinities.",
       "human-genetics": "Human genetics associations — GWAS Catalog, eQTL Catalogue, FinnGen/BioBank-Japan PheWAS portals.",
@@ -817,7 +817,7 @@
     "openTask": "Open task",
     "viewDetails": "View details"
   },
-  "synonRuntime": {
+  "xscienceRuntime": {
     "modelSelector": {
       "title": "Select model",
       "effort": "Effort",

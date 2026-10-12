@@ -15,16 +15,16 @@ import (
 	"testing"
 	"time"
 
-	kernelruntime "synon-go/internal/kernel"
-	"synon-go/internal/kernel/detached"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/server"
+	kernelruntime "x-science/internal/kernel"
+	"x-science/internal/kernel/detached"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/server"
 )
 
 const (
-	detachedControllerHelperEnv = "SYNON_DETACHED_CONTROLLER_HELPER"
-	detachedSystemdLauncherEnv  = "SYNON_DETACHED_SYSTEMD_LAUNCHER"
+	detachedControllerHelperEnv = "X_SCIENCE_DETACHED_CONTROLLER_HELPER"
+	detachedSystemdLauncherEnv  = "X_SCIENCE_DETACHED_SYSTEMD_LAUNCHER"
 )
 
 type detachedTestLauncher struct{}
@@ -77,10 +77,10 @@ func TestMain(m *testing.M) {
 }
 
 func TestDetachedExecutorSurvivesControllerProcessExitAndSettlesAfterRestart(t *testing.T) {
-	realBinary := strings.TrimSpace(os.Getenv("SYNON_REAL_BINARY"))
-	repositoryRoot := strings.TrimSpace(os.Getenv("SYNON_REPOSITORY_ROOT"))
+	realBinary := strings.TrimSpace(os.Getenv("X_SCIENCE_REAL_BINARY"))
+	repositoryRoot := strings.TrimSpace(os.Getenv("X_SCIENCE_REPOSITORY_ROOT"))
 	if realBinary == "" || repositoryRoot == "" {
-		t.Skip("real Synon binary and repository root are required")
+		t.Skip("real XScience binary and repository root are required")
 	}
 	home := t.TempDir()
 	workspaceDir := filepath.Join(home, "project-files")
@@ -93,7 +93,7 @@ func TestDetachedExecutorSurvivesControllerProcessExitAndSettlesAfterRestart(t *
 			t.Fatal(err)
 		}
 	}
-	databasePath := filepath.Join(home, "workspace", "synonbiomed-v1.1.sqlite")
+	databasePath := filepath.Join(home, "workspace", "xscience-v1.1.sqlite")
 	store, claim, operation := seedDetachedProcessFixture(t, databasePath)
 	socketRoot, err := detachedControllerSocketRoot(home)
 	if err != nil {
@@ -110,12 +110,12 @@ func TestDetachedExecutorSurvivesControllerProcessExitAndSettlesAfterRestart(t *
 	helper := exec.Command(os.Args[0], "-test.run=^$")
 	helper.Env = append(os.Environ(),
 		detachedControllerHelperEnv+"=1",
-		"SYNON_DETACHED_HOME="+home,
-		"SYNON_DETACHED_WORKSPACE="+workspaceDir,
-		"SYNON_DETACHED_REAL_BINARY="+realBinary,
-		"SYNON_DETACHED_REPOSITORY_ROOT="+repositoryRoot,
-		"SYNON_DETACHED_CLAIM="+string(claimJSON),
-		"SYNON_DETACHED_OPERATION="+operation.OperationID,
+		"X_SCIENCE_DETACHED_HOME="+home,
+		"X_SCIENCE_DETACHED_WORKSPACE="+workspaceDir,
+		"X_SCIENCE_DETACHED_REAL_BINARY="+realBinary,
+		"X_SCIENCE_DETACHED_REPOSITORY_ROOT="+repositoryRoot,
+		"X_SCIENCE_DETACHED_CLAIM="+string(claimJSON),
+		"X_SCIENCE_DETACHED_OPERATION="+operation.OperationID,
 	)
 	output, err := helper.CombinedOutput()
 	if err != nil {
@@ -137,7 +137,7 @@ func TestDetachedExecutorSurvivesControllerProcessExitAndSettlesAfterRestart(t *
 	if err != nil || !found || backend.ExecutorPID <= 0 || backend.WorkerPID <= 0 {
 		t.Fatalf("backend after controller exit=%#v found=%t err=%v", backend, found, err)
 	}
-	if os.Getenv(detachedSystemdLauncherEnv) == "1" && !strings.Contains(backend.CgroupPath, "synon-kernel-executor-") {
+	if os.Getenv(detachedSystemdLauncherEnv) == "1" && !strings.Contains(backend.CgroupPath, "x-science-kernel-executor-") {
 		t.Fatalf("executor did not enter an independent systemd service: %#v", backend)
 	}
 	t.Cleanup(func() {
@@ -248,10 +248,10 @@ type terminalTaskCleanupCase struct {
 func testDetachedExecutorTerminalTaskCleanup(t *testing.T, test terminalTaskCleanupCase) {
 	t.Helper()
 	failed, queued := test.failed, test.queued
-	realBinary := strings.TrimSpace(os.Getenv("SYNON_REAL_BINARY"))
-	repositoryRoot := strings.TrimSpace(os.Getenv("SYNON_REPOSITORY_ROOT"))
+	realBinary := strings.TrimSpace(os.Getenv("X_SCIENCE_REAL_BINARY"))
+	repositoryRoot := strings.TrimSpace(os.Getenv("X_SCIENCE_REPOSITORY_ROOT"))
 	if realBinary == "" || repositoryRoot == "" {
-		t.Skip("real Synon binary and repository root are required")
+		t.Skip("real XScience binary and repository root are required")
 	}
 	home := t.TempDir()
 	workspaceDir := filepath.Join(home, "project-files")
@@ -264,7 +264,7 @@ func testDetachedExecutorTerminalTaskCleanup(t *testing.T, test terminalTaskClea
 			t.Fatal(err)
 		}
 	}
-	databasePath := filepath.Join(home, "workspace", "synonbiomed-v1.1.sqlite")
+	databasePath := filepath.Join(home, "workspace", "xscience-v1.1.sqlite")
 	code := `import subprocess, sys, threading, time
 child_code = "import subprocess, sys, time; from pathlib import Path; subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(300)'], start_new_session=True); Path('process-tree-ready').write_text('ready'); time.sleep(300)"
 def spawn():
@@ -288,15 +288,15 @@ time.sleep(300)`
 	helper := exec.Command(os.Args[0], "-test.run=^$")
 	helper.Env = append(os.Environ(),
 		detachedControllerHelperEnv+"=1",
-		"SYNON_DETACHED_HOME="+home,
-		"SYNON_DETACHED_WORKSPACE="+workspaceDir,
-		"SYNON_DETACHED_REAL_BINARY="+realBinary,
-		"SYNON_DETACHED_REPOSITORY_ROOT="+repositoryRoot,
-		"SYNON_DETACHED_CLAIM="+string(claimJSON),
-		"SYNON_DETACHED_OPERATION="+operation.OperationID,
+		"X_SCIENCE_DETACHED_HOME="+home,
+		"X_SCIENCE_DETACHED_WORKSPACE="+workspaceDir,
+		"X_SCIENCE_DETACHED_REAL_BINARY="+realBinary,
+		"X_SCIENCE_DETACHED_REPOSITORY_ROOT="+repositoryRoot,
+		"X_SCIENCE_DETACHED_CLAIM="+string(claimJSON),
+		"X_SCIENCE_DETACHED_OPERATION="+operation.OperationID,
 	)
 	if queued {
-		helper.Env = append(helper.Env, "SYNON_DETACHED_ACCEPT_ONLY=1")
+		helper.Env = append(helper.Env, "X_SCIENCE_DETACHED_ACCEPT_ONLY=1")
 	}
 	output, err := helper.CombinedOutput()
 	if err != nil {
@@ -492,11 +492,11 @@ time.sleep(300)`
 }
 
 func TestDefaultSocketRootIsStableDistinctAndBounded(t *testing.T) {
-	first, err := detached.DefaultSocketRoot("/home/example/.synon-biomed-v0.1.0")
+	first, err := detached.DefaultSocketRoot("/home/example/.x-science-v0.1.0")
 	if err != nil {
 		t.Fatal(err)
 	}
-	repeated, err := detached.DefaultSocketRoot("/home/example/.synon-biomed-v0.1.0")
+	repeated, err := detached.DefaultSocketRoot("/home/example/.x-science-v0.1.0")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -626,11 +626,11 @@ func seedDetachedProcessFixtureWithCode(
 }
 
 func runDetachedControllerHelper() error {
-	home := filepath.Clean(os.Getenv("SYNON_DETACHED_HOME"))
-	workspaceDir := filepath.Clean(os.Getenv("SYNON_DETACHED_WORKSPACE"))
-	realBinary := filepath.Clean(os.Getenv("SYNON_DETACHED_REAL_BINARY"))
-	repositoryRoot := filepath.Clean(os.Getenv("SYNON_DETACHED_REPOSITORY_ROOT"))
-	operationID := strings.TrimSpace(os.Getenv("SYNON_DETACHED_OPERATION"))
+	home := filepath.Clean(os.Getenv("X_SCIENCE_DETACHED_HOME"))
+	workspaceDir := filepath.Clean(os.Getenv("X_SCIENCE_DETACHED_WORKSPACE"))
+	realBinary := filepath.Clean(os.Getenv("X_SCIENCE_DETACHED_REAL_BINARY"))
+	repositoryRoot := filepath.Clean(os.Getenv("X_SCIENCE_DETACHED_REPOSITORY_ROOT"))
+	operationID := strings.TrimSpace(os.Getenv("X_SCIENCE_DETACHED_OPERATION"))
 	if !filepath.IsAbs(home) || !filepath.IsAbs(workspaceDir) || !filepath.IsAbs(realBinary) ||
 		!filepath.IsAbs(repositoryRoot) || operationID == "" {
 		return errors.New("controller helper environment is incomplete")
@@ -639,10 +639,10 @@ func runDetachedControllerHelper() error {
 		return err
 	}
 	var claim transcriptstore.RunnerClaim
-	if err := json.Unmarshal([]byte(os.Getenv("SYNON_DETACHED_CLAIM")), &claim); err != nil {
+	if err := json.Unmarshal([]byte(os.Getenv("X_SCIENCE_DETACHED_CLAIM")), &claim); err != nil {
 		return err
 	}
-	store, err := workspace.Open(filepath.Join(home, "workspace", "synonbiomed-v1.1.sqlite"))
+	store, err := workspace.Open(filepath.Join(home, "workspace", "xscience-v1.1.sqlite"))
 	if err != nil {
 		return err
 	}
@@ -735,7 +735,7 @@ func runDetachedControllerHelper() error {
 		BackendID: execution.BackendID, BackendGeneration: execution.BackendGeneration,
 		RequestSHA256: execution.RequestSHA256, ConfinementSHA256: execution.ConfinementSHA256,
 	}
-	if os.Getenv("SYNON_DETACHED_ACCEPT_ONLY") == "1" {
+	if os.Getenv("X_SCIENCE_DETACHED_ACCEPT_ONLY") == "1" {
 		return os.WriteFile(filepath.Join(home, "controller-execution-id"), []byte(executionID+"\n"), 0o600)
 	}
 	if _, err := backend.Start(context.Background(), ref, kernelruntime.BackendStartFence{

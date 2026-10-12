@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/persistence/workspace"
+	"x-science/internal/persistence/workspace"
 )
 
 type executorFunc func(context.Context, Tick) (Result, error)

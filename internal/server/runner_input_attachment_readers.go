@@ -4,8 +4,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"synon-go/internal/agentruntime"
-	eventjournal "synon-go/internal/persistence/journal"
+	"x-science/internal/agentruntime"
+	eventjournal "x-science/internal/persistence/journal"
 )
 
 type sessionRunnerInputAttachmentReader struct {

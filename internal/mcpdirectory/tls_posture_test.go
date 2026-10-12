@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/tools/mcpstdio"
+	"x-science/internal/tools/mcpstdio"
 )
 
 func TestBundledRuntimeConfigUsesHostTLSPosture(t *testing.T) {

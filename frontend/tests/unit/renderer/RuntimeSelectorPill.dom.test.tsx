@@ -7,9 +7,9 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import React from 'react';
-import RuntimeSelectorPill from '@/renderer/components/synonBiomed/runtime/RuntimeSelectorPill';
+import RuntimeSelectorPill from '@/renderer/components/xScience/runtime/RuntimeSelectorPill';
 
-vi.mock('@/renderer/components/synonBiomed/runtime/MarqueePillLabel', () => ({
+vi.mock('@/renderer/components/xScience/runtime/MarqueePillLabel', () => ({
   default: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
 }));
 

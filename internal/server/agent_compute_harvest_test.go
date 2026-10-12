@@ -10,16 +10,16 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/compute/transfer"
+	"x-science/internal/compute/transfer"
 )
 
 type nativeHarvestTransport struct{ root string }
 
 func (t nativeHarvestTransport) Install(ctx context.Context, asset string) error {
-	return copyComputeControlFile(asset, filepath.Join(t.root, "_synon_harvest.sh"))
+	return copyComputeControlFile(asset, filepath.Join(t.root, "_x_science_harvest.sh"))
 }
 func (t nativeHarvestTransport) Control(ctx context.Context, action, source, selection string) (transfer.ControlReceipt, error) {
-	args := []string{"--noprofile", "--norc", "-p", filepath.Join(t.root, "_synon_harvest.sh"), action}
+	args := []string{"--noprofile", "--norc", "-p", filepath.Join(t.root, "_x_science_harvest.sh"), action}
 	if action == "archive" || action == "checkpoint" {
 		args = append(args, source, selection)
 	}
@@ -32,10 +32,10 @@ func (t nativeHarvestTransport) Control(ctx context.Context, action, source, sel
 	return transfer.ParseControlReceipt(string(data))
 }
 func (t nativeHarvestTransport) Select(ctx context.Context, local, source, selected string) error {
-	return copyComputeControlFile(local, filepath.Join(t.root, ".synon-harvest", "selection-"+selected+".nul"))
+	return copyComputeControlFile(local, filepath.Join(t.root, ".x-science-harvest", "selection-"+selected+".nul"))
 }
 func (t nativeHarvestTransport) Fetch(ctx context.Context, remote, local string, receipt transfer.ControlReceipt) error {
-	if err := copyComputeControlFile(filepath.Join(t.root, ".synon-harvest", remote), local); err != nil {
+	if err := copyComputeControlFile(filepath.Join(t.root, ".x-science-harvest", remote), local); err != nil {
 		return err
 	}
 	return transfer.VerifyFile(ctx, local, receipt.SHA256, receipt.Bytes)

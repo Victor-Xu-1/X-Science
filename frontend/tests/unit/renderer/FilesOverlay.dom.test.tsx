@@ -1,7 +1,7 @@
 import { cleanup, screen } from '@testing-library/react';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { FilesOverlay } from '@/renderer/components/synonBiomed/files/FilesOverlay';
+import { FilesOverlay } from '@/renderer/components/xScience/files/FilesOverlay';
 import { renderWithI18n } from '../i18nTestUtils';
 
 const gateway = vi.hoisted(() => ({
@@ -11,17 +11,17 @@ const gateway = vi.hoisted(() => ({
   buckets: vi.fn(),
 }));
 
-vi.mock('@/renderer/services/synonBiomedCompute', () => ({
-  loadSynonBiomedLocalHostInfo: gateway.localHost,
-  loadSynonBiomedComputeProviders: gateway.providers,
+vi.mock('@/renderer/services/xScienceCompute', () => ({
+  loadXScienceLocalHostInfo: gateway.localHost,
+  loadXScienceComputeProviders: gateway.providers,
 }));
 
-vi.mock('@/renderer/services/synonBiomedWorkspaceSettings', () => ({
-  loadSynonBiomedCloudCredentials: gateway.credentials,
-  loadSynonBiomedCloudBuckets: gateway.buckets,
+vi.mock('@/renderer/services/xScienceWorkspaceSettings', () => ({
+  loadXScienceCloudCredentials: gateway.credentials,
+  loadXScienceCloudBuckets: gateway.buckets,
 }));
 
-vi.mock('@/renderer/components/synonBiomed/files/FileBrowser', () => ({
+vi.mock('@/renderer/components/xScience/files/FileBrowser', () => ({
   FileBrowser: ({ projectId }: { projectId: string }) => <div data-testid='file-browser'>{projectId}</div>,
 }));
 

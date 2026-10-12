@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"synon-go/internal/toolprogress"
+	"x-science/internal/toolprogress"
 )
 
 const managedEnvironmentProgressLineLimit = 8 << 10

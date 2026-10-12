@@ -5,9 +5,9 @@ import (
 
 	"strings"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 
-	"synon-go/internal/toolcontract"
+	"x-science/internal/toolcontract"
 )
 
 func (s *Server) agentKernelToolSchemas(identity *agentKernelContext, allowed map[string]struct{}) []agentruntime.ToolSchema {

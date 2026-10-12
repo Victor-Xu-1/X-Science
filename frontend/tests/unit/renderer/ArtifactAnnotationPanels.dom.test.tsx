@@ -37,18 +37,18 @@ vi.mock('@arco-design/web-react', async (importOriginal) => {
   };
 });
 
-vi.mock('@/renderer/services/synonBiomedAnnotations', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/renderer/services/synonBiomedAnnotations')>();
+vi.mock('@/renderer/services/xScienceAnnotations', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/renderer/services/xScienceAnnotations')>();
   return {
     ...actual,
-    loadSynonBiomedArtifactAnnotations: mocks.loadAnnotations,
-    createSynonBiomedArtifactAnnotation: mocks.createAnnotation,
-    updateSynonBiomedArtifactAnnotation: mocks.updateAnnotation,
-    deleteSynonBiomedArtifactAnnotation: mocks.deleteAnnotation,
-    suggestSynonBiomedArtifactEdit: mocks.suggestEdit,
-    applySynonBiomedArtifactEdit: mocks.applyEdit,
-    loadSynonBiomedArtifactVerification: mocks.loadVerification,
-    requestSynonBiomedFrameAudit: mocks.requestAudit,
+    loadXScienceArtifactAnnotations: mocks.loadAnnotations,
+    createXScienceArtifactAnnotation: mocks.createAnnotation,
+    updateXScienceArtifactAnnotation: mocks.updateAnnotation,
+    deleteXScienceArtifactAnnotation: mocks.deleteAnnotation,
+    suggestXScienceArtifactEdit: mocks.suggestEdit,
+    applyXScienceArtifactEdit: mocks.applyEdit,
+    loadXScienceArtifactVerification: mocks.loadVerification,
+    requestXScienceFrameAudit: mocks.requestAudit,
   };
 });
 

@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"synon-go/internal/tools/patentsearch"
-	"synon-go/internal/tools/websearch"
+	"x-science/internal/tools/patentsearch"
+	"x-science/internal/tools/websearch"
 )
 
 func TestDefaultRegistryAdvertisesPatentSearchContract(t *testing.T) {

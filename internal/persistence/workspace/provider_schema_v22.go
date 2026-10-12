@@ -11,7 +11,7 @@ import (
 const (
 	providerV22CallbackID        = "classify-model-provider-protocol-v22"
 	providerV22PreflightIdentity = "canonical-provider-v21-or-v22-shape-v1"
-	providerV22RuleSpec          = "synon.workspace.model-provider.protocol.v22"
+	providerV22RuleSpec          = "x-science.workspace.model-provider.protocol.v22"
 
 	providerConfigurationReady       = "ready"
 	providerConfigurationUnresolved  = "unresolved"

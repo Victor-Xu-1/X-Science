@@ -94,7 +94,7 @@ export const useMcpOAuth = () => {
       }
 
       setLoggingIn((prev) => ({ ...prev, [server.id]: true }));
-      const authorizationWindow = window.open('about:blank', 'synon-mcp-oauth', 'popup,width=720,height=820');
+      const authorizationWindow = window.open('about:blank', 'x-science-mcp-oauth', 'popup,width=720,height=820');
 
       try {
         const result = await mcpService.loginMcpOAuth.invoke({ server_url: serverUrl });

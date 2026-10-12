@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	secretstore "synon-go/internal/persistence/secrets"
+	secretstore "x-science/internal/persistence/secrets"
 )
 
 type compatibilitySecretProjection struct {

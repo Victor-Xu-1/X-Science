@@ -23,7 +23,7 @@ type chatMessage struct {
 }
 
 func main() {
-	address := strings.TrimSpace(os.Getenv("SYNON_ONBOARDING_FIXTURE_ADDRESS"))
+	address := strings.TrimSpace(os.Getenv("X_SCIENCE_ONBOARDING_FIXTURE_ADDRESS"))
 	if address == "" {
 		address = "127.0.0.1:39091"
 	}
