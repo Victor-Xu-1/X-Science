@@ -108,7 +108,7 @@ Preserve upstream notices. Record third-party additions, their versions,
 checksums, terms, and update procedure in the
 [third-party inventory](docs/THIRD_PARTY.md).
 
-First-party code is offered under [AGPL-3.0-only](LICENSE), except where separate
+First-party code is offered under [AGPL-3.0-only](LICENSE.md), except where separate
 component terms apply. A contribution under AGPL alone does not grant permission
 to relicense it commercially; no copyright assignment or contributor agreement
 is implied. See [licensing and commercial options](COMMERCIAL-LICENSE.md).

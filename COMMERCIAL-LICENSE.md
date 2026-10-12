@@ -7,7 +7,7 @@ Copyright (c) 2026 X-Science contributors.
 Except where a file or component carries a separate license or notice,
 X-Science's first-party code is offered under the GNU Affero General Public
 License, version 3 only (`AGPL-3.0-only`). The complete, unmodified license is
-in [LICENSE](LICENSE).
+in [LICENSE.md](LICENSE.md).
 
 Commercial use is permitted under AGPL-3.0-only. Users who comply with that
 license do not need to purchase a separate commercial license. This document
