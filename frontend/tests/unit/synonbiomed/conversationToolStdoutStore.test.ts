@@ -2,6 +2,8 @@ import type { IToolStdoutChunkEvent } from '@/common/adapter/ipcBridge';
 import type { ConversationStreamingFrame } from '@/renderer/services/runtime/conversationStreamingModel';
 import {
   MAX_TOOL_STDOUT_BYTES,
+  MAX_PENDING_TOOL_STDOUT_BYTES,
+  MAX_PENDING_TOOL_STDOUT_CHUNKS,
   MAX_TOOL_STDOUT_ENTRIES,
   ConversationToolStdoutStore,
 } from '@/renderer/services/runtime/conversationToolStdoutStore';
@@ -116,6 +118,194 @@ describe('ConversationToolStdoutStore', () => {
     });
     emit({ ...base, chunk: 'must not append', chunk_sequence: 2.5 });
     expect(store.getSnapshot('conversation-a')[0].toolStdout[0].stdout).toBe('AB');
+    dispose();
+  });
+
+  it('bounds retained pending UTF-8 bytes while a sequence gap is unresolved', () => {
+    const { store, emit } = harness();
+    const dispose = store.subscribe('conversation-a', vi.fn());
+    emit(event('conversation-a', 'tool-a', '生'.repeat(700_000), 2));
+
+    // Published stdout alone cannot reveal memory retained behind a missing sequence.
+    const entries = (
+      store as unknown as {
+        entries: Map<string, { pendingChunks: Map<number, { text: string }> }>;
+      }
+    ).entries;
+    const retainedBytes = [...entries.values()].reduce(
+      (total, entry) =>
+        total +
+        [...entry.pendingChunks.values()].reduce(
+          (bytes, chunk) => bytes + new TextEncoder().encode(chunk.text).byteLength,
+          0
+        ),
+      0
+    );
+    expect(retainedBytes).toBeLessThanOrEqual(MAX_TOOL_STDOUT_BYTES);
+    expect(store.getCurrentSnapshot('conversation-a')[0].toolStdout[0].stdout).toBe('');
+    dispose();
+  });
+
+  it('bounds accumulated pending chunks and does not skip discarded sequences on late gap fill', () => {
+    const { store, emit } = harness();
+    const dispose = store.subscribe('conversation-a', vi.fn());
+    for (let sequence = 3; sequence <= 5; sequence += 1) {
+      emit(event('conversation-a', 'tool-a', '生'.repeat(40_000), sequence));
+    }
+    emit(event('conversation-a', 'tool-a', 'A', 1));
+    emit(event('conversation-a', 'tool-a', 'B', 2));
+    emit(event('conversation-a', 'tool-a', 'F', 6));
+    const output = store.getCurrentSnapshot('conversation-a')[0].toolStdout[0];
+    expect(output.stdout).toBe('AB');
+    expect(output.throughChunkSequence).toBe(2);
+    const entry = [
+      ...(
+        store as unknown as {
+          entries: Map<string, { pendingChunks: Map<number, { text: string }> }>;
+        }
+      ).entries.values(),
+    ][0];
+    expect(
+      [...entry.pendingChunks.values()].reduce(
+        (bytes, chunk) => bytes + new TextEncoder().encode(chunk.text).byteLength,
+        0
+      )
+    ).toBeLessThanOrEqual(MAX_PENDING_TOOL_STDOUT_BYTES);
+    dispose();
+  });
+
+  it('drains an oversized contiguous chunk without retaining it in the pending budget', () => {
+    const { store, emit } = harness();
+    const dispose = store.subscribe('conversation-a', vi.fn());
+    emit(event('conversation-a', 'tool-a', '生'.repeat(100_000), 2, { start: 1, end: 300_001 }));
+    emit(event('conversation-a', 'tool-a', 'A', 1, { start: 0, end: 1 }));
+    expect(store.getCurrentSnapshot('conversation-a')[0].toolStdout[0].throughChunkSequence).toBe(1);
+    // Replaying the discarded sequence supplies its bytes rather than skipping it.
+    emit(event('conversation-a', 'tool-a', '生'.repeat(100_000), 2, { start: 1, end: 300_001 }));
+    const output = store.getCurrentSnapshot('conversation-a')[0].toolStdout[0];
+    expect(output.throughChunkSequence).toBe(2);
+    expect(output.stdoutEndByte).toBe(300_001);
+    expect(new TextEncoder().encode(output.stdout).byteLength).toBeLessThanOrEqual(MAX_TOOL_STDOUT_BYTES);
+    expect(output.stdout).not.toContain('\uFFFD');
+    expect(output.recoveryError).toBeUndefined();
+    dispose();
+  });
+
+  it('keeps discarded gaps recoverable through older and empty snapshots and stops retrying', async () => {
+    const { store, emit, hydrate, reconnect } = harness();
+    const disposeA = store.subscribe('conversation-a', vi.fn());
+    const disposeB = store.subscribe('conversation-b', vi.fn());
+    await vi.waitFor(() => expect(hydrate).toHaveBeenCalledTimes(2));
+    hydrate.mockResolvedValueOnce([
+      {
+        frameId: 'conversation-a',
+        toolStdout: [
+          {
+            toolUseId: 'tool-a',
+            execId: 'exec-a',
+            stdout: 'A',
+            stderr: '',
+            throughChunkSequence: 1,
+            stdoutStartByte: 0,
+            stdoutEndByte: 1,
+          },
+        ],
+      },
+    ]);
+    emit({ ...event('conversation-a', 'tool-a', '生'.repeat(100_000), 2), exec_id: 'exec-a', status: 'running' });
+    await vi.waitFor(() => expect(store.getCurrentSnapshot('conversation-a')[0].toolStdout[0].stdout).toBe('A'));
+    emit(event('conversation-b', 'tool-a', 'independent', 1));
+    await vi.waitFor(() => expect(store.getSnapshot('conversation-a')[0].toolStdout[0].recoveryError).toBe(true));
+    const failed = store.getSnapshot('conversation-a')[0].toolStdout[0];
+    expect(failed.execId).toBe('exec-a');
+    expect(failed.throughChunkSequence).toBe(1);
+    expect(failed.stdout).toBe('A');
+    expect(store.getSnapshot('conversation-b')[0].toolStdout[0].stdout).toBe('independent');
+    const callsAfterExhaustion = hydrate.mock.calls.length;
+    emit({ ...event('conversation-a', 'tool-a', 'C', 3), exec_id: 'exec-a' });
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    expect(hydrate).toHaveBeenCalledTimes(callsAfterExhaustion);
+    hydrate.mockResolvedValueOnce([
+      {
+        frameId: 'conversation-a',
+        toolStdout: [
+          {
+            toolUseId: 'tool-a',
+            execId: 'exec-a',
+            stdout: 'AB',
+            stderr: '',
+            throughChunkSequence: 2,
+            stdoutStartByte: 0,
+            stdoutEndByte: 2,
+          },
+        ],
+      },
+    ]);
+    reconnect();
+    await vi.waitFor(() => expect(store.getSnapshot('conversation-a')[0].toolStdout[0].stdout).toBe('ABC'));
+    expect(store.getSnapshot('conversation-a')[0].toolStdout[0].recoveryError).toBeUndefined();
+    disposeA();
+    disposeB();
+  });
+
+  it('retains a recoverable gap when the pending chunk count overflows', async () => {
+    const { store, emit, hydrate } = harness();
+    const dispose = store.subscribe('conversation-a', vi.fn());
+    await vi.waitFor(() => expect(hydrate).toHaveBeenCalledTimes(1));
+    // Hold hydration so all events belong to one unresolved recovery attempt.
+    hydrate.mockImplementationOnce(() => new Promise(() => undefined));
+    for (let sequence = 2; sequence <= MAX_PENDING_TOOL_STDOUT_CHUNKS + 2; sequence += 1) {
+      emit(event('conversation-a', 'tool-a', 'x', sequence));
+    }
+    emit(event('conversation-a', 'tool-a', 'A', 1));
+    const output = store.getCurrentSnapshot('conversation-a')[0].toolStdout[0];
+    expect(output.stdout).toBe('A');
+    expect(output.throughChunkSequence).toBe(1);
+    await vi.waitFor(() => expect(hydrate).toHaveBeenCalledTimes(2));
+    dispose();
+  });
+
+  it('keeps a marker-only gap after unsequenced hydration and preserves the entry limit', async () => {
+    const { store, emit, hydrate } = harness();
+    const dispose = store.subscribe('conversation-a', vi.fn());
+    await vi.waitFor(() => expect(hydrate).toHaveBeenCalledTimes(1));
+    hydrate.mockResolvedValueOnce([
+      {
+        frameId: 'conversation-a',
+        toolStdout: [{ toolUseId: 'tool-a', stdout: 'unsequenced', stderr: '' }],
+      },
+    ]);
+    emit(event('conversation-a', 'tool-a', 'x'.repeat(MAX_PENDING_TOOL_STDOUT_BYTES + 1), 2));
+    await vi.waitFor(() => expect(store.getSnapshot('conversation-a')[0].toolStdout[0].recoveryError).toBe(true));
+    expect(store.getSnapshot('conversation-a')[0].toolStdout[0].throughChunkSequence).toBeUndefined();
+    for (let index = 0; index < MAX_TOOL_STDOUT_ENTRIES; index += 1) {
+      emit(event('conversation-a', `overflow-${index}`, 'x'.repeat(MAX_PENDING_TOOL_STDOUT_BYTES + 1), 2));
+    }
+    expect(store.getCurrentSnapshot('conversation-a')[0].toolStdout).toHaveLength(MAX_TOOL_STDOUT_ENTRIES);
+    dispose();
+  });
+
+  it('recovers by contiguous replay after an unwatermarked snapshot without poisoning byte offsets', async () => {
+    const { store, emit, hydrate } = harness();
+    const dispose = store.subscribe('conversation-a', vi.fn());
+    await vi.waitFor(() => expect(hydrate).toHaveBeenCalledTimes(1));
+    hydrate.mockResolvedValueOnce([
+      {
+        frameId: 'conversation-a',
+        toolStdout: [{ toolUseId: 'tool-a', stdout: 'legacy', stderr: '' }],
+      },
+    ]);
+    const oversized = '生'.repeat(100_000);
+    emit(event('conversation-a', 'tool-a', oversized, 2, { start: 1, end: 300_001 }));
+    await vi.waitFor(() => expect(store.getSnapshot('conversation-a')[0].toolStdout[0].recoveryError).toBe(true));
+    emit(event('conversation-a', 'tool-a', 'A', 1, { start: 0, end: 1 }));
+    emit(event('conversation-a', 'tool-a', oversized, 2, { start: 1, end: 300_001 }));
+    const output = store.getCurrentSnapshot('conversation-a')[0].toolStdout[0];
+    expect(output.throughChunkSequence).toBe(2);
+    expect(output.stdoutEndByte).toBe(300_001);
+    expect(output.stdout).not.toContain('legacy');
+    expect(output.stdout).not.toContain('\uFFFD');
+    expect(output.recoveryError).toBeUndefined();
     dispose();
   });
 

@@ -4,6 +4,7 @@ import type { ConversationStreamingFrame } from './conversationStreamingModel';
 export const MAX_TOOL_STDOUT_BYTES = 256 * 1024;
 export const MAX_TOOL_STDOUT_ENTRIES = 64;
 export const MAX_PENDING_TOOL_STDOUT_CHUNKS = 256;
+export const MAX_PENDING_TOOL_STDOUT_BYTES = MAX_TOOL_STDOUT_BYTES;
 const MAX_GAP_HYDRATION_RETRIES = 3;
 const GAP_HYDRATION_RETRY_BASE_MS = 25;
 
@@ -14,6 +15,7 @@ type StoredOutput = ToolOutput & {
   frameId: string;
   sequence: number;
   pendingChunks: Map<number, PendingChunk>;
+  discardedThroughSequence?: number;
   gapHydrationRequested: boolean;
   observedVersion: number;
 };
@@ -248,6 +250,7 @@ export class ConversationToolStdoutStore {
       stderr: previous?.stderr ?? '',
       sequence: previous?.sequence ?? 0,
       pendingChunks,
+      ...(previous?.discardedThroughSequence ? { discardedThroughSequence: previous.discardedThroughSequence } : {}),
       gapHydrationRequested: previous?.gapHydrationRequested ?? false,
       observedVersion: ++this.observedVersion,
       ...(previous?.stdoutStartByte !== undefined ? { stdoutStartByte: previous.stdoutStartByte } : {}),
@@ -262,14 +265,14 @@ export class ConversationToolStdoutStore {
         ...(startByte === undefined ? {} : { startByte }),
         ...(endByte === undefined ? {} : { endByte }),
       });
-      if (pendingChunks.size > MAX_PENDING_TOOL_STDOUT_CHUNKS) {
+      this.drainPendingChunks(next);
+      const pendingBytes = [...pendingChunks.values()].reduce((bytes, chunk) => bytes + utf8Size(chunk.text), 0);
+      if (pendingChunks.size > MAX_PENDING_TOOL_STDOUT_CHUNKS || pendingBytes > MAX_PENDING_TOOL_STDOUT_BYTES) {
+        // Only durable hydration or a complete contiguous replay can cover discarded sequences.
+        next.discardedThroughSequence = Math.max(next.discardedThroughSequence ?? 0, ...pendingChunks.keys());
         pendingChunks.clear();
         next.gapHydrationRequested = true;
-        this.entries.set(key, next);
-        this.requestGapHydration(rootFrameId);
-        return;
       }
-      this.drainPendingChunks(next);
     } else {
       this.appendChunk(next, { text: event.chunk });
     }
@@ -277,7 +280,7 @@ export class ConversationToolStdoutStore {
     this.entries.set(key, next);
     this.evictOverflow();
     let recoveryChanged = false;
-    if (next.pendingChunks.size > 0) {
+    if (next.pendingChunks.size > 0 || next.discardedThroughSequence) {
       next.gapHydrationRequested = true;
       this.requestGapHydration(rootFrameId);
     } else {
@@ -326,7 +329,8 @@ export class ConversationToolStdoutStore {
             ) {
               continue;
             }
-            if (previous?.sequence && snapshotSequence === 0) continue;
+            // Unwatermarked legacy text cannot establish a cursor for discarded sequenced chunks.
+            if ((previous?.sequence || previous?.discardedThroughSequence) && snapshotSequence === 0) continue;
             if (previous && snapshotSequence > 0 && previous.sequence > snapshotSequence) continue;
             const bounded = boundedUtf8Tail(output.stdout);
             const endByte = output.stdoutEndByte ?? utf8Size(output.stdout);
@@ -347,7 +351,15 @@ export class ConversationToolStdoutStore {
               stderr: boundedUtf8Tail(output.stderr).text,
               sequence: snapshotSequence,
               pendingChunks,
+              ...(previous?.discardedThroughSequence && previous.discardedThroughSequence > snapshotSequence
+                ? { discardedThroughSequence: previous.discardedThroughSequence }
+                : {}),
               gapHydrationRequested: false,
+              ...(previous?.recoveryError &&
+              previous.discardedThroughSequence &&
+              previous.discardedThroughSequence > snapshotSequence
+                ? { recoveryError: true }
+                : {}),
               observedVersion: ++this.observedVersion,
               stdoutStartByte:
                 bounded.truncated || output.stdoutStartByte === undefined
@@ -362,7 +374,12 @@ export class ConversationToolStdoutStore {
           }
         }
         for (const [key, output] of this.entries) {
-          if (output.rootFrameId === rootFrameId && output.observedVersion <= versionAtStart && !seen.has(key)) {
+          if (
+            output.rootFrameId === rootFrameId &&
+            output.observedVersion <= versionAtStart &&
+            !seen.has(key) &&
+            !output.discardedThroughSequence
+          ) {
             this.entries.delete(key);
           }
         }
@@ -419,7 +436,10 @@ export class ConversationToolStdoutStore {
       this.appendChunk(output, chunk);
       output.sequence = sequence;
     }
-    if (output.pendingChunks.size === 0) {
+    if (output.discardedThroughSequence && output.sequence >= output.discardedThroughSequence) {
+      delete output.discardedThroughSequence;
+    }
+    if (output.pendingChunks.size === 0 && !output.discardedThroughSequence) {
       output.gapHydrationRequested = false;
       delete output.recoveryError;
     }
@@ -427,7 +447,10 @@ export class ConversationToolStdoutStore {
 
   private hasPendingGap(rootFrameId: string): boolean {
     for (const output of this.entries.values()) {
-      if (output.rootFrameId === rootFrameId && (output.pendingChunks.size > 0 || output.gapHydrationRequested)) {
+      if (
+        output.rootFrameId === rootFrameId &&
+        (output.pendingChunks.size > 0 || output.discardedThroughSequence || output.gapHydrationRequested)
+      ) {
         return true;
       }
     }
@@ -436,7 +459,13 @@ export class ConversationToolStdoutStore {
 
   private requestGapHydration(rootFrameId: string): void {
     const subscription = this.roots.get(rootFrameId);
-    if (!subscription || subscription.hydration || subscription.gapRetryTimer) return;
+    if (
+      !subscription ||
+      subscription.hydration ||
+      subscription.gapRetryTimer ||
+      subscription.gapRetryCount >= MAX_GAP_HYDRATION_RETRIES
+    )
+      return;
     this.hydrate(rootFrameId);
   }
 
@@ -448,7 +477,7 @@ export class ConversationToolStdoutStore {
       for (const output of this.entries.values()) {
         if (
           output.rootFrameId !== rootFrameId ||
-          (!output.gapHydrationRequested && output.pendingChunks.size === 0) ||
+          (!output.gapHydrationRequested && output.pendingChunks.size === 0 && !output.discardedThroughSequence) ||
           output.recoveryError
         )
           continue;
@@ -472,14 +501,15 @@ export class ConversationToolStdoutStore {
 
   private resetGapRecovery(rootFrameId: string): boolean {
     const subscription = this.roots.get(rootFrameId);
-    if (subscription) {
+    if (subscription && !this.hasPendingGap(rootFrameId)) {
       if (subscription.gapRetryTimer) clearTimeout(subscription.gapRetryTimer);
       subscription.gapRetryTimer = undefined;
       subscription.gapRetryCount = 0;
     }
     let changed = false;
     for (const output of this.entries.values()) {
-      if (output.rootFrameId !== rootFrameId || output.pendingChunks.size > 0) continue;
+      if (output.rootFrameId !== rootFrameId || output.pendingChunks.size > 0 || output.discardedThroughSequence)
+        continue;
       output.gapHydrationRequested = false;
       if (output.recoveryError) {
         delete output.recoveryError;
