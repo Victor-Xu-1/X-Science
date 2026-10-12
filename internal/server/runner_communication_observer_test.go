@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"path/filepath"
 	"strings"
+	"testing"
 	"x-science/internal/agentruntime"
 	runtimekv "x-science/internal/persistence/runtimekv"
-	"testing"
 )
 
 type nativeCommunicationFixture struct {

@@ -29,7 +29,7 @@ type bundledConnector struct {
 	APIKeyQueryParam   string                `json:"apiKeyQueryParam,omitempty"`
 	APIKeyPrefix       string                `json:"apiKeyPrefix,omitempty"`
 	APIKeyLabel        string                `json:"apiKeyLabel,omitempty"`
-	HostedByXScience      bool                  `json:"hostedByXScience,omitempty"`
+	HostedByXScience   bool                  `json:"hostedByXScience,omitempty"`
 	Upstreams          []ConnectorUpstream   `json:"upstreams,omitempty"`
 	RuntimeEnvironment []string              `json:"runtimeEnvironment,omitempty"`
 	Deferred           bool

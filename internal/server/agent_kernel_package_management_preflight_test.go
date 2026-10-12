@@ -3,8 +3,8 @@ package server
 import (
 	"context"
 	"os/exec"
-	kernelruntime "x-science/internal/kernel"
 	"testing"
+	kernelruntime "x-science/internal/kernel"
 )
 
 func TestAgentKernelPackageManagerMutationPreflightRejectsBypassPaths(t *testing.T) {

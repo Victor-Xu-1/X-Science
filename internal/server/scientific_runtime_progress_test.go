@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"testing"
 	"x-science/internal/kernel"
 	"x-science/internal/toolprogress"
-	"testing"
 )
 
 func TestScientificWarmupProgressPublishesObservedFactsOnlyWhilePreparing(t *testing.T) {

@@ -2,8 +2,8 @@ package server
 
 import (
 	"context"
-	transcriptstore "x-science/internal/persistence/transcript"
 	"time"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 // Renewal is retryable only inside the currently owned lease. The immutable

@@ -9,11 +9,11 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	kernelruntime "x-science/internal/kernel"
-	"x-science/internal/processsupervisor"
 	"syscall"
 	"testing"
 	"time"
+	kernelruntime "x-science/internal/kernel"
+	"x-science/internal/processsupervisor"
 )
 
 func TestMemoryPressureReliefKeepsRealWorkWithinHardBudget(t *testing.T) {

@@ -56,8 +56,8 @@ import (
 
 type Options struct {
 	Capabilities                          capabilities.Report
-	XScienceLink                             *xsciencelink.Service
-	XScienceLinkAuth                         XScienceLinkAuthOptions
+	XScienceLink                          *xsciencelink.Service
+	XScienceLinkAuth                      XScienceLinkAuthOptions
 	WebAuth                               WebAuthOptions
 	LinkPackagePath                       string
 	Tools                                 *registry.Registry
@@ -156,10 +156,10 @@ type AdapterPlatformDiagnostics struct {
 }
 
 type Server struct {
-	capabilities  capabilities.Report
+	capabilities     capabilities.Report
 	xscienceLink     *xsciencelink.Service
 	xscienceLinkAuth *xscienceLinkAuthenticator
-	loginLimiter  *loginRateLimiter
+	loginLimiter     *loginRateLimiter
 	webAuthenticationState
 	accountManagementReader               account.ManagementReader
 	linkPackagePath                       string
@@ -552,8 +552,8 @@ func New(options Options) *Server {
 	}
 	server := &Server{
 		capabilities:           report,
-		xscienceLink:              link,
-		xscienceLinkAuth:          linkAuth,
+		xscienceLink:           link,
+		xscienceLinkAuth:       linkAuth,
 		loginLimiter:           newLoginRateLimiter(),
 		webAuthenticationState: webAuthState,
 		accountManagementReader: newLocalAccountManagementReaderWithConfig(webAuthState, linkAuth, localAccountManagementConfig{

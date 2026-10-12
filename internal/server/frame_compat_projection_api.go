@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 	transcriptstore "x-science/internal/persistence/transcript"
 	workspace "x-science/internal/persistence/workspace"
-	"time"
 )
 
 func compatibilityProjectResponse(project workspace.CompatibilityProject) map[string]any {

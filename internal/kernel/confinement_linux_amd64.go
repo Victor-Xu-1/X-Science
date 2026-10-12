@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	xscienceKernelPolicySHA256      = "dbbc2b1997258c2ec7208561bab49785456fcc95cbf39a535ef16635d17af7f7"
+	xscienceKernelPolicySHA256   = "dbbc2b1997258c2ec7208561bab49785456fcc95cbf39a535ef16635d17af7f7"
 	kernelConfinementHelperEnv   = "X_SCIENCE_INTERNAL_KERNEL_CONFINEMENT_HELPER"
 	kernelConfinementPayloadEnv  = "X_SCIENCE_INTERNAL_KERNEL_CONFINEMENT_PAYLOAD"
 	kernelConfinementOuter       = "outer"

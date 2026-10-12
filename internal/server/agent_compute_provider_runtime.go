@@ -514,7 +514,7 @@ func (s *Server) agentComputeProviderAuthority(
 			EgressRules:      rules,
 			Dial:             s.computeProviderDial,
 			ExtraEnvironment: map[string]string{
-				"OPERON_BYOC_APP_NAME":             appName,
+				"OPERON_BYOC_APP_NAME":                 appName,
 				"X_SCIENCE_PROVIDER_BOUND_CONFIG_HASH": configurationHash,
 			},
 			Prelude: prelude,

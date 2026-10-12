@@ -114,7 +114,7 @@ func TestMCPTrustedTLSRelaxationOverridesConnectorEnvironment(t *testing.T) {
 	environment, err := buildMCPEnvironment(
 		map[string]string{
 			"X_SCIENCE_MCP_X509_STRICT": "1",
-			"SSL_CERT_FILE":         "/untrusted/connector.pem",
+			"SSL_CERT_FILE":             "/untrusted/connector.pem",
 		},
 		trustedMCPEnvironment(ServerConfig{TrustedTLS: &TLSPosture{
 			Strict: false, CABundle: "/trusted/operator.pem",

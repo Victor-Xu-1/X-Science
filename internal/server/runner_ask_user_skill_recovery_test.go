@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"reflect"
+	"testing"
 	"x-science/internal/agentruntime"
 	"x-science/internal/skills"
-	"testing"
 )
 
 func TestAskUserCapabilityCorrectionForcesEveryRequiredSkillLoad(t *testing.T) {

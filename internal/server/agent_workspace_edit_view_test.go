@@ -3,8 +3,8 @@ package server
 import (
 	"context"
 	"strings"
-	"x-science/internal/agentruntime"
 	"testing"
+	"x-science/internal/agentruntime"
 )
 
 func TestWorkspaceEditReceiptShowsResultingContent(t *testing.T) {

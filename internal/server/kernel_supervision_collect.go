@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	workspace "x-science/internal/persistence/workspace"
 	"time"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func (s *Server) waitKernelChildren(ctx context.Context, access workspace.KernelFrameAccess, children []workspace.KernelSupervisedChild, timeout time.Duration, cancelOnContext bool) []any {

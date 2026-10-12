@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"unicode/utf8"
 	"x-science/internal/agentruntime"
 	workspace "x-science/internal/persistence/workspace"
-	"unicode/utf8"
 )
 
 const (

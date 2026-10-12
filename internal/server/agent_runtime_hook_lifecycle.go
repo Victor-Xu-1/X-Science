@@ -6,9 +6,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"strings"
+	"time"
 	"x-science/internal/agentruntime"
 	"x-science/internal/toolcontract"
-	"time"
 )
 
 func (s *Server) runAgentRuntimeLifecycleHooks(ctx context.Context, eventName string, matchValue string, payload map[string]any) []agentRuntimeCommandHookResult {

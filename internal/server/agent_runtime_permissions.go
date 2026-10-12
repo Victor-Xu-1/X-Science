@@ -8,10 +8,10 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"x-science/internal/agentruntime"
-	"x-science/internal/xsciencelink"
-	"x-science/internal/tools/mcpstdio"
 	"time"
+	"x-science/internal/agentruntime"
+	"x-science/internal/tools/mcpstdio"
+	"x-science/internal/xsciencelink"
 )
 
 func (s *Server) agentRuntimePermissionResult(toolName string, call agentruntime.ToolCall, input map[string]any) map[string]any {

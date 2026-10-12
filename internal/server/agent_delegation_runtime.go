@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	taskruns "x-science/internal/persistence/taskruns"
 	"time"
+	taskruns "x-science/internal/persistence/taskruns"
 )
 
 func (s *Server) executeAgentTool(ctx context.Context, toolName string, input map[string]any) (any, error) {

@@ -8,9 +8,9 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 	transcriptstore "x-science/internal/persistence/transcript"
 	workspace "x-science/internal/persistence/workspace"
-	"time"
 )
 
 func (s *Server) handleWebConversationMessages(

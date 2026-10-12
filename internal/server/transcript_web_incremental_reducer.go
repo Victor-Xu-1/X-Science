@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	transcriptstore "x-science/internal/persistence/transcript"
 	"time"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func newTranscriptWebIncrementalAssistantReducer(
@@ -534,7 +534,7 @@ func (r *transcriptWebIncrementalAssistantReducer) consumeAssistantTerminal(
 			return err
 		}
 		content := map[string]any{
-			"content":     projection.Detail,
+			"content":  projection.Detail,
 			"xScience": map[string]any{"messageIndex": r.visibleCount, "blockIndex": 0, "branchId": r.branchID},
 		}
 		if durable {

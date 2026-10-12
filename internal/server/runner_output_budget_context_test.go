@@ -2,9 +2,9 @@ package server
 
 import (
 	"reflect"
+	"testing"
 	"x-science/internal/agentruntime"
 	eventjournal "x-science/internal/persistence/journal"
-	"testing"
 )
 
 func TestOutputBudgetRecoveryDoesNotRewriteTaskInstructions(t *testing.T) {

@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"strings"
+	"time"
 	eventjournal "x-science/internal/persistence/journal"
 	sessionstore "x-science/internal/persistence/sessions"
 	transcriptstore "x-science/internal/persistence/transcript"
 	workspace "x-science/internal/persistence/workspace"
-	"time"
 )
 
 func (s *Server) ensureKernelChildSession(child workspace.KernelSupervisedChild) error {

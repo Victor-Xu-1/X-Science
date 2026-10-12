@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 	"x-science/internal/agentruntime"
 	"x-science/internal/providers"
-	"time"
 )
 
 func (client sessionRunnerStaticStreamingCompatibilityClient) Complete(

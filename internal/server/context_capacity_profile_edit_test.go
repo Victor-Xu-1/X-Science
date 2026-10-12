@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"testing"
 	"x-science/internal/agentruntime"
 	workspace "x-science/internal/persistence/workspace"
 	"x-science/internal/providers"
-	"testing"
 )
 
 func TestContextCapacitySelectedProfileEditInvalidatesPreparedClient(t *testing.T) {

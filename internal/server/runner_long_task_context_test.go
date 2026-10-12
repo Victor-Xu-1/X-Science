@@ -2,8 +2,8 @@ package server
 
 import (
 	"strings"
-	eventjournal "x-science/internal/persistence/journal"
 	"testing"
+	eventjournal "x-science/internal/persistence/journal"
 )
 
 func TestProviderReplayPreservesExactUserConstraintsAfterCompaction(t *testing.T) {

@@ -393,7 +393,7 @@ func (s *Server) permissionsDoctorArea() (string, string, map[string]any, []stri
 	evidence := map[string]any{
 		"hasAskUserQuestion":                    hasAskUser,
 		"hasApprovalStore":                      hasApprovalStore,
-		"xscienceLinkPolicies":                     hasXScienceLinkPolicies,
+		"xscienceLinkPolicies":                  hasXScienceLinkPolicies,
 		"hasMutatingToolGate":                   hasMutatingToolGate,
 		"hasDirectCallerApproval":               hasDirectCallerApproval,
 		"hasPendingApprovalQueue":               hasPendingApprovalQueue,
