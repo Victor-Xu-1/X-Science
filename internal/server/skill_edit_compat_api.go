@@ -438,6 +438,9 @@ func (s *Server) editCompatibilitySkillFile(name, relativePath, oldString, newSt
 		return "", "", err
 	}
 	defer directory.Close()
+	if err := verifyOpenedGrantedDirectory(directory, []hostGrant{{Path: filepath.Join(s.fileRoot, "skills"), Mode: "write"}}); err != nil {
+		return "", "", err
+	}
 	relativePath = filepath.ToSlash(strings.TrimSpace(relativePath))
 	if relativePath == "." || strings.HasPrefix(relativePath, "/") || relativePath == ".." ||
 		strings.HasPrefix(relativePath, "../") || strings.Contains(relativePath, "/../") {

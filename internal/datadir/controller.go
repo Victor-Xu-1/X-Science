@@ -570,7 +570,7 @@ func canonicalOrCreateDirectory(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if err := os.MkdirAll(absolute, 0o700); err != nil {
+	if err := createCanonicalDirectory(absolute); err != nil {
 		return "", err
 	}
 	return canonicalExistingDirectory(absolute)
@@ -600,7 +600,15 @@ func prepareTargetDirectory(path string) (string, bool, error) {
 	if parent != filepath.Dir(absolute) {
 		return "", false, errors.New("target parent changed during validation")
 	}
-	if err := os.Mkdir(absolute, 0o700); err != nil {
+	directory, err := openCanonicalDirectory(parent)
+	if err != nil {
+		return "", false, err
+	}
+	defer directory.Close()
+	if err := directory.Mkdir(filepath.Base(absolute), 0o700); err != nil {
+		return "", false, err
+	}
+	if _, err := canonicalExistingDirectory(absolute); err != nil {
 		return "", false, err
 	}
 	return absolute, true, nil
@@ -632,21 +640,26 @@ func pathContains(parent, child string) bool {
 }
 
 func writableProbe(directory string) error {
-	file, err := os.CreateTemp(directory, ".x-science-write-probe-")
+	root, err := openCanonicalDirectory(directory)
 	if err != nil {
 		return err
 	}
-	name := file.Name()
+	defer root.Close()
+	name := ".x-science-write-probe-" + uuid.NewString()
+	file, err := root.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		return err
+	}
 	if err := file.Sync(); err != nil {
 		_ = file.Close()
-		_ = os.Remove(name)
+		_ = root.Remove(name)
 		return err
 	}
 	if err := file.Close(); err != nil {
-		_ = os.Remove(name)
+		_ = root.Remove(name)
 		return err
 	}
-	return os.Remove(name)
+	return root.Remove(name)
 }
 
 func emptyDirectoryOrMissing(path string) (bool, error) {

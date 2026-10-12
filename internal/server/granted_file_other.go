@@ -7,6 +7,6 @@ import (
 	"os"
 )
 
-func openGrantedRegularFile(string, []hostGrant) (*os.File, error) {
-	return nil, errors.New("secure opened-file path verification is unavailable on this platform")
+func openedFileFinalPath(*os.File) (string, error) {
+	return "", errors.New("opened-handle grant verification is unavailable on this platform")
 }

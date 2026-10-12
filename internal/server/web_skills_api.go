@@ -440,7 +440,31 @@ func (s *Server) loadGrantedWebSkills(userID, requested string) ([]skills.Skill,
 	if !allowedPath(resolved) {
 		return nil, "", errWebSkillPathForbidden
 	}
-	info, err := os.Stat(resolved)
+	var parent *os.Root
+	var relative string
+	for _, grant := range grants {
+		if !hostPathWithin(grant.Path, resolved) {
+			continue
+		}
+		parent, err = os.OpenRoot(grant.Path)
+		if err != nil {
+			return nil, "", err
+		}
+		if err := verifyOpenedGrantedDirectory(parent, []hostGrant{grant}); err != nil {
+			_ = parent.Close()
+			return nil, "", errWebSkillPathForbidden
+		}
+		relative, err = filepath.Rel(grant.Path, resolved)
+		break
+	}
+	if parent == nil {
+		return nil, "", errWebSkillPathForbidden
+	}
+	defer parent.Close()
+	if err != nil || !filepath.IsLocal(relative) {
+		return nil, "", errWebSkillPathForbidden
+	}
+	info, err := parent.Stat(relative)
 	if err != nil {
 		return nil, "", err
 	}
@@ -450,11 +474,20 @@ func (s *Server) loadGrantedWebSkills(userID, requested string) ([]skills.Skill,
 			return nil, "", errors.New("skill path must be a directory or SKILL.md")
 		}
 		root = filepath.Dir(resolved)
+		relative = filepath.Dir(relative)
 	}
 	if !allowedPath(root) {
 		return nil, "", errWebSkillPathForbidden
 	}
-	loaded := skills.Load([]string{root}, runtimeSkillLoadOptions())
+	directory, err := parent.OpenRoot(relative)
+	if err != nil {
+		return nil, "", err
+	}
+	defer directory.Close()
+	if err := verifyOpenedGrantedDirectory(directory, grants); err != nil {
+		return nil, "", errWebSkillPathForbidden
+	}
+	loaded := skills.LoadFromRoot(directory, root, runtimeSkillLoadOptions())
 	if failures := loaded.LoadErrors(); len(failures) > 0 {
 		return nil, "", fmt.Errorf("invalid skill source: %s", failures[0].Err)
 	}
