@@ -2,6 +2,19 @@
   "schema": "synon.verification-scope.v1",
   "groups": [
     {
+      "name": "websearch-display",
+      "paths": ["scripts/optional/websearch.py"],
+      "packages": ["synon-go/internal/tools/websearch"],
+      "frontend": false,
+      "checks": [["python3", "-B", "scripts/optional/websearch.py", "--help"]]
+    },
+    {
+      "name": "external-acceptance-cli-display",
+      "paths": ["scripts/p9_external_acceptance.py", "scripts/p9_external_acceptance_test.py"],
+      "frontend": false,
+      "checks": [["python3", "-B", "-m", "unittest", "scripts.p9_external_acceptance_test"]]
+    },
+    {
       "name": "browser-connector-packaging",
       "paths": [
         "docs/non-web-asset-boundary.json",

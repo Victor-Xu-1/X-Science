@@ -15,6 +15,7 @@
       "paths": [
         "assets/optional/kernels/synon_host_bridge.py",
         "assets/optional/compute/provider_kernel_bootstrap.py",
+        "assets/optional/compute/wrapper.sh.tmpl",
         "assets/optional/compute/operon_compute_provider/__init__.py"
       ],
       "packages": ["synon-go/internal/assets", "synon-go/internal/kernel", "synon-go/internal/server", "synon-go/internal/compute"]

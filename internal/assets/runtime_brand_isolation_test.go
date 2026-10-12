@@ -13,7 +13,7 @@ import (
 	"testing"
 )
 
-var historicalHumanBrand = regexp.MustCompile(`(?i)\bsynon(?:[ -]?biomed)?(?:[ \t]+|$)`)
+var historicalHumanBrand = regexp.MustCompile(`(?i)\bsynon(?:[ -]?biomed)?(?:[ \t\r\n]+|[.,!?;:()\[\]{}](?:[ \t\r\n]+|$)|$)`)
 var runtimeMachineToken = regexp.MustCompile(`^[a-z0-9_.:/-]+$`)
 
 func TestCurrentRuntimeHumanLabelsUseXScience(t *testing.T) {
@@ -22,7 +22,7 @@ func TestCurrentRuntimeHumanLabelsUseXScience(t *testing.T) {
 		t.Fatal("locate repository root")
 	}
 	root := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
-	for _, directory := range []string{"cmd", "internal"} {
+	for _, directory := range []string{"cmd", "internal", "scripts/smoke-live-im"} {
 		err := filepath.WalkDir(filepath.Join(root, directory), func(path string, entry os.DirEntry, err error) error {
 			if err != nil {
 				return err
@@ -60,13 +60,16 @@ func TestCurrentRuntimeHumanLabelsUseXScience(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	for _, relative := range []string{"internal/server/structure_interaction_diagram.py", "internal/server/structure_interaction_renderer.py"} {
+	for _, relative := range []string{
+		"internal/server/structure_interaction_diagram.py", "internal/server/structure_interaction_renderer.py",
+		"internal/agentruntime/assets/synon_platform_policy.md",
+	} {
 		raw, err := os.ReadFile(filepath.Join(root, relative))
 		if err != nil {
 			t.Fatal(err)
 		}
 		if containsHistoricalHumanBrand(string(raw)) {
-			t.Errorf("new interaction report/SVG retains historical brand: %s", relative)
+			t.Errorf("current runtime text retains historical brand: %s", relative)
 		}
 	}
 }
@@ -97,7 +100,7 @@ func historicalLabelReadCompatibility(path, value string) bool {
 }
 
 func TestRuntimeHumanLabelBoundaryKeepsMachineCompatibility(t *testing.T) {
-	for _, value := range []string{"Synon", "Synon Link", "Synon Biomed report", "SynonBiomed report", "SynonBiomed", "synon access", "Synon kernel"} {
+	for _, value := range []string{"Synon", "Synon Link", "Synon Biomed report", "SynonBiomed report", "SynonBiomed", "synon access", "Synon kernel", "You are Synon.", "You are Synon, a concise assistant.", "Synon: warning"} {
 		if !containsHistoricalHumanBrand(value) {
 			t.Errorf("historical human label was missed: %q", value)
 		}

@@ -692,7 +692,7 @@ provider tokens, OpenID, or AppSecret. Restart the service after changing any
 provider setting, then verify `GET /api/auth/providers`; account security and
 session revocation are available in the account settings page.
 
-The Web client, REST API, WebSocket/SSE streams, message channels, and Synon
+The Web client, REST API, WebSocket/SSE streams, message channels, and X-Science
 Link share the same Go runtime and durable state. TUI is outside the current
 product scope and the installed CLI does not expose a `tui` subcommand.
 

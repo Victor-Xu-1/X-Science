@@ -276,7 +276,7 @@ kill -KILL -- -"$wpid" 2>/dev/null
 # budget-length run as budget−1 (same granularity allowance the deadline
 # sentinel's window check uses).
 if [ "$rc" -eq 0 ] && [ -z "$(ls -A out 2>/dev/null)" ]; then
-  echo "synon: WARN out/ is empty — nothing will be harvested back (write results under ./out/)" >> stderr.log
+  echo "X-Science: WARN out/ is empty — nothing will be harvested back (write results under ./out/)" >> stderr.log
 fi
 
 # Authenticity clock sample BEFORE the tar (review r13): the deadline

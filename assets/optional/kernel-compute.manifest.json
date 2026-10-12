@@ -63,8 +63,8 @@
     },
     {
       "path": "compute/wrapper.sh.tmpl",
-      "sha256": "e501757469c3112fff6e062ba2e42c3afa00e1e75ca7769fc94b2c67bbe64449",
-      "bytes": 17608
+      "sha256": "90a664d4aa35fa89d6c680c4fce71d01403d0d63eb4977a6d323bc014c638ae8",
+      "bytes": 17612
     },
     {
       "path": "kernels/cheminfo_render_helpers.py",

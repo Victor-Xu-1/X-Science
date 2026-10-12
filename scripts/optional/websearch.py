@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Synon local WebSearch tool. Returns JSON search results."""
+"""X-Science local WebSearch tool. Returns JSON search results."""
 
 import argparse
 import base64
@@ -372,7 +372,7 @@ def backend_plan() -> str:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Synon local WebSearch")
+    parser = argparse.ArgumentParser(description="X-Science local WebSearch")
     parser.add_argument("query", nargs="?", default="", help="Search query")
     parser.add_argument("-n", "--max-results", type=int, default=8, help="Max results")
     parser.add_argument("-r", "--region", default="wt-wt", help="Search region")

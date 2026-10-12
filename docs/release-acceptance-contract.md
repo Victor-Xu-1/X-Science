@@ -54,5 +54,5 @@ The builder does not need historical engineering archives. Supply-chain,
 source-provenance, license and exact-artifact release authorization remain
 separate required checks.
 
-Message-channel and Synon Link optimization are excluded from the current
+Message-channel and X-Science browser-connector optimization are excluded from the current
 Harness denominator. Their retained behavior must not regress.

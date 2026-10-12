@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 const read = (path: string) => readFileSync(resolve(process.cwd(), path));
 
@@ -19,6 +19,32 @@ const displayValues = (value: unknown): string[] => {
 };
 
 describe('X-Science current product identity', () => {
+  it('uses the machine identity only as the Node package-name fallback', async () => {
+    const identity = JSON.parse(read('../product-identity.json').toString());
+    try {
+      for (const [contents, expectedName, expectedVersion] of [
+        [null, identity.machine_slug, '0.0.0'],
+        [{ version: '1.2.3' }, identity.machine_slug, '1.2.3'],
+        [{ name: 'operator-package', version: '2.3.4' }, 'operator-package', '2.3.4'],
+      ] as const) {
+        vi.resetModules();
+        vi.doMock('fs', () => ({
+          readFileSync: () => {
+            if (contents === null) throw new Error('owned missing package fixture');
+            return JSON.stringify(contents);
+          },
+        }));
+        const { NodePlatformServices } = await import('@/common/platform/NodePlatformServices');
+        const { paths } = new NodePlatformServices();
+        expect(paths.getName()).toBe(expectedName);
+        expect(paths.getVersion()).toBe(expectedVersion);
+      }
+    } finally {
+      vi.doUnmock('fs');
+      vi.resetModules();
+    }
+  });
+
   it('keeps the product authority and public repository policy aligned', () => {
     const identity = JSON.parse(read('../product-identity.json').toString());
     const release = JSON.parse(read('../docs/governance/release-policy.json').toString());

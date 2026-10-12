@@ -161,7 +161,8 @@ class VerificationOwnershipTests(unittest.TestCase):
                     for module in modules:
                         self.assertTrue((repo / (module.replace(".", "/") + ".py")).is_file())
                 else:
-                    self.assertTrue((repo / command[-1]).is_file())
+                    target = next(argument for argument in command[1:] if argument.startswith("scripts/"))
+                    self.assertTrue((repo / target).is_file())
 
     def test_version_counter_has_exact_verification_ownership(self):
         repo = Path(__file__).resolve().parents[2]
