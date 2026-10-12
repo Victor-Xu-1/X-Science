@@ -125,7 +125,6 @@ func resolveSSHIdentityFile(raw, home string) (string, error) {
 		return "", errors.New("overrides.identityFile must live under $HOME or /etc/ssh")
 	}
 	// pathWithin confines identity files to $HOME or /etc/ssh after EvalSymlinks.
-	// lgtm[go/path-injection]
 	info, err := os.Stat(resolved)
 	if err != nil || !info.Mode().IsRegular() {
 		return "", errors.New("overrides.identityFile must be a regular file")

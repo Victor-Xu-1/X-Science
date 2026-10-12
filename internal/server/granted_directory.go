@@ -3,6 +3,8 @@ package server
 import (
 	"errors"
 	"os"
+
+	"x-science/internal/fsidentity"
 )
 
 // Validate the actual opened directory, not the path used to select it. This
@@ -17,7 +19,7 @@ func verifyOpenedGrantedDirectory(root *os.Root, grants []hostGrant) error {
 	if err != nil || !info.IsDir() {
 		return errors.New("opened grant root is not a directory")
 	}
-	final, err := openedFileFinalPath(file)
+	final, err := fsidentity.FinalPath(file)
 	if err != nil {
 		return err
 	}

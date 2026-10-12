@@ -4,6 +4,10 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
+
+	"x-science/internal/fsidentity"
 )
 
 // Open the verified existing directory and compare the actual capability to
@@ -14,12 +18,10 @@ func openCanonicalDirectory(path string) (*os.Root, error) {
 		return nil, err
 	}
 	// absolute passed cleanAbsolutePath and symlink rejection in canonicalExistingDirectory.
-	// lgtm[go/path-injection]
 	expected, err := os.Lstat(absolute)
 	if err != nil {
 		return nil, err
 	}
-	// lgtm[go/path-injection]
 	root, err := os.OpenRoot(absolute)
 	if err != nil {
 		return nil, err
@@ -28,6 +30,21 @@ func openCanonicalDirectory(path string) (*os.Root, error) {
 	if err != nil || !os.SameFile(expected, actual) {
 		_ = root.Close()
 		return nil, errors.New("directory changed while opening its capability")
+	}
+	file, err := root.Open(".")
+	if err != nil {
+		_ = root.Close()
+		return nil, err
+	}
+	final, pathErr := fsidentity.FinalPath(file)
+	closeErr := file.Close()
+	match := final == absolute
+	if runtime.GOOS == "windows" {
+		match = strings.EqualFold(final, absolute)
+	}
+	if pathErr != nil || closeErr != nil || !match {
+		_ = root.Close()
+		return nil, errors.New("opened directory path differs from its canonical target")
 	}
 	return root, nil
 }
@@ -39,7 +56,6 @@ func createCanonicalDirectory(path string) error {
 	if err != nil {
 		return err
 	}
-	// lgtm[go/path-injection]
 	if _, err := os.Lstat(absolute); err == nil {
 		_, err = canonicalExistingDirectory(absolute)
 		return err

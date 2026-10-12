@@ -1,12 +1,12 @@
-//go:build !linux && !windows
+//go:build !linux && !windows && !darwin
 
-package server
+package fsidentity
 
 import (
 	"errors"
 	"os"
 )
 
-func openedFileFinalPath(*os.File) (string, error) {
+func FinalPath(*os.File) (string, error) {
 	return "", errors.New("opened-handle grant verification is unavailable on this platform")
 }

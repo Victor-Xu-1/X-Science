@@ -1,6 +1,6 @@
 //go:build windows
 
-package server
+package fsidentity
 
 import (
 	"errors"
@@ -12,7 +12,7 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-func openedFileFinalPath(file *os.File) (string, error) {
+func FinalPath(file *os.File) (string, error) {
 	buffer := make([]uint16, 32768)
 	length, err := windows.GetFinalPathNameByHandle(windows.Handle(file.Fd()), &buffer[0], uint32(len(buffer)), 0)
 	if err != nil || length == 0 || length >= uint32(len(buffer)) {

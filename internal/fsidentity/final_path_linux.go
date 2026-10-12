@@ -1,6 +1,6 @@
 //go:build linux
 
-package server
+package fsidentity
 
 import (
 	"os"
@@ -8,6 +8,6 @@ import (
 	"strconv"
 )
 
-func openedFileFinalPath(file *os.File) (string, error) {
+func FinalPath(file *os.File) (string, error) {
 	return filepath.EvalSymlinks("/proc/self/fd/" + strconv.FormatUint(uint64(file.Fd()), 10))
 }

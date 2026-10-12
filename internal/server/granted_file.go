@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"syscall"
+
+	"x-science/internal/fsidentity"
 )
 
 // Admission, opened-root confinement and final native-handle verification are
@@ -44,7 +46,7 @@ func openGrantedRegularFile(path string, grants []hostGrant) (*os.File, error) {
 			continue
 		}
 		info, statErr := file.Stat()
-		final, finalErr := openedFileFinalPath(file)
+		final, finalErr := fsidentity.FinalPath(file)
 		if closeErr != nil || statErr != nil || finalErr != nil || !info.Mode().IsRegular() || !hostPathWithin(grant.Path, final) {
 			_ = file.Close()
 			failure = errors.New("opened file is not a regular file inside its granted root")

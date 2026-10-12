@@ -189,7 +189,6 @@ func (c *Controller) StageWithPolicy(source, target string, migrate bool, policy
 		return Move{}, fmt.Errorf("target data directory: %w", err)
 	}
 	// target is a canonical absolute directory from prepareTargetDirectory.
-	// lgtm[go/path-injection]
 	targetRoot, err := openCanonicalDirectory(target)
 	if err != nil {
 		return Move{}, fmt.Errorf("open target data directory: %w", err)
@@ -212,7 +211,6 @@ func (c *Controller) StageWithPolicy(source, target string, migrate bool, policy
 			return Move{}, fmt.Errorf("protected directory: %w", err)
 		}
 		// target and protected are canonical absolute directories without symlinks.
-		// lgtm[go/path-injection]
 		if pathsOverlap(target, protected) {
 			cleanupTarget()
 			return Move{}, fmt.Errorf("new location must not overlap protected directory %s", protected)
@@ -558,7 +556,6 @@ func canonicalExistingDirectory(path string) (string, error) {
 		return "", err
 	}
 	// cleanAbsolutePath rejects relative paths and control characters.
-	// lgtm[go/path-injection]
 	info, err := os.Lstat(absolute)
 	if err != nil {
 		return "", err
@@ -592,7 +589,6 @@ func prepareTargetDirectory(path string) (string, bool, error) {
 	if err != nil {
 		return "", false, err
 	}
-	// lgtm[go/path-injection]
 	if info, err := os.Lstat(absolute); err == nil {
 		if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
 			return "", false, errors.New("target is not a real directory")
