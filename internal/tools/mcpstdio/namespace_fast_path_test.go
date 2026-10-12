@@ -3,6 +3,7 @@
 package mcpstdio
 
 import (
+	"crypto/rand"
 	"os"
 	"path/filepath"
 	"testing"
@@ -33,11 +34,12 @@ func TestOAuthNamespaceNormalOperationsDoNotReadUnrelatedModelTrees(t *testing.T
 	if err := UpgradePrivateNamespace(root); err == nil {
 		t.Fatal("full source proof control did not observe modified fixture")
 	}
-	if err := saveOAuthToken(root, "fast-path", oauthTokenCache{AccessToken: "fast-path-fixture"}); err != nil {
+	fixtureToken := rand.Text()
+	if err := saveOAuthToken(root, "fast-path", oauthTokenCache{AccessToken: fixtureToken}); err != nil {
 		t.Fatal(err)
 	}
 	for index := 0; index < 3; index++ {
-		if token, ok := loadOAuthAccessToken(root, "fast-path"); !ok || token != "fast-path-fixture" {
+		if token, ok := loadOAuthAccessToken(root, "fast-path"); !ok || token != fixtureToken {
 			t.Fatal("normal OAuth read repeated unrelated full tree work")
 		}
 	}
@@ -45,7 +47,8 @@ func TestOAuthNamespaceNormalOperationsDoNotReadUnrelatedModelTrees(t *testing.T
 
 func TestOAuthNamespaceMissingCanonicalVaultNeverRebindsOriginal(t *testing.T) {
 	root := t.TempDir()
-	if err := saveOAuthToken(root, "source", oauthTokenCache{AccessToken: "source-fixture"}); err != nil {
+	sourceToken := rand.Text()
+	if err := saveOAuthToken(root, "source", oauthTokenCache{AccessToken: sourceToken}); err != nil {
 		t.Fatal(err)
 	}
 	current := filepath.Join(root, productstate.HiddenDirectory, "mcp-oauth-vault")
@@ -58,11 +61,14 @@ func TestOAuthNamespaceMissingCanonicalVaultNeverRebindsOriginal(t *testing.T) {
 	if err := UpgradePrivateNamespace(root); err != nil {
 		t.Fatal(err)
 	}
+	if token, ok := loadOAuthAccessToken(root, "source"); !ok || token != sourceToken {
+		t.Fatal("migrated source fixture token changed")
+	}
 	// Remove only this test-owned migrated subtree. The original is retained.
 	if err := os.RemoveAll(current); err != nil {
 		t.Fatal(err)
 	}
-	if err := saveOAuthToken(root, "replacement", oauthTokenCache{AccessToken: "must-not-reinitialize"}); err == nil {
+	if err := saveOAuthToken(root, "replacement", oauthTokenCache{AccessToken: rand.Text()}); err == nil {
 		t.Fatal("missing current vault was silently recreated")
 	}
 	if _, err := os.Stat(current); !os.IsNotExist(err) {
