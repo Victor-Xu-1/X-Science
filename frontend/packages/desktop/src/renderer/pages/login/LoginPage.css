@@ -201,7 +201,7 @@ body.login-page-active {
   cursor: not-allowed;
 }
 .login-page :is(input, select, button, summary):focus-visible {
-  outline: 2px solid var(--auth-text);
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
   outline-offset: 3px;
 }
 .login-page__spinner {

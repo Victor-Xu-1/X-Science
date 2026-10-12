@@ -35,10 +35,6 @@
   box-shadow: none;
 }
 
-.x-science-ask-user-card__composer:focus-within {
-  box-shadow: 0 0 0 2px var(--workspace-focus);
-}
-
 .x-science-ask-user-card__input.arco-input,
 .x-science-ask-user-card__input.arco-input:focus {
   border: 0;

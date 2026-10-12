@@ -95,7 +95,7 @@ func agentRuntimeMaterializedScriptTargetForPreferredAsset(
 		return "", false
 	}
 	target := filepath.Join(
-		workspaceRoot, ".xscience", "runtime", "skills", agentSkillRuntimeDirectoryName(skill.Name), expectedDigest,
+		workspaceRoot, ".x-science", "runtime", "skills", agentSkillRuntimeDirectoryName(skill.Name), expectedDigest,
 	)
 	if !hostPathWithin(workspaceRoot, target) {
 		return "", false

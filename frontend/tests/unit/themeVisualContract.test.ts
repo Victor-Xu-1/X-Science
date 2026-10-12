@@ -213,7 +213,7 @@ describe('shared visual shell contract', () => {
       /Pointer focus stays flat[\s\S]*?input:not\(\[type='checkbox'\]\)[\s\S]*?\):focus,[\s\S]*?outline:\s*none\s*!important;[\s\S]*?box-shadow:\s*none\s*!important;/i
     );
     expect(shellCss).toMatch(
-      /:focus-visible\s*\{[^}]*outline:\s*2px solid var\(--workspace-text\)\s*!important[^}]*box-shadow:\s*none\s*!important/s
+      /:focus-visible\s*\{[^}]*outline:\s*1px solid var\(--workspace-focus-ring\)\s*!important[^}]*box-shadow:\s*none\s*!important/s
     );
     expect(shellCss).toContain(':has(textarea:focus-visible)');
     expect(shellCss).not.toMatch(/\[role='dialog'\]\s*:is\(button,\s*input,\s*textarea,\s*select\):focus-visible/i);

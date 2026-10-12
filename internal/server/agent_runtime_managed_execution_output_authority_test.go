@@ -63,7 +63,7 @@ func TestManagedExecutionReceiptMountPreventsPythonOutputMutation(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	script := filepath.Join(identity.workspaceDir, ".xscience", "runtime", "skills", "managed-workflow-abcd", "scripts", "run.py")
+	script := filepath.Join(identity.workspaceDir, ".x-science", "runtime", "skills", "managed-workflow-abcd", "scripts", "run.py")
 	seed, err := app.executeAgentKernelTool(
 		context.Background(), identity, "python", map[string]any{
 			"code":        "persisted_namespace_value = 'kept-after-publication'",

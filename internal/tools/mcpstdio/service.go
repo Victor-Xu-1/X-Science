@@ -221,6 +221,9 @@ func DisconnectOAuth(root, serverName string) error {
 	}
 	oauthTokenCacheMu.Lock()
 	defer oauthTokenCacheMu.Unlock()
+	if err := ensurePrivateNamespace(root); err != nil {
+		return err
+	}
 	store := oauthTokenVault(root)
 	if _, err := store.DeleteForUser(oauthTokenSecretID(serverName), oauthTokenVaultUserID); err != nil {
 		return fmt.Errorf("delete MCP OAuth vault entry: %w", err)

@@ -658,7 +658,7 @@ func kernelWorkspaceSkillRuntimeReadOnlyPath(workspace string) (string, error) {
 	if !filepath.IsAbs(workspace) {
 		return "", errors.New("kernel confinement workspace is invalid")
 	}
-	target := filepath.Join(workspace, ".xscience", "runtime", "skills")
+	target := filepath.Join(workspace, ".x-science", "runtime", "skills")
 	info, err := os.Lstat(target)
 	if errors.Is(err, os.ErrNotExist) {
 		return "", nil

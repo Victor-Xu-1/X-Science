@@ -201,7 +201,7 @@
 }
 .message-channel-card__footer button:focus-visible,
 .message-channels-settings__notice button:focus-visible {
-  outline: 2px solid var(--settings-text);
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
   outline-offset: 3px;
 }
 .message-channel-card__footer button:disabled {

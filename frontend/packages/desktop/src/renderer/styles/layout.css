@@ -586,7 +586,7 @@ html body .sider-account-menu-icon-slot > .i-icon svg {
   z-index: var(--ui-z-dialog, 1002);
   transform: translateY(-200%);
   padding: 10px 14px;
-  border: 2px solid var(--workspace-text);
+  border: 1px solid var(--workspace-border);
   border-radius: var(--ui-radius-md);
   color: var(--workspace-text);
   background: var(--workspace-overlay-surface);
@@ -597,7 +597,7 @@ html body .sider-account-menu-icon-slot > .i-icon svg {
   transform: none;
 }
 .x-science-sidebar-conversation-open:focus-visible {
-  outline: 2px solid var(--workspace-text);
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
   outline-offset: -2px;
   border-radius: var(--ui-radius-md);
 }

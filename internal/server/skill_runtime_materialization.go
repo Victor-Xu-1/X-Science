@@ -166,7 +166,7 @@ func materializeAgentSkillRuntimeBundle(
 		return "", errors.New("skill runtime bundle digest is invalid")
 	}
 	cacheRoot, err := secureEnsureAgentWorkspaceDirectory(
-		filepath.Join(workspaceRoot, ".xscience", "runtime", "skills", agentSkillRuntimeDirectoryName(skillName)),
+		filepath.Join(workspaceRoot, ".x-science", "runtime", "skills", agentSkillRuntimeDirectoryName(skillName)),
 		0o700,
 	)
 	if err != nil {

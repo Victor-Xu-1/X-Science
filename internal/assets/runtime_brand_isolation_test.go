@@ -100,6 +100,8 @@ func historicalLabelReadCompatibility(path, value string) bool {
 		return value == "Synon kernel confinement is unavailable on this platform"
 	case "internal/server/structure_interaction_diagram_api.go":
 		return value == "Synon 2D Interaction Engine"
+	case "internal/server/web_namespace_projection.go":
+		return value == "SYNON"
 	default:
 		return false
 	}

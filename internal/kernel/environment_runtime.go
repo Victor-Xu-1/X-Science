@@ -149,7 +149,7 @@ exit 70
 	overrides := map[string]string{
 		"X_SCIENCE_KERNEL_EGRESS_PORT":      fmt.Sprintf("%d", port),
 		"X_SCIENCE_KERNEL_EGRESS_FORWARDER": forwarder,
-		"HTTP_PROXY":                    proxyURL, "HTTPS_PROXY": proxyURL,
+		"HTTP_PROXY":                        proxyURL, "HTTPS_PROXY": proxyURL,
 		"http_proxy": proxyURL, "https_proxy": proxyURL,
 		"NO_PROXY": "localhost,127.0.0.1,::1", "no_proxy": "localhost,127.0.0.1,::1",
 		"GIT_SSH_COMMAND": "/bin/false",
@@ -403,6 +403,10 @@ func (m *Manager) canonicalManagedREnvironment(environment string) string {
 }
 
 func (m *Manager) managedEnvironmentPrefix(environment string) (string, error) {
+	environment, aliasErr := m.resolveNamespaceImportedEnvironmentInput(environment)
+	if aliasErr != nil {
+		return "", aliasErr
+	}
 	if !ValidEnvironmentName(environment) {
 		return "", errors.New("environment name must be a bounded path-free identifier")
 	}
@@ -428,7 +432,7 @@ func (m *Manager) managedEnvironmentPrefix(environment string) (string, error) {
 	if err != nil || relative == "." || relative == ".." || strings.HasPrefix(relative, ".."+string(os.PathSeparator)) {
 		return "", errors.New("managed environment resolves outside the configured root")
 	}
-	if marker, markerErr := readManagedEnvironmentMarker(prefix); markerErr == nil && marker.Kind == "path-venv" {
+	if marker, markerErr := readManagedEnvironmentMarker(prefix); markerErr == nil && managedMarkerUsesExternalRuntime(marker) {
 		prefix = marker.RuntimePath
 	}
 	return prefix, nil
@@ -470,6 +474,9 @@ func (m *Manager) runtimeEnvironmentWithR(environment, language, workspaceDir, k
 }
 
 func (m *Manager) runtimeEnvironmentAtPrefix(environment, language, workspaceDir, kernelID, opLogPath, sharedLibrary, diagnostic, prefix string) []string {
+	if canonical, err := m.resolveNamespaceImportedEnvironmentInput(environment); err == nil {
+		environment = canonical
+	}
 	if language == "r" {
 		environment = m.canonicalManagedREnvironment(environment)
 	}
@@ -481,6 +488,9 @@ func (m *Manager) runtimeEnvironmentAtPrefix(environment, language, workspaceDir
 		prefix = filepath.Join(m.config.CondaEnvsPath, environment)
 		if resolved, err := filepath.EvalSymlinks(prefix); err == nil {
 			prefix = resolved
+			if marker, markerErr := readManagedEnvironmentMarker(prefix); markerErr == nil && managedMarkerUsesExternalRuntime(marker) {
+				prefix = marker.RuntimePath
+			}
 		}
 	}
 	if !isSystemPythonEnvironment(environment) || language == "r" {

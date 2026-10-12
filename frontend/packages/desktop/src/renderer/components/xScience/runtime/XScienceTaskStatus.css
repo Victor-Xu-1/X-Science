@@ -120,7 +120,7 @@
 }
 
 .x-science-task-center__orb:focus-visible {
-  outline: 2px solid var(--workspace-focus-ring, var(--color-primary-light-3));
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
   outline-offset: 2px;
 }
 
@@ -176,7 +176,7 @@
 
 .x-science-task-center__summary-trigger:focus-visible,
 .x-science-task-center__control:focus-visible {
-  outline: 2px solid var(--workspace-focus-ring, var(--color-primary-light-3));
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
   outline-offset: -1px;
 }
 
@@ -421,7 +421,7 @@ html body .x-science-task-center-popover {
   cursor: pointer;
 }
 .x-science-task-center-panel__close:focus-visible {
-  outline: 2px solid var(--workspace-text);
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
   outline-offset: 2px;
 }
 
@@ -552,7 +552,7 @@ html body .x-science-task-center-popover {
 }
 
 .x-science-task-center-panel__action:focus-visible {
-  outline: 2px solid var(--workspace-focus-ring, var(--color-primary-light-3));
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
   outline-offset: -2px;
 }
 

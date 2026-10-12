@@ -57,6 +57,8 @@ func run() error {
 			return runV11MigrationCLI(context.Background(), normalizeMigrationArgs(args[1:]), os.Stdout)
 		case "workspace-import":
 			return runWorkspaceImportCLI(context.Background(), args[1:], os.Stdout)
+		case "environment-namespace":
+			return runEnvironmentNamespaceCLI(context.Background(), args[1:], os.Stdout)
 		case "verify-contracts":
 			return runVerifyContractsCLI(args[1:], os.Stdout)
 		case "contracts":
@@ -163,6 +165,9 @@ func runServer(info buildinfo.Info, cfg config.Config, tlsResolver *networktls.R
 	defer runtimeState.Close()
 	if err := applyPersistedMessageChannelRuntimeConfig(&cfg, runtimeState); err != nil {
 		return err
+	}
+	if err := mcpstdio.UpgradePrivateNamespace(cfg.HomeDir); err != nil {
+		return fmt.Errorf("upgrade private product namespace: %w", err)
 	}
 	if err := mcpstdio.MigrateLegacyOAuthTokens(cfg.HomeDir); err != nil {
 		return fmt.Errorf("migrate legacy MCP OAuth tokens: %w", err)
