@@ -12,7 +12,10 @@ import (
 )
 
 func FinalPath(file *os.File) (string, error) {
-	var path [unix.MAXPATHLEN]byte
+	// F_GETPATH requires Darwin's MAXPATHLEN buffer from sys/param.h; x/sys
+	// exposes the command but does not export that ABI constant.
+	const getPathBufferBytes = 1024
+	var path [getPathBufferBytes]byte
 	_, _, errno := unix.Syscall(unix.SYS_FCNTL, file.Fd(), unix.F_GETPATH, uintptr(unsafe.Pointer(&path[0])))
 	if errno != 0 {
 		return "", errno
