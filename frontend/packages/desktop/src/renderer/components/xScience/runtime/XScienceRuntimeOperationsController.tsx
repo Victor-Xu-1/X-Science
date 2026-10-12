@@ -14,10 +14,7 @@ import {
 } from '@/renderer/services/xScienceRuntimeOperations';
 import { isXScienceHttpError } from '@/renderer/services/xScienceHttp';
 import { invalidateXScienceFrameReads } from '@/renderer/services/xScienceFrameReads';
-import {
-  loadXScienceFrameVerification,
-  type XScienceVerificationCheck,
-} from '@/renderer/services/xScienceAnnotations';
+import { loadXScienceFrameVerification, type XScienceVerificationCheck } from '@/renderer/services/xScienceAnnotations';
 import type {
   XScienceApprovalScope,
   XSciencePendingInputRequest,
@@ -210,25 +207,22 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
   );
   useEffect(() => {
     let active = true;
-    const release = subscribeXScienceRuntimeInvalidation(
-      conversationId,
-      (event?: XScienceRuntimeInvalidation) => {
-        if (!active) return;
-        if (event?.terminal_status && TERMINAL_RUNTIME_STATUSES.has(event.terminal_status)) {
-          if (realtimeRefreshTimerRef.current !== null) {
-            window.clearTimeout(realtimeRefreshTimerRef.current);
-            realtimeRefreshTimerRef.current = null;
-          }
-          setSnapshotRevision((value) => value + 1);
-          return;
-        }
-        if (realtimeRefreshTimerRef.current !== null) return;
-        realtimeRefreshTimerRef.current = window.setTimeout(() => {
+    const release = subscribeXScienceRuntimeInvalidation(conversationId, (event?: XScienceRuntimeInvalidation) => {
+      if (!active) return;
+      if (event?.terminal_status && TERMINAL_RUNTIME_STATUSES.has(event.terminal_status)) {
+        if (realtimeRefreshTimerRef.current !== null) {
+          window.clearTimeout(realtimeRefreshTimerRef.current);
           realtimeRefreshTimerRef.current = null;
-          if (active) setSnapshotRevision((value) => value + 1);
-        }, 80);
+        }
+        setSnapshotRevision((value) => value + 1);
+        return;
       }
-    );
+      if (realtimeRefreshTimerRef.current !== null) return;
+      realtimeRefreshTimerRef.current = window.setTimeout(() => {
+        realtimeRefreshTimerRef.current = null;
+        if (active) setSnapshotRevision((value) => value + 1);
+      }, 80);
+    });
     return () => {
       active = false;
       release();
@@ -776,16 +770,8 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
     try {
       const result =
         action === 'approve'
-          ? await approveXSciencePlan(
-              conversationId,
-              { signal: controller.signal },
-              snapshotRef.current.planApproval
-            )
-          : await discardXSciencePlan(
-              conversationId,
-              { signal: controller.signal },
-              snapshotRef.current.planApproval
-            );
+          ? await approveXSciencePlan(conversationId, { signal: controller.signal }, snapshotRef.current.planApproval)
+          : await discardXSciencePlan(conversationId, { signal: controller.signal }, snapshotRef.current.planApproval);
       if (conversationAuthorityRef.current !== owner || planActionRequestRef.current !== request) return;
       applyAuthoritativeSnapshot(result.snapshot, false);
       setPlanDrawerVisible(false);

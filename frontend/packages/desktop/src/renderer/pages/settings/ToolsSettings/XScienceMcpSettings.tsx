@@ -40,9 +40,7 @@ type XScienceMcpSettingsContentProps = {
   compactHeader?: boolean;
 };
 
-export const XScienceMcpSettingsContent: React.FC<XScienceMcpSettingsContentProps> = ({
-  compactHeader = false,
-}) => {
+export const XScienceMcpSettingsContent: React.FC<XScienceMcpSettingsContentProps> = ({ compactHeader = false }) => {
   const { t, i18n } = useTranslation();
   const [servers, setServers] = useState<XScienceMcpServer[]>([]);
   const [customServers, setCustomServers] = useState<XScienceCustomMcpServer[]>([]);
@@ -193,11 +191,9 @@ export const XScienceMcpSettingsContent: React.FC<XScienceMcpSettingsContentProp
         content: t('settings.xScienceMcpDeleteDetail'),
         okButtonProps: { status: 'danger' },
         onOk: () =>
-          mutate(
-            server.id,
-            () => deleteXScienceCustomMcpServer(server.id),
-            t('settings.xScienceMcpDeleted')
-          ).catch(ignoreHandledMutationError),
+          mutate(server.id, () => deleteXScienceCustomMcpServer(server.id), t('settings.xScienceMcpDeleted')).catch(
+            ignoreHandledMutationError
+          ),
       });
     },
     [mutate, t]

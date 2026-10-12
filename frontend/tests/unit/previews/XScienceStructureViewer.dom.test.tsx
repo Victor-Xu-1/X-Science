@@ -621,10 +621,7 @@ describe('XScienceStructureViewer', () => {
       )
       .mockResolvedValueOnce(new Response('new structure bytes'));
     vi.stubGlobal('fetch', read);
-    const view = await renderWithI18n(
-      <XScienceStructureViewer filename='old.pdb' contentUrl='/old-source' />,
-      'en-US'
-    );
+    const view = await renderWithI18n(<XScienceStructureViewer filename='old.pdb' contentUrl='/old-source' />, 'en-US');
     const retry = await screen.findByRole('button', { name: 'Retry', exact: true });
     fireEvent.click(retry);
     await waitFor(() => expect(read).toHaveBeenCalledTimes(2));
@@ -884,10 +881,7 @@ describe('XScienceStructureViewer', () => {
     composition.atomCount = composition.objects.reduce((count, object) => count + object.atomCount, 0);
     molstarMocks.engine.load.mockResolvedValueOnce(composition);
     molstarMocks.engine.getStructureLigandSelection.mockReturnValueOnce(['first']);
-    const view = await renderWithI18n(
-      <XScienceStructureViewer filename='single.cif' content='data_single' />,
-      'en-US'
-    );
+    const view = await renderWithI18n(<XScienceStructureViewer filename='single.cif' content='data_single' />, 'en-US');
     await expandCompoundListFromRight();
     const list = screen.getByTestId('x-science-structure-object-list');
     fireEvent.click(
@@ -908,10 +902,7 @@ describe('XScienceStructureViewer', () => {
   it('restores the old ordinary selection if pocket rebuilding fails', async () => {
     molstarMocks.engine.load.mockResolvedValueOnce(ordinaryMultiLigandComposition());
     molstarMocks.engine.getStructureLigandSelection.mockReturnValueOnce(['first']);
-    const view = await renderWithI18n(
-      <XScienceStructureViewer filename='multi.cif' content='data_multi' />,
-      'en-US'
-    );
+    const view = await renderWithI18n(<XScienceStructureViewer filename='multi.cif' content='data_multi' />, 'en-US');
     await expandCompoundListFromRight();
     molstarMocks.engine.applyPocketFocus.mockRejectedValueOnce(new Error('controlled rebuild failure'));
     const list = screen.getByTestId('x-science-structure-object-list');
@@ -961,10 +952,7 @@ describe('XScienceStructureViewer', () => {
     molstarMocks.engine.getStructureLigandSelection.mockReturnValueOnce(['first']).mockReturnValueOnce(['first']);
     molstarMocks.engine.getTrajectoryModelState.mockReturnValueOnce({ index: 0, count: 2 });
     molstarMocks.engine.advanceTrajectoryModel.mockResolvedValueOnce({ index: 1, count: 2 });
-    await renderWithI18n(
-      <XScienceStructureViewer filename='models.pdb' content='HEADER synthetic models' />,
-      'en-US'
-    );
+    await renderWithI18n(<XScienceStructureViewer filename='models.pdb' content='HEADER synthetic models' />, 'en-US');
     fireEvent.click(screen.getByRole('button', { name: 'Expand the left toolbar' }));
     const pocket = screen.getByRole('button', { name: 'Pocket' });
     await waitFor(() => expect(pocket).toHaveAttribute('aria-pressed', 'true'));
@@ -1111,9 +1099,7 @@ describe('XScienceStructureViewer', () => {
     });
 
     fireEvent.click(toggle);
-    await waitFor(() =>
-      expect(screen.queryByTestId('x-science-molstar-interaction-diagram')).not.toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.queryByTestId('x-science-molstar-interaction-diagram')).not.toBeInTheDocument());
     fireEvent.click(toggle);
     await screen.findByTestId('x-science-molstar-interaction-diagram');
     expect(
@@ -2230,9 +2216,9 @@ describe('XScienceStructureViewer', () => {
     await expandCompoundListFromRight();
     const list = await screen.findByTestId('x-science-docking-compound-list');
     await enableDockingComparison(list);
-    const orderedLabels = Array.from(
-      list.querySelectorAll<HTMLButtonElement>('.x-science-molstar__compound-main')
-    ).map((button) => button.getAttribute('aria-label'));
+    const orderedLabels = Array.from(list.querySelectorAll<HTMLButtonElement>('.x-science-molstar__compound-main')).map(
+      (button) => button.getAttribute('aria-label')
+    );
     expect(orderedLabels).toEqual([
       'Show or hide the protein receptor',
       'Select G7I · Reference co-crystal ligand',
@@ -2306,13 +2292,9 @@ describe('XScienceStructureViewer', () => {
         })
       )
     );
-    expect(
-      within(screen.getByTestId('x-science-docking-ligand-depiction')).getByText('MDM2-030')
-    ).toBeInTheDocument();
+    expect(within(screen.getByTestId('x-science-docking-ligand-depiction')).getByText('MDM2-030')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Next selected ligand' }));
-    expect(
-      within(screen.getByTestId('x-science-docking-ligand-depiction')).getByText('MDM2-010')
-    ).toBeInTheDocument();
+    expect(within(screen.getByTestId('x-science-docking-ligand-depiction')).getByText('MDM2-010')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Previous selected ligand' })).toBeInTheDocument();
 
     fireEvent.click(
@@ -3137,11 +3119,7 @@ describe('XScienceStructureViewer', () => {
     });
 
     await renderWithI18n(
-      <XScienceStructureViewer
-        filename='receptor.pdbqt'
-        content='ATOM      1  N   MET A   1'
-        rootFrameId='frame-1'
-      />,
+      <XScienceStructureViewer filename='receptor.pdbqt' content='ATOM      1  N   MET A   1' rootFrameId='frame-1' />,
       'en-US'
     );
 
@@ -3164,11 +3142,7 @@ describe('XScienceStructureViewer', () => {
     ].join('\n');
 
     await renderWithI18n(
-      <XScienceStructureViewer
-        filename='ligand_only_docking_ensemble.pdb'
-        content={ensemble}
-        rootFrameId='frame-1'
-      />,
+      <XScienceStructureViewer filename='ligand_only_docking_ensemble.pdb' content={ensemble} rootFrameId='frame-1' />,
       'en-US'
     );
 
@@ -3515,9 +3489,7 @@ describe('XScienceStructureViewer', () => {
       await vi.waitFor(() => expect(molstarMocks.engine.load).toHaveBeenCalledTimes(2));
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
-    await waitFor(() =>
-      expect(screen.queryByTestId('x-science-molstar-interaction-diagram')).not.toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.queryByTestId('x-science-molstar-interaction-diagram')).not.toBeInTheDocument());
     await waitFor(() => expect(interactionButton).toBeEnabled());
 
     expect(molstarMocks.engine.setStructureLigandSelectionByAtomSerial).toHaveBeenCalledWith(1);

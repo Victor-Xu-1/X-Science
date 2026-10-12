@@ -123,7 +123,9 @@ const AskUserHistoryCard: React.FC<AskUserHistoryCardProps> = ({
     return (
       <div className='w-full min-w-0' data-testid='x-science-ask-user-history-editing'>
         {messageContext}
-        <div className='mb-6px text-11px text-t-tertiary'>{t('conversation.xscienceRuntime.askUserHistory.editHint')}</div>
+        <div className='mb-6px text-11px text-t-tertiary'>
+          {t('conversation.xscienceRuntime.askUserHistory.editHint')}
+        </div>
         <AskUserCard
           question={question}
           busy={busy}

@@ -601,9 +601,7 @@ const isCronMessageMeta = (value: unknown): value is CronMessageMeta =>
   typeof value.cron_job_name === 'string' &&
   typeof value.triggered_at === 'number';
 
-const isXScienceMessageCoordinates = (
-  value: unknown
-): value is NonNullable<IMessageText['content']['xScience']> =>
+const isXScienceMessageCoordinates = (value: unknown): value is NonNullable<IMessageText['content']['xScience']> =>
   isObject(value) &&
   Number.isSafeInteger(value.messageIndex) &&
   Number(value.messageIndex) >= 0 &&

@@ -130,9 +130,7 @@ describe('X-Science artifact link preview model', () => {
   });
 
   it('keeps filename fallback resolution constrained to safe relative paths', () => {
-    expect(getXScienceRelativeArtifactFilename('reports/docking_results.csv?download=1')).toBe(
-      'docking_results.csv'
-    );
+    expect(getXScienceRelativeArtifactFilename('reports/docking_results.csv?download=1')).toBe('docking_results.csv');
     expect(getXScienceRelativeArtifactFilename('../docking_results.csv')).toBeNull();
     expect(getXScienceRelativeArtifactFilename('/absolute/docking_results.csv')).toBeNull();
     expect(getXScienceArtifactImageFilename('./molecule_grid.png')).toBe('molecule_grid.png');
@@ -188,9 +186,9 @@ describe('X-Science artifact link preview model', () => {
   });
 
   it('keeps the artifact root frame for unified preview operations', () => {
-    expect(
-      resolveXScienceArtifactRootFrameId({ root_frame_id: 'root-1', frame_id: 'frame-1' }, 'conversation-1')
-    ).toBe('root-1');
+    expect(resolveXScienceArtifactRootFrameId({ root_frame_id: 'root-1', frame_id: 'frame-1' }, 'conversation-1')).toBe(
+      'root-1'
+    );
     expect(resolveXScienceArtifactRootFrameId({ root_frame_id: null, frame_id: 'frame-1' }, 'conversation-1')).toBe(
       'frame-1'
     );

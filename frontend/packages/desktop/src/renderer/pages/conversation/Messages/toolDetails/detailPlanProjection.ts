@@ -7,10 +7,7 @@ import { sanitizePublicTaskText } from '../components/toolPublicDetailBlocks';
 import { isRecord } from './detailFormatting';
 import { toolPublicDetailText } from '@/renderer/services/i18n/toolPublicDetailLocale';
 
-export function buildToolPlanDocument(
-  input: Record<string, unknown>,
-  chinese: boolean
-): XSciencePlanDocument | null {
+export function buildToolPlanDocument(input: Record<string, unknown>, chinese: boolean): XSciencePlanDocument | null {
   const nestedPlan = isRecord(input.plan) ? input.plan : null;
   const base = nestedPlan
     ? {

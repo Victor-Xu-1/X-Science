@@ -122,11 +122,7 @@ export const StructureObjectList: React.FC<StructureObjectListProps> = ({
               )}
             </div>
             {object.kind === 'ligand' && selectedLigandIds.includes(object.id) && ligandColorExpanded && (
-              <div
-                className='x-science-molstar__compound-color-palette'
-                role='group'
-                aria-label={labels.ligandColor}
-              >
+              <div className='x-science-molstar__compound-color-palette' role='group' aria-label={labels.ligandColor}>
                 {ligandColorOptions.map((color, index) => (
                   <button
                     key={color}

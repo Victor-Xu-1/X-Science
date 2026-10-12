@@ -2,10 +2,7 @@ import { Button, Empty, Input, Message, Select, Spin, Switch } from '@arco-desig
 import { Copy, Refresh, Search } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  loadXScienceThirdPartyLicenses,
-  type XScienceThirdPartyLicenses,
-} from '@/renderer/services/xScienceLicenses';
+import { loadXScienceThirdPartyLicenses, type XScienceThirdPartyLicenses } from '@/renderer/services/xScienceLicenses';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import AccessibleContentDialog from '@/renderer/components/common/AccessibleContentDialog';
 

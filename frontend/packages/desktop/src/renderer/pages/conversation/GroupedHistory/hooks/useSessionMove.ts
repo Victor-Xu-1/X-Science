@@ -6,10 +6,7 @@ import { Message } from '@arco-design/web-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-type MoveRuntime = Pick<
-  typeof import('../conversationActionRuntime'),
-  'loadXScienceProjects' | 'moveXScienceSession'
->;
+type MoveRuntime = Pick<typeof import('../conversationActionRuntime'), 'loadXScienceProjects' | 'moveXScienceSession'>;
 type MoveState = {
   target: TChatConversation | null;
   projects: XScienceProject[];

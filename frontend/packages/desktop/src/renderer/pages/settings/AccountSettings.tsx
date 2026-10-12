@@ -22,10 +22,7 @@ const APP_VERSION = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'dev
 const AccountSettings: React.FC = () => {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
-  const { profile, saveProfile } = useXScienceUserProfile(
-    user?.id,
-    user?.username ?? t('settings.xScienceLocalUser')
-  );
+  const { profile, saveProfile } = useXScienceUserProfile(user?.id, user?.username ?? t('settings.xScienceLocalUser'));
   const accountInsights = useXScienceAccountInsights();
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState('');

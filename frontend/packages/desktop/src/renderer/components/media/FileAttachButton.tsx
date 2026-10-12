@@ -197,12 +197,7 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
   const hasSkills = skillNames.length > 0;
   const hasMcpServers = mcpStatuses.length > 0;
   const plusIcon = (
-    <Plus
-      theme='outline'
-      size={xScienceV11 ? 17 : 14}
-      strokeWidth={xScienceV11 ? 3.6 : 2}
-      fill={iconColors.primary}
-    />
+    <Plus theme='outline' size={xScienceV11 ? 17 : 14} strokeWidth={xScienceV11 ? 3.6 : 2} fill={iconColors.primary} />
   );
 
   if (!xScienceV11 && isDesktop && !hasSkills && !hasMcpServers) {

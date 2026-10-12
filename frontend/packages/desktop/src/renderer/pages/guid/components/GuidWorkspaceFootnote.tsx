@@ -154,9 +154,7 @@ const GuidWorkspaceFootnote: React.FC<GuidWorkspaceFootnoteProps> = ({
     );
   });
 
-  const xScienceBackendProjects = xScienceWorkspaceOptions.filter(
-    (option) => option.source === 'backend-project'
-  );
+  const xScienceBackendProjects = xScienceWorkspaceOptions.filter((option) => option.source === 'backend-project');
   const xScienceSeedProjects = xScienceWorkspaceOptions.filter((option) => option.source === 'seed-project');
   const hasXScienceProjects = xScienceWorkspaceOptions.length > 0;
   const hasDropdownOptions = recentWorkspaces.length > 0 || hasXScienceProjects;

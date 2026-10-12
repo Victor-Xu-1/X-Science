@@ -1,8 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import {
-  loadXScienceSessionDefaults,
-  saveXScienceSessionDefaults,
-} from '@/renderer/services/xScienceSessionDefaults';
+import { loadXScienceSessionDefaults, saveXScienceSessionDefaults } from '@/renderer/services/xScienceSessionDefaults';
 
 const settingsPath =
   '/api/settings/client?keys=xScience.session.defaultModelId%2CxScience.session.subagentModelId%2CxScience.session.effort';

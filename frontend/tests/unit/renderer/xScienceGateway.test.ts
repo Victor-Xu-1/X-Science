@@ -67,9 +67,10 @@ describe('X-Science project gateway request authority', () => {
     const fetchMock = vi
       .fn<typeof fetch>()
       .mockResolvedValue(new Response(JSON.stringify({ project_id: 'project/a', name: '原始项目名称' })));
-    expect(
-      await loadXScienceProject('project/a', { fetchImpl: fetchMock, signal: controller.signal })
-    ).toMatchObject({ projectId: 'project/a', name: '原始项目名称' });
+    expect(await loadXScienceProject('project/a', { fetchImpl: fetchMock, signal: controller.signal })).toMatchObject({
+      projectId: 'project/a',
+      name: '原始项目名称',
+    });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/projects/project%2Fa',

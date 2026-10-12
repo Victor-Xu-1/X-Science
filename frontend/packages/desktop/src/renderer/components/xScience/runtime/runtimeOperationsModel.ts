@@ -516,10 +516,7 @@ function normalizeTaskRunMetrics(value: RecordValue): XScienceTaskRunMetrics | n
   };
 }
 
-function normalizeTaskMetricScope(
-  value: RecordValue,
-  prefix: 'runtime_' | 'runtime_task_'
-): XScienceTaskMetricScope {
+function normalizeTaskMetricScope(value: RecordValue, prefix: 'runtime_' | 'runtime_task_'): XScienceTaskMetricScope {
   return {
     inputTokens: nonNegativeInteger(value[`${prefix}input_tokens`]),
     outputTokens: nonNegativeInteger(value[`${prefix}output_tokens`]),

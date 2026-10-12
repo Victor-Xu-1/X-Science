@@ -677,8 +677,7 @@ describe('GuidPage', () => {
         {
           slug: 'crispr_screen',
           name: 'CRISPR Screen',
-          manifestPath:
-            '/home/victor_1/xscience-workbench/xscience/runtime/assets/seed/manifest_crispr_screen.json',
+          manifestPath: '/home/victor_1/xscience-workbench/xscience/runtime/assets/seed/manifest_crispr_screen.json',
           rootFrameId: 'd3da0234-5a7c-4d1e-a4a8-8967a35666b9',
           artifactCount: 12,
           childFrameCount: 3,

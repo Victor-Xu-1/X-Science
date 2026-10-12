@@ -59,10 +59,7 @@ import { CHAT_SURFACE_WIDTH_CLASS } from '@/renderer/pages/conversation/utils/ch
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { loadXScienceAssistants } from '@/renderer/services/xScienceCatalog';
 import { createXScienceBranchSession } from '@/renderer/services/xScienceAside';
-import {
-  requestXScienceFrameAudit,
-  type XScienceVerificationCheck,
-} from '@/renderer/services/xScienceAnnotations';
+import { requestXScienceFrameAudit, type XScienceVerificationCheck } from '@/renderer/services/xScienceAnnotations';
 import {
   getSelectedXScienceBranch,
   getXScienceBranchSelectionRevision,

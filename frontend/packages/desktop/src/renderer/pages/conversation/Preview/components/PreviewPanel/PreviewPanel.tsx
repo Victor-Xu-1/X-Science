@@ -558,9 +558,7 @@ const SinglePreviewPanel: React.FC<{ conversationId?: string }> = ({ conversatio
         />
       );
     } else if (content_type === 'hdf5') {
-      return (
-        <XScienceHdf5Viewer filename={metadata?.file_name || activeTab.title} contentUrl={metadata?.contentUrl} />
-      );
+      return <XScienceHdf5Viewer filename={metadata?.file_name || activeTab.title} contentUrl={metadata?.contentUrl} />;
     } else if (content_type === 'archive') {
       return <ArchivePreview filename={metadata?.file_name || activeTab.title} contentUrl={metadata?.contentUrl} />;
     } else if (content_type === 'unsupported') {

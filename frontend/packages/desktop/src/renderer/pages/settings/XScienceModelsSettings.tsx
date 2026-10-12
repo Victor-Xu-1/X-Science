@@ -21,9 +21,7 @@ import { ModelProfileEditor, type ModelProfileEditorState } from './models/Model
 import { modelProviderLabel, numericOptionLabel, TEMPERATURE_OPTIONS } from './models/modelProfilePresentation';
 import { useModelProfileSnapshot } from './models/useModelProfileSnapshot';
 
-function resolveModelIcon(
-  profile: Pick<XScienceLlmProfile, 'name' | 'provider' | 'model'>
-): SettingsGeneratedIconId {
+function resolveModelIcon(profile: Pick<XScienceLlmProfile, 'name' | 'provider' | 'model'>): SettingsGeneratedIconId {
   const searchable = `${profile.name} ${profile.provider} ${profile.model}`.toLowerCase();
   if (/openai|ark/.test(searchable)) return 'connector-database';
   if (/azure/.test(searchable)) return 'connector-clipboard';

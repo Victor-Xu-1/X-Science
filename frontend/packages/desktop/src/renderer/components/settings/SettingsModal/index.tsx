@@ -213,7 +213,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
   );
 
   const desktopMenu = (
-    <XScienceScrollArea className='flex-shrink-0 b-color-border-2 scrollbar-hide' style={{ width: `${SIDEBAR_WIDTH}px` }}>
+    <XScienceScrollArea
+      className='flex-shrink-0 b-color-border-2 scrollbar-hide'
+      style={{ width: `${SIDEBAR_WIDTH}px` }}
+    >
       <div className='flex flex-col gap-2px'>
         {menuItems.map((item) => (
           <div

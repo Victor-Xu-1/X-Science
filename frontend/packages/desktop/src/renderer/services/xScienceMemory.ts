@@ -114,10 +114,7 @@ export async function loadXScienceSessionMemories(
   return arrayValue(payload?.rows).map(toMemoryRow).filter(isMemoryRow);
 }
 
-export async function setXScienceMemoryEnabled(
-  enabled: boolean,
-  options: XScienceMemoryOptions = {}
-): Promise<void> {
+export async function setXScienceMemoryEnabled(enabled: boolean, options: XScienceMemoryOptions = {}): Promise<void> {
   await requestJson('/api/memory/enabled', jsonRequest('PUT', { enabled }), options);
 }
 

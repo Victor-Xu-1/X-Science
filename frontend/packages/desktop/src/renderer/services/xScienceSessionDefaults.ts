@@ -22,9 +22,7 @@ const SETTING_KEYS = {
 const EFFORT_VALUES = new Set<XScienceSessionDefaults['effort']>(['low', 'medium', 'high']);
 
 /** Load global session defaults and discard model IDs that are no longer available. */
-export async function loadXScienceSessionDefaults(
-  fetchImpl: FetchLike = fetch
-): Promise<XScienceSessionDefaults> {
+export async function loadXScienceSessionDefaults(fetchImpl: FetchLike = fetch): Promise<XScienceSessionDefaults> {
   return (await loadXScienceSessionDefaultsSnapshot(fetchImpl)).defaults;
 }
 

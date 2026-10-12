@@ -69,10 +69,7 @@ describe('ask user history model', () => {
       )
     ).toEqual({ status: 'discussed', answer: null });
     expect(
-      normalizeXScienceAskUserHistory(
-        'Question',
-        JSON.stringify({ version: 1, status: 'cancelled', action: 'cancel' })
-      )
+      normalizeXScienceAskUserHistory('Question', JSON.stringify({ version: 1, status: 'cancelled', action: 'cancel' }))
     ).toEqual({ status: 'cancelled', answer: null });
   });
 
@@ -90,10 +87,7 @@ describe('ask user history model', () => {
       answer: null,
     });
     expect(
-      normalizeXScienceAskUserHistory(
-        'Question',
-        JSON.stringify({ version: 2, status: 'cancelled', action: 'cancel' })
-      )
+      normalizeXScienceAskUserHistory('Question', JSON.stringify({ version: 2, status: 'cancelled', action: 'cancel' }))
     ).toEqual({ status: 'unavailable', answer: null });
     expect(
       normalizeXScienceAskUserHistory(

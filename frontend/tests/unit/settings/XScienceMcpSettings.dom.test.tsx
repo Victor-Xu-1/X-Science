@@ -194,9 +194,7 @@ describe('XScienceMcpSettingsContent', () => {
         expect.objectContaining({ method: 'PUT', body: '{"enabled":false}' })
       )
     );
-    await waitFor(() =>
-      expect(within(screen.getByTestId('x-science-mcp-pubmed')).getByText('Disabled')).toBeVisible()
-    );
+    await waitFor(() => expect(within(screen.getByTestId('x-science-mcp-pubmed')).getByText('Disabled')).toBeVisible());
   });
 
   it('runs backend reconcile and refreshes directory health and connector inventory', async () => {

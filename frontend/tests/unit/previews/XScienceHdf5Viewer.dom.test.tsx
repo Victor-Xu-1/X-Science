@@ -151,10 +151,7 @@ describe('XScienceHdf5Viewer', () => {
     vi.stubGlobal('fetch', fetchMock);
     vi.stubGlobal('Worker', MockHdf5Worker);
 
-    await renderWithI18n(
-      <XScienceHdf5Viewer filename='matrix.h5' contentUrl='/api/artifacts/artifact-2' />,
-      'en-US'
-    );
+    await renderWithI18n(<XScienceHdf5Viewer filename='matrix.h5' contentUrl='/api/artifacts/artifact-2' />, 'en-US');
     await screen.findByText('Failed to load HDF5 file (HTTP 502).');
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Retry' })));
     await waitFor(() => expect(document.querySelector('[data-hdf5-viewer="ready"]')).toBeInTheDocument());

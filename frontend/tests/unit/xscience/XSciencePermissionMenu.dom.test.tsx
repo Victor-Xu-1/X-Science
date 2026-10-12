@@ -66,9 +66,7 @@ describe('XSciencePermissionMenu', () => {
       screen.getByTestId('x-science-permission-option-smart').querySelector('[data-permission-icon="smart"]')
     ).toBeInTheDocument();
     expect(
-      screen
-        .getByTestId('x-science-permission-option-bypassPermissions')
-        .querySelector('[data-permission-icon="full"]')
+      screen.getByTestId('x-science-permission-option-bypassPermissions').querySelector('[data-permission-icon="full"]')
     ).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('x-science-permission-option-bypassPermissions'));

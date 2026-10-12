@@ -258,9 +258,7 @@ export async function setXScienceModalEnabled(enabled: boolean, fetchImpl: Fetch
   await requestJson(`${COMPUTE_MODAL_ENDPOINT}/enabled`, jsonRequest('PUT', { enabled }), fetchImpl);
 }
 
-export async function loadXScienceBioNemoSettings(
-  fetchImpl: FetchLike = fetch
-): Promise<XScienceBioNemoSettings> {
+export async function loadXScienceBioNemoSettings(fetchImpl: FetchLike = fetch): Promise<XScienceBioNemoSettings> {
   const record = objectRecord(await requestJson<unknown>(COMPUTE_BIONEMO_ENDPOINT, undefined, fetchImpl));
   if (!record) throw new Error('X-Science returned invalid BioNeMo settings');
   const mode = record.mode === 'local' ? 'local' : 'hosted';
@@ -300,9 +298,7 @@ export async function loadXScienceComputeGpuInfo(fetchImpl: FetchLike = fetch): 
   };
 }
 
-export async function loadXScienceComputeGpuEnabled(
-  fetchImpl: FetchLike = fetch
-): Promise<XScienceComputeGpuEnabled> {
+export async function loadXScienceComputeGpuEnabled(fetchImpl: FetchLike = fetch): Promise<XScienceComputeGpuEnabled> {
   const record = objectRecord(await requestJson<unknown>(COMPUTE_GPU_ENABLED_ENDPOINT, undefined, fetchImpl));
   if (!record) throw new Error('X-Science returned an invalid GPU enabled state');
   return {
@@ -351,10 +347,7 @@ export async function loadXScienceComputeJobs(
   return rows.map(toComputeJob).filter((job): job is XScienceComputeJob => job !== null);
 }
 
-export async function loadXScienceComputeJob(
-  jobId: string,
-  fetchImpl: FetchLike = fetch
-): Promise<XScienceComputeJob> {
+export async function loadXScienceComputeJob(jobId: string, fetchImpl: FetchLike = fetch): Promise<XScienceComputeJob> {
   const payload = await requestJson<unknown>(
     `${COMPUTE_JOBS_ENDPOINT}/${encodeURIComponent(jobId)}`,
     undefined,
@@ -417,9 +410,7 @@ export async function setXScienceSessionComputeProvider(
   );
 }
 
-export async function loadXScienceComputeProviders(
-  fetchImpl: FetchLike = fetch
-): Promise<XScienceComputeProvider[]> {
+export async function loadXScienceComputeProviders(fetchImpl: FetchLike = fetch): Promise<XScienceComputeProvider[]> {
   const payload = await requestJson<unknown>(COMPUTE_PROVIDERS_ENDPOINT, undefined, fetchImpl);
   if (!Array.isArray(payload)) return [];
   return payload.map(toComputeProvider).filter((provider): provider is XScienceComputeProvider => Boolean(provider));
@@ -450,10 +441,7 @@ export async function loadXScienceSshAliases(fetchImpl: FetchLike = fetch): Prom
   };
 }
 
-export async function addXScienceSshHost(
-  input: XScienceSshHostInput,
-  fetchImpl: FetchLike = fetch
-): Promise<void> {
+export async function addXScienceSshHost(input: XScienceSshHostInput, fetchImpl: FetchLike = fetch): Promise<void> {
   await requestJson(COMPUTE_SSH_HOSTS_ENDPOINT, jsonRequest('POST', compactObject(input)), fetchImpl);
 }
 

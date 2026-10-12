@@ -29,9 +29,7 @@ export const loadXScienceGenomeViewer = cachePreviewModule(() => import('./XScie
 export const loadXScienceSequenceViewer = cachePreviewModule(() => import('./XScienceSequenceViewer'));
 export const loadXScienceNotebookViewer = cachePreviewModule(() => import('./XScienceNotebookViewer'));
 export const loadXScienceMoleculeViewer = cachePreviewModule(() => import('./XScienceMoleculeViewer'));
-export const loadXScienceMcpAppArtifactViewer = cachePreviewModule(
-  () => import('./XScienceMcpAppArtifactViewer')
-);
+export const loadXScienceMcpAppArtifactViewer = cachePreviewModule(() => import('./XScienceMcpAppArtifactViewer'));
 export const loadXScienceMcpAppViewer = cachePreviewModule(() => import('./XScienceMcpAppViewer'));
 export const loadXScienceJsonViewer = cachePreviewModule(() => import('./XScienceJsonViewer'));
 export const loadXScienceHdf5Viewer = cachePreviewModule(() => import('./XScienceHdf5Viewer'));

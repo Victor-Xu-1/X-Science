@@ -30,10 +30,7 @@ import {
   type XScienceSkillCategorySelection,
 } from '@/renderer/services/skills/xScienceSkillCategories';
 import { setXScienceSkillEnabled } from '@/renderer/services/xScienceCapabilities';
-import {
-  resolveSkillDescription,
-  resolveSkillDisplayName,
-} from '@/renderer/services/skills/xScienceSkillDescriptions';
+import { resolveSkillDescription, resolveSkillDisplayName } from '@/renderer/services/skills/xScienceSkillDescriptions';
 import {
   deleteXSciencePersonalSkill,
   importXScienceSkillFile,

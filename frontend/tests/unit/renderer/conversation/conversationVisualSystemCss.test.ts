@@ -49,10 +49,7 @@ describe('conversation visual system CSS', () => {
     const css = readFileSync(workspaceThemeCssPath, 'utf8');
     const transcriptCss = readFileSync(messagesCssPath, 'utf8');
     const askUserCss = readFileSync(
-      new URL(
-        '../../../../packages/desktop/src/renderer/components/xScience/runtime/AskUserCard.css',
-        import.meta.url
-      ),
+      new URL('../../../../packages/desktop/src/renderer/components/xScience/runtime/AskUserCard.css', import.meta.url),
       'utf8'
     );
 

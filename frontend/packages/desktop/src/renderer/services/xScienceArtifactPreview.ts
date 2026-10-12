@@ -161,9 +161,7 @@ export function resolveXScienceInternetShortcut(content: string): string | null 
   }
 }
 
-export function resolveXScienceArtifactPreviewPlan(
-  source: XScienceArtifactPreviewSource
-): XScienceArtifactPreviewPlan {
+export function resolveXScienceArtifactPreviewPlan(source: XScienceArtifactPreviewSource): XScienceArtifactPreviewPlan {
   const filename = source.filename.toLowerCase();
   const contentType = source.contentType?.toLowerCase() ?? '';
   const previewKind = source.previewKind?.toLowerCase() ?? '';
