@@ -44,7 +44,7 @@ func TestPluginsAPIListsOnlyCompactXSciencePlugin(t *testing.T) {
 		t.Fatalf("plugins = %#v", body.Plugins)
 	}
 	plugin := body.Plugins[0]
-	if plugin.ID != "xscience" || plugin.Version != "1.1.5" || plugin.Mount != "/api/plugins/xscience" {
+	if plugin.ID != "x-science" || plugin.Version != "1.1.5" || plugin.Mount != "/api/plugins/x-science" {
 		t.Fatalf("plugin = %#v", plugin)
 	}
 	if !hasPluginModule(plugin.Modules, "capabilities", "/api/plugins/x-science/capabilities") ||
@@ -77,11 +77,11 @@ func TestPluginsAPIProvidesXScienceManifestAndRejectsUnknownPlugin(t *testing.T)
 	if err := json.NewDecoder(resp.Body).Decode(&manifest); err != nil {
 		t.Fatalf("decode manifest: %v", err)
 	}
-	if manifest["id"] != "xscience" || manifest["pluginFormat"] != "x_science_agent_native" {
+	if manifest["id"] != "x-science" || manifest["pluginFormat"] != "x_science_agent_native" {
 		t.Fatalf("manifest = %#v", manifest)
 	}
 	serverValue, ok := manifest["server"].(map[string]any)
-	if !ok || serverValue["apiMount"] != "/api/plugins/xscience" {
+	if !ok || serverValue["apiMount"] != "/api/plugins/x-science" {
 		t.Fatalf("manifest server = %#v", manifest["server"])
 	}
 
@@ -145,10 +145,10 @@ func TestPluginsAPIListsExternalPluginManifests(t *testing.T) {
 	if len(body.Plugins) != 2 {
 		t.Fatalf("plugins = %#v", body.Plugins)
 	}
-	if body.Plugins[0].ID != "xscience" || body.Plugins[1].ID != "terminal-tools" {
+	if body.Plugins[0].ID != "terminal-tools" || body.Plugins[1].ID != "x-science" {
 		t.Fatalf("plugins order = %#v", body.Plugins)
 	}
-	external := body.Plugins[1]
+	external := body.Plugins[0]
 	if external.PluginFormat != "x_science_agent_external" || external.Mount != "/api/plugins/terminal-tools" {
 		t.Fatalf("external plugin = %#v", external)
 	}

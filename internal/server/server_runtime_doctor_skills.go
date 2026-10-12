@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"x-science/internal/buildinfo"
 	"x-science/internal/skills"
 	"x-science/internal/toolcontract"
 	"x-science/internal/tools/registry"
@@ -163,7 +164,9 @@ func skillCatalogSelfContained(directories []string) bool {
 		if value == "" {
 			continue
 		}
-		if strings.HasPrefix(value, "builtin:") || value == "skills" || strings.HasSuffix(value, "/skills") {
+		packaged := "skills/" + buildinfo.Release().MachineSlug
+		if strings.HasPrefix(value, "builtin:") || value == "skills" || strings.HasSuffix(value, "/skills") ||
+			value == packaged || strings.HasSuffix(value, "/"+packaged) {
 			return true
 		}
 	}

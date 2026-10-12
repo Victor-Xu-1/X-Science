@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"strings"
 
 	workspace "x-science/internal/persistence/workspace"
 )
@@ -29,6 +30,21 @@ func (s *Server) kernelNamespaceRecoveryInterruption(ctx context.Context, owner,
 	operation, found, err := s.workspaceStore.GetKernelLocalOperation(ctx, owner, operationID)
 	if err != nil || !found {
 		return false, err
+	}
+	if strings.TrimSpace(operation.ExecutionID) == "" {
+		// Approval/preparation and non-executing terminal preflights do not
+		// have a detached execution. They stay under the ordinary durable
+		// operation recovery path; absence is not a namespace recovery hold.
+		switch operation.State {
+		case workspace.KernelLocalOperationStatePendingApproval,
+			workspace.KernelLocalOperationStateApproved, workspace.KernelLocalOperationStatePrepared:
+			return false, nil
+		default:
+			if workspace.KernelLocalOperationIsTerminal(operation.State) {
+				return false, nil
+			}
+			return false, workspace.ErrKernelLocalOperationConflict
+		}
 	}
 	execution, found, err := s.workspaceStore.GetDetachedKernelExecution(ctx, operation.ExecutionID)
 	if err != nil || !found {

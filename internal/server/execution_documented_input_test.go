@@ -38,7 +38,7 @@ func TestDocumentedInputRealKernelExecutionAndImmutableProvenance(t *testing.T) 
 	pack := documentedInputTestPack(t)
 	app.scienceCapabilities = &sciencecapability.Catalog{Capabilities: []sciencecapability.Definition{{ID: "analysis", AcceptedEngines: []sciencecapability.EngineDefinition{{ID: "Primary", ExecutionPack: pack}}}}}
 	root := identity.workspaceDir
-	script := filepath.Join(root, ".xscience/runtime/skills/primary-fixture/scripts/run.py")
+	script := filepath.Join(root, ".x-science/runtime/skills/primary-fixture/scripts/run.py")
 	if err := os.MkdirAll(filepath.Dir(script), 0700); err != nil {
 		t.Fatal(err)
 	}

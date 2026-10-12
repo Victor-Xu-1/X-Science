@@ -42,6 +42,8 @@ def source_entries(directory):
         relative = path.relative_to(directory).as_posix()
         if not path.is_file() or not valid_path(relative):
             raise ValueError("invalid connector source entry")
+        if relative.endswith((".test.ts", ".test.mjs")):
+            continue
         if len(entries) >= MAX_ENTRIES or path.stat().st_size > MAX_BYTES - total:
             raise ValueError("connector source exceeds its bounded contract")
         raw = path.read_bytes()
