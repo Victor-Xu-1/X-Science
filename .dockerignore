@@ -1,3 +1,4 @@
+# X-Science build context excludes local runtime state and generated output.
 .git
 .git/**
 frontend/node_modules

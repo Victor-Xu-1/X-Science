@@ -186,7 +186,7 @@ Installation, configuration and recovery:
 ## License / 许可
 
 First-party code is **AGPL-3.0-only**, except where separate component terms apply.
-Compliant commercial use is permitted. See the unchanged [LICENSE](LICENSE),
+Compliant commercial use is permitted. See the unchanged [LICENSE.md](LICENSE.md),
 [commercial licensing boundaries](COMMERCIAL-LICENSE.md) and
 [third-party inventory](docs/THIRD_PARTY.md).
 

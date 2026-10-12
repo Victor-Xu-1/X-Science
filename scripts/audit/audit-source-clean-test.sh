@@ -59,7 +59,7 @@ cp "$ROOT_DIR/COMMERCIAL-LICENSE.md" "$FIXTURE/COMMERCIAL-LICENSE.md"
 cp "$ROOT_DIR/CONTRIBUTING.md" "$FIXTURE/CONTRIBUTING.md"
 cp "$ROOT_DIR/SECURITY.md" "$FIXTURE/SECURITY.md"
 cp "$ROOT_DIR/CODE_OF_CONDUCT.md" "$FIXTURE/CODE_OF_CONDUCT.md"
-cp "$ROOT_DIR/LICENSE" "$FIXTURE/LICENSE"
+cp "$ROOT_DIR/LICENSE.md" "$FIXTURE/LICENSE.md"
 cp "$ROOT_DIR/identity.go" "$FIXTURE/identity.go"
 cp "$ROOT_DIR/identity_test.go" "$FIXTURE/identity_test.go"
 cp "$ROOT_DIR/product-identity.json" "$FIXTURE/product-identity.json"
@@ -243,13 +243,13 @@ fi
 grep -Fq '.env.example' "$TMP_DIR/missing-env-example.err"
 cp "$ROOT_DIR/.env.example" "$FIXTURE/.env.example"
 
-rm "$FIXTURE/LICENSE"
+rm "$FIXTURE/LICENSE.md"
 if (cd "$FIXTURE" && bash scripts/audit/audit-source-clean.sh >"$TMP_DIR/missing-license.out" 2>"$TMP_DIR/missing-license.err"); then
-  echo "ERROR: audit-source-clean allowed a source tree without LICENSE" >&2
+  echo "ERROR: audit-source-clean allowed a source tree without LICENSE.md" >&2
   exit 1
 fi
-grep -Fq 'LICENSE' "$TMP_DIR/missing-license.err"
-cp "$ROOT_DIR/LICENSE" "$FIXTURE/LICENSE"
+grep -Fq 'LICENSE.md' "$TMP_DIR/missing-license.err"
+cp "$ROOT_DIR/LICENSE.md" "$FIXTURE/LICENSE.md"
 
 rm "$FIXTURE/COMMERCIAL-LICENSE.md"
 if (cd "$FIXTURE" && bash scripts/audit/audit-source-clean.sh >"$TMP_DIR/missing-commercial-license.out" 2>"$TMP_DIR/missing-commercial-license.err"); then

@@ -33,7 +33,8 @@ describe('actual Vite boot identity and language projection', () => {
     const hook = plugin.transformIndexHtml;
     if (!hook || typeof hook !== 'object' || !('handler' in hook)) throw new Error('Missing boot handler');
     const html = readFileSync(path.resolve(process.cwd(), 'packages/desktop/src/renderer/index.html'), 'utf8');
-    const projected = await hook.handler(html, {} as never);
+    const entry = path.resolve(process.cwd(), 'packages/desktop/src/renderer/index.html');
+    const projected = await hook.handler(html, { filename: entry } as never);
     expect(typeof projected).toBe('string');
     expect(String(projected)).toContain(`lang="${i18nConfig.fallbackLanguage}"`);
     const payload = String(projected).match(
@@ -43,5 +44,9 @@ describe('actual Vite boot identity and language projection', () => {
     expect(JSON.parse(payload!).productName).toBe(identityProbe.name);
     expect(String(projected).match(/data-app-boot-label>([^<]+)/)?.[1]).toContain(identityProbe.name);
     expect(String(projected)).not.toContain('__APP_BOOT_LOADING__');
+    const fixture = '<!doctype html><div id="root"></div>';
+    const fixtureEntry = path.resolve(process.cwd(), 'tests/web-e2e/artifactLinks.fixture.html');
+    expect(await hook.handler(fixture, { filename: fixtureEntry } as never)).toBe(fixture);
+    expect(() => hook.handler(fixture, { filename: entry } as never)).toThrow('Missing app startup projection');
   });
 });
