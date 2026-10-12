@@ -102,6 +102,7 @@ class ReleaseCandidateManifestTests(unittest.TestCase):
             for name in (
                 "product_version.py",
                 "product_identity_gate.py",
+                "product_identity_namespace.py",
                 "release_contract_io.py",
                 "release_candidate_manifest.py",
                 "release_receipt_gate.py",
