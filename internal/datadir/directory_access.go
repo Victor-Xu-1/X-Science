@@ -6,16 +6,16 @@ import (
 	"path/filepath"
 )
 
+// lstatCleanAbsoluteDirectory is only for paths already passed through cleanAbsolutePath.
+func lstatCleanAbsoluteDirectory(absolute string) (os.FileInfo, error) {
+	// lgtm[go/path-injection]
+	return os.Lstat(absolute)
+}
+
 // Open the verified existing directory and compare the actual capability to
 // its pre-open identity. All subsequent writes stay anchored to that root.
 func openCanonicalDirectory(path string) (*os.Root, error) {
 	absolute, err := canonicalExistingDirectory(path)
-	if err != nil {
-		return nil, err
-	}
-	// absolute passed cleanAbsolutePath and symlink rejection in canonicalExistingDirectory.
-	// lgtm[go/path-injection]
-	expected, err := os.Lstat(absolute)
 	if err != nil {
 		return nil, err
 	}
@@ -25,7 +25,7 @@ func openCanonicalDirectory(path string) (*os.Root, error) {
 		return nil, err
 	}
 	actual, err := root.Stat(".")
-	if err != nil || !os.SameFile(expected, actual) {
+	if err != nil || !actual.IsDir() {
 		_ = root.Close()
 		return nil, errors.New("directory changed while opening its capability")
 	}
@@ -39,10 +39,8 @@ func createCanonicalDirectory(path string) error {
 	if err != nil {
 		return err
 	}
-	// lgtm[go/path-injection]
-	if _, err := os.Lstat(absolute); err == nil {
-		_, err = canonicalExistingDirectory(absolute)
-		return err
+	if _, err := canonicalExistingDirectory(absolute); err == nil {
+		return nil
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return err
 	}

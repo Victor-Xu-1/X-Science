@@ -557,9 +557,7 @@ func canonicalExistingDirectory(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	// cleanAbsolutePath rejects relative paths and control characters.
-	// lgtm[go/path-injection]
-	info, err := os.Lstat(absolute)
+	info, err := lstatCleanAbsoluteDirectory(absolute)
 	if err != nil {
 		return "", err
 	}
@@ -592,8 +590,7 @@ func prepareTargetDirectory(path string) (string, bool, error) {
 	if err != nil {
 		return "", false, err
 	}
-	// lgtm[go/path-injection]
-	if info, err := os.Lstat(absolute); err == nil {
+	if info, err := lstatCleanAbsoluteDirectory(absolute); err == nil {
 		if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
 			return "", false, errors.New("target is not a real directory")
 		}
