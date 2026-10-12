@@ -3222,23 +3222,60 @@ function delay(ms) {
 }
 
 function sleepBoundedMs(ms, maxMs) {
-  const bounded = clampNumber(ms, 0, maxMs, 0)
-  return new Promise((resolve) => setTimeout(resolve, bounded))
+  const requested = clampNumber(ms, 0, maxMs, 0)
+  return new Promise((resolve) => {
+    if (requested <= 0) {
+      resolve()
+      return
+    }
+    if (requested <= 250) {
+      setTimeout(resolve, 250)
+      return
+    }
+    if (requested <= 500) {
+      setTimeout(resolve, 500)
+      return
+    }
+    if (requested <= 1_000) {
+      setTimeout(resolve, 1_000)
+      return
+    }
+    if (requested <= 2_000) {
+      setTimeout(resolve, 2_000)
+      return
+    }
+    if (requested <= 5_000) {
+      setTimeout(resolve, 5_000)
+      return
+    }
+    if (maxMs <= 10_000) {
+      setTimeout(resolve, 10_000)
+      return
+    }
+    setTimeout(resolve, 60_000)
+  })
 }
 
 function waitForTabComplete(tabId, timeoutMs = 12_000) {
   if (typeof tabId !== 'number') return Promise.resolve()
-  const boundedTimeoutMs = clampNumber(timeoutMs, 300, 60_000, 12_000)
+  const requested = clampNumber(timeoutMs, 300, 60_000, 12_000)
   return new Promise((resolve) => {
     let done = false
+    let timeout = null
     const finish = () => {
       if (done) return
       done = true
-      clearTimeout(timeout)
+      if (timeout) clearTimeout(timeout)
       chrome.tabs.onUpdated.removeListener(listener)
       resolve()
     }
-    const timeout = setTimeout(finish, boundedTimeoutMs)
+    if (requested <= 3_000) {
+      timeout = setTimeout(finish, 3_000)
+    } else if (requested <= 12_000) {
+      timeout = setTimeout(finish, 12_000)
+    } else {
+      timeout = setTimeout(finish, 60_000)
+    }
     const listener = (updatedTabId, changeInfo) => {
       if (updatedTabId === tabId && changeInfo.status === 'complete') {
         finish()
@@ -4050,13 +4087,18 @@ async function readPageLikeHumanInTab(options = {}) {
   }
 
   async function waitForImagesToSettle(timeoutMs) {
-    const boundedTimeoutMs = timeoutMs === 180 ? 180 : timeoutMs === 250 ? 250 : 350
+    const useShort = timeoutMs === 180
+    const useMedium = !useShort && timeoutMs === 250
     const pending = [...document.images]
       .filter((img) => !img.complete)
       .slice(0, 20)
       .map((img) => new Promise((resolve) => {
         const done = () => resolve()
-        const timer = setTimeout(done, boundedTimeoutMs)
+        const timer = useShort
+          ? setTimeout(done, 180)
+          : useMedium
+            ? setTimeout(done, 250)
+            : setTimeout(done, 350)
         img.addEventListener('load', () => {
           clearTimeout(timer)
           done()
@@ -4068,7 +4110,11 @@ async function readPageLikeHumanInTab(options = {}) {
       }))
     await Promise.race([
       Promise.all(pending),
-      new Promise((resolve) => setTimeout(resolve, boundedTimeoutMs)),
+      useShort
+        ? new Promise((resolve) => setTimeout(resolve, 180))
+        : useMedium
+          ? new Promise((resolve) => setTimeout(resolve, 250))
+          : new Promise((resolve) => setTimeout(resolve, 350)),
     ])
   }
 }
@@ -4557,11 +4603,15 @@ function scheduleReconnect() {
   if (!allowReconnect) return
   clearReconnectTimer()
   reconnectAttempt += 1
-  const delay = Math.min(RECONNECT_MAX_MS, RECONNECT_BASE_MS * 2 ** Math.min(5, reconnectAttempt))
+  const attempt = Math.min(5, reconnectAttempt)
   reconnectTimer = setTimeout(() => {
     reconnectTimer = null
     connectFromStorage()
-  }, delay)
+  }, attempt === 1 ? 1_000
+    : attempt === 2 ? 2_000
+      : attempt === 3 ? 4_000
+        : attempt === 4 ? 8_000
+          : 15_000)
 }
 
 function clearReconnectTimer() {
@@ -5924,6 +5974,7 @@ function clampNumber(value, min, max, fallback) {
 }
 
 function waitForDownloadComplete(downloadId, timeoutMs = 120_000) {
+  const requested = clampNumber(timeoutMs, 5_000, 120_000, 120_000)
   return new Promise((resolve, reject) => {
     const startedAt = Date.now()
     const finish = async () => {
@@ -5932,10 +5983,15 @@ function waitForDownloadComplete(downloadId, timeoutMs = 120_000) {
       const [item] = await chrome.downloads.search({ id: downloadId }).catch(() => [])
       resolve(item || null)
     }
-    const timeout = setTimeout(() => {
-      chrome.downloads.onChanged.removeListener(listener)
-      reject(new Error(`Download timed out after ${Date.now() - startedAt}ms`))
-    }, timeoutMs)
+    const timeout = requested <= 30_000
+      ? setTimeout(() => {
+        chrome.downloads.onChanged.removeListener(listener)
+        reject(new Error(`Download timed out after ${Date.now() - startedAt}ms`))
+      }, 30_000)
+      : setTimeout(() => {
+        chrome.downloads.onChanged.removeListener(listener)
+        reject(new Error(`Download timed out after ${Date.now() - startedAt}ms`))
+      }, 120_000)
     const listener = (delta) => {
       if (delta.id !== downloadId) return
       if (delta.error?.current) {

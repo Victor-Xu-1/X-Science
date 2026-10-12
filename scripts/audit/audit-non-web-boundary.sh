@@ -59,12 +59,19 @@ for entry in connector.rglob("*"):
         raise SystemExit("ERROR: connector source contains a link or special file")
     if entry.is_file():
         observed.append(entry.relative_to(root).as_posix())
-if sorted(observed) != expected_connector:
+def path_sort_key(value: str) -> str:
+    return value.casefold()
+
+
+if sorted(observed, key=path_sort_key) != sorted(expected_connector, key=path_sort_key):
     raise SystemExit("ERROR: connector source does not match the exact audited inventory")
 web_extensions = (".html", ".htm", ".css", ".scss", ".sass", ".less", ".js", ".mjs", ".cjs",
                   ".jsx", ".ts", ".tsx", ".vue", ".svelte", ".astro")
-print("\n".join(sorted(path for path in expected + expected_tooling + expected_connector
-                       if path.endswith(web_extensions))))
+print("\n".join(sorted(
+    (path for path in expected + expected_tooling + expected_connector
+     if path.endswith(web_extensions)),
+    key=path_sort_key,
+)))
 PY
 )
 
@@ -92,7 +99,7 @@ actual_non_product_web_files=$(find "$ROOT_DIR" \
     -o -iname '*.js' -o -iname '*.mjs' -o -iname '*.cjs' \
     -o -iname '*.jsx' -o -iname '*.ts' -o -iname '*.tsx' \
     -o -iname '*.vue' -o -iname '*.svelte' -o -iname '*.astro' \
-  \) -printf '%P\n' | sort)
+  \) -printf '%P\n' | LC_ALL=C sort -f)
 if [[ "$actual_non_product_web_files" != "$expected_web_files" ]]; then
   echo "ERROR: source contains unclassified Web-like files outside frontend/" >&2
   diff -u <(printf '%s\n' "$expected_web_files") <(printf '%s\n' "$actual_non_product_web_files") >&2 || true
