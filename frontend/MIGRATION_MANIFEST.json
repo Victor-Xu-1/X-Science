@@ -2901,8 +2901,8 @@
     {
       "path": "packages/desktop/src/renderer/services/synonBiomedWorkspaceApi.ts",
       "sourceSHA256": "4c22896f8de3addaf2df037dc67bf7376862f8e0011181246d7bc99ea388f439",
-      "targetSHA256": "581f4a1ef849dca52eee29c33c2581e68f36f11ceabfbc6414b47111872f3640",
-      "bytes": 4084,
+      "targetSHA256": "8adb9767d9896b94890a4809cec67ddea9411deab055fd810fc230529a4d5640",
+      "bytes": 5017,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -4294,8 +4294,8 @@
     {
       "path": "tests/unit/renderer/synonBiomedWorkspaceApi.dom.test.ts",
       "sourceSHA256": "936eded659da57c6cff8958c4189096dc345eef32e1b6e392fd99e5f64e104e1",
-      "targetSHA256": "ff51638d577faa4e1078896e005b9a4b15e52ce82ccab3dd6b6914953bf78c1b",
-      "bytes": 3001,
+      "targetSHA256": "e2a7d8a0f6ae497fec4b7b318231fd8ef400593c0909aad6b42b79fbe052fd9d",
+      "bytes": 6097,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
