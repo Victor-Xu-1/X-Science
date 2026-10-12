@@ -5,13 +5,13 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "53dc1c8d310455e5de40955e52f6becf3d2d7c51e539939381c4fbf2b8820952",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
-  "additionFingerprintSHA256": "01a3a698b7df57869cb50f2d65e1239f0b0f39af42f839576c5c15599c530aa6",
+  "additionFingerprintSHA256": "2729dfdfe55bcdd2f6c7d55c0361bc5c6cc4939899faf434bfd585bfeb919977",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 276,
     "adaptedSourceFiles": 785,
     "removedSourceFiles": 293,
-    "addedFiles": 917
+    "addedFiles": 921
   },
   "adaptations": [
     {
@@ -12616,6 +12616,12 @@
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
+      "path": "tests/web-e2e/computeExecutionObservation.fixture.html",
+      "sha256": "eec05c434a4edcb2a52b7a138e61f2b96d2d085b249a8c3b29439c779e5ac00c",
+      "bytes": 305,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/web-e2e/computeExecutionObservation.fixture.tsx",
       "sha256": "4917ce1593cbe5bad45a91e1dc3dce49d66928fedf050871df2a42d515ffd509",
       "bytes": 1023,
@@ -12625,6 +12631,12 @@
       "path": "tests/web-e2e/contextUsagePanel.browser.mjs",
       "sha256": "8fdd9ad5cdc76f6a212c9c73d430e621fa637d6a58acd4df69cfe0d86574a474",
       "bytes": 17560,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/web-e2e/contextUsagePanel.fixture.html",
+      "sha256": "a93635e5e9f20ce4e22c145a7e097a18a64715bfb43a3ecfb2b55a3a4b9c92bb",
+      "bytes": 293,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -12706,6 +12718,12 @@
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
+      "path": "tests/web-e2e/replyBranch.fixture.html",
+      "sha256": "61b51b8a9cd1ecb936dbb504b620ff7cc94993bf9a83f699444276d3024ce38c",
+      "bytes": 280,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/web-e2e/replyBranch.fixture.tsx",
       "sha256": "853d0b9b4553f3f4d2c281849ea80d91aa6bfd7e0c056c1646c54269797d9a23",
       "bytes": 4634,
@@ -12763,6 +12781,12 @@
       "path": "tests/web-e2e/taskAttention.browser.mjs",
       "sha256": "72996e07b24a45f560dd10f9426901cf3dc73d14ad48da42aeb4326f6d01171a",
       "bytes": 4751,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/web-e2e/taskAttention.fixture.html",
+      "sha256": "2869f33f3b95bf05685f9bc041b0e7114a9a029d841d42515a2de395540b8f43",
+      "bytes": 284,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
