@@ -91,7 +91,7 @@ actual_non_product_web_files=$(find "$ROOT_DIR" \
     -o -iname '*.js' -o -iname '*.mjs' -o -iname '*.cjs' \
     -o -iname '*.jsx' -o -iname '*.ts' -o -iname '*.tsx' \
     -o -iname '*.vue' -o -iname '*.svelte' -o -iname '*.astro' \
-  \) -printf '%P\n' | sort)
+  \) -printf '%P\n' | LC_ALL=C sort)
 if [[ "$actual_non_product_web_files" != "$expected_web_files" ]]; then
   echo "ERROR: source contains unclassified Web-like files outside frontend/" >&2
   diff -u <(printf '%s\n' "$expected_web_files") <(printf '%s\n' "$actual_non_product_web_files") >&2 || true
