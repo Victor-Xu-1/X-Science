@@ -6,7 +6,10 @@ import json
 from pathlib import Path
 import subprocess
 
-from scripts.packaging.browser_extension_branding import adapt_entries, archive_entries, deterministic_archive
+if __package__:
+    from .browser_extension_branding import adapt_entries, archive_entries, deterministic_archive
+else:
+    from browser_extension_branding import adapt_entries, archive_entries, deterministic_archive
 
 SOURCE_REVISION = "53a8cde66a917eb0b94e0a4f23287eb93328c0fd"
 SOURCE_PATH = "assets/synon-link/synon-link-extension-v0.6.10.zip"
@@ -28,7 +31,7 @@ def pinned_source(repo, *, fetch_source=False):
         if present.returncode == 0:
             raise ValueError("pinned source commit exists but its package cannot be read") from error
         origin = subprocess.check_output(["git", "-C", str(repo), "remote", "get-url", "origin"], timeout=15).decode().strip()
-        if origin != PUBLIC_ORIGIN:
+        if origin not in (PUBLIC_ORIGIN, PUBLIC_ORIGIN.removesuffix(".git")):
             raise ValueError("pinned source fetch requires the exact public X-Science origin")
         subprocess.check_output(["git", "-C", str(repo), "fetch", "--no-tags", "--depth=1",
                                  "--no-write-fetch-head", "origin", SOURCE_REVISION], timeout=60)

@@ -174,7 +174,7 @@ func TestSessionEntriesToProviderMessagesAddsStructuredFailureRepairContext(t *t
 	}
 	found := false
 	for _, message := range messages {
-		if message.Role == "system" && strings.Contains(message.Content, "Synon task self-repair controller") &&
+		if message.Role == "system" && strings.Contains(message.Content, "X-Science task self-repair controller") &&
 			strings.Contains(message.Content, "new_artifact_versions") {
 			found = true
 		}
@@ -247,7 +247,7 @@ func TestSessionEntriesToProviderMessagesSettlesPrestartFailure(t *testing.T) {
 		!strings.Contains(messages[4].Content, "invalid_tool_arguments") {
 		t.Fatalf("messages=%#v", messages)
 	}
-	if messages[1].Role != "system" || !strings.Contains(messages[1].Content, "Synon task self-repair controller") {
+	if messages[1].Role != "system" || !strings.Contains(messages[1].Content, "X-Science task self-repair controller") {
 		t.Fatalf("pre-start repair context missing: %#v", messages)
 	}
 }

@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import re
 import subprocess
+import sys
 import tempfile
 import unittest
 from unittest import mock
@@ -14,6 +15,17 @@ from scripts.packaging.build_browser_extension import build, build_archive, pinn
 
 class BrowserExtensionBrandingTests(unittest.TestCase):
     repo = Path(__file__).resolve().parents[2]
+
+    def test_direct_cli_check_works_outside_repository(self):
+        with tempfile.TemporaryDirectory(prefix="connector-cli-") as directory:
+            result = subprocess.run([sys.executable, "-B", str(self.repo / "scripts/packaging/build_browser_extension.py"),
+                                     "--repo", str(self.repo), "--check"], cwd=directory,
+                                    capture_output=True, text=True, timeout=30)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        receipt = json.loads(result.stdout)
+        self.assertTrue(receipt["checked"])
+        self.assertEqual(receipt["path"], OUTPUT_PATH)
+        self.assertEqual(receipt["bytes"], (self.repo / OUTPUT_PATH).stat().st_size)
 
     def test_pinned_source_fetch_is_explicit_bounded_and_identity_checked(self):
         original = pinned_source(self.repo)
@@ -32,13 +44,18 @@ class BrowserExtensionBrandingTests(unittest.TestCase):
             self.assertEqual(command.call_count, 1)
         for name, origin, restored, commit_present in (
             ("allowed", b"https://github.com/Victor-Xu-1/X-Science.git\n", original, False),
+            ("allowed_without_git", b"https://github.com/Victor-Xu-1/X-Science\n", original, False),
             ("wrong_origin", b"https://example.invalid/other.git\n", original, False),
+            ("credentials", b"https://user@github.com/Victor-Xu-1/X-Science.git\n", original, False),
+            ("other_repository", b"https://github.com/Victor-Xu-1/Other.git\n", original, False),
+            ("other_scheme", b"http://github.com/Victor-Xu-1/X-Science.git\n", original, False),
+            ("other_host", b"https://github.com.example.invalid/Victor-Xu-1/X-Science.git\n", original, False),
             ("bad_digest", b"https://github.com/Victor-Xu-1/X-Science.git\n", original + b"changed", False),
             ("present_commit_bad_blob", b"https://github.com/Victor-Xu-1/X-Science.git\n", original, True),
         ):
             with self.subTest(case=name), mock.patch("subprocess.check_output", side_effect=[missing, origin, b"", restored]) as command, \
                     mock.patch("subprocess.run", return_value=subprocess.CompletedProcess([], 0 if commit_present else 1)):
-                if name == "allowed":
+                if name in ("allowed", "allowed_without_git"):
                     self.assertEqual(pinned_source(self.repo, fetch_source=True), original)
                     self.assertEqual([call.args[0] for call in command.call_args_list], [show, remote, fetch, show])
                 else:
