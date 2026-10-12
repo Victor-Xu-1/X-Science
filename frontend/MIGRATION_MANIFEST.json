@@ -3,7 +3,7 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "f6ec292859ea28e598590b010660dcee654f88acec5b17ebc2684a83a2e8c859",
+  "adaptationFingerprintSHA256": "4c9ecd7879b956f501a57c818fa6f02aecd31805e63575ab6d52cd4fbf5cfdd0",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
   "additionFingerprintSHA256": "daf02a73a3dc001b3e6ecfd873dcb9762da044719931394b043f8030ca2ac210",
   "summary": {
@@ -2768,8 +2768,8 @@
     {
       "path": "packages/desktop/src/renderer/services/synonBiomedArtifacts.ts",
       "sourceSHA256": "a2b9dc567dc942b1ca0f0013ec6ddf49e5f2e8f0ca3ce68782538a39fbae550e",
-      "targetSHA256": "30f5fc53a475f4c885f7617266a77346145c503804a708deea4f1267de520e7c",
-      "bytes": 9095,
+      "targetSHA256": "b90a762c3d98b249dfddea9c27e1d01963c2464b5ac1c5523b7f8665c6967e23",
+      "bytes": 9697,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -4245,8 +4245,8 @@
     {
       "path": "tests/unit/renderer/synonBiomedArtifacts.dom.test.ts",
       "sourceSHA256": "8e45ecad7879745647b725239c3379bcb6b416e706f696f892efdb4d12f7896d",
-      "targetSHA256": "6552a493c94e90d459064bfa02e1972725c80865dc1c45c639b736ad256dcf08",
-      "bytes": 5601,
+      "targetSHA256": "e6a85411e9be66b527cfa7cb86bab2a1b5743342446d6673aa6bdaa809267a41",
+      "bytes": 7416,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
