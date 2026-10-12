@@ -30,15 +30,20 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 mkdir -p "$TMP_DIR/bin" "$TMP_DIR/state"
+REAL_NODE=$(command -v node)
+if [[ -z "$REAL_NODE" || ! -x "$REAL_NODE" ]]; then
+  echo "node executable is required for source-quickstart health checks" >&2
+  exit 1
+fi
 cat >"$TMP_DIR/bin/go" <<'EOF'
 #!/usr/bin/env bash
 [[ "${1:-}" == env && "${2:-}" == GOVERSION ]] && { printf '%s\n' "${FAKE_GO_VERSION:-go1.26.5}"; exit; }
 echo "unexpected go invocation: $*" >&2; exit 2
 EOF
-cat >"$TMP_DIR/bin/node" <<'EOF'
+cat >"$TMP_DIR/bin/node" <<EOF
 #!/usr/bin/env bash
-[[ "${1:-}" == --version ]] && { printf '%s\n' "${FAKE_NODE_VERSION:-v22.22.2}"; exit; }
-[[ "${1:-}" == -e ]] && exec /usr/bin/node "$@"
+[[ "\${1:-}" == --version ]] && { printf '%s\n' "\${FAKE_NODE_VERSION:-v22.22.2}"; exit; }
+[[ "\${1:-}" == -e ]] && exec ${REAL_NODE@Q} "\$@"
 echo "unexpected node invocation" >&2; exit 2
 EOF
 cat >"$TMP_DIR/bin/npm" <<'EOF'

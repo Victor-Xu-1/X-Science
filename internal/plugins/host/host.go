@@ -158,6 +158,12 @@ func (h *Host) Get(id string) (Plugin, bool) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	plugin, ok := h.plugins[id]
+	if ok {
+		return plugin, true
+	}
+	if id == "x-science" {
+		plugin, ok = h.plugins["xscience"]
+	}
 	return plugin, ok
 }
 
