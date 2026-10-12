@@ -36,7 +36,8 @@ export function assertRuntimeMessageSender(message, sender, extensionId, configu
     nativePage = parsed.protocol === 'chrome-extension:' && parsed.hostname === extensionId
   } catch {}
   if (nativePage) return
-  if (sender.frameId !== 0 || !isTrustedAppPage(sender.url, configuredServerUrl)) {
+  if (sender.frameId !== 0 || !isTrustedAppPage(sender.url, configuredServerUrl)
+      || (sender.origin !== undefined && !isTrustedAppPage(sender.origin, configuredServerUrl))) {
     throw new Error('Page is not the configured X-Science server')
   }
   if (!PAGE_BRIDGE_ACTIONS.has(message?.type)) throw new Error('Message requires the native connector UI')

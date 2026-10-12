@@ -3228,6 +3228,9 @@ function delay(ms) {
 function sleepBoundedMs(ms, maxMs) {
   const value = Number(ms)
   const bounded = Math.min(maxMs, Math.max(0, Number.isFinite(value) ? value : 0))
+  if (!Number.isFinite(bounded) || bounded < 0 || bounded > 60_000) {
+    throw new RangeError('Browser wait must be between 0 and 60000 milliseconds')
+  }
   return new Promise((resolve) => setTimeout(resolve, bounded))
 }
 
@@ -3235,6 +3238,9 @@ function waitForTabComplete(tabId, timeoutMs = 12_000) {
   if (typeof tabId !== 'number') return Promise.resolve()
   const value = Number(timeoutMs)
   const boundedTimeoutMs = Math.min(60_000, Math.max(300, Number.isFinite(value) ? value : 12_000))
+  if (!Number.isFinite(boundedTimeoutMs) || boundedTimeoutMs < 300 || boundedTimeoutMs > 60_000) {
+    throw new RangeError('Tab completion wait must be between 300 and 60000 milliseconds')
+  }
   return new Promise((resolve) => {
     let done = false
     const finish = () => {

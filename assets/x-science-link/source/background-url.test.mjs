@@ -133,6 +133,8 @@ test('human-read delays and tab completion timers remain bounded and release lis
   })
   for (const value of [Number.MAX_VALUE, Infinity, NaN, -1, '8000']) await sleep(value, 10_000)
   assert.deepEqual(timers, [10_000, 0, 0, 0, 8000])
+  for (const maximum of [Infinity, NaN, -1, 120_000]) assert.throws(() => sleep(100_000, maximum))
+  assert.deepEqual(timers, [10_000, 0, 0, 0, 8000])
   let removed = 0
   let cleared = 0
   const wait = productionFunction('waitForTabComplete', {
@@ -159,6 +161,7 @@ test('Chrome sender authority is origin-bound and cannot be supplied by page pay
   for (const sender of [
     undefined, { ...page, id: 'other-extension' }, { ...page, url: undefined },
     { ...page, url: 'about:blank' }, { ...page, frameId: 1 },
+    { ...page, origin: 'null' }, { ...page, origin: 'http://localhost:18885' },
     { ...page, url: 'http://localhost:18885' }, { ...page, url: 'https://localhost:8765' },
     { ...page, url: 'http://localhost.example:8765' },
     { ...page, url: 'http://localhost:8765@other.example' },
