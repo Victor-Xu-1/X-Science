@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "53dc1c8d310455e5de40955e52f6becf3d2d7c51e539939381c4fbf2b8820952",
+  "adaptationFingerprintSHA256": "f78db94e95437fe0047dac3a1f2024e9529daba2e5be8b8172b3ce852990bb2c",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
-  "additionFingerprintSHA256": "01a3a698b7df57869cb50f2d65e1239f0b0f39af42f839576c5c15599c530aa6",
+  "additionFingerprintSHA256": "e46c4836cbe6bcaebdf43161d04b90d2ae1e4ce1bb6d398a54a20fd0c7fca34f",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 276,
@@ -5723,8 +5723,8 @@
     {
       "path": "vite.config.ts",
       "sourceSHA256": "71a926e99f8994aaabf2b98ac6e24e768b0656135e071c75f4ca479200fa7d7b",
-      "targetSHA256": "4f3f4ebe5226a1c4a42780a510fa4406b342d80c79e70b026c12b5b902d3caad",
-      "bytes": 12578,
+      "targetSHA256": "1cdad18ec06bbaef027e5e2140d789f377a1db3960941c61375ba1f8959e4c7e",
+      "bytes": 12452,
       "reason": "Use the granular UnoCSS Vite integration."
     },
     {
@@ -10805,8 +10805,8 @@
     },
     {
       "path": "tests/unit/build/rendererBootProjection.test.ts",
-      "sha256": "8234f3641fcab5faf7bcc67276b0b429146f3cc6d42466282dd88b0640395444",
-      "bytes": 2871,
+      "sha256": "e23e40900937babb9a625b3438ca560ba1a907e62e42500488a3377361bf9094",
+      "bytes": 2400,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
