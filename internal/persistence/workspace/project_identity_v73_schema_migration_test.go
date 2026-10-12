@@ -127,7 +127,7 @@ func TestProjectIdentityV73HasCanonicalIdentity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	last := expected.Migrations[len(expected.Migrations)-1]
+	last := expected.Migrations[projectIdentityV73Migration.version-1]
 	if last.Version != 73 || last.Name != "project-identity-history" {
 		t.Fatalf("last migration=%#v", last)
 	}
