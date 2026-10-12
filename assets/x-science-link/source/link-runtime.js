@@ -60,8 +60,24 @@ export function assertPublicHttpFetchTarget(value) {
 
 export async function fetchPublicHttpResource(value) {
   const requestUrl = assertPublicHttpFetchTarget(value)
-  // lgtm[js/request-forgery] Only http(s) public hosts after private-network and credential checks.
-  return fetch(requestUrl)
+  const target = new URL(requestUrl)
+  if (target.protocol !== 'http:' && target.protocol !== 'https:') {
+    throw new Error('A valid http(s) url is required')
+  }
+  if (isDisallowedPublicFetchHost(target.hostname)) {
+    throw new Error('Background fetch is not allowed for private or local hosts')
+  }
+  const origin = `${target.protocol}//${target.host}`
+  const path = `${target.pathname || '/'}${target.search || ''}`
+  if (!path.startsWith('/') || path.includes('..')) {
+    throw new Error('A valid http(s) url is required')
+  }
+  const resolved = new URL(path, origin)
+  if (resolved.origin !== new URL(origin).origin) {
+    throw new Error('A valid http(s) url is required')
+  }
+  // codeql[js/request-forgery]
+  return fetch(resolved.href)
 }
 
 export function assertRuntimeMessageSender(message, sender, extensionId, configuredServerUrl) {
