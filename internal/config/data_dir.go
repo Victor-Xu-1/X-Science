@@ -58,12 +58,19 @@ func applyDataDirectoryControl(cfg *Config, configPath string) error {
 			}
 		}
 	}
-	resolved, source, err := controller.Resolve(defaultHome())
+	selected, retained, err := retainedPublishedDefaultHome(cfg.DefaultDataDir)
+	if err != nil {
+		return fmt.Errorf("resolve published default data authority: %w", err)
+	}
+	resolved, source, err := controller.Resolve(selected)
 	if err != nil {
 		return fmt.Errorf("resolve data directory: %w", err)
 	}
 	cfg.HomeDir = resolved
 	cfg.DataDirSource = source
+	if retained {
+		cfg.DataDirSource = "published-default-awaiting-handoff"
+	}
 	return nil
 }
 

@@ -486,8 +486,12 @@ func managedExecutionPathToken(value string) string {
 }
 
 func commandExecutesManagedExecutionPack(skillName string, pack sciencecapability.ExecutionPack, content string) bool {
+	return managedExecutionPackCommandMatches(skillName, pack, content, false)
+}
+
+func managedExecutionPackCommandMatches(skillName string, pack sciencecapability.ExecutionPack, content string, historicalReceipt bool) bool {
 	tokens, ok := managedExecutionSingleShellCommandTokens(content)
-	if !ok || !agentRuntimeCommandIsSingleMaterializedSkillExecution("bash", content) {
+	if !ok || (!historicalReceipt && !agentRuntimeCommandIsSingleMaterializedSkillExecution("bash", content)) {
 		return false
 	}
 	entrypoint := pack.MaterializedSkillEntrypoint()
@@ -497,7 +501,12 @@ func commandExecutesManagedExecutionPack(skillName string, pack sciencecapabilit
 	pathIndex := -1
 	for index, token := range tokens {
 		path := filepath.ToSlash(filepath.Clean(token))
-		if skillRuntimeCommandReferences(skillName, path) && strings.HasSuffix(path, "/"+entrypoint) {
+		references := skillRuntimeCommandReferences(skillName, path)
+		if historicalReceipt && !references {
+			lowerPath := strings.ReplaceAll(strings.ToLower(path), `\`, "/")
+			references = strings.Contains(lowerPath, "/.synon/runtime/skills/"+strings.ToLower(strings.TrimSpace(skillName))+"-")
+		}
+		if references && strings.HasSuffix(path, "/"+entrypoint) {
 			if pathIndex >= 0 {
 				return false
 			}

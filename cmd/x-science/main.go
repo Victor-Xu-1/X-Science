@@ -556,7 +556,14 @@ func applyRuntimeMemoryConfig(options server.Options, cfg config.Config) server.
 }
 
 func openWorkspaceStore(home string) (*workspace.Store, error) {
-	return workspace.Open(filepath.Join(home, "workspace", workspace.DatabaseFilename))
+	path, err := workspace.StartupDatabasePath(home)
+	if err != nil {
+		return nil, err
+	}
+	if filepath.Base(path) != workspace.DatabaseFilename {
+		fmt.Fprintln(os.Stderr, "X-Science: existing datastore retained in place until verified namespace handoff.")
+	}
+	return workspace.Open(path)
 }
 
 func normalizeRunnerConfig(runner config.RunnerConfig) config.RunnerConfig {

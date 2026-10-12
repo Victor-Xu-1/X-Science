@@ -63,7 +63,7 @@ func newBaselineShapeFixture(t *testing.T, agentCount int, skillCount int, toolC
 		"README.md",
 		"bunfig.toml",
 		"package.json",
-		"xscience.config.toml",
+		"synonbiomed.config.toml", // Published source-side name.
 	}
 	for _, relative := range rootFiles {
 		writeFile(t, filepath.Join(source, relative), relative+"\n")
@@ -78,7 +78,7 @@ func newBaselineShapeFixture(t *testing.T, agentCount int, skillCount int, toolC
 		"docs",
 		"scripts",
 		"scripts/__pycache__",
-		"x_science_llm_core",
+		"synon_llm_core",
 		"tests",
 		"runtime/assets/compute",
 		"runtime/assets/drizzle",
@@ -105,7 +105,7 @@ func newBaselineShapeFixture(t *testing.T, agentCount int, skillCount int, toolC
 		"runtime/server/orgsImportWorker.js",
 		"runtime/server/sandbox/gitScanWorker.js",
 		"runtime/server/sqliteWorkerEntry.js",
-		"runtime/server/xscience.bundle.js",
+		"runtime/server/synonbiomed.bundle.js",
 	}
 	for _, relative := range serverFiles {
 		writeFile(t, filepath.Join(source, relative), relative+"\n")

@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-const privateBaselineLicense = "XScience-v1.1-private-all-rights-reserved"
+const privateBaselineLicense = "SynonBiomed-v1.1-private-all-rights-reserved" // Immutable source attribution.
 
 func BaselineRules(source string) ([]Rule, error) {
 	root, err := canonicalRoot(source)
@@ -39,13 +39,13 @@ func BaselineRules(source string) ([]Rule, error) {
 			"v1.1 smoke and setup script inventory",
 		),
 		stateRule("scripts-python-cache", "scripts/__pycache__", "generated-cache", "compiled Python cache is reproducible state"),
-		componentRule("x-science-llm-core", "x_science_llm_core", "llm-runtime-adapter", "javascript", ThinAdapter, "assets/optional/x-science-llm-core", true, true, "providers", []string{"managed JavaScript runtime until ported"}, "v1.1 LLM core protocol and injection source"),
+		componentRule("x-science-llm-core", "synon_llm_core", "llm-runtime-adapter", "javascript", ThinAdapter, "assets/optional/x-science-llm-core", true, true, "providers", []string{"managed JavaScript runtime until ported"}, "v1.1 LLM core protocol and injection source"),
 		componentRule("baseline-tests", "tests", "compatibility-test", "javascript", DirectCopy, "testdata/v1.1/probes", false, false, "compatibility", []string{"test-only JavaScript runtime"}, "v1.1 real integration test inventory"),
 
 		componentRule("server-org-import-worker", "runtime/server/orgsImportWorker.js", "runtime-worker", "javascript", ThinAdapter, "assets/optional/v1.1-workers/orgsImportWorker.js", true, true, "runtime", []string{"managed JavaScript runtime"}, "v1.1 main runtime worker asset"),
 		componentRule("server-git-scan-worker", "runtime/server/sandbox/gitScanWorker.js", "runtime-worker", "javascript", ThinAdapter, "assets/optional/v1.1-workers/gitScanWorker.js", true, true, "runtime", []string{"managed JavaScript runtime", "sandbox policy"}, "v1.1 main runtime worker asset"),
 		componentRule("server-sqlite-worker", "runtime/server/sqliteWorkerEntry.js", "persistence-worker", "javascript", MechanicalPort, "internal/persistence/sqlite", false, true, "persistence", []string{"SQLite"}, "v1.1 SQLite worker behavior"),
-		componentRule("server-main-bundle", "runtime/server/xscience.bundle.js", "main-runtime-bundle", "javascript-bun", BlackBoxReimplementation, "internal/compat/oracle", false, true, "compatibility", []string{"Bun required only to run baseline differential probes"}, "shipped v1.1 Bun main runtime"),
+		componentRule("server-main-bundle", "runtime/server/synonbiomed.bundle.js", "main-runtime-bundle", "javascript-bun", BlackBoxReimplementation, "internal/compat/oracle", false, true, "compatibility", []string{"Bun required only to run baseline differential probes"}, "shipped v1.1 Bun main runtime"),
 
 		componentRule("assets-build-metadata", "runtime/assets/BUILD.json", "asset-metadata", "json", DirectCopy, "assets/manifests/v1.1-build.json", true, true, "assets", nil, "v1.1 runtime asset build metadata"),
 		componentRule("assets-skills-third-party-licenses", "runtime/assets/skills/THIRD_PARTY_LICENSES.md", "third-party-license", "markdown", DirectCopy, "assets/x-science/skills/THIRD_PARTY_LICENSES.md", true, false, "legal", nil, "v1.1 bundled skill third-party license inventory"),
@@ -80,7 +80,7 @@ func BaselineRules(source string) ([]Rule, error) {
 		{id: "root-readme", path: "README.md", category: "documentation", language: "markdown", decision: DirectCopy, target: "docs/reference/xscience-v1.1/README.md", owner: "engineering", evidence: "v1.1 source documentation"},
 		{id: "root-bun-config", path: "bunfig.toml", category: "baseline-build", language: "toml", decision: BlackBoxReimplementation, target: "docs/compatibility/v1.1-build", owner: "compatibility", evidence: "v1.1 Bun runtime configuration"},
 		{id: "root-package", path: "package.json", category: "baseline-build", language: "json", decision: BlackBoxReimplementation, target: "docs/compatibility/v1.1-build", owner: "compatibility", evidence: "v1.1 package and script inventory"},
-		{id: "root-runtime-config", path: "xscience.config.toml", category: "runtime-config", language: "toml", decision: MechanicalPort, target: "internal/config", wired: true, owner: "runtime", evidence: "v1.1 runtime configuration surface"},
+		{id: "root-runtime-config", path: "synonbiomed.config.toml", category: "runtime-config", language: "toml", decision: MechanicalPort, target: "internal/config", wired: true, owner: "runtime", evidence: "v1.1 runtime configuration surface"},
 	}
 	for _, rootFile := range rootFiles {
 		rules = append(rules, componentRule(

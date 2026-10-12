@@ -10,7 +10,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IMessageText } from '@/common/chat/chatLib';
 import { ipcBridge } from '@/common';
 import { ConversationProvider } from '@/renderer/hooks/context/ConversationContext';
-import MessageText from '@/renderer/pages/conversation/Messages/components/MessageText';
+import MessageText, { parseFileMarker } from '@/renderer/pages/conversation/Messages/components/MessageText';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import {
   LARGE_TEXT_PREVIEW_MAX_LENGTH,
@@ -176,6 +176,25 @@ const fileMetadata = (path: string) => ({
 });
 
 describe('MessageText attachment paths', () => {
+  it.each(['[[X_SCIENCE_FILES]]', '[[SYNON_AI_FILES]]'])(
+    'reads the exact published file marker %s without rewriting message bytes',
+    (marker) => {
+      const original = `Retained report\n${marker}\n/workspace/report.csv\nrelative.sdf`;
+      expect(parseFileMarker(original)).toEqual({
+        text: 'Retained report',
+        files: ['/workspace/report.csv', 'relative.sdf'],
+      });
+      render(
+        <MessageText
+          message={{ id: marker, type: 'text', position: 'left', content: { content: original } } as IMessageText}
+        />
+      );
+      expect(screen.getAllByTestId('file-preview').map((item) => item.textContent)).toEqual([
+        '/workspace/report.csv',
+        'relative.sdf',
+      ]);
+    }
+  );
   it('keeps a folded historical delivery inventory expandable and copies its original text', async () => {
     const original =
       'Verified result.\n\nDeliverables\n\n- [a.csv](/api/artifacts/a/versions/v1)\n- [b.csv](/api/artifacts/b/versions/v2)';

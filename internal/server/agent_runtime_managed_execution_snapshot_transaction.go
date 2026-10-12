@@ -27,7 +27,9 @@ func (s *Server) verifyAndPublishManagedExecutionOutputAuthority(
 	if err := publishManagedExecutionOutputSnapshotLocked(ctx, workspaceRoot, authority); err != nil {
 		return managedExecutionOutputAuthority{}, err
 	}
-	authority.ResolvedRoot = managedExecutionSnapshotDirectory(workspaceRoot, authority)
+	if authority.ResolvedRoot != publishedManagedExecutionSnapshotDirectory(workspaceRoot, authority) {
+		authority.ResolvedRoot = managedExecutionSnapshotDirectory(workspaceRoot, authority)
+	}
 	return authority, nil
 }
 

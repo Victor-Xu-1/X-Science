@@ -71,7 +71,7 @@ var v11TableDispositions = map[string]tableDispositionSpec{
 	"session_concurrency":       {DispositionDiscard, "", "process-local concurrency ownership must be reacquired"},
 	"session_seen_marks":        {DispositionImport, "session_seen_marks", "schema-compatible import"},
 	"skill_license_assents":     {DispositionArchive, "", "license assent evidence is retained for later activation"},
-	"x_science_llm_api_keys":    {DispositionArchive, "", "legacy encrypted model credentials are retained for controlled conversion"},
+	"synon_llm_api_keys":        {DispositionArchive, "", "legacy encrypted model credentials are retained for controlled conversion"},
 	"transcript_annotations":    {DispositionImport, "transcript_annotations", "schema-compatible import into the active transcript annotation service"},
 	"use_intent_declarations":   {DispositionImport, "use_intent_declarations", "schema-compatible import"},
 	"user_agents":               {DispositionImport, "user_agents", "schema-compatible import"},
@@ -104,6 +104,9 @@ func planTableDispositions(sourceCounts map[string]int64) (map[string]TableDispo
 }
 
 func archivedTableName(source string) string {
+	if source == "synon_llm_api_keys" {
+		return "legacy_v11_x_science_llm_api_keys"
+	}
 	return "legacy_v11_" + source
 }
 

@@ -71,7 +71,7 @@ func TestOutboundMediaLocalPathRejectsSensitiveAndSymlinkEscape(t *testing.T) {
 func TestOutboundMediaKeepsHistoricalAndCanonicalVaultDirectoriesPrivate(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("X_SCIENCE_OUTBOUND_MEDIA_ROOTS", root)
-	for _, directory := range []string{".synon", ".x-science", ".xscience"} {
+	for _, directory := range []string{".synon", ".synon-go", ".x-science", ".xscience"} {
 		path := filepath.Join(root, directory, "private.json")
 		if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 			t.Fatal(err)

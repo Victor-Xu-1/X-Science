@@ -35,13 +35,18 @@ import actionStyles from './MessageRoundFooter.module.css';
 
 const CODE_STYLE = { marginTop: 4, marginBlock: 4 };
 
-const parseFileMarker = (content: string) => {
-  const markerIndex = content.indexOf(X_SCIENCE_FILES_MARKER);
-  if (markerIndex === -1) {
+export const parseFileMarker = (content: string) => {
+  // These are exact persisted wire formats; old conversation bytes stay intact.
+  const marker = [X_SCIENCE_FILES_MARKER, '[[SYNON_AI_FILES]]']
+    .map((value) => ({ value, index: content.indexOf(value) }))
+    .filter((item) => item.index >= 0)
+    .sort((left, right) => left.index - right.index)[0];
+  const markerIndex = marker?.index ?? -1;
+  if (!marker) {
     return { text: content, files: [] as string[] };
   }
   const text = content.slice(0, markerIndex).trimEnd();
-  const afterMarker = content.slice(markerIndex + X_SCIENCE_FILES_MARKER.length).trim();
+  const afterMarker = content.slice(markerIndex + marker.value.length).trim();
   const files = afterMarker
     ? afterMarker
         .split('\n')
