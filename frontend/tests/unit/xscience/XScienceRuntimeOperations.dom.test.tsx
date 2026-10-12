@@ -894,11 +894,7 @@ describe('XScienceRuntimeOperations', () => {
       } as const;
       runtimeMocks.loadSnapshot.mockResolvedValue(activeSnapshot);
       const view = await renderWithI18n(
-        <XScienceRuntimeOperations
-          conversationId='frame-heartbeat'
-          runtimeState='waiting_input'
-          onResumed={vi.fn()}
-        />
+        <XScienceRuntimeOperations conversationId='frame-heartbeat' runtimeState='waiting_input' onResumed={vi.fn()} />
       );
       await act(async () => {
         await Promise.resolve();
@@ -1453,11 +1449,7 @@ describe('XScienceRuntimeOperations', () => {
     runtimeMocks.loadSnapshot.mockRejectedValue(new Error('temporary runtime failure'));
 
     await renderWithI18n(
-      <XScienceRuntimeOperations
-        conversationId='frame-active-load-failed'
-        runtimeState='running'
-        onResumed={vi.fn()}
-      />
+      <XScienceRuntimeOperations conversationId='frame-active-load-failed' runtimeState='running' onResumed={vi.fn()} />
     );
 
     await waitFor(() => expect(runtimeMocks.loadSnapshot).toHaveBeenCalledOnce());
@@ -1920,11 +1912,7 @@ describe('XScienceRuntimeOperations', () => {
       feasibility: null,
     });
     await renderWithI18n(
-      <XScienceRuntimeOperations
-        conversationId='frame-plan'
-        runtimeState='waiting_confirmation'
-        onResumed={vi.fn()}
-      />
+      <XScienceRuntimeOperations conversationId='frame-plan' runtimeState='waiting_confirmation' onResumed={vi.fn()} />
     );
     fireEvent.click(await screen.findByRole('button', { name: '查看计划并审批' }));
     expect(await screen.findByText('Stable reviewed plan')).toBeInTheDocument();

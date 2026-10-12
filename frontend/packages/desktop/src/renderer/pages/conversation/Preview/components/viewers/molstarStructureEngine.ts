@@ -840,10 +840,7 @@ const POCKET_COLORS = {
   labelBackground: Color(0xf8fafc),
   distance: Color(0x1d4ed8),
 };
-const POCKET_NATIVE_INTERACTION_TAGS = [
-  'x-science-pocket-interactions',
-  'x-science-pocket-water-bridges',
-] as const;
+const POCKET_NATIVE_INTERACTION_TAGS = ['x-science-pocket-interactions', 'x-science-pocket-water-bridges'] as const;
 
 /** Every docking visual owned by the receptor-side visibility control. */
 export const DOCKING_PROTEIN_VISIBILITY_TAGS = [
@@ -1546,7 +1543,8 @@ export async function createMolstarStructureEngine(
         setSubtreeVisibility(plugin.state.data, cell.transform.ref, hideNative);
       }
     }
-    host.dataset.xsciencePocketInteractionRenderMode = strengthLabelCount > 0 ? 'native-with-strength-labels' : 'native';
+    host.dataset.xsciencePocketInteractionRenderMode =
+      strengthLabelCount > 0 ? 'native-with-strength-labels' : 'native';
     host.dataset.xsciencePocketInteractionStrengthCount = String(strengthLabelCount);
     host.dataset.xsciencePocketInteractionVisible = String(dockingProteinVisible);
   };
@@ -3285,12 +3283,7 @@ export async function createMolstarStructureEngine(
       );
     }
     if (hasPocketSurface) {
-      await addElectrostaticSurface(
-        pocket,
-        'pocket',
-        'x-science-layer-pocket-surface',
-        electrostaticVolumes.protein
-      );
+      await addElectrostaticSurface(pocket, 'pocket', 'x-science-layer-pocket-surface', electrostaticVolumes.protein);
     }
     await Promise.all(
       ligandSurfacePlans.map((plan, index) =>

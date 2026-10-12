@@ -3373,9 +3373,7 @@ const XScienceStructureViewer: React.FC<XScienceStructureViewerProps> = ({
           {rightPanelActive && (
             <aside
               className='x-science-molstar__docking-card'
-              data-testid={
-                dockingPanelActive ? 'x-science-docking-score-card' : 'x-science-structure-object-card'
-              }
+              data-testid={dockingPanelActive ? 'x-science-docking-score-card' : 'x-science-structure-object-card'}
               data-collapsed={!rightPanelExpanded ? 'true' : undefined}
               aria-live='polite'
               style={{

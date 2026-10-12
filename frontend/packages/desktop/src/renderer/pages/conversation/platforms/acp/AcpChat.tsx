@@ -26,10 +26,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import XScienceDelegateDock from '../../components/XScienceDelegateDock';
 import AcpSendBox from './AcpSendBox';
 import { useAcpMessage } from './useAcpMessage';
-import {
-  type XScienceConversationSyncIssue,
-  useXScienceConversationSync,
-} from './useXScienceConversationSync';
+import { type XScienceConversationSyncIssue, useXScienceConversationSync } from './useXScienceConversationSync';
 
 const AcpChat: React.FC<{
   conversation: TChatConversation;

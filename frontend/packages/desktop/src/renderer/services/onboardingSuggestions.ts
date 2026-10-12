@@ -164,10 +164,7 @@ export async function cancelOnboardingSuggestionFrame(
   );
 }
 
-function parseSuggestionSession(
-  frameId: string,
-  pending: XSciencePendingInputRequest[]
-): OnboardingSuggestionSession {
+function parseSuggestionSession(frameId: string, pending: XSciencePendingInputRequest[]): OnboardingSuggestionSession {
   if (pending.length !== 1) throw new Error('onboarding_suggestion_request_invalid');
   const request = pending[0];
   if (request.kind !== 'ask' || request.tool !== 'ask_user') {

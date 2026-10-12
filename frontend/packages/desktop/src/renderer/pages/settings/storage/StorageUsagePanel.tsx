@@ -1,9 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  loadXScienceEnvironmentUsage,
-  type XScienceDiskUsage,
-} from '@/renderer/services/xScienceWorkspaceSettings';
+import { loadXScienceEnvironmentUsage, type XScienceDiskUsage } from '@/renderer/services/xScienceWorkspaceSettings';
 import { RefreshButton, SettingsSection } from '../components/SettingsPrimitives';
 import { StorageError, StorageLoading } from './StorageFeedback';
 import { formatStorageBytes } from './storagePresentation';
@@ -18,8 +15,7 @@ const categories = [
   { key: 'tempBytes', id: 'temp', label: 'tempDirectory' },
 ] as const;
 
-const loadEnvironments = (signal: AbortSignal, refresh: boolean) =>
-  loadXScienceEnvironmentUsage({ signal, refresh });
+const loadEnvironments = (signal: AbortSignal, refresh: boolean) => loadXScienceEnvironmentUsage({ signal, refresh });
 
 function ScanTime({ value }: { value?: string | null }) {
   const { t, i18n } = useTranslation();

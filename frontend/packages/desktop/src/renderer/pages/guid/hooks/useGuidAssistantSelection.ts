@@ -20,10 +20,7 @@ import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { useManagedAgentRuntimeCatalog } from '@/renderer/hooks/xScience/runtime/useManagedAgents';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useXScienceAssistantsLoader } from './useXScienceAssistantsLoader';
-import {
-  loadXScienceSessionDefaults,
-  type XScienceSessionDefaults,
-} from '@/renderer/services/xScienceSessionDefaults';
+import { loadXScienceSessionDefaults, type XScienceSessionDefaults } from '@/renderer/services/xScienceSessionDefaults';
 
 export {
   buildAgentRuntimeModeState,

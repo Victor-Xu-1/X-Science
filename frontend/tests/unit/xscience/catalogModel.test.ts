@@ -205,10 +205,7 @@ describe('X-Science catalog model', () => {
       },
     });
 
-    expect(servers.map((server) => server.id)).toEqual([
-      'xscience:mcp:mcp_pubmed',
-      'xscience:mcp:ketcher-chemistry',
-    ]);
+    expect(servers.map((server) => server.id)).toEqual(['xscience:mcp:mcp_pubmed', 'xscience:mcp:ketcher-chemistry']);
     expect(servers[0]).toMatchObject({
       name: 'mcp_pubmed',
       builtin: true,

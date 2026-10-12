@@ -322,7 +322,10 @@ const ComputeJobDetail: React.FC<{
       )}
 
       <dl className='grid grid-cols-2 gap-x-24px gap-y-6px rounded-8px bg-fill-1 px-12px py-10px text-11px'>
-        <DetailItem label={t('conversation.xscienceRuntime.computeRuntime.jobs.provider')} value={detail.providerLabel} />
+        <DetailItem
+          label={t('conversation.xscienceRuntime.computeRuntime.jobs.provider')}
+          value={detail.providerLabel}
+        />
         <DetailItem
           label={t('conversation.xscienceRuntime.computeRuntime.jobs.hardware')}
           value={

@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  readXScienceFileImportResponse,
-  XScienceFileImportError,
-} from '@/renderer/services/xScienceFileImportError';
+import { readXScienceFileImportResponse, XScienceFileImportError } from '@/renderer/services/xScienceFileImportError';
 
 describe('X-Science file import error contract', () => {
   it('preserves a closed backend reason without exposing its raw detail', async () => {

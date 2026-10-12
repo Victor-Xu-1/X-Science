@@ -23,9 +23,7 @@ import { getConversationRuntimeViewSnapshot } from '@/renderer/pages/conversatio
 
 const isXScienceConversationData = (conversation: TChatConversation | null | undefined): boolean => {
   const extra = conversation?.extra as { backend?: string; workspace?: string } | undefined;
-  return (
-    extra?.backend?.trim().toLowerCase() === 'xscience' || Boolean(extra?.workspace?.startsWith('x-science://'))
-  );
+  return extra?.backend?.trim().toLowerCase() === 'xscience' || Boolean(extra?.workspace?.startsWith('x-science://'));
 };
 
 const hasActiveXScienceRuntime = (

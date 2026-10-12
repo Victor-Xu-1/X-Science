@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  resolveSkillDescription,
-  resolveSkillDisplayName,
-} from '@/renderer/services/skills/xScienceSkillDescriptions';
+import { resolveSkillDescription, resolveSkillDisplayName } from '@/renderer/services/skills/xScienceSkillDescriptions';
 
 describe('Skill descriptions from the catalog', () => {
   it('uses localized display names without replacing execution IDs or external titles', () => {
@@ -10,7 +7,9 @@ describe('Skill descriptions from the catalog', () => {
     expect(resolveSkillDisplayName('x-science-research', 'X-Science Research', undefined, names)).toBe(
       'X-Science Research'
     );
-    expect(resolveSkillDisplayName('x-science-research', 'X-Science Research', 'zh-CN', names)).toBe('X-Science 科研研究');
+    expect(resolveSkillDisplayName('x-science-research', 'X-Science Research', 'zh-CN', names)).toBe(
+      'X-Science 科研研究'
+    );
     expect(resolveSkillDisplayName('x-science-research', 'My workflow', 'zh-CN')).toBe('My workflow');
     expect(resolveSkillDisplayName('raw-id', undefined, 'zh-CN', { 'en-US': 'English title' })).toBe('English title');
   });

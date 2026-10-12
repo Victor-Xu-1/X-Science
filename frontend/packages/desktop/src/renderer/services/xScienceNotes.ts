@@ -141,11 +141,7 @@ function toNote(value: unknown): XScienceNote | null {
   };
 }
 
-async function requestJson<T>(
-  path: string,
-  init: RequestInit | undefined,
-  options: XScienceNotesOptions
-): Promise<T> {
+async function requestJson<T>(path: string, init: RequestInit | undefined, options: XScienceNotesOptions): Promise<T> {
   const response = await (options.fetchImpl ?? fetch)(path, {
     ...init,
     credentials: 'include',

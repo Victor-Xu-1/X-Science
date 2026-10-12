@@ -89,9 +89,7 @@ export function useXScienceNotesEditor(visible: boolean, target: XScienceNoteTar
     setSaving(true);
     setMutationFailed(null);
     try {
-      const saved = editingId
-        ? await updateXScienceNote(editingId, draft)
-        : await createXScienceNote(owner, draft);
+      const saved = editingId ? await updateXScienceNote(editingId, draft) : await createXScienceNote(owner, draft);
       if (!active.current || lifecycle.current !== scope) return;
       setNotes((current) =>
         editingId ? current.map((note) => (note.id === saved.id ? saved : note)) : [saved, ...current]

@@ -173,13 +173,7 @@ describe('XScienceArtifactLibrary', () => {
     const onRefresh = vi.fn();
     await renderWithI18n(
       <VirtuosoMockContext.Provider value={{ viewportHeight: 100_000, itemHeight: 140 }}>
-        <XScienceArtifactLibrary
-          nodes={nodes}
-          loading={false}
-          onOpen={onOpen}
-          onMenu={onMenu}
-          onRefresh={onRefresh}
-        />
+        <XScienceArtifactLibrary nodes={nodes} loading={false} onOpen={onOpen} onMenu={onMenu} onRefresh={onRefresh} />
       </VirtuosoMockContext.Provider>,
       'en-US'
     );

@@ -238,10 +238,7 @@ export async function updateXScienceProject(
   return requireProjectPayload(payload, 'update');
 }
 
-export async function deleteXScienceProject(
-  projectId: string,
-  options: XScienceGatewayOptions = {}
-): Promise<void> {
+export async function deleteXScienceProject(projectId: string, options: XScienceGatewayOptions = {}): Promise<void> {
   try {
     await requestJson<unknown>(`/api/projects/${encodeURIComponent(projectId)}`, options, {
       method: 'DELETE',

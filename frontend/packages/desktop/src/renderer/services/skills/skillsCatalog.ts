@@ -23,9 +23,7 @@ export type XScienceSkillInfo = {
   enabled?: boolean;
 };
 
-export async function loadAvailableSkillsWithXScience<T extends XScienceSkillInfo = XScienceSkillInfo>(): Promise<
-  T[]
-> {
+export async function loadAvailableSkillsWithXScience<T extends XScienceSkillInfo = XScienceSkillInfo>(): Promise<T[]> {
   const skills = await loadXScienceSkills();
 
   return skills.map((skill) => ({

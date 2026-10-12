@@ -259,9 +259,7 @@ const MarketplaceEntryCard: React.FC<{
           title={canInstall ? undefined : t('settings.xScienceMcpMarketplaceManualSetup')}
           onClick={onInstall}
         >
-          {canInstall
-            ? t('settings.xScienceMcpMarketplaceInstall')
-            : t('settings.xScienceMcpMarketplaceViewSource')}
+          {canInstall ? t('settings.xScienceMcpMarketplaceInstall') : t('settings.xScienceMcpMarketplaceViewSource')}
         </Button>
         {registryUrl ? (
           <a

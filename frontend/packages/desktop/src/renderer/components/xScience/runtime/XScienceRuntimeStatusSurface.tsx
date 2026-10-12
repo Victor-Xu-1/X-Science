@@ -37,10 +37,7 @@ type Props = {
   pendingInputRef: RefObject<HTMLDivElement | null>;
   resolvingRequestId: string | null;
   pendingAriaLabel: string;
-  onResolveAskUser: (
-    request: XSciencePendingInputRequest,
-    response: XScienceAskUserResponse
-  ) => void | Promise<void>;
+  onResolveAskUser: (request: XSciencePendingInputRequest, response: XScienceAskUserResponse) => void | Promise<void>;
   onResolveInput: (
     request: XSciencePendingInputRequest,
     decision: 'allow' | 'deny',

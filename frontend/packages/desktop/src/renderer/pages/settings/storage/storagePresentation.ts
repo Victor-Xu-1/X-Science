@@ -1,7 +1,4 @@
-import type {
-  XScienceDataDirectory,
-  XScienceStorageRuleValues,
-} from '@/renderer/services/xScienceWorkspaceSettings';
+import type { XScienceDataDirectory, XScienceStorageRuleValues } from '@/renderer/services/xScienceWorkspaceSettings';
 
 export function formatStorageBytes(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value) || value < 0) return '—';

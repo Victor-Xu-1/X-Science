@@ -42,10 +42,7 @@ export async function moveXScienceSession(
   );
 }
 
-export async function deleteXScienceSession(
-  frameId: string,
-  options: XScienceGatewayOptions = {}
-): Promise<void> {
+export async function deleteXScienceSession(frameId: string, options: XScienceGatewayOptions = {}): Promise<void> {
   try {
     await requestXScienceJson(`/api/frames/${encodeURIComponent(frameId)}`, { method: 'DELETE' }, options);
   } catch (error) {

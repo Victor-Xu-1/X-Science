@@ -146,9 +146,7 @@ describe('useAssistantList', () => {
 
     const { result } = renderHook(() => useAssistantList());
     await waitFor(() => expect(result.current.assistants).toHaveLength(3));
-    await act(async () =>
-      result.current.reorderAssistants('xscience:genomics-bioinfo-expert', 'xscience:aidd-expert')
-    );
+    await act(async () => result.current.reorderAssistants('xscience:genomics-bioinfo-expert', 'xscience:aidd-expert'));
 
     expect(result.current.assistants.map((assistant) => assistant.id)).toEqual([
       'xscience:genomics-bioinfo-expert',

@@ -27,10 +27,7 @@ import {
   useReplaceWithAnchorWindow,
 } from '@/renderer/pages/conversation/Messages/hooks';
 import { mergeLoadedPageWithCurrent } from '@/renderer/pages/conversation/Messages/messageWindowReconciliation';
-import {
-  getSelectedXScienceBranch,
-  selectXScienceBranch,
-} from '@/renderer/services/xScienceConversationBranches';
+import { getSelectedXScienceBranch, selectXScienceBranch } from '@/renderer/services/xScienceConversationBranches';
 import { TRANSIENT_HISTORY_RETRY_DELAYS_MS } from '@/renderer/services/xScienceHistoryRetry';
 import { INTERACTIVE_MESSAGE_PAGE_LIMIT } from '@/renderer/utils/chat/messagePagination';
 

@@ -33,8 +33,6 @@ describe('xScienceLicenses service', () => {
     const malformedFetch = vi
       .fn()
       .mockResolvedValue(new Response(JSON.stringify({ ...snapshot, sha256: 'not-a-checksum' }), { status: 200 }));
-    await expect(loadXScienceThirdPartyLicenses({ fetchImpl: malformedFetch })).rejects.toThrow(
-      'response is invalid'
-    );
+    await expect(loadXScienceThirdPartyLicenses({ fetchImpl: malformedFetch })).rejects.toThrow('response is invalid');
   });
 });

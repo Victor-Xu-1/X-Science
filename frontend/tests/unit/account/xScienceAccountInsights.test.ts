@@ -1,8 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import {
-  loadXScienceAccountInsights,
-  parseAccountOverview,
-} from '@/renderer/services/account/xScienceAccountInsights';
+import { loadXScienceAccountInsights, parseAccountOverview } from '@/renderer/services/account/xScienceAccountInsights';
 
 function response(payload: unknown, status = 200): Response {
   return new Response(JSON.stringify(payload), {

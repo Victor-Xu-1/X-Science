@@ -218,10 +218,7 @@ export async function updateXScienceAllowlistGroups(
   });
 }
 
-export async function addXScienceAllowedDomain(
-  domain: string,
-  options: XScienceSettingsOptions = {}
-): Promise<void> {
+export async function addXScienceAllowedDomain(domain: string, options: XScienceSettingsOptions = {}): Promise<void> {
   await requestJson('/api/preferences/allowed-domains', options, {
     method: 'POST',
     body: JSON.stringify({ domain }),
@@ -245,9 +242,7 @@ export async function removeXScienceAllowedDomain(
   await requestJson(`/api/preferences/allowed-domains/${encodeURIComponent(domain)}`, options, { method: 'DELETE' });
 }
 
-export async function loadXScienceHostGrants(
-  options: XScienceSettingsOptions = {}
-): Promise<XScienceHostGrant[]> {
+export async function loadXScienceHostGrants(options: XScienceSettingsOptions = {}): Promise<XScienceHostGrant[]> {
   const payload = asRecord(await requestJson('/api/preferences/host-grants', options));
   return arrayValue(payload?.grants).map(toHostGrant).filter(isPresent);
 }
@@ -265,10 +260,7 @@ export async function updateXScienceHostGrant(
   );
 }
 
-export async function revokeXScienceHostGrant(
-  hostPath: string,
-  options: XScienceSettingsOptions = {}
-): Promise<void> {
+export async function revokeXScienceHostGrant(hostPath: string, options: XScienceSettingsOptions = {}): Promise<void> {
   await requestJson('/api/preferences/host-grants', options, {
     method: 'DELETE',
     body: JSON.stringify({ path: hostPath }),
@@ -338,9 +330,7 @@ export async function loadXScienceDataDirectory(
   };
 }
 
-export async function loadXScienceStorageRules(
-  options: XScienceSettingsOptions = {}
-): Promise<XScienceStorageRules> {
+export async function loadXScienceStorageRules(options: XScienceSettingsOptions = {}): Promise<XScienceStorageRules> {
   return toStorageRules(await requestJson('/api/settings/storage-rules', options));
 }
 
@@ -443,10 +433,7 @@ export async function testXScienceCloudCredential(
   return { success: payload?.success === true, message: stringValue(payload?.message) };
 }
 
-export async function loadXScienceCloudBuckets(
-  id: string,
-  options: XScienceSettingsOptions = {}
-): Promise<string[]> {
+export async function loadXScienceCloudBuckets(id: string, options: XScienceSettingsOptions = {}): Promise<string[]> {
   return stringArray(await requestJson(`/api/cloud-credentials/${encodeURIComponent(id)}/buckets`, options));
 }
 
@@ -532,9 +519,7 @@ export async function exportXScienceArtifactsToCloud(
   return result;
 }
 
-export async function loadXScienceUseIntent(
-  options: XScienceSettingsOptions = {}
-): Promise<XScienceUseIntent> {
+export async function loadXScienceUseIntent(options: XScienceSettingsOptions = {}): Promise<XScienceUseIntent> {
   const payload = asRecord(await requestJson('/api/preferences/use-intent', options));
   return {
     intent: payload?.intent === 'noncommercial' ? 'noncommercial' : 'commercial',
@@ -552,9 +537,7 @@ export async function setXScienceUseIntent(
   return { intent: payload?.intent === 'noncommercial' ? 'noncommercial' : 'commercial', declared: true };
 }
 
-export async function loadXScienceContactEmail(
-  options: XScienceSettingsOptions = {}
-): Promise<XScienceContactEmail> {
+export async function loadXScienceContactEmail(options: XScienceSettingsOptions = {}): Promise<XScienceContactEmail> {
   const payload = asRecord(await requestJson('/api/contact-email', options));
   return {
     decision:
@@ -583,11 +566,7 @@ export async function removeXScienceContactEmail(options: XScienceSettingsOption
   await requestJson('/api/contact-email', options, { method: 'DELETE' });
 }
 
-async function requestJson(
-  path: string,
-  options: XScienceSettingsOptions,
-  init: RequestInit = {}
-): Promise<unknown> {
+async function requestJson(path: string, options: XScienceSettingsOptions, init: RequestInit = {}): Promise<unknown> {
   const response = await (options.fetchImpl ?? fetch)(`${(options.baseUrl ?? '').replace(/\/+$/, '')}${path}`, {
     ...init,
     signal: options.signal,

@@ -246,7 +246,9 @@ const VoiceInputSection: React.FC<VoiceInputSectionProps> = ({ embedded = false 
               <XScienceSelect value={source} onChange={handleSourceChange}>
                 <XScienceSelect.Option value='local'>{t('settings.speechToTextSourceLocal')}</XScienceSelect.Option>
                 <XScienceSelect.Option value='openai'>{t('settings.speechToTextSourceOpenAI')}</XScienceSelect.Option>
-                <XScienceSelect.Option value='deepgram'>{t('settings.speechToTextSourceDeepgram')}</XScienceSelect.Option>
+                <XScienceSelect.Option value='deepgram'>
+                  {t('settings.speechToTextSourceDeepgram')}
+                </XScienceSelect.Option>
                 <XScienceSelect.Option value='custom'>{t('settings.speechToTextSourceCustom')}</XScienceSelect.Option>
               </XScienceSelect>
             </Form.Item>

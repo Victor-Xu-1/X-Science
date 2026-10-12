@@ -114,12 +114,7 @@ describe('X-Science notebook service', () => {
     const options = { fetchImpl };
 
     await expect(
-      stopXScienceKernel(
-        'frame-1',
-        'kernel-1',
-        { mode: 'clear', reason: '  use less memory  ', force: true },
-        options
-      )
+      stopXScienceKernel('frame-1', 'kernel-1', { mode: 'clear', reason: '  use less memory  ', force: true }, options)
     ).resolves.toEqual({
       ok: true,
       mode: 'clear',

@@ -48,9 +48,7 @@ export type XScienceLongTaskStatusResult =
 
 const terminalPhases = new Set<XScienceLongTaskPhase>(['completed', 'failed', 'cancelled']);
 
-export function projectXScienceLongTaskStatus(
-  snapshot: XScienceRuntimeSnapshot
-): XScienceLongTaskStatusResult {
+export function projectXScienceLongTaskStatus(snapshot: XScienceRuntimeSnapshot): XScienceLongTaskStatusResult {
   const authority = projectXScienceTaskAuthority(snapshot);
   if (!authority) return { ok: false, code: 'long_task_status_unsupported' };
   const { phase, taskCompleted } = authority;

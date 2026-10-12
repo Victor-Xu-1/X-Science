@@ -120,9 +120,10 @@ describe('X-Science scientific preview planning', () => {
   });
 
   it('does not send unsupported KET and RXN payloads to the line-based SMILES renderer', () => {
-    expect(
-      resolveXScienceArtifactPreviewPlan({ filename: 'editable.ket', contentType: 'application/json' })
-    ).toEqual({ type: 'molecule', fetchText: false });
+    expect(resolveXScienceArtifactPreviewPlan({ filename: 'editable.ket', contentType: 'application/json' })).toEqual({
+      type: 'molecule',
+      fetchText: false,
+    });
     expect(
       resolveXScienceArtifactPreviewPlan({ filename: 'reaction.rxn', contentType: 'chemical/x-mdl-rxnfile' })
     ).toEqual({ type: 'molecule', fetchText: false });

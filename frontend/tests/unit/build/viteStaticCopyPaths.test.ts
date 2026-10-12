@@ -12,9 +12,7 @@ describe('Vite static-copy source paths', () => {
   });
 
   it('normalizes Windows paths before they enter the glob boundary', () => {
-    expect(portableStaticCopySource(String.raw`C:\x-science\frontend\LICENSE`)).toBe(
-      'C:/x-science/frontend/LICENSE'
-    );
+    expect(portableStaticCopySource(String.raw`C:\x-science\frontend\LICENSE`)).toBe('C:/x-science/frontend/LICENSE');
   });
 
   it('preserves already portable paths', () => {

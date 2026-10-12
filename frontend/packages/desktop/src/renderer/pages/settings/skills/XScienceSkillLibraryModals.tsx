@@ -7,10 +7,7 @@ import { skillSourceLabel } from './skillSourceLabel';
 import { useSkillDetailSession } from './useSkillDetailSession';
 import { useSkillDetailFiles } from './useSkillDetailFiles';
 import { detailSuccessKeys, useSkillDetailMutations } from './useSkillDetailMutations';
-import {
-  resolveSkillDescription,
-  resolveSkillDisplayName,
-} from '@/renderer/services/skills/xScienceSkillDescriptions';
+import { resolveSkillDescription, resolveSkillDisplayName } from '@/renderer/services/skills/xScienceSkillDescriptions';
 import { getXScienceSkillCategoryLabel } from '@/renderer/services/skills/xScienceSkillCategories';
 import {
   importXScienceSkillFile,

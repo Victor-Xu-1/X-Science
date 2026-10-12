@@ -250,11 +250,7 @@ describe('useAcpInitialMessage', () => {
     });
 
     await vi.waitFor(() => expect(sessionStorage.getItem(storageKey)).toBeNull());
-    expect(params.markSendAccepted).toHaveBeenCalledWith(
-      'turn-1',
-      { backend: 'xscience', status: 'running' },
-      'msg-1'
-    );
+    expect(params.markSendAccepted).toHaveBeenCalledWith('turn-1', { backend: 'xscience', status: 'running' }, 'msg-1');
     expect(setComputeProviderMock).toHaveBeenCalledWith(conversationId, 'local', true);
   });
 

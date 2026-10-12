@@ -591,9 +591,7 @@ function isArtifactAnnotation(value: XScienceArtifactAnnotation | null): value i
   return value !== null;
 }
 
-function isTranscriptAnnotation(
-  value: XScienceTranscriptAnnotation | null
-): value is XScienceTranscriptAnnotation {
+function isTranscriptAnnotation(value: XScienceTranscriptAnnotation | null): value is XScienceTranscriptAnnotation {
   return value !== null;
 }
 

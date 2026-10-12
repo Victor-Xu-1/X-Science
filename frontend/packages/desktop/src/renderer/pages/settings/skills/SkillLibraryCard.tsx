@@ -6,10 +6,7 @@ import {
   getXScienceSkillCategoryLabel,
   resolveXScienceSkillCategory,
 } from '@/renderer/services/skills/xScienceSkillCategories';
-import {
-  resolveSkillDescription,
-  resolveSkillDisplayName,
-} from '@/renderer/services/skills/xScienceSkillDescriptions';
+import { resolveSkillDescription, resolveSkillDisplayName } from '@/renderer/services/skills/xScienceSkillDescriptions';
 import type { XScienceSkillDraft } from '@/renderer/services/skills/xScienceSkillLibrary';
 import type { XScienceSkillUsage } from '@/renderer/services/skills/xScienceSkillUsage';
 

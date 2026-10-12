@@ -26,10 +26,7 @@ export type XScienceRuntimeBadgeProps = {
 
 /** Render X-Science runtime logo from catalog metadata or the shared avatar. */
 export const XScienceRuntimeLogoIcon: React.FC<
-  Pick<
-    XScienceRuntimeBadgeProps,
-    'backend' | 'agentLogo' | 'agentLogoIsEmoji' | 'agentLogoIsFallback' | 'agent_name'
-  >
+  Pick<XScienceRuntimeBadgeProps, 'backend' | 'agentLogo' | 'agentLogoIsEmoji' | 'agentLogoIsFallback' | 'agent_name'>
 > = ({ backend, agentLogo, agentLogoIsEmoji, agentLogoIsFallback, agent_name }) => {
   const logos = useAgentLogos();
   const logoContent = (() => {

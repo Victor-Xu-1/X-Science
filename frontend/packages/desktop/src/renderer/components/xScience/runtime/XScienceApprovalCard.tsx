@@ -171,7 +171,9 @@ const XScienceApprovalCard: React.FC<XScienceApprovalCardProps> = ({
             {request.target ? <code className='x-science-approval-card__code'>{request.target}</code> : null}
             {request.code ? (
               <div>
-                <div className='x-science-approval-card__code-label'>{t('conversation.xscienceRuntime.approval.code')}</div>
+                <div className='x-science-approval-card__code-label'>
+                  {t('conversation.xscienceRuntime.approval.code')}
+                </div>
                 <pre className='x-science-approval-card__code'>{request.code}</pre>
               </div>
             ) : null}

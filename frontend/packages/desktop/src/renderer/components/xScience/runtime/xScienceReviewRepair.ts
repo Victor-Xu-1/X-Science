@@ -18,10 +18,7 @@ const verdictLabel = (verdict: XScienceVerificationCheck['verdict'], chinese: bo
   return verdict;
 };
 
-export const buildXScienceReviewRepairPrompt = (
-  checks: XScienceVerificationCheck[],
-  locale = 'zh-CN'
-): string => {
+export const buildXScienceReviewRepairPrompt = (checks: XScienceVerificationCheck[], locale = 'zh-CN'): string => {
   const chinese = locale.toLowerCase().startsWith('zh');
   const findings = checks.filter((check) => check.verdict === 'fail' || check.verdict === 'warn');
   const rows = findings.map((check, index) => {

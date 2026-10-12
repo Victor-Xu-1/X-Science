@@ -13,9 +13,7 @@ type RuntimeListEntry = {
   value?: unknown;
 };
 
-export async function loadXScienceSkillUsage(
-  options: XScienceGatewayOptions = {}
-): Promise<XScienceSkillUsageByName> {
+export async function loadXScienceSkillUsage(options: XScienceGatewayOptions = {}): Promise<XScienceSkillUsageByName> {
   const payload = await requestXScienceJson<unknown>(
     '/api/skills/usage',
     { method: 'GET' },

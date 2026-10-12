@@ -228,10 +228,7 @@ export async function publishXScienceSkillDraft(
   return asRecord(payload) ?? {};
 }
 
-export async function deleteXScienceSkillDraft(
-  name: string,
-  options: XScienceSkillLibraryOptions = {}
-): Promise<void> {
+export async function deleteXScienceSkillDraft(name: string, options: XScienceSkillLibraryOptions = {}): Promise<void> {
   await requestJson(`/api/skills/${encodeURIComponent(name)}`, options, { method: 'DELETE' });
 }
 

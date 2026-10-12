@@ -70,9 +70,7 @@ describe('frontend Harness controller boundaries', () => {
 
     const runtimeFacade = source('renderer/components/xScience/runtime/XScienceRuntimeOperations.tsx');
     expect(runtimeFacade).toContain("export { default } from './XScienceRuntimeOperationsController'");
-    const runtimeController = source(
-      'renderer/components/xScience/runtime/XScienceRuntimeOperationsController.tsx'
-    );
+    const runtimeController = source('renderer/components/xScience/runtime/XScienceRuntimeOperationsController.tsx');
     expect(runtimeController).toContain('XScienceRuntimeStatusSurface');
     expect(runtimeController).toContain('XScienceRuntimeDrawers');
     expect(runtimeController).not.toContain('XSciencePlanReviewContent');
