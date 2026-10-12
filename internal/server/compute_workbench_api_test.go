@@ -97,7 +97,8 @@ func TestComputeWorkbenchHTTPContractsAndOwnerIsolation(t *testing.T) {
 	if localFiles["resolvedPath"] != localRoot || len(localFiles["entries"].([]any)) != 1 {
 		t.Fatalf("local files=%#v", localFiles)
 	}
-	downloadRequest := httptest.NewRequest(http.MethodGet, "/api/compute/local/download?path="+url.QueryEscape(filepath.Join(localRoot, "fixture.txt")), nil)
+	downloadRequest := newLoopbackTestRequest(http.MethodGet, "/api/compute/local/download?path="+url.QueryEscape(filepath.Join(localRoot, "fixture.txt")), nil)
+	downloadRequest.Header.Set("X-Science-User-Id", "owner-a")
 	downloadRequest.Header.Set("Range", "bytes=1-3")
 	downloadResponse := httptest.NewRecorder()
 	mux.ServeHTTP(downloadResponse, downloadRequest)

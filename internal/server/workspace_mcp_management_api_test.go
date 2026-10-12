@@ -26,7 +26,7 @@ func TestWorkspaceMCPRejectsForeignScopedUserID(t *testing.T) {
 
 	list := httptest.NewRecorder()
 	listRequest := newLoopbackTestRequest(http.MethodGet, "/api/go/mcp/servers?user_id=user-2", nil)
-	listRequest.Header.Set("X-Synon-User-Id", "user-1")
+	listRequest.Header.Set("X-Science-User-Id", "user-1")
 	app.ServeHTTP(list, listRequest)
 	if list.Code != http.StatusNotFound || !bytes.Contains(list.Body.Bytes(), []byte("resource not found")) {
 		t.Fatalf("foreign list = %d: %s", list.Code, list.Body.String())
@@ -35,7 +35,7 @@ func TestWorkspaceMCPRejectsForeignScopedUserID(t *testing.T) {
 	create := httptest.NewRecorder()
 	createBody := []byte(`{"id":"planted","userId":"user-2","name":"planted","url":"https://evil.test/mcp","transport":"streamable-http"}`)
 	createRequest := newLoopbackTestRequest(http.MethodPost, "/api/go/mcp/servers", bytes.NewReader(createBody))
-	createRequest.Header.Set("X-Synon-User-Id", "user-1")
+	createRequest.Header.Set("X-Science-User-Id", "user-1")
 	createRequest.Header.Set("Content-Type", "application/json")
 	app.ServeHTTP(create, createRequest)
 	if create.Code != http.StatusNotFound {

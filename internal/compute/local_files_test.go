@@ -14,7 +14,7 @@ func TestListLocalDirectoryMatchesV11ShapeAndOrdering(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "file.txt"), []byte("hello"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	listing, err := ListLocalDirectory(root, root)
+	listing, err := ListLocalDirectory(root, root, root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -26,7 +26,7 @@ func TestListLocalDirectoryMatchesV11ShapeAndOrdering(t *testing.T) {
 
 func TestListLocalDirectoryRejectsRelativeAndControlPaths(t *testing.T) {
 	for _, path := range []string{"relative", "/tmp/bad\npath"} {
-		if _, err := ListLocalDirectory(path, t.TempDir()); err == nil {
+		if _, err := ListLocalDirectory(path, t.TempDir(), t.TempDir()); err == nil {
 			t.Fatalf("path %q unexpectedly succeeded", path)
 		}
 	}

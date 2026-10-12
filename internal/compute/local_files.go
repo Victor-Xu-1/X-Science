@@ -24,7 +24,7 @@ type LocalDirectoryListing struct {
 	ResolvedPath string            `json:"resolvedPath"`
 }
 
-func ListLocalDirectory(path, home string) (LocalDirectoryListing, error) {
+func ListLocalDirectory(path, home, authorizedRoot string) (LocalDirectoryListing, error) {
 	path = strings.TrimSpace(path)
 	home = strings.TrimSpace(home)
 	if path == "" {
@@ -33,11 +33,25 @@ func ListLocalDirectory(path, home string) (LocalDirectoryListing, error) {
 	if path == "" || !filepath.IsAbs(path) || strings.ContainsAny(path, "\x00\r\n") {
 		return LocalDirectoryListing{}, errors.New("path must be absolute and contain no control characters")
 	}
-	resolved, err := filepath.EvalSymlinks(filepath.Clean(path))
+	resolved := filepath.Clean(path)
+	if !filepath.IsAbs(authorizedRoot) {
+		return LocalDirectoryListing{}, errors.New("authorized root is unavailable")
+	}
+	relative, err := filepath.Rel(filepath.Clean(authorizedRoot), resolved)
+	if err != nil || !filepath.IsLocal(relative) {
+		return LocalDirectoryListing{}, errors.New("path is outside the authorized root")
+	}
+	root, err := os.OpenRoot(authorizedRoot)
 	if err != nil {
 		return LocalDirectoryListing{}, err
 	}
-	items, err := os.ReadDir(resolved)
+	defer root.Close()
+	directory, err := root.Open(relative)
+	if err != nil {
+		return LocalDirectoryListing{}, err
+	}
+	defer directory.Close()
+	items, err := directory.ReadDir(-1)
 	if err != nil {
 		return LocalDirectoryListing{}, err
 	}
@@ -54,7 +68,7 @@ func ListLocalDirectory(path, home string) (LocalDirectoryListing, error) {
 	}
 	entries := make([]LocalFileEntry, 0, len(items))
 	for _, item := range items {
-		info, err := os.Stat(filepath.Join(resolved, item.Name()))
+		info, err := root.Stat(filepath.Join(relative, item.Name()))
 		entry := LocalFileEntry{Name: item.Name(), IsDirectory: item.IsDir()}
 		if err == nil {
 			entry.IsDirectory = info.IsDir()
