@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "1ca256240471eca681113b1a262dcae3edff36c171fc344a47df59c7a45469e0",
+  "adaptationFingerprintSHA256": "e9d3cac7557c15fbd0a604bacdaf20aec905c71037a394489a29541fdaff837a",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "2b0c1a1eaa6433243fb87f57a81f52d82245218cf7ae529623667a7562906e15",
+  "additionFingerprintSHA256": "30a07118d55be10c77af6a20a1187e1666f75fce361a24707651fcdca6170a1b",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 343,
@@ -17,14 +17,14 @@
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "1147c2bc07eca19abd17779b4a974b2e65378cd5e21887feabfddb1f5707e8fe",
+      "targetSHA256": "806ffb92d83b26c11538773df9e0a65531c752eac42d63bdf1aa54293ec64d2d",
       "bytes": 4378,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "575e2d416df4e920184e49faa6fc8bfa61c9b69a097714ed9ae48c5bfe32cdb5",
+      "targetSHA256": "e1395779d2c06a3c1f383299c737e670a620924cb217f964bd61913137c9dc92",
       "bytes": 157,
       "reason": "Remove @synon-ai/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -2894,8 +2894,8 @@
     {
       "path": "packages/desktop/src/renderer/services/synonBiomedWorkspaceApi.ts",
       "sourceSHA256": "4c22896f8de3addaf2df037dc67bf7376862f8e0011181246d7bc99ea388f439",
-      "targetSHA256": "581f4a1ef849dca52eee29c33c2581e68f36f11ceabfbc6414b47111872f3640",
-      "bytes": 4084,
+      "targetSHA256": "8adb9767d9896b94890a4809cec67ddea9411deab055fd810fc230529a4d5640",
+      "bytes": 5017,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -4287,8 +4287,8 @@
     {
       "path": "tests/unit/renderer/synonBiomedWorkspaceApi.dom.test.ts",
       "sourceSHA256": "936eded659da57c6cff8958c4189096dc345eef32e1b6e392fd99e5f64e104e1",
-      "targetSHA256": "ff51638d577faa4e1078896e005b9a4b15e52ce82ccab3dd6b6914953bf78c1b",
-      "bytes": 3001,
+      "targetSHA256": "e2a7d8a0f6ae497fec4b7b318231fd8ef400593c0909aad6b42b79fbe052fd9d",
+      "bytes": 6097,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -6810,7 +6810,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "ab45d08d5068c4e6d6ecc50d1aa46e86241281dccff93bbc01da8c88069d0eb1",
+      "sha256": "c83054102cca13d85f1f0d1328718c3e897fb531934d9559d11897d60107682f",
       "bytes": 558186,
       "reason": "Deterministic npm build dependency lock."
     },
