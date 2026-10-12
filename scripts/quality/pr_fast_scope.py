@@ -89,7 +89,7 @@ def frontend_affected(paths: list[str], repo: Path | None = None) -> bool:
 def documentation_only(path: str) -> bool:
     return (path in {"README.md", "AGENTS.md", "CONTRIBUTING.md", "SECURITY.md", "CODE_OF_CONDUCT.md", "LICENSE", ".gitignore", ".gitattributes", ".editorconfig",
                     ".github/pull_request_template.md", "assets/x-science-link/README.md", "frontend/README.md",
-                    "frontend/package-lock.json",
+                    "frontend/package-lock.json", "frontend/package.json",
                     "skills/README.md", "internal/outbox/README.md"}
             or path.startswith("docs/assets/") or path.startswith("docs/") and path.endswith(".md"))
 
