@@ -336,7 +336,7 @@ func (s *Server) recordSessionRunnerModelAuditRole(sessionID string, attempt int
 	_, _ = s.runtimeStore.Set(sessionRunnerModelAuditRuntimeNamespace, key, value)
 }
 
-func (s *Server) finalizeClaimedSessionRunnerFailure(sessionID string, runnerID string, attempt int, claimToken string, message string, result *SessionRunnerCycleResult) error {
+func (s *Server) finalizeClaimedSessionRunnerFailure(sessionID string, runnerID string, attempt int, claimToken string, message string, result *SessionRunnerCycleResult, receipt ...*taskRunCancellationSettlement) error {
 	finished, err := s.finishSessionRunner(map[string]any{
 		"sessionId":       sessionID,
 		"runnerId":        runnerID,
@@ -346,7 +346,7 @@ func (s *Server) finalizeClaimedSessionRunnerFailure(sessionID string, runnerID 
 		"message":         message,
 		"afterEventId":    int64(0),
 		"clientMessageId": runnerCommandClientMessageID(runnerID, sessionID, attempt, claimToken, "chat-finish"),
-	})
+	}, receipt...)
 	if err != nil {
 		return err
 	}

@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 
 	"encoding/json"
 	"errors"
@@ -98,13 +100,20 @@ func (s *Server) appendSessionToolEvent(input map[string]any) (*eventjournal.Ent
 	if err != nil {
 		return nil, err
 	}
-	if err := s.sessionStore.AppendMessage(sessionID, role); err != nil {
+	if err := s.projectSessionJournalMessage(sessionID, role, entry.EventID); err != nil {
 		return nil, err
 	}
 	if err := s.mirrorSessionEntryToWorkspaceFrame(entry); err != nil {
 		return nil, err
 	}
 	return entry, nil
+}
+
+func (s *Server) projectSessionJournalMessage(sessionID, role string, eventID int64) error {
+	if strings.HasPrefix(sessionID, "taskrun:") {
+		return s.sessionStore.AppendMessageWithEventID(sessionID, role, eventID)
+	}
+	return s.sessionStore.AppendMessage(sessionID, role)
 }
 
 func sessionRunnerOwnsLease(session sessionstore.Session, runnerID string, now time.Time) bool {
@@ -129,6 +138,19 @@ func (s *Server) claimSessionRunner(input map[string]any) (map[string]any, error
 	)
 	if err != nil {
 		return nil, err
+	}
+	if claimed && strings.HasPrefix(session.ID, "taskrun:") && session.LastUserEventID > 0 {
+		entries, readErr := s.eventJournal.ReadAfter(session.ID, session.LastUserEventID-1, 1)
+		if readErr != nil {
+			return nil, s.releaseTaskRunAdmissionOnError(session, readErr)
+		}
+		if len(entries) != 1 || entries[0].EventID != session.LastUserEventID {
+			return nil, s.releaseTaskRunAdmissionOnError(session, errors.New("runner admission input receipt is missing"))
+		}
+		session, err = s.bindPublicTaskRunInputReceipt(session, entries)
+		if err != nil {
+			return nil, err
+		}
 	}
 	result := map[string]any{"claimed": claimed, "session": session}
 	if session.Runner != nil {
@@ -283,8 +305,13 @@ func (s *Server) nextSessionRunner(input map[string]any) (map[string]any, error)
 		sessionReplayLimit(numberValue(input["limit"])),
 	)
 	if err != nil {
+		return nil, s.releaseTaskRunAdmissionOnError(session, err)
+	}
+	session, err = s.bindPublicTaskRunInputReceipt(session, entries)
+	if err != nil {
 		return nil, err
 	}
+	result["session"] = session
 	result["entries"] = entries
 	result["nextEventId"] = maxEventID(numberValue(input["afterEventId"]), entries)
 	return result, nil
@@ -326,11 +353,43 @@ func (s *Server) pickSessionRunner(input map[string]any) (map[string]any, error)
 		sessionReplayLimit(numberValue(input["limit"])),
 	)
 	if err != nil {
+		return nil, s.releaseTaskRunAdmissionOnError(session, err)
+	}
+	session, err = s.bindPublicTaskRunInputReceipt(session, entries)
+	if err != nil {
 		return nil, err
 	}
+	result["session"] = session
 	result["entries"] = entries
 	result["nextEventId"] = maxEventID(numberValue(input["afterEventId"]), entries)
 	return result, nil
+}
+
+func (s *Server) bindPublicTaskRunInputReceipt(session sessionstore.Session, entries []eventjournal.Entry) (sessionstore.Session, error) {
+	if !strings.HasPrefix(session.ID, "taskrun:") {
+		return session, nil
+	}
+	binding := taskRunBindingFromEntries(session.ID, entries)
+	if binding.userEventID <= 0 {
+		return session, nil
+	}
+	receipt := sessionstore.RunnerInputReceipt{UserEventID: binding.userEventID}
+	if binding.verified {
+		receipt.TaskRunID, receipt.TaskRunInstanceID = binding.runID, binding.instance
+	}
+	bound, err := s.sessionStore.BindRunnerInputReceipt(sessionstore.RunnerClaimFromSession(session), receipt)
+	if err != nil {
+		return session, s.releaseTaskRunAdmissionOnError(session, err)
+	}
+	return bound, nil
+}
+
+func (s *Server) releaseTaskRunAdmissionOnError(session sessionstore.Session, admissionErr error) error {
+	if !strings.HasPrefix(session.ID, "taskrun:") || session.Runner == nil {
+		return admissionErr
+	}
+	_, _, releaseErr := s.sessionStore.ReleaseRunner(sessionstore.RunnerClaimFromSession(session))
+	return errors.Join(admissionErr, releaseErr)
 }
 
 func maxEventID(current int64, entries []eventjournal.Entry) int64 {
@@ -369,7 +428,7 @@ func (s *Server) existingRunnerEventByClientMessageID(sessionID string, clientMe
 	return nil, false, nil
 }
 
-func (s *Server) finishSessionRunner(input map[string]any) (map[string]any, error) {
+func (s *Server) finishSessionRunner(input map[string]any, taskRunSettlement ...*taskRunCancellationSettlement) (map[string]any, error) {
 	sessionID := strings.TrimSpace(stringValue(input["sessionId"]))
 	runnerID := strings.TrimSpace(stringValue(input["runnerId"]))
 	status := strings.TrimSpace(stringValue(input["status"]))
@@ -390,9 +449,21 @@ func (s *Server) finishSessionRunner(input map[string]any) (map[string]any, erro
 	if err != nil {
 		return nil, err
 	}
-	session, err := s.sessionStore.ValidateRunnerClaim(claim, false)
-	if err != nil {
-		return nil, err
+	session, claimErr := s.sessionStore.ValidateRunnerClaim(claim, false)
+	if claimErr != nil {
+		trustedCancelledReplay := errors.Is(claimErr, sessionstore.ErrRunnerClaimStale) && status == "cancelled" &&
+			len(taskRunSettlement) == 1 && taskRunSettlement[0] != nil && taskRunSettlement[0].cancelled && taskRunSettlement[0].claim == claim
+		if !trustedCancelledReplay {
+			return nil, claimErr
+		}
+		var found bool
+		session, found, err = s.sessionStore.Get(sessionID)
+		if err != nil {
+			return nil, err
+		}
+		if !found {
+			return nil, claimErr
+		}
 	}
 	now := time.Now().UTC()
 	attempt := claim.Attempt
@@ -407,6 +478,23 @@ func (s *Server) finishSessionRunner(input map[string]any) (map[string]any, erro
 		"runnerId":      runnerID,
 		"runnerAttempt": attempt,
 		"status":        status,
+	}
+	var cancellationSettlement *taskRunCancellationSettlement
+	if len(taskRunSettlement) == 1 {
+		cancellationSettlement = taskRunSettlement[0]
+	} else if session.Runner != nil && session.Runner.InputReceipt != nil {
+		receipt := session.Runner.InputReceipt
+		cancellationSettlement = &taskRunCancellationSettlement{claim: claim, consumedUserEventID: receipt.UserEventID, instance: receipt.TaskRunInstanceID}
+	}
+	if cancellationSettlement != nil {
+		message["taskRunInputEventId"] = cancellationSettlement.consumedUserEventID
+		if cancellationSettlement.instance != "" {
+			message["taskRunInstanceId"] = cancellationSettlement.instance
+		}
+		if status == "cancelled" && cancellationSettlement.cancelled {
+			digest := sha256.Sum256([]byte(cancellationSettlement.claim.ClaimToken))
+			message["taskRunClaimSHA256"] = hex.EncodeToString(digest[:])
+		}
 	}
 	addRunnerLeaseAuditToMessage(message, session.Runner)
 	message["runnerAttempt"] = attempt
@@ -427,6 +515,14 @@ func (s *Server) finishSessionRunner(input map[string]any) (map[string]any, erro
 		if err := validateRunnerFinishEntry(existing, message, stringValue(input["runId"]), clientMessageID); err != nil {
 			return nil, fmt.Errorf("clientMessageId is already used by a different durable event: %w", eventjournal.ErrIdempotencyConflict)
 		}
+	}
+	if claimErr != nil {
+		if !found {
+			return nil, claimErr
+		}
+		// This is immutable private receipt replay only. Never mirror/finalize or
+		// reapply ledger effects after a later input or claim took ownership.
+		return map[string]any{"event": existing, "session": session, "delivered": false}, nil
 	}
 	if session.Runner == nil || session.Runner.RunnerID != runnerID || session.Runner.Attempt != attempt {
 		if found {
@@ -476,11 +572,16 @@ func (s *Server) finishSessionRunner(input map[string]any) (map[string]any, erro
 	if err != nil {
 		return nil, errors.New("runner finish has an invalid durable timestamp")
 	}
-	session, _, err = s.sessionStore.FinalizeRunner(sessionstore.FinalizeRunnerInput{
+	finalization := sessionstore.FinalizeRunnerInput{
 		SessionID: sessionID, RunnerID: runnerID, Attempt: attempt, Status: status,
 		Checkpoint: finishText, CheckpointAt: finishedAt, EventID: entry.EventID, FinishedAt: finishedAt,
 		SupersedesCheckpointEventID: supersedesCheckpointEventID,
-	})
+	}
+	if status == "cancelled" && cancellationSettlement != nil && cancellationSettlement.cancelled {
+		session, _, err = s.sessionStore.FinalizeTaskRunCancelledRunner(finalization, cancellationSettlement.claim, cancellationSettlement.consumedUserEventID)
+	} else {
+		session, _, err = s.sessionStore.FinalizeRunner(finalization)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("finalize runner attempt: %w", err)
 	}
@@ -493,7 +594,11 @@ func (s *Server) finishSessionRunner(input map[string]any) (map[string]any, erro
 		session = updated
 	}
 	delivered := created && s.publishSessionEntry(entry)
-	return map[string]any{"event": entry, "session": session, "delivered": delivered}, nil
+	result := map[string]any{"event": entry, "session": session, "delivered": delivered}
+	if strings.HasPrefix(sessionID, "taskrun:") && cancellationSettlement == nil {
+		result["taskRunProjection"] = map[string]any{"state": "unconfirmed", "reason": "Runner claim has no server-authored input receipt; the finish is retained without asserting TaskRun completion.", "nextAction": "Inspect the retained finish; use session_runner_next or session_runner_pick for a new verified input admission."}
+	}
+	return result, nil
 }
 
 func (s *Server) runnerTerminalCheckpointEvent(sessionID, runnerID string, attempt int, status, checkpointText string, eventID int64) (bool, error) {
@@ -569,7 +674,7 @@ func validateRunnerFinishEntry(entry *eventjournal.Entry, expected eventjournal.
 		strings.TrimSpace(entry.ClientMessageID) != strings.TrimSpace(clientMessageID) {
 		return errors.New("runner finish durable metadata does not match the request")
 	}
-	for _, key := range []string{"type", "role", "runnerId", "runnerAttempt", "status", "text", "afterEventId", "reason_code"} {
+	for _, key := range []string{"type", "role", "runnerId", "runnerAttempt", "status", "text", "afterEventId", "reason_code", "taskRunInstanceId", "taskRunInputEventId", "taskRunClaimSHA256"} {
 		actual, actualOK := entry.Message[key]
 		wanted, wantedOK := expected[key]
 		if actualOK != wantedOK || (actualOK && fmt.Sprint(actual) != fmt.Sprint(wanted)) {
@@ -1061,6 +1166,7 @@ func sessionWithJournalStats(session sessionstore.Session, entries []eventjourna
 	session.MessageCount = 0
 	session.LastRole = ""
 	session.LastUserMessageAt = time.Time{}
+	session.LastUserEventID = 0
 	for _, entry := range entries {
 		if !isSessionStatsEntry(entry) {
 			continue
@@ -1072,6 +1178,9 @@ func sessionWithJournalStats(session sessionstore.Session, entries []eventjourna
 		session.MessageCount++
 		session.LastRole = role
 		if role == "user" {
+			if strings.HasPrefix(session.ID, "taskrun:") {
+				session.LastUserEventID = entry.EventID
+			}
 			if parsed, err := time.Parse(time.RFC3339Nano, entry.CreatedAt); err == nil {
 				session.LastUserMessageAt = parsed
 			}

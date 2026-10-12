@@ -16,6 +16,14 @@ func generateRunID() string {
 	return "tr_" + hex.EncodeToString(buf[:])
 }
 
+func generateExecutionInstance() (string, error) {
+	var value [16]byte
+	if _, err := rand.Read(value[:]); err != nil {
+		return "", fmt.Errorf("generate TaskRun execution identity: %w", err)
+	}
+	return hex.EncodeToString(value[:]), nil
+}
+
 func sanitizeRunID(runID string) string {
 	return strings.Map(func(r rune) rune {
 		if r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '_' || r == '-' || r == ':' {

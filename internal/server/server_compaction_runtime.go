@@ -121,6 +121,9 @@ func (s *Server) executeCompactTool(ctx context.Context, input map[string]any) (
 	if err != nil {
 		return nil, err
 	}
+	if err := s.bindTaskRunSessionInput(ctx, session, entries); err != nil {
+		return nil, err
+	}
 	replay := make([]any, 0, len(entries))
 	for _, entry := range entries {
 		replay = append(replay, entry)

@@ -7,6 +7,20 @@ import (
 
 const SchemaVersion = 1
 
+const executionInstanceKey = "taskRunInstanceId"
+
+// ExecutionInstance identifies one creation of a TaskRun independently of its
+// reusable RunID. Missing values are legacy records, not identity evidence.
+func ExecutionInstance(record Record) string {
+	return stringFromMap(record.Orchestration, executionInstanceKey)
+}
+
+type CancellationResult struct {
+	Record          Record
+	JSONCommitted   bool
+	ProjectionError error
+}
+
 type Input struct {
 	Action          string   `json:"action"`
 	RunID           string   `json:"run_id"`

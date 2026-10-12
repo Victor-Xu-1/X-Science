@@ -10,6 +10,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	eventjournal "x-science/internal/persistence/journal"
+	sessionstore "x-science/internal/persistence/sessions"
+	taskruns "x-science/internal/persistence/taskruns"
 	runnermachine "x-science/internal/sessionrunner"
 )
 
@@ -20,17 +23,29 @@ var (
 )
 
 type activeSessionRun struct {
-	runnerID     string
-	cancel       context.CancelCauseFunc
-	done         chan struct{}
-	settlement   sync.Mutex
-	settled      bool
-	draining     atomic.Bool
-	transcript   *transcriptRunnerAuthority
-	phaseMachine *runnermachine.Machine
-	kernelPeer   kernelMessageBudgets
-	chatRun      *sessionRunnerChatRun
+	runnerID         string
+	cancel           context.CancelCauseFunc
+	done             chan struct{}
+	settlement       sync.Mutex
+	settled          bool
+	draining         atomic.Bool
+	transcript       *transcriptRunnerAuthority
+	phaseMachine     *runnermachine.Machine
+	kernelPeer       kernelMessageBudgets
+	chatRun          *sessionRunnerChatRun
+	inputBinding     sessionRunInputBinding
+	taskRunCancelled bool
+	projectionClaim  sessionstore.RunnerMutationClaim
 }
+
+type sessionRunInputBinding struct {
+	userEventID int64
+	runID       string
+	instance    string
+	verified    bool
+}
+
+type activeSessionRunContextKey struct{}
 
 // sessionRunLifetimeContextKey retains the registered execution-unit lifetime
 // underneath shorter provider, preparation and request contexts.
@@ -62,6 +77,7 @@ func (s *Server) registerActiveSessionRun(parent context.Context, sessionID, run
 	}
 	ctx, cancel := context.WithCancelCause(parent)
 	run := &activeSessionRun{runnerID: runnerID, cancel: cancel, done: make(chan struct{})}
+	ctx = context.WithValue(ctx, activeSessionRunContextKey{}, run)
 	ctx = context.WithValue(ctx, sessionRunLifetimeContextKey{}, ctx)
 	s.sessionRunsMu.Lock()
 	if s.sessionRunsDraining {
@@ -90,6 +106,185 @@ func (s *Server) registerActiveSessionRun(parent context.Context, sessionID, run
 		})
 	}
 	return ctx, run, cleanup, nil
+}
+
+// bindTaskRunSessionInput uses only the snapshot about to cross an execution
+// boundary. In particular, a later journal user is not the input of this stage.
+func (s *Server) bindTaskRunSessionInput(ctx context.Context, session sessionstore.Session, entries []eventjournal.Entry) error {
+	active, _ := ctx.Value(activeSessionRunContextKey{}).(*activeSessionRun)
+	if active == nil || s == nil || !strings.HasPrefix(session.ID, "taskrun:") {
+		return nil
+	}
+	binding := taskRunBindingFromEntries(session.ID, entries)
+	active.settlement.Lock()
+	if cause := context.Cause(ctx); cause != nil {
+		active.settlement.Unlock()
+		return cause
+	}
+	if active.settled {
+		active.settlement.Unlock()
+		return errors.New("session runner input cannot be rebound after settlement")
+	}
+	active.inputBinding = binding
+	claim := active.projectionClaim
+	if claim.ClaimToken == "" && active.chatRun != nil {
+		claim = sessionstore.RunnerMutationClaim{SessionID: session.ID, RunnerID: active.runnerID, Attempt: active.chatRun.Attempt, ClaimToken: active.chatRun.ClaimToken}
+	}
+	if claim.ClaimToken == "" {
+		claim = sessionstore.RunnerClaimFromSession(session)
+	}
+	active.settlement.Unlock()
+	if binding.userEventID > 0 && s.sessionStore != nil && claim.ClaimToken != "" {
+		if err := s.hydrateTaskRunLastUserEventID(ctx, claim); err != nil {
+			return err
+		}
+	}
+	if !binding.verified || s.taskRunStore == nil {
+		// Legacy missing identities stay executable. Their cancellation response
+		// explicitly reports that execution-stop propagation is unconfirmed.
+		return nil
+	}
+	run, found, err := s.taskRunStore.Get(binding.runID)
+	if err != nil {
+		return err
+	}
+	if !found {
+		return errors.New("TaskRun input has no durable graph")
+	}
+	return cancelTaskRunBindingIfCurrent(ctx, active, binding, run)
+}
+
+func taskRunBindingFromEntries(sessionID string, entries []eventjournal.Entry) sessionRunInputBinding {
+	binding := sessionRunInputBinding{}
+	for index := len(entries) - 1; index >= 0; index-- {
+		entry := entries[index]
+		if strings.TrimSpace(stringValue(entry.Message["role"])) != "user" {
+			continue
+		}
+		binding.userEventID = entry.EventID
+		binding.runID = strings.TrimSpace(stringValue(entry.Message["taskRun"]))
+		runtime := mapValue(entry.Message["runnerRuntime"])
+		binding.instance = strings.TrimSpace(stringValue(runtime["taskRunInstanceId"]))
+		binding.verified = binding.runID != "" && binding.instance != "" && entry.RunID == binding.runID &&
+			stringValue(runtime["runId"]) == binding.runID && stringValue(runtime["sessionId"]) == sessionID &&
+			stringValue(runtime["protocol"]) == "session_runner"
+		break
+	}
+	return binding
+}
+
+func cancelTaskRunBindingIfCurrent(ctx context.Context, active *activeSessionRun, binding sessionRunInputBinding, run taskruns.Record) error {
+	active.settlement.Lock()
+	defer active.settlement.Unlock()
+	if active.settled || active.inputBinding != binding {
+		return nil
+	}
+	if cause := context.Cause(ctx); cause != nil {
+		return cause
+	}
+	if taskruns.ExecutionInstance(run) != binding.instance || run.Status == "cancelled" {
+		active.taskRunCancelled = true
+		active.cancel(fmt.Errorf("%w: TaskRun execution cancelled or superseded", ErrGenerationStopped))
+		return context.Cause(ctx)
+	}
+	return nil
+}
+
+// stopTaskRunSessionInputs adds no persistence under registry/settlement locks.
+// Each pointer's current binding is rechecked after taking its settlement lock.
+func (s *Server) stopTaskRunSessionInputs(run taskruns.Record) {
+	instance := taskruns.ExecutionInstance(run)
+	if instance == "" {
+		return
+	}
+	s.sessionRunsMu.Lock()
+	runs := make([]*activeSessionRun, 0, len(s.sessionRuns))
+	for _, active := range s.sessionRuns {
+		runs = append(runs, active)
+	}
+	s.sessionRunsMu.Unlock()
+	for _, active := range runs {
+		active.settlement.Lock()
+		binding := active.inputBinding
+		if !active.settled && binding.verified && binding.runID == run.RunID && binding.instance == instance {
+			active.taskRunCancelled = true
+			active.cancel(fmt.Errorf("%w: TaskRun cancelled by request", ErrGenerationStopped))
+		}
+		active.settlement.Unlock()
+	}
+}
+
+func (s *Server) hydrateTaskRunLastUserEventID(ctx context.Context, claim sessionstore.RunnerMutationClaim) error {
+	for {
+		if cause := context.Cause(ctx); cause != nil {
+			return cause
+		}
+		observed, err := s.sessionStore.ValidateRunnerClaim(claim, true)
+		if err != nil {
+			return err
+		}
+		if observed.LastUserEventID != 0 {
+			return nil
+		}
+		entries, err := s.eventJournal.ReadAllStrict(claim.SessionID)
+		if err != nil {
+			return fmt.Errorf("hydrate TaskRun input projection: %w", err)
+		}
+		lastUserID := int64(0)
+		for _, entry := range entries {
+			if stringValue(entry.Message["role"]) == "user" {
+				lastUserID = entry.EventID
+			}
+		}
+		_, updated, err := s.sessionStore.HydrateLastUserEventID(claim, observed, lastUserID)
+		if err != nil || updated {
+			return err
+		}
+	}
+}
+
+type taskRunCancellationSettlement struct {
+	claim               sessionstore.RunnerMutationClaim
+	consumedUserEventID int64
+	instance            string
+	cancelled           bool
+}
+
+// Pre-input parent cancellation can truthfully finish its admitted receipt.
+// This snapshot does not bind an execution handle or authorize TaskRun stop.
+func (s *Server) taskRunAdmissionSettlement(session sessionstore.Session, claim sessionstore.RunnerMutationClaim) (*taskRunCancellationSettlement, error) {
+	if !strings.HasPrefix(session.ID, "taskrun:") || session.LastUserEventID <= 0 {
+		return nil, nil
+	}
+	entries, err := s.eventJournal.ReadAfter(session.ID, session.LastUserEventID-1, 1)
+	if err != nil {
+		return nil, err
+	}
+	if len(entries) != 1 || entries[0].EventID != session.LastUserEventID {
+		return nil, errors.New("TaskRun admission input receipt is missing")
+	}
+	binding := taskRunBindingFromEntries(session.ID, entries)
+	if binding.userEventID <= 0 {
+		return nil, errors.New("TaskRun admission receipt is not user input")
+	}
+	instance := ""
+	if binding.verified {
+		instance = binding.instance
+	}
+	return &taskRunCancellationSettlement{claim: claim, consumedUserEventID: binding.userEventID, instance: instance}, nil
+}
+
+// Called by the owning runner while settlement is locked, never from request
+// input. A user-provided service-operation map cannot opt into this behavior.
+func taskRunCancellationSettlementLocked(active *activeSessionRun, claim sessionstore.RunnerMutationClaim) *taskRunCancellationSettlement {
+	if active == nil || active.inputBinding.userEventID <= 0 {
+		return nil
+	}
+	instance := ""
+	if active.inputBinding.verified {
+		instance = active.inputBinding.instance
+	}
+	return &taskRunCancellationSettlement{claim: claim, consumedUserEventID: active.inputBinding.userEventID, instance: instance, cancelled: active.taskRunCancelled}
 }
 
 func (s *Server) hasActiveSessionRun(sessionID string) bool {

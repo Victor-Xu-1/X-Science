@@ -21,6 +21,7 @@ type Session struct {
 	CreatedAt         time.Time      `json:"createdAt"`
 	UpdatedAt         time.Time      `json:"updatedAt"`
 	LastUserMessageAt time.Time      `json:"lastUserMessageAt,omitempty"`
+	LastUserEventID   int64          `json:"lastUserEventId,omitempty"`
 	MessageCount      int            `json:"messageCount"`
 	LastRole          string         `json:"lastRole,omitempty"`
 	Runner            *Runner        `json:"runner,omitempty"`
@@ -29,17 +30,63 @@ type Session struct {
 }
 
 type Runner struct {
-	RunnerID              string    `json:"runnerId"`
-	Status                string    `json:"status"`
-	Attempt               int       `json:"attempt,omitempty"`
-	PreviousRunnerID      string    `json:"previousRunnerId,omitempty"`
-	ReclaimedExpiredLease bool      `json:"reclaimedExpiredLease,omitempty"`
-	ClaimedAt             time.Time `json:"claimedAt"`
-	LastHeartbeatAt       time.Time `json:"lastHeartbeatAt"`
-	ExpiresAt             time.Time `json:"expiresAt"`
-	LastCheckpoint        string    `json:"lastCheckpoint,omitempty"`
-	LastCheckpointAt      time.Time `json:"lastCheckpointAt,omitempty"`
-	LastCheckpointEventID int64     `json:"lastCheckpointEventId,omitempty"`
+	RunnerID              string              `json:"runnerId"`
+	Status                string              `json:"status"`
+	Attempt               int                 `json:"attempt,omitempty"`
+	PreviousRunnerID      string              `json:"previousRunnerId,omitempty"`
+	ReclaimedExpiredLease bool                `json:"reclaimedExpiredLease,omitempty"`
+	ClaimedAt             time.Time           `json:"claimedAt"`
+	LastHeartbeatAt       time.Time           `json:"lastHeartbeatAt"`
+	ExpiresAt             time.Time           `json:"expiresAt"`
+	LastCheckpoint        string              `json:"lastCheckpoint,omitempty"`
+	LastCheckpointAt      time.Time           `json:"lastCheckpointAt,omitempty"`
+	LastCheckpointEventID int64               `json:"lastCheckpointEventId,omitempty"`
+	InputReceipt          *RunnerInputReceipt `json:"inputReceipt,omitempty"`
+}
+
+// RunnerInputReceipt is server-authored public admission/returned-input
+// metadata, not proof of physical execution or an in-memory cancellation handle.
+type RunnerInputReceipt struct {
+	UserEventID       int64  `json:"userEventId"`
+	TaskRunID         string `json:"taskRunId,omitempty"`
+	TaskRunInstanceID string `json:"taskRunInstanceId,omitempty"`
+}
+
+// BindRunnerInputReceipt binds once to the exact live claim. The server passes
+// an identity derived from its real journal read, never request metadata.
+func (s *Store) BindRunnerInputReceipt(claim RunnerMutationClaim, receipt RunnerInputReceipt) (Session, error) {
+	claim = normalizeRunnerMutationClaim(claim)
+	if err := validateRunnerMutationClaimInput(claim); err != nil {
+		return Session{}, err
+	}
+	if receipt.UserEventID <= 0 || (receipt.TaskRunInstanceID != "" && receipt.TaskRunID == "") {
+		return Session{}, errors.New("runner input receipt is invalid")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	sessions, err := s.readLocked()
+	if err != nil {
+		return Session{}, err
+	}
+	session, found := sessions[claim.SessionID]
+	if !found {
+		return Session{}, errors.New("session not found")
+	}
+	if err := validateRunnerMutationClaim(session, claim, s.now().UTC(), true); err != nil {
+		return session, err
+	}
+	if existing := session.Runner.InputReceipt; existing != nil {
+		if *existing == receipt {
+			return session, nil
+		}
+		return session, errors.New("runner input receipt is already bound to another input")
+	}
+	session.Runner.InputReceipt = &receipt
+	sessions[claim.SessionID] = session
+	if err := s.writeLocked(sessions); err != nil {
+		return Session{}, err
+	}
+	return session, nil
 }
 
 var (
@@ -196,6 +243,9 @@ func (s *Store) Upsert(session Session) error {
 	if session.LastRole == "" {
 		session.LastRole = existing.LastRole
 	}
+	if session.LastUserEventID < existing.LastUserEventID {
+		session.LastUserEventID = existing.LastUserEventID
+	}
 	if session.Runner == nil {
 		session.Runner = existing.Runner
 	}
@@ -261,6 +311,9 @@ func (s *Store) SaveProjectionPreservingRunner(session Session) (Session, error)
 		session.UpdatedAt = now
 	}
 	session.Runner = existing.Runner
+	if session.LastUserEventID < existing.LastUserEventID {
+		session.LastUserEventID = existing.LastUserEventID
+	}
 	sessions[session.ID] = session
 	if err := s.writeLocked(sessions); err != nil {
 		return Session{}, err
@@ -270,6 +323,35 @@ func (s *Store) SaveProjectionPreservingRunner(session Session) (Session, error)
 
 // FinalizeRunner advances only the exact durable runner attempt that produced EventID.
 func (s *Store) FinalizeRunner(input FinalizeRunnerInput) (Session, bool, error) {
+	return s.finalizeRunner(input, runnerFinalizationOptions{})
+}
+
+type runnerFinalizationOptions struct {
+	claim                    *RunnerMutationClaim
+	preserveUserAfterEventID int64
+}
+
+// FinalizeTaskRunCancelledRunner preserves a later accepted user input when the
+// exact TaskRun-owned claim settles cancelled. The consumed ID must come from
+// the real journal snapshot used by that execution, not from request metadata.
+func (s *Store) FinalizeTaskRunCancelledRunner(input FinalizeRunnerInput, claim RunnerMutationClaim, consumedUserEventID int64) (Session, bool, error) {
+	if strings.TrimSpace(input.Status) != "cancelled" {
+		return Session{}, false, errors.New("TaskRun cancellation final status must be cancelled")
+	}
+	if consumedUserEventID <= 0 {
+		return Session{}, false, errors.New("consumed user event id must be positive")
+	}
+	claim = normalizeRunnerMutationClaim(claim)
+	if err := validateRunnerMutationClaimInput(claim); err != nil {
+		return Session{}, false, err
+	}
+	if strings.TrimSpace(input.SessionID) != claim.SessionID || strings.TrimSpace(input.RunnerID) != claim.RunnerID || input.Attempt != claim.Attempt {
+		return Session{}, false, ErrRunnerClaimStale
+	}
+	return s.finalizeRunner(input, runnerFinalizationOptions{claim: &claim, preserveUserAfterEventID: consumedUserEventID})
+}
+
+func (s *Store) finalizeRunner(input FinalizeRunnerInput, options runnerFinalizationOptions) (Session, bool, error) {
 	input.SessionID = strings.TrimSpace(input.SessionID)
 	input.RunnerID = strings.TrimSpace(input.RunnerID)
 	input.Status = strings.TrimSpace(input.Status)
@@ -309,6 +391,11 @@ func (s *Store) FinalizeRunner(input FinalizeRunnerInput) (Session, bool, error)
 	if session.Runner == nil || session.Runner.RunnerID != input.RunnerID || session.Runner.Attempt != input.Attempt {
 		return session, false, ErrRunnerClaimStale
 	}
+	if options.claim != nil {
+		if err := validateRunnerMutationClaim(session, *options.claim, now, false); err != nil {
+			return session, false, err
+		}
+	}
 	runner := session.Runner
 	if finishedAt.Before(runner.ClaimedAt) || finishedAt.Before(runner.LastHeartbeatAt) ||
 		checkpointAt.Before(runner.ClaimedAt) || checkpointAt.Before(runner.LastHeartbeatAt) {
@@ -325,6 +412,9 @@ func (s *Store) FinalizeRunner(input FinalizeRunnerInput) (Session, bool, error)
 	if !runner.ExpiresAt.After(finishedAt) {
 		return session, false, ErrRunnerClaimStale
 	}
+	if options.claim != nil && !isLiveRunner(runner, s.now().UTC()) {
+		return session, false, ErrRunnerClaimStale
+	}
 	if !isTerminalRunnerStatus(runner.Status) && runner.Status != "running" && runner.Status != "waiting" && runner.Status != "blocked" {
 		return session, false, ErrRunnerFinalizeConflict
 	}
@@ -333,6 +423,10 @@ func (s *Store) FinalizeRunner(input FinalizeRunnerInput) (Session, bool, error)
 	runner.LastCheckpointAt = checkpointAt
 	runner.LastCheckpointEventID = input.EventID
 	runner.ExpiresAt = finishedAt
+	if options.preserveUserAfterEventID > 0 && session.LastUserEventID > options.preserveUserAfterEventID {
+		session.Runner = nil
+		session.LastRole = "user"
+	}
 	session.UpdatedAt = finishedAt
 	sessions[input.SessionID] = session
 	if err := s.writeLocked(sessions); err != nil {
@@ -393,6 +487,19 @@ func (s *Store) List() ([]Session, error) {
 }
 
 func (s *Store) AppendMessage(sessionID string, role string) error {
+	return s.appendMessage(sessionID, role, 0)
+}
+
+// AppendMessageWithEventID projects a real journal append and monotonically
+// records its user-input watermark. AppendMessage remains the legacy API.
+func (s *Store) AppendMessageWithEventID(sessionID string, role string, eventID int64) error {
+	if eventID <= 0 {
+		return errors.New("message event id must be positive")
+	}
+	return s.appendMessage(sessionID, role, eventID)
+}
+
+func (s *Store) appendMessage(sessionID string, role string, eventID int64) error {
 	if sessionID == "" {
 		return errors.New("session id is required")
 	}
@@ -415,6 +522,9 @@ func (s *Store) AppendMessage(sessionID string, role string) error {
 	session.LastRole = role
 	if role == "user" {
 		session.LastUserMessageAt = now
+		if eventID > session.LastUserEventID {
+			session.LastUserEventID = eventID
+		}
 	}
 	if now.After(session.UpdatedAt) {
 		session.UpdatedAt = now
@@ -425,12 +535,19 @@ func (s *Store) AppendMessage(sessionID string, role string) error {
 
 // ReconcileMessageStats advances the legacy Session read model to a complete
 // journal snapshot. A newer concurrent projection always wins.
-func (s *Store) ReconcileMessageStats(sessionID string, messageCount int, lastRole string, lastUserMessageAt time.Time) error {
+func (s *Store) ReconcileMessageStats(sessionID string, messageCount int, lastRole string, lastUserMessageAt time.Time, lastUserEventIDs ...int64) error {
 	if sessionID == "" {
 		return errors.New("session id is required")
 	}
 	if messageCount < 0 {
 		return errors.New("message count must be non-negative")
+	}
+	if len(lastUserEventIDs) > 1 || (len(lastUserEventIDs) == 1 && lastUserEventIDs[0] < 0) {
+		return errors.New("at most one non-negative last user event id is allowed")
+	}
+	var lastUserEventID int64
+	if len(lastUserEventIDs) == 1 {
+		lastUserEventID = lastUserEventIDs[0]
 	}
 	lastRole = strings.TrimSpace(lastRole)
 	s.mu.Lock()
@@ -445,7 +562,15 @@ func (s *Store) ReconcileMessageStats(sessionID string, messageCount int, lastRo
 		return errors.New("session not found")
 	}
 	if session.MessageCount > messageCount {
-		return nil
+		if lastUserEventID <= session.LastUserEventID {
+			return nil
+		}
+		session.LastUserEventID = lastUserEventID
+		sessions[sessionID] = session
+		return s.writeLocked(sessions)
+	}
+	if lastUserEventID > session.LastUserEventID {
+		session.LastUserEventID = lastUserEventID
 	}
 	now := s.now().UTC()
 	if messageCount > session.MessageCount && lastRole == "user" && session.Runner != nil &&
@@ -462,6 +587,45 @@ func (s *Store) ReconcileMessageStats(sessionID string, messageCount int, lastRo
 	}
 	sessions[sessionID] = session
 	return s.writeLocked(sessions)
+}
+
+// HydrateLastUserEventID applies a strict journal read performed by the caller
+// outside this store's mutex. A false result means the observed input state
+// changed and must be read again before execution side effects. It never calls
+// into the journal while holding the global sessions lock.
+func (s *Store) HydrateLastUserEventID(claim RunnerMutationClaim, observed Session, lastUserEventID int64) (Session, bool, error) {
+	claim = normalizeRunnerMutationClaim(claim)
+	if err := validateRunnerMutationClaimInput(claim); err != nil {
+		return Session{}, false, err
+	}
+	if observed.ID != claim.SessionID || lastUserEventID < 0 {
+		return Session{}, false, errors.New("hydration requires the observed session and a non-negative user event id")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	sessions, err := s.readLocked()
+	if err != nil {
+		return Session{}, false, err
+	}
+	session, found := sessions[claim.SessionID]
+	if !found {
+		return Session{}, false, errors.New("session not found")
+	}
+	if err := validateRunnerMutationClaim(session, claim, s.now().UTC(), true); err != nil {
+		return session, false, err
+	}
+	if session.MessageCount != observed.MessageCount || session.LastRole != observed.LastRole ||
+		!session.LastUserMessageAt.Equal(observed.LastUserMessageAt) || session.LastUserEventID != observed.LastUserEventID {
+		return session, false, nil
+	}
+	if lastUserEventID > session.LastUserEventID {
+		session.LastUserEventID = lastUserEventID
+		sessions[claim.SessionID] = session
+		if err := s.writeLocked(sessions); err != nil {
+			return Session{}, false, err
+		}
+	}
+	return session, true, nil
 }
 
 func (s *Store) ClaimRunner(sessionID string, runnerID string, ttl time.Duration) (Session, bool, error) {

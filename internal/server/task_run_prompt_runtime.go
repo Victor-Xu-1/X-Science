@@ -77,6 +77,7 @@ func taskRunRunnerRuntimeMetadata(run taskruns.Record) map[string]any {
 		"toolGateway":        "server_agent_runtime_tool_gateway",
 		"sessionId":          run.SessionID,
 		"runId":              run.RunID,
+		"taskRunInstanceId":  taskruns.ExecutionInstance(run),
 		"toolPolicy":         stringValue(run.Orchestration["toolPolicy"]),
 		"requiresRunnerLoop": true,
 	}
