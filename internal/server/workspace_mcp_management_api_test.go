@@ -10,6 +10,46 @@ import (
 	workspace "x-science/internal/persistence/workspace"
 )
 
+func TestWorkspaceMCPRejectsForeignScopedUserID(t *testing.T) {
+	store, err := workspace.Open(filepath.Join(t.TempDir(), "workspace.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = store.Close() })
+	if _, err := store.CreateMCPServer(workspace.MCPServerInput{
+		ID: "victim-mcp", UserID: "user-2", Name: "victim-connector",
+		URL: "https://victim.internal/mcp", Transport: "streamable-http",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	app := New(Options{Workspace: store}).Handler()
+
+	list := httptest.NewRecorder()
+	listRequest := newLoopbackTestRequest(http.MethodGet, "/api/go/mcp/servers?user_id=user-2", nil)
+	listRequest.Header.Set("X-Synon-User-Id", "user-1")
+	app.ServeHTTP(list, listRequest)
+	if list.Code != http.StatusNotFound || !bytes.Contains(list.Body.Bytes(), []byte("resource not found")) {
+		t.Fatalf("foreign list = %d: %s", list.Code, list.Body.String())
+	}
+
+	create := httptest.NewRecorder()
+	createBody := []byte(`{"id":"planted","userId":"user-2","name":"planted","url":"https://evil.test/mcp","transport":"streamable-http"}`)
+	createRequest := newLoopbackTestRequest(http.MethodPost, "/api/go/mcp/servers", bytes.NewReader(createBody))
+	createRequest.Header.Set("X-Synon-User-Id", "user-1")
+	createRequest.Header.Set("Content-Type", "application/json")
+	app.ServeHTTP(create, createRequest)
+	if create.Code != http.StatusNotFound {
+		t.Fatalf("foreign create = %d: %s", create.Code, create.Body.String())
+	}
+	servers, err := store.ListMCPServers("user-2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(servers) != 1 || servers[0].ID != "victim-mcp" {
+		t.Fatalf("foreign create mutated store: %#v", servers)
+	}
+}
+
 func TestWorkspaceMCPManagementHTTPAPI(t *testing.T) {
 	store, err := workspace.Open(filepath.Join(t.TempDir(), "workspace.db"))
 	if err != nil {

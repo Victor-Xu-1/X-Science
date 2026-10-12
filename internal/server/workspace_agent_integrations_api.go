@@ -8,9 +8,13 @@ import (
 )
 
 func (s *Server) handleWorkspaceAgentPrompt(w http.ResponseWriter, r *http.Request, store *workspace.Store, agentName string) {
+	userID, ok := workspaceScopedUserID(w, r)
+	if !ok {
+		return
+	}
 	switch r.Method {
 	case http.MethodGet:
-		prompt, found, err := store.GetCustomAgentPrompt(r.URL.Query().Get("user_id"), agentName)
+		prompt, found, err := store.GetCustomAgentPrompt(userID, agentName)
 		if err != nil {
 			writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 			return
@@ -29,14 +33,18 @@ func (s *Server) handleWorkspaceAgentPrompt(w http.ResponseWriter, r *http.Reque
 			writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": err.Error()})
 			return
 		}
-		prompt, err := store.UpsertCustomAgentPrompt(input.UserID, agentName, input.PromptText)
+		ownerID, ok := workspaceClaimedUserID(w, userID, input.UserID)
+		if !ok {
+			return
+		}
+		prompt, err := store.UpsertCustomAgentPrompt(ownerID, agentName, input.PromptText)
 		if err != nil {
 			writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 			return
 		}
 		writeWorkspaceJSON(w, http.StatusOK, map[string]any{"ok": true, "prompt": prompt})
 	case http.MethodDelete:
-		if err := store.DeleteCustomAgentPrompt(r.URL.Query().Get("user_id"), agentName); err != nil {
+		if err := store.DeleteCustomAgentPrompt(userID, agentName); err != nil {
 			writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 			return
 		}
@@ -47,8 +55,12 @@ func (s *Server) handleWorkspaceAgentPrompt(w http.ResponseWriter, r *http.Reque
 }
 
 func (s *Server) handleWorkspaceAgentConnectors(w http.ResponseWriter, r *http.Request, store *workspace.Store, agentName string, segments []string) {
+	userID, ok := workspaceScopedUserID(w, r)
+	if !ok {
+		return
+	}
 	if len(segments) == 2 && r.Method == http.MethodGet {
-		connectors, err := store.ListAgentConnectors(r.URL.Query().Get("user_id"), agentName)
+		connectors, err := store.ListAgentConnectors(userID, agentName)
 		if err != nil {
 			writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 			return
@@ -66,7 +78,6 @@ func (s *Server) handleWorkspaceAgentConnectors(w http.ResponseWriter, r *http.R
 		return
 	}
 	if r.Method == http.MethodDelete {
-		userID := r.URL.Query().Get("user_id")
 		if err := store.UnassignMCPServerFromAgent(userID, agentName, connectorID); err != nil {
 			writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 			return
@@ -86,8 +97,12 @@ func (s *Server) handleWorkspaceAgentConnectors(w http.ResponseWriter, r *http.R
 		writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": err.Error()})
 		return
 	}
+	ownerID, ok := workspaceClaimedUserID(w, userID, input.UserID)
+	if !ok {
+		return
+	}
 	assignment, err := store.AssignMCPServerToAgent(workspace.MCPAssignmentInput{
-		ID: input.ID, MCPServerID: connectorID, UserID: input.UserID, AgentName: agentName,
+		ID: input.ID, MCPServerID: connectorID, UserID: ownerID, AgentName: agentName,
 	})
 	if err != nil {
 		writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
@@ -101,9 +116,13 @@ func (s *Server) handleWorkspaceAgentConnectors(w http.ResponseWriter, r *http.R
 }
 
 func (s *Server) handleWorkspaceAgentConnectorExclusions(w http.ResponseWriter, r *http.Request, store *workspace.Store, agentName string) {
+	userID, ok := workspaceScopedUserID(w, r)
+	if !ok {
+		return
+	}
 	switch r.Method {
 	case http.MethodGet:
-		exclusions, err := store.GetAgentConnectorExclusions(r.URL.Query().Get("user_id"), agentName)
+		exclusions, err := store.GetAgentConnectorExclusions(userID, agentName)
 		if err != nil {
 			writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 			return
@@ -118,12 +137,16 @@ func (s *Server) handleWorkspaceAgentConnectorExclusions(w http.ResponseWriter, 
 			writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": err.Error()})
 			return
 		}
-		exclusions, err := store.SetAgentConnectorExclusions(input.UserID, agentName, input.ConnectorIDs)
+		ownerID, ok := workspaceClaimedUserID(w, userID, input.UserID)
+		if !ok {
+			return
+		}
+		exclusions, err := store.SetAgentConnectorExclusions(ownerID, agentName, input.ConnectorIDs)
 		if err != nil {
 			writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 			return
 		}
-		if _, err := s.publishUserEvent(input.UserID, "connector_update", map[string]any{"agent_name": agentName, "connector_ids": exclusions, "action": "exclusions_updated"}); err != nil {
+		if _, err := s.publishUserEvent(ownerID, "connector_update", map[string]any{"agent_name": agentName, "connector_ids": exclusions, "action": "exclusions_updated"}); err != nil {
 			writeDomainEventError(w, "agent connector exclusions", err)
 			return
 		}

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+import sys
 import unittest
 
 
@@ -9,7 +10,14 @@ SCRIPT = Path(__file__).with_name("audit_frontend_migration.py")
 SPEC = importlib.util.spec_from_file_location("audit_frontend_migration", SCRIPT)
 MODULE = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
-SPEC.loader.exec_module(MODULE)
+# The standalone auditor has a sibling helper. Load it using the same script
+# directory as direct execution without leaking search-path changes to tests.
+previous_path = sys.path[:]
+try:
+    sys.path.insert(0, str(SCRIPT.parent))
+    SPEC.loader.exec_module(MODULE)
+finally:
+    sys.path[:] = previous_path
 
 
 class FrontendMigrationPolicyTests(unittest.TestCase):

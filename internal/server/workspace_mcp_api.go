@@ -14,9 +14,13 @@ func (s *Server) handleWorkspaceMCPServers(w http.ResponseWriter, r *http.Reques
 	if !ok {
 		return
 	}
+	userID, ok := workspaceScopedUserID(w, r)
+	if !ok {
+		return
+	}
 	switch r.Method {
 	case http.MethodGet:
-		servers, err := store.ListMCPServers(r.URL.Query().Get("user_id"))
+		servers, err := store.ListMCPServers(userID)
 		if err != nil {
 			writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 			return
@@ -40,8 +44,12 @@ func (s *Server) handleWorkspaceMCPServers(w http.ResponseWriter, r *http.Reques
 			writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": err.Error()})
 			return
 		}
+		ownerID, ok := workspaceClaimedUserID(w, userID, input.UserID)
+		if !ok {
+			return
+		}
 		server, err := store.CreateMCPServer(workspace.MCPServerInput{
-			ID: input.ID, UserID: input.UserID, Name: input.Name, Description: input.Description,
+			ID: input.ID, UserID: ownerID, Name: input.Name, Description: input.Description,
 			URL: input.URL, Transport: input.Transport, OAuthServerURL: input.OAuthServerURL,
 			ClientID: input.ClientID, Scopes: input.Scopes, HeadersHelper: input.HeadersHelper,
 			Enabled: input.Enabled,
@@ -100,8 +108,12 @@ func (s *Server) handleWorkspaceMCPServer(w http.ResponseWriter, r *http.Request
 }
 
 func (s *Server) handleWorkspaceMCPAssignment(w http.ResponseWriter, r *http.Request, store *workspace.Store, serverID string) {
+	userID, ok := workspaceScopedUserID(w, r)
+	if !ok {
+		return
+	}
 	if r.Method == http.MethodGet {
-		assignments, err := store.ListMCPAssignments(serverID, r.URL.Query().Get("user_id"))
+		assignments, err := store.ListMCPAssignments(serverID, userID)
 		if err != nil {
 			writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 			return
@@ -122,7 +134,11 @@ func (s *Server) handleWorkspaceMCPAssignment(w http.ResponseWriter, r *http.Req
 		writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": err.Error()})
 		return
 	}
-	assignment, err := store.AssignMCPServerToAgent(workspace.MCPAssignmentInput{ID: input.ID, MCPServerID: serverID, UserID: input.UserID, AgentName: input.AgentName})
+	ownerID, ok := workspaceClaimedUserID(w, userID, input.UserID)
+	if !ok {
+		return
+	}
+	assignment, err := store.AssignMCPServerToAgent(workspace.MCPAssignmentInput{ID: input.ID, MCPServerID: serverID, UserID: ownerID, AgentName: input.AgentName})
 	if err != nil {
 		writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 		return
@@ -135,8 +151,12 @@ func (s *Server) handleWorkspaceMCPAssignment(w http.ResponseWriter, r *http.Req
 }
 
 func (s *Server) handleWorkspaceMCPGrant(w http.ResponseWriter, r *http.Request, store *workspace.Store, serverID string) {
+	userID, ok := workspaceScopedUserID(w, r)
+	if !ok {
+		return
+	}
 	if r.Method == http.MethodGet {
-		grants, err := store.ListMCPToolGrants(serverID, r.URL.Query().Get("user_id"))
+		grants, err := store.ListMCPToolGrants(serverID, userID)
 		if err != nil {
 			writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 			return
@@ -159,7 +179,11 @@ func (s *Server) handleWorkspaceMCPGrant(w http.ResponseWriter, r *http.Request,
 		writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": err.Error()})
 		return
 	}
-	grant, err := store.SetMCPToolGrant(workspace.MCPToolGrantInput{ID: input.ID, MCPServerID: serverID, UserID: input.UserID, AgentName: input.AgentName, ToolName: input.ToolName, Enabled: input.Enabled})
+	ownerID, ok := workspaceClaimedUserID(w, userID, input.UserID)
+	if !ok {
+		return
+	}
+	grant, err := store.SetMCPToolGrant(workspace.MCPToolGrantInput{ID: input.ID, MCPServerID: serverID, UserID: ownerID, AgentName: input.AgentName, ToolName: input.ToolName, Enabled: input.Enabled})
 	if err != nil {
 		writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 		return
@@ -172,9 +196,13 @@ func (s *Server) handleWorkspaceMCPGrant(w http.ResponseWriter, r *http.Request,
 }
 
 func (s *Server) handleWorkspaceMCPOAuth(w http.ResponseWriter, r *http.Request, store *workspace.Store, serverID string) {
+	userID, ok := workspaceScopedUserID(w, r)
+	if !ok {
+		return
+	}
 	switch r.Method {
 	case http.MethodGet:
-		status, connected, err := store.GetMCPOAuthStatus(serverID, r.URL.Query().Get("user_id"))
+		status, connected, err := store.GetMCPOAuthStatus(serverID, userID)
 		if err != nil {
 			writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 			return
@@ -196,17 +224,20 @@ func (s *Server) handleWorkspaceMCPOAuth(w http.ResponseWriter, r *http.Request,
 			writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": err.Error()})
 			return
 		}
-		if err := store.UpsertMCPOAuthStatus(workspace.MCPOAuthStatusInput{MCPServerID: serverID, UserID: input.UserID, AccessTokenRef: input.AccessTokenRef, TokenType: input.TokenType, ExpiresAt: input.ExpiresAt, Scopes: input.Scopes}); err != nil {
+		ownerID, ok := workspaceClaimedUserID(w, userID, input.UserID)
+		if !ok {
+			return
+		}
+		if err := store.UpsertMCPOAuthStatus(workspace.MCPOAuthStatusInput{MCPServerID: serverID, UserID: ownerID, AccessTokenRef: input.AccessTokenRef, TokenType: input.TokenType, ExpiresAt: input.ExpiresAt, Scopes: input.Scopes}); err != nil {
 			writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 			return
 		}
-		if _, err := s.publishUserEvent(input.UserID, "connector_status", map[string]any{"connector_id": serverID, "status": "connected"}); err != nil {
+		if _, err := s.publishUserEvent(ownerID, "connector_status", map[string]any{"connector_id": serverID, "status": "connected"}); err != nil {
 			writeDomainEventError(w, "MCP OAuth connect", err)
 			return
 		}
 		writeWorkspaceJSON(w, http.StatusOK, map[string]any{"ok": true})
 	case http.MethodDelete:
-		userID := r.URL.Query().Get("user_id")
 		if err := store.DisconnectMCPOAuth(serverID, userID); err != nil {
 			writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 			return

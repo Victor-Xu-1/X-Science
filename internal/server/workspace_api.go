@@ -447,9 +447,13 @@ func (s *Server) handleWorkspaceAgents(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	userID, ok := workspaceScopedUserID(w, r)
+	if !ok {
+		return
+	}
 	switch r.Method {
 	case http.MethodGet:
-		agents, err := store.ListAgents(r.URL.Query().Get("user_id"))
+		agents, err := store.ListAgents(userID)
 		if err != nil {
 			writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 			return
@@ -470,7 +474,11 @@ func (s *Server) handleWorkspaceAgents(w http.ResponseWriter, r *http.Request) {
 			writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": err.Error()})
 			return
 		}
-		agent, err := store.CreateAgent(workspace.CreateAgentInput{ID: input.ID, UserID: input.UserID, Name: input.Name, DisplayName: input.DisplayName, Description: input.Description, SystemPrompt: input.SystemPrompt, SkillNames: input.SkillNames, Enabled: input.Enabled})
+		ownerID, ok := workspaceClaimedUserID(w, userID, input.UserID)
+		if !ok {
+			return
+		}
+		agent, err := store.CreateAgent(workspace.CreateAgentInput{ID: input.ID, UserID: ownerID, Name: input.Name, DisplayName: input.DisplayName, Description: input.Description, SystemPrompt: input.SystemPrompt, SkillNames: input.SkillNames, Enabled: input.Enabled})
 		if err != nil {
 			writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 			return
@@ -506,6 +514,10 @@ func (s *Server) handleWorkspaceAgent(w http.ResponseWriter, r *http.Request) {
 		if len(segments) != 2 || r.Method != http.MethodPut {
 			break
 		}
+		userID, ok := workspaceScopedUserID(w, r)
+		if !ok {
+			return
+		}
 		var input struct {
 			UserID  string `json:"userId"`
 			Enabled bool   `json:"enabled"`
@@ -514,7 +526,11 @@ func (s *Server) handleWorkspaceAgent(w http.ResponseWriter, r *http.Request) {
 			writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": err.Error()})
 			return
 		}
-		if err := store.SetAgentEnabled(input.UserID, name, input.Enabled); err != nil {
+		ownerID, ok := workspaceClaimedUserID(w, userID, input.UserID)
+		if !ok {
+			return
+		}
+		if err := store.SetAgentEnabled(ownerID, name, input.Enabled); err != nil {
 			writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 			return
 		}
@@ -541,9 +557,13 @@ func (s *Server) handleWorkspaceAgent(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleWorkspaceAgentRecord(w http.ResponseWriter, r *http.Request, store *workspace.Store, name string) {
+	userID, ok := workspaceScopedUserID(w, r)
+	if !ok {
+		return
+	}
 	switch r.Method {
 	case http.MethodGet:
-		agent, found, err := store.GetAgent(r.URL.Query().Get("user_id"), name)
+		agent, found, err := store.GetAgent(userID, name)
 		if err != nil {
 			writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 			return
@@ -564,7 +584,11 @@ func (s *Server) handleWorkspaceAgentRecord(w http.ResponseWriter, r *http.Reque
 			writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": err.Error()})
 			return
 		}
-		agent, err := store.UpdateAgent(input.UserID, name, workspace.UpdateAgentInput{
+		ownerID, ok := workspaceClaimedUserID(w, userID, input.UserID)
+		if !ok {
+			return
+		}
+		agent, err := store.UpdateAgent(ownerID, name, workspace.UpdateAgentInput{
 			DisplayName: input.DisplayName, Description: input.Description, SystemPrompt: input.SystemPrompt,
 		})
 		if err != nil {
@@ -573,7 +597,7 @@ func (s *Server) handleWorkspaceAgentRecord(w http.ResponseWriter, r *http.Reque
 		}
 		writeWorkspaceJSON(w, http.StatusOK, map[string]any{"ok": true, "agent": agent})
 	case http.MethodDelete:
-		if err := store.DeleteAgent(r.URL.Query().Get("user_id"), name); err != nil {
+		if err := store.DeleteAgent(userID, name); err != nil {
 			writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 			return
 		}
@@ -584,6 +608,10 @@ func (s *Server) handleWorkspaceAgentRecord(w http.ResponseWriter, r *http.Reque
 }
 
 func (s *Server) handleWorkspaceAgentSkills(w http.ResponseWriter, r *http.Request, store *workspace.Store, name string, segments []string) {
+	userID, ok := workspaceScopedUserID(w, r)
+	if !ok {
+		return
+	}
 	if len(segments) == 2 && r.Method == http.MethodPut {
 		var input struct {
 			UserID     string   `json:"userId"`
@@ -593,7 +621,11 @@ func (s *Server) handleWorkspaceAgentSkills(w http.ResponseWriter, r *http.Reque
 			writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": err.Error()})
 			return
 		}
-		agent, err := store.SetAgentSkills(input.UserID, name, input.SkillNames)
+		ownerID, ok := workspaceClaimedUserID(w, userID, input.UserID)
+		if !ok {
+			return
+		}
+		agent, err := store.SetAgentSkills(ownerID, name, input.SkillNames)
 		if err != nil {
 			writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 			return
@@ -610,7 +642,7 @@ func (s *Server) handleWorkspaceAgentSkills(w http.ResponseWriter, r *http.Reque
 		writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "invalid skill name"})
 		return
 	}
-	userID := r.URL.Query().Get("user_id")
+	ownerID := userID
 	if r.Method == http.MethodPost {
 		var input struct {
 			UserID string `json:"userId"`
@@ -619,13 +651,16 @@ func (s *Server) handleWorkspaceAgentSkills(w http.ResponseWriter, r *http.Reque
 			writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": err.Error()})
 			return
 		}
-		userID = input.UserID
+		ownerID, ok = workspaceClaimedUserID(w, userID, input.UserID)
+		if !ok {
+			return
+		}
 	}
 	var agent workspace.Agent
 	if r.Method == http.MethodPost {
-		agent, err = store.AddAgentSkill(userID, name, skillName)
+		agent, err = store.AddAgentSkill(ownerID, name, skillName)
 	} else {
-		agent, err = store.RemoveAgentSkill(userID, name, skillName)
+		agent, err = store.RemoveAgentSkill(ownerID, name, skillName)
 	}
 	if err != nil {
 		writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
@@ -1145,6 +1180,31 @@ func (s *Server) workspaceForRequest(w http.ResponseWriter) (*workspace.Store, b
 		return nil, false
 	}
 	return s.workspaceStore, true
+}
+
+// workspaceScopedUserID returns the authenticated workspace owner. Client-supplied
+// user_id/userId query parameters must match that identity or the request is rejected.
+func workspaceScopedUserID(w http.ResponseWriter, r *http.Request) (string, bool) {
+	userID, ok := attachmentUserID(w, r)
+	if !ok {
+		return "", false
+	}
+	for _, key := range []string{"user_id", "userId"} {
+		if requested := strings.TrimSpace(r.URL.Query().Get(key)); requested != "" && requested != userID {
+			writeWorkspaceJSON(w, http.StatusNotFound, map[string]any{"ok": false, "error": "resource not found"})
+			return "", false
+		}
+	}
+	return userID, true
+}
+
+func workspaceClaimedUserID(w http.ResponseWriter, authenticated, claimed string) (string, bool) {
+	claimed = strings.TrimSpace(claimed)
+	if claimed != "" && claimed != authenticated {
+		writeWorkspaceJSON(w, http.StatusNotFound, map[string]any{"ok": false, "error": "resource not found"})
+		return "", false
+	}
+	return authenticated, true
 }
 
 func workspaceProjectOwned(w http.ResponseWriter, store *workspace.Store, projectID, userID string) bool {
