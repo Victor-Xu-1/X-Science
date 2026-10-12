@@ -195,8 +195,8 @@
         },
         {
             "path": "lib/chebi_ontology/tool.py",
-            "sha256": "4f2bd61b3c6ce83d8901659e7d4b40b249819463cc238ba82d83ac7599fdd044",
-            "bytes": 5342
+            "sha256": "4d2cc08eb9b87dc23573da8022e82d64f4159a78cf5448d2fca95e26144d4693",
+            "bytes": 5339
         },
         {
             "path": "lib/chembl_bioactivity/__init__.py",
