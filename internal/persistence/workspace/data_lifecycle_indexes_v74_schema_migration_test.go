@@ -210,7 +210,7 @@ func TestDataLifecycleIndexesV74HasCanonicalIdentityAndRejectsJournalTampering(t
 		t.Fatal(err)
 	}
 	last := expected.Migrations[dataLifecycleIndexesV74Migration.version-1]
-	const checksum = "9debf03312d15dd3fdec736fef2915c5017a4fbf26262c440558f897e3e744bf"
+	const checksum = "09583c0ce841f1c5efa7ee0e2336a6478491fde3dbe322e581e6124679097239"
 	if last.Version != 74 || last.Name != "data-lifecycle-snapshot-reference-indexes" || last.Checksum != checksum {
 		t.Fatalf("migration identity=%#v", last)
 	}

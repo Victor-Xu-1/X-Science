@@ -325,7 +325,7 @@ func pathWithinOutboundRoot(root string, path string) bool {
 
 func outboundMediaPathSensitive(path string) bool {
 	normalized := strings.ToLower(filepath.ToSlash(filepath.Clean(path)))
-	blockedDirectories := []string{"/.aws/", "/.config/", "/.git/", "/.gnupg/", "/.ssh/", "/.x-science/", "/boot/", "/dev/", "/etc/", "/proc/", "/root/", "/sys/", "/var/"}
+	blockedDirectories := []string{"/.aws/", "/.config/", "/.git/", "/.gnupg/", "/.ssh/", "/.synon/", "/.x-science/", "/.xscience/", "/boot/", "/dev/", "/etc/", "/proc/", "/root/", "/sys/", "/var/"}
 	for _, token := range blockedDirectories {
 		if strings.Contains(normalized+"/", token) {
 			return true

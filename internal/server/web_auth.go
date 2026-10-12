@@ -303,7 +303,7 @@ func protectedRuntimeRoute(path string) bool {
 func publicRuntimeRequest(r *http.Request) bool {
 	switch r.URL.Path {
 	case "/health", "/api/health", "/api/auth/login", "/api/auth/logout", "/api/auth/user",
-		"/api/auth/register", "/api/auth/providers", "/login", "/register", "/x-science-link/ws":
+		"/api/auth/register", "/api/auth/providers", "/login", "/register", "/x-science-link/ws", "/synon-link/ws":
 		return true
 	case "/api/settings/client":
 		return r.Method == http.MethodGet && r.URL.Query().Get("scope") == webClientSettingsScope

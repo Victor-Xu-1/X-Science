@@ -82,7 +82,7 @@ var publishedMigrationIdentities = [...]publishedMigrationIdentity{
 	{"0d868ef6092bae63b84c015d1659ae48543cea4e8159e0677b236fa6406dbe29", "4da9b40818ff5a4b95a3f6c3ed739e4cb899c54691a95b751616867c5cd47896"}, // 71
 	{"5f5eaa55a7ec7d7f809f9e37d96126fce07f6652c392acb535224d46727db3b8", "90be141705dc48bc6f7722b92b2fd60c690e4d52aa2eca94f19022e83cdbc06f"}, // 72
 	{"9c47cc35763c4c79a49b77d2f7a65e84dfbf482a828f72e855d9c2271f1d8b5e", "5dd28130de13a1bd1b8b931abe480167ca00586887f5ded0eeaf731743e3f37c"}, // 73
-	{"9debf03312d15dd3fdec736fef2915c5017a4fbf26262c440558f897e3e744bf", "9debf03312d15dd3fdec736fef2915c5017a4fbf26262c440558f897e3e744bf"}, // 74, merged immutable index migration
+	{"9debf03312d15dd3fdec736fef2915c5017a4fbf26262c440558f897e3e744bf", "09583c0ce841f1c5efa7ee0e2336a6478491fde3dbe322e581e6124679097239"}, // 74, merged immutable index migration (#184 journals)
 }
 
 func publishedMigrationChecksum(version int, canonical string) string {

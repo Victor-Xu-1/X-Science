@@ -361,6 +361,21 @@ type rawServerContext struct {
 
 var pluginIDPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{0,79}$`)
 
+func externalPluginManifestPath(root string) (string, error) {
+	for _, directory := range []string{".x-science-plugin", ".synon-plugin"} {
+		manifestPath := filepath.Join(root, directory, "plugin.json")
+		if info, err := os.Lstat(manifestPath); err == nil {
+			if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+				return "", fmt.Errorf("plugin manifest %s must be a regular file", manifestPath)
+			}
+			return manifestPath, nil
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return "", fmt.Errorf("inspect plugin manifest %s: %w", manifestPath, err)
+		}
+	}
+	return "", fmt.Errorf("read plugin manifest: no manifest in .x-science-plugin or .synon-plugin under %s", root)
+}
+
 func loadExternalDirectory(directory string) (Plugin, error) {
 	root, err := filepath.Abs(directory)
 	if err != nil {
@@ -373,7 +388,10 @@ func loadExternalDirectory(directory string) (Plugin, error) {
 	if !info.IsDir() {
 		return Plugin{}, fmt.Errorf("plugin path is not a directory: %s", root)
 	}
-	manifestPath := filepath.Join(root, ".x-science-plugin", "plugin.json")
+	manifestPath, err := externalPluginManifestPath(root)
+	if err != nil {
+		return Plugin{}, err
+	}
 	raw, err := os.ReadFile(manifestPath)
 	if err != nil {
 		return Plugin{}, fmt.Errorf("read plugin manifest %s: %w", manifestPath, err)

@@ -789,6 +789,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/register", s.handleWebRegister)
 	mux.HandleFunc("/logout", s.handleLogout)
 	mux.HandleFunc("/x-science-link/ws", s.handleXScienceLinkCompatibilityWebSocket)
+	mux.HandleFunc("/synon-link/ws", s.handleXScienceLinkCompatibilityWebSocket)
 	mux.HandleFunc("/api/feedback/available", s.handleFeedbackAvailability)
 	mux.HandleFunc("/api/feedback/safety", s.handleSafetyFeedback)
 	mux.HandleFunc("/api/feedback", s.handleFeedback)

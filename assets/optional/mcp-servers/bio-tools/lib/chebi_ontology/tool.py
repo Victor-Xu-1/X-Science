@@ -76,7 +76,7 @@ class ChebiOntology:
 
 def _normalize_compound(raw: dict) -> dict:
     names = raw.get("names") or {}
-    synonyms = [n.get("name") for n in names.get("XSCIENCEYM", [])
+    synonyms = [n.get("name") for n in names.get("SYNONYM", [])
                 if n.get("name")]
     iupac_names = [n.get("name") for n in names.get("IUPAC NAME", [])
                    if n.get("name")]

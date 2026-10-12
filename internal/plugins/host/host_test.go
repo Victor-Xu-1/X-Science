@@ -505,6 +505,34 @@ func waitForFile(t *testing.T, path string) {
 	t.Fatalf("timed out waiting for %s", path)
 }
 
+func TestHostLoadsHistoricalSynonPluginManifestDirectory(t *testing.T) {
+	root := t.TempDir()
+	pluginDir := filepath.Join(root, "historical-plugin")
+	manifestDir := filepath.Join(pluginDir, ".synon-plugin")
+	if err := os.MkdirAll(manifestDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writePluginManifest(t, manifestDir, `{
+  "id": "historical-plugin",
+  "name": "historical-plugin",
+  "version": "0.1.0",
+  "description": "Historical manifest directory",
+  "author": {"name": "Plugin Author"},
+  "license": "MIT",
+  "server": {
+    "api": {"mount": "/api/plugins/historical-plugin", "entry": "./server/api.go"}
+  }
+}`)
+	host, err := NewDefaultWithExternalDirectories([]string{pluginDir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	plugin, ok := host.Get("historical-plugin")
+	if !ok || plugin.Name != "historical-plugin" {
+		t.Fatalf("historical plugin=%#v ok=%t err=%v", plugin, ok, err)
+	}
+}
+
 func waitForRuntimeStatus(t *testing.T, host *Host, id string, status string) {
 	t.Helper()
 	deadline := time.Now().Add(5 * time.Second)
