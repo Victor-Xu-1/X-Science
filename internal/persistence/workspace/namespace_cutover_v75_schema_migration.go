@@ -7,20 +7,20 @@ import (
 )
 
 const (
-	namespaceCutoverV74CallbackID        = "namespace-cutover-v74-capture-source-receipts"
-	namespaceCutoverV74PreflightIdentity = "namespace-cutover-v74-receipts-v1"
-	namespaceCutoverV74RuleSpec          = "x-science.workspace.namespace-cutover.v74"
+	namespaceCutoverV75CallbackID        = "namespace-cutover-v75-capture-source-receipts"
+	namespaceCutoverV75PreflightIdentity = "namespace-cutover-v75-receipts-v1"
+	namespaceCutoverV75RuleSpec          = "x-science.workspace.namespace-cutover.v75"
 )
 
 // The frozen receipt inventory is the boundary for historical identity reads.
 // It never converts user content, changes an effect's state, or creates a job.
-var namespaceCutoverV74Migration = versionedSchemaMigration{
-	version: 74,
+var namespaceCutoverV75Migration = versionedSchemaMigration{
+	version: 75,
 	name:    "namespace-cutover-receipts",
 	identityV2: &schemaMigrationIdentityV2{
-		CallbackID:        namespaceCutoverV74CallbackID,
-		PreflightIdentity: namespaceCutoverV74PreflightIdentity,
-		RuleSpec:          namespaceCutoverV74RuleSpec,
+		CallbackID:        namespaceCutoverV75CallbackID,
+		PreflightIdentity: namespaceCutoverV75PreflightIdentity,
+		RuleSpec:          namespaceCutoverV75RuleSpec,
 	},
 	statements: append([]string{
 		`CREATE TABLE namespace_cutover_receipts (
@@ -110,7 +110,7 @@ var namespaceCutoverV74Migration = versionedSchemaMigration{
 	}, transcriptstore.WebReadModelProjectorV74RebuildStatements()...),
 }
 
-func preflightNamespaceCutoverV74(ctx context.Context, executor schemaMigrationQueryExecutor) error {
+func preflightNamespaceCutoverV75(ctx context.Context, executor schemaMigrationQueryExecutor) error {
 	var objects int
 	if err := executor.QueryRowContext(ctx, `SELECT COUNT(*) FROM sqlite_schema
 		WHERE name IN ('namespace_cutover_receipts','namespace_identity_aliases','kernel_runtime_identity_receipts','namespace_kernel_operation_receipts','namespace_transcript_event_receipts','namespace_compute_job_receipts','namespace_history_audit_receipts','compute_namespace_observed_source_receipts')`).Scan(&objects); err != nil {

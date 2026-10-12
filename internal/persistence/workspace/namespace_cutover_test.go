@@ -36,7 +36,7 @@ func namespaceV73Fixture(t *testing.T) *Store {
 
 func namespaceApplyCutover(t *testing.T, store *Store) {
 	t.Helper()
-	if err := applyVersionedSchemaMigrationsThrough(context.Background(), store.db, store.now, 74); err != nil {
+	if err := applyVersionedSchemaMigrationsThrough(context.Background(), store.db, store.now, 75); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -161,7 +161,7 @@ func TestNamespaceCutoverRejectsLateHistoricalIdentityAndAliasCollision(t *testi
 
 func TestNamespaceCutoverMigrationFailureIsAtomic(t *testing.T) {
 	store := namespaceV73Fixture(t)
-	failed := namespaceCutoverV74Migration
+	failed := namespaceCutoverV75Migration
 	failed.statements = append(append([]string(nil), failed.statements...), "INSERT INTO missing_namespace_table VALUES(1)")
 	checksum, err := failed.validatedChecksum()
 	if err != nil {
