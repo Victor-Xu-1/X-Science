@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "13b54fbb97a3862514b608c0a3855e4e1f39f664278c6fdb4a52013bd1606930",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
-  "additionFingerprintSHA256": "11afc31437568c0b844d624079c9ba7230ee3d5fe8203b09557f179e6ec409c7",
+  "additionFingerprintSHA256": "a05b6707751c96b180d6f8ed61993fd11456fefafe5f07b1cfdaea412c5dd99f",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 276,
@@ -11135,8 +11135,8 @@
     },
     {
       "path": "tests/unit/previews/XScienceSequenceViewer.load.test.ts",
-      "sha256": "155880fa05a52d78e7b6d612bf6960e0bead264debd15ec634ed72042a000153",
-      "bytes": 5276,
+      "sha256": "929ffc7829d876bb1fab4da24304a4c2dedb5ecede676a403b3c135119422bc4",
+      "bytes": 5400,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
