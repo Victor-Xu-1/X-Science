@@ -157,6 +157,26 @@ func TestNamespaceIdentityUsesActualCutoverVersionForMissingGuard(t *testing.T) 
 	}
 }
 
+func TestWorkspaceOpenAppliesRegisteredNamespaceCutover(t *testing.T) {
+	last := workspaceSchemaMigrations[len(workspaceSchemaMigrations)-1]
+	if workspaceSchemaVersion != last.version || last.version != namespaceCutoverV75Migration.version {
+		t.Fatalf("declared schema %d does not include the final registered migration %d", workspaceSchemaVersion, last.version)
+	}
+	store, err := Open(filepath.Join(t.TempDir(), "fresh.sqlite"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	status, err := store.SchemaStatus(context.Background())
+	if err != nil || status.CurrentVersion != last.version {
+		t.Fatalf("ordinary Open did not apply registered cutover: %#v %v", status, err)
+	}
+	var tables int
+	if err := store.db.QueryRow(`SELECT COUNT(*) FROM sqlite_schema WHERE name IN ('namespace_identity_aliases','compute_namespace_observed_source_receipts')`).Scan(&tables); err != nil || tables != 2 {
+		t.Fatalf("namespace tables missing after ordinary Open: %d %v", tables, err)
+	}
+}
+
 func TestNamespaceCutoverRejectsLateHistoricalIdentityAndAliasCollision(t *testing.T) {
 	ctx := context.Background()
 	store := namespaceV73Fixture(t)

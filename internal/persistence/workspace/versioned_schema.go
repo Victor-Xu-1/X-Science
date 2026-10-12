@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-const workspaceSchemaVersion = 74
+const workspaceSchemaVersion = 75
 
 type SchemaMigrationRecord struct {
 	Version       int       `json:"version"`
