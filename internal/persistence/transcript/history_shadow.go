@@ -593,10 +593,25 @@ func loadAskUserHistoryAudit(
 	query askUserHistoryQueryer,
 	input GetAskUserHistoryAuditInput,
 ) (AskUserHistoryAudit, bool, error) {
-	return loadAskUserHistoryAuditWithNamespace(ctx, query, input, false)
+	audit, found, err := loadAskUserHistoryAuditSource(ctx, query, input)
+	if err != nil || !found {
+		return AskUserHistoryAudit{}, found, err
+	}
+	sourceDigest, err := hex.DecodeString(audit.SourceSHA256)
+	if err != nil {
+		return AskUserHistoryAudit{}, false, err
+	}
+	if err := validateLoadedAskUserHistoryAudit(audit, sourceDigest); err != nil {
+		if err := validateHistoricalNamespaceHistoryAudit(ctx, query, audit, sourceDigest); err != nil {
+			return AskUserHistoryAudit{}, false, err
+		}
+	}
+	return audit, true, nil
 }
 
-func loadAskUserHistoryAuditWithNamespace(ctx context.Context, query askUserHistoryQueryer, input GetAskUserHistoryAuditInput, capturing bool) (AskUserHistoryAudit, bool, error) {
+// Source loading records existing facts. Runtime reads additionally validate
+// their commitments above; a cutover receipt alone cannot authorize an audit.
+func loadAskUserHistoryAuditSource(ctx context.Context, query askUserHistoryQueryer, input GetAskUserHistoryAuditInput) (AskUserHistoryAudit, bool, error) {
 	runID, err := hex.DecodeString(input.RunID)
 	if err != nil || len(runID) != sha256.Size {
 		return AskUserHistoryAudit{}, false, ErrEventConflict
@@ -705,11 +720,6 @@ func loadAskUserHistoryAuditWithNamespace(ctx context.Context, query askUserHist
 		return AskUserHistoryAudit{}, false, err
 	}
 	deriveAskUserHistoryOutcome(&audit)
-	if err := validateLoadedAskUserHistoryAudit(audit, sourceDigest); err != nil {
-		if err := validateHistoricalNamespaceHistoryAudit(ctx, query, audit, sourceDigest, capturing); err != nil {
-			return AskUserHistoryAudit{}, false, err
-		}
-	}
 	return audit, true, nil
 }
 

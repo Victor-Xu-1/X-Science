@@ -79,32 +79,34 @@ type externalProcess struct {
 }
 
 func NewDefault() *Host {
+	identity := buildinfo.Release()
+	mount := "/api/plugins/" + identity.MachineSlug
 	xscience := Plugin{
-		ID:           "xscience",
-		Name:         buildinfo.Release().Name,
+		ID:           identity.MachineSlug,
+		Name:         identity.Name,
 		Version:      "1.1.5",
 		Description:  "Compact X-Science native plugin for X-Science Link browser bridge, local device bridge, extension download, and capability reporting.",
 		Author:       "Victor",
 		License:      "Proprietary",
-		Mount:        "/api/plugins/xscience",
+		Mount:        mount,
 		PluginFormat: "x_science_agent_native",
-		Keywords:     []string{"xscience", "x-science-link", "browser-bridge", "local-device", "websocket"},
+		Keywords:     []string{identity.MachineSlug, "x-science-link", "browser-bridge", "local-device", "websocket"},
 		Modules: []Module{
 			{
 				ID:          "capabilities",
 				Label:       "Capabilities",
-				Endpoint:    "/api/plugins/x-science/capabilities",
+				Endpoint:    mount + "/capabilities",
 				Description: "Compact X-Science capability report for retained bridge, messaging, runtime, and tool surfaces.",
 			},
 			{
 				ID:          "link-download",
 				Label:       "X-Science Link Download",
-				Endpoint:    "/api/plugins/x-science/link/download",
+				Endpoint:    mount + "/link/download",
 				Description: "Versioned X-Science Link browser extension package download.",
 			},
 		},
 		Server: ServerManifest{
-			APIMount:     "/api/plugins/xscience",
+			APIMount:     mount,
 			ContextEntry: "builtin:x-science-context",
 		},
 	}

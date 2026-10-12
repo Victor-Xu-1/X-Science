@@ -185,6 +185,19 @@ aggregate still depends on that partition succeeding. Invalid partition inputs
 fail before they can skip this verification. Other partitions keep all their
 assigned Go tests without repeating identical Python/CI checks.
 
+Frontend public bootstrap and service-worker sources have explicit existing
+behavior-test owners. Browser/real-backend test harnesses and their runner
+configuration are syntax-compiled without evaluating imports or starting real
+tasks; this is not browser or scientific acceptance. Renamed harness inputs
+route through unique regular-file Git counterparts, retaining actual changes.
+Snapshot fixture inputs retain the mandatory content/provenance audit and are
+not mislabeled as Vitest modules. Product source changes still run their real
+dependency-related unit/component tests and production build; unowned runtime
+inputs fail rather than expanding into an unauthorized global suite.
+The root npm manifest and lockfile retain locked installation, canonical
+dependency/provenance, type/lint/format and product-build checks. They are build
+inputs, not documentation and not executable Vitest modules.
+
 The authoritative full workflow is `.github/workflows/quality.yml`. It runs by
 manual dispatch and daily at 02:00 in the explicit `Asia/Shanghai` timezone on
 the default branch, combining these gates with frontend type/lint/test/build checks,

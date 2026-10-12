@@ -25,12 +25,9 @@ func namespaceHistoryAuditDigest(audit AskUserHistoryAudit) string {
 	return hex.EncodeToString(digest[:])
 }
 
-func validateHistoricalNamespaceHistoryAudit(ctx context.Context, query askUserHistoryQueryer, audit AskUserHistoryAudit, source []byte, capturing bool) error {
+func validateHistoricalNamespaceHistoryAudit(ctx context.Context, query askUserHistoryQueryer, audit AskUserHistoryAudit, source []byte) error {
 	if err := validateLoadedAskUserHistoryAuditWithDomains(audit, source, historicalHistoryRunDomain, historicalHistoryCandidateDomain); err != nil {
 		return err
-	}
-	if capturing {
-		return nil
 	}
 	var exists bool
 	if err := query.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM sqlite_schema WHERE type='table' AND name='namespace_history_audit_receipts')`).Scan(&exists); err != nil {
@@ -50,9 +47,11 @@ func validateHistoricalNamespaceHistoryAudit(ctx context.Context, query askUserH
 
 // CaptureNamespaceHistoryAuditReceipts is exclusively the transactional v74
 // migration callback. It freezes compact source hashes, not history JSON, and
-// validates every original run/candidate commitment before sealing the table.
+// does not promote original classification claims into runtime authority.
+// Incomplete classifications remain untouched and receive no readable-audit
+// receipt; normal reads still validate both commitments and sealed sources.
 func CaptureNamespaceHistoryAuditReceipts(ctx context.Context, tx *sql.Tx) error {
-	rows, err := tx.QueryContext(ctx, `SELECT run.run_id,run.stream_uid,stream.owner_id FROM transcript_history_classification_runs run JOIN transcript_streams stream ON stream.stream_uid=run.stream_uid ORDER BY run.run_id`)
+	rows, err := tx.QueryContext(ctx, `SELECT run.run_id,run.stream_uid,stream.owner_id FROM transcript_history_classification_runs run JOIN transcript_streams stream ON stream.stream_uid=run.stream_uid WHERE run.scan_status='complete' AND run.scan_reason='none' ORDER BY run.run_id`)
 	if err != nil {
 		return err
 	}
@@ -75,7 +74,7 @@ func CaptureNamespaceHistoryAuditReceipts(ctx context.Context, tx *sql.Tx) error
 		return err
 	}
 	for _, input := range inputs {
-		audit, found, err := loadAskUserHistoryAuditWithNamespace(ctx, tx, input, true)
+		audit, found, err := loadAskUserHistoryAuditSource(ctx, tx, input)
 		if err != nil {
 			return err
 		}

@@ -100,7 +100,9 @@
         [
           "python3",
           "-B",
-          "scripts/quality/test_runtime_test_shards.py"
+          "-m",
+          "unittest",
+          "scripts.quality.test_runtime_test_shards"
         ]
       ]
     },
@@ -572,6 +574,7 @@
         "assets/x-science-link/source/approval.js",
         "assets/x-science-link/source/background-download-guard.test.ts",
         "assets/x-science-link/source/background-tab-groups.test.ts",
+        "assets/x-science-link/source/background-url.test.mjs",
         "assets/x-science-link/source/background.js",
         "assets/x-science-link/source/content-script.js",
         "assets/x-science-link/source/icons/x-science-mark.png",
@@ -597,6 +600,7 @@
         ["python3", "-B", "-m", "scripts.packaging.build_browser_extension", "--repo", ".", "--check", "--fetch-source"],
         ["python3", "-B", "-m", "unittest", "scripts.packaging.test_browser_extension_branding"],
         ["node", "--test", "scripts/packaging/test_connector_namespace.mjs"],
+        ["node", "--test", "assets/x-science-link/source/background-url.test.mjs"],
         ["bash", "scripts/audit/audit-non-web-boundary-test.sh"],
         ["bash", "scripts/audit/audit-non-web-boundary.sh"]
       ]
@@ -667,6 +671,7 @@
       "name": "frontend-related-selection",
       "paths": [
         "scripts/quality/pr_frontend_scope.py",
+        "scripts/quality/pr_frontend_harness_scope.py",
         "scripts/quality/test_pr_frontend_scope.py"
       ],
       "frontend": false,

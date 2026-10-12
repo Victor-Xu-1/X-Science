@@ -1338,12 +1338,17 @@ async function readSearchResultPage(result, index, options = {}) {
   }
 }
 
+function hostnameMatchesDomain(hostname, domain) {
+  const host = String(hostname || '').toLowerCase().replace(/\.$/, '')
+  return host === domain || host.endsWith(`.${domain}`)
+}
+
 function isReadableSearchResultUrl(value) {
   if (!/^https?:\/\//i.test(value)) return false
   try {
     const url = new URL(value)
     const host = url.hostname.toLowerCase()
-    if (host.includes('bing.com') || host.includes('google.com')) return false
+    if (hostnameMatchesDomain(host, 'bing.com') || hostnameMatchesDomain(host, 'google.com')) return false
     return true
   } catch {
     return false
@@ -3816,6 +3821,13 @@ async function readPageLikeHumanInTab(options = {}) {
     return preferred?.href || location.href
   }
 
+  // Page functions are serialized by chrome.scripting, so their small URL
+  // predicate must live in this execution scope rather than an outer closure.
+  function hostnameMatchesDomain(hostname, domain) {
+    const host = String(hostname || '').toLowerCase().replace(/\.$/, '')
+    return host === domain || host.endsWith(`.${domain}`)
+  }
+
   function isUsefulFeedDetailLink(href, category) {
     const value = String(href || '')
     if (!/^https?:\/\//i.test(value)) return false
@@ -3829,7 +3841,7 @@ async function readPageLikeHumanInTab(options = {}) {
       if (/^https:\/\/lnkd\.in\//i.test(value)) return true
       try {
         const url = new URL(value)
-        return !url.hostname.endsWith('linkedin.com')
+        return !hostnameMatchesDomain(url.hostname, 'linkedin.com')
           && !/(accounts|login|signup|help|support|privacy|terms)\./i.test(url.hostname)
       } catch {
         return false
@@ -5816,67 +5828,85 @@ function extractSearchResultsInTab({ maxResults }) {
   }
 
   return {
-    engine: host.includes('bing') ? 'bing' : host.includes('google') ? 'google' : host,
+    engine: hostnameMatchesDomain(host, 'bing.com') ? 'bing' : hostnameMatchesDomain(host, 'google.com') ? 'google' : host,
     query: new URLSearchParams(location.search).get('q') || '',
     url: location.href,
     results,
     resultCount: results.length,
   }
-}
 
-function normalizeResultUrl(href) {
-  try {
-    const url = new URL(href)
-    if (url.hostname.includes('bing.com') && url.pathname === '/ck/a') {
-      const target = url.searchParams.get('u')
-      if (target) {
-        const decoded = decodeBingRedirectTarget(target)
-        if (decoded) return decoded
+  // Keep all helpers inside the serialized extractor. Browser page execution
+  // cannot access the extension worker's top-level declarations.
+  function hostnameMatchesDomain(hostname, domain) {
+    const host = String(hostname || '').toLowerCase().replace(/\.$/, '')
+    return host === domain || host.endsWith(`.${domain}`)
+  }
+
+  function normalizeResultUrl(href) {
+    try {
+      const url = new URL(href)
+      if (hostnameMatchesDomain(url.hostname, 'bing.com') && url.pathname === '/ck/a') {
+        const target = url.searchParams.get('u')
+        if (target) {
+          const decoded = decodeBingRedirectTarget(target, url.origin)
+          if (decoded) return decoded
+        }
       }
+      return url.href
+    } catch {
+      return ''
     }
-    return url.href
-  } catch {
-    return ''
-  }
-}
-
-function decodeBingRedirectTarget(target) {
-  const raw = String(target || '')
-  const withoutPrefix = raw.replace(/^a1/i, '')
-  let base64 = withoutPrefix.replace(/-/g, '+').replace(/_/g, '/')
-  const padding = base64.length % 4
-  if (padding) base64 += '='.repeat(4 - padding)
-
-  try {
-    const decoded = atob(base64)
-    if (/^https?:\/\//i.test(decoded)) return decoded
-    if (decoded.startsWith('/')) return new URL(decoded, location.origin).href
-  } catch {
-    // Some Bing links are not encoded target URLs; use the fallbacks below.
   }
 
-  try {
-    const decoded = decodeURIComponent(raw)
-    if (/^https?:\/\//i.test(decoded)) return decoded
-  } catch {
-    // Ignore malformed escape sequences.
+  function normalizeDecodedResultTarget(value, origin = location.origin) {
+    try {
+      const relative = value.startsWith('/')
+      if (!relative && !/^https?:\/\//i.test(value)) return ''
+      const url = relative ? new URL(value, origin) : new URL(value)
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') return ''
+      // URL parsing normalizes protocol-relative and backslash paths. Only a
+      // genuinely same-origin path may use the relative-target branch.
+      if (relative && url.origin !== origin) return ''
+      return url.href
+    } catch {
+      return ''
+    }
   }
 
-  return ''
-}
+  function decodeBingRedirectTarget(target, origin = location.origin) {
+    const raw = String(target || '')
+    const withoutPrefix = raw.replace(/^a1/i, '')
+    let base64 = withoutPrefix.replace(/-/g, '+').replace(/_/g, '/')
+    const padding = base64.length % 4
+    if (padding) base64 += '='.repeat(4 - padding)
 
-function cleanResultText(value) {
-  return String(value || '').replace(/\s+/g, ' ').trim()
-}
+    try {
+      const decoded = normalizeDecodedResultTarget(atob(base64), origin)
+      if (decoded) return decoded
+    } catch {
+      // Some Bing links are not encoded target URLs; use the fallback below.
+    }
 
-function isNavigationResult(title, href) {
-  const lower = title.toLowerCase()
-  if (lower === 'cached' || lower === 'translate this page') return true
-  try {
-    const url = new URL(href)
-    return ['javascript:', 'chrome:'].includes(url.protocol)
-  } catch {
-    return true
+    try {
+      return normalizeDecodedResultTarget(decodeURIComponent(raw), origin)
+    } catch {
+      return ''
+    }
+  }
+
+  function cleanResultText(value) {
+    return String(value || '').replace(/\s+/g, ' ').trim()
+  }
+
+  function isNavigationResult(title, href) {
+    const lower = title.toLowerCase()
+    if (lower === 'cached' || lower === 'translate this page') return true
+    try {
+      const url = new URL(href)
+      return url.protocol !== 'http:' && url.protocol !== 'https:'
+    } catch {
+      return true
+    }
   }
 }
 

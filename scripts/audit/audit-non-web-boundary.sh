@@ -37,7 +37,7 @@ expected_tooling = [
 ]
 expected_connector = ["assets/x-science-link/source/" + name for name in (
     "INSTALL.html", "approval.html", "approval.js", "background-download-guard.test.ts",
-    "background-tab-groups.test.ts", "background.js", "content-script.js",
+    "background-tab-groups.test.ts", "background-url.test.mjs", "background.js", "content-script.js",
     "icons/x-science-mark.png", "link-runtime.js", "link-runtime.test.ts",
     "local-files-database.js", "manifest.json", "options.html", "options.js",
     "permission-snapshot.js", "personalization.html", "personalization.js",

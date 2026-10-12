@@ -232,7 +232,7 @@ func providerOperationAuthPayload(credentials map[string]string) ([]byte, error)
 }
 
 func copyProviderOperationMap(input map[string]any) map[string]any {
-	result := make(map[string]any, len(input)+4)
+	result := make(map[string]any)
 	for key, value := range input {
 		result[key] = value
 	}
