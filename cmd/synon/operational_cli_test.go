@@ -15,6 +15,7 @@ import (
 	"strings"
 	"testing"
 
+	"synon-go/internal/buildinfo"
 	"synon-go/internal/compat/oracle"
 )
 
@@ -273,7 +274,7 @@ func TestParseServeCommandFlagsTreatsHelpAsSuccessfulOutput(t *testing.T) {
 	if !helpRequested || parsed.version || parsed.health {
 		t.Fatalf("help parse = %#v requested=%t", parsed, helpRequested)
 	}
-	if !strings.Contains(output.String(), "Usage of synon-go serve:") ||
+	if !strings.Contains(output.String(), "Usage of "+buildinfo.Release().Name+" serve:") ||
 		!strings.Contains(output.String(), "-version") ||
 		!strings.Contains(output.String(), "-health-json") {
 		t.Fatalf("help output = %q", output.String())

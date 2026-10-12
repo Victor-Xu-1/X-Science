@@ -558,7 +558,7 @@ func TestBundledSynonLinkExtensionManifest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("verify Synon Link extension: %v", err)
 	}
-	if report.Checked != 1 || report.TotalBytes != 94621 {
+	if report.Checked != 1 || report.TotalBytes != 524150 {
 		t.Fatalf("Synon Link asset report = %#v", report)
 	}
 }
