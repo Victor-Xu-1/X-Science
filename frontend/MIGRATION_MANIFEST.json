@@ -5,13 +5,13 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "f78db94e95437fe0047dac3a1f2024e9529daba2e5be8b8172b3ce852990bb2c",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
-  "additionFingerprintSHA256": "eb940237b9fd446e4e332842191efbaacc593a7814c63f86a2228d21512accca",
+  "additionFingerprintSHA256": "e46c4836cbe6bcaebdf43161d04b90d2ae1e4ce1bb6d398a54a20fd0c7fca34f",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 276,
     "adaptedSourceFiles": 785,
     "removedSourceFiles": 293,
-    "addedFiles": 916
+    "addedFiles": 917
   },
   "adaptations": [
     {
@@ -12595,6 +12595,12 @@
       "path": "tests/web-e2e/artifactLinks.browser.mjs",
       "sha256": "586145c9ea3961d082fc1212aed947f23b1e480a18b08595841c3c2b1aaa1330",
       "bytes": 5192,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/web-e2e/artifactLinks.fixture.html",
+      "sha256": "0b1b1edb762cdf1b55e9758d8e22f26e51512c5614ac99e67f7b248af284a554",
+      "bytes": 283,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
