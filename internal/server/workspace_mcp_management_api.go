@@ -8,9 +8,13 @@ import (
 )
 
 func (s *Server) handleWorkspaceMCPServerRecord(w http.ResponseWriter, r *http.Request, store *workspace.Store, serverID string) {
+	userID, ok := workspaceScopedUserID(w, r)
+	if !ok {
+		return
+	}
 	switch r.Method {
 	case http.MethodGet:
-		server, found, err := store.GetMCPServer(serverID, r.URL.Query().Get("user_id"))
+		server, found, err := store.GetMCPServer(serverID, userID)
 		if err != nil {
 			writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 			return
@@ -37,7 +41,11 @@ func (s *Server) handleWorkspaceMCPServerRecord(w http.ResponseWriter, r *http.R
 			writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": err.Error()})
 			return
 		}
-		server, err := store.UpdateMCPServer(serverID, input.UserID, workspace.UpdateMCPServerInput{
+		ownerID, ok := workspaceClaimedUserID(w, userID, input.UserID)
+		if !ok {
+			return
+		}
+		server, err := store.UpdateMCPServer(serverID, ownerID, workspace.UpdateMCPServerInput{
 			Name: input.Name, Description: input.Description, URL: input.URL, Transport: input.Transport,
 			OAuthServerURL: input.OAuthServerURL, ClientID: input.ClientID, Scopes: input.Scopes,
 			HeadersHelper: input.HeadersHelper, Enabled: input.Enabled,
@@ -52,7 +60,6 @@ func (s *Server) handleWorkspaceMCPServerRecord(w http.ResponseWriter, r *http.R
 		}
 		writeWorkspaceJSON(w, http.StatusOK, map[string]any{"ok": true, "server": server})
 	case http.MethodDelete:
-		userID := r.URL.Query().Get("user_id")
 		if err := store.DeleteMCPServer(serverID, userID); err != nil {
 			writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 			return
@@ -68,6 +75,10 @@ func (s *Server) handleWorkspaceMCPServerRecord(w http.ResponseWriter, r *http.R
 }
 
 func (s *Server) handleWorkspaceMCPAssignmentMember(w http.ResponseWriter, r *http.Request, store *workspace.Store, serverID, member string) {
+	userID, ok := workspaceScopedUserID(w, r)
+	if !ok {
+		return
+	}
 	member, err := url.PathUnescape(member)
 	if err != nil {
 		writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "invalid assignment target"})
@@ -83,18 +94,21 @@ func (s *Server) handleWorkspaceMCPAssignmentMember(w http.ResponseWriter, r *ht
 				writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": err.Error()})
 				return
 			}
-			assignments, err := store.AssignMCPServerToAllAgents(serverID, input.UserID)
+			ownerID, ok := workspaceClaimedUserID(w, userID, input.UserID)
+			if !ok {
+				return
+			}
+			assignments, err := store.AssignMCPServerToAllAgents(serverID, ownerID)
 			if err != nil {
 				writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 				return
 			}
-			if _, err := s.publishUserEvent(input.UserID, "connector_update", map[string]any{"connector_id": serverID, "action": "assigned_all", "assignment_count": len(assignments)}); err != nil {
+			if _, err := s.publishUserEvent(ownerID, "connector_update", map[string]any{"connector_id": serverID, "action": "assigned_all", "assignment_count": len(assignments)}); err != nil {
 				writeDomainEventError(w, "MCP assign all", err)
 				return
 			}
 			writeWorkspaceJSON(w, http.StatusOK, map[string]any{"ok": true, "assignments": assignments})
 		case http.MethodDelete:
-			userID := r.URL.Query().Get("user_id")
 			count, err := store.DetachMCPServerFromAllAgents(serverID, userID)
 			if err != nil {
 				writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
@@ -114,7 +128,6 @@ func (s *Server) handleWorkspaceMCPAssignmentMember(w http.ResponseWriter, r *ht
 		writeWorkspaceJSON(w, http.StatusMethodNotAllowed, map[string]any{"ok": false, "error": "method not allowed"})
 		return
 	}
-	userID := r.URL.Query().Get("user_id")
 	if err := store.UnassignMCPServerFromAgent(userID, member, serverID); err != nil {
 		writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 		return
@@ -131,11 +144,15 @@ func (s *Server) handleWorkspaceMCPAttachmentCounts(w http.ResponseWriter, r *ht
 	if !ok {
 		return
 	}
+	userID, ok := workspaceScopedUserID(w, r)
+	if !ok {
+		return
+	}
 	if r.Method != http.MethodGet {
 		writeWorkspaceJSON(w, http.StatusMethodNotAllowed, map[string]any{"ok": false, "error": "method not allowed"})
 		return
 	}
-	counts, err := store.MCPAttachmentCountsByAgent(r.URL.Query().Get("user_id"))
+	counts, err := store.MCPAttachmentCountsByAgent(userID)
 	if err != nil {
 		writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 		return
@@ -148,11 +165,14 @@ func (s *Server) handleWorkspaceMCPConnectors(w http.ResponseWriter, r *http.Req
 	if !ok {
 		return
 	}
+	userID, ok := workspaceScopedUserID(w, r)
+	if !ok {
+		return
+	}
 	if r.Method != http.MethodGet {
 		writeWorkspaceJSON(w, http.StatusMethodNotAllowed, map[string]any{"ok": false, "error": "method not allowed"})
 		return
 	}
-	userID := r.URL.Query().Get("user_id")
 	servers, err := store.ListMCPServers(userID)
 	if err != nil {
 		writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})

@@ -6,7 +6,9 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	workspace "synon-go/internal/persistence/workspace"
@@ -163,7 +165,23 @@ func serveWorkspaceJSON(t *testing.T, app http.Handler, method, target string, b
 	response := httptest.NewRecorder()
 	request := newLoopbackTestRequest(method, target, bytes.NewReader(raw))
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("X-Synon-User-Id", "local")
+	userID := "local"
+	if body != nil {
+		var claimed struct {
+			UserID string `json:"userId"`
+		}
+		if err := json.Unmarshal(raw, &claimed); err == nil && strings.TrimSpace(claimed.UserID) != "" {
+			userID = strings.TrimSpace(claimed.UserID)
+		}
+	}
+	if parsed, err := url.Parse(target); err == nil {
+		if queryUser := strings.TrimSpace(parsed.Query().Get("user_id")); queryUser != "" {
+			userID = queryUser
+		} else if queryUser := strings.TrimSpace(parsed.Query().Get("userId")); queryUser != "" {
+			userID = queryUser
+		}
+	}
+	request.Header.Set("X-Synon-User-Id", userID)
 	app.ServeHTTP(response, request)
 	if response.Code != wantStatus {
 		t.Fatalf("%s %s status = %d: %s", method, target, response.Code, response.Body.String())
