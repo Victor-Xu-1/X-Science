@@ -60,7 +60,7 @@ func executionInputAuthorityFixture(t *testing.T, app *Server, root string) stri
 		"results/value.txt":  "derived bytes\n",
 		"results/proof.json": `{"overall_pass":true,"inputs":{"dataset":"self-asserted"}}`,
 		"results/" + managedExecutionOutputOwnershipMarker: `{"schema":"x-science.execution-pack-output-owner.v1","execution_pack_id":"analysis.producer"}`,
-		".xscience/runtime/skills/consume-data-fixture/scripts/consume.py": `import argparse, json
+		".x-science/runtime/skills/consume-data-fixture/scripts/consume.py": `import argparse, json
 from pathlib import Path
 p = argparse.ArgumentParser()
 p.add_argument('--dataset', required=True)
@@ -78,7 +78,7 @@ for name in paths:
         except OSError:
             print('read-only')
 `,
-		".xscience/runtime/skills/prepare-data-fixture/scripts/prepare.py": `import argparse, hashlib, json
+		".x-science/runtime/skills/prepare-data-fixture/scripts/prepare.py": `import argparse, hashlib, json
 from pathlib import Path
 p = argparse.ArgumentParser()
 p.add_argument('--output-dir', required=True)
@@ -103,14 +103,14 @@ raise SystemExit(1 if a.fail else 0)
 			t.Fatal(err)
 		}
 	}
-	return `python3 "` + filepath.Join(root, ".xscience/runtime/skills/consume-data-fixture/scripts/consume.py") + `" --dataset dataset.txt --derived results/value.txt --receipt results/proof.json`
+	return `python3 "` + filepath.Join(root, ".x-science/runtime/skills/consume-data-fixture/scripts/consume.py") + `" --dataset dataset.txt --derived results/value.txt --receipt results/proof.json`
 }
 
 func TestExecutionInputAuthorityRealProducerConsumerAndReconstruction(t *testing.T) {
 	store, manager, app, identity := newKernelHostTestRuntime(t, filepath.Join(t.TempDir(), "workspace.db"), true)
 	defer closeKernelHostTestRuntime(t, app, manager, store)
 	command := executionInputAuthorityFixture(t, app, identity.workspaceDir)
-	producer := `python3 "` + filepath.Join(identity.workspaceDir, ".xscience/runtime/skills/prepare-data-fixture/scripts/prepare.py") + `" --output-dir produced`
+	producer := `python3 "` + filepath.Join(identity.workspaceDir, ".x-science/runtime/skills/prepare-data-fixture/scripts/prepare.py") + `" --output-dir produced`
 	result, err := app.executeAgentKernelTool(context.Background(), identity, "bash", map[string]any{
 		"command": producer, "environment": "python", "human_description": "Produce bound fixture output",
 	})

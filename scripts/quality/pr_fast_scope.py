@@ -219,8 +219,12 @@ def main() -> int:
             frontend_inputs = [path for path in behavior_paths if path not in projections]
             related = pr_frontend_scope.related_command(frontend_inputs)
             fixtures = pr_frontend_scope.fixture_command(frontend_inputs, repo)
+            harness = pr_frontend_scope.harness_command(frontend_inputs, repo)
             print(json.dumps({"frontend_test_inputs": related[9:] if related else [],
                               "browser_fixture_entries": fixtures[5:] if fixtures else [],
+                              "test_harness_compile_inputs": harness[4:] if harness else [],
+                              "snapshot_provenance_inputs": pr_frontend_scope.snapshot_inputs(frontend_inputs),
+                              "real_task_execution": False,
                               "selection": "Vitest dependency-related and changed fixture build; no global fallback"}))
             commands = [
                 ["npm", "ci", "--ignore-scripts"],
@@ -229,6 +233,7 @@ def main() -> int:
                 ["npm", "run", "typecheck"], ["npm", "run", "lint"],
                 ["npm", "run", "format:check"], *([related] if related else []),
                 *([fixtures] if fixtures else []), ["npm", "run", "build"],
+                *([harness] if harness else []),
                 ["npm", "run", "test:packaged"],
             ]
             for command in commands:

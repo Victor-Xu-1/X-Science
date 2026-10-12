@@ -2,7 +2,7 @@
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from scripts.quality.pr_frontend_scope import PROVENANCE, fixture_command, related_command
+from scripts.quality.pr_frontend_scope import PROVENANCE, fixture_command, harness_command, related_command
 
 
 class FrontendRelatedScopeTests(unittest.TestCase):
@@ -49,6 +49,12 @@ class FrontendRelatedScopeTests(unittest.TestCase):
         command = related_command(["frontend/tests/fixtures/ligands.ts"])
         self.assertEqual(command[-1], "tests/fixtures/ligands.ts")
         self.assertEqual(command[2:5], ["vitest", "related", "--run"])
+
+    def test_readme_is_documentation_not_an_unowned_runtime_module(self):
+        self.assertIsNone(related_command(["frontend/README.md"]))
+        command = related_command(["frontend/README.md", "frontend/packages/desktop/src/viewer.tsx"])
+        self.assertEqual(command[-1], "packages/desktop/src/viewer.tsx")
+        self.assertNotIn("README.md", command)
 
     def test_build_modules_use_import_owners_without_a_global_fallback(self):
         command = related_command(["frontend/scripts/exampleTransform.ts", "frontend/vite.config.ts"])
@@ -103,10 +109,20 @@ class FrontendRelatedScopeTests(unittest.TestCase):
         self.assertNotIn("--passWithNoTests", command)
 
     def test_unknown_configuration_or_dependency_scope_fails_closed(self):
-        for path in ["frontend/package-lock.json", "frontend/package.json", "frontend/vitest.config.ts",
-                     "frontend/tests/vitest.dom.setup.ts", "frontend/tests/web-e2e/example.browser.mjs"]:
+        for path in ["frontend/unknown-lock.json", "frontend/tests/vitest.dom.setup.ts",
+                     "frontend/public/unknown-runtime.js"]:
             with self.subTest(path=path), self.assertRaisesRegex(ValueError, "ownership is not known"):
                 related_command(["frontend/packages/desktop/src/viewer.tsx", path])
+
+    def test_locked_dependency_authority_keeps_build_checks_not_documentation(self):
+        from scripts.quality.pr_fast_scope import documentation_only, frontend_affected
+        paths = ["frontend/package.json", "frontend/package-lock.json"]
+        self.assertTrue(frontend_affected(paths))
+        for path in paths:
+            self.assertFalse(documentation_only(path))
+            self.assertIsNone(related_command([path]))
+        command = related_command([*paths, "frontend/packages/desktop/src/viewer.tsx"])
+        self.assertEqual(command[9:], ["packages/desktop/src/viewer.tsx"])
 
     def test_unsafe_paths_are_rejected(self):
         for path in ["/frontend/viewer.tsx", "frontend/../secret.ts", "frontend\\viewer.tsx", "frontend//viewer.tsx"]:
@@ -114,8 +130,40 @@ class FrontendRelatedScopeTests(unittest.TestCase):
                 related_command([path])
 
     def test_real_integration_scope_is_not_implicitly_executed(self):
-        with self.assertRaisesRegex(ValueError, "separately authorized"):
-            related_command(["frontend/tests/integration/remote.real.test.ts"])
+        with TemporaryDirectory() as directory:
+            repo = Path(directory)
+            path = "frontend/tests/integration/remote.real.test.ts"
+            source = repo / path
+            source.parent.mkdir(parents=True)
+            source.write_text("throw new Error('must never execute a real task');")
+            self.assertIsNone(related_command([path]))
+            command = harness_command([path], repo)
+            self.assertEqual(command[:3], ["node", "--input-type=module", "--eval"])
+            self.assertIn("transform(", command[3])
+            self.assertNotIn("eval(", command[3])
+            self.assertEqual(command[4:], [path.removeprefix("frontend/")])
+            self.assertNotIn("vitest", command)
+            self.assertNotIn("playwright", command)
+
+    def test_missing_or_linked_test_harness_source_is_rejected(self):
+        with TemporaryDirectory() as directory:
+            repo = Path(directory)
+            path = "frontend/tests/web-e2e/example.e2e.ts"
+            with self.assertRaisesRegex(ValueError, "actual current source"):
+                harness_command([path], repo)
+            target = repo / path
+            target.parent.mkdir(parents=True)
+            outside = repo / "outside.ts"
+            outside.write_text("throw new Error('outside');")
+            target.symlink_to(outside)
+            with self.assertRaisesRegex(ValueError, "actual current source"):
+                harness_command([path], repo)
+
+    def test_static_runtime_scripts_keep_their_actual_behavior_test_owners(self):
+        command = related_command(["frontend/public/theme-init.js", "frontend/public/storage-namespace-upgrade.js"])
+        self.assertIn("tests/unit/themeVisualContract.test.ts", command)
+        self.assertIn("tests/unit/renderer/storageNamespaceUpgrade.test.ts", command)
+        self.assertNotIn("--passWithNoTests", command)
 
 
 if __name__ == "__main__":

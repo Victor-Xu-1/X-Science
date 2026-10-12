@@ -91,7 +91,8 @@ def owned_input_counterparts(repo: Path, old_tree: dict, new_tree: dict) -> dict
     result, targets = {}, {}
 
     def retain(original, current):
-        if original == current or original not in old_tree or original in new_tree or current not in new_tree or current not in owned:
+        if (original == current or original not in old_tree or original in new_tree or current not in new_tree
+                or current not in owned and not current.startswith("frontend/")):
             return
         if old_tree[original][0] != new_tree[current][0] or new_tree[current][0] not in {"100644", "100755"}:
             return

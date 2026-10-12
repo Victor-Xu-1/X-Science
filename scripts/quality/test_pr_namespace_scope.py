@@ -131,6 +131,17 @@ class GitNamespaceScopeTests(unittest.TestCase):
         self.assertEqual(scope.selected_packages(self.repo, base, head)[0],
                          ["x-science/app", "x-science/core", "x-science/unrelated"])
 
+    def test_frontend_test_harness_rename_routes_real_changes_without_exempting_them(self):
+        old = "frontend/tests/integration/synonbiomedExample.real.test.ts"
+        current = "frontend/tests/integration/xscienceExample.real.test.ts"
+        self.write(old, "const value = 1;\n")
+        base = self.commit("old harness")
+        self.rename()
+        (self.repo / old).unlink()
+        self.write(current, "const value = 2;\n")
+        head = self.commit("changed relocated harness")
+        self.assertEqual(namespace.filter_paths(self.repo, base, head, [old, current]), [current])
+
     def test_content_addressed_runtime_paths_require_identical_locked_packages(self):
         root = "assets/optional/conda-runtimes"
         catalog = root + "/manifest.json"

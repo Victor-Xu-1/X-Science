@@ -558,7 +558,7 @@ func TestBundledXScienceLinkExtensionManifest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("verify X-Science browser connector extension: %v", err)
 	}
-	if report.Checked != 1 || report.TotalBytes != 524150 {
+	if len(manifest.Files) != 1 || report.Checked != 1 || report.TotalBytes != manifest.Files[0].Bytes {
 		t.Fatalf("X-Science browser connector asset report = %#v", report)
 	}
 }

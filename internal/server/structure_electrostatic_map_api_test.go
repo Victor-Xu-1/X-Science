@@ -125,7 +125,7 @@ func TestStructureElectrostaticInputDigestCanonicalVectors(t *testing.T) {
 			request: structureElectrostaticMapRequest{
 				Content: "ATOM\n", LigandMolBlock: "ligand\nM  END\n",
 			},
-			expected: "7f1faffd7cfa9e6101a8da2164dd42ca309e319540f684e26c2ed4f5dbbad9b0",
+			expected: "3e9504de47774cada1d2cbb3e75986bfca9e5d5555978d8a7a7c5f4230035eb2",
 		},
 		{
 			name: "batch",
@@ -136,7 +136,7 @@ func TestStructureElectrostaticInputDigestCanonicalVectors(t *testing.T) {
 					{Key: "D01", MolBlock: "one\nM  END\n"},
 				},
 			},
-			expected: "58bc763cbb1dd505055834ac4c95f1c9a9829d32017dd88c8f929bc807178b37",
+			expected: "1229329589a064c9e50e821e6fe2dd54ce8ec5f20a5b12a2c1384f482bc2399e",
 		},
 	}
 	for _, test := range tests {

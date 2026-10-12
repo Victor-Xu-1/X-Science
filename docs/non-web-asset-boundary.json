@@ -43,6 +43,7 @@
     "assets/x-science-link/source/approval.js",
     "assets/x-science-link/source/background-download-guard.test.ts",
     "assets/x-science-link/source/background-tab-groups.test.ts",
+    "assets/x-science-link/source/background-url.test.mjs",
     "assets/x-science-link/source/background.js",
     "assets/x-science-link/source/content-script.js",
     "assets/x-science-link/source/icons/x-science-mark.png",

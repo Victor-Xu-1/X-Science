@@ -892,6 +892,9 @@ func TestResumePendingKernelToolBatchPreparedOperationInterruptsForDurableRecove
 	if err != nil || operation.State != workspace.KernelLocalOperationStatePrepared {
 		t.Fatalf("prepared=%#v err=%v", operation, err)
 	}
+	if held, namespaceErr := server.kernelNamespaceRecoveryInterruption(context.Background(), operation.OwnerUserID, operation.OperationID); namespaceErr != nil || held {
+		t.Fatalf("prepared operation without an execution must use ordinary durable recovery: held=%t err=%v", held, namespaceErr)
+	}
 	if _, _, _, err := repo.FinishRunner(context.Background(), transcriptstore.FinishRunnerInput{
 		Claim: first.Claim, ClientMessageID: "kernel-prepared-resume-old-runner-failed",
 		Status: "failed", PayloadJSON: []byte(`{"status":"failed","detail":"simulated restart before kernel start"}`),

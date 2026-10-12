@@ -26,6 +26,13 @@ from scripts.packaging.build_browser_extension import (
 class BrowserExtensionBrandingTests(unittest.TestCase):
     repo = Path(__file__).resolve().parents[2]
 
+    def test_package_keeps_runtime_sources_but_excludes_test_runners(self):
+        source = source_entries(self.repo / SOURCE_ROOT)
+        self.assertIn("background.js", source)
+        self.assertNotIn("background-url.test.mjs", source)
+        self.assertNotIn("background-download-guard.test.ts", source)
+        self.assertFalse(any(path.endswith((".test.ts", ".test.mjs")) for path in source))
+
     def test_direct_cli_check_works_outside_repository(self):
         with tempfile.TemporaryDirectory(prefix="connector-cli-") as directory:
             result = subprocess.run([sys.executable, "-B", str(self.repo / "scripts/packaging/build_browser_extension.py"),

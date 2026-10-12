@@ -770,8 +770,10 @@ func TestSessionRunnerVerificationSourceRefBindsCandidateAttemptAndArtifactInven
 		ref["artifact_count"] != 2 || ref["inventory_complete"] != true {
 		t.Fatalf("source ref identity=%#v", ref)
 	}
-	if ref["candidate_sha256"] != "001928091a85daad3d89ef095d1576af028522e198f2f91c0a89abbf514cd81a" ||
-		ref["artifact_inventory_sha256"] != "059a612f11a589f121d2c11c2d945dac5824fb735d021856496a53ed4841b47b" {
+	// Independent SHA-256 vectors retain the length-prefixed fields and sorted
+	// immutable inventory, using the current namespace's digest domain.
+	if ref["candidate_sha256"] != "bcc0e2deb95d465be13ed19bfe20b856850c2dd04046ade4bcbaa7da22c251fe" ||
+		ref["artifact_inventory_sha256"] != "eeea15ad05b78c72d66b1b4b5a9eb911e9138e658b70c4757d31c300d990da5c" {
 		t.Fatalf("candidate binding=%#v", ref["candidate_sha256"])
 	}
 	artifacts, ok := ref["artifact_refs"].([]sessionReviewerArtifactEvidence)

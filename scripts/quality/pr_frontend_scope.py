@@ -1,10 +1,19 @@
 """Bounded frontend import-graph tests and changed browser-fixture builds."""
 from pathlib import Path, PurePosixPath
 
+if __package__:
+    from . import pr_frontend_harness_scope as harness
+else:
+    import pr_frontend_harness_scope as harness
+
 
 # These files have their own mandatory canonical provenance checks before this
 # selector runs. Version-only manifests are filtered by pr_metadata_scope.
 PROVENANCE = {"frontend/MIGRATION_MANIFEST.json", "frontend/THIRD_PARTY_LICENSES.json"}
+DOCUMENTATION = {"frontend/README.md"}
+# npm's locked install and the existing type/lint/product build own these
+# manifests. They are never documentation or executable Vitest modules.
+BUILD_INPUTS = {"frontend/package.json", "frontend/package-lock.json"}
 
 # Static branding files are not Vitest modules. Bind them to the existing
 # identity/visual tests that already hash and require those assets.
@@ -16,6 +25,16 @@ BRANDING_TESTS = (
     "tests/unit/renderer/XScienceBranding.test.ts",
 )
 
+STATIC_RUNTIME_TESTS = {
+    "frontend/public/theme-init.js": ("tests/unit/themeVisualContract.test.ts",),
+    "frontend/public/storage-namespace-upgrade.js": (
+        "tests/unit/renderer/storageNamespaceUpgrade.test.ts",
+        "tests/unit/renderer/storageNamespaceCaches.test.ts",
+    ),
+    "frontend/public/sw.js": ("tests/unit/pwa/serviceWorkerActivation.test.ts",),
+    "frontend/public/dev-sw-cleanup.js": ("tests/unit/pwa/serviceWorkerActivation.test.ts",),
+}
+
 
 def _frontend_paths(paths: list[str]) -> list[str]:
     result = []
@@ -23,7 +42,7 @@ def _frontend_paths(paths: list[str]) -> list[str]:
         path = PurePosixPath(value)
         if path.is_absolute() or ".." in path.parts or "\\" in value or path.as_posix() != value:
             raise ValueError("frontend test input must be a normalized repository-relative path")
-        if not value.startswith("frontend/") or value in PROVENANCE:
+        if not value.startswith("frontend/") or value in PROVENANCE or value in DOCUMENTATION:
             continue
         result.append(value)
     return result
@@ -37,8 +56,15 @@ def _browser_fixture(value: str) -> bool:
 def related_command(paths: list[str]) -> list[str] | None:
     selected: set[str] = set()
     for value in _frontend_paths(paths):
+        if value in BUILD_INPUTS:
+            continue
         if value.startswith(BRANDING_PREFIX):
             selected.update(BRANDING_TESTS)
+            continue
+        if value in STATIC_RUNTIME_TESTS:
+            selected.update(STATIC_RUNTIME_TESTS[value])
+            continue
+        if harness.harness_module(value) or harness.snapshot_asset(value):
             continue
         # Browser entrypoints are compiled by fixture_command, not claimed as
         # Vitest coverage. Shared data retains its actual test import owners.
@@ -64,6 +90,14 @@ def related_command(paths: list[str]) -> list[str] | None:
     # No passWithNoTests or retry flag: unknown/empty coverage is a failed gate.
     return ["npx", "--no-install", "vitest", "related", "--run",
             "--project", "node", "--project", "dom", *sorted(selected)]
+
+
+def harness_command(paths: list[str], repo: Path) -> list[str] | None:
+    return harness.compile_command(_frontend_paths(paths), repo)
+
+
+def snapshot_inputs(paths: list[str]) -> list[str]:
+    return [path for path in _frontend_paths(paths) if harness.snapshot_asset(path)]
 
 
 def fixture_command(paths: list[str], repo: Path) -> list[str] | None:

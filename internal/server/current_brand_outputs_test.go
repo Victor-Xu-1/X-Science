@@ -21,8 +21,8 @@ func TestCurrentNativeBrandOutputsKeepMachineCompatibility(t *testing.T) {
 	if got := localIdentityEmail("Local User"); got != "local-user@local."+buildinfo.Release().MachineSlug {
 		t.Fatalf("synthetic local display email did not use the root identity: %q", got)
 	}
-	plugin, found := pluginhost.NewDefault().Get("xscience")
-	if !found || plugin.ID != "xscience" || plugin.Name != name || plugin.Mount != "/api/plugins/xscience" ||
+	plugin, found := pluginhost.NewDefault().Get(buildinfo.Release().MachineSlug)
+	if !found || plugin.ID != "x-science" || plugin.Name != name || plugin.Mount != "/api/plugins/x-science" ||
 		plugin.PluginFormat != "x_science_agent_native" || plugin.Server.ContextEntry != "builtin:x-science-context" {
 		t.Fatalf("plugin branding changed its identity contract: %#v", plugin)
 	}
@@ -39,7 +39,7 @@ func TestCurrentNativeBrandOutputsKeepMachineCompatibility(t *testing.T) {
 	if command := strings.Join(windowsFolderPickerArguments(), " "); !strings.Contains(command, name+" access") || strings.Contains(command, "XScience access") {
 		t.Fatal("native picker still uses historical display branding")
 	}
-	for _, reason := range []string{name + " kernel confinement is unavailable on this platform", "XScience kernel confinement is unavailable on this platform"} {
+	for _, reason := range []string{name + " kernel confinement is unavailable on this platform", "Synon kernel confinement is unavailable on this platform"} {
 		if got := kernelruntime.DiagnoseConfinementEvidence(kernelruntime.ConfinementEvidence{Reason: reason}); got.Code != "kernel_confinement_unsupported" {
 			t.Fatalf("current/historical reason lost its closed diagnostic: %#v", got)
 		}
