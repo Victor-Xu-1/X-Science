@@ -1,6 +1,7 @@
 package datadir
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -426,7 +427,10 @@ func (c *Controller) applyPendingLocked(state *State) error {
 	}
 	staging := move.Target + ".x-science-migrate-" + move.ID
 	if _, err := os.Lstat(staging); err == nil {
-		return errors.New("migration staging directory already exists; manual inspection is required")
+		if err := commitRecoveredNamespaceStaging(staging, move.Target, move.ID, targetExists); err != nil {
+			return err
+		}
+		return c.finalizeMoveLocked(state, move)
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
@@ -494,6 +498,25 @@ func (c *Controller) loadLocked() (State, error) {
 	}
 	if state.SchemaVersion != stateSchemaVersion {
 		return State{}, fmt.Errorf("unsupported data directory state schema %d", state.SchemaVersion)
+	}
+	plan, err := planMoveNamespace(state)
+	if err != nil {
+		return State{}, err
+	}
+	if len(plan) != 0 {
+		// The persisted pointer and source receipt own this migration. Verify the
+		// pointer itself before any product marker is renamed, including when an
+		// operator explicitly configured a custom control-file path.
+		verified, err := namespaceFile(c.path)
+		if err != nil {
+			return State{}, err
+		}
+		if !bytes.Equal(verified.raw, raw) {
+			return State{}, errors.New("data pointer changed before marker namespace upgrade")
+		}
+		if err := applyMoveNamespace(plan); err != nil {
+			return State{}, err
+		}
 	}
 	return state, nil
 }
@@ -790,7 +813,7 @@ func migrationSourceEntries(source string) ([]string, error) {
 	}
 	names := make([]string, 0, len(entries))
 	for _, entry := range entries {
-		if strings.HasPrefix(entry.Name(), sourceMarkerPrefix) {
+		if strings.HasPrefix(entry.Name(), sourceMarkerPrefix) || strings.HasPrefix(entry.Name(), previousSourceMarkerPrefix) {
 			return nil, fmt.Errorf("stale migration marker %s requires manual review", entry.Name())
 		}
 		names = append(names, entry.Name())

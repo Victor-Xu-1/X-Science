@@ -20,6 +20,7 @@
   --workspace-success-text: #166534;
   --workspace-danger-text: #2b2a28;
   --workspace-focus: rgb(59 58 55 / 12%);
+  --workspace-focus-ring: #647b99;
   --workspace-shadow-popover: 0 8px 28px rgb(35 33 29 / 10%);
   --workspace-ui-font-size: var(--ui-font-body);
   --workspace-ui-line-height: var(--ui-line-height-body);
@@ -29,7 +30,7 @@
   --composer-border: transparent;
   --composer-border-active: transparent;
   --composer-shadow: 0 8px 28px rgb(23 23 23 / 7%);
-  --composer-shadow-active: 0 0 0 1px rgb(23 23 23 / 6%), 0 12px 34px rgb(23 23 23 / 10%);
+  --composer-shadow-active: var(--composer-shadow);
   --composer-radius: 20px;
   --aou-1: #f2f1ee;
   --aou-2: #f0efec;
@@ -90,12 +91,13 @@
   --workspace-success-text: #86efac;
   --workspace-danger-text: #f1efeb;
   --workspace-focus: rgb(241 239 235 / 14%);
+  --workspace-focus-ring: #a2b8d3;
   --workspace-shadow-popover: 0 10px 32px rgb(0 0 0 / 38%);
   --composer-surface: var(--workspace-canvas);
   --composer-border: transparent;
   --composer-border-active: transparent;
   --composer-shadow: 0 10px 30px rgb(0 0 0 / 30%);
-  --composer-shadow-active: 0 0 0 1px rgb(255 255 255 / 10%), 0 14px 38px rgb(0 0 0 / 38%);
+  --composer-shadow-active: var(--composer-shadow);
   --aou-1: #282724;
   --aou-2: #302f2c;
   --aou-3: #393733;
@@ -163,11 +165,6 @@ html body button.x-science-brand {
     border-color 120ms ease,
     color 120ms ease,
     opacity 120ms ease;
-}
-.arco-btn:focus-visible {
-  outline: 2px solid var(--workspace-text) !important;
-  outline-offset: 2px !important;
-  box-shadow: none !important;
 }
 .arco-btn:not(.arco-btn-primary, .arco-btn-status-danger, .arco-btn-text) {
   background: var(--workspace-canvas) !important;
@@ -605,7 +602,7 @@ html body [role='dialog']:has([data-testid^='mobile-action-sheet-']) [role='menu
 
 html body [role='dialog']:has([data-testid^='mobile-action-sheet-']) [role='menuitem']:focus-visible,
 html body [role='dialog']:has([data-testid^='mobile-action-sheet-']) [role='menuitemradio']:focus-visible {
-  outline: 2px solid var(--workspace-text) !important;
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring) !important;
   outline-offset: -2px;
 }
 
@@ -772,13 +769,13 @@ html body [role='menu'] :is(button, [role^='menuitem']):focus-visible,
 html body [role='listbox'] [role='option']:focus-visible,
 html body .arco-dropdown-menu-item:focus-visible,
 html body .arco-select-option:focus-visible {
-  outline: 2px solid var(--workspace-text) !important;
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring) !important;
   outline-offset: -1px !important;
 }
 
-/* Session toggles keep keyboard location visible without leaving a blue click ring. */
-html body .app-overlay-menu .session-options-menu__row:focus,
-html body .app-overlay-menu .session-options-menu__row:focus-visible {
+/* Session toggles stay flat after a click; keyboard focus retains the menu's
+ * shared thin indicator, including in system high-contrast mode. */
+html body .app-overlay-menu .session-options-menu__row:focus:not(:focus-visible) {
   outline: none !important;
   box-shadow: none !important;
 }
@@ -959,7 +956,7 @@ html body .arco-image-preview-arrow-disabled {
 }
 
 html body .arco-image-preview :is(button, [role='button']):focus-visible {
-  outline: 2px solid var(--workspace-text);
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
   outline-offset: 2px;
 }
 
@@ -1282,13 +1279,6 @@ html body .arco-drawer-content {
   line-height: 22px;
 }
 
-html body [role='dialog'] button:focus-visible,
-html body [role='alertdialog'] button:focus-visible,
-html body [role='menu'] :is(button, [role^='menuitem']):focus-visible,
-html body [role='listbox'] [role='option']:focus-visible {
-  outline-color: color-mix(in srgb, var(--workspace-text) 42%, transparent) !important;
-}
-
 @media (prefers-reduced-motion: reduce) {
   html body .css-theme-card,
   html body .arco-message,
@@ -1404,15 +1394,6 @@ html body .send-button-custom:not(:disabled),
 html body .accessible-action-dialog__confirm,
 html body .message-channel-card__primary-button {
   border-color: transparent !important;
-}
-
-html body .arco-btn:focus-visible,
-html body [role='dialog'] button:focus-visible,
-html body [role='alertdialog'] button:focus-visible,
-html body [role='menu'] :is(button, [role^='menuitem']):focus-visible,
-html body [role='listbox'] [role='option']:focus-visible {
-  outline: 2px solid var(--workspace-text) !important;
-  outline-offset: 2px !important;
 }
 
 html body .arco-radio-mask,
@@ -1791,11 +1772,6 @@ html body .arco-switch-checked .arco-switch-dot {
   left: 20px !important;
 }
 
-html body .arco-switch:focus-visible {
-  outline: 2px solid var(--workspace-text) !important;
-  outline-offset: 2px !important;
-}
-
 html body .message-item.justify-end .bg-aou-2 {
   border-radius: var(--ui-radius-2xl) !important;
 }
@@ -1887,7 +1863,7 @@ html body .sendbox-panel [contenteditable='true'] {
 }
 
 html body .css-theme-card:focus-visible {
-  outline: 2px solid var(--workspace-text) !important;
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring) !important;
   outline-offset: 2px !important;
 }
 
@@ -1998,11 +1974,8 @@ html body .message-scientific-files__more {
   box-shadow: var(--ui-shadow-sm) !important;
 }
 
-/* Ask User is one calm decision surface. Options and secondary actions stay
- * borderless; only the custom-answer composer receives a soft fill and focus
- * halo, avoiding the previous card + divider + input + button frame stack. */
-/* Pointer focus stays flat. Keyboard focus gets one high-contrast outline;
- * remove Arco shadows so the control does not accumulate competing rings. */
+/* Pointer focus stays flat. Keyboard focus uses the shared thin indicator;
+ * text and brand tokens must never become dark frames around controls. */
 html
   body
   :is(
@@ -2040,14 +2013,17 @@ html
     .arco-tree-select-view
   ):focus-visible:where(
     :not(
+      .guid-input-card-shell textarea,
+      .sendbox-panel textarea,
       .conversation-search-modal__searchbar input,
       .project-command-palette .arco-input-inner-wrapper input,
-      .settings-library-search input
+      .settings-library-search input,
+      .environment-search input,
+      .x-science-ask-user-card__composer input
     )
   ) {
-  outline: 2px solid var(--workspace-text) !important;
-  outline-width: 2px !important;
-  outline-offset: 2px !important;
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring) !important;
+  outline-offset: var(--ui-focus-offset) !important;
   box-shadow: none !important;
 }
 
@@ -2055,27 +2031,72 @@ html
  * acquire another ring inside the surrounding keyboard indicator. */
 html body .conversation-search-modal__searchbar:has(input:focus-visible),
 html body .project-command-palette .arco-input-inner-wrapper:has(input:focus-visible),
+html body .environment-search:has(input:focus-visible),
+html body .x-science-ask-user-card__composer:has(input:focus-visible),
 html body :is(.guid-input-card-shell, .sendbox-panel):has(textarea:focus-visible) {
-  outline: 2px solid var(--workspace-text) !important;
-  outline-offset: 2px !important;
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring) !important;
+  outline-offset: var(--ui-focus-offset) !important;
 }
-html body :is(.guid-input-card-shell, .sendbox-panel) textarea:focus-visible {
+
+/* A library search is one input surface; Clear keeps its own button focus. */
+html body .settings-library-search .arco-input-inner-wrapper:has(input:focus-visible) {
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring) !important;
+  outline-offset: var(--ui-focus-offset) !important;
+  box-shadow: none !important;
+}
+/* These descendants are explicitly excluded above: a more specific generic
+ * input selector must not restore a second ring inside its focused owner. */
+html body :is(.guid-input-card-shell, .sendbox-panel) textarea:focus-visible,
+html body .conversation-search-modal__searchbar input:focus-visible,
+html body .project-command-palette .arco-input-inner-wrapper input:focus-visible,
+html body .settings-library-search input:focus-visible,
+html body .environment-search input:focus-visible,
+html body .x-science-ask-user-card__composer input:focus-visible,
+html body .settings-library-search :is(.arco-input-group-wrapper, .arco-input-group) {
   outline: none !important;
   outline-width: 0 !important;
   box-shadow: none !important;
 }
 
-/* A library search is one input surface; Clear keeps its own button focus. */
-html body .settings-library-search .arco-input-inner-wrapper:has(input:focus-visible) {
-  outline: 2px solid var(--workspace-text) !important;
-  outline-offset: 2px !important;
+/* One authority also covers native and utility-styled actions in portals. */
+html
+  body
+  :is(
+    button,
+    a,
+    summary,
+    [role='button'],
+    [role='switch'],
+    [role='tab'],
+    [role='menuitem'],
+    [role='menuitemradio'],
+    [role='menuitemcheckbox'],
+    [role='option'],
+    [role='checkbox'],
+    [role='radio'],
+    [role='slider'],
+    input[type='checkbox'],
+    input[type='radio'],
+    input[type='range']
+  ):focus-visible {
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring) !important;
+  outline-offset: var(--ui-focus-offset) !important;
   box-shadow: none !important;
 }
-html body .settings-library-search :is(.arco-input-group-wrapper, .arco-input-group),
-html body .settings-library-search input:focus-visible {
+
+/* A dialog's programmatic focus target is not another interactive frame.
+ * Its individual fields and actions retain their keyboard indicators. */
+html body :is([role='dialog'], [role='alertdialog']):focus {
   outline: none !important;
-  outline-width: 0 !important;
-  box-shadow: none !important;
+}
+
+@media (forced-colors: active) {
+  :root,
+  [data-color-scheme='default'],
+  [data-theme='dark'] {
+    --workspace-focus-ring: Highlight;
+    --ui-focus-width: 2px;
+  }
 }
 
 .workbench-modal-close {

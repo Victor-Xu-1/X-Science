@@ -224,7 +224,7 @@ body[arco-theme='dark'] .x-science-plan-review--timeline {
 }
 
 .x-science-plan-review__timeline-trigger:focus-visible {
-  outline: 2px solid var(--color-primary-6);
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
   outline-offset: 1px;
 }
 

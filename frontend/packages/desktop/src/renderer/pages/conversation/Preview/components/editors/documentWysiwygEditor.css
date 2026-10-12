@@ -61,7 +61,7 @@
 }
 
 .document-wysiwyg-editor__format-button:focus-visible {
-  outline: 2px solid rgb(var(--primary-6));
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
   outline-offset: 1px;
 }
 
@@ -115,8 +115,8 @@
   box-sizing: border-box;
 }
 
-.document-wysiwyg-editor__surface:focus {
-  box-shadow: inset 3px 0 0 color-mix(in srgb, rgb(var(--primary-6)) 55%, transparent);
+.document-wysiwyg-editor__surface:focus-visible {
+  box-shadow: inset var(--ui-focus-width) 0 0 var(--workspace-focus-ring);
 }
 
 .document-wysiwyg-editor__surface img,
@@ -126,7 +126,7 @@
 }
 
 .document-wysiwyg-editor__surface img[data-document-selected='true'] {
-  outline: 2px solid rgb(var(--primary-6));
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
   outline-offset: 3px;
 }
 

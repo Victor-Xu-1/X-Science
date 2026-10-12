@@ -191,7 +191,7 @@ print(json.dumps(result, sort_keys=True))
 
 func TestManagerMountsMaterializedSkillRuntimeReadOnly(t *testing.T) {
 	workspace := t.TempDir()
-	skillRuntime := filepath.Join(workspace, ".xscience", "runtime", "skills", "reviewed-skill", "scripts")
+	skillRuntime := filepath.Join(workspace, ".x-science", "runtime", "skills", "reviewed-skill", "scripts")
 	if err := os.MkdirAll(skillRuntime, 0o700); err != nil {
 		t.Fatal(err)
 	}

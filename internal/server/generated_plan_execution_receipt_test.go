@@ -62,7 +62,7 @@ func TestLegacyExecutionPlanBindsOnlyExplicitVerifiedPackReceipt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	script := filepath.Join(f.projectPath, ".xscience", "runtime", "skills", "managed-workflow-abcd", "scripts", "run.py")
+	script := filepath.Join(f.projectPath, ".x-science", "runtime", "skills", "managed-workflow-abcd", "scripts", "run.py")
 	command := `python "` + script + `"`
 	if _, err := f.store.SaveExecutionLog(workspace.SaveExecutionLogInput{
 		Record: workspace.ExecutionLogRecord{ID: "pack-execution", FrameID: f.stream.SessionID, KernelID: kernelID,

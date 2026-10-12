@@ -25,7 +25,7 @@ func TestManagedExecutionParameterAcceptsOnlySelectedEvidenceResolver(t *testing
 	); blocked != nil {
 		t.Fatalf("selected resolver implementation was rejected: %#v", blocked)
 	}
-	multiline := `python "/task/.xscience/runtime/skills/evidence-resolver/scripts/resolver.py" \
+	multiline := `python "/task/.x-science/runtime/skills/evidence-resolver/scripts/resolver.py" \
   --input source.pdb \
   --method ResolverEngine \
   --profile auto`
@@ -108,7 +108,7 @@ func TestManagedExecutionParameterRequiresSelectedResolverHandoff(t *testing.T) 
 
 func TestExplicitTaskEvidenceBindsUniqueRegisteredResolver(t *testing.T) {
 	workspace := t.TempDir()
-	script := filepath.Join(workspace, ".xscience", "runtime", "skills", "pocket-skill-abcd", "scripts", "run.py")
+	script := filepath.Join(workspace, ".x-science", "runtime", "skills", "pocket-skill-abcd", "scripts", "run.py")
 	if err := os.MkdirAll(filepath.Dir(script), 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -216,7 +216,7 @@ func TestShippedExplicitResolverEntrypointAcceptsItsRegisteredMethod(t *testing.
 	}
 	workspace := t.TempDir()
 	script := filepath.Join(
-		workspace, ".xscience", "runtime", "skills", "p2rank-pocket-detection-fixture", "scripts", "p2rank_binding_pockets.py",
+		workspace, ".x-science", "runtime", "skills", "p2rank-pocket-detection-fixture", "scripts", "p2rank_binding_pockets.py",
 	)
 	if err := os.MkdirAll(filepath.Dir(script), 0o700); err != nil {
 		t.Fatal(err)

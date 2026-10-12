@@ -15,8 +15,10 @@ from typing import Any
 
 if __package__:
     from .product_version import ProductVersion
+    from .product_identity_namespace import _go_identity_literal_present, _text_identity_literal_present
 else:
     from product_version import ProductVersion
+    from product_identity_namespace import _go_identity_literal_present, _text_identity_literal_present
 
 
 IDENTITY_SCHEMA = "x-science.product-identity.v1"
@@ -492,11 +494,13 @@ def _template(value: str, derived: dict[str, str]) -> str:
     return result
 
 
-def _identity_literal_present(text: str, derived: dict[str, str], versions: list[str]) -> bool:
+
+
+def _identity_literal_present(text: str, derived: dict[str, str], versions: list[str], *, go: bool = False) -> bool:
     # A complete version token must not match a component of an IPv4/CIDR value
     # or a longer dependency version when the product advances to that number.
     return (
-        any(derived[key] in text for key in ("display_name", "machine_slug"))
+        (_go_identity_literal_present(text, derived) if go else _text_identity_literal_present(text, derived))
         or any(re.search(r"(?<![0-9.])" + re.escape(version) + r"(?![0-9.])", text)
                for version in [derived["version"], *versions])
     )
@@ -552,7 +556,7 @@ def audit(
                 and '_ "embed"' in code
                 and re.search(r"(?m)^\s*var\s+embeddedAuthority\s+\[\]byte\s*$", code) is not None
                 and re.search(r"(?m)^\s*var\s+current\s*=\s*mustDecode\(embeddedAuthority\)\s*$", code) is not None
-                and not _identity_literal_present(code, derived, [])
+                and not _identity_literal_present(code, derived, [], go=True)
             )
         elif kind == "go-derived-consumer" and set(projection) == {"path", "kind", "required_markers"}:
             markers = projection.get("required_markers")
@@ -568,7 +572,7 @@ def audit(
                 raise IdentityError("identity_projection_read_invalid") from exc
             code, _ = _go_source_without_comments(text)
             aligned = all(marker in code for marker in markers) and not _identity_literal_present(
-                code, derived, retired_versions,
+                code, derived, retired_versions, go=True,
             )
         elif kind == "text-derived-consumer" and set(projection) == {"path", "kind", "required_markers"}:
             markers = projection.get("required_markers")

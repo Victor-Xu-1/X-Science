@@ -468,7 +468,7 @@ func TestAgentWorkspaceEditRejectsWorkspaceProtectedPaths(t *testing.T) {
 		".gitconfig", ".gitmodules", ".bashrc", ".zshenv", ".ripgreprc", ".mcp.json",
 		filepath.Join(".ssh", "config"), filepath.Join(".aws", "credentials"), filepath.Join(".gcloud", "configurations", "x"),
 		filepath.Join(".git", "config"), filepath.Join(".git", "hooks", "pre-commit"), filepath.Join(".git", "modules", "submodule"),
-		filepath.Join(".xscience", "runtime", "skills", "reviewed-skill", "scripts", "run.py"),
+		filepath.Join(".x-science", "runtime", "skills", "reviewed-skill", "scripts", "run.py"),
 		filepath.Join(".vscode", "settings.json"), filepath.Join(".idea", "workspace.xml"),
 	}
 	for _, path := range protected {

@@ -50,7 +50,9 @@
 }
 
 .x-science-user-message__edit-action:focus-visible {
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--workspace-text) 20%, transparent);
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
+  outline-offset: var(--ui-focus-offset);
+  box-shadow: none;
 }
 
 .x-science-user-message__edit-action:disabled {
@@ -154,7 +156,9 @@
 }
 
 .x-science-user-message__submit:focus-visible {
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--workspace-accent) 24%, transparent);
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
+  outline-offset: var(--ui-focus-offset);
+  box-shadow: none;
 }
 
 .x-science-user-message__cancel:disabled,

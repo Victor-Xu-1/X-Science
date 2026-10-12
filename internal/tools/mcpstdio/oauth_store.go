@@ -11,12 +11,13 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	secretstore "x-science/internal/persistence/secrets"
 	"time"
+	"x-science/internal/persistence/productstate"
+	secretstore "x-science/internal/persistence/secrets"
 )
 
 func oauthTokenPath(root string, serverName string) string {
-	return filepath.Join(root, ".xscience", "mcp-oauth", NormalizeName(serverName)+".json")
+	return filepath.Join(root, productstate.HiddenDirectory, "mcp-oauth", NormalizeName(serverName)+".json")
 }
 
 var oauthTokenCacheMu sync.Mutex
@@ -59,6 +60,9 @@ func loadOAuthToken(root string, serverName string) (oauthTokenCache, bool) {
 	}
 	oauthTokenCacheMu.Lock()
 	defer oauthTokenCacheMu.Unlock()
+	if err := ensurePrivateNamespace(root); err != nil {
+		return oauthTokenCache{}, false
+	}
 	store := oauthTokenVault(root)
 	secretID := oauthTokenSecretID(serverName)
 	secret, found, err := store.ResolveForUser(secretID, oauthTokenVaultUserID)
@@ -104,6 +108,9 @@ func saveOAuthTokenLocked(root string, serverName string, token oauthTokenCache)
 	if strings.TrimSpace(token.AccessToken) == "" {
 		return errors.New("OAuth access token is required")
 	}
+	if err := ensurePrivateNamespace(root); err != nil {
+		return err
+	}
 	store := oauthTokenVault(root)
 	secretID := oauthTokenSecretID(serverName)
 	credentials := map[string]string{
@@ -134,7 +141,7 @@ func saveOAuthTokenLocked(root string, serverName string, token oauthTokenCache)
 }
 
 func oauthTokenVault(root string) *secretstore.Store {
-	return secretstore.New(filepath.Join(root, ".xscience", "mcp-oauth-vault"))
+	return secretstore.New(filepath.Join(root, productstate.HiddenDirectory, "mcp-oauth-vault"))
 }
 
 func oauthTokenSecretID(serverName string) string {
@@ -191,7 +198,10 @@ func MigrateLegacyOAuthTokens(root string) error {
 	if root == "" {
 		return errors.New("OAuth token root is required")
 	}
-	directory := filepath.Join(root, ".xscience", "mcp-oauth")
+	if err := ensurePrivateNamespace(root); err != nil {
+		return err
+	}
+	directory := filepath.Join(root, productstate.HiddenDirectory, "mcp-oauth")
 	entries, err := os.ReadDir(directory)
 	if errors.Is(err, os.ErrNotExist) {
 		return nil

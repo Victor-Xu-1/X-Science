@@ -73,7 +73,7 @@
   background: var(--color-fill-2);
 }
 .control:focus-visible {
-  outline: 2px solid var(--color-primary-light-4);
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
   outline-offset: 2px;
 }
 .control:disabled {

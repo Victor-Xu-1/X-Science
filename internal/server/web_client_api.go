@@ -316,9 +316,7 @@ func webConversation(frame workspace.CompatibilityFrame, projectName string) map
 	if agentName == "" {
 		agentName = strings.TrimSpace(frame.AgentName)
 	}
-	if agentName == "" {
-		agentName = "X_SCIENCE"
-	}
+	agentName = webCurrentDefaultAssistantName(agentName, strings.TrimSpace(frame.DelegateName))
 	displayAgentName := agentName
 	if agentName == "X_SCIENCE" {
 		displayAgentName = productidentity.Current().DisplayName

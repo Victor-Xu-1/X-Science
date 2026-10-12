@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	productidentity "x-science"
 	"x-science/internal/datadir"
 )
 
@@ -84,5 +85,10 @@ func dataDirectoryControlPath() (string, error) {
 		}
 		configDirectory = absolute
 	}
-	return filepath.Join(configDirectory, "x-science", "data-dir.json"), nil
+	current := filepath.Join(configDirectory, productidentity.Current().MachineSlug, "data-dir.json")
+	previous := filepath.Join(configDirectory, "synon-go", "data-dir.json") // Original default pointer, consumed only by the upgrade.
+	if err := datadir.UpgradeDefaultPointer(previous, current); err != nil {
+		return "", fmt.Errorf("upgrade default data directory pointer: %w", err)
+	}
+	return current, nil
 }

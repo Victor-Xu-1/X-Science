@@ -172,6 +172,7 @@ func smokeManagedEnvironment(ctx context.Context, language, prefix string) error
 	if err != nil || !executableRegularFile(info) {
 		return errors.New("managed environment interpreter is unavailable")
 	}
+	arguments = namespaceEnvironmentProbeArguments(ctx, arguments)
 	command := newWorkerProcessCommand(ctx, executable, arguments...)
 	command.Env = managedEnvironmentRuntimeEnv(prefix)
 	stdout := newTailBuffer(maxDiagnosticBytes)
@@ -290,6 +291,7 @@ cat("X_SCIENCE_IMPORT_WITNESS_OK\n")`
 	default:
 		return errors.New("managed environment import witness language is unsupported")
 	}
+	arguments = namespaceEnvironmentProbeArguments(ctx, arguments)
 	command := newWorkerProcessCommand(ctx, executable, arguments...)
 	command.Env = managedEnvironmentRuntimeEnv(prefix)
 	stdout := newTailBuffer(maxDiagnosticBytes)
@@ -331,8 +333,11 @@ func (m *Manager) validateRecoveredManagedEnvironment(ctx context.Context, recov
 		return err
 	}
 	prefix := recovered.path
-	if marker.Kind == "path-venv" {
+	if managedMarkerUsesExternalRuntime(marker) {
 		prefix = marker.RuntimePath
+	}
+	if marker.NamespaceImport != nil {
+		ctx = context.WithValue(ctx, namespaceEnvironmentReadOnlyProbeKey{}, true)
 	}
 	return m.validateManagedEnvironmentGeneration(
 		ctx, marker.Generation, marker.Language, prefix, marker.Packages, marker.ImportNames,

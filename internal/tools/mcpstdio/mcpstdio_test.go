@@ -1672,8 +1672,8 @@ func TestOAuthTokenCacheUsesBoundedPrivatePathAndExpires(t *testing.T) {
 	if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
 		t.Fatalf("token cache path escaped root: %s", rel)
 	}
-	if filepath.Dir(tokenAbs) != filepath.Join(rootAbs, ".xscience", "mcp-oauth") {
-		t.Fatalf("token cache should stay under .xscience/mcp-oauth: %s", tokenAbs)
+	if filepath.Dir(tokenAbs) != filepath.Join(rootAbs, ".x-science", "mcp-oauth") {
+		t.Fatalf("token cache should stay under .x-science/mcp-oauth: %s", tokenAbs)
 	}
 	if filepath.Base(tokenAbs) != NormalizeName(serverName)+".json" {
 		t.Fatalf("token cache filename should be normalized: %s", filepath.Base(tokenAbs))
@@ -1685,7 +1685,7 @@ func TestOAuthTokenCacheUsesBoundedPrivatePathAndExpires(t *testing.T) {
 	if _, err := os.Stat(tokenAbs); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("plaintext token cache exists: %v", err)
 	}
-	vaultPath := filepath.Join(rootAbs, ".xscience", "mcp-oauth-vault", "secrets", "vault.enc")
+	vaultPath := filepath.Join(rootAbs, ".x-science", "mcp-oauth-vault", "secrets", "vault.enc")
 	vault, err := os.ReadFile(vaultPath)
 	if err != nil {
 		t.Fatalf("read encrypted token vault: %v", err)
@@ -1745,7 +1745,7 @@ func TestOAuthTokenCacheMigratesAndDeletesLegacyPlaintext(t *testing.T) {
 
 func TestMigrateLegacyOAuthTokensSweepsAllPlaintextFiles(t *testing.T) {
 	root := t.TempDir()
-	directory := filepath.Join(root, ".xscience", "mcp-oauth")
+	directory := filepath.Join(root, ".x-science", "mcp-oauth")
 	if err := os.MkdirAll(directory, 0o700); err != nil {
 		t.Fatal(err)
 	}

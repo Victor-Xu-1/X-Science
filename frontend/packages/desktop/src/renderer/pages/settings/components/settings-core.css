@@ -53,7 +53,6 @@
   --settings-status-ready: var(--success);
   --settings-status-warning: var(--warning);
   --settings-status-danger: var(--danger);
-  --settings-focus: color-mix(in srgb, var(--settings-accent) 52%, transparent);
   /* Form boundaries must remain distinguishable from their surface. Quiet
      card separators keep the light border; interactive inputs use this one. */
   --settings-control-border: color-mix(in srgb, var(--settings-text-secondary) 80%, var(--settings-surface));
@@ -310,12 +309,6 @@
 .settings-page-wrapper[data-settings-visual-system='scientific-connectors-v3'] .arco-select-view-value {
   color: var(--settings-text) !important;
   font-size: var(--ui-font-subtitle);
-}
-
-.settings-page-wrapper[data-settings-visual-system='scientific-connectors-v3']
-  :is(button, a, [role='switch'], [role='tab'], input, textarea, select):focus-visible {
-  outline: 2px solid var(--settings-focus) !important;
-  outline-offset: 2px;
 }
 
 /* Switches in the approved sheets are quiet teal pills with a white thumb;

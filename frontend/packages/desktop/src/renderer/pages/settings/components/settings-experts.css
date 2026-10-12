@@ -99,7 +99,7 @@
   border-block: 1px solid var(--workspace-border);
 }
 .expert-capability-picker__viewport:focus-visible {
-  outline: 2px solid var(--workspace-text);
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
   outline-offset: 2px;
 }
 .expert-capability-picker__list {
