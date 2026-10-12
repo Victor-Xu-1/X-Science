@@ -549,17 +549,17 @@ func TestBundledSynonLinkExtensionManifest(t *testing.T) {
 	root := filepath.Join(repositoryRoot, "assets", "synon-link")
 	manifest, err := Load(filepath.Join(root, "manifest.json"))
 	if err != nil {
-		t.Fatalf("load Synon Link manifest: %v", err)
+		t.Fatalf("load X-Science browser connector manifest: %v", err)
 	}
 	if manifest.Runtime.Kind != "chrome-extension" || manifest.Runtime.MinimumVersion != "114" || manifest.Runtime.Optional {
-		t.Fatalf("Synon Link runtime metadata = %#v", manifest.Runtime)
+		t.Fatalf("X-Science browser connector runtime metadata = %#v", manifest.Runtime)
 	}
 	report, err := Verify(root, manifest)
 	if err != nil {
-		t.Fatalf("verify Synon Link extension: %v", err)
+		t.Fatalf("verify X-Science browser connector extension: %v", err)
 	}
-	if report.Checked != 1 || report.TotalBytes != 94621 {
-		t.Fatalf("Synon Link asset report = %#v", report)
+	if report.Checked != 1 || report.TotalBytes != 524150 {
+		t.Fatalf("X-Science browser connector asset report = %#v", report)
 	}
 }
 
