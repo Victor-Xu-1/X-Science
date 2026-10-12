@@ -114,16 +114,19 @@ func resolveSSHIdentityFile(raw, home string) (string, error) {
 	if !filepath.IsAbs(raw) {
 		return "", errors.New("overrides.identityFile must be absolute or start with ~/")
 	}
+	if !pathWithin(raw, home) && !pathWithin(raw, "/etc/ssh") {
+		return "", errors.New("overrides.identityFile must live under $HOME or /etc/ssh")
+	}
 	resolved, err := filepath.EvalSymlinks(raw)
 	if err != nil {
 		return "", errors.New("overrides.identityFile does not exist")
 	}
+	if !pathWithin(resolved, home) && !pathWithin(resolved, "/etc/ssh") {
+		return "", errors.New("overrides.identityFile must live under $HOME or /etc/ssh")
+	}
 	info, err := os.Stat(resolved)
 	if err != nil || !info.Mode().IsRegular() {
 		return "", errors.New("overrides.identityFile must be a regular file")
-	}
-	if !pathWithin(resolved, home) && !pathWithin(resolved, "/etc/ssh") {
-		return "", errors.New("overrides.identityFile must live under $HOME or /etc/ssh")
 	}
 	return resolved, nil
 }

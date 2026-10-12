@@ -8,6 +8,9 @@ import (
 	"path/filepath"
 	"sync"
 	"testing"
+	"time"
+
+	"golang.org/x/sys/unix"
 )
 
 func TestOpenGrantedRegularFileLinuxResistsSymlinkSwap(t *testing.T) {
@@ -66,4 +69,35 @@ func TestOpenGrantedRegularFileLinuxResistsSymlinkSwap(t *testing.T) {
 	}
 	close(stop)
 	wait.Wait()
+}
+
+func TestOpenGrantedRegularFileLinuxRejectsFIFOWithoutWaitingForWriter(t *testing.T) {
+	root := t.TempDir()
+	path := filepath.Join(root, "not-a-regular-file")
+	if err := unix.Mkfifo(path, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan error, 1)
+	go func() {
+		file, err := openGrantedRegularFile(path, []hostGrant{{Path: root, Mode: "read"}})
+		if file != nil {
+			_ = file.Close()
+		}
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		if err == nil {
+			t.Fatal("FIFO admitted as regular content")
+		}
+	case <-time.After(time.Second):
+		// Release a pre-fix blocking open so a failed regression cannot leave a
+		// goroutine or open descriptor behind in the test process.
+		fd, err := unix.Open(path, unix.O_WRONLY|unix.O_NONBLOCK, 0)
+		if err == nil {
+			_ = unix.Close(fd)
+		}
+		<-done
+		t.Fatal("file access waited for a FIFO writer")
+	}
 }
