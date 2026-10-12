@@ -397,7 +397,10 @@ func (s *Server) handleCompatEventWebSocket(w http.ResponseWriter, r *http.Reque
 	defer connection.Close(websocket.StatusNormalClosure, "closed")
 	ctx, cancel := context.WithCancel(r.Context())
 	direct := make(chan map[string]any, compatEventSubscriberBuffer)
-	watches := newCompatFileWatchSet(ctx, s.fileRoot, direct)
+	watches := newCompatFileWatchSet(ctx, s.fileRoot, direct, func(path string) error {
+		_, err := s.resolveWebFSPath(userID, path, "", false, false, s.allowWebFSLocalRead(r))
+		return err
+	})
 	defer watches.Close()
 	controls := make(chan map[string]any, 16)
 	readDone := make(chan struct{})

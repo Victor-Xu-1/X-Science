@@ -16,12 +16,19 @@ const (
 )
 
 type compatFileWatchSet struct {
-	ctx     context.Context
-	root    string
-	output  chan<- map[string]any
-	mu      sync.Mutex
-	watches map[string]context.CancelFunc
-	closed  bool
+	ctx       context.Context
+	root      string
+	rootDir   *os.Root
+	rootErr   error
+	authorize func(string) error
+	output    chan<- map[string]any
+	mu        sync.Mutex
+	watches   map[string]*compatFileWatchEntry
+	closed    bool
+}
+
+type compatFileWatchEntry struct {
+	cancel context.CancelFunc
 }
 
 type compatFileSnapshot struct {
@@ -31,17 +38,36 @@ type compatFileSnapshot struct {
 	mode    os.FileMode
 }
 
-func newCompatFileWatchSet(ctx context.Context, root string, output chan<- map[string]any) *compatFileWatchSet {
+func newCompatFileWatchSet(ctx context.Context, root string, output chan<- map[string]any, authorize func(string) error) *compatFileWatchSet {
 	if ctx == nil {
 		ctx = context.Background()
 	}
+	root = strings.TrimSpace(root)
+	var directory *os.Root
+	var err error
+	if root == "" {
+		err = errors.New("file root is not configured")
+	} else if root, err = filepath.Abs(root); err == nil {
+		if root, err = filepath.EvalSymlinks(root); err == nil {
+			directory, err = os.OpenRoot(root)
+		}
+	}
 	return &compatFileWatchSet{
-		ctx: ctx, root: strings.TrimSpace(root), output: output,
-		watches: make(map[string]context.CancelFunc),
+		ctx: ctx, root: root, rootDir: directory, rootErr: err, authorize: authorize, output: output,
+		watches: make(map[string]*compatFileWatchEntry),
 	}
 }
 
 func (w *compatFileWatchSet) Control(message map[string]any) map[string]any {
+	if kind := stringValue(message["type"]); kind == "file_watch" || kind == "file_unwatch" {
+		requested := strings.TrimSpace(stringValue(message["path"]))
+		if !filepath.IsAbs(requested) {
+			requested = filepath.Join(w.root, requested)
+		}
+		if w.rootErr != nil || w.authorize == nil || w.authorize(requested) != nil {
+			return map[string]any{"type": "error", "code": "FILE_WATCH_REJECTED", "detail": "file watch access is not authorized"}
+		}
+	}
 	switch stringValue(message["type"]) {
 	case "file_watch":
 		path, err := resolveCompatWatchPath(w.root, stringValue(message["path"]))
@@ -76,20 +102,21 @@ func (w *compatFileWatchSet) add(path string) error {
 	if len(w.watches) >= compatFileWatchLimit {
 		return errors.New("file watch limit reached")
 	}
-	initial := statCompatWatchPath(path)
+	initial := w.statPath(path)
 	ctx, cancel := context.WithCancel(w.ctx)
-	w.watches[path] = cancel
-	go w.run(ctx, path, initial)
+	entry := &compatFileWatchEntry{cancel: cancel}
+	w.watches[path] = entry
+	go w.run(ctx, path, initial, entry)
 	return nil
 }
 
 func (w *compatFileWatchSet) remove(path string) {
 	w.mu.Lock()
-	cancel := w.watches[path]
+	entry := w.watches[path]
 	delete(w.watches, path)
 	w.mu.Unlock()
-	if cancel != nil {
-		cancel()
+	if entry != nil {
+		entry.cancel()
 	}
 }
 
@@ -101,17 +128,28 @@ func (w *compatFileWatchSet) Close() {
 	}
 	w.closed = true
 	cancels := make([]context.CancelFunc, 0, len(w.watches))
-	for _, cancel := range w.watches {
-		cancels = append(cancels, cancel)
+	for _, entry := range w.watches {
+		cancels = append(cancels, entry.cancel)
 	}
 	clear(w.watches)
 	w.mu.Unlock()
 	for _, cancel := range cancels {
 		cancel()
 	}
+	if w.rootDir != nil {
+		_ = w.rootDir.Close()
+	}
 }
 
-func (w *compatFileWatchSet) run(ctx context.Context, path string, previous compatFileSnapshot) {
+func (w *compatFileWatchSet) run(ctx context.Context, path string, previous compatFileSnapshot, entry *compatFileWatchEntry) {
+	defer func() {
+		w.mu.Lock()
+		if w.watches[path] == entry {
+			delete(w.watches, path)
+		}
+		w.mu.Unlock()
+		entry.cancel()
+	}()
 	ticker := time.NewTicker(compatFileWatchInterval)
 	defer ticker.Stop()
 	for {
@@ -119,7 +157,14 @@ func (w *compatFileWatchSet) run(ctx context.Context, path string, previous comp
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			current := statCompatWatchPath(path)
+			if w.authorize == nil || w.authorize(path) != nil {
+				select {
+				case w.output <- map[string]any{"type": "error", "code": "FILE_WATCH_REJECTED", "detail": "file watch access is no longer authorized"}:
+				case <-ctx.Done():
+				}
+				return
+			}
+			current := w.statPath(path)
 			message := compatFileWatchMessage(path, previous, current)
 			previous = current
 			if message == nil {
@@ -134,8 +179,15 @@ func (w *compatFileWatchSet) run(ctx context.Context, path string, previous comp
 	}
 }
 
-func statCompatWatchPath(path string) compatFileSnapshot {
-	info, err := os.Lstat(path)
+func (w *compatFileWatchSet) statPath(path string) compatFileSnapshot {
+	if w.rootDir == nil {
+		return compatFileSnapshot{}
+	}
+	relative, err := filepath.Rel(w.root, path)
+	if err != nil || !filepath.IsLocal(relative) {
+		return compatFileSnapshot{}
+	}
+	info, err := w.rootDir.Lstat(relative)
 	if err != nil {
 		return compatFileSnapshot{}
 	}
