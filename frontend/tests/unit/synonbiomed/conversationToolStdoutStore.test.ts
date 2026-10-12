@@ -309,6 +309,217 @@ describe('ConversationToolStdoutStore', () => {
     dispose();
   });
 
+  it('gives a new execution its own recovery budget after another execution exhausts the same root', async () => {
+    const { store, emit, hydrate } = harness();
+    const dispose = store.subscribe('conversation-a', vi.fn());
+    await vi.waitFor(() => expect(hydrate).toHaveBeenCalledTimes(1));
+    emit({
+      ...event('conversation-a', 'tool-a', 'x'.repeat(MAX_PENDING_TOOL_STDOUT_BYTES + 1), 2),
+      exec_id: 'old-exec',
+    });
+    await vi.waitFor(() =>
+      expect(
+        store.getSnapshot('conversation-a')[0].toolStdout.find((output) => output.execId === 'old-exec')?.recoveryError
+      ).toBe(true)
+    );
+    const exhaustedCalls = hydrate.mock.calls.length;
+    for (let sequence = 3; sequence <= 8; sequence += 1) {
+      emit({ ...event('conversation-a', 'tool-a', 'old traffic', sequence), exec_id: 'old-exec' });
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    expect(hydrate).toHaveBeenCalledTimes(exhaustedCalls);
+    hydrate.mockResolvedValueOnce([
+      {
+        frameId: 'conversation-a',
+        toolStdout: [
+          {
+            toolUseId: 'tool-a',
+            execId: 'new-exec',
+            stdout: 'A',
+            stderr: '',
+            throughChunkSequence: 1,
+            stdoutStartByte: 0,
+            stdoutEndByte: 1,
+          },
+        ],
+      },
+    ]);
+    emit({ ...event('conversation-a', 'tool-a', 'B', 2, { start: 1, end: 2 }), exec_id: 'new-exec' });
+    await vi.waitFor(() =>
+      expect(
+        store.getSnapshot('conversation-a')[0].toolStdout.find((output) => output.execId === 'new-exec')?.stdout
+      ).toBe('AB')
+    );
+    expect(hydrate).toHaveBeenCalledTimes(exhaustedCalls + 1);
+    expect(
+      store.getSnapshot('conversation-a')[0].toolStdout.find((output) => output.execId === 'old-exec')?.recoveryError
+    ).toBe(true);
+    for (let sequence = 9; sequence <= 14; sequence += 1) {
+      emit({ ...event('conversation-a', 'tool-a', 'old traffic', sequence), exec_id: 'old-exec' });
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    expect(hydrate).toHaveBeenCalledTimes(exhaustedCalls + 1);
+    dispose();
+  });
+
+  it('preserves small gaps through empty snapshots and fairly budgets an execution joining in-flight recovery', async () => {
+    vi.useFakeTimers();
+    const { store, emit, hydrate } = harness();
+    const dispose = store.subscribe('conversation-a', vi.fn());
+    try {
+      await vi.runAllTimersAsync();
+      const inFlight = deferred<ConversationStreamingFrame[]>();
+      hydrate.mockImplementationOnce(() => inFlight.promise);
+      emit({
+        ...event('conversation-a', 'tool-a', 'x'.repeat(MAX_PENDING_TOOL_STDOUT_BYTES + 1), 2),
+        exec_id: 'old-exec',
+      });
+      emit({ ...event('conversation-a', 'tool-a', 'B', 2, { start: 1, end: 2 }), exec_id: 'new-exec' });
+      expect(hydrate).toHaveBeenCalledTimes(2);
+      inFlight.resolve([]);
+      await vi.runAllTimersAsync();
+      const outputs = store.getSnapshot('conversation-a')[0].toolStdout;
+      expect(outputs.find((output) => output.execId === 'old-exec')?.recoveryError).toBe(true);
+      expect(outputs.find((output) => output.execId === 'new-exec')?.recoveryError).toBe(true);
+      const entries = (
+        store as unknown as {
+          entries: Map<
+            string,
+            { execId?: string; gapHydrationAttempts?: number; pendingChunks: Map<number, { text: string }> }
+          >;
+        }
+      ).entries;
+      expect([...entries.values()].find((output) => output.execId === 'old-exec')?.gapHydrationAttempts).toBe(4);
+      expect([...entries.values()].find((output) => output.execId === 'new-exec')?.gapHydrationAttempts).toBe(4);
+      expect([...entries.values()].find((output) => output.execId === 'new-exec')?.pendingChunks.get(2)?.text).toBe(
+        'B'
+      );
+      const exhaustedCalls = hydrate.mock.calls.length;
+      emit({ ...event('conversation-a', 'tool-a', 'C', 3), exec_id: 'new-exec' });
+      emit({ ...event('conversation-a', 'tool-a', 'old traffic', 3), exec_id: 'old-exec' });
+      await vi.runAllTimersAsync();
+      expect(hydrate).toHaveBeenCalledTimes(exhaustedCalls);
+      // Actual contiguous replay resolves this gap and allows a later gap on the same execution.
+      emit({ ...event('conversation-a', 'tool-a', 'A', 1, { start: 0, end: 1 }), exec_id: 'new-exec' });
+      expect(
+        store.getCurrentSnapshot('conversation-a')[0].toolStdout.find((output) => output.execId === 'new-exec')?.stdout
+      ).toBe('ABC');
+      hydrate.mockResolvedValueOnce([
+        {
+          frameId: 'conversation-a',
+          toolStdout: [
+            {
+              toolUseId: 'tool-a',
+              execId: 'new-exec',
+              stdout: 'ABCD',
+              stderr: '',
+              throughChunkSequence: 4,
+              stdoutStartByte: 0,
+              stdoutEndByte: 4,
+            },
+          ],
+        },
+      ]);
+      emit({ ...event('conversation-a', 'tool-a', 'E', 5, { start: 4, end: 5 }), exec_id: 'new-exec' });
+      await vi.runAllTimersAsync();
+      expect(hydrate).toHaveBeenCalledTimes(exhaustedCalls + 1);
+      expect(
+        store.getSnapshot('conversation-a')[0].toolStdout.find((output) => output.execId === 'new-exec')?.stdout
+      ).toBe('ABCDE');
+      expect(
+        store.getSnapshot('conversation-a')[0].toolStdout.find((output) => output.execId === 'old-exec')?.recoveryError
+      ).toBe(true);
+    } finally {
+      dispose();
+      vi.useRealTimers();
+    }
+  });
+
+  it('does not let an exhausted root affect another root and clears budgets with account caches', async () => {
+    vi.useFakeTimers();
+    const { store, emit, hydrate } = harness();
+    const disposeA = store.subscribe('conversation-a', vi.fn());
+    const disposeB = store.subscribe('conversation-b', vi.fn());
+    try {
+      await vi.runAllTimersAsync();
+      emit({
+        ...event('conversation-a', 'tool-a', 'x'.repeat(MAX_PENDING_TOOL_STDOUT_BYTES + 1), 2),
+        exec_id: 'exec-a',
+      });
+      await vi.runAllTimersAsync();
+      const exhaustedCalls = hydrate.mock.calls.length;
+      emit({ ...event('conversation-b', 'tool-a', 'B', 2), exec_id: 'exec-b' });
+      await vi.runAllTimersAsync();
+      expect(hydrate.mock.calls.length).toBe(exhaustedCalls + 4);
+      expect(store.getSnapshot('conversation-b')[0].toolStdout[0].recoveryError).toBe(true);
+      store.clearCachedData();
+      expect(store.getSnapshot('conversation-a')).toEqual([]);
+      expect(store.getSnapshot('conversation-b')).toEqual([]);
+      hydrate.mockResolvedValueOnce([
+        {
+          frameId: 'conversation-a',
+          toolStdout: [{ toolUseId: 'tool-a', execId: 'exec-a', stdout: 'A', stderr: '', throughChunkSequence: 1 }],
+        },
+      ]);
+      emit({ ...event('conversation-a', 'tool-a', 'B', 2), exec_id: 'exec-a' });
+      await vi.runAllTimersAsync();
+      expect(store.getSnapshot('conversation-a')[0].toolStdout[0].stdout).toBe('AB');
+      expect(store.getSnapshot('conversation-a')[0].toolStdout[0].recoveryError).toBeUndefined();
+    } finally {
+      disposeA();
+      disposeB();
+      vi.useRealTimers();
+    }
+  });
+
+  it('does not reset attempts or poison a small sequenced gap with repeated legacy snapshots', async () => {
+    vi.useFakeTimers();
+    const { store, emit, hydrate, reconnect } = harness();
+    const dispose = store.subscribe('conversation-a', vi.fn());
+    try {
+      await vi.runAllTimersAsync();
+      hydrate.mockResolvedValue([
+        {
+          frameId: 'conversation-a',
+          toolStdout: [{ toolUseId: 'tool-a', execId: 'exec-a', stdout: 'legacy', stderr: '' }],
+        },
+      ]);
+      emit({ ...event('conversation-a', 'tool-a', 'B', 2, { start: 1, end: 2 }), exec_id: 'exec-a' });
+      await vi.runAllTimersAsync();
+      expect(hydrate).toHaveBeenCalledTimes(5);
+      expect(store.getSnapshot('conversation-a')[0].toolStdout[0]).toMatchObject({ stdout: '', recoveryError: true });
+      emit({ ...event('conversation-a', 'tool-a', 'A', 1, { start: 0, end: 1 }), exec_id: 'exec-a' });
+      expect(store.getCurrentSnapshot('conversation-a')[0].toolStdout[0].stdout).toBe('AB');
+      emit({ ...event('conversation-a', 'tool-a', 'D', 4, { start: 3, end: 4 }), exec_id: 'exec-a' });
+      await vi.runAllTimersAsync();
+      expect(hydrate).toHaveBeenCalledTimes(9);
+      expect(store.getSnapshot('conversation-a')[0].toolStdout[0]).toMatchObject({ stdout: 'AB', recoveryError: true });
+      hydrate.mockResolvedValueOnce([
+        {
+          frameId: 'conversation-a',
+          toolStdout: [
+            {
+              toolUseId: 'tool-a',
+              execId: 'exec-a',
+              stdout: 'ABC',
+              stderr: '',
+              throughChunkSequence: 3,
+              stdoutStartByte: 0,
+              stdoutEndByte: 3,
+            },
+          ],
+        },
+      ]);
+      reconnect();
+      await vi.runAllTimersAsync();
+      expect(store.getSnapshot('conversation-a')[0].toolStdout[0].stdout).toBe('ABCD');
+      expect(store.getSnapshot('conversation-a')[0].toolStdout[0].recoveryError).toBeUndefined();
+    } finally {
+      dispose();
+      vi.useRealTimers();
+    }
+  });
+
   it('buffers out-of-order chunks until the missing sequence arrives', () => {
     const { store, emit } = harness();
     const dispose = store.subscribe('conversation-a', vi.fn());

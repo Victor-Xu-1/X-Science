@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "a0db450840aa39389da28673d67bee284a507e70a983106b5f6724c248d8830a",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "35cf8341b98ca3d56645dc871ab13ce088cbdbee3461c762f429501884644a5a",
+  "additionFingerprintSHA256": "f9db89ac298e227651b26592d0e3f9cfe6a7b07bf346f0704277434d14f15f8e",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 342,
@@ -9187,8 +9187,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/services/runtime/conversationToolStdoutStore.ts",
-      "sha256": "bdba4173a0f351f7b64d87fea9f82d713599af1b13243d32ff2f5949b49fd25c",
-      "bytes": 25996,
+      "sha256": "a059860ca05df41ee74f21b14850fd45568080fd9ec46cb562bb9db7a8bc6111",
+      "bytes": 26956,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -11707,8 +11707,8 @@
     },
     {
       "path": "tests/unit/synonbiomed/conversationToolStdoutStore.test.ts",
-      "sha256": "6fbc9c4d5f2b720c1c2366c977044a7ecff8168765f566b1f84918721174a6e1",
-      "bytes": 23364,
+      "sha256": "e616335b0a1dc51cc0ada0e3803bc7bb16dfd1df8ad66f67dc041f46364399ce",
+      "bytes": 32520,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
