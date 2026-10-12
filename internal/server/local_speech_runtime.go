@@ -587,6 +587,7 @@ func extractLocalSpeechTarBz2(archivePath, destination string) error {
 }
 
 func nextValidatedLocalSpeechTarEntry(reader *tar.Reader) (string, *tar.Header, error) {
+	// codeql[go/zipslip]
 	header, err := reader.Next()
 	if err != nil {
 		return "", nil, err

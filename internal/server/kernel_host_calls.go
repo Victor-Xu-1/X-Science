@@ -427,10 +427,7 @@ func normalizeKernelHostValue(value any, depth int, budget *kernelHostJSONBudget
 	switch typed := value.(type) {
 	case json.Number:
 		if integer, err := strconv.ParseInt(typed.String(), 10, 64); err == nil {
-			if integer > int64(^uint(0)>>1) || integer < -int64(^uint(0)>>1)-1 {
-				return nil, errors.New("integer is outside the platform range")
-			}
-			return int(integer), nil
+			return integer, nil
 		}
 		decimal, err := strconv.ParseFloat(typed.String(), 64)
 		if err != nil || math.IsNaN(decimal) || math.IsInf(decimal, 0) {

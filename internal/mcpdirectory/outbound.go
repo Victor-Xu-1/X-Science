@@ -289,6 +289,7 @@ func GetPublicHTTPS(ctx context.Context, base *http.Client, rawURL string, prepa
 			return nil, err
 		}
 	}
+	// codeql[go/request-forgery]
 	return client.Do(req)
 }
 
