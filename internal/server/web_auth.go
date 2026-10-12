@@ -134,7 +134,10 @@ func (s *Server) webUser(r *http.Request) (synonLinkAuthUser, bool) {
 
 func (s *Server) withWebIdentity(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if s.webAuthenticationEnabled() {
+		// Remote peers must not supply workspace identity out of band. Loopback
+		// bridges may still inject the header directly; authenticated sessions
+		// and bearer tokens are applied below.
+		if s.webAuthenticationEnabled() || !isLoopbackRequest(r) {
 			r.Header.Del("X-Synon-User-Id")
 			r.Header.Del("X-Synon-User-Name")
 		}

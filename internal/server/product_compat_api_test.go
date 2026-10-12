@@ -179,6 +179,15 @@ func TestSynonBiomedProjectAndCatalogRejectInvalidOrUnauthenticatedRequests(t *t
 	if remoteResponse.Code != http.StatusUnauthorized {
 		t.Fatalf("remote status=%d body=%s", remoteResponse.Code, remoteResponse.Body.String())
 	}
+
+	forged := httptest.NewRequest(http.MethodGet, "/api/synonbiomed/catalog", nil)
+	forged.RemoteAddr = "203.0.113.8:12345"
+	forged.Header.Set("X-Synon-User-Id", "attacker")
+	forgedResponse := httptest.NewRecorder()
+	app.Handler().ServeHTTP(forgedResponse, forged)
+	if forgedResponse.Code != http.StatusUnauthorized {
+		t.Fatalf("remote forged header status=%d body=%s", forgedResponse.Code, forgedResponse.Body.String())
+	}
 }
 
 func TestSystemInfoMapsConfiguredDirectoriesAndRuntime(t *testing.T) {
