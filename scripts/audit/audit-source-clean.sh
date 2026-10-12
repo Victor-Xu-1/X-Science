@@ -102,7 +102,7 @@ allowed_root_entries=(
   COMMERCIAL-LICENSE.md
   CODE_OF_CONDUCT.md
   CONTRIBUTING.md
-  LICENSE.md
+  LICENSE.txt
   Makefile
   README.md
   SECURITY.md
@@ -146,7 +146,7 @@ required_source_files=(
   COMMERCIAL-LICENSE.md
   CODE_OF_CONDUCT.md
   CONTRIBUTING.md
-  LICENSE.md
+  LICENSE.txt
   SECURITY.md
   identity.go
   identity_test.go
