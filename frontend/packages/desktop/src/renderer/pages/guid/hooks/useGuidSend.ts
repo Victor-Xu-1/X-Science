@@ -116,7 +116,7 @@ export function parseXScienceProjectWorkspace(workspace: string): XScienceProjec
 
   try {
     const url = new URL(workspace);
-    if (url.protocol !== 'xscience:' || url.hostname !== 'project') {
+    if ((url.protocol !== 'x-science:' && url.protocol !== 'xscience:') || url.hostname !== 'project') {
       return null;
     }
     const projectId = decodeURIComponent(url.pathname.replace(/^\/+/, ''));

@@ -15,7 +15,7 @@ export function publicEnvironmentContext(value: unknown): string | null {
   const context = safeShortContext(value);
   if (!context) return null;
   if (
-    /(?:^|[-_])(?:acceptance|internal|private|runtime|workspace)(?:[-_]|$)|^(?:swr-[0-9a-f]{16,}|xscience(?:[-_]|$))|[0-9a-f]{8}-[0-9a-f-]{20,}/iu.test(
+    /(?:^|[-_])(?:acceptance|internal|private|runtime|workspace)(?:[-_]|$)|^(?:swr-[0-9a-f]{16,}|x-?science(?:[-_]|$))|[0-9a-f]{8}-[0-9a-f-]{20,}/iu.test(
       context
     )
   ) {
@@ -160,7 +160,7 @@ function formatPublicRecordIdentity(value: unknown): string | null {
     !normalized ||
     normalized.length > 80 ||
     !/^[\p{L}\p{N}][\p{L}\p{N}._:+/-]*$/u.test(normalized) ||
-    /^(?:mem_|proj(?:ect)?_|artifact_|frame_|swr-|xscience[-_])|^[0-9a-f]{8}-[0-9a-f-]{20,}$/iu.test(normalized)
+    /^(?:mem_|proj(?:ect)?_|artifact_|frame_|swr-|x-?science[-_])|^[0-9a-f]{8}-[0-9a-f-]{20,}$/iu.test(normalized)
   ) {
     return null;
   }

@@ -38,7 +38,9 @@ describe('Mol* lazy runtime boundary', () => {
       engineSource.indexOf('let ligandFocusInFlight')
     );
 
-    expect(styleTransition).toContain('createXScienceViewRepresentationPreset(representation, electrostaticVolumes)');
+    expect(styleTransition).toContain(
+      'createXScienceViewRepresentationPreset(representation, electrostaticVolumes, {'
+    );
     expect(styleTransition).not.toContain('PresetStructureRepresentations.empty');
     expect(pocketTransition).toContain('previousComponentRefs');
     expect(pocketTransition).toContain('retainedComponentRefs');
