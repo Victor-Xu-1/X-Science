@@ -274,7 +274,8 @@ export default defineConfig(({ mode }) => {
         name: 'renderer-boot-shell',
         transformIndexHtml: {
           order: 'pre',
-          handler(html) {
+          handler(html, context) {
+            if (normalizePath(context.filename) !== normalizePath(resolve(rendererRoot, 'index.html'))) return html;
             const identity = JSON.parse(readFileSync(resolve(repoRoot, '../product-identity.json'), 'utf8'));
             const locales = { 'en-US': enCommon, 'zh-CN': zhCommon };
             return renderBootDocument(
