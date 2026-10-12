@@ -36,13 +36,13 @@ func namespaceV73Fixture(t *testing.T) *Store {
 
 func namespaceApplyCutover(t *testing.T, store *Store) {
 	t.Helper()
-	if err := applyVersionedSchemaMigrationsThrough(context.Background(), store.db, store.now, 74); err != nil {
+	if err := applyVersionedSchemaMigrationsThrough(context.Background(), store.db, store.now, 75); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestNamespacePublishedSpecificationRejectsChangedCanonicalContent(t *testing.T) {
-	for index, migration := range workspaceSchemaMigrations[:73] {
+	for index, migration := range workspaceSchemaMigrations[:len(publishedMigrationIdentities)] {
 		checksum, err := migration.validatedChecksum()
 		if err != nil || checksum != publishedMigrationIdentities[index].published {
 			t.Fatalf("migration %d=%s err=%v", index+1, checksum, err)
@@ -105,6 +105,32 @@ func TestNamespaceCutoverRetainsPublishedJournalAndCompletedOutboxReceipt(t *tes
 	}
 }
 
+func TestNamespaceCutoverPreservesMergedV74IndexesAndJournal(t *testing.T) {
+	store := namespaceV73Fixture(t)
+	ctx := context.Background()
+	if err := applyVersionedSchemaMigrationsThrough(ctx, store.db, store.now, 74); err != nil {
+		t.Fatal(err)
+	}
+	before, err := store.SchemaStatus(ctx)
+	if err != nil || before.CurrentVersion != 74 {
+		t.Fatalf("merged main schema=%#v err=%v", before, err)
+	}
+	assertDataLifecycleSnapshotIndexes(t, store.db)
+	namespaceApplyCutover(t, store)
+	namespaceApplyCutover(t, store)
+	after, err := store.SchemaStatus(ctx)
+	if err != nil || after.CurrentVersion != 75 || len(after.Migrations) != 75 {
+		t.Fatalf("namespace schema=%#v err=%v", after, err)
+	}
+	for index, record := range before.Migrations {
+		if record != after.Migrations[index] {
+			t.Fatalf("published migration %d changed", record.Version)
+		}
+	}
+	assertDataLifecycleSnapshotIndexes(t, store.db)
+	assertDataLifecycleIndexedPlan(t, store.db)
+}
+
 func TestNamespaceCutoverRejectsLateHistoricalIdentityAndAliasCollision(t *testing.T) {
 	ctx := context.Background()
 	store := namespaceV73Fixture(t)
@@ -161,7 +187,7 @@ func TestNamespaceCutoverRejectsLateHistoricalIdentityAndAliasCollision(t *testi
 
 func TestNamespaceCutoverMigrationFailureIsAtomic(t *testing.T) {
 	store := namespaceV73Fixture(t)
-	failed := namespaceCutoverV74Migration
+	failed := namespaceCutoverV75Migration
 	failed.statements = append(append([]string(nil), failed.statements...), "INSERT INTO missing_namespace_table VALUES(1)")
 	checksum, err := failed.validatedChecksum()
 	if err != nil {

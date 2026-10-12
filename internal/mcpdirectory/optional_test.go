@@ -35,6 +35,19 @@ func TestOptionalConnectorsStayOutOfRuntimeUntilInstalled(t *testing.T) {
 	}
 }
 
+func TestOptionalConnectorIDRejectsFilesystemSyntax(t *testing.T) {
+	for _, id := range []string{"", "renkin-local", "bundled:", "bundled:../outside", "bundled:one/other", "bundled:one\\other", "bundled:a..b", "bundled:a\x00b", "bundled:é", "bundled:/absolute"} {
+		if _, err := validateOptionalConnectorID(id); err == nil {
+			t.Fatalf("unsafe connector ID accepted: %q", id)
+		}
+	}
+	for _, id := range []string{"bundled:renkin-local", "bundled:rna-design-local"} {
+		if normalized, err := validateOptionalConnectorID(id); err != nil || normalized != id {
+			t.Fatalf("managed ID rejected: %q %v", normalized, err)
+		}
+	}
+}
+
 func TestOptionalConnectorStateRequiresManagedPathAndExecutable(t *testing.T) {
 	root := t.TempDir()
 	store, err := workspace.Open(filepath.Join(root, "workspace.db"))
