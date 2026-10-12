@@ -706,7 +706,11 @@ func (s *Service) reconcileDirectory(ctx context.Context, userID string, directo
 func (s *Service) fetchManifest(ctx context.Context, directory workspace.MCPDirectory) (manifest, string, bool, error) {
 	requestCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
-	req, err := http.NewRequestWithContext(requestCtx, http.MethodGet, directory.URL, nil)
+	manifestURL, _, err := resolvePublicHTTPSURL(requestCtx, nil, directory.URL)
+	if err != nil {
+		return manifest{}, "", false, err
+	}
+	req, err := http.NewRequestWithContext(requestCtx, http.MethodGet, manifestURL.String(), nil)
 	if err != nil {
 		return manifest{}, "", false, err
 	}

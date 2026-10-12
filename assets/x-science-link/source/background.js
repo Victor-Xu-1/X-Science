@@ -6,7 +6,6 @@ import {
   DEFAULT_X_SCIENCE_SERVER_URL,
   assertRuntimeMessageSender,
   assertPublicHttpFetchTarget,
-  fetchPublicHttpResource,
   isTrustedAppPage,
 } from './link-runtime.js'
 import { buildPermissionSnapshot } from './permission-snapshot.js'
@@ -2014,7 +2013,7 @@ async function downloadFile(payload) {
 
   if (!shouldUseBrowserDownloadManager(payload)) {
     try {
-      return await downloadFileInBackground({ url, filename })
+      return await downloadFileInBackground({ url, filename, saveAs: payload.saveAs, conflictAction })
     } catch (error) {
       if (payload.backgroundOnly === true) throw error
       if (isNonDownloadResponseError(error)) throw error
@@ -2034,56 +2033,18 @@ function shouldUseBrowserDownloadManager(payload = {}) {
     && payload.backgroundOnly !== true
 }
 
-async function downloadFileInBackground({ url, filename }) {
-  const fetchUrl = requireUrlForFetch(url)
-  const response = await fetchPublicHttpResource(fetchUrl)
-  if (!response.ok) {
-    throw new Error(`Background download failed (${response.status})`)
-  }
-
-  const mimeType = normalizeDownloadedMimeType(response.headers.get('content-type'), filename)
-  const dispositionFilename = inferFilenameFromContentDisposition(response.headers.get('content-disposition'))
-  const resolvedFilename = sanitizeDownloadFilename(dispositionFilename || filename || inferFilenameFromUrl(url))
-  const extension = detectFileExtension(url, mimeType || resolvedFilename)
-  const contentLength = Number(response.headers.get('content-length') || 0)
-
-  if (!isLikelyBackgroundDownloadFile({ url, filename: resolvedFilename, mimeType, extension, response })) {
-    throw new Error('Background response does not look like a downloadable file')
-  }
-  if (contentLength > MAX_BACKGROUND_DOWNLOAD_BYTES) {
-    throw new Error(`Background download is too large (${contentLength} bytes)`)
-  }
-
-  const blob = await response.blob()
-  if (blob.size > MAX_BACKGROUND_DOWNLOAD_BYTES) {
-    throw new Error(`Background download is too large (${blob.size} bytes)`)
-  }
-  const dataUrl = await blobToDataUrl(blob, mimeType)
-  const savedLocationLabel = `X-Science Link 后台传输 / ${resolvedFilename}`
-  const downloadVerification = verifyBackgroundTransfer({
-    filename: resolvedFilename,
-    url,
-    mimeType,
-    bytesReceived: blob.size,
-    savedLocationLabel,
+async function downloadFileInBackground({ url, filename, saveAs, conflictAction }) {
+  const validatedUrl = requireUrlForFetch(url)
+  const result = await downloadFileWithBrowserDownloadManager({
+    url: validatedUrl,
+    filename,
+    saveAs: saveAs === true,
+    conflictAction,
   })
-
   return {
-    downloadId: null,
+    ...result,
     delivery: 'background_transfer',
-    url,
-    filename: resolvedFilename,
-    mimeType,
-    dataUrl,
-    state: 'complete',
-    bytesReceived: blob.size,
-    totalBytes: contentLength || blob.size,
-    danger: '',
-    exists: true,
-    verified: downloadVerification.ok,
-    savedLocationLabel,
-    userMessage: downloadVerification.userMessage,
-    downloadVerification,
+    url: validatedUrl,
   }
 }
 

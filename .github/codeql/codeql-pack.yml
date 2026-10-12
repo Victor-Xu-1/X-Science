@@ -1,0 +1,6 @@
+name: victor-xu-1/x-science-go-models
+version: 0.0.1
+libraryPathDependencies:
+  - codeql/go-all
+dataExtensions:
+  - x-science-barriers.yml
