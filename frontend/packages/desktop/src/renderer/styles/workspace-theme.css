@@ -20,6 +20,7 @@
   --workspace-success-text: #166534;
   --workspace-danger-text: #2b2a28;
   --workspace-focus: rgb(59 58 55 / 12%);
+  --workspace-focus-ring: #647b99;
   --workspace-shadow-popover: 0 8px 28px rgb(35 33 29 / 10%);
   --workspace-ui-font-size: var(--ui-font-body);
   --workspace-ui-line-height: var(--ui-line-height-body);
@@ -29,7 +30,7 @@
   --composer-border: transparent;
   --composer-border-active: transparent;
   --composer-shadow: 0 8px 28px rgb(23 23 23 / 7%);
-  --composer-shadow-active: 0 0 0 1px rgb(23 23 23 / 6%), 0 12px 34px rgb(23 23 23 / 10%);
+  --composer-shadow-active: var(--composer-shadow);
   --composer-radius: 20px;
   --aou-1: #f2f1ee;
   --aou-2: #f0efec;
@@ -69,10 +70,10 @@
   --message-tips-bg: var(--workspace-sidebar);
   --workspace-btn-bg: var(--workspace-subtle);
   --color-guid-agent-bar: var(--workspace-subtle);
-  --synon-ai-overlay-bg: var(--workspace-canvas);
-  --synon-ai-overlay-text: var(--workspace-text);
-  --synon-ai-overlay-border: var(--workspace-border);
-  --synon-ai-overlay-shadow: var(--workspace-shadow-popover);
+  --x-science-overlay-bg: var(--workspace-canvas);
+  --x-science-overlay-text: var(--workspace-text);
+  --x-science-overlay-border: var(--workspace-border);
+  --x-science-overlay-shadow: var(--workspace-shadow-popover);
 }
 [data-theme='dark'] {
   --workspace-canvas: #1f1e1c;
@@ -90,12 +91,13 @@
   --workspace-success-text: #86efac;
   --workspace-danger-text: #f1efeb;
   --workspace-focus: rgb(241 239 235 / 14%);
+  --workspace-focus-ring: #a2b8d3;
   --workspace-shadow-popover: 0 10px 32px rgb(0 0 0 / 38%);
   --composer-surface: var(--workspace-canvas);
   --composer-border: transparent;
   --composer-border-active: transparent;
   --composer-shadow: 0 10px 30px rgb(0 0 0 / 30%);
-  --composer-shadow-active: 0 0 0 1px rgb(255 255 255 / 10%), 0 14px 38px rgb(0 0 0 / 38%);
+  --composer-shadow-active: var(--composer-shadow);
   --aou-1: #282724;
   --aou-2: #302f2c;
   --aou-3: #393733;
@@ -136,7 +138,7 @@ body,
 html body .layout-sider button[data-testid='sider-new-chat'] > span:first-child {
   border-radius: var(--ui-radius-md) !important;
 }
-html body button.synon-biomed-brand {
+html body button.x-science-brand {
   border-radius: var(--ui-radius-lg) !important;
 }
 .chat-history__item:hover,
@@ -163,11 +165,6 @@ html body button.synon-biomed-brand {
     border-color 120ms ease,
     color 120ms ease,
     opacity 120ms ease;
-}
-.arco-btn:focus-visible {
-  outline: 2px solid var(--workspace-text) !important;
-  outline-offset: 2px !important;
-  box-shadow: none !important;
 }
 .arco-btn:not(.arco-btn-primary, .arco-btn-status-danger, .arco-btn-text) {
   background: var(--workspace-canvas) !important;
@@ -605,7 +602,7 @@ html body [role='dialog']:has([data-testid^='mobile-action-sheet-']) [role='menu
 
 html body [role='dialog']:has([data-testid^='mobile-action-sheet-']) [role='menuitem']:focus-visible,
 html body [role='dialog']:has([data-testid^='mobile-action-sheet-']) [role='menuitemradio']:focus-visible {
-  outline: 2px solid var(--workspace-text) !important;
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring) !important;
   outline-offset: -2px;
 }
 
@@ -772,13 +769,13 @@ html body [role='menu'] :is(button, [role^='menuitem']):focus-visible,
 html body [role='listbox'] [role='option']:focus-visible,
 html body .arco-dropdown-menu-item:focus-visible,
 html body .arco-select-option:focus-visible {
-  outline: 2px solid var(--workspace-text) !important;
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring) !important;
   outline-offset: -1px !important;
 }
 
-/* Session toggles keep keyboard location visible without leaving a blue click ring. */
-html body .app-overlay-menu .session-options-menu__row:focus,
-html body .app-overlay-menu .session-options-menu__row:focus-visible {
+/* Session toggles stay flat after a click; keyboard focus retains the menu's
+ * shared thin indicator, including in system high-contrast mode. */
+html body .app-overlay-menu .session-options-menu__row:focus:not(:focus-visible) {
   outline: none !important;
   box-shadow: none !important;
 }
@@ -803,7 +800,7 @@ html body .arco-modal:not(.arco-modal-simple) {
 }
 
 html body .arco-modal-content,
-html body .synon-ai-modal .arco-modal-content {
+html body .x-science-modal .arco-modal-content {
   min-height: 0;
   overflow-y: auto;
   padding: 18px 20px !important;
@@ -838,26 +835,26 @@ html body .arco-modal-content {
 }
 
 /* Long skill files need a real modal layout: fixed chrome, one bounded scroll region. */
-html body .synon-biomed-skill-detail-modal .arco-modal-header,
-html body .synon-biomed-skill-detail-modal .arco-modal-footer {
+html body .x-science-skill-detail-modal .arco-modal-header,
+html body .x-science-skill-detail-modal .arco-modal-footer {
   flex: 0 0 auto;
 }
 
-html body .synon-biomed-skill-detail-modal {
+html body .x-science-skill-detail-modal {
   display: inline-flex !important;
   flex-direction: column;
   height: auto;
   max-height: min(960px, calc(100dvh - 32px));
 }
 
-html body .synon-biomed-skill-detail-modal > [data-focus-lock-disabled] {
+html body .x-science-skill-detail-modal > [data-focus-lock-disabled] {
   display: flex;
   flex: 1 1 auto;
   min-height: 0;
   flex-direction: column;
 }
 
-html body .synon-biomed-skill-detail-modal .arco-modal-content {
+html body .x-science-skill-detail-modal .arco-modal-content {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
@@ -959,7 +956,7 @@ html body .arco-image-preview-arrow-disabled {
 }
 
 html body .arco-image-preview :is(button, [role='button']):focus-visible {
-  outline: 2px solid var(--workspace-text);
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
   outline-offset: 2px;
 }
 
@@ -998,7 +995,7 @@ html body .arco-drawer {
   box-shadow: var(--workspace-dialog-shadow) !important;
 }
 
-html body .synon-approval-scope-drawer .arco-drawer {
+html body .x-science-approval-scope-drawer .arco-drawer {
   border-top: 1px solid var(--workspace-overlay-border) !important;
   border-left: 0 !important;
   border-radius: 14px 14px 0 0;
@@ -1213,7 +1210,7 @@ html body .message-item.justify-end .whitespace-pre-wrap {
   line-height: 20px !important;
 }
 
-html body .synon-biomed-task-status {
+html body .x-science-task-status {
   box-sizing: border-box;
   min-height: 26px;
   width: fit-content;
@@ -1229,8 +1226,8 @@ html body .synon-biomed-task-status {
   line-height: var(--conversation-meta-line-height) !important;
 }
 
-html body .synon-biomed-task-status[data-state='waiting_input'],
-html body .synon-biomed-task-status[data-state='waiting_confirmation'] {
+html body .x-science-task-status[data-state='waiting_input'],
+html body .x-science-task-status[data-state='waiting_confirmation'] {
   background: var(--conversation-stream-accent-soft) !important;
 }
 
@@ -1280,13 +1277,6 @@ html body .arco-drawer-content {
   font-family: var(--conversation-font-sans) !important;
   font-size: var(--ui-font-subtitle);
   line-height: 22px;
-}
-
-html body [role='dialog'] button:focus-visible,
-html body [role='alertdialog'] button:focus-visible,
-html body [role='menu'] :is(button, [role^='menuitem']):focus-visible,
-html body [role='listbox'] [role='option']:focus-visible {
-  outline-color: color-mix(in srgb, var(--workspace-text) 42%, transparent) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1352,16 +1342,16 @@ html[data-theme][data-color-scheme='default'] body {
   --color-border-2: color-mix(in srgb, var(--workspace-border) 72%, transparent) !important;
   --color-border-3: var(--workspace-border-strong) !important;
   /* First-party surface contract: modules depend on these, not provider names. */
-  --synon-surface-canvas: var(--workspace-canvas) !important;
-  --synon-surface-panel: var(--workspace-sidebar) !important;
-  --synon-surface-card: var(--workspace-overlay-surface) !important;
-  --synon-surface-subtle: var(--workspace-subtle) !important;
-  --synon-surface-hover: var(--workspace-hover) !important;
-  --synon-divider: var(--workspace-border) !important;
-  --synon-divider-strong: var(--workspace-border-strong) !important;
-  --synon-overlay-surface: var(--workspace-overlay-surface) !important;
-  --synon-overlay-muted: var(--workspace-overlay-surface-muted) !important;
-  --synon-shadow-soft: var(--workspace-shadow-popover) !important;
+  --x-science-surface-canvas: var(--workspace-canvas) !important;
+  --x-science-surface-panel: var(--workspace-sidebar) !important;
+  --x-science-surface-card: var(--workspace-overlay-surface) !important;
+  --x-science-surface-subtle: var(--workspace-subtle) !important;
+  --x-science-surface-hover: var(--workspace-hover) !important;
+  --x-science-divider: var(--workspace-border) !important;
+  --x-science-divider-strong: var(--workspace-border-strong) !important;
+  --x-science-overlay-surface: var(--workspace-overlay-surface) !important;
+  --x-science-overlay-muted: var(--workspace-overlay-surface-muted) !important;
+  --x-science-shadow-soft: var(--workspace-shadow-popover) !important;
   --primary: var(--workspace-accent) !important;
   --color-primary: var(--workspace-accent) !important;
   --brand: var(--workspace-accent) !important;
@@ -1371,9 +1361,9 @@ html[data-theme][data-color-scheme='default'] body {
   --message-tips-bg: var(--workspace-sidebar) !important;
   --workspace-btn-bg: var(--workspace-subtle) !important;
   --color-guid-agent-bar: var(--workspace-subtle) !important;
-  --synon-ai-overlay-bg: var(--workspace-overlay-surface) !important;
-  --synon-ai-overlay-text: var(--workspace-text) !important;
-  --synon-ai-overlay-border: var(--workspace-overlay-border) !important;
+  --x-science-overlay-bg: var(--workspace-overlay-surface) !important;
+  --x-science-overlay-text: var(--workspace-text) !important;
+  --x-science-overlay-border: var(--workspace-overlay-border) !important;
   --conversation-user-border: transparent !important;
   --conversation-stream-border: transparent !important;
   --primary-3: var(--theme-primary-3, 225, 223, 218) !important;
@@ -1406,15 +1396,6 @@ html body .message-channel-card__primary-button {
   border-color: transparent !important;
 }
 
-html body .arco-btn:focus-visible,
-html body [role='dialog'] button:focus-visible,
-html body [role='alertdialog'] button:focus-visible,
-html body [role='menu'] :is(button, [role^='menuitem']):focus-visible,
-html body [role='listbox'] [role='option']:focus-visible {
-  outline: 2px solid var(--workspace-text) !important;
-  outline-offset: 2px !important;
-}
-
 html body .arco-radio-mask,
 html body .arco-checkbox-mask {
   border-width: 1px !important;
@@ -1428,17 +1409,17 @@ html body .arco-checkbox-checked .arco-checkbox-mask {
 }
 
 html body .arco-steps-item-icon,
-html body .synon-ai-steps .arco-steps-item-process .arco-steps-item-icon,
-html body .synon-ai-steps .arco-steps-item-finish .arco-steps-item-icon {
+html body .x-science-steps .arco-steps-item-process .arco-steps-item-icon,
+html body .x-science-steps .arco-steps-item-finish .arco-steps-item-icon {
   border-color: transparent !important;
 }
 
-html body .synon-ai-steps .arco-steps-item-finish .arco-steps-item-icon {
+html body .x-science-steps .arco-steps-item-finish .arco-steps-item-icon {
   color: var(--workspace-text-secondary) !important;
   background: var(--workspace-subtle) !important;
 }
 
-html body .synon-ai-steps .arco-steps-item-process .arco-steps-item-icon {
+html body .x-science-steps .arco-steps-item-process .arco-steps-item-icon {
   color: var(--workspace-accent-contrast) !important;
   background: var(--workspace-accent) !important;
 }
@@ -1480,7 +1461,7 @@ html body .chat-layout-right-sider .border-solid.border-b {
   border-bottom: 1px solid var(--workspace-border) !important;
 }
 
-html body .synon-sidebar-project-row {
+html body .x-science-sidebar-project-row {
   border-width: 0 !important;
 }
 
@@ -1542,11 +1523,11 @@ html
   body
   :is(
     .message-item.justify-end .bg-aou-2,
-    .synon-biomed-task-status,
+    .x-science-task-status,
     .runtime-operations-banner,
-    [data-testid='synon-biomed-ask-user-card'],
-    .synon-approval-card,
-    .synon-approval-card__code
+    [data-testid='x-science-ask-user-card'],
+    .x-science-approval-card,
+    .x-science-approval-card__code
   ) {
   border-width: 1px !important;
   border-color: var(--conversation-stream-border) !important;
@@ -1555,10 +1536,10 @@ html
 html
   body
   :is(
-    .synon-biomed-task-status,
+    .x-science-task-status,
     .runtime-operations-banner,
-    [data-testid='synon-biomed-ask-user-card'],
-    .synon-approval-card
+    [data-testid='x-science-ask-user-card'],
+    .x-science-approval-card
   ) {
   border-left-width: 1px !important;
   box-shadow: 0 1px 2px rgb(0 0 0 / 4%) !important;
@@ -1707,10 +1688,10 @@ html
     .permission-rule,
     .artifact-library__card,
     .message-scientific-files__card,
-    .synon-biomed-task-status,
+    .x-science-task-status,
     .runtime-operations-banner,
-    [data-testid='synon-biomed-ask-user-card'],
-    .synon-approval-card
+    [data-testid='x-science-ask-user-card'],
+    .x-science-approval-card
   ) {
   border-radius: var(--ui-radius-xl) !important;
 }
@@ -1791,35 +1772,30 @@ html body .arco-switch-checked .arco-switch-dot {
   left: 20px !important;
 }
 
-html body .arco-switch:focus-visible {
-  outline: 2px solid var(--workspace-text) !important;
-  outline-offset: 2px !important;
-}
-
 html body .message-item.justify-end .bg-aou-2 {
   border-radius: var(--ui-radius-2xl) !important;
 }
 
-html body .synon-ai-markdown :where(img) {
+html body .x-science-markdown :where(img) {
   border-radius: var(--ui-radius-xl) !important;
 }
 
-html body .synon-ai-markdown :where(blockquote) {
+html body .x-science-markdown :where(blockquote) {
   padding: 10px 12px !important;
   background: var(--conversation-stream-surface) !important;
   border-left: 1px solid var(--workspace-border-strong) !important;
   border-radius: var(--ui-radius-lg) !important;
 }
 
-html body .synon-ai-markdown :where(pre),
-html body .synon-ai-markdown [data-streamdown='code-block'] {
+html body .x-science-markdown :where(pre),
+html body .x-science-markdown [data-streamdown='code-block'] {
   overflow: auto;
   background: var(--conversation-code-surface) !important;
   border-color: transparent !important;
   border-radius: var(--ui-radius-lg) !important;
 }
 
-html body .synon-ai-markdown :where(table) {
+html body .x-science-markdown :where(table) {
   overflow: hidden;
   background: var(--conversation-stream-surface) !important;
   border: 1px solid transparent !important;
@@ -1828,16 +1804,16 @@ html body .synon-ai-markdown :where(table) {
   border-radius: var(--ui-radius-lg) !important;
 }
 
-html body .synon-ai-markdown :where(code):not(:where(pre code)) {
+html body .x-science-markdown :where(code):not(:where(pre code)) {
   border-radius: var(--ui-radius-sm) !important;
 }
 
-html body .synon-ai-markdown :where(hr) {
+html body .x-science-markdown :where(hr) {
   border: 0 !important;
   border-top: 1px solid var(--workspace-border) !important;
 }
 
-html body .synon-ai-markdown :is(pre, table, blockquote),
+html body .x-science-markdown :is(pre, table, blockquote),
 html body .arco-table-container {
   border-radius: var(--ui-radius-lg) !important;
 }
@@ -1864,14 +1840,14 @@ html body .artifact-library__card .text-10px {
 }
 
 html body .artifact-library__card .text-11px,
-html body .synon-sidebar-project-meta {
+html body .x-science-sidebar-project-meta {
   font-size: var(--ui-font-meta) !important;
   line-height: 18px !important;
 }
 
-html body .synon-sidebar-section-title-button .sider-section-title,
-html body .synon-sidebar-timeline .text-t-secondary,
-html body .synon-sidebar-project-meta {
+html body .x-science-sidebar-section-title-button .sider-section-title,
+html body .x-science-sidebar-timeline .text-t-secondary,
+html body .x-science-sidebar-project-meta {
   color: var(--workspace-text-secondary) !important;
 }
 
@@ -1887,7 +1863,7 @@ html body .sendbox-panel [contenteditable='true'] {
 }
 
 html body .css-theme-card:focus-visible {
-  outline: 2px solid var(--workspace-text) !important;
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring) !important;
   outline-offset: 2px !important;
 }
 
@@ -1998,11 +1974,8 @@ html body .message-scientific-files__more {
   box-shadow: var(--ui-shadow-sm) !important;
 }
 
-/* Ask User is one calm decision surface. Options and secondary actions stay
- * borderless; only the custom-answer composer receives a soft fill and focus
- * halo, avoiding the previous card + divider + input + button frame stack. */
-/* Pointer focus stays flat. Keyboard focus gets one high-contrast outline;
- * remove Arco shadows so the control does not accumulate competing rings. */
+/* Pointer focus stays flat. Keyboard focus uses the shared thin indicator;
+ * text and brand tokens must never become dark frames around controls. */
 html
   body
   :is(
@@ -2040,14 +2013,17 @@ html
     .arco-tree-select-view
   ):focus-visible:where(
     :not(
+      .guid-input-card-shell textarea,
+      .sendbox-panel textarea,
       .conversation-search-modal__searchbar input,
       .project-command-palette .arco-input-inner-wrapper input,
-      .settings-library-search input
+      .settings-library-search input,
+      .environment-search input,
+      [data-composite-focus-owner] input
     )
   ) {
-  outline: 2px solid var(--workspace-text) !important;
-  outline-width: 2px !important;
-  outline-offset: 2px !important;
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring) !important;
+  outline-offset: var(--ui-focus-offset) !important;
   box-shadow: none !important;
 }
 
@@ -2055,27 +2031,72 @@ html
  * acquire another ring inside the surrounding keyboard indicator. */
 html body .conversation-search-modal__searchbar:has(input:focus-visible),
 html body .project-command-palette .arco-input-inner-wrapper:has(input:focus-visible),
+html body .environment-search:has(input:focus-visible),
+html body [data-composite-focus-owner]:has(input:focus-visible),
 html body :is(.guid-input-card-shell, .sendbox-panel):has(textarea:focus-visible) {
-  outline: 2px solid var(--workspace-text) !important;
-  outline-offset: 2px !important;
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring) !important;
+  outline-offset: var(--ui-focus-offset) !important;
 }
-html body :is(.guid-input-card-shell, .sendbox-panel) textarea:focus-visible {
+
+/* A library search is one input surface; Clear keeps its own button focus. */
+html body .settings-library-search .arco-input-inner-wrapper:has(input:focus-visible) {
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring) !important;
+  outline-offset: var(--ui-focus-offset) !important;
+  box-shadow: none !important;
+}
+/* These descendants are explicitly excluded above: a more specific generic
+ * input selector must not restore a second ring inside its focused owner. */
+html body :is(.guid-input-card-shell, .sendbox-panel) textarea:focus-visible,
+html body .conversation-search-modal__searchbar input:focus-visible,
+html body .project-command-palette .arco-input-inner-wrapper input:focus-visible,
+html body .settings-library-search input:focus-visible,
+html body .environment-search input:focus-visible,
+html body [data-composite-focus-owner] input:focus-visible,
+html body .settings-library-search :is(.arco-input-group-wrapper, .arco-input-group) {
   outline: none !important;
   outline-width: 0 !important;
   box-shadow: none !important;
 }
 
-/* A library search is one input surface; Clear keeps its own button focus. */
-html body .settings-library-search .arco-input-inner-wrapper:has(input:focus-visible) {
-  outline: 2px solid var(--workspace-text) !important;
-  outline-offset: 2px !important;
+/* One authority also covers native and utility-styled actions in portals. */
+html
+  body
+  :is(
+    button,
+    a,
+    summary,
+    [role='button'],
+    [role='switch'],
+    [role='tab'],
+    [role='menuitem'],
+    [role='menuitemradio'],
+    [role='menuitemcheckbox'],
+    [role='option'],
+    [role='checkbox'],
+    [role='radio'],
+    [role='slider'],
+    input[type='checkbox'],
+    input[type='radio'],
+    input[type='range']
+  ):focus-visible {
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring) !important;
+  outline-offset: var(--ui-focus-offset) !important;
   box-shadow: none !important;
 }
-html body .settings-library-search :is(.arco-input-group-wrapper, .arco-input-group),
-html body .settings-library-search input:focus-visible {
+
+/* A dialog's programmatic focus target is not another interactive frame.
+ * Its individual fields and actions retain their keyboard indicators. */
+html body :is([role='dialog'], [role='alertdialog']):focus {
   outline: none !important;
-  outline-width: 0 !important;
-  box-shadow: none !important;
+}
+
+@media (forced-colors: active) {
+  :root,
+  [data-color-scheme='default'],
+  [data-theme='dark'] {
+    --workspace-focus-ring: Highlight;
+    --ui-focus-width: 2px;
+  }
 }
 
 .workbench-modal-close {

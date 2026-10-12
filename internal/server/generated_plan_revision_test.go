@@ -6,13 +6,13 @@ import (
 	"io"
 	"strings"
 	"sync"
-	"synon-go/internal/agentruntime"
-	sessionstore "synon-go/internal/persistence/sessions"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/toolgateway"
 	"testing"
 	"time"
+	"x-science/internal/agentruntime"
+	sessionstore "x-science/internal/persistence/sessions"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/toolgateway"
 )
 
 func revisionPlanInput(steps ...string) map[string]any {
@@ -133,7 +133,7 @@ func TestGeneratedPlanControlStateIsDataNotACompletionScore(t *testing.T) {
 		t.Fatalf("legacy update receipt changed: %#v", receipt)
 	}
 	state := mapValue(receipt["research_transition"])
-	if state["schema"] != "synon.research_transition.v1" || state["completion_score"] != nil || state["success"] != nil {
+	if state["schema"] != "x-science.research_transition.v1" || state["completion_score"] != nil || state["success"] != nil {
 		t.Fatalf("research transition became a synthetic quality score: %#v", state)
 	}
 	next := anySliceValue(state["next_investigations"])
@@ -145,7 +145,7 @@ func TestGeneratedPlanControlStateIsDataNotACompletionScore(t *testing.T) {
 		t.Fatalf("discovery did not reach follow-up navigation: %#v", state)
 	}
 	context := f.server.generatedPlanDesiredOutputsContext(f.stream.SessionID)
-	for _, expected := range []string{"synon.research_navigation.v1", "subgroup difference", "another study", "Investigate resulting lead"} {
+	for _, expected := range []string{"x-science.research_navigation.v1", "subgroup difference", "another study", "Investigate resulting lead"} {
 		if !strings.Contains(context, expected) {
 			t.Fatalf("resume state omitted %q: %s", expected, context)
 		}
@@ -165,7 +165,7 @@ func TestGeneratedPlanControlStateIsDataNotACompletionScore(t *testing.T) {
 		t.Fatalf("research state was not attached to the existing tool result: %#v", messages)
 	}
 	handoff := f.server.generatedPlanResearchHandoffContext(f.stream.SessionID, agentruntime.ToolCall{ID: "source-call-22", Name: "web_fetch"}, nil)
-	for _, expected := range []string{"synon.research_handoff.v1", "source-call-22", "web_fetch", "another study"} {
+	for _, expected := range []string{"x-science.research_handoff.v1", "source-call-22", "web_fetch", "another study"} {
 		if !strings.Contains(handoff, expected) {
 			t.Fatalf("source-to-investigation handoff omitted %q: %s", expected, handoff)
 		}
@@ -173,9 +173,9 @@ func TestGeneratedPlanControlStateIsDataNotACompletionScore(t *testing.T) {
 }
 
 func TestResearchNavigationSurvivesCompactBoundaryWithoutToolMessage(t *testing.T) {
-	state := `{"schema":"synon.research_navigation.v1","navigation_state_only":true,"current_investigations":[{"id":"module-2","status":"in_progress"}]}`
+	state := `{"schema":"x-science.research_navigation.v1","navigation_state_only":true,"current_investigations":[{"id":"module-2","status":"in_progress"}]}`
 	messages := []chatCompletionMessage{
-		{Role: "system", Content: "Synon compact handoff context"},
+		{Role: "system", Content: "XScience compact handoff context"},
 		{Role: "user", Content: "continue"},
 	}
 	attached := attachRuntimeResearchNavigationState(messages, state)
@@ -193,8 +193,8 @@ func TestResearchNavigationSurvivesCompactBoundaryWithoutToolMessage(t *testing.
 }
 
 func TestResearchNavigationReinjectsLatestStateAfterStaleCompactSummary(t *testing.T) {
-	stale := `{"schema":"synon.research_navigation.v1","navigation_state_only":true,"current_investigations":[{"id":"module-old","status":"in_progress"}]}`
-	latest := `{"schema":"synon.research_navigation.v1","navigation_state_only":true,"current_investigations":[{"id":"module-latest","status":"in_progress"}]}`
+	stale := `{"schema":"x-science.research_navigation.v1","navigation_state_only":true,"current_investigations":[{"id":"module-old","status":"in_progress"}]}`
+	latest := `{"schema":"x-science.research_navigation.v1","navigation_state_only":true,"current_investigations":[{"id":"module-latest","status":"in_progress"}]}`
 	messages := []chatCompletionMessage{
 		{Role: "system", Content: "runtime contract"},
 		{Role: "system", Content: "Compact handoff\nDurable plan navigation state:\n" + stale},
@@ -241,7 +241,7 @@ func TestSourceResultCarriesSeparateResearchNavigationContinuation(t *testing.T)
 		t.Fatalf("research navigation contaminated evidence bytes: %s", encoded)
 	}
 	modelContext := string(mustJSON(t, execution.result.ModelContext))
-	if !strings.Contains(modelContext, "synon.research_handoff.v1") || !strings.Contains(modelContext, "Inspect source") ||
+	if !strings.Contains(modelContext, "x-science.research_handoff.v1") || !strings.Contains(modelContext, "Inspect source") ||
 		strings.Contains(modelContext, "Follow evidence") {
 		t.Fatalf("source handoff did not carry the current investigation: %s", modelContext)
 	}

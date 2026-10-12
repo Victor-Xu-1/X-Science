@@ -7,7 +7,7 @@
 import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import ContextUsagePanel from '@/renderer/components/synonBiomed/runtime/ContextUsagePanel';
+import ContextUsagePanel from '@/renderer/components/xScience/runtime/ContextUsagePanel';
 import { renderWithI18n } from '../i18nTestUtils';
 
 const record = {

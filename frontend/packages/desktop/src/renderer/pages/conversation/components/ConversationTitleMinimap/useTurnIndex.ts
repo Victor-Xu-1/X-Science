@@ -2,9 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { TMessage } from '@/common/chat/chatLib';
 import * as ipcBridge from '@/common/adapter/ipcBridge';
 import {
-  SYNON_BIOMED_BRANCH_SELECTION_EVENT,
-  type SynonBiomedBranchSelectionEventDetail,
-} from '@/renderer/services/synonBiomedConversationBranches';
+  X_SCIENCE_BRANCH_SELECTION_EVENT,
+  type XScienceBranchSelectionEventDetail,
+} from '@/renderer/services/xScienceConversationBranches';
 import { loadConversationTurnIndex, mergeLiveTurnPreviews, type ConversationTurnIndex } from './turnIndex';
 
 export function useTurnIndex(conversationId: string | undefined, messages: TMessage[], windowBranchId?: string) {
@@ -14,15 +14,14 @@ export function useTurnIndex(conversationId: string | undefined, messages: TMess
   const retry = useCallback(() => setRevision((value) => value + 1), []);
   useEffect(() => {
     const selection = (event: Event) => {
-      if ((event as CustomEvent<SynonBiomedBranchSelectionEventDetail>).detail?.conversationId === conversationId)
-        retry();
+      if ((event as CustomEvent<XScienceBranchSelectionEventDetail>).detail?.conversationId === conversationId) retry();
     };
-    window.addEventListener(SYNON_BIOMED_BRANCH_SELECTION_EVENT, selection);
+    window.addEventListener(X_SCIENCE_BRANCH_SELECTION_EVENT, selection);
     const unsubscribe = ipcBridge.conversation.historyRebased.on((payload) => {
       if (payload.conversation_id === conversationId) retry();
     });
     return () => {
-      window.removeEventListener(SYNON_BIOMED_BRANCH_SELECTION_EVENT, selection);
+      window.removeEventListener(X_SCIENCE_BRANCH_SELECTION_EVENT, selection);
       unsubscribe();
     };
   }, [conversationId, retry]);

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	agentruntime "synon-go/internal/agentruntime"
-	"synon-go/internal/providers"
+	agentruntime "x-science/internal/agentruntime"
+	"x-science/internal/providers"
 )
 
 // promptOptimizeMaxChars bounds the draft handed to the optimizer so a single

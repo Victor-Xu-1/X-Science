@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 const (
@@ -62,7 +62,7 @@ func (s *Server) agentSavedArtifactBatchQualityAdvisory(ctx context.Context, pro
 			break
 		}
 	}
-	digest := sha256.Sum256([]byte("synon.artifact-consistency-advisory.v1\n" + strings.Join(failures, "\n")))
+	digest := sha256.Sum256([]byte("x-science.artifact-consistency-advisory.v1\n" + strings.Join(failures, "\n")))
 	visible := failures
 	if len(visible) > 32 {
 		visible = append([]string(nil), visible[:32]...)

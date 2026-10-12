@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	compute "synon-go/internal/compute"
+	compute "x-science/internal/compute"
 )
 
 func TestTerminalComputeTransitionPublishesNotificationAtomically(t *testing.T) {
@@ -307,12 +307,12 @@ func TestModalComputeIdentityTagsAreVersionedAndComplete(t *testing.T) {
 		t.Fatal(err)
 	}
 	for key, expected := range map[string]string{
-		"synonbiomed-org":              "install-a",
-		"synonbiomed-session":          "root-a",
-		"synonbiomed-frame":            "frame-a",
-		"synonbiomed-job":              "job-a",
-		"synonbiomed-project":          "project-a",
-		"synonbiomed-identity-version": "1",
+		"xscience-org":              "install-a",
+		"xscience-session":          "root-a",
+		"xscience-frame":            "frame-a",
+		"xscience-job":              "job-a",
+		"xscience-project":          "project-a",
+		"xscience-identity-version": "1",
 	} {
 		if tags[key] != expected {
 			t.Fatalf("tag %s=%q expected=%q tags=%#v", key, tags[key], expected, tags)

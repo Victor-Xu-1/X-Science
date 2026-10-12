@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 // A rejected native edit proves that choosing the editor alone cannot advance

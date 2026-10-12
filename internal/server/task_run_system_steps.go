@@ -9,10 +9,10 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"synon-go/internal/agentruntime"
-	taskruns "synon-go/internal/persistence/taskruns"
-	"synon-go/internal/tools/shellops"
 	"time"
+	"x-science/internal/agentruntime"
+	taskruns "x-science/internal/persistence/taskruns"
+	"x-science/internal/tools/shellops"
 )
 
 func (s *Server) executeTaskRunSystemSteps(run taskruns.Record) (bool, taskruns.Record, error) {

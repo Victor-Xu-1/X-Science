@@ -2,8 +2,8 @@
 // renders, without relaxing the page CSP.
 (function () {
   try {
-    var theme = localStorage.getItem('__synon-ai_theme');
-    var family = localStorage.getItem('__synon-ai_theme_family');
+    var theme = localStorage.getItem('__x-science_theme');
+    var family = localStorage.getItem('__x-science_theme_family');
     var hasTheme = theme === 'light' || theme === 'dark';
     var normalizedFamily = family === 'claude' ? 'warm' : family === 'codex' ? 'cool' : family;
     var hasFamily =

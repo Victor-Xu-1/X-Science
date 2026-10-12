@@ -128,7 +128,7 @@ func TestManagedPythonCorruptGenerationIsReinstalledAndHealthyGenerationIsReused
 }
 
 func TestManagedRCorruptGenerationIsReinstalledAndHealthyGenerationIsReused(t *testing.T) {
-	installer, countPath := writeCoreRuntimeInstallerFixture(t, "Rscript", `printf '%s\n' 'warning from R' 'SYNON_R_VERSION=4.5.3'`)
+	installer, countPath := writeCoreRuntimeInstallerFixture(t, "Rscript", `printf '%s\n' 'warning from R' 'X_SCIENCE_R_VERSION=4.5.3'`)
 	config := coreRuntimeFixtureConfig(t, installer)
 	config.DefaultREnv = "r"
 	manager := NewManager(config)

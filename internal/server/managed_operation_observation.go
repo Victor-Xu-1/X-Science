@@ -5,8 +5,8 @@ import (
 	"log"
 	"time"
 
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/toolprogress"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/toolprogress"
 )
 
 // Reuse the public progress stream, but let the durable outbox claim own writes.

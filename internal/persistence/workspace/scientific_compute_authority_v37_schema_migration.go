@@ -8,7 +8,7 @@ import (
 const (
 	scientificComputeAuthorityV37CallbackID        = "scientific-compute-authority-v37-noop"
 	scientificComputeAuthorityV37PreflightIdentity = "compute-workbench-jobs-v1"
-	scientificComputeAuthorityV37RuleSpec          = "synon.workspace.scientific-compute-authority.v37"
+	scientificComputeAuthorityV37RuleSpec          = "x-science.workspace.scientific-compute-authority.v37"
 	scientificComputeAdmissionsDDL                 = `CREATE TABLE scientific_compute_admissions (
 		job_id TEXT PRIMARY KEY REFERENCES compute_workbench_jobs(job_id) ON DELETE RESTRICT,
 		owner_user_id TEXT NOT NULL,

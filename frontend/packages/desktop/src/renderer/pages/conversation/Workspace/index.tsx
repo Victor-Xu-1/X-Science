@@ -21,9 +21,9 @@ import WorkspaceContextMenu from './components/WorkspaceContextMenu';
 import WorkspaceDialogs from './components/WorkspaceDialogs';
 import WorkspaceTabBar from './components/WorkspaceTabBar';
 import WorkspaceToolbar from './components/WorkspaceToolbar';
-import SynonBiomedArtifactLibrary from './components/SynonBiomedArtifactLibrary';
+import XScienceArtifactLibrary from './components/XScienceArtifactLibrary';
 import FileTypeIcon from './components/FileTypeIcon';
-import SynonBiomedComputeRuntimePanel from '@/renderer/components/synonBiomed/runtime/SynonBiomedComputeRuntimePanel';
+import XScienceComputeRuntimePanel from '@/renderer/components/xScience/runtime/XScienceComputeRuntimePanel';
 import { useFileChanges } from './hooks/useFileChanges';
 import { useWorkspaceCollapse } from './hooks/useWorkspaceCollapse';
 import { useWorkspaceDragImport } from './hooks/useWorkspaceDragImport';
@@ -54,9 +54,9 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const { openPreview } = usePreviewContext();
-  const isSynonBiomedWorkspace = workspace.startsWith('synonbiomed://');
-  const showComputeTab = isSynonBiomedWorkspace && Boolean(rootFrameId);
-  const isReadOnlyWorkspace = isSynonBiomedWorkspace;
+  const isXScienceWorkspace = workspace.startsWith('x-science://');
+  const showComputeTab = isXScienceWorkspace && Boolean(rootFrameId);
+  const isReadOnlyWorkspace = isXScienceWorkspace;
 
   // Message API setup
   const [internalMessageApi, messageContext] = Message.useMessage();
@@ -153,7 +153,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
 
   // Authoritative source: `conversation.extra.is_temporary_workspace` is
   // derived by the backend on every response (see
-  // synon-ai-conversation::convert::row_to_response). We never inspect the
+  // x-science-conversation::convert::row_to_response). We never inspect the
   // directory path shape — the backend's temp-workspace layout is not a
   // public contract. Default to false when the prop is unavailable (e.g.
   // tests that render the panel outside a conversation).
@@ -295,14 +295,14 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
         />
 
         {/* Toolbar: search input + directory name + action buttons */}
-        {activeTab === 'files' && !isSynonBiomedWorkspace && (
+        {activeTab === 'files' && !isXScienceWorkspace && (
           <WorkspaceToolbar
             t={t}
             isWorkspaceCollapsed={isWorkspaceCollapsed}
             setIsWorkspaceCollapsed={setIsWorkspaceCollapsed}
             workspaceDisplayName={workspaceDisplayName}
             readOnly={isReadOnlyWorkspace}
-            allowUpload={isSynonBiomedWorkspace || !isReadOnlyWorkspace}
+            allowUpload={isXScienceWorkspace || !isReadOnlyWorkspace}
             showSearch={searchHook.showSearch}
             searchText={searchHook.searchText}
             setSearchText={searchHook.setSearchText}
@@ -336,8 +336,8 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
               closeContextMenu={modalsHook.closeContextMenu}
             />
 
-            {isSynonBiomedWorkspace ? (
-              <SynonBiomedArtifactLibrary
+            {isXScienceWorkspace ? (
+              <XScienceArtifactLibrary
                 nodes={treeHook.files}
                 loading={treeHook.loading}
                 total={treeHook.projectArtifactPage.total}
@@ -534,7 +534,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
           </FlexFullContainer>
         )}
         {activeTab === 'compute' && showComputeTab && rootFrameId && (
-          <SynonBiomedComputeRuntimePanel
+          <XScienceComputeRuntimePanel
             rootFrameId={rootFrameId}
             projectId={projectId ?? null}
             projectName={projectName}

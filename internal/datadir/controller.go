@@ -1,6 +1,7 @@
 package datadir
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,13 +16,13 @@ import (
 
 	"github.com/google/uuid"
 
-	runtimecontrol "synon-go/internal/runtimecontrol"
+	runtimecontrol "x-science/internal/runtimecontrol"
 )
 
 const (
 	stateSchemaVersion             = 1
-	sourceMarkerPrefix             = ".synon-data-move-source-"
-	completionMarker               = ".synon-data-move-complete"
+	sourceMarkerPrefix             = ".x-science-data-move-source-"
+	completionMarker               = ".x-science-data-move-complete"
 	migrationFreeSpaceReserveBytes = uint64(512 * 1024 * 1024)
 )
 
@@ -187,9 +188,15 @@ func (c *Controller) StageWithPolicy(source, target string, migrate bool, policy
 	if err != nil {
 		return Move{}, fmt.Errorf("target data directory: %w", err)
 	}
+	// target is a canonical absolute directory from prepareTargetDirectory.
+	targetRoot, err := openCanonicalDirectory(target)
+	if err != nil {
+		return Move{}, fmt.Errorf("open target data directory: %w", err)
+	}
+	defer targetRoot.Close()
 	cleanupTarget := func() {
 		if targetCreated {
-			_ = os.Remove(target)
+			_ = removeCreatedEmptyDirectory(target, targetRoot)
 		}
 	}
 	if pathsOverlap(source, target) {
@@ -203,12 +210,13 @@ func (c *Controller) StageWithPolicy(source, target string, migrate bool, policy
 			cleanupTarget()
 			return Move{}, fmt.Errorf("protected directory: %w", err)
 		}
+		// target and protected are canonical absolute directories without symlinks.
 		if pathsOverlap(target, protected) {
 			cleanupTarget()
 			return Move{}, fmt.Errorf("new location must not overlap protected directory %s", protected)
 		}
 	}
-	entries, err := os.ReadDir(target)
+	entries, err := fs.ReadDir(targetRoot.FS(), ".")
 	if err != nil {
 		cleanupTarget()
 		return Move{}, err
@@ -424,9 +432,12 @@ func (c *Controller) applyPendingLocked(state *State) error {
 	if err != nil {
 		return err
 	}
-	staging := move.Target + ".synon-migrate-" + move.ID
+	staging := move.Target + ".x-science-migrate-" + move.ID
 	if _, err := os.Lstat(staging); err == nil {
-		return errors.New("migration staging directory already exists; manual inspection is required")
+		if err := commitRecoveredNamespaceStaging(staging, move.Target, move.ID, targetExists); err != nil {
+			return err
+		}
+		return c.finalizeMoveLocked(state, move)
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
@@ -495,6 +506,25 @@ func (c *Controller) loadLocked() (State, error) {
 	if state.SchemaVersion != stateSchemaVersion {
 		return State{}, fmt.Errorf("unsupported data directory state schema %d", state.SchemaVersion)
 	}
+	plan, err := planMoveNamespace(state)
+	if err != nil {
+		return State{}, err
+	}
+	if len(plan) != 0 {
+		// The persisted pointer and source receipt own this migration. Verify the
+		// pointer itself before any product marker is renamed, including when an
+		// operator explicitly configured a custom control-file path.
+		verified, err := namespaceFile(c.path)
+		if err != nil {
+			return State{}, err
+		}
+		if !bytes.Equal(verified.raw, raw) {
+			return State{}, errors.New("data pointer changed before marker namespace upgrade")
+		}
+		if err := applyMoveNamespace(plan); err != nil {
+			return State{}, err
+		}
+	}
 	return state, nil
 }
 
@@ -525,6 +555,7 @@ func canonicalExistingDirectory(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	// cleanAbsolutePath rejects relative paths and control characters.
 	info, err := os.Lstat(absolute)
 	if err != nil {
 		return "", err
@@ -547,7 +578,7 @@ func canonicalOrCreateDirectory(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if err := os.MkdirAll(absolute, 0o700); err != nil {
+	if err := createCanonicalDirectory(absolute); err != nil {
 		return "", err
 	}
 	return canonicalExistingDirectory(absolute)
@@ -577,7 +608,15 @@ func prepareTargetDirectory(path string) (string, bool, error) {
 	if parent != filepath.Dir(absolute) {
 		return "", false, errors.New("target parent changed during validation")
 	}
-	if err := os.Mkdir(absolute, 0o700); err != nil {
+	directory, err := openCanonicalDirectory(parent)
+	if err != nil {
+		return "", false, err
+	}
+	defer directory.Close()
+	if err := directory.Mkdir(filepath.Base(absolute), 0o700); err != nil {
+		return "", false, err
+	}
+	if _, err := canonicalExistingDirectory(absolute); err != nil {
 		return "", false, err
 	}
 	return absolute, true, nil
@@ -609,21 +648,26 @@ func pathContains(parent, child string) bool {
 }
 
 func writableProbe(directory string) error {
-	file, err := os.CreateTemp(directory, ".synon-write-probe-")
+	root, err := openCanonicalDirectory(directory)
 	if err != nil {
 		return err
 	}
-	name := file.Name()
+	defer root.Close()
+	name := ".x-science-write-probe-" + uuid.NewString()
+	file, err := root.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		return err
+	}
 	if err := file.Sync(); err != nil {
 		_ = file.Close()
-		_ = os.Remove(name)
+		_ = root.Remove(name)
 		return err
 	}
 	if err := file.Close(); err != nil {
-		_ = os.Remove(name)
+		_ = root.Remove(name)
 		return err
 	}
-	return os.Remove(name)
+	return root.Remove(name)
 }
 
 func emptyDirectoryOrMissing(path string) (bool, error) {
@@ -790,7 +834,7 @@ func migrationSourceEntries(source string) ([]string, error) {
 	}
 	names := make([]string, 0, len(entries))
 	for _, entry := range entries {
-		if strings.HasPrefix(entry.Name(), sourceMarkerPrefix) {
+		if strings.HasPrefix(entry.Name(), sourceMarkerPrefix) || strings.HasPrefix(entry.Name(), previousSourceMarkerPrefix) {
 			return nil, fmt.Errorf("stale migration marker %s requires manual review", entry.Name())
 		}
 		names = append(names, entry.Name())

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"synon-go/internal/memorypolicy"
+	"x-science/internal/memorypolicy"
 
 	"github.com/google/uuid"
 )

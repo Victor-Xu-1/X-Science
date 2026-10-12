@@ -8,7 +8,7 @@ import (
 const (
 	runnerLargeToolResultV52CallbackID        = "runner-large-tool-result-v52-authorized-delete"
 	runnerLargeToolResultV52PreflightIdentity = "runner-large-tool-result-v50-delete-trigger-v1"
-	runnerLargeToolResultV52RuleSpec          = "synon.workspace.runner-large-tool-result.v52"
+	runnerLargeToolResultV52RuleSpec          = "x-science.workspace.runner-large-tool-result.v52"
 )
 
 // Runner-large tool results are immutable runtime evidence during normal

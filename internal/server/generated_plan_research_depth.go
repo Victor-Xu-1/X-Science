@@ -29,7 +29,7 @@ func generatedPlanRequiredSourceReadContinuation(
 	if continuation == nil {
 		continuation = map[string]any{}
 	}
-	continuation["schema"] = "synon.research-source-read.v1"
+	continuation["schema"] = "x-science.research-source-read.v1"
 	continuation["reason"] = "research_source_read_required"
 	continuation["detail"] = "deep or systematic research requires a qualified source-read receipt; search-returned titles, snippets, and abstract records remain discovery until a source reader is executed"
 	continuation["required"] = true

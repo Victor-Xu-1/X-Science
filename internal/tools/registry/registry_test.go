@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/toolcontract"
-	"synon-go/internal/tools/webfetch"
-	"synon-go/internal/tools/websearch"
+	"x-science/internal/agentruntime"
+	"x-science/internal/toolcontract"
+	"x-science/internal/tools/webfetch"
+	"x-science/internal/tools/websearch"
 )
 
 func TestRegistryRejectsCompetingToolRegistrations(t *testing.T) {
@@ -63,7 +63,7 @@ func testWebFetchOptions() webfetch.Options {
 func TestDefaultRegistrySeparatesModelToolsFromServiceOperations(t *testing.T) {
 	reg := Default()
 	operations := DefaultOperations()
-	for _, name := range []string{"web_fetch", "WebFetch", "WebSearch", "binding_mode_analysis", "LSP", "synon_link", "SynonLink", "ToolSearch", "SkillSearch", "Skill", "AgentRuntimeDoctor", "approval_remembered_list", "approval_remembered_revoke", "SendMessage", "SendUserMessage", "Brief", "ToolDoctor", "ListMcpTools", "ListMcpResourcesTool", "ReadMcpResourceTool", "MCPTool", "mcp", "file_list", "file_info", "file_read", "Read", "file_read_batch", "ReadBatch", "file_write", "Write", "NotebookEdit", "file_mkdir", "file_copy", "file_move", "file_delete", "file_search", "Glob", "glob", "Grep", "grep", "file_replace", "Edit", "file_patch", "Patch", "json_patch", "code_index", "code_references", "shell_exec", "Bash", "Shell", "powershell", "PowerShell", "Sleep", "sleep", "ask_user", "Agent", "Task", "generate_plan", "update_step_status", "CronCreate", "CronUpdate", "CronList", "CronDelete", "cron_tick", "TeamCreate", "TeamDelete", "TaskRun", "task_create", "TaskCreate", "TaskGet", "task_update", "TaskUpdate", "task_list", "TaskList", "TaskOutput", "AgentOutputTool", "BashOutputTool", "TaskStop", "KillShell", "TodoWrite", "todo_write", "settings_set", "settings_get", "settings_list", "Config", "Compact", "session_compact", "pairing_list", "pairing_allow", "pairing_revoke", "runtime_set", "runtime_get", "runtime_list", "runtime_delete", "session_store", "session_list", "session_get", "session_replay", "session_append", "session_claim", "session_heartbeat", "session_release", "session_runner_checkpoint", "session_runner_next", "session_runner_finish", "session_runner_pick", "session_runner_queue", "session_runner_backlog", "session_bind_project", "session_fork", "session_rewind", "session_export", "session_event_journal", "artifact_register", "artifact_list", "artifact_get", "StructuredOutput", "EnterWorktree", "ExitWorktree", "im_message", "im_config"} {
+	for _, name := range []string{"web_fetch", "WebFetch", "WebSearch", "binding_mode_analysis", "LSP", "x_science_link", "SynonLink", "ToolSearch", "SkillSearch", "Skill", "AgentRuntimeDoctor", "approval_remembered_list", "approval_remembered_revoke", "SendMessage", "SendUserMessage", "Brief", "ToolDoctor", "ListMcpTools", "ListMcpResourcesTool", "ReadMcpResourceTool", "MCPTool", "mcp", "file_list", "file_info", "file_read", "Read", "file_read_batch", "ReadBatch", "file_write", "Write", "NotebookEdit", "file_mkdir", "file_copy", "file_move", "file_delete", "file_search", "Glob", "glob", "Grep", "grep", "file_replace", "Edit", "file_patch", "Patch", "json_patch", "code_index", "code_references", "shell_exec", "Bash", "Shell", "powershell", "PowerShell", "Sleep", "sleep", "ask_user", "Agent", "Task", "generate_plan", "update_step_status", "CronCreate", "CronUpdate", "CronList", "CronDelete", "cron_tick", "TeamCreate", "TeamDelete", "TaskRun", "task_create", "TaskCreate", "TaskGet", "task_update", "TaskUpdate", "task_list", "TaskList", "TaskOutput", "AgentOutputTool", "BashOutputTool", "TaskStop", "KillShell", "TodoWrite", "todo_write", "settings_set", "settings_get", "settings_list", "Config", "Compact", "session_compact", "pairing_list", "pairing_allow", "pairing_revoke", "runtime_set", "runtime_get", "runtime_list", "runtime_delete", "session_store", "session_list", "session_get", "session_replay", "session_append", "session_claim", "session_heartbeat", "session_release", "session_runner_checkpoint", "session_runner_next", "session_runner_finish", "session_runner_pick", "session_runner_queue", "session_runner_backlog", "session_bind_project", "session_fork", "session_rewind", "session_export", "session_event_journal", "artifact_register", "artifact_list", "artifact_get", "StructuredOutput", "EnterWorktree", "ExitWorktree", "im_message", "im_config"} {
 		if _, ok := reg.Get(name); !ok {
 			if name == "ToolSearch" {
 				continue
@@ -103,7 +103,7 @@ func TestDefaultRegistrySeparatesModelToolsFromServiceOperations(t *testing.T) {
 			t.Fatalf("legacy AskUser alias %q was advertised", name)
 		}
 	}
-	for _, removed := range []string{"admet", "pcc_selector", "markush", "molecular_modeling", "synon_knowledge", "daily_briefing"} {
+	for _, removed := range []string{"admet", "pcc_selector", "markush", "molecular_modeling", "x_science_knowledge", "daily_briefing"} {
 		if _, ok := reg.Get(removed); ok {
 			t.Fatalf("removed tool %q is still registered", removed)
 		}
@@ -237,7 +237,7 @@ func TestRegistryValidatesRequiredInputs(t *testing.T) {
 		t.Fatal("NotebookEdit without new_source should fail")
 	}
 	for _, name := range []string{"web_search"} {
-		if err := reg.Validate(name, map[string]any{"query": "Synon agent", "allowed_domains": []any{"example.com"}, "max_results": float64(3)}); err != nil {
+		if err := reg.Validate(name, map[string]any{"query": "XScience agent", "allowed_domains": []any{"example.com"}, "max_results": float64(3)}); err != nil {
 			t.Fatalf("%s valid input error = %v", name, err)
 		}
 		if err := reg.Validate(name, map[string]any{}); err == nil {
@@ -273,10 +273,10 @@ func TestRegistryValidatesRequiredInputs(t *testing.T) {
 		!strings.Contains(visualReview.Description, "host.view_image") {
 		t.Fatalf("VisualReview description does not declare its canonical boundary: %#v", visualReview)
 	}
-	if err := reg.Validate("synon_link", map[string]any{"clientId": "sl_1"}); err == nil {
-		t.Fatal("synon_link without action should fail")
+	if err := reg.Validate("x_science_link", map[string]any{"clientId": "sl_1"}); err == nil {
+		t.Fatal("x_science_link without action should fail")
 	}
-	for _, name := range []string{"synon_link"} {
+	for _, name := range []string{"x_science_link"} {
 		if err := reg.Validate(name, map[string]any{"userId": "user-1", "clientId": "sl_1", "action": "desktop_status"}); err == nil {
 			t.Fatalf("%s accepted removed desktop action", name)
 		}
@@ -525,7 +525,7 @@ func TestRegistryValidatesRequiredInputs(t *testing.T) {
 	if err := reg.Validate("Compact", map[string]any{"instructions": "missing session"}); err == nil {
 		t.Fatal("Compact without sessionId should fail")
 	}
-	if err := reg.Validate("skill", map[string]any{"skill": "synon-runtime", "args": "load runtime instructions"}); err != nil {
+	if err := reg.Validate("skill", map[string]any{"skill": "x-science-runtime", "args": "load runtime instructions"}); err != nil {
 		t.Fatalf("skill valid input error = %v", err)
 	}
 	if err := reg.Validate("skill", map[string]any{"args": "missing skill"}); err == nil {
@@ -829,8 +829,8 @@ func TestRegistryExecutesCanonicalMultiVariantWebSearch(t *testing.T) {
 			`<a class="result__snippet">Primary source for ` + query + `.</a>`))
 	}))
 	defer server.Close()
-	t.Setenv("SYNON_WEBSEARCH_SCRIPT", "/missing/websearch.py")
-	t.Setenv("SYNON_WEBSEARCH_ENDPOINT", server.URL+"/search?q={query}")
+	t.Setenv("X_SCIENCE_WEBSEARCH_SCRIPT", "/missing/websearch.py")
+	t.Setenv("X_SCIENCE_WEBSEARCH_ENDPOINT", server.URL+"/search?q={query}")
 
 	reg := DefaultWithWebOptions(testWebFetchOptions(), websearch.Options{
 		ClientForURL: func(context.Context, string) (*http.Client, error) {
@@ -905,8 +905,8 @@ func TestRegistryRejectsUnknownExecution(t *testing.T) {
 		t.Fatal("unknown tool should fail")
 	}
 	forbiddenLegacyText := "not " + "implemented"
-	if _, err := reg.Execute(context.Background(), "synon_link", map[string]any{"userId": "u", "clientId": "sl_1", "action": "search_web"}); err == nil || strings.Contains(err.Error(), forbiddenLegacyText) || !strings.Contains(err.Error(), "server dispatcher") {
-		t.Fatalf("synon_link execution should require the server dispatcher path, got err=%v", err)
+	if _, err := reg.Execute(context.Background(), "x_science_link", map[string]any{"userId": "u", "clientId": "sl_1", "action": "search_web"}); err == nil || strings.Contains(err.Error(), forbiddenLegacyText) || !strings.Contains(err.Error(), "server dispatcher") {
+		t.Fatalf("x_science_link execution should require the server dispatcher path, got err=%v", err)
 	}
 }
 

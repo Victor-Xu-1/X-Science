@@ -19,7 +19,7 @@ domain mutation and `EnqueueOutboxTx` can use the same `*sql.Tx`.
   A later event in one partition is not claimable while an earlier event is
   pending or inflight.
 - Delivery is at least once. HTTP receivers must atomically deduplicate their
-  side effect by `X-Synon-Event-ID` (also sent as `Idempotency-Key`). A successful
+  side effect by `X-Science-Event-ID` (also sent as `Idempotency-Key`). A successful
   downstream side effect followed by a lost response or process crash is sent
   again with the same event ID.
 - HTTP redirects are not followed. Non-loopback plaintext HTTP and endpoint URL

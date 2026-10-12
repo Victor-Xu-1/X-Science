@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/compute/checkpoint"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/compute/checkpoint"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestComputeNativeCheckpointSelectionResumeAndLogicalBudget(t *testing.T) {

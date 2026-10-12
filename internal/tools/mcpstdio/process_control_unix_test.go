@@ -18,7 +18,7 @@ import (
 const (
 	processTreeParentFixture = "GO_WANT_MCP_PROCESS_TREE_PARENT"
 	processTreeChildFixture  = "GO_WANT_MCP_PROCESS_TREE_CHILD"
-	processTreePIDFile       = "SYNON_MCP_PROCESS_TREE_PID_FILE"
+	processTreePIDFile       = "X_SCIENCE_MCP_PROCESS_TREE_PID_FILE"
 )
 
 func TestMCPContextCancellationKillsProcessTree(t *testing.T) {

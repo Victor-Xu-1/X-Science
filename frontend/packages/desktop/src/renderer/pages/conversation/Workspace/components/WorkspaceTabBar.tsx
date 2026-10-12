@@ -81,15 +81,15 @@ const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({
       },
       {
         key: 'compute',
-        label: t('conversation.synonRuntime.sessionOptions.compute'),
+        label: t('conversation.xscienceRuntime.sessionOptions.compute'),
         icon: <ChartHistogram theme='outline' size={13} />,
       },
     ];
     return (
       <div
-        className='synon-workspace-tablist flex h-44px shrink-0 items-center border-b border-solid border-[var(--color-border-2)] px-8px'
+        className='x-science-workspace-tablist flex h-44px shrink-0 items-center border-b border-solid border-[var(--color-border-2)] px-8px'
         role='tablist'
-        aria-label={t('conversation.synonRuntime.computeRuntime.title')}
+        aria-label={t('conversation.xscienceRuntime.computeRuntime.title')}
         onKeyDown={handleTabListKeyDown}
       >
         {tabs.map((tab) => (
@@ -101,7 +101,7 @@ const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({
             tabIndex={activeTab === tab.key ? 0 : -1}
             data-state={activeTab === tab.key ? 'selected' : 'idle'}
             data-testid={`workspace-tab-${tab.key}`}
-            className={`synon-workspace-tab ${activeTab === tab.key ? 'synon-workspace-tab--selected' : ''}`}
+            className={`x-science-workspace-tab ${activeTab === tab.key ? 'x-science-workspace-tab--selected' : ''}`}
             onClick={() => onTabChange(tab.key)}
           >
             {tab.icon}

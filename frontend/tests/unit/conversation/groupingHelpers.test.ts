@@ -43,7 +43,7 @@ describe('buildGroupedHistory', () => {
           {
             backend: 'unexpectedBackend',
             cron_job_id: 'job-1',
-            workspace: '/repo/synon-ai',
+            workspace: '/repo/x-science',
             custom_workspace: true,
           },
           100
@@ -56,7 +56,7 @@ describe('buildGroupedHistory', () => {
       expect.objectContaining({
         type: 'workspace',
         workspaceGroup: expect.objectContaining({
-          workspace: '/repo/synon-ai',
+          workspace: '/repo/x-science',
           conversations: [expect.objectContaining({ id: 'cron-project-conversation' })],
         }),
       }),
@@ -65,7 +65,7 @@ describe('buildGroupedHistory', () => {
 
   it('keeps legacy team-marked conversations visible as normal conversations', () => {
     const result = buildGroupedHistory(
-      [conversation('legacy-conversation', { backend: 'synonbiomed', team_id: 'retired-team-1' }, 100)],
+      [conversation('legacy-conversation', { backend: 'xscience', team_id: 'retired-team-1' }, 100)],
       t
     );
 
@@ -77,25 +77,25 @@ describe('buildGroupedHistory', () => {
     ]);
   });
 
-  it('promotes X-Science backend projects into the SynonAI projects section', () => {
+  it('promotes X-Science backend projects into the XScience projects section', () => {
     const result = buildGroupedHistory(
       [
         {
           ...conversation(
             'proj_example',
             {
-              backend: 'synonbiomed',
+              backend: 'xscience',
               project_id: 'proj_example',
               conversation_count: 4,
               artifact_count: 83,
-              workspace: 'synonbiomed://proj_example',
+              workspace: 'x-science://proj_example',
               custom_workspace: false,
             },
             100
           ),
-          type: 'synonbiomed-project',
+          type: 'xscience-project',
           name: 'Example project',
-          source: 'synonbiomed',
+          source: 'xscience',
         } as TChatConversation,
       ],
       t
@@ -105,9 +105,9 @@ describe('buildGroupedHistory', () => {
       expect.objectContaining({
         type: 'workspace',
         workspaceGroup: expect.objectContaining({
-          workspace: 'synonbiomed://proj_example',
+          workspace: 'x-science://proj_example',
           display_name: 'Example project',
-          conversations: [expect.objectContaining({ id: 'proj_example', type: 'synonbiomed-project' })],
+          conversations: [expect.objectContaining({ id: 'proj_example', type: 'xscience-project' })],
         }),
       }),
     ]);

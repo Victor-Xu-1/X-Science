@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 import subprocess
 
-ARTIFACT_TYPE = "application/vnd.synon-biomed.release.v1"
+ARTIFACT_TYPE = "application/vnd.x-science.release.v1"
 
 
 def files(root: Path) -> list[Path]:

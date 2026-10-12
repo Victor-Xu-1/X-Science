@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	eventjournal "synon-go/internal/persistence/journal"
-	workspace "synon-go/internal/persistence/workspace"
+	eventjournal "x-science/internal/persistence/journal"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func (s *Server) persistCompactionArchive(frameID string, entries []eventjournal.Entry, boundary *eventjournal.Entry) (*workspace.CompactionArchive, error) {

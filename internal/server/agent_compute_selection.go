@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	kernelruntime "synon-go/internal/kernel"
+	kernelruntime "x-science/internal/kernel"
 )
 
 const localComputeProviderID = "local"

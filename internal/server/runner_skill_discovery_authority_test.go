@@ -6,13 +6,13 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/skills"
+	"x-science/internal/skills"
 )
 
 func TestRuntimeSkillDiscoveryDoesNotTurnLexicalScoreIntoAuthority(t *testing.T) {
 	_, file, _, _ := runtime.Caller(0)
 	app := New(Options{FileRoot: t.TempDir()})
-	app.skillCatalog = skills.Load([]string{filepath.Join(filepath.Dir(file), "..", "..", "skills", "synonbiomed")})
+	app.skillCatalog = skills.Load([]string{filepath.Join(filepath.Dir(file), "..", "..", "skills", "x-science")})
 	authority := map[string]struct{}{"skill": {}, "search_skills": {}, "read_file": {}, "repl": {}, "python": {}, "web_search": {}, "web_fetch": {}, "save_artifacts": {}}
 	for _, prompt := range []string{
 		"请调研 DNA 聚合酶θ（POLQ）抑制剂的研发价值，生成一份专业报告和证据表。",
@@ -35,10 +35,10 @@ func TestRuntimeSkillDiscoveryDoesNotTurnLexicalScoreIntoAuthority(t *testing.T)
 func TestRuntimeSkillDiscoveryRanksBroadBiomedicalResearchOrchestrator(t *testing.T) {
 	_, file, _, _ := runtime.Caller(0)
 	app := New(Options{FileRoot: t.TempDir()})
-	app.skillCatalog = skills.Load([]string{filepath.Join(filepath.Dir(file), "..", "..", "skills", "synonbiomed")})
+	app.skillCatalog = skills.Load([]string{filepath.Join(filepath.Dir(file), "..", "..", "skills", "x-science")})
 	prompt := "请调研 DNA 聚合酶θ（POLQ）抑制剂的研发价值，生成一份专业报告和证据表。"
 	ranked := app.skillCatalog.SearchActivationRanked(prompt, 8)
-	if len(ranked) == 0 || ranked[0].Skill.Name != "synon-research" {
+	if len(ranked) == 0 || ranked[0].Skill.Name != "x-science-research" {
 		t.Fatalf("broad biomedical research ranking=%#v", ranked)
 	}
 }
@@ -46,7 +46,7 @@ func TestRuntimeSkillDiscoveryRanksBroadBiomedicalResearchOrchestrator(t *testin
 func TestRuntimeSkillActivationMetadataRoutesAcrossTaskDomains(t *testing.T) {
 	_, file, _, _ := runtime.Caller(0)
 	app := New(Options{FileRoot: t.TempDir()})
-	app.skillCatalog = skills.Load([]string{filepath.Join(filepath.Dir(file), "..", "..", "skills", "synonbiomed")})
+	app.skillCatalog = skills.Load([]string{filepath.Join(filepath.Dir(file), "..", "..", "skills", "x-science")})
 	for _, test := range []struct {
 		prompt string
 		want   string

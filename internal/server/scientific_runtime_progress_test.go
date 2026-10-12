@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
-	"synon-go/internal/kernel"
-	"synon-go/internal/toolprogress"
 	"testing"
+	"x-science/internal/kernel"
+	"x-science/internal/toolprogress"
 )
 
 func TestScientificWarmupProgressPublishesObservedFactsOnlyWhilePreparing(t *testing.T) {

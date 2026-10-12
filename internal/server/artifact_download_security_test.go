@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestArtifactZIPSanitizesTraversalAndDuplicateNames(t *testing.T) {
@@ -29,7 +29,7 @@ func TestArtifactZIPSanitizesTraversalAndDuplicateNames(t *testing.T) {
 	}
 	app := New(Options{Workspace: store}).Handler()
 	request := newLoopbackTestRequest(http.MethodGet, "/api/artifacts/download?ids=artifact-1,artifact-2", nil)
-	request.Header.Set("X-Synon-User-Id", "user-1")
+	request.Header.Set("X-Science-User-Id", "user-1")
 	response := httptest.NewRecorder()
 	app.ServeHTTP(response, request)
 	if response.Code != http.StatusOK {
@@ -58,7 +58,7 @@ func TestArtifactDownloadSelectionRejectsMoreThanTwoHundredIDs(t *testing.T) {
 		ids[index] = "artifact-" + strings.Repeat("x", index+1)
 	}
 	request := newLoopbackTestRequest(http.MethodGet, "/api/artifacts/download?ids="+strings.Join(ids, ","), nil)
-	request.Header.Set("X-Synon-User-Id", "user-1")
+	request.Header.Set("X-Science-User-Id", "user-1")
 	response := httptest.NewRecorder()
 	app.ServeHTTP(response, request)
 	if response.Code != http.StatusBadRequest || !strings.Contains(response.Body.String(), "max 200") {

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestFeedbackCompatibilityUsesRealHTTPSDeliveryAndDurableRedactedAudit(t *testing.T) {
@@ -37,7 +37,7 @@ func TestFeedbackCompatibilityUsesRealHTTPSDeliveryAndDurableRedactedAudit(t *te
 	delivered := make(chan map[string]any, 1)
 	upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != feedbackRPCPath || r.Header.Get("Authorization") != "Bearer feedback-token" ||
-			r.Header.Get("Connect-Protocol-Version") != "1" || r.Header.Get("synon_llm-beta") != "beta-a" {
+			r.Header.Get("Connect-Protocol-Version") != "1" || r.Header.Get("x_science_llm-beta") != "beta-a" {
 			t.Errorf("feedback wire request path=%q headers=%#v", r.URL.Path, r.Header)
 		}
 		var payload map[string]any

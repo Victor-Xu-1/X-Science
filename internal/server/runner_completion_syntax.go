@@ -6,7 +6,7 @@ import (
 
 	"strings"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 var sessionRunnerPlaceholderMarkdownDestinationPattern = regexp.MustCompile(`!?\[([^\]\r\n]+)\]\(\s*(?:#\s*)?\)`)

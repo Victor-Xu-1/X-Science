@@ -10,9 +10,9 @@ import (
 
 	"strings"
 
-	adaptercommon "synon-go/internal/adapters/common"
+	adaptercommon "x-science/internal/adapters/common"
 
-	secretstore "synon-go/internal/persistence/secrets"
+	secretstore "x-science/internal/persistence/secrets"
 )
 
 func (s *Server) executeSettingsTool(toolName string, input map[string]any) (any, error) {
@@ -151,7 +151,7 @@ func (s *Server) executeIMMessageTool(ctx context.Context, input map[string]any)
 		if callerOwnerID == "" || callerOwnerID != strings.TrimSpace(pairing.OwnerUserID) {
 			return nil, errIMMessageCallerOwnerUnauthorized
 		}
-	} else if s.synonLinkAuth != nil && s.synonLinkAuth.enabled {
+	} else if s.xscienceLinkAuth != nil && s.xscienceLinkAuth.enabled {
 		return nil, errIMMessageCallerOwnerUnauthorized
 	}
 	result := map[string]any{
@@ -279,7 +279,7 @@ func (s *Server) executePairingTool(ctx context.Context, toolName string, input 
 		if run, _ := ctx.Value(transcriptRunnerChatRunContextKey{}).(*sessionRunnerChatRun); run != nil && run.Transcript != nil {
 			ownerUserID = strings.TrimSpace(run.Transcript.Stream.OwnerID)
 		}
-		if ownerUserID == "" && (s.synonLinkAuth == nil || !s.synonLinkAuth.enabled) {
+		if ownerUserID == "" && (s.xscienceLinkAuth == nil || !s.xscienceLinkAuth.enabled) {
 			ownerUserID = secretstore.DefaultUserID
 		}
 		if ownerUserID == "" {

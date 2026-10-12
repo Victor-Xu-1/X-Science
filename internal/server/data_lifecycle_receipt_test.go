@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	runtimekv "synon-go/internal/persistence/runtimekv"
-	workspace "synon-go/internal/persistence/workspace"
+	runtimekv "x-science/internal/persistence/runtimekv"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestRunDataLifecycleSweepWithReceiptRecordsSuccessfulNoChangePass(t *testing.T) {

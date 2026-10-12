@@ -12,8 +12,8 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/sciencecapability"
-	"synon-go/internal/skills"
+	"x-science/internal/sciencecapability"
+	"x-science/internal/skills"
 )
 
 func TestAutoDockVinaSkillUsesTheManagedHarnessExecutionContract(t *testing.T) {
@@ -22,13 +22,13 @@ func TestAutoDockVinaSkillUsesTheManagedHarnessExecutionContract(t *testing.T) {
 		t.Fatal("locate repository root")
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
-	skillPath := filepath.Join(repositoryRoot, "skills", "synonbiomed", "autodock-vina", "SKILL.md")
+	skillPath := filepath.Join(repositoryRoot, "skills", "x-science", "autodock-vina", "SKILL.md")
 	content, err := os.ReadFile(skillPath)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	manifestContent, err := os.ReadFile(filepath.Join(repositoryRoot, "assets", "synonbiomed", "skills.manifest.json"))
+	manifestContent, err := os.ReadFile(filepath.Join(repositoryRoot, "assets", "x-science", "skills.manifest.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -161,7 +161,7 @@ func TestAutoDockVinaSkillUsesTheManagedHarnessExecutionContract(t *testing.T) {
 	for _, requiredMarker := range []string{
 		`manage_environments(mode="list"`, `manage_environments(mode="create"`, `manage_packages`,
 		`--seed 42`, `pdb_select_latest_liganded_structure`, `release-date-descending`, `rejected_newer_candidates`,
-		`${SYNON_SKILL_DIR}/scripts/autodock_vina.py`, "A second", "managed environment generation",
+		`${X_SCIENCE_SKILL_DIR}/scripts/autodock_vina.py`, "A second", "managed environment generation",
 		"process cleanup", "ranked candidates", "unsupported `--log` flag", "--reference-ligand",
 		"derives and records that ligand centroid", "docking_complex_ensemble.pdb", "docking_components.csv",
 		"docking_pose_scores.csv", "docking_pose_samples.csv", "--repeat-count 3", "exactly one primary pose",
@@ -169,7 +169,7 @@ func TestAutoDockVinaSkillUsesTheManagedHarnessExecutionContract(t *testing.T) {
 		"preserved exactly", `load ` + "`drug-discovery-pipeline`" + ` again`, "assemble_docking_results.py",
 		"do not author quantitative Markdown with `edit_file`", "openbabel", "CDX", "primary_pose_manifest.csv",
 		"Never split `ranked_poses.pdbqt`", "pack-generated readable report",
-		"raw apo receptor", "--site-evidence", "synon.documented-input.v1",
+		"raw apo receptor", "--site-evidence", "x-science.documented-input.v1",
 		"SMI/SMILES inputs",
 	} {
 		if !strings.Contains(text, requiredMarker) {

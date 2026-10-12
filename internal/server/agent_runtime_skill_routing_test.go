@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/agentruntime"
-	kernelruntime "synon-go/internal/kernel"
-	"synon-go/internal/sciencecapability"
-	"synon-go/internal/skills"
+	"x-science/internal/agentruntime"
+	kernelruntime "x-science/internal/kernel"
+	"x-science/internal/sciencecapability"
+	"x-science/internal/skills"
 )
 
 func TestAdvertisedRootToolDoesNotRequireSkillPreflight(t *testing.T) {
@@ -31,7 +31,7 @@ func TestAdvertisedRootToolDoesNotRequireSkillPreflight(t *testing.T) {
 
 func TestManagedImplementationEnvironmentOnlyStartsCanonicalPackEntrypoint(t *testing.T) {
 	workspace := t.TempDir()
-	script := filepath.Join(workspace, ".synon", "runtime", "skills", "managed-workflow-abcd", "scripts", "run.py")
+	script := filepath.Join(workspace, ".x-science", "runtime", "skills", "managed-workflow-abcd", "scripts", "run.py")
 	if err := os.MkdirAll(filepath.Dir(script), 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -130,7 +130,7 @@ func TestLoadedSkillDoesNotBlockUnrelatedExecutionBeforePreferredAsset(t *testin
 
 func TestRegistryManagedExecutionRejectsDirectEngineCallsAndAllowsItsReviewedEntrypoint(t *testing.T) {
 	workspace := t.TempDir()
-	script := filepath.Join(workspace, ".synon", "runtime", "skills", "managed-workflow-abcd", "scripts", "run.py")
+	script := filepath.Join(workspace, ".x-science", "runtime", "skills", "managed-workflow-abcd", "scripts", "run.py")
 	if err := os.MkdirAll(filepath.Dir(script), 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -319,7 +319,7 @@ func TestExecutionOutputMarkerAloneDoesNotCreateHostMutationAuthority(t *testing
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(outputDir, managedExecutionOutputOwnershipMarker), []byte(
-		`{"schema":"synon.execution-pack-output-owner.v1","execution_pack_id":"managed-capability.engine-a"}`,
+		`{"schema":"x-science.execution-pack-output-owner.v1","execution_pack_id":"managed-capability.engine-a"}`,
 	), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -359,7 +359,7 @@ func TestExecutionOutputMarkerAloneDoesNotCreateHostMutationAuthority(t *testing
 
 func TestManagedExecutionPackReceivesCanonicalTaskResponseLanguage(t *testing.T) {
 	workspace := t.TempDir()
-	script := filepath.Join(workspace, ".synon", "runtime", "skills", "managed-workflow-abcd", "scripts", "run.py")
+	script := filepath.Join(workspace, ".x-science", "runtime", "skills", "managed-workflow-abcd", "scripts", "run.py")
 	if err := os.MkdirAll(filepath.Dir(script), 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -429,7 +429,7 @@ func TestLoadedSkillRequiresCompatibleEnvironmentBeforeBundledScript(t *testing.
 	}
 	preflight := gateway.agentRuntimeSkillExecutionContractPreflight("bash", map[string]any{
 		"environment": "partial-environment",
-		"command":     `python "/workspace/.synon/runtime/skills/managed-workflow-abcd/runtime/scripts/run.py" --help`,
+		"command":     `python "/workspace/.x-science/runtime/skills/managed-workflow-abcd/runtime/scripts/run.py" --help`,
 	})
 	if preflight == nil || preflight["status"] != "skill_environment_preflight_required" {
 		t.Fatalf("missing environment preflight=%#v", preflight)
@@ -468,7 +468,7 @@ func TestCanonicalExecutionPackRequiresRegisteredEnvironmentWithoutLoadedSkillSt
 	}
 	preflight := gateway.agentRuntimeSkillExecutionContractPreflight("bash", map[string]any{
 		"environment": "partial-vina",
-		"command":     `python "/workspace/.synon/runtime/skills/autodock-vina-72ca3834b505/36de78b8fd4ba9745e149f873a3904005be6b2b867e583ae1b0cafe3347c7b87/scripts/autodock_vina.py" --help`,
+		"command":     `python "/workspace/.x-science/runtime/skills/autodock-vina-72ca3834b505/36de78b8fd4ba9745e149f873a3904005be6b2b867e583ae1b0cafe3347c7b87/scripts/autodock_vina.py" --help`,
 	})
 	if preflight == nil || preflight["status"] != "execution_pack_environment_preflight_required" {
 		t.Fatalf("canonical pack environment preflight=%#v", preflight)
@@ -486,7 +486,7 @@ func TestLoadedSkillPackageContractDoesNotBlockControlPlaneInspection(t *testing
 		server: &Server{skillCatalog: catalog}, taskRun: run,
 	}
 	input := map[string]any{
-		"code": `import os; print(os.listdir("/workspace/.synon/runtime/skills/managed-workflow-abcd"))`,
+		"code": `import os; print(os.listdir("/workspace/.x-science/runtime/skills/managed-workflow-abcd"))`,
 	}
 	if preflight := gateway.agentRuntimeSkillExecutionContractPreflight("repl", input); preflight != nil {
 		t.Fatalf("control-plane Skill inspection inherited managed package requirements: %#v", preflight)
@@ -532,7 +532,7 @@ func TestLoadedSkillDoesNotRevokeAdvertisedRootTool(t *testing.T) {
 
 func TestMaterializedSkillScriptPreflightRejectsMissingEntrypointPrivately(t *testing.T) {
 	workspace := t.TempDir()
-	scripts := filepath.Join(workspace, ".synon", "runtime", "skills", "workflow-abcd", "scripts")
+	scripts := filepath.Join(workspace, ".x-science", "runtime", "skills", "workflow-abcd", "scripts")
 	if err := os.MkdirAll(scripts, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -550,7 +550,7 @@ func TestMaterializedSkillScriptPreflightRejectsMissingEntrypointPrivately(t *te
 
 func TestUnresolvedSkillDirectoryPreflightRejectsRootShortcut(t *testing.T) {
 	result := agentRuntimeUnresolvedSkillDirectoryPreflight("bash", map[string]any{
-		"command": `python "/.synon/runtime/skills/workflow-abcd/scripts/run.py" --help`,
+		"command": `python "/.x-science/runtime/skills/workflow-abcd/scripts/run.py" --help`,
 	})
 	if result == nil || result["status"] != "skill_runtime_path_preflight_required" {
 		t.Fatalf("out-of-workspace Skill lookalike reached process execution: %#v", result)
@@ -559,7 +559,7 @@ func TestUnresolvedSkillDirectoryPreflightRejectsRootShortcut(t *testing.T) {
 
 func TestMaterializedSkillScriptPreflightRejectsUnknownArgumentBeforeExecution(t *testing.T) {
 	workspace := t.TempDir()
-	scripts := filepath.Join(workspace, ".synon", "runtime", "skills", "workflow-abcd", "scripts")
+	scripts := filepath.Join(workspace, ".x-science", "runtime", "skills", "workflow-abcd", "scripts")
 	if err := os.MkdirAll(scripts, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -584,7 +584,7 @@ func TestMaterializedSkillScriptPreflightRejectsUnknownArgumentBeforeExecution(t
 
 func TestMaterializedSkillScriptPreflightRejectsMissingDeclaredInputsButAllowsOutputs(t *testing.T) {
 	workspace := t.TempDir()
-	scripts := filepath.Join(workspace, ".synon", "runtime", "skills", "workflow-abcd", "scripts")
+	scripts := filepath.Join(workspace, ".x-science", "runtime", "skills", "workflow-abcd", "scripts")
 	if err := os.MkdirAll(scripts, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -621,7 +621,7 @@ func TestMaterializedSkillScriptPreflightRejectsMissingDeclaredInputsButAllowsOu
 
 func TestMaterializedSkillScriptPreflightExpandsDynamicArguments(t *testing.T) {
 	workspace := t.TempDir()
-	scripts := filepath.Join(workspace, ".synon", "runtime", "skills", "workflow-abcd", "scripts")
+	scripts := filepath.Join(workspace, ".x-science", "runtime", "skills", "workflow-abcd", "scripts")
 	if err := os.MkdirAll(scripts, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -641,7 +641,7 @@ func TestMaterializedSkillScriptPreflightExpandsDynamicArguments(t *testing.T) {
 
 func TestMaterializedSkillScriptPreflightFindsResolvedInputsCheckedInLoop(t *testing.T) {
 	workspace := t.TempDir()
-	scripts := filepath.Join(workspace, ".synon", "runtime", "skills", "workflow-abcd", "scripts")
+	scripts := filepath.Join(workspace, ".x-science", "runtime", "skills", "workflow-abcd", "scripts")
 	if err := os.MkdirAll(scripts, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -669,7 +669,7 @@ func TestMaterializedSkillScriptPreflightFindsResolvedInputsCheckedInLoop(t *tes
 
 func TestMaterializedSkillScriptPreflightRunsInPrivateGatewayAdmission(t *testing.T) {
 	workspace := t.TempDir()
-	scripts := filepath.Join(workspace, ".synon", "runtime", "skills", "workflow-abcd", "scripts")
+	scripts := filepath.Join(workspace, ".x-science", "runtime", "skills", "workflow-abcd", "scripts")
 	if err := os.MkdirAll(scripts, 0o700); err != nil {
 		t.Fatal(err)
 	}

@@ -6,8 +6,39 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
+	"strconv"
 	"testing"
 )
+
+func TestCopyProviderOperationMapPreservesNormalAndRealLargeRequests(t *testing.T) {
+	large := make(map[string]any)
+	for index := 0; index < 16384; index++ {
+		large["field-"+strconv.Itoa(index)] = index
+	}
+	for _, test := range []struct {
+		name  string
+		input map[string]any
+	}{
+		{"nil", nil}, {"normal", map[string]any{"op": "create", "request_id": 7, "spec": map[string]any{"image": "fixture"}}}, {"large", large},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			copied := copyProviderOperationMap(test.input)
+			if copied == nil || len(copied) != len(test.input) {
+				t.Fatal("request shape changed")
+			}
+			for key, value := range test.input {
+				if !reflect.DeepEqual(copied[key], value) {
+					t.Fatal("request field changed")
+				}
+			}
+			copied["appended_operation_field"] = "fixture appended value"
+			if _, found := test.input["appended_operation_field"]; found {
+				t.Fatal("appended field mutated original request")
+			}
+		})
+	}
+}
 
 func TestProviderOperationRunsOneShotInsideConfinementWithCredentialStdin(t *testing.T) {
 	root := repositoryRootForCondaRuntimeTest(t)
@@ -90,7 +121,7 @@ PROVIDER = FixtureProvider
 		Operation: "create",
 		Request: map[string]any{
 			"spec": map[string]any{"image": "fixture"}, "install_id": "operation-install",
-			"tags": map[string]string{"synonbiomed-job": "job-fixture"},
+			"tags": map[string]string{"xscience-job": "job-fixture"},
 		},
 	})
 	if err != nil {

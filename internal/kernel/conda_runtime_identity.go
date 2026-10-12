@@ -8,9 +8,9 @@ const persistedRRuntimeAlias = "claude-science-r"
 func canonicalCondaRuntimeName(value string) string {
 	switch value {
 	case "claude-science-python":
-		return "synon-biomed-python-baseline"
+		return "x-science-python-baseline"
 	case persistedRRuntimeAlias:
-		return "synon-biomed-r"
+		return "x-science-r"
 	default:
 		return value
 	}

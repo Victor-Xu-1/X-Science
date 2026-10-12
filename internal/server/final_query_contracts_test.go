@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/realtime"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/realtime"
 )
 
 func TestFinalQueryContractsUseOwnedDurableRuntimeState(t *testing.T) {
@@ -109,7 +109,7 @@ func TestFinalQueryContractsUseOwnedDurableRuntimeState(t *testing.T) {
 	}
 	compatJSONRequest(t, handler, http.MethodPost, "/api/frames/root/verification", "owner", verificationBody, http.StatusForbidden)
 	request := compatRequest(t, http.MethodPost, "/api/frames/root/verification", "owner", verificationBody)
-	request.Header.Set("X-Synon-Verification-Token", "verify-token")
+	request.Header.Set("X-Science-Verification-Token", "verify-token")
 	recorder := httptestResponse(t, handler, request, http.StatusAccepted)
 	_ = recorder
 	verification := compatJSONRequest(t, handler, http.MethodGet, "/api/frames/root/verification?status=open", "owner", nil, http.StatusOK)

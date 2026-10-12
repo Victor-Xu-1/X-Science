@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 func TestManagedEnvironmentSetupEvidenceRequiresSuccessfulDeepReads(t *testing.T) {

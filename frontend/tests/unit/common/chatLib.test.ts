@@ -336,7 +336,7 @@ describe('normalizeAgentStreamError', () => {
     expect(
       normalizeAgentStreamError({
         message: 'Something went wrong, please try again.',
-        code: 'SYNON_AI_INTERNAL_ERROR',
+        code: 'X_SCIENCE_INTERNAL_ERROR',
         rawError: {
           name: 'Error',
           message: 'connect ECONNREFUSED',
@@ -347,7 +347,7 @@ describe('normalizeAgentStreamError', () => {
       })
     ).toEqual({
       message: 'Something went wrong, please try again.',
-      code: 'SYNON_AI_INTERNAL_ERROR',
+      code: 'X_SCIENCE_INTERNAL_ERROR',
       rawError: {
         name: 'Error',
         message: 'connect ECONNREFUSED',
@@ -362,7 +362,7 @@ describe('normalizeAgentStreamError', () => {
     expect(
       normalizeAgentStreamError({
         message: 'Something went wrong, please try again.',
-        code: 'SYNON_AI_INTERNAL_ERROR',
+        code: 'X_SCIENCE_INTERNAL_ERROR',
         rawError: {
           name: 'Error',
           message: 42,
@@ -372,7 +372,7 @@ describe('normalizeAgentStreamError', () => {
       })
     ).toEqual({
       message: 'Something went wrong, please try again.',
-      code: 'SYNON_AI_INTERNAL_ERROR',
+      code: 'X_SCIENCE_INTERNAL_ERROR',
       rawError: {
         name: 'Error',
       },
@@ -383,12 +383,12 @@ describe('normalizeAgentStreamError', () => {
     expect(
       normalizeAgentStreamError({
         message: 'Something went wrong, please try again.',
-        code: 'SYNON_AI_INTERNAL_ERROR',
+        code: 'X_SCIENCE_INTERNAL_ERROR',
         rawError: { unrelated: true },
       })
     ).toEqual({
       message: 'Something went wrong, please try again.',
-      code: 'SYNON_AI_INTERNAL_ERROR',
+      code: 'X_SCIENCE_INTERNAL_ERROR',
     });
   });
 });
@@ -424,11 +424,11 @@ describe('normalizeTextMessageContent', () => {
     expect(
       normalizeTextMessageContent({
         content: 'branch prompt',
-        synonBiomed: { messageIndex: 4, blockIndex: 0, branchId: 'br_12ab34cd' },
+        xScience: { messageIndex: 4, blockIndex: 0, branchId: 'br_12ab34cd' },
       })
     ).toEqual({
       content: 'branch prompt',
-      synonBiomed: { messageIndex: 4, blockIndex: 0, branchId: 'br_12ab34cd' },
+      xScience: { messageIndex: 4, blockIndex: 0, branchId: 'br_12ab34cd' },
     });
   });
 
@@ -436,7 +436,7 @@ describe('normalizeTextMessageContent', () => {
     expect(
       normalizeTextMessageContent({
         content: 'branch prompt',
-        synonBiomed: { messageIndex: -1, blockIndex: 0, branchId: 'main' },
+        xScience: { messageIndex: -1, blockIndex: 0, branchId: 'main' },
       })
     ).toEqual({ content: 'branch prompt' });
   });
@@ -539,14 +539,14 @@ describe('transformMessage', () => {
     const message: IResponseMessage = {
       type: 'tips',
       data: {
-        content: 'SynonAI failed while sending the message',
+        content: 'XScience failed while sending the message',
         type: 'error',
         source: 'send_failed',
         code: 'INTERNAL_ERROR',
         error: {
-          message: 'SynonAI failed while sending the message',
-          code: 'SYNON_AI_INTERNAL_ERROR',
-          ownership: 'synon-ai',
+          message: 'XScience failed while sending the message',
+          code: 'X_SCIENCE_INTERNAL_ERROR',
+          ownership: 'x-science',
           detail: 'Failed to write Codex sandbox config',
           retryable: true,
           feedback_recommended: true,
@@ -564,9 +564,9 @@ describe('transformMessage', () => {
 
     expect(transformed.type).toBe('tips');
     expect(transformed.content.error).toEqual({
-      message: 'SynonAI failed while sending the message',
-      code: 'SYNON_AI_INTERNAL_ERROR',
-      ownership: 'synon-ai',
+      message: 'XScience failed while sending the message',
+      code: 'X_SCIENCE_INTERNAL_ERROR',
+      ownership: 'x-science',
       detail: 'Failed to write Codex sandbox config',
       retryable: true,
       feedback_recommended: true,

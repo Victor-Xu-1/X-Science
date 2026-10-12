@@ -1,6 +1,6 @@
-import type { SynonBiomedComputeJob } from '../synonBiomedCompute';
+import type { XScienceComputeJob } from '../xScienceCompute';
 
-type JobObservation = Pick<SynonBiomedComputeJob, 'state' | 'errorKind' | 'endedAtIso'>;
+type JobObservation = Pick<XScienceComputeJob, 'state' | 'errorKind' | 'endedAtIso'>;
 const activeStates = new Set(['pending', 'staging', 'queued', 'running', 'harvesting']);
 
 // A last-observed running state is not fresh evidence while the control plane

@@ -5,7 +5,7 @@ import { join, resolve } from 'node:path';
 import { chromium, expect } from '@playwright/test';
 import { createServer } from 'vite';
 
-const artifacts = await mkdtemp(join(tmpdir(), 'synon-turn-rail-'));
+const artifacts = await mkdtemp(join(tmpdir(), 'x-science-turn-rail-'));
 let count = 1;
 let windowed = false;
 let vite, browser, page;

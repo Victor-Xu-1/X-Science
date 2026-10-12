@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
-	adapterwechat "synon-go/internal/adapters/wechat"
 	"time"
+	adapterwechat "x-science/internal/adapters/wechat"
 )
 
 func (s *Server) adapterDoctorPlatforms(smokeRequested bool) []map[string]any {

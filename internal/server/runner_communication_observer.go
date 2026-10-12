@@ -3,8 +3,8 @@ package server
 import (
 	"context"
 	"encoding/json"
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/harnesscontract"
+	"x-science/internal/agentruntime"
+	"x-science/internal/harnesscontract"
 )
 
 // Observation only: one delegate call, no generated prose, no stream writes,

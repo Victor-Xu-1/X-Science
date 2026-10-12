@@ -15,9 +15,9 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestRunnerLargeToolResultPreviewUsesCompactEvidenceWindow(t *testing.T) {
@@ -436,7 +436,7 @@ func assertLargeResultExactContentHTTP(
 	t.Helper()
 	request := func(method string, headers map[string]string) *httptest.ResponseRecorder {
 		req := newLoopbackTestRequest(method, descriptor.ContentURL, nil)
-		req.Header.Set("X-Synon-User-Id", ownerID)
+		req.Header.Set("X-Science-User-Id", ownerID)
 		for key, value := range headers {
 			req.Header.Set(key, value)
 		}

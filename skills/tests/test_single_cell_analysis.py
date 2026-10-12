@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 from scipy import sparse
 
-SKILL_SCRIPTS = Path(__file__).resolve().parents[1] / "synonbiomed" / "single-cell-rna-analysis" / "scripts"
+SKILL_SCRIPTS = Path(__file__).resolve().parents[1] / "x-science" / "single-cell-rna-analysis" / "scripts"
 sys.path.insert(0, str(SKILL_SCRIPTS))
 
 from analysis_core import composition_table

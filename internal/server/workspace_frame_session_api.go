@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"net/url"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func (s *Server) handleWorkspaceFrameMove(w http.ResponseWriter, r *http.Request, store *workspace.Store, userID, frameID string) {

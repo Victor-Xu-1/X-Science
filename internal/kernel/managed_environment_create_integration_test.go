@@ -9,13 +9,13 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/executionprep"
+	"x-science/internal/executionprep"
 )
 
 // Real public creation, not the repair path or an import-only probe. Installation
 // and execution use disposable runtime state, never an active task environment.
 func TestManagedEnvironmentRealRCreatePublishExecute(t *testing.T) {
-	if os.Getenv("SYNON_TEST_REAL_R_CREATE") != "1" || runtime.GOOS != "linux" {
+	if os.Getenv("X_SCIENCE_TEST_REAL_R_CREATE") != "1" || runtime.GOOS != "linux" {
 		t.Skip("opt-in Linux R creation integration requiring package network access")
 	}
 	_, file, _, _ := runtime.Caller(0)

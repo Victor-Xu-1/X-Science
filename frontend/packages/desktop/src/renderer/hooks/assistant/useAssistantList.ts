@@ -1,17 +1,17 @@
 import { ipcBridge } from '@/common';
 import { resolveLocaleKey } from '@/common/utils';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
-import { loadSynonBiomedAgents, toSynonAIAssistant } from '@/renderer/services/synonBiomedCapabilities';
+import { loadXScienceAgents, toXScienceAssistant } from '@/renderer/services/xScienceCapabilities';
 import {
   applyAssistantSortOrders,
   buildAssistantSortUpdates,
   reorderAssistantList,
-} from '@/renderer/pages/settings/SynonBiomedExpertsSettings/assistantUtils';
+} from '@/renderer/pages/settings/XScienceExpertsSettings/assistantUtils';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 /**
- * Manages the visible X-Science expert list with SynonAI's native list,
+ * Manages the visible X-Science expert list with XScience's native list,
  * selection, and ordering interactions.
  */
 export const useAssistantList = () => {
@@ -23,7 +23,7 @@ export const useAssistantList = () => {
 
   const loadAssistants = useCallback(async () => {
     try {
-      const list = (await loadSynonBiomedAgents()).map((agent, index) => toSynonAIAssistant(agent, index));
+      const list = (await loadXScienceAgents()).map((agent, index) => toXScienceAssistant(agent, index));
       setAssistants(list);
       setActiveAssistantId((prev) => {
         if (prev && list.some((assistant) => assistant.id === prev)) return prev;

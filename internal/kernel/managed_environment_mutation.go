@@ -16,6 +16,11 @@ import (
 )
 
 func (m *Manager) CreateManagedEnvironment(ctx context.Context, input CreateManagedEnvironmentInput) (ManagedEnvironment, error) {
+	var aliasErr error
+	input.Name, aliasErr = m.resolveNamespaceImportedEnvironmentInput(input.Name)
+	if aliasErr != nil {
+		return ManagedEnvironment{}, aliasErr
+	}
 	if err := validateManagedEnvironmentName(input.Name); err != nil {
 		return ManagedEnvironment{}, err
 	}
@@ -123,7 +128,7 @@ func (m *Manager) CreateManagedEnvironment(ctx context.Context, input CreateMana
 	// recover by the complete normalized environment definition rather than by
 	// an individual tool-call ID, so identical software requirements across
 	// tasks reuse the same verified generation without rerunning installers.
-	operationKey := managedEnvironmentOperationKey("create", struct {
+	definition := struct {
 		Name, Language, SourceEnvironment string
 		Packages                          []string
 		Channels                          []string
@@ -138,8 +143,11 @@ func (m *Manager) CreateManagedEnvironment(ctx context.Context, input CreateMana
 		input.Name, language, sourceEnvironment, packages, channels, pipPhases, pipArgs,
 		pipFindLinks, pipExtraIndexURLs, importNames, strings.ToLower(strings.TrimSpace(input.RequiredAccelerator)),
 		lockedRequirementsSHA256,
-	})
+	}
+	operationKey := managedEnvironmentOperationKey("create", definition)
 	return m.runManagedEnvironmentOperation(ctx, operationKey, func(operationContext context.Context) (ManagedEnvironment, error) {
+		operationContext = previousNamespaceCreateContext(operationContext, definition)
+		operationContext = m.previousNamespaceImportedRequestContext(operationContext, "", "create", definition, input.Name)
 		sourcePrefix := ""
 		if sourceEnvironment != "" {
 			var sourceErr error
@@ -199,6 +207,11 @@ func (m *Manager) UninstallManagedPackages(ctx context.Context, input MutateMana
 // host grant; the kernel layer still revalidates canonical paths and runtime
 // executables before publishing the registration.
 func (m *Manager) RegisterManagedEnvironment(ctx context.Context, input RegisterManagedEnvironmentInput) (ManagedEnvironment, error) {
+	var aliasErr error
+	input.Name, aliasErr = m.resolveNamespaceImportedEnvironmentInput(input.Name)
+	if aliasErr != nil {
+		return ManagedEnvironment{}, aliasErr
+	}
 	if err := validateManagedEnvironmentName(input.Name); err != nil {
 		return ManagedEnvironment{}, err
 	}
@@ -237,14 +250,17 @@ func (m *Manager) RegisterManagedEnvironment(ctx context.Context, input Register
 	if sourcePath == venvPath || hostPathContains(venvPath, sourcePath) {
 		return ManagedEnvironment{}, errors.New("registered environment venv_path must not contain source_path")
 	}
-	requestKey := managedEnvironmentRequestKey(input.OperationID, "register", struct {
+	registrationDefinition := struct {
 		Name, Language, SourcePath, VenvPath string
 		Create, Force                        bool
 		Extras                               []string
 	}{
 		input.Name, language, sourcePath, venvPath, input.Create, input.Force, append([]string(nil), input.Extras...),
-	})
+	}
+	requestKey := managedEnvironmentRequestKey(input.OperationID, "register", registrationDefinition)
 	return m.runManagedEnvironmentOperation(ctx, requestKey, func(operationContext context.Context) (ManagedEnvironment, error) {
+		operationContext = previousNamespaceRequestContext(operationContext, input.OperationID, "register", registrationDefinition)
+		operationContext = m.previousNamespaceImportedRequestContext(operationContext, input.OperationID, "register", registrationDefinition, input.Name)
 		var prepare func(context.Context) error
 		if input.Create {
 			prepare = func(ctx context.Context) error {
@@ -307,6 +323,15 @@ func (m *Manager) createRegisteredEnvironment(ctx context.Context, sourcePath, r
 }
 
 func (m *Manager) mutateManagedPackages(ctx context.Context, operation string, input MutateManagedPackagesInput) (ManagedEnvironment, error) {
+	var aliasErr error
+	input.Environment, aliasErr = m.resolveNamespaceImportedEnvironmentInput(input.Environment)
+	if aliasErr != nil {
+		return ManagedEnvironment{}, aliasErr
+	}
+	input.ForkTo, aliasErr = m.resolveNamespaceImportedEnvironmentInput(input.ForkTo)
+	if aliasErr != nil {
+		return ManagedEnvironment{}, aliasErr
+	}
 	if err := validateManagedEnvironmentName(input.Environment); err != nil {
 		return ManagedEnvironment{}, err
 	}
@@ -357,7 +382,7 @@ func (m *Manager) mutateManagedPackages(ctx context.Context, operation string, i
 				UsePip              bool
 				RequiredAccelerator string
 			}{packages, channels, pipArgs, pipFindLinks, pipExtraIndexURLs, input.UsePip, strings.ToLower(strings.TrimSpace(input.RequiredAccelerator))})
-			targetName = "synon-pkg-" + digest[:24]
+			targetName = "x-science-pkg-" + digest[:24]
 		} else {
 			if err := validateManagedEnvironmentName(targetName); err != nil {
 				return ManagedEnvironment{}, err
@@ -404,20 +429,23 @@ func (m *Manager) mutateManagedPackages(ctx context.Context, operation string, i
 		operationRequest.SourceGeneration = ""
 	}
 	operationKey := managedEnvironmentRequestKey(input.OperationID, operation, operationRequest)
+	ctx = previousNamespaceRequestContext(ctx, input.OperationID, operation, operationRequest)
+	ctx = m.previousNamespaceImportedRequestContext(ctx, input.OperationID, operation, operationRequest, targetName)
 	if source.Kind == "path-venv" {
 		if !input.UsePip {
 			return ManagedEnvironment{}, errors.New("registered Python environments require use_pip package mutation")
 		}
 		return m.publishRegisteredEnvironmentFork(ctx, source, targetName, operation, operationKey, strings.TrimSpace(input.ForkTo) != "", channels, packages, pipArgs, pipFindLinks, pipExtraIndexURLs)
 	}
-	sourcePrefix, err := filepath.EvalSymlinks(filepath.Join(m.config.CondaEnvsPath, input.Environment))
+	sourceRegistryPrefix, err := filepath.EvalSymlinks(filepath.Join(m.config.CondaEnvsPath, input.Environment))
 	if err != nil {
 		return ManagedEnvironment{}, errors.New("managed environment generation is unavailable")
 	}
-	sourceMarker, err := readManagedEnvironmentMarker(sourcePrefix)
+	sourceMarker, err := readManagedEnvironmentMarker(sourceRegistryPrefix)
 	if err != nil || sourceMarker.Generation != source.Generation {
 		return ManagedEnvironment{}, errors.New("managed environment source generation changed before mutation")
 	}
+	sourcePrefix := managedMarkerRuntimePrefix(sourceRegistryPrefix, sourceMarker)
 	authorityMigrations := plannedManagedPackageAuthorityMigrations(source.Packages, packages, input.UsePip)
 	// Micromamba clone does not reliably carry pip-owned distributions into
 	// the successor prefix. Preserve that verified inventory for both pip and
@@ -583,6 +611,10 @@ func (m *Manager) publishRegisteredEnvironmentFork(
 }
 
 func (m *Manager) activeManagedEnvironmentMarker(name string) (managedEnvironmentMarker, error) {
+	name, aliasErr := m.resolveNamespaceImportedEnvironmentInput(name)
+	if aliasErr != nil {
+		return managedEnvironmentMarker{}, aliasErr
+	}
 	root, err := m.managedEnvironmentRoot()
 	if err != nil {
 		return managedEnvironmentMarker{}, err

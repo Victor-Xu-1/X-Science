@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"synon-go/internal/agentruntime"
-	workspace "synon-go/internal/persistence/workspace"
 	"unicode/utf8"
+	"x-science/internal/agentruntime"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const (

@@ -12,8 +12,8 @@ import {
   filterAssistants,
   groupAssistantsByEnabled,
   buildAssistantEditorBackends,
-} from '@/renderer/pages/settings/SynonBiomedExpertsSettings/assistantUtils';
-import type { AssistantListItem } from '@/renderer/pages/settings/SynonBiomedExpertsSettings/types';
+} from '@/renderer/pages/settings/XScienceExpertsSettings/assistantUtils';
+import type { AssistantListItem } from '@/renderer/pages/settings/XScienceExpertsSettings/types';
 
 vi.mock('@/renderer/utils/platform', () => ({
   resolveExtensionAssetUrl: (url: string) => {
@@ -233,8 +233,8 @@ describe('buildAssistantEditorBackends', () => {
         {
           id: 'biomed-planner',
           name: 'Biomed Planner',
-          agent_type: 'synonbiomed',
-          backend: 'synonbiomed',
+          agent_type: 'xscience',
+          backend: 'xscience',
           status: 'online',
         },
         {
@@ -251,7 +251,7 @@ describe('buildAssistantEditorBackends', () => {
     expect(backends).toHaveLength(1);
     expect(backends[0]).toMatchObject({
       id: 'biomed-planner',
-      runtimeKey: 'synonbiomed',
+      runtimeKey: 'xscience',
     });
   });
 });

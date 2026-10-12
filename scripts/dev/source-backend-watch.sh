@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-ROOT="${SYNON_SOURCE_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+ROOT="${X_SCIENCE_SOURCE_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 GO_BIN="${GO:-go}"
 command -v "$GO_BIN" >/dev/null 2>&1 || {
   echo "[source-backend] Go 1.26 or newer is required; executable not found: $GO_BIN" >&2
@@ -20,10 +20,10 @@ if [[ -z "$product_slug" ]]; then
   echo "[source-backend] product identity did not provide a machine slug" >&2
   exit 1
 fi
-BUILD_DIR="${SYNON_DEV_BUILD_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/${product_slug}-dev}"
-POLL_SECONDS="${SYNON_DEV_POLL_SECONDS:-1}"
-BUILD_RETRY_MIN_SECONDS="${SYNON_DEV_BUILD_RETRY_MIN_SECONDS:-5}"
-BUILD_RETRY_MAX_SECONDS="${SYNON_DEV_BUILD_RETRY_MAX_SECONDS:-60}"
+BUILD_DIR="${X_SCIENCE_DEV_BUILD_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/${product_slug}-dev}"
+POLL_SECONDS="${X_SCIENCE_DEV_POLL_SECONDS:-1}"
+BUILD_RETRY_MIN_SECONDS="${X_SCIENCE_DEV_BUILD_RETRY_MIN_SECONDS:-5}"
+BUILD_RETRY_MAX_SECONDS="${X_SCIENCE_DEV_BUILD_RETRY_MAX_SECONDS:-60}"
 CHILD_PID=""
 RUNTIME_ENDPOINT_DIR=""
 RUNTIME_ENDPOINT_PID=""
@@ -37,8 +37,8 @@ fi
 
 mkdir -p "$BUILD_DIR"
 BUILD_DIR=$(cd "$BUILD_DIR" && pwd -P)
-BINARY="$BUILD_DIR/synon-go"
-CANDIDATE="$BUILD_DIR/synon-go.next"
+BINARY="$BUILD_DIR/x-science"
+CANDIDATE="$BUILD_DIR/x-science.next"
 LOCK_FILE="$BUILD_DIR/backend-watch.lock"
 HOST_PID_FILE="$BUILD_DIR/backend-watch.pid"
 ACCEPTED_MIGRATION_DIGEST_FILE="$BUILD_DIR/accepted-migration-digest"
@@ -175,9 +175,9 @@ cleanup_runtime_endpoint() {
 }
 
 runtime_health_json() {
-  if [[ -n "${SYNON_DEV_RUNTIME_HEALTH_FILE:-}" ]]; then
-    [[ -f "$SYNON_DEV_RUNTIME_HEALTH_FILE" ]] || return 1
-    cat "$SYNON_DEV_RUNTIME_HEALTH_FILE"
+  if [[ -n "${X_SCIENCE_DEV_RUNTIME_HEALTH_FILE:-}" ]]; then
+    [[ -f "$X_SCIENCE_DEV_RUNTIME_HEALTH_FILE" ]] || return 1
+    cat "$X_SCIENCE_DEV_RUNTIME_HEALTH_FILE"
     return 0
   fi
   command -v curl >/dev/null 2>&1 || return 1
@@ -263,7 +263,7 @@ build_candidate() {
   local observed_digest=""
   echo "[source-backend] building from $ROOT"
   rm -f "$CANDIDATE"
-  if ! (cd "$ROOT" && "$GO_BIN" build -buildvcs=false -o "$CANDIDATE" ./cmd/synon); then
+  if ! (cd "$ROOT" && "$GO_BIN" build -buildvcs=false -o "$CANDIDATE" ./cmd/x-science); then
     rm -f "$CANDIDATE"
     echo "[source-backend] build failed; the previous backend remains active" >&2
     return 1
@@ -303,8 +303,8 @@ start_candidate() {
 	else
 		echo '[source-backend] accepted runtime has no owned-listener receipt; automatic cutover is deferred until an explicit idle-drain handoff' >&2
 	fi
-	local source_skill_dirs="${SYNON_SKILL_DIRS:-}"
-	local model_env="${SYNON_DEV_MODEL_ENV_FILE:-${XDG_CONFIG_HOME:-$HOME/.config}/synon-go/workbench-model.env}"
+	local source_skill_dirs="${X_SCIENCE_SKILL_DIRS:-}"
+	local model_env="${X_SCIENCE_DEV_MODEL_ENV_FILE:-${XDG_CONFIG_HOME:-$HOME/.config}/x-science/workbench-model.env}"
 	if [[ -f "$model_env" ]]; then
 		set -a; source "$model_env"; set +a
 	fi
@@ -316,7 +316,7 @@ start_candidate() {
 		fi
 	fi
   echo "[source-backend] starting $BINARY serve"
-  (cd "$ROOT" && SYNON_SKILL_DIRS="$source_skill_dirs" exec "$BINARY" "${serve_args[@]}") &
+  (cd "$ROOT" && X_SCIENCE_SKILL_DIRS="$source_skill_dirs" exec "$BINARY" "${serve_args[@]}") &
   CHILD_PID=$!
   RUNTIME_ENDPOINT_PID="$CHILD_PID"
 }

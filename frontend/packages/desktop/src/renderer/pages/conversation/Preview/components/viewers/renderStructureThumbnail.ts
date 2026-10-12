@@ -9,8 +9,8 @@ import { loadStructureContent, resolveStructureFormat } from './structureSource'
 
 const THUMBNAIL_WIDTH = 304;
 const THUMBNAIL_HEIGHT = 184;
-const THUMBNAIL_CACHE_NAME = 'synon-biomed-structure-thumbnails-v1';
-const THUMBNAIL_CACHE_PATH = '/__synon-biomed-cache__/structure-thumbnail';
+const THUMBNAIL_CACHE_NAME = 'x-science-structure-thumbnails-v1';
+const THUMBNAIL_CACHE_PATH = '/__x-science-cache__/structure-thumbnail';
 const THUMBNAIL_RENDER_VERSION = 'molstar-304x184-v1';
 const MAX_MEMORY_THUMBNAILS = 48;
 const MAX_PERSISTENT_THUMBNAILS = 96;

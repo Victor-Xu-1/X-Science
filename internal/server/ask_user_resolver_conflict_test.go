@@ -6,9 +6,9 @@ import (
 	"reflect"
 	"testing"
 
-	eventjournal "synon-go/internal/persistence/journal"
-	"synon-go/internal/sciencecapability"
-	"synon-go/internal/skills"
+	eventjournal "x-science/internal/persistence/journal"
+	"x-science/internal/sciencecapability"
+	"x-science/internal/skills"
 )
 
 func TestSelectedAskUserResolverConflictSurvivesReplay(t *testing.T) {

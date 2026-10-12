@@ -35,7 +35,7 @@ func stageWorkspaceFile(ctx context.Context, root *os.Root, source io.Reader, ma
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	name := ".synon-incoming-" + uuid.NewString() + ".tmp"
+	name := ".x-science-incoming-" + uuid.NewString() + ".tmp"
 	file, err := root.OpenFile(name, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
 	if err != nil {
 		return nil, err

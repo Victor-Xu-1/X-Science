@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"synon-go/internal/agentruntime"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	"x-science/internal/agentruntime"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 // Admission has neither the worker namespace nor evidence of a worker restart.

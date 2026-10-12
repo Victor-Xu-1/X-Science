@@ -14,10 +14,10 @@ const mocks = vi.hoisted(() => ({
   error: vi.fn(),
 }));
 
-vi.mock('@/renderer/services/synonBiomedWorkspaceSettings', () => ({
-  loadSynonBiomedContactEmail: mocks.loadContact,
-  removeSynonBiomedContactEmail: vi.fn(),
-  setSynonBiomedContactEmail: vi.fn(),
+vi.mock('@/renderer/services/xScienceWorkspaceSettings', () => ({
+  loadXScienceContactEmail: mocks.loadContact,
+  removeXScienceContactEmail: vi.fn(),
+  setXScienceContactEmail: vi.fn(),
 }));
 vi.mock('@/renderer/hooks/context/ThemeContext', () => ({
   useThemeContext: () => ({
@@ -44,8 +44,8 @@ vi.mock('react-router', () => ({
   useNavigate: () => vi.fn(),
   useLocation: () => ({ pathname: '/settings/general' }),
 }));
-vi.mock('@/renderer/pages/settings/SynonBiomedModelsSettings', () => ({
-  SynonBiomedModelsSettingsContent: () => <div data-testid='models-settings' />,
+vi.mock('@/renderer/pages/settings/XScienceModelsSettings', () => ({
+  XScienceModelsSettingsContent: () => <div data-testid='models-settings' />,
 }));
 vi.mock('@/renderer/components/settings/LanguageSwitcher', () => ({
   default: () => <div data-testid='language-switcher' />,

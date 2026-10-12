@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"synon-go/internal/skills"
+	"x-science/internal/skills"
 )
 
 // requiredScientificCapabilities projects declarative Skill metadata only.

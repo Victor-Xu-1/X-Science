@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 // Access is checked by handleWebConversation before this read-only endpoint.

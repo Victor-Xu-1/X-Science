@@ -16,9 +16,9 @@ import (
 // Exercise TLS and redirects through the actual execution proxy, not a host
 // curl route. The URL is external test input, never a task-specific exception.
 func TestKernelEgressPublicDownloadLive(t *testing.T) {
-	target := os.Getenv("SYNON_KERNEL_EGRESS_PROBE_URL")
+	target := os.Getenv("X_SCIENCE_KERNEL_EGRESS_PROBE_URL")
 	if target == "" {
-		t.Skip("set SYNON_KERNEL_EGRESS_PROBE_URL for live download verification")
+		t.Skip("set X_SCIENCE_KERNEL_EGRESS_PROBE_URL for live download verification")
 	}
 	u, err := url.Parse(target)
 	if err != nil || u.Scheme != "https" || u.User != nil {

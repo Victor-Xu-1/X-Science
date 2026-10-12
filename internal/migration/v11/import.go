@@ -49,11 +49,11 @@ func importWorkspace(ctx context.Context, sourceDB, targetDB string, sourceCount
 			SELECT id, 'local', COALESCE(NULLIF(name, ''), id), '',
 			` + legacyTime("created_at") + `, ` + legacyTime("updated_at") + ` FROM legacy.projects`},
 		{"frames", `INSERT OR IGNORE INTO projects (id, user_id, name, path, created_at, updated_at)
-			SELECT '__synon_v11_unassigned__', 'local', 'Imported unassigned sessions', '',
+			SELECT '__x_science_v11_unassigned__', 'local', 'Imported unassigned sessions', '',
 			` + legacyTime("MIN(created_at)") + `, ` + legacyTime("MAX(updated_at)") + `
 			FROM legacy.frames WHERE project_id IS NULL HAVING COUNT(*) > 0`},
 		{"frames", `INSERT INTO frames (id, incarnation_id, project_id, parent_frame_id, root_frame_id, root_sequence, agent_name, status, conversation_type, name, created_at, updated_at)
-			SELECT id, lower(hex(randomblob(16))), COALESCE(NULLIF(project_id, ''), '__synon_v11_unassigned__'), NULLIF(parent_frame_id, ''),
+			SELECT id, lower(hex(randomblob(16))), COALESCE(NULLIF(project_id, ''), '__x_science_v11_unassigned__'), NULLIF(parent_frame_id, ''),
 			COALESCE(NULLIF(root_frame_id, ''), id), COALESCE(root_seq, 0), agent_name,
 			CASE lower(status)
 				WHEN 'running' THEN 'processing' WHEN 'executing' THEN 'processing'
@@ -241,7 +241,7 @@ func importWorkspace(ctx context.Context, sourceDB, targetDB string, sourceCount
 			output_specs,NULLIF(submit_cell_id,''),intent,hardware_details,NULLIF(root_frame_id,''),
 			result,NULLIF(origin_tool_use_id,'') FROM legacy.compute_usage`},
 		{"compute_usage", `INSERT OR IGNORE INTO projects (id,user_id,name,path,created_at,updated_at)
-			SELECT '__synon_v11_compute_unassigned__','local','Imported unassigned compute jobs','',
+			SELECT '__x_science_v11_compute_unassigned__','local','Imported unassigned compute jobs','',
 			` + legacyTime("MIN(u.started_at)") + `,` + legacyTime("MAX(COALESCE(u.ended_at,u.started_at))") + `
 			FROM legacy.compute_usage u
 			LEFT JOIN legacy.projects p ON p.id=u.project_id
@@ -253,7 +253,7 @@ func importWorkspace(ctx context.Context, sourceDB, targetDB string, sourceCount
 			external_id,external_url,supports_tail,error_kind,left_on_remote_json,system_hint,
 			stdout_text,stderr_text
 		) SELECT u.job_id,'local',
-			CASE WHEN p.id IS NULL THEN '__synon_v11_compute_unassigned__' ELSE u.project_id END,NULLIF(u.frame_id,''),
+			CASE WHEN p.id IS NULL THEN '__x_science_v11_compute_unassigned__' ELSE u.project_id END,NULLIF(u.frame_id,''),
 			u.environment,u.tier_type,u.provider,
 			CASE lower(COALESCE(u.state,'pending'))
 				WHEN 'pending' THEN 'pending' WHEN 'staging' THEN 'staging' WHEN 'queued' THEN 'queued'

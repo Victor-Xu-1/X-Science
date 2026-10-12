@@ -5,7 +5,7 @@ import (
 	"io"
 	"time"
 
-	"synon-go/internal/toolprogress"
+	"x-science/internal/toolprogress"
 )
 
 const agentPublicScientificProgressInterval = time.Second

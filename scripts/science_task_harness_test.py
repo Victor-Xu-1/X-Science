@@ -30,7 +30,7 @@ class ScienceTaskHarnessTest(unittest.TestCase):
         self.suite.write_text(
             json.dumps(
                 {
-                    "schema": "synon.science-task-suite.v1",
+                    "schema": "x-science.science-task-suite.v1",
                     "browserAuthority": "codex_builtin",
                     "scientificDeliverablePolicy": {
                         "defaultForbiddenExtensions": [".json", ".jsonl"],
@@ -80,7 +80,7 @@ class ScienceTaskHarnessTest(unittest.TestCase):
         self.browser.write_text(
             json.dumps(
                 {
-                    "schema": "synon.codex-browser-evidence.v1",
+                    "schema": "x-science.codex-browser-evidence.v1",
                     "browser": "codex_builtin",
                     "taskId": "chem-test",
                     "conversationId": "frame-1",

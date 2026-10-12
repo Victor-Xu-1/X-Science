@@ -13,9 +13,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"synon-go/internal/compute/transfer"
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/compute/namespace"
+	"x-science/internal/compute/transfer"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const (
@@ -214,9 +215,13 @@ func (s *Server) reconcileComputeProviderJob(ctx context.Context, owned workspac
 		return "byoc://" + publicComputeProviderName(job.Provider) + "/" + *job.ExternalID + "/work/" + name
 	}
 	harvest, ready, err := s.harvestSelectedComputeOutputs(ctx, stage, workspaceDir, job.JobID, hardware, remoteURI,
-		byocHarvestTransport{runner: s.providerOperationRunner, runtime: authority.Definition, sandbox: *job.ExternalID, stage: stage})
+		byocHarvestTransport{runner: s.providerOperationRunner, runtime: authority.Definition, sandbox: *job.ExternalID, stage: stage}, workspace.OwnedComputeJob{OwnerUserID: owned.OwnerUserID, Job: job})
 	if err != nil {
 		harvesting := workspace.OwnedComputeJob{OwnerUserID: owned.OwnerUserID, Job: job}
+		if errors.Is(err, namespace.ErrRecoveryUnconfirmed) {
+			s.holdComputeNamespaceRecovery(harvesting, err)
+			return
+		}
 		s.handleComputeProviderProbeFailure(harvesting, err)
 		return
 	}
@@ -247,7 +252,10 @@ func (s *Server) reconcileComputeProviderJob(ctx context.Context, owned workspac
 		terminalDetails["remote_retention_until_epoch"] = hardware["sandbox_deadline_epoch"]
 		terminalDetails["remote_retention_is_persistent"] = false
 	}
-	s.attachComputeCheckpointReceipt(ctx, owned, terminalDetails)
+	if harvest.CheckpointProof != nil {
+		terminalDetails["checkpoint_manifest_sha256"] = harvest.CheckpointSHA256
+	}
+	s.attachComputeCheckpointReceipt(ctx, owned, terminalDetails, harvest.CheckpointProof)
 	if err := s.workspaceStore.SetComputeJobResult(owned.OwnerUserID, job.JobID, terminalDetails); err != nil {
 		s.handleComputeProviderProbeFailure(owned, err)
 		return
@@ -436,7 +444,7 @@ func (s *Server) validateAgentBYOCRecoveryState(
 	if jobTimeout < 1 || time.Duration(jobTimeout)*time.Second > byocMaximumContainer || deadlineEpoch < 1 || time.Unix(deadlineEpoch, 0).After(latestDeadline) {
 		return "", byocInputArchive{}, errors.New("BYOC durable deadline contract is invalid")
 	}
-	currentConfig := strings.TrimSpace(runtimeSpec.ExtraEnvironment["SYNON_PROVIDER_BOUND_CONFIG_HASH"])
+	currentConfig := strings.TrimSpace(runtimeSpec.ExtraEnvironment["X_SCIENCE_PROVIDER_BOUND_CONFIG_HASH"])
 	if currentConfig == "" || strings.TrimSpace(stringValue(hardware["provider_config_sha256"])) != currentConfig {
 		return "", byocInputArchive{}, errors.New("BYOC provider configuration changed while the job was recoverable")
 	}
@@ -540,7 +548,7 @@ func (s *Server) transitionAgentComputeJobTerminal(
 	updated, _, _, err := s.workspaceStore.TransitionComputeJobWithNotification(
 		context.Background(), owned.OwnerUserID, owned.Job.JobID, next, kind, at,
 		workspace.CreateNotificationInput{
-			ID:            uuid.NewSHA1(uuid.NameSpaceOID, []byte("synon-compute:"+owned.Job.JobID)).String(),
+			ID:            uuid.NewSHA1(uuid.NameSpaceOID, []byte("x-science-compute:"+owned.Job.JobID)).String(),
 			SenderFrameID: *owned.Job.FrameID, RecipientFrameID: *owned.Job.FrameID, RootFrameID: *owned.Job.RootFrameID,
 			OwnerUserID: owned.OwnerUserID, NotificationType: "compute_done", Payload: payload,
 		},

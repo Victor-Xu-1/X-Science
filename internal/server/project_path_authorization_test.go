@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestProjectCreateRejectsUngrantedHostPath(t *testing.T) {
@@ -150,7 +150,7 @@ func TestWebFSIgnoresUnauthorizedOwnedProjectPaths(t *testing.T) {
 	}
 	srv := New(Options{
 		FileRoot: protectedRoot, Workspace: store,
-		SynonLinkAuth: SynonLinkAuthOptions{Username: "operator", Password: "strong-password", UserID: "owner"},
+		XScienceLinkAuth: XScienceLinkAuthOptions{Username: "operator", Password: "strong-password", UserID: "owner"},
 	})
 	handler := http.HandlerFunc(srv.handleWebFS)
 

@@ -19,10 +19,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"synon-go/internal/failurecontract"
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/software"
+	"x-science/internal/failurecontract"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/software"
 )
 
 const (

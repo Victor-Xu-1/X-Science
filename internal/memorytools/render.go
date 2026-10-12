@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/memorypolicy"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/memorypolicy"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 var toolNow = time.Now

@@ -7,15 +7,17 @@ from pathlib import Path
 import subprocess
 
 if __package__:
-    from .browser_extension_branding import adapt_entries, archive_entries, deterministic_archive
+    from .browser_extension_branding import archive_entries, deterministic_archive, source_entries, verify_runtime_contract
 else:
-    from browser_extension_branding import adapt_entries, archive_entries, deterministic_archive
+    from browser_extension_branding import archive_entries, deterministic_archive, source_entries, verify_runtime_contract
 
 SOURCE_REVISION = "53a8cde66a917eb0b94e0a4f23287eb93328c0fd"
+# Immutable historical input identity, not a current runtime/package namespace.
 SOURCE_PATH = "assets/synon-link/synon-link-extension-v0.6.10.zip"
 SOURCE_SHA256 = "2cb251ad8aedf940f6d3a11b41b74ed55f9b912ab48257a21789b78a1ca0c90b"
 MARK_SHA256 = "627c51b57fe4f46f91a3d1effcd87d2698c006da82e8770ffee6404edaeb50fa"
-OUTPUT_PATH = "assets/synon-link/x-science-browser-extension-v0.6.10.zip"
+OUTPUT_PATH = "assets/x-science-link/x-science-browser-extension-v0.6.11.zip"
+SOURCE_ROOT = "assets/x-science-link/source"
 PUBLIC_ORIGIN = "https://github.com/Victor-Xu-1/X-Science.git"
 
 
@@ -52,15 +54,16 @@ def pinned_source(repo, *, fetch_source=False):
 def build(repo, *, fetch_source=False):
     identity = json.loads((repo / "product-identity.json").read_bytes())
     mark = (repo / "frontend/public/branding/x-science-mark.png").read_bytes()
-    return build_archive(pinned_source(repo, fetch_source=fetch_source), identity, mark)
+    return build_archive(pinned_source(repo, fetch_source=fetch_source), identity, mark,
+                         source_entries(repo / SOURCE_ROOT))
 
 
-def build_archive(source, identity, mark):
+def build_archive(source, identity, mark, entries):
     if hashlib.sha256(source).hexdigest() != SOURCE_SHA256:
         raise ValueError("connector source digest mismatch")
     if hashlib.sha256(mark).hexdigest() != MARK_SHA256:
         raise ValueError("connector mark is not the approved unmodified artwork")
-    entries = adapt_entries(archive_entries(source), identity["display_name"], mark)
+    verify_runtime_contract(archive_entries(source), entries, identity["display_name"], mark)
     return deterministic_archive(entries)
 
 

@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/memoryconfig"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	"x-science/internal/memoryconfig"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func TestMemoryToolErrorsAreBoundedAtTheRunnerBoundary(t *testing.T) {

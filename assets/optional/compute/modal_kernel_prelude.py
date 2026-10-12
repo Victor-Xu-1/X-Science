@@ -2,16 +2,16 @@ import hashlib
 import modal
 import os
 
-app = modal.App.lookup(__SYNON_APP_NAME__, create_if_missing=True)
-_BOUND_CONFIG_HASH = __SYNON_CONFIG_HASH__
-_PROVIDER_ID = __SYNON_PROVIDER_ID__
+app = modal.App.lookup(__X_SCIENCE_APP_NAME__, create_if_missing=True)
+_BOUND_CONFIG_HASH = __X_SCIENCE_CONFIG_HASH__
+_PROVIDER_ID = __X_SCIENCE_PROVIDER_ID__
 _ENVS = os.environ.get("OPERON_BYOC_ENVS_DIR")
 _OP_TAGS = {
     key: value
     for key, value in (
-        ("synon-biomed-install-id", os.environ.get("OPERON_BYOC_INSTALL_ID", "")),
-        ("synon-biomed-org", os.environ.get("OPERON_BYOC_ORG_ID", "")),
-        ("synon-biomed-frame", os.environ.get("OPERON_BYOC_FRAME_ID", "")),
+        ("x-science-install-id", os.environ.get("OPERON_BYOC_INSTALL_ID", "")),
+        ("x-science-org", os.environ.get("OPERON_BYOC_ORG_ID", "")),
+        ("x-science-frame", os.environ.get("OPERON_BYOC_FRAME_ID", "")),
     )
     if value
 }

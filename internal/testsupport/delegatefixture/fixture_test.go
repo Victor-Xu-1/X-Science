@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/server"
-	delegatefixture "synon-go/internal/testsupport/delegatefixture"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/server"
+	delegatefixture "x-science/internal/testsupport/delegatefixture"
 )
 
 func TestSeedCreatesBrowserReadableDelegateChildFrameLifecycle(t *testing.T) {
@@ -29,7 +29,7 @@ func TestSeedCreatesBrowserReadableDelegateChildFrameLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	request.Header.Set("X-Synon-User-Id", fixture.UserID)
+	request.Header.Set("X-Science-User-Id", fixture.UserID)
 	response, err := app.Client().Do(request)
 	if err != nil {
 		t.Fatal(err)
@@ -102,7 +102,7 @@ func TestSeedCreatesBrowserReadableDelegateChildFrameLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	frameRequest.Header.Set("X-Synon-User-Id", fixture.UserID)
+	frameRequest.Header.Set("X-Science-User-Id", fixture.UserID)
 	frameResponse, err := app.Client().Do(frameRequest)
 	if err != nil {
 		t.Fatal(err)
@@ -120,7 +120,7 @@ func TestSeedCreatesBrowserReadableDelegateChildFrameLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	messagesRequest.Header.Set("X-Synon-User-Id", fixture.UserID)
+	messagesRequest.Header.Set("X-Science-User-Id", fixture.UserID)
 	messagesResponse, err := app.Client().Do(messagesRequest)
 	if err != nil {
 		t.Fatal(err)

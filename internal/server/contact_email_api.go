@@ -8,7 +8,7 @@ import (
 	"strings"
 	"unicode"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const contactEmailNoticeText = `Some research data services (such as those run by NCBI, EBI, and OurResearch) ask for a contact email on API requests so they can reach out about problematic traffic. X-Science can send one on your behalf — whether the request comes from built-in tools or from code the agent writes for you.

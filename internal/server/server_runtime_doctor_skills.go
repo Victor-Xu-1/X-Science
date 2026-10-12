@@ -4,9 +4,10 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"synon-go/internal/skills"
-	"synon-go/internal/toolcontract"
-	"synon-go/internal/tools/registry"
+	"x-science/internal/buildinfo"
+	"x-science/internal/skills"
+	"x-science/internal/toolcontract"
+	"x-science/internal/tools/registry"
 )
 
 func statusForSkills(catalog *skills.Catalog, loadErrors []skills.LoadError) string {
@@ -31,10 +32,10 @@ func (s *Server) skillsDoctorArea() (string, string, map[string]any, []string) {
 	hasSkillSearch := hasRegisteredTool(s.tools, toolcontract.SearchSkills)
 	skillToolReady := hasRegisteredTool(s.tools, toolcontract.Skill)
 	hasSelfContainedSkillCatalog := skillCatalogSelfContained(s.skillDirectories)
-	// Explicit SkillDirectories still accepts project .synon/skills paths. That
+	// Explicit SkillDirectories still accepts project .x-science/skills paths. That
 	// compatibility must not be confused with implicitly trusting the process
 	// cwd or its ancestors.
-	hasProjectSynonSkillCompatibility := len(s.skillDirectories) > 0
+	hasProjectXScienceSkillCompatibility := len(s.skillDirectories) > 0
 	usesPersonalSkillDefaults := skillDirectoriesUsePersonalDefaults(s.skillDirectories)
 	personalSkillDirectoriesExcluded := !usesPersonalSkillDefaults
 	hasSkillSourceDiagnostics := len(skillSourcePaths) > 0
@@ -49,7 +50,7 @@ func (s *Server) skillsDoctorArea() (string, string, map[string]any, []string) {
 		hasSkillSearch &&
 		skillToolReady &&
 		hasSelfContainedSkillCatalog &&
-		hasProjectSynonSkillCompatibility &&
+		hasProjectXScienceSkillCompatibility &&
 		personalSkillDirectoriesExcluded &&
 		hasSkillSourceDiagnostics &&
 		hasSkillReferenceDiagnostics &&
@@ -73,7 +74,7 @@ func (s *Server) skillsDoctorArea() (string, string, map[string]any, []string) {
 	if !hasSelfContainedSkillCatalog {
 		next = append(next, "Use the packaged skill tree or explicitly configured project-local skill directories; do not depend on personal default skill paths.")
 	}
-	if !hasProjectSynonSkillCompatibility {
+	if !hasProjectXScienceSkillCompatibility {
 		next = append(next, "Configure an explicit trusted skill directory or use the packaged skill catalog.")
 	}
 	if usesPersonalSkillDefaults {
@@ -83,29 +84,29 @@ func (s *Server) skillsDoctorArea() (string, string, map[string]any, []string) {
 		next = append(next, "Expose skill source and bounded reference diagnostics for runtime audit and replay.")
 	}
 	evidence := map[string]any{
-		"hasSkillSearch":                      hasSkillSearch,
-		"hasSkillTool":                        skillToolReady,
-		"hasInlineSkillInvocation":            skillToolReady,
-		"hasSkillPromptRendering":             skillToolReady,
-		"hasSkillArgumentSubstitution":        skillToolReady,
-		"hasSkillIndexedArgumentSubstitution": skillToolReady,
-		"hasSkillNamedArgumentSubstitution":   skillToolReady,
-		"hasSkillDirectorySubstitution":       skillToolReady,
-		"hasSelfContainedSkillCatalog":        hasSelfContainedSkillCatalog,
-		"hasProjectSynonSkillCompatibility":   hasProjectSynonSkillCompatibility,
-		"usesPersonalSkillDefaults":           usesPersonalSkillDefaults,
-		"personalSkillDirectoriesExcluded":    personalSkillDirectoriesExcluded,
-		"hasDeterministicSkillSelect":         hasSkillSearch,
-		"hasSkillSourceDiagnostics":           hasSkillSourceDiagnostics,
-		"hasSkillReferenceDiagnostics":        hasSkillReferenceDiagnostics,
-		"hasBoundedSkillReferences":           hasBoundedSkillReferences,
-		"skillSourcePaths":                    skillSourcePaths,
-		"skillReferences":                     skillReferences,
-		"skillCatalogLoaded":                  s != nil && s.skillCatalog != nil,
-		"skillCount":                          skillCount,
-		"skillLoadErrors":                     len(s.skillErrors),
-		"skillDirectories":                    s.skillDirectories,
-		"skillCatalogReady":                   skillCatalogReady,
+		"hasSkillSearch":                       hasSkillSearch,
+		"hasSkillTool":                         skillToolReady,
+		"hasInlineSkillInvocation":             skillToolReady,
+		"hasSkillPromptRendering":              skillToolReady,
+		"hasSkillArgumentSubstitution":         skillToolReady,
+		"hasSkillIndexedArgumentSubstitution":  skillToolReady,
+		"hasSkillNamedArgumentSubstitution":    skillToolReady,
+		"hasSkillDirectorySubstitution":        skillToolReady,
+		"hasSelfContainedSkillCatalog":         hasSelfContainedSkillCatalog,
+		"hasProjectXScienceSkillCompatibility": hasProjectXScienceSkillCompatibility,
+		"usesPersonalSkillDefaults":            usesPersonalSkillDefaults,
+		"personalSkillDirectoriesExcluded":     personalSkillDirectoriesExcluded,
+		"hasDeterministicSkillSelect":          hasSkillSearch,
+		"hasSkillSourceDiagnostics":            hasSkillSourceDiagnostics,
+		"hasSkillReferenceDiagnostics":         hasSkillReferenceDiagnostics,
+		"hasBoundedSkillReferences":            hasBoundedSkillReferences,
+		"skillSourcePaths":                     skillSourcePaths,
+		"skillReferences":                      skillReferences,
+		"skillCatalogLoaded":                   s != nil && s.skillCatalog != nil,
+		"skillCount":                           skillCount,
+		"skillLoadErrors":                      len(s.skillErrors),
+		"skillDirectories":                     s.skillDirectories,
+		"skillCatalogReady":                    skillCatalogReady,
 	}
 	return status, "Go runtime loads self-contained SKILL.md catalogs from the packaged skill tree and explicitly configured directories, supports project-local X-Science skill compatibility without default personal-directory leakage, renders inline Skill prompts with argument and skill-directory substitution, invokes skill calls with full source metadata, injects selected skill context with bounded references, and exposes deterministic search_skills diagnostics for replay.", evidence, next
 }
@@ -147,7 +148,7 @@ func (s *Server) skillRuntimeDiagnostics() ([]string, []map[string]any) {
 func skillDirectoriesUsePersonalDefaults(directories []string) bool {
 	for _, directory := range directories {
 		value := strings.ToLower(filepath.ToSlash(filepath.Clean(strings.TrimSpace(directory))))
-		if strings.Contains(value, "/.codex/skills") || strings.Contains(value, "/.claude/skills") || strings.Contains(value, "/.config/synon/skills") {
+		if strings.Contains(value, "/.codex/skills") || strings.Contains(value, "/.claude/skills") || strings.Contains(value, "/.config/xscience/skills") {
 			return true
 		}
 	}
@@ -163,7 +164,9 @@ func skillCatalogSelfContained(directories []string) bool {
 		if value == "" {
 			continue
 		}
-		if strings.HasPrefix(value, "builtin:") || value == "skills" || strings.HasSuffix(value, "/skills") {
+		packaged := "skills/" + buildinfo.Release().MachineSlug
+		if strings.HasPrefix(value, "builtin:") || value == "skills" || strings.HasSuffix(value, "/skills") ||
+			value == packaged || strings.HasSuffix(value, "/"+packaged) {
 			return true
 		}
 	}

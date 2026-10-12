@@ -32,6 +32,10 @@ func (m *Manager) managedEnvironmentRoot() (string, error) {
 }
 
 func (m *Manager) readManagedEnvironment(name string, includePackages bool) (ManagedEnvironment, error) {
+	name, aliasErr := m.resolveNamespaceImportedEnvironmentInput(name)
+	if aliasErr != nil {
+		return ManagedEnvironment{}, aliasErr
+	}
 	if err := validateManagedEnvironmentName(name); err != nil {
 		return ManagedEnvironment{}, err
 	}
@@ -61,7 +65,7 @@ func (m *Manager) readManagedEnvironment(name string, includePackages bool) (Man
 		packages = append(packages, marker.Packages...)
 	}
 	status := "ready"
-	needsRebuild, err := managedEnvironmentNeedsRebuild(prefix, marker)
+	needsRebuild, err := managedEnvironmentNeedsRebuild(managedMarkerRuntimePrefix(prefix, marker), marker)
 	if err != nil {
 		return ManagedEnvironment{}, err
 	}
@@ -75,6 +79,10 @@ func (m *Manager) readManagedEnvironment(name string, includePackages bool) (Man
 // environment created by the generic manager. A legacy unmanaged environment
 // returns found=false; a present but corrupt generic environment fails closed.
 func (m *Manager) ManagedEnvironmentActiveGeneration(name string) (generation string, found bool, err error) {
+	name, err = m.resolveNamespaceImportedEnvironmentInput(name)
+	if err != nil {
+		return "", false, err
+	}
 	if err := validateManagedEnvironmentName(name); err != nil {
 		return "", false, err
 	}
@@ -95,7 +103,11 @@ func (m *Manager) ManagedEnvironmentActiveGeneration(name string) (generation st
 		return "", false, errors.New("managed environment generation is unavailable")
 	}
 	if _, err := os.Stat(filepath.Join(prefix, managedEnvironmentMarkerName)); errors.Is(err, os.ErrNotExist) {
-		return "", false, nil
+		if _, previousErr := os.Stat(filepath.Join(prefix, previousNamespaceEnvironmentMarkerName)); errors.Is(previousErr, os.ErrNotExist) {
+			return "", false, nil
+		} else if previousErr != nil {
+			return "", false, errors.New("managed environment previous namespace marker is unavailable")
+		}
 	} else if err != nil {
 		return "", false, errors.New("managed environment generation marker is unavailable")
 	}
@@ -111,11 +123,14 @@ func (m *Manager) ManagedEnvironmentActiveGeneration(name string) (generation st
 		return "", false, err
 	}
 	runtimePrefix := prefix
-	if marker.Kind == "path-venv" {
+	if managedMarkerUsesExternalRuntime(marker) {
 		runtimePrefix = marker.RuntimePath
 	}
 	healthContext, cancel := context.WithTimeout(context.Background(), managedEnvironmentHealthTimeout)
 	defer cancel()
+	if marker.NamespaceImport != nil {
+		healthContext = context.WithValue(healthContext, namespaceEnvironmentReadOnlyProbeKey{}, true)
+	}
 	if err := m.validateManagedEnvironmentGeneration(
 		healthContext, marker.Generation, marker.Language, runtimePrefix, marker.Packages, marker.ImportNames,
 	); err != nil {
@@ -129,6 +144,10 @@ func (m *Manager) ManagedEnvironmentActiveGeneration(name string) (generation st
 // installer or generation-root authority; the returned path is suitable only
 // for read-only runtime execution (PATH/CONDA_PREFIX binding).
 func (m *Manager) ManagedEnvironmentRuntimePrefix(name string) (prefix string, found bool, err error) {
+	name, err = m.resolveNamespaceImportedEnvironmentInput(name)
+	if err != nil {
+		return "", false, err
+	}
 	if _, found, err = m.ManagedEnvironmentActiveGeneration(name); err != nil || !found {
 		return "", found, err
 	}
@@ -136,7 +155,7 @@ func (m *Manager) ManagedEnvironmentRuntimePrefix(name string) (prefix string, f
 	if err != nil {
 		return "", true, err
 	}
-	if marker.Kind == "path-venv" {
+	if managedMarkerUsesExternalRuntime(marker) {
 		if strings.TrimSpace(marker.RuntimePath) == "" || !filepath.IsAbs(marker.RuntimePath) {
 			return "", true, errors.New("registered environment runtime path is invalid")
 		}
@@ -158,9 +177,13 @@ func (m *Manager) ManagedEnvironmentRuntimePrefix(name string) (prefix string, f
 }
 
 // RegisteredEnvironmentPaths returns the external read-only authority behind
-// an active path-venv registration. Callers must revalidate owner grants and
+// an active external registration. Callers must revalidate owner grants and
 // protected paths immediately before deriving a managed package generation.
 func (m *Manager) RegisteredEnvironmentPaths(name string) (sourcePath, runtimePath string, found bool, err error) {
+	name, err = m.resolveNamespaceImportedEnvironmentInput(name)
+	if err != nil {
+		return "", "", false, err
+	}
 	if err := validateManagedEnvironmentName(name); err != nil {
 		return "", "", false, err
 	}
@@ -168,7 +191,7 @@ func (m *Manager) RegisteredEnvironmentPaths(name string) (sourcePath, runtimePa
 	if err != nil {
 		return "", "", false, err
 	}
-	if marker.Kind != "path-venv" {
+	if !managedMarkerUsesExternalRuntime(marker) {
 		return "", "", false, nil
 	}
 	return marker.SourcePath, marker.RuntimePath, true, nil
@@ -269,7 +292,7 @@ func inspectRegisteredPythonVersion(ctx context.Context, prefix string) (string,
 	if err != nil {
 		return "", errors.New("registered environment Python interpreter is unavailable")
 	}
-	command := newWorkerProcessCommand(ctx, python, "-I", "-c", "import sys;print(f'SYNON_PYTHON_VERSION={sys.version_info[0]}.{sys.version_info[1]}')")
+	command := newWorkerProcessCommand(ctx, python, "-I", "-c", "import sys;print(f'X_SCIENCE_PYTHON_VERSION={sys.version_info[0]}.{sys.version_info[1]}')")
 	command.Env = managedEnvironmentRuntimeEnv(prefix)
 	var stdout bytes.Buffer
 	stderr := newTailBuffer(maxDiagnosticBytes)
@@ -277,7 +300,7 @@ func inspectRegisteredPythonVersion(ctx context.Context, prefix string) (string,
 	if err := runWorkerProcess(command); err != nil {
 		return "", fmt.Errorf("inspect registered environment Python version: %w: %s", err, strings.TrimSpace(stderr.String()))
 	}
-	version := strings.TrimPrefix(strings.TrimSpace(stdout.String()), "SYNON_PYTHON_VERSION=")
+	version := strings.TrimPrefix(strings.TrimSpace(stdout.String()), "X_SCIENCE_PYTHON_VERSION=")
 	if !managedPythonVersion.MatchString(version) {
 		return "", errors.New("registered environment Python version is invalid")
 	}

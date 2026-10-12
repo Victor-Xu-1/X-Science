@@ -119,7 +119,7 @@ an isolated temporary runtime:
 
 ```sh
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/quality/startup_smoke_gate.py \
-  --binary ./path/to/synon --timeout-seconds 30
+  --binary ./path/to/xscience --timeout-seconds 30
 ```
 
 The binary path must be relative to the current directory. The gate selects a
@@ -185,6 +185,19 @@ aggregate still depends on that partition succeeding. Invalid partition inputs
 fail before they can skip this verification. Other partitions keep all their
 assigned Go tests without repeating identical Python/CI checks.
 
+Frontend public bootstrap and service-worker sources have explicit existing
+behavior-test owners. Browser/real-backend test harnesses and their runner
+configuration are syntax-compiled without evaluating imports or starting real
+tasks; this is not browser or scientific acceptance. Renamed harness inputs
+route through unique regular-file Git counterparts, retaining actual changes.
+Snapshot fixture inputs retain the mandatory content/provenance audit and are
+not mislabeled as Vitest modules. Product source changes still run their real
+dependency-related unit/component tests and production build; unowned runtime
+inputs fail rather than expanding into an unauthorized global suite.
+The root npm manifest and lockfile retain locked installation, canonical
+dependency/provenance, type/lint/format and product-build checks. They are build
+inputs, not documentation and not executable Vitest modules.
+
 The authoritative full workflow is `.github/workflows/quality.yml`. It runs by
 manual dispatch and daily at 02:00 in the explicit `Asia/Shanghai` timezone on
 the default branch, combining these gates with frontend type/lint/test/build checks,
@@ -202,6 +215,17 @@ import consumer. Missing declarations or unavailable owners retain conservative
 coverage. These declarations cannot exempt runtime tests or replace the scheduled
 full release matrix. Installer build inputs retain the same runtime consumers
 as the resulting installer, including the asset-integrity and environment tests.
+An exact manifest/root declaration expands only that manifest's listed regular
+files, not a directory or wildcard. Immutable Git counterparts can route retired
+namespace paths to these current owners without dropping changed behavior;
+content-addressed Conda counterparts additionally require identical locked
+package records. Unknown or ambiguous counterparts retain conservative handling.
+The standalone `go_namespace_equivalence.go` checker is an exact verification
+input, not a blanket Go exemption: actual Go or embedded-file ownership wins.
+Optional scientific-engine test sources have an explicit inert Python syntax
+check and retain their declared Go consumers. This does not claim RDKit,
+single-cell analysis, scientific-task execution, or native Windows lifecycle
+acceptance; those require their own appropriate environment and evidence.
 GitHub's scheduled execution can be delayed by runner/platform load. When hosted
 execution is unavailable, local evidence must identify the exact revision,
 environment, tested scope and missing gates under a distinct local status; it

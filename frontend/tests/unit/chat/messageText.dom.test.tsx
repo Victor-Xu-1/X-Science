@@ -10,7 +10,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IMessageText } from '@/common/chat/chatLib';
 import { ipcBridge } from '@/common';
 import { ConversationProvider } from '@/renderer/hooks/context/ConversationContext';
-import MessageText from '@/renderer/pages/conversation/Messages/components/MessageText';
+import MessageText, { parseFileMarker } from '@/renderer/pages/conversation/Messages/components/MessageText';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import {
   LARGE_TEXT_PREVIEW_MAX_LENGTH,
@@ -54,9 +54,9 @@ vi.mock('@/renderer/pages/conversation/Preview/context/PreviewContext', () => ({
     openPreview: previewMocks.openPreview,
   }),
 }));
-vi.mock('@/renderer/pages/conversation/Messages/useSynonBiomedArtifactLinkPreview', () => ({
-  useSynonBiomedArtifactLinkPreview: () => artifactLinkMocks.handle,
-  useSynonBiomedArtifactResolver: () => ({
+vi.mock('@/renderer/pages/conversation/Messages/useXScienceArtifactLinkPreview', () => ({
+  useXScienceArtifactLinkPreview: () => artifactLinkMocks.handle,
+  useXScienceArtifactResolver: () => ({
     handleLink: artifactLinkMocks.handle,
     resolveImage: vi.fn().mockResolvedValue(null),
   }),
@@ -126,7 +126,7 @@ vi.mock('@/renderer/utils/chat/thinkTagFilter', () => ({
   stripThinkTags: (content: string) => content,
 }));
 
-vi.mock('@/renderer/utils/synonBiomed/runtime/runtimeLogo', () => ({
+vi.mock('@/renderer/utils/xScience/runtime/runtimeLogo', () => ({
   useAgentLogos: () => ({}),
   resolveAgentLogo: () => null,
 }));
@@ -176,6 +176,25 @@ const fileMetadata = (path: string) => ({
 });
 
 describe('MessageText attachment paths', () => {
+  it.each(['[[X_SCIENCE_FILES]]', '[[SYNON_AI_FILES]]'])(
+    'reads the exact published file marker %s without rewriting message bytes',
+    (marker) => {
+      const original = `Retained report\n${marker}\n/workspace/report.csv\nrelative.sdf`;
+      expect(parseFileMarker(original)).toEqual({
+        text: 'Retained report',
+        files: ['/workspace/report.csv', 'relative.sdf'],
+      });
+      render(
+        <MessageText
+          message={{ id: marker, type: 'text', position: 'left', content: { content: original } } as IMessageText}
+        />
+      );
+      expect(screen.getAllByTestId('file-preview').map((item) => item.textContent)).toEqual([
+        '/workspace/report.csv',
+        'relative.sdf',
+      ]);
+    }
+  );
   it('keeps a folded historical delivery inventory expandable and copies its original text', async () => {
     const original =
       'Verified result.\n\nDeliverables\n\n- [a.csv](/api/artifacts/a/versions/v1)\n- [b.csv](/api/artifacts/b/versions/v2)';
@@ -248,7 +267,7 @@ describe('MessageText attachment paths', () => {
       <ConversationProvider
         value={{
           conversation_id: 'frame-stat6',
-          workspace: 'synonbiomed://proj_stat6',
+          workspace: 'x-science://proj_stat6',
           type: 'acp',
         }}
       >
@@ -295,7 +314,7 @@ describe('MessageText attachment paths', () => {
       <ConversationProvider
         value={{
           conversation_id: 'frame-artifacts',
-          workspace: 'synonbiomed://project-artifacts',
+          workspace: 'x-science://project-artifacts',
           type: 'acp',
         }}
       >
@@ -335,13 +354,13 @@ describe('MessageText attachment paths', () => {
       );
       expect(screen.getByText('partial answer')).toBeInTheDocument();
       expect(screen.getByTestId('terminal-failure-alert')).toHaveTextContent(
-        'conversation.synonRuntime.runtimeOperations.taskFailed'
+        'conversation.xscienceRuntime.runtimeOperations.taskFailed'
       );
       expect(screen.getByTestId('terminal-failure-alert')).not.toHaveTextContent(
-        'conversation.synonRuntime.runtimeOperations.failureResultRejected'
+        'conversation.xscienceRuntime.runtimeOperations.failureResultRejected'
       );
       expect(screen.getByTestId('terminal-failure-alert')).toHaveTextContent(
-        'conversation.synonRuntime.runtimeOperations.assistantResponseIncomplete'
+        'conversation.xscienceRuntime.runtimeOperations.assistantResponseIncomplete'
       );
 
       view.rerender(
@@ -359,7 +378,7 @@ describe('MessageText attachment paths', () => {
       expect(screen.getByText('partial answer')).toBeInTheDocument();
       if (failureSource === 'durable-failure') {
         expect(screen.getByTestId('terminal-failure-history')).toHaveTextContent(
-          'conversation.synonRuntime.runtimeOperations.historicalResponseIncomplete'
+          'conversation.xscienceRuntime.runtimeOperations.historicalResponseIncomplete'
         );
       }
     }
@@ -430,7 +449,7 @@ describe('MessageText attachment paths', () => {
       position: 'right',
       createdAt: Date.now(),
       content: {
-        content: 'look at this\n\n[[SYNON_AI_FILES]]\nuploads/photo.png',
+        content: 'look at this\n\n[[X_SCIENCE_FILES]]\nuploads/photo.png',
       },
     };
 
@@ -488,7 +507,7 @@ describe('MessageText attachment paths', () => {
       position: 'right',
       createdAt: Date.now(),
       content: {
-        content: 'look at this\n\n[[SYNON_AI_FILES]]\n/Users/demo/Desktop/photo.png',
+        content: 'look at this\n\n[[X_SCIENCE_FILES]]\n/Users/demo/Desktop/photo.png',
       },
     };
 

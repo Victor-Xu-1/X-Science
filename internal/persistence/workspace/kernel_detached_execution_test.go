@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/kernelcontract"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	"synon-go/internal/software"
-	"synon-go/internal/software/localconda"
+	"x-science/internal/kernelcontract"
+	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/software"
+	"x-science/internal/software/localconda"
 )
 
 func TestKernelExecutionBackendFencesAtomicDetachedAcceptance(t *testing.T) {
@@ -46,7 +46,7 @@ func TestKernelExecutionBackendFencesAtomicDetachedAcceptance(t *testing.T) {
 		RootFrameIncarnationID: prepared.RootFrameIncarnationID, FrameID: prepared.FrameID,
 		FrameIncarnationID: prepared.FrameIncarnationID, KernelID: prepared.KernelID,
 		KernelGeneration: prepared.KernelGeneration, ExecutorInstanceID: "executor-detached-api",
-		MachineBootID: "machine-boot-a", SocketPath: "/run/user/1000/synon-biomed/backend-detached-api.sock",
+		MachineBootID: "machine-boot-a", SocketPath: "/run/user/1000/x-science/backend-detached-api.sock",
 		BackendGeneration: 1, SessionSpec: kernelExecutionSessionSpecForTest(prepared),
 	}
 	backend, err := store.CreateKernelExecutionBackend(ctx, createInput)
@@ -57,7 +57,7 @@ func TestKernelExecutionBackendFencesAtomicDetachedAcceptance(t *testing.T) {
 		t.Fatalf("create replay=%#v err=%v", replay, err)
 	}
 	conflictInput := createInput
-	conflictInput.SocketPath = "/run/user/1000/synon-biomed/conflict.sock"
+	conflictInput.SocketPath = "/run/user/1000/x-science/conflict.sock"
 	if _, err := store.CreateKernelExecutionBackend(ctx, conflictInput); !errors.Is(err, ErrKernelExecutionBackendConflict) {
 		t.Fatalf("conflicting create error=%v", err)
 	}
@@ -66,7 +66,7 @@ func TestKernelExecutionBackendFencesAtomicDetachedAcceptance(t *testing.T) {
 		BackendID: createInput.BackendID, BackendGeneration: createInput.BackendGeneration,
 		ExecutorInstanceID: createInput.ExecutorInstanceID, ExecutorPID: 1101, ExecutorPIDStartTicks: 90101,
 		WorkerPID: 1102, WorkerPIDStartTicks: 90102, WorkerPGID: 1102,
-		CgroupPath: "/user.slice/user-1000.slice/synon-biomed-kernel.scope", HeartbeatSequence: 1,
+		CgroupPath: "/user.slice/user-1000.slice/x-science-kernel.scope", HeartbeatSequence: 1,
 	}
 	backend, err = store.ActivateKernelExecutionBackend(ctx, activateInput)
 	if err != nil || backend.State != KernelExecutionBackendStateReady || backend.StateVersion != 2 ||
@@ -205,7 +205,7 @@ func TestCanonicalKernelDetachedExecutionRequestBindsBashCommand(t *testing.T) {
 		RootFrameIncarnationID: operation.RootFrameIncarnationID, FrameID: operation.FrameID,
 		FrameIncarnationID: operation.FrameIncarnationID, AgentName: "OPERON",
 		KernelKind: "bash", Language: "python", Environment: operation.Environment,
-		WorkspaceDir: "/tmp/synon-biomed-detached-bash", Mounts: []KernelExecutionMountSpecV1{},
+		WorkspaceDir: "/tmp/x-science-detached-bash", Mounts: []KernelExecutionMountSpecV1{},
 		ProtectedPaths: []string{},
 	}
 	_, sessionJSON, sessionSHA, err := canonicalKernelExecutionSessionSpec(session)
@@ -264,7 +264,7 @@ func TestCanonicalKernelDetachedExecutionRequestResolvesRelativeWorkingDir(t *te
 		Tool: kernelcontract.PythonTool, Environment: "science", InputJSON: inputJSON,
 		State: KernelLocalOperationStateStarted,
 	}
-	const workspaceDir = "/tmp/synon-biomed-relative-cwd"
+	const workspaceDir = "/tmp/x-science-relative-cwd"
 	session := KernelExecutionSessionSpecV1{
 		Version: 1, KernelID: operation.KernelID, OwnerUserID: operation.OwnerUserID,
 		ProjectID: operation.ProjectID, RootFrameID: operation.RootFrameID,
@@ -349,7 +349,7 @@ func TestSoftwareRuntimeDetachedAcceptanceBindsGeneratedLauncherToDurableRequest
 		RootFrameIncarnationID: prepared.RootFrameIncarnationID, FrameID: prepared.FrameID,
 		FrameIncarnationID: prepared.FrameIncarnationID, KernelID: prepared.KernelID,
 		KernelGeneration: prepared.KernelGeneration, ExecutorInstanceID: "executor-software-detached",
-		MachineBootID: "machine-software-detached", SocketPath: "/run/user/1000/synon-biomed/backend-software-detached.sock",
+		MachineBootID: "machine-software-detached", SocketPath: "/run/user/1000/x-science/backend-software-detached.sock",
 		BackendGeneration: 1, SessionSpec: sessionSpec,
 	})
 	if err != nil {
@@ -359,7 +359,7 @@ func TestSoftwareRuntimeDetachedAcceptanceBindsGeneratedLauncherToDurableRequest
 		BackendID: backend.BackendID, BackendGeneration: backend.BackendGeneration,
 		ExecutorInstanceID: backend.ExecutorInstanceID, ExecutorPID: 3101, ExecutorPIDStartTicks: 90301,
 		WorkerPID: 3102, WorkerPIDStartTicks: 90302, WorkerPGID: 3102,
-		CgroupPath: "/user.slice/user-1000.slice/synon-biomed-software-detached.scope", HeartbeatSequence: 1,
+		CgroupPath: "/user.slice/user-1000.slice/x-science-software-detached.scope", HeartbeatSequence: 1,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -768,7 +768,7 @@ func TestKernelExecutionBackendRecreatesInPlaceAfterEvidenceLost(t *testing.T) {
 		FrameIncarnationID: backend.FrameIncarnationID, KernelID: backend.KernelID,
 		KernelGeneration: backend.KernelGeneration, ExecutorInstanceID: "executor-replacement-new-row",
 		MachineBootID:     "machine-boot-new-row",
-		SocketPath:        "/run/user/1000/synon-biomed/backend-replacement-new.sock",
+		SocketPath:        "/run/user/1000/x-science/backend-replacement-new.sock",
 		BackendGeneration: 1, SessionSpec: spec,
 	}); err == nil || duplicate.BackendID != "" {
 		t.Fatalf("duplicate session row unexpectedly accepted: %#v err=%v", duplicate, err)
@@ -803,7 +803,7 @@ func TestKernelExecutionBackendRecreatesInPlaceAfterEvidenceLost(t *testing.T) {
 	recreated, err := store.RecreateKernelExecutionBackend(ctx, RecreateKernelExecutionBackendInput{
 		BackendID: backend.BackendID, ExecutorInstanceID: "executor-recreated",
 		MachineBootID: "machine-boot-recreated",
-		SocketPath:    "/run/user/1000/synon-biomed/backend-detached-lifecycle.sock",
+		SocketPath:    "/run/user/1000/x-science/backend-detached-lifecycle.sock",
 		KernelID:      backend.KernelID, KernelGeneration: backend.KernelGeneration,
 		SessionSpec: spec,
 	})
@@ -829,7 +829,7 @@ func TestKernelExecutionBackendRecreatesInPlaceAfterEvidenceLost(t *testing.T) {
 	restarted, err := store.RecreateKernelExecutionBackend(ctx, RecreateKernelExecutionBackendInput{
 		BackendID: backend.BackendID, ExecutorInstanceID: "executor-restarted-before-ready",
 		MachineBootID: "machine-boot-restarted-before-ready",
-		SocketPath:    "/run/user/1000/synon-biomed/backend-detached-lifecycle.sock",
+		SocketPath:    "/run/user/1000/x-science/backend-detached-lifecycle.sock",
 		KernelID:      backend.KernelID, KernelGeneration: backend.KernelGeneration,
 		SessionSpec: spec,
 	})
@@ -844,7 +844,7 @@ func TestKernelExecutionBackendRecreatesInPlaceAfterEvidenceLost(t *testing.T) {
 	if _, err := store.RecreateKernelExecutionBackend(ctx, RecreateKernelExecutionBackendInput{
 		BackendID: backend.BackendID, ExecutorInstanceID: "executor-recreated",
 		MachineBootID: "machine-boot-recreated",
-		SocketPath:    "/run/user/1000/synon-biomed/backend-detached-lifecycle.sock",
+		SocketPath:    "/run/user/1000/x-science/backend-detached-lifecycle.sock",
 		KernelID:      backend.KernelID, KernelGeneration: backend.KernelGeneration,
 		SessionSpec: spec,
 	}); !errors.Is(err, ErrKernelExecutionBackendStale) {
@@ -864,7 +864,7 @@ func TestKernelExecutionBackendRecreatesInPlaceAfterEvidenceLost(t *testing.T) {
 		BackendID: restarted.BackendID, BackendGeneration: restarted.BackendGeneration,
 		ExecutorInstanceID: restarted.ExecutorInstanceID, ExecutorPID: 3101, ExecutorPIDStartTicks: 90301,
 		WorkerPID: 3102, WorkerPIDStartTicks: 90302, WorkerPGID: 3102,
-		CgroupPath: "/user.slice/user-1000.slice/synon-biomed-recreated.scope", HeartbeatSequence: 1,
+		CgroupPath: "/user.slice/user-1000.slice/x-science-recreated.scope", HeartbeatSequence: 1,
 	})
 	if err != nil || activated.State != KernelExecutionBackendStateReady ||
 		activated.BackendGeneration != 3 || activated.ExecutorPID != 3101 {
@@ -873,7 +873,7 @@ func TestKernelExecutionBackendRecreatesInPlaceAfterEvidenceLost(t *testing.T) {
 	if _, err := store.RecreateKernelExecutionBackend(ctx, RecreateKernelExecutionBackendInput{
 		BackendID: backend.BackendID, ExecutorInstanceID: "executor-stale-restart",
 		MachineBootID: "machine-boot-stale-restart",
-		SocketPath:    "/run/user/1000/synon-biomed/backend-detached-lifecycle.sock",
+		SocketPath:    "/run/user/1000/x-science/backend-detached-lifecycle.sock",
 		KernelID:      backend.KernelID, KernelGeneration: backend.KernelGeneration,
 		SessionSpec: spec,
 	}); !errors.Is(err, ErrKernelExecutionBackendStale) {
@@ -885,7 +885,7 @@ func TestKernelExecutionBackendRecreatesInPlaceAfterEvidenceLost(t *testing.T) {
 	wrongSpec.WorkspaceDir = "/tmp/different"
 	if _, err := store.RecreateKernelExecutionBackend(ctx, RecreateKernelExecutionBackendInput{
 		BackendID: backend.BackendID, ExecutorInstanceID: "executor-wrong-spec",
-		MachineBootID: "machine-boot-wrong-spec", SocketPath: "/run/user/1000/synon-biomed/wrong.sock",
+		MachineBootID: "machine-boot-wrong-spec", SocketPath: "/run/user/1000/x-science/wrong.sock",
 		KernelID: backend.KernelID, KernelGeneration: backend.KernelGeneration,
 		SessionSpec: wrongSpec,
 	}); !errors.Is(err, ErrKernelExecutionBackendConflict) {
@@ -922,7 +922,7 @@ func TestKernelExecutionBackendAdvancesKernelGenerationForChangedSessionAuthorit
 		FrameIncarnationID: backend.FrameIncarnationID, KernelID: backend.KernelID,
 		KernelGeneration: predecessor.KernelGeneration + 1, SessionSpec: changed,
 		ExecutorInstanceID: "executor-authority-successor", MachineBootID: "boot-authority-successor",
-		SocketPath: "/run/user/1000/synon-biomed/backend-authority-successor.sock", BackendGeneration: 1,
+		SocketPath: "/run/user/1000/x-science/backend-authority-successor.sock", BackendGeneration: 1,
 	})
 	if err != nil || replacement.KernelGeneration != 2 || replacement.State != KernelExecutionBackendStateStarting {
 		t.Fatalf("authority successor=%#v err=%v", replacement, err)
@@ -966,7 +966,7 @@ func acceptDetachedKernelExecutionFixture(t *testing.T, store *Store, repo *tran
 		FrameIncarnationID: prepared.FrameIncarnationID, KernelID: prepared.KernelID,
 		KernelGeneration: prepared.KernelGeneration, ExecutorInstanceID: "executor-detached-lifecycle" + identitySuffix,
 		MachineBootID: "machine-boot-lifecycle",
-		SocketPath:    "/run/user/1000/synon-biomed/backend-detached-lifecycle" + identitySuffix + ".sock", BackendGeneration: 1,
+		SocketPath:    "/run/user/1000/x-science/backend-detached-lifecycle" + identitySuffix + ".sock", BackendGeneration: 1,
 		SessionSpec: kernelExecutionSessionSpecForTest(prepared),
 	})
 	if err != nil {
@@ -976,7 +976,7 @@ func acceptDetachedKernelExecutionFixture(t *testing.T, store *Store, repo *tran
 		BackendID: backend.BackendID, BackendGeneration: backend.BackendGeneration,
 		ExecutorInstanceID: backend.ExecutorInstanceID, ExecutorPID: 2101, ExecutorPIDStartTicks: 90201,
 		WorkerPID: 2102, WorkerPIDStartTicks: 90202, WorkerPGID: 2102,
-		CgroupPath: "/user.slice/user-1000.slice/synon-biomed-detached-lifecycle.scope", HeartbeatSequence: 1,
+		CgroupPath: "/user.slice/user-1000.slice/x-science-detached-lifecycle.scope", HeartbeatSequence: 1,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -1009,10 +1009,10 @@ func TestKernelExecutionSessionSpecPreservesCanonicalEgressPolicy(t *testing.T) 
 		RootFrameID: "root", RootFrameIncarnationID: "root-incarnation",
 		FrameID: "frame", FrameIncarnationID: "frame-incarnation", AgentName: "agent",
 		KernelKind: "analysis", Language: "python", Environment: "python",
-		WorkspaceDir: "/tmp/synon-egress-spec", Mounts: []KernelExecutionMountSpecV1{}, ProtectedPaths: []string{},
+		WorkspaceDir: "/tmp/x-science-egress-spec", Mounts: []KernelExecutionMountSpecV1{}, ProtectedPaths: []string{},
 		EgressAllowedDomains: []string{"API.Example.COM", "*.example.org"},
 		EgressDeniedDomains:  []string{"blocked.example.org", "s3.*.amazonaws.com"},
-		CABundle:             "/etc/synon/company.pem",
+		CABundle:             "/etc/xscience/company.pem",
 		UpstreamProxy:        "http://Proxy.Example:8080/",
 	}
 	normalized, encoded, _, err := canonicalKernelExecutionSessionSpec(spec)
@@ -1033,7 +1033,7 @@ func TestKernelExecutionSessionSpecPreservesCanonicalEgressPolicy(t *testing.T) 
 	if decoded.UpstreamProxy != "http://proxy.example:8080" {
 		t.Fatalf("decoded upstream proxy = %q", decoded.UpstreamProxy)
 	}
-	if decoded.CABundle != "/etc/synon/company.pem" {
+	if decoded.CABundle != "/etc/xscience/company.pem" {
 		t.Fatalf("decoded CA bundle = %q", decoded.CABundle)
 	}
 }
@@ -1068,7 +1068,7 @@ func TestKernelExecutionSessionSpecPreservesTrustedReadOnlyMount(t *testing.T) {
 		RootFrameID: "root", RootFrameIncarnationID: "root-incarnation",
 		FrameID: "frame", FrameIncarnationID: "frame-incarnation", Environment: "python",
 	})
-	spec.Mounts = []KernelExecutionMountSpecV1{{Path: "/opt/synon/skills", Trusted: true}}
+	spec.Mounts = []KernelExecutionMountSpecV1{{Path: "/opt/xscience/skills", Trusted: true}}
 	normalized, encoded, _, err := canonicalKernelExecutionSessionSpec(spec)
 	if err != nil {
 		t.Fatal(err)
@@ -1097,7 +1097,7 @@ func kernelExecutionSessionSpecForTest(operation KernelLocalOperation) KernelExe
 		RootFrameIncarnationID: operation.RootFrameIncarnationID, FrameID: operation.FrameID,
 		FrameIncarnationID: operation.FrameIncarnationID, AgentName: "OPERON",
 		KernelKind: "operon", Language: "python", Environment: operation.Environment,
-		WorkspaceDir: "/tmp/synon-biomed-detached-test", Mounts: []KernelExecutionMountSpecV1{},
+		WorkspaceDir: "/tmp/x-science-detached-test", Mounts: []KernelExecutionMountSpecV1{},
 		ProtectedPaths: []string{},
 	}
 }

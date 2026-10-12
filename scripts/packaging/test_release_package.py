@@ -47,7 +47,7 @@ class ReleasePackageTest(unittest.TestCase):
                 packaging.ensure_unused_package_tag('v0.1.3', 'x-science')
 
     def setUp(self):
-        self.identity = {"machine_slug": "synon-biomed", "version": "0.1.1"}
+        self.identity = {"machine_slug": "x-science", "version": "0.1.1"}
         self.revision = "a" * 40
         self.event = {
             "action": "published",

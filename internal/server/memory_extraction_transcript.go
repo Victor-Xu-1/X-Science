@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"strings"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/memoryextract"
-	"synon-go/internal/memorytools"
-	eventjournal "synon-go/internal/persistence/journal"
+	"x-science/internal/agentruntime"
+	"x-science/internal/memoryextract"
+	"x-science/internal/memorytools"
+	eventjournal "x-science/internal/persistence/journal"
 )
 
 func memoryExtractionMessages(messages []agentruntime.Message) []memoryextract.Message {

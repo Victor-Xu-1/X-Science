@@ -12,8 +12,8 @@ import (
 	"strings"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/software"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/software"
 )
 
 func TestStructureElectrostaticRuntimeUsesPinnedSmallStandardToolchain(t *testing.T) {
@@ -42,7 +42,7 @@ func TestStructureElectrostaticMapUsesTypedPDB2PQRInputAPI(t *testing.T) {
 		[]byte("float(ionic_strength)"),
 		[]byte("CALCULATION_MODE = \"separate-components\""),
 		[]byte("CONTRACT_VERSION = \"2.0\""),
-		[]byte("INPUT_DIGEST_DOMAIN = b\"synon-biomed:structure-electrostatic-input:v1\""),
+		[]byte("INPUT_DIGEST_DOMAIN = b\"x-science:structure-electrostatic-input:v1\""),
 		[]byte("to_bytes(8, \"little\")"),
 		[]byte("component_jobs.append((\"protein\", None, protein_pqr, protein_dx))"),
 		[]byte("component_jobs.extend((\"ligand\", key, ligand_pqr, ligand_dx)"),
@@ -125,7 +125,7 @@ func TestStructureElectrostaticInputDigestCanonicalVectors(t *testing.T) {
 			request: structureElectrostaticMapRequest{
 				Content: "ATOM\n", LigandMolBlock: "ligand\nM  END\n",
 			},
-			expected: "7f1faffd7cfa9e6101a8da2164dd42ca309e319540f684e26c2ed4f5dbbad9b0",
+			expected: "3e9504de47774cada1d2cbb3e75986bfca9e5d5555978d8a7a7c5f4230035eb2",
 		},
 		{
 			name: "batch",
@@ -136,7 +136,7 @@ func TestStructureElectrostaticInputDigestCanonicalVectors(t *testing.T) {
 					{Key: "D01", MolBlock: "one\nM  END\n"},
 				},
 			},
-			expected: "58bc763cbb1dd505055834ac4c95f1c9a9829d32017dd88c8f929bc807178b37",
+			expected: "1229329589a064c9e50e821e6fe2dd54ce8ec5f20a5b12a2c1384f482bc2399e",
 		},
 	}
 	for _, test := range tests {
@@ -152,7 +152,7 @@ func TestDecodeStructureElectrostaticMapRequestNormalizesScientificSettings(t *t
 	payload, err := json.Marshal(map[string]any{
 		"content":              "ATOM      1  N   ALA A   1       0.000   0.000   0.000  1.00  0.00           N\nEND\n",
 		"filename":             "9R1Z.cif",
-		"ligand_mol_block":     "ligand\n  Synon\n\n  0  0  0  0  0  0  0  0  0  0  1 V2000\nM  END\n",
+		"ligand_mol_block":     "ligand\n  XScience\n\n  0  0  0  0  0  0  0  0  0  0  1 V2000\nM  END\n",
 		"ph":                   7.444,
 		"ionic_strength_molar": 0.1546,
 	})
@@ -174,7 +174,7 @@ func TestDecodeStructureElectrostaticMapRequestNormalizesScientificSettings(t *t
 }
 
 func TestDecodeStructureElectrostaticMapRequestAcceptsAndSortsBoundedLigandBatch(t *testing.T) {
-	molBlock := "ligand\n  Synon\n\n  0  0  0  0  0  0  0  0  0  0  1 V2000\nM  END\n"
+	molBlock := "ligand\n  XScience\n\n  0  0  0  0  0  0  0  0  0  0  1 V2000\nM  END\n"
 	payload, err := json.Marshal(map[string]any{
 		"content":  "ATOM      1  N   ALA A   1       0.000   0.000   0.000  1.00  0.00           N\nEND\n",
 		"filename": "complex.pdb",

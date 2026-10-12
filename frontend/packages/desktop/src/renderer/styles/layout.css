@@ -40,87 +40,87 @@
 
 /* Claude-inspired conversation sidebar: quiet neutral surfaces, compact
    hierarchy, and one consistent row rhythm without changing any behavior. */
-.synon-sidebar-shell {
-  --synon-sidebar-bg: #f8f8f6;
-  --synon-sidebar-hover: rgba(38, 37, 34, 0.038);
-  --synon-sidebar-selected: rgba(38, 37, 34, 0.068);
-  --synon-sidebar-border: #e8e7e3;
-  --synon-sidebar-text: #262522;
-  --synon-sidebar-muted: #85827b;
-  background: var(--synon-sidebar-bg) !important;
-  border-right-color: var(--synon-sidebar-border) !important;
+.x-science-sidebar-shell {
+  --x-science-sidebar-bg: #f8f8f6;
+  --x-science-sidebar-hover: rgba(38, 37, 34, 0.038);
+  --x-science-sidebar-selected: rgba(38, 37, 34, 0.068);
+  --x-science-sidebar-border: #e8e7e3;
+  --x-science-sidebar-text: #262522;
+  --x-science-sidebar-muted: #85827b;
+  background: var(--x-science-sidebar-bg) !important;
+  border-right-color: var(--x-science-sidebar-border) !important;
   font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
-[data-theme='dark'] .synon-sidebar-shell {
-  --synon-sidebar-bg: #191918;
-  --synon-sidebar-hover: #242422;
-  --synon-sidebar-selected: #2c2c29;
-  --synon-sidebar-border: rgba(255, 255, 255, 0.08);
-  --synon-sidebar-text: #f0f0ed;
-  --synon-sidebar-muted: #a2a29c;
+[data-theme='dark'] .x-science-sidebar-shell {
+  --x-science-sidebar-bg: #191918;
+  --x-science-sidebar-hover: #242422;
+  --x-science-sidebar-selected: #2c2c29;
+  --x-science-sidebar-border: rgba(255, 255, 255, 0.08);
+  --x-science-sidebar-text: #f0f0ed;
+  --x-science-sidebar-muted: #a2a29c;
 }
 
-.synon-sidebar-shell .sider-section-label,
-.synon-sidebar-shell .sider-action-btn {
-  background: var(--synon-sidebar-bg) !important;
+.x-science-sidebar-shell .sider-section-label,
+.x-science-sidebar-shell .sider-action-btn {
+  background: var(--x-science-sidebar-bg) !important;
 }
 
-.synon-sidebar-header {
+.x-science-sidebar-header {
   min-height: 62px;
   padding: 6px 14px 2px !important;
 }
 
-.synon-sidebar-header .synon-biomed-brand {
+.x-science-sidebar-header .x-science-brand {
   width: min(168px, 100%);
   opacity: 0.94;
 }
 
-.synon-sidebar-content {
+.x-science-sidebar-content {
   padding: 0 8px 8px !important;
   overflow-x: hidden !important;
   scrollbar-gutter: stable;
 }
 
-.synon-sidebar-content::-webkit-scrollbar {
+.x-science-sidebar-content::-webkit-scrollbar {
   width: 6px;
 }
 
-.synon-sidebar-content::-webkit-scrollbar-track {
+.x-science-sidebar-content::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.synon-sidebar-content::-webkit-scrollbar-thumb {
+.x-science-sidebar-content::-webkit-scrollbar-thumb {
   background: transparent;
   border-radius: var(--ui-radius-pill);
 }
 
-.synon-sidebar-content:hover::-webkit-scrollbar-thumb {
+.x-science-sidebar-content:hover::-webkit-scrollbar-thumb {
   background: rgba(93, 93, 87, 0.16);
 }
 
-.synon-sidebar-navigation {
+.x-science-sidebar-navigation {
   padding-bottom: var(--ui-space-5);
 }
 
-.synon-sidebar-new-chat-wrap {
+.x-science-sidebar-new-chat-wrap {
   padding: 2px 0 8px !important;
 }
 
-.synon-sidebar-new-chat {
+.x-science-sidebar-new-chat {
   height: 40px !important;
   padding: 0 7px !important;
   gap: 8px !important;
   border-radius: var(--ui-radius-md) !important;
-  color: var(--synon-sidebar-text) !important;
+  color: var(--x-science-sidebar-text) !important;
 }
 
-.synon-sidebar-new-chat:hover {
-  background: var(--synon-sidebar-hover) !important;
+.x-science-sidebar-new-chat:hover {
+  background: var(--x-science-sidebar-hover) !important;
 }
 
-.synon-sidebar-new-chat > span:first-child {
+.x-science-sidebar-new-chat > span:first-child {
   box-sizing: border-box;
   display: inline-flex;
   width: 28px !important;
@@ -130,11 +130,11 @@
   justify-content: center;
   border: 0 !important;
   border-radius: var(--ui-radius-md) !important;
-  background: var(--synon-sidebar-hover) !important;
-  color: var(--synon-sidebar-text);
+  background: var(--x-science-sidebar-hover) !important;
+  color: var(--x-science-sidebar-text);
 }
 
-.synon-sidebar-new-chat .i-icon {
+.x-science-sidebar-new-chat .i-icon {
   display: inline-flex !important;
   width: 16px;
   height: 16px;
@@ -143,11 +143,11 @@
   line-height: 0 !important;
 }
 
-.synon-sidebar-new-chat .i-icon svg {
+.x-science-sidebar-new-chat .i-icon svg {
   display: block;
 }
 
-.synon-sidebar-new-chat > span:last-child {
+.x-science-sidebar-new-chat > span:last-child {
   display: flex;
   align-items: center;
   min-height: 24px;
@@ -157,152 +157,152 @@
   letter-spacing: -0.012em;
 }
 
-.synon-sidebar-section-header {
+.x-science-sidebar-section-header {
   height: 31px !important;
   margin-top: 7px !important;
   padding: 0 6px !important;
-  background: var(--synon-sidebar-bg) !important;
+  background: var(--x-science-sidebar-bg) !important;
 }
 
-.synon-sidebar-section-toggle {
+.x-science-sidebar-section-toggle {
   width: 22px !important;
   height: 22px !important;
   border-radius: var(--ui-radius-sm) !important;
 }
 
-.synon-sidebar-section-title-button {
+.x-science-sidebar-section-title-button {
   height: 30px !important;
   padding-left: 2px !important;
 }
 
-.synon-sidebar-section-title-button .sider-section-title {
-  color: var(--synon-sidebar-muted) !important;
+.x-science-sidebar-section-title-button .sider-section-title {
+  color: var(--x-science-sidebar-muted) !important;
   font-size: 12.5px !important;
   font-weight: var(--ui-weight-medium) !important;
   letter-spacing: 0;
 }
 
-.synon-sidebar-section-header [data-testid='project-create-action'] {
+.x-science-sidebar-section-header [data-testid='project-create-action'] {
   width: 24px !important;
   height: 24px !important;
-  color: var(--synon-sidebar-muted) !important;
+  color: var(--x-science-sidebar-muted) !important;
   border-radius: var(--ui-radius-sm) !important;
 }
 
-.synon-sidebar-section-header [data-testid='project-create-action']:hover {
-  color: var(--synon-sidebar-text) !important;
-  background: var(--synon-sidebar-hover) !important;
+.x-science-sidebar-section-header [data-testid='project-create-action']:hover {
+  color: var(--x-science-sidebar-text) !important;
+  background: var(--x-science-sidebar-hover) !important;
 }
 
-.synon-sidebar-project-row {
+.x-science-sidebar-project-row {
   margin: 1px 0;
 }
 
-.synon-sidebar-shell .synon-sidebar-project-button {
+.x-science-sidebar-shell .x-science-sidebar-project-button {
   min-height: 50px;
   padding: 6px 28px 6px 20px !important;
   border-radius: var(--ui-radius-md) !important;
-  color: var(--synon-sidebar-text) !important;
+  color: var(--x-science-sidebar-text) !important;
 }
 
-.synon-sidebar-shell .synon-sidebar-project-button:hover {
-  background: var(--synon-sidebar-hover) !important;
+.x-science-sidebar-shell .x-science-sidebar-project-button:hover {
+  background: var(--x-science-sidebar-hover) !important;
 }
 
-.synon-sidebar-shell .synon-sidebar-project-button.bg-fill-3 {
-  background: var(--synon-sidebar-selected) !important;
+.x-science-sidebar-shell .x-science-sidebar-project-button.bg-fill-3 {
+  background: var(--x-science-sidebar-selected) !important;
 }
 
-.synon-sidebar-project-name {
+.x-science-sidebar-project-name {
   font-size: var(--ui-font-subtitle) !important;
   line-height: 18px;
   font-weight: var(--ui-weight-medium) !important;
   letter-spacing: -0.012em;
 }
 
-.synon-sidebar-project-meta {
+.x-science-sidebar-project-meta {
   margin-top: 1px !important;
-  color: var(--synon-sidebar-muted) !important;
+  color: var(--x-science-sidebar-muted) !important;
   font-size: 11.5px !important;
   line-height: 16px;
 }
 
-.synon-sidebar-project-drag {
+.x-science-sidebar-project-drag {
   width: 12px !important;
   height: 18px !important;
   left: 0 !important;
   padding: 0 !important;
   opacity: 0;
-  color: var(--synon-sidebar-muted) !important;
+  color: var(--x-science-sidebar-muted) !important;
   transition:
     opacity 120ms ease,
     background-color 120ms ease;
 }
 
-.synon-sidebar-project-row:hover .synon-sidebar-project-drag,
-.synon-sidebar-project-drag:focus-visible {
+.x-science-sidebar-project-row:hover .x-science-sidebar-project-drag,
+.x-science-sidebar-project-drag:focus-visible {
   opacity: 0.62;
 }
 
-.synon-sidebar-timeline {
+.x-science-sidebar-timeline {
   height: 24px !important;
   padding: 0 6px !important;
   margin-top: var(--ui-space-4);
 }
 
-.synon-sidebar-timeline > span {
-  color: var(--synon-sidebar-muted) !important;
+.x-science-sidebar-timeline > span {
+  color: var(--x-science-sidebar-muted) !important;
   font-size: 11.75px !important;
   font-weight: var(--ui-weight-medium) !important;
 }
 
-.synon-sidebar-shell .synon-sidebar-conversation-row {
+.x-science-sidebar-shell .x-science-sidebar-conversation-row {
   height: 32px !important;
   margin-top: 1px !important;
   padding-right: 10px !important;
   border-radius: var(--ui-radius-md) !important;
-  color: var(--synon-sidebar-text) !important;
+  color: var(--x-science-sidebar-text) !important;
 }
 
-.synon-sidebar-shell .synon-sidebar-conversation-row:hover {
-  background: var(--synon-sidebar-hover) !important;
+.x-science-sidebar-shell .x-science-sidebar-conversation-row:hover {
+  background: var(--x-science-sidebar-hover) !important;
 }
 
-.synon-sidebar-shell .synon-sidebar-conversation-row[class~='!bg-fill-3'] {
-  background: var(--synon-sidebar-selected) !important;
+.x-science-sidebar-shell .x-science-sidebar-conversation-row[class~='!bg-fill-3'] {
+  background: var(--x-science-sidebar-selected) !important;
 }
 
-.synon-sidebar-conversation-indicator {
+.x-science-sidebar-conversation-indicator {
   width: 8px !important;
 }
 
-.synon-sidebar-conversation-indicator > span:not([role='status']) {
+.x-science-sidebar-conversation-indicator > span:not([role='status']) {
   width: 4.5px !important;
   height: 4.5px !important;
   border-color: rgba(85, 85, 80, 0.42) !important;
 }
 
-.synon-sidebar-conversation-name {
-  color: var(--synon-sidebar-text) !important;
+.x-science-sidebar-conversation-name {
+  color: var(--x-science-sidebar-text) !important;
   font-size: 13.25px !important;
   line-height: 22px !important;
   font-weight: var(--ui-weight-regular) !important;
   letter-spacing: -0.01em;
 }
 
-.synon-sidebar-shell .sider-footer {
-  background: var(--synon-sidebar-bg) !important;
+.x-science-sidebar-shell .sider-footer {
+  background: var(--x-science-sidebar-bg) !important;
   padding: 7px 2px 8px !important;
 }
 
-.synon-sidebar-shell .sider-footer > button {
+.x-science-sidebar-shell .sider-footer > button {
   height: 48px !important;
   padding-inline: 8px !important;
   border-radius: var(--ui-radius-md) !important;
 }
 
-.synon-sidebar-shell .sider-footer > button:hover {
-  background: var(--synon-sidebar-hover) !important;
+.x-science-sidebar-shell .sider-footer > button:hover {
+  background: var(--x-science-sidebar-hover) !important;
 }
 
 /* Keep account-menu glyphs optically centered and independent of the text baseline. */
@@ -334,11 +334,11 @@ html body .sider-account-menu-icon-slot > .i-icon svg {
 }
 
 @media (max-width: 767px) {
-  .synon-sidebar-header {
+  .x-science-sidebar-header {
     min-height: 58px !important;
   }
 
-  .synon-sidebar-content {
+  .x-science-sidebar-content {
     padding-inline: 8px !important;
   }
 }
@@ -358,14 +358,14 @@ html body .sider-account-menu-icon-slot > .i-icon svg {
   flex-shrink: 0 !important;
 }
 
-.synon-biomed-brand {
+.x-science-brand {
   display: flex;
   align-items: center;
   width: 186px;
   max-width: 100%;
 }
 
-.layout-sider-header--mobile .synon-biomed-brand {
+.layout-sider-header--mobile .x-science-brand {
   max-width: calc(100% - 44px);
 }
 
@@ -586,7 +586,7 @@ html body .sider-account-menu-icon-slot > .i-icon svg {
   z-index: var(--ui-z-dialog, 1002);
   transform: translateY(-200%);
   padding: 10px 14px;
-  border: 2px solid var(--workspace-text);
+  border: 1px solid var(--workspace-border);
   border-radius: var(--ui-radius-md);
   color: var(--workspace-text);
   background: var(--workspace-overlay-surface);
@@ -596,8 +596,8 @@ html body .sider-account-menu-icon-slot > .i-icon svg {
 .workspace-skip-control:focus {
   transform: none;
 }
-.synon-sidebar-conversation-open:focus-visible {
-  outline: 2px solid var(--workspace-text);
+.x-science-sidebar-conversation-open:focus-visible {
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
   outline-offset: -2px;
   border-radius: var(--ui-radius-md);
 }

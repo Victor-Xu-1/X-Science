@@ -1,7 +1,7 @@
 import { ipcBridge } from '@/common';
 import { uploadFileViaHttp } from '@/renderer/services/FileService';
-import { uploadSynonBiomedArtifact, type SynonBiomedArtifactRecord } from '@/renderer/services/synonBiomedWorkspaceApi';
-import { getSynonBiomedArtifactVersionContentUrl } from '@/renderer/services/synonBiomedArtifacts';
+import { uploadXScienceArtifact, type XScienceArtifactRecord } from '@/renderer/services/xScienceWorkspaceApi';
+import { getXScienceArtifactVersionContentUrl } from '@/renderer/services/xScienceArtifacts';
 
 export type MaterializedDocumentResource = {
   source: string;
@@ -11,14 +11,14 @@ export type MaterializedDocumentResource = {
 
 type DocumentResourceDependencies = {
   uploadFile: typeof uploadFileViaHttp;
-  uploadArtifact: typeof uploadSynonBiomedArtifact;
+  uploadArtifact: typeof uploadXScienceArtifact;
   copyFiles: typeof ipcBridge.fs.copyFilesToWorkspace.invoke;
   readImage: typeof ipcBridge.fs.getImageBase64.invoke;
 };
 
 const defaultDependencies: DocumentResourceDependencies = {
   uploadFile: uploadFileViaHttp,
-  uploadArtifact: uploadSynonBiomedArtifact,
+  uploadArtifact: uploadXScienceArtifact,
   copyFiles: ipcBridge.fs.copyFilesToWorkspace.invoke,
   readImage: ipcBridge.fs.getImageBase64.invoke,
 };
@@ -38,14 +38,14 @@ export async function materializeDocumentLocalResource({
   conversationId?: string;
   dependencies?: DocumentResourceDependencies;
 }): Promise<MaterializedDocumentResource> {
-  if (workspace?.startsWith('synonbiomed://')) {
+  if (workspace?.startsWith('x-science://')) {
     if (!conversationId) throw new Error('DOCUMENT_RESOURCE_CONVERSATION_REQUIRED');
     const artifact = await dependencies.uploadArtifact(file, conversationId);
     const versionId = artifactVersionId(artifact);
     const source = `{{artifact:${versionId}}}`;
     return {
       source,
-      displaySource: getSynonBiomedArtifactVersionContentUrl(versionId),
+      displaySource: getXScienceArtifactVersionContentUrl(versionId),
       label: artifact.filename?.trim() || file.name,
     };
   }
@@ -87,7 +87,7 @@ export function relativeDocumentResourcePath(documentPath: string, resourcePath:
   return relative || basename(resourcePath);
 }
 
-function artifactVersionId(artifact: SynonBiomedArtifactRecord): string {
+function artifactVersionId(artifact: XScienceArtifactRecord): string {
   const versionId = artifact.version_id?.trim();
   if (!versionId) throw new Error('DOCUMENT_RESOURCE_VERSION_REQUIRED');
   return versionId;

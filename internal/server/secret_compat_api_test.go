@@ -304,7 +304,7 @@ func compatibilitySecretRequest(t *testing.T, method, target, userID string, bod
 	request := newLoopbackTestRequest(method, target, bytes.NewReader(encoded))
 	request.RemoteAddr = "127.0.0.1:12345"
 	if userID != "" {
-		request.Header.Set("X-Synon-User-Id", userID)
+		request.Header.Set("X-Science-User-Id", userID)
 	}
 	if body != nil {
 		request.Header.Set("Content-Type", "application/json")

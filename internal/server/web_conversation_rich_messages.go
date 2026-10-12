@@ -13,8 +13,8 @@ import (
 	"strconv"
 	"strings"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 type richWebToolResult struct {
@@ -111,7 +111,7 @@ func (s *Server) projectRichWebConversationMessages(
 					"type": "text", "position": position, "status": "finish", "created_at": messageCreatedAt,
 					"content": map[string]any{
 						"content": content,
-						"synonBiomed": map[string]any{
+						"xScience": map[string]any{
 							"messageIndex": messageIndex, "blockIndex": blockIndex, "branchId": branch,
 						},
 					},

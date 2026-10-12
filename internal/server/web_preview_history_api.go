@@ -149,7 +149,7 @@ func (s *Server) webPreviewTargetDirectory(
 	}
 	userHash := sha256.Sum256([]byte(strings.TrimSpace(userID)))
 	targetHash := sha256.Sum256(raw)
-	base := firstNonEmpty(strings.TrimSpace(s.fileRoot), filepath.Join(os.TempDir(), "synon-go"))
+	base := firstNonEmpty(strings.TrimSpace(s.fileRoot), filepath.Join(os.TempDir(), "x-science"))
 	return filepath.Join(base, "preview-history", fmt.Sprintf("%x", userHash[:8]), fmt.Sprintf("%x", targetHash[:])), nil
 }
 
@@ -325,7 +325,7 @@ func writeWebPreviewFileAtomic(target string, data []byte) error {
 	if err := os.MkdirAll(filepath.Dir(target), 0o700); err != nil {
 		return err
 	}
-	temporary, err := os.CreateTemp(filepath.Dir(target), ".synon-preview-*")
+	temporary, err := os.CreateTemp(filepath.Dir(target), ".x-science-preview-*")
 	if err != nil {
 		return err
 	}

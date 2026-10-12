@@ -38,6 +38,7 @@
   "clearSearch": "清除搜索",
   "retry": "重试",
   "reload": "重新加载",
+  "storageNamespaceUpgradeWarning": "部分已保存的浏览器偏好未能升级。原始数据已保留，现有偏好未被覆盖。可重新加载重试；持续存在的冲突或存储空间限制解决后，升级才能完成。",
   "appStartup": {
     "loading": "{{productName}} 正在启动…",
     "slow": "{{productName}} 启动时间较长…",
@@ -93,7 +94,7 @@
   "tray.recentChats": "最近对话",
   "tray.untitled": "未命名",
   "backendStartup": {
-    "synonBiomed": {
+    "xScience": {
       "title": "X-Science 后端不可用",
       "description": "无法连接 X-Science 后端。请确认 WSL 中的后端服务已启动，并检查后端地址与端口配置。"
     }

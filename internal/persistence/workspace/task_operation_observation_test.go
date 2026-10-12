@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func observedTaskOperationFixture(t *testing.T) (*Store, *transcriptstore.Repository, TaskOperation) {

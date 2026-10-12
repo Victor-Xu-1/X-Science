@@ -12,8 +12,8 @@ import (
 
 	"github.com/google/uuid"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 type agentKernelContext struct {
@@ -22,7 +22,7 @@ type agentKernelContext struct {
 }
 
 const (
-	agentKernelManagedPythonEnvironment     = "synon-biomed-python"
+	agentKernelManagedPythonEnvironment     = "x-science-python"
 	defaultAgentKernelForegroundWaitTimeout = 10 * time.Minute
 	// A zero execution timeout means no wall-clock kill. Foreground waiting may
 	// still detach into durable supervision, while user cancellation and runtime
@@ -146,7 +146,7 @@ func (s *Server) defaultAgentKernelWorkspace(projectID string) (string, error) {
 	if err != nil {
 		return "", errors.New("default kernel workspace identity is unavailable")
 	}
-	workspaceID := uuid.NewSHA1(uuid.NameSpaceOID, []byte("synon-biomed-project-workspace:"+root+"\x00"+projectID))
+	workspaceID := uuid.NewSHA1(uuid.NameSpaceOID, []byte("x-science-project-workspace:"+root+"\x00"+projectID))
 	return filepath.Join(root+"-workspaces", workspaceID.String()), nil
 }
 
@@ -161,7 +161,7 @@ func (s *Server) defaultAgentKernelTaskWorkspace(projectID, rootFrameID, rootInc
 		return "", errors.New("default task workspace identity is unavailable")
 	}
 	taskID := uuid.NewSHA1(uuid.NameSpaceOID, []byte(
-		"synon-biomed-task-workspace:"+projectWorkspace+"\x00"+rootFrameID+"\x00"+rootIncarnationID,
+		"x-science-task-workspace:"+projectWorkspace+"\x00"+rootFrameID+"\x00"+rootIncarnationID,
 	))
 	return filepath.Join(projectWorkspace, "tasks", taskID.String()), nil
 }

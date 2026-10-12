@@ -10,7 +10,7 @@ import (
 	"sync"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestExplicitExecutorBudgetUsesLargeHostCapacityWithoutDefaultShareCeiling(t *testing.T) {

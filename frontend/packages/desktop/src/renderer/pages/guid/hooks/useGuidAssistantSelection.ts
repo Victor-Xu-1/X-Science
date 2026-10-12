@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { assistantRuntimeKey, isSynonBiomedAssistant, type Assistant } from '@/common/types/agent/assistantTypes';
+import { assistantRuntimeKey, isXScienceAssistant, type Assistant } from '@/common/types/agent/assistantTypes';
 import { configService } from '@/common/config/configService';
 import type { AcpModelInfo } from '../types';
-import type { AgentModeOption } from '@/renderer/utils/synonBiomed/runtime/runtimeTypes';
+import type { AgentModeOption } from '@/renderer/utils/xScience/runtime/runtimeTypes';
 import {
   buildAgentRuntimeModeState,
   buildAgentRuntimeModelInfo,
@@ -15,15 +15,12 @@ import {
   buildAgentRuntimeThoughtLevelOption,
   type AgentRuntimeCatalog,
   type AgentRuntimeDerivedOption,
-} from '@/renderer/utils/synonBiomed/runtime/runtimeCatalog';
+} from '@/renderer/utils/xScience/runtime/runtimeCatalog';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
-import { useManagedAgentRuntimeCatalog } from '@/renderer/hooks/synonBiomed/runtime/useManagedAgents';
+import { useManagedAgentRuntimeCatalog } from '@/renderer/hooks/xScience/runtime/useManagedAgents';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useSynonBiomedAssistantsLoader } from './useSynonBiomedAssistantsLoader';
-import {
-  loadSynonBiomedSessionDefaults,
-  type SynonBiomedSessionDefaults,
-} from '@/renderer/services/synonBiomedSessionDefaults';
+import { useXScienceAssistantsLoader } from './useXScienceAssistantsLoader';
+import { loadXScienceSessionDefaults, type XScienceSessionDefaults } from '@/renderer/services/xScienceSessionDefaults';
 
 export {
   buildAgentRuntimeModeState,
@@ -56,7 +53,7 @@ export type GuidAssistantSelectionResult = {
     value: React.SetStateAction<string>,
     options?: { persistPreference?: boolean }
   ) => void;
-  sessionDefaults: SynonBiomedSessionDefaults;
+  sessionDefaults: XScienceSessionDefaults;
 };
 
 export function resolveInitialAssistantModel(models: string[]): string | null {
@@ -87,12 +84,12 @@ export function resolveAssistantSelectionKey(
 
   if (savedKey.startsWith('custom:')) {
     const assistantId = savedKey.slice(7);
-    return assistants.some((assistant) => assistant.id === assistantId && isSynonBiomedAssistant(assistant))
+    return assistants.some((assistant) => assistant.id === assistantId && isXScienceAssistant(assistant))
       ? assistantId
       : undefined;
   }
 
-  if (assistants.some((assistant) => assistant.id === savedKey && isSynonBiomedAssistant(assistant))) {
+  if (assistants.some((assistant) => assistant.id === savedKey && isXScienceAssistant(assistant))) {
     return savedKey;
   }
 
@@ -102,7 +99,7 @@ export function resolveAssistantSelectionKey(
 function readPersistedGuidAssistantSelectionKey(assistants: Assistant[]): string | undefined {
   const savedKey = configService.get('guid.lastAssistantId');
   const enabledAssistants = assistants.filter(
-    (assistant) => assistant.enabled !== false && isSynonBiomedAssistant(assistant)
+    (assistant) => assistant.enabled !== false && isXScienceAssistant(assistant)
   );
   return resolveAssistantSelectionKey(savedKey, enabledAssistants);
 }
@@ -115,7 +112,7 @@ function persistGuidAssistantSelectionKey(assistantId: string): void {
 
 export function pickDefaultAssistantSelectionKey(assistants: Assistant[]): string | null {
   const enabledAssistants = assistants.filter(
-    (assistant) => assistant.enabled !== false && isSynonBiomedAssistant(assistant)
+    (assistant) => assistant.enabled !== false && isXScienceAssistant(assistant)
   );
   const preferred = enabledAssistants.find((assistant) => assistant.agent_id === 'OPERON') ?? enabledAssistants[0];
   return preferred?.id ?? null;
@@ -136,7 +133,7 @@ export const useGuidAssistantSelection = ({
   const [selectedMode, _setSelectedMode] = useState<string>('default');
   const [selectedAcpModel, _setSelectedAcpModel] = useState<string | null>(null);
   const [selectedThoughtLevelValue, _setSelectedThoughtLevelValue] = useState<string>('');
-  const [sessionDefaults, setSessionDefaults] = useState<SynonBiomedSessionDefaults>({});
+  const [sessionDefaults, setSessionDefaults] = useState<XScienceSessionDefaults>({});
   const explicitModelSelectionRef = useRef(false);
   const explicitThoughtSelectionRef = useRef(false);
   const {
@@ -144,12 +141,12 @@ export const useGuidAssistantSelection = ({
     catalogStatus: assistantCatalogStatus,
     hasUsableCatalog: hasUsableAssistantCatalog,
     retry: retryAssistantCatalog,
-  } = useSynonBiomedAssistantsLoader();
+  } = useXScienceAssistantsLoader();
   const managedAgentRuntimeCatalog = useManagedAgentRuntimeCatalog();
 
   useEffect(() => {
     let active = true;
-    void loadSynonBiomedSessionDefaults()
+    void loadXScienceSessionDefaults()
       .then((defaults) => {
         if (active) setSessionDefaults(defaults);
       })

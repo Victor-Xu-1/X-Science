@@ -3,7 +3,7 @@ set -euo pipefail
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 source "$script_dir/release-path-policy.sh"
-product_name="$(synon_release_product_name)"
+product_name="$(x_science_release_product_name)"
 
 start_service=true
 if [[ "${1:-}" == "--no-start" ]]; then
@@ -16,25 +16,25 @@ if (( $# < 1 || $# > 3 )); then
 fi
 
 install_dir="$(realpath -e "$1")"
-state_dir="${2:-${XDG_STATE_HOME:-$HOME/.local/state}/synon-go}"
+state_dir="${2:-${XDG_STATE_HOME:-$HOME/.local/state}/x-science}"
 config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
-env_file="${3:-$config_home/synon-go/synon-go.env}"
-unit_dir="${SYNON_SYSTEMD_USER_DIR:-$config_home/systemd/user}"
-unit_name="${SYNON_SYSTEMD_UNIT_NAME:-synon-go.service}"
+env_file="${3:-$config_home/x-science/x-science.env}"
+unit_dir="${X_SCIENCE_SYSTEMD_USER_DIR:-$config_home/systemd/user}"
+unit_name="${X_SCIENCE_SYSTEMD_UNIT_NAME:-x-science.service}"
 if [[ ! "$unit_name" =~ ^[A-Za-z0-9_.@-]+\.service$ ]]; then
 	echo "invalid systemd user unit name: $unit_name" >&2
 	exit 1
 fi
 unit_path="$unit_dir/$unit_name"
-systemctl_bin="${SYNON_SYSTEMCTL:-systemctl}"
-systemd_analyze_bin="${SYNON_SYSTEMD_ANALYZE:-systemd-analyze}"
+systemctl_bin="${X_SCIENCE_SYSTEMCTL:-systemctl}"
+systemd_analyze_bin="${X_SCIENCE_SYSTEMD_ANALYZE:-systemd-analyze}"
 
-if [[ ! -x "$install_dir/synon-go" || ! -f "$install_dir/RELEASE_MANIFEST.json" ]]; then
+if [[ ! -x "$install_dir/x-science" || ! -f "$install_dir/RELEASE_MANIFEST.json" ]]; then
 	echo "install directory is not a verified product release: $install_dir" >&2
 	exit 1
 fi
-synon_release_assert_product_identity "$install_dir"
-"$install_dir/synon-go" release-manifest verify --root "$install_dir" >/dev/null
+x_science_release_assert_product_identity "$install_dir"
+"$install_dir/x-science" release-manifest verify --root "$install_dir" >/dev/null
 
 state_dir="$(realpath -m "$state_dir")"
 env_file="$(realpath -m "$env_file")"
@@ -79,13 +79,13 @@ chmod 700 "$state_dir" "$(dirname "$env_file")"
 if [[ ! -e "$env_file" ]]; then
 	cat >"$env_file" <<EOF
 # Product user service environment. Keep this file mode 0600.
-SYNON_ADDRESS=127.0.0.1:8765
-SYNON_HOME=$(systemd_env_quote "$state_dir")
+X_SCIENCE_ADDRESS=127.0.0.1:8765
+X_SCIENCE_HOME=$(systemd_env_quote "$state_dir")
 EOF
 fi
 chmod 600 "$env_file"
 
-binary_escaped="$(systemd_escape_path "$install_dir/synon-go")"
+binary_escaped="$(systemd_escape_path "$install_dir/x-science")"
 workdir_escaped="$(systemd_escape_path "$install_dir")"
 env_escaped="$(systemd_escape_path "$env_file")"
 state_escaped="$(systemd_escape_path "$state_dir")"

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/executionprep"
+	"x-science/internal/executionprep"
 )
 
 func TestBashObservationUsesCanonicalNativeEnvelope(t *testing.T) {

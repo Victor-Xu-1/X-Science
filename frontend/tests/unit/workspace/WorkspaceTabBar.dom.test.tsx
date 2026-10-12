@@ -57,15 +57,15 @@ describe('WorkspaceTabBar', () => {
     const tabs = screen.getAllByRole('tab');
     expect(tabs.map((tab) => tab.textContent)).toEqual([
       'conversation.workspace.changes.filesTab',
-      'conversation.synonRuntime.sessionOptions.compute',
+      'conversation.xscienceRuntime.sessionOptions.compute',
     ]);
     expect(tabs[1]).toHaveAttribute('aria-selected', 'true');
     expect(tabs[1]).toHaveAttribute('data-state', 'selected');
     expect(tabs[1]).toHaveAttribute('tabindex', '0');
-    expect(tabs[1]).toHaveClass('synon-workspace-tab--selected');
+    expect(tabs[1]).toHaveClass('x-science-workspace-tab--selected');
     expect(tabs[0]).toHaveAttribute('data-state', 'idle');
     expect(tabs[0]).toHaveAttribute('tabindex', '-1');
-    expect(tabs[0]).not.toHaveClass('synon-workspace-tab--selected');
+    expect(tabs[0]).not.toHaveClass('x-science-workspace-tab--selected');
     fireEvent.keyDown(tabs[1], { key: 'ArrowRight' });
     expect(onTabChange).toHaveBeenCalledWith('files');
     await Promise.resolve();

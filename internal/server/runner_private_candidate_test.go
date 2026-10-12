@@ -8,7 +8,7 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func TestPrivateProviderCandidatePreservesLargeUTF8OutsidePublicHistory(t *testing.T) {

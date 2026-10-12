@@ -13,7 +13,7 @@ import (
 
 	"github.com/google/uuid"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func Migrate(ctx context.Context, options Options) (Report, error) {
@@ -63,7 +63,7 @@ func Migrate(ctx context.Context, options Options) (Report, error) {
 	if err := os.MkdirAll(parent, 0o700); err != nil {
 		return Report{}, err
 	}
-	stage := filepath.Join(parent, ".synon-v11-migrate-"+migrationID)
+	stage := filepath.Join(parent, ".x-science-v11-migrate-"+migrationID)
 	if err := os.Mkdir(stage, 0o700); err != nil {
 		return Report{}, fmt.Errorf("create migration staging directory: %w", err)
 	}

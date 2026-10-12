@@ -8,7 +8,7 @@ import (
 const (
 	mcpToolCatalogV53CallbackID        = "mcp-tool-catalog-v53-noop"
 	mcpToolCatalogV53PreflightIdentity = "mcp-tool-catalog-absent-v1"
-	mcpToolCatalogV53RuleSpec          = "synon.workspace.mcp-tool-catalog.v53"
+	mcpToolCatalogV53RuleSpec          = "x-science.workspace.mcp-tool-catalog.v53"
 )
 
 var mcpToolCatalogV53Migration = versionedSchemaMigration{

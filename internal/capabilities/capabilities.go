@@ -3,8 +3,8 @@ package capabilities
 import (
 	"strings"
 
-	"synon-go/internal/harnesscontract"
-	"synon-go/internal/tools/registry"
+	"x-science/internal/harnesscontract"
+	"x-science/internal/tools/registry"
 )
 
 type Module struct {
@@ -32,22 +32,22 @@ type Report struct {
 	Workflows []Workflow `json:"workflows"`
 }
 
-func CompactSynon() Report {
+func CompactXScience() Report {
 	linkActions := []string{
-		"synon_link_ws_connect",
-		"handle_synon_link_hello",
-		"track_synon_link_progress",
-		"complete_synon_link_command",
-		"revoke_synon_link_device",
-		"list_synon_link_logs",
-		"synon_link_doctor",
-		"synon_link_policy_matrix",
-		"enforce_synon_link_policy",
-		"request_synon_link_access",
-		"list_synon_link_access_requests",
-		"decide_synon_link_access",
-		"revoke_synon_link_access",
-		"deliver_synon_link_access_events",
+		"x_science_link_ws_connect",
+		"handle_x_science_link_hello",
+		"track_x_science_link_progress",
+		"complete_x_science_link_command",
+		"revoke_x_science_link_device",
+		"list_x_science_link_logs",
+		"x_science_link_doctor",
+		"x_science_link_policy_matrix",
+		"enforce_x_science_link_policy",
+		"request_x_science_link_access",
+		"list_x_science_link_access_requests",
+		"decide_x_science_link_access",
+		"revoke_x_science_link_access",
+		"deliver_x_science_link_access_events",
 		"list_running",
 		"list_clients",
 		"run_task_loop",
@@ -286,7 +286,7 @@ func CompactSynon() Report {
 		"validate_tool_input",
 		"execute_web_fetch",
 		"execute_web_search",
-		"execute_synon_link",
+		"execute_x_science_link",
 		"plan_session_runner_goal",
 		"record_session_runner_structured_plan",
 	}
@@ -304,11 +304,11 @@ func CompactSynon() Report {
 		"web-fetch-execution",
 	}
 	serviceOperationCapabilityIDs := []string{
-		"original-synonlink-contract",
+		"original-xsciencelink-contract",
 		"original-sendmessage-contract",
 		"user-message-channel",
 		"tool-diagnostics",
-		"synon-link-tool-execution",
+		"x-science-link-tool-execution",
 		"file-root-execution",
 		"file-search-edit",
 		"glob-search",
@@ -353,7 +353,7 @@ func CompactSynon() Report {
 		"taskrun-soft-self-check",
 		"taskrun-self-check-repair",
 		"taskrun-original-system-tools",
-		"taskrun-synonlink-direct-executor",
+		"taskrun-xsciencelink-direct-executor",
 		"original-task-output-contract",
 		"original-task-stop-contract",
 		"session-runner-structured-goal-plan",
@@ -377,14 +377,14 @@ func CompactSynon() Report {
 		"load_external_plugin_manifest",
 		"start_external_plugin_process",
 		"stop_external_plugin_process",
-		"route_synon_plugin_capabilities",
-		"route_synon_link_download",
+		"route_x_science_plugin_capabilities",
+		"route_x_science_link_download",
 	}
 	pluginHostCapabilityIDs := []string{
 		"builtin-plugin-registry",
 		"external-plugin-directory-loader",
 		"external-plugin-process-lifecycle",
-		"synon-plugin-manifest",
+		"x-science-plugin-manifest",
 		"plugin-api-routing",
 	}
 	status := "needs_connection"
@@ -392,16 +392,16 @@ func CompactSynon() Report {
 		Status: status,
 		Modules: []Module{
 			{
-				ID:           "synon-link",
+				ID:           "x-science-link",
 				Label:        "X-Science Link",
 				Status:       status,
-				Endpoint:     "/api/synon-link",
+				Endpoint:     "/api/x-science-link",
 				Summary:      "X-Science Link exposes its browser extension bridge for workspace, navigation, page reading, interaction, screenshots, downloads, browser-local files, bookmarks, progress, results, diagnostics, policy enforcement, and permission lifecycle events.",
 				Actions:      linkActions,
 				Capabilities: linkCapabilityIDs,
 				Metrics: map[string]string{
-					"minimumVersion": "0.6.10",
-					"packageUrl":     "/api/plugins/synon/link/download",
+					"minimumVersion": "0.6.11",
+					"packageUrl":     "/api/plugins/x-science/link/download",
 				},
 			},
 			{
@@ -449,7 +449,7 @@ func CompactSynon() Report {
 				Label:        "Service Operations",
 				Status:       "started",
 				Endpoint:     "internal/server and compatibility API boundaries",
-				Summary:      "Internal controls and retained compatibility operations use a service-operation catalog that is physically separate from model tools. Exact compatibility identities resolve only for explicit consumers. This boundary retains the Go HTTP WebSearch backend, VisualReview screenshot_command execution and VisualReview dependency diagnostics, bounded artifact_get content retrieval, and original X-Science research artifact phase auditing. The compatibility TaskRun boundary accepts explicit task graphs only and delegates execution to the canonical runner; hard-coded task playbooks and keyword auto-selection are absent. TaskRun SynonLink browser executors preserve needsClient/missingCapability blockers, TaskRun monitor ticks reconcile self-check pending completions, and TaskRun direct system steps cover web_research, lsp_diagnostics, patch, read_files, notebook_edit, record_artifact, shell_command, and visual_review. The original tool surface audit and dynamic MCP auth pseudo-tool remain available only through this explicit service boundary.",
+				Summary:      "Internal controls and retained compatibility operations use a service-operation catalog that is physically separate from model tools. Exact compatibility identities resolve only for explicit consumers. This boundary retains the Go HTTP WebSearch backend, VisualReview screenshot_command execution and VisualReview dependency diagnostics, bounded artifact_get content retrieval, and original X-Science research artifact phase auditing. The compatibility TaskRun boundary accepts explicit task graphs only and delegates execution to the canonical runner; hard-coded task playbooks and keyword auto-selection are absent. TaskRun X-Science Link browser executors preserve needsClient/missingCapability blockers, TaskRun monitor ticks reconcile self-check pending completions, and TaskRun direct system steps cover web_research, lsp_diagnostics, patch, read_files, notebook_edit, record_artifact, shell_command, and visual_review. The original tool surface audit and dynamic MCP auth pseudo-tool remain available only through this explicit service boundary.",
 				Actions:      serviceOperationNames,
 				Capabilities: serviceOperationCapabilityIDs,
 				Metrics: map[string]string{
@@ -461,11 +461,11 @@ func CompactSynon() Report {
 				Label:        "Plugin Host",
 				Status:       "started",
 				Endpoint:     "/api/plugins",
-				Summary:      "Go plugin host lists the retained built-in X-Science plugin, loads external .synon-plugin/plugin.json manifests from configured directories, manages declared external plugin process lifecycles, serves plugin manifests, and routes the compact X-Science capabilities and X-Science Link download module surfaces without loading excluded side plugins.",
+				Summary:      "Go plugin host lists the retained built-in X-Science plugin, loads external .x-science-plugin/plugin.json manifests from configured directories, manages declared external plugin process lifecycles, serves plugin manifests, and routes the compact X-Science capabilities and X-Science Link download module surfaces without loading excluded side plugins.",
 				Actions:      pluginHostActions,
 				Capabilities: pluginHostCapabilityIDs,
 				Metrics: map[string]string{
-					"plugins":         "synon,external-configured",
+					"plugins":         "xscience,external-configured",
 					"excludedPlugins": "admet,markush,knowledge,daily-briefing,molecular,pcc",
 				},
 			},
@@ -476,7 +476,7 @@ func CompactSynon() Report {
 				Label:   "Browser Bridge Runtime",
 				Status:  status,
 				Summary: "Connect X-Science Link WebSocket before browser workspace, navigation, read, interaction, screenshot, download, local-file, or bookmark work is available.",
-				Steps:   []string{"SynonLink:synon_link_ws_connect", "SynonLink:handle_synon_link_hello", "SynonLink:open_tab", "SynonLink:search_web", "SynonLink:read_page", "SynonLink:scroll_page", "SynonLink:visual_element_map", "SynonLink:click_at", "SynonLink:type", "SynonLink:screenshot", "SynonLink:download_file", "SynonLink:local_files_manifest", "SynonLink:bookmarks_profile", "SynonLink:track_synon_link_progress", "SynonLink:complete_synon_link_command"},
+				Steps:   []string{"XScienceLink:x_science_link_ws_connect", "XScienceLink:handle_x_science_link_hello", "XScienceLink:open_tab", "XScienceLink:search_web", "XScienceLink:read_page", "XScienceLink:scroll_page", "XScienceLink:visual_element_map", "XScienceLink:click_at", "XScienceLink:type", "XScienceLink:screenshot", "XScienceLink:download_file", "XScienceLink:local_files_manifest", "XScienceLink:bookmarks_profile", "XScienceLink:track_x_science_link_progress", "XScienceLink:complete_x_science_link_command"},
 			},
 			{
 				ID:      "im-message-normalization",
@@ -504,7 +504,7 @@ func CompactSynon() Report {
 				Label:   "Plugin Host Runtime",
 				Status:  "started",
 				Summary: "Expose the retained X-Science native plugin plus configured external plugin manifests as a Go-managed API module surface, and supervise declared external plugin child processes.",
-				Steps:   []string{"Plugins:list_plugins", "Plugins:read_plugin_manifest", "Plugins:load_external_plugin_manifest", "Plugins:start_external_plugin_process", "Plugins:stop_external_plugin_process", "Plugins:route_synon_plugin_capabilities", "Plugins:route_synon_link_download"},
+				Steps:   []string{"Plugins:list_plugins", "Plugins:read_plugin_manifest", "Plugins:load_external_plugin_manifest", "Plugins:start_external_plugin_process", "Plugins:stop_external_plugin_process", "Plugins:route_x_science_plugin_capabilities", "Plugins:route_x_science_link_download"},
 			},
 		},
 	}

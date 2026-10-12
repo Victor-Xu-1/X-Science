@@ -11,7 +11,7 @@ import { initReactI18next } from 'react-i18next';
 import conversation from '@/renderer/services/i18n/locales/zh-CN/conversation.json';
 import preview from '@/renderer/services/i18n/locales/zh-CN/preview.json';
 import MarkdownView from '@/renderer/components/Markdown';
-import { useSynonBiomedArtifactResolver } from '@/renderer/pages/conversation/Messages/useSynonBiomedArtifactLinkPreview';
+import { useXScienceArtifactResolver } from '@/renderer/pages/conversation/Messages/useXScienceArtifactLinkPreview';
 import { PreviewProvider, usePreviewContext } from '@/renderer/pages/conversation/Preview/context/PreviewContext';
 import PreviewPanel from '@/renderer/pages/conversation/Preview/components/PreviewPanel/PreviewPanel';
 import { ThemeProvider } from '@/renderer/hooks/context/ThemeContext';
@@ -27,9 +27,9 @@ const fixture: { conversation: string; old: Identity; latest: Identity } = await
 );
 
 function ArtifactLinks() {
-  const resolver = useSynonBiomedArtifactResolver({
+  const resolver = useXScienceArtifactResolver({
     conversationId: fixture.conversation,
-    workspace: 'synonbiomed://controlled-project',
+    workspace: 'x-science://controlled-project',
     artifactReferences: [fixture.old, fixture.latest],
   });
   const { activeTab, isOpen, closePreview } = usePreviewContext();

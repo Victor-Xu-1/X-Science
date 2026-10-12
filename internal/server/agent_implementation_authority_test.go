@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"reflect"
 	"strings"
-	"synon-go/internal/agentruntime"
 	"testing"
+	"x-science/internal/agentruntime"
 )
 
 func TestImplementationAuthorityDoesNotInterpretReportProse(t *testing.T) {

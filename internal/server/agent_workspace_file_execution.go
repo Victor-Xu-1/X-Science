@@ -10,8 +10,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/tools/fileevents"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/tools/fileevents"
 )
 
 func (s *Server) executeAgentWorkspaceFileTool(

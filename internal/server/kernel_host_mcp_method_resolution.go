@@ -6,7 +6,7 @@ import (
 	"strings"
 	"unicode"
 
-	kernelruntime "synon-go/internal/kernel"
+	kernelruntime "x-science/internal/kernel"
 )
 
 // resolveKernelMCPHostTargetWithCompatibleMethod keeps exact catalog identity

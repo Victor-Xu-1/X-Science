@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 type KernelToolResultMaterialization struct {

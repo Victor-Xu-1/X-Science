@@ -8,17 +8,17 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ArtifactEditRefinementPanel } from '@/renderer/pages/artifact/ArtifactEditRefinementPanel';
-import type { SynonBiomedAppliedArtifactEdit } from '@/renderer/services/synonBiomedAnnotations';
+import type { XScienceAppliedArtifactEdit } from '@/renderer/services/xScienceAnnotations';
 import { renderWithI18n } from '../i18nTestUtils';
 
 const service = vi.hoisted(() => ({ suggest: vi.fn(), apply: vi.fn() }));
-vi.mock('@/renderer/services/synonBiomedAnnotations', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/renderer/services/synonBiomedAnnotations')>()),
-  suggestSynonBiomedArtifactEdit: service.suggest,
-  applySynonBiomedArtifactEdit: service.apply,
+vi.mock('@/renderer/services/xScienceAnnotations', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/renderer/services/xScienceAnnotations')>()),
+  suggestXScienceArtifactEdit: service.suggest,
+  applyXScienceArtifactEdit: service.apply,
 }));
 
-const receipt: SynonBiomedAppliedArtifactEdit = {
+const receipt: XScienceAppliedArtifactEdit = {
   artifactId: 'artifact-1',
   versionId: 'version-2',
   versionNumber: 2,
@@ -77,7 +77,7 @@ describe('Artifact refinement request ownership', () => {
   });
 
   it('does not forward an old immutable-write receipt after unmount', async () => {
-    const pending = deferred<SynonBiomedAppliedArtifactEdit>();
+    const pending = deferred<XScienceAppliedArtifactEdit>();
     service.apply.mockReturnValueOnce(pending.promise);
     const onApplied = vi.fn();
     const view = await renderEditor(<ArtifactEditRefinementPanel {...props} onClose={vi.fn()} onApplied={onApplied} />);

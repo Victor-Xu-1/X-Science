@@ -12,7 +12,7 @@ func TestPreflightDiagnosticPreservesSelectorsWithoutRawPayload(t *testing.T) {
 		"status": "required_skill_load_pending", "required_skill": "engine-contract",
 		"required_skills": []string{"engine-contract"}, "required_filter": "metadata",
 		"required_reads": []string{"task/input.cif"}, "decision_required": false,
-		"required_entrypoint": "/workspace/.synon/runtime/skills/engine/digest/scripts/run.py",
+		"required_entrypoint": "/workspace/.x-science/runtime/skills/engine/digest/scripts/run.py",
 		"download":            map[string]any{"url": "https://example.org/engine.tar.gz", "filename": "engine.tar.gz", "expected_sha256": strings.Repeat("a", 64)},
 		"message":             "Required contract missing", "recovery": "Load required_skill once.",
 		"arguments": "private-input", "token": "private-token",
@@ -24,7 +24,7 @@ func TestPreflightDiagnosticPreservesSelectorsWithoutRawPayload(t *testing.T) {
 	if got["required_skill"] != "engine-contract" || got["required_filter"] != "metadata" ||
 		got["decision_required"] != false || len(anySliceValue(got["required_reads"])) != 1 ||
 		len(anySliceValue(got["required_skills"])) != 1 || strings.Contains(raw, "private-") ||
-		got["required_entrypoint"] != "/workspace/.synon/runtime/skills/engine/digest/scripts/run.py" ||
+		got["required_entrypoint"] != "/workspace/.x-science/runtime/skills/engine/digest/scripts/run.py" ||
 		mapValue(got["download"])["expected_sha256"] != strings.Repeat("a", 64) {
 		t.Fatalf("unsafe or incomplete diagnostic: %s", raw)
 	}

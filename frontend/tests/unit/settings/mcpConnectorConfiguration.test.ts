@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { SynonBiomedMcpServer } from '@/renderer/services/synonBiomedCapabilities';
+import type { XScienceMcpServer } from '@/renderer/services/xScienceCapabilities';
 import {
   connectorConfigurationState,
   connectorProviderLinks,
@@ -15,7 +15,7 @@ describe('connector configuration presentation boundary', () => {
     apiKeyConfigurable: true,
     apiKeyConfigured: false,
     oauthSupported: false,
-  } as SynonBiomedMcpServer;
+  } as XScienceMcpServer;
 
   it('distinguishes missing keys, OAuth, rejected credentials, transport failure and connection progress', () => {
     expect(connectorConfigurationState(server)).toBe('keyMissing');

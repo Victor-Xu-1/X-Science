@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"synon-go/internal/processsupervisor"
 	"testing"
 	"time"
+	"x-science/internal/processsupervisor"
 )
 
 func TestResourceRecoverySettlesRealWorkerAndPreservesCheckpoint(t *testing.T) {

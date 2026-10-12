@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/skills"
+	"x-science/internal/agentruntime"
+	"x-science/internal/skills"
 )
 
 func TestRuntimeMCPConnectorSkillsExposeExactSessionScopedSchemas(t *testing.T) {
@@ -149,26 +149,26 @@ func TestRuntimeSkillsByNameWithConnectorSchemasRestoresDynamicSkillWithoutGloba
 func TestRuntimeSkillsResolveDeclaredDynamicConnectorDependency(t *testing.T) {
 	catalog := skills.NewCatalog()
 	catalog.AddSkill(skills.Skill{
-		Name: "research-mode", RequiredSkills: []string{"mcp-synon-research"},
+		Name: "research-mode", RequiredSkills: []string{"mcp-x-science-research"},
 	})
 	server := New(Options{FileRoot: t.TempDir(), SkillCatalog: catalog})
 	t.Cleanup(func() { _ = server.Close(context.Background()) })
 	schemas := []agentruntime.ToolSchema{{
-		Name:       "mcp__synon-research__life_science_sources",
+		Name:       "mcp__x-science-research__life_science_sources",
 		Parameters: map[string]any{"type": "object", "properties": map[string]any{}},
 	}}
 	selected, err := server.runtimeSkillsByNameWithConnectorSchemas([]string{"research-mode"}, nil, schemas)
 	if err != nil || len(selected) != 2 {
 		t.Fatalf("connector dependency selection=%#v err=%v", selected, err)
 	}
-	if selected[0].Name != "research-mode" || selected[1].Name != "mcp-synon-research" {
+	if selected[0].Name != "research-mode" || selected[1].Name != "mcp-x-science-research" {
 		t.Fatalf("connector dependency roots=%#v", selected)
 	}
 	allowed := runtimeSkillAllowedNamesWithConnectorDependencies([]string{"research-mode"}, selected)
 	closure, err := server.expandRuntimeSkillDependencies(
 		selected, nil, allowed, true, map[string]struct{}{"repl": {}},
 	)
-	if err != nil || len(closure) != 2 || closure[0].Name != "mcp-synon-research" || closure[1].Name != "research-mode" {
+	if err != nil || len(closure) != 2 || closure[0].Name != "mcp-x-science-research" || closure[1].Name != "research-mode" {
 		t.Fatalf("connector dependency closure=%#v allowed=%#v err=%v", closure, allowed, err)
 	}
 }

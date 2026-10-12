@@ -11,7 +11,7 @@ import (
 
 	"github.com/google/uuid"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func openNotificationTestStore(t *testing.T) (*Store, string) {

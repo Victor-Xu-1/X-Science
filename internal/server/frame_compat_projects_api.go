@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 // Compatibility projections have no model-bound capacity authority.

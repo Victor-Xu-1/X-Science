@@ -6,18 +6,18 @@
 
 import { useLayoutEffect, useRef, useState } from 'react';
 import {
-  createSynonBiomedArtifactAnnotation,
-  type SynonBiomedArtifactAnnotation,
-} from '@/renderer/services/synonBiomedAnnotations';
+  createXScienceArtifactAnnotation,
+  type XScienceArtifactAnnotation,
+} from '@/renderer/services/xScienceAnnotations';
 import { redactErrorText } from '@/renderer/pages/conversation/platforms/acp/errorDiagnostics';
-import { artifactCanvasSelectionIdentity, type SynonBiomedArtifactCanvasSelection } from './artifactCanvasSelection';
+import { artifactCanvasSelectionIdentity, type XScienceArtifactCanvasSelection } from './artifactCanvasSelection';
 import { useArtifactRequestScope } from './useArtifactRequestScope';
 
 export function useArtifactSelectionEditor(
   artifactId: string,
   versionId: string,
-  selection: SynonBiomedArtifactCanvasSelection,
-  onCreated: (annotation: SynonBiomedArtifactAnnotation) => void | Promise<void>
+  selection: XScienceArtifactCanvasSelection,
+  onCreated: (annotation: XScienceArtifactAnnotation) => void | Promise<void>
 ) {
   const anchorKey = artifactCanvasSelectionIdentity(selection);
   const scope = useArtifactRequestScope(artifactId, versionId, anchorKey);
@@ -28,7 +28,7 @@ export function useArtifactSelectionEditor(
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<'create' | 'display' | null>(null);
-  const [created, setCreated] = useState<SynonBiomedArtifactAnnotation | null>(null);
+  const [created, setCreated] = useState<XScienceArtifactAnnotation | null>(null);
   useLayoutEffect(() => {
     setNote('');
     setSaving(false);
@@ -36,7 +36,7 @@ export function useArtifactSelectionEditor(
     setCreated(null);
   }, [artifactId, versionId, anchorKey]);
 
-  const deliver = async (annotation: SynonBiomedArtifactAnnotation, token: number) => {
+  const deliver = async (annotation: XScienceArtifactAnnotation, token: number) => {
     if (!scope.isCurrent(token)) return;
     try {
       await createdCallback.current(annotation);
@@ -54,7 +54,7 @@ export function useArtifactSelectionEditor(
     setSaving(true);
     setError(null);
     try {
-      const annotation = await createSynonBiomedArtifactAnnotation(artifactId, versionId, {
+      const annotation = await createXScienceArtifactAnnotation(artifactId, versionId, {
         type: selection.type,
         text: note.trim(),
         selectionText: selection.type === 'point' ? null : selection.text,

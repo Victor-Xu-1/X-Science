@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func TestWebConversationCompletedTranscriptRunnerAcceptsReviewRepair(t *testing.T) {
@@ -14,7 +14,7 @@ func TestWebConversationCompletedTranscriptRunnerAcceptsReviewRepair(t *testing.
 	project := createP3Project(t, store, "project-completed-review-repair", "local")
 	created := p3JSONRequest(t, app, http.MethodPost, "/api/conversations", map[string]any{
 		"name":      "Completed review repair",
-		"assistant": map[string]any{"id": "synonbiomed:OPERON"},
+		"assistant": map[string]any{"id": "xscience:OPERON"},
 		"extra":     map[string]any{"project_id": project.ID, "project_name": project.Name},
 	}, "")
 	if created.Code != http.StatusCreated {

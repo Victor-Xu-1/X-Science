@@ -8,7 +8,7 @@ import { cleanupSiderTooltips, getSiderTooltipProps } from '@renderer/utils/ui/s
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { blurActiveElement } from '@renderer/utils/ui/focus';
-import { useSynonBiomedUserProfile } from '@renderer/hooks/useSynonBiomedUserProfile';
+import { useXScienceUserProfile } from '@renderer/hooks/useXScienceUserProfile';
 import { SiderSearchEntry } from './SiderNav';
 import SiderFooter from './SiderFooter';
 import siderStyles from './Sider.module.css';
@@ -49,7 +49,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const navigate = useNavigate();
   const { closePreview } = usePreviewContext();
   const { logout, status, user } = useAuth();
-  const { profile: userProfile } = useSynonBiomedUserProfile(user?.id, user?.username ?? 'User');
+  const { profile: userProfile } = useXScienceUserProfile(user?.id, user?.username ?? 'User');
   const [isBatchMode, setIsBatchMode] = useState(false);
   const isSettings = pathname.startsWith('/settings');
   const lastNonSettingsPathRef = useRef('/guid');
@@ -70,7 +70,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
       navigate('/guid', {
         state: {
           resetAssistant: true,
-          ...(projectId ? { workspace: `synonbiomed://project/${encodeURIComponent(projectId)}` } : {}),
+          ...(projectId ? { workspace: `x-science://project/${encodeURIComponent(projectId)}` } : {}),
         },
       })
     ).catch((error) => {

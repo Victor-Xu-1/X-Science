@@ -3,7 +3,7 @@
   "platform": "windows-x86_64",
   "runtimes": [
     {
-      "name": "synon-biomed-python",
+      "name": "x-science-python",
       "platform": "windows-x86_64",
       "requiredPackages": [
         {
@@ -16,16 +16,16 @@
         }
       ],
       "packageCount": 112,
-      "generation": "34e578315f03dacc29c0dd7552f823ef90b283aa743a080259756bfc42d2682c",
-      "manifestPath": "synon-biomed-python/34e578315f03dacc29c0dd7552f823ef90b283aa743a080259756bfc42d2682c/manifest.json",
-      "explicitPath": "synon-biomed-python/34e578315f03dacc29c0dd7552f823ef90b283aa743a080259756bfc42d2682c/explicit.txt",
-      "licensesPath": "synon-biomed-python/34e578315f03dacc29c0dd7552f823ef90b283aa743a080259756bfc42d2682c/licenses.json",
+      "generation": "5846887c70ebe2d4493d9e4cda8c99b9507c6ca4945a39ea8d3f2460be537d41",
+      "manifestPath": "x-science-python/5846887c70ebe2d4493d9e4cda8c99b9507c6ca4945a39ea8d3f2460be537d41/manifest.json",
+      "explicitPath": "x-science-python/5846887c70ebe2d4493d9e4cda8c99b9507c6ca4945a39ea8d3f2460be537d41/explicit.txt",
+      "licensesPath": "x-science-python/5846887c70ebe2d4493d9e4cda8c99b9507c6ca4945a39ea8d3f2460be537d41/licenses.json",
       "licenseTextsIncluded": false,
       "explicitSHA256": "bafad38cda80ce275df8edecab4bc2591fefdbdf4d61caf46e67f6cc2388de79",
-      "licenseInventorySHA256": "089d40d005b35b17570ea22ce7c9c2cc4e9defb46677d0d3d4fd0b000aee0bfc"
+      "licenseInventorySHA256": "235922dab6039ed22c1c1f605eba5a64914051f816e13f5a6223996dd31354e6"
     },
     {
-      "name": "synon-biomed-r",
+      "name": "x-science-r",
       "platform": "windows-x86_64",
       "requiredPackages": [
         {
@@ -34,14 +34,14 @@
         }
       ],
       "packageCount": 198,
-      "generation": "70fde288f96c3fc03ee9d6daf454aad842d04c35c2216589cf87a17abedb48f3",
-      "manifestPath": "synon-biomed-r/70fde288f96c3fc03ee9d6daf454aad842d04c35c2216589cf87a17abedb48f3/manifest.json",
-      "explicitPath": "synon-biomed-r/70fde288f96c3fc03ee9d6daf454aad842d04c35c2216589cf87a17abedb48f3/explicit.txt",
-      "licensesPath": "synon-biomed-r/70fde288f96c3fc03ee9d6daf454aad842d04c35c2216589cf87a17abedb48f3/licenses.json",
+      "generation": "6abb68be15000bb52da17ac662fd107faac95a41574246a70d1141c12d44381a",
+      "manifestPath": "x-science-r/6abb68be15000bb52da17ac662fd107faac95a41574246a70d1141c12d44381a/manifest.json",
+      "explicitPath": "x-science-r/6abb68be15000bb52da17ac662fd107faac95a41574246a70d1141c12d44381a/explicit.txt",
+      "licensesPath": "x-science-r/6abb68be15000bb52da17ac662fd107faac95a41574246a70d1141c12d44381a/licenses.json",
       "licenseTextsIncluded": false,
       "explicitSHA256": "6f78300d5d81687aa51e0b53ca8d7f2bb5dbeae4ac3ca1d320e78f1d6d92f7d7",
-      "licenseInventorySHA256": "8d6d457dc71ba48f3c85632601a1ebf7236b776740e94021e08fa86cdd82bb11"
+      "licenseInventorySHA256": "9ef2b4fc1c47a21df0625894163b6a4a60c798d1c7043e697a24658131689a9e"
     }
   ],
-  "catalogSHA256": "5837677d3ea8461e36c53164ff3987cf3d7d9a399ddf52cde83b8aed7f879d29"
+  "catalogSHA256": "c81fa5f4b97ff32318d1a1f04601991d527e0d27d80f137ac7eca1493a7f4616"
 }

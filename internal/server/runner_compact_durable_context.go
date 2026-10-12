@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	eventjournal "synon-go/internal/persistence/journal"
+	eventjournal "x-science/internal/persistence/journal"
 )
 
 // compactDurableRuntimeContextLines projects the bounded server-derived tool

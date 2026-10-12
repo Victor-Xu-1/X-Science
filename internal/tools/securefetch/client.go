@@ -16,7 +16,7 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/httpreliability"
+	"x-science/internal/httpreliability"
 )
 
 type ErrorCode string

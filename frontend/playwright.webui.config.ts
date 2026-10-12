@@ -1,8 +1,8 @@
 import { defineConfig } from '@playwright/test';
 
-const requestedChannel = process.env.SYNON_GO_E2E_BROWSER_CHANNEL?.trim();
+const requestedChannel = process.env.X_SCIENCE_GO_E2E_BROWSER_CHANNEL?.trim();
 if (requestedChannel && requestedChannel !== 'chrome') {
-  throw new Error('SYNON_GO_E2E_BROWSER_CHANNEL must be chrome when configured');
+  throw new Error('X_SCIENCE_GO_E2E_BROWSER_CHANNEL must be chrome when configured');
 }
 
 export default defineConfig({
@@ -17,7 +17,7 @@ export default defineConfig({
   reporter: [['list']],
   outputDir: 'test-results/web',
   use: {
-    baseURL: process.env.SYNON_GO_WEB_URL ?? 'http://127.0.0.1:8080',
+    baseURL: process.env.X_SCIENCE_GO_WEB_URL ?? 'http://127.0.0.1:8080',
     headless: true,
     channel: requestedChannel === 'chrome' ? 'chrome' : undefined,
     screenshot: 'only-on-failure',

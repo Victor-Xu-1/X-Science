@@ -166,7 +166,7 @@ export type ISkillSuggestArtifact = IConversationArtifactBase<
   }
 >;
 
-export type ISynonBiomedScientificFile = {
+export type IXScienceScientificFile = {
   artifact_id: string;
   version_id: string | null;
   version_number: number;
@@ -192,7 +192,7 @@ export type IScientificFilesArtifact = IConversationArtifactBase<
   {
     project_id: string;
     root_frame_id: string;
-    files: ISynonBiomedScientificFile[];
+    files: IXScienceScientificFile[];
   }
 >;
 export type IConversationArtifact = ICronTriggerArtifact | ISkillSuggestArtifact | IScientificFilesArtifact;

@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/executionprep"
-	kernelruntime "synon-go/internal/kernel"
-	"synon-go/internal/skills"
+	"x-science/internal/executionprep"
+	kernelruntime "x-science/internal/kernel"
+	"x-science/internal/skills"
 )
 
 // agentRuntimeSkillExecutionContractPreflight composes the machine-readable
@@ -707,7 +707,7 @@ func pendingSkillNamesContain(names []string, requested string) bool {
 }
 
 var (
-	materializedSkillScriptPattern = regexp.MustCompile(`(?i)(/[^\s"';&|]*/\.synon/runtime/skills/[^\s"';&|]+/scripts/[^\s"';&|]+)`)
+	materializedSkillScriptPattern = regexp.MustCompile(`(?i)(/[^\s"';&|]*/\.x-science/runtime/skills/[^\s"';&|]+/scripts/[^\s"';&|]+)`)
 	pythonArgumentPattern          = regexp.MustCompile(`(?m)add_argument\s*\(\s*(?:f)?["'](--[a-zA-Z0-9][a-zA-Z0-9_-]*(?:\{[a-zA-Z_][a-zA-Z0-9_]*\})?)["']`)
 	pythonArgumentValuePattern     = regexp.MustCompile(`--[a-zA-Z][a-zA-Z0-9-]*`)
 	pythonArgumentLoopPattern      = regexp.MustCompile(`(?m)for\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+in\s+\(([^)]*)\)`)
@@ -760,7 +760,7 @@ func agentRuntimeMaterializedSkillScriptPreflight(
 			continue
 		}
 		seen[scriptPath] = struct{}{}
-		if !hostPathWithin(workspace, scriptPath) || !strings.Contains(filepath.ToSlash(scriptPath), "/.synon/runtime/skills/") {
+		if !hostPathWithin(workspace, scriptPath) || !strings.Contains(filepath.ToSlash(scriptPath), "/.x-science/runtime/skills/") {
 			return materializedSkillEntrypointDiagnostic(scriptPath)
 		}
 		info, err := os.Lstat(scriptPath)
@@ -1025,7 +1025,7 @@ func (g serverAgentRuntimeToolGateway) agentRuntimeSkillOwnedPackageMutationPref
 func skillRuntimeCommandReferences(skillName, lowerContent string) bool {
 	skillName = strings.ToLower(strings.TrimSpace(skillName))
 	lowerContent = strings.ReplaceAll(strings.ToLower(lowerContent), `\`, "/")
-	return skillName != "" && strings.Contains(lowerContent, "/.synon/runtime/skills/"+skillName+"-")
+	return skillName != "" && strings.Contains(lowerContent, "/.x-science/runtime/skills/"+skillName+"-")
 }
 
 func selectManagedSkillEnvironment(environments []kernelruntime.ManagedEnvironment, preferred string) string {

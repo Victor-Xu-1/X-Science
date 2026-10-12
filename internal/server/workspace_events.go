@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const workspaceEventSubscriberBuffer = 64

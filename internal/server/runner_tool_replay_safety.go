@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"strings"
 
-	"synon-go/internal/kernelcontract"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/kernelcontract"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const sessionRunnerToolReplaySafetyReasonCode = "tool_replay_safety_pending"

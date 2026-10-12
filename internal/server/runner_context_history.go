@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"synon-go/internal/persistence/runtimekv"
+	"x-science/internal/persistence/runtimekv"
 )
 
 const contextHistoryRetention = 128

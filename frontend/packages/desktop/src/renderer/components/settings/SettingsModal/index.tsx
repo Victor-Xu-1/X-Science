@@ -1,6 +1,6 @@
-import SynonModal from '@/renderer/components/base/SynonModal';
-import SynonScrollArea from '@/renderer/components/base/SynonScrollArea';
-import SynonBiomedAvatar from '@/renderer/components/synonBiomed/SynonBiomedAvatar';
+import XScienceModal from '@/renderer/components/base/XScienceModal';
+import XScienceScrollArea from '@/renderer/components/base/XScienceScrollArea';
+import XScienceAvatar from '@/renderer/components/xScience/XScienceAvatar';
 import { iconColors } from '@/renderer/styles/colors';
 import Tabs from '@/renderer/components/base/WorkbenchTabs';
 import { Brain, Computer, Info, Lightning, Shield, System, Toolkit } from '@icon-park/react';
@@ -10,11 +10,11 @@ import { useTranslation } from 'react-i18next';
 import AboutModalContent from './contents/AboutModalContent';
 import SystemModalContent from './contents/SystemModalContent';
 import ToolsModalContent from './contents/ToolsModalContent';
-import ExpertsSettings from '@/renderer/pages/settings/SynonBiomedExpertsSettings';
+import ExpertsSettings from '@/renderer/pages/settings/XScienceExpertsSettings';
 import { ComputeSettingsContent } from '@/renderer/pages/settings/ComputeSettings';
 import { GovernanceSettingsContent } from '@/renderer/pages/settings/GovernanceSettings';
-import { SynonBiomedModelsSettingsContent } from '@/renderer/pages/settings/SynonBiomedModelsSettings';
-import SynonBiomedSkillsSettings from '@/renderer/pages/settings/SynonBiomedSkillsSettings';
+import { XScienceModelsSettingsContent } from '@/renderer/pages/settings/XScienceModelsSettings';
+import XScienceSkillsSettings from '@/renderer/pages/settings/XScienceSkillsSettings';
 import { SettingsTabNavigateProvider, SettingsViewModeProvider } from './settingsViewContext';
 
 const MOBILE_BREAKPOINT = 768;
@@ -74,7 +74,7 @@ const normalizeSettingTab = (tab?: SettingTab): BuiltinSettingTab => {
 
 export const SubModal: React.FC<SubModalProps> = ({ visible, onCancel, title, children }) => {
   return (
-    <SynonModal
+    <XScienceModal
       visible={visible}
       onCancel={onCancel}
       footer={null}
@@ -82,8 +82,8 @@ export const SubModal: React.FC<SubModalProps> = ({ visible, onCancel, title, ch
       size='medium'
       title={title}
     >
-      <SynonScrollArea className='h-full px-20px pb-16px text-14px text-t-primary'>{children}</SynonScrollArea>
-    </SynonModal>
+      <XScienceScrollArea className='h-full px-20px pb-16px text-14px text-t-primary'>{children}</XScienceScrollArea>
+    </XScienceModal>
   );
 };
 
@@ -126,8 +126,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
     const items: MenuItem[] = [
       {
         key: 'experts',
-        label: t('settings.synonBiomedExperts'),
-        icon: <SynonBiomedAvatar size={20} />,
+        label: t('settings.xScienceExperts'),
+        icon: <XScienceAvatar size={20} />,
       },
       {
         key: 'skills',
@@ -173,11 +173,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
       case 'experts':
         return <ExpertsSettings />;
       case 'skills':
-        return <SynonBiomedSkillsSettings withWrapper={false} />;
+        return <XScienceSkillsSettings withWrapper={false} />;
       case 'tools':
         return <ToolsModalContent />;
       case 'models':
-        return <SynonBiomedModelsSettingsContent />;
+        return <XScienceModelsSettingsContent />;
       case 'compute':
         return <ComputeSettingsContent />;
       case 'governance':
@@ -213,7 +213,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
   );
 
   const desktopMenu = (
-    <SynonScrollArea className='flex-shrink-0 b-color-border-2 scrollbar-hide' style={{ width: `${SIDEBAR_WIDTH}px` }}>
+    <XScienceScrollArea
+      className='flex-shrink-0 b-color-border-2 scrollbar-hide'
+      style={{ width: `${SIDEBAR_WIDTH}px` }}
+    >
       <div className='flex flex-col gap-2px'>
         {menuItems.map((item) => (
           <div
@@ -232,13 +235,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
           </div>
         ))}
       </div>
-    </SynonScrollArea>
+    </XScienceScrollArea>
   );
 
   return (
     <SettingsViewModeProvider value='modal'>
       <SettingsTabNavigateProvider value={handleTabChange}>
-        <SynonModal
+        <XScienceModal
           visible={visible}
           onCancel={onCancel}
           footer={null}
@@ -261,13 +264,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
           >
             {isMobile ? mobileMenu : desktopMenu}
 
-            <SynonScrollArea
+            <XScienceScrollArea
               className={classNames('flex-1 min-h-0', isMobile ? 'overflow-y-auto' : 'flex flex-col pl-24px gap-16px')}
             >
               {renderContent()}
-            </SynonScrollArea>
+            </XScienceScrollArea>
           </div>
-        </SynonModal>
+        </XScienceModal>
       </SettingsTabNavigateProvider>
     </SettingsViewModeProvider>
   );

@@ -289,7 +289,7 @@ func mostSpecificOutboundRoot(roots []string, path string) string {
 
 func outboundMediaRoots() []string {
 	values := []string{os.TempDir()}
-	values = append(values, filepath.SplitList(os.Getenv("SYNON_OUTBOUND_MEDIA_ROOTS"))...)
+	values = append(values, filepath.SplitList(os.Getenv("X_SCIENCE_OUTBOUND_MEDIA_ROOTS"))...)
 	roots := make([]string, 0, len(values))
 	seen := map[string]struct{}{}
 	for _, value := range values {
@@ -325,7 +325,7 @@ func pathWithinOutboundRoot(root string, path string) bool {
 
 func outboundMediaPathSensitive(path string) bool {
 	normalized := strings.ToLower(filepath.ToSlash(filepath.Clean(path)))
-	blockedDirectories := []string{"/.aws/", "/.config/", "/.git/", "/.gnupg/", "/.ssh/", "/.synon/", "/boot/", "/dev/", "/etc/", "/proc/", "/root/", "/sys/", "/var/"}
+	blockedDirectories := []string{"/.aws/", "/.config/", "/.git/", "/.gnupg/", "/.ssh/", "/.synon/", "/.synon-go/", "/.x-science/", "/.xscience/", "/boot/", "/dev/", "/etc/", "/proc/", "/root/", "/sys/", "/var/"}
 	for _, token := range blockedDirectories {
 		if strings.Contains(normalized+"/", token) {
 			return true

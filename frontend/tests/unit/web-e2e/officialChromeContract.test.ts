@@ -33,7 +33,7 @@ describe('official Chrome acceptance contract', () => {
       brands: [] as string[],
       commandLine: [
         'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-        `--user-data-dir=C:\\Users\\Victor\\AppData\\Local\\Temp\\synon-rdkit-chrome-${profileId}`,
+        `--user-data-dir=C:\\Users\\Victor\\AppData\\Local\\Temp\\x-science-rdkit-chrome-${profileId}`,
       ],
       product: 'Chrome/150.0.7871.182',
     };
@@ -55,7 +55,9 @@ describe('official Chrome acceptance contract', () => {
       ['--user-data-dir=relative-profile'],
       ['--user-data-dir=C:\\Users\\Victor\\AppData\\Local\\Google\\Chrome\\User Data'],
       [official.commandLine[1], '--user-data-dir=C:\\Temp\\override'],
-      ['--user-data-dir=C:\\Users\\Victor\\AppData\\Local\\Temp\\synon-rdkit-chrome-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
+      [
+        '--user-data-dir=C:\\Users\\Victor\\AppData\\Local\\Temp\\x-science-rdkit-chrome-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      ],
     ]) {
       expect(() =>
         assertOfficialGoogleChrome(

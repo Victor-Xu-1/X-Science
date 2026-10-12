@@ -10,11 +10,11 @@ import (
 	"strings"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
-func TestSynonBiomedCatalogUsesLiveOwnerScopedRuntimeData(t *testing.T) {
-	t.Setenv("SYNON_BUNDLED_CONNECTOR_EXECUTABLE", "mcp-ketcher")
+func TestXScienceCatalogUsesLiveOwnerScopedRuntimeData(t *testing.T) {
+	t.Setenv("X_SCIENCE_BUNDLED_CONNECTOR_EXECUTABLE", "mcp-ketcher")
 	root := t.TempDir()
 	assetsRoot := filepath.Join(root, "runtime-assets")
 	for _, directory := range []string{
@@ -53,7 +53,7 @@ func TestSynonBiomedCatalogUsesLiveOwnerScopedRuntimeData(t *testing.T) {
 		FileRoot: root, RuntimeAssetsDir: assetsRoot, Workspace: store,
 		SkillDirectories: []string{v11SkillsDir(t)},
 	})
-	request := httptest.NewRequest(http.MethodGet, "/api/synonbiomed/catalog", nil)
+	request := httptest.NewRequest(http.MethodGet, "/api/x-science/catalog", nil)
 	request.RemoteAddr = "127.0.0.1:12345"
 	request.Host = "localhost:8765"
 	response := httptest.NewRecorder()
@@ -64,16 +64,16 @@ func TestSynonBiomedCatalogUsesLiveOwnerScopedRuntimeData(t *testing.T) {
 	var payload struct {
 		Product string `json:"product"`
 		Runtime struct {
-			RuntimeAssetsDir string                        `json:"runtimeAssetsDir"`
-			Agents           synonBiomedCountedNames       `json:"agents"`
-			Skills           synonBiomedCountedNames       `json:"skills"`
-			MCPServers       synonBiomedCountedNames       `json:"mcpServers"`
-			ThirdPartyAssets synonBiomedCountedNames       `json:"thirdPartyAssets"`
-			SeedProjects     synonBiomedSeedProjectCatalog `json:"seedProjects"`
+			RuntimeAssetsDir string                     `json:"runtimeAssetsDir"`
+			Agents           xScienceCountedNames       `json:"agents"`
+			Skills           xScienceCountedNames       `json:"skills"`
+			MCPServers       xScienceCountedNames       `json:"mcpServers"`
+			ThirdPartyAssets xScienceCountedNames       `json:"thirdPartyAssets"`
+			SeedProjects     xScienceSeedProjectCatalog `json:"seedProjects"`
 		} `json:"runtime"`
 		Backend struct {
-			BaseURL  string                           `json:"baseUrl"`
-			Projects synonBiomedBackendProjectCatalog `json:"projects"`
+			BaseURL  string                        `json:"baseUrl"`
+			Projects xScienceBackendProjectCatalog `json:"projects"`
 		} `json:"backend"`
 	}
 	if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
@@ -86,7 +86,7 @@ func TestSynonBiomedCatalogUsesLiveOwnerScopedRuntimeData(t *testing.T) {
 	if payload.Runtime.Agents.Count == 0 {
 		t.Fatal("expected bundled agents in catalog")
 	}
-	if payload.Runtime.Skills.Count == 0 || !containsCatalogString(payload.Runtime.Skills.Names, "synon-runtime") {
+	if payload.Runtime.Skills.Count == 0 || !containsCatalogString(payload.Runtime.Skills.Names, "x-science-runtime") {
 		t.Fatalf("skills=%v", payload.Runtime.Skills.Names)
 	}
 	if payload.Runtime.MCPServers.Count == 0 || !containsCatalogString(payload.Runtime.MCPServers.Names, "ketcher-chemistry") {
@@ -111,7 +111,7 @@ func TestSynonBiomedCatalogUsesLiveOwnerScopedRuntimeData(t *testing.T) {
 	}
 }
 
-func TestSynonBiomedProjectCreateReturnsCamelCaseAndPersistsContext(t *testing.T) {
+func TestXScienceProjectCreateReturnsCamelCaseAndPersistsContext(t *testing.T) {
 	root := t.TempDir()
 	store, err := workspace.Open(filepath.Join(root, "workspace.db"))
 	if err != nil {
@@ -121,7 +121,7 @@ func TestSynonBiomedProjectCreateReturnsCamelCaseAndPersistsContext(t *testing.T
 	app := New(Options{FileRoot: root, Workspace: store})
 	request := httptest.NewRequest(
 		http.MethodPost,
-		"/api/synonbiomed/projects",
+		"/api/x-science/projects",
 		strings.NewReader(`{"name":"Oncology Review","description":"STAT6 program","context":"CRBN evidence"}`),
 	)
 	request.RemoteAddr = "127.0.0.1:12345"
@@ -131,7 +131,7 @@ func TestSynonBiomedProjectCreateReturnsCamelCaseAndPersistsContext(t *testing.T
 		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
 	}
 	var payload struct {
-		Project synonBiomedBackendProject `json:"project"`
+		Project xScienceBackendProject `json:"project"`
 	}
 	if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
 		t.Fatal(err)
@@ -146,7 +146,7 @@ func TestSynonBiomedProjectCreateReturnsCamelCaseAndPersistsContext(t *testing.T
 		t.Fatalf("persisted=%#v found=%t err=%v", persisted, found, err)
 	}
 
-	list := httptest.NewRequest(http.MethodGet, "/api/synonbiomed/projects", nil)
+	list := httptest.NewRequest(http.MethodGet, "/api/x-science/projects", nil)
 	list.RemoteAddr = "127.0.0.1:12345"
 	listResponse := httptest.NewRecorder()
 	app.Handler().ServeHTTP(listResponse, list)
@@ -155,7 +155,7 @@ func TestSynonBiomedProjectCreateReturnsCamelCaseAndPersistsContext(t *testing.T
 	}
 }
 
-func TestSynonBiomedProjectAndCatalogRejectInvalidOrUnauthenticatedRequests(t *testing.T) {
+func TestXScienceProjectAndCatalogRejectInvalidOrUnauthenticatedRequests(t *testing.T) {
 	root := t.TempDir()
 	store, err := workspace.Open(filepath.Join(root, "workspace.db"))
 	if err != nil {
@@ -164,7 +164,7 @@ func TestSynonBiomedProjectAndCatalogRejectInvalidOrUnauthenticatedRequests(t *t
 	t.Cleanup(func() { _ = store.Close() })
 	app := New(Options{FileRoot: root, Workspace: store})
 
-	invalid := newLoopbackTestRequest(http.MethodPost, "/api/synonbiomed/projects", strings.NewReader(`{"name":"","extra":true}`))
+	invalid := newLoopbackTestRequest(http.MethodPost, "/api/x-science/projects", strings.NewReader(`{"name":"","extra":true}`))
 	invalid.RemoteAddr = "127.0.0.1:12345"
 	invalidResponse := httptest.NewRecorder()
 	app.Handler().ServeHTTP(invalidResponse, invalid)
@@ -172,7 +172,7 @@ func TestSynonBiomedProjectAndCatalogRejectInvalidOrUnauthenticatedRequests(t *t
 		t.Fatalf("invalid status=%d body=%s", invalidResponse.Code, invalidResponse.Body.String())
 	}
 
-	remote := newLoopbackTestRequest(http.MethodGet, "/api/synonbiomed/catalog", nil)
+	remote := newLoopbackTestRequest(http.MethodGet, "/api/x-science/catalog", nil)
 	remote.RemoteAddr = "203.0.113.8:12345"
 	remoteResponse := httptest.NewRecorder()
 	app.Handler().ServeHTTP(remoteResponse, remote)
@@ -180,9 +180,9 @@ func TestSynonBiomedProjectAndCatalogRejectInvalidOrUnauthenticatedRequests(t *t
 		t.Fatalf("remote status=%d body=%s", remoteResponse.Code, remoteResponse.Body.String())
 	}
 
-	forged := newLoopbackTestRequest(http.MethodGet, "/api/synonbiomed/catalog", nil)
+	forged := newLoopbackTestRequest(http.MethodGet, "/api/x-science/catalog", nil)
 	forged.RemoteAddr = "203.0.113.8:12345"
-	forged.Header.Set("X-Synon-User-Id", "attacker")
+	forged.Header.Set("X-Science-User-Id", "attacker")
 	forgedResponse := httptest.NewRecorder()
 	app.Handler().ServeHTTP(forgedResponse, forged)
 	if forgedResponse.Code != http.StatusUnauthorized {
@@ -195,9 +195,9 @@ func TestSystemInfoMapsConfiguredDirectoriesAndRuntime(t *testing.T) {
 	cacheDir := filepath.Join(root, "cache-override")
 	workDir := filepath.Join(root, "work-override")
 	logDir := filepath.Join(root, "log-override")
-	t.Setenv("SYNON_AI_CACHE_DIR", cacheDir)
-	t.Setenv("SYNON_AI_WORK_DIR", workDir)
-	t.Setenv("SYNON_AI_LOG_DIR", logDir)
+	t.Setenv("X_SCIENCE_CACHE_DIR", cacheDir)
+	t.Setenv("X_SCIENCE_WORK_DIR", workDir)
+	t.Setenv("X_SCIENCE_LOG_DIR", logDir)
 	app := New(Options{FileRoot: root})
 	request := httptest.NewRequest(http.MethodGet, "/api/system/info", nil)
 	request.RemoteAddr = "127.0.0.1:12345"
@@ -224,17 +224,17 @@ func TestSystemInfoMapsConfiguredDirectoriesAndRuntime(t *testing.T) {
 	}
 }
 
-func TestCollectSynonBiomedSeedProjectsRejectsOversizedManifest(t *testing.T) {
+func TestCollectXScienceSeedProjectsRejectsOversizedManifest(t *testing.T) {
 	root := t.TempDir()
 	seedDir := filepath.Join(root, "seed")
 	if err := os.MkdirAll(seedDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	oversized := strings.Repeat("x", maxSynonBiomedSeedManifestBytes+1)
+	oversized := strings.Repeat("x", maxXScienceSeedManifestBytes+1)
 	if err := os.WriteFile(filepath.Join(seedDir, "manifest_large.json"), []byte(oversized), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := collectSynonBiomedSeedProjects(root); err == nil || !strings.Contains(err.Error(), "size limit") {
+	if _, err := collectXScienceSeedProjects(root); err == nil || !strings.Contains(err.Error(), "size limit") {
 		t.Fatalf("error=%v", err)
 	}
 }

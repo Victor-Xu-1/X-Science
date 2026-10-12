@@ -10,7 +10,7 @@ import type { OnboardingSnapshot } from '@/renderer/services/onboardingService';
 import { describe, expect, it } from 'vitest';
 
 const snapshot = {
-  assistantId: 'synonbiomed:operon',
+  assistantId: 'xscience:operon',
   complete: false,
   networkGroups: [
     { id: 'required', label: 'Required', description: '', locked: true, domains: [] },

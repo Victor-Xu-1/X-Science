@@ -9,7 +9,7 @@ import 'uno.css';
 import '@/renderer/styles/themes/index.css';
 import '@/renderer/styles/workspace-theme.css';
 import conversation from '@/renderer/services/i18n/locales/zh-CN/conversation.json';
-import SynonBiomedComputeRuntimePanel from '@/renderer/components/synonBiomed/runtime/SynonBiomedComputeRuntimePanel';
+import XScienceComputeRuntimePanel from '@/renderer/components/xScience/runtime/XScienceComputeRuntimePanel';
 
 await i18n.use(initReactI18next).init({
   lng: 'zh-CN',
@@ -18,7 +18,7 @@ await i18n.use(initReactI18next).init({
 });
 createRoot(document.getElementById('root')!).render(
   <MemoryRouter>
-    <SynonBiomedComputeRuntimePanel
+    <XScienceComputeRuntimePanel
       rootFrameId='observation-frame'
       projectId={null}
       sessionTitle='Execution observation integration'

@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	taskruns "synon-go/internal/persistence/taskruns"
 	"time"
+	taskruns "x-science/internal/persistence/taskruns"
 )
 
 func (s *Server) executeAgentTool(ctx context.Context, toolName string, input map[string]any) (any, error) {
@@ -155,7 +155,7 @@ func (s *Server) runAgentDelegationSynchronously(ctx context.Context, run taskru
 	if ctx == nil {
 		return taskruns.Record{}, "", errors.New("sync Agent runner context is required")
 	}
-	runnerID := "synon-go-sync-agent-" + run.RunID
+	runnerID := "x-science-sync-agent-" + run.RunID
 	cycle, err := s.RunSessionRunnerChatOnce(ctx, SessionRunnerChatOptions{
 		SessionID:        run.SessionID,
 		RunnerID:         runnerID,
@@ -263,7 +263,7 @@ func (s *Server) executeSendMessageTool(ctx context.Context, input map[string]an
 			"success": true,
 			"message": fmt.Sprintf("Message queued for delivery to %s at its next runner turn.", to),
 			"routing": map[string]any{
-				"sender":  "synon-go",
+				"sender":  "x-science",
 				"target":  to,
 				"summary": summary,
 				"content": messageText,
@@ -299,7 +299,7 @@ func (s *Server) executeSendMessageTool(ctx context.Context, input map[string]an
 		"delivered": delivered,
 		"event":     event,
 		"routing": map[string]any{
-			"sender":  "synon-go",
+			"sender":  "x-science",
 			"target":  to,
 			"summary": summary,
 		},
@@ -410,7 +410,7 @@ func (s *Server) broadcastSendMessage(messageText string, summary string) (any, 
 		"message":    fmt.Sprintf("Broadcast queued for %d agent(s).", len(recipients)),
 		"recipients": recipients,
 		"routing": map[string]any{
-			"sender":  "synon-go",
+			"sender":  "x-science",
 			"target":  "*",
 			"summary": summary,
 			"content": messageText,

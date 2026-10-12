@@ -25,8 +25,8 @@ vi.mock('@arco-design/web-react', async (importOriginal) => {
   };
 });
 
-vi.mock('@/renderer/services/synonBiomedLicenses', () => ({
-  loadSynonBiomedThirdPartyLicenses: mocks.load,
+vi.mock('@/renderer/services/xScienceLicenses', () => ({
+  loadXScienceThirdPartyLicenses: mocks.load,
 }));
 
 vi.mock('@/renderer/utils/ui/clipboard', () => ({

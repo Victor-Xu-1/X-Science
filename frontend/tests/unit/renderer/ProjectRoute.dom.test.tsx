@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { SynonBiomedProjectBench } from '@/renderer/services/synonBiomedGateway';
+import type { XScienceProjectBench } from '@/renderer/services/xScienceGateway';
 import { renderWithI18n } from '../i18nTestUtils';
 
 const { loadBenchesMock, navigateMock } = vi.hoisted(() => ({
@@ -9,8 +9,8 @@ const { loadBenchesMock, navigateMock } = vi.hoisted(() => ({
   navigateMock: vi.fn(),
 }));
 
-vi.mock('@/renderer/services/synonBiomedGateway', () => ({
-  loadSynonBiomedProjectBenches: (...args: unknown[]) => loadBenchesMock(...args),
+vi.mock('@/renderer/services/xScienceGateway', () => ({
+  loadXScienceProjectBenches: (...args: unknown[]) => loadBenchesMock(...args),
 }));
 
 vi.mock('react-router', () => ({
@@ -44,7 +44,7 @@ vi.mock('@arco-design/web-react', () => ({
 
 import ProjectRoute from '@/renderer/pages/project/ProjectRoute';
 
-const bench = (frameId: string, updatedAt: string): SynonBiomedProjectBench => ({
+const bench = (frameId: string, updatedAt: string): XScienceProjectBench => ({
   frameId,
   rootFrameId: frameId,
   parentFrameId: null,
@@ -92,7 +92,7 @@ describe('ProjectRoute', () => {
         replace: true,
         state: {
           resetAssistant: true,
-          workspace: 'synonbiomed://project/project-a',
+          workspace: 'x-science://project/project-a',
         },
       })
     );

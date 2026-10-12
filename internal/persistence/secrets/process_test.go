@@ -11,9 +11,9 @@ import (
 	"time"
 )
 
-const helperModeEnv = "SYNON_SECRETS_HELPER_MODE"
-const helperRootEnv = "SYNON_SECRETS_HELPER_ROOT"
-const helperIDEnv = "SYNON_SECRETS_HELPER_ID"
+const helperModeEnv = "X_SCIENCE_SECRETS_HELPER_MODE"
+const helperRootEnv = "X_SCIENCE_SECRETS_HELPER_ROOT"
+const helperIDEnv = "X_SCIENCE_SECRETS_HELPER_ID"
 
 func TestSecretStoreHelperProcess(t *testing.T) {
 	mode := os.Getenv(helperModeEnv)

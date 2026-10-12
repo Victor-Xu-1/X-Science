@@ -197,7 +197,7 @@ export function generateInspectScript(inspectMode: boolean, messages: InspectMes
         // Send through console.log so the webview bridge can capture it.
           console.log('__INSPECT_ELEMENT__' + JSON.stringify(payload));
           try {
-            window.parent.postMessage({ __SYNON_AI_INSPECT_ELEMENT__: payload }, '*');
+            window.parent.postMessage({ __X_SCIENCE_INSPECT_ELEMENT__: payload }, '*');
           } catch (_) {}
 
         // Show confirmation.
@@ -224,7 +224,7 @@ export function generateInspectScript(inspectMode: boolean, messages: InspectMes
 export function generateHtmlAnnotationHighlightScript(markers: HtmlElementAnnotationMarker[]): string {
   return `
     (function() {
-      document.querySelectorAll('[data-synon-ai-html-annotation]').forEach((node) => node.remove());
+      document.querySelectorAll('[data-x-science-html-annotation]').forEach((node) => node.remove());
       const markers = ${JSON.stringify(markers)};
       for (const marker of markers) {
         let target = null;
@@ -234,7 +234,7 @@ export function generateHtmlAnnotationHighlightScript(markers: HtmlElementAnnota
         if (rect.width <= 0 && rect.height <= 0) continue;
         const badge = document.createElement('button');
         badge.type = 'button';
-        badge.dataset.synonAiHtmlAnnotation = marker.id;
+        badge.dataset.xscienceAiHtmlAnnotation = marker.id;
         badge.textContent = marker.label || '•';
         badge.title = marker.text || marker.selector;
         badge.setAttribute('aria-label', 'Annotation ' + (marker.label || marker.id));
@@ -245,7 +245,7 @@ export function generateHtmlAnnotationHighlightScript(markers: HtmlElementAnnota
           event.preventDefault();
           event.stopPropagation();
           console.log('__HTML_ANNOTATION_CLICK__' + marker.id);
-          try { window.parent.postMessage({ __SYNON_AI_HTML_ANNOTATION_CLICK__: marker.id }, '*'); } catch (_) {}
+          try { window.parent.postMessage({ __X_SCIENCE_HTML_ANNOTATION_CLICK__: marker.id }, '*'); } catch (_) {}
         }, true);
         document.body.appendChild(badge);
       }

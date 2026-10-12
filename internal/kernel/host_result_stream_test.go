@@ -167,7 +167,7 @@ func TestHostResultStreamCancellationUnblocksPipeAndCleansGoSpool(t *testing.T) 
 	case <-time.After(2 * time.Second):
 		t.Fatal("cancelled stream retained a blocked writer")
 	}
-	paths, err := filepath.Glob(filepath.Join(os.TempDir(), "synon-host-result-*"))
+	paths, err := filepath.Glob(filepath.Join(os.TempDir(), "x-science-host-result-*"))
 	if err != nil || len(paths) != 0 {
 		t.Fatalf("host transport spool leaked: %v %v", paths, err)
 	}

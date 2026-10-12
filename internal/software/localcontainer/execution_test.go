@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	kernelruntime "synon-go/internal/kernel"
+	kernelruntime "x-science/internal/kernel"
 )
 
 type executionDockerRunner struct {
@@ -61,8 +61,8 @@ func (r *executionDockerRunner) Run(_ context.Context, arguments ...string) (str
 		}
 		container := dockerContainer{ID: "container-id", Name: "/managed", Image: r.imageID}
 		container.Config.Labels = map[string]string{
-			"com.synonbiomed.managed": "true", "com.synonbiomed.execution": r.executionID,
-			"com.synonbiomed.environment": r.environment,
+			"com.xscience.managed": "true", "com.xscience.execution": r.executionID,
+			"com.xscience.environment": r.environment,
 		}
 		container.State.Status, container.State.Running, container.State.ExitCode = status, running, exitCode
 		container.State.StartedAt = "2026-09-03T00:00:00Z"

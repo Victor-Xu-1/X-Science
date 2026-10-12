@@ -21,6 +21,7 @@ const VALUE_OPTION_NAMES = new Set([
   'package-cache',
   'required-packages',
   'locked-manifest',
+  'source-name',
   'exclude-packages',
 ]);
 const FLAG_OPTION_NAMES = new Set(['check']);
@@ -72,6 +73,9 @@ const parseArguments = (values) => {
   }
   if (options['exclude-packages'] && !options['locked-manifest']) {
     throw new Error('--exclude-packages requires --locked-manifest');
+  }
+  if (options['source-name'] && !options['locked-manifest']) {
+    throw new Error('--source-name requires --locked-manifest');
   }
   return options;
 };
@@ -300,7 +304,7 @@ const main = async () => {
   let records;
   if (options['locked-manifest']) {
     records = await readLockedRecords(resolve(options['locked-manifest']), {
-      name: options.name, platform, exclude: options['exclude-packages'],
+      name: options['source-name'] || options.name, platform, exclude: options['exclude-packages'],
     });
   } else if (options['solve-json']) {
     const solvePath = resolve(options['solve-json']);

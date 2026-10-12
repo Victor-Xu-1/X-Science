@@ -17,9 +17,9 @@ def load_module(relative: str, name: str):
     return module
 
 
-websearch = load_module("scripts/optional/websearch.py", "synon_websearch_security")
+websearch = load_module("scripts/optional/websearch.py", "x_science_websearch_security")
 literature_kernel = load_module(
-    "skills/synonbiomed/literature-review/kernel.py", "synon_literature_security"
+    "skills/x-science/literature-review/kernel.py", "x_science_literature_security"
 )
 
 

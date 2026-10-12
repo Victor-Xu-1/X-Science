@@ -870,7 +870,7 @@ def _is_loopback(address):
 def _blocked(self, address):
     if _is_loopback(address):
         return _original_connect(self, address)
-    with open(os.environ["SYNON_SOCKET_MARKER"], "w", encoding="utf-8") as marker:
+    with open(os.environ["X_SCIENCE_SOCKET_MARKER"], "w", encoding="utf-8") as marker:
         marker.write(str(address))
     raise RuntimeError("network access blocked by parity observer")
 socket.socket.connect = _blocked
@@ -957,7 +957,7 @@ socket.socket.connect = _blocked
 				Type: "stdio", Scope: "bundled", Command: "python3",
 				Args: []string{runServer, tc.pkg},
 				Env: map[string]string{
-					"PYTHONDONTWRITEBYTECODE": "1", "PYTHONPATH": observer, "SYNON_SOCKET_MARKER": marker,
+					"PYTHONDONTWRITEBYTECODE": "1", "PYTHONPATH": observer, "X_SCIENCE_SOCKET_MARKER": marker,
 				},
 			}
 			_, err := CallToolForServer(context.Background(), repositoryRoot, tc.name, tc.tool, tc.args, config)
@@ -980,8 +980,8 @@ socket.socket.connect = _blocked
 }
 
 func TestLivePublicConnectors(t *testing.T) {
-	if os.Getenv("SYNON_LIVE_CONNECTOR_TEST") != "1" {
-		t.Skip("set SYNON_LIVE_CONNECTOR_TEST=1 for public connector evidence")
+	if os.Getenv("X_SCIENCE_LIVE_CONNECTOR_TEST") != "1" {
+		t.Skip("set X_SCIENCE_LIVE_CONNECTOR_TEST=1 for public connector evidence")
 	}
 	_, sourceFile, _, ok := runtime.Caller(0)
 	if !ok {
@@ -1014,8 +1014,8 @@ func TestLivePublicConnectors(t *testing.T) {
 }
 
 func TestRemoteHTTPMCPListToolsAndCallSSE(t *testing.T) {
-	t.Setenv("SYNON_MCP_CONFIG", "")
-	t.Setenv("SYNON_MCP_CONFIG_JSON", "")
+	t.Setenv("X_SCIENCE_MCP_CONFIG", "")
+	t.Setenv("X_SCIENCE_MCP_CONFIG_JSON", "")
 	called := false
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called = true
@@ -1028,7 +1028,7 @@ func TestRemoteHTTPMCPListToolsAndCallSSE(t *testing.T) {
 			"remote": map[string]any{
 				"type":    "http",
 				"url":     server.URL,
-				"headers": map[string]any{"X-Synon-Test": "remote-mcp"},
+				"headers": map[string]any{"X-Science-Test": "remote-mcp"},
 			},
 		},
 	})
@@ -1345,8 +1345,8 @@ func TestDecodeToolOutputSchemaPreservesOptionalObjectContract(t *testing.T) {
 }
 
 func TestLoadServersDoesNotTrustProjectConfigUnlessExplicitlyConfigured(t *testing.T) {
-	t.Setenv("SYNON_MCP_CONFIG", "")
-	t.Setenv("SYNON_MCP_CONFIG_JSON", "")
+	t.Setenv("X_SCIENCE_MCP_CONFIG", "")
+	t.Setenv("X_SCIENCE_MCP_CONFIG_JSON", "")
 	root := t.TempDir()
 	writeMCPConfig(t, root, map[string]any{"mcpServers": map[string]any{
 		"untrusted": map[string]any{"type": "stdio", "command": "sh", "args": []string{"-c", "exit 99"}},
@@ -1360,7 +1360,7 @@ func TestLoadServersDoesNotTrustProjectConfigUnlessExplicitlyConfigured(t *testi
 		t.Fatalf("default project config was trusted: %#v", configs)
 	}
 
-	t.Setenv("SYNON_MCP_CONFIG", filepath.Join(root, ".mcp.json"))
+	t.Setenv("X_SCIENCE_MCP_CONFIG", filepath.Join(root, ".mcp.json"))
 	configs, err = LoadServers(root)
 	if err != nil {
 		t.Fatal(err)
@@ -1464,8 +1464,8 @@ func runInvalidSchemaMCPFixture(t *testing.T) {
 }
 
 func TestRemoteHTTPMCPUnauthorizedListsAuthenticateTool(t *testing.T) {
-	t.Setenv("SYNON_MCP_CONFIG", "")
-	t.Setenv("SYNON_MCP_CONFIG_JSON", "")
+	t.Setenv("X_SCIENCE_MCP_CONFIG", "")
+	t.Setenv("X_SCIENCE_MCP_CONFIG_JSON", "")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("WWW-Authenticate", `Bearer resource_metadata="https://auth.example.test/.well-known/oauth-protected-resource"`)
 		http.Error(w, "authentication required", http.StatusUnauthorized)
@@ -1481,7 +1481,7 @@ func TestRemoteHTTPMCPUnauthorizedListsAuthenticateTool(t *testing.T) {
 			},
 		},
 	})
-	t.Setenv("SYNON_MCP_CONFIG", filepath.Join(root, ".mcp.json"))
+	t.Setenv("X_SCIENCE_MCP_CONFIG", filepath.Join(root, ".mcp.json"))
 
 	list, err := ListTools(context.Background(), root, "secure")
 	if err != nil {
@@ -1496,8 +1496,8 @@ func TestRemoteHTTPMCPUnauthorizedListsAuthenticateTool(t *testing.T) {
 }
 
 func TestRemoteHTTPMCPAuthenticateStoresTokenAndCallUsesBearer(t *testing.T) {
-	t.Setenv("SYNON_MCP_CONFIG", "")
-	t.Setenv("SYNON_MCP_CONFIG_JSON", "")
+	t.Setenv("X_SCIENCE_MCP_CONFIG", "")
+	t.Setenv("X_SCIENCE_MCP_CONFIG_JSON", "")
 	var authCodeSeen bool
 	var tokenVerifierSeen bool
 	var sawBearer bool
@@ -1622,7 +1622,7 @@ func TestRemoteHTTPMCPAuthenticateStoresTokenAndCallUsesBearer(t *testing.T) {
 
 	root := t.TempDir()
 	writeMCPConfig(t, root, map[string]any{"mcpServers": map[string]any{"secure": map[string]any{"type": "http", "url": mcpBaseURL}}})
-	t.Setenv("SYNON_MCP_CONFIG", filepath.Join(root, ".mcp.json"))
+	t.Setenv("X_SCIENCE_MCP_CONFIG", filepath.Join(root, ".mcp.json"))
 
 	started, err := Authenticate(ctx, root, "secure")
 	if err != nil {
@@ -1672,8 +1672,8 @@ func TestOAuthTokenCacheUsesBoundedPrivatePathAndExpires(t *testing.T) {
 	if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
 		t.Fatalf("token cache path escaped root: %s", rel)
 	}
-	if filepath.Dir(tokenAbs) != filepath.Join(rootAbs, ".synon", "mcp-oauth") {
-		t.Fatalf("token cache should stay under .synon/mcp-oauth: %s", tokenAbs)
+	if filepath.Dir(tokenAbs) != filepath.Join(rootAbs, ".x-science", "mcp-oauth") {
+		t.Fatalf("token cache should stay under .x-science/mcp-oauth: %s", tokenAbs)
 	}
 	if filepath.Base(tokenAbs) != NormalizeName(serverName)+".json" {
 		t.Fatalf("token cache filename should be normalized: %s", filepath.Base(tokenAbs))
@@ -1685,7 +1685,7 @@ func TestOAuthTokenCacheUsesBoundedPrivatePathAndExpires(t *testing.T) {
 	if _, err := os.Stat(tokenAbs); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("plaintext token cache exists: %v", err)
 	}
-	vaultPath := filepath.Join(rootAbs, ".synon", "mcp-oauth-vault", "secrets", "vault.enc")
+	vaultPath := filepath.Join(rootAbs, ".x-science", "mcp-oauth-vault", "secrets", "vault.enc")
 	vault, err := os.ReadFile(vaultPath)
 	if err != nil {
 		t.Fatalf("read encrypted token vault: %v", err)
@@ -1745,7 +1745,7 @@ func TestOAuthTokenCacheMigratesAndDeletesLegacyPlaintext(t *testing.T) {
 
 func TestMigrateLegacyOAuthTokensSweepsAllPlaintextFiles(t *testing.T) {
 	root := t.TempDir()
-	directory := filepath.Join(root, ".synon", "mcp-oauth")
+	directory := filepath.Join(root, ".x-science", "mcp-oauth")
 	if err := os.MkdirAll(directory, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -2100,8 +2100,8 @@ func oauthTLSTestClient(t *testing.T, server *httptest.Server) (string, *http.Cl
 }
 
 func TestRemoteWebSocketMCPListToolsAndCall(t *testing.T) {
-	t.Setenv("SYNON_MCP_CONFIG", "")
-	t.Setenv("SYNON_MCP_CONFIG_JSON", "")
+	t.Setenv("X_SCIENCE_MCP_CONFIG", "")
+	t.Setenv("X_SCIENCE_MCP_CONFIG_JSON", "")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		conn, err := websocket.Accept(w, r, nil)
 		if err != nil {
@@ -2160,11 +2160,11 @@ func TestRemoteWebSocketMCPListToolsAndCall(t *testing.T) {
 			"wsremote": map[string]any{
 				"type":    "ws",
 				"url":     "ws" + strings.TrimPrefix(server.URL, "http"),
-				"headers": map[string]any{"X-Synon-Test": "ws-mcp"},
+				"headers": map[string]any{"X-Science-Test": "ws-mcp"},
 			},
 		},
 	})
-	t.Setenv("SYNON_MCP_CONFIG", filepath.Join(root, ".mcp.json"))
+	t.Setenv("X_SCIENCE_MCP_CONFIG", filepath.Join(root, ".mcp.json"))
 	list, err := ListTools(context.Background(), root, "wsremote")
 	if err != nil {
 		t.Fatalf("ListTools websocket error = %v", err)
@@ -2179,8 +2179,8 @@ func TestSDKMCPBridgeListToolsAndCall(t *testing.T) {
 		runSDKMCPBridgeFixture(t)
 		return
 	}
-	t.Setenv("SYNON_MCP_CONFIG", "")
-	t.Setenv("SYNON_MCP_CONFIG_JSON", "")
+	t.Setenv("X_SCIENCE_MCP_CONFIG", "")
+	t.Setenv("X_SCIENCE_MCP_CONFIG_JSON", "")
 	t.Setenv(hostSecretEnvironment, "host-only-secret")
 	root := t.TempDir()
 	writeMCPConfig(t, root, map[string]any{
@@ -2195,7 +2195,7 @@ func TestSDKMCPBridgeListToolsAndCall(t *testing.T) {
 			},
 		},
 	})
-	t.Setenv("SYNON_MCP_CONFIG", filepath.Join(root, ".mcp.json"))
+	t.Setenv("X_SCIENCE_MCP_CONFIG", filepath.Join(root, ".mcp.json"))
 
 	list, err := ListTools(context.Background(), root, "sdk-fixture")
 	if err != nil {
@@ -2232,7 +2232,7 @@ func TestStdioResourceSupportsBundledKetcherPayloadSize(t *testing.T) {
 			},
 		},
 	})
-	t.Setenv("SYNON_MCP_CONFIG", filepath.Join(root, ".mcp.json"))
+	t.Setenv("X_SCIENCE_MCP_CONFIG", filepath.Join(root, ".mcp.json"))
 	result, err := ReadResource(context.Background(), root, "large-resource", "ui://ketcher-chemistry/editor")
 	if err != nil {
 		t.Fatal(err)
@@ -2443,7 +2443,7 @@ func TestStdioCatalogListingFollowsAndDeduplicatesMCPPagination(t *testing.T) {
 			},
 		},
 	})
-	t.Setenv("SYNON_MCP_CONFIG", filepath.Join(root, ".mcp.json"))
+	t.Setenv("X_SCIENCE_MCP_CONFIG", filepath.Join(root, ".mcp.json"))
 	tools, err := ListTools(context.Background(), root, "paged")
 	if err != nil {
 		t.Fatal(err)

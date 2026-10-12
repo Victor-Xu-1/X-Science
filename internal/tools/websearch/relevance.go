@@ -11,7 +11,7 @@ import (
 	"strings"
 	"unicode"
 
-	"synon-go/internal/discoveryquery"
+	"x-science/internal/discoveryquery"
 )
 
 func deduplicateHits(input []Hit, limit int) []Hit {
@@ -164,14 +164,14 @@ func stripHTML(value string) string {
 }
 
 func resolveScriptPath(_ string) string {
-	if value := strings.TrimSpace(os.Getenv("SYNON_WEBSEARCH_SCRIPT")); value != "" {
+	if value := strings.TrimSpace(os.Getenv("X_SCIENCE_WEBSEARCH_SCRIPT")); value != "" {
 		return filepath.Clean(value)
 	}
 	return ""
 }
 
 func resolvePython(root string) (string, bool) {
-	if value := strings.TrimSpace(os.Getenv("SYNON_WEBSEARCH_PYTHON")); value != "" {
+	if value := strings.TrimSpace(os.Getenv("X_SCIENCE_WEBSEARCH_PYTHON")); value != "" {
 		return value, fileExists(value)
 	}
 	candidates := []string{}

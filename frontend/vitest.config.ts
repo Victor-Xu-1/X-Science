@@ -41,7 +41,7 @@ export default defineConfig({
           setupFiles: ['./tests/vitest.setup.ts'],
         },
       },
-      // Real backend tests share one deployed Synon Biomed workspace. Running
+      // Real backend tests share one deployed X-Science workspace. Running
       // files concurrently can mutate the same records or overload protected
       // lifecycle endpoints, so keep this project file-serial and bounded.
       {

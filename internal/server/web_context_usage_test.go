@@ -9,15 +9,15 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/persistence/runtimekv"
+	"x-science/internal/agentruntime"
+	"x-science/internal/persistence/runtimekv"
 )
 
 func TestWebContextUsageMissingRecordIsExplicit(t *testing.T) {
 	app, store := newP3WebConversationServer(t)
 	project := createP3Project(t, store, "context-usage", "local")
 	created := p3JSONRequest(t, app, http.MethodPost, "/api/conversations", map[string]any{
-		"name": "Context usage", "assistant": map[string]any{"id": "synonbiomed:OPERON"},
+		"name": "Context usage", "assistant": map[string]any{"id": "xscience:OPERON"},
 		"extra": map[string]any{"project_id": project.ID},
 	}, "")
 	if created.Code != http.StatusCreated {
@@ -78,7 +78,7 @@ func TestWebContextUsageLegacyRecordIsUnavailableUntilNextRequest(t *testing.T) 
 	app, store := newP3WebConversationServer(t)
 	project := createP3Project(t, store, "context-legacy", "local")
 	created := p3JSONRequest(t, app, http.MethodPost, "/api/conversations", map[string]any{
-		"name": "Legacy context usage", "assistant": map[string]any{"id": "synonbiomed:OPERON"},
+		"name": "Legacy context usage", "assistant": map[string]any{"id": "xscience:OPERON"},
 		"extra": map[string]any{"project_id": project.ID},
 	}, "")
 	if created.Code != http.StatusCreated {
@@ -124,7 +124,7 @@ func TestWebContextUsageRejectsIncompleteCategoryRows(t *testing.T) {
 	app, store := newP3WebConversationServer(t)
 	project := createP3Project(t, store, "context-invalid-rows", "local")
 	created := p3JSONRequest(t, app, http.MethodPost, "/api/conversations", map[string]any{
-		"name": "Invalid context usage", "assistant": map[string]any{"id": "synonbiomed:OPERON"},
+		"name": "Invalid context usage", "assistant": map[string]any{"id": "xscience:OPERON"},
 		"extra": map[string]any{"project_id": project.ID},
 	}, "")
 	if created.Code != http.StatusCreated {
@@ -195,7 +195,7 @@ func TestWebContextUsageConcurrentDeleteFencesPendingWrite(t *testing.T) {
 	app, store := newP3WebConversationServer(t)
 	project := createP3Project(t, store, "context-delete-race", "local")
 	created := p3JSONRequest(t, app, http.MethodPost, "/api/conversations", map[string]any{
-		"name": "Context delete", "assistant": map[string]any{"id": "synonbiomed:OPERON"},
+		"name": "Context delete", "assistant": map[string]any{"id": "xscience:OPERON"},
 		"extra": map[string]any{"project_id": project.ID},
 	}, "")
 	if created.Code != http.StatusCreated {

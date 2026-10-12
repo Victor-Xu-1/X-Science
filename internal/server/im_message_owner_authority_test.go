@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func TestIMMessageToolRequiresTrustedRunnerOwner(t *testing.T) {
@@ -14,7 +14,7 @@ func TestIMMessageToolRequiresTrustedRunnerOwner(t *testing.T) {
 	sink := &recordingSessionOutboundSink{}
 	server := New(Options{
 		Workspace: store, Transcript: repo, FileRoot: t.TempDir(), IMOutbound: sink,
-		SynonLinkAuth: SynonLinkAuthOptions{Username: "operator", Password: "secret", UserID: "operator"},
+		XScienceLinkAuth: XScienceLinkAuthOptions{Username: "operator", Password: "secret", UserID: "operator"},
 	})
 	if _, err := server.pairingStore.AllowForOwner("wechat", "sender-b", "owner B sender", "owner-b"); err != nil {
 		t.Fatal(err)

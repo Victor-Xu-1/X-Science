@@ -15,9 +15,9 @@ import (
 
 	sqlite "modernc.org/sqlite"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
-	delegatefixture "synon-go/internal/testsupport/delegatefixture"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
+	delegatefixture "x-science/internal/testsupport/delegatefixture"
 )
 
 const requestLimit = 1024 * 1024
@@ -79,7 +79,7 @@ func main() {
 }
 
 func run() error {
-	databasePath, err := fixtureDatabasePath(os.Getenv("SYNON_GO_E2E_WORKSPACE_DB"))
+	databasePath, err := fixtureDatabasePath(os.Getenv("X_SCIENCE_GO_E2E_WORKSPACE_DB"))
 	if err != nil {
 		return err
 	}
@@ -926,10 +926,10 @@ func fixtureAskUserAlreadyPending(
 func fixtureDatabasePath(value string) (string, error) {
 	value = strings.TrimSpace(value)
 	if value == "" {
-		return "", errors.New("SYNON_GO_E2E_WORKSPACE_DB is required")
+		return "", errors.New("X_SCIENCE_GO_E2E_WORKSPACE_DB is required")
 	}
 	if !filepath.IsAbs(value) {
-		return "", errors.New("SYNON_GO_E2E_WORKSPACE_DB must be absolute")
+		return "", errors.New("X_SCIENCE_GO_E2E_WORKSPACE_DB must be absolute")
 	}
 	path := filepath.Clean(value)
 	info, err := os.Lstat(path)

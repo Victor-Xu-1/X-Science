@@ -8,7 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"synon-go/internal/datadir"
+	productidentity "x-science"
+	"x-science/internal/datadir"
 )
 
 func applyDataDirectoryControl(cfg *Config, configPath string) error {
@@ -26,7 +27,7 @@ func applyDataDirectoryControl(cfg *Config, configPath string) error {
 	// Environment and config values provide the initial location. Once the
 	// user explicitly chooses a location in settings, the durable pointer is
 	// authoritative so a restart can honor that choice even when the process
-	// was originally launched with SYNON_HOME or a config override.
+	// was originally launched with X_SCIENCE_HOME or a config override.
 	if state.Current != "" || state.Pending != nil {
 		resolved, _, err := controller.Resolve(cfg.DefaultDataDir)
 		if err != nil {
@@ -36,7 +37,7 @@ func applyDataDirectoryControl(cfg *Config, configPath string) error {
 		cfg.DataDirSource = "pointer"
 		return nil
 	}
-	if strings.TrimSpace(os.Getenv("SYNON_HOME")) != "" {
+	if strings.TrimSpace(os.Getenv("X_SCIENCE_HOME")) != "" {
 		cfg.DataDirSource = "env"
 		return nil
 	}
@@ -57,19 +58,26 @@ func applyDataDirectoryControl(cfg *Config, configPath string) error {
 			}
 		}
 	}
-	resolved, source, err := controller.Resolve(defaultHome())
+	selected, retained, err := retainedPublishedDefaultHome(cfg.DefaultDataDir)
+	if err != nil {
+		return fmt.Errorf("resolve published default data authority: %w", err)
+	}
+	resolved, source, err := controller.Resolve(selected)
 	if err != nil {
 		return fmt.Errorf("resolve data directory: %w", err)
 	}
 	cfg.HomeDir = resolved
 	cfg.DataDirSource = source
+	if retained {
+		cfg.DataDirSource = "published-default-awaiting-handoff"
+	}
 	return nil
 }
 
 func dataDirectoryControlPath() (string, error) {
-	if configured := strings.TrimSpace(os.Getenv("SYNON_DATA_DIR_CONTROL")); configured != "" {
+	if configured := strings.TrimSpace(os.Getenv("X_SCIENCE_DATA_DIR_CONTROL")); configured != "" {
 		if !filepath.IsAbs(configured) {
-			return "", errors.New("SYNON_DATA_DIR_CONTROL must be an absolute path")
+			return "", errors.New("X_SCIENCE_DATA_DIR_CONTROL must be an absolute path")
 		}
 		return filepath.Clean(configured), nil
 	}
@@ -84,5 +92,10 @@ func dataDirectoryControlPath() (string, error) {
 		}
 		configDirectory = absolute
 	}
-	return filepath.Join(configDirectory, "synon-go", "data-dir.json"), nil
+	current := filepath.Join(configDirectory, productidentity.Current().MachineSlug, "data-dir.json")
+	previous := filepath.Join(configDirectory, "synon-go", "data-dir.json") // Original default pointer, consumed only by the upgrade.
+	if err := datadir.UpgradeDefaultPointer(previous, current); err != nil {
+		return "", fmt.Errorf("upgrade default data directory pointer: %w", err)
+	}
+	return current, nil
 }

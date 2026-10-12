@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"synon-go/internal/failurecontract"
+	"x-science/internal/failurecontract"
 )
 
 type failedToolCallGuard struct {

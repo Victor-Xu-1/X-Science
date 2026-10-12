@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"strings"
 
-	"synon-go/internal/memorypolicy"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	"x-science/internal/memorypolicy"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 var (

@@ -15,7 +15,7 @@ class CheminfoRenderTest(unittest.TestCase):
     def test_exports_and_real_2d_render_do_not_need_retired_viewer(self):
         with patch.dict(sys.modules, {"py3Dmol": None}):
             helper = importlib.import_module("cheminfo_render_helpers")
-            runtime = importlib.import_module("synon_biomed_runtime")
+            runtime = importlib.import_module("x_science_runtime")
             self.assertEqual(helper.__all__, ["render_molecule_images"])
             self.assertFalse(any("3dmol" in name.lower() for name in runtime.__all__))
             with tempfile.TemporaryDirectory() as output:
@@ -33,7 +33,7 @@ class CheminfoRenderTest(unittest.TestCase):
         import runpy
         import cheminfo_render_helpers
         for name in ("kernel.py", "cheminfo_render_helpers.py"):
-            namespace = runpy.run_path(str(ROOT / "skills/synonbiomed/cheminfo-render" / name))
+            namespace = runpy.run_path(str(ROOT / "skills/x-science/cheminfo-render" / name))
             self.assertEqual(namespace["__all__"], ["render_molecule_images"])
             self.assertIs(namespace["render_molecule_images"], cheminfo_render_helpers.render_molecule_images)
 

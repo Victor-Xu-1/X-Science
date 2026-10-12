@@ -256,14 +256,14 @@ describe('previewUrls', () => {
 
     it('uses the authenticated content URL for a X-Science virtual project file', () => {
       const result = buildPdfSrc(
-        'synonbiomed://project/proj_123/project-files/report.pdf',
+        'x-science://project/proj_123/project-files/report.pdf',
         '/api/projects/proj_123/artifacts/artifact_123/content'
       );
       expect(result).toBe('/api/projects/proj_123/artifacts/artifact_123/content');
     });
 
     it('does not coerce a X-Science virtual project file into a file URL without content', () => {
-      const result = buildPdfSrc('synonbiomed://project/proj_123/project-files/report.pdf');
+      const result = buildPdfSrc('x-science://project/proj_123/project-files/report.pdf');
       expect(result).toBe('');
     });
 

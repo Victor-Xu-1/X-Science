@@ -73,8 +73,8 @@ func TestCompatibilityHostGrantsListCreatePickerAndRestart(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Setenv("PATH", fixtureDir+string(os.PathListSeparator)+os.Getenv("PATH"))
-	t.Setenv("SYNON_HOST_PICKER_FIXTURE_MODE", "select")
-	t.Setenv("SYNON_HOST_PICKER_FIXTURE_PATH", picked)
+	t.Setenv("X_SCIENCE_HOST_PICKER_FIXTURE_MODE", "select")
+	t.Setenv("X_SCIENCE_HOST_PICKER_FIXTURE_PATH", picked)
 
 	picker := func(ctx context.Context) (string, error) {
 		return runHostDirectoryPickerCandidates(ctx, []hostPickerCommand{{
@@ -138,7 +138,7 @@ func TestCompatibilityHostGrantsListCreatePickerAndRestart(t *testing.T) {
 		t.Fatalf("legacy host grant API = %#v", legacy)
 	}
 
-	t.Setenv("SYNON_HOST_PICKER_FIXTURE_MODE", "cancel")
+	t.Setenv("X_SCIENCE_HOST_PICKER_FIXTURE_MODE", "cancel")
 	response := httptest.NewRecorder()
 	request := compatibilitySecretRequest(t, http.MethodPost, "/api/preferences/host-grants/picker", "cancelled-user", map[string]any{"mode": "ro"})
 	app.ServeHTTP(response, request)
@@ -371,7 +371,7 @@ func compatibilityHostBrowseJSON(t *testing.T, app http.Handler, target, userID 
 	t.Helper()
 	response := httptest.NewRecorder()
 	request := newLoopbackTestRequest(http.MethodGet, target, nil)
-	request.Header.Set("X-Synon-User-Id", userID)
+	request.Header.Set("X-Science-User-Id", userID)
 	app.ServeHTTP(response, request)
 	if response.Code != wantStatus {
 		t.Fatalf("GET %s status=%d want=%d body=%s", target, response.Code, wantStatus, response.Body.String())

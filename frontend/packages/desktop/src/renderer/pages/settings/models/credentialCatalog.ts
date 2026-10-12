@@ -1,5 +1,5 @@
 import type { TFunction } from 'i18next';
-import type { SynonBiomedSecret, SynonBiomedSecretInput } from '@/renderer/services/synonBiomedWorkspaceSettings';
+import type { XScienceSecret, XScienceSecretInput } from '@/renderer/services/xScienceWorkspaceSettings';
 
 export type CredentialProviderId = 'generic' | 'aws' | 'github' | 'gcp' | 'literature' | 'azure' | 'modal' | 'nvidia';
 
@@ -287,7 +287,7 @@ export function localizeCredentialProvider(
   };
 }
 
-export function credentialProviderForSecret(secret: SynonBiomedSecret): CredentialProviderDefinition | null {
+export function credentialProviderForSecret(secret: XScienceSecret): CredentialProviderDefinition | null {
   if (secret.provider === 'generic' && secret.name.trim().toUpperCase() === 'NVIDIA_API_KEY') {
     return CREDENTIAL_PROVIDERS.find((provider) => provider.id === 'nvidia') ?? null;
   }
@@ -299,25 +299,22 @@ export function credentialProviderForSecret(secret: SynonBiomedSecret): Credenti
  * credentials screen. Keep them in the shared secret vault, but avoid
  * presenting a second model-credential management surface here.
  */
-export function isModelCredential(secret: SynonBiomedSecret): boolean {
+export function isModelCredential(secret: XScienceSecret): boolean {
   return secret.provider.trim().toLowerCase() === 'llm';
 }
 
-export function isCustomCredential(secret: SynonBiomedSecret): boolean {
+export function isCustomCredential(secret: XScienceSecret): boolean {
   return credentialProviderForSecret(secret) === null;
 }
 
-export function credentialDisplayName(
-  secret: SynonBiomedSecret,
-  provider: LocalizedCredentialProviderDefinition
-): string {
+export function credentialDisplayName(secret: XScienceSecret, provider: LocalizedCredentialProviderDefinition): string {
   const name = secret.name.trim();
   return !name || name === provider.defaultName ? provider.label : name;
 }
 
 export function initialCredentialValues(
   provider: CredentialProviderDefinition,
-  secret: SynonBiomedSecret | null
+  secret: XScienceSecret | null
 ): Record<string, string> {
   return Object.fromEntries(
     provider.fields.map((field) => {
@@ -334,9 +331,9 @@ export function buildCredentialInput(
   provider: CredentialProviderDefinition,
   values: Record<string, string>,
   editing: boolean
-): SynonBiomedSecretInput {
+): XScienceSecretInput {
   const credentials: Record<string, string> = {};
-  const input: SynonBiomedSecretInput = {
+  const input: XScienceSecretInput = {
     provider: provider.backendProvider,
     name: values.name?.trim() || provider.defaultName,
     credentialType: provider.credentialType,

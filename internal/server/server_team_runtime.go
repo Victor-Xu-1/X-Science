@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,7 +14,8 @@ import (
 
 	"time"
 
-	"synon-go/internal/toolcontract"
+	"x-science/internal/persistence/productstate"
+	"x-science/internal/toolcontract"
 )
 
 const teamRuntimeNamespace = "teams"
@@ -49,6 +51,9 @@ func (s *Server) executeTeamTool(toolName string, input map[string]any) (any, er
 	if s.runtimeStore == nil {
 		return nil, errors.New("team runtime store is not configured")
 	}
+	if err := productstate.EnsureHiddenNamespace(context.Background(), s.fileRoot); err != nil {
+		return nil, err
+	}
 	switch toolName {
 	case "TeamCreate":
 		if existing, ok, err := s.runtimeStore.Get(teamRuntimeNamespace, "current"); err != nil {
@@ -67,7 +72,7 @@ func (s *Server) executeTeamTool(toolName string, input map[string]any) (any, er
 		description := stringValue(input["description"])
 		agentType := firstNonEmpty(stringValue(input["agent_type"]), "team-lead")
 		leadAgentID := "team-lead-" + teamName
-		teamFilePath := filepath.ToSlash(filepath.Join(".synon", "teams", teamName+".json"))
+		teamFilePath := filepath.ToSlash(filepath.Join(productstate.HiddenDirectory, "teams", teamName+".json"))
 		now := time.Now().UTC().Format(time.RFC3339Nano)
 		teamFile := map[string]any{
 			"name":          teamName,
@@ -118,6 +123,10 @@ func (s *Server) executeTeamTool(toolName string, input map[string]any) (any, er
 		teamName := stringValue(record["team_name"])
 		teamFilePath := stringValue(record["team_file_path"])
 		if teamFilePath != "" {
+			teamFilePath, err = productstate.CanonicalTeamFilePath(s.fileRoot, teamFilePath, teamName)
+			if err != nil {
+				return nil, err
+			}
 			if err := removeTeamFile(s.fileRoot, teamFilePath); err != nil {
 				return nil, err
 			}
@@ -135,7 +144,7 @@ func (s *Server) executeTeamTool(toolName string, input map[string]any) (any, er
 func (s *Server) uniqueTeamName(name string) string {
 	candidate := name
 	for i := 2; ; i++ {
-		path := filepath.Join(s.fileRoot, ".synon", "teams", candidate+".json")
+		path := filepath.Join(s.fileRoot, productstate.HiddenDirectory, "teams", candidate+".json")
 		if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
 			return candidate
 		}

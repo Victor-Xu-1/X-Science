@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"strings"
 
-	"synon-go/internal/agentruntime"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	"x-science/internal/agentruntime"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 // This view version binds persisted line cursors. Change it if escaping,

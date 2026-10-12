@@ -17,9 +17,9 @@ import (
 
 	"github.com/google/uuid"
 
-	agentruntime "synon-go/internal/agentruntime"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/providers"
+	agentruntime "x-science/internal/agentruntime"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/providers"
 )
 
 const maxAnnotationAnchorLength = 4096

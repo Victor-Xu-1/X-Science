@@ -13,7 +13,7 @@ import (
 	"time"
 	"unicode/utf16"
 
-	"synon-go/internal/subprocess"
+	"x-science/internal/subprocess"
 )
 
 const defaultOpenTimeout = 10 * time.Second

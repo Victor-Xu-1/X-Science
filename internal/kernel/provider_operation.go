@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	providerOperationStagePrefix = "synon-biomed-provider-stage-"
+	providerOperationStagePrefix = "x-science-provider-stage-"
 	providerOperationMaxRequest  = 1 << 20
 	providerOperationMaxReply    = 1 << 20
 	providerOperationMaxOutput   = 64 << 10
@@ -140,13 +140,13 @@ func (m *Manager) RunProviderOperation(ctx context.Context, input ProviderOperat
 	}
 	environment := m.runtimeEnvironmentAtPrefix(runtimeSpec.Environment, "python", stage, "provider-operation", "", "", "", prefix)
 	environment = mergeProviderKernelEnvironment(environment, map[string]string{
-		"SYNON_PROVIDER_PROXY_FD": strconv.Itoa(proxyFD),
-		"OPERON_HOST_NETNS_INO":   hostNetworkNamespace,
-		"OPERON_BYOC_ENVS_DIR":    runtimeSpec.EnvironmentsPath,
-		"OPERON_BYOC_INSTALL_ID":  runtimeSpec.InstallID,
-		"OPERON_BYOC_ENVIRONMENT": runtimeSpec.ModalEnvironment,
-		"MODAL_ENVIRONMENT":       runtimeSpec.ModalEnvironment,
-		"OPERON_BYOC_APP_NAME":    runtimeSpec.AppName,
+		"X_SCIENCE_PROVIDER_PROXY_FD": strconv.Itoa(proxyFD),
+		"OPERON_HOST_NETNS_INO":       hostNetworkNamespace,
+		"OPERON_BYOC_ENVS_DIR":        runtimeSpec.EnvironmentsPath,
+		"OPERON_BYOC_INSTALL_ID":      runtimeSpec.InstallID,
+		"OPERON_BYOC_ENVIRONMENT":     runtimeSpec.ModalEnvironment,
+		"MODAL_ENVIRONMENT":           runtimeSpec.ModalEnvironment,
+		"OPERON_BYOC_APP_NAME":        runtimeSpec.AppName,
 	}, runtimeSpec.ExtraEnvironment)
 	command, err := newConfinedWorkerCommandWithAuxiliary(
 		stage, python,
@@ -232,7 +232,7 @@ func providerOperationAuthPayload(credentials map[string]string) ([]byte, error)
 }
 
 func copyProviderOperationMap(input map[string]any) map[string]any {
-	result := make(map[string]any, len(input)+4)
+	result := make(map[string]any)
 	for key, value := range input {
 		result[key] = value
 	}

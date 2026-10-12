@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/kernelcontract"
+	"x-science/internal/kernelcontract"
 )
 
 func TestContainerExecutionCarriesRealBashExitReceipt(t *testing.T) {

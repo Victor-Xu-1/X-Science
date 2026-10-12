@@ -13,18 +13,18 @@ import (
 	"time"
 )
 
-func TestGenerateAndVerifySupplyChainForRealSynonBinary(t *testing.T) {
+func TestGenerateAndVerifySupplyChainForRealXScienceBinary(t *testing.T) {
 	repositoryRoot := filepath.Clean(filepath.Join(testSourceDirectory(t), "..", ".."))
 	goBinary, err := exec.LookPath("go")
 	if err != nil {
 		t.Fatal("Go toolchain is required for the real release supply-chain test")
 	}
 	root := t.TempDir()
-	binaryPath := filepath.Join(root, "synon-go")
-	build := exec.Command(goBinary, "build", "-mod=readonly", "-trimpath", "-buildvcs=false", "-o", binaryPath, "./cmd/synon")
+	binaryPath := filepath.Join(root, "x-science")
+	build := exec.Command(goBinary, "build", "-mod=readonly", "-trimpath", "-buildvcs=false", "-o", binaryPath, "./cmd/x-science")
 	build.Dir = repositoryRoot
 	if output, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("build real Synon binary: %v\n%s", err, output)
+		t.Fatalf("build real XScience binary: %v\n%s", err, output)
 	}
 	moduleCache := goEnv(t, goBinary, repositoryRoot, "GOMODCACHE")
 	sourceContent, err := os.ReadFile(filepath.Join(repositoryRoot, "go.sum"))
@@ -35,7 +35,7 @@ func TestGenerateAndVerifySupplyChainForRealSynonBinary(t *testing.T) {
 	options := SupplyChainOptions{
 		GeneratedAt: time.Date(2026, 7, 13, 0, 0, 0, 0, time.UTC),
 		GOOS:        runtime.GOOS, GOARCH: runtime.GOARCH,
-		BinaryPaths: []string{"synon-go"}, ModuleCache: moduleCache, GoRoot: runtime.GOROOT(),
+		BinaryPaths: []string{"x-science"}, ModuleCache: moduleCache, GoRoot: runtime.GOROOT(),
 		SourceURI: "pkg:generic/" + releaseName + "@" + releaseVersion, SourceRevision: "test-source-revision",
 		SourceSHA256: hex.EncodeToString(sourceDigest[:]), SourceDirty: true,
 	}

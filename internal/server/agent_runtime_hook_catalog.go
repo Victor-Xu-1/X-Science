@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 func (s *Server) agentRuntimePreToolHookResult(toolName string, call agentruntime.ToolCall, input map[string]any) map[string]any {

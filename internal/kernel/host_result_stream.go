@@ -10,7 +10,7 @@ import (
 	"io"
 	"os"
 
-	"synon-go/internal/runtimecontrol"
+	"x-science/internal/runtimecontrol"
 )
 
 const hostResultChunkBytes = 64 << 10
@@ -33,7 +33,7 @@ func (s *hostResultSpool) Write(data []byte) (int, error) {
 		return s.inline.Write(data)
 	}
 	if s.file == nil {
-		file, err := os.CreateTemp("", "synon-host-result-*")
+		file, err := os.CreateTemp("", "x-science-host-result-*")
 		if err != nil {
 			return 0, err
 		}

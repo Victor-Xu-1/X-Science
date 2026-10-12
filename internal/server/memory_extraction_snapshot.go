@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"strings"
 
-	"synon-go/internal/memoryextract"
-	eventjournal "synon-go/internal/persistence/journal"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	"x-science/internal/memoryextract"
+	eventjournal "x-science/internal/persistence/journal"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 const memoryExtractionTranscriptPageSize = 1000

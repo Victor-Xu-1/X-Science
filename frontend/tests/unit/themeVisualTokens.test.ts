@@ -25,7 +25,7 @@ const EXEMPT_FILE = [
   /styles[\\/]themes[\\/]default-color-scheme\.css$/,
   /styles[\\/]markdown\.css$/,
   /AppearanceSettings[\\/]presets[\\/]/,
-  /SynonBiomedStructureViewer\.css$/,
+  /XScienceStructureViewer\.css$/,
 ];
 
 const moduleCss = collectCss(rendererDir)

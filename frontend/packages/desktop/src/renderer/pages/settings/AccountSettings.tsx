@@ -4,9 +4,9 @@ import { Refresh } from '@icon-park/react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/renderer/hooks/context/AuthContext';
-import { useSynonBiomedAccountInsights } from '@/renderer/hooks/account/useSynonBiomedAccountInsights';
-import { useSynonBiomedUserProfile } from '@/renderer/hooks/useSynonBiomedUserProfile';
-import { readSynonBiomedAvatarFile } from '@/renderer/services/synonBiomedUserProfile';
+import { useXScienceAccountInsights } from '@/renderer/hooks/account/useXScienceAccountInsights';
+import { useXScienceUserProfile } from '@/renderer/hooks/useXScienceUserProfile';
+import { readXScienceAvatarFile } from '@/renderer/services/xScienceUserProfile';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import AccountActivityHeatmap from './account/AccountActivityHeatmap';
 import AccountInsightsPanels from './account/AccountInsightsPanels';
@@ -22,16 +22,13 @@ const APP_VERSION = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'dev
 const AccountSettings: React.FC = () => {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
-  const { profile, saveProfile } = useSynonBiomedUserProfile(
-    user?.id,
-    user?.username ?? t('settings.synonBiomedLocalUser')
-  );
-  const accountInsights = useSynonBiomedAccountInsights();
+  const { profile, saveProfile } = useXScienceUserProfile(user?.id, user?.username ?? t('settings.xScienceLocalUser'));
+  const accountInsights = useXScienceAccountInsights();
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [privacyVisible, setPrivacyVisible] = useState(false);
-  const username = user?.username?.trim() || t('settings.synonBiomedLocalUser');
+  const username = user?.username?.trim() || t('settings.xScienceLocalUser');
 
   const saveDisplayName = () => {
     const displayName = nameDraft.trim();
@@ -53,7 +50,7 @@ const AccountSettings: React.FC = () => {
     if (!file || avatarLoading) return;
     setAvatarLoading(true);
     try {
-      const avatarDataUrl = await readSynonBiomedAvatarFile(file);
+      const avatarDataUrl = await readXScienceAvatarFile(file);
       saveProfile({ ...profile, avatarDataUrl });
       Message.success(t('settings.accountSettings.avatarSaved'));
     } catch (error) {
@@ -104,7 +101,7 @@ const AccountSettings: React.FC = () => {
 
   return (
     <SettingsPageWrapper contentClassName='max-w-1080px'>
-      <div className='account-settings pb-24px' data-testid='synon-account-settings'>
+      <div className='account-settings pb-24px' data-testid='x-science-account-settings'>
         <AccountProfileHero
           displayName={profile.displayName}
           username={username}

@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"unicode/utf8"
 
-	runtimekv "synon-go/internal/persistence/runtimekv"
+	runtimekv "x-science/internal/persistence/runtimekv"
 )
 
 // Keep the agent-facing runtime_list result small enough that a diagnostic

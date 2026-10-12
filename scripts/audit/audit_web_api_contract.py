@@ -86,7 +86,7 @@ CONFIRMED_ACTIVE_PATHS = {
     "/api/shell/open-file",
     "/api/shell/open-folder-with",
     "/api/shell/show-item-in-folder",
-    "/api/synonbiomed/catalog",
+    "/api/x-science/catalog",
     "/api/system/provenance-census",
     "/api/word-preview/start",
     "/api/word-preview/stop",

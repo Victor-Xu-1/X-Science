@@ -7,7 +7,7 @@
 import styles from '../index.module.css';
 import { assistantRuntimeKey, type Assistant } from '@/common/types/agent/assistantTypes';
 import { Down, Search } from '@icon-park/react';
-import SynonBiomedAvatar, { isRobotAvatar } from '@/renderer/components/synonBiomed/SynonBiomedAvatar';
+import XScienceAvatar, { isRobotAvatar } from '@/renderer/components/xScience/XScienceAvatar';
 import { Button, Dropdown, Input } from '@arco-design/web-react';
 import React, { useMemo, useState } from 'react';
 import { resolveAssistantAvatar } from '@/renderer/utils/model/assistantAvatar';
@@ -90,7 +90,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
           ) : avatar.kind === 'emoji' && !isRobotAvatar(avatar.value) ? (
             <span className={styles.assistantCardEmoji}>{avatar.value}</span>
           ) : (
-            <SynonBiomedAvatar size={14} />
+            <XScienceAvatar size={14} />
           )}
         </span>
         <span className='max-w-180px truncate whitespace-nowrap'>{label}</span>
@@ -109,7 +109,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
           value={search}
           onChange={setSearch}
           prefix={<Search theme='outline' size={14} />}
-          placeholder={t('settings.synonBiomedAssistantsSearchPlaceholder')}
+          placeholder={t('settings.xScienceAssistantsSearchPlaceholder')}
         />
       </div>
       <div className='flex max-h-260px flex-col gap-4px overflow-y-auto'>

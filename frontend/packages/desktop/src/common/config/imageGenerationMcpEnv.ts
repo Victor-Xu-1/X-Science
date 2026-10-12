@@ -8,11 +8,11 @@ import type { ImageGenerationModelSetting } from './clientSettings';
 import type { IProvider } from './storage';
 
 export const IMAGE_GEN_ENV_KEYS = {
-  providerId: 'SYNON_AI_IMG_PROVIDER_ID',
-  platform: 'SYNON_AI_IMG_PLATFORM',
-  baseUrl: 'SYNON_AI_IMG_BASE_URL',
-  apiKey: 'SYNON_AI_IMG_API_KEY',
-  model: 'SYNON_AI_IMG_MODEL',
+  providerId: 'X_SCIENCE_IMG_PROVIDER_ID',
+  platform: 'X_SCIENCE_IMG_PLATFORM',
+  baseUrl: 'X_SCIENCE_IMG_BASE_URL',
+  apiKey: 'X_SCIENCE_IMG_API_KEY',
+  model: 'X_SCIENCE_IMG_MODEL',
 } as const;
 
 type ImageGenerationSelection = Partial<ImageGenerationModelSetting>;

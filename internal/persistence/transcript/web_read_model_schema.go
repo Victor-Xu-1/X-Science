@@ -2,7 +2,7 @@ package transcript
 
 import "strings"
 
-const WebReadModelContractID = "synon.transcript.web-read-model.v38"
+const WebReadModelContractID = "x-science.transcript.web-read-model.v38"
 
 type webReadModelV38SchemaObject struct {
 	name      string

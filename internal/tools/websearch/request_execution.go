@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/httpreliability"
-	"synon-go/internal/httptext"
+	"x-science/internal/httpreliability"
+	"x-science/internal/httptext"
 )
 
 func searchOneHTTPBackend(ctx context.Context, input Input, limit int, options Options, index int, backend httpSearchBackend,

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 func TestCorrectionToolChoicePersistsUntilSuccessfulExecutedAction(t *testing.T) {
@@ -221,7 +221,7 @@ func TestSourceLocatorCorrectionContextPreventsFormattingOnlyLoop(t *testing.T) 
 		"artifact_reference_correction_required", detail,
 	))
 	for _, required := range []string{
-		"synon.runner_recovery.v1",
+		"x-science.runner_recovery.v1",
 		`"required_transition":"repair_current_candidate"`,
 		`"choose_from_advertised_capabilities":true`,
 		"evidence_source_locator_missing",
@@ -514,7 +514,7 @@ func TestRecordDepthCorrectionLeavesRejectedREPLForWebRoute(t *testing.T) {
 				CorrectionReason: "artifact_reference_correction_required",
 				CorrectionDetail: "evidence_record_class_missing:source_type=publication",
 			}
-			run.addExecutedSkillNames("synon-research", "mcp-synon-research")
+			run.addExecutedSkillNames("x-science-research", "mcp-x-science-research")
 			boundary := agentruntime.Message{Role: "system", Content: sessionRunnerDurableCorrectionContextMarker}
 			fulltextCall := runnerEvidenceDepthCall("paper-1", "fetch_article_fulltext", map[string]any{
 				"pmcid": "PMC10102842",

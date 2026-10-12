@@ -18,7 +18,7 @@ coverage.out
 node_modules/
 **/out/
 **/coverage/
-.synon-go-audit/
+.x-science-audit/
 .superpowers/
 **/__pycache__/
 **/.pytest_cache/
@@ -28,7 +28,7 @@ node_modules/
 **/test-results/
 *.orig
 *.rej
-!skills/synonbiomed/THIRD_PARTY_LICENSES.md.orig
+!skills/x-science/THIRD_PARTY_LICENSES.md.orig
 *~
 *.swp
 *.swo
@@ -39,7 +39,7 @@ Thumbs.db
 .coverage
 
 # Repository-root runtime and local recovery residue.
-/synon
+/xscience
 /mcp-ketcher
 /mcp-ketcher-shm
 /mcp-ketcher-wal

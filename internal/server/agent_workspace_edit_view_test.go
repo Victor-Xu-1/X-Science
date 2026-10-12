@@ -3,8 +3,8 @@ package server
 import (
 	"context"
 	"strings"
-	"synon-go/internal/agentruntime"
 	"testing"
+	"x-science/internal/agentruntime"
 )
 
 func TestWorkspaceEditReceiptShowsResultingContent(t *testing.T) {

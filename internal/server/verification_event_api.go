@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 type verificationEventRequest struct {
@@ -52,7 +52,7 @@ func (s *Server) handleCompatibilityVerification(
 		writeV11Detail(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
-	provided := strings.TrimSpace(r.Header.Get("X-Synon-Verification-Token"))
+	provided := strings.TrimSpace(r.Header.Get("X-Science-Verification-Token"))
 	if s.verifierToken == "" || subtle.ConstantTimeCompare([]byte(provided), []byte(s.verifierToken)) != 1 {
 		writeV11Detail(w, http.StatusForbidden, "verification publication is not authorized")
 		return

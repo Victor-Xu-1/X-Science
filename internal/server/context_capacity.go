@@ -2,7 +2,7 @@ package server
 
 import (
 	"math"
-	"synon-go/internal/providers"
+	"x-science/internal/providers"
 )
 
 // Zero is unknown, not a default capacity. This declaration is model-scoped;

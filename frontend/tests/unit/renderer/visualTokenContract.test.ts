@@ -39,12 +39,12 @@ describe('visual token contract', () => {
       'utf8'
     );
     const moleculeViewer = readFileSync(
-      join(rendererRoot, 'pages/conversation/Preview/components/viewers/SynonBiomedMoleculeViewer.tsx'),
+      join(rendererRoot, 'pages/conversation/Preview/components/viewers/XScienceMoleculeViewer.tsx'),
       'utf8'
     );
 
-    expect(previewCss).toContain('--preview-canvas: var(--synon-surface-canvas');
-    expect(previewCss).toContain('--preview-border: var(--synon-divider');
+    expect(previewCss).toContain('--preview-canvas: var(--x-science-surface-canvas');
+    expect(previewCss).toContain('--preview-border: var(--x-science-divider');
     expect(moleculeViewer).toContain('border-arco-2');
     expect(moleculeViewer).toContain('bg-1');
     expect(moleculeViewer).not.toContain('bg-bg-');

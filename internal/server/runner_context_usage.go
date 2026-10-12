@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/persistence/runtimekv"
+	"x-science/internal/agentruntime"
+	"x-science/internal/persistence/runtimekv"
 )
 
 // Context usage describes one main-agent request, never the cumulative billing

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
-	"synon-go/internal/tools/fileops"
 	"time"
+	"x-science/internal/tools/fileops"
 )
 
 func (s *Server) executeBriefTool(toolName string, input map[string]any) (any, error) {

@@ -17,7 +17,7 @@ func TestNoProgressRecoveryInstructionRequiresSuccessfulIdempotentReceipts(t *te
 	}{
 		{"executed reuse", `{"ok":true,"reused":true}`, true},
 		{"compact non-executing reuse", `{"ok":true,"executed":false,"reused":true}`, true},
-		{"explicit unchanged effect", `{"ok":true,"executed":false,"effect":{"schema":"synon.tool_effect.v1","state":"unchanged"}}`, true},
+		{"explicit unchanged effect", `{"ok":true,"executed":false,"effect":{"schema":"x-science.tool_effect.v1","state":"unchanged"}}`, true},
 		{"decision required", `{"ok":true,"executed":false,"decision_required":true}`, false},
 		{"preflight required", `{"ok":true,"executed":false,"status":"implementation_selection_required"}`, false},
 		{"failed receipt", `{"ok":false,"executed":false,"code":"edit_conflict"}`, false},

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	eventjournal "synon-go/internal/persistence/journal"
-	workspace "synon-go/internal/persistence/workspace"
+	eventjournal "x-science/internal/persistence/journal"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestIncompletePlanCorrectionAutoResumesWithoutForcedToolOrder(t *testing.T) {
@@ -20,7 +20,7 @@ func TestIncompletePlanCorrectionAutoResumesWithoutForcedToolOrder(t *testing.T)
 		t.Fatal("incomplete plan correction must use the bounded auto-resume path")
 	}
 	correctionContext := recoveredRunnerCorrectionContext(entries)
-	for _, marker := range []string{"synon.runner_recovery.v1", `"required_transition":"advance_durable_plan"`, `"requires_tool":true`, "Save validation; Publish report"} {
+	for _, marker := range []string{"x-science.runner_recovery.v1", `"required_transition":"advance_durable_plan"`, `"requires_tool":true`, "Save validation; Publish report"} {
 		if !strings.Contains(correctionContext, marker) {
 			t.Fatalf("correction context=%q missing %q", correctionContext, marker)
 		}

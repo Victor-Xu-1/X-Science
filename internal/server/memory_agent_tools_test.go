@@ -11,15 +11,15 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/memoryconfig"
-	"synon-go/internal/memorypolicy"
-	"synon-go/internal/memorytools"
-	sessionstore "synon-go/internal/persistence/sessions"
-	settingsstore "synon-go/internal/persistence/settings"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
-	toolregistry "synon-go/internal/tools/registry"
+	"x-science/internal/agentruntime"
+	"x-science/internal/memoryconfig"
+	"x-science/internal/memorypolicy"
+	"x-science/internal/memorytools"
+	sessionstore "x-science/internal/persistence/sessions"
+	settingsstore "x-science/internal/persistence/settings"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
+	toolregistry "x-science/internal/tools/registry"
 )
 
 func TestWorkspaceMemoryToolsUseTrustedSessionScope(t *testing.T) {

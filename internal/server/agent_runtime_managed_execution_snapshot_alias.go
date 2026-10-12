@@ -16,7 +16,7 @@ import (
 // the snapshot or granting those bytes scientific-output authority.
 func linkManagedExecutionSnapshot(ctx context.Context, workspaceRoot, finalRoot string, authority managedExecutionOutputAuthority) error {
 	outputRoot := authority.Root
-	backupRoot := outputRoot + ".synon-output-backup-" + managedExecutionSnapshotID(authority)
+	backupRoot := outputRoot + ".x-science-output-backup-" + managedExecutionSnapshotID(authority)
 	backupMoved := false
 	info, err := os.Lstat(outputRoot)
 	if err == nil {

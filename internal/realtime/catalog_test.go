@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"synon-go/internal/compat/contracts"
+	"x-science/internal/compat/contracts"
 )
 
 func TestRealtimeCatalogExactlyCoversRecoveredBaseline(t *testing.T) {
@@ -22,7 +22,7 @@ func TestRealtimeCatalogExactlyCoversRecoveredBaseline(t *testing.T) {
 	}
 }
 
-func TestSynonWebRealtimeExtensionsRemainSeparateFromRecoveredBaseline(t *testing.T) {
+func TestXScienceWebRealtimeExtensionsRemainSeparateFromRecoveredBaseline(t *testing.T) {
 	extensions := ExtensionEventSpecs()
 	wantExtensions := []string{
 		"confirmation.add", "confirmation.remove", "confirmation.update", "conversation.historyRebased",
@@ -41,8 +41,8 @@ func TestSynonWebRealtimeExtensionsRemainSeparateFromRecoveredBaseline(t *testin
 			}
 			continue
 		}
-		if extensions[index].Owner != "synon-web" || extensions[index].Kind != DeliveryFanout {
-			t.Fatalf("web realtime extension[%d]=%#v want fanout synon-web %q", index, extensions[index], name)
+		if extensions[index].Owner != "x-science-web" || extensions[index].Kind != DeliveryFanout {
+			t.Fatalf("web realtime extension[%d]=%#v want fanout x-science-web %q", index, extensions[index], name)
 		}
 	}
 	if spec, found := LookupEvent("conversation.listChanged"); !found || spec.Kind != DeliveryFanout {

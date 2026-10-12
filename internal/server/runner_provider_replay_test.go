@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	eventjournal "synon-go/internal/persistence/journal"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	eventjournal "x-science/internal/persistence/journal"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func TestSessionEntriesToProviderMessagesCompactsHistoricalExternalizedResultPreview(t *testing.T) {
@@ -646,7 +646,7 @@ func TestSessionEntriesToProviderMessagesSkipsNestedKernelMCPReceipt(t *testing.
 			map[string]any{"id": "call-repl", "type": "function", "name": "repl", "arguments": map[string]any{"code": "host.mcp(...)"}},
 		}}},
 		{EventID: 3, Message: eventjournal.Message{
-			"type": "runner_checkpoint", "schema": "synon.kernel_mcp_evidence.v1",
+			"type": "runner_checkpoint", "schema": "x-science.kernel_mcp_evidence.v1",
 			"toolCallId": "hc-source", "hostCallId": "hc-source", "outerToolCallId": "call-repl",
 			"toolName": "mcp__genes-ontologies__get_uniprot_entries", "toolPhase": "completed",
 			"toolResult": map[string]any{"records": []any{map[string]any{"Entry": "Q5S007"}}},

@@ -11,11 +11,11 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/failurecontract"
-	kernelruntime "synon-go/internal/kernel"
-	"synon-go/internal/kernelcontract"
-	"synon-go/internal/software"
-	"synon-go/internal/software/localconda"
+	"x-science/internal/failurecontract"
+	kernelruntime "x-science/internal/kernel"
+	"x-science/internal/kernelcontract"
+	"x-science/internal/software"
+	"x-science/internal/software/localconda"
 )
 
 func softwareRuntimeTestInput() map[string]any {
@@ -379,7 +379,7 @@ func TestSoftwareRuntimeVisibleExecutionResultPreservesWorkerCodePreflight(t *te
 	preflight := map[string]any{
 		"ok": true, "status": "code_preflight_required", "executed": false,
 		"preflight": map[string]any{
-			"schema": "synon.python-code-preflight.v1", "status": "code_preflight_required",
+			"schema": "x-science.python-code-preflight.v1", "status": "code_preflight_required",
 			"executed": false, "diagnostics": []any{map[string]any{"code": "python_imported_api_unavailable"}},
 		},
 	}

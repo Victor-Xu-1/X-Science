@@ -1,5 +1,5 @@
 import { Attention, CheckOne, MessageOne, Right } from '@icon-park/react';
-import SynonBiomedAvatar from '@/renderer/components/synonBiomed/SynonBiomedAvatar';
+import XScienceAvatar from '@/renderer/components/xScience/XScienceAvatar';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
@@ -48,7 +48,7 @@ const MessageSubagentEvents: React.FC<{ message: IMessageToolCall }> = ({ messag
             aria-expanded={expanded}
             onClick={() => setExpanded((value) => !value)}
           >
-            <SynonBiomedAvatar size={14} />
+            <XScienceAvatar size={14} />
             <span>{header}</span>
             <Right
               theme='outline'

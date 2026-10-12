@@ -9,10 +9,10 @@ import {
   localizeCredentialValidationError,
   validateCredentialValues,
 } from '@/renderer/pages/settings/models/credentialCatalog';
-import type { SynonBiomedSecret } from '@/renderer/services/synonBiomedWorkspaceSettings';
+import type { XScienceSecret } from '@/renderer/services/xScienceWorkspaceSettings';
 import { createTestI18n } from '../i18nTestUtils';
 
-const secret = (overrides: Partial<SynonBiomedSecret>): SynonBiomedSecret => ({
+const secret = (overrides: Partial<XScienceSecret>): XScienceSecret => ({
   id: 'secret-1',
   provider: 'generic',
   name: 'API_KEY',

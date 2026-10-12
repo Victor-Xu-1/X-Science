@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 // A request-scoped catch-up has priority over the global repair queue and must

@@ -13,11 +13,11 @@ import (
 )
 
 const (
-	webSessionCookieName = "synon_session"
-	webCSRFCookieName    = "synon_csrf"
-	webDeviceCookieName  = "synon_device"
-	webCSRFHeaderName    = "X-Synon-CSRF-Token"
-	webErrorCodeHeader   = "X-Synon-Error-Code"
+	webSessionCookieName = "x_science_session"
+	webCSRFCookieName    = "x_science_csrf"
+	webDeviceCookieName  = "x_science_device"
+	webCSRFHeaderName    = "X-Science-CSRF-Token"
+	webErrorCodeHeader   = "X-Science-Error-Code"
 	webAuthRequiredCode  = "AUTH_SESSION_REQUIRED"
 	webCSRFInvalidCode   = "CSRF_INVALID"
 )
@@ -54,7 +54,7 @@ func (s *Server) handleWebLogin(w http.ResponseWriter, r *http.Request) {
 		writeWorkspaceJSON(w, http.StatusServiceUnavailable, map[string]any{"success": false, "message": "Web session store is unavailable"})
 		return
 	}
-	r.Body = http.MaxBytesReader(w, r.Body, maxSynonLinkLoginBytes)
+	r.Body = http.MaxBytesReader(w, r.Body, maxXScienceLinkLoginBytes)
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
 	var input struct {
@@ -77,13 +77,13 @@ func (s *Server) handleWebLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	user, authMethod, err := s.authenticateWebLogin(input.Username, input.Password)
 	if err != nil {
-		if errors.Is(err, errSynonLinkInvalidLogin) {
+		if errors.Is(err, errXScienceLinkInvalidLogin) {
 			s.loginLimiter.RecordFailure(r, input.Username)
 		}
 		switch {
-		case errors.Is(err, errSynonLinkAuthDisabled):
+		case errors.Is(err, errXScienceLinkAuthDisabled):
 			writeWorkspaceJSON(w, http.StatusServiceUnavailable, map[string]any{"success": false, "message": "password login is not configured"})
-		case errors.Is(err, errSynonLinkInvalidLogin):
+		case errors.Is(err, errXScienceLinkInvalidLogin):
 			writeWorkspaceJSON(w, http.StatusUnauthorized, map[string]any{"success": false, "message": "invalid username or password"})
 		default:
 			writeWorkspaceJSON(w, http.StatusInternalServerError, map[string]any{"success": false, "message": "unable to create session"})
@@ -105,15 +105,15 @@ func (s *Server) handleWebLogin(w http.ResponseWriter, r *http.Request) {
 	s.writeWebSession(w, r, token, csrf, deviceToken, session.ExpiresAt, user, input.Remember)
 }
 
-func (s *Server) webUser(r *http.Request) (synonLinkAuthUser, bool) {
-	if !s.webAuthenticationEnabled() && s.synonLinkAuth != nil && isLoopbackRequest(r) {
-		return s.synonLinkAuth.user(), true
+func (s *Server) webUser(r *http.Request) (xscienceLinkAuthUser, bool) {
+	if !s.webAuthenticationEnabled() && s.xscienceLinkAuth != nil && isLoopbackRequest(r) {
+		return s.xscienceLinkAuth.user(), true
 	}
 	if token := webSessionCookieToken(r); token != "" && s.webSessions != nil {
 		session, ok, err := s.webSessions.Authenticate(token, true)
 		if err == nil && ok {
-			if s.synonLinkAuth != nil && session.AccountID == s.synonLinkAuth.user().ID {
-				user := s.synonLinkAuth.user()
+			if s.xscienceLinkAuth != nil && session.AccountID == s.xscienceLinkAuth.user().ID {
+				user := s.xscienceLinkAuth.user()
 				user.Provider = session.AuthMethod
 				return user, true
 			}
@@ -123,13 +123,13 @@ func (s *Server) webUser(r *http.Request) (synonLinkAuthUser, bool) {
 			}
 		}
 	}
-	if token := bearerOrAppSessionToken(r); token != "" && s.synonLinkAuth != nil {
-		if revoked, err := s.synonLinkSessionRevoked(token); err != nil || revoked {
-			return synonLinkAuthUser{}, false
+	if token := bearerOrAppSessionToken(r); token != "" && s.xscienceLinkAuth != nil {
+		if revoked, err := s.xscienceLinkSessionRevoked(token); err != nil || revoked {
+			return xscienceLinkAuthUser{}, false
 		}
-		return s.synonLinkAuth.AuthenticateScope(token, synonSessionScopeWeb)
+		return s.xscienceLinkAuth.AuthenticateScope(token, xscienceSessionScopeWeb)
 	}
-	return synonLinkAuthUser{}, false
+	return xscienceLinkAuthUser{}, false
 }
 
 func (s *Server) withWebIdentity(next http.Handler) http.Handler {
@@ -138,18 +138,18 @@ func (s *Server) withWebIdentity(next http.Handler) http.Handler {
 		// bridges may still inject the header directly; authenticated sessions
 		// and bearer tokens are applied below.
 		if s.webAuthenticationEnabled() || !isLoopbackRequest(r) {
-			r.Header.Del("X-Synon-User-Id")
-			r.Header.Del("X-Synon-User-Name")
+			r.Header.Del("X-Science-User-Id")
+			r.Header.Del("X-Science-User-Name")
 		}
-		if strings.TrimSpace(r.Header.Get("X-Synon-User-Id")) == "" {
+		if strings.TrimSpace(r.Header.Get("X-Science-User-Id")) == "" {
 			if userID := trustedLocalRequestedUser(r, s.webAuthenticationEnabled()); userID != "" {
-				r.Header.Set("X-Synon-User-Id", userID)
+				r.Header.Set("X-Science-User-Id", userID)
 			}
 		}
-		if strings.TrimSpace(r.Header.Get("X-Synon-User-Id")) == "" {
+		if strings.TrimSpace(r.Header.Get("X-Science-User-Id")) == "" {
 			if user, ok := s.webUser(r); ok {
-				r.Header.Set("X-Synon-User-Id", user.ID)
-				r.Header.Set("X-Synon-User-Name", user.Username)
+				r.Header.Set("X-Science-User-Id", user.ID)
+				r.Header.Set("X-Science-User-Name", user.Username)
 			}
 		}
 		next.ServeHTTP(w, r)
@@ -158,8 +158,9 @@ func (s *Server) withWebIdentity(next http.Handler) http.Handler {
 
 func (s *Server) withWebSessionMigration(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r = s.upgradeWebCookieNamespace(w, r)
 		legacyToken := webSessionCookieToken(r)
-		if legacyToken == "" || s.webSessions == nil || s.synonLinkAuth == nil {
+		if legacyToken == "" || s.webSessions == nil || s.xscienceLinkAuth == nil {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -167,11 +168,11 @@ func (s *Server) withWebSessionMigration(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		if revoked, err := s.synonLinkSessionRevoked(legacyToken); err != nil || revoked {
+		if revoked, err := s.xscienceLinkSessionRevoked(legacyToken); err != nil || revoked {
 			next.ServeHTTP(w, r)
 			return
 		}
-		user, valid := s.synonLinkAuth.AuthenticateScope(legacyToken, synonSessionScopeWeb)
+		user, valid := s.xscienceLinkAuth.AuthenticateScope(legacyToken, xscienceSessionScopeWeb)
 		if !valid {
 			next.ServeHTTP(w, r)
 			return
@@ -186,7 +187,7 @@ func (s *Server) withWebSessionMigration(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		if err := s.revokeSynonLinkSession(legacyToken); err != nil {
+		if err := s.revokeXScienceLinkSession(legacyToken); err != nil {
 			_, _, _ = s.webSessions.Revoke(user.ID, session.ID, token)
 			next.ServeHTTP(w, r)
 			return
@@ -222,13 +223,13 @@ func (s *Server) withAPIAuthentication(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		if strings.TrimSpace(r.Header.Get("X-Synon-User-Id")) != "" {
+		if strings.TrimSpace(r.Header.Get("X-Science-User-Id")) != "" {
 			next.ServeHTTP(w, r)
 			return
 		}
 		w.Header().Set("Cache-Control", "no-store")
-		w.Header().Set("WWW-Authenticate", `Bearer realm="synon"`)
-		w.Header().Set("X-Synon-Auth-Required", "session")
+		w.Header().Set("WWW-Authenticate", `Bearer realm="xscience"`)
+		w.Header().Set("X-Science-Auth-Required", "session")
 		w.Header().Set(webErrorCodeHeader, webAuthRequiredCode)
 		writeWorkspaceJSON(w, http.StatusUnauthorized, map[string]any{
 			"success": false, "code": webAuthRequiredCode, "message": "authentication required",
@@ -302,7 +303,7 @@ func protectedRuntimeRoute(path string) bool {
 func publicRuntimeRequest(r *http.Request) bool {
 	switch r.URL.Path {
 	case "/health", "/api/health", "/api/auth/login", "/api/auth/logout", "/api/auth/user",
-		"/api/auth/register", "/api/auth/providers", "/login", "/register", "/synon-link/ws":
+		"/api/auth/register", "/api/auth/providers", "/login", "/register", "/x-science-link/ws", "/synon-link/ws":
 		return true
 	case "/api/settings/client":
 		return r.Method == http.MethodGet && r.URL.Query().Get("scope") == webClientSettingsScope
@@ -312,7 +313,7 @@ func publicRuntimeRequest(r *http.Request) bool {
 }
 
 func (s *Server) webAuthenticationEnabled() bool {
-	return s != nil && ((s.synonLinkAuth != nil && s.synonLinkAuth.enabled) ||
+	return s != nil && ((s.xscienceLinkAuth != nil && s.xscienceLinkAuth.enabled) ||
 		(s.webExternalAuth != nil && s.webExternalAuth.enabled()))
 }
 
@@ -344,7 +345,7 @@ func withBrowserOriginPolicy(next http.Handler) http.Handler {
 }
 
 func browserOriginRequired(r *http.Request) bool {
-	// Synon Link authenticates from a browser extension origin. Its login route
+	// XScience Link authenticates from a browser extension origin. Its login route
 	// is separately restricted to loopback clients and configured credentials.
 	if r.URL.Path == "/api/auth/login" {
 		return false

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestArtifactTextVersionCompatibilityWritesCurrentVersionAndFreshProvenance(t *testing.T) {
@@ -18,7 +18,7 @@ func TestArtifactTextVersionCompatibilityWritesCurrentVersionAndFreshProvenance(
 	body := strings.NewReader(`{"content":"third","content_type":"text/plain","parent_version_id":"` + fixture.firstVersionID + `"}`)
 	request := newLoopbackTestRequest(http.MethodPost, "/api/artifacts/"+fixture.artifactID+"/versions", body)
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("X-Synon-User-Id", "owner-a")
+	request.Header.Set("X-Science-User-Id", "owner-a")
 	response := httptest.NewRecorder()
 	fixture.handler.ServeHTTP(response, request)
 	if response.Code != http.StatusCreated {
@@ -85,7 +85,7 @@ func TestArtifactTextVersionCompatibilityCarriesRealSQLiteAnnotations(t *testing
 	request := newLoopbackTestRequest(http.MethodPost, "/api/artifacts/"+artifact.ID+"/versions",
 		strings.NewReader("{\"content\":\"second\",\"parent_version_id\":\""+first.ID+"\"}"))
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("X-Synon-User-Id", "owner-a")
+	request.Header.Set("X-Science-User-Id", "owner-a")
 	response := httptest.NewRecorder()
 	mux.ServeHTTP(response, request)
 	if response.Code != http.StatusCreated {
@@ -162,7 +162,7 @@ func TestArtifactWriteCompatibilityCamouflagesOwnerAndValidatesParent(t *testing
 			body := strings.NewReader(`{"content":"edit","parent_version_id":"` + testCase.parentID + `"}`)
 			request := newLoopbackTestRequest(http.MethodPost, "/api/artifacts/"+fixture.artifactID+"/versions", body)
 			request.Header.Set("Content-Type", "application/json")
-			request.Header.Set("X-Synon-User-Id", testCase.userID)
+			request.Header.Set("X-Science-User-Id", testCase.userID)
 			response := httptest.NewRecorder()
 			fixture.handler.ServeHTTP(response, request)
 			if response.Code != testCase.status || !bytes.Contains(response.Body.Bytes(), []byte(testCase.detail)) {
@@ -292,6 +292,6 @@ func artifactBinaryWriteRequest(t *testing.T, artifactID, parentID, branchFilena
 	}
 	request := newLoopbackTestRequest(http.MethodPost, target, &body)
 	request.Header.Set("Content-Type", writer.FormDataContentType())
-	request.Header.Set("X-Synon-User-Id", userID)
+	request.Header.Set("X-Science-User-Id", userID)
 	return request
 }

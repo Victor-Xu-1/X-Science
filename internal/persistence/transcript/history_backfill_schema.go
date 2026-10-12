@@ -1,6 +1,6 @@
 package transcript
 
-const HistoryBackfillContractID = "synon.transcript.history-backfill.v29"
+const HistoryBackfillContractID = "x-science.transcript.history-backfill.v29"
 
 var historyBackfillV29Statements = []string{
 	`CREATE TABLE transcript_history_backfill_runs (

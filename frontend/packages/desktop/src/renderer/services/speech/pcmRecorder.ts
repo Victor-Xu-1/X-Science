@@ -112,7 +112,7 @@ export type PcmRecorderHandle = {
   stop: () => Promise<{ pcm: Uint8Array; sampleRate: number }>;
 };
 
-const PROCESSOR_NAME = 'synon-ai-pcm-capture';
+const PROCESSOR_NAME = 'x-science-pcm-capture';
 
 /**
  * Inline AudioWorklet processor source, loaded via a Blob URL so no bundler

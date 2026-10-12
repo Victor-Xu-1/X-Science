@@ -4,12 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { loadSynonBiomedCatalogSummary } from '@/renderer/services/synonBiomedCatalog';
+import { loadXScienceCatalogSummary } from '@/renderer/services/xScienceCatalog';
 import {
-  createSynonBiomedProject,
-  loadSynonBiomedProjects,
-  type SynonBiomedProjectInput,
-} from '@/renderer/services/synonBiomedGateway';
+  createXScienceProject,
+  loadXScienceProjects,
+  type XScienceProjectInput,
+} from '@/renderer/services/xScienceGateway';
 import { emitter } from '@/renderer/utils/emitter';
 import { Earth, Lightning, System, Toolkit } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -26,21 +26,21 @@ type QuickActionButtonsProps = {
   activeShadow: string;
 };
 
-type SynonBiomedQuickStatus = 'checking' | 'healthy' | 'offline' | 'error';
-type SynonBiomedQuickActionId = 'projects' | 'skills' | 'mcp' | 'runtime';
+type XScienceQuickStatus = 'checking' | 'healthy' | 'offline' | 'error';
+type XScienceQuickActionId = 'projects' | 'skills' | 'mcp' | 'runtime';
 
-const SYNON_BIOMED_STATUS_CACHE_TTL_MS = 3000;
+const X_SCIENCE_STATUS_CACHE_TTL_MS = 3000;
 
-let synonBiomedStatusCache: {
-  quickStatus: SynonBiomedQuickStatus;
+let xScienceStatusCache: {
+  quickStatus: XScienceQuickStatus;
   at: number;
 } | null = null;
 
 const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({ inactiveBorderColor, activeShadow }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [hoveredQuickAction, setHoveredQuickAction] = useState<SynonBiomedQuickActionId | null>(null);
-  const [synonBiomedQuickStatus, setSynonBiomedQuickStatus] = useState<SynonBiomedQuickStatus>('checking');
+  const [hoveredQuickAction, setHoveredQuickAction] = useState<XScienceQuickActionId | null>(null);
+  const [xScienceQuickStatus, setXScienceQuickStatus] = useState<XScienceQuickStatus>('checking');
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
   const [createProjectLoading, setCreateProjectLoading] = useState(false);
   const [createProjectError, setCreateProjectError] = useState<string | null>(null);
@@ -50,21 +50,21 @@ const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({ inactiveBorderC
 
     const loadStatus = async () => {
       const now = Date.now();
-      if (synonBiomedStatusCache && now - synonBiomedStatusCache.at < SYNON_BIOMED_STATUS_CACHE_TTL_MS) {
-        setSynonBiomedQuickStatus(synonBiomedStatusCache.quickStatus);
+      if (xScienceStatusCache && now - xScienceStatusCache.at < X_SCIENCE_STATUS_CACHE_TTL_MS) {
+        setXScienceQuickStatus(xScienceStatusCache.quickStatus);
         return;
       }
 
       try {
-        const summary = await loadSynonBiomedCatalogSummary();
+        const summary = await loadXScienceCatalogSummary();
         if (!alive) return;
-        const quickStatus: SynonBiomedQuickStatus = summary?.backendStatus === 'healthy' ? 'healthy' : 'offline';
-        setSynonBiomedQuickStatus(quickStatus);
-        synonBiomedStatusCache = { quickStatus, at: Date.now() };
+        const quickStatus: XScienceQuickStatus = summary?.backendStatus === 'healthy' ? 'healthy' : 'offline';
+        setXScienceQuickStatus(quickStatus);
+        xScienceStatusCache = { quickStatus, at: Date.now() };
       } catch {
         if (!alive) return;
-        setSynonBiomedQuickStatus('error');
-        synonBiomedStatusCache = { quickStatus: 'error', at: Date.now() };
+        setXScienceQuickStatus('error');
+        xScienceStatusCache = { quickStatus: 'error', at: Date.now() };
       }
     };
 
@@ -92,7 +92,7 @@ const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({ inactiveBorderC
     [navigate]
   );
 
-  const handleQuickActionIntent = useCallback((actionId: SynonBiomedQuickActionId) => {
+  const handleQuickActionIntent = useCallback((actionId: XScienceQuickActionId) => {
     if (actionId === 'projects') {
       void prefetchProjectRoute().catch((): undefined => undefined);
       return;
@@ -102,7 +102,7 @@ const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({ inactiveBorderC
 
   const handleOpenProject = useCallback(async () => {
     try {
-      const projects = await loadSynonBiomedProjects();
+      const projects = await loadXScienceProjects();
       const projectId = projects[0]?.projectId;
       if (projectId) {
         void navigate(`/projects/${encodeURIComponent(projectId)}`);
@@ -118,13 +118,13 @@ const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({ inactiveBorderC
   }, [navigate, t]);
 
   const handleCreateProject = useCallback(
-    async (input: SynonBiomedProjectInput) => {
+    async (input: XScienceProjectInput) => {
       if (createProjectLoading) return;
       setCreateProjectLoading(true);
       setCreateProjectError(null);
       try {
-        const project = await createSynonBiomedProject(input);
-        emitter.emit('synonbiomed.projects.refresh');
+        const project = await createXScienceProject(input);
+        emitter.emit('xscience.projects.refresh');
         setCreateProjectOpen(false);
         void navigate(`/projects/${encodeURIComponent(project.projectId)}`);
       } catch (error) {
@@ -137,20 +137,20 @@ const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({ inactiveBorderC
     [createProjectLoading, navigate, t]
   );
 
-  const synonBiomedStatusLabel =
-    synonBiomedQuickStatus === 'healthy'
-      ? t('guid.synonBiomedStatus.healthy')
-      : synonBiomedQuickStatus === 'checking'
-        ? t('guid.synonBiomedStatus.checking')
-        : synonBiomedQuickStatus === 'offline'
-          ? t('guid.synonBiomedStatus.offline')
-          : t('guid.synonBiomedStatus.unavailable');
-  const synonBiomedIconColor =
-    synonBiomedQuickStatus === 'healthy'
+  const xScienceStatusLabel =
+    xScienceQuickStatus === 'healthy'
+      ? t('guid.xScienceStatus.healthy')
+      : xScienceQuickStatus === 'checking'
+        ? t('guid.xScienceStatus.checking')
+        : xScienceQuickStatus === 'offline'
+          ? t('guid.xScienceStatus.offline')
+          : t('guid.xScienceStatus.unavailable');
+  const xScienceIconColor =
+    xScienceQuickStatus === 'healthy'
       ? 'rgb(var(--success-6))'
-      : synonBiomedQuickStatus === 'checking'
+      : xScienceQuickStatus === 'checking'
         ? 'rgb(var(--primary-6))'
-        : synonBiomedQuickStatus === 'error'
+        : xScienceQuickStatus === 'error'
           ? 'var(--color-text-3)'
           : 'var(--color-text-4)';
 
@@ -182,14 +182,14 @@ const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({ inactiveBorderC
       },
       {
         id: 'runtime' as const,
-        label: `${t('guid.quickActions.runtime')} \u00b7 ${synonBiomedStatusLabel}`,
+        label: `${t('guid.quickActions.runtime')} \u00b7 ${xScienceStatusLabel}`,
         maxWidthClass: 'hover:max-w-170px',
         icon: <System theme='outline' size={20} fill='currentColor' />,
-        iconColor: synonBiomedIconColor,
+        iconColor: xScienceIconColor,
         path: '/settings/compute',
       },
     ],
-    [synonBiomedIconColor, synonBiomedStatusLabel, t]
+    [xScienceIconColor, xScienceStatusLabel, t]
   );
 
   return (

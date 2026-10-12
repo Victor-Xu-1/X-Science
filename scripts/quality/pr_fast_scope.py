@@ -18,7 +18,7 @@ import subprocess
 import sys
 
 if __package__:
-    from . import pr_build_scope, pr_dependency_scope, pr_frontend_scope, pr_metadata_scope, pr_test_partition, runtime_input_scope, verification_scope
+    from . import pr_build_scope, pr_dependency_scope, pr_frontend_scope, pr_metadata_scope, pr_namespace_scope, pr_test_partition, runtime_input_scope, verification_scope
     from .runtime_test_inventory import discover, execution_plan
     from .runtime_test_shards import execute
 else:
@@ -26,6 +26,7 @@ else:
     import pr_frontend_scope
     import pr_build_scope
     import pr_metadata_scope
+    import pr_namespace_scope
     import pr_test_partition
     import runtime_input_scope
     import verification_scope
@@ -87,7 +88,8 @@ def frontend_affected(paths: list[str], repo: Path | None = None) -> bool:
 
 def documentation_only(path: str) -> bool:
     return (path in {"README.md", "AGENTS.md", "CONTRIBUTING.md", "SECURITY.md", "CODE_OF_CONDUCT.md", "LICENSE", ".gitignore", ".gitattributes", ".editorconfig",
-                    ".github/pull_request_template.md"}
+                    "LICENSE.txt", ".github/pull_request_template.md", "assets/x-science-link/README.md", "frontend/README.md",
+                    "skills/README.md", "internal/outbox/README.md"}
             or path.startswith("docs/assets/") or path.startswith("docs/") and path.endswith(".md"))
 
 
@@ -163,6 +165,8 @@ def selected_packages(repo: Path, base: str, head: str) -> tuple[list[str], list
 
 def behavior_scope(repo: Path, base: str, head: str, paths: list[str]):
     behavior, metadata = pr_metadata_scope.filter_paths(repo, base, head, paths)
+    if set(base) != {"0"}:
+        behavior = pr_namespace_scope.filter_paths(repo, base, head, behavior)
     build_defaults = []
     if "Makefile" in behavior and pr_build_scope.default_goal_only(repo, base, head):
         behavior.remove("Makefile")
@@ -199,7 +203,8 @@ def main() -> int:
             projections = pr_metadata_scope.version_projection_paths(repo, args.base, args.head)
             provenance_changed = bool(set(behavior_paths) & pr_frontend_scope.PROVENANCE)
             frontend_behavior = [path for path in behavior_paths
-                                 if path not in projections and path not in pr_frontend_scope.PROVENANCE]
+                                 if path not in projections and path not in pr_frontend_scope.PROVENANCE
+                                 and not documentation_only(path)]
             affected = frontend_affected(frontend_behavior, repo)
             if not affected and not metadata_paths and not provenance_changed:
                 print("No frontend package is affected by this change; Go and policy gates remain active.")
@@ -213,11 +218,16 @@ def main() -> int:
             if not affected:
                 print("Only proved version metadata changed; fresh provenance passed, no frontend suite/build required.")
                 return 0
-            frontend_inputs = [path for path in behavior_paths if path not in projections]
+            frontend_inputs = [path for path in behavior_paths
+                               if path not in projections and not documentation_only(path)]
             related = pr_frontend_scope.related_command(frontend_inputs)
             fixtures = pr_frontend_scope.fixture_command(frontend_inputs, repo)
+            harness = pr_frontend_scope.harness_command(frontend_inputs, repo)
             print(json.dumps({"frontend_test_inputs": related[9:] if related else [],
                               "browser_fixture_entries": fixtures[5:] if fixtures else [],
+                              "test_harness_compile_inputs": harness[4:] if harness else [],
+                              "snapshot_provenance_inputs": pr_frontend_scope.snapshot_inputs(frontend_inputs),
+                              "real_task_execution": False,
                               "selection": "Vitest dependency-related and changed fixture build; no global fallback"}))
             commands = [
                 ["npm", "ci", "--ignore-scripts"],
@@ -226,6 +236,7 @@ def main() -> int:
                 ["npm", "run", "typecheck"], ["npm", "run", "lint"],
                 ["npm", "run", "format:check"], *([related] if related else []),
                 *([fixtures] if fixtures else []), ["npm", "run", "build"],
+                *([harness] if harness else []),
                 ["npm", "run", "test:packaged"],
             ]
             for command in commands:
@@ -240,6 +251,7 @@ def main() -> int:
         scope = {"base": args.base, "head": args.head, "changed_paths": paths, "packages": selected,
                  "behavior_paths": behavior_paths, "version_metadata_paths": metadata_paths,
                  "build_default_paths": build_defaults,
+                 "namespace_scope": "SHA-bound AST equivalence; changed literals/directives retain current package ownership",
                  "verification_groups": [group["name"] for group in groups], "reason": reason,
                  "shard_index": args.shard_index, "shard_count": args.shard_count}
         print(json.dumps(scope, ensure_ascii=False))

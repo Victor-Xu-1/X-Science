@@ -41,9 +41,9 @@ vi.mock('@/renderer/pages/conversation/Preview/components/editors/DocumentWysiwy
   ),
 }));
 
-vi.mock('@/renderer/services/synonBiomedArtifacts', () => ({
-  createSynonBiomedTextArtifactVersion: commonMocks.createArtifactVersion,
-  getSynonBiomedArtifactVersionContentUrl: (versionId: string) => `/api/artifact-versions/${versionId}/content`,
+vi.mock('@/renderer/services/xScienceArtifacts', () => ({
+  createXScienceTextArtifactVersion: commonMocks.createArtifactVersion,
+  getXScienceArtifactVersionContentUrl: (versionId: string) => `/api/artifact-versions/${versionId}/content`,
 }));
 
 vi.mock('@/renderer/utils/emitter', () => ({

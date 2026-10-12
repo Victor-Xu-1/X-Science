@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"synon-go/internal/skills"
+	"x-science/internal/skills"
 )
 
 func loadSkillCatalog(provided *skills.Catalog, configured []string, fileRoot string) (*skills.Catalog, []string, []skills.LoadError) {
@@ -49,7 +49,7 @@ func loadSkillCatalog(provided *skills.Catalog, configured []string, fileRoot st
 	directories := existingSkillDirectories(defaultSkillDirectoryCandidates(fileRoot))
 	if len(directories) == 0 {
 		catalog := skills.BuiltinRuntimeCatalog()
-		return catalog, []string{"builtin:synon-runtime"}, catalog.LoadErrors()
+		return catalog, []string{"builtin:x-science-runtime"}, catalog.LoadErrors()
 	}
 	catalog := skills.Load(directories, runtimeSkillLoadOptions())
 	catalog = withBuiltinRuntimeSkill(catalog)
@@ -91,7 +91,7 @@ func defaultSkillDirectoryCandidates(fileRoot string) []string {
 	if executable, err := os.Executable(); err == nil && strings.TrimSpace(executable) != "" {
 		executableDir := filepath.Dir(executable)
 		// Packaged skills live beside the verified product executable. Source
-		// development declares its skill root explicitly through SYNON_SKILL_DIRS.
+		// development declares its skill root explicitly through X_SCIENCE_SKILL_DIRS.
 		directories = append(directories, filepath.Join(executableDir, "skills"))
 	}
 	return uniqueSkillDirectories(directories)

@@ -107,12 +107,12 @@ The source workflow uses **Ubuntu or WSL**, Git, Go **>=1.26**,
 Node.js **>=22.22 <25**, npm and the Unix utilities checked by the launcher.
 
 The commands below are for a **new installation with free ports 8765/8766**.
-If you already have an instance or a `synon` command, inspect it first; the
+If you already have an instance or an `x-science` command, inspect it first; the
 installer refuses to replace a command owned by another checkout.
 
-The current command is `x-science`; the installer also retains `synon` as a
-compatibility alias to the same launcher and existing state. Renaming the
-product does not move existing databases, project files or running services.
+The sole current command is `x-science`. Existing installations must migrate
+their configuration and state through the reviewed upgrade path, not by moving
+live databases, project files or scientific environment prefixes.
 
 ```bash
 git clone https://github.com/Victor-Xu-1/X-Science.git
@@ -146,6 +146,17 @@ Python/R 核心环境首次准备需要网络、时间和磁盘空间；可选�
   owned by that checkout.
 - Source startup uses loopback ports 8765/8766. If occupied, inspect the existing
   instance; do not kill a process merely to make startup pass.
+- Global host-directory grants, data-directory migration, shared skill changes
+  and the host SSH configuration require the authenticated operator identity
+  configured for this installation. Ordinary accounts keep their own projects,
+  granted files and compute jobs; they cannot self-grant access to arbitrary
+  host directories. Passwordless host-wide access is loopback-only.
+- An operator can approve a directory for an existing account through
+  `POST /api/go/preferences/host-grants` with `path`, `mode`, and optional
+  `userId`; omitting `userId` keeps the operator's own grant. OIDC accounts
+  retain normal owned/granted file access. An OIDC operator must have its actual
+  account ID configured as the installation's operator identity; the first
+  external login never becomes a host administrator automatically.
 - Native Python/R installation and scientific execution are separate capabilities.
   A healthy gateway or an installed environment is not proof that an analysis ran.
 - This is actively developed research software. Review task-specific sources,
@@ -186,7 +197,7 @@ Installation, configuration and recovery:
 ## License / 许可
 
 First-party code is **AGPL-3.0-only**, except where separate component terms apply.
-Compliant commercial use is permitted. See the unchanged [LICENSE](LICENSE),
+Compliant commercial use is permitted. See the unchanged [LICENSE.txt](LICENSE.txt),
 [commercial licensing boundaries](COMMERCIAL-LICENSE.md) and
 [third-party inventory](docs/THIRD_PARTY.md).
 

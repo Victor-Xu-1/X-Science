@@ -74,7 +74,7 @@ describe('HTMLViewer', () => {
         new MessageEvent('message', {
           source: iframe?.contentWindow,
           data: {
-            __synonPreviewInstance: instance,
+            __xsciencePreviewInstance: instance,
             payload: { type: 'element-selected', data: { path: 'body > h1', html: '<h1>Test</h1>' } },
           },
         })
@@ -119,8 +119,8 @@ describe('HTMLRenderer', () => {
       new MessageEvent('message', {
         source: frame?.contentWindow,
         data: {
-          __synonPreviewInstance: 'stale-instance',
-          payload: { __SYNON_AI_INSPECT_ELEMENT__: { html: '<h1>Forged</h1>', tag: 'h1' } },
+          __xsciencePreviewInstance: 'stale-instance',
+          payload: { __X_SCIENCE_INSPECT_ELEMENT__: { html: '<h1>Forged</h1>', tag: 'h1' } },
         },
       })
     );

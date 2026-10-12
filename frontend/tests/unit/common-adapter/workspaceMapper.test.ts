@@ -29,14 +29,14 @@ describe('workspaceMapper', () => {
           content_url: '/api/artifacts/artifact-report',
         },
       ],
-      'synonbiomed://proj_stat6',
+      'x-science://proj_stat6',
       '.'
     );
 
     expect(root?.children).toEqual([
       {
         name: 'STAT6_report.md',
-        fullPath: 'synonbiomed://proj_stat6/frame-stat6/artifact-report',
+        fullPath: 'x-science://proj_stat6/frame-stat6/artifact-report',
         relativePath: 'frame-stat6/artifact-report',
         isDir: false,
         isFile: true,

@@ -3,7 +3,7 @@ package server
 import (
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestRememberedKernelApprovalOnlyReleasesExplicitAllowPolicy(t *testing.T) {

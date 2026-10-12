@@ -10,8 +10,8 @@ import (
 
 	"github.com/coder/websocket"
 
-	adapterfeishu "synon-go/internal/adapters/feishu"
-	eventjournal "synon-go/internal/persistence/journal"
+	adapterfeishu "x-science/internal/adapters/feishu"
+	eventjournal "x-science/internal/persistence/journal"
 )
 
 func TestLocalLegacySessionWebSocketReplaysAndReceivesAppendedSessionEvents(t *testing.T) {

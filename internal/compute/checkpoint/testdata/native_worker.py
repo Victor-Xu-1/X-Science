@@ -19,7 +19,7 @@ def committed_checkpoint(*_):
     with state.open("rb") as source:
         os.fsync(source.fileno())
     records = [
-        {"schema": "synon.compute-checkpoint.v1", "generation": int(os.environ["OPERON_CHECKPOINT_GENERATION"]),
+        {"schema": "x-science.compute-checkpoint.v1", "generation": int(os.environ["OPERON_CHECKPOINT_GENERATION"]),
          "source_input_sha256": os.environ["OPERON_INPUT_SHA256"],
          "resume_command_sha256": os.environ["OPERON_RESUME_COMMAND_SHA256"]},
         {"path": "out/state.bin", "sha256": hashlib.sha256(value).hexdigest(), "bytes": len(value)},

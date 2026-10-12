@@ -4,15 +4,15 @@ import { Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  loadSynonBiomedModalSettings,
-  saveSynonBiomedComputeProviderDetails,
-  setSynonBiomedModalEnabled,
-  type SynonBiomedModalEgressPolicy,
-  type SynonBiomedModalSettings,
-} from '@/renderer/services/synonBiomedCompute';
+  loadXScienceModalSettings,
+  saveXScienceComputeProviderDetails,
+  setXScienceModalEnabled,
+  type XScienceModalEgressPolicy,
+  type XScienceModalSettings,
+} from '@/renderer/services/xScienceCompute';
 
 type ModalDraft = Pick<
-  SynonBiomedModalSettings,
+  XScienceModalSettings,
   'appName' | 'environmentName' | 'detailsMd' | 'egressPolicy' | 'maxConcurrentJobs' | 'maxTimeoutSec'
 >;
 
@@ -32,7 +32,7 @@ export const ModalProviderSettingsPage: React.FC<{
   onTry: (prompt: string) => void;
 }> = ({ visible, onClose, onOpenCredentials, onTry }) => {
   const { t } = useTranslation();
-  const [settings, setSettings] = useState<SynonBiomedModalSettings | null>(null);
+  const [settings, setSettings] = useState<XScienceModalSettings | null>(null);
   const [draft, setDraft] = useState<ModalDraft>(emptyDraft);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -42,7 +42,7 @@ export const ModalProviderSettingsPage: React.FC<{
     setLoading(true);
     setLoadFailed(false);
     try {
-      const next = await loadSynonBiomedModalSettings();
+      const next = await loadXScienceModalSettings();
       setSettings(next);
       setDraft({
         appName: next.appName,
@@ -68,7 +68,7 @@ export const ModalProviderSettingsPage: React.FC<{
     const commit = async () => {
       setSaving(true);
       try {
-        await setSynonBiomedModalEnabled(enabled);
+        await setXScienceModalEnabled(enabled);
         await refresh();
         Message.success(
           enabled ? t('settings.computeWorkspace.modal.enabled') : t('settings.computeWorkspace.modal.disabled')
@@ -96,7 +96,7 @@ export const ModalProviderSettingsPage: React.FC<{
     if (!settings || saving) return;
     setSaving(true);
     try {
-      await saveSynonBiomedComputeProviderDetails('byoc:modal', {
+      await saveXScienceComputeProviderDetails('byoc:modal', {
         appName: draft.appName.trim() || null,
         environmentName: draft.environmentName.trim() || null,
         detailsMd: draft.detailsMd.trim(),
@@ -207,7 +207,7 @@ export const ModalProviderSettingsPage: React.FC<{
                 aria-label={t('settings.computeWorkspace.modal.defaultAppTitle')}
                 value={draft.appName}
                 disabled={!settings.enabled}
-                placeholder='synonbiomed-...'
+                placeholder='xscience-...'
                 onChange={(appName) => setDraft((current) => ({ ...current, appName }))}
               />
             </Section>
@@ -422,12 +422,12 @@ const NumberField: React.FC<{ label: string; unit: string; children: React.React
   </label>
 );
 
-function buildEgressPolicy(mode: string, current: SynonBiomedModalEgressPolicy | null): SynonBiomedModalEgressPolicy {
+function buildEgressPolicy(mode: string, current: XScienceModalEgressPolicy | null): XScienceModalEgressPolicy {
   if (mode === 'allowlist') return { mode, mirror: current?.mirror ?? true, additional: current?.additional ?? [] };
   return { mode: mode === 'blocked' ? 'blocked' : 'unrestricted' };
 }
 
-function normalizeEgressPolicy(policy: SynonBiomedModalEgressPolicy | null): SynonBiomedModalEgressPolicy {
+function normalizeEgressPolicy(policy: XScienceModalEgressPolicy | null): XScienceModalEgressPolicy {
   return policy ?? { mode: 'unrestricted' };
 }
 

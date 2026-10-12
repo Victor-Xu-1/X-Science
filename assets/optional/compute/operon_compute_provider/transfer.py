@@ -104,9 +104,9 @@ def _download(provider, sid, stage, name, sha, size):
     # This is current physical admission, not an implicit dataset cap.
     if size - offset > max(0, shutil.disk_usage(stage).free - (32 << 20)):
         raise ByocError("quota_exhausted", "output transfer is waiting for local storage capacity")
-    remote = shlex.quote(f"{WORK}/.synon-harvest/{name}")
+    remote = shlex.quote(f"{WORK}/.x-science-harvest/{name}")
     if offset:
-        arguments = ["bash", "--noprofile", "--norc", "-p", f"{WORK}/_synon_harvest.sh", "prefix", name, str(offset), sha]
+        arguments = ["bash", "--noprofile", "--norc", "-p", f"{WORK}/_x_science_harvest.sh", "prefix", name, str(offset), sha]
         observed = _control(provider, sid, " ".join(shlex.quote(value) for value in arguments))
         if observed in {"working", "unknown"}:
             return {"ok": True, "ready": False, "transfer_state": "validating_prefix"}
@@ -140,16 +140,16 @@ def _download(provider, sid, stage, name, sha, size):
 
 def harvest_operation(provider, request, stage):
     sid, action = request["sandbox_id"], request["harvest"]
-    helper = f"{WORK}/_synon_harvest.sh"
+    helper = f"{WORK}/_x_science_harvest.sh"
     if action == "install":
-        source = os.path.join(stage, "_synon_harvest.sh")
+        source = os.path.join(stage, "_x_science_harvest.sh")
         _regular(source)
         with open(source, "rb") as body:
             digest = _digest(source)
-            command = (f"set -eu; umask 077; cd {WORK}; test ! -L _synon_harvest.sh; "
-                       "next=$(mktemp .synon-helper.XXXXXXXX); trap 'rm -f -- \"$next\"' EXIT; cat >\"$next\"; "
+            command = (f"set -eu; umask 077; cd {WORK}; test ! -L _x_science_harvest.sh; "
+                       "next=$(mktemp .x-science-helper.XXXXXXXX); trap 'rm -f -- \"$next\"' EXIT; cat >\"$next\"; "
                        f"test \"$(sha256sum -- \"$next\" | cut -d' ' -f1)\" = {digest}; "
-                       "chmod 700 -- \"$next\"; mv -fT -- \"$next\" _synon_harvest.sh; printf installed")
+                       "chmod 700 -- \"$next\"; mv -fT -- \"$next\" _x_science_harvest.sh; printf installed")
             response = _control(provider, sid, command, iter(lambda: body.read(CHUNK), b""))
         return {"ok": response == "installed", "installed": response == "installed"}
     if action == "fetch":
@@ -170,9 +170,9 @@ def harvest_operation(provider, request, stage):
             _regular(source)
             if _digest(source) != selected_sha:
                 raise ByocError("result_rejected", "host selection digest changed")
-            name = f".synon-harvest/selection-{selected_sha}.nul"
-            command = (f"set -eu; umask 077; cd {WORK}; test -d .synon-harvest; test ! -L .synon-harvest; "
-                       "next=$(mktemp .synon-harvest/selection.XXXXXXXX); trap 'rm -f -- \"$next\"' EXIT; cat >\"$next\"; "
+            name = f".x-science-harvest/selection-{selected_sha}.nul"
+            command = (f"set -eu; umask 077; cd {WORK}; test -d .x-science-harvest; test ! -L .x-science-harvest; "
+                       "next=$(mktemp .x-science-harvest/selection.XXXXXXXX); trap 'rm -f -- \"$next\"' EXIT; cat >\"$next\"; "
                        f"test \"$(sha256sum -- \"$next\" | cut -d' ' -f1)\" = {selected_sha}; mv -fT -- \"$next\" {name}; printf selected")
             with open(source, "rb") as body:
                 response = _control(provider, sid, command, iter(lambda: body.read(CHUNK), b""))

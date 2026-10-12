@@ -32,7 +32,7 @@ const AboutModalContent: React.FC = () => {
           </div>
           <Divider className='my-16px' />
           <Typography.Text className='text-13px text-t-secondary text-center'>
-            {t('settings.synonBiomedWorkbenchDescription')}
+            {t('settings.xScienceWorkbenchDescription')}
           </Typography.Text>
         </div>
       </div>

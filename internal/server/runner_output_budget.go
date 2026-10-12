@@ -12,9 +12,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/persistence/runtimekv"
-	"synon-go/internal/providers"
+	"x-science/internal/agentruntime"
+	"x-science/internal/persistence/runtimekv"
+	"x-science/internal/providers"
 )
 
 // State is a hint for a future request, not a claimed model maximum. Rejection

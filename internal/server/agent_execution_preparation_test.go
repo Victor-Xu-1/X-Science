@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/agentruntime"
-	kernelruntime "synon-go/internal/kernel"
+	"x-science/internal/agentruntime"
+	kernelruntime "x-science/internal/kernel"
 )
 
 func TestExecutionPreparationHasOneAdmissionAndExecutionDecision(t *testing.T) {

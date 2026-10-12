@@ -3,7 +3,7 @@ package server
 import (
 	"testing"
 
-	"synon-go/internal/sciencecapability"
+	"x-science/internal/sciencecapability"
 )
 
 func TestSelectedEvidenceResolverOrdinaryFailureDoesNotReopenChoice(t *testing.T) {

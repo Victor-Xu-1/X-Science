@@ -15,8 +15,8 @@ import (
 	"testing"
 	"time"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 
 	_ "modernc.org/sqlite"
 )
@@ -664,7 +664,7 @@ func TestWebConversationCreationPersistsImmutableTranscriptMapping(t *testing.T)
 	body := []byte(`{"name":"Transcript mapped","extra":{"project_id":"project-a"}}`)
 	request := newLoopbackTestRequest(http.MethodPost, "/api/conversations", bytes.NewReader(body))
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("X-Synon-User-Id", "local")
+	request.Header.Set("X-Science-User-Id", "local")
 	response := httptest.NewRecorder()
 	server.Handler().ServeHTTP(response, request)
 	if response.Code != http.StatusCreated {
@@ -1000,7 +1000,7 @@ func TestTranscriptContractFailureStopsDeliveryAndRejectsMutationAndReplay(t *te
 		`{"name":"Must not persist","extra":{"project_id":"project-a"}}`,
 	)))
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("X-Synon-User-Id", "local")
+	request.Header.Set("X-Science-User-Id", "local")
 	response := httptest.NewRecorder()
 	server.Handler().ServeHTTP(response, request)
 	if response.Code != http.StatusInternalServerError {
@@ -1025,7 +1025,7 @@ func TestTranscriptContractFailureStopsDeliveryAndRejectsMutationAndReplay(t *te
 	}
 
 	replay := newLoopbackTestRequest(http.MethodGet, "/api/events?after_sequence=0", nil)
-	replay.Header.Set("X-Synon-User-Id", "local")
+	replay.Header.Set("X-Science-User-Id", "local")
 	replayResponse := httptest.NewRecorder()
 	server.Handler().ServeHTTP(replayResponse, replay)
 	if replayResponse.Code != http.StatusInternalServerError {
@@ -1040,7 +1040,7 @@ func TestTranscriptContractFailureStopsDeliveryAndRejectsMutationAndReplay(t *te
 	}
 
 	history := newLoopbackTestRequest(http.MethodGet, "/api/conversations/frame-existing/messages?limit=100", nil)
-	history.Header.Set("X-Synon-User-Id", "local")
+	history.Header.Set("X-Science-User-Id", "local")
 	historyResponse := httptest.NewRecorder()
 	server.Handler().ServeHTTP(historyResponse, history)
 	if historyResponse.Code != http.StatusInternalServerError {
@@ -1223,7 +1223,7 @@ func TestTranscriptWebDeliveryUsesTerminalReceiptAndExactArtifactReferences(t *t
 		t.Fatalf("mapped frame used duplicate legacy projection: events=%d want=%d", after, len(events))
 	}
 	request := newLoopbackTestRequest(http.MethodGet, "/api/conversations/frame-a/messages?limit=100", nil)
-	request.Header.Set("X-Synon-User-Id", "local")
+	request.Header.Set("X-Science-User-Id", "local")
 	response := httptest.NewRecorder()
 	server.Handler().ServeHTTP(response, request)
 	if response.Code != http.StatusOK {
@@ -1247,7 +1247,7 @@ func TestTranscriptWebDeliveryUsesTerminalReceiptAndExactArtifactReferences(t *t
 		t.Fatalf("history refs=%#v live refs=%#v", historyRefs, terminalRefs)
 	}
 	messageRequest := newLoopbackTestRequest(http.MethodGet, "/api/conversations/frame-a/messages/"+historyTerminalMessageID, nil)
-	messageRequest.Header.Set("X-Synon-User-Id", "local")
+	messageRequest.Header.Set("X-Science-User-Id", "local")
 	messageResponse := httptest.NewRecorder()
 	server.Handler().ServeHTTP(messageResponse, messageRequest)
 	if messageResponse.Code != http.StatusOK {
@@ -1275,7 +1275,7 @@ func TestTranscriptWebDeliveryUsesTerminalReceiptAndExactArtifactReferences(t *t
 		t.Fatal(err)
 	}
 	replayRequest := newLoopbackTestRequest(http.MethodGet, "/api/events?after_sequence=0", nil)
-	replayRequest.Header.Set("X-Synon-User-Id", "local")
+	replayRequest.Header.Set("X-Science-User-Id", "local")
 	replayResponse := httptest.NewRecorder()
 	server.Handler().ServeHTTP(replayResponse, replayRequest)
 	if replayResponse.Code != http.StatusOK {
@@ -1293,7 +1293,7 @@ func TestTranscriptWebDeliveryUsesTerminalReceiptAndExactArtifactReferences(t *t
 		t.Fatal(err)
 	}
 	reload := newLoopbackTestRequest(http.MethodGet, "/api/conversations/frame-a/messages?limit=100", nil)
-	reload.Header.Set("X-Synon-User-Id", "local")
+	reload.Header.Set("X-Science-User-Id", "local")
 	reloaded := httptest.NewRecorder()
 	server.Handler().ServeHTTP(reloaded, reload)
 	if reloaded.Code != http.StatusOK {
@@ -1990,7 +1990,7 @@ func TestWorkspaceFrameDeleteRetiresExactTranscriptStream(t *testing.T) {
 		t.Fatal(err)
 	}
 	request := newLoopbackTestRequest(http.MethodDelete, "/api/go/frames/frame-raw-delete", nil)
-	request.Header.Set("X-Synon-User-Id", "owner-raw")
+	request.Header.Set("X-Science-User-Id", "owner-raw")
 	response := httptest.NewRecorder()
 	app.Handler().ServeHTTP(response, request)
 	if response.Code != http.StatusOK {
@@ -2188,7 +2188,7 @@ func TestActivatedLegacyAskUserHistoryRemainsProjectable(t *testing.T) {
 	}
 	last := legacyMessages[len(legacyMessages)-1]
 	lastContent, _ := last["content"].(map[string]any)
-	lastCoordinates, _ := lastContent["synonBiomed"].(map[string]any)
+	lastCoordinates, _ := lastContent["xScience"].(map[string]any)
 	lastID, _ := last["id"].(string)
 	lastIndex, _ := lastCoordinates["messageIndex"].(int)
 	frame, found, err := store.GetCompatibilityFrame(stream.FrameID)
@@ -2486,7 +2486,7 @@ func seedTranscriptWebFrame(t *testing.T, store *workspace.Store, ownerID, proje
 		t.Fatal(err)
 	}
 	if _, err := store.CreateFrame(workspace.CreateFrameInput{
-		ID: frameID, ProjectID: projectID, ParentFrameID: "", AgentName: "synon", Status: "processing", ConversationType: "chat",
+		ID: frameID, ProjectID: projectID, ParentFrameID: "", AgentName: "xscience", Status: "processing", ConversationType: "chat",
 	}); err != nil {
 		t.Fatal(err)
 	}

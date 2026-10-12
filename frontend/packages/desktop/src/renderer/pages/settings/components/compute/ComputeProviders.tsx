@@ -2,7 +2,7 @@ import { Button, Tag, Tooltip } from '@arco-design/web-react';
 import { Delete, Edit, Refresh } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import type { SynonBiomedComputeProvider, SynonBiomedManagedEndpoint } from '@/renderer/services/synonBiomedCompute';
+import type { XScienceComputeProvider, XScienceManagedEndpoint } from '@/renderer/services/xScienceCompute';
 import { ComputeDetail, computeStateLabel, normalizeComputeTestId } from './ComputeSettingsPrimitives';
 
 const familyTone: Record<string, string> = {
@@ -14,7 +14,7 @@ const familyTone: Record<string, string> = {
 };
 
 export const ManagedEndpointRow: React.FC<{
-  endpoint: SynonBiomedManagedEndpoint;
+  endpoint: XScienceManagedEndpoint;
   pending: boolean;
   onStop: () => void;
 }> = ({ endpoint, pending, onStop }) => {
@@ -53,7 +53,7 @@ export const ManagedEndpointRow: React.FC<{
 };
 
 export const ComputeProviderCard: React.FC<{
-  provider: SynonBiomedComputeProvider;
+  provider: XScienceComputeProvider;
   pending: boolean;
   onProbe: () => void;
   onEdit: () => void;
@@ -88,7 +88,7 @@ export const ComputeProviderCard: React.FC<{
 
   return (
     <div
-      data-testid={`synon-biomed-compute-provider-${normalizeComputeTestId(provider.name)}`}
+      data-testid={`x-science-compute-provider-${normalizeComputeTestId(provider.name)}`}
       className='compute-provider-card px-14px py-12px flex flex-col gap-10px'
     >
       <div className='flex flex-col md:flex-row md:items-start justify-between gap-10px'>

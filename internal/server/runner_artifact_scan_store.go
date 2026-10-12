@@ -9,7 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"synon-go/internal/runtimecontrol"
+	"x-science/internal/runtimecontrol"
 )
 
 // This private, disposable scan index is derived only from immutable artifact
@@ -31,7 +31,7 @@ func newRunnerArtifactScanStore(ctx context.Context) (_ *runnerArtifactScanStore
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	directory, err := os.MkdirTemp("", "synon-artifact-scan-*")
+	directory, err := os.MkdirTemp("", "x-science-artifact-scan-*")
 	if err != nil {
 		return nil, err
 	}

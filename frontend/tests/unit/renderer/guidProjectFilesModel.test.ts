@@ -1,4 +1,4 @@
-import type { SynonBiomedProjectArtifact } from '@/renderer/services/synonBiomedGateway';
+import type { XScienceProjectArtifact } from '@/renderer/services/xScienceGateway';
 import {
   buildProjectArtifactContext,
   formatProjectArtifactSize,
@@ -6,7 +6,7 @@ import {
 } from '@/renderer/pages/guid/utils/guidProjectFilesModel';
 import { describe, expect, it } from 'vitest';
 
-const makeArtifact = (overrides: Partial<SynonBiomedProjectArtifact> = {}): SynonBiomedProjectArtifact => ({
+const makeArtifact = (overrides: Partial<XScienceProjectArtifact> = {}): XScienceProjectArtifact => ({
   artifactId: 'artifact-1',
   versionId: 'version-1',
   versionNumber: 1,

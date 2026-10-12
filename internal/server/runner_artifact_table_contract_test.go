@@ -7,7 +7,7 @@ import (
 
 func TestResearchSharedTableContractComparesExplicitMultilingualProjections(t *testing.T) {
 	contract := runnerCrossArtifactSnapshot{name: "table-contract.json", text: `{
-		"schema":"synon.artifact-table-contract.v1",
+		"schema":"x-science.artifact-table-contract.v1",
 		"tables":[{
 			"id":"pipeline",
 			"identity_fields":["entity","regimen","as_of"],
@@ -31,7 +31,7 @@ func TestResearchSharedTableContractComparesExplicitMultilingualProjections(t *t
 
 func TestResearchSharedTableContractKeepsRegimenAndTimeInRowIdentity(t *testing.T) {
 	contract := runnerCrossArtifactSnapshot{name: "table-contract.json", text: `{
-		"schema":"synon.artifact-table-contract.v1",
+		"schema":"x-science.artifact-table-contract.v1",
 		"tables":[{
 			"id":"pipeline","identity_fields":["entity","regimen","as_of"],"compare_fields":["phase"],
 			"records":[
@@ -53,7 +53,7 @@ func TestResearchSharedTableContractKeepsRegimenAndTimeInRowIdentity(t *testing.
 
 func TestResearchSharedTableContractRejectsUnknownFields(t *testing.T) {
 	contract := runnerCrossArtifactSnapshot{name: "table-contract.json", text: `{
-		"schema":"synon.artifact-table-contract.v1","unexpected":true,"tables":[]
+		"schema":"x-science.artifact-table-contract.v1","unexpected":true,"tables":[]
 	}`}
 	want := []string{"artifact_table_contract_invalid:table-contract.json reason=invalid_schema"}
 	if failures := runnerCrossArtifactTableFailures([]runnerCrossArtifactSnapshot{contract}); !reflect.DeepEqual(failures, want) {

@@ -5,9 +5,9 @@
  */
 
 import { useLayoutEffect, useRef, useState } from 'react';
-import { copySynonBiomedArtifact, moveSynonBiomedArtifact } from '@/renderer/services/synonBiomedArtifacts';
-import { exportSynonBiomedArtifactToCloud } from '@/renderer/services/synonBiomedWorkspaceSettings';
-import type { SynonBiomedProjectArtifact } from '@/renderer/services/synonBiomedGateway';
+import { copyXScienceArtifact, moveXScienceArtifact } from '@/renderer/services/xScienceArtifacts';
+import { exportXScienceArtifactToCloud } from '@/renderer/services/xScienceWorkspaceSettings';
+import type { XScienceProjectArtifact } from '@/renderer/services/xScienceGateway';
 import { useArtifactCloudExport } from './useArtifactCloudExport';
 import { useArtifactRequestScope } from './useArtifactRequestScope';
 
@@ -17,7 +17,7 @@ export const ARTIFACT_ROOT_FOLDER = '__project_root__';
 
 export function useArtifactFileActionEditor(
   action: ArtifactFileAction,
-  artifact: Pick<SynonBiomedProjectArtifact, 'artifactId' | 'filename' | 'folderId'>,
+  artifact: Pick<XScienceProjectArtifact, 'artifactId' | 'filename' | 'folderId'>,
   copySuffix: string,
   onCompleted: (result: ArtifactFileActionResult) => void
 ) {
@@ -50,16 +50,16 @@ export function useArtifactFileActionEditor(
     setFailed(false);
     try {
       if (action === 'copy') {
-        const copy = await copySynonBiomedArtifact({
+        const copy = await copyXScienceArtifact({
           artifactId: artifact.artifactId,
           newFilename: filename.trim(),
           targetFolderId,
         });
         result.copiedArtifactId = copy.artifactId;
       } else if (action === 'move') {
-        await moveSynonBiomedArtifact({ artifactId: artifact.artifactId, folderId: targetFolderId });
+        await moveXScienceArtifact({ artifactId: artifact.artifactId, folderId: targetFolderId });
       } else {
-        await exportSynonBiomedArtifactToCloud(cloud.credentialId, {
+        await exportXScienceArtifactToCloud(cloud.credentialId, {
           artifactId: artifact.artifactId,
           bucket: cloud.bucket,
           key: objectKey.trim(),

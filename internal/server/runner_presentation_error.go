@@ -1,6 +1,6 @@
 package server
 
-import transcriptstore "synon-go/internal/persistence/transcript"
+import transcriptstore "x-science/internal/persistence/transcript"
 
 const sessionRunnerFinalPresentationReasonCode = "response_presentation_invalid"
 

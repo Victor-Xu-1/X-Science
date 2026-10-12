@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const provenanceCensusCacheTTL = 60 * time.Second

@@ -19,8 +19,8 @@ import (
 
 	"github.com/google/uuid"
 
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/tools/mcpstdio"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/tools/mcpstdio"
 )
 
 const maxManifestBytes = 2 << 20
@@ -122,7 +122,7 @@ type Connector struct {
 	Transport          string              `json:"transport"`
 	Source             string              `json:"source"`
 	Enabled            bool                `json:"enabled"`
-	HostedBySynon      bool                `json:"hostedBySynon"`
+	HostedByXScience   bool                `json:"hostedByXScience"`
 	AuthRequired       bool                `json:"authRequired,omitempty"`
 	OAuthSupported     bool                `json:"oauthSupported"`
 	AuthState          string              `json:"authState"`
@@ -711,7 +711,7 @@ func (s *Service) fetchManifest(ctx context.Context, directory workspace.MCPDire
 		return manifest{}, "", false, err
 	}
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("X-Synon-Catalog-Uuid", directory.CatalogUUID)
+	req.Header.Set("X-Science-Catalog-Uuid", directory.CatalogUUID)
 	if directory.ETag != "" {
 		req.Header.Set("If-None-Match", directory.ETag)
 	}

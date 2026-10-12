@@ -15,13 +15,13 @@ export function isolatedPreviewMessage(
   if (!frame?.contentWindow || event.source !== frame.contentWindow) return null;
   if (!event.data || typeof event.data !== 'object') return null;
   const envelope = event.data as Record<string, unknown>;
-  if (envelope.__synonPreviewInstance !== instance || !envelope.payload || typeof envelope.payload !== 'object')
+  if (envelope.__xsciencePreviewInstance !== instance || !envelope.payload || typeof envelope.payload !== 'object')
     return null;
   return envelope.payload as Record<string, unknown>;
 }
 
 export function sendPreviewScripts(frame: HTMLIFrameElement | null, instance: string, scripts: string[]): void {
-  frame?.contentWindow?.postMessage({ __synonPreviewInstance: instance, scripts }, '*');
+  frame?.contentWindow?.postMessage({ __xsciencePreviewInstance: instance, scripts }, '*');
 }
 
 // All previews have an opaque origin. Passive source documents additionally
@@ -51,15 +51,15 @@ export function isolatedHtmlDocument(content: string, instance: string, passive:
     const instance = ${JSON.stringify(instance)};
     const nonce = ${JSON.stringify(nonce)};
     const post = parent.postMessage.bind(parent);
-    const send = payload => post({__synonPreviewInstance: instance, payload}, '*');
+    const send = payload => post({__xsciencePreviewInstance: instance, payload}, '*');
     document.currentScript?.remove();
     addEventListener('message', event => {
-      if (!event.isTrusted || event.source !== parent || event.data?.__synonPreviewInstance !== instance || !Array.isArray(event.data.scripts)) return;
+      if (!event.isTrusted || event.source !== parent || event.data?.__xsciencePreviewInstance !== instance || !Array.isArray(event.data.scripts)) return;
       for (const source of event.data.scripts) {
         if (typeof source !== 'string') continue;
         const script = document.createElement('script');
         script.nonce = nonce;
-        script.textContent = '(() => { const postToHost = payload => parent.postMessage({__synonPreviewInstance:' + JSON.stringify(instance) + ',payload}, "*");' + source.replaceAll('window.parent.postMessage(', 'postToHost(') + '\\n})();';
+        script.textContent = '(() => { const postToHost = payload => parent.postMessage({__xsciencePreviewInstance:' + JSON.stringify(instance) + ',payload}, "*");' + source.replaceAll('window.parent.postMessage(', 'postToHost(') + '\\n})();';
         (document.head || document.documentElement).appendChild(script);
         script.remove();
       }

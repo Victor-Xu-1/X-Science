@@ -6,7 +6,7 @@ import (
 	"sync"
 	"testing"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func TestCloneConversationWithTranscriptCommitsOneCanonicalHistoryAndRetries(t *testing.T) {
@@ -145,7 +145,7 @@ func newCanonicalConversationCloneFixture(t *testing.T) (*Store, Frame) {
 	if _, err := store.SetFrameRuntimeMetadata(source.ID, FrameRuntimeMetadata{
 		DelegateName: "reviewer", TaskSummary: "Source summary", ContextData: map[string]any{
 			"web_extra":               map[string]any{"project_id": "clone-project", "selected_view": "timeline"},
-			"web_assistant":           map[string]any{"id": "synonbiomed:OPERON"},
+			"web_assistant":           map[string]any{"id": "xscience:OPERON"},
 			"_pending_input_requests": []any{map[string]any{"request_id": "stale"}},
 		},
 	}); err != nil {

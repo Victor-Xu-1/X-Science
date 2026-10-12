@@ -8,7 +8,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 const (
@@ -120,7 +120,9 @@ func splitReviewerUTF8Blocks(value string, limit int) []string {
 	if limit <= 0 {
 		return []string{value}
 	}
-	blocks := make([]string, 0, (len(value)+limit-1)/limit)
+	// Grow from real blocks rather than deriving an allocation hint from a
+	// caller-supplied limit. Extreme limits cannot overflow capacity arithmetic.
+	blocks := make([]string, 0)
 	for len(value) > limit {
 		cut := reviewerUTF8PrefixLength(value, limit)
 		if cut <= 0 {

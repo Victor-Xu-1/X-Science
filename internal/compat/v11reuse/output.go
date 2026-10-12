@@ -97,7 +97,7 @@ func WriteOutput(target string, data []byte, check bool) error {
 
 func ReviewMarkdown(manifest Manifest) []byte {
 	var output strings.Builder
-	output.WriteString("# SynonBiomed v1.1 Reuse Review\n\n")
+	output.WriteString("# X-Science v1.1 Reuse Review\n\n")
 	output.WriteString("This file is generated from the deterministic reuse manifest. It is a review aid, not a substitute for runtime evidence.\n\n")
 	output.WriteString("## Baseline\n\n")
 	output.WriteString("- Schema version: " + strconv.Itoa(manifest.SchemaVersion) + "\n")

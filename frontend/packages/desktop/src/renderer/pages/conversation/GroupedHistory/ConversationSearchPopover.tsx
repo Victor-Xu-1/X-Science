@@ -5,12 +5,12 @@
  */
 
 import type { IMessageSearchItem } from '@/common/types/conversation/messageSearch';
-import SynonModal from '@/renderer/components/base/SynonModal';
-import SynonBiomedAvatar from '@/renderer/components/synonBiomed/SynonBiomedAvatar';
-import { usePresetAssistantInfo } from '@/renderer/hooks/synonBiomed/runtime/usePresetAssistantInfo';
+import XScienceModal from '@/renderer/components/base/XScienceModal';
+import XScienceAvatar from '@/renderer/components/xScience/XScienceAvatar';
+import { usePresetAssistantInfo } from '@/renderer/hooks/xScience/runtime/usePresetAssistantInfo';
 import { resolveConversationLeadingMark } from '@/renderer/pages/conversation/utils/conversationAssistantIdentity';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/ui/focus';
-import { useAgentLogos } from '@/renderer/utils/synonBiomed/runtime/runtimeLogo';
+import { useAgentLogos } from '@/renderer/utils/xScience/runtime/runtimeLogo';
 import { Spin } from '@arco-design/web-react';
 import { Close, CloseSmall, MessageOne, Search } from '@icon-park/react';
 import classNames from 'classnames';
@@ -150,7 +150,7 @@ const ConversationAgentMark: React.FC<{ conversation: IMessageSearchItem['conver
     );
   }
   if (leadingMark.kind === 'assistant_fallback') {
-    return <SynonBiomedAvatar size={18} />;
+    return <XScienceAvatar size={18} />;
   }
   return <MessageOne theme='outline' size='17' className='conversation-search-modal__agent-mark' />;
 };
@@ -470,7 +470,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
         </button>
       )}
 
-      <SynonModal
+      <XScienceModal
         visible={visible}
         onCancel={resetSearchState}
         footer={null}
@@ -566,7 +566,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
             </span>
           </div>
         </div>
-      </SynonModal>
+      </XScienceModal>
     </>
   );
 };

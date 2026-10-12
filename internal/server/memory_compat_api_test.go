@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestMemoryCompatibilityAPIProvidesRealWebCRUDAndIsolation(t *testing.T) {
@@ -258,7 +258,7 @@ func memoryCompatRequest(t *testing.T, app http.Handler, method, target string, 
 	response := httptest.NewRecorder()
 	request := newLoopbackTestRequest(method, target, bytes.NewReader(raw))
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("X-Synon-User-Id", userID)
+	request.Header.Set("X-Science-User-Id", userID)
 	app.ServeHTTP(response, request)
 	if response.Code != wantStatus {
 		t.Fatalf("%s %s status = %d, want %d: %s", method, target, response.Code, wantStatus, response.Body.String())

@@ -1,7 +1,4 @@
-import {
-  createSynonBiomedSessionDefaults,
-  type SynonBiomedSessionOptions,
-} from '@/renderer/services/synonBiomedSessionOptions';
+import { createXScienceSessionDefaults, type XScienceSessionOptions } from '@/renderer/services/xScienceSessionOptions';
 import { useEffect, useState } from 'react';
 
 type GuidSessionOptionsInput = {
@@ -16,14 +13,14 @@ type GuidSessionOptionsInput = {
  * assistant only updates the draft's base agent.
  */
 export function useGuidSessionOptions({ baseAgentName, navigationKey, resetRequested }: GuidSessionOptionsInput) {
-  const [sessionOptions, setSessionOptions] = useState<SynonBiomedSessionOptions>(() =>
-    createSynonBiomedSessionDefaults(baseAgentName)
+  const [sessionOptions, setSessionOptions] = useState<XScienceSessionOptions>(() =>
+    createXScienceSessionDefaults(baseAgentName)
   );
   const [sessionComputeProviders, setSessionComputeProviders] = useState<string[]>([]);
 
   useEffect(() => {
     if (!resetRequested) return;
-    setSessionOptions(createSynonBiomedSessionDefaults(baseAgentName));
+    setSessionOptions(createXScienceSessionDefaults(baseAgentName));
     setSessionComputeProviders([]);
   }, [baseAgentName, navigationKey, resetRequested]);
 

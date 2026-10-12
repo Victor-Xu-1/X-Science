@@ -10,7 +10,7 @@ import (
 	"unicode/utf8"
 )
 
-const schemaMigrationIdentityV2Domain = "synon.schema-migration.identity.v2"
+const schemaMigrationIdentityV2Domain = "x-science.schema-migration.identity.v2"
 
 type schemaMigrationIdentityV2 struct {
 	CallbackID        string
@@ -19,6 +19,14 @@ type schemaMigrationIdentityV2 struct {
 }
 
 func (migration versionedSchemaMigration) validatedChecksum() (string, error) {
+	canonical, err := migration.canonicalChecksum()
+	if err != nil {
+		return "", err
+	}
+	return publishedMigrationChecksum(migration.version, canonical), nil
+}
+
+func (migration versionedSchemaMigration) canonicalChecksum() (string, error) {
 	if migration.version <= 20 {
 		if migration.identityV2 != nil {
 			return "", errors.New("legacy migration cannot declare identity v2")
@@ -83,6 +91,10 @@ func validateSchemaMigrationIdentityRegistry(migrations []versionedSchemaMigrati
 		}
 		if migration.identityV2 != nil && !schemaMigrationIdentityHandlersKnown(*migration.identityV2) {
 			return fmt.Errorf("migration %d: identity v2 handler is not registered", migration.version)
+		}
+		canonical, err := migration.canonicalChecksum()
+		if err != nil || !publishedMigrationSpecificationMatches(migration.version, canonical) {
+			return fmt.Errorf("migration %d: published canonical specification identity mismatch", migration.version)
 		}
 	}
 	return validateSchemaMigrationRemediationRegistry(migrations)

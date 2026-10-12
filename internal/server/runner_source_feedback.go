@@ -7,9 +7,9 @@ import (
 	"log"
 	"net/url"
 
-	"synon-go/internal/agentruntime"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/toolcontract"
+	"x-science/internal/agentruntime"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/toolcontract"
 )
 
 // ValidatePreview attests a reading view by rebuilding it from the exact

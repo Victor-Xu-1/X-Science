@@ -2,9 +2,9 @@ package server
 
 import (
 	"reflect"
-	"synon-go/internal/agentruntime"
-	eventjournal "synon-go/internal/persistence/journal"
 	"testing"
+	"x-science/internal/agentruntime"
+	eventjournal "x-science/internal/persistence/journal"
 )
 
 func TestOutputBudgetRecoveryDoesNotRewriteTaskInstructions(t *testing.T) {

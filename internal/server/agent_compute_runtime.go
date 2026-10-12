@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const (

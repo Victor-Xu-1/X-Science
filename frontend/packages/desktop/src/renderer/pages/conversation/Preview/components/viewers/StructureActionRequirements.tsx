@@ -24,10 +24,10 @@ export function StructureActionRequirements({
     groups.set(action.reason, labels);
   }
   return (
-    <div className='synon-biomed-molstar__action-requirements'>
+    <div className='x-science-molstar__action-requirements'>
       <header>
         <h3>{t('preview.scientific.structure.quickActions.availability.title')}</h3>
-        <button type='button' className='synon-biomed-molstar__quick-chip' onClick={onClose}>
+        <button type='button' className='x-science-molstar__quick-chip' onClick={onClose}>
           {t('common.close')}
         </button>
       </header>

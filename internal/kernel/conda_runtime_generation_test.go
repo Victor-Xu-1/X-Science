@@ -50,8 +50,8 @@ func TestPrepareManagedRuntimeGenerationQuarantinesCorruptDirectory(t *testing.T
 }
 
 func TestRuntimeSmokeOutputHelpersIgnoreBoundedNoise(t *testing.T) {
-	lines := reverseNonEmptyOutputLines("warning from native library\nSYNON_R_VERSION=4.5.3\n")
-	if len(lines) != 2 || lines[0] != "SYNON_R_VERSION=4.5.3" {
+	lines := reverseNonEmptyOutputLines("warning from native library\nX_SCIENCE_R_VERSION=4.5.3\n")
+	if len(lines) != 2 || lines[0] != "X_SCIENCE_R_VERSION=4.5.3" {
 		t.Fatalf("reversed lines=%#v", lines)
 	}
 	if got := boundedProcessDiagnostics("{\"ok\":true}", "warning"); got != "warning | stdout: {\"ok\":true}" {

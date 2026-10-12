@@ -15,7 +15,7 @@ import (
 func TestWindowsSilentFileIOKeepsInstallerWatchdogAlive(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "progress.bin")
 	command := exec.Command(os.Args[0], "-test.run=^TestWindowsSilentFileIOHelper$")
-	command.Env = append(os.Environ(), "SYNON_SILENT_IO_TEST_PATH="+path)
+	command.Env = append(os.Environ(), "X_SCIENCE_SILENT_IO_TEST_PATH="+path)
 	command.Stdout, command.Stderr = io.Discard, io.Discard
 	if err := command.Start(); err != nil {
 		t.Fatal(err)
@@ -33,7 +33,7 @@ func TestWindowsSilentFileIOKeepsInstallerWatchdogAlive(t *testing.T) {
 }
 
 func TestWindowsSilentFileIOHelper(t *testing.T) {
-	path := os.Getenv("SYNON_SILENT_IO_TEST_PATH")
+	path := os.Getenv("X_SCIENCE_SILENT_IO_TEST_PATH")
 	if path == "" {
 		t.Skip("launched only by the process-activity integration test")
 	}

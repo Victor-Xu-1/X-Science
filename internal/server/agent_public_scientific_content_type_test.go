@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/tools/securefetch"
+	"x-science/internal/tools/securefetch"
 )
 
 func TestPublicDownloadResumeMIMEParameters(t *testing.T) {

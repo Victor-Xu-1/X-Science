@@ -12,7 +12,7 @@ import (
 
 	"github.com/google/uuid"
 
-	secretstore "synon-go/internal/persistence/secrets"
+	secretstore "x-science/internal/persistence/secrets"
 )
 
 type compatibilityNullable[T any] struct {

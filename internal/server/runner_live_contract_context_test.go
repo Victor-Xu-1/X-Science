@@ -7,9 +7,9 @@ import (
 	"net/http/httptest"
 	"strings"
 	"sync/atomic"
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/skills"
 	"testing"
+	"x-science/internal/agentruntime"
+	"x-science/internal/skills"
 )
 
 func TestLiveLoadedContractSurvivesResultExternalization(t *testing.T) {

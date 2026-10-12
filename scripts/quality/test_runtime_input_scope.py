@@ -2,6 +2,7 @@
 
 import copy
 import json
+import hashlib
 from pathlib import Path
 import tempfile
 import unittest
@@ -11,12 +12,12 @@ from scripts.quality import pr_fast_scope as scope, runtime_input_scope as contr
 
 class RuntimeInputScopeTests(unittest.TestCase):
     def setUp(self):
-        self.directory = tempfile.TemporaryDirectory(prefix="synon-runtime-scope-")
+        self.directory = tempfile.TemporaryDirectory(prefix="x-science-runtime-scope-")
         self.addCleanup(self.directory.cleanup)
         self.repo = Path(self.directory.name)
         self.path = self.repo / contract.CONTRACT
         self.path.parent.mkdir(parents=True)
-        self.value = {"schema": "synon.runtime-input-scope.v1", "groups": [{
+        self.value = {"schema": "x-science.runtime-input-scope.v1", "groups": [{
             "name": "runtime", "paths": ["assets/runtime.py"], "packages": ["example/scope/lib"],
         }]}
         self.save()
@@ -84,25 +85,73 @@ class RuntimeInputScopeTests(unittest.TestCase):
         entries = scope.packages(repo)
         names = {entry["ImportPath"] for entry in entries}
         for path, packages in owners.items():
-            if path == "assets/synon-link/synon-link-extension-v0.6.10.zip":
-                # The retired input still owns its deletion and exact setting
-                # alias; keeping a second distributable ZIP is not required.
-                current = "assets/synon-link/x-science-browser-extension-v0.6.10.zip"
-                self.assertFalse((repo / path).exists())
-                self.assertTrue((repo / current).is_file())
-                self.assertIn(current, owners)
-                config = (repo / "internal/config/config.go").read_text()
-                self.assertIn(f'legacyBundledBrowserConnector = "{path}"', config)
-                self.assertIn(f'bundledBrowserConnector = "{current}"', config)
-            else:
-                self.assertTrue((repo / path).is_file(), path)
+            self.assertTrue((repo / path).is_file(), path)
             self.assertLessEqual(packages, names)
         selected, _ = scope.select_packages(repo, list(owners), entries)
-        for package in ["synon-go/internal/assets", "synon-go/internal/kernel",
-                        "synon-go/internal/kernel/detached", "synon-go/internal/server",
-                        "synon-go/cmd/synon", "synon-go/internal/compat/v11reuse"]:
+        for package in ["x-science/internal/assets", "x-science/internal/kernel",
+                        "x-science/internal/kernel/detached", "x-science/internal/server",
+                        "x-science/cmd/x-science", "x-science/internal/compat/v11reuse"]:
             self.assertIn(package, selected)
         self.assertLess(len(selected), len(entries))
+
+    def manifest_fixture(self):
+        root = self.repo / "assets/component"
+        root.mkdir(parents=True)
+        raw = b"runtime input\n"
+        (root / "worker.py").write_bytes(raw)
+        manifest = {"schemaVersion": 1, "files": [{"path": "worker.py", "bytes": len(raw),
+                    "sha256": hashlib.sha256(raw).hexdigest()}]}
+        path = "assets/component.manifest.json"
+        (self.repo / path).write_text(json.dumps(manifest))
+        self.value["groups"][0]["manifests"] = [{"path": path, "root": "assets/component", "kind": "asset"}]
+        self.save()
+        return manifest, self.repo / path
+
+    def test_manifest_expands_exact_declared_files_and_keeps_reverse_consumers(self):
+        self.manifest_fixture()
+        for path in ["assets/component.manifest.json", "assets/component/worker.py"]:
+            self.assertEqual(self.selected(path), self.selected("assets/runtime.py"))
+        (self.repo / "assets/component/unregistered.py").write_text("unknown")
+        self.assertEqual(self.selected("assets/component/unregistered.py"), self.all_packages)
+
+    def test_invalid_manifest_paths_records_missing_files_and_symlinks_fail_closed(self):
+        value, path = self.manifest_fixture()
+        good = copy.deepcopy(value)
+        invalid = []
+        for relative in ["../outside", "/absolute", "worker.py/../outside", "worker.go", "worker*.py"]:
+            changed = copy.deepcopy(good)
+            changed["files"][0]["path"] = relative
+            invalid.append(changed)
+        invalid += [dict(good, schemaVersion=True), dict(good, files=good["files"] * 2)]
+        changed = copy.deepcopy(good)
+        changed["files"][0]["unknown"] = "unsafe"
+        invalid.append(changed)
+        for value in invalid:
+            path.write_text(json.dumps(value))
+            with self.assertRaises(ValueError):
+                contract.load(self.repo)
+        path.write_text(json.dumps(good))
+        target = self.repo / "assets/component/worker.py"
+        target.unlink()
+        with self.assertRaises(ValueError):
+            contract.load(self.repo)
+        target.symlink_to(self.repo / "lib/lib.go")
+        with self.assertRaises(ValueError):
+            contract.load(self.repo)
+
+    def test_conda_catalog_registers_only_its_exact_current_locked_files(self):
+        root = self.repo / "assets/runtime-locks"
+        (root / "runtime/generation").mkdir(parents=True)
+        entry = {"manifestPath": "runtime/generation/manifest.json", "explicitPath": "runtime/generation/explicit.txt",
+                 "licensesPath": "runtime/generation/licenses.json"}
+        for value in entry.values():
+            (root / value).write_text("locked input")
+        (root / "manifest.json").write_text(json.dumps({"schemaVersion": 2, "runtimes": [entry]}))
+        self.value["groups"][0]["manifests"] = [{"path": "assets/runtime-locks/manifest.json",
+                                                 "root": "assets/runtime-locks", "kind": "conda-catalog"}]
+        self.save()
+        self.assertEqual(self.selected("assets/runtime-locks/runtime/generation/explicit.txt"), self.selected("assets/runtime.py"))
+        self.assertEqual(self.selected("assets/runtime-locks/unregistered/explicit.txt"), self.all_packages)
 
 
 if __name__ == "__main__":

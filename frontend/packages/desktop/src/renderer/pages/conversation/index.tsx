@@ -21,14 +21,12 @@ import { scheduleConversationRoutePerformanceStage } from './conversationRoutePe
 import { addEventListener } from '@/renderer/utils/emitter';
 import { getConversationRuntimeViewSnapshot } from '@/renderer/pages/conversation/runtime/conversationRuntimeViewStore';
 
-const isSynonBiomedConversationData = (conversation: TChatConversation | null | undefined): boolean => {
+const isXScienceConversationData = (conversation: TChatConversation | null | undefined): boolean => {
   const extra = conversation?.extra as { backend?: string; workspace?: string } | undefined;
-  return (
-    extra?.backend?.trim().toLowerCase() === 'synonbiomed' || Boolean(extra?.workspace?.startsWith('synonbiomed://'))
-  );
+  return extra?.backend?.trim().toLowerCase() === 'xscience' || Boolean(extra?.workspace?.startsWith('x-science://'));
 };
 
-const hasActiveSynonBiomedRuntime = (
+const hasActiveXScienceRuntime = (
   conversation: TChatConversation | null | undefined,
   conversationId: string
 ): boolean => {
@@ -122,8 +120,8 @@ const ChatConversationIndex: React.FC = () => {
       // replace the live projection with a publication that is one step behind.
       if (
         (event.action === 'updated' || event.action === 'created') &&
-        isSynonBiomedConversationData(data) &&
-        hasActiveSynonBiomedRuntime(data, id)
+        isXScienceConversationData(data) &&
+        hasActiveXScienceRuntime(data, id)
       ) {
         return;
       }
@@ -133,9 +131,9 @@ const ChatConversationIndex: React.FC = () => {
   }, [data, id, mutate]);
 
   useEffect(() => {
-    if (!id || !isSynonBiomedConversationData(data)) return;
+    if (!id || !isXScienceConversationData(data)) return;
 
-    return addEventListener('synonbiomed.runtime.reconciled', (conversationId, runtime) => {
+    return addEventListener('xscience.runtime.reconciled', (conversationId, runtime) => {
       if (conversationId !== id) return;
       void mutate((current) => (current ? { ...current, runtime } : current), { revalidate: false });
     });

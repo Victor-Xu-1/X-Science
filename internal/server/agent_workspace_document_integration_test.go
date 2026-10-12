@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/tools/webfetch"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/tools/webfetch"
 )
 
 func TestWorkspaceDocumentRealHTTPAndVersionRetainOriginalSource(t *testing.T) {
@@ -88,7 +88,7 @@ func TestWorkspaceDocumentPartialTransportAndLongTitleRemainReadable(t *testing.
 // Opt-in read-only replay of operator-selected source blobs. Never edits the
 // captured task or treats its scientific statements as expected answers.
 func TestWorkspaceDocumentCapturedSourceReplay(t *testing.T) {
-	paths := filepath.SplitList(os.Getenv("SYNON_TEST_SOURCE_BLOBS"))
+	paths := filepath.SplitList(os.Getenv("X_SCIENCE_TEST_SOURCE_BLOBS"))
 	if len(paths) == 0 {
 		t.Skip("no captured source blobs selected")
 	}

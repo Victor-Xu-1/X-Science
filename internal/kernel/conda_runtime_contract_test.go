@@ -81,7 +81,7 @@ func TestCondaRuntimeVersionOneAndTwoKeepVerifiedPackageContracts(t *testing.T) 
 		if loaded.manifest.SchemaVersion != version || loaded.pythonVersion != "3.11.15" {
 			t.Fatal("versioned runtime changed its pinned package contract")
 		}
-		if version == 1 && loaded.entry.Name != "synon-biomed-python-baseline" {
+		if version == 1 && loaded.entry.Name != "x-science-python-baseline" {
 			t.Fatal("legacy runtime did not resolve to the canonical activation identity")
 		}
 	}
@@ -161,9 +161,9 @@ func TestCondaRuntimeRejectsUnknownFieldsAndAlteredDigest(t *testing.T) {
 
 func TestCondaRuntimeStoredIdentityAliasesUseOneResolver(t *testing.T) {
 	for before, after := range map[string]string{
-		"claude-science-python": "synon-biomed-python-baseline",
-		"claude-science-r":      "synon-biomed-r",
-		"synon-biomed-python":   "synon-biomed-python",
+		"claude-science-python": "x-science-python-baseline",
+		"claude-science-r":      "x-science-r",
+		"x-science-python":      "x-science-python",
 		"custom-runtime":        "custom-runtime",
 	} {
 		if got := managedPythonName(Config{ManagedPythonEnvironment: before}); got != after {

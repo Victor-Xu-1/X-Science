@@ -5,9 +5,9 @@ import (
 	"errors"
 	"log"
 	"strings"
-	eventjournal "synon-go/internal/persistence/journal"
-	workspace "synon-go/internal/persistence/workspace"
 	"time"
+	eventjournal "x-science/internal/persistence/journal"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func (s *Server) monitorFrameResumeDispatch(ctx context.Context, cancel context.CancelCauseFunc, done <-chan struct{}, errCh chan<- error, dispatch workspace.CompatibilityFrameResumeDispatch, ttl time.Duration) {

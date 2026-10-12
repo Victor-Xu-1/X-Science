@@ -35,7 +35,7 @@ func TestSetCompatibilityConversationModelPreservesRuntimeStateAndNestedOverride
 		ContextData: map[string]any{
 			"preserved": "yes",
 			"web_assistant": map[string]any{
-				"id": "synonbiomed:operon",
+				"id": "xscience:operon",
 				"conversation_overrides": map[string]any{
 					"model": "ark-code-latest", "permission": "ask",
 				},
@@ -62,7 +62,7 @@ func TestSetCompatibilityConversationModelPreservesRuntimeStateAndNestedOverride
 	}
 	assistant, _ := metadata.ContextData["web_assistant"].(map[string]any)
 	overrides, _ := assistant["conversation_overrides"].(map[string]any)
-	if assistant["id"] != "synonbiomed:operon" || overrides["permission"] != "ask" ||
+	if assistant["id"] != "xscience:operon" || overrides["permission"] != "ask" ||
 		overrides["model"] != "deepseek-v4-flash" || overrides["model_revision"] != float64(1) {
 		t.Fatalf("assistant overrides = %#v", assistant)
 	}

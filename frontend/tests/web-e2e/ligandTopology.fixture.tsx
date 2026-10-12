@@ -9,7 +9,7 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import preview from '@/renderer/services/i18n/locales/zh-CN/preview.json';
 import common from '@/renderer/services/i18n/locales/zh-CN/common.json';
-import SynonBiomedStructureViewer from '@/renderer/pages/conversation/Preview/components/viewers/SynonBiomedStructureViewer';
+import XScienceStructureViewer from '@/renderer/pages/conversation/Preview/components/viewers/XScienceStructureViewer';
 import { parseSmilesMolBlock, renderMoleculeSvg, validateAndRenderMolBlock } from '@/renderer/services/rdkitBrowser';
 import { restorePdbqtTopology } from '@/renderer/pages/conversation/Preview/components/viewers/pdbqtTopology';
 
@@ -194,7 +194,7 @@ async function startFixture() {
           {JSON.stringify([...chemistryValidation, emptyHeaderValid])}
         </output>
         <section style={{ height: 780 }}>
-          <SynonBiomedStructureViewer filename={`synthetic-benzaldehyde.${format}`} content={sources[format]} />
+          <XScienceStructureViewer filename={`synthetic-benzaldehyde.${format}`} content={sources[format]} />
         </section>
       </main>
     );

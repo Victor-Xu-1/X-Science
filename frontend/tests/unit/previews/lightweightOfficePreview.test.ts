@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const requestJson = vi.hoisted(() => vi.fn());
 
-vi.mock('@/renderer/services/synonBiomedHttp', () => ({
-  requestSynonBiomedJson: requestJson,
+vi.mock('@/renderer/services/xScienceHttp', () => ({
+  requestXScienceJson: requestJson,
 }));
 
 import { loadLightweightOfficePreview } from '@/renderer/services/lightweightOfficePreview';

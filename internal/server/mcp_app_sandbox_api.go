@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"synon-go/internal/ketchermcp"
+	"x-science/internal/ketchermcp"
 )
 
 const (
@@ -234,6 +234,7 @@ func writeMCPAppTicketJSON(w http.ResponseWriter, status int, value any) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Content-Length", strconv.Itoa(len(payload)))
 	w.WriteHeader(status)

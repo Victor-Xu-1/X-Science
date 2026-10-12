@@ -5,11 +5,11 @@
  */
 
 import type { TChatConversation } from '@/common/config/storage';
-import { usePresetAssistantInfo } from '@/renderer/hooks/synonBiomed/runtime/usePresetAssistantInfo';
+import { usePresetAssistantInfo } from '@/renderer/hooks/xScience/runtime/usePresetAssistantInfo';
 import { resolveConversationLeadingMark } from '@/renderer/pages/conversation/utils/conversationAssistantIdentity';
-import { useAgentLogos } from '@/renderer/utils/synonBiomed/runtime/runtimeLogo';
+import { useAgentLogos } from '@/renderer/utils/xScience/runtime/runtimeLogo';
 import { MessageOne } from '@icon-park/react';
-import SynonBiomedAvatar from '@/renderer/components/synonBiomed/SynonBiomedAvatar';
+import XScienceAvatar from '@/renderer/components/xScience/XScienceAvatar';
 import React from 'react';
 
 type DragOverlayContentProps = {
@@ -38,7 +38,7 @@ const DragOverlayContent: React.FC<DragOverlayContentProps> = ({ conversation })
       ) : leadingMark.kind === 'image' ? (
         <img src={leadingMark.value} alt={leadingMark.label} className='w-18px h-18px rounded-50% flex-shrink-0' />
       ) : leadingMark.kind === 'assistant_fallback' ? (
-        <SynonBiomedAvatar size={20} />
+        <XScienceAvatar size={20} />
       ) : (
         <MessageOne theme='outline' size='20' className='line-height-0 flex-shrink-0' />
       )}

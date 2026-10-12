@@ -12,7 +12,7 @@ const text = (id: string, position: 'left' | 'right', content: string, blockInde
   conversation_id: 'conversation',
   type: 'text',
   position,
-  content: { content, synonBiomed: { messageIndex: 0, blockIndex, branchId: null } },
+  content: { content, xScience: { messageIndex: 0, blockIndex, branchId: null } },
 });
 
 describe('conversation turn projection', () => {
@@ -49,7 +49,7 @@ describe('conversation turn projection', () => {
   it('indexes logical user turns and tool anchors without exposing hidden or tool payloads', () => {
     const messages: TMessage[] = [
       { ...text('hidden', 'right', 'private input'), hidden: true },
-      text('synonbiomed-optimistic-user:pending', 'right', 'Question one'),
+      text('xscience-optimistic-user:pending', 'right', 'Question one'),
       text('q1', 'right', 'Question one'),
       text('q1-file', 'right', 'attachment block', 1),
       { id: 'tool1', conversation_id: 'conversation', type: 'tool_call', position: 'left', content: {} } as TMessage,

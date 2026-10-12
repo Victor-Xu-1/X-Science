@@ -29,7 +29,7 @@
         "Origin": "${origin}",
         "X-Operon-CSRF": "${cookie:operon_csrf}",
         "Content-Type": "application/json",
-        "X-Synon-User-Id": "local"
+        "X-Science-User-Id": "local"
       },
       "body": {
         "project_id": "${capture:projectId}",
@@ -45,7 +45,7 @@
       "name": "upload-status",
       "method": "GET",
       "path": "/api/artifacts/upload/status/${capture:uploadId}",
-      "headers": {"X-Synon-User-Id": "local"},
+      "headers": {"X-Science-User-Id": "local"},
       "expectedStatus": [200]
     },
     {
@@ -55,7 +55,7 @@
       "headers": {
         "Origin": "${origin}",
         "X-Operon-CSRF": "${cookie:operon_csrf}",
-        "X-Synon-User-Id": "local"
+        "X-Science-User-Id": "local"
       },
       "expectedStatus": [200]
     }

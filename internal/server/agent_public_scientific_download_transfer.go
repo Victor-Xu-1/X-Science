@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"time"
 
-	"synon-go/internal/httpreliability"
-	"synon-go/internal/tools/securefetch"
+	"x-science/internal/httpreliability"
+	"x-science/internal/tools/securefetch"
 )
 
 // The logical transfer outlives individual connections. Only connections that

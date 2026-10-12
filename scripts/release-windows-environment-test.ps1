@@ -6,12 +6,12 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Net.Http
-$suiteRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('synon-release-environment-test-' + [Guid]::NewGuid().ToString('N'))
+$suiteRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('x-science-release-environment-test-' + [Guid]::NewGuid().ToString('N'))
 $fixtureRoot = Join-Path $suiteRoot 'fixture'
 $outside = Join-Path $suiteRoot 'outside-runtime'
 $ownedTemp = Join-Path $suiteRoot 'owned-temp'
 $saved = @{}
-foreach ($key in @('TEMP', 'TMP', 'SYNON_CONFIG', 'SYNON_DATA_DIR_CONTROL', 'SYNON_RUNNER_PROVIDER', 'SYNON_FUTURE_TEST_VALUE', 'FEISHU_APP_SECRET', 'WECHAT_BOT_TOKEN', 'OPERON_SERVICE_URL', 'WSL_DISTRO_NAME', 'WSL_INTEROP')) {
+foreach ($key in @('TEMP', 'TMP', 'X_SCIENCE_CONFIG', 'X_SCIENCE_DATA_DIR_CONTROL', 'X_SCIENCE_RUNNER_PROVIDER', 'X_SCIENCE_FUTURE_TEST_VALUE', 'FEISHU_APP_SECRET', 'WECHAT_BOT_TOKEN', 'OPERON_SERVICE_URL', 'WSL_DISTRO_NAME', 'WSL_INTEROP')) {
   $saved[$key] = [Environment]::GetEnvironmentVariable($key, 'Process')
 }
 $passed = $false
@@ -27,10 +27,10 @@ try {
   foreach ($path in @($config, $pointer, $marker)) { $hashes[$path] = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash }
   $env:TEMP = $ownedTemp
   $env:TMP = $ownedTemp
-  $env:SYNON_CONFIG = $config
-  $env:SYNON_DATA_DIR_CONTROL = $pointer
-  $env:SYNON_RUNNER_PROVIDER = 'openai_chat'
-  $env:SYNON_FUTURE_TEST_VALUE = ''
+  $env:X_SCIENCE_CONFIG = $config
+  $env:X_SCIENCE_DATA_DIR_CONTROL = $pointer
+  $env:X_SCIENCE_RUNNER_PROVIDER = 'openai_chat'
+  $env:X_SCIENCE_FUTURE_TEST_VALUE = ''
   $env:FEISHU_APP_SECRET = 'fixture-feishu-secret'
   $env:WECHAT_BOT_TOKEN = 'fixture-wechat-token'
   $env:OPERON_SERVICE_URL = 'https://example.invalid/must-not-contact'
@@ -48,21 +48,21 @@ if (-not $EnvironmentProbe) {
   throw 'ENVIRONMENT_PROBE_STOPPED_BEFORE_INSTALL'
 }
 $unexpected = @(Get-ChildItem Env: | Where-Object {
-  ($_.Name -match '^(SYNON_|FEISHU_|WECHAT_|OPERON_)' -or $_.Name -in @('WSL_DISTRO_NAME', 'WSL_INTEROP')) -and
-    $_.Name -notin @('SYNON_HOME', 'SYNON_DATA_DIR_CONTROL')
+  ($_.Name -match '^(X_SCIENCE_|FEISHU_|WECHAT_|OPERON_)' -or $_.Name -in @('WSL_DISTRO_NAME', 'WSL_INTEROP')) -and
+    $_.Name -notin @('X_SCIENCE_HOME', 'X_SCIENCE_DATA_DIR_CONTROL')
 })
 if ($unexpected.Count -ne 0) {
   Write-Output 'PRODUCT_ENVIRONMENT_INHERITED'; exit 13
 }
-if ([string]::IsNullOrWhiteSpace($env:SYNON_HOME) -or [string]::IsNullOrWhiteSpace($env:SYNON_DATA_DIR_CONTROL)) {
+if ([string]::IsNullOrWhiteSpace($env:X_SCIENCE_HOME) -or [string]::IsNullOrWhiteSpace($env:X_SCIENCE_DATA_DIR_CONTROL)) {
   throw 'PRIVATE_RUNTIME_ENVIRONMENT_MISSING'
 }
-$runtimeRoot = Split-Path -Parent $env:SYNON_HOME
-$pointerParent = Split-Path -Parent $env:SYNON_DATA_DIR_CONTROL
-if (-not [System.IO.Path]::IsPathRooted($env:SYNON_DATA_DIR_CONTROL) -or $pointerParent -ne $runtimeRoot) {
+$runtimeRoot = Split-Path -Parent $env:X_SCIENCE_HOME
+$pointerParent = Split-Path -Parent $env:X_SCIENCE_DATA_DIR_CONTROL
+if (-not [System.IO.Path]::IsPathRooted($env:X_SCIENCE_DATA_DIR_CONTROL) -or $pointerParent -ne $runtimeRoot) {
   throw 'PRIVATE_RUNTIME_POINTER_ESCAPED'
 }
-if (Test-Path -LiteralPath $env:SYNON_DATA_DIR_CONTROL) { throw 'PRIVATE_RUNTIME_POINTER_ALREADY_EXISTS' }
+if (Test-Path -LiteralPath $env:X_SCIENCE_DATA_DIR_CONTROL) { throw 'PRIVATE_RUNTIME_POINTER_ALREADY_EXISTS' }
 Write-Output 'ENVIRONMENT_PROBE_OK'
 '@ | Set-Content -LiteralPath (Join-Path $fixtureRoot 'scripts/install-release.ps1')
 
@@ -83,7 +83,7 @@ Write-Output 'ENVIRONMENT_PROBE_OK'
   if ($observed -ne 'ENVIRONMENT_PROBE_STOPPED_BEFORE_INSTALL') {
     throw "Lifecycle environment probe failed: $observed"
   }
-  if ($env:SYNON_CONFIG -ne $config -or $env:SYNON_DATA_DIR_CONTROL -ne $pointer -or $env:SYNON_RUNNER_PROVIDER -ne 'openai_chat' -or
+  if ($env:X_SCIENCE_CONFIG -ne $config -or $env:X_SCIENCE_DATA_DIR_CONTROL -ne $pointer -or $env:X_SCIENCE_RUNNER_PROVIDER -ne 'openai_chat' -or
       $env:FEISHU_APP_SECRET -ne 'fixture-feishu-secret' -or $env:WECHAT_BOT_TOKEN -ne 'fixture-wechat-token' -or
       $env:OPERON_SERVICE_URL -ne 'https://example.invalid/must-not-contact') {
     throw 'Lifecycle did not restore its caller environment after failure'
@@ -109,15 +109,15 @@ Write-Output 'ENVIRONMENT_PROBE_OK'
     }
   }
   $before = Get-TestEnvironment
-  Invoke-SynonReleaseTestEnvironment -Root $ownedTemp -Action {
-    foreach ($key in @('SYNON_CONFIG', 'SYNON_RUNNER_PROVIDER', 'FEISHU_APP_SECRET', 'WECHAT_BOT_TOKEN', 'OPERON_SERVICE_URL')) {
+  Invoke-XScienceReleaseTestEnvironment -Root $ownedTemp -Action {
+    foreach ($key in @('X_SCIENCE_CONFIG', 'X_SCIENCE_RUNNER_PROVIDER', 'FEISHU_APP_SECRET', 'WECHAT_BOT_TOKEN', 'OPERON_SERVICE_URL')) {
       if ([Environment]::GetEnvironmentVariable($key, 'Process')) { throw "Inherited product variable: $key" }
     }
     foreach ($key in @('SystemRoot', 'ComSpec', 'PATH', 'TEMP', 'TMP', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA')) {
       if ([Environment]::GetEnvironmentVariable($key, 'Process') -cne $before[$key]) { throw "Required Windows environment changed: $key" }
     }
-    $env:SYNON_CONFIG = 'synthetic-child-change'
-    $env:SYNON_NEW_TEST_VARIABLE = 'synthetic-added-value'
+    $env:X_SCIENCE_CONFIG = 'synthetic-child-change'
+    $env:X_SCIENCE_NEW_TEST_VARIABLE = 'synthetic-added-value'
     $env:RELEASE_TEST_ADDED_VALUE = 'synthetic-added-value'
     $env:PATH = ''
   }
@@ -126,8 +126,8 @@ Write-Output 'ENVIRONMENT_PROBE_OK'
 
   $thrown = $false
   try {
-    Invoke-SynonReleaseTestEnvironment -Root $ownedTemp -Action {
-      $env:SYNON_HOME = 'synthetic-child-change'
+    Invoke-XScienceReleaseTestEnvironment -Root $ownedTemp -Action {
+      $env:X_SCIENCE_HOME = 'synthetic-child-change'
       $env:RELEASE_TEST_ADDED_VALUE = 'synthetic-added-value'
       $env:PATH = ''
       throw 'SYNTHETIC_ACTION_FAILURE'
@@ -140,10 +140,10 @@ Write-Output 'ENVIRONMENT_PROBE_OK'
   Assert-EnvironmentRestored -Expected $before
   Write-Output 'PASS complete environment restoration on exception without swallowing failure'
 
-  Invoke-SynonReleaseTestEnvironment -Root $ownedTemp -Action {
+  Invoke-XScienceReleaseTestEnvironment -Root $ownedTemp -Action {
     $outer = Get-TestEnvironment
-    Invoke-SynonReleaseTestEnvironment -Root (Join-Path $ownedTemp 'nested') -Action {
-      if ((Split-Path -Parent $env:SYNON_DATA_DIR_CONTROL) -ne (Join-Path $ownedTemp 'nested')) { throw 'Nested pointer not private' }
+    Invoke-XScienceReleaseTestEnvironment -Root (Join-Path $ownedTemp 'nested') -Action {
+      if ((Split-Path -Parent $env:X_SCIENCE_DATA_DIR_CONTROL) -ne (Join-Path $ownedTemp 'nested')) { throw 'Nested pointer not private' }
     }
     Assert-EnvironmentRestored -Expected $outer
   }
@@ -151,7 +151,7 @@ Write-Output 'ENVIRONMENT_PROBE_OK'
   Write-Output 'PASS nested environment scopes restore their own caller'
 
   $relativeRejected = $false
-  try { Invoke-SynonReleaseTestEnvironment -Root 'relative-root' -Action { throw 'MUST_NOT_ENTER' } }
+  try { Invoke-XScienceReleaseTestEnvironment -Root 'relative-root' -Action { throw 'MUST_NOT_ENTER' } }
   catch {
     if ($_.Exception.Message -ne 'Release test environment root must be an absolute path') { throw }
     $relativeRejected = $true
@@ -161,7 +161,7 @@ Write-Output 'ENVIRONMENT_PROBE_OK'
   Write-Output 'PASS relative environment roots rejected before mutation'
 
   $driveRelativeRejected = $false
-  try { Invoke-SynonReleaseTestEnvironment -Root 'C:relative-root' -Action { throw 'MUST_NOT_ENTER' } }
+  try { Invoke-XScienceReleaseTestEnvironment -Root 'C:relative-root' -Action { throw 'MUST_NOT_ENTER' } }
   catch {
     if ($_.Exception.Message -ne 'Release test environment root must be an absolute path') { throw }
     $driveRelativeRejected = $true
@@ -171,7 +171,7 @@ Write-Output 'ENVIRONMENT_PROBE_OK'
   Write-Output 'PASS drive-relative environment roots rejected before mutation'
 
   $nonLoopbackRejected = $false
-  try { Wait-SynonReleaseHTTPReady -BaseUri 'https://example.invalid/' -HasExited { throw 'MUST_NOT_ENTER' } }
+  try { Wait-XScienceReleaseHTTPReady -BaseUri 'https://example.invalid/' -HasExited { throw 'MUST_NOT_ENTER' } }
   catch {
     if ($_.Exception.Message -ne 'Release readiness probe requires an unauthenticated loopback HTTP endpoint') { throw }
     $nonLoopbackRejected = $true
@@ -190,7 +190,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-public sealed class SynonReleaseHTTPFixture : IDisposable {
+public sealed class XScienceReleaseHTTPFixture : IDisposable {
   readonly TcpListener listener = new TcpListener(IPAddress.Loopback, 0);
   readonly CancellationTokenSource stopped = new CancellationTokenSource();
   readonly ConcurrentBag<TcpClient> clients = new ConcurrentBag<TcpClient>();
@@ -200,8 +200,8 @@ public sealed class SynonReleaseHTTPFixture : IDisposable {
   int requests;
   public int Port { get; private set; }
   public int Requests { get { return Volatile.Read(ref requests); } }
-  public SynonReleaseHTTPFixture(string mode) : this(mode, null) { }
-  public SynonReleaseHTTPFixture(string mode, string redirectBase) {
+  public XScienceReleaseHTTPFixture(string mode) : this(mode, null) { }
+  public XScienceReleaseHTTPFixture(string mode, string redirectBase) {
     this.mode = mode; this.redirectBase = redirectBase;
     listener.Start(); Port = ((IPEndPoint)listener.LocalEndpoint).Port;
     accept = Task.Run(async () => {
@@ -251,10 +251,10 @@ public sealed class SynonReleaseHTTPFixture : IDisposable {
 }
 '@
   foreach ($mode in @('healthy', 'recover', 'bad-html', 'stall-headers', 'stall-body')) {
-    $peer = [SynonReleaseHTTPFixture]::new($mode)
+    $peer = [XScienceReleaseHTTPFixture]::new($mode)
     try {
       $watch = [Diagnostics.Stopwatch]::StartNew()
-      $ready = Wait-SynonReleaseHTTPReady -BaseUri "http://127.0.0.1:$($peer.Port)" -HasExited { $false } -TimeoutMilliseconds 700 -RequestTimeoutMilliseconds 150
+      $ready = Wait-XScienceReleaseHTTPReady -BaseUri "http://127.0.0.1:$($peer.Port)" -HasExited { $false } -TimeoutMilliseconds 700 -RequestTimeoutMilliseconds 150
       $watch.Stop()
       $expected = $mode -in @('healthy', 'recover')
       if ($ready -ne $expected) { throw "Unexpected readiness for HTTP fixture: $mode" }
@@ -263,18 +263,18 @@ public sealed class SynonReleaseHTTPFixture : IDisposable {
       Write-Output "PASS actual HTTP $mode; ready=$ready elapsed_ms=$($watch.ElapsedMilliseconds)"
     } finally { $peer.Dispose() }
   }
-  $peer = [SynonReleaseHTTPFixture]::new('healthy')
+  $peer = [XScienceReleaseHTTPFixture]::new('healthy')
   try {
-    if (Wait-SynonReleaseHTTPReady -BaseUri "http://127.0.0.1:$($peer.Port)" -HasExited { $true }) { throw 'Exited process was reported ready' }
+    if (Wait-XScienceReleaseHTTPReady -BaseUri "http://127.0.0.1:$($peer.Port)" -HasExited { $true }) { throw 'Exited process was reported ready' }
     if ($peer.Requests -ne 0) { throw 'Exited process probe contacted an unrelated port owner' }
   } finally { $peer.Dispose() }
   Write-Output 'PASS exited child is rejected without HTTP traffic'
 
-  $redirectTarget = [SynonReleaseHTTPFixture]::new('healthy')
+  $redirectTarget = [XScienceReleaseHTTPFixture]::new('healthy')
   $redirector = $null
   try {
-    $redirector = [SynonReleaseHTTPFixture]::new('redirect', "http://127.0.0.1:$($redirectTarget.Port)")
-    $ready = Wait-SynonReleaseHTTPReady -BaseUri "http://127.0.0.1:$($redirector.Port)" -HasExited { $false } -TimeoutMilliseconds 700 -RequestTimeoutMilliseconds 150
+    $redirector = [XScienceReleaseHTTPFixture]::new('redirect', "http://127.0.0.1:$($redirectTarget.Port)")
+    $ready = Wait-XScienceReleaseHTTPReady -BaseUri "http://127.0.0.1:$($redirector.Port)" -HasExited { $false } -TimeoutMilliseconds 700 -RequestTimeoutMilliseconds 150
     if ($redirector.Requests -lt 1) { throw 'Redirect fixture was not actually contacted' }
     if ($redirectTarget.Requests -ne 0) { throw 'Readiness probe followed a redirect to a different target' }
     if ($ready) { throw 'Redirected target was incorrectly accepted as ready' }
@@ -286,7 +286,7 @@ public sealed class SynonReleaseHTTPFixture : IDisposable {
 
   foreach ($rootRelative in @('\root-relative', '/root-relative')) {
     $rootRelativeRejected = $false
-    try { Invoke-SynonReleaseTestEnvironment -Root $rootRelative -Action { throw 'MUST_NOT_ENTER' } }
+    try { Invoke-XScienceReleaseTestEnvironment -Root $rootRelative -Action { throw 'MUST_NOT_ENTER' } }
     catch {
       if ($_.Exception.Message -ne 'Release test environment root must be an absolute path') { throw }
       $rootRelativeRejected = $true
@@ -303,7 +303,7 @@ public sealed class SynonReleaseHTTPFixture : IDisposable {
     else { [Environment]::SetEnvironmentVariable($key, $saved[$key], 'Process') }
   }
   if ($passed) {
-    if ((Split-Path -Leaf $suiteRoot) -notlike 'synon-release-environment-test-*') { throw 'Unsafe test cleanup root' }
+    if ((Split-Path -Leaf $suiteRoot) -notlike 'x-science-release-environment-test-*') { throw 'Unsafe test cleanup root' }
     Remove-Item -LiteralPath $suiteRoot -Recurse -Force
   } else {
     Write-Warning "Release environment regression evidence preserved at $suiteRoot"

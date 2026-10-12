@@ -15,8 +15,8 @@ import { startSystemThemeWatcher } from '@/renderer/utils/theme/systemThemeWatch
 import { BUILTIN_THEMES } from '@renderer/theme/builtinThemes';
 import { useCallback, useEffect, useState } from 'react';
 
-const APPEARANCE_CACHE_KEY = '__synon-ai_theme';
-const FAMILY_CACHE_KEY = '__synon-ai_theme_family';
+const APPEARANCE_CACHE_KEY = '__x-science_theme';
+const FAMILY_CACHE_KEY = '__x-science_theme_family';
 
 function persistThemeBootCache(theme: Theme): void {
   try {

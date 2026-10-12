@@ -143,7 +143,7 @@ func sanitizeWebOfficeProxyRequestHeaders(header http.Header) {
 	for key := range header {
 		lower := strings.ToLower(key)
 		if lower == "authorization" || lower == "proxy-authorization" ||
-			lower == "cookie" || strings.HasPrefix(lower, "x-synon-") {
+			lower == "cookie" || strings.HasPrefix(lower, "x-science-") {
 			header.Del(key)
 		}
 	}
@@ -224,7 +224,7 @@ func portFromHost(host string) string {
 }
 
 func injectWebOfficeNavigationGuard(body []byte, proxyBase string) []byte {
-	guard := []byte(fmt.Sprintf(`<script data-synon-office-proxy>(function(){const b=%s;const r=(v)=>{if(typeof v!=="string")return v;try{const u=new URL(v,location.href);if((u.hostname==="127.0.0.1"||u.hostname==="localhost"||u.hostname==="::1")||v.startsWith("/"))return b+u.pathname+u.search+u.hash}catch(e){}return v};for(const n of ["pushState","replaceState"]){const f=history[n].bind(history);history[n]=function(s,t,v){return f(s,t,r(v))}}document.addEventListener("click",e=>{const a=e.target&&e.target.closest?e.target.closest("a[href]"):null;if(!a)return;const v=r(a.getAttribute("href"));if(v!==a.getAttribute("href"))a.setAttribute("href",v)},true);try{for(const n of ["assign","replace"]){const f=Location.prototype[n];Location.prototype[n]=function(v){return f.call(this,r(v))}}}catch(e){}})();</script>`, strconv.Quote(proxyBase)))
+	guard := []byte(fmt.Sprintf(`<script data-x-science-office-proxy>(function(){const b=%s;const r=(v)=>{if(typeof v!=="string")return v;try{const u=new URL(v,location.href);if((u.hostname==="127.0.0.1"||u.hostname==="localhost"||u.hostname==="::1")||v.startsWith("/"))return b+u.pathname+u.search+u.hash}catch(e){}return v};for(const n of ["pushState","replaceState"]){const f=history[n].bind(history);history[n]=function(s,t,v){return f(s,t,r(v))}}document.addEventListener("click",e=>{const a=e.target&&e.target.closest?e.target.closest("a[href]"):null;if(!a)return;const v=r(a.getAttribute("href"));if(v!==a.getAttribute("href"))a.setAttribute("href",v)},true);try{for(const n of ["assign","replace"]){const f=Location.prototype[n];Location.prototype[n]=function(v){return f.call(this,r(v))}}}catch(e){}})();</script>`, strconv.Quote(proxyBase)))
 	lower := bytes.ToLower(body)
 	head := bytes.Index(lower, []byte("<head"))
 	if head >= 0 {

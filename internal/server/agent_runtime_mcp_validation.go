@@ -12,10 +12,10 @@ import (
 	"github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/santhosh-tekuri/jsonschema/v6/kind"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/failurecontract"
-	kernelruntime "synon-go/internal/kernel"
-	"synon-go/internal/software"
+	"x-science/internal/agentruntime"
+	"x-science/internal/failurecontract"
+	kernelruntime "x-science/internal/kernel"
+	"x-science/internal/software"
 )
 
 func (g serverAgentRuntimeToolGateway) normalizeAdmittedToolArguments(name string, input map[string]any) map[string]any {

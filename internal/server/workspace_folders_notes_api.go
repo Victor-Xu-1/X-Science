@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"strings"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func (s *Server) handleWorkspaceProjectFolders(w http.ResponseWriter, r *http.Request, store *workspace.Store, projectID, userID string) {

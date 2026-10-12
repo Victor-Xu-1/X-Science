@@ -14,8 +14,8 @@ import (
 	"time"
 	"unicode/utf8"
 
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 // ExecutionResultV1 is the durable, cross-platform result contract shared by

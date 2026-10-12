@@ -1,8 +1,8 @@
 package kernel
 
 import (
-	"synon-go/internal/processsupervisor"
 	"time"
+	"x-science/internal/processsupervisor"
 )
 
 // ExecutionObservation is a point-in-time process observation, not a claim

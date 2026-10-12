@@ -2,7 +2,7 @@ package server
 
 import (
 	"encoding/json"
-	"synon-go/internal/processsupervisor"
+	"x-science/internal/processsupervisor"
 )
 
 func kernelResourcePressureReceipt(trace map[string]any) *processsupervisor.MemoryPressure {

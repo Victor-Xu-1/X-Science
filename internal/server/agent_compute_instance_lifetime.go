@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func (s *Server) agentComputeHandleDeadline(ctx context.Context, access workspace.KernelFrameAccess, handleID, provider, sandboxID string) (time.Time, error) {

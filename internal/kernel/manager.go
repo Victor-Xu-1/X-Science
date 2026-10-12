@@ -19,9 +19,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"synon-go/internal/assets"
-	"synon-go/internal/executionprep"
-	"synon-go/internal/processsupervisor"
+	"x-science/internal/assets"
+	"x-science/internal/executionprep"
+	"x-science/internal/processsupervisor"
 )
 
 const (
@@ -322,7 +322,7 @@ func pythonWorkerArguments(workerPath string) []string {
 	arguments := []string{workerPath}
 	directory := filepath.Dir(workerPath)
 	for _, name := range append([]string{
-		"synon_host_bridge.py",
+		"x_science_host_bridge.py",
 		"sitecustomize.py",
 	}, pythonRuntimePackageAssets()...) {
 		path := filepath.Join(directory, name)
@@ -369,7 +369,7 @@ func (m *Manager) startWorkerWithRuntime(
 		}
 		controlFD := 4 + len(mounts) + len(auxiliary)
 		environment = mergeKernelEnvironment(environment, map[string]string{
-			"SYNON_KERNEL_EGRESS_CONTROL_FD": strconv.Itoa(controlFD),
+			"X_SCIENCE_KERNEL_EGRESS_CONTROL_FD": strconv.Itoa(controlFD),
 		})
 		auxiliary = append(auxiliary, child)
 	}

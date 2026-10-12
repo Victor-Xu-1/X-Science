@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	taskruns "synon-go/internal/persistence/taskruns"
+	taskruns "x-science/internal/persistence/taskruns"
 )
 
 const goalRunLedgerRuntimeNamespace = "goal-runs"

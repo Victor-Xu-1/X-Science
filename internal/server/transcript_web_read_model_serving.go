@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 type activatedTranscriptWebReadModel struct {

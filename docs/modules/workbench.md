@@ -330,9 +330,9 @@ Enter 选中上一查询的结果；关闭后的迟到响应不能覆盖下一�
 
 ```sh
 go test ./internal/server -run '^TestFrameAttentionProjectionRequiresAnActualApprovalBoundary$' -count=1
-SYNON_FRAME_ATTENTION_BROWSER=1 go test ./internal/server -run '^TestFrameAttentionBrowser$' -count=1
+X_SCIENCE_FRAME_ATTENTION_BROWSER=1 go test ./internal/server -run '^TestFrameAttentionBrowser$' -count=1
 cd frontend
-npm run test:unit -- tests/unit/synonbiomed/SynonBiomedRuntimeOperations.dom.test.tsx
+npm run test:unit -- tests/unit/xscience/XScienceRuntimeOperations.dom.test.tsx
 ```
 
 新任务入口的“发送”沿现有首条消息控制器提交一次请求，保留附件、能力和会话设置，
@@ -475,7 +475,7 @@ go test ./internal/persistence/workspace -run '^TestTranscriptWebProjectorV70|^T
 ```
 
 这些测试包含真实临时 SQLite、持久化任务事件和正式投影重建入口；不是
-模型调用测试。浏览器场景为 `synonbiomedMessageProjectionRecovery.e2e.ts`，
+模型调用测试。浏览器场景为 `xscienceMessageProjectionRecovery.e2e.ts`，
 沿用下文的隔离服务及 Chrome 前置条件。
 
 ## Focused verification · 验证入口
@@ -593,7 +593,7 @@ npm run test:unit -- tests/unit/common/roundSummary.test.ts tests/unit/renderer/
 分支的受控浏览器集成使用临时 SQLite 与真实本地 HTTP，不连接已有用户会话：
 
 ```sh
-SYNON_REPLY_BRANCH_BROWSER=1 go test ./internal/server -run '^TestWebReplyBranchBrowser$' -count=1
+X_SCIENCE_REPLY_BRANCH_BROWSER=1 go test ./internal/server -run '^TestWebReplyBranchBrowser$' -count=1
 ```
 
 ### Document preview · 文档预览

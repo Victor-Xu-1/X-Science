@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func seedPermissionTestAgent(t *testing.T, store *workspace.Store, userID string) {
@@ -52,7 +52,7 @@ func TestConversationPermissionTiersDriveOneAgentToolApprovalPath(t *testing.T) 
 				FrameID: frameID,
 				ContextData: map[string]any{
 					"web_assistant": map[string]any{
-						"id":                     "synonbiomed:operon",
+						"id":                     "xscience:operon",
 						"conversation_overrides": map[string]any{"permission": test.mode},
 					},
 				},
@@ -114,7 +114,7 @@ func TestConversationDenyOverridesRememberedAgentApproval(t *testing.T) {
 	if _, err := store.SetFrameRuntimeMetadata(frameID, workspace.FrameRuntimeMetadata{
 		FrameID: frameID,
 		ContextData: map[string]any{"web_assistant": map[string]any{
-			"id": "synonbiomed:operon", "conversation_overrides": map[string]any{"permission": "deny"},
+			"id": "xscience:operon", "conversation_overrides": map[string]any{"permission": "deny"},
 		}},
 	}); err != nil {
 		t.Fatal(err)
@@ -166,7 +166,7 @@ func TestChildFrameInheritsRootConversationPermissionMode(t *testing.T) {
 	if _, err := store.SetFrameRuntimeMetadata(rootID, workspace.FrameRuntimeMetadata{
 		FrameID: rootID,
 		ContextData: map[string]any{"web_assistant": map[string]any{
-			"id": "synonbiomed:operon", "conversation_overrides": map[string]any{"permission": "allow"},
+			"id": "xscience:operon", "conversation_overrides": map[string]any{"permission": "allow"},
 		}},
 	}); err != nil {
 		t.Fatal(err)
@@ -174,7 +174,7 @@ func TestChildFrameInheritsRootConversationPermissionMode(t *testing.T) {
 	if _, err := store.SetFrameRuntimeMetadata(childID, workspace.FrameRuntimeMetadata{
 		FrameID: childID,
 		ContextData: map[string]any{"web_assistant": map[string]any{
-			"id": "synonbiomed:operon", "conversation_overrides": map[string]any{"permission": "default"},
+			"id": "xscience:operon", "conversation_overrides": map[string]any{"permission": "default"},
 		}},
 	}); err != nil {
 		t.Fatal(err)

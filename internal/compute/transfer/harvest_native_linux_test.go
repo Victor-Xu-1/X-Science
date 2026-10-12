@@ -26,7 +26,7 @@ func TestNativeHarvestSelectsBeforeBundlingAndReplaysTheSameReceipt(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	helper := filepath.Join(root, "_synon_harvest.sh")
+	helper := filepath.Join(root, "_x_science_harvest.sh")
 	if err := os.WriteFile(helper, helperBody, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -83,7 +83,7 @@ func TestNativeHarvestSelectsBeforeBundlingAndReplaysTheSameReceipt(t *testing.T
 		return ControlReceipt{}
 	}
 	observation := wait("inventory")
-	payload, err := os.ReadFile(filepath.Join(root, ".synon-harvest/inventory.nul"))
+	payload, err := os.ReadFile(filepath.Join(root, ".x-science-harvest/inventory.nul"))
 	if err != nil || observation.SHA256 != fmt.Sprintf("%x", sha256.Sum256(payload)) || observation.Bytes != int64(len(payload)) {
 		t.Fatalf("native observation identity mismatch: %#v %v", observation, err)
 	}
@@ -94,11 +94,11 @@ func TestNativeHarvestSelectsBeforeBundlingAndReplaysTheSameReceipt(t *testing.T
 		t.Fatalf("native selection = %#v %v", selection, err)
 	}
 	selectionSHA := fmt.Sprintf("%x", sha256.Sum256(selected.Bytes()))
-	if err := os.WriteFile(filepath.Join(root, ".synon-harvest/selection-"+selectionSHA+".nul"), selected.Bytes(), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".x-science-harvest/selection-"+selectionSHA+".nul"), selected.Bytes(), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	packaged := wait("archive", observation.SHA256, selectionSHA)
-	archiveName := filepath.Join(root, ".synon-harvest/archive-"+observation.SHA256+"-"+selectionSHA+".tar.gz")
+	archiveName := filepath.Join(root, ".x-science-harvest/archive-"+observation.SHA256+"-"+selectionSHA+".tar.gz")
 	archive, err := os.ReadFile(archiveName)
 	if err != nil || len(archive) > 4096 || packaged.SHA256 != fmt.Sprintf("%x", sha256.Sum256(archive)) {
 		t.Fatalf("selected archive copied the large payload or lost integrity: bytes=%d receipt=%#v err=%v", len(archive), packaged, err)
@@ -138,11 +138,11 @@ func TestNativeHarvestRejectsControlSymlinksWithoutReadingTheirTargets(t *testin
 	if err != nil {
 		t.Fatal(err)
 	}
-	helper := filepath.Join(root, "_synon_harvest.sh")
+	helper := filepath.Join(root, "_x_science_harvest.sh")
 	if err := os.WriteFile(helper, body, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Mkdir(filepath.Join(root, ".synon-harvest"), 0o700); err != nil {
+	if err := os.Mkdir(filepath.Join(root, ".x-science-harvest"), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	private := filepath.Join(t.TempDir(), "private-fixture")
@@ -150,7 +150,7 @@ func TestNativeHarvestRejectsControlSymlinksWithoutReadingTheirTargets(t *testin
 	if err := os.WriteFile(private, []byte(contents), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(private, filepath.Join(root, ".synon-harvest/inventory.receipt")); err != nil {
+	if err := os.Symlink(private, filepath.Join(root, ".x-science-harvest/inventory.receipt")); err != nil {
 		t.Fatal(err)
 	}
 	command := exec.Command("bash", "--noprofile", "--norc", "-p", helper, "inventory")

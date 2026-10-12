@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	eventjournal "synon-go/internal/persistence/journal"
-	sessionstore "synon-go/internal/persistence/sessions"
-	taskruns "synon-go/internal/persistence/taskruns"
+	eventjournal "x-science/internal/persistence/journal"
+	sessionstore "x-science/internal/persistence/sessions"
+	taskruns "x-science/internal/persistence/taskruns"
 )
 
 func appendTaskRunLatestEvidenceFixture(t *testing.T, journal *eventjournal.EventJournal, sessionID, runID string, nested bool) {

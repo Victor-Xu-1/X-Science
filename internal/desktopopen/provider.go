@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/subprocess"
+	"x-science/internal/subprocess"
 )
 
 type Result struct {
@@ -82,7 +82,7 @@ func detectProvider() (provider, bool) {
 }
 
 func detectConfiguredProvider() (provider, bool) {
-	command := strings.TrimSpace(os.Getenv("SYNON_DESKTOP_FILE_OPEN_COMMAND"))
+	command := strings.TrimSpace(os.Getenv("X_SCIENCE_DESKTOP_FILE_OPEN_COMMAND"))
 	if command == "" {
 		return provider{}, false
 	}
@@ -91,7 +91,7 @@ func detectConfiguredProvider() (provider, bool) {
 		return provider{}, false
 	}
 	var arguments []string
-	if raw := strings.TrimSpace(os.Getenv("SYNON_DESKTOP_FILE_OPEN_ARGS_JSON")); raw != "" {
+	if raw := strings.TrimSpace(os.Getenv("X_SCIENCE_DESKTOP_FILE_OPEN_ARGS_JSON")); raw != "" {
 		if json.Unmarshal([]byte(raw), &arguments) != nil || len(arguments) > 32 {
 			return provider{}, false
 		}

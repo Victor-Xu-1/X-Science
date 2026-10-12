@@ -14,8 +14,8 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"synon-go/internal/buildinfo"
-	"synon-go/internal/discoveryquery"
+	"x-science/internal/buildinfo"
+	"x-science/internal/discoveryquery"
 )
 
 type Skill struct {
@@ -178,7 +178,7 @@ When a task requires delegation, use host.delegate from the persistent repl kern
 
 For capability discovery, call search_skills and then load the selected workflow with skill. Connected MCP methods are advertised directly and share one connector pool with host.mcp inside repl. Use only exact names from the current snapshot and preserve any unavailable capability as a diagnostic blocker.`, productName))
 	catalog.AddSkill(Skill{
-		Name:        "synon-runtime",
+		Name:        "x-science-runtime",
 		DisplayName: productName + " Runtime",
 		NameI18n: map[string]string{
 			"en-US": productName + " Runtime",
@@ -189,11 +189,11 @@ For capability discovery, call search_skills and then load the selected workflow
 			"zh-CN": "了解 " + productName + " 的运行时能力、工具边界和本地工作方式。",
 		},
 		Category:   "compute-platform",
-		Tags:       []string{"runtime", "synon", "agent"},
+		Tags:       []string{"runtime", "xscience", "agent"},
 		Keywords:   []string{"session", "tool", "permission", "hook", "delegation", "artifact", "mcp", "connector"},
 		Tools:      []string{"search_skills", "skill", "repl", "save_artifacts"},
-		References: []string{"builtin:synon-runtime/runtime-contract"},
-		Path:       "builtin:synon-runtime",
+		References: []string{"builtin:x-science-runtime/runtime-contract"},
+		Path:       "builtin:x-science-runtime",
 		Body:       body,
 		BodyHash:   sha1Hex(body),
 	})
@@ -217,75 +217,15 @@ func Load(directories []string, options ...LoadOptions) *Catalog {
 			cwd, _ := os.Getwd()
 			absDir = filepath.Join(cwd, dir)
 		}
-		info, err := os.Stat(absDir)
-		if err != nil {
-			catalog.AddLoadError(absDir, err)
-			continue
-		}
-		if !info.IsDir() {
-			catalog.AddLoadError(absDir, fmt.Errorf("not a directory"))
-			continue
-		}
 		root, err := os.OpenRoot(absDir)
 		if err != nil {
 			catalog.AddLoadError(absDir, err)
 			continue
 		}
-		presentation := newPresentationLoader(root, absDir, catalog)
-		err = filepath.WalkDir(absDir, func(path string, d os.DirEntry, err error) error {
-			if err != nil {
-				catalog.AddLoadError(path, err)
-				return nil
-			}
-			if d.IsDir() {
-				return nil
-			}
-			if d.Name() != "SKILL.md" {
-				return nil
-			}
-			if d.Type()&os.ModeSymlink != 0 {
-				catalog.AddLoadError(path, fmt.Errorf("skill manifest must be a regular file, not a symbolic link"))
-				return nil
-			}
-			relative, relErr := filepath.Rel(absDir, path)
-			if relErr != nil || filepath.IsAbs(relative) || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
-				catalog.AddLoadError(path, fmt.Errorf("skill manifest is outside the configured root"))
-				return nil
-			}
-			data, readErr := root.ReadFile(relative)
-			if readErr != nil {
-				catalog.AddLoadError(path, readErr)
-				return nil
-			}
-			skill, parseErr := parseSkillFile(path, data)
-			if parseErr != nil {
-				catalog.AddLoadError(path, parseErr)
-				return nil
-			}
-			presentation.apply(&skill, relative)
-			limitBody := skill.Body
-			if opts.MaxBodyBytes > 0 && len(limitBody) > opts.MaxBodyBytes {
-				if opts.RejectOversizeBody {
-					catalog.AddLoadError(path, fmt.Errorf(
-						"skill body exceeds %d bytes", opts.MaxBodyBytes,
-					))
-					return nil
-				}
-				limitBody = truncateString(limitBody, opts.MaxBodyBytes)
-			}
-			skill.Body = limitBody
-			skill.BodyHash = sha1Hex(limitBody)
-			catalog.AddSkill(skill)
-			return nil
-		})
-		closeErr := root.Close()
-		if err != nil {
+		loadOpenedDirectory(catalog, absDir, root, opts)
+		if err := root.Close(); err != nil {
 			catalog.AddLoadError(absDir, err)
 		}
-		if closeErr != nil {
-			catalog.AddLoadError(absDir, closeErr)
-		}
-		presentation.finish()
 	}
 	catalog.mu.Lock()
 	catalog.sortSkillsLocked()

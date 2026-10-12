@@ -14,11 +14,11 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	kernelruntime "synon-go/internal/kernel"
-	secretstore "synon-go/internal/persistence/secrets"
-	sessionstore "synon-go/internal/persistence/sessions"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	kernelruntime "x-science/internal/kernel"
+	secretstore "x-science/internal/persistence/secrets"
+	sessionstore "x-science/internal/persistence/sessions"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestNormalizeKernelHostArgumentsRecursesWithinBounds(t *testing.T) {

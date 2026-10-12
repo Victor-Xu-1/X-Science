@@ -3,8 +3,8 @@ import { createServer } from "vite";
 import { resolve } from "node:path";
 import { chromium, expect } from "@playwright/test";
 
-const api = process.env.SYNON_BRANCH_API;
-const fixture = JSON.parse(process.env.SYNON_BRANCH_FIXTURE);
+const api = process.env.X_SCIENCE_BRANCH_API;
+const fixture = JSON.parse(process.env.X_SCIENCE_BRANCH_FIXTURE);
 if (!/^http:\/\/127\.0\.0\.1:\d+$/.test(api))
   throw new Error("Controlled local API required");
 let server, browser;

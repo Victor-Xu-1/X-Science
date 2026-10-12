@@ -12,10 +12,10 @@ const readFileSync = (target: string | URL, encoding?: BufferEncoding): string =
 const source = (relative: string): string =>
   readFileSync(fileURLToPath(new URL(`../../../../packages/desktop/src/${relative}`, import.meta.url)), 'utf8');
 
-describe('Synon tool group visual contract', () => {
+describe('XScience tool group visual contract', () => {
   it('keeps all tool-group geometry and motion in the component stylesheet', () => {
     const css = source('renderer/pages/conversation/Messages/components/MessageToolGroupSummary.css');
-    const planCss = source('renderer/components/synonBiomed/runtime/SynonBiomedPlanReviewContent.css');
+    const planCss = source('renderer/components/xScience/runtime/XSciencePlanReviewContent.css');
     expect(css).toContain('font-family: var(--conversation-font-sans, system-ui);');
     expect(css).not.toContain('.tool-stream-phase__narrative');
     expect(css).not.toContain('.tool-group-summary--expanded > .tool-group-summary__header');
@@ -63,8 +63,8 @@ describe('Synon tool group visual contract', () => {
     expect(css).not.toContain('.tool-activity-section');
     expect(css).not.toContain('.tool-step--expanded > .tool-step-row');
     expect(css).not.toContain('.tool-public-detail__plan-step-description');
-    expect(planCss).toContain('.synon-biomed-plan-review__step-description');
-    expect(planCss).toContain('.synon-biomed-plan-review__step-status--in_progress');
+    expect(planCss).toContain('.x-science-plan-review__step-description');
+    expect(planCss).toContain('.x-science-plan-review__step-status--in_progress');
     expect(css).not.toContain('.tool-public-detail__plan-step-chevron');
     expect(css).toContain('background-color 150ms cubic-bezier(0.4, 0, 0.2, 1)');
     expect(css).toContain('grid-template-rows 200ms cubic-bezier(0.165, 0.84, 0.44, 1)');

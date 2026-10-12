@@ -366,7 +366,7 @@ describe('MessageToolGroupSummary ACP image output', () => {
           ok: true,
           results: 1,
           sources: 0,
-          provider: 'synon-websearch',
+          provider: 'x-science-websearch',
           diagnostics: {
             GoHTTPBackend: true,
             GoHTTPError: 'all Go HTTP search backends returned no usable links',
@@ -386,7 +386,7 @@ describe('MessageToolGroupSummary ACP image output', () => {
     const outputToggle = screen.getByTestId('show-output-toggle');
     expect(outputToggle).toHaveAttribute('aria-expanded', 'false');
     fireEvent.click(outputToggle);
-    expect(document.body.textContent).not.toMatch(/synon-websearch|GoHTTP|bing-html|backend/u);
+    expect(document.body.textContent).not.toMatch(/x-science-websearch|GoHTTP|bing-html|backend/u);
   });
 
   it('renders namespaced scientific database results as a detailed public source card', () => {

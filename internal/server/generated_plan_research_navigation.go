@@ -8,7 +8,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 func (s *Server) generatedPlanResearchHandoffContext(
@@ -73,7 +73,7 @@ func generatedPlanResearchTransition(
 		}
 	}
 	result := map[string]any{
-		"schema":                "synon.research_transition.v1",
+		"schema":                "x-science.research_transition.v1",
 		"navigation_state_only": true,
 		"updated_investigation": updated,
 		"new_source_receipts":   researchSourceReceiptValues(receipts),
@@ -209,7 +209,7 @@ func replaceRuntimeResearchNavigationToolContext(content string, payload map[str
 	if json.Unmarshal([]byte(content), &result) != nil {
 		return "", false
 	}
-	const contextKey = "_synon_model_context"
+	const contextKey = "_x_science_model_context"
 	context := mapValue(result[contextKey])
 	if stringValue(context["schema"]) != generatedPlanResearchNavigationSchema {
 		return "", false
@@ -223,7 +223,7 @@ func replaceRuntimeResearchNavigationToolContext(content string, payload map[str
 }
 
 const (
-	generatedPlanResearchNavigationSchema = "synon.research_navigation.v1"
+	generatedPlanResearchNavigationSchema = "x-science.research_navigation.v1"
 	maxGeneratedPlanNavigationItems       = 256
 	maxGeneratedPlanNavigationItemRunes   = 4096
 )

@@ -9,7 +9,7 @@ import { useTranslation } from 'react-i18next';
 import ScaleControl from '@/renderer/components/settings/ScaleControl';
 import FontSizeStepper from '@/renderer/components/settings/FontSizeStepper';
 import CssThemeSettings from '@renderer/pages/settings/AppearanceSettings/CssThemeSettings';
-import SynonScrollArea from '@/renderer/components/base/SynonScrollArea';
+import XScienceScrollArea from '@/renderer/components/base/XScienceScrollArea';
 import { FONT_SIZE_KEYS, FONT_SIZE_SPECS, FONT_SIZE_STEP, type FontSizeKey } from '@/common/config/fontSizes';
 import { useThemeContext } from '@renderer/hooks/context/ThemeContext';
 import { useSettingsViewMode } from '../settingsViewContext';
@@ -56,7 +56,7 @@ const AppearanceModalContent: React.FC = () => {
   return (
     <div className='flex flex-col h-full w-full'>
       {/* 内容区域 / Content Area */}
-      <SynonScrollArea className='flex-1 min-h-0 pb-16px' disableOverflow={isPageMode}>
+      <XScienceScrollArea className='flex-1 min-h-0 pb-16px' disableOverflow={isPageMode}>
         <div className='space-y-16px'>
           {/* 主题画廊 / Theme Gallery */}
           <div className='px-16px md:px-24px lg:px-28px py-14px md:py-16px bg-2 rd-16px'>
@@ -92,7 +92,7 @@ const AppearanceModalContent: React.FC = () => {
             </div>
           </div>
         </div>
-      </SynonScrollArea>
+      </XScienceScrollArea>
     </div>
   );
 };

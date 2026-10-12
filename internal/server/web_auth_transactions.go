@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	webAuthTransactionCookieName = "synon_auth_tx"
+	webAuthTransactionCookieName = "x_science_auth_tx"
 	webAuthTransactionCookiePath = "/api/auth/"
 	webAuthTransactionTTL        = 10 * time.Minute
 	webAuthTransactionLimit      = 256

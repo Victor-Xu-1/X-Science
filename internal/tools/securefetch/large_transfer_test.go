@@ -18,8 +18,8 @@ func (transferZeroReader) Read(p []byte) (int, error) { clear(p); return len(p),
 // Opt-in real TLS transfer: constant memory and no multi-GB fixture on disk.
 // Small default CI tests separately cover timeouts, resume and cancellation.
 func TestClientLargeTransferRealTLS(t *testing.T) {
-	size, err := strconv.ParseInt(os.Getenv("SYNON_TEST_TRANSFER_BYTES"), 10, 64)
-	if os.Getenv("SYNON_TEST_TRANSFER_BYTES") == "" {
+	size, err := strconv.ParseInt(os.Getenv("X_SCIENCE_TEST_TRANSFER_BYTES"), 10, 64)
+	if os.Getenv("X_SCIENCE_TEST_TRANSFER_BYTES") == "" {
 		t.Skip("opt-in multi-GB transfer")
 	}
 	if err != nil || size <= 0 {

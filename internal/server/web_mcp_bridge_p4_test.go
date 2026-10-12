@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/agentruntime"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestP4WebMCPBridgeStdioLifecycleIsEncryptedAndRestartSafe(t *testing.T) {
@@ -33,7 +33,7 @@ func TestP4WebMCPBridgeStdioLifecycleIsEncryptedAndRestartSafe(t *testing.T) {
 		"transport": map[string]any{
 			"type": "stdio", "command": os.Args[0],
 			"args": []string{"-test.run=TestP4WebMCPBridgeStdioHelper"},
-			"env":  map[string]string{"SYNON_P4_MCP_HELPER": "1", "P4_MCP_SECRET": secretValue},
+			"env":  map[string]string{"X_SCIENCE_P4_MCP_HELPER": "1", "P4_MCP_SECRET": secretValue},
 		},
 		"original_json": originalJSON,
 		"builtin":       false,
@@ -119,7 +119,7 @@ func TestP4WebMCPBridgeStdioLifecycleIsEncryptedAndRestartSafe(t *testing.T) {
 		"transport": map[string]any{
 			"type": "stdio", "command": os.Args[0],
 			"args": []string{"-test.run=TestP4WebMCPBridgeStdioHelper"},
-			"env":  map[string]string{"SYNON_P4_MCP_HELPER": "1", "P4_MCP_SECRET": secretValue},
+			"env":  map[string]string{"X_SCIENCE_P4_MCP_HELPER": "1", "P4_MCP_SECRET": secretValue},
 		},
 		"original_json": originalJSON,
 		"builtin":       false,
@@ -167,7 +167,7 @@ func TestP4WebMCPBridgeBatchImportIsAtomicAndRejectsUnsafeRemoteTargets(t *testi
 			"transport": map[string]any{
 				"type": "stdio", "command": os.Args[0],
 				"args": []string{"-test.run=TestP4WebMCPBridgeStdioHelper"},
-				"env":  map[string]string{"SYNON_P4_MCP_HELPER": "1"},
+				"env":  map[string]string{"X_SCIENCE_P4_MCP_HELPER": "1"},
 			},
 			"original_json": "{}", "builtin": false,
 		}
@@ -242,7 +242,7 @@ func TestP4WebMCPBridgeOAuthStatusUsesOwnedURLAndRealVaultState(t *testing.T) {
 }
 
 func TestP4WebMCPBridgeStdioHelper(t *testing.T) {
-	if os.Getenv("SYNON_P4_MCP_HELPER") != "1" {
+	if os.Getenv("X_SCIENCE_P4_MCP_HELPER") != "1" {
 		return
 	}
 	if os.Getenv("P4_MCP_SECRET") == "" {

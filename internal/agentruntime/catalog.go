@@ -14,7 +14,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"synon-go/internal/assets"
+	"x-science/internal/assets"
 )
 
 const defaultAgentMaxToolResultChars = 50000
@@ -65,8 +65,8 @@ func (a AgentDefinition) EffectiveSystemPrompt() string {
 		}
 		base = strings.Join(parts, "\n\n")
 	}
-	if agentUsesSynonPlatformPolicy(a.Name) {
-		base = strings.TrimSpace(base + "\n\n" + SynonPlatformPolicy())
+	if agentUsesXSciencePlatformPolicy(a.Name) {
+		base = strings.TrimSpace(base + "\n\n" + XSciencePlatformPolicy())
 	}
 	if base == "" {
 		return ""

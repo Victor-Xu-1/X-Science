@@ -44,7 +44,7 @@ func validateManagedEnvironmentBinaryCompatibility(
 		"runtime=tuple(h5py.version.hdf5_version_tuple)",
 		"print(json.dumps({'ok':built==runtime,'built':list(built),'runtime':list(runtime)},sort_keys=True))",
 	}, ";")
-	command := newWorkerProcessCommand(ctx, python, "-I", "-c", script)
+	command := newWorkerProcessCommand(ctx, python, namespaceEnvironmentProbeArguments(ctx, []string{"-I", "-c", script})...)
 	command.Env = managedEnvironmentRuntimeEnv(prefix)
 	var stdout bytes.Buffer
 	stderr := newTailBuffer(maxDiagnosticBytes)
@@ -103,7 +103,17 @@ func writeManagedEnvironmentMarker(path string, marker managedEnvironmentMarker)
 func readManagedEnvironmentMarker(prefix string) (managedEnvironmentMarker, error) {
 	var marker managedEnvironmentMarker
 	if _, err := readBoundedJSON(filepath.Join(prefix, managedEnvironmentMarkerName), &marker); err != nil {
-		return managedEnvironmentMarker{}, err
+		if !errors.Is(err, os.ErrNotExist) {
+			return managedEnvironmentMarker{}, err
+		}
+		return readPreviousNamespaceEnvironmentMarker(prefix)
+	}
+	return validateManagedEnvironmentMarker(marker)
+}
+
+func validateManagedEnvironmentMarker(marker managedEnvironmentMarker) (managedEnvironmentMarker, error) {
+	if marker.NamespaceImport != nil {
+		return validateNamespaceRegisteredEnvironmentMarker(marker)
 	}
 	if marker.SchemaVersion != managedEnvironmentLegacyVersion && marker.SchemaVersion != managedEnvironmentMarkerVersion ||
 		!ValidEnvironmentName(marker.Name) || !validSHA256(marker.Generation) || len(marker.Packages) == 0 {
@@ -145,6 +155,9 @@ func readManagedEnvironmentMarker(prefix string) (managedEnvironmentMarker, erro
 	}
 	if marker.Kind == "" {
 		marker.Kind = "conda"
+	}
+	if marker.PreviousNamespace != nil {
+		return validatePreviousNamespaceEnvironmentMarker(marker)
 	}
 	switch marker.Kind {
 	case "conda":

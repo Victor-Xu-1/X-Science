@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	"x-science/internal/agentruntime"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func TestArtifactReferenceCorrectionCarriesOnlyTrustedScientificEvidenceReceipt(t *testing.T) {

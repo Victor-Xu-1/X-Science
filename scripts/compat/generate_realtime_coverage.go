@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"synon-go/internal/compat/contracts"
-	"synon-go/internal/realtime"
+	"x-science/internal/compat/contracts"
+	"x-science/internal/realtime"
 )
 
 type coverageManifest struct {

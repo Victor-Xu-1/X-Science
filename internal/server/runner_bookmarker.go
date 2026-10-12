@@ -15,10 +15,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"synon-go/internal/agentruntime"
-	sessionstore "synon-go/internal/persistence/sessions"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/providers"
+	"x-science/internal/agentruntime"
+	sessionstore "x-science/internal/persistence/sessions"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/providers"
 )
 
 const (
@@ -323,7 +323,7 @@ func (s *Server) persistSessionBookmarkerSubmission(
 			return resolveErr
 		}
 		annotationID := uuid.NewSHA1(uuid.NameSpaceOID, []byte(strings.Join([]string{
-			"synon-bookmark-v1", rootFrameID, hex.EncodeToString(candidateDigest[:]), strconv.Itoa(reviewIndex),
+			"x-science-bookmark-v1", rootFrameID, hex.EncodeToString(candidateDigest[:]), strconv.Itoa(reviewIndex),
 			strconv.Itoa(target.messageIndex), bookmark.Quote, bookmark.Label,
 		}, "\x00"))).String()
 		if _, duplicate := existingIDs[annotationID]; duplicate {

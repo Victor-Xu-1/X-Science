@@ -1,5 +1,5 @@
 import type { TFunction } from 'i18next';
-import type { SynonBiomedLlmProviderTemplate } from '@/renderer/services/synonBiomedLlm';
+import type { XScienceLlmProviderTemplate } from '@/renderer/services/xScienceLlm';
 
 export type NumericOption = { value: number; labelKey: string };
 
@@ -32,19 +32,15 @@ const LOCAL_PROVIDER_LABEL_KEYS: Partial<Record<string, string>> = {
   vllm: 'settings.modelsProviderVllmSelfHosted',
 };
 
-export function modelProviderLabel(
-  provider: string,
-  templates: SynonBiomedLlmProviderTemplate[],
-  t: TFunction
-): string {
+export function modelProviderLabel(provider: string, templates: XScienceLlmProviderTemplate[], t: TFunction): string {
   const labelKey = LOCAL_PROVIDER_LABEL_KEYS[provider.toLowerCase()];
   if (labelKey) return t(labelKey);
   return templates.find((template) => template.provider.toLowerCase() === provider.toLowerCase())?.label || provider;
 }
 
 export function localizeProviderTemplate(
-  template: SynonBiomedLlmProviderTemplate,
+  template: XScienceLlmProviderTemplate,
   t: TFunction
-): SynonBiomedLlmProviderTemplate {
+): XScienceLlmProviderTemplate {
   return { ...template, label: modelProviderLabel(template.provider, [template], t) };
 }

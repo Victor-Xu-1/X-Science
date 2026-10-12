@@ -22,7 +22,7 @@ describe('conversation scroll target model', () => {
       isUserTaskMessage(
         message({
           position: 'right',
-          content: { content: '', synonBiomed: { messageIndex: 3, blockIndex: 1, branchId: null } },
+          content: { content: '', xScience: { messageIndex: 3, blockIndex: 1, branchId: null } },
         })
       )
     ).toBe(false);

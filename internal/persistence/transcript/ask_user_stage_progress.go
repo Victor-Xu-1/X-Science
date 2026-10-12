@@ -43,7 +43,7 @@ func normalizeAskUserStageProgress(value any) (*AskUserStageProgressV1, error) {
 	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
 		return nil, errors.New("AskUser stage progress is invalid")
 	}
-	if progress.Schema != "synon.plan_stage_progress.v1" ||
+	if progress.Schema != "x-science.plan_stage_progress.v1" ||
 		progress.PlanArtifactID == "" || len(progress.PlanArtifactID) > 128 ||
 		strings.TrimSpace(progress.PlanArtifactID) != progress.PlanArtifactID ||
 		progress.PlanVersionID == "" || len(progress.PlanVersionID) > 128 ||

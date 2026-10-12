@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"synon-go/internal/tools/fileevents"
-	"synon-go/internal/tools/fileops"
+	"x-science/internal/tools/fileevents"
+	"x-science/internal/tools/fileops"
 )
 
 func (s *Server) handleWebFSTemp(w http.ResponseWriter, r *http.Request, userID string) {

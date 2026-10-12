@@ -472,9 +472,9 @@ const createDockingLigandBondShapeProvider = (data: DockingLigandShapeData) => (
   geometryUtils: Cylinders.Utils,
 });
 
-const DockingLigandShapeTransform = StateTransformer.builderFactory('synon-biomed');
+const DockingLigandShapeTransform = StateTransformer.builderFactory('x-science');
 
-export const SynonBiomedDockingLigandAtoms = DockingLigandShapeTransform({
+export const XScienceDockingLigandAtoms = DockingLigandShapeTransform({
   name: 'docking-ligand-atoms',
   display: { name: 'Active docking ligand atoms' },
   from: PluginStateObject.Root,
@@ -496,7 +496,7 @@ export const SynonBiomedDockingLigandAtoms = DockingLigandShapeTransform({
   },
 });
 
-export const SynonBiomedDockingLigandBonds = DockingLigandShapeTransform({
+export const XScienceDockingLigandBonds = DockingLigandShapeTransform({
   name: 'docking-ligand-bonds',
   display: { name: 'Active docking ligand bonds' },
   from: PluginStateObject.Root,

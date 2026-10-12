@@ -9,7 +9,7 @@ const { uploadAttachmentMock } = vi.hoisted(() => ({
 }));
 
 vi.mock('@/renderer/services/onboardingService', () => ({
-  uploadSynonBiomedProjectAttachment: (...args: unknown[]) => uploadAttachmentMock(...args),
+  uploadXScienceProjectAttachment: (...args: unknown[]) => uploadAttachmentMock(...args),
 }));
 
 describe('useAcpComposerContextSelection browser attachments', () => {

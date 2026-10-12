@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"synon-go/internal/subprocess"
+	"x-science/internal/subprocess"
 )
 
 const (
@@ -30,12 +30,12 @@ func buildMCPEnvironment(layers ...map[string]string) ([]string, error) {
 
 func trustedMCPEnvironment(config ServerConfig, layers ...map[string]string) map[string]string {
 	environment := map[string]string{
-		"PYTHONDONTWRITEBYTECODE": "1",
-		"SYNON_MCP_X509_STRICT":   "1",
+		"PYTHONDONTWRITEBYTECODE":   "1",
+		"X_SCIENCE_MCP_X509_STRICT": "1",
 	}
 	if config.TrustedTLS != nil {
 		if !config.TrustedTLS.Strict {
-			environment["SYNON_MCP_X509_STRICT"] = "0"
+			environment["X_SCIENCE_MCP_X509_STRICT"] = "0"
 		}
 		if bundle := strings.TrimSpace(config.TrustedTLS.CABundle); bundle != "" {
 			bundle = filepath.Clean(bundle)

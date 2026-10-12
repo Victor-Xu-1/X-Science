@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	compute "synon-go/internal/compute"
-	workspace "synon-go/internal/persistence/workspace"
+	compute "x-science/internal/compute"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestComputeWorkbenchHTTPContractsAndOwnerIsolation(t *testing.T) {
@@ -97,7 +97,8 @@ func TestComputeWorkbenchHTTPContractsAndOwnerIsolation(t *testing.T) {
 	if localFiles["resolvedPath"] != localRoot || len(localFiles["entries"].([]any)) != 1 {
 		t.Fatalf("local files=%#v", localFiles)
 	}
-	downloadRequest := httptest.NewRequest(http.MethodGet, "/api/compute/local/download?path="+url.QueryEscape(filepath.Join(localRoot, "fixture.txt")), nil)
+	downloadRequest := newLoopbackTestRequest(http.MethodGet, "/api/compute/local/download?path="+url.QueryEscape(filepath.Join(localRoot, "fixture.txt")), nil)
+	downloadRequest.Header.Set("X-Science-User-Id", "owner-a")
 	downloadRequest.Header.Set("Range", "bytes=1-3")
 	downloadResponse := httptest.NewRecorder()
 	mux.ServeHTTP(downloadResponse, downloadRequest)
@@ -360,7 +361,7 @@ func requestComputeWithHeaders(t *testing.T, handler http.Handler, method, path 
 		reader = strings.NewReader(string(raw))
 	}
 	request := newLoopbackTestRequest(method, path, reader)
-	request.Header.Set("X-Synon-User-Id", user)
+	request.Header.Set("X-Science-User-Id", user)
 	for key, value := range headers {
 		request.Header.Set(key, value)
 	}

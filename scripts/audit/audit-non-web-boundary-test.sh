@@ -16,8 +16,8 @@ mkdir -p "$FIXTURE/docs" "$FIXTURE/frontend/node_modules/example" \
   "$FIXTURE/frontend/out" \
   "$FIXTURE/scripts/audit" \
   "$FIXTURE/scripts/dev" \
-  "$FIXTURE/skills/synonbiomed/skill-creator/assets" \
-  "$FIXTURE/skills/synonbiomed/skill-creator/eval-viewer"
+  "$FIXTURE/skills/x-science/skill-creator/assets" \
+  "$FIXTURE/skills/x-science/skill-creator/eval-viewer"
 cp "$ROOT_DIR/docs/non-web-asset-boundary.json" "$FIXTURE/docs/non-web-asset-boundary.json"
 mkdir -p "$FIXTURE/docs/licenses/frontend-dependencies/jszip@3.10.1/lib"
 printf '/*! preserved license */\n' >"$FIXTURE/docs/licenses/frontend-dependencies/jszip@3.10.1/lib/license_header.js"
@@ -32,12 +32,28 @@ printf 'export {};\n' >"$FIXTURE/scripts/generate-conda-runtime-lock.mjs"
 printf 'export {};\n' >"$FIXTURE/scripts/generate-conda-runtime-lock.test.mjs"
 printf 'export {};\n' >"$FIXTURE/scripts/conda-lock-source.mjs"
 printf 'export {};\n' >"$FIXTURE/scripts/conda-lock-source.test.mjs"
+mkdir -p "$FIXTURE/scripts/packaging" "$FIXTURE/assets/x-science-link"
+printf 'export {};\n' >"$FIXTURE/scripts/packaging/test_connector_namespace.mjs"
+cp -R "$ROOT_DIR/assets/x-science-link/source" "$FIXTURE/assets/x-science-link/source"
 printf '<html></html>\n' \
-  >"$FIXTURE/skills/synonbiomed/skill-creator/assets/eval_review.html"
+  >"$FIXTURE/skills/x-science/skill-creator/assets/eval_review.html"
 printf '<html></html>\n' \
-  >"$FIXTURE/skills/synonbiomed/skill-creator/eval-viewer/viewer.html"
+  >"$FIXTURE/skills/x-science/skill-creator/eval-viewer/viewer.html"
 
 bash "$ROOT_DIR/scripts/audit/audit-non-web-boundary.sh" "$FIXTURE" >/dev/null
+
+printf 'execute();\n' >"$FIXTURE/assets/x-science-link/source/unreviewed.js"
+if bash "$ROOT_DIR/scripts/audit/audit-non-web-boundary.sh" "$FIXTURE" >/dev/null 2>&1; then
+  echo "ERROR: boundary audit accepted an unclassified connector source" >&2
+  exit 1
+fi
+rm "$FIXTURE/assets/x-science-link/source/unreviewed.js"
+printf 'unreviewed image\n' >"$FIXTURE/assets/x-science-link/source/unreviewed.png"
+if bash "$ROOT_DIR/scripts/audit/audit-non-web-boundary.sh" "$FIXTURE" >/dev/null 2>&1; then
+  echo "ERROR: boundary audit accepted an unclassified connector binary"
+  exit 1
+fi
+rm "$FIXTURE/assets/x-science-link/source/unreviewed.png"
 
 printf 'execute();\n' >>"$FIXTURE/docs/licenses/frontend-dependencies/jszip@3.10.1/lib/license_header.js"
 if bash "$ROOT_DIR/scripts/audit/audit-non-web-boundary.sh" "$FIXTURE" >/dev/null 2>&1; then

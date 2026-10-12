@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/sciencecapability"
-	"synon-go/internal/skills"
-	"synon-go/internal/toolgateway"
+	"x-science/internal/agentruntime"
+	"x-science/internal/sciencecapability"
+	"x-science/internal/skills"
+	"x-science/internal/toolgateway"
 )
 
 func TestRegisteredExecutionDownloadRequiresExactSelectedPackAuthority(t *testing.T) {

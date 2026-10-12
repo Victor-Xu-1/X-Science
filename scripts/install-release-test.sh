@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ "${SYNON_CLEAN_SOURCE_TEST:-}" != "1" ]]; then
+if [[ "${X_SCIENCE_CLEAN_SOURCE_TEST:-}" != "1" ]]; then
 	exec scripts/run-clean-source-test.sh scripts/install-release-test.sh "$@"
 fi
 
@@ -17,7 +17,7 @@ cleanup() {
 		kill "$runtime_pid" 2>/dev/null || true
 		wait "$runtime_pid" 2>/dev/null || true
 	fi
-	if [[ "$passed" == true || "${SYNON_KEEP_FAILURE_ARTIFACTS:-0}" != "1" ]]; then
+	if [[ "$passed" == true || "${X_SCIENCE_KEEP_FAILURE_ARTIFACTS:-0}" != "1" ]]; then
 		if ! rm -rf -- "$tmp"; then
 			printf 'unable to remove install release test directory: %s\n' "$tmp" >&2 || true
 			cleanup_failed=1
@@ -30,7 +30,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-archive="${SYNON_RELEASE_TEST_ARCHIVE:-}"
+archive="${X_SCIENCE_RELEASE_TEST_ARCHIVE:-}"
 if [[ -z "$archive" ]]; then
 	archive="$(./scripts/package-release.sh "$tmp/out" | tail -n 1)"
 fi
@@ -43,14 +43,14 @@ mkdir -p "$tmp/legacy-package"
 tar -xzf "$archive" -C "$tmp/legacy-package"
 legacy_root="$(find "$tmp/legacy-package" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
 sed -i "s/\"version\": \"${product_version}\"/\"version\": \"4.0.2\"/" "$legacy_root/product-identity.json"
-cat >"$legacy_root/synon-go" <<'EOF'
+cat >"$legacy_root/x-science" <<'EOF'
 #!/usr/bin/env bash
-: >"${SYNON_TEST_MARKER:?}"
+: >"${X_SCIENCE_TEST_MARKER:?}"
 exit 97
 EOF
-chmod +x "$legacy_root/synon-go"
+chmod +x "$legacy_root/x-science"
 tar -C "$tmp/legacy-package" -czf "$tmp/legacy-package.tar.gz" "$(basename "$legacy_root")"
-if SYNON_TEST_MARKER="$tmp/legacy-binary-ran" ./scripts/install-release.sh \
+if X_SCIENCE_TEST_MARKER="$tmp/legacy-binary-ran" ./scripts/install-release.sh \
 	"$tmp/legacy-package.tar.gz" "$tmp/legacy-install" >/dev/null 2>&1; then
 	echo "installer accepted a legacy product identity" >&2
 	exit 1
@@ -85,20 +85,20 @@ fi
 
 ./scripts/install-release.sh "$archive" "$install_dir"
 
-"$install_dir/synon-go" --health-json | grep -Fq "\"version\":\"${product_version}\""
-"$install_dir/synon-go" release-manifest verify --root "$install_dir" | grep -q '"valid": true'
-if "$install_dir/synon-go" tui --help >/dev/null 2>&1; then
+"$install_dir/x-science" --health-json | grep -Fq "\"version\":\"${product_version}\""
+"$install_dir/x-science" release-manifest verify --root "$install_dir" | grep -q '"valid": true'
+if "$install_dir/x-science" tui --help >/dev/null 2>&1; then
   echo "retired TUI command is still available" >&2
   exit 1
 fi
-default_model_plan="$(env -i PATH="$PATH" HOME="$tmp/home" "$install_dir/synon-go" model-smoke --target runner --plan --require-all --json)"
+default_model_plan="$(env -i PATH="$PATH" HOME="$tmp/home" "$install_dir/x-science" model-smoke --target runner --plan --require-all --json)"
 printf '%s' "$default_model_plan" | grep -q '"secretsRedacted": true'
 printf '%s' "$default_model_plan" | grep -q '"provider": "workspace"'
 printf '%s' "$default_model_plan" | grep -q '"status": "skipped_missing_config"'
-env -i PATH="$PATH" HOME="$tmp/home" SYNON_RUNNER_ENABLED=true SYNON_RUNNER_PROVIDER=go_builtin \
-	"$install_dir/synon-go" model-smoke --target runner --run --require-all --json | grep -q '"status": "passed"'
-test -x "$install_dir/synon-go-live-im-smoke"
-env -i PATH="$PATH" HOME="$tmp/home" "$install_dir/synon-go-live-im-smoke" --plan --json | grep -q '"status":"planned"'
+env -i PATH="$PATH" HOME="$tmp/home" X_SCIENCE_RUNNER_ENABLED=true X_SCIENCE_RUNNER_PROVIDER=go_builtin \
+	"$install_dir/x-science" model-smoke --target runner --run --require-all --json | grep -q '"status": "passed"'
+test -x "$install_dir/x-science-live-im-smoke"
+env -i PATH="$PATH" HOME="$tmp/home" "$install_dir/x-science-live-im-smoke" --plan --json | grep -q '"status":"planned"'
 test -f "$install_dir/README.md"
 test -f "$install_dir/LICENSE"
 test -f "$install_dir/.env.example"
@@ -144,9 +144,9 @@ runtime_ready=false
 for port_offset in $(seq 0 31); do
 	runtime_port=$((42000 + ($$ + port_offset) % 10000))
 	: >"$tmp/runtime.log"
-	env -i PATH="$runtime_path" HOME="$tmp/home" XDG_RUNTIME_DIR="$runtime_socket_dir" SYNON_HOME="$runtime_home" \
-		SYNON_ADDRESS="127.0.0.1:$runtime_port" SYNON_RUNNER_ENABLED=false \
-		SYNON_ENABLED_ADAPTERS= "$install_dir/synon-go" serve >"$tmp/runtime.log" 2>&1 &
+	env -i PATH="$runtime_path" HOME="$tmp/home" XDG_RUNTIME_DIR="$runtime_socket_dir" X_SCIENCE_HOME="$runtime_home" \
+		X_SCIENCE_ADDRESS="127.0.0.1:$runtime_port" X_SCIENCE_RUNNER_ENABLED=false \
+		X_SCIENCE_ENABLED_ADAPTERS= "$install_dir/x-science" serve >"$tmp/runtime.log" 2>&1 &
 	runtime_pid=$!
 	for _ in $(seq 1 100); do
 		if /usr/bin/curl --noproxy '*' --fail --silent "http://127.0.0.1:$runtime_port/api/health" >/dev/null 2>&1 && \

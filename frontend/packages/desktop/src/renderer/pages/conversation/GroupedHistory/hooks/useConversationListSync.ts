@@ -451,7 +451,7 @@ const initializeConversationListSyncStore = () => {
     if (changed) emitStoreChange();
     scheduleConversationRefresh();
   });
-  addEventListener('synonbiomed.runtime.reconciled', (conversationId, runtime) => {
+  addEventListener('xscience.runtime.reconciled', (conversationId, runtime) => {
     const nextConversations = reduceConversationTaskStatus(conversationsState, {
       type: 'runtime-reconciled',
       conversationId,

@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	runtimekv "synon-go/internal/persistence/runtimekv"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/toolgateway"
+	"x-science/internal/agentruntime"
+	runtimekv "x-science/internal/persistence/runtimekv"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/toolgateway"
 )
 
 func replayExecutionFailures(projected []transcriptstore.RunnerReplayEvent, toolName string, arguments json.RawMessage) agentruntime.ExecutionFailureLedger {

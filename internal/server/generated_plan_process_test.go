@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/agentruntime"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/skills"
-	"synon-go/internal/toolgateway"
+	"x-science/internal/agentruntime"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/skills"
+	"x-science/internal/toolgateway"
 )
 
 func researchToolSchemaForTest() agentruntime.ToolSchema {
@@ -225,7 +225,7 @@ func TestAutonomousResearchCorrectionKeepsRequiredSourceReadReachable(t *testing
 	}
 	module := mapValue(mapValue(metadata.ContextData["_step_statuses"])["module-1"])
 	module["research_continuation"] = map[string]any{
-		"schema":              "synon.research-source-read.v1",
+		"schema":              "x-science.research-source-read.v1",
 		"reason":              "research_source_read_required",
 		"required":            true,
 		"blocking":            true,
@@ -276,7 +276,7 @@ func TestRepeatedInProgressUpdatePreservesRequiredResearchContinuation(t *testin
 	}
 	module := mapValue(mapValue(metadata.ContextData["_step_statuses"])["module-1"])
 	module["research_continuation"] = map[string]any{
-		"schema": "synon.research-source-read.v1", "required": true, "blocking": true,
+		"schema": "x-science.research-source-read.v1", "required": true, "blocking": true,
 		"reason": "research_source_read_required", "required_capability": "evidence-read",
 		"available_read_targets": []any{map[string]any{"url": "https://evidence.example/source"}},
 	}

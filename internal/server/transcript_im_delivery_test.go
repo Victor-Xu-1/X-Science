@@ -17,10 +17,10 @@ import (
 	"testing"
 	"time"
 
-	adaptercommon "synon-go/internal/adapters/common"
-	adapterfeishu "synon-go/internal/adapters/feishu"
-	"synon-go/internal/persistence/journal"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	adaptercommon "x-science/internal/adapters/common"
+	adapterfeishu "x-science/internal/adapters/feishu"
+	"x-science/internal/persistence/journal"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func TestIMRunnerUsesTranscriptAuthorityAndDeliversThroughReceiptWorker(t *testing.T) {

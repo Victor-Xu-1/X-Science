@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/mcpdirectory"
+	"x-science/internal/mcpdirectory"
 )
 
 type timeoutRoundTripper struct{}
@@ -121,6 +121,7 @@ func (readTimeoutRoundTripper) RoundTrip(request *http.Request) (*http.Response,
 }
 
 func TestFetchReadsRealHTTPServerWithLimit(t *testing.T) {
+	const sourceBody = "X-Science Go rewrite source page"
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/source":
@@ -132,7 +133,7 @@ func TestFetchReadsRealHTTPServerWithLimit(t *testing.T) {
 			return
 		}
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		_, _ = w.Write([]byte("Synon Go rewrite source page"))
+		_, _ = w.Write([]byte(sourceBody))
 	}))
 	defer server.Close()
 
@@ -151,7 +152,7 @@ func TestFetchReadsRealHTTPServerWithLimit(t *testing.T) {
 	if result.URL != server.URL+"/final" {
 		t.Fatalf("URL = %q, want final response URL %q", result.URL, server.URL+"/final")
 	}
-	if result.Body != "Synon Go rewrite source page" {
+	if result.Body != sourceBody {
 		t.Fatalf("Body = %q", result.Body)
 	}
 	truncated, err := FetchWithOptions(context.Background(), server.URL+"/final", 10, Options{
@@ -160,8 +161,8 @@ func TestFetchReadsRealHTTPServerWithLimit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("bounded truncated read error = %v", err)
 	}
-	if truncated.Body != "Synon Go r" || !truncated.Truncated || truncated.BytesRead != 10 ||
-		truncated.ContentLength != int64(len("Synon Go rewrite source page")) || truncated.Binary {
+	if truncated.Body != sourceBody[:10] || !truncated.Truncated || truncated.BytesRead != 10 ||
+		truncated.ContentLength != int64(len(sourceBody)) || truncated.Binary {
 		t.Fatalf("truncated text result = %#v", truncated)
 	}
 	if envelope := truncated.ToolResultEnvelope(); envelope["partial"] != true || envelope["sourceUnavailable"] == true {

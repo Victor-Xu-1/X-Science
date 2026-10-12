@@ -212,6 +212,13 @@ func (s *Store) CompleteRoutineTickRealtime(ctx context.Context, claim Routine, 
 }
 
 func (s *Store) enqueueRoutineRealtimeTx(ctx context.Context, tx *sql.Tx, routine Routine, action, eventID string) error {
+	if eventID == routineRealtimeEventID(routine, action) {
+		var err error
+		eventID, err = s.resolveHistoricalRealtimeIdentity(ctx, tx, eventID, historicalRoutineRealtimeEventID(routine, action))
+		if err != nil {
+			return err
+		}
+	}
 	frameContext, found, err := s.GetFrameRealtimeContextOutboxTx(ctx, tx, routine.RootFrameID)
 	if err != nil {
 		return err
@@ -232,7 +239,7 @@ func (s *Store) enqueueRoutineRealtimeTx(ctx context.Context, tx *sql.Tx, routin
 }
 
 func routineRealtimeEventID(routine Routine, action string) string {
-	digest := sha256.Sum256([]byte(fmt.Sprintf("synon-routine-realtime-v1\x00%s\x00%d\x00%s", routine.ID, routine.ClaimGeneration, action)))
+	digest := sha256.Sum256([]byte(fmt.Sprintf("x-science-routine-realtime-v1\x00%s\x00%d\x00%s", routine.ID, routine.ClaimGeneration, action)))
 	return fmt.Sprintf("routine:%x", digest)
 }
 

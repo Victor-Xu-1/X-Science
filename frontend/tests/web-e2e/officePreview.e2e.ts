@@ -5,7 +5,7 @@ import {
   seedEncodedOfficeArtifact,
   type OfficePreviewFixture,
 } from './officePreviewFixtures';
-import { appendSynonGoAssistantMessage, beginSynonGoTranscriptStream } from './synonGoFrameFixture';
+import { appendXScienceGoAssistantMessage, beginXScienceGoTranscriptStream } from './xscienceGoFrameFixture';
 import {
   createScientificWorkspace,
   csrfHeaders,
@@ -14,7 +14,7 @@ import {
   removeScientificWorkspace,
   showArtifactReferenceAssistantMessage,
   uploadScientificArtifact,
-} from './synonBiomedScientificFixture';
+} from './xScienceScientificFixture';
 
 test.use({ viewport: { width: 1440, height: 960 } });
 const pdfjsVersion = pdfPackage.version;
@@ -167,7 +167,7 @@ test('opens blue bold generated-file links in app without remote navigation or d
   page.on('download', (download) => downloads.push(download.suggestedFilename()));
   page.on('popup', (popup) => popups.push(popup.url()));
   // An incorrect implementation must fail without contacting a public host.
-  await page.route('https://synon.bio/**', (route) => {
+  await page.route('https://x-science.bio/**', (route) => {
     remoteRequests.push(route.request().url());
     return route.abort();
   });
@@ -188,14 +188,14 @@ test('opens blue bold generated-file links in app without remote navigation or d
       links.push({
         label: `${fixture.filename} (absolute)`,
         markdownLabel: `${fixture.filename} (absolute)`,
-        url: `https://synon.bio${artifactPath}?download=1`,
+        url: `https://x-science.bio${artifactPath}?download=1`,
         kind: fixture.kind,
       });
     }
-    const stream = beginSynonGoTranscriptStream(workspace.conversationId);
+    const stream = beginXScienceGoTranscriptStream(workspace.conversationId);
     await page.goto(`/#/conversation/${workspace.conversationId}`, { waitUntil: 'domcontentloaded' });
     await expect(page.getByTestId('message-list-scroller')).toBeVisible();
-    appendSynonGoAssistantMessage(stream, links.map((link) => `[${link.markdownLabel}](${link.url})`).join('\n\n'));
+    appendXScienceGoAssistantMessage(stream, links.map((link) => `[${link.markdownLabel}](${link.url})`).join('\n\n'));
     const initialPageCount = page.context().pages().length;
     for (const link of links) {
       const control = page.getByRole('link', { name: link.label, exact: true });
@@ -230,7 +230,7 @@ test('opens escaped artifact identities at the exact historical version after re
   page.on('pageerror', (error) => pageErrors.push(error.message));
   page.on('download', (download) => downloads.push(download.suggestedFilename()));
   page.on('popup', (popup) => popups.push(popup.url()));
-  await page.route('https://synon.bio/**', (route) => {
+  await page.route('https://x-science.bio/**', (route) => {
     remoteRequests.push(route.request().url());
     return route.abort();
   });
@@ -256,14 +256,14 @@ test('opens escaped artifact identities at the exact historical version after re
         contentResponses.push({ path, status: response.status() });
       }
     });
-    const stream = beginSynonGoTranscriptStream(workspace.conversationId);
+    const stream = beginXScienceGoTranscriptStream(workspace.conversationId);
     await page.goto(`/#/conversation/${workspace.conversationId}`, { waitUntil: 'domcontentloaded' });
     await expect(page.getByTestId('message-list-scroller')).toBeVisible();
-    appendSynonGoAssistantMessage(
+    appendXScienceGoAssistantMessage(
       stream,
       [
         `[**\`${artifact.filename}\`** (relative)](${exactPath})`,
-        `[**\`${artifact.filename}\`** (absolute)](https://synon.bio${exactPath}?download=1)`,
+        `[**\`${artifact.filename}\`** (absolute)](https://x-science.bio${exactPath}?download=1)`,
       ].join('\n\n')
     );
     const initialPageCount = page.context().pages().length;

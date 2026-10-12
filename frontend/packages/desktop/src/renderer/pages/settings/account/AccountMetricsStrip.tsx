@@ -1,11 +1,11 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import type { SynonBiomedAccountInsights } from '@/renderer/services/account/accountInsightsModel';
+import type { XScienceAccountInsights } from '@/renderer/services/account/accountInsightsModel';
 import { SettingsGeneratedIcon, type SettingsGeneratedIconId } from '../components/SettingsGeneratedAsset';
 import './AccountMetricsStrip.css';
 
 type AccountMetricsStripProps = {
-  insights: SynonBiomedAccountInsights | null;
+  insights: XScienceAccountInsights | null;
   loading: boolean;
 };
 

@@ -23,9 +23,9 @@ describe('onboarding draft', () => {
   });
 
   it('fails closed and removes malformed drafts', () => {
-    window.localStorage.setItem('synonbiomed.onboarding.draft.v1:owner-a', '{');
+    window.localStorage.setItem('xscience.onboarding.draft.v1:owner-a', '{');
     expect(loadOnboardingDraft('owner-a')).toBeNull();
-    expect(window.localStorage.getItem('synonbiomed.onboarding.draft.v1:owner-a')).toBeNull();
+    expect(window.localStorage.getItem('xscience.onboarding.draft.v1:owner-a')).toBeNull();
   });
 
   it('clears only the completed owner draft', () => {

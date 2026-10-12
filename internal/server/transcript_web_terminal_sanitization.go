@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func (s *Server) publicTranscriptTerminalProjection(

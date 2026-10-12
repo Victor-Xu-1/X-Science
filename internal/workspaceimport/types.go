@@ -1,15 +1,17 @@
 package workspaceimport
 
+import workspace "x-science/internal/persistence/workspace"
+
 const (
 	PlanVersion               = 1
-	WorkspaceDatabaseRelative = "workspace/synonbiomed-v1.1.sqlite"
+	WorkspaceDatabaseRelative = workspace.DatabaseRelativePath
 	stagingWorkingSpaceBytes  = int64(64 << 20)
 )
 
 type SourceKind string
 
 const (
-	SourceKindCurrent SourceKind = "synon-workspace"
+	SourceKindCurrent SourceKind = "x-science-workspace"
 	SourceKindV11     SourceKind = "claude-science-v1.1"
 	SourceKindUnknown SourceKind = "unknown"
 )

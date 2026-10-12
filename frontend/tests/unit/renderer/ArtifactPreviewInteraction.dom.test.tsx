@@ -8,8 +8,8 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ArtifactPreview from '@/renderer/pages/artifact/ArtifactPreview';
-import type { SynonBiomedProjectArtifact } from '@/renderer/services/synonBiomedGateway';
-import type { SynonBiomedArtifactCanvasSelection } from '@/renderer/pages/artifact/artifactCanvasSelection';
+import type { XScienceProjectArtifact } from '@/renderer/services/xScienceGateway';
+import type { XScienceArtifactCanvasSelection } from '@/renderer/pages/artifact/artifactCanvasSelection';
 import { renderWithI18n } from '../i18nTestUtils';
 
 const state = vi.hoisted(() => ({
@@ -46,39 +46,39 @@ vi.mock('@/common/config/configService', () => ({
     subscribe: () => () => {},
   },
 }));
-vi.mock('@/renderer/services/synonBiomedGateway', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/renderer/services/synonBiomedGateway')>()),
-  loadSynonBiomedArtifact: state.load,
-  loadSynonBiomedProjectArtifacts: state.related,
-  loadSynonBiomedProjectFolders: state.folders,
-  loadSynonBiomedProject: state.project,
-  loadSynonBiomedLinkedTask: state.task,
+vi.mock('@/renderer/services/xScienceGateway', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/renderer/services/xScienceGateway')>()),
+  loadXScienceArtifact: state.load,
+  loadXScienceProjectArtifacts: state.related,
+  loadXScienceProjectFolders: state.folders,
+  loadXScienceProject: state.project,
+  loadXScienceLinkedTask: state.task,
 }));
-vi.mock('@/renderer/services/synonBiomedArtifacts', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/renderer/services/synonBiomedArtifacts')>()),
-  loadSynonBiomedArtifactVersions: state.versions,
-  loadSynonBiomedArtifactLineage: state.lineage,
-  copySynonBiomedArtifact: state.copy,
-  moveSynonBiomedArtifact: state.move,
+vi.mock('@/renderer/services/xScienceArtifacts', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/renderer/services/xScienceArtifacts')>()),
+  loadXScienceArtifactVersions: state.versions,
+  loadXScienceArtifactLineage: state.lineage,
+  copyXScienceArtifact: state.copy,
+  moveXScienceArtifact: state.move,
 }));
-vi.mock('@/renderer/services/synonBiomedWorkspaceSettings', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/renderer/services/synonBiomedWorkspaceSettings')>()),
-  loadSynonBiomedCloudCredentials: state.credentials,
-  loadSynonBiomedCloudBuckets: state.buckets,
-  exportSynonBiomedArtifactToCloud: state.export,
+vi.mock('@/renderer/services/xScienceWorkspaceSettings', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/renderer/services/xScienceWorkspaceSettings')>()),
+  loadXScienceCloudCredentials: state.credentials,
+  loadXScienceCloudBuckets: state.buckets,
+  exportXScienceArtifactToCloud: state.export,
 }));
-vi.mock('@/renderer/services/synonBiomedAnnotations', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/renderer/services/synonBiomedAnnotations')>()),
-  loadSynonBiomedArtifactAnnotations: async () => ({ currentChecksum: null, annotations: [] }),
-  suggestSynonBiomedArtifactEdit: state.suggest,
-  applySynonBiomedArtifactEdit: state.apply,
+vi.mock('@/renderer/services/xScienceAnnotations', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/renderer/services/xScienceAnnotations')>()),
+  loadXScienceArtifactAnnotations: async () => ({ currentChecksum: null, annotations: [] }),
+  suggestXScienceArtifactEdit: state.suggest,
+  applyXScienceArtifactEdit: state.apply,
 }));
-vi.mock('@/renderer/pages/artifact/SynonBiomedTextArtifactViewer', () => ({
+vi.mock('@/renderer/pages/artifact/XScienceTextArtifactViewer', () => ({
   default: ({
     onSelectionChange,
     contentUrl,
   }: {
-    onSelectionChange: (selection: SynonBiomedArtifactCanvasSelection) => void;
+    onSelectionChange: (selection: XScienceArtifactCanvasSelection) => void;
     contentUrl: string;
   }) => (
     <>
@@ -104,13 +104,13 @@ vi.mock('@/renderer/pages/artifact/SynonBiomedTextArtifactViewer', () => ({
     </>
   ),
 }));
-vi.mock('@/renderer/pages/artifact/SynonBiomedLatexArtifactViewer', () => ({
+vi.mock('@/renderer/pages/artifact/XScienceLatexArtifactViewer', () => ({
   default: ({ resourceUrls }: { resourceUrls: Record<string, string> }) => (
     <output data-testid='latex-resource-keys'>{Object.keys(resourceUrls).join(',')}</output>
   ),
 }));
 
-function artifact(id: string, versionNumber = 1): SynonBiomedProjectArtifact {
+function artifact(id: string, versionNumber = 1): XScienceProjectArtifact {
   return {
     artifactId: id,
     versionId: `${id}-v${versionNumber}`,
@@ -516,7 +516,7 @@ describe('Artifact preview interaction ownership', () => {
   it('preserves an external focus destination while an empty related recovery finishes', async () => {
     state.related.mockRejectedValueOnce(new Error('fixture related-file failure'));
     await renderPage();
-    const pending = deferred<SynonBiomedProjectArtifact[]>();
+    const pending = deferred<XScienceProjectArtifact[]>();
     state.related.mockReturnValueOnce(pending.promise);
     fireEvent.click(await screen.findByRole('button', { name: 'Retry Related files' }));
     const destination = screen.getByRole('button', { name: 'Export to cloud storage' });
@@ -602,7 +602,7 @@ describe('Artifact preview interaction ownership', () => {
   });
 
   it('announces the loading page without presenting a false empty result', async () => {
-    const pending = deferred<SynonBiomedProjectArtifact>();
+    const pending = deferred<XScienceProjectArtifact>();
     state.load.mockReturnValueOnce(pending.promise);
     const view = await renderWithI18n(<ArtifactPreview />, 'en-US');
     expect(await screen.findByRole('status')).toHaveTextContent('Please wait...');
@@ -620,7 +620,7 @@ describe('Artifact preview interaction ownership', () => {
     state.load.mockRejectedValueOnce(new Error('fixture first failure'));
     const view = await renderWithI18n(<ArtifactPreview />, 'en-US');
     const retry = await screen.findByRole('button', { name: 'Retry', exact: true });
-    const pending = deferred<SynonBiomedProjectArtifact>();
+    const pending = deferred<XScienceProjectArtifact>();
     state.load.mockReturnValueOnce(pending.promise);
     fireEvent.click(retry);
     state.artifactId = 'artifact-2';
@@ -768,7 +768,7 @@ describe('Artifact preview interaction ownership', () => {
   });
 
   it('does not overwrite another artifact when a saved-version display read finishes late', async () => {
-    const pending = deferred<SynonBiomedProjectArtifact>();
+    const pending = deferred<XScienceProjectArtifact>();
     const view = await renderPage();
     await openRefinement();
     state.load.mockImplementationOnce(() => pending.promise);
@@ -787,7 +787,7 @@ describe('Artifact preview interaction ownership', () => {
   });
 
   it('keeps a user-selected historical version when a prior saved-version read finishes', async () => {
-    const pending = deferred<SynonBiomedProjectArtifact>();
+    const pending = deferred<XScienceProjectArtifact>();
     await renderPage();
     await openRefinement();
     state.load.mockImplementationOnce(() => pending.promise);

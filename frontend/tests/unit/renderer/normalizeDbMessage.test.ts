@@ -172,7 +172,7 @@ describe('normalizeDbMessage', () => {
     expect(normalized.content.error).toEqual({
       message: 'The current Agent failed to run in this workspace path',
       code: 'WORKSPACE_PATH_RUNTIME_UNAVAILABLE',
-      ownership: 'synon-ai',
+      ownership: 'x-science',
       detail: '/Users/zhoukai/Documents/Archive . Make sure the workspace path exists and is accessible.',
       workspacePath: '/Users/zhoukai/Documents/Archive ',
       retryable: false,

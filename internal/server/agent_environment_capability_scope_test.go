@@ -5,9 +5,9 @@ import (
 	"reflect"
 	"testing"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/compute"
-	"synon-go/internal/skills"
+	"x-science/internal/agentruntime"
+	"x-science/internal/compute"
+	"x-science/internal/skills"
 )
 
 func TestManagedEnvironmentPreflightCapabilitiesBelongToRequestedImplementation(t *testing.T) {

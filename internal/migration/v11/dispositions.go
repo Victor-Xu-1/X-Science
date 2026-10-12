@@ -104,6 +104,9 @@ func planTableDispositions(sourceCounts map[string]int64) (map[string]TableDispo
 }
 
 func archivedTableName(source string) string {
+	if source == "synon_llm_api_keys" {
+		return "legacy_v11_x_science_llm_api_keys"
+	}
 	return "legacy_v11_" + source
 }
 

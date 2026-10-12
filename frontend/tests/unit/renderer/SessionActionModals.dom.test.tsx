@@ -1,6 +1,6 @@
 import { fireEvent, screen } from '@testing-library/react';
 import type { TChatConversation } from '@/common/config/storage';
-import type { SynonBiomedProject } from '@/renderer/services/synonBiomedGateway';
+import type { XScienceProject } from '@/renderer/services/xScienceGateway';
 import React from 'react';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { renderWithI18n } from '../i18nTestUtils';
@@ -30,10 +30,10 @@ const conversation: TChatConversation = {
   created_at: 1,
   modified_at: 1,
   status: 'finished',
-  extra: { backend: 'synonbiomed', project_id: 'project-a' },
+  extra: { backend: 'xscience', project_id: 'project-a' },
 };
 
-const projects: SynonBiomedProject[] = [
+const projects: XScienceProject[] = [
   {
     projectId: 'project-a',
     name: 'Current project',

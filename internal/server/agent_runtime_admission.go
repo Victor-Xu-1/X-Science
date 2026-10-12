@@ -6,8 +6,8 @@ import (
 	"errors"
 	"path/filepath"
 	"strings"
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/toolcontract"
+	"x-science/internal/agentruntime"
+	"x-science/internal/toolcontract"
 )
 
 func (g serverAgentRuntimeToolGateway) AdmitsToolCall(call agentruntime.ToolCall) bool {
@@ -255,7 +255,7 @@ func agentRuntimeUnresolvedSkillDirectoryPreflight(publicName string, input map[
 	}, "\n")
 	unresolved := false
 	for _, marker := range []string{
-		"${SYNON_SKILL_DIR}", "$SYNON_SKILL_DIR/", `$SYNON_SKILL_DIR\`, "%SYNON_SKILL_DIR%",
+		"${X_SCIENCE_SKILL_DIR}", "$X_SCIENCE_SKILL_DIR/", `$X_SCIENCE_SKILL_DIR\`, "%X_SCIENCE_SKILL_DIR%",
 	} {
 		if strings.Contains(content, marker) {
 			unresolved = true
@@ -264,7 +264,7 @@ func agentRuntimeUnresolvedSkillDirectoryPreflight(publicName string, input map[
 	}
 	if !unresolved {
 		for _, token := range managedExecutionCommandTokens(content) {
-			if strings.HasPrefix(filepath.ToSlash(strings.TrimSpace(token)), "/.synon/runtime/skills/") {
+			if strings.HasPrefix(filepath.ToSlash(strings.TrimSpace(token)), "/.x-science/runtime/skills/") {
 				unresolved = true
 				break
 			}

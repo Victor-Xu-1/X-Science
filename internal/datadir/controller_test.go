@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	runtimecontrol "synon-go/internal/runtimecontrol"
+	runtimecontrol "x-science/internal/runtimecontrol"
 )
 
 func TestControllerStagesAppliesAndClearsMigration(t *testing.T) {

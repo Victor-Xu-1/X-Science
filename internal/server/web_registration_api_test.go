@@ -92,11 +92,11 @@ func TestWebAccountStoreSerializesConcurrentRegistration(t *testing.T) {
 	}
 }
 
-func TestWebRegistrationAPIIsDurableAndDoesNotExpandSynonLinkLogin(t *testing.T) {
+func TestWebRegistrationAPIIsDurableAndDoesNotExpandXScienceLinkLogin(t *testing.T) {
 	root := t.TempDir()
 	options := Options{
 		FileRoot: root,
-		SynonLinkAuth: SynonLinkAuthOptions{
+		XScienceLinkAuth: XScienceLinkAuthOptions{
 			Username: "operator", Password: "test-secret-password", UserID: "bootstrap-user",
 		},
 	}
@@ -170,15 +170,15 @@ func TestWebRegistrationAPIIsDurableAndDoesNotExpandSynonLinkLogin(t *testing.T)
 	linkResponse := httptest.NewRecorder()
 	restarted.Handler().ServeHTTP(linkResponse, linkLogin)
 	if linkResponse.Code != http.StatusUnauthorized {
-		t.Fatalf("registered account expanded Synon Link login: status=%d body=%s", linkResponse.Code, linkResponse.Body.String())
+		t.Fatalf("registered account expanded XScience Link login: status=%d body=%s", linkResponse.Code, linkResponse.Body.String())
 	}
 }
 
 func TestWebRegistrationRejectsDuplicateInvalidCrossOriginAndCorruptStore(t *testing.T) {
 	root := t.TempDir()
 	options := Options{
-		FileRoot:      root,
-		SynonLinkAuth: SynonLinkAuthOptions{Username: "operator", Password: "test-secret-password"},
+		FileRoot:         root,
+		XScienceLinkAuth: XScienceLinkAuthOptions{Username: "operator", Password: "test-secret-password"},
 	}
 	app := New(options)
 	request := func(body string) *httptest.ResponseRecorder {
@@ -204,9 +204,9 @@ func TestWebRegistrationRejectsDuplicateInvalidCrossOriginAndCorruptStore(t *tes
 		t.Fatalf("cross-origin status=%d body=%s", crossResponse.Code, crossResponse.Body.String())
 	}
 	remoteApp := New(Options{
-		FileRoot:      t.TempDir(),
-		SynonLinkAuth: options.SynonLinkAuth,
-		WebAuth:       WebAuthOptions{PublicBaseURL: "https://biomed.example"},
+		FileRoot:         t.TempDir(),
+		XScienceLinkAuth: options.XScienceLinkAuth,
+		WebAuth:          WebAuthOptions{PublicBaseURL: "https://biomed.example"},
 	})
 	remote := httptest.NewRequest(http.MethodPost, "https://biomed.example/api/auth/register", strings.NewReader(`{"name":"Remote","password":"password-123"}`))
 	remote.RemoteAddr = "203.0.113.8:12345"

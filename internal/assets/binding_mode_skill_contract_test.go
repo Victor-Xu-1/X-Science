@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/skills"
+	"x-science/internal/skills"
 )
 
 func TestBindingModeSkillUsesOneValidatedCoordinateDownload(t *testing.T) {
@@ -17,7 +17,7 @@ func TestBindingModeSkillUsesOneValidatedCoordinateDownload(t *testing.T) {
 		t.Fatal("locate repository root")
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
-	skillPath := filepath.Join(repositoryRoot, "skills", "synonbiomed", "binding-mode-analysis", "SKILL.md")
+	skillPath := filepath.Join(repositoryRoot, "skills", "x-science", "binding-mode-analysis", "SKILL.md")
 	content, err := os.ReadFile(skillPath)
 	if err != nil {
 		t.Fatal(err)

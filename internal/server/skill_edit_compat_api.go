@@ -16,12 +16,15 @@ import (
 	"github.com/google/uuid"
 	"gopkg.in/yaml.v3"
 
-	"synon-go/internal/skills"
+	"x-science/internal/skills"
 )
 
 var errCompatibilitySkillReadOnly = errors.New("skill is read-only")
 
 func (s *Server) handleCompatibilitySkillMutation(w http.ResponseWriter, r *http.Request) {
+	if !s.requireHostOperator(w, r) {
+		return
+	}
 	segments := workspacePathSegments(strings.TrimPrefix(r.URL.Path, "/api/skills/"))
 	if len(segments) < 1 || len(segments) > 2 {
 		writeV11Detail(w, http.StatusNotFound, "Skill endpoint not found")
@@ -360,16 +363,29 @@ func compatibilitySkillManifest(skill skills.Skill, name string) ([]byte, error)
 }
 
 func rewriteCompatibilitySkillManifestName(path, name string) error {
-	raw, err := os.ReadFile(path)
+	directory, err := os.OpenRoot(filepath.Dir(path))
 	if err != nil {
 		return err
+	}
+	defer directory.Close()
+	source, err := openRegularWorkspaceRootFile(directory, filepath.Base(path))
+	if err != nil {
+		return err
+	}
+	raw, readErr := io.ReadAll(io.LimitReader(source, maxSkillArchiveBytes+1))
+	err = errors.Join(readErr, source.Close())
+	if err != nil {
+		return err
+	}
+	if len(raw) > maxSkillArchiveBytes {
+		return errors.New("skill manifest is too large")
 	}
 	if !utf8.Valid(raw) || bytes.IndexByte(raw, 0) >= 0 {
 		return errors.New("skill manifest is not valid UTF-8 text")
 	}
 	text := strings.ReplaceAll(string(raw), "\r\n", "\n")
 	if !strings.HasPrefix(text, "---\n") {
-		return writeSkillFileAtomic(path, []byte("---\nname: "+name+"\n---\n\n"+text), false)
+		return writeSkillFileAtomic(directory, filepath.Base(path), []byte("---\nname: "+name+"\n---\n\n"+text), false)
 	}
 	closing := strings.Index(text[4:], "\n---")
 	if closing < 0 {
@@ -405,7 +421,7 @@ func rewriteCompatibilitySkillManifestName(path, name string) error {
 	if err != nil {
 		return err
 	}
-	return writeSkillFileAtomic(path, []byte("---\n"+strings.TrimSpace(string(encoded))+"\n---\n"+body), false)
+	return writeSkillFileAtomic(directory, filepath.Base(path), []byte("---\n"+strings.TrimSpace(string(encoded))+"\n---\n"+body), false)
 }
 
 func (s *Server) editCompatibilitySkillFile(name, relativePath, oldString, newString string) (string, string, error) {
@@ -417,6 +433,14 @@ func (s *Server) editCompatibilitySkillFile(name, relativePath, oldString, newSt
 	if err != nil {
 		return "", "", err
 	}
+	directory, err := os.OpenRoot(editableRoot)
+	if err != nil {
+		return "", "", err
+	}
+	defer directory.Close()
+	if err := verifyOpenedGrantedDirectory(directory, []hostGrant{{Path: filepath.Join(s.fileRoot, "skills"), Mode: "write"}}); err != nil {
+		return "", "", err
+	}
 	relativePath = filepath.ToSlash(strings.TrimSpace(relativePath))
 	if relativePath == "." || strings.HasPrefix(relativePath, "/") || relativePath == ".." ||
 		strings.HasPrefix(relativePath, "../") || strings.Contains(relativePath, "/../") {
@@ -426,11 +450,15 @@ func (s *Server) editCompatibilitySkillFile(name, relativePath, oldString, newSt
 	if !pathWithinRoot(target, editableRoot) {
 		return "", "", fmt.Errorf("invalid path '%s'", relativePath)
 	}
-	if err := ensureSkillEditParent(editableRoot, filepath.Dir(target)); err != nil {
+	relativePath, err = filepath.Rel(editableRoot, target)
+	if err != nil || !filepath.IsLocal(relativePath) {
+		return "", "", errors.New("skill edit path escaped its root")
+	}
+	if err := ensureSkillEditParent(directory, filepath.Dir(relativePath)); err != nil {
 		return "", "", err
 	}
 	if oldString == "" {
-		if _, err := os.Lstat(target); err == nil {
+		if _, err := directory.Lstat(relativePath); err == nil {
 			return "", "", fmt.Errorf("file '%s' already exists in '%s' - read it first, then edit with a non-empty old_string", relativePath, name)
 		} else if !errors.Is(err, os.ErrNotExist) {
 			return "", "", err
@@ -438,16 +466,16 @@ func (s *Server) editCompatibilitySkillFile(name, relativePath, oldString, newSt
 		if len(newString) > maxSkillArchiveBytes {
 			return "", "", fmt.Errorf("skill file exceeds %d bytes", maxSkillArchiveBytes)
 		}
-		if err := writeSkillFileAtomic(target, []byte(newString), true); err != nil {
+		if err := writeSkillFileAtomic(directory, relativePath, []byte(newString), true); err != nil {
 			return "", "", err
 		}
 		if err := s.reloadEditedSkill(name, editableRoot); err != nil {
-			_ = os.Remove(target)
+			_ = directory.Remove(relativePath)
 			return "", "", err
 		}
 		return "created", target, nil
 	}
-	source, err := openGrantedRegularFile(target, []hostGrant{{Path: editableRoot, Mode: "read"}})
+	source, err := openRegularWorkspaceRootFile(directory, relativePath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return "", "", fmt.Errorf("file '%s' does not exist in '%s' - use empty old_string to create it", relativePath, name)
@@ -474,11 +502,11 @@ func (s *Server) editCompatibilitySkillFile(name, relativePath, oldString, newSt
 	if len(updated) > maxSkillArchiveBytes {
 		return "", "", fmt.Errorf("skill file exceeds %d bytes", maxSkillArchiveBytes)
 	}
-	if err := writeSkillFileAtomic(target, []byte(updated), false); err != nil {
+	if err := writeSkillFileAtomic(directory, relativePath, []byte(updated), false); err != nil {
 		return "", "", err
 	}
 	if err := s.reloadEditedSkill(name, editableRoot); err != nil {
-		rollbackErr := writeSkillFileAtomic(target, raw, false)
+		rollbackErr := writeSkillFileAtomic(directory, relativePath, raw, false)
 		return "", "", errors.Join(err, rollbackErr)
 	}
 	return "edited", target, nil
@@ -504,74 +532,6 @@ func (s *Server) compatibilityEditableSkillRoot(skill skills.Skill) (string, err
 		return "", errors.New("writable skill root is not a verified regular directory")
 	}
 	return root, nil
-}
-
-func ensureSkillEditParent(root, parent string) error {
-	if !pathWithinRoot(parent, root) {
-		return errors.New("skill edit parent escaped its root")
-	}
-	relative, err := filepath.Rel(root, parent)
-	if err != nil {
-		return err
-	}
-	current := root
-	for _, segment := range strings.Split(relative, string(filepath.Separator)) {
-		if segment == "" || segment == "." {
-			continue
-		}
-		current = filepath.Join(current, segment)
-		info, err := os.Lstat(current)
-		if errors.Is(err, os.ErrNotExist) {
-			if err := os.Mkdir(current, 0o700); err != nil {
-				return err
-			}
-			continue
-		}
-		if err != nil {
-			return err
-		}
-		if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
-			return errors.New("skill edit parent contains a non-directory or symlink")
-		}
-	}
-	return nil
-}
-
-func writeSkillFileAtomic(target string, content []byte, exclusive bool) error {
-	if exclusive {
-		file, err := os.OpenFile(target, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
-		if err != nil {
-			return err
-		}
-		if _, err = file.Write(content); err == nil {
-			err = file.Sync()
-		}
-		closeErr := file.Close()
-		return errors.Join(err, closeErr)
-	}
-	temporary := filepath.Join(filepath.Dir(target), "."+filepath.Base(target)+".edit-"+uuid.NewString())
-	file, err := os.OpenFile(temporary, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
-	if err != nil {
-		return err
-	}
-	cleanup := true
-	defer func() {
-		if cleanup {
-			_ = os.Remove(temporary)
-		}
-	}()
-	if _, err = file.Write(content); err == nil {
-		err = file.Sync()
-	}
-	closeErr := file.Close()
-	if err = errors.Join(err, closeErr); err != nil {
-		return err
-	}
-	if err := os.Rename(temporary, target); err != nil {
-		return err
-	}
-	cleanup = false
-	return nil
 }
 
 func (s *Server) reloadEditedSkill(name, root string) error {

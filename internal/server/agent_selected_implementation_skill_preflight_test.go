@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/skills"
+	"x-science/internal/agentruntime"
+	"x-science/internal/skills"
 )
 
 func TestSelectedImplementationSkillPreflightBlocksDifferentDedicatedEngine(t *testing.T) {
@@ -48,7 +48,7 @@ func TestSelectedImplementationBlocksStaleMaterializedSkillAsset(t *testing.T) {
 		taskRun: &sessionRunnerChatRun{SelectedImplementations: []string{"Engine A"}},
 	}
 	script := filepath.ToSlash(filepath.Join(
-		"/tmp/work/.synon/runtime/skills", agentSkillRuntimeDirectoryName("engine-b-skill"),
+		"/tmp/work/.x-science/runtime/skills", agentSkillRuntimeDirectoryName("engine-b-skill"),
 		"0123456789abcdef", "scripts", "run.py",
 	))
 	result := gateway.agentRuntimeSelectedImplementationMaterializedSkillPreflight("bash", map[string]any{
@@ -298,7 +298,7 @@ func TestGenericMaterializedSkillPreparationExemptionFailsClosed(t *testing.T) {
 		"dedicated Skill":        "python " + dedicatedScript,
 		"non-preferred asset":    "python " + filepath.ToSlash(filepath.Join(filepath.Dir(genericScript), "other.py")),
 		"missing content digest": "python " + filepath.ToSlash(filepath.Join(
-			workspace, ".synon/runtime/skills", agentSkillRuntimeDirectoryName("generic-loaded"), "scripts", "prepare.py",
+			workspace, ".x-science/runtime/skills", agentSkillRuntimeDirectoryName("generic-loaded"), "scripts", "prepare.py",
 		)),
 		"attached interpreter code": "python -c pass " + genericScript,
 		"unrecognized interpreter":  "invented-engine " + genericScript,
@@ -349,7 +349,7 @@ func materializedImplementationChoiceTestSkill(
 	t.Helper()
 	sourceRoot := t.TempDir()
 	skillPath := filepath.Join(sourceRoot, "SKILL.md")
-	source := "Run ${SYNON_SKILL_DIR}/" + filepath.ToSlash(preferredAsset) + "\n"
+	source := "Run ${X_SCIENCE_SKILL_DIR}/" + filepath.ToSlash(preferredAsset) + "\n"
 	if err := os.WriteFile(skillPath, []byte(source), 0o600); err != nil {
 		t.Fatal(err)
 	}

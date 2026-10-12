@@ -21,13 +21,13 @@ func TestFrameSystemPromptSnapshotPersistsCurrentImmutableContract(t *testing.T)
 		t.Fatal(err)
 	}
 	first, err := store.PutFrameSystemPromptSnapshot(context.Background(), frame.ID, map[string]any{
-		"schema": "synon.frame_system_prompt.v1", "systemPrompt": "first", "toolNames": []string{"Read"},
+		"schema": "x-science.frame_system_prompt.v1", "systemPrompt": "first", "toolNames": []string{"Read"},
 	})
 	if err != nil || len(first.Hash) != 64 {
 		t.Fatalf("first snapshot=%#v err=%v", first, err)
 	}
 	second, err := store.PutFrameSystemPromptSnapshot(context.Background(), frame.ID, map[string]any{
-		"schema": "synon.frame_system_prompt.v1", "systemPrompt": "second", "toolNames": []string{"Read", "Skill"},
+		"schema": "x-science.frame_system_prompt.v1", "systemPrompt": "second", "toolNames": []string{"Read", "Skill"},
 	})
 	if err != nil || first.Hash == second.Hash {
 		t.Fatalf("second snapshot=%#v err=%v", second, err)

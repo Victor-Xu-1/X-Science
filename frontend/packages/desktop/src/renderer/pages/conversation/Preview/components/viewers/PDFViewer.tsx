@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { SynonBiomedPdfArtifactViewer } from '@/renderer/pages/artifact/SynonBiomedPdfArtifactViewer';
+import { XSciencePdfArtifactViewer } from '@/renderer/pages/artifact/XSciencePdfArtifactViewer';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { buildPdfSrc } from '../../previewUrls';
@@ -38,7 +38,7 @@ const PDFPreview: React.FC<PDFPreviewProps> = ({ file_path, fileName, content, h
 
   // The same parser, worker and paged canvas serve both the workbench and
   // artifact detail. A native iframe load event cannot establish PDF rendering.
-  return <SynonBiomedPdfArtifactViewer filename={filename} contentUrl={source} hideToolbar={hideToolbar} />;
+  return <XSciencePdfArtifactViewer filename={filename} contentUrl={source} hideToolbar={hideToolbar} />;
 };
 
 export default PDFPreview;

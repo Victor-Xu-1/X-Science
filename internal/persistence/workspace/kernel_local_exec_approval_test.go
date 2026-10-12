@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func TestKernelLocalExecApprovalOnceIsDurableAndSingleConsumption(t *testing.T) {
@@ -132,7 +132,7 @@ func TestKernelLocalExecApprovalRecoveryIgnoresDurableOperationProtocol(t *testi
 	metadata.ContextData["_pending_input_requests"] = append(pending, map[string]any{
 		"version": 2, "kind": "local_exec", "requestId": "operation-approval",
 		"operation_id": "operation-id", "state_version": 1,
-		"tool": "python", "environment": "synon-biomed-python",
+		"tool": "python", "environment": "x-science-python",
 		"input_sha256": strings.Repeat("a", 64), "stream_uid": request.StreamUID,
 	})
 	if _, err := store.SetFrameRuntimeMetadata(request.FrameID, metadata); err != nil {

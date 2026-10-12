@@ -10,7 +10,7 @@ from scripts.quality import pr_fast_scope as scope
 
 class DependencyScopeTests(unittest.TestCase):
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix="synon-module-scope-")
+        self.temporary = tempfile.TemporaryDirectory(prefix="x-science-module-scope-")
         self.addCleanup(self.temporary.cleanup)
         self.repo = Path(self.temporary.name) / "source"
         self.repo.mkdir()

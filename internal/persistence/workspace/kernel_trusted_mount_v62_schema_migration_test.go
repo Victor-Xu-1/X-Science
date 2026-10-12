@@ -53,13 +53,13 @@ func TestKernelTrustedMountV62BackfillsServerOwnedMountsAndRemovesInvalidGenerat
 		RootFrameID: frame.RootFrameID, RootFrameIncarnationID: frame.IncarnationID,
 		FrameID: frame.ID, FrameIncarnationID: frame.IncarnationID, AgentName: "OPERON",
 		KernelKind: "analysis", Language: "python", Environment: "science",
-		WorkspaceDir: "/srv/synon/workspace",
+		WorkspaceDir: "/srv/xscience/workspace",
 		Mounts: []KernelExecutionMountSpecV1{
-			{Path: "/srv/synon/data/skills"},
-			{Path: "/opt/synon/skills"},
+			{Path: "/srv/xscience/data/skills"},
+			{Path: "/opt/xscience/skills"},
 			{Path: "/datasets/public"},
 		},
-		ProtectedPaths: []string{"/srv/synon/data", "/opt/synon/assets/optional"},
+		ProtectedPaths: []string{"/srv/xscience/data", "/opt/xscience/assets/optional"},
 	}
 	_, legacyJSON, legacySHA, err := canonicalKernelExecutionSessionSpec(legacy)
 	if err != nil {
@@ -116,8 +116,8 @@ func TestKernelTrustedMountV62BackfillsServerOwnedMountsAndRemovesInvalidGenerat
 	for _, mount := range decoded.Mounts {
 		trustedByPath[mount.Path] = mount.Trusted
 	}
-	if len(decoded.Mounts) != 3 || !trustedByPath["/srv/synon/data/skills"] ||
-		!trustedByPath["/opt/synon/skills"] || trustedByPath["/datasets/public"] {
+	if len(decoded.Mounts) != 3 || !trustedByPath["/srv/xscience/data/skills"] ||
+		!trustedByPath["/opt/xscience/skills"] || trustedByPath["/datasets/public"] {
 		t.Fatalf("upgraded mounts=%#v", decoded.Mounts)
 	}
 	if foundBackend, found, err := store.FindKernelExecutionBackendForSession(ctx, evolved); err != nil || !found ||
@@ -133,15 +133,15 @@ func TestKernelTrustedMountV62BackfillsServerOwnedMountsAndRemovesInvalidGenerat
 }
 
 func TestLegacyServerOwnedKernelMountClassification(t *testing.T) {
-	spec := KernelExecutionSessionSpecV1{ProtectedPaths: []string{"/srv/synon/data", "/opt/synon/assets/optional"}}
-	for _, path := range []string{"/srv/synon/data/skills", "/opt/synon/skills"} {
+	spec := KernelExecutionSessionSpecV1{ProtectedPaths: []string{"/srv/xscience/data", "/opt/xscience/assets/optional"}}
+	for _, path := range []string{"/srv/xscience/data/skills", "/opt/xscience/skills"} {
 		if !legacyServerOwnedKernelMount(spec, KernelExecutionMountSpecV1{Path: path}) {
 			t.Fatalf("server-owned mount %q was not classified", path)
 		}
 	}
 	for _, mount := range []KernelExecutionMountSpecV1{
 		{Path: "/datasets/skills"},
-		{Path: "/srv/synon/data/skills", Writable: true},
+		{Path: "/srv/xscience/data/skills", Writable: true},
 	} {
 		if legacyServerOwnedKernelMount(spec, mount) {
 			t.Fatalf("untrusted mount was classified: %#v", mount)

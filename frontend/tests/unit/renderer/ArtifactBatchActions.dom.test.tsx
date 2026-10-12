@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { SynonBiomedProjectArtifact } from '@/renderer/services/synonBiomedGateway';
+import type { XScienceProjectArtifact } from '@/renderer/services/xScienceGateway';
 import { renderWithI18n } from '../i18nTestUtils';
 
 const mocks = vi.hoisted(() => ({
@@ -13,14 +13,14 @@ const mocks = vi.hoisted(() => ({
   error: vi.fn(),
 }));
 
-vi.mock('@/renderer/services/synonBiomedGateway', () => ({
-  getSynonBiomedArtifactContentUrl: (artifactId: string) => `/api/artifacts/${artifactId}/content`,
+vi.mock('@/renderer/services/xScienceGateway', () => ({
+  getXScienceArtifactContentUrl: (artifactId: string) => `/api/artifacts/${artifactId}/content`,
 }));
 
-vi.mock('@/renderer/services/synonBiomedWorkspaceSettings', () => ({
-  loadSynonBiomedCloudCredentials: mocks.credentials,
-  loadSynonBiomedCloudBuckets: mocks.buckets,
-  exportSynonBiomedArtifactsToCloud: mocks.exportBatch,
+vi.mock('@/renderer/services/xScienceWorkspaceSettings', () => ({
+  loadXScienceCloudCredentials: mocks.credentials,
+  loadXScienceCloudBuckets: mocks.buckets,
+  exportXScienceArtifactsToCloud: mocks.exportBatch,
 }));
 
 vi.mock('@arco-design/web-react', async (importOriginal) => {
@@ -38,7 +38,7 @@ vi.mock('@arco-design/web-react', async (importOriginal) => {
 
 import { ArtifactBatchActions, buildCloudExportItems } from '@/renderer/pages/project/ArtifactBatchActions';
 
-const artifact = (artifactId: string, filename: string): SynonBiomedProjectArtifact => ({
+const artifact = (artifactId: string, filename: string): XScienceProjectArtifact => ({
   artifactId,
   versionId: `version-${artifactId}`,
   versionNumber: 1,

@@ -16,11 +16,11 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	eventjournal "synon-go/internal/persistence/journal"
-	sessionstore "synon-go/internal/persistence/sessions"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	eventjournal "x-science/internal/persistence/journal"
+	sessionstore "x-science/internal/persistence/sessions"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestNormalizeSessionRunnerChatOptionsUsesV11RetryDefault(t *testing.T) {
@@ -236,8 +236,8 @@ func TestSessionRunnerChatOnceUsesBuiltinFallbackEndpoint(t *testing.T) {
 	sessionID := first["sessionId"].(string)
 
 	result, err := srv.RunSessionRunnerChatOnce(context.Background(), SessionRunnerChatOptions{RunnerID: "builtin-chat-runner",
-		Endpoint:         "builtin://synon-go/deterministic-chat",
-		Model:            "synon-go-deterministic",
+		Endpoint:         "builtin://x-science/deterministic-chat",
+		Model:            "x-science-deterministic",
 		LeaseTTL:         time.Minute,
 		ReplayLimit:      20,
 		OutputLimitBytes: 64 * 1024,
@@ -688,14 +688,14 @@ func TestSessionRunnerChatInjectsProviderResumeCacheMarkers(t *testing.T) {
 	var requests atomic.Int64
 	modelAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requests.Add(1)
-		if r.Header.Get("X-Synon-Provider-Cache") != "1" {
+		if r.Header.Get("X-Science-Provider-Cache") != "1" {
 			t.Fatalf("provider cache header missing: %#v", r.Header)
 		}
-		if r.Header.Get("X-Synon-Compacted-Through-Event-Id") != "2" {
-			t.Fatalf("compact event header = %q", r.Header.Get("X-Synon-Compacted-Through-Event-Id"))
+		if r.Header.Get("X-Science-Compacted-Through-Event-Id") != "2" {
+			t.Fatalf("compact event header = %q", r.Header.Get("X-Science-Compacted-Through-Event-Id"))
 		}
-		if r.Header.Get("X-Synon-Resume-Cache-Keys") != "tool:Read:call-1" {
-			t.Fatalf("resume cache header = %q", r.Header.Get("X-Synon-Resume-Cache-Keys"))
+		if r.Header.Get("X-Science-Resume-Cache-Keys") != "tool:Read:call-1" {
+			t.Fatalf("resume cache header = %q", r.Header.Get("X-Science-Resume-Cache-Keys"))
 		}
 		var request struct {
 			Messages []struct {
@@ -707,7 +707,7 @@ func TestSessionRunnerChatInjectsProviderResumeCacheMarkers(t *testing.T) {
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 			t.Fatalf("decode model request: %v", err)
 		}
-		cache, _ := request.Metadata["synon_provider_cache"].(map[string]any)
+		cache, _ := request.Metadata["x_science_provider_cache"].(map[string]any)
 		if cache["compactedThroughEventId"] != float64(2) {
 			t.Fatalf("provider cache metadata missing compact id: %#v", request.Metadata)
 		}
@@ -2297,7 +2297,7 @@ func TestSessionEntriesRestoreBoundedCorrectionsAcrossAttempts(t *testing.T) {
 			messages := requireProviderReplayMessages(t, "system prompt", entries)
 			if len(messages) != 3 || messages[1].Role != "system" ||
 				!strings.Contains(messages[1].Content, "same logical task") ||
-				!strings.Contains(messages[1].Content, "synon.runner_recovery.v1") ||
+				!strings.Contains(messages[1].Content, "x-science.runner_recovery.v1") ||
 				!strings.Contains(messages[1].Content, `"required_transition":"repair_current_candidate"`) ||
 				!strings.Contains(messages[1].Content, `"preserve_completed_state":true`) ||
 				!strings.Contains(messages[1].Content, test.reasonCode) ||
@@ -2827,7 +2827,7 @@ func TestSessionRunnerChatOnceTimesOutSlowModelEndpoint(t *testing.T) {
 }
 
 func TestSessionRunnerChatOnceInterruptsWhenToolRoundLimitExceeded(t *testing.T) {
-	t.Setenv("SYNON_WEBSEARCH_MODE", "disabled")
+	t.Setenv("X_SCIENCE_WEBSEARCH_MODE", "disabled")
 	var requests atomic.Int64
 	modelAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sequence := requests.Add(1)
@@ -3461,7 +3461,7 @@ func TestRecoveredRunnerMissingDeliverableCorrectionRequiresTool(t *testing.T) {
 		t.Fatalf("recovered correction did not require a model-selected action: %#v", choice)
 	}
 	context := recoveredRunnerCorrectionContext(entries)
-	for _, required := range []string{"synon.runner_recovery.v1", `"required_transition":"repair_current_candidate"`, `"requires_tool":true`, "machine-readable validation record"} {
+	for _, required := range []string{"x-science.runner_recovery.v1", `"required_transition":"repair_current_candidate"`, `"requires_tool":true`, "machine-readable validation record"} {
 		if !strings.Contains(context, required) {
 			t.Fatalf("correction context=%q missing %q", context, required)
 		}
@@ -3502,7 +3502,7 @@ func TestRecoveredRunnerSourceClaimCorrectionExplainsAttestedExcerptContract(t *
 	}}}
 	context := recoveredRunnerCorrectionContext(entries)
 	for _, required := range []string{
-		"synon.runner_recovery.v1",
+		"x-science.runner_recovery.v1",
 		`"required_transition":"repair_current_candidate"`,
 		`"choose_from_advertised_capabilities":true`,
 		"source_claim_missing_attested_excerpt",
@@ -3540,7 +3540,7 @@ func TestRecoveredRunnerUnsupportedCitationCorrectionAllowsRemovalWithoutForcing
 		t.Fatalf("unsupported citation removal forced tool choice=%#v", choice)
 	}
 	context := recoveredRunnerCorrectionContext(entries)
-	for _, required := range []string{"synon.runner_recovery.v1", `"requires_tool":false`, "unsupported identifiers accession:geo:GSE000001"} {
+	for _, required := range []string{"x-science.runner_recovery.v1", `"requires_tool":false`, "unsupported identifiers accession:geo:GSE000001"} {
 		if !strings.Contains(context, required) {
 			t.Fatalf("unsupported citation correction context=%q missing %q", context, required)
 		}
@@ -3558,7 +3558,7 @@ func TestRecoveredRunnerRealScientificEvidenceCorrectionRequiresRealTool(t *test
 	}
 	context := recoveredRunnerCorrectionContext(entries)
 	for _, required := range []string{
-		"synon.runner_recovery.v1",
+		"x-science.runner_recovery.v1",
 		`"required_transition":"satisfy_missing_capability"`,
 		`"choose_from_advertised_capabilities":true`,
 		"no durable authoritative source evidence",
@@ -3578,7 +3578,7 @@ func TestRecoveredRunnerSourceGroundedExecutionExplainsMaterialRoute(t *testing.
 	}}}
 	context := recoveredRunnerCorrectionContext(entries)
 	for _, required := range []string{
-		"synon.runner_recovery.v1",
+		"x-science.runner_recovery.v1",
 		`"required_transition":"satisfy_missing_capability"`,
 		"no successful source-grounded runtime execution",
 		`"reject_unchanged_repeat":true`,
@@ -3596,7 +3596,7 @@ func TestRecoveredRunnerMissingMCPReviewCorrectionExplainsLiveExecution(t *testi
 		"resume_detail": "completion reviewer rejected the current candidate; explicit user-required tool evidence is incomplete; high: the explicitly requested real MCP method execution has no completed MCP tool result",
 	}}}
 	context := recoveredRunnerCorrectionContext(entries)
-	for _, required := range []string{"synon.runner_recovery.v1", `"required_transition":"repair_rejected_acceptance_condition"`, "no completed MCP tool result"} {
+	for _, required := range []string{"x-science.runner_recovery.v1", `"required_transition":"repair_rejected_acceptance_condition"`, "no completed MCP tool result"} {
 		if !strings.Contains(context, required) {
 			t.Fatalf("correction context=%q missing %q", context, required)
 		}
@@ -3623,7 +3623,7 @@ func TestRecoveredRunnerDoesNotInferToolOrderFromExistingValidation(t *testing.T
 		}},
 	}
 	context := recoveredRunnerCorrectionContext(entries)
-	for _, required := range []string{"synon.runner_recovery.v1", `"choose_from_advertised_capabilities":true`, "missing required deliverables"} {
+	for _, required := range []string{"x-science.runner_recovery.v1", `"choose_from_advertised_capabilities":true`, "missing required deliverables"} {
 		if !strings.Contains(context, required) {
 			t.Fatalf("correction context=%q missing %q", context, required)
 		}
@@ -3648,7 +3648,7 @@ func TestRecoveredRunnerArtifactContentCorrectionIsModelDirected(t *testing.T) {
 		"resume_detail": "runner completion reference integrity failed (unresolved_artifacts=1 malformed_artifact_references=0 unsupported_citations=0 invalid_reference_artifacts=0 invalid_scientific_artifacts=0 cross_artifact_failures=1 invalid_research_artifacts=0 missing_local_artifacts=0 missing_required_deliverables=0): cross-artifact consistency failures malformed_artifact_placeholder:report.md value=art_plot_png",
 	}}}
 	context := recoveredRunnerCorrectionContext(entries)
-	for _, marker := range []string{"synon.runner_recovery.v1", `"required_transition":"repair_current_candidate"`, "malformed_artifact_placeholder:report.md value=art_plot_png", `"revalidate_after_state_change":true`} {
+	for _, marker := range []string{"x-science.runner_recovery.v1", `"required_transition":"repair_current_candidate"`, "malformed_artifact_placeholder:report.md value=art_plot_png", `"revalidate_after_state_change":true`} {
 		if !strings.Contains(context, marker) {
 			t.Fatalf("correction context=%q missing %q", context, marker)
 		}
@@ -3662,7 +3662,7 @@ func TestRecoveredRunnerValidationCorrectionIsModelDirected(t *testing.T) {
 		"resume_detail": "runner completion reference integrity failed (cross_artifact_failures=1): cross-artifact consistency failures machine_validation_missing_passing_check:validation.json",
 	}}}
 	context := recoveredRunnerCorrectionContext(entries)
-	for _, required := range []string{"synon.runner_recovery.v1", "machine_validation_missing_passing_check:validation.json", `"required_transition":"repair_current_candidate"`, `"reject_unchanged_repeat":true`} {
+	for _, required := range []string{"x-science.runner_recovery.v1", "machine_validation_missing_passing_check:validation.json", `"required_transition":"repair_current_candidate"`, `"reject_unchanged_repeat":true`} {
 		if !strings.Contains(context, required) {
 			t.Fatalf("correction context=%q missing %q", context, required)
 		}
@@ -3676,7 +3676,7 @@ func TestRecoveredRunnerCleanupCorrectionIsModelDirected(t *testing.T) {
 		"resume_detail": "runner completion reference integrity failed (cross_artifact_failures=1): cross-artifact consistency failures machine_validation_reported_failure:validation.json path=process_cleanup/temporary_files_removed",
 	}}}
 	context := recoveredRunnerCorrectionContext(entries)
-	for _, required := range []string{"synon.runner_recovery.v1", "process_cleanup/temporary_files_removed", `"preserve_completed_state":true`} {
+	for _, required := range []string{"x-science.runner_recovery.v1", "process_cleanup/temporary_files_removed", `"preserve_completed_state":true`} {
 		if !strings.Contains(context, required) {
 			t.Fatalf("cleanup context=%q missing %q", context, required)
 		}
@@ -3690,7 +3690,7 @@ func TestRecoveredRunnerRankScoreCorrectionIsModelDirected(t *testing.T) {
 		"resume_detail": "runner completion reference integrity failed (cross_artifact_failures=1): rank_score_pair_missing:scenario.csv rank=rank_neutral score=score_neutral",
 	}}}
 	context := recoveredRunnerCorrectionContext(entries)
-	for _, required := range []string{"rank_score_pair_missing:scenario.csv", "synon.runner_recovery.v1", `"choose_from_advertised_capabilities":true`} {
+	for _, required := range []string{"rank_score_pair_missing:scenario.csv", "x-science.runner_recovery.v1", `"choose_from_advertised_capabilities":true`} {
 		if !strings.Contains(context, required) {
 			t.Fatalf("correction context=%q; missing %q", context, required)
 		}
@@ -3710,7 +3710,7 @@ func TestRecoveredSourceCorrectionDoesNotHardcodeFetchOrder(t *testing.T) {
 		}},
 	}
 	context := recoveredRunnerCorrectionContext(entries)
-	for _, required := range []string{"unsupported identifiers url:https://www.fda.gov/q2r2", "synon.runner_recovery.v1", `"choose_from_advertised_capabilities":true`} {
+	for _, required := range []string{"unsupported identifiers url:https://www.fda.gov/q2r2", "x-science.runner_recovery.v1", `"choose_from_advertised_capabilities":true`} {
 		if !strings.Contains(context, required) {
 			t.Fatalf("correction context=%q missing %q", context, required)
 		}

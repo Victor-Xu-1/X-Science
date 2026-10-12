@@ -1,13 +1,13 @@
-import type { SynonBiomedProjectArtifact } from '@/renderer/services/synonBiomedGateway';
+import type { XScienceProjectArtifact } from '@/renderer/services/xScienceGateway';
 import {
   createComposerArtifactContext,
   type ComposerArtifactContext,
 } from '@/renderer/components/chat/SendBox/composerCompositionModel';
 
 export const getReferenceableProjectArtifacts = (
-  artifacts: readonly SynonBiomedProjectArtifact[],
+  artifacts: readonly XScienceProjectArtifact[],
   projectId?: string | null
-): SynonBiomedProjectArtifact[] => {
+): XScienceProjectArtifact[] => {
   const normalizedProjectId = projectId?.trim() ?? '';
   return artifacts
     .filter((artifact) => !artifact.isIntermediate)
@@ -21,7 +21,7 @@ export const getReferenceableProjectArtifacts = (
     });
 };
 
-export const buildProjectArtifactContext = (artifact: SynonBiomedProjectArtifact): ComposerArtifactContext | null =>
+export const buildProjectArtifactContext = (artifact: XScienceProjectArtifact): ComposerArtifactContext | null =>
   createComposerArtifactContext({
     artifactId: artifact.artifactId,
     versionId: artifact.versionId ?? undefined,

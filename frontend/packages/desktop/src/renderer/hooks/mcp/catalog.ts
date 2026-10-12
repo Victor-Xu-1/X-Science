@@ -59,7 +59,7 @@ export const toSessionMcpServer = (server: Pick<IMcpServer, 'id' | 'name' | 'tra
 /**
  * X-Science connectors execute inside the backend agent runtime and do not
  * expose browser-executable transports. This catalog therefore contains only
- * explicitly configured SynonAI user servers during the remaining migration.
+ * explicitly configured XScience user servers during the remaining migration.
  */
 export const ensureBackendMcpCatalog = async (): Promise<{
   userServers: IMcpServer[];

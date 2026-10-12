@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/tools/mcpstdio"
+	"x-science/internal/agentruntime"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/tools/mcpstdio"
 )
 
 func TestKernelMCPPublicApprovalLifecycle(t *testing.T) {

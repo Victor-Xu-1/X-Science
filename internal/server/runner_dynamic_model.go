@@ -8,9 +8,9 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"synon-go/internal/agentruntime"
-	sessionstore "synon-go/internal/persistence/sessions"
-	"synon-go/internal/providers"
+	"x-science/internal/agentruntime"
+	sessionstore "x-science/internal/persistence/sessions"
+	"x-science/internal/providers"
 )
 
 // sessionRunnerDynamicModelClient resolves the conversation's current model

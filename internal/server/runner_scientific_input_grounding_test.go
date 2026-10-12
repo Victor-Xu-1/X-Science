@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/sciencecapability"
+	"x-science/internal/sciencecapability"
 )
 
 func TestManagedExecutionPackInputReceiptAcceptsOptionalEvidenceInputs(t *testing.T) {
@@ -18,7 +18,7 @@ func TestManagedExecutionPackInputReceiptAcceptsOptionalEvidenceInputs(t *testin
 		{Kind: "ligand"},
 	}
 	stdout := fmt.Sprintf(
-		`SYNON_EXECUTION_PACK_INPUT_RECEIPT={"schema":"synon.execution-pack-input-receipt.v1","execution_pack_id":"molecular-docking.engine","inputs":{"receptor":%q,"ligand":%q,"pocket_selection":%q,"pocket_validation":null}}`,
+		`X_SCIENCE_EXECUTION_PACK_INPUT_RECEIPT={"schema":"x-science.execution-pack-input-receipt.v1","execution_pack_id":"molecular-docking.engine","inputs":{"receptor":%q,"ligand":%q,"pocket_selection":%q,"pocket_validation":null}}`,
 		receptor, ligand, pocket,
 	)
 	got, valid := managedExecutionPackInputDigestsFromStdout(stdout, "molecular-docking.engine", inputs)

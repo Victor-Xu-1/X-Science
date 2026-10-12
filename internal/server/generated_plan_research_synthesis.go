@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	generatedPlanResearchSynthesisSchema          = "synon.research_synthesis.v1"
+	generatedPlanResearchSynthesisSchema          = "x-science.research_synthesis.v1"
 	maxGeneratedPlanResearchSynthesisSources      = 128
 	maxGeneratedPlanResearchSynthesisContextBytes = int(runnerLargeToolResultInlineLimitBytes / 2)
 )

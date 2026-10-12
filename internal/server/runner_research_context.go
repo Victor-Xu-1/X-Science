@@ -9,14 +9,14 @@ import (
 	"sort"
 	"strings"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 const (
-	sessionRunnerResearchContextSchema         = "synon.research_context.v1"
-	sessionRunnerResearchContextManifestSchema = "synon.research_context_manifest.v1"
-	sessionRunnerSourceMaterialContextSchema   = "synon.source_material.v1"
-	generatedPlanResearchHandoffSchema         = "synon.research_handoff.v1"
+	sessionRunnerResearchContextSchema         = "x-science.research_context.v1"
+	sessionRunnerResearchContextManifestSchema = "x-science.research_context_manifest.v1"
+	sessionRunnerSourceMaterialContextSchema   = "x-science.source_material.v1"
+	generatedPlanResearchHandoffSchema         = "x-science.research_handoff.v1"
 	maxSessionRunnerResearchContextBytes       = 64 * 1024
 	sessionRunnerTaskResearchModuleID          = "task"
 	sessionRunnerTaskResearchModuleTitle       = "Task-wide source material"
@@ -387,7 +387,7 @@ func buildResearchSourceContext(
 						sourceIndexTruncated = true
 						continue
 					}
-					identity := sha256.Sum256([]byte("synon-research-source-v1\x00" + key))
+					identity := sha256.Sum256([]byte("x-science-research-source-v1\x00" + key))
 					sourceID = "source-" + hex.EncodeToString(identity[:8])
 					item := map[string]any{
 						"id": sourceID, "module_ids": []string{moduleID}, "receipt_ids": []string{receiptID},

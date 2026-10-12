@@ -11,7 +11,7 @@ import (
 	"unicode/utf8"
 )
 
-const Schema = "synon.compute-checkpoint.v1"
+const Schema = "x-science.compute-checkpoint.v1"
 
 // This declares an application-native, file-backed recovery mechanism. It
 // does not assert that arbitrary process memory or a software package can be

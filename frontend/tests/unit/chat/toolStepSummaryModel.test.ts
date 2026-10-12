@@ -227,7 +227,7 @@ describe('tool step summary model', () => {
       error_code: 'provider_timeout',
       stderr: [
         'Traceback (most recent call last):',
-        '  File "/home/victor_1/.synon-biomed-v0.1.0/run.py", line 42, in <module>',
+        '  File "/home/victor_1/.x-science-v0.1.0/run.py", line 42, in <module>',
         'RuntimeError: upstream request failed (api_key=sk-1234567890abcdef)',
       ].join('\n'),
     });

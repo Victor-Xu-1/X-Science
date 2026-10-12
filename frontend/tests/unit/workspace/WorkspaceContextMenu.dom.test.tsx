@@ -58,7 +58,7 @@ describe('WorkspaceContextMenu', () => {
   it('exposes remote artifact lifecycle actions without exposing local filesystem actions', () => {
     const artifact: IDirOrFile = {
       name: 'STAT6_report.md',
-      fullPath: 'synonbiomed://proj_stat6/frame-stat6/artifact-report',
+      fullPath: 'x-science://proj_stat6/frame-stat6/artifact-report',
       relativePath: 'frame-stat6/artifact-report',
       isDir: false,
       isFile: true,

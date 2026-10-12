@@ -6,24 +6,24 @@
 
 import { useLayoutEffect, useRef, useState } from 'react';
 import {
-  loadSynonBiomedArtifactLineage,
-  loadSynonBiomedArtifactVersions,
-  type SynonBiomedArtifactLineage,
-  type SynonBiomedArtifactVersion,
-} from '@/renderer/services/synonBiomedArtifacts';
+  loadXScienceArtifactLineage,
+  loadXScienceArtifactVersions,
+  type XScienceArtifactLineage,
+  type XScienceArtifactVersion,
+} from '@/renderer/services/xScienceArtifacts';
 import {
-  loadSynonBiomedProjectArtifacts,
-  loadSynonBiomedProjectFolders,
-  type SynonBiomedProjectArtifact,
-  type SynonBiomedProjectFolder,
-} from '@/renderer/services/synonBiomedGateway';
+  loadXScienceProjectArtifacts,
+  loadXScienceProjectFolders,
+  type XScienceProjectArtifact,
+  type XScienceProjectFolder,
+} from '@/renderer/services/xScienceGateway';
 
 export type ArtifactReadState<T> = { status: 'loading' | 'ready' | 'failed'; value: T };
 type MetadataValues = {
-  versions: SynonBiomedArtifactVersion[];
-  lineage: SynonBiomedArtifactLineage | null;
-  folders: SynonBiomedProjectFolder[];
-  resources: SynonBiomedProjectArtifact[];
+  versions: XScienceArtifactVersion[];
+  lineage: XScienceArtifactLineage | null;
+  folders: XScienceProjectFolder[];
+  resources: XScienceProjectArtifact[];
 };
 export type ArtifactMetadataSection = keyof MetadataValues;
 type ReadSnapshot = {
@@ -42,7 +42,7 @@ type ReadOwner = {
 
 function initialSnapshot(
   owner: string,
-  artifact: SynonBiomedProjectArtifact | null,
+  artifact: XScienceProjectArtifact | null,
   lineageVersion: string | null
 ): ReadSnapshot {
   const projectReady = Boolean(artifact && !artifact.projectId);
@@ -60,7 +60,7 @@ function initialSnapshot(
 
 /** Independent reads cannot hide the primary file or relabel a failed read as empty. */
 export function useArtifactMetadataReads(
-  artifact: SynonBiomedProjectArtifact | null,
+  artifact: XScienceProjectArtifact | null,
   revision: number,
   selectedVersionId?: string | null
 ) {
@@ -117,15 +117,15 @@ export function useArtifactMetadataReads(
     setSnapshot(initialSnapshot(owner, artifact, lineageVersion));
     if (artifact) {
       loaders.current = {
-        versions: () => loadSynonBiomedArtifactVersions(artifact.artifactId),
+        versions: () => loadXScienceArtifactVersions(artifact.artifactId),
         lineage: () =>
-          loadSynonBiomedArtifactLineage(artifact.artifactId, {
+          loadXScienceArtifactLineage(artifact.artifactId, {
             slim: true,
             ...(lineageVersion ? { versionId: lineageVersion } : {}),
           }),
-        folders: () => (artifact.projectId ? loadSynonBiomedProjectFolders(artifact.projectId) : Promise.resolve([])),
+        folders: () => (artifact.projectId ? loadXScienceProjectFolders(artifact.projectId) : Promise.resolve([])),
         resources: () =>
-          artifact.projectId ? loadSynonBiomedProjectArtifacts(artifact.projectId) : Promise.resolve([artifact]),
+          artifact.projectId ? loadXScienceProjectArtifacts(artifact.projectId) : Promise.resolve([artifact]),
       };
       start('versions');
       start('lineage');
@@ -159,7 +159,7 @@ export function useArtifactMetadataReads(
     loaders.current = {
       ...currentLoaders,
       lineage: () =>
-        loadSynonBiomedArtifactLineage(artifact.artifactId, {
+        loadXScienceArtifactLineage(artifact.artifactId, {
           slim: true,
           ...(lineageVersion ? { versionId: lineageVersion } : {}),
         }),

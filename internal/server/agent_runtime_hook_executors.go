@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/tools/shellops"
 	"time"
+	"x-science/internal/agentruntime"
+	"x-science/internal/tools/shellops"
 )
 
 func (s *Server) runAgentRuntimeCommandHook(ctx context.Context, eventName string, hookKey string, raw map[string]any, payload map[string]any) *agentRuntimeCommandHookResult {
@@ -21,8 +21,8 @@ func (s *Server) runAgentRuntimeCommandHook(ctx context.Context, eventName strin
 	}
 	pluginRoot := strings.TrimSpace(stringValue(raw["pluginRoot"]))
 	if pluginRoot != "" {
-		command = strings.ReplaceAll(command, "${SYNON_PLUGIN_ROOT}", pluginRoot)
-		command = strings.ReplaceAll(command, "$SYNON_PLUGIN_ROOT", pluginRoot)
+		command = strings.ReplaceAll(command, "${X_SCIENCE_PLUGIN_ROOT}", pluginRoot)
+		command = strings.ReplaceAll(command, "$X_SCIENCE_PLUGIN_ROOT", pluginRoot)
 	}
 	shellName := strings.TrimSpace(stringValue(raw["shell"]))
 	if shellName == "" {
@@ -97,13 +97,13 @@ func (s *Server) runAgentRuntimeCommandHook(ctx context.Context, eventName strin
 func agentRuntimeHookEnv(raw map[string]any) map[string]string {
 	env := map[string]string{}
 	if pluginID := strings.TrimSpace(stringValue(raw["pluginId"])); pluginID != "" {
-		env["SYNON_PLUGIN_ID"] = pluginID
+		env["X_SCIENCE_PLUGIN_ID"] = pluginID
 	}
 	if pluginName := strings.TrimSpace(stringValue(raw["pluginName"])); pluginName != "" {
-		env["SYNON_PLUGIN_NAME"] = pluginName
+		env["X_SCIENCE_PLUGIN_NAME"] = pluginName
 	}
 	if pluginRoot := strings.TrimSpace(stringValue(raw["pluginRoot"])); pluginRoot != "" {
-		env["SYNON_PLUGIN_ROOT"] = pluginRoot
+		env["X_SCIENCE_PLUGIN_ROOT"] = pluginRoot
 	}
 	if len(env) == 0 {
 		return nil

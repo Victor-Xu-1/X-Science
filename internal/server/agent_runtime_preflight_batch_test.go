@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/executionprep"
+	"x-science/internal/agentruntime"
+	"x-science/internal/executionprep"
 )
 
 func TestGatewayBatchPreflightPreservesIndicesAndCancellation(t *testing.T) {

@@ -12,10 +12,10 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/compute"
-	kernelruntime "synon-go/internal/kernel"
-	"synon-go/internal/skills"
+	"x-science/internal/agentruntime"
+	"x-science/internal/compute"
+	kernelruntime "x-science/internal/kernel"
+	"x-science/internal/skills"
 )
 
 type recordingManagedEnvironmentAuthority struct {

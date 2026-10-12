@@ -102,7 +102,7 @@ func TestSendTextPostsWechatSendMessageRequest(t *testing.T) {
 
 	err := SendText(context.Background(), http.DefaultClient, server.URL, "TOKEN", SendTextOptions{
 		To:           "wx-user",
-		Text:         "hello from synon",
+		Text:         "hello from xscience",
 		ContextToken: "ctx-1",
 		Timeout:      time.Second,
 	})
@@ -115,7 +115,7 @@ func TestSendTextPostsWechatSendMessageRequest(t *testing.T) {
 	if gotBody.Message.ContextToken != "ctx-1" {
 		t.Fatalf("context token = %q", gotBody.Message.ContextToken)
 	}
-	if len(gotBody.Message.ItemList) != 1 || gotBody.Message.ItemList[0].Type != 1 || gotBody.Message.ItemList[0].TextItem.Text != "hello from synon" {
+	if len(gotBody.Message.ItemList) != 1 || gotBody.Message.ItemList[0].Type != 1 || gotBody.Message.ItemList[0].TextItem.Text != "hello from xscience" {
 		t.Fatalf("item list = %+v", gotBody.Message.ItemList)
 	}
 }

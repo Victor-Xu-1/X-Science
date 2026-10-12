@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	kernelruntime "synon-go/internal/kernel"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	"synon-go/internal/toolprogress"
+	"x-science/internal/agentruntime"
+	kernelruntime "x-science/internal/kernel"
+	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/toolprogress"
 )
 
 type observedEnvironmentTestAuthority struct {
@@ -160,7 +160,7 @@ func TestManagedEnvironmentObservationRetainsOneRowAndFinalFacts(t *testing.T) {
 		t.Fatal(err)
 	}
 	request := newLoopbackTestRequest(http.MethodGet, "/api/events?frame_id="+stream.FrameID+"&limit=1000", nil)
-	request.Header.Set("X-Synon-User-Id", stream.OwnerID)
+	request.Header.Set("X-Science-User-Id", stream.OwnerID)
 	recorder := httptest.NewRecorder()
 	srv.Handler().ServeHTTP(recorder, request)
 	if recorder.Code != http.StatusOK {

@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"strings"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func (s *Server) publishWebFrameEventProjection(
@@ -241,7 +241,7 @@ func (s *Server) publishWebTurnCompleted(
 		"session_id": frameContext.Frame.ID, "turn_id": frameContext.Frame.ID,
 		"conversation_id": frameContext.Frame.ID, "status": resultStatus, "terminal_status": status, "state": state,
 		"detail": webMessageText(source.Payload), "can_send_message": true, "runtime": runtime,
-		"workspace": "", "model": map[string]any{"platform": "synon-go", "name": frameContext.Frame.Model, "use_model": frameContext.Frame.Model},
+		"workspace": "", "model": map[string]any{"platform": "x-science", "name": frameContext.Frame.Model, "use_model": frameContext.Frame.Model},
 		"last_message": lastMessage,
 	}
 	return s.publishWebFrameEvent(frameContext, "web-turn-completed:"+source.ID, "turn.completed", payload)

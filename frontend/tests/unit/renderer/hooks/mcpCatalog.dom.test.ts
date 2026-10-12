@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   getClientBusinessSetting: vi.fn(),
-  loadLegacySynonBiomedMcpServers: vi.fn(),
+  loadLegacyXScienceMcpServers: vi.fn(),
   listServers: vi.fn(),
 }));
 
@@ -22,9 +22,9 @@ vi.mock('@/common/adapter/ipcBridge', () => ({
   },
 }));
 
-vi.mock('@/renderer/services/synonBiomedCatalog', () => ({
-  loadSynonBiomedMcpServers: mocks.loadLegacySynonBiomedMcpServers,
-  mergeSynonBiomedMcpServers: (_baseServers: unknown[], synonBiomedServers: unknown[]) => synonBiomedServers,
+vi.mock('@/renderer/services/xScienceCatalog', () => ({
+  loadXScienceMcpServers: mocks.loadLegacyXScienceMcpServers,
+  mergeXScienceMcpServers: (_baseServers: unknown[], xScienceServers: unknown[]) => xScienceServers,
 }));
 
 import { ensureBackendMcpCatalog } from '@/renderer/hooks/mcp/catalog';
@@ -34,7 +34,7 @@ describe('ensureBackendMcpCatalog', () => {
     vi.clearAllMocks();
     mocks.getClientBusinessSetting.mockResolvedValue([
       {
-        id: 'fake-synon-builtin',
+        id: 'fake-x-science-builtin',
         name: 'pubmed',
         enabled: true,
         transport: { type: 'stdio', command: 'python', args: ['/runtime/fake.py'] },
@@ -44,9 +44,9 @@ describe('ensureBackendMcpCatalog', () => {
         builtin: true,
       },
     ]);
-    mocks.loadLegacySynonBiomedMcpServers.mockResolvedValue([
+    mocks.loadLegacyXScienceMcpServers.mockResolvedValue([
       {
-        id: 'synonbiomed:mcp:pubmed',
+        id: 'xscience:mcp:pubmed',
         name: 'pubmed',
         enabled: true,
         transport: { type: 'stdio', command: 'python', args: ['/runtime/fake.py'] },
@@ -70,13 +70,13 @@ describe('ensureBackendMcpCatalog', () => {
     ]);
   });
 
-  it('does not mirror backend-owned X-Science connectors into SynonAI local MCP transports', async () => {
+  it('does not mirror backend-owned X-Science connectors into XScience local MCP transports', async () => {
     const result = await ensureBackendMcpCatalog();
 
     expect(result.userServers.map((server) => server.id)).toEqual(['user-1']);
     expect(result.builtinServers).toEqual([]);
     expect(result.allServers.map((server) => server.id)).toEqual(['user-1']);
     expect(mocks.getClientBusinessSetting).not.toHaveBeenCalled();
-    expect(mocks.loadLegacySynonBiomedMcpServers).not.toHaveBeenCalled();
+    expect(mocks.loadLegacyXScienceMcpServers).not.toHaveBeenCalled();
   });
 });

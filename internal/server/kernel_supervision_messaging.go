@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"strings"
-	eventjournal "synon-go/internal/persistence/journal"
-	workspace "synon-go/internal/persistence/workspace"
 	"unicode"
 	"unicode/utf16"
+	eventjournal "x-science/internal/persistence/journal"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func (s *Server) sendKernelChildMessage(ctx context.Context, access workspace.KernelFrameAccess, target, message, kind, callID string, budgets *kernelMessageBudgets) (map[string]any, error) {

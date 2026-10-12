@@ -6,13 +6,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"synon-go/internal/buildinfo"
-	"synon-go/internal/capabilities"
+	"x-science/internal/buildinfo"
+	"x-science/internal/capabilities"
 )
 
 func TestHTTPServerHealthAndCapabilities(t *testing.T) {
 	srv := New(Options{
-		Capabilities:     capabilities.CompactSynon(),
+		Capabilities:     capabilities.CompactXScience(),
 		SkillDirectories: []string{v11SkillsDir(t)},
 	})
 	httpServer := httptest.NewServer(srv.Handler())
@@ -34,7 +34,7 @@ func TestHTTPServerHealthAndCapabilities(t *testing.T) {
 		t.Fatalf("health = %#v", health)
 	}
 
-	capResp, err := http.Get(httpServer.URL + "/api/plugins/synon/capabilities")
+	capResp, err := http.Get(httpServer.URL + "/api/plugins/x-science/capabilities")
 	if err != nil {
 		t.Fatalf("GET capabilities error = %v", err)
 	}

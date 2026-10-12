@@ -24,7 +24,7 @@ its source-backed reference.
 | Set up a contribution and choose scoped checks | [Contributing](../CONTRIBUTING.md) |
 | Locate a subsystem, its boundary and tests | [Module index](modules/README.md) |
 | Check dependency direction and placement | [Module topology](engineering/module-topology.md) |
-| Change long-task/tool lifecycle behavior | [Harness conformance](engineering/synon-harness-conformance.md) |
+| Change long-task/tool lifecycle behavior | [Harness conformance](engineering/x-science-harness-conformance.md) |
 | Change scientific execution | [Managed execution runtime](engineering/managed-execution-runtime.md) · [Kernel contract](engineering/kernel-execution-contract.md) |
 | Change memory or data retention | [Memory architecture](engineering/memory-architecture.md) · [Data lifecycle](engineering/runtime-data-lifecycle.md) |
 | Change tool feedback in the UI | [Presentation contract](engineering/tool-stream-presentation-contract.md) |
@@ -38,7 +38,7 @@ its source-backed reference.
 [Third-party inventory](THIRD_PARTY.md) ·
 [Security](../SECURITY.md) ·
 [Code of Conduct](../CODE_OF_CONDUCT.md) ·
-[License](../LICENSE) ·
+[License](../LICENSE.txt) ·
 [Commercial licensing](../COMMERCIAL-LICENSE.md)
 
 ## Documentation ownership / 文档职责

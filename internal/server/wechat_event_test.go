@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	adapterwechat "synon-go/internal/adapters/wechat"
+	adapterwechat "x-science/internal/adapters/wechat"
 )
 
 func TestWeChatEventCreatesDurableTaskAndDeduplicatesMessage(t *testing.T) {

@@ -11,7 +11,7 @@ param(
   [ValidatePattern('^[A-Za-z0-9_.-]+$')]
   [string]$WslUser = 'victor_1',
   [ValidatePattern('^/[A-Za-z0-9_./-]+$')]
-  [string]$WslKeepalivePath = '/home/victor_1/.synon-biomed-v0.1.0/scripts/dev/source-wsl-keepalive.sh',
+  [string]$WslKeepalivePath = '/home/victor_1/.x-science-v0.1.0/scripts/dev/source-wsl-keepalive.sh',
   [string]$BackendHealthUri = 'http://127.0.0.1:8766/health',
   [string]$FrontendHealthUri = 'http://127.0.0.1:8765/'
 )
@@ -78,7 +78,7 @@ function Get-WslKeepaliveArguments {
 
   return @(
     '-d', $Distro, '-u', 'root', '--exec', '/usr/bin/env',
-    "SYNON_DEV_WSL_USER=$User", $KeepalivePath
+    "X_SCIENCE_DEV_WSL_USER=$User", $KeepalivePath
   )
 }
 
@@ -111,7 +111,7 @@ if ($FailureThreshold -lt 1 -or $ProbeIntervalSeconds -lt 1 -or
   throw 'Supervisor timing values must be positive integers.'
 }
 
-$runtimeRoot = Join-Path $env:LOCALAPPDATA 'SynonBiomed\source-dev'
+$runtimeRoot = Join-Path $env:LOCALAPPDATA 'XScience\source-dev'
 $logPath = Join-Path $runtimeRoot 'watchdog.log'
 $oldLogPath = "$logPath.1"
 $maxLogBytes = 512KB
@@ -164,8 +164,8 @@ function Stop-WslKeepalive {
 function Restart-SourceServices {
   $arguments = @(
     '-d', $WslDistro, '--exec', 'systemctl', '--user', 'restart',
-    'synon-biomed-v010-backend.service',
-    'synon-biomed-v010-frontend.service'
+    'x-science-backend.service',
+    'x-science-frontend.service'
   )
   $process = Start-Process -FilePath 'wsl.exe' -ArgumentList $arguments `
     -WindowStyle Hidden -PassThru
@@ -182,7 +182,7 @@ function Restart-SourceServices {
   return $true
 }
 
-$mutex = New-Object System.Threading.Mutex($false, 'Local\SynonBiomedSourceDevWatchdog')
+$mutex = New-Object System.Threading.Mutex($false, 'Local\XScienceSourceDevWatchdog')
 $mutexAcquired = Enter-SupervisorMutex $mutex
 if (-not $mutexAcquired) {
   $mutex.Dispose()

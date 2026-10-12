@@ -90,8 +90,8 @@ func TestWsBridgeSendsAuthAndIMModeHeaders(t *testing.T) {
 	if got.Get("Authorization") != "Bearer secret" {
 		t.Fatalf("authorization = %q", got.Get("Authorization"))
 	}
-	if got.Get("X-Synon-IM-Mode") != "wechat" {
-		t.Fatalf("im mode = %q", got.Get("X-Synon-IM-Mode"))
+	if got.Get("X-Science-IM-Mode") != "wechat" {
+		t.Fatalf("im mode = %q", got.Get("X-Science-IM-Mode"))
 	}
 }
 

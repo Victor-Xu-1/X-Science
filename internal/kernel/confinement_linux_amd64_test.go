@@ -52,28 +52,28 @@ func TestConfinementRejectsHostGrantOverPrivateRuntimeNamespace(t *testing.T) {
 	}
 }
 
-func TestSynonKernelConfinementPolicyIdentity(t *testing.T) {
+func TestXScienceKernelConfinementPolicyIdentity(t *testing.T) {
 	var raw bytes.Buffer
-	for _, instruction := range synonKernelFilter {
+	for _, instruction := range xscienceKernelFilter {
 		if err := binary.Write(&raw, binary.LittleEndian, instruction); err != nil {
 			t.Fatal(err)
 		}
 	}
 	digest := sha256.Sum256(raw.Bytes())
-	if len(raw.Bytes()) != 296 || hex.EncodeToString(digest[:]) != synonKernelPolicySHA256 {
+	if len(raw.Bytes()) != 296 || hex.EncodeToString(digest[:]) != xscienceKernelPolicySHA256 {
 		t.Fatalf("kernel filter bytes=%d sha256=%x", len(raw.Bytes()), digest)
 	}
 	evidence := platformConfinementEvidence()
-	if !evidence.Available || evidence.Mode != "synon-bwrap-unix-block-v1" ||
-		evidence.PolicySHA256 != synonKernelPolicySHA256 || evidence.Reason != "" {
+	if !evidence.Available || evidence.Mode != "x-science-bwrap-unix-block-v1" ||
+		evidence.PolicySHA256 != xscienceKernelPolicySHA256 || evidence.Reason != "" {
 		t.Fatalf("kernel confinement evidence=%#v", evidence)
 	}
 }
 
 func TestKernelConfinementReadinessExecutesFullBoundary(t *testing.T) {
 	evidence := probePlatformConfinement()
-	if !evidence.Available || evidence.Mode != "synon-bwrap-unix-block-v1" ||
-		evidence.PolicySHA256 != synonKernelPolicySHA256 || evidence.Reason != "" {
+	if !evidence.Available || evidence.Mode != "x-science-bwrap-unix-block-v1" ||
+		evidence.PolicySHA256 != xscienceKernelPolicySHA256 || evidence.Reason != "" {
 		t.Fatalf("probed kernel confinement evidence=%#v", evidence)
 	}
 	manager := NewManager(Config{})
@@ -103,7 +103,7 @@ func TestKernelConfinementSealsSyntheticEtcAfterPopulatingMountTargets(t *testin
 		WorkspaceFD:  openKernelTestDirectoryFD(t, workspace),
 		Executable:   "/usr/bin/python3",
 	}
-	arguments, err := kernelBubblewrapArguments(request, "/opt/synon/kernel-helper", 3, 4)
+	arguments, err := kernelBubblewrapArguments(request, "/opt/xscience/kernel-helper", 3, 4)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -191,7 +191,7 @@ print(json.dumps(result, sort_keys=True))
 
 func TestManagerMountsMaterializedSkillRuntimeReadOnly(t *testing.T) {
 	workspace := t.TempDir()
-	skillRuntime := filepath.Join(workspace, ".synon", "runtime", "skills", "reviewed-skill", "scripts")
+	skillRuntime := filepath.Join(workspace, ".x-science", "runtime", "skills", "reviewed-skill", "scripts")
 	if err := os.MkdirAll(skillRuntime, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -275,12 +275,12 @@ print(json.dumps({"visible": stat.S_ISCHR(device.st_mode)}))
 }
 
 func TestConfinedWorkerPreservesCUDAVisibilityWhenAvailable(t *testing.T) {
-	python := strings.TrimSpace(os.Getenv("SYNON_TEST_CUDA_PYTHON"))
+	python := strings.TrimSpace(os.Getenv("X_SCIENCE_TEST_CUDA_PYTHON"))
 	if python == "" {
-		t.Skip("set SYNON_TEST_CUDA_PYTHON to a CUDA-enabled managed Python")
+		t.Skip("set X_SCIENCE_TEST_CUDA_PYTHON to a CUDA-enabled managed Python")
 	}
 	if !filepath.IsAbs(python) {
-		t.Fatal("SYNON_TEST_CUDA_PYTHON must be absolute")
+		t.Fatal("X_SCIENCE_TEST_CUDA_PYTHON must be absolute")
 	}
 	direct := exec.Command(python, "-c", "import torch; assert torch.cuda.is_available()")
 	if output, err := direct.CombinedOutput(); err != nil {
@@ -315,9 +315,9 @@ func TestConfinedWorkerPreservesCUDAVisibilityWhenAvailable(t *testing.T) {
 }
 
 func TestConfinedWorkerMountsExternalPythonStandardLibrary(t *testing.T) {
-	python := strings.TrimSpace(os.Getenv("SYNON_TEST_EXTERNAL_PYTHON"))
+	python := strings.TrimSpace(os.Getenv("X_SCIENCE_TEST_EXTERNAL_PYTHON"))
 	if python == "" {
-		t.Skip("set SYNON_TEST_EXTERNAL_PYTHON to a non-system Python distribution")
+		t.Skip("set X_SCIENCE_TEST_EXTERNAL_PYTHON to a non-system Python distribution")
 	}
 	resolved, err := filepath.EvalSymlinks(python)
 	if err != nil || !filepath.IsAbs(resolved) {
@@ -420,8 +420,8 @@ except OSError:
 finally:
     network.close()
 result["helper_env_absent"] = (
-    "SYNON_INTERNAL_KERNEL_CONFINEMENT_HELPER" not in os.environ
-    and "SYNON_INTERNAL_KERNEL_CONFINEMENT_PAYLOAD" not in os.environ
+    "X_SCIENCE_INTERNAL_KERNEL_CONFINEMENT_HELPER" not in os.environ
+    and "X_SCIENCE_INTERNAL_KERNEL_CONFINEMENT_PAYLOAD" not in os.environ
 )
 print(json.dumps(result, sort_keys=True))
 `, "user")
@@ -469,12 +469,12 @@ func TestKernelConfinementRejectsProtectedAndOverlappingMounts(t *testing.T) {
 		WorkspaceFD: openKernelTestDirectoryFD(t, workspace), Environment: []string{"HOME=" + home, "CONDA_PREFIX=" + conda},
 	}
 	request.Mounts = []confinedWorkerMount{{Path: allowed, FD: openKernelTestDirectoryFD(t, allowed)}}
-	if _, err := kernelBubblewrapArguments(request, "/opt/synon/kernel-helper", 3, 4); err != nil {
+	if _, err := kernelBubblewrapArguments(request, "/opt/xscience/kernel-helper", 3, 4); err != nil {
 		t.Fatalf("allowed mount rejected: %v", err)
 	}
 	for _, path := range []string{"/", "/usr", "/usr/local", "/etc", "/proc", "/dev", "/sys", "/run", "/opt", conda, workspace} {
 		request.Mounts = []confinedWorkerMount{{Path: path, FD: openKernelTestDirectoryFD(t, path)}}
-		if _, err := kernelBubblewrapArguments(request, "/opt/synon/kernel-helper", 3, 4); err == nil || !strings.Contains(err.Error(), "protected path") {
+		if _, err := kernelBubblewrapArguments(request, "/opt/xscience/kernel-helper", 3, 4); err == nil || !strings.Contains(err.Error(), "protected path") {
 			t.Fatalf("protected mount %q err=%v", path, err)
 		}
 	}
@@ -485,7 +485,7 @@ func TestKernelConfinementRejectsProtectedAndOverlappingMounts(t *testing.T) {
 	}
 	request.Protected = []string{protected}
 	request.Mounts = []confinedWorkerMount{{Path: protectedChild, FD: openKernelTestDirectoryFD(t, protectedChild)}}
-	if _, err := kernelBubblewrapArguments(request, "/opt/synon/kernel-helper", 3, 4); err == nil || !strings.Contains(err.Error(), "protected path") {
+	if _, err := kernelBubblewrapArguments(request, "/opt/xscience/kernel-helper", 3, 4); err == nil || !strings.Contains(err.Error(), "protected path") {
 		t.Fatalf("application data mount err=%v", err)
 	}
 }
@@ -527,7 +527,7 @@ func TestKernelConfinementMountDescriptorSurvivesPathReplacement(t *testing.T) {
 		WorkspaceDir: workspace, WorkspaceFD: openKernelTestDirectoryFD(t, workspace),
 		Executable: "/usr/bin/python3", Mounts: []confinedWorkerMount{{Path: mount, FD: fd}},
 	}
-	arguments, err := kernelBubblewrapArguments(request, "/opt/synon/kernel-helper", 3, 4)
+	arguments, err := kernelBubblewrapArguments(request, "/opt/xscience/kernel-helper", 3, 4)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -549,7 +549,7 @@ func TestKernelConfinementOverlaysImmutableWorkspaceChildAfterWritableRoot(t *te
 		WorkspaceDir: workspace, WorkspaceFD: workspaceFD, Executable: "/usr/bin/python3",
 		Mounts: []confinedWorkerMount{{Path: output, FD: outputFD, Trusted: true}},
 	}
-	arguments, err := kernelBubblewrapArguments(request, "/opt/synon/kernel-helper", 3, 4)
+	arguments, err := kernelBubblewrapArguments(request, "/opt/xscience/kernel-helper", 3, 4)
 	if err != nil {
 		t.Fatal(err)
 	}

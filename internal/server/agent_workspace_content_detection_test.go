@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"context"
 	"strings"
-	"synon-go/internal/agentruntime"
 	"testing"
+	"x-science/internal/agentruntime"
 )
 
 func TestAgentWorkspaceSniffsImageDespiteGenericUploadMIME(t *testing.T) {

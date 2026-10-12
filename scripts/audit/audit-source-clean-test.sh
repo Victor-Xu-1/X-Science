@@ -18,7 +18,7 @@ mkdir -p "$FIXTURE/docs/governance"
 mkdir -p "$FIXTURE/docs/full-product"
 mkdir -p "$FIXTURE/docs/provenance"
 mkdir -p "$FIXTURE/frontend"
-mkdir -p "$FIXTURE/skills/synonbiomed"
+mkdir -p "$FIXTURE/skills/xscience"
 cp "$ROOT_DIR/scripts/audit/audit-source-clean.sh" "$FIXTURE/scripts/audit/audit-source-clean.sh"
 cp "$ROOT_DIR/scripts/audit/audit-secrets.py" "$FIXTURE/scripts/audit/audit-secrets.py"
 cp "$ROOT_DIR/scripts/audit/audit-non-web-boundary.sh" "$FIXTURE/scripts/audit/audit-non-web-boundary.sh"
@@ -59,7 +59,7 @@ cp "$ROOT_DIR/COMMERCIAL-LICENSE.md" "$FIXTURE/COMMERCIAL-LICENSE.md"
 cp "$ROOT_DIR/CONTRIBUTING.md" "$FIXTURE/CONTRIBUTING.md"
 cp "$ROOT_DIR/SECURITY.md" "$FIXTURE/SECURITY.md"
 cp "$ROOT_DIR/CODE_OF_CONDUCT.md" "$FIXTURE/CODE_OF_CONDUCT.md"
-cp "$ROOT_DIR/LICENSE" "$FIXTURE/LICENSE"
+cp "$ROOT_DIR/LICENSE.txt" "$FIXTURE/LICENSE.txt"
 cp "$ROOT_DIR/identity.go" "$FIXTURE/identity.go"
 cp "$ROOT_DIR/identity_test.go" "$FIXTURE/identity_test.go"
 cp "$ROOT_DIR/product-identity.json" "$FIXTURE/product-identity.json"
@@ -153,18 +153,18 @@ for external_path in \
   "docs/governance/development/00-并行开发统一约束.md" \
   "docs/governance/development/01-开发线程工作规范.md" \
   "docs/governance/development/02-主协调线程PR并线验收规范.md" \
-  "docs/governance/development/03-Synon-Biomed-Harness优化与长任务验收规范.md" \
+  "docs/governance/development/03-X-Science-Harness优化与长任务验收规范.md" \
   "docs/governance/development/04-工程质量与Agent协作规范.md" \
   "docs/governance/development/05-接入AGENTS与GitHub执行指南.md" \
   "docs/governance/development/README-并行开发约束.md" \
   "docs/governance/product-identity-release-authorization.json" \
   "docs/governance/repository-state.md" \
-  "docs/governance/synon-biomed-optimization-constraints.md" \
+  "docs/governance/x-science-optimization-constraints.md" \
   "docs/governance/harness-goal.md" \
   "docs/governance/history/release-cleanup-2026-07-29.json" \
-  "docs/engineering/synon-harness-acceptance.json" \
-  "docs/engineering/synon-runtime-capability-ledger.json" \
-  "docs/engineering/synon-harness-migration-audit.md" \
+  "docs/engineering/x-science-harness-acceptance.json" \
+  "docs/engineering/x-science-runtime-capability-ledger.json" \
+  "docs/engineering/x-science-harness-migration-audit.md" \
   "docs/compatibility/recovered-work-audit.md" \
   "docs/compatibility/v1.1-reuse-review.md" \
   "docs/compatibility/goals/README.md" \
@@ -243,13 +243,13 @@ fi
 grep -Fq '.env.example' "$TMP_DIR/missing-env-example.err"
 cp "$ROOT_DIR/.env.example" "$FIXTURE/.env.example"
 
-rm "$FIXTURE/LICENSE"
+rm "$FIXTURE/LICENSE.txt"
 if (cd "$FIXTURE" && bash scripts/audit/audit-source-clean.sh >"$TMP_DIR/missing-license.out" 2>"$TMP_DIR/missing-license.err"); then
-  echo "ERROR: audit-source-clean allowed a source tree without LICENSE" >&2
+  echo "ERROR: audit-source-clean allowed a source tree without LICENSE.txt" >&2
   exit 1
 fi
-grep -Fq 'LICENSE' "$TMP_DIR/missing-license.err"
-cp "$ROOT_DIR/LICENSE" "$FIXTURE/LICENSE"
+grep -Fq 'LICENSE.txt' "$TMP_DIR/missing-license.err"
+cp "$ROOT_DIR/LICENSE.txt" "$FIXTURE/LICENSE.txt"
 
 rm "$FIXTURE/COMMERCIAL-LICENSE.md"
 if (cd "$FIXTURE" && bash scripts/audit/audit-source-clean.sh >"$TMP_DIR/missing-commercial-license.out" 2>"$TMP_DIR/missing-commercial-license.err"); then

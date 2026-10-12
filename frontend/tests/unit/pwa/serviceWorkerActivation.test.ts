@@ -64,17 +64,17 @@ describe('WebUI service worker activation', () => {
     expect(result.navigate).not.toHaveBeenCalled();
   });
 
-  it('deletes an obsolete SynonAI cache and refreshes controlled clients during an upgrade', async () => {
-    const result = await activateServiceWorker(['synon-ai-webui-v1', 'synon-ai-webui-v2']);
+  it('deletes an obsolete XScience cache and refreshes controlled clients during an upgrade', async () => {
+    const result = await activateServiceWorker(['x-science-webui-v1', 'x-science-webui-v2']);
 
     expect(result.deleteCache).toHaveBeenCalledTimes(1);
-    expect(result.deleteCache).toHaveBeenCalledWith('synon-ai-webui-v1');
+    expect(result.deleteCache).toHaveBeenCalledWith('x-science-webui-v1');
     expect(result.matchAll).toHaveBeenCalledTimes(1);
     expect(result.navigate).toHaveBeenCalledWith('http://127.0.0.1:28081/#/login');
   });
 
   it('leaves unrelated origin caches untouched and does not refresh clients for them', async () => {
-    const result = await activateServiceWorker(['third-party-cache', 'synon-ai-webui-v2']);
+    const result = await activateServiceWorker(['third-party-cache', 'x-science-webui-v2']);
 
     expect(result.deleteCache).not.toHaveBeenCalled();
     expect(result.matchAll).not.toHaveBeenCalled();

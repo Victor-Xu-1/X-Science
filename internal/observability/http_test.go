@@ -61,8 +61,8 @@ func TestHTTPRegistryCapturesBoundedRoutesStatusAndTraceIdentity(t *testing.T) {
 	assertHTTPMetric(t, snapshot, http.MethodGet, "/implicit", http.StatusOK)
 	assertHTTPMetric(t, snapshot, http.MethodGet, "/api/unmatched", http.StatusNotFound)
 	metrics := registry.Prometheus()
-	if !strings.Contains(metrics, `synon_http_requests_total{method="POST",route="/widgets/{id}",status="201"} 1`) ||
-		!strings.Contains(metrics, "synon_http_requests_in_flight 0") {
+	if !strings.Contains(metrics, `x_science_http_requests_total{method="POST",route="/widgets/{id}",status="201"} 1`) ||
+		!strings.Contains(metrics, "x_science_http_requests_in_flight 0") {
 		t.Fatalf("prometheus output:\n%s", metrics)
 	}
 }

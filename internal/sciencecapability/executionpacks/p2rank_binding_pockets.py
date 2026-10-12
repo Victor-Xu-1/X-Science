@@ -20,7 +20,7 @@ from p2rank_predictions import parse_predictions, prediction_failure_record, sha
 PACK_ID = "binding-pocket-prediction.p2rank"
 P2RANK_VERSION = "2.5.1"
 P2RANK_ARCHIVE_SHA256 = "d243f2d9036ac053fefb9407b5fe1c85f4fe077c519fd975ac585e995feab274"
-OUTPUT_MARKER = ".synon-execution-pack.json"
+OUTPUT_MARKER = ".x-science-execution-pack.json"
 DEFAULT_OUTPUT_DIR = "pocket_detection"
 MAX_ARCHIVE_MEMBERS = 50_000
 MAX_ARCHIVE_EXPANDED_BYTES = 2_000_000_000
@@ -282,7 +282,7 @@ def promote_output(root: Path, staging: Path, target: Path) -> dict[str, object]
         raise RuntimeError("P2Rank output target was created before promotion")
     staging.rename(target)
     return {
-        "schema": "synon.execution-pack-output-promotion.v1",
+        "schema": "x-science.execution-pack-output-promotion.v1",
         "execution_pack_id": PACK_ID,
         "current": str(target.relative_to(root)),
         "previous": None,
@@ -324,7 +324,7 @@ def main() -> int:
     failure_root = validated_internal_state_directory(root, root / ".p2rank-failures", "failure")
     staging.mkdir()
     runtime.mkdir()
-    marker = {"execution_pack_id": PACK_ID, "schema": "synon.execution-pack-output-owner.v1"}
+    marker = {"execution_pack_id": PACK_ID, "schema": "x-science.execution-pack-output-owner.v1"}
     atomic_text(staging / OUTPUT_MARKER, json.dumps(marker, sort_keys=True) + "\n")
     log_path = staging / "p2rank.log"
     try:
@@ -368,7 +368,7 @@ def main() -> int:
         write_selected_atoms(staging / "selected_pocket_atoms.pdb", selected, atoms)
         source_sha = sha256_file(structure)
         selection = {
-            "schema": "synon.binding-pocket-prediction.v1",
+            "schema": "x-science.binding-pocket-prediction.v1",
             "status": "passed",
             "source": {"file": structure.name, "sha256": source_sha},
             "method": {
@@ -404,7 +404,7 @@ def main() -> int:
             ),
         }
         validation = {
-            "schema": "synon.execution-pack-validation.v4",
+            "schema": "x-science.execution-pack-validation.v4",
             "execution_pack_id": PACK_ID,
             "overall_pass": all(checks.values()),
             "checks": checks,

@@ -9,11 +9,11 @@ import (
 	"strings"
 	"unicode"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/harnesscontract"
-	sessionstore "synon-go/internal/persistence/sessions"
-	"synon-go/internal/skills"
-	"synon-go/internal/toolcontract"
+	"x-science/internal/agentruntime"
+	"x-science/internal/harnesscontract"
+	sessionstore "x-science/internal/persistence/sessions"
+	"x-science/internal/skills"
+	"x-science/internal/toolcontract"
 )
 
 const bundledOperonID = "3bcb40e9-b995-5b66-a209-8ed8ef1f68ef"
@@ -65,8 +65,8 @@ func defaultAgentCatalogCandidates() []agentCatalogCandidate {
 	candidates := make([]agentCatalogCandidate, 0)
 	for _, start := range starts {
 		for current := filepath.Clean(start); ; current = filepath.Dir(current) {
-			root := filepath.Join(current, "assets", "synonbiomed", "agents")
-			manifest := filepath.Join(current, "assets", "synonbiomed", "agents.manifest.json")
+			root := filepath.Join(current, "assets", "x-science", "agents")
+			manifest := filepath.Join(current, "assets", "x-science", "agents.manifest.json")
 			key := strings.ToLower(filepath.Clean(root))
 			if _, duplicate := seen[key]; !duplicate {
 				seen[key] = struct{}{}

@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 // registerWorkspaceArtifactReadCompatibilityRoutes replaces the two existing

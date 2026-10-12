@@ -25,9 +25,9 @@ import (
 	"time"
 	"unicode/utf8"
 
-	researchartifacts "synon-go/internal/artifacts"
+	researchartifacts "x-science/internal/artifacts"
 
-	sessionstore "synon-go/internal/persistence/sessions"
+	sessionstore "x-science/internal/persistence/sessions"
 )
 
 const artifactRuntimeNamespace = "artifacts"

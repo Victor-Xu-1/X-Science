@@ -16,7 +16,7 @@ import (
 func TestHostLoadsExternalPluginManifestAndRunsProcess(t *testing.T) {
 	root := t.TempDir()
 	pluginDir := filepath.Join(root, "terminal-tools")
-	manifestDir := filepath.Join(pluginDir, ".synon-plugin")
+	manifestDir := filepath.Join(pluginDir, ".x-science-plugin")
 	if err := os.MkdirAll(manifestDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -40,8 +40,8 @@ func TestHostLoadsExternalPluginManifestAndRunsProcess(t *testing.T) {
       "command": %q,
       "args": ["-test.run=TestExternalPluginProcessHelper"],
       "env": {
-        "SYNON_PLUGIN_PROCESS_HELPER": "1",
-        "SYNON_PLUGIN_READY_FILE": %q
+        "X_SCIENCE_PLUGIN_PROCESS_HELPER": "1",
+        "X_SCIENCE_PLUGIN_READY_FILE": %q
       }
     }
   }
@@ -58,7 +58,7 @@ func TestHostLoadsExternalPluginManifestAndRunsProcess(t *testing.T) {
 	if plugin.Author != "Plugin Author" {
 		t.Fatalf("Author = %q", plugin.Author)
 	}
-	if plugin.PluginFormat != "synon_agent_external" {
+	if plugin.PluginFormat != "x_science_agent_external" {
 		t.Fatalf("PluginFormat = %q", plugin.PluginFormat)
 	}
 	if plugin.Server.APIMount != "/api/plugins/terminal-tools" || plugin.Server.ContextEntry != "./server/context.go" {
@@ -97,7 +97,7 @@ func TestHostLoadsExternalPluginManifestAndRunsProcess(t *testing.T) {
 func TestHostMarksExternalProcessExitedWhenChildEnds(t *testing.T) {
 	root := t.TempDir()
 	pluginDir := filepath.Join(root, "short-plugin")
-	manifestDir := filepath.Join(pluginDir, ".synon-plugin")
+	manifestDir := filepath.Join(pluginDir, ".x-science-plugin")
 	if err := os.MkdirAll(manifestDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -116,9 +116,9 @@ func TestHostMarksExternalProcessExitedWhenChildEnds(t *testing.T) {
       "command": %q,
       "args": ["-test.run=TestExternalPluginProcessHelper"],
       "env": {
-        "SYNON_PLUGIN_PROCESS_HELPER": "1",
-        "SYNON_PLUGIN_EXIT_AFTER_READY": "1",
-        "SYNON_PLUGIN_READY_FILE": %q
+        "X_SCIENCE_PLUGIN_PROCESS_HELPER": "1",
+        "X_SCIENCE_PLUGIN_EXIT_AFTER_READY": "1",
+        "X_SCIENCE_PLUGIN_READY_FILE": %q
       }
     }
   }
@@ -140,7 +140,7 @@ func TestHostMarksExternalProcessExitedWhenChildEnds(t *testing.T) {
 
 func TestHostRejectsExcludedSidePluginManifest(t *testing.T) {
 	root := t.TempDir()
-	manifestDir := filepath.Join(root, "admet", ".synon-plugin")
+	manifestDir := filepath.Join(root, "admet", ".x-science-plugin")
 	if err := os.MkdirAll(manifestDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -163,13 +163,13 @@ func TestHostRejectsExcludedSidePluginManifest(t *testing.T) {
 func TestHostLoadsExternalPluginHooksConfig(t *testing.T) {
 	root := t.TempDir()
 	pluginDir := filepath.Join(root, "terminal-tools")
-	if err := os.MkdirAll(filepath.Join(pluginDir, ".synon-plugin"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(pluginDir, ".x-science-plugin"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.MkdirAll(filepath.Join(pluginDir, "hooks"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	writePluginManifest(t, filepath.Join(pluginDir, ".synon-plugin"), `{
+	writePluginManifest(t, filepath.Join(pluginDir, ".x-science-plugin"), `{
   "id": "terminal-tools",
   "name": "terminal-tools",
   "version": "0.2.0",
@@ -207,10 +207,10 @@ func TestHostLoadsExternalPluginHooksConfig(t *testing.T) {
 func TestHostRejectsMissingManifestHooksFile(t *testing.T) {
 	root := t.TempDir()
 	pluginDir := filepath.Join(root, "terminal-tools")
-	if err := os.MkdirAll(filepath.Join(pluginDir, ".synon-plugin"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(pluginDir, ".x-science-plugin"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	writePluginManifest(t, filepath.Join(pluginDir, ".synon-plugin"), `{
+	writePluginManifest(t, filepath.Join(pluginDir, ".x-science-plugin"), `{
   "id": "terminal-tools",
   "name": "terminal-tools",
   "version": "0.2.0",
@@ -230,10 +230,10 @@ func TestHostRejectsMissingManifestHooksFile(t *testing.T) {
 func TestHostKeepsPathCommandNamesAndResolvesRelativeExecutables(t *testing.T) {
 	root := t.TempDir()
 	pathCommandDir := filepath.Join(root, "path-command")
-	if err := os.MkdirAll(filepath.Join(pathCommandDir, ".synon-plugin"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(pathCommandDir, ".x-science-plugin"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	writePluginManifest(t, filepath.Join(pathCommandDir, ".synon-plugin"), `{
+	writePluginManifest(t, filepath.Join(pathCommandDir, ".x-science-plugin"), `{
   "id": "path-command",
   "name": "path-command",
   "version": "0.1.0",
@@ -243,7 +243,7 @@ func TestHostKeepsPathCommandNamesAndResolvesRelativeExecutables(t *testing.T) {
   }
 }`)
 	relativeCommandDir := filepath.Join(root, "relative-command")
-	if err := os.MkdirAll(filepath.Join(relativeCommandDir, ".synon-plugin"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(relativeCommandDir, ".x-science-plugin"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.MkdirAll(filepath.Join(relativeCommandDir, "bin"), 0o755); err != nil {
@@ -252,7 +252,7 @@ func TestHostKeepsPathCommandNamesAndResolvesRelativeExecutables(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(relativeCommandDir, "bin", "plugin-helper"), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	writePluginManifest(t, filepath.Join(relativeCommandDir, ".synon-plugin"), `{
+	writePluginManifest(t, filepath.Join(relativeCommandDir, ".x-science-plugin"), `{
   "id": "relative-command",
   "name": "relative-command",
   "version": "0.1.0",
@@ -280,7 +280,7 @@ func TestHostKeepsPathCommandNamesAndResolvesRelativeExecutables(t *testing.T) {
 func TestHostPluginProcessStripsAmbientSecretsAndAllowsExplicitEnvironment(t *testing.T) {
 	root := t.TempDir()
 	pluginDir := filepath.Join(root, "environment-plugin")
-	manifestDir := filepath.Join(pluginDir, ".synon-plugin")
+	manifestDir := filepath.Join(pluginDir, ".x-science-plugin")
 	if err := os.MkdirAll(manifestDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -290,7 +290,7 @@ func TestHostPluginProcessStripsAmbientSecretsAndAllowsExplicitEnvironment(t *te
 	}
 	readyFile := filepath.Join(root, "environment.ready")
 	environmentFile := filepath.Join(root, "environment.txt")
-	t.Setenv("SYNON_AMBIENT_PLUGIN_SECRET", "must-not-reach-plugin")
+	t.Setenv("X_SCIENCE_AMBIENT_PLUGIN_SECRET", "must-not-reach-plugin")
 	writePluginManifest(t, manifestDir, fmt.Sprintf(`{
   "id": "environment-plugin",
   "name": "environment-plugin",
@@ -301,11 +301,11 @@ func TestHostPluginProcessStripsAmbientSecretsAndAllowsExplicitEnvironment(t *te
       "command": %q,
       "args": ["-test.run=TestExternalPluginProcessHelper"],
       "env": {
-        "SYNON_PLUGIN_PROCESS_HELPER": "1",
-        "SYNON_PLUGIN_EXIT_AFTER_READY": "1",
-        "SYNON_PLUGIN_EXPLICIT": "configured-value",
-        "SYNON_PLUGIN_ENV_FILE": %q,
-        "SYNON_PLUGIN_READY_FILE": %q
+        "X_SCIENCE_PLUGIN_PROCESS_HELPER": "1",
+        "X_SCIENCE_PLUGIN_EXIT_AFTER_READY": "1",
+        "X_SCIENCE_PLUGIN_EXPLICIT": "configured-value",
+        "X_SCIENCE_PLUGIN_ENV_FILE": %q,
+        "X_SCIENCE_PLUGIN_READY_FILE": %q
       }
     }
   }
@@ -333,14 +333,14 @@ func TestHostPluginProcessStripsAmbientSecretsAndAllowsExplicitEnvironment(t *te
 func TestHostRejectsProcessPathEscapeAndInvalidEnvironment(t *testing.T) {
 	root := t.TempDir()
 	escapeDir := filepath.Join(root, "escape-plugin")
-	if err := os.MkdirAll(filepath.Join(escapeDir, ".synon-plugin"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(escapeDir, ".x-science-plugin"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	outside := filepath.Join(root, "outside-helper")
 	if err := os.WriteFile(outside, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	writePluginManifest(t, filepath.Join(escapeDir, ".synon-plugin"), `{
+	writePluginManifest(t, filepath.Join(escapeDir, ".x-science-plugin"), `{
   "id": "escape-plugin",
   "name": "escape-plugin",
   "server": {
@@ -353,10 +353,10 @@ func TestHostRejectsProcessPathEscapeAndInvalidEnvironment(t *testing.T) {
 	}
 
 	invalidDir := filepath.Join(root, "invalid-environment")
-	if err := os.MkdirAll(filepath.Join(invalidDir, ".synon-plugin"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(invalidDir, ".x-science-plugin"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	writePluginManifest(t, filepath.Join(invalidDir, ".synon-plugin"), `{
+	writePluginManifest(t, filepath.Join(invalidDir, ".x-science-plugin"), `{
   "id": "invalid-environment",
   "name": "invalid-environment",
   "server": {
@@ -379,7 +379,7 @@ func TestHostStopKillsPluginProcessTree(t *testing.T) {
 	}
 	root := t.TempDir()
 	pluginDir := filepath.Join(root, "tree-plugin")
-	manifestDir := filepath.Join(pluginDir, ".synon-plugin")
+	manifestDir := filepath.Join(pluginDir, ".x-science-plugin")
 	if err := os.MkdirAll(manifestDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -398,9 +398,9 @@ func TestHostStopKillsPluginProcessTree(t *testing.T) {
       "command": %q,
       "args": ["-test.run=TestExternalPluginProcessHelper"],
       "env": {
-        "SYNON_PLUGIN_PROCESS_HELPER": "1",
-        "SYNON_PLUGIN_CHILD_PID_FILE": %q,
-        "SYNON_PLUGIN_READY_FILE": %q
+        "X_SCIENCE_PLUGIN_PROCESS_HELPER": "1",
+        "X_SCIENCE_PLUGIN_CHILD_PID_FILE": %q,
+        "X_SCIENCE_PLUGIN_READY_FILE": %q
       }
     }
   }
@@ -418,20 +418,20 @@ func TestHostStopKillsPluginProcessTree(t *testing.T) {
 }
 
 func TestExternalPluginProcessHelper(t *testing.T) {
-	if os.Getenv("SYNON_PLUGIN_PROCESS_HELPER") != "1" {
+	if os.Getenv("X_SCIENCE_PLUGIN_PROCESS_HELPER") != "1" {
 		return
 	}
-	readyFile := os.Getenv("SYNON_PLUGIN_READY_FILE")
+	readyFile := os.Getenv("X_SCIENCE_PLUGIN_READY_FILE")
 	if readyFile == "" {
 		os.Exit(2)
 	}
-	if environmentFile := os.Getenv("SYNON_PLUGIN_ENV_FILE"); environmentFile != "" {
-		content := fmt.Sprintf("explicit=%s\nambient=%s\n", os.Getenv("SYNON_PLUGIN_EXPLICIT"), os.Getenv("SYNON_AMBIENT_PLUGIN_SECRET"))
+	if environmentFile := os.Getenv("X_SCIENCE_PLUGIN_ENV_FILE"); environmentFile != "" {
+		content := fmt.Sprintf("explicit=%s\nambient=%s\n", os.Getenv("X_SCIENCE_PLUGIN_EXPLICIT"), os.Getenv("X_SCIENCE_AMBIENT_PLUGIN_SECRET"))
 		if err := os.WriteFile(environmentFile, []byte(content), 0o600); err != nil {
 			os.Exit(4)
 		}
 	}
-	if childPIDFile := os.Getenv("SYNON_PLUGIN_CHILD_PID_FILE"); childPIDFile != "" {
+	if childPIDFile := os.Getenv("X_SCIENCE_PLUGIN_CHILD_PID_FILE"); childPIDFile != "" {
 		child := exec.Command("sleep", "60")
 		if err := child.Start(); err != nil {
 			os.Exit(5)
@@ -444,7 +444,7 @@ func TestExternalPluginProcessHelper(t *testing.T) {
 	if err := os.WriteFile(readyFile, []byte(fmt.Sprintf("pid=%d\n", os.Getpid())), 0o600); err != nil {
 		os.Exit(3)
 	}
-	if os.Getenv("SYNON_PLUGIN_EXIT_AFTER_READY") == "1" {
+	if os.Getenv("X_SCIENCE_PLUGIN_EXIT_AFTER_READY") == "1" {
 		return
 	}
 	for {
@@ -503,6 +503,34 @@ func waitForFile(t *testing.T, path string) {
 		time.Sleep(20 * time.Millisecond)
 	}
 	t.Fatalf("timed out waiting for %s", path)
+}
+
+func TestHostLoadsHistoricalSynonPluginManifestDirectory(t *testing.T) {
+	root := t.TempDir()
+	pluginDir := filepath.Join(root, "historical-plugin")
+	manifestDir := filepath.Join(pluginDir, ".synon-plugin")
+	if err := os.MkdirAll(manifestDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writePluginManifest(t, manifestDir, `{
+  "id": "historical-plugin",
+  "name": "historical-plugin",
+  "version": "0.1.0",
+  "description": "Historical manifest directory",
+  "author": {"name": "Plugin Author"},
+  "license": "MIT",
+  "server": {
+    "api": {"mount": "/api/plugins/historical-plugin", "entry": "./server/api.go"}
+  }
+}`)
+	host, err := NewDefaultWithExternalDirectories([]string{pluginDir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	plugin, ok := host.Get("historical-plugin")
+	if !ok || plugin.Name != "historical-plugin" {
+		t.Fatalf("historical plugin=%#v ok=%t err=%v", plugin, ok, err)
+	}
 }
 
 func waitForRuntimeStatus(t *testing.T, host *Host, id string, status string) {

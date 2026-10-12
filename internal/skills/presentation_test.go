@@ -29,7 +29,7 @@ func writePresentation(t *testing.T, root, content string) {
 
 func TestPresentationLoadsFromBundledRootAndParentRoot(t *testing.T) {
 	parent := t.TempDir()
-	bundled := filepath.Join(parent, "synonbiomed")
+	bundled := filepath.Join(parent, "xscience")
 	writePresentationFixture(t, bundled, "demo")
 	writePresentation(t, bundled, testPresentation)
 	for _, root := range []string{bundled, parent} {
@@ -125,7 +125,7 @@ func TestPresentationRejectsSymlinkCatalog(t *testing.T) {
 }
 
 func TestBundledPresentationCoversEveryShippedSkill(t *testing.T) {
-	for _, root := range []string{filepath.Join("..", "..", "skills", "synonbiomed"), filepath.Join("..", "..", "skills")} {
+	for _, root := range []string{filepath.Join("..", "..", "skills", "x-science"), filepath.Join("..", "..", "skills")} {
 		catalog := Load([]string{root})
 		if errs := catalog.LoadErrors(); len(errs) != 0 {
 			t.Fatalf("bundled catalog errors: %#v", errs)

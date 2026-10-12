@@ -8,9 +8,9 @@ import (
 	"net/http/httptest"
 	"strings"
 	"sync/atomic"
-	"synon-go/internal/agentruntime"
-	workspace "synon-go/internal/persistence/workspace"
 	"testing"
+	"x-science/internal/agentruntime"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestContextCapacityDynamicSelectionBindsAdmissionAndTelemetryPerCall(t *testing.T) {

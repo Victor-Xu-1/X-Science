@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	sessionstore "synon-go/internal/persistence/sessions"
-	workspace "synon-go/internal/persistence/workspace"
 	"time"
+	sessionstore "x-science/internal/persistence/sessions"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func (s *Server) RunFrameResumeDispatchOnce(ctx context.Context, options FrameResumeDispatchOptions) (FrameResumeDispatchResult, error) {

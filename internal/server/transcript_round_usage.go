@@ -7,8 +7,8 @@ import (
 	"strings"
 	"unicode"
 
-	runtimekv "synon-go/internal/persistence/runtimekv"
-	"synon-go/internal/providers"
+	runtimekv "x-science/internal/persistence/runtimekv"
+	"x-science/internal/providers"
 )
 
 type roundTokenSummary struct {

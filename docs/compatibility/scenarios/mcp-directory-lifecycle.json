@@ -10,11 +10,11 @@
   ],
   "steps": [
     {"name": "csrf", "method": "GET", "path": "/api/csrf", "headers": {"Origin": "${origin}"}, "expectedStatus": [204]},
-    {"name": "list-connectors", "method": "GET", "path": "/api/mcp-servers/connectors", "headers": {"X-Synon-User-Id": "local"}, "expectedStatus": [200]},
-    {"name": "directory-health", "method": "GET", "path": "/api/mcp-servers/directory-health", "headers": {"X-Synon-User-Id": "local"}, "expectedStatus": [200]},
-    {"name": "reconcile-empty", "method": "POST", "path": "/api/mcp-servers/reconcile", "headers": {"X-Synon-User-Id": "local", "Origin": "${origin}", "X-Operon-CSRF": "${cookie:operon_csrf}"}, "expectedStatus": [200]},
-    {"name": "add-invalid-directory", "method": "POST", "path": "/api/mcp-servers/directory", "headers": {"X-Synon-User-Id": "local", "Origin": "${origin}", "X-Operon-CSRF": "${cookie:operon_csrf}"}, "body": {}, "expectedStatus": [400]},
-    {"name": "authorize-missing", "method": "POST", "path": "/api/mcp-servers/connectors/directory:missing/authorize", "headers": {"X-Synon-User-Id": "local", "Origin": "${origin}", "X-Operon-CSRF": "${cookie:operon_csrf}"}, "expectedStatus": [400]}
+    {"name": "list-connectors", "method": "GET", "path": "/api/mcp-servers/connectors", "headers": {"X-Science-User-Id": "local"}, "expectedStatus": [200]},
+    {"name": "directory-health", "method": "GET", "path": "/api/mcp-servers/directory-health", "headers": {"X-Science-User-Id": "local"}, "expectedStatus": [200]},
+    {"name": "reconcile-empty", "method": "POST", "path": "/api/mcp-servers/reconcile", "headers": {"X-Science-User-Id": "local", "Origin": "${origin}", "X-Operon-CSRF": "${cookie:operon_csrf}"}, "expectedStatus": [200]},
+    {"name": "add-invalid-directory", "method": "POST", "path": "/api/mcp-servers/directory", "headers": {"X-Science-User-Id": "local", "Origin": "${origin}", "X-Operon-CSRF": "${cookie:operon_csrf}"}, "body": {}, "expectedStatus": [400]},
+    {"name": "authorize-missing", "method": "POST", "path": "/api/mcp-servers/connectors/directory:missing/authorize", "headers": {"X-Science-User-Id": "local", "Origin": "${origin}", "X-Operon-CSRF": "${cookie:operon_csrf}"}, "expectedStatus": [400]}
   ],
   "maxBodyBytes": 4194304,
   "comparisonMode": "candidate-superset",

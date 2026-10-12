@@ -1,5 +1,5 @@
-export const CSRF_COOKIE_NAME = 'synon_csrf';
-export const CSRF_HEADER_NAME = 'X-Synon-CSRF-Token';
+export const CSRF_COOKIE_NAME = 'x_science_csrf';
+export const CSRF_HEADER_NAME = 'X-Science-CSRF-Token';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 const CSRF_REQUEST_TIMEOUT_MS = 8_000;

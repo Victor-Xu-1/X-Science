@@ -9,8 +9,8 @@ import (
 	"runtime"
 	"strings"
 
-	"synon-go/internal/assets"
-	"synon-go/internal/networktls"
+	"x-science/internal/assets"
+	"x-science/internal/networktls"
 )
 
 type DiscoveryStage string
@@ -82,7 +82,7 @@ func discoveryFailure(stage DiscoveryStage, err error) error {
 
 func DiscoverManager() (*Manager, error) {
 	return DiscoverManagerWithPathsAndProxy(
-		os.Getenv("SYNON_CONDA_HOME"), os.Getenv("SYNON_CONDA_ENVS_PATH"), os.Getenv("SYNON_NETWORK_PROXY"),
+		os.Getenv("X_SCIENCE_CONDA_HOME"), os.Getenv("X_SCIENCE_CONDA_ENVS_PATH"), os.Getenv("X_SCIENCE_NETWORK_PROXY"),
 	)
 }
 
@@ -101,7 +101,7 @@ func DiscoverManagerWithPathsAndProxy(condaHome, condaEnvsPath, installerProxy s
 	if err != nil {
 		return nil, discoveryFailure(DiscoveryStageAssetRoot, err)
 	}
-	python := strings.TrimSpace(os.Getenv("SYNON_KERNEL_PYTHON"))
+	python := strings.TrimSpace(os.Getenv("X_SCIENCE_KERNEL_PYTHON"))
 	if python != "" {
 		python, err = absoluteExecutable(python)
 		if err != nil {
@@ -172,7 +172,7 @@ func DiscoverManagerWithPathsAndProxy(condaHome, condaEnvsPath, installerProxy s
 }
 
 func discoverMicromamba(assetRoot string) (string, error) {
-	if configured := strings.TrimSpace(os.Getenv("SYNON_MICROMAMBA")); configured != "" {
+	if configured := strings.TrimSpace(os.Getenv("X_SCIENCE_MICROMAMBA")); configured != "" {
 		path, err := absoluteExecutable(configured)
 		if err != nil {
 			return "", fmt.Errorf("configured micromamba: %w", err)
@@ -218,7 +218,7 @@ func discoverMicromamba(assetRoot string) (string, error) {
 }
 
 func discoverRuntimeCatalog(assetRoot string) (string, error) {
-	if configured := strings.TrimSpace(os.Getenv("SYNON_CONDA_RUNTIME_CATALOG")); configured != "" {
+	if configured := strings.TrimSpace(os.Getenv("X_SCIENCE_CONDA_RUNTIME_CATALOG")); configured != "" {
 		resolved, err := filepath.Abs(configured)
 		if err != nil {
 			return "", fmt.Errorf("resolve configured runtime catalog: %w", err)
@@ -272,7 +272,7 @@ func executableName(name string) string {
 
 func discoverAssetRoot() (string, error) {
 	candidates := []string{}
-	if configured := strings.TrimSpace(os.Getenv("SYNON_KERNEL_ASSET_ROOT")); configured != "" {
+	if configured := strings.TrimSpace(os.Getenv("X_SCIENCE_KERNEL_ASSET_ROOT")); configured != "" {
 		candidates = append(candidates, configured)
 	}
 	if cwd, err := os.Getwd(); err == nil {

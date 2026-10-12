@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	adapterfeishu "synon-go/internal/adapters/feishu"
+	adapterfeishu "x-science/internal/adapters/feishu"
 )
 
 func TestFeishuStreamMessageCallbackCreatesDurableTask(t *testing.T) {

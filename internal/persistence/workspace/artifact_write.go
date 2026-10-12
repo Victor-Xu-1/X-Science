@@ -16,7 +16,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"synon-go/internal/runtimecontrol"
+	"x-science/internal/runtimecontrol"
 )
 
 // WriteArtifactVersionInput models the v1.1 user-edit path. Content is staged

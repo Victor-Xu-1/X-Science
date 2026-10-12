@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	runtimekv "synon-go/internal/persistence/runtimekv"
-	workspace "synon-go/internal/persistence/workspace"
+	runtimekv "x-science/internal/persistence/runtimekv"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestKernelHostArtifactsRenameAndApprovedBatchDelete(t *testing.T) {
@@ -193,7 +193,7 @@ func TestKernelHostArtifactDeleteFullAccessSkipsFrontendApproval(t *testing.T) {
 	if _, err := store.SetFrameRuntimeMetadata(identity.access.Frame.ID, workspace.FrameRuntimeMetadata{
 		FrameID: identity.access.Frame.ID,
 		ContextData: map[string]any{"web_assistant": map[string]any{
-			"id": "synonbiomed:operon", "conversation_overrides": map[string]any{"permission": "allow"},
+			"id": "xscience:operon", "conversation_overrides": map[string]any{"permission": "allow"},
 		}},
 	}); err != nil {
 		t.Fatal(err)

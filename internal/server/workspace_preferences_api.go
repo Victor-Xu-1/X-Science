@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"synon-go/internal/networkpolicy"
+	"x-science/internal/networkpolicy"
 )
 
 const (

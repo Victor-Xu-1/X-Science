@@ -1,4 +1,4 @@
-import type { SynonBiomedProject, SynonBiomedProjectBench } from '@/renderer/services/synonBiomedGateway';
+import type { XScienceProject, XScienceProjectBench } from '@/renderer/services/xScienceGateway';
 
 export type ProjectNavigationTarget =
   | { pathname: string; state?: undefined }
@@ -16,7 +16,7 @@ function timestamp(value: string | null): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function benchActivityTime(bench: SynonBiomedProjectBench): number {
+function benchActivityTime(bench: XScienceProjectBench): number {
   return Math.max(
     timestamp(bench.lastActivityAt),
     timestamp(bench.updatedAt),
@@ -25,7 +25,7 @@ function benchActivityTime(bench: SynonBiomedProjectBench): number {
   );
 }
 
-export function resolveLatestProjectConversationId(benches: SynonBiomedProjectBench[]): string | null {
+export function resolveLatestProjectConversationId(benches: XScienceProjectBench[]): string | null {
   const rootActivity = new Map<string, { activityTime: number; sourceOrder: number }>();
 
   benches.forEach((bench, sourceOrder) => {
@@ -54,7 +54,7 @@ export function resolveLatestProjectConversationId(benches: SynonBiomedProjectBe
 
 export function resolveProjectNavigationTarget(
   projectId: string,
-  benches: SynonBiomedProjectBench[]
+  benches: XScienceProjectBench[]
 ): ProjectNavigationTarget {
   const latestConversationId = resolveLatestProjectConversationId(benches);
   if (latestConversationId) {
@@ -65,13 +65,13 @@ export function resolveProjectNavigationTarget(
     pathname: '/guid',
     state: {
       resetAssistant: true,
-      workspace: `synonbiomed://project/${encodeURIComponent(projectId)}`,
+      workspace: `x-science://project/${encodeURIComponent(projectId)}`,
     },
   };
 }
 
 export function resolveProjectSummaryNavigationTarget(
-  project: SynonBiomedProject | null | undefined
+  project: XScienceProject | null | undefined
 ): ProjectNavigationTarget | null {
   if (!project) return null;
   if (project.latestConversationId) {

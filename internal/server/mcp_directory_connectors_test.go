@@ -19,10 +19,10 @@ func TestBundledMCPProbeWaitsForTheManagedRuntimeAuthority(t *testing.T) {
 	if bundledMCPRuntimeIsReady(nil) {
 		t.Fatal("nil runtime became ready")
 	}
-	if bundledMCPRuntimeIsReady(bundledMCPReadinessFixture{name: "synon-biomed-mcp-python"}) {
+	if bundledMCPRuntimeIsReady(bundledMCPReadinessFixture{name: "x-science-mcp-python"}) {
 		t.Fatal("unready runtime became ready")
 	}
-	if !bundledMCPRuntimeIsReady(bundledMCPReadinessFixture{name: "synon-biomed-mcp-python", ready: true}) {
+	if !bundledMCPRuntimeIsReady(bundledMCPReadinessFixture{name: "x-science-mcp-python", ready: true}) {
 		t.Fatal("verified managed MCP runtime was not accepted")
 	}
 }

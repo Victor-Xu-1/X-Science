@@ -5,7 +5,7 @@ import {
   removeScientificWorkspace,
   showArtifactReferenceAssistantMessage,
   uploadScientificArtifact,
-} from './synonBiomedScientificFixture';
+} from './xScienceScientificFixture';
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -17,7 +17,7 @@ test('keeps the conversation visible beside a native PDB preview', async ({ page
     const artifact = await uploadScientificArtifact(page, workspace, {
       filename: 'layout-check.pdb',
       contentType: 'chemical/x-pdb',
-      source: `HEADER    SYNON BIOMED CONVERSATION PREVIEW LAYOUT\nATOM      1  CA  GLY A   1       0.000   0.000   0.000  1.00 20.00           C\nEND\n`,
+      source: `HEADER    XSCIENCE BIOMED CONVERSATION PREVIEW LAYOUT\nATOM      1  CA  GLY A   1       0.000   0.000   0.000  1.00 20.00           C\nEND\n`,
     });
 
     await showArtifactReferenceAssistantMessage(page, workspace, [

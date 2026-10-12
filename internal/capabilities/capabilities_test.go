@@ -4,26 +4,26 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/tools/registry"
+	"x-science/internal/tools/registry"
 )
 
-func TestCompactSynonCapabilitiesExposeOnlyRetainedSurface(t *testing.T) {
-	report := CompactSynon()
+func TestCompactXScienceCapabilitiesExposeOnlyRetainedSurface(t *testing.T) {
+	report := CompactXScience()
 	if report.Status != "needs_connection" {
 		t.Fatalf("Status = %q, want needs_connection", report.Status)
 	}
-	for _, id := range []string{"synon-link", "im-message-core", "runtime-store", "tool-registry", "plugin-host"} {
+	for _, id := range []string{"x-science-link", "im-message-core", "runtime-store", "tool-registry", "plugin-host"} {
 		if !report.ContainsModule(id) {
 			t.Fatalf("capability report missing module %q: %#v", id, report.Modules)
 		}
 	}
-	for _, banned := range []string{"Synon Knowledge", "Daily Briefing", "ADMET", "PCC", "Markush", "Molecular Modeling"} {
+	for _, banned := range []string{"XScience Knowledge", "Daily Briefing", "ADMET", "PCC", "Markush", "Molecular Modeling"} {
 		if report.ContainsLabel(banned) {
 			t.Fatalf("capability report still exposes removed capability %q: %#v", banned, report)
 		}
 	}
 	if !report.ContainsAction("search_web") || !report.ContainsAction("read_page") {
-		t.Fatalf("capability report missing retained Synon Link actions: %#v", report)
+		t.Fatalf("capability report missing retained XScience Link actions: %#v", report)
 	}
 	for _, action := range []string{"run_task_loop", "ensure_workspace", "open_tab", "get_active_tab", "extract_page", "refresh_tab", "scroll_page", "wait_for_page", "click", "click_at", "type", "screenshot", "find_download_links", "download_file", "open_downloads_folder", "show_downloaded_file", "cleanup_tabs", "close_tab", "local_files_manifest", "local_files_search", "local_file_info", "local_file_copy", "local_file_move", "local_file_delete", "local_file_mkdir", "local_files_organize", "clear_local_files", "bookmarks_status", "bookmarks_profile", "revoke_bookmarks_permission", "open_personalization"} {
 		if !report.ContainsAction(action) {
@@ -38,9 +38,9 @@ func TestCompactSynonCapabilitiesExposeOnlyRetainedSurface(t *testing.T) {
 	if report.ContainsWorkflow("local-device-runtime") {
 		t.Fatalf("capability report still exposes removed local-device workflow: %#v", report.Workflows)
 	}
-	for _, action := range []string{"synon_link_ws_connect", "handle_synon_link_hello", "track_synon_link_progress", "complete_synon_link_command", "revoke_synon_link_device", "list_synon_link_logs", "synon_link_doctor", "synon_link_policy_matrix", "enforce_synon_link_policy"} {
+	for _, action := range []string{"x_science_link_ws_connect", "handle_x_science_link_hello", "track_x_science_link_progress", "complete_x_science_link_command", "revoke_x_science_link_device", "list_x_science_link_logs", "x_science_link_doctor", "x_science_link_policy_matrix", "enforce_x_science_link_policy"} {
 		if !report.ContainsAction(action) {
-			t.Fatalf("capability report missing Synon Link realtime action %q: %#v", action, report)
+			t.Fatalf("capability report missing XScience Link realtime action %q: %#v", action, report)
 		}
 	}
 	for _, action := range []string{"split_im_message", "buffer_stream_message", "deduplicate_message", "connect_adapter_ws_session", "reconnect_adapter_ws_session", "send_adapter_ws_heartbeat", "track_adapter_ws_pong", "send_adapter_user_message", "send_adapter_goal_driver", "send_adapter_internal_task", "send_adapter_permission_response", "send_adapter_stop_generation", "release_adapter_session", "serialize_adapter_server_messages", "bind_adapter_outbound_handler", "create_im_live_session", "journal_im_inbound_message", "extract_wechat_text", "send_wechat_text", "process_wechat_server_message", "send_wechat_outbound_chunk", "register_wechat_outbound_bridge", "start_wechat_qr_login", "poll_wechat_qr_login", "get_wechat_updates", "run_wechat_polling_loop", "start_feishu_wsclient", "route_feishu_stream_message", "create_feishu_card_entity", "send_feishu_card_message", "stream_feishu_card_content", "set_feishu_card_streaming_mode", "update_feishu_card", "process_feishu_server_message", "stream_feishu_server_content_delta", "finalize_feishu_server_message", "abort_feishu_server_message", "dispatch_feishu_delta_media", "build_initial_feishu_streaming_card", "build_final_feishu_cardkit_card", "build_feishu_rendered_card", "build_feishu_error_card", "normalize_feishu_card_markdown", "optimize_feishu_card_markdown", "sanitize_feishu_card_tables", "find_feishu_markdown_tables", "create_feishu_flush_controller", "throttle_feishu_card_flush", "wait_feishu_card_flush", "cancel_feishu_card_flush", "create_feishu_streaming_card", "append_feishu_streaming_card_text", "append_feishu_card_reasoning", "start_feishu_card_tool_step", "complete_feishu_card_tool_step", "flush_feishu_streaming_card", "finalize_feishu_streaming_card", "abort_feishu_streaming_card", "watch_feishu_outbound_images", "watch_feishu_outbound_files", "classify_feishu_outbound_upload_source", "deduplicate_feishu_outbound_uploads", "filter_feishu_unsafe_local_uploads", "upload_feishu_image", "upload_feishu_file", "send_feishu_image_message", "send_feishu_file_message", "dispatch_feishu_outbound_image", "dispatch_feishu_outbound_file", "fetch_feishu_outbound_image_url", "patch_feishu_message_card", "detect_feishu_card_rate_limit", "detect_feishu_card_table_limit", "check_im_pairing"} {
@@ -76,10 +76,10 @@ func TestCompactSynonCapabilitiesExposeOnlyRetainedSurface(t *testing.T) {
 	if !report.ContainsAction("list_tools") || !report.ContainsAction("search_skills") || !report.ContainsAction("web_search") || !report.ContainsAction("web_research") || !report.ContainsAction("VisualReview") || !report.ContainsAction("LSP") || !report.ContainsAction("SendMessage") || !report.ContainsAction("SendUserMessage") || !report.ContainsAction("ToolDoctor") || !report.ContainsAction("ListMcpTools") || !report.ContainsAction("ListMcpResourcesTool") || !report.ContainsAction("ReadMcpResourceTool") || !report.ContainsAction("MCPTool") || !report.ContainsAction("execute_web_fetch") || !report.ContainsAction("execute_web_search") {
 		t.Fatalf("capability report missing tool registry actions: %#v", report)
 	}
-	if !report.ContainsAction("execute_synon_link") {
-		t.Fatalf("capability report missing Synon Link tool execution action: %#v", report)
+	if !report.ContainsAction("execute_x_science_link") {
+		t.Fatalf("capability report missing XScience Link tool execution action: %#v", report)
 	}
-	for _, action := range []string{"web_fetch", "synon_link"} {
+	for _, action := range []string{"web_fetch", "x_science_link"} {
 		if !report.ContainsAction(action) {
 			t.Fatalf("capability report missing canonical web/link tool action %q: %#v", action, report)
 		}
@@ -117,11 +117,11 @@ func TestCompactSynonCapabilitiesExposeOnlyRetainedSurface(t *testing.T) {
 	if !reportContainsCapability(report, "taskrun-original-system-tools") {
 		t.Fatalf("capability report missing taskrun-original-system-tools capability: %#v", report.Modules)
 	}
-	if !capabilitySummaryContains(report, "TaskRun SynonLink browser executors") || !capabilitySummaryContains(report, "needsClient/missingCapability") {
-		t.Fatalf("capability report missing TaskRun SynonLink executor summary: %#v", report.Modules)
+	if !capabilitySummaryContains(report, "TaskRun X-Science Link browser executors") || !capabilitySummaryContains(report, "needsClient/missingCapability") {
+		t.Fatalf("capability report missing TaskRun XScienceLink executor summary: %#v", report.Modules)
 	}
-	if !reportContainsCapability(report, "taskrun-synonlink-direct-executor") {
-		t.Fatalf("capability report missing taskrun-synonlink-direct-executor capability: %#v", report.Modules)
+	if !reportContainsCapability(report, "taskrun-xsciencelink-direct-executor") {
+		t.Fatalf("capability report missing taskrun-xsciencelink-direct-executor capability: %#v", report.Modules)
 	}
 	if !capabilitySummaryContains(report, "TaskRun monitor ticks") || !capabilitySummaryContains(report, "self-check pending completions") {
 		t.Fatalf("capability report missing TaskRun monitor summary: %#v", report.Modules)
@@ -165,7 +165,7 @@ func TestCompactSynonCapabilitiesExposeOnlyRetainedSurface(t *testing.T) {
 			t.Fatalf("capability report missing todo tool action %q: %#v", action, report)
 		}
 	}
-	for _, alias := range []string{"WebFetch", "WebSearch", "WebResearch", "SynonLink", "Brief", "file_read_batch", "glob", "grep", "sleep", "Task", "AgentOutputTool", "BashOutputTool", "KillShell", "PowerShell", "Skill", "SkillSearch", "ToolSearch", "todo_write"} {
+	for _, alias := range []string{"WebFetch", "WebSearch", "WebResearch", "XScienceLink", "Brief", "file_read_batch", "glob", "grep", "sleep", "Task", "AgentOutputTool", "BashOutputTool", "KillShell", "PowerShell", "Skill", "SkillSearch", "ToolSearch", "todo_write"} {
 		if report.ContainsAction(alias) {
 			t.Fatalf("capability report advertised retired inbound alias %q: %#v", alias, report)
 		}
@@ -185,15 +185,15 @@ func TestCompactSynonCapabilitiesExposeOnlyRetainedSurface(t *testing.T) {
 			t.Fatalf("capability report missing session tool action %q: %#v", action, report)
 		}
 	}
-	for _, action := range []string{"list_plugins", "read_plugin_manifest", "load_external_plugin_manifest", "start_external_plugin_process", "stop_external_plugin_process", "route_synon_plugin_capabilities", "route_synon_link_download"} {
+	for _, action := range []string{"list_plugins", "read_plugin_manifest", "load_external_plugin_manifest", "start_external_plugin_process", "stop_external_plugin_process", "route_x_science_plugin_capabilities", "route_x_science_link_download"} {
 		if !report.ContainsAction(action) {
 			t.Fatalf("capability report missing plugin host action %q: %#v", action, report)
 		}
 	}
 }
 
-func TestCompactSynonCapabilityReportTracksRegisteredRuntimeTools(t *testing.T) {
-	report := CompactSynon()
+func TestCompactXScienceCapabilityReportTracksRegisteredRuntimeTools(t *testing.T) {
+	report := CompactXScience()
 	reg := registry.Default()
 
 	for _, name := range reg.Names() {

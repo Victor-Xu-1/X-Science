@@ -5,8 +5,8 @@ import (
 	"errors"
 	"net/http"
 
-	adaptercommon "synon-go/internal/adapters/common"
-	adapterfeishu "synon-go/internal/adapters/feishu"
+	adaptercommon "x-science/internal/adapters/common"
+	adapterfeishu "x-science/internal/adapters/feishu"
 )
 
 func (s *Server) handleFeishuEvent(w http.ResponseWriter, r *http.Request) {

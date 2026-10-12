@@ -107,9 +107,9 @@ func (b *WsBridge) connectSession(ctx context.Context, chatID string, sessionID 
 		headers.Set("Authorization", "Bearer "+b.authToken)
 	}
 	if imMode := normalizeBridgeIMMode(b.platform); imMode != "" {
-		headers.Set("X-Synon-IM-Mode", imMode)
+		headers.Set("X-Science-IM-Mode", imMode)
 	}
-	headers.Set("X-Synon-User-Id", strings.TrimSpace(b.platform)+":"+strings.TrimSpace(chatID))
+	headers.Set("X-Science-User-Id", strings.TrimSpace(b.platform)+":"+strings.TrimSpace(chatID))
 	conn, _, err := websocket.Dial(ctx, b.serverURL+"/ws/"+sessionID, &websocket.DialOptions{
 		HTTPHeader: headers,
 	})

@@ -1,5 +1,7 @@
 """Keep verification-only declarations narrow and fail closed on test failures."""
 
+import contextlib
+import io
 import json
 from pathlib import Path
 import subprocess
@@ -14,12 +16,12 @@ from scripts.quality import verification_scope as contract
 
 class VerificationOwnershipTests(unittest.TestCase):
     def setUp(self):
-        self.directory = tempfile.TemporaryDirectory(prefix="synon-verification-scope-")
+        self.directory = tempfile.TemporaryDirectory(prefix="x-science-verification-scope-")
         self.addCleanup(self.directory.cleanup)
         self.repo = Path(self.directory.name)
         self.contract_path = self.repo / contract.CONTRACT
         self.contract_path.parent.mkdir(parents=True)
-        self.value = {"schema": "synon.verification-scope.v1", "groups": [{
+        self.value = {"schema": "x-science.verification-scope.v1", "groups": [{
             "name": "fixture-checker", "paths": ["scripts/check.py", contract.CONTRACT], "frontend": True,
             "checks": [["python3", "-B", "scripts/test_check.py"]],
         }]}
@@ -35,6 +37,21 @@ class VerificationOwnershipTests(unittest.TestCase):
         for path in ["scripts/check.py.new", "scripts/nested/check.py", "scripts/other.py"]:
             self.assertEqual(contract.matched(self.repo, [path]), [])
             self.assertFalse(scope.frontend_affected([path], self.repo))
+
+    def test_python_syntax_checker_is_inert_bounded_and_fail_closed(self):
+        target = self.repo / "scripts/fixture.py"
+        marker = self.repo / "must-not-execute"
+        target.write_text(f"from pathlib import Path\nPath({str(marker)!r}).touch()\n")
+        contract.check_python_syntax(self.repo, ["scripts/fixture.py"])
+        self.assertFalse(marker.exists())
+        target.write_text("def invalid(\n")
+        with self.assertRaises(SyntaxError):
+            contract.check_python_syntax(self.repo, ["scripts/fixture.py"])
+        for path in ["../outside.py", "/outside.py", "scripts//fixture.py", "scripts/fixture.js"]:
+            with self.assertRaises(ValueError):
+                contract.check_python_syntax(self.repo, [path])
+        with self.assertRaises(ValueError):
+            contract.check_python_syntax(self.repo, [])
 
     def test_runtime_ownership_wins_and_unknown_inputs_still_expand(self):
         (self.repo / "go.mod").write_text("module example/verification\n\ngo 1.22\n")
@@ -135,7 +152,7 @@ class VerificationOwnershipTests(unittest.TestCase):
         args = ['pr_fast_scope.py', '--repo', str(self.repo), '--base', 'a' * 40,
                 '--head', 'b' * 40, '--shard-index', '4', '--shard-count', '4']
         with patch.object(sys, 'argv', args), patch.object(scope, 'changed_paths', return_value=['scripts/check.py']), \
-                patch.object(scope, 'run') as invoke:
+                patch.object(scope, 'run') as invoke, contextlib.redirect_stderr(io.StringIO()):
             self.assertEqual(scope.main(), 1)
             invoke.assert_not_called()
 
@@ -161,8 +178,10 @@ class VerificationOwnershipTests(unittest.TestCase):
                     for module in modules:
                         self.assertTrue((repo / (module.replace(".", "/") + ".py")).is_file())
                 else:
-                    target = next(argument for argument in command[1:] if argument.startswith("scripts/"))
-                    self.assertTrue((repo / target).is_file())
+                    targets = [argument for argument in command[1:] if argument.startswith(("scripts/", "assets/", "skills/"))]
+                    self.assertTrue(targets, command)
+                    for target in targets:
+                        self.assertTrue((repo / target).is_file(), target)
 
     def test_version_counter_has_exact_verification_ownership(self):
         repo = Path(__file__).resolve().parents[2]
@@ -179,6 +198,40 @@ class VerificationOwnershipTests(unittest.TestCase):
         self.assertTrue(contract.checks(groups), "CI documentation must retain its checker ownership")
         entries = [{"ImportPath": "fixture/runtime", "Dir": str(repo / "internal/runtime")}]
         self.assertEqual(scope.select_packages(repo, paths, entries)[0], [])
+
+    def test_namespace_checkers_are_exact_and_keep_actual_go_ownership(self):
+        repo = Path(__file__).resolve().parents[2]
+        helpers = ["scripts/quality/pr_namespace_scope.py", "scripts/quality/test_pr_namespace_scope.py",
+                   "scripts/quality/go_namespace_equivalence.go"]
+        for path in helpers:
+            groups = contract.matched(repo, [path])
+            self.assertEqual([group["name"] for group in groups], ["verification-selection"])
+            self.assertIn("scripts.quality.test_pr_namespace_scope", contract.checks(groups)[0])
+            self.assertEqual(scope.select_packages(repo, [path], [
+                {"ImportPath": "fixture/runtime", "Dir": str(repo / "internal/runtime")},
+            ])[0], [])
+        # If this standalone checker becomes a real Go package, actual ownership wins.
+        entry = {"ImportPath": "fixture/checker", "Dir": str(repo / "scripts/quality")}
+        self.assertEqual(scope.select_packages(repo, [helpers[-1]], [entry])[0], [entry["ImportPath"]])
+        for path in ["scripts/quality/other.go", "scripts/quality/go_namespace_equivalence.go.old"]:
+            self.assertEqual(contract.matched(repo, [path]), [])
+
+    def test_frontend_namespace_resolver_has_its_real_provenance_checker(self):
+        repo = Path(__file__).resolve().parents[2]
+        for path in ["scripts/audit/frontend_source_namespace.py", "scripts/audit/test_frontend_source_namespace.py"]:
+            groups = contract.matched(repo, [path])
+            self.assertEqual([group["name"] for group in groups], ["frontend-provenance"])
+            self.assertTrue(groups[0]["frontend"])
+            self.assertIn(["python3", "-B", "scripts/audit/test_frontend_source_namespace.py"], contract.checks(groups))
+
+    def test_connector_registration_matches_exact_independent_source_inventory(self):
+        repo = Path(__file__).resolve().parents[2]
+        group = next(item for item in contract.load(repo) if item["name"] == "browser-connector-packaging")
+        expected = json.loads((repo / "docs/non-web-asset-boundary.json").read_text())["allowedConnectorSources"]
+        actual = [path for path in group["paths"] if path.startswith("assets/")]
+        self.assertEqual(sorted(actual), sorted(expected))
+        self.assertTrue(group["packages"], "connector inputs must retain real runtime consumers")
+        self.assertEqual(contract.matched(repo, ["assets/x-science-link/source/unregistered.js"]), [])
 
     def test_optional_go_owners_seed_real_consumers_and_keep_unknown_inputs_conservative(self):
         group = self.value['groups'][0]
@@ -230,11 +283,11 @@ class VerificationOwnershipTests(unittest.TestCase):
         groups = contract.matched(repo, paths)
         self.assertEqual(len(groups), 1)
         self.assertEqual(groups[0]['paths'], paths)
-        self.assertEqual(groups[0]['packages'], ['synon-go/cmd/synon', 'synon-go/internal/config'])
+        self.assertEqual(groups[0]['packages'], ['x-science/cmd/x-science', 'x-science/internal/config'])
         self.assertFalse(groups[0]['frontend'])
         self.assertEqual(contract.checks(groups + groups), [['bash', paths[1]]])
         entries = scope.packages(repo)  # Read the actual Go graph; do not execute Go tests.
-        expected = ['synon-go/cmd/synon', 'synon-go/internal/config', 'synon-go/scripts/smoke-live-im']
+        expected = ['x-science/cmd/x-science', 'x-science/internal/config', 'x-science/scripts/smoke-live-im']
         for path in paths:
             self.assertEqual(scope.select_packages(repo, [path], entries)[0], expected)
 

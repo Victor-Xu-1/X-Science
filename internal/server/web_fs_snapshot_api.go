@@ -253,7 +253,7 @@ func (s *Server) ensureWebFSSnapshot(
 func (s *Server) newWebFSSnapshotBaselineRoot(key, workspaceRoot string) (string, error) {
 	base := filepath.Join(firstNonEmpty(strings.TrimSpace(s.fileRoot), os.TempDir()), "web-fs-snapshots")
 	if absolute, err := filepath.Abs(base); err == nil && webFSPathWithin(workspaceRoot, absolute) {
-		base = filepath.Join(os.TempDir(), "synon-go-web-fs-snapshots")
+		base = filepath.Join(os.TempDir(), "x-science-web-fs-snapshots")
 	}
 	if err := os.MkdirAll(base, 0o700); err != nil {
 		return "", err

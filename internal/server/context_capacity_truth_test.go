@@ -2,10 +2,10 @@ package server
 
 import (
 	"context"
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/persistence/runtimekv"
-	"synon-go/internal/providers"
 	"testing"
+	"x-science/internal/agentruntime"
+	"x-science/internal/persistence/runtimekv"
+	"x-science/internal/providers"
 )
 
 func TestContextCapacityUnknownDoesNotInventWindowOrCompactionThreshold(t *testing.T) {

@@ -4,24 +4,24 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IScientificFilesArtifact, ISynonBiomedScientificFile } from '@/common/adapter/ipcBridge';
+import type { IScientificFilesArtifact, IXScienceScientificFile } from '@/common/adapter/ipcBridge';
 import {
-  isSynonBiomedArtifactPreviewEditable,
-  resolveSynonBiomedArtifactPreviewPlan,
-  SYNON_BIOMED_TEXT_ACCEPT_HEADER,
-} from '@/renderer/services/synonBiomedArtifactPreview';
+  isXScienceArtifactPreviewEditable,
+  resolveXScienceArtifactPreviewPlan,
+  X_SCIENCE_TEXT_ACCEPT_HEADER,
+} from '@/renderer/services/xScienceArtifactPreview';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview/context/PreviewContext';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { Message } from '@arco-design/web-react';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import ArtifactThumbnailPreview from '@/renderer/components/synonBiomed/files/ArtifactThumbnailPreview';
-import { createSynonBiomedCompanionArtifactUrls } from '@/renderer/services/synonBiomedArtifactReferences';
-import { preloadSynonBiomedStructureViewer } from '@/renderer/pages/conversation/Preview/components/viewers/scientificPreviewLoaders';
+import ArtifactThumbnailPreview from '@/renderer/components/xScience/files/ArtifactThumbnailPreview';
+import { createXScienceCompanionArtifactUrls } from '@/renderer/services/xScienceArtifactReferences';
+import { preloadXScienceStructureViewer } from '@/renderer/pages/conversation/Preview/components/viewers/scientificPreviewLoaders';
 import './MessageScientificFiles.css';
 
 type ScientificFilePreviewStripProps = {
-  files: ISynonBiomedScientificFile[];
+  files: IXScienceScientificFile[];
   inline?: boolean;
 };
 
@@ -29,8 +29,8 @@ const COLLAPSED_TURN_FILE_LIMIT = 5;
 const COMPACT_FILE_DISCLOSURE_CLASS =
   'message-scientific-files__more message-scientific-files__more--compact shrink-0 self-center border-0 px-8px text-11px text-t-secondary cursor-pointer hover:text-t-primary';
 
-function artifactTrayRank(file: ISynonBiomedScientificFile): number {
-  const type = resolveSynonBiomedArtifactPreviewPlan({
+function artifactTrayRank(file: IXScienceScientificFile): number {
+  const type = resolveXScienceArtifactPreviewPlan({
     filename: file.filename,
     contentType: file.content_type,
     previewKind: file.preview_kind,
@@ -41,23 +41,23 @@ function artifactTrayRank(file: ISynonBiomedScientificFile): number {
   return 3;
 }
 
-function preloadScientificFilePreview(file: ISynonBiomedScientificFile): void {
-  const plan = resolveSynonBiomedArtifactPreviewPlan({
+function preloadScientificFilePreview(file: IXScienceScientificFile): void {
+  const plan = resolveXScienceArtifactPreviewPlan({
     filename: file.filename,
     contentType: file.content_type,
     previewKind: file.preview_kind,
   });
   if (plan.type === 'structure') {
-    void preloadSynonBiomedStructureViewer().catch((): undefined => undefined);
+    void preloadXScienceStructureViewer().catch((): undefined => undefined);
   }
 }
 
-function scientificFileVersionKey(file: ISynonBiomedScientificFile): string {
+function scientificFileVersionKey(file: IXScienceScientificFile): string {
   return `${file.artifact_id}\0${file.version_id ?? ''}`;
 }
 
-function uniqueScientificFileVersions(files: ISynonBiomedScientificFile[]): ISynonBiomedScientificFile[] {
-  const unique = new Map<string, ISynonBiomedScientificFile>();
+function uniqueScientificFileVersions(files: IXScienceScientificFile[]): IXScienceScientificFile[] {
+  const unique = new Map<string, IXScienceScientificFile>();
   for (const file of files) {
     const key = scientificFileVersionKey(file);
     if (!unique.has(key)) unique.set(key, file);
@@ -66,8 +66,8 @@ function uniqueScientificFileVersions(files: ISynonBiomedScientificFile[]): ISyn
 }
 
 export function areScientificFilePreviewListsEqual(
-  left: readonly ISynonBiomedScientificFile[],
-  right: readonly ISynonBiomedScientificFile[]
+  left: readonly IXScienceScientificFile[],
+  right: readonly IXScienceScientificFile[]
 ): boolean {
   if (left === right) return true;
   if (left.length !== right.length) return false;
@@ -109,12 +109,12 @@ export const ScientificFilePreviewStrip: React.FC<ScientificFilePreviewStripProp
       [collapsible, expanded, sortedFiles]
     );
     const hiddenCount = collapsible ? sortedFiles.length - visibleFiles.length : 0;
-    const companionArtifactUrls = useMemo(() => createSynonBiomedCompanionArtifactUrls(sortedFiles), [sortedFiles]);
+    const companionArtifactUrls = useMemo(() => createXScienceCompanionArtifactUrls(sortedFiles), [sortedFiles]);
 
     const handleOpen = useCallback(
-      async (file: ISynonBiomedScientificFile) => {
+      async (file: IXScienceScientificFile) => {
         if (file.availability === 'deleted' || file.availability === 'missing') return;
-        const plan = resolveSynonBiomedArtifactPreviewPlan({
+        const plan = resolveXScienceArtifactPreviewPlan({
           filename: file.filename,
           contentType: file.content_type,
           previewKind: file.preview_kind,
@@ -122,7 +122,7 @@ export const ScientificFilePreviewStrip: React.FC<ScientificFilePreviewStripProp
         const metadata = {
           title: file.filename,
           file_name: file.filename,
-          editable: isSynonBiomedArtifactPreviewEditable(plan),
+          editable: isXScienceArtifactPreviewEditable(plan),
           artifactId: file.artifact_id,
           versionId: file.version_id,
           contentUrl: file.content_url,
@@ -140,7 +140,7 @@ export const ScientificFilePreviewStrip: React.FC<ScientificFilePreviewStripProp
         try {
           setLoadingArtifactId(file.artifact_id);
           const response = await fetch(file.content_url, {
-            headers: { accept: SYNON_BIOMED_TEXT_ACCEPT_HEADER },
+            headers: { accept: X_SCIENCE_TEXT_ACCEPT_HEADER },
           });
           if (!response.ok) {
             throw new Error(`Artifact request failed: ${response.status}`);

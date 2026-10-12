@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/processsupervisor"
+	"x-science/internal/processsupervisor"
 )
 
 func TestArtifactValidatorProcessActivityIdleAndCancel(t *testing.T) {

@@ -13,9 +13,9 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/sciencecapability"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/sciencecapability"
 )
 
 func inputAuthorityReceipt(t *testing.T, f *agentSaveArtifactsFixture, root, id, status, kernelOverride string) {
@@ -41,7 +41,7 @@ func inputAuthorityReceipt(t *testing.T, f *agentSaveArtifactsFixture, root, id,
 	digest := sha256.Sum256(data)
 	proof, _ := json.Marshal(map[string]any{"overall_pass": true, "inputs": map[string]string{"dataset": hex.EncodeToString(digest[:])}, "run": id})
 	contents := map[string]string{
-		managedExecutionOutputOwnershipMarker: `{"schema":"synon.execution-pack-output-owner.v1","execution_pack_id":"analysis.producer"}`,
+		managedExecutionOutputOwnershipMarker: `{"schema":"x-science.execution-pack-output-owner.v1","execution_pack_id":"analysis.producer"}`,
 		"value.txt":                           "fixture-derived-" + id, "proof.json": string(proof),
 	}
 	var writes []kernelruntime.FileWrite
@@ -60,7 +60,7 @@ func inputAuthorityReceipt(t *testing.T, f *agentSaveArtifactsFixture, root, id,
 	_, err = f.store.SaveExecutionLog(workspace.SaveExecutionLogInput{
 		Record: workspace.ExecutionLogRecord{ID: id, FrameID: access.Frame.ID, KernelID: kernelID,
 			KernelKind: "bash", CondaEnv: "python", Language: "python", Origin: "agent", ExitStatus: status,
-			Source: `python3 "` + filepath.Join(f.projectPath, ".synon/runtime/skills/prepare-data-fixture/scripts/prepare.py") + `"`, FilesWritten: writes},
+			Source: `python3 "` + filepath.Join(f.projectPath, ".x-science/runtime/skills/prepare-data-fixture/scripts/prepare.py") + `"`, FilesWritten: writes},
 		ExpectedOwnerID: access.UserID, ExpectedProjectID: access.Frame.ProjectID,
 		ExpectedFrameIncarnationID: access.Frame.IncarnationID, ExpectedRootFrameIncarnationID: access.RootFrameIncarnationID,
 	})
@@ -162,7 +162,7 @@ func TestExecutionInputAuthorityRecoveryBoundaries(t *testing.T) {
 			if scenario == "materialization-unavailable" && (boundary["reason"] != "materialization_unavailable" || boundary["retryable"] != true) {
 				t.Fatalf("infrastructure failure lost recovery classification: %#v", boundary)
 			}
-			if allowed && scenario != "ordinary-input" && !strings.Contains(stringValue(normalized["command"]), ".synon-artifacts") {
+			if allowed && scenario != "ordinary-input" && !strings.Contains(stringValue(normalized["command"]), ".x-science-artifacts") {
 				t.Fatal("consumer not pinned to immutable evidence")
 			}
 			if input["command"] != command {

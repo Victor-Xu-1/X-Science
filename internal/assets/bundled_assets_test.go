@@ -13,17 +13,17 @@ import (
 	"testing"
 )
 
-func TestBundledSynonBiomedSkillsManifest(t *testing.T) {
+func TestBundledXScienceSkillsManifest(t *testing.T) {
 	_, file, _, ok := runtime.Caller(0)
 	if !ok {
 		t.Fatal("locate repository root")
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
-	manifest, err := Load(filepath.Join(repositoryRoot, "assets", "synonbiomed", "skills.manifest.json"))
+	manifest, err := Load(filepath.Join(repositoryRoot, "assets", "x-science", "skills.manifest.json"))
 	if err != nil {
 		t.Fatalf("load bundled skills manifest: %v", err)
 	}
-	report, err := Verify(filepath.Join(repositoryRoot, "skills", "synonbiomed"), manifest)
+	report, err := Verify(filepath.Join(repositoryRoot, "skills", "x-science"), manifest)
 	if err != nil {
 		t.Fatalf("verify bundled skills: %v", err)
 	}
@@ -49,7 +49,7 @@ func TestBundledSynonBiomedSkillsManifest(t *testing.T) {
 		if !slices.Contains(manifest.Skills, required) {
 			t.Fatalf("required v1.1 skill missing from manifest: %s", required)
 		}
-		if info, err := os.Stat(filepath.Join(repositoryRoot, "skills", "synonbiomed", required)); err != nil || !info.IsDir() {
+		if info, err := os.Stat(filepath.Join(repositoryRoot, "skills", "x-science", required)); err != nil || !info.IsDir() {
 			t.Fatalf("required v1.1 skill missing on disk: %s: %v", required, err)
 		}
 	}
@@ -134,7 +134,7 @@ func TestBundledKetcherChemistryManifest(t *testing.T) {
 		t.Fatalf("Ketcher runtime metadata = %#v", manifest)
 	}
 	if manifest.Source != "EPAM Ketcher" || manifest.Version != "3.12.0" || manifest.Runtime.MinimumVersion != "" {
-		t.Fatalf("Ketcher provenance must not define a second Synon product identity: %#v", manifest)
+		t.Fatalf("Ketcher provenance must not define a second XScience product identity: %#v", manifest)
 	}
 	report, err := Verify(filepath.Join(repositoryRoot, "assets", "optional", "mcp-servers", "ketcher-chemistry"), manifest)
 	if err != nil {
@@ -195,14 +195,14 @@ func TestBundledAgentTemplatesManifest(t *testing.T) {
 		t.Fatal("locate repository root")
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
-	manifest, err := Load(filepath.Join(repositoryRoot, "assets", "synonbiomed", "agents.manifest.json"))
+	manifest, err := Load(filepath.Join(repositoryRoot, "assets", "x-science", "agents.manifest.json"))
 	if err != nil {
 		t.Fatalf("load bundled agents manifest: %v", err)
 	}
 	if len(manifest.Agents) != 14 {
 		t.Fatalf("agent template count = %d", len(manifest.Agents))
 	}
-	report, err := Verify(filepath.Join(repositoryRoot, "assets", "synonbiomed", "agents"), manifest)
+	report, err := Verify(filepath.Join(repositoryRoot, "assets", "x-science", "agents"), manifest)
 	if err != nil {
 		t.Fatalf("verify bundled agents: %v", err)
 	}
@@ -213,7 +213,7 @@ func TestBundledAgentTemplatesManifest(t *testing.T) {
 		if !slices.Contains(manifest.Agents, required) {
 			t.Fatalf("required v1.1 agent missing from manifest: %s", required)
 		}
-		if info, err := os.Stat(filepath.Join(repositoryRoot, "assets", "synonbiomed", "agents", required)); err != nil || !info.IsDir() {
+		if info, err := os.Stat(filepath.Join(repositoryRoot, "assets", "x-science", "agents", required)); err != nil || !info.IsDir() {
 			t.Fatalf("required v1.1 agent missing on disk: %s: %v", required, err)
 		}
 	}
@@ -237,8 +237,8 @@ func TestBundledKernelComputeManifest(t *testing.T) {
 		declared[entry.Path] = true
 	}
 	for _, required := range []string{
-		"kernels/synon_biomed_runtime/__init__.py",
-		"kernels/synon_biomed_runtime/cheminfo_render.py",
+		"kernels/x_science_runtime/__init__.py",
+		"kernels/x_science_runtime/cheminfo_render.py",
 		"kernels/cheminfo_render_helpers.py",
 		"kernels/sdf_artifact_validator.py",
 	} {
@@ -270,14 +270,14 @@ func TestBundledScientificPythonAssetsUseOneVerifiedHelperAuthority(t *testing.T
 		return string(raw)
 	}
 
-	canonical := read("assets/optional/kernels/synon_biomed_runtime/cheminfo_render.py")
+	canonical := read("assets/optional/kernels/x_science_runtime/cheminfo_render.py")
 	for _, symbol := range []string{"def render_molecule_images(", "use_svg: bool = True", "metadata_filename: str | os.PathLike[str] | None = None"} {
 		if !strings.Contains(canonical, symbol) {
 			t.Fatalf("canonical cheminfo helper missing %s", symbol)
 		}
 	}
-	skill := read("skills/synonbiomed/cheminfo-render/SKILL.md")
-	for _, text := range []string{canonical, skill, read("assets/optional/kernels/synon_biomed_runtime/__init__.py")} {
+	skill := read("skills/x-science/cheminfo-render/SKILL.md")
+	for _, text := range []string{canonical, skill, read("assets/optional/kernels/x_science_runtime/__init__.py")} {
 		if strings.Contains(strings.ToLower(text), "3dmol") {
 			t.Fatal("chemistry rendering still advertises or implements the retired viewer")
 		}
@@ -290,8 +290,8 @@ func TestBundledScientificPythonAssetsUseOneVerifiedHelperAuthority(t *testing.T
 	}
 	for _, relative := range []string{
 		"assets/optional/kernels/cheminfo_render_helpers.py",
-		"skills/synonbiomed/cheminfo-render/kernel.py",
-		"skills/synonbiomed/cheminfo-render/cheminfo_render_helpers.py",
+		"skills/x-science/cheminfo-render/kernel.py",
+		"skills/x-science/cheminfo-render/cheminfo_render_helpers.py",
 	} {
 		shim := read(relative)
 		if strings.Contains(strings.ToLower(shim), "3dmol") {
@@ -340,15 +340,15 @@ func TestBundledPythonWorkerUsesOneModularRuntimeAndHostBridge(t *testing.T) {
 		t.Fatalf("retired worker remains in the active asset tree: %v", err)
 	}
 	bootstrap := string(read("kernel_worker.py"))
-	if !strings.Contains(bootstrap, "from synon_biomed_runtime.worker_execution import run") {
+	if !strings.Contains(bootstrap, "from x_science_runtime.worker_execution import run") {
 		t.Fatal("kernel entrypoint does not delegate to its owned runtime")
 	}
 	for _, module := range []string{"worker_transport.py", "worker_streams.py", "worker_compile.py", "worker_process_outcomes.py", "worker_execution.py", "worker_safety.py", "worker_reads.py"} {
-		if len(read(filepath.Join("synon_biomed_runtime", module))) == 0 {
+		if len(read(filepath.Join("x_science_runtime", module))) == 0 {
 			t.Fatalf("worker module %s is empty", module)
 		}
 	}
-	bridge := string(read("synon_host_bridge.py"))
+	bridge := string(read("x_science_host_bridge.py"))
 	for _, marker := range []string{
 		"def bind_cell(", "def disable_cell(", "def finish_cell(", "ModuleType(\"host\")", "\"type\": \"host_call\"",
 		"def _compute_error_from_host(", "class ComputeConcurrencyFull(", "_compute_accessor.JobPending",
@@ -367,7 +367,7 @@ func TestBundledPythonWorkerUsesOneModularRuntimeAndHostBridge(t *testing.T) {
 	}
 }
 
-func TestSynonHostViewImageUsesTheManagedPythonImagePath(t *testing.T) {
+func TestXScienceHostViewImageUsesTheManagedPythonImagePath(t *testing.T) {
 	python, err := exec.LookPath("python3")
 	if err != nil {
 		t.Skip("python3 is unavailable")
@@ -377,7 +377,7 @@ func TestSynonHostViewImageUsesTheManagedPythonImagePath(t *testing.T) {
 		t.Fatal("locate repository root")
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
-	bridge := filepath.Join(repositoryRoot, "assets", "optional", "kernels", "synon_host_bridge.py")
+	bridge := filepath.Join(repositoryRoot, "assets", "optional", "kernels", "x_science_host_bridge.py")
 	output := filepath.Join(t.TempDir(), "view.png")
 	script := `
 import importlib.util
@@ -385,7 +385,7 @@ import json
 import sys
 from PIL import Image
 
-spec = importlib.util.spec_from_file_location("synon_host_bridge_view_test", sys.argv[1])
+spec = importlib.util.spec_from_file_location("x_science_host_bridge_view_test", sys.argv[1])
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 image = Image.new("RGB", (120, 80), "white")
@@ -484,7 +484,7 @@ func TestBundledMicromambaManifestIncludesLicenseAndPinnedVersion(t *testing.T) 
 	if err != nil {
 		t.Fatalf("load micromamba manifest: %v", err)
 	}
-	if manifest.Version != "2.9.0+synon.1" || manifest.License != "BSD-3-Clause" || manifest.LicenseFile != "LICENSE" ||
+	if manifest.Version != "2.9.0+x-science.1" || manifest.License != "BSD-3-Clause" || manifest.LicenseFile != "LICENSE" ||
 		manifest.SourceURL != "https://github.com/mamba-org/mamba/tree/2676ec2050f7dd5b8a524287526f50a8a4fb9652" {
 		t.Fatalf("micromamba provenance metadata = %#v", manifest)
 	}
@@ -540,13 +540,13 @@ func TestNativeScientificInstallerAssetManifestsVerify(t *testing.T) {
 	}
 }
 
-func TestBundledSynonLinkExtensionManifest(t *testing.T) {
+func TestBundledXScienceLinkExtensionManifest(t *testing.T) {
 	_, file, _, ok := runtime.Caller(0)
 	if !ok {
 		t.Fatal("locate repository root")
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
-	root := filepath.Join(repositoryRoot, "assets", "synon-link")
+	root := filepath.Join(repositoryRoot, "assets", "x-science-link")
 	manifest, err := Load(filepath.Join(root, "manifest.json"))
 	if err != nil {
 		t.Fatalf("load X-Science browser connector manifest: %v", err)
@@ -558,7 +558,7 @@ func TestBundledSynonLinkExtensionManifest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("verify X-Science browser connector extension: %v", err)
 	}
-	if report.Checked != 1 || report.TotalBytes != 524150 {
+	if len(manifest.Files) != 1 || report.Checked != 1 || report.TotalBytes != manifest.Files[0].Bytes {
 		t.Fatalf("X-Science browser connector asset report = %#v", report)
 	}
 }

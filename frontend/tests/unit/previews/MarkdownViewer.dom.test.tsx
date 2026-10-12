@@ -258,10 +258,10 @@ describe('MarkdownViewer', () => {
   });
 
   it('keeps remote links as browser anchors', () => {
-    render(<MarkdownViewer content='[docs](https://synon-ai.com/docs)' />);
+    render(<MarkdownViewer content='[docs](https://x-science.com/docs)' />);
 
     const link = screen.getByRole('link', { name: 'docs' });
-    expect(link).toHaveAttribute('href', 'https://synon-ai.com/docs');
+    expect(link).toHaveAttribute('href', 'https://x-science.com/docs');
   });
 
   it('continues rendering local image markdown inline', async () => {
@@ -280,7 +280,7 @@ describe('MarkdownViewer', () => {
     render(
       <MarkdownViewer
         content={'![curve](curve.png)\n\n[results](results.csv)'}
-        workspace='synonbiomed://project/project-a'
+        workspace='x-science://project/project-a'
         companionArtifactUrls={{
           'curve.png':
             '/api/artifacts/11111111-1111-4111-8111-111111111111/versions/22222222-2222-4222-8222-222222222222',

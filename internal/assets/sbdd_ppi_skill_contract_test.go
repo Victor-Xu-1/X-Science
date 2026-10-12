@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/skills"
+	"x-science/internal/skills"
 )
 
 func TestSBDDPPIWorkflowIsASingleResponsibilityRouter(t *testing.T) {
@@ -17,7 +17,7 @@ func TestSBDDPPIWorkflowIsASingleResponsibilityRouter(t *testing.T) {
 		t.Fatal("locate repository root")
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
-	skillRoot := filepath.Join(repositoryRoot, "skills", "synonbiomed", "sbdd-ppi-workflow")
+	skillRoot := filepath.Join(repositoryRoot, "skills", "x-science", "sbdd-ppi-workflow")
 	content, err := os.ReadFile(filepath.Join(skillRoot, "SKILL.md"))
 	if err != nil {
 		t.Fatal(err)

@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/buildinfo"
-	kernelruntime "synon-go/internal/kernel"
+	"x-science/internal/buildinfo"
+	kernelruntime "x-science/internal/kernel"
 )
 
-const synonLinkRevokedSessionNamespace = "synon-link-revoked-sessions"
+const xscienceLinkRevokedSessionNamespace = "x-science-link-revoked-sessions"
 
 type environmentProjection struct {
 	EnvironmentName string  `json:"env_name"`
@@ -38,7 +38,7 @@ func (s *Server) handleCurrentUser(w http.ResponseWriter, r *http.Request) {
 		writeWorkspaceJSON(w, http.StatusUnauthorized, map[string]any{"error": "user identity is required"})
 		return
 	}
-	email := strings.TrimSpace(r.Header.Get("X-Synon-User-Email"))
+	email := strings.TrimSpace(r.Header.Get("X-Science-User-Email"))
 	if strings.ContainsAny(email, "\r\n\x00") || len(email) > 320 {
 		writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid user email"})
 		return
@@ -166,10 +166,10 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 	}
 	token := bearerOrAppSessionToken(r)
 	if token == "" {
-		token = legacySynonLinkCompatibilityCookieToken(r)
+		token = legacyXScienceLinkCompatibilityCookieToken(r)
 	}
 	if token != "" {
-		tokenUser, valid := s.synonLinkAuth.Authenticate(token)
+		tokenUser, valid := s.xscienceLinkAuth.Authenticate(token)
 		if !valid {
 			writeWorkspaceJSON(w, http.StatusUnauthorized, map[string]any{"error": "invalid or expired session"})
 			return
@@ -179,7 +179,7 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		userID = tokenUser.ID
-		if err := s.revokeSynonLinkSession(token); err != nil {
+		if err := s.revokeXScienceLinkSession(token); err != nil {
 			writeWorkspaceJSON(w, http.StatusInternalServerError, map[string]any{"error": "revoke session: " + err.Error()})
 			return
 		}
@@ -195,7 +195,8 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 		writeDomainEventError(w, "logout", err)
 		return
 	}
-	for _, name := range []string{webSessionCookieName, webCSRFCookieName, "session", "auth_token"} {
+	s.clearWebAuthCookies(w, r)
+	for _, name := range []string{"session", "auth_token"} {
 		http.SetCookie(w, &http.Cookie{
 			Name: name, Value: "", Path: "/", MaxAge: -1,
 			Expires: time.Unix(1, 0).UTC(), HttpOnly: name != webCSRFCookieName,
@@ -207,7 +208,7 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func legacySynonLinkCompatibilityCookieToken(r *http.Request) string {
+func legacyXScienceLinkCompatibilityCookieToken(r *http.Request) string {
 	for _, name := range []string{"session", "auth_token"} {
 		if cookie, err := r.Cookie(name); err == nil && strings.TrimSpace(cookie.Value) != "" {
 			return strings.TrimSpace(cookie.Value)
@@ -216,25 +217,25 @@ func legacySynonLinkCompatibilityCookieToken(r *http.Request) string {
 	return ""
 }
 
-func (s *Server) revokeSynonLinkSession(token string) error {
+func (s *Server) revokeXScienceLinkSession(token string) error {
 	if s == nil || s.runtimeStore == nil {
 		return fmt.Errorf("durable runtime store is not configured")
 	}
-	payload, ok := s.synonLinkAuth.sessionPayload(token)
+	payload, ok := s.xscienceLinkAuth.sessionPayload(token)
 	if !ok {
-		return errSynonLinkInvalidSession
+		return errXScienceLinkInvalidSession
 	}
 	key := fmt.Sprintf("%x", sha256.Sum256([]byte(token)))
-	_, err := s.runtimeStore.Set(synonLinkRevokedSessionNamespace, key, map[string]any{"expires_at": payload.Expires})
+	_, err := s.runtimeStore.Set(xscienceLinkRevokedSessionNamespace, key, map[string]any{"expires_at": payload.Expires})
 	return err
 }
 
-func (s *Server) synonLinkSessionRevoked(token string) (bool, error) {
+func (s *Server) xscienceLinkSessionRevoked(token string) (bool, error) {
 	if strings.TrimSpace(token) == "" || s == nil || s.runtimeStore == nil {
 		return false, nil
 	}
 	key := fmt.Sprintf("%x", sha256.Sum256([]byte(token)))
-	entry, found, err := s.runtimeStore.Get(synonLinkRevokedSessionNamespace, key)
+	entry, found, err := s.runtimeStore.Get(xscienceLinkRevokedSessionNamespace, key)
 	if err != nil || !found {
 		return false, err
 	}
@@ -252,16 +253,16 @@ func (s *Server) synonLinkSessionRevoked(token string) (bool, error) {
 	if expires <= 0 {
 		return true, errors.New("revoked session record is invalid")
 	}
-	if expires > s.synonLinkAuth.now().UTC().Unix() {
+	if expires > s.xscienceLinkAuth.now().UTC().Unix() {
 		return true, nil
 	}
-	_, err = s.runtimeStore.Delete(synonLinkRevokedSessionNamespace, key)
+	_, err = s.runtimeStore.Delete(xscienceLinkRevokedSessionNamespace, key)
 	return false, err
 }
 
 func (s *Server) environmentStatus(retry bool) []environmentProjection {
 	status := []environmentProjection{{
-		EnvironmentName: "synon-go-runtime", Language: "go", PackageCount: 0, Status: "ready",
+		EnvironmentName: "x-science-runtime", Language: "go", PackageCount: 0, Status: "ready",
 	}}
 	if s == nil || s.kernelManager == nil {
 		kernelStatus := "skipped"
@@ -378,7 +379,7 @@ func localIdentityEmail(userID string) string {
 }
 
 func hasConfiguredModelAPIKey() bool {
-	for _, key := range []string{"OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "SYNON_LLM_API_KEY"} {
+	for _, key := range []string{"OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "X_SCIENCE_LLM_API_KEY"} {
 		if strings.TrimSpace(os.Getenv(key)) != "" {
 			return true
 		}

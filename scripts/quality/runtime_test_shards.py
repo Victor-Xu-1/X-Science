@@ -125,7 +125,7 @@ def main() -> int:
     if args.plan_only:
         print(json.dumps(test_plan, indent=2))
         return 0
-    log_dir = args.log_dir or Path(tempfile.mkdtemp(prefix="synon-runtime-tests-"))
+    log_dir = args.log_dir or Path(tempfile.mkdtemp(prefix="x-science-runtime-tests-"))
     return execute(repo, test_plan, log_dir)
 
 

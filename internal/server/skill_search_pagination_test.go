@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"synon-go/internal/skills"
+	"x-science/internal/skills"
 )
 
 func TestSkillSearchHonorsRequestedPageAndReportsContinuation(t *testing.T) {

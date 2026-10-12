@@ -63,7 +63,7 @@ describe('FileService.uploadFileViaHttp', () => {
       href: 'http://localhost:8765/#/chat',
       origin: 'http://localhost:8765',
     });
-    vi.stubGlobal('document', { cookie: 'theme=dark; synon_csrf=composer-upload-csrf-token' });
+    vi.stubGlobal('document', { cookie: 'theme=dark; x_science_csrf=composer-upload-csrf-token' });
   });
 
   afterEach(() => {

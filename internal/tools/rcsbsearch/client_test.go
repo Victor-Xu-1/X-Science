@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/tools/securefetch"
+	"x-science/internal/tools/securefetch"
 )
 
 type fixtureFetcher struct {
@@ -151,8 +151,8 @@ func TestSearchRejectsMismatchedMetadataIdentity(t *testing.T) {
 }
 
 func TestSearchLiveOfficialRCSB(t *testing.T) {
-	if os.Getenv("SYNON_TEST_LIVE_RCSB_SEARCH") != "1" {
-		t.Skip("set SYNON_TEST_LIVE_RCSB_SEARCH=1 for the official Search API and Data API check")
+	if os.Getenv("X_SCIENCE_TEST_LIVE_RCSB_SEARCH") != "1" {
+		t.Skip("set X_SCIENCE_TEST_LIVE_RCSB_SEARCH=1 for the official Search API and Data API check")
 	}
 	client := New(Options{MaxBytes: 2 << 20, Timeout: 30 * time.Second})
 	result, err := client.Search(context.Background(), Input{

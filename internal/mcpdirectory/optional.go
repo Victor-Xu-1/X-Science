@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/tools/mcpstdio"
+	"x-science/internal/tools/mcpstdio"
 )
 
 const (
@@ -110,7 +110,7 @@ func registerOptionalConnectorDefinitions(root string, bundled map[string]bundle
 			item.useBundledPython = true
 			item.Config = mcpstdio.ServerConfig{
 				Type: "stdio", Scope: "bundled", Command: "python3", Args: []string{adapter},
-				Env: map[string]string{"SYNON_VIENNARNA_PACKAGE_ROOT": installRoot},
+				Env: map[string]string{"X_SCIENCE_VIENNARNA_PACKAGE_ROOT": installRoot},
 			}
 		default:
 			continue
@@ -141,6 +141,23 @@ func optionalConnectorStatePath(root, connectorID string) string {
 	return filepath.Join(optionalConnectorInstallRoot(root, connectorID), ".install-state.json")
 }
 
+func validateOptionalConnectorID(id string) (string, error) {
+	id = strings.TrimSpace(id)
+	if !strings.HasPrefix(id, "bundled:") {
+		return "", errors.New("optional connector id is invalid")
+	}
+	slug := strings.TrimPrefix(id, "bundled:")
+	if slug == "" || strings.Contains(slug, "..") || strings.ContainsAny(slug, `/\`) {
+		return "", errors.New("optional connector id is invalid")
+	}
+	for _, character := range slug {
+		if (character < 'a' || character > 'z') && (character < '0' || character > '9') && character != '-' && character != '_' {
+			return "", errors.New("optional connector id is invalid")
+		}
+	}
+	return id, nil
+}
+
 func loadInstalledOptionalConnectors(root string, bundled map[string]bundledConnector, definitions map[string]optionalConnectorDefinition) {
 	registerOptionalConnectorDefinitions(root, bundled, definitions)
 }
@@ -160,6 +177,10 @@ func (s *Service) optionalConnectorInstalled(item bundledConnector) bool {
 
 func (s *Service) readOptionalInstallState(id string) (optionalInstallState, bool) {
 	if s == nil || strings.TrimSpace(s.root) == "" {
+		return optionalInstallState{}, false
+	}
+	id, err := validateOptionalConnectorID(id)
+	if err != nil {
 		return optionalInstallState{}, false
 	}
 	raw, err := os.ReadFile(optionalConnectorStatePath(s.root, id))
@@ -224,13 +245,18 @@ func (s *Service) StartOptionalInstall(userID, id string) (OptionalConnector, er
 	if s == nil || s.store == nil {
 		return OptionalConnector{}, errors.New("MCP directory service is not configured")
 	}
-	definition, found := s.optional[strings.TrimSpace(id)]
+	id, err := validateOptionalConnectorID(id)
+	if err != nil {
+		return OptionalConnector{}, errors.New("optional MCP connector not found")
+	}
+	definition, found := s.optional[id]
 	if !found {
 		return OptionalConnector{}, errors.New("optional MCP connector not found")
 	}
 	s.optionalInstallMu.Lock()
 	defer s.optionalInstallMu.Unlock()
 	installRoot := optionalConnectorInstallRoot(s.root, id)
+	// installRoot is derived only from the validated bundled connector id and app data root.
 	if strings.TrimSpace(s.root) == "" || filepath.Clean(installRoot) == filepath.Clean(s.root) {
 		return OptionalConnector{}, errors.New("application data root is required for optional MCP installation")
 	}

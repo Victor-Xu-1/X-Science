@@ -61,3 +61,23 @@ func TestPrepareSSHHostRejectsUnknownAliasAndUnsafeIdentity(t *testing.T) {
 		t.Fatal("identity outside approved roots unexpectedly accepted")
 	}
 }
+
+func TestSSHIdentityRejectsOutsideRootBeforeFilesystemProbe(t *testing.T) {
+	home := t.TempDir()
+	outside := filepath.Join(t.TempDir(), "key")
+	_, absentErr := resolveSSHIdentityFile(outside, home)
+	if err := os.WriteFile(outside, []byte("fixture"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, presentErr := resolveSSHIdentityFile(outside, home)
+	if absentErr == nil || presentErr == nil || absentErr.Error() != presentErr.Error() {
+		t.Fatalf("outside path existence was probed: absent=%v present=%v", absentErr, presentErr)
+	}
+	link := filepath.Join(home, "key-link")
+	if err := os.Symlink(outside, link); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := resolveSSHIdentityFile(link, home); err == nil {
+		t.Fatal("symlink outside SSH identity roots admitted")
+	}
+}

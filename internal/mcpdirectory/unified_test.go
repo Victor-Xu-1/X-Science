@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/tools/mcpstdio"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/tools/mcpstdio"
 )
 
 func TestUnifiedCatalogMatchesV11BundledIDsAndRejectsCrossSourceCollision(t *testing.T) {
@@ -23,7 +23,7 @@ func TestUnifiedCatalogMatchesV11BundledIDsAndRejectsCrossSourceCollision(t *tes
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("SYNON_BUNDLED_CONNECTOR_EXECUTABLE", executable)
+	t.Setenv("X_SCIENCE_BUNDLED_CONNECTOR_EXECUTABLE", executable)
 	store, err := workspace.Open(filepath.Join(t.TempDir(), "workspace.db"))
 	if err != nil {
 		t.Fatal(err)
@@ -72,7 +72,7 @@ func TestUnifiedCatalogMatchesV11BundledIDsAndRejectsCrossSourceCollision(t *tes
 		"bundled:biorxiv", "bundled:variants", "bundled:clinical-genomics", "bundled:expression",
 		"bundled:regulation", "bundled:protein-annotation", "bundled:rna",
 		"bundled:structures-interactions", "bundled:omics-archives", "bundled:genes-ontologies",
-		"bundled:drug-regulatory", "bundled:research-resources", "bundled:synon-research", "bundled:cancer-models",
+		"bundled:drug-regulatory", "bundled:research-resources", "bundled:x-science-research", "bundled:cancer-models",
 		"bundled:chemistry", "bundled:human-genetics", "bundled:literature", "bundled:genomes",
 		"bundled:cellguide", "bundled:zinc", "bundled:omtx-om", "bundled:patsnap-chemical-molecular", "bundled:inductive-bio",
 		"bundled:boltz-api-official", "bundled:open-targets-official", "bundled:tamarind-bio",

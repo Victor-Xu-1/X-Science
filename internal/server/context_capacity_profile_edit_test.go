@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
-	"synon-go/internal/agentruntime"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/providers"
 	"testing"
+	"x-science/internal/agentruntime"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/providers"
 )
 
 func TestContextCapacitySelectedProfileEditInvalidatesPreparedClient(t *testing.T) {

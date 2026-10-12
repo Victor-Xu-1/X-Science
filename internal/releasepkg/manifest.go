@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/buildinfo"
+	"x-science/internal/buildinfo"
 )
 
 const ManifestFile = "RELEASE_MANIFEST.json"

@@ -1,5 +1,5 @@
-import type { SynonBiomedArtifactAnnotation } from '@/renderer/services/synonBiomedAnnotations';
-import type { SynonBiomedArtifactCanvasSelection } from './artifactCanvasSelection';
+import type { XScienceArtifactAnnotation } from '@/renderer/services/xScienceAnnotations';
+import type { XScienceArtifactCanvasSelection } from './artifactCanvasSelection';
 import { Input } from '@arco-design/web-react';
 import Modal from '@/renderer/components/base/WorkbenchModal';
 import React from 'react';
@@ -9,9 +9,9 @@ import { useArtifactSelectionEditor } from './useArtifactSelectionEditor';
 export const ArtifactSelectionAnnotationModal: React.FC<{
   artifactId: string;
   versionId: string;
-  selection: SynonBiomedArtifactCanvasSelection;
+  selection: XScienceArtifactCanvasSelection;
   onCancel: () => void;
-  onCreated: (annotation: SynonBiomedArtifactAnnotation) => void | Promise<void>;
+  onCreated: (annotation: XScienceArtifactAnnotation) => void | Promise<void>;
 }> = ({ artifactId, versionId, selection, onCancel, onCreated }) => {
   const { t } = useTranslation();
   const { note, setNote, saving, error, created, save, retryDisplay, close } = useArtifactSelectionEditor(

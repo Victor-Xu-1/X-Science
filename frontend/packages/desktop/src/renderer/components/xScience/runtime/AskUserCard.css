@@ -1,0 +1,77 @@
+/* Decision-card styles live with the component; the app owns theme tokens. */
+.x-science-ask-user-card {
+  padding: var(--ui-space-6);
+  color: var(--workspace-text);
+  background: var(--conversation-stream-surface);
+  border-color: transparent;
+  border-radius: var(--ui-radius-xl);
+  box-shadow: none;
+  font-family: var(--conversation-font-sans);
+  border: 0;
+  font-size: var(--ui-font-body);
+  line-height: 22px;
+  font-style: normal;
+}
+
+.x-science-ask-user-card h3 {
+  font-size: var(--ui-font-title);
+  line-height: 24px;
+  font-weight: var(--ui-weight-semibold);
+}
+
+.x-science-ask-user-card__options,
+.x-science-ask-user-card__actions {
+  border: 0;
+}
+
+.x-science-ask-user-card__option {
+  border: 0;
+  border-radius: var(--ui-radius-lg);
+}
+
+.x-science-ask-user-card__composer {
+  border: 0;
+  background: var(--conversation-code-surface);
+  box-shadow: none;
+}
+
+.x-science-ask-user-card__input.arco-input,
+.x-science-ask-user-card__input.arco-input:focus {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.x-science-ask-user-card__action--quiet.arco-btn,
+.x-science-ask-user-card__action--quiet.arco-btn:hover,
+.x-science-ask-user-card__action--quiet.arco-btn:active {
+  border: 0;
+  box-shadow: none;
+}
+
+.x-science-ask-user-card__action--quiet.arco-btn {
+  color: var(--workspace-text-secondary);
+  background: transparent;
+}
+
+.x-science-ask-user-card__action--quiet.arco-btn:hover {
+  color: var(--workspace-text);
+  background: var(--workspace-hover);
+}
+
+.x-science-ask-user-card__submit.arco-btn,
+.x-science-ask-user-card__submit.arco-btn:disabled {
+  border: 0;
+  box-shadow: none;
+}
+
+.x-science-ask-user-card [role='alert'] {
+  color: var(--color-danger-6);
+  font-size: var(--ui-font-body);
+}
+
+@media (max-width: 767px) {
+  .x-science-ask-user-card {
+    padding: 14px;
+  }
+}

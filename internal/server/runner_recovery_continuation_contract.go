@@ -7,10 +7,10 @@ import (
 	"errors"
 	"strings"
 
-	"synon-go/internal/agentruntime"
-	eventjournal "synon-go/internal/persistence/journal"
-	sessionstore "synon-go/internal/persistence/sessions"
 	"time"
+	"x-science/internal/agentruntime"
+	eventjournal "x-science/internal/persistence/journal"
+	sessionstore "x-science/internal/persistence/sessions"
 )
 
 func sessionRunnerTaskStartedAt(session sessionstore.Session, run *sessionRunnerChatRun) time.Time {

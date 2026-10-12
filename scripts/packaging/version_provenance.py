@@ -8,12 +8,14 @@ import importlib.util
 import json
 from pathlib import Path
 import re
+import stat
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from scripts.quality.product_version import require_next_version
 
 AUDIT = "scripts/audit/audit_frontend_migration.py"
+AUDIT_HELPER = "scripts/audit/frontend_source_namespace.py"
 MIGRATION = "frontend/MIGRATION_MANIFEST.json"
 LICENSES = "frontend/THIRD_PARTY_LICENSES.json"
 NOTICES = "docs/licenses/frontend-bundle/NOTICE.txt"
@@ -70,8 +72,8 @@ def require_notice_binding(root: Path) -> tuple[bytes, str]:
 def reviewed_audit(root: Path):
     """Execute only the tooling checkout's auditor; candidate code is data."""
     tooling = Path(__file__).resolve().parents[2]
-    trusted = tooling / AUDIT
-    target = root / AUDIT
+    trusted = regular_audit_input(tooling, AUDIT)
+    target = regular_audit_input(root, AUDIT)
     # A candidate cannot establish its own trust by invoking its local copy.
     # samefile also rejects symlink/hardlink aliases across distinct roots.
     if root.resolve() == tooling or target.samefile(trusted):
@@ -82,17 +84,56 @@ def reviewed_audit(root: Path):
     if set(pins) != {"ADAPTATION", "ADDITION", "REMOVAL"}:
         raise ValueError("unexpected candidate audit fingerprint contract")
     normalize = lambda source: re.sub(pattern, lambda match: f'APPROVED_{match[1]}_FINGERPRINT = "REVIEWED"', source)
-    if normalize(candidate) != normalize(trusted.read_text()):
+    trusted_source = trusted.read_text()
+    if normalize(candidate) != normalize(trusted_source):
         raise ValueError("candidate audit implementation requires a reviewed tooling update")
+    helper = regular_audit_input(tooling, AUDIT_HELPER)
+    candidate_helper = regular_audit_input(root, AUDIT_HELPER)
+    if candidate_helper.samefile(helper):
+        raise ValueError("version preparation requires separate reviewed tooling helper")
+    helper_source = helper.read_bytes()
+    if candidate_helper.read_bytes() != helper_source:
+        raise ValueError("candidate audit helper requires a reviewed tooling update")
     spec = importlib.util.spec_from_file_location("version_baseline_audit", trusted)
     audit = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(audit)
+    helper_spec = importlib.util.spec_from_file_location("frontend_source_namespace", helper)
+    helper_module = importlib.util.module_from_spec(helper_spec)
+    previous = sys.modules.get("frontend_source_namespace")
+    previously_loaded = "frontend_source_namespace" in sys.modules
+    try:
+        # Import only this exact reviewed file. No candidate directory enters
+        # sys.path, and an existing cached module cannot supply different code.
+        exec(helper_spec.loader.source_to_code(helper_source, str(helper)), helper_module.__dict__)
+        sys.modules["frontend_source_namespace"] = helper_module
+        exec(spec.loader.source_to_code(trusted_source, str(trusted)), audit.__dict__)
+    finally:
+        if previously_loaded:
+            sys.modules["frontend_source_namespace"] = previous
+        else:
+            sys.modules.pop("frontend_source_namespace", None)
     # Validate the candidate's existing recorded claims against fresh bytes,
     # not the tooling revision's old fingerprints or a previous test result.
     for kind, digest in pins.items():
         setattr(audit, f"APPROVED_{kind}_FINGERPRINT", digest)
     audit.main(["--root", str(root), "--check"])
     return audit
+
+
+def regular_audit_input(root: Path, relative: str) -> Path:
+    pure = Path(relative)
+    if (pure.is_absolute() or pure.as_posix() != relative or "\\" in relative
+            or any(part in {"", ".", ".."} for part in relative.split("/"))):
+        raise ValueError("audit input path must be exact and contained")
+    current = root
+    for part in pure.parts:
+        if current.is_symlink():
+            raise ValueError("audit input requires separate reviewed tooling without symlinks")
+        current = current / part
+    metadata = current.lstat()
+    if (current.is_symlink() or not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1
+            or metadata.st_size > 4 * 1024 * 1024 or not current.resolve().is_relative_to(root.resolve())):
+        raise ValueError("audit input requires bounded regular separate reviewed tooling")
+    return current
 
 
 def plan(root: Path, proposed: dict[str, bytes], changed: set[str]) -> dict[str, bytes]:

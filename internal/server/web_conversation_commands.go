@@ -8,8 +8,8 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	workspace "synon-go/internal/persistence/workspace"
 	"time"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func (s *Server) handleWebConversationMessageSubmission(w http.ResponseWriter, r *http.Request, frame workspace.CompatibilityFrame) {
@@ -23,7 +23,7 @@ func (s *Server) handleWebConversationMessageSubmission(w http.ResponseWriter, r
 		writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"message": "message content is required"})
 		return
 	}
-	if err := s.validateWebConversationSendInput(strings.TrimSpace(r.Header.Get("X-Synon-User-Id")), frame, &input); err != nil {
+	if err := s.validateWebConversationSendInput(strings.TrimSpace(r.Header.Get("X-Science-User-Id")), frame, &input); err != nil {
 		writeWebConversationError(w, err)
 		return
 	}
@@ -36,7 +36,7 @@ func (s *Server) handleWebConversationMessageSubmission(w http.ResponseWriter, r
 	input.Files = materializedFiles
 	input.Content = rewriteWebConversationAttachedFilePaths(input.Content, originalFiles, materializedFiles)
 	artifactReferences, err := s.validateWebConversationArtifactReferences(
-		r.Context(), strings.TrimSpace(r.Header.Get("X-Synon-User-Id")), frame, input.ArtifactRefs, input.MessageContext,
+		r.Context(), strings.TrimSpace(r.Header.Get("X-Science-User-Id")), frame, input.ArtifactRefs, input.MessageContext,
 	)
 	if err != nil {
 		writeWebConversationError(w, err)
@@ -80,7 +80,7 @@ func (s *Server) handleWebConversationMessageSubmission(w http.ResponseWriter, r
 		writeWebConversationError(w, err)
 		return
 	}
-	if err := s.publishWebConversationListChange(strings.TrimSpace(r.Header.Get("X-Synon-User-Id")), frame.ID, "updated"); err != nil {
+	if err := s.publishWebConversationListChange(strings.TrimSpace(r.Header.Get("X-Science-User-Id")), frame.ID, "updated"); err != nil {
 		writeWorkspaceJSON(w, http.StatusInternalServerError, map[string]any{"message": "message accepted but realtime delivery failed"})
 		return
 	}
@@ -126,7 +126,7 @@ func (s *Server) handleWebConversationRuntimeEnsure(w http.ResponseWriter, r *ht
 		writeWebConversationError(w, err)
 		return
 	}
-	options, err := s.webConversationConfigOptions(strings.TrimSpace(r.Header.Get("X-Synon-User-Id")), frame)
+	options, err := s.webConversationConfigOptions(strings.TrimSpace(r.Header.Get("X-Science-User-Id")), frame)
 	if err != nil {
 		writeWebConversationError(w, err)
 		return
@@ -167,13 +167,13 @@ func (s *Server) handleWebConversationReset(w http.ResponseWriter, r *http.Reque
 	defer cancelRuntimeClose()
 	cleanupWarnings := s.stopCompatibilityFrameRuntime(runtimeCloseCtx, frame.RootFrameID)
 	cleanupWarnings = append(cleanupWarnings, s.removeCompatibilityFrameRuntime(frame.RootFrameID)...)
-	if err := s.publishWebConversationListChange(strings.TrimSpace(r.Header.Get("X-Synon-User-Id")), frame.ID, "updated"); err != nil {
+	if err := s.publishWebConversationListChange(strings.TrimSpace(r.Header.Get("X-Science-User-Id")), frame.ID, "updated"); err != nil {
 		writeWorkspaceJSON(w, http.StatusInternalServerError, map[string]any{"message": "conversation reset but realtime delivery failed"})
 		return
 	}
 	if len(cleanupWarnings) > 0 {
 		log.Printf("compatibility conversation reset committed with runtime cleanup warnings: conversation_id=%s failures=%d errors=%v", frame.ID, len(cleanupWarnings), errors.Join(cleanupWarnings...))
-		w.Header().Set("X-Synon-Runtime-Cleanup-Warnings", strconv.Itoa(len(cleanupWarnings)))
+		w.Header().Set("X-Science-Runtime-Cleanup-Warnings", strconv.Itoa(len(cleanupWarnings)))
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -209,7 +209,7 @@ func (s *Server) handleWebConversationConfigOption(w http.ResponseWriter, r *htt
 		writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"message": message})
 		return
 	}
-	userID := strings.TrimSpace(r.Header.Get("X-Synon-User-Id"))
+	userID := strings.TrimSpace(r.Header.Get("X-Science-User-Id"))
 	if optionID == "mode" {
 		canonical, valid := normalizeWebAssistantPermissionMode(input.Value)
 		if !valid {

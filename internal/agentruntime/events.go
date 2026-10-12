@@ -3,7 +3,7 @@ package agentruntime
 import (
 	"time"
 
-	"synon-go/internal/toolprogress"
+	"x-science/internal/toolprogress"
 )
 
 type EventType string

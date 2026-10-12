@@ -10,13 +10,13 @@ import (
 	"testing"
 	"time"
 
-	eventjournal "synon-go/internal/persistence/journal"
-	sessionstore "synon-go/internal/persistence/sessions"
-	runnermachine "synon-go/internal/sessionrunner"
+	eventjournal "x-science/internal/persistence/journal"
+	sessionstore "x-science/internal/persistence/sessions"
+	runnermachine "x-science/internal/sessionrunner"
 )
 
 func TestSessionRunnerRealModelToolRoundFollowsCanonicalPhases(t *testing.T) {
-	t.Setenv("SYNON_WEBSEARCH_MODE", "disabled")
+	t.Setenv("X_SCIENCE_WEBSEARCH_MODE", "disabled")
 	var calls atomic.Int64
 	modelAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
 		var payload map[string]any

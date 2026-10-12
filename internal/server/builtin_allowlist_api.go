@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net/http"
 
-	runtimecontrol "synon-go/internal/runtimecontrol"
+	runtimecontrol "x-science/internal/runtimecontrol"
 )
 
 const (

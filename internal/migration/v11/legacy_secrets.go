@@ -16,7 +16,7 @@ import (
 	"sort"
 	"strings"
 
-	secretstore "synon-go/internal/persistence/secrets"
+	secretstore "x-science/internal/persistence/secrets"
 )
 
 const legacyUserSecretKeyName = "USER_SECRET_ENCRYPTION_KEY"

@@ -13,8 +13,8 @@ import (
 
 	"github.com/google/uuid"
 
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 var kernelHostMethods = []string{
@@ -317,7 +317,7 @@ func (b *kernelRoutineHostBridge) Configure(ctx context.Context, input RoutineHo
 	if b == nil || b.store == nil {
 		return nil, ErrRoutineKernelHostTransportUnavailable
 	}
-	routineID := uuid.NewSHA1(uuid.NameSpaceOID, []byte("synon-routine:"+b.rootFrameID)).String()
+	routineID := uuid.NewSHA1(uuid.NameSpaceOID, []byte("x-science-routine:"+b.rootFrameID)).String()
 	routine, err := b.store.ConfigureRoutineHost(ctx, workspace.ConfigureRoutineHostInput{
 		ID: routineID, RootFrameID: b.rootFrameID, OwnerUserID: b.ownerUserID,
 		Label: input.Label, OnTick: input.OnTick, EveryMinutes: input.EveryMinutes,
@@ -427,11 +427,10 @@ func normalizeKernelHostValue(value any, depth int, budget *kernelHostJSONBudget
 	switch typed := value.(type) {
 	case json.Number:
 		if integer, err := strconv.ParseInt(typed.String(), 10, 64); err == nil {
-			converted := int(integer)
-			if int64(converted) != integer {
+			if integer > math.MaxInt || integer < math.MinInt {
 				return nil, errors.New("integer is outside the platform range")
 			}
-			return converted, nil
+			return int(integer), nil
 		}
 		decimal, err := strconv.ParseFloat(typed.String(), 64)
 		if err != nil || math.IsNaN(decimal) || math.IsInf(decimal, 0) {

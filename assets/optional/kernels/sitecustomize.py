@@ -1,5 +1,5 @@
 """Apply X-Science's multilingual plotting defaults in Python children."""
 
-from synon_biomed_runtime.matplotlib_runtime import configure_matplotlib_runtime
+from x_science_runtime.matplotlib_runtime import configure_matplotlib_runtime
 
 configure_matplotlib_runtime()

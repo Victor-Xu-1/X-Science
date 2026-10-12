@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/persistence/workspace"
+	"x-science/internal/persistence/workspace"
 )
 
 func TestBundledAgentCapabilitiesUseVerifiedCatalog(t *testing.T) {

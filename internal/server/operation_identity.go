@@ -17,7 +17,7 @@ func stableServerOperationID(prefix, scope string, authorityInput any) (string, 
 	if err != nil {
 		return "", fmt.Errorf("operation authority is not serializable: %w", err)
 	}
-	digest := sha256.Sum256(append([]byte("synon-server-operation-v1\x00"+strings.TrimSpace(prefix)+"\x00"+strings.TrimSpace(scope)+"\x00"), raw...))
+	digest := sha256.Sum256(append([]byte("x-science-server-operation-v1\x00"+strings.TrimSpace(prefix)+"\x00"+strings.TrimSpace(scope)+"\x00"), raw...))
 	return strings.TrimSpace(prefix) + "-" + hex.EncodeToString(digest[:12]), nil
 }
 

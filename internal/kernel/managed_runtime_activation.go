@@ -46,7 +46,7 @@ func activateManagedRuntimeGeneration(active, generation string) error {
 	if err := os.MkdirAll(root, 0o700); err != nil {
 		return err
 	}
-	temporary, err := os.CreateTemp(root, ".synon-runtime-pointer-*.tmp")
+	temporary, err := os.CreateTemp(root, ".x-science-runtime-pointer-*.tmp")
 	if err != nil {
 		return err
 	}

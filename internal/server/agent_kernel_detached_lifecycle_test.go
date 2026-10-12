@@ -12,11 +12,11 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	kernelruntime "synon-go/internal/kernel"
-	kerneldetached "synon-go/internal/kernel/detached"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	kernelruntime "x-science/internal/kernel"
+	kerneldetached "x-science/internal/kernel/detached"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 type unavailableDetachedBackend struct {

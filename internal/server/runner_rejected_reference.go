@@ -10,11 +10,11 @@ import (
 	"strings"
 	"unicode"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 const (
-	sessionRunnerRejectedReferenceSchemaV1       = "synon.rejected_reference.v1"
+	sessionRunnerRejectedReferenceSchemaV1       = "x-science.rejected_reference.v1"
 	sessionRunnerRejectedReferenceArtifactNameV1 = sessionRunnerRejectedReferenceSchemaV1 + ".json"
 	maxSessionRunnerRejectedReferences           = 256
 	maxSessionRunnerRejectedTitleBytes           = 1024
@@ -56,7 +56,7 @@ type sessionRunnerToolEvidencePair struct {
 	content string
 }
 
-const sessionRunnerReferenceEvidenceLedgerSchemaV1 = "synon.reference_evidence_ledger.v1"
+const sessionRunnerReferenceEvidenceLedgerSchemaV1 = "x-science.reference_evidence_ledger.v1"
 
 type sessionRunnerReferenceEvidenceLedgerV1 struct {
 	Schema   string                                         `json:"schema"`
@@ -201,7 +201,7 @@ func decodeSessionRunnerRejectedReferenceV1(
 		return nil, false, ""
 	}
 	var schema string
-	if json.Unmarshal(probe.Schema, &schema) != nil || !strings.HasPrefix(schema, "synon.rejected_reference.") {
+	if json.Unmarshal(probe.Schema, &schema) != nil || !strings.HasPrefix(schema, "x-science.rejected_reference.") {
 		return nil, false, ""
 	}
 	failure := func(code string) ([]sessionRunnerRejectedReferenceCandidate, bool, string) {

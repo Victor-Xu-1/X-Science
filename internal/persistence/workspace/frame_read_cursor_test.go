@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func TestStableReadCursorIsMonotonicAndRepairRequiresObservedWinner(t *testing.T) {

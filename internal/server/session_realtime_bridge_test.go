@@ -12,10 +12,10 @@ import (
 
 	"github.com/coder/websocket"
 
-	"synon-go/internal/compat/contracts"
-	eventjournal "synon-go/internal/persistence/journal"
-	sessionstore "synon-go/internal/persistence/sessions"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/compat/contracts"
+	eventjournal "x-science/internal/persistence/journal"
+	sessionstore "x-science/internal/persistence/sessions"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestRunnerSessionAppendMirrorsIntoFrameTraceAndRealtime(t *testing.T) {
@@ -115,14 +115,14 @@ func TestWorkspaceSessionWebSocketEnforcesOwnershipAndMirrorsClientMessages(t *t
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	wsURL := "ws" + strings.TrimPrefix(httpServer.URL, "http") + "/ws/frame-1"
-	foreign, response, err := websocket.Dial(ctx, wsURL, &websocket.DialOptions{HTTPHeader: http.Header{"X-Synon-User-Id": []string{"user-2"}}})
+	foreign, response, err := websocket.Dial(ctx, wsURL, &websocket.DialOptions{HTTPHeader: http.Header{"X-Science-User-Id": []string{"user-2"}}})
 	if foreign != nil {
 		_ = foreign.CloseNow()
 	}
 	if err == nil || response == nil || response.StatusCode != http.StatusNotFound {
 		t.Fatalf("foreign websocket response=%#v err=%v", response, err)
 	}
-	connection, _, err := websocket.Dial(ctx, wsURL, &websocket.DialOptions{HTTPHeader: http.Header{"X-Synon-User-Id": []string{"user-1"}}})
+	connection, _, err := websocket.Dial(ctx, wsURL, &websocket.DialOptions{HTTPHeader: http.Header{"X-Science-User-Id": []string{"user-1"}}})
 	if err != nil {
 		t.Fatal(err)
 	}

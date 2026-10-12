@@ -3,7 +3,7 @@ package server
 import (
 	"net/http"
 
-	runtimecontrol "synon-go/internal/runtimecontrol"
+	runtimecontrol "x-science/internal/runtimecontrol"
 )
 
 func (s *Server) handleRunningFrameCount(w http.ResponseWriter, r *http.Request) {

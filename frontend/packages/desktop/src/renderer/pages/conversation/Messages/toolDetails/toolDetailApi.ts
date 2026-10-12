@@ -1,4 +1,4 @@
-import { requestSynonBiomedJson } from '@/renderer/services/synonBiomedHttp';
+import { requestXScienceJson } from '@/renderer/services/xScienceHttp';
 import { getRendererAccountScopeToken, registerRendererAccountReset } from '@/renderer/services/rendererAccountScope';
 
 export type RemoteToolDetailReference = {
@@ -49,7 +49,7 @@ export async function loadRemoteToolDetailPage(
   if (reference.revision !== undefined) query.set('revision', String(reference.revision));
   if (reference.branchId) query.set('branch_id', reference.branchId);
   if (options.cursor) query.set('cursor', options.cursor);
-  const payload = await requestSynonBiomedJson<unknown>(
+  const payload = await requestXScienceJson<unknown>(
     `/api/conversations/${encodeURIComponent(reference.conversationId)}/messages/${encodeURIComponent(reference.messageId)}/tool-detail?${query.toString()}`,
     { method: 'GET', signal: options.signal },
     { signal: options.signal }

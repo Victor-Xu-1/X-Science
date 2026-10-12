@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/sciencecapability"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/sciencecapability"
 )
 
 func TestLegacyExecutionPlanBindsOnlyExplicitVerifiedPackReceipt(t *testing.T) {
@@ -44,7 +44,7 @@ func TestLegacyExecutionPlanBindsOnlyExplicitVerifiedPackReceipt(t *testing.T) {
 	}
 	writes := []kernelruntime.FileWrite{}
 	for name, content := range map[string]string{
-		managedExecutionOutputOwnershipMarker: `{"schema":"synon.execution-pack-output-owner.v1","execution_pack_id":"capability.engine"}`,
+		managedExecutionOutputOwnershipMarker: `{"schema":"x-science.execution-pack-output-owner.v1","execution_pack_id":"capability.engine"}`,
 		"report.md":                           "validated result\n",
 	} {
 		if err := os.WriteFile(filepath.Join(output, name), []byte(content), 0o600); err != nil {
@@ -62,7 +62,7 @@ func TestLegacyExecutionPlanBindsOnlyExplicitVerifiedPackReceipt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	script := filepath.Join(f.projectPath, ".synon", "runtime", "skills", "managed-workflow-abcd", "scripts", "run.py")
+	script := filepath.Join(f.projectPath, ".x-science", "runtime", "skills", "managed-workflow-abcd", "scripts", "run.py")
 	command := `python "` + script + `"`
 	if _, err := f.store.SaveExecutionLog(workspace.SaveExecutionLogInput{
 		Record: workspace.ExecutionLogRecord{ID: "pack-execution", FrameID: f.stream.SessionID, KernelID: kernelID,

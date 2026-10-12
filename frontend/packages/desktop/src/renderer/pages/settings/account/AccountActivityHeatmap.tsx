@@ -5,12 +5,12 @@ import {
   aggregateAccountActivity,
   type AccountActivityBucket,
   type AccountActivityMode,
-  type SynonBiomedAccountInsights,
+  type XScienceAccountInsights,
 } from '@/renderer/services/account/accountInsightsModel';
 import './AccountActivityChart.css';
 
 type AccountActivityHeatmapProps = {
-  insights: SynonBiomedAccountInsights;
+  insights: XScienceAccountInsights;
 };
 
 const MODES: AccountActivityMode[] = ['daily', 'weekly', 'cumulative'];

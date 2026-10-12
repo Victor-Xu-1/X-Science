@@ -6,13 +6,13 @@ import (
 	"errors"
 	"strings"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 const (
 	transcriptWebProjectorV59CallbackID        = "transcript-web-projector-v59-rebuild"
 	transcriptWebProjectorV59PreflightIdentity = "transcript-web-projector-v58-upgrade-v1"
-	transcriptWebProjectorV59RuleSpec          = "synon.workspace.transcript-web-projector.v59"
+	transcriptWebProjectorV59RuleSpec          = "x-science.workspace.transcript-web-projector.v59"
 )
 
 var transcriptWebProjectorV59Migration = versionedSchemaMigration{

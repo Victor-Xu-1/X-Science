@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "source": "mamba-org/mamba@2676ec2050f7dd5b8a524287526f50a8a4fb9652 with link-script-exit.patch",
-  "version": "2.9.0+synon.1",
+  "version": "2.9.0+x-science.1",
   "sourceUrl": "https://github.com/mamba-org/mamba/tree/2676ec2050f7dd5b8a524287526f50a8a4fb9652",
   "license": "BSD-3-Clause",
   "licenseFile": "LICENSE",
@@ -27,13 +27,13 @@
     },
     {
       "path": "BUILD.md",
-      "sha256": "eca44485e4f9a4d47f6d04a5367f2005d2041f03866eee811ac07dac2e213b80",
-      "bytes": 3591
+      "sha256": "4a40ddf5d2872b96431da7015d6d64fa43e62ca707d51c7797609e024412868d",
+      "bytes": 3615
     },
     {
       "path": "build-linux-64.sh",
-      "sha256": "e677a9f4e441e1e8b2dca7a10bc4ee2773b6a0055ab6eba6cdcce2570c9a638f",
-      "bytes": 3433
+      "sha256": "676c5d7b39ed787928b7cf3abbea7fd6a94a6eb2d2bf7d0a148e70efec4f0a33",
+      "bytes": 3449
     },
     {
       "path": "build-linux-64.lock",

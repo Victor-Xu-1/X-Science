@@ -161,16 +161,16 @@ func (m *Manager) StartProviderSession(ctx context.Context, spec SessionSpec, ru
 	}
 	environment := m.runtimeEnvironmentAtPrefix(normalized.Environment, "python", spec.WorkspaceDir, spec.KernelID, "", "", "", prefix)
 	environment = mergeProviderKernelEnvironment(environment, map[string]string{
-		"SYNON_PROVIDER_AUTH_FD":       strconv.Itoa(authFD),
-		"SYNON_PROVIDER_PROXY_FD":      strconv.Itoa(proxyFD),
-		"SYNON_PROVIDER_CONFIG_SHA256": configHash,
-		"OPERON_BYOC_ENVS_DIR":         normalized.EnvironmentsPath,
-		"OPERON_BYOC_INSTALL_ID":       normalized.InstallID,
-		"OPERON_BYOC_ORG_ID":           normalized.OrganizationID,
-		"OPERON_BYOC_FRAME_ID":         spec.FrameID,
-		"OPERON_HOST_NETNS_INO":        hostNetworkNamespace,
-		"MODAL_ENVIRONMENT":            normalized.ModalEnvironment,
-		"OPERON_BYOC_ENVIRONMENT":      normalized.ModalEnvironment,
+		"X_SCIENCE_PROVIDER_AUTH_FD":       strconv.Itoa(authFD),
+		"X_SCIENCE_PROVIDER_PROXY_FD":      strconv.Itoa(proxyFD),
+		"X_SCIENCE_PROVIDER_CONFIG_SHA256": configHash,
+		"OPERON_BYOC_ENVS_DIR":             normalized.EnvironmentsPath,
+		"OPERON_BYOC_INSTALL_ID":           normalized.InstallID,
+		"OPERON_BYOC_ORG_ID":               normalized.OrganizationID,
+		"OPERON_BYOC_FRAME_ID":             spec.FrameID,
+		"OPERON_HOST_NETNS_INO":            hostNetworkNamespace,
+		"MODAL_ENVIRONMENT":                normalized.ModalEnvironment,
+		"OPERON_BYOC_ENVIRONMENT":          normalized.ModalEnvironment,
 	}, normalized.ExtraEnvironment)
 	var worker *Worker
 	err = admit(func() error {

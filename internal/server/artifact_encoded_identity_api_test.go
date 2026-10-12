@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 type encodedArtifactIdentity struct {
@@ -140,7 +140,7 @@ func TestArtifactEncodedIdentityFolderDispatch(t *testing.T) {
 	app := encodedArtifactFixture(t, []encodedArtifactIdentity{identity})
 	for _, userID := range []string{"owner", "foreign"} {
 		request := newLoopbackTestRequest(http.MethodPatch, "/api/artifacts/"+url.PathEscape(identity.artifactID)+"/folder", strings.NewReader(`{"folder_id":null}`))
-		request.Header.Set("X-Synon-User-Id", userID)
+		request.Header.Set("X-Science-User-Id", userID)
 		request.Header.Set("Content-Type", "application/json")
 		response := httptest.NewRecorder()
 		app.ServeHTTP(response, request)
@@ -210,7 +210,7 @@ func encodedArtifactHTTPRequest(t *testing.T, client *http.Client, origin, userI
 	if err != nil {
 		t.Fatal(err)
 	}
-	request.Header.Set("X-Synon-User-Id", userID)
+	request.Header.Set("X-Science-User-Id", userID)
 	response, err := client.Do(request)
 	if err != nil {
 		t.Fatal(err)

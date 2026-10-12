@@ -5,24 +5,24 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import {
-  deleteSynonBiomedComputeProvider,
-  loadSynonBiomedComputeJobs,
-  loadSynonBiomedComputeProviders,
-  loadSynonBiomedComputeGpuEnabled,
-  loadSynonBiomedComputeGpuInfo,
-  loadSynonBiomedManagedEndpoints,
-  loadSynonBiomedSshAliases,
-  probeSynonBiomedComputeProvider,
-  setSynonBiomedComputeGpuEnabled,
-  stopSynonBiomedManagedEndpoint,
-  type SynonBiomedComputeProvider,
-  type SynonBiomedComputeGpuEnabled,
-  type SynonBiomedComputeGpuInfo,
-  type SynonBiomedComputeJob,
-  type SynonBiomedManagedEndpoint,
-  type SynonBiomedSshAliasesSnapshot,
-} from '@/renderer/services/synonBiomedCompute';
-import { loadSynonBiomedProjects, type SynonBiomedProject } from '@/renderer/services/synonBiomedGateway';
+  deleteXScienceComputeProvider,
+  loadXScienceComputeJobs,
+  loadXScienceComputeProviders,
+  loadXScienceComputeGpuEnabled,
+  loadXScienceComputeGpuInfo,
+  loadXScienceManagedEndpoints,
+  loadXScienceSshAliases,
+  probeXScienceComputeProvider,
+  setXScienceComputeGpuEnabled,
+  stopXScienceManagedEndpoint,
+  type XScienceComputeProvider,
+  type XScienceComputeGpuEnabled,
+  type XScienceComputeGpuInfo,
+  type XScienceComputeJob,
+  type XScienceManagedEndpoint,
+  type XScienceSshAliasesSnapshot,
+} from '@/renderer/services/xScienceCompute';
+import { loadXScienceProjects, type XScienceProject } from '@/renderer/services/xScienceGateway';
 import { BioNemoSettingsModal } from './components/compute/BioNemoSettingsModal';
 import { ModalProviderSettingsPage } from './components/compute/ModalProviderSettingsPage';
 import { ComputeJobDetailModal, ComputeJobRow, buildSessionProviderNames } from './components/compute/ComputeJobs';
@@ -36,8 +36,8 @@ export const ComputeSettingsContent: React.FC<{
   onNavigate?: (path: string, state?: Record<string, unknown>) => void;
 }> = ({ onNavigate = () => undefined }) => {
   const { t } = useTranslation();
-  const [providers, setProviders] = useState<SynonBiomedComputeProvider[]>([]);
-  const [aliases, setAliases] = useState<SynonBiomedSshAliasesSnapshot>({
+  const [providers, setProviders] = useState<XScienceComputeProvider[]>([]);
+  const [aliases, setAliases] = useState<XScienceSshAliasesSnapshot>({
     aliases: [],
     configFound: false,
     configPath: '',
@@ -45,42 +45,42 @@ export const ComputeSettingsContent: React.FC<{
     isWsl: false,
   });
   const [loading, setLoading] = useState(true);
-  const [gpuInfo, setGpuInfo] = useState<SynonBiomedComputeGpuInfo | null>(null);
-  const [gpuEnabled, setGpuEnabled] = useState<SynonBiomedComputeGpuEnabled | null>(null);
-  const [managedEndpoints, setManagedEndpoints] = useState<SynonBiomedManagedEndpoint[]>([]);
+  const [gpuInfo, setGpuInfo] = useState<XScienceComputeGpuInfo | null>(null);
+  const [gpuEnabled, setGpuEnabled] = useState<XScienceComputeGpuEnabled | null>(null);
+  const [managedEndpoints, setManagedEndpoints] = useState<XScienceManagedEndpoint[]>([]);
   const [gpuPending, setGpuPending] = useState(false);
   const [stopPendingName, setStopPendingName] = useState<string | null>(null);
   const [pendingName, setPendingName] = useState<string | null>(null);
-  const [editingProvider, setEditingProvider] = useState<SynonBiomedComputeProvider | null>(null);
+  const [editingProvider, setEditingProvider] = useState<XScienceComputeProvider | null>(null);
   const [sshVisible, setSshVisible] = useState(false);
   const [modalProviderVisible, setModalProviderVisible] = useState(false);
   const [inferenceVisible, setInferenceVisible] = useState(false);
   const [bioNemoVisible, setBioNemoVisible] = useState(false);
-  const [projects, setProjects] = useState<SynonBiomedProject[]>([]);
+  const [projects, setProjects] = useState<XScienceProject[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
-  const [jobs, setJobs] = useState<SynonBiomedComputeJob[]>([]);
+  const [jobs, setJobs] = useState<XScienceComputeJob[]>([]);
   const [jobsLoading, setJobsLoading] = useState(false);
   const [jobsFailed, setJobsFailed] = useState(false);
-  const [selectedJob, setSelectedJob] = useState<SynonBiomedComputeJob | null>(null);
+  const [selectedJob, setSelectedJob] = useState<XScienceComputeJob | null>(null);
 
   const loadProviders = useCallback(async () => {
     setLoading(true);
     try {
       const [nextProviders, nextAliases, nextGpuInfo, nextGpuEnabled, nextManagedEndpoints] = await Promise.all([
-        loadSynonBiomedComputeProviders(),
-        loadSynonBiomedSshAliases().catch((error): SynonBiomedSshAliasesSnapshot | null => {
+        loadXScienceComputeProviders(),
+        loadXScienceSshAliases().catch((error): XScienceSshAliasesSnapshot | null => {
           console.warn('Failed to load SSH aliases:', error);
           return null;
         }),
-        loadSynonBiomedComputeGpuInfo().catch((error): SynonBiomedComputeGpuInfo | null => {
+        loadXScienceComputeGpuInfo().catch((error): XScienceComputeGpuInfo | null => {
           console.warn('Failed to load host GPU information:', error);
           return null;
         }),
-        loadSynonBiomedComputeGpuEnabled().catch((error): SynonBiomedComputeGpuEnabled | null => {
+        loadXScienceComputeGpuEnabled().catch((error): XScienceComputeGpuEnabled | null => {
           console.warn('Failed to load host GPU enabled state:', error);
           return null;
         }),
-        loadSynonBiomedManagedEndpoints().catch((error): SynonBiomedManagedEndpoint[] => {
+        loadXScienceManagedEndpoints().catch((error): XScienceManagedEndpoint[] => {
           console.warn('Failed to load managed compute endpoints:', error);
           return [];
         }),
@@ -104,7 +104,7 @@ export const ComputeSettingsContent: React.FC<{
 
   useEffect(() => {
     let alive = true;
-    void loadSynonBiomedProjects()
+    void loadXScienceProjects()
       .then((nextProjects) => {
         if (!alive) return;
         setProjects(nextProjects);
@@ -127,7 +127,7 @@ export const ComputeSettingsContent: React.FC<{
     setJobsLoading(true);
     setJobsFailed(false);
     try {
-      setJobs(await loadSynonBiomedComputeJobs(projectId));
+      setJobs(await loadXScienceComputeJobs(projectId));
     } catch (error) {
       console.error('Failed to load X-Science compute jobs:', error);
       setJobs([]);
@@ -148,10 +148,10 @@ export const ComputeSettingsContent: React.FC<{
       setGpuEnabled({ ...previous, enabled });
       setGpuPending(true);
       try {
-        await setSynonBiomedComputeGpuEnabled(enabled);
+        await setXScienceComputeGpuEnabled(enabled);
         const [nextInfo, nextEnabled] = await Promise.all([
-          loadSynonBiomedComputeGpuInfo(),
-          loadSynonBiomedComputeGpuEnabled(),
+          loadXScienceComputeGpuInfo(),
+          loadXScienceComputeGpuEnabled(),
         ]);
         setGpuInfo(nextInfo);
         setGpuEnabled(nextEnabled);
@@ -167,10 +167,10 @@ export const ComputeSettingsContent: React.FC<{
   );
 
   const stopManagedEndpoint = useCallback(
-    async (endpoint: SynonBiomedManagedEndpoint) => {
+    async (endpoint: XScienceManagedEndpoint) => {
       setStopPendingName(endpoint.name);
       try {
-        await stopSynonBiomedManagedEndpoint(endpoint.name);
+        await stopXScienceManagedEndpoint(endpoint.name);
         Message.success(t('settings.computeEndpointStopped'));
         await loadProviders();
       } catch (error) {
@@ -184,10 +184,10 @@ export const ComputeSettingsContent: React.FC<{
   );
 
   const probeProvider = useCallback(
-    async (provider: SynonBiomedComputeProvider) => {
+    async (provider: XScienceComputeProvider) => {
       setPendingName(provider.name);
       try {
-        await probeSynonBiomedComputeProvider(provider.name);
+        await probeXScienceComputeProvider(provider.name);
         Message.success(
           t('settings.computeProbeSuccess', {
             name: provider.displayName,
@@ -205,7 +205,7 @@ export const ComputeSettingsContent: React.FC<{
   );
 
   const removeProvider = useCallback(
-    (provider: SynonBiomedComputeProvider) => {
+    (provider: XScienceComputeProvider) => {
       Modal.confirm({
         title: t('settings.computeDeleteTitle'),
         content: t('settings.computeDeleteConfirm', {
@@ -215,7 +215,7 @@ export const ComputeSettingsContent: React.FC<{
         onOk: async () => {
           setPendingName(provider.name);
           try {
-            await deleteSynonBiomedComputeProvider(provider);
+            await deleteXScienceComputeProvider(provider);
             Message.success(t('settings.computeDeleted'));
             await loadProviders();
           } catch (error) {
@@ -235,7 +235,7 @@ export const ComputeSettingsContent: React.FC<{
   const inferenceProviders = providers.filter((provider) => provider.family === 'infer');
 
   return (
-    <div className='settings-compute-page flex min-h-0 flex-col gap-16px' data-testid='synon-biomed-compute-section'>
+    <div className='settings-compute-page flex min-h-0 flex-col gap-16px' data-testid='x-science-compute-section'>
       <div className='w-full pb-72px'>
         <SettingsPageHeader
           data-testid='compute-header'

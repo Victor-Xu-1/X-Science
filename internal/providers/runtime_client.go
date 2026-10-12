@@ -16,7 +16,7 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 var (
@@ -547,9 +547,9 @@ func (c *runtimeModelClient) redactSensitiveText(value string) string {
 func newProviderRequestID() string {
 	var raw [16]byte
 	if _, err := rand.Read(raw[:]); err == nil {
-		return "synon-" + hex.EncodeToString(raw[:])
+		return "x-science-" + hex.EncodeToString(raw[:])
 	}
-	return fmt.Sprintf("synon-%d", time.Now().UTC().UnixNano())
+	return fmt.Sprintf("x-science-%d", time.Now().UTC().UnixNano())
 }
 
 func readBoundedProviderBody(reader io.Reader, limit int64) ([]byte, error) {

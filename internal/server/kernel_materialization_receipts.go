@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-const kernelMaterializationReceiptSchema = "synon.kernel-materialization-receipt.v1"
+const kernelMaterializationReceiptSchema = "x-science.kernel-materialization-receipt.v1"
 
 type kernelMaterializationReceipt struct {
 	Schema           string `json:"schema"`

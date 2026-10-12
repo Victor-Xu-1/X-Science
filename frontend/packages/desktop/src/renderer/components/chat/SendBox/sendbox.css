@@ -147,7 +147,7 @@
   display: none;
 }
 
-.sendbox-joined-actions .synon-biomed-more-send-options {
+.sendbox-joined-actions .x-science-more-send-options {
   box-sizing: border-box;
   display: inline-flex !important;
   width: 32px !important;
@@ -182,7 +182,7 @@
   vertical-align: middle;
 }
 
-.sendbox-joined-actions .synon-biomed-more-send-options svg [fill] {
+.sendbox-joined-actions .x-science-more-send-options svg [fill] {
   fill: currentColor !important;
 }
 
@@ -191,7 +191,7 @@
   opacity: 1;
 }
 
-.sendbox-joined-actions .synon-biomed-more-send-options:not(:disabled):hover {
+.sendbox-joined-actions .x-science-more-send-options:not(:disabled):hover {
   color: var(--workspace-text) !important;
   background: var(--workspace-hover) !important;
 }
@@ -204,7 +204,7 @@
   opacity: 1;
 }
 
-.sendbox-joined-actions .synon-biomed-more-send-options:disabled {
+.sendbox-joined-actions .x-science-more-send-options:disabled {
   color: var(--workspace-text-tertiary) !important;
   background: var(--workspace-subtle) !important;
 }
@@ -346,7 +346,9 @@
 .composer-icon-control:focus-visible,
 .composer-icon-control.arco-btn:focus-visible {
   background: var(--color-fill-2) !important;
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--text-primary) 20%, transparent) !important;
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring) !important;
+  outline-offset: var(--ui-focus-offset);
+  box-shadow: none !important;
 }
 
 .composer-icon-control:disabled,

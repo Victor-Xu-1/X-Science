@@ -18,7 +18,7 @@ describe('configService WebUI bootstrap', () => {
         new Response(
           JSON.stringify({
             language: 'zh-CN',
-            'theme.activeId': 'synonbiomed-light',
+            'theme.activeId': 'xscience-light',
             'theme.userThemes': [],
           }),
           {

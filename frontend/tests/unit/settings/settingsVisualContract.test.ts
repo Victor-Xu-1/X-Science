@@ -30,7 +30,7 @@ const manifest = css('settings');
 
 describe('intrinsic settings presentation contract', () => {
   it('lets current-model summary values use the available space without truncating identity', () => {
-    expect(read('SynonBiomedModelsSettings.tsx')).not.toContain("font-600 truncate'>{value}");
+    expect(read('XScienceModelsSettings.tsx')).not.toContain("font-600 truncate'>{value}");
     expect(css('settings-skills')).not.toMatch(/\.settings-summary-item strong\s*\{[^}]*max-width:\s*70%/);
   });
   it('lets GPU and job sections grow naturally rather than reserve fixed screenshot heights', () => {
@@ -41,7 +41,7 @@ describe('intrinsic settings presentation contract', () => {
     expect(read('ComputeSettings.tsx')).not.toMatch(/<main\b/);
     for (const relative of [
       '../artifact/ArtifactPreview.tsx',
-      '../conversation/Preview/components/viewers/SynonBiomedHdf5Viewer.tsx',
+      '../conversation/Preview/components/viewers/XScienceHdf5Viewer.tsx',
     ])
       expect(read(relative)).not.toMatch(/<main\b/);
   });
@@ -86,7 +86,7 @@ describe('intrinsic settings presentation contract', () => {
     expect(layout).toMatch(/max-width:\s*min\(100%,\s*var\(--settings-content-max\)\)/);
     expect(layout).toMatch(/margin-inline:\s*auto/);
     expect(layout).toMatch(/overflow-y:\s*auto/);
-    expect(layout).not.toContain('synon-biomed-brand img');
+    expect(layout).not.toContain('x-science-brand img');
   });
 
   it('takes palette, control boundaries and surface elevation from the active theme', () => {
@@ -123,7 +123,7 @@ describe('intrinsic settings presentation contract', () => {
       });
     }
     for (const source of [
-      'SynonBiomedExpertsSettings/ExpertCatalogGroup.tsx',
+      'XScienceExpertsSettings/ExpertCatalogGroup.tsx',
       'skills/SkillLibraryCard.tsx',
       'ToolsSettings/McpConnectorCard.tsx',
       'environments/EnvironmentCard.tsx',
@@ -134,7 +134,7 @@ describe('intrinsic settings presentation contract', () => {
         expect(file, `${source} ${part}`).toContain(part);
       }
     }
-    const expertRoute = read('SynonBiomedExpertsSettings/ExpertWorkbench.tsx');
+    const expertRoute = read('XScienceExpertsSettings/ExpertWorkbench.tsx');
     expect(expertRoute).toContain("import ExpertCatalogGroup from './ExpertCatalogGroup'");
     expect(expertRoute).toContain('<ExpertCatalogGroup');
   });
@@ -144,7 +144,7 @@ describe('intrinsic settings presentation contract', () => {
     expect(surfaces).toContain(':has(> .settings-skill-card__open:focus-visible)');
     expect(surfaces).toMatch(/\.settings-skill-card__open:focus-visible\s*\{[^}]*outline:\s*none !important/);
     expect(surfaces).not.toContain('.settings-library-card:focus-within');
-    expect(surfaces).toContain('outline: 2px solid var(--settings-accent)');
+    expect(surfaces).toContain('outline: var(--ui-focus-width) solid var(--workspace-focus-ring)');
     expect(surfaces).toContain('@media (hover: hover) and (pointer: fine)');
     expect(surfaces).toContain('transform: translateY(-1px)');
     expect(surfaces).toContain('@media (prefers-reduced-motion: reduce)');
@@ -180,7 +180,7 @@ describe('intrinsic settings presentation contract', () => {
     expect(billing.indexOf("data-testid='billing-draft-notice'")).toBeLessThan(
       billing.indexOf("className='plans-usage-balance-content")
     );
-    expect(billing).toContain('getSynonBiomedBillingOverview()');
+    expect(billing).toContain('getXScienceBillingOverview()');
     expect(billing).toContain("t('settings.plansUsageSettings.draftExplanation')");
     expect(read('AccountSettings.tsx')).not.toContain('AccountManagementWorkbench');
   });

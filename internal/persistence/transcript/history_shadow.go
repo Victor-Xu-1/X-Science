@@ -65,7 +65,7 @@ func askUserHistorySnapshotDigestFromEvents(
 	eventDigest [sha256.Size]byte,
 ) [sha256.Size]byte {
 	digest := sha256.New()
-	writeHistoryDigestField(digest, []byte("synon.transcript.history-source.v1"))
+	writeHistoryDigestField(digest, []byte("x-science.transcript.history-source.v1"))
 	writeHistoryDigestField(digest, []byte(snapshot.stream.UID))
 	writeHistoryDigestField(digest, []byte(snapshot.stream.OwnerID))
 	writeHistoryDigestField(digest, []byte(snapshot.stream.FrameID))
@@ -90,8 +90,12 @@ func askUserHistorySnapshotDigestFromEvents(
 }
 
 func askUserHistoryRunID(audit AskUserHistoryAudit, sourceDigest [sha256.Size]byte) string {
+	return askUserHistoryRunIDWithDomain(audit, sourceDigest, "x-science.transcript.history-run.v1")
+}
+
+func askUserHistoryRunIDWithDomain(audit AskUserHistoryAudit, sourceDigest [sha256.Size]byte, domain string) string {
 	digest := sha256.New()
-	writeHistoryDigestField(digest, []byte("synon.transcript.history-run.v1"))
+	writeHistoryDigestField(digest, []byte(domain))
 	var number [8]byte
 	binary.BigEndian.PutUint64(number[:], askUserHistoryContractVersion)
 	writeHistoryDigestField(digest, number[:])
@@ -108,8 +112,12 @@ func askUserHistoryRunID(audit AskUserHistoryAudit, sourceDigest [sha256.Size]by
 }
 
 func askUserHistoryCandidateID(runID string, detail AskUserHistoryAuditDetail) string {
+	return askUserHistoryCandidateIDWithDomain(runID, detail, "x-science.transcript.history-candidate.v1")
+}
+
+func askUserHistoryCandidateIDWithDomain(runID string, detail AskUserHistoryAuditDetail, domain string) string {
 	digest := sha256.New()
-	writeHistoryDigestField(digest, []byte("synon.transcript.history-candidate.v1"))
+	writeHistoryDigestField(digest, []byte(domain))
 	writeHistoryDigestField(digest, []byte(runID))
 	var number [8]byte
 	binary.BigEndian.PutUint64(number[:], uint64(detail.FirstOrdinal))
@@ -201,7 +209,7 @@ func digestAskUserHistoryRows(
 		return [sha256.Size]byte{}, err
 	}
 	digest := sha256.New()
-	writeHistoryDigestField(digest, []byte("synon.transcript.history-rows.v1"))
+	writeHistoryDigestField(digest, []byte("x-science.transcript.history-rows.v1"))
 	writeHistoryDigestField(digest, []byte(domain))
 	var columnCount [8]byte
 	binary.BigEndian.PutUint64(columnCount[:], uint64(len(columns)))
@@ -585,6 +593,25 @@ func loadAskUserHistoryAudit(
 	query askUserHistoryQueryer,
 	input GetAskUserHistoryAuditInput,
 ) (AskUserHistoryAudit, bool, error) {
+	audit, found, err := loadAskUserHistoryAuditSource(ctx, query, input)
+	if err != nil || !found {
+		return AskUserHistoryAudit{}, found, err
+	}
+	sourceDigest, err := hex.DecodeString(audit.SourceSHA256)
+	if err != nil {
+		return AskUserHistoryAudit{}, false, err
+	}
+	if err := validateLoadedAskUserHistoryAudit(audit, sourceDigest); err != nil {
+		if err := validateHistoricalNamespaceHistoryAudit(ctx, query, audit, sourceDigest); err != nil {
+			return AskUserHistoryAudit{}, false, err
+		}
+	}
+	return audit, true, nil
+}
+
+// Source loading records existing facts. Runtime reads additionally validate
+// their commitments above; a cutover receipt alone cannot authorize an audit.
+func loadAskUserHistoryAuditSource(ctx context.Context, query askUserHistoryQueryer, input GetAskUserHistoryAuditInput) (AskUserHistoryAudit, bool, error) {
 	runID, err := hex.DecodeString(input.RunID)
 	if err != nil || len(runID) != sha256.Size {
 		return AskUserHistoryAudit{}, false, ErrEventConflict
@@ -693,25 +720,26 @@ func loadAskUserHistoryAudit(
 		return AskUserHistoryAudit{}, false, err
 	}
 	deriveAskUserHistoryOutcome(&audit)
-	if err := validateLoadedAskUserHistoryAudit(audit, sourceDigest); err != nil {
-		return AskUserHistoryAudit{}, false, ErrEventConflict
-	}
 	return audit, true, nil
 }
 
 func validateLoadedAskUserHistoryAudit(audit AskUserHistoryAudit, sourceDigest []byte) error {
+	return validateLoadedAskUserHistoryAuditWithDomains(audit, sourceDigest, "x-science.transcript.history-run.v1", "x-science.transcript.history-candidate.v1")
+}
+
+func validateLoadedAskUserHistoryAuditWithDomains(audit AskUserHistoryAudit, sourceDigest []byte, runDomain, candidateDomain string) error {
 	if audit.CandidateCount != len(audit.Details) || len(audit.Comparisons) != len(askUserHistoryShadowDimensions) ||
 		len(sourceDigest) != sha256.Size {
 		return ErrEventConflict
 	}
 	var source [sha256.Size]byte
 	copy(source[:], sourceDigest)
-	if askUserHistoryRunID(audit, source) != audit.RunID {
+	if askUserHistoryRunIDWithDomain(audit, source, runDomain) != audit.RunID {
 		return ErrEventConflict
 	}
 	native, eligible, poison, conflict := 0, 0, 0, 0
 	for _, detail := range audit.Details {
-		if len(detail.CandidateID) != 64 || detail.CandidateID != askUserHistoryCandidateID(audit.RunID, detail) ||
+		if len(detail.CandidateID) != 64 || detail.CandidateID != askUserHistoryCandidateIDWithDomain(audit.RunID, detail, candidateDomain) ||
 			len(detail.EvidenceJSON) == 0 || !json.Valid(detail.EvidenceJSON) {
 			return ErrEventConflict
 		}

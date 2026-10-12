@@ -30,7 +30,7 @@
       "name": "create-remote-annotation",
       "method": "POST",
       "path": "/api/projects/${capture:project}/annotations",
-      "headers": {"Origin": "${origin}", "X-Operon-CSRF": "${cookie:operon_csrf}", "X-Synon-User-Id": "local"},
+      "headers": {"Origin": "${origin}", "X-Operon-CSRF": "${cookie:operon_csrf}", "X-Science-User-Id": "local"},
       "body": {
         "target": {"kind": "remote", "provider": "s3:test", "path": "folder/report.txt"},
         "type": "point", "text": "review", "x_percent": 10, "y_percent": 20
@@ -42,7 +42,7 @@
       "name": "list-remote-annotations",
       "method": "POST",
       "path": "/api/projects/${capture:project}/annotations/list",
-      "headers": {"Origin": "${origin}", "X-Operon-CSRF": "${cookie:operon_csrf}", "X-Synon-User-Id": "local"},
+      "headers": {"Origin": "${origin}", "X-Operon-CSRF": "${cookie:operon_csrf}", "X-Science-User-Id": "local"},
       "body": {"target": {"kind": "remote", "provider": "s3:test", "path": "folder/report.txt"}},
       "expectedStatus": [200]
     },
@@ -50,7 +50,7 @@
       "name": "update-remote-annotation",
       "method": "PATCH",
       "path": "/api/annotations/${capture:annotation}",
-      "headers": {"Origin": "${origin}", "X-Operon-CSRF": "${cookie:operon_csrf}", "X-Synon-User-Id": "local"},
+      "headers": {"Origin": "${origin}", "X-Operon-CSRF": "${cookie:operon_csrf}", "X-Science-User-Id": "local"},
       "body": {"text": "updated"},
       "expectedStatus": [200]
     },
@@ -58,21 +58,21 @@
       "name": "delete-remote-annotation",
       "method": "DELETE",
       "path": "/api/annotations/${capture:annotation}",
-      "headers": {"Origin": "${origin}", "X-Operon-CSRF": "${cookie:operon_csrf}", "X-Synon-User-Id": "local"},
+      "headers": {"Origin": "${origin}", "X-Operon-CSRF": "${cookie:operon_csrf}", "X-Science-User-Id": "local"},
       "expectedStatus": [204]
     },
     {
       "name": "list-missing-artifact-version",
       "method": "GET",
       "path": "/api/artifacts/missing-artifact/versions/00000000-0000-4000-8000-000000000201/annotations",
-      "headers": {"X-Synon-User-Id": "local"},
+      "headers": {"X-Science-User-Id": "local"},
       "expectedStatus": [404]
     },
     {
       "name": "create-on-missing-artifact-version",
       "method": "POST",
       "path": "/api/artifacts/missing-artifact/versions/00000000-0000-4000-8000-000000000201/annotations",
-      "headers": {"Origin": "${origin}", "X-Operon-CSRF": "${cookie:operon_csrf}", "X-Synon-User-Id": "local"},
+      "headers": {"Origin": "${origin}", "X-Operon-CSRF": "${cookie:operon_csrf}", "X-Science-User-Id": "local"},
       "body": {"type": "point", "text": "review", "x_percent": 10, "y_percent": 20},
       "expectedStatus": [404]
     },
@@ -80,7 +80,7 @@
       "name": "update-missing-annotation",
       "method": "PATCH",
       "path": "/api/annotations/00000000-0000-4000-8000-000000000202",
-      "headers": {"Origin": "${origin}", "X-Operon-CSRF": "${cookie:operon_csrf}", "X-Synon-User-Id": "local"},
+      "headers": {"Origin": "${origin}", "X-Operon-CSRF": "${cookie:operon_csrf}", "X-Science-User-Id": "local"},
       "body": {"text": "updated"},
       "expectedStatus": [404]
     },
@@ -88,14 +88,14 @@
       "name": "delete-missing-annotation",
       "method": "DELETE",
       "path": "/api/annotations/00000000-0000-4000-8000-000000000202",
-      "headers": {"Origin": "${origin}", "X-Operon-CSRF": "${cookie:operon_csrf}", "X-Synon-User-Id": "local"},
+      "headers": {"Origin": "${origin}", "X-Operon-CSRF": "${cookie:operon_csrf}", "X-Science-User-Id": "local"},
       "expectedStatus": [404]
     },
     {
       "name": "suggest-on-missing-artifact-version",
       "method": "POST",
       "path": "/api/artifacts/missing-artifact/versions/00000000-0000-4000-8000-000000000201/suggest-edits",
-      "headers": {"Origin": "${origin}", "X-Operon-CSRF": "${cookie:operon_csrf}", "X-Synon-User-Id": "local"},
+      "headers": {"Origin": "${origin}", "X-Operon-CSRF": "${cookie:operon_csrf}", "X-Science-User-Id": "local"},
       "body": {"selected_text": "source", "annotation_text": "make concise", "mode": "edit"},
       "expectedStatus": [404]
     },
@@ -103,7 +103,7 @@
       "name": "apply-on-missing-artifact-version",
       "method": "POST",
       "path": "/api/artifacts/missing-artifact/versions/00000000-0000-4000-8000-000000000201/apply-edit",
-      "headers": {"Origin": "${origin}", "X-Operon-CSRF": "${cookie:operon_csrf}", "X-Synon-User-Id": "local"},
+      "headers": {"Origin": "${origin}", "X-Operon-CSRF": "${cookie:operon_csrf}", "X-Science-User-Id": "local"},
       "body": {"selected_text": "source", "replacement_text": "replacement"},
       "expectedStatus": [404]
     }

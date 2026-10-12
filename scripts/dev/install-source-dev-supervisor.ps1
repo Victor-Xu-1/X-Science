@@ -6,13 +6,13 @@ param(
   [ValidatePattern('^[A-Za-z0-9_.-]+$')]
   [string]$WslUser = 'victor_1',
   [ValidatePattern('^/[A-Za-z0-9_./-]+$')]
-  [string]$WslKeepalivePath = '/home/victor_1/.synon-biomed-v0.1.0/scripts/dev/source-wsl-keepalive.sh'
+  [string]$WslKeepalivePath = '/home/victor_1/.x-science-v0.1.0/scripts/dev/source-wsl-keepalive.sh'
 )
 
 $ErrorActionPreference = 'Stop'
-$taskName = 'Synon Biomed Source Dev Supervisor'
+$taskName = 'X-Science Source Dev Supervisor'
 $sourceScript = Join-Path $PSScriptRoot 'source-dev-supervisor.ps1'
-$runtimeRoot = Join-Path $env:LOCALAPPDATA 'SynonBiomed\source-dev'
+$runtimeRoot = Join-Path $env:LOCALAPPDATA 'XScience\source-dev'
 $runtimeScript = Join-Path $runtimeRoot 'watchdog.ps1'
 
 if (-not (Test-Path -LiteralPath $sourceScript)) {

@@ -13,7 +13,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'release-identity-policy.ps1')
 $script:TrustedIdentityPath = Join-Path $PSScriptRoot '..\product-identity.json'
-$productName = (Read-SynonProductIdentity -Path $script:TrustedIdentityPath).display_name
+$productName = (Read-XScienceProductIdentity -Path $script:TrustedIdentityPath).display_name
 
 function Resolve-SafePath([string]$Path) {
   if ([string]::IsNullOrWhiteSpace($Path)) { throw 'Refusing an empty release path' }
@@ -66,7 +66,7 @@ function Assert-ManagedReleaseChild([string]$Parent, [string]$Path) {
 }
 
 function Get-ReleaseBinary([string]$Root) {
-  foreach ($name in @('synon-go.exe', 'synon-go')) {
+  foreach ($name in @('x-science.exe', 'x-science')) {
     $candidate = Join-Path $Root $name
     if (Test-Path -LiteralPath $candidate -PathType Leaf) { return $candidate }
   }
@@ -77,7 +77,7 @@ function Assert-Release([string]$Root) {
   if (-not (Test-Path -LiteralPath (Join-Path $Root 'RELEASE_MANIFEST.json') -PathType Leaf)) {
     throw "Not a verified product release: $Root"
   }
-  [void](Assert-SynonProductIdentity -TrustedIdentityPath $script:TrustedIdentityPath -CandidateRoot $Root)
+  [void](Assert-XScienceProductIdentity -TrustedIdentityPath $script:TrustedIdentityPath -CandidateRoot $Root)
   $binary = Get-ReleaseBinary $Root
   & $binary release-manifest verify --root $Root | Out-Null
   if ($LASTEXITCODE -ne 0) { throw "Release validation failed: $Root" }
@@ -94,7 +94,7 @@ switch ($Action) {
     New-Item -ItemType Directory -Force -Path $parent | Out-Null
     Assert-ReleasePathUnchanged $InstallDir $install
     Assert-ReleasePathUnchanged $BackupDir $backup
-    $stage = Join-Path $parent ('.synon-go-backup-stage-' + [Guid]::NewGuid().ToString('N'))
+    $stage = Join-Path $parent ('.x-science-backup-stage-' + [Guid]::NewGuid().ToString('N'))
     try {
       Assert-ManagedReleaseChild $parent $stage | Out-Null
       Copy-Item -LiteralPath $install -Destination $stage -Recurse
@@ -119,7 +119,7 @@ switch ($Action) {
     New-Item -ItemType Directory -Force -Path $parent | Out-Null
     Assert-ReleasePathUnchanged $InstallDir $install
     Assert-ReleasePathUnchanged $BackupDir $backup
-    $stage = Join-Path $parent ('.synon-go-rollback-stage-' + [Guid]::NewGuid().ToString('N'))
+    $stage = Join-Path $parent ('.x-science-rollback-stage-' + [Guid]::NewGuid().ToString('N'))
     $previous = $null
     $rollbackSucceeded = $false
     try {
@@ -129,7 +129,7 @@ switch ($Action) {
       Assert-Release $stage
       if (Test-Path -LiteralPath $install) {
         Assert-ReleasePathUnchanged $InstallDir $install
-        $previous = Join-Path $parent ('.synon-go-pre-rollback-' + [Guid]::NewGuid().ToString('N'))
+        $previous = Join-Path $parent ('.x-science-pre-rollback-' + [Guid]::NewGuid().ToString('N'))
         Assert-ManagedReleaseChild $parent $previous | Out-Null
         Move-Item -LiteralPath $install -Destination $previous
       }

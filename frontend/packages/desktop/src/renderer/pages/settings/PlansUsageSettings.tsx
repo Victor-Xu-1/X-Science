@@ -1,7 +1,7 @@
 import { Tag } from '@arco-design/web-react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { getSynonBiomedBillingOverview } from '@/renderer/services/synonBiomedBilling';
+import { getXScienceBillingOverview } from '@/renderer/services/xScienceBilling';
 import SettingsPageHeader from './components/SettingsPageHeader';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
 import { SettingsGeneratedIcon } from './components/SettingsGeneratedAsset';
@@ -17,12 +17,12 @@ function resolveRateIcon(rateId: string): 'connector-dna' | 'connector-clipboard
 
 const PlansUsageSettings: React.FC = () => {
   const { t } = useTranslation();
-  const overview = getSynonBiomedBillingOverview();
+  const overview = getXScienceBillingOverview();
   const usagePercent = overview.credits.initial === 0 ? 0 : (overview.credits.used / overview.credits.initial) * 100;
 
   return (
     <SettingsPageWrapper>
-      <div className='settings-plans-page flex flex-col gap-24px pb-24px' data-testid='synon-plans-usage-settings'>
+      <div className='settings-plans-page flex flex-col gap-24px pb-24px' data-testid='x-science-plans-usage-settings'>
         <SettingsPageHeader
           title={t('settings.plansUsageSettings.title')}
           description={t('settings.plansUsageSettings.description')}
@@ -108,7 +108,7 @@ const PlansUsageSettings: React.FC = () => {
               <article
                 key={rate.id}
                 className='plans-usage-rate-card rd-10px bg-fill-1 px-14px py-13px'
-                data-testid={'synon-model-rate-' + rate.id}
+                data-testid={'x-science-model-rate-' + rate.id}
               >
                 <div className='plans-usage-rate-card__heading flex items-center justify-between gap-8px'>
                   <div className='flex min-w-0 items-center gap-12px'>

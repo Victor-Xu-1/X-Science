@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/persistence/workspace"
+	"x-science/internal/persistence/workspace"
 )
 
 func TestWebFSOIDCHandlerRequiresSessionAndExplicitHostGrant(t *testing.T) {
@@ -30,6 +30,9 @@ func TestWebFSOIDCHandlerRequiresSessionAndExplicitHostGrant(t *testing.T) {
 		FileRoot:   stateRoot,
 		Workspace:  store,
 		HTTPClient: provider.server.Client(),
+		XScienceLinkAuth: XScienceLinkAuthOptions{
+			Username: "operator", Password: "fixture-operator-password", UserID: "operator-id",
+		},
 		WebAuth: WebAuthOptions{Google: WebOIDCProviderOptions{
 			IssuerURL: provider.server.URL, ClientID: provider.clientID, ClientSecret: provider.clientSecret,
 		}},
@@ -70,7 +73,7 @@ func TestWebFSOIDCHandlerRequiresSessionAndExplicitHostGrant(t *testing.T) {
 		}
 		request.Header.Set("Content-Type", "application/json")
 		request.Header.Set("Origin", server.URL)
-		request.Header.Set("X-Synon-User-Id", forged)
+		request.Header.Set("X-Science-User-Id", forged)
 		if client.Jar != nil {
 			for _, cookie := range client.Jar.Cookies(baseURL) {
 				if cookie.Name == webCSRFCookieName {
@@ -130,6 +133,26 @@ func TestWebFSOIDCHandlerRequiresSessionAndExplicitHostGrant(t *testing.T) {
 	post(client, "/api/fs/read", read, forgedUser, http.StatusForbidden)
 	post(client, "/api/go/preferences/host-grants", map[string]any{
 		"path": privateRoot, "mode": "read",
+	}, "", http.StatusForbidden)
+	post(client, "/api/go/preferences/host-grants", map[string]any{
+		"path": privateRoot, "mode": "read", "userId": "operator-id",
+	}, "operator-id", http.StatusForbidden)
+
+	// Approve through a real configured-operator login and the same protected
+	// HTTP endpoint, rather than seeding a grant to bypass the approval path.
+	operatorJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	operatorClient := &http.Client{Transport: server.Client().Transport, Jar: operatorJar, Timeout: 5 * time.Second}
+	post(operatorClient, "/login", map[string]any{
+		"username": "operator", "password": "fixture-operator-password", "remember": true,
+	}, "", http.StatusOK)
+	post(operatorClient, "/api/go/preferences/host-grants", map[string]any{
+		"path": privateRoot, "mode": "read", "userId": "unknown-account",
+	}, "", http.StatusNotFound)
+	post(operatorClient, "/api/go/preferences/host-grants", map[string]any{
+		"path": privateRoot, "mode": "read", "userId": account.User.ID,
 	}, "", http.StatusOK)
 	var content string
 	if err := json.Unmarshal(post(client, "/api/fs/read", read, "", http.StatusOK), &content); err != nil {

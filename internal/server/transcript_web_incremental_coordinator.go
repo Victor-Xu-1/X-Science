@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	transcriptstore "synon-go/internal/persistence/transcript"
 	"time"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 const (

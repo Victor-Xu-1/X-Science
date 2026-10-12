@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	eventjournal "synon-go/internal/persistence/journal"
-	taskruns "synon-go/internal/persistence/taskruns"
 	"time"
+	eventjournal "x-science/internal/persistence/journal"
+	taskruns "x-science/internal/persistence/taskruns"
 )
 
 func (s *Server) autoRepairTaskRun(runID string, message string) (taskruns.Record, bool, error) {

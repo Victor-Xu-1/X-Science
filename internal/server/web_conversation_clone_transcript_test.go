@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestWebConversationCloneUsesOneCanonicalTranscriptTransaction(t *testing.T) {
@@ -33,7 +33,7 @@ func TestWebConversationCloneUsesOneCanonicalTranscriptTransaction(t *testing.T)
 	create := p3JSONRequest(t, app, http.MethodPost, "/api/conversations", map[string]any{
 		"name": "Canonical source",
 		"assistant": map[string]any{
-			"id": "synonbiomed:OPERON", "conversation_overrides": map[string]any{"model": "test-model"},
+			"id": "xscience:OPERON", "conversation_overrides": map[string]any{"model": "test-model"},
 		},
 		"extra": map[string]any{"project_id": project.ID, "selected_view": "timeline"},
 	}, "")
@@ -201,7 +201,7 @@ func TestWebConversationCloneUsesOneCanonicalTranscriptTransaction(t *testing.T)
 	secondSource := p3JSONRequest(t, app, http.MethodPost, "/api/conversations", map[string]any{
 		"name": "Canonical source",
 		"assistant": map[string]any{
-			"id": "synonbiomed:OPERON", "conversation_overrides": map[string]any{"model": "test-model"},
+			"id": "xscience:OPERON", "conversation_overrides": map[string]any{"model": "test-model"},
 		},
 		"extra": map[string]any{"project_id": project.ID, "selected_view": "timeline"},
 	}, "")

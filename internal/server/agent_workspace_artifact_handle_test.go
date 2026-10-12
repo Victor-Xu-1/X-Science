@@ -2,8 +2,8 @@ package server
 
 import (
 	"context"
-	workspace "synon-go/internal/persistence/workspace"
 	"testing"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestWorkspaceArtifactHandleResolvesSingleVersionAndPinsAmbiguousRecovery(t *testing.T) {

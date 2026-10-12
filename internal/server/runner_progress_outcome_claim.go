@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 const runnerProgressCompletedOperations = `downloaded|saved|generated|executed|completed|finished|obtained|retrieved|fetched|written|created|installed|updated|validated|verified`

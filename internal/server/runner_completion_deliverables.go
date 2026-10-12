@@ -13,8 +13,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	sessionstore "synon-go/internal/persistence/sessions"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	sessionstore "x-science/internal/persistence/sessions"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 const sessionRunnerExplicitDeliverableFilenameExpression = `[a-z0-9][a-z0-9._-]{0,160}\.(?:csv|tsv|xlsx|parquet|json|jsonl|md|html?|pdf|docx|pptx?|sdf|smi|pdb|pdbqt|cif|mmcif|py|r|ipynb)`

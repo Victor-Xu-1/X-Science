@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/sciencecapability"
+	"x-science/internal/sciencecapability"
 )
 
 func TestExecutionInputRecoveryOffersOnlyRegisteredAlternatives(t *testing.T) {
@@ -20,7 +20,7 @@ func TestExecutionInputRecoveryOffersOnlyRegisteredAlternatives(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	script := filepath.Join(root, ".synon/runtime/skills/primary-fixture/scripts/run.py")
+	script := filepath.Join(root, ".x-science/runtime/skills/primary-fixture/scripts/run.py")
 	input := map[string]any{"command": "python3 " + shellSingleQuote(script) + " --dataset source.txt --derived derived.json", "environment": "python"}
 	for _, test := range []struct {
 		name, routeGroup string
@@ -54,7 +54,7 @@ func TestExecutionInputRecoveryOffersOnlyRegisteredAlternatives(t *testing.T) {
 				return
 			}
 			if alternative["argument"] != "--evidence" || alternative["evidence_group"] != "control-point" ||
-				alternative["schema"] != "synon.documented-input.v1" || alternative["input_kind"] != "dataset" {
+				alternative["schema"] != "x-science.documented-input.v1" || alternative["input_kind"] != "dataset" {
 				t.Fatalf("registered alternative is hidden by resolver-only recovery: %#v", blocked)
 			}
 			if !strings.Contains(stringValue(blocked["recovery"]), "documented") {

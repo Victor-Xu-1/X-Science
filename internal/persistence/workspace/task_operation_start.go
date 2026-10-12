@@ -7,7 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 // BeginTaskOperation records side-effect admission separately from transport

@@ -78,7 +78,7 @@ func TestDataLifecycleIndexesV74UpgradePreservesDataAndJournal(t *testing.T) {
 	assertDataLifecycleSnapshotIndexes(t, upgraded.db)
 	assertDataLifecycleIndexedPlan(t, upgraded.db)
 	after, err := upgraded.SchemaStatus(ctx)
-	if err != nil || after.CurrentVersion != 74 || len(after.Migrations) != 74 {
+	if err != nil || after.CurrentVersion != workspaceSchemaVersion || len(after.Migrations) != workspaceSchemaVersion {
 		t.Fatalf("schema after upgrade=%#v err=%v", after, err)
 	}
 	if !reflect.DeepEqual(after.Migrations[:73], before.Migrations) {

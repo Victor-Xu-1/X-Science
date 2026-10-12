@@ -3,9 +3,9 @@ package server
 import (
 	"fmt"
 
-	kernelruntime "synon-go/internal/kernel"
+	kernelruntime "x-science/internal/kernel"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func kernelOutcomeStatus(outcome kernelruntime.ExecutionOutcome) (string, string) {

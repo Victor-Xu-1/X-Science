@@ -1,8 +1,8 @@
 package server
 
 import (
-	"synon-go/internal/toolprogress"
 	"time"
+	"x-science/internal/toolprogress"
 )
 
 type scientificRuntimeProgress struct {

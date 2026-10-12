@@ -19,8 +19,8 @@ import (
 	"strings"
 	"time"
 
-	compute "synon-go/internal/compute"
-	workspace "synon-go/internal/persistence/workspace"
+	compute "x-science/internal/compute"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const computeProbeTimeout = 10 * time.Second
@@ -234,6 +234,9 @@ func (s *Server) handleComputeProvider(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleComputeSSHHosts(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeAgentCompatError(w, http.StatusMethodNotAllowed, errors.New("method not allowed"))
+		return
+	}
+	if !s.requireHostOperator(w, r) {
 		return
 	}
 	if s.workspaceStore == nil {

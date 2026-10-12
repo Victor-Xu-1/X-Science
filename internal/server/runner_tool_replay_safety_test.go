@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestRunnerToolReplaySafetyUsesCapabilitiesAndFailsClosed(t *testing.T) {

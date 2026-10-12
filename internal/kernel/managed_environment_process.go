@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/processsupervisor"
+	"x-science/internal/processsupervisor"
 )
 
 // ManagedEnvironmentInstallerInactivityError is a terminal, recoverable
@@ -127,7 +127,7 @@ func managedInstallerPackageCacheRoot(config Config) string {
 		// Several verified Windows scientific distributions contain deep
 		// compiler or stub paths. Keeping the package cache directly under the
 		// same user state root avoids MAX_PATH extraction failures without
-		// moving any package bytes outside SYNON_HOME.
+		// moving any package bytes outside X_SCIENCE_HOME.
 		return filepath.Join(filepath.Dir(config.CondaHome), "p")
 	}
 	return filepath.Join(config.CondaHome, "pkgs")
@@ -172,6 +172,7 @@ func smokeManagedEnvironment(ctx context.Context, language, prefix string) error
 	if err != nil || !executableRegularFile(info) {
 		return errors.New("managed environment interpreter is unavailable")
 	}
+	arguments = namespaceEnvironmentProbeArguments(ctx, arguments)
 	command := newWorkerProcessCommand(ctx, executable, arguments...)
 	command.Env = managedEnvironmentRuntimeEnv(prefix)
 	stdout := newTailBuffer(maxDiagnosticBytes)
@@ -262,7 +263,7 @@ func validateManagedEnvironmentImports(ctx context.Context, language, prefix str
 	}
 	// Import-time logs are bounded in the parent. Only successful process exit
 	// plus the verifier's final sentinel satisfies this runtime witness.
-	script := "import importlib,json,sys\nfor name in json.loads(sys.argv[1]):\n importlib.import_module(name)\nprint('SYNON_IMPORT_WITNESS_OK')"
+	script := "import importlib,json,sys\nfor name in json.loads(sys.argv[1]):\n importlib.import_module(name)\nprint('X_SCIENCE_IMPORT_WITNESS_OK')"
 	var executable string
 	var arguments []string
 	switch language {
@@ -285,11 +286,12 @@ for (name in requested) {
   matches <- available[tolower(available) == tolower(name)]
   if (length(matches) != 1L || !requireNamespace(matches[[1]], quietly=TRUE)) stop(paste("runtime package unavailable:", name))
 }
-cat("SYNON_IMPORT_WITNESS_OK\n")`
+cat("X_SCIENCE_IMPORT_WITNESS_OK\n")`
 		arguments = append([]string{"--no-init-file", "--no-environ", "--no-site-file", "-e", script}, imports...)
 	default:
 		return errors.New("managed environment import witness language is unsupported")
 	}
+	arguments = namespaceEnvironmentProbeArguments(ctx, arguments)
 	command := newWorkerProcessCommand(ctx, executable, arguments...)
 	command.Env = managedEnvironmentRuntimeEnv(prefix)
 	stdout := newTailBuffer(maxDiagnosticBytes)
@@ -299,7 +301,7 @@ cat("SYNON_IMPORT_WITNESS_OK\n")`
 		return fmt.Errorf("managed environment import witness failed: %w: %s", err, strings.TrimSpace(stderr.String()))
 	}
 	lines := strings.Split(strings.TrimSpace(stdout.String()), "\n")
-	validSentinel := len(lines) > 0 && strings.TrimSpace(lines[len(lines)-1]) == "SYNON_IMPORT_WITNESS_OK"
+	validSentinel := len(lines) > 0 && strings.TrimSpace(lines[len(lines)-1]) == "X_SCIENCE_IMPORT_WITNESS_OK"
 	if !validSentinel {
 		return errors.New("managed environment import witness returned an invalid result")
 	}
@@ -331,8 +333,11 @@ func (m *Manager) validateRecoveredManagedEnvironment(ctx context.Context, recov
 		return err
 	}
 	prefix := recovered.path
-	if marker.Kind == "path-venv" {
+	if managedMarkerUsesExternalRuntime(marker) {
 		prefix = marker.RuntimePath
+	}
+	if marker.NamespaceImport != nil {
+		ctx = context.WithValue(ctx, namespaceEnvironmentReadOnlyProbeKey{}, true)
 	}
 	return m.validateManagedEnvironmentGeneration(
 		ctx, marker.Generation, marker.Language, prefix, marker.Packages, marker.ImportNames,

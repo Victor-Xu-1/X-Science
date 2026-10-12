@@ -5,14 +5,14 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 func TestWebContextHistoryRetainsPerRequestWindowInsteadOfOnlyLatest(t *testing.T) {
 	app, store := newP3WebConversationServer(t)
 	project := createP3Project(t, store, "context-history", "local")
 	created := p3JSONRequest(t, app, http.MethodPost, "/api/conversations", map[string]any{
-		"name": "Context history", "assistant": map[string]any{"id": "synonbiomed:OPERON"},
+		"name": "Context history", "assistant": map[string]any{"id": "xscience:OPERON"},
 		"extra": map[string]any{"project_id": project.ID},
 	}, "")
 	if created.Code != http.StatusCreated {

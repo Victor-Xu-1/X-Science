@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	runtimekv "synon-go/internal/persistence/runtimekv"
+	runtimekv "x-science/internal/persistence/runtimekv"
 )
 
 type frameTaskModelUsage struct {

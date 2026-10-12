@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"math"
 	"strings"
-	"synon-go/internal/agentruntime"
-	sessionstore "synon-go/internal/persistence/sessions"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/providers"
 	"time"
+	"x-science/internal/agentruntime"
+	sessionstore "x-science/internal/persistence/sessions"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/providers"
 )
 
 func kernelDelegationSpawnCap(access workspace.KernelFrameAccess) int {

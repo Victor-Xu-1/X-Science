@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestKernelPreflightSettlementRequiresNonExecutionProof(t *testing.T) {
@@ -99,7 +99,7 @@ func TestCheckpointRejectedKernelOperationSettlesWithoutExecution(t *testing.T) 
 		{"failed-explicit-pending", false, agentruntime.EventToolFailed, `{"ok":false,"executed":false,"preflight":true,"code":"input_authority_required","message":"input lineage is missing"}`, "input_authority_required"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			call := agentruntime.ToolCall{ID: test.name, Name: "python", Arguments: json.RawMessage(`{"code":"print(1)","environment":"synon-biomed-python"}`)}
+			call := agentruntime.ToolCall{ID: test.name, Name: "python", Arguments: json.RawMessage(`{"code":"print(1)","environment":"x-science-python"}`)}
 			if err := server.checkpointChatModelToolCalls(options, run, []agentruntime.ToolCall{call}); err != nil {
 				t.Fatal(err)
 			}

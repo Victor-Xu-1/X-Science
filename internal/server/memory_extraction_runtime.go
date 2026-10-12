@@ -8,10 +8,10 @@ import (
 	"strings"
 	"sync"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/memoryextract"
-	"synon-go/internal/memorytools"
-	sessionstore "synon-go/internal/persistence/sessions"
+	"x-science/internal/agentruntime"
+	"x-science/internal/memoryextract"
+	"x-science/internal/memorytools"
+	sessionstore "x-science/internal/persistence/sessions"
 )
 
 type memoryExtractionExtractorFactory func(memorytools.Scope, string, *agentruntime.ModelRequest) memoryextract.Extractor

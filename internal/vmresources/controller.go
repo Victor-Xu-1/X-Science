@@ -384,9 +384,9 @@ func isWSL() bool {
 }
 
 func DiscoverConfigPath() (string, error) {
-	if configured := strings.TrimSpace(os.Getenv("SYNON_WSL_CONFIG_PATH")); configured != "" {
+	if configured := strings.TrimSpace(os.Getenv("X_SCIENCE_WSL_CONFIG_PATH")); configured != "" {
 		if !filepath.IsAbs(configured) {
-			return "", errors.New("SYNON_WSL_CONFIG_PATH must be absolute")
+			return "", errors.New("X_SCIENCE_WSL_CONFIG_PATH must be absolute")
 		}
 		return filepath.Clean(configured), nil
 	}

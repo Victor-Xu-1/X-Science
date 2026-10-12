@@ -53,7 +53,6 @@
   --settings-status-ready: var(--success);
   --settings-status-warning: var(--warning);
   --settings-status-danger: var(--danger);
-  --settings-focus: color-mix(in srgb, var(--settings-accent) 52%, transparent);
   /* Form boundaries must remain distinguishable from their surface. Quiet
      card separators keep the light border; interactive inputs use this one. */
   --settings-control-border: color-mix(in srgb, var(--settings-text-secondary) 80%, var(--settings-surface));
@@ -67,8 +66,8 @@
   :is(
     .settings-skill-library-total,
     .mcp-library-total,
-    .synon-mcp-card__metadata,
-    .synon-mcp-card__usage,
+    .x-science-mcp-card__metadata,
+    .x-science-mcp-card__usage,
     .environment-card__meta,
     [class*='__meta'],
     [class*='__metadata'],
@@ -312,12 +311,6 @@
   font-size: var(--ui-font-subtitle);
 }
 
-.settings-page-wrapper[data-settings-visual-system='scientific-connectors-v3']
-  :is(button, a, [role='switch'], [role='tab'], input, textarea, select):focus-visible {
-  outline: 2px solid var(--settings-focus) !important;
-  outline-offset: 2px;
-}
-
 /* Switches in the approved sheets are quiet teal pills with a white thumb;
    keep the behavior and aria state from Arco while replacing its dark theme
    skin inside settings only. */
@@ -541,7 +534,7 @@
 html
   body
   .settings-page-wrapper
-  :is(.synon-mcp-card, .settings-skill-card, .environment-card, .expert-card, .compute-card) {
+  :is(.x-science-mcp-card, .settings-skill-card, .environment-card, .expert-card, .compute-card) {
   display: flex;
   height: 100%;
   min-height: var(--settings-entity-card-height);
@@ -558,7 +551,7 @@ html
 /* Two lines of copy keep every card the same rhythm. */
 .settings-page-wrapper
   :is(
-    .synon-mcp-card__description,
+    .x-science-mcp-card__description,
     .settings-skill-card__description,
     .environment-card__description,
     .expert-card__description

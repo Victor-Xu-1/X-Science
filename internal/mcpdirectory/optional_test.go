@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestOptionalConnectorsStayOutOfRuntimeUntilInstalled(t *testing.T) {
@@ -31,6 +31,19 @@ func TestOptionalConnectorsStayOutOfRuntimeUntilInstalled(t *testing.T) {
 	for _, connector := range connectors {
 		if connector.ID == "bundled:renkin-local" || connector.ID == "bundled:rna-design-local" {
 			t.Fatalf("uninstalled optional connector leaked into runtime: %#v", connector)
+		}
+	}
+}
+
+func TestOptionalConnectorIDRejectsFilesystemSyntax(t *testing.T) {
+	for _, id := range []string{"", "renkin-local", "bundled:", "bundled:../outside", "bundled:one/other", "bundled:one\\other", "bundled:a..b", "bundled:a\x00b", "bundled:é", "bundled:/absolute"} {
+		if _, err := validateOptionalConnectorID(id); err == nil {
+			t.Fatalf("unsafe connector ID accepted: %q", id)
+		}
+	}
+	for _, id := range []string{"bundled:renkin-local", "bundled:rna-design-local"} {
+		if normalized, err := validateOptionalConnectorID(id); err != nil || normalized != id {
+			t.Fatalf("managed ID rejected: %q %v", normalized, err)
 		}
 	}
 }

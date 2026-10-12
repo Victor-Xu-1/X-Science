@@ -16,9 +16,9 @@ import (
 )
 
 const (
-	canonicalCloneEventTable   = "temp.synon_clone_event_map"
-	canonicalCloneSupportTable = "temp.synon_clone_frame_support"
-	canonicalCloneBranchTable  = "temp.synon_clone_branch_map"
+	canonicalCloneEventTable   = "temp.x_science_clone_event_map"
+	canonicalCloneSupportTable = "temp.x_science_clone_frame_support"
+	canonicalCloneBranchTable  = "temp.x_science_clone_branch_map"
 )
 
 type canonicalCloneStage struct {
@@ -87,7 +87,7 @@ func resetCanonicalCloneStageConn(ctx context.Context, conn *sql.Conn, targetUID
 		return errors.New("canonical clone requires file-backed SQLite temporary storage")
 	}
 	statements := []string{
-		`CREATE TEMP TABLE IF NOT EXISTS synon_clone_event_map(
+		`CREATE TEMP TABLE IF NOT EXISTS x_science_clone_event_map(
 			target_uid TEXT NOT NULL,
 			source_key TEXT NOT NULL,
 			source_event_id INTEGER,
@@ -100,15 +100,15 @@ func resetCanonicalCloneStageConn(ctx context.Context, conn *sql.Conn, targetUID
 			keep INTEGER NOT NULL CHECK(keep IN (0,1)),
 			PRIMARY KEY(target_uid,source_key),
 			UNIQUE(target_uid,target_event_id))`,
-		`CREATE INDEX IF NOT EXISTS synon_clone_event_source_idx
-			ON synon_clone_event_map(target_uid,source_event_id)`,
-		`CREATE TEMP TABLE IF NOT EXISTS synon_clone_frame_support(
+		`CREATE INDEX IF NOT EXISTS x_science_clone_event_source_idx
+			ON x_science_clone_event_map(target_uid,source_event_id)`,
+		`CREATE TEMP TABLE IF NOT EXISTS x_science_clone_frame_support(
 			target_uid TEXT NOT NULL,
 			frame_event_id TEXT NOT NULL,
 			event_type TEXT NOT NULL,
 			matched INTEGER NOT NULL DEFAULT 0 CHECK(matched IN (0,1)),
 			PRIMARY KEY(target_uid,frame_event_id))`,
-		`CREATE TEMP TABLE IF NOT EXISTS synon_clone_branch_map(
+		`CREATE TEMP TABLE IF NOT EXISTS x_science_clone_branch_map(
 			target_uid TEXT NOT NULL,
 			source_branch_id TEXT NOT NULL,
 			target_branch_id TEXT NOT NULL,

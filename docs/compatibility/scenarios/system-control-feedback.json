@@ -21,7 +21,7 @@
       "headers": {
         "Origin": "${origin}",
         "X-Operon-CSRF": "${cookie:operon_csrf}",
-        "X-Synon-User-Id": "local-dev",
+        "X-Science-User-Id": "local-dev",
         "Content-Type": "application/json"
       },
       "body": {},
@@ -34,7 +34,7 @@
       "headers": {
         "Origin": "${origin}",
         "X-Operon-CSRF": "${cookie:operon_csrf}",
-        "X-Synon-User-Id": "local-dev",
+        "X-Science-User-Id": "local-dev",
         "Content-Type": "application/json"
       },
       "body": {},
@@ -47,7 +47,7 @@
       "headers": {
         "Origin": "${origin}",
         "X-Operon-CSRF": "${cookie:operon_csrf}",
-        "X-Synon-User-Id": "local-dev",
+        "X-Science-User-Id": "local-dev",
         "Content-Type": "application/json"
       },
       "body": {},
@@ -60,7 +60,7 @@
       "headers": {
         "Origin": "${origin}",
         "X-Operon-CSRF": "${cookie:operon_csrf}",
-        "X-Synon-User-Id": "local-dev",
+        "X-Science-User-Id": "local-dev",
         "Content-Type": "application/json"
       },
       "body": {"root_frame_id": 123},

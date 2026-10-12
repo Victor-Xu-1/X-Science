@@ -3,8 +3,8 @@ import Modal from '@/renderer/components/base/WorkbenchModal';
 import { Check, FolderOpen } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { SynonBiomedProject, SynonBiomedProjectArtifact } from '@/renderer/services/synonBiomedGateway';
-import { loadSynonBiomedProjectArtifacts, loadSynonBiomedProjects } from '@/renderer/services/synonBiomedGateway';
+import type { XScienceProject, XScienceProjectArtifact } from '@/renderer/services/xScienceGateway';
+import { loadXScienceProjectArtifacts, loadXScienceProjects } from '@/renderer/services/xScienceGateway';
 import {
   readPreferredProjectId,
   resolveActiveProjectId,
@@ -16,10 +16,10 @@ type GuidProjectFilesModalProps = {
   projectId?: string | null;
   projectName?: string;
   onCancel: () => void;
-  onSelect: (artifacts: SynonBiomedProjectArtifact[]) => void;
+  onSelect: (artifacts: XScienceProjectArtifact[]) => void;
 };
 
-type ResolvedProject = Pick<SynonBiomedProject, 'projectId' | 'name'>;
+type ResolvedProject = Pick<XScienceProject, 'projectId' | 'name'>;
 
 const GuidProjectFilesModal: React.FC<GuidProjectFilesModalProps> = ({
   visible,
@@ -31,7 +31,7 @@ const GuidProjectFilesModal: React.FC<GuidProjectFilesModalProps> = ({
   const { t } = useTranslation();
   const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'empty' | 'error'>('idle');
   const [project, setProject] = useState<ResolvedProject | null>(null);
-  const [artifacts, setArtifacts] = useState<SynonBiomedProjectArtifact[]>([]);
+  const [artifacts, setArtifacts] = useState<XScienceProjectArtifact[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -49,7 +49,7 @@ const GuidProjectFilesModal: React.FC<GuidProjectFilesModalProps> = ({
         if (projectId?.trim()) {
           targetProject = { projectId: projectId.trim(), name: projectName?.trim() || projectId.trim() };
         } else {
-          const projects = await loadSynonBiomedProjects();
+          const projects = await loadXScienceProjects();
           const activeProjectId = resolveActiveProjectId({
             preferredProjectId: readPreferredProjectId(),
             availableProjectIds: projects.map((candidate) => candidate.projectId),
@@ -65,7 +65,7 @@ const GuidProjectFilesModal: React.FC<GuidProjectFilesModalProps> = ({
           return;
         }
 
-        const loadedArtifacts = await loadSynonBiomedProjectArtifacts(targetProject.projectId);
+        const loadedArtifacts = await loadXScienceProjectArtifacts(targetProject.projectId);
         if (!active) return;
         const referenceableArtifacts = getReferenceableProjectArtifacts(loadedArtifacts, targetProject.projectId);
         setArtifacts(referenceableArtifacts);

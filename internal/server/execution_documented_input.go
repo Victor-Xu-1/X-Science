@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"synon-go/internal/sciencecapability"
+	"x-science/internal/sciencecapability"
 )
 
 // A documented assumption is deliberately not an execution receipt. Source
@@ -132,7 +132,7 @@ func (s *Server) bindDocumentedInput(ctx context.Context, root, workingDir strin
 }
 
 func validateDocumentedInputRecord(record executionDocumentedInput, pack sciencecapability.ExecutionPack, route sciencecapability.ExecutionDocumentedInput, values map[string]string) error {
-	if record.Schema != "synon.documented-input.v1" || record.EvidenceGroup != route.EvidenceGroup ||
+	if record.Schema != "x-science.documented-input.v1" || record.EvidenceGroup != route.EvidenceGroup ||
 		!boundedDocumentedText(record.Method, 16384) || !boundedDocumentedText(record.Limitations, 16384) || len(record.Sources) == 0 || len(record.Sources) > 64 {
 		return errors.New("incomplete documented input")
 	}
@@ -218,7 +218,7 @@ func documentedInputBoundary(pack, group, reason string) map[string]any {
 	result := map[string]any{
 		"ok": false, "executed": false, "preflight": true, "status": "documented_input_required", "execution_pack_id": pack, "evidence_group": group, "reason": reason,
 		"message":  "The documented alternative must match the current input and parameter values, with its own sources, method and limitations.",
-		"recovery": "Use the declared documented-input argument with schema synon.documented-input.v1, evidence_group, input_sha256, basis (literature-guided, structure-derived, user-supplied or exploratory), method, sources, limitations and values keyed by parameter name. Do not attach prediction receipts to this independent route or claim automatic validation. Input provenance is not proof of scientific validity.",
+		"recovery": "Use the declared documented-input argument with schema x-science.documented-input.v1, evidence_group, input_sha256, basis (literature-guided, structure-derived, user-supplied or exploratory), method, sources, limitations and values keyed by parameter name. Do not attach prediction receipts to this independent route or claim automatic validation. Input provenance is not proof of scientific validity.",
 	}
 	if reason == "materialization_unavailable" {
 		result["retryable"] = true

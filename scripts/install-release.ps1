@@ -13,7 +13,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot 'release-identity-policy.ps1')
 $script:TrustedIdentityPath = Join-Path $PSScriptRoot '..\product-identity.json'
-$productName = (Read-SynonProductIdentity -Path $script:TrustedIdentityPath).display_name
+$productName = (Read-XScienceProductIdentity -Path $script:TrustedIdentityPath).display_name
 
 function Test-ArchiveEntry {
   param([Parameter(Mandatory = $true)][string]$Entry)
@@ -36,13 +36,13 @@ function Test-ArchiveEntry {
 function Get-PackageBinary {
   param([Parameter(Mandatory = $true)][string]$Root)
 
-  foreach ($name in @('synon-go.exe', 'synon-go')) {
+  foreach ($name in @('x-science.exe', 'x-science')) {
     $candidate = Join-Path $Root $name
     if (Test-Path -LiteralPath $candidate -PathType Leaf) {
       return $candidate
     }
   }
-  throw "Package does not contain a runnable $productName binary (synon-go.exe)"
+  throw "Package does not contain a runnable $productName binary (x-science.exe)"
 }
 
 function Assert-SafeReleasePath {
@@ -115,7 +115,7 @@ function Assert-ReleaseValid {
     [switch]$CheckRun
   )
 
-  $identity = Assert-SynonProductIdentity -TrustedIdentityPath $script:TrustedIdentityPath -CandidateRoot $Root
+  $identity = Assert-XScienceProductIdentity -TrustedIdentityPath $script:TrustedIdentityPath -CandidateRoot $Root
   $binary = Get-PackageBinary -Root $Root
   $verificationRaw = @(& $binary release-manifest verify --root $Root 2>&1)
   if ($LASTEXITCODE -ne 0) {
@@ -164,7 +164,7 @@ foreach ($detail in $entryDetails) {
   }
 }
 
-$temp = Join-Path ([System.IO.Path]::GetTempPath()) ("synon-go-install-" + [System.Guid]::NewGuid().ToString("N"))
+$temp = Join-Path ([System.IO.Path]::GetTempPath()) ("x-science-install-" + [System.Guid]::NewGuid().ToString("N"))
 $parent = Split-Path -Parent $installPath
 $name = Split-Path -Leaf $installPath
 $stage = Join-Path $parent (".$name.stage." + [System.Guid]::NewGuid().ToString("N"))

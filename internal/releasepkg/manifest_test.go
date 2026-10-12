@@ -11,13 +11,13 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/buildinfo"
-	"synon-go/internal/compat/oracle"
+	"x-science/internal/buildinfo"
+	"x-science/internal/compat/oracle"
 )
 
 func TestLegacyManifestRejectsMissingCoverage(t *testing.T) {
 	root := t.TempDir()
-	writeFixtureFile(t, root, "synon-go", "binary", 0o755)
+	writeFixtureFile(t, root, "x-science", "binary", 0o755)
 	manifest, err := Generate(root, Options{})
 	if err != nil {
 		t.Fatal(err)
@@ -33,7 +33,7 @@ func TestLegacyManifestRejectsMissingCoverage(t *testing.T) {
 
 func TestLegacyManifestCoverageRemainsVerifiable(t *testing.T) {
 	root := t.TempDir()
-	writeFixtureFile(t, root, "synon-go", "binary", 0o755)
+	writeFixtureFile(t, root, "x-science", "binary", 0o755)
 	writeCompleteBehaviorEvidence(t, root)
 	manifest, err := Generate(root, Options{})
 	if err != nil {
@@ -41,7 +41,7 @@ func TestLegacyManifestCoverageRemainsVerifiable(t *testing.T) {
 	}
 	manifest.SchemaVersion = 3
 	manifest.Coverage = &Coverage{
-		Scope: "historical-non-web-compatibility", Baseline: "synonbiomed-v1.1",
+		Scope: "historical-non-web-compatibility", Baseline: "xscience-v1.1",
 		Authority: "strict-behavior-evidence", CompatibilityBaselineEligible: true,
 		ServiceContracts: 190, ServiceImplemented: 187, ServiceNotApplicable: 3,
 		HTTPRoutes: 34, HTTPRoutesImplemented: 34,
@@ -73,7 +73,7 @@ func TestLegacyManifestCoverageRemainsVerifiable(t *testing.T) {
 
 func TestGenerateAndVerifyRealReleaseTree(t *testing.T) {
 	root := t.TempDir()
-	writeFixtureFile(t, root, "synon-go", "native-binary", 0o755)
+	writeFixtureFile(t, root, "x-science", "native-binary", 0o755)
 	writeFixtureFile(t, root, "README.md", "standalone release", 0o644)
 	writeFixtureFile(t, root, "assets/optional/worker.py", "print('optional')\n", 0o644)
 	writeCompleteBehaviorEvidence(t, root)
@@ -98,7 +98,7 @@ func TestGenerateAndVerifyRealReleaseTree(t *testing.T) {
 	if manifest.CoreRuntimeRequires.Bun || manifest.CoreRuntimeRequires.Node || manifest.CoreRuntimeRequires.Go || manifest.CoreRuntimeRequires.Python {
 		t.Fatalf("core runtime dependencies = %#v", manifest.CoreRuntimeRequires)
 	}
-	if len(manifest.Files) != 6 || manifest.Files[0].Path != "README.md" || manifest.Files[len(manifest.Files)-1].Path != "synon-go" {
+	if len(manifest.Files) != 6 || manifest.Files[0].Path != "README.md" || manifest.Files[len(manifest.Files)-1].Path != "x-science" {
 		t.Fatalf("manifest file order = %#v", manifest.Files)
 	}
 
@@ -130,7 +130,7 @@ func TestGenerateAndVerifyRealReleaseTree(t *testing.T) {
 
 func TestVerifyRejectsExtraFilesAndSymlinks(t *testing.T) {
 	root := t.TempDir()
-	writeFixtureFile(t, root, "synon-go", "binary", 0o755)
+	writeFixtureFile(t, root, "x-science", "binary", 0o755)
 	writeCompleteBehaviorEvidence(t, root)
 	if _, err := Generate(root, Options{}); err != nil {
 		t.Fatalf("Generate() error = %v", err)
@@ -143,7 +143,7 @@ func TestVerifyRejectsExtraFilesAndSymlinks(t *testing.T) {
 	if err := os.Remove(filepath.Join(root, "unexpected.txt")); err != nil {
 		t.Fatalf("Remove() error = %v", err)
 	}
-	if err := os.Symlink("synon-go", filepath.Join(root, "runtime-link")); err != nil {
+	if err := os.Symlink("x-science", filepath.Join(root, "runtime-link")); err != nil {
 		t.Fatalf("Symlink() error = %v", err)
 	}
 	if _, err := Verify(root); err == nil || !strings.Contains(err.Error(), "symbolic link") {
@@ -156,7 +156,7 @@ func TestVerifyWindowsManifestIgnoresNonPortablePOSIXMode(t *testing.T) {
 		t.Skip("POSIX mode transition is not observable on Windows")
 	}
 	root := t.TempDir()
-	binary := filepath.Join(root, "synon-go.exe")
+	binary := filepath.Join(root, "x-science.exe")
 	if err := os.WriteFile(binary, []byte("windows-binary"), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -208,8 +208,8 @@ func writeCompleteBehaviorEvidence(t *testing.T, root string) {
 	t.Helper()
 	baselineRelative := "docs/compatibility/evidence/release-baseline.json"
 	candidateRelative := "docs/compatibility/evidence/release-candidate.json"
-	baseline := []byte("{\"runtime\":\"synonbiomed-v1.1\",\"status\":\"ok\"}\n")
-	candidate := []byte("{\"runtime\":\"synon-go-v4.0.2\",\"status\":\"ok\"}\n")
+	baseline := []byte("{\"runtime\":\"xscience-v1.1\",\"status\":\"ok\"}\n")
+	candidate := []byte("{\"runtime\":\"x-science-v4.0.2\",\"status\":\"ok\"}\n")
 	writeFixtureFile(t, root, baselineRelative, string(baseline), 0o600)
 	writeFixtureFile(t, root, candidateRelative, string(candidate), 0o600)
 	baselineHash := sha256.Sum256(baseline)
@@ -234,11 +234,11 @@ func writeCompleteBehaviorEvidence(t *testing.T, root string) {
 			TestCommand:   "go test ./internal/releasepkg -count=1",
 			BaselineCapture: oracle.CaptureRef{
 				Artifact: baselineRelative, SHA256: hex.EncodeToString(baselineHash[:]),
-				Runtime: "synonbiomed-v1.1", CapturedAt: "2026-07-11T00:00:00Z",
+				Runtime: "xscience-v1.1", CapturedAt: "2026-07-11T00:00:00Z",
 			},
 			CandidateCapture: oracle.CaptureRef{
 				Artifact: candidateRelative, SHA256: hex.EncodeToString(candidateHash[:]),
-				Runtime: "synon-go-v4.0.2", CapturedAt: "2026-07-11T00:00:01Z",
+				Runtime: "x-science-v4.0.2", CapturedAt: "2026-07-11T00:00:01Z",
 			},
 		}
 		if record.Kind == oracle.EventContract {

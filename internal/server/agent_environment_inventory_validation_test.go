@@ -3,9 +3,9 @@ package server
 import (
 	"context"
 	"reflect"
-	"synon-go/internal/agentruntime"
-	kernelruntime "synon-go/internal/kernel"
 	"testing"
+	"x-science/internal/agentruntime"
+	kernelruntime "x-science/internal/kernel"
 )
 
 func TestEnvironmentInventoryIgnoresNonExecutingNetworkOption(t *testing.T) {

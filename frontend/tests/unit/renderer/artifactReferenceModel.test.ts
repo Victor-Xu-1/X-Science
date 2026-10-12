@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import type { ISynonBiomedScientificFile } from '@/common/adapter/ipcBridge';
+import type { IXScienceScientificFile } from '@/common/adapter/ipcBridge';
 import type { ArtifactReferenceWire } from '@/common/adapter/messageStreamProtocol';
 import { matchScientificFilesToArtifactReferences } from '@/renderer/pages/conversation/Messages/components/artifactReferenceModel';
 
-const file = (artifactId: string, versionId: string | null, filename: string): ISynonBiomedScientificFile => ({
+const file = (artifactId: string, versionId: string | null, filename: string): IXScienceScientificFile => ({
   artifact_id: artifactId,
   version_id: versionId,
   version_number: 1,

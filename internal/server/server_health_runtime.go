@@ -3,7 +3,7 @@ package server
 import (
 	"net/http"
 
-	"synon-go/internal/buildinfo"
+	"x-science/internal/buildinfo"
 )
 
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {

@@ -1,5 +1,5 @@
 {
-  "schema": "synon.science-task-suite.v1",
+  "schema": "x-science.science-task-suite.v1",
   "suiteId": "drug-chemistry-human-workflow-v1",
   "browserAuthority": "codex_builtin",
   "scientificDeliverablePolicy": {

@@ -4,9 +4,9 @@ import (
 	"context"
 	"strings"
 
-	kernelruntime "synon-go/internal/kernel"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	kernelruntime "x-science/internal/kernel"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 // kernelTranscriptExecutionBinding binds nested host calls to the exact

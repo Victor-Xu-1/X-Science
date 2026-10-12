@@ -15,7 +15,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"synon-go/internal/skills"
+	"x-science/internal/skills"
 )
 
 const (
@@ -417,11 +417,54 @@ func (s *Server) loadGrantedWebSkills(userID, requested string) ([]skills.Skill,
 	if err != nil {
 		return nil, "", err
 	}
+	grants, err := s.loadHostGrants(userID)
+	if err != nil {
+		return nil, "", err
+	}
+	allowedPath := func(path string) bool {
+		for _, grant := range grants {
+			if hostPathWithin(grant.Path, path) {
+				return true
+			}
+		}
+		return false
+	}
+	// Do not reveal host-path existence or type before verifying the grant.
+	if !allowedPath(absolute) {
+		return nil, "", errWebSkillPathForbidden
+	}
 	resolved, err := filepath.EvalSymlinks(absolute)
 	if err != nil {
 		return nil, "", errors.New("skill path does not exist")
 	}
-	info, err := os.Stat(resolved)
+	if !allowedPath(resolved) {
+		return nil, "", errWebSkillPathForbidden
+	}
+	var parent *os.Root
+	var relative string
+	for _, grant := range grants {
+		if !hostPathWithin(grant.Path, resolved) {
+			continue
+		}
+		parent, err = os.OpenRoot(grant.Path)
+		if err != nil {
+			return nil, "", err
+		}
+		if err := verifyOpenedGrantedDirectory(parent, []hostGrant{grant}); err != nil {
+			_ = parent.Close()
+			return nil, "", errWebSkillPathForbidden
+		}
+		relative, err = filepath.Rel(grant.Path, resolved)
+		break
+	}
+	if parent == nil {
+		return nil, "", errWebSkillPathForbidden
+	}
+	defer parent.Close()
+	if err != nil || !filepath.IsLocal(relative) {
+		return nil, "", errWebSkillPathForbidden
+	}
+	info, err := parent.Stat(relative)
 	if err != nil {
 		return nil, "", err
 	}
@@ -431,22 +474,20 @@ func (s *Server) loadGrantedWebSkills(userID, requested string) ([]skills.Skill,
 			return nil, "", errors.New("skill path must be a directory or SKILL.md")
 		}
 		root = filepath.Dir(resolved)
+		relative = filepath.Dir(relative)
 	}
-	grants, err := s.loadHostGrants(userID)
+	if !allowedPath(root) {
+		return nil, "", errWebSkillPathForbidden
+	}
+	directory, err := parent.OpenRoot(relative)
 	if err != nil {
 		return nil, "", err
 	}
-	allowed := false
-	for _, grant := range grants {
-		if hostPathWithin(grant.Path, root) {
-			allowed = true
-			break
-		}
-	}
-	if !allowed {
+	defer directory.Close()
+	if err := verifyOpenedGrantedDirectory(directory, grants); err != nil {
 		return nil, "", errWebSkillPathForbidden
 	}
-	loaded := skills.Load([]string{root}, runtimeSkillLoadOptions())
+	loaded := skills.LoadFromRoot(directory, root, runtimeSkillLoadOptions())
 	if failures := loaded.LoadErrors(); len(failures) > 0 {
 		return nil, "", fmt.Errorf("invalid skill source: %s", failures[0].Err)
 	}
@@ -488,7 +529,7 @@ func webCommonSkillPaths() []webSkillExternalPath {
 	candidates := []webSkillExternalPath{
 		{Name: "Claude", Path: filepath.Join(home, ".claude", "skills")},
 		{Name: "Codex", Path: filepath.Join(home, ".codex", "skills")},
-		{Name: "X-Science", Path: filepath.Join(home, ".synon", "skills")},
+		{Name: "X-Science", Path: filepath.Join(home, ".x-science", "skills")},
 	}
 	result := make([]webSkillExternalPath, 0, len(candidates))
 	for _, candidate := range candidates {
@@ -524,7 +565,7 @@ func (s *Server) upsertExternalWebSkills(items []skills.Skill) {
 }
 
 func webSkillBridgeSource(s *Server, skill skills.Skill) string {
-	if compatibilityRequiredPlatformSkill(skill) || compatibilitySkillSource(skill) == "synon_llm" {
+	if compatibilityRequiredPlatformSkill(skill) || compatibilitySkillSource(skill) == "x_science_llm" {
 		return "builtin"
 	}
 	if s != nil && strings.TrimSpace(s.fileRoot) != "" {

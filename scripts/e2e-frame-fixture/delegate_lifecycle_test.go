@@ -4,8 +4,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
-	delegatefixture "synon-go/internal/testsupport/delegatefixture"
+	workspace "x-science/internal/persistence/workspace"
+	delegatefixture "x-science/internal/testsupport/delegatefixture"
 )
 
 func TestSeedDelegateFixtureKeepsProjectAcrossClearAndPayloadReseed(t *testing.T) {

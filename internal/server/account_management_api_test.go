@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/account"
-	settingsstore "synon-go/internal/persistence/settings"
+	"x-science/internal/account"
+	settingsstore "x-science/internal/persistence/settings"
 )
 
 func TestLocalAccountManagementReaderHonorsCanceledReadsBeforeStoreAccess(t *testing.T) {
@@ -33,7 +33,7 @@ func TestLocalAccountManagementReaderProjectsEffectiveLocalPolicyWithoutCentralC
 		t.Fatal(err)
 	}
 	state := webAuthenticationState{webSessions: &webSessionStore{}}
-	localAuth := newSynonLinkAuthenticator(SynonLinkAuthOptions{
+	localAuth := newXScienceLinkAuthenticator(XScienceLinkAuthOptions{
 		Username: "operator", Password: "test-secret-password", UserID: "operator",
 	})
 	reader := newLocalAccountManagementReaderWithConfig(state, localAuth, localAccountManagementConfig{
@@ -61,7 +61,7 @@ func TestLocalAccountManagementReaderProjectsEffectiveLocalPolicyWithoutCentralC
 func TestAccountManagementRequiresAuthenticationAndReturnsVersionedReadModel(t *testing.T) {
 	app := New(Options{
 		FileRoot: t.TempDir(),
-		SynonLinkAuth: SynonLinkAuthOptions{
+		XScienceLinkAuth: XScienceLinkAuthOptions{
 			Username: "operator", Password: "test-secret-password", UserID: "operator",
 		},
 	}).Handler()
@@ -151,7 +151,7 @@ func TestAccountManagementRequiresAuthenticationAndReturnsVersionedReadModel(t *
 func TestAccountManagementExposesConfiguredProvidersSeparatelyFromConnectedMethods(t *testing.T) {
 	app := New(Options{
 		FileRoot: t.TempDir(),
-		SynonLinkAuth: SynonLinkAuthOptions{
+		XScienceLinkAuth: XScienceLinkAuthOptions{
 			Username: "operator", Password: "test-secret-password", UserID: "operator",
 		},
 		WebAuth: WebAuthOptions{

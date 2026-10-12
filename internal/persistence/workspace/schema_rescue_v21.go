@@ -11,7 +11,7 @@ import (
 const (
 	schemaRescueV21CallbackID        = "normalize-model-providers-v21"
 	schemaRescueV21PreflightIdentity = "model-provider-shape-v1"
-	schemaRescueV21RuleSpec          = "synon.workspace.schema-rescue.model-providers.v21"
+	schemaRescueV21RuleSpec          = "x-science.workspace.schema-rescue.model-providers.v21"
 )
 
 var schemaRescueV21Migration = versionedSchemaMigration{
@@ -68,6 +68,8 @@ func schemaMigrationIdentityHandlersKnown(identity schemaMigrationIdentityV2) bo
 		return identity.PreflightIdentity == kernelResourcesV72PreflightIdentity && identity.RuleSpec == kernelResourcesV72RuleSpec
 	case projectIdentityV73CallbackID:
 		return identity.PreflightIdentity == projectIdentityV73PreflightIdentity && identity.RuleSpec == projectIdentityV73RuleSpec
+	case namespaceCutoverV75CallbackID:
+		return identity.PreflightIdentity == namespaceCutoverV75PreflightIdentity && identity.RuleSpec == namespaceCutoverV75RuleSpec
 	case dataLifecycleIndexesV74CallbackID:
 		return identity.PreflightIdentity == dataLifecycleIndexesV74PreflightIdentity && identity.RuleSpec == dataLifecycleIndexesV74RuleSpec
 	case scientificComputeAuthorityV37CallbackID:
@@ -181,6 +183,8 @@ func runSchemaMigrationPreflight(ctx context.Context, executor schemaMigrationQu
 		return nil
 	}
 	switch migration.identityV2.PreflightIdentity {
+	case namespaceCutoverV75PreflightIdentity:
+		return preflightNamespaceCutoverV75(ctx, executor)
 	case schemaRescueV21PreflightIdentity:
 		_, err := inspectModelProviderV21Shape(ctx, executor)
 		return err
@@ -301,6 +305,8 @@ func runSchemaMigrationCallback(ctx context.Context, tx *sql.Tx, migration versi
 		return nil
 	}
 	switch migration.identityV2.CallbackID {
+	case namespaceCutoverV75CallbackID:
+		return captureNamespaceTranscriptReceipts(ctx, tx)
 	case schemaRescueV21CallbackID:
 		return normalizeModelProvidersV21(ctx, tx, nil)
 	case providerV22CallbackID:
@@ -397,6 +403,7 @@ func runSchemaMigrationCallback(ctx context.Context, tx *sql.Tx, migration versi
 func schemaMigrationCallbackRunsAfterStatements(migration versionedSchemaMigration) bool {
 	return migration.identityV2 != nil &&
 		(migration.identityV2.CallbackID == transcriptV25CallbackID ||
+			migration.identityV2.CallbackID == namespaceCutoverV75CallbackID ||
 			migration.identityV2.CallbackID == transcriptHistoryActivationV31CallbackID ||
 			migration.identityV2.CallbackID == kernelToolResultV41CallbackID)
 }

@@ -9,8 +9,8 @@ import { ipcBridge } from '@/common';
 import { Message } from '@arco-design/web-react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import SynonBiomedPermissionIcon from '@/renderer/components/synonBiomed/runtime/SynonBiomedPermissionIcon';
-import '@/renderer/components/synonBiomed/runtime/SynonBiomedApprovalCard.css';
+import XSciencePermissionIcon from '@/renderer/components/xScience/runtime/XSciencePermissionIcon';
+import '@/renderer/components/xScience/runtime/XScienceApprovalCard.css';
 
 interface MessagePermissionProps {
   message: IMessagePermission;
@@ -61,30 +61,30 @@ export const ConversationApprovalCard: React.FC<ConversationApprovalCardProps> =
 
     return (
       <section
-        className='synon-approval-card synon-approval-card--compact synon-conversation-approval-card mb-8px'
+        className='x-science-approval-card x-science-approval-card--compact x-science-conversation-approval-card mb-8px'
         aria-label={t('messages.permissionRequest')}
         data-testid={cardTestId}
       >
-        <div className='synon-approval-card__header'>
-          <div className='synon-approval-card__heading'>
-            <div className='flex items-center gap-8px synon-approval-card__title'>
-              <SynonBiomedPermissionIcon variant='request' size={20} />
+        <div className='x-science-approval-card__header'>
+          <div className='x-science-approval-card__heading'>
+            <div className='flex items-center gap-8px x-science-approval-card__title'>
+              <XSciencePermissionIcon variant='request' size={20} />
               <span>{title}</span>
             </div>
           </div>
         </div>
         {command || (description && description !== title) ? (
-          <details className='synon-approval-card__details'>
+          <details className='x-science-approval-card__details'>
             <summary>{t('common.more')}</summary>
-            <div className='synon-approval-card__details-content'>
+            <div className='x-science-approval-card__details-content'>
               {command ? (
                 <div>
-                  <div className='synon-approval-card__code-label'>{t('messages.command')}</div>
-                  <code className='synon-conversation-approval-card__command'>{command}</code>
+                  <div className='x-science-approval-card__code-label'>{t('messages.command')}</div>
+                  <code className='x-science-conversation-approval-card__command'>{command}</code>
                 </div>
               ) : null}
               {description && description !== title ? (
-                <p className='synon-approval-card__description'>{description}</p>
+                <p className='x-science-approval-card__description'>{description}</p>
               ) : null}
             </div>
           </details>
@@ -92,7 +92,7 @@ export const ConversationApprovalCard: React.FC<ConversationApprovalCardProps> =
         {!hasResponded ? (
           <>
             <div
-              className='synon-conversation-approval-card__options'
+              className='x-science-conversation-approval-card__options'
               role='radiogroup'
               aria-label={t('messages.chooseAction')}
             >
@@ -104,20 +104,20 @@ export const ConversationApprovalCard: React.FC<ConversationApprovalCardProps> =
                     aria-checked={selected === option.value}
                     key={option.value || `option_${index}`}
                     data-testid={`${optionTestIdPrefix}-${option.value || `option_${index}`}`}
-                    className={`synon-conversation-approval-card__option${selected === option.value ? ' is-selected' : ''}`}
+                    className={`x-science-conversation-approval-card__option${selected === option.value ? ' is-selected' : ''}`}
                     onClick={() => setSelected(option.value)}
                   >
                     {option.label}
                   </button>
                 ))
               ) : (
-                <span className='synon-approval-card__hint'>{t('messages.noOptionsAvailable')}</span>
+                <span className='x-science-approval-card__hint'>{t('messages.noOptionsAvailable')}</span>
               )}
             </div>
-            <div className='synon-approval-card__footer'>
+            <div className='x-science-approval-card__footer'>
               <button
                 type='button'
-                className='synon-approval-card__allow synon-approval-card__allow--single'
+                className='x-science-approval-card__allow x-science-approval-card__allow--single'
                 disabled={!selected || isResponding}
                 onClick={() => void handleConfirm()}
                 data-testid={confirmTestId}
@@ -128,7 +128,9 @@ export const ConversationApprovalCard: React.FC<ConversationApprovalCardProps> =
           </>
         ) : null}
         {hasResponded ? (
-          <div className='synon-conversation-approval-card__success'>✓ {t('messages.responseSentSuccessfully')}</div>
+          <div className='x-science-conversation-approval-card__success'>
+            ✓ {t('messages.responseSentSuccessfully')}
+          </div>
         ) : null}
       </section>
     );

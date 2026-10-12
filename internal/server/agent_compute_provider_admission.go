@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strings"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 // admitAgentComputeProviderWorkspace uses the same current frame and filesystem

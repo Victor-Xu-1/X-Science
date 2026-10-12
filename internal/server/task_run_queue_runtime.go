@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	sessionstore "synon-go/internal/persistence/sessions"
-	taskruns "synon-go/internal/persistence/taskruns"
 	"time"
+	sessionstore "x-science/internal/persistence/sessions"
+	taskruns "x-science/internal/persistence/taskruns"
 )
 
 func taskRunInput(input map[string]any) (taskruns.Input, error) {

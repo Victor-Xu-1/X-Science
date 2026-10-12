@@ -34,14 +34,14 @@ describe('AssistantSelectionArea', () => {
   it('keeps the X-Science expert picker visible after an assistant is selected', () => {
     render(
       <AssistantSelectionArea
-        selectedAssistantId='synonbiomed:aidd-expert'
+        selectedAssistantId='xscience:aidd-expert'
         assistants={assistants()}
         localeKey='en-US'
         onSelectAssistant={vi.fn()}
       />
     );
 
-    expect(screen.getByTestId('preset-pill-synonbiomed:aidd-expert')).toBeInTheDocument();
+    expect(screen.getByTestId('preset-pill-xscience:aidd-expert')).toBeInTheDocument();
     expect(screen.queryByTestId('btn-add-preset')).not.toBeInTheDocument();
     expect(screen.queryByText('Select an assistant to start a task')).not.toBeInTheDocument();
     expect(screen.queryByText('Try these example prompts:')).not.toBeInTheDocument();
@@ -51,25 +51,25 @@ describe('AssistantSelectionArea', () => {
   it('moves overflow X-Science experts into a more dropdown', async () => {
     render(
       <AssistantSelectionArea
-        selectedAssistantId='synonbiomed:aidd-expert'
+        selectedAssistantId='xscience:aidd-expert'
         assistants={manyAssistants()}
         localeKey='en-US'
         onSelectAssistant={vi.fn()}
       />
     );
 
-    expect(screen.getByTestId('preset-pill-synonbiomed:aidd-expert')).toBeInTheDocument();
-    expect(screen.getByTestId('preset-pill-synonbiomed:oncology-expert')).toBeInTheDocument();
-    expect(screen.getByTestId('preset-pill-synonbiomed:medchem-expert')).toBeInTheDocument();
-    expect(screen.getByTestId('preset-pill-synonbiomed:dmpk-expert')).toBeInTheDocument();
-    expect(screen.queryByTestId('preset-pill-synonbiomed:immunology-expert')).not.toBeInTheDocument();
+    expect(screen.getByTestId('preset-pill-xscience:aidd-expert')).toBeInTheDocument();
+    expect(screen.getByTestId('preset-pill-xscience:oncology-expert')).toBeInTheDocument();
+    expect(screen.getByTestId('preset-pill-xscience:medchem-expert')).toBeInTheDocument();
+    expect(screen.getByTestId('preset-pill-xscience:dmpk-expert')).toBeInTheDocument();
+    expect(screen.queryByTestId('preset-pill-xscience:immunology-expert')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('assistant-more-btn'));
 
-    expect(await screen.findByTestId('assistant-overflow-synonbiomed:immunology-expert')).toBeInTheDocument();
-    expect(screen.getByTestId('assistant-overflow-synonbiomed:genomics-bioinfo-expert')).toBeInTheDocument();
-    expect(screen.queryByTestId('assistant-overflow-synonbiomed:aidd-expert')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('assistant-overflow-synonbiomed:oncology-expert')).not.toBeInTheDocument();
+    expect(await screen.findByTestId('assistant-overflow-xscience:immunology-expert')).toBeInTheDocument();
+    expect(screen.getByTestId('assistant-overflow-xscience:genomics-bioinfo-expert')).toBeInTheDocument();
+    expect(screen.queryByTestId('assistant-overflow-xscience:aidd-expert')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('assistant-overflow-xscience:oncology-expert')).not.toBeInTheDocument();
   });
 
   it('reports the real X-Science assistant id when a pill is selected', () => {
@@ -77,27 +77,27 @@ describe('AssistantSelectionArea', () => {
 
     render(
       <AssistantSelectionArea
-        selectedAssistantId='synonbiomed:aidd-expert'
+        selectedAssistantId='xscience:aidd-expert'
         assistants={assistants()}
         localeKey='en-US'
         onSelectAssistant={onSelectAssistant}
       />
     );
 
-    fireEvent.click(screen.getByTestId('preset-pill-synonbiomed:oncology-expert'));
+    fireEvent.click(screen.getByTestId('preset-pill-xscience:oncology-expert'));
 
-    expect(onSelectAssistant).toHaveBeenCalledWith('synonbiomed:oncology-expert');
+    expect(onSelectAssistant).toHaveBeenCalledWith('xscience:oncology-expert');
   });
 
   it('orders X-Science expert pills by sort_order before applying overflow', () => {
     render(
       <AssistantSelectionArea
-        selectedAssistantId='synonbiomed:aidd-expert'
+        selectedAssistantId='xscience:aidd-expert'
         assistants={[
-          mkSynonAssistant('synonbiomed:late-expert', 'Late Expert', 90),
-          mkSynonAssistant('synonbiomed:early-expert', 'Early Expert', 5),
+          mkXScienceAssistant('xscience:late-expert', 'Late Expert', 90),
+          mkXScienceAssistant('xscience:early-expert', 'Early Expert', 5),
           ...assistants(),
-          mkSynonAssistant('synonbiomed:mid-expert', 'Mid Expert', 15),
+          mkXScienceAssistant('xscience:mid-expert', 'Mid Expert', 15),
         ]}
         localeKey='en-US'
         onSelectAssistant={vi.fn()}
@@ -115,15 +115,15 @@ describe('AssistantSelectionArea', () => {
   it('keeps a selected overflow X-Science expert visible in the top pill row', () => {
     render(
       <AssistantSelectionArea
-        selectedAssistantId='synonbiomed:genomics-bioinfo-expert'
+        selectedAssistantId='xscience:genomics-bioinfo-expert'
         assistants={manyAssistants()}
         localeKey='en-US'
         onSelectAssistant={vi.fn()}
       />
     );
 
-    expect(screen.getByTestId('preset-pill-synonbiomed:genomics-bioinfo-expert')).toBeInTheDocument();
-    expect(screen.queryByTestId('preset-pill-synonbiomed:dmpk-expert')).not.toBeInTheDocument();
+    expect(screen.getByTestId('preset-pill-xscience:genomics-bioinfo-expert')).toBeInTheDocument();
+    expect(screen.queryByTestId('preset-pill-xscience:dmpk-expert')).not.toBeInTheDocument();
   });
 
   it('can re-render from an empty assistant catalog without breaking hook order', () => {
@@ -139,7 +139,7 @@ describe('AssistantSelectionArea', () => {
     expect(() =>
       rerender(
         <AssistantSelectionArea
-          selectedAssistantId='synonbiomed:aidd-expert'
+          selectedAssistantId='xscience:aidd-expert'
           assistants={assistants()}
           localeKey='en-US'
           onSelectAssistant={vi.fn()}
@@ -147,30 +147,30 @@ describe('AssistantSelectionArea', () => {
       )
     ).not.toThrow();
 
-    expect(screen.getByTestId('preset-pill-synonbiomed:aidd-expert')).toBeInTheDocument();
+    expect(screen.getByTestId('preset-pill-xscience:aidd-expert')).toBeInTheDocument();
   });
 });
 
 function assistants(): Assistant[] {
   return [
-    mkSynonAssistant('synonbiomed:aidd-expert', 'AIDD Expert', 10, ['Run target discovery']),
-    mkSynonAssistant('synonbiomed:oncology-expert', 'Oncology Expert', 20, ['Prioritize oncology targets']),
+    mkXScienceAssistant('xscience:aidd-expert', 'AIDD Expert', 10, ['Run target discovery']),
+    mkXScienceAssistant('xscience:oncology-expert', 'Oncology Expert', 20, ['Prioritize oncology targets']),
   ];
 }
 
 function manyAssistants(): Assistant[] {
   return [
     ...assistants(),
-    mkSynonAssistant('synonbiomed:medchem-expert', 'MedChem Expert', 30),
-    mkSynonAssistant('synonbiomed:dmpk-expert', 'DMPK Expert', 40),
-    mkSynonAssistant('synonbiomed:immunology-expert', 'Immunology Expert', 50),
-    mkSynonAssistant('synonbiomed:genomics-bioinfo-expert', 'Genomics Bioinfo Expert', 60),
+    mkXScienceAssistant('xscience:medchem-expert', 'MedChem Expert', 30),
+    mkXScienceAssistant('xscience:dmpk-expert', 'DMPK Expert', 40),
+    mkXScienceAssistant('xscience:immunology-expert', 'Immunology Expert', 50),
+    mkXScienceAssistant('xscience:genomics-bioinfo-expert', 'Genomics Bioinfo Expert', 60),
   ];
 }
 
-function mkSynonAssistant(id: string, name: string, sort_order: number, prompts: string[] = []): Assistant {
+function mkXScienceAssistant(id: string, name: string, sort_order: number, prompts: string[] = []): Assistant {
   const agentId = id
-    .replace(/^synonbiomed:/, '')
+    .replace(/^xscience:/, '')
     .replace(/-/g, '_')
     .toUpperCase();
   return {
@@ -182,7 +182,7 @@ function mkSynonAssistant(id: string, name: string, sort_order: number, prompts:
     enabled: true,
     sort_order,
     agent_id: agentId,
-    agent: { type: 'synonbiomed', source: 'builtin', acp_backend: 'synonbiomed' },
+    agent: { type: 'xscience', source: 'builtin', acp_backend: 'xscience' },
     enabled_skills: [],
     custom_skill_names: [],
     disabled_builtin_skills: [],

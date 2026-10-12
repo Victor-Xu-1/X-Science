@@ -15,16 +15,16 @@ import (
 // deliberately uses an operator-provided disposable state root; it never
 // touches a service's configured user data or the shared deployment.
 func TestRealNativeCorePythonInstallAndReuse(t *testing.T) {
-	if os.Getenv("SYNON_TEST_NATIVE_CORE_RUNTIME") != "1" {
+	if os.Getenv("X_SCIENCE_TEST_NATIVE_CORE_RUNTIME") != "1" {
 		t.Skip("native core runtime integration is opt-in")
 	}
-	assetRoot := strings.TrimSpace(os.Getenv("SYNON_TEST_NATIVE_ASSET_ROOT"))
-	stateRoot := strings.TrimSpace(os.Getenv("SYNON_TEST_NATIVE_STATE_ROOT"))
+	assetRoot := strings.TrimSpace(os.Getenv("X_SCIENCE_TEST_NATIVE_ASSET_ROOT"))
+	stateRoot := strings.TrimSpace(os.Getenv("X_SCIENCE_TEST_NATIVE_STATE_ROOT"))
 	if !filepath.IsAbs(assetRoot) || !filepath.IsAbs(stateRoot) {
 		t.Fatal("native runtime test requires absolute asset and disposable state roots")
 	}
-	t.Setenv("SYNON_KERNEL_ASSET_ROOT", assetRoot)
-	t.Setenv("SYNON_MICROMAMBA", "")
+	t.Setenv("X_SCIENCE_KERNEL_ASSET_ROOT", assetRoot)
+	t.Setenv("X_SCIENCE_MICROMAMBA", "")
 	condaHome := filepath.Join(stateRoot, "conda")
 	envs := filepath.Join(condaHome, "envs")
 	manager, err := DiscoverManagerWithPathsAndProxy(condaHome, envs, "")
@@ -72,16 +72,16 @@ func TestRealNativeCorePythonInstallAndReuse(t *testing.T) {
 }
 
 func TestRealNativeCoreRInstallAndReuse(t *testing.T) {
-	if os.Getenv("SYNON_TEST_NATIVE_CORE_RUNTIME") != "1" {
+	if os.Getenv("X_SCIENCE_TEST_NATIVE_CORE_RUNTIME") != "1" {
 		t.Skip("native core runtime integration is opt-in")
 	}
-	assetRoot := strings.TrimSpace(os.Getenv("SYNON_TEST_NATIVE_ASSET_ROOT"))
-	stateRoot := strings.TrimSpace(os.Getenv("SYNON_TEST_NATIVE_STATE_ROOT"))
+	assetRoot := strings.TrimSpace(os.Getenv("X_SCIENCE_TEST_NATIVE_ASSET_ROOT"))
+	stateRoot := strings.TrimSpace(os.Getenv("X_SCIENCE_TEST_NATIVE_STATE_ROOT"))
 	if !filepath.IsAbs(assetRoot) || !filepath.IsAbs(stateRoot) {
 		t.Fatal("native runtime test requires absolute asset and disposable state roots")
 	}
-	t.Setenv("SYNON_KERNEL_ASSET_ROOT", assetRoot)
-	t.Setenv("SYNON_MICROMAMBA", "")
+	t.Setenv("X_SCIENCE_KERNEL_ASSET_ROOT", assetRoot)
+	t.Setenv("X_SCIENCE_MICROMAMBA", "")
 	condaHome := filepath.Join(stateRoot, "conda")
 	envs := filepath.Join(condaHome, "envs")
 	manager, err := DiscoverManagerWithPathsAndProxy(condaHome, envs, "")

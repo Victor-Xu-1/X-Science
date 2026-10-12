@@ -61,7 +61,7 @@ export type RealtimeClientOptions = {
   onMessage?: (message: RealtimeProtocolMessage) => void;
   onDiagnostic?: (diagnostic: RealtimeDiagnostic) => void;
 };
-const CURSOR_NAMESPACE = 'synon.realtime.cursor.v1';
+const CURSOR_NAMESPACE = 'x-science.realtime.cursor.v1';
 const OPEN = 1;
 const HANDSHAKE_DEADLINE_MS = 15_000;
 const HEARTBEAT_MS = 25_000;

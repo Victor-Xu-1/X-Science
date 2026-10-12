@@ -4,9 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	transcriptstore "synon-go/internal/persistence/transcript"
 	"testing"
 	"time"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func TestRunnerLeaseRenewalRecoversRealLockWithoutMutatingClaim(t *testing.T) {

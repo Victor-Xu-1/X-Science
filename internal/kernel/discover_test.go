@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/assets"
+	"x-science/internal/assets"
 )
 
 func TestDiscoveryDiagnosticsAreStableAndPathFree(t *testing.T) {
@@ -59,7 +59,7 @@ func TestBundledOptionalAssetsAndMicromambaManifestVerify(t *testing.T) {
 	if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" {
 		t.Skip("the clean source package currently bundles micromamba for linux/amd64")
 	}
-	t.Setenv("SYNON_MICROMAMBA", "")
+	t.Setenv("X_SCIENCE_MICROMAMBA", "")
 	micromamba, err := discoverMicromamba(root)
 	if err != nil {
 		t.Fatal(err)
@@ -97,9 +97,9 @@ func TestDiscoverManagerRequiresBundledRGenerationWithoutHostPython(t *testing.T
 	if err := os.Chmod(rscript, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("SYNON_KERNEL_ASSET_ROOT", assetRoot)
-	t.Setenv("SYNON_KERNEL_PYTHON", "")
-	t.Setenv("SYNON_MICROMAMBA", "")
+	t.Setenv("X_SCIENCE_KERNEL_ASSET_ROOT", assetRoot)
+	t.Setenv("X_SCIENCE_KERNEL_PYTHON", "")
+	t.Setenv("X_SCIENCE_MICROMAMBA", "")
 	t.Setenv("PATH", t.TempDir())
 	manager, err := DiscoverManagerWithPathsAndProxy(filepath.Dir(envs), envs, "")
 	if err != nil {

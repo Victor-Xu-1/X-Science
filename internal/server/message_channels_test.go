@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	adapterfeishu "synon-go/internal/adapters/feishu"
+	adapterfeishu "x-science/internal/adapters/feishu"
 )
 
 func TestMessageChannelStatusDoesNotTreatEmptyManagersAsConfigured(t *testing.T) {
@@ -20,7 +20,7 @@ func TestMessageChannelStatusDoesNotTreatEmptyManagersAsConfigured(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	request.Header.Set("X-Synon-User-Id", "owner-empty")
+	request.Header.Set("X-Science-User-Id", "owner-empty")
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		t.Fatal(err)
@@ -76,7 +76,7 @@ func TestMessageChannelUnpairIsScopedToCurrentOwnerAndCleansConnectionState(t *t
 	if err != nil {
 		t.Fatal(err)
 	}
-	request.Header.Set("X-Synon-User-Id", "owner-a")
+	request.Header.Set("X-Science-User-Id", "owner-a")
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		t.Fatal(err)
@@ -170,7 +170,7 @@ func TestFeishuDeviceQREndpointReturnsImageAndPersistsProtectedCredentials(t *te
 	if err != nil {
 		t.Fatal(err)
 	}
-	statusRequest.Header.Set("X-Synon-User-Id", "owner-a")
+	statusRequest.Header.Set("X-Science-User-Id", "owner-a")
 	statusResponse, err := http.DefaultClient.Do(statusRequest)
 	if err != nil {
 		t.Fatal(err)
@@ -194,7 +194,7 @@ func postJSONWithUserForTest(t *testing.T, target, payload, userID string) respo
 		t.Fatal(err)
 	}
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("X-Synon-User-Id", userID)
+	request.Header.Set("X-Science-User-Id", userID)
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		t.Fatalf("POST %s error = %v", target, err)

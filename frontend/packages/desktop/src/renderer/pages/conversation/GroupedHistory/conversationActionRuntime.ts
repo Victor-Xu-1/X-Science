@@ -4,14 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export { loadSynonBiomedProjects } from '@/renderer/services/synonBiomedGateway';
-export { loadSynonBiomedExecutionLogPage } from '@/renderer/services/synonBiomedRuntimeOperations';
+export { loadXScienceProjects } from '@/renderer/services/xScienceGateway';
+export { loadXScienceExecutionLogPage } from '@/renderer/services/xScienceRuntimeOperations';
 export {
-  deleteSynonBiomedSession,
-  getSynonBiomedSessionArtifactsDownloadUrl,
-  getSynonBiomedSessionExportUrl,
-  moveSynonBiomedSession,
-  updateSynonBiomedSession,
-} from '@/renderer/services/synonBiomedSessionActions';
+  deleteXScienceSession,
+  getXScienceSessionArtifactsDownloadUrl,
+  getXScienceSessionExportUrl,
+  moveXScienceSession,
+  updateXScienceSession,
+} from '@/renderer/services/xScienceSessionActions';
 export { sanitizeFileName } from '@/renderer/utils/chat/conversationExport';
 export { downloadFileFromUrl } from '@/renderer/utils/file/download';

@@ -15,7 +15,7 @@ import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getConversationRuntimeWorkspaceErrorMessage } from '../../utils/conversationCreateError';
 import { buildSendFailureError } from './buildSendFailureError';
-import { setSynonBiomedSessionComputeProvider } from '@/renderer/services/synonBiomedCompute';
+import { setXScienceSessionComputeProvider } from '@/renderer/services/xScienceCompute';
 
 type DraftStagedSessionOptions = {
   delegation: boolean;
@@ -177,7 +177,7 @@ export const useAcpInitialMessage = ({
         try {
           await Promise.all(
             computeProviders.map((provider: string) =>
-              setSynonBiomedSessionComputeProvider(conversation_id, provider, true)
+              setXScienceSessionComputeProvider(conversation_id, provider, true)
             )
           );
           initialMessageSendsInFlight.delete(storageKey);
@@ -260,9 +260,7 @@ export const useAcpInitialMessage = ({
         setAiProcessing(true);
 
         await Promise.all(
-          computeProviders.map((provider: string) =>
-            setSynonBiomedSessionComputeProvider(conversation_id, provider, true)
-          )
+          computeProviders.map((provider: string) => setXScienceSessionComputeProvider(conversation_id, provider, true))
         );
 
         void checkAndUpdateTitle(conversation_id, input);

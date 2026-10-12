@@ -5,7 +5,7 @@
  */
 
 import type { IMessageText } from '@/common/chat/chatLib';
-import { SYNON_AI_FILES_MARKER } from '@/common/config/constants';
+import { X_SCIENCE_FILES_MARKER } from '@/common/config/constants';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useLocalFilePreview } from '@/renderer/pages/conversation/Preview/hooks/useLocalFilePreview';
@@ -21,7 +21,7 @@ import HorizontalFileList from '@renderer/components/media/HorizontalFileList';
 import MarkdownView from '@renderer/components/Markdown';
 import { stripThinkTags, hasThinkTags } from '@renderer/utils/chat/thinkTagFilter';
 import { stripSkillSuggest, hasSkillSuggest } from '@renderer/utils/chat/skillSuggestParser';
-import { useSynonBiomedArtifactResolver } from '../useSynonBiomedArtifactLinkPreview';
+import { useXScienceArtifactResolver } from '../useXScienceArtifactLinkPreview';
 import { useConversationArtifactIndex } from '../artifacts';
 import { presentArtifactReferenceContent } from './artifactReferencePresentation';
 import MessageCronBadge from './MessageCronBadge';
@@ -35,13 +35,18 @@ import actionStyles from './MessageRoundFooter.module.css';
 
 const CODE_STYLE = { marginTop: 4, marginBlock: 4 };
 
-const parseFileMarker = (content: string) => {
-  const markerIndex = content.indexOf(SYNON_AI_FILES_MARKER);
-  if (markerIndex === -1) {
+export const parseFileMarker = (content: string) => {
+  // These are exact persisted wire formats; old conversation bytes stay intact.
+  const marker = [X_SCIENCE_FILES_MARKER, '[[SYNON_AI_FILES]]']
+    .map((value) => ({ value, index: content.indexOf(value) }))
+    .filter((item) => item.index >= 0)
+    .sort((left, right) => left.index - right.index)[0];
+  const markerIndex = marker?.index ?? -1;
+  if (!marker) {
     return { text: content, files: [] as string[] };
   }
   const text = content.slice(0, markerIndex).trimEnd();
-  const afterMarker = content.slice(markerIndex + SYNON_AI_FILES_MARKER.length).trim();
+  const afterMarker = content.slice(markerIndex + marker.value.length).trim();
   const files = afterMarker
     ? afterMarker
         .split('\n')
@@ -143,12 +148,12 @@ const MessageText = React.memo<MessageTextProps>(({ message, showCopyRow = true 
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const handleLocalFileLink = useLocalFilePreview(conversationContext?.workspace);
-  const synonBiomedArtifactResolver = useSynonBiomedArtifactResolver({
+  const xScienceArtifactResolver = useXScienceArtifactResolver({
     conversationId: conversationContext?.conversation_id,
     workspace: conversationContext?.workspace,
     artifactReferences: message.artifact_refs,
   });
-  const isSynonBiomedWorkspace = conversationContext?.workspace?.startsWith('synonbiomed://') === true;
+  const isXScienceWorkspace = conversationContext?.workspace?.startsWith('x-science://') === true;
   const resolvedFiles = useMemo(
     () => files.map((file_path) => resolveMessageFilePath(file_path, conversationContext?.workspace)),
     [conversationContext?.workspace, files]
@@ -205,8 +210,8 @@ const MessageText = React.memo<MessageTextProps>(({ message, showCopyRow = true 
         {isFailedTerminalResponse && (
           <Alert
             type='error'
-            title={t('conversation.synonRuntime.runtimeOperations.taskFailed')}
-            content={t('conversation.synonRuntime.runtimeOperations.assistantResponseIncomplete')}
+            title={t('conversation.xscienceRuntime.runtimeOperations.taskFailed')}
+            content={t('conversation.xscienceRuntime.runtimeOperations.assistantResponseIncomplete')}
             showIcon
             data-testid='terminal-failure-alert'
             className='mb-12px w-full'
@@ -215,7 +220,7 @@ const MessageText = React.memo<MessageTextProps>(({ message, showCopyRow = true 
         {isHistoricalIncompleteResponse && (
           <Alert
             type='warning'
-            content={t('conversation.synonRuntime.runtimeOperations.historicalResponseIncomplete')}
+            content={t('conversation.xscienceRuntime.runtimeOperations.historicalResponseIncomplete')}
             showIcon
             data-testid='terminal-failure-history'
             className='mb-12px w-full'
@@ -263,9 +268,9 @@ const MessageText = React.memo<MessageTextProps>(({ message, showCopyRow = true 
               <div data-testid='message-text-content'>
                 <MarkdownView
                   codeStyle={CODE_STYLE}
-                  onLink={synonBiomedArtifactResolver.handleLink}
-                  resolveLinkHref={isSynonBiomedWorkspace ? synonBiomedArtifactResolver.resolveLinkHref : undefined}
-                  resolveImageSrc={isSynonBiomedWorkspace ? synonBiomedArtifactResolver.resolveImage : undefined}
+                  onLink={xScienceArtifactResolver.handleLink}
+                  resolveLinkHref={isXScienceWorkspace ? xScienceArtifactResolver.resolveLinkHref : undefined}
+                  resolveImageSrc={isXScienceWorkspace ? xScienceArtifactResolver.resolveImage : undefined}
                   onLocalFileLink={handleLocalFileLink}
                 >{`\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``}</MarkdownView>
               </div>
@@ -274,9 +279,9 @@ const MessageText = React.memo<MessageTextProps>(({ message, showCopyRow = true 
             <div data-testid='message-text-content'>
               <MarkdownView
                 codeStyle={CODE_STYLE}
-                onLink={synonBiomedArtifactResolver.handleLink}
-                resolveLinkHref={isSynonBiomedWorkspace ? synonBiomedArtifactResolver.resolveLinkHref : undefined}
-                resolveImageSrc={isSynonBiomedWorkspace ? synonBiomedArtifactResolver.resolveImage : undefined}
+                onLink={xScienceArtifactResolver.handleLink}
+                resolveLinkHref={isXScienceWorkspace ? xScienceArtifactResolver.resolveLinkHref : undefined}
+                resolveImageSrc={isXScienceWorkspace ? xScienceArtifactResolver.resolveImage : undefined}
                 onLocalFileLink={handleLocalFileLink}
               >
                 {data}
@@ -291,8 +296,8 @@ const MessageText = React.memo<MessageTextProps>(({ message, showCopyRow = true 
               </summary>
               <MarkdownView
                 codeStyle={CODE_STYLE}
-                onLink={synonBiomedArtifactResolver.handleLink}
-                resolveLinkHref={isSynonBiomedWorkspace ? synonBiomedArtifactResolver.resolveLinkHref : undefined}
+                onLink={xScienceArtifactResolver.handleLink}
+                resolveLinkHref={isXScienceWorkspace ? xScienceArtifactResolver.resolveLinkHref : undefined}
                 onLocalFileLink={handleLocalFileLink}
               >
                 {deliveryView.appendix}
@@ -309,12 +314,12 @@ const MessageText = React.memo<MessageTextProps>(({ message, showCopyRow = true 
             })}
           >
             {message.content.content.trim() && copyButton}
-            {roundSummary && isSynonBiomedWorkspace && (
+            {roundSummary && isXScienceWorkspace && (
               <MessageReplyBranchButton
                 key={`${message.conversation_id}:${message.id}`}
                 conversationId={message.conversation_id}
                 throughAttempt={roundSummary.attempt}
-                sourceBranchId={message.content.synonBiomed?.branchId}
+                sourceBranchId={message.content.xScience?.branchId}
               />
             )}
             {roundSummary && <MessageRoundFooter summary={roundSummary} />}

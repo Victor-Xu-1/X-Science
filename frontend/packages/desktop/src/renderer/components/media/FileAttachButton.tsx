@@ -30,7 +30,7 @@ interface FileAttachButtonProps {
   selectedMcpServerIds?: string[];
   onSelectSkill?: (name: string) => void;
   onSelectMcpServer?: (server: IConversationMcpStatus) => void;
-  synonBiomedV11?: boolean;
+  xScienceV11?: boolean;
   onViewPlan?: () => void;
   onRequestReview?: () => void;
   onSaveSkill?: () => void;
@@ -112,7 +112,7 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
   selectedMcpServerIds = [],
   onSelectSkill,
   onSelectMcpServer,
-  synonBiomedV11 = false,
+  xScienceV11 = false,
   onViewPlan,
   onRequestReview,
   onSaveSkill,
@@ -197,15 +197,10 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
   const hasSkills = skillNames.length > 0;
   const hasMcpServers = mcpStatuses.length > 0;
   const plusIcon = (
-    <Plus
-      theme='outline'
-      size={synonBiomedV11 ? 17 : 14}
-      strokeWidth={synonBiomedV11 ? 3.6 : 2}
-      fill={iconColors.primary}
-    />
+    <Plus theme='outline' size={xScienceV11 ? 17 : 14} strokeWidth={xScienceV11 ? 3.6 : 2} fill={iconColors.primary} />
   );
 
-  if (!synonBiomedV11 && isDesktop && !hasSkills && !hasMcpServers) {
+  if (!xScienceV11 && isDesktop && !hasSkills && !hasMcpServers) {
     return (
       <Button type='secondary' shape='circle' icon={plusIcon} onClick={openFileSelector} data-testid={triggerTestId} />
     );
@@ -393,7 +388,7 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
   return (
     <>
       <Trigger
-        popup={() => (synonBiomedV11 ? v11Menu : menu)}
+        popup={() => (xScienceV11 ? v11Menu : menu)}
         trigger='click'
         position='tl'
         popupVisible={open}
@@ -405,12 +400,12 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
           ref={triggerButtonRef}
           type='secondary'
           shape='circle'
-          className={synonBiomedV11 ? 'composer-icon-control' : undefined}
+          className={xScienceV11 ? 'composer-icon-control' : undefined}
           icon={plusIcon}
           loading={uploading}
           disabled={uploading}
           data-testid={triggerTestId}
-          aria-label={synonBiomedV11 ? t('conversation.attachMenu.addToMessage') : undefined}
+          aria-label={xScienceV11 ? t('conversation.attachMenu.addToMessage') : undefined}
         />
       </Trigger>
       <input

@@ -5,9 +5,9 @@ import { join, resolve } from 'node:path';
 import { createServer } from 'vite';
 import { chromium, expect } from '@playwright/test';
 
-const api = process.env.SYNON_FRAME_ATTENTION_API;
+const api = process.env.X_SCIENCE_FRAME_ATTENTION_API;
 if (!/^http:\/\/127\.0\.0\.1:\d+$/.test(api)) throw new Error('Controlled local API required');
-const artifacts = await mkdtemp(join(tmpdir(), 'synon-task-attention-'));
+const artifacts = await mkdtemp(join(tmpdir(), 'x-science-task-attention-'));
 let server, browser;
 try {
   server = await createServer({
@@ -60,14 +60,14 @@ try {
   await page.waitForTimeout(5500);
   await expect(page.getByRole('button', { name: '批准并执行', exact: true })).toBeVisible();
   await page.getByRole('button', { name: '批准并执行', exact: true }).click();
-  await expect(page.getByTestId('synon-biomed-plan-attention')).toHaveCount(0);
+  await expect(page.getByTestId('x-science-plan-attention')).toHaveCount(0);
   await page.goto(`${url}?frame=provider-paused`);
-  await expect(page.getByTestId('synon-biomed-runtime-status')).toHaveAttribute('data-state', 'paused');
-  await expect(page.getByTestId('synon-biomed-paused-attention')).toContainText('本次模型输出达到上限');
+  await expect(page.getByTestId('x-science-runtime-status')).toHaveAttribute('data-state', 'paused');
+  await expect(page.getByTestId('x-science-paused-attention')).toContainText('本次模型输出达到上限');
   await expect(page.getByRole('button', { name: '继续任务', exact: true })).toBeVisible();
-  await expect(page.getByTestId('synon-biomed-plan-attention')).toHaveCount(0);
+  await expect(page.getByTestId('x-science-plan-attention')).toHaveCount(0);
   await page.reload();
-  await expect(page.getByTestId('synon-biomed-paused-attention')).toBeVisible();
+  await expect(page.getByTestId('x-science-paused-attention')).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload();
   await expect(page.getByRole('button', { name: '继续任务', exact: true })).toBeVisible();

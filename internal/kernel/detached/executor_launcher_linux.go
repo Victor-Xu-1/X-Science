@@ -196,7 +196,7 @@ func (launcher *SystemdUserExecutorLauncher) Launch(request ExecutorLaunchReques
 }
 
 func executorUnitName(backendID string, generation int64) string {
-	return "synon-kernel-executor-" + strings.TrimPrefix(backendID, "kernel-backend-") + "-g" + strconv.FormatInt(generation, 10) + ".service"
+	return "x-science-kernel-executor-" + strings.TrimPrefix(backendID, "kernel-backend-") + "-g" + strconv.FormatInt(generation, 10) + ".service"
 }
 
 func validExecutorUnitComponent(value string) bool {
@@ -225,7 +225,7 @@ func DefaultSharedSocketRoot(homeDir string) (string, error) {
 		return "", errors.New("shared detached kernel runtime directory is not private")
 	}
 	digest := sha256.Sum256([]byte(homeDir))
-	root := filepath.Join(runtimeDir, "synon-kernel-"+hex.EncodeToString(digest[:6]))
+	root := filepath.Join(runtimeDir, "x-science-kernel-"+hex.EncodeToString(digest[:6]))
 	longest := filepath.Join(root, "kernel-backend-"+strings.Repeat("0", 36)+".sock")
 	if len([]byte(longest)) > maxUnixSocketPathBytes {
 		return "", errors.New("shared detached kernel socket root exceeds the unix path budget")

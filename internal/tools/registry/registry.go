@@ -7,11 +7,11 @@ import (
 	"sort"
 	"strings"
 
-	"synon-go/internal/tools/articlefulltext"
-	"synon-go/internal/tools/bindingmode"
-	"synon-go/internal/tools/patentsearch"
-	"synon-go/internal/tools/webfetch"
-	"synon-go/internal/tools/websearch"
+	"x-science/internal/tools/articlefulltext"
+	"x-science/internal/tools/bindingmode"
+	"x-science/internal/tools/patentsearch"
+	"x-science/internal/tools/webfetch"
+	"x-science/internal/tools/websearch"
 )
 
 type Field struct {

@@ -1,5 +1,5 @@
 {
-  "schema": "synon.governance.product-identity-consumers.v4",
+  "schema": "x-science.governance.product-identity-consumers.v4",
   "authority_path": "product-identity.json",
   "reference_path": "docs/governance/product-identity.json",
   "release_policy_path": "docs/governance/release-policy.json",
@@ -8,10 +8,10 @@
   "classes": {
     "product-user-visible": "must project display values derived from the root authority",
     "product-version-projection": "must project the root authority version without defining another value",
-    "machine-compatibility": "retain until all launch, package, service and rollback consumers are proven",
+    "machine-compatibility": "emit the canonical namespace; preserve only exact source-proven upgrade inputs and recovery facts",
     "persisted-format": "rename only through an ordered backup-first migration",
     "dependency-name-or-version": "not a product identity unless explicitly classified as a product projection",
-    "legacy-path": "may retain historical spelling and never becomes a version authority",
+    "legacy-path": "historical user/source locations are facts, never current product defaults or a version authority",
     "historical-evidence": "immutable and excluded from current identity claims",
     "schema-or-contract-version": "independent of product SemVer",
     "test-fixture": "test-only input or assertion that cannot define a runtime product version"
@@ -31,12 +31,12 @@
     {"glob": "docs/licenses/**", "class": "dependency-name-or-version", "disposition": "required upstream license texts, attribution and third-party package versions"},
     {"glob": "frontend/package-lock.json", "class": "dependency-name-or-version", "disposition": "third-party package versions and lock integrity"},
     {"glob": "skills/**/requirements.lock", "class": "dependency-name-or-version", "disposition": "third-party runtime dependency versions"},
-    {"glob": "skills/synonbiomed/**", "class": "dependency-name-or-version", "disposition": "current unversioned bundled skills; embedded third-party versions are provenance only"},
+    {"glob": "skills/x-science/**", "class": "dependency-name-or-version", "disposition": "current unversioned bundled skills; embedded third-party versions are provenance only"},
     {"glob": "internal/compat/**", "class": "historical-evidence", "disposition": "compatibility oracle fixtures"},
     {"glob": "scripts/compat/**", "class": "historical-evidence", "disposition": "compatibility capture tooling"},
     {"glob": "assets/optional/conda-runtimes/**", "class": "dependency-name-or-version", "disposition": "content-addressed runtime lock manifests and upstream package versions"},
     {"glob": "internal/server/scientific_runtime_catalog.go", "class": "dependency-name-or-version", "disposition": "pinned scientific runtime dependency versions"},
-    {"glob": "docs/licenses/synon-scientific-runtime-warmups/NOTICE.md", "class": "dependency-name-or-version", "disposition": "documented third-party scientific runtime dependency versions"},
+    {"glob": "docs/licenses/x-science-scientific-runtime-warmups/NOTICE.md", "class": "dependency-name-or-version", "disposition": "documented third-party scientific runtime dependency versions"},
     {"glob": "docs/quality-testing/**", "class": "historical-evidence", "disposition": "dated test issue and failure evidence"},
     {"glob": "scripts/benchmark-runtime.py", "class": "historical-evidence", "disposition": "historical runtime benchmark labels"},
     {"glob": "scripts/quality/README.md", "class": "legacy-path", "disposition": "repository governance example for an external historical checkout path"}
@@ -49,7 +49,7 @@
     {"path": "frontend/package-lock.json", "kind": "json-pointer", "pointer": "/packages/packages~1desktop/version"},
     {"path": "identity.go", "kind": "go-embed-authority", "authority_path": "product-identity.json"},
     {"path": "internal/buildinfo/buildinfo.go", "kind": "go-derived-consumer", "required_markers": ["productidentity.Current()"]},
-    {"path": "cmd/synon/main.go", "kind": "go-derived-consumer", "required_markers": ["buildinfo.Release()"]},
+    {"path": "cmd/x-science/main.go", "kind": "go-derived-consumer", "required_markers": ["buildinfo.Release()"]},
     {"path": "internal/releasepkg/manifest.go", "kind": "go-derived-consumer", "required_markers": ["buildinfo.Release()"]},
     {"path": "internal/tools/mcpstdio/client_policy.go", "kind": "go-derived-consumer", "required_markers": ["buildinfo.Release()"]},
     {"path": "internal/tools/articlefulltext/client.go", "kind": "go-derived-consumer", "required_markers": ["buildinfo.Release()"]},
@@ -58,7 +58,7 @@
     {"path": "internal/server/web_assistant_api.go", "kind": "go-derived-consumer", "required_markers": ["buildinfo.Release()"]},
     {"path": "internal/server/server_health_runtime.go", "kind": "go-derived-consumer", "required_markers": ["buildinfo.Release()"]},
     {"path": "scripts/smoke-live-im/main.go", "kind": "go-derived-consumer", "required_markers": ["buildinfo.Release()"]},
-    {"path": "cmd/synon/operational_cli.go", "kind": "go-derived-consumer", "required_markers": ["buildinfo.Release()"]},
+    {"path": "cmd/x-science/operational_cli.go", "kind": "go-derived-consumer", "required_markers": ["buildinfo.Release()"]},
     {"path": "internal/server/vm_resources_api.go", "kind": "go-derived-consumer", "required_markers": ["buildinfo.Release()"]},
     {"path": "internal/skills/loader.go", "kind": "go-derived-consumer", "required_markers": ["buildinfo.Release()"]},
     {"path": "internal/vmrestart/manager.go", "kind": "go-derived-consumer", "required_markers": ["buildinfo.Release()"]},
@@ -66,16 +66,16 @@
     {"path": "frontend/vite.config.ts", "kind": "text-derived-consumer", "required_markers": ["__APP_VERSION__", "rootPackage.version"]},
     {"path": "frontend/packages/desktop/src/renderer/pages/settings/GeneralSettings.tsx", "kind": "text-derived-consumer", "required_markers": ["__APP_VERSION__"]},
     {"path": "scripts/dev/source-backend-watch.sh", "kind": "text-derived-consumer", "required_markers": ["./scripts/product-identity", "product_slug", "${product_slug}-dev"]},
-    {"path": "scripts/release-path-policy.sh", "kind": "text-derived-consumer", "required_markers": ["../product-identity.json", "synon_release_assert_product_identity", "cmp -s"]},
-    {"path": "scripts/release-identity-policy.ps1", "kind": "text-derived-consumer", "required_markers": ["product-identity.json", "Assert-SynonProductIdentity", "ReadAllBytes"]},
-    {"path": "scripts/install-release.sh", "kind": "text-derived-consumer", "required_markers": ["synon_release_assert_product_identity \"$package_dir\"", "synon_release_assert_product_identity \"$stage\"", "synon_release_assert_product_identity \"$install_dir\""]},
-    {"path": "scripts/backup-release.sh", "kind": "text-derived-consumer", "required_markers": ["synon_release_assert_product_identity \"$install_dir\"", "synon_release_assert_product_identity \"$stage\""]},
-    {"path": "scripts/rollback-release.sh", "kind": "text-derived-consumer", "required_markers": ["synon_release_assert_product_identity \"$backup_dir\"", "synon_release_assert_product_identity \"$stage\"", "synon_release_assert_product_identity \"$install_dir\""]},
-    {"path": "scripts/uninstall-release.sh", "kind": "text-derived-consumer", "required_markers": ["synon_release_assert_product_identity \"$install_dir\""]},
-    {"path": "scripts/install-systemd-user.sh", "kind": "text-derived-consumer", "required_markers": ["synon_release_assert_product_identity \"$install_dir\""]},
-    {"path": "scripts/install-release.ps1", "kind": "text-derived-consumer", "required_markers": ["$script:TrustedIdentityPath = Join-Path $PSScriptRoot", "Assert-SynonProductIdentity"]},
-    {"path": "scripts/manage-release.ps1", "kind": "text-derived-consumer", "required_markers": ["$script:TrustedIdentityPath = Join-Path $PSScriptRoot", "Assert-SynonProductIdentity"]},
-    {"path": "scripts/package-release.sh", "kind": "text-derived-consumer", "required_markers": ["./scripts/product-identity", "package_name=\"${product_slug}-v${version}-${goos}-${goarch}\"", "source_uri=\"${SYNON_SOURCE_URI:-pkg:generic/${product_slug}@${version}}\""]}
+    {"path": "scripts/release-path-policy.sh", "kind": "text-derived-consumer", "required_markers": ["../product-identity.json", "x_science_release_assert_product_identity", "cmp -s"]},
+    {"path": "scripts/release-identity-policy.ps1", "kind": "text-derived-consumer", "required_markers": ["product-identity.json", "Assert-XScienceProductIdentity", "ReadAllBytes"]},
+    {"path": "scripts/install-release.sh", "kind": "text-derived-consumer", "required_markers": ["x_science_release_assert_product_identity \"$package_dir\"", "x_science_release_assert_product_identity \"$stage\"", "x_science_release_assert_product_identity \"$install_dir\""]},
+    {"path": "scripts/backup-release.sh", "kind": "text-derived-consumer", "required_markers": ["x_science_release_assert_product_identity \"$install_dir\"", "x_science_release_assert_product_identity \"$stage\""]},
+    {"path": "scripts/rollback-release.sh", "kind": "text-derived-consumer", "required_markers": ["x_science_release_assert_product_identity \"$backup_dir\"", "x_science_release_assert_product_identity \"$stage\"", "x_science_release_assert_product_identity \"$install_dir\""]},
+    {"path": "scripts/uninstall-release.sh", "kind": "text-derived-consumer", "required_markers": ["x_science_release_assert_product_identity \"$install_dir\""]},
+    {"path": "scripts/install-systemd-user.sh", "kind": "text-derived-consumer", "required_markers": ["x_science_release_assert_product_identity \"$install_dir\""]},
+    {"path": "scripts/install-release.ps1", "kind": "text-derived-consumer", "required_markers": ["$script:TrustedIdentityPath = Join-Path $PSScriptRoot", "Assert-XScienceProductIdentity"]},
+    {"path": "scripts/manage-release.ps1", "kind": "text-derived-consumer", "required_markers": ["$script:TrustedIdentityPath = Join-Path $PSScriptRoot", "Assert-XScienceProductIdentity"]},
+    {"path": "scripts/package-release.sh", "kind": "text-derived-consumer", "required_markers": ["./scripts/product-identity", "package_name=\"${product_slug}-v${version}-${goos}-${goarch}\"", "source_uri=\"${X_SCIENCE_SOURCE_URI:-pkg:generic/${product_slug}@${version}}\""]}
   ],
   "user_visible_name_projections": [
     {"path": "README.md", "kind": "line-prefix", "value_template": "# {display_name}"},
@@ -89,6 +89,24 @@
     {"path": "frontend/packages/desktop/src/renderer/index.html", "kind": "text-occurrence", "value_field": "display_name", "occurrences": 3}
   ],
   "consumer_inventory": [
+    {
+      "surface_id": "sha-bound-namespace-scope-proof",
+      "class": "schema-or-contract-version",
+      "owner": "controller",
+      "paths": ["scripts/quality/pr_namespace_scope.py", "scripts/quality/test_pr_namespace_scope.py", "scripts/quality/go_namespace_equivalence.go", "scripts/quality/verification_scope.json"],
+      "current_disposition": "the former module and namespace names are exact historical proof inputs; immutable Git counterparts route changed behavior to current consumers without ignoring literals, directives, unknown inputs or dependency changes",
+      "target": "retain narrow AST and ownership proofs with fail-closed scoped checker registration; no second product version or test authority",
+      "release_blocking": true
+    },
+    {
+      "surface_id": "frontend-import-namespace-provenance",
+      "class": "historical-evidence",
+      "owner": "controller",
+      "paths": ["scripts/audit/frontend_source_namespace.py", "scripts/audit/test_frontend_source_namespace.py", "frontend/SOURCE_IMPORT_MANIFEST.json"],
+      "current_disposition": "original imported filenames remain genuine immutable facts while collision-checked current paths and original source paths are jointly bound in the reviewed migration fingerprint",
+      "target": "preserve original facts and require explicit adaptation classification for changed content",
+      "release_blocking": true
+    },
     {
       "surface_id": "frontend-package-manifests",
       "class": "product-version-projection",
@@ -120,9 +138,9 @@
       "surface_id": "cli-and-web-display",
       "class": "product-user-visible",
       "owner": "core-runtime",
-      "paths": ["cmd/synon/main.go", "cmd/synon/web_ui.go"],
+      "paths": ["cmd/x-science/main.go", "cmd/x-science/web_ui.go"],
       "current_disposition": "visible CLI and Web identity derives from the embedded root authority",
-      "target": "retain approved command compatibility aliases while keeping display values authority-derived",
+      "target": "use the single canonical launcher and keep display values authority-derived",
       "release_blocking": true
     },
     {
@@ -138,7 +156,7 @@
       "surface_id": "release-manifest-and-provenance",
       "class": "product-version-projection",
       "owner": "core-runtime",
-      "paths": ["internal/releasepkg/manifest.go", "internal/releasepkg/supplychain.go", "cmd/synon/release_manifest_cli.go", "cmd/synon/release_supply_chain_cli.go"],
+      "paths": ["internal/releasepkg/manifest.go", "internal/releasepkg/supplychain.go", "cmd/x-science/release_manifest_cli.go", "cmd/x-science/release_supply_chain_cli.go"],
       "current_disposition": "release metadata derives from root identity; tracked source only defines static release policy",
       "target": "retain root identity plus exact Git revision and signed external release authorization",
       "release_blocking": true
@@ -157,8 +175,8 @@
       "class": "machine-compatibility",
       "owner": "repository-steward",
       "paths": ["Makefile", "scripts/package-release.sh", "scripts/package-release-test.sh", "scripts/package-windows-release-test.sh"],
-      "current_disposition": "archive and provenance identity derive from the root authority; packaged binary names remain compatibility identifiers",
-      "target": "retain derived archive identity while testing compatibility binary upgrade and rollback",
+      "current_disposition": "archive, binary and command identities use the canonical root authority and namespace",
+      "target": "verify package consumers and bounded previous-install upgrade/recovery without a second launcher",
       "release_blocking": true
     },
     {
@@ -166,17 +184,17 @@
       "class": "machine-compatibility",
       "owner": "repository-steward",
       "paths": ["scripts/install-release.sh", "scripts/install-release.ps1", "scripts/install-systemd-user.sh", "scripts/manage-release.ps1", "scripts/release-identity-policy.ps1", "scripts/release-path-policy.sh", "scripts/backup-release.sh", "scripts/rollback-release.sh", "scripts/uninstall-release.sh"],
-      "current_disposition": "legacy install roots and service names remain compatibility identifiers; install, backup, rollback, service creation and normal uninstall compare candidates to the trusted manager tree product identity before candidate execution or mutation",
-      "target": "rename only with Linux and Windows install, upgrade, rollback and uninstall evidence",
+      "current_disposition": "canonical install/service source defaults replace earlier product names; trusted-manager identity checks, original user paths, data protection and platform-qualified lifecycle evidence remain required",
+      "target": "prove each actual installed predecessor handoff and use forward-only recovery after the namespace schema cutover; static checks are not native lifecycle acceptance",
       "release_blocking": true
     },
     {
       "surface_id": "bundled-scientific-runtime-namespaces",
       "class": "machine-compatibility",
       "owner": "core-runtime",
-      "paths": ["assets/synonbiomed/agents.manifest.json", "assets/synonbiomed/skills.manifest.json", "internal/sciencecapability/scientific-capabilities.v2.json", "skills/synonbiomed/THIRD_PARTY_LICENSES.md"],
+      "paths": ["assets/x-science/agents.manifest.json", "assets/x-science/skills.manifest.json", "internal/sciencecapability/scientific-capabilities.v2.json", "skills/x-science/THIRD_PARTY_LICENSES.md"],
       "current_disposition": "current bundled agents, skills and scientific capability assets use stable unversioned runtime namespaces; their manifests retain v1.1 only as source provenance",
-      "target": "keep runtime paths unversioned and reject reintroduction of retired assets/skills synonbiomed-v1.1 namespaces",
+      "target": "keep current runtime paths unversioned under assets/x-science and skills/x-science; original imported versions remain provenance only",
       "release_blocking": true
     },
     {
@@ -184,7 +202,7 @@
       "class": "dependency-name-or-version",
       "owner": "core-runtime",
       "paths": ["assets/optional/mcp-servers/ketcher-chemistry.manifest.json"],
-      "current_disposition": "the asset manifest identifies upstream EPAM Ketcher 3.12.0 only and carries no Synon product minimum version",
+      "current_disposition": "the asset manifest identifies upstream EPAM Ketcher 3.12.0 only and carries no X-Science product minimum version",
       "target": "retain component provenance and checksums while product compatibility remains governed by the root release identity",
       "release_blocking": true
     },
@@ -194,7 +212,7 @@
       "owner": "repository-steward",
       "paths": ["scripts/dev/source-backend-watch.sh"],
       "current_disposition": "the source watcher derives its external build-state directory from the root machine slug without encoding a product version",
-      "target": "retain the root-derived unversioned development path and explicit SYNON_DEV_BUILD_DIR override",
+      "target": "retain the root-derived unversioned development path and explicit X_SCIENCE_DEV_BUILD_DIR override",
       "release_blocking": false
     },
     {
@@ -202,8 +220,8 @@
       "class": "dependency-name-or-version",
       "owner": "controller",
       "paths": ["go.mod", "frontend/package.json", "frontend/packages/desktop/package.json"],
-      "current_disposition": "retain module and package scopes; they are dependency authorities",
-      "target": "no rename without import, ecosystem and rollback plan",
+      "current_disposition": "the first-party module is x-science and package scopes are canonical; third-party dependency identities, versions and integrity bytes remain genuine",
+      "target": "validate import consumers, package manifests and namespace-only source proofs without reclassifying dependency changes as a rename",
       "release_blocking": false
     },
     {
@@ -211,8 +229,8 @@
       "class": "persisted-format",
       "owner": "core-runtime",
       "paths": ["internal/config/data_dir.go", "internal/datadir/controller.go", "internal/migration/v11/types.go", "internal/migration/v11/profiles.go"],
-      "current_disposition": "retain database, state and imported identifiers",
-      "target": "backup-first ordered migration only; no string replacement",
+      "current_disposition": "workspace/x-science.sqlite is the single current database path; v75 seals namespace cutover receipts and preserves immutable source bytes, journal identities and user data",
+      "target": "verified drained database/blob handoff and source-bound aliases only; no string replacement, backup-over-live restore or fabricated execution identity",
       "release_blocking": false
     },
     {
@@ -220,8 +238,8 @@
       "class": "legacy-path",
       "owner": "repository-steward",
       "paths": ["README.md", "scripts/clean-copy-build-test.sh"],
-      "current_disposition": "retain historical path labels during transition",
-      "target": "move only after source, state, service and rollback consumers are proven",
+      "current_disposition": "current source and documented default paths are canonical; actual user-controlled paths and protected historical recovery locations remain facts",
+      "target": "retire running predecessors after verified canonical admission, without moving embedded SDK prefixes or unknown user work",
       "release_blocking": false
     },
     {
@@ -229,16 +247,16 @@
       "class": "schema-or-contract-version",
       "owner": "controller",
       "paths": ["internal/persistence/workspace/versioned_schema.go", "docs/governance/product-identity.json"],
-      "current_disposition": "production workspace schema target is 74 with no pending schema cohort",
+      "current_disposition": "production workspace schema target is 75 with no pending schema cohort",
       "target": "advance only through reviewed migration predecessors and never infer product version",
       "release_blocking": false
     }
   ],
   "classified_legacy_consumers": [
-    {"surface": "go.mod module and package-manager scopes", "class": "dependency-name-or-version", "disposition": "retain until import and package migration plus rollback are complete"},
-    {"surface": "binary, command and service identifiers", "class": "machine-compatibility", "disposition": "retain until launcher, package, service and rollback consumers are mapped"},
-    {"surface": "legacy checkout, install and state paths", "class": "legacy-path", "disposition": "retain and never infer product version from a directory"},
-    {"surface": "database, journal and persisted identifiers", "class": "persisted-format", "disposition": "retain until an explicit backup-first migration is authorized"},
+    {"surface": "go.mod module and package-manager scopes", "class": "dependency-name-or-version", "disposition": "first-party identities are canonical; external dependency identities and historical source receipts remain facts"},
+    {"surface": "binary, command and service identifiers", "class": "machine-compatibility", "disposition": "single canonical current defaults; exact earlier installation names are handoff inputs only"},
+    {"surface": "legacy checkout, install and state paths", "class": "legacy-path", "disposition": "historical recovery or user paths are not current product defaults and never define a product version"},
+    {"surface": "database, journal and persisted identifiers", "class": "persisted-format", "disposition": "canonical v75 storage with sealed original journal/source/runtime identities and backup-first actual data handoff"},
     {"surface": "schema migrations, API contracts and asset schema IDs", "class": "schema-or-contract-version", "disposition": "retain as independent authorities"},
     {"surface": "third-party package and lock-file versions", "class": "dependency-name-or-version", "disposition": "exclude from product-version drift matching"},
     {"surface": "immutable evidence and historical compatibility captures", "class": "historical-evidence", "disposition": "do not rewrite; label Historical at the consuming boundary"}

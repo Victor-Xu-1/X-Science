@@ -16,10 +16,10 @@ import (
 	"testing"
 	"time"
 
-	eventjournal "synon-go/internal/persistence/journal"
-	sessionstore "synon-go/internal/persistence/sessions"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	eventjournal "x-science/internal/persistence/journal"
+	sessionstore "x-science/internal/persistence/sessions"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestCompatibilityFrameDeleteReturnsSuccessAfterCommittedArtifactCleanupFailure(t *testing.T) {
@@ -1422,7 +1422,7 @@ func compatRequest(t *testing.T, method, target, userID string, body any) *http.
 		}
 	}
 	request := newLoopbackTestRequest(method, target, bytes.NewReader(encoded))
-	request.Header.Set("X-Synon-User-Id", userID)
+	request.Header.Set("X-Science-User-Id", userID)
 	if body != nil {
 		request.Header.Set("Content-Type", "application/json")
 	}

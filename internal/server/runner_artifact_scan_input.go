@@ -12,8 +12,8 @@ import (
 	"strings"
 	"sync"
 
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/runtimecontrol"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/runtimecontrol"
 )
 
 type runnerArtifactScanInput struct {
@@ -106,7 +106,7 @@ func streamRunnerPresentationText(ctx context.Context, source io.ReadSeeker) (_ 
 	if err != nil {
 		return nil, fmt.Errorf("read runner cross-artifact presentation: %w", err)
 	}
-	output, err := os.CreateTemp("", "synon-artifact-visible-*")
+	output, err := os.CreateTemp("", "x-science-artifact-visible-*")
 	if err != nil {
 		return nil, err
 	}

@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/kernelcontract"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/toolcontract"
+	"x-science/internal/agentruntime"
+	"x-science/internal/kernelcontract"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/toolcontract"
 )
 
 const prestartToolFailurePhase = "prestart_failed"

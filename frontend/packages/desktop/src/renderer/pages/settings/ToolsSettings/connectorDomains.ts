@@ -8,7 +8,7 @@
  * Connector domains — the domain dimension the merged library page's tools tab
  * filters on.
  *
- * The connector catalog carries no domain field: `SynonBiomedMcpServer` has no
+ * The connector catalog carries no domain field: `XScienceMcpServer` has no
  * category, and the bundled catalog
  * (`internal/mcpdirectory/bundled_metadata.json`) declares none either — only
  * the two install candidates in `optional_metadata.json` have one, and they are
@@ -20,7 +20,7 @@
  * or 'other' (an unclassified catalog addition) rather than being guessed.
  */
 
-import type { SynonBiomedMcpServer } from '@/renderer/services/synonBiomedCapabilities';
+import type { XScienceMcpServer } from '@/renderer/services/xScienceCapabilities';
 import { findKnownMcpConnectorVisual } from './mcpConnectorVisuals';
 
 export type ConnectorDomainId =
@@ -106,7 +106,7 @@ const GLYPH_DOMAINS: Readonly<Record<string, ClassifiedDomain>> = {
 
 /** Catalog connectors the reviewed visual table does not classify. */
 const NAME_DOMAINS: Readonly<Record<string, ClassifiedDomain>> = {
-  'synon-research': 'platform',
+  'x-science-research': 'platform',
 };
 
 /** The catalog identifier a connector is grouped by, e.g. `bundled:pubmed`. */
@@ -122,7 +122,7 @@ function normalizedConnectorName(name: string): string {
 }
 
 export function resolveConnectorDomain(
-  server: Pick<SynonBiomedMcpServer, 'name' | 'displayName' | 'source'>,
+  server: Pick<XScienceMcpServer, 'name' | 'displayName' | 'source'>,
   isCustom: boolean
 ): ConnectorDomainId {
   if (isCustom || server.source.trim().toLowerCase() === 'custom') return 'custom';

@@ -11,7 +11,7 @@
     "optional": false
   },
   "excluded": [
-    "server.js: replaced by the native synon-go mcp-ketcher stdio implementation",
+    "server.js: replaced by the native x-science mcp-ketcher stdio implementation",
     "package.json: Node is not required by the release runtime"
   ],
   "files": [

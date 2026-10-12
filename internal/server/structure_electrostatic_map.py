@@ -39,7 +39,7 @@ COMMAND_TIMEOUT_SECONDS = 420
 TOTAL_COMMAND_BUDGET_SECONDS = 660
 APBS_GRID_MEMORY_CEILING_MIB = 512
 LIGAND_KEY_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
-INPUT_DIGEST_DOMAIN = b"synon-biomed:structure-electrostatic-input:v1"
+INPUT_DIGEST_DOMAIN = b"x-science:structure-electrostatic-input:v1"
 
 
 class ElectrostaticError(RuntimeError):
@@ -581,7 +581,7 @@ def calculate(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def run_self_test() -> None:
-    with tempfile.TemporaryDirectory(prefix="synon-electrostatic-self-test-") as raw_dir:
+    with tempfile.TemporaryDirectory(prefix="x-science-electrostatic-self-test-") as raw_dir:
         root = Path(raw_dir)
         pdb = root / "fixture.pdb"
         protein = root / "protein.pdb"

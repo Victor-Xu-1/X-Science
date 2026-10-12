@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 func (s *Server) executeApprovedAgentRuntimeTool(

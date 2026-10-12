@@ -2,8 +2,8 @@ import { expect, describe, it, vi } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 
 const mocks = vi.hoisted(() => ({
-  loadSynonBiomedAgents: vi.fn(),
-  toSynonAIAssistant: vi.fn(),
+  loadXScienceAgents: vi.fn(),
+  toXScienceAssistant: vi.fn(),
 }));
 
 vi.mock('@/common', () => ({
@@ -14,9 +14,9 @@ vi.mock('@/common', () => ({
   },
 }));
 
-vi.mock('@/renderer/services/synonBiomedCapabilities', () => ({
-  loadSynonBiomedAgents: mocks.loadSynonBiomedAgents,
-  toSynonAIAssistant: mocks.toSynonAIAssistant,
+vi.mock('@/renderer/services/xScienceCapabilities', () => ({
+  loadXScienceAgents: mocks.loadXScienceAgents,
+  toXScienceAssistant: mocks.toXScienceAssistant,
 }));
 
 vi.mock('react-i18next', () => ({
@@ -29,7 +29,7 @@ import { useAssistantList } from '@/renderer/hooks/assistant/useAssistantList';
 
 describe('useAssistantList direct X-Science API', () => {
   it('loads visible backend experts through the capability service instead of the legacy catalog facade', async () => {
-    mocks.loadSynonBiomedAgents.mockResolvedValue([
+    mocks.loadXScienceAgents.mockResolvedValue([
       {
         name: 'OPERON',
         displayName: 'Operon',
@@ -44,8 +44,8 @@ describe('useAssistantList direct X-Science API', () => {
         skillNames: ['alphafold2'],
       },
     ]);
-    mocks.toSynonAIAssistant.mockReturnValue({
-      id: 'synonbiomed:operon',
+    mocks.toXScienceAssistant.mockReturnValue({
+      id: 'xscience:operon',
       name: 'Operon',
       enabled: true,
       sort_order: 10000,
@@ -55,8 +55,8 @@ describe('useAssistantList direct X-Science API', () => {
 
     await waitFor(() => expect(result.current.assistants).toHaveLength(1));
 
-    expect(mocks.loadSynonBiomedAgents).toHaveBeenCalledTimes(1);
-    expect(mocks.toSynonAIAssistant).toHaveBeenCalledWith(expect.objectContaining({ name: 'OPERON' }), 0);
-    expect(result.current.activeAssistantId).toBe('synonbiomed:operon');
+    expect(mocks.loadXScienceAgents).toHaveBeenCalledTimes(1);
+    expect(mocks.toXScienceAssistant).toHaveBeenCalledWith(expect.objectContaining({ name: 'OPERON' }), 0);
+    expect(result.current.activeAssistantId).toBe('xscience:operon');
   });
 });

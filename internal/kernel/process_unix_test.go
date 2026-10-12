@@ -15,9 +15,9 @@ import (
 	"time"
 )
 
-const workerProcessSignalHelperEnv = "SYNON_WORKER_PROCESS_SIGNAL_HELPER"
+const workerProcessSignalHelperEnv = "X_SCIENCE_WORKER_PROCESS_SIGNAL_HELPER"
 
-const workerProcessContextHelperEnv = "SYNON_WORKER_PROCESS_CONTEXT_HELPER"
+const workerProcessContextHelperEnv = "X_SCIENCE_WORKER_PROCESS_CONTEXT_HELPER"
 
 func TestWorkerProcessCommandContextKillsRootAndDescendants(t *testing.T) {
 	if os.Getenv(workerProcessContextHelperEnv) == "1" {
@@ -28,7 +28,7 @@ func TestWorkerProcessCommandContextKillsRootAndDescendants(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	command := newWorkerProcessCommand(ctx, os.Args[0], "-test.run=^TestWorkerProcessCommandContextKillsRootAndDescendants$")
-	command.Env = append(os.Environ(), workerProcessContextHelperEnv+"=1", "SYNON_WORKER_PROCESS_CHILD_PID="+pidPath)
+	command.Env = append(os.Environ(), workerProcessContextHelperEnv+"=1", "X_SCIENCE_WORKER_PROCESS_CHILD_PID="+pidPath)
 	process, err := startWorkerProcess(command)
 	if err != nil {
 		t.Fatal(err)
@@ -90,7 +90,7 @@ func runWorkerProcessContextHelper(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = child.Process.Kill() })
-	pidPath := strings.TrimSpace(os.Getenv("SYNON_WORKER_PROCESS_CHILD_PID"))
+	pidPath := strings.TrimSpace(os.Getenv("X_SCIENCE_WORKER_PROCESS_CHILD_PID"))
 	if pidPath == "" {
 		t.Fatal("worker process child PID path is unavailable")
 	}
@@ -107,7 +107,7 @@ func TestWorkerProcessSignalIncludesRootAndDescendants(t *testing.T) {
 	}
 	pidPath := filepath.Join(t.TempDir(), "child.pid")
 	command := exec.Command(os.Args[0], "-test.run=^TestWorkerProcessSignalIncludesRootAndDescendants$")
-	command.Env = append(os.Environ(), workerProcessSignalHelperEnv+"=1", "SYNON_WORKER_PROCESS_CHILD_PID="+pidPath)
+	command.Env = append(os.Environ(), workerProcessSignalHelperEnv+"=1", "X_SCIENCE_WORKER_PROCESS_CHILD_PID="+pidPath)
 	process, err := startWorkerProcess(command)
 	if err != nil {
 		t.Fatal(err)
@@ -141,7 +141,7 @@ func runWorkerProcessSignalHelper(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = child.Process.Kill() })
-	pidPath := strings.TrimSpace(os.Getenv("SYNON_WORKER_PROCESS_CHILD_PID"))
+	pidPath := strings.TrimSpace(os.Getenv("X_SCIENCE_WORKER_PROCESS_CHILD_PID"))
 	if pidPath == "" {
 		t.Fatal("worker process child PID path is unavailable")
 	}

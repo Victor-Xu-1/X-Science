@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"synon-go/internal/sciencecapability"
+	"x-science/internal/sciencecapability"
 )
 
 // managedExecutionEnvironmentBoundary is the host-owned process boundary for

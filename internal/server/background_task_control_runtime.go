@@ -6,8 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	taskstore "synon-go/internal/persistence/tasks"
 	"time"
+	taskstore "x-science/internal/persistence/tasks"
 )
 
 func (s *Server) executeTaskOutputTool(ctx context.Context, toolName string, input map[string]any) (any, error) {

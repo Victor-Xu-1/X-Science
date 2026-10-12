@@ -1,0 +1,172 @@
+export type XScienceNoteTargetType = 'message' | 'bench' | 'artifact';
+
+export type XScienceNote = {
+  id: string;
+  projectId: string;
+  targetType: XScienceNoteTargetType;
+  targetFrameId: string;
+  targetMessageIndex: number | null;
+  targetArtifactId: string | null;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  targetName: string | null;
+  messagePreview: string | null;
+};
+
+export type XScienceNoteTarget = {
+  projectId: string;
+  targetType: XScienceNoteTargetType;
+  targetFrameId: string;
+  targetMessageIndex?: number;
+  targetArtifactId?: string;
+};
+
+export type XScienceNotesOptions = {
+  fetchImpl?: typeof fetch;
+};
+
+type RecordValue = Record<string, unknown>;
+
+export async function loadXScienceNotes(
+  target: XScienceNoteTarget,
+  options: XScienceNotesOptions = {}
+): Promise<XScienceNote[]> {
+  const search = new URLSearchParams({
+    target_type: target.targetType,
+    target_frame_id: target.targetFrameId,
+  });
+  const payload = await requestJson<unknown>(
+    `/api/projects/${encodeURIComponent(target.projectId)}/notes?${search.toString()}`,
+    undefined,
+    options
+  );
+  if (!Array.isArray(payload)) throw new Error('X-Science notes response is invalid');
+  return payload
+    .map(toNote)
+    .filter((note): note is XScienceNote => note !== null)
+    .filter(matchesTarget(target));
+}
+
+export async function createXScienceNote(
+  target: XScienceNoteTarget,
+  content: string,
+  options: XScienceNotesOptions = {}
+): Promise<XScienceNote> {
+  const value = content.trim();
+  if (!value) throw new Error('Note content is required');
+  const note = toNote(
+    await requestJson<unknown>(
+      `/api/projects/${encodeURIComponent(target.projectId)}/notes`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          target_type: target.targetType,
+          target_frame_id: target.targetFrameId,
+          ...(target.targetMessageIndex === undefined ? {} : { target_message_index: target.targetMessageIndex }),
+          ...(target.targetArtifactId === undefined ? {} : { target_artifact_id: target.targetArtifactId }),
+          content: value,
+        }),
+      },
+      options
+    )
+  );
+  if (!note) throw new Error('X-Science create note response is invalid');
+  return note;
+}
+
+export async function updateXScienceNote(
+  noteId: string,
+  content: string,
+  options: XScienceNotesOptions = {}
+): Promise<XScienceNote> {
+  const value = content.trim();
+  if (!value) throw new Error('Note content is required');
+  const note = toNote(
+    await requestJson<unknown>(
+      `/api/notes/${encodeURIComponent(noteId)}`,
+      { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: value }) },
+      options
+    )
+  );
+  if (!note) throw new Error('X-Science update note response is invalid');
+  return note;
+}
+
+export async function deleteXScienceNote(noteId: string, options: XScienceNotesOptions = {}): Promise<void> {
+  await requestJson(`/api/notes/${encodeURIComponent(noteId)}`, { method: 'DELETE' }, options);
+}
+
+function matchesTarget(target: XScienceNoteTarget): (note: XScienceNote) => boolean {
+  return (note) => {
+    if (target.targetMessageIndex !== undefined && note.targetMessageIndex !== target.targetMessageIndex) return false;
+    if (target.targetArtifactId !== undefined && note.targetArtifactId !== target.targetArtifactId) return false;
+    return true;
+  };
+}
+
+function toNote(value: unknown): XScienceNote | null {
+  const record = asRecord(value);
+  const id = stringValue(record?.id);
+  const projectId = stringValue(record?.project_id);
+  const targetType = stringValue(record?.target_type);
+  const targetFrameId = stringValue(record?.target_frame_id);
+  const content = stringValue(record?.content);
+  const createdAt = stringValue(record?.created_at);
+  const updatedAt = stringValue(record?.updated_at);
+  if (
+    !id ||
+    !projectId ||
+    !isTargetType(targetType) ||
+    !targetFrameId ||
+    content === null ||
+    !createdAt ||
+    !updatedAt
+  ) {
+    return null;
+  }
+  return {
+    id,
+    projectId,
+    targetType,
+    targetFrameId,
+    targetMessageIndex: nullableNumber(record?.target_message_index),
+    targetArtifactId: stringValue(record?.target_artifact_id),
+    content,
+    createdAt,
+    updatedAt,
+    targetName: stringValue(record?.target_name),
+    messagePreview: stringValue(record?.message_preview),
+  };
+}
+
+async function requestJson<T>(path: string, init: RequestInit | undefined, options: XScienceNotesOptions): Promise<T> {
+  const response = await (options.fetchImpl ?? fetch)(path, {
+    ...init,
+    credentials: 'include',
+    headers: { Accept: 'application/json', ...init?.headers },
+  });
+  if (!response.ok) {
+    const detail = await response.text().catch(() => '');
+    throw new Error(`X-Science notes request failed: ${response.status}${detail ? ` ${detail.slice(0, 300)}` : ''}`);
+  }
+  const text = await response.text();
+  return (text ? JSON.parse(text) : undefined) as T;
+}
+
+function asRecord(value: unknown): RecordValue | null {
+  return value !== null && typeof value === 'object' && !Array.isArray(value) ? (value as RecordValue) : null;
+}
+
+function stringValue(value: unknown): string | null {
+  return typeof value === 'string' ? value : null;
+}
+
+function nullableNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isInteger(value) ? value : null;
+}
+
+function isTargetType(value: string | null): value is XScienceNoteTargetType {
+  return value === 'message' || value === 'bench' || value === 'artifact';
+}

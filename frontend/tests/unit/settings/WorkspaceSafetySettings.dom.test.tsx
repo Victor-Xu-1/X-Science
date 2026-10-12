@@ -13,12 +13,12 @@ const services = vi.hoisted(() => ({
   replaceDomains: vi.fn(),
 }));
 
-vi.mock('@/renderer/services/synonBiomedWorkspaceSettings', () => ({
-  loadSynonBiomedNetworkSettings: services.loadNetwork,
-  updateSynonBiomedAllowlistGroups: services.updateGroups,
-  addSynonBiomedAllowedDomain: services.addDomain,
-  removeSynonBiomedAllowedDomain: services.removeDomain,
-  replaceSynonBiomedAllowedDomains: services.replaceDomains,
+vi.mock('@/renderer/services/xScienceWorkspaceSettings', () => ({
+  loadXScienceNetworkSettings: services.loadNetwork,
+  updateXScienceAllowlistGroups: services.updateGroups,
+  addXScienceAllowedDomain: services.addDomain,
+  removeXScienceAllowedDomain: services.removeDomain,
+  replaceXScienceAllowedDomains: services.replaceDomains,
 }));
 
 const networkSnapshot = {

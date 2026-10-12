@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/harnesscontract"
-	"synon-go/internal/skills"
-	toolregistry "synon-go/internal/tools/registry"
+	"x-science/internal/agentruntime"
+	"x-science/internal/harnesscontract"
+	"x-science/internal/skills"
+	toolregistry "x-science/internal/tools/registry"
 )
 
 var defaultAgentRuntimeCapabilityCatalog = toolregistry.Default()

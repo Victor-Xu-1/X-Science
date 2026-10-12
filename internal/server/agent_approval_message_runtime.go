@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"synon-go/internal/agentruntime"
-	taskruns "synon-go/internal/persistence/taskruns"
 	"time"
+	"x-science/internal/agentruntime"
+	taskruns "x-science/internal/persistence/taskruns"
 )
 
 type agentToolExecutionContextKey struct{}

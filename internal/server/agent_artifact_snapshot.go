@@ -8,7 +8,7 @@ import (
 	"io"
 	"os"
 
-	"synon-go/internal/runtimecontrol"
+	"x-science/internal/runtimecontrol"
 )
 
 func snapshotAgentSavedArtifact(
@@ -36,7 +36,7 @@ func snapshotAgentSavedArtifact(
 	if !info.Mode().IsRegular() {
 		return nil, 0, "", errAgentSavedArtifactNotRegular
 	}
-	snapshot, err := os.CreateTemp("", "synon-save-artifact-*")
+	snapshot, err := os.CreateTemp("", "x-science-save-artifact-*")
 	if err != nil {
 		return nil, 0, "", err
 	}

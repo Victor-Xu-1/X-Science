@@ -19,7 +19,7 @@ func TestStorePersistsAndReloadsSessions(t *testing.T) {
 	if err := store.Upsert(Session{
 		ID:        "session-1",
 		Title:     "Go rewrite",
-		WorkDir:   "/home/victor_1/.synon-go-v4.0.2",
+		WorkDir:   "/home/victor_1/.x-science-v4.0.2",
 		CreatedAt: createdAt,
 		UpdatedAt: updatedAt,
 	}); err != nil {

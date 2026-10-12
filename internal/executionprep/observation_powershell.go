@@ -33,10 +33,10 @@ func PowerShellParser() string {
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 $source = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String([Console]::In.ReadToEnd()))
-$operations = Get-SynonObservation $source
+$operations = Get-XScienceObservation $source
 $facts = @()
 if ($null -ne $operations) {
-    $facts = @(@{kind='observation'; name='synon.execution-observation.v1'; args=@($operations)})
+    $facts = @(@{kind='observation'; name='x-science.execution-observation.v1'; args=@($operations)})
 }
 [Console]::Out.Write((Microsoft.PowerShell.Utility\ConvertTo-Json -InputObject $facts -Compress -Depth 5))
 `
@@ -53,9 +53,9 @@ func GuardedPowerShell(source string, plan *Observation) (string, error) {
 	return powerShellObservationFunctions + `
 $ErrorActionPreference = 'Stop'
 $source = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('` + encoded + `'))
-$operations = Get-SynonObservation $source
+$operations = Get-XScienceObservation $source
 if ($null -eq $operations) { throw 'diagnostic_source_unproved' }
-Assert-SynonObservationBindings $operations
+Assert-XScienceObservationBindings $operations
 & ([ScriptBlock]::Create($source))
 `, nil
 }

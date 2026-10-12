@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestWorkspaceModelsAPIListsEnabledProviderModels(t *testing.T) {
@@ -32,7 +32,7 @@ func TestWorkspaceModelsAPIListsEnabledProviderModels(t *testing.T) {
 	app := New(Options{Workspace: store}).Handler()
 	compatibility := httptest.NewRecorder()
 	compatibilityRequest := newLoopbackTestRequest(http.MethodGet, "/api/models", nil)
-	compatibilityRequest.Header.Set("X-Synon-User-Id", "user-1")
+	compatibilityRequest.Header.Set("X-Science-User-Id", "user-1")
 	app.ServeHTTP(compatibility, compatibilityRequest)
 	if compatibility.Code != http.StatusOK || bytes.Contains(compatibility.Body.Bytes(), []byte("secret://")) ||
 		bytes.Contains(compatibility.Body.Bytes(), []byte("foreign-model")) {
@@ -54,7 +54,7 @@ func TestWorkspaceModelsAPIListsEnabledProviderModels(t *testing.T) {
 
 	openAI := httptest.NewRecorder()
 	openAIRequest := newLoopbackTestRequest(http.MethodGet, "/v1/models", nil)
-	openAIRequest.Header.Set("X-Synon-User-Id", "user-1")
+	openAIRequest.Header.Set("X-Science-User-Id", "user-1")
 	app.ServeHTTP(openAI, openAIRequest)
 	if openAI.Code != http.StatusOK || !bytes.Contains(openAI.Body.Bytes(), []byte("\"id\":\"model-a\"")) ||
 		bytes.Contains(openAI.Body.Bytes(), []byte("secret://")) || bytes.Contains(openAI.Body.Bytes(), []byte("foreign-model")) {
@@ -63,7 +63,7 @@ func TestWorkspaceModelsAPIListsEnabledProviderModels(t *testing.T) {
 
 	unknown := httptest.NewRecorder()
 	unknownRequest := newLoopbackTestRequest(http.MethodGet, "/api/models?provider=other", nil)
-	unknownRequest.Header.Set("X-Synon-User-Id", "user-1")
+	unknownRequest.Header.Set("X-Science-User-Id", "user-1")
 	app.ServeHTTP(unknown, unknownRequest)
 	if unknown.Code != http.StatusNotFound {
 		t.Fatalf("unknown provider = %d: %s", unknown.Code, unknown.Body.String())
@@ -106,7 +106,7 @@ func TestWorkspaceModelsAPIProjectsActiveProfileAndStableSelectors(t *testing.T)
 		t.Fatal(err)
 	}
 	request := newLoopbackTestRequest(http.MethodGet, "/v1/models", nil)
-	request.Header.Set("X-Synon-User-Id", "local")
+	request.Header.Set("X-Science-User-Id", "local")
 	response := httptest.NewRecorder()
 	server.Handler().ServeHTTP(response, request)
 	if response.Code != http.StatusOK {

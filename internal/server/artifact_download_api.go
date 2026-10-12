@@ -12,7 +12,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const maxSelectedArtifactDownloads = 200
@@ -260,7 +260,7 @@ func serveArtifactVersion(w http.ResponseWriter, r *http.Request, artifact works
 			// is copied and its producer metadata changes.
 			w.Header().Set("Content-Security-Policy", "sandbox allow-scripts; base-uri 'none'; form-action 'none'; frame-ancestors 'none'")
 		}
-		w.Header().Set("X-Synon-HTML-Preview", mode)
+		w.Header().Set("X-Science-HTML-Preview", mode)
 	}
 	http.ServeContent(w, r, filename, version.CreatedAt, content)
 }

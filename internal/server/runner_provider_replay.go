@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"strings"
 
-	"synon-go/internal/agentruntime"
-	eventjournal "synon-go/internal/persistence/journal"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	"x-science/internal/agentruntime"
+	eventjournal "x-science/internal/persistence/journal"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 // sessionEntriesToProviderMessages is the sole Transcript/journal to provider
@@ -405,7 +405,7 @@ func boundedIdentifierEditDistance(left, right string, limit int) int {
 }
 
 func isNestedKernelMCPReplayReceipt(message eventjournal.Message) bool {
-	if strings.TrimSpace(stringValue(message["schema"])) != "synon.kernel_mcp_evidence.v1" {
+	if strings.TrimSpace(stringValue(message["schema"])) != "x-science.kernel_mcp_evidence.v1" {
 		return false
 	}
 	toolCallID := strings.TrimSpace(stringValue(message["toolCallId"]))

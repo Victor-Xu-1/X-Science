@@ -34,6 +34,10 @@
   --ui-shadow-lg: 0 8px 28px rgb(35 33 29 / 10%);
   --ui-shadow-popover: var(--workspace-shadow-popover);
 
+  /* Keyboard focus — one thin indicator, separate from text/brand colors. */
+  --ui-focus-width: 1px;
+  --ui-focus-offset: 2px;
+
   /* Type — meta 12 / body 13 / subtitle 14 / title 15 / section 16 */
   --ui-font-micro: 11px;
   --ui-font-meta: 12px;

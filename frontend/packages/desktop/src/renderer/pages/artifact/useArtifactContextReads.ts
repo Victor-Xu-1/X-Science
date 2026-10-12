@@ -6,14 +6,14 @@
 
 import { useLayoutEffect, useRef, useState } from 'react';
 import {
-  loadSynonBiomedProject,
-  loadSynonBiomedLinkedTask,
-  type SynonBiomedProject,
-  type SynonBiomedLinkedTask,
-} from '@/renderer/services/synonBiomedGateway';
+  loadXScienceProject,
+  loadXScienceLinkedTask,
+  type XScienceProject,
+  type XScienceLinkedTask,
+} from '@/renderer/services/xScienceGateway';
 import type { ArtifactReadState } from './useArtifactMetadataReads';
 
-type Values = { project: SynonBiomedProject | null; task: SynonBiomedLinkedTask | null };
+type Values = { project: XScienceProject | null; task: XScienceLinkedTask | null };
 type Section = keyof Values;
 type Snapshot = { owner: string; sections: { [K in Section]: ArtifactReadState<Values[K]> } };
 type Pending = { controller: AbortController; timer: ReturnType<typeof setTimeout> };
@@ -67,9 +67,9 @@ export function useArtifactContextReads(projectId: string | null, taskId: string
     void Promise.resolve()
       .then(async () => {
         if (!current()) throw new Error('obsolete_artifact_context_read');
-        if (key === 'project' && projectId) return loadSynonBiomedProject(projectId, { signal: controller.signal });
+        if (key === 'project' && projectId) return loadXScienceProject(projectId, { signal: controller.signal });
         if (!taskId) return null;
-        const task = await loadSynonBiomedLinkedTask(taskId, { signal: controller.signal });
+        const task = await loadXScienceLinkedTask(taskId, { signal: controller.signal });
         if (projectId && task.projectId && task.projectId !== projectId)
           throw new Error('artifact_context_project_mismatch');
         return task;

@@ -35,7 +35,7 @@ describe('scientific runtime settings protocol', () => {
 
   it('accepts zero-sized required core runtimes and keeps their contract explicit', async () => {
     const entry = {
-      id: 'synon-biomed-python',
+      id: 'x-science-python',
       kind: 'core',
       required: true,
       estimated_install_bytes: 0,
@@ -48,7 +48,7 @@ describe('scientific runtime settings protocol', () => {
     const fetchImpl = vi.fn().mockResolvedValue(new Response(JSON.stringify({ options: [entry] })));
     const result = await loadScientificRuntimeSettings({ fetchImpl });
     expect(result.options[0]).toMatchObject({
-      id: 'synon-biomed-python',
+      id: 'x-science-python',
       kind: 'core',
       required: true,
       estimatedInstallBytes: 0,

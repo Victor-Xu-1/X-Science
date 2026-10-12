@@ -4,7 +4,7 @@ import (
 	"context"
 	"io"
 	"math"
-	"synon-go/internal/runtimecontrol"
+	"x-science/internal/runtimecontrol"
 )
 
 // RPC envelopes retain raw JSON and the SDK may decode it again. Reserve a

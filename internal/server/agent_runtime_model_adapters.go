@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/providers"
 	"time"
+	"x-science/internal/agentruntime"
+	"x-science/internal/providers"
 )
 
 func (client sessionRunnerStaticStreamingCompatibilityClient) Complete(

@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/tools/mcpstdio"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/tools/mcpstdio"
 )
 
 func TestAgentKernelEgressPolicyUsesOneConfiguredProxyAndExcludesRepl(t *testing.T) {
@@ -42,7 +42,7 @@ func TestAgentKernelEgressPolicyFullAccessAllowsPublicHTTPSOnly(t *testing.T) {
 	if _, err := store.SetFrameRuntimeMetadata(frameID, workspace.FrameRuntimeMetadata{
 		FrameID: frameID,
 		ContextData: map[string]any{"web_assistant": map[string]any{
-			"id": "synonbiomed:operon", "conversation_overrides": map[string]any{"permission": "allow"},
+			"id": "xscience:operon", "conversation_overrides": map[string]any{"permission": "allow"},
 		}},
 	}); err != nil {
 		t.Fatal(err)

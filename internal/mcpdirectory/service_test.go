@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestDirectoryReconcileUsesTLSManifestETagAndRealMCPProbe(t *testing.T) {
@@ -25,8 +25,8 @@ func TestDirectoryReconcileUsesTLSManifestETagAndRealMCPProbe(t *testing.T) {
 			mu.Lock()
 			defer mu.Unlock()
 			catalogRequests++
-			if r.Header.Get("X-Synon-Catalog-Uuid") != "4f5b9638-2dc3-4b70-bbea-9af732ba57ef" {
-				t.Errorf("catalog header = %q", r.Header.Get("X-Synon-Catalog-Uuid"))
+			if r.Header.Get("X-Science-Catalog-Uuid") != "4f5b9638-2dc3-4b70-bbea-9af732ba57ef" {
+				t.Errorf("catalog header = %q", r.Header.Get("X-Science-Catalog-Uuid"))
 			}
 			if r.Header.Get("If-None-Match") == etag && catalogRequests > 1 {
 				w.WriteHeader(http.StatusNotModified)

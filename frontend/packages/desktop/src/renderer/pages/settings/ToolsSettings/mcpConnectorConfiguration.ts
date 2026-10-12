@@ -1,6 +1,6 @@
-import type { SynonBiomedMcpServer } from '@/renderer/services/synonBiomedCapabilities';
+import type { XScienceMcpServer } from '@/renderer/services/xScienceCapabilities';
 
-export function connectorConfigurationState(server: SynonBiomedMcpServer) {
+export function connectorConfigurationState(server: XScienceMcpServer) {
   if (!server.enabled) return 'disabled';
   if (server.connectionStatus === 'connecting') return 'connecting';
   if (server.connectionStatus === 'connected' && server.health.ok) return 'connected';

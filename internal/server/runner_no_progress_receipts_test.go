@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	eventjournal "synon-go/internal/persistence/journal"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	"x-science/internal/agentruntime"
+	eventjournal "x-science/internal/persistence/journal"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 type noProgressReceiptFixture struct {

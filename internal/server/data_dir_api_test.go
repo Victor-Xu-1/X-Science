@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"synon-go/internal/datadir"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/datadir"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestDataDirectoryHTTPStagesRestartSafeMigration(t *testing.T) {
@@ -152,7 +152,7 @@ func TestDataDirectoryHTTPRollsBackStageWhenRestartRequestFails(t *testing.T) {
 			if err != nil || state.Pending != nil || state.Current != "" {
 				t.Fatalf("rolled back state = %#v err=%v", state, err)
 			}
-			markers, err := filepath.Glob(filepath.Join(source, ".synon-data-move-source-*"))
+			markers, err := filepath.Glob(filepath.Join(source, ".x-science-data-move-source-*"))
 			if err != nil || len(markers) != 0 {
 				t.Fatalf("cancelled migration markers = %#v err=%v", markers, err)
 			}

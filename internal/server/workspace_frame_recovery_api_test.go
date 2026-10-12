@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	eventjournal "synon-go/internal/persistence/journal"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	eventjournal "x-science/internal/persistence/journal"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestWorkspaceFrameStreamingFallsBackToTranscriptProjection(t *testing.T) {
@@ -137,7 +137,7 @@ func TestWorkspaceFrameRecoveryViewsUseDurableJournal(t *testing.T) {
 	batchResponse := httptest.NewRecorder()
 	batchRequest := newLoopbackTestRequest(http.MethodPost, "/api/go/frames/root-frame/streaming-batch", bytes.NewReader(batchBody))
 	batchRequest.Header.Set("Content-Type", "application/json")
-	batchRequest.Header.Set("X-Synon-User-Id", "local")
+	batchRequest.Header.Set("X-Science-User-Id", "local")
 	app.ServeHTTP(batchResponse, batchRequest)
 	if batchResponse.Code != http.StatusOK {
 		t.Fatalf("streaming batch = %d: %s", batchResponse.Code, batchResponse.Body.String())
@@ -233,7 +233,7 @@ func getWorkspaceRecoveryJSON(t *testing.T, app http.Handler, target string, wan
 	t.Helper()
 	response := httptest.NewRecorder()
 	request := newLoopbackTestRequest(http.MethodGet, target, nil)
-	request.Header.Set("X-Synon-User-Id", "local")
+	request.Header.Set("X-Science-User-Id", "local")
 	app.ServeHTTP(response, request)
 	if response.Code != wantStatus {
 		t.Fatalf("GET %s status = %d: %s", target, response.Code, response.Body.String())

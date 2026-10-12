@@ -8,7 +8,7 @@ import (
 	"io"
 	"net/http"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func (s *Server) handleCompatibilityArtifactMetadata(w http.ResponseWriter, r *http.Request, artifactID string) {

@@ -63,7 +63,7 @@ func newBaselineShapeFixture(t *testing.T, agentCount int, skillCount int, toolC
 		"README.md",
 		"bunfig.toml",
 		"package.json",
-		"synonbiomed.config.toml",
+		"synonbiomed.config.toml", // Published source-side name.
 	}
 	for _, relative := range rootFiles {
 		writeFile(t, filepath.Join(source, relative), relative+"\n")

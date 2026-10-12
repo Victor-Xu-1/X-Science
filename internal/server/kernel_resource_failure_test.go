@@ -2,11 +2,11 @@ package server
 
 import (
 	"encoding/json"
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/processsupervisor"
 	"testing"
 	"time"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/processsupervisor"
 )
 
 func TestKernelResourceFailureSurvivesSerializationForEveryLanguage(t *testing.T) {

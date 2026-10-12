@@ -12,13 +12,13 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 vi.mock('@/common', () => ({
   ipcBridge: {
-    synonBiomed: {
+    xScience: {
       getManagedAgents: { invoke: vi.fn() },
     },
   },
 }));
 
-import { fetchManagedAgents } from '@/renderer/utils/synonBiomed/runtime/runtimeTypes';
+import { fetchManagedAgents } from '@/renderer/utils/xScience/runtime/runtimeTypes';
 import { ipcBridge } from '@/common';
 
 describe('fetchManagedAgents', () => {
@@ -31,27 +31,27 @@ describe('fetchManagedAgents', () => {
       {
         id: 'AIDD_EXPERT',
         name: 'AIDD Expert',
-        agent_type: 'synonbiomed',
+        agent_type: 'xscience',
         agent_source: 'builtin',
         enabled: true,
         available: true,
       },
     ];
-    (ipcBridge.synonBiomed.getManagedAgents.invoke as any).mockResolvedValue(rows);
+    (ipcBridge.xScience.getManagedAgents.invoke as any).mockResolvedValue(rows);
 
     await expect(fetchManagedAgents()).resolves.toEqual(rows);
-    expect(ipcBridge.synonBiomed.getManagedAgents.invoke).toHaveBeenCalledTimes(1);
+    expect(ipcBridge.xScience.getManagedAgents.invoke).toHaveBeenCalledTimes(1);
     expect(ipcBridge).not.toHaveProperty('acpConversation.getManagedAgents');
   });
 
   it('returns [] when the bridge rejects', async () => {
-    (ipcBridge.synonBiomed.getManagedAgents.invoke as any).mockRejectedValue(new Error('boom'));
+    (ipcBridge.xScience.getManagedAgents.invoke as any).mockRejectedValue(new Error('boom'));
 
     await expect(fetchManagedAgents()).resolves.toEqual([]);
   });
 
   it('returns [] when the bridge yields a non-array', async () => {
-    (ipcBridge.synonBiomed.getManagedAgents.invoke as any).mockResolvedValue(undefined);
+    (ipcBridge.xScience.getManagedAgents.invoke as any).mockResolvedValue(undefined);
 
     await expect(fetchManagedAgents()).resolves.toEqual([]);
   });

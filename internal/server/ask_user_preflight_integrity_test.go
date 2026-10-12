@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"synon-go/internal/agentruntime"
-	transcriptstore "synon-go/internal/persistence/transcript"
 	"testing"
+	"x-science/internal/agentruntime"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func TestAskUserInputDecisionParksWithoutResolvingPendingImplementation(t *testing.T) {

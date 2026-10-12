@@ -14,11 +14,11 @@ import (
 	"strings"
 	"time"
 
-	kernelruntime "synon-go/internal/kernel"
-	"synon-go/internal/kernelcontract"
-	"synon-go/internal/networkpolicy"
+	kernelruntime "x-science/internal/kernel"
+	"x-science/internal/kernelcontract"
+	"x-science/internal/networkpolicy"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func (s *Server) agentKernelEgressPolicy(publicName, frameID string) ([]string, []string, string, string, error) {

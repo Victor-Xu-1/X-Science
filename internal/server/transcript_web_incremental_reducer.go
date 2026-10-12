@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	transcriptstore "synon-go/internal/persistence/transcript"
 	"time"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func newTranscriptWebIncrementalAssistantReducer(
@@ -285,7 +285,7 @@ func (r *transcriptWebIncrementalAssistantReducer) consumeAssistantContent(
 		}
 		messageType := transcriptWebAssistantMessageType(payload)
 		content := transcriptWebAssistantContent(text, messageType)
-		content["synonBiomed"] = map[string]any{"messageIndex": r.visibleCount, "blockIndex": 0, "branchId": r.branchID}
+		content["xScience"] = map[string]any{"messageIndex": r.visibleCount, "blockIndex": 0, "branchId": r.branchID}
 		if durable {
 			content["assistant_attempt_id"] = transcriptAssistantMessageID(r.sessionID, attempt.Attempt, 1)
 		}
@@ -482,7 +482,7 @@ func (r *transcriptWebIncrementalAssistantReducer) newAssistantRecord(
 	}
 	messageType := transcriptWebAssistantMessageType(payload)
 	content := transcriptWebAssistantContent(text, messageType)
-	content["synonBiomed"] = map[string]any{"messageIndex": visibleIndex, "blockIndex": 0, "branchId": r.branchID}
+	content["xScience"] = map[string]any{"messageIndex": visibleIndex, "blockIndex": 0, "branchId": r.branchID}
 	if durable {
 		content["assistant_attempt_id"] = transcriptAssistantMessageID(r.sessionID, attempt.Attempt, 1)
 	}
@@ -534,8 +534,8 @@ func (r *transcriptWebIncrementalAssistantReducer) consumeAssistantTerminal(
 			return err
 		}
 		content := map[string]any{
-			"content":     projection.Detail,
-			"synonBiomed": map[string]any{"messageIndex": r.visibleCount, "blockIndex": 0, "branchId": r.branchID},
+			"content":  projection.Detail,
+			"xScience": map[string]any{"messageIndex": r.visibleCount, "blockIndex": 0, "branchId": r.branchID},
 		}
 		if durable {
 			content["assistant_attempt_id"] = transcriptAssistantMessageID(r.sessionID, attempt.Attempt, 1)

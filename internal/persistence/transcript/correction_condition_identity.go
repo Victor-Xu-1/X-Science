@@ -15,6 +15,9 @@ import (
 // Text-only conditions have no asserted typed semantics and retain exact text.
 func (condition RunnerCorrectionCondition) Fingerprint() string {
 	semantic := condition
+	if condition.historicalSchema != "" {
+		semantic.Schema = condition.historicalSchema
+	}
 	if condition.Reference != nil {
 		reference := *condition.Reference
 		reference.UnresolvedArtifactReferences = conditionStringSet(reference.UnresolvedArtifactReferences)
@@ -68,6 +71,9 @@ func (condition RunnerCorrectionCondition) Fingerprint() string {
 // ContentID binds a read to the exact persisted condition, including its
 // presentation fields and original diagnostic ordering.
 func (condition RunnerCorrectionCondition) ContentID() string {
+	if condition.historicalSchema != "" {
+		condition.Schema = condition.historicalSchema
+	}
 	encoded, _ := json.Marshal(condition)
 	return correctionContentDigest(encoded)
 }

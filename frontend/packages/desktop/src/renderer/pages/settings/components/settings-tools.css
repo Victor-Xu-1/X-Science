@@ -109,7 +109,7 @@ html body .settings-page-wrapper[data-settings-route='tools'] .settings-page-con
 }
 
 .mcp-library-select:focus-visible {
-  outline: 2px solid var(--settings-accent);
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
   outline-offset: 2px;
 }
 
@@ -131,19 +131,19 @@ html body .settings-page-wrapper[data-settings-route='tools'] .settings-page-con
     height: 100%;
   }
 
-  .settings-page-wrapper[data-settings-route='tools'] .mcp-library-scroll .synon-mcp-grid:not(:empty) {
+  .settings-page-wrapper[data-settings-route='tools'] .mcp-library-scroll .x-science-mcp-grid:not(:empty) {
     min-height: 100%;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     grid-template-rows: repeat(3, minmax(min-content, 1fr));
   }
 
-  .mcp-library-scroll .synon-mcp-card__description {
+  .mcp-library-scroll .x-science-mcp-card__description {
     display: flex;
     flex: 1;
     align-items: center;
   }
 
-  .mcp-library-scroll .synon-mcp-card__metadata {
+  .mcp-library-scroll .x-science-mcp-card__metadata {
     margin-top: 0;
   }
 }

@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	sessionstore "synon-go/internal/persistence/sessions"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	sessionstore "x-science/internal/persistence/sessions"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestAskUserRecoveryDoesNotParkAnUnsourcedOperationalChoice(t *testing.T) {
@@ -289,7 +289,7 @@ func TestTranscriptRunnerAskUserPausesUntilNewInputThenResumesCheckpoint(t *test
 		t.Fatalf("legacy resolution journal=%#v err=%v", entries, err)
 	}
 	runtimeConfig, found, err := repo.LatestFrameRuntimeConfig(context.Background(), stream.UID, stream.OwnerID)
-	if err != nil || !found || runtimeConfig["agentName"] != "synon" || runtimeConfig["ultra_mode"] != true {
+	if err != nil || !found || runtimeConfig["agentName"] != "xscience" || runtimeConfig["ultra_mode"] != true {
 		t.Fatalf("runtime config=%#v found=%t err=%v", runtimeConfig, found, err)
 	}
 	if legacy, found, err := srv.sessionStore.Get("frame-ask"); err != nil || found {
@@ -363,7 +363,7 @@ func TestTranscriptRunnerAskUserPausesUntilNewInputThenResumesCheckpoint(t *test
 		t.Fatalf("terminal projection counts=%#v", terminalCounts)
 	}
 	historyRequest := newLoopbackTestRequest(http.MethodGet, "/api/conversations/frame-ask/messages?limit=100", nil)
-	historyRequest.Header.Set("X-Synon-User-Id", "local")
+	historyRequest.Header.Set("X-Science-User-Id", "local")
 	historyResponse := httptest.NewRecorder()
 	srv.Handler().ServeHTTP(historyResponse, historyRequest)
 	if historyResponse.Code != http.StatusOK || !strings.Contains(historyResponse.Body.String(), "Analyze CRBN") ||
@@ -614,7 +614,7 @@ func TestTranscriptRunnerAskUserSurvivesProcessRestartBeforeResolve(t *testing.T
 		t.Fatalf("restarted frame=%#v found=%t err=%v", frame, found, err)
 	}
 	request := newLoopbackTestRequest(http.MethodPost, "/api/frames/frame-ask-restart/resolve-input", nil)
-	request.Header.Set("X-Synon-User-Id", "local")
+	request.Header.Set("X-Science-User-Id", "local")
 	resolved, err := restarted.resolveCompatibilityInput(request, frame, compatibilityResolveInputRequest{Responses: []compatibilityInputResponse{{
 		ToolID: "ask-restart", Action: "answer", Answers: map[string]string{"Which branch?": "Alpha"},
 	}}})
@@ -681,7 +681,7 @@ func TestRunnerAskUserPausesPersistsAnswerAndResumes(t *testing.T) {
 	if _, err := store.CreateFrame(workspace.CreateFrameInput{ID: "frame", ProjectID: "project", AgentName: "OPERON", Status: "processing", ConversationType: "agent", Name: "CRBN analysis"}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := store.SetFrameRuntimeMetadata("frame", workspace.FrameRuntimeMetadata{ContextData: map[string]any{"web_extra": map[string]any{"backend": "synonbiomed"}}}); err != nil {
+	if _, err := store.SetFrameRuntimeMetadata("frame", workspace.FrameRuntimeMetadata{ContextData: map[string]any{"web_extra": map[string]any{"backend": "xscience"}}}); err != nil {
 		t.Fatal(err)
 	}
 	repo, err := store.TranscriptRepository(context.Background())
@@ -729,7 +729,7 @@ func TestRunnerAskUserPausesPersistsAnswerAndResumes(t *testing.T) {
 	}
 
 	request := newLoopbackTestRequest(http.MethodPost, "/api/frames/frame/resolve-input", nil)
-	request.Header.Set("X-Synon-User-Id", "local")
+	request.Header.Set("X-Science-User-Id", "local")
 	resolved, err := srv.resolveCompatibilityInput(request, frame, compatibilityResolveInputRequest{Responses: []compatibilityInputResponse{{
 		ToolID: "ask-structure", Action: "answer", Answers: map[string]string{"Which CRBN structure should be used?": "5FQD"},
 	}}})

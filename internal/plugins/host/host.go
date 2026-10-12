@@ -14,8 +14,8 @@ import (
 	"sync"
 	"time"
 
-	"synon-go/internal/buildinfo"
-	"synon-go/internal/subprocess"
+	"x-science/internal/buildinfo"
+	"x-science/internal/subprocess"
 )
 
 type Module struct {
@@ -79,36 +79,38 @@ type externalProcess struct {
 }
 
 func NewDefault() *Host {
-	synon := Plugin{
-		ID:           "synon",
-		Name:         buildinfo.Release().Name,
+	identity := buildinfo.Release()
+	mount := "/api/plugins/" + identity.MachineSlug
+	xscience := Plugin{
+		ID:           identity.MachineSlug,
+		Name:         identity.Name,
 		Version:      "1.1.5",
 		Description:  "Compact X-Science native plugin for X-Science Link browser bridge, local device bridge, extension download, and capability reporting.",
 		Author:       "Victor",
 		License:      "Proprietary",
-		Mount:        "/api/plugins/synon",
-		PluginFormat: "synon_agent_native",
-		Keywords:     []string{"synon", "synon-link", "browser-bridge", "local-device", "websocket"},
+		Mount:        mount,
+		PluginFormat: "x_science_agent_native",
+		Keywords:     []string{identity.MachineSlug, "x-science-link", "browser-bridge", "local-device", "websocket"},
 		Modules: []Module{
 			{
 				ID:          "capabilities",
 				Label:       "Capabilities",
-				Endpoint:    "/api/plugins/synon/capabilities",
+				Endpoint:    mount + "/capabilities",
 				Description: "Compact X-Science capability report for retained bridge, messaging, runtime, and tool surfaces.",
 			},
 			{
 				ID:          "link-download",
 				Label:       "X-Science Link Download",
-				Endpoint:    "/api/plugins/synon/link/download",
+				Endpoint:    mount + "/link/download",
 				Description: "Versioned X-Science Link browser extension package download.",
 			},
 		},
 		Server: ServerManifest{
-			APIMount:     "/api/plugins/synon",
-			ContextEntry: "builtin:synon-context",
+			APIMount:     mount,
+			ContextEntry: "builtin:x-science-context",
 		},
 	}
-	return New([]Plugin{synon})
+	return New([]Plugin{xscience})
 }
 
 func NewDefaultWithExternalDirectories(directories []string) (*Host, error) {
@@ -359,6 +361,21 @@ type rawServerContext struct {
 
 var pluginIDPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{0,79}$`)
 
+func externalPluginManifestPath(root string) (string, error) {
+	for _, directory := range []string{".x-science-plugin", ".synon-plugin"} {
+		manifestPath := filepath.Join(root, directory, "plugin.json")
+		if info, err := os.Lstat(manifestPath); err == nil {
+			if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+				return "", fmt.Errorf("plugin manifest %s must be a regular file", manifestPath)
+			}
+			return manifestPath, nil
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return "", fmt.Errorf("inspect plugin manifest %s: %w", manifestPath, err)
+		}
+	}
+	return "", fmt.Errorf("read plugin manifest: no manifest in .x-science-plugin or .synon-plugin under %s", root)
+}
+
 func loadExternalDirectory(directory string) (Plugin, error) {
 	root, err := filepath.Abs(directory)
 	if err != nil {
@@ -371,7 +388,10 @@ func loadExternalDirectory(directory string) (Plugin, error) {
 	if !info.IsDir() {
 		return Plugin{}, fmt.Errorf("plugin path is not a directory: %s", root)
 	}
-	manifestPath := filepath.Join(root, ".synon-plugin", "plugin.json")
+	manifestPath, err := externalPluginManifestPath(root)
+	if err != nil {
+		return Plugin{}, err
+	}
 	raw, err := os.ReadFile(manifestPath)
 	if err != nil {
 		return Plugin{}, fmt.Errorf("read plugin manifest %s: %w", manifestPath, err)
@@ -421,7 +441,7 @@ func (manifest rawPluginManifest) toPlugin(root string) (Plugin, error) {
 	}
 	pluginFormat := strings.TrimSpace(manifest.PluginFormat)
 	if pluginFormat == "" {
-		pluginFormat = "synon_agent_external"
+		pluginFormat = "x_science_agent_external"
 	}
 	plugin := Plugin{
 		ID:           id,

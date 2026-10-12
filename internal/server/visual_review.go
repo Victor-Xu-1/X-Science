@@ -22,8 +22,8 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/tools/shellops"
+	"x-science/internal/agentruntime"
+	"x-science/internal/tools/shellops"
 )
 
 const maxVisualReviewImages = 8
@@ -33,7 +33,7 @@ const maxVisualReviewLayoutManifestBytes = 1024 * 1024
 const maxVisualReviewLayoutTextBoxes = 4096
 const visualReviewLayoutOverlapEpsilon = 0.5
 const visualReviewRuntimeNamespace = "visual-reviews"
-const visualReviewLayoutSchema = "synon.visual-layout.v1"
+const visualReviewLayoutSchema = "x-science.visual-layout.v1"
 const visualReviewChallengeHashField = "visual_challenge_sha256"
 
 type visualReviewLayoutManifest struct {
@@ -453,11 +453,11 @@ func (s *Server) collectVisualReviewEvidence(ctx context.Context, input map[stri
 	for _, rawPath := range referencePaths {
 		appendImage(rawPath, "reference")
 	}
-	if source := strings.TrimSpace(stringValue(input["source"])); source == "synonlink_browser" || source == "synonlink_desktop" {
-		if boolValue(input["allow_synonlink"], false) {
-			blockers = append(blockers, map[string]any{"kind": "needs_synonlink_client", "message": "SynonLink was explicitly allowed, but VisualReview does not use it as a default capture backend. Capture an image path or provide screenshot_command for stable review."})
+	if source := strings.TrimSpace(stringValue(input["source"])); source == "xsciencelink_browser" || source == "xsciencelink_desktop" {
+		if boolValue(input["allow_xsciencelink"], false) {
+			blockers = append(blockers, map[string]any{"kind": "needs_xsciencelink_client", "message": "X-Science Link was explicitly allowed, but VisualReview does not use it as a default capture backend. Capture an image path or provide screenshot_command for stable review."})
 		} else {
-			blockers = append(blockers, map[string]any{"kind": "synonlink_not_allowed", "message": "SynonLink capture is disabled by default. Provide image_paths or screenshot_command, or explicitly allow SynonLink as a separate follow-up."})
+			blockers = append(blockers, map[string]any{"kind": "xsciencelink_not_allowed", "message": "X-Science Link capture is disabled by default. Provide image_paths or screenshot_command, or explicitly allow X-Science Link as a separate follow-up."})
 		}
 	}
 	if stringValue(input["url"]) != "" && strings.TrimSpace(stringValue(input["screenshot_command"])) == "" && visualReviewAttachedEvidenceCount(evidence) == 0 {

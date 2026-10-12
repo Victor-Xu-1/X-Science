@@ -1,4 +1,4 @@
-import { askSynonBiomedAsideQuestion } from '@/renderer/services/synonBiomedAside';
+import { askXScienceAsideQuestion } from '@/renderer/services/xScienceAside';
 import { Message } from '@arco-design/web-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -75,7 +75,7 @@ export function useBtwCommand(conversation_id?: string, enabled = true) {
       }
 
       try {
-        const response = await askSynonBiomedAsideQuestion(conversation_id, question, { signal: controller.signal });
+        const response = await askXScienceAsideQuestion(conversation_id, question, { signal: controller.signal });
 
         if (requestId !== requestIdRef.current) {
           return;

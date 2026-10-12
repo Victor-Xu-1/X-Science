@@ -3,8 +3,8 @@ package server
 import (
 	"net/http"
 
-	"synon-go/internal/buildinfo"
-	"synon-go/internal/vmresources"
+	"x-science/internal/buildinfo"
+	"x-science/internal/vmresources"
 )
 
 type setVMResourcesInput struct {

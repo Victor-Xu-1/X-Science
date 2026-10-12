@@ -1,6 +1,6 @@
 /* Connector cards share native-size typography and fluid layout with Skills. */
 
-.settings-page-wrapper[data-settings-route='tools'] .synon-mcp-grid {
+.settings-page-wrapper[data-settings-route='tools'] .x-science-mcp-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
   align-content: start;
@@ -11,7 +11,7 @@
 /* The connector tile takes its height, padding, gaps and type ramp from the
    shared merged-library card anatomy (settings-card-density.css); this route
    keeps only what the connector card itself owns. */
-.settings-page-wrapper[data-settings-route='tools'] .synon-mcp-card {
+.settings-page-wrapper[data-settings-route='tools'] .x-science-mcp-card {
   position: relative;
   isolation: isolate;
   display: flex;
@@ -28,12 +28,12 @@
 }
 
 /* One accent for every connector tile; hue no longer encodes the provider. */
-.settings-page-wrapper[data-settings-route='tools'] .synon-mcp-card[data-mcp-tone] {
+.settings-page-wrapper[data-settings-route='tools'] .x-science-mcp-card[data-mcp-tone] {
   --mcp-accent: var(--settings-module-accent);
   --mcp-soft: var(--settings-module-accent-soft);
 }
 
-.settings-page-wrapper[data-settings-route='tools'] .synon-mcp-card > * {
+.settings-page-wrapper[data-settings-route='tools'] .x-science-mcp-card > * {
   position: relative;
   z-index: var(--ui-z-raise);
 }
@@ -60,14 +60,14 @@
   border-radius: var(--ui-radius-lg);
 }
 
-.settings-page-wrapper[data-settings-route='tools'] .synon-mcp-card__top {
+.settings-page-wrapper[data-settings-route='tools'] .x-science-mcp-card__top {
   display: flex;
   min-width: 0;
   align-items: center;
   gap: 10px;
 }
 
-.settings-page-wrapper[data-settings-route='tools'] .synon-mcp-card__icon {
+.settings-page-wrapper[data-settings-route='tools'] .x-science-mcp-card__icon {
   width: 36px;
   height: 36px;
   flex: 0 0 36px;
@@ -76,18 +76,18 @@
   background: transparent !important;
 }
 
-.settings-page-wrapper[data-settings-route='tools'] .synon-mcp-card__identity {
+.settings-page-wrapper[data-settings-route='tools'] .x-science-mcp-card__identity {
   min-width: 0;
   overflow-wrap: anywhere;
 }
 
-.settings-page-wrapper[data-settings-route='tools'] .synon-mcp-card__title-row {
+.settings-page-wrapper[data-settings-route='tools'] .x-science-mcp-card__title-row {
   display: flex;
   min-width: 0;
   align-items: center;
 }
 
-.settings-page-wrapper[data-settings-route='tools'] .synon-mcp-card__title-row > span {
+.settings-page-wrapper[data-settings-route='tools'] .x-science-mcp-card__title-row > span {
   min-width: 0;
   color: var(--settings-text) !important;
   font-size: var(--settings-entity-card-title-size) !important;
@@ -95,7 +95,7 @@
   line-height: var(--settings-entity-card-title-line) !important;
 }
 
-.settings-page-wrapper[data-settings-route='tools'] .synon-mcp-card__description {
+.settings-page-wrapper[data-settings-route='tools'] .x-science-mcp-card__description {
   width: 100%;
   max-width: 100%;
   min-height: 0;
@@ -106,7 +106,7 @@
   overflow-wrap: anywhere;
 }
 
-.settings-page-wrapper[data-settings-route='tools'] .synon-mcp-card__usage {
+.settings-page-wrapper[data-settings-route='tools'] .x-science-mcp-card__usage {
   display: flex;
   min-height: 34px;
   flex-direction: column;
@@ -121,7 +121,7 @@
   text-align: left;
 }
 
-.settings-page-wrapper[data-settings-route='tools'] .synon-mcp-card__footer {
+.settings-page-wrapper[data-settings-route='tools'] .x-science-mcp-card__footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -131,12 +131,12 @@
   border-top: 1px solid var(--settings-border);
 }
 
-.settings-page-wrapper[data-settings-route='tools'] .synon-mcp-card__footer .synon-mcp-card__actions {
+.settings-page-wrapper[data-settings-route='tools'] .x-science-mcp-card__footer .x-science-mcp-card__actions {
   padding-top: 0;
   gap: var(--ui-space-3);
 }
 
-.settings-page-wrapper[data-settings-route='tools'] .synon-mcp-card__actions {
+.settings-page-wrapper[data-settings-route='tools'] .x-science-mcp-card__actions {
   display: flex;
   min-height: 34px;
   align-items: center;
@@ -148,14 +148,14 @@
   border-top: 0 !important;
 }
 
-.settings-page-wrapper[data-settings-route='tools'] .synon-mcp-card__action-cluster {
+.settings-page-wrapper[data-settings-route='tools'] .x-science-mcp-card__action-cluster {
   display: flex;
   min-width: 0;
   align-items: center;
   gap: var(--ui-space-4);
 }
 
-.settings-page-wrapper[data-settings-route='tools'] .synon-mcp-card__configure.arco-btn {
+.settings-page-wrapper[data-settings-route='tools'] .x-science-mcp-card__configure.arco-btn {
   min-height: 34px !important;
   padding: 0 12px !important;
   border: 1px solid var(--settings-border) !important;
@@ -165,13 +165,13 @@
   font-size: var(--ui-font-body) !important;
 }
 
-.settings-page-wrapper[data-settings-route='tools'] .synon-mcp-card__configure.arco-btn:hover:not(:disabled) {
+.settings-page-wrapper[data-settings-route='tools'] .x-science-mcp-card__configure.arco-btn:hover:not(:disabled) {
   border-color: color-mix(in srgb, var(--mcp-accent) 45%, var(--settings-border)) !important;
   background: var(--mcp-soft) !important;
   color: var(--mcp-accent) !important;
 }
 
-.settings-page-wrapper[data-settings-route='tools'] .synon-mcp-card__more.arco-btn {
+.settings-page-wrapper[data-settings-route='tools'] .x-science-mcp-card__more.arco-btn {
   width: 36px !important;
   min-width: 36px !important;
   height: 36px !important;
@@ -183,7 +183,7 @@
   color: var(--settings-text-secondary) !important;
 }
 
-.settings-page-wrapper[data-settings-route='tools'] .synon-mcp-card__status-control {
+.settings-page-wrapper[data-settings-route='tools'] .x-science-mcp-card__status-control {
   display: inline-flex;
   width: auto !important;
   min-width: 88px !important;
@@ -204,30 +204,30 @@
   cursor: pointer;
 }
 
-.settings-page-wrapper[data-settings-route='tools'] .synon-mcp-card__status-control:disabled {
+.settings-page-wrapper[data-settings-route='tools'] .x-science-mcp-card__status-control:disabled {
   cursor: wait;
   opacity: 0.65;
 }
 
-.settings-page-wrapper[data-settings-route='tools'] .synon-mcp-card__status-control[data-state='connected'] {
+.settings-page-wrapper[data-settings-route='tools'] .x-science-mcp-card__status-control[data-state='connected'] {
   border-color: color-mix(in srgb, var(--settings-status-ready) 30%, var(--settings-surface)) !important;
   background: color-mix(in srgb, var(--settings-status-ready) 14%, var(--settings-surface)) !important;
   color: var(--settings-status-ready) !important;
 }
 
-.settings-page-wrapper[data-settings-route='tools'] .synon-mcp-card__status-control[data-state='attention'] {
+.settings-page-wrapper[data-settings-route='tools'] .x-science-mcp-card__status-control[data-state='attention'] {
   border-color: #ffd08a !important;
   background: color-mix(in srgb, var(--settings-status-warning) 14%, var(--settings-surface)) !important;
   color: var(--settings-status-warning) !important;
 }
 
-.settings-page-wrapper[data-settings-route='tools'] .synon-mcp-card__status-control[data-state='marketplace'] {
+.settings-page-wrapper[data-settings-route='tools'] .x-science-mcp-card__status-control[data-state='marketplace'] {
   border-color: var(--settings-border) !important;
   background: var(--settings-surface) !important;
   color: var(--settings-text-secondary) !important;
 }
 
-.settings-page-wrapper[data-settings-route='tools'] .synon-mcp-card__status-dot {
+.settings-page-wrapper[data-settings-route='tools'] .x-science-mcp-card__status-dot {
   width: 7px;
   height: 7px;
   flex: 0 0 7px;
@@ -236,26 +236,26 @@
 }
 
 .settings-page-wrapper[data-settings-route='tools']
-  .synon-mcp-card__status-control[data-state='connected']
-  .synon-mcp-card__status-dot {
+  .x-science-mcp-card__status-control[data-state='connected']
+  .x-science-mcp-card__status-dot {
   background: var(--settings-status-ready);
   box-shadow: 0 0 0 3px rgba(34, 184, 90, 0.12);
 }
 
 .settings-page-wrapper[data-settings-route='tools']
-  .synon-mcp-card__status-control[data-state='attention']
-  .synon-mcp-card__status-dot {
+  .x-science-mcp-card__status-control[data-state='attention']
+  .x-science-mcp-card__status-dot {
   background: var(--settings-status-warning);
   box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.13);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .settings-page-wrapper[data-settings-route='tools'] .synon-mcp-card {
+  .settings-page-wrapper[data-settings-route='tools'] .x-science-mcp-card {
     transition: none;
   }
 }
 
-.settings-page-wrapper[data-settings-route='tools'] .synon-mcp-card__metadata {
+.settings-page-wrapper[data-settings-route='tools'] .x-science-mcp-card__metadata {
   display: flex;
   justify-content: space-between;
   gap: var(--ui-space-4);

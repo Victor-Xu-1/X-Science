@@ -17,19 +17,19 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"synon-go/internal/buildinfo"
 	"testing"
 	"time"
+	"x-science/internal/buildinfo"
 
-	"synon-go/internal/harnesscontract"
-	sessionstore "synon-go/internal/persistence/sessions"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/skills"
-	"synon-go/internal/synonlink"
-	"synon-go/internal/tools/bindingmode"
-	toolregistry "synon-go/internal/tools/registry"
-	"synon-go/internal/tools/webfetch"
-	"synon-go/internal/tools/websearch"
+	"x-science/internal/harnesscontract"
+	sessionstore "x-science/internal/persistence/sessions"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/skills"
+	"x-science/internal/tools/bindingmode"
+	toolregistry "x-science/internal/tools/registry"
+	"x-science/internal/tools/webfetch"
+	"x-science/internal/tools/websearch"
+	"x-science/internal/xsciencelink"
 )
 
 func toolsAPITestWebOptions() Options {
@@ -69,7 +69,7 @@ func toolsAPIDispatchCoversToolForTest(name string) bool {
 		"ToolSearch", "search_skills", "skill", "AgentRuntimeDoctor", "web_research", "VisualReview", "binding_mode_analysis", "LSP", "SendUserMessage", "SendMessage", "ToolDoctor",
 		"ListMcpTools", "ListMcpResourcesTool", "ReadMcpResourceTool", "MCPTool", "shell_exec", "Bash", "Shell", "powershell", "Sleep", "ask_user",
 		"generate_plan", "update_step_status", "TaskOutput", "TaskStop", "Agent", "CronCreate", "CronUpdate", "CronList", "CronDelete", "cron_tick",
-		"TeamCreate", "TeamDelete", "TaskRun", "StructuredOutput", "EnterWorktree", "ExitWorktree", "TaskCreate", "TaskGet", "TaskList", "TaskUpdate", "TodoWrite", "Config", "Compact", "im_message", "im_config", "synon_link",
+		"TeamCreate", "TeamDelete", "TaskRun", "StructuredOutput", "EnterWorktree", "ExitWorktree", "TaskCreate", "TaskGet", "TaskList", "TaskUpdate", "TodoWrite", "Config", "Compact", "im_message", "im_config", "x_science_link",
 		"read_memory", "write_memory", "search_memory", "patent_search":
 		return true
 	default:
@@ -235,7 +235,7 @@ func TestToolsAPIWebFetchRejectsNonEvidencePages(t *testing.T) {
 		w.Header().Set("Content-Type", "text/html")
 		switch r.URL.Path {
 		case "/search-proxy":
-			_, _ = w.Write([]byte("# Bing\nBing search results page\nAll Images Videos News Maps\nSynon runtime parity"))
+			_, _ = w.Write([]byte("# Bing\nBing search results page\nAll Images Videos News Maps\nXScience runtime parity"))
 		case "/captcha":
 			_, _ = w.Write([]byte("Please verify you are human. CAPTCHA validation is required before continuing."))
 		case "/login":
@@ -406,7 +406,7 @@ func TestToolsAPIWebResearchFetchRejectsEmptySPAChromeAsEvidence(t *testing.T) {
 }
 
 func TestToolsAPIWebResearchSearchReturnsStructuredFailureWhenSearchHasNoSources(t *testing.T) {
-	t.Setenv("SYNON_WEBSEARCH_MODE", "disabled")
+	t.Setenv("X_SCIENCE_WEBSEARCH_MODE", "disabled")
 	srv := New(toolsAPITestWebOptions())
 	httpServer := httptest.NewServer(srv.Handler())
 	defer httpServer.Close()
@@ -460,7 +460,7 @@ func TestToolsAPIWebResearchSearchAndFetchRunsSupplementalSearchUntilQualityTarg
 		))
 	}))
 	defer search.Close()
-	t.Setenv("SYNON_WEBSEARCH_ENDPOINT", search.URL+"/?q={query}")
+	t.Setenv("X_SCIENCE_WEBSEARCH_ENDPOINT", search.URL+"/?q={query}")
 
 	srv := New(toolsAPITestWebOptions())
 	httpServer := httptest.NewServer(srv.Handler())
@@ -519,7 +519,7 @@ func TestToolsAPIWebResearchSearchAndFetchDoesNotCallOneSourceComprehensive(t *t
 		))
 	}))
 	defer search.Close()
-	t.Setenv("SYNON_WEBSEARCH_ENDPOINT", search.URL+"/?q={query}")
+	t.Setenv("X_SCIENCE_WEBSEARCH_ENDPOINT", search.URL+"/?q={query}")
 
 	srv := New(toolsAPITestWebOptions())
 	httpServer := httptest.NewServer(srv.Handler())
@@ -560,7 +560,7 @@ func TestToolsAPIWebResearchSessionContinueSkipsSeenCanonicalSources(t *testing.
 		_, _ = w.Write([]byte(`<a href="` + source.URL + `/seen">First session source query</a>`))
 	}))
 	defer search.Close()
-	t.Setenv("SYNON_WEBSEARCH_ENDPOINT", search.URL+"/?q={query}")
+	t.Setenv("X_SCIENCE_WEBSEARCH_ENDPOINT", search.URL+"/?q={query}")
 
 	srv := New(toolsAPITestWebOptions())
 	httpServer := httptest.NewServer(srv.Handler())
@@ -601,7 +601,7 @@ func TestToolsAPIWebResearchVerifyFactRequiresTwoIndependentFetchedDomains(t *te
 		_, _ = w.Write([]byte(`<a href="` + source.URL + `/a">Primary endpoint first source</a><a href="` + source.URL + `/b">Primary endpoint second source</a>`))
 	}))
 	defer search.Close()
-	t.Setenv("SYNON_WEBSEARCH_ENDPOINT", search.URL+"/?q={query}")
+	t.Setenv("X_SCIENCE_WEBSEARCH_ENDPOINT", search.URL+"/?q={query}")
 
 	srv := New(toolsAPITestWebOptions())
 	httpServer := httptest.NewServer(srv.Handler())
@@ -643,7 +643,7 @@ func TestToolsAPIWebResearchReportsEvidenceGapsAndSynthesisPack(t *testing.T) {
 		_, _ = w.Write([]byte(`<a href="` + source.URL + `/one">Thin evidence query source</a>`))
 	}))
 	defer search.Close()
-	t.Setenv("SYNON_WEBSEARCH_ENDPOINT", search.URL+"/?q={query}")
+	t.Setenv("X_SCIENCE_WEBSEARCH_ENDPOINT", search.URL+"/?q={query}")
 
 	srv := New(toolsAPITestWebOptions())
 	httpServer := httptest.NewServer(srv.Handler())
@@ -957,7 +957,7 @@ func TestToolsAPIVisualReviewPersistsReviewRecord(t *testing.T) {
 	}
 }
 
-func TestToolsAPIVisualReviewReportsUrlAndSynonLinkBlockers(t *testing.T) {
+func TestToolsAPIVisualReviewReportsUrlAndXScienceLinkBlockers(t *testing.T) {
 	srv := New(Options{})
 	httpServer := httptest.NewServer(srv.Handler())
 	defer httpServer.Close()
@@ -972,14 +972,14 @@ func TestToolsAPIVisualReviewReportsUrlAndSynonLinkBlockers(t *testing.T) {
 		t.Fatalf("VisualReview URL blockers = %#v", urlResult)
 	}
 
-	synonLinkReview := postToolInput(t, httpServer.URL, "VisualReview", map[string]any{
+	xscienceLinkReview := postToolInput(t, httpServer.URL, "VisualReview", map[string]any{
 		"action":    "collect",
 		"objective": "review browser state",
-		"source":    "synonlink_browser",
+		"source":    "xsciencelink_browser",
 	})
-	synonLinkResult := synonLinkReview["result"].(map[string]any)
-	if !visualReviewHasBlocker(synonLinkResult, "synonlink_not_allowed") {
-		t.Fatalf("VisualReview SynonLink blockers = %#v", synonLinkResult)
+	xscienceLinkResult := xscienceLinkReview["result"].(map[string]any)
+	if !visualReviewHasBlocker(xscienceLinkResult, "xsciencelink_not_allowed") {
+		t.Fatalf("VisualReview XScienceLink blockers = %#v", xscienceLinkResult)
 	}
 }
 
@@ -1016,7 +1016,7 @@ func TestToolsAPIExecutesSkillSearchContract(t *testing.T) {
 		t.Fatalf("mkdir skill dir: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte(`---
-name: synon-skill-sample
+name: x-science-skill-sample
 description: Search and use sample agent skill
 tags:
   - chat
@@ -1032,7 +1032,7 @@ First indexed: $ARGUMENTS[0]
 Second shorthand: $1
 Named target: $target
 Named mode: $mode
-Skill directory: ${SYNON_SKILL_DIR}
+Skill directory: ${X_SCIENCE_SKILL_DIR}
 `), 0o600); err != nil {
 		t.Fatalf("write skill: %v", err)
 	}
@@ -1050,10 +1050,10 @@ Skill directory: ${SYNON_SKILL_DIR}
 	})
 	selectResult := matchesBody["result"].(map[string]any)
 	matches := selectResult["matches"].([]any)
-	if !hasString(matches, "synon-skill-sample") || selectResult["total_skills"].(float64) != 2 {
+	if !hasString(matches, "x-science-skill-sample") || selectResult["total_skills"].(float64) != 2 {
 		t.Fatalf("SkillSearch keyword result = %#v", selectResult)
 	}
-	if !strings.Contains(selectResult["skill_matches"].([]any)[0].(map[string]any)["name"].(string), "synon-skill-sample") {
+	if !strings.Contains(selectResult["skill_matches"].([]any)[0].(map[string]any)["name"].(string), "x-science-skill-sample") {
 		t.Fatalf("SkillSearch returned malformed skill metadata = %#v", selectResult)
 	}
 	if selectResult["skill_load_errors"].(float64) != 0 {
@@ -1061,17 +1061,17 @@ Skill directory: ${SYNON_SKILL_DIR}
 	}
 
 	selectBody := postToolInput(t, httpServer.URL, "SkillSearch", map[string]any{
-		"query":       "select:synon-skill-sample",
+		"query":       "select:x-science-skill-sample",
 		"max_results": float64(1),
 	})
 	selectedResult := selectBody["result"].(map[string]any)
 	selectedMatches := selectedResult["matches"].([]any)
-	if len(selectedMatches) != 1 || selectedMatches[0].(string) != "synon-skill-sample" {
+	if len(selectedMatches) != 1 || selectedMatches[0].(string) != "x-science-skill-sample" {
 		t.Fatalf("SkillSearch select result = %#v", selectedResult)
 	}
 
 	partialSelectBody := postToolInput(t, httpServer.URL, "SkillSearch", map[string]any{
-		"query":       "select:synon-skill-sample,missing-skill",
+		"query":       "select:x-science-skill-sample,missing-skill",
 		"max_results": float64(5),
 	})
 	partialSelectResult := partialSelectBody["result"].(map[string]any)
@@ -1079,7 +1079,7 @@ Skill directory: ${SYNON_SKILL_DIR}
 		t.Fatalf("SkillSearch select should expose selection_mode: %#v", partialSelectResult)
 	}
 	requested := partialSelectResult["requested_skills"].([]any)
-	if len(requested) != 2 || requested[0].(string) != "synon-skill-sample" || requested[1].(string) != "missing-skill" {
+	if len(requested) != 2 || requested[0].(string) != "x-science-skill-sample" || requested[1].(string) != "missing-skill" {
 		t.Fatalf("SkillSearch select requested_skills = %#v", partialSelectResult)
 	}
 	missing := partialSelectResult["missing_skills"].([]any)
@@ -1111,7 +1111,7 @@ func TestToolsAPIExecutesSkillToolContract(t *testing.T) {
 		t.Fatalf("mkdir skill dir: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte(`---
-name: synon-skill-sample
+name: x-science-skill-sample
 description: Search and use sample agent skill
 tags:
   - chat
@@ -1127,7 +1127,7 @@ First indexed: $ARGUMENTS[0]
 Second shorthand: $1
 Named target: $target
 Named mode: $mode
-Skill directory: ${SYNON_SKILL_DIR}
+Skill directory: ${X_SCIENCE_SKILL_DIR}
 `), 0o600); err != nil {
 		t.Fatalf("write skill: %v", err)
 	}
@@ -1139,17 +1139,17 @@ Skill directory: ${SYNON_SKILL_DIR}
 	httpServer := httptest.NewServer(srv.Handler())
 	defer httpServer.Close()
 
-	body := postToolInput(t, httpServer.URL, "Skill", map[string]any{"skill": "/synon-skill-sample", "args": "create a task"})
+	body := postToolInput(t, httpServer.URL, "Skill", map[string]any{"skill": "/x-science-skill-sample", "args": "create a task"})
 	result := body["result"].(map[string]any)
 	data := result["data"].(map[string]any)
-	if data["success"] != true || data["commandName"] != "synon-skill-sample" || data["status"] != "inline" {
+	if data["success"] != true || data["commandName"] != "x-science-skill-sample" || data["status"] != "inline" {
 		t.Fatalf("Skill data = %#v", data)
 	}
 	if !hasString(data["allowedTools"].([]any), "TaskCreate") {
 		t.Fatalf("Skill allowedTools = %#v", data)
 	}
 	skill := result["skill"].(map[string]any)
-	if skill["name"] != "synon-skill-sample" || !strings.Contains(skill["body"].(string), "deterministic task creation") || skill["path"] == "" || skill["body_hash"] == "" {
+	if skill["name"] != "x-science-skill-sample" || !strings.Contains(skill["body"].(string), "deterministic task creation") || skill["path"] == "" || skill["body_hash"] == "" {
 		t.Fatalf("Skill metadata = %#v", skill)
 	}
 	if result["args"] != "create a task" {
@@ -1160,7 +1160,7 @@ Skill directory: ${SYNON_SKILL_DIR}
 		t.Fatalf("Skill rendered prompt did not substitute args and skill dir: %#v", result)
 	}
 	structuredBody := postToolInput(t, httpServer.URL, "Skill", map[string]any{
-		"skill": "synon-skill-sample",
+		"skill": "x-science-skill-sample",
 		"args":  `alpha "beta mode"`,
 	})
 	structuredPrompt := structuredBody["result"].(map[string]any)["prompt"].(string)
@@ -1211,9 +1211,9 @@ func TestDefaultSkillCatalogLoadsBundledSkillsWithoutMissingDefaultErrors(t *tes
 	if len(directories) == 0 {
 		t.Fatal("default skill catalog did not discover any bundled skill directory")
 	}
-	matches := catalog.Search("select:synon-runtime", 3)
-	if len(matches) != 1 || matches[0].Name != "synon-runtime" {
-		t.Fatalf("bundled synon-runtime skill not searchable: %#v", matches)
+	matches := catalog.Search("select:x-science-runtime", 3)
+	if len(matches) != 1 || matches[0].Name != "x-science-runtime" {
+		t.Fatalf("bundled x-science-runtime skill not searchable: %#v", matches)
 	}
 
 	srv := New(Options{FileRoot: root})
@@ -1242,17 +1242,17 @@ func TestDefaultSkillCatalogLoadsBundledSkillsWithoutMissingDefaultErrors(t *tes
 	}
 }
 
-func TestDefaultSkillCatalogDoesNotLoadPersonalSynonSkillPathsByDefault(t *testing.T) {
+func TestDefaultSkillCatalogDoesNotLoadPersonalXScienceSkillPathsByDefault(t *testing.T) {
 	root := t.TempDir()
 	home := filepath.Join(root, "home")
-	if err := os.MkdirAll(filepath.Join(home, ".synon", "skills", "personal-skill"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(home, ".x-science", "skills", "personal-skill"), 0o755); err != nil {
 		t.Fatalf("mkdir home skill: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(home, ".synon", "skills", "personal-skill", "SKILL.md"), []byte(`---
-name: personal-synon-skill
-description: Personal Synon skill path
+	if err := os.WriteFile(filepath.Join(home, ".x-science", "skills", "personal-skill", "SKILL.md"), []byte(`---
+name: personal-x-science-skill
+description: Personal XScience skill path
 ---
-Personal-level original Synon skill.
+Personal-level original XScience skill.
 `), 0o600); err != nil {
 		t.Fatalf("write home skill: %v", err)
 	}
@@ -1278,11 +1278,11 @@ Personal-level original Synon skill.
 	if len(loadErrors) != 0 {
 		t.Fatalf("default skill catalog should ignore absent optional dirs, got %#v", loadErrors)
 	}
-	if stringSliceContains(directories, filepath.Join(home, ".synon", "skills")) ||
+	if stringSliceContains(directories, filepath.Join(home, ".x-science", "skills")) ||
 		stringSliceContains(directories, filepath.Join(home, ".claude", "skills")) {
 		t.Fatalf("default skill catalog must not depend on personal legacy skill dirs: %#v", directories)
 	}
-	if matches := catalog.Search("select:personal-synon-skill", 5); len(matches) != 0 {
+	if matches := catalog.Search("select:personal-x-science-skill", 5); len(matches) != 0 {
 		t.Fatalf("default catalog loaded personal legacy skill unexpectedly: matches=%#v directories=%#v", matches, directories)
 	}
 }
@@ -1293,7 +1293,7 @@ func TestDefaultSkillCatalogDoesNotLoadAmbientProjectOrAncestorSkills(t *testing
 	nested := filepath.Join(project, "nested")
 	for _, skillRoot := range []string{
 		filepath.Join(project, "skills", "ambient-project"),
-		filepath.Join(project, ".synon", "skills", "ambient-synon"),
+		filepath.Join(project, ".x-science", "skills", "ambient-xscience"),
 		filepath.Join(nested, "skills", "ambient-cwd"),
 	} {
 		if err := os.MkdirAll(skillRoot, 0o755); err != nil {
@@ -1321,7 +1321,7 @@ func TestDefaultSkillCatalogDoesNotLoadAmbientProjectOrAncestorSkills(t *testing
 	if len(loadErrors) != 0 {
 		t.Fatalf("load errors=%#v", loadErrors)
 	}
-	for _, name := range []string{"ambient-project", "ambient-synon", "ambient-cwd"} {
+	for _, name := range []string{"ambient-project", "ambient-xscience", "ambient-cwd"} {
 		if matches := catalog.Search("select:"+name, 2); len(matches) != 0 {
 			t.Fatalf("default catalog loaded %q from ambient filesystem: matches=%#v dirs=%#v", name, matches, directories)
 		}
@@ -1358,30 +1358,30 @@ func TestConfiguredSkillCatalogRejectsRelativeDirectoryInsteadOfResolvingAgainst
 	}
 }
 
-func TestConfiguredSkillDirectoriesCanLoadProjectSynonSkillPaths(t *testing.T) {
+func TestConfiguredSkillDirectoriesCanLoadProjectXScienceSkillPaths(t *testing.T) {
 	root := t.TempDir()
-	projectSkillDir := filepath.Join(root, "project", ".synon", "skills")
+	projectSkillDir := filepath.Join(root, "project", ".x-science", "skills")
 	if err := os.MkdirAll(filepath.Join(projectSkillDir, "project-skill"), 0o755); err != nil {
 		t.Fatalf("mkdir project skill: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(projectSkillDir, "project-skill", "SKILL.md"), []byte(`---
-name: project-synon-skill
-description: Project Synon skill path
+name: project-x-science-skill
+description: Project XScience skill path
 ---
-Project-level original Synon skill.
+Project-level original XScience skill.
 `), 0o600); err != nil {
 		t.Fatalf("write project skill: %v", err)
 	}
 
 	catalog, directories, loadErrors := loadSkillCatalog(nil, []string{projectSkillDir}, "")
 	if len(loadErrors) != 0 {
-		t.Fatalf("configured Synon skill paths should load without errors: %#v", loadErrors)
+		t.Fatalf("configured XScience skill paths should load without errors: %#v", loadErrors)
 	}
 	if len(directories) != 1 || directories[0] != projectSkillDir {
 		t.Fatalf("configured skill directories changed: %#v", directories)
 	}
-	if matches := catalog.Search("select:project-synon-skill", 5); len(matches) != 1 {
-		t.Fatalf("configured Synon path skill not searchable: matches=%#v directories=%#v", matches, directories)
+	if matches := catalog.Search("select:project-x-science-skill", 5); len(matches) != 1 {
+		t.Fatalf("configured XScience path skill not searchable: matches=%#v directories=%#v", matches, directories)
 	}
 }
 
@@ -1417,8 +1417,8 @@ func testPublicHTTPSPinnedClient(client *http.Client) *http.Client {
 }
 
 func TestToolsAPIExecutesOriginalMCPAlias(t *testing.T) {
-	t.Setenv("SYNON_MCP_CONFIG", "")
-	t.Setenv("SYNON_MCP_CONFIG_JSON", "")
+	t.Setenv("X_SCIENCE_MCP_CONFIG", "")
+	t.Setenv("X_SCIENCE_MCP_CONFIG_JSON", "")
 	var seenMethods []string
 	remote := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -1470,7 +1470,7 @@ func TestToolsAPIExecutesOriginalMCPAlias(t *testing.T) {
 	}
 	// FileRoot .mcp.json is deliberately not an executable configuration
 	// source; tests must nominate the admin-controlled path explicitly.
-	t.Setenv("SYNON_MCP_CONFIG", filepath.Join(root, ".mcp.json"))
+	t.Setenv("X_SCIENCE_MCP_CONFIG", filepath.Join(root, ".mcp.json"))
 	srv := New(Options{FileRoot: root, HTTPClient: mcpClient})
 	httpServer := httptest.NewServer(srv.Handler())
 	defer httpServer.Close()
@@ -1486,8 +1486,8 @@ func TestToolsAPIExecutesOriginalMCPAlias(t *testing.T) {
 }
 
 func TestToolsAPIExecutesDynamicMCPAuthenticateThenOriginalMCPAlias(t *testing.T) {
-	t.Setenv("SYNON_MCP_CONFIG", "")
-	t.Setenv("SYNON_MCP_CONFIG_JSON", "")
+	t.Setenv("X_SCIENCE_MCP_CONFIG", "")
+	t.Setenv("X_SCIENCE_MCP_CONFIG_JSON", "")
 	var authBaseURL string
 	var authServer *httptest.Server
 	authServer = httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1561,7 +1561,7 @@ func TestToolsAPIExecutesDynamicMCPAuthenticateThenOriginalMCPAlias(t *testing.T
 	if err := os.WriteFile(filepath.Join(root, ".mcp.json"), rawConfig, 0o600); err != nil {
 		t.Fatalf("write MCP config: %v", err)
 	}
-	t.Setenv("SYNON_MCP_CONFIG", filepath.Join(root, ".mcp.json"))
+	t.Setenv("X_SCIENCE_MCP_CONFIG", filepath.Join(root, ".mcp.json"))
 	srv := New(Options{FileRoot: root, HTTPClient: mcpClient})
 	httpServer := httptest.NewServer(srv.Handler())
 	defer httpServer.Close()
@@ -1717,7 +1717,7 @@ func TestToolsAPIExecutesAgentRuntimeDoctorParityAudit(t *testing.T) {
 		t.Fatalf("AgentRuntimeDoctor envelope = %#v", result)
 	}
 	contract, ok := result["contract"].(map[string]any)
-	if !ok || contract["source"] != "synon-harness" || contract["target"] != buildinfo.Release().MachineSlug ||
+	if !ok || contract["source"] != "x-science-harness" || contract["target"] != buildinfo.Release().MachineSlug ||
 		contract["productName"] != buildinfo.Release().Name || contract["productVersion"] != buildinfo.Release().Version {
 		t.Fatalf("AgentRuntimeDoctor product contract = %#v", result["contract"])
 	}
@@ -1743,7 +1743,7 @@ func TestToolsAPIExecutesAgentRuntimeDoctorParityAudit(t *testing.T) {
 		!hasRuntimeDoctorArea(areas, "hooks", "pass") ||
 		!hasRuntimeDoctorArea(areas, "sessions", "pass") ||
 		!hasRuntimeDoctorArea(areas, "skills", "pass") ||
-		!hasRuntimeDoctorArea(areas, "synon-link-im", "pass") {
+		!hasRuntimeDoctorArea(areas, "x-science-link-im", "pass") {
 		t.Fatalf("AgentRuntimeDoctor areas = %#v", areas)
 	}
 	if !hasRuntimeDoctorArea(areas, "artifact-system", "pass") {
@@ -1868,7 +1868,7 @@ func TestToolsAPIExecutesAgentRuntimeDoctorParityAudit(t *testing.T) {
 		t.Fatalf("AgentRuntimeDoctor skills evidence did not report skill reference diagnostics: %#v", areas)
 	}
 	if !runtimeDoctorAreaEvidenceBool(areas, "skills", "hasSelfContainedSkillCatalog") ||
-		!runtimeDoctorAreaEvidenceBool(areas, "skills", "hasProjectSynonSkillCompatibility") ||
+		!runtimeDoctorAreaEvidenceBool(areas, "skills", "hasProjectXScienceSkillCompatibility") ||
 		runtimeDoctorAreaEvidenceBool(areas, "skills", "usesPersonalSkillDefaults") ||
 		!runtimeDoctorAreaEvidenceBool(areas, "skills", "personalSkillDirectoriesExcluded") {
 		t.Fatalf("AgentRuntimeDoctor skills evidence did not report self-contained skill catalog readiness: %#v", areas)
@@ -1920,27 +1920,27 @@ func TestToolsAPIExecutesAgentRuntimeDoctorParityAudit(t *testing.T) {
 		!runtimeDoctorAreaEvidenceBool(areas, "mcp", "hasPrivateMCPOAuthTokenCache") {
 		t.Fatalf("AgentRuntimeDoctor mcp evidence did not report scoped host.mcp integration: %#v", areas)
 	}
-	if !runtimeDoctorAreaEvidenceBool(areas, "synon-link-im", "hasSynonLinkService") ||
-		!runtimeDoctorAreaEvidenceBool(areas, "synon-link-im", "hasSynonLinkTools") ||
-		!runtimeDoctorAreaEvidenceBool(areas, "synon-link-im", "hasPairingStore") ||
-		!runtimeDoctorAreaEvidenceBool(areas, "synon-link-im", "hasPairingTools") ||
-		!runtimeDoctorAreaEvidenceBool(areas, "synon-link-im", "hasIMMessageTool") ||
-		!runtimeDoctorAreaEvidenceBool(areas, "synon-link-im", "hasSessionEventJournalTool") ||
-		!runtimeDoctorAreaEvidenceBool(areas, "synon-link-im", "hasIMLiveSessionJournal") ||
-		!runtimeDoctorAreaEvidenceBool(areas, "synon-link-im", "hasToolDoctorAdapterCredentialSmoke") ||
-		!runtimeDoctorAreaEvidenceBool(areas, "synon-link-im", "hasFeishuAdapterLiveSmokeExecution") ||
-		!runtimeDoctorAreaEvidenceBool(areas, "synon-link-im", "hasWeChatAdapterLiveSmokeExecution") ||
-		!runtimeDoctorAreaEvidenceBool(areas, "synon-link-im", "hasAdapterLiveSmokePerPlatformReadiness") ||
-		!runtimeDoctorAreaEvidenceBool(areas, "synon-link-im", "hasLiveIMSmokeScript") ||
-		!runtimeDoctorAreaEvidenceBool(areas, "synon-link-im", "hasAnyAdapterLiveSmokePass") ||
-		!runtimeDoctorAreaEvidenceBool(areas, "synon-link-im", "hasAllPlatformDedupManagers") {
-		t.Fatalf("AgentRuntimeDoctor synon-link-im evidence did not report live IM runtime readiness: %#v", areas)
+	if !runtimeDoctorAreaEvidenceBool(areas, "x-science-link-im", "hasXScienceLinkService") ||
+		!runtimeDoctorAreaEvidenceBool(areas, "x-science-link-im", "hasXScienceLinkTools") ||
+		!runtimeDoctorAreaEvidenceBool(areas, "x-science-link-im", "hasPairingStore") ||
+		!runtimeDoctorAreaEvidenceBool(areas, "x-science-link-im", "hasPairingTools") ||
+		!runtimeDoctorAreaEvidenceBool(areas, "x-science-link-im", "hasIMMessageTool") ||
+		!runtimeDoctorAreaEvidenceBool(areas, "x-science-link-im", "hasSessionEventJournalTool") ||
+		!runtimeDoctorAreaEvidenceBool(areas, "x-science-link-im", "hasIMLiveSessionJournal") ||
+		!runtimeDoctorAreaEvidenceBool(areas, "x-science-link-im", "hasToolDoctorAdapterCredentialSmoke") ||
+		!runtimeDoctorAreaEvidenceBool(areas, "x-science-link-im", "hasFeishuAdapterLiveSmokeExecution") ||
+		!runtimeDoctorAreaEvidenceBool(areas, "x-science-link-im", "hasWeChatAdapterLiveSmokeExecution") ||
+		!runtimeDoctorAreaEvidenceBool(areas, "x-science-link-im", "hasAdapterLiveSmokePerPlatformReadiness") ||
+		!runtimeDoctorAreaEvidenceBool(areas, "x-science-link-im", "hasLiveIMSmokeScript") ||
+		!runtimeDoctorAreaEvidenceBool(areas, "x-science-link-im", "hasAnyAdapterLiveSmokePass") ||
+		!runtimeDoctorAreaEvidenceBool(areas, "x-science-link-im", "hasAllPlatformDedupManagers") {
+		t.Fatalf("AgentRuntimeDoctor x-science-link-im evidence did not report live IM runtime readiness: %#v", areas)
 	}
-	synonLinkIMEvidence := runtimeDoctorAreaEvidence(t, areas, "synon-link-im")
-	renderedSynonLinkIMEvidence := fmt.Sprintf("%#v", synonLinkIMEvidence)
+	xscienceLinkIMEvidence := runtimeDoctorAreaEvidence(t, areas, "x-science-link-im")
+	renderedXScienceLinkIMEvidence := fmt.Sprintf("%#v", xscienceLinkIMEvidence)
 	for _, secret := range []string{"TOKEN-DOCTOR", "FEISHU-DOCTOR", "tenant-token-doctor", "DING-DOCTOR", "ding-token-doctor", "WECHAT-DOCTOR"} {
-		if strings.Contains(renderedSynonLinkIMEvidence, secret) {
-			t.Fatalf("AgentRuntimeDoctor synon-link-im evidence leaked adapter credential %s: %#v", secret, synonLinkIMEvidence)
+		if strings.Contains(renderedXScienceLinkIMEvidence, secret) {
+			t.Fatalf("AgentRuntimeDoctor x-science-link-im evidence leaked adapter credential %s: %#v", secret, xscienceLinkIMEvidence)
 		}
 	}
 	if !runtimeDoctorAreaEvidenceBool(areas, "compact-memory", "hasWorkspaceMemoryExtraction") ||
@@ -2217,8 +2217,8 @@ func TestAgentRuntimeDoctorSkillsAreaRejectsPersonalDefaultDirectories(t *testin
 	if evidence["usesPersonalSkillDefaults"] != true || evidence["personalSkillDirectoriesExcluded"] != false {
 		t.Fatalf("skills evidence should expose personal default directory usage: %#v", evidence)
 	}
-	if evidence["hasProjectSynonSkillCompatibility"] != true {
-		t.Fatalf("skills evidence should retain project .synon/skills compatibility: %#v", evidence)
+	if evidence["hasProjectXScienceSkillCompatibility"] != true {
+		t.Fatalf("skills evidence should retain project .x-science/skills compatibility: %#v", evidence)
 	}
 }
 func TestAgentRuntimeDoctorSkillsAreaRequiresSearchAndInvocationTools(t *testing.T) {
@@ -2416,7 +2416,7 @@ func TestAgentRuntimeDoctorTaskRunAreaRequiresExplicitRunnerLeaseTools(t *testin
 		"Agent",
 		"TeamCreate",
 		"TeamDelete",
-		"synon_link",
+		"x_science_link",
 		"artifact_register",
 		"StructuredOutput",
 		"Shell",
@@ -2585,7 +2585,7 @@ func TestAgentRuntimeDoctorTaskRunAreaRequiresTeamToolsForSubagentOrchestration(
 	}
 }
 
-func TestAgentRuntimeDoctorTaskRunAreaRequiresSynonLinkToolsForDirectExecutor(t *testing.T) {
+func TestAgentRuntimeDoctorTaskRunAreaRequiresXScienceLinkToolsForDirectExecutor(t *testing.T) {
 	toolNames := []string{
 		"AgentRuntimeDoctor",
 		"TaskRun",
@@ -2631,20 +2631,20 @@ func TestAgentRuntimeDoctorTaskRunAreaRequiresSynonLinkToolsForDirectExecutor(t 
 	body := postToolInput(t, httpServer.URL, "AgentRuntimeDoctor", map[string]any{"scope": "taskrun-agent"})
 	result := body["result"].(map[string]any)
 	if result["ok"] == true {
-		t.Fatalf("AgentRuntimeDoctor must not be ok when SynonLink direct executor tools are missing: %#v", result)
+		t.Fatalf("AgentRuntimeDoctor must not be ok when XScienceLink direct executor tools are missing: %#v", result)
 	}
 	areas := result["areas"].([]any)
 	if hasRuntimeDoctorArea(areas, "taskrun-agent", "pass") {
-		t.Fatalf("taskrun-agent must not pass without the canonical synon_link tool: %#v", areas)
+		t.Fatalf("taskrun-agent must not pass without the canonical x_science_link tool: %#v", areas)
 	}
 	evidence := runtimeDoctorAreaEvidence(t, areas, "taskrun-agent")
 	if evidence["hasSessionRunnerProtocolTools"] != true ||
 		evidence["hasOriginalSystemToolSteps"] != true ||
 		evidence["hasTeamSubagentOrchestration"] != true ||
-		evidence["hasSynonLinkTools"] == true ||
-		evidence["hasSynonLinkClientGate"] == true ||
-		evidence["hasSynonLinkDirectExecutor"] == true {
-		t.Fatalf("taskrun-agent evidence should distinguish runner/team readiness from SynonLink executor readiness: %#v", evidence)
+		evidence["hasXScienceLinkTools"] == true ||
+		evidence["hasXScienceLinkClientGate"] == true ||
+		evidence["hasXScienceLinkDirectExecutor"] == true {
+		t.Fatalf("taskrun-agent evidence should distinguish runner/team readiness from XScienceLink executor readiness: %#v", evidence)
 	}
 }
 
@@ -2654,7 +2654,7 @@ func TestAgentRuntimeDoctorTaskRunAreaRequiresTaskRunToolForMonitorEvidence(t *t
 		"Agent",
 		"TeamCreate",
 		"TeamDelete",
-		"synon_link",
+		"x_science_link",
 		"artifact_register",
 		"StructuredOutput",
 		"Shell",
@@ -2716,7 +2716,7 @@ func TestAgentRuntimeDoctorTaskRunAreaRequiresAgentToolForAgentPolicyEvidence(t 
 		"TaskRun",
 		"TeamCreate",
 		"TeamDelete",
-		"synon_link",
+		"x_science_link",
 		"artifact_register",
 		"StructuredOutput",
 		"Shell",
@@ -3203,15 +3203,15 @@ func TestAgentRuntimeDoctorRequiresLiveIMCredentialSmokeBeforePass(t *testing.T)
 		t.Fatalf("AgentRuntimeDoctor must not be ok until IM live credential smoke has passed: %#v", result)
 	}
 	areas := result["areas"].([]any)
-	if !hasRuntimeDoctorArea(areas, "synon-link-im", "partial") {
-		t.Fatalf("synon-link-im should stay partial until live credential smoke passes: %#v", areas)
+	if !hasRuntimeDoctorArea(areas, "x-science-link-im", "partial") {
+		t.Fatalf("x-science-link-im should stay partial until live credential smoke passes: %#v", areas)
 	}
-	evidence := runtimeDoctorAreaEvidence(t, areas, "synon-link-im")
+	evidence := runtimeDoctorAreaEvidence(t, areas, "x-science-link-im")
 	if evidence["hasAnyAdapterLiveSmokePass"] != false || evidence["hasAllAdapterLiveSmokePass"] != false || evidence["liveCredentialSmokeRequiredAtDeploy"] != true || evidence["hasLiveIMSmokeScript"] != true {
-		t.Fatalf("synon-link-im live smoke evidence = %#v", evidence)
+		t.Fatalf("x-science-link-im live smoke evidence = %#v", evidence)
 	}
-	if evidence["liveSmokePlanCommand"] != "synon-go-live-im-smoke --plan --json" || evidence["liveSmokeRequireAllCommand"] != "synon-go-live-im-smoke --require-all --json" || evidence["liveSmokeRecordCommand"] != "synon-go-live-im-smoke --require-all --json --runtime-url <runtime-url>" || evidence["hasLiveIMSmokeReleaseBinary"] != true || evidence["requiresDeliveryChecked"] != true || evidence["deliveryAuditMaxAgeSeconds"] != float64(86400) {
-		t.Fatalf("synon-link-im live smoke command evidence = %#v", evidence)
+	if evidence["liveSmokePlanCommand"] != "x-science-live-im-smoke --plan --json" || evidence["liveSmokeRequireAllCommand"] != "x-science-live-im-smoke --require-all --json" || evidence["liveSmokeRecordCommand"] != "x-science-live-im-smoke --require-all --json --runtime-url <runtime-url>" || evidence["hasLiveIMSmokeReleaseBinary"] != true || evidence["requiresDeliveryChecked"] != true || evidence["deliveryAuditMaxAgeSeconds"] != float64(86400) {
+		t.Fatalf("x-science-link-im live smoke command evidence = %#v", evidence)
 	}
 }
 
@@ -3321,10 +3321,10 @@ func TestAgentRuntimeDoctorAcceptsFreshDeliveryAuditsThroughRuntimeAPI(t *testin
 	}
 	body := postToolInput(t, httpServer.URL, "AgentRuntimeDoctor", map[string]any{})
 	areas := body["result"].(map[string]any)["areas"].([]any)
-	if !hasRuntimeDoctorArea(areas, "synon-link-im", "pass") {
-		t.Fatalf("fresh HTTP-recorded delivery audits should pass synon-link-im: %#v", areas)
+	if !hasRuntimeDoctorArea(areas, "x-science-link-im", "pass") {
+		t.Fatalf("fresh HTTP-recorded delivery audits should pass x-science-link-im: %#v", areas)
 	}
-	evidence := runtimeDoctorAreaEvidence(t, areas, "synon-link-im")
+	evidence := runtimeDoctorAreaEvidence(t, areas, "x-science-link-im")
 	if evidence["hasAnyAdapterLiveSmokePass"] != true || evidence["hasAllAdapterLiveSmokePass"] != true {
 		t.Fatalf("delivery audit evidence = %#v", evidence)
 	}
@@ -3379,7 +3379,7 @@ func TestToolsAPIAgentRuntimeDoctorReportsReadyModelRunnerConfig(t *testing.T) {
 			ChatEndpoint:     "https://model.example/v1/chat/completions",
 			ChatModel:        "model-main",
 			ChatAPIKeySet:    true,
-			ChatAPIKeySource: "env:SYNON_RUNNER_CHAT_API_KEY",
+			ChatAPIKeySource: "env:X_SCIENCE_RUNNER_CHAT_API_KEY",
 			ChatTools:        []string{"Read", "ToolSearch"},
 			PollIntervalMS:   1000,
 			LeaseTTLSeconds:  300,
@@ -3403,7 +3403,7 @@ func TestToolsAPIAgentRuntimeDoctorReportsReadyModelRunnerConfig(t *testing.T) {
 		evidence["chatEndpointConfigured"] != true ||
 		evidence["chatModelConfigured"] != true ||
 		evidence["chatAPIKeyConfigured"] != true ||
-		evidence["chatAPIKeySource"] != "env:SYNON_RUNNER_CHAT_API_KEY" ||
+		evidence["chatAPIKeySource"] != "env:X_SCIENCE_RUNNER_CHAT_API_KEY" ||
 		evidence["hasSecretDiagnosticsRedaction"] != true ||
 		evidence["chatToolRoundLimit"] != float64(0) ||
 		evidence["chatToolRoundsUnlimited"] != true ||
@@ -3661,17 +3661,17 @@ func TestToolsAPIExecutesStaticLSPContract(t *testing.T) {
 }
 func TestToolsAPIExecutesWebSearchUnavailableContract(t *testing.T) {
 	root := t.TempDir()
-	t.Setenv("SYNON_WEBSEARCH_SCRIPT", filepath.Join(root, "missing-websearch.py"))
+	t.Setenv("X_SCIENCE_WEBSEARCH_SCRIPT", filepath.Join(root, "missing-websearch.py"))
 	srv := New(Options{FileRoot: root})
 	httpServer := httptest.NewServer(srv.Handler())
 	defer httpServer.Close()
 
 	body := postToolInput(t, httpServer.URL, "WebSearch", map[string]any{
-		"query":       "Synon agent",
+		"query":       "XScience agent",
 		"max_results": float64(3),
 	})
 	result := body["result"].(map[string]any)
-	if result["query"] != "Synon agent" {
+	if result["query"] != "XScience agent" {
 		t.Fatalf("WebSearch query result = %#v", result)
 	}
 	failure := result["failure"].(map[string]any)
@@ -3683,13 +3683,13 @@ func TestToolsAPIExecutesWebSearchUnavailableContract(t *testing.T) {
 		t.Fatalf("WebSearch unavailable sources = %#v", sources)
 	}
 	diagnostics := result["diagnostics"].(map[string]any)
-	if diagnostics["provider"] != "synon-websearch" || diagnostics["scriptExists"] != false {
+	if diagnostics["provider"] != "x-science-websearch" || diagnostics["scriptExists"] != false {
 		t.Fatalf("WebSearch diagnostics = %#v", diagnostics)
 	}
 }
 
 func TestWebSearchUnavailableIsClassifiedAsRecoverableByAgentGateway(t *testing.T) {
-	t.Setenv("SYNON_WEBSEARCH_MODE", "disabled")
+	t.Setenv("X_SCIENCE_WEBSEARCH_MODE", "disabled")
 	srv := New(Options{FileRoot: t.TempDir()})
 	response, err := srv.executeToolResponse(context.Background(), "WebSearch", map[string]any{
 		"query":       "unavailable search evidence",
@@ -7183,8 +7183,8 @@ func TestToolsAPIManagesGitWorktreeSession(t *testing.T) {
 		t.Fatalf("mkdir repo: %v", err)
 	}
 	runGitForTest(t, repo, "init")
-	runGitForTest(t, repo, "config", "user.email", "synon@example.test")
-	runGitForTest(t, repo, "config", "user.name", "Synon Test")
+	runGitForTest(t, repo, "config", "user.email", "xscience@example.test")
+	runGitForTest(t, repo, "config", "user.name", "XScience Test")
 	if err := os.WriteFile(filepath.Join(repo, "README.md"), []byte("root\n"), 0o600); err != nil {
 		t.Fatalf("write readme: %v", err)
 	}
@@ -7202,10 +7202,10 @@ func TestToolsAPIManagesGitWorktreeSession(t *testing.T) {
 	})
 	createdResult := created["result"].(map[string]any)
 	worktreePath := createdResult["worktreePath"].(string)
-	if !strings.Contains(worktreePath, filepath.Join(root, ".synon-worktrees", "repo", "feature-a")) {
+	if !strings.Contains(worktreePath, filepath.Join(root, ".x-science-worktrees", "repo", "feature-a")) {
 		t.Fatalf("worktree path is not rooted in managed area: %q", worktreePath)
 	}
-	if createdResult["worktreeBranch"] != "synon/feature-a" || !strings.Contains(createdResult["message"].(string), "session is now working") {
+	if createdResult["worktreeBranch"] != "xscience/feature-a" || !strings.Contains(createdResult["message"].(string), "session is now working") {
 		t.Fatalf("created worktree result = %#v", createdResult)
 	}
 	if _, err := os.Stat(filepath.Join(worktreePath, "README.md")); err != nil {
@@ -7614,11 +7614,11 @@ func TestToolsAPITaskRunExecutesOriginalSystemToolSteps(t *testing.T) {
 	}
 }
 
-func TestToolsAPITaskRunSynonLinkExecutorDispatchesConnectedClient(t *testing.T) {
+func TestToolsAPITaskRunXScienceLinkExecutorDispatchesConnectedClient(t *testing.T) {
 	root := t.TempDir()
-	link := synonlink.NewService()
-	delivery := make(chan synonlink.Command, 1)
-	if err := link.Attach(synonlink.Client{
+	link := xsciencelink.NewService()
+	delivery := make(chan xsciencelink.Command, 1)
+	if err := link.Attach(xsciencelink.Client{
 		ID:               "taskrun-browser-client",
 		UserID:           "taskrun-user",
 		Name:             "TaskRun Browser",
@@ -7628,7 +7628,7 @@ func TestToolsAPITaskRunSynonLinkExecutorDispatchesConnectedClient(t *testing.T)
 	}, delivery); err != nil {
 		t.Fatalf("Attach() error = %v", err)
 	}
-	srv := New(Options{FileRoot: root, SynonLink: link})
+	srv := New(Options{FileRoot: root, XScienceLink: link})
 	httpServer := httptest.NewServer(srv.Handler())
 	defer httpServer.Close()
 
@@ -7638,14 +7638,14 @@ func TestToolsAPITaskRunSynonLinkExecutorDispatchesConnectedClient(t *testing.T)
 		defer close(resultCh)
 		body := postToolInput(t, httpServer.URL, "TaskRun", map[string]any{
 			"action":    "start",
-			"objective": "Read a connected browser page through Synon Link.",
+			"objective": "Read a connected browser page through XScience Link.",
 			"task_graph": map[string]any{
 				"steps": []any{map[string]any{
 					"id":          "browser",
 					"title":       "Read browser page",
-					"description": "Requires connected Synon Link browser client",
+					"description": "Requires connected XScience Link browser client",
 					"executor": map[string]any{
-						"kind":   "synonlink-browser",
+						"kind":   "xsciencelink-browser",
 						"action": "read_page",
 						"input": map[string]any{
 							"userId":   "taskrun-user",
@@ -7659,16 +7659,16 @@ func TestToolsAPITaskRunSynonLinkExecutorDispatchesConnectedClient(t *testing.T)
 		resultCh <- body["result"].(map[string]any)
 	}()
 
-	var command synonlink.Command
+	var command xsciencelink.Command
 	select {
 	case command = <-delivery:
 	case err := <-errorCh:
 		t.Fatalf("TaskRun post error = %v", err)
 	case <-time.After(time.Second):
-		t.Fatal("TaskRun did not dispatch SynonLink command")
+		t.Fatal("TaskRun did not dispatch XScienceLink command")
 	}
 	if command.Action != "read_page" || command.Payload["url"] != "https://example.com/report" {
-		t.Fatalf("SynonLink command = %#v", command)
+		t.Fatalf("XScienceLink command = %#v", command)
 	}
 	if err := link.CompleteCommand("taskrun-browser-client", command.ID, map[string]any{
 		"title": "Example report",
@@ -7684,58 +7684,58 @@ func TestToolsAPITaskRunSynonLinkExecutorDispatchesConnectedClient(t *testing.T)
 	case err := <-errorCh:
 		t.Fatalf("TaskRun post error = %v", err)
 	case <-time.After(time.Second):
-		t.Fatal("TaskRun did not complete after SynonLink result")
+		t.Fatal("TaskRun did not complete after XScienceLink result")
 	}
 	if run["status"] != "completed" || len(run["active_children"].([]any)) != 0 {
-		t.Fatalf("SynonLink TaskRun should complete directly: %#v", run)
+		t.Fatalf("XScienceLink TaskRun should complete directly: %#v", run)
 	}
 	steps := run["steps"].([]any)
 	step := steps[0].(map[string]any)
 	if step["status"] != "completed" || step["child_task_id"] != nil || step["output_path"] == "" {
-		t.Fatalf("SynonLink step completion = %#v", step)
+		t.Fatalf("XScienceLink step completion = %#v", step)
 	}
 	artifacts := run["artifacts"].([]any)
-	if len(artifacts) != 1 || artifacts[0].(map[string]any)["kind"] != "synonlink-browser" {
-		t.Fatalf("SynonLink artifacts = %#v", artifacts)
+	if len(artifacts) != 1 || artifacts[0].(map[string]any)["kind"] != "xsciencelink-browser" {
+		t.Fatalf("XScienceLink artifacts = %#v", artifacts)
 	}
 	artifactPath := artifacts[0].(map[string]any)["path"].(string)
 	raw, err := os.ReadFile(artifactPath)
 	if err != nil || !strings.Contains(string(raw), "connected browser evidence") || !strings.Contains(string(raw), command.ID) {
-		t.Fatalf("SynonLink artifact content path=%s err=%v body=%q", artifactPath, err, string(raw))
+		t.Fatalf("XScienceLink artifact content path=%s err=%v body=%q", artifactPath, err, string(raw))
 	}
 	evidence := run["evidence_index"].([]any)
-	if !taskRunEvidenceHasKind(evidence, "synonlink-browser") {
-		t.Fatalf("SynonLink evidence = %#v", evidence)
+	if !taskRunEvidenceHasKind(evidence, "xsciencelink-browser") {
+		t.Fatalf("XScienceLink evidence = %#v", evidence)
 	}
 	if len(link.ListTaskLogs("taskrun-user", 10)) != 1 {
-		t.Fatalf("SynonLink command logs = %#v", link.ListTaskLogs("taskrun-user", 10))
+		t.Fatalf("XScienceLink command logs = %#v", link.ListTaskLogs("taskrun-user", 10))
 	}
 
 	doctorBody := postToolInput(t, httpServer.URL, "AgentRuntimeDoctor", map[string]any{"scope": "taskrun-agent"})
 	doctorAreas := doctorBody["result"].(map[string]any)["areas"].([]any)
 	doctorEvidence := runtimeDoctorAreaEvidence(t, doctorAreas, "taskrun-agent")
-	if doctorEvidence["hasSynonLinkDirectExecutor"] != true {
-		t.Fatalf("taskrun-agent doctor evidence missing SynonLink direct executor: %#v", doctorEvidence)
+	if doctorEvidence["hasXScienceLinkDirectExecutor"] != true {
+		t.Fatalf("taskrun-agent doctor evidence missing XScienceLink direct executor: %#v", doctorEvidence)
 	}
 }
 
-func TestToolsAPITaskRunResumeSynonLinkExecutorDispatchesAfterClientConnects(t *testing.T) {
+func TestToolsAPITaskRunResumeXScienceLinkExecutorDispatchesAfterClientConnects(t *testing.T) {
 	root := t.TempDir()
-	link := synonlink.NewService()
-	srv := New(Options{FileRoot: root, SynonLink: link})
+	link := xsciencelink.NewService()
+	srv := New(Options{FileRoot: root, XScienceLink: link})
 	httpServer := httptest.NewServer(srv.Handler())
 	defer httpServer.Close()
 
 	started := postToolInput(t, httpServer.URL, "TaskRun", map[string]any{
 		"action":    "start",
-		"objective": "Resume browser bridge work after Synon Link connects.",
+		"objective": "Resume browser bridge work after XScience Link connects.",
 		"task_graph": map[string]any{
 			"steps": []any{map[string]any{
 				"id":          "browser",
 				"title":       "Read browser page after reconnect",
-				"description": "Requires Synon Link browser client",
+				"description": "Requires XScience Link browser client",
 				"executor": map[string]any{
-					"kind":   "synonlink-browser",
+					"kind":   "xsciencelink-browser",
 					"action": "read_page",
 					"input": map[string]any{
 						"userId":   "resume-user",
@@ -7748,12 +7748,12 @@ func TestToolsAPITaskRunResumeSynonLinkExecutorDispatchesAfterClientConnects(t *
 	})
 	blockedRun := started["result"].(map[string]any)
 	if blockedRun["status"] != "blocked" {
-		t.Fatalf("initial TaskRun should wait for Synon Link client: %#v", blockedRun)
+		t.Fatalf("initial TaskRun should wait for XScience Link client: %#v", blockedRun)
 	}
 	runID := blockedRun["run_id"].(string)
 
-	delivery := make(chan synonlink.Command, 1)
-	if err := link.Attach(synonlink.Client{
+	delivery := make(chan xsciencelink.Command, 1)
+	if err := link.Attach(xsciencelink.Client{
 		ID:               "resume-browser-client",
 		UserID:           "resume-user",
 		Name:             "Resume Browser",
@@ -7774,14 +7774,14 @@ func TestToolsAPITaskRunResumeSynonLinkExecutorDispatchesAfterClientConnects(t *
 		resultCh <- body["result"].(map[string]any)
 	}()
 
-	var command synonlink.Command
+	var command xsciencelink.Command
 	select {
 	case command = <-delivery:
 	case <-time.After(time.Second):
-		t.Fatal("TaskRun resume did not dispatch SynonLink command")
+		t.Fatal("TaskRun resume did not dispatch XScienceLink command")
 	}
 	if command.Action != "read_page" || command.Payload["url"] != "https://example.com/resume" {
-		t.Fatalf("resume SynonLink command = %#v", command)
+		t.Fatalf("resume XScienceLink command = %#v", command)
 	}
 	if err := link.CompleteCommand("resume-browser-client", command.ID, map[string]any{
 		"title": "Resume report",
@@ -7794,14 +7794,14 @@ func TestToolsAPITaskRunResumeSynonLinkExecutorDispatchesAfterClientConnects(t *
 	select {
 	case run = <-resultCh:
 	case <-time.After(time.Second):
-		t.Fatal("TaskRun resume did not return after SynonLink completion")
+		t.Fatal("TaskRun resume did not return after XScienceLink completion")
 	}
 	if run["status"] != "completed" || len(run["active_children"].([]any)) != 0 {
-		t.Fatalf("TaskRun resume should complete through direct SynonLink executor: %#v", run)
+		t.Fatalf("TaskRun resume should complete through direct XScienceLink executor: %#v", run)
 	}
 	step := run["steps"].([]any)[0].(map[string]any)
 	if step["status"] != "completed" || step["child_task_id"] != nil || step["output_path"] == "" {
-		t.Fatalf("resumed SynonLink step = %#v", step)
+		t.Fatalf("resumed XScienceLink step = %#v", step)
 	}
 	artifactPath := run["artifacts"].([]any)[0].(map[string]any)["path"].(string)
 	raw, err := os.ReadFile(artifactPath)
@@ -7810,10 +7810,10 @@ func TestToolsAPITaskRunResumeSynonLinkExecutorDispatchesAfterClientConnects(t *
 	}
 }
 
-func TestToolsAPITaskRunSynonLinkExecutorBlocksWhenClientLacksCapability(t *testing.T) {
+func TestToolsAPITaskRunXScienceLinkExecutorBlocksWhenClientLacksCapability(t *testing.T) {
 	root := t.TempDir()
-	link := synonlink.NewService()
-	if err := link.Register(synonlink.Client{
+	link := xsciencelink.NewService()
+	if err := link.Register(xsciencelink.Client{
 		ID:               "taskrun-limited-browser",
 		UserID:           "taskrun-user",
 		Name:             "Limited Browser",
@@ -7823,7 +7823,7 @@ func TestToolsAPITaskRunSynonLinkExecutorBlocksWhenClientLacksCapability(t *test
 	}); err != nil {
 		t.Fatalf("Register() error = %v", err)
 	}
-	srv := New(Options{FileRoot: root, SynonLink: link})
+	srv := New(Options{FileRoot: root, XScienceLink: link})
 	httpServer := httptest.NewServer(srv.Handler())
 	defer httpServer.Close()
 
@@ -7836,7 +7836,7 @@ func TestToolsAPITaskRunSynonLinkExecutorBlocksWhenClientLacksCapability(t *test
 				"title":       "Read browser page",
 				"description": "Requires humanPageRead capability",
 				"executor": map[string]any{
-					"kind":   "synonlink-browser",
+					"kind":   "xsciencelink-browser",
 					"action": "read_page",
 					"input": map[string]any{
 						"userId":   "taskrun-user",
@@ -7849,23 +7849,23 @@ func TestToolsAPITaskRunSynonLinkExecutorBlocksWhenClientLacksCapability(t *test
 	})
 	run := started["result"].(map[string]any)
 	if run["status"] != "blocked" || len(run["active_children"].([]any)) != 0 {
-		t.Fatalf("SynonLink limited client should block without Agent fallback: %#v", run)
+		t.Fatalf("XScienceLink limited client should block without Agent fallback: %#v", run)
 	}
 	blockers := run["blockers"].([]any)
 	if !taskRunBlockersHasKind(blockers, "missingCapability") {
-		t.Fatalf("SynonLink limited client blockers = %#v", blockers)
+		t.Fatalf("XScienceLink limited client blockers = %#v", blockers)
 	}
 	gaps := run["capability_gaps"].([]any)
-	if len(gaps) != 1 || gaps[0].(map[string]any)["kind"] != "missingCapability" || gaps[0].(map[string]any)["client_kind"] != "synonlink-browser" {
-		t.Fatalf("SynonLink limited client gaps = %#v", gaps)
+	if len(gaps) != 1 || gaps[0].(map[string]any)["kind"] != "missingCapability" || gaps[0].(map[string]any)["client_kind"] != "xsciencelink-browser" {
+		t.Fatalf("XScienceLink limited client gaps = %#v", gaps)
 	}
 	step := run["steps"].([]any)[0].(map[string]any)
 	if step["status"] != "blocked" || step["child_task_id"] != nil || step["error"] != nil {
-		t.Fatalf("SynonLink limited step should be blocked without failed execution: %#v", step)
+		t.Fatalf("XScienceLink limited step should be blocked without failed execution: %#v", step)
 	}
 }
 
-func TestToolsAPITaskRunSynonLinkExecutorWaitsWhenClientMissing(t *testing.T) {
+func TestToolsAPITaskRunXScienceLinkExecutorWaitsWhenClientMissing(t *testing.T) {
 	root := t.TempDir()
 	srv := New(Options{FileRoot: root})
 	httpServer := httptest.NewServer(srv.Handler())
@@ -7873,14 +7873,14 @@ func TestToolsAPITaskRunSynonLinkExecutorWaitsWhenClientMissing(t *testing.T) {
 
 	started := postToolInput(t, httpServer.URL, "TaskRun", map[string]any{
 		"action":    "start",
-		"objective": "Use browser bridge only when an explicit Synon Link client is connected.",
+		"objective": "Use browser bridge only when an explicit XScience Link client is connected.",
 		"task_graph": map[string]any{
 			"steps": []any{map[string]any{
 				"id":          "browser",
 				"title":       "Read browser page",
-				"description": "Requires Synon Link browser client",
+				"description": "Requires XScience Link browser client",
 				"executor": map[string]any{
-					"kind":   "synonlink-browser",
+					"kind":   "xsciencelink-browser",
 					"action": "read_page",
 					"input":  map[string]any{"url": "https://example.com"},
 				},
@@ -7889,31 +7889,31 @@ func TestToolsAPITaskRunSynonLinkExecutorWaitsWhenClientMissing(t *testing.T) {
 	})
 	run := started["result"].(map[string]any)
 	if run["status"] != "blocked" || len(run["active_children"].([]any)) != 0 {
-		t.Fatalf("SynonLink TaskRun should wait without queuing Agent fallback: %#v", run)
+		t.Fatalf("XScienceLink TaskRun should wait without queuing Agent fallback: %#v", run)
 	}
 	steps := run["steps"].([]any)
 	step := steps[0].(map[string]any)
 	if step["status"] != "blocked" || step["child_task_id"] != nil {
-		t.Fatalf("SynonLink step should be blocked without child Agent: %#v", step)
+		t.Fatalf("XScienceLink step should be blocked without child Agent: %#v", step)
 	}
 	blockers := run["blockers"].([]any)
 	if !taskRunBlockersHasKind(blockers, "needsClient") {
-		t.Fatalf("SynonLink TaskRun missing needsClient blocker: %#v", blockers)
+		t.Fatalf("XScienceLink TaskRun missing needsClient blocker: %#v", blockers)
 	}
 	gaps := run["capability_gaps"].([]any)
-	if len(gaps) != 1 || gaps[0].(map[string]any)["kind"] != "needsClient" || gaps[0].(map[string]any)["client_kind"] != "synonlink-browser" {
-		t.Fatalf("SynonLink TaskRun capability gaps = %#v", gaps)
+	if len(gaps) != 1 || gaps[0].(map[string]any)["kind"] != "needsClient" || gaps[0].(map[string]any)["client_kind"] != "xsciencelink-browser" {
+		t.Fatalf("XScienceLink TaskRun capability gaps = %#v", gaps)
 	}
 	completion := run["completion"].(map[string]any)
 	if completion["state"] != "waiting_user" || completion["verified"] != false {
-		t.Fatalf("SynonLink TaskRun completion = %#v", completion)
+		t.Fatalf("XScienceLink TaskRun completion = %#v", completion)
 	}
 
 	doctorBody := postToolInput(t, httpServer.URL, "AgentRuntimeDoctor", map[string]any{"scope": "taskrun-agent"})
 	doctorAreas := doctorBody["result"].(map[string]any)["areas"].([]any)
 	doctorEvidence := runtimeDoctorAreaEvidence(t, doctorAreas, "taskrun-agent")
-	if doctorEvidence["hasSynonLinkClientGate"] != true {
-		t.Fatalf("taskrun-agent doctor evidence missing SynonLink client gate: %#v", doctorEvidence)
+	if doctorEvidence["hasXScienceLinkClientGate"] != true {
+		t.Fatalf("taskrun-agent doctor evidence missing XScienceLink client gate: %#v", doctorEvidence)
 	}
 }
 
@@ -8092,7 +8092,7 @@ func TestToolsAPIArtifactListReturnsNewestArtifactsFirst(t *testing.T) {
 	}
 }
 
-func TestToolsAPIResearchArtifactAuditMatchesOriginalSynonClassifier(t *testing.T) {
+func TestToolsAPIResearchArtifactAuditMatchesOriginalXScienceClassifier(t *testing.T) {
 	root := t.TempDir()
 	srv := New(Options{FileRoot: root})
 	httpServer := httptest.NewServer(srv.Handler())
@@ -9540,7 +9540,7 @@ func TestToolsAPICompactUsesConfiguredModelSummary(t *testing.T) {
 			t.Fatalf("compact model prompt missing expected context: %s", joined)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"choices":[{"message":{"role":"assistant","content":"<analysis>private scratch</analysis>\n<summary>Model generated compact summary for continuing Synon runtime work.</summary>"}}]}`))
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"role":"assistant","content":"<analysis>private scratch</analysis>\n<summary>Model generated compact summary for continuing XScience runtime work.</summary>"}}]}`))
 	}))
 	defer modelAPI.Close()
 
@@ -9582,7 +9582,7 @@ func TestToolsAPICompactUsesConfiguredModelSummary(t *testing.T) {
 	if checkpoint["summaryStatus"] != "model-generated" {
 		t.Fatalf("summaryStatus = %#v checkpoint=%#v", checkpoint["summaryStatus"], checkpoint)
 	}
-	if summary := checkpoint["summary"].(string); summary != "Model generated compact summary for continuing Synon runtime work." || strings.Contains(summary, "private scratch") {
+	if summary := checkpoint["summary"].(string); summary != "Model generated compact summary for continuing XScience runtime work." || strings.Contains(summary, "private scratch") {
 		t.Fatalf("summary = %q", summary)
 	}
 	modelSummary := checkpoint["modelSummary"].(map[string]any)

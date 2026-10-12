@@ -10,7 +10,7 @@ vi.mock('@/renderer/components/base/FileChangesPanel', () => ({ default: () => n
 vi.mock('@/renderer/hooks/file/useDiffPreviewHandlers', () => ({
   useDiffPreviewHandlers: () => ({ handleFileClick: vi.fn(), handleDiffClick: vi.fn() }),
 }));
-vi.mock('@/renderer/components/synonBiomed/runtime/AskUserHistoryCard', () => ({ default: () => null }));
+vi.mock('@/renderer/components/xScience/runtime/AskUserHistoryCard', () => ({ default: () => null }));
 vi.mock('@/renderer/pages/conversation/Messages/components/MessageSubagentTurn', () => ({ default: () => null }));
 vi.mock('@/renderer/pages/conversation/Messages/components/MessageSubagentEvents', () => ({ default: () => null }));
 

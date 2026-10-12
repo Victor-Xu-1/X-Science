@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"strings"
 
-	"synon-go/internal/agentruntime"
-	eventjournal "synon-go/internal/persistence/journal"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	"x-science/internal/agentruntime"
+	eventjournal "x-science/internal/persistence/journal"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func normalizeSessionRunnerChatOptions(options SessionRunnerChatOptions) SessionRunnerChatOptions {
@@ -384,7 +384,7 @@ func recoveredRunnerCorrectionContext(entries []eventjournal.Entry) string {
 		transition = "repair_and_revalidate_visual_output"
 	}
 	contract := map[string]any{
-		"schema":                              "synon.runner_recovery.v1",
+		"schema":                              "x-science.runner_recovery.v1",
 		"reason_code":                         correction.ReasonCode,
 		"detail":                              correction.Detail,
 		"required_transition":                 transition,

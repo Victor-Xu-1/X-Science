@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	runtimekv "synon-go/internal/persistence/runtimekv"
+	runtimekv "x-science/internal/persistence/runtimekv"
 )
 
 func TestRecordToolGatewayAuditBoundsOversizedDynamicFields(t *testing.T) {

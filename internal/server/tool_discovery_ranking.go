@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"synon-go/internal/discoveryquery"
+	"x-science/internal/discoveryquery"
 )
 
 type toolDiscoveryCandidate struct {

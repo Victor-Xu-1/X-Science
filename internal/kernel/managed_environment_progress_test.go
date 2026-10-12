@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/toolprogress"
+	"x-science/internal/toolprogress"
 )
 
 func TestManagedEnvironmentProgressObserverReportsPhasesAndRealPercent(t *testing.T) {
@@ -56,14 +56,14 @@ func TestManagedEnvironmentProcessTerminatesAfterObservableInactivity(t *testing
 }
 
 func TestManagedEnvironmentProcessKeepsSilentCPUWorkAlive(t *testing.T) {
-	if os.Getenv("SYNON_BUSY_MANAGED_INSTALLER_HELPER") == "1" {
+	if os.Getenv("X_SCIENCE_BUSY_MANAGED_INSTALLER_HELPER") == "1" {
 		until := time.Now().Add(750 * time.Millisecond)
 		for time.Now().Before(until) {
 		}
 		return
 	}
 	manager := NewManager(Config{ManagedEnvironmentInstallerInactivityTimeout: 250 * time.Millisecond})
-	environment := append(os.Environ(), "SYNON_BUSY_MANAGED_INSTALLER_HELPER=1", "GORACE=atexit_sleep_ms=0")
+	environment := append(os.Environ(), "X_SCIENCE_BUSY_MANAGED_INSTALLER_HELPER=1", "GORACE=atexit_sleep_ms=0")
 	err := manager.runManagedEnvironmentProcessWithEnv(
 		context.Background(), os.Args[0], environment,
 		"-test.run=^TestManagedEnvironmentProcessKeepsSilentCPUWorkAlive$",

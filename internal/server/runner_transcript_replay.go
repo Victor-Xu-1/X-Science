@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	eventjournal "synon-go/internal/persistence/journal"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	eventjournal "x-science/internal/persistence/journal"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 const runnerTrustedScientificEvidenceReplayType = "runner_trusted_scientific_evidence_receipt"
@@ -97,7 +97,7 @@ func (s *Server) loadTranscriptRunnerReplay(
 			if _, chunk := message[transcriptstore.RunnerCorrectionConditionChunkField]; chunk {
 				continue
 			}
-			if cause, present, err := transcriptstore.ParseRunnerInterruptionCause(message); err != nil {
+			if cause, present, err := s.parseRunnerNamespaceCause(ctx, authority.Stream.OwnerID, projectedEvent.Event, message); err != nil {
 				return nil, err
 			} else if present && runnerCorrectionReasonStartsNewRepairScope(cause.ReasonCode) {
 				// The full canonical projection supplies the active condition and

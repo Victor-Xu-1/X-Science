@@ -1,9 +1,9 @@
-import type { SynonBiomedPendingInputRequest } from '@/renderer/components/synonBiomed/runtime/runtimeOperationsModel';
+import type { XSciencePendingInputRequest } from '@/renderer/components/xScience/runtime/runtimeOperationsModel';
 import {
-  loadSynonBiomedRuntimeSnapshot,
-  resolveSynonBiomedAskUserRequest,
-} from '@/renderer/services/synonBiomedRuntimeOperations';
-import { requestSynonBiomedJson, type SynonBiomedGatewayOptions } from '@/renderer/services/synonBiomedHttp';
+  loadXScienceRuntimeSnapshot,
+  resolveXScienceAskUserRequest,
+} from '@/renderer/services/xScienceRuntimeOperations';
+import { requestXScienceJson, type XScienceGatewayOptions } from '@/renderer/services/xScienceHttp';
 import type { OnboardingUploadedArtifact } from '@/renderer/services/onboardingService';
 
 export const ONBOARDING_SUGGESTION_MIN_CHARACTERS = 40;
@@ -16,7 +16,7 @@ export type OnboardingTaskSuggestion = { label: string; description: string };
 
 export type OnboardingSuggestionSession = {
   frameId: string;
-  request: SynonBiomedPendingInputRequest;
+  request: XSciencePendingInputRequest;
   question: string;
   suggestions: OnboardingTaskSuggestion[];
 };
@@ -29,7 +29,7 @@ type RequestOnboardingSuggestionsInput = {
   intentId: string;
 };
 
-type RequestOnboardingSuggestionsOptions = SynonBiomedGatewayOptions & {
+type RequestOnboardingSuggestionsOptions = XScienceGatewayOptions & {
   onFrameCreated?: (frameId: string) => void;
 };
 
@@ -69,7 +69,7 @@ async function requestOnboardingTaskSuggestionsWithinDeadline(
     attachedFilenames: attachments.map((attachment) => attachment.filename.trim().slice(0, 200)),
   };
 
-  const submitted = await requestSynonBiomedJson<unknown>(
+  const submitted = await requestXScienceJson<unknown>(
     '/api/request',
     {
       method: 'POST',
@@ -110,7 +110,7 @@ async function requestOnboardingTaskSuggestionsWithinDeadline(
     assertNotAborted(options.signal);
     // Polls are intentionally sequential so one hidden Frame never has competing reads.
     // eslint-disable-next-line no-await-in-loop
-    const snapshot = await loadSynonBiomedRuntimeSnapshot(frameId, options);
+    const snapshot = await loadXScienceRuntimeSnapshot(frameId, options);
     if (['completed', 'failed', 'cancelled', 'canceled'].includes(snapshot.status)) {
       throw new Error('onboarding_suggestion_runner_ended_without_options');
     }
@@ -137,13 +137,13 @@ async function requestOnboardingTaskSuggestionsWithinDeadline(
 export async function resolveOnboardingTaskSuggestion(
   session: OnboardingSuggestionSession,
   label: string,
-  options: SynonBiomedGatewayOptions = {}
+  options: XScienceGatewayOptions = {}
 ): Promise<void> {
   const selected = label.trim();
   if (!session.suggestions.some((suggestion) => suggestion.label === selected)) {
     throw new Error('onboarding_suggestion_selection_invalid');
   }
-  await resolveSynonBiomedAskUserRequest(
+  await resolveXScienceAskUserRequest(
     session.frameId,
     session.request,
     { action: 'answer', answers: { [session.question]: selected } },
@@ -153,21 +153,18 @@ export async function resolveOnboardingTaskSuggestion(
 
 export async function cancelOnboardingSuggestionFrame(
   frameId: string,
-  options: SynonBiomedGatewayOptions = {}
+  options: XScienceGatewayOptions = {}
 ): Promise<void> {
   const normalized = frameId.trim();
   if (!normalized) return;
-  await requestSynonBiomedJson<unknown>(
+  await requestXScienceJson<unknown>(
     `/api/frames/${encodeURIComponent(normalized)}/cancel?reason=onboarding-suggestion-superseded`,
     { method: 'POST' },
     options
   );
 }
 
-function parseSuggestionSession(
-  frameId: string,
-  pending: SynonBiomedPendingInputRequest[]
-): OnboardingSuggestionSession {
+function parseSuggestionSession(frameId: string, pending: XSciencePendingInputRequest[]): OnboardingSuggestionSession {
   if (pending.length !== 1) throw new Error('onboarding_suggestion_request_invalid');
   const request = pending[0];
   if (request.kind !== 'ask' || request.tool !== 'ask_user') {

@@ -7,7 +7,7 @@ import (
 	"path"
 	"strings"
 
-	"synon-go/internal/sciencecapability"
+	"x-science/internal/sciencecapability"
 )
 
 func (g serverAgentRuntimeToolGateway) agentRuntimeRegisteredAcquisitionPreflight(tool string, input map[string]any) map[string]any {

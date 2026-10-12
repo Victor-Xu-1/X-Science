@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"synon-go/internal/processsupervisor"
+	"x-science/internal/processsupervisor"
 )
 
 const executorSupervisorReserveBytes = uint64(128 << 20)
@@ -31,7 +31,7 @@ func prepareExecutorMemoryDomain(backendID string, generation int64) (*executorM
 	}
 	unit := executorUnitName(backendID, generation)
 	if !strings.HasSuffix(group, "/"+unit+"/control") {
-		if strings.Contains(group, "/synon-kernel-executor-") {
+		if strings.Contains(group, "/x-science-kernel-executor-") {
 			return nil, errors.New("executor resource delegation is unavailable")
 		}
 		// Embedded/test launchers have no owned resource domain. Do not acquire

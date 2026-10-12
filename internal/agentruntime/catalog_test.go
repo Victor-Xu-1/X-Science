@@ -7,26 +7,26 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/assets"
+	"x-science/internal/assets"
 )
 
 func TestLoadCatalogRestoresV11AgentsAndSkillClosure(t *testing.T) {
 	repositoryRoot := catalogRepositoryRoot(t)
-	skillManifest, err := assets.Load(filepath.Join(repositoryRoot, "assets", "synonbiomed", "skills.manifest.json"))
+	skillManifest, err := assets.Load(filepath.Join(repositoryRoot, "assets", "x-science", "skills.manifest.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	agentManifest, err := assets.Load(filepath.Join(repositoryRoot, "assets", "synonbiomed", "agents.manifest.json"))
+	agentManifest, err := assets.Load(filepath.Join(repositoryRoot, "assets", "x-science", "agents.manifest.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	expectedOperonSkills, err := loadOperonSkills(filepath.Join(repositoryRoot, "assets", "synonbiomed", "agents"), agentManifest)
+	expectedOperonSkills, err := loadOperonSkills(filepath.Join(repositoryRoot, "assets", "x-science", "agents"), agentManifest)
 	if err != nil {
 		t.Fatal(err)
 	}
 	catalog, err := LoadCatalog(CatalogOptions{
-		Root:            filepath.Join(repositoryRoot, "assets", "synonbiomed", "agents"),
-		ManifestPath:    filepath.Join(repositoryRoot, "assets", "synonbiomed", "agents.manifest.json"),
+		Root:            filepath.Join(repositoryRoot, "assets", "x-science", "agents"),
+		ManifestPath:    filepath.Join(repositoryRoot, "assets", "x-science", "agents.manifest.json"),
 		AvailableSkills: skillManifest.Skills,
 	})
 	if err != nil {
@@ -118,7 +118,7 @@ func TestLoadCatalogRestoresV11AgentsAndSkillClosure(t *testing.T) {
 
 func TestLoadCatalogRejectsUnresolvedOperonSkill(t *testing.T) {
 	repositoryRoot := catalogRepositoryRoot(t)
-	skillManifest, err := assets.Load(filepath.Join(repositoryRoot, "assets", "synonbiomed", "skills.manifest.json"))
+	skillManifest, err := assets.Load(filepath.Join(repositoryRoot, "assets", "x-science", "skills.manifest.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -126,8 +126,8 @@ func TestLoadCatalogRejectsUnresolvedOperonSkill(t *testing.T) {
 		return name == "alphafold2"
 	})
 	_, err = LoadCatalog(CatalogOptions{
-		Root:            filepath.Join(repositoryRoot, "assets", "synonbiomed", "agents"),
-		ManifestPath:    filepath.Join(repositoryRoot, "assets", "synonbiomed", "agents.manifest.json"),
+		Root:            filepath.Join(repositoryRoot, "assets", "x-science", "agents"),
+		ManifestPath:    filepath.Join(repositoryRoot, "assets", "x-science", "agents.manifest.json"),
 		AvailableSkills: available,
 	})
 	if err == nil || !strings.Contains(err.Error(), "alphafold2") {

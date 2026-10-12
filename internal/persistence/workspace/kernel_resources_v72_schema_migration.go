@@ -8,7 +8,7 @@ import (
 const (
 	kernelResourcesV72CallbackID        = "kernel-resource-reservations-v72-noop"
 	kernelResourcesV72PreflightIdentity = "kernel-resource-reservations-v72-backend-v1"
-	kernelResourcesV72RuleSpec          = "synon.workspace.kernel-resources.v72"
+	kernelResourcesV72RuleSpec          = "x-science.workspace.kernel-resources.v72"
 )
 
 var kernelResourcesV72Migration = versionedSchemaMigration{

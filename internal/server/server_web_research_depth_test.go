@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/tools/webfetch"
+	"x-science/internal/tools/webfetch"
 )
 
 func TestWebResearchReadableDocumentRemovesPageChromeAndPreservesEvidence(t *testing.T) {

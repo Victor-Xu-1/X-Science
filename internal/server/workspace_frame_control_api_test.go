@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestWorkspaceFrameControlRemovedMutationsAreStableTombstones(t *testing.T) {
@@ -53,8 +53,8 @@ func TestWorkspaceFrameControlRemovedMutationsAreStableTombstones(t *testing.T) 
 	for _, test := range []struct {
 		operation, code, replacement string
 	}{
-		{operation: "approve-plan", code: "synon.frame_control.approve_plan_removed.v1", replacement: "/api/frames/{id}/approve-plan"},
-		{operation: "resolve-input", code: "synon.frame_control.resolve_input_removed.v1", replacement: "/api/frames/{id}/resolve-input"},
+		{operation: "approve-plan", code: "x-science.frame_control.approve_plan_removed.v1", replacement: "/api/frames/{id}/approve-plan"},
+		{operation: "resolve-input", code: "x-science.frame_control.resolve_input_removed.v1", replacement: "/api/frames/{id}/resolve-input"},
 	} {
 		for _, frameID := range []string{"frame-control", "missing-frame"} {
 			response := compatJSONRequest(t, server.Handler(), http.MethodPost,
@@ -88,7 +88,7 @@ func TestWorkspaceFrameControlTombstonePreservesAuthAndCSRFPrecedence(t *testing
 	t.Cleanup(func() { _ = store.Close() })
 	server := New(Options{
 		FileRoot: t.TempDir(), Workspace: store,
-		SynonLinkAuth: SynonLinkAuthOptions{
+		XScienceLinkAuth: XScienceLinkAuthOptions{
 			Username: "operator", Password: "test-secret-password", UserID: "user-1", TTL: time.Hour,
 		},
 	})
@@ -128,7 +128,7 @@ func TestWorkspaceFrameControlTombstonePreservesAuthAndCSRFPrecedence(t *testing
 	authorizedRequest := httptest.NewRequest(http.MethodPost, path, strings.NewReader(`{}`))
 	authorizedRequest.AddCookie(sessionCookie)
 	authorizedRequest.AddCookie(csrfCookie)
-	authorizedRequest.Header.Set("X-Synon-CSRF-Token", csrfCookie.Value)
+	authorizedRequest.Header.Set("X-Science-CSRF-Token", csrfCookie.Value)
 	authorized := httptest.NewRecorder()
 	handler.ServeHTTP(authorized, authorizedRequest)
 	if authorized.Code != http.StatusGone || !strings.Contains(authorized.Body.String(), "approve_plan_removed.v1") {

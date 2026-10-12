@@ -5,9 +5,9 @@ import (
 	"errors"
 	"strings"
 
-	"synon-go/internal/agentruntime"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/software/localcontainer"
+	"x-science/internal/agentruntime"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/software/localcontainer"
 )
 
 func (s *Server) localContainerEnvironmentManager() (*localcontainer.Manager, error) {

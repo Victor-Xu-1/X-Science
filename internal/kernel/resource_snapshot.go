@@ -6,8 +6,8 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"synon-go/internal/processsupervisor"
 	"time"
+	"x-science/internal/processsupervisor"
 )
 
 type KernelProcessResources struct {

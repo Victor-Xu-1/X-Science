@@ -116,7 +116,7 @@ describe('SpeechToTextService.transcribeAudioBlob', () => {
 
   it('attaches the WebHost CSRF token to same-origin multipart XHR requests', async () => {
     vi.stubGlobal('window', { location: { href: 'http://localhost:8765/#/chat', origin: 'http://localhost:8765' } });
-    vi.stubGlobal('document', { cookie: 'theme=dark; synon_csrf=test-csrf-token-value' });
+    vi.stubGlobal('document', { cookie: 'theme=dark; x_science_csrf=test-csrf-token-value' });
 
     const pending = transcribeAudioBlob(new Blob(['fake-audio'], { type: 'audio/webm' }));
     const xhr = await waitForRequest();

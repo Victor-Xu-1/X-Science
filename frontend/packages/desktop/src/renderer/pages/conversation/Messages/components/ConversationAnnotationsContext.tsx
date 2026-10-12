@@ -1,20 +1,20 @@
 import {
-  createSynonBiomedTranscriptAnnotation,
-  deleteSynonBiomedTranscriptAnnotation,
-  loadSynonBiomedTranscriptAnnotations,
-  updateSynonBiomedTranscriptAnnotation,
-  type CreateSynonBiomedTranscriptAnnotationInput,
-  type SynonBiomedTranscriptAnnotation,
-} from '@/renderer/services/synonBiomedAnnotations';
+  createXScienceTranscriptAnnotation,
+  deleteXScienceTranscriptAnnotation,
+  loadXScienceTranscriptAnnotations,
+  updateXScienceTranscriptAnnotation,
+  type CreateXScienceTranscriptAnnotationInput,
+  type XScienceTranscriptAnnotation,
+} from '@/renderer/services/xScienceAnnotations';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 type ConversationAnnotationsValue = {
-  annotations: SynonBiomedTranscriptAnnotation[];
+  annotations: XScienceTranscriptAnnotation[];
   loading: boolean;
   error: string | null;
-  create: (input: CreateSynonBiomedTranscriptAnnotationInput) => Promise<SynonBiomedTranscriptAnnotation>;
-  update: (annotationId: string, patch: { note?: string; read?: boolean }) => Promise<SynonBiomedTranscriptAnnotation>;
+  create: (input: CreateXScienceTranscriptAnnotationInput) => Promise<XScienceTranscriptAnnotation>;
+  update: (annotationId: string, patch: { note?: string; read?: boolean }) => Promise<XScienceTranscriptAnnotation>;
   remove: (annotationId: string) => Promise<void>;
   refresh: () => Promise<void>;
 };
@@ -31,7 +31,7 @@ export const ConversationAnnotationsProvider: React.FC<{
   const authorityKey = `${normalizedOwnerId}\u0000${frameId ?? ''}`;
   const requestRef = useRef(0);
   const annotationsAuthorityRef = useRef(authorityKey);
-  const [annotations, setAnnotations] = useState<SynonBiomedTranscriptAnnotation[]>([]);
+  const [annotations, setAnnotations] = useState<XScienceTranscriptAnnotation[]>([]);
   const [loading, setLoading] = useState(Boolean(frameId));
   const [error, setError] = useState<string | null>(null);
 
@@ -52,7 +52,7 @@ export const ConversationAnnotationsProvider: React.FC<{
     setLoading(true);
     setError(null);
     try {
-      const loaded = await loadSynonBiomedTranscriptAnnotations(frameId, {
+      const loaded = await loadXScienceTranscriptAnnotations(frameId, {
         ownerId: normalizedOwnerId,
       });
       if (requestRef.current === requestId && annotationsAuthorityRef.current === requestAuthority) {
@@ -75,10 +75,10 @@ export const ConversationAnnotationsProvider: React.FC<{
   }, [refresh]);
 
   const create = useCallback(
-    async (input: CreateSynonBiomedTranscriptAnnotationInput) => {
+    async (input: CreateXScienceTranscriptAnnotationInput) => {
       if (!frameId) throw new Error('X-Science conversation frame is unavailable');
       const mutationAuthority = authorityKey;
-      const created = await createSynonBiomedTranscriptAnnotation(frameId, input);
+      const created = await createXScienceTranscriptAnnotation(frameId, input);
       if (annotationsAuthorityRef.current === mutationAuthority) {
         setAnnotations((current) => [...current, created]);
       }
@@ -91,7 +91,7 @@ export const ConversationAnnotationsProvider: React.FC<{
     async (annotationId: string, patch: { note?: string; read?: boolean }) => {
       if (!frameId) throw new Error('X-Science conversation frame is unavailable');
       const mutationAuthority = authorityKey;
-      const updated = await updateSynonBiomedTranscriptAnnotation(frameId, annotationId, patch);
+      const updated = await updateXScienceTranscriptAnnotation(frameId, annotationId, patch);
       if (annotationsAuthorityRef.current === mutationAuthority) {
         setAnnotations((current) => current.map((item) => (item.id === updated.id ? updated : item)));
       }
@@ -104,7 +104,7 @@ export const ConversationAnnotationsProvider: React.FC<{
     async (annotationId: string) => {
       if (!frameId) throw new Error('X-Science conversation frame is unavailable');
       const mutationAuthority = authorityKey;
-      await deleteSynonBiomedTranscriptAnnotation(frameId, annotationId);
+      await deleteXScienceTranscriptAnnotation(frameId, annotationId);
       if (annotationsAuthorityRef.current === mutationAuthority) {
         setAnnotations((current) => current.filter((item) => item.id !== annotationId));
       }
@@ -126,10 +126,10 @@ export function useConversationAnnotations(): ConversationAnnotationsValue | nul
 }
 
 export function annotationsForMessage(
-  annotations: SynonBiomedTranscriptAnnotation[],
+  annotations: XScienceTranscriptAnnotation[],
   messageUuid: string | undefined,
   messageIndex: number
-): SynonBiomedTranscriptAnnotation[] {
+): XScienceTranscriptAnnotation[] {
   return annotations.filter(
     (annotation) =>
       (messageUuid && annotation.messageUuid === messageUuid) ||

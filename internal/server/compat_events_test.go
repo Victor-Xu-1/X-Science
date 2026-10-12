@@ -20,8 +20,8 @@ import (
 
 	"github.com/coder/websocket"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestTranscriptRealtimeRebaseSuppressesOnlyPreActivationFrameEvents(t *testing.T) {
@@ -233,7 +233,7 @@ func TestCompatRealtimeHubWakeDrainsDurableEventsInSequence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sseRequest.Header.Set("X-Synon-User-Id", "owner")
+	sseRequest.Header.Set("X-Science-User-Id", "owner")
 	sseResponse, err := httpServer.Client().Do(sseRequest)
 	if err != nil {
 		t.Fatal(err)
@@ -331,7 +331,7 @@ func TestCompatSSECursorResetUpdatesReconnectLastEventID(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	resetRequest.Header.Set("X-Synon-User-Id", "owner")
+	resetRequest.Header.Set("X-Science-User-Id", "owner")
 	resetResponse, err := httpServer.Client().Do(resetRequest)
 	if err != nil {
 		t.Fatal(err)
@@ -350,7 +350,7 @@ func TestCompatSSECursorResetUpdatesReconnectLastEventID(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	reconnectRequest.Header.Set("X-Synon-User-Id", "owner")
+	reconnectRequest.Header.Set("X-Science-User-Id", "owner")
 	reconnectRequest.Header.Set("Last-Event-ID", strconv.FormatInt(reset.id, 10))
 	reconnectResponse, err := httpServer.Client().Do(reconnectRequest)
 	if err != nil {
@@ -441,7 +441,7 @@ func TestCompatEventsReplayOverHTTPSSENAndWebSocket(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sseRequest.Header.Set("X-Synon-User-Id", "user-1")
+	sseRequest.Header.Set("X-Science-User-Id", "user-1")
 	sseResponse, err := testServer.Client().Do(sseRequest)
 	if err != nil {
 		t.Fatal(err)
@@ -808,7 +808,7 @@ func TestCompatEventReplayStorageFailureIsDiagnostic(t *testing.T) {
 	_ = db.Close()
 	recorder := httptest.NewRecorder()
 	request := newLoopbackTestRequest(http.MethodGet, "/api/events/stream", nil)
-	request.Header.Set("X-Synon-User-Id", "owner")
+	request.Header.Set("X-Science-User-Id", "owner")
 	srv.Handler().ServeHTTP(recorder, request)
 	if recorder.Code != http.StatusInternalServerError || !strings.Contains(recorder.Body.String(), "realtime event replay failed") || strings.Contains(recorder.Body.String(), "unexpected end") {
 		t.Fatalf("SSE status=%d body=%s", recorder.Code, recorder.Body.String())
@@ -908,7 +908,7 @@ func TestCompatEventLatestFutureAndScopeAcrossTransports(t *testing.T) {
 
 	sseContext, stopSSE := context.WithCancel(context.Background())
 	sseRequest, _ := http.NewRequestWithContext(sseContext, http.MethodGet, testServer.URL+"/api/events/stream?after_sequence=latest", nil)
-	sseRequest.Header.Set("X-Synon-User-Id", "owner-a")
+	sseRequest.Header.Set("X-Science-User-Id", "owner-a")
 	sseResponse, err := testServer.Client().Do(sseRequest)
 	if err != nil {
 		t.Fatal(err)

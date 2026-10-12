@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/sciencecapability"
+	"x-science/internal/sciencecapability"
 )
 
 // This runs a real local worker and persists its receipts in SQLite. The
@@ -59,8 +59,8 @@ func executionInputAuthorityFixture(t *testing.T, app *Server, root string) stri
 		"dataset.txt":        "measured input\n",
 		"results/value.txt":  "derived bytes\n",
 		"results/proof.json": `{"overall_pass":true,"inputs":{"dataset":"self-asserted"}}`,
-		"results/" + managedExecutionOutputOwnershipMarker: `{"schema":"synon.execution-pack-output-owner.v1","execution_pack_id":"analysis.producer"}`,
-		".synon/runtime/skills/consume-data-fixture/scripts/consume.py": `import argparse, json
+		"results/" + managedExecutionOutputOwnershipMarker: `{"schema":"x-science.execution-pack-output-owner.v1","execution_pack_id":"analysis.producer"}`,
+		".x-science/runtime/skills/consume-data-fixture/scripts/consume.py": `import argparse, json
 from pathlib import Path
 p = argparse.ArgumentParser()
 p.add_argument('--dataset', required=True)
@@ -78,7 +78,7 @@ for name in paths:
         except OSError:
             print('read-only')
 `,
-		".synon/runtime/skills/prepare-data-fixture/scripts/prepare.py": `import argparse, hashlib, json
+		".x-science/runtime/skills/prepare-data-fixture/scripts/prepare.py": `import argparse, hashlib, json
 from pathlib import Path
 p = argparse.ArgumentParser()
 p.add_argument('--output-dir', required=True)
@@ -88,7 +88,7 @@ a = p.parse_args()
 out = Path(a.output_dir)
 out.mkdir()
 digest = hashlib.sha256(Path('dataset.txt').read_bytes()).hexdigest()
-(out / '.synon-execution-pack.json').write_text(json.dumps({'schema': 'synon.execution-pack-output-owner.v1', 'execution_pack_id': 'analysis.producer'}))
+(out / '.x-science-execution-pack.json').write_text(json.dumps({'schema': 'x-science.execution-pack-output-owner.v1', 'execution_pack_id': 'analysis.producer'}))
 (out / 'value.txt').write_text('derived bytes ' + a.nonce)
 (out / 'proof.json').write_text(json.dumps({'overall_pass': True, 'inputs': {'dataset': digest}, 'nonce': a.nonce}))
 raise SystemExit(1 if a.fail else 0)
@@ -103,14 +103,14 @@ raise SystemExit(1 if a.fail else 0)
 			t.Fatal(err)
 		}
 	}
-	return `python3 "` + filepath.Join(root, ".synon/runtime/skills/consume-data-fixture/scripts/consume.py") + `" --dataset dataset.txt --derived results/value.txt --receipt results/proof.json`
+	return `python3 "` + filepath.Join(root, ".x-science/runtime/skills/consume-data-fixture/scripts/consume.py") + `" --dataset dataset.txt --derived results/value.txt --receipt results/proof.json`
 }
 
 func TestExecutionInputAuthorityRealProducerConsumerAndReconstruction(t *testing.T) {
 	store, manager, app, identity := newKernelHostTestRuntime(t, filepath.Join(t.TempDir(), "workspace.db"), true)
 	defer closeKernelHostTestRuntime(t, app, manager, store)
 	command := executionInputAuthorityFixture(t, app, identity.workspaceDir)
-	producer := `python3 "` + filepath.Join(identity.workspaceDir, ".synon/runtime/skills/prepare-data-fixture/scripts/prepare.py") + `" --output-dir produced`
+	producer := `python3 "` + filepath.Join(identity.workspaceDir, ".x-science/runtime/skills/prepare-data-fixture/scripts/prepare.py") + `" --output-dir produced`
 	result, err := app.executeAgentKernelTool(context.Background(), identity, "bash", map[string]any{
 		"command": producer, "environment": "python", "human_description": "Produce bound fixture output",
 	})
@@ -122,7 +122,7 @@ func TestExecutionInputAuthorityRealProducerConsumerAndReconstruction(t *testing
 	for attempt := 0; attempt < 2; attempt++ {
 		result, err = app.executeAgentKernelTool(context.Background(), identity, "bash", input)
 		if err != nil || result["ok"] != true || strings.Count(stringValue(result["stdout"]), "read-only") != 3 ||
-			!strings.Contains(stringValue(result["stdout"]), ".synon-artifacts") {
+			!strings.Contains(stringValue(result["stdout"]), ".x-science-artifacts") {
 			t.Fatalf("consumer attempt %d: %#v %v", attempt, result, err)
 		}
 	}

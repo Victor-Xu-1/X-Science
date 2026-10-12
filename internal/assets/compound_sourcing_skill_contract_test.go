@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/skills"
+	"x-science/internal/skills"
 )
 
 func TestCompoundSourcingSkillUsesCanonicalPubChemRoute(t *testing.T) {
@@ -19,7 +19,7 @@ func TestCompoundSourcingSkillUsesCanonicalPubChemRoute(t *testing.T) {
 		t.Fatal("locate repository root")
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
-	skillPath := filepath.Join(repositoryRoot, "skills", "synonbiomed", "compound-sourcing", "SKILL.md")
+	skillPath := filepath.Join(repositoryRoot, "skills", "x-science", "compound-sourcing", "SKILL.md")
 	content, err := os.ReadFile(skillPath)
 	if err != nil {
 		t.Fatal(err)
@@ -47,7 +47,7 @@ func TestCompoundSourcingSkillUsesCanonicalPubChemRoute(t *testing.T) {
 		t.Fatal("compound-sourcing Skill still demonstrates the nonexistent combined MCP method")
 	}
 
-	manifestContent, err := os.ReadFile(filepath.Join(repositoryRoot, "assets", "synonbiomed", "skills.manifest.json"))
+	manifestContent, err := os.ReadFile(filepath.Join(repositoryRoot, "assets", "x-science", "skills.manifest.json"))
 	if err != nil {
 		t.Fatal(err)
 	}

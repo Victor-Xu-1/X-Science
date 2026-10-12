@@ -536,8 +536,8 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({
   const textSelectionScript = useMemo(
     () => `
       (function() {
-        if (window.__synonAiTextSelectionInitialized) return;
-        window.__synonAiTextSelectionInitialized = true;
+        if (window.__xscienceAiTextSelectionInitialized) return;
+        window.__xscienceAiTextSelectionInitialized = true;
         document.addEventListener('mouseup', function() {
           setTimeout(function() {
             const selection = window.getSelection();
@@ -702,15 +702,15 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({
     const handleMessage = (event: MessageEvent<unknown>) => {
       const data = isolatedPreviewMessage(event, iframeRef.current, browserInstance);
       if (!data) return;
-      const payload = data as { __SYNON_AI_INSPECT_ELEMENT__?: InspectedElement } | null;
-      if (payload?.__SYNON_AI_INSPECT_ELEMENT__ && iframeRef.current) {
+      const payload = data as { __X_SCIENCE_INSPECT_ELEMENT__?: InspectedElement } | null;
+      if (payload?.__X_SCIENCE_INSPECT_ELEMENT__ && iframeRef.current) {
         onElementSelected?.(
-          mapInspectedElementToHost(payload.__SYNON_AI_INSPECT_ELEMENT__, iframeRef.current.getBoundingClientRect())
+          mapInspectedElementToHost(payload.__X_SCIENCE_INSPECT_ELEMENT__, iframeRef.current.getBoundingClientRect())
         );
       }
-      const annotationPayload = data as { __SYNON_AI_HTML_ANNOTATION_CLICK__?: string } | null;
-      if (annotationPayload?.__SYNON_AI_HTML_ANNOTATION_CLICK__) {
-        onElementAnnotationClick?.(annotationPayload.__SYNON_AI_HTML_ANNOTATION_CLICK__);
+      const annotationPayload = data as { __X_SCIENCE_HTML_ANNOTATION_CLICK__?: string } | null;
+      if (annotationPayload?.__X_SCIENCE_HTML_ANNOTATION_CLICK__) {
+        onElementAnnotationClick?.(annotationPayload.__X_SCIENCE_HTML_ANNOTATION_CLICK__);
       }
       if ('selection' in data) {
         const selection = data.selection as HtmlTextSelection | null;

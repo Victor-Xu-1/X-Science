@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"synon-go/internal/datadir"
-	runtimecontrol "synon-go/internal/runtimecontrol"
+	"x-science/internal/datadir"
+	runtimecontrol "x-science/internal/runtimecontrol"
 )
 
 type setDataDirectoryInput struct {
@@ -19,6 +19,9 @@ type setDataDirectoryInput struct {
 }
 
 func (s *Server) handleDataDirectory(w http.ResponseWriter, r *http.Request) {
+	if !s.requireHostOperator(w, r) {
+		return
+	}
 	controller, ok := s.dataDirectoryControllerForRequest(w)
 	if !ok {
 		return
@@ -143,6 +146,9 @@ func (s *Server) handleSetDataDirectory(w http.ResponseWriter, r *http.Request, 
 func (s *Server) handleDataDirectoryLastMove(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		writeWorkspaceJSON(w, http.StatusMethodNotAllowed, map[string]any{"ok": false, "error": "method not allowed"})
+		return
+	}
+	if !s.requireHostOperator(w, r) {
 		return
 	}
 	controller, ok := s.dataDirectoryControllerForRequest(w)

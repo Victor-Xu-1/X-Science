@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
 	"time"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const (

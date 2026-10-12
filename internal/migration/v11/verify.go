@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func LoadReport(targetHome string) (Report, error) {
@@ -34,7 +34,7 @@ func LoadReport(targetHome string) (Report, error) {
 	if err := json.Unmarshal(raw, &report); err != nil {
 		return Report{}, fmt.Errorf("decode migration manifest: %w", err)
 	}
-	if report.Schema != SchemaName || report.Status != StatusCompleted || strings.TrimSpace(report.MigrationID) == "" {
+	if (report.Schema != SchemaName && report.Schema != publishedSchemaName) || report.Status != StatusCompleted || strings.TrimSpace(report.MigrationID) == "" {
 		return Report{}, errors.New("migration manifest is not a completed legacy v1.1 migration")
 	}
 	if filepath.Clean(report.TargetHome) != target {

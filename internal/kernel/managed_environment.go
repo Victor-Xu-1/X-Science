@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	managedEnvironmentMarkerName      = ".synon-managed-environment.json"
+	managedEnvironmentMarkerName      = ".x-science-managed-environment.json"
 	managedEnvironmentMarkerVersion   = 2
 	managedEnvironmentLegacyVersion   = 1
 	defaultManagedPythonVersion       = "3.11"
@@ -127,24 +127,26 @@ type DeleteManagedEnvironmentInput struct {
 }
 
 type managedEnvironmentMarker struct {
-	ValidationRevision  int                     `json:"validationRevision,omitempty"`
-	SchemaVersion       int                     `json:"schemaVersion"`
-	Name                string                  `json:"name"`
-	Language            string                  `json:"language"`
-	Generation          string                  `json:"generation"`
-	Packages            []string                `json:"packages"`
-	Channels            []string                `json:"channels,omitempty"`
-	CreatedAt           string                  `json:"createdAt"`
-	Operation           string                  `json:"operation"`
-	Kind                string                  `json:"kind,omitempty"`
-	SourcePath          string                  `json:"sourcePath,omitempty"`
-	RuntimePath         string                  `json:"runtimePath,omitempty"`
-	OperationKey        string                  `json:"operationKey,omitempty"`
-	SpecDigest          string                  `json:"specDigest,omitempty"`
-	ImportNames         []string                `json:"importNames,omitempty"`
-	PipReplay           []managedPipReplayPhase `json:"pipReplay,omitempty"`
-	PipReplayRevision   int                     `json:"pipReplayRevision,omitempty"`
-	PipReplayBaseDigest string                  `json:"pipReplayBaseDigest,omitempty"`
+	NamespaceImport     *managedEnvironmentNamespaceRegistrationSource `json:"namespaceImport,omitempty"`
+	PreviousNamespace   *managedEnvironmentNamespaceSource             `json:"previousNamespace,omitempty"`
+	ValidationRevision  int                                            `json:"validationRevision,omitempty"`
+	SchemaVersion       int                                            `json:"schemaVersion"`
+	Name                string                                         `json:"name"`
+	Language            string                                         `json:"language"`
+	Generation          string                                         `json:"generation"`
+	Packages            []string                                       `json:"packages"`
+	Channels            []string                                       `json:"channels,omitempty"`
+	CreatedAt           string                                         `json:"createdAt"`
+	Operation           string                                         `json:"operation"`
+	Kind                string                                         `json:"kind,omitempty"`
+	SourcePath          string                                         `json:"sourcePath,omitempty"`
+	RuntimePath         string                                         `json:"runtimePath,omitempty"`
+	OperationKey        string                                         `json:"operationKey,omitempty"`
+	SpecDigest          string                                         `json:"specDigest,omitempty"`
+	ImportNames         []string                                       `json:"importNames,omitempty"`
+	PipReplay           []managedPipReplayPhase                        `json:"pipReplay,omitempty"`
+	PipReplayRevision   int                                            `json:"pipReplayRevision,omitempty"`
+	PipReplayBaseDigest string                                         `json:"pipReplayBaseDigest,omitempty"`
 }
 
 type micromambaPackage struct {
@@ -227,6 +229,10 @@ func (m *Manager) InspectManagedEnvironment(ctx context.Context, name string) (M
 	}
 	if err := ctx.Err(); err != nil {
 		return ManagedEnvironment{}, false, err
+	}
+	name, aliasErr := m.resolveNamespaceImportedEnvironmentInput(name)
+	if aliasErr != nil {
+		return ManagedEnvironment{}, true, aliasErr
 	}
 	if err := validateManagedEnvironmentName(name); err != nil {
 		return ManagedEnvironment{}, false, err

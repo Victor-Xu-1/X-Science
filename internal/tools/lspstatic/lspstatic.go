@@ -13,7 +13,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"synon-go/internal/tools/fileops"
+	"x-science/internal/tools/fileops"
 )
 
 var validOperations = map[string]struct{}{

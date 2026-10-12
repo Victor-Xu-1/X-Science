@@ -15,20 +15,22 @@ from typing import Any
 
 if __package__:
     from .product_version import ProductVersion
+    from .product_identity_namespace import _go_identity_literal_present, _text_identity_literal_present
 else:
     from product_version import ProductVersion
+    from product_identity_namespace import _go_identity_literal_present, _text_identity_literal_present
 
 
-IDENTITY_SCHEMA = "synon.product-identity.v1"
-REFERENCE_SCHEMA = "synon.governance.product-identity-reference.v1"
-RELEASE_POLICY_SCHEMA = "synon.governance.release-policy.v1"
-MATRIX_SCHEMA = "synon.governance.product-identity-consumers.v4"
+IDENTITY_SCHEMA = "x-science.product-identity.v1"
+REFERENCE_SCHEMA = "x-science.governance.product-identity-reference.v1"
+RELEASE_POLICY_SCHEMA = "x-science.governance.release-policy.v1"
+MATRIX_SCHEMA = "x-science.governance.product-identity-consumers.v4"
 SEMVER = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
 SLUG = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 SCHEMA_CONST = re.compile(r"(?m)^\s*const\s+workspaceSchemaVersion\s*=\s*([0-9]+)\s*$")
 RETIRED_VERSIONED_RUNTIME_PREFIXES = (
-    "assets/synonbiomed-v1.1/",
-    "skills/synonbiomed-v1.1/",
+    "assets/xscience-v1.1/",
+    "skills/xscience-v1.1/",
 )
 
 
@@ -325,7 +327,7 @@ def validate_release_policy(policy: dict[str, Any]) -> None:
 
     candidate = policy.get("candidate_manifest")
     if candidate != {
-        "schema": "synon.release-candidate.v1",
+        "schema": "x-science.release-candidate.v1",
         "workflow": ".github/workflows/quality.yml",
         "artifact_name_prefix": "x-science-release-candidate-",
         "required_platforms": ["linux-amd64", "windows-amd64"],
@@ -345,7 +347,7 @@ def validate_release_policy(policy: dict[str, Any]) -> None:
             "schema", "tracked_in_source", "signature_algorithm", "max_ttl_seconds",
             "required_bindings",
         }
-        or receipt.get("schema") != "synon.release-authorization-receipt.v1"
+        or receipt.get("schema") != "x-science.release-authorization-receipt.v1"
         or receipt.get("tracked_in_source") is not False
         or receipt.get("signature_algorithm") != "hmac-sha256"
         or type(receipt.get("max_ttl_seconds")) is not int
@@ -492,11 +494,13 @@ def _template(value: str, derived: dict[str, str]) -> str:
     return result
 
 
-def _identity_literal_present(text: str, derived: dict[str, str], versions: list[str]) -> bool:
+
+
+def _identity_literal_present(text: str, derived: dict[str, str], versions: list[str], *, go: bool = False) -> bool:
     # A complete version token must not match a component of an IPv4/CIDR value
     # or a longer dependency version when the product advances to that number.
     return (
-        any(derived[key] in text for key in ("display_name", "machine_slug"))
+        (_go_identity_literal_present(text, derived) if go else _text_identity_literal_present(text, derived))
         or any(re.search(r"(?<![0-9.])" + re.escape(version) + r"(?![0-9.])", text)
                for version in [derived["version"], *versions])
     )
@@ -552,7 +556,7 @@ def audit(
                 and '_ "embed"' in code
                 and re.search(r"(?m)^\s*var\s+embeddedAuthority\s+\[\]byte\s*$", code) is not None
                 and re.search(r"(?m)^\s*var\s+current\s*=\s*mustDecode\(embeddedAuthority\)\s*$", code) is not None
-                and not _identity_literal_present(code, derived, [])
+                and not _identity_literal_present(code, derived, [], go=True)
             )
         elif kind == "go-derived-consumer" and set(projection) == {"path", "kind", "required_markers"}:
             markers = projection.get("required_markers")
@@ -568,7 +572,7 @@ def audit(
                 raise IdentityError("identity_projection_read_invalid") from exc
             code, _ = _go_source_without_comments(text)
             aligned = all(marker in code for marker in markers) and not _identity_literal_present(
-                code, derived, retired_versions,
+                code, derived, retired_versions, go=True,
             )
         elif kind == "text-derived-consumer" and set(projection) == {"path", "kind", "required_markers"}:
             markers = projection.get("required_markers")
@@ -639,7 +643,7 @@ def audit(
             drifts.append({"path": relative, "class": "unclassified-product-version", "surface": "legacy-version"})
     drifts = sorted(drifts, key=lambda item: (item["path"], item["class"], item["surface"]))
     return {
-        "schema": "synon.governance.product-identity-audit.v4",
+        "schema": "x-science.governance.product-identity-audit.v4",
         "authority": derived,
         "aligned": not drifts,
         "drift_count": len(drifts),

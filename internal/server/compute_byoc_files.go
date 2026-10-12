@@ -9,9 +9,9 @@ import (
 	"sort"
 	"strings"
 
-	"synon-go/internal/compute"
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/compute"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func (s *Server) listBYOCRemoteDirectory(ctx context.Context, userID, providerName, requestedPath string) (compute.RemoteDirectory, error) {
@@ -87,7 +87,7 @@ func (s *Server) fetchBYOCRemoteFile(ctx context.Context, userID, providerName, 
 	if err != nil || landing || remotePath == "/" {
 		return compute.RemoteDownload{}, &compute.RemoteError{Kind: "not_a_file", Message: "remote path must name a volume file"}
 	}
-	temporary, err := os.MkdirTemp("", "synon-byoc-download-")
+	temporary, err := os.MkdirTemp("", "x-science-byoc-download-")
 	if err != nil {
 		return compute.RemoteDownload{}, errors.New("BYOC download staging is unavailable")
 	}

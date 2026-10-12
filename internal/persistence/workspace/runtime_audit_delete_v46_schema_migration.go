@@ -8,7 +8,7 @@ import (
 const (
 	runtimeAuditDeleteV46CallbackID        = "runtime-audit-delete-v46-noop"
 	runtimeAuditDeleteV46PreflightIdentity = "runtime-audit-delete-v45-upgrade-v1"
-	runtimeAuditDeleteV46RuleSpec          = "synon.workspace.runtime-audit-delete.v46"
+	runtimeAuditDeleteV46RuleSpec          = "x-science.workspace.runtime-audit-delete.v46"
 )
 
 var runtimeAuditDeleteV46Migration = versionedSchemaMigration{

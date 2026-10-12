@@ -15,7 +15,7 @@ func TestProductKnowledgeReferencesResolveInCurrentSource(t *testing.T) {
 		t.Fatal("locate source root")
 	}
 	root := filepath.Clean(filepath.Join(filepath.Dir(sourceFile), "..", ".."))
-	raw, err := os.ReadFile(filepath.Join(root, "skills/synonbiomed/product-self-knowledge/SKILL.md"))
+	raw, err := os.ReadFile(filepath.Join(root, "skills/x-science/product-self-knowledge/SKILL.md"))
 	if err != nil {
 		t.Fatal(err)
 	}

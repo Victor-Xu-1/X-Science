@@ -3,7 +3,7 @@ package server
 import (
 	"testing"
 
-	runtimekv "synon-go/internal/persistence/runtimekv"
+	runtimekv "x-science/internal/persistence/runtimekv"
 )
 
 func TestAggregateFrameTaskModelUsageScopesCurrentTaskAttempts(t *testing.T) {

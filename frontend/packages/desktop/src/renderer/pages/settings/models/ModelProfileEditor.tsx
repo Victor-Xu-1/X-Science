@@ -3,13 +3,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Modal from '@/renderer/components/base/WorkbenchModal';
 import type {
-  SynonBiomedLlmProfile,
-  SynonBiomedLlmProfileInput,
-  SynonBiomedLlmProviderTemplate,
-} from '@/renderer/services/synonBiomedLlm';
+  XScienceLlmProfile,
+  XScienceLlmProfileInput,
+  XScienceLlmProviderTemplate,
+} from '@/renderer/services/xScienceLlm';
 import { localizeProviderTemplate, TEMPERATURE_OPTIONS, withCurrentNumericOption } from './modelProfilePresentation';
 
-export type ModelProfileEditorState = { profile?: SynonBiomedLlmProfile };
+export type ModelProfileEditorState = { profile?: XScienceLlmProfile };
 
 type ProfileDraft = {
   name: string;
@@ -23,9 +23,9 @@ type ProfileDraft = {
 
 export const ModelProfileEditor: React.FC<{
   editor: ModelProfileEditorState | null;
-  templates: SynonBiomedLlmProviderTemplate[];
+  templates: XScienceLlmProviderTemplate[];
   onClose: () => void;
-  onSaved: (input: SynonBiomedLlmProfileInput) => Promise<void>;
+  onSaved: (input: XScienceLlmProfileInput) => Promise<void>;
 }> = ({ editor, templates, onClose, onSaved }) => {
   const { t } = useTranslation();
   const defaultTemplate = preferredProviderTemplate(templates);
@@ -86,7 +86,7 @@ export const ModelProfileEditor: React.FC<{
     <Modal
       visible={Boolean(editor)}
       title={title}
-      className='synon-biomed-model-editor-modal'
+      className='x-science-model-editor-modal'
       onCancel={onClose}
       onOk={() => void submit()}
       okText={t('common.save')}
@@ -107,7 +107,7 @@ export const ModelProfileEditor: React.FC<{
         <Field label={t('settings.modelsProvider')}>
           <Select
             aria-label={t('settings.modelsProvider')}
-            data-testid='synon-biomed-provider-select'
+            data-testid='x-science-provider-select'
             value={draft.provider}
             getPopupContainer={getEditorPopupContainer}
             onChange={(provider) => {
@@ -131,7 +131,7 @@ export const ModelProfileEditor: React.FC<{
         <Field label={t('settings.modelsModelId')}>
           <Select
             aria-label={t('settings.modelsModelId')}
-            data-testid='synon-biomed-model-id-select'
+            data-testid='x-science-model-id-select'
             value={draft.model || undefined}
             getPopupContainer={getEditorPopupContainer}
             onChange={(model) =>
@@ -183,7 +183,7 @@ export const ModelProfileEditor: React.FC<{
         >
           <InputNumber
             aria-label={t('settings.modelsContextWindow')}
-            data-testid='synon-biomed-context-window-input'
+            data-testid='x-science-context-window-input'
             value={draft.contextWindow}
             min={1}
             max={10_000_000}
@@ -196,7 +196,7 @@ export const ModelProfileEditor: React.FC<{
         <Field label={t('settings.modelsTemperature')} description={t('settings.modelsTemperatureHint')}>
           <Select
             aria-label={t('settings.modelsTemperature')}
-            data-testid='synon-biomed-temperature-select'
+            data-testid='x-science-temperature-select'
             value={String(draft.temperature)}
             getPopupContainer={getEditorPopupContainer}
             onChange={(temperature) => setDraft((current) => ({ ...current, temperature: Number(temperature ?? 0.2) }))}
@@ -226,7 +226,7 @@ const Field: React.FC<{
   </div>
 );
 
-function createDraft(profile?: SynonBiomedLlmProfile, template?: SynonBiomedLlmProviderTemplate): ProfileDraft {
+function createDraft(profile?: XScienceLlmProfile, template?: XScienceLlmProviderTemplate): ProfileDraft {
   return {
     name: profile?.name ?? '',
     provider: profile?.provider ?? template?.provider ?? '',
@@ -242,7 +242,7 @@ function getEditorPopupContainer(): Element {
   return document.body;
 }
 
-function preferredProviderTemplate(templates: SynonBiomedLlmProviderTemplate[]) {
+function preferredProviderTemplate(templates: XScienceLlmProviderTemplate[]) {
   return (
     templates.find((template) => template.provider.toLowerCase() === 'deepseek') ??
     templates.find((template) => template.modelExamples.length > 0 && template.defaultBaseUrl) ??

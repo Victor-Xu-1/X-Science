@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 const KernelLocalExecutionApprovalDeniedMessage = "kernel local execution was denied by an approval authority; this decision is not transient, so do not retry the same or an equivalent operation unless a later user message explicitly requests it"

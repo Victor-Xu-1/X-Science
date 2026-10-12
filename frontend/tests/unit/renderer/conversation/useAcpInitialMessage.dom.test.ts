@@ -20,8 +20,8 @@ vi.mock('@/common', () => ({
   },
 }));
 
-vi.mock('@/renderer/services/synonBiomedCompute', () => ({
-  setSynonBiomedSessionComputeProvider: (...args: unknown[]) => setComputeProviderMock(...args),
+vi.mock('@/renderer/services/xScienceCompute', () => ({
+  setXScienceSessionComputeProvider: (...args: unknown[]) => setComputeProviderMock(...args),
 }));
 
 vi.mock('@/renderer/utils/file/messageFiles', () => ({
@@ -52,7 +52,7 @@ const createDeferred = <T>() => {
 
 const createParams = (conversationId: string, streamReady = true) => ({
   conversation_id: conversationId,
-  backend: 'synonbiomed',
+  backend: 'xscience',
   workspacePath: '',
   streamReady,
   setAiProcessing: vi.fn(),
@@ -80,7 +80,7 @@ describe('useAcpInitialMessage', () => {
     sendMessageInvokeMock.mockResolvedValue({
       turn_id: 'turn-stream-gate',
       msg_id: 'msg-stream-gate',
-      runtime: { backend: 'synonbiomed', status: 'running' },
+      runtime: { backend: 'xscience', status: 'running' },
     });
 
     const params = createParams(conversationId, false);
@@ -110,7 +110,7 @@ describe('useAcpInitialMessage', () => {
     sendMessageInvokeMock.mockResolvedValue({
       turn_id: 'turn-review-default-off',
       msg_id: 'msg-review-default-off',
-      runtime: { backend: 'synonbiomed', status: 'running' },
+      runtime: { backend: 'xscience', status: 'running' },
     });
 
     renderHook(() => useAcpInitialMessage(createParams(conversationId)));
@@ -144,7 +144,7 @@ describe('useAcpInitialMessage', () => {
     sendMessageInvokeMock.mockResolvedValue({
       turn_id: 'turn-artifact-refs',
       msg_id: 'msg-artifact-refs',
-      runtime: { backend: 'synonbiomed', status: 'running' },
+      runtime: { backend: 'xscience', status: 'running' },
     });
 
     renderHook(() => useAcpInitialMessage(createParams(conversationId)));
@@ -179,7 +179,7 @@ describe('useAcpInitialMessage', () => {
     sendMessageInvokeMock.mockResolvedValue({
       turn_id: 'turn-fixed-capabilities',
       msg_id: 'msg-fixed-capabilities',
-      runtime: { backend: 'synonbiomed', status: 'running' },
+      runtime: { backend: 'xscience', status: 'running' },
     });
 
     renderHook(() => useAcpInitialMessage(createParams(conversationId)));
@@ -244,17 +244,13 @@ describe('useAcpInitialMessage', () => {
       deferred.resolve({
         turn_id: 'turn-1',
         msg_id: 'msg-1',
-        runtime: { backend: 'synonbiomed', status: 'running' },
+        runtime: { backend: 'xscience', status: 'running' },
       });
       await deferred.promise;
     });
 
     await vi.waitFor(() => expect(sessionStorage.getItem(storageKey)).toBeNull());
-    expect(params.markSendAccepted).toHaveBeenCalledWith(
-      'turn-1',
-      { backend: 'synonbiomed', status: 'running' },
-      'msg-1'
-    );
+    expect(params.markSendAccepted).toHaveBeenCalledWith('turn-1', { backend: 'xscience', status: 'running' }, 'msg-1');
     expect(setComputeProviderMock).toHaveBeenCalledWith(conversationId, 'local', true);
   });
 

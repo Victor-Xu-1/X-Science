@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	kernelruntime "synon-go/internal/kernel"
-	"synon-go/internal/software"
+	kernelruntime "x-science/internal/kernel"
+	"x-science/internal/software"
 )
 
 type fakeManager struct {
@@ -38,7 +38,7 @@ type fakeBundledManager struct {
 	ensured bool
 }
 
-func (m *fakeBundledManager) ManagedPythonEnvironmentName() string { return "synon-biomed-python" }
+func (m *fakeBundledManager) ManagedPythonEnvironmentName() string { return "x-science-python" }
 func (m *fakeBundledManager) EnsureManagedPythonEnvironment(context.Context) error {
 	m.ensured = true
 	return nil
@@ -213,7 +213,7 @@ func TestProviderClonesBundledPythonBeforeInstallingPipOnlyRequirements(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !manager.ensured || base.input.SourceEnvironment != "synon-biomed-python" ||
+	if !manager.ensured || base.input.SourceEnvironment != "x-science-python" ||
 		len(base.input.Packages) != 0 || len(base.input.PipPhases) != 1 ||
 		len(base.input.PipPhases[0]) != 1 || base.input.PipPhases[0][0] != "pypandoc" ||
 		receipt.Disposition != software.ProvisionDispositionInstalled {
@@ -503,7 +503,7 @@ type bundledRuntimeManager struct {
 }
 
 func (m *bundledRuntimeManager) ManagedPythonEnvironmentName() string {
-	return "synon-biomed-python"
+	return "x-science-python"
 }
 
 func (m *bundledRuntimeManager) EnsureManagedPythonEnvironment(context.Context) error {
@@ -528,7 +528,7 @@ func TestProviderReusesServiceOwnedPythonEnvironmentWithoutInstallation(t *testi
 	plan, err := controller.Resolve(software.Request{
 		Capability:        "structure-energy-minimization",
 		Language:          "python",
-		SourceEnvironment: "synon-biomed-python",
+		SourceEnvironment: "x-science-python",
 		Imports:           []string{"rdkit"},
 		Executable:        "python",
 	})
@@ -540,8 +540,8 @@ func TestProviderReusesServiceOwnedPythonEnvironmentWithoutInstallation(t *testi
 		t.Fatal(err)
 	}
 	if manager.ensureCalls != 1 || manager.inspectCalls != 0 || manager.createCalls != 0 ||
-		manager.witnessEnv != "synon-biomed-python" || manager.witnessExec != "python" ||
-		receipt.Environment != "synon-biomed-python" || receipt.Generation != "bundled-generation" ||
+		manager.witnessEnv != "x-science-python" || manager.witnessExec != "python" ||
+		receipt.Environment != "x-science-python" || receipt.Generation != "bundled-generation" ||
 		receipt.Disposition != software.ProvisionDispositionReused || !receipt.Verified || !receipt.Preflight {
 		t.Fatalf("bundled runtime was not reused as one governed source environment: manager=%#v receipt=%#v", manager, receipt)
 	}

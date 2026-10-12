@@ -3,17 +3,17 @@ set -Eeuo pipefail
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 ROOT_DIR=$(cd "$SCRIPT_DIR/../.." && pwd)
-SOURCE_FRONTEND_INPUT=${SYNON_DEV_FRONTEND_SOURCE:-$ROOT_DIR/frontend}
-STATE_ROOT_INPUT=${SYNON_DEV_FRONTEND_RUNTIME_STATE:-${XDG_STATE_HOME:-$HOME/.local/state}/synon-biomed-source-dev/frontend-host}
+SOURCE_FRONTEND_INPUT=${X_SCIENCE_DEV_FRONTEND_SOURCE:-$ROOT_DIR/frontend}
+STATE_ROOT_INPUT=${X_SCIENCE_DEV_FRONTEND_RUNTIME_STATE:-${XDG_STATE_HOME:-$HOME/.local/state}/x-science-source-dev/frontend-host}
 NPM_BIN=${NPM:-npm}
 # This supervisor is the canonical source-development entry, not a generic
 # Vite invocation.  Keep one deterministic loopback authority when callers do
 # not supply an isolated test port, while still allowing every value to be
 # overridden explicitly for focused browser runs.
-SYNON_DEV_WEB_HOST=${SYNON_DEV_WEB_HOST:-127.0.0.1}
-SYNON_DEV_WEB_PORT=${SYNON_DEV_WEB_PORT:-8765}
-SYNON_DEV_BACKEND_URL=${SYNON_DEV_BACKEND_URL:-http://127.0.0.1:8766}
-export SYNON_DEV_WEB_HOST SYNON_DEV_WEB_PORT SYNON_DEV_BACKEND_URL
+X_SCIENCE_DEV_WEB_HOST=${X_SCIENCE_DEV_WEB_HOST:-127.0.0.1}
+X_SCIENCE_DEV_WEB_PORT=${X_SCIENCE_DEV_WEB_PORT:-8765}
+X_SCIENCE_DEV_BACKEND_URL=${X_SCIENCE_DEV_BACKEND_URL:-http://127.0.0.1:8766}
+export X_SCIENCE_DEV_WEB_HOST X_SCIENCE_DEV_WEB_PORT X_SCIENCE_DEV_BACKEND_URL
 PACKAGE_PATHS=(
   package.json
   package-lock.json

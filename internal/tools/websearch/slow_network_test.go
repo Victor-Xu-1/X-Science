@@ -10,7 +10,7 @@ import (
 )
 
 func TestSearchSlowHeadersBeyondFormerBackendBudget(t *testing.T) {
-	if os.Getenv("SYNON_TEST_SLOW_NETWORK") != "1" {
+	if os.Getenv("X_SCIENCE_TEST_SLOW_NETWORK") != "1" {
 		t.Skip("opt-in nine-second real TLS regression")
 	}
 	upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -23,8 +23,8 @@ func TestSearchSlowHeadersBeyondFormerBackendBudget(t *testing.T) {
 		_, _ = w.Write([]byte(`["cohort analysis",["Cohort analysis"],["Cohort analysis methods"],["https://example.org/cohort-analysis"]]`))
 	}))
 	defer upstream.Close()
-	t.Setenv("SYNON_WEBSEARCH_SCRIPT", "/missing-search-helper")
-	t.Setenv("SYNON_WEBSEARCH_ENDPOINT", upstream.URL)
+	t.Setenv("X_SCIENCE_WEBSEARCH_SCRIPT", "/missing-search-helper")
+	t.Setenv("X_SCIENCE_WEBSEARCH_ENDPOINT", upstream.URL)
 	started := time.Now()
 	output, err := Search(context.Background(), Input{Query: "cohort analysis"}, Options{
 		HTTPBackends:   []httpSearchBackend{{Name: "controlled", Format: searchFormatMediaWikiOpenSearch, Endpoint: upstream.URL}},

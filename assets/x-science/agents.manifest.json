@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "source": "assets/x-science/agents",
+  "agents": [
+    "aidd-expert",
+    "bookmarker",
+    "clinical-dev-expert",
+    "computational-chem-expert",
+    "dmpk-expert",
+    "genomics-bioinfo-expert",
+    "immunology-expert",
+    "medchem-expert",
+    "neuroscience-expert",
+    "onboarding",
+    "oncology-expert",
+    "operon",
+    "reviewer",
+    "structural-biology-expert"
+  ],
+  "files": [
+    {
+      "path": "aidd-expert/metadata.yaml",
+      "sha256": "32e913e3ea49d91b4b3d3238fcce6cd925568d4495af8df6c773bc1507215240",
+      "bytes": 6062
+    },
+    {
+      "path": "bookmarker/metadata.yaml",
+      "sha256": "ed6e74fb048734bb0996eb5ed8249ca7de92e451443c935d4347fec89f5ccca0",
+      "bytes": 5680
+    },
+    {
+      "path": "capabilities.json",
+      "sha256": "b26079791c25caf079d0d5b77b12aff288f696e57eae1e07681ae3e41bddfdf9",
+      "bytes": 5150
+    },
+    {
+      "path": "clinical-dev-expert/metadata.yaml",
+      "sha256": "002769aecd9cfd2982909bea07fad1e2c509e98edd8bcaf2b808923c4a49aa8e",
+      "bytes": 1224
+    },
+    {
+      "path": "computational-chem-expert/metadata.yaml",
+      "sha256": "9d571187d418203934b18e6251456463620f8843663f8e80f7ed6ae280deab30",
+      "bytes": 1064
+    },
+    {
+      "path": "dmpk-expert/metadata.yaml",
+      "sha256": "16624529ed705011a01c41aadeb883b3e10926c1cc8ca490868e78af9524cb57",
+      "bytes": 1133
+    },
+    {
+      "path": "genomics-bioinfo-expert/metadata.yaml",
+      "sha256": "f2edbabf5ef2f423628b9ae04756d2708cc04cfabb50ce94cb726d255be43aee",
+      "bytes": 1200
+    },
+    {
+      "path": "immunology-expert/metadata.yaml",
+      "sha256": "8c063e75e9e5d2afe6ffdda8ea716c1b5d13a8a6e8c2d98c276e28b7386f886d",
+      "bytes": 1005
+    },
+    {
+      "path": "medchem-expert/metadata.yaml",
+      "sha256": "afce98c3f262fe44c654d1d311d36f345b77b3f6da40dd403b1a4134f769524d",
+      "bytes": 15382
+    },
+    {
+      "path": "neuroscience-expert/metadata.yaml",
+      "sha256": "b4ffe94b30e811a875cccb0354cf8872aed14c11a99dfebc3e2efcc04487fb20",
+      "bytes": 1270
+    },
+    {
+      "path": "onboarding/metadata.yaml",
+      "sha256": "0e584ff30069fd58fedbcdaee9489b8f0497d8755be67e39fd5b0df6f7cbd6a9",
+      "bytes": 16919
+    },
+    {
+      "path": "oncology-expert/metadata.yaml",
+      "sha256": "7d0a043fe0bc71188641bf58877334594e723c7c041dc3e440f2072b0fd257e4",
+      "bytes": 1016
+    },
+    {
+      "path": "operon-skills.json",
+      "sha256": "4e3cf81636105fa5753cc83bc94d9d3a1c9d22e3a708d408167d6d65da107c16",
+      "bytes": 2654
+    },
+    {
+      "path": "operon/metadata.yaml",
+      "sha256": "0594507aaa99361671add0185df5e8c41106a26759e475157c68d6afd201ff15",
+      "bytes": 3241
+    },
+    {
+      "path": "reviewer/metadata.yaml",
+      "sha256": "c48901bf51e43c0114266726539f68e1e823ea8367dd049699e604235f8d220d",
+      "bytes": 3415
+    },
+    {
+      "path": "structural-biology-expert/metadata.yaml",
+      "sha256": "89269e155d1395c1d8061191c86103a29e05028663e4ba3c77401622fc107c1c",
+      "bytes": 1109
+    }
+  ]
+}

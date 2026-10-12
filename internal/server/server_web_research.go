@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"synon-go/internal/tools/webfetch"
+	"x-science/internal/tools/webfetch"
 )
 
 type webResearchQualityTarget struct {

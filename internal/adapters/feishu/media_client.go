@@ -16,7 +16,7 @@ import (
 	"strings"
 	"time"
 
-	adaptercommon "synon-go/internal/adapters/common"
+	adaptercommon "x-science/internal/adapters/common"
 )
 
 const (

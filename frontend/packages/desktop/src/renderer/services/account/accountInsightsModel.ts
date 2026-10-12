@@ -23,7 +23,7 @@ export type AccountTopSkill = {
   lastUsedAt: string | null;
 };
 
-export type SynonBiomedAccountInsights = {
+export type XScienceAccountInsights = {
   metrics: {
     totalTasks: number;
     completedTasks: number;

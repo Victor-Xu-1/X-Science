@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 // A live control socket must not keep a backend ready after its worker exits.

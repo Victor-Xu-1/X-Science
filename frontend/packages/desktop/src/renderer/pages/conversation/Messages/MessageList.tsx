@@ -51,14 +51,14 @@ import MessageText from './components/MessageText';
 import MessagePermission from './components/MessagePermission';
 import MessageFileChanges from './MessageFileChanges';
 import MessageAgentStatus from './components/MessageAgentStatus';
-import SynonBiomedTimelinePlan from '@/renderer/components/synonBiomed/runtime/SynonBiomedTimelinePlan';
+import XScienceTimelinePlan from '@/renderer/components/xScience/runtime/XScienceTimelinePlan';
 import MessageToolCall from './components/MessageToolCall';
 import MessageToolGroupSummary from './components/MessageToolGroupSummary';
 import { hasRenderableTerminalAnswerForLatestUserTurn } from './terminalProjectionReadiness';
 import MessageCronTrigger from './components/MessageCronTrigger';
 import MessageSkillSuggest from './components/MessageSkillSuggest';
 import { ScientificFilePreviewStrip } from './components/MessageScientificFiles';
-import SynonBiomedUserMessageActions from './components/SynonBiomedUserMessageActions';
+import XScienceUserMessageActions from './components/XScienceUserMessageActions';
 import MessageThinking from './components/MessageThinking';
 import TranscriptActivity, { TranscriptActivityContext } from './components/TranscriptActivity';
 import { projectTranscriptActivity } from './transcriptActivityModel';
@@ -83,12 +83,12 @@ import {
   type MessageVirtualWindow,
 } from './messageVirtualWindow';
 import {
-  SYNON_BIOMED_BRANCH_SELECTION_EVENT,
-  SYNON_BIOMED_SESSION_WORKFLOW_CAPABILITIES,
-  loadSynonBiomedConversationBranches,
-  type SynonBiomedBranchSelectionEventDetail,
-  type SynonBiomedConversationBranchState,
-} from '@/renderer/services/synonBiomedConversationBranches';
+  X_SCIENCE_BRANCH_SELECTION_EVENT,
+  X_SCIENCE_SESSION_WORKFLOW_CAPABILITIES,
+  loadXScienceConversationBranches,
+  type XScienceBranchSelectionEventDetail,
+  type XScienceConversationBranchState,
+} from '@/renderer/services/xScienceConversationBranches';
 
 type ConversationLocationState = {
   targetMessageId?: string;
@@ -148,7 +148,7 @@ export const ImagePreviewContext = createContext<{ inPreviewGroup: boolean }>({
 
 const MessageItem: React.FC<{
   message: TMessage;
-  branchState?: SynonBiomedConversationBranchState | null;
+  branchState?: XScienceConversationBranchState | null;
   highlighted?: boolean;
   rowWidthClass: string;
   showCopyRow?: boolean;
@@ -198,7 +198,7 @@ const MessageItem: React.FC<{
       messageIndex,
     }: {
       message: TMessage;
-      branchState?: SynonBiomedConversationBranchState | null;
+      branchState?: XScienceConversationBranchState | null;
       highlighted?: boolean;
       rowWidthClass: string;
       showCopyRow?: boolean;
@@ -209,9 +209,9 @@ const MessageItem: React.FC<{
       switch (message.type) {
         case 'text': {
           const canShowUserMessageActions =
-            SYNON_BIOMED_SESSION_WORKFLOW_CAPABILITIES.messageFork.state === 'supported' &&
+            X_SCIENCE_SESSION_WORKFLOW_CAPABILITIES.messageFork.state === 'supported' &&
             message.position === 'right' &&
-            message.content.synonBiomed?.blockIndex === 0;
+            message.content.xScience?.blockIndex === 0;
           const textMessage = (
             <MessageText
               message={message}
@@ -221,9 +221,9 @@ const MessageItem: React.FC<{
           );
           if (!canShowUserMessageActions) return textMessage;
           return (
-            <SynonBiomedUserMessageActions message={message} branchState={branchState}>
+            <XScienceUserMessageActions message={message} branchState={branchState}>
               {textMessage}
-            </SynonBiomedUserMessageActions>
+            </XScienceUserMessageActions>
           );
         }
         case 'tips':
@@ -241,7 +241,7 @@ const MessageItem: React.FC<{
         case 'acp_tool_call':
           return <MessageToolGroupSummary messages={[message]} />;
         case 'plan':
-          return <SynonBiomedTimelinePlan message={message} />;
+          return <XScienceTimelinePlan message={message} />;
         case 'thinking':
           return <MessageThinking message={message}></MessageThinking>;
         case 'available_commands':
@@ -302,7 +302,7 @@ const MessageList: React.FC<{
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | undefined>();
   const [ownedBranchState, setOwnedBranchState] = useState<{
     conversationId: string;
-    value: SynonBiomedConversationBranchState;
+    value: XScienceConversationBranchState;
   } | null>(null);
   const handledTargetKeyRef = useRef<string>('');
   const loadingTargetKeyRef = useRef<string>('');
@@ -326,7 +326,7 @@ const MessageList: React.FC<{
   const hasBranchCoordinates = useMemo(
     () =>
       list.some(
-        (message) => message.type === 'text' && message.position === 'right' && Boolean(message.content.synonBiomed)
+        (message) => message.type === 'text' && message.position === 'right' && Boolean(message.content.xScience)
       ),
     [list]
   );
@@ -357,7 +357,7 @@ const MessageList: React.FC<{
     if (
       !conversationId ||
       !hasBranchCoordinates ||
-      SYNON_BIOMED_SESSION_WORKFLOW_CAPABILITIES.branchSelection.state !== 'supported' ||
+      X_SCIENCE_SESSION_WORKFLOW_CAPABILITIES.branchSelection.state !== 'supported' ||
       typeof window === 'undefined'
     ) {
       setOwnedBranchState(null);
@@ -368,7 +368,7 @@ const MessageList: React.FC<{
     let requestGeneration = 0;
     const refresh = () => {
       const generation = ++requestGeneration;
-      void loadSynonBiomedConversationBranches(conversationId)
+      void loadXScienceConversationBranches(conversationId)
         .then((value) => {
           if (active && generation === requestGeneration) setOwnedBranchState({ conversationId, value });
         })
@@ -380,15 +380,15 @@ const MessageList: React.FC<{
         });
     };
     const handleSelection = (event: Event) => {
-      const detail = (event as CustomEvent<SynonBiomedBranchSelectionEventDetail>).detail;
+      const detail = (event as CustomEvent<XScienceBranchSelectionEventDetail>).detail;
       if (detail?.conversationId === conversationId) refresh();
     };
 
     refresh();
-    window.addEventListener(SYNON_BIOMED_BRANCH_SELECTION_EVENT, handleSelection);
+    window.addEventListener(X_SCIENCE_BRANCH_SELECTION_EVENT, handleSelection);
     return () => {
       active = false;
-      window.removeEventListener(SYNON_BIOMED_BRANCH_SELECTION_EVENT, handleSelection);
+      window.removeEventListener(X_SCIENCE_BRANCH_SELECTION_EVENT, handleSelection);
     };
   }, [conversationId, hasBranchCoordinates]);
 
@@ -864,10 +864,10 @@ const MessageList: React.FC<{
               role='status'
               className='transcript-boundary-indicator gap-8px text-danger-6'
             >
-              <span>{t('conversation.synonRuntime.messageList.refreshFailed')}</span>
+              <span>{t('conversation.xscienceRuntime.messageList.refreshFailed')}</span>
               {onRetryLoad ? (
                 <Button size='mini' loading={isMessageListLoading} onClick={onRetryLoad}>
-                  {t('conversation.synonRuntime.messageList.retry')}
+                  {t('conversation.xscienceRuntime.messageList.retry')}
                 </Button>
               ) : null}
             </div>
@@ -875,11 +875,11 @@ const MessageList: React.FC<{
           {pagination.isLoadingBefore ? (
             <div data-testid='transcript-load-older' aria-live='polite' className='transcript-boundary-indicator'>
               <span className='transcript-boundary-indicator__spinner' aria-hidden='true' />
-              {t('conversation.synonRuntime.messageList.loadingEarlier')}
+              {t('conversation.xscienceRuntime.messageList.loadingEarlier')}
             </div>
           ) : !pagination.hasMoreBefore ? (
             <div data-testid='transcript-start-marker' className='transcript-boundary-indicator'>
-              {t('conversation.synonRuntime.messageList.conversationStarted')}
+              {t('conversation.xscienceRuntime.messageList.conversationStarted')}
             </div>
           ) : (
             <div className='h-10px' />
@@ -891,7 +891,7 @@ const MessageList: React.FC<{
           {pagination.isLoadingAfter ? (
             <div data-testid='transcript-load-newer' aria-live='polite' className='transcript-boundary-indicator'>
               <span className='transcript-boundary-indicator__spinner' aria-hidden='true' />
-              {t('conversation.synonRuntime.messageList.loadingNewer')}
+              {t('conversation.xscienceRuntime.messageList.loadingNewer')}
             </div>
           ) : null}
           <div className='h-20px' />
@@ -920,10 +920,10 @@ const MessageList: React.FC<{
         className='relative flex-1 h-full flex flex-col items-center justify-center gap-10px px-20px text-center'
         role='alert'
       >
-        <p className='m-0 text-13px text-t-secondary'>{t('conversation.synonRuntime.messageList.loadFailed')}</p>
+        <p className='m-0 text-13px text-t-secondary'>{t('conversation.xscienceRuntime.messageList.loadFailed')}</p>
         {onRetryLoad ? (
           <Button size='small' loading={isMessageListLoading} onClick={onRetryLoad}>
-            {t('conversation.synonRuntime.messageList.retry')}
+            {t('conversation.xscienceRuntime.messageList.retry')}
           </Button>
         ) : null}
       </div>
@@ -990,8 +990,8 @@ const MessageList: React.FC<{
 
         <button
           type='button'
-          aria-label={t('conversation.synonRuntime.messageList.scrollToBottom')}
-          title={t('conversation.synonRuntime.messageList.scrollToBottom')}
+          aria-label={t('conversation.xscienceRuntime.messageList.scrollToBottom')}
+          title={t('conversation.xscienceRuntime.messageList.scrollToBottom')}
           aria-hidden={!showScrollButton}
           inert={showScrollButton ? undefined : true}
           className={classNames('conversation-scroll-control conversation-scroll-control--bottom', {
@@ -1005,8 +1005,8 @@ const MessageList: React.FC<{
         <button
           type='button'
           data-testid='jump-to-last-prompt'
-          aria-label={t('conversation.synonRuntime.messageList.jumpToPreviousMessage')}
-          title={t('conversation.synonRuntime.messageList.jumpToPreviousMessage')}
+          aria-label={t('conversation.xscienceRuntime.messageList.jumpToPreviousMessage')}
+          title={t('conversation.xscienceRuntime.messageList.jumpToPreviousMessage')}
           aria-hidden={!showLastUserButton}
           inert={showLastUserButton ? undefined : true}
           className={classNames('conversation-scroll-control conversation-scroll-control--last-user', {
@@ -1015,7 +1015,7 @@ const MessageList: React.FC<{
           onClick={scrollToLastUser}
         >
           <UpSmall theme='outline' size={14} />
-          <span>{t('conversation.synonRuntime.messageList.previousMessage')}</span>
+          <span>{t('conversation.xscienceRuntime.messageList.previousMessage')}</span>
         </button>
 
         <SelectionReplyButton messages={list} />

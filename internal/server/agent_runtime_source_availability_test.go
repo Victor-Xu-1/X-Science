@@ -7,9 +7,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/tools/articlefulltext"
-	toolregistry "synon-go/internal/tools/registry"
+	"x-science/internal/agentruntime"
+	"x-science/internal/tools/articlefulltext"
+	toolregistry "x-science/internal/tools/registry"
 )
 
 func TestAgentRuntimeRealSourceAvailabilitySurvivesTypedGateway(t *testing.T) {

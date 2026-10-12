@@ -4,13 +4,14 @@ import (
 	"context"
 	"crypto/sha256"
 	"database/sql"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func TestTranscriptPayloadGenesisV32UpgradeBacksUpV31BeforeWrite(t *testing.T) {
@@ -183,6 +184,22 @@ func TestTranscriptPayloadGenesisV32PreservesActivatedV31AuthorityAndReopens(t *
 	}
 	backupPath := store.schemaBackupPath
 	assertActivatedV32PayloadAuthority(t, store, fixture, beforeReceipt, beforeTarget)
+	// This historical structural fixture intentionally uses synthetic audit
+	// commitments. Preserve it as source history, never launder the capture
+	// receipt into a cryptographically validated runtime classification.
+	var runID, auditStream string
+	if err := store.db.QueryRow(`SELECT lower(hex(run_id)),stream_uid FROM transcript_history_classification_runs`).Scan(&runID, &auditStream); err != nil {
+		t.Fatal(err)
+	}
+	repository, err := store.TranscriptRepository(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := repository.GetAskUserHistoryAudit(context.Background(), transcriptstore.GetAskUserHistoryAuditInput{
+		OwnerID: fixture.ownerID, StreamUID: auditStream, RunID: runID,
+	}); !errors.Is(err, transcriptstore.ErrEventConflict) {
+		t.Fatalf("source preservation promoted synthetic audit commitments: %v", err)
+	}
 	backup, err := sql.Open(sqliteDriver, backupPath)
 	if err != nil {
 		_ = store.Close()

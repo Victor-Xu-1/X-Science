@@ -10,10 +10,10 @@ import (
 	"strings"
 	"sync"
 
-	"synon-go/internal/agentruntime"
-	eventjournal "synon-go/internal/persistence/journal"
-	"synon-go/internal/toolcontract"
-	"synon-go/internal/tools/webfetch"
+	"x-science/internal/agentruntime"
+	eventjournal "x-science/internal/persistence/journal"
+	"x-science/internal/toolcontract"
+	"x-science/internal/tools/webfetch"
 )
 
 // Read-result reuse is a per-logical-run optimization for explicitly marked

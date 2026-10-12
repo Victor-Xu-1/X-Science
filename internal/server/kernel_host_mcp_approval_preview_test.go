@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/tools/mcpstdio"
+	"x-science/internal/agentruntime"
+	"x-science/internal/tools/mcpstdio"
 )
 
 func TestKernelMCPApprovalPreviewRedactsStructuredCredentials(t *testing.T) {

@@ -13,7 +13,7 @@ import sys
 from typing import Any
 
 
-SCHEMA = "synon.governance.dependency-authority.v1"
+SCHEMA = "x-science.governance.dependency-authority.v1"
 TOP_KEYS = {"schema", "go", "frontend", "rule"}
 
 

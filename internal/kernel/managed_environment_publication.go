@@ -17,7 +17,10 @@ import (
 // immutable generation remains available to running or durable tasks and can
 // be garbage-collected only by a later reference-aware maintenance pass.
 func (m *Manager) DeleteManagedEnvironment(ctx context.Context, input DeleteManagedEnvironmentInput) error {
-	name := input.Name
+	name, aliasErr := m.resolveNamespaceImportedEnvironmentInput(input.Name)
+	if aliasErr != nil {
+		return aliasErr
+	}
 	if err := validateManagedEnvironmentName(name); err != nil {
 		return err
 	}
@@ -37,6 +40,23 @@ func (m *Manager) DeleteManagedEnvironment(ctx context.Context, input DeleteMana
 	key := managedEnvironmentRequestKey(input.OperationID, "deactivate", struct{ Name, Generation string }{name, input.ExpectedGeneration})
 	if strings.TrimSpace(input.OperationID) == "" || !validSHA256(key) {
 		return errors.New("managed environment deactivation requires a durable operation identity")
+	}
+	previousContext := previousNamespaceRequestContext(ctx, input.OperationID, "deactivate", struct{ Name, Generation string }{name, input.ExpectedGeneration})
+	previousKeys, _ := previousContext.Value(previousNamespaceOperationKeysContext{}).([]string)
+	for _, previousKey := range previousKeys {
+		previousReceipt := filepath.Join(root, ".generations", name, ".deactivated-"+previousKey)
+		if info, err := os.Lstat(previousReceipt); err == nil {
+			if info.Mode()&os.ModeSymlink == 0 {
+				return errors.New("previous namespace deactivation receipt is invalid")
+			}
+			target, err := os.Readlink(previousReceipt)
+			if err != nil || (target != "absent" && target != filepath.Join(root, ".generations", name, input.ExpectedGeneration)) {
+				return errors.New("previous namespace deactivation receipt conflicts with its request")
+			}
+			return nil // Already completed; do not deactivate a successor pointer.
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
 	}
 	// Moving the active symlink is both deactivation and its durable receipt.
 	// Replaying an old operation cannot deactivate a subsequently reactivated

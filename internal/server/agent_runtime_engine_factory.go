@@ -5,12 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/mcpdirectory"
-	"synon-go/internal/providers"
-	"synon-go/internal/skills"
-	"synon-go/internal/tools/mcpstdio"
 	"time"
+	"x-science/internal/agentruntime"
+	"x-science/internal/mcpdirectory"
+	"x-science/internal/providers"
+	"x-science/internal/skills"
+	"x-science/internal/tools/mcpstdio"
 )
 
 func (s *Server) newAgentRuntimeEngineWithContext(

@@ -38,7 +38,7 @@ from mcp_servers_common.ratelimit import retry_after_seconds
 # this UA, for python-requests/2.33.1, and for an empty UA). If an
 # instance starts rejecting honest clients, that's a conversation with
 # the operator, not a spoof.
-USER_AGENT = "bio-tools-pheweb/0.1 (synon_llm-experimental/bio-tools)"
+USER_AGENT = "bio-tools-pheweb/0.1 (x_science_llm-experimental/bio-tools)"
 
 #: Registry of public PheWeb instances this package speaks to.
 #: capabilities: "variant" (/api/variant/<id>), "gene" (/api/gene_phenos/<g>),

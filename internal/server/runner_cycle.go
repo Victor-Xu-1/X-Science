@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	eventjournal "synon-go/internal/persistence/journal"
-	sessionstore "synon-go/internal/persistence/sessions"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	runnermachine "synon-go/internal/sessionrunner"
+	eventjournal "x-science/internal/persistence/journal"
+	sessionstore "x-science/internal/persistence/sessions"
+	transcriptstore "x-science/internal/persistence/transcript"
+	runnermachine "x-science/internal/sessionrunner"
 )
 
 func (s *Server) runSessionRunnerChatOnce(

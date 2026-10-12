@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { SynonBiomedRuntimeLogoIcon } from '@/renderer/components/synonBiomed/runtime/SynonBiomedRuntimeBadge';
+import { XScienceRuntimeLogoIcon } from '@/renderer/components/xScience/runtime/XScienceRuntimeBadge';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
-import { usePresetAssistantInfo } from '@/renderer/hooks/synonBiomed/runtime/usePresetAssistantInfo';
+import { usePresetAssistantInfo } from '@/renderer/hooks/xScience/runtime/usePresetAssistantInfo';
 import { resolveConversationBackend } from '@/renderer/pages/conversation/utils/conversationAssistantIdentity';
 import React from 'react';
 import useSWR from 'swr';
@@ -30,7 +30,7 @@ const MobileConversationBrand: React.FC<MobileConversationBrandProps> = ({ conve
   return (
     <span className='app-titlebar__brand-mobile'>
       {showLogo && (
-        <SynonBiomedRuntimeLogoIcon
+        <XScienceRuntimeLogoIcon
           backend={backend}
           agent_name={title}
           agentLogo={presetAssistant?.logo}

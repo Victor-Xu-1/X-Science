@@ -11,12 +11,25 @@ import (
 	"strings"
 	"testing"
 
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/sciencecapability"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/sciencecapability"
 )
 
 func TestManagedExecutionReceiptMountPreventsPythonOutputMutation(t *testing.T) {
+	assertManagedExecutionReceiptMountProtection(t, managedExecutionOutputOwnershipMarker, "x-science.execution-pack-output-owner.v1", false)
+}
+
+func TestPublishedManagedExecutionReceiptRetainsOutputImmutability(t *testing.T) {
+	assertManagedExecutionReceiptMountProtection(t, ".synon-execution-pack.json", "synon.execution-pack-output-owner.v1", false)
+}
+
+func TestPublishedManagedSnapshotRetainsReceiptAndReadonlyMount(t *testing.T) {
+	assertManagedExecutionReceiptMountProtection(t, ".synon-execution-pack.json", "synon.execution-pack-output-owner.v1", true)
+}
+
+func assertManagedExecutionReceiptMountProtection(t *testing.T, markerName, markerSchema string, historicalSnapshot bool) {
+	t.Helper()
 	store, manager, app, identity := newKernelHostTestRuntime(
 		t, filepath.Join(t.TempDir(), "workspace.db"), true,
 	)
@@ -26,9 +39,9 @@ func TestManagedExecutionReceiptMountPreventsPythonOutputMutation(t *testing.T) 
 		t.Fatal(err)
 	}
 	contents := map[string]string{
-		managedExecutionOutputOwnershipMarker: `{"schema":"synon.execution-pack-output-owner.v1","execution_pack_id":"capability.engine"}`,
-		"report.md":                           "validated report\n",
-		"validation.json":                     `{"overall_pass":true}`,
+		markerName:        `{"schema":"` + markerSchema + `","execution_pack_id":"capability.engine"}`,
+		"report.md":       "validated report\n",
+		"validation.json": `{"overall_pass":true}`,
 	}
 	writes := make([]kernelruntime.FileWrite, 0, len(contents))
 	for name, content := range contents {
@@ -63,15 +76,22 @@ func TestManagedExecutionReceiptMountPreventsPythonOutputMutation(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	script := filepath.Join(identity.workspaceDir, ".synon", "runtime", "skills", "managed-workflow-abcd", "scripts", "run.py")
-	seed, err := app.executeAgentKernelTool(
-		context.Background(), identity, "python", map[string]any{
-			"code":        "persisted_namespace_value = 'kept-after-publication'",
-			"environment": "python",
-		},
-	)
-	if err != nil || seed["ok"] != true {
-		t.Fatalf("seed persistent namespace result=%#v err=%v", seed, err)
+	runtimeNamespace := ".x-science"
+	if markerName == publishedManagedExecutionOwnerMarker {
+		runtimeNamespace = ".synon"
+	}
+	script := filepath.Join(identity.workspaceDir, runtimeNamespace, "runtime", "skills", "managed-workflow-abcd", "scripts", "run.py")
+	seedNamespace := func() {
+		t.Helper()
+		seed, err := app.executeAgentKernelTool(context.Background(), identity, "python", map[string]any{
+			"code": "persisted_namespace_value = 'kept-after-publication'", "environment": "python",
+		})
+		if err != nil || seed["ok"] != true {
+			t.Fatalf("seed persistent namespace result=%#v err=%v", seed, err)
+		}
+	}
+	if !historicalSnapshot {
+		seedNamespace()
 	}
 	if _, err := store.SaveExecutionLog(workspace.SaveExecutionLogInput{
 		Record: workspace.ExecutionLogRecord{
@@ -84,6 +104,34 @@ func TestManagedExecutionReceiptMountPreventsPythonOutputMutation(t *testing.T) 
 		ExpectedRootFrameIncarnationID: access.RootFrameIncarnationID,
 	}); err != nil {
 		t.Fatal(err)
+	}
+	if historicalSnapshot {
+		authority := managedExecutionOutputAuthority{Root: output, PackID: "capability.engine", ExecutionID: "managed-pack-execution"}
+		snapshot := publishedManagedExecutionSnapshotDirectory(identity.workspaceDir, authority)
+		if err := os.MkdirAll(filepath.Dir(snapshot), 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Rename(output, snapshot); err != nil {
+			t.Fatal(err)
+		}
+		digests := map[string]string{}
+		for _, write := range writes {
+			digests[write.Path] = write.SHA256
+		}
+		raw, err := json.Marshal(managedExecutionSnapshotManifest{Schema: publishedManagedExecutionSnapshotSchema, PackID: authority.PackID, ExecutionID: authority.ExecutionID, Digests: digests})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(snapshot, publishedManagedExecutionSnapshotMarker), raw, 0o444); err != nil {
+			t.Fatal(err)
+		}
+		if err := makeManagedExecutionSnapshotReadOnly(snapshot); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Symlink(snapshot, output); err != nil {
+			t.Fatal(err)
+		}
+		seedNamespace() // On upgrade the old snapshot predates the new kernel.
 	}
 	gateway := serverAgentRuntimeToolGateway{server: app, kernel: identity}
 	blocked := gateway.agentRuntimeManagedExecutionOutputMutationPreflight(
@@ -113,13 +161,24 @@ func TestManagedExecutionReceiptMountPreventsPythonOutputMutation(t *testing.T) 
 			}
 			mountedStableRoot := false
 			for _, mount := range mounts {
-				if filepath.Clean(mount.Path) == filepath.Join(identity.workspaceDir, ".synon-artifacts") && !mount.Writable {
+				if filepath.Clean(mount.Path) == filepath.Join(identity.workspaceDir, ".x-science-artifacts") && !mount.Writable {
 					mountedStableRoot = true
 					break
 				}
 			}
 			if !mountedStableRoot {
 				t.Fatalf("stable artifact root lost its immutable mount: %#v", mounts)
+			}
+			if historicalSnapshot {
+				legacyMounted := false
+				for _, mount := range mounts {
+					if mount.Path == filepath.Join(identity.workspaceDir, publishedManagedExecutionArtifactDirectory) && !mount.Writable {
+						legacyMounted = true
+					}
+				}
+				if !legacyMounted {
+					t.Fatalf("historical immutable snapshot lost its readonly mount: %#v", mounts)
+				}
 			}
 			if info, err := os.Lstat(output); err != nil || info.Mode()&os.ModeSymlink == 0 {
 				t.Fatalf("promoted output did not retain its stable snapshot link: info=%v err=%v", info, err)
@@ -224,7 +283,7 @@ func TestManagedExecutionSnapshotRecoversInterruptedCompatibilitySwap(t *testing
 		Root: outputRoot, PackID: "pack-recovery", ExecutionID: "execution-recovery",
 		Digests: map[string]string{"results/report.md": hex.EncodeToString(digest[:])},
 	}
-	stableRoot := filepath.Join(workspaceRoot, ".synon-artifacts", ".managed")
+	stableRoot := filepath.Join(workspaceRoot, ".x-science-artifacts", ".managed")
 	finalRoot := filepath.Join(stableRoot, managedExecutionSnapshotID(authority))
 	if err := os.MkdirAll(finalRoot, 0o700); err != nil {
 		t.Fatal(err)
@@ -239,10 +298,10 @@ func TestManagedExecutionSnapshotRecoversInterruptedCompatibilitySwap(t *testing
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(finalRoot, ".synon-output-snapshot.json"), manifest, 0o444); err != nil {
+	if err := os.WriteFile(filepath.Join(finalRoot, ".x-science-output-snapshot.json"), manifest, 0o444); err != nil {
 		t.Fatal(err)
 	}
-	backupRoot := outputRoot + ".synon-output-backup-" + managedExecutionSnapshotID(authority)
+	backupRoot := outputRoot + ".x-science-output-backup-" + managedExecutionSnapshotID(authority)
 	if err := os.Rename(outputRoot, backupRoot); err != nil {
 		t.Fatal(err)
 	}

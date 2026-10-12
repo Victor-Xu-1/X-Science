@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	kernelruntime "synon-go/internal/kernel"
+	kernelruntime "x-science/internal/kernel"
 )
 
 var errProjectPathForbidden = errors.New("project path is not authorized")

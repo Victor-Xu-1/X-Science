@@ -1,10 +1,10 @@
 /* Shared preview language: quiet canvas, readable typography, and one hierarchy for every file type. */
 
 .preview-panel {
-  --preview-canvas: var(--synon-surface-canvas, var(--bg-1));
-  --preview-subtle: var(--synon-surface-subtle, var(--color-fill-2));
-  --preview-hover: var(--synon-surface-hover, var(--bg-hover));
-  --preview-border: var(--synon-divider, var(--color-border-2));
+  --preview-canvas: var(--x-science-surface-canvas, var(--bg-1));
+  --preview-subtle: var(--x-science-surface-subtle, var(--color-fill-2));
+  --preview-hover: var(--x-science-surface-hover, var(--bg-hover));
+  --preview-border: var(--x-science-divider, var(--color-border-2));
   --preview-text: var(--workspace-text, var(--color-text-1));
   --preview-muted: var(--workspace-text-tertiary, var(--color-text-3));
   --preview-link: rgb(var(--primary-6));
@@ -218,7 +218,7 @@
 }
 
 .preview-region-comment-composer textarea:focus {
-  box-shadow: inset 0 0 0 1px var(--preview-comment-accent);
+  box-shadow: none;
 }
 
 .preview-region-comment-composer textarea::placeholder {
@@ -513,7 +513,7 @@
 }
 
 .preview-board__icon-button:focus-visible {
-  outline: 1px solid var(--preview-text);
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
   outline-offset: 1px;
 }
 

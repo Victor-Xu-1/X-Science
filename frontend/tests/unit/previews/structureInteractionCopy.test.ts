@@ -18,6 +18,6 @@ describe.each(['en-US', 'zh-CN'])('interaction diagram state copy in %s', (local
     'downloadInteractionDiagramPng',
   ])('keeps %s free of stale branding or publication claims', (key) => {
     expect(copy[key]).toEqual(expect.any(String));
-    expect(copy[key]).not.toMatch(/Synon|publication|出版级/i);
+    expect(copy[key]).not.toMatch(/XScience|publication|出版级/i);
   });
 });

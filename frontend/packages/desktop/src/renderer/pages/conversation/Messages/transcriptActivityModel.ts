@@ -7,7 +7,7 @@ import { isPublicToolActivity } from './toolActivityPresentationRegistry';
 export type TranscriptActivityState = { labelKey: string; spinning: boolean } | null;
 
 const status = (name: string, spinning = false): TranscriptActivityState => ({
-  labelKey: `conversation.synonRuntime.runtimeOperations.${name}`,
+  labelKey: `conversation.xscienceRuntime.runtimeOperations.${name}`,
   spinning,
 });
 

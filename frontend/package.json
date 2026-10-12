@@ -1,11 +1,11 @@
 {
   "name": "@x-science/workbench-web",
-  "version": "0.1.72",
+  "version": "0.1.73",
   "private": true,
   "description": "X-Science scientific workbench Web application.",
   "license": "Apache-2.0",
   "author": {
-    "name": "Synon-AI"
+    "name": "X-Science contributors"
   },
   "workspaces": [
     "packages/desktop"

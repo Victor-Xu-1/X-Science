@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestWebConversationRuntimeMapsTerminalFrameStatusesExplicitly(t *testing.T) {
@@ -453,16 +453,19 @@ func TestWebClientSettingsPersistFilterAndProtectBusinessValues(t *testing.T) {
 }
 
 func TestWebConversationDefaultDisplayNameKeepsLegacyIdentity(t *testing.T) {
-	for _, name := range []string{"", "SYNON_BIOMED"} {
+	for _, name := range []string{"", "X_SCIENCE", "SYNON"} {
 		frame := workspace.CompatibilityFrame{}
 		frame.ID, frame.ProjectID, frame.AgentName = "frame-brand", "project-brand", name
 		projected := webConversation(frame, "Project")
 		assistant := projected["assistant"].(map[string]any)
-		if assistant["name"] != "X-Science" || assistant["id"] != webAssistantID("SYNON_BIOMED") {
+		if assistant["name"] != "X-Science" || assistant["id"] != webAssistantID("X_SCIENCE") {
 			t.Fatalf("brand must change display only, not identity: %#v", assistant)
 		}
-		if projected["extra"].(map[string]any)["agent_name"] != "SYNON_BIOMED" {
-			t.Fatal("legacy persisted agent identity changed")
+		if projected["extra"].(map[string]any)["agent_name"] != "X_SCIENCE" {
+			t.Fatal("current presentation retained a retired default assistant key")
+		}
+		if frame.AgentName != name {
+			t.Fatal("presentation rewrote the original frame")
 		}
 	}
 	frame := workspace.CompatibilityFrame{}
@@ -470,6 +473,10 @@ func TestWebConversationDefaultDisplayNameKeepsLegacyIdentity(t *testing.T) {
 	projected := webConversation(frame, "Project")
 	if projected["assistant"].(map[string]any)["name"] != "User Researcher" {
 		t.Fatal("branding must not overwrite a user's expert name")
+	}
+	frame.DelegateName = "SYNON"
+	if webConversation(frame, "Project")["assistant"].(map[string]any)["name"] != "SYNON" {
+		t.Fatal("custom delegate was renamed")
 	}
 }
 
@@ -730,14 +737,14 @@ func TestPrivateRevalidatedWorkspaceJSONHonorsExplicitGzipDisableAfterWildcard(t
 	}
 }
 
-func TestSynonBiomedExpertProfilesReuseAgentCompatibility(t *testing.T) {
+func TestXScienceExpertProfilesReuseAgentCompatibility(t *testing.T) {
 	store, err := workspace.Open(filepath.Join(t.TempDir(), "workspace.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = store.Close() })
 	app := newV11TestServer(t, Options{Workspace: store})
-	request := httptest.NewRequest(http.MethodGet, "/api/synonbiomed/expert-profiles", nil)
+	request := httptest.NewRequest(http.MethodGet, "/api/x-science/expert-profiles", nil)
 	request.RemoteAddr = "127.0.0.1:1234"
 	response := httptest.NewRecorder()
 	app.Handler().ServeHTTP(response, request)

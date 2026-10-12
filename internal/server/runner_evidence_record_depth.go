@@ -10,8 +10,8 @@ import (
 	"sort"
 	"strings"
 
-	"synon-go/internal/agentruntime"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	"x-science/internal/agentruntime"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 var runnerEvidenceDepthPatentIdentifierPattern = regexp.MustCompile(`(?i)\b[A-Z]{2}[A-Z0-9-]{4,38}\b`)

@@ -31,7 +31,7 @@
   --composer-border: transparent;
   --composer-border-active: transparent;
   --composer-shadow: 0 8px 28px rgb(35 33 29 / 7%);
-  --composer-shadow-active: 0 0 0 1px rgb(59 58 55 / 7%), 0 12px 34px rgb(35 33 29 / 11%);
+  --composer-shadow-active: var(--composer-shadow);
   --workspace-overlay-surface: #fdfcf9;
   --workspace-overlay-surface-muted: #f4f2ee;
   --workspace-overlay-hover: #ebe9e5;
@@ -73,7 +73,7 @@
   --composer-border: transparent;
   --composer-border-active: transparent;
   --composer-shadow: 0 10px 30px rgb(0 0 0 / 30%);
-  --composer-shadow-active: 0 0 0 1px rgb(241 239 235 / 10%), 0 14px 38px rgb(0 0 0 / 38%);
+  --composer-shadow-active: var(--composer-shadow);
   --workspace-overlay-surface: #242320;
   --workspace-overlay-surface-muted: #2b2a27;
   --workspace-overlay-hover: #34322f;

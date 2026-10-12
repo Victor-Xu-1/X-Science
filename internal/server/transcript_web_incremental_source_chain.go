@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func (s *Server) transcriptWebPageSupersedesTerminal(
@@ -114,7 +114,7 @@ func buildIncrementalTranscriptWebUserMessage(
 		"created_at": projected.Event.CreatedAt.UnixMilli(),
 		"content": map[string]any{
 			"content": transcriptPayloadText(payload),
-			"synonBiomed": map[string]any{
+			"xScience": map[string]any{
 				"messageIndex": priorVisibleCount, "blockIndex": 0, "branchId": branchID,
 			},
 		},
@@ -150,7 +150,7 @@ func extendTranscriptWebSourceEventChain(
 ) (string, error) {
 	var chain []byte
 	if prior == "" {
-		seed := sha256.Sum256([]byte("synon.transcript.web-source-chain.v2"))
+		seed := sha256.Sum256([]byte("x-science.transcript.web-source-chain.v2"))
 		chain = seed[:]
 	} else {
 		if !validTranscriptWebSourceEventChain(prior) {
@@ -182,7 +182,7 @@ func extendTranscriptWebSourceEventChain(
 			return "", fmt.Errorf("hash Transcript Web source event: %w", err)
 		}
 		digest := sha256.New()
-		_, _ = digest.Write([]byte("synon.transcript.web-source-chain.v2\x00"))
+		_, _ = digest.Write([]byte("x-science.transcript.web-source-chain.v2\x00"))
 		_, _ = digest.Write(chain)
 		_, _ = digest.Write(encoded)
 		chain = digest.Sum(nil)

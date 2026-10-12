@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"testing"
 
-	"synon-go/internal/tools/articlefulltext"
+	"x-science/internal/tools/articlefulltext"
 )
 
 func TestV11DependencyAliasesAreRegisteredAndExecutable(t *testing.T) {
@@ -24,7 +24,7 @@ func TestV11DependencyAliasesAreRegisteredAndExecutable(t *testing.T) {
 	}))
 	defer articleServer.Close()
 
-	t.Setenv("SYNON_WEBSEARCH_ENDPOINT", searchServer.URL+"/search-web?q={query}")
+	t.Setenv("X_SCIENCE_WEBSEARCH_ENDPOINT", searchServer.URL+"/search-web?q={query}")
 	reg := DefaultWithArticleFulltextClient(articlefulltext.NewClient(registryPinnedArticleOptions(t, articleServer)))
 	for _, name := range []string{"web_search", "fetch_article_fulltext"} {
 		tool, ok := reg.Get(name)
