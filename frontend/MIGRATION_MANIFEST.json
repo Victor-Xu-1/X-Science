@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "e9d3cac7557c15fbd0a604bacdaf20aec905c71037a394489a29541fdaff837a",
+  "adaptationFingerprintSHA256": "4b2585d968daf4dc30839cb75023d4c61fe3baeca1980db3973676d9e6ed6f94",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "30a07118d55be10c77af6a20a1187e1666f75fce361a24707651fcdca6170a1b",
+  "additionFingerprintSHA256": "b7dc22ab4a9855a90c6cbe8ed4dc77ba1854236d7ee4e019c12ff23c15bef082",
   "summary": {
     "sourceFiles": 1354,
-    "unchangedSourceFiles": 343,
-    "adaptedSourceFiles": 718,
+    "unchangedSourceFiles": 342,
+    "adaptedSourceFiles": 719,
     "removedSourceFiles": 293,
-    "addedFiles": 926
+    "addedFiles": 914
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "806ffb92d83b26c11538773df9e0a65531c752eac42d63bdf1aa54293ec64d2d",
+      "targetSHA256": "ef129dc02cb6fcc46c6ba63a141343630b659bf97549342f54a726733191c04d",
       "bytes": 4378,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "e1395779d2c06a3c1f383299c737e670a620924cb217f964bd61913137c9dc92",
+      "targetSHA256": "09e7166e1a917753d57b70b8295077c28f5736c14892cd3b44bdc89e8d488207",
       "bytes": 157,
       "reason": "Remove @synon-ai/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -125,6 +125,13 @@
       "targetSHA256": "58c23650b2f69a729c047fa91c86c620674f7f7b20c00bc11ea5a08812fbc4e4",
       "bytes": 14602,
       "reason": "Keep the browser runtime status model aligned with canonical completed, failed, and cancelled Transcript terminal states."
+    },
+    {
+      "path": "packages/desktop/src/common/platform/NodePlatformServices.ts",
+      "sourceSHA256": "00cabb7601c33394ce637ccd4177a0eb3b8ffbcb2aa672de421d34a427beeed0",
+      "targetSHA256": "018942d853a7a8acfa2f7452b52dec07a8f2b42a553536b8a57ebaf70cc830e5",
+      "bytes": 2605,
+      "reason": "Derive only the package-name fallback from the current root product slug, retaining configured package names and existing data/log paths."
     },
     {
       "path": "packages/desktop/src/common/theme/constants.ts",
@@ -626,8 +633,8 @@
     {
       "path": "packages/desktop/src/renderer/components/synonBiomed/runtime/SynonBiomedModeSelector.tsx",
       "sourceSHA256": "8763796ba3c2e6843c53c550768cb47fa604c3b99d2489390b30a34344be185e",
-      "targetSHA256": "95173a0d32740311b25a921ee8683220beff998b6504c3939fc7641ef83b631b",
-      "bytes": 13001,
+      "targetSHA256": "9cbbcb81b3120a21c537b69cecb39542794f0fba54710ab969741a6634e74ef8",
+      "bytes": 13070,
       "reason": "Project authoritative Go files, notes, approvals, models, kernels, sessions, and runtime operations into the migrated workbench."
     },
     {
@@ -948,22 +955,22 @@
     {
       "path": "packages/desktop/src/renderer/pages/artifact/SynonBiomedLatexArtifactViewer.tsx",
       "sourceSHA256": "3e5c0f93f5dcea19c8c90981b1803519ca43eaf4e1a036491bab261dabf27384",
-      "targetSHA256": "8ba09e0dd4839779ebdb2ab25f12d2d597e320d4475894bd87419ee9c9887db7",
-      "bytes": 12929,
+      "targetSHA256": "3b6a29800650f0d1f379d4b84be74386a1e5669b044a77e364a62377aa938dbb",
+      "bytes": 13043,
       "reason": "Connect immutable Go artifacts, annotations, refinement, and native viewers with bounded localized failure handling."
     },
     {
       "path": "packages/desktop/src/renderer/pages/artifact/SynonBiomedPdfArtifactViewer.tsx",
       "sourceSHA256": "66945690e80dbe6ed1744795d17270249e5f6849f7f36644189fa041bdde2b0d",
-      "targetSHA256": "3ef17f0c615e107d6c6162525d81bdf75279a504fdf10ebe408db868c33b4622",
-      "bytes": 18645,
+      "targetSHA256": "68fe6ba49a4aa803a191eb6c5be1227a4d8e3275038025797f1b30b40e863652",
+      "bytes": 18780,
       "reason": "Connect immutable Go artifacts, annotations, refinement, and native viewers with bounded localized failure handling."
     },
     {
       "path": "packages/desktop/src/renderer/pages/artifact/SynonBiomedTextArtifactViewer.tsx",
       "sourceSHA256": "a0111b2e5772f6ff9470c9dac7408455c61008b6adf2404952e11d0f24adfc73",
-      "targetSHA256": "4f32d5739b5b332fd12a725e89309b4f2f80b865af8f0e4b20773cce3abfa6b7",
-      "bytes": 9014,
+      "targetSHA256": "9b934ae344e013c5fdbd2400a727b14143a9c2de92bb15e79ab67b8076521d30",
+      "bytes": 9083,
       "reason": "Connect immutable Go artifacts, annotations, refinement, and native viewers with bounded localized failure handling."
     },
     {
@@ -1452,8 +1459,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedGenomeViewer.tsx",
       "sourceSHA256": "c3fd0405ce2c94dd0ae4afab12a40a8617e13675e6b8818c91bd089d952c552d",
-      "targetSHA256": "bc1812ddf5bf1ceb4c6a872cc8f0143eb275ff9efd96ffb80fde53ba95103ccd",
-      "bytes": 9342,
+      "targetSHA256": "72fd9eb86f13b14fe9ae962d57283fe7327a79d8c75d3da45524d1e8d11117f9",
+      "bytes": 9493,
       "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -1466,8 +1473,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedHdf5Viewer.tsx",
       "sourceSHA256": "37037ed1ebfdb06439a1ee9615354475cef385c2f096fc10213a2d277d667692",
-      "targetSHA256": "97de001f0a668b77193cdf9338e406279a468d5f1142f223c64ab990b6dd12b0",
-      "bytes": 25183,
+      "targetSHA256": "f096da8b6e3c8423f44fc83ffa2bc80ded0f64b3a1f109c0380d7c74a1d6b3e0",
+      "bytes": 25262,
       "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -1480,43 +1487,43 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedMoleculeViewer.tsx",
       "sourceSHA256": "ea4c3d78af9815f8ebcb632cf29dd7a4fb257b56e1186142b05b3d36ccce1bdd",
-      "targetSHA256": "36d3d243ae793f81f27d60d7c3e68e1053b4a502f6c13b6d5b87e59227513820",
-      "bytes": 7502,
+      "targetSHA256": "9179824b679963e22eccfa688ba137cdcebac23e19723316e94fd601e3a918a7",
+      "bytes": 7571,
       "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedMsaViewer.tsx",
       "sourceSHA256": "f4bbeaf4ad66aed69693fdef7eabc8a65d33a26cb6cba5c44efefe85b8e747ce",
-      "targetSHA256": "61ee61c60e70034c7d03b627c93fc18ca7e8014aac92dd4e2af194cd3c1eec38",
-      "bytes": 9372,
+      "targetSHA256": "52b1fcb4e417a1ebb9ded11bb1f81fb681d07c99629e84f785bf975379c99419",
+      "bytes": 9486,
       "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedNotebookViewer.tsx",
       "sourceSHA256": "4b3031682b29799e50f205fbf08468b32004bf8255e130470c5ecd771458e24e",
-      "targetSHA256": "abd1413d85bbf756258ce93cab112e6f403c3aa9916f5c6ccc68532b154c64e4",
-      "bytes": 10699,
+      "targetSHA256": "45b7d5fbf999b23c554b6a507861e8db6e5d329f3f4bc0823b199514b5eb6139",
+      "bytes": 10768,
       "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedSequenceViewer.tsx",
       "sourceSHA256": "eac3d5e7c1bebcdb91eef6b3e226a406380864fc754df294c018a429d51d3419",
-      "targetSHA256": "09ee4a97845e17d8f44a4363c2c1cff63939d47371200fba87023ce530f78e8e",
-      "bytes": 8649,
+      "targetSHA256": "fde61d2eb0e9e4ad581b3757623f5882936d1ed7ca127db92863342113787f8a",
+      "bytes": 8718,
       "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedStructureViewer.tsx",
       "sourceSHA256": "6cb430ff6d16123ef3da68f5af29d4dc093a1e5bb9e9b2655a3c01e2d1e2ecb1",
-      "targetSHA256": "0029253ae37e5ccbc71c3a7b05fe2cf2f8242a7482e9868a497817419f487e78",
-      "bytes": 148063,
+      "targetSHA256": "40441733e6b629243ce8fcb3ab9e8ab874f9a8a3241be5b76e452eb798fbe5ea",
+      "bytes": 148224,
       "reason": "Unify PDB, mmCIF, SDF, and related molecular formats on one Molstar preview with composition-aware controls, collapsed auxiliary panels, and source-fenced 2D interaction refresh."
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedTableViewer.tsx",
       "sourceSHA256": "eb18dcebdf32c74ed3a8400a67ead3dbf13442c4f19741f791117ca03195ac15",
-      "targetSHA256": "eb09752c5256c761c2d04e041efbc4b6327632ed87911c1a05539898dfcb46c6",
-      "bytes": 7602,
+      "targetSHA256": "1fbf9e00604d1e7832764b2a79ba153ace0ff928eeab5abff127761faebd1ade",
+      "bytes": 7671,
       "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -1851,8 +1858,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/components/SynonBiomedLineageMessagesDrawer.tsx",
       "sourceSHA256": "2ced6b7613d40c986a68c91e2a3fa4390373d6de8868032effd4e5c76ddf88e0",
-      "targetSHA256": "cf3a95efcb1b0f4187df7f860c33f193cf8c075276f9437240cb068901169a8c",
-      "bytes": 6193,
+      "targetSHA256": "326823b11bcf1b4ce31b8eb8d118e3902d7e9c8f739b12fa33d4ec9ea441df27",
+      "bytes": 6262,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -1928,8 +1935,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/useSynonBiomedConversationSync.ts",
       "sourceSHA256": "c25a11d7b123052237d17aaf328cc9dcfe8f5b16d917ffc41d30f9d6b31ffc64",
-      "targetSHA256": "7858109eb35684c5192b16e6996802fa88c8929a8b8ffa56b2767e872c26aadc",
-      "bytes": 21909,
+      "targetSHA256": "21e1e35d487a60abb9c5dc60b2d574efce2f8021f2c922a142d5fbbb35581c17",
+      "bytes": 21983,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -1963,8 +1970,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/utils/conversationCache.ts",
       "sourceSHA256": "f446e1545e30f59ef41c178b285891bdedaa9e8c74349e86e7554b5427bc88cc",
-      "targetSHA256": "eb5caed305f32b11327e9d0f1f4a38886fb94f3e91ebb44419b41d53de543dfa",
-      "bytes": 6993,
+      "targetSHA256": "c026fa08ae5de16945a96af42ea3acd72119338747c3e504675cda60867fa32f",
+      "bytes": 6997,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -2054,8 +2061,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/guid/hooks/useSynonBiomedAssistantsLoader.ts",
       "sourceSHA256": "9cd45d588c49b0a02f17d67faaef09e18157a73e477f9e6854ee01ed0cff23a1",
-      "targetSHA256": "c8857f028806bdc56ed55f42ae0970194763da16f0763d72662f2bec9f8ac3bc",
-      "bytes": 6379,
+      "targetSHA256": "4af9b7514dd115f5009dbb0237f9c6f8a56ad73ff5aae03260e63a09f4108c55",
+      "bytes": 6448,
       "reason": "Migrate authenticated login, onboarding, project workbench, and artifact workflows to the Go product shell."
     },
     {
@@ -2544,8 +2551,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json",
       "sourceSHA256": "c6802cdea4137a9a8199f5b9e57c11a99e7b8fde42539065da42dd4db9052b8e",
-      "targetSHA256": "360420169066747a92ec4c4d0fec85c6bcc5cb9d5301a6dffaced2b2b2901a42",
-      "bytes": 80636,
+      "targetSHA256": "56511c048f99d312439c84705ad7c537bd6818956bd1279c88e31c9f7b6da91e",
+      "bytes": 80644,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2635,8 +2642,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/conversation.json",
       "sourceSHA256": "cb395d18cb1692e13c849172bf6d957304ef382973fb5ab95fd14723cbc045bd",
-      "targetSHA256": "e619346330ac3b9e491c3c75891570c344d070da903d312309754966c4e171b9",
-      "bytes": 76222,
+      "targetSHA256": "448e0f82dbc9cde0094495dca962f23f3864fd909e7eb9ff33ba2ae0a83fafe9",
+      "bytes": 76226,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2845,8 +2852,8 @@
     {
       "path": "packages/desktop/src/renderer/services/synonBiomedLlm.ts",
       "sourceSHA256": "e26809b59b7f20d2714380a8f0ef038a2964f498aad56cbd7c02e7e0a8ddaa2f",
-      "targetSHA256": "062efbf4e5d00d0df8aa412b4d5fa4b1541a4cf0baaab4c23d1ab08d175536b0",
-      "bytes": 11314,
+      "targetSHA256": "bcf1e43d4d69c48a8c088366a36a2728e6651b5ade0d0ef563ffa42e8e5ee6b4",
+      "bytes": 11398,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -3657,8 +3664,8 @@
     {
       "path": "tests/unit/previews/SynonBiomedMoleculeViewer.dom.test.tsx",
       "sourceSHA256": "6c678b290ea84df402d2d22978a7c050dd5d9f9b2df00105be3d39b16b16b40a",
-      "targetSHA256": "1dfedd105075108e5eff42d6b3f0a003badce0ad2a2948078659dbf53e998fb8",
-      "bytes": 3109,
+      "targetSHA256": "053ab25a511f77d5e3039a68d70a1d7ea45f209a4d76fc8e5b5fcf0ea03c0271",
+      "bytes": 3108,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -4259,8 +4266,8 @@
     {
       "path": "tests/unit/renderer/synonBiomedLlm.dom.test.ts",
       "sourceSHA256": "5942fe0912f19c0f48101cdd7d2758616add98b8671a9792a2f26a6e34975cd6",
-      "targetSHA256": "0225c1885ee3ce1aa11296793dc3b35cd830fbc50e5582e9db3a03c964cb2f57",
-      "bytes": 6293,
+      "targetSHA256": "41531746da32d969be983199fb278ef885166d208ed89dacbb6551a729c859fe",
+      "bytes": 6899,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -6810,7 +6817,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "c83054102cca13d85f1f0d1328718c3e897fb531934d9559d11897d60107682f",
+      "sha256": "17d34b021e6e8e2d145322c8643c164c531046d42708d0f5d18dd8eb206db0ad",
       "bytes": 558186,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -7116,8 +7123,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/synonBiomed/notes/useSynonBiomedNotesEditor.ts",
-      "sha256": "cbb4069260a0f27c8f247c235412a59a32ac40324cc6541828dee105ce397d7f",
-      "bytes": 5484,
+      "sha256": "d470e18e7caab089469329ab8fb2f073818f68ccdcb2aa49fbd7c3fbd55c9ab6",
+      "bytes": 5563,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -7188,8 +7195,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/synonBiomed/runtime/SynonBiomedComputeRuntimePanel.tsx",
-      "sha256": "4f8c0728d6bb76556db60007ee6b315d106bc3aa358f4cdbf291bcfe7ccca6c4",
-      "bytes": 17470,
+      "sha256": "050b29897c63cc27a070d9d9b820e8c30807318745e53af8772ea5993909a602",
+      "bytes": 17539,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -7212,8 +7219,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/synonBiomed/runtime/SynonBiomedPermissionMenu.tsx",
-      "sha256": "6026cc45af33f381fe5c87ff431bc22ccde16f9e231856e06be504e652b14025",
-      "bytes": 7279,
+      "sha256": "a1000da1846a5dfcf0d727fa6e575c10cb29254aac9b1b970ee777149381f379",
+      "bytes": 7348,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -7260,8 +7267,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/synonBiomed/runtime/SynonBiomedRuntimeOperationsController.tsx",
-      "sha256": "08dd89c21878d00c1a3aa6fc2b8cfa8ebbd3093f6f71cff567d6824bcadd5020",
-      "bytes": 40849,
+      "sha256": "254d185d98775907e643e3dfb945c3c09e02d8ef19a779edcf72d07a3efc7e51",
+      "bytes": 40968,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8148,8 +8155,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/molstarStructureEngine.ts",
-      "sha256": "d369c940530fc17443272f05df6f77177e03d9e5c4c5924a16a1402ad585e658",
-      "bytes": 150596,
+      "sha256": "8cf8dc5921ca3f3e549fa22abd83213727862ebdb53cfa65e2ae99662df5f497",
+      "bytes": 150600,
       "reason": "Own format-neutral Molstar loading, structure composition, surface styling, ligand extraction, and object visibility operations."
     },
     {
@@ -8850,8 +8857,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/settings/components/settingsVisualContract.ts",
-      "sha256": "f1e97b9c3aa3aa6169783896cc8ff82a56030c848877bc869c16c4ac4659a9b7",
-      "bytes": 9215,
+      "sha256": "908033b82457574d32b9190b64c19c8d100b593178b97600276de962762801b4",
+      "bytes": 7966,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9941,78 +9948,6 @@
       "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
     },
     {
-      "path": "public/branding/settings-generated-v3/references/account.png",
-      "sha256": "ac218c0ff98883ed6b314bc6f157f5ffbe21c6949370a2276dae489bc3d10ffe",
-      "bytes": 1424973,
-      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
-    },
-    {
-      "path": "public/branding/settings-generated-v3/references/compute.png",
-      "sha256": "36bff1c0ab98f65316dcfb9a75ba000d942c9bbace2f7bdc4596bf39aeddcb13",
-      "bytes": 1290335,
-      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
-    },
-    {
-      "path": "public/branding/settings-generated-v3/references/experts.png",
-      "sha256": "502f4ab876cba384069947497379fef0c9ac160e3f23d613563de40b9821403a",
-      "bytes": 1417493,
-      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
-    },
-    {
-      "path": "public/branding/settings-generated-v3/references/general.png",
-      "sha256": "d047da7c20807040410c1c654f51ae77e16eb040e411307cef465e41a27a6035",
-      "bytes": 1280719,
-      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
-    },
-    {
-      "path": "public/branding/settings-generated-v3/references/governance.png",
-      "sha256": "6749a2633357a24fb3f6c071345db4f5ad908b93c62eaf6c25ff96eabba984c3",
-      "bytes": 1304754,
-      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
-    },
-    {
-      "path": "public/branding/settings-generated-v3/references/manifest.json",
-      "sha256": "8f79ce2b7f63de088130860b75c1def1e506260fd6d082315e5f12a3a22832d4",
-      "bytes": 1970,
-      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
-    },
-    {
-      "path": "public/branding/settings-generated-v3/references/models.png",
-      "sha256": "a1e006af215aa908613e9ae03279ef15dfe98d0a42846c7f268b400b0ec98681",
-      "bytes": 1395825,
-      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
-    },
-    {
-      "path": "public/branding/settings-generated-v3/references/network.png",
-      "sha256": "a7a0a4cd35920c1a7131823aa3ab752119bd34505bea9df8bb41b6c355b28ab9",
-      "bytes": 1332333,
-      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
-    },
-    {
-      "path": "public/branding/settings-generated-v3/references/plans-usage.png",
-      "sha256": "a3becf192003969688db6dba0865dec521d855bc3d35d541d1a4a6fb7fd96526",
-      "bytes": 1320075,
-      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
-    },
-    {
-      "path": "public/branding/settings-generated-v3/references/skills.png",
-      "sha256": "ab91636078146b6cb2a079296b99b5dad8c89a2b1918b02604c6ba9c1c6946ff",
-      "bytes": 1439004,
-      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
-    },
-    {
-      "path": "public/branding/settings-generated-v3/references/storage.png",
-      "sha256": "ef0da7b4003cf080f467513a7638850f8346e1381a421ae7e79b866d4bf6c412",
-      "bytes": 1289033,
-      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
-    },
-    {
-      "path": "public/branding/settings-generated-v3/references/tools.png",
-      "sha256": "fcb789ce6123895df659b491a9537ddf7ccb1271fbc8389bbcb2775cf951c5ac",
-      "bytes": 1518495,
-      "reason": "Add provenance-bound X-Science branding assets and bounded development service-worker cleanup."
-    },
-    {
       "path": "public/branding/x-science-favicon.png",
       "sha256": "84d52d7f9db7c5b818b8090d9f6d4f12ac35fde064301c3a63910f6ed73bb14a",
       "bytes": 1973,
@@ -10878,8 +10813,8 @@
     },
     {
       "path": "tests/unit/renderer/XScienceIdentity.test.ts",
-      "sha256": "1e205a2623da32982e41f7d540766b63eac0f22ec9b4d0651bcce869e747913b",
-      "bytes": 2225,
+      "sha256": "834293631f3d67438aaa2a6c954474765a8da8ae0be2e4934768d9e3f02c6859",
+      "bytes": 5370,
       "reason": "Verify current public identity, browser metadata, PWA references and exact original mark/browser-icon hashes."
     },
     {
@@ -11628,8 +11563,8 @@
     },
     {
       "path": "tests/unit/settings/settingsVisualContract.test.ts",
-      "sha256": "fc5e12b3a349a467fcf4ad62989142ac33270a46060201b5c34914ddb51eddf2",
-      "bytes": 14240,
+      "sha256": "ff2f7f7bf56468cd9d3ef7aa0b445feef7e4513a8425666f8df28cf090df47d9",
+      "bytes": 13794,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

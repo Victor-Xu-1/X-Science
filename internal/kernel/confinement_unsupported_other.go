@@ -24,7 +24,7 @@ func platformConfinementEvidence() ConfinementEvidence {
 		}
 	}
 	return ConfinementEvidence{
-		Available: false, Mode: "unavailable", Reason: "Synon kernel confinement is unavailable on this platform",
+		Available: false, Mode: "unavailable", Reason: "X-Science kernel confinement is unavailable on this platform",
 	}
 }
 

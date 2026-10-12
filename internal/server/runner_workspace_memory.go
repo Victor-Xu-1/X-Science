@@ -70,7 +70,7 @@ func (s *Server) resolveWorkspaceMemoryRecallScope(ctx context.Context, session 
 	}
 	ownerUserID, found, err := s.workspaceStore.ProjectOwnerIDContext(ctx, scope.projectID)
 	if err != nil {
-		log.Printf("load Synon memory owner project_id=%q: %v", scope.projectID, err)
+		log.Printf("load X-Science memory owner project_id=%q: %v", scope.projectID, err)
 		return scope, false
 	}
 	if !found {
@@ -83,7 +83,7 @@ func (s *Server) resolveWorkspaceMemoryRecallScope(ctx context.Context, session 
 	}
 	metadata, metadataFound, err := s.workspaceStore.GetFrameRuntimeMetadata(scope.frameID)
 	if err != nil {
-		log.Printf("load Synon memory frame metadata frame_id=%q: %v", scope.frameID, err)
+		log.Printf("load X-Science memory frame metadata frame_id=%q: %v", scope.frameID, err)
 		return scope, false
 	}
 	if !sessionWorkspaceMemoryEnabledWithFrame(session, metadata, metadataFound) {
@@ -91,7 +91,7 @@ func (s *Server) resolveWorkspaceMemoryRecallScope(ctx context.Context, session 
 	}
 	enabled, err := s.workspaceStore.MemoryEnabledWithDefault(ctx, scope.ownerUserID, s.memoryConfig.Enabled)
 	if err != nil {
-		log.Printf("load Synon global memory setting project_id=%q: %v", scope.projectID, err)
+		log.Printf("load X-Science global memory setting project_id=%q: %v", scope.projectID, err)
 		return scope, false
 	}
 	if !enabled {
@@ -99,7 +99,7 @@ func (s *Server) resolveWorkspaceMemoryRecallScope(ctx context.Context, session 
 	}
 	projectEnabled, err := s.workspaceStore.ProjectMemoryEnabled(ctx, scope.projectID, scope.ownerUserID)
 	if err != nil {
-		log.Printf("load Synon project memory setting project_id=%q: %v", scope.projectID, err)
+		log.Printf("load X-Science project memory setting project_id=%q: %v", scope.projectID, err)
 		return scope, false
 	}
 	if !projectEnabled {
@@ -142,14 +142,14 @@ func (s *Server) workspaceMemoryRecallFrameScope(
 	}
 	access, found, err := s.workspaceStore.GetKernelFrameAccessContext(ctx, frameID)
 	if err != nil {
-		log.Printf("resolve Synon memory frame frame_id=%q: %v", frameID, err)
+		log.Printf("resolve X-Science memory frame frame_id=%q: %v", frameID, err)
 		return "", "", false
 	}
 	if !found {
 		return "", "", false
 	}
 	if access.UserID != ownerUserID || access.Frame.ProjectID != projectID {
-		log.Printf("reject Synon memory frame scope frame_id=%q", frameID)
+		log.Printf("reject X-Science memory frame scope frame_id=%q", frameID)
 		return "", "", false
 	}
 	rootFrameID = strings.TrimSpace(access.Frame.RootFrameID)
@@ -162,12 +162,12 @@ func (s *Server) workspaceMemoryRecallFrameScope(
 func (s *Server) workspaceMemoryFacts(ctx context.Context, ownerUserID string) string {
 	profile, err := s.workspaceStore.ListMemorySystemProfileRows(ctx, ownerUserID)
 	if err != nil {
-		log.Printf("load Synon memory profile user_id=%q: %v", ownerUserID, err)
+		log.Printf("load X-Science memory profile user_id=%q: %v", ownerUserID, err)
 		return ""
 	}
 	categories, err := s.workspaceStore.ListMemoryCategories(ctx, ownerUserID)
 	if err != nil {
-		log.Printf("load Synon memory categories user_id=%q: %v", ownerUserID, err)
+		log.Printf("load X-Science memory categories user_id=%q: %v", ownerUserID, err)
 		return ""
 	}
 	return memoryprompt.RenderFactsWithConfig(profile, categories, time.Now().UTC(), s.memoryConfig)
@@ -193,7 +193,7 @@ func (s *Server) workspaceMemoryRecallSignal(
 		ServedIDs: servedIDs, Config: &s.memoryConfig,
 	})
 	if err != nil {
-		log.Printf("recall Synon memory project_id=%q: %v", projectID, err)
+		log.Printf("recall X-Science memory project_id=%q: %v", projectID, err)
 		return ""
 	}
 	if len(recalled) == 0 {
@@ -201,12 +201,12 @@ func (s *Server) workspaceMemoryRecallSignal(
 	}
 	staleness, err := s.workspaceStore.MemoryStalenessFor(ctx, recalled)
 	if err != nil {
-		log.Printf("load Synon memory staleness project_id=%q: %v", projectID, err)
+		log.Printf("load X-Science memory staleness project_id=%q: %v", projectID, err)
 		return ""
 	}
 	counts, err := s.workspaceStore.CountActiveMemoryEntities(ctx, ownerUserID, rootFrameID)
 	if err != nil {
-		log.Printf("count Synon memory entities project_id=%q: %v", projectID, err)
+		log.Printf("count X-Science memory entities project_id=%q: %v", projectID, err)
 		return ""
 	}
 	now := time.Now().UTC()
@@ -215,7 +215,7 @@ func (s *Server) workspaceMemoryRecallSignal(
 		return ""
 	}
 	if err := s.workspaceStore.MarkMemoryRowsSurfaced(ctx, ownerUserID, recalled, now); err != nil {
-		log.Printf("mark Synon memory surfaced project_id=%q: %v", projectID, err)
+		log.Printf("mark X-Science memory surfaced project_id=%q: %v", projectID, err)
 	}
 	for _, memory := range recalled {
 		servedIDs[strings.ToLower(memory.ID)] = struct{}{}
@@ -278,7 +278,7 @@ func (s *Server) workspaceMemoryServedIDs(frameID, parentFrameID string, message
 func (s *Server) mergeWorkspaceMemoryServedIDs(frameID string, served map[string]struct{}) {
 	entry, found, err := s.runtimeStore.Get(workspaceMemoryServedRuntimeNamespace, runtimeKeyFromSessionID(frameID))
 	if err != nil {
-		log.Printf("load Synon served memory ids frame_id=%q: %v", frameID, err)
+		log.Printf("load X-Science served memory ids frame_id=%q: %v", frameID, err)
 		return
 	}
 	if !found {
@@ -312,7 +312,7 @@ func (s *Server) persistWorkspaceMemoryServedIDs(frameID string, served map[stri
 	}
 	sort.Strings(ids)
 	if _, err := s.runtimeStore.Set(workspaceMemoryServedRuntimeNamespace, runtimeKeyFromSessionID(frameID), ids); err != nil {
-		log.Printf("persist Synon served memory ids frame_id=%q: %v", frameID, err)
+		log.Printf("persist X-Science served memory ids frame_id=%q: %v", frameID, err)
 	}
 }
 

@@ -118,13 +118,13 @@ func (s *Server) synonLinkIMDoctorArea() (string, string, map[string]any, []stri
 	hasAllAdapterLiveSmokePass := adapterLiveSmokeAllRequiredPass(adapterLiveSmokePlatforms, []string{"feishu", "wechat"})
 	ready := hasSynonLinkService && hasSynonLinkTools && hasPairingStore && hasPairingTools && hasIMMessageTool && hasIMConfigTool && hasSessionEventJournalTool && hasIMLiveSessionJournal && hasAllPlatformDedupManagers && hasAllAdapterLiveSmokePass
 	status := "partial"
-	message := "Synon Link and Feishu/WeChat channel APIs are implemented in the Go runtime with bridge tools, durable pairing, normalized inbound IM messages, per-channel deduplication, live-session journaling, credential bootstrap diagnostics, and fresh outbound-delivery smoke audits."
+	message := "X-Science Link and Feishu/WeChat channel APIs are implemented in the Go runtime with bridge tools, durable pairing, normalized inbound IM messages, per-channel deduplication, live-session journaling, credential bootstrap diagnostics, and fresh outbound-delivery smoke audits."
 	next := []string{}
 	if ready {
 		status = "pass"
 	} else {
 		if !hasSynonLinkService || !hasSynonLinkTools {
-			next = append(next, "Enable Synon Link service and register the canonical synon_link tool.")
+			next = append(next, "Enable X-Science Link service and register the canonical synon_link tool.")
 		}
 		if !hasPairingStore || !hasPairingTools {
 			next = append(next, "Configure durable IM pairing store and pairing management tools.")
@@ -270,7 +270,7 @@ func (s *Server) compactMemoryDoctorArea() (string, string, map[string]any, []st
 	deterministicCompactFallbackReady := hasRuntimeStore
 	compactSummarizerReady := externalCompactSummarizerReady
 	status := "partial"
-	message := "Go has durable compact checkpoints, model-context resume injection, context-pressure auto-compact, and one Synon workspace-memory extraction and recall authority."
+	message := "Go has durable compact checkpoints, model-context resume injection, context-pressure auto-compact, and one X-Science workspace-memory extraction and recall authority."
 	next := []string{}
 	if hasRuntimeStore && compactSummarizerReady {
 		status = "pass"

@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"synon-go/internal/buildinfo"
 	"synon-go/internal/subprocess"
 )
 
@@ -80,9 +81,9 @@ type externalProcess struct {
 func NewDefault() *Host {
 	synon := Plugin{
 		ID:           "synon",
-		Name:         "synon",
+		Name:         buildinfo.Release().Name,
 		Version:      "1.1.5",
-		Description:  "Compact Synon native plugin for Synon Link browser bridge, local device bridge, extension download, and capability reporting.",
+		Description:  "Compact X-Science native plugin for X-Science Link browser bridge, local device bridge, extension download, and capability reporting.",
 		Author:       "Victor",
 		License:      "Proprietary",
 		Mount:        "/api/plugins/synon",
@@ -93,13 +94,13 @@ func NewDefault() *Host {
 				ID:          "capabilities",
 				Label:       "Capabilities",
 				Endpoint:    "/api/plugins/synon/capabilities",
-				Description: "Compact Synon capability report for retained bridge, messaging, runtime, and tool surfaces.",
+				Description: "Compact X-Science capability report for retained bridge, messaging, runtime, and tool surfaces.",
 			},
 			{
 				ID:          "link-download",
-				Label:       "Synon Link Download",
+				Label:       "X-Science Link Download",
 				Endpoint:    "/api/plugins/synon/link/download",
-				Description: "Versioned Synon Link browser extension package download.",
+				Description: "Versioned X-Science Link browser extension package download.",
 			},
 		},
 		Server: ServerManifest{

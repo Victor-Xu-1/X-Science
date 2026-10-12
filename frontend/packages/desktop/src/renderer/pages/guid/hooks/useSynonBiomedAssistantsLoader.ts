@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { PRODUCT_NAME } from '@/common/config/productIdentity';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { loadSynonBiomedAssistants, SYNON_BIOMED_ASSISTANTS_CACHE_KEY } from '@/renderer/services/synonBiomedCatalog';
 import { useCallback, useState } from 'react';
@@ -115,7 +116,7 @@ export const useSynonBiomedAssistantsLoader = (): UseSynonBiomedAssistantsLoader
       onError: () => {
         if (!recovery.diagnosticLogged) {
           recovery.diagnosticLogged = true;
-          console.error('[SynonBiomedAssistants]', { code: 'ASSISTANT_CATALOG_LOAD_FAILED' });
+          console.error(`[${PRODUCT_NAME} Assistants]`, { code: 'ASSISTANT_CATALOG_LOAD_FAILED' });
         }
         if (recovery.hasLoadedSuccessfully) return;
         if (recovery.initialRequestAttempts >= MAX_INITIAL_CATALOG_REQUEST_ATTEMPTS) {

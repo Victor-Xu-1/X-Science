@@ -3,6 +3,7 @@ set -euo pipefail
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 source "$script_dir/release-path-policy.sh"
+product_name="$(synon_release_product_name)"
 
 allow_corrupt=false
 if [[ "${1:-}" == "--allow-corrupt" ]]; then allow_corrupt=true; shift; fi
@@ -31,4 +32,4 @@ if [[ "$allow_corrupt" != true ]]; then
 fi
 synon_release_revalidate_path "$raw_install_dir" "$install_dir" install
 rm -rf -- "$install_dir"
-printf 'synon-go uninstalled from %s; external data directories were preserved\n' "$install_dir"
+printf '%s uninstalled from %s; external data directories were preserved\n' "$product_name" "$install_dir"

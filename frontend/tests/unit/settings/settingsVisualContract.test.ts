@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
@@ -6,7 +5,6 @@ import {
   SETTINGS_VISUAL_SYSTEM_ID,
   SETTINGS_VISUAL_CONTRACTS,
   SETTINGS_VISUAL_ROUTE_IDS,
-  SETTINGS_LOCKED_DESKTOP_REFERENCE_SRC,
   SETTINGS_DESKTOP_VIEWPORT,
   SETTINGS_MOBILE_VIEWPORT,
 } from '@/renderer/pages/settings/components/settingsVisualContract';
@@ -188,22 +186,14 @@ describe('intrinsic settings presentation contract', () => {
   });
 });
 
-describe('historical asset provenance remains intact', () => {
-  it('retains exact hashes for every supplied desktop sheet without claiming active equivalence', () => {
-    const manifestUrl = new URL(
-      '../../../public/branding/settings-generated-v3/references/manifest.json',
-      import.meta.url
+describe('active artwork and reference retirement', () => {
+  it('does not publish retired reference sheets or retain a competing reference map', () => {
+    expect(existsSync(new URL('../../../public/branding/settings-generated-v3/references', import.meta.url))).toBe(
+      false
     );
-    const assets = JSON.parse(readFileSync(manifestUrl, 'utf8')) as {
-      routes: Record<string, { file: string; sha256: string }>;
-    };
-    expect(Object.keys(SETTINGS_LOCKED_DESKTOP_REFERENCE_SRC).toSorted()).toEqual(
-      Object.keys(assets.routes).toSorted()
-    );
-    for (const [route, source] of Object.entries(SETTINGS_LOCKED_DESKTOP_REFERENCE_SRC)) {
-      const file = new URL(`../../../public${source}`, import.meta.url);
-      expect(existsSync(file)).toBe(true);
-      expect(createHash('sha256').update(readFileSync(file)).digest('hex')).toBe(assets.routes[route].sha256);
+    expect(read('components/settingsVisualContract.ts')).not.toContain('SETTINGS_LOCKED_DESKTOP_REFERENCE_SRC');
+    for (const entry of Object.values(SETTINGS_VISUAL_CONTRACTS)) {
+      expect(entry.reference).toEqual({ desktop: null, mobile: null });
     }
   });
   it('keeps versioned real artwork/icon assets available', () => {

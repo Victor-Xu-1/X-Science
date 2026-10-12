@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from '@/common/config/productIdentity';
 import MarkdownView from '@/renderer/components/Markdown';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import {
@@ -40,7 +41,7 @@ const SynonBiomedLineageMessagesDrawer: React.FC<SynonBiomedLineageMessagesDrawe
       .then((result) => setMessages(result.items))
       .catch((reason: unknown) => {
         if (!controller.signal.aborted) {
-          console.error('[SynonBiomedLineageMessagesDrawer] Failed to load child messages', reason);
+          console.error(`[${PRODUCT_NAME} LineageMessagesDrawer] Failed to load child messages`, reason);
           setError(t('conversation.synonRuntime.lineage.loadFailed'));
         }
       })

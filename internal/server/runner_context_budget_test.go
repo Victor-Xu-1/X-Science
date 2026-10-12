@@ -56,7 +56,7 @@ func TestTranscriptRunnerCompactsFullRequestBeforeProviderCall(t *testing.T) {
 		} else {
 			compacted := false
 			for _, message := range request.Messages {
-				if strings.Contains(message.Content, "Synon compact handoff context:") {
+				if strings.Contains(message.Content, "X-Science compact handoff context:") {
 					compacted = true
 				}
 			}

@@ -46,6 +46,12 @@ class RuntimeInputScopeTests(unittest.TestCase):
         ])
         self.assertEqual(self.selected("assets/runtime.py", "unrelated/other.go"), self.all_packages)
 
+    def test_exact_skill_prose_owns_real_consumers_not_all_skills(self):
+        self.value["groups"][0]["paths"] += ["skills/example/SKILL.md"]
+        self.save()
+        self.assertEqual(self.selected("skills/example/SKILL.md"), self.selected("assets/runtime.py"))
+        self.assertEqual(self.selected("skills/other/SKILL.md"), self.all_packages)
+
     def test_unknown_asset_missing_owner_and_missing_contract_remain_conservative(self):
         self.assertEqual(self.selected("assets/runtime.py.new"), self.all_packages)
         self.value["groups"][0]["packages"] = ["example/scope/deleted"]
@@ -78,7 +84,18 @@ class RuntimeInputScopeTests(unittest.TestCase):
         entries = scope.packages(repo)
         names = {entry["ImportPath"] for entry in entries}
         for path, packages in owners.items():
-            self.assertTrue((repo / path).is_file(), path)
+            if path == "assets/synon-link/synon-link-extension-v0.6.10.zip":
+                # The retired input still owns its deletion and exact setting
+                # alias; keeping a second distributable ZIP is not required.
+                current = "assets/synon-link/x-science-browser-extension-v0.6.10.zip"
+                self.assertFalse((repo / path).exists())
+                self.assertTrue((repo / current).is_file())
+                self.assertIn(current, owners)
+                config = (repo / "internal/config/config.go").read_text()
+                self.assertIn(f'legacyBundledBrowserConnector = "{path}"', config)
+                self.assertIn(f'bundledBrowserConnector = "{current}"', config)
+            else:
+                self.assertTrue((repo / path).is_file(), path)
             self.assertLessEqual(packages, names)
         selected, _ = scope.select_packages(repo, list(owners), entries)
         for package in ["synon-go/internal/assets", "synon-go/internal/kernel",

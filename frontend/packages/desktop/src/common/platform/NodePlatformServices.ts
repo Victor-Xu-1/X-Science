@@ -2,6 +2,7 @@ import { fork as cpFork, type ChildProcess } from 'child_process';
 import { readFileSync } from 'fs';
 import os from 'os';
 import path from 'path';
+import { PRODUCT_SLUG } from '../config/productIdentity';
 import type { IPlatformServices, IWorkerProcess } from './IPlatformServices';
 
 class NodeWorkerProcess implements IWorkerProcess {
@@ -29,7 +30,7 @@ const _pkg = (() => {
       version?: string;
     };
   } catch {
-    return { name: 'synon-ai', version: '0.0.0' };
+    return { name: PRODUCT_SLUG, version: '0.0.0' };
   }
 })();
 
@@ -42,7 +43,7 @@ export class NodePlatformServices implements IPlatformServices {
     getAppPath: (): string | null => process.cwd(),
     isPackaged: () => process.env.IS_PACKAGED === 'true',
     getSystemPath: (_name: 'desktop' | 'home' | 'downloads'): string | null => null,
-    getName: () => _pkg.name ?? 'synon-ai',
+    getName: () => _pkg.name ?? PRODUCT_SLUG,
     getVersion: () => _pkg.version ?? '0.0.0',
     needsCliSafeSymlinks: () => false,
   };

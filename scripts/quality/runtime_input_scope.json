@@ -2,6 +2,52 @@
   "schema": "synon.runtime-input-scope.v1",
   "groups": [
     {
+      "name": "provider-provenance-explanation",
+      "paths": ["internal/logoassets/SOURCE.md"],
+      "packages": ["synon-go/internal/assets"]
+    },
+    {
+      "name": "model-skill-product-prose",
+      "paths": [
+        "assets/synonbiomed/skills.manifest.json",
+        "skills/synonbiomed/ngs-analysis-router/SKILL.md",
+        "skills/synonbiomed/nextflow-development/references/geo-sra-acquisition.md",
+        "skills/synonbiomed/skill-creator/scripts/quick_validate.py",
+        "skills/synonbiomed/autodock-vina/scripts/autodock_vina.py",
+        "skills/synonbiomed/autodock-vina/scripts/autodock_vina_outputs.py"
+      ],
+      "packages": ["synon-go/internal/assets", "synon-go/internal/skills", "synon-go/internal/sciencecapability", "synon-go/internal/server"]
+    },
+    {
+      "name": "browser-connector-assets",
+      "paths": [
+        "assets/synon-link/manifest.json",
+        "assets/synon-link/synon-link-extension-v0.6.10.zip",
+        "assets/synon-link/x-science-browser-extension-v0.6.10.zip"
+      ],
+      "packages": ["synon-go/internal/assets", "synon-go/internal/server", "synon-go/cmd/synon"]
+    },
+    {
+      "name": "kernel-host-and-provider-display",
+      "paths": [
+        "assets/optional/kernels/synon_host_bridge.py",
+        "assets/optional/compute/provider_kernel_bootstrap.py",
+        "assets/optional/compute/wrapper.sh.tmpl",
+        "assets/optional/compute/operon_compute_provider/__init__.py"
+      ],
+      "packages": ["synon-go/internal/assets", "synon-go/internal/kernel", "synon-go/internal/server", "synon-go/internal/compute"]
+    },
+    {
+      "name": "bundled-mcp-display",
+      "paths": [
+        "assets/optional/mcp-servers/bio-tools.manifest.json",
+        "assets/optional/mcp-servers/bio-tools/run_server.py",
+        "assets/optional/mcp-servers/bio-tools/lib/mcp_servers_common/tls_policy.py",
+        "assets/optional/mcp-servers/bio-tools/lib/mcp_servers_common/ua.py"
+      ],
+      "packages": ["synon-go/internal/assets", "synon-go/internal/mcpdirectory", "synon-go/internal/tools/mcpstdio", "synon-go/internal/server"]
+    },
+    {
       "name": "kernel-worker-assets",
       "paths": [
         "assets/optional/kernel-compute.manifest.json",

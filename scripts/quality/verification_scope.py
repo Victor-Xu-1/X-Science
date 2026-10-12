@@ -53,7 +53,9 @@ def load(repo: Path) -> list[dict]:
         if "packages" in group:
             _validate_packages(group["packages"])
         for item in group["paths"]:
-            if (not isinstance(item, str) or not item.startswith(("scripts/", ".github/", "docs/governance/", "docs/licenses/"))
+            if (not isinstance(item, str) or not (
+                    item.startswith(("scripts/", ".github/", "docs/governance/", "docs/licenses/"))
+                    or item in {".env.example", "docs/non-web-asset-boundary.json"})
                     or PurePosixPath(item).as_posix() != item
                     or any(part in {".", ".."} for part in item.split("/"))
                     or any(char in item for char in "\\*?[]\x00\r\n")

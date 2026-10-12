@@ -18,7 +18,7 @@ func main() {
 func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	flags := flag.NewFlagSet("v11reuse", flag.ContinueOnError)
 	flags.SetOutput(stderr)
-	source := flags.String("source", "", "read-only SynonBiomed v1.1 source directory")
+	source := flags.String("source", "", "read-only legacy v1.1 source directory")
 	target := flags.String("target", "", "reuse manifest JSON output")
 	reviewTarget := flags.String("review-target", "", "optional generated Markdown review output")
 	check := flags.Bool("check", false, "verify existing outputs instead of writing them")

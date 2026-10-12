@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from '@/common/config/productIdentity';
 import { Button, Spin } from '@arco-design/web-react';
 import { Minus, Plus, Redo } from '@icon-park/react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -61,7 +62,7 @@ const SynonBiomedMsaViewer: React.FC<SynonBiomedMsaViewerProps> = ({ filename, c
       })
       .catch((reason: unknown) => {
         if (!active || controller.signal.aborted) return;
-        logScientificPreviewError('[SynonBiomedMsaViewer] Failed to load alignment', reason, 'parse-failed');
+        logScientificPreviewError(`[${PRODUCT_NAME} MsaViewer] Failed to load alignment`, reason, 'parse-failed');
         setError(resolveScientificPreviewError(reason, 'parse-failed'));
       })
       .finally(() => {
@@ -108,7 +109,11 @@ const SynonBiomedMsaViewer: React.FC<SynonBiomedMsaViewerProps> = ({ filename, c
       })
       .catch((reason: unknown) => {
         if (!active) return;
-        logScientificPreviewError('[SynonBiomedMsaViewer] Failed to initialize viewer', reason, 'initialize-failed');
+        logScientificPreviewError(
+          `[${PRODUCT_NAME} MsaViewer] Failed to initialize viewer`,
+          reason,
+          'initialize-failed'
+        );
         setError(resolveScientificPreviewError(reason, 'initialize-failed'));
       });
 

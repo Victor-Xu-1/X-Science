@@ -97,13 +97,13 @@ func main() {
 
 	if configPath := strings.TrimSpace(*configPathFlag); configPath != "" {
 		if err := os.Setenv("SYNON_CONFIG", configPath); err != nil {
-			fmt.Fprintf(os.Stderr, "set Synon config path: %v\n", err)
+			fmt.Fprintf(os.Stderr, "set %s config path: %v\n", productName, err)
 			os.Exit(2)
 		}
 	}
 	cfg, err := config.Load()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "load Synon config: %v\n", err)
+		fmt.Fprintf(os.Stderr, "load %s config: %v\n", productName, err)
 		os.Exit(2)
 	}
 	plan := planFromConfigAndEnv(cfg, os.Getenv)

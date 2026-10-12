@@ -289,7 +289,7 @@ func normalizeGeneratedPlan(input map[string]any) (generatedPlanDocument, map[st
 		decoder.DisallowUnknownFields()
 		var request generatedPlanRequest
 		if err := decoder.Decode(&request); err != nil {
-			return generatedPlanDocument{}, nil, nil, fmt.Errorf("generate_plan input does not match the Synon plan schema: %w", err)
+			return generatedPlanDocument{}, nil, nil, fmt.Errorf("generate_plan input does not match the X-Science plan schema: %w", err)
 		}
 		if err := ensureJSONEOF(decoder); err != nil {
 			return generatedPlanDocument{}, nil, nil, err
@@ -325,7 +325,7 @@ func normalizeGeneratedPlan(input map[string]any) (generatedPlanDocument, map[st
 	decoder.DisallowUnknownFields()
 	var document generatedPlanDocument
 	if err := decoder.Decode(&document); err != nil {
-		return generatedPlanDocument{}, nil, nil, fmt.Errorf("generate_plan input does not match the Synon plan artifact schema: %w", err)
+		return generatedPlanDocument{}, nil, nil, fmt.Errorf("generate_plan input does not match the X-Science plan artifact schema: %w", err)
 	}
 	if err := ensureJSONEOF(decoder); err != nil {
 		return generatedPlanDocument{}, nil, nil, err

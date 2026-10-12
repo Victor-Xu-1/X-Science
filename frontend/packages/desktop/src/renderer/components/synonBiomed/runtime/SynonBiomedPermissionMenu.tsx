@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from '@/common/config/productIdentity';
 import { Dropdown, Message, Tooltip } from '@arco-design/web-react';
 import { Check } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -69,7 +70,7 @@ const SynonBiomedPermissionMenu: React.FC<SynonBiomedPermissionMenuProps> = ({
       setSelectedValue(value);
       Message.success(t('agentMode.switchSuccess'));
     } catch (error) {
-      console.error('[SynonBiomedPermissionMenu] Failed to set permission mode', error);
+      console.error(`[${PRODUCT_NAME} PermissionMenu] Failed to set permission mode`, error);
       Message.error(t('agentMode.switchFailed'));
     }
   };

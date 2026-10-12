@@ -1,6 +1,6 @@
-"""Synon host bridge adapter for the scientific kernel execution protocol.
+"""X-Science host bridge adapter for the scientific kernel execution protocol.
 
-This module contains only Synon host RPC protocol adaptation. Scientific API
+This module contains only X-Science host RPC protocol adaptation. Scientific API
 preflight, package heuristics, and domain execution logic are prohibited here.
 """
 
@@ -2637,7 +2637,7 @@ def bind_cell(cell_id, fresh, target_namespace, identity_validator):
     _PROTOCOL_WRITE_LOCK = getattr(sys, "_operon_protocol_lock", _PROTOCOL_WRITE_LOCK)
     _identity_suspect = identity_validator
     if _protocol_stdin is None or _protocol_stdout is None or not callable(_identity_suspect):
-        raise RuntimeError("Synon host bridge protocol is unavailable")
+        raise RuntimeError("X-Science host bridge protocol is unavailable")
     _active_host_cell["id"] = cell_id
     _host_mcp_catalog_cache["cell_id"] = None
     _host_mcp_catalog_cache["value"] = None

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "scope": "Synon Go non-Web runtime",
+  "scope": "X-Science non-Web runtime",
   "excluded": [
     "product Web application source",
     "desktop Web application source",
@@ -47,8 +47,8 @@
       "purpose": "Standalone local evaluation viewer used by Skill Creator"
     },
     {
-      "path": "assets/synon-link/synon-link-extension-v0.6.10.zip",
-      "purpose": "Pinned Synon Link browser bridge extension required by the non-Web runtime protocol"
+      "path": "assets/synon-link/x-science-browser-extension-v0.6.10.zip",
+      "purpose": "Pinned X-Science browser connector required by the non-Web runtime protocol"
     },
     {
       "path": "assets/optional/mcp-servers/ketcher-chemistry/widget/index.html.gz",

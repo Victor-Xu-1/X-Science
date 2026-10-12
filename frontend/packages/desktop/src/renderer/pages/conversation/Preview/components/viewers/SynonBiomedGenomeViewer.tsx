@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from '@/common/config/productIdentity';
 import { Button, Spin } from '@arco-design/web-react';
 import { Minus, Plus, Search } from '@icon-park/react';
 import type { Browser, CreateOpt, ReferenceGenome, TrackLoad, TrackType } from 'igv';
@@ -46,7 +47,11 @@ const SynonBiomedGenomeViewer: React.FC<SynonBiomedGenomeViewerProps> = ({
     try {
       return { track: resolveGenomeTrackDefinition(filename), error: null };
     } catch (reason) {
-      logScientificPreviewError('[SynonBiomedGenomeViewer] Unsupported genome track', reason, 'unsupported-format');
+      logScientificPreviewError(
+        `[${PRODUCT_NAME} GenomeViewer] Unsupported genome track`,
+        reason,
+        'unsupported-format'
+      );
       return { track: null, error: resolveScientificPreviewError(reason, 'unsupported-format') };
     }
   }, [filename]);
@@ -120,7 +125,11 @@ const SynonBiomedGenomeViewer: React.FC<SynonBiomedGenomeViewerProps> = ({
       })
       .catch((reason: unknown) => {
         if (!active) return;
-        logScientificPreviewError('[SynonBiomedGenomeViewer] Failed to initialize IGV', reason, 'initialize-failed');
+        logScientificPreviewError(
+          `[${PRODUCT_NAME} GenomeViewer] Failed to initialize IGV`,
+          reason,
+          'initialize-failed'
+        );
         setError(resolveScientificPreviewError(reason, 'initialize-failed'));
       })
       .finally(() => {
@@ -147,7 +156,7 @@ const SynonBiomedGenomeViewer: React.FC<SynonBiomedGenomeViewerProps> = ({
       setError(null);
       await Promise.resolve(browser.search(query));
     } catch (reason) {
-      logScientificPreviewError('[SynonBiomedGenomeViewer] Failed to search locus', reason, 'search-failed');
+      logScientificPreviewError(`[${PRODUCT_NAME} GenomeViewer] Failed to search locus`, reason, 'search-failed');
       setError(resolveScientificPreviewError(reason, 'search-failed'));
     }
   }, [locus]);

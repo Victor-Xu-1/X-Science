@@ -115,7 +115,7 @@ def read_auth(*, fd: int = FD_CTRL) -> dict[str, str]:
         chunk = os.read(fd, 65536)
         if not chunk:
             sys.stderr.write(
-                f"synon-provider: credential channel closed before delivery "
+                f"X-Science provider: credential channel closed before delivery "
                 f"(read {len(buf)} bytes on fd {fd})\n"
             )
             sys.exit(EXIT_AUTH_EOF)
@@ -125,10 +125,10 @@ def read_auth(*, fd: int = FD_CTRL) -> dict[str, str]:
     try:
         msg = json.loads(bytes(buf).split(b"\n", 1)[0])
     except ValueError:
-        sys.stderr.write("synon-provider: credential handshake JSON is invalid\n")
+        sys.stderr.write("X-Science provider: credential handshake JSON is invalid\n")
         sys.exit(EXIT_PROTOCOL)
     if not isinstance(msg, dict) or msg.get("op") != "auth":
-        sys.stderr.write("synon-provider: credential handshake shape is invalid\n")
+        sys.stderr.write("X-Science provider: credential handshake shape is invalid\n")
         sys.exit(EXIT_PROTOCOL)
     return {k: v for k, v in msg.items() if k != "op"}
 

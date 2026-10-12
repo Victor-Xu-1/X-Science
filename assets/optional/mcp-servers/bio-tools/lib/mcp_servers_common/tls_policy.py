@@ -3,7 +3,7 @@
 Python 3.13 and current urllib3 releases arm ``VERIFY_X509_STRICT`` by
 default. Some trusted enterprise TLS-inspection roots are valid for chain,
 signature, expiry, and hostname verification but do not satisfy every RFC 5280
-profile detail. The Synon host therefore resolves one operator-gated posture
+profile detail. The X-Science host therefore resolves one operator-gated posture
 and passes ``SYNON_MCP_X509_STRICT=0`` only when relaxation is authorized.
 
 Relaxation clears only the X509_STRICT profile bit immediately before a client

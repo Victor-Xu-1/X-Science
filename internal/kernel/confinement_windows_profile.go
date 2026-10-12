@@ -271,7 +271,7 @@ func createWindowsAppContainerProfile(name string) (*windows.SID, error) {
 	if err != nil {
 		return nil, err
 	}
-	labelPointer, err := windows.UTF16PtrFromString("Synon confined kernel worker")
+	labelPointer, err := windows.UTF16PtrFromString("X-Science confined kernel worker")
 	if err != nil {
 		return nil, err
 	}

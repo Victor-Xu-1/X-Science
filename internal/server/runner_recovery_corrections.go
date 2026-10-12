@@ -419,7 +419,7 @@ func moveRecoveredRunnerCorrectionContextToEnd(messages []chatCompletionMessage)
 	result := make([]chatCompletionMessage, 0, len(messages))
 	var correction *chatCompletionMessage
 	for _, message := range messages {
-		if message.Role == "system" && strings.Contains(message.Content, sessionRunnerDurableCorrectionContextMarker) {
+		if message.Role == "system" && hasSessionRunnerDurableCorrectionContext(message.Content) {
 			copyMessage := message
 			correction = &copyMessage
 			continue

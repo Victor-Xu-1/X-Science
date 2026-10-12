@@ -99,7 +99,7 @@ func TestCompactSynonCapabilitiesExposeOnlyRetainedSurface(t *testing.T) {
 			t.Fatalf("capability report missing artifact tool action %q: %#v", action, report)
 		}
 	}
-	if !capabilitySummaryContains(report, "bounded artifact_get content retrieval") || !capabilitySummaryContains(report, "original Synon research artifact phase") {
+	if !capabilitySummaryContains(report, "bounded artifact_get content retrieval") || !capabilitySummaryContains(report, "original X-Science research artifact phase") {
 		t.Fatalf("capability report missing artifact content/research audit summary: %#v", report.Modules)
 	}
 	if capabilitySummaryContains(report, "websearch.py") || !capabilitySummaryContains(report, "Go HTTP WebSearch backend") {

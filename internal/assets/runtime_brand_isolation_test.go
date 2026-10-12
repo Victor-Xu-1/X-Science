@@ -6,11 +6,128 @@ import (
 	"go/token"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
 	"testing"
 )
+
+var historicalHumanBrand = regexp.MustCompile(`(?i)\bsynon(?:[ -]?biomed)?(?:[ \t\r\n]+|[.,!?;:()\[\]{}](?:[ \t\r\n]+|$)|$)`)
+var historicalBridgeHumanBrand = regexp.MustCompile(`(?i)\bsynon-go[ \t\r\n]+(?:live|LSP|MCP|SDK)(?:[ \t\r\n]+|$)`)
+var runtimeMachineToken = regexp.MustCompile(`^[a-z0-9_.:/-]+$`)
+
+func TestCurrentRuntimeHumanLabelsUseXScience(t *testing.T) {
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("locate repository root")
+	}
+	root := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
+	for _, directory := range []string{"cmd", "internal", "scripts/smoke-live-im"} {
+		err := filepath.WalkDir(filepath.Join(root, directory), func(path string, entry os.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if entry.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
+				return nil
+			}
+			relative, err := filepath.Rel(root, path)
+			if err != nil {
+				return err
+			}
+			// These capture historical source/protocol identities, not current UI.
+			if strings.HasPrefix(filepath.ToSlash(relative), "internal/compat/") {
+				return nil
+			}
+			locations := token.NewFileSet()
+			parsed, err := parser.ParseFile(locations, path, nil, 0)
+			if err != nil {
+				return err
+			}
+			ast.Inspect(parsed, func(node ast.Node) bool {
+				literal, ok := node.(*ast.BasicLit)
+				if !ok || literal.Kind != token.STRING {
+					return true
+				}
+				value, err := strconv.Unquote(literal.Value)
+				if err == nil && containsHistoricalHumanBrand(value) && !historicalLabelReadCompatibility(relative, value) {
+					t.Errorf("current human label retains historical brand at %s", locations.Position(literal.Pos()))
+				}
+				return true
+			})
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, relative := range []string{
+		"internal/server/structure_interaction_diagram.py", "internal/server/structure_interaction_renderer.py",
+		"internal/agentruntime/assets/synon_platform_policy.md",
+		"skills/synonbiomed/ngs-analysis-router/SKILL.md",
+		"skills/synonbiomed/nextflow-development/references/geo-sra-acquisition.md",
+		"internal/logoassets/SOURCE.md", "internal/server/assets/THIRD_PARTY_LICENSES.md",
+		"internal/sciencecapability/executionpacks/autodock_vina.py",
+		"internal/sciencecapability/executionpacks/autodock_vina_outputs.py",
+		"skills/synonbiomed/autodock-vina/scripts/autodock_vina.py",
+		"skills/synonbiomed/autodock-vina/scripts/autodock_vina_outputs.py",
+		"internal/server/structure_minimization.py",
+		"skills/synonbiomed/skill-creator/scripts/quick_validate.py",
+	} {
+		raw, err := os.ReadFile(filepath.Join(root, relative))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if containsHistoricalHumanBrand(string(raw)) {
+			t.Errorf("current runtime text retains historical brand: %s", relative)
+		}
+	}
+}
+
+func containsHistoricalHumanBrand(value string) bool {
+	// A bare lowercase machine ID remains a compatibility contract. Human
+	// prose, capitalized names and sentences are distinct from that ID.
+	return !runtimeMachineToken.MatchString(value) &&
+		(historicalHumanBrand.MatchString(value) || historicalBridgeHumanBrand.MatchString(value))
+}
+
+func historicalLabelReadCompatibility(path, value string) bool {
+	switch filepath.ToSlash(path) {
+	case "internal/server/runner_brand_compatibility.go":
+		return value == "Synon durable correction state from a prior bounded execution unit" ||
+			value == "\nSynon no-progress recovery state: "
+	case "internal/kernel/confinement.go":
+		return value == "Synon kernel confinement is unavailable on this platform"
+	case "internal/server/structure_interaction_diagram_api.go":
+		return value == "Synon 2D Interaction Engine"
+	case "internal/server/transcript_web_history.go", "internal/server/transcript_web_incremental_reducer.go",
+		"internal/server/transcript_web_incremental_source_chain.go", "internal/server/web_conversation_rich_messages.go":
+		// Existing transcript and rich-message consumers share this map key.
+		// It is a persisted wire identifier, not a displayed product label.
+		return value == "synonBiomed"
+	default:
+		return false
+	}
+}
+
+func TestRuntimeHumanLabelBoundaryKeepsMachineCompatibility(t *testing.T) {
+	for _, value := range []string{"Synon", "Synon Link", "Synon Biomed report", "SynonBiomed report", "SynonBiomed", "synon access", "Synon kernel", "You are Synon.", "You are Synon, a concise assistant.", "Synon: warning", "method not supported by synon-go MCP client", "synon-go live bridge"} {
+		if !containsHistoricalHumanBrand(value) {
+			t.Errorf("historical human label was missed: %q", value)
+		}
+	}
+	for _, value := range []string{"synon", "synon-go/internal/config", "synon.kernel.v1", "X-Synon-CSRF-Token", "synonbiomed-v1.1.sqlite", "SYNON_CONFIG", "Synonym", "synonyms", "X-Science", "synon-go serve --config synon.json", "Usage: synon-go mcp-ketcher --stdio"} {
+		if containsHistoricalHumanBrand(value) {
+			t.Errorf("machine/biological identifier was treated as human branding: %q", value)
+		}
+	}
+	if historicalLabelReadCompatibility("internal/server/prompt.go", "Synon no-progress recovery state: ") ||
+		historicalLabelReadCompatibility("internal/kernel/confinement.go", "Synon newly emitted label") ||
+		historicalLabelReadCompatibility("internal/server/prompt.go", "synonBiomed") ||
+		historicalLabelReadCompatibility("internal/server/transcript_web_history.go", "SynonBiomed report") {
+		t.Fatal("historical reader exception escaped its exact file/value boundary")
+	}
+}
 
 func TestRuntimeAndModelSurfacesUseOnlySynonProductIdentity(t *testing.T) {
 	_, file, _, ok := runtime.Caller(0)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bounded RDKit force-field minimization for the unified Synon software runtime."""
+"""Bounded RDKit force-field minimization for the unified X-Science software runtime."""
 
 import argparse
 import json
@@ -52,7 +52,7 @@ def base_report(
 
 
 def normalize_pdb_block(content: str) -> str:
-    """Repair element columns emitted by bounded Synon docking previews.
+    """Repair element columns emitted by bounded X-Science docking previews.
 
     The docking preview format can retain AutoDock atom types in the PDB
     element column (for example ``A`` for aromatic carbon) and can abbreviate

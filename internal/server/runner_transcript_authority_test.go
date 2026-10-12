@@ -152,7 +152,7 @@ func TestFrameRunnerAutoCompactPersistsTranscriptBoundary(t *testing.T) {
 		}
 		compactContext := ""
 		for _, message := range input.Messages {
-			if message.Role == "system" && strings.Contains(message.Content, "Synon compact handoff context:") {
+			if message.Role == "system" && strings.Contains(message.Content, "X-Science compact handoff context:") {
 				compactContext = message.Content
 			}
 		}

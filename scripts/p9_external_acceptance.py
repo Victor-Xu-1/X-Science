@@ -216,7 +216,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         "--live-im-binary",
         default=os.environ.get("SYNON_LIVE_IM_BINARY", "./dist/synon-go-live-im-smoke"),
     )
-    parser.add_argument("--config", help="optional Synon JSON configuration used by both smoke binaries")
+    parser.add_argument("--config", help="optional X-Science JSON configuration used by both smoke binaries")
     parser.add_argument("--runtime-url", help="optional runtime URL for durable redacted channel evidence")
     parser.add_argument("--timeout-seconds", type=int, default=30)
     parser.add_argument("--max-attempts", type=int, default=1)
@@ -233,7 +233,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(sys.argv[1:] if argv is None else argv)
     try:
         synon = (
-            executable_path(args.synon_binary, "Synon binary")
+            executable_path(args.synon_binary, "X-Science binary")
             if scope_includes_models(args.scope)
             else None
         )

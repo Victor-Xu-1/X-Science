@@ -18,6 +18,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"synon-go/internal/buildinfo"
 	workspace "synon-go/internal/persistence/workspace"
 )
 
@@ -159,6 +160,8 @@ func (s *Server) writeScriptReproducibilityBundle(
 	if tape := operonTape(lineage.Interactions); len(tape) > 0 {
 		files = append(files,
 			reproducibilityArchiveFile{Name: "operon_tape.json", Data: tape, Modified: version.CreatedAt},
+			// Existing user code can import this captured replay helper by name.
+			// Keep that import contract while using current branding in its prose.
 			reproducibilityArchiveFile{Name: "synon_operon_replay.py", Data: []byte(operonReplayShim), Modified: version.CreatedAt},
 		)
 	}
@@ -262,12 +265,12 @@ func scriptBundleREADME(
 	if lineage.FrameID != nil {
 		frameID = *lineage.FrameID
 	}
-	return "# Synon script reproducibility bundle\n\n" +
+	return "# " + buildinfo.Release().Name + " script reproducibility bundle\n\n" +
 		"Artifact: `" + artifact.ID + "`  \nVersion: `" + version.ID + "`  \nFrame: `" + frameID + "`  \nLanguage: `" + language + "`\n\n" +
 		"Execute `./run.sh`. Referenced artifacts are available under `inputs/`.\n"
 }
 
-const operonReplayShim = `"""Minimal deterministic reader for captured Synon host-call tapes."""
+const operonReplayShim = `"""Minimal deterministic reader for captured X-Science host-call tapes."""
 import json
 from pathlib import Path
 
@@ -616,7 +619,7 @@ fi
 }
 
 func sessionBundleREADME(session workspace.CompatibilitySessionExport, scope string) string {
-	return "# Synon reproducibility bundle\n\n" +
+	return "# " + buildinfo.Release().Name + " reproducibility bundle\n\n" +
 		"Session: `" + session.RootFrameID + "`  \nScope: `" + scope + "`\n\n" +
 		"Run each segment's `run.sh` from its own directory. Inputs and captured outputs are stored beside the notebook.\n"
 }

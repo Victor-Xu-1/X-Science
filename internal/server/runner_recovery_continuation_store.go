@@ -273,7 +273,7 @@ func appendProviderContinuationContext(
 	contract := state.Contract
 	messages = append(messages, chatCompletionMessage{Role: "assistant", Content: state.Content.String()})
 	guidance := fmt.Sprintf(
-		"Synon provider continuation authority (server supplied): continue after the exact accepted assistant prefix above. Do not repeat, rewrite, summarize, or retract any accepted prefix bytes. Start with only the next semantic byte. continuation_root_attempt=%d continuation_root_segment=%d accepted_bytes=%d accepted_sha256=%s.",
+		"X-Science provider continuation authority (server supplied): continue after the exact accepted assistant prefix above. Do not repeat, rewrite, summarize, or retract any accepted prefix bytes. Start with only the next semantic byte. continuation_root_attempt=%d continuation_root_segment=%d accepted_bytes=%d accepted_sha256=%s.",
 		contract.RootAttempt, contract.RootSegmentOrdinal, contract.AcceptedSemanticBytes, contract.AcceptedSHA256,
 	)
 	if providerContinuationNeedsNextAction(state) {

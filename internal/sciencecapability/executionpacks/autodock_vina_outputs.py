@@ -58,7 +58,7 @@ def write_primary_pose_artifacts(
         primary = primary_poses[candidate_id]
         path = directory / safe_pose_filename(rank, candidate_id)
         content = (
-            f"REMARK SYNON LIGAND {candidate_id} RANK {rank} PRIMARY RUN {primary['run_index']} "
+            f"REMARK X-Science LIGAND {candidate_id} RANK {rank} PRIMARY RUN {primary['run_index']} "
             f"SOURCE_MODE {primary['mode_index']}\n"
             + str(primary["pdbqt_text"])
         )

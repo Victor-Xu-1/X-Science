@@ -63,14 +63,14 @@ for i in {1..80}; do
   pid=$(cat "$PID_FILE")
   if ! kill -0 "$pid" >/dev/null 2>&1; then
     echo "ERROR: runtime exited before becoming healthy." >&2
-    echo "--- synon-go-goal log ---" >&2
+    echo "--- X-Science goal runtime log ---" >&2
     tail -n 80 "$LOG_FILE" >&2
     exit 1
   fi
   sleep 0.25
   if [[ $i -eq 80 ]]; then
     echo "ERROR: server not healthy after startup." >&2
-    echo "--- synon-go-goal log ---"
+    echo "--- X-Science goal runtime log ---"
     tail -n 80 "$LOG_FILE"
     exit 1
   fi

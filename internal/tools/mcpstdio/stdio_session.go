@@ -24,7 +24,7 @@ func (s *remoteWebSocketSession) respondToServerRequest(ctx context.Context, msg
 	case "roots/list":
 		return s.send(ctx, rpcMessage{JSONRPC: "2.0", ID: msg.ID, Result: mustRawJSON(map[string]any{"roots": []any{}})})
 	default:
-		return s.send(ctx, rpcMessage{JSONRPC: "2.0", ID: msg.ID, Error: &rpcError{Code: -32601, Message: "method not supported by synon-go MCP WebSocket client"}})
+		return s.send(ctx, rpcMessage{JSONRPC: "2.0", ID: msg.ID, Error: &rpcError{Code: -32601, Message: "method not supported by X-Science MCP WebSocket client"}})
 	}
 }
 

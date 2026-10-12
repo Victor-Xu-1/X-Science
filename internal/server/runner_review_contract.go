@@ -26,7 +26,7 @@ func (s *Server) sessionCompletionBookmarkerExecutionSpec() (sessionRunnerReview
 }
 
 // sessionFixedJobExecutionSpec loads one fixed-job authority from the bundled
-// Synon catalog. REVIEWER and BOOKMARKER share the same completion checkpoint
+// X-Science catalog. REVIEWER and BOOKMARKER share the same completion checkpoint
 // orchestrator but retain separate prompts, hidden frames, and output schemas.
 func (s *Server) sessionFixedJobExecutionSpec(profileName, directory, reviewKind string) (sessionRunnerReviewExecutionSpec, error) {
 	if s == nil {

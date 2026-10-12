@@ -1,7 +1,7 @@
 """Per-install User-Agent / contact-email helpers (legal Y12).
 
 The stdio bio servers run on the END USER's machine, so the operator
-identified to upstream APIs is the user, not Synon LLM. These helpers read
+identified to upstream APIs is the user, not X-Science. These helpers read
 the spawn-time env injected by the CLI's connector provider:
 
 - ``OPERON_VERSION``       — product version (defaults to ``dev``);

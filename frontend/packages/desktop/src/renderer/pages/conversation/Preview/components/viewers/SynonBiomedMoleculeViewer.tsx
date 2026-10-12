@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from '@/common/config/productIdentity';
 import { RDKitRenderError, renderMoleculeSvg } from '@/renderer/services/rdkitBrowser';
 import { Empty, Input, Spin } from '@arco-design/web-react';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -61,7 +62,7 @@ const SynonBiomedMoleculeViewer: React.FC<SynonBiomedMoleculeViewerProps> = ({ f
       .catch((reason: unknown) => {
         if (controller.signal.aborted) return;
         const failure = reason instanceof RDKitRenderError ? new ScientificPreviewError('initialize-failed') : reason;
-        logScientificPreviewError('[SynonBiomedMoleculeViewer] Failed to load molecules', failure, 'parse-failed');
+        logScientificPreviewError(`[${PRODUCT_NAME} MoleculeViewer] Failed to load molecules`, failure, 'parse-failed');
         setError(resolveScientificPreviewError(failure, 'parse-failed'));
       })
       .finally(() => {

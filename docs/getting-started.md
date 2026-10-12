@@ -56,7 +56,7 @@ Windows 已安装某个工具，不代表 Ubuntu 终端也已配置对应 Linux 
 
 ## 3. Fresh source checkout · 首次获取与启动
 
-以下步骤用于**尚无本项目实例、源码目录和 `synon` 启动器的新安装**。
+以下步骤用于**尚无本项目实例、源码目录和 `x-science` 启动器的新安装**。
 如果已有其中任意一项，先转到下一节核对归属。
 
 ### Obtain the source · 获取源码
@@ -76,7 +76,7 @@ GitHub 的源码 ZIP、`make build` 输出和 Actions 制品都不自动等于�
 ```bash
 bash scripts/dev/install-source-cli.sh
 export PATH="$HOME/.local/bin:$PATH"
-synon help
+x-science help
 ```
 
 安装器创建当前 Linux 用户的 `$HOME/.local/bin/x-science` 和兼容的
@@ -88,7 +88,7 @@ synon help
 ### Start and wait for readiness · 启动并等待入口就绪
 
 ```bash
-synon start
+x-science start
 ```
 
 保持这个终端打开。启动器检查依赖，并构建/准备前后端源码宿主。
@@ -115,12 +115,12 @@ READY_URL=http://127.0.0.1:8765/#/login
 
 在浏览器打开实际打印的 URL。Windows 浏览器优先使用数值地址 `127.0.0.1`，
 不要擅自改成另一主机名、地址或端口。浏览器不会默认自动打开；如终端具备桌面访问能力，
-可在下一次启动时显式使用 `synon start --open-browser`。
+可在下一次启动时显式使用 `x-science start --open-browser`。
 
 启动同时输出 `STATE_DIR`、`BACKEND_LOG`、`FRONTEND_LOG` 和 `BACKEND_HEALTH_URL`，
 请保留这些位置用于排障。默认等待上限是 300 秒；这是有界超时，不是安装完成时间承诺。
 失败后先看日志。确有首次构建耗时的证据时，可在确认旧启动已退出后使用
-`synon start --timeout-seconds 600`，不要用延长等待掩盖依赖或网络错误。
+`x-science start --timeout-seconds 600`，不要用延长等待掩盖依赖或网络错误。
 
 ## 4. Existing installations · 已有安装与第二份源码
 
@@ -131,7 +131,8 @@ pwd
 git status --short
 git branch --show-current
 git remote -v
-command -v synon
+command -v x-science
+command -v synon # 只读检查可能存在的兼容入口
 ```
 
 如果 `$HOME/.local/bin/synon` 已存在，可查看它实际指向哪里：
@@ -142,7 +143,7 @@ readlink -f "$HOME/.local/bin/synon"
 
 - 安装器再次遇到指向**同一份源码**的链接，会提示 `already installed`。
 - 遇到现有文件、其他命令，或指向**另一份源码**的链接，会拒绝替换。
-  即使错误包含 `non-Synon command`，也应核对链接目标，不要直接删除。
+  即使错误提示命令不属于当前 X-Science checkout，也应核对链接目标，不要直接删除。
 - 不要用 `sudo`、强制覆盖链接、清空数据或结束未知进程来绕过这些保护。
 - 只想试用第二份源码时，无需改动全局 `synon` 链接；直接调用该 checkout 的脚本。
 
@@ -150,7 +151,7 @@ readlink -f "$HOME/.local/bin/synon"
 不含其他实例的数据、示例端口没有被占用，再在目标源码根目录执行：
 
 ```bash
-export SYNON_SOURCE_STATE_DIR="$HOME/.local/state/synon-biomed-preview"
+export SYNON_SOURCE_STATE_DIR="$HOME/.local/state/x-science-preview"
 bash scripts/dev/synon start --web-port 8785 --backend-port 8875
 ```
 
@@ -162,6 +163,11 @@ bash scripts/dev/synon start --web-port 8785 --backend-port 8875
 **`stop` 和 `status` 不接受 `--state-dir` 参数**：使用非默认目录时，在新终端先设置
 同一个 `SYNON_SOURCE_STATE_DIR`，并调用同一份 checkout 的脚本。
 直接设置 `SYNON_HOME` 不是这条 quickstart 链的状态目录切换方式。
+
+当前产品名称为 X-Science，已安装的源码入口使用 `x-science`。
+兼容入口、真实脚本路径、`SYNON_*` 配置、协议和已有状态目录仍按
+[名称兼容映射](governance/product-rename-compatibility-map.json)保留；
+这些标识不是产品显示名称，也不授权移动旧数据或改写历史来源。
 
 ## 5. First session · 首次进入与配置
 
@@ -210,11 +216,11 @@ ${XDG_STATE_HOME:-$HOME/.local/state}/synon-biomed-source-quickstart
 停止前先确认没有应保留运行中的任务：
 
 - 原启动终端按 `Ctrl+C`，停止该次调用创建的源码宿主。
-- 或在同一环境、同一状态目录下使用 `synon status` 确认归属，再使用 `synon stop`。
+- 或在同一环境、同一状态目录下使用 `x-science status` 确认归属，再使用 `x-science stop`。
 - 对上节的独立实例，在目标源码根目录的另一终端使用：
 
 ```bash
-export SYNON_SOURCE_STATE_DIR="$HOME/.local/state/synon-biomed-preview"
+export SYNON_SOURCE_STATE_DIR="$HOME/.local/state/x-science-preview"
 bash scripts/dev/synon status
 bash scripts/dev/synon stop
 ```
@@ -274,7 +280,7 @@ GitHub Packages 的 OCI 资产是安装包传输形式，不是可以直接 `doc
 | 现象 | 先检查与处理 |
 | --- | --- |
 | `go` / `node` / `npm` 找不到，或版本被拒绝 | 在同一个 Ubuntu 终端重跑版本检查，确认 PATH 和 Linux 工具版本；不要用 Windows 安装状态替代。 |
-| `synon: command not found` | 设置 `$HOME/.local/bin` 的 PATH，或从该源码根目录使用 `bash scripts/dev/synon help`。 |
+| `x-science: command not found` | 设置 `$HOME/.local/bin` 的 PATH，或从该源码根目录使用 `bash scripts/dev/synon help`。 |
 | 安装器拒绝替换现有命令 | 用 `readlink -f` 核对启动器目标；保留现有文件，第二份源码直接调用自己的脚本。 |
 | `port is already in use` | 确认是否已有合法实例；不要结束未知进程，另一个实例需独立端口和数据。 |
 | `another quickstart owns this state directory` | 确认已有启动归属；不要手动删锁来同时打开同一状态目录。 |

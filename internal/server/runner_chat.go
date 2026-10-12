@@ -21,7 +21,7 @@ import (
 	"synon-go/internal/sciencecapability"
 )
 
-const defaultSessionRunnerChatSystemPrompt = "You are Synon, a concise assistant inside a private automation runtime. Answer the user's latest message directly."
+const defaultSessionRunnerChatSystemPrompt = "You are X-Science, a concise assistant inside a private automation runtime. Answer the user's latest message directly."
 
 const BuiltinSessionRunnerChatEndpoint = "builtin://synon-go/deterministic-chat"
 

@@ -45,7 +45,7 @@ chmod 0755 "$SOURCE_ROOT/scripts/dev/source-quickstart.sh"
 
 HOME="$TMP_DIR/home" PATH="/usr/bin:/bin" \
   bash "$SOURCE_ROOT/scripts/dev/install-source-cli.sh" >"$TMP_DIR/install.log"
-grep -Fq '[synon-install] installed:' "$TMP_DIR/install.log"
+grep -Fq '[X-Science install] installed:' "$TMP_DIR/install.log"
 grep -Fq "export PATH=\"$TMP_DIR/home/.local/bin:\$PATH\"" "$TMP_DIR/install.log"
 [[ ! -e "$TMP_DIR/home/.bashrc" ]]
 [[ "$(realpath -e "$TMP_DIR/home/.local/bin/synon")" == "$SOURCE_ROOT/scripts/dev/synon" ]]
@@ -54,7 +54,7 @@ grep -Fq 'next command: x-science start' "$TMP_DIR/install.log"
 
 HOME="$TMP_DIR/home" PATH="/usr/bin:/bin" \
   bash "$SOURCE_ROOT/scripts/dev/install-source-cli.sh" >"$TMP_DIR/install-again.log"
-grep -Fq '[synon-install] already installed:' "$TMP_DIR/install-again.log"
+grep -Fq '[X-Science install] already installed:' "$TMP_DIR/install-again.log"
 
 HOME="$TMP_DIR/conflict" PATH="/usr/bin:/bin" \
   printf 'existing\n' >"$TMP_DIR/conflict/.local/bin/synon"
@@ -63,7 +63,7 @@ if HOME="$TMP_DIR/conflict" PATH="/usr/bin:/bin" \
   echo 'installer replaced an existing command' >&2
   exit 1
 fi
-grep -Fq 'refusing to replace an existing non-Synon command' "$TMP_DIR/conflict.log"
+grep -Fq 'refusing to replace a command not owned by this X-Science checkout' "$TMP_DIR/conflict.log"
 [[ ! -e "$TMP_DIR/conflict/.local/bin/x-science" ]]
 
 ln -s /bin/sh "$TMP_DIR/conflict-link/.local/bin/synon"
@@ -72,7 +72,7 @@ if HOME="$TMP_DIR/conflict-link" PATH="/usr/bin:/bin" \
   echo 'installer replaced an existing symlink' >&2
   exit 1
 fi
-grep -Fq 'refusing to replace an existing non-Synon command' "$TMP_DIR/conflict-link.log"
+grep -Fq 'refusing to replace a command not owned by this X-Science checkout' "$TMP_DIR/conflict-link.log"
 
 STATE_DIR="$TMP_DIR/state"
 mkdir -p "$STATE_DIR"
@@ -91,7 +91,7 @@ HOME="$TMP_DIR/home" SYNON_SOURCE_STATE_DIR="$STATE_DIR" \
   "$TMP_DIR/home/.local/bin/synon" stop >"$TMP_DIR/stop.log"
 wait "$START_PID"
 START_PID=''
-grep -Fq 'source hosts stopped' "$TMP_DIR/stop.log"
+grep -Fq '[X-Science] source hosts stopped' "$TMP_DIR/stop.log"
 status=$(HOME="$TMP_DIR/home" SYNON_SOURCE_STATE_DIR="$STATE_DIR" \
   "$TMP_DIR/home/.local/bin/synon" status)
 [[ "$status" == STOPPED* ]]
@@ -155,6 +155,6 @@ ROOT_DIR=$(cd "$SCRIPT_DIR/../.." && pwd -P)
 make -C "$ROOT_DIR" -n source-cli-install | grep -Fq 'bash scripts/dev/install-source-cli.sh'
 make -C "$ROOT_DIR" -n source-cli-test | grep -Fq 'bash scripts/dev/source-cli-test.sh'
 grep -Fq 'x-science start' "$ROOT_DIR/README.md"
-grep -Fq 'synon start' "$ROOT_DIR/docs/operations-runbook.md"
+grep -Fq 'x-science start' "$ROOT_DIR/docs/operations-runbook.md"
 
 echo 'source CLI tests passed'

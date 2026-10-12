@@ -1362,7 +1362,7 @@ def main() -> int:
             ligand_id = str(row["ligand_id"])
             primary = primary_poses[ligand_id]
             pose_text.append(
-                f"REMARK SYNON LIGAND {ligand_id} RANK {row['rank']} PRIMARY RUN {primary['run_index']} "
+                f"REMARK X-Science LIGAND {ligand_id} RANK {row['rank']} PRIMARY RUN {primary['run_index']} "
                 f"SOURCE_MODE {primary['mode_index']}\n"
             )
             pose_text.append(str(primary["pdbqt_text"]))

@@ -35,7 +35,7 @@ func (s *Server) executeAgentTool(ctx context.Context, toolName string, input ma
 	case "restricted":
 		constraints = append(constraints, "Respect restricted tool_policy: inherit the parent runner boundary and use only low-risk inspection/search/question/sleep/read-only runtime tools.")
 	case "full_access":
-		constraints = append(constraints, "Respect full_access tool_policy: inherit the parent runner boundary; mutating, external, MCP, Synon Link, and shell tools still require runtime gates.")
+		constraints = append(constraints, "Respect full_access tool_policy: inherit the parent runner boundary; mutating, external, MCP, X-Science Link, and shell tools still require runtime gates.")
 	}
 	if cwd := strings.TrimSpace(stringValue(input["cwd"])); cwd != "" {
 		constraints = append(constraints, "Requested cwd: "+cwd)

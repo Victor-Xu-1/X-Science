@@ -41,7 +41,7 @@ func (s *Server) executeSynonLinkTool(ctx context.Context, input map[string]any)
 		}
 		return command.ID, result.Value, nil
 	case <-ctx.Done():
-		return "", nil, errors.New("Synon Link tool execution was cancelled")
+		return "", nil, errors.New("X-Science Link tool execution was cancelled")
 	}
 }
 

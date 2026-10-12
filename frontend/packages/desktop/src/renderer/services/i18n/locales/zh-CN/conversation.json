@@ -727,7 +727,7 @@
       "genes-ontologies": "基因标识与本体 — MyGene 查询、OLS4 本体术语、GO 注释（QuickGO）。",
       "drug-regulatory": "FDA 药品数据 — Drugs@FDA 申请、批准、药理类别与仿制药等效性。",
       "research-resources": "科研资源 — Grants.gov 资助机会检索、Antibody Registry 抗体查询。",
-      "synon-research": "独立 Synon 科研 MCP — 操作员验证信息的紧凑发现与受控执行。",
+      "synon-research": "独立 X-Science 科研 MCP — 操作员验证信息的紧凑发现与受控执行。",
       "cancer-models": "癌症基因组队列 — cBioPortal 研究、突变、拷贝数改变与临床数据。",
       "chemistry": "小分子化学 — PubChem 化合物/性质/相似性、ChEBI 本体与 Rhea 反应。",
       "human-genetics": "人类遗传关联 — GWAS Catalog、eQTL Catalogue、FinnGen/日本 BioBank PheWAS 表型。",

@@ -3,6 +3,7 @@ set -euo pipefail
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 source "$script_dir/release-path-policy.sh"
+product_name="$(synon_release_product_name)"
 
 if [[ $# -ne 2 ]]; then
 	echo "usage: rollback-release.sh <install-dir> <backup-dir>" >&2
@@ -98,4 +99,4 @@ if [[ -n "$previous" && -e "$previous" ]]; then
 	rm -rf -- "$previous"
 	previous=""
 fi
-printf 'synon-go rolled back from %s to %s\n' "$backup_dir" "$install_dir"
+printf '%s rolled back from %s to %s\n' "$product_name" "$backup_dir" "$install_dir"

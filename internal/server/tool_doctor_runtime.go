@@ -219,7 +219,7 @@ func (s *Server) executeToolDoctorTool(input map[string]any) (any, error) {
 		}
 	}
 	if shouldRun("permissions") {
-		addCheck("permissions", "bounded-execution", "pass", "File, shell, Synon Link desktop, and session runner operations use root bounds, timeouts, or explicit approval gates where applicable.", nil)
+		addCheck("permissions", "bounded-execution", "pass", "File, shell, X-Science Link desktop, and session runner operations use root bounds, timeouts, or explicit approval gates where applicable.", nil)
 	}
 	if shouldRun("feature-gates") {
 		addCheck("feature-gates", "excluded-capabilities", "pass", "Web UI and removed pharma/knowledge side capabilities are not exposed by the compact Go registry.", nil)

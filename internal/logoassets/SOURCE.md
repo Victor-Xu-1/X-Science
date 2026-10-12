@@ -9,7 +9,7 @@ The files under `assets/` are copied without modification from:
 
 The complete upstream license is retained as `LICENSE`. Product and provider
 names and logos may also be trademarks of their respective owners. Inclusion
-is solely for identifying supported model and tool providers in the Synon
+is solely for identifying supported model and tool providers in the X-Science
 interface; it does not imply endorsement.
 
 Update this directory only from an immutable upstream commit, retain the

@@ -122,7 +122,7 @@ func (s *Server) upsertInternalIMRouteSecret(id string, userID string, contextTo
 	}
 	_, err = s.secretStore.Create(secretstore.Secret{
 		ID: id, UserID: userID, Provider: internalIMRouteSecretProvider,
-		Name: "Synon internal IM route", Value: contextToken,
+		Name: "X-Science internal IM route", Value: contextToken,
 	})
 	if err != nil {
 		return fmt.Errorf("create encrypted IM route token: %w", err)

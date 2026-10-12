@@ -10,7 +10,7 @@ import (
 	"synon-go/internal/toolcontract"
 )
 
-const sessionRunnerDurableCorrectionContextMarker = "Synon durable correction state from a prior bounded execution unit"
+const sessionRunnerDurableCorrectionContextMarker = "X-Science durable correction state from a prior bounded execution unit"
 
 // sessionRunnerCorrectionStillRequiresAction keeps one stop-hook acceptance
 // condition active across model rounds. A rejected, failed, or non-executing
@@ -25,7 +25,7 @@ func sessionRunnerCorrectionStillRequiresAction(run *sessionRunnerChatRun, messa
 	}
 	boundary := -1
 	for index, message := range messages {
-		if strings.Contains(message.Content, sessionRunnerDurableCorrectionContextMarker) {
+		if hasSessionRunnerDurableCorrectionContext(message.Content) {
 			boundary = index
 		}
 	}
@@ -123,7 +123,7 @@ func sessionRunnerCorrectionReadyForRevalidation(
 	}
 	boundary := -1
 	for index, message := range messages {
-		if strings.Contains(message.Content, sessionRunnerDurableCorrectionContextMarker) {
+		if hasSessionRunnerDurableCorrectionContext(message.Content) {
 			boundary = index
 		}
 	}
@@ -794,7 +794,7 @@ func runnerCorrectionPreviousWindowMissingSkill(messages []agentruntime.Message)
 	}
 	previousBoundary := -1
 	for index := currentBoundary - 1; index >= 0; index-- {
-		if strings.Contains(messages[index].Content, sessionRunnerDurableCorrectionContextMarker) {
+		if hasSessionRunnerDurableCorrectionContext(messages[index].Content) {
 			previousBoundary = index
 			break
 		}
@@ -1038,7 +1038,7 @@ func runnerCorrectionMCPMethodClass(serverName, methodName string) (class string
 func runnerSourceRepairMutationState(messages []agentruntime.Message) (edited, saved bool) {
 	boundary := -1
 	for index, message := range messages {
-		if strings.Contains(message.Content, sessionRunnerDurableCorrectionContextMarker) {
+		if hasSessionRunnerDurableCorrectionContext(message.Content) {
 			boundary = index
 		}
 	}
@@ -1077,7 +1077,7 @@ func runnerSourceRepairMutationState(messages []agentruntime.Message) (edited, s
 func runnerUnsupportedSourceRemovalSavedSinceCorrection(messages []agentruntime.Message) bool {
 	boundary := -1
 	for index, message := range messages {
-		if strings.Contains(message.Content, sessionRunnerDurableCorrectionContextMarker) {
+		if hasSessionRunnerDurableCorrectionContext(message.Content) {
 			boundary = index
 		}
 	}
@@ -1398,7 +1398,7 @@ func runnerCorrectionToolBoundaryIndex(messages []agentruntime.Message) int {
 	boundary := -1
 	calls := runnerToolCallsByCallID(messages)
 	for index, message := range messages {
-		if strings.Contains(message.Content, sessionRunnerDurableCorrectionContextMarker) {
+		if hasSessionRunnerDurableCorrectionContext(message.Content) {
 			boundary = index
 			continue
 		}

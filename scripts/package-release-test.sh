@@ -203,11 +203,11 @@ test "$("$package_dir/assets/optional/micromamba/linux-x86_64/micromamba" --vers
 test -f "$package_dir/assets/optional/micromamba/BUILD.md"
 test -f "$package_dir/assets/optional/micromamba/DEPENDENCY-NOTICES.txt"
 test -f "$package_dir/assets/synon-link/manifest.json"
-test -f "$package_dir/assets/synon-link/synon-link-extension-v0.6.10.zip"
+test -f "$package_dir/assets/synon-link/x-science-browser-extension-v0.6.10.zip"
 test -f "$package_dir/web/index.html"
 find "$package_dir/web" -type f -name '*.js' -print -quit | grep -q .
 find "$package_dir/web" -type f -name '*.css' -print -quit | grep -q .
-printf '2cb251ad8aedf940f6d3a11b41b74ed55f9b912ab48257a21789b78a1ca0c90b  %s\n' "$package_dir/assets/synon-link/synon-link-extension-v0.6.10.zip" | sha256sum -c -
+printf '6edc99b8c8488fcfd41940aff2b43e80e0b638d1b63c1b20c1197d1137e6348b  %s\n' "$package_dir/assets/synon-link/x-science-browser-extension-v0.6.10.zip" | sha256sum -c -
 test ! -e "$package_dir/scripts/install-release.sh"
 test ! -e "$package_dir/scripts/install-release.ps1"
 test -f "$package_dir/scripts/release-identity-policy.ps1"
@@ -301,8 +301,8 @@ if find "$package_dir/web" -type l -print | grep -q .; then
 fi
 
 zip_files="$(find "$package_dir" -type f -name '*.zip' -print)"
-if [[ "$zip_files" != "$package_dir/assets/synon-link/synon-link-extension-v0.6.10.zip" ]]; then
-	echo "release package must contain only the pinned Synon Link zip" >&2
+if [[ "$zip_files" != "$package_dir/assets/synon-link/x-science-browser-extension-v0.6.10.zip" ]]; then
+	echo "release package must contain only the pinned X-Science browser connector zip" >&2
 	printf '%s\n' "$zip_files" >&2
 	exit 1
 fi

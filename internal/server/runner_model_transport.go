@@ -67,7 +67,7 @@ func builtinSessionRunnerChatResponse(messages []chatCompletionMessage) chatComp
 	if latestUser == "" {
 		latestUser = "No user message was available in the replay window."
 	}
-	content := "Synon built-in deterministic runner processed the latest session request.\n\nLatest user request:\n" + latestUser
+	content := "X-Science built-in deterministic runner processed the latest session request.\n\nLatest user request:\n" + latestUser
 	response := chatCompletionResponse{}
 	response.Choices = append(response.Choices, struct {
 		Message chatCompletionMessage `json:"message"`

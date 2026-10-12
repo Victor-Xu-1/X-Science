@@ -192,12 +192,12 @@ func (s *Server) executeStructureInteractionDiagram(
 	}
 	rawCanonicalRequest, err := software.CanonicalRequestJSON(runtimeRequest)
 	if err != nil {
-		writeStructureInteractionDiagramError(w, http.StatusInternalServerError, "runtime_request_invalid", "the Synon interaction runtime request could not be admitted", false)
+		writeStructureInteractionDiagramError(w, http.StatusInternalServerError, "runtime_request_invalid", "the X-Science interaction runtime request could not be admitted", false)
 		return
 	}
 	var runtimeInput map[string]any
 	if err := json.Unmarshal(rawCanonicalRequest, &runtimeInput); err != nil {
-		writeStructureInteractionDiagramError(w, http.StatusInternalServerError, "runtime_request_invalid", "the Synon interaction runtime request could not be encoded", false)
+		writeStructureInteractionDiagramError(w, http.StatusInternalServerError, "runtime_request_invalid", "the X-Science interaction runtime request could not be encoded", false)
 		return
 	}
 	ctx, cancel := context.WithTimeout(parentContext, maxStructureInteractionTimeout)
@@ -230,11 +230,11 @@ func (s *Server) executeStructureInteractionDiagram(
 		return
 	}
 	if err := os.WriteFile(scriptPath, structureInteractionDiagramProgram, 0o600); err != nil {
-		writeStructureInteractionDiagramError(w, http.StatusInternalServerError, "runtime_stage_failed", "the Synon interaction engine could not be staged", false)
+		writeStructureInteractionDiagramError(w, http.StatusInternalServerError, "runtime_stage_failed", "the X-Science interaction engine could not be staged", false)
 		return
 	}
 	if err := os.WriteFile(rendererPath, structureInteractionDiagramRenderer, 0o600); err != nil {
-		writeStructureInteractionDiagramError(w, http.StatusInternalServerError, "runtime_stage_failed", "the Synon interaction renderer could not be staged", false)
+		writeStructureInteractionDiagramError(w, http.StatusInternalServerError, "runtime_stage_failed", "the X-Science interaction renderer could not be staged", false)
 		return
 	}
 
@@ -279,7 +279,7 @@ func (s *Server) executeStructureInteractionDiagram(
 		return
 	}
 	if executeErr != nil && ctx.Err() != nil {
-		writeStructureInteractionDiagramError(w, http.StatusGatewayTimeout, "interaction_diagram_timeout", "Synon 2D interaction generation exceeded the bounded execution time", true)
+		writeStructureInteractionDiagramError(w, http.StatusGatewayTimeout, "interaction_diagram_timeout", "X-Science 2D interaction generation exceeded the bounded execution time", true)
 		return
 	}
 	exitStatus := "ok"
@@ -296,15 +296,16 @@ func (s *Server) executeStructureInteractionDiagram(
 	}
 	report, reportErr := readStructureInteractionDiagramReport(operationDir)
 	if !boolValue(visible["ok"], false) {
-		message := "Synon could not generate a ligand interaction diagram for the selected pose"
+		message := "X-Science could not generate a ligand interaction diagram for the selected pose"
 		if reportErr == nil && safeStructureInteractionMessage(report.Message) != "" {
 			message = safeStructureInteractionMessage(report.Message)
 		}
 		writeStructureInteractionDiagramError(w, http.StatusUnprocessableEntity, "interaction_diagram_failed", message, false)
 		return
 	}
-	if reportErr != nil || !report.Contract || !report.OK || report.Engine != "Synon 2D Interaction Engine" {
-		writeStructureInteractionDiagramError(w, http.StatusInternalServerError, "interaction_report_invalid", "the Synon interaction report failed validation", false)
+	if reportErr != nil || !report.Contract || !report.OK ||
+		(report.Engine != "X-Science 2D Interaction Engine" && report.Engine != "Synon 2D Interaction Engine") {
+		writeStructureInteractionDiagramError(w, http.StatusInternalServerError, "interaction_report_invalid", "the X-Science interaction report failed validation", false)
 		return
 	}
 	result := map[string]any{
@@ -314,12 +315,12 @@ func (s *Server) executeStructureInteractionDiagram(
 	if !request.ReportOnly {
 		svg, err := readBoundedStructureFile(filepath.Join(operationDir, "interaction-diagram.svg"), maxStructureInteractionOutputBytes)
 		if err != nil || !utf8.Valid(svg) || !strings.Contains(string(svg), "<svg") {
-			writeStructureInteractionDiagramError(w, http.StatusInternalServerError, "interaction_svg_invalid", "the Synon vector diagram failed validation", false)
+			writeStructureInteractionDiagramError(w, http.StatusInternalServerError, "interaction_svg_invalid", "the X-Science vector diagram failed validation", false)
 			return
 		}
 		png, err := readBoundedStructureFile(filepath.Join(operationDir, "interaction-diagram.png"), maxStructureInteractionOutputBytes)
 		if err != nil || len(png) < 8 || string(png[:8]) != "\x89PNG\r\n\x1a\n" {
-			writeStructureInteractionDiagramError(w, http.StatusInternalServerError, "interaction_png_invalid", "the Synon publication image failed validation", false)
+			writeStructureInteractionDiagramError(w, http.StatusInternalServerError, "interaction_png_invalid", "the X-Science publication image failed validation", false)
 			return
 		}
 		result["svg"] = string(svg)

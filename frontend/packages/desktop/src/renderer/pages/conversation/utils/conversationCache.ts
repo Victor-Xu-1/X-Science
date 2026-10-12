@@ -20,7 +20,7 @@ type ConversationRouteSnapshot = {
 const RECENT_ROUTE_DETAIL_MAX_AGE_MS = 5_000;
 const conversationRouteSnapshots = createKeyedSnapshotStore<ConversationRouteSnapshot>({ maxEntries: 64 });
 // All renderer detail reads share the same active request, not only the route
-// shell and the Synon runtime reconciler. Titlebar/runtime hydration can mount
+// shell and the X-Science runtime reconciler. Titlebar/runtime hydration can mount
 // in parallel with those consumers during a send; letting each caller invoke
 // IPC independently creates avoidable duplicate full conversation snapshots.
 const conversationDetailRequests = new Map<string, Promise<TChatConversation | null>>();

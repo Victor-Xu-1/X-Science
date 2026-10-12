@@ -162,7 +162,7 @@ func (s *session) respondToServerRequest(msg rpcMessage) error {
 	case "roots/list":
 		return s.send(rpcMessage{JSONRPC: "2.0", ID: msg.ID, Result: mustRawJSON(map[string]any{"roots": []any{}})})
 	default:
-		return s.send(rpcMessage{JSONRPC: "2.0", ID: msg.ID, Error: &rpcError{Code: -32601, Message: "method not supported by synon-go MCP client"}})
+		return s.send(rpcMessage{JSONRPC: "2.0", ID: msg.ID, Error: &rpcError{Code: -32601, Message: "method not supported by X-Science MCP client"}})
 	}
 }
 
@@ -276,7 +276,7 @@ func (s *sdkSession) respondToServerRequest(msg rpcMessage) error {
 	case "roots/list":
 		return s.send(rpcMessage{JSONRPC: "2.0", ID: msg.ID, Result: mustRawJSON(map[string]any{"roots": []any{}})})
 	default:
-		return s.send(rpcMessage{JSONRPC: "2.0", ID: msg.ID, Error: &rpcError{Code: -32601, Message: "method not supported by synon-go SDK MCP bridge"}})
+		return s.send(rpcMessage{JSONRPC: "2.0", ID: msg.ID, Error: &rpcError{Code: -32601, Message: "method not supported by X-Science SDK MCP bridge"}})
 	}
 }
 

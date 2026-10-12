@@ -62,7 +62,7 @@ func (s *Server) settingsStorageDoctorArea() (string, string, map[string]any, []
 			next = append(next, "Configure task and TaskRun stores.")
 		}
 		if !hasPairingStore {
-			next = append(next, "Configure durable Synon Link/IM pairing storage.")
+			next = append(next, "Configure durable X-Science Link/IM pairing storage.")
 		}
 	}
 	evidence := map[string]any{
@@ -325,7 +325,7 @@ func (s *Server) artifactSystemDoctorArea() (string, string, map[string]any, []s
 	hasArtifactGetPathRevalidation := hasArtifactContentRetrieval && hasSymlinkEscapeProtection
 	ready := hasRegister && hasList && hasGet && hasResearchAudit && hasStructuredOutput && hasSessionExportArtifactRegistration && hasRuntimeStore && hasFileRoot && hasSymlinkEscapeProtection && hasArtifactGetPathRevalidation
 	status := "partial"
-	message := "Agent artifacts are registered as durable runtime records with bounded file-root validation, relative paths, size, MIME, sha256 digest metadata, optional session/run linkage, session_export auto-registration, bounded artifact_get content retrieval with read-time path revalidation, original Synon research artifact phase/final-report classification, and StructuredOutput final JSON payload capture with original-compatible direct payload preservation, passthrough model tool schema, plus optional schema/value validation."
+	message := "Agent artifacts are registered as durable runtime records with bounded file-root validation, relative paths, size, MIME, sha256 digest metadata, optional session/run linkage, session_export auto-registration, bounded artifact_get content retrieval with read-time path revalidation, original X-Science research artifact phase/final-report classification, and StructuredOutput final JSON payload capture with original-compatible direct payload preservation, passthrough model tool schema, plus optional schema/value validation."
 	next := []string{}
 	if ready {
 		status = "pass"

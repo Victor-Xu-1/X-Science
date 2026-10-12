@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from '@/common/config/productIdentity';
 import PreviewLoadingState from '@/renderer/components/media/PreviewLoadingState';
 import { Button } from '@arco-design/web-react';
 import { Download, FileText, FolderClose, Refresh } from '@icon-park/react';
@@ -83,7 +84,7 @@ const SynonBiomedHdf5Viewer: React.FC<Props> = ({ filename, contentUrl }) => {
         setDetailLoading(false);
       } else {
         logScientificPreviewError(
-          '[SynonBiomedHdf5Viewer] Worker failed to parse HDF5 data',
+          `[${PRODUCT_NAME} Hdf5Viewer] Worker failed to parse HDF5 data`,
           new ScientificPreviewError('parse-failed'),
           'parse-failed'
         );
@@ -92,7 +93,7 @@ const SynonBiomedHdf5Viewer: React.FC<Props> = ({ filename, contentUrl }) => {
     };
     const handleWorkerError = () => {
       logScientificPreviewError(
-        '[SynonBiomedHdf5Viewer] HDF5 worker failed to start',
+        `[${PRODUCT_NAME} Hdf5Viewer] HDF5 worker failed to start`,
         new ScientificPreviewError('initialize-failed'),
         'initialize-failed'
       );
@@ -112,7 +113,7 @@ const SynonBiomedHdf5Viewer: React.FC<Props> = ({ filename, contentUrl }) => {
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
-        logScientificPreviewError('[SynonBiomedHdf5Viewer] Failed to load HDF5 data', error, 'request-failed');
+        logScientificPreviewError(`[${PRODUCT_NAME} Hdf5Viewer] Failed to load HDF5 data`, error, 'request-failed');
         setState({ status: 'error', error: resolveScientificPreviewError(error, 'request-failed') });
       });
 

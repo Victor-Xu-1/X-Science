@@ -20,6 +20,8 @@ sed "s/\"version\": \"${product_version}\"/\"version\": \"4.0.2\"/" "$root/produ
 ln -s "$tmp/trusted/product-identity.json" "$tmp/symlink/product-identity.json"
 
 source "$tmp/trusted/scripts/release-path-policy.sh"
+product_name="$(synon_release_product_name)"
+[[ "$product_name" == "$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["display_name"])' "$root/product-identity.json")" ]]
 synon_release_assert_product_identity "$tmp/current"
 if synon_release_assert_product_identity "$tmp/legacy" >/dev/null 2>&1; then
 	echo "identity policy accepted a legacy product version" >&2
@@ -29,5 +31,14 @@ if synon_release_assert_product_identity "$tmp/symlink" >/dev/null 2>&1; then
 	echo "identity policy accepted a symbolic-link identity" >&2
 	exit 1
 fi
+
+# Ambiguous authority lines cannot be turned into a misleading install label.
+cp "$root/product-identity.json" "$tmp/trusted/product-identity.json"
+sed -n '/"display_name"/p' "$root/product-identity.json" >>"$tmp/trusted/product-identity.json"
+if synon_release_product_name >/dev/null 2>&1; then
+	echo "identity policy accepted ambiguous display names" >&2
+	exit 1
+fi
+cp "$root/product-identity.json" "$tmp/trusted/product-identity.json"
 
 echo "RELEASE_IDENTITY_POLICY_TEST=yes"

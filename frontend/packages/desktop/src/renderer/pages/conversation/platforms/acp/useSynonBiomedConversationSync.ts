@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from '@/common/config/productIdentity';
 import type { TChatConversation, TConversationRuntimeSummary } from '@/common/config/storage';
 import {
   getConversationRuntimeViewSnapshot,
@@ -221,7 +222,7 @@ export function useSynonBiomedConversationSync({
         onIssueRef.current?.(null);
         if (conversationResult.error) {
           console.warn(
-            '[SynonBiomedConversationSync] Conversation reconcile failed; retaining the known runtime and live projection:',
+            `[${PRODUCT_NAME} ConversationSync] Conversation reconcile failed; retaining the known runtime and live projection:`,
             redactErrorText(
               conversationResult.error instanceof Error
                 ? conversationResult.error.message
@@ -407,7 +408,7 @@ export function useSynonBiomedConversationSync({
         const diagnostic = redactErrorText(
           error instanceof Error ? error.message : String(error || 'conversation sync failed')
         );
-        console.warn('[SynonBiomedConversationSync] Reconciliation failed:', diagnostic);
+        console.warn(`[${PRODUCT_NAME} ConversationSync] Reconciliation failed:`, diagnostic);
         consecutiveFailures += 1;
         const retryDelayMs = getSynonBiomedConversationRetryDelay(consecutiveFailures, pollIntervalMs);
         onIssueRef.current?.({

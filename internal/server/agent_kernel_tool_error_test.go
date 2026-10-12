@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"synon-go/internal/buildinfo"
 	kernelruntime "synon-go/internal/kernel"
 )
 
@@ -45,7 +46,7 @@ func TestAgentKernelPythonCodePreflightCompatibilityParserIsFailClosed(t *testin
 }
 
 func TestAgentKernelDescriptionsDeclareSynonDocsFirstAndEnvironmentBoundaries(t *testing.T) {
-	for _, required := range []string{"persistent Synon kernel", "standard Python", "not IPython or Jupyter", "%run", "python script.py", "Load its Skill", "inspect the installed API", "failed cell ends", "manage_environments", "manage_packages", "DataFrame.to_csv", "DataFrame.to_markdown", "tabulate"} {
+	for _, required := range []string{"persistent " + buildinfo.Release().Name + " kernel", "standard Python", "not IPython or Jupyter", "%run", "python script.py", "Load its Skill", "inspect the installed API", "failed cell ends", "manage_environments", "manage_packages", "DataFrame.to_csv", "DataFrame.to_markdown", "tabulate"} {
 		if !strings.Contains(agentKernelPythonDescription, required) {
 			t.Fatalf("python description is missing %q: %s", required, agentKernelPythonDescription)
 		}
@@ -62,7 +63,7 @@ func TestAgentKernelDescriptionsDeclareSynonDocsFirstAndEnvironmentBoundaries(t 
 			}
 		}
 	}
-	for _, required := range []string{"network-isolated", "independently injected synon host bridge", "raw sockets", "urllib", "download_public_scientific_file", "search_skills", "advisory", "live connector snapshot", "manage_environments", "manage_packages", "failed host operation ends"} {
+	for _, required := range []string{"network-isolated", "independently injected " + strings.ToLower(buildinfo.Release().Name) + " host bridge", "raw sockets", "urllib", "download_public_scientific_file", "search_skills", "advisory", "live connector snapshot", "manage_environments", "manage_packages", "failed host operation ends"} {
 		if !strings.Contains(strings.ToLower(agentKernelReplDescription), required) {
 			t.Fatalf("repl description is missing %q: %s", required, agentKernelReplDescription)
 		}

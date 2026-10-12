@@ -36,6 +36,7 @@ BLOCKED_SERVER_PACKAGES = {
 }
 
 ALLOWED_ADAPTATIONS = {
+    "packages/desktop/src/common/platform/NodePlatformServices.ts": "Derive only the package-name fallback from the current root product slug, retaining configured package names and existing data/log paths.",
     "packages/desktop/src/common/chat/slash/availability.ts": "Rename current first-party transport documentation to the current product display without changing command eligibility or protocol identifiers.",
     "packages/desktop/src/renderer/pages/conversation/GroupedHistory/ProjectHistorySection.tsx": "Synchronize the committed project list before visible reorder handles can receive input.",
     "tests/unit/renderer/ProjectHistorySection.dom.test.tsx": "Exercise immediate keyboard input on committed project handles before passive effects flush.",
@@ -527,9 +528,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "e9d3cac7557c15fbd0a604bacdaf20aec905c71037a394489a29541fdaff837a"
+APPROVED_ADAPTATION_FINGERPRINT = "4b2585d968daf4dc30839cb75023d4c61fe3baeca1980db3973676d9e6ed6f94"
 APPROVED_REMOVAL_FINGERPRINT = "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119"
-APPROVED_ADDITION_FINGERPRINT = "30a07118d55be10c77af6a20a1187e1666f75fce361a24707651fcdca6170a1b"
+APPROVED_ADDITION_FINGERPRINT = "b7dc22ab4a9855a90c6cbe8ed4dc77ba1854236d7ee4e019c12ff23c15bef082"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

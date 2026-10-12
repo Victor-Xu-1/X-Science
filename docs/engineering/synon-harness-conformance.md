@@ -1,4 +1,4 @@
-# Synon Harness conformance
+# X-Science Harness conformance
 
 ## Single authorities
 
@@ -1161,7 +1161,7 @@ unsafe links and invalid receipt scope are not classified as missing content.
 Runtime prompts, model-visible Skills, UI, logs, health output, and generated
 artifacts identify only X-Science. Historical protocol identifiers may
 remain only where required to read or safely reap pre-migration state; new
-resources use Synon names.
+user-visible product names use X-Science.
 
 ## Verification boundary
 

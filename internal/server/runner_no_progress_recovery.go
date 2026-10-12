@@ -19,7 +19,7 @@ import (
 const (
 	sessionRunnerNoProgressRecoverySchema = "synon.runner_no_progress.v1"
 	sessionRunnerNoProgressRecoveryField  = "runnerNoProgressRecovery"
-	sessionRunnerNoProgressDetailMarker   = "\nSynon no-progress recovery state: "
+	sessionRunnerNoProgressDetailMarker   = "\nX-Science no-progress recovery state: "
 	maxSessionRunnerClosedActions         = 8
 )
 
@@ -162,11 +162,11 @@ func (state sessionRunnerNoProgressRecovery) resumeDetail(base string) string {
 }
 
 func parseSessionRunnerNoProgressRecoveryDetail(detail string) (sessionRunnerNoProgressRecovery, bool) {
-	index := strings.LastIndex(detail, sessionRunnerNoProgressDetailMarker)
+	index, markerLength := sessionRunnerNoProgressMarkerIndex(detail, true)
 	if index < 0 {
 		return sessionRunnerNoProgressRecovery{}, false
 	}
-	decoder := json.NewDecoder(strings.NewReader(strings.TrimSpace(detail[index+len(sessionRunnerNoProgressDetailMarker):])))
+	decoder := json.NewDecoder(strings.NewReader(strings.TrimSpace(detail[index+markerLength:])))
 	decoder.DisallowUnknownFields()
 	var state sessionRunnerNoProgressRecovery
 	if decoder.Decode(&state) != nil || decoder.Decode(&struct{}{}) != io.EOF ||

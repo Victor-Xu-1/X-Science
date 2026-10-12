@@ -279,7 +279,7 @@ func Search(ctx context.Context, input Input, options Options) (Output, error) {
 		if stderr.Len() > 0 {
 			diagnostics["stderr"] = compactString(stderr.String(), 1000)
 		}
-		return unavailable(query, started, "WebSearch failed: Synon built-in websearch.py returned no usable links.", diagnostics), nil
+		return unavailable(query, started, "WebSearch failed: X-Science built-in websearch.py returned no usable links.", diagnostics), nil
 	}
 	if stdout.Exceeded() || stderr.Exceeded() {
 		diagnostics["error"] = "websearch helper output exceeded its bounded channel"
@@ -289,7 +289,7 @@ func Search(ctx context.Context, input Input, options Options) (Output, error) {
 	var raw []scriptResult
 	if err := json.Unmarshal(stdout.Bytes(), &raw); err != nil {
 		diagnostics["error"] = "websearch.py returned non-array JSON"
-		return unavailable(query, started, "WebSearch failed: Synon built-in websearch.py returned no usable links.", diagnostics), nil
+		return unavailable(query, started, "WebSearch failed: X-Science built-in websearch.py returned no usable links.", diagnostics), nil
 	}
 	hits := selectRelevantHits(raw, input, maxResults)
 	diagnostics["returnedResults"] = len(hits)

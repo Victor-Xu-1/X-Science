@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from '@/common/config/productIdentity';
 import type { SynonBiomedArtifactAnnotation } from '@/renderer/services/synonBiomedAnnotations';
 import {
   logScientificPreviewError,
@@ -80,7 +81,7 @@ export const SynonBiomedPdfArtifactViewer: React.FC<{
       })
       .catch((reason: unknown) => {
         if (controller.signal.aborted) return;
-        logScientificPreviewError('[SynonBiomedPdfArtifactViewer] Failed to load PDF', reason, 'request-failed');
+        logScientificPreviewError(`[${PRODUCT_NAME} PdfArtifactViewer] Failed to load PDF`, reason, 'request-failed');
         setError(resolveScientificPreviewError(reason, 'request-failed'));
         setLoading(false);
       });
@@ -99,7 +100,7 @@ export const SynonBiomedPdfArtifactViewer: React.FC<{
     [numPages]
   );
   const handlePageError = useCallback((reason: unknown) => {
-    logScientificPreviewError('[SynonBiomedPdfArtifactViewer] Failed to render PDF page', reason, 'parse-failed');
+    logScientificPreviewError(`[${PRODUCT_NAME} PdfArtifactViewer] Failed to render PDF page`, reason, 'parse-failed');
     setError(resolveScientificPreviewError(reason, 'parse-failed'));
     setLoading(false);
   }, []);
@@ -235,7 +236,11 @@ export const SynonBiomedPdfArtifactViewer: React.FC<{
             setLoading(false);
           }}
           onLoadError={(reason) => {
-            logScientificPreviewError('[SynonBiomedPdfArtifactViewer] Failed to parse PDF', reason, 'parse-failed');
+            logScientificPreviewError(
+              `[${PRODUCT_NAME} PdfArtifactViewer] Failed to parse PDF`,
+              reason,
+              'parse-failed'
+            );
             setError(resolveScientificPreviewError(reason, 'parse-failed'));
             setLoading(false);
           }}

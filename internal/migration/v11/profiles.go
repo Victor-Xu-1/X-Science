@@ -80,7 +80,7 @@ func importModelProfiles(ctx context.Context, sourceHome, targetHome, targetDB s
 			if _, err := vault.Create(secretstore.Secret{
 				ID: secretID, UserID: userID, Provider: profile.Provider, Name: profile.Name,
 				Value: profile.APIKey, CredentialType: "api-key",
-				Description: "Migrated from SynonBiomed v1.1 model profile " + profile.ID,
+				Description: "Migrated from legacy v1.1 model profile " + profile.ID,
 			}); err != nil {
 				return 0, fmt.Errorf("encrypt v1.1 model credential %s: %w", profile.ID, err)
 			}

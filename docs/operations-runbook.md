@@ -311,7 +311,7 @@ with Git, Go >=1.26, Node.js >=22.22 and <25, and npm:
 git clone https://github.com/Victor-Xu-1/X-Science.git
 cd X-Science
 bash scripts/dev/install-source-cli.sh
-synon start
+x-science start
 ```
 
 The entry validates Go >=1.26, Node.js >=22.22 and <25, npm, and its required
@@ -327,12 +327,12 @@ The one-time installer creates the user-level `~/.local/bin/x-science` symlink
 and compatibility `~/.local/bin/synon` symlink, both pointing to this checkout's
 single launcher. It never edits system directories or shell startup files. If it prints a PATH
 hint, run that `export PATH=...` line once in the current shell. From then on,
-use `synon start`; its options are passed to the canonical source quickstart.
+use `x-science start`; its options are passed to the canonical source quickstart.
 
 Open the printed URL exactly; prefer numeric `127.0.0.1` over `localhost` from Windows.
 A fresh local state may redirect from `#/login` to the guided `#/onboarding`
 flow; complete that first-use flow before entering the workbench. Use
-`synon start --open-browser` only when the current
+`x-science start --open-browser` only when the current
 terminal has desktop-browser access. The browser action is never implicit. No
 Web password is compiled into the repository.
 
@@ -480,8 +480,8 @@ Python/R environments. This does not make local scientific kernel execution
 ready on Windows: until native confinement is separately verified, use
 Linux/WSL for those task execution paths.
 
-`Ctrl+C` or `synon stop` stops only the exact backend/frontend hosts created by
-this invocation; `synon status` reports the verified owner.
+`Ctrl+C` or `x-science stop` stops only the exact backend/frontend hosts created by
+this invocation; `x-science status` reports the verified owner.
 The quickstart fails closed when either port is occupied, either child exits, a
 health body is not the expected gateway response, or startup exceeds its bounded
 timeout. It never finds and kills a process by port. Persistent source state and
@@ -555,9 +555,9 @@ running the example below:
 
 ```bash
 export SYNON_RELEASE_VERSION=vX.Y.Z
-mkdir -p /tmp/synon-download
-oras pull "ghcr.io/victor-xu-1/x-science:${SYNON_RELEASE_VERSION}" --output /tmp/synon-download
-cd /tmp/synon-download
+mkdir -p /tmp/x-science-download
+oras pull "ghcr.io/victor-xu-1/x-science:${SYNON_RELEASE_VERSION}" --output /tmp/x-science-download
+cd /tmp/x-science-download
 sha256sum --check "x-science-${SYNON_RELEASE_VERSION#v}-linux-amd64.tar.gz.sha256"
 sha256sum --check "x-science-${SYNON_RELEASE_VERSION#v}-windows-amd64.tar.gz.sha256"
 ```
@@ -594,9 +594,14 @@ The provenance is an in-toto/SLSA statement with SHA-256 source and binary subje
 
 ## Linux or WSL installation
 
+The new-install paths below are operator-selected examples. Existing instances
+keep their actual install and state paths. Packaged native commands still use
+the compatibility binary `synon-go`; `x-science` is the installed source launcher,
+not an alias for every native subcommand.
+
 ```bash
 export SYNON_RELEASE_VERSION="${SYNON_RELEASE_VERSION:-vX.Y.Z}"
-export SYNON_RELEASE_DIR="$HOME/.local/opt/synon-biomed"
+export SYNON_RELEASE_DIR="$HOME/.local/opt/x-science"
 ./scripts/install-release.sh ./x-science-${SYNON_RELEASE_VERSION#v}-linux-amd64.tar.gz "$SYNON_RELEASE_DIR"
 "$SYNON_RELEASE_DIR/synon-go" --health-json
 ```
@@ -687,7 +692,7 @@ provider tokens, OpenID, or AppSecret. Restart the service after changing any
 provider setting, then verify `GET /api/auth/providers`; account security and
 session revocation are available in the account settings page.
 
-The Web client, REST API, WebSocket/SSE streams, message channels, and Synon
+The Web client, REST API, WebSocket/SSE streams, message channels, and X-Science
 Link share the same Go runtime and durable state. TUI is outside the current
 product scope and the installed CLI does not expose a `tui` subcommand.
 
@@ -811,9 +816,16 @@ The service environment and `SYNON_HOME` are intentionally preserved. Delete the
 
 ## Windows installation
 
+New installation examples below use X-Science directories chosen by the operator.
+For an existing installation, substitute its actual paths throughout; do not move
+state, credentials or logs merely to rename the product. The packaged `synon-go`
+binary, service names, configuration keys and protocol identifiers are retained
+compatibility interfaces, not the display name or a second source launcher.
+See the [canonical rename compatibility map](governance/product-rename-compatibility-map.json).
+
 ```powershell
 $env:SYNON_RELEASE_VERSION = if ($env:SYNON_RELEASE_VERSION) { $env:SYNON_RELEASE_VERSION } else { 'vX.Y.Z' }
-$env:SYNON_RELEASE_DIR = if ($env:SYNON_RELEASE_DIR) { $env:SYNON_RELEASE_DIR } else { 'C:\Tools\SynonBiomed' }
+$env:SYNON_RELEASE_DIR = if ($env:SYNON_RELEASE_DIR) { $env:SYNON_RELEASE_DIR } else { 'C:\Tools\X-Science' }
 powershell -ExecutionPolicy Bypass -File .\scripts\install-release.ps1 `
   -Archive ".\x-science-$($env:SYNON_RELEASE_VERSION.TrimStart('v'))-windows-amd64.tar.gz" `
   -InstallDir $env:SYNON_RELEASE_DIR
@@ -833,9 +845,9 @@ directory outside both. This example intentionally binds only numeric loopback;
 blank Web credentials are acceptable only for that strictly local deployment.
 
 ```powershell
-$InstallDir = Join-Path $env:LOCALAPPDATA 'SynonBiomed\0.1.1-REVISION'
-$StateDir = Join-Path $env:LOCALAPPDATA 'SynonBiomed\state\8765-REVISION'
-$LogDir = Join-Path $env:LOCALAPPDATA 'SynonBiomed\logs\8765-REVISION'
+$InstallDir = Join-Path $env:LOCALAPPDATA 'X-Science\0.1.1-REVISION'
+$StateDir = Join-Path $env:LOCALAPPDATA 'X-Science\state\8765-REVISION'
+$LogDir = Join-Path $env:LOCALAPPDATA 'X-Science\logs\8765-REVISION'
 $Binary = Join-Path $InstallDir 'synon-go.exe'
 $Stdout = Join-Path $LogDir 'stdout.log'
 $Stderr = Join-Path $LogDir 'stderr.log'
@@ -882,7 +894,7 @@ listener, verify that its executable is the expected installed binary, and only
 then stop that exact process:
 
 ```powershell
-$InstallDir = Join-Path $env:LOCALAPPDATA 'SynonBiomed\0.1.1-REVISION'
+$InstallDir = Join-Path $env:LOCALAPPDATA 'X-Science\0.1.1-REVISION'
 $ExpectedBinary = [IO.Path]::GetFullPath((Join-Path $InstallDir 'synon-go.exe'))
 $Listener = Get-NetTCPConnection -State Listen -LocalPort 8765 -ErrorAction Stop |
   Select-Object -First 1
@@ -912,8 +924,8 @@ state it is not proven to read. Preserve the current install and state for
 diagnosis before switching to a previously verified pair.
 
 ```powershell
-$StateDir = Join-Path $env:LOCALAPPDATA 'SynonBiomed\state\8765-REVISION'
-$BackupRoot = Join-Path $env:LOCALAPPDATA 'SynonBiomed\backups'
+$StateDir = Join-Path $env:LOCALAPPDATA 'X-Science\state\8765-REVISION'
+$BackupRoot = Join-Path $env:LOCALAPPDATA 'X-Science\backups'
 $StateBackup = Join-Path $BackupRoot ('state-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
 if (Test-Path -LiteralPath $StateBackup) { throw 'State backup target already exists' }
 New-Item -ItemType Directory -Path $BackupRoot -Force | Out-Null
@@ -957,8 +969,8 @@ Back up the current release before an in-place upgrade:
 
 ```powershell
 $Manager = '.\scripts\manage-release.ps1'
-$InstallDir = Join-Path $env:LOCALAPPDATA 'SynonBiomed\0.1.1-REVISION'
-$ReleaseBackup = Join-Path $env:LOCALAPPDATA 'SynonBiomed\backups\release-REVISION'
+$InstallDir = Join-Path $env:LOCALAPPDATA 'X-Science\0.1.1-REVISION'
+$ReleaseBackup = Join-Path $env:LOCALAPPDATA 'X-Science\backups\release-REVISION'
 
 powershell -ExecutionPolicy Bypass -File $Manager -Action Backup `
   -InstallDir $InstallDir -BackupDir $ReleaseBackup
@@ -969,8 +981,8 @@ before the failed upgrade. Do not use a backup of the same failed release:
 
 ```powershell
 $Manager = '.\scripts\manage-release.ps1'
-$InstallDir = Join-Path $env:LOCALAPPDATA 'SynonBiomed\0.1.1-current'
-$PreviousReleaseBackup = Join-Path $env:LOCALAPPDATA 'SynonBiomed\backups\release-PREVIOUS'
+$InstallDir = Join-Path $env:LOCALAPPDATA 'X-Science\0.1.1-current'
+$PreviousReleaseBackup = Join-Path $env:LOCALAPPDATA 'X-Science\backups\release-PREVIOUS'
 
 powershell -ExecutionPolicy Bypass -File $Manager -Action Rollback `
   -InstallDir $InstallDir -BackupDir $PreviousReleaseBackup
@@ -981,7 +993,7 @@ preserved and must be handled separately:
 
 ```powershell
 $Manager = '.\scripts\manage-release.ps1'
-$RetiredInstallDir = Join-Path $env:LOCALAPPDATA 'SynonBiomed\0.1.1-RETIRED'
+$RetiredInstallDir = Join-Path $env:LOCALAPPDATA 'X-Science\0.1.1-RETIRED'
 
 powershell -ExecutionPolicy Bypass -File $Manager -Action Uninstall `
   -InstallDir $RetiredInstallDir
@@ -1177,8 +1189,8 @@ $Runtime = Get-CimInstance Win32_Process -Filter "ProcessId=$($Listener.OwningPr
 $Runtime | Select-Object ProcessId, ExecutablePath, CommandLine
 Invoke-RestMethod -Uri 'http://127.0.0.1:8765/api/health' -TimeoutSec 5 |
   ConvertTo-Json -Depth 5
-Get-Content -LiteralPath "$env:LOCALAPPDATA\SynonBiomed\logs\8765-REVISION\stdout.log" -Tail 100
-Get-Content -LiteralPath "$env:LOCALAPPDATA\SynonBiomed\logs\8765-REVISION\stderr.log" -Tail 100
+Get-Content -LiteralPath "$env:LOCALAPPDATA\X-Science\logs\8765-REVISION\stdout.log" -Tail 100
+Get-Content -LiteralPath "$env:LOCALAPPDATA\X-Science\logs\8765-REVISION\stderr.log" -Tail 100
 ```
 
 If no listener exists, inspect the versioned stdout/stderr logs and the most

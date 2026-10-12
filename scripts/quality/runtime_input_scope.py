@@ -43,7 +43,8 @@ def load(repo: Path) -> dict[str, set[str]]:
         if len(set(group["packages"])) != len(group["packages"]):
             raise ValueError("duplicate runtime package owner")
         for item in group["paths"]:
-            if (not isinstance(item, str) or not item.startswith("assets/")
+            if (not isinstance(item, str) or not (
+                    item.startswith(("assets/", "skills/")) or item == "internal/logoassets/SOURCE.md")
                     or PurePosixPath(item).as_posix() != item
                     or any(part in {".", ".."} for part in item.split("/"))
                     or any(c in item for c in "\\*?[]\x00\r\n")

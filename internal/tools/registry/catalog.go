@@ -217,7 +217,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "synon_link",
-			Description:  "Route browser actions through the Synon Link API.",
+			Description:  "Route browser actions through the X-Science Link API.",
 			Capabilities: []string{"browser-bridge"},
 			Input: map[string]Field{
 				"userId":   {Type: "string", Required: true},
@@ -484,7 +484,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "artifact_research_audit",
-			Description:  "Classify research workflow artifacts using the original Synon phase/final-report artifact contract.",
+			Description:  "Classify research workflow artifacts using the original X-Science phase/final-report artifact contract.",
 			Capabilities: []string{"artifact-registry", "research-artifacts", "phase-audit", "original-research-artifact-contract", "read-only"},
 			Input: map[string]Field{
 				"files":     {Type: "array", Required: false},
@@ -586,7 +586,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "file_list",
-			Description:  "List files and directories inside the configured Synon file root.",
+			Description:  "List files and directories inside the configured X-Science file root.",
 			Capabilities: []string{"filesystem", "bounded-root", "list"},
 			Input: map[string]Field{
 				"path": {Type: "string", Required: true},
@@ -595,7 +595,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "file_info",
-			Description:  "Inspect file or directory metadata inside the configured Synon file root without returning file content.",
+			Description:  "Inspect file or directory metadata inside the configured X-Science file root without returning file content.",
 			Capabilities: []string{"filesystem", "bounded-root", "metadata", "hash"},
 			Input: map[string]Field{
 				"path": {Type: "string", Required: true},
@@ -604,7 +604,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "file_read",
-			Description:  "Read a file inside the configured Synon file root with a bounded response body and metadata.",
+			Description:  "Read a file inside the configured X-Science file root with a bounded response body and metadata.",
 			Capabilities: []string{"filesystem", "bounded-root", "read", "metadata", "hash"},
 			Input: map[string]Field{
 				"path":     {Type: "string", Required: true},
@@ -615,7 +615,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "Read",
-			Description:  "Read a file using the original Synon Read tool contract with file_path, offset, and limit.",
+			Description:  "Read a file using the original X-Science Read tool contract with file_path, offset, and limit.",
 			Capabilities: []string{"filesystem", "bounded-root", "read", "original-tool-contract"},
 			Input: map[string]Field{
 				"file_path": {Type: "string", Required: true},
@@ -627,7 +627,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "ReadBatch",
-			Description:  "Read several small text files using the original Synon ReadBatch tool contract.",
+			Description:  "Read several small text files using the original X-Science ReadBatch tool contract.",
 			Capabilities: []string{"filesystem", "bounded-root", "read", "batch-read", "original-tool-contract"},
 			Input: map[string]Field{
 				"file_paths":         {Type: "array", Required: true},
@@ -638,7 +638,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "file_write",
-			Description:  "Write UTF-8 or base64 content to a file inside the configured Synon file root.",
+			Description:  "Write UTF-8 or base64 content to a file inside the configured X-Science file root.",
 			Capabilities: []string{"filesystem", "bounded-root", "write"},
 			Input: map[string]Field{
 				"path":      {Type: "string", Required: true},
@@ -650,7 +650,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "Write",
-			Description:  "Create or overwrite a file using the original Synon Write tool contract.",
+			Description:  "Create or overwrite a file using the original X-Science Write tool contract.",
 			Capabilities: []string{"filesystem", "bounded-root", "write", "original-tool-contract"},
 			Input: map[string]Field{
 				"file_path": {Type: "string", Required: true},
@@ -660,7 +660,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "NotebookEdit",
-			Description:  "Replace, insert, or delete a Jupyter notebook cell using the original Synon NotebookEdit tool contract.",
+			Description:  "Replace, insert, or delete a Jupyter notebook cell using the original X-Science NotebookEdit tool contract.",
 			Capabilities: []string{"filesystem", "bounded-root", "write", "jupyter-notebook", "original-tool-contract"},
 			Input: map[string]Field{
 				"notebook_path": {Type: "string", Required: true},
@@ -673,7 +673,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "file_mkdir",
-			Description:  "Create a directory inside the configured Synon file root.",
+			Description:  "Create a directory inside the configured X-Science file root.",
 			Capabilities: []string{"filesystem", "bounded-root", "write", "directory-management"},
 			Input: map[string]Field{
 				"path":      {Type: "string", Required: true},
@@ -683,7 +683,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "file_copy",
-			Description:  "Copy a file or, with recursive=true, a directory inside the configured Synon file root.",
+			Description:  "Copy a file or, with recursive=true, a directory inside the configured X-Science file root.",
 			Capabilities: []string{"filesystem", "bounded-root", "copy", "directory-management"},
 			Input: map[string]Field{
 				"path":       {Type: "string", Required: true},
@@ -695,7 +695,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "file_move",
-			Description:  "Move or rename a file or directory inside the configured Synon file root.",
+			Description:  "Move or rename a file or directory inside the configured X-Science file root.",
 			Capabilities: []string{"filesystem", "bounded-root", "move", "directory-management"},
 			Input: map[string]Field{
 				"path":       {Type: "string", Required: true},
@@ -706,7 +706,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "file_delete",
-			Description:  "Delete a file or, with recursive=true, a directory inside the configured Synon file root.",
+			Description:  "Delete a file or, with recursive=true, a directory inside the configured X-Science file root.",
 			Capabilities: []string{"filesystem", "bounded-root", "delete", "directory-management"},
 			Input: map[string]Field{
 				"path":      {Type: "string", Required: true},
@@ -716,7 +716,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "file_search",
-			Description:  "Search text files inside the configured Synon file root. The default discovery window is 100 matches. The result reports appliedLimit and truncated; increase the limit or narrow the query whenever truncated is true instead of treating the first page as complete.",
+			Description:  "Search text files inside the configured X-Science file root. The default discovery window is 100 matches. The result reports appliedLimit and truncated; increase the limit or narrow the query whenever truncated is true instead of treating the first page as complete.",
 			Capabilities: []string{"filesystem", "bounded-root", "search"},
 			Input: map[string]Field{
 				"path":  {Type: "string", Required: true},
@@ -727,7 +727,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "Glob",
-			Description:  "Find files by glob pattern inside the configured Synon file root using the original Synon tool contract. The default discovery window is 100 files and the result reports truncation; raise limit or narrow the pattern when the catalogue is incomplete.",
+			Description:  "Find files by glob pattern inside the configured X-Science file root using the original X-Science tool contract. The default discovery window is 100 files and the result reports truncation; raise limit or narrow the pattern when the catalogue is incomplete.",
 			Capabilities: []string{"filesystem", "bounded-root", "glob-search"},
 			Input: map[string]Field{
 				"pattern": {Type: "string", Required: true},
@@ -738,7 +738,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "Grep",
-			Description:  "Search files by regular expression with files, content, or count output modes using the original Synon tool contract. Use head_limit with offset to page through broad matches instead of treating a bounded first window as exhaustive.",
+			Description:  "Search files by regular expression with files, content, or count output modes using the original X-Science tool contract. Use head_limit with offset to page through broad matches instead of treating a bounded first window as exhaustive.",
 			Capabilities: []string{"filesystem", "bounded-root", "grep-search"},
 			Input: map[string]Field{
 				"pattern":     {Type: "string", Required: true},
@@ -760,7 +760,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "file_replace",
-			Description:  "Replace exact text inside a file under the configured Synon file root.",
+			Description:  "Replace exact text inside a file under the configured X-Science file root.",
 			Capabilities: []string{"filesystem", "bounded-root", "edit"},
 			Input: map[string]Field{
 				"path": {Type: "string", Required: true},
@@ -771,7 +771,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "Edit",
-			Description:  "Replace text inside a file using the original Synon Edit tool contract.",
+			Description:  "Replace text inside a file using the original X-Science Edit tool contract.",
 			Capabilities: []string{"filesystem", "bounded-root", "edit", "original-tool-contract"},
 			Input: map[string]Field{
 				"file_path":   {Type: "string", Required: true},
@@ -783,7 +783,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "file_patch",
-			Description:  "Apply structured line-based patch operations inside the configured Synon file root.",
+			Description:  "Apply structured line-based patch operations inside the configured X-Science file root.",
 			Capabilities: []string{"filesystem", "bounded-root", "structured-edit"},
 			Input: map[string]Field{
 				"path":       {Type: "string", Required: true},
@@ -793,7 +793,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "Patch",
-			Description:  "Dry-run or apply a unified diff using the original Synon Patch tool contract.",
+			Description:  "Dry-run or apply a unified diff using the original X-Science Patch tool contract.",
 			Capabilities: []string{"filesystem", "bounded-root", "unified-diff", "original-tool-contract"},
 			Input: map[string]Field{
 				"patch":   {Type: "string", Required: true},
@@ -803,7 +803,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "json_patch",
-			Description:  "Apply structured JSON Pointer add, replace, and remove operations inside the configured Synon file root.",
+			Description:  "Apply structured JSON Pointer add, replace, and remove operations inside the configured X-Science file root.",
 			Capabilities: []string{"filesystem", "bounded-root", "structured-json-edit"},
 			Input: map[string]Field{
 				"path":       {Type: "string", Required: true},
@@ -813,7 +813,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "code_index",
-			Description:  "Index code symbols inside the configured Synon file root.",
+			Description:  "Index code symbols inside the configured X-Science file root.",
 			Capabilities: []string{"filesystem", "bounded-root", "code-index"},
 			Input: map[string]Field{
 				"path":        {Type: "string", Required: true},
@@ -827,7 +827,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "code_references",
-			Description:  "Find bounded symbol references inside the configured Synon file root.",
+			Description:  "Find bounded symbol references inside the configured X-Science file root.",
 			Capabilities: []string{"filesystem", "bounded-root", "code-references"},
 			Input: map[string]Field{
 				"path":         {Type: "string", Required: true},
@@ -840,7 +840,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "shell_exec",
-			Description:  "Execute a command directly inside the configured Synon file root with timeout and captured output.",
+			Description:  "Execute a command directly inside the configured X-Science file root with timeout and captured output.",
 			Capabilities: []string{"process", "bounded-root", "direct-exec"},
 			Input: map[string]Field{
 				"command": {Type: "string", Required: true},
@@ -852,7 +852,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "Bash",
-			Description:  "Execute an original-compatible Bash command string inside the configured Synon file root.",
+			Description:  "Execute an original-compatible Bash command string inside the configured X-Science file root.",
 			Capabilities: []string{"process", "bounded-root", "shell-command", "bash"},
 			Input: map[string]Field{
 				"command":           {Type: "string", Required: true},
@@ -865,7 +865,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "Shell",
-			Description:  "Route an original-compatible shell command to Bash or PowerShell inside the configured Synon file root.",
+			Description:  "Route an original-compatible shell command to Bash or PowerShell inside the configured X-Science file root.",
 			Capabilities: []string{"process", "bounded-root", "shell-command", "platform-shell", "shell-router", "original-shell-contract"},
 			Input: map[string]Field{
 				"shell":             {Type: "string", Required: false},
@@ -879,7 +879,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "powershell",
-			Description:  "Execute an original-compatible PowerShell command string inside the configured Synon file root.",
+			Description:  "Execute an original-compatible PowerShell command string inside the configured X-Science file root.",
 			Capabilities: []string{"process", "bounded-root", "shell-command", "powershell"},
 			Input: map[string]Field{
 				"command":           {Type: "string", Required: true},
@@ -1164,7 +1164,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "Config",
-			Description:  "Get or set an original-compatible supported Synon setting.",
+			Description:  "Get or set an original-compatible supported X-Science setting.",
 			Capabilities: []string{"settings", "durable-state", "original-config-contract"},
 			Input: map[string]Field{
 				"setting": {Type: "string", Required: true},
@@ -1213,7 +1213,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "AgentRuntimeDoctor",
-			Description:  "Audit Go agent runtime parity against the original Synon runtime contract and report missing, partial, and passing runtime areas.",
+			Description:  "Audit Go agent runtime parity against the original X-Science runtime contract and report missing, partial, and passing runtime areas.",
 			Capabilities: []string{"diagnostics", "agent-runtime", "query-engine", "parity-audit", "original-synon-contract"},
 			Input: map[string]Field{
 				"scope": {Type: "string", Required: false, Schema: map[string]any{
@@ -1224,7 +1224,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "approval_remembered_list",
-			Description:  "List persisted remembered approval decisions for agent runtime and Synon Link permission governance.",
+			Description:  "List persisted remembered approval decisions for agent runtime and X-Science Link permission governance.",
 			Capabilities: []string{"permissions", "approval", "remembered-decisions", "diagnostics", "read-only"},
 			Input: map[string]Field{
 				"source": {Type: "string", Required: false},
@@ -1270,7 +1270,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "ToolDoctor",
-			Description:  "Run read-only diagnostics for Go tool registry, shell, web, task, compute, Synon Link, MCP, LSP, permission, and feature-gate scopes.",
+			Description:  "Run read-only diagnostics for Go tool registry, shell, web, task, compute, X-Science Link, MCP, LSP, permission, and feature-gate scopes.",
 			Capabilities: []string{"tool-diagnostics", "read-only", "original-tooldoctor-contract"},
 			Input: map[string]Field{
 				"scope": {Type: "string", Required: false},
@@ -1290,7 +1290,7 @@ func defaultCatalog() *Registry {
 		},
 		{
 			Name:         "ListMcpTools",
-			Description:  "List configured MCP servers and tool schemas through the original Synon ListMcpTools contract.",
+			Description:  "List configured MCP servers and tool schemas through the original X-Science ListMcpTools contract.",
 			Capabilities: []string{"mcp", "read-only", "tool-discovery", "stdio-json-rpc", "remote-http-sse-json-rpc", "remote-websocket-json-rpc", "original-mcp-contract"},
 			Input: map[string]Field{
 				"server": {Type: "string", Required: false},

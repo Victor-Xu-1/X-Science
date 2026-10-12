@@ -20,7 +20,7 @@ func (s *Server) handleSynonLink(w http.ResponseWriter, r *http.Request) {
 	tail := r.URL.Path[len("/api/synon-link"):]
 	if tail == "" || tail == "/" || tail == "/clients" {
 		if r.Method != http.MethodGet {
-			writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Synon Link clients only supports GET")
+			writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "X-Science Link clients only supports GET")
 			return
 		}
 		userID := resolveUserID(r, nil)
@@ -32,7 +32,7 @@ func (s *Server) handleSynonLink(w http.ResponseWriter, r *http.Request) {
 
 	if tail == "/capabilities" {
 		if r.Method != http.MethodGet {
-			writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Synon Link capabilities only supports GET")
+			writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "X-Science Link capabilities only supports GET")
 			return
 		}
 		defaults := s.synonLink.PolicyDefaults()
@@ -47,7 +47,7 @@ func (s *Server) handleSynonLink(w http.ResponseWriter, r *http.Request) {
 
 	if tail == "/doctor" {
 		if r.Method != http.MethodGet {
-			writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Synon Link doctor only supports GET")
+			writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "X-Science Link doctor only supports GET")
 			return
 		}
 		s.handleSynonLinkDoctor(w, r)
@@ -56,7 +56,7 @@ func (s *Server) handleSynonLink(w http.ResponseWriter, r *http.Request) {
 
 	if tail == "/inspect" {
 		if r.Method != http.MethodGet {
-			writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Synon Link inspect only supports GET")
+			writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "X-Science Link inspect only supports GET")
 			return
 		}
 		s.handleSynonLinkInspect(w, r)
@@ -65,7 +65,7 @@ func (s *Server) handleSynonLink(w http.ResponseWriter, r *http.Request) {
 
 	if tail == "/running" {
 		if r.Method != http.MethodGet {
-			writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Synon Link running only supports GET")
+			writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "X-Science Link running only supports GET")
 			return
 		}
 		userID := resolveUserID(r, nil)
@@ -77,7 +77,7 @@ func (s *Server) handleSynonLink(w http.ResponseWriter, r *http.Request) {
 
 	if tail == "/logs" {
 		if r.Method != http.MethodGet {
-			writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Synon Link logs only supports GET")
+			writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "X-Science Link logs only supports GET")
 			return
 		}
 		userID := resolveUserID(r, nil)
@@ -100,7 +100,7 @@ func (s *Server) handleSynonLink(w http.ResponseWriter, r *http.Request) {
 
 	if strings.HasPrefix(tail, "/devices/") {
 		if r.Method != http.MethodDelete {
-			writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Synon Link device revoke only supports DELETE")
+			writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "X-Science Link device revoke only supports DELETE")
 			return
 		}
 		userID := resolveUserID(r, nil)
@@ -110,7 +110,7 @@ func (s *Server) handleSynonLink(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if !s.synonLink.RevokeDevice(userID, deviceID, "api revoked") {
-			writeError(w, http.StatusNotFound, "NOT_FOUND", "Synon Link device not found")
+			writeError(w, http.StatusNotFound, "NOT_FOUND", "X-Science Link device not found")
 			return
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"ok": true, "deviceId": deviceID})
@@ -124,14 +124,14 @@ func (s *Server) handleSynonLink(w http.ResponseWriter, r *http.Request) {
 
 	if tail == "/commands" {
 		if r.Method != http.MethodPost {
-			writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Synon Link commands only supports POST")
+			writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "X-Science Link commands only supports POST")
 			return
 		}
 		s.handleSynonLinkCommand(w, r)
 		return
 	}
 
-	writeError(w, http.StatusNotFound, "NOT_FOUND", "Unknown Synon Link route")
+	writeError(w, http.StatusNotFound, "NOT_FOUND", "Unknown X-Science Link route")
 }
 
 func (s *Server) handleSynonLinkInspect(w http.ResponseWriter, r *http.Request) {
@@ -151,7 +151,7 @@ func (s *Server) handleSynonLinkInspect(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 	if !found {
-		writeError(w, http.StatusNotFound, "NOT_FOUND", "Synon Link client not found")
+		writeError(w, http.StatusNotFound, "NOT_FOUND", "X-Science Link client not found")
 		return
 	}
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
@@ -253,7 +253,7 @@ func (s *Server) handleSynonLinkCommand(w http.ResponseWriter, r *http.Request) 
 			"result":    result.Value,
 		})
 	case <-r.Context().Done():
-		writeError(w, http.StatusRequestTimeout, "REQUEST_TIMEOUT", "Synon Link command request was cancelled")
+		writeError(w, http.StatusRequestTimeout, "REQUEST_TIMEOUT", "X-Science Link command request was cancelled")
 	}
 }
 
@@ -332,29 +332,29 @@ func actionBlockReasons(client synonlink.Client, profile synonlink.ActionProfile
 
 func (s *Server) handleSynonLinkDownload(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
-		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Synon Link download only supports GET and HEAD")
+		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "X-Science Link download only supports GET and HEAD")
 		return
 	}
 	if s.linkPackagePath == "" {
-		writeError(w, http.StatusNotFound, "NOT_FOUND", "Synon Link extension package is not configured")
+		writeError(w, http.StatusNotFound, "NOT_FOUND", "X-Science Link extension package is not configured")
 		return
 	}
 	info, err := os.Stat(s.linkPackagePath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			writeError(w, http.StatusNotFound, "NOT_FOUND", "Synon Link extension package is not available")
+			writeError(w, http.StatusNotFound, "NOT_FOUND", "X-Science Link extension package is not available")
 			return
 		}
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Synon Link extension package could not be read")
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "X-Science Link extension package could not be read")
 		return
 	}
 	if info.IsDir() {
-		writeError(w, http.StatusNotFound, "NOT_FOUND", "Synon Link extension package is not available")
+		writeError(w, http.StatusNotFound, "NOT_FOUND", "X-Science Link extension package is not available")
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/zip")
-	w.Header().Set("Content-Disposition", `attachment; filename="synon-link-extension.zip"`)
+	w.Header().Set("Content-Disposition", `attachment; filename="x-science-browser-extension.zip"`)
 	w.Header().Set("Content-Length", stringInt(info.Size()))
 	w.Header().Set("Cache-Control", "public, max-age=300")
 	if r.Method == http.MethodHead {

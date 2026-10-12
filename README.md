@@ -142,7 +142,7 @@ Python/R 核心环境首次准备需要网络、时间和磁盘空间；可选�
   Runtime data and credentials belong outside source.
 - Model and connector access may require your own credentials and external
   usage allowance. Do not publish keys or confidential research data.
-- Press `Ctrl+C` in the launching terminal, or use `synon stop` for the hosts
+- Press `Ctrl+C` in the launching terminal, or use `x-science stop` for the hosts
   owned by that checkout.
 - Source startup uses loopback ports 8765/8766. If occupied, inspect the existing
   instance; do not kill a process merely to make startup pass.

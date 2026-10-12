@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { PRODUCT_NAME } from '@/common/config/productIdentity';
 import { classifyConfigSetError, useAcpConfigOptions } from '@/renderer/hooks/synonBiomed/runtime/useAcpConfigOptions';
 import type { AgentModeOption } from '@/renderer/utils/synonBiomed/runtime/runtimeTypes';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
@@ -183,7 +184,7 @@ const SynonBiomedModeSelector: React.FC<SynonBiomedModeSelectorProps> = ({
         onModeChanged?.(mode);
         Message.success(t('agentMode.switchSuccess'));
       } catch (error) {
-        console.error('[SynonBiomedModeSelector] Failed to switch mode:', error);
+        console.error(`[${PRODUCT_NAME} ModeSelector] Failed to switch mode:`, error);
         Message.error(t(configErrorMessageKey(error)));
       } finally {
         setIsLoading(false);

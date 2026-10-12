@@ -727,7 +727,7 @@
       "genes-ontologies": "Gene identity and ontologies — MyGene queries, OLS4 ontology terms, GO annotations (QuickGO), UniProt entries, Reactome pathways.",
       "drug-regulatory": "FDA drug data — Drugs@FDA applications, approvals, pharmacologic classes, generic equivalents, SPL drug labels.",
       "research-resources": "Research resources — Grants.gov funding opportunity search, Antibody Registry lookups.",
-      "synon-research": "Independent Synon-research MCP — compact discovery and bounded execution of an operator-verified research capability pack without exposing each source as a separate Skill.",
+      "synon-research": "Independent X-Science research MCP — compact discovery and bounded execution of an operator-verified research capability pack without exposing each source as a separate Skill.",
       "cancer-models": "Cancer genomics cohorts — cBioPortal studies, mutations, copy-number alterations, clinical attributes.",
       "chemistry": "Small-molecule chemistry — PubChem compounds/properties/similarity, ChEBI ontology, Rhea reactions, BindingDB affinities.",
       "human-genetics": "Human genetics associations — GWAS Catalog, eQTL Catalogue, FinnGen/BioBank-Japan PheWAS portals.",
@@ -1151,7 +1151,7 @@
       "openTaskWorkspace": "Open workspace",
       "taskNoDescription": "No status description",
       "realtime": {
-        "offline": "Realtime updates are offline. Synon will reconnect when the network is available.",
+        "offline": "Realtime updates are offline. X-Science will reconnect when the network is available.",
         "reconnecting": "Restoring realtime updates. Authoritative task state will refresh after reconnection.",
         "protocolError": "Realtime updates are unavailable. Active task state is being refreshed directly."
       },

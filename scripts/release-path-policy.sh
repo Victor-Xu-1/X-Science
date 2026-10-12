@@ -77,6 +77,19 @@ synon_release_trusted_identity_path() {
 	printf '%s\n' "$trusted_identity"
 }
 
+# Read the canonical, unescaped display-name line without adding an installer
+# dependency. Unsupported/ambiguous authority formatting fails closed.
+synon_release_product_name() {
+	local trusted_identity display_name
+	trusted_identity="$(synon_release_trusted_identity_path)" || return 1
+	display_name=$(sed -nE 's/^[[:space:]]*"display_name": "([^"\\]+)",?[[:space:]]*$/\1/p' "$trusted_identity")
+	if [[ -z "$display_name" || "$display_name" == *$'\n'* ]]; then
+		echo "trusted product display name is unavailable" >&2
+		return 1
+	fi
+	printf '%s\n' "$display_name"
+}
+
 synon_release_assert_product_identity() {
 	local candidate_root="$1"
 	local trusted_identity candidate_identity

@@ -13,6 +13,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'release-identity-policy.ps1')
 $script:TrustedIdentityPath = Join-Path $PSScriptRoot '..\product-identity.json'
+$productName = (Read-SynonProductIdentity -Path $script:TrustedIdentityPath).display_name
 
 function Resolve-SafePath([string]$Path) {
   if ([string]::IsNullOrWhiteSpace($Path)) { throw 'Refusing an empty release path' }
@@ -108,7 +109,7 @@ switch ($Action) {
         Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction Stop
       }
     }
-    Write-Output "synon-go release backed up to $backup"
+    Write-Output "$productName release backed up to $backup"
   }
   'Rollback' {
     if ([string]::IsNullOrWhiteSpace($BackupDir)) { throw 'BackupDir is required for Rollback' }
@@ -167,7 +168,7 @@ switch ($Action) {
         Write-Warning "Previous installation preserved for manual recovery at $previous"
       }
     }
-    Write-Output "synon-go rolled back from $backup to $install"
+    Write-Output "$productName rolled back from $backup to $install"
   }
   'Uninstall' {
     if (-not (Test-Path -LiteralPath (Join-Path $install 'RELEASE_MANIFEST.json') -PathType Leaf)) {
@@ -176,6 +177,6 @@ switch ($Action) {
     if (-not $AllowCorrupt) { Assert-Release $install }
     Assert-ReleasePathUnchanged $InstallDir $install
     Remove-Item -LiteralPath $install -Recurse -Force
-    Write-Output "synon-go uninstalled from $install; external data directories were preserved"
+    Write-Output "$productName uninstalled from $install; external data directories were preserved"
   }
 }

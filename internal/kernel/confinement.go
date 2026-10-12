@@ -44,7 +44,7 @@ func DiagnoseConfinementEvidence(evidence ConfinementEvidence) ConfinementDiagno
 		return ConfinementDiagnostic{Code: "kernel_confinement_unavailable", Message: "kernel process confinement is unavailable"}
 	case darwinConfinementUnverifiedReason:
 		return ConfinementDiagnostic{Code: "kernel_confinement_unavailable", Message: "kernel process confinement is unavailable"}
-	case "Synon kernel confinement is unavailable on this platform":
+	case "X-Science kernel confinement is unavailable on this platform", "Synon kernel confinement is unavailable on this platform":
 		return ConfinementDiagnostic{Code: "kernel_confinement_unsupported", Message: "kernel process confinement is unsupported on this platform"}
 	default:
 		return ConfinementDiagnostic{Code: "kernel_confinement_probe_failed", Message: "kernel process confinement verification failed"}

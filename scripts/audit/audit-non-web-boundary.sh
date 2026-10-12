@@ -21,7 +21,7 @@ expected = [
     "docs/licenses/frontend-dependencies/jszip@3.10.1/lib/license_header.js",
     "skills/synonbiomed/skill-creator/assets/eval_review.html",
     "skills/synonbiomed/skill-creator/eval-viewer/viewer.html",
-    "assets/synon-link/synon-link-extension-v0.6.10.zip",
+    "assets/synon-link/x-science-browser-extension-v0.6.10.zip",
     "assets/optional/mcp-servers/ketcher-chemistry/widget/index.html.gz",
 ]
 actual = [item.get("path") for item in document.get("allowedVisualAssets", [])]
