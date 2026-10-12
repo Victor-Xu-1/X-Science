@@ -91,7 +91,7 @@ func TestComputeRemoteFilesRealSSHAndSFTPLifecycle(t *testing.T) {
 	downloadResponse := remoteRequest(t, app, http.MethodGet,
 		"/api/compute/providers/ssh:loopback/download?path="+urlQueryEscape(remoteFile), nil, "owner-a")
 	downloadResponse.Result().Body.Close()
-	rangeRequest := httptest.NewRequest(http.MethodGet,
+	rangeRequest := newLoopbackTestRequest(http.MethodGet,
 		"/api/compute/providers/ssh:loopback/download?path="+urlQueryEscape(remoteFile), nil)
 	rangeRequest.Header.Set("X-Synon-User-Id", "owner-a")
 	rangeRequest.Header.Set("Range", "bytes=7-13")

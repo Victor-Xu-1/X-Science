@@ -164,7 +164,7 @@ func TestSynonBiomedProjectAndCatalogRejectInvalidOrUnauthenticatedRequests(t *t
 	t.Cleanup(func() { _ = store.Close() })
 	app := New(Options{FileRoot: root, Workspace: store})
 
-	invalid := httptest.NewRequest(http.MethodPost, "/api/synonbiomed/projects", strings.NewReader(`{"name":"","extra":true}`))
+	invalid := newLoopbackTestRequest(http.MethodPost, "/api/synonbiomed/projects", strings.NewReader(`{"name":"","extra":true}`))
 	invalid.RemoteAddr = "127.0.0.1:12345"
 	invalidResponse := httptest.NewRecorder()
 	app.Handler().ServeHTTP(invalidResponse, invalid)
@@ -172,12 +172,21 @@ func TestSynonBiomedProjectAndCatalogRejectInvalidOrUnauthenticatedRequests(t *t
 		t.Fatalf("invalid status=%d body=%s", invalidResponse.Code, invalidResponse.Body.String())
 	}
 
-	remote := httptest.NewRequest(http.MethodGet, "/api/synonbiomed/catalog", nil)
+	remote := newLoopbackTestRequest(http.MethodGet, "/api/synonbiomed/catalog", nil)
 	remote.RemoteAddr = "203.0.113.8:12345"
 	remoteResponse := httptest.NewRecorder()
 	app.Handler().ServeHTTP(remoteResponse, remote)
 	if remoteResponse.Code != http.StatusUnauthorized {
 		t.Fatalf("remote status=%d body=%s", remoteResponse.Code, remoteResponse.Body.String())
+	}
+
+	forged := newLoopbackTestRequest(http.MethodGet, "/api/synonbiomed/catalog", nil)
+	forged.RemoteAddr = "203.0.113.8:12345"
+	forged.Header.Set("X-Synon-User-Id", "attacker")
+	forgedResponse := httptest.NewRecorder()
+	app.Handler().ServeHTTP(forgedResponse, forged)
+	if forgedResponse.Code != http.StatusUnauthorized {
+		t.Fatalf("remote forged header status=%d body=%s", forgedResponse.Code, forgedResponse.Body.String())
 	}
 }
 

@@ -362,7 +362,7 @@ func TestTranscriptRunnerAskUserPausesUntilNewInputThenResumesCheckpoint(t *test
 	if terminalCounts["stream"] != 1 || terminalCounts["runtime"] != 1 || terminalCounts["turn"] != 1 {
 		t.Fatalf("terminal projection counts=%#v", terminalCounts)
 	}
-	historyRequest := httptest.NewRequest(http.MethodGet, "/api/conversations/frame-ask/messages?limit=100", nil)
+	historyRequest := newLoopbackTestRequest(http.MethodGet, "/api/conversations/frame-ask/messages?limit=100", nil)
 	historyRequest.Header.Set("X-Synon-User-Id", "local")
 	historyResponse := httptest.NewRecorder()
 	srv.Handler().ServeHTTP(historyResponse, historyRequest)
@@ -613,7 +613,7 @@ func TestTranscriptRunnerAskUserSurvivesProcessRestartBeforeResolve(t *testing.T
 	if err != nil || !found || frame.Status != "awaiting_user_response" {
 		t.Fatalf("restarted frame=%#v found=%t err=%v", frame, found, err)
 	}
-	request := httptest.NewRequest(http.MethodPost, "/api/frames/frame-ask-restart/resolve-input", nil)
+	request := newLoopbackTestRequest(http.MethodPost, "/api/frames/frame-ask-restart/resolve-input", nil)
 	request.Header.Set("X-Synon-User-Id", "local")
 	resolved, err := restarted.resolveCompatibilityInput(request, frame, compatibilityResolveInputRequest{Responses: []compatibilityInputResponse{{
 		ToolID: "ask-restart", Action: "answer", Answers: map[string]string{"Which branch?": "Alpha"},
@@ -728,7 +728,7 @@ func TestRunnerAskUserPausesPersistsAnswerAndResumes(t *testing.T) {
 		t.Fatalf("confirmations=%#v err=%v", confirmations, err)
 	}
 
-	request := httptest.NewRequest(http.MethodPost, "/api/frames/frame/resolve-input", nil)
+	request := newLoopbackTestRequest(http.MethodPost, "/api/frames/frame/resolve-input", nil)
 	request.Header.Set("X-Synon-User-Id", "local")
 	resolved, err := srv.resolveCompatibilityInput(request, frame, compatibilityResolveInputRequest{Responses: []compatibilityInputResponse{{
 		ToolID: "ask-structure", Action: "answer", Answers: map[string]string{"Which CRBN structure should be used?": "5FQD"},

@@ -32,7 +32,7 @@ func TestWebFSUploadFeedsAuthenticatedConversationInputAuthority(t *testing.T) {
 	body, contentType := multipartAttachmentBody(t, "file", "组合验收.csv", payload, map[string]string{
 		"conversation_id": frame.ID,
 	})
-	request := httptest.NewRequest(http.MethodPost, "/api/fs/upload", body)
+	request := newLoopbackTestRequest(http.MethodPost, "/api/fs/upload", body)
 	request.RemoteAddr = "127.0.0.1:12345"
 	request.Header.Set("Content-Type", contentType)
 	request.Header.Set("X-Synon-User-Id", "local")
@@ -59,7 +59,7 @@ func TestWebFSUploadFeedsAuthenticatedConversationInputAuthority(t *testing.T) {
 		t.Fatalf("uploaded bytes=%q err=%v", uploaded, err)
 	}
 	app.synonLinkAuth.enabled = true
-	materializeRequest := httptest.NewRequest(http.MethodPost, "/", nil)
+	materializeRequest := newLoopbackTestRequest(http.MethodPost, "/", nil)
 	materializeRequest.RemoteAddr = "127.0.0.1:12345"
 	materialized, err := app.materializeWebConversationInputFiles(context.Background(), materializeRequest, compatFrame, []string{result.Data})
 	if err != nil || len(materialized) != 1 || materialized[0] != "inputs/组合验收.csv" {
@@ -97,7 +97,7 @@ func TestWebFSUploadRejectsForeignConversationAndUnsafeFilename(t *testing.T) {
 	requestUpload := func(user string, fields map[string]string) *httptest.ResponseRecorder {
 		t.Helper()
 		body, contentType := multipartAttachmentBody(t, "file", "evidence.txt", []byte("evidence"), fields)
-		request := httptest.NewRequest(http.MethodPost, "/api/fs/upload", body)
+		request := newLoopbackTestRequest(http.MethodPost, "/api/fs/upload", body)
 		request.RemoteAddr = "127.0.0.1:12345"
 		request.Header.Set("Content-Type", contentType)
 		request.Header.Set("X-Synon-User-Id", user)

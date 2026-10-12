@@ -147,7 +147,7 @@ func TestArtifactArchiveRejectsForeignUsersAndTraversal(t *testing.T) {
 
 func authenticatedArchiveRequest(t *testing.T, handler http.Handler, target, userID string) *httptest.ResponseRecorder {
 	t.Helper()
-	request := httptest.NewRequest(http.MethodGet, target, nil)
+	request := newLoopbackTestRequest(http.MethodGet, target, nil)
 	request.Header.Set("X-Synon-User-Id", userID)
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, request)

@@ -147,7 +147,7 @@ func authenticatedWorkspaceBranchRequest(t *testing.T, handler http.Handler, tar
 	if err != nil {
 		t.Fatal(err)
 	}
-	request := httptest.NewRequest(http.MethodPost, target, bytes.NewReader(raw))
+	request := newLoopbackTestRequest(http.MethodPost, target, bytes.NewReader(raw))
 	request.RemoteAddr = "127.0.0.1:12345"
 	request.Header.Set("Content-Type", "application/json")
 	for _, cookie := range []*http.Cookie{sessionCookie, csrfCookie} {
@@ -170,7 +170,7 @@ func postWorkspaceBranch(t *testing.T, app http.Handler, target string, body map
 		t.Fatal(err)
 	}
 	response := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodPost, target, bytes.NewReader(raw))
+	request := newLoopbackTestRequest(http.MethodPost, target, bytes.NewReader(raw))
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("X-Synon-User-Id", "local")
 	app.ServeHTTP(response, request)

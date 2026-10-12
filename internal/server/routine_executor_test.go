@@ -184,7 +184,7 @@ func TestRoutineAskUserDefersAndReconcilesTheSameTickAfterResume(t *testing.T) {
 		t.Fatalf("deferred events = %#v err=%v", events, err)
 	}
 
-	request := httptest.NewRequest(http.MethodPost, "/api/frames/frame-routine/resolve-input", nil)
+	request := newLoopbackTestRequest(http.MethodPost, "/api/frames/frame-routine/resolve-input", nil)
 	request.Header.Set("X-Synon-User-Id", "user-routine")
 	resolved, err := srv.resolveCompatibilityInput(request, frame, compatibilityResolveInputRequest{Responses: []compatibilityInputResponse{{
 		ToolID: "routine-ask-structure", Action: "answer",

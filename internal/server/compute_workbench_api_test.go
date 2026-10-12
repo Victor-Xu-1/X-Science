@@ -359,7 +359,7 @@ func requestComputeWithHeaders(t *testing.T, handler http.Handler, method, path 
 		}
 		reader = strings.NewReader(string(raw))
 	}
-	request := httptest.NewRequest(method, path, reader)
+	request := newLoopbackTestRequest(method, path, reader)
 	request.Header.Set("X-Synon-User-Id", user)
 	for key, value := range headers {
 		request.Header.Set(key, value)

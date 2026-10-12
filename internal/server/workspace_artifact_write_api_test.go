@@ -16,7 +16,7 @@ import (
 func TestArtifactTextVersionCompatibilityWritesCurrentVersionAndFreshProvenance(t *testing.T) {
 	fixture := newArtifactReadFixture(t)
 	body := strings.NewReader(`{"content":"third","content_type":"text/plain","parent_version_id":"` + fixture.firstVersionID + `"}`)
-	request := httptest.NewRequest(http.MethodPost, "/api/artifacts/"+fixture.artifactID+"/versions", body)
+	request := newLoopbackTestRequest(http.MethodPost, "/api/artifacts/"+fixture.artifactID+"/versions", body)
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("X-Synon-User-Id", "owner-a")
 	response := httptest.NewRecorder()
@@ -82,7 +82,7 @@ func TestArtifactTextVersionCompatibilityCarriesRealSQLiteAnnotations(t *testing
 	server := New(Options{Workspace: store})
 	mux := http.NewServeMux()
 	server.registerWorkspaceArtifactReadCompatibilityRoutes(mux)
-	request := httptest.NewRequest(http.MethodPost, "/api/artifacts/"+artifact.ID+"/versions",
+	request := newLoopbackTestRequest(http.MethodPost, "/api/artifacts/"+artifact.ID+"/versions",
 		strings.NewReader("{\"content\":\"second\",\"parent_version_id\":\""+first.ID+"\"}"))
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("X-Synon-User-Id", "owner-a")
@@ -160,7 +160,7 @@ func TestArtifactWriteCompatibilityCamouflagesOwnerAndValidatesParent(t *testing
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
 			body := strings.NewReader(`{"content":"edit","parent_version_id":"` + testCase.parentID + `"}`)
-			request := httptest.NewRequest(http.MethodPost, "/api/artifacts/"+fixture.artifactID+"/versions", body)
+			request := newLoopbackTestRequest(http.MethodPost, "/api/artifacts/"+fixture.artifactID+"/versions", body)
 			request.Header.Set("Content-Type", "application/json")
 			request.Header.Set("X-Synon-User-Id", testCase.userID)
 			response := httptest.NewRecorder()
@@ -290,7 +290,7 @@ func artifactBinaryWriteRequest(t *testing.T, artifactID, parentID, branchFilena
 	if branchFilename != "" {
 		target += "&branch_as_filename=" + branchFilename
 	}
-	request := httptest.NewRequest(http.MethodPost, target, &body)
+	request := newLoopbackTestRequest(http.MethodPost, target, &body)
 	request.Header.Set("Content-Type", writer.FormDataContentType())
 	request.Header.Set("X-Synon-User-Id", userID)
 	return request

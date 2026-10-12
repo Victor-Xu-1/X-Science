@@ -88,7 +88,7 @@ func TestMCPAppSandboxTicketIsOwnerResolvedSingleUseAndHostBound(t *testing.T) {
 	}
 	path := "/mcp-app-resource?ticket=" + payload.Ticket
 	untrustedRemote := httptest.NewRecorder()
-	untrustedRemoteRequest := httptest.NewRequest(http.MethodGet, path, nil)
+	untrustedRemoteRequest := newLoopbackTestRequest(http.MethodGet, path, nil)
 	untrustedRemoteRequest.Host = "mcp-app.localhost:38180"
 	untrustedRemoteRequest.RemoteAddr = "203.0.113.10:60000"
 	handler.ServeHTTP(untrustedRemote, untrustedRemoteRequest)
@@ -97,7 +97,7 @@ func TestMCPAppSandboxTicketIsOwnerResolvedSingleUseAndHostBound(t *testing.T) {
 	}
 
 	wrongHost := httptest.NewRecorder()
-	wrongHostRequest := httptest.NewRequest(http.MethodGet, path, nil)
+	wrongHostRequest := newLoopbackTestRequest(http.MethodGet, path, nil)
 	wrongHostRequest.Host = "mcp-app.localhost:38181"
 	wrongHostRequest.RemoteAddr = "127.0.0.1:60001"
 	handler.ServeHTTP(wrongHost, wrongHostRequest)
@@ -106,7 +106,7 @@ func TestMCPAppSandboxTicketIsOwnerResolvedSingleUseAndHostBound(t *testing.T) {
 	}
 
 	resource := httptest.NewRecorder()
-	resourceRequest := httptest.NewRequest(http.MethodGet, path, nil)
+	resourceRequest := newLoopbackTestRequest(http.MethodGet, path, nil)
 	resourceRequest.Host = "mcp-app.localhost:38180"
 	resourceRequest.RemoteAddr = "127.0.0.1:60002"
 	handler.ServeHTTP(resource, resourceRequest)

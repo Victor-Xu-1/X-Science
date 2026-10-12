@@ -67,7 +67,7 @@ func TestCurrentReproducibilityReportsPreserveSuppliedData(t *testing.T) {
 		t.Fatalf("session report altered current branding or supplied data: %q", session)
 	}
 	app, _, _, versionID, _ := exportFixture(t)
-	request := httptest.NewRequest(http.MethodGet, "/api/artifacts/"+versionID+"/script-bundle", nil)
+	request := newLoopbackTestRequest(http.MethodGet, "/api/artifacts/"+versionID+"/script-bundle", nil)
 	request.Header.Set("X-Synon-User-Id", "user-1")
 	response := httptest.NewRecorder()
 	app.ServeHTTP(response, request)

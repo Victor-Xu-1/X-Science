@@ -73,7 +73,7 @@ func TestCloudCredentialAPIAndStreamingArtifactTransfer(t *testing.T) {
 		t.Fatalf("folder = %#v", folder)
 	}
 
-	downloadRequest := httptest.NewRequest(http.MethodGet, "/api/cloud-credentials/cloud-1/download?bucket=bucket&key=source/input.txt&disposition=inline", nil)
+	downloadRequest := newLoopbackTestRequest(http.MethodGet, "/api/cloud-credentials/cloud-1/download?bucket=bucket&key=source/input.txt&disposition=inline", nil)
 	downloadRequest.Header.Set("X-Synon-User-Id", "user-1")
 	downloadResponse := httptest.NewRecorder()
 	handler.ServeHTTP(downloadResponse, downloadRequest)
@@ -95,7 +95,7 @@ func TestCloudCredentialAPIAndStreamingArtifactTransfer(t *testing.T) {
 	if len(events) != 2 || events[0].(map[string]any)["type"] != "artifact_created" || events[1].(map[string]any)["type"] != "lineage_ready" {
 		t.Fatalf("cloud import realtime events=%#v", events)
 	}
-	rangeRequest := httptest.NewRequest(http.MethodGet, "/api/artifacts/"+artifactID, nil)
+	rangeRequest := newLoopbackTestRequest(http.MethodGet, "/api/artifacts/"+artifactID, nil)
 	rangeRequest.Header.Set("X-Synon-User-Id", "user-1")
 	rangeRequest.Header.Set("Range", "bytes=6-12")
 	rangeResponse := httptest.NewRecorder()
@@ -104,7 +104,7 @@ func TestCloudCredentialAPIAndStreamingArtifactTransfer(t *testing.T) {
 		t.Fatalf("streamed artifact range=%d body=%q", rangeResponse.Code, rangeResponse.Body.String())
 	}
 	for _, endpoint := range []string{"/api/artifacts/" + artifactID, "/api/artifacts/versions/" + version.ID} {
-		foreignDownload := httptest.NewRequest(http.MethodGet, endpoint, nil)
+		foreignDownload := newLoopbackTestRequest(http.MethodGet, endpoint, nil)
 		foreignDownload.Header.Set("X-Synon-User-Id", "user-2")
 		foreignResponse := httptest.NewRecorder()
 		handler.ServeHTTP(foreignResponse, foreignDownload)
@@ -333,7 +333,7 @@ func cloudRequestAny(t *testing.T, handler http.Handler, method, path, userID st
 		}
 		reader = bytes.NewReader(encoded)
 	}
-	request := httptest.NewRequest(method, path, reader)
+	request := newLoopbackTestRequest(method, path, reader)
 	request.Header.Set("X-Synon-User-Id", userID)
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, request)

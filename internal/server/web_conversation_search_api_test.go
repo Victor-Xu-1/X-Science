@@ -125,7 +125,7 @@ func executeWebConversationSearch(
 	query string,
 ) *httptest.ResponseRecorder {
 	t.Helper()
-	request := httptest.NewRequest(
+	request := newLoopbackTestRequest(
 		http.MethodGet,
 		"/api/conversations/search?q="+url.QueryEscape(query)+"&page=0&page_size=20",
 		nil,

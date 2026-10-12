@@ -135,7 +135,7 @@ func TestWorkspaceFrameRecoveryViewsUseDurableJournal(t *testing.T) {
 
 	batchBody, _ := json.Marshal(map[string]any{"ids": []any{"root-frame", "missing-frame"}})
 	batchResponse := httptest.NewRecorder()
-	batchRequest := httptest.NewRequest(http.MethodPost, "/api/go/frames/root-frame/streaming-batch", bytes.NewReader(batchBody))
+	batchRequest := newLoopbackTestRequest(http.MethodPost, "/api/go/frames/root-frame/streaming-batch", bytes.NewReader(batchBody))
 	batchRequest.Header.Set("Content-Type", "application/json")
 	batchRequest.Header.Set("X-Synon-User-Id", "local")
 	app.ServeHTTP(batchResponse, batchRequest)
@@ -232,7 +232,7 @@ func TestWorkspaceCompactionMessagesUseArchiveIndexesAndFilterBoundaries(t *test
 func getWorkspaceRecoveryJSON(t *testing.T, app http.Handler, target string, wantStatus int) map[string]any {
 	t.Helper()
 	response := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodGet, target, nil)
+	request := newLoopbackTestRequest(http.MethodGet, target, nil)
 	request.Header.Set("X-Synon-User-Id", "local")
 	app.ServeHTTP(response, request)
 	if response.Code != wantStatus {

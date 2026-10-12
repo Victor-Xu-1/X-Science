@@ -84,7 +84,7 @@ func TestRuntimeSystemAndFeedbackCompatibilityAPI(t *testing.T) {
 		t.Fatalf("me email=%#v", me["email"])
 	}
 	invalidEmail := httptest.NewRecorder()
-	invalidEmailRequest := httptest.NewRequest(http.MethodGet, "/api/me", nil)
+	invalidEmailRequest := newLoopbackTestRequest(http.MethodGet, "/api/me", nil)
 	invalidEmailRequest.Header.Set("X-Synon-User-Id", "user-1")
 	invalidEmailRequest.Header["X-Synon-User-Email"] = []string{"victim@example.test\r\nX-Injected: true"}
 	app.ServeHTTP(invalidEmail, invalidEmailRequest)
@@ -149,7 +149,7 @@ func TestRuntimeSystemAndFeedbackCompatibilityAPI(t *testing.T) {
 	}
 
 	logoutResponse := httptest.NewRecorder()
-	logoutRequest := httptest.NewRequest(http.MethodPost, "/api/auth/logout", bytes.NewReader([]byte(`{}`)))
+	logoutRequest := newLoopbackTestRequest(http.MethodPost, "/api/auth/logout", bytes.NewReader([]byte(`{}`)))
 	logoutRequest.Header.Set("Content-Type", "application/json")
 	logoutRequest.Header.Set("X-Synon-User-Id", "user-1")
 	app.ServeHTTP(logoutResponse, logoutRequest)
@@ -447,7 +447,7 @@ func runtimeCompatJSON(t *testing.T, app http.Handler, method, target, userID st
 		}
 	}
 	response := httptest.NewRecorder()
-	request := httptest.NewRequest(method, target, bytes.NewReader(payload))
+	request := newLoopbackTestRequest(method, target, bytes.NewReader(payload))
 	if body != nil {
 		request.Header.Set("Content-Type", "application/json")
 	}

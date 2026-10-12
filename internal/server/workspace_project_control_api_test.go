@@ -102,7 +102,7 @@ func postProjectControlJSON(t *testing.T, app http.Handler, method, target strin
 		t.Fatal(err)
 	}
 	response := httptest.NewRecorder()
-	request := httptest.NewRequest(method, target, bytes.NewReader(raw))
+	request := newLoopbackTestRequest(method, target, bytes.NewReader(raw))
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("X-Synon-User-Id", "local")
 	app.ServeHTTP(response, request)

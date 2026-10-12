@@ -171,7 +171,7 @@ func mcpAppHTTPJSON(
 		}
 	}
 	response := httptest.NewRecorder()
-	request := httptest.NewRequest(method, target, bytes.NewReader(payload))
+	request := newLoopbackTestRequest(method, target, bytes.NewReader(payload))
 	request.Header.Set("X-Synon-User-Id", userID)
 	if body != nil {
 		request.Header.Set("Content-Type", "application/json")
@@ -198,7 +198,7 @@ func mcpAppHTTPNoContent(t *testing.T, handler http.Handler, method, target, use
 		}
 	}
 	response := httptest.NewRecorder()
-	request := httptest.NewRequest(method, target, bytes.NewReader(payload))
+	request := newLoopbackTestRequest(method, target, bytes.NewReader(payload))
 	request.Header.Set("X-Synon-User-Id", userID)
 	if body != nil {
 		request.Header.Set("Content-Type", "application/json")

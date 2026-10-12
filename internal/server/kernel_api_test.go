@@ -713,7 +713,7 @@ func kernelAPIRequest(t *testing.T, app http.Handler, method, target, userID str
 		}
 	}
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(method, target, bytes.NewReader(raw))
+	request := newLoopbackTestRequest(method, target, bytes.NewReader(raw))
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("X-Synon-User-Id", userID)
 	app.ServeHTTP(recorder, request)

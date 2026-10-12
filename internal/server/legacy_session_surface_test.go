@@ -271,9 +271,9 @@ func TestLegacySessionSurfacesRejectSpoofedRemoteLocalMode(t *testing.T) {
 		"/api/go/sessions/legacy-session/config",
 		"/api/tools/session_append/execute",
 	} {
-		request := httptest.NewRequest(http.MethodGet, path, nil)
+		request := newLoopbackTestRequest(http.MethodGet, path, nil)
 		if strings.Contains(path, "/execute") {
-			request = httptest.NewRequest(http.MethodPost, path, strings.NewReader(`{"input":{}}`))
+			request = newLoopbackTestRequest(http.MethodPost, path, strings.NewReader(`{"input":{}}`))
 		}
 		request.RemoteAddr = "198.51.100.10:12345"
 		request.Host = "localhost:8765"
@@ -282,8 +282,12 @@ func TestLegacySessionSurfacesRejectSpoofedRemoteLocalMode(t *testing.T) {
 		request.Header.Set("X-Synon-User-Id", "local")
 		response := httptest.NewRecorder()
 		fixture.server.Handler().ServeHTTP(response, request)
-		if response.Code != http.StatusNotFound {
+		if response.Code != http.StatusUnauthorized {
 			t.Fatalf("path=%s status=%d body=%s", path, response.Code, response.Body.String())
+		}
+		if response.Header().Get(webErrorCodeHeader) != webAuthRequiredCode ||
+			!strings.Contains(response.Body.String(), `"code":"AUTH_SESSION_REQUIRED"`) {
+			t.Fatalf("path=%s error-code=%q body=%s", path, response.Header().Get(webErrorCodeHeader), response.Body.String())
 		}
 	}
 	if after := legacySurfaceStateHash(t, fixture); after != before {

@@ -40,7 +40,7 @@ func TestArtifactHTMLDeliveryAlwaysUsesPassiveOriginSandbox(t *testing.T) {
 
 func TestBaselineArtifactAndVersionDownloads(t *testing.T) {
 	app, _, artifactID, firstVersionID, _ := exportFixture(t)
-	currentRequest := httptest.NewRequest(http.MethodGet, "/api/artifacts/"+artifactID+"?filename=renamed.txt", nil)
+	currentRequest := newLoopbackTestRequest(http.MethodGet, "/api/artifacts/"+artifactID+"?filename=renamed.txt", nil)
 	currentRequest.Header.Set("X-Synon-User-Id", "user-1")
 	current := httptest.NewRecorder()
 	app.ServeHTTP(current, currentRequest)
@@ -52,7 +52,7 @@ func TestBaselineArtifactAndVersionDownloads(t *testing.T) {
 		current.Header().Get("X-Content-SHA256") == "" {
 		t.Fatalf("current headers = %#v", current.Header())
 	}
-	preflightRequest := httptest.NewRequest(http.MethodGet, "/api/artifacts/"+artifactID+"?filename=saved.txt", nil)
+	preflightRequest := newLoopbackTestRequest(http.MethodGet, "/api/artifacts/"+artifactID+"?filename=saved.txt", nil)
 	preflightRequest.Header.Set("X-Synon-User-Id", "user-1")
 	preflightRequest.Header.Set("Range", "bytes=0-0")
 	preflight := httptest.NewRecorder()
@@ -62,7 +62,7 @@ func TestBaselineArtifactAndVersionDownloads(t *testing.T) {
 		!strings.Contains(preflight.Header().Get("Content-Disposition"), "saved.txt") {
 		t.Fatalf("artifact preflight = %d headers=%#v body=%q", preflight.Code, preflight.Header(), preflight.Body.String())
 	}
-	currentMetadataRequest := httptest.NewRequest(http.MethodGet, "/api/artifacts/"+artifactID+"?include_metadata=true", nil)
+	currentMetadataRequest := newLoopbackTestRequest(http.MethodGet, "/api/artifacts/"+artifactID+"?include_metadata=true", nil)
 	currentMetadataRequest.Header.Set("X-Synon-User-Id", "user-1")
 	currentMetadata := httptest.NewRecorder()
 	app.ServeHTTP(currentMetadata, currentMetadataRequest)
@@ -72,7 +72,7 @@ func TestBaselineArtifactAndVersionDownloads(t *testing.T) {
 		!strings.Contains(currentMetadata.Header().Get("Content-Disposition"), "report.txt.metadata.json") {
 		t.Fatalf("current metadata = %d headers=%#v body=%#v", currentMetadata.Code, currentMetadata.Header(), currentMetadataBody)
 	}
-	versionRequest := httptest.NewRequest(http.MethodGet, "/api/artifacts/versions/"+firstVersionID, nil)
+	versionRequest := newLoopbackTestRequest(http.MethodGet, "/api/artifacts/versions/"+firstVersionID, nil)
 	versionRequest.Header.Set("X-Synon-User-Id", "user-1")
 	version := httptest.NewRecorder()
 	app.ServeHTTP(version, versionRequest)
@@ -82,7 +82,7 @@ func TestBaselineArtifactAndVersionDownloads(t *testing.T) {
 	if !strings.HasPrefix(version.Header().Get("Content-Disposition"), "inline") {
 		t.Fatalf("text version disposition = %q", version.Header().Get("Content-Disposition"))
 	}
-	versionMetadataRequest := httptest.NewRequest(http.MethodGet,
+	versionMetadataRequest := newLoopbackTestRequest(http.MethodGet,
 		"/api/artifacts/versions/"+firstVersionID+"?include_metadata=true", nil)
 	versionMetadataRequest.Header.Set("X-Synon-User-Id", "user-1")
 	versionMetadata := httptest.NewRecorder()
@@ -92,7 +92,7 @@ func TestBaselineArtifactAndVersionDownloads(t *testing.T) {
 		versionMetadataBody["version_number"] != float64(1) || versionMetadataBody["filename"] != "report.txt" {
 		t.Fatalf("version metadata = %d: %#v", versionMetadata.Code, versionMetadataBody)
 	}
-	rangeRequest := httptest.NewRequest(http.MethodGet, "/api/artifacts/versions/"+firstVersionID+"?filename=version-saved.txt", nil)
+	rangeRequest := newLoopbackTestRequest(http.MethodGet, "/api/artifacts/versions/"+firstVersionID+"?filename=version-saved.txt", nil)
 	rangeRequest.Header.Set("X-Synon-User-Id", "user-1")
 	rangeRequest.Header.Set("Range", "bytes=0-6")
 	ranged := httptest.NewRecorder()
@@ -138,7 +138,7 @@ func TestArtifactVersionDownloadRequiresExactArtifactVersionPair(t *testing.T) {
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			request := httptest.NewRequest(http.MethodGet, test.path, nil)
+			request := newLoopbackTestRequest(http.MethodGet, test.path, nil)
 			request.Header.Set("X-Synon-User-Id", test.ownerID)
 			response := httptest.NewRecorder()
 			app.ServeHTTP(response, request)
@@ -182,7 +182,7 @@ func TestBaselineArtifactDownloadMissingResourceDetails(t *testing.T) {
 		{path: "/api/artifacts/versions/missing-version", detail: "Version missing-version not found"},
 		{path: "/api/artifacts/versions/missing-version?include_metadata=true", detail: "Version missing-version not found"},
 	} {
-		request := httptest.NewRequest(http.MethodGet, test.path, nil)
+		request := newLoopbackTestRequest(http.MethodGet, test.path, nil)
 		request.Header.Set("X-Synon-User-Id", "local")
 		response := httptest.NewRecorder()
 		app.ServeHTTP(response, request)
@@ -195,7 +195,7 @@ func TestBaselineArtifactDownloadMissingResourceDetails(t *testing.T) {
 
 func TestBaselineSelectedAndFrameArtifactZIPDownloads(t *testing.T) {
 	app, rootFrameID, artifactID, _, secondArtifactID := exportFixture(t)
-	selectedRequest := httptest.NewRequest(http.MethodGet,
+	selectedRequest := newLoopbackTestRequest(http.MethodGet,
 		"/api/artifacts/download?ids="+artifactID+","+secondArtifactID+"&include_metadata=true", nil)
 	selectedRequest.Header.Set("X-Synon-User-Id", "user-1")
 	selected := httptest.NewRecorder()
@@ -212,7 +212,7 @@ func TestBaselineSelectedAndFrameArtifactZIPDownloads(t *testing.T) {
 	}
 
 	postBody := bytes.NewBufferString(`["` + secondArtifactID + `"]`)
-	postRequest := httptest.NewRequest(http.MethodPost, "/api/artifacts/download", postBody)
+	postRequest := newLoopbackTestRequest(http.MethodPost, "/api/artifacts/download", postBody)
 	postRequest.Header.Set("Content-Type", "application/json")
 	postRequest.Header.Set("X-Synon-User-Id", "user-1")
 	posted := httptest.NewRecorder()
@@ -221,7 +221,7 @@ func TestBaselineSelectedAndFrameArtifactZIPDownloads(t *testing.T) {
 		t.Fatalf("POST selected ZIP = %d", posted.Code)
 	}
 
-	frameRequest := httptest.NewRequest(http.MethodGet,
+	frameRequest := newLoopbackTestRequest(http.MethodGet,
 		"/api/frames/"+rootFrameID+"/artifacts/download?include_metadata=true", nil)
 	frameRequest.Header.Set("X-Synon-User-Id", "user-1")
 	frame := httptest.NewRecorder()

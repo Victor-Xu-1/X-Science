@@ -156,7 +156,7 @@ func workspaceArtifactAuthRequest(t *testing.T, method, path, userID string, bod
 		}
 		reader = bytes.NewReader(encoded)
 	}
-	request := httptest.NewRequest(method, path, reader)
+	request := newLoopbackTestRequest(method, path, reader)
 	request.Header.Set("X-Synon-User-Id", userID)
 	if body != nil {
 		request.Header.Set("Content-Type", "application/json")

@@ -63,7 +63,7 @@ func newWebOfficeProxyTestServer(t *testing.T, kind string) (*Server, http.Handl
 func TestWebOfficeProxyForwardsOnlyToRegisteredOwnerWatch(t *testing.T) {
 	_, handler, port := newWebOfficeProxyTestServer(t, "word")
 	path := fmt.Sprintf("/api/office-watch-proxy/%d/echo?q=slide%%202", port)
-	request := httptest.NewRequest(http.MethodGet, path, nil)
+	request := newLoopbackTestRequest(http.MethodGet, path, nil)
 	request.RemoteAddr = "127.0.0.1:12345"
 	request.Header.Set("X-Synon-User-Id", "owner")
 	request.Header.Set("X-Synon-CSRF-Token", "secret")
@@ -91,7 +91,7 @@ func TestWebOfficeProxyForwardsOnlyToRegisteredOwnerWatch(t *testing.T) {
 		t.Fatalf("X-Frame-Options = %q", response.Header().Get("X-Frame-Options"))
 	}
 
-	redirect := httptest.NewRequest(http.MethodGet,
+	redirect := newLoopbackTestRequest(http.MethodGet,
 		fmt.Sprintf("/api/office-watch-proxy/%d/redirect", port), nil)
 	redirect.Header.Set("X-Synon-User-Id", "owner")
 	redirectResponse := httptest.NewRecorder()
@@ -107,7 +107,7 @@ func TestWebOfficeProxyForwardsOnlyToRegisteredOwnerWatch(t *testing.T) {
 func TestWebOfficeProxyInjectsNavigationGuardAndSupportsHead(t *testing.T) {
 	_, handler, port := newWebOfficeProxyTestServer(t, "ppt")
 	path := fmt.Sprintf("/api/ppt-proxy/%d/html", port)
-	request := httptest.NewRequest(http.MethodGet, path, nil)
+	request := newLoopbackTestRequest(http.MethodGet, path, nil)
 	request.Header.Set("X-Synon-User-Id", "owner")
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, request)
@@ -128,7 +128,7 @@ func TestWebOfficeProxyInjectsNavigationGuardAndSupportsHead(t *testing.T) {
 		t.Fatalf("content length=%q body=%d", response.Header().Get("Content-Length"), response.Body.Len())
 	}
 
-	head := httptest.NewRequest(http.MethodHead,
+	head := newLoopbackTestRequest(http.MethodHead,
 		fmt.Sprintf("/api/ppt-proxy/%d/echo", port), nil)
 	head.Header.Set("X-Synon-User-Id", "owner")
 	headResponse := httptest.NewRecorder()
@@ -175,7 +175,7 @@ func TestWebOfficeProxyRejectsUnregisteredCrossUserAndInvalidRequests(t *testing
 	}
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			request := httptest.NewRequest(testCase.method, testCase.path, nil)
+			request := newLoopbackTestRequest(testCase.method, testCase.path, nil)
 			request.Header.Set("X-Synon-User-Id", testCase.user)
 			response := httptest.NewRecorder()
 			handler.ServeHTTP(response, request)

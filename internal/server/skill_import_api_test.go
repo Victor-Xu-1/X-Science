@@ -114,7 +114,7 @@ func postSkillBundle(t *testing.T, app http.Handler, target, userID, filename st
 		t.Fatal(err)
 	}
 	response := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodPost, target, &body)
+	request := newLoopbackTestRequest(http.MethodPost, target, &body)
 	request.Header.Set("Content-Type", writer.FormDataContentType())
 	request.Header.Set("X-Synon-User-Id", userID)
 	app.ServeHTTP(response, request)

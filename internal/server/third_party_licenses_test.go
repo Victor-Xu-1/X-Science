@@ -10,7 +10,7 @@ import (
 
 func TestThirdPartyLicenseInventoryIsEmbeddedAndVerifiable(t *testing.T) {
 	app := New(Options{}).Handler()
-	request := httptest.NewRequest(http.MethodGet, "/api/synonbiomed/licenses/third-party", nil)
+	request := newLoopbackTestRequest(http.MethodGet, "/api/synonbiomed/licenses/third-party", nil)
 	request.Header.Set("X-Synon-User-Id", "local")
 	response := httptest.NewRecorder()
 	app.ServeHTTP(response, request)
@@ -53,7 +53,7 @@ func TestThirdPartyLicenseInventoryIsEmbeddedAndVerifiable(t *testing.T) {
 
 func TestThirdPartyLicenseInventoryRejectsMutations(t *testing.T) {
 	app := New(Options{}).Handler()
-	request := httptest.NewRequest(http.MethodPost, "/api/synonbiomed/licenses/third-party", strings.NewReader(`{}`))
+	request := newLoopbackTestRequest(http.MethodPost, "/api/synonbiomed/licenses/third-party", strings.NewReader(`{}`))
 	request.Header.Set("X-Synon-User-Id", "local")
 	response := httptest.NewRecorder()
 	app.ServeHTTP(response, request)

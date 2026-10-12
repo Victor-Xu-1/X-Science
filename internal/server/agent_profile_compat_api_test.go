@@ -296,7 +296,7 @@ func agentCompatRequestForUser(t *testing.T, handler http.Handler, userID, metho
 			t.Fatal(err)
 		}
 	}
-	request := httptest.NewRequest(method, path, bytes.NewReader(encoded))
+	request := newLoopbackTestRequest(method, path, bytes.NewReader(encoded))
 	request.Header.Set("X-Synon-User-Id", userID)
 	if body != nil {
 		request.Header.Set("Content-Type", "application/json")
