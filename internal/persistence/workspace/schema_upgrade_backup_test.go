@@ -138,3 +138,35 @@ func TestOpenRejectsSymlinkDatabaseAndParent(t *testing.T) {
 		t.Fatalf("parent symlink error=%v", err)
 	}
 }
+
+func TestOpenAdmitsPublishedLegacyWorkspaceDatabaseFilename(t *testing.T) {
+	parent := filepath.Join(t.TempDir(), "workspace")
+	if err := os.Mkdir(parent, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	legacy := filepath.Join(parent, legacyWorkspaceDatabaseFilename)
+	legacyDB, err := sql.Open(sqliteDriver, legacy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := legacyDB.Exec(`CREATE TABLE legacy_sentinel(id INTEGER PRIMARY KEY)`); err != nil {
+		_ = legacyDB.Close()
+		t.Fatal(err)
+	}
+	if err := legacyDB.Close(); err != nil {
+		t.Fatal(err)
+	}
+	canonical := filepath.Join(parent, DatabaseFilename)
+	store, err := Open(canonical)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	if _, err := os.Stat(legacy); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("legacy database remained after admission: %v", err)
+	}
+	var sentinel int
+	if err := store.db.QueryRow(`SELECT COUNT(*) FROM legacy_sentinel`).Scan(&sentinel); err != nil || sentinel != 0 {
+		t.Fatalf("admitted database sentinel=%d err=%v", sentinel, err)
+	}
+}

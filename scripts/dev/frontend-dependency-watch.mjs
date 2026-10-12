@@ -46,9 +46,7 @@ for (const file of files) {
         process.kill(notifyPid, 'SIGUSR1');
       } catch (error) {
         close(1, `${message}; cannot notify host process group: ${error.message}`);
-        return;
       }
-      setTimeout(() => close(0, message), 50);
     });
     watcher.on('error', (error) => {
       close(1, `[source-frontend] dependency watcher failed for ${file}: ${error.message}`);

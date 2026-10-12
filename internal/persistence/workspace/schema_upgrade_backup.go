@@ -30,6 +30,13 @@ func prepareWorkspaceDatabasePath(path string) (string, bool, error) {
 	}
 	info, err := os.Lstat(absolute)
 	if errors.Is(err, os.ErrNotExist) {
+		admitted, admitErr := admitLegacyWorkspaceDatabase(absolute)
+		if admitErr != nil {
+			return "", false, admitErr
+		}
+		if admitted {
+			return absolute, true, nil
+		}
 		return absolute, false, nil
 	}
 	if err != nil {
@@ -153,6 +160,36 @@ func pruneWorkspaceSchemaBackups(databasePath, currentBackupPath string) error {
 		}
 	}
 	return nil
+}
+
+func admitLegacyWorkspaceDatabase(target string) (bool, error) {
+	if filepath.Base(target) != DatabaseFilename {
+		return false, nil
+	}
+	parent := filepath.Dir(target)
+	legacy := filepath.Join(parent, legacyWorkspaceDatabaseFilename)
+	info, err := os.Lstat(legacy)
+	if errors.Is(err, os.ErrNotExist) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("inspect legacy workspace database: %w", err)
+	}
+	if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+		return false, errors.New("legacy workspace database must be a regular file")
+	}
+	if _, err := os.Lstat(target); err == nil {
+		return false, errors.New("canonical workspace database already exists")
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return false, fmt.Errorf("inspect canonical workspace database: %w", err)
+	}
+	if err := os.Rename(legacy, target); err != nil {
+		return false, fmt.Errorf("admit legacy workspace database: %w", err)
+	}
+	if err := os.Chmod(target, 0o600); err != nil {
+		return false, fmt.Errorf("secure admitted workspace database: %w", err)
+	}
+	return true, nil
 }
 
 func validWorkspaceSchemaBackupName(name string) bool {
