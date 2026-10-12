@@ -72,7 +72,7 @@ func stringField(data map[string]any, key string) string {
 	return ""
 }
 
-func formatToolCallResult(raw json.RawMessage) (string, error) {
+func formatToolCallResult(raw json.RawMessage, readOnlyHint bool) (string, error) {
 	var decoded map[string]any
 	if err := json.Unmarshal(raw, &decoded); err != nil {
 		return "", err
@@ -102,9 +102,12 @@ func formatToolCallResult(raw json.RawMessage) (string, error) {
 		// result (`found:false`, `... not found`). A miss is data that the model
 		// can branch on; raising it as a transport exception aborts the rest of a
 		// batched retrieval. Preserve genuine connector, authorization, timeout,
-		// and execution errors as errors.
-		if value, ok := semanticMCPNotFoundResult(parts); ok {
-			return value, nil
+		// and execution errors as errors. The compatibility exception requires
+		// the read-only hint inspected on this call's live tool definition.
+		if readOnlyHint {
+			if value, ok := semanticMCPNotFoundResult(parts); ok {
+				return value, nil
+			}
 		}
 		if len(parts) == 0 {
 			return "", errors.New("MCP tool returned an error")
