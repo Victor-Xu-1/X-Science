@@ -32,13 +32,14 @@ export function resolveSequenceFormat(filename: string): SequenceFormat {
 
 export async function parseSequenceDocument(input: string | ArrayBuffer, filename: string): Promise<SequenceDocument> {
   const format = resolveSequenceFormat(filename);
-  const parserFilename = stripCompressionSuffix(filename);
+  const uncompressedFilename = stripCompressionSuffix(filename);
+  const parserFilename = format === 'snapgene' ? uncompressedFilename.replace(/\.dna$/i, '.dna') : uncompressedFilename;
   if (format === 'fastq') return parseFastqDocument(input, parserFilename);
 
   const { default: seqparse } = await import('seqparse');
   const parsed =
     input instanceof ArrayBuffer
-      ? await seqparse('', { fileName: parserFilename, source: input })
+      ? await seqparse(decodeSequenceParserInput(input, format), { fileName: parserFilename, source: input })
       : await seqparse(input, { fileName: parserFilename });
 
   if (!parsed?.seq) throw new ScientificPreviewError('empty-content');
@@ -49,6 +50,39 @@ export async function parseSequenceDocument(input: string | ArrayBuffer, filenam
     annotations: parsed.annotations ?? [],
     format,
   };
+}
+
+function decodeSequenceParserInput(input: ArrayBuffer, format: SequenceFormat): string {
+  if (format !== 'snapgene') return new TextDecoder('utf-8').decode(input);
+
+  const bytes = new Uint8Array(input);
+  const header = bytes.subarray(0, 19);
+  const view = new DataView(input);
+  if (
+    header.byteLength !== 19 ||
+    header[0] !== 9 ||
+    view.getUint32(1) !== 14 ||
+    !header.subarray(5, 13).every((byte, index) => byte === 'SnapGene'.charCodeAt(index))
+  ) {
+    throw new ScientificPreviewError('parse-failed');
+  }
+  // The native parser clamps short reads, so validate every packet before it
+  // can treat a truncated payload as a complete sequence or skip an overrun.
+  let offset = header.byteLength;
+  while (offset < bytes.byteLength) {
+    if (bytes.byteLength - offset < 5) throw new ScientificPreviewError('parse-failed');
+    const type = bytes[offset];
+    const length = view.getUint32(offset + 1);
+    offset += 5;
+    if (length > bytes.byteLength - offset || (type === 0 && length < 1)) {
+      throw new ScientificPreviewError('parse-failed');
+    }
+    offset += length;
+  }
+  // The public API requires text and sniffs it before its native filename branch.
+  // Use only the validated file header for dispatch so Notes/features cannot select
+  // a text parser. The exact complete input remains its scientific source buffer.
+  return new TextDecoder('utf-8').decode(header);
 }
 
 async function parseFastqDocument(input: string | ArrayBuffer, filename: string): Promise<SequenceDocument> {
