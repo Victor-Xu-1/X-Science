@@ -282,8 +282,12 @@ func TestLegacySessionSurfacesRejectSpoofedRemoteLocalMode(t *testing.T) {
 		request.Header.Set("X-Synon-User-Id", "local")
 		response := httptest.NewRecorder()
 		fixture.server.Handler().ServeHTTP(response, request)
-		if response.Code != http.StatusNotFound {
+		if response.Code != http.StatusUnauthorized {
 			t.Fatalf("path=%s status=%d body=%s", path, response.Code, response.Body.String())
+		}
+		if response.Header().Get(webErrorCodeHeader) != webAuthRequiredCode ||
+			!strings.Contains(response.Body.String(), `"code":"AUTH_SESSION_REQUIRED"`) {
+			t.Fatalf("path=%s error-code=%q body=%s", path, response.Header().Get(webErrorCodeHeader), response.Body.String())
 		}
 	}
 	if after := legacySurfaceStateHash(t, fixture); after != before {
