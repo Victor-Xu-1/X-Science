@@ -2,6 +2,11 @@
   "schema": "synon.runtime-input-scope.v1",
   "groups": [
     {
+      "name": "provider-provenance-explanation",
+      "paths": ["internal/logoassets/SOURCE.md"],
+      "packages": ["synon-go/internal/assets"]
+    },
+    {
       "name": "model-skill-product-prose",
       "paths": [
         "assets/synonbiomed/skills.manifest.json",
