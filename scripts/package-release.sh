@@ -98,7 +98,7 @@ CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" "$go_bin" build -trimpath -buildvcs=
 
 cp README.md "$pkg/README.md"
 cp product-identity.json "$pkg/product-identity.json"
-cp LICENSE "$pkg/LICENSE"
+cp LICENSE.txt "$pkg/LICENSE.txt"
 cp COMMERCIAL-LICENSE.md "$pkg/COMMERCIAL-LICENSE.md"
 cp .env.example "$pkg/.env.example"
 cp docs/THIRD_PARTY.md "$pkg/docs/THIRD_PARTY.md"

@@ -341,6 +341,17 @@ while true; do
   fi
 
   frontend_status=0
+  while kill -0 "$launcher_pid" 2>/dev/null; do
+    if current_key=$(dependency_key 2>/dev/null); then
+      if [[ "$current_key" != "$active_key" ]]; then
+        echo "[source-frontend] dependency metadata changed; requesting supervised restart"
+        if [[ -n "$frontend_pgid" ]] && [[ "$frontend_pgid" =~ ^[0-9]+$ ]]; then
+          kill -USR1 -- "-$frontend_pgid" 2>/dev/null || kill -USR1 "$frontend_pgid" 2>/dev/null || true
+        fi
+      fi
+    fi
+    sleep 0.1
+  done
   wait "$launcher_pid" || frontend_status=$?
   launcher_pid=""
   if [[ -n "$frontend_pgid" ]]; then

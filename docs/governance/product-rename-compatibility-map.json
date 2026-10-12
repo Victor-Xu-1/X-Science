@@ -21,7 +21,7 @@
     "logo_provenance": "frontend/public/branding/x-science-logo.provenance.json"
   },
   "upgrade_contract": {
-    "workspace_schema": 74,
+    "workspace_schema": 75,
     "current_writes": "Emit only the canonical namespace; do not install a second legacy launcher or run a competing state owner.",
     "historical_inputs": "Explicit upgrade tables and immutable source records identify genuine earlier inputs. They are not current product branding and must not be disguised through encoding or fabricated provenance.",
     "database": "Bind exact canonical migration definitions to published historical checksums. Preserve original journal times and source bytes. Freeze pre-cutover receipts; aliases may recover only those actual effects, never create new effects under a historical identity.",
@@ -30,7 +30,7 @@
     "execution": "Bind actual runtime identities to operation, execution, owner and input before detaching. Missing historical runtime proof is resumable and unconfirmed, never permission to launch a duplicate.",
     "environments": "Do not move an active or embedded-prefix Conda environment. Validate historical provenance and prepare canonical generations through the existing verified package-cache authority.",
     "connector": "Preserve extension permissions and origin identity. Transfer existing file capabilities only in the same extension origin and still query actual permissions; a new origin requires normal reauthorization.",
-    "recovery": "After schema 74, use verified forward recovery. An older binary must not open a new schema or overwrite post-cutover user writes with a pre-upgrade backup."
+    "recovery": "After schema 75, use verified forward recovery. An older binary must not open a new schema or overwrite post-cutover user writes with a pre-upgrade backup."
   },
   "preserved_facts": [
     "Original copyright holders, licenses, source-import paths and hashes",

@@ -229,7 +229,7 @@
       "class": "persisted-format",
       "owner": "core-runtime",
       "paths": ["internal/config/data_dir.go", "internal/datadir/controller.go", "internal/migration/v11/types.go", "internal/migration/v11/profiles.go"],
-      "current_disposition": "workspace/x-science.sqlite is the single current database path; v74 binds actual prior receipts and preserves immutable source bytes, journal identities and user data",
+      "current_disposition": "workspace/x-science.sqlite is the single current database path; v75 seals namespace cutover receipts and preserves immutable source bytes, journal identities and user data",
       "target": "verified drained database/blob handoff and source-bound aliases only; no string replacement, backup-over-live restore or fabricated execution identity",
       "release_blocking": false
     },
@@ -247,7 +247,7 @@
       "class": "schema-or-contract-version",
       "owner": "controller",
       "paths": ["internal/persistence/workspace/versioned_schema.go", "docs/governance/product-identity.json"],
-      "current_disposition": "production workspace schema target is 74 with no pending schema cohort",
+      "current_disposition": "production workspace schema target is 75 with no pending schema cohort",
       "target": "advance only through reviewed migration predecessors and never infer product version",
       "release_blocking": false
     }
@@ -256,7 +256,7 @@
     {"surface": "go.mod module and package-manager scopes", "class": "dependency-name-or-version", "disposition": "first-party identities are canonical; external dependency identities and historical source receipts remain facts"},
     {"surface": "binary, command and service identifiers", "class": "machine-compatibility", "disposition": "single canonical current defaults; exact earlier installation names are handoff inputs only"},
     {"surface": "legacy checkout, install and state paths", "class": "legacy-path", "disposition": "historical recovery or user paths are not current product defaults and never define a product version"},
-    {"surface": "database, journal and persisted identifiers", "class": "persisted-format", "disposition": "canonical v74 storage with sealed original journal/source/runtime identities and backup-first actual data handoff"},
+    {"surface": "database, journal and persisted identifiers", "class": "persisted-format", "disposition": "canonical v75 storage with sealed original journal/source/runtime identities and backup-first actual data handoff"},
     {"surface": "schema migrations, API contracts and asset schema IDs", "class": "schema-or-contract-version", "disposition": "retain as independent authorities"},
     {"surface": "third-party package and lock-file versions", "class": "dependency-name-or-version", "disposition": "exclude from product-version drift matching"},
     {"surface": "immutable evidence and historical compatibility captures", "class": "historical-evidence", "disposition": "do not rewrite; label Historical at the consuming boundary"}
