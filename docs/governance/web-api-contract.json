@@ -10,7 +10,7 @@
     "requiredActivePaths": 295,
     "coveredActivePaths": 295,
     "missingActivePaths": 0,
-    "goRoutePatterns": 309,
+    "goRoutePatterns": 310,
     "dormantPaths": 2,
     "nonEndpointPaths": 3
   },
@@ -128,7 +128,7 @@
         "/api/adapters/message-channels": [
           {
             "file": "internal/server/server.go",
-            "line": 980
+            "line": 981
           }
         ]
       }
@@ -146,7 +146,7 @@
         "/api/adapters/message-channels/unpair": [
           {
             "file": "internal/server/server.go",
-            "line": 981
+            "line": 982
           }
         ]
       }
@@ -165,13 +165,13 @@
         "/api/adapters/feishu/qr/poll": [
           {
             "file": "internal/server/server.go",
-            "line": 983
+            "line": 984
           }
         ],
         "/api/adapters/wechat/qr/poll": [
           {
             "file": "internal/server/server.go",
-            "line": 985
+            "line": 986
           }
         ]
       },
@@ -195,13 +195,13 @@
         "/api/adapters/feishu/qr/start": [
           {
             "file": "internal/server/server.go",
-            "line": 982
+            "line": 983
           }
         ],
         "/api/adapters/wechat/qr/start": [
           {
             "file": "internal/server/server.go",
-            "line": 984
+            "line": 985
           }
         ]
       },
@@ -224,7 +224,7 @@
         "/api/agents/": [
           {
             "file": "internal/server/server.go",
-            "line": 903
+            "line": 904
           }
         ]
       }
@@ -243,7 +243,7 @@
         "/api/annotations/": [
           {
             "file": "internal/server/server.go",
-            "line": 888
+            "line": 889
           }
         ]
       }
@@ -261,7 +261,7 @@
         "/api/approvals/grants": [
           {
             "file": "internal/server/server.go",
-            "line": 806
+            "line": 807
           }
         ]
       }
@@ -279,7 +279,7 @@
         "/api/approvals/grants/all": [
           {
             "file": "internal/server/server.go",
-            "line": 807
+            "line": 808
           }
         ]
       }
@@ -323,7 +323,7 @@
         "/api/artifacts/download": [
           {
             "file": "internal/server/server.go",
-            "line": 885
+            "line": 886
           }
         ]
       }
@@ -349,7 +349,7 @@
         "/api/artifacts/upload/": [
           {
             "file": "internal/server/server.go",
-            "line": 886
+            "line": 887
           }
         ]
       }
@@ -375,7 +375,7 @@
         "/api/artifacts/upload/": [
           {
             "file": "internal/server/server.go",
-            "line": 886
+            "line": 887
           }
         ]
       }
@@ -401,7 +401,7 @@
         "/api/artifacts/upload/": [
           {
             "file": "internal/server/server.go",
-            "line": 886
+            "line": 887
           }
         ]
       }
@@ -426,7 +426,7 @@
         "/api/artifacts/upload/": [
           {
             "file": "internal/server/server.go",
-            "line": 886
+            "line": 887
           }
         ]
       }
@@ -451,7 +451,7 @@
         "/api/artifacts/upload/": [
           {
             "file": "internal/server/server.go",
-            "line": 886
+            "line": 887
           }
         ]
       }
@@ -1008,7 +1008,7 @@
         "/api/cloud-credentials": [
           {
             "file": "internal/server/server.go",
-            "line": 827
+            "line": 828
           }
         ]
       }
@@ -1027,7 +1027,7 @@
         "/api/cloud-credentials/": [
           {
             "file": "internal/server/server.go",
-            "line": 828
+            "line": 829
           }
         ]
       }
@@ -1046,7 +1046,7 @@
         "/api/cloud-credentials/": [
           {
             "file": "internal/server/server.go",
-            "line": 828
+            "line": 829
           }
         ]
       }
@@ -1065,7 +1065,7 @@
         "/api/cloud-credentials/": [
           {
             "file": "internal/server/server.go",
-            "line": 828
+            "line": 829
           }
         ]
       }
@@ -1084,7 +1084,7 @@
         "/api/cloud-credentials/": [
           {
             "file": "internal/server/server.go",
-            "line": 828
+            "line": 829
           }
         ]
       }
@@ -1103,7 +1103,7 @@
         "/api/cloud-credentials/": [
           {
             "file": "internal/server/server.go",
-            "line": 828
+            "line": 829
           }
         ]
       }
@@ -1198,7 +1198,7 @@
         "/api/compute/inference-providers": [
           {
             "file": "internal/server/server.go",
-            "line": 906
+            "line": 907
           }
         ]
       }
@@ -1331,7 +1331,7 @@
         "/api/compute/providers": [
           {
             "file": "internal/server/server.go",
-            "line": 908
+            "line": 909
           }
         ]
       }
@@ -1933,7 +1933,7 @@
         "/api/csrf": [
           {
             "file": "internal/server/server.go",
-            "line": 901
+            "line": 902
           }
         ]
       }
@@ -1970,7 +1970,7 @@
         "/api/events/ws": [
           {
             "file": "internal/server/server.go",
-            "line": 920
+            "line": 921
           }
         ]
       }
@@ -2027,7 +2027,7 @@
         "/api/frames/": [
           {
             "file": "internal/server/server.go",
-            "line": 891
+            "line": 892
           }
         ]
       }
@@ -2045,7 +2045,7 @@
         "/api/frames/": [
           {
             "file": "internal/server/server.go",
-            "line": 891
+            "line": 892
           }
         ]
       }
@@ -2064,7 +2064,7 @@
         "/api/frames/": [
           {
             "file": "internal/server/server.go",
-            "line": 891
+            "line": 892
           }
         ]
       }
@@ -2083,7 +2083,7 @@
         "/api/frames/": [
           {
             "file": "internal/server/server.go",
-            "line": 891
+            "line": 892
           }
         ]
       }
@@ -2102,7 +2102,7 @@
         "/api/frames/": [
           {
             "file": "internal/server/server.go",
-            "line": 891
+            "line": 892
           }
         ]
       }
@@ -2120,7 +2120,7 @@
         "/api/frames/": [
           {
             "file": "internal/server/server.go",
-            "line": 891
+            "line": 892
           }
         ]
       }
@@ -2138,7 +2138,7 @@
         "/api/frames/": [
           {
             "file": "internal/server/server.go",
-            "line": 891
+            "line": 892
           }
         ]
       }
@@ -2156,7 +2156,7 @@
         "/api/frames/": [
           {
             "file": "internal/server/server.go",
-            "line": 891
+            "line": 892
           }
         ]
       }
@@ -2174,7 +2174,7 @@
         "/api/frames/": [
           {
             "file": "internal/server/server.go",
-            "line": 891
+            "line": 892
           }
         ]
       }
@@ -2192,7 +2192,7 @@
         "/api/frames/": [
           {
             "file": "internal/server/server.go",
-            "line": 891
+            "line": 892
           }
         ]
       }
@@ -2211,7 +2211,7 @@
         "/api/frames/": [
           {
             "file": "internal/server/server.go",
-            "line": 891
+            "line": 892
           }
         ]
       }
@@ -2230,7 +2230,7 @@
         "/api/frames/": [
           {
             "file": "internal/server/server.go",
-            "line": 891
+            "line": 892
           }
         ]
       }
@@ -2249,7 +2249,7 @@
         "/api/frames/": [
           {
             "file": "internal/server/server.go",
-            "line": 891
+            "line": 892
           }
         ]
       }
@@ -2268,7 +2268,7 @@
         "/api/frames/": [
           {
             "file": "internal/server/server.go",
-            "line": 891
+            "line": 892
           }
         ]
       }
@@ -2287,7 +2287,7 @@
         "/api/frames/": [
           {
             "file": "internal/server/server.go",
-            "line": 891
+            "line": 892
           }
         ]
       }
@@ -2306,7 +2306,7 @@
         "/api/frames/": [
           {
             "file": "internal/server/server.go",
-            "line": 891
+            "line": 892
           }
         ]
       }
@@ -2324,7 +2324,7 @@
         "/api/frames/": [
           {
             "file": "internal/server/server.go",
-            "line": 891
+            "line": 892
           }
         ]
       }
@@ -2343,7 +2343,7 @@
         "/api/frames/": [
           {
             "file": "internal/server/server.go",
-            "line": 891
+            "line": 892
           }
         ]
       }
@@ -2361,7 +2361,7 @@
         "/api/frames/": [
           {
             "file": "internal/server/server.go",
-            "line": 891
+            "line": 892
           }
         ]
       }
@@ -2380,7 +2380,7 @@
         "/api/frames/": [
           {
             "file": "internal/server/server.go",
-            "line": 891
+            "line": 892
           }
         ]
       }
@@ -2399,7 +2399,7 @@
         "/api/frames/": [
           {
             "file": "internal/server/server.go",
-            "line": 891
+            "line": 892
           }
         ]
       }
@@ -2418,7 +2418,7 @@
         "/api/frames/": [
           {
             "file": "internal/server/server.go",
-            "line": 891
+            "line": 892
           }
         ]
       }
@@ -2437,7 +2437,7 @@
         "/api/frames/": [
           {
             "file": "internal/server/server.go",
-            "line": 891
+            "line": 892
           }
         ]
       }
@@ -2455,7 +2455,7 @@
         "/api/frames/": [
           {
             "file": "internal/server/server.go",
-            "line": 891
+            "line": 892
           }
         ]
       }
@@ -2473,7 +2473,7 @@
         "/api/frames/": [
           {
             "file": "internal/server/server.go",
-            "line": 891
+            "line": 892
           }
         ]
       }
@@ -2491,7 +2491,7 @@
         "/api/frames/": [
           {
             "file": "internal/server/server.go",
-            "line": 891
+            "line": 892
           }
         ]
       }
@@ -2510,7 +2510,7 @@
         "/api/frames/": [
           {
             "file": "internal/server/server.go",
-            "line": 891
+            "line": 892
           }
         ]
       }
@@ -2529,7 +2529,7 @@
         "/api/frames/": [
           {
             "file": "internal/server/server.go",
-            "line": 891
+            "line": 892
           }
         ]
       }
@@ -2548,7 +2548,7 @@
         "/api/frames/": [
           {
             "file": "internal/server/server.go",
-            "line": 891
+            "line": 892
           }
         ]
       }
@@ -2567,7 +2567,7 @@
         "/api/frames/": [
           {
             "file": "internal/server/server.go",
-            "line": 891
+            "line": 892
           }
         ]
       }
@@ -2586,7 +2586,7 @@
         "/api/frames/": [
           {
             "file": "internal/server/server.go",
-            "line": 891
+            "line": 892
           }
         ]
       }
@@ -2605,7 +2605,7 @@
         "/api/frames/": [
           {
             "file": "internal/server/server.go",
-            "line": 891
+            "line": 892
           }
         ]
       }
@@ -2623,7 +2623,7 @@
         "/api/frames/": [
           {
             "file": "internal/server/server.go",
-            "line": 891
+            "line": 892
           }
         ]
       }
@@ -3153,7 +3153,7 @@
         "/api/llm/optimize-prompt": [
           {
             "file": "internal/server/server.go",
-            "line": 950
+            "line": 951
           }
         ]
       }
@@ -3171,7 +3171,7 @@
         "/api/llm/providers": [
           {
             "file": "internal/server/server.go",
-            "line": 947
+            "line": 948
           }
         ]
       }
@@ -3189,7 +3189,7 @@
         "/api/llm/test": [
           {
             "file": "internal/server/server.go",
-            "line": 949
+            "line": 950
           }
         ]
       }
@@ -3208,7 +3208,7 @@
         "/api/marketplace/import": [
           {
             "file": "internal/server/server.go",
-            "line": 854
+            "line": 855
           }
         ]
       }
@@ -3227,7 +3227,7 @@
         "/api/marketplace/preview": [
           {
             "file": "internal/server/server.go",
-            "line": 853
+            "line": 854
           }
         ]
       }
@@ -3246,7 +3246,7 @@
         "/api/marketplace/sources": [
           {
             "file": "internal/server/server.go",
-            "line": 855
+            "line": 856
           }
         ]
       }
@@ -3265,7 +3265,7 @@
         "/api/marketplace/sources/": [
           {
             "file": "internal/server/server.go",
-            "line": 856
+            "line": 857
           }
         ]
       }
@@ -3283,7 +3283,7 @@
         "/api/mcp-apps/viewer-bindings": [
           {
             "file": "internal/server/server.go",
-            "line": 966
+            "line": 967
           }
         ]
       }
@@ -3302,7 +3302,7 @@
         "/api/mcp-servers": [
           {
             "file": "internal/server/server.go",
-            "line": 951
+            "line": 952
           }
         ]
       }
@@ -3322,13 +3322,13 @@
         "/api/mcp-servers/": [
           {
             "file": "internal/server/server.go",
-            "line": 952
+            "line": 953
           }
         ],
         "/api/mcp-servers/connectors": [
           {
             "file": "internal/server/server.go",
-            "line": 953
+            "line": 954
           }
         ]
       }
@@ -3348,13 +3348,13 @@
         "/api/mcp-servers/": [
           {
             "file": "internal/server/server.go",
-            "line": 952
+            "line": 953
           }
         ],
         "/api/mcp-servers/connectors/": [
           {
             "file": "internal/server/server.go",
-            "line": 960
+            "line": 961
           }
         ]
       }
@@ -3373,13 +3373,13 @@
         "/api/mcp-servers/": [
           {
             "file": "internal/server/server.go",
-            "line": 952
+            "line": 953
           }
         ],
         "/api/mcp-servers/connectors/": [
           {
             "file": "internal/server/server.go",
-            "line": 960
+            "line": 961
           }
         ]
       }
@@ -3399,13 +3399,13 @@
         "/api/mcp-servers/": [
           {
             "file": "internal/server/server.go",
-            "line": 952
+            "line": 953
           }
         ],
         "/api/mcp-servers/connectors/": [
           {
             "file": "internal/server/server.go",
-            "line": 960
+            "line": 961
           }
         ]
       }
@@ -3425,13 +3425,13 @@
         "/api/mcp-servers/": [
           {
             "file": "internal/server/server.go",
-            "line": 952
+            "line": 953
           }
         ],
         "/api/mcp-servers/connectors/": [
           {
             "file": "internal/server/server.go",
-            "line": 960
+            "line": 961
           }
         ]
       }
@@ -3451,13 +3451,13 @@
         "/api/mcp-servers/": [
           {
             "file": "internal/server/server.go",
-            "line": 952
+            "line": 953
           }
         ],
         "/api/mcp-servers/directory-health": [
           {
             "file": "internal/server/server.go",
-            "line": 956
+            "line": 957
           }
         ]
       }
@@ -3476,13 +3476,13 @@
         "/api/mcp-servers/": [
           {
             "file": "internal/server/server.go",
-            "line": 952
+            "line": 953
           }
         ],
         "/api/mcp-servers/marketplace": [
           {
             "file": "internal/server/server.go",
-            "line": 958
+            "line": 959
           }
         ]
       }
@@ -3501,13 +3501,13 @@
         "/api/mcp-servers/": [
           {
             "file": "internal/server/server.go",
-            "line": 952
+            "line": 953
           }
         ],
         "/api/mcp-servers/optional": [
           {
             "file": "internal/server/server.go",
-            "line": 954
+            "line": 955
           }
         ]
       }
@@ -3526,13 +3526,13 @@
         "/api/mcp-servers/": [
           {
             "file": "internal/server/server.go",
-            "line": 952
+            "line": 953
           }
         ],
         "/api/mcp-servers/optional/": [
           {
             "file": "internal/server/server.go",
-            "line": 955
+            "line": 956
           }
         ]
       }
@@ -3552,13 +3552,13 @@
         "/api/mcp-servers/": [
           {
             "file": "internal/server/server.go",
-            "line": 952
+            "line": 953
           }
         ],
         "/api/mcp-servers/reconcile": [
           {
             "file": "internal/server/server.go",
-            "line": 957
+            "line": 958
           }
         ]
       }
@@ -3577,7 +3577,7 @@
         "/api/mcp-servers/": [
           {
             "file": "internal/server/server.go",
-            "line": 952
+            "line": 953
           }
         ]
       }
@@ -3596,7 +3596,7 @@
         "/api/mcp-servers/": [
           {
             "file": "internal/server/server.go",
-            "line": 952
+            "line": 953
           }
         ]
       }
@@ -3615,7 +3615,7 @@
         "/api/mcp-servers/": [
           {
             "file": "internal/server/server.go",
-            "line": 952
+            "line": 953
           }
         ]
       }
@@ -3634,7 +3634,7 @@
         "/api/mcp-servers/": [
           {
             "file": "internal/server/server.go",
-            "line": 952
+            "line": 953
           }
         ]
       }
@@ -3653,7 +3653,7 @@
         "/api/mcp-servers/": [
           {
             "file": "internal/server/server.go",
-            "line": 952
+            "line": 953
           }
         ]
       }
@@ -3672,13 +3672,13 @@
         "/api/mcp/": [
           {
             "file": "internal/server/server.go",
-            "line": 961
+            "line": 962
           }
         ],
         "/api/mcp/apps/pin": [
           {
             "file": "internal/server/server.go",
-            "line": 969
+            "line": 970
           }
         ]
       }
@@ -3697,13 +3697,13 @@
         "/api/mcp/": [
           {
             "file": "internal/server/server.go",
-            "line": 961
+            "line": 962
           }
         ],
         "/api/mcp/apps/registrations": [
           {
             "file": "internal/server/server.go",
-            "line": 963
+            "line": 964
           }
         ]
       }
@@ -3722,13 +3722,13 @@
         "/api/mcp/": [
           {
             "file": "internal/server/server.go",
-            "line": 961
+            "line": 962
           }
         ],
         "/api/mcp/apps/registrations": [
           {
             "file": "internal/server/server.go",
-            "line": 963
+            "line": 964
           }
         ]
       }
@@ -3747,13 +3747,13 @@
         "/api/mcp/": [
           {
             "file": "internal/server/server.go",
-            "line": 961
+            "line": 962
           }
         ],
         "/api/mcp/apps/requests": [
           {
             "file": "internal/server/server.go",
-            "line": 964
+            "line": 965
           }
         ]
       }
@@ -3772,13 +3772,13 @@
         "/api/mcp/": [
           {
             "file": "internal/server/server.go",
-            "line": 961
+            "line": 962
           }
         ],
         "/api/mcp/apps/resource-tickets": [
           {
             "file": "internal/server/server.go",
-            "line": 967
+            "line": 968
           }
         ]
       }
@@ -3797,13 +3797,13 @@
         "/api/mcp/": [
           {
             "file": "internal/server/server.go",
-            "line": 961
+            "line": 962
           }
         ],
         "/api/mcp/apps/results": [
           {
             "file": "internal/server/server.go",
-            "line": 965
+            "line": 966
           }
         ]
       }
@@ -3821,7 +3821,7 @@
         "/api/mcp/": [
           {
             "file": "internal/server/server.go",
-            "line": 961
+            "line": 962
           }
         ]
       }
@@ -3839,7 +3839,7 @@
         "/api/mcp/": [
           {
             "file": "internal/server/server.go",
-            "line": 961
+            "line": 962
           }
         ]
       }
@@ -3857,7 +3857,7 @@
         "/api/mcp/": [
           {
             "file": "internal/server/server.go",
-            "line": 961
+            "line": 962
           }
         ]
       }
@@ -3875,7 +3875,7 @@
         "/api/mcp/": [
           {
             "file": "internal/server/server.go",
-            "line": 961
+            "line": 962
           }
         ]
       }
@@ -3893,7 +3893,7 @@
         "/api/mcp/": [
           {
             "file": "internal/server/server.go",
-            "line": 961
+            "line": 962
           }
         ]
       }
@@ -3911,7 +3911,7 @@
         "/api/mcp/": [
           {
             "file": "internal/server/server.go",
-            "line": 961
+            "line": 962
           }
         ]
       }
@@ -3929,7 +3929,7 @@
         "/api/mcp/": [
           {
             "file": "internal/server/server.go",
-            "line": 961
+            "line": 962
           }
         ]
       }
@@ -3947,7 +3947,7 @@
         "/api/mcp/": [
           {
             "file": "internal/server/server.go",
-            "line": 961
+            "line": 962
           }
         ]
       }
@@ -3965,7 +3965,7 @@
         "/api/mcp/": [
           {
             "file": "internal/server/server.go",
-            "line": 961
+            "line": 962
           }
         ]
       }
@@ -3984,7 +3984,7 @@
         "/api/memories": [
           {
             "file": "internal/server/server.go",
-            "line": 926
+            "line": 927
           }
         ]
       }
@@ -4003,7 +4003,7 @@
         "/api/memories/": [
           {
             "file": "internal/server/server.go",
-            "line": 927
+            "line": 928
           }
         ]
       }
@@ -4021,7 +4021,7 @@
         "/api/memory/auto-enabled": [
           {
             "file": "internal/server/server.go",
-            "line": 930
+            "line": 931
           }
         ]
       }
@@ -4040,7 +4040,7 @@
         "/api/memory/categories": [
           {
             "file": "internal/server/server.go",
-            "line": 931
+            "line": 932
           }
         ]
       }
@@ -4059,7 +4059,7 @@
         "/api/memory/categories/": [
           {
             "file": "internal/server/server.go",
-            "line": 932
+            "line": 933
           }
         ]
       }
@@ -4078,7 +4078,7 @@
         "/api/memory/categories/": [
           {
             "file": "internal/server/server.go",
-            "line": 932
+            "line": 933
           }
         ]
       }
@@ -4097,7 +4097,7 @@
         "/api/memory/context": [
           {
             "file": "internal/server/server.go",
-            "line": 928
+            "line": 929
           }
         ]
       }
@@ -4116,7 +4116,7 @@
         "/api/memory/enabled": [
           {
             "file": "internal/server/server.go",
-            "line": 929
+            "line": 930
           }
         ]
       }
@@ -4135,7 +4135,7 @@
         "/api/memory/sessions/": [
           {
             "file": "internal/server/server.go",
-            "line": 933
+            "line": 934
           }
         ]
       }
@@ -4154,7 +4154,7 @@
         "/api/notes/": [
           {
             "file": "internal/server/server.go",
-            "line": 914
+            "line": 915
           }
         ]
       }
@@ -4249,7 +4249,7 @@
         "/api/preferences/allowed-domains": [
           {
             "file": "internal/server/server.go",
-            "line": 804
+            "line": 805
           }
         ]
       }
@@ -4268,7 +4268,7 @@
         "/api/preferences/allowed-domains/": [
           {
             "file": "internal/server/server.go",
-            "line": 805
+            "line": 806
           }
         ]
       }
@@ -4287,7 +4287,7 @@
         "/api/preferences/builtin-allowlist": [
           {
             "file": "internal/server/server.go",
-            "line": 808
+            "line": 809
           }
         ]
       }
@@ -4306,7 +4306,7 @@
         "/api/preferences/builtin-allowlist/disabled-groups": [
           {
             "file": "internal/server/server.go",
-            "line": 810
+            "line": 811
           }
         ]
       }
@@ -4325,7 +4325,7 @@
         "/api/preferences/builtin-allowlist/onboarding-seen": [
           {
             "file": "internal/server/server.go",
-            "line": 811
+            "line": 812
           }
         ]
       }
@@ -4343,7 +4343,7 @@
         "/api/preferences/disk-usage": [
           {
             "file": "internal/server/server.go",
-            "line": 861
+            "line": 862
           }
         ]
       }
@@ -4361,7 +4361,7 @@
         "/api/preferences/disk-usage/conda": [
           {
             "file": "internal/server/server.go",
-            "line": 862
+            "line": 863
           }
         ]
       }
@@ -4379,7 +4379,7 @@
         "/api/preferences/disk-usage": [
           {
             "file": "internal/server/server.go",
-            "line": 861
+            "line": 862
           }
         ]
       }
@@ -4398,7 +4398,7 @@
         "/api/preferences/first-run-onboarding": [
           {
             "file": "internal/server/server.go",
-            "line": 818
+            "line": 819
           }
         ]
       }
@@ -4417,7 +4417,7 @@
         "/api/preferences/first-run-onboarding/complete": [
           {
             "file": "internal/server/server.go",
-            "line": 819
+            "line": 820
           }
         ]
       }
@@ -4435,7 +4435,7 @@
         "/api/preferences/host-grants": [
           {
             "file": "internal/server/server.go",
-            "line": 831
+            "line": 832
           }
         ]
       }
@@ -4453,7 +4453,7 @@
         "/api/preferences/scientific-runtimes": [
           {
             "file": "internal/server/server.go",
-            "line": 820
+            "line": 821
           }
         ]
       }
@@ -4472,7 +4472,7 @@
         "/api/preferences/use-intent": [
           {
             "file": "internal/server/server.go",
-            "line": 821
+            "line": 822
           }
         ]
       }
@@ -4548,7 +4548,7 @@
         "/api/projects": [
           {
             "file": "internal/server/server.go",
-            "line": 880
+            "line": 881
           }
         ]
       }
@@ -4567,7 +4567,7 @@
         "/api/projects/": [
           {
             "file": "internal/server/server.go",
-            "line": 882
+            "line": 883
           }
         ]
       }
@@ -4586,7 +4586,7 @@
         "/api/projects/": [
           {
             "file": "internal/server/server.go",
-            "line": 882
+            "line": 883
           }
         ]
       }
@@ -4604,7 +4604,7 @@
         "/api/projects/": [
           {
             "file": "internal/server/server.go",
-            "line": 882
+            "line": 883
           }
         ]
       }
@@ -4623,7 +4623,7 @@
         "/api/projects/": [
           {
             "file": "internal/server/server.go",
-            "line": 882
+            "line": 883
           }
         ]
       }
@@ -4642,7 +4642,7 @@
         "/api/projects/": [
           {
             "file": "internal/server/server.go",
-            "line": 882
+            "line": 883
           }
         ]
       }
@@ -4660,7 +4660,7 @@
         "/api/projects/": [
           {
             "file": "internal/server/server.go",
-            "line": 882
+            "line": 883
           }
         ]
       }
@@ -4679,7 +4679,7 @@
         "/api/projects/": [
           {
             "file": "internal/server/server.go",
-            "line": 882
+            "line": 883
           }
         ]
       }
@@ -4698,7 +4698,7 @@
         "/api/projects/": [
           {
             "file": "internal/server/server.go",
-            "line": 882
+            "line": 883
           }
         ]
       }
@@ -4716,7 +4716,7 @@
         "/api/request": [
           {
             "file": "internal/server/server.go",
-            "line": 892
+            "line": 893
           }
         ]
       }
@@ -4735,7 +4735,7 @@
         "/api/secrets": [
           {
             "file": "internal/server/server.go",
-            "line": 825
+            "line": 826
           }
         ]
       }
@@ -4754,7 +4754,7 @@
         "/api/secrets/": [
           {
             "file": "internal/server/server.go",
-            "line": 826
+            "line": 827
           }
         ]
       }
@@ -4830,7 +4830,7 @@
         "/api/settings/data-dir": [
           {
             "file": "internal/server/server.go",
-            "line": 870
+            "line": 871
           }
         ]
       }
@@ -4849,7 +4849,7 @@
         "/api/settings/data-dir/last-move": [
           {
             "file": "internal/server/server.go",
-            "line": 871
+            "line": 872
           }
         ]
       }
@@ -4867,7 +4867,7 @@
         "/api/settings/data-dir": [
           {
             "file": "internal/server/server.go",
-            "line": 870
+            "line": 871
           }
         ]
       }
@@ -4885,7 +4885,7 @@
         "/api/settings/storage-rules": [
           {
             "file": "internal/server/server.go",
-            "line": 872
+            "line": 873
           }
         ]
       }
@@ -4998,7 +4998,7 @@
         "/api/skills": [
           {
             "file": "internal/server/server.go",
-            "line": 839
+            "line": 840
           }
         ]
       }
@@ -5018,19 +5018,19 @@
         "/api/skills/": [
           {
             "file": "internal/server/server.go",
-            "line": 942
+            "line": 943
           }
         ],
         "/api/skills/assistant-rule/": [
           {
             "file": "internal/server/server.go",
-            "line": 859
+            "line": 860
           }
         ],
         "/api/skills/assistant-rule/read": [
           {
             "file": "internal/server/server.go",
-            "line": 857
+            "line": 858
           }
         ]
       }
@@ -5050,19 +5050,19 @@
         "/api/skills/": [
           {
             "file": "internal/server/server.go",
-            "line": 942
+            "line": 943
           }
         ],
         "/api/skills/assistant-rule/": [
           {
             "file": "internal/server/server.go",
-            "line": 859
+            "line": 860
           }
         ],
         "/api/skills/assistant-rule/write": [
           {
             "file": "internal/server/server.go",
-            "line": 858
+            "line": 859
           }
         ]
       }
@@ -5081,13 +5081,13 @@
         "/api/skills/": [
           {
             "file": "internal/server/server.go",
-            "line": 942
+            "line": 943
           }
         ],
         "/api/skills/assistant-rule/": [
           {
             "file": "internal/server/server.go",
-            "line": 859
+            "line": 860
           }
         ]
       }
@@ -5106,13 +5106,13 @@
         "/api/skills/": [
           {
             "file": "internal/server/server.go",
-            "line": 942
+            "line": 943
           }
         ],
         "/api/skills/builtin-rule": [
           {
             "file": "internal/server/server.go",
-            "line": 851
+            "line": 852
           }
         ]
       }
@@ -5131,13 +5131,13 @@
         "/api/skills/": [
           {
             "file": "internal/server/server.go",
-            "line": 942
+            "line": 943
           }
         ],
         "/api/skills/builtin-skill": [
           {
             "file": "internal/server/server.go",
-            "line": 852
+            "line": 853
           }
         ]
       }
@@ -5157,13 +5157,13 @@
         "/api/skills/": [
           {
             "file": "internal/server/server.go",
-            "line": 942
+            "line": 943
           }
         ],
         "/api/skills/catalog": [
           {
             "file": "internal/server/server.go",
-            "line": 938
+            "line": 939
           }
         ]
       }
@@ -5183,13 +5183,13 @@
         "/api/skills/": [
           {
             "file": "internal/server/server.go",
-            "line": 942
+            "line": 943
           }
         ],
         "/api/skills/catalog/": [
           {
             "file": "internal/server/server.go",
-            "line": 939
+            "line": 940
           }
         ]
       }
@@ -5209,13 +5209,13 @@
         "/api/skills/": [
           {
             "file": "internal/server/server.go",
-            "line": 942
+            "line": 943
           }
         ],
         "/api/skills/catalog/": [
           {
             "file": "internal/server/server.go",
-            "line": 939
+            "line": 940
           }
         ]
       }
@@ -5235,13 +5235,13 @@
         "/api/skills/": [
           {
             "file": "internal/server/server.go",
-            "line": 942
+            "line": 943
           }
         ],
         "/api/skills/catalog/": [
           {
             "file": "internal/server/server.go",
-            "line": 939
+            "line": 940
           }
         ]
       }
@@ -5260,13 +5260,13 @@
         "/api/skills/": [
           {
             "file": "internal/server/server.go",
-            "line": 942
+            "line": 943
           }
         ],
         "/api/skills/detect-external": [
           {
             "file": "internal/server/server.go",
-            "line": 846
+            "line": 847
           }
         ]
       }
@@ -5285,13 +5285,13 @@
         "/api/skills/": [
           {
             "file": "internal/server/server.go",
-            "line": 942
+            "line": 943
           }
         ],
         "/api/skills/detect-paths": [
           {
             "file": "internal/server/server.go",
-            "line": 845
+            "line": 846
           }
         ]
       }
@@ -5311,13 +5311,13 @@
         "/api/skills/": [
           {
             "file": "internal/server/server.go",
-            "line": 942
+            "line": 943
           }
         ],
         "/api/skills/drafts": [
           {
             "file": "internal/server/server.go",
-            "line": 941
+            "line": 942
           }
         ]
       }
@@ -5336,13 +5336,13 @@
         "/api/skills/": [
           {
             "file": "internal/server/server.go",
-            "line": 942
+            "line": 943
           }
         ],
         "/api/skills/external-paths": [
           {
             "file": "internal/server/server.go",
-            "line": 850
+            "line": 851
           }
         ]
       }
@@ -5361,13 +5361,13 @@
         "/api/skills/": [
           {
             "file": "internal/server/server.go",
-            "line": 942
+            "line": 943
           }
         ],
         "/api/skills/external-paths": [
           {
             "file": "internal/server/server.go",
-            "line": 850
+            "line": 851
           }
         ]
       }
@@ -5386,13 +5386,13 @@
         "/api/skills/": [
           {
             "file": "internal/server/server.go",
-            "line": 942
+            "line": 943
           }
         ],
         "/api/skills/from-conversation": [
           {
             "file": "internal/server/server.go",
-            "line": 841
+            "line": 842
           }
         ]
       }
@@ -5412,13 +5412,13 @@
         "/api/skills/": [
           {
             "file": "internal/server/server.go",
-            "line": 942
+            "line": 943
           }
         ],
         "/api/skills/import": [
           {
             "file": "internal/server/server.go",
-            "line": 840
+            "line": 841
           }
         ]
       }
@@ -5437,13 +5437,13 @@
         "/api/skills/": [
           {
             "file": "internal/server/server.go",
-            "line": 942
+            "line": 943
           }
         ],
         "/api/skills/import-history": [
           {
             "file": "internal/server/server.go",
-            "line": 847
+            "line": 848
           }
         ]
       }
@@ -5462,13 +5462,13 @@
         "/api/skills/": [
           {
             "file": "internal/server/server.go",
-            "line": 942
+            "line": 943
           }
         ],
         "/api/skills/import-limits": [
           {
             "file": "internal/server/server.go",
-            "line": 848
+            "line": 849
           }
         ]
       }
@@ -5487,13 +5487,13 @@
         "/api/skills/": [
           {
             "file": "internal/server/server.go",
-            "line": 942
+            "line": 943
           }
         ],
         "/api/skills/info": [
           {
             "file": "internal/server/server.go",
-            "line": 843
+            "line": 844
           }
         ]
       }
@@ -5512,13 +5512,13 @@
         "/api/skills/": [
           {
             "file": "internal/server/server.go",
-            "line": 942
+            "line": 943
           }
         ],
         "/api/skills/materialize-for-agent": [
           {
             "file": "internal/server/server.go",
-            "line": 842
+            "line": 843
           }
         ]
       }
@@ -5537,13 +5537,13 @@
         "/api/skills/": [
           {
             "file": "internal/server/server.go",
-            "line": 942
+            "line": 943
           }
         ],
         "/api/skills/paths": [
           {
             "file": "internal/server/server.go",
-            "line": 849
+            "line": 850
           }
         ]
       }
@@ -5562,13 +5562,13 @@
         "/api/skills/": [
           {
             "file": "internal/server/server.go",
-            "line": 942
+            "line": 943
           }
         ],
         "/api/skills/scan": [
           {
             "file": "internal/server/server.go",
-            "line": 844
+            "line": 845
           }
         ]
       }
@@ -5587,13 +5587,13 @@
         "/api/skills/": [
           {
             "file": "internal/server/server.go",
-            "line": 942
+            "line": 943
           }
         ],
         "/api/skills/usage": [
           {
             "file": "internal/server/server.go",
-            "line": 940
+            "line": 941
           }
         ]
       }
@@ -5612,7 +5612,7 @@
         "/api/skills/": [
           {
             "file": "internal/server/server.go",
-            "line": 942
+            "line": 943
           }
         ]
       }
@@ -5631,7 +5631,7 @@
         "/api/skills/": [
           {
             "file": "internal/server/server.go",
-            "line": 942
+            "line": 943
           }
         ]
       }
@@ -5650,7 +5650,7 @@
         "/api/skills/": [
           {
             "file": "internal/server/server.go",
-            "line": 942
+            "line": 943
           }
         ]
       }
@@ -5669,7 +5669,7 @@
         "/api/skills/": [
           {
             "file": "internal/server/server.go",
-            "line": 942
+            "line": 943
           }
         ]
       }
@@ -5688,7 +5688,7 @@
         "/api/skills/": [
           {
             "file": "internal/server/server.go",
-            "line": 942
+            "line": 943
           }
         ]
       }
@@ -5706,7 +5706,7 @@
         "/api/status/update/": [
           {
             "file": "internal/server/server.go",
-            "line": 874
+            "line": 875
           }
         ]
       }
@@ -5838,7 +5838,7 @@
         "/api/x-science/expert-profiles": [
           {
             "file": "internal/server/server.go",
-            "line": 904
+            "line": 905
           }
         ]
       }
