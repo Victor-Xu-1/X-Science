@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "3d66f1e0ab85a7a17e9b903823790fcaf31e05b91c506da22b06d9fd8e40a778",
+  "adaptationFingerprintSHA256": "01862eed9b1067092db09df67c877282911316fb31f2fb3b21382a7c6bdcea62",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
-  "additionFingerprintSHA256": "f24e6a43c1efccca5c417935b65862500cb974fc122b5a3722e47e1288705db8",
+  "additionFingerprintSHA256": "f09e1bdf457d9ac04ca4b019856f05eda58224d0ba9ff8987a3366efe77e7c8a",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 276,
@@ -17,14 +17,14 @@
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "a978b341f3caecc9df2760bc4dc8fce55afb734603ea6f9f06f5d85840bb64c9",
+      "targetSHA256": "eee36d8cc7727d3d926335181177e2c62630374af2bcb511ab90fd06875a9398",
       "bytes": 4392,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "23a240a7a261ee0403763403ed4b81a849414837308c6a74baf84ee4cc104a67",
+      "targetSHA256": "adccdc4398b8b194611358dec0305b34baf9c159715436e0a3bd38bcb88b6e7e",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -1785,7 +1785,7 @@
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/XScienceStructureViewer.tsx",
       "originalPath": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedStructureViewer.tsx",
       "sourceSHA256": "6cb430ff6d16123ef3da68f5af29d4dc093a1e5bb9e9b2655a3c01e2d1e2ecb1",
-      "targetSHA256": "91bbb861161ce16aef2b871159b8ab3a338f4c4b98d19efc47e34ac381de3cb9",
+      "targetSHA256": "5bc63ccfc16928fbd2f94e6ace60dd33e9572c0a56908b0f08ac065a4b3b30c4",
       "bytes": 147851,
       "reason": "Move genuine imported source to the current X-Science namespace. Unify PDB, mmCIF, SDF, and related molecular formats on one Molstar preview with composition-aware controls, collapsed auxiliary panels, and source-fenced 2D interaction refresh."
     },
@@ -2331,8 +2331,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/guid/hooks/useGuidSend.ts",
       "sourceSHA256": "d2e95e288721282dcba026b0a28a7cba0ddf82c6d15472287a1d5119d28923cd",
-      "targetSHA256": "d5438616eb3fa78fc8543701b9ba26ddccfb60dffac1f1456281dddf1ea85f4a",
-      "bytes": 21042,
+      "targetSHA256": "6b014662e4c6e72d8b2ac8387c2cff4e57303278756d02bc448b0189cd5d3476",
+      "bytes": 21077,
       "reason": "Migrate authenticated login, onboarding, project workbench, and artifact workflows to the Go product shell."
     },
     {
@@ -7523,7 +7523,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "699bc17e8150e39593836a2b62fcaf037047f1491d7f88a5600d002278a01438",
+      "sha256": "b8ae079c2553ca93415ba57af073b23fd2a2ece11f718d4926039e351a1d33b6",
       "bytes": 558186,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -8501,8 +8501,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/toolDetails/detailFormatting.ts",
-      "sha256": "a2ee43647898645ba0d311e61156c9c4d90269af64639fff088929548529daaf",
-      "bytes": 12015,
+      "sha256": "2e66225c9953e349bb2d0e054c7eb706f7ef0d2e6e2e95e68c5f0e6513ecceae",
+      "bytes": 12019,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8537,8 +8537,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/toolDetails/detailValueProjection.ts",
-      "sha256": "adae116f88b28362e8acff1676eba760f76719a5dcb74aa95d5227076f9442a7",
-      "bytes": 5746,
+      "sha256": "8e6f34ef6cfd20eda8765b4583fcc8349f6e7f4b68beb0432f7297ec4c6a1672",
+      "bytes": 5758,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10013,8 +10013,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/styles/workspace-theme.css",
-      "sha256": "48257b7840333381da63fac64eda97018e8c01f149c26cac0807f697e3f5d595",
-      "bytes": 68345,
+      "sha256": "fa6237b63132f7ba79cd751f2b4cea4a8f16c67977e9752794e1a7a2b71e514c",
+      "bytes": 68360,
       "reason": "Provide the shared visual shell under a product-neutral filename and CSS custom-property namespace."
     },
     {
@@ -10799,8 +10799,8 @@
     },
     {
       "path": "tests/unit/build/molstarLazyBoundary.test.ts",
-      "sha256": "881adb2179e5d651cd864cb953eb044977ea1ef78df8de7d15942e6093b2242f",
-      "bytes": 5583,
+      "sha256": "d7111515cf19bb19367e00a68b9426d793f4075cd0e54f0f025771ff3d583349",
+      "bytes": 5585,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

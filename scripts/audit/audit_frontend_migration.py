@@ -13,24 +13,10 @@ import re
 import sys
 from typing import Any
 
-def _load_canonical_source_records():
-    if __package__:
-        from .frontend_source_namespace import canonical_source_records as loader
-
-        return loader
-    import importlib.util
-
-    helper = Path(__file__).resolve().with_name("frontend_source_namespace.py")
-    spec = importlib.util.spec_from_file_location("frontend_source_namespace", helper)
-    if spec is None or spec.loader is None:
-        raise ImportError(f"cannot load frontend source namespace helper: {helper}")
-    module = importlib.util.module_from_spec(spec)
-    sys.modules.setdefault("frontend_source_namespace", module)
-    spec.loader.exec_module(module)
-    return module.canonical_source_records
-
-
-canonical_source_records = _load_canonical_source_records()
+if __package__:
+    from .frontend_source_namespace import canonical_source_records
+else:
+    from frontend_source_namespace import canonical_source_records
 
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[2]
@@ -549,9 +535,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "3d66f1e0ab85a7a17e9b903823790fcaf31e05b91c506da22b06d9fd8e40a778"
+APPROVED_ADAPTATION_FINGERPRINT = "01862eed9b1067092db09df67c877282911316fb31f2fb3b21382a7c6bdcea62"
 APPROVED_REMOVAL_FINGERPRINT = "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff"
-APPROVED_ADDITION_FINGERPRINT = "f24e6a43c1efccca5c417935b65862500cb974fc122b5a3722e47e1288705db8"
+APPROVED_ADDITION_FINGERPRINT = "f09e1bdf457d9ac04ca4b019856f05eda58224d0ba9ff8987a3366efe77e7c8a"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {
