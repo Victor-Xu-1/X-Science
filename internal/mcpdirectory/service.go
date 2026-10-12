@@ -704,26 +704,14 @@ func (s *Service) reconcileDirectory(ctx context.Context, userID string, directo
 }
 
 func (s *Service) fetchManifest(ctx context.Context, directory workspace.MCPDirectory) (manifest, string, bool, error) {
-	requestCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
-	defer cancel()
-	client, err := s.secureHTTPClient(requestCtx, directory.URL)
-	if err != nil {
-		return manifest{}, "", false, err
-	}
-	parsed, _, err := resolvePublicHTTPSURL(requestCtx, s.resolver, directory.URL)
-	if err != nil {
-		return manifest{}, "", false, err
-	}
-	req, err := http.NewRequestWithContext(requestCtx, http.MethodGet, parsed.String(), nil)
-	if err != nil {
-		return manifest{}, "", false, err
-	}
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("X-Science-Catalog-Uuid", directory.CatalogUUID)
-	if directory.ETag != "" {
-		req.Header.Set("If-None-Match", directory.ETag)
-	}
-	response, err := client.Do(req)
+	response, err := s.getPublicHTTPS(ctx, 15*time.Second, directory.URL, func(req *http.Request) error {
+		req.Header.Set("Accept", "application/json")
+		req.Header.Set("X-Science-Catalog-Uuid", directory.CatalogUUID)
+		if directory.ETag != "" {
+			req.Header.Set("If-None-Match", directory.ETag)
+		}
+		return nil
+	})
 	if err != nil {
 		return manifest{}, "", false, fmt.Errorf("request MCP directory: %w", err)
 	}

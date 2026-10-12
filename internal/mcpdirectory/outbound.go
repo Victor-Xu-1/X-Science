@@ -106,6 +106,51 @@ func (s *Service) secureHTTPClient(ctx context.Context, rawURL string) (*http.Cl
 	return &client, nil
 }
 
+const publicHTTPSRequestTemplate = "https://public-https.invalid/"
+
+func cloneHTTPSURL(parsed *url.URL) *url.URL {
+	if parsed == nil {
+		return nil
+	}
+	cloned := *parsed
+	if parsed.User != nil {
+		if password, ok := parsed.User.Password(); ok {
+			cloned.User = url.UserPassword(parsed.User.Username(), password)
+		} else {
+			cloned.User = url.User(parsed.User.Username())
+		}
+	}
+	return &cloned
+}
+
+// getPublicHTTPS issues a validated GET through the pinned public-HTTPS client.
+func (s *Service) getPublicHTTPS(ctx context.Context, timeout time.Duration, rawURL string, decorate func(*http.Request) error) (*http.Response, error) {
+	if timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, timeout)
+		defer cancel()
+	}
+	client, err := s.secureHTTPClient(ctx, rawURL)
+	if err != nil {
+		return nil, err
+	}
+	parsed, _, err := resolvePublicHTTPSURL(ctx, s.resolver, rawURL)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, publicHTTPSRequestTemplate, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.URL = cloneHTTPSURL(parsed)
+	if decorate != nil {
+		if err := decorate(req); err != nil {
+			return nil, err
+		}
+	}
+	return client.Do(req)
+}
+
 // publicHTTPSRoundTripper resolves and pins every outgoing request separately.
 // net/http invokes it again after each accepted redirect, so a redirect cannot
 // reuse the prior hop's DNS decision or pinned dial target.

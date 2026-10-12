@@ -590,6 +590,7 @@
         "assets/x-science-link/source/popup-ux.test.ts",
         "assets/x-science-link/source/popup.html",
         "assets/x-science-link/source/popup.js",
+        "assets/x-science-link/source/public-fetch-sanitizer.js",
         "assets/x-science-link/source/styles.css",
         "assets/x-science-link/source/workspace.html",
         "assets/x-science-link/source/workspace.js"
