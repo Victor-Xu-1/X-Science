@@ -38,7 +38,7 @@ its source-backed reference.
 [Third-party inventory](THIRD_PARTY.md) ·
 [Security](../SECURITY.md) ·
 [Code of Conduct](../CODE_OF_CONDUCT.md) ·
-[License](../LICENSE.md) ·
+[License](../LICENSE.txt) ·
 [Commercial licensing](../COMMERCIAL-LICENSE.md)
 
 ## Documentation ownership / 文档职责
