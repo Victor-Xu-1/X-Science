@@ -68,6 +68,8 @@ func schemaMigrationIdentityHandlersKnown(identity schemaMigrationIdentityV2) bo
 		return identity.PreflightIdentity == kernelResourcesV72PreflightIdentity && identity.RuleSpec == kernelResourcesV72RuleSpec
 	case projectIdentityV73CallbackID:
 		return identity.PreflightIdentity == projectIdentityV73PreflightIdentity && identity.RuleSpec == projectIdentityV73RuleSpec
+	case dataLifecycleIndexesV74CallbackID:
+		return identity.PreflightIdentity == dataLifecycleIndexesV74PreflightIdentity && identity.RuleSpec == dataLifecycleIndexesV74RuleSpec
 	case scientificComputeAuthorityV37CallbackID:
 		return identity.PreflightIdentity == scientificComputeAuthorityV37PreflightIdentity &&
 			identity.RuleSpec == scientificComputeAuthorityV37RuleSpec
@@ -219,6 +221,8 @@ func runSchemaMigrationPreflight(ctx context.Context, executor schemaMigrationQu
 		return preflightKernelResourcesV72(ctx, executor)
 	case projectIdentityV73PreflightIdentity:
 		return preflightProjectIdentityV73(ctx, executor)
+	case dataLifecycleIndexesV74PreflightIdentity:
+		return preflightDataLifecycleIndexesV74(ctx, executor)
 	case scientificComputeAuthorityV37PreflightIdentity:
 		return preflightScientificComputeAuthorityV37(ctx, executor)
 	case transcriptWebReadModelV38PreflightIdentity:
@@ -314,6 +318,8 @@ func runSchemaMigrationCallback(ctx context.Context, tx *sql.Tx, migration versi
 	case kernelResourcesV72CallbackID:
 		return nil
 	case projectIdentityV73CallbackID:
+		return nil
+	case dataLifecycleIndexesV74CallbackID:
 		return nil
 	case scientificComputeAuthorityV37CallbackID:
 		return nil

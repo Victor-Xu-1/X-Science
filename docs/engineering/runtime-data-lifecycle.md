@@ -39,6 +39,29 @@ delete conversation messages, execution logs attached to a retained frame,
 final artifacts, user uploads, active memory, unresolved approvals, pending
 outbox events, credentials, settings, or account data.
 
+## Snapshot reference query indexes
+
+Schema 74 adds two separate, non-unique indexes on
+`artifact_version_provenance.lineage_snapshot_hash` and `env_snapshot_hash`.
+Snapshot cleanup can look up either reference without repeatedly scanning all
+provenance rows. Multiple artifact versions may still reference the same
+snapshot; NULL references and the existing age/reference predicates are
+unchanged. Cleanup retains its single transaction, active-work guards, and
+post-commit blob checks. The indexes reduce eligibility-scan cost, but do not
+place a hard duration bound on the whole sweep.
+
+The additive migration creates both indexes and its checksum-bound journal
+entry in one transaction. Existing databases follow the ordinary verified
+pre-upgrade backup path; fresh databases receive the same indexes through the
+canonical migration registry. Index creation needs time and additional disk
+space proportional to existing provenance, and future provenance writes
+maintain both indexes.
+
+This upgrade is forward-only: schema-73 binaries refuse a schema-74 database.
+A binary rollback requires the verified pre-upgrade backup and the runbook's
+state-rollback procedure. Do not remove indexes or journal rows to bypass that
+version guard; restoring a backup also discards subsequent workspace changes.
+
 ## Project identity retention
 
 Schema 73 keeps successful project IDs in `project_id_history` in the same
