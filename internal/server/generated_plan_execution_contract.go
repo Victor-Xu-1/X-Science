@@ -79,7 +79,7 @@ func (s *Server) generatedPlanReceiptExecutionPack(ctx context.Context, run *ses
 		return "", err
 	}
 	for path := range writes {
-		if filepath.Base(path) != managedExecutionOutputOwnershipMarker {
+		if !isManagedExecutionOutputOwnershipMarkerBase(filepath.Base(path)) {
 			continue
 		}
 		if _, err := s.verifyManagedExecutionOutputAuthority(ctx, workspaceDir, filepath.Dir(path), pack.ID, record.ID, writes); err != nil {

@@ -1,8 +1,6 @@
 package server
 
 import (
-	"encoding/json"
-	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -18,27 +16,6 @@ const (
 	managedExecutionOutputOwnershipValid
 	managedExecutionOutputOwnershipInvalid
 )
-
-func inspectManagedExecutionOutputOwnership(directory string) (string, managedExecutionOutputOwnership) {
-	raw, err := os.ReadFile(filepath.Join(directory, managedExecutionOutputOwnershipMarker))
-	if os.IsNotExist(err) {
-		return "", managedExecutionOutputOwnershipMissing
-	}
-	if err != nil || len(raw) == 0 || len(raw) > 4096 {
-		return "", managedExecutionOutputOwnershipInvalid
-	}
-	var marker struct {
-		Schema          string `json:"schema"`
-		ExecutionPackID string `json:"execution_pack_id"`
-	}
-	decoder := json.NewDecoder(strings.NewReader(string(raw)))
-	decoder.DisallowUnknownFields()
-	if decoder.Decode(&marker) != nil || decoder.Decode(&struct{}{}) != io.EOF ||
-		marker.Schema != "x-science.execution-pack-output-owner.v1" || strings.TrimSpace(marker.ExecutionPackID) == "" {
-		return "", managedExecutionOutputOwnershipInvalid
-	}
-	return strings.TrimSpace(marker.ExecutionPackID), managedExecutionOutputOwnershipValid
-}
 
 // augmentAgentSaveArtifactsWithExecutionBundles turns one explicitly saved
 // file from a validated execution-pack output into a coherent declared result

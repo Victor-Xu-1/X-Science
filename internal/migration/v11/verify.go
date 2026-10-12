@@ -13,6 +13,10 @@ import (
 	workspace "x-science/internal/persistence/workspace"
 )
 
+func acceptedMigrationSchema(schema string) bool {
+	return schema == SchemaName || schema == LegacySchemaName
+}
+
 func LoadReport(targetHome string) (Report, error) {
 	target, err := canonicalDirectory(targetHome)
 	if err != nil {
@@ -34,7 +38,7 @@ func LoadReport(targetHome string) (Report, error) {
 	if err := json.Unmarshal(raw, &report); err != nil {
 		return Report{}, fmt.Errorf("decode migration manifest: %w", err)
 	}
-	if report.Schema != SchemaName || report.Status != StatusCompleted || strings.TrimSpace(report.MigrationID) == "" {
+	if !acceptedMigrationSchema(report.Schema) || report.Status != StatusCompleted || strings.TrimSpace(report.MigrationID) == "" {
 		return Report{}, errors.New("migration manifest is not a completed legacy v1.1 migration")
 	}
 	if filepath.Clean(report.TargetHome) != target {

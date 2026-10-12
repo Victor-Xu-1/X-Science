@@ -76,7 +76,7 @@ func (s *Server) managedExecutionOutputAuthorities(
 				}
 				markerRoots := make([]string, 0)
 				for path := range writes {
-					if filepath.Base(path) == managedExecutionOutputOwnershipMarker {
+					if isManagedExecutionOutputOwnershipMarkerBase(filepath.Base(path)) {
 						markerRoots = append(markerRoots, filepath.Dir(path))
 					}
 				}
@@ -163,7 +163,7 @@ func (s *Server) verifyManagedExecutionOutputAuthorityLocked(
 		return managedExecutionOutputAuthority{}, errors.New("managed execution output escaped the task workspace")
 	}
 	_, engine, found := s.scienceCapabilities.FindExecutionPack(packID)
-	if !found || engine.ExecutionPack.Mode != "local" || writes[filepath.Join(outputRoot, managedExecutionOutputOwnershipMarker)] == "" {
+	if !found || engine.ExecutionPack.Mode != "local" || !managedExecutionOutputOwnershipMarkerPresent(writes, outputRoot) {
 		return managedExecutionOutputAuthority{}, errors.New("managed execution output has no matching pack and marker receipt")
 	}
 	// After publication the receipt-bound snapshot is authoritative. The old

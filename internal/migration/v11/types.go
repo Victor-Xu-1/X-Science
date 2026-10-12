@@ -8,6 +8,7 @@ import (
 
 const (
 	SchemaName                    = "xscience-v1.1"
+	LegacySchemaName              = "synonbiomed-v1.1"
 	ManifestFilename              = "MIGRATION_V1_1.json"
 	WorkspaceDatabaseRelativePath = workspace.DatabaseRelativePath
 	StatusCompleted               = "completed"

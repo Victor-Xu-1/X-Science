@@ -5,7 +5,7 @@
  */
 
 import type { IMessageText } from '@/common/chat/chatLib';
-import { X_SCIENCE_FILES_MARKER } from '@/common/config/constants';
+import { SYNON_AI_FILES_MARKER, X_SCIENCE_FILES_MARKER } from '@/common/config/constants';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useLocalFilePreview } from '@/renderer/pages/conversation/Preview/hooks/useLocalFilePreview';
@@ -35,13 +35,23 @@ import actionStyles from './MessageRoundFooter.module.css';
 
 const CODE_STYLE = { marginTop: 4, marginBlock: 4 };
 
+const messageFileMarkers = [X_SCIENCE_FILES_MARKER, SYNON_AI_FILES_MARKER];
+
 const parseFileMarker = (content: string) => {
-  const markerIndex = content.indexOf(X_SCIENCE_FILES_MARKER);
+  let markerIndex = -1;
+  let marker = '';
+  for (const candidate of messageFileMarkers) {
+    const index = content.indexOf(candidate);
+    if (index !== -1 && (markerIndex === -1 || index < markerIndex)) {
+      markerIndex = index;
+      marker = candidate;
+    }
+  }
   if (markerIndex === -1) {
     return { text: content, files: [] as string[] };
   }
   const text = content.slice(0, markerIndex).trimEnd();
-  const afterMarker = content.slice(markerIndex + X_SCIENCE_FILES_MARKER.length).trim();
+  const afterMarker = content.slice(markerIndex + marker.length).trim();
   const files = afterMarker
     ? afterMarker
         .split('\n')

@@ -556,7 +556,11 @@ func applyRuntimeMemoryConfig(options server.Options, cfg config.Config) server.
 }
 
 func openWorkspaceStore(home string) (*workspace.Store, error) {
-	return workspace.Open(filepath.Join(home, "workspace", workspace.DatabaseFilename))
+	canonical := filepath.Join(home, "workspace", workspace.DatabaseFilename)
+	if err := workspace.PublishCanonicalWorkspaceDatabase(canonical, config.LegacyWorkspaceHomeRoots(home)); err != nil {
+		return nil, fmt.Errorf("publish canonical workspace database: %w", err)
+	}
+	return workspace.Open(canonical)
 }
 
 func normalizeRunnerConfig(runner config.RunnerConfig) config.RunnerConfig {

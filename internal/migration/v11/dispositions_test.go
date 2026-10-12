@@ -76,7 +76,7 @@ func TestFinalV11SchemaTablesHaveExplicitDispositions(t *testing.T) {
 		"managed_endpoints", "marketplace_sources", "mcp_agent_assignments", "mcp_tool_grants", "memories",
 		"memory_categories", "notes", "notifications", "oauth_tokens", "poller_lease", "projects",
 		"queued_user_messages", "routine_schedules", "safety_feedback", "session_claims", "session_concurrency",
-		"session_seen_marks", "skill_license_assents", "x_science_llm_api_keys", "transcript_annotations",
+		"session_seen_marks", "skill_license_assents", "synon_llm_api_keys", "x_science_llm_api_keys", "transcript_annotations",
 		"use_intent_declarations", "user_agents", "user_secrets", "verification_checks",
 	} {
 		if _, ok := v11TableDispositions[table]; !ok {

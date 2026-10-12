@@ -10,8 +10,6 @@ import (
 	"x-science/internal/sciencecapability"
 )
 
-const managedExecutionOutputOwnershipMarker = ".x-science-execution-pack.json"
-
 // agentRuntimeManagedExecutionOutputMutationPreflight prevents a host file
 // editor from changing an execution-pack-owned output after promotion. The
 // authority is reconstructed from the exact successful execution record and

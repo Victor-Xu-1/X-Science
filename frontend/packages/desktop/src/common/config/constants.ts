@@ -16,6 +16,7 @@ export const X_SCIENCE_TIMESTAMP_SEPARATOR = '_x-science_';
 /** 用于匹配和清理时间戳后缀的正则表达式 */
 export const X_SCIENCE_TIMESTAMP_REGEX = /_x-science_\d{13}(\.\w+)?$/;
 export const X_SCIENCE_FILES_MARKER = '[[X_SCIENCE_FILES]]';
+export const SYNON_AI_FILES_MARKER = '[[SYNON_AI_FILES]]';
 
 // ===== 媒体类型相关常量 =====
 

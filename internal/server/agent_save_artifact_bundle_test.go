@@ -14,6 +14,18 @@ import (
 	"x-science/internal/sciencecapability"
 )
 
+func TestInspectManagedExecutionOutputOwnershipAcceptsLegacyMarker(t *testing.T) {
+	directory := t.TempDir()
+	path := filepath.Join(directory, legacyManagedExecutionOutputOwnershipMarker)
+	if err := os.WriteFile(path, []byte(`{"schema":"synon.execution-pack-output-owner.v1","execution_pack_id":"capability.engine"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	packID, status := inspectManagedExecutionOutputOwnership(directory)
+	if status != managedExecutionOutputOwnershipValid || packID != "capability.engine" {
+		t.Fatalf("packID=%q status=%v", packID, status)
+	}
+}
+
 func TestSaveArtifactsAddsRegistryDeclaredExecutionBundleOutputs(t *testing.T) {
 	workspace := t.TempDir()
 	output := filepath.Join(workspace, "custom-output")
