@@ -18,7 +18,7 @@ func TestFormatToolCallResultReturnsStructuredNotFoundAsData(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	result, err := formatToolCallResult(raw)
+	result, err := formatToolCallResult(raw, true)
 	if err != nil || !strings.Contains(result, `"found":false`) {
 		t.Fatalf("structured miss result=%q err=%v", result, err)
 	}
@@ -36,7 +36,7 @@ func TestFormatToolCallResultKeepsUnavailableMissAsError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result, err := formatToolCallResult(raw); err == nil || result != "" {
+	if result, err := formatToolCallResult(raw, true); err == nil || result != "" {
 		t.Fatalf("unavailable miss result=%q err=%v", result, err)
 	}
 }

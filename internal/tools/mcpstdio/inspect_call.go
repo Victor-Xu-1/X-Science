@@ -99,14 +99,15 @@ func inspectAndCallLocalSession(ctx context.Context, sess inspectCallLocalSessio
 	if err != nil {
 		return "", err
 	}
-	if err := inspectListedTool(rawTools, serverName, toolName, inspect); err != nil {
+	tool, err := inspectListedTool(rawTools, serverName, toolName, inspect)
+	if err != nil {
 		return "", err
 	}
 	raw, err := lifecycle.requestLocal(ctx, sess, "tools/call", map[string]any{"name": toolName, "arguments": input})
 	if err != nil {
 		return "", err
 	}
-	return formatToolCallResult(raw)
+	return formatToolCallResult(raw, tool.ReadOnlyHint)
 }
 
 func inspectAndCallRemoteHTTP(ctx context.Context, root, serverName, toolName string, input map[string]any, config ServerConfig, inspect ToolCallInspector) (string, error) {
@@ -118,14 +119,15 @@ func inspectAndCallRemoteHTTP(ctx context.Context, root, serverName, toolName st
 	if err != nil {
 		return "", err
 	}
-	if err := inspectListedTool(rawTools, serverName, toolName, inspect); err != nil {
+	tool, err := inspectListedTool(rawTools, serverName, toolName, inspect)
+	if err != nil {
 		return "", err
 	}
 	raw, err := lifecycle.requestRemote(ctx, root, config, "tools/call", map[string]any{"name": toolName, "arguments": input})
 	if err != nil {
 		return "", err
 	}
-	return formatToolCallResult(raw)
+	return formatToolCallResult(raw, tool.ReadOnlyHint)
 }
 
 func inspectAndCallRemoteWebSocket(ctx context.Context, serverName, toolName string, input map[string]any, config ServerConfig, inspect ToolCallInspector) (string, error) {
@@ -156,17 +158,18 @@ func inspectAndCallRemoteWebSocket(ctx context.Context, serverName, toolName str
 	if err != nil {
 		return "", err
 	}
-	if err := inspectListedTool(rawTools, serverName, toolName, inspect); err != nil {
+	tool, err := inspectListedTool(rawTools, serverName, toolName, inspect)
+	if err != nil {
 		return "", err
 	}
 	raw, err := sess.request(ctx, 3, "tools/call", map[string]any{"name": toolName, "arguments": input})
 	if err != nil {
 		return "", err
 	}
-	return formatToolCallResult(raw)
+	return formatToolCallResult(raw, tool.ReadOnlyHint)
 }
 
-func inspectListedTool(raw json.RawMessage, serverName, toolName string, inspect ToolCallInspector) error {
+func inspectListedTool(raw json.RawMessage, serverName, toolName string, inspect ToolCallInspector) (ToolProjection, error) {
 	var decoded struct {
 		Tools []struct {
 			Name         string          `json:"name"`
@@ -181,13 +184,13 @@ func inspectListedTool(raw json.RawMessage, serverName, toolName string, inspect
 	decoder := json.NewDecoder(bytes.NewReader(raw))
 	decoder.UseNumber()
 	if err := decoder.Decode(&decoded); err != nil {
-		return err
+		return ToolProjection{}, err
 	}
 	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
 		if err == nil {
 			err = errors.New("tools/list response contains multiple JSON values")
 		}
-		return err
+		return ToolProjection{}, err
 	}
 	var matched *ToolProjection
 	for _, tool := range decoded.Tools {
@@ -195,15 +198,15 @@ func inspectListedTool(raw json.RawMessage, serverName, toolName string, inspect
 			continue
 		}
 		if matched != nil {
-			return errors.New("tools/list returned a duplicate tool")
+			return ToolProjection{}, errors.New("tools/list returned a duplicate tool")
 		}
 		inputSchema, err := decodeToolInputSchema(tool.InputSchema)
 		if err != nil {
-			return err
+			return ToolProjection{}, err
 		}
 		outputSchema, err := decodeToolOutputSchema(tool.OutputSchema)
 		if err != nil {
-			return err
+			return ToolProjection{}, err
 		}
 		projection := ToolProjection{
 			Name: BuildToolName(serverName, tool.Name), Server: serverName, ToolName: tool.Name,
@@ -215,9 +218,12 @@ func inspectListedTool(raw json.RawMessage, serverName, toolName string, inspect
 		matched = &projection
 	}
 	if matched == nil {
-		return errors.New("tools/list did not contain the requested tool")
+		return ToolProjection{}, errors.New("tools/list did not contain the requested tool")
 	}
-	return inspect(*matched)
+	if err := inspect(*matched); err != nil {
+		return ToolProjection{}, err
+	}
+	return *matched, nil
 }
 
 func decodeToolOutputSchema(raw json.RawMessage) (map[string]any, error) {
