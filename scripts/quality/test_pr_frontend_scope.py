@@ -1,8 +1,69 @@
 """Focused regressions for the existing CI's frontend test selection."""
+import json
+import os
+import subprocess
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from scripts.quality.pr_frontend_scope import PROVENANCE, fixture_command, harness_command, related_command
+
+
+# Execute the emitted command without installing Vite or building a module graph.
+# This contract double covers Vite's string/array/object input merge and supplies
+# the resolved global/client inputs to the real command's validation hooks.
+VITE_BUILD_CONTRACT = """import { writeFileSync } from 'node:fs';
+export async function build(config) {
+  const scenario = JSON.parse(process.env.FIXTURE_SCOPE_CASE);
+  const requested = config.build.rollupOptions.input;
+  const product = '/production/index.html';
+  const defaults = { string: product, array: [product], object: { product } };
+  const original = defaults[scenario.defaultInput];
+  const input = Array.isArray(original) || Array.isArray(requested)
+    ? [original, requested].flat()
+    : typeof original === 'object' ? { ...original, ...requested } : requested;
+  const resolved = {
+    build: { ...config.build, rollupOptions: { input } },
+    environments: { client: { build: { rollupOptions: { input } } } }
+  };
+  const report = {
+    input, root: config.root, configFile: config.configFile, buildStarted: false,
+    globalAliasesRequested: resolved.build.rollupOptions.input === requested,
+    clientAliasesRequested: resolved.environments.client.build.rollupOptions.input === requested,
+    scopeOptionsOrder: config.plugins?.find(plugin => plugin.name === 'changed-browser-fixture-input-scope')?.options?.order
+  };
+  const target = scenario.target === 'client' ? resolved.environments.client : resolved;
+  if (scenario.corruption === 'extra') target.build.rollupOptions.input = { ...input, product };
+  if (scenario.corruption === 'missing') target.build.rollupOptions.input = {};
+  if (scenario.corruption === 'duplicate') target.build.rollupOptions.input = {
+    ...input, duplicate: Object.values(input)[0]
+  };
+  if (scenario.corruption === 'nonstring') target.build.rollupOptions.input = { 'fixture-0': [product] };
+  if (scenario.corruption === 'replaced') target.build.rollupOptions.input = { ...input, 'fixture-0': product };
+  if (scenario.corruption === 'no-client') delete resolved.environments.client;
+  const mutateInput = () => {
+    if (scenario.corruption.endsWith('in-place-add')) target.build.rollupOptions.input.product = product;
+    if (scenario.corruption.endsWith('in-place-delete')) delete target.build.rollupOptions.input['fixture-0'];
+    if (scenario.corruption.endsWith('in-place-replace')) target.build.rollupOptions.input['fixture-0'] = product;
+  };
+  try {
+    if (scenario.corruption?.startsWith('in-place-')) mutateInput();
+    for (const plugin of config.plugins ?? []) await plugin.configResolved?.(resolved);
+    if (scenario.corruption?.startsWith('late-in-place-')) mutateInput();
+    if (scenario.corruption === 'late-extra') target.build.rollupOptions.input = { ...input, product };
+    const options = { input: scenario.corruption === 'rollup-extra' ? { ...input, product } : input };
+    const productPlugin = { options: { order: 'post', handler(options) {
+      if (scenario.corruption === 'post-options-in-place-add') options.input.product = product;
+    } } };
+    const hookOrder = { pre: -1, post: 1 };
+    const hooks = [productPlugin, ...(config.plugins ?? [])].map(plugin => plugin.options).filter(Boolean);
+    hooks.sort((left, right) => (hookOrder[left.order] ?? 0) - (hookOrder[right.order] ?? 0));
+    for (const hook of hooks) await (typeof hook === 'function' ? hook : hook.handler)(options);
+    report.buildStarted = true;
+  } finally {
+    writeFileSync(process.env.FIXTURE_SCOPE_REPORT, JSON.stringify(report));
+  }
+}
+"""
 
 
 class FrontendRelatedScopeTests(unittest.TestCase):
@@ -91,6 +152,101 @@ class FrontendRelatedScopeTests(unittest.TestCase):
             (frontend / "tests/web-e2e").symlink_to(repo, target_is_directory=True)
             with self.assertRaisesRegex(ValueError, "HTML entry"):
                 fixture_command(["frontend/tests/web-e2e/outside.fixture.html"], repo)
+
+    def run_fixture_contract(self, scenario):
+        with TemporaryDirectory() as directory:
+            repo = Path(directory)
+            entries = ["tests/web-e2e/a/example.fixture.html", "tests/web-e2e/b/example.fixture.html"]
+            for entry in entries:
+                html = repo / "frontend" / entry
+                html.parent.mkdir(parents=True, exist_ok=True)
+                html.write_text("fixture")
+            vite = repo / "frontend/node_modules/vite"
+            vite.mkdir(parents=True)
+            (vite / "package.json").write_text('{"type":"module","exports":"./index.js"}')
+            (vite / "index.js").write_text(VITE_BUILD_CONTRACT)
+            report = repo / "report.json"
+            paths = ["frontend/" + entry for entry in reversed(entries)]
+            paths.append("frontend/tests/web-e2e/a/example.fixture.tsx")
+            command = fixture_command(paths, repo)
+            completed = subprocess.run(command, cwd=repo / "frontend", text=True,
+                                       capture_output=True, timeout=30,
+                                       env={**os.environ, "FIXTURE_SCOPE_CASE": json.dumps(scenario),
+                                            "FIXTURE_SCOPE_REPORT": str(report),
+                                            "TMPDIR": directory, "TEMP": directory, "TMP": directory})
+            return completed, json.loads(report.read_text()), {
+                "fixture-" + str(index): str(repo / "frontend" / entry)
+                for index, entry in enumerate(entries)
+            }
+
+    def test_resolved_fixture_inputs_replace_product_string_without_basename_collision(self):
+        completed, report, expected = self.run_fixture_contract({"defaultInput": "string"})
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertEqual(report["input"], expected)
+        self.assertTrue(report["buildStarted"])
+        self.assertEqual(report["configFile"], str(Path(report["root"]) / "vite.config.ts"))
+
+    def test_future_product_array_or_object_inputs_fail_before_build(self):
+        for default in ["array", "object"]:
+            with self.subTest(default=default):
+                completed, report, _ = self.run_fixture_contract({"defaultInput": default})
+                self.assertNotEqual(completed.returncode, 0)
+                self.assertIn("browser fixture input scope", completed.stderr)
+                self.assertFalse(report["buildStarted"])
+
+    def test_global_and_client_inputs_each_require_exact_owned_fixture_map(self):
+        for target in ["global", "client"]:
+            for corruption in ["extra", "missing", "duplicate", "nonstring", "replaced", "late-extra"]:
+                with self.subTest(target=target, corruption=corruption):
+                    completed, report, _ = self.run_fixture_contract({
+                        "defaultInput": "string", "target": target, "corruption": corruption,
+                    })
+                    self.assertNotEqual(completed.returncode, 0)
+                    self.assertIn("browser fixture input scope", completed.stderr)
+                    self.assertFalse(report["buildStarted"])
+        completed, report, _ = self.run_fixture_contract({
+            "defaultInput": "string", "corruption": "no-client",
+        })
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("browser fixture input scope", completed.stderr)
+        self.assertFalse(report["buildStarted"])
+
+    def test_actual_rollup_input_is_rechecked_before_the_module_graph(self):
+        completed, report, _ = self.run_fixture_contract({
+            "defaultInput": "string", "corruption": "rollup-extra",
+        })
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("browser fixture input scope changed in Rollup build", completed.stderr)
+        self.assertFalse(report["buildStarted"])
+
+    def assert_in_place_mutations_rejected(self, prefix):
+        for target in ["global", "client"]:
+            for mutation in ["add", "delete", "replace"]:
+                with self.subTest(target=target, mutation=mutation, prefix=prefix):
+                    completed, report, _ = self.run_fixture_contract({
+                        "defaultInput": "string", "target": target,
+                        "corruption": prefix + "in-place-" + mutation,
+                    })
+                    self.assertTrue(report["globalAliasesRequested"])
+                    self.assertTrue(report["clientAliasesRequested"])
+                    self.assertNotEqual(completed.returncode, 0)
+                    self.assertIn("browser fixture input scope", completed.stderr)
+                    self.assertFalse(report["buildStarted"])
+
+    def test_in_place_config_input_mutations_fail_before_the_module_graph(self):
+        self.assert_in_place_mutations_rejected("")
+
+    def test_in_place_late_input_mutations_fail_before_the_module_graph(self):
+        self.assert_in_place_mutations_rejected("late-")
+
+    def test_post_order_options_mutation_is_checked_before_the_module_graph(self):
+        completed, report, _ = self.run_fixture_contract({
+            "defaultInput": "string", "corruption": "post-options-in-place-add",
+        })
+        self.assertEqual(report["scopeOptionsOrder"], "post")
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("browser fixture input scope", completed.stderr)
+        self.assertFalse(report["buildStarted"])
 
     def test_public_branding_assets_bind_existing_identity_and_visual_tests(self):
         command = related_command([

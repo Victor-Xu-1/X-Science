@@ -1,6 +1,7 @@
 """Real Git/Go regressions for pull-request test scope and checkout depth."""
 
 from pathlib import Path
+import json
 import subprocess
 import sys
 import tempfile
@@ -225,6 +226,81 @@ class FrontendProvenanceGateTests(unittest.TestCase):
         self.assertEqual(commands[-1], tuple(fixture))
         self.assertNotIn(('npm', 'run', 'build'), commands)
         self.assertNotIn(('npm', 'run', 'test:packaged'), commands)
+
+
+class PlanningEvidenceTests(unittest.TestCase):
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory(prefix="x-science-pr-plan-")
+        self.addCleanup(self.directory.cleanup)
+        self.root = Path(self.directory.name)
+        self.repo = self.root / "source"
+        self.repo.mkdir()
+        git(self.repo, "init", "-q", "-b", "main")
+        (self.repo / "go.mod").write_text("module example/plan\n\ngo 1.22\n")
+        (self.repo / "fixture.go").write_text("package plan\n")
+        git(self.repo, "add", ".")
+        git(self.repo, "commit", "-qm", "fixture")
+        self.head = git(self.repo, "rev-parse", "HEAD")
+
+    def test_exact_checkout_and_commit_anchor_are_bound_without_wall_clock(self):
+        binding, profile = scope.planning_inputs(self.repo, self.head, self.head)
+        self.assertEqual(binding["base"], self.head)
+        self.assertEqual(binding["head"], self.head)
+        self.assertEqual(binding["checkout_head"], self.head)
+        self.assertEqual(binding["anchor_epoch"], int(git(self.repo, "show", "-s", "--format=%ct", self.head)))
+        self.assertEqual(binding["source_state"], "clean")
+        self.assertEqual(profile.reason, "missing profile")
+        self.assertEqual(profile.anchor_epoch, binding["anchor_epoch"])
+        with self.assertRaisesRegex(ValueError, "checkout HEAD"):
+            scope.planning_inputs(self.repo, self.head, "f" * 40)
+        (self.repo / "fixture.go").write_text("package plan\n// local change\n")
+        dirty, _ = scope.planning_inputs(self.repo, self.head, self.head)
+        self.assertEqual(dirty["source_state"], "local-dirty")
+        self.assertEqual(dirty["anchor_epoch"], binding["anchor_epoch"])
+
+    def test_empty_scope_and_empty_partition_keep_complete_artifact_binding(self):
+        binding, profile = scope.planning_inputs(self.repo, self.head, self.head)
+        for inventory in [{}, {"example/plan": ["TestOne"]}, {"example/compile": []}]:
+            plans = [scope.affected_test_plan(self.repo, inventory, index, 4, binding, profile)
+                     for index in range(4)]
+            self.assertEqual(len({plan["partition"]["assignment_sha256"] for plan in plans}), 1)
+            self.assertEqual(len({plan["inventory_sha256"] for plan in plans}), 1)
+            for index, plan in enumerate(plans):
+                self.assertEqual(plan["partition"]["shard_index"], index)
+                self.assertEqual(plan["partition"]["head"], self.head)
+                if not plan["selected"]:
+                    self.assertEqual(scope.execute(self.repo, plan, self.root / f"empty-{index}"), 0)
+                    saved = json.loads((self.root / f"empty-{index}" / "plan.json").read_text())
+                    self.assertEqual(saved, plan)
+                    self.assertTrue((self.root / f"empty-{index}" / "summary.json").is_file())
+
+    def test_main_zero_go_scope_writes_plan_in_every_partition(self):
+        for index in range(4):
+            evidence = self.root / f"main-{index}"
+            args = ["pr_fast_scope.py", "--repo", str(self.repo), "--base", self.head, "--head", self.head,
+                    "--shard-index", str(index), "--shard-count", "4", "--log-dir", str(evidence)]
+            with patch.object(sys, "argv", args), patch.object(scope, "resolve_packages", return_value=([], "empty")):
+                self.assertEqual(scope.main(), 0)
+            plan = json.loads((evidence / "plan.json").read_text())
+            self.assertEqual(plan["commands"], [])
+            self.assertEqual(plan["partition"]["checkout_head"], self.head)
+            self.assertEqual(plan["partition"]["shard_index"], index)
+
+    def test_wrong_checkout_and_duplicate_inventory_fail_before_test_execution(self):
+        args = ["pr_fast_scope.py", "--repo", str(self.repo), "--base", self.head, "--head", "f" * 40,
+                "--log-dir", str(self.root / "evidence")]
+        with patch.object(sys, "argv", args), patch.object(scope, "changed_paths", return_value=[]), patch.object(
+            scope, "resolve_packages", return_value=(["example/plan"], "fixture"),
+        ), patch.object(scope, "discover") as discovery, patch.object(scope, "execute") as executor:
+            self.assertEqual(scope.main(), 1)
+            discovery.assert_not_called()
+            executor.assert_not_called()
+        args[args.index("--head") + 1] = self.head
+        with patch.object(sys, "argv", args), patch.object(scope, "resolve_packages", return_value=(["example/plan"], "fixture")), patch.object(
+            scope, "discover", return_value={"example/plan": ["TestOne", "TestOne"]},
+        ), patch.object(scope, "execute") as executor:
+            self.assertEqual(scope.main(), 1)
+            executor.assert_not_called()
 
 
 if __name__ == "__main__":
