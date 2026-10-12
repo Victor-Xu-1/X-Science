@@ -5,8 +5,8 @@ readonly x_science_user="${X_SCIENCE_DEV_WSL_USER:-victor_1}"
 readonly x_science_uid="$(id -u "$x_science_user")"
 readonly runtime_dir="/run/user/$x_science_uid"
 readonly units=(
-  x-science-v010-backend.service
-  x-science-v010-frontend.service
+  x-science-backend.service
+  x-science-frontend.service
 )
 
 loginctl enable-linger "$x_science_user" >/dev/null

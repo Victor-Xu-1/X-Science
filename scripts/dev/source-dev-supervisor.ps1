@@ -164,8 +164,8 @@ function Stop-WslKeepalive {
 function Restart-SourceServices {
   $arguments = @(
     '-d', $WslDistro, '--exec', 'systemctl', '--user', 'restart',
-    'x-science-v010-backend.service',
-    'x-science-v010-frontend.service'
+    'x-science-backend.service',
+    'x-science-frontend.service'
   )
   $process = Start-Process -FilePath 'wsl.exe' -ArgumentList $arguments `
     -WindowStyle Hidden -PassThru
