@@ -86,7 +86,7 @@ func newCLIBaselineFixture(t *testing.T) string {
 		"README.md",
 		"bunfig.toml",
 		"package.json",
-		"xscience.config.toml",
+		"synonbiomed.config.toml",
 	} {
 		writeCLIFile(t, source, relative, relative+"\n")
 	}
@@ -99,7 +99,7 @@ func newCLIBaselineFixture(t *testing.T) string {
 		"docs/fixture",
 		"scripts/fixture",
 		"scripts/__pycache__/fixture.pyc",
-		"x_science_llm_core/fixture",
+		"synon_llm_core/fixture",
 		"tests/fixture",
 		"runtime/assets/compute/fixture",
 		"runtime/assets/drizzle/fixture",
@@ -116,7 +116,7 @@ func newCLIBaselineFixture(t *testing.T) string {
 		"runtime/server/orgsImportWorker.js",
 		"runtime/server/sandbox/gitScanWorker.js",
 		"runtime/server/sqliteWorkerEntry.js",
-		"runtime/server/xscience.bundle.js",
+		"runtime/server/synonbiomed.bundle.js",
 	} {
 		writeCLIFile(t, source, relative, relative+"\n")
 	}
