@@ -164,7 +164,20 @@ func (s *Server) handleComputeLocalDownload(w http.ResponseWriter, r *http.Reque
 		writeAgentCompatError(w, http.StatusMethodNotAllowed, errors.New("method not allowed"))
 		return
 	}
-	download, err := compute.OpenLocalDownload(r.URL.Query().Get("path"), r.URL.Query().Get("confine"), s.fileRoot)
+	confine := r.URL.Query().Get("confine")
+	if confine != "" && confine != "workspaces" {
+		writeAgentCompatError(w, http.StatusBadRequest, errors.New("confine must be workspaces"))
+		return
+	}
+	workspaceRoot := ""
+	if confine == "workspaces" {
+		workspaceRoot = s.fileRoot
+	}
+	access, ok := s.computeLocalFileAccess(w, r, r.URL.Query().Get("path"), workspaceRoot)
+	if !ok {
+		return
+	}
+	download, err := compute.OpenLocalDownload(access.Target, "workspaces", access.Root)
 	if err != nil {
 		writeAgentCompatError(w, http.StatusBadRequest, err)
 		return
@@ -221,7 +234,11 @@ func (s *Server) handleComputeLocalImport(w http.ResponseWriter, r *http.Request
 		writeAgentCompatError(w, http.StatusBadRequest, errors.New("project has no root frame"))
 		return
 	}
-	download, err := compute.OpenLocalDownload(body.Path, "", s.fileRoot)
+	access, ok := s.computeLocalFileAccess(w, r, body.Path, "")
+	if !ok {
+		return
+	}
+	download, err := compute.OpenLocalDownload(access.Target, "workspaces", access.Root)
 	if err != nil {
 		writeAgentCompatError(w, http.StatusBadRequest, err)
 		return
@@ -267,7 +284,18 @@ func (s *Server) handleComputeLocalFiles(w http.ResponseWriter, r *http.Request)
 		writeAgentCompatError(w, http.StatusInternalServerError, err)
 		return
 	}
-	listing, err := compute.ListLocalDirectory(r.URL.Query().Get("path"), home)
+	path := strings.TrimSpace(r.URL.Query().Get("path"))
+	if path == "" {
+		path = home
+	}
+	access, ok := s.computeLocalFileAccess(w, r, path, "")
+	if !ok {
+		return
+	}
+	if !s.allowWebFSLocalRead(r) {
+		home = access.Root
+	}
+	listing, err := compute.ListLocalDirectory(access.Target, home, access.Root)
 	if err != nil {
 		writeAgentCompatError(w, http.StatusBadRequest, err)
 		return

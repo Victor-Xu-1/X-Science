@@ -34,7 +34,7 @@ func agentRuntimeSkillSearchModelResult(
 		return value
 	}
 
-	result := make(map[string]any, len(payload)+6)
+	result := make(map[string]any)
 	for key, item := range payload {
 		result[key] = item
 	}
@@ -47,7 +47,7 @@ func agentRuntimeSkillSearchModelResult(
 	if len(details) > 0 {
 		copied := make([]map[string]any, 0, len(details))
 		for _, detail := range details {
-			item := make(map[string]any, len(detail)+1)
+			item := make(map[string]any)
 			for key, value := range detail {
 				item[key] = value
 			}

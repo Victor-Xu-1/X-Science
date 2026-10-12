@@ -850,11 +850,10 @@ func (m *Manager) smokeManagedPython(ctx context.Context, runtime managedPythonR
 	if err != nil {
 		return err
 	}
-	prefixJSON, _ := json.Marshal(prefix)
-	code := "import json,pathlib,tempfile;import rdkit,shutil,cheminfo_render_helpers as h;out=tempfile.mkdtemp(prefix='x-science-rdkit-smoke-',dir=" +
-		string(prefixJSON) + ");r=h.render_molecule_images(['CCO'],['smoke'],out_dir=out);p=pathlib.Path(r['grid']);" +
+	code := "import json,pathlib,sys,tempfile;import rdkit,shutil,cheminfo_render_helpers as h;out=tempfile.mkdtemp(prefix='x-science-rdkit-smoke-',dir=sys.argv[1]);" +
+		"r=h.render_molecule_images(['CCO'],['smoke'],out_dir=out);p=pathlib.Path(r['grid']);" +
 		"assert p.is_file() and p.stat().st_size>0;shutil.rmtree(out);print(json.dumps({'rdkit':rdkit.__version__,'ok':True},sort_keys=True))"
-	command := newWorkerProcessCommand(ctx, python, "-I", "-c", code)
+	command := newWorkerProcessCommand(ctx, python, "-I", "-c", code, prefix)
 	command.Env = kernelEnvironment(map[string]string{
 		"CONDA_PREFIX": prefix, "CONDA_DEFAULT_ENV": runtime.entry.Name,
 		"PATH": managedExecutableSearchPath(managedRuntimePath(prefix)), "PYTHONNOUSERSITE": "1",
