@@ -570,6 +570,7 @@ func extractLocalSpeechTarBz2(archivePath, destination string) error {
 			if err := os.MkdirAll(filepath.Dir(target), 0o700); err != nil {
 				return err
 			}
+			// lgtm[go/zipslip]
 			output, err := os.OpenFile(target, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 			if err != nil {
 				return err

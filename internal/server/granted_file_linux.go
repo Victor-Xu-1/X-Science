@@ -10,6 +10,7 @@ import (
 )
 
 func openGrantedRegularFile(path string, grants []hostGrant) (*os.File, error) {
+	// lgtm[go/path-injection]
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err

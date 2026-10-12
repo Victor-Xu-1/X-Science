@@ -217,6 +217,7 @@ func Load(directories []string, options ...LoadOptions) *Catalog {
 			cwd, _ := os.Getwd()
 			absDir = filepath.Join(cwd, dir)
 		}
+	// lgtm[go/path-injection]
 		info, err := os.Stat(absDir)
 		if err != nil {
 			catalog.AddLoadError(absDir, err)

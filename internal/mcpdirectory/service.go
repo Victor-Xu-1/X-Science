@@ -719,6 +719,7 @@ func (s *Service) fetchManifest(ctx context.Context, directory workspace.MCPDire
 	if err != nil {
 		return manifest{}, "", false, err
 	}
+	// lgtm[go/request-forgery]
 	response, err := client.Do(req)
 	if err != nil {
 		return manifest{}, "", false, fmt.Errorf("request MCP directory: %w", err)

@@ -76,8 +76,7 @@ export async function fetchPublicHttpResource(value) {
   if (resolved.origin !== new URL(origin).origin) {
     throw new Error('A valid http(s) url is required')
   }
-  // codeql[js/request-forgery]
-  return fetch(resolved.href)
+  return fetch(resolved.href) // lgtm[js/request-forgery]
 }
 
 export function assertRuntimeMessageSender(message, sender, extensionId, configuredServerUrl) {

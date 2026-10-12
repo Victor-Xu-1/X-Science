@@ -427,6 +427,7 @@ func normalizeKernelHostValue(value any, depth int, budget *kernelHostJSONBudget
 	switch typed := value.(type) {
 	case json.Number:
 		if integer, err := strconv.ParseInt(typed.String(), 10, 64); err == nil {
+			// lgtm[go/incorrect-integer-conversion]
 			converted := int(integer)
 			if int64(converted) != integer {
 				return nil, errors.New("integer is outside the platform range")

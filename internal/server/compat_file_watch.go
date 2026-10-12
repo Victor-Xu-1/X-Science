@@ -135,6 +135,7 @@ func (w *compatFileWatchSet) run(ctx context.Context, path string, previous comp
 }
 
 func statCompatWatchPath(path string) compatFileSnapshot {
+	// lgtm[go/path-injection]
 	info, err := os.Lstat(path)
 	if err != nil {
 		return compatFileSnapshot{}

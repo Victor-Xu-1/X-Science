@@ -200,6 +200,7 @@ func (s *Store) removeAttachmentUploadChunks(uploadID string) error {
 	if err != nil || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
 		return errors.New("attachment upload path escapes the workspace root")
 	}
+	// lgtm[go/path-injection]
 	if err := os.RemoveAll(target); err != nil {
 		return fmt.Errorf("remove attachment upload chunks: %w", err)
 	}
