@@ -3,7 +3,7 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "f9d03719e7ab679d2232064703df6a73e600a5ceacfcfeda697130e5b28cf7ea",
+  "adaptationFingerprintSHA256": "4b2585d968daf4dc30839cb75023d4c61fe3baeca1980db3973676d9e6ed6f94",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
   "additionFingerprintSHA256": "b7dc22ab4a9855a90c6cbe8ed4dc77ba1854236d7ee4e019c12ff23c15bef082",
   "summary": {
@@ -5043,8 +5043,8 @@
     {
       "path": "vitest.config.ts",
       "sourceSHA256": "b344dd912f0cfb1a752f475777f70cafa609874b9edce353d026f27b4827c4a6",
-      "targetSHA256": "5d47dd708f9373ddb369320b48afbfb9f6f82b8605fabc2e7b94964f5577a790",
-      "bytes": 3924,
+      "targetSHA256": "1b8ae78045c73eca8208a5f2e8fd31d938fba3fc5a5eb8cb82766681c6264d72",
+      "bytes": 3927,
       "reason": "Remove the excluded Bun WebHost project and isolate build-output verification from source tests."
     }
   ],
