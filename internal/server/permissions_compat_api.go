@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"synon-go/internal/synonlink"
+	"x-science/internal/xsciencelink"
 )
 
 type compatibilityPermissionGrant struct {
@@ -318,7 +318,7 @@ func (s *Server) revokeProjectedRememberedApproval(userID string, requested comp
 	return removed, err
 }
 
-func rememberedApprovalVisibleToUser(decision synonlink.RememberedApprovalDecision, userID string) bool {
+func rememberedApprovalVisibleToUser(decision xsciencelink.RememberedApprovalDecision, userID string) bool {
 	userID = strings.TrimSpace(userID)
 	if userID == "" {
 		return false
@@ -329,7 +329,7 @@ func rememberedApprovalVisibleToUser(decision synonlink.RememberedApprovalDecisi
 	return userID == "local" && decision.UserID == agentRuntimeRememberedApprovalUser
 }
 
-func projectRememberedPermissionGrant(decision synonlink.RememberedApprovalDecision) compatibilityPermissionGrant {
+func projectRememberedPermissionGrant(decision xsciencelink.RememberedApprovalDecision) compatibilityPermissionGrant {
 	action := strings.TrimSpace(decision.Action)
 	if strings.HasPrefix(action, "agent-runtime:") {
 		rest := strings.TrimPrefix(action, "agent-runtime:")
@@ -345,7 +345,7 @@ func projectRememberedPermissionGrant(decision synonlink.RememberedApprovalDecis
 		}
 		return compatibilityPermissionGrant{Kind: "local_exec", Key: tool + "\x00" + suffix, Scope: "always", Tier: "allow"}
 	}
-	return compatibilityPermissionGrant{Kind: "local_exec", Key: "synon_link\x00" + action, Scope: "always", Tier: "allow"}
+	return compatibilityPermissionGrant{Kind: "local_exec", Key: "x_science_link\x00" + action, Scope: "always", Tier: "allow"}
 }
 
 func validateCompatibilityPermissionGrant(grant compatibilityPermissionGrant) error {

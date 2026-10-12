@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"strings"
 
-	"synon-go/internal/agentruntime"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/toolcontract"
+	"x-science/internal/agentruntime"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/toolcontract"
 )
 
 func (s *Server) executeAgentAskUserQuestion(ctx context.Context, sessionID, toolCallID, toolName string, input map[string]any) (any, error) {

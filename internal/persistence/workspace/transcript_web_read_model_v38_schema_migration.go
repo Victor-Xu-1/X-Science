@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 const (
 	transcriptWebReadModelV38CallbackID        = "transcript-web-read-model-v38-noop"
 	transcriptWebReadModelV38PreflightIdentity = "canonical-transcript-typed-history-v35"
-	transcriptWebReadModelV38RuleSpec          = "synon.workspace.transcript-web-read-model.v38"
+	transcriptWebReadModelV38RuleSpec          = "x-science.workspace.transcript-web-read-model.v38"
 )
 
 var transcriptWebReadModelV38Migration = versionedSchemaMigration{

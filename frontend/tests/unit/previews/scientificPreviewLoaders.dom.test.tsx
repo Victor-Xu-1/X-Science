@@ -12,29 +12,29 @@ const moduleLoads = vi.hoisted(() => ({
   video: vi.fn(),
 }));
 
-vi.mock('@/renderer/pages/conversation/Preview/components/viewers/SynonBiomedStructureViewer', () => {
+vi.mock('@/renderer/pages/conversation/Preview/components/viewers/XScienceStructureViewer', () => {
   moduleLoads.structure();
   return { default: () => <div>structure-viewer</div> };
 });
 
-vi.mock('@/renderer/pages/conversation/Preview/components/viewers/SynonBiomedTableViewer', () => {
+vi.mock('@/renderer/pages/conversation/Preview/components/viewers/XScienceTableViewer', () => {
   moduleLoads.table();
   return { default: () => <div>table-viewer</div> };
 });
 
-vi.mock('@/renderer/pages/conversation/Preview/components/viewers/SynonBiomedMoleculeViewer', () => {
+vi.mock('@/renderer/pages/conversation/Preview/components/viewers/XScienceMoleculeViewer', () => {
   moduleLoads.molecule();
   return { default: () => <div>molecule-viewer</div> };
 });
 
-vi.mock('@/renderer/pages/artifact/SynonBiomedPdfArtifactViewer', () => {
+vi.mock('@/renderer/pages/artifact/XSciencePdfArtifactViewer', () => {
   moduleLoads.artifactPdf();
   return { default: () => <div>artifact-pdf-viewer</div> };
 });
 
-vi.mock('@/renderer/pages/artifact/SynonBiomedImageArtifactViewer', () => {
+vi.mock('@/renderer/pages/artifact/XScienceImageArtifactViewer', () => {
   moduleLoads.artifactImage();
-  return { SynonBiomedImageArtifactViewer: () => <div>artifact-image-viewer</div> };
+  return { XScienceImageArtifactViewer: () => <div>artifact-image-viewer</div> };
 });
 
 vi.mock('@/renderer/pages/artifact/AudioPreview', () => {
@@ -96,21 +96,21 @@ describe('scientific preview module loading', () => {
   });
 
   it('preloads and caches the structure viewer from user intent', async () => {
-    const { preloadSynonBiomedStructureViewer } =
+    const { preloadXScienceStructureViewer } =
       await import('@/renderer/pages/conversation/Preview/components/viewers/scientificPreviewLoaders');
 
-    await preloadSynonBiomedStructureViewer();
-    await preloadSynonBiomedStructureViewer();
+    await preloadXScienceStructureViewer();
+    await preloadXScienceStructureViewer();
     expect(moduleLoads.structure).toHaveBeenCalledTimes(1);
   });
 
   it('loads only the requested viewer module and reuses its cached import', async () => {
-    const { LazySynonBiomedStructureViewer } =
+    const { LazyXScienceStructureViewer } =
       await import('@/renderer/pages/conversation/Preview/components/viewers/scientificPreviewLoaders');
 
     const rendered = render(
       <Suspense fallback={<div>loading-viewer</div>}>
-        <LazySynonBiomedStructureViewer filename='example.pdb' content='HEADER' />
+        <LazyXScienceStructureViewer filename='example.pdb' content='HEADER' />
       </Suspense>
     );
 
@@ -121,7 +121,7 @@ describe('scientific preview module loading', () => {
 
     rendered.rerender(
       <Suspense fallback={<div>loading-viewer</div>}>
-        <LazySynonBiomedStructureViewer filename='second.pdb' content='ATOM' />
+        <LazyXScienceStructureViewer filename='second.pdb' content='ATOM' />
       </Suspense>
     );
     expect(await screen.findByText('structure-viewer')).toBeInTheDocument();

@@ -3,7 +3,7 @@ package server
 import (
 	"errors"
 
-	"synon-go/internal/kernel/detached"
+	"x-science/internal/kernel/detached"
 )
 
 func agentKernelMemoryBudgetSchema() map[string]any {

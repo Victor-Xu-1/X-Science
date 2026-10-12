@@ -34,7 +34,7 @@ func TestKernelDetachedExecutionV51AllowsInPlaceBackendRecreation(t *testing.T) 
 	}
 	recreated, err := store.RecreateKernelExecutionBackend(ctx, RecreateKernelExecutionBackendInput{
 		BackendID: backend.BackendID, ExecutorInstanceID: "executor-v51",
-		MachineBootID: "machine-boot-v51", SocketPath: "/run/user/1000/synon-biomed/backend-v51.sock",
+		MachineBootID: "machine-boot-v51", SocketPath: "/run/user/1000/x-science/backend-v51.sock",
 		KernelID: backend.KernelID, KernelGeneration: backend.KernelGeneration, SessionSpec: spec,
 	})
 	if err != nil || recreated.BackendGeneration != backend.BackendGeneration+1 ||
@@ -44,7 +44,7 @@ func TestKernelDetachedExecutionV51AllowsInPlaceBackendRecreation(t *testing.T) 
 	// The recreation path is only valid for one terminal row at a time.
 	if _, err := store.RecreateKernelExecutionBackend(ctx, RecreateKernelExecutionBackendInput{
 		BackendID: backend.BackendID, ExecutorInstanceID: "executor-v51",
-		MachineBootID: "machine-boot-v51", SocketPath: "/run/user/1000/synon-biomed/backend-v51.sock",
+		MachineBootID: "machine-boot-v51", SocketPath: "/run/user/1000/x-science/backend-v51.sock",
 		KernelID: backend.KernelID, KernelGeneration: backend.KernelGeneration, SessionSpec: spec,
 	}); err == nil {
 		t.Fatal("live backend was recreated a second time")

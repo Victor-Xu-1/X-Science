@@ -56,7 +56,7 @@ func ExecutionPackScript(pack ExecutionPack) ([]byte, string, error) {
 		return append([]byte(nil), raw...), hex.EncodeToString(digest[:]), nil
 	}
 	var bundle bytes.Buffer
-	bundle.WriteString("import sys as _synon_sys, types as _synon_types\n")
+	bundle.WriteString("import sys as _x_science_sys, types as _x_science_types\n")
 	for _, modulePath := range pack.Modules {
 		modulePath = filepath.ToSlash(strings.TrimSpace(modulePath))
 		moduleName := strings.TrimSuffix(filepath.Base(modulePath), filepath.Ext(modulePath))
@@ -70,10 +70,10 @@ func ExecutionPackScript(pack ExecutionPack) ([]byte, string, error) {
 		encodedName, _ := json.Marshal(moduleName)
 		encodedPath, _ := json.Marshal(modulePath)
 		encodedSource, _ := json.Marshal(string(moduleRaw))
-		bundle.WriteString("_synon_module = _synon_types.ModuleType(" + string(encodedName) + ")\n")
-		bundle.WriteString("_synon_module.__file__ = " + string(encodedPath) + "\n")
-		bundle.WriteString("_synon_sys.modules[" + string(encodedName) + "] = _synon_module\n")
-		bundle.WriteString("exec(compile(" + string(encodedSource) + ", " + string(encodedPath) + ", 'exec'), _synon_module.__dict__)\n")
+		bundle.WriteString("_x_science_module = _x_science_types.ModuleType(" + string(encodedName) + ")\n")
+		bundle.WriteString("_x_science_module.__file__ = " + string(encodedPath) + "\n")
+		bundle.WriteString("_x_science_sys.modules[" + string(encodedName) + "] = _x_science_module\n")
+		bundle.WriteString("exec(compile(" + string(encodedSource) + ", " + string(encodedPath) + ", 'exec'), _x_science_module.__dict__)\n")
 	}
 	encodedPath, _ := json.Marshal(path)
 	encodedSource, _ := json.Marshal(string(raw))

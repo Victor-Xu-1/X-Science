@@ -13,7 +13,7 @@ SCRIPT
 chmod +x "$TMP_DIR/failing-runtime"
 
 set +e
-SYNON_GOAL_HOME="$TMP_DIR/home" SYNON_GOAL_PORT=18999 \
+X_SCIENCE_GOAL_HOME="$TMP_DIR/home" X_SCIENCE_GOAL_PORT=18999 \
 	timeout 4 bash "$ROOT_DIR/scripts/goal-run.sh" "$TMP_DIR/failing-runtime" \
 	>"$TMP_DIR/out" 2>"$TMP_DIR/err"
 status=$?

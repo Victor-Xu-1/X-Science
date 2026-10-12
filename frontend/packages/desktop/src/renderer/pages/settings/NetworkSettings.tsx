@@ -4,14 +4,14 @@ import { Delete, Refresh, Right, Up } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  addSynonBiomedAllowedDomain,
-  loadSynonBiomedNetworkSettings,
-  removeSynonBiomedAllowedDomain,
-  replaceSynonBiomedAllowedDomains,
-  updateSynonBiomedAllowlistGroups,
-  type SynonBiomedAllowlistGroup,
-  type SynonBiomedNetworkSettings,
-} from '@/renderer/services/synonBiomedWorkspaceSettings';
+  addXScienceAllowedDomain,
+  loadXScienceNetworkSettings,
+  removeXScienceAllowedDomain,
+  replaceXScienceAllowedDomains,
+  updateXScienceAllowlistGroups,
+  type XScienceAllowlistGroup,
+  type XScienceNetworkSettings,
+} from '@/renderer/services/xScienceWorkspaceSettings';
 import SettingsPageHeader from './components/SettingsPageHeader';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
 import {
@@ -25,7 +25,7 @@ const LOCALIZED_NETWORK_GROUP_IDS = new Set(['pkg', 'nih', 'genomics', 'proteomi
 
 export const NetworkSettingsContent: React.FC = () => {
   const { t } = useTranslation();
-  const [snapshot, setSnapshot] = useState<SynonBiomedNetworkSettings | null>(null);
+  const [snapshot, setSnapshot] = useState<XScienceNetworkSettings | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
   const [pendingGroup, setPendingGroup] = useState<string | null>(null);
@@ -40,7 +40,7 @@ export const NetworkSettingsContent: React.FC = () => {
     setLoading(true);
     setLoadFailed(false);
     try {
-      setSnapshot(await loadSynonBiomedNetworkSettings());
+      setSnapshot(await loadXScienceNetworkSettings());
     } catch (error) {
       console.error('Failed to load network settings:', error);
       setLoadFailed(true);
@@ -62,7 +62,7 @@ export const NetworkSettingsContent: React.FC = () => {
     setSnapshot({ ...snapshot, disabledGroups });
     setPendingGroup(groupId);
     try {
-      await updateSynonBiomedAllowlistGroups(disabledGroups);
+      await updateXScienceAllowlistGroups(disabledGroups);
       Message.success(
         enabled ? t('settings.networkSettings.groupEnabled') : t('settings.networkSettings.groupDisabled')
       );
@@ -93,7 +93,7 @@ export const NetworkSettingsContent: React.FC = () => {
     }
     setSavingDomain(true);
     try {
-      await addSynonBiomedAllowedDomain(value);
+      await addXScienceAllowedDomain(value);
       setDomain('');
       setAddVisible(false);
       await refresh();
@@ -110,7 +110,7 @@ export const NetworkSettingsContent: React.FC = () => {
     if (!domainToRemove || savingDomain) return;
     setSavingDomain(true);
     try {
-      await removeSynonBiomedAllowedDomain(domainToRemove);
+      await removeXScienceAllowedDomain(domainToRemove);
       setDomainToRemove(null);
       await refresh();
       Message.success(t('settings.networkSettings.domainRemoved'));
@@ -126,7 +126,7 @@ export const NetworkSettingsContent: React.FC = () => {
     if (savingDomain) return;
     setSavingDomain(true);
     try {
-      await replaceSynonBiomedAllowedDomains([]);
+      await replaceXScienceAllowedDomains([]);
       setClearVisible(false);
       await refresh();
       Message.success(t('settings.networkSettings.domainsCleared'));
@@ -139,7 +139,7 @@ export const NetworkSettingsContent: React.FC = () => {
   };
 
   return (
-    <div className='settings-network-page flex flex-col' data-testid='synon-network-settings'>
+    <div className='settings-network-page flex flex-col' data-testid='x-science-network-settings'>
       <SettingsPageHeader
         title={t('settings.networkSettings.title')}
         description={t('settings.networkSettings.description')}
@@ -320,7 +320,7 @@ const NetworkSettings: React.FC = () => (
 );
 
 const NetworkGroupRow: React.FC<{
-  group: SynonBiomedAllowlistGroup;
+  group: XScienceAllowlistGroup;
   enabled: boolean;
   expanded: boolean;
   pending: boolean;

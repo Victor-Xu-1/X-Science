@@ -164,7 +164,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
         <div
           id={'c-' + conversation.id}
           className={classNames(
-            'chat-history__item synon-sidebar-conversation-row h-34px rd-8px flex items-center group cursor-pointer relative overflow-hidden shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px min-w-0 transition-colors',
+            'chat-history__item x-science-sidebar-conversation-row h-34px rd-8px flex items-center group cursor-pointer relative overflow-hidden shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px min-w-0 transition-colors',
             collapsed ? 'justify-center px-0' : 'justify-start gap-8px pr-16px',
             // dimIcon means this row sits inside a project/cron parent — visually indent the row content while keeping the bg full-width
             !collapsed && (dimIcon ? 'pl-34px' : 'pl-10px'),
@@ -193,13 +193,13 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
           )}
           <button
             type='button'
-            className='synon-sidebar-conversation-open flex min-w-0 flex-1 items-center gap-8px self-stretch border-0 bg-transparent p-0 pr-20px text-left text-t-primary'
+            className='x-science-sidebar-conversation-open flex min-w-0 flex-1 items-center gap-8px self-stretch border-0 bg-transparent p-0 pr-20px text-left text-t-primary'
             aria-label={conversation.name || t('conversation.welcome.newConversation')}
             aria-current={selected ? 'page' : undefined}
             aria-pressed={batchMode ? checked : undefined}
             onClick={handleRowClick}
           >
-            <span className='synon-sidebar-conversation-indicator size-12px flex items-center justify-center shrink-0'>
+            <span className='x-science-sidebar-conversation-indicator size-12px flex items-center justify-center shrink-0'>
               {taskIndicatorState === 'running' && !batchMode ? (
                 <span
                   data-testid={`conversation-running-${conversation.id}`}
@@ -222,7 +222,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                 <span
                   data-testid={`conversation-paused-${conversation.id}`}
                   className='size-10px flex items-center justify-center gap-2px'
-                  aria-label={t('conversation.synonRuntime.runtimeOperations.taskPaused')}
+                  aria-label={t('conversation.xscienceRuntime.runtimeOperations.taskPaused')}
                   role='status'
                 >
                   <span className='h-7px w-2px rounded-full bg-[var(--color-text-3)]' aria-hidden='true' />
@@ -259,7 +259,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                 popupHoverStay={false}
                 position='top'
               >
-                <span className='chat-history__item-name synon-sidebar-conversation-name overflow-hidden text-ellipsis block w-full text-14px font-[500] lh-24px whitespace-nowrap min-w-0 text-t-primary'>
+                <span className='chat-history__item-name x-science-sidebar-conversation-name overflow-hidden text-ellipsis block w-full text-14px font-[500] lh-24px whitespace-nowrap min-w-0 text-t-primary'>
                   <span className='block overflow-hidden text-ellipsis whitespace-nowrap'>{conversation.name}</span>
                 </span>
               </Tooltip>
@@ -287,7 +287,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                     role='menu'
                     aria-label={`${t('common.more')} · ${conversation.name || t('conversation.welcome.newConversation')}`}
                     theme='light'
-                    className='app-overlay-menu synon-sidebar-conversation-menu w-[min(224px,calc(100vw-16px))] box-border p-4px'
+                    className='app-overlay-menu x-science-sidebar-conversation-menu w-[min(224px,calc(100vw-16px))] box-border p-4px'
                     style={{ maxWidth: 'calc(100vw - 16px)' }}
                     onKeyDown={handleMenuKeyDown}
                     onClickMenuItem={(key) => {

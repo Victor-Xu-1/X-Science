@@ -6,8 +6,8 @@ import (
 	"slices"
 	"strings"
 
-	"synon-go/internal/sciencecapability"
-	"synon-go/internal/software"
+	"x-science/internal/sciencecapability"
+	"x-science/internal/software"
 )
 
 const (
@@ -17,8 +17,8 @@ const (
 	// runtimes. Their installation roots are resolved by the kernel from the
 	// current user's managed Conda home; the identifiers must never encode a
 	// machine-specific path.
-	managedPythonScientificRuntimeID = "synon-biomed-python"
-	managedRScientificRuntimeID      = "synon-biomed-r"
+	managedPythonScientificRuntimeID = "x-science-python"
+	managedRScientificRuntimeID      = "x-science-r"
 
 	commonStructureRuntimeID            = "common-structure-toolkit"
 	structureInteractionRuntimeID       = "structure-interaction"

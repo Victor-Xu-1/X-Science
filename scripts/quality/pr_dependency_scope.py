@@ -25,7 +25,7 @@ def snapshot(repo: Path, revision: str, name: str, *, optional: bool = False) ->
 def manifest(repo: Path, text: str) -> dict:
     # Ask Go to parse its own grammar; do not approximate replace/toolchain
     # directives with line matching or write scratch inputs into the checkout.
-    with tempfile.TemporaryDirectory(prefix="synon-module-manifest-") as directory:
+    with tempfile.TemporaryDirectory(prefix="x-science-module-manifest-") as directory:
         path = Path(directory) / "snapshot.mod"
         path.write_text(text, encoding="utf-8")
         return json.loads(output(repo, "go", "mod", "edit", "-json", str(path)))
@@ -53,6 +53,10 @@ def changed_modules(repo: Path, base: str, head: str) -> set[str] | None:
     after = manifest(repo, snapshot(repo, head, "go.mod"))
     old_require = {item["Path"]: item["Version"] for item in before.pop("Require", None) or []}
     new_require = {item["Path"]: item["Version"] for item in after.pop("Require", None) or []}
+    if (before.get("Module") == {"Path": "synon-go"} and after.get("Module") == {"Path": "x-science"}):
+        # One registered product namespace transition, not arbitrary module,
+        # toolchain, replacement or checksum authority relaxation.
+        before["Module"] = after["Module"]
     if before != after:
         return None
     modules = {path for path in old_require.keys() | new_require.keys()

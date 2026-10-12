@@ -14,10 +14,10 @@ import (
 	"time"
 	"unicode/utf8"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
-const webProjectArtifactPageContract = "synon.project-artifact-page.v1"
+const webProjectArtifactPageContract = "x-science.project-artifact-page.v1"
 
 type webProjectArtifactCursor struct {
 	Version    int    `json:"v"`
@@ -38,7 +38,7 @@ func (s *Server) handleWebConversationWorkspace(
 		writeWorkspaceJSON(w, http.StatusServiceUnavailable, map[string]any{"message": "workspace storage is not configured"})
 		return
 	}
-	userID := strings.TrimSpace(r.Header.Get("X-Synon-User-Id"))
+	userID := strings.TrimSpace(r.Header.Get("X-Science-User-Id"))
 	if userID == "" {
 		writeWorkspaceJSON(w, http.StatusUnauthorized, map[string]any{"message": "authentication required"})
 		return
@@ -323,7 +323,7 @@ func (s *Server) handleWebWorkspaceUploadFinalize(
 	if !ok {
 		return
 	}
-	mutationKey := firstNonEmpty(r.Header.Get("Idempotency-Key"), r.Header.Get("X-Synon-Idempotency-Key"))
+	mutationKey := firstNonEmpty(r.Header.Get("Idempotency-Key"), r.Header.Get("X-Science-Idempotency-Key"))
 	if strings.TrimSpace(mutationKey) == "" {
 		mutationKey = "web-workspace-finalize-" + uploadID
 	}

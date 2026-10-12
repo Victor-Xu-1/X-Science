@@ -17,7 +17,7 @@ import (
 	"sort"
 	"strings"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 
 	_ "modernc.org/sqlite"
 )
@@ -476,7 +476,7 @@ func manifestExternalData(source discoveredSource) (fileManifest, error) {
 	seen := map[string]struct{}{}
 	result := fileManifest{}
 	digest := sha256.New()
-	writeManifestFrame(digest, []byte("synon.workspace-import.external-manifest.v1"))
+	writeManifestFrame(digest, []byte("x-science.workspace-import.external-manifest.v1"))
 	for _, candidate := range roots {
 		info, err := os.Lstat(candidate.path)
 		if errors.Is(err, os.ErrNotExist) {
@@ -542,7 +542,7 @@ func manifestDirectory(role, path string, legacy bool) (fileManifest, error) {
 	}
 	result := fileManifest{HasLegacy: legacy}
 	digest := sha256.New()
-	writeManifestFrame(digest, []byte("synon.workspace-import.file-manifest.v1"))
+	writeManifestFrame(digest, []byte("x-science.workspace-import.file-manifest.v1"))
 	writeManifestFrame(digest, []byte(role))
 	err = filepath.WalkDir(path, func(current string, entry os.DirEntry, walkErr error) error {
 		if walkErr != nil {

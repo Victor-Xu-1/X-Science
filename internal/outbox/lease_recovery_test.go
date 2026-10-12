@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/persistence/workspace"
+	"x-science/internal/persistence/workspace"
 )
 
 func TestLongRunningDispatcherPreservesDeliveryAcrossTransientRenewalFailure(t *testing.T) {

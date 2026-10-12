@@ -3,7 +3,7 @@ package kernel
 import (
 	"strings"
 
-	"synon-go/internal/networktls"
+	"x-science/internal/networktls"
 )
 
 // Only the resolved product configuration chooses the installer's route.

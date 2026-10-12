@@ -21,8 +21,8 @@ import (
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 
-	compute "synon-go/internal/compute"
-	workspace "synon-go/internal/persistence/workspace"
+	compute "x-science/internal/compute"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestComputeRemoteFilesRealSSHAndSFTPLifecycle(t *testing.T) {
@@ -93,7 +93,7 @@ func TestComputeRemoteFilesRealSSHAndSFTPLifecycle(t *testing.T) {
 	downloadResponse.Result().Body.Close()
 	rangeRequest := newLoopbackTestRequest(http.MethodGet,
 		"/api/compute/providers/ssh:loopback/download?path="+urlQueryEscape(remoteFile), nil)
-	rangeRequest.Header.Set("X-Synon-User-Id", "owner-a")
+	rangeRequest.Header.Set("X-Science-User-Id", "owner-a")
 	rangeRequest.Header.Set("Range", "bytes=7-13")
 	rangeResponse := httptest.NewRecorder()
 	app.ServeHTTP(rangeResponse, rangeRequest)

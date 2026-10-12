@@ -13,10 +13,10 @@ import (
 	"testing"
 	"time"
 
-	compute "synon-go/internal/compute"
-	kernelruntime "synon-go/internal/kernel"
-	secretstore "synon-go/internal/persistence/secrets"
-	workspace "synon-go/internal/persistence/workspace"
+	compute "x-science/internal/compute"
+	kernelruntime "x-science/internal/kernel"
+	secretstore "x-science/internal/persistence/secrets"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 type recordingBYOCCleanupRunner struct {
@@ -115,7 +115,7 @@ func newBYOCControlTestServer(t *testing.T, root string, store *workspace.Store,
 	})
 	return New(Options{
 		Workspace: store, FileRoot: root, RuntimeAssetsDir: optional,
-		SkillDirectories: []string{filepath.Join(repositoryRoot, "skills", "synonbiomed")},
+		SkillDirectories: []string{filepath.Join(repositoryRoot, "skills", "x-science")},
 		KernelManager:    manager, ProviderOperationRunner: runner, ModalConfigPath: modalConfigPath,
 	})
 }

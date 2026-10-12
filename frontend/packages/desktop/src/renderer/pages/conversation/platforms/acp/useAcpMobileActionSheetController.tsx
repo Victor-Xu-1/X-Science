@@ -1,12 +1,12 @@
 import type { IConversationMcpStatus } from '@/common/config/storage';
 import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
-import type { AcpDerivedOption, useAcpConfigOptions } from '@/renderer/hooks/synonBiomed/runtime/useAcpConfigOptions';
+import type { AcpDerivedOption, useAcpConfigOptions } from '@/renderer/hooks/xScience/runtime/useAcpConfigOptions';
 import {
   type MobileActionSheetEntry,
   type MobileActionSheetOption,
 } from '@/renderer/components/chat/MobileActionSheet';
-import type { SynonBiomedSessionOptions } from '@/renderer/services/synonBiomedSessionOptions';
+import type { XScienceSessionOptions } from '@/renderer/services/xScienceSessionOptions';
 import { Message } from '@arco-design/web-react';
 import { Attention, Brain, MagicHat, SettingTwo, Shield } from '@icon-park/react';
 import type { TFunction, i18n as I18n } from 'i18next';
@@ -25,9 +25,9 @@ type UseAcpMobileActionSheetControllerArgs = {
   modelListError: unknown;
   retryModelList: () => Promise<void>;
   selectModel: (modelId: string) => void;
-  synonSessionOptions: SynonBiomedSessionOptions;
+  xscienceSessionOptions: XScienceSessionOptions;
   sessionOptionsReady: boolean;
-  setSynonSessionOptions: Dispatch<SetStateAction<SynonBiomedSessionOptions>>;
+  setXScienceSessionOptions: Dispatch<SetStateAction<XScienceSessionOptions>>;
   updatePersistentSessionOption: (key: 'autoReview' | 'memory', value: boolean) => Promise<void>;
   mobileSpecialists: Array<{ id: string; label: string; agentId: string }>;
   mobileComputeProviders: Array<{ name: string; label: string }>;
@@ -58,9 +58,9 @@ export const useAcpMobileActionSheetController = ({
   modelListError,
   retryModelList,
   selectModel,
-  synonSessionOptions,
+  xscienceSessionOptions,
   sessionOptionsReady,
-  setSynonSessionOptions,
+  setXScienceSessionOptions,
   updatePersistentSessionOption,
   mobileSpecialists,
   mobileComputeProviders,
@@ -113,47 +113,47 @@ export const useAcpMobileActionSheetController = ({
       key: 'session-options',
       disabled: !sessionOptionsReady,
       icon: <SettingTwo theme='outline' size='16' />,
-      label: t('conversation.synonRuntime.sessionOptions.title'),
+      label: t('conversation.xscienceRuntime.sessionOptions.title'),
       meta: [
-        synonSessionOptions.delegation ? t('conversation.synonRuntime.sessionOptions.delegation') : '',
-        synonSessionOptions.autoReview ? t('conversation.synonRuntime.sendBox.reviewShort') : '',
+        xscienceSessionOptions.delegation ? t('conversation.xscienceRuntime.sessionOptions.delegation') : '',
+        xscienceSessionOptions.autoReview ? t('conversation.xscienceRuntime.sendBox.reviewShort') : '',
       ]
         .filter(Boolean)
         .join(' · '),
       submenu: {
-        title: t('conversation.synonRuntime.sessionOptions.title'),
+        title: t('conversation.xscienceRuntime.sessionOptions.title'),
         options: [
           {
             key: 'delegation',
-            label: t('conversation.synonRuntime.sessionOptions.delegation'),
-            description: t('conversation.synonRuntime.sessionOptions.delegationDescription'),
-            active: synonSessionOptions.delegation,
+            label: t('conversation.xscienceRuntime.sessionOptions.delegation'),
+            description: t('conversation.xscienceRuntime.sessionOptions.delegationDescription'),
+            active: xscienceSessionOptions.delegation,
           },
           {
             key: 'autoReview',
-            label: t('conversation.synonRuntime.sessionOptions.autoReview'),
-            description: t('conversation.synonRuntime.sessionOptions.autoReviewDescription'),
-            active: synonSessionOptions.autoReview,
+            label: t('conversation.xscienceRuntime.sessionOptions.autoReview'),
+            description: t('conversation.xscienceRuntime.sessionOptions.autoReviewDescription'),
+            active: xscienceSessionOptions.autoReview,
           },
           {
             key: 'memory',
-            label: t('conversation.synonRuntime.sessionOptions.memory'),
-            description: t('conversation.synonRuntime.sessionOptions.memoryDescription'),
-            active: synonSessionOptions.memory,
+            label: t('conversation.xscienceRuntime.sessionOptions.memory'),
+            description: t('conversation.xscienceRuntime.sessionOptions.memoryDescription'),
+            active: xscienceSessionOptions.memory,
           },
         ],
         onSelect: (key) => {
           if (!sessionOptionsReady) return;
           if (key === 'delegation') {
-            setSynonSessionOptions((current) => ({
+            setXScienceSessionOptions((current) => ({
               ...current,
               delegation: !current.delegation,
             }));
           } else if (key === 'autoReview' || key === 'memory') {
-            const nextValue = !synonSessionOptions[key];
+            const nextValue = !xscienceSessionOptions[key];
             void updatePersistentSessionOption(key, nextValue).catch((error) => {
               console.error('[AcpSendBox] Failed to update session option', safeErrorDiagnostic(error));
-              Message.error(t('conversation.synonRuntime.sessionOptions.updateFailed'));
+              Message.error(t('conversation.xscienceRuntime.sessionOptions.updateFailed'));
             });
           }
         },
@@ -164,30 +164,30 @@ export const useAcpMobileActionSheetController = ({
       entries.push({
         key: 'specialist',
         icon: <Brain theme='outline' size='16' />,
-        label: t('conversation.synonRuntime.sessionOptions.expert'),
+        label: t('conversation.xscienceRuntime.sessionOptions.expert'),
         meta:
-          synonSessionOptions.targetAgent === 'OPERON'
-            ? t('conversation.synonRuntime.sessionOptions.none')
-            : mobileSpecialists.find((item) => item.agentId === synonSessionOptions.targetAgent)?.label ||
-              synonSessionOptions.targetAgent,
+          xscienceSessionOptions.targetAgent === 'OPERON'
+            ? t('conversation.xscienceRuntime.sessionOptions.none')
+            : mobileSpecialists.find((item) => item.agentId === xscienceSessionOptions.targetAgent)?.label ||
+              xscienceSessionOptions.targetAgent,
         submenu: {
-          title: t('conversation.synonRuntime.sessionOptions.expert'),
+          title: t('conversation.xscienceRuntime.sessionOptions.expert'),
           options: [
             {
               key: 'OPERON',
-              label: t('conversation.synonRuntime.sessionOptions.none'),
-              active: synonSessionOptions.targetAgent === 'OPERON',
+              label: t('conversation.xscienceRuntime.sessionOptions.none'),
+              active: xscienceSessionOptions.targetAgent === 'OPERON',
             },
             ...mobileSpecialists
               .filter((specialist) => specialist.agentId !== 'OPERON')
               .map((specialist) => ({
                 key: specialist.agentId,
                 label: specialist.label,
-                active: specialist.agentId === synonSessionOptions.targetAgent,
+                active: specialist.agentId === xscienceSessionOptions.targetAgent,
               })),
           ],
           onSelect: (agentId) =>
-            setSynonSessionOptions((current) => ({
+            setXScienceSessionOptions((current) => ({
               ...current,
               targetAgent: agentId,
             })),
@@ -199,10 +199,10 @@ export const useAcpMobileActionSheetController = ({
       entries.push({
         key: 'session-compute',
         icon: <SettingTwo theme='outline' size='16' />,
-        label: t('conversation.synonRuntime.sessionOptions.compute'),
+        label: t('conversation.xscienceRuntime.sessionOptions.compute'),
         meta: String(mobileEnabledCompute.length),
         submenu: {
-          title: t('conversation.synonRuntime.sessionOptions.compute'),
+          title: t('conversation.xscienceRuntime.sessionOptions.compute'),
           options: mobileComputeProviders.map((provider) => ({
             key: provider.name,
             label: provider.label,
@@ -295,12 +295,12 @@ export const useAcpMobileActionSheetController = ({
       entries.push({
         key: 'send-mode',
         icon: <Shield theme='outline' size='16' />,
-        label: t('conversation.synonRuntime.sendBox.sendMode'),
-        description: t('conversation.synonRuntime.sendBox.sendModeDescription'),
+        label: t('conversation.xscienceRuntime.sendBox.sendMode'),
+        description: t('conversation.xscienceRuntime.sendBox.sendModeDescription'),
         meta: currentModeLabel,
         disabled: runtimeConfig.setStatus.state === 'setting',
         submenu: {
-          title: t('conversation.synonRuntime.sendBox.sendMode'),
+          title: t('conversation.xscienceRuntime.sendBox.sendMode'),
           options: modeOptions,
           onSelect: (key) => void handleSheetModeChange(key),
         },
@@ -388,7 +388,7 @@ export const useAcpMobileActionSheetController = ({
     selectModel,
     selectedMcpServerIds,
     selectedSkillNames,
-    synonSessionOptions,
+    xscienceSessionOptions,
     sessionOptionsReady,
     t,
     updatePersistentSessionOption,

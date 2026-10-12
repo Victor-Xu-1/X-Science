@@ -18,7 +18,7 @@ import (
 	"github.com/google/uuid"
 	"gopkg.in/yaml.v3"
 
-	"synon-go/internal/skills"
+	"x-science/internal/skills"
 )
 
 const maxSkillImportRequestBytes = maxSkillArchiveBytes + (1 << 20)
@@ -256,7 +256,7 @@ func (s *Server) importSkillBundle(filename, requestedName string, replace bool,
 	if existingSkill, found := findCatalogSkill(s.skillCatalog, skill.Name); found {
 		existingRoot := filepath.Clean(filepath.Dir(existingSkill.Path))
 		writableRoot := filepath.Clean(filepath.Join(installRoot, skill.Name))
-		if strings.HasPrefix(existingSkill.Path, "builtin:") || compatibilitySkillSource(existingSkill) == "synon_llm" {
+		if strings.HasPrefix(existingSkill.Path, "builtin:") || compatibilitySkillSource(existingSkill) == "x_science_llm" {
 			return skillImportResult{}, fmt.Errorf("%w: skill %q conflicts with a bundled read-only catalog entry", os.ErrExist, skill.Name)
 		}
 		if sameCleanPath(existingRoot, writableRoot) && !replace {

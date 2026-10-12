@@ -13,10 +13,10 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/outbox"
-	transcript "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/server"
+	"x-science/internal/outbox"
+	transcript "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/server"
 )
 
 type recordingRealtimeFanout struct {
@@ -550,7 +550,7 @@ func postRealtimeJSON(t *testing.T, target string, input any) {
 		t.Fatal(err)
 	}
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("X-Synon-User-Id", "local")
+	request.Header.Set("X-Science-User-Id", "local")
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		t.Fatal(err)
@@ -568,7 +568,7 @@ func getRealtimeEvents(t *testing.T, baseURL, projectID string) []map[string]any
 	if err != nil {
 		t.Fatal(err)
 	}
-	request.Header.Set("X-Synon-User-Id", "local")
+	request.Header.Set("X-Science-User-Id", "local")
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		t.Fatal(err)

@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestSessionRunnerPreparationHeartbeatRetainsClaimAcrossDiscovery(t *testing.T) {
@@ -63,7 +63,7 @@ func TestSessionRunnerPreparationHeartbeatRetainsClaimAcrossDiscovery(t *testing
 			catalogURL, client := mcpDirectoryPublicTLSClient(t, catalog)
 			enabled := true
 			if _, err := store.CreateAgent(workspace.CreateAgentInput{
-				ID: "preparation-agent", UserID: "local", Name: "synon", DisplayName: "Preparation fixture",
+				ID: "preparation-agent", UserID: "local", Name: "xscience", DisplayName: "Preparation fixture",
 				Description: "Discover the controlled local MCP fixture.", SystemPrompt: "Reply ready.", Unrestricted: true, Enabled: &enabled,
 			}); err != nil {
 				t.Fatal(err)

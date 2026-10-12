@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/memorypolicy"
+	"x-science/internal/memorypolicy"
 )
 
 type classifierModelFunc func(context.Context, string) (ModelResponse, error)

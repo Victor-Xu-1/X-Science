@@ -24,14 +24,14 @@ vi.mock('@arco-design/web-react', async (importOriginal) => {
   };
 });
 
-vi.mock('@/renderer/services/synonBiomedAnnotations', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/renderer/services/synonBiomedAnnotations')>();
+vi.mock('@/renderer/services/xScienceAnnotations', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/renderer/services/xScienceAnnotations')>();
   return {
     ...actual,
-    loadSynonBiomedTranscriptAnnotations: mocks.load,
-    createSynonBiomedTranscriptAnnotation: mocks.create,
-    updateSynonBiomedTranscriptAnnotation: mocks.update,
-    deleteSynonBiomedTranscriptAnnotation: mocks.remove,
+    loadXScienceTranscriptAnnotations: mocks.load,
+    createXScienceTranscriptAnnotation: mocks.create,
+    updateXScienceTranscriptAnnotation: mocks.update,
+    deleteXScienceTranscriptAnnotation: mocks.remove,
   };
 });
 

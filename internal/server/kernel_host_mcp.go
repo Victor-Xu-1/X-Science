@@ -16,12 +16,12 @@ import (
 	"github.com/dlclark/regexp2"
 	jsonschema "github.com/santhosh-tekuri/jsonschema/v6"
 
-	"synon-go/internal/agentruntime"
-	kernelruntime "synon-go/internal/kernel"
-	"synon-go/internal/mcpdirectory"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/tools/mcpstdio"
+	"x-science/internal/agentruntime"
+	kernelruntime "x-science/internal/kernel"
+	"x-science/internal/mcpdirectory"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/tools/mcpstdio"
 )
 
 type kernelMCPTranscriptEvidenceAuthority struct {

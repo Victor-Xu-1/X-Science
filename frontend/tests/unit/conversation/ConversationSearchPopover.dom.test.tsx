@@ -18,7 +18,7 @@ vi.mock('@/common', () => ({
   },
 }));
 
-vi.mock('@/renderer/components/base/SynonModal', () => ({
+vi.mock('@/renderer/components/base/XScienceModal', () => ({
   default: ({
     visible,
     children,
@@ -33,10 +33,10 @@ vi.mock('@/renderer/components/base/SynonModal', () => ({
   },
 }));
 
-vi.mock('@/renderer/hooks/synonBiomed/runtime/usePresetAssistantInfo', () => ({
+vi.mock('@/renderer/hooks/xScience/runtime/usePresetAssistantInfo', () => ({
   usePresetAssistantInfo: () => ({ info: null }),
 }));
-vi.mock('@/renderer/utils/synonBiomed/runtime/runtimeLogo', () => ({
+vi.mock('@/renderer/utils/xScience/runtime/runtimeLogo', () => ({
   useAgentLogos: () => ({}),
 }));
 vi.mock('@/renderer/pages/conversation/utils/conversationAssistantIdentity', () => ({
@@ -46,7 +46,7 @@ vi.mock('@/renderer/utils/ui/focus', () => ({
   blockMobileInputFocus: vi.fn(),
   blurActiveElement: vi.fn(),
 }));
-vi.mock('@/renderer/components/synonBiomed/SynonBiomedAvatar', () => ({
+vi.mock('@/renderer/components/xScience/XScienceAvatar', () => ({
   default: () => <span data-testid='assistant-avatar' />,
 }));
 vi.mock('@arco-design/web-react', () => ({
@@ -71,7 +71,7 @@ const makeItem = (id: string, name: string, messageId = '') => ({
     modified_at: 2,
     status: 'finished',
     model: { provider_id: 'provider', model: 'model' },
-    extra: { backend: 'synonbiomed', project_name: 'Discovery' },
+    extra: { backend: 'xscience', project_name: 'Discovery' },
   },
   message_id: messageId,
   message_type: 'text',

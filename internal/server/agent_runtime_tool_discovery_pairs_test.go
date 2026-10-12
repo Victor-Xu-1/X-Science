@@ -3,7 +3,7 @@ package server
 import (
 	"testing"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 func TestCompactRuntimeSnapshotKeepsDiscoveryAndInvocationPairsTogether(t *testing.T) {

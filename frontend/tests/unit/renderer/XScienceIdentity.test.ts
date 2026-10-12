@@ -81,7 +81,7 @@ describe('X-Science current product identity', () => {
         type: 'image/png',
       })
     );
-    expect(html).not.toMatch(/Synon[- ]Biomed|SYNON-Biomed/);
+    expect(html).not.toMatch(/XScience[- ]Biomed|XSCIENCE-Biomed/);
   });
 
   it('keeps every shipped translation value on the current brand without changing technical keys', () => {
@@ -90,12 +90,12 @@ describe('X-Science current product identity', () => {
     for (const file of filesUnder(locales).filter((path) => path.endsWith('.json'))) {
       const document = JSON.parse(readFileSync(file, 'utf8'));
       for (const value of displayValues(document))
-        expect(value, file).not.toMatch(/\bsynon(?:[-_ ]?(?:biomed|ai))?\b/i);
+        expect(value, file).not.toMatch(/\bxscience(?:[-_ ]?(?:biomed|ai))?\b/i);
     }
     for (const locale of ['en-US', 'zh-CN']) {
       const conversation = JSON.parse(readFileSync(resolve(locales, locale, 'conversation.json'), 'utf8'));
-      expect(conversation.mcp.descriptions['synon-research']).toContain('X-Science');
-      expect(conversation.synonRuntime).toBeDefined();
+      expect(conversation.mcp.descriptions['x-science-research']).toContain('X-Science');
+      expect(conversation.xscienceRuntime).toBeDefined();
     }
   });
 
@@ -103,10 +103,10 @@ describe('X-Science current product identity', () => {
     const source = resolve(process.cwd(), 'packages/desktop/src');
     for (const file of filesUnder(source).filter((path) => /\.tsx?$/.test(path))) {
       const text = readFileSync(file, 'utf8');
-      expect(text, file).not.toMatch(/['"`]\[Synon[^\r\n]*['"`]/);
-      expect(text, file).not.toContain('Synon LLM Core');
+      expect(text, file).not.toMatch(/['"`]\[XScience[^\r\n]*['"`]/);
+      expect(text, file).not.toContain('XScience LLM Core');
     }
-    const service = read('packages/desktop/src/renderer/services/synonBiomedLlm.ts').toString();
+    const service = read('packages/desktop/src/renderer/services/xScienceLlm.ts').toString();
     expect(service).toContain("import { PRODUCT_NAME } from '@/common/config/productIdentity'");
     expect(service).toContain('${PRODUCT_NAME} LLM Core');
   });

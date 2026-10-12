@@ -1,6 +1,6 @@
 package server
 
-import "synon-go/internal/sessionrunner"
+import "x-science/internal/sessionrunner"
 
 // This is a recovery-route signal, not a message filter or task length limit.
 // All accepted bytes remain immutable. A few new bytes from an entire truncated

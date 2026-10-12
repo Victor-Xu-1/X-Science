@@ -10,7 +10,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const (

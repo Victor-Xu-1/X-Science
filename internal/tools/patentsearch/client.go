@@ -11,9 +11,9 @@ import (
 	"strings"
 	"sync"
 
-	"synon-go/internal/discoveryquery"
-	"synon-go/internal/tools/webfetch"
-	"synon-go/internal/tools/websearch"
+	"x-science/internal/discoveryquery"
+	"x-science/internal/tools/webfetch"
+	"x-science/internal/tools/websearch"
 )
 
 const (

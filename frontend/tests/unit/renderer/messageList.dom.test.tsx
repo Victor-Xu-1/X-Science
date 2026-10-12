@@ -938,7 +938,7 @@ describe('MessageList', () => {
   it('does not append unreferenced scientific file collections to the end of the transcript', async () => {
     mockConversationArtifacts = [
       {
-        id: 'synonbiomed-files:frame-1',
+        id: 'xscience-files:frame-1',
         conversation_id: 'conversation-1',
         kind: 'scientific_files',
         status: 'active',

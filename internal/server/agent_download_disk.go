@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"synon-go/internal/runtimecontrol"
+	"x-science/internal/runtimecontrol"
 )
 
 // A download can simultaneously occupy staging, artifact and workspace

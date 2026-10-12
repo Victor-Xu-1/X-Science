@@ -6,8 +6,8 @@ import (
 	"unicode"
 	"unicode/utf16"
 
-	"synon-go/internal/memorypolicy"
-	"synon-go/internal/memorytools"
+	"x-science/internal/memorypolicy"
+	"x-science/internal/memorytools"
 )
 
 var serverToolStubLine = regexp.MustCompile(`(?m)^  - (\S+)(?: — (.*))?$`)

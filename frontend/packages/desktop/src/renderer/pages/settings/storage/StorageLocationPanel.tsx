@@ -1,7 +1,7 @@
 import { FolderOpen } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import type { SynonBiomedDataDirectory } from '@/renderer/services/synonBiomedWorkspaceSettings';
+import type { XScienceDataDirectory } from '@/renderer/services/xScienceWorkspaceSettings';
 import { SettingsSection } from '../components/SettingsPrimitives';
 import { StorageError, StorageLoading } from './StorageFeedback';
 import { StoragePath } from './StoragePath';
@@ -13,7 +13,7 @@ export function StorageLocationPanel({
   onChange,
   onFinishMove,
 }: {
-  resource: StorageResource<SynonBiomedDataDirectory>;
+  resource: StorageResource<XScienceDataDirectory>;
   onChange: () => void;
   onFinishMove: (remove: boolean) => void;
 }) {

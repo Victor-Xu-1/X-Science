@@ -5,7 +5,7 @@ export function skillSourceLabel(source?: string, t?: TFunction): string {
   const normalized = source.trim().toLocaleLowerCase();
   const labels: Record<string, string> = {
     bundled: 'builtin',
-    synon_llm: 'builtin',
+    x_science_llm: 'builtin',
     marketplace: 'imported',
     github: 'github',
     personal: 'personal',

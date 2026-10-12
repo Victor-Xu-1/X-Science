@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func (s *Server) writeArtifactZIP(

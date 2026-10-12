@@ -2,10 +2,10 @@ import {
   buildProjectArtifactGroups,
   classifyProjectArtifact,
 } from '@/renderer/pages/project/projectArtifactLibraryModel';
-import type { SynonBiomedProjectArtifact, SynonBiomedProjectBench } from '@/renderer/services/synonBiomedGateway';
+import type { XScienceProjectArtifact, XScienceProjectBench } from '@/renderer/services/xScienceGateway';
 import { describe, expect, it } from 'vitest';
 
-const benches: SynonBiomedProjectBench[] = [
+const benches: XScienceProjectBench[] = [
   {
     frameId: 'frame-1',
     rootFrameId: 'frame-1',
@@ -27,8 +27,8 @@ const benches: SynonBiomedProjectBench[] = [
 const artifact = (
   artifactId: string,
   filename: string,
-  overrides: Partial<SynonBiomedProjectArtifact> = {}
-): SynonBiomedProjectArtifact => ({
+  overrides: Partial<XScienceProjectArtifact> = {}
+): XScienceProjectArtifact => ({
   artifactId,
   versionId: `version-${artifactId}`,
   versionNumber: 1,

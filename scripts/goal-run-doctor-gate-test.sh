@@ -45,9 +45,9 @@ write_doctor "$TMP_DIR/fail.json" 9 1 0 1
 expect_success "default-allows-partial" bash "$GATE" "$TMP_DIR/pass-with-partial.json"
 expect_failure "default-blocks-missing" bash "$GATE" "$TMP_DIR/missing.json"
 expect_failure "default-blocks-fail" bash "$GATE" "$TMP_DIR/fail.json"
-expect_failure "strict-blocks-partial" env SYNON_GOAL_STRICT=1 bash "$GATE" "$TMP_DIR/pass-with-partial.json"
-expect_success "strict-allows-explicit-external-partial" env SYNON_GOAL_STRICT=1 SYNON_GOAL_ALLOWED_PARTIAL=model-runner bash "$GATE" "$TMP_DIR/pass-with-partial.json"
-expect_failure "strict-rejects-different-allowed-partial" env SYNON_GOAL_STRICT=1 SYNON_GOAL_ALLOWED_PARTIAL=synon-link-im bash "$GATE" "$TMP_DIR/pass-with-partial.json"
-expect_success "strict-all-pass" env SYNON_GOAL_STRICT=1 bash "$GATE" "$TMP_DIR/all-pass.json"
+expect_failure "strict-blocks-partial" env X_SCIENCE_GOAL_STRICT=1 bash "$GATE" "$TMP_DIR/pass-with-partial.json"
+expect_success "strict-allows-explicit-external-partial" env X_SCIENCE_GOAL_STRICT=1 X_SCIENCE_GOAL_ALLOWED_PARTIAL=model-runner bash "$GATE" "$TMP_DIR/pass-with-partial.json"
+expect_failure "strict-rejects-different-allowed-partial" env X_SCIENCE_GOAL_STRICT=1 X_SCIENCE_GOAL_ALLOWED_PARTIAL=x-science-link-im bash "$GATE" "$TMP_DIR/pass-with-partial.json"
+expect_success "strict-all-pass" env X_SCIENCE_GOAL_STRICT=1 bash "$GATE" "$TMP_DIR/all-pass.json"
 
 echo "goal-run-doctor-gate-test: ok"

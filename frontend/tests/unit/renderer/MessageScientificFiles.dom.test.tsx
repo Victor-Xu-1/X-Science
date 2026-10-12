@@ -2,7 +2,7 @@ import React from 'react';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IScientificFilesArtifact } from '@/common/adapter/ipcBridge';
-import { SYNON_BIOMED_TEXT_ACCEPT_HEADER } from '@/renderer/services/synonBiomedArtifactPreview';
+import { X_SCIENCE_TEXT_ACCEPT_HEADER } from '@/renderer/services/xScienceArtifactPreview';
 import { renderWithI18n } from '../i18nTestUtils';
 
 const openPreviewMock = vi.fn();
@@ -17,13 +17,13 @@ vi.mock('@/renderer/pages/conversation/Preview/context/PreviewContext', () => ({
 }));
 
 vi.mock('@/renderer/pages/conversation/Preview/components/viewers/scientificPreviewLoaders', () => ({
-  preloadSynonBiomedStructureViewer: preloadStructureViewerMock,
+  preloadXScienceStructureViewer: preloadStructureViewerMock,
 }));
 
 vi.mock('@/renderer/hooks/context/ConversationContext', () => ({
   useConversationContextSafe: () => ({
     conversation_id: 'frame-1',
-    workspace: 'synonbiomed://project/proj-1',
+    workspace: 'x-science://project/proj-1',
     type: 'acp',
   }),
 }));
@@ -44,7 +44,7 @@ import MessageScientificFiles, {
 } from '@/renderer/pages/conversation/Messages/components/MessageScientificFiles';
 
 const artifact: IScientificFilesArtifact = {
-  id: 'synonbiomed-files:frame-1',
+  id: 'xscience-files:frame-1',
   conversation_id: 'frame-1',
   kind: 'scientific_files',
   status: 'active',
@@ -130,7 +130,7 @@ describe('MessageScientificFiles', () => {
 
   afterEach(() => vi.unstubAllGlobals());
 
-  it('renders real generated files and opens image and markdown in the native SynonAI preview panel', async () => {
+  it('renders real generated files and opens image and markdown in the native XScience preview panel', async () => {
     await renderWithI18n(<MessageScientificFiles artifact={artifact} />, 'en-US');
 
     expect(screen.getByText('Generated files · 2')).toBeInTheDocument();
@@ -181,7 +181,7 @@ describe('MessageScientificFiles', () => {
           artifactId: 'artifact-report',
           versionId: 'version-report',
           contentUrl: '/api/artifacts/artifact-report',
-          workspace: 'synonbiomed://project/proj-1',
+          workspace: 'x-science://project/proj-1',
           companionArtifactUrls: {
             'binding.png': '/api/artifacts/artifact-image',
             'report.md': '/api/artifacts/artifact-report',
@@ -191,7 +191,7 @@ describe('MessageScientificFiles', () => {
       );
     });
     expect(fetch).toHaveBeenCalledWith('/api/artifacts/artifact-report', {
-      headers: { accept: SYNON_BIOMED_TEXT_ACCEPT_HEADER },
+      headers: { accept: X_SCIENCE_TEXT_ACCEPT_HEADER },
     });
   });
 

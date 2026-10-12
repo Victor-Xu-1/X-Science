@@ -24,21 +24,21 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('react-router', () => ({ useNavigate: () => mocks.navigate }));
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: mocks.t }) }));
-vi.mock('@/renderer/services/synonBiomedGateway', () => ({
-  loadSynonBiomedArtifact: mocks.loadArtifact,
-  loadSynonBiomedProjectFolders: mocks.loadFolders,
+vi.mock('@/renderer/services/xScienceGateway', () => ({
+  loadXScienceArtifact: mocks.loadArtifact,
+  loadXScienceProjectFolders: mocks.loadFolders,
 }));
-vi.mock('@/renderer/services/synonBiomedArtifacts', () => ({
-  setSynonBiomedArtifactPriority: mocks.setPriority,
-  renameSynonBiomedArtifact: mocks.rename,
-  deleteSynonBiomedArtifact: mocks.remove,
-  copySynonBiomedArtifact: mocks.copyArtifact,
-  moveSynonBiomedArtifact: mocks.moveArtifact,
+vi.mock('@/renderer/services/xScienceArtifacts', () => ({
+  setXScienceArtifactPriority: mocks.setPriority,
+  renameXScienceArtifact: mocks.rename,
+  deleteXScienceArtifact: mocks.remove,
+  copyXScienceArtifact: mocks.copyArtifact,
+  moveXScienceArtifact: mocks.moveArtifact,
 }));
-vi.mock('@/renderer/services/synonBiomedWorkspaceSettings', () => ({
-  loadSynonBiomedStorageSettings: mocks.loadStorage,
-  loadSynonBiomedCloudBuckets: mocks.loadBuckets,
-  exportSynonBiomedArtifactToCloud: mocks.exportCloud,
+vi.mock('@/renderer/services/xScienceWorkspaceSettings', () => ({
+  loadXScienceStorageSettings: mocks.loadStorage,
+  loadXScienceCloudBuckets: mocks.loadBuckets,
+  exportXScienceArtifactToCloud: mocks.exportCloud,
 }));
 vi.mock('@/renderer/utils/ui/clipboard', () => ({ copyText: mocks.copyText }));
 vi.mock('@/renderer/utils/file/download', () => ({ downloadFileFromUrl: mocks.download }));

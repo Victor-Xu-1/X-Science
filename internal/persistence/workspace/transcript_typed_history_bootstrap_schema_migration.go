@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 const (
 	transcriptTypedHistoryBootstrapV35PreflightIdentity = "canonical-transcript-v34-typed-bootstrap-v1"
-	transcriptTypedHistoryBootstrapV35RuleSpec          = "synon.workspace.transcript-typed-history-bootstrap.v35"
+	transcriptTypedHistoryBootstrapV35RuleSpec          = "x-science.workspace.transcript-typed-history-bootstrap.v35"
 )
 
 var transcriptTypedHistoryBootstrapV35Migration = versionedSchemaMigration{

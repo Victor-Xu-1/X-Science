@@ -15,9 +15,9 @@ import (
 
 	"github.com/coder/websocket"
 
-	transcript "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/realtime"
+	transcript "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/realtime"
 )
 
 const (

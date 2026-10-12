@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/memorypolicy"
+	"x-science/internal/memorypolicy"
 )
 
 type repairModelFunc func(context.Context, RepairRequest) (string, error)
@@ -21,19 +21,19 @@ func TestWorkspaceLiteralRepairerRetriesWithExactValueFeedback(t *testing.T) {
 		if len(requests) == 1 {
 			return "Use v4.0.3.", nil
 		}
-		return "Use v4.0.3 (was v4.0.2) at /opt/synon/config.json.", nil
+		return "Use v4.0.3 (was v4.0.2) at /opt/xscience/config.json.", nil
 	}))
-	result, err := repairer.RepairMemoryReplacement(context.Background(), "Use v4.0.2 at /opt/synon/config.json.", "Use v4.0.3.")
+	result, err := repairer.RepairMemoryReplacement(context.Background(), "Use v4.0.2 at /opt/xscience/config.json.", "Use v4.0.3.")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result != "Use v4.0.3 (was v4.0.2) at /opt/synon/config.json." || len(requests) != 2 {
+	if result != "Use v4.0.3 (was v4.0.2) at /opt/xscience/config.json." || len(requests) != 2 {
 		t.Fatalf("repair result=%q requests=%d", result, len(requests))
 	}
 	if requests[0].Model != "" || requests[0].MaxTokens != memorypolicy.LiteralRepairMaxTokens || requests[0].Temperature != 0 {
 		t.Fatalf("repair request = %#v", requests[0])
 	}
-	if !strings.Contains(requests[1].Prompt, "Your previous attempt dropped these values") || !strings.Contains(requests[1].Prompt, "/opt/synon/config.json") {
+	if !strings.Contains(requests[1].Prompt, "Your previous attempt dropped these values") || !strings.Contains(requests[1].Prompt, "/opt/xscience/config.json") {
 		t.Fatalf("retry prompt = %q", requests[1].Prompt)
 	}
 }
@@ -52,9 +52,9 @@ func TestWorkspaceLiteralRepairerSkipsModelWhenNoLiteralIsLost(t *testing.T) {
 
 func TestWorkspaceLiteralRepairerRejectsInventedValuesAfterTwoAttempts(t *testing.T) {
 	repairer := NewModelLiteralRepairer(repairModelFunc(func(context.Context, RepairRequest) (string, error) {
-		return "Use v4.0.3 (was v4.0.2) at /opt/synon/config.json build 987654.", nil
+		return "Use v4.0.3 (was v4.0.2) at /opt/xscience/config.json build 987654.", nil
 	}))
-	if _, err := repairer.RepairMemoryReplacement(context.Background(), "Use v4.0.2 at /opt/synon/config.json.", "Use v4.0.3."); err == nil || !strings.Contains(err.Error(), ErrLiteralRepairFailed.Error()) {
+	if _, err := repairer.RepairMemoryReplacement(context.Background(), "Use v4.0.2 at /opt/xscience/config.json.", "Use v4.0.3."); err == nil || !strings.Contains(err.Error(), ErrLiteralRepairFailed.Error()) {
 		t.Fatalf("invented literal repair error = %v", err)
 	}
 }

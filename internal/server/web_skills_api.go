@@ -15,7 +15,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"synon-go/internal/skills"
+	"x-science/internal/skills"
 )
 
 const (
@@ -488,7 +488,7 @@ func webCommonSkillPaths() []webSkillExternalPath {
 	candidates := []webSkillExternalPath{
 		{Name: "Claude", Path: filepath.Join(home, ".claude", "skills")},
 		{Name: "Codex", Path: filepath.Join(home, ".codex", "skills")},
-		{Name: "X-Science", Path: filepath.Join(home, ".synon", "skills")},
+		{Name: "X-Science", Path: filepath.Join(home, ".xscience", "skills")},
 	}
 	result := make([]webSkillExternalPath, 0, len(candidates))
 	for _, candidate := range candidates {
@@ -524,7 +524,7 @@ func (s *Server) upsertExternalWebSkills(items []skills.Skill) {
 }
 
 func webSkillBridgeSource(s *Server, skill skills.Skill) string {
-	if compatibilityRequiredPlatformSkill(skill) || compatibilitySkillSource(skill) == "synon_llm" {
+	if compatibilityRequiredPlatformSkill(skill) || compatibilitySkillSource(skill) == "x_science_llm" {
 		return "builtin"
 	}
 	if s != nil && strings.TrimSpace(s.fileRoot) != "" {

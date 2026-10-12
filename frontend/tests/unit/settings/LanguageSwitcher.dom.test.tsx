@@ -19,7 +19,7 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-vi.mock('@/renderer/components/base/SynonSelect', async () => {
+vi.mock('@/renderer/components/base/XScienceSelect', async () => {
   const ReactModule = await import('react');
   const Select = ReactModule.forwardRef<
     HTMLSelectElement,

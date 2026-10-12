@@ -17,15 +17,15 @@ const service = vi.hoisted(() => ({
   move: vi.fn(),
   export: vi.fn(),
 }));
-vi.mock('@/renderer/services/synonBiomedWorkspaceSettings', () => ({
-  loadSynonBiomedStorageSettings: service.storage,
-  loadSynonBiomedCloudCredentials: service.credentials,
-  loadSynonBiomedCloudBuckets: service.buckets,
-  exportSynonBiomedArtifactToCloud: service.export,
+vi.mock('@/renderer/services/xScienceWorkspaceSettings', () => ({
+  loadXScienceStorageSettings: service.storage,
+  loadXScienceCloudCredentials: service.credentials,
+  loadXScienceCloudBuckets: service.buckets,
+  exportXScienceArtifactToCloud: service.export,
 }));
-vi.mock('@/renderer/services/synonBiomedArtifacts', () => ({
-  copySynonBiomedArtifact: service.copy,
-  moveSynonBiomedArtifact: service.move,
+vi.mock('@/renderer/services/xScienceArtifacts', () => ({
+  copyXScienceArtifact: service.copy,
+  moveXScienceArtifact: service.move,
 }));
 const artifact = { artifactId: 'file-a', filename: 'source.txt', folderId: 'folder-a' };
 const credential = (id: string, defaultBucket = `${id}-bucket`) => ({

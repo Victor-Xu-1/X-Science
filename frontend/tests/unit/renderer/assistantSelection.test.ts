@@ -25,7 +25,7 @@ const mk = (id: string, source: Assistant['source'], sort_order: number, enabled
     prompts_i18n: {},
     models: [],
     agent_id: id,
-    agent: { type: 'synonbiomed', source: 'builtin', acp_backend: 'synonbiomed' },
+    agent: { type: 'xscience', source: 'builtin', acp_backend: 'xscience' },
     agent_status: 'online',
     deletable: source === 'user',
   }) as Assistant;

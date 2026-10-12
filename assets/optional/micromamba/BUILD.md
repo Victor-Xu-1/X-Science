@@ -12,13 +12,13 @@ Windows x64 and macOS x86_64/arm64 use the official
 respective platform directory contains its own `manifest.json`, checksum,
 size, and BSD-3-Clause license copy. These files are upstream release
 binaries, not the Linux controlled build; their provenance must not be
-described as `2.9.0+synon.1`. Every release package retains only its target
+described as `2.9.0+x-science.1`. Every release package retains only its target
 platform directory. The product also checks a matching platform-bound Conda
 explicit lock, interpreter smoke, installed helper digests, and immutable
 generation marker before activating Python or R.
 
 `manifest.json` is the asset version/checksum authority. The executable's
-upstream version output remains `2.9.0`; the asset version is `2.9.0+synon.1`.
+upstream version output remains `2.9.0`; the asset version is `2.9.0+x-science.1`.
 The original BSD-3-Clause license is unchanged. The pinned build dependency
 closure includes the compiler and static libraries, not runtime installation
 alternatives. Dependency distribution sources and hashes are in
@@ -30,7 +30,7 @@ external build path: static dependency configuration embeds its installation
 prefix even though the binary has no runtime dependency on that prefix.
 
 ```sh
-bash build-linux-64.sh /tmp/synon-installer-build-2.9.0
+bash build-linux-64.sh /tmp/x-science-installer-build-2.9.0
 ```
 
 The directory must not exist and must be outside the source repository. The
@@ -43,14 +43,14 @@ Source filenames are prefix-mapped and the compiler-injected RPATH is removed.
 Acceptance must also run with the build environment unavailable, including a
 verified HTTPS package fetch using system trust, before replacing the asset.
 An existing official bootstrap download may be supplied through
-`SYNON_INSTALLER_BOOTSTRAP`; the same mandatory checksum still applies.
+`X_SCIENCE_INSTALLER_BOOTSTRAP`; the same mandatory checksum still applies.
 `CONDA_PKGS_DIRS` may point to an existing package cache for offline reuse of
 the exact locked distributions. Neither setting changes runtime authority.
 
 Before replacing the asset, run the exact real-installer integration tests:
 
 ```sh
-SYNON_TEST_REAL_INSTALLER=1 SYNON_TEST_MICROMAMBA=/absolute/build/micromamba \
+X_SCIENCE_TEST_REAL_INSTALLER=1 X_SCIENCE_TEST_MICROMAMBA=/absolute/build/micromamba \
   go test ./internal/kernel -run '^(TestManagedInstallerRealLinkScriptLifecycle|TestManagedInstallerRealPublicationAndRestartRecovery)$' -count=1
 ```
 

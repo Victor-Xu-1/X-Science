@@ -6,9 +6,9 @@ import (
 	"sort"
 	"strings"
 
-	"synon-go/internal/account"
-	settingsstore "synon-go/internal/persistence/settings"
-	"synon-go/internal/synonlink"
+	"x-science/internal/account"
+	settingsstore "x-science/internal/persistence/settings"
+	"x-science/internal/xsciencelink"
 )
 
 var errAccountManagementUserNotFound = errors.New("account management user not found")
@@ -17,14 +17,14 @@ type localAccountManagementReader struct {
 	accounts       *webAccountStore
 	sessions       *webSessionStore
 	external       *webExternalAuthRuntime
-	localAuth      *synonLinkAuthenticator
+	localAuth      *xscienceLinkAuthenticator
 	settings       *settingsstore.Store
 	allowedDomains []string
 	deniedDomains  []string
 	mcpConfigured  bool
 }
 
-func newLocalAccountManagementReader(state webAuthenticationState, localAuth *synonLinkAuthenticator) account.ManagementReader {
+func newLocalAccountManagementReader(state webAuthenticationState, localAuth *xscienceLinkAuthenticator) account.ManagementReader {
 	return newLocalAccountManagementReaderWithConfig(state, localAuth, localAccountManagementConfig{})
 }
 
@@ -37,7 +37,7 @@ type localAccountManagementConfig struct {
 
 func newLocalAccountManagementReaderWithConfig(
 	state webAuthenticationState,
-	localAuth *synonLinkAuthenticator,
+	localAuth *xscienceLinkAuthenticator,
 	config localAccountManagementConfig,
 ) account.ManagementReader {
 	return &localAccountManagementReader{
@@ -140,7 +140,7 @@ func (reader *localAccountManagementReader) runtimePolicy() account.RuntimePolic
 	approvalMode := "confirm"
 	if reader.settings != nil {
 		if setting, ok, err := reader.settings.Get(approvalDefaultsSettingKey); err == nil && ok {
-			if defaults, normalizeErr := synonlink.NormalizePolicyDefaults(setting.Value); normalizeErr == nil {
+			if defaults, normalizeErr := xsciencelink.NormalizePolicyDefaults(setting.Value); normalizeErr == nil {
 				if normalized := strings.ToLower(strings.TrimSpace(defaults.Mode)); normalized != "" {
 					approvalMode = normalized
 				}
@@ -163,13 +163,13 @@ func (reader *localAccountManagementReader) runtimePolicy() account.RuntimePolic
 	}
 }
 
-func (reader *localAccountManagementReader) userByID(accountID string) (synonLinkAuthUser, bool) {
+func (reader *localAccountManagementReader) userByID(accountID string) (xscienceLinkAuthUser, bool) {
 	accountID = strings.TrimSpace(accountID)
 	if reader.localAuth != nil && reader.localAuth.enabled && accountID == reader.localAuth.user().ID {
 		return reader.localAuth.user(), true
 	}
 	if reader.accounts == nil {
-		return synonLinkAuthUser{}, false
+		return xscienceLinkAuthUser{}, false
 	}
 	return reader.accounts.UserByID(accountID)
 }
@@ -177,7 +177,7 @@ func (reader *localAccountManagementReader) userByID(accountID string) (synonLin
 func accountManagementLoginMethods(
 	accounts *webAccountStore,
 	external *webExternalAuthRuntime,
-	localAuth *synonLinkAuthenticator,
+	localAuth *xscienceLinkAuthenticator,
 	accountID string,
 ) []account.LoginMethod {
 	connected := map[string]bool{}
@@ -215,7 +215,7 @@ func accountManagementLoginMethods(
 	return methods
 }
 
-func accountDisplayName(user synonLinkAuthUser) string {
+func accountDisplayName(user xscienceLinkAuthUser) string {
 	if name := strings.TrimSpace(user.DisplayName); name != "" {
 		return name
 	}

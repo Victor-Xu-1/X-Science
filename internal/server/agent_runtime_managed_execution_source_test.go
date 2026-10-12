@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"synon-go/internal/sciencecapability"
-	"synon-go/internal/skills"
+	"x-science/internal/sciencecapability"
+	"x-science/internal/skills"
 )
 
 func TestManagedExecutionSourceResolvesExtensionlessLauncherAndWorkingDirectory(t *testing.T) {

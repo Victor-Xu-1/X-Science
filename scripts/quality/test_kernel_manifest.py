@@ -10,7 +10,7 @@ from kernel_manifest import render
 
 class KernelManifestTests(unittest.TestCase):
     def setUp(self):
-        self.directory = tempfile.TemporaryDirectory(prefix="synon-manifest-")
+        self.directory = tempfile.TemporaryDirectory(prefix="x-science-manifest-")
         self.addCleanup(self.directory.cleanup)
         self.root = Path(self.directory.name)
         self.assets = self.root / "assets/optional"

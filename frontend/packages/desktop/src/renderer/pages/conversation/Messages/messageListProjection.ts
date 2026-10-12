@@ -1,11 +1,11 @@
 import type {
   IConversationArtifact,
   IScientificFilesArtifact,
-  ISynonBiomedScientificFile,
+  IXScienceScientificFile,
 } from '@/common/adapter/ipcBridge';
 import type { ArtifactReferenceRelation } from '@/common/adapter/messageStreamProtocol';
 import type { IMessageAcpToolCall, IMessageToolCall, IMessageToolGroup, TMessage } from '@/common/chat/chatLib';
-import { isPendingSynonBiomedAskUserHistory } from '@/renderer/components/synonBiomed/runtime/askUserHistoryModel';
+import { isPendingXScienceAskUserHistory } from '@/renderer/components/xScience/runtime/askUserHistoryModel';
 import { parseDiff, type FileChangeInfo } from '@/renderer/utils/file/diffUtils';
 import { hasRenderableMessageText } from './components/messageTextVisibility';
 import {
@@ -39,7 +39,7 @@ export type MessageListMessageItem =
 export type MessageListReferencedFilesItem = {
   type: 'referenced_files';
   id: string;
-  files: ISynonBiomedScientificFile[];
+  files: IXScienceScientificFile[];
   sourceMessageIds: string[];
   created_at: number;
 };
@@ -152,7 +152,7 @@ export const buildMessagePresentationList = (
     if (
       message.type === 'tool_call' &&
       message.content.name === 'ask_user' &&
-      isPendingSynonBiomedAskUserHistory(message.content.input ?? message.content.args, message.content.output)
+      isPendingXScienceAskUserHistory(message.content.input ?? message.content.args, message.content.output)
     ) {
       continue;
     }

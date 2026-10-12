@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 type AuthContextTestHost = Window & {
-  __synonBiomedAuthContextV1?: unknown;
+  __xScienceAuthContextV1?: unknown;
 };
 
 describe('AuthContext hot-reload authority', () => {
   afterEach(() => {
-    delete (window as AuthContextTestHost).__synonBiomedAuthContextV1;
+    delete (window as AuthContextTestHost).__xScienceAuthContextV1;
     vi.resetModules();
   });
 

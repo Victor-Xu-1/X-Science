@@ -128,7 +128,7 @@ func (tx *ImmediateTransaction) CloneAsideHistory(
 		case "assistant_message":
 			eventType = "history_assistant_message"
 		}
-		digest := sha256.Sum256([]byte("synon.transcript.aside-history.v1\x00" + source.UID + "\x00" +
+		digest := sha256.Sum256([]byte("x-science.transcript.aside-history.v1\x00" + source.UID + "\x00" +
 			strconv.FormatInt(seed.eventID, 10) + "\x00" + target.UID))
 		event, created, err := appendEventConn(ctx, tx.conn, target, eventRecord{
 			clientMessageID: "aside-history:" + hex.EncodeToString(digest[:]),
@@ -154,7 +154,7 @@ func (tx *ImmediateTransaction) CloneAsideHistory(
 		if err != nil {
 			return nil, err
 		}
-		digest := sha256.Sum256([]byte("synon.transcript.aside-history.v1\x00notice\x00" + source.UID + "\x00" + target.UID))
+		digest := sha256.Sum256([]byte("x-science.transcript.aside-history.v1\x00notice\x00" + source.UID + "\x00" + target.UID))
 		event, created, err := appendEventConn(ctx, tx.conn, target, eventRecord{
 			clientMessageID: "aside-history:" + hex.EncodeToString(digest[:]),
 			eventType:       "history_user_message", source: EventSourcePayload,

@@ -15,10 +15,10 @@ import (
 	"testing"
 	"unicode/utf16"
 
-	"synon-go/internal/agentruntime"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/tools/securefetch"
-	"synon-go/internal/tools/webfetch"
+	"x-science/internal/agentruntime"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/tools/securefetch"
+	"x-science/internal/tools/webfetch"
 )
 
 func TestPublicHTMLFullDownloadPreservesBeyondWebPreviewAndReadsTail(t *testing.T) {

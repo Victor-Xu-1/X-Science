@@ -122,7 +122,7 @@ func (s *webSessionStore) BindCurrentDevice(accountID, currentToken string, meta
 		}
 	}
 	if currentIndex < 0 {
-		return errSynonLinkInvalidSession
+		return errXScienceLinkInvalidSession
 	}
 	previousSessions, previousEvents := s.snapshotLocked()
 	changed := false
@@ -212,7 +212,7 @@ func (s *webSessionStore) RevokeOthers(accountID, currentToken string) (int, err
 		}
 	}
 	if currentDeviceID == "" {
-		return 0, errSynonLinkInvalidSession
+		return 0, errXScienceLinkInvalidSession
 	}
 	previousSessions, previousEvents := s.snapshotLocked()
 	next := make([]storedWebSession, 0, len(s.sessions))

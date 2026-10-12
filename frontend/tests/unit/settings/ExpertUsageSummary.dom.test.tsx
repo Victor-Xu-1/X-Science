@@ -4,7 +4,7 @@ import { I18nextProvider } from 'react-i18next';
 import { describe, expect, it } from 'vitest';
 import ExpertUsageSummary, {
   type ExpertUsageView,
-} from '@/renderer/pages/settings/SynonBiomedExpertsSettings/ExpertUsageSummary';
+} from '@/renderer/pages/settings/XScienceExpertsSettings/ExpertUsageSummary';
 import { createTestI18n } from '../i18nTestUtils';
 
 async function view(usage: ExpertUsageView) {

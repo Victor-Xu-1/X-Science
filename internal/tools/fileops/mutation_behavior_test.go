@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"synon-go/internal/tools/fileevents"
+	"x-science/internal/tools/fileevents"
 )
 
 func TestMutationHandleRejectsSymlinkSwapAfterResolution(t *testing.T) {

@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	sessionstore "synon-go/internal/persistence/sessions"
-	workspace "synon-go/internal/persistence/workspace"
+	sessionstore "x-science/internal/persistence/sessions"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestKernelHostSupervisionRunsRealChildCollectsStructuredAndResumes(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"synon-go/internal/sciencecapability"
+	"x-science/internal/sciencecapability"
 )
 
 // registeredExecutionDownloadSource authorizes only an exact immutable source

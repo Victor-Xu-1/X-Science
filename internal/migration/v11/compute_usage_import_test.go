@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 
 	_ "modernc.org/sqlite"
 )
@@ -149,12 +149,12 @@ func TestImportComputeUsagePreservesAllV11StatesAndMetadata(t *testing.T) {
 		t.Fatalf("terminal warm-sandbox projection count=%d", count)
 	}
 	if count := queryCount(t, db, `SELECT COUNT(*) FROM compute_workbench_jobs
-		WHERE project_id='__synon_v11_compute_unassigned__'
+		WHERE project_id='__x_science_v11_compute_unassigned__'
 			AND job_id IN ('job-no-project','job-dangling-project')`); count != 2 {
 		t.Fatalf("unassigned compute projections=%d", count)
 	}
 	if count := queryCount(t, db, `SELECT COUNT(*) FROM projects
-		WHERE id='__synon_v11_compute_unassigned__' AND user_id='local'`); count != 1 {
+		WHERE id='__x_science_v11_compute_unassigned__' AND user_id='local'`); count != 1 {
 		t.Fatalf("unassigned compute project count=%d", count)
 	}
 	if count := queryCount(t, db, `SELECT COUNT(*) FROM compute_usage

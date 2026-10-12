@@ -65,13 +65,13 @@ describe('mockHttpBridge helper', () => {
   });
 
   it(':param placeholder populates params map', async () => {
-    mock.onGet('/api/synonbiomed/experts/:id', (ctx) => {
+    mock.onGet('/api/x-science/experts/:id', (ctx) => {
       expect(ctx.params.id).toBe('expert-1');
       return { expert: ctx.params.id };
     });
 
     const module = mock.asModule();
-    const result = await module.httpGet('/api/synonbiomed/experts/expert-1').invoke();
+    const result = await module.httpGet('/api/x-science/experts/expert-1').invoke();
 
     expect(result).toEqual({ expert: 'expert-1' });
     expect(mock.calls[0].params).toEqual({ id: 'expert-1' });

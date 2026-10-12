@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/sciencecapability"
-	"synon-go/internal/skills"
+	"x-science/internal/sciencecapability"
+	"x-science/internal/skills"
 )
 
 func documentedInputTestPack(t *testing.T) sciencecapability.ExecutionPack {
@@ -38,7 +38,7 @@ func TestDocumentedInputRealKernelExecutionAndImmutableProvenance(t *testing.T) 
 	pack := documentedInputTestPack(t)
 	app.scienceCapabilities = &sciencecapability.Catalog{Capabilities: []sciencecapability.Definition{{ID: "analysis", AcceptedEngines: []sciencecapability.EngineDefinition{{ID: "Primary", ExecutionPack: pack}}}}}
 	root := identity.workspaceDir
-	script := filepath.Join(root, ".synon/runtime/skills/primary-fixture/scripts/run.py")
+	script := filepath.Join(root, ".xscience/runtime/skills/primary-fixture/scripts/run.py")
 	if err := os.MkdirAll(filepath.Dir(script), 0700); err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +50,7 @@ func TestDocumentedInputRealKernelExecutionAndImmutableProvenance(t *testing.T) 
 	if err := os.WriteFile(filepath.Join(root, "source.txt"), source, 0600); err != nil {
 		t.Fatal(err)
 	}
-	record := executionDocumentedInput{Schema: "synon.documented-input.v1", EvidenceGroup: "control-point", InputSHA256: fmt.Sprintf("%x", sha256.Sum256(source)), Basis: "structure-derived", Method: "Derive a control parameter from the supplied observations.", Sources: []string{"source.txt: measured observations"}, Limitations: "Exploratory input, not a successful resolver result.", Values: map[string]any{"point": 4.5}}
+	record := executionDocumentedInput{Schema: "x-science.documented-input.v1", EvidenceGroup: "control-point", InputSHA256: fmt.Sprintf("%x", sha256.Sum256(source)), Basis: "structure-derived", Method: "Derive a control parameter from the supplied observations.", Sources: []string{"source.txt: measured observations"}, Limitations: "Exploratory input, not a successful resolver result.", Values: map[string]any{"point": 4.5}}
 	raw, err := json.Marshal(record)
 	if err != nil {
 		t.Fatal(err)
@@ -62,7 +62,7 @@ func TestDocumentedInputRealKernelExecutionAndImmutableProvenance(t *testing.T) 
 	input := map[string]any{"command": command, "environment": "python", "human_description": "Execute documented alternative"}
 	for attempt := 0; attempt < 2; attempt++ {
 		result, err := app.executeAgentKernelTool(context.Background(), identity, "bash", input)
-		if err != nil || result["ok"] != true || strings.Count(stringValue(result["stdout"]), "read-only") != 2 || !strings.Contains(stringValue(result["stdout"]), ".synon-artifacts") {
+		if err != nil || result["ok"] != true || strings.Count(stringValue(result["stdout"]), "read-only") != 2 || !strings.Contains(stringValue(result["stdout"]), ".x-science-artifacts") {
 			t.Fatalf("real documented execution %d failed: %#v %v", attempt, result, err)
 		}
 	}
@@ -84,7 +84,7 @@ func TestDocumentedInputRecordDoesNotManufactureAutomaticEvidence(t *testing.T) 
 	if !found {
 		t.Fatal("documented input missing")
 	}
-	valid := executionDocumentedInput{Schema: "synon.documented-input.v1", EvidenceGroup: "control-point", Basis: "exploratory", Method: "Observed-data derivation", Sources: []string{"source observation"}, Limitations: "Not an established result", Values: map[string]any{"point": 4.5}}
+	valid := executionDocumentedInput{Schema: "x-science.documented-input.v1", EvidenceGroup: "control-point", Basis: "exploratory", Method: "Observed-data derivation", Sources: []string{"source observation"}, Limitations: "Not an established result", Values: map[string]any{"point": 4.5}}
 	values := map[string]string{"--point": "4.5"}
 	for name, mutate := range map[string]func(*executionDocumentedInput){
 		"wrong group":       func(r *executionDocumentedInput) { r.EvidenceGroup = "other" },

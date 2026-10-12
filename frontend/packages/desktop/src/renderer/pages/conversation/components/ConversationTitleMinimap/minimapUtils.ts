@@ -9,7 +9,7 @@
 import type { IMessageText, TMessage } from '@/common/chat/chatLib';
 import React from 'react';
 import { isUserTaskMessage } from '../../Messages/scrollTargetModel';
-import { isSynonBiomedOptimisticUserMessage } from '../../Messages/optimisticUserMessage';
+import { isXScienceOptimisticUserMessage } from '../../Messages/optimisticUserMessage';
 import {
   defaultVisualStyle,
   MAX_LINE_LEN,
@@ -168,7 +168,7 @@ export const buildTurnPreview = (messages: TMessage[]): TurnPreviewItem[] => {
   // position while accepting the newest copy of a canonical message identity.
   const uniqueMessages = new Map(messages.map((message) => [message.id, message]));
   for (const message of uniqueMessages.values()) {
-    if (message.hidden || isSynonBiomedOptimisticUserMessage(message.id)) continue;
+    if (message.hidden || isXScienceOptimisticUserMessage(message.id)) continue;
     const text = isTextMessage(message) ? normalizeText(message.content.content || '') : '';
     if (isUserTaskMessage(message)) {
       if (currentTurn) {

@@ -494,7 +494,7 @@ func readLicenseFiles(directory string) ([]licenseFile, error) {
 }
 
 func makeSPDXDocument(modules []buildModule, goVersion string, subjects []provenanceSubject, created string) spdxDocument {
-	rootID := "SPDXRef-Package-synon-go"
+	rootID := "SPDXRef-Package-x-science"
 	packages := []spdxPackage{{
 		Name: releaseName, SPDXID: rootID, VersionInfo: releaseVersion,
 		DownloadLocation: "NOASSERTION", FilesAnalyzed: false,
@@ -522,7 +522,7 @@ func makeSPDXDocument(modules []buildModule, goVersion string, subjects []proven
 	return spdxDocument{
 		SPDXVersion: "SPDX-2.3", DataLicense: "CC0-1.0", SPDXID: "SPDXRef-DOCUMENT",
 		Name:              releaseName + "-" + releaseVersion,
-		DocumentNamespace: "https://synon.invalid/spdx/" + releaseName + "/" + releaseVersion + "/" + hex.EncodeToString(namespaceDigest[:]),
+		DocumentNamespace: "https://x-science.invalid/spdx/" + releaseName + "/" + releaseVersion + "/" + hex.EncodeToString(namespaceDigest[:]),
 		CreationInfo:      spdxCreationInfo{Created: created, Creators: []string{"Tool: " + releaseName + "-releasepkg-" + releaseVersion}},
 		Packages:          packages, Relationships: relationships,
 	}
@@ -547,13 +547,13 @@ func makeProvenance(options SupplyChainOptions, modules []buildModule, subjects 
 		PredicateType: "https://slsa.dev/provenance/v1",
 		Predicate: provenancePredicate{
 			BuildDefinition: provenanceBuildDefinition{
-				BuildType:            "https://synon.invalid/buildtypes/go-release/v1",
+				BuildType:            "https://x-science.invalid/buildtypes/go-release/v1",
 				ExternalParameters:   map[string]any{"goos": options.GOOS, "goarch": options.GOARCH, "version": releaseVersion},
 				InternalParameters:   map[string]any{"sourceDirty": options.SourceDirty, "trimpath": true, "cgoEnabled": false},
 				ResolvedDependencies: dependencies,
 			},
 			RunDetails: provenanceRunDetails{
-				Builder:  provenanceBuilder{ID: "https://synon.invalid/builders/releasepkg/v1"},
+				Builder:  provenanceBuilder{ID: "https://x-science.invalid/builders/releasepkg/v1"},
 				Metadata: provenanceMetadata{BuildStartedOn: created, BuildFinishedOn: created},
 			},
 		},

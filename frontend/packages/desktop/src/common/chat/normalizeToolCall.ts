@@ -419,8 +419,8 @@ export function normalizeToolCall(message: IMessageToolCall): NormalizedToolCall
     ...(content.streamingRecoveryError === true ? { streamingRecoveryError: true } : {}),
     messageId: message.id,
     conversationId: message.conversation_id,
-    ...(typeof content.synonBiomed?.branchId === 'string' && /^br_[0-9a-f]{8}$/u.test(content.synonBiomed.branchId)
-      ? { branchId: content.synonBiomed.branchId }
+    ...(typeof content.xScience?.branchId === 'string' && /^br_[0-9a-f]{8}$/u.test(content.xScience.branchId)
+      ? { branchId: content.xScience.branchId }
       : {}),
     subagent,
   };

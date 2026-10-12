@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/skills"
+	"x-science/internal/skills"
 )
 
 func TestStructureBasedMoleculeGenerationRunsProfessionalRouteBeforeFallbackChoice(t *testing.T) {
@@ -20,14 +20,14 @@ func TestStructureBasedMoleculeGenerationRunsProfessionalRouteBeforeFallbackChoi
 		t.Fatal("locate repository root")
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
-	skillsRoot := filepath.Join(repositoryRoot, "skills", "synonbiomed")
+	skillsRoot := filepath.Join(repositoryRoot, "skills", "x-science")
 	skillPath := filepath.Join(skillsRoot, "structure-based-molecule-generation", "SKILL.md")
 	content, err := os.ReadFile(skillPath)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	manifestContent, err := os.ReadFile(filepath.Join(repositoryRoot, "assets", "synonbiomed", "skills.manifest.json"))
+	manifestContent, err := os.ReadFile(filepath.Join(repositoryRoot, "assets", "x-science", "skills.manifest.json"))
 	if err != nil {
 		t.Fatal(err)
 	}

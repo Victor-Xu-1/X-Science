@@ -1,10 +1,10 @@
 {
-  "schema": "synon.governance.product-identity-reference.v1",
+  "schema": "x-science.governance.product-identity-reference.v1",
   "authority_path": "product-identity.json",
   "authority_owner": "controller",
   "status": "authoritative-reference-external-release-authorization",
   "current_workspace_schema": {
-    "target": 73,
+    "target": 74,
     "authority_path": "internal/persistence/workspace/versioned_schema.go"
   },
   "planned_schema_integration": {

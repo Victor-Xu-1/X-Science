@@ -1,6 +1,6 @@
 {
     "schemaVersion": 1,
-    "source": "synonbiomed-v1.1/runtime/assets/mcp-servers/bio-tools",
+    "source": "assets/optional/mcp-servers/bio-tools",
     "entrypoint": "run_server.py",
     "runtime": {
         "minimumVersion": "3.11",
@@ -30,8 +30,8 @@
         },
         {
             "path": "lib/antibody_registry/client.py",
-            "sha256": "9c56644eb445f66fc93104a86890fd73c3650403084eaa7d7a4aed71f4d459f2",
-            "bytes": 10474
+            "sha256": "3fe2a885beb6081e9a0b42eff4e6e12a61386bea12898fb751c574de1823e09f",
+            "bytes": 10478
         },
         {
             "path": "lib/arrayexpress_experiments/__init__.py",
@@ -145,8 +145,8 @@
         },
         {
             "path": "lib/cadd_scores/client.py",
-            "sha256": "7aa344701af939636bedb81f8e071cf300188194a2d4a819a472cf341844e5c8",
-            "bytes": 3682
+            "sha256": "c7a7e6e6e0367a3a1f6afc8b1e36011ebcf60fe958665dfe8f93248a1f9c2218",
+            "bytes": 3686
         },
         {
             "path": "lib/cadd_scores/records.py",
@@ -195,8 +195,8 @@
         },
         {
             "path": "lib/chebi_ontology/tool.py",
-            "sha256": "4d2cc08eb9b87dc23573da8022e82d64f4159a78cf5448d2fca95e26144d4693",
-            "bytes": 5339
+            "sha256": "4f2bd61b3c6ce83d8901659e7d4b40b249819463cc238ba82d83ac7599fdd044",
+            "bytes": 5342
         },
         {
             "path": "lib/chembl_bioactivity/__init__.py",
@@ -305,8 +305,8 @@
         },
         {
             "path": "lib/clinicaltrials_essie/client.py",
-            "sha256": "62f66e5a86abb92c292e240c31625ae3fefbc9f91913affc75d0853dbcfbf6d5",
-            "bytes": 6193
+            "sha256": "2f97bc0e1808a9a939fb52e1c4f7683d15f973fa3cade9d098fde9621c1c0bbf",
+            "bytes": 6197
         },
         {
             "path": "lib/clinicaltrials_essie/essie.py",
@@ -320,8 +320,8 @@
         },
         {
             "path": "lib/clinicaltrials_fetch/client.py",
-            "sha256": "23240686f46c17d0c77ee161e6ee7abe2af8fa504c6752eb7084c3e578016c46",
-            "bytes": 5543
+            "sha256": "c2810aff3bd2ad329164f9de2af701049b1c0b27fd267b2713195bbf449fc6a5",
+            "bytes": 5547
         },
         {
             "path": "lib/clinicaltrials_fetch/fetch.py",
@@ -610,8 +610,8 @@
         },
         {
             "path": "lib/grants_gov_search/client.py",
-            "sha256": "bfa03ded76b60c6cd566ef650ae5f35313f67d990574b0e79c137ca2bf18d0e9",
-            "bytes": 8091
+            "sha256": "85c7d3298e8127000b41174c8a2e51ea6cfd196435b940859f9ab8208c1ea43c",
+            "bytes": 8095
         },
         {
             "path": "lib/grants_gov_search/records.py",
@@ -1170,8 +1170,8 @@
         },
         {
             "path": "lib/mcp_servers_common/tls_policy.py",
-            "sha256": "d112eee00f6fbd8c2ff58f339800465c0ff80acc90e9298b3d407c9b25522e89",
-            "bytes": 3181
+            "sha256": "e64408acad27bb329fce2bd6207e9401524697f331e2a11175158a98a171e91c",
+            "bytes": 3193
         },
         {
             "path": "lib/mcp_servers_common/ua.py",
@@ -1179,17 +1179,17 @@
             "bytes": 3883
         },
         {
-            "path": "lib/mcp_synon_research/__init__.py",
-            "sha256": "18ae345bfbd9328b50f5a051a7138d5ec7713aeceb1fb312d077ca2eadb9d3e0",
-            "bytes": 78
+            "path": "lib/mcp_x_science_research/__init__.py",
+            "sha256": "6826d36f6dab38271b86f228bc500e5c0fe7b46c3a9131c16b5d6b2f49293bfb",
+            "bytes": 82
         },
         {
-            "path": "lib/mcp_synon_research/bridge.py",
-            "sha256": "b40cac2554b5247c86827f1a711fb537064f6ff9397e087d4fca63503f300ef5",
-            "bytes": 24093
+            "path": "lib/mcp_x_science_research/bridge.py",
+            "sha256": "262715f540ffc05eb630d62c1b4a7dc3679069618d860d89a2291cd11608eda2",
+            "bytes": 24109
         },
         {
-            "path": "lib/mcp_synon_research/server.py",
+            "path": "lib/mcp_x_science_research/server.py",
             "sha256": "24ad9b3ca9a69aa7befa4f740f1fa8b7867a2fa69560695ebd2f695689e97695",
             "bytes": 2126
         },
@@ -1325,8 +1325,8 @@
         },
         {
             "path": "lib/ols_ontologies/client.py",
-            "sha256": "8052394fac1603149e95f3ec4a2dc52b1b57327b4628c95c94db356b44b19d30",
-            "bytes": 3554
+            "sha256": "247094e42d005910306305320bb049dd7fec814532a1539eafa5547f9342b547",
+            "bytes": 3558
         },
         {
             "path": "lib/ols_ontologies/records.py",
@@ -1445,8 +1445,8 @@
         },
         {
             "path": "lib/panglaodb_markers/client.py",
-            "sha256": "260f7abd38ac7b2db837d46d8f095b4bd3fa53e4dcecbfb5f5e16dca46bebd5d",
-            "bytes": 3486
+            "sha256": "a756054789994749fec68e06d0511cb5b01bce91367597bde742f728f79b8386",
+            "bytes": 3490
         },
         {
             "path": "lib/panglaodb_markers/core.py",
@@ -1485,8 +1485,8 @@
         },
         {
             "path": "lib/pheweb_portals/client.py",
-            "sha256": "fd76d365fc96f3662e5d9ece5ff1642d1847e9f80330b2a365705330860d69cd",
-            "bytes": 12649
+            "sha256": "a6e8dd915ff22fbfab640ffce1da03c19a0a5aff75f487480ddb53ac098788ac",
+            "bytes": 12653
         },
         {
             "path": "lib/pride_projects/__init__.py",
@@ -1630,8 +1630,8 @@
         },
         {
             "path": "lib/rfam_families/client.py",
-            "sha256": "fc7093c2c9674230411633fc82146a74dbab40fab890dedd5df4c00de5d17695",
-            "bytes": 5902
+            "sha256": "4eb72b329ab2331c1ecae65a5059560c16218f3456a6b8eb22bc872e81960ca5",
+            "bytes": 5906
         },
         {
             "path": "lib/rfam_families/records.py",

@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 // webConversationComposerCapabilities returns the exact capability identities
@@ -116,7 +116,7 @@ func (s *Server) handleWebConversationComposerCapabilities(
 		writeWorkspaceJSON(w, http.StatusMethodNotAllowed, map[string]any{"message": "method not allowed"})
 		return
 	}
-	userID := strings.TrimSpace(r.Header.Get("X-Synon-User-Id"))
+	userID := strings.TrimSpace(r.Header.Get("X-Science-User-Id"))
 	capabilities, err := s.webConversationComposerCapabilities(userID, frame)
 	if err != nil {
 		writeWebConversationError(w, err)

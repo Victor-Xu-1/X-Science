@@ -12,15 +12,15 @@ const STAR = '\u559c\u6b22\u6211\u4eec\uff1f\u70b9\u4e2a\u661f\u5427';
 
 const {
   navigateMock,
-  loadSynonBiomedCatalogSummaryMock,
-  loadSynonBiomedProjectsMock,
-  createSynonBiomedProjectMock,
+  loadXScienceCatalogSummaryMock,
+  loadXScienceProjectsMock,
+  createXScienceProjectMock,
   webuiGetStatusMock,
 } = vi.hoisted(() => ({
   navigateMock: vi.fn(),
-  loadSynonBiomedCatalogSummaryMock: vi.fn(),
-  loadSynonBiomedProjectsMock: vi.fn(),
-  createSynonBiomedProjectMock: vi.fn(),
+  loadXScienceCatalogSummaryMock: vi.fn(),
+  loadXScienceProjectsMock: vi.fn(),
+  createXScienceProjectMock: vi.fn(),
   webuiGetStatusMock: vi.fn(),
 }));
 
@@ -39,13 +39,13 @@ vi.mock('@/common/adapter/ipcBridge', () => ({
   },
 }));
 
-vi.mock('@/renderer/services/synonBiomedCatalog', () => ({
-  loadSynonBiomedCatalogSummary: loadSynonBiomedCatalogSummaryMock,
+vi.mock('@/renderer/services/xScienceCatalog', () => ({
+  loadXScienceCatalogSummary: loadXScienceCatalogSummaryMock,
 }));
 
-vi.mock('@/renderer/services/synonBiomedGateway', () => ({
-  loadSynonBiomedProjects: loadSynonBiomedProjectsMock,
-  createSynonBiomedProject: createSynonBiomedProjectMock,
+vi.mock('@/renderer/services/xScienceGateway', () => ({
+  loadXScienceProjects: loadXScienceProjectsMock,
+  createXScienceProject: createXScienceProjectMock,
 }));
 
 import QuickActionButtons from '@/renderer/pages/guid/components/QuickActionButtons';
@@ -53,23 +53,23 @@ import QuickActionButtons from '@/renderer/pages/guid/components/QuickActionButt
 describe('QuickActionButtons', () => {
   beforeEach(() => {
     navigateMock.mockReset();
-    loadSynonBiomedCatalogSummaryMock.mockReset();
-    loadSynonBiomedProjectsMock.mockReset();
-    createSynonBiomedProjectMock.mockReset();
+    loadXScienceCatalogSummaryMock.mockReset();
+    loadXScienceProjectsMock.mockReset();
+    createXScienceProjectMock.mockReset();
     webuiGetStatusMock.mockReset();
   });
 
   it('renders X-Science shortcuts instead of product feedback and GitHub actions', async () => {
     const onOpenLink = vi.fn();
     const onOpenBugReport = vi.fn();
-    loadSynonBiomedCatalogSummaryMock.mockResolvedValue({
+    loadXScienceCatalogSummaryMock.mockResolvedValue({
       product: 'X-Science',
       backendStatus: 'healthy',
       counts: {
         backendAgents: 14,
       },
     });
-    loadSynonBiomedProjectsMock.mockResolvedValue([
+    loadXScienceProjectsMock.mockResolvedValue([
       {
         projectId: 'proj_example',
         name: 'Example project',
@@ -114,9 +114,9 @@ describe('QuickActionButtons', () => {
   });
 
   it('opens the real project editor when no project exists and creates the first project', async () => {
-    loadSynonBiomedCatalogSummaryMock.mockResolvedValue({ product: 'X-Science', backendStatus: 'healthy' });
-    loadSynonBiomedProjectsMock.mockResolvedValue([]);
-    createSynonBiomedProjectMock.mockResolvedValue({
+    loadXScienceCatalogSummaryMock.mockResolvedValue({ product: 'X-Science', backendStatus: 'healthy' });
+    loadXScienceProjectsMock.mockResolvedValue([]);
+    createXScienceProjectMock.mockResolvedValue({
       projectId: 'proj_first',
       name: 'STAT6',
     });
@@ -132,7 +132,7 @@ describe('QuickActionButtons', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: '创建' }));
 
     await waitFor(() => {
-      expect(createSynonBiomedProjectMock).toHaveBeenCalledWith({
+      expect(createXScienceProjectMock).toHaveBeenCalledWith({
         name: 'STAT6',
         description: 'STAT6 discovery program',
         context: null,

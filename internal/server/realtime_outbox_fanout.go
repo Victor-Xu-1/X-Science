@@ -1,8 +1,8 @@
 package server
 
 import (
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/realtime"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/realtime"
 )
 
 // FanoutRealtimeOutbox publishes an already durable event. Re-delivery after

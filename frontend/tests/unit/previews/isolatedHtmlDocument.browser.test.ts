@@ -7,7 +7,7 @@ import { createServer } from 'vite';
 import { expect, it } from 'vitest';
 
 it('isolates active charts and copied sources while preserving the controlled inspection bridge', async () => {
-  const cacheDir = await mkdtemp(join(tmpdir(), 'synon-html-browser-'));
+  const cacheDir = await mkdtemp(join(tmpdir(), 'x-science-html-browser-'));
   let trackingRequests = 0;
   const vite = await createServer({
     configFile: false,
@@ -93,7 +93,7 @@ it('isolates active charts and copied sources while preserving the controlled in
     await page.waitForFunction(
       () =>
         (window as any).receipts.some((value: any) =>
-          value.__SYNON_AI_INSPECT_ELEMENT__?.text?.includes('Source record')
+          value.__X_SCIENCE_INSPECT_ELEMENT__?.text?.includes('Source record')
         ),
       undefined,
       { timeout: 5000 }

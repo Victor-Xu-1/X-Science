@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>X-Science Link 权限确认</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="page approval-page">
+      <section class="panel approval-panel">
+        <img class="brand-mark" src="icons/x-science-mark.png" alt="">
+        <p class="eyebrow">X-Science Link</p>
+        <h1 id="title">需要你的确认</h1>
+        <p id="impact">X-Science 想进行一次本地操作。</p>
+
+        <div class="permission-card">
+          <div class="permission-row">
+            <span id="targetLabel">文件夹</span>
+            <strong id="target">-</strong>
+          </div>
+          <div class="permission-row">
+            <span id="pathLabel">路径</span>
+            <strong id="path">-</strong>
+          </div>
+          <div class="permission-row">
+            <span id="actionLabel">操作</span>
+            <strong id="action">-</strong>
+          </div>
+        </div>
+
+        <div id="preview" class="approval-preview" hidden></div>
+
+        <p id="approvalNote" class="approval-note">
+          只在你点击允许后，X-Science 才会继续。你可以随时拒绝，本次任务会停止该操作。
+        </p>
+
+        <div class="actions approval-actions">
+          <button id="deny" class="secondary">拒绝</button>
+          <button id="allow">允许本次操作</button>
+        </div>
+      </section>
+    </main>
+    <script src="approval.js" type="module"></script>
+  </body>
+</html>

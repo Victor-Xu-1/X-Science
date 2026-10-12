@@ -1,5 +1,5 @@
 import type { TChatConversation } from '@/common/config/storage';
-import type { SynonBiomedProject } from '@/renderer/services/synonBiomedGateway';
+import type { XScienceProject } from '@/renderer/services/xScienceGateway';
 import { Alert, Empty, Select, Spin } from '@arco-design/web-react';
 import Modal from '@/renderer/components/base/WorkbenchModal';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 
 type SessionMoveModalProps = {
   conversation: TChatConversation | null;
-  projects: SynonBiomedProject[];
+  projects: XScienceProject[];
   currentProjectId: string | null;
   loading: boolean;
   error: string | null;

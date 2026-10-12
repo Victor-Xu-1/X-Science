@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, screen } from '@testing-library/react';
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { SynonBiomedProjectArtifact } from '@/renderer/services/synonBiomedGateway';
+import type { XScienceProjectArtifact } from '@/renderer/services/xScienceGateway';
 import { renderWithI18n } from '../i18nTestUtils';
 
 vi.mock('@/renderer/pages/project/ArtifactBatchActions', () => ({
@@ -9,7 +9,7 @@ vi.mock('@/renderer/pages/project/ArtifactBatchActions', () => ({
     artifacts,
     onSelectionChange,
   }: {
-    artifacts: SynonBiomedProjectArtifact[];
+    artifacts: XScienceProjectArtifact[];
     onSelectionChange: (ids: string[]) => void;
   }) => (
     <div data-testid='batch-actions'>
@@ -23,7 +23,7 @@ vi.mock('@/renderer/pages/project/ArtifactBatchActions', () => ({
 
 import ProjectArtifactLibrary from '@/renderer/pages/project/ProjectArtifactLibrary';
 
-const artifact = (artifactId: string, filename: string): SynonBiomedProjectArtifact => ({
+const artifact = (artifactId: string, filename: string): XScienceProjectArtifact => ({
   artifactId,
   versionId: null,
   versionNumber: 1,

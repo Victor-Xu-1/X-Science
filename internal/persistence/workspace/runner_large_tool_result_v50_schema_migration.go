@@ -3,7 +3,7 @@ package workspace
 const (
 	runnerLargeToolResultV50CallbackID        = "runner-large-tool-result-v50-noop"
 	runnerLargeToolResultV50PreflightIdentity = "runner-large-tool-result-v50-empty-v1"
-	runnerLargeToolResultV50RuleSpec          = "synon.workspace.runner-large-tool-result.v50"
+	runnerLargeToolResultV50RuleSpec          = "x-science.workspace.runner-large-tool-result.v50"
 )
 
 const runnerLargeToolResultV50DDL = `CREATE TABLE runner_large_tool_results (

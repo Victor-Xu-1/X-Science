@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func isKernelAppHostMethod(method string) bool {

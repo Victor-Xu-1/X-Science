@@ -11,7 +11,7 @@ import stat
 import subprocess
 
 
-SCHEMA = "synon.governance.module-topology.v1"
+SCHEMA = "x-science.governance.module-topology.v1"
 GO_IMPORT_LINE = re.compile(r'^(?:[A-Za-z_][A-Za-z0-9_]*\s+)?"([^"]+)"$')
 
 

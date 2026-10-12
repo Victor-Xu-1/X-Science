@@ -13,7 +13,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 const (

@@ -26,8 +26,8 @@ vi.mock('@/renderer/hooks/context/LayoutContext', () => ({
   useLayoutContext: () => ({ isMobile: false }),
 }));
 
-vi.mock('@/renderer/hooks/account/useSynonBiomedAccountInsights', () => ({
-  useSynonBiomedAccountInsights: () => ({
+vi.mock('@/renderer/hooks/account/useXScienceAccountInsights', () => ({
+  useXScienceAccountInsights: () => ({
     data: {
       metrics: {
         totalTasks: 113,

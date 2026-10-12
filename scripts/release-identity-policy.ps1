@@ -1,4 +1,4 @@
-function Read-SynonProductIdentity {
+function Read-XScienceProductIdentity {
   param([Parameter(Mandatory = $true)][string]$Path)
 
   $full = [System.IO.Path]::GetFullPath($Path)
@@ -9,7 +9,7 @@ function Read-SynonProductIdentity {
   $value = (Get-Content -LiteralPath $full -Raw -ErrorAction Stop) | ConvertFrom-Json
   $properties = @($value.PSObject.Properties.Name | Sort-Object)
   if (($properties -join ',') -ne 'display_name,machine_slug,schema,version' -or
-      $value.schema -ne 'synon.product-identity.v1' -or
+      $value.schema -ne 'x-science.product-identity.v1' -or
       [string]::IsNullOrWhiteSpace($value.display_name) -or
       $value.version -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' -or
       $value.machine_slug -notmatch '^[a-z0-9]+(?:-[a-z0-9]+)*$') {
@@ -18,7 +18,7 @@ function Read-SynonProductIdentity {
   return $value
 }
 
-function Resolve-SynonTrustedIdentityPath {
+function Resolve-XScienceTrustedIdentityPath {
   param([Parameter(Mandatory = $true)][string]$Path)
 
   $full = [System.IO.Path]::GetFullPath($Path)
@@ -41,16 +41,16 @@ function Resolve-SynonTrustedIdentityPath {
   return $full
 }
 
-function Assert-SynonProductIdentity {
+function Assert-XScienceProductIdentity {
   param(
     [Parameter(Mandatory = $true)][string]$TrustedIdentityPath,
     [Parameter(Mandatory = $true)][string]$CandidateRoot
   )
 
-  $trustedPath = Resolve-SynonTrustedIdentityPath -Path $TrustedIdentityPath
+  $trustedPath = Resolve-XScienceTrustedIdentityPath -Path $TrustedIdentityPath
   $candidatePath = Join-Path ([System.IO.Path]::GetFullPath($CandidateRoot)) 'product-identity.json'
-  $trusted = Read-SynonProductIdentity -Path $trustedPath
-  [void](Read-SynonProductIdentity -Path $candidatePath)
+  $trusted = Read-XScienceProductIdentity -Path $trustedPath
+  [void](Read-XScienceProductIdentity -Path $candidatePath)
   $trustedBytes = [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($trustedPath))
   $candidateBytes = [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($candidatePath))
   if ($trustedBytes -cne $candidateBytes) {

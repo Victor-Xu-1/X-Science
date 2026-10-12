@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
 
 const base: ConversationContextValue = {
   conversation_id: 'conversation-1',
-  workspace: 'synonbiomed://workspace-1',
+  workspace: 'x-science://workspace-1',
   type: 'acp',
   projectId: 'project-1',
   currentFrameId: 'frame-1',

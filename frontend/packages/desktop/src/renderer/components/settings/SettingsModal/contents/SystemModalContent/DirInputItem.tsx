@@ -50,7 +50,7 @@ const DirInputItem: React.FC<{
 
         return (
           <div
-            className='synon-ai-dir-input h-[32px] flex items-center rounded-8px border border-solid border-transparent pl-14px bg-[var(--fill-0)] cursor-pointer'
+            className='x-science-dir-input h-[32px] flex items-center rounded-8px border border-solid border-transparent pl-14px bg-[var(--fill-0)] cursor-pointer'
             tabIndex={0}
             onClick={handlePick}
             onKeyDown={handleKeyDown}

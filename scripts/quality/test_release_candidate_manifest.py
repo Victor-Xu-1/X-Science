@@ -78,7 +78,7 @@ class CandidateFixture:
 
 class ReleaseCandidateManifestTests(unittest.TestCase):
     def test_manifest_verifies_across_filesystem_permission_projection(self) -> None:
-        with tempfile.TemporaryDirectory(prefix="synon-release-cross-filesystem-") as directory:
+        with tempfile.TemporaryDirectory(prefix="x-science-release-cross-filesystem-") as directory:
             root = Path(directory)
             fixture = CandidateFixture(root)
             git(fixture.repo, "config", "core.fileMode", "false")
@@ -97,7 +97,7 @@ class ReleaseCandidateManifestTests(unittest.TestCase):
 
     def test_release_entrypoints_do_not_create_source_cache(self) -> None:
         source = Path(candidate.__file__).resolve().parent
-        with tempfile.TemporaryDirectory(prefix="synon-release-entrypoint-") as directory:
+        with tempfile.TemporaryDirectory(prefix="x-science-release-entrypoint-") as directory:
             root = Path(directory)
             for name in (
                 "product_version.py",
@@ -123,7 +123,7 @@ class ReleaseCandidateManifestTests(unittest.TestCase):
             self.assertFalse((root / "__pycache__").exists())
 
     def test_create_and_verify_bind_source_and_every_artifact(self) -> None:
-        with tempfile.TemporaryDirectory(prefix="synon-release-candidate-") as directory:
+        with tempfile.TemporaryDirectory(prefix="x-science-release-candidate-") as directory:
             fixture = CandidateFixture(Path(directory))
             result = candidate.create(fixture.repo, fixture.artifacts, 123, 2)
             self.assertEqual(result["candidate_run_id"], 123)
@@ -160,7 +160,7 @@ class ReleaseCandidateManifestTests(unittest.TestCase):
                 )
 
     def test_artifact_tamper_and_wrong_checksum_are_rejected(self) -> None:
-        with tempfile.TemporaryDirectory(prefix="synon-release-candidate-") as directory:
+        with tempfile.TemporaryDirectory(prefix="x-science-release-candidate-") as directory:
             fixture = CandidateFixture(Path(directory))
             candidate.create(fixture.repo, fixture.artifacts, 123, 1)
             archive = next(fixture.artifacts.glob("*-linux-amd64.tar.gz"))
@@ -168,7 +168,7 @@ class ReleaseCandidateManifestTests(unittest.TestCase):
             with self.assertRaisesRegex(candidate.CandidateError, "checksum_invalid"):
                 candidate.verify(fixture.repo, fixture.artifacts, 123, 1)
 
-        with tempfile.TemporaryDirectory(prefix="synon-release-candidate-") as directory:
+        with tempfile.TemporaryDirectory(prefix="x-science-release-candidate-") as directory:
             fixture = CandidateFixture(Path(directory))
             checksum = next(fixture.artifacts.glob("*.sha256"))
             checksum.write_text("0" * 64 + "  wrong.tar.gz\n", encoding="ascii")
@@ -176,13 +176,13 @@ class ReleaseCandidateManifestTests(unittest.TestCase):
                 candidate.create(fixture.repo, fixture.artifacts, 123, 1)
 
     def test_source_dirty_and_control_tree_drift_are_rejected(self) -> None:
-        with tempfile.TemporaryDirectory(prefix="synon-release-candidate-") as directory:
+        with tempfile.TemporaryDirectory(prefix="x-science-release-candidate-") as directory:
             fixture = CandidateFixture(Path(directory))
             (fixture.repo / "untracked.txt").write_text("dirty\n", encoding="utf-8")
             with self.assertRaisesRegex(candidate.CandidateError, "source_dirty"):
                 candidate.create(fixture.repo, fixture.artifacts, 123, 1)
 
-        with tempfile.TemporaryDirectory(prefix="synon-release-candidate-") as directory:
+        with tempfile.TemporaryDirectory(prefix="x-science-release-candidate-") as directory:
             fixture = CandidateFixture(Path(directory))
             path = fixture.repo / "docs/governance/release-policy.json"
             changed = release_policy()
@@ -193,13 +193,13 @@ class ReleaseCandidateManifestTests(unittest.TestCase):
                 candidate.create(fixture.repo, fixture.artifacts, 123, 1)
 
     def test_extra_symlink_and_hardlink_artifacts_fail_closed(self) -> None:
-        with tempfile.TemporaryDirectory(prefix="synon-release-candidate-") as directory:
+        with tempfile.TemporaryDirectory(prefix="x-science-release-candidate-") as directory:
             fixture = CandidateFixture(Path(directory))
             (fixture.artifacts / "extra.txt").write_text("extra\n", encoding="utf-8")
             with self.assertRaisesRegex(candidate.CandidateError, "artifact_set_invalid"):
                 candidate.create(fixture.repo, fixture.artifacts, 123, 1)
 
-        with tempfile.TemporaryDirectory(prefix="synon-release-candidate-") as directory:
+        with tempfile.TemporaryDirectory(prefix="x-science-release-candidate-") as directory:
             fixture = CandidateFixture(Path(directory))
             archive = next(fixture.artifacts.glob("*-linux-amd64.tar.gz"))
             content = archive.read_bytes()
@@ -210,7 +210,7 @@ class ReleaseCandidateManifestTests(unittest.TestCase):
             with self.assertRaisesRegex(candidate.CandidateError, "artifact_entry_invalid"):
                 candidate.create(fixture.repo, fixture.artifacts, 123, 1)
 
-        with tempfile.TemporaryDirectory(prefix="synon-release-candidate-") as directory:
+        with tempfile.TemporaryDirectory(prefix="x-science-release-candidate-") as directory:
             fixture = CandidateFixture(Path(directory))
             archive = next(fixture.artifacts.glob("*-linux-amd64.tar.gz"))
             os.link(archive, Path(directory) / "second-link")
@@ -218,7 +218,7 @@ class ReleaseCandidateManifestTests(unittest.TestCase):
                 candidate.create(fixture.repo, fixture.artifacts, 123, 1)
 
     def test_manifest_duplicate_key_wrong_run_and_existing_output_are_rejected(self) -> None:
-        with tempfile.TemporaryDirectory(prefix="synon-release-candidate-") as directory:
+        with tempfile.TemporaryDirectory(prefix="x-science-release-candidate-") as directory:
             fixture = CandidateFixture(Path(directory))
             candidate.create(fixture.repo, fixture.artifacts, 123, 1)
             with self.assertRaisesRegex(candidate.CandidateError, "manifest_exists"):
@@ -231,7 +231,7 @@ class ReleaseCandidateManifestTests(unittest.TestCase):
                 candidate.verify(fixture.repo, fixture.artifacts, 123, 1)
 
     def test_artifact_directory_must_be_outside_source(self) -> None:
-        with tempfile.TemporaryDirectory(prefix="synon-release-candidate-") as directory:
+        with tempfile.TemporaryDirectory(prefix="x-science-release-candidate-") as directory:
             fixture = CandidateFixture(Path(directory))
             inside = fixture.repo / "artifacts"
             inside.mkdir()

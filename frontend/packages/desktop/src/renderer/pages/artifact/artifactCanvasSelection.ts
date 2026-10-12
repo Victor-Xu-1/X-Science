@@ -1,6 +1,6 @@
-import type { SynonBiomedArtifactTextSelection } from './artifactTextSelection';
+import type { XScienceArtifactTextSelection } from './artifactTextSelection';
 
-export interface SynonBiomedArtifactPointSelection {
+export interface XScienceArtifactPointSelection {
   type: 'point';
   text: string;
   x: number;
@@ -10,7 +10,7 @@ export interface SynonBiomedArtifactPointSelection {
   pageNumber: number | null;
 }
 
-export interface SynonBiomedArtifactHtmlElementSelection {
+export interface XScienceArtifactHtmlElementSelection {
   type: 'html_element';
   text: string;
   x: number;
@@ -21,13 +21,13 @@ export interface SynonBiomedArtifactHtmlElementSelection {
   elementDescriptor: string;
 }
 
-export type SynonBiomedArtifactCanvasSelection =
-  | SynonBiomedArtifactTextSelection
-  | SynonBiomedArtifactPointSelection
-  | SynonBiomedArtifactHtmlElementSelection;
+export type XScienceArtifactCanvasSelection =
+  | XScienceArtifactTextSelection
+  | XScienceArtifactPointSelection
+  | XScienceArtifactHtmlElementSelection;
 
 /** Source anchors own a draft; screen coordinates only place its toolbar. */
-export function artifactCanvasSelectionIdentity(selection: SynonBiomedArtifactCanvasSelection): string {
+export function artifactCanvasSelectionIdentity(selection: XScienceArtifactCanvasSelection): string {
   if (selection.type === 'text_selection') {
     return JSON.stringify([
       selection.type,

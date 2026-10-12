@@ -13,11 +13,11 @@ describe('Vite React development boundary', () => {
   it('keeps the icon pre-transform ahead of the official React refresh plugins', () => {
     const names = pluginNames(createRendererPlugins());
 
-    expect(names).toContain('synon-ai-icon-park');
-    expect(names).not.toContain('synon-biomed-renderer-state-full-reload');
+    expect(names).toContain('x-science-icon-park');
+    expect(names).not.toContain('x-science-renderer-state-full-reload');
     expect(names).toContain('vite:react-babel');
     expect(names).toContain('vite:react-refresh');
-    expect(names.indexOf('synon-ai-icon-park')).toBeLessThan(names.indexOf('vite:react-babel'));
+    expect(names.indexOf('x-science-icon-park')).toBeLessThan(names.indexOf('vite:react-babel'));
   });
 
   it('does not eagerly transform the authenticated conversation graph at startup', async () => {

@@ -5,8 +5,8 @@ import (
 	"errors"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 // The approval adapter supplies authorization only. Execution, progress and

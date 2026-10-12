@@ -3,8 +3,8 @@ package server
 import (
 	"strings"
 
-	eventjournal "synon-go/internal/persistence/journal"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	eventjournal "x-science/internal/persistence/journal"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 const runnerCorrectionRepetitionProjectionType = "runner_correction_repetition_projection"

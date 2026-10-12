@@ -231,7 +231,7 @@ func (m *Manager) smokeManagedR(ctx context.Context, runtime managedRRuntime, pr
 	code := "required <- c(" + strings.Join(quoted, ",") + ");" +
 		"ok <- all(vapply(required, requireNamespace, logical(1L), quietly=TRUE));" +
 		"if (!ok) quit(status=3L);" +
-		"cat(paste0('SYNON_R_VERSION=', as.character(getRversion()), '\\n'))"
+		"cat(paste0('X_SCIENCE_R_VERSION=', as.character(getRversion()), '\\n'))"
 	command := newWorkerProcessCommand(ctx, rscript, "--vanilla", "-e", code)
 	command.Env = kernelEnvironment(map[string]string{
 		"CONDA_PREFIX": prefix, "CONDA_DEFAULT_ENV": runtime.entry.Name,
@@ -245,12 +245,12 @@ func (m *Manager) smokeManagedR(ctx context.Context, runtime managedRRuntime, pr
 	}
 	versionLine := ""
 	for _, line := range reverseNonEmptyOutputLines(stdout.String()) {
-		if strings.HasPrefix(line, "SYNON_R_VERSION=") {
+		if strings.HasPrefix(line, "X_SCIENCE_R_VERSION=") {
 			versionLine = line
 			break
 		}
 	}
-	if version := strings.TrimPrefix(versionLine, "SYNON_R_VERSION="); version != runtime.rVersion {
+	if version := strings.TrimPrefix(versionLine, "X_SCIENCE_R_VERSION="); version != runtime.rVersion {
 		return errors.New("managed R scientific smoke returned an invalid version")
 	}
 	return nil

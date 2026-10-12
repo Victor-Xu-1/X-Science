@@ -9,7 +9,7 @@ import (
 	"errors"
 	"testing"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 type durableInlineResultModel struct {

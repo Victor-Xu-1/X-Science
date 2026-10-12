@@ -179,7 +179,7 @@ func (m *Manager) runManagedPipReplay(
 	}
 	constraintPath := ""
 	if len(constraints) != 0 {
-		file, err := os.CreateTemp(prefix, ".synon-pip-constraints-*.txt")
+		file, err := os.CreateTemp(prefix, ".x-science-pip-constraints-*.txt")
 		if err != nil {
 			return err
 		}

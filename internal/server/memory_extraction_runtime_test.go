@@ -7,13 +7,13 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/memoryconfig"
-	"synon-go/internal/memoryextract"
-	"synon-go/internal/memorytools"
-	eventjournal "synon-go/internal/persistence/journal"
-	sessionstore "synon-go/internal/persistence/sessions"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	"x-science/internal/memoryconfig"
+	"x-science/internal/memoryextract"
+	"x-science/internal/memorytools"
+	eventjournal "x-science/internal/persistence/journal"
+	sessionstore "x-science/internal/persistence/sessions"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestWorkspaceMemoryExtractionRuntimePersistsAndRecallsAcrossSessions(t *testing.T) {

@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"synon-go/internal/tools/registry"
+	"x-science/internal/tools/registry"
 )
 
 // registeredTool resolves a schema across the two disjoint authorities. The

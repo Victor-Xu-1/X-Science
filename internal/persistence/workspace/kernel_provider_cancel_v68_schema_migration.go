@@ -11,7 +11,7 @@ import (
 const (
 	kernelProviderCancelV68CallbackID        = "kernel-provider-cancel-v68-rebuild-execution"
 	kernelProviderCancelV68PreflightIdentity = "kernel-provider-cancel-v68-execution-head-v1"
-	kernelProviderCancelV68RuleSpec          = "synon.workspace.kernel-provider-cancel.v68"
+	kernelProviderCancelV68RuleSpec          = "x-science.workspace.kernel-provider-cancel.v68"
 	kernelCancelSignalsV67                   = "cancel_signal IN ('dequeue','sigint','sigterm','sigkill')"
 	kernelCancelSignalsV68                   = "cancel_signal IN ('dequeue','sigint','sigterm','sigkill','provider_cancel')"
 )

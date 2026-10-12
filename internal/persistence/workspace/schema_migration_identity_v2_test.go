@@ -16,7 +16,7 @@ func TestSchemaMigrationIdentityV2GoldenAndBoundaries(t *testing.T) {
 			PreflightIdentity: "provider-shape-v1",
 		},
 	}
-	want := "2b22a3f05cdcb3d3191c74737de82f7d39298f85b0a846d640074ce78ae42d18"
+	want := "f6e311586a7b48313066a10bff901479b2d81ea7f509d23b6cb31c8c30c48f3e"
 	got, err := migration.validatedChecksum()
 	if err != nil {
 		t.Fatal(err)

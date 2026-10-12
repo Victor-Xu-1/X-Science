@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
-	"synon-go/internal/tools/fileops"
+	"x-science/internal/tools/fileops"
 	"time"
 )
 

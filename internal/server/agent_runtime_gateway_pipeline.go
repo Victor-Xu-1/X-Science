@@ -9,10 +9,10 @@ import (
 	"strings"
 	"sync"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/executionprep"
-	"synon-go/internal/toolcontract"
-	"synon-go/internal/toolgateway"
+	"x-science/internal/agentruntime"
+	"x-science/internal/executionprep"
+	"x-science/internal/toolcontract"
+	"x-science/internal/toolgateway"
 )
 
 type serverAgentRuntimeGatewayExecution struct {

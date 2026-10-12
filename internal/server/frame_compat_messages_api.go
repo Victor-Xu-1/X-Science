@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func (s *Server) handleCompatibilityFrameMessages(w http.ResponseWriter, r *http.Request, frame workspace.CompatibilityFrame, segments []string) {

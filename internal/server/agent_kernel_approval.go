@@ -14,10 +14,10 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	kernelruntime "synon-go/internal/kernel"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	kernelruntime "x-science/internal/kernel"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 type kernelLocalExecResolveAuthority struct {
@@ -309,7 +309,7 @@ func kernelLocalOperationDecisionID(
 	scope string,
 ) string {
 	digest := sha256.Sum256([]byte(strings.Join([]string{
-		"synon.kernel-operation-decision.v1", strings.TrimSpace(ownerUserID),
+		"x-science.kernel-operation-decision.v1", strings.TrimSpace(ownerUserID),
 		strings.TrimSpace(operationID), strings.TrimSpace(approvalRequestID),
 		strconv.FormatBool(approved), strings.TrimSpace(scope),
 	}, "\x00")))

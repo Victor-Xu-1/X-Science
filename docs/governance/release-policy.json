@@ -1,18 +1,18 @@
 {
-  "schema": "synon.governance.release-policy.v1",
+  "schema": "x-science.governance.release-policy.v1",
   "authority_owner": "user",
   "operator_role": "release-operator",
   "repository": "Victor-Xu-1/X-Science",
   "product_identity_authority": "product-identity.json",
   "candidate_manifest": {
-    "schema": "synon.release-candidate.v1",
+    "schema": "x-science.release-candidate.v1",
     "workflow": ".github/workflows/quality.yml",
     "artifact_name_prefix": "x-science-release-candidate-",
     "required_platforms": ["linux-amd64", "windows-amd64"],
     "build_once": true
   },
   "authorization_receipt": {
-    "schema": "synon.release-authorization-receipt.v1",
+    "schema": "x-science.release-authorization-receipt.v1",
     "tracked_in_source": false,
     "signature_algorithm": "hmac-sha256",
     "max_ttl_seconds": 86400,

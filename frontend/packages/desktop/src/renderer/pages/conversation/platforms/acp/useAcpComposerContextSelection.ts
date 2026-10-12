@@ -7,9 +7,9 @@ import {
   type ComposerContextItem,
 } from '@/renderer/components/chat/SendBox/composerCompositionModel';
 import type { ArtifactComposerReference } from '@/renderer/components/chat/SendBox/composerReferenceModel';
-import type { SynonBiomedProjectArtifact } from '@/renderer/services/synonBiomedGateway';
+import type { XScienceProjectArtifact } from '@/renderer/services/xScienceGateway';
 import {
-  uploadSynonBiomedProjectAttachment,
+  uploadXScienceProjectAttachment,
   type OnboardingArtifactCacheEntry,
   type OnboardingPendingUpload,
 } from '@/renderer/services/onboardingService';
@@ -25,7 +25,7 @@ export function useAcpComposerContextSelection(
   const canSelectProjectFiles = Boolean(projectId?.trim());
   const openProjectFiles = useCallback(() => setProjectFilesOpen(true), []);
   const handleProjectArtifactsSelected = useCallback(
-    (selectedArtifacts: SynonBiomedProjectArtifact[]) => {
+    (selectedArtifacts: XScienceProjectArtifact[]) => {
       setContextItems((current) =>
         selectedArtifacts.reduce<ComposerContextItem[]>((items, artifact) => {
           const context = createComposerArtifactContext({
@@ -70,7 +70,7 @@ export function useAcpComposerContextSelection(
           // Keep canonical uploads ordered so the draft and eventual message
           // preserve the user's file order while only one bounded stream is active.
           // eslint-disable-next-line no-await-in-loop
-          artifact = await uploadSynonBiomedProjectAttachment(targetProjectId, file, {
+          artifact = await uploadXScienceProjectAttachment(targetProjectId, file, {
             pending: pending?.projectId === targetProjectId ? pending : undefined,
             onInitialized: (next) => pendingUploadsRef.current.set(file, next),
             onAbandoned: () => pendingUploadsRef.current.delete(file),

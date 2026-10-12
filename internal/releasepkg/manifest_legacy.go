@@ -3,7 +3,7 @@ package releasepkg
 import (
 	"errors"
 
-	"synon-go/internal/compat/contracts"
+	"x-science/internal/compat/contracts"
 )
 
 // Schema 3 remains readable for installation, rollback and integrity checks.
@@ -14,7 +14,7 @@ func validateLegacyCoverage(coverage *Coverage) error {
 	}
 	summary := contracts.V11Summary()
 	if coverage.Scope != "historical-non-web-compatibility" ||
-		coverage.Baseline != "synonbiomed-v1.1" ||
+		coverage.Baseline != "xscience-v1.1" ||
 		coverage.Authority != "strict-behavior-evidence" ||
 		!coverage.CompatibilityBaselineEligible ||
 		coverage.ServiceContracts != summary.ServiceMethodCount ||

@@ -67,8 +67,8 @@
   :is(
     .settings-skill-library-total,
     .mcp-library-total,
-    .synon-mcp-card__metadata,
-    .synon-mcp-card__usage,
+    .x-science-mcp-card__metadata,
+    .x-science-mcp-card__usage,
     .environment-card__meta,
     [class*='__meta'],
     [class*='__metadata'],
@@ -541,7 +541,7 @@
 html
   body
   .settings-page-wrapper
-  :is(.synon-mcp-card, .settings-skill-card, .environment-card, .expert-card, .compute-card) {
+  :is(.x-science-mcp-card, .settings-skill-card, .environment-card, .expert-card, .compute-card) {
   display: flex;
   height: 100%;
   min-height: var(--settings-entity-card-height);
@@ -558,7 +558,7 @@ html
 /* Two lines of copy keep every card the same rhythm. */
 .settings-page-wrapper
   :is(
-    .synon-mcp-card__description,
+    .x-science-mcp-card__description,
     .settings-skill-card__description,
     .environment-card__description,
     .expert-card__description

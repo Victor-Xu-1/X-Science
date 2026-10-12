@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestWebConversationUserArtifactReferencesAreCanonicalAndOwnerScoped(t *testing.T) {
@@ -356,7 +356,7 @@ func createArtifactReferenceConversation(
 ) string {
 	t.Helper()
 	response := p3JSONRequest(t, app, http.MethodPost, "/api/conversations", map[string]any{
-		"name": "Artifact analysis", "assistant": map[string]any{"id": "synonbiomed:OPERON"},
+		"name": "Artifact analysis", "assistant": map[string]any{"id": "xscience:OPERON"},
 		"extra": map[string]any{"project_id": project.ID, "project_name": project.Name},
 	}, "local")
 	if response.Code != http.StatusCreated {

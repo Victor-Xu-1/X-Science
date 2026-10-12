@@ -7,12 +7,12 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/memoryconfig"
+	"x-science/internal/memoryconfig"
 )
 
 func TestLoadUsesWorkspaceMemoryDefaults(t *testing.T) {
-	t.Setenv("SYNON_CONFIG", "")
-	t.Setenv("SYNON_HOME", t.TempDir())
+	t.Setenv("X_SCIENCE_CONFIG", "")
+	t.Setenv("X_SCIENCE_HOME", t.TempDir())
 
 	cfg, err := Load()
 	if err != nil {
@@ -25,7 +25,7 @@ func TestLoadUsesWorkspaceMemoryDefaults(t *testing.T) {
 
 func TestLoadOverlaysWorkspaceMemoryConfig(t *testing.T) {
 	root := t.TempDir()
-	configPath := filepath.Join(root, "synon.json")
+	configPath := filepath.Join(root, "x-science.json")
 	if err := os.WriteFile(configPath, []byte(`{
   "memory": {
 		"enabled": true,
@@ -38,8 +38,8 @@ func TestLoadOverlaysWorkspaceMemoryConfig(t *testing.T) {
 }`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("SYNON_CONFIG", configPath)
-	t.Setenv("SYNON_HOME", filepath.Join(root, "state"))
+	t.Setenv("X_SCIENCE_CONFIG", configPath)
+	t.Setenv("X_SCIENCE_HOME", filepath.Join(root, "state"))
 
 	cfg, err := Load()
 	if err != nil {
@@ -55,12 +55,12 @@ func TestLoadOverlaysWorkspaceMemoryConfig(t *testing.T) {
 
 func TestLoadRejectsInvalidWorkspaceMemoryConfig(t *testing.T) {
 	root := t.TempDir()
-	configPath := filepath.Join(root, "synon.json")
+	configPath := filepath.Join(root, "x-science.json")
 	if err := os.WriteFile(configPath, []byte(`{"memory":{"extract_mode":"inline"}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("SYNON_CONFIG", configPath)
-	t.Setenv("SYNON_HOME", filepath.Join(root, "state"))
+	t.Setenv("X_SCIENCE_CONFIG", configPath)
+	t.Setenv("X_SCIENCE_HOME", filepath.Join(root, "state"))
 
 	_, err := Load()
 	if err == nil || !strings.Contains(err.Error(), "memory.extract_mode must be forked or haiku") {

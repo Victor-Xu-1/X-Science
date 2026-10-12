@@ -13,7 +13,7 @@ BRANDING_TESTS = (
     "tests/unit/settings/settingsVisualContract.test.ts",
     "tests/unit/renderer/XScienceIdentity.test.ts",
     "tests/unit/renderer/ProductBrand.dom.test.tsx",
-    "tests/unit/renderer/SynonBiomedBranding.test.ts",
+    "tests/unit/renderer/XScienceBranding.test.ts",
 )
 
 

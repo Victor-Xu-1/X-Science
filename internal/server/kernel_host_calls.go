@@ -13,8 +13,8 @@ import (
 
 	"github.com/google/uuid"
 
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 var kernelHostMethods = []string{
@@ -317,7 +317,7 @@ func (b *kernelRoutineHostBridge) Configure(ctx context.Context, input RoutineHo
 	if b == nil || b.store == nil {
 		return nil, ErrRoutineKernelHostTransportUnavailable
 	}
-	routineID := uuid.NewSHA1(uuid.NameSpaceOID, []byte("synon-routine:"+b.rootFrameID)).String()
+	routineID := uuid.NewSHA1(uuid.NameSpaceOID, []byte("x-science-routine:"+b.rootFrameID)).String()
 	routine, err := b.store.ConfigureRoutineHost(ctx, workspace.ConfigureRoutineHostInput{
 		ID: routineID, RootFrameID: b.rootFrameID, OwnerUserID: b.ownerUserID,
 		Label: input.Label, OnTick: input.OnTick, EveryMinutes: input.EveryMinutes,

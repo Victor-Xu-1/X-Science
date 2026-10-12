@@ -992,7 +992,7 @@ func RunnerClaimToken(sessionID string, runner *Runner) string {
 		return ""
 	}
 	payload := strings.Join([]string{
-		"synon.runner-claim.v1",
+		"x-science.runner-claim.v1",
 		sessionID,
 		strings.TrimSpace(runner.RunnerID),
 		strconv.Itoa(runner.Attempt),

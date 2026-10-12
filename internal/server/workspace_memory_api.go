@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"synon-go/internal/memorypolicy"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/memorypolicy"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func (s *Server) handleWorkspaceMemoryRecall(w http.ResponseWriter, r *http.Request) {

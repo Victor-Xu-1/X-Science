@@ -3,7 +3,7 @@ package server
 import (
 	"testing"
 
-	eventjournal "synon-go/internal/persistence/journal"
+	eventjournal "x-science/internal/persistence/journal"
 )
 
 // All replay assertions use the production projection and its protocol checks.

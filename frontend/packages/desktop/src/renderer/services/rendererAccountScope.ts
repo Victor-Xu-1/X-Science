@@ -14,7 +14,7 @@ type RendererAccountScopeState = {
   generation: number;
 };
 
-const scopeStateKey = '__SYNON_BIOMED_RENDERER_ACCOUNT_SCOPE__' as const;
+const scopeStateKey = '__X_SCIENCE_RENDERER_ACCOUNT_SCOPE__' as const;
 const globalScope = globalThis as typeof globalThis & {
   [scopeStateKey]?: RendererAccountScopeState;
 };

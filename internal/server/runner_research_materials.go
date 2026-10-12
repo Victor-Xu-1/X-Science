@@ -10,9 +10,9 @@ import (
 	"sort"
 	"strings"
 
-	"synon-go/internal/agentruntime"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	"synon-go/internal/toolcontract"
+	"x-science/internal/agentruntime"
+	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/toolcontract"
 )
 
 type sessionRunnerResearchCheckpoint struct {

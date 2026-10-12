@@ -1,4 +1,4 @@
-export const ACTIVE_PROJECT_STORAGE_KEY = 'synonbiomed.active-project-id';
+export const ACTIVE_PROJECT_STORAGE_KEY = 'xscience.active-project-id';
 
 export type ProjectSelectionInput = {
   routeProjectId?: string;

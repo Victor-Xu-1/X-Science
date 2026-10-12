@@ -188,9 +188,9 @@ const createInteractionFeatureAnchorShapeProvider = (data: MolstarInteractionFea
   geometryUtils: Spheres.Utils,
 });
 
-const InteractionFeatureAnchorTransform = StateTransformer.builderFactory('synon-biomed');
+const InteractionFeatureAnchorTransform = StateTransformer.builderFactory('x-science');
 
-export const SynonBiomedInteractionFeatureAnchors = InteractionFeatureAnchorTransform({
+export const XScienceInteractionFeatureAnchors = InteractionFeatureAnchorTransform({
   name: 'interaction-feature-anchors',
   display: { name: 'Interaction feature centers' },
   from: PluginStateObject.Root,

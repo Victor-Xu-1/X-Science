@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/memorypolicy"
+	"x-science/internal/memorypolicy"
 )
 
 func TestPrepareUserMemoryBodyRedactsCredentialsAndRejectsExfilPayloads(t *testing.T) {

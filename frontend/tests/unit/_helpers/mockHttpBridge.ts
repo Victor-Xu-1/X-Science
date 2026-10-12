@@ -3,7 +3,7 @@
  * Copyright 2026 Synon-AI
  * SPDX-License-Identifier: Apache-2.0
  *
- * SynonAI N3 mock HTTP/WS bridge helper.
+ * XScience N3 mock HTTP/WS bridge helper.
  *
  * Public API frozen in docs/backend-migration/plans/2026-05-08-n3-test-rewrite-adapter-common.md §2.1.
  * Contributors: do not change the exported signatures. If a new capability is

@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"os"
 
-	"synon-go/internal/agentruntime"
-	eventjournal "synon-go/internal/persistence/journal"
+	"x-science/internal/agentruntime"
+	eventjournal "x-science/internal/persistence/journal"
 )
 
 // A changed proposal is not proof that a native validation failure was fixed.
@@ -116,7 +116,7 @@ func (g serverAgentRuntimeToolGateway) validateNativeRecoveryEdit(ctx context.Co
 		// not turn unavailable inspection into a fabricated structural finding.
 		return "", nil
 	}
-	preview, err := os.CreateTemp("", "synon-edit-recovery-*")
+	preview, err := os.CreateTemp("", "x-science-edit-recovery-*")
 	if err != nil {
 		return nativeEditRecoveryUnavailable(err)
 	}

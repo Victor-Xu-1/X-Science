@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	taskstore "synon-go/internal/persistence/tasks"
+	taskstore "x-science/internal/persistence/tasks"
 	"time"
 )
 

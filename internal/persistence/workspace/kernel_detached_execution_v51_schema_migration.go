@@ -8,7 +8,7 @@ import (
 const (
 	kernelDetachedExecutionV51CallbackID        = "kernel-detached-execution-v51-recreate-triggers"
 	kernelDetachedExecutionV51PreflightIdentity = "kernel-detached-execution-v51-backend-recreate-v1"
-	kernelDetachedExecutionV51RuleSpec          = "synon.workspace.kernel-detached-execution-backend-recreate.v51"
+	kernelDetachedExecutionV51RuleSpec          = "x-science.workspace.kernel-detached-execution-backend-recreate.v51"
 )
 
 // The v44 triggers treated every field of kernel_execution_backends as

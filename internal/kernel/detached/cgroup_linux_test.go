@@ -5,8 +5,8 @@ package detached
 import "testing"
 
 func TestParseUnifiedCgroupPathRequiresExactV2Identity(t *testing.T) {
-	got, err := parseUnifiedCgroupPath("0::/user.slice/user-1000.slice/app.slice/synon-kernel.service\n")
-	if err != nil || got != "/user.slice/user-1000.slice/app.slice/synon-kernel.service" {
+	got, err := parseUnifiedCgroupPath("0::/user.slice/user-1000.slice/app.slice/x-science-kernel.service\n")
+	if err != nil || got != "/user.slice/user-1000.slice/app.slice/x-science-kernel.service" {
 		t.Fatalf("cgroup path=%q err=%v", got, err)
 	}
 	for _, input := range []string{

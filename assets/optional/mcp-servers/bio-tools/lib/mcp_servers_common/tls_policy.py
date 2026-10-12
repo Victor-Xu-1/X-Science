@@ -4,7 +4,7 @@ Python 3.13 and current urllib3 releases arm ``VERIFY_X509_STRICT`` by
 default. Some trusted enterprise TLS-inspection roots are valid for chain,
 signature, expiry, and hostname verification but do not satisfy every RFC 5280
 profile detail. The X-Science host therefore resolves one operator-gated posture
-and passes ``SYNON_MCP_X509_STRICT=0`` only when relaxation is authorized.
+and passes ``X_SCIENCE_MCP_X509_STRICT=0`` only when relaxation is authorized.
 
 Relaxation clears only the X509_STRICT profile bit immediately before a client
 handshake. Server-side wraps and all other verification flags remain intact.
@@ -19,8 +19,8 @@ import os
 import ssl
 
 
-POSTURE_ENV = "SYNON_MCP_X509_STRICT"
-MARKER_ATTR = "_synon_x509_strict_relaxed"
+POSTURE_ENV = "X_SCIENCE_MCP_X509_STRICT"
+MARKER_ATTR = "_x_science_x509_strict_relaxed"
 
 RELAXED = "relaxed"
 STRICT = "strict"

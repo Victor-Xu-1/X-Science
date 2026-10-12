@@ -18,7 +18,7 @@ type webOfficeProxyEcho struct {
 	Query         string `json:"query"`
 	Authorization string `json:"authorization"`
 	Cookie        string `json:"cookie"`
-	SynonUser     string `json:"synon_user"`
+	XScienceUser     string `json:"x_science_user"`
 }
 
 func newWebOfficeProxyTestServer(t *testing.T, kind string) (*Server, http.Handler, int) {
@@ -31,7 +31,7 @@ func newWebOfficeProxyTestServer(t *testing.T, kind string) (*Server, http.Handl
 				Method: r.Method, Path: r.URL.Path, Query: r.URL.RawQuery,
 				Authorization: r.Header.Get("Authorization"),
 				Cookie:        r.Header.Get("Cookie"),
-				SynonUser:     r.Header.Get("X-Synon-User-Id"),
+				XScienceUser:     r.Header.Get("X-Science-User-Id"),
 			})
 		case "/redirect":
 			w.Header().Set("Location", "http://"+r.Host+"/deck/2?mode=view#slide")
@@ -65,10 +65,10 @@ func TestWebOfficeProxyForwardsOnlyToRegisteredOwnerWatch(t *testing.T) {
 	path := fmt.Sprintf("/api/office-watch-proxy/%d/echo?q=slide%%202", port)
 	request := newLoopbackTestRequest(http.MethodGet, path, nil)
 	request.RemoteAddr = "127.0.0.1:12345"
-	request.Header.Set("X-Synon-User-Id", "owner")
-	request.Header.Set("X-Synon-CSRF-Token", "secret")
+	request.Header.Set("X-Science-User-Id", "owner")
+	request.Header.Set("X-Science-CSRF-Token", "secret")
 	request.Header.Set("Authorization", "Bearer secret")
-	request.Header.Set("Cookie", "synon_session=secret")
+	request.Header.Set("Cookie", "x_science_session=secret")
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, request)
 	if response.Code != http.StatusOK {
@@ -81,7 +81,7 @@ func TestWebOfficeProxyForwardsOnlyToRegisteredOwnerWatch(t *testing.T) {
 	if echoed.Method != http.MethodGet || echoed.Path != "/echo" || echoed.Query != "q=slide%202" {
 		t.Fatalf("forwarded request = %#v", echoed)
 	}
-	if echoed.Authorization != "" || echoed.Cookie != "" || echoed.SynonUser != "" {
+	if echoed.Authorization != "" || echoed.Cookie != "" || echoed.XScienceUser != "" {
 		t.Fatalf("sensitive headers reached upstream: %#v", echoed)
 	}
 	if response.Header().Get("Set-Cookie") != "" {
@@ -93,7 +93,7 @@ func TestWebOfficeProxyForwardsOnlyToRegisteredOwnerWatch(t *testing.T) {
 
 	redirect := newLoopbackTestRequest(http.MethodGet,
 		fmt.Sprintf("/api/office-watch-proxy/%d/redirect", port), nil)
-	redirect.Header.Set("X-Synon-User-Id", "owner")
+	redirect.Header.Set("X-Science-User-Id", "owner")
 	redirectResponse := httptest.NewRecorder()
 	handler.ServeHTTP(redirectResponse, redirect)
 	wantLocation := fmt.Sprintf("/api/office-watch-proxy/%d/deck/2?mode=view#slide", port)
@@ -108,7 +108,7 @@ func TestWebOfficeProxyInjectsNavigationGuardAndSupportsHead(t *testing.T) {
 	_, handler, port := newWebOfficeProxyTestServer(t, "ppt")
 	path := fmt.Sprintf("/api/ppt-proxy/%d/html", port)
 	request := newLoopbackTestRequest(http.MethodGet, path, nil)
-	request.Header.Set("X-Synon-User-Id", "owner")
+	request.Header.Set("X-Science-User-Id", "owner")
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, request)
 	if response.Code != http.StatusOK {
@@ -116,7 +116,7 @@ func TestWebOfficeProxyInjectsNavigationGuardAndSupportsHead(t *testing.T) {
 	}
 	body := response.Body.String()
 	wantBase := fmt.Sprintf("/api/ppt-proxy/%d", port)
-	if !strings.Contains(body, "data-synon-office-proxy") ||
+	if !strings.Contains(body, "data-x-science-office-proxy") ||
 		!strings.Contains(body, "const b="+strconv.Quote(wantBase)) ||
 		!strings.Contains(body, "<head><script") {
 		t.Fatalf("navigation guard was not injected after head: %s", body)
@@ -130,7 +130,7 @@ func TestWebOfficeProxyInjectsNavigationGuardAndSupportsHead(t *testing.T) {
 
 	head := newLoopbackTestRequest(http.MethodHead,
 		fmt.Sprintf("/api/ppt-proxy/%d/echo", port), nil)
-	head.Header.Set("X-Synon-User-Id", "owner")
+	head.Header.Set("X-Science-User-Id", "owner")
 	headResponse := httptest.NewRecorder()
 	handler.ServeHTTP(headResponse, head)
 	if headResponse.Code != http.StatusOK || headResponse.Body.Len() != 0 {
@@ -176,7 +176,7 @@ func TestWebOfficeProxyRejectsUnregisteredCrossUserAndInvalidRequests(t *testing
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
 			request := newLoopbackTestRequest(testCase.method, testCase.path, nil)
-			request.Header.Set("X-Synon-User-Id", testCase.user)
+			request.Header.Set("X-Science-User-Id", testCase.user)
 			response := httptest.NewRecorder()
 			handler.ServeHTTP(response, request)
 			if response.Code != testCase.status {

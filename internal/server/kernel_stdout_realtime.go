@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	kernelruntime "synon-go/internal/kernel"
+	kernelruntime "x-science/internal/kernel"
 )
 
 // bindKernelStdoutRealtime owns the kernel-to-conversation streaming adapter.

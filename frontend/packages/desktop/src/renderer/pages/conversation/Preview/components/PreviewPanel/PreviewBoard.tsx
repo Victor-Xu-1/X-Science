@@ -6,11 +6,11 @@
 
 import { insertArtifactReferenceIntoActiveComposer } from '@/renderer/components/chat/SendBox/composerReferenceBridge';
 import PreviewLoadingState from '@/renderer/components/media/PreviewLoadingState';
-import { normalizeSynonBiomedJsonLines } from '@/renderer/services/synonBiomedArtifactPreview';
+import { normalizeXScienceJsonLines } from '@/renderer/services/xScienceArtifactPreview';
 import {
-  createSynonBiomedTextArtifactVersion,
-  getSynonBiomedArtifactVersionContentUrl,
-} from '@/renderer/services/synonBiomedArtifacts';
+  createXScienceTextArtifactVersion,
+  getXScienceArtifactVersionContentUrl,
+} from '@/renderer/services/xScienceArtifacts';
 import { Message } from '@arco-design/web-react';
 import {
   Close as CloseGlyph,
@@ -43,17 +43,17 @@ import {
   LazyOfficeDocPreview as OfficeDocPreview,
   LazyPDFPreview as PDFPreview,
   LazyPptPreview as PptViewer,
-  LazySynonBiomedGenomeViewer as SynonBiomedGenomeViewer,
-  LazySynonBiomedHdf5Viewer as SynonBiomedHdf5Viewer,
-  LazySynonBiomedJsonViewer as SynonBiomedJsonViewer,
-  LazySynonBiomedMcpAppArtifactViewer as SynonBiomedMcpAppArtifactViewer,
-  LazySynonBiomedMcpAppViewer as SynonBiomedMcpAppViewer,
-  LazySynonBiomedMoleculeViewer as SynonBiomedMoleculeViewer,
-  LazySynonBiomedMsaViewer as SynonBiomedMsaViewer,
-  LazySynonBiomedNotebookViewer as SynonBiomedNotebookViewer,
-  LazySynonBiomedSequenceViewer as SynonBiomedSequenceViewer,
-  LazySynonBiomedStructureViewer as SynonBiomedStructureViewer,
-  LazySynonBiomedTableViewer as SynonBiomedTableViewer,
+  LazyXScienceGenomeViewer as XScienceGenomeViewer,
+  LazyXScienceHdf5Viewer as XScienceHdf5Viewer,
+  LazyXScienceJsonViewer as XScienceJsonViewer,
+  LazyXScienceMcpAppArtifactViewer as XScienceMcpAppArtifactViewer,
+  LazyXScienceMcpAppViewer as XScienceMcpAppViewer,
+  LazyXScienceMoleculeViewer as XScienceMoleculeViewer,
+  LazyXScienceMsaViewer as XScienceMsaViewer,
+  LazyXScienceNotebookViewer as XScienceNotebookViewer,
+  LazyXScienceSequenceViewer as XScienceSequenceViewer,
+  LazyXScienceStructureViewer as XScienceStructureViewer,
+  LazyXScienceTableViewer as XScienceTableViewer,
   LazyUnsupportedPreview as UnsupportedPreview,
   LazyArchivePreview as ArchivePreview,
   LazyURLPreview as URLViewer,
@@ -64,7 +64,7 @@ import PreviewRegionCommentLayer from './PreviewRegionCommentLayer';
 import { formatPreviewRegionCommentForComposer } from './previewRegionCommentModel';
 
 const noopToolbarExtras = { setExtras: (): void => undefined };
-const PREVIEW_BOARD_COLUMNS_KEY = 'synon-ai_preview_board_columns';
+const PREVIEW_BOARD_COLUMNS_KEY = 'x-science_preview_board_columns';
 const DocumentWysiwygEditor = React.lazy(() => import('../editors/DocumentWysiwygEditor'));
 
 type PreviewBoardColumns = 1 | 2 | 3;
@@ -380,13 +380,13 @@ const PreviewBoardTileContent: React.FC<{
       let jsonContent = content;
       if (isJsonLines) {
         try {
-          jsonContent = normalizeSynonBiomedJsonLines(content);
+          jsonContent = normalizeXScienceJsonLines(content);
         } catch {
           // Keep the source unchanged so the viewer can display its bounded invalid-document state.
         }
       }
       return (
-        <SynonBiomedJsonViewer
+        <XScienceJsonViewer
           filename={fileName}
           content={jsonContent}
           readOnly={!editing}
@@ -463,7 +463,7 @@ const PreviewBoardTileContent: React.FC<{
   }
   if (type === 'structure') {
     return (
-      <SynonBiomedStructureViewer
+      <XScienceStructureViewer
         filename={fileName}
         contentUrl={metadata?.contentUrl}
         content={metadata?.contentUrl ? undefined : content}
@@ -478,7 +478,7 @@ const PreviewBoardTileContent: React.FC<{
     if (interactiveFormat === 'ket' || interactiveFormat === 'rxn') {
       if (metadata?.contentUrl) {
         return (
-          <SynonBiomedMcpAppArtifactViewer
+          <XScienceMcpAppArtifactViewer
             filename={fileName}
             contentUrl={metadata.contentUrl}
             contentParam={interactiveFormat}
@@ -489,7 +489,7 @@ const PreviewBoardTileContent: React.FC<{
         );
       }
       return (
-        <SynonBiomedMcpAppViewer
+        <XScienceMcpAppViewer
           serverId='bundled:ketcher-chemistry'
           serverName='Ketcher Chemistry'
           openTool='open_sketcher'
@@ -507,7 +507,7 @@ const PreviewBoardTileContent: React.FC<{
       );
     }
     return (
-      <SynonBiomedMoleculeViewer
+      <XScienceMoleculeViewer
         filename={fileName}
         contentUrl={metadata?.contentUrl}
         content={metadata?.contentUrl ? undefined : content}
@@ -519,7 +519,7 @@ const PreviewBoardTileContent: React.FC<{
       return <DelimitedTableEditor filename={fileName} content={content} onChange={onContentChange} />;
     }
     return (
-      <SynonBiomedTableViewer
+      <XScienceTableViewer
         filename={fileName}
         contentUrl={metadata?.contentUrl}
         content={metadata?.contentUrl ? undefined : content}
@@ -528,7 +528,7 @@ const PreviewBoardTileContent: React.FC<{
   }
   if (type === 'msa') {
     return (
-      <SynonBiomedMsaViewer
+      <XScienceMsaViewer
         filename={fileName}
         contentUrl={metadata?.contentUrl}
         content={metadata?.contentUrl ? undefined : content}
@@ -537,7 +537,7 @@ const PreviewBoardTileContent: React.FC<{
   }
   if (type === 'genome') {
     return (
-      <SynonBiomedGenomeViewer
+      <XScienceGenomeViewer
         filename={fileName}
         contentUrl={metadata?.contentUrl}
         content={metadata?.contentUrl ? undefined : content}
@@ -546,7 +546,7 @@ const PreviewBoardTileContent: React.FC<{
   }
   if (type === 'sequence') {
     return (
-      <SynonBiomedSequenceViewer
+      <XScienceSequenceViewer
         filename={fileName}
         contentUrl={metadata?.contentUrl}
         content={metadata?.contentUrl ? undefined : content}
@@ -555,14 +555,14 @@ const PreviewBoardTileContent: React.FC<{
   }
   if (type === 'notebook') {
     return (
-      <SynonBiomedNotebookViewer
+      <XScienceNotebookViewer
         filename={fileName}
         contentUrl={metadata?.contentUrl}
         content={metadata?.contentUrl ? undefined : content}
       />
     );
   }
-  if (type === 'hdf5') return <SynonBiomedHdf5Viewer filename={fileName} contentUrl={metadata?.contentUrl} />;
+  if (type === 'hdf5') return <XScienceHdf5Viewer filename={fileName} contentUrl={metadata?.contentUrl} />;
   if (type === 'archive') return <ArchivePreview filename={fileName} contentUrl={metadata?.contentUrl} />;
   if (type === 'unsupported') {
     return <UnsupportedPreview filename={fileName} downloadUrl={metadata?.contentUrl} filePath={metadata?.file_path} />;
@@ -639,7 +639,7 @@ const PreviewBoard: React.FC<{ conversationId?: string; embedded?: boolean }> = 
     setSavingTabId(tab.id);
     try {
       if (tab.metadata?.artifactId) {
-        const created = await createSynonBiomedTextArtifactVersion({
+        const created = await createXScienceTextArtifactVersion({
           artifactId: tab.metadata.artifactId,
           content: tab.content,
           contentType: getPreviewVersionContentType(tab.content_type, tab.metadata?.file_name || tab.title),
@@ -648,7 +648,7 @@ const PreviewBoard: React.FC<{ conversationId?: string; embedded?: boolean }> = 
         if (!created.versionId) throw new Error('Artifact version response did not include a version id');
         commitTabContent(tab.id, tab.content, {
           versionId: created.versionId,
-          contentUrl: getSynonBiomedArtifactVersionContentUrl(created.versionId),
+          contentUrl: getXScienceArtifactVersionContentUrl(created.versionId),
         });
       } else {
         const saved = await saveContent(tab.id, tab.content);

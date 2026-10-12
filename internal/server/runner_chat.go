@@ -14,20 +14,20 @@ import (
 	"sync"
 	"time"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 
-	"synon-go/internal/sciencecapability"
+	"x-science/internal/sciencecapability"
 )
 
 const defaultSessionRunnerChatSystemPrompt = "You are X-Science, a concise assistant inside a private automation runtime. Answer the user's latest message directly."
 
-const BuiltinSessionRunnerChatEndpoint = "builtin://synon-go/deterministic-chat"
+const BuiltinSessionRunnerChatEndpoint = "builtin://x-science/deterministic-chat"
 
 const WorkspaceSessionRunnerProvider = "workspace"
 
-const BuiltinSessionRunnerChatModel = "synon-go-deterministic"
+const BuiltinSessionRunnerChatModel = "x-science-deterministic"
 
 const defaultSessionRunnerChatRequestTimeout = 2 * time.Minute
 
@@ -87,13 +87,14 @@ const sessionRunnerVisualMediaUnsupportedReasonCode = "visual_review_model_media
 const sessionRunnerStoreContentionReasonCode = "transient_store_contention"
 const sessionRunnerToolLifecyclePersistenceReasonCode = "tool_lifecycle_persistence_interrupted"
 const sessionRunnerKernelOperationPendingRecoveryReasonCode = "kernel_operation_pending_recovery"
+const sessionRunnerExecutionIdentityRecoveryReasonCode = "execution_identity_recovery_required"
 const sessionRunnerKernelRecoveryTimeoutReasonCode = "kernel_operation_recovery_timeout"
 const sessionRunnerPreparationTimeoutReasonCode = "runner_preparation_timeout"
 const sessionRunnerSelectedSkillContractUnavailableReasonCode = "selected_skill_contract_unavailable"
 const sessionRunnerExpiredLeaseRecoveryReasonCode = "runner_lease_expired"
 
 const maxSessionRunnerPlanGoalRunes = 600
-const noChatToolsAllowedSentinel = "__synon_no_chat_tools_allowed__"
+const noChatToolsAllowedSentinel = "__x_science_no_chat_tools_allowed__"
 const sessionRunnerModelAuditRuntimeNamespace = "session-runner-model-audit"
 
 type sessionRunnerBoundedCorrection interface {

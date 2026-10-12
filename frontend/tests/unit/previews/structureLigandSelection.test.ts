@@ -14,7 +14,7 @@ import {
   MULTI_LIGAND_MODELS,
   MULTI_NAMED_LIGAND_PDB,
 } from '../../fixtures/structureLigands';
-import { createSynonViewRepresentationPreset } from '@/renderer/pages/conversation/Preview/components/viewers/molstarStructureEngine';
+import { createXScienceViewRepresentationPreset } from '@/renderer/pages/conversation/Preview/components/viewers/molstarStructureEngine';
 import {
   resolveStructureViewLigandLoci,
   resolveStructureViewLigandInstances,
@@ -79,7 +79,7 @@ describe('one-receptor multi-ligand parsed composition', () => {
       const thirdField = await createContractField(plugin, 'synthetic third field', -1);
       await plugin.managers.structure.component.applyPreset(
         [...plugin.managers.structure.hierarchy.current.structures],
-        createSynonViewRepresentationPreset(
+        createXScienceViewRepresentationPreset(
           'ligand-surface',
           {
             ligand: thirdField,
@@ -138,7 +138,7 @@ describe('one-receptor multi-ligand parsed composition', () => {
         const field = await createContractField(plugin, 'synthetic selected field', 0);
         await plugin.managers.structure.component.applyPreset(
           [...plugin.managers.structure.hierarchy.current.structures],
-          createSynonViewRepresentationPreset(
+          createXScienceViewRepresentationPreset(
             representation,
             {
               ligands: { LIGAND_3: field },

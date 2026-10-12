@@ -4,7 +4,7 @@ package server
 // start tick before observing or signalling it. These functions are shared by
 // launch, probe and cancellation so they cannot disagree about ownership.
 const agentSSHProcessIdentityShell = `
-synon_process_identity() {
+x_science_process_identity() {
   local pid="$1" stat boot
   case "$pid" in ''|*[!0-9]*) return 1;; esac
   read -r stat < "/proc/$pid/stat" 2>/dev/null || return 1
@@ -15,17 +15,17 @@ synon_process_identity() {
   [ "$1" != Z ] || return 1
   printf '%s:%s:%s' "$pid" "$boot" "${20}"
 }
-synon_process_alive() {
+x_science_process_alive() {
   local expected pid actual
   [ -s .wrapper_identity ] || return 1
   read -r expected < .wrapper_identity || [ -n "$expected" ] || return 1
   pid=${expected%%:*}
-  actual=$(synon_process_identity "$pid") || return 1
+  actual=$(x_science_process_identity "$pid") || return 1
   [ "$actual" = "$expected" ] && kill -0 "$pid" 2>/dev/null
 }
-synon_publish_identity() {
+x_science_publish_identity() {
   local identity temporary
-  identity=$(synon_process_identity "$1") || return 1
+  identity=$(x_science_process_identity "$1") || return 1
   printf '%s\n' "$1" > .wrapper_pid
   temporary=$(mktemp .wrapper_identity.XXXXXXXX) || return 1
   printf '%s\n' "$identity" > "$temporary"

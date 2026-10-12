@@ -30,14 +30,14 @@ func ResolveDynamicTool(ctx context.Context, root string, fullName string) (stri
 }
 
 func LoadServers(root string) (map[string]ServerConfig, error) {
-	if raw := os.Getenv("SYNON_MCP_CONFIG_JSON"); strings.TrimSpace(raw) != "" {
-		return parseConfig([]byte(raw), "SYNON_MCP_CONFIG_JSON")
+	if raw := os.Getenv("X_SCIENCE_MCP_CONFIG_JSON"); strings.TrimSpace(raw) != "" {
+		return parseConfig([]byte(raw), "X_SCIENCE_MCP_CONFIG_JSON")
 	}
 	// A repository-controlled .mcp.json can run arbitrary local commands or
 	// direct requests. It is deliberately not an executable configuration
 	// source. Deployments may explicitly nominate an administrator-controlled
-	// configuration through SYNON_MCP_CONFIG instead.
-	path := strings.TrimSpace(os.Getenv("SYNON_MCP_CONFIG"))
+	// configuration through X_SCIENCE_MCP_CONFIG instead.
+	path := strings.TrimSpace(os.Getenv("X_SCIENCE_MCP_CONFIG"))
 	if path == "" {
 		return map[string]ServerConfig{}, nil
 	}

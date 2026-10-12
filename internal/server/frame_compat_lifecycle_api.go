@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func (s *Server) handleCompatibilityFrameCancel(w http.ResponseWriter, r *http.Request, frame workspace.CompatibilityFrame) {

@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/skills"
+	"x-science/internal/skills"
 )
 
 const designStrategyEntrypointBudgetBytes = 16_000
@@ -23,7 +23,7 @@ func TestProteinAntibodyAndRNADesignStrategiesAreSeparateBilingualContracts(t *t
 		t.Fatal("locate repository root")
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
-	skillsRoot := filepath.Join(repositoryRoot, "skills", "synonbiomed")
+	skillsRoot := filepath.Join(repositoryRoot, "skills", "x-science")
 
 	type manifestFile struct {
 		Path   string `json:"path"`
@@ -34,7 +34,7 @@ func TestProteinAntibodyAndRNADesignStrategiesAreSeparateBilingualContracts(t *t
 		Skills []string       `json:"skills"`
 		Files  []manifestFile `json:"files"`
 	}
-	manifestContent, err := os.ReadFile(filepath.Join(repositoryRoot, "assets", "synonbiomed", "skills.manifest.json"))
+	manifestContent, err := os.ReadFile(filepath.Join(repositoryRoot, "assets", "x-science", "skills.manifest.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -208,7 +208,7 @@ func TestGenMolSkillUsesOneCurrentV2RequestContract(t *testing.T) {
 		t.Fatal("locate repository root")
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
-	genMolRoot := filepath.Join(repositoryRoot, "skills", "synonbiomed", "genmol-nim")
+	genMolRoot := filepath.Join(repositoryRoot, "skills", "x-science", "genmol-nim")
 	combined := strings.Join([]string{
 		mustRead(t, filepath.Join(genMolRoot, "SKILL.md")),
 		mustRead(t, filepath.Join(genMolRoot, "references", "api.md")),
@@ -251,7 +251,7 @@ func TestProfessionalDesignExecutionSkillsUseOneEvidenceBasedRouteChoice(t *test
 		t.Fatal("locate repository root")
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
-	skillsRoot := filepath.Join(repositoryRoot, "skills", "synonbiomed")
+	skillsRoot := filepath.Join(repositoryRoot, "skills", "x-science")
 	for _, name := range []string{
 		"genmol-nim", "molmim-nim", "diffdock-nim", "rfdiffusion-nim",
 		"proteinmpnn-nim", "boltz2-nim", "openfold3-nim",
@@ -321,7 +321,7 @@ func TestComplexaDesignDelegationClosureUsesOnlyBundledOrGovernedRoutes(t *testi
 		t.Fatal("locate repository root")
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
-	skillsRoot := filepath.Join(repositoryRoot, "skills", "synonbiomed")
+	skillsRoot := filepath.Join(repositoryRoot, "skills", "x-science")
 	names := []string{
 		"complexa-design", "complexa-setup", "complexa-target", "complexa-sweep",
 		"complexa-evaluate-pdbs", "complexa-slurm",
@@ -378,7 +378,7 @@ func TestComplexaDesignDelegationClosureUsesOnlyBundledOrGovernedRoutes(t *testi
 	}
 
 	slurmSkill := mustRead(t, filepath.Join(skillsRoot, "complexa-slurm", "SKILL.md"))
-	if !strings.Contains(slurmSkill, `${SYNON_SKILL_DIR}/scripts/cluster_preflight.sh`) {
+	if !strings.Contains(slurmSkill, `${X_SCIENCE_SKILL_DIR}/scripts/cluster_preflight.sh`) {
 		t.Fatal("complexa-slurm does not use its task-scoped bundled preflight")
 	}
 	script := filepath.Join(skillsRoot, "complexa-slurm", "scripts", "cluster_preflight.sh")

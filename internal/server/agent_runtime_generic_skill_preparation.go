@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"synon-go/internal/skills"
+	"x-science/internal/skills"
 )
 
 // agentRuntimeCommandIsTrustedGenericMaterializedSkillExecution recognizes the
@@ -95,7 +95,7 @@ func agentRuntimeMaterializedScriptTargetForPreferredAsset(
 		return "", false
 	}
 	target := filepath.Join(
-		workspaceRoot, ".synon", "runtime", "skills", agentSkillRuntimeDirectoryName(skill.Name), expectedDigest,
+		workspaceRoot, ".xscience", "runtime", "skills", agentSkillRuntimeDirectoryName(skill.Name), expectedDigest,
 	)
 	if !hostPathWithin(workspaceRoot, target) {
 		return "", false

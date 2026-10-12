@@ -56,6 +56,13 @@ func prepareRunnerCorrectionStorage(clientID string, cause *RunnerInterruptionCa
 	if cause == nil {
 		return nil, nil, nil
 	}
+	if cause.Condition != nil && cause.Condition.historicalSchema != "" {
+		copyCause := *cause
+		copyCondition := *cause.Condition
+		copyCondition.historicalSchema = ""
+		copyCause.Condition = &copyCondition
+		cause = &copyCause
+	}
 	if _, err := RunnerInterruptionCausePayload(*cause); err != nil {
 		return nil, nil, err
 	}
@@ -118,12 +125,23 @@ func appendRunnerCorrectionChunksConn(ctx context.Context, conn *sql.Conn, input
 // one contiguous condition is pending; it does not build a history-sized map.
 // Callers must supply only owner/branch-fenced canonical checkpoint payloads.
 type RunnerCorrectionAssembler struct {
-	reference RunnerCorrectionConditionRef
-	next      int
-	data      bytes.Buffer
+	historical bool
+	reference  RunnerCorrectionConditionRef
+	next       int
+	data       bytes.Buffer
 }
 
 func (assembler *RunnerCorrectionAssembler) Observe(payload map[string]any) (bool, error) {
+	return assembler.observe(payload, false)
+}
+
+// ObserveHistorical requires the caller's frozen native-event proof. It keeps
+// original chunk bytes/digests intact and changes no stored or admitted input.
+func (assembler *RunnerCorrectionAssembler) ObserveHistorical(payload map[string]any) (bool, error) {
+	return assembler.observe(payload, true)
+}
+
+func (assembler *RunnerCorrectionAssembler) observe(payload map[string]any, historical bool) (bool, error) {
 	value, present := payload[RunnerCorrectionConditionChunkField]
 	if !present {
 		return false, nil
@@ -142,7 +160,10 @@ func (assembler *RunnerCorrectionAssembler) Observe(payload map[string]any) (boo
 		return true, err
 	}
 	if chunk.Index == 0 {
-		*assembler = RunnerCorrectionAssembler{reference: chunk.Reference}
+		*assembler = RunnerCorrectionAssembler{reference: chunk.Reference, historical: historical}
+	}
+	if assembler.historical != historical {
+		return true, errors.New("correction evidence crosses namespace source boundaries")
 	}
 	if chunk.Reference != assembler.reference || chunk.Index != assembler.next || chunk.Index >= chunk.Reference.Chunks {
 		return true, errors.New("correction condition chunks are not consecutive")
@@ -164,7 +185,11 @@ func (assembler *RunnerCorrectionAssembler) Resolve(cause RunnerInterruptionCaus
 	if ref != assembler.reference || assembler.next != ref.Chunks || int64(assembler.data.Len()) != ref.Bytes || correctionContentDigest(assembler.data.Bytes()) != ref.SHA256 {
 		return cause, errors.New("correction condition evidence is missing or corrupt")
 	}
-	condition, err := DecodeRunnerCorrectionCondition(assembler.data.Bytes())
+	decode := DecodeRunnerCorrectionCondition
+	if assembler.historical {
+		decode = decodeHistoricalRunnerCorrectionCondition
+	}
+	condition, err := decode(assembler.data.Bytes())
 	if err != nil {
 		return cause, err
 	}

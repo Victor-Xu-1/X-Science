@@ -8,7 +8,7 @@ import (
 const (
 	projectIdentityV73CallbackID        = "project-identity-history-v73-noop"
 	projectIdentityV73PreflightIdentity = "project-identity-history-v73-projects-v1"
-	projectIdentityV73RuleSpec          = "synon.workspace.project-identity-history.v73"
+	projectIdentityV73RuleSpec          = "x-science.workspace.project-identity-history.v73"
 )
 
 // IDs name durable entities, not reusable project slots. Keeping their history

@@ -6,7 +6,7 @@ export PATH=/usr/local/bin:/usr/bin:/bin LC_ALL=C
 unset TAR_OPTIONS GZIP BASH_ENV ENV CDPATH
 cd -- "$(dirname -- "$0")"
 root=$PWD
-control=.synon-harvest
+control=.x-science-harvest
 [[ ! -L $control ]] || exit 76
 mkdir -p -- "$control"
 chmod 700 -- "$control"
@@ -137,7 +137,7 @@ case ${1:-} in
   _inventory|_archive|_checkpoint|_prefix)
     operation=$1; name=${2:-}; temporary=${3:-}
     [[ $name == inventory || $name =~ ^archive-[0-9a-f]{64}-[0-9a-f]{64}$ || $name =~ ^checkpoint-[0-9a-f]{64}$ || $name =~ ^prefix-[0-9a-f]{64}-[0-9]{1,19}$ ]] || exit 76
-    [[ $temporary =~ ^\.synon-harvest/(inventory|archive-[0-9a-f]{64}-[0-9a-f]{64}|checkpoint-[0-9a-f]{64}|prefix-[0-9a-f]{64}-[0-9]{1,19})\.[A-Za-z0-9]{8}$ ]] || exit 76
+    [[ $temporary =~ ^\.x-science-harvest/(inventory|archive-[0-9a-f]{64}-[0-9a-f]{64}|checkpoint-[0-9a-f]{64}|prefix-[0-9a-f]{64}-[0-9]{1,19})\.[A-Za-z0-9]{8}$ ]] || exit 76
     [[ $temporary == "$control/$name".* && -d $temporary && ! -L $temporary ]] || exit 76
     [[ $operation != _inventory || $name == inventory ]] || exit 76
     owner=$control/$name.owner

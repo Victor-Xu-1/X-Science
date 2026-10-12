@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"testing"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestWebConversationSearchUsesVisibleTranscriptProjectionAndTitleFallback(t *testing.T) {
@@ -130,7 +130,7 @@ func executeWebConversationSearch(
 		"/api/conversations/search?q="+url.QueryEscape(query)+"&page=0&page_size=20",
 		nil,
 	)
-	request.Header.Set("X-Synon-User-Id", ownerID)
+	request.Header.Set("X-Science-User-Id", ownerID)
 	response := httptest.NewRecorder()
 	server.handleWebConversation(response, request)
 	return response

@@ -20,9 +20,9 @@ import (
 
 const (
 	manifestSchemaVersion = 1
-	manifestSource        = "synonbiomed-v1.1/runtime/assets/skills"
-	skillsRelativePath    = "skills/synonbiomed"
-	manifestRelativePath  = "assets/synonbiomed/skills.manifest.json"
+	manifestSource        = "skills/x-science"
+	skillsRelativePath    = "skills/x-science"
+	manifestRelativePath  = "assets/x-science/skills.manifest.json"
 )
 
 type fileRecord struct {

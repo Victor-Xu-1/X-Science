@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strings"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 const (

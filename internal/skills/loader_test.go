@@ -59,12 +59,12 @@ func TestBuiltinRuntimeCatalogUsesProductIdentity(t *testing.T) {
 	if len(loaded) != 1 {
 		t.Fatalf("builtin skills = %#v", loaded)
 	}
-	if loaded[0].Name != "synon-runtime" || loaded[0].DisplayName != "X-Science Runtime" || loaded[0].NameI18n["zh-CN"] != "X-Science 运行时" {
+	if loaded[0].Name != "x-science-runtime" || loaded[0].DisplayName != "X-Science Runtime" || loaded[0].NameI18n["zh-CN"] != "X-Science 运行时" {
 		t.Fatalf("current display must retain legacy execution identity: %#v", loaded[0])
 	}
 	if !strings.Contains(loaded[0].Description, "X-Science runtime") ||
 		!strings.Contains(loaded[0].Body, "X-Science runtime contract") ||
-		strings.Contains(loaded[0].Description, "Synon Go") || strings.Contains(loaded[0].Body, "Synon Go") {
+		strings.Contains(loaded[0].Description, "XScience Go") || strings.Contains(loaded[0].Body, "XScience Go") {
 		t.Fatalf("builtin runtime identity description=%q body=%q", loaded[0].Description, loaded[0].Body)
 	}
 	if !strings.Contains(loaded[0].Body, "host.delegate") {
@@ -455,7 +455,7 @@ func TestLoadSkillCatalogRejectsMisspelledOrDuplicatedCapabilityContractField(t 
 }
 
 func TestRetainedV11SkillAllowedToolsAreLoaded(t *testing.T) {
-	skillDir := filepath.Join("..", "..", "skills", "synonbiomed", "msa-search-nim")
+	skillDir := filepath.Join("..", "..", "skills", "x-science", "msa-search-nim")
 	catalog := Load([]string{skillDir})
 	if errors := catalog.LoadErrors(); len(errors) != 0 {
 		t.Fatalf("load retained skill errors=%#v", errors)
@@ -475,7 +475,7 @@ func TestProviderKernelSkillsDeclareTheirUnavailableRuntimeDependency(t *testing
 		"using-model-endpoint":    {"compute_provider", "compute_provider_inference"},
 	} {
 		t.Run(name, func(t *testing.T) {
-			skillDir := filepath.Join("..", "..", "skills", "synonbiomed", name)
+			skillDir := filepath.Join("..", "..", "skills", "x-science", name)
 			catalog := Load([]string{skillDir})
 			if errors := catalog.LoadErrors(); len(errors) != 0 {
 				t.Fatalf("load %s errors=%#v", name, errors)

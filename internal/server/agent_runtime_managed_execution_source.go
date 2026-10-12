@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"synon-go/internal/executionprep"
+	"x-science/internal/executionprep"
 )
 
 func managedExecutionSourceIdentifier(content string, identifiers []string, kernel *agentKernelContext) (string, string, bool) {

@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	kernelruntime "synon-go/internal/kernel"
+	kernelruntime "x-science/internal/kernel"
 )
 
 // Control fixture uses the real native protocol. It waits only for its tiny
@@ -26,7 +26,7 @@ func recordingComputeHarvestOperation(ctx context.Context, input kernelruntime.P
 				return nil, err
 			}
 		}
-		if err := transport.Install(ctx, filepath.Join(input.StageDirectory, "_synon_harvest.sh")); err != nil {
+		if err := transport.Install(ctx, filepath.Join(input.StageDirectory, "_x_science_harvest.sh")); err != nil {
 			return nil, err
 		}
 		return map[string]any{"ok": true, "installed": true}, nil
@@ -55,7 +55,7 @@ func recordingComputeHarvestOperation(ctx context.Context, input kernelruntime.P
 		if name == "inventory.nul" {
 			local = name
 		}
-		if err := copyComputeControlFile(filepath.Join(root, ".synon-harvest", name), filepath.Join(input.StageDirectory, local)); err != nil {
+		if err := copyComputeControlFile(filepath.Join(root, ".x-science-harvest", name), filepath.Join(input.StageDirectory, local)); err != nil {
 			return nil, err
 		}
 		return map[string]any{"ok": true, "ready": true}, nil

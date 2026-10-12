@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/sqliteutil"
+	"x-science/internal/sqliteutil"
 )
 
 const (

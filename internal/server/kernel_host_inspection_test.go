@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestKernelHostInspectionScopesArtifactsFramesPathsAndLineage(t *testing.T) {
@@ -145,7 +145,7 @@ print(json.dumps({
 	}
 	if output["large_mode"] != float64(0o400) || output["large_materialized"] != `{"ok":true,"result":{"body":"large immutable evidence"}}` ||
 		output["large_path_by_artifact"] != output["large_path"] ||
-		!strings.HasPrefix(output["large_path"].(string), filepath.Join(identity.workspaceDir, ".synon-artifacts")) {
+		!strings.HasPrefix(output["large_path"].(string), filepath.Join(identity.workspaceDir, ".x-science-artifacts")) {
 		t.Fatalf("materialized large result=%#v", output)
 	}
 	exact := output["exact"].(map[string]any)
@@ -178,7 +178,7 @@ print(json.dumps({
 	if frameSearch["mode"] != "search" || frameSearch["total_matches"] != float64(1) || len(frameSearch["matches"].([]any)[0].(map[string]any)["snippets"].([]any)) == 0 {
 		t.Fatalf("frame search=%#v", frameSearch)
 	}
-	if !strings.HasPrefix(output["path"].(string), filepath.Join(identity.workspaceDir, ".synon-artifacts")) {
+	if !strings.HasPrefix(output["path"].(string), filepath.Join(identity.workspaceDir, ".x-science-artifacts")) {
 		t.Fatalf("materialized path escaped workspace: %q", output["path"])
 	}
 	bulkReads := runKernelHostCellNamed(t, app, identity, "Operon", `

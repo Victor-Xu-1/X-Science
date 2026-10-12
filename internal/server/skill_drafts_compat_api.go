@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-const compatibilitySkillDraftMarker = ".synon-draft"
+const compatibilitySkillDraftMarker = ".x-science-draft"
 
 func (s *Server) handleCompatibilitySkillDrafts(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {

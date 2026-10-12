@@ -8,8 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"synon-go/internal/compute/checkpoint"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/compute/checkpoint"
+	"x-science/internal/compute/namespace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 type computeCheckpointResume struct {
@@ -21,6 +22,7 @@ type computeCheckpointResume struct {
 	ElapsedSeconds   int64
 	RemainingSeconds int64
 	ExplicitBudget   bool
+	NamespaceProof   *namespace.SourceProof
 }
 
 func computeNativeCheckpointSchema() map[string]any {
@@ -64,16 +66,35 @@ func (s *Server) computeCheckpointResume(ctx context.Context, access workspace.K
 	if err := os.MkdirAll(stage, 0o700); err != nil {
 		return nil, err
 	}
-	receipt, err := checkpoint.Verify(ctx, root, stage, *contract, stringValue(mapValue(job.HardwareDetails)["archive_sha256"]))
-	if err != nil {
-		return nil, err
-	}
 	raw, err := json.Marshal(stored["receipt"])
 	if err != nil {
 		return nil, err
 	}
 	var expected checkpoint.Receipt
-	if json.Unmarshal(raw, &expected) != nil || receipt != expected {
+	if json.Unmarshal(raw, &expected) != nil {
+		return nil, errors.New("checkpoint receipt changed before resume")
+	}
+	ctx, err = s.computeNamespaceContext(ctx, workspace.OwnedComputeJob{OwnerUserID: access.UserID, Job: job})
+	if err != nil {
+		return nil, err
+	}
+	var proof *namespace.SourceProof
+	receipt, err := checkpoint.Verify(ctx, root, stage, *contract, stringValue(mapValue(job.HardwareDetails)["archive_sha256"]))
+	if errors.Is(err, namespace.ErrRecoveryUnconfirmed) {
+		observation, ok := ctx.Value(computeNamespaceObservationKey{}).(*computeNamespaceObservation)
+		if !ok || computeNamespaceCheckpointSourceAdmitted(ctx, observation, expected.ManifestSHA256) != nil {
+			return nil, namespace.ErrRecoveryUnconfirmed
+		}
+		proof, err = computeNamespaceSourceProof(ctx, expected.ManifestSHA256)
+		if err != nil {
+			return nil, err
+		}
+		receipt, err = checkpoint.VerifyWithHistoricalProof(ctx, root, stage, *contract, stringValue(mapValue(job.HardwareDetails)["archive_sha256"]), expected.ManifestSHA256, *proof)
+	}
+	if err != nil {
+		return nil, err
+	}
+	if receipt != expected {
 		return nil, errors.New("checkpoint receipt changed before resume")
 	}
 	remaining := int64(numberValue(stored["remaining_timeout_seconds"]))
@@ -91,12 +112,12 @@ func (s *Server) computeCheckpointResume(ctx context.Context, access workspace.K
 	if err != nil || archive.SHA256 != stringValue(mapValue(job.HardwareDetails)["archive_sha256"]) {
 		return nil, errors.New("the immutable original checkpoint inputs are unavailable or changed")
 	}
-	return &computeCheckpointResume{InputArchive: archivePath, Contract: *contract, Receipt: receipt, Root: root, SourceJobID: job.JobID, ElapsedSeconds: int64(numberValue(stored["elapsed_seconds"])), RemainingSeconds: remaining, ExplicitBudget: explicit}, nil
+	return &computeCheckpointResume{InputArchive: archivePath, Contract: *contract, Receipt: receipt, Root: root, SourceJobID: job.JobID, ElapsedSeconds: int64(numberValue(stored["elapsed_seconds"])), RemainingSeconds: remaining, ExplicitBudget: explicit, NamespaceProof: proof}, nil
 }
 
 // Checkpoint validation describes restartability, never scientific success.
 // A missing/invalid optional checkpoint does not rewrite the physical exit.
-func (s *Server) attachComputeCheckpointReceipt(ctx context.Context, owned workspace.OwnedComputeJob, result map[string]any) {
+func (s *Server) attachComputeCheckpointReceipt(ctx context.Context, owned workspace.OwnedComputeJob, result map[string]any, observed ...*namespace.SourceProof) {
 	hardware := mapValue(owned.Job.HardwareDetails)
 	contract, err := checkpoint.Decode(hardware["checkpoint_contract"])
 	if err != nil || contract == nil {
@@ -108,7 +129,19 @@ func (s *Server) attachComputeCheckpointReceipt(ctx context.Context, owned works
 		return
 	}
 	root := filepath.Join(stringValue(hardware["workspace_dir"]), "hpc", owned.Job.JobID)
-	receipt, err := checkpoint.Verify(ctx, root, stage, *contract, stringValue(hardware["archive_sha256"]))
+	var receipt checkpoint.Receipt
+	if len(observed) == 1 && observed[0] != nil {
+		// The digest was observed through the actual provider control download,
+		// not inferred from an arbitrary result or caller-supplied JSON value.
+		digest := stringValue(result["checkpoint_manifest_sha256"])
+		receipt, err = checkpoint.VerifyWithHistoricalProof(ctx, root, stage, *contract, stringValue(hardware["archive_sha256"]), digest, *observed[0])
+	} else {
+		receipt, err = checkpoint.Verify(ctx, root, stage, *contract, stringValue(hardware["archive_sha256"]))
+	}
+	if errors.Is(err, namespace.ErrRecoveryUnconfirmed) {
+		result["checkpoint_status"] = "recovery_unconfirmed"
+		return
+	}
 	if err != nil || receipt.Generation <= int64(numberValue(hardware["checkpoint_generation"])) {
 		result["checkpoint_status"] = "not_restartable"
 		return

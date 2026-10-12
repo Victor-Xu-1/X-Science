@@ -3,7 +3,7 @@ package server
 import (
 	"strings"
 
-	secretstore "synon-go/internal/persistence/secrets"
+	secretstore "x-science/internal/persistence/secrets"
 )
 
 const (
@@ -30,7 +30,7 @@ func (s *Server) checkInboundPairing(platform string, userID string) (inboundPai
 		return inboundPairingStatus{Blocked: true, BlockedReason: imPairingBlockedReason}, nil
 	}
 	ownerUserID := strings.TrimSpace(pairedUser.OwnerUserID)
-	if ownerUserID == "" && (s.synonLinkAuth == nil || !s.synonLinkAuth.enabled) {
+	if ownerUserID == "" && (s.xscienceLinkAuth == nil || !s.xscienceLinkAuth.enabled) {
 		ownerUserID = secretstore.DefaultUserID
 	}
 	if ownerUserID == "" {

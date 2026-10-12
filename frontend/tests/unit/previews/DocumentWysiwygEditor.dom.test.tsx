@@ -251,7 +251,7 @@ describe('DocumentWysiwygEditor', () => {
     const frame = screen.getByTitle('report.html document editor');
     expect(frame).toHaveAttribute('sandbox', 'allow-same-origin');
     await waitFor(() => expect(frame.getAttribute('srcdoc')).toContain('<style>h1{color:navy}</style>'));
-    await waitFor(() => expect(frame.getAttribute('srcdoc')).toContain('data-synon-original-src="chart.png"'));
+    await waitFor(() => expect(frame.getAttribute('srcdoc')).toContain('data-x-science-original-src="chart.png"'));
     expect(frame.getAttribute('srcdoc')).toContain('data:image/png;base64,Y2hhcnQ=');
   });
 
@@ -262,7 +262,7 @@ describe('DocumentWysiwygEditor', () => {
         format='html'
         value={`<html><body><a href="{{artifact:${versionId}}}">Evidence</a><img src="{{artifact:${versionId}}}" alt="Chart"></body></html>`}
         fileName='report.html'
-        workspace='synonbiomed://conversation'
+        workspace='x-science://conversation'
         conversationId='conversation'
         onChange={() => undefined}
       />,
@@ -271,8 +271,8 @@ describe('DocumentWysiwygEditor', () => {
 
     const frame = screen.getByTitle('report.html document editor');
     await waitFor(() => expect(frame.getAttribute('srcdoc')).toContain(`/api/artifacts/versions/${versionId}`));
-    expect(frame.getAttribute('srcdoc')).toContain(`data-synon-original-href="{{artifact:${versionId}}}"`);
-    expect(frame.getAttribute('srcdoc')).toContain(`data-synon-original-src="{{artifact:${versionId}}}"`);
+    expect(frame.getAttribute('srcdoc')).toContain(`data-x-science-original-href="{{artifact:${versionId}}}"`);
+    expect(frame.getAttribute('srcdoc')).toContain(`data-x-science-original-src="{{artifact:${versionId}}}"`);
   });
 });
 
@@ -331,8 +331,8 @@ describe('documentWysiwygModel', () => {
 
   it('does not restore executable resource sources hidden in provenance attributes', () => {
     const html =
-      '<a href="https://safe.example" data-synon-original-href="javascript:alert(1)">Evidence</a>' +
-      '<img src="https://safe.example/plot.png" data-synon-original-src="data:text/html,bad" style="width:20px" alt="Plot">';
+      '<a href="https://safe.example" data-x-science-original-href="javascript:alert(1)">Evidence</a>' +
+      '<img src="https://safe.example/plot.png" data-x-science-original-src="data:text/html,bad" style="width:20px" alt="Plot">';
 
     const markdown = markdownFromEditableHtml(html);
     const document = replaceHtmlDocumentBody('<!doctype html><html><body>Before</body></html>', html);
@@ -347,9 +347,9 @@ describe('documentWysiwygModel', () => {
 
   it('keeps valid durable and local sources through sanitized resource export', () => {
     const html =
-      '<a href="/api/artifacts/versions/de03acd4-6097-4fe9-a3af-f8fa47341850" data-synon-original-href="{{artifact:de03acd4-6097-4fe9-a3af-f8fa47341850}}">Evidence</a>' +
-      '<a href="C:\\Research\\report.md" data-synon-original-href="C:\\Research\\report.md">Local</a>' +
-      '<img src="data:image/png;base64,Y2hhcnQ=" data-synon-original-src="../figures/chart.png" alt="Plot">';
+      '<a href="/api/artifacts/versions/de03acd4-6097-4fe9-a3af-f8fa47341850" data-x-science-original-href="{{artifact:de03acd4-6097-4fe9-a3af-f8fa47341850}}">Evidence</a>' +
+      '<a href="C:\\Research\\report.md" data-x-science-original-href="C:\\Research\\report.md">Local</a>' +
+      '<img src="data:image/png;base64,Y2hhcnQ=" data-x-science-original-src="../figures/chart.png" alt="Plot">';
     const markdown = markdownFromEditableHtml(html);
     const document = replaceHtmlDocumentBody('<html><body></body></html>', html);
 
@@ -358,13 +358,13 @@ describe('documentWysiwygModel', () => {
     expect(markdown).toContain('![Plot](../figures/chart.png)');
     expect(document).toContain('src="../figures/chart.png"');
     expect(document).toContain('href="C:\\Research\\report.md"');
-    expect(document).not.toContain('data-synon-original-');
+    expect(document).not.toContain('data-x-science-original-');
   });
 
   it('drops unsafe sources when neither original nor rendered source is admissible', () => {
     const html =
-      '<a href="javascript:bad()" data-synon-original-href="javascript:bad()">Keep text</a>' +
-      '<img src="data:text/html,bad" data-synon-original-src="data:text/html,bad" alt="Unsafe">';
+      '<a href="javascript:bad()" data-x-science-original-href="javascript:bad()">Keep text</a>' +
+      '<img src="data:text/html,bad" data-x-science-original-src="data:text/html,bad" alt="Unsafe">';
     const markdown = markdownFromEditableHtml(html);
     const document = replaceHtmlDocumentBody('<html><body></body></html>', html);
 
@@ -377,7 +377,7 @@ describe('documentWysiwygModel', () => {
 
   it('does not let resource destinations break out of Markdown link syntax', async () => {
     const html =
-      '<a href="https://safe.example" data-synon-original-href="https://safe.example/) [Injected](javascript:bad())">Evidence</a>';
+      '<a href="https://safe.example" data-x-science-original-href="https://safe.example/) [Injected](javascript:bad())">Evidence</a>';
     const markdown = markdownFromEditableHtml(html);
 
     expect(markdown).not.toContain(') [Injected](javascript:');
@@ -447,7 +447,7 @@ describe('documentWysiwygModel', () => {
 
   it('keeps resource metadata from becoming raw HTML in exported Markdown', () => {
     const markdown = markdownFromEditableHtml(
-      '<a href="https://safe.example" data-synon-original-href="https://safe.example/&lt;img src=x onerror=bad&gt;">Evidence</a>' +
+      '<a href="https://safe.example" data-x-science-original-href="https://safe.example/&lt;img src=x onerror=bad&gt;">Evidence</a>' +
         '<img src="../chart.png" alt="&lt;img src=x onerror=bad&gt;" title="&lt;svg onload=bad&gt;">'
     );
 
@@ -498,7 +498,7 @@ describe('documentWysiwygModel', () => {
 
   it('builds links without requiring selected text and inserts semantic document tables', () => {
     expect(buildDocumentLinkHtml('https://example.org', 'Evidence')).toBe(
-      '<a href="https://example.org" data-synon-original-href="https://example.org">Evidence</a>'
+      '<a href="https://example.org" data-x-science-original-href="https://example.org">Evidence</a>'
     );
     expect(buildDocumentLinkHtml('https://example.org', '')).toContain('>https://example.org</a>');
     expect(buildDocumentTableHtml(['Column 1', 'Column 2', 'Column 3'])).toContain(
@@ -510,7 +510,7 @@ describe('documentWysiwygModel', () => {
     const original =
       '<!doctype html><html lang="zh-CN"><head><title>Report</title><style>.lead{color:red}</style></head><body class="paper"><h1>Old</h1></body></html>';
     const editedBody =
-      '<body class="paper" contenteditable="true" aria-label="editor"><h1>New</h1><a data-synon-original-href="{{artifact:de03acd4-6097-4fe9-a3af-f8fa47341850}}" href="/api/artifacts/versions/de03acd4-6097-4fe9-a3af-f8fa47341850">Evidence</a><img data-synon-original-src="figures/chart.png" data-document-selected="true" src="data:image/png;base64,abc" alt="Chart"></body>';
+      '<body class="paper" contenteditable="true" aria-label="editor"><h1>New</h1><a data-x-science-original-href="{{artifact:de03acd4-6097-4fe9-a3af-f8fa47341850}}" href="/api/artifacts/versions/de03acd4-6097-4fe9-a3af-f8fa47341850">Evidence</a><img data-x-science-original-src="figures/chart.png" data-document-selected="true" src="data:image/png;base64,abc" alt="Chart"></body>';
 
     const result = replaceHtmlDocumentBody(original, editedBody);
 
@@ -521,8 +521,8 @@ describe('documentWysiwygModel', () => {
     expect(result).toContain('<h1>New</h1>');
     expect(result).toContain('src="figures/chart.png"');
     expect(result).toContain('href="{{artifact:de03acd4-6097-4fe9-a3af-f8fa47341850}}"');
-    expect(result).not.toContain('data-synon-original-src');
-    expect(result).not.toContain('data-synon-original-href');
+    expect(result).not.toContain('data-x-science-original-src');
+    expect(result).not.toContain('data-x-science-original-href');
     expect(result).not.toContain('data-document-selected');
     expect(result).not.toContain('contenteditable');
     expect(result).not.toContain('aria-label="editor"');

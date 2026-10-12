@@ -45,7 +45,7 @@ func newTestOIDCProvider(t *testing.T) *testOIDCProvider {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fixture := &testOIDCProvider{key: key, clientID: "synon-test-client", clientSecret: "synon-test-secret"}
+	fixture := &testOIDCProvider{key: key, clientID: "x-science-test-client", clientSecret: "x-science-test-secret"}
 	fixture.server = httptest.NewServer(http.HandlerFunc(fixture.serveHTTP))
 	t.Cleanup(fixture.server.Close)
 	return fixture
@@ -140,7 +140,7 @@ func (p *testOIDCProvider) handleToken(w http.ResponseWriter, r *http.Request) {
 	idToken, err := p.signIDToken(map[string]any{
 		"iss": p.server.URL, "sub": "google-subject-42", "aud": p.clientID,
 		"iat": now.Unix(), "exp": now.Add(5 * time.Minute).Unix(), "nonce": nonce,
-		"email": "scientist@example.org", "email_verified": true, "name": "Dr. Synon",
+		"email": "scientist@example.org", "email_verified": true, "name": "Dr. XScience",
 	})
 	if err != nil {
 		http.Error(w, "sign token", http.StatusInternalServerError)
@@ -343,7 +343,7 @@ func TestWebGoogleOIDCProtocolFlowUsesPKCENonceAndOpaqueSession(t *testing.T) {
 
 func TestWebAppleOIDCProtocolFlowUsesAppleClientSecretAndFormPostMode(t *testing.T) {
 	provider := newTestOIDCProvider(t)
-	provider.clientID = "com.synon.biomed.web"
+	provider.clientID = "com.x-science.biomed.web"
 	provider.clientSecretValidator = func(value string) bool {
 		return validTestAppleClientSecret(value, "apple-team-id", "apple-key-id", provider.clientID)
 	}

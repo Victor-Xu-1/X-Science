@@ -29,7 +29,7 @@ func startSDKBridgeSession(ctx context.Context, root string, config ServerConfig
 		config.Env,
 		config.BridgeEnv,
 		trustedMCPEnvironment(config, map[string]string{
-			"SYNON_MCP_SDK_SERVER_NAME": config.sdkServerName(),
+			"X_SCIENCE_MCP_SDK_SERVER_NAME": config.sdkServerName(),
 		}),
 	)
 	if err != nil {

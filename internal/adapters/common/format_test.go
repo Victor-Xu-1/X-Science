@@ -43,7 +43,7 @@ func TestFormatToolUseAndPermissionRequest(t *testing.T) {
 		t.Fatalf("FormatToolUse() = %q", tool)
 	}
 
-	permission := FormatPermissionRequest("Bash", map[string]any{"command": "rm -rf /tmp/synon"}, "req-1")
+	permission := FormatPermissionRequest("Bash", map[string]any{"command": "rm -rf /tmp/xscience"}, "req-1")
 	for _, part := range []string{"Bash", "req-1", "rm -rf"} {
 		if !strings.Contains(permission, part) {
 			t.Fatalf("FormatPermissionRequest() missing %q in %q", part, permission)

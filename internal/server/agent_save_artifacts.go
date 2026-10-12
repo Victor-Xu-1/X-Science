@@ -21,11 +21,11 @@ import (
 
 	"github.com/google/uuid"
 
-	"synon-go/internal/agentruntime"
-	kernelruntime "synon-go/internal/kernel"
-	runtimekv "synon-go/internal/persistence/runtimekv"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/runtimecontrol"
+	"x-science/internal/agentruntime"
+	kernelruntime "x-science/internal/kernel"
+	runtimekv "x-science/internal/persistence/runtimekv"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/runtimecontrol"
 )
 
 const maxAgentSavedArtifacts = 256
@@ -79,7 +79,7 @@ func (source *agentSavedArtifactSource) close() {
 func agentSaveArtifactsToolSchema() agentruntime.ToolSchema {
 	return agentruntime.ToolSchema{
 		Name:        "save_artifacts",
-		Description: "Save declared workspace files as durable artifacts. Use destination=snapshot only for final user-facing reports, tables, figures, media, or explicitly requested source files; use working_data for internal evidence, validation, provenance, logs, scripts, notebooks, and JSON. Snapshot drafts stay hidden until terminal validation and unchanged bytes reuse the current version. Save fully materialized, internally consistent files and use workspace-relative links between companions. Never edit a file to insert its own artifact reference or chase version links. The Harness publishes exact immutable links with the final answer. Evidence and consistency checks run as non-blocking quality advisories after valid bytes are retained; they never create completion_pending. When differently labelled Markdown/CSV tables intentionally project one small shared record set, an optional working_data JSON file with schema synon.artifact-table-contract.v1 can declare identity_fields, compare_fields, records, and per-artifact header mappings without changing visible columns.",
+		Description: "Save declared workspace files as durable artifacts. Use destination=snapshot only for final user-facing reports, tables, figures, media, or explicitly requested source files; use working_data for internal evidence, validation, provenance, logs, scripts, notebooks, and JSON. Snapshot drafts stay hidden until terminal validation and unchanged bytes reuse the current version. Save fully materialized, internally consistent files and use workspace-relative links between companions. Never edit a file to insert its own artifact reference or chase version links. The Harness publishes exact immutable links with the final answer. Evidence and consistency checks run as non-blocking quality advisories after valid bytes are retained; they never create completion_pending. When differently labelled Markdown/CSV tables intentionally project one small shared record set, an optional working_data JSON file with schema x-science.artifact-table-contract.v1 can declare identity_fields, compare_fields, records, and per-artifact header mappings without changing visible columns.",
 		Parameters: map[string]any{
 			"type": "object", "additionalProperties": false,
 			"properties": map[string]any{

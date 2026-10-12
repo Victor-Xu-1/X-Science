@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/memoryclassifier"
-	"synon-go/internal/memorypolicy"
-	"synon-go/internal/memorytools"
-	"synon-go/internal/providers"
+	"x-science/internal/agentruntime"
+	"x-science/internal/memoryclassifier"
+	"x-science/internal/memorypolicy"
+	"x-science/internal/memorytools"
+	"x-science/internal/providers"
 )
 
 type serverMemoryClassifierModel struct {

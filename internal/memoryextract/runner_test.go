@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/memoryclassifier"
-	"synon-go/internal/memorytools"
+	"x-science/internal/memoryclassifier"
+	"x-science/internal/memorytools"
 )
 
 type extractorFunc func(context.Context, ExtractRequest) (map[string]any, error)

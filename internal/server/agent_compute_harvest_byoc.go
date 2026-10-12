@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"synon-go/internal/compute/transfer"
-	kernelruntime "synon-go/internal/kernel"
+	"x-science/internal/compute/transfer"
+	kernelruntime "x-science/internal/kernel"
 )
 
 type byocHarvestTransport struct {
@@ -31,7 +31,7 @@ func (t byocHarvestTransport) call(ctx context.Context, action string, fields ma
 }
 
 func (t byocHarvestTransport) Install(ctx context.Context, asset string) error {
-	if err := copyComputeControlFile(asset, filepath.Join(t.stage, "_synon_harvest.sh")); err != nil {
+	if err := copyComputeControlFile(asset, filepath.Join(t.stage, "_x_science_harvest.sh")); err != nil {
 		return err
 	}
 	reply, err := t.call(ctx, "install", nil)

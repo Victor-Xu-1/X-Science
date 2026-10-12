@@ -15,7 +15,7 @@ import (
 // Normal artifact operations and temporary SQLite back the production preview
 // components. No live user state, provider, or browser profile is used.
 func TestArtifactHashLinkBrowser(t *testing.T) {
-	if os.Getenv("SYNON_ARTIFACT_LINK_BROWSER") != "1" {
+	if os.Getenv("X_SCIENCE_ARTIFACT_LINK_BROWSER") != "1" {
 		t.Skip("enable controlled browser integration")
 	}
 	f := newAgentSaveArtifactsFixture(t)
@@ -28,7 +28,7 @@ func TestArtifactHashLinkBrowser(t *testing.T) {
 		t.Fatal(err)
 	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		r.Header.Set("X-Synon-User-Id", f.stream.OwnerID)
+		r.Header.Set("X-Science-User-Id", f.stream.OwnerID)
 		f.server.Handler().ServeHTTP(w, r)
 	}))
 	defer server.Close()
@@ -42,7 +42,7 @@ func TestArtifactHashLinkBrowser(t *testing.T) {
 	}
 	command := exec.CommandContext(t.Context(), "node", "tests/web-e2e/artifactLinks.browser.mjs")
 	command.Dir = frontend
-	command.Env = append(os.Environ(), "SYNON_ARTIFACT_LINK_API="+server.URL, "SYNON_ARTIFACT_LINK_FIXTURE="+string(data))
+	command.Env = append(os.Environ(), "X_SCIENCE_ARTIFACT_LINK_API="+server.URL, "X_SCIENCE_ARTIFACT_LINK_FIXTURE="+string(data))
 	output, err := command.CombinedOutput()
 	if err != nil {
 		t.Fatalf("browser: %v\n%s", err, output)

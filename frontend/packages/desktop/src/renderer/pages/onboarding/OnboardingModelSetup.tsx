@@ -9,13 +9,13 @@ import { Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  activateSynonBiomedLlmProfile,
-  loadSynonBiomedLlmProviders,
-  saveSynonBiomedLlmProfile,
-  testSynonBiomedLlmProfile,
-  type SynonBiomedLlmProfile,
-  type SynonBiomedLlmProvidersSnapshot,
-} from '@/renderer/services/synonBiomedLlm';
+  activateXScienceLlmProfile,
+  loadXScienceLlmProviders,
+  saveXScienceLlmProfile,
+  testXScienceLlmProfile,
+  type XScienceLlmProfile,
+  type XScienceLlmProvidersSnapshot,
+} from '@/renderer/services/xScienceLlm';
 import styles from './onboarding.module.css';
 
 type ModelDraft = {
@@ -32,7 +32,7 @@ type ModelDraft = {
  */
 const OnboardingModelSetup: React.FC = () => {
   const { t } = useTranslation();
-  const [snapshot, setSnapshot] = useState<SynonBiomedLlmProvidersSnapshot | null>(null);
+  const [snapshot, setSnapshot] = useState<XScienceLlmProvidersSnapshot | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const [draft, setDraft] = useState<ModelDraft | null>(null);
   const [saving, setSaving] = useState(false);
@@ -44,7 +44,7 @@ const OnboardingModelSetup: React.FC = () => {
     const generation = ++loadGeneration.current;
     setLoading(true);
     try {
-      const result = await loadSynonBiomedLlmProviders();
+      const result = await loadXScienceLlmProviders();
       if (generation !== loadGeneration.current) return;
       setSnapshot(result);
       setLoadFailed(false);
@@ -102,7 +102,7 @@ const OnboardingModelSetup: React.FC = () => {
     setSaving(true);
     try {
       const providerLabel = selectedTemplate?.label ?? draft.provider;
-      const savedProfile = await saveSynonBiomedLlmProfile({
+      const savedProfile = await saveXScienceLlmProfile({
         name: `${providerLabel} · ${draft.model.trim()}`.slice(0, 64),
         provider: draft.provider,
         baseUrl: draft.baseUrl.trim(),
@@ -110,7 +110,7 @@ const OnboardingModelSetup: React.FC = () => {
         apiKey: draft.apiKey.trim() || undefined,
       });
       if (savedProfile.id !== snapshot?.activeProfileId) {
-        await activateSynonBiomedLlmProfile(savedProfile);
+        await activateXScienceLlmProfile(savedProfile);
       }
       Message.success(t('guid.onboarding.model.saved'));
       setDraft(null);
@@ -123,10 +123,10 @@ const OnboardingModelSetup: React.FC = () => {
     }
   };
 
-  const setActiveProfile = async (profile: SynonBiomedLlmProfile) => {
+  const setActiveProfile = async (profile: XScienceLlmProfile) => {
     setPendingId(profile.id);
     try {
-      await activateSynonBiomedLlmProfile(profile);
+      await activateXScienceLlmProfile(profile);
       Message.success(t('guid.onboarding.model.activated'));
       await load();
     } catch (error) {
@@ -137,10 +137,10 @@ const OnboardingModelSetup: React.FC = () => {
     }
   };
 
-  const testProfile = async (profile: SynonBiomedLlmProfile) => {
+  const testProfile = async (profile: XScienceLlmProfile) => {
     setPendingId(profile.id);
     try {
-      await testSynonBiomedLlmProfile(profile.id);
+      await testXScienceLlmProfile(profile.id);
       Message.success(t('guid.onboarding.model.testSuccess', { model: profile.model }));
     } catch (error) {
       console.error('[OnboardingModelSetup] test_failed', error);

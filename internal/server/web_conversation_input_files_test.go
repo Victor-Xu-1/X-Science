@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestWebConversationMessageMaterializesAbsoluteFilesIntoManagedTaskWorkspace(t *testing.T) {
@@ -28,7 +28,7 @@ func TestWebConversationMessageMaterializesAbsoluteFilesIntoManagedTaskWorkspace
 	}
 
 	response := p3JSONRequest(t, app, http.MethodPost, "/api/conversations/"+frame.ID+"/messages", map[string]any{
-		"content": "Analyze the measurements.\n[[SYNON_AI_FILES]]\n" + source, "files": []string{source},
+		"content": "Analyze the measurements.\n[[X_SCIENCE_FILES]]\n" + source, "files": []string{source},
 	}, "local")
 	if response.Code != http.StatusAccepted {
 		t.Fatalf("send status=%d body=%s", response.Code, response.Body.String())

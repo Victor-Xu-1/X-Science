@@ -26,7 +26,7 @@ MARKER_SHA256 = "6779952ad40aa5a124de7bd0e18975c6630bd6006d6b3ef210a916caaa6b53c
 # Downloads will 403 until the operator permits this UA — the panglaodb_*
 # tools are deferred (mcp_bio/deferred.json license gate) pending legal /
 # operator clearance, so nothing served depends on this fetch succeeding.
-CLIENT_UA = "bio-tools-panglaodb-markers/1.0 (synon_llm-experimental/bio-tools)"
+CLIENT_UA = "bio-tools-panglaodb-markers/1.0 (x_science_llm-experimental/bio-tools)"
 
 _FILENAME = "PanglaoDB_markers_27_Mar_2020.tsv.gz"
 

@@ -20,7 +20,7 @@ func TestP2RankPocketPackBuildsAHashedDockingHandoff(t *testing.T) {
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
 	packPath := filepath.Join(repositoryRoot, "internal", "sciencecapability", "executionpacks", "p2rank_binding_pockets.py")
-	skillPath := filepath.Join(repositoryRoot, "skills", "synonbiomed", "p2rank-pocket-detection", "scripts", "p2rank_binding_pockets.py")
+	skillPath := filepath.Join(repositoryRoot, "skills", "x-science", "p2rank-pocket-detection", "scripts", "p2rank_binding_pockets.py")
 	pack, err := os.ReadFile(packPath)
 	if err != nil {
 		t.Fatal(err)
@@ -145,7 +145,7 @@ with tempfile.TemporaryDirectory() as root_text:
     default = root / module.DEFAULT_OUTPUT_DIR
     default.mkdir()
     (default / module.OUTPUT_MARKER).write_text(
-        '{"execution_pack_id":"binding-pocket-prediction.p2rank","schema":"synon.execution-pack-output-owner.v1"}\n',
+        '{"execution_pack_id":"binding-pocket-prediction.p2rank","schema":"x-science.execution-pack-output-owner.v1"}\n',
         encoding="utf-8",
     )
     (root / f"{module.DEFAULT_OUTPUT_DIR}-2").mkdir()
@@ -154,7 +154,7 @@ with tempfile.TemporaryDirectory() as root_text:
     custom = root / "custom-output"
     custom.mkdir()
     (custom / module.OUTPUT_MARKER).write_text(
-        '{"execution_pack_id":"binding-pocket-prediction.p2rank","schema":"synon.execution-pack-output-owner.v1"}\n',
+        '{"execution_pack_id":"binding-pocket-prediction.p2rank","schema":"x-science.execution-pack-output-owner.v1"}\n',
         encoding="utf-8",
     )
     try:
@@ -216,7 +216,7 @@ with tempfile.TemporaryDirectory() as root_text, tempfile.TemporaryDirectory() a
 
 	receptorSHA := fmt.Sprintf("%x", sha256.Sum256([]byte(pdb)))
 	selection := map[string]any{
-		"schema": "synon.binding-pocket-prediction.v1", "status": "passed",
+		"schema": "x-science.binding-pocket-prediction.v1", "status": "passed",
 		"source": map[string]any{"file": "protein.pdb", "sha256": receptorSHA},
 		"method": map[string]any{
 			"name": "P2Rank", "version": "2.5.1",
@@ -237,7 +237,7 @@ with tempfile.TemporaryDirectory() as root_text, tempfile.TemporaryDirectory() a
 	}
 	selectionSHA := fmt.Sprintf("%x", sha256.Sum256(selectionBytes))
 	validation := map[string]any{
-		"schema":            "synon.execution-pack-validation.v4",
+		"schema":            "x-science.execution-pack-validation.v4",
 		"execution_pack_id": "binding-pocket-prediction.p2rank", "overall_pass": true,
 		"checks": map[string]any{
 			"source_integrity": true, "archive_integrity": true, "engine_identity": true,

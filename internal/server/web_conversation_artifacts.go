@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"strings"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 type webConversationArtifactReference struct {
@@ -24,7 +24,7 @@ func (s *Server) handleWebConversationArtifacts(
 		writeWorkspaceJSON(w, http.StatusMethodNotAllowed, map[string]any{"message": "method not allowed"})
 		return
 	}
-	userID := strings.TrimSpace(r.Header.Get("X-Synon-User-Id"))
+	userID := strings.TrimSpace(r.Header.Get("X-Science-User-Id"))
 	if userID == "" {
 		writeWorkspaceJSON(w, http.StatusUnauthorized, map[string]any{"message": "authentication required"})
 		return
@@ -83,7 +83,7 @@ func (s *Server) handleWebConversationArtifacts(
 		files = append(files, webScientificFile(artifact))
 	}
 	writeWorkspaceJSON(w, http.StatusOK, []map[string]any{{
-		"id":              "synonbiomed-files:" + frame.ID,
+		"id":              "xscience-files:" + frame.ID,
 		"conversation_id": frame.ID,
 		"kind":            "scientific_files",
 		"status":          "active",

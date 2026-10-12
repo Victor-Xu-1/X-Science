@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestWorkspaceHTTPAPIProvidesContractAndArtifactLineage(t *testing.T) {
@@ -163,7 +163,7 @@ func serveWorkspaceJSON(t *testing.T, app http.Handler, method, target string, b
 	response := httptest.NewRecorder()
 	request := newLoopbackTestRequest(method, target, bytes.NewReader(raw))
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("X-Synon-User-Id", "local")
+	request.Header.Set("X-Science-User-Id", "local")
 	app.ServeHTTP(response, request)
 	if response.Code != wantStatus {
 		t.Fatalf("%s %s status = %d: %s", method, target, response.Code, response.Body.String())
@@ -176,7 +176,7 @@ func localWorkspaceRequest(method, target string, body io.Reader) *http.Request 
 
 func authenticatedWorkspaceRequest(method, target, userID string, body io.Reader) *http.Request {
 	request := newLoopbackTestRequest(method, target, body)
-	request.Header.Set("X-Synon-User-Id", userID)
+	request.Header.Set("X-Science-User-Id", userID)
 	return request
 }
 
@@ -189,6 +189,6 @@ func authenticatedWorkspaceURLRequest(method, target string, body io.Reader) *ht
 	if userID == "" {
 		userID = "local"
 	}
-	request.Header.Set("X-Synon-User-Id", userID)
+	request.Header.Set("X-Science-User-Id", userID)
 	return request
 }

@@ -5,7 +5,7 @@
  */
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { resolveSynonBiomedArtifactPreviewPlan } from '@/renderer/services/synonBiomedArtifactPreview';
+import { resolveXScienceArtifactPreviewPlan } from '@/renderer/services/xScienceArtifactPreview';
 import type { PreviewContextValue } from '../../context/PreviewContext';
 import {
   ArchivePreviewError,
@@ -127,7 +127,7 @@ export function useArchivePreviewRead({
         else values.delete(entry.path);
         return { owner: context, values };
       });
-    const plan = resolveSynonBiomedArtifactPreviewPlan({ filename: entry.name });
+    const plan = resolveXScienceArtifactPreviewPlan({ filename: entry.name });
     const metadata = {
       file_name: entry.name,
       title: entry.name,

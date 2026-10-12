@@ -79,13 +79,13 @@ vi.mock('@arco-design/web-react', async () => {
   };
 });
 
-vi.mock('@/renderer/services/synonBiomedGateway', () => ({
-  loadSynonBiomedProjects: (...args: unknown[]) => loadProjectsMock(...args),
-  createSynonBiomedProject: (...args: unknown[]) => createProjectMock(...args),
-  updateSynonBiomedProject: (...args: unknown[]) => updateProjectMock(...args),
-  deleteSynonBiomedProject: (...args: unknown[]) => deleteProjectMock(...args),
-  loadSynonBiomedProjectArtifacts: (...args: unknown[]) => loadProjectArtifactsMock(...args),
-  loadSynonBiomedProjectBenches: (...args: unknown[]) => loadProjectBenchesMock(...args),
+vi.mock('@/renderer/services/xScienceGateway', () => ({
+  loadXScienceProjects: (...args: unknown[]) => loadProjectsMock(...args),
+  createXScienceProject: (...args: unknown[]) => createProjectMock(...args),
+  updateXScienceProject: (...args: unknown[]) => updateProjectMock(...args),
+  deleteXScienceProject: (...args: unknown[]) => deleteProjectMock(...args),
+  loadXScienceProjectArtifacts: (...args: unknown[]) => loadProjectArtifactsMock(...args),
+  loadXScienceProjectBenches: (...args: unknown[]) => loadProjectBenchesMock(...args),
 }));
 
 vi.mock('@/renderer/services/projectSidebarOrder', () => ({
@@ -140,7 +140,7 @@ describe('ProjectHistorySection', () => {
     saveProjectOrderMock.mockResolvedValue(undefined);
   });
 
-  it('renders X-Science projects from the real gateway client and opens the SynonAI project route', async () => {
+  it('renders X-Science projects from the real gateway client and opens the XScience project route', async () => {
     const onProjectsChange = vi.fn();
     const onProjectSelect = vi.fn();
     const onPrepareNavigation = vi.fn().mockResolvedValue(undefined);
@@ -266,7 +266,7 @@ describe('ProjectHistorySection', () => {
       expect(navigateMock).toHaveBeenCalledWith('/guid', {
         state: {
           resetAssistant: true,
-          workspace: 'synonbiomed://project/proj_created',
+          workspace: 'x-science://project/proj_created',
         },
       })
     );
@@ -301,7 +301,7 @@ describe('ProjectHistorySection', () => {
       .mockImplementationOnce(() => new Promise<unknown[]>((resolve) => (resolveRefresh = resolve)));
 
     await renderWithI18n(<ProjectHistorySection collapsed={false} activeProjectId={null} />);
-    emitter.emit('synonbiomed.projects.refresh');
+    emitter.emit('xscience.projects.refresh');
     resolveRefresh([]);
     await waitFor(() => expect(screen.queryByTestId('project-row-proj_example')).not.toBeInTheDocument());
 
@@ -336,7 +336,7 @@ describe('ProjectHistorySection', () => {
     );
     expect(navigateMock).toHaveBeenCalledWith('/projects/proj_example', {
       replace: true,
-      state: { synonBiomedProjectRevision: expect.any(Number) },
+      state: { xScienceProjectRevision: expect.any(Number) },
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Example project updated 项目操作' }));

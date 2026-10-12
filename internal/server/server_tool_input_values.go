@@ -15,9 +15,9 @@ import (
 	"time"
 	"unicode/utf8"
 
-	taskstore "synon-go/internal/persistence/tasks"
+	taskstore "x-science/internal/persistence/tasks"
 
-	"synon-go/internal/tools/fileops"
+	"x-science/internal/tools/fileops"
 )
 
 type askUserQuestionOption struct {
@@ -806,7 +806,7 @@ func configRemoteDefaultResolvesUnset(specs map[string]configSettingSpec) bool {
 func secretDiagnosticRedactionReady() bool {
 	return redactDiagnosticSecretSource("sk-live-redaction-check") == "<redacted>" &&
 		redactDiagnosticSecretSource("Bearer token") == "<redacted>" &&
-		redactDiagnosticSecretSource("env:SYNON_RUNNER_CHAT_API_KEY") == "env:SYNON_RUNNER_CHAT_API_KEY" &&
+		redactDiagnosticSecretSource("env:X_SCIENCE_RUNNER_CHAT_API_KEY") == "env:X_SCIENCE_RUNNER_CHAT_API_KEY" &&
 		redactDiagnosticSecretSource("") == "none"
 }
 

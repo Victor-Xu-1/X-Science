@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func transcriptWebStorageError(err error) error {
@@ -267,7 +267,7 @@ func (s *Server) projectTranscriptWebHistory(
 			if !ok {
 				return nil, transcriptstore.ProjectionSnapshot{}, transcriptstore.ErrEventConflict
 			}
-			content["synonBiomed"] = map[string]any{
+			content["xScience"] = map[string]any{
 				"messageIndex": index, "blockIndex": 0, "branchId": snapshot.BranchID,
 			}
 			if _, err := json.Marshal(message); err != nil {
@@ -452,6 +452,11 @@ func (s *Server) projectTranscriptWebProjectedEvent(
 ) error {
 	if transcriptstore.IsRunnerAdmissionFact(projected.Event, projected.ResolvedPayloadJSON) {
 		return nil
+	}
+	var namespaceErr error
+	projected, namespaceErr = s.normalizeNamespaceAskUserProjection(ctx, ownerID, projected)
+	if namespaceErr != nil {
+		return namespaceErr
 	}
 	payload, err := transcriptPayloadObject(projected.ResolvedPayloadJSON)
 	if err != nil {
@@ -1178,6 +1183,11 @@ func (s *Server) visitTranscriptWebBranchHistoryMode(
 ) (transcriptstore.ProjectionSnapshot, error) {
 	normalizer := newTranscriptWebRuntimeDrainSegmentNormalizer()
 	normalizedVisit := func(projected transcriptstore.ProjectedEvent) error {
+		var namespaceErr error
+		projected, namespaceErr = s.normalizeNamespaceAskUserProjection(ctx, ownerID, projected)
+		if namespaceErr != nil {
+			return namespaceErr
+		}
 		normalized, err := normalizer.normalize(projected)
 		if err != nil {
 			return err
@@ -1261,6 +1271,11 @@ func (s *Server) visitTranscriptWebProjectionSnapshot(
 	normalizer := newTranscriptWebRuntimeDrainSegmentNormalizer()
 	return s.visitTranscriptWebProjectionSnapshotRaw(ctx, stream, ownerID, snapshot, coordinateOnly,
 		func(projected transcriptstore.ProjectedEvent) error {
+			var namespaceErr error
+			projected, namespaceErr = s.normalizeNamespaceAskUserProjection(ctx, ownerID, projected)
+			if namespaceErr != nil {
+				return namespaceErr
+			}
 			normalized, err := normalizer.normalize(projected)
 			if err != nil {
 				return err

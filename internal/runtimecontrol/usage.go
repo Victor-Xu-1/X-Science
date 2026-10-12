@@ -137,7 +137,7 @@ func (s *Scanner) SetStorageRoots(roots StorageRoots) {
 }
 
 func CondaRoot(root string) string {
-	for _, key := range []string{"SYNON_CONDA_HOME", "MAMBA_ROOT_PREFIX"} {
+	for _, key := range []string{"X_SCIENCE_CONDA_HOME", "MAMBA_ROOT_PREFIX"} {
 		if value := strings.TrimSpace(os.Getenv(key)); value != "" {
 			if filepath.IsAbs(value) {
 				return filepath.Clean(value)

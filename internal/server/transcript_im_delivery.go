@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	adaptercommon "synon-go/internal/adapters/common"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	adaptercommon "x-science/internal/adapters/common"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 const (

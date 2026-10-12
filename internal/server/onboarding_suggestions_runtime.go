@@ -13,9 +13,9 @@ import (
 	"unicode/utf16"
 	"unicode/utf8"
 
-	"synon-go/internal/agentruntime"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	"synon-go/internal/toolcontract"
+	"x-science/internal/agentruntime"
+	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/toolcontract"
 )
 
 const structuredOnboardingModeV1 = "structured_wizard_v1"

@@ -18,11 +18,11 @@ import (
 
 	"github.com/coder/websocket"
 
-	eventjournal "synon-go/internal/persistence/journal"
-	secretstore "synon-go/internal/persistence/secrets"
-	sessionstore "synon-go/internal/persistence/sessions"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	eventjournal "x-science/internal/persistence/journal"
+	secretstore "x-science/internal/persistence/secrets"
+	sessionstore "x-science/internal/persistence/sessions"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 type runnerStreamRoundTripFunc func(*http.Request) (*http.Response, error)
@@ -232,7 +232,7 @@ func TestSessionRunnerChatPublishesConclusionOnlyAtTerminalSettlement(t *testing
 	wsURL := strings.Replace(app.URL, "http://", "ws://", 1) +
 		"/ws/" + url.PathEscape(session.ID) + "?lastEventId=1"
 	connection, _, err := websocket.Dial(wsContext, wsURL, &websocket.DialOptions{
-		HTTPHeader: http.Header{"X-Synon-User-Id": []string{"user-1"}},
+		HTTPHeader: http.Header{"X-Science-User-Id": []string{"user-1"}},
 	})
 	if err != nil {
 		t.Fatalf("dial streaming session websocket: %v", err)

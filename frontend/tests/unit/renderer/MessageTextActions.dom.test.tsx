@@ -24,7 +24,7 @@ vi.mock('@/renderer/hooks/context/ConversationContext', () => ({
     conversation_id: 'conversation-1',
     currentFrameId: 'frame-1',
     projectId: 'project-1',
-    workspace: 'synonbiomed://project-1',
+    workspace: 'x-science://project-1',
   }),
 }));
 
@@ -36,8 +36,8 @@ vi.mock('@/renderer/pages/conversation/Preview/hooks/useLocalFilePreview', () =>
   useLocalFilePreview: () => vi.fn(),
 }));
 
-vi.mock('@/renderer/pages/conversation/Messages/useSynonBiomedArtifactLinkPreview', () => ({
-  useSynonBiomedArtifactResolver: () => ({ handleLink: vi.fn(), resolveImage: vi.fn() }),
+vi.mock('@/renderer/pages/conversation/Messages/useXScienceArtifactLinkPreview', () => ({
+  useXScienceArtifactResolver: () => ({ handleLink: vi.fn(), resolveImage: vi.fn() }),
 }));
 
 vi.mock('@renderer/components/Markdown', () => ({

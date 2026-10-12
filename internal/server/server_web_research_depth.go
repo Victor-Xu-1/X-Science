@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"strings"
 
-	"synon-go/internal/discoveryquery"
-	"synon-go/internal/tools/webfetch"
+	"x-science/internal/discoveryquery"
+	"x-science/internal/tools/webfetch"
 )
 
 const webResearchMinimumSubstantiveCharacters = 1200

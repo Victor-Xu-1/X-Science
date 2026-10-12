@@ -11,7 +11,7 @@ import (
 const (
 	kernelStartupV69CallbackID        = "kernel-startup-v69-receipt-authority"
 	kernelStartupV69PreflightIdentity = "kernel-startup-v69-backend-head-v1"
-	kernelStartupV69RuleSpec          = "synon.workspace.kernel-startup.v69"
+	kernelStartupV69RuleSpec          = "x-science.workspace.kernel-startup.v69"
 	kernelBackendProcessV68           = "CHECK(state='starting' OR (executor_pid IS NOT NULL AND executor_pid_start_ticks IS NOT NULL))"
 	kernelBackendProcessV69           = "CHECK(state IN ('starting','stopped') OR (executor_pid IS NOT NULL AND executor_pid_start_ticks IS NOT NULL))"
 )

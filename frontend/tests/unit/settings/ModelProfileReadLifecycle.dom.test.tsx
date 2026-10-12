@@ -1,8 +1,8 @@
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { SynonBiomedModelsSettingsContent } from '@/renderer/pages/settings/SynonBiomedModelsSettings';
-import type { SynonBiomedLlmProvidersSnapshot } from '@/renderer/services/synonBiomedLlm';
+import { XScienceModelsSettingsContent } from '@/renderer/pages/settings/XScienceModelsSettings';
+import type { XScienceLlmProvidersSnapshot } from '@/renderer/services/xScienceLlm';
 import { renderWithI18n } from '../i18nTestUtils';
 
 const mocks = vi.hoisted(() => ({
@@ -15,12 +15,12 @@ const mocks = vi.hoisted(() => ({
   error: vi.fn(),
 }));
 
-vi.mock('@/renderer/services/synonBiomedLlm', () => ({
-  loadSynonBiomedLlmProviders: mocks.load,
-  saveSynonBiomedLlmProfile: mocks.save,
-  activateSynonBiomedLlmProfile: mocks.activate,
-  deleteSynonBiomedLlmProfile: mocks.remove,
-  testSynonBiomedLlmProfile: mocks.test,
+vi.mock('@/renderer/services/xScienceLlm', () => ({
+  loadXScienceLlmProviders: mocks.load,
+  saveXScienceLlmProfile: mocks.save,
+  activateXScienceLlmProfile: mocks.activate,
+  deleteXScienceLlmProfile: mocks.remove,
+  testXScienceLlmProfile: mocks.test,
 }));
 
 vi.mock('@arco-design/web-react', async (importOriginal) => {
@@ -28,7 +28,7 @@ vi.mock('@arco-design/web-react', async (importOriginal) => {
   return { ...actual, Message: { ...actual.Message, success: mocks.success, error: mocks.error } };
 });
 
-const snapshot: SynonBiomedLlmProvidersSnapshot = {
+const snapshot: XScienceLlmProvidersSnapshot = {
   activeProfileId: 'first',
   templates: [
     { provider: 'custom', label: 'Custom', defaultBaseUrl: '', modelExamples: [], protocol: 'openai' },
@@ -92,9 +92,9 @@ describe('model profile read and editor ownership', () => {
   });
 
   it('does not report zero/unconfigured or allow editing before the first read resolves', async () => {
-    const pending = deferred<SynonBiomedLlmProvidersSnapshot>();
+    const pending = deferred<XScienceLlmProvidersSnapshot>();
     mocks.load.mockReturnValueOnce(pending.promise);
-    await renderWithI18n(<SynonBiomedModelsSettingsContent />, 'zh-CN');
+    await renderWithI18n(<XScienceModelsSettingsContent />, 'zh-CN');
     expect(screen.getByRole('button', { name: '新增模型配置' })).toBeDisabled();
     expect(screen.queryByText('未配置')).not.toBeInTheDocument();
     expect(document.querySelector('.settings-summary-strip')?.firstElementChild).not.toHaveTextContent('0');
@@ -105,7 +105,7 @@ describe('model profile read and editor ownership', () => {
 
   it('keeps a failed initial read distinct from an empty catalogue and retries only the read', async () => {
     mocks.load.mockRejectedValueOnce(new Error('offline'));
-    await renderWithI18n(<SynonBiomedModelsSettingsContent />, 'zh-CN');
+    await renderWithI18n(<XScienceModelsSettingsContent />, 'zh-CN');
     expect(await screen.findByRole('alert')).toHaveTextContent('无法加载 X-Science 模型配置');
     expect(screen.queryByText('尚未配置模型')).not.toBeInTheDocument();
     expect(screen.queryByText('未配置')).not.toBeInTheDocument();
@@ -120,9 +120,9 @@ describe('model profile read and editor ownership', () => {
   });
 
   it('allows a pending metadata read to be superseded without waiting forever', async () => {
-    const older = deferred<SynonBiomedLlmProvidersSnapshot>();
+    const older = deferred<XScienceLlmProvidersSnapshot>();
     mocks.load.mockReturnValueOnce(older.promise);
-    await renderWithI18n(<SynonBiomedModelsSettingsContent />, 'zh-CN');
+    await renderWithI18n(<XScienceModelsSettingsContent />, 'zh-CN');
     expect(screen.getByRole('button', { name: '刷新' })).toBeEnabled();
     fireEvent.click(screen.getByRole('button', { name: '刷新' }));
     expect(await screen.findByText('First model')).toBeInTheDocument();
@@ -143,7 +143,7 @@ describe('model profile read and editor ownership', () => {
       await fetchImpl('/api/llm/providers', {});
       return freshSnapshot();
     });
-    const view = await renderWithI18n(<SynonBiomedModelsSettingsContent />, 'zh-CN');
+    const view = await renderWithI18n(<XScienceModelsSettingsContent />, 'zh-CN');
     expect(signals[0].aborted).toBe(false);
     fireEvent.click(screen.getByRole('button', { name: '刷新' }));
     expect(signals[0].aborted).toBe(true);
@@ -161,11 +161,11 @@ describe('model profile read and editor ownership', () => {
 
   it('labels retained data after refresh failure without treating it as fresh actionable state', async () => {
     mocks.load.mockResolvedValueOnce(freshSnapshot()).mockRejectedValueOnce(new Error('refresh failed'));
-    await renderWithI18n(<SynonBiomedModelsSettingsContent />, 'zh-CN');
+    await renderWithI18n(<XScienceModelsSettingsContent />, 'zh-CN');
     await screen.findByText('First model');
     fireEvent.click(screen.getByRole('button', { name: '刷新' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('上次成功读取');
-    const retained = screen.getByTestId('synon-biomed-model-profile-first');
+    const retained = screen.getByTestId('x-science-model-profile-first');
     expect(retained).toHaveTextContent('First model');
     expect(retained).not.toHaveTextContent('当前使用');
     expect(within(retained).getByRole('button', { name: '测试 First model' })).toBeDisabled();
@@ -180,14 +180,14 @@ describe('model profile read and editor ownership', () => {
 
   it('ignores an older read after the action-triggered newest read has completed', async () => {
     const action = deferred<unknown>();
-    const olderRead = deferred<SynonBiomedLlmProvidersSnapshot>();
-    const newestRead = deferred<SynonBiomedLlmProvidersSnapshot>();
+    const olderRead = deferred<XScienceLlmProvidersSnapshot>();
+    const newestRead = deferred<XScienceLlmProvidersSnapshot>();
     mocks.activate.mockReturnValueOnce(action.promise);
     mocks.load
       .mockResolvedValueOnce(freshSnapshot())
       .mockReturnValueOnce(olderRead.promise)
       .mockReturnValueOnce(newestRead.promise);
-    await renderWithI18n(<SynonBiomedModelsSettingsContent />, 'zh-CN');
+    await renderWithI18n(<XScienceModelsSettingsContent />, 'zh-CN');
     await screen.findByText('First model');
     fireEvent.click(screen.getByRole('button', { name: '将 Second model 设为当前模型' }));
     fireEvent.click(screen.getByRole('button', { name: '刷新' }));
@@ -202,10 +202,10 @@ describe('model profile read and editor ownership', () => {
 
   it('does not publish an obsolete read failure over the latest successful catalogue', async () => {
     const action = deferred<unknown>();
-    const olderRead = deferred<SynonBiomedLlmProvidersSnapshot>();
+    const olderRead = deferred<XScienceLlmProvidersSnapshot>();
     mocks.activate.mockReturnValueOnce(action.promise);
     mocks.load.mockResolvedValueOnce(freshSnapshot()).mockReturnValueOnce(olderRead.promise);
-    await renderWithI18n(<SynonBiomedModelsSettingsContent />, 'zh-CN');
+    await renderWithI18n(<XScienceModelsSettingsContent />, 'zh-CN');
     await screen.findByText('First model');
     fireEvent.click(screen.getByRole('button', { name: '将 Second model 设为当前模型' }));
     fireEvent.click(screen.getByRole('button', { name: '刷新' }));
@@ -217,24 +217,24 @@ describe('model profile read and editor ownership', () => {
   });
 
   it('does not notify another route when a disposed read fails', async () => {
-    const pending = deferred<SynonBiomedLlmProvidersSnapshot>();
+    const pending = deferred<XScienceLlmProvidersSnapshot>();
     mocks.load.mockReturnValueOnce(pending.promise);
-    const view = await renderWithI18n(<SynonBiomedModelsSettingsContent />, 'zh-CN');
+    const view = await renderWithI18n(<XScienceModelsSettingsContent />, 'zh-CN');
     view.unmount();
     await act(async () => pending.reject(new Error('disposed read failed')));
     expect(mocks.error).not.toHaveBeenCalled();
   });
 
   it('uses the same localized provider label in the catalogue and editor', async () => {
-    await renderWithI18n(<SynonBiomedModelsSettingsContent />, 'zh-CN');
-    const profile = await screen.findByTestId('synon-biomed-model-profile-first');
+    await renderWithI18n(<XScienceModelsSettingsContent />, 'zh-CN');
+    const profile = await screen.findByTestId('x-science-model-profile-first');
     expect(within(profile).getByText('自定义 / OpenAI 兼容')).toBeInTheDocument();
     expect(within(profile).queryByText('custom')).not.toBeInTheDocument();
   });
 
   it('presents the existing provider label in English without changing its identity', async () => {
-    await renderWithI18n(<SynonBiomedModelsSettingsContent />, 'en-US');
-    const profile = await screen.findByTestId('synon-biomed-model-profile-first');
+    await renderWithI18n(<XScienceModelsSettingsContent />, 'en-US');
+    const profile = await screen.findByTestId('x-science-model-profile-first');
     expect(within(profile).getByText('Custom / OpenAI-compatible')).toBeInTheDocument();
     expect(profile).toHaveTextContent('model-first');
     expect(mocks.save).not.toHaveBeenCalled();
@@ -245,14 +245,14 @@ describe('model profile read and editor ownership', () => {
       ...freshSnapshot(),
       profiles: [{ ...snapshot.profiles[0], provider: 'vendor-next' }],
     });
-    await renderWithI18n(<SynonBiomedModelsSettingsContent />, 'en-US');
-    const profile = await screen.findByTestId('synon-biomed-model-profile-first');
+    await renderWithI18n(<XScienceModelsSettingsContent />, 'en-US');
+    const profile = await screen.findByTestId('x-science-model-profile-first');
     expect(within(profile).getByText('vendor-next')).toBeInTheDocument();
     expect(within(profile).queryByText('Custom / OpenAI-compatible')).not.toBeInTheDocument();
   });
 
   it('changes language without refetching metadata or erasing the current draft', async () => {
-    const view = await renderWithI18n(<SynonBiomedModelsSettingsContent />, 'zh-CN');
+    const view = await renderWithI18n(<XScienceModelsSettingsContent />, 'zh-CN');
     await screen.findByText('First model');
     fireEvent.click(screen.getByRole('button', { name: '新增模型配置' }));
     fireEvent.change(screen.getByLabelText('配置名称'), { target: { value: 'Preserved draft' } });
@@ -264,7 +264,7 @@ describe('model profile read and editor ownership', () => {
   it('preserves an open draft when a completed action refreshes provider templates', async () => {
     const action = deferred<unknown>();
     mocks.activate.mockReturnValueOnce(action.promise);
-    await renderWithI18n(<SynonBiomedModelsSettingsContent />, 'zh-CN');
+    await renderWithI18n(<XScienceModelsSettingsContent />, 'zh-CN');
     await screen.findByText('First model');
     fireEvent.click(screen.getByRole('button', { name: '将 Second model 设为当前模型' }));
     fireEvent.click(screen.getByRole('button', { name: '新增模型配置' }));
@@ -277,7 +277,7 @@ describe('model profile read and editor ownership', () => {
   it('does not close a newer editor when the cancelled older save completes', async () => {
     const saving = deferred<unknown>();
     mocks.save.mockReturnValueOnce(saving.promise);
-    await renderWithI18n(<SynonBiomedModelsSettingsContent />, 'zh-CN');
+    await renderWithI18n(<XScienceModelsSettingsContent />, 'zh-CN');
     await screen.findByText('First model');
     fireEvent.click(screen.getByRole('button', { name: '新增模型配置' }));
     fireEvent.change(screen.getByLabelText('配置名称'), { target: { value: 'Submitted draft' } });
@@ -297,7 +297,7 @@ describe('model profile read and editor ownership', () => {
   it('does not report an older save failure as a failure of the new editor', async () => {
     const saving = deferred<unknown>();
     mocks.save.mockReturnValueOnce(saving.promise);
-    await renderWithI18n(<SynonBiomedModelsSettingsContent />, 'zh-CN');
+    await renderWithI18n(<XScienceModelsSettingsContent />, 'zh-CN');
     await screen.findByText('First model');
     fireEvent.click(screen.getByRole('button', { name: '新增模型配置' }));
     fireEvent.change(screen.getByLabelText('配置名称'), { target: { value: 'Submitted draft' } });
@@ -316,7 +316,7 @@ describe('model profile read and editor ownership', () => {
   it('does not notify a different route after a disposed editor save fails', async () => {
     const saving = deferred<unknown>();
     mocks.save.mockReturnValueOnce(saving.promise);
-    const view = await renderWithI18n(<SynonBiomedModelsSettingsContent />, 'zh-CN');
+    const view = await renderWithI18n(<XScienceModelsSettingsContent />, 'zh-CN');
     await screen.findByText('First model');
     fireEvent.click(screen.getByRole('button', { name: '新增模型配置' }));
     fireEvent.change(screen.getByLabelText('配置名称'), { target: { value: 'Submitted draft' } });

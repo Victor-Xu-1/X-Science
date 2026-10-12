@@ -24,7 +24,7 @@ else:
     import release_candidate_manifest as candidate
 
 
-SCHEMA = "synon.release-authorization-receipt.v1"
+SCHEMA = "x-science.release-authorization-receipt.v1"
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 SHA = re.compile(r"^[0-9a-f]{40,64}$")
 SEMVER = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
@@ -201,7 +201,7 @@ def verify(
     if any(payload.get(key_name) != value for key_name, value in expected.items()):
         raise ReceiptError("receipt_candidate_binding_mismatch")
     return {
-        "schema": "synon.release-authorization-verification.v1",
+        "schema": "x-science.release-authorization-verification.v1",
         "authorized": True,
         "receipt_id": payload["receipt_id"],
         "authorization_reference": payload["authorization_reference"],

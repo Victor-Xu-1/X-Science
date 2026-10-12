@@ -131,7 +131,7 @@ describe('joinTranscriptSegments', () => {
   });
 
   it('joins directly when only one side of the boundary is CJK', () => {
-    expect(joinTranscriptSegments(['我在用', 'SynonAI'])).toBe('我在用SynonAI');
+    expect(joinTranscriptSegments(['我在用', 'XScience'])).toBe('我在用XScience');
     expect(joinTranscriptSegments(['open', '设置页'])).toBe('open设置页');
   });
 

@@ -10,7 +10,7 @@ import { readLockedRecords } from './conda-lock-source.mjs';
 const generator = fileURLToPath(new URL('./generate-conda-runtime-lock.mjs', import.meta.url));
 
 test('locked metadata pruning preserves pins and rejects dependency or digest violations', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'synon-lock-prune-'));
+  const root = await mkdtemp(join(tmpdir(), 'x-science-lock-prune-'));
   try {
     const prefix = join(root, 'prefix');
     await mkdir(join(prefix, 'conda-meta'), { recursive: true });
@@ -32,6 +32,27 @@ test('locked metadata pruning preserves pins and rejects dependency or digest vi
     const records = await readLockedRecords(path, { ...options, exclude: 'viewer' });
     assert.deepEqual(records.map((item) => item.decoded.name), ['core']);
     assert.equal(records[0].decoded.sha256, 'a'.repeat(64));
+    const renamedArguments = [generator, '--output-dir', join(root, 'renamed'),
+      '--catalog', join(root, 'renamed-catalog.json'), '--name', 'renamed-runtime',
+      '--platform', 'linux-x86_64', '--locked-manifest', path, '--source-name', 'test'];
+    const renamed = spawnSync(process.execPath, renamedArguments, { encoding: 'utf8' });
+    assert.equal(renamed.status, 0, renamed.stderr);
+    const renamedCatalog = JSON.parse(await readFile(join(root, 'renamed-catalog.json')));
+    const renamedPath = join(root, renamedCatalog.runtimes[0].manifestPath);
+    const before = JSON.parse(await readFile(path));
+    const after = JSON.parse(await readFile(renamedPath));
+    assert.equal(after.name, 'renamed-runtime');
+    assert.notEqual(after.manifestSHA256, before.manifestSHA256);
+    assert.deepEqual(after.packages, before.packages);
+    assert.deepEqual(await readFile(join(root, renamedCatalog.runtimes[0].explicitPath)),
+      await readFile(join(root, catalog.runtimes[0].explicitPath)));
+    const repeatedRename = spawnSync(process.execPath, [...renamedArguments, '--check'], { encoding: 'utf8' });
+    assert.equal(repeatedRename.status, 0, repeatedRename.stderr);
+    const wrongSource = [...renamedArguments];
+    wrongSource[wrongSource.length - 1] = 'not-the-verified-source';
+    const rejectedRename = spawnSync(process.execPath, wrongSource, { encoding: 'utf8' });
+    assert.notEqual(rejectedRename.status, 0);
+    assert.match(rejectedRename.stderr, /identity or digest/u);
     await assert.rejects(readLockedRecords(path, { ...options, exclude: 'core' }), /required by viewer/);
     await assert.rejects(readLockedRecords(path, { ...options, exclude: 'missing' }), /not in the verified lock/);
     await assert.rejects(readLockedRecords(path, { ...options, platform: 'windows-x86_64' }), /identity/);

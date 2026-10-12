@@ -15,8 +15,8 @@ import (
 	"sync"
 	"time"
 
-	"synon-go/internal/networkpolicy"
-	"synon-go/internal/tools/securefetch"
+	"x-science/internal/networkpolicy"
+	"x-science/internal/tools/securefetch"
 )
 
 const (
@@ -427,7 +427,7 @@ func agentPublicScientificDownloadStageKey(workspaceDir string, request agentPub
 	if err != nil {
 		return "", err
 	}
-	digest := sha256.Sum256([]byte("synon-public-scientific-download-v1\x00" + workspaceRoot + "\x00" +
+	digest := sha256.Sum256([]byte("x-science-public-scientific-download-v1\x00" + workspaceRoot + "\x00" +
 		request.SourceURL + "\x00" + request.DownloadURL + "\x00" + request.Filename))
 	return hex.EncodeToString(digest[:]), nil
 }

@@ -8,9 +8,9 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/synonlink"
-	"synon-go/internal/tools/mcpstdio"
+	"x-science/internal/agentruntime"
+	"x-science/internal/xsciencelink"
+	"x-science/internal/tools/mcpstdio"
 	"time"
 )
 
@@ -160,15 +160,15 @@ func (s *Server) agentRuntimeConversationApprovalMode(sessionID, fallback string
 	return mode, nil
 }
 
-func (s *Server) queueAgentRuntimeApproval(toolName string, call agentruntime.ToolCall, input map[string]any, decision string, defaults synonlink.PolicyDefaults) map[string]any {
+func (s *Server) queueAgentRuntimeApproval(toolName string, call agentruntime.ToolCall, input map[string]any, decision string, defaults xsciencelink.PolicyDefaults) map[string]any {
 	return s.queueAgentRuntimeApprovalForSource(toolName, call, input, decision, defaults, "agent-runtime")
 }
 
-func (s *Server) queueAgentRuntimeApprovalForSource(toolName string, call agentruntime.ToolCall, input map[string]any, decision string, defaults synonlink.PolicyDefaults, source string) map[string]any {
+func (s *Server) queueAgentRuntimeApprovalForSource(toolName string, call agentruntime.ToolCall, input map[string]any, decision string, defaults xsciencelink.PolicyDefaults, source string) map[string]any {
 	return s.queueAgentRuntimeApprovalForSourceWithMetadata(toolName, call, input, decision, defaults, source, nil)
 }
 
-func (s *Server) queueAgentRuntimeApprovalForSourceWithMetadata(toolName string, call agentruntime.ToolCall, input map[string]any, decision string, defaults synonlink.PolicyDefaults, source string, metadata map[string]any) map[string]any {
+func (s *Server) queueAgentRuntimeApprovalForSourceWithMetadata(toolName string, call agentruntime.ToolCall, input map[string]any, decision string, defaults xsciencelink.PolicyDefaults, source string, metadata map[string]any) map[string]any {
 	source = strings.TrimSpace(source)
 	if source == "" {
 		source = "agent-runtime"
@@ -383,30 +383,30 @@ func agentRuntimeApprovalID(toolName string, call agentruntime.ToolCall, input m
 	return "ar-approval-" + hex.EncodeToString(sum[:])[:24]
 }
 
-func (s *Server) agentRuntimeRememberedApproval(toolName string, input map[string]any) (synonlink.RememberedApprovalDecision, bool) {
+func (s *Server) agentRuntimeRememberedApproval(toolName string, input map[string]any) (xsciencelink.RememberedApprovalDecision, bool) {
 	if s == nil || s.settingsStore == nil {
-		return synonlink.RememberedApprovalDecision{}, false
+		return xsciencelink.RememberedApprovalDecision{}, false
 	}
 	setting, ok, err := s.settingsStore.Get(approvalRememberedSettingKey)
 	if err != nil || !ok {
-		return synonlink.RememberedApprovalDecision{}, false
+		return xsciencelink.RememberedApprovalDecision{}, false
 	}
 	action := agentRuntimeRememberedApprovalAction(toolName, input)
 	decisions := rememberedApprovalDecisionsFromSetting(setting.Value)
-	decision, ok := decisions[synonlink.RememberedApprovalKey(agentRuntimeRememberedApprovalUser, agentRuntimeRememberedApprovalClient, action)]
+	decision, ok := decisions[xsciencelink.RememberedApprovalKey(agentRuntimeRememberedApprovalUser, agentRuntimeRememberedApprovalClient, action)]
 	return decision, ok
 }
 
-func (s *Server) rememberAgentRuntimeApproval(toolName string, input map[string]any, reason string, createdAt time.Time) (synonlink.RememberedApprovalDecision, error) {
+func (s *Server) rememberAgentRuntimeApproval(toolName string, input map[string]any, reason string, createdAt time.Time) (xsciencelink.RememberedApprovalDecision, error) {
 	if s == nil || s.settingsStore == nil {
-		return synonlink.RememberedApprovalDecision{}, errors.New("settings store is unavailable")
+		return xsciencelink.RememberedApprovalDecision{}, errors.New("settings store is unavailable")
 	}
 	if s.approvalDecisionMu != nil {
 		s.approvalDecisionMu.Lock()
 		defer s.approvalDecisionMu.Unlock()
 	}
 	action := agentRuntimeRememberedApprovalAction(toolName, input)
-	decision := synonlink.RememberedApprovalDecision{
+	decision := xsciencelink.RememberedApprovalDecision{
 		UserID:    agentRuntimeRememberedApprovalUser,
 		ClientID:  agentRuntimeRememberedApprovalClient,
 		Action:    action,
@@ -415,15 +415,15 @@ func (s *Server) rememberAgentRuntimeApproval(toolName string, input map[string]
 	}
 	setting, ok, err := s.settingsStore.Get(approvalRememberedSettingKey)
 	if err != nil {
-		return synonlink.RememberedApprovalDecision{}, err
+		return xsciencelink.RememberedApprovalDecision{}, err
 	}
-	decisions := map[string]synonlink.RememberedApprovalDecision{}
+	decisions := map[string]xsciencelink.RememberedApprovalDecision{}
 	if ok {
 		decisions = rememberedApprovalDecisionsFromSetting(setting.Value)
 	}
-	decisions[synonlink.RememberedApprovalKey(decision.UserID, decision.ClientID, decision.Action)] = decision
+	decisions[xsciencelink.RememberedApprovalKey(decision.UserID, decision.ClientID, decision.Action)] = decision
 	if _, err := s.settingsStore.Set(approvalRememberedSettingKey, rememberedApprovalDecisionsToSetting(decisions)); err != nil {
-		return synonlink.RememberedApprovalDecision{}, err
+		return xsciencelink.RememberedApprovalDecision{}, err
 	}
 	return decision, nil
 }
@@ -438,17 +438,17 @@ func agentRuntimeRememberedApprovalAction(toolName string, input map[string]any)
 	return "agent-runtime:" + normalizedTool + ":" + hex.EncodeToString(sum[:])[:24]
 }
 
-func (s *Server) agentRuntimeApprovalDefaults() synonlink.PolicyDefaults {
+func (s *Server) agentRuntimeApprovalDefaults() xsciencelink.PolicyDefaults {
 	if s == nil || s.settingsStore == nil {
-		return synonlink.PolicyDefaults{}
+		return xsciencelink.PolicyDefaults{}
 	}
 	setting, ok, err := s.settingsStore.Get(approvalDefaultsSettingKey)
 	if err != nil || !ok {
-		return synonlink.PolicyDefaults{}
+		return xsciencelink.PolicyDefaults{}
 	}
-	defaults, err := synonlink.NormalizePolicyDefaults(setting.Value)
+	defaults, err := xsciencelink.NormalizePolicyDefaults(setting.Value)
 	if err != nil {
-		return synonlink.PolicyDefaults{}
+		return xsciencelink.PolicyDefaults{}
 	}
 	return defaults
 }
@@ -463,7 +463,7 @@ func agentRuntimeToolNeedsApproval(toolName string) bool {
 		"file_delete", "file_move", "file_copy", "file_mkdir",
 		"shell_exec", "bash", "Shell", "powershell", manageEnvironmentsToolName, managePackagesToolName,
 		"python", "r", "repl",
-		"MCPTool", "synon_link",
+		"MCPTool", "x_science_link",
 		computeDetailsToolName, sshComputeToolName, scpComputeToolName, submitComputeJobToolName,
 		computeProviderToolName,
 		cancelComputeJobToolName, setComputeConcurrencyToolName,
@@ -493,7 +493,7 @@ func agentRuntimeSmartApprovalRisk(toolName string, input map[string]any) bool {
 	case "file_delete", "file_move", deleteHostFilesToolName,
 		requestHostAccessToolName, requestNetworkAccessToolName,
 		manageEnvironmentsToolName, managePackagesToolName,
-		"MCPTool", "synon_link",
+		"MCPTool", "x_science_link",
 		sshComputeToolName, scpComputeToolName, submitComputeJobToolName,
 		computeProviderToolName, cancelComputeJobToolName, setComputeConcurrencyToolName:
 		return true

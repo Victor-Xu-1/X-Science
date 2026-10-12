@@ -14,7 +14,7 @@ import (
 	"strings"
 )
 
-const managedExecutionSnapshotSchema = "synon.execution-pack-output-snapshot.v1"
+const managedExecutionSnapshotSchema = "x-science.execution-pack-output-snapshot.v1"
 
 type managedExecutionSnapshotManifest struct {
 	Schema      string            `json:"schema"`
@@ -55,7 +55,7 @@ func publishManagedExecutionOutputSnapshot(
 // use this implementation, including the atomic receipt verification path.
 func publishManagedExecutionOutputSnapshotLocked(ctx context.Context, workspaceRoot string, authority managedExecutionOutputAuthority) error {
 	outputRoot := filepath.Clean(strings.TrimSpace(authority.Root))
-	stableRoot := filepath.Join(workspaceRoot, ".synon-artifacts", ".managed")
+	stableRoot := filepath.Join(workspaceRoot, ".x-science-artifacts", ".managed")
 	if _, err := secureEnsureAgentWorkspaceDirectory(filepath.Dir(stableRoot), 0o700); err != nil {
 		return fmt.Errorf("prepare managed execution snapshot root: %w", err)
 	}
@@ -126,7 +126,7 @@ func publishManagedExecutionOutputSnapshotLocked(ctx context.Context, workspaceR
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(filepath.Join(stagingRoot, ".synon-output-snapshot.json"), encoded, 0o444); err != nil {
+	if err := os.WriteFile(filepath.Join(stagingRoot, ".x-science-output-snapshot.json"), encoded, 0o444); err != nil {
 		return fmt.Errorf("write managed execution snapshot manifest: %w", err)
 	}
 	if err := makeManagedExecutionSnapshotReadOnly(stagingRoot); err != nil {
@@ -153,7 +153,7 @@ func managedExecutionSnapshotManifestAt(root, packID, executionID string) (bool,
 	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
 		return false, errors.New("managed execution snapshot identity is unsafe")
 	}
-	manifestRaw, err := os.ReadFile(filepath.Join(root, ".synon-output-snapshot.json"))
+	manifestRaw, err := os.ReadFile(filepath.Join(root, ".x-science-output-snapshot.json"))
 	if err != nil {
 		return false, err
 	}
@@ -171,7 +171,7 @@ func managedExecutionSnapshotID(authority managedExecutionOutputAuthority) strin
 }
 
 func managedExecutionSnapshotDirectory(workspaceRoot string, authority managedExecutionOutputAuthority) string {
-	return filepath.Join(workspaceRoot, ".synon-artifacts", ".managed", managedExecutionSnapshotID(authority))
+	return filepath.Join(workspaceRoot, ".x-science-artifacts", ".managed", managedExecutionSnapshotID(authority))
 }
 
 func managedExecutionSnapshotRoot(workspaceRoot, outputRoot, packID, executionID string) (string, bool, error) {
@@ -189,11 +189,11 @@ func managedExecutionSnapshotRoot(workspaceRoot, outputRoot, packID, executionID
 	if err != nil {
 		return "", false, errors.New("managed execution output compatibility path is broken")
 	}
-	managedRoot := filepath.Join(workspaceRoot, ".synon-artifacts", ".managed")
+	managedRoot := filepath.Join(workspaceRoot, ".x-science-artifacts", ".managed")
 	if !managedExecutionPathWithinRoot(managedRoot, resolved) || resolved == managedRoot {
 		return "", false, errors.New("managed execution output compatibility path escaped the stable root")
 	}
-	manifestRaw, err := os.ReadFile(filepath.Join(resolved, ".synon-output-snapshot.json"))
+	manifestRaw, err := os.ReadFile(filepath.Join(resolved, ".x-science-output-snapshot.json"))
 	if err != nil {
 		return "", false, errors.New("managed execution output snapshot manifest is unavailable")
 	}

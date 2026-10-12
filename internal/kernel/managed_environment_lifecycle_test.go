@@ -72,7 +72,7 @@ func TestManagedExplicitForkRecoversPublishedReceipt(t *testing.T) {
 	script := `#!/bin/sh
 case "$*" in
   *"pip list"*) printf '%s\n' '[{"name":"pip","version":"24.0"},{"name":"rdkit","version":"2025.3.4"}]' ;;
-	*"SYNON_PYTHON_VERSION"*) printf '%s\n' 'SYNON_PYTHON_VERSION=3.13' ;;
+	*"X_SCIENCE_PYTHON_VERSION"*) printf '%s\n' 'X_SCIENCE_PYTHON_VERSION=3.13' ;;
   *) printf '%s\n' '{"ok":true,"version":[3,13,2]}' ;;
 esac
 `

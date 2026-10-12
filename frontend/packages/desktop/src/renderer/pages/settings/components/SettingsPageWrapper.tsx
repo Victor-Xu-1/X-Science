@@ -172,8 +172,8 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
               <button
                 type='button'
                 className='settings-mobile-account-button'
-                aria-label={t('settings.synonBiomedOpenAccount')}
-                title={t('settings.synonBiomedAccountMenu')}
+                aria-label={t('settings.xScienceOpenAccount')}
+                title={t('settings.xScienceAccountMenu')}
                 onClick={() => layout?.setSiderCollapsed?.(false)}
               >
                 <User theme='outline' size='17' />

@@ -19,7 +19,7 @@ func TestWebAccountSecurityRevokesOtherSessionsDurablyWithPerSessionCSRF(t *test
 	root := t.TempDir()
 	options := Options{
 		FileRoot: root,
-		SynonLinkAuth: SynonLinkAuthOptions{
+		XScienceLinkAuth: XScienceLinkAuthOptions{
 			Username: "operator", Password: "test-secret-password", UserID: "account-1",
 		},
 	}

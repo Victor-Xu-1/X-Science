@@ -20,15 +20,15 @@ import { rememberConversationRouteSnapshot } from '@/renderer/pages/conversation
 import { getConversationCreateErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
 import type { AcpModelInfo } from '../types';
 import {
-  toSynonBiomedMessageSessionOptions,
-  type SynonBiomedSessionOptions,
-} from '@/renderer/services/synonBiomedSessionOptions';
-import type { SynonBiomedSessionDefaults } from '@/renderer/services/synonBiomedSessionDefaults';
-import { buildSynonBiomedConversationTitle } from '@/renderer/services/synonBiomedConversationTitle';
-import { loadSynonBiomedProjects } from '@/renderer/services/synonBiomedGateway';
+  toXScienceMessageSessionOptions,
+  type XScienceSessionOptions,
+} from '@/renderer/services/xScienceSessionOptions';
+import type { XScienceSessionDefaults } from '@/renderer/services/xScienceSessionDefaults';
+import { buildXScienceConversationTitle } from '@/renderer/services/xScienceConversationTitle';
+import { loadXScienceProjects } from '@/renderer/services/xScienceGateway';
 import {
   toOnboardingAttachedArtifactReference,
-  uploadSynonBiomedProjectAttachment,
+  uploadXScienceProjectAttachment,
   type OnboardingArtifactCacheEntry,
   type OnboardingPendingUpload,
   type OnboardingUploadedArtifact,
@@ -71,8 +71,8 @@ export type GuidSendDeps = {
   availableMcpServers: IMcpServer[];
   selectedMcpServerIds: string[] | undefined;
   assistantDefaultMcpIds?: string[];
-  sessionOptions: SynonBiomedSessionOptions;
-  sessionDefaults: SynonBiomedSessionDefaults;
+  sessionOptions: XScienceSessionOptions;
+  sessionDefaults: XScienceSessionDefaults;
   sessionComputeProviders: string[];
   planModeRef?: { current: boolean };
 
@@ -95,7 +95,7 @@ export type GuidSendResult = {
   isButtonDisabled: boolean;
 };
 
-type SynonBiomedProjectWorkspace = {
+type XScienceProjectWorkspace = {
   workspace: string;
   projectId: string;
   projectName?: string;
@@ -109,14 +109,14 @@ const parseNonNegativeCount = (value: string | null): number | undefined => {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
 };
 
-export function parseSynonBiomedProjectWorkspace(workspace: string): SynonBiomedProjectWorkspace | null {
-  if (!workspace.startsWith('synonbiomed://project/')) {
+export function parseXScienceProjectWorkspace(workspace: string): XScienceProjectWorkspace | null {
+  if (!workspace.startsWith('x-science://project/')) {
     return null;
   }
 
   try {
     const url = new URL(workspace);
-    if (url.protocol !== 'synonbiomed:' || url.hostname !== 'project') {
+    if (url.protocol !== 'xscience:' || url.hostname !== 'project') {
       return null;
     }
     const projectId = decodeURIComponent(url.pathname.replace(/^\/+/, ''));
@@ -138,7 +138,7 @@ export function parseSynonBiomedProjectWorkspace(workspace: string): SynonBiomed
 
 function projectWorkspaceFromComposerArtifacts(
   contextItems: readonly ComposerContextItem[]
-): SynonBiomedProjectWorkspace | null {
+): XScienceProjectWorkspace | null {
   const projectIds = new Set(
     normalizeComposerContextItems(contextItems)
       .filter((item) => item.kind === 'artifact' && item.projectId)
@@ -150,17 +150,17 @@ function projectWorkspaceFromComposerArtifacts(
   const projectId = projectIds.values().next().value as string | undefined;
   return projectId
     ? {
-        workspace: `synonbiomed://project/${encodeURIComponent(projectId)}`,
+        workspace: `x-science://project/${encodeURIComponent(projectId)}`,
         projectId,
       }
     : null;
 }
 
 function resolveGuidProjectAuthority(
-  selectedProject: SynonBiomedProjectWorkspace | null,
-  artifactProject: SynonBiomedProjectWorkspace | null,
+  selectedProject: XScienceProjectWorkspace | null,
+  artifactProject: XScienceProjectWorkspace | null,
   hasCustomWorkspace: boolean
-): SynonBiomedProjectWorkspace | null {
+): XScienceProjectWorkspace | null {
   if (!artifactProject) return selectedProject;
   if (hasCustomWorkspace) {
     throw new Error('Project artifacts cannot be combined with a custom local workspace');
@@ -172,15 +172,15 @@ function resolveGuidProjectAuthority(
 }
 
 async function resolveGuidAttachmentProject(
-  selectedProject: SynonBiomedProjectWorkspace | null,
+  selectedProject: XScienceProjectWorkspace | null,
   hasCustomWorkspace: boolean
-): Promise<SynonBiomedProjectWorkspace> {
+): Promise<XScienceProjectWorkspace> {
   if (selectedProject) return selectedProject;
   if (hasCustomWorkspace) {
     throw new Error('Local attachments require a X-Science project workspace');
   }
 
-  const projects = await loadSynonBiomedProjects();
+  const projects = await loadXScienceProjects();
   const personalWorkspace = projects.find((project) => project.name.trim().toLowerCase() === 'personal workspace');
   const fallbackProject = personalWorkspace ?? projects[0];
   if (!fallbackProject) {
@@ -188,7 +188,7 @@ async function resolveGuidAttachmentProject(
   }
 
   return {
-    workspace: `synonbiomed://project/${encodeURIComponent(fallbackProject.projectId)}?name=${encodeURIComponent(fallbackProject.name)}`,
+    workspace: `x-science://project/${encodeURIComponent(fallbackProject.projectId)}?name=${encodeURIComponent(fallbackProject.name)}`,
     projectId: fallbackProject.projectId,
     projectName: fallbackProject.name,
     artifactCount: fallbackProject.artifactCount,
@@ -199,7 +199,7 @@ async function resolveGuidAttachmentProject(
 /**
  * Hook that manages the send logic for X-Science assistant conversations.
  */
-function normalizeSynonBiomedEffort(value?: string): SynonBiomedSessionDefaults['effort'] {
+function normalizeXScienceEffort(value?: string): XScienceSessionDefaults['effort'] {
   return value === 'low' || value === 'medium' || value === 'high' ? value : undefined;
 }
 
@@ -255,19 +255,19 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       return false;
     }
 
-    if (selectedAssistantBackend !== 'synonbiomed') {
-      Message.error(t('conversation.welcome.synonBiomedOnly'));
+    if (selectedAssistantBackend !== 'xscience') {
+      Message.error(t('conversation.welcome.xScienceOnly'));
       return false;
     }
 
     const messageInput = input.trim() || t('conversation.sendbox.contextOnlyPrompt');
     const capabilityPayload = buildComposerCapabilityPayload(contextItems);
 
-    const synonBiomedProjectWorkspace = parseSynonBiomedProjectWorkspace(dir);
-    const isCustomWorkspace = !!dir && !synonBiomedProjectWorkspace;
+    const xScienceProjectWorkspace = parseXScienceProjectWorkspace(dir);
+    const isCustomWorkspace = !!dir && !xScienceProjectWorkspace;
     const artifactProjectWorkspace = projectWorkspaceFromComposerArtifacts(contextItems);
     const selectedProjectWorkspace = resolveGuidProjectAuthority(
-      synonBiomedProjectWorkspace,
+      xScienceProjectWorkspace,
       artifactProjectWorkspace,
       isCustomWorkspace
     );
@@ -347,7 +347,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         // references and only one bounded upload is active at a time.
         if (!artifact) {
           // eslint-disable-next-line no-await-in-loop
-          artifact = await uploadSynonBiomedProjectAttachment(projectId, localFile.file, {
+          artifact = await uploadXScienceProjectAttachment(projectId, localFile.file, {
             pending: pending?.projectId === projectId ? pending : undefined,
             onInitialized: (next) => pendingAttachmentUploadsRef.current.set(localFile.file, next),
             onAbandoned: () => pendingAttachmentUploadsRef.current.delete(localFile.file),
@@ -359,7 +359,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       }
 
       const conversation = await ipcBridge.conversation.create.invoke({
-        name: buildSynonBiomedConversationTitle(messageInput),
+        name: buildXScienceConversationTitle(messageInput),
         assistant: {
           id: assistantConversationId,
           locale: localeKey,
@@ -369,7 +369,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
           workspace: finalWorkspace,
           ...(conversationProjectWorkspace
             ? {
-                backend: 'synonbiomed',
+                backend: 'xscience',
                 project_id: conversationProjectWorkspace.projectId,
                 ...(conversationProjectWorkspace.projectName
                   ? { project_name: conversationProjectWorkspace.projectName }
@@ -402,7 +402,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         updateWorkspaceTime(finalWorkspace);
       }
 
-      const effort = normalizeSynonBiomedEffort(selectedThoughtLevelValue) ?? sessionDefaults.effort;
+      const effort = normalizeXScienceEffort(selectedThoughtLevelValue) ?? sessionDefaults.effort;
       const combinedArtifactReferences = [
         ...capabilityPayload.artifactRefs,
         ...uploadedArtifacts.map(toOnboardingAttachedArtifactReference),
@@ -424,7 +424,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         inject_mcp_server_ids:
           capabilityPayload.injectMcpServerIds.length > 0 ? capabilityPayload.injectMcpServerIds : undefined,
         session_options: {
-          ...toSynonBiomedMessageSessionOptions(sessionOptions, planModeRef?.current ? { planMode: true } : {}),
+          ...toXScienceMessageSessionOptions(sessionOptions, planModeRef?.current ? { planMode: true } : {}),
           model: assistantOverrideModel,
           subagent_model: sessionDefaults.subagentModelId,
           effort,
@@ -452,7 +452,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         ]);
       }
       emitter.emit('chat.history.refresh');
-      if (conversationProjectWorkspace) emitter.emit('synonbiomed.projects.refresh');
+      if (conversationProjectWorkspace) emitter.emit('xscience.projects.refresh');
       uploadedAttachmentCacheRef.current = new WeakMap<File, OnboardingArtifactCacheEntry>();
       pendingAttachmentUploadsRef.current = new WeakMap<File, OnboardingPendingUpload>();
       return true;

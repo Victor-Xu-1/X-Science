@@ -15,9 +15,9 @@ const createConversationInvokeMock = vi.fn();
 const swrMutateMock = vi.fn();
 const prefetchConversationRouteMock = vi.fn();
 const sendInitialMessageInvokeMock = vi.fn();
-const { loadSynonBiomedProjectsMock, uploadSynonBiomedProjectAttachmentMock } = vi.hoisted(() => ({
-  loadSynonBiomedProjectsMock: vi.fn(),
-  uploadSynonBiomedProjectAttachmentMock: vi.fn(),
+const { loadXScienceProjectsMock, uploadXScienceProjectAttachmentMock } = vi.hoisted(() => ({
+  loadXScienceProjectsMock: vi.fn(),
+  uploadXScienceProjectAttachmentMock: vi.fn(),
 }));
 
 vi.mock('@/common', () => ({
@@ -31,8 +31,8 @@ vi.mock('@/common', () => ({
   },
 }));
 
-vi.mock('@/renderer/services/synonBiomedCompute', () => ({
-  setSynonBiomedSessionComputeProvider: vi.fn().mockResolvedValue(undefined),
+vi.mock('@/renderer/services/xScienceCompute', () => ({
+  setXScienceSessionComputeProvider: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('@/renderer/utils/file/messageFiles', () => ({
@@ -52,12 +52,12 @@ vi.mock('@/renderer/pages/conversation/conversationRoute', () => ({
   prefetchConversationRoute: (...args: unknown[]) => prefetchConversationRouteMock(...args),
 }));
 
-vi.mock('@/renderer/services/synonBiomedGateway', () => ({
-  loadSynonBiomedProjects: (...args: unknown[]) => loadSynonBiomedProjectsMock(...args),
+vi.mock('@/renderer/services/xScienceGateway', () => ({
+  loadXScienceProjects: (...args: unknown[]) => loadXScienceProjectsMock(...args),
 }));
 
 vi.mock('@/renderer/services/onboardingService', () => ({
-  uploadSynonBiomedProjectAttachment: (...args: unknown[]) => uploadSynonBiomedProjectAttachmentMock(...args),
+  uploadXScienceProjectAttachment: (...args: unknown[]) => uploadXScienceProjectAttachmentMock(...args),
   toOnboardingAttachedArtifactReference: (artifact: {
     artifactId: string;
     versionId: string;
@@ -104,10 +104,10 @@ const createDeps = (): GuidSendDeps => ({
   setDir: vi.fn(),
   setLoading: vi.fn(),
   loading: false,
-  selectedAssistantId: 'synonbiomed:aidd-expert',
-  selectedAssistantBackend: 'synonbiomed',
+  selectedAssistantId: 'xscience:aidd-expert',
+  selectedAssistantBackend: 'xscience',
   selectedMode: 'bypassPermissions',
-  selectedAcpModel: 'synonbiomed-default',
+  selectedAcpModel: 'xscience-default',
   currentAcpCachedModelInfo: null,
   guidDisabledBuiltinSkills: undefined,
   guidEnabledSkills: undefined,
@@ -143,15 +143,15 @@ describe('useGuidSend', () => {
     sendInitialMessageInvokeMock.mockResolvedValue({
       turn_id: 'first-turn',
       msg_id: 'first-message',
-      runtime: { backend: 'synonbiomed', status: 'running' },
+      runtime: { backend: 'xscience', status: 'running' },
     });
     prefetchConversationRouteMock.mockReset();
     prefetchConversationRouteMock.mockResolvedValue(undefined);
     swrMutateMock.mockReset();
     swrMutateMock.mockResolvedValue(undefined);
-    loadSynonBiomedProjectsMock.mockReset();
-    uploadSynonBiomedProjectAttachmentMock.mockReset();
-    uploadSynonBiomedProjectAttachmentMock.mockResolvedValue({
+    loadXScienceProjectsMock.mockReset();
+    uploadXScienceProjectAttachmentMock.mockReset();
+    uploadXScienceProjectAttachmentMock.mockResolvedValue({
       artifactId: 'artifact-1',
       versionId: 'version-1',
       filename: 'docking.csv',
@@ -176,7 +176,7 @@ describe('useGuidSend', () => {
 
     const params = {
       conversation_id: 'conv-1',
-      backend: 'synonbiomed',
+      backend: 'xscience',
       streamReady: true,
       setAiProcessing: vi.fn(),
       resetState: vi.fn(),
@@ -194,7 +194,7 @@ describe('useGuidSend', () => {
         loading_id: loadingId,
         input: 'hello',
         session_options: expect.objectContaining({
-          model: 'synonbiomed-default',
+          model: 'xscience-default',
           effort: 'high',
           verifier_mode: 'on',
           memory_mode: 'on',
@@ -213,7 +213,7 @@ describe('useGuidSend', () => {
   it('uploads staged browser files to the selected project and carries artifact references into the first message', async () => {
     const file = new File(['compound_id,score\nA,1.2\n'], 'docking.csv', { type: 'text/csv' });
     const deps = createDeps();
-    deps.dir = 'synonbiomed://project/proj-1?name=Personal%20Workspace';
+    deps.dir = 'x-science://project/proj-1?name=Personal%20Workspace';
     deps.localFiles = [{ id: 'local-1', file }];
 
     const { result } = renderHook(() => useGuidSend(deps));
@@ -221,7 +221,7 @@ describe('useGuidSend', () => {
       await result.current.handleSend();
     });
 
-    expect(uploadSynonBiomedProjectAttachmentMock).toHaveBeenCalledWith(
+    expect(uploadXScienceProjectAttachmentMock).toHaveBeenCalledWith(
       'proj-1',
       file,
       expect.objectContaining({
@@ -300,13 +300,13 @@ describe('useGuidSend', () => {
 
     expect(createConversationInvokeMock.mock.calls[0]?.[0].extra).toEqual(
       expect.objectContaining({
-        backend: 'synonbiomed',
+        backend: 'xscience',
         project_id: 'proj-source',
-        workspace: 'synonbiomed://project/proj-source',
+        workspace: 'x-science://project/proj-source',
         custom_workspace: false,
       })
     );
-    expect(loadSynonBiomedProjectsMock).not.toHaveBeenCalled();
+    expect(loadXScienceProjectsMock).not.toHaveBeenCalled();
   });
 
   it('uploads local files into the same project selected by project-file artifacts', async () => {
@@ -328,7 +328,7 @@ describe('useGuidSend', () => {
       await expect(result.current.handleSend()).resolves.toBe(true);
     });
 
-    expect(uploadSynonBiomedProjectAttachmentMock).toHaveBeenCalledWith('proj-docking', file, expect.any(Object));
+    expect(uploadXScienceProjectAttachmentMock).toHaveBeenCalledWith('proj-docking', file, expect.any(Object));
     expect(createConversationInvokeMock.mock.calls[0]?.[0].extra.project_id).toBe('proj-docking');
   });
 
@@ -348,7 +348,7 @@ describe('useGuidSend', () => {
 
   it('rejects project-file artifacts that conflict with the selected project workspace', async () => {
     const deps = createDeps();
-    deps.dir = 'synonbiomed://project/project-active?name=Active';
+    deps.dir = 'x-science://project/project-active?name=Active';
     deps.contextItems = [
       {
         kind: 'artifact',
@@ -395,7 +395,7 @@ describe('useGuidSend', () => {
 
   it('uses Personal Workspace as the attachment project when a new draft has no selected workspace', async () => {
     const file = new File(['target,score\nTP53,1.0\n'], 'screen.csv', { type: 'text/csv' });
-    loadSynonBiomedProjectsMock.mockResolvedValue([
+    loadXScienceProjectsMock.mockResolvedValue([
       {
         projectId: 'project-personal',
         name: 'Personal Workspace',
@@ -416,8 +416,8 @@ describe('useGuidSend', () => {
       await result.current.handleSend();
     });
 
-    expect(loadSynonBiomedProjectsMock).toHaveBeenCalledTimes(1);
-    expect(uploadSynonBiomedProjectAttachmentMock).toHaveBeenCalledWith(
+    expect(loadXScienceProjectsMock).toHaveBeenCalledTimes(1);
+    expect(uploadXScienceProjectAttachmentMock).toHaveBeenCalledWith(
       'project-personal',
       file,
       expect.objectContaining({
@@ -429,7 +429,7 @@ describe('useGuidSend', () => {
       expect.objectContaining({
         project_id: 'project-personal',
         project_name: 'Personal Workspace',
-        workspace: 'synonbiomed://project/project-personal?name=Personal%20Workspace',
+        workspace: 'x-science://project/project-personal?name=Personal%20Workspace',
       })
     );
   });
@@ -457,7 +457,7 @@ describe('useGuidSend', () => {
         verifier_mode: 'off',
         memory_mode: 'on',
         target_agent: 'AIDD_EXPERT',
-        model: 'synonbiomed-default',
+        model: 'xscience-default',
         subagent_model: 'delegate-model',
         effort: 'high',
       },
@@ -493,7 +493,7 @@ describe('useGuidSend', () => {
     expect(payload.type).toBeUndefined();
     expect('model' in payload).toBe(false);
     expect(payload.assistant?.conversation_overrides?.permission).toBe('bypassPermissions');
-    expect(payload.assistant?.conversation_overrides?.model).toBe('synonbiomed-default');
+    expect(payload.assistant?.conversation_overrides?.model).toBe('xscience-default');
     expect(payload.assistant?.conversation_overrides?.thought_level).toBe('high');
     expect(payload.extra.backend).toBeUndefined();
     expect(payload.extra.agent_name).toBeUndefined();
@@ -504,7 +504,7 @@ describe('useGuidSend', () => {
     expect(payload.extra.session_mode).toBeUndefined();
     expect(payload.extra.current_model_id).toBeUndefined();
     expect(payload.extra.preset_assistant_id).toBeUndefined();
-    expect(swrMutateMock).toHaveBeenCalledWith('guid.assistant.detail.synonbiomed:aidd-expert.zh-CN');
+    expect(swrMutateMock).toHaveBeenCalledWith('guid.assistant.detail.xscience:aidd-expert.zh-CN');
     expect(swrMutateMock).toHaveBeenCalledWith('assistants.list');
   });
 
@@ -654,7 +654,7 @@ describe('useGuidSend', () => {
     });
 
     const payload = createConversationInvokeMock.mock.calls[0][0];
-    expect(payload.assistant?.id).toBe('synonbiomed:aidd-expert');
+    expect(payload.assistant?.id).toBe('xscience:aidd-expert');
     expect(payload.extra.preset_assistant_id).toBeUndefined();
   });
 
@@ -670,14 +670,14 @@ describe('useGuidSend', () => {
     });
 
     const payload = createConversationInvokeMock.mock.calls[0][0];
-    expect(payload.assistant?.id).toBe('synonbiomed:aidd-expert');
+    expect(payload.assistant?.id).toBe('xscience:aidd-expert');
     expect(payload.assistant?.conversation_overrides?.skill_ids).toEqual(['pdf-reader']);
     expect(payload.assistant?.conversation_overrides?.disabled_builtin_skill_ids).toEqual(['todo-tracker']);
   });
 
   it('creates X-Science project conversations with backend project identity instead of a custom folder', async () => {
     const deps = createDeps();
-    deps.dir = 'synonbiomed://project/proj_stat6?name=STAT6&artifacts=23&conversations=2';
+    deps.dir = 'x-science://project/proj_stat6?name=STAT6&artifacts=23&conversations=2';
 
     const { result } = renderHook(() => useGuidSend(deps));
 
@@ -686,16 +686,16 @@ describe('useGuidSend', () => {
     });
 
     const payload = createConversationInvokeMock.mock.calls[0][0];
-    expect(payload.extra.workspace).toBe('synonbiomed://project/proj_stat6?name=STAT6&artifacts=23&conversations=2');
+    expect(payload.extra.workspace).toBe('x-science://project/proj_stat6?name=STAT6&artifacts=23&conversations=2');
     expect(payload.extra.custom_workspace).toBe(false);
-    expect(payload.extra.backend).toBe('synonbiomed');
+    expect(payload.extra.backend).toBe('xscience');
     expect(payload.extra.project_id).toBe('proj_stat6');
     expect(payload.extra.project_name).toBe('STAT6');
     expect(payload.extra.artifact_count).toBe(23);
     expect(payload.extra.conversation_count).toBe(2);
   });
 
-  it('rejects legacy non-Synon assistants instead of creating conversations', async () => {
+  it('rejects legacy non-XScience assistants instead of creating conversations', async () => {
     const deps = createDeps();
     deps.selectedAssistantId = 'bare:legacy-cli';
     deps.selectedAssistantBackend = 'legacy-cli';
@@ -711,7 +711,7 @@ describe('useGuidSend', () => {
     expect(createConversationInvokeMock).not.toHaveBeenCalled();
   });
 
-  it('does not create generated non-Synon assistant conversations', async () => {
+  it('does not create generated non-XScience assistant conversations', async () => {
     const deps = createDeps();
     deps.selectedAssistantId = 'bare:claude';
     deps.selectedAssistantBackend = 'claude';
@@ -728,7 +728,7 @@ describe('useGuidSend', () => {
   it('does not create a conversation without assistant identity', async () => {
     const deps = createDeps();
     deps.selectedAssistantId = null;
-    deps.selectedAssistantBackend = 'synonbiomed';
+    deps.selectedAssistantBackend = 'xscience';
 
     const { result } = renderHook(() => useGuidSend(deps));
 
@@ -762,7 +762,7 @@ describe('useGuidSend', () => {
     const first = new File(['first'], 'first.cdx', { type: 'application/octet-stream' });
     const second = new File(['second'], 'second.researchdata', { type: '' });
     let secondAttempt = 0;
-    uploadSynonBiomedProjectAttachmentMock.mockImplementation(
+    uploadXScienceProjectAttachmentMock.mockImplementation(
       async (
         projectId: string,
         file: File,
@@ -796,7 +796,7 @@ describe('useGuidSend', () => {
       }
     );
     const deps = createDeps();
-    deps.dir = 'synonbiomed://project/proj-1?name=Retry';
+    deps.dir = 'x-science://project/proj-1?name=Retry';
     deps.localFiles = [
       { id: 'local-first', file: first },
       { id: 'local-second', file: second },
@@ -810,8 +810,8 @@ describe('useGuidSend', () => {
       await expect(result.current.handleSend()).resolves.toBe(true);
     });
 
-    expect(uploadSynonBiomedProjectAttachmentMock.mock.calls.filter(([, file]) => file === first)).toHaveLength(1);
-    expect(uploadSynonBiomedProjectAttachmentMock.mock.calls.filter(([, file]) => file === second)).toHaveLength(2);
+    expect(uploadXScienceProjectAttachmentMock.mock.calls.filter(([, file]) => file === first)).toHaveLength(1);
+    expect(uploadXScienceProjectAttachmentMock.mock.calls.filter(([, file]) => file === second)).toHaveLength(2);
     expect(createConversationInvokeMock).toHaveBeenCalledTimes(1);
     expect(JSON.parse(sessionStorage.getItem('acp_initial_message_conv-1') || '{}').artifact_refs).toEqual([
       expect.objectContaining({ artifact_id: 'artifact-first', version_id: 'version-first' }),

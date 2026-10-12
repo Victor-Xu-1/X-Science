@@ -101,9 +101,9 @@ def probe(command: list[str], *, timeout_seconds: int = 30) -> dict[str, Any]:
                 "XDG_CACHE_HOME": str(root / "cache"),
                 "XDG_STATE_HOME": str(root / "state"),
                 "XDG_RUNTIME_DIR": runtime_directory,
-                "SYNON_HOME": str(root / "data"),
-                "SYNON_HOST": "127.0.0.1",
-                "SYNON_PORT": str(port),
+                "X_SCIENCE_HOME": str(root / "data"),
+                "X_SCIENCE_HOST": "127.0.0.1",
+                "X_SCIENCE_PORT": str(port),
                 "NO_PROXY": "127.0.0.1,localhost,::1",
                 "no_proxy": "127.0.0.1,localhost,::1",
             }
@@ -178,7 +178,7 @@ def probe(command: list[str], *, timeout_seconds: int = 30) -> dict[str, Any]:
             stdout_sink.finish()
             stderr_sink.finish()
         return {
-            "schema": "synon.governance.startup-smoke-result.v1",
+            "schema": "x-science.governance.startup-smoke-result.v1",
             "result": "PASS",
             "health_status": status,
             "health_body_bytes": len(body),

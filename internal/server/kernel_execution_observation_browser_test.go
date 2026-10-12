@@ -10,14 +10,14 @@ import (
 	"testing"
 	"time"
 
-	kernelruntime "synon-go/internal/kernel"
+	kernelruntime "x-science/internal/kernel"
 )
 
 // This opt-in check uses the production API, SQLite store, confined kernel and
 // renderer. Only authentication is supplied by the existing local API fixture;
 // it never attaches to an installed service, account or browser profile.
 func TestKernelExecutionObservationRealBrowser(t *testing.T) {
-	if os.Getenv("SYNON_TEST_EXECUTION_OBSERVATION_BROWSER") != "1" {
+	if os.Getenv("X_SCIENCE_TEST_EXECUTION_OBSERVATION_BROWSER") != "1" {
 		t.Skip("opt-in real browser check")
 	}
 	store, manager, app := newKernelAPITestRuntime(t)
@@ -42,7 +42,7 @@ func TestKernelExecutionObservationRealBrowser(t *testing.T) {
 	defer cancel()
 	command := exec.CommandContext(ctx, "node", "tests/web-e2e/computeExecutionObservation.browser.mjs")
 	command.Dir = frontend
-	command.Env = append(os.Environ(), "SYNON_OBSERVATION_TEST_API="+server.URL)
+	command.Env = append(os.Environ(), "X_SCIENCE_OBSERVATION_TEST_API="+server.URL)
 	output, err := command.CombinedOutput()
 	if err != nil {
 		t.Fatalf("real browser check: %v\n%s", err, output)

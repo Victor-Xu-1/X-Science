@@ -21,7 +21,7 @@ const (
 	ModeStrict  = "strict"
 	ModeRelaxed = "relaxed"
 
-	MCPX509StrictEnv = "SYNON_MCP_X509_STRICT"
+	MCPX509StrictEnv = "X_SCIENCE_MCP_X509_STRICT"
 
 	SourceOperatorEnv     = "operator-env"
 	SourceConfig          = "config"

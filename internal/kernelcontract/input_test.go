@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/sciencecapability"
-	"synon-go/internal/software"
-	"synon-go/internal/software/localconda"
+	"x-science/internal/sciencecapability"
+	"x-science/internal/software"
+	"x-science/internal/software/localconda"
 )
 
 func TestCanonicalInputAdmitsOnlyExecutableDurableCalls(t *testing.T) {
@@ -71,7 +71,7 @@ func TestCanonicalInputAdmitsOnlyExecutableDurableCalls(t *testing.T) {
 }
 
 func TestSoftwareRuntimeWorkingDirBindingIsExactOrFrameOwned(t *testing.T) {
-	root := filepath.Join(string(filepath.Separator), "tmp", "synon-frame-workspace")
+	root := filepath.Join(string(filepath.Separator), "tmp", "x-science-frame-workspace")
 	alias := filepath.Join(string(filepath.Separator), "tmp", "model-guess", "workspace", "frame-1")
 	if !SoftwareRuntimeWorkingDirBound(root, root, root) {
 		t.Fatal("exact authorized working directory was rejected")

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"unicode/utf8"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 // Private candidates use the existing durable runner journal, never a public

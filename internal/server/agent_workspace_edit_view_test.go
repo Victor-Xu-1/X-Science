@@ -3,7 +3,7 @@ package server
 import (
 	"context"
 	"strings"
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 	"testing"
 )
 

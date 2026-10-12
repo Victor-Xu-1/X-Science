@@ -1,10 +1,10 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import {
-  deleteSynonBiomedSkillDraft,
-  duplicateSynonBiomedSkill,
-  publishSynonBiomedSkillDraft,
-  saveSynonBiomedSkillDraftFile,
-} from '@/renderer/services/skills/synonBiomedSkillLibrary';
+  deleteXScienceSkillDraft,
+  duplicateXScienceSkill,
+  publishXScienceSkillDraft,
+  saveXScienceSkillDraftFile,
+} from '@/renderer/services/skills/xScienceSkillLibrary';
 import type { SkillDetailFiles } from './useSkillDetailFiles';
 import type { SkillDetailSession, SkillDetailTicket } from './useSkillDetailSession';
 
@@ -93,10 +93,10 @@ export function useSkillDetailMutations({
     setPending(action);
     setFailure(null);
     try {
-      if (action === 'save') await saveSynonBiomedSkillDraftFile(ticket.name, path, original, content);
-      else if (action === 'publish') await publishSynonBiomedSkillDraft(ticket.name, false);
-      else if (action === 'delete') await deleteSynonBiomedSkillDraft(ticket.name);
-      else await duplicateSynonBiomedSkill(ticket.name, normalized);
+      if (action === 'save') await saveXScienceSkillDraftFile(ticket.name, path, original, content);
+      else if (action === 'publish') await publishXScienceSkillDraft(ticket.name, false);
+      else if (action === 'delete') await deleteXScienceSkillDraft(ticket.name);
+      else await duplicateXScienceSkill(ticket.name, normalized);
       if (!session.isCurrent(ticket)) return;
       if (action === 'save') files.markSaved(path, content);
       const saved = { ticket, action };

@@ -16,7 +16,7 @@ import (
 	"github.com/google/uuid"
 	"gopkg.in/yaml.v3"
 
-	"synon-go/internal/skills"
+	"x-science/internal/skills"
 )
 
 var errCompatibilitySkillReadOnly = errors.New("skill is read-only")

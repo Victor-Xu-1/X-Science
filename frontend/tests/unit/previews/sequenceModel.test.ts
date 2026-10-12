@@ -4,15 +4,15 @@ import {
 } from '@/renderer/pages/conversation/Preview/components/viewers/sequenceModel';
 import { describe, expect, it } from 'vitest';
 
-const genBankFixture = `LOCUS       SYNON001                 120 bp    DNA     circular SYN 11-JUL-2026
+const genBankFixture = `LOCUS       XSCIENCE001                 120 bp    DNA     circular SYN 11-JUL-2026
 DEFINITION  Synthetic X-Science test plasmid.
-ACCESSION   SYNON001
-VERSION     SYNON001.1
+ACCESSION   XSCIENCE001
+VERSION     XSCIENCE001.1
 FEATURES             Location/Qualifiers
      source          1..120
                      /organism="synthetic construct"
      promoter        1..20
-                     /label="synon_promoter"
+                     /label="x_science_promoter"
      CDS             21..90
                      /gene="synA"
                      /label="synA CDS"
@@ -23,8 +23,8 @@ ORIGIN
 
 const sbolFixture = `<?xml version="1.0" encoding="UTF-8"?>
 <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:sbol="http://sbols.org/v2#">
-  <sbol:Sequence rdf:about="urn:synon:sequence:safe-xml">
-    <sbol:displayId>synon_safe_xml</sbol:displayId>
+  <sbol:Sequence rdf:about="urn:xscience:sequence:safe-xml">
+    <sbol:displayId>x_science_safe_xml</sbol:displayId>
     <sbol:elements>ATGCGTACGTTAGC</sbol:elements>
   </sbol:Sequence>
 </rdf:RDF>`;
@@ -45,20 +45,20 @@ describe('sequenceModel', () => {
   });
 
   it('parses a real GenBank record into the SeqViz document contract', async () => {
-    const parsed = await parseSequenceDocument(genBankFixture, 'synon-test.gbk');
+    const parsed = await parseSequenceDocument(genBankFixture, 'x-science-test.gbk');
 
-    expect(parsed.name).toContain('SYNON001');
+    expect(parsed.name).toContain('XSCIENCE001');
     expect(parsed.seq).toHaveLength(120);
     expect(parsed.annotations.length).toBeGreaterThanOrEqual(2);
     const annotationNames = parsed.annotations.map((annotation) => annotation.name);
-    expect(annotationNames).toContain('synon_promoter');
+    expect(annotationNames).toContain('x_science_promoter');
     expect(annotationNames).toContain('synA');
   });
 
   it('parses a real SBOL XML record through the patched transitive parser', async () => {
-    const parsed = await parseSequenceDocument(sbolFixture, 'synon-safe.sbol');
+    const parsed = await parseSequenceDocument(sbolFixture, 'x-science-safe.sbol');
 
-    expect(parsed.name).toBe('synon_safe_xml');
+    expect(parsed.name).toBe('x_science_safe_xml');
     expect(parsed.seq).toBe('ATGCGTACGTTAGC');
     expect(parsed.annotations).toEqual([]);
   });

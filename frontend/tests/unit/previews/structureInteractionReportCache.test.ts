@@ -9,7 +9,7 @@ const report = (label: string): StructureInteractionReportResponse => ({
   ok: true,
   status: 'completed',
   report: {
-    engine: 'Synon 2D Interaction Engine',
+    engine: 'XScience 2D Interaction Engine',
     engine_release: '1.0.0',
     ligand_label: label,
     pose_label: 'Pose 1',

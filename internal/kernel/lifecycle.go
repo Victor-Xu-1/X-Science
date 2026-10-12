@@ -14,9 +14,9 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"synon-go/internal/executionprep"
-	"synon-go/internal/networkpolicy"
-	"synon-go/internal/networktls"
+	"x-science/internal/executionprep"
+	"x-science/internal/networkpolicy"
+	"x-science/internal/networktls"
 )
 
 const (

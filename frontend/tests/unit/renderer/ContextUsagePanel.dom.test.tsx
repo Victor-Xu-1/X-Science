@@ -34,7 +34,7 @@ vi.mock('@icon-park/react', () => ({
   Close: () => <span aria-hidden='true'>×</span>,
 }));
 
-import ContextUsagePanel from '@/renderer/components/synonBiomed/runtime/ContextUsagePanel';
+import ContextUsagePanel from '@/renderer/components/xScience/runtime/ContextUsagePanel';
 
 const usage = (usedTokens = 20, sessionId = 'conversation-1') => ({
   status: 'available',
@@ -86,7 +86,7 @@ describe('ContextUsagePanel', () => {
       )
     );
     await renderWithI18n(<ContextUsagePanel conversationId='conversation-1' />, 'en-US');
-    fireEvent.click(screen.getByTestId('synon-biomed-context-usage-trigger'));
+    fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
     await screen.findByTestId('context-usage-percent');
     const disclosure = screen.getByTestId('context-window-history-toggle');
     expect(disclosure).toHaveAttribute('aria-expanded', 'false');
@@ -97,7 +97,7 @@ describe('ContextUsagePanel', () => {
     expect(description).toHaveTextContent('Provider minus local estimate: +1');
     fireEvent.click(disclosure);
     expect(await screen.findByTestId('context-window-peak')).toHaveTextContent('95 / 100 · 95.0%');
-    expect(screen.getByTestId('synon-biomed-context-usage-trigger')).toHaveTextContent(/^$/);
+    expect(screen.getByTestId('x-science-context-usage-trigger')).toHaveTextContent(/^$/);
     expect(screen.queryByTestId('context-usage-trigger-value')).not.toBeInTheDocument();
     expect(screen.getByTestId('context-usage-legend')).toHaveTextContent('≈ 4');
     fireEvent.click(screen.getByRole('button', { name: /^1 · earlier-model/ }));
@@ -143,14 +143,14 @@ describe('ContextUsagePanel', () => {
       )
     );
     await renderWithI18n(<ContextUsagePanel conversationId='conversation-1' active />, 'en-US');
-    fireEvent.click(screen.getByTestId('synon-biomed-context-usage-trigger'));
+    fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
     await screen.findByTestId('context-usage-percent');
     const summary = screen.getByRole('group', { name: 'Context usage' });
     expect(document.getElementById(summary.getAttribute('aria-describedby') ?? '')).toHaveTextContent(
       'Last confirmed provider window: 20'
     );
     expect(screen.getByTestId('context-usage-percent')).toHaveTextContent('25.0%');
-    expect(screen.getByTestId('synon-biomed-context-usage-trigger')).toHaveAttribute(
+    expect(screen.getByTestId('x-science-context-usage-trigger')).toHaveAttribute(
       'title',
       expect.stringContaining('≈ 25.0%')
     );
@@ -190,7 +190,7 @@ describe('ContextUsagePanel', () => {
       )
     );
     await renderWithI18n(<ContextUsagePanel conversationId='conversation-1' />, 'en-US');
-    fireEvent.click(screen.getByTestId('synon-biomed-context-usage-trigger'));
+    fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
     expect(await screen.findByTestId('context-usage-percent')).toHaveTextContent('5.3%');
     expect(screen.queryByTestId('context-usage-diagnostics')).not.toBeInTheDocument();
     expect(screen.queryByTestId('context-usage-policy')).not.toBeInTheDocument();
@@ -205,7 +205,7 @@ describe('ContextUsagePanel', () => {
 
   it('loads the real context contract without ACP props or message sampling', async () => {
     await renderWithI18n(<ContextUsagePanel conversationId='conversation-1' />, 'en-US');
-    const trigger = screen.getByTestId('synon-biomed-context-usage-trigger');
+    const trigger = screen.getByTestId('x-science-context-usage-trigger');
     expect(trigger.tagName).toBe('BUTTON');
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
     expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
@@ -235,9 +235,9 @@ describe('ContextUsagePanel', () => {
       defaultBudget.snapshot.limitSource = source;
       vi.mocked(fetch).mockImplementation(() => Promise.resolve(new Response(JSON.stringify(defaultBudget))));
       await renderWithI18n(<ContextUsagePanel conversationId='conversation-1' />, 'en-US');
-      fireEvent.click(screen.getByTestId('synon-biomed-context-usage-trigger'));
+      fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
       expect(await screen.findByTestId('context-usage-percent')).toHaveTextContent('5.3%');
-      const trigger = screen.getByTestId('synon-biomed-context-usage-trigger');
+      const trigger = screen.getByTestId('x-science-context-usage-trigger');
       expect(trigger).toHaveTextContent(/^$/);
       expect(screen.queryByTestId('context-usage-trigger-value')).not.toBeInTheDocument();
       const ring = trigger.querySelectorAll('circle')[1];
@@ -259,7 +259,7 @@ describe('ContextUsagePanel', () => {
     profile.snapshot.limitSource = 'model_profile';
     vi.mocked(fetch).mockImplementation(() => Promise.resolve(new Response(JSON.stringify(profile))));
     await renderWithI18n(<ContextUsagePanel conversationId='conversation-1' />, 'en-US');
-    const trigger = screen.getByTestId('synon-biomed-context-usage-trigger');
+    const trigger = screen.getByTestId('x-science-context-usage-trigger');
     fireEvent.click(trigger);
     expect(await screen.findByTestId('context-usage-percent')).toHaveTextContent('50.0%');
     const ring = trigger.querySelectorAll('circle')[1];
@@ -277,7 +277,7 @@ describe('ContextUsagePanel', () => {
     unnamedModel.snapshot.model = '';
     vi.mocked(fetch).mockImplementation(() => Promise.resolve(new Response(JSON.stringify(unnamedModel))));
     await renderWithI18n(<ContextUsagePanel conversationId='conversation-1' />, 'en-US');
-    fireEvent.click(screen.getByTestId('synon-biomed-context-usage-trigger'));
+    fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
     const summary = await screen.findByRole('group');
     const description = document.getElementById(summary.getAttribute('aria-describedby') ?? '');
     expect(description).toHaveTextContent(/1\/1\/2026/);
@@ -293,7 +293,7 @@ describe('ContextUsagePanel', () => {
     });
     vi.mocked(fetch).mockImplementation(() => Promise.resolve(new Response(JSON.stringify(zero))));
     await renderWithI18n(<ContextUsagePanel conversationId='conversation-1' />, 'zh-CN');
-    fireEvent.click(screen.getByTestId('synon-biomed-context-usage-trigger'));
+    fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
     expect(await screen.findByTestId('context-usage-percent')).toHaveTextContent('0.0%');
     expect(screen.queryByTestId('context-usage-loading')).not.toBeInTheDocument();
     expect(screen.getByTestId('context-usage-legend')).toHaveTextContent('≈ 0');
@@ -307,7 +307,7 @@ describe('ContextUsagePanel', () => {
     pending.snapshot.outputTokens = 0;
     vi.mocked(fetch).mockImplementation(() => Promise.resolve(new Response(JSON.stringify(pending))));
     await renderWithI18n(<ContextUsagePanel conversationId='conversation-1' />, 'en-US');
-    fireEvent.click(screen.getByTestId('synon-biomed-context-usage-trigger'));
+    fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
     const summary = await screen.findByRole('group');
     expect(document.getElementById(summary.getAttribute('aria-describedby') ?? '')).toHaveTextContent(
       'response usage is not yet available'
@@ -322,7 +322,7 @@ describe('ContextUsagePanel', () => {
     failed.snapshot.outputTokens = 0;
     vi.mocked(fetch).mockImplementation(() => Promise.resolve(new Response(JSON.stringify(failed))));
     await renderWithI18n(<ContextUsagePanel conversationId='conversation-1' />, 'en-US');
-    fireEvent.click(screen.getByTestId('synon-biomed-context-usage-trigger'));
+    fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
     const summary = await screen.findByRole('group');
     expect(document.getElementById(summary.getAttribute('aria-describedby') ?? '')).toHaveTextContent(
       'last request failed'
@@ -333,7 +333,7 @@ describe('ContextUsagePanel', () => {
   it('shows missing records explicitly and allows retry', async () => {
     vi.mocked(fetch).mockImplementation(() => Promise.resolve(new Response(JSON.stringify({ status: 'unavailable' }))));
     await renderWithI18n(<ContextUsagePanel conversationId='conversation-1' />, 'en-US');
-    fireEvent.click(screen.getByTestId('synon-biomed-context-usage-trigger'));
+    fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
     expect(await screen.findByText(/No saved context record yet/)).toBeInTheDocument();
     expect(screen.queryByTestId('context-usage-loading')).not.toBeInTheDocument();
     vi.mocked(fetch).mockImplementation(() => Promise.resolve(new Response(JSON.stringify(usage(30)))));
@@ -344,7 +344,7 @@ describe('ContextUsagePanel', () => {
   it('shows failures without silently substituting old usage', async () => {
     vi.mocked(fetch).mockImplementation(() => Promise.resolve(new Response('{}', { status: 503 })));
     await renderWithI18n(<ContextUsagePanel conversationId='conversation-1' />, 'en-US');
-    fireEvent.click(screen.getByTestId('synon-biomed-context-usage-trigger'));
+    fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
     expect(await screen.findByText(/Could not load context usage/)).toBeInTheDocument();
     expect(screen.queryByTestId('context-usage-percent')).not.toBeInTheDocument();
   });
@@ -354,7 +354,7 @@ describe('ContextUsagePanel', () => {
     vi.mocked(fetch).mockImplementation(() => new Promise(() => {}));
     await renderWithI18n(<ContextUsagePanel conversationId='conversation-1' />, 'en-US');
     vi.useFakeTimers();
-    fireEvent.click(screen.getByTestId('synon-biomed-context-usage-trigger'));
+    fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
     expect(screen.getByTestId('context-usage-loading')).toBeInTheDocument();
     await act(async () => {
       await vi.advanceTimersByTimeAsync(8000);
@@ -375,12 +375,12 @@ describe('ContextUsagePanel', () => {
 
   it('polls live usage without overlapping requests and cancels on unmount', async () => {
     const rendered = await renderWithI18n(<ContextUsagePanel conversationId='conversation-1' active />, 'en-US');
-    fireEvent.click(screen.getByTestId('synon-biomed-context-usage-trigger'));
+    fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
     await screen.findByTestId('context-usage-percent');
     vi.useFakeTimers();
     // Reopening creates a fresh polling timer under the controlled clock.
     fireEvent.click(screen.getByTestId('context-usage-close'));
-    fireEvent.click(screen.getByTestId('synon-biomed-context-usage-trigger'));
+    fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
@@ -402,7 +402,7 @@ describe('ContextUsagePanel', () => {
     const pending: Array<(response: Response) => void> = [];
     vi.mocked(fetch).mockImplementation(() => new Promise((resolve) => pending.push(resolve)));
     const rendered = await renderWithI18n(<ContextUsagePanel conversationId='conversation-1' />, 'en-US');
-    fireEvent.click(screen.getByTestId('synon-biomed-context-usage-trigger'));
+    fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
     rendered.rerender(<ContextUsagePanel conversationId='conversation-2' />);
     await act(async () => {
       for (const resolve of pending.slice(0, -1)) resolve(new Response(JSON.stringify(usage(99))));
@@ -440,18 +440,18 @@ describe('ContextUsagePanel', () => {
       Promise.resolve(new Response(JSON.stringify(record), { status: failed ? 503 : 200 }))
     );
     await renderWithI18n(<ContextUsagePanel conversationId='conversation-1' active />, 'en-US');
-    fireEvent.click(screen.getByTestId('synon-biomed-context-usage-trigger'));
+    fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
     await waitFor(() => expect(screen.getByTestId('context-usage-percent')).toHaveTextContent('28.0%'));
     expect(screen.getByTestId('context-usage-phase')).toHaveTextContent('Generating');
     const summary = screen.getByRole('group', { name: 'Context usage' });
     expect(document.getElementById(summary.getAttribute('aria-describedby') ?? '')).toHaveTextContent('80%');
-    expect(screen.getByTestId('synon-biomed-context-usage-trigger')).toHaveAttribute(
+    expect(screen.getByTestId('x-science-context-usage-trigger')).toHaveAttribute(
       'title',
       expect.stringContaining('≈ 28.0%')
     );
     vi.useFakeTimers();
     fireEvent.click(screen.getByTestId('context-usage-close'));
-    fireEvent.click(screen.getByTestId('synon-biomed-context-usage-trigger'));
+    fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
@@ -474,7 +474,7 @@ describe('ContextUsagePanel', () => {
   it('stops bounded network retries and resumes on a real online event, but does not retry authorization errors', async () => {
     vi.mocked(fetch).mockImplementation(() => Promise.resolve(new Response('{}', { status: 401 })));
     await renderWithI18n(<ContextUsagePanel conversationId='conversation-1' active />, 'en-US');
-    fireEvent.click(screen.getByTestId('synon-biomed-context-usage-trigger'));
+    fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
     await screen.findByText(/Could not load context usage/);
     vi.useFakeTimers();
     const before = vi.mocked(fetch).mock.calls.length;

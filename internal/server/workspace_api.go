@@ -13,12 +13,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/compat/contracts"
-	secretstore "synon-go/internal/persistence/secrets"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/providers"
+	"x-science/internal/agentruntime"
+	"x-science/internal/compat/contracts"
+	secretstore "x-science/internal/persistence/secrets"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/providers"
 )
 
 const workspaceRequestLimit = 1024 * 1024

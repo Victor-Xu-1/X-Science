@@ -9,15 +9,15 @@ import (
 	"sort"
 	"strings"
 
-	eventjournal "synon-go/internal/persistence/journal"
-	sessionstore "synon-go/internal/persistence/sessions"
-	"synon-go/internal/skills"
+	eventjournal "x-science/internal/persistence/journal"
+	sessionstore "x-science/internal/persistence/sessions"
+	"x-science/internal/skills"
 )
 
 const (
-	sessionRunnerReviewPolicySchema         = "synon.runner_review_policy.v3"
-	previousSessionRunnerReviewPolicySchema = "synon.runner_review_policy.v2"
-	legacySessionRunnerReviewPolicySchema   = "synon.runner_review_policy.v1"
+	sessionRunnerReviewPolicySchema         = "x-science.runner_review_policy.v3"
+	previousSessionRunnerReviewPolicySchema = "x-science.runner_review_policy.v2"
+	legacySessionRunnerReviewPolicySchema   = "x-science.runner_review_policy.v1"
 )
 
 type sessionRunnerResolvedReviewPolicy struct {

@@ -152,11 +152,11 @@ func loadLiveLSPConfigs(root string) (map[string]liveLSPConfig, error) {
 }
 
 func loadLiveLSPConfigsWithSource(root string) (map[string]liveLSPConfig, string, bool, error) {
-	if raw := strings.TrimSpace(os.Getenv("SYNON_LSP_CONFIG_JSON")); raw != "" {
-		configs, err := parseLiveLSPConfig([]byte(raw), "SYNON_LSP_CONFIG_JSON")
-		return configs, "SYNON_LSP_CONFIG_JSON", true, err
+	if raw := strings.TrimSpace(os.Getenv("X_SCIENCE_LSP_CONFIG_JSON")); raw != "" {
+		configs, err := parseLiveLSPConfig([]byte(raw), "X_SCIENCE_LSP_CONFIG_JSON")
+		return configs, "X_SCIENCE_LSP_CONFIG_JSON", true, err
 	}
-	path := strings.TrimSpace(os.Getenv("SYNON_LSP_CONFIG"))
+	path := strings.TrimSpace(os.Getenv("X_SCIENCE_LSP_CONFIG"))
 	if path == "" && root != "" {
 		path = filepath.Join(root, ".lsp.json")
 	}
@@ -449,7 +449,7 @@ func startLiveLSPSocketSession(ctx context.Context, root string, config liveLSPC
 	}
 	cmd.Env = os.Environ()
 	if strings.TrimSpace(config.SocketAddress) != "" {
-		cmd.Env = append(cmd.Env, "SYNON_LSP_SOCKET_ADDR="+strings.TrimSpace(config.SocketAddress))
+		cmd.Env = append(cmd.Env, "X_SCIENCE_LSP_SOCKET_ADDR="+strings.TrimSpace(config.SocketAddress))
 	}
 	for key, value := range config.Env {
 		cmd.Env = append(cmd.Env, key+"="+value)
@@ -923,7 +923,7 @@ func liveLSPTimeout(config liveLSPConfig) time.Duration {
 	if config.StartupTimeout > 0 {
 		return time.Duration(config.StartupTimeout) * time.Millisecond
 	}
-	if raw := strings.TrimSpace(os.Getenv("SYNON_LSP_TIMEOUT_SECONDS")); raw != "" {
+	if raw := strings.TrimSpace(os.Getenv("X_SCIENCE_LSP_TIMEOUT_SECONDS")); raw != "" {
 		seconds, err := strconv.Atoi(raw)
 		if err == nil && seconds > 0 {
 			if seconds > 600 {

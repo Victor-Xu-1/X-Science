@@ -3,7 +3,7 @@ package server
 import (
 	"strings"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 // enforceGovernedScientificExecutionAuthority removes the retired aggregate

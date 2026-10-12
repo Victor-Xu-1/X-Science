@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>X-Science Link 设置</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="page">
+      <section class="panel">
+        <h1>X-Science Link 设置</h1>
+        <p>普通用户不需要在这里填写。请回到 X-Science 页面点击“连接”。这里仅用于高级手动连接。</p>
+
+        <label>
+          服务器地址
+          <input id="serverUrl" placeholder="http://127.0.0.1:3456">
+        </label>
+        <label>
+          用户名
+          <input id="username" autocomplete="username" placeholder="Victor">
+        </label>
+        <label>
+          密码
+          <input id="password" type="password" autocomplete="current-password">
+        </label>
+
+        <div class="actions">
+          <button id="loginConnect">登录并连接</button>
+          <button id="disconnect" class="secondary">断开连接</button>
+        </div>
+        <div id="status" class="state">正在检查连接...</div>
+      </section>
+    </main>
+    <script src="options.js" type="module"></script>
+  </body>
+</html>

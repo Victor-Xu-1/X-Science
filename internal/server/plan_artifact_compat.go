@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func (s *Server) saveCompatibilityEditedPlan(frame workspace.CompatibilityFrame, contextData, editedPlan map[string]any) (string, error) {

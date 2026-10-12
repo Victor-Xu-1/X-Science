@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"synon-go/internal/sciencecapability"
+	"x-science/internal/sciencecapability"
 )
 
 // agentRuntimeControlledEvidenceDerivationPreflight prevents an ad hoc script

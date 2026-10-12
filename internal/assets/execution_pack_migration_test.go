@@ -14,7 +14,7 @@ func TestSkillsDoNotAdvertiseRetiredModelAuthoredSoftwareRuntime(t *testing.T) {
 		t.Fatal("locate repository root")
 	}
 	root := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
-	matches, err := filepath.Glob(filepath.Join(root, "skills", "synonbiomed", "*", "SKILL.md"))
+	matches, err := filepath.Glob(filepath.Join(root, "skills", "x-science", "*", "SKILL.md"))
 	if err != nil || len(matches) == 0 {
 		t.Fatalf("discover Skills: count=%d err=%v", len(matches), err)
 	}

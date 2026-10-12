@@ -7,8 +7,8 @@ export type EnvironmentFilter = 'all' | 'ready' | 'available' | 'active' | 'fail
 export const activeEnvironmentStates = new Set(['scheduled', 'preparing', 'retrying', 'uninstalling']);
 
 const categories: Record<string, EnvironmentCategory> = {
-  'synon-biomed-python': 'core',
-  'synon-biomed-r': 'core',
+  'x-science-python': 'core',
+  'x-science-r': 'core',
   'common-structure-toolkit': 'structure',
   'structure-interaction': 'structure',
   'biomolecular-electrostatics': 'structure',

@@ -8,7 +8,7 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	"synon-go/internal/skills"
+	"x-science/internal/skills"
 )
 
 func TestRuntimeSkillCandidateContextPublishesMetadataWithoutLoadingBodies(t *testing.T) {
@@ -105,7 +105,7 @@ func TestRuntimeSkillDiscoveryRanksDMPKForNaturalTDMTasks(t *testing.T) {
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(currentFile), "..", ".."))
 	app := New(Options{FileRoot: t.TempDir()})
-	app.skillCatalog = skills.Load([]string{filepath.Join(repositoryRoot, "skills", "synonbiomed")})
+	app.skillCatalog = skills.Load([]string{filepath.Join(repositoryRoot, "skills", "x-science")})
 
 	authority := map[string]struct{}{
 		"search_skills": {}, "skill": {}, "repl": {}, "python": {}, "web_search": {},
@@ -167,7 +167,7 @@ func TestRuntimeSkillCandidateContextRanksBundledStabilitySkillForNaturalTask(t 
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(currentFile), "..", ".."))
 	app := New(Options{FileRoot: t.TempDir()})
-	app.skillCatalog = skills.Load([]string{filepath.Join(repositoryRoot, "skills", "synonbiomed")})
+	app.skillCatalog = skills.Load([]string{filepath.Join(repositoryRoot, "skills", "x-science")})
 
 	prompt := "某 100 mg 即释片只有 1 个中试批的稳定性数据。25 ℃/60% RH 下 0、3、6、9、12 个月的总杂质分别为 0.10%、0.16%、0.23%、0.32%、0.45%，含量分别为 99.8%、99.6%、99.4%、99.1%、98.8%；40 ℃/75% RH 下 0、3、6 个月的总杂质为 0.10%、0.31%、0.72%，含量为 99.8%、99.1%、98.0%。总杂质限度为 1.0%，含量限度为 95.0%–105.0%。请评估这些数据，提出当前可支持的有效期结论和后续稳定性方案。"
 	ranked := app.skillCatalog.SearchRanked(prompt, 4)
@@ -205,7 +205,7 @@ func TestRuntimeSkillCandidateContextRanksClinicalDevelopmentForFirstInHumanTask
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(currentFile), "..", ".."))
 	app := New(Options{FileRoot: t.TempDir()})
-	app.skillCatalog = skills.Load([]string{filepath.Join(repositoryRoot, "skills", "synonbiomed")})
+	app.skillCatalog = skills.Load([]string{filepath.Join(repositoryRoot, "skills", "x-science")})
 
 	prompt := "为一个口服小分子激酶抑制剂制定首次人体试验的起始剂量和 SAD/MAD 剂量递增方案。已知小鼠、犬的 NOAEL 分别为 30 和 5 mg/kg/day，体外靶点 IC50 为 15 nM，血浆蛋白结合率 98%，预测人体清除率 8 L/h、分布容积 120 L、口服生物利用度 40%。请检索并下载可核验的公开法规和科学资料，完成 HED、MRSD、MABEL 与人体暴露模拟，比较不同起始剂量依据，给出剂量递增、停药/暂停标准、PK/PD 与安全监测方案，并形成面向临床开发团队的完整报告和可复用计算结果。"
 	ranked := app.skillCatalog.SearchRanked(prompt, 4)
@@ -226,7 +226,7 @@ func TestRuntimeSkillDiscoveryRanksDrugDiscoveryPipelineForStructureGuidedDockin
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(currentFile), "..", ".."))
 	app := New(Options{FileRoot: t.TempDir()})
-	app.skillCatalog = skills.Load([]string{filepath.Join(repositoryRoot, "skills", "synonbiomed")})
+	app.skillCatalog = skills.Load([]string{filepath.Join(repositoryRoot, "skills", "x-science")})
 
 	prompt := "请基于最新且可核验的人源靶点小分子共晶结构，设计 30 个结构多样的新候选，完成分子对接排序，并给出专业报告、来源数据表、计算结果、结构文件和可交互查看结果。"
 	ranked := app.skillCatalog.SearchRanked(prompt, 4)
@@ -251,7 +251,7 @@ func TestRuntimeSkillDiscoveryRanksProfessionalPocketGenerationBeforeGeneralDrug
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(currentFile), "..", ".."))
 	app := New(Options{FileRoot: t.TempDir()})
-	app.skillCatalog = skills.Load([]string{filepath.Join(repositoryRoot, "skills", "synonbiomed")})
+	app.skillCatalog = skills.Load([]string{filepath.Join(repositoryRoot, "skills", "x-science")})
 
 	authority := map[string]struct{}{
 		"search_skills": {}, "skill": {}, "ask_user": {}, "repl": {},
@@ -294,7 +294,7 @@ func TestRuntimeSkillDiscoveryKeepsProteinAntibodyAndRNADesignBilingualAndSepara
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(currentFile), "..", ".."))
 	app := New(Options{FileRoot: t.TempDir()})
-	app.skillCatalog = skills.Load([]string{filepath.Join(repositoryRoot, "skills", "synonbiomed")})
+	app.skillCatalog = skills.Load([]string{filepath.Join(repositoryRoot, "skills", "x-science")})
 	authority := map[string]struct{}{
 		"search_skills": {}, "skill": {}, "ask_user": {}, "repl": {},
 		"web_search": {}, "list_compute": {}, "manage_environments": {},
@@ -357,7 +357,7 @@ func TestRuntimeSkillDiscoveryRanksFormulationDevelopmentForChineseDosageFormTas
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(currentFile), "..", ".."))
 	app := New(Options{FileRoot: t.TempDir()})
-	app.skillCatalog = skills.Load([]string{filepath.Join(repositoryRoot, "skills", "synonbiomed")})
+	app.skillCatalog = skills.Load([]string{filepath.Join(repositoryRoot, "skills", "x-science")})
 
 	authority := map[string]struct{}{
 		"search_skills": {}, "skill": {}, "ask_user": {}, "repl": {},
@@ -394,7 +394,7 @@ func TestRuntimeSkillDiscoveryComposesLiteratureAndDomainGuidanceForEvidenceSynt
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(currentFile), "..", ".."))
 	app := New(Options{FileRoot: t.TempDir()})
-	app.skillCatalog = skills.Load([]string{filepath.Join(repositoryRoot, "skills", "synonbiomed")})
+	app.skillCatalog = skills.Load([]string{filepath.Join(repositoryRoot, "skills", "x-science")})
 	authority := map[string]struct{}{
 		"search_skills": {}, "skill": {}, "repl": {}, "python": {},
 		"manage_environments": {}, "manage_packages": {},
@@ -445,7 +445,7 @@ func TestRuntimeSkillDiscoveryTreatsDeepEvidenceAssessmentAsLiteratureWork(t *te
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(currentFile), "..", ".."))
 	app := New(Options{FileRoot: t.TempDir()})
-	app.skillCatalog = skills.Load([]string{filepath.Join(repositoryRoot, "skills", "synonbiomed")})
+	app.skillCatalog = skills.Load([]string{filepath.Join(repositoryRoot, "skills", "x-science")})
 	authority := map[string]struct{}{
 		"search_skills": {}, "skill": {}, "repl": {}, "python": {},
 		"web_search": {}, "web_fetch": {}, "web_research": {}, "fetch_article_fulltext": {},
@@ -469,7 +469,7 @@ func TestRuntimeSkillDiscoveryLoadsSelectedLiteratureForMultiSourceEvidenceCompa
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(currentFile), "..", ".."))
 	app := New(Options{FileRoot: t.TempDir()})
-	app.skillCatalog = skills.Load([]string{filepath.Join(repositoryRoot, "skills", "synonbiomed")})
+	app.skillCatalog = skills.Load([]string{filepath.Join(repositoryRoot, "skills", "x-science")})
 	authority := map[string]struct{}{
 		"search_skills": {}, "skill": {}, "repl": {}, "python": {},
 		"manage_environments": {}, "manage_packages": {},
@@ -502,7 +502,7 @@ func TestRuntimeSkillDiscoveryRanksProcessDevelopmentWithoutInventingScaleUpEvid
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(currentFile), "..", ".."))
 	app := New(Options{FileRoot: t.TempDir()})
-	app.skillCatalog = skills.Load([]string{filepath.Join(repositoryRoot, "skills", "synonbiomed")})
+	app.skillCatalog = skills.Load([]string{filepath.Join(repositoryRoot, "skills", "x-science")})
 
 	prompt := "请基于公开资料，为恩杂鲁胺的一条可放大合成路线制定工艺开发方案，比较关键成键步骤的替代路线，给出首轮实验矩阵、关键杂质风险和公斤级放大决策建议。"
 	ranked := app.skillCatalog.SearchRanked(prompt, 4)
@@ -618,7 +618,7 @@ func TestRuntimeImplementationSelectionFindsBundledPocket2MolSkill(t *testing.T)
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(currentFile), "..", ".."))
 	app := New(Options{FileRoot: t.TempDir()})
-	app.skillCatalog = skills.Load([]string{filepath.Join(repositoryRoot, "skills", "synonbiomed")})
+	app.skillCatalog = skills.Load([]string{filepath.Join(repositoryRoot, "skills", "x-science")})
 	authority := map[string]struct{}{
 		"skill": {}, "web_search": {}, "web_fetch": {}, "download_public_scientific_file": {},
 		"manage_environments": {}, "manage_packages": {}, "ask_user": {}, "bash": {}, "python": {},

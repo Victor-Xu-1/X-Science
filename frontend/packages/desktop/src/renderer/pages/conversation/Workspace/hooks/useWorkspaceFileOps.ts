@@ -26,12 +26,12 @@ import { useCallback } from 'react';
 import type { MessageApi, RenameModalState, DeleteModalState } from '../types';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 import {
-  isSynonBiomedArtifactPreviewEditable,
-  resolveSynonBiomedArtifactPreviewPlan,
-  SYNON_BIOMED_TEXT_ACCEPT_HEADER,
-} from '@/renderer/services/synonBiomedArtifactPreview';
-import { deleteSynonBiomedArtifact, renameSynonBiomedArtifact } from '@/renderer/services/synonBiomedWorkspaceApi';
-import { createSynonBiomedCompanionArtifactUrls } from '@/renderer/services/synonBiomedArtifactReferences';
+  isXScienceArtifactPreviewEditable,
+  resolveXScienceArtifactPreviewPlan,
+  X_SCIENCE_TEXT_ACCEPT_HEADER,
+} from '@/renderer/services/xScienceArtifactPreview';
+import { deleteXScienceArtifact, renameXScienceArtifact } from '@/renderer/services/xScienceWorkspaceApi';
+import { createXScienceCompanionArtifactUrls } from '@/renderer/services/xScienceArtifactReferences';
 
 type RemoteArtifactPreviewMetadata = PreviewMetadata & {
   artifactId?: string;
@@ -155,7 +155,7 @@ export function useWorkspaceFileOps(params: UseWorkspaceFileOpsOptions) {
     try {
       setDeleteModal((prev) => ({ ...prev, loading: true }));
       if (deleteModal.target.artifactId && conversation_id) {
-        await deleteSynonBiomedArtifact({
+        await deleteXScienceArtifact({
           conversationId: conversation_id,
           artifactId: deleteModal.target.artifactId,
         });
@@ -235,7 +235,7 @@ export function useWorkspaceFileOps(params: UseWorkspaceFileOpsOptions) {
       setRenameLoading(true);
       await waitWithTimeout<unknown>(
         target.artifactId && conversation_id
-          ? renameSynonBiomedArtifact({
+          ? renameXScienceArtifact({
               conversationId: conversation_id,
               artifactId: target.artifactId,
               filename: trimmedName,
@@ -327,7 +327,7 @@ export function useWorkspaceFileOps(params: UseWorkspaceFileOpsOptions) {
 
         const ext = nodeData.name.toLowerCase().split('.').pop() || '';
         if (nodeData.contentUrl) {
-          const plan = resolveSynonBiomedArtifactPreviewPlan({
+          const plan = resolveXScienceArtifactPreviewPlan({
             filename: nodeData.name,
             contentType: nodeData.contentType,
             previewKind: nodeData.previewKind,
@@ -336,7 +336,7 @@ export function useWorkspaceFileOps(params: UseWorkspaceFileOpsOptions) {
           let isLargeTextTruncated = false;
           if (plan.fetchText) {
             const response = await fetch(nodeData.contentUrl, {
-              headers: { accept: SYNON_BIOMED_TEXT_ACCEPT_HEADER },
+              headers: { accept: X_SCIENCE_TEXT_ACCEPT_HEADER },
             });
             if (!response.ok) {
               throw new Error(`Artifact request failed: ${response.status}`);
@@ -360,10 +360,10 @@ export function useWorkspaceFileOps(params: UseWorkspaceFileOpsOptions) {
             artifactId: nodeData.artifactId,
             versionId: nodeData.versionId,
             contentUrl: nodeData.contentUrl,
-            companionArtifactUrls: createSynonBiomedCompanionArtifactUrls(companionNodes),
+            companionArtifactUrls: createXScienceCompanionArtifactUrls(companionNodes),
             language: plan.language ?? ext,
             truncated: isLargeTextTruncated,
-            editable: isSynonBiomedArtifactPreviewEditable(plan) && !isLargeTextTruncated,
+            editable: isXScienceArtifactPreviewEditable(plan) && !isLargeTextTruncated,
           };
           openPreview(content, plan.type, metadata, { presentation: 'board' });
           return;

@@ -41,7 +41,7 @@ case "$mode" in
     cat >"$prefix/bin/Rscript" <<'RS'
 #!/bin/sh
 case "$*" in
-  *SYNON_IMPORT_WITNESS_OK*) printf 'SYNON_IMPORT_WITNESS_OK\n' ;;
+  *X_SCIENCE_IMPORT_WITNESS_OK*) printf 'X_SCIENCE_IMPORT_WITNESS_OK\n' ;;
   *) printf '{"ok":true}\n' ;;
 esac
 RS

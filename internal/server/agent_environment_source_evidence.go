@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"synon-go/internal/networkpolicy"
+	"x-science/internal/networkpolicy"
 )
 
 const maxManagedEnvironmentSourceReferenceBytes = 2 << 20

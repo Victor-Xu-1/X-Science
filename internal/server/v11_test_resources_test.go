@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"synon-go/internal/persistence/runtimekv"
+	"x-science/internal/persistence/runtimekv"
 )
 
 func TestV11FixtureClosesOwnedRuntimeAfterSubtest(t *testing.T) {

@@ -4,7 +4,7 @@ import type { TMessage } from '@/common/chat/chatLib';
 import { buildTurnPreview } from '@/renderer/pages/conversation/components/ConversationTitleMinimap/minimapUtils';
 import { loadConversationTurnIndex } from '@/renderer/pages/conversation/components/ConversationTitleMinimap/turnIndex';
 import { useTurnIndex } from '@/renderer/pages/conversation/components/ConversationTitleMinimap/useTurnIndex';
-import { selectSynonBiomedBranch } from '@/renderer/services/synonBiomedConversationBranches';
+import { selectXScienceBranch } from '@/renderer/services/xScienceConversationBranches';
 
 vi.mock('@/common/adapter/ipcBridge', () => ({
   conversation: { historyRebased: { on: vi.fn(() => vi.fn()) } },
@@ -43,7 +43,7 @@ describe('live turn index lifetime', () => {
     });
     await waitFor(() => expect(result.current.loading).toBe(false));
     load.mockResolvedValueOnce(index([message('new-branch')], 'br_12345678'));
-    act(() => selectSynonBiomedBranch('c', 'br_12345678'));
+    act(() => selectXScienceBranch('c', 'br_12345678'));
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.items.map((item) => item.messageId)).toEqual(['new-branch']);
     rerender({ messages: [message('new-branch'), message('new-turn')], branchId: 'br_12345678' });

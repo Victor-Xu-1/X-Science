@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
 const sheet = postcss.parse(
   readFileSync(
     new URL(
-      '../../../packages/desktop/src/renderer/components/synonBiomed/runtime/ContextUsagePanel.module.css',
+      '../../../packages/desktop/src/renderer/components/xScience/runtime/ContextUsagePanel.module.css',
       import.meta.url
     ),
     'utf8'

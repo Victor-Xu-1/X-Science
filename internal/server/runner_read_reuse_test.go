@@ -8,13 +8,13 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/agentruntime"
-	eventjournal "synon-go/internal/persistence/journal"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/toolcontract"
-	"synon-go/internal/tools/registry"
-	"synon-go/internal/tools/webfetch"
-	"synon-go/internal/tools/websearch"
+	"x-science/internal/agentruntime"
+	eventjournal "x-science/internal/persistence/journal"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/toolcontract"
+	"x-science/internal/tools/registry"
+	"x-science/internal/tools/webfetch"
+	"x-science/internal/tools/websearch"
 )
 
 func TestSessionRunnerReadReuseKeyIgnoresPresentationOnlyDescription(t *testing.T) {

@@ -47,16 +47,16 @@ func TestSchemaContractInstallsWithoutMigrationNumberAndSupportsRepository(t *te
 		t.Fatal(err)
 	}
 	statements := SchemaContractStatements()
-	if SchemaContractID != "synon.transcript.v23" || ArtifactAssociationContractID != "synon.transcript.artifacts.v24" ||
-		BranchLineageContractID != "synon.transcript.branches.v25" ||
-		HistoryClassificationContractID != "synon.transcript.history-classification.v27" ||
-		HistoryBackfillContractID != "synon.transcript.history-backfill.v29" ||
-		HistoryCutoverContractID != "synon.transcript.history-cutover.v30" ||
-		HistoryActivationContractID != "synon.transcript.history-activation.v31" ||
-		HistoryPayloadGenesisContractID != "synon.transcript.payload-genesis.v32" ||
-		HistoryOrdinaryCutoverContractID != "synon.transcript.history-ordinary-cutover.v33" ||
-		TypedHistoryBootstrapContractID != "synon.transcript.typed-history-bootstrap.v35" ||
-		WebReadModelContractID != "synon.transcript.web-read-model.v38" ||
+	if SchemaContractID != "x-science.transcript.v23" || ArtifactAssociationContractID != "x-science.transcript.artifacts.v24" ||
+		BranchLineageContractID != "x-science.transcript.branches.v25" ||
+		HistoryClassificationContractID != "x-science.transcript.history-classification.v27" ||
+		HistoryBackfillContractID != "x-science.transcript.history-backfill.v29" ||
+		HistoryCutoverContractID != "x-science.transcript.history-cutover.v30" ||
+		HistoryActivationContractID != "x-science.transcript.history-activation.v31" ||
+		HistoryPayloadGenesisContractID != "x-science.transcript.payload-genesis.v32" ||
+		HistoryOrdinaryCutoverContractID != "x-science.transcript.history-ordinary-cutover.v33" ||
+		TypedHistoryBootstrapContractID != "x-science.transcript.typed-history-bootstrap.v35" ||
+		WebReadModelContractID != "x-science.transcript.web-read-model.v38" ||
 		len(statements) != 128 || SchemaContractSHA256() != "ae46c62640d78f79166d3977a4bd87fdcd904fbded6f4b4ef61d8cc28a1695cb" {
 		t.Fatalf("contract id=%q statements=%d sha=%q", SchemaContractID, len(statements), SchemaContractSHA256())
 	}

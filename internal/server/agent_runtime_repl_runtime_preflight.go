@@ -38,7 +38,7 @@ func agentRuntimeREPLThirdPartyImportPreflight(publicName string, input map[stri
 	}
 	sort.Strings(thirdParty)
 	return map[string]any{
-		"ok": false, "schema": "synon.python-code-preflight.v1",
+		"ok": false, "schema": "x-science.python-code-preflight.v1",
 		"status": "code_preflight_required", "executed": false,
 		"message": "Third-party Python imports are unavailable in the stdlib-only repl control kernel: " +
 			strings.Join(thirdParty, ", ") + ".",

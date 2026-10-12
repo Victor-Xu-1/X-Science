@@ -62,8 +62,8 @@ function isAuthProviderCapability(value: unknown): value is AuthProviderCapabili
 function isSafeAuthStartPath(value: unknown): value is string {
   if (typeof value !== 'string' || !value.startsWith('/api/auth/') || value.includes('\\')) return false;
   try {
-    const parsed = new URL(value, 'http://synon.local');
-    return parsed.origin === 'http://synon.local' && parsed.pathname === value && !parsed.search && !parsed.hash;
+    const parsed = new URL(value, 'http://x-science.local');
+    return parsed.origin === 'http://x-science.local' && parsed.pathname === value && !parsed.search && !parsed.hash;
   } catch {
     return false;
   }

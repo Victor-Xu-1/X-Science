@@ -14,11 +14,11 @@ vi.mock('@/renderer/hooks/context/LayoutContext', () => ({
   useLayoutContext: () => ({ isMobile: true }),
 }));
 
-vi.mock('@/renderer/hooks/synonBiomed/runtime/usePresetAssistantInfo', () => ({
+vi.mock('@/renderer/hooks/xScience/runtime/usePresetAssistantInfo', () => ({
   usePresetAssistantInfo: () => ({ info: null }),
 }));
 
-vi.mock('@/renderer/utils/synonBiomed/runtime/runtimeLogo', () => ({
+vi.mock('@/renderer/utils/xScience/runtime/runtimeLogo', () => ({
   useAgentLogos: () => ({}),
 }));
 
@@ -48,7 +48,7 @@ describe('ConversationRow v1.1 session actions', () => {
       created_at: 1,
       modified_at: 1,
       status: 'finished',
-      extra: { backend: 'synonbiomed', project_id: 'project-a' },
+      extra: { backend: 'xscience', project_id: 'project-a' },
     };
 
     const props: ConversationRowProps = {
@@ -120,7 +120,7 @@ describe('ConversationRow v1.1 session actions', () => {
       modified_at: 1,
       status: 'running',
       extra: {
-        backend: 'synonbiomed',
+        backend: 'xscience',
         project_id: 'project-a',
         frame_status: 'running',
       },
@@ -238,7 +238,7 @@ describe('ConversationRow v1.1 session actions', () => {
       created_at: 1,
       modified_at: 1,
       status: 'running',
-      extra: { backend: 'synonbiomed', frame_status: 'running' },
+      extra: { backend: 'xscience', frame_status: 'running' },
     };
 
     expect(resolveConversationTaskIndicatorState(conversation, false)).toBe('running');
@@ -285,7 +285,7 @@ describe('ConversationRow v1.1 session actions', () => {
         turn_id: 'frame-waiting',
       },
       extra: {
-        backend: 'synonbiomed',
+        backend: 'xscience',
         frame_status: 'interrupted',
       },
     };
@@ -342,7 +342,7 @@ describe('ConversationRow v1.1 session actions', () => {
       created_at: 1,
       modified_at: 1,
       status: 'finished',
-      extra: { backend: 'synonbiomed' },
+      extra: { backend: 'xscience' },
     };
 
     await renderWithI18n(
@@ -398,7 +398,7 @@ describe('ConversationRow v1.1 session actions', () => {
         created_at: 1,
         modified_at: 1,
         status: 'finished',
-        extra: { backend: 'synonbiomed' },
+        extra: { backend: 'xscience' },
       };
       const onConversationPrefetch = vi.fn();
       await renderWithI18n(

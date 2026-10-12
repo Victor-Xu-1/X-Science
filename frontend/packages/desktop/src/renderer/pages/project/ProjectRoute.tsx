@@ -1,4 +1,4 @@
-import { loadSynonBiomedProjectBenches } from '@/renderer/services/synonBiomedGateway';
+import { loadXScienceProjectBenches } from '@/renderer/services/xScienceGateway';
 import { Button, Result, Spin } from '@arco-design/web-react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -20,7 +20,7 @@ const ProjectRoute: React.FC = () => {
 
     let active = true;
     setError(null);
-    void loadSynonBiomedProjectBenches(projectId)
+    void loadXScienceProjectBenches(projectId)
       .then((benches) => {
         if (!active) return;
         const target = resolveProjectNavigationTarget(projectId, benches);

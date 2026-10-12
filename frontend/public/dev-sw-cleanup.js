@@ -5,7 +5,7 @@
   });
   if (!hasViteClient || !('serviceWorker' in navigator)) return;
 
-  const reloadKey = 'synon-biomed:dev-service-worker-cleanup';
+  const reloadKey = 'x-science:dev-service-worker-cleanup';
   const wasControlled = navigator.serviceWorker.controller !== null;
 
   void Promise.all([
@@ -22,7 +22,7 @@
       ? caches
           .keys()
           .then((keys) =>
-            Promise.all(keys.filter((key) => key.startsWith('synon-ai-webui-')).map((key) => caches.delete(key)))
+            Promise.all(keys.filter((key) => key.startsWith('x-science-webui-')).map((key) => caches.delete(key)))
           )
       : Promise.resolve([]),
   ])

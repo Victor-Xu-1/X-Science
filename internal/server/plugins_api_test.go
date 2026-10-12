@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	pluginhost "synon-go/internal/plugins/host"
+	pluginhost "x-science/internal/plugins/host"
 )
 
-func TestPluginsAPIListsOnlyCompactSynonPlugin(t *testing.T) {
+func TestPluginsAPIListsOnlyCompactXSciencePlugin(t *testing.T) {
 	srv := New(Options{})
 	httpServer := httptest.NewServer(srv.Handler())
 	defer httpServer.Close()
@@ -44,11 +44,11 @@ func TestPluginsAPIListsOnlyCompactSynonPlugin(t *testing.T) {
 		t.Fatalf("plugins = %#v", body.Plugins)
 	}
 	plugin := body.Plugins[0]
-	if plugin.ID != "synon" || plugin.Version != "1.1.5" || plugin.Mount != "/api/plugins/synon" {
+	if plugin.ID != "xscience" || plugin.Version != "1.1.5" || plugin.Mount != "/api/plugins/xscience" {
 		t.Fatalf("plugin = %#v", plugin)
 	}
-	if !hasPluginModule(plugin.Modules, "capabilities", "/api/plugins/synon/capabilities") ||
-		!hasPluginModule(plugin.Modules, "link-download", "/api/plugins/synon/link/download") {
+	if !hasPluginModule(plugin.Modules, "capabilities", "/api/plugins/x-science/capabilities") ||
+		!hasPluginModule(plugin.Modules, "link-download", "/api/plugins/x-science/link/download") {
 		t.Fatalf("plugin modules = %#v", plugin.Modules)
 	}
 	raw, _ := json.Marshal(body)
@@ -60,12 +60,12 @@ func TestPluginsAPIListsOnlyCompactSynonPlugin(t *testing.T) {
 	}
 }
 
-func TestPluginsAPIProvidesSynonManifestAndRejectsUnknownPlugin(t *testing.T) {
+func TestPluginsAPIProvidesXScienceManifestAndRejectsUnknownPlugin(t *testing.T) {
 	srv := New(Options{})
 	httpServer := httptest.NewServer(srv.Handler())
 	defer httpServer.Close()
 
-	resp, err := http.Get(httpServer.URL + "/api/plugins/synon/manifest")
+	resp, err := http.Get(httpServer.URL + "/api/plugins/x-science/manifest")
 	if err != nil {
 		t.Fatalf("GET manifest error = %v", err)
 	}
@@ -77,11 +77,11 @@ func TestPluginsAPIProvidesSynonManifestAndRejectsUnknownPlugin(t *testing.T) {
 	if err := json.NewDecoder(resp.Body).Decode(&manifest); err != nil {
 		t.Fatalf("decode manifest: %v", err)
 	}
-	if manifest["id"] != "synon" || manifest["pluginFormat"] != "synon_agent_native" {
+	if manifest["id"] != "xscience" || manifest["pluginFormat"] != "x_science_agent_native" {
 		t.Fatalf("manifest = %#v", manifest)
 	}
 	serverValue, ok := manifest["server"].(map[string]any)
-	if !ok || serverValue["apiMount"] != "/api/plugins/synon" {
+	if !ok || serverValue["apiMount"] != "/api/plugins/xscience" {
 		t.Fatalf("manifest server = %#v", manifest["server"])
 	}
 
@@ -97,7 +97,7 @@ func TestPluginsAPIProvidesSynonManifestAndRejectsUnknownPlugin(t *testing.T) {
 
 func TestPluginsAPIListsExternalPluginManifests(t *testing.T) {
 	root := t.TempDir()
-	manifestDir := filepath.Join(root, "terminal-tools", ".synon-plugin")
+	manifestDir := filepath.Join(root, "terminal-tools", ".x-science-plugin")
 	if err := os.MkdirAll(manifestDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -145,11 +145,11 @@ func TestPluginsAPIListsExternalPluginManifests(t *testing.T) {
 	if len(body.Plugins) != 2 {
 		t.Fatalf("plugins = %#v", body.Plugins)
 	}
-	if body.Plugins[0].ID != "synon" || body.Plugins[1].ID != "terminal-tools" {
+	if body.Plugins[0].ID != "xscience" || body.Plugins[1].ID != "terminal-tools" {
 		t.Fatalf("plugins order = %#v", body.Plugins)
 	}
 	external := body.Plugins[1]
-	if external.PluginFormat != "synon_agent_external" || external.Mount != "/api/plugins/terminal-tools" {
+	if external.PluginFormat != "x_science_agent_external" || external.Mount != "/api/plugins/terminal-tools" {
 		t.Fatalf("external plugin = %#v", external)
 	}
 	if external.Server.APIMount != "/api/plugins/terminal-tools" {
@@ -168,7 +168,7 @@ func TestPluginsAPIListsExternalPluginManifests(t *testing.T) {
 	if err := json.NewDecoder(manifestResp.Body).Decode(&externalManifest); err != nil {
 		t.Fatalf("decode external manifest: %v", err)
 	}
-	if externalManifest["id"] != "terminal-tools" || externalManifest["pluginFormat"] != "synon_agent_external" {
+	if externalManifest["id"] != "terminal-tools" || externalManifest["pluginFormat"] != "x_science_agent_external" {
 		t.Fatalf("external manifest = %#v", externalManifest)
 	}
 }

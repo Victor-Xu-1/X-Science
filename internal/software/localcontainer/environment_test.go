@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	kernelruntime "synon-go/internal/kernel"
-	"synon-go/internal/processsupervisor"
-	"synon-go/internal/software"
+	kernelruntime "x-science/internal/kernel"
+	"x-science/internal/processsupervisor"
+	"x-science/internal/software"
 )
 
 const testImageID = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
@@ -25,7 +25,7 @@ type fakeHostEnvironmentManager struct {
 	created      int
 }
 
-func (m *fakeHostEnvironmentManager) ManagedPythonEnvironmentName() string { return "synon-python" }
+func (m *fakeHostEnvironmentManager) ManagedPythonEnvironmentName() string { return "x-science-python" }
 func (m *fakeHostEnvironmentManager) EnsureManagedPythonEnvironment(context.Context) error {
 	return nil
 }
@@ -34,7 +34,7 @@ func (m *fakeHostEnvironmentManager) InspectManagedEnvironment(_ context.Context
 	return environment, found, nil
 }
 func (m *fakeHostEnvironmentManager) CreateManagedEnvironment(_ context.Context, input kernelruntime.CreateManagedEnvironmentInput) (kernelruntime.ManagedEnvironment, error) {
-	if input.SourceEnvironment != "synon-python" || input.Language != "python" {
+	if input.SourceEnvironment != "x-science-python" || input.Language != "python" {
 		return kernelruntime.ManagedEnvironment{}, errors.New("invalid command host request")
 	}
 	m.created++
@@ -170,7 +170,7 @@ func TestDockerProgressSplitsCarriageReturnAndNewlineFrames(t *testing.T) {
 }
 
 func TestExecDockerRunnerUsesObservableActivityWatchdog(t *testing.T) {
-	switch os.Getenv("SYNON_DOCKER_RUNNER_HELPER") {
+	switch os.Getenv("X_SCIENCE_DOCKER_RUNNER_HELPER") {
 	case "stalled":
 		time.Sleep(10 * time.Second)
 		return
@@ -183,14 +183,14 @@ func TestExecDockerRunnerUsesObservableActivityWatchdog(t *testing.T) {
 	}
 	t.Setenv("GORACE", "atexit_sleep_ms=0")
 	runner := execDockerRunner{executable: os.Args[0], inactivityTimeout: 300 * time.Millisecond}
-	t.Setenv("SYNON_DOCKER_RUNNER_HELPER", "stalled")
+	t.Setenv("X_SCIENCE_DOCKER_RUNNER_HELPER", "stalled")
 	_, _, err := runner.Run(context.Background(), "-test.run=^TestExecDockerRunnerUsesObservableActivityWatchdog$")
 	var inactivity *processsupervisor.InactivityError
 	if !errors.As(err, &inactivity) {
 		t.Fatalf("stalled command error=%v", err)
 	}
 
-	t.Setenv("SYNON_DOCKER_RUNNER_HELPER", "streaming")
+	t.Setenv("X_SCIENCE_DOCKER_RUNNER_HELPER", "streaming")
 	var lines []string
 	_, _, err = runner.RunStreaming(
 		context.Background(), []string{"-test.run=^TestExecDockerRunnerUsesObservableActivityWatchdog$"},

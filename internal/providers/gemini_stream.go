@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"strings"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 type geminiStreamAccumulator struct {

@@ -139,7 +139,7 @@ describe('X-Science auth-session recovery', () => {
       }
       return new Response(JSON.stringify({ success: false }), {
         status: 401,
-        headers: { 'content-type': 'application/json', 'x-synon-auth-required': 'session' },
+        headers: { 'content-type': 'application/json', 'x-science-auth-required': 'session' },
       });
     });
     vi.stubGlobal('fetch', fetchMock);
@@ -174,7 +174,7 @@ describe('X-Science auth-session recovery', () => {
       fetch: vi
         .fn()
         .mockResolvedValueOnce(new Response(null, { status: 401 }))
-        .mockResolvedValueOnce(new Response(null, { status: 401, headers: { 'x-synon-auth-required': 'session' } })),
+        .mockResolvedValueOnce(new Response(null, { status: 401, headers: { 'x-science-auth-required': 'session' } })),
     };
     const uninstall = installAuthSessionFetchMonitor(expired, target);
 
@@ -395,7 +395,7 @@ describe('X-Science auth-session recovery', () => {
         expect(token).toBe(oldToken);
         return new Response(null, {
           status: 403,
-          headers: { 'x-synon-error-code': 'CSRF_INVALID' },
+          headers: { 'x-science-error-code': 'CSRF_INVALID' },
         });
       }
       expect(token).toBe(newToken);
@@ -433,7 +433,7 @@ describe('X-Science auth-session recovery', () => {
       const token = new Headers(init?.headers).get(CSRF_HEADER_NAME);
       if (path === '/api/forbidden') return new Response(null, { status: 403 });
       return token === oldToken
-        ? new Response(null, { status: 403, headers: { 'x-synon-error-code': 'CSRF_INVALID' } })
+        ? new Response(null, { status: 403, headers: { 'x-science-error-code': 'CSRF_INVALID' } })
         : new Response(null, { status: 204 });
     });
     const target = { fetch: originalFetch as typeof fetch };

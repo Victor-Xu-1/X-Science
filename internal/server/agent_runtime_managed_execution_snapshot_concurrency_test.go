@@ -125,7 +125,7 @@ func testManagedExecutionPublicationWait(t *testing.T, verifyOnly bool) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(final, ".synon-output-snapshot.json"), manifest, 0o444); err != nil {
+	if err := os.WriteFile(filepath.Join(final, ".x-science-output-snapshot.json"), manifest, 0o444); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.Symlink(final, output); err != nil {

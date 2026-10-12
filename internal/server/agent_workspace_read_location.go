@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	kernelruntime "synon-go/internal/kernel"
+	kernelruntime "x-science/internal/kernel"
 )
 
 // A display filename or API URL is not a computation path. Resolve the exact

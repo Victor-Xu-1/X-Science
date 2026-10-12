@@ -32,7 +32,7 @@ const item = {
   packages: [{ manager: 'pip', spec: 'vina==1.2.7' }],
 };
 const coreItem = {
-  id: 'synon-biomed-python',
+  id: 'x-science-python',
   kind: 'core' as const,
   required: true,
   estimatedInstallBytes: 0,
@@ -185,7 +185,7 @@ describe('scientific environment library', () => {
     );
     fireEvent.click(await screen.findByRole('button', { name: /^Retry · / }));
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirm download' }));
-    await waitFor(() => expect(mocks.retry).toHaveBeenCalledWith('synon-biomed-python'));
+    await waitFor(() => expect(mocks.retry).toHaveBeenCalledWith('x-science-python'));
     expect(mocks.save).not.toHaveBeenCalled();
   });
   it('polls observed preparation and stops polling after network failure', async () => {

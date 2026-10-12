@@ -1,10 +1,10 @@
-function Test-SynonReleaseEnvironmentKey {
+function Test-XScienceReleaseEnvironmentKey {
   param([Parameter(Mandatory = $true)][string]$Name)
 
-  return $Name -match '^(SYNON_|FEISHU_|WECHAT_|OPERON_)' -or $Name -in @('WSL_DISTRO_NAME', 'WSL_INTEROP')
+  return $Name -match '^(X_SCIENCE_|FEISHU_|WECHAT_|OPERON_)' -or $Name -in @('WSL_DISTRO_NAME', 'WSL_INTEROP')
 }
 
-function Invoke-SynonReleaseTestEnvironment {
+function Invoke-XScienceReleaseTestEnvironment {
   param(
     [Parameter(Mandatory = $true)][string]$Root,
     [Parameter(Mandatory = $true)][scriptblock]$Action
@@ -22,12 +22,12 @@ function Invoke-SynonReleaseTestEnvironment {
   }
   try {
     foreach ($key in $saved.Keys) {
-      if (Test-SynonReleaseEnvironmentKey -Name $key) { Remove-Item -LiteralPath "Env:$key" -ErrorAction Stop }
+      if (Test-XScienceReleaseEnvironmentKey -Name $key) { Remove-Item -LiteralPath "Env:$key" -ErrorAction Stop }
     }
-    # A persisted data-directory pointer overrides SYNON_HOME. Both authorities
+    # A persisted data-directory pointer overrides X_SCIENCE_HOME. Both authorities
     # must be private before any installed CLI (including model-smoke) can run.
-    $env:SYNON_HOME = Join-Path $rootFull 'release-runtime-home'
-    $env:SYNON_DATA_DIR_CONTROL = Join-Path $rootFull 'data-dir.json'
+    $env:X_SCIENCE_HOME = Join-Path $rootFull 'release-runtime-home'
+    $env:X_SCIENCE_DATA_DIR_CONTROL = Join-Path $rootFull 'data-dir.json'
     & $Action
   } finally {
     # Include variables introduced by the action and restore system variables
@@ -41,7 +41,7 @@ function Invoke-SynonReleaseTestEnvironment {
   }
 }
 
-function Wait-SynonReleaseHTTPReady {
+function Wait-XScienceReleaseHTTPReady {
   param(
     [Parameter(Mandatory = $true)][uri]$BaseUri,
     [Parameter(Mandatory = $true)][scriptblock]$HasExited,

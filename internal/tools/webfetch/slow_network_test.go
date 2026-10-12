@@ -15,7 +15,7 @@ import (
 // Opt-in elapsed-time regression uses the production secure client factory.
 // Local TLS serves a public-name fixture; no external document is downloaded.
 func TestFetchSlowNetworkBeyondFormerWallClockBudget(t *testing.T) {
-	if os.Getenv("SYNON_TEST_SLOW_NETWORK") != "1" {
+	if os.Getenv("X_SCIENCE_TEST_SLOW_NETWORK") != "1" {
 		t.Skip("opt-in 28-second real TLS regression")
 	}
 	upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

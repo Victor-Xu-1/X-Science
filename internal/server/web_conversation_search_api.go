@@ -8,8 +8,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const (
@@ -38,7 +38,7 @@ func (s *Server) handleWebConversationSearch(w http.ResponseWriter, r *http.Requ
 		writeWorkspaceJSON(w, http.StatusMethodNotAllowed, map[string]any{"message": "method not allowed"})
 		return
 	}
-	userID := strings.TrimSpace(r.Header.Get("X-Synon-User-Id"))
+	userID := strings.TrimSpace(r.Header.Get("X-Science-User-Id"))
 	if userID == "" {
 		writeWorkspaceJSON(w, http.StatusUnauthorized, map[string]any{"message": "authentication required"})
 		return

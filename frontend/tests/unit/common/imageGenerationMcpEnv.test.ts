@@ -33,17 +33,17 @@ describe('resolveImageGenerationMcpEnv', () => {
 
   it('matches legacy env by platform, base URL, and model when provider id is absent', () => {
     const result = resolveImageGenerationMcpEnv(undefined, [geminiProvider], {
-      SYNON_AI_IMG_PLATFORM: 'gemini',
-      SYNON_AI_IMG_BASE_URL: 'https://generativelanguage.googleapis.com/',
-      SYNON_AI_IMG_MODEL: 'gemini-3-pro-image-preview',
-      SYNON_AI_IMG_API_KEY: 'stale-key',
+      X_SCIENCE_IMG_PLATFORM: 'gemini',
+      X_SCIENCE_IMG_BASE_URL: 'https://generativelanguage.googleapis.com/',
+      X_SCIENCE_IMG_MODEL: 'gemini-3-pro-image-preview',
+      X_SCIENCE_IMG_API_KEY: 'stale-key',
     });
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.source).toBe('field-match');
-    expect(result.env.SYNON_AI_IMG_PROVIDER_ID).toBe('03c8482c');
-    expect(result.env.SYNON_AI_IMG_API_KEY).toBe('provider-key');
+    expect(result.env.X_SCIENCE_IMG_PROVIDER_ID).toBe('03c8482c');
+    expect(result.env.X_SCIENCE_IMG_API_KEY).toBe('provider-key');
   });
 
   it('fails loudly when neither provider id nor legacy fields match a provider', () => {

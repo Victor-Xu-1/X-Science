@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"synon-go/internal/sciencecapability"
+	"x-science/internal/sciencecapability"
 )
 
 var (

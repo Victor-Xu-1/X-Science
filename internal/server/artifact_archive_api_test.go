@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestArtifactArchiveListsTarGzipAndServesFiles(t *testing.T) {
@@ -148,7 +148,7 @@ func TestArtifactArchiveRejectsForeignUsersAndTraversal(t *testing.T) {
 func authenticatedArchiveRequest(t *testing.T, handler http.Handler, target, userID string) *httptest.ResponseRecorder {
 	t.Helper()
 	request := newLoopbackTestRequest(http.MethodGet, target, nil)
-	request.Header.Set("X-Synon-User-Id", userID)
+	request.Header.Set("X-Science-User-Id", userID)
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, request)
 	return response

@@ -19,8 +19,8 @@ import (
 	"sync"
 	"testing"
 
-	"synon-go/internal/agentruntime"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestStrictPositiveAgentWorkspaceIntegerRejectsNarrowingAndFloatOverflow(t *testing.T) {
@@ -468,7 +468,7 @@ func TestAgentWorkspaceEditRejectsWorkspaceProtectedPaths(t *testing.T) {
 		".gitconfig", ".gitmodules", ".bashrc", ".zshenv", ".ripgreprc", ".mcp.json",
 		filepath.Join(".ssh", "config"), filepath.Join(".aws", "credentials"), filepath.Join(".gcloud", "configurations", "x"),
 		filepath.Join(".git", "config"), filepath.Join(".git", "hooks", "pre-commit"), filepath.Join(".git", "modules", "submodule"),
-		filepath.Join(".synon", "runtime", "skills", "reviewed-skill", "scripts", "run.py"),
+		filepath.Join(".xscience", "runtime", "skills", "reviewed-skill", "scripts", "run.py"),
 		filepath.Join(".vscode", "settings.json"), filepath.Join(".idea", "workspace.xml"),
 	}
 	for _, path := range protected {
@@ -808,7 +808,7 @@ func TestAgentWorkspaceReadRendersSelectedPDFPagesIntoModelVisibleImages(t *test
 		t.Fatalf("rendered result=%#v", result)
 	}
 	value := rich.value.(map[string]any)
-	if !strings.Contains(stringValue(value["content"]), "Synon") ||
+	if !strings.Contains(stringValue(value["content"]), "XScience") ||
 		mapValue(value["text_extraction"])["status"] != "parsed" ||
 		mapValue(value["reader_contract"])["status"] != "parsed_and_attached" {
 		t.Fatalf("PDF dual-channel result=%#v", value)
@@ -827,7 +827,7 @@ func minimalAgentWorkspacePDF() []byte {
 		"<< /Type /Catalog /Pages 2 0 R >>",
 		"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
 		"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
-		"<< /Length 38 >>\nstream\nBT /F1 12 Tf 20 100 Td (Synon) Tj ET\nendstream",
+		"<< /Length 38 >>\nstream\nBT /F1 12 Tf 20 100 Td (XScience) Tj ET\nendstream",
 		"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
 	}
 	offsets := make([]int, len(objects)+1)

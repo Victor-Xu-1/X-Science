@@ -11,7 +11,7 @@ import (
 	"sync"
 	"testing"
 
-	"synon-go/internal/vmresources"
+	"x-science/internal/vmresources"
 )
 
 func TestVMResourcesHTTPReadsAndWritesRealWSLConfig(t *testing.T) {

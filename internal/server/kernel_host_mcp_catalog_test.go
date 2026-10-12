@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/tools/mcpstdio"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/tools/mcpstdio"
 )
 
 func TestKernelMCPCatalogParametersPreserveNullableEnumAndArrayItemSchema(t *testing.T) {

@@ -2,14 +2,14 @@ import { Button, Input } from '@arco-design/web-react';
 import Modal from '@/renderer/components/base/WorkbenchModal';
 import React, { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { SynonBiomedMcpServer } from '@/renderer/services/synonBiomedCapabilities';
+import type { XScienceMcpServer } from '@/renderer/services/xScienceCapabilities';
 import { connectorConfigurationState, connectorProviderLinks, validConnectorKey } from './mcpConnectorConfiguration';
 import './McpConnectorConfigurationModal.css';
 
 // Mounted only while open and keyed by connector ID: secret drafts never survive
 // closing or switching providers. Existing credentials are never read back.
 export const McpConnectorConfigurationModal: React.FC<{
-  server: SynonBiomedMcpServer;
+  server: XScienceMcpServer;
   statusUnavailable?: boolean;
   onCancel: () => void;
   onSaveKey: (key: string) => Promise<void>;
@@ -127,21 +127,21 @@ export const McpConnectorConfigurationModal: React.FC<{
             <p>
               {t(server.apiKeyConfigured ? 'settings.mcpConfiguration.keyStored' : 'settings.mcpConfiguration.keyHint')}
             </p>
-            <label htmlFor='synon-biomed-mcp-api-key'>
-              {server.apiKeyLabel || t('settings.synonBiomedMcpApiKeyLabel')}
+            <label htmlFor='x-science-mcp-api-key'>
+              {server.apiKeyLabel || t('settings.xScienceMcpApiKeyLabel')}
             </label>
             <Input.Password
-              id='synon-biomed-mcp-api-key'
-              data-testid='synon-biomed-mcp-api-key-input'
+              id='x-science-mcp-api-key'
+              data-testid='x-science-mcp-api-key-input'
               value={key}
               disabled={busy}
               autoComplete='new-password'
-              placeholder={t('settings.synonBiomedMcpApiKeyPlaceholder')}
+              placeholder={t('settings.xScienceMcpApiKeyPlaceholder')}
               onChange={setKey}
               onPressEnter={save}
             />
             {key && !validConnectorKey(key) ? <p role='alert'>{t('settings.mcpConfiguration.keyInvalid')}</p> : null}
-            <p>{t('settings.synonBiomedMcpApiKeySecurityHint')}</p>
+            <p>{t('settings.xScienceMcpApiKeySecurityHint')}</p>
             <Button type='primary' loading={busy} disabled={busy || !validConnectorKey(key)} onClick={save}>
               {t('settings.mcpConfiguration.save')}
             </Button>
@@ -159,7 +159,7 @@ export const McpConnectorConfigurationModal: React.FC<{
         <section className='mcp-configuration__safety'>
           <p>{t('settings.mcpConfiguration.costHint')}</p>
           <Button disabled={busy} onClick={onPermissions}>
-            {t('settings.synonBiomedMcpPermissions')}
+            {t('settings.xScienceMcpPermissions')}
           </Button>
         </section>
       </div>

@@ -33,7 +33,7 @@ func TestAgentSaveArtifactsLargeMoleculeLibraries(t *testing.T) {
 			name := "out/molecules." + format
 			write := writeAgentSaveArtifactsFile(t, fixture.projectPath, name, content)
 			fixture.saveExecution(t, fixture.identity.access, fixture.projectPath, "large-valid", 1, write)
-			input := map[string]any{"files": []any{name}, "language": "python", "environment": "synon-biomed-python", "human_description": "Saving validated molecules"}
+			input := map[string]any{"files": []any{name}, "language": "python", "environment": "x-science-python", "human_description": "Saving validated molecules"}
 			result, err := fixture.server.executeAgentSaveArtifacts(fixture.toolContext(t, "save-large", input), fixture.identity, "save-large", input)
 			if err != nil || result["errors"] != nil {
 				t.Fatalf("save large %s: %v %#v", format, err, result)
@@ -70,9 +70,9 @@ func TestAgentSaveArtifactsLargeMoleculeLibraries(t *testing.T) {
 
 func scientificArtifactStreamTestValidator(t *testing.T) func(context.Context, io.Reader, string) (scientificArtifactValidation, error) {
 	t.Helper()
-	python := os.Getenv("SYNON_TEST_SCIENTIFIC_PYTHON")
+	python := os.Getenv("X_SCIENCE_TEST_SCIENTIFIC_PYTHON")
 	if python == "" {
-		t.Skip("set SYNON_TEST_SCIENTIFIC_PYTHON to run the real RDKit validator protocol; managed-generation resolution is tested separately")
+		t.Skip("set X_SCIENCE_TEST_SCIENTIFIC_PYTHON to run the real RDKit validator protocol; managed-generation resolution is tested separately")
 	}
 	version, err := exec.Command(python, "-I", "-c", "from rdkit import rdBase; print(rdBase.rdkitVersion)").Output()
 	if err != nil {
@@ -147,9 +147,9 @@ func TestScientificArtifactStreamLargeRecordCount(t *testing.T) {
 }
 
 func TestScientificArtifactStreamDelimiterBoundaries(t *testing.T) {
-	python := os.Getenv("SYNON_TEST_SCIENTIFIC_PYTHON")
+	python := os.Getenv("X_SCIENCE_TEST_SCIENTIFIC_PYTHON")
 	if python == "" {
-		t.Skip("set SYNON_TEST_SCIENTIFIC_PYTHON for the real parser")
+		t.Skip("set X_SCIENCE_TEST_SCIENTIFIC_PYTHON for the real parser")
 	}
 	_, source, _, _ := runtime.Caller(0)
 	validator := filepath.Join(filepath.Dir(source), "..", "..", "assets", "optional", "kernels", "sdf_artifact_validator.py")

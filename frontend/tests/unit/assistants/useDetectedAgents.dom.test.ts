@@ -6,8 +6,8 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { buildAssistantEditorBackends } from '@/renderer/pages/settings/SynonBiomedExpertsSettings/assistantUtils';
-import type { ManagedAgent } from '@/renderer/utils/synonBiomed/runtime/runtimeTypes';
+import { buildAssistantEditorBackends } from '@/renderer/pages/settings/XScienceExpertsSettings/assistantUtils';
+import type { ManagedAgent } from '@/renderer/utils/xScience/runtime/runtimeTypes';
 
 describe('buildAssistantEditorBackends', () => {
   it('derives editor backends only from X-Science management agents', () => {
@@ -33,13 +33,13 @@ describe('buildAssistantEditorBackends', () => {
       {
         id: 'AIDD_EXPERT',
         name: 'AIDD Expert',
-        runtimeKey: 'synonbiomed',
+        runtimeKey: 'xscience',
         modelOptions: [],
       },
       {
         id: 'GENOMICS_EXPERT',
         name: 'Genomics Expert',
-        runtimeKey: 'synonbiomed',
+        runtimeKey: 'xscience',
         modelOptions: [],
       },
     ]);
@@ -50,7 +50,7 @@ describe('buildAssistantEditorBackends', () => {
       managedAgent({
         id: 'AIDD_EXPERT',
         backend: undefined,
-        agent_type: 'synonbiomed',
+        agent_type: 'xscience',
         name: 'AIDD Expert',
         name_i18n: { 'zh-CN': 'AIDD 专家' },
         status: 'online',
@@ -61,7 +61,7 @@ describe('buildAssistantEditorBackends', () => {
       {
         id: 'AIDD_EXPERT',
         name: 'AIDD 专家',
-        runtimeKey: 'synonbiomed',
+        runtimeKey: 'xscience',
         modelOptions: [],
       },
     ]);
@@ -80,7 +80,7 @@ describe('buildAssistantEditorBackends', () => {
       {
         id: 'ONCOLOGY_EXPERT',
         name: 'Oncology Expert',
-        runtimeKey: 'synonbiomed',
+        runtimeKey: 'xscience',
         modelOptions: [],
       },
     ]);
@@ -95,8 +95,8 @@ function managedAgent(overrides: Partial<ManagedAgent> & { id: string; name: str
     name_i18n: overrides.name_i18n,
     description: undefined,
     description_i18n: undefined,
-    backend: overrides.backend ?? 'synonbiomed',
-    agent_type: 'synonbiomed',
+    backend: overrides.backend ?? 'xscience',
+    agent_type: 'xscience',
     agent_source: overrides.agent_source ?? 'builtin',
     agent_source_info: {},
     enabled: overrides.enabled ?? true,

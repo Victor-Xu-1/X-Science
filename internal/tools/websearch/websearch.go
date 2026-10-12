@@ -12,11 +12,11 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/httpreliability"
-	"synon-go/internal/subprocess"
+	"x-science/internal/httpreliability"
+	"x-science/internal/subprocess"
 )
 
-const providerName = "synon-websearch"
+const providerName = "x-science-websearch"
 const defaultHTTPEndpoint = "https://duckduckgo.com/html/?q={query}"
 const maxHTTPResponseBytes = 4 * 1024 * 1024
 
@@ -180,7 +180,7 @@ func Search(ctx context.Context, input Input, options Options) (Output, error) {
 	if err := validateSearchConstraints(input); err != nil {
 		return Output{}, err
 	}
-	if strings.EqualFold(strings.TrimSpace(os.Getenv("SYNON_WEBSEARCH_MODE")), "disabled") {
+	if strings.EqualFold(strings.TrimSpace(os.Getenv("X_SCIENCE_WEBSEARCH_MODE")), "disabled") {
 		return unavailable(query, started, "Web search is disabled in settings.", diagnostics), nil
 	}
 	timeout := options.Timeout
@@ -307,7 +307,7 @@ func Search(ctx context.Context, input Input, options Options) (Output, error) {
 func outputFromHits(query string, started time.Time, hits []Hit, diagnostics map[string]any, now func() time.Time) Output {
 	retrievedAt := now().UTC().Format(time.RFC3339Nano)
 	result := SearchResult{
-		ToolUseID: "synon-websearch-web-search",
+		ToolUseID: "x-science-websearch-web-search",
 		Content:   searchDisplayHits(hits),
 	}
 	sources := make([]Evidence, 0, len(hits))
@@ -386,13 +386,13 @@ func unavailable(query string, started time.Time, message string, diagnostics ma
 }
 
 func shouldTryGoHTTPBackend(script string) bool {
-	if strings.TrimSpace(os.Getenv("SYNON_WEBSEARCH_ENDPOINT")) != "" {
+	if strings.TrimSpace(os.Getenv("X_SCIENCE_WEBSEARCH_ENDPOINT")) != "" {
 		return true
 	}
-	if strings.EqualFold(strings.TrimSpace(os.Getenv("SYNON_WEBSEARCH_GO")), "false") {
+	if strings.EqualFold(strings.TrimSpace(os.Getenv("X_SCIENCE_WEBSEARCH_GO")), "false") {
 		return false
 	}
-	if strings.TrimSpace(os.Getenv("SYNON_WEBSEARCH_SCRIPT")) != "" {
+	if strings.TrimSpace(os.Getenv("X_SCIENCE_WEBSEARCH_SCRIPT")) != "" {
 		return false
 	}
 	return true

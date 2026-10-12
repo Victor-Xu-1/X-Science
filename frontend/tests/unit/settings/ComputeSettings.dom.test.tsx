@@ -34,37 +34,37 @@ const mocks = vi.hoisted(() => ({
   error: vi.fn(),
 }));
 
-vi.mock('@/renderer/services/synonBiomedCompute', () => ({
-  loadSynonBiomedComputeProviders: mocks.loadProviders,
-  loadSynonBiomedComputeProvider: mocks.loadProvider,
-  loadSynonBiomedSshAliases: mocks.loadAliases,
-  probeSynonBiomedComputeProvider: mocks.probe,
-  saveSynonBiomedComputeProviderDetails: mocks.saveDetails,
-  addSynonBiomedSshHost: mocks.addSsh,
-  addSynonBiomedInferenceProvider: mocks.addInference,
-  deleteSynonBiomedComputeProvider: mocks.remove,
-  loadSynonBiomedComputeGpuInfo: mocks.loadGpuInfo,
-  loadSynonBiomedComputeGpuEnabled: mocks.loadGpuEnabled,
-  setSynonBiomedComputeGpuEnabled: mocks.setGpuEnabled,
-  loadSynonBiomedManagedEndpoints: mocks.loadManagedEndpoints,
-  stopSynonBiomedManagedEndpoint: mocks.stopManagedEndpoint,
-  loadSynonBiomedComputeJobs: mocks.loadJobs,
-  loadSynonBiomedComputeJob: mocks.loadJob,
-  loadSynonBiomedComputeJobLog: mocks.loadJobLog,
-  loadSynonBiomedSessionComputeProviders: mocks.loadSessionProviders,
-  setSynonBiomedSessionComputeProvider: mocks.setSessionProvider,
-  loadSynonBiomedModalSettings: mocks.loadModalSettings,
-  setSynonBiomedModalEnabled: mocks.setModalEnabled,
-  loadSynonBiomedBioNemoSettings: mocks.loadBioNemoSettings,
-  setSynonBiomedBioNemoSettings: mocks.setBioNemoSettings,
+vi.mock('@/renderer/services/xScienceCompute', () => ({
+  loadXScienceComputeProviders: mocks.loadProviders,
+  loadXScienceComputeProvider: mocks.loadProvider,
+  loadXScienceSshAliases: mocks.loadAliases,
+  probeXScienceComputeProvider: mocks.probe,
+  saveXScienceComputeProviderDetails: mocks.saveDetails,
+  addXScienceSshHost: mocks.addSsh,
+  addXScienceInferenceProvider: mocks.addInference,
+  deleteXScienceComputeProvider: mocks.remove,
+  loadXScienceComputeGpuInfo: mocks.loadGpuInfo,
+  loadXScienceComputeGpuEnabled: mocks.loadGpuEnabled,
+  setXScienceComputeGpuEnabled: mocks.setGpuEnabled,
+  loadXScienceManagedEndpoints: mocks.loadManagedEndpoints,
+  stopXScienceManagedEndpoint: mocks.stopManagedEndpoint,
+  loadXScienceComputeJobs: mocks.loadJobs,
+  loadXScienceComputeJob: mocks.loadJob,
+  loadXScienceComputeJobLog: mocks.loadJobLog,
+  loadXScienceSessionComputeProviders: mocks.loadSessionProviders,
+  setXScienceSessionComputeProvider: mocks.setSessionProvider,
+  loadXScienceModalSettings: mocks.loadModalSettings,
+  setXScienceModalEnabled: mocks.setModalEnabled,
+  loadXScienceBioNemoSettings: mocks.loadBioNemoSettings,
+  setXScienceBioNemoSettings: mocks.setBioNemoSettings,
 }));
 
-vi.mock('@/renderer/services/synonBiomedWorkspaceSettings', () => ({
-  loadSynonBiomedSecrets: mocks.loadSecrets,
+vi.mock('@/renderer/services/xScienceWorkspaceSettings', () => ({
+  loadXScienceSecrets: mocks.loadSecrets,
 }));
 
-vi.mock('@/renderer/services/synonBiomedGateway', () => ({
-  loadSynonBiomedProjects: mocks.loadProjects,
+vi.mock('@/renderer/services/xScienceGateway', () => ({
+  loadXScienceProjects: mocks.loadProjects,
 }));
 
 vi.mock('@arco-design/web-react', async (importOriginal) => {
@@ -194,7 +194,7 @@ describe('ComputeSettingsContent', () => {
       provider: 'modal',
       enabled: true,
       detailsMd: 'Modal notes',
-      appName: 'synonbiomed-research',
+      appName: 'xscience-research',
       environmentName: 'main',
       egressPolicy: { mode: 'allowlist', mirror: true, additional: ['api.example.com'] },
       maxConcurrentJobs: 10,
@@ -228,10 +228,10 @@ describe('ComputeSettingsContent', () => {
     vi.clearAllMocks();
   });
 
-  it('renders native SynonAI provider cards with actionable lifecycle controls', async () => {
+  it('renders native XScience provider cards with actionable lifecycle controls', async () => {
     await renderWithSettingsI18n(<ComputeSettingsContent />);
 
-    const sshCard = await screen.findByTestId('synon-biomed-compute-provider-ssh-hpc-a');
+    const sshCard = await screen.findByTestId('x-science-compute-provider-ssh-hpc-a');
     expect(within(sshCard).getByText('HPC A')).toBeInTheDocument();
     expect(within(sshCard).getByText('/scratch/victor')).toBeInTheDocument();
     expect(within(sshCard).getByRole('button', { name: '探测 HPC A' })).toBeInTheDocument();
@@ -328,7 +328,7 @@ describe('ComputeSettingsContent', () => {
 
     fireEvent.click(screen.getAllByRole('button', { name: '配置' })[0]);
     const modalDialog = await screen.findByRole('dialog', { name: 'Modal' });
-    expect(within(modalDialog).getByLabelText('默认应用')).toHaveValue('synonbiomed-research');
+    expect(within(modalDialog).getByLabelText('默认应用')).toHaveValue('xscience-research');
     expect(within(modalDialog).getByLabelText('环境')).toHaveValue('main');
     expect(within(modalDialog).getByLabelText('允许域名')).toHaveValue('api.example.com');
     expect(within(modalDialog).getByText('X-Science (stored)')).toBeInTheDocument();
@@ -339,7 +339,7 @@ describe('ComputeSettingsContent', () => {
     fireEvent.click(within(modalDialog).getByRole('button', { name: '保存' }));
     await waitFor(() =>
       expect(mocks.saveDetails).toHaveBeenCalledWith('byoc:modal', {
-        appName: 'synonbiomed-research',
+        appName: 'xscience-research',
         environmentName: 'main',
         detailsMd: 'Updated Modal notes',
         egressPolicy: { mode: 'allowlist', mirror: true, additional: ['api.example.com'] },

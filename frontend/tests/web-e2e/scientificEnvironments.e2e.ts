@@ -1,5 +1,5 @@
 import { expect, test } from './officialChromeTest';
-import { webPassword, webUsername } from './synonGoWebCredentials';
+import { webPassword, webUsername } from './xscienceGoWebCredentials';
 
 for (const viewport of [{width:1440,height:1000},{width:1000,height:800},{width:390,height:844}]) {
   test.describe('scientific environments at ' + viewport.width, () => {
@@ -43,7 +43,7 @@ for (const viewport of [{width:1440,height:1000},{width:1000,height:800},{width:
       const after=await (await page.request.get('/api/preferences/scientific-runtimes')).json();
       expect(after.options.map((item:{id:string;selected:boolean})=>[item.id,item.selected])).toEqual(initial.options.map((item:{id:string;selected:boolean})=>[item.id,item.selected]));
       await page.goto('/#/settings/storage');
-      await expect(page.getByTestId('synon-storage-settings')).toBeVisible();
+      await expect(page.getByTestId('x-science-storage-settings')).toBeVisible();
       await expect(page.locator('.storage-runtime-panel')).toHaveCount(0);
     });
   });

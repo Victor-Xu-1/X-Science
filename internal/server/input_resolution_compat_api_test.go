@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestCompatibilityResolveLocalExecUsesFrameDecisionWithoutResume(t *testing.T) {
@@ -769,7 +769,7 @@ func TestCompatibilityInputGrantStoresAndCompensatingRollback(t *testing.T) {
 	}
 	srv := New(Options{FileRoot: root, Workspace: store})
 	request := newLoopbackTestRequest(http.MethodPost, "/api/frames/frame/resolve-input", nil)
-	request.Header.Set("X-Synon-User-Id", "local")
+	request.Header.Set("X-Science-User-Id", "local")
 	frame := workspace.CompatibilityFrame{Frame: workspace.Frame{
 		ID: "frame", RootFrameID: "frame", ProjectID: "project", AgentName: "OPERON",
 	}}
@@ -846,7 +846,7 @@ func TestCompatibilityInputAllowWithoutScopeIsOnceAndDoesNotPersistGrant(t *test
 	root := t.TempDir()
 	srv := New(Options{FileRoot: root})
 	request := newLoopbackTestRequest(http.MethodPost, "/api/frames/frame/resolve-input", nil)
-	request.Header.Set("X-Synon-User-Id", "local")
+	request.Header.Set("X-Science-User-Id", "local")
 	approved := true
 	content, _, denied, result, rollback, err := srv.resolveCompatibilityInputItem(
 		request,

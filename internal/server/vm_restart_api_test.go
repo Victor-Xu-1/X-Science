@@ -9,13 +9,13 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/vmresources"
-	"synon-go/internal/vmrestart"
+	"x-science/internal/vmresources"
+	"x-science/internal/vmrestart"
 )
 
 func TestVMRestartAPIReportsPendingAndCompletedLifecycle(t *testing.T) {
 	root := t.TempDir()
-	executable := filepath.Join(root, "synon-go")
+	executable := filepath.Join(root, "x-science")
 	if err := os.WriteFile(executable, []byte("binary"), 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -23,8 +23,8 @@ func TestVMRestartAPIReportsPendingAndCompletedLifecycle(t *testing.T) {
 	manager, err := vmrestart.New(vmrestart.Options{
 		HomeDir: root, Executable: executable, WorkingDirectory: root,
 		UnitDirectory: filepath.Join(root, "units"),
-		Distro:        "Ubuntu", User: "victor_1", ServiceName: "synon-go.service",
-		Environment: map[string]string{"SYNON_HOME": root},
+		Distro:        "Ubuntu", User: "victor_1", ServiceName: "x-science.service",
+		Environment: map[string]string{"X_SCIENCE_HOME": root},
 		RunCommand:  func(context.Context, string, ...string) ([]byte, error) { return nil, nil },
 		LaunchHost: func(context.Context, vmrestart.HostRestartRequest) error {
 			launched = true
@@ -44,7 +44,7 @@ func TestVMRestartAPIReportsPendingAndCompletedLifecycle(t *testing.T) {
 	if restart.Code != http.StatusAccepted || !launched || !strings.Contains(restart.Body.String(), "\"state\":\"pending\"") ||
 		strings.Contains(restart.Body.String(), "completedAt") ||
 		!strings.Contains(restart.Body.String(), "managed X-Science service") ||
-		strings.Contains(restart.Body.String(), "managed Synon Go service") {
+		strings.Contains(restart.Body.String(), "managed XScience Go service") {
 		t.Fatalf("restart = %d launched=%v body=%s", restart.Code, launched, restart.Body.String())
 	}
 	resources := httptest.NewRecorder()

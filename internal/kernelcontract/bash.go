@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"strings"
 
-	"synon-go/internal/executionprep"
+	"x-science/internal/executionprep"
 )
 
 const (
-	BashSourcePrefix = "# synon-bash-command-v1:"
-	BashExitPrefix   = "__SYNON_BASH_EXIT_V1__:"
+	BashSourcePrefix = "# x-science-bash-command-v1:"
+	BashExitPrefix   = "__X_SCIENCE_BASH_EXIT_V1__:"
 	MaxBashBytes     = 256 * 1024
 )
 
@@ -40,33 +40,33 @@ func BashObservationPythonWrapper(command string, plan *executionprep.Observatio
 
 // The legacy pump is accepted only when decoding immutable historical source;
 // new executions always use the streaming pump.
-const bashLegacyPump = `def _synon_pump(_synon_source, _synon_target):
+const bashLegacyPump = `def _x_science_pump(_x_science_source, _x_science_target):
     while True:
-        _synon_chunk = _synon_source.read(8192)
-        if not _synon_chunk:
+        _x_science_chunk = _x_science_source.read(8192)
+        if not _x_science_chunk:
             break
-        _synon_target.write(_synon_chunk)
-        _synon_target.flush()
+        _x_science_target.write(_x_science_chunk)
+        _x_science_target.flush()
 `
 
-const bashStreamingPump = `def _synon_pump(_synon_source, _synon_target):
+const bashStreamingPump = `def _x_science_pump(_x_science_source, _x_science_target):
     import codecs
-    _synon_decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
+    _x_science_decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
     try:
         while True:
-            _synon_raw = _synon_source.buffer.read1(8192)
-            if not _synon_raw:
+            _x_science_raw = _x_science_source.buffer.read1(8192)
+            if not _x_science_raw:
                 break
-            _synon_chunk = _synon_decoder.decode(_synon_raw)
-            if _synon_chunk:
-                _synon_target.write(_synon_chunk)
-                _synon_target.flush()
-        _synon_tail = _synon_decoder.decode(b"", final=True)
-        if _synon_tail:
-            _synon_target.write(_synon_tail)
-            _synon_target.flush()
+            _x_science_chunk = _x_science_decoder.decode(_x_science_raw)
+            if _x_science_chunk:
+                _x_science_target.write(_x_science_chunk)
+                _x_science_target.flush()
+        _x_science_tail = _x_science_decoder.decode(b"", final=True)
+        if _x_science_tail:
+            _x_science_target.write(_x_science_tail)
+            _x_science_target.flush()
     finally:
-        _synon_source.close()
+        _x_science_source.close()
 `
 
 func bashPythonWrapper(command, pump string, observation ...bool) (string, error) {
@@ -74,36 +74,36 @@ func bashPythonWrapper(command, pump string, observation ...bool) (string, error
 		return "", errors.New("bash command must be 1-262144 bytes without NUL characters")
 	}
 	encoded := base64.StdEncoding.EncodeToString([]byte(command))
-	arguments := `["/bin/bash", "-lc", _synon_script]`
+	arguments := `["/bin/bash", "-lc", _x_science_script]`
 	if len(observation) > 0 && observation[0] {
-		arguments = `["/bin/bash", "--noprofile", "--norc", "-p", "-c", _synon_script]`
+		arguments = `["/bin/bash", "--noprofile", "--norc", "-p", "-c", _x_science_script]`
 	}
 	return fmt.Sprintf(`%s%s
-import base64 as _synon_b64
-import subprocess as _synon_subprocess
-import sys as _synon_sys
-import threading as _synon_threading
+import base64 as _x_science_b64
+import subprocess as _x_science_subprocess
+import sys as _x_science_sys
+import threading as _x_science_threading
 
-_synon_command = _synon_b64.b64decode(%q, validate=True).decode("utf-8")
-_synon_script = "set -e\nset -o pipefail\n" + _synon_command
-_synon_process = _synon_subprocess.Popen(
+_x_science_command = _x_science_b64.b64decode(%q, validate=True).decode("utf-8")
+_x_science_script = "set -e\nset -o pipefail\n" + _x_science_command
+_x_science_process = _x_science_subprocess.Popen(
     %s,
-    stdout=_synon_subprocess.PIPE,
-    stderr=_synon_subprocess.PIPE,
+    stdout=_x_science_subprocess.PIPE,
+    stderr=_x_science_subprocess.PIPE,
     text=True,
     bufsize=1,
 )
 
 %s
-_synon_stdout_thread = _synon_threading.Thread(target=_synon_pump, args=(_synon_process.stdout, _synon_sys.stdout), daemon=True)
-_synon_stderr_thread = _synon_threading.Thread(target=_synon_pump, args=(_synon_process.stderr, _synon_sys.stderr), daemon=True)
-_synon_stdout_thread.start()
-_synon_stderr_thread.start()
-_synon_exit_code = _synon_process.wait()
-_synon_stdout_thread.join()
-_synon_stderr_thread.join()
-_synon_sys.stderr.write("\n%s" + str(_synon_exit_code) + "\n")
-_synon_sys.stderr.flush()
+_x_science_stdout_thread = _x_science_threading.Thread(target=_x_science_pump, args=(_x_science_process.stdout, _x_science_sys.stdout), daemon=True)
+_x_science_stderr_thread = _x_science_threading.Thread(target=_x_science_pump, args=(_x_science_process.stderr, _x_science_sys.stderr), daemon=True)
+_x_science_stdout_thread.start()
+_x_science_stderr_thread.start()
+_x_science_exit_code = _x_science_process.wait()
+_x_science_stdout_thread.join()
+_x_science_stderr_thread.join()
+_x_science_sys.stderr.write("\n%s" + str(_x_science_exit_code) + "\n")
+_x_science_sys.stderr.flush()
 `, BashSourcePrefix, encoded, encoded, arguments, pump, BashExitPrefix), nil
 }
 

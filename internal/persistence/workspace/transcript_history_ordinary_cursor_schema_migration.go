@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 const (
 	transcriptHistoryOrdinaryCursorV34PreflightIdentity = "canonical-transcript-v33-ordinary-cursor-v1"
-	transcriptHistoryOrdinaryCursorV34RuleSpec          = "synon.workspace.transcript-history-ordinary-cursor.v34"
+	transcriptHistoryOrdinaryCursorV34RuleSpec          = "x-science.workspace.transcript-history-ordinary-cursor.v34"
 )
 
 var transcriptHistoryOrdinaryCursorV34Migration = versionedSchemaMigration{

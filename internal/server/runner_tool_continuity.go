@@ -8,8 +8,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/persistence/journal"
+	"x-science/internal/agentruntime"
+	"x-science/internal/persistence/journal"
 )
 
 const (

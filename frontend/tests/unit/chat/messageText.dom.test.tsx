@@ -54,9 +54,9 @@ vi.mock('@/renderer/pages/conversation/Preview/context/PreviewContext', () => ({
     openPreview: previewMocks.openPreview,
   }),
 }));
-vi.mock('@/renderer/pages/conversation/Messages/useSynonBiomedArtifactLinkPreview', () => ({
-  useSynonBiomedArtifactLinkPreview: () => artifactLinkMocks.handle,
-  useSynonBiomedArtifactResolver: () => ({
+vi.mock('@/renderer/pages/conversation/Messages/useXScienceArtifactLinkPreview', () => ({
+  useXScienceArtifactLinkPreview: () => artifactLinkMocks.handle,
+  useXScienceArtifactResolver: () => ({
     handleLink: artifactLinkMocks.handle,
     resolveImage: vi.fn().mockResolvedValue(null),
   }),
@@ -126,7 +126,7 @@ vi.mock('@/renderer/utils/chat/thinkTagFilter', () => ({
   stripThinkTags: (content: string) => content,
 }));
 
-vi.mock('@/renderer/utils/synonBiomed/runtime/runtimeLogo', () => ({
+vi.mock('@/renderer/utils/xScience/runtime/runtimeLogo', () => ({
   useAgentLogos: () => ({}),
   resolveAgentLogo: () => null,
 }));
@@ -248,7 +248,7 @@ describe('MessageText attachment paths', () => {
       <ConversationProvider
         value={{
           conversation_id: 'frame-stat6',
-          workspace: 'synonbiomed://proj_stat6',
+          workspace: 'x-science://proj_stat6',
           type: 'acp',
         }}
       >
@@ -295,7 +295,7 @@ describe('MessageText attachment paths', () => {
       <ConversationProvider
         value={{
           conversation_id: 'frame-artifacts',
-          workspace: 'synonbiomed://project-artifacts',
+          workspace: 'x-science://project-artifacts',
           type: 'acp',
         }}
       >
@@ -335,13 +335,13 @@ describe('MessageText attachment paths', () => {
       );
       expect(screen.getByText('partial answer')).toBeInTheDocument();
       expect(screen.getByTestId('terminal-failure-alert')).toHaveTextContent(
-        'conversation.synonRuntime.runtimeOperations.taskFailed'
+        'conversation.xscienceRuntime.runtimeOperations.taskFailed'
       );
       expect(screen.getByTestId('terminal-failure-alert')).not.toHaveTextContent(
-        'conversation.synonRuntime.runtimeOperations.failureResultRejected'
+        'conversation.xscienceRuntime.runtimeOperations.failureResultRejected'
       );
       expect(screen.getByTestId('terminal-failure-alert')).toHaveTextContent(
-        'conversation.synonRuntime.runtimeOperations.assistantResponseIncomplete'
+        'conversation.xscienceRuntime.runtimeOperations.assistantResponseIncomplete'
       );
 
       view.rerender(
@@ -359,7 +359,7 @@ describe('MessageText attachment paths', () => {
       expect(screen.getByText('partial answer')).toBeInTheDocument();
       if (failureSource === 'durable-failure') {
         expect(screen.getByTestId('terminal-failure-history')).toHaveTextContent(
-          'conversation.synonRuntime.runtimeOperations.historicalResponseIncomplete'
+          'conversation.xscienceRuntime.runtimeOperations.historicalResponseIncomplete'
         );
       }
     }
@@ -430,7 +430,7 @@ describe('MessageText attachment paths', () => {
       position: 'right',
       createdAt: Date.now(),
       content: {
-        content: 'look at this\n\n[[SYNON_AI_FILES]]\nuploads/photo.png',
+        content: 'look at this\n\n[[X_SCIENCE_FILES]]\nuploads/photo.png',
       },
     };
 
@@ -488,7 +488,7 @@ describe('MessageText attachment paths', () => {
       position: 'right',
       createdAt: Date.now(),
       content: {
-        content: 'look at this\n\n[[SYNON_AI_FILES]]\n/Users/demo/Desktop/photo.png',
+        content: 'look at this\n\n[[X_SCIENCE_FILES]]\n/Users/demo/Desktop/photo.png',
       },
     };
 

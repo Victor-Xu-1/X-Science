@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>X-Science Link 本地授权</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="page workspace-page">
+      <section class="panel workspace-panel">
+        <img class="brand-mark large-brand-mark" src="icons/x-science-mark.png" alt="">
+        <h1>X-Science Link</h1>
+        <p>这里用于 X-Science 的浏览器任务和本地文件授权。</p>
+        <div id="state" class="state">正在检查连接...</div>
+        <div class="actions">
+          <button id="connect">连接 / 重新连接</button>
+          <button id="options" class="secondary">高级设置</button>
+        </div>
+      </section>
+
+      <section class="panel local-files-panel">
+        <div class="panel-heading">
+          <div>
+            <h2>本地文件授权</h2>
+            <p>先选择允许 X-Science 使用的文件夹。当前对话首次使用本地文件时会弹窗确认一次。</p>
+          </div>
+          <span id="localFilesBadge" class="badge">0 个文件夹</span>
+        </div>
+        <div id="localFilesState" class="state">正在检查本地文件能力...</div>
+        <div class="actions">
+          <button id="chooseFolder">选择文件夹</button>
+          <button id="refreshFolders" class="secondary">刷新状态</button>
+          <button id="clearFolders" class="secondary danger">清空授权</button>
+        </div>
+        <div id="folderList" class="folder-list"></div>
+      </section>
+
+      <section class="panel local-files-panel">
+        <div class="panel-heading">
+          <div>
+            <h2>个性化画像</h2>
+            <p>授权后，X-Science Link 会读取书签标题和网址，帮助 X-Science 了解你的常用数据库、研究方向和新闻偏好。</p>
+          </div>
+          <span id="bookmarksBadge" class="badge">未授权</span>
+        </div>
+        <div id="bookmarksState" class="state">正在检查书签画像状态...</div>
+        <div class="actions">
+          <button id="authorizeBookmarks">授权书签画像</button>
+          <button id="refreshBookmarks" class="secondary">刷新画像</button>
+        </div>
+      </section>
+    </main>
+    <script src="workspace.js" type="module"></script>
+  </body>
+</html>

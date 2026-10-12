@@ -10,7 +10,7 @@ import (
 	"strings"
 	"unicode"
 
-	kernelruntime "synon-go/internal/kernel"
+	kernelruntime "x-science/internal/kernel"
 )
 
 func agentKernelPythonCodePreflight(
@@ -33,7 +33,7 @@ func agentKernelPythonCodePreflight(
 	diagnostics := agentKernelPythonCodePreflightDiagnostics(preflight)
 	if strings.ToLower(strings.TrimSpace(spec.Language)) != "python" ||
 		strings.TrimSpace(exitStatus) != "ok" ||
-		len(outcome.FilesWritten) != 0 || stringValue(preflight["schema"]) != "synon.python-code-preflight.v1" ||
+		len(outcome.FilesWritten) != 0 || stringValue(preflight["schema"]) != "x-science.python-code-preflight.v1" ||
 		stringValue(preflight["status"]) != "code_preflight_required" || boolValue(preflight["executed"], true) ||
 		!agentKernelPythonPreflightAllowsCapturedStdout(diagnostics, outcome.Response.Stdout) ||
 		strings.TrimSpace(outcome.Response.Stderr) != "" {
@@ -230,7 +230,7 @@ func agentKernelOptionalFormatterPreflight(publicName string, input map[string]a
 		return nil
 	}
 	return map[string]any{
-		"ok": false, "schema": "synon.python-code-preflight.v1",
+		"ok": false, "schema": "x-science.python-code-preflight.v1",
 		"status": "code_preflight_required", "executed": false,
 		"message":  "The Python cell depends on the optional pandas tabulate formatter and was not executed.",
 		"recovery": "Replace DataFrame.to_markdown with DataFrame.to_csv, DataFrame.to_string, or a short native Markdown formatter, then run the complete corrected cell once. Presentation-only formatting must not be able to abort calculation or output files.",
@@ -267,7 +267,7 @@ func agentKernelLargeToolResultPathPreflight(publicName string, input map[string
 		return nil
 	}
 	return map[string]any{
-		"ok": false, "schema": "synon.python-code-preflight.v1",
+		"ok": false, "schema": "x-science.python-code-preflight.v1",
 		"status": "code_preflight_required", "executed": false,
 		"message":  "An oversized tool result is an immutable artifact version, not a task-relative filesystem path.",
 		"recovery": "Import read_file from the bounded read_file compatibility module and call read_file with the exact large-tool-result-* version ID, then parse the returned text. Do not prefix it with ./, pass it to open/Path, or guess a storage path. No code ran.",
@@ -302,7 +302,7 @@ func agentKernelPythonFileHandleShadowPreflight(publicName string, input map[str
 		for _, assignment := range assignments {
 			if len(assignment) >= 4 && assignment[0] < handle[0] && code[assignment[2]:assignment[3]] == name {
 				return map[string]any{
-					"ok": false, "schema": "synon.python-code-preflight.v1",
+					"ok": false, "schema": "x-science.python-code-preflight.v1",
 					"status": "code_preflight_required", "executed": false,
 					"message":  "The Python cell reuses data variable " + name + " as a file handle and was not executed.",
 					"recovery": "Rename the file handle to a distinct descriptive name, keep the original data variable unchanged, then run the complete corrected cell once.",
@@ -321,7 +321,7 @@ func agentKernelMCPCatalogCallPreflight(publicName string, input map[string]any)
 		return nil
 	}
 	return map[string]any{
-		"ok": false, "schema": "synon.python-code-preflight.v1",
+		"ok": false, "schema": "x-science.python-code-preflight.v1",
 		"status": "code_preflight_required", "executed": false,
 		"message":  "host.mcp.list_methods requires one non-empty server name.",
 		"recovery": "Call host.mcp.list_servers() first; it returns a list of server-name strings. Then call host.mcp.list_methods(server) once for each required server and iterate the returned method dictionaries directly. Do not call .keys() on either list. No code ran.",

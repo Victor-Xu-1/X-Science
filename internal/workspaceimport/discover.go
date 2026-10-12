@@ -12,6 +12,9 @@ var dataRootDatabaseCandidates = []string{
 	"operon.db",
 	"operon-cli.db",
 	filepath.FromSlash(WorkspaceDatabaseRelative),
+	"x-science.sqlite",
+	// These are actual published import-source names, not active destinations.
+	"workspace/synonbiomed-v1.1.sqlite",
 	"synonbiomed-v1.1.sqlite",
 }
 

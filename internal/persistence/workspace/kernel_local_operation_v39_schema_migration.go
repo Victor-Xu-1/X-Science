@@ -8,7 +8,7 @@ import (
 const (
 	kernelLocalOperationV39CallbackID        = "kernel-local-operation-v39-noop"
 	kernelLocalOperationV39PreflightIdentity = "transcript-tool-call-operation-authority-v1"
-	kernelLocalOperationV39RuleSpec          = "synon.workspace.kernel-local-operation.v39"
+	kernelLocalOperationV39RuleSpec          = "x-science.workspace.kernel-local-operation.v39"
 	kernelLocalOperationsDDL                 = `CREATE TABLE kernel_local_operations (
 		operation_id TEXT PRIMARY KEY,
 		owner_user_id TEXT NOT NULL,

@@ -19,8 +19,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"synon-go/internal/buildinfo"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/buildinfo"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const (
@@ -29,7 +29,7 @@ const (
 	maxSafetyFeedbackReasonCharacters  = 4000
 	feedbackRequestTimeout             = 30 * time.Second
 	maxFeedbackResponseBytes           = 1 << 20
-	feedbackRPCPath                    = "/synon_llm.operon.api.v1alpha.OperonService/Feedback"
+	feedbackRPCPath                    = "/x_science_llm.operon.api.v1alpha.OperonService/Feedback"
 )
 
 type FeedbackOptions struct {
@@ -333,7 +333,7 @@ func (s *Server) deliverFeedback(ctx context.Context, endpoint *url.URL, token s
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Connect-Protocol-Version", "1")
 	if beta := strings.TrimSpace(s.feedback.Beta); beta != "" {
-		request.Header.Set("synon_llm-beta", beta)
+		request.Header.Set("x_science_llm-beta", beta)
 	}
 	client := s.httpClient
 	if client == nil {

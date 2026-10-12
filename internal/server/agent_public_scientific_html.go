@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"golang.org/x/net/html/charset"
-	"synon-go/internal/tools/securefetch"
+	"x-science/internal/tools/securefetch"
 )
 
 func agentPublicScientificHTMLFilename(filename string) bool {

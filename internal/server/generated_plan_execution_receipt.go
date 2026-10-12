@@ -7,8 +7,8 @@ import (
 	"sort"
 	"strings"
 
-	"synon-go/internal/agentruntime"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	"x-science/internal/agentruntime"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 type generatedPlanExecutionBinding struct {

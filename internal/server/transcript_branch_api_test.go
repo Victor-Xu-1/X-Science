@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestCompatibilityRootForkUsesCanonicalTranscriptAuthority(t *testing.T) {
@@ -107,7 +107,7 @@ func TestCompatibilityRootForkUsesCanonicalTranscriptAuthority(t *testing.T) {
 		t.Fatalf("single branch message=%#v", singleBranchPayload)
 	}
 	webContent, _ := webMessage["content"].(map[string]any)
-	webMetadata, _ := webContent["synonBiomed"].(map[string]any)
+	webMetadata, _ := webContent["xScience"].(map[string]any)
 	if webMetadata["messageIndex"] != float64(0) || webMetadata["blockIndex"] != float64(0) ||
 		webMetadata["branchId"] != baseBranchID {
 		t.Fatalf("web branch metadata=%#v", webPayload)

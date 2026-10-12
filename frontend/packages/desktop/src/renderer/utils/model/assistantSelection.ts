@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { isSynonBiomedAssistant, type Assistant } from '@/common/types/agent/assistantTypes';
+import { isXScienceAssistant, type Assistant } from '@/common/types/agent/assistantTypes';
 
 /**
  * Single source of truth for which assistants appear in a *selection* list
@@ -39,7 +39,7 @@ const sourceGroupWeight = (source: string): number => {
  */
 export const selectableAssistants = (assistants: Assistant[]): Assistant[] =>
   [...assistants]
-    .filter((assistant) => assistant.enabled !== false && isSynonBiomedAssistant(assistant))
+    .filter((assistant) => assistant.enabled !== false && isXScienceAssistant(assistant))
     .sort((left, right) => {
       const groupDelta = sourceGroupWeight(left.source) - sourceGroupWeight(right.source);
       if (groupDelta !== 0) return groupDelta;

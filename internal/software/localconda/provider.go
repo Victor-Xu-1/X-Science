@@ -8,9 +8,9 @@ import (
 	"sort"
 	"strings"
 
-	"synon-go/internal/failurecontract"
-	kernelruntime "synon-go/internal/kernel"
-	"synon-go/internal/software"
+	"x-science/internal/failurecontract"
+	kernelruntime "x-science/internal/kernel"
+	"x-science/internal/software"
 )
 
 const ProviderID = software.LocalProviderID

@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/memorypolicy"
-	"synon-go/internal/memorytools"
+	"x-science/internal/memorypolicy"
+	"x-science/internal/memorytools"
 )
 
 func TestWorkspaceHasUserProseSince(t *testing.T) {

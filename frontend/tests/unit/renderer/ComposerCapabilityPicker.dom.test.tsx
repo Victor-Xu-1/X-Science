@@ -33,9 +33,9 @@ vi.mock('@arco-design/web-react', () => ({
   ),
 }));
 
-vi.mock('@/renderer/services/synonBiomedCapabilities', () => ({
-  loadSynonBiomedSkills: (...args: unknown[]) => capabilityMocks.loadSkills(...args),
-  loadSynonBiomedMcpServers: (...args: unknown[]) => capabilityMocks.loadMcpServers(...args),
+vi.mock('@/renderer/services/xScienceCapabilities', () => ({
+  loadXScienceSkills: (...args: unknown[]) => capabilityMocks.loadSkills(...args),
+  loadXScienceMcpServers: (...args: unknown[]) => capabilityMocks.loadMcpServers(...args),
 }));
 
 import ComposerCapabilityPicker from '@/renderer/components/media/ComposerCapabilityPicker';

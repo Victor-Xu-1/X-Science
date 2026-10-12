@@ -1,11 +1,11 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import type { SynonBiomedMcpServer } from '@/renderer/services/synonBiomedCapabilities';
+import type { XScienceMcpServer } from '@/renderer/services/xScienceCapabilities';
 import { McpConnectorConfigurationModal } from '@/renderer/pages/settings/ToolsSettings/McpConnectorConfigurationModal';
 import { renderWithI18n } from '../i18nTestUtils';
 
-const server: SynonBiomedMcpServer = {
+const server: XScienceMcpServer = {
   id: 'bundled:provider',
   name: 'provider',
   displayName: 'Provider',
@@ -22,7 +22,7 @@ const server: SynonBiomedMcpServer = {
   upstreams: [
     { name: 'Provider', credentialUrl: 'https://provider.example/signup', infoUrl: 'https://provider.example/docs' },
   ],
-  hostedBySynon: false,
+  hostedByXScience: false,
   health: { ok: false },
   attachedAgents: [],
   enabled: true,
@@ -128,7 +128,7 @@ describe('McpConnectorConfigurationModal', () => {
       'zh-CN'
     );
     expect(screen.getByText('账号登录授权')).toBeInTheDocument();
-    expect(screen.queryByTestId('synon-biomed-mcp-api-key-input')).toBeNull();
+    expect(screen.queryByTestId('x-science-mcp-api-key-input')).toBeNull();
     expect(screen.getByTestId('mcp-configuration-status')).toHaveTextContent('待授权');
   });
 });

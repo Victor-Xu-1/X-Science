@@ -17,9 +17,9 @@ import (
 )
 
 const (
-	processSupervisorHelperRole = "SYNON_PROCESS_SUPERVISOR_HELPER_ROLE"
-	processSupervisorPIDFile    = "SYNON_PROCESS_SUPERVISOR_PID_FILE"
-	processSupervisorSentinel   = "SYNON_PROCESS_SUPERVISOR_SENTINEL_FILE"
+	processSupervisorHelperRole = "X_SCIENCE_PROCESS_SUPERVISOR_HELPER_ROLE"
+	processSupervisorPIDFile    = "X_SCIENCE_PROCESS_SUPERVISOR_PID_FILE"
+	processSupervisorSentinel   = "X_SCIENCE_PROCESS_SUPERVISOR_SENTINEL_FILE"
 )
 
 func TestStartAssignsJobBeforeResumingProcess(t *testing.T) {

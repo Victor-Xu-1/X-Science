@@ -1,12 +1,12 @@
 import {
-  createSynonBiomedProject,
-  deleteSynonBiomedProject,
-  loadSynonBiomedProjectArtifacts,
-  loadSynonBiomedProjects,
-  updateSynonBiomedProject,
-  type SynonBiomedProject,
-  type SynonBiomedProjectInput,
-} from '@/renderer/services/synonBiomedGateway';
+  createXScienceProject,
+  deleteXScienceProject,
+  loadXScienceProjectArtifacts,
+  loadXScienceProjects,
+  updateXScienceProject,
+  type XScienceProject,
+  type XScienceProjectInput,
+} from '@/renderer/services/xScienceGateway';
 import { downloadFileFromUrl } from '@/renderer/utils/file/download';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import { loadProjectSidebarOrder, saveProjectSidebarOrder } from '@/renderer/services/projectSidebarOrder';
@@ -33,7 +33,7 @@ const ProjectEditorModal = React.lazy(() => import('./ProjectEditorModal'));
 type ProjectHistorySectionProps = {
   collapsed: boolean;
   activeProjectId: string | null;
-  onProjectsChange?: (projects: SynonBiomedProject[]) => void;
+  onProjectsChange?: (projects: XScienceProject[]) => void;
   onProjectSelect?: (projectId: string) => void;
   resolveImmediateProjectTarget?: (projectId: string) => ProjectNavigationTarget | null;
   onPrepareNavigation?: (target: ProjectNavigationTarget) => Promise<void>;
@@ -41,7 +41,7 @@ type ProjectHistorySectionProps = {
   onBatchModeChange?: (value: boolean) => void;
 };
 
-type EditorState = { mode: 'create'; project: null } | { mode: 'edit'; project: SynonBiomedProject } | null;
+type EditorState = { mode: 'create'; project: null } | { mode: 'edit'; project: XScienceProject } | null;
 type ProjectOrderError = 'saveRollback' | 'saveFailed' | 'loadFailed';
 
 const ProjectHistorySection: React.FC<ProjectHistorySectionProps> = ({
@@ -59,12 +59,12 @@ const ProjectHistorySection: React.FC<ProjectHistorySectionProps> = ({
   const { pathname } = useLocation();
   const sectionRef = useRef<HTMLElement | null>(null);
   const navigationIntentRef = useRef(0);
-  const [projects, setProjects] = useState<SynonBiomedProject[]>([]);
+  const [projects, setProjects] = useState<XScienceProject[]>([]);
   const [projectsExpanded, setProjectsExpanded] = useState(true);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [editor, setEditor] = useState<EditorState>(null);
-  const [deleteTarget, setDeleteTarget] = useState<SynonBiomedProject | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<XScienceProject | null>(null);
   const [menuProjectId, setMenuProjectId] = useState<string | null>(null);
   const [mutationLoading, setMutationLoading] = useState(false);
   const [downloadProjectId, setDownloadProjectId] = useState<string | null>(null);
@@ -78,7 +78,7 @@ const ProjectHistorySection: React.FC<ProjectHistorySectionProps> = ({
   const [draggedProjectId, setDraggedProjectId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [orderAnnouncement, setOrderAnnouncement] = useState('');
-  const projectsRef = useRef<SynonBiomedProject[]>([]);
+  const projectsRef = useRef<XScienceProject[]>([]);
   const confirmedOrderRef = useRef<string[]>([]);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const saveVersionRef = useRef(0);
@@ -180,7 +180,7 @@ const ProjectHistorySection: React.FC<ProjectHistorySectionProps> = ({
   );
 
   const handleProjectKeyboardMove = useCallback(
-    (project: SynonBiomedProject, offset: -1 | 1) => {
+    (project: XScienceProject, offset: -1 | 1) => {
       const currentOrder = projectIds(projectsRef.current);
       const nextOrder = moveProjectByOffset(currentOrder, project.projectId, offset);
       const nextIndex = nextOrder.indexOf(project.projectId);
@@ -212,7 +212,7 @@ const ProjectHistorySection: React.FC<ProjectHistorySectionProps> = ({
     const requestVersion = ++projectsRequestVersionRef.current;
     if (showLoading) setLoading(true);
 
-    void loadSynonBiomedProjects()
+    void loadXScienceProjects()
       .then((items) => {
         if (requestVersion !== projectsRequestVersionRef.current) return;
         setProjects(items);
@@ -230,9 +230,9 @@ const ProjectHistorySection: React.FC<ProjectHistorySectionProps> = ({
   }, []);
 
   useEffect(() => refreshProjects(true), [refreshProjects]);
-  useAddEventListener('synonbiomed.projects.refresh', () => void refreshProjects(false), [refreshProjects]);
+  useAddEventListener('xscience.projects.refresh', () => void refreshProjects(false), [refreshProjects]);
   useAddEventListener(
-    'synonbiomed.projects.create',
+    'xscience.projects.create',
     () => {
       setMutationError(null);
       setEditor({ mode: 'create', project: null });
@@ -248,7 +248,7 @@ const ProjectHistorySection: React.FC<ProjectHistorySectionProps> = ({
     if (!menuProjectId) return;
     const closeOnOutside = (event: MouseEvent) => {
       const target = event.target as Element | null;
-      if (!sectionRef.current?.contains(target) && !target?.closest('[data-synon-sidebar-project-menu]')) {
+      if (!sectionRef.current?.contains(target) && !target?.closest('[data-x-science-sidebar-project-menu]')) {
         setMenuProjectId(null);
       }
     };
@@ -287,31 +287,31 @@ const ProjectHistorySection: React.FC<ProjectHistorySectionProps> = ({
     [navigate, onPrepareNavigation, onProjectSelect, resolveImmediateProjectTarget, t]
   );
 
-  const handleEditorSubmit = async (input: SynonBiomedProjectInput) => {
+  const handleEditorSubmit = async (input: XScienceProjectInput) => {
     if (!editor || mutationLoading) return;
     setMutationLoading(true);
     setMutationError(null);
     try {
       if (editor.mode === 'create') {
-        const created = await createSynonBiomedProject(input);
+        const created = await createXScienceProject(input);
         setProjects((current) => [...current, created]);
         onProjectSelect?.(created.projectId);
-        emitter.emit('synonbiomed.projects.refresh');
+        emitter.emit('xscience.projects.refresh');
         setEditor(null);
         const target = resolveProjectNavigationTarget(created.projectId, []);
         void navigate(target.pathname, { state: target.state });
       } else {
-        const updated = await updateSynonBiomedProject(editor.project.projectId, input);
+        const updated = await updateXScienceProject(editor.project.projectId, input);
         setProjects((current) =>
           current.map((project) => (project.projectId === updated.projectId ? updated : project))
         );
-        emitter.emit('synonbiomed.projects.refresh');
+        emitter.emit('xscience.projects.refresh');
         setEditor(null);
         const projectPath = `/projects/${encodeURIComponent(updated.projectId)}`;
         if (pathname === projectPath) {
           void navigate(projectPath, {
             replace: true,
-            state: { synonBiomedProjectRevision: Date.now() },
+            state: { xScienceProjectRevision: Date.now() },
           });
         }
       }
@@ -328,9 +328,9 @@ const ProjectHistorySection: React.FC<ProjectHistorySectionProps> = ({
     setMutationLoading(true);
     setMutationError(null);
     try {
-      await deleteSynonBiomedProject(deleteTarget.projectId);
+      await deleteXScienceProject(deleteTarget.projectId);
       setProjects((current) => current.filter((project) => project.projectId !== deleteTarget.projectId));
-      emitter.emit('synonbiomed.projects.refresh');
+      emitter.emit('xscience.projects.refresh');
       // A conversation route can be owned by the project being removed. Once
       // the backend has deleted that project and its frames, keeping the
       // conversation route leaves the user on an empty page after the next
@@ -373,13 +373,13 @@ const ProjectHistorySection: React.FC<ProjectHistorySectionProps> = ({
     setMutationLoading(true);
     setMutationError(null);
     try {
-      const results = await Promise.allSettled(selectedIds.map((projectId) => deleteSynonBiomedProject(projectId)));
+      const results = await Promise.allSettled(selectedIds.map((projectId) => deleteXScienceProject(projectId)));
       const deletedIds = new Set(selectedIds.filter((_projectId, index) => results[index]?.status === 'fulfilled'));
       const failedIds = selectedIds.filter((_projectId, index) => results[index]?.status === 'rejected');
 
       if (deletedIds.size > 0) {
         setProjects((current) => current.filter((project) => !deletedIds.has(project.projectId)));
-        emitter.emit('synonbiomed.projects.refresh');
+        emitter.emit('xscience.projects.refresh');
         if (
           [...deletedIds].some(
             (projectId) =>
@@ -408,12 +408,12 @@ const ProjectHistorySection: React.FC<ProjectHistorySectionProps> = ({
     }
   };
 
-  const handleDownloadProject = async (project: SynonBiomedProject) => {
+  const handleDownloadProject = async (project: XScienceProject) => {
     if (downloadProjectId) return;
     setMenuProjectId(null);
     setDownloadProjectId(project.projectId);
     try {
-      const artifacts = await loadSynonBiomedProjectArtifacts(project.projectId);
+      const artifacts = await loadXScienceProjectArtifacts(project.projectId);
       const ids = artifacts
         .map((artifact) => artifact.artifactId)
         .filter(Boolean)
@@ -442,7 +442,7 @@ const ProjectHistorySection: React.FC<ProjectHistorySectionProps> = ({
     <section
       ref={sectionRef}
       data-testid='sider-project-section'
-      className='synon-sidebar-projects min-w-0'
+      className='x-science-sidebar-projects min-w-0'
       aria-label={sectionLabel}
       aria-busy={loading || orderSaving}
     >
@@ -661,7 +661,7 @@ const ProjectHistorySection: React.FC<ProjectHistorySectionProps> = ({
 };
 
 type ProjectRowProps = {
-  project: SynonBiomedProject;
+  project: XScienceProject;
   collapsed: boolean;
   selected: boolean;
   menuOpen: boolean;
@@ -798,7 +798,7 @@ const ProjectRow: React.FC<ProjectRowProps> = ({
     <div
       data-testid={`project-row-${project.projectId}`}
       className={classNames(
-        'synon-sidebar-project-row relative group/project min-w-0 border-solid border-transparent',
+        'x-science-sidebar-project-row relative group/project min-w-0 border-solid border-transparent',
         dragging && 'opacity-55',
         dropPosition === 'before' && 'border-t-2px !border-t-[rgb(var(--primary-6))]',
         dropPosition === 'after' && 'border-b-2px !border-b-[rgb(var(--primary-6))]'
@@ -822,7 +822,7 @@ const ProjectRow: React.FC<ProjectRowProps> = ({
           aria-label={t('conversation.history.projectOrder.reorderNamed', {
             name: project.name,
           })}
-          className='synon-sidebar-project-drag absolute z-10 left-1px top-1/2 -translate-y-1/2 size-18px flex items-center justify-center border-none bg-transparent rd-4px text-t-tertiary cursor-grab active:cursor-grabbing hover:bg-fill-3 hover:text-t-primary focus:bg-fill-3 focus:text-t-primary'
+          className='x-science-sidebar-project-drag absolute z-10 left-1px top-1/2 -translate-y-1/2 size-18px flex items-center justify-center border-none bg-transparent rd-4px text-t-tertiary cursor-grab active:cursor-grabbing hover:bg-fill-3 hover:text-t-primary focus:bg-fill-3 focus:text-t-primary'
           onClick={(event) => event.stopPropagation()}
           onDragStart={(event) => {
             event.dataTransfer.effectAllowed = 'move';
@@ -843,7 +843,7 @@ const ProjectRow: React.FC<ProjectRowProps> = ({
       <button
         type='button'
         className={classNames(
-          'synon-sidebar-project-button w-full min-w-0 flex items-center gap-8px border-none bg-transparent rd-8px text-left cursor-pointer transition-colors text-t-primary hover:bg-fill-2',
+          'x-science-sidebar-project-button w-full min-w-0 flex items-center gap-8px border-none bg-transparent rd-8px text-left cursor-pointer transition-colors text-t-primary hover:bg-fill-2',
           selected && 'bg-fill-3',
           batchMode && checked && 'bg-[rgba(var(--primary-6),0.08)]',
           collapsed
@@ -869,8 +869,8 @@ const ProjectRow: React.FC<ProjectRowProps> = ({
         )}
         {!collapsed && (
           <span className='min-w-0 flex-1'>
-            <span className='synon-sidebar-project-name block truncate text-13px font-[500]'>{project.name}</span>
-            <span className='synon-sidebar-project-meta block truncate mt-2px text-11px text-t-tertiary'>
+            <span className='x-science-sidebar-project-name block truncate text-13px font-[500]'>{project.name}</span>
+            <span className='x-science-sidebar-project-meta block truncate mt-2px text-11px text-t-tertiary'>
               {description}
             </span>
           </span>
@@ -913,7 +913,7 @@ const ProjectRow: React.FC<ProjectRowProps> = ({
                 id={menuId}
                 role='menu'
                 aria-label={menuLabel}
-                data-synon-sidebar-project-menu
+                data-x-science-sidebar-project-menu
                 className='app-overlay-menu fixed z-[1000] box-border p-5px'
                 style={{
                   maxWidth: 'calc(100vw - 16px)',
@@ -983,9 +983,9 @@ const ProjectRow: React.FC<ProjectRowProps> = ({
   );
 };
 
-const projectIds = (projects: readonly SynonBiomedProject[]): string[] => projects.map((project) => project.projectId);
+const projectIds = (projects: readonly XScienceProject[]): string[] => projects.map((project) => project.projectId);
 
-const orderProjects = (projects: readonly SynonBiomedProject[], order: readonly string[]): SynonBiomedProject[] => {
+const orderProjects = (projects: readonly XScienceProject[], order: readonly string[]): XScienceProject[] => {
   const byId = new Map(projects.map((project) => [project.projectId, project]));
   return order.flatMap((projectId) => {
     const project = byId.get(projectId);

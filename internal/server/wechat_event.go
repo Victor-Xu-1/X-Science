@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"strconv"
 
-	adaptercommon "synon-go/internal/adapters/common"
-	adapterwechat "synon-go/internal/adapters/wechat"
-	taskstore "synon-go/internal/persistence/tasks"
+	adaptercommon "x-science/internal/adapters/common"
+	adapterwechat "x-science/internal/adapters/wechat"
+	taskstore "x-science/internal/persistence/tasks"
 )
 
 type WeChatInboundResult struct {

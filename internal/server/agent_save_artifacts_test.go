@@ -18,13 +18,13 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	kernelruntime "synon-go/internal/kernel"
-	runtimekv "synon-go/internal/persistence/runtimekv"
-	sessionstore "synon-go/internal/persistence/sessions"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/skills"
+	"x-science/internal/agentruntime"
+	kernelruntime "x-science/internal/kernel"
+	runtimekv "x-science/internal/persistence/runtimekv"
+	sessionstore "x-science/internal/persistence/sessions"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/skills"
 )
 
 type agentSaveArtifactsFixture struct {
@@ -201,12 +201,12 @@ const validServerEthanolSMILES = "CCO\tETHANOL\n"
 
 func realManagedScientificKernelManagerForServerTest(t *testing.T) *kernelruntime.Manager {
 	t.Helper()
-	if os.Getenv("SYNON_RUN_REAL_SERVER_SDF") != "1" {
-		t.Skip("set SYNON_RUN_REAL_SERVER_SDF=1 and SYNON_TEST_CONDA_ENVS_PATH to exercise the installed managed RDKit runtime")
+	if os.Getenv("X_SCIENCE_RUN_REAL_SERVER_SDF") != "1" {
+		t.Skip("set X_SCIENCE_RUN_REAL_SERVER_SDF=1 and X_SCIENCE_TEST_CONDA_ENVS_PATH to exercise the installed managed RDKit runtime")
 	}
-	envsPath := strings.TrimSpace(os.Getenv("SYNON_TEST_CONDA_ENVS_PATH"))
+	envsPath := strings.TrimSpace(os.Getenv("X_SCIENCE_TEST_CONDA_ENVS_PATH"))
 	if envsPath == "" {
-		t.Fatal("SYNON_TEST_CONDA_ENVS_PATH is required for the opted-in server SDF integration tests")
+		t.Fatal("X_SCIENCE_TEST_CONDA_ENVS_PATH is required for the opted-in server SDF integration tests")
 	}
 	_, source, _, ok := runtime.Caller(0)
 	if !ok {
@@ -220,7 +220,7 @@ func realManagedScientificKernelManagerForServerTest(t *testing.T) *kernelruntim
 		CondaHome:                filepath.Dir(envsPath),
 		CondaEnvsPath:            envsPath,
 		CondaRuntimeCatalog:      filepath.Join(optional, "conda-runtimes", "manifest.json"),
-		ManagedPythonEnvironment: "synon-biomed-python",
+		ManagedPythonEnvironment: "x-science-python",
 		AssetRoot:                optional,
 		ManifestPath:             filepath.Join(optional, "kernel-compute.manifest.json"),
 		WorkerPath:               filepath.Join(optional, "kernels", "kernel_worker.py"),
@@ -232,7 +232,7 @@ func realManagedScientificKernelManagerForServerTest(t *testing.T) *kernelruntim
 	}
 	// Asset changes have a new runtime generation. Opted-in integration runs
 	// may provision it into a dedicated test environment, not an active service.
-	if os.Getenv("SYNON_TEST_PROVISION_SCIENTIFIC_RUNTIME") == "1" {
+	if os.Getenv("X_SCIENCE_TEST_PROVISION_SCIENTIFIC_RUNTIME") == "1" {
 		if err := manager.EnsureManagedPythonEnvironment(t.Context()); err != nil {
 			t.Fatalf("provision real scientific test runtime: %v", err)
 		}
@@ -1018,7 +1018,7 @@ func TestAgentSaveArtifactsAcceptsValidSDFThroughInstalledRDKitRuntime(t *testin
 	write := writeAgentSaveArtifactsFile(t, fixture.projectPath, "out/ethanol.sdf", validServerEthanolSDF)
 	fixture.saveExecution(t, fixture.identity.access, fixture.projectPath, "exec-valid-sdf", 1, write)
 	input := map[string]any{
-		"files": []any{"out/ethanol.sdf"}, "language": "python", "environment": "synon-biomed-python",
+		"files": []any{"out/ethanol.sdf"}, "language": "python", "environment": "x-science-python",
 		"human_description": "Saving validated ethanol structures",
 	}
 	result, err := fixture.server.executeAgentSaveArtifacts(
@@ -1057,7 +1057,7 @@ func TestAgentSaveArtifactsRejectsMalformedSDFWithoutCanonicalWrites(t *testing.
 	write := writeAgentSaveArtifactsFile(t, fixture.projectPath, "out/malformed.sdf", malformed)
 	fixture.saveExecution(t, fixture.identity.access, fixture.projectPath, "exec-invalid-sdf", 1, write)
 	input := map[string]any{
-		"files": []any{"out/malformed.sdf"}, "language": "python", "environment": "synon-biomed-python",
+		"files": []any{"out/malformed.sdf"}, "language": "python", "environment": "x-science-python",
 		"human_description": "Saving malformed structures",
 	}
 	result, err := fixture.server.executeAgentSaveArtifacts(
@@ -1079,7 +1079,7 @@ func TestAgentSaveArtifactsAcceptsValidSMILESThroughInstalledRDKitRuntime(t *tes
 	write := writeAgentSaveArtifactsFile(t, fixture.projectPath, "out/ethanol.smi", validServerEthanolSMILES)
 	fixture.saveExecution(t, fixture.identity.access, fixture.projectPath, "exec-valid-smiles", 1, write)
 	input := map[string]any{
-		"files": []any{"out/ethanol.smi"}, "language": "python", "environment": "synon-biomed-python",
+		"files": []any{"out/ethanol.smi"}, "language": "python", "environment": "x-science-python",
 		"human_description": "Saving validated ethanol SMILES",
 	}
 	result, err := fixture.server.executeAgentSaveArtifacts(
@@ -1095,7 +1095,7 @@ func TestAgentSaveArtifactsRejectsHeaderOnlySMILESWithoutCanonicalWrites(t *test
 	write := writeAgentSaveArtifactsFile(t, fixture.projectPath, "out/empty.smi", "candidate_id\tcanonical_smiles\n")
 	fixture.saveExecution(t, fixture.identity.access, fixture.projectPath, "exec-invalid-smiles", 1, write)
 	input := map[string]any{
-		"files": []any{"out/empty.smi"}, "language": "python", "environment": "synon-biomed-python",
+		"files": []any{"out/empty.smi"}, "language": "python", "environment": "x-science-python",
 		"human_description": "Saving incomplete SMILES",
 	}
 	result, err := fixture.server.executeAgentSaveArtifacts(
@@ -1112,7 +1112,7 @@ func TestAgentSaveArtifactsFailsClosedWhenScientificValidatorIsUnavailable(t *te
 	write := writeAgentSaveArtifactsFile(t, fixture.projectPath, "out/ethanol.sdf", validServerEthanolSDF)
 	fixture.saveExecution(t, fixture.identity.access, fixture.projectPath, "exec-unavailable-sdf", 1, write)
 	input := map[string]any{
-		"files": []any{"out/ethanol.sdf"}, "language": "python", "environment": "synon-biomed-python",
+		"files": []any{"out/ethanol.sdf"}, "language": "python", "environment": "x-science-python",
 		"human_description": "Saving structures without a validator",
 	}
 	result, err := fixture.server.executeAgentSaveArtifacts(
@@ -1847,8 +1847,8 @@ func TestAgentSaveArtifactsRejectsInvalidLargeFileContent(t *testing.T) {
 }
 
 func TestAgentSaveArtifactsObservedLargeCheckpoint(t *testing.T) {
-	if os.Getenv("SYNON_TEST_LARGE_ARTIFACT") != "1" {
-		t.Skip("set SYNON_TEST_LARGE_ARTIFACT=1 for the 321,003,928-byte checkpoint persistence test")
+	if os.Getenv("X_SCIENCE_TEST_LARGE_ARTIFACT") != "1" {
+		t.Skip("set X_SCIENCE_TEST_LARGE_ARTIFACT=1 for the 321,003,928-byte checkpoint persistence test")
 	}
 	fixture := newAgentSaveArtifactsFixture(t)
 	path := filepath.Join(fixture.projectPath, "out", "intermediate-checkpoint.bin")

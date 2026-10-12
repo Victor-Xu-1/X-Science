@@ -8,9 +8,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	taskruns "synon-go/internal/persistence/taskruns"
-	"synon-go/internal/synonlink"
 	"time"
+	taskruns "x-science/internal/persistence/taskruns"
+	"x-science/internal/xsciencelink"
 )
 
 func (s *Server) executeTaskRunTool(input map[string]any) (any, error) {
@@ -125,7 +125,7 @@ func (s *Server) executeTaskRunTool(input map[string]any) (any, error) {
 }
 
 func (s *Server) dispatchTaskRunExternalOrQueue(run taskruns.Record, message string) (taskruns.Record, error) {
-	if blocked, handled, err := s.blockTaskRunMissingSynonLinkClient(run); err != nil {
+	if blocked, handled, err := s.blockTaskRunMissingXScienceLinkClient(run); err != nil {
 		return taskruns.Record{}, err
 	} else if handled {
 		if err := s.syncTaskRunGoalLedger(blocked); err != nil {
@@ -133,7 +133,7 @@ func (s *Server) dispatchTaskRunExternalOrQueue(run taskruns.Record, message str
 		}
 		return blocked, nil
 	}
-	if executed, completed, err := s.executeTaskRunSynonLinkSteps(run); err != nil {
+	if executed, completed, err := s.executeTaskRunXScienceLinkSteps(run); err != nil {
 		return taskruns.Record{}, err
 	} else if executed {
 		if err := s.syncTaskRunGoalLedger(completed); err != nil {
@@ -144,7 +144,7 @@ func (s *Server) dispatchTaskRunExternalOrQueue(run taskruns.Record, message str
 	return s.queueTaskRunSession(run, message)
 }
 
-func (s *Server) blockTaskRunMissingSynonLinkClient(run taskruns.Record) (taskruns.Record, bool, error) {
+func (s *Server) blockTaskRunMissingXScienceLinkClient(run taskruns.Record) (taskruns.Record, bool, error) {
 	if s == nil || s.taskRunStore == nil {
 		return taskruns.Record{}, false, nil
 	}
@@ -156,7 +156,7 @@ func (s *Server) blockTaskRunMissingSynonLinkClient(run taskruns.Record) (taskru
 		}
 		executor := mapValue(step.Executor)
 		kind := strings.TrimSpace(stringValue(executor["kind"]))
-		if kind == "synonlink-browser" {
+		if kind == "xsciencelink-browser" {
 			stepIndex = index
 			clientKind = kind
 		}
@@ -165,7 +165,7 @@ func (s *Server) blockTaskRunMissingSynonLinkClient(run taskruns.Record) (taskru
 	if stepIndex < 0 {
 		return taskruns.Record{}, false, nil
 	}
-	gateKind, gateMessage, missingCapabilities, blocked := s.taskRunSynonLinkGateIssue(run.Steps[stepIndex])
+	gateKind, gateMessage, missingCapabilities, blocked := s.taskRunXScienceLinkGateIssue(run.Steps[stepIndex])
 	if !blocked {
 		return taskruns.Record{}, false, nil
 	}
@@ -191,7 +191,7 @@ func (s *Server) blockTaskRunMissingSynonLinkClient(run taskruns.Record) (taskru
 		record.CapabilityGaps = append(record.CapabilityGaps, gap)
 		record.NextActions = []string{"Connect or upgrade the X-Science Link browser extension and retry TaskRun action=resume after it advertises the action and capabilities."}
 		record.Completion = taskruns.Completion{State: "waiting_user", Verified: false, Confidence: "high", Reason: message, NextAction: "Connect or upgrade X-Science Link, then resume the TaskRun.", UpdatedAt: now}
-		record.ExecutionTrace = append(record.ExecutionTrace, taskruns.TraceEvent{At: now, Event: "waiting_for_synonlink_client", StepID: step.ID, Message: message, Metadata: map[string]any{"clientKind": clientKind, "action": action}})
+		record.ExecutionTrace = append(record.ExecutionTrace, taskruns.TraceEvent{At: now, Event: "waiting_for_xsciencelink_client", StepID: step.ID, Message: message, Metadata: map[string]any{"clientKind": clientKind, "action": action}})
 		record.UpdatedAt = now
 		return record, nil
 	})
@@ -201,14 +201,14 @@ func (s *Server) blockTaskRunMissingSynonLinkClient(run taskruns.Record) (taskru
 	return updated, true, nil
 }
 
-func (s *Server) taskRunSynonLinkGateIssue(step taskruns.Step) (string, string, []string, bool) {
+func (s *Server) taskRunXScienceLinkGateIssue(step taskruns.Step) (string, string, []string, bool) {
 	executor := mapValue(step.Executor)
 	kind := strings.TrimSpace(stringValue(executor["kind"]))
 	action := strings.TrimSpace(stringValue(executor["action"]))
 	input := objectMapValue(executor["input"])
 	userID := firstNonEmpty(stringValue(input["userId"]), stringValue(input["user_id"]))
 	clientID := firstNonEmpty(stringValue(input["clientId"]), stringValue(input["client_id"]))
-	clients := s.synonLink.ListAllClients()
+	clients := s.xscienceLink.ListAllClients()
 	if len(clients) == 0 {
 		message := "TaskRun requires a connected " + kind + " client before executing X-Science Link action"
 		if action != "" {
@@ -217,7 +217,7 @@ func (s *Server) taskRunSynonLinkGateIssue(step taskruns.Step) (string, string, 
 		return "needsClient", message, nil, true
 	}
 	if userID == "" || clientID == "" {
-		if _, ok := s.selectTaskRunSynonLinkClient(kind, action); ok {
+		if _, ok := s.selectTaskRunXScienceLinkClient(kind, action); ok {
 			return "", "", nil, false
 		}
 		return "missingCapability", "No connected " + kind + " client advertises X-Science Link action " + action + ".", []string{"action:" + action}, true
@@ -229,19 +229,19 @@ func (s *Server) taskRunSynonLinkGateIssue(step taskruns.Step) (string, string, 
 		if client.Status != "" && client.Status != "online" {
 			return "needsClient", "TaskRun requires online X-Science Link client " + clientID + " before executing action " + action + ".", nil, true
 		}
-		wantKind := strings.TrimPrefix(kind, "synonlink-")
+		wantKind := strings.TrimPrefix(kind, "xsciencelink-")
 		if wantKind != "" && client.Kind != wantKind {
 			return "missingCapability", "X-Science Link client " + clientID + " is " + client.Kind + " but action " + action + " requires " + wantKind + ".", []string{"clientKind:" + wantKind}, true
 		}
-		if err := synonlink.ValidateCommandPolicyWithDefaults(client, action, taskRunSynonLinkPayload(input), s.synonLink.PolicyDefaults()); err != nil {
-			return "missingCapability", err.Error(), taskRunSynonLinkMissingCapabilities(err.Error(), action), true
+		if err := xsciencelink.ValidateCommandPolicyWithDefaults(client, action, taskRunXScienceLinkPayload(input), s.xscienceLink.PolicyDefaults()); err != nil {
+			return "missingCapability", err.Error(), taskRunXScienceLinkMissingCapabilities(err.Error(), action), true
 		}
 		return "", "", nil, false
 	}
 	return "needsClient", "TaskRun requires connected X-Science Link client " + clientID + " for user " + userID + ".", nil, true
 }
 
-func taskRunSynonLinkMissingCapabilities(message string, action string) []string {
+func taskRunXScienceLinkMissingCapabilities(message string, action string) []string {
 	if marker := "missing capability "; strings.Contains(message, marker) {
 		after := strings.TrimSpace(message[strings.Index(message, marker)+len(marker):])
 		if fields := strings.Fields(after); len(fields) > 0 {
@@ -254,8 +254,8 @@ func taskRunSynonLinkMissingCapabilities(message string, action string) []string
 	return nil
 }
 
-func (s *Server) executeTaskRunSynonLinkSteps(run taskruns.Record) (bool, taskruns.Record, error) {
-	if s == nil || s.taskRunStore == nil || s.synonLink == nil || len(run.Steps) == 0 {
+func (s *Server) executeTaskRunXScienceLinkSteps(run taskruns.Record) (bool, taskruns.Record, error) {
+	if s == nil || s.taskRunStore == nil || s.xscienceLink == nil || len(run.Steps) == 0 {
 		return false, taskruns.Record{}, nil
 	}
 	runnable := make([]taskruns.Step, 0, len(run.Steps))
@@ -265,7 +265,7 @@ func (s *Server) executeTaskRunSynonLinkSteps(run taskruns.Record) (bool, taskru
 		}
 		executor := mapValue(step.Executor)
 		kind := strings.TrimSpace(stringValue(executor["kind"]))
-		if kind != "synonlink-browser" {
+		if kind != "xsciencelink-browser" {
 			return false, taskruns.Record{}, nil
 		}
 		runnable = append(runnable, step)
@@ -280,9 +280,9 @@ func (s *Server) executeTaskRunSynonLinkSteps(run taskruns.Record) (bool, taskru
 	}
 	results := make([]stepResult, 0, len(runnable))
 	for _, step := range runnable {
-		artifact, evidence, err := s.executeTaskRunSynonLinkStep(run, step, time.Now().UTC().UnixMilli())
+		artifact, evidence, err := s.executeTaskRunXScienceLinkStep(run, step, time.Now().UTC().UnixMilli())
 		if err != nil {
-			failed, updateErr := s.failTaskRunDirectStep(run.RunID, step.ID, "synonlink_step_failed", err.Error())
+			failed, updateErr := s.failTaskRunDirectStep(run.RunID, step.ID, "xsciencelink_step_failed", err.Error())
 			if updateErr != nil {
 				return true, taskruns.Record{}, updateErr
 			}
@@ -307,12 +307,12 @@ func (s *Server) executeTaskRunSynonLinkSteps(run taskruns.Record) (bool, taskru
 				step.Artifacts = append(step.Artifacts, result.artifact)
 				record.Artifacts = append(record.Artifacts, result.artifact)
 				record.EvidenceIndex = append(record.EvidenceIndex, result.evidence)
-				record.ExecutionTrace = append(record.ExecutionTrace, taskruns.TraceEvent{At: now, Event: "synonlink_step_completed", StepID: step.ID, Message: "TaskRun SynonLink executor completed through connected bridge client.", Metadata: map[string]any{"artifact_path": result.artifact.Path, "artifact_kind": result.artifact.Kind}})
+				record.ExecutionTrace = append(record.ExecutionTrace, taskruns.TraceEvent{At: now, Event: "xsciencelink_step_completed", StepID: step.ID, Message: "TaskRun X-Science Link executor completed through connected bridge client.", Metadata: map[string]any{"artifact_path": result.artifact.Path, "artifact_kind": result.artifact.Kind}})
 			}
 		}
 		record.Status = "completed"
-		record.NextActions = []string{"TaskRun SynonLink direct executor completed; verification evidence is recorded."}
-		record.Completion = taskruns.Completion{State: "pending_self_check", Verified: false, Confidence: "medium", Reason: "SynonLink direct executor completed; final verification is pending.", NextAction: "Call TaskRun action=verify.", UpdatedAt: now}
+		record.NextActions = []string{"TaskRun X-Science Link direct executor completed; verification evidence is recorded."}
+		record.Completion = taskruns.Completion{State: "pending_self_check", Verified: false, Confidence: "medium", Reason: "X-Science Link direct executor completed; final verification is pending.", NextAction: "Call TaskRun action=verify.", UpdatedAt: now}
 		for i := range record.Acceptance {
 			record.Acceptance[i].Status = "passed"
 			record.Acceptance[i].UpdatedAt = now
@@ -321,7 +321,7 @@ func (s *Server) executeTaskRunSynonLinkSteps(run taskruns.Record) (bool, taskru
 			}
 		}
 		record.UpdatedAt = now
-		record.History = append(record.History, taskruns.HistoryEvent{At: now, Event: "synonlink_steps_completed", Message: "TaskRun SynonLink executor completed."})
+		record.History = append(record.History, taskruns.HistoryEvent{At: now, Event: "xsciencelink_steps_completed", Message: "TaskRun X-Science Link executor completed."})
 		return record, nil
 	})
 	if err != nil {
@@ -331,25 +331,25 @@ func (s *Server) executeTaskRunSynonLinkSteps(run taskruns.Record) (bool, taskru
 	return true, verified, err
 }
 
-func (s *Server) executeTaskRunSynonLinkStep(record taskruns.Record, step taskruns.Step, now int64) (taskruns.Artifact, taskruns.Evidence, error) {
+func (s *Server) executeTaskRunXScienceLinkStep(record taskruns.Record, step taskruns.Step, now int64) (taskruns.Artifact, taskruns.Evidence, error) {
 	executor := mapValue(step.Executor)
 	kind := strings.TrimSpace(stringValue(executor["kind"]))
 	action := strings.TrimSpace(stringValue(executor["action"]))
 	if action == "" {
-		return taskruns.Artifact{}, taskruns.Evidence{}, errors.New("SynonLink TaskRun executor requires action")
+		return taskruns.Artifact{}, taskruns.Evidence{}, errors.New("X-Science Link TaskRun executor requires action")
 	}
 	input := objectMapValue(executor["input"])
 	userID := firstNonEmpty(stringValue(input["userId"]), stringValue(input["user_id"]))
 	clientID := firstNonEmpty(stringValue(input["clientId"]), stringValue(input["client_id"]))
 	if userID == "" || clientID == "" {
-		selected, ok := s.selectTaskRunSynonLinkClient(kind, action)
+		selected, ok := s.selectTaskRunXScienceLinkClient(kind, action)
 		if !ok {
 			return taskruns.Artifact{}, taskruns.Evidence{}, fmt.Errorf("TaskRun requires a connected %s client that supports %s", kind, action)
 		}
 		userID = firstNonEmpty(userID, selected.UserID)
 		clientID = firstNonEmpty(clientID, selected.ID)
 	}
-	payload := taskRunSynonLinkPayload(input)
+	payload := taskRunXScienceLinkPayload(input)
 	timeout := time.Duration(numberValue(input["timeout_ms"])) * time.Millisecond
 	if timeout <= 0 {
 		timeout = time.Duration(numberValue(input["timeoutSeconds"])) * time.Second
@@ -359,18 +359,18 @@ func (s *Server) executeTaskRunSynonLinkStep(record taskruns.Record, step taskru
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	command, resultCh, err := s.synonLink.SendCommand(ctx, userID, clientID, action, payload)
+	command, resultCh, err := s.xscienceLink.SendCommand(ctx, userID, clientID, action, payload)
 	if err != nil {
 		return taskruns.Artifact{}, taskruns.Evidence{}, err
 	}
-	var result synonlink.CommandResult
+	var result xsciencelink.CommandResult
 	select {
 	case result = <-resultCh:
 	case <-ctx.Done():
-		return taskruns.Artifact{}, taskruns.Evidence{}, fmt.Errorf("SynonLink TaskRun command %s timed out: %w", command.ID, ctx.Err())
+		return taskruns.Artifact{}, taskruns.Evidence{}, fmt.Errorf("X-Science Link TaskRun command %s timed out: %w", command.ID, ctx.Err())
 	}
 	if !result.OK {
-		return taskruns.Artifact{}, taskruns.Evidence{}, fmt.Errorf("SynonLink TaskRun command %s failed: %s", command.ID, result.Error)
+		return taskruns.Artifact{}, taskruns.Evidence{}, fmt.Errorf("X-Science Link TaskRun command %s failed: %s", command.ID, result.Error)
 	}
 	body, err := json.MarshalIndent(map[string]any{
 		"executor":  kind,
@@ -392,34 +392,34 @@ func (s *Server) executeTaskRunSynonLinkStep(record taskruns.Record, step taskru
 		return taskruns.Artifact{}, taskruns.Evidence{}, err
 	}
 	path := filepath.Join(dir, safeTaskRunArtifactName(step.ID, kind)+".json")
-	if err := ensurePathWithinRoot(s.fileRoot, path, "taskrun synonlink artifact"); err != nil {
+	if err := ensurePathWithinRoot(s.fileRoot, path, "taskrun xsciencelink artifact"); err != nil {
 		return taskruns.Artifact{}, taskruns.Evidence{}, err
 	}
 	if err := os.WriteFile(path, body, 0o600); err != nil {
 		return taskruns.Artifact{}, taskruns.Evidence{}, err
 	}
-	artifact := taskruns.Artifact{StepID: step.ID, Kind: kind, Path: path, Description: "TaskRun SynonLink bridge result.", Metadata: map[string]any{"action": action, "clientId": clientID, "commandId": command.ID, "bytes": len(body)}}
-	evidence := taskruns.Evidence{ID: fmt.Sprintf("evidence-%d-%s", now, step.ID), StepID: step.ID, Kind: kind, Path: path, Summary: "TaskRun executed SynonLink action " + action + " through client " + clientID + ".", ProducedAt: now, Metadata: map[string]any{"action": action, "clientId": clientID, "commandId": command.ID}}
+	artifact := taskruns.Artifact{StepID: step.ID, Kind: kind, Path: path, Description: "TaskRun X-Science Link bridge result.", Metadata: map[string]any{"action": action, "clientId": clientID, "commandId": command.ID, "bytes": len(body)}}
+	evidence := taskruns.Evidence{ID: fmt.Sprintf("evidence-%d-%s", now, step.ID), StepID: step.ID, Kind: kind, Path: path, Summary: "TaskRun executed X-Science Link action " + action + " through client " + clientID + ".", ProducedAt: now, Metadata: map[string]any{"action": action, "clientId": clientID, "commandId": command.ID}}
 	return artifact, evidence, nil
 }
 
-func (s *Server) selectTaskRunSynonLinkClient(kind string, action string) (synonlink.Client, bool) {
-	wantKind := strings.TrimPrefix(kind, "synonlink-")
-	for _, client := range s.synonLink.ListAllClients() {
+func (s *Server) selectTaskRunXScienceLinkClient(kind string, action string) (xsciencelink.Client, bool) {
+	wantKind := strings.TrimPrefix(kind, "xsciencelink-")
+	for _, client := range s.xscienceLink.ListAllClients() {
 		if client.Status != "" && client.Status != "online" {
 			continue
 		}
 		if wantKind != "" && client.Kind != wantKind {
 			continue
 		}
-		if err := synonlink.ValidateCommandPolicyWithDefaults(client, action, map[string]any{}, s.synonLink.PolicyDefaults()); err == nil {
+		if err := xsciencelink.ValidateCommandPolicyWithDefaults(client, action, map[string]any{}, s.xscienceLink.PolicyDefaults()); err == nil {
 			return client, true
 		}
 	}
-	return synonlink.Client{}, false
+	return xsciencelink.Client{}, false
 }
 
-func taskRunSynonLinkPayload(input map[string]any) map[string]any {
+func taskRunXScienceLinkPayload(input map[string]any) map[string]any {
 	payload := make(map[string]any, len(input))
 	for key, value := range input {
 		switch key {

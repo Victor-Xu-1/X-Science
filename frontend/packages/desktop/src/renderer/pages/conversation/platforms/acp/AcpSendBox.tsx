@@ -2,15 +2,15 @@ import { ipcBridge } from '@/common';
 import type { IConversationMcpStatus, TChatConversation, TConversationRuntimeSummary } from '@/common/config/storage';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { parseError, resolveLocaleKey, uuid } from '@/common/utils';
-import SynonBiomedModelSelector from '@/renderer/components/synonBiomed/runtime/SynonBiomedModelSelector';
-import SynonBiomedPermissionMenu from '@/renderer/components/synonBiomed/runtime/SynonBiomedPermissionMenu';
-import SynonBiomedSendOptionsMenu, {
-  type SynonBiomedSendIntent,
-} from '@/renderer/components/synonBiomed/runtime/SynonBiomedSendOptionsMenu';
-import SynonBiomedSessionOptionsMenu from '@/renderer/components/synonBiomed/runtime/SynonBiomedSessionOptionsMenu';
-import ContextUsagePanel from '@/renderer/components/synonBiomed/runtime/ContextUsagePanel';
-import OptimizePromptAction from '@/renderer/components/synonBiomed/runtime/OptimizePromptAction';
-import SynonBiomedRuntimeOperations from '@/renderer/components/synonBiomed/runtime/SynonBiomedRuntimeOperations';
+import XScienceModelSelector from '@/renderer/components/xScience/runtime/XScienceModelSelector';
+import XSciencePermissionMenu from '@/renderer/components/xScience/runtime/XSciencePermissionMenu';
+import XScienceSendOptionsMenu, {
+  type XScienceSendIntent,
+} from '@/renderer/components/xScience/runtime/XScienceSendOptionsMenu';
+import XScienceSessionOptionsMenu from '@/renderer/components/xScience/runtime/XScienceSessionOptionsMenu';
+import ContextUsagePanel from '@/renderer/components/xScience/runtime/ContextUsagePanel';
+import OptimizePromptAction from '@/renderer/components/xScience/runtime/OptimizePromptAction';
+import XScienceRuntimeOperations from '@/renderer/components/xScience/runtime/XScienceRuntimeOperations';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import BtwOverlay from '@/renderer/components/chat/BtwOverlay';
 import { useBtwCommand } from '@/renderer/components/chat/BtwOverlay/useBtwCommand';
@@ -24,11 +24,11 @@ import {
 import ThoughtDisplay from '@/renderer/components/chat/ThoughtDisplay';
 import FileAttachButton from '@/renderer/components/media/FileAttachButton';
 import GuidProjectFilesModal from '@/renderer/pages/guid/components/GuidProjectFilesModal';
-import { loadSynonBiomedComposerCapabilities } from '@/renderer/services/synonBiomedGateway';
+import { loadXScienceComposerCapabilities } from '@/renderer/services/xScienceGateway';
 import FilePreview from '@/renderer/components/media/FilePreview';
 import HorizontalFileList from '@/renderer/components/media/HorizontalFileList';
-import { useAcpConfigOptions } from '@/renderer/hooks/synonBiomed/runtime/useAcpConfigOptions';
-import { useAcpModelInfo } from '@/renderer/hooks/synonBiomed/runtime/useAcpModelInfo';
+import { useAcpConfigOptions } from '@/renderer/hooks/xScience/runtime/useAcpConfigOptions';
+import { useAcpModelInfo } from '@/renderer/hooks/xScience/runtime/useAcpModelInfo';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import type { FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { useSendBoxFiles } from '@/renderer/hooks/chat/useSendBoxFiles';
@@ -41,7 +41,7 @@ import {
   useRemoveMessageByMsgId,
   useUpdateMessageList,
 } from '@/renderer/pages/conversation/Messages/hooks';
-import { SYNON_BIOMED_OPTIMISTIC_USER_MESSAGE_PREFIX } from '@/renderer/pages/conversation/Messages/optimisticUserMessage';
+import { X_SCIENCE_OPTIMISTIC_USER_MESSAGE_PREFIX } from '@/renderer/pages/conversation/Messages/optimisticUserMessage';
 import {
   shouldEnqueueConversationCommand,
   createQueuedCommandItem,
@@ -57,29 +57,29 @@ import {
 } from '@/renderer/pages/conversation/runtime/terminalFailureMessagesModel';
 import { CHAT_SURFACE_WIDTH_CLASS } from '@/renderer/pages/conversation/utils/chatSurfaceWidth';
 import { allSupportedExts } from '@/renderer/services/FileService';
-import { loadSynonBiomedAssistants } from '@/renderer/services/synonBiomedCatalog';
-import { createSynonBiomedBranchSession } from '@/renderer/services/synonBiomedAside';
+import { loadXScienceAssistants } from '@/renderer/services/xScienceCatalog';
+import { createXScienceBranchSession } from '@/renderer/services/xScienceAside';
 import {
-  requestSynonBiomedFrameAudit,
-  type SynonBiomedVerificationCheck,
-} from '@/renderer/services/synonBiomedAnnotations';
+  requestXScienceFrameAudit,
+  type XScienceVerificationCheck,
+} from '@/renderer/services/xScienceAnnotations';
 import {
-  getSelectedSynonBiomedBranch,
-  getSynonBiomedBranchSelectionRevision,
-  loadSynonBiomedConversationBranches,
-  selectSynonBiomedBranch,
-} from '@/renderer/services/synonBiomedConversationBranches';
+  getSelectedXScienceBranch,
+  getXScienceBranchSelectionRevision,
+  loadXScienceConversationBranches,
+  selectXScienceBranch,
+} from '@/renderer/services/xScienceConversationBranches';
 import {
-  loadSynonBiomedComputeProviders,
-  loadSynonBiomedSessionComputeProviders,
-  setSynonBiomedSessionComputeProvider,
-} from '@/renderer/services/synonBiomedCompute';
-import { notifySynonBiomedRuntimeInvalidation } from '@/renderer/services/synonBiomedRuntimeOperations';
+  loadXScienceComputeProviders,
+  loadXScienceSessionComputeProviders,
+  setXScienceSessionComputeProvider,
+} from '@/renderer/services/xScienceCompute';
+import { notifyXScienceRuntimeInvalidation } from '@/renderer/services/xScienceRuntimeOperations';
 import {
-  toSynonBiomedMessageSessionOptions,
-  updateSynonBiomedSessionConfig,
-} from '@/renderer/services/synonBiomedSessionOptions';
-import { saveSynonBiomedConversationAsSkill } from '@/renderer/services/skills/synonBiomedSkillLibrary';
+  toXScienceMessageSessionOptions,
+  updateXScienceSessionConfig,
+} from '@/renderer/services/xScienceSessionOptions';
+import { saveXScienceConversationAsSkill } from '@/renderer/services/skills/xScienceSkillLibrary';
 import { resolveAssistantName } from '@/renderer/utils/model/assistantDisplay';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
@@ -91,14 +91,14 @@ import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { buildSendFailureError } from './buildSendFailureError';
 import { redactErrorText } from './errorDiagnostics';
-import { buildSynonBiomedReviewRepairPrompt } from '@/renderer/components/synonBiomed/runtime/synonBiomedReviewRepair';
+import { buildXScienceReviewRepairPrompt } from '@/renderer/components/xScience/runtime/xScienceReviewRepair';
 import { useAcpInitialMessage } from './useAcpInitialMessage';
 import { applyStagedDraft, makeDraftRestoreIssueNotifier, type StagedDraftPayload } from './stagedDraftHandoff';
 import type { UseAcpMessageReturn } from './useAcpMessage';
 import { useAcpSendBoxDraftController } from './useAcpSendBoxDraftController';
 import { useAcpMobileActionSheetController } from './useAcpMobileActionSheetController';
 import { configErrorMessageKey, safeErrorDiagnostic } from './acpSendBoxDiagnostics';
-import { useSynonBiomedSessionOptionsState } from './useSynonBiomedSessionOptionsState';
+import { useXScienceSessionOptionsState } from './useXScienceSessionOptionsState';
 import { useAcpComposerContextSelection } from './useAcpComposerContextSelection';
 import { useAcpTaskCenterMetrics } from './useAcpTaskCenterMetrics';
 import type { CommandExecutionAuthority, DirectCommandRetry } from './acpCommandExecutionTypes';
@@ -160,8 +160,8 @@ const AcpSendBox: React.FC<{
   const isMobile = Boolean(layout?.isMobile);
   const conversationContext = useConversationContextSafe();
   const { data: composerCapabilities } = useSWR(
-    conversation_id ? ['synon-biomed-composer-capabilities', conversation_id] : null,
-    () => loadSynonBiomedComposerCapabilities(conversation_id),
+    conversation_id ? ['x-science-composer-capabilities', conversation_id] : null,
+    () => loadXScienceComposerCapabilities(conversation_id),
     { keepPreviousData: false }
   );
   const loadedSkills = composerCapabilities?.skills ?? conversationContext?.loadedSkills ?? [];
@@ -174,26 +174,26 @@ const AcpSendBox: React.FC<{
       name,
       status: 'loaded',
     }));
-  const isSynonBiomedConversation =
-    backend.trim().toLowerCase() === 'synonbiomed' || workspacePath?.startsWith('synonbiomed://') === true;
+  const isXScienceConversation =
+    backend.trim().toLowerCase() === 'xscience' || workspacePath?.startsWith('x-science://') === true;
   const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
   const [currentMode, setCurrentMode] = useState<string | undefined>(session_mode);
   const {
-    options: synonSessionOptions,
-    setOptions: setSynonSessionOptions,
+    options: xscienceSessionOptions,
+    setOptions: setXScienceSessionOptions,
     loadState: sessionOptionsLoad,
-  } = useSynonBiomedSessionOptionsState(conversation_id, agent_name);
+  } = useXScienceSessionOptionsState(conversation_id, agent_name);
   const applyStagedSessionOptions = useCallback(() => {
     const staged = stagedSessionOptionsRef.current;
     if (!staged) return;
-    setSynonSessionOptions((current) => ({
+    setXScienceSessionOptions((current) => ({
       ...current,
       delegation: staged.delegation,
       autoReview: staged.autoReview,
       memory: staged.memory,
       targetAgent: staged.targetAgent.trim() || current.targetAgent,
     }));
-  }, [setSynonSessionOptions]);
+  }, [setXScienceSessionOptions]);
   // The runtime session-options load resolves asynchronously for a fresh
   // conversation; replay the staged selection once it settles so the loaded
   // defaults cannot silently replace the requesting page's choices.
@@ -227,14 +227,14 @@ const AcpSendBox: React.FC<{
   const mountedRef = useRef(true);
   const directCommandRetryRef = useRef<DirectCommandRetry | null>(null);
   const conversationAuthorityRef = useRef({ conversationId: conversation_id });
-  const sendIntentRef = useRef<SynonBiomedSendIntent | null>(null);
+  const sendIntentRef = useRef<XScienceSendIntent | null>(null);
   const terminalFailureRollbackRef = useRef<TerminalFailureRollback>([]);
   if (conversationAuthorityRef.current.conversationId !== conversation_id) {
     conversationAuthorityRef.current = { conversationId: conversation_id };
     directCommandRetryRef.current = null;
     terminalFailureRollbackRef.current = [];
   }
-  const sideQuestionSupported = backend.trim().toLowerCase() === 'synonbiomed';
+  const sideQuestionSupported = backend.trim().toLowerCase() === 'xscience';
   const sideQuestion = useBtwCommand(conversation_id, sideQuestionSupported);
   const mobileModeChangeInFlightRef = useRef(false);
   const prepareRuntimeConfig = useCallback(async () => {}, []);
@@ -272,7 +272,7 @@ const AcpSendBox: React.FC<{
     mobileModeChangeInFlightRef.current = false;
   }, [conversation_id]);
 
-  // Drive the mobile sheet's model entry off the same source SynonBiomedModelSelector uses.
+  // Drive the mobile sheet's model entry off the same source XScienceModelSelector uses.
   const {
     model_info,
     canSwitch: canSwitchModel,
@@ -296,9 +296,9 @@ const AcpSendBox: React.FC<{
     if (!isMobile) return;
     let active = true;
     void Promise.all([
-      loadSynonBiomedAssistants(),
-      loadSynonBiomedComputeProviders(),
-      loadSynonBiomedSessionComputeProviders(conversation_id),
+      loadXScienceAssistants(),
+      loadXScienceComputeProviders(),
+      loadXScienceSessionComputeProviders(conversation_id),
     ])
       .then(([assistants, providers, enabledProviders]) => {
         if (!active) return;
@@ -331,13 +331,13 @@ const AcpSendBox: React.FC<{
     async (key: 'autoReview' | 'memory', value: boolean) => {
       const requestAuthority = conversationAuthorityRef.current;
       try {
-        await updateSynonBiomedSessionConfig(conversation_id, { [key]: value });
+        await updateXScienceSessionConfig(conversation_id, { [key]: value });
       } catch (error) {
         if (!mountedRef.current || conversationAuthorityRef.current !== requestAuthority) return;
         throw error;
       }
       if (!mountedRef.current || conversationAuthorityRef.current !== requestAuthority) return;
-      setSynonSessionOptions((current) => ({ ...current, [key]: value }));
+      setXScienceSessionOptions((current) => ({ ...current, [key]: value }));
     },
     [conversation_id]
   );
@@ -347,14 +347,14 @@ const AcpSendBox: React.FC<{
     const requestAuthority = conversationAuthorityRef.current;
     setGoalClearInFlight(true);
     try {
-      await updateSynonBiomedSessionConfig(conversation_id, { goalText: null });
+      await updateXScienceSessionConfig(conversation_id, { goalText: null });
       if (!mountedRef.current || conversationAuthorityRef.current !== requestAuthority) return;
-      setSynonSessionOptions((current) => ({ ...current, goalText: null }));
-      Message.success(t('conversation.synonRuntime.sendBox.goalCleared'));
+      setXScienceSessionOptions((current) => ({ ...current, goalText: null }));
+      Message.success(t('conversation.xscienceRuntime.sendBox.goalCleared'));
     } catch (error) {
       if (!mountedRef.current || conversationAuthorityRef.current !== requestAuthority) return;
       console.error('[AcpSendBox] Failed to clear conversation goal', safeErrorDiagnostic(error));
-      Message.error(t('conversation.synonRuntime.sendBox.goalClearFailed'));
+      Message.error(t('conversation.xscienceRuntime.sendBox.goalClearFailed'));
     } finally {
       if (mountedRef.current && conversationAuthorityRef.current === requestAuthority) setGoalClearInFlight(false);
     }
@@ -388,7 +388,7 @@ const AcpSendBox: React.FC<{
     async (providerName: string, checked: boolean) => {
       const requestAuthority = conversationAuthorityRef.current;
       try {
-        await setSynonBiomedSessionComputeProvider(conversation_id, providerName, checked);
+        await setXScienceSessionComputeProvider(conversation_id, providerName, checked);
         if (!mountedRef.current || conversationAuthorityRef.current !== requestAuthority) return;
         setMobileEnabledCompute((current) =>
           checked ? Array.from(new Set([...current, providerName])) : current.filter((name) => name !== providerName)
@@ -396,7 +396,7 @@ const AcpSendBox: React.FC<{
       } catch (error) {
         if (!mountedRef.current || conversationAuthorityRef.current !== requestAuthority) return;
         console.error('[AcpSendBox] Failed to update session compute', safeErrorDiagnostic(error));
-        Message.error(t('conversation.synonRuntime.sessionOptions.computeUpdateFailed'));
+        Message.error(t('conversation.xscienceRuntime.sessionOptions.computeUpdateFailed'));
       }
     },
     [conversation_id, t]
@@ -452,16 +452,16 @@ const AcpSendBox: React.FC<{
     const requestAuthority = conversationAuthorityRef.current;
     setReviewInFlight(true);
     try {
-      await requestSynonBiomedFrameAudit(conversation_id);
+      await requestXScienceFrameAudit(conversation_id);
       if (!mountedRef.current || conversationAuthorityRef.current !== requestAuthority) return;
-      notifySynonBiomedRuntimeInvalidation(conversation_id);
-      Message.success(t('conversation.synonRuntime.sendBox.reviewStarted'));
+      notifyXScienceRuntimeInvalidation(conversation_id);
+      Message.success(t('conversation.xscienceRuntime.sendBox.reviewStarted'));
       emitter.emit('chat.history.refresh');
       onRuntimeMutation?.();
     } catch (error) {
       if (!mountedRef.current || conversationAuthorityRef.current !== requestAuthority) return;
       console.error('[AcpSendBox] Failed to start manual review', safeErrorDiagnostic(error));
-      Message.error(t('conversation.synonRuntime.sendBox.reviewStartFailed'));
+      Message.error(t('conversation.xscienceRuntime.sendBox.reviewStartFailed'));
     } finally {
       if (mountedRef.current && conversationAuthorityRef.current === requestAuthority) setReviewInFlight(false);
     }
@@ -528,13 +528,13 @@ const AcpSendBox: React.FC<{
 
   const resolveCommandExecutionAuthority = useCallback(
     async (planMode?: boolean): Promise<CommandExecutionAuthority> => {
-      const targetBranchId = getSelectedSynonBiomedBranch(conversation_id);
-      const targetBranchRevision = getSynonBiomedBranchSelectionRevision(conversation_id);
-      const branchState = targetBranchId ? await loadSynonBiomedConversationBranches(conversation_id) : null;
+      const targetBranchId = getSelectedXScienceBranch(conversation_id);
+      const targetBranchRevision = getXScienceBranchSelectionRevision(conversation_id);
+      const branchState = targetBranchId ? await loadXScienceConversationBranches(conversation_id) : null;
       if (
         targetBranchId &&
-        (getSynonBiomedBranchSelectionRevision(conversation_id) !== targetBranchRevision ||
-          getSelectedSynonBiomedBranch(conversation_id) !== targetBranchId ||
+        (getXScienceBranchSelectionRevision(conversation_id) !== targetBranchRevision ||
+          getSelectedXScienceBranch(conversation_id) !== targetBranchId ||
           !branchState?.branches.some((branch) => branch.id === targetBranchId))
       ) {
         throw new Error('selected_branch_changed');
@@ -544,17 +544,17 @@ const AcpSendBox: React.FC<{
       // send, while an explicit per-send choice (plan mode) always wins.
       const effectiveSessionOptions = stagedSessionOptionsRef.current
         ? {
-            ...synonSessionOptions,
+            ...xscienceSessionOptions,
             delegation: stagedSessionOptionsRef.current.delegation,
             autoReview: stagedSessionOptionsRef.current.autoReview,
             memory: stagedSessionOptionsRef.current.memory,
-            targetAgent: stagedSessionOptionsRef.current.targetAgent.trim() || synonSessionOptions.targetAgent,
+            targetAgent: stagedSessionOptionsRef.current.targetAgent.trim() || xscienceSessionOptions.targetAgent,
           }
-        : synonSessionOptions;
+        : xscienceSessionOptions;
       return {
         targetBranchId,
         targetBranchRevision,
-        sessionOptions: toSynonBiomedMessageSessionOptions(effectiveSessionOptions, {
+        sessionOptions: toXScienceMessageSessionOptions(effectiveSessionOptions, {
           planMode: planMode ?? (stagedPlanModeRef.current ? true : undefined),
           targetBranchId,
           expectedBranchId: branchState?.activeBranchId,
@@ -562,7 +562,7 @@ const AcpSendBox: React.FC<{
         }),
       };
     },
-    [conversation_id, synonSessionOptions]
+    [conversation_id, xscienceSessionOptions]
   );
 
   const executeCommand = useCallback(
@@ -591,8 +591,8 @@ const AcpSendBox: React.FC<{
         // turns must never look empty while the model is still thinking.
         addOrUpdateMessageRef.current(
           {
-            id: `${SYNON_BIOMED_OPTIMISTIC_USER_MESSAGE_PREFIX}${id}`,
-            msg_id: `${SYNON_BIOMED_OPTIMISTIC_USER_MESSAGE_PREFIX}${id}`,
+            id: `${X_SCIENCE_OPTIMISTIC_USER_MESSAGE_PREFIX}${id}`,
+            msg_id: `${X_SCIENCE_OPTIMISTIC_USER_MESSAGE_PREFIX}${id}`,
             conversation_id,
             type: 'text',
             position: 'right',
@@ -637,7 +637,7 @@ const AcpSendBox: React.FC<{
         // message. Promote the optimistic row to that identity immediately so
         // the durable userCreated event cannot leave two identical rows on
         // screen while a long task is running.
-        removeMessageByMsgIdRef.current(`${SYNON_BIOMED_OPTIMISTIC_USER_MESSAGE_PREFIX}${id}`);
+        removeMessageByMsgIdRef.current(`${X_SCIENCE_OPTIMISTIC_USER_MESSAGE_PREFIX}${id}`);
         if (result.msg_id) {
           addOrUpdateMessageRef.current(
             {
@@ -656,14 +656,14 @@ const AcpSendBox: React.FC<{
         }
         if (
           commandAuthority.targetBranchId &&
-          getSynonBiomedBranchSelectionRevision(conversation_id) === commandAuthority.targetBranchRevision &&
-          getSelectedSynonBiomedBranch(conversation_id) === commandAuthority.targetBranchId
+          getXScienceBranchSelectionRevision(conversation_id) === commandAuthority.targetBranchRevision &&
+          getSelectedXScienceBranch(conversation_id) === commandAuthority.targetBranchId
         ) {
-          selectSynonBiomedBranch(conversation_id, null);
+          selectXScienceBranch(conversation_id, null);
         }
         emitter.emit('chat.history.refresh');
       } catch (error: unknown) {
-        removeMessageByMsgIdRef.current(`${SYNON_BIOMED_OPTIMISTIC_USER_MESSAGE_PREFIX}${id}`);
+        removeMessageByMsgIdRef.current(`${X_SCIENCE_OPTIMISTIC_USER_MESSAGE_PREFIX}${id}`);
         const pendingRetry = directCommandRetryRef.current;
         if (
           pendingRetry?.item.id === id &&
@@ -744,7 +744,7 @@ const AcpSendBox: React.FC<{
     const requestAuthority = conversationAuthorityRef.current;
     setSkillSaveInFlight(true);
     try {
-      const result = await saveSynonBiomedConversationAsSkill(conversation_id);
+      const result = await saveXScienceConversationAsSkill(conversation_id);
       if (!mountedRef.current || conversationAuthorityRef.current !== requestAuthority) return;
       Message.success(t('conversation.attachMenu.saveAsSkillSuccess', { name: result.name }));
       emitter.emit('chat.history.refresh');
@@ -796,9 +796,9 @@ const AcpSendBox: React.FC<{
       input: normalizedMessage,
       files: allFiles,
       contextItems: commandContextItems,
-      branchId: getSelectedSynonBiomedBranch(conversation_id),
-      branchRevision: getSynonBiomedBranchSelectionRevision(conversation_id),
-      sessionOptions: synonSessionOptions,
+      branchId: getSelectedXScienceBranch(conversation_id),
+      branchRevision: getXScienceBranchSelectionRevision(conversation_id),
+      sessionOptions: xscienceSessionOptions,
       planMode,
     });
     const retry = directCommandRetryRef.current?.signature === signature ? directCommandRetryRef.current : null;
@@ -855,12 +855,12 @@ const AcpSendBox: React.FC<{
     }
   };
 
-  const handleRepairAndRegenerate = async (checks: SynonBiomedVerificationCheck[]) => {
-    await onSendHandler(buildSynonBiomedReviewRepairPrompt(checks, i18n.language));
+  const handleRepairAndRegenerate = async (checks: XScienceVerificationCheck[]) => {
+    await onSendHandler(buildXScienceReviewRepairPrompt(checks, i18n.language));
   };
 
   const handleSendOption = useCallback(
-    (intent: SynonBiomedSendIntent) => {
+    (intent: XScienceSendIntent) => {
       const draft = contentRef.current;
       if (!draft.trim()) return;
 
@@ -885,7 +885,7 @@ const AcpSendBox: React.FC<{
       // branch_new_session: create a real branched session and send there.
       const requestAuthority = conversationAuthorityRef.current;
       setAiProcessing(true);
-      void createSynonBiomedBranchSession(conversation_id, draft, {
+      void createXScienceBranchSession(conversation_id, draft, {
         model: model_info?.current_model_id ?? null,
       })
         .then(({ frameId }) => {
@@ -897,7 +897,7 @@ const AcpSendBox: React.FC<{
         .catch((error: unknown) => {
           if (!mountedRef.current || conversationAuthorityRef.current !== requestAuthority) return;
           console.error('[AcpSendBox] Failed to create branched session:', safeErrorDiagnostic(error));
-          Message.error(t('conversation.synonRuntime.sendBox.branchNewSessionFailed'));
+          Message.error(t('conversation.xscienceRuntime.sendBox.branchNewSessionFailed'));
         })
         .finally(() => {
           if (mountedRef.current && conversationAuthorityRef.current === requestAuthority) {
@@ -972,9 +972,9 @@ const AcpSendBox: React.FC<{
     modelListError,
     retryModelList,
     selectModel,
-    synonSessionOptions,
+    xscienceSessionOptions,
     sessionOptionsReady,
-    setSynonSessionOptions,
+    setXScienceSessionOptions,
     updatePersistentSessionOption,
     mobileSpecialists,
     mobileComputeProviders,
@@ -1010,11 +1010,11 @@ const AcpSendBox: React.FC<{
     // frame in the task center while the conversation runtime view has not yet
     // received its turn id. Keep the real stop action available in that race;
     // other ACP backends still fail closed when their turn authority is absent.
-    const isSynonBiomedBackend = backend.trim().toLowerCase() === 'synonbiomed';
-    const turnId = runtimeView.activeTurnId ?? (isSynonBiomedBackend ? conversation_id : null);
+    const isXScienceBackend = backend.trim().toLowerCase() === 'xscience';
+    const turnId = runtimeView.activeTurnId ?? (isXScienceBackend ? conversation_id : null);
     if (!turnId) {
       runtimeView.resetLocalGate('stop_missing_turn');
-      Message.error(t('conversation.synonRuntime.sendBox.stopMissingTurn'));
+      Message.error(t('conversation.xscienceRuntime.sendBox.stopMissingTurn'));
       return;
     }
 
@@ -1038,14 +1038,14 @@ const AcpSendBox: React.FC<{
       if (!mountedRef.current || conversationAuthorityRef.current !== requestAuthority) return;
       console.warn('[AcpSendBox] stop request failed', safeErrorDiagnostic(error));
       runtimeView.resetLocalGate('stop_failed');
-      Message.error(t('conversation.synonRuntime.sendBox.stopFailed'));
+      Message.error(t('conversation.xscienceRuntime.sendBox.stopFailed'));
     }
   };
   const handleRuntimeUpdated = useCallback(
     (turnId: string, runtime: TConversationRuntimeSummary, source: 'initial' | 'refresh' = 'refresh') => {
       terminalFailureRollbackRef.current = [];
       runtimeView.markSendAccepted(turnId, runtime);
-      emitter.emit('synonbiomed.runtime.reconciled', conversation_id, runtime);
+      emitter.emit('xscience.runtime.reconciled', conversation_id, runtime);
       setAiProcessing(runtime.is_processing && runtime.state !== 'waiting_confirmation');
       if (source !== 'initial') onRuntimeMutation?.();
     },
@@ -1089,7 +1089,7 @@ const AcpSendBox: React.FC<{
         parentTaskRunning={isBusy}
         question={sideQuestion.question}
       />
-      <SynonBiomedRuntimeOperations
+      <XScienceRuntimeOperations
         conversationId={conversation_id}
         runtimeState={runtimeView.state}
         terminalProjectionPending={runtimeView.view.terminalProjectionPending}
@@ -1177,7 +1177,7 @@ const AcpSendBox: React.FC<{
                 selectedMcpServerIds={selectedMcpServerIds}
                 onSelectSkill={handleSkillSelected}
                 onSelectMcpServer={handleMcpSelected}
-                synonBiomedV11
+                xScienceV11
                 onRequestReview={handleRequestReview}
                 reviewLabelMode='manual'
                 reviewInFlight={reviewBusy}
@@ -1185,16 +1185,16 @@ const AcpSendBox: React.FC<{
                 onSaveSkill={handleSaveAsSkill}
                 saveAsSkillDisabled={isBusy || skillSaveInFlight}
               />
-              <SynonBiomedSessionOptionsMenu
+              <XScienceSessionOptionsMenu
                 rootFrameId={conversation_id}
-                value={synonSessionOptions}
-                onChange={setSynonSessionOptions}
+                value={xscienceSessionOptions}
+                onChange={setXScienceSessionOptions}
                 onPersistentOptionChange={updatePersistentSessionOption}
                 onClearGoal={handleClearGoal}
                 goalClearInFlight={goalClearInFlight}
                 disabled={!sessionOptionsReady}
               />
-              <SynonBiomedPermissionMenu
+              <XSciencePermissionMenu
                 option={runtimeMode}
                 setStatus={runtimeConfig.setStatus}
                 setConfigOption={runtimeConfig.setConfigOption}
@@ -1205,10 +1205,10 @@ const AcpSendBox: React.FC<{
         }
         rightTools={
           <div className='flex items-center gap-8px min-w-0'>
-            {isSynonBiomedConversation && (isBusy || content.trim() === '') ? (
+            {isXScienceConversation && (isBusy || content.trim() === '') ? (
               <ContextUsagePanel conversationId={conversation_id} active={isBusy} />
             ) : null}
-            {isSynonBiomedConversation && content.trim() !== '' && (
+            {isXScienceConversation && content.trim() !== '' && (
               <OptimizePromptAction
                 draft={content}
                 conversationId={conversation_id}
@@ -1217,7 +1217,7 @@ const AcpSendBox: React.FC<{
                 replaceIfCurrent={replaceContentIfUnchanged}
               />
             )}
-            <SynonBiomedModelSelector
+            <XScienceModelSelector
               conversation_id={conversation_id}
               backend={backend}
               initialModelId={model_info?.current_model_id}
@@ -1270,7 +1270,7 @@ const AcpSendBox: React.FC<{
         onSend={onSendHandler}
         sendButtonSuffix={
           content.trim() || uploadFile.length > 0 || atPath.length > 0 || contextItems.length > 0 ? (
-            <SynonBiomedSendOptionsMenu disabled={isBusy || runtimeUnavailable} hasDraft onSelect={handleSendOption} />
+            <XScienceSendOptionsMenu disabled={isBusy || runtimeUnavailable} hasDraft onSelect={handleSendOption} />
           ) : undefined
         }
         slash_commands={slashCommands}

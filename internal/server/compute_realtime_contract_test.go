@@ -11,7 +11,7 @@ import (
 
 	"github.com/coder/websocket"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestComputeMutationsPublishOwnerScopedLiveAndReplayEvents(t *testing.T) {

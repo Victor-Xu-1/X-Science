@@ -71,7 +71,7 @@ case "$mode" in
 #!/bin/sh
 case "$*" in
   *"-m pip install"*) printf '%%s\n' "$*" >%q ;;
-  *"SYNON_IMPORT_WITNESS_OK"*) printf 'SYNON_IMPORT_WITNESS_OK\n' ;;
+  *"X_SCIENCE_IMPORT_WITNESS_OK"*) printf 'X_SCIENCE_IMPORT_WITNESS_OK\n' ;;
   *) printf '%%s\n' '{"ok":true,"version":[3,11,9]}' ;;
 esac
 PY
@@ -587,7 +587,7 @@ esac
 	if err != nil {
 		t.Fatalf("derive package generation from bundled runtime: %v", err)
 	}
-	if forked.Name == runtimeSpec.entry.Name || !strings.HasPrefix(forked.Name, "synon-pkg-") ||
+	if forked.Name == runtimeSpec.entry.Name || !strings.HasPrefix(forked.Name, "x-science-pkg-") ||
 		!managedDependenciesSatisfied(forked.Packages, []string{"biopython"}) {
 		t.Fatalf("bundled package fork = %#v", forked)
 	}
@@ -1400,8 +1400,8 @@ func TestManagedEnvironmentInstallerUsesConfiguredProxyWithoutLeakingItToRuntime
 	t.Setenv("ALL_PROXY", strings.Repeat("x", 4097))
 	manager := NewManager(Config{
 		UpstreamProxy: "http://proxy.example.test:8080",
-		Micromamba:    "/opt/synon/micromamba", CondaHome: filepath.Join(t.TempDir(), "synon-conda"),
-		CondaEnvsPath: filepath.Join(t.TempDir(), "synon-conda", "envs"),
+		Micromamba:    "/opt/xscience/micromamba", CondaHome: filepath.Join(t.TempDir(), "x-science-conda"),
+		CondaEnvsPath: filepath.Join(t.TempDir(), "x-science-conda", "envs"),
 	})
 	installerEnv, err := manager.managedEnvironmentInstallerEnv()
 	if err != nil {
@@ -1489,7 +1489,7 @@ case "$mode" in
 printf '%s\n' "$*" >>'` + pythonCalls + `'
 case "$*" in
   *"-m pip install"*) exit 0 ;;
-  *"SYNON_IMPORT_WITNESS_OK"*) printf '%s\n' 'SYNON_IMPORT_WITNESS_OK' ;;
+  *"X_SCIENCE_IMPORT_WITNESS_OK"*) printf '%s\n' 'X_SCIENCE_IMPORT_WITNESS_OK' ;;
   *) printf '%s\n' '{"ok":true,"version":[3,11,9]}' ;;
 esac
 PY
@@ -1563,7 +1563,7 @@ func TestManagedEnvironmentImportWitnessIgnoresBoundedThirdPartyStdoutNoise(t *t
 		t.Fatal(err)
 	}
 	python := filepath.Join(prefix, "bin", "python")
-	script := "#!/bin/sh\nprintf '%s\\n' 'third-party import notice'\nprintf '%s\\n' 'SYNON_IMPORT_WITNESS_OK'\n"
+	script := "#!/bin/sh\nprintf '%s\\n' 'third-party import notice'\nprintf '%s\\n' 'X_SCIENCE_IMPORT_WITNESS_OK'\n"
 	if err := os.WriteFile(python, []byte(script), 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -1738,7 +1738,7 @@ func TestManagedEnvironmentRegisterUsesVerifiedExternalVenv(t *testing.T) {
 	script := `#!/bin/sh
 case "$*" in
   *"pip list"*) printf '%s\n' '[{"name":"pip","version":"24.0"},{"name":"rdkit","version":"2025.3.4"}]' ;;
-	*"SYNON_PYTHON_VERSION"*) printf '%s\n' 'SYNON_PYTHON_VERSION=3.13' ;;
+	*"X_SCIENCE_PYTHON_VERSION"*) printf '%s\n' 'X_SCIENCE_PYTHON_VERSION=3.13' ;;
   *) printf '%s\n' '{"ok":true,"version":[3,13,2]}' ;;
 esac
 `

@@ -16,7 +16,7 @@ import (
 const (
 	kernelToolResultV41CallbackID        = "kernel-tool-result-v41-noop"
 	kernelToolResultV41PreflightIdentity = "kernel-tool-result-materialization-v1"
-	kernelToolResultV41RuleSpec          = "synon.workspace.kernel-tool-result.v41"
+	kernelToolResultV41RuleSpec          = "x-science.workspace.kernel-tool-result.v41"
 	kernelToolResultMaterializationsDDL  = `CREATE TABLE kernel_local_operation_materializations (
 		operation_id TEXT PRIMARY KEY REFERENCES kernel_local_operations(operation_id) ON DELETE RESTRICT,
 		terminal_result_json TEXT NOT NULL CHECK(

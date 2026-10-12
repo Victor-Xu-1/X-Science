@@ -3,7 +3,7 @@ package agentruntime
 import (
 	"strings"
 
-	"synon-go/internal/failurecontract"
+	"x-science/internal/failurecontract"
 )
 
 // ExecutionFailureLedger owns executed-call retry decisions for both live

@@ -6,11 +6,11 @@
 
 import { useLayoutEffect, useRef, useState } from 'react';
 import {
-  applySynonBiomedArtifactEdit,
-  suggestSynonBiomedArtifactEdit,
-  type SynonBiomedAppliedArtifactEdit,
-  type SynonBiomedArtifactEditMode,
-} from '@/renderer/services/synonBiomedAnnotations';
+  applyXScienceArtifactEdit,
+  suggestXScienceArtifactEdit,
+  type XScienceAppliedArtifactEdit,
+  type XScienceArtifactEditMode,
+} from '@/renderer/services/xScienceAnnotations';
 import { redactErrorText } from '@/renderer/pages/conversation/platforms/acp/errorDiagnostics';
 import { useArtifactRequestScope } from './useArtifactRequestScope';
 
@@ -22,7 +22,7 @@ export function useArtifactRefinementEditor(
   versionId: string,
   selectedText: string,
   initialInstruction: string,
-  onApplied: (result: SynonBiomedAppliedArtifactEdit) => void | Promise<void>
+  onApplied: (result: XScienceAppliedArtifactEdit) => void | Promise<void>
 ) {
   const scope = useArtifactRequestScope(artifactId, versionId, selectedText, initialInstruction);
   const appliedCallback = useRef(onApplied);
@@ -30,15 +30,15 @@ export function useArtifactRefinementEditor(
     appliedCallback.current = onApplied;
   }, [onApplied]);
   const [instruction, setInstruction] = useState(initialInstruction);
-  const [mode, setMode] = useState<SynonBiomedArtifactEditMode>('edit');
-  const [requestMode, setRequestMode] = useState<SynonBiomedArtifactEditMode>('edit');
+  const [mode, setMode] = useState<XScienceArtifactEditMode>('edit');
+  const [requestMode, setRequestMode] = useState<XScienceArtifactEditMode>('edit');
   const [suggestion, setSuggestion] = useState<string | null>(null);
   const [editedSuggestion, setEditedSuggestion] = useState<string | null>(null);
   const [view, setView] = useState<SuggestionView>('diff');
   const [manualEditing, setManualEditing] = useState(false);
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState<'generate' | 'apply' | 'refresh' | null>(null);
-  const [saved, setSaved] = useState<SynonBiomedAppliedArtifactEdit | null>(null);
+  const [saved, setSaved] = useState<XScienceAppliedArtifactEdit | null>(null);
   const replacement = editedSuggestion ?? suggestion ?? '';
 
   useLayoutEffect(() => {
@@ -54,7 +54,7 @@ export function useArtifactRefinementEditor(
     setSaved(null);
   }, [artifactId, versionId, selectedText, initialInstruction]);
 
-  const generate = async (nextMode: SynonBiomedArtifactEditMode) => {
+  const generate = async (nextMode: XScienceArtifactEditMode) => {
     const annotationText = instruction.trim();
     if (!annotationText || saved) return;
     const token = scope.begin();
@@ -63,7 +63,7 @@ export function useArtifactRefinementEditor(
     setStatus('suggesting');
     setError(null);
     try {
-      const next = await suggestSynonBiomedArtifactEdit(artifactId, versionId, {
+      const next = await suggestXScienceArtifactEdit(artifactId, versionId, {
         selectedText,
         annotationText,
         ...(nextMode === 'edit' && mode === 'edit' && replacement && replacement !== selectedText
@@ -88,7 +88,7 @@ export function useArtifactRefinementEditor(
     }
   };
 
-  const showSaved = async (result: SynonBiomedAppliedArtifactEdit, token: number) => {
+  const showSaved = async (result: XScienceAppliedArtifactEdit, token: number) => {
     if (!scope.isCurrent(token)) return;
     setStatus('refreshing');
     setError(null);
@@ -110,7 +110,7 @@ export function useArtifactRefinementEditor(
     setStatus('applying');
     setError(null);
     try {
-      const result = await applySynonBiomedArtifactEdit(artifactId, versionId, {
+      const result = await applyXScienceArtifactEdit(artifactId, versionId, {
         selectedText,
         replacementText: replacement,
       });

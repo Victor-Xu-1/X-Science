@@ -15,8 +15,8 @@ import (
 	"time"
 	"unicode/utf8"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	"synon-go/internal/toolcontract"
+	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/toolcontract"
 )
 
 const (
@@ -36,7 +36,7 @@ const (
 	ToolCallBatchItemStateCancelled      = "cancelled"
 	ToolCallBatchItemStateOutcomeUnknown = "outcome_unknown"
 
-	toolCallBatchIdentityDomain            = "synon.tool-call-batch.v1"
+	toolCallBatchIdentityDomain            = "x-science.tool-call-batch.v1"
 	maxToolCallIdentityBytes               = 512
 	maxToolNameBytes                       = 256
 	maxToolArgumentsBytes                  = 1 << 20
@@ -184,6 +184,18 @@ func (s *Store) CreateToolCallBatchForCheckpointTx(
 		return ToolCallBatch{}, nil, false, err
 	}
 	batchID := toolCallBatchID(event.StreamUID, event.EventID)
+	var originalID string
+	if err := tx.QueryRowContext(ctx, `SELECT batch_id FROM transcript_tool_call_batches WHERE stream_uid=? AND source_event_id=?`, event.StreamUID, event.EventID).Scan(&originalID); err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return ToolCallBatch{}, nil, false, err
+	} else if err == nil && originalID != batchID {
+		batchID, err = s.ResolveNamespaceIdentityTx(ctx, tx, "tool-batch", batchID, originalID)
+		if err != nil {
+			return ToolCallBatch{}, nil, false, err
+		}
+		if batchID != originalID {
+			return ToolCallBatch{}, nil, false, ErrToolCallBatchConflict
+		}
+	}
 	if existing, found, err := getToolCallBatchQuery(ctx, tx, batchID); err != nil {
 		return ToolCallBatch{}, nil, false, err
 	} else if found {
@@ -191,7 +203,7 @@ func (s *Store) CreateToolCallBatchForCheckpointTx(
 		if err != nil {
 			return ToolCallBatch{}, nil, false, err
 		}
-		if !toolCallBatchOriginMatches(existing, event, calls) || !toolCallBatchItemsMatch(items, calls) {
+		if existing.BatchID != batchID || !toolCallBatchOriginMatches(existing, event, calls) || !toolCallBatchItemsMatch(items, calls) {
 			return ToolCallBatch{}, nil, false, ErrToolCallBatchConflict
 		}
 		return existing, items, false, nil
@@ -1450,7 +1462,7 @@ func toolCallBatchOriginMatches(
 	event transcriptstore.Event,
 	calls []canonicalToolCallBatchItem,
 ) bool {
-	return batch.BatchID == toolCallBatchID(event.StreamUID, event.EventID) && batch.StreamUID == event.StreamUID &&
+	return batch.StreamUID == event.StreamUID &&
 		batch.SourceEventID == event.EventID && batch.SourcePublicationSeq == event.PublicationSeq &&
 		event.RunnerAttempt != nil && batch.SourceRunnerAttempt == *event.RunnerAttempt &&
 		batch.SourceClientMessageID == event.ClientMessageID && batch.CallCount == int64(len(calls))

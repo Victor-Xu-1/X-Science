@@ -11,7 +11,7 @@ vi.mock('@/renderer/pages/conversation/Preview/components/viewers/renderStructur
   renderStructureThumbnail: thumbnailMocks.render,
 }));
 
-import ArtifactThumbnailPreview from '@/renderer/components/synonBiomed/files/ArtifactThumbnailPreview';
+import ArtifactThumbnailPreview from '@/renderer/components/xScience/files/ArtifactThumbnailPreview';
 
 describe('ArtifactThumbnailPreview structure rendering', () => {
   beforeEach(() => {

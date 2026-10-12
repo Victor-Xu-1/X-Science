@@ -10,8 +10,8 @@ import (
 	"sort"
 	"strings"
 
-	"synon-go/internal/ketchermcp"
-	"synon-go/internal/tools/mcpstdio"
+	"x-science/internal/ketchermcp"
+	"x-science/internal/tools/mcpstdio"
 )
 
 type bundledConnector struct {
@@ -29,7 +29,7 @@ type bundledConnector struct {
 	APIKeyQueryParam   string                `json:"apiKeyQueryParam,omitempty"`
 	APIKeyPrefix       string                `json:"apiKeyPrefix,omitempty"`
 	APIKeyLabel        string                `json:"apiKeyLabel,omitempty"`
-	HostedBySynon      bool                  `json:"hostedBySynon,omitempty"`
+	HostedByXScience      bool                  `json:"hostedByXScience,omitempty"`
 	Upstreams          []ConnectorUpstream   `json:"upstreams,omitempty"`
 	RuntimeEnvironment []string              `json:"runtimeEnvironment,omitempty"`
 	Deferred           bool
@@ -59,7 +59,7 @@ func loadBundledDefinitions() []bundledConnector {
 
 func validBundledRuntimeEnvironmentName(name string) bool {
 	name = strings.TrimSpace(name)
-	if !strings.HasPrefix(name, "SYNON_") || len(name) > 128 {
+	if !strings.HasPrefix(name, "X_SCIENCE_") || len(name) > 128 {
 		return false
 	}
 	for _, character := range name {
@@ -78,16 +78,16 @@ func validBundledRuntimeEnvironmentName(name string) bool {
 
 // bundledConnectorExecutable returns the process that hosts native bundled
 // connectors. Managed deployments may pin it explicitly through
-// SYNON_BUNDLED_CONNECTOR_EXECUTABLE; otherwise the current executable is
+// X_SCIENCE_BUNDLED_CONNECTOR_EXECUTABLE; otherwise the current executable is
 // used, matching packaged layouts where the product binary ships the
 // "mcp-ketcher" subcommand.
 func bundledConnectorExecutable() (string, bool) {
-	if configured := strings.TrimSpace(os.Getenv("SYNON_BUNDLED_CONNECTOR_EXECUTABLE")); configured != "" {
+	if configured := strings.TrimSpace(os.Getenv("X_SCIENCE_BUNDLED_CONNECTOR_EXECUTABLE")); configured != "" {
 		return filepath.Clean(configured), true
 	}
 	executable, err := os.Executable()
 	if err != nil || strings.TrimSpace(executable) == "" {
-		return "synon-go", false
+		return "x-science", false
 	}
 	return executable, false
 }
@@ -176,7 +176,7 @@ func bundledBioToolsDefinitionSHA256(root string) string {
 }
 
 func discoverBioToolsRoot() string {
-	if root := os.Getenv("SYNON_BIO_TOOLS_ROOT"); root != "" {
+	if root := os.Getenv("X_SCIENCE_BIO_TOOLS_ROOT"); root != "" {
 		return filepath.Clean(root)
 	}
 	candidates := []string{}

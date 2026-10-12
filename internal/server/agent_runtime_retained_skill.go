@@ -27,7 +27,7 @@ func (g serverAgentRuntimeToolGateway) retainedSkillExecutionDiagnostic(name str
 	if err != nil || !resources {
 		return nil
 	}
-	directory := filepath.Join(g.kernel.workspaceDir, ".synon", "runtime", "skills", agentSkillRuntimeDirectoryName(skill.Name), bundle.digest)
+	directory := filepath.Join(g.kernel.workspaceDir, ".xscience", "runtime", "skills", agentSkillRuntimeDirectoryName(skill.Name), bundle.digest)
 	if valid, err := verifyAgentSkillRuntimeBundle(directory, bundle); err != nil || !valid {
 		return nil
 	}

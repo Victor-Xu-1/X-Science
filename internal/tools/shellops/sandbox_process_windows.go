@@ -5,7 +5,7 @@ package shellops
 import (
 	"os/exec"
 
-	"synon-go/internal/processsupervisor"
+	"x-science/internal/processsupervisor"
 )
 
 type sandboxProcess struct {

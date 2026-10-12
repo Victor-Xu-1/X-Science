@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	"synon-go/internal/skills"
+	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/skills"
 )
 
 func TestConversationSkillTranscriptAcceptsProjectedWebMessages(t *testing.T) {

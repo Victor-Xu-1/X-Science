@@ -11,18 +11,18 @@ import (
 
 	"github.com/google/uuid"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func computeArtifactMutation(r *http.Request, ownerUserID, scope string) (context.Context, string) {
 	key := r.Header.Get("Idempotency-Key")
 	if key == "" {
-		key = r.Header.Get("X-Synon-Idempotency-Key")
+		key = r.Header.Get("X-Science-Idempotency-Key")
 	}
 	if key == "" {
 		key = uuid.NewString()
 	}
-	identity := strings.Join([]string{"synon-compute-artifact-v1", ownerUserID, scope, key}, "\x00")
+	identity := strings.Join([]string{"x-science-compute-artifact-v1", ownerUserID, scope, key}, "\x00")
 	artifactID := uuid.NewSHA1(uuid.NameSpaceURL, []byte(identity)).String()
 	return workspace.WithMutationIdempotencyKey(r.Context(), key), artifactID
 }

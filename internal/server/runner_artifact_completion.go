@@ -3,8 +3,8 @@ package server
 import (
 	"context"
 
-	"synon-go/internal/agentruntime"
-	sessionstore "synon-go/internal/persistence/sessions"
+	"x-science/internal/agentruntime"
+	sessionstore "x-science/internal/persistence/sessions"
 )
 
 // Completion validation never asks the model to create a replacement

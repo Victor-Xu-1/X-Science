@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import SettingsPageHeader from './components/SettingsPageHeader';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
-import SynonBiomedMemoryManager from './components/SynonBiomedMemoryManager';
+import XScienceMemoryManager from './components/XScienceMemoryManager';
 
 export const GovernanceSettingsContent: React.FC = () => {
   const { t } = useTranslation();
@@ -13,7 +13,7 @@ export const GovernanceSettingsContent: React.FC = () => {
         title={t('settings.governance')}
         description={t('settings.governanceDescription')}
       />
-      <SynonBiomedMemoryManager />
+      <XScienceMemoryManager />
     </div>
   );
 };

@@ -4,7 +4,7 @@ import type { TMessage } from '@/common/chat/chatLib';
 export const isUserTaskMessage = (message: TMessage): boolean => {
   if (message.hidden || message.type !== 'text' || message.position !== 'right') return false;
 
-  const blockIndex = message.content.synonBiomed?.blockIndex;
+  const blockIndex = message.content.xScience?.blockIndex;
   return blockIndex === undefined || blockIndex === 0;
 };
 

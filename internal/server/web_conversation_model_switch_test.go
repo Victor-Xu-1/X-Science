@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	sessionstore "synon-go/internal/persistence/sessions"
-	workspace "synon-go/internal/persistence/workspace"
+	sessionstore "x-science/internal/persistence/sessions"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestWebConversationModelSwitchIsScopedAndDoesNotResetRunningTask(t *testing.T) {
@@ -23,7 +23,7 @@ func TestWebConversationModelSwitchIsScopedAndDoesNotResetRunningTask(t *testing
 		ContextData: map[string]any{
 			"task_marker": "preserve-me",
 			"web_assistant": map[string]any{
-				"id":                     "synonbiomed:operon",
+				"id":                     "xscience:operon",
 				"conversation_overrides": map[string]any{"model": "ark-code-latest"},
 			},
 		},

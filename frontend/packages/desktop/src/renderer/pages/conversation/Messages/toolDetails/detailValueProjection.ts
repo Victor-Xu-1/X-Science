@@ -8,7 +8,7 @@ import { formatBytes } from './detailFormatting';
 
 const BLOCK_VALUE_KEY = /^(?:code|command|content|markdown|old_string|new_string|old_text|stderr|stdout|text)$/iu;
 const OPAQUE_PRIVATE_VALUE =
-  /^(?:mem_|proj(?:ect)?_|artifact_|frame_|swr-|synon[-_])|(?:^|[-_])(?:acceptance|internal|private|runtime)(?:[-_]|$)/iu;
+  /^(?:mem_|proj(?:ect)?_|artifact_|frame_|swr-|xscience[-_])|(?:^|[-_])(?:acceptance|internal|private|runtime)(?:[-_]|$)/iu;
 
 export type DetailValueProjectionOptions = {
   chinese: boolean;

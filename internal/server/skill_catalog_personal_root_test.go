@@ -8,7 +8,7 @@ import (
 
 func TestLoadSkillCatalogIncludesPersonalRootWithExplicitDirectories(t *testing.T) {
 	root := t.TempDir()
-	bundledRoot := filepath.Join(root, "runtime", "skills", "synonbiomed")
+	bundledRoot := filepath.Join(root, "runtime", "skills", "x-science")
 	personalRoot := filepath.Join(root, "data", "skills", "personal-workflow")
 	writeSkillDocumentForCatalogTest(t, bundledRoot, "bundled-workflow", "Bundled workflow")
 	writeSkillDocumentForCatalogTest(t, personalRoot, "personal-workflow", "Personal workflow")
@@ -25,7 +25,7 @@ func TestLoadSkillCatalogIncludesPersonalRootWithExplicitDirectories(t *testing.
 	for _, skill := range catalog.Skills() {
 		switch skill.Name {
 		case "bundled-workflow":
-			bundled = compatibilitySkillSource(skill) == "synon_llm"
+			bundled = compatibilitySkillSource(skill) == "x_science_llm"
 		case "personal-workflow":
 			personal = compatibilitySkillSource(skill) == "personal"
 		}
@@ -37,7 +37,7 @@ func TestLoadSkillCatalogIncludesPersonalRootWithExplicitDirectories(t *testing.
 
 func TestLoadSkillCatalogDoesNotReportMissingPersonalRoot(t *testing.T) {
 	root := t.TempDir()
-	bundledRoot := filepath.Join(root, "runtime", "skills", "synonbiomed")
+	bundledRoot := filepath.Join(root, "runtime", "skills", "x-science")
 	writeSkillDocumentForCatalogTest(t, bundledRoot, "bundled-workflow", "Bundled workflow")
 
 	_, directories, loadErrors := loadSkillCatalog(nil, []string{bundledRoot}, filepath.Join(root, "missing-data"))
@@ -51,7 +51,7 @@ func TestLoadSkillCatalogDoesNotReportMissingPersonalRoot(t *testing.T) {
 
 func TestLoadSkillCatalogAlwaysIncludesBuiltinRuntimeWithConfiguredDirectories(t *testing.T) {
 	root := t.TempDir()
-	bundledRoot := filepath.Join(root, "runtime", "skills", "synonbiomed")
+	bundledRoot := filepath.Join(root, "runtime", "skills", "x-science")
 	writeSkillDocumentForCatalogTest(t, bundledRoot, "bundled-workflow", "Bundled workflow")
 
 	catalog, _, loadErrors := loadSkillCatalog(nil, []string{bundledRoot}, filepath.Join(root, "data"))
@@ -60,9 +60,9 @@ func TestLoadSkillCatalogAlwaysIncludesBuiltinRuntimeWithConfiguredDirectories(t
 	}
 	var runtimeCount int
 	for _, skill := range catalog.Skills() {
-		if skill.Name == "synon-runtime" {
+		if skill.Name == "x-science-runtime" {
 			runtimeCount++
-			if skill.Path != "builtin:synon-runtime" {
+			if skill.Path != "builtin:x-science-runtime" {
 				t.Fatalf("runtime skill path = %q", skill.Path)
 			}
 		}

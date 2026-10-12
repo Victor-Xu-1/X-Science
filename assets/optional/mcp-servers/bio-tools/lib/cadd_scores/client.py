@@ -16,7 +16,7 @@ import time
 import requests
 
 DEFAULT_BASE_URL = "https://cadd.gs.washington.edu/api/v1.0"
-USER_AGENT = "bio-tools-cadd-scores/1.0 (synon_llm-experimental/bio-tools)"
+USER_AGENT = "bio-tools-cadd-scores/1.0 (x_science_llm-experimental/bio-tools)"
 
 
 class CaddApiError(RuntimeError):

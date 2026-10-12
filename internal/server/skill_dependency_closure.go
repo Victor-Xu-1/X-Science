@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"synon-go/internal/harnesscontract"
-	"synon-go/internal/providers"
-	"synon-go/internal/toolcontract"
-	toolregistry "synon-go/internal/tools/registry"
+	"x-science/internal/harnesscontract"
+	"x-science/internal/providers"
+	"x-science/internal/toolcontract"
+	toolregistry "x-science/internal/tools/registry"
 )
 
 func (s *Server) v11SkillDependencyClosure(sessionIDs ...string) toolregistry.SkillDependencyReport {

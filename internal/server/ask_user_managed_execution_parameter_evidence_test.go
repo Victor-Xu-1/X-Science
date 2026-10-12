@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/sciencecapability"
-	"synon-go/internal/skills"
+	"x-science/internal/agentruntime"
+	"x-science/internal/sciencecapability"
+	"x-science/internal/skills"
 )
 
 func TestAskUserRejectsModelAuthoredControlledParameterTuple(t *testing.T) {

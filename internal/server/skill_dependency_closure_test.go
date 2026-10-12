@@ -15,13 +15,13 @@ import (
 	"testing"
 	"time"
 
-	eventjournal "synon-go/internal/persistence/journal"
-	secretstore "synon-go/internal/persistence/secrets"
-	sessionstore "synon-go/internal/persistence/sessions"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/skills"
-	"synon-go/internal/tools/articlefulltext"
-	toolregistry "synon-go/internal/tools/registry"
+	eventjournal "x-science/internal/persistence/journal"
+	secretstore "x-science/internal/persistence/secrets"
+	sessionstore "x-science/internal/persistence/sessions"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/skills"
+	"x-science/internal/tools/articlefulltext"
+	toolregistry "x-science/internal/tools/registry"
 )
 
 func TestV11DependencyClosureUsesRealGatewayAndConfiguredHostModel(t *testing.T) {
@@ -32,7 +32,7 @@ func TestV11DependencyClosureUsesRealGatewayAndConfiguredHostModel(t *testing.T)
 		_, _ = w.Write([]byte(`<a class="result__a" href="https://example.org/evidence">Biomedical evidence study</a>`))
 	}))
 	defer searchAPI.Close()
-	t.Setenv("SYNON_WEBSEARCH_ENDPOINT", searchAPI.URL+"/search-web?q={query}")
+	t.Setenv("X_SCIENCE_WEBSEARCH_ENDPOINT", searchAPI.URL+"/search-web?q={query}")
 
 	modelRequests := atomic.Int64{}
 	modelAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -82,7 +82,7 @@ func TestV11DependencyClosureUsesRealGatewayAndConfiguredHostModel(t *testing.T)
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = workspaceStore.Close() })
-	catalog := skills.Load([]string{filepath.Join("..", "..", "skills", "synonbiomed")})
+	catalog := skills.Load([]string{filepath.Join("..", "..", "skills", "x-science")})
 	if errors := catalog.LoadErrors(); len(errors) != 0 {
 		t.Fatalf("skill load errors = %#v", errors)
 	}

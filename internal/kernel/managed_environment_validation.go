@@ -103,8 +103,15 @@ func writeManagedEnvironmentMarker(path string, marker managedEnvironmentMarker)
 func readManagedEnvironmentMarker(prefix string) (managedEnvironmentMarker, error) {
 	var marker managedEnvironmentMarker
 	if _, err := readBoundedJSON(filepath.Join(prefix, managedEnvironmentMarkerName), &marker); err != nil {
-		return managedEnvironmentMarker{}, err
+		if !errors.Is(err, os.ErrNotExist) {
+			return managedEnvironmentMarker{}, err
+		}
+		return readPreviousNamespaceEnvironmentMarker(prefix)
 	}
+	return validateManagedEnvironmentMarker(marker)
+}
+
+func validateManagedEnvironmentMarker(marker managedEnvironmentMarker) (managedEnvironmentMarker, error) {
 	if marker.SchemaVersion != managedEnvironmentLegacyVersion && marker.SchemaVersion != managedEnvironmentMarkerVersion ||
 		!ValidEnvironmentName(marker.Name) || !validSHA256(marker.Generation) || len(marker.Packages) == 0 {
 		return managedEnvironmentMarker{}, errors.New("managed environment marker contract is invalid")
@@ -145,6 +152,9 @@ func readManagedEnvironmentMarker(prefix string) (managedEnvironmentMarker, erro
 	}
 	if marker.Kind == "" {
 		marker.Kind = "conda"
+	}
+	if marker.PreviousNamespace != nil {
+		return validatePreviousNamespaceEnvironmentMarker(marker)
 	}
 	switch marker.Kind {
 	case "conda":

@@ -8,7 +8,7 @@ import (
 const (
 	scientificComputeSubmissionV42CallbackID        = "scientific-compute-submission-v42-noop"
 	scientificComputeSubmissionV42PreflightIdentity = "scientific-compute-submission-recovery-v1"
-	scientificComputeSubmissionV42RuleSpec          = "synon.workspace.scientific-compute-submission.v42"
+	scientificComputeSubmissionV42RuleSpec          = "x-science.workspace.scientific-compute-submission.v42"
 	scientificComputeSubmissionsDDL                 = `CREATE TABLE scientific_compute_submissions (
 		job_id TEXT PRIMARY KEY REFERENCES scientific_compute_admissions(job_id) ON DELETE RESTRICT,
 		request_sha256 TEXT NOT NULL CHECK(length(request_sha256)=64 AND request_sha256 NOT GLOB '*[^0-9a-f]*'),

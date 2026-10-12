@@ -23,8 +23,8 @@ func normalizeAgentKernelReplContractAliases(input map[string]any) map[string]an
 	}
 	normalized := code
 	if strings.Contains(normalized, "host.global_data") {
-		normalized = strings.ReplaceAll(normalized, "host.global_data", "_synon_task_state")
-		normalized = "_synon_task_state = globals().setdefault(\"_synon_task_state\", {})\n" + normalized
+		normalized = strings.ReplaceAll(normalized, "host.global_data", "_x_science_task_state")
+		normalized = "_x_science_task_state = globals().setdefault(\"_x_science_task_state\", {})\n" + normalized
 	}
 	if normalized == code {
 		return input

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	adaptercommon "synon-go/internal/adapters/common"
+	adaptercommon "x-science/internal/adapters/common"
 )
 
 type ServerMessageProcessor struct {

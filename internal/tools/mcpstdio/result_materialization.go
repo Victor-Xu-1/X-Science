@@ -37,7 +37,7 @@ func BuildToolName(serverName string, toolName string) string {
 
 func NormalizeName(name string) string {
 	normalized := nameUnsafePattern.ReplaceAllString(name, "_")
-	if strings.HasPrefix(name, "synon.ai ") {
+	if strings.HasPrefix(name, "x-science.ai ") {
 		normalized = regexp.MustCompile(`_+`).ReplaceAllString(normalized, "_")
 		normalized = strings.Trim(normalized, "_")
 	}
@@ -192,7 +192,7 @@ func mimeExtension(mimeType string) string {
 }
 
 func timeoutFromEnv() time.Duration {
-	raw := strings.TrimSpace(os.Getenv("SYNON_MCP_TIMEOUT_SECONDS"))
+	raw := strings.TrimSpace(os.Getenv("X_SCIENCE_MCP_TIMEOUT_SECONDS"))
 	if raw == "" {
 		return defaultTimeout
 	}

@@ -11,7 +11,7 @@ import enCommon from '@/renderer/services/i18n/locales/en-US/common.json';
 import enConversation from '@/renderer/services/i18n/locales/en-US/conversation.json';
 import zhCommon from '@/renderer/services/i18n/locales/zh-CN/common.json';
 import zhConversation from '@/renderer/services/i18n/locales/zh-CN/conversation.json';
-import ContextUsagePanel from '@/renderer/components/synonBiomed/runtime/ContextUsagePanel';
+import ContextUsagePanel from '@/renderer/components/xScience/runtime/ContextUsagePanel';
 
 await i18n.use(initReactI18next).init({
   lng: 'zh-CN',

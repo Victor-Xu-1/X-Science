@@ -17,7 +17,7 @@ goos="${GOOS:-$host_goos}"
 goarch="${GOARCH:-$host_goarch}"
 package_name="${product_slug}-v${version}-${goos}-${goarch}"
 source_date_epoch="${SOURCE_DATE_EPOCH:-$(git log -1 --format=%ct 2>/dev/null || printf '0')}"
-source_uri="${SYNON_SOURCE_URI:-pkg:generic/${product_slug}@${version}}"
+source_uri="${X_SCIENCE_SOURCE_URI:-pkg:generic/${product_slug}@${version}}"
 source_revision="unversioned"
 source_dirty="true"
 
@@ -64,7 +64,7 @@ mkdir -p "$pkg/skills"
 mkdir -p "$pkg/assets"
 mkdir -p "$pkg/docs"
 
-web_assets="${SYNON_WEB_ASSETS:-}"
+web_assets="${X_SCIENCE_WEB_ASSETS:-}"
 if [[ -z "$web_assets" ]]; then
 	frontend_build="$tmp/frontend-build"
 	mkdir -p "$frontend_build"
@@ -91,9 +91,9 @@ fi
 mkdir -p "$pkg/web"
 cp -R "$web_assets"/. "$pkg/web/"
 
-target_binary="$pkg/synon-go${binary_suffix}"
-target_live_smoke="$pkg/synon-go-live-im-smoke${binary_suffix}"
-CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" "$go_bin" build -trimpath -buildvcs=false -ldflags='-s -w -buildid=' -o "$target_binary" ./cmd/synon
+target_binary="$pkg/x-science${binary_suffix}"
+target_live_smoke="$pkg/x-science-live-im-smoke${binary_suffix}"
+CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" "$go_bin" build -trimpath -buildvcs=false -ldflags='-s -w -buildid=' -o "$target_binary" ./cmd/x-science
 CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" "$go_bin" build -trimpath -buildvcs=false -ldflags='-s -w -buildid=' -o "$target_live_smoke" ./scripts/smoke-live-im
 
 cp README.md "$pkg/README.md"
@@ -167,8 +167,8 @@ chmod +x "$target_binary" "$target_live_smoke" \
 
 manifest_tool="$target_binary"
 if [[ "$goos" != "$host_goos" || "$goarch" != "$host_goarch" ]]; then
-	manifest_tool="$tmp/synon-go-manifest-tool"
-	env -u GOOS -u GOARCH CGO_ENABLED=0 "$go_bin" build -trimpath -buildvcs=false -ldflags='-s -w -buildid=' -o "$manifest_tool" ./cmd/synon
+	manifest_tool="$tmp/x-science-manifest-tool"
+	env -u GOOS -u GOARCH CGO_ENABLED=0 "$go_bin" build -trimpath -buildvcs=false -ldflags='-s -w -buildid=' -o "$manifest_tool" ./cmd/x-science
 fi
 
 module_cache=$(env -u GOOS -u GOARCH "$go_bin" env GOMODCACHE)
@@ -178,7 +178,7 @@ supply_chain_args=(
 	--root "$pkg"
 	--goos "$goos"
 	--goarch "$goarch"
-	--binaries "synon-go${binary_suffix},synon-go-live-im-smoke${binary_suffix}"
+	--binaries "x-science${binary_suffix},x-science-live-im-smoke${binary_suffix}"
 	--module-cache "$module_cache"
 	--go-root "$go_root"
 	--license-overrides "docs/licenses"

@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	taskstore "synon-go/internal/persistence/tasks"
-	"synon-go/internal/tools/shellops"
+	taskstore "x-science/internal/persistence/tasks"
+	"x-science/internal/tools/shellops"
 )
 
 func TestServerCloseStopsBackgroundShellProcessTreeAndTask(t *testing.T) {

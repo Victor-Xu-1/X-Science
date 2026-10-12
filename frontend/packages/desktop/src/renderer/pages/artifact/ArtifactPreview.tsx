@@ -1,33 +1,33 @@
 import {
-  getSynonBiomedArtifactVersionContentUrl,
-  type SynonBiomedArtifactLineage,
-  type SynonBiomedArtifactVersion,
-} from '@/renderer/services/synonBiomedArtifacts';
+  getXScienceArtifactVersionContentUrl,
+  type XScienceArtifactLineage,
+  type XScienceArtifactVersion,
+} from '@/renderer/services/xScienceArtifacts';
 import {
-  getSynonBiomedArtifactContentUrl,
-  loadSynonBiomedArtifact,
-  type SynonBiomedProjectArtifact,
-} from '@/renderer/services/synonBiomedGateway';
-import { resolveSynonBiomedArtifactPreviewPlan } from '@/renderer/services/synonBiomedArtifactPreview';
+  getXScienceArtifactContentUrl,
+  loadXScienceArtifact,
+  type XScienceProjectArtifact,
+} from '@/renderer/services/xScienceGateway';
+import { resolveXScienceArtifactPreviewPlan } from '@/renderer/services/xScienceArtifactPreview';
 import {
   cachePreviewModule,
   LazyExcelPreview as ExcelPreview,
-  LazySynonBiomedGenomeViewer as SynonBiomedGenomeViewer,
-  LazySynonBiomedHdf5Viewer as SynonBiomedHdf5Viewer,
-  LazySynonBiomedMoleculeViewer as SynonBiomedMoleculeViewer,
-  LazySynonBiomedMsaViewer as SynonBiomedMsaViewer,
-  LazySynonBiomedNotebookViewer as SynonBiomedNotebookViewer,
+  LazyXScienceGenomeViewer as XScienceGenomeViewer,
+  LazyXScienceHdf5Viewer as XScienceHdf5Viewer,
+  LazyXScienceMoleculeViewer as XScienceMoleculeViewer,
+  LazyXScienceMsaViewer as XScienceMsaViewer,
+  LazyXScienceNotebookViewer as XScienceNotebookViewer,
   LazyOfficeDocPreview as OfficeDocPreview,
   LazyPptPreview as PptViewer,
-  LazySynonBiomedSequenceViewer as SynonBiomedSequenceViewer,
-  LazySynonBiomedStructureViewer as SynonBiomedStructureViewer,
-  LazySynonBiomedTableViewer as SynonBiomedTableViewer,
+  LazyXScienceSequenceViewer as XScienceSequenceViewer,
+  LazyXScienceStructureViewer as XScienceStructureViewer,
+  LazyXScienceTableViewer as XScienceTableViewer,
   LazyUnsupportedPreview as UnsupportedPreview,
 } from '@/renderer/pages/conversation/Preview/components/viewers/scientificPreviewLoaders';
 import PreviewLoadingState from '@/renderer/components/media/PreviewLoadingState';
-import SynonBiomedNotesModal from '@/renderer/components/synonBiomed/notes/SynonBiomedNotesModal';
-import type { SynonBiomedArtifactTextSelection } from './artifactTextSelection';
-import type { SynonBiomedArtifactCanvasSelection } from './artifactCanvasSelection';
+import XScienceNotesModal from '@/renderer/components/xScience/notes/XScienceNotesModal';
+import type { XScienceArtifactTextSelection } from './artifactTextSelection';
+import type { XScienceArtifactCanvasSelection } from './artifactCanvasSelection';
 import { ArtifactAnnotationsPanel, ArtifactVerificationPanel } from './ArtifactAnnotationPanels';
 import { ArtifactEditRefinementPanel } from './ArtifactEditRefinementPanel';
 import { ArtifactSelectionAnnotationModal } from './ArtifactSelectionAnnotationModal';
@@ -40,10 +40,10 @@ import { ArtifactDetails } from './ArtifactDetails';
 import { formatBytes, formatDate } from './artifactPresentation';
 import type { ArtifactFileAction } from './useArtifactFileActionEditor';
 import {
-  loadSynonBiomedArtifactAnnotations,
-  type SynonBiomedAppliedArtifactEdit,
-  type SynonBiomedArtifactAnnotation,
-} from '@/renderer/services/synonBiomedAnnotations';
+  loadXScienceArtifactAnnotations,
+  type XScienceAppliedArtifactEdit,
+  type XScienceArtifactAnnotation,
+} from '@/renderer/services/xScienceAnnotations';
 import { Button, Empty, Message } from '@arco-design/web-react';
 import Tabs from '@/renderer/components/base/WorkbenchTabs';
 import { Comment, Copy, Download, FileText, FolderOpen, Left, Magic, Notes, Upload } from '@icon-park/react';
@@ -51,18 +51,18 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 're
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate, useParams } from 'react-router';
 
-const SynonBiomedMcpAppArtifactViewer = React.lazy(
+const XScienceMcpAppArtifactViewer = React.lazy(
   cachePreviewModule(
-    () => import('@/renderer/pages/conversation/Preview/components/viewers/SynonBiomedMcpAppArtifactViewer')
+    () => import('@/renderer/pages/conversation/Preview/components/viewers/XScienceMcpAppArtifactViewer')
   )
 );
-const SynonBiomedLatexArtifactViewer = React.lazy(cachePreviewModule(() => import('./SynonBiomedLatexArtifactViewer')));
-const SynonBiomedTextArtifactViewer = React.lazy(cachePreviewModule(() => import('./SynonBiomedTextArtifactViewer')));
-const SynonBiomedPdfArtifactViewer = React.lazy(cachePreviewModule(() => import('./SynonBiomedPdfArtifactViewer')));
-const SynonBiomedImageArtifactViewer = React.lazy(
+const XScienceLatexArtifactViewer = React.lazy(cachePreviewModule(() => import('./XScienceLatexArtifactViewer')));
+const XScienceTextArtifactViewer = React.lazy(cachePreviewModule(() => import('./XScienceTextArtifactViewer')));
+const XSciencePdfArtifactViewer = React.lazy(cachePreviewModule(() => import('./XSciencePdfArtifactViewer')));
+const XScienceImageArtifactViewer = React.lazy(
   cachePreviewModule(() =>
-    import('./SynonBiomedImageArtifactViewer').then((module) => ({
-      default: module.SynonBiomedImageArtifactViewer,
+    import('./XScienceImageArtifactViewer').then((module) => ({
+      default: module.XScienceImageArtifactViewer,
     }))
   )
 );
@@ -71,7 +71,7 @@ const VideoPreview = React.lazy(cachePreviewModule(() => import('./VideoPreview'
 const ArchiveArtifactPreview = React.lazy(cachePreviewModule(() => import('./ArchiveArtifactPreview')));
 
 type ArtifactSnapshot = {
-  artifact: SynonBiomedProjectArtifact;
+  artifact: XScienceProjectArtifact;
 };
 
 const ArtifactPreview: React.FC = () => {
@@ -85,14 +85,14 @@ const ArtifactPreview: React.FC = () => {
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [requestOwnerId, setRequestOwnerId] = useState(artifactId);
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
-  const [pinnedVersion, setPinnedVersion] = useState<SynonBiomedArtifactVersion | null>(null);
-  const [savedVersion, setSavedVersion] = useState<SynonBiomedAppliedArtifactEdit | null>(null);
+  const [pinnedVersion, setPinnedVersion] = useState<XScienceArtifactVersion | null>(null);
+  const [savedVersion, setSavedVersion] = useState<XScienceAppliedArtifactEdit | null>(null);
   const [metadataRevision, setMetadataRevision] = useState(0);
   const [activeInspectorTab, setActiveInspectorTab] = useState(() => inspectorTabFromSearch(location.search));
-  const [canvasSelection, setCanvasSelection] = useState<SynonBiomedArtifactCanvasSelection | null>(null);
-  const [annotationSelection, setAnnotationSelection] = useState<SynonBiomedArtifactCanvasSelection | null>(null);
-  const [refinementSelection, setRefinementSelection] = useState<SynonBiomedArtifactTextSelection | null>(null);
-  const [previewAnnotations, setPreviewAnnotations] = useState<SynonBiomedArtifactAnnotation[]>([]);
+  const [canvasSelection, setCanvasSelection] = useState<XScienceArtifactCanvasSelection | null>(null);
+  const [annotationSelection, setAnnotationSelection] = useState<XScienceArtifactCanvasSelection | null>(null);
+  const [refinementSelection, setRefinementSelection] = useState<XScienceArtifactTextSelection | null>(null);
+  const [previewAnnotations, setPreviewAnnotations] = useState<XScienceArtifactAnnotation[]>([]);
   const [annotationRevision, setAnnotationRevision] = useState(0);
   const [fileAction, setFileAction] = useState<ArtifactFileAction | null>(null);
   const [notesVisible, setNotesVisible] = useState(false);
@@ -200,7 +200,7 @@ const ArtifactPreview: React.FC = () => {
       return;
     }
     let active = true;
-    void loadSynonBiomedArtifactAnnotations(snapshot.artifact.artifactId, annotationVersionId)
+    void loadXScienceArtifactAnnotations(snapshot.artifact.artifactId, annotationVersionId)
       .then((collection) => {
         if (active) setPreviewAnnotations(collection.annotations);
       })
@@ -232,8 +232,8 @@ const ArtifactPreview: React.FC = () => {
   const folders = metadata.folders.value;
   const latexResourceUrls = buildLatexArtifactResourceUrls(metadata.resources.value);
   const contentUrl = selectedVersionId
-    ? getSynonBiomedArtifactVersionContentUrl(selectedVersionId)
-    : getSynonBiomedArtifactContentUrl(artifact.artifactId);
+    ? getXScienceArtifactVersionContentUrl(selectedVersionId)
+    : getXScienceArtifactContentUrl(artifact.artifactId);
   const displayMetadata =
     selectedVersion ?? (!selectedVersionId || selectedVersionId === artifact.versionId ? artifact : null);
   const receiptVersion =
@@ -245,7 +245,7 @@ const ArtifactPreview: React.FC = () => {
   const displaySize = displayMetadata?.sizeBytes ?? null;
   const activeVersionId = selectedVersionId ?? artifact.versionId;
   const previewNeedsResources =
-    resolveSynonBiomedArtifactPreviewPlan({ filename: artifact.filename, contentType: displayContentType }).type ===
+    resolveXScienceArtifactPreviewPlan({ filename: artifact.filename, contentType: displayContentType }).type ===
     'latex';
   const folderStateLabel = t('preview.artifact.details.folder');
   const folderActionHint =
@@ -253,7 +253,7 @@ const ArtifactPreview: React.FC = () => {
       ? undefined
       : t(`preview.artifact.metadata.${metadata.folders.status}`, { section: folderStateLabel });
 
-  const handleVersionApplied = async (result: SynonBiomedAppliedArtifactEdit) => {
+  const handleVersionApplied = async (result: XScienceAppliedArtifactEdit) => {
     // A saved version is immutable; displaying it must not override a newer
     // route or an explicit historical-version choice made during the read.
     if (
@@ -562,7 +562,7 @@ const ArtifactPreview: React.FC = () => {
         />
       )}
       {artifact.projectId && (artifact.frameId || artifact.rootFrameId) && (
-        <SynonBiomedNotesModal
+        <XScienceNotesModal
           visible={notesVisible}
           target={{
             projectId: artifact.projectId,
@@ -578,12 +578,12 @@ const ArtifactPreview: React.FC = () => {
 };
 
 async function loadArtifactSnapshot(artifactId: string): Promise<ArtifactSnapshot> {
-  const artifact = await loadSynonBiomedArtifact(artifactId);
+  const artifact = await loadXScienceArtifact(artifactId);
   return { artifact };
 }
 
 const ArtifactVersions: React.FC<{
-  versions: SynonBiomedArtifactVersion[];
+  versions: XScienceArtifactVersion[];
   selectedVersionId: string | null;
   onSelect: (versionId: string) => void;
 }> = ({ versions, selectedVersionId, onSelect }) => {
@@ -621,7 +621,7 @@ const ArtifactVersions: React.FC<{
 };
 
 const ArtifactLineage: React.FC<{
-  lineage: SynonBiomedArtifactLineage | null;
+  lineage: XScienceArtifactLineage | null;
 }> = ({ lineage }) => {
   const { t } = useTranslation();
   if (!lineage) return <Empty description={t('preview.artifact.lineage.empty')} />;
@@ -670,7 +670,7 @@ const LineageSection: React.FC<{
   </section>
 );
 
-const LineageFlags: React.FC<{ lineage: SynonBiomedArtifactLineage }> = ({ lineage }) => {
+const LineageFlags: React.FC<{ lineage: XScienceArtifactLineage }> = ({ lineage }) => {
   const { t } = useTranslation();
   return (
     <div className='grid grid-cols-3 border border-solid border-[var(--color-border-2)]'>
@@ -700,10 +700,10 @@ const ArtifactContent: React.FC<{
   filename: string;
   contentType: string | null;
   contentUrl: string;
-  annotations: SynonBiomedArtifactAnnotation[];
+  annotations: XScienceArtifactAnnotation[];
   resourceUrls: Readonly<Record<string, string>>;
-  onSelectionChange: (selection: SynonBiomedArtifactCanvasSelection | null) => void;
-  onAnnotationClick: (annotation: SynonBiomedArtifactAnnotation) => void;
+  onSelectionChange: (selection: XScienceArtifactCanvasSelection | null) => void;
+  onAnnotationClick: (annotation: XScienceArtifactAnnotation) => void;
 }> = ({
   artifactId,
   versionId,
@@ -717,13 +717,13 @@ const ArtifactContent: React.FC<{
   onAnnotationClick,
 }) => {
   const { t } = useTranslation();
-  const plan = resolveSynonBiomedArtifactPreviewPlan({ filename, contentType });
+  const plan = resolveXScienceArtifactPreviewPlan({ filename, contentType });
   const isTiffArtifact =
     contentType === 'image/tiff' || filename.toLowerCase().endsWith('.tif') || filename.toLowerCase().endsWith('.tiff');
 
   if (contentType?.startsWith('image/') && !isTiffArtifact) {
     return (
-      <SynonBiomedImageArtifactViewer
+      <XScienceImageArtifactViewer
         filename={filename}
         contentUrl={contentUrl}
         annotations={annotations}
@@ -735,7 +735,7 @@ const ArtifactContent: React.FC<{
 
   if (contentType === 'application/pdf') {
     return (
-      <SynonBiomedPdfArtifactViewer
+      <XSciencePdfArtifactViewer
         filename={filename}
         contentUrl={contentUrl}
         annotations={annotations}
@@ -758,7 +758,7 @@ const ArtifactContent: React.FC<{
   }
 
   if (plan.type === 'archive') {
-    const archiveContentUrl = `${getSynonBiomedArtifactContentUrl(artifactId)}/versions/${encodeURIComponent(versionId)}`;
+    const archiveContentUrl = `${getXScienceArtifactContentUrl(artifactId)}/versions/${encodeURIComponent(versionId)}`;
     return <ArchiveArtifactPreview filename={filename} contentUrl={archiveContentUrl} />;
   }
 
@@ -781,9 +781,9 @@ const ArtifactContent: React.FC<{
   if (plan.type === 'structure') {
     // Rendering and derived snapshots must share the displayed version, including
     // the initial current-version view and an explicitly selected history entry.
-    const structureContentUrl = `${getSynonBiomedArtifactContentUrl(artifactId)}/versions/${encodeURIComponent(versionId)}`;
+    const structureContentUrl = `${getXScienceArtifactContentUrl(artifactId)}/versions/${encodeURIComponent(versionId)}`;
     return (
-      <SynonBiomedStructureViewer
+      <XScienceStructureViewer
         filename={filename}
         contentUrl={structureContentUrl}
         rootFrameId={rootFrameId ?? undefined}
@@ -795,7 +795,7 @@ const ArtifactContent: React.FC<{
     const interactiveFormat = filename.toLowerCase().match(/\.(ket|rxn)$/)?.[1] as 'ket' | 'rxn' | undefined;
     if (interactiveFormat) {
       return (
-        <SynonBiomedMcpAppArtifactViewer
+        <XScienceMcpAppArtifactViewer
           filename={filename}
           contentUrl={contentUrl}
           contentParam={interactiveFormat}
@@ -805,31 +805,31 @@ const ArtifactContent: React.FC<{
         />
       );
     }
-    return <SynonBiomedMoleculeViewer filename={filename} contentUrl={contentUrl} />;
+    return <XScienceMoleculeViewer filename={filename} contentUrl={contentUrl} />;
   }
 
   if (plan.type === 'table') {
-    return <SynonBiomedTableViewer filename={filename} contentUrl={contentUrl} />;
+    return <XScienceTableViewer filename={filename} contentUrl={contentUrl} />;
   }
 
   if (plan.type === 'msa') {
-    return <SynonBiomedMsaViewer filename={filename} contentUrl={contentUrl} />;
+    return <XScienceMsaViewer filename={filename} contentUrl={contentUrl} />;
   }
 
   if (plan.type === 'genome') {
-    return <SynonBiomedGenomeViewer filename={filename} contentUrl={contentUrl} />;
+    return <XScienceGenomeViewer filename={filename} contentUrl={contentUrl} />;
   }
 
   if (plan.type === 'sequence') {
-    return <SynonBiomedSequenceViewer filename={filename} contentUrl={contentUrl} />;
+    return <XScienceSequenceViewer filename={filename} contentUrl={contentUrl} />;
   }
 
   if (plan.type === 'notebook') {
-    return <SynonBiomedNotebookViewer filename={filename} contentUrl={contentUrl} />;
+    return <XScienceNotebookViewer filename={filename} contentUrl={contentUrl} />;
   }
 
   if (plan.type === 'hdf5') {
-    return <SynonBiomedHdf5Viewer filename={filename} contentUrl={contentUrl} />;
+    return <XScienceHdf5Viewer filename={filename} contentUrl={contentUrl} />;
   }
 
   if (plan.type === 'unsupported') {
@@ -838,7 +838,7 @@ const ArtifactContent: React.FC<{
 
   if (plan.type === 'latex') {
     return (
-      <SynonBiomedLatexArtifactViewer
+      <XScienceLatexArtifactViewer
         filename={filename}
         contentUrl={contentUrl}
         annotations={annotations}
@@ -851,7 +851,7 @@ const ArtifactContent: React.FC<{
 
   if (plan.fetchText && (plan.type === 'code' || plan.type === 'markdown' || plan.type === 'html')) {
     return (
-      <SynonBiomedTextArtifactViewer
+      <XScienceTextArtifactViewer
         filename={filename}
         contentUrl={contentUrl}
         kind={plan.type}
@@ -875,12 +875,12 @@ const ArtifactContent: React.FC<{
 
 const LATEX_IMAGE_EXTENSIONS = new Set(['avif', 'gif', 'jpeg', 'jpg', 'pdf', 'png', 'svg', 'webp']);
 
-function buildLatexArtifactResourceUrls(artifacts: SynonBiomedProjectArtifact[]): Readonly<Record<string, string>> {
+function buildLatexArtifactResourceUrls(artifacts: XScienceProjectArtifact[]): Readonly<Record<string, string>> {
   const resources: Record<string, string> = {};
   for (const artifact of artifacts) {
     const extension = artifact.filename.split('.').at(-1)?.toLowerCase() ?? '';
     if (!artifact.contentType?.startsWith('image/') && !LATEX_IMAGE_EXTENSIONS.has(extension)) continue;
-    const contentUrl = getSynonBiomedArtifactContentUrl(artifact.artifactId);
+    const contentUrl = getXScienceArtifactContentUrl(artifact.artifactId);
     for (const value of [artifact.filename, artifact.filePath]) {
       if (!value) continue;
       const normalized = value.trim().replaceAll('\\', '/').replace(/^\.\//, '').toLowerCase();
@@ -894,7 +894,7 @@ function buildLatexArtifactResourceUrls(artifacts: SynonBiomedProjectArtifact[])
   return resources;
 }
 
-function selectionToolbarStyle(selection: SynonBiomedArtifactCanvasSelection): React.CSSProperties {
+function selectionToolbarStyle(selection: XScienceArtifactCanvasSelection): React.CSSProperties {
   const left = Math.max(68, Math.min(selection.x, window.innerWidth - 68));
   const top = Math.max(12, Math.min(selection.y + 8, window.innerHeight - 48));
   return { left, top, transform: 'translateX(-50%)' };

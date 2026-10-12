@@ -5,8 +5,8 @@ import {
   requireOfficialChromeProfileId,
 } from './officialChromeContract';
 
-const endpoint = requireOfficialChromeEndpoint(process.env.SYNON_GO_OFFICIAL_CHROME_CDP);
-const profileId = requireOfficialChromeProfileId(process.env.SYNON_GO_OFFICIAL_CHROME_PROFILE_ID);
+const endpoint = requireOfficialChromeEndpoint(process.env.X_SCIENCE_GO_OFFICIAL_CHROME_CDP);
+const profileId = requireOfficialChromeProfileId(process.env.X_SCIENCE_GO_OFFICIAL_CHROME_PROFILE_ID);
 
 type OfficialChromeFixtures = {
   officialChromeSnapshotSuffix: void;

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestPublicScientificRedirectPolicyFollowsConversationFullAccess(t *testing.T) {
@@ -18,7 +18,7 @@ func TestPublicScientificRedirectPolicyFollowsConversationFullAccess(t *testing.
 		if _, err := store.SetFrameRuntimeMetadata(frameID, workspace.FrameRuntimeMetadata{
 			FrameID: frameID,
 			ContextData: map[string]any{"web_assistant": map[string]any{
-				"id": "synonbiomed:operon", "conversation_overrides": map[string]any{"permission": mode},
+				"id": "xscience:operon", "conversation_overrides": map[string]any{"permission": mode},
 			}},
 		}); err != nil {
 			t.Fatal(err)

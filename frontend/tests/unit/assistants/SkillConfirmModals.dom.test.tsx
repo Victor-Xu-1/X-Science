@@ -24,7 +24,7 @@ vi.mock('@arco-design/web-react', async () => {
   };
 });
 
-import SkillConfirmModals from '@/renderer/pages/settings/SynonBiomedExpertsSettings/SkillConfirmModals';
+import SkillConfirmModals from '@/renderer/pages/settings/XScienceExpertsSettings/SkillConfirmModals';
 import { createTestI18n } from '../i18nTestUtils';
 
 let testI18n: i18n;

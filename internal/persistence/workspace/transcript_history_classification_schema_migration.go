@@ -6,12 +6,12 @@ import (
 	"errors"
 	"strings"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 const (
 	transcriptHistoryV27PreflightIdentity = "canonical-transcript-v26-history-classification-empty-v1"
-	transcriptHistoryV27RuleSpec          = "synon.workspace.transcript-history-classification.v27"
+	transcriptHistoryV27RuleSpec          = "x-science.workspace.transcript-history-classification.v27"
 )
 
 var transcriptHistoryClassificationV27Migration = versionedSchemaMigration{

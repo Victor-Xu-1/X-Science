@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/tools/fileevents"
+	"x-science/internal/tools/fileevents"
 )
 
 type webFSZipContent struct {
@@ -132,7 +132,7 @@ func (s *Server) handleWebZip(w http.ResponseWriter, r *http.Request) {
 		writeWebFSError(w, err)
 		return
 	}
-	temp, err := os.CreateTemp(filepath.Dir(destination.Target), ".synon-zip-*")
+	temp, err := os.CreateTemp(filepath.Dir(destination.Target), ".x-science-zip-*")
 	if err != nil {
 		writeWebFSError(w, err)
 		return

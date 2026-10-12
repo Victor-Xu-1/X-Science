@@ -5,8 +5,8 @@ import (
 	"errors"
 	"time"
 
-	"synon-go/internal/persistence/workspace"
-	"synon-go/internal/sqliteutil"
+	"x-science/internal/persistence/workspace"
+	"x-science/internal/sqliteutil"
 )
 
 type leaseRepository interface {

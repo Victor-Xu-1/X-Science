@@ -381,11 +381,11 @@ func TestPythonSyntaxErrorReturnsNonExecutingPreflight(t *testing.T) {
 
 func TestPythonMissingTopLevelImportReturnsNonExecutingPreflight(t *testing.T) {
 	manager, _ := newHostCallTestSession(t, nil)
-	outcome := executeHostCallCell(t, manager, "exec-import-preflight", "import synon_package_that_does_not_exist\nprint('must-not-run')", nil)
+	outcome := executeHostCallCell(t, manager, "exec-import-preflight", "import x_science_package_that_does_not_exist\nprint('must-not-run')", nil)
 	preflight := outcome.Response.Preflight
 	if outcome.Err != nil || outcome.Response.Error != "" ||
 		preflight["status"] != "code_preflight_required" || preflight["executed"] != false ||
-		!strings.Contains(preflight["message"].(string), "synon_package_that_does_not_exist") ||
+		!strings.Contains(preflight["message"].(string), "x_science_package_that_does_not_exist") ||
 		strings.TrimSpace(outcome.Response.Stdout) != "" || strings.TrimSpace(outcome.Response.Stderr) != "" {
 		t.Fatalf("import preflight outcome=%#v", outcome)
 	}

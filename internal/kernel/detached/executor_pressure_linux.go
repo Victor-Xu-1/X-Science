@@ -7,7 +7,7 @@ import (
 	"log"
 	"time"
 
-	"synon-go/internal/processsupervisor"
+	"x-science/internal/processsupervisor"
 )
 
 // Pressure supervision belongs to the existing executor lifetime. Heartbeats

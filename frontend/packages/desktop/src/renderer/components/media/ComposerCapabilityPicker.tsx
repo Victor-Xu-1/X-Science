@@ -11,14 +11,14 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import {
-  loadSynonBiomedMcpServers,
-  loadSynonBiomedSkills,
-  type SynonBiomedMcpServer,
-  type SynonBiomedSkill,
-} from '@/renderer/services/synonBiomedCapabilities';
+  loadXScienceMcpServers,
+  loadXScienceSkills,
+  type XScienceMcpServer,
+  type XScienceSkill,
+} from '@/renderer/services/xScienceCapabilities';
 import { iconColors } from '@/renderer/styles/colors';
 import { resolveLocaleKey } from '@/common/utils';
-import { resolveSkillDisplayName } from '@/renderer/services/skills/synonBiomedSkillDescriptions';
+import { resolveSkillDisplayName } from '@/renderer/services/skills/xScienceSkillDescriptions';
 
 type ComposerCapabilityPickerProps = {
   skillNames: string[];
@@ -219,13 +219,13 @@ const ComposerCapabilityPicker: React.FC<ComposerCapabilityPickerProps> = ({
   // blurbs come from the locale resources (the catalog ships English-only).
   useEffect(() => {
     let cancelled = false;
-    loadSynonBiomedSkills()
-      .then((skills: SynonBiomedSkill[]) => {
+    loadXScienceSkills()
+      .then((skills: XScienceSkill[]) => {
         if (!cancelled && Array.isArray(skills)) setSkillCatalog(catalogMap(skills, localeKey));
       })
       .catch((): undefined => undefined);
-    loadSynonBiomedMcpServers()
-      .then((servers: SynonBiomedMcpServer[]) => {
+    loadXScienceMcpServers()
+      .then((servers: XScienceMcpServer[]) => {
         if (!cancelled && Array.isArray(servers))
           setMcpCatalog(
             catalogMap(servers, localeKey, (name) => {

@@ -14,7 +14,7 @@ POLICY_PATH = (
 
 
 def load_policy():
-    spec = importlib.util.spec_from_file_location("synon_tls_policy_test", POLICY_PATH)
+    spec = importlib.util.spec_from_file_location("x_science_tls_policy_test", POLICY_PATH)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -36,12 +36,12 @@ class TLSContext:
 
 class TLSPolicyTests(unittest.TestCase):
     def setUp(self):
-        os.environ.pop("SYNON_MCP_X509_STRICT", None)
+        os.environ.pop("X_SCIENCE_MCP_X509_STRICT", None)
 
     def test_unset_and_invalid_values_keep_strict_default(self):
         policy = load_policy()
         self.assertEqual(policy.apply_posture(), policy.STRICT)
-        os.environ["SYNON_MCP_X509_STRICT"] = "invalid"
+        os.environ["X_SCIENCE_MCP_X509_STRICT"] = "invalid"
         self.assertEqual(policy.apply_posture(), policy.STRICT)
 
     def test_relaxed_posture_clears_only_client_strict_bit_and_is_idempotent(self):
@@ -52,7 +52,7 @@ class TLSPolicyTests(unittest.TestCase):
             create_default_context=lambda: TLSContext(),
         )
         policy.ssl = fake_ssl
-        os.environ["SYNON_MCP_X509_STRICT"] = "0"
+        os.environ["X_SCIENCE_MCP_X509_STRICT"] = "0"
 
         self.assertEqual(policy.apply_posture(), policy.RELAXED)
         installed_socket = TLSContext.wrap_socket

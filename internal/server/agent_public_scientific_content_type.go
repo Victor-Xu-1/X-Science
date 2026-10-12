@@ -4,7 +4,7 @@ import (
 	"mime"
 	"strings"
 
-	"synon-go/internal/tools/securefetch"
+	"x-science/internal/tools/securefetch"
 )
 
 func agentPublicScientificReportedContentType(response *securefetch.Response) string {

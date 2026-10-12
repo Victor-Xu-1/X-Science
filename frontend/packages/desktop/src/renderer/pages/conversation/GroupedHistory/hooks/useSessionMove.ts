@@ -1,5 +1,5 @@
 import type { TChatConversation } from '@/common/config/storage';
-import type { SynonBiomedProject } from '@/renderer/services/synonBiomedGateway';
+import type { XScienceProject } from '@/renderer/services/xScienceGateway';
 import { redactErrorText } from '@/renderer/pages/conversation/platforms/acp/errorDiagnostics';
 import { emitter } from '@/renderer/utils/emitter';
 import { Message } from '@arco-design/web-react';
@@ -8,11 +8,11 @@ import { useTranslation } from 'react-i18next';
 
 type MoveRuntime = Pick<
   typeof import('../conversationActionRuntime'),
-  'loadSynonBiomedProjects' | 'moveSynonBiomedSession'
+  'loadXScienceProjects' | 'moveXScienceSession'
 >;
 type MoveState = {
   target: TChatConversation | null;
-  projects: SynonBiomedProject[];
+  projects: XScienceProject[];
   phase: 'idle' | 'loading' | 'ready' | 'saving';
   error: string | null;
 };
@@ -45,7 +45,7 @@ export function useSessionMove(loadRuntime: () => Promise<MoveRuntime>, onMoved:
       try {
         const runtime = await loadRuntime();
         if (!isCurrent()) return;
-        const projects = await runtime.loadSynonBiomedProjects({ signal: controller.signal });
+        const projects = await runtime.loadXScienceProjects({ signal: controller.signal });
         if (isCurrent()) setState({ target: conversation, projects, phase: 'ready', error: null });
       } catch (error) {
         if (!isCurrent()) return;
@@ -78,9 +78,9 @@ export function useSessionMove(loadRuntime: () => Promise<MoveRuntime>, onMoved:
       setState((current) => ({ ...current, phase: 'saving', error: null }));
       try {
         const runtime = await loadRuntime();
-        await runtime.moveSynonBiomedSession(target.id, projectId);
+        await runtime.moveXScienceSession(target.id, projectId);
         onMoved();
-        emitter.emit('synonbiomed.projects.refresh');
+        emitter.emit('xscience.projects.refresh');
         if (mountedRef.current) {
           setState(emptyState());
           Message.success(t('conversation.history.sessionMove.success'));

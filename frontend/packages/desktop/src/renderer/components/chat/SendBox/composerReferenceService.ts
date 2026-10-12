@@ -1,13 +1,13 @@
 import {
-  loadSynonBiomedProjectArtifacts,
-  loadSynonBiomedProjectBenches,
-  loadSynonBiomedProjects,
-  type SynonBiomedGatewayOptions,
-  type SynonBiomedProject,
-} from '@/renderer/services/synonBiomedGateway';
+  loadXScienceProjectArtifacts,
+  loadXScienceProjectBenches,
+  loadXScienceProjects,
+  type XScienceGatewayOptions,
+  type XScienceProject,
+} from '@/renderer/services/xScienceGateway';
 import type { ArtifactComposerReference, SessionComposerReference } from './composerReferenceModel';
 
-function orderProjects(projects: SynonBiomedProject[], currentProjectId: string): SynonBiomedProject[] {
+function orderProjects(projects: XScienceProject[], currentProjectId: string): XScienceProject[] {
   return projects.toSorted((left, right) => {
     if (left.projectId === currentProjectId) return -1;
     if (right.projectId === currentProjectId) return 1;
@@ -17,13 +17,13 @@ function orderProjects(projects: SynonBiomedProject[], currentProjectId: string)
 
 export async function loadArtifactComposerReferences(
   currentProjectId: string,
-  options: SynonBiomedGatewayOptions = {}
+  options: XScienceGatewayOptions = {}
 ): Promise<ArtifactComposerReference[]> {
-  const projects = orderProjects(await loadSynonBiomedProjects(options), currentProjectId);
+  const projects = orderProjects(await loadXScienceProjects(options), currentProjectId);
   const projectArtifacts = await Promise.all(
     projects.map(async (project) => ({
       project,
-      artifacts: await loadSynonBiomedProjectArtifacts(project.projectId, options),
+      artifacts: await loadXScienceProjectArtifacts(project.projectId, options),
     }))
   );
 
@@ -49,13 +49,13 @@ export async function loadArtifactComposerReferences(
 export async function loadSessionComposerReferences(
   currentProjectId: string,
   currentFrameId?: string,
-  options: SynonBiomedGatewayOptions = {}
+  options: XScienceGatewayOptions = {}
 ): Promise<SessionComposerReference[]> {
-  const projects = orderProjects(await loadSynonBiomedProjects(options), currentProjectId);
+  const projects = orderProjects(await loadXScienceProjects(options), currentProjectId);
   const projectBenches = await Promise.all(
     projects.map(async (project) => ({
       project,
-      benches: await loadSynonBiomedProjectBenches(project.projectId, options),
+      benches: await loadXScienceProjectBenches(project.projectId, options),
     }))
   );
 

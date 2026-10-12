@@ -7,15 +7,15 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/software"
-	"synon-go/internal/software/localconda"
+	"x-science/internal/software"
+	"x-science/internal/software/localconda"
 
 	_ "modernc.org/sqlite"
 )
 
 func TestRuntimeDiagCanonicalDetachedSoftwareRequest(t *testing.T) {
-	databasePath := os.Getenv("SYNON_RUNTIME_DIAG_DB")
-	operationID := os.Getenv("SYNON_RUNTIME_DIAG_OPERATION")
+	databasePath := os.Getenv("X_SCIENCE_RUNTIME_DIAG_DB")
+	operationID := os.Getenv("X_SCIENCE_RUNTIME_DIAG_OPERATION")
 	if databasePath == "" || operationID == "" {
 		t.Skip("runtime diagnostic fixture is not configured")
 	}

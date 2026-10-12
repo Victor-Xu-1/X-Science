@@ -12,7 +12,7 @@ import (
 
 	"unicode/utf8"
 
-	"synon-go/internal/toolcontract"
+	"x-science/internal/toolcontract"
 )
 
 // MaterializeToolResult applies the same inline budget, immutable large-result

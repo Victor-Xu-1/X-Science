@@ -11,10 +11,10 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"synon-go/internal/compute/transfer"
+	"x-science/internal/compute/transfer"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestBYOCInputArchiveRejectsWorkspaceEscapeAndControlEnvironment(t *testing.T) {
@@ -58,7 +58,7 @@ func TestComputeIngressCancelsBeforeReadingAndKeepsControlNamesReserved(t *testi
 	if _, err := server.writeAgentBYOCInputArchiveContext(ctx, t.TempDir(), workspaceDir, map[string]any{"command": "true", "inputs": []any{"input.bin"}}); err == nil {
 		t.Fatal("cancelled ingress was staged")
 	}
-	for _, name := range []string{".phase", ".synon-harvest/selection.nul", "_synon_checkpoint.env", "_synon_harvest.sh"} {
+	for _, name := range []string{".phase", ".x-science-harvest/selection.nul", "_x_science_checkpoint.env", "_x_science_harvest.sh"} {
 		if _, err := server.writeAgentBYOCInputArchive(t.TempDir(), workspaceDir, map[string]any{"command": "true", "inputs": []any{map[string]any{"src": "input.bin", "dst": name}}}); err == nil {
 			t.Fatalf("control input name admitted: %s", name)
 		}

@@ -13,7 +13,7 @@ import (
 
 	"github.com/coder/websocket"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestWebMessageStreamContractAcrossHTTPSSERReplayAndLiveWebSocket(t *testing.T) {
@@ -32,7 +32,7 @@ func TestWebMessageStreamContractAcrossHTTPSSERReplayAndLiveWebSocket(t *testing
 		t.Fatal(err)
 	}
 	if _, err := store.SetFrameRuntimeMetadata("frame", workspace.FrameRuntimeMetadata{
-		ContextData: map[string]any{"web_extra": map[string]any{"backend": "synonbiomed"}},
+		ContextData: map[string]any{"web_extra": map[string]any{"backend": "xscience"}},
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -177,7 +177,7 @@ func TestWebMessageStreamContractAcrossHTTPSSERReplayAndLiveWebSocket(t *testing
 func TestWebRunnerTerminalProjectionRejectsUnknownStatusBeforePublishing(t *testing.T) {
 	srv, store, frameContext := newWebMessageStreamTestServer(t)
 	if _, err := store.SetFrameRuntimeMetadata(frameContext.Frame.ID, workspace.FrameRuntimeMetadata{
-		ContextData: map[string]any{"web_extra": map[string]any{"backend": "synonbiomed"}},
+		ContextData: map[string]any{"web_extra": map[string]any{"backend": "xscience"}},
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -250,7 +250,7 @@ func readFirstWebMessageStreamSSE(t *testing.T, serverURL string) workspace.Real
 	if err != nil {
 		t.Fatal(err)
 	}
-	request.Header.Set("X-Synon-User-Id", "user-1")
+	request.Header.Set("X-Science-User-Id", "user-1")
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		t.Fatal(err)

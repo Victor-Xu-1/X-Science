@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-const authoritySchema = "synon.product-identity.v1"
+const authoritySchema = "x-science.product-identity.v1"
 
 var (
 	semanticVersionPattern = regexp.MustCompile(`^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$`)

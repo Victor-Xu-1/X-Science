@@ -1,19 +1,19 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useArtifactMetadataReads } from '@/renderer/pages/artifact/useArtifactMetadataReads';
-import type { SynonBiomedProjectArtifact } from '@/renderer/services/synonBiomedGateway';
+import type { XScienceProjectArtifact } from '@/renderer/services/xScienceGateway';
 
 const api = vi.hoisted(() => ({ versions: vi.fn(), lineage: vi.fn(), folders: vi.fn(), resources: vi.fn() }));
-vi.mock('@/renderer/services/synonBiomedArtifacts', () => ({
-  loadSynonBiomedArtifactVersions: api.versions,
-  loadSynonBiomedArtifactLineage: api.lineage,
+vi.mock('@/renderer/services/xScienceArtifacts', () => ({
+  loadXScienceArtifactVersions: api.versions,
+  loadXScienceArtifactLineage: api.lineage,
 }));
-vi.mock('@/renderer/services/synonBiomedGateway', () => ({
-  loadSynonBiomedProjectFolders: api.folders,
-  loadSynonBiomedProjectArtifacts: api.resources,
+vi.mock('@/renderer/services/xScienceGateway', () => ({
+  loadXScienceProjectFolders: api.folders,
+  loadXScienceProjectArtifacts: api.resources,
 }));
 
-const artifact: SynonBiomedProjectArtifact = {
+const artifact: XScienceProjectArtifact = {
   artifactId: 'read-owner',
   versionId: 'read-v1',
   versionNumber: 1,

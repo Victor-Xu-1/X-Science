@@ -16,9 +16,9 @@ import (
 	"sync/atomic"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/tools/securefetch"
-	"synon-go/internal/tools/webfetch"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/tools/securefetch"
+	"x-science/internal/tools/webfetch"
 )
 
 func TestAgentPublicScientificCanonicalRedirectHandoff(t *testing.T) {

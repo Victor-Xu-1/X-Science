@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	adapterwechat "synon-go/internal/adapters/wechat"
+	adapterwechat "x-science/internal/adapters/wechat"
 )
 
 func TestWeChatQRLoginEndpointsStartAndPoll(t *testing.T) {

@@ -396,7 +396,7 @@ function firstPublicSemanticIdentity(record: Record<string, unknown>): string | 
     if (typeof candidate !== 'string' && typeof candidate !== 'number') continue;
     const value = String(candidate).trim();
     if (!value || value.length > 80 || !/^[\p{L}\p{N}][\p{L}\p{N}._:+/-]*$/u.test(value)) continue;
-    if (/^(?:mem_|swr-|synon[-_])|^[0-9a-f]{8}-[0-9a-f-]{20,}$/iu.test(value)) continue;
+    if (/^(?:mem_|swr-|xscience[-_])|^[0-9a-f]{8}-[0-9a-f-]{20,}$/iu.test(value)) continue;
     return value;
   }
   return null;
@@ -410,7 +410,7 @@ function firstValidPublicSemanticIdentity(values: Array<string | null>): string 
       normalized.length > 0 &&
       normalized.length <= 80 &&
       /^[\p{L}\p{N}][\p{L}\p{N}._:+/-]*$/u.test(normalized) &&
-      !/^(?:mem_|proj(?:ect)?_|artifact_|frame_|swr-|synon[-_])|^[0-9a-f]{8}-[0-9a-f-]{20,}$/iu.test(normalized)
+      !/^(?:mem_|proj(?:ect)?_|artifact_|frame_|swr-|xscience[-_])|^[0-9a-f]{8}-[0-9a-f-]{20,}$/iu.test(normalized)
     ) {
       return normalized;
     }

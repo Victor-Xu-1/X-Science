@@ -29,13 +29,13 @@ import {
 import { decodeArtifactReferences, type ArtifactReferenceWire } from '@/common/adapter/messageStreamProtocol';
 import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import {
-  SYNON_BIOMED_BRANCH_SELECTION_EVENT,
-  getSynonBiomedBranchSelectionRevision,
-  resetSynonBiomedBranchSelection,
-  rollbackSynonBiomedBranchSelection,
-  selectSynonBiomedBranch,
-  type SynonBiomedBranchSelectionEventDetail,
-} from '@/renderer/services/synonBiomedConversationBranches';
+  X_SCIENCE_BRANCH_SELECTION_EVENT,
+  getXScienceBranchSelectionRevision,
+  resetXScienceBranchSelection,
+  rollbackXScienceBranchSelection,
+  selectXScienceBranch,
+  type XScienceBranchSelectionEventDetail,
+} from '@/renderer/services/xScienceConversationBranches';
 import { createContext } from '@renderer/utils/ui/createContext';
 import {
   INTERACTIVE_MESSAGE_PAGE_LIMIT,
@@ -47,7 +47,7 @@ import { isMessageRequestAbort } from './messageRequestAbort';
 import {
   TRANSIENT_HISTORY_RETRY_DELAYS_MS,
   isConversationHistoryNotReady,
-} from '@/renderer/services/synonBiomedHistoryRetry';
+} from '@/renderer/services/xScienceHistoryRetry';
 import { scheduleConversationRoutePerformanceStage } from '../conversationRoutePerformance';
 import { registerRendererAccountReset } from '@/renderer/services/rendererAccountScope';
 import {
@@ -71,7 +71,7 @@ export type MessageListLoadError = { source: MessageListLoadSource };
 const [useMessageListLoadError, MessageListLoadErrorProvider, useUpdateMessageListLoadError] =
   createContext<MessageListLoadError | null>(null);
 
-const OPTIMISTIC_USER_MESSAGE_PREFIX = 'synonbiomed-optimistic-user:';
+const OPTIMISTIC_USER_MESSAGE_PREFIX = 'xscience-optimistic-user:';
 
 const withoutOptimisticUserMessages = (list: TMessage[]): TMessage[] =>
   list.filter((message) => !message.id.startsWith(OPTIMISTIC_USER_MESSAGE_PREFIX));
@@ -237,7 +237,7 @@ function releaseAbortableMessageHistoryRequest(conversationId: string, request: 
 function isCurrentMessageHistoryRequest(conversationId: string, requestEpoch: number, branchRevision: number): boolean {
   return (
     activeMessageHistoryRequestEpochs.get(conversationId) === requestEpoch &&
-    getSynonBiomedBranchSelectionRevision(conversationId) === branchRevision
+    getXScienceBranchSelectionRevision(conversationId) === branchRevision
   );
 }
 
@@ -885,7 +885,7 @@ const normalizePersistedWorkspaceRuntimeError = (
   return {
     message,
     code: 'WORKSPACE_PATH_RUNTIME_UNAVAILABLE',
-    ownership: 'synon-ai',
+    ownership: 'x-science',
     detail,
     workspacePath,
     retryable: false,
@@ -920,7 +920,7 @@ const classifyPersistedSendFailure = (
     return {
       message,
       code: effectiveCode,
-      ownership: 'synon-ai',
+      ownership: 'x-science',
       detail: message,
       retryable: true,
       feedback_recommended: true,
@@ -941,19 +941,19 @@ const classifyPersistedSendFailure = (
   if (persistedCode === 'INTERNAL_ERROR') {
     return {
       message,
-      code: 'SYNON_AI_INTERNAL_ERROR',
-      ownership: 'synon-ai',
+      code: 'X_SCIENCE_INTERNAL_ERROR',
+      ownership: 'x-science',
       detail: message,
       retryable: true,
       feedback_recommended: true,
     };
   }
 
-  if (persistedCode?.startsWith('SYNON_AI_')) {
+  if (persistedCode?.startsWith('X_SCIENCE_')) {
     return {
       message,
       code: persistedCode,
-      ownership: 'synon-ai',
+      ownership: 'x-science',
       detail: message,
       retryable: true,
     };
@@ -991,8 +991,8 @@ const classifyPersistedSendFailure = (
   if (parsed.source === 'send_failed') {
     return {
       message,
-      code: 'SYNON_AI_INTERNAL_ERROR',
-      ownership: 'synon-ai',
+      code: 'X_SCIENCE_INTERNAL_ERROR',
+      ownership: 'x-science',
       detail: message,
       retryable: true,
       feedback_recommended: true,
@@ -1118,7 +1118,7 @@ export const useLoadPreviousMessagePage = (conversationId?: string) => {
 
     const request = beginAbortableMessageHistoryRequest(conversationId);
     const requestEpoch = request.epoch;
-    const branchRevision = getSynonBiomedBranchSelectionRevision(conversationId);
+    const branchRevision = getXScienceBranchSelectionRevision(conversationId);
     setPagination((current) => ({
       ...current,
       isLoadingBefore: true,
@@ -1157,7 +1157,7 @@ export const useLoadPreviousMessagePage = (conversationId?: string) => {
       setPagination((current) => ({ ...current, isLoadingBefore: false }));
       if (isMessageRequestAbort(error)) return false;
       if (isBackendHttpError(error) && error.status === 409) {
-        selectSynonBiomedBranch(conversationId, pagination.branchId ?? null);
+        selectXScienceBranch(conversationId, pagination.branchId ?? null);
         return false;
       }
       console.error('[useLoadPreviousMessagePage] Failed to load previous messages:', error);
@@ -1195,7 +1195,7 @@ export const useLoadNextMessagePage = (conversationId?: string) => {
     }
     const request = beginAbortableMessageHistoryRequest(conversationId);
     const requestEpoch = request.epoch;
-    const branchRevision = getSynonBiomedBranchSelectionRevision(conversationId);
+    const branchRevision = getXScienceBranchSelectionRevision(conversationId);
     setPagination((current) => ({
       ...current,
       isLoadingAfter: true,
@@ -1231,7 +1231,7 @@ export const useLoadNextMessagePage = (conversationId?: string) => {
       setPagination((current) => ({ ...current, isLoadingAfter: false }));
       if (isMessageRequestAbort(error)) return false;
       if (isBackendHttpError(error) && error.status === 409) {
-        selectSynonBiomedBranch(conversationId, pagination.branchId ?? null);
+        selectXScienceBranch(conversationId, pagination.branchId ?? null);
         return false;
       }
       console.error('[useLoadNextMessagePage] Failed to load newer messages:', error);
@@ -1268,7 +1268,7 @@ export const useLoadAnchorMessageWindow = (conversationId?: string) => {
 
       const request = beginAbortableMessageHistoryRequest(conversationId);
       const requestEpoch = request.epoch;
-      const branchRevision = getSynonBiomedBranchSelectionRevision(conversationId);
+      const branchRevision = getXScienceBranchSelectionRevision(conversationId);
       setPagination((current) => ({
         ...current,
         isLoadingAnchor: true,
@@ -1304,7 +1304,7 @@ export const useLoadAnchorMessageWindow = (conversationId?: string) => {
         setPagination((current) => ({ ...current, isLoadingAnchor: false }));
         if (isMessageRequestAbort(error)) return false;
         if (isBackendHttpError(error) && error.status === 409) {
-          selectSynonBiomedBranch(conversationId, pagination.branchId ?? null);
+          selectXScienceBranch(conversationId, pagination.branchId ?? null);
           return false;
         }
         console.error('[useLoadAnchorMessageWindow] Failed to load anchor messages:', error);
@@ -1353,7 +1353,7 @@ export const useMessageLstCache = (key: string, ownerId = '') => {
       if (!key) return [];
       if (source !== 'initial') clearInitialHistoryRetry(key);
       const requestEpoch = beginMessageHistoryRequest(key);
-      const branchRevision = getSynonBiomedBranchSelectionRevision(key);
+      const branchRevision = getXScienceBranchSelectionRevision(key);
       const blocksVisibleWindow = blockCachedWindow && (source === 'initial' || source === 'branch');
       if (blocksVisibleWindow) setLoading(true);
       setPagination((current) => ({
@@ -1377,7 +1377,7 @@ export const useMessageLstCache = (key: string, ownerId = '') => {
         if (
           !isCurrentMessageHistoryRequest(key, requestEpoch, branchRevision) ||
           activeKeyRef.current !== key ||
-          branchRevision !== getSynonBiomedBranchSelectionRevision(key)
+          branchRevision !== getXScienceBranchSelectionRevision(key)
         )
           return [];
 
@@ -1482,7 +1482,7 @@ export const useMessageLstCache = (key: string, ownerId = '') => {
 
   useLayoutEffect(() => {
     clearInitialHistoryRetry();
-    const branchRevision = key ? getSynonBiomedBranchSelectionRevision(key) : 0;
+    const branchRevision = key ? getXScienceBranchSelectionRevision(key) : 0;
     if (key) invalidateMessageHistoryRequest(key);
     const cached = key ? readCachedMessageWindow(key, ownerId, branchRevision) : null;
     const initialWindow = cached?.messages ?? [];
@@ -1526,32 +1526,32 @@ export const useMessageLstCache = (key: string, ownerId = '') => {
     if (!key || currentList.length === 0) return;
     const messages = currentList.filter((message) => message.conversation_id === key);
     if (messages.length !== currentList.length) return;
-    writeCachedMessageWindow(key, ownerId, getSynonBiomedBranchSelectionRevision(key), messages, pagination);
+    writeCachedMessageWindow(key, ownerId, getXScienceBranchSelectionRevision(key), messages, pagination);
   }, [currentList, key, ownerId, pagination]);
 
   useEffect(() => {
     if (!key || typeof window === 'undefined') return;
     const handleBranchSelection = (event: Event) => {
-      const detail = (event as CustomEvent<SynonBiomedBranchSelectionEventDetail>).detail;
+      const detail = (event as CustomEvent<XScienceBranchSelectionEventDetail>).detail;
       if (detail?.conversationId !== key) return;
       if (detail.rollback) return;
       const displayedBranchId = pagination.branchId ?? detail.previousBranchId;
       setLoadError(null);
       void loadMessages(true, 'branch').catch((error) => {
         if (isMessageRequestAbort(error)) return;
-        rollbackSynonBiomedBranchSelection(key, detail.branchId, displayedBranchId, detail.revision);
+        rollbackXScienceBranchSelection(key, detail.branchId, displayedBranchId, detail.revision);
         console.error('[useMessageLstCache] Failed to switch branch:', error);
       });
     };
-    window.addEventListener(SYNON_BIOMED_BRANCH_SELECTION_EVENT, handleBranchSelection);
-    return () => window.removeEventListener(SYNON_BIOMED_BRANCH_SELECTION_EVENT, handleBranchSelection);
+    window.addEventListener(X_SCIENCE_BRANCH_SELECTION_EVENT, handleBranchSelection);
+    return () => window.removeEventListener(X_SCIENCE_BRANCH_SELECTION_EVENT, handleBranchSelection);
   }, [key, loadMessages, pagination.branchId, setLoadError]);
 
   useEffect(() => {
     if (!key) return;
     const reloadCanonicalHistory = (clearVisibleWindow: boolean, source: 'rebase' | 'cursor-reset') => {
       invalidateMessageHistoryRequest(key);
-      resetSynonBiomedBranchSelection(key);
+      resetXScienceBranchSelection(key);
       if (clearVisibleWindow) update([]);
       setLoadError(null);
       if (clearVisibleWindow) {

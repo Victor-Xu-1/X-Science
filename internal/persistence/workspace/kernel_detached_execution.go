@@ -17,10 +17,10 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"synon-go/internal/kernelcontract"
-	"synon-go/internal/networkpolicy"
-	"synon-go/internal/networktls"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	"x-science/internal/kernelcontract"
+	"x-science/internal/networkpolicy"
+	"x-science/internal/networktls"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 const (
@@ -675,10 +675,11 @@ type DetachedKernelExecutionRecoveryPage struct {
 	NextCursor string
 }
 
-// ListDetachedKernelExecutionRecoveryPage includes every unfinished operation,
-// including same-boot execution and partially committed evidence loss. The
-// immutable execution ID advances a scan past live or temporarily blocked rows.
-// Observer ownership, not inventory exclusion, prevents duplicate observation.
+// ListDetachedKernelExecutionRecoveryPage includes observable unfinished work,
+// including same-boot execution and partially committed evidence loss. An
+// explicit namespace identity hold is not re-observed without new evidence;
+// a subsequently committed terminal receipt remains eligible for settlement.
+// The immutable execution ID advances scans past live or temporarily busy rows.
 func (s *Store) ListDetachedKernelExecutionRecoveryPage(
 	ctx context.Context,
 	afterExecutionID string,
@@ -692,11 +693,12 @@ func (s *Store) ListDetachedKernelExecutionRecoveryPage(
 		FROM kernel_detached_executions detached
 		JOIN kernel_local_operations operation ON operation.operation_id=detached.operation_id
 		WHERE operation.state='started' AND detached.execution_id>?
+			AND NOT(detached.state='started' AND detached.reason_code=? AND detached.terminal_receipt_id IS NULL)
 			AND NOT EXISTS (
 				SELECT 1 FROM kernel_local_operation_materializations materialization
 				WHERE materialization.operation_id=operation.operation_id
 			)
-		ORDER BY detached.execution_id LIMIT ?`, afterExecutionID, limit+1)
+		ORDER BY detached.execution_id LIMIT ?`, afterExecutionID, KernelExecutionNamespaceRecoveryReasonCode, limit+1)
 	if err != nil {
 		return DetachedKernelExecutionRecoveryPage{}, err
 	}
@@ -725,6 +727,9 @@ func (s *Store) ListDetachedKernelExecutionRecoveryPage(
 		}
 		if !found {
 			continue // A settled/deleted snapshot must not block later identities.
+		}
+		if execution.State == DetachedKernelExecutionStateStarted && execution.ReasonCode == KernelExecutionNamespaceRecoveryReasonCode && execution.TerminalReceiptID == "" {
+			continue
 		}
 		request, err := DecodeKernelDetachedExecutionRequestV1(execution.RequestJSON)
 		if err != nil {

@@ -2,7 +2,7 @@ import { IconRight } from '@arco-design/web-react/icon';
 import React, { useEffect, useMemo, useState } from 'react';
 import type { NormalizedToolCall } from '@/common/chat/normalizeToolCall';
 import MarkdownView from '@/renderer/components/Markdown';
-import SynonBiomedPlanTree from '@/renderer/components/synonBiomed/runtime/SynonBiomedPlanTree';
+import XSciencePlanTree from '@/renderer/components/xScience/runtime/XSciencePlanTree';
 import { useConversationDisclosure } from '@/renderer/services/runtime/conversationDisclosureStore';
 import {
   buildToolPublicDetailPresentation,
@@ -310,7 +310,7 @@ const MessageToolPublicDetail: React.FC<{
             ) : null}
             {presentation.planDocument ? (
               <div className='tool-public-detail__plan' data-testid='tool-public-plan'>
-                <SynonBiomedPlanTree document={presentation.planDocument} />
+                <XSciencePlanTree document={presentation.planDocument} />
               </div>
             ) : null}
             {presentation.planAssessment ? (

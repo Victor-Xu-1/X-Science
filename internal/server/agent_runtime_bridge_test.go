@@ -15,13 +15,13 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	runtimekv "synon-go/internal/persistence/runtimekv"
-	workspace "synon-go/internal/persistence/workspace"
-	pluginhost "synon-go/internal/plugins/host"
-	"synon-go/internal/providers"
-	"synon-go/internal/skills"
-	"synon-go/internal/tools/mcpstdio"
+	"x-science/internal/agentruntime"
+	runtimekv "x-science/internal/persistence/runtimekv"
+	workspace "x-science/internal/persistence/workspace"
+	pluginhost "x-science/internal/plugins/host"
+	"x-science/internal/providers"
+	"x-science/internal/skills"
+	"x-science/internal/tools/mcpstdio"
 )
 
 func TestServerAgentRuntimeBridgeRunsModelToolCallAgainstRealToolGateway(t *testing.T) {
@@ -156,8 +156,8 @@ func TestAgentRuntimeMCPDiscoveryFailureReturnsFixedRecoverableDiagnostic(t *tes
 	if err := os.WriteFile(filepath.Join(root, ".mcp.json"), []byte(`{"mcpServers":`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("SYNON_MCP_CONFIG_JSON", "")
-	t.Setenv("SYNON_MCP_CONFIG", filepath.Join(root, ".mcp.json"))
+	t.Setenv("X_SCIENCE_MCP_CONFIG_JSON", "")
+	t.Setenv("X_SCIENCE_MCP_CONFIG", filepath.Join(root, ".mcp.json"))
 	srv := newV11TestServer(t, Options{FileRoot: root})
 	schemas := srv.agentRuntimeMCPToolSchemas(context.Background(), nil)
 	var diagnostic agentruntime.ToolSchema
@@ -329,7 +329,7 @@ func TestServerAgentRuntimeSkillDiscoveryDoesNotAdvertiseForbiddenToolRequiremen
 	}
 	search, err := gateway.Execute(context.Background(), agentruntime.ToolCall{
 		ID: "authority-skill-search", Name: "search_skills",
-		Arguments: json.RawMessage(`{"query":"select:synon-runtime"}`),
+		Arguments: json.RawMessage(`{"query":"select:x-science-runtime"}`),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -338,12 +338,12 @@ func TestServerAgentRuntimeSkillDiscoveryDoesNotAdvertiseForbiddenToolRequiremen
 	if matches := stringArrayValue(payload["matches"]); len(matches) != 0 {
 		t.Fatalf("authority-scoped skill matches = %#v payload=%#v", matches, payload)
 	}
-	if missing := stringArrayValue(payload["missing_skills"]); !reflect.DeepEqual(missing, []string{"synon-runtime"}) {
+	if missing := stringArrayValue(payload["missing_skills"]); !reflect.DeepEqual(missing, []string{"x-science-runtime"}) {
 		t.Fatalf("authority-scoped missing skills = %#v payload=%#v", missing, payload)
 	}
 
 	invocation, err := gateway.Execute(context.Background(), agentruntime.ToolCall{
-		ID: "authority-skill", Name: "skill", Arguments: json.RawMessage(`{"skill":"synon-runtime"}`),
+		ID: "authority-skill", Name: "skill", Arguments: json.RawMessage(`{"skill":"x-science-runtime"}`),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -355,7 +355,7 @@ func TestServerAgentRuntimeSkillDiscoveryDoesNotAdvertiseForbiddenToolRequiremen
 }
 
 func TestServerAgentRuntimeBundledGenMolSkillUsesAdmittedDiscoveryTools(t *testing.T) {
-	catalog := skills.Load([]string{filepath.Join("..", "..", "skills", "synonbiomed")})
+	catalog := skills.Load([]string{filepath.Join("..", "..", "skills", "x-science")})
 	if loadErrors := catalog.LoadErrors(); len(loadErrors) != 0 {
 		t.Fatalf("load bundled skills: %#v", loadErrors)
 	}
@@ -553,9 +553,9 @@ func TestAgentRuntimeToolSchemasKeepStructuredOutputPassthrough(t *testing.T) {
 
 func configureMCPHTTPFixture(t *testing.T, root string) *http.Client {
 	t.Helper()
-	t.Setenv("SYNON_MCP_CONFIG_JSON", "")
+	t.Setenv("X_SCIENCE_MCP_CONFIG_JSON", "")
 	configPath := filepath.Join(root, ".mcp.json")
-	t.Setenv("SYNON_MCP_CONFIG", configPath)
+	t.Setenv("X_SCIENCE_MCP_CONFIG", configPath)
 	mcpServer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req map[string]any
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -629,9 +629,9 @@ func configureMCPHTTPFixture(t *testing.T, root string) *http.Client {
 
 func configureMCPHTTPPolicyFixture(t *testing.T, root string, policy map[string]any, calls *atomic.Int64) {
 	t.Helper()
-	t.Setenv("SYNON_MCP_CONFIG_JSON", "")
+	t.Setenv("X_SCIENCE_MCP_CONFIG_JSON", "")
 	configPath := filepath.Join(root, ".mcp.json")
-	t.Setenv("SYNON_MCP_CONFIG", configPath)
+	t.Setenv("X_SCIENCE_MCP_CONFIG", configPath)
 	mcpServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req map[string]any
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -2929,9 +2929,9 @@ func TestServerAgentRuntimeBridgeRunsPluginPreToolHook(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read plugin hook env snapshot: %v", err)
 	}
-	if !strings.Contains(string(envSnapshot), "SYNON_PLUGIN_ID=terminal-tools\n") ||
-		!strings.Contains(string(envSnapshot), "SYNON_PLUGIN_NAME=terminal-tools\n") ||
-		!strings.Contains(string(envSnapshot), "SYNON_PLUGIN_ROOT="+pluginDir+"\n") {
+	if !strings.Contains(string(envSnapshot), "X_SCIENCE_PLUGIN_ID=terminal-tools\n") ||
+		!strings.Contains(string(envSnapshot), "X_SCIENCE_PLUGIN_NAME=terminal-tools\n") ||
+		!strings.Contains(string(envSnapshot), "X_SCIENCE_PLUGIN_ROOT="+pluginDir+"\n") {
 		t.Fatalf("plugin hook env snapshot = %s", envSnapshot)
 	}
 }
@@ -2969,7 +2969,7 @@ func TestServerAgentRuntimeBridgeManagedHooksOnlySkipsPluginHook(t *testing.T) {
 
 func writeAgentRuntimePluginHookFixture(t *testing.T, pluginDir string) {
 	t.Helper()
-	if err := os.MkdirAll(filepath.Join(pluginDir, ".synon-plugin"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(pluginDir, ".x-science-plugin"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.MkdirAll(filepath.Join(pluginDir, "hooks"), 0o755); err != nil {
@@ -2981,7 +2981,7 @@ func writeAgentRuntimePluginHookFixture(t *testing.T, pluginDir string) {
   "version": "0.2.0",
   "server": {"api": {"mount": "/api/plugins/terminal-tools"}}
 }`
-	if err := os.WriteFile(filepath.Join(pluginDir, ".synon-plugin", "plugin.json"), []byte(manifest), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(pluginDir, ".x-science-plugin", "plugin.json"), []byte(manifest), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	hooks := `{
@@ -2993,7 +2993,7 @@ func writeAgentRuntimePluginHookFixture(t *testing.T, pluginDir string) {
         "type": "command",
         "shell": "Bash",
         "timeout": 5,
-        "command": "cat > \"${SYNON_PLUGIN_ROOT}/plugin-pre-hook-stdin.json\"; printf 'SYNON_PLUGIN_ID=%s\nSYNON_PLUGIN_NAME=%s\nSYNON_PLUGIN_ROOT=%s\n' \"$SYNON_PLUGIN_ID\" \"$SYNON_PLUGIN_NAME\" \"$SYNON_PLUGIN_ROOT\" > \"${SYNON_PLUGIN_ROOT}/plugin-pre-hook-env.txt\"; printf '%s\n' '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"allow\",\"updatedInput\":{\"title\":\"rewritten by plugin hook\"}}}'"
+        "command": "cat > \"${X_SCIENCE_PLUGIN_ROOT}/plugin-pre-hook-stdin.json\"; printf 'X_SCIENCE_PLUGIN_ID=%s\nX_SCIENCE_PLUGIN_NAME=%s\nX_SCIENCE_PLUGIN_ROOT=%s\n' \"$X_SCIENCE_PLUGIN_ID\" \"$X_SCIENCE_PLUGIN_NAME\" \"$X_SCIENCE_PLUGIN_ROOT\" > \"${X_SCIENCE_PLUGIN_ROOT}/plugin-pre-hook-env.txt\"; printf '%s\n' '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"allow\",\"updatedInput\":{\"title\":\"rewritten by plugin hook\"}}}'"
       }]
     }]
   }

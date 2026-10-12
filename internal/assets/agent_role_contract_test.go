@@ -16,7 +16,7 @@ func TestBundledResearchAgentRoleContracts(t *testing.T) {
 	if !ok {
 		t.Fatal("locate repository root")
 	}
-	root := filepath.Join(filepath.Dir(source), "..", "..", "assets", "synonbiomed", "agents")
+	root := filepath.Join(filepath.Dir(source), "..", "..", "assets", "x-science", "agents")
 	type role struct {
 		Name         string   `yaml:"agent_name"`
 		Internal     bool     `yaml:"internal"`

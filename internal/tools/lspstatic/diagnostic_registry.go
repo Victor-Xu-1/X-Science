@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"synon-go/internal/tools/fileevents"
+	"x-science/internal/tools/fileevents"
 )
 
 const maxDiagnosticsPerFile = 10

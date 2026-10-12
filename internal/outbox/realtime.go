@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 // RealtimeFanout receives only events that already exist in realtime_events.

@@ -6,8 +6,8 @@ import (
 	"errors"
 	"strings"
 
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/providers"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/providers"
 )
 
 const webConversationProviderSelectionPrefix = "provider:"

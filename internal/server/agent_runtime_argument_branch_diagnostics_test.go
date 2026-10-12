@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 func TestArgumentDiagnosticsRespectTheSelectedSchemaBranch(t *testing.T) {

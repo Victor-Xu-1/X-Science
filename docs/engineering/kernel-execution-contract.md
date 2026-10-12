@@ -7,7 +7,7 @@ The Python worker is an interpreter boundary, not another scheduler.
 ## Modules and protocol
 
 The single entrypoint is `assets/optional/kernels/kernel_worker.py`.
-Modules under `synon_biomed_runtime` separate transport, output capture,
+Modules under `x_science_runtime` separate transport, output capture,
 compilation, execution and process hardening. Local and provider sessions use
 this same entrypoint. There is no source-string patcher or alternate worker.
 
@@ -38,7 +38,7 @@ host frame limit. Scientific datasets should be saved as artifacts, not dumped
 into a console stream.
 
 Provider sessions retain their output-scrubbing and between-cell idle callbacks.
-Host RPC is implemented by the existing `synon_host_bridge` adapter; Go binds
+Host RPC is implemented by the existing `x_science_host_bridge` adapter; Go binds
 each call to the active cell and its allowed methods. Interpreter helpers and
 audit hooks do not replace the OS sandbox or server authorization.
 
@@ -181,7 +181,7 @@ runtime or the compatibility implementation cannot discharge native obligations.
 
 `scripts/quality/test_kernel_worker_effects.py` exercises the real worker
 protocols, preserved namespaces, prior-cell shadows and non-executing refusal.
-Native R checks use `SYNON_TEST_RSCRIPT` to identify an existing interpreter;
+Native R checks use `X_SCIENCE_TEST_RSCRIPT` to identify an existing interpreter;
 the tests do not alter managed runtime metadata. Focused Go tests additionally
 cover native ASTs, serialized provenance, source/generation binding and canonical
 Bash/PowerShell execution on their supported platforms.
@@ -228,8 +228,8 @@ No network request is silently allowed or dropped: without a broker, an
 approved-egress request fails closed. Managed environment installation and
 native kernel execution remain separate readiness facts.
 
-The opt-in Windows interpreter probe sets `SYNON_TEST_WINDOWS_PYTHON_EXE` to an
-installed Python generation's executable and `SYNON_TEST_WINDOWS_KERNEL_ASSETS`
+The opt-in Windows interpreter probe sets `X_SCIENCE_TEST_WINDOWS_PYTHON_EXE` to an
+installed Python generation's executable and `X_SCIENCE_TEST_WINDOWS_KERNEL_ASSETS`
 to an ordinary drive-rooted copy of the current kernel assets. It runs the
 worker with `-I -S` to isolate the process/transport boundary, verifies a
 completed cell, denied direct network access, EOF and cancellation, and checks

@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/skills"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/skills"
 )
 
 func TestCompatibilitySkillCatalogUserStateContentAndPathSafety(t *testing.T) {
@@ -109,11 +109,11 @@ func TestCompatibilitySkillCatalogUserStateContentAndPathSafety(t *testing.T) {
 		t.Fatalf("persisted user-2 preferences = %#v, err=%v", otherPreferences, err)
 	}
 
-	platform := compatibilityCatalogEntryByName(t, listed, "synon-runtime")
-	if platform["source"] != "synon_llm" || platform["skillId"] != "bundled:synon-runtime" || platform["userHidden"] != true {
+	platform := compatibilityCatalogEntryByName(t, listed, "x-science-runtime")
+	if platform["source"] != "x_science_llm" || platform["skillId"] != "bundled:x-science-runtime" || platform["userHidden"] != true {
 		t.Fatalf("platform entry = %#v", platform)
 	}
-	compatJSONRequest(t, app, http.MethodPut, "/api/skills/catalog/synon-runtime/enabled", "user-1", map[string]any{
+	compatJSONRequest(t, app, http.MethodPut, "/api/skills/catalog/x-science-runtime/enabled", "user-1", map[string]any{
 		"enabled": false,
 	}, http.StatusForbidden)
 

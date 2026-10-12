@@ -8,7 +8,7 @@ import (
 	"strings"
 	"unicode"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 // Only the non-packaged browser fixture accepts source bytes. Production

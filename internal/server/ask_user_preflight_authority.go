@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"sort"
 	"strings"
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 	"unicode"
 	"unicode/utf8"
 )

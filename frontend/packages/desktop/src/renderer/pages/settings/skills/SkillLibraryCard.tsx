@@ -3,15 +3,15 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { SettingsGeneratedIcon, type SettingsGeneratedIconId } from '../components/SettingsGeneratedAsset';
 import {
-  getSynonBiomedSkillCategoryLabel,
-  resolveSynonBiomedSkillCategory,
-} from '@/renderer/services/skills/synonBiomedSkillCategories';
+  getXScienceSkillCategoryLabel,
+  resolveXScienceSkillCategory,
+} from '@/renderer/services/skills/xScienceSkillCategories';
 import {
   resolveSkillDescription,
   resolveSkillDisplayName,
-} from '@/renderer/services/skills/synonBiomedSkillDescriptions';
-import type { SynonBiomedSkillDraft } from '@/renderer/services/skills/synonBiomedSkillLibrary';
-import type { SynonBiomedSkillUsage } from '@/renderer/services/skills/synonBiomedSkillUsage';
+} from '@/renderer/services/skills/xScienceSkillDescriptions';
+import type { XScienceSkillDraft } from '@/renderer/services/skills/xScienceSkillLibrary';
+import type { XScienceSkillUsage } from '@/renderer/services/skills/xScienceSkillUsage';
 
 export interface SkillInfo {
   name: string;
@@ -37,7 +37,7 @@ export interface SkillInfo {
 const normalizeTestId = (name: string): string => name.replace(/[:/\s<>"'|?*]/g, '-');
 
 function resolveSkillIcon(skill: SkillInfo): SettingsGeneratedIconId {
-  switch (resolveSynonBiomedSkillCategory(skill)) {
+  switch (resolveXScienceSkillCategory(skill)) {
     case 'structural-biology':
       return 'connector-protein';
     case 'drug-discovery':
@@ -68,7 +68,7 @@ export function SkillRow({
   skill: SkillInfo;
   pendingSkill: string | null;
   personal: boolean;
-  usage: SynonBiomedSkillUsage | null;
+  usage: XScienceSkillUsage | null;
   usageAvailable: boolean;
   onOpen: (skill: SkillInfo) => void;
   onToggle: (skill: SkillInfo, enabled: boolean) => void | Promise<void>;
@@ -76,11 +76,11 @@ export function SkillRow({
 }) {
   const { i18n, t } = useTranslation();
   const displayName = resolveSkillDisplayName(skill.name, skill.displayName, i18n.language, skill.name_i18n);
-  const categoryLabel = getSynonBiomedSkillCategoryLabel(skill.category, i18n.language);
+  const categoryLabel = getXScienceSkillCategoryLabel(skill.category, i18n.language);
   const description = resolveSkillDescription(skill.name, skill.description, i18n.language, skill.description_i18n);
   return (
     <div
-      data-testid={`synon-biomed-skill-row-${normalizeTestId(skill.name)}`}
+      data-testid={`x-science-skill-row-${normalizeTestId(skill.name)}`}
       role='listitem'
       className='settings-entity-card settings-skill-card settings-library-card'
       onClick={(event) => {
@@ -140,7 +140,7 @@ function SkillUsageSummary({
   available,
 }: {
   skillName: string;
-  usage: SynonBiomedSkillUsage | null;
+  usage: XScienceSkillUsage | null;
   available: boolean;
 }) {
   const { i18n, t } = useTranslation();
@@ -153,7 +153,7 @@ function SkillUsageSummary({
 
   return (
     <span
-      data-testid={`synon-biomed-skill-usage-${normalizeTestId(skillName)}`}
+      data-testid={`x-science-skill-usage-${normalizeTestId(skillName)}`}
       className='settings-skill-card__usage'
       title={available ? `${lastUsed} · ${count}` : t('settings.skillsSettings.usageUnavailable')}
     >
@@ -173,14 +173,14 @@ export function SkillDraftRow({
   draft,
   onOpen,
 }: {
-  draft: SynonBiomedSkillDraft;
-  onOpen: (draft: SynonBiomedSkillDraft) => void;
+  draft: XScienceSkillDraft;
+  onOpen: (draft: XScienceSkillDraft) => void;
 }) {
   const { t } = useTranslation();
   return (
     <button
       type='button'
-      data-testid={`synon-biomed-skill-draft-${normalizeTestId(draft.name)}`}
+      data-testid={`x-science-skill-draft-${normalizeTestId(draft.name)}`}
       className='settings-entity-card settings-skill-card settings-skill-card--draft settings-library-card'
       onClick={() => onOpen(draft)}
     >

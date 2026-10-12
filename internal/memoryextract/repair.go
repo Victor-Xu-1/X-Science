@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"strings"
 
-	"synon-go/internal/memorypolicy"
-	"synon-go/internal/memorytools"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/memorypolicy"
+	"x-science/internal/memorytools"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 var ErrLiteralRepairFailed = errors.New("memory replacement literal repair failed")

@@ -68,21 +68,21 @@ describe('frontend Harness controller boundaries', () => {
     expect(messageList).toContain('buildMessagePresentationList');
     expect(messageList).not.toContain('const pushToolList =');
 
-    const runtimeFacade = source('renderer/components/synonBiomed/runtime/SynonBiomedRuntimeOperations.tsx');
-    expect(runtimeFacade).toContain("export { default } from './SynonBiomedRuntimeOperationsController'");
+    const runtimeFacade = source('renderer/components/xScience/runtime/XScienceRuntimeOperations.tsx');
+    expect(runtimeFacade).toContain("export { default } from './XScienceRuntimeOperationsController'");
     const runtimeController = source(
-      'renderer/components/synonBiomed/runtime/SynonBiomedRuntimeOperationsController.tsx'
+      'renderer/components/xScience/runtime/XScienceRuntimeOperationsController.tsx'
     );
-    expect(runtimeController).toContain('SynonBiomedRuntimeStatusSurface');
-    expect(runtimeController).toContain('SynonBiomedRuntimeDrawers');
-    expect(runtimeController).not.toContain('SynonBiomedPlanReviewContent');
-    const runtimeDrawers = source('renderer/components/synonBiomed/runtime/SynonBiomedRuntimeDrawers.tsx');
-    expect(runtimeDrawers).toContain('SynonBiomedPlanReviewContent');
-    expect(runtimeDrawers).toContain('SynonBiomedReviewFindingsContent');
-    const runtimeStatus = source('renderer/components/synonBiomed/runtime/SynonBiomedRuntimeStatusSurface.tsx');
-    expect(runtimeStatus).toContain('SynonBiomedTaskStatus');
+    expect(runtimeController).toContain('XScienceRuntimeStatusSurface');
+    expect(runtimeController).toContain('XScienceRuntimeDrawers');
+    expect(runtimeController).not.toContain('XSciencePlanReviewContent');
+    const runtimeDrawers = source('renderer/components/xScience/runtime/XScienceRuntimeDrawers.tsx');
+    expect(runtimeDrawers).toContain('XSciencePlanReviewContent');
+    expect(runtimeDrawers).toContain('XScienceReviewFindingsContent');
+    const runtimeStatus = source('renderer/components/xScience/runtime/XScienceRuntimeStatusSurface.tsx');
+    expect(runtimeStatus).toContain('XScienceTaskStatus');
     expect(runtimeStatus).toContain('AskUserCard');
-    expect(existsSync(sourcePath('renderer/components/synonBiomed/runtime/runtimeOperationsControllerModel.ts'))).toBe(
+    expect(existsSync(sourcePath('renderer/components/xScience/runtime/runtimeOperationsControllerModel.ts'))).toBe(
       true
     );
 
@@ -96,11 +96,11 @@ describe('frontend Harness controller boundaries', () => {
       expect(existsSync(sourcePath(`renderer/services/runtime/${moduleName}.ts`))).toBe(true);
     }
     for (const legacyPath of [
-      'renderer/components/synonBiomed/runtime/streamingModel.ts',
-      'renderer/components/synonBiomed/runtime/streamingMessagesModel.ts',
-      'renderer/components/synonBiomed/runtime/useSynonBiomedToolStdout.ts',
-      'renderer/services/runtime/synonBiomedToolStdoutStore.ts',
-      'renderer/services/synonBiomedStreaming.ts',
+      'renderer/components/xScience/runtime/streamingModel.ts',
+      'renderer/components/xScience/runtime/streamingMessagesModel.ts',
+      'renderer/components/xScience/runtime/useXScienceToolStdout.ts',
+      'renderer/services/runtime/xScienceToolStdoutStore.ts',
+      'renderer/services/xScienceStreaming.ts',
       'renderer/services/runtime/conversationStreamingProjection.ts',
     ]) {
       expect(existsSync(sourcePath(legacyPath))).toBe(false);
@@ -110,8 +110,8 @@ describe('frontend Harness controller boundaries', () => {
     expect(acpMessage).toContain('useConversationStreaming');
     expect(acpMessage).toContain('mergeConversationToolOutput');
     expect(acpMessage).toContain('responseStream.on(handleResponseMessage)');
-    expect(acpMessage).not.toContain('SynonBiomedStreamingProjection');
-    const conversationSync = source('renderer/pages/conversation/platforms/acp/useSynonBiomedConversationSync.ts');
+    expect(acpMessage).not.toContain('XScienceStreamingProjection');
+    const conversationSync = source('renderer/pages/conversation/platforms/acp/useXScienceConversationSync.ts');
     expect(conversationSync).not.toContain('onStreamingProjection');
     expect(conversationSync).not.toContain('streaming-batch');
   });

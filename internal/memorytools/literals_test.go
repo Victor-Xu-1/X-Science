@@ -6,10 +6,10 @@ import (
 )
 
 func TestWorkspaceExtractorLiteralValidation(t *testing.T) {
-	oldText := "Use release v4.0.2 at /opt/synon/config.json on 127.0.0.1:8766."
+	oldText := "Use release v4.0.2 at /opt/xscience/config.json on 127.0.0.1:8766."
 	updated := "Use release v4.0.3."
 	missing := MissingDurableLiterals(oldText, updated)
-	for _, literal := range []string{"v4.0.2", "/opt/synon/config.json", "127.0.0.1:8766"} {
+	for _, literal := range []string{"v4.0.2", "/opt/xscience/config.json", "127.0.0.1:8766"} {
 		if !slices.Contains(missing, literal) {
 			t.Fatalf("missing literals %#v do not contain %q", missing, literal)
 		}
@@ -18,7 +18,7 @@ func TestWorkspaceExtractorLiteralValidation(t *testing.T) {
 		t.Fatalf("missing literals = %#v", missing)
 	}
 
-	repaired := "Use release v4.0.3 (was v4.0.2) at /opt/synon/config.json on 127.0.0.1:8766."
+	repaired := "Use release v4.0.3 (was v4.0.2) at /opt/xscience/config.json on 127.0.0.1:8766."
 	if missing := MissingDurableLiterals(oldText, repaired); len(missing) != 0 {
 		t.Fatalf("repaired text still misses %#v", missing)
 	}

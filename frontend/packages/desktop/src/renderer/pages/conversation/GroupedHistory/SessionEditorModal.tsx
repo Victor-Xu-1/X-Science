@@ -1,5 +1,5 @@
 import type { TChatConversation } from '@/common/config/storage';
-import type { SynonBiomedSessionUpdate } from '@/renderer/services/synonBiomedSessionActions';
+import type { XScienceSessionUpdate } from '@/renderer/services/xScienceSessionActions';
 import { Alert, Input } from '@arco-design/web-react';
 import Modal from '@/renderer/components/base/WorkbenchModal';
 import React, { useEffect, useState } from 'react';
@@ -10,7 +10,7 @@ type SessionEditorModalProps = {
   loading: boolean;
   error: string | null;
   onCancel: () => void;
-  onSubmit: (update: SynonBiomedSessionUpdate) => void;
+  onSubmit: (update: XScienceSessionUpdate) => void;
 };
 
 const SessionEditorModal: React.FC<SessionEditorModalProps> = ({

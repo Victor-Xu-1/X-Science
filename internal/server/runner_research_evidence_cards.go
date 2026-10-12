@@ -9,10 +9,10 @@ import (
 	"sort"
 	"strings"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/discoveryquery"
-	"synon-go/internal/httptext"
-	"synon-go/internal/sourcecitation"
+	"x-science/internal/agentruntime"
+	"x-science/internal/discoveryquery"
+	"x-science/internal/httptext"
+	"x-science/internal/sourcecitation"
 )
 
 const (

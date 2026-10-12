@@ -8,7 +8,7 @@ import (
 const (
 	modelProviderGenerationV36CallbackID        = "model-provider-generation-controls-v36-noop"
 	modelProviderGenerationV36PreflightIdentity = "canonical-provider-v22-without-generation-controls-v1"
-	modelProviderGenerationV36RuleSpec          = "synon.workspace.model-provider.generation-controls.v36"
+	modelProviderGenerationV36RuleSpec          = "x-science.workspace.model-provider.generation-controls.v36"
 )
 
 var modelProviderGenerationV36Migration = versionedSchemaMigration{

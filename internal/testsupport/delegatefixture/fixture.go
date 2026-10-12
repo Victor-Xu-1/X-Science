@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const (

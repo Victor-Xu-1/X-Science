@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestInspectRejectsSpecialFilesWithoutOpeningThem(t *testing.T) {

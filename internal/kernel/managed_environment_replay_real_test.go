@@ -12,7 +12,7 @@ import (
 // This opt-in check uses the bundled micromamba and real pip in disposable
 // state. It exercises immutable clone, pip replay, and active generation reuse.
 func TestManagedPipReplayWithRealInstallers(t *testing.T) {
-	if os.Getenv("SYNON_TEST_REAL_PIP_REPLAY") != "1" || runtime.GOOS != "linux" {
+	if os.Getenv("X_SCIENCE_TEST_REAL_PIP_REPLAY") != "1" || runtime.GOOS != "linux" {
 		t.Skip("opt-in Linux package installer integration requiring public package access")
 	}
 	_, file, _, _ := runtime.Caller(0)

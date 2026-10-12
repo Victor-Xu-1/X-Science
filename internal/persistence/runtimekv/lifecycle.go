@@ -94,7 +94,7 @@ func inferScope(namespace, key string, value any) Scope {
 		FrameID:     firstString(object, "frameId", "frame_id", "sessionId", "session_id"),
 	}
 	switch namespace {
-	case "compute-session-concurrency", "synon-memory-served", "todos":
+	case "compute-session-concurrency", "x-science-memory-served", "todos":
 		if scope.RootFrameID == "" {
 			scope.RootFrameID = key
 		}

@@ -1,25 +1,25 @@
 import AccessibleActionDialog from '@/renderer/components/common/AccessibleActionDialog';
 import { insertArtifactReferenceIntoActiveComposer } from '@/renderer/components/chat/SendBox/composerReferenceBridge';
 import {
-  copySynonBiomedArtifact,
-  deleteSynonBiomedArtifact,
-  moveSynonBiomedArtifact,
-  renameSynonBiomedArtifact,
-  setSynonBiomedArtifactPriority,
-  type SynonBiomedArtifactPriority,
-} from '@/renderer/services/synonBiomedArtifacts';
+  copyXScienceArtifact,
+  deleteXScienceArtifact,
+  moveXScienceArtifact,
+  renameXScienceArtifact,
+  setXScienceArtifactPriority,
+  type XScienceArtifactPriority,
+} from '@/renderer/services/xScienceArtifacts';
 import {
-  loadSynonBiomedArtifact,
-  loadSynonBiomedProjectFolders,
-  type SynonBiomedProjectArtifact,
-  type SynonBiomedProjectFolder,
-} from '@/renderer/services/synonBiomedGateway';
+  loadXScienceArtifact,
+  loadXScienceProjectFolders,
+  type XScienceProjectArtifact,
+  type XScienceProjectFolder,
+} from '@/renderer/services/xScienceGateway';
 import {
-  exportSynonBiomedArtifactToCloud,
-  loadSynonBiomedCloudBuckets,
-  loadSynonBiomedStorageSettings,
-  type SynonBiomedCloudCredential,
-} from '@/renderer/services/synonBiomedWorkspaceSettings';
+  exportXScienceArtifactToCloud,
+  loadXScienceCloudBuckets,
+  loadXScienceStorageSettings,
+  type XScienceCloudCredential,
+} from '@/renderer/services/xScienceWorkspaceSettings';
 import { downloadFileFromUrl } from '@/renderer/utils/file/download';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import { Dropdown, Empty, Input, Message, Select } from '@arco-design/web-react';
@@ -66,7 +66,7 @@ export const PreviewArtifactActions: React.FC<PreviewArtifactActionsProps> = ({
   const messageApiRef = useRef(messageApi);
   messageApiRef.current = messageApi;
   const [menuVisible, setMenuVisible] = useState(false);
-  const [artifact, setArtifact] = useState<SynonBiomedProjectArtifact | null>(null);
+  const [artifact, setArtifact] = useState<XScienceProjectArtifact | null>(null);
   const [loadingArtifact, setLoadingArtifact] = useState(true);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [renameVisible, setRenameVisible] = useState(false);
@@ -74,11 +74,11 @@ export const PreviewArtifactActions: React.FC<PreviewArtifactActionsProps> = ({
   const [copyVisible, setCopyVisible] = useState(false);
   const [copyValue, setCopyValue] = useState(fileName);
   const [moveVisible, setMoveVisible] = useState(false);
-  const [folders, setFolders] = useState<SynonBiomedProjectFolder[]>([]);
+  const [folders, setFolders] = useState<XScienceProjectFolder[]>([]);
   const [moveFolderId, setMoveFolderId] = useState(ROOT_FOLDER_VALUE);
   const [deleteVisible, setDeleteVisible] = useState(false);
   const [cloudVisible, setCloudVisible] = useState(false);
-  const [cloudCredentials, setCloudCredentials] = useState<SynonBiomedCloudCredential[]>([]);
+  const [cloudCredentials, setCloudCredentials] = useState<XScienceCloudCredential[]>([]);
   const [cloudCredentialId, setCloudCredentialId] = useState('');
   const [cloudBuckets, setCloudBuckets] = useState<string[]>([]);
   const [cloudBucket, setCloudBucket] = useState('');
@@ -87,7 +87,7 @@ export const PreviewArtifactActions: React.FC<PreviewArtifactActionsProps> = ({
   const refreshArtifact = useCallback(async () => {
     setLoadingArtifact(true);
     try {
-      setArtifact(await loadSynonBiomedArtifact(artifactId));
+      setArtifact(await loadXScienceArtifact(artifactId));
     } catch {
       messageApiRef.current.error(t('preview.artifact.actions.loadFailed'));
     } finally {
@@ -105,10 +105,10 @@ export const PreviewArtifactActions: React.FC<PreviewArtifactActionsProps> = ({
     setCloudKey(fileName);
   }, [fileName]);
 
-  const runPriorityAction = async (priority: SynonBiomedArtifactPriority) => {
+  const runPriorityAction = async (priority: XScienceArtifactPriority) => {
     setBusyAction('priority');
     try {
-      await setSynonBiomedArtifactPriority({ artifactId, priority });
+      await setXScienceArtifactPriority({ artifactId, priority });
       setArtifact((current) => (current ? { ...current, priority } : current));
       messageApi.success(t('preview.artifact.actions.priorityUpdated'));
     } catch {
@@ -167,7 +167,7 @@ export const PreviewArtifactActions: React.FC<PreviewArtifactActionsProps> = ({
     if (!filename) return;
     setBusyAction('rename');
     try {
-      await renameSynonBiomedArtifact({ artifactId, filename });
+      await renameXScienceArtifact({ artifactId, filename });
       setArtifact((current) => (current ? { ...current, filename } : current));
       onRenamed(filename);
       setRenameVisible(false);
@@ -184,7 +184,7 @@ export const PreviewArtifactActions: React.FC<PreviewArtifactActionsProps> = ({
     if (!newFilename) return;
     setBusyAction('copy');
     try {
-      await copySynonBiomedArtifact({ artifactId, newFilename });
+      await copyXScienceArtifact({ artifactId, newFilename });
       setCopyVisible(false);
       messageApi.success(t('preview.artifact.copySucceeded'));
     } catch {
@@ -200,7 +200,7 @@ export const PreviewArtifactActions: React.FC<PreviewArtifactActionsProps> = ({
     if (!projectId) return;
     setBusyAction('folders');
     try {
-      setFolders(await loadSynonBiomedProjectFolders(projectId));
+      setFolders(await loadXScienceProjectFolders(projectId));
       setMoveFolderId(artifact?.folderId ?? ROOT_FOLDER_VALUE);
     } catch {
       messageApi.error(t('preview.artifact.actions.folderLoadFailed'));
@@ -212,7 +212,7 @@ export const PreviewArtifactActions: React.FC<PreviewArtifactActionsProps> = ({
   const handleMove = async () => {
     setBusyAction('move');
     try {
-      await moveSynonBiomedArtifact({
+      await moveXScienceArtifact({
         artifactId,
         folderId: moveFolderId === ROOT_FOLDER_VALUE ? null : moveFolderId,
       });
@@ -248,7 +248,7 @@ export const PreviewArtifactActions: React.FC<PreviewArtifactActionsProps> = ({
     setCloudBucket('');
     if (!credentialId) return;
     try {
-      const buckets = await loadSynonBiomedCloudBuckets(credentialId);
+      const buckets = await loadXScienceCloudBuckets(credentialId);
       const credential = credentials.find((item) => item.id === credentialId);
       setCloudBuckets(buckets);
       setCloudBucket(credential?.defaultBucket || buckets[0] || '');
@@ -261,7 +261,7 @@ export const PreviewArtifactActions: React.FC<PreviewArtifactActionsProps> = ({
     setCloudVisible(true);
     setBusyAction('cloud-load');
     try {
-      const storage = await loadSynonBiomedStorageSettings();
+      const storage = await loadXScienceStorageSettings();
       const connected = storage.cloudCredentials.filter((item) => item.connected);
       setCloudCredentials(connected);
       const initial = connected[0]?.id ?? '';
@@ -277,7 +277,7 @@ export const PreviewArtifactActions: React.FC<PreviewArtifactActionsProps> = ({
     if (!cloudCredentialId || !cloudBucket || !cloudKey.trim()) return;
     setBusyAction('cloud-export');
     try {
-      await exportSynonBiomedArtifactToCloud(cloudCredentialId, {
+      await exportXScienceArtifactToCloud(cloudCredentialId, {
         artifactId,
         bucket: cloudBucket,
         key: cloudKey.trim(),
@@ -294,7 +294,7 @@ export const PreviewArtifactActions: React.FC<PreviewArtifactActionsProps> = ({
   const handleDelete = async () => {
     setBusyAction('delete');
     try {
-      await deleteSynonBiomedArtifact(artifactId);
+      await deleteXScienceArtifact(artifactId);
       setDeleteVisible(false);
       onDeleted();
       messageApi.success(t('preview.artifact.actions.deleted'));

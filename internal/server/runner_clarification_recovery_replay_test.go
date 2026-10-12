@@ -3,7 +3,7 @@ package server
 import (
 	"testing"
 
-	eventjournal "synon-go/internal/persistence/journal"
+	eventjournal "x-science/internal/persistence/journal"
 )
 
 func TestAppendRunnerResolvedInputResponsesKeepsReplayNormalizedAnswers(t *testing.T) {
@@ -14,7 +14,7 @@ func TestAppendRunnerResolvedInputResponsesKeepsReplayNormalizedAnswers(t *testi
 		}},
 		{EventID: 2, Message: eventjournal.Message{
 			"role": "user", "type": "message", "messageOrigin": "input_response",
-			"text": "Resolved input requests:\\nsynon-standard-intake-initial-1: answered",
+			"text": "Resolved input requests:\\nx-science-standard-intake-initial-1: answered",
 		}},
 		{EventID: 3, Message: eventjournal.Message{
 			"runnerAttempt": 2, "type": "runner_checkpoint", "toolName": "web_search",
@@ -98,7 +98,7 @@ func TestAppendRunnerResolvedInputResponsesKeepsAnswersWhenSameTaskIsResubmitted
 		}},
 		{EventID: 2, Message: eventjournal.Message{
 			"role": "user", "messageOrigin": "input_response",
-			"text": "Resolved input requests:\\nsynon-standard-intake-initial-1: answered",
+			"text": "Resolved input requests:\\nx-science-standard-intake-initial-1: answered",
 		}},
 		{EventID: 3, Message: eventjournal.Message{
 			"role": "user", "type": "message", "messageOrigin": "task_intent", "text": task,
@@ -121,7 +121,7 @@ func TestAppendRunnerResolvedInputResponsesKeepsAnswersAcrossRepeatedSameTaskRet
 		}},
 		{EventID: 2, Message: eventjournal.Message{
 			"role": "user", "messageOrigin": "input_response",
-			"text": "Resolved input requests:\\nsynon-standard-intake-initial-1: answered",
+			"text": "Resolved input requests:\\nx-science-standard-intake-initial-1: answered",
 		}},
 		{EventID: 3, Message: eventjournal.Message{
 			"role": "user", "type": "message", "messageOrigin": "task_intent", "text": task,

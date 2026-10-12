@@ -55,12 +55,12 @@ vi.mock('@/renderer/hooks/mcp/catalog', () => ({
 }));
 
 vi.mock('@/renderer/services/skills/skillsCatalog', () => ({
-  loadAvailableSkillsWithSynonBiomed: vi.fn(async () => []),
+  loadAvailableSkillsWithXScience: vi.fn(async () => []),
 }));
 
 import { useAssistantEditor } from '@/renderer/hooks/assistant/useAssistantEditor';
 import { ipcBridge } from '@/common';
-import type { AssistantListItem } from '@/renderer/pages/settings/SynonBiomedExpertsSettings/types';
+import type { AssistantListItem } from '@/renderer/pages/settings/XScienceExpertsSettings/types';
 import { mutate as swrMutate } from 'swr';
 
 describe('useAssistantEditor', () => {

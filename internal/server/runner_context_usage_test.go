@@ -13,10 +13,10 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	eventjournal "synon-go/internal/persistence/journal"
-	"synon-go/internal/persistence/runtimekv"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/agentruntime"
+	eventjournal "x-science/internal/persistence/journal"
+	"x-science/internal/persistence/runtimekv"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func readContextUsageTest(t *testing.T, store *runtimekv.Store, sessionID string) runnerContextUsage {

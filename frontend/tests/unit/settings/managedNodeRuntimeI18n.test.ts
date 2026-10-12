@@ -54,7 +54,7 @@ describe('X-Science runtime settings copy', () => {
     const zh = loadSettingsLocale('zh-CN');
 
     expect(zh.restartManualRequired).toContain('X-Science 服务');
-    expect(zh.restartManualRequired).not.toContain('Synon Go');
+    expect(zh.restartManualRequired).not.toContain('XScience Go');
   });
 
   it('keeps the warmup hint generic until the backend can prove node-specific preparation', () => {
@@ -72,11 +72,11 @@ describe('X-Science runtime settings copy', () => {
     for (const language of settingsLanguages()) {
       const common = loadCommonLocale(language);
       const backendStartup = common.backendStartup as Record<string, unknown>;
-      const synonBiomed = backendStartup.synonBiomed as Record<string, string>;
+      const xScience = backendStartup.xScience as Record<string, string>;
 
-      expect(Object.keys(backendStartup), language).toEqual(['synonBiomed']);
-      expect(synonBiomed.title, language).toBeTruthy();
-      expect(synonBiomed.description, language).toContain('X-Science');
+      expect(Object.keys(backendStartup), language).toEqual(['xScience']);
+      expect(xScience.title, language).toBeTruthy();
+      expect(xScience.description, language).toContain('X-Science');
     }
   });
 });

@@ -12,8 +12,8 @@ import (
 
 	"github.com/coder/websocket"
 
-	sessionstore "synon-go/internal/persistence/sessions"
-	workspace "synon-go/internal/persistence/workspace"
+	sessionstore "x-science/internal/persistence/sessions"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestP2AuthenticatedRealtimeRequiresWebIdentityAndResourceOwnership(t *testing.T) {
@@ -47,7 +47,7 @@ func TestP2AuthenticatedRealtimeRequiresWebIdentityAndResourceOwnership(t *testi
 	app := New(Options{
 		FileRoot:  root,
 		Workspace: store,
-		SynonLinkAuth: SynonLinkAuthOptions{
+		XScienceLinkAuth: XScienceLinkAuthOptions{
 			Username: "operator", Password: "test-secret-password", UserID: "user-1", TTL: time.Hour,
 		},
 	})

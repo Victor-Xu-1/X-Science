@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 	"unicode/utf8"
 )
 
@@ -119,7 +119,7 @@ func (s *Server) handleWebConversation(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) createWebConversation(w http.ResponseWriter, r *http.Request) {
-	userID := strings.TrimSpace(r.Header.Get("X-Synon-User-Id"))
+	userID := strings.TrimSpace(r.Header.Get("X-Science-User-Id"))
 	if userID == "" {
 		writeWorkspaceJSON(w, http.StatusUnauthorized, map[string]any{"message": "authentication required"})
 		return
@@ -241,7 +241,7 @@ func webConversationProjectID(extra map[string]any) string {
 		return projectID
 	}
 	workspaceURL := strings.TrimSpace(webString(extra["workspace"]))
-	for _, prefix := range []string{"synonbiomed://project/", "synonbiomed://"} {
+	for _, prefix := range []string{"x-science://project/", "x-science://"} {
 		if strings.HasPrefix(workspaceURL, prefix) {
 			value, err := url.PathUnescape(strings.TrimPrefix(workspaceURL, prefix))
 			if err == nil && value != "" && !strings.Contains(value, "/") {
@@ -307,7 +307,7 @@ func (s *Server) webConversationAccess(
 		writeWorkspaceJSON(w, http.StatusInternalServerError, map[string]any{"message": "unable to load conversation"})
 		return workspace.CompatibilityFrame{}, workspace.CompatibilityProject{}, false
 	}
-	userID := strings.TrimSpace(r.Header.Get("X-Synon-User-Id"))
+	userID := strings.TrimSpace(r.Header.Get("X-Science-User-Id"))
 	if !found {
 		writeWorkspaceJSON(w, http.StatusNotFound, map[string]any{"message": "conversation not found"})
 		return workspace.CompatibilityFrame{}, workspace.CompatibilityProject{}, false
@@ -330,7 +330,7 @@ func (s *Server) handleWebConversationRecord(
 	frame workspace.CompatibilityFrame,
 	project workspace.CompatibilityProject,
 ) {
-	userID := strings.TrimSpace(r.Header.Get("X-Synon-User-Id"))
+	userID := strings.TrimSpace(r.Header.Get("X-Science-User-Id"))
 	switch r.Method {
 	case http.MethodGet:
 		conversation, err := s.webConversationSnapshot(frame, project.Name)
@@ -414,7 +414,7 @@ func (s *Server) handleWebConversationRecord(
 		cleanupWarnings = append(cleanupWarnings, s.removeCompatibilityFrameRuntime(frame.RootFrameID)...)
 		if len(cleanupWarnings) > 0 {
 			log.Printf("compatibility conversation delete committed with runtime cleanup warnings: conversation_id=%s failures=%d errors=%v", frame.ID, len(cleanupWarnings), errors.Join(cleanupWarnings...))
-			w.Header().Set("X-Synon-Runtime-Cleanup-Warnings", strconv.Itoa(len(cleanupWarnings)))
+			w.Header().Set("X-Science-Runtime-Cleanup-Warnings", strconv.Itoa(len(cleanupWarnings)))
 		}
 		writeWorkspaceJSON(w, http.StatusOK, true)
 	default:

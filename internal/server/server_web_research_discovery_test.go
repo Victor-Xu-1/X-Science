@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/tools/websearch"
+	"x-science/internal/tools/websearch"
 )
 
 func TestWebResearchSearchInputUsesBroadCandidatePool(t *testing.T) {

@@ -67,7 +67,7 @@ export const shouldPollPreviewFileMetadata = (
   const metadata = tab?.metadata;
   const filePath = metadata?.file_path;
   if (!filePath || metadata?.artifactId || metadata?.contentUrl) return false;
-  return !filePath.startsWith('synonbiomed://');
+  return !filePath.startsWith('x-science://');
 };
 
 export interface OpenPreviewOptions {
@@ -130,9 +130,9 @@ export interface PreviewContextValue {
 const PreviewContext = createContext<PreviewContextValue | null>(null);
 
 // 持久化 key / Persistence keys
-const PREVIEW_TABS_KEY = 'synon-ai_preview_tabs';
-const PREVIEW_ACTIVE_TAB_ID_KEY = 'synon-ai_preview_active_tab_id';
-const LEGACY_PREVIEW_STATE_KEY = 'synon-ai_preview_state';
+const PREVIEW_TABS_KEY = 'x-science_preview_tabs';
+const PREVIEW_ACTIVE_TAB_ID_KEY = 'x-science_preview_active_tab_id';
+const LEGACY_PREVIEW_STATE_KEY = 'x-science_preview_state';
 
 // 仅持久化小体积文本预览，避免大文本导致 localStorage 写入卡顿
 // Persist only lightweight text previews to avoid localStorage jank on large files

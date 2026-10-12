@@ -256,9 +256,9 @@ const OnboardingFlow: React.FC = () => {
   useEffect(() => {
     if (!draftReady || historyInitialized.current) return;
     historyInitialized.current = true;
-    window.history.replaceState({ ...window.history.state, synonOnboardingStep: 0 }, '', window.location.href);
+    window.history.replaceState({ ...window.history.state, xscienceOnboardingStep: 0 }, '', window.location.href);
     for (let index = 1; index <= step; index += 1) {
-      window.history.pushState({ ...window.history.state, synonOnboardingStep: index }, '', window.location.href);
+      window.history.pushState({ ...window.history.state, xscienceOnboardingStep: index }, '', window.location.href);
     }
   }, [draftReady, step]);
 
@@ -494,7 +494,7 @@ const OnboardingFlow: React.FC = () => {
   useEffect(() => {
     if (!draftReady) return;
     const onPopState = (event: PopStateEvent) => {
-      const next = event.state?.synonOnboardingStep;
+      const next = event.state?.xscienceOnboardingStep;
       if (Number.isInteger(next) && next >= 0 && next < ONBOARDING_STEP_COUNT) setStep(next as OnboardingStep);
     };
     window.addEventListener('popstate', onPopState);
@@ -527,7 +527,7 @@ const OnboardingFlow: React.FC = () => {
 
   const moveToStep = (next: OnboardingStep) => {
     setLaunchError(null);
-    window.history.pushState({ ...window.history.state, synonOnboardingStep: next }, '', window.location.href);
+    window.history.pushState({ ...window.history.state, xscienceOnboardingStep: next }, '', window.location.href);
     setStep(next);
   };
 

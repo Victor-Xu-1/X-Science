@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func TestTranscriptDeliveryConvergenceV54PublishedIdentity(t *testing.T) {

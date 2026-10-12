@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 func TestStaticModelStreamLifetimeUsesProviderProgress(t *testing.T) {

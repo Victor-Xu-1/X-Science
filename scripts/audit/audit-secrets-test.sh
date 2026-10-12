@@ -7,7 +7,7 @@ trap 'rm -rf "$tmp"' EXIT
 
 mkdir -p "$tmp/source/internal"
 printf 'api_key = "example-placeholder-secret"\n' >"$tmp/source/internal/example.txt"
-printf '%s\n' "apiKey: 'SYNON_AI_IMG_API_KEY'" >>"$tmp/source/internal/example.txt"
+printf '%s\n' "apiKey: 'X_SCIENCE_IMG_API_KEY'" >>"$tmp/source/internal/example.txt"
 printf '%s\n' "apiKey: 'local-integration-key' // fixture" >>"$tmp/source/internal/example.txt"
 python3 "$root/scripts/audit/audit-secrets.py" "$tmp/source" >/dev/null
 

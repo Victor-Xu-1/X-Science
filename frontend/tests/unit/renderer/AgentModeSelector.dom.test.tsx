@@ -7,14 +7,14 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import React from 'react';
-import AgentModeSelector from '@/renderer/components/synonBiomed/runtime/SynonBiomedModeSelector';
+import AgentModeSelector from '@/renderer/components/xScience/runtime/XScienceModeSelector';
 import { renderWithI18n } from '../i18nTestUtils';
 
 const { useAcpConfigOptionsMock } = vi.hoisted(() => ({
   useAcpConfigOptionsMock: vi.fn(),
 }));
 
-vi.mock('@/renderer/hooks/synonBiomed/runtime/useAcpConfigOptions', () => ({
+vi.mock('@/renderer/hooks/xScience/runtime/useAcpConfigOptions', () => ({
   classifyConfigSetError: () => 'unknown',
   useAcpConfigOptions: useAcpConfigOptionsMock,
 }));
@@ -23,7 +23,7 @@ vi.mock('@/renderer/hooks/context/LayoutContext', () => ({
   useLayoutContext: () => ({ isMobile: false }),
 }));
 
-vi.mock('@/renderer/components/synonBiomed/runtime/MarqueePillLabel', () => ({
+vi.mock('@/renderer/components/xScience/runtime/MarqueePillLabel', () => ({
   default: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
 }));
 

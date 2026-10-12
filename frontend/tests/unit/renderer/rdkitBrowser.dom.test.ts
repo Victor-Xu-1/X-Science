@@ -78,7 +78,7 @@ describe('RDKit isolated worker client', () => {
     expect(MockWorker.instances).toHaveLength(1);
     const worker = MockWorker.instances[0];
     expect(String(worker.url)).toBe(new URL('rdkit/rdkit-worker.js', document.baseURI).toString());
-    expect(worker.options).toEqual({ name: 'synon-rdkit' });
+    expect(worker.options).toEqual({ name: 'x-science-rdkit' });
     expect(worker.messages).toEqual([
       {
         version: 1,

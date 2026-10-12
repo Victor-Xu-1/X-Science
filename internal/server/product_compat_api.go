@@ -14,17 +14,17 @@ import (
 	"time"
 	"unicode/utf8"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
-const maxSynonBiomedSeedManifestBytes = 4 << 20
+const maxXScienceSeedManifestBytes = 4 << 20
 
-type synonBiomedCountedNames struct {
+type xScienceCountedNames struct {
 	Count int      `json:"count"`
 	Names []string `json:"names"`
 }
 
-type synonBiomedSeedProject struct {
+type xScienceSeedProject struct {
 	Slug            string `json:"slug"`
 	Name            string `json:"name"`
 	ManifestPath    string `json:"manifestPath"`
@@ -34,12 +34,12 @@ type synonBiomedSeedProject struct {
 	FolderCount     int    `json:"folderCount"`
 }
 
-type synonBiomedSeedProjectCatalog struct {
+type xScienceSeedProjectCatalog struct {
 	Count    int                      `json:"count"`
-	Projects []synonBiomedSeedProject `json:"projects"`
+	Projects []xScienceSeedProject `json:"projects"`
 }
 
-type synonBiomedBackendProject struct {
+type xScienceBackendProject struct {
 	ProjectID         string  `json:"projectId"`
 	Name              string  `json:"name"`
 	Description       *string `json:"description"`
@@ -50,38 +50,38 @@ type synonBiomedBackendProject struct {
 	LastActiveAt      *string `json:"lastActiveAt"`
 }
 
-type synonBiomedBackendProjectCatalog struct {
+type xScienceBackendProjectCatalog struct {
 	Count    int                         `json:"count"`
-	Projects []synonBiomedBackendProject `json:"projects"`
+	Projects []xScienceBackendProject `json:"projects"`
 }
 
-func (s *Server) handleSynonBiomedCatalog(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleXScienceCatalog(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		w.Header().Set("Allow", http.MethodGet)
 		writeWorkspaceJSON(w, http.StatusMethodNotAllowed, map[string]any{"message": "method not allowed"})
 		return
 	}
-	userID := strings.TrimSpace(r.Header.Get("X-Synon-User-Id"))
+	userID := strings.TrimSpace(r.Header.Get("X-Science-User-Id"))
 	if userID == "" {
 		writeWorkspaceJSON(w, http.StatusUnauthorized, map[string]any{"message": "authentication required"})
 		return
 	}
-	projects, err := s.synonBiomedProjectCatalog(userID)
+	projects, err := s.xScienceProjectCatalog(userID)
 	if err != nil {
 		writeWorkspaceJSON(w, http.StatusInternalServerError, map[string]any{"message": "unable to load project catalog"})
 		return
 	}
-	mcpNames, err := s.synonBiomedMCPNames(r, userID)
+	mcpNames, err := s.xScienceMCPNames(r, userID)
 	if err != nil {
 		writeWorkspaceJSON(w, http.StatusInternalServerError, map[string]any{"message": "unable to load MCP catalog"})
 		return
 	}
-	seedProjects, err := collectSynonBiomedSeedProjects(s.runtimeAssetsDir)
+	seedProjects, err := collectXScienceSeedProjects(s.runtimeAssetsDir)
 	if err != nil {
 		writeWorkspaceJSON(w, http.StatusInternalServerError, map[string]any{"message": "unable to load seed project catalog"})
 		return
 	}
-	thirdPartyAssets, err := collectSynonBiomedThirdPartyAssets(s.runtimeAssetsDir)
+	thirdPartyAssets, err := collectXScienceThirdPartyAssets(s.runtimeAssetsDir)
 	if err != nil {
 		writeWorkspaceJSON(w, http.StatusInternalServerError, map[string]any{"message": "unable to load runtime asset catalog"})
 		return
@@ -126,8 +126,8 @@ func (s *Server) handleSynonBiomedCatalog(w http.ResponseWriter, r *http.Request
 	})
 }
 
-func (s *Server) handleSynonBiomedProjects(w http.ResponseWriter, r *http.Request) {
-	userID := strings.TrimSpace(r.Header.Get("X-Synon-User-Id"))
+func (s *Server) handleXScienceProjects(w http.ResponseWriter, r *http.Request) {
+	userID := strings.TrimSpace(r.Header.Get("X-Science-User-Id"))
 	if userID == "" {
 		writeWorkspaceJSON(w, http.StatusUnauthorized, map[string]any{"message": "authentication required"})
 		return
@@ -138,7 +138,7 @@ func (s *Server) handleSynonBiomedProjects(w http.ResponseWriter, r *http.Reques
 	}
 	switch r.Method {
 	case http.MethodGet:
-		projects, err := s.synonBiomedProjectCatalog(userID)
+		projects, err := s.xScienceProjectCatalog(userID)
 		if err != nil {
 			writeWorkspaceJSON(w, http.StatusInternalServerError, map[string]any{"message": "unable to list projects"})
 			return
@@ -191,7 +191,7 @@ func (s *Server) handleSynonBiomedProjects(w http.ResponseWriter, r *http.Reques
 			return
 		}
 		writeWorkspaceJSON(w, http.StatusCreated, map[string]any{
-			"project": projectToSynonBiomed(project, lastActive),
+			"project": projectToXScience(project, lastActive),
 		})
 	default:
 		w.Header().Set("Allow", "GET, POST")
@@ -206,38 +206,38 @@ func (s *Server) handleSystemInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeWorkspaceJSON(w, http.StatusOK, map[string]any{
-		"cache_dir": systemDirectory("SYNON_AI_CACHE_DIR", filepath.Join(s.fileRoot, "cache")),
-		"work_dir":  systemDirectory("SYNON_AI_WORK_DIR", filepath.Join(s.fileRoot, "work")),
-		"log_dir":   systemDirectory("SYNON_AI_LOG_DIR", filepath.Join(s.fileRoot, "logs")),
+		"cache_dir": systemDirectory("X_SCIENCE_CACHE_DIR", filepath.Join(s.fileRoot, "cache")),
+		"work_dir":  systemDirectory("X_SCIENCE_WORK_DIR", filepath.Join(s.fileRoot, "work")),
+		"log_dir":   systemDirectory("X_SCIENCE_LOG_DIR", filepath.Join(s.fileRoot, "logs")),
 		"platform":  runtime.GOOS,
 		"arch":      runtime.GOARCH,
 	})
 }
 
-func (s *Server) synonBiomedProjectCatalog(userID string) (synonBiomedBackendProjectCatalog, error) {
+func (s *Server) xScienceProjectCatalog(userID string) (xScienceBackendProjectCatalog, error) {
 	if s.workspaceStore == nil {
-		return synonBiomedBackendProjectCatalog{}, errors.New("workspace storage is not configured")
+		return xScienceBackendProjectCatalog{}, errors.New("workspace storage is not configured")
 	}
 	projects, err := s.workspaceStore.ListCompatibilityProjects(userID, 1000, 0)
 	if err != nil {
-		return synonBiomedBackendProjectCatalog{}, err
+		return xScienceBackendProjectCatalog{}, err
 	}
 	total, err := s.workspaceStore.CountCompatibilityProjects(userID)
 	if err != nil {
-		return synonBiomedBackendProjectCatalog{}, err
+		return xScienceBackendProjectCatalog{}, err
 	}
-	items := make([]synonBiomedBackendProject, 0, len(projects))
+	items := make([]xScienceBackendProject, 0, len(projects))
 	for _, project := range projects {
 		lastActive, err := s.workspaceStore.CompatibilityProjectLastActiveAt(userID, project.ID)
 		if err != nil {
-			return synonBiomedBackendProjectCatalog{}, err
+			return xScienceBackendProjectCatalog{}, err
 		}
-		items = append(items, projectToSynonBiomed(project, lastActive))
+		items = append(items, projectToXScience(project, lastActive))
 	}
-	return synonBiomedBackendProjectCatalog{Count: total, Projects: items}, nil
+	return xScienceBackendProjectCatalog{Count: total, Projects: items}, nil
 }
 
-func (s *Server) synonBiomedMCPNames(r *http.Request, userID string) ([]string, error) {
+func (s *Server) xScienceMCPNames(r *http.Request, userID string) ([]string, error) {
 	if s.mcpDirectory == nil {
 		return []string{}, nil
 	}
@@ -252,8 +252,8 @@ func (s *Server) synonBiomedMCPNames(r *http.Request, userID string) ([]string, 
 	return uniqueSortedNames(names), nil
 }
 
-func projectToSynonBiomed(project workspace.CompatibilityProject, lastActive *time.Time) synonBiomedBackendProject {
-	return synonBiomedBackendProject{
+func projectToXScience(project workspace.CompatibilityProject, lastActive *time.Time) xScienceBackendProject {
+	return xScienceBackendProject{
 		ProjectID: project.ID, Name: project.Name, Description: optionalString(project.Description),
 		ConversationCount: project.ConversationCount, ArtifactCount: project.ArtifactCount,
 		CreatedAt: optionalTime(project.CreatedAt), UpdatedAt: optionalTime(project.UpdatedAt),
@@ -261,8 +261,8 @@ func projectToSynonBiomed(project workspace.CompatibilityProject, lastActive *ti
 	}
 }
 
-func collectSynonBiomedSeedProjects(root string) (synonBiomedSeedProjectCatalog, error) {
-	result := synonBiomedSeedProjectCatalog{Projects: []synonBiomedSeedProject{}}
+func collectXScienceSeedProjects(root string) (xScienceSeedProjectCatalog, error) {
+	result := xScienceSeedProjectCatalog{Projects: []xScienceSeedProject{}}
 	if root == "" {
 		return result, nil
 	}
@@ -280,7 +280,7 @@ func collectSynonBiomedSeedProjects(root string) (synonBiomedSeedProjectCatalog,
 			continue
 		}
 		path := filepath.Join(seedDir, name)
-		document, err := readBoundedJSONMap(path, maxSynonBiomedSeedManifestBytes)
+		document, err := readBoundedJSONMap(path, maxXScienceSeedManifestBytes)
 		if err != nil {
 			return result, fmt.Errorf("read seed manifest %s: %w", name, err)
 		}
@@ -289,7 +289,7 @@ func collectSynonBiomedSeedProjects(root string) (synonBiomedSeedProjectCatalog,
 		if frame, ok := document["root_frame"].(map[string]any); ok {
 			rootFrameID, _ = frame["id"].(string)
 		}
-		result.Projects = append(result.Projects, synonBiomedSeedProject{
+		result.Projects = append(result.Projects, xScienceSeedProject{
 			Slug: slug, Name: seedProjectDisplayName(slug), ManifestPath: path, RootFrameID: rootFrameID,
 			ArtifactCount:   collectionSize(document["artifacts"]),
 			ChildFrameCount: collectionSize(document["child_frames"]),
@@ -301,7 +301,7 @@ func collectSynonBiomedSeedProjects(root string) (synonBiomedSeedProjectCatalog,
 	return result, nil
 }
 
-func collectSynonBiomedThirdPartyAssets(root string) ([]string, error) {
+func collectXScienceThirdPartyAssets(root string) ([]string, error) {
 	if root == "" {
 		return []string{}, nil
 	}
@@ -387,11 +387,11 @@ func requestOrigin(r *http.Request) string {
 	return scheme + "://" + strings.TrimSpace(r.Host)
 }
 
-func countedNames(names []string) synonBiomedCountedNames {
+func countedNames(names []string) xScienceCountedNames {
 	if names == nil {
 		names = []string{}
 	}
-	return synonBiomedCountedNames{Count: len(names), Names: names}
+	return xScienceCountedNames{Count: len(names), Names: names}
 }
 
 func uniqueSortedNames(values []string) []string {

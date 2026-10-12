@@ -1,5 +1,5 @@
 {
-  "schema": "synon.codex-browser-evidence.v1",
+  "schema": "x-science.codex-browser-evidence.v1",
   "browser": "codex_builtin",
   "taskId": "nlrp3-nek7-design",
   "conversationId": "ccb5f719-1bcf-48fb-8740-34f0b778f101",

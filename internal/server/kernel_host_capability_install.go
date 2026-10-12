@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	agentruntime "synon-go/internal/agentruntime"
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
+	agentruntime "x-science/internal/agentruntime"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const kernelCapabilityInstallApprovalSource = "kernel-host-capability-install"

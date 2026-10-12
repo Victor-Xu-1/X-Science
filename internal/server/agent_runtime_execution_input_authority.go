@@ -6,8 +6,8 @@ import (
 	"sort"
 	"strings"
 
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/sciencecapability"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/sciencecapability"
 )
 
 // bindManagedExecutionInputs runs at the final kernel boundary, including

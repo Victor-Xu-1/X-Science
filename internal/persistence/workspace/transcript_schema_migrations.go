@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 const (
@@ -17,11 +17,11 @@ const (
 	transcriptV25CallbackID        = "transcript-branch-backfill-after-statements-v1"
 
 	transcriptV23PreflightIdentity = "empty-transcript-cohort-v1"
-	transcriptV23RuleSpec          = "synon.workspace.transcript-authority.v23"
+	transcriptV23RuleSpec          = "x-science.workspace.transcript-authority.v23"
 	transcriptV24PreflightIdentity = "canonical-transcript-v23-cohort-v1"
-	transcriptV24RuleSpec          = "synon.workspace.transcript-artifact-lineage.v24"
+	transcriptV24RuleSpec          = "x-science.workspace.transcript-artifact-lineage.v24"
 	transcriptV25PreflightIdentity = "canonical-transcript-v24-cohort-v1"
-	transcriptV25RuleSpec          = "synon.workspace.transcript-branch-lineage.v25"
+	transcriptV25RuleSpec          = "x-science.workspace.transcript-branch-lineage.v25"
 
 	transcriptV23CohortSHA256 = "423869f699443f051f39c8fa12fc857e4c94cc06727f970df7887ec966487fc6"
 	transcriptV24CohortSHA256 = "d3835b6a9d2354fbc9d480aa0695e3790db9d5060e593814f96e7c3083d478a4"
@@ -201,7 +201,7 @@ func transcriptSchemaCohortDigestFor(
 		return "", err
 	}
 	digest := sha256.New()
-	writeSchemaIdentityFrame(digest, []byte("synon.workspace.transcript-cohort.v1"))
+	writeSchemaIdentityFrame(digest, []byte("x-science.workspace.transcript-cohort.v1"))
 	for _, object := range objects {
 		writeSchemaIdentityFrame(digest, []byte(object.objectType))
 		writeSchemaIdentityFrame(digest, []byte(object.name))
@@ -209,7 +209,7 @@ func transcriptSchemaCohortDigestFor(
 		writeSchemaIdentityFrame(digest, []byte(object.statement))
 	}
 	writeSchemaIdentityUint64(digest, uint64(len(objects)))
-	return hex.EncodeToString(digest.Sum(nil)), nil
+	return publishedTranscriptCohortChecksum(hex.EncodeToString(digest.Sum(nil))), nil
 }
 
 type transcriptSchemaObject struct {

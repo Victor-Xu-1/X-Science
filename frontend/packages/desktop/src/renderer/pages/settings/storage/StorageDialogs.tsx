@@ -4,14 +4,14 @@ import React, { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
 import {
-  changeSynonBiomedDataDirectory,
-  clearSynonBiomedLastDataDirectoryMove,
-  loadSynonBiomedDataDirectory,
-  saveSynonBiomedStorageRules,
-  SynonBiomedSettingsRequestError,
-  type SynonBiomedDataDirectory,
-  type SynonBiomedStorageRules,
-} from '@/renderer/services/synonBiomedWorkspaceSettings';
+  changeXScienceDataDirectory,
+  clearXScienceLastDataDirectoryMove,
+  loadXScienceDataDirectory,
+  saveXScienceStorageRules,
+  XScienceSettingsRequestError,
+  type XScienceDataDirectory,
+  type XScienceStorageRules,
+} from '@/renderer/services/xScienceWorkspaceSettings';
 import { StorageError, StorageLoading } from './StorageFeedback';
 import { directoryChangeAllowed, formatStorageBytes, storageRuleRows } from './storagePresentation';
 import { useStorageResource } from './useStorageResource';
@@ -38,7 +38,7 @@ function useStorageMutation() {
         409: 'settings.storageSettings.stateConflict',
         507: 'settings.storageSettings.insufficientSpace',
       };
-      setErrorKey(error instanceof SynonBiomedSettingsRequestError ? (keyByStatus[error.status] ?? null) : null);
+      setErrorKey(error instanceof XScienceSettingsRequestError ? (keyByStatus[error.status] ?? null) : null);
     } finally {
       pending.current = false;
       setBusy(false);
@@ -47,7 +47,7 @@ function useStorageMutation() {
   return { busy, failed, errorKey, run, canClose: () => !pending.current };
 }
 
-const loadEstimate = (signal: AbortSignal) => loadSynonBiomedDataDirectory({ signal });
+const loadEstimate = (signal: AbortSignal) => loadXScienceDataDirectory({ signal });
 
 export function StorageLocationDialog({
   directory,
@@ -55,7 +55,7 @@ export function StorageLocationDialog({
   onSaved,
   beforeSave,
 }: {
-  directory: SynonBiomedDataDirectory;
+  directory: XScienceDataDirectory;
   onClose: () => void;
   onSaved: () => void;
   beforeSave: () => void;
@@ -82,7 +82,7 @@ export function StorageLocationDialog({
     if (!canSave) return;
     void mutation.run(async () => {
       beforeSave();
-      const result = await changeSynonBiomedDataDirectory({ path: path.trim(), migrate });
+      const result = await changeXScienceDataDirectory({ path: path.trim(), migrate });
       Message.success(
         t(
           result.restarting
@@ -176,9 +176,9 @@ export function StorageRulesDialog({
   onSaved,
   beforeSave,
 }: {
-  rules: SynonBiomedStorageRules;
+  rules: XScienceStorageRules;
   onClose: () => void;
-  onSaved: (value: SynonBiomedStorageRules) => void;
+  onSaved: (value: XScienceStorageRules) => void;
   beforeSave: () => void;
 }) {
   const { t } = useTranslation();
@@ -189,7 +189,7 @@ export function StorageRulesDialog({
     if (!valid) return;
     void mutation.run(async () => {
       beforeSave();
-      const updated = await saveSynonBiomedStorageRules(draft);
+      const updated = await saveXScienceStorageRules(draft);
       Message.success(t('settings.storageSettings.rulesUpdated'));
       onSaved(updated);
     });
@@ -259,7 +259,7 @@ export function StorageMoveCompletionDialog({
       }}
       onOk={() =>
         void mutation.run(async () => {
-          await clearSynonBiomedLastDataDirectoryMove(remove);
+          await clearXScienceLastDataDirectoryMove(remove);
           Message.success(t('settings.storageSettings.moveCompleted'));
           onSaved();
         })

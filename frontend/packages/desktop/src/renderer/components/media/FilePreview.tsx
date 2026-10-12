@@ -152,7 +152,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = fa
           />
           {!imageUrl && (
             <div className='w-60px h-60px bg-3 flex items-center justify-center text-11px text-t-secondary'>
-              {metadataUnavailable ? t('guid.synonBiomedStatus.unavailable') : null}
+              {metadataUnavailable ? t('guid.xScienceStatus.unavailable') : null}
             </div>
           )}
         </div>
@@ -182,7 +182,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = fa
           <span className='text-12px text-t-secondary'>
             {fileExt}
             {metadataUnavailable
-              ? `: ${t('guid.synonBiomedStatus.unavailable')}`
+              ? `: ${t('guid.xScienceStatus.unavailable')}`
               : fileSize
                 ? `: ${fileSize}`
                 : localFileBridgeAvailable

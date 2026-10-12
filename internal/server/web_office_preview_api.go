@@ -16,7 +16,7 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/subprocess"
+	"x-science/internal/subprocess"
 )
 
 type webOfficeWatch struct {
@@ -130,7 +130,7 @@ func materializeWebOfficeArtifact(userID, artifactID, versionID, filename, sourc
 		return "", fmt.Errorf("%w: artifact filename is invalid", errWebFSInvalid)
 	}
 	digest := sha256.Sum256([]byte(strings.Join([]string{userID, artifactID, versionID}, "\x00")))
-	directory := filepath.Join(os.TempDir(), "synon-biomed-office-cache", fmt.Sprintf("%x", digest[:16]))
+	directory := filepath.Join(os.TempDir(), "x-science-office-cache", fmt.Sprintf("%x", digest[:16]))
 	if err := os.MkdirAll(directory, 0o700); err != nil {
 		return "", err
 	}
@@ -257,7 +257,7 @@ func webOfficeWatchKey(userID, kind, filePath string) string {
 }
 
 func resolveWebOfficeCLI() (string, []string, error) {
-	configured := strings.TrimSpace(os.Getenv("SYNON_OFFICECLI_PATH"))
+	configured := strings.TrimSpace(os.Getenv("X_SCIENCE_OFFICECLI_PATH"))
 	path := ""
 	var err error
 	if configured != "" {
@@ -276,9 +276,9 @@ func resolveWebOfficeCLI() (string, []string, error) {
 		return "", nil, errors.New("OfficeCLI is not installed or not on PATH")
 	}
 	prefix := []string{}
-	if raw := strings.TrimSpace(os.Getenv("SYNON_OFFICECLI_ARGS_JSON")); raw != "" {
+	if raw := strings.TrimSpace(os.Getenv("X_SCIENCE_OFFICECLI_ARGS_JSON")); raw != "" {
 		if err := json.Unmarshal([]byte(raw), &prefix); err != nil {
-			return "", nil, fmt.Errorf("decode SYNON_OFFICECLI_ARGS_JSON: %w", err)
+			return "", nil, fmt.Errorf("decode X_SCIENCE_OFFICECLI_ARGS_JSON: %w", err)
 		}
 		if len(prefix) > 32 {
 			return "", nil, errors.New("configured OfficeCLI prefix has too many arguments")

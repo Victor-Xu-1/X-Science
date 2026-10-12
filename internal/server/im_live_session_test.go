@@ -7,10 +7,10 @@ import (
 	"sync"
 	"testing"
 
-	adaptercommon "synon-go/internal/adapters/common"
-	eventjournal "synon-go/internal/persistence/journal"
-	secretstore "synon-go/internal/persistence/secrets"
-	sessionstore "synon-go/internal/persistence/sessions"
+	adaptercommon "x-science/internal/adapters/common"
+	eventjournal "x-science/internal/persistence/journal"
+	secretstore "x-science/internal/persistence/secrets"
+	sessionstore "x-science/internal/persistence/sessions"
 )
 
 func TestAdapterInboundEventsCreateDurableLiveSessionsAndJournalEntries(t *testing.T) {

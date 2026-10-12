@@ -6,7 +6,7 @@ import time
 import requests
 
 BASE_URL = "https://rfam.org"
-USER_AGENT = "bio-tools-rfam-families/0.1 (synon_llm-experimental/bio-tools)"
+USER_AGENT = "bio-tools-rfam-families/0.1 (x_science_llm-experimental/bio-tools)"
 DEFAULT_TIMEOUT = 120.0
 MIN_INTERVAL_S = 0.5  # politeness: <= 2 req/s
 

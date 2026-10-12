@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func (s *Server) handleCompatibilityProjectCollection(w http.ResponseWriter, r *http.Request, projectID, resource string) {

@@ -3,7 +3,7 @@ package server
 import (
 	"strings"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 // selectAgentWorkspace shares the existing project/grant authority between

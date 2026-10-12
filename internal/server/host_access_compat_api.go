@@ -14,7 +14,7 @@ import (
 
 	"golang.org/x/text/collate"
 	"golang.org/x/text/language"
-	kernelruntime "synon-go/internal/kernel"
+	kernelruntime "x-science/internal/kernel"
 )
 
 var errCompatibilityHostGrantNotFound = errors.New("compatibility host grant not found")

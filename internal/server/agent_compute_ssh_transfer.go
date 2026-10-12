@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 // One SSH transfer path owns both direct file copies and managed job archives.
@@ -67,7 +67,7 @@ func runAgentSSHCopy(ctx context.Context, provider workspace.ComputeProvider, lo
 	// Force negotiation even when size and mtime match. Native transfer
 	// checksums verify the complete file, without a quiet pre-transfer whole
 	// file checksum pass that can outlast I/O-idle detection on huge datasets.
-	args := []string{"--protect-args", "--ignore-times", "--times", "--sparse", "--partial-dir=.synon-biomed-partial-" + identity,
+	args := []string{"--protect-args", "--ignore-times", "--times", "--sparse", "--partial-dir=.x-science-partial-" + identity,
 		"--timeout=120", "--info=progress2", "--outbuf=L", "--chmod=F600", "--rsh=" + strings.Join(ssh, " "), "--"}
 	remote := alias + ":" + remotePath
 	if upload {

@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/executionprep"
+	"x-science/internal/executionprep"
 )
 
 func nativePowerShellObservation(t *testing.T, source string) *executionprep.Observation {

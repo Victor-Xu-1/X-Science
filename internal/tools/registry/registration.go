@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"synon-go/internal/harnesscontract"
+	"x-science/internal/harnesscontract"
 )
 
 // ToolExposure is the single model-projection decision stored with a Tool.

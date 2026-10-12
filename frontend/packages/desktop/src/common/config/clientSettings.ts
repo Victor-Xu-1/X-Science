@@ -15,10 +15,10 @@ export type ClientBusinessSettingMap = {
   'tools.imageGenerationModel': ImageGenerationModelSetting | undefined;
   'tools.speechToText': SpeechToTextConfig | undefined;
   'acp.promptTimeout': number | undefined;
-  'synonBiomed.session.defaultModelId': string | undefined;
-  'synonBiomed.session.subagentModelId': string | undefined;
-  'synonBiomed.session.effort': 'low' | 'medium' | 'high' | undefined;
-  'synonBiomed.sidebar.projectOrder': string[] | undefined;
+  'xScience.session.defaultModelId': string | undefined;
+  'xScience.session.subagentModelId': string | undefined;
+  'xScience.session.effort': 'low' | 'medium' | 'high' | undefined;
+  'xScience.sidebar.projectOrder': string[] | undefined;
 };
 
 export type ClientBusinessSettingKey = keyof ClientBusinessSettingMap;

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/httptext"
+	"x-science/internal/httptext"
 
 	"golang.org/x/text/encoding"
 	"golang.org/x/text/encoding/charmap"

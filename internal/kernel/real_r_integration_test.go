@@ -11,9 +11,9 @@ import (
 )
 
 func TestRealMicromambaRepairAndRWorkerProtocol(t *testing.T) {
-	runtimeRoot := strings.TrimSpace(os.Getenv("SYNON_TEST_REAL_R_ROOT"))
+	runtimeRoot := strings.TrimSpace(os.Getenv("X_SCIENCE_TEST_REAL_R_ROOT"))
 	if runtimeRoot == "" {
-		t.Skip("SYNON_TEST_REAL_R_ROOT is not configured")
+		t.Skip("X_SCIENCE_TEST_REAL_R_ROOT is not configured")
 	}
 	runtimeRoot, err := filepath.Abs(runtimeRoot)
 	if err != nil {
@@ -21,7 +21,7 @@ func TestRealMicromambaRepairAndRWorkerProtocol(t *testing.T) {
 	}
 	volumeRoot := filepath.Clean(filepath.VolumeName(runtimeRoot) + string(os.PathSeparator))
 	if runtimeRoot == volumeRoot {
-		t.Fatal("SYNON_TEST_REAL_R_ROOT must not be a filesystem root")
+		t.Fatal("X_SCIENCE_TEST_REAL_R_ROOT must not be a filesystem root")
 	}
 	_, file, _, ok := runtime.Caller(0)
 	if !ok {
@@ -131,9 +131,9 @@ func TestRealMicromambaRepairAndRWorkerProtocol(t *testing.T) {
 }
 
 func TestManagedRRuntimeHardeningAndWireCompatibility(t *testing.T) {
-	environmentRoot := strings.TrimSpace(os.Getenv("SYNON_TEST_MANAGED_R_ENVS"))
+	environmentRoot := strings.TrimSpace(os.Getenv("X_SCIENCE_TEST_MANAGED_R_ENVS"))
 	if environmentRoot == "" {
-		t.Skip("SYNON_TEST_MANAGED_R_ENVS is not configured")
+		t.Skip("X_SCIENCE_TEST_MANAGED_R_ENVS is not configured")
 	}
 	environmentRoot, err := filepath.Abs(environmentRoot)
 	if err != nil {
@@ -148,10 +148,10 @@ func TestManagedRRuntimeHardeningAndWireCompatibility(t *testing.T) {
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
 	workspace := t.TempDir()
-	if err := os.WriteFile(filepath.Join(workspace, ".Rprofile"), []byte(`Sys.setenv(SYNON_PROFILE_MARKER="loaded")`), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(workspace, ".Rprofile"), []byte(`Sys.setenv(X_SCIENCE_PROFILE_MARKER="loaded")`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(workspace, ".Renviron"), []byte("SYNON_ENVIRON_MARKER=loaded\n"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(workspace, ".Renviron"), []byte("X_SCIENCE_ENVIRON_MARKER=loaded\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	manager := newLifecycleTestManager(t, Config{
@@ -160,7 +160,7 @@ func TestManagedRRuntimeHardeningAndWireCompatibility(t *testing.T) {
 		RWorkerPath:          filepath.Join(repositoryRoot, "assets", "optional", "kernels", "kernel_worker.R"),
 		DefaultREnv:          "r", ExecutionTimeout: 15 * time.Second,
 		Environment: map[string]string{
-			"OPERON_SECRET_VARS": "SYNON_TEST_R_SECRET", "SYNON_TEST_R_SECRET": "must-not-leak",
+			"OPERON_SECRET_VARS": "X_SCIENCE_TEST_R_SECRET", "X_SCIENCE_TEST_R_SECRET": "must-not-leak",
 		},
 	})
 	worker, err := manager.StartSession(SessionSpec{
@@ -172,7 +172,7 @@ func TestManagedRRuntimeHardeningAndWireCompatibility(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
-	hardened, err := worker.Execute(ctx, `cat(Sys.getenv("SYNON_TEST_R_SECRET", "missing"), "|", Sys.getenv("SYNON_PROFILE_MARKER", "missing"), "|", Sys.getenv("SYNON_ENVIRON_MARKER", "missing"), "|", Sys.getenv("OPERON_WRITABLE_ROOTS", "missing"), "\n", sep="")`, "user")
+	hardened, err := worker.Execute(ctx, `cat(Sys.getenv("X_SCIENCE_TEST_R_SECRET", "missing"), "|", Sys.getenv("X_SCIENCE_PROFILE_MARKER", "missing"), "|", Sys.getenv("X_SCIENCE_ENVIRON_MARKER", "missing"), "|", Sys.getenv("OPERON_WRITABLE_ROOTS", "missing"), "\n", sep="")`, "user")
 	if err != nil || strings.TrimSpace(hardened.Stdout) != "missing|missing|missing|missing" || hardened.Error != "" {
 		t.Fatalf("R startup hardening response=%#v err=%v", hardened, err)
 	}
@@ -301,9 +301,9 @@ func TestManagedRRuntimeHardeningAndWireCompatibility(t *testing.T) {
 }
 
 func TestManagedRPackageOperationLogWireContract(t *testing.T) {
-	environmentRoot := strings.TrimSpace(os.Getenv("SYNON_TEST_MANAGED_R_ENVS"))
+	environmentRoot := strings.TrimSpace(os.Getenv("X_SCIENCE_TEST_MANAGED_R_ENVS"))
 	if environmentRoot == "" {
-		t.Skip("SYNON_TEST_MANAGED_R_ENVS is not configured")
+		t.Skip("X_SCIENCE_TEST_MANAGED_R_ENVS is not configured")
 	}
 	_, file, _, ok := runtime.Caller(0)
 	if !ok {

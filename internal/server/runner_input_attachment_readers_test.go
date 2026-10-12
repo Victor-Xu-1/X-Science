@@ -3,7 +3,7 @@ package server
 import (
 	"testing"
 
-	eventjournal "synon-go/internal/persistence/journal"
+	eventjournal "x-science/internal/persistence/journal"
 )
 
 func TestBuiltinAttachmentReaderPreflightRejectsSpeculativeDuplicatePackages(t *testing.T) {
@@ -60,19 +60,19 @@ func TestBuiltinAttachmentReaderPreflightRequiresReadFileBeforeDirectRuntimePars
 	})
 	gateway := serverAgentRuntimeToolGateway{taskRun: run}
 	blocked := gateway.agentRuntimeBuiltinAttachmentReaderPreflight("python", map[string]any{
-		"code": `open(".synon-artifacts/version-docx-report.docx", "rb").read()`,
+		"code": `open(".x-science-artifacts/version-docx-report.docx", "rb").read()`,
 	})
 	if blocked == nil || blocked["status"] != "builtin_attachment_reader_required" {
 		t.Fatalf("direct parser preflight = %#v", blocked)
 	}
 	if specialist := gateway.agentRuntimeBuiltinAttachmentReaderPreflight("python", map[string]any{
-		"code": `open(".synon-artifacts/version-unknown-opaque.bin", "rb").read()`,
+		"code": `open(".x-science-artifacts/version-unknown-opaque.bin", "rb").read()`,
 	}); specialist != nil {
 		t.Fatalf("specialist input was forced through a nonexistent built-in reader: %#v", specialist)
 	}
 	run.recordInputAttachmentRead(map[string]any{"version_id": "version-docx"})
 	if afterRead := gateway.agentRuntimeBuiltinAttachmentReaderPreflight("python", map[string]any{
-		"code": `open(".synon-artifacts/version-docx-report.docx", "rb").read()`,
+		"code": `open(".x-science-artifacts/version-docx-report.docx", "rb").read()`,
 	}); afterRead != nil {
 		t.Fatalf("post-read specialized analysis was blocked: %#v", afterRead)
 	}
@@ -105,7 +105,7 @@ func TestInputAttachmentReaderStateRejectsModelWritableFilenameProof(t *testing.
 		VersionID: "version-original", Filename: "report.docx", Reader: "builtin_docx",
 	}}
 	markInputAttachmentReaderState(states, map[string]any{
-		"file_path": ".synon-artifacts/version-original-forged.docx",
+		"file_path": ".x-science-artifacts/version-original-forged.docx",
 	})
 	if states[0].Read {
 		t.Fatal("a model-writable filename prefix became immutable-version read authority")

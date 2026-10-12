@@ -14,11 +14,11 @@ import {
 import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
 import LanguageSwitcher from '@/renderer/components/settings/LanguageSwitcher';
 import {
-  loadSynonBiomedContactEmail,
-  removeSynonBiomedContactEmail,
-  setSynonBiomedContactEmail,
-  type SynonBiomedContactEmail,
-} from '@/renderer/services/synonBiomedWorkspaceSettings';
+  loadXScienceContactEmail,
+  removeXScienceContactEmail,
+  setXScienceContactEmail,
+  type XScienceContactEmail,
+} from '@/renderer/services/xScienceWorkspaceSettings';
 import SettingsPageHeader from './components/SettingsPageHeader';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
 import ThirdPartyLicensesModal from './components/ThirdPartyLicensesModal';
@@ -51,7 +51,7 @@ const GeneralSettings: React.FC = () => {
   const { selectTheme, activeId: activeThemeId, activeTheme } = useThemeContext();
   const selectedThemeId = activeThemeId ?? SYSTEM_THEME_ID;
   const activeVisualTheme = getVisualThemePreset(selectedThemeId, activeTheme?.id);
-  const contactRead = useSettingsReadResource('contact', loadSynonBiomedContactEmail);
+  const contactRead = useSettingsReadResource('contact', loadXScienceContactEmail);
   const contact = contactRead.data;
   const [savingEmail, setSavingEmail] = useState(false);
   const mutation = useRef(false);
@@ -80,7 +80,7 @@ const GeneralSettings: React.FC = () => {
     mutation.current = true;
     setSavingEmail(true);
     try {
-      await setSynonBiomedContactEmail(value, contact.noticeVersion);
+      await setXScienceContactEmail(value, contact.noticeVersion);
       if (!alive.current) return;
       setEmailEditor(false);
       setEmail('');
@@ -101,7 +101,7 @@ const GeneralSettings: React.FC = () => {
     mutation.current = true;
     setRemovingEmail(true);
     try {
-      await removeSynonBiomedContactEmail();
+      await removeXScienceContactEmail();
       if (!alive.current) return;
       setRemoveEmailOpen(false);
       await contactRead.refresh();
@@ -126,7 +126,7 @@ const GeneralSettings: React.FC = () => {
 
   return (
     <SettingsPageWrapper>
-      <div className='settings-general-page flex flex-col' data-testid='synon-general-settings'>
+      <div className='settings-general-page flex flex-col' data-testid='x-science-general-settings'>
         <SettingsPageHeader
           title={t('settings.generalSettings.title')}
           description={t('settings.generalSettings.description')}
@@ -300,7 +300,7 @@ const GeneralSettings: React.FC = () => {
   );
 };
 
-function contactStatus(contact: SynonBiomedContactEmail | null, t: (key: string) => string): string {
+function contactStatus(contact: XScienceContactEmail | null, t: (key: string) => string): string {
   if (contact?.decision === 'allowed' && contact.email) return contact.email;
   if (contact?.decision === 'declined') return t('settings.generalSettings.contactDeclined');
   if (contact?.decision === 'revoked') return t('settings.generalSettings.contactRevoked');

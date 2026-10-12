@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 const rendererRoot = new URL('../../../packages/desktop/src/renderer/', import.meta.url);
 const workspaceCss = readFileSync(new URL('pages/conversation/Workspace/workspace.css', rendererRoot), 'utf8');
 const librarySource = readFileSync(
-  new URL('pages/conversation/Workspace/components/SynonBiomedArtifactLibrary.tsx', rendererRoot),
+  new URL('pages/conversation/Workspace/components/XScienceArtifactLibrary.tsx', rendererRoot),
   'utf8'
 );
 

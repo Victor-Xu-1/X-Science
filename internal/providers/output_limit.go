@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 // OutputLimitDetails is generation evidence, not a model capability claim.

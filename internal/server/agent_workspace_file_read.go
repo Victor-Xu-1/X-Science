@@ -16,7 +16,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 	"unicode/utf8"
 )
 
@@ -245,7 +245,7 @@ func renderAgentWorkspacePDFPages(
 			"read_file PDF page rendering is unavailable",
 			"Install the governed PDF rendering dependency before requesting selected pages."), nil
 	}
-	temporaryRoot, err := os.MkdirTemp("", "synon-read-pdf-*")
+	temporaryRoot, err := os.MkdirTemp("", "x-science-read-pdf-*")
 	if err != nil {
 		return nil, errors.New("read_file could not prepare PDF inspection")
 	}

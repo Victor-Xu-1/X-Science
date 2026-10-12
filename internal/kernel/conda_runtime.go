@@ -20,14 +20,14 @@ import (
 )
 
 const (
-	defaultManagedPythonEnvironment = "synon-biomed-python"
-	defaultManagedREnvironment      = "synon-biomed-r"
+	defaultManagedPythonEnvironment = "x-science-python"
+	defaultManagedREnvironment      = "x-science-r"
 	maxCondaRuntimeMetadataBytes    = 16 * 1024 * 1024
 	maxManagedPythonHelperBytes     = 1 * 1024 * 1024
-	managedRuntimeMarkerName        = ".synon-runtime.json"
+	managedRuntimeMarkerName        = ".x-science-runtime.json"
 	managedRuntimeMarkerVersion     = 2
-	managedPythonActivationContract = "synon-managed-python-runtime-v2"
-	managedRActivationContract      = "synon-managed-r-runtime-v1"
+	managedPythonActivationContract = "x-science-managed-python-runtime-v2"
+	managedRActivationContract      = "x-science-managed-r-runtime-v1"
 )
 
 type condaRuntimeReference struct {
@@ -821,7 +821,7 @@ func writeManagedRuntimeMarker(path string, marker managedRuntimeMarker) error {
 		return err
 	}
 	raw = append(raw, '\n')
-	temporary, err := os.CreateTemp(filepath.Dir(path), ".synon-runtime-*.tmp")
+	temporary, err := os.CreateTemp(filepath.Dir(path), ".x-science-runtime-*.tmp")
 	if err != nil {
 		return err
 	}
@@ -851,7 +851,7 @@ func (m *Manager) smokeManagedPython(ctx context.Context, runtime managedPythonR
 		return err
 	}
 	prefixJSON, _ := json.Marshal(prefix)
-	code := "import json,pathlib,tempfile;import rdkit,shutil,cheminfo_render_helpers as h;out=tempfile.mkdtemp(prefix='synon-rdkit-smoke-',dir=" +
+	code := "import json,pathlib,tempfile;import rdkit,shutil,cheminfo_render_helpers as h;out=tempfile.mkdtemp(prefix='x-science-rdkit-smoke-',dir=" +
 		string(prefixJSON) + ");r=h.render_molecule_images(['CCO'],['smoke'],out_dir=out);p=pathlib.Path(r['grid']);" +
 		"assert p.is_file() and p.stat().st_size>0;shutil.rmtree(out);print(json.dumps({'rdkit':rdkit.__version__,'ok':True},sort_keys=True))"
 	command := newWorkerProcessCommand(ctx, python, "-I", "-c", code)

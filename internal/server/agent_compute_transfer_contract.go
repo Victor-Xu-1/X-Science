@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"synon-go/internal/compute/transfer"
+	"x-science/internal/compute/transfer"
 )
 
 func agentComputeOutputPolicy(outputs []any) (transfer.Policy, error) {

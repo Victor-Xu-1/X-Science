@@ -284,8 +284,8 @@ describe('PreviewContext', () => {
         content: '',
         content_type: 'molecule',
         metadata: {
-          file_path: 'synonbiomed://proj_example/project-files/artifact-1',
-          workspace: 'synonbiomed://proj_example',
+          file_path: 'x-science://proj_example/project-files/artifact-1',
+          workspace: 'x-science://proj_example',
           artifactId: 'artifact-1',
           contentUrl: '/api/artifacts/artifact-1',
         },

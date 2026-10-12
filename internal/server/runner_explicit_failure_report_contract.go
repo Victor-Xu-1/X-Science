@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 var (

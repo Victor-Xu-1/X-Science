@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"strings"
 
-	"synon-go/internal/memorypolicy"
-	"synon-go/internal/memoryprompt"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/memorypolicy"
+	"x-science/internal/memoryprompt"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 //go:embed assets/extraction_instructions.md

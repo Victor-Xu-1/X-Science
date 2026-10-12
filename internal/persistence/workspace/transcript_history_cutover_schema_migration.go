@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 const (
 	transcriptHistoryCutoverV30PreflightIdentity = "canonical-transcript-v29-history-cutover-empty-v1"
-	transcriptHistoryCutoverV30RuleSpec          = "synon.workspace.transcript-history-cutover.v30"
+	transcriptHistoryCutoverV30RuleSpec          = "x-science.workspace.transcript-history-cutover.v30"
 )
 
 var transcriptHistoryCutoverV30Migration = versionedSchemaMigration{

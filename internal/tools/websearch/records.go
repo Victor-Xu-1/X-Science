@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/sourcecitation"
+	"x-science/internal/sourcecitation"
 )
 
 // SourceRecord contains metadata the upstream provider actually returned.

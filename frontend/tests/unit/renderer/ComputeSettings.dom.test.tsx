@@ -29,37 +29,37 @@ const computeMocks = vi.hoisted(() => ({
   }),
 }));
 
-vi.mock('@/renderer/services/synonBiomedCompute', () => ({
-  addSynonBiomedInferenceProvider: vi.fn(),
-  addSynonBiomedSshHost: vi.fn(),
-  deleteSynonBiomedComputeProvider: vi.fn(),
-  loadSynonBiomedBioNemoSettings: vi.fn(),
-  loadSynonBiomedComputeGpuEnabled: computeMocks.loadGpuEnabled,
-  loadSynonBiomedComputeGpuInfo: computeMocks.loadGpuInfo,
-  loadSynonBiomedComputeJob: vi.fn(),
-  loadSynonBiomedComputeJobLog: vi.fn(),
-  loadSynonBiomedComputeJobs: computeMocks.loadJobs,
-  loadSynonBiomedComputeProvider: vi.fn(),
-  loadSynonBiomedComputeProviders: computeMocks.loadProviders,
-  loadSynonBiomedManagedEndpoints: computeMocks.loadManagedEndpoints,
-  loadSynonBiomedModalSettings: computeMocks.loadModalSettings,
-  loadSynonBiomedSessionComputeProviders: vi.fn().mockResolvedValue({ providers: [] }),
-  loadSynonBiomedSshAliases: computeMocks.loadAliases,
-  probeSynonBiomedComputeProvider: vi.fn(),
-  saveSynonBiomedComputeProviderDetails: vi.fn(),
-  setSynonBiomedBioNemoSettings: vi.fn(),
-  setSynonBiomedComputeGpuEnabled: vi.fn(),
-  setSynonBiomedModalEnabled: vi.fn(),
-  setSynonBiomedSessionComputeProvider: vi.fn(),
-  stopSynonBiomedManagedEndpoint: vi.fn(),
+vi.mock('@/renderer/services/xScienceCompute', () => ({
+  addXScienceInferenceProvider: vi.fn(),
+  addXScienceSshHost: vi.fn(),
+  deleteXScienceComputeProvider: vi.fn(),
+  loadXScienceBioNemoSettings: vi.fn(),
+  loadXScienceComputeGpuEnabled: computeMocks.loadGpuEnabled,
+  loadXScienceComputeGpuInfo: computeMocks.loadGpuInfo,
+  loadXScienceComputeJob: vi.fn(),
+  loadXScienceComputeJobLog: vi.fn(),
+  loadXScienceComputeJobs: computeMocks.loadJobs,
+  loadXScienceComputeProvider: vi.fn(),
+  loadXScienceComputeProviders: computeMocks.loadProviders,
+  loadXScienceManagedEndpoints: computeMocks.loadManagedEndpoints,
+  loadXScienceModalSettings: computeMocks.loadModalSettings,
+  loadXScienceSessionComputeProviders: vi.fn().mockResolvedValue({ providers: [] }),
+  loadXScienceSshAliases: computeMocks.loadAliases,
+  probeXScienceComputeProvider: vi.fn(),
+  saveXScienceComputeProviderDetails: vi.fn(),
+  setXScienceBioNemoSettings: vi.fn(),
+  setXScienceComputeGpuEnabled: vi.fn(),
+  setXScienceModalEnabled: vi.fn(),
+  setXScienceSessionComputeProvider: vi.fn(),
+  stopXScienceManagedEndpoint: vi.fn(),
 }));
 
-vi.mock('@/renderer/services/synonBiomedGateway', () => ({
-  loadSynonBiomedProjects: vi.fn().mockResolvedValue([]),
+vi.mock('@/renderer/services/xScienceGateway', () => ({
+  loadXScienceProjects: vi.fn().mockResolvedValue([]),
 }));
 
-vi.mock('@/renderer/services/synonBiomedWorkspaceSettings', () => ({
-  loadSynonBiomedSecrets: vi.fn().mockResolvedValue([]),
+vi.mock('@/renderer/services/xScienceWorkspaceSettings', () => ({
+  loadXScienceSecrets: vi.fn().mockResolvedValue([]),
 }));
 
 import { ComputeSettingsContent } from '@/renderer/pages/settings/ComputeSettings';
@@ -68,7 +68,7 @@ describe('ComputeSettings configuration dialogs', () => {
   it('keeps the overview mounted while SSH and cloud-provider configuration open as standard dialogs', async () => {
     await renderWithI18n(<ComputeSettingsContent />);
 
-    const overview = await screen.findByTestId('synon-biomed-compute-section');
+    const overview = await screen.findByTestId('x-science-compute-section');
     await waitFor(() => expect(computeMocks.loadProviders).toHaveBeenCalled());
 
     fireEvent.click(screen.getByRole('button', { name: '添加 SSH 主机' }));

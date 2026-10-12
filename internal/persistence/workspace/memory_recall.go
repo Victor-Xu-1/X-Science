@@ -14,8 +14,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"synon-go/internal/memoryconfig"
-	"synon-go/internal/memorypolicy"
+	"x-science/internal/memoryconfig"
+	"x-science/internal/memorypolicy"
 )
 
 const (

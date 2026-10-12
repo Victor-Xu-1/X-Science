@@ -1,5 +1,5 @@
 {
-  "schema": "synon.product-identity.v1",
+  "schema": "x-science.product-identity.v1",
   "display_name": "X-Science",
   "version": "0.1.67",
   "machine_slug": "x-science"

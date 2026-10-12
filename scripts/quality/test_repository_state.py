@@ -93,7 +93,7 @@ class RepositoryStateTests(unittest.TestCase):
             "build/scientific/engine/Containerfile": "source",
             "scripts/dev/source-dev-supervisor.ps1": "source",
             "assets/branding/logo.png": "source", "frontend/public/branding/logo.svg": "source",
-            "synon": "build", "server.test": "build",
+            "xscience": "build", "server.test": "build",
             "mcp-ketcher": "user-data", "mcp-ketcher-shm": "user-data", "mcp-ketcher-wal": "user-data",
             "frontend/pw_probe.mjs": "cache", "frontend/complex_probe_no_composer.png": "cache",
             "frontend/pw_future_product_module.ts": "source",
@@ -106,17 +106,17 @@ class RepositoryStateTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertEqual(repository_state.path_category(path), expected)
 
-    def test_synon_module_owners_cover_governed_source_areas(self) -> None:
+    def test_x_science_module_owners_cover_governed_source_areas(self) -> None:
         cases = {
             "assets/optional/kernel.py": "core-runtime",
-            "skills/synonbiomed/example/SKILL.md": "core-runtime",
+            "skills/x-science/example/SKILL.md": "core-runtime",
             "scripts/optional/websearch.py": "repository-steward",
             ".dockerignore": "repository-steward",
             "frontend/package.json": "product-ux",
             "scripts/sidecars/runtime.py": "repository-steward",
             ".env.example": "repository-steward",
             "build/scientific/engine/Containerfile": "core-runtime",
-            "synon": "core-runtime", "mcp-ketcher": "core-runtime",
+            "xscience": "core-runtime", "mcp-ketcher": "core-runtime",
             "docs/quality-testing/compute-panel-design-qa.md": "repository-steward",
         }
         for path, expected in cases.items():
@@ -125,7 +125,7 @@ class RepositoryStateTests(unittest.TestCase):
 
     def test_hygiene_report_groups_dispositions_without_exposing_user_data(self) -> None:
         (self.repo / "frontend/a.ts").write_text("export const value = 1;\n", encoding="utf-8")
-        (self.repo / "synon").write_bytes(b"binary")
+        (self.repo / "xscience").write_bytes(b"binary")
         (self.repo / "mcp-ketcher").write_bytes(b"private")
         snapshot = repository_state.snapshot(str(self.repo), "hygiene")
         report = repository_state.hygiene_report(snapshot)

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 func TestFreshExecutionRequestRequiresCurrentSuccessfulExecution(t *testing.T) {

@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	secretstore "synon-go/internal/persistence/secrets"
-	workspace "synon-go/internal/persistence/workspace"
+	secretstore "x-science/internal/persistence/secrets"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestToolPlanningPrivateOnlyRecoveryParksWithoutRepeatedGeneration(t *testing.T) {

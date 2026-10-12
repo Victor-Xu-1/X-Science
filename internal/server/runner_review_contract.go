@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/assets"
+	"x-science/internal/agentruntime"
+	"x-science/internal/assets"
 )
 
 type sessionRunnerReviewExecutionSpec struct {

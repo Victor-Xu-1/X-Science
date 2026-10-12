@@ -85,7 +85,7 @@ describe('MarkdownView local file links', () => {
 
     renderWithProviders(
       <MarkdownView onLocalFileLink={onLocalFileLink}>
-        {'[report.xlsx](/C:/Users/Administrator/AppData/Roaming/SynonAI/report.xlsx)'}
+        {'[report.xlsx](/C:/Users/Administrator/AppData/Roaming/XScience/report.xlsx)'}
       </MarkdownView>
     );
 
@@ -93,14 +93,14 @@ describe('MarkdownView local file links', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'report.xlsx' }));
     expect(onLocalFileLink).toHaveBeenCalledWith(
-      'C:/Users/Administrator/AppData/Roaming/SynonAI/report.xlsx',
+      'C:/Users/Administrator/AppData/Roaming/XScience/report.xlsx',
       expect.objectContaining({
-        filePath: 'C:/Users/Administrator/AppData/Roaming/SynonAI/report.xlsx',
+        filePath: 'C:/Users/Administrator/AppData/Roaming/XScience/report.xlsx',
       })
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
-    expect(copyTextMock).toHaveBeenCalledWith('C:/Users/Administrator/AppData/Roaming/SynonAI/report.xlsx');
+    expect(copyTextMock).toHaveBeenCalledWith('C:/Users/Administrator/AppData/Roaming/XScience/report.xlsx');
   });
 
   it('renders line references as file chips and copies the full reference', () => {
@@ -108,7 +108,7 @@ describe('MarkdownView local file links', () => {
 
     renderWithProviders(
       <MarkdownView onLocalFileLink={onLocalFileLink}>
-        {'[2026-06-19.log](C:/Users/Administrator/AppData/Roaming/SynonAI/logs/2026-06-19.log:1421)'}
+        {'[2026-06-19.log](C:/Users/Administrator/AppData/Roaming/XScience/logs/2026-06-19.log:1421)'}
       </MarkdownView>
     );
 
@@ -116,17 +116,17 @@ describe('MarkdownView local file links', () => {
     fireEvent.click(fileButton);
 
     expect(onLocalFileLink).toHaveBeenCalledWith(
-      'C:/Users/Administrator/AppData/Roaming/SynonAI/logs/2026-06-19.log',
+      'C:/Users/Administrator/AppData/Roaming/XScience/logs/2026-06-19.log',
       expect.objectContaining({
-        filePath: 'C:/Users/Administrator/AppData/Roaming/SynonAI/logs/2026-06-19.log',
-        rawReference: 'C:/Users/Administrator/AppData/Roaming/SynonAI/logs/2026-06-19.log:1421',
+        filePath: 'C:/Users/Administrator/AppData/Roaming/XScience/logs/2026-06-19.log',
+        rawReference: 'C:/Users/Administrator/AppData/Roaming/XScience/logs/2026-06-19.log:1421',
         line: 1421,
       })
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
     expect(copyTextMock).toHaveBeenCalledWith(
-      'C:/Users/Administrator/AppData/Roaming/SynonAI/logs/2026-06-19.log:1421'
+      'C:/Users/Administrator/AppData/Roaming/XScience/logs/2026-06-19.log:1421'
     );
   });
 
@@ -135,7 +135,7 @@ describe('MarkdownView local file links', () => {
 
     renderWithProviders(
       <MarkdownView onLocalFileLink={onLocalFileLink}>
-        {'[app.log](C:/Users/Administrator/AppData/Roaming/SynonAI/logs/app.log:1421:7)'}
+        {'[app.log](C:/Users/Administrator/AppData/Roaming/XScience/logs/app.log:1421:7)'}
       </MarkdownView>
     );
 
@@ -143,17 +143,17 @@ describe('MarkdownView local file links', () => {
     fireEvent.click(fileButton);
 
     expect(onLocalFileLink).toHaveBeenCalledWith(
-      'C:/Users/Administrator/AppData/Roaming/SynonAI/logs/app.log',
+      'C:/Users/Administrator/AppData/Roaming/XScience/logs/app.log',
       expect.objectContaining({
-        filePath: 'C:/Users/Administrator/AppData/Roaming/SynonAI/logs/app.log',
-        rawReference: 'C:/Users/Administrator/AppData/Roaming/SynonAI/logs/app.log:1421:7',
+        filePath: 'C:/Users/Administrator/AppData/Roaming/XScience/logs/app.log',
+        rawReference: 'C:/Users/Administrator/AppData/Roaming/XScience/logs/app.log:1421:7',
         line: 1421,
         column: 7,
       })
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
-    expect(copyTextMock).toHaveBeenCalledWith('C:/Users/Administrator/AppData/Roaming/SynonAI/logs/app.log:1421:7');
+    expect(copyTextMock).toHaveBeenCalledWith('C:/Users/Administrator/AppData/Roaming/XScience/logs/app.log:1421:7');
   });
 
   it('renders hash range references as file chips and copies normalized local references', () => {
@@ -186,14 +186,14 @@ describe('MarkdownView local file links', () => {
 
   it('does not render a no-op open button when no local file handler is provided', () => {
     renderWithProviders(
-      <MarkdownView>{'[report.xlsx](/C:/Users/Administrator/AppData/Roaming/SynonAI/report.xlsx)'}</MarkdownView>
+      <MarkdownView>{'[report.xlsx](/C:/Users/Administrator/AppData/Roaming/XScience/report.xlsx)'}</MarkdownView>
     );
 
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'report.xlsx' })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
-    expect(copyTextMock).toHaveBeenCalledWith('C:/Users/Administrator/AppData/Roaming/SynonAI/report.xlsx');
+    expect(copyTextMock).toHaveBeenCalledWith('C:/Users/Administrator/AppData/Roaming/XScience/report.xlsx');
   });
 
   it('lets a conversation handler intercept a relative artifact link before external navigation', async () => {
@@ -210,7 +210,7 @@ describe('MarkdownView local file links', () => {
 
   it.each([
     '/api/artifacts/artifact-report/versions/version-report',
-    'https://synon.bio/api/artifacts/artifact-report/versions/version-report',
+    'https://x-science.bio/api/artifacts/artifact-report/versions/version-report',
     '#/artifacts/artifact-report',
     '/#/artifacts/artifact-report',
     'http://127.0.0.1:8765/#/artifacts/artifact-report',
@@ -275,13 +275,13 @@ describe('MarkdownView local file links', () => {
 
   it('falls back to normal external navigation when a conversation handler declines a link', async () => {
     const onLink = vi.fn().mockResolvedValue(false);
-    renderWithProviders(<MarkdownView onLink={onLink}>{'[docs](https://synon-ai.com/docs)'}</MarkdownView>);
+    renderWithProviders(<MarkdownView onLink={onLink}>{'[docs](https://x-science.com/docs)'}</MarkdownView>);
 
     fireEvent.click(screen.getByRole('link', { name: 'docs' }));
 
     await waitFor(() => {
-      expect(onLink).toHaveBeenCalledWith('https://synon-ai.com/docs');
-      expect(openExternalUrlMock).toHaveBeenCalledWith('https://synon-ai.com/docs');
+      expect(onLink).toHaveBeenCalledWith('https://x-science.com/docs');
+      expect(openExternalUrlMock).toHaveBeenCalledWith('https://x-science.com/docs');
     });
   });
 
@@ -296,8 +296,8 @@ describe('MarkdownView local file links', () => {
     );
 
     const link = screen.getByRole('link', { name: 'Final report' });
-    expect(link).toHaveClass('synon-artifact-link');
-    expect(link).toHaveAttribute('data-synon-artifact-link', 'true');
+    expect(link).toHaveClass('x-science-artifact-link');
+    expect(link).toHaveAttribute('data-x-science-artifact-link', 'true');
     await waitFor(() => {
       expect(link).toHaveAttribute('href', '/api/artifacts/artifact-report/versions/version-report');
     });
@@ -311,17 +311,17 @@ describe('MarkdownView local file links', () => {
   });
 
   it('keeps ordinary http links as browser anchors', () => {
-    renderWithProviders(<MarkdownView>{'[docs](https://synon-ai.com/docs)'}</MarkdownView>);
+    renderWithProviders(<MarkdownView>{'[docs](https://x-science.com/docs)'}</MarkdownView>);
 
     const link = screen.getByRole('link', { name: 'docs' });
-    expect(link).toHaveAttribute('href', 'https://synon-ai.com/docs');
+    expect(link).toHaveAttribute('href', 'https://x-science.com/docs');
   });
 
   it('keeps http hash links as browser anchors', () => {
-    renderWithProviders(<MarkdownView>{'[docs](https://synon-ai.com/docs#L10)'}</MarkdownView>);
+    renderWithProviders(<MarkdownView>{'[docs](https://x-science.com/docs#L10)'}</MarkdownView>);
 
     const link = screen.getByRole('link', { name: 'docs' });
-    expect(link).toHaveAttribute('href', 'https://synon-ai.com/docs#L10');
+    expect(link).toHaveAttribute('href', 'https://x-science.com/docs#L10');
   });
 
   it('adds empty alt text to external raw HTML images without alt text', () => {

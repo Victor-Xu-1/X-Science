@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	productidentity "synon-go"
-	workspace "synon-go/internal/persistence/workspace"
+	productidentity "x-science"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const (
@@ -88,7 +88,8 @@ func (s *Server) handleWebClientSettings(w http.ResponseWriter, r *http.Request)
 		var speechValue any
 		speechPresent := false
 		for key, value := range input {
-			if !validWebClientSettingKey(key) {
+			_, retired := previousWebClientSettingKeys[key]
+			if !validWebClientSettingKey(key) || retired {
 				writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"success": false, "message": "invalid client setting key"})
 				return
 			}
@@ -136,13 +137,16 @@ func (s *Server) webClientSettingsUser(r *http.Request, allowPublicUI bool) (str
 	if user, ok := s.webUser(r); ok {
 		return user.ID, true
 	}
-	if allowPublicUI && s.synonLinkAuth != nil && s.synonLinkAuth.enabled {
-		return s.synonLinkAuth.user().ID, true
+	if allowPublicUI && s.xscienceLinkAuth != nil && s.xscienceLinkAuth.enabled {
+		return s.xscienceLinkAuth.user().ID, true
 	}
 	return "", false
 }
 
 func (s *Server) readWebClientSettings(userID string, requested []string) (map[string]any, error) {
+	if err := upgradeWebClientSettingsNamespace(s.settingsStore, userID); err != nil {
+		return nil, err
+	}
 	stored, err := s.settingsStore.List()
 	if err != nil {
 		return nil, err
@@ -224,7 +228,7 @@ func (s *Server) handleWebConversations(w http.ResponseWriter, r *http.Request) 
 		writeWorkspaceJSON(w, http.StatusMethodNotAllowed, map[string]any{"success": false, "message": "method not allowed"})
 		return
 	}
-	userID := strings.TrimSpace(r.Header.Get("X-Synon-User-Id"))
+	userID := strings.TrimSpace(r.Header.Get("X-Science-User-Id"))
 	if userID == "" {
 		writeWorkspaceJSON(w, http.StatusUnauthorized, map[string]any{"success": false, "message": "authentication required"})
 		return
@@ -313,10 +317,10 @@ func webConversation(frame workspace.CompatibilityFrame, projectName string) map
 		agentName = strings.TrimSpace(frame.AgentName)
 	}
 	if agentName == "" {
-		agentName = "SYNON_BIOMED"
+		agentName = "X_SCIENCE"
 	}
 	displayAgentName := agentName
-	if agentName == "SYNON_BIOMED" {
+	if agentName == "X_SCIENCE" {
 		displayAgentName = productidentity.Current().DisplayName
 	}
 	if projectName == "" {
@@ -325,11 +329,11 @@ func webConversation(frame workspace.CompatibilityFrame, projectName string) map
 	status := webConversationRuntime(frame)["task_status"]
 	return map[string]any{
 		"id": frame.ID, "type": "acp", "name": frame.Name, "desc": frame.TaskSummary,
-		"source": "synonbiomed", "created_at": frame.CreatedAt.UnixMilli(), "modified_at": frame.UpdatedAt.UnixMilli(),
+		"source": "xscience", "created_at": frame.CreatedAt.UnixMilli(), "modified_at": frame.UpdatedAt.UnixMilli(),
 		"status":    status,
 		"runtime":   webConversationRuntime(frame),
-		"assistant": map[string]any{"id": webAssistantID(agentName), "source": "builtin", "name": displayAgentName, "avatar": "", "backend": "synonbiomed"},
-		"extra":     map[string]any{"backend": "synonbiomed", "agent_name": agentName, "project_id": frame.ProjectID, "project_name": projectName, "root_frame_id": frame.RootFrameID, "parent_frame_id": frame.ParentFrameID, "conversation_type": frame.ConversationType, "frame_status": frame.Status, "status_description": frame.StatusDescription, "workspace": "synonbiomed://" + frame.ProjectID, "custom_workspace": false},
+		"assistant": map[string]any{"id": webAssistantID(agentName), "source": "builtin", "name": displayAgentName, "avatar": "", "backend": "xscience"},
+		"extra":     map[string]any{"backend": "xscience", "agent_name": agentName, "project_id": frame.ProjectID, "project_name": projectName, "root_frame_id": frame.RootFrameID, "parent_frame_id": frame.ParentFrameID, "conversation_type": frame.ConversationType, "frame_status": frame.Status, "status_description": frame.StatusDescription, "workspace": "x-science://" + frame.ProjectID, "custom_workspace": false},
 	}
 }
 
@@ -344,8 +348,8 @@ func (s *Server) webConversationSnapshot(frame workspace.CompatibilityFrame, pro
 	return conversation, nil
 }
 
-func (s *Server) handleSynonBiomedExpertProfiles(w http.ResponseWriter, r *http.Request) {
-	const publicPrefix = "/api/synonbiomed/expert-profiles"
+func (s *Server) handleXScienceExpertProfiles(w http.ResponseWriter, r *http.Request) {
+	const publicPrefix = "/api/x-science/expert-profiles"
 	clone := r.Clone(r.Context())
 	urlCopy := *r.URL
 	clone.URL = &urlCopy

@@ -5,7 +5,7 @@ import type { TChatConversation } from '@/common/config/storage';
 import { deriveAutoTitleFromMessages } from '@/renderer/utils/chat/autoTitle';
 import { DEFAULT_MESSAGE_PAGE_LIMIT, loadLatestConversationMessages } from '@/renderer/utils/chat/messagePagination';
 import { loadLatestConversationMessagesShared } from '@/renderer/pages/conversation/Messages/messageWindowPrefetch';
-import { getSynonBiomedBranchSelectionRevision } from '@/renderer/services/synonBiomedConversationBranches';
+import { getXScienceBranchSelectionRevision } from '@/renderer/services/xScienceConversationBranches';
 import { emitter } from '@/renderer/utils/emitter';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 
@@ -38,7 +38,7 @@ export const useAutoTitle = (ownerId = '', initialConversation?: TChatConversati
           ? await loadLatestConversationMessagesShared({
               ownerId,
               conversationId: conversation_id,
-              branchRevision: getSynonBiomedBranchSelectionRevision(conversation_id),
+              branchRevision: getXScienceBranchSelectionRevision(conversation_id),
               limit: DEFAULT_MESSAGE_PAGE_LIMIT,
               contentMode: 'compact',
             })

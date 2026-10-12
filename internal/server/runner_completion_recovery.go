@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	sessionstore "synon-go/internal/persistence/sessions"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	sessionstore "x-science/internal/persistence/sessions"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 // sessionRunnerCompletionRecoveryCandidate is an immutable final candidate

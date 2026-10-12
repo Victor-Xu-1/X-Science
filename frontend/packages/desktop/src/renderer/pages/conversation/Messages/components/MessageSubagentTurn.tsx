@@ -1,5 +1,5 @@
 import { Right } from '@icon-park/react';
-import SynonBiomedAvatar from '@/renderer/components/synonBiomed/SynonBiomedAvatar';
+import XScienceAvatar from '@/renderer/components/xScience/XScienceAvatar';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
@@ -64,7 +64,7 @@ const MessageSubagentTurn: React.FC<{ message: IMessageToolCall }> = ({ message 
       onClick={() => subagent.frameId && navigate(`/conversation/${subagent.frameId}`)}
     >
       <span className={`subagent-turn__status subagent-turn__status--${state}`} aria-hidden='true' />
-      <SynonBiomedAvatar size={15} className='subagent-turn__icon' />
+      <XScienceAvatar size={15} className='subagent-turn__icon' />
       <span className='subagent-turn__content'>
         <span className='subagent-turn__title'>{title}</span>
         <span

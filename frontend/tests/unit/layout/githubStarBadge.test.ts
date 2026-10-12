@@ -52,7 +52,7 @@ describe('github star badge next to the history-forward arrow', () => {
 
     // Same @icon-park set, same size/stroke props, same optical-alignment class.
     expect(titlebar).toContain("<Star theme='outline' size={iconSize} fill='currentColor' strokeWidth={iconStroke} />");
-    expect(titlebar).toContain("'app-titlebar__button app-titlebar__button--nav synon-biomed-github-star'");
+    expect(titlebar).toContain("'app-titlebar__button app-titlebar__button--nav x-science-github-star'");
     expect(titlebar).toContain('<GitHubStarButton iconSize={iconSize} iconStroke={desktopIconStroke} />');
   });
 

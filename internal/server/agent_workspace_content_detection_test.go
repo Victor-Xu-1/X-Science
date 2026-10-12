@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"strings"
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 	"testing"
 )
 

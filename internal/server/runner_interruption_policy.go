@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	eventjournal "synon-go/internal/persistence/journal"
-	sessionstore "synon-go/internal/persistence/sessions"
-	transcriptstore "synon-go/internal/persistence/transcript"
 	"time"
+	eventjournal "x-science/internal/persistence/journal"
+	sessionstore "x-science/internal/persistence/sessions"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func providerResponseHeadersTimeoutWithoutProgress(err error, acceptedBytes int64, hasDurableContinuation bool) bool {
@@ -338,6 +338,8 @@ func runnerInterruptionNeedsRecoveryBackoff(reasonCode string) bool {
 
 func runnerInterruptionMayContinueSameTask(reasonCode string) bool {
 	switch strings.TrimSpace(reasonCode) {
+	case sessionRunnerExecutionIdentityRecoveryReasonCode:
+		return true // Explicit identity repair may resume the same logical task.
 	case "runtime_draining",
 		sessionRunnerResponseLanguageMismatchReasonCode,
 		sessionRunnerFinalPresentationReasonCode,

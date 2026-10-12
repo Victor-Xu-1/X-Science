@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/tools/rcsbfiles"
+	"x-science/internal/agentruntime"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/tools/rcsbfiles"
 )
 
 const (
@@ -381,7 +381,7 @@ func (staged *agentRCSBStagedFile) close() {
 }
 
 func stageAgentRCSBFile(ctx context.Context, body io.Reader) (*agentRCSBStagedFile, error) {
-	file, err := os.CreateTemp("", "synon-rcsb-download-*")
+	file, err := os.CreateTemp("", "x-science-rcsb-download-*")
 	if err != nil {
 		return nil, errAgentRCSBAuthority
 	}

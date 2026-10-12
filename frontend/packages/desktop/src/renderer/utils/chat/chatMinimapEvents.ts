@@ -1,4 +1,4 @@
-export const CHAT_MESSAGE_JUMP_EVENT = 'synon-ai-chat-message-jump';
+export const CHAT_MESSAGE_JUMP_EVENT = 'x-science-chat-message-jump';
 
 export interface ChatMessageJumpDetail {
   conversation_id: string;

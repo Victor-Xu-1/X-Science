@@ -2,7 +2,7 @@
 
 package kernel
 
-import "synon-go/internal/processsupervisor"
+import "x-science/internal/processsupervisor"
 
 const processObservationLimit = 64
 

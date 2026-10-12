@@ -1,6 +1,6 @@
 import type { TMessage } from '@/common/chat/chatLib';
 import { loadConversationMessagePage } from '@/renderer/utils/chat/messagePagination';
-import { getSynonBiomedBranchSelectionRevision } from '@/renderer/services/synonBiomedConversationBranches';
+import { getXScienceBranchSelectionRevision } from '@/renderer/services/xScienceConversationBranches';
 import { buildTurnPreview } from './minimapUtils';
 import type { TurnPreviewItem } from './minimapTypes';
 
@@ -11,7 +11,7 @@ export async function loadConversationTurnIndex(
   conversationId: string,
   options: { signal?: AbortSignal; fullText?: boolean } = {}
 ): Promise<ConversationTurnIndex> {
-  const revision = getSynonBiomedBranchSelectionRevision(conversationId);
+  const revision = getXScienceBranchSelectionRevision(conversationId);
   const pages: TMessage[][] = [];
   const cursors = new Set<string>();
   let before: string | undefined;
@@ -28,7 +28,7 @@ export async function loadConversationTurnIndex(
       contentMode: options.fullText ? 'full' : 'compact',
     });
     options.signal?.throwIfAborted();
-    if (revision !== getSynonBiomedBranchSelectionRevision(conversationId)) {
+    if (revision !== getXScienceBranchSelectionRevision(conversationId)) {
       throw new Error('conversation_branch_selection_changed');
     }
     branchId = page.branch_id;

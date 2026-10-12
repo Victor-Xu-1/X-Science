@@ -24,8 +24,8 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"synon-go/internal/networkpolicy"
-	"synon-go/internal/networktls"
+	"x-science/internal/networkpolicy"
+	"x-science/internal/networktls"
 )
 
 const (

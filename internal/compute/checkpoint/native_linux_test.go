@@ -28,7 +28,7 @@ func TestNativeProviderDeadlineSignalsOnlyTheDeclaredApplicationAndRestoresItsFi
 			t.Fatal(err)
 		}
 	}
-	for name, body := range map[string]string{"run.sh": "#!/bin/bash\npython3 native_worker.py\n", ".job_env": "", "_synon_checkpoint.env": "export OPERON_CHECKPOINT_SIGNAL=USR1\nexport OPERON_CHECKPOINT_PID_FILE=out/native.pid\n"} {
+	for name, body := range map[string]string{"run.sh": "#!/bin/bash\npython3 native_worker.py\n", ".job_env": "", "_x_science_checkpoint.env": "export OPERON_CHECKPOINT_SIGNAL=USR1\nexport OPERON_CHECKPOINT_PID_FILE=out/native.pid\n"} {
 		if err := os.WriteFile(filepath.Join(root, name), []byte(body), 0o600); err != nil {
 			t.Fatal(err)
 		}

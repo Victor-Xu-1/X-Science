@@ -6,8 +6,8 @@ import (
 	"strings"
 	"sync"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/providers"
+	"x-science/internal/agentruntime"
+	"x-science/internal/providers"
 )
 
 type sessionRunnerProviderNoProgressInterruption struct{ cause error }

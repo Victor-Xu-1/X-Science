@@ -1,5 +1,5 @@
 import type { TChatConversation } from '@/common/config/storage';
-import type { SynonBiomedExecutionRecord } from '@/renderer/components/synonBiomed/runtime/runtimeOperationsModel';
+import type { XScienceExecutionRecord } from '@/renderer/components/xScience/runtime/runtimeOperationsModel';
 import { Alert, Empty, Spin } from '@arco-design/web-react';
 import Modal from '@/renderer/components/base/WorkbenchModal';
 import React from 'react';
@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 
 type SessionNotebookModalProps = {
   conversation: TChatConversation | null;
-  records: SynonBiomedExecutionRecord[];
+  records: XScienceExecutionRecord[];
   loading: boolean;
   error: string | null;
   onClose: () => void;

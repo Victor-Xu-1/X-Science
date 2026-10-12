@@ -8,7 +8,7 @@ import (
 )
 
 const RunnerInterruptionCauseField = "interruption_cause"
-const runnerInterruptionCauseSchema = "synon.runner_interruption_cause.v1"
+const runnerInterruptionCauseSchema = "x-science.runner_interruption_cause.v1"
 
 // RunnerInterruptionCause separates display from the complete typed condition.
 // A nil condition is explicit legacy data, never reconstructed from its preview.
@@ -34,13 +34,13 @@ func RunnerInterruptionCausePayload(cause RunnerInterruptionCause) (map[string]a
 		if err := cause.Condition.Validate(); err != nil {
 			return nil, err
 		}
-		payload["schema"] = "synon.runner_interruption_cause.v2"
+		payload["schema"] = "x-science.runner_interruption_cause.v2"
 		payload["condition"] = cause.Condition
 	} else if cause.ConditionRef != nil {
 		if err := cause.ConditionRef.Validate(); err != nil {
 			return nil, err
 		}
-		payload["schema"] = "synon.runner_interruption_cause.v2"
+		payload["schema"] = "x-science.runner_interruption_cause.v2"
 		payload["condition_ref"] = cause.ConditionRef
 	}
 	return payload, nil
@@ -52,7 +52,7 @@ func ParseRunnerInterruptionCause(payload map[string]any) (RunnerInterruptionCau
 		return RunnerInterruptionCause{}, false, nil
 	}
 	record, ok := value.(map[string]any)
-	if !ok || (record["schema"] != runnerInterruptionCauseSchema && record["schema"] != "synon.runner_interruption_cause.v2") {
+	if !ok || (record["schema"] != runnerInterruptionCauseSchema && record["schema"] != "x-science.runner_interruption_cause.v2") {
 		return RunnerInterruptionCause{}, true, errors.New("runner interruption cause schema is invalid")
 	}
 	reason, reasonOK := record["reason_code"].(string)

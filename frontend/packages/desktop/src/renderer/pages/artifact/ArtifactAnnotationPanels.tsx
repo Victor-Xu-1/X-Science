@@ -1,12 +1,12 @@
 import {
-  loadSynonBiomedArtifactVerification,
-  requestSynonBiomedFrameAudit,
-  type CreateSynonBiomedArtifactAnnotationInput,
-  type SynonBiomedAppliedArtifactEdit,
-  type SynonBiomedAnnotationType,
-  type SynonBiomedArtifactAnnotation,
-  type SynonBiomedVerificationCheck,
-} from '@/renderer/services/synonBiomedAnnotations';
+  loadXScienceArtifactVerification,
+  requestXScienceFrameAudit,
+  type CreateXScienceArtifactAnnotationInput,
+  type XScienceAppliedArtifactEdit,
+  type XScienceAnnotationType,
+  type XScienceArtifactAnnotation,
+  type XScienceVerificationCheck,
+} from '@/renderer/services/xScienceAnnotations';
 import { Button, Empty, Input, InputNumber, Message, Select, Spin } from '@arco-design/web-react';
 import Modal from '@/renderer/components/base/WorkbenchModal';
 import { CheckOne, Delete, Edit, Magic, Plus, Refresh } from '@icon-park/react';
@@ -15,14 +15,14 @@ import { useTranslation } from 'react-i18next';
 import { ArtifactEditRefinementPanel } from './ArtifactEditRefinementPanel';
 import { useArtifactAnnotationStore } from './useArtifactAnnotationStore';
 
-const ANNOTATION_TYPES: SynonBiomedAnnotationType[] = ['point', 'text_selection', 'html_element', 'screenshot'];
+const ANNOTATION_TYPES: XScienceAnnotationType[] = ['point', 'text_selection', 'html_element', 'screenshot'];
 
 export const ArtifactAnnotationsPanel: React.FC<{
   artifactId: string;
   versionId: string;
   refreshToken?: number;
-  onVersionApplied?: (result: SynonBiomedAppliedArtifactEdit) => void | Promise<void>;
-  onAnnotationsChange?: (annotations: SynonBiomedArtifactAnnotation[]) => void;
+  onVersionApplied?: (result: XScienceAppliedArtifactEdit) => void | Promise<void>;
+  onAnnotationsChange?: (annotations: XScienceArtifactAnnotation[]) => void;
 }> = ({ artifactId, versionId, refreshToken = 0, onVersionApplied, onAnnotationsChange }) => {
   const { t } = useTranslation();
   const {
@@ -37,9 +37,9 @@ export const ArtifactAnnotationsPanel: React.FC<{
     remove: deleteAnnotation,
   } = useArtifactAnnotationStore(artifactId, versionId, refreshToken, onAnnotationsChange);
   const [editorVisible, setEditorVisible] = useState(false);
-  const [editing, setEditing] = useState<SynonBiomedArtifactAnnotation | null>(null);
+  const [editing, setEditing] = useState<XScienceArtifactAnnotation | null>(null);
   const [draft, setDraft] = useState<AnnotationDraft>(emptyDraft());
-  const [refining, setRefining] = useState<SynonBiomedArtifactAnnotation | null>(null);
+  const [refining, setRefining] = useState<XScienceArtifactAnnotation | null>(null);
   const [saveFailed, setSaveFailed] = useState(false);
   const deleteDialog = useRef<ReturnType<typeof Modal.confirm> | null>(null);
   const [messageApi, messageContextHolder] = Message.useMessage();
@@ -64,7 +64,7 @@ export const ArtifactAnnotationsPanel: React.FC<{
     setEditorVisible(true);
   };
 
-  const openEdit = (annotation: SynonBiomedArtifactAnnotation) => {
+  const openEdit = (annotation: XScienceArtifactAnnotation) => {
     if (saving) return;
     setSaveFailed(false);
     setEditing(annotation);
@@ -92,7 +92,7 @@ export const ArtifactAnnotationsPanel: React.FC<{
     }
   };
 
-  const remove = (annotation: SynonBiomedArtifactAnnotation) => {
+  const remove = (annotation: XScienceArtifactAnnotation) => {
     if (saving) return;
     deleteDialog.current = Modal.confirm({
       title: t('preview.artifactAnnotations.deleteTitle'),
@@ -216,7 +216,7 @@ export const ArtifactVerificationPanel: React.FC<{
   rootFrameId: string | null;
 }> = ({ versionId, rootFrameId }) => {
   const { t } = useTranslation();
-  const [checks, setChecks] = useState<SynonBiomedVerificationCheck[]>([]);
+  const [checks, setChecks] = useState<XScienceVerificationCheck[]>([]);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [auditing, setAuditing] = useState(false);
@@ -230,7 +230,7 @@ export const ArtifactVerificationPanel: React.FC<{
     setLoading(true);
     setFailed(false);
     try {
-      const next = await loadSynonBiomedArtifactVerification(versionId);
+      const next = await loadXScienceArtifactVerification(versionId);
       if (revision === reloadRevisionRef.current) setChecks(next);
     } catch (error) {
       if (revision !== reloadRevisionRef.current) return;
@@ -265,7 +265,7 @@ export const ArtifactVerificationPanel: React.FC<{
     const lifecycle = lifecycleRef.current;
     setAuditing(true);
     try {
-      await requestSynonBiomedFrameAudit(rootFrameId);
+      await requestXScienceFrameAudit(rootFrameId);
       if (lifecycle !== lifecycleRef.current) return;
       messageApi.success(t('preview.artifactVerification.auditStarted'));
       if (refreshTimerRef.current !== null) window.clearTimeout(refreshTimerRef.current);
@@ -351,7 +351,7 @@ export const ArtifactVerificationPanel: React.FC<{
 };
 
 type AnnotationDraft = {
-  type: SynonBiomedAnnotationType;
+  type: XScienceAnnotationType;
   text: string;
   xPercent: number | null;
   yPercent: number | null;
@@ -376,7 +376,7 @@ const emptyDraft = (): AnnotationDraft => ({
   elementDescriptor: '',
 });
 
-const draftFromAnnotation = (annotation: SynonBiomedArtifactAnnotation): AnnotationDraft => ({
+const draftFromAnnotation = (annotation: XScienceArtifactAnnotation): AnnotationDraft => ({
   type: annotation.type,
   text: annotation.text,
   xPercent: annotation.xPercent,
@@ -389,7 +389,7 @@ const draftFromAnnotation = (annotation: SynonBiomedArtifactAnnotation): Annotat
   elementDescriptor: annotation.elementDescriptor ?? '',
 });
 
-const toCreateInput = (draft: AnnotationDraft): CreateSynonBiomedArtifactAnnotationInput => ({
+const toCreateInput = (draft: AnnotationDraft): CreateXScienceArtifactAnnotationInput => ({
   type: draft.type,
   text: draft.text.trim(),
   xPercent: draft.xPercent,
@@ -564,10 +564,10 @@ const NumberField: React.FC<{
 );
 
 const AnnotationRow: React.FC<{
-  annotation: SynonBiomedArtifactAnnotation;
-  onEdit: (annotation: SynonBiomedArtifactAnnotation) => void;
-  onDelete: (annotation: SynonBiomedArtifactAnnotation) => void;
-  onRefine: (annotation: SynonBiomedArtifactAnnotation) => void;
+  annotation: XScienceArtifactAnnotation;
+  onEdit: (annotation: XScienceArtifactAnnotation) => void;
+  onDelete: (annotation: XScienceArtifactAnnotation) => void;
+  onRefine: (annotation: XScienceArtifactAnnotation) => void;
   disabled: boolean;
 }> = ({ annotation, onEdit, onDelete, onRefine, disabled }) => {
   const { t } = useTranslation();
@@ -648,7 +648,7 @@ const VerificationMetric: React.FC<{
   </div>
 );
 
-const VerificationRow: React.FC<{ check: SynonBiomedVerificationCheck }> = ({ check }) => {
+const VerificationRow: React.FC<{ check: XScienceVerificationCheck }> = ({ check }) => {
   const { t } = useTranslation();
   return (
     <article className='px-16px py-12px border-b last:border-b-0 border-x-0 border-t-0 border-solid border-[var(--color-border-2)]'>
@@ -672,7 +672,7 @@ const VerificationRow: React.FC<{ check: SynonBiomedVerificationCheck }> = ({ ch
   );
 };
 
-const verdictClass = (verdict: SynonBiomedVerificationCheck['verdict']): string =>
+const verdictClass = (verdict: XScienceVerificationCheck['verdict']): string =>
   ({ pass: 'text-success-6', warn: 'text-warning-6', fail: 'text-danger-6', inconclusive: 'text-t-tertiary' })[verdict];
 
 const toneClass = (tone: 'success' | 'warning' | 'danger' | 'neutral'): string =>

@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/sciencecapability"
-	"synon-go/internal/skills"
+	"x-science/internal/sciencecapability"
+	"x-science/internal/skills"
 )
 
 func addSelectionRouteEngine(s *Server, capability, skill, identity string, resolvers ...sciencecapability.ExecutionEvidenceResolver) {
@@ -84,7 +84,7 @@ func TestRegisteredResolverRoutesUseShippedContracts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	s := &Server{scienceCapabilities: &capabilities, skillCatalog: skills.Load([]string{"../../skills/synonbiomed"})}
+	s := &Server{scienceCapabilities: &capabilities, skillCatalog: skills.Load([]string{"../../skills/x-science"})}
 	if failures := s.skillCatalog.LoadErrors(); len(failures) != 0 {
 		t.Fatalf("load shipped Skills: %#v", failures)
 	}

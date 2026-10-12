@@ -9,7 +9,7 @@ import tempfile
 import unittest
 from unittest import mock
 
-from scripts.packaging.browser_extension_branding import MARK_PATH, OLD_ICONS, LEGACY_LOCATION, adapt_entries, archive_entries
+from scripts.packaging.browser_extension_branding import MARK_PATH, OLD_ICONS, archive_entries, source_entries
 from scripts.packaging.build_browser_extension import (
     build,
     build_archive,
@@ -19,6 +19,7 @@ from scripts.packaging.build_browser_extension import (
     PUBLIC_ORIGIN,
     SOURCE_REVISION,
     SOURCE_PATH,
+    SOURCE_ROOT,
 )
 
 
@@ -89,27 +90,35 @@ class BrowserExtensionBrandingTests(unittest.TestCase):
         entries = archive_entries((self.repo / OUTPUT_PATH).read_bytes())
         expected = archive_entries(build(self.repo))
         self.assertEqual(entries, expected)
-        self.assertNotIn("Synon Link", json.loads(entries["manifest.json"])["name"])
+        self.assertEqual("X-Science Browser Connector", json.loads(entries["manifest.json"])["name"])
         self.assertFalse(OLD_ICONS.intersection(entries))
         residuals = [line.strip() for path, raw in entries.items() if path.endswith((".js", ".html"))
                      for line in raw.decode().splitlines()
-                     if re.search(r"(?<![A-Za-z0-9_])Synon(?![A-Za-z0-9_])", line)]
-        self.assertCountEqual(residuals, ["return title === DEFAULT_GROUP_TITLE || title === 'Synon'", LEGACY_LOCATION])
+                     if re.search(r"synon(?!ym)", line, re.IGNORECASE)]
+        self.assertCountEqual(residuals, ["const PREVIOUS_DATABASE = 'synon-link-local-files'"])
 
     def test_counter_does_not_change_archive_and_wire_authority_is_retained(self):
         original = archive_entries(pinned_source(self.repo))
         mark = (self.repo / "frontend/public/branding/x-science-mark.png").read_bytes()
-        first = adapt_entries(original, "X-Science", mark)
+        first = source_entries(self.repo / SOURCE_ROOT)
         source = pinned_source(self.repo)
-        self.assertEqual(build_archive(source, {"display_name": "X-Science", "version": "0.1.99"}, mark),
-                         build_archive(source, {"display_name": "X-Science", "version": "1.0.0"}, mark))
+        self.assertEqual(build_archive(source, {"display_name": "X-Science", "version": "0.1.99"}, mark, first),
+                         build_archive(source, {"display_name": "X-Science", "version": "1.0.0"}, mark, first))
         self.assertEqual(first[MARK_PATH], mark)
-        self.assertEqual(first["content-script.js"], original["content-script.js"])
-        self.assertEqual(json.loads(first["manifest.json"])["version"], "0.6.10")
+        self.assertIn(b"x-science-link-page", first["content-script.js"])
+        self.assertIn(b"x-science.appSessionToken", first["content-script.js"])
+        self.assertIn(b"/x-science-link/ws", first["background.js"])
+        self.assertEqual(json.loads(first["manifest.json"])["version"], "0.6.11")
         with self.assertRaisesRegex(ValueError, "source digest"):
-            build_archive(source + b"changed", {"display_name": "X-Science"}, mark)
+            build_archive(source + b"changed", {"display_name": "X-Science"}, mark, first)
         with self.assertRaisesRegex(ValueError, "approved unmodified"):
-            build_archive(source, {"display_name": "X-Science"}, mark + b"changed")
+            build_archive(source, {"display_name": "X-Science"}, mark + b"changed", first)
+        changed = dict(first)
+        manifest = json.loads(changed["manifest.json"])
+        manifest["permissions"].append("history")
+        changed["manifest.json"] = json.dumps(manifest).encode()
+        with self.assertRaisesRegex(ValueError, "permission, origin"):
+            build_archive(source, {"display_name": "X-Science"}, mark, changed)
         for path, raw in first.items():
             if path.endswith(".js"):
                 with tempfile.TemporaryDirectory(prefix="connector-static-") as directory:
@@ -117,15 +126,15 @@ class BrowserExtensionBrandingTests(unittest.TestCase):
                     target.write_bytes(raw)
                     subprocess.run(["node", "--check", str(target)], check=True, capture_output=True)
 
-    def test_old_and_current_tab_group_names_share_existing_policy(self):
+    def test_only_current_product_tab_groups_are_managed(self):
         entries = archive_entries(build(self.repo))
         script = entries["background.js"].decode()
-        start = script.index("function isSynonTabGroup(group) {")
+        start = script.index("function isXScienceTabGroup(group) {")
         end = script.index("\n}", start) + 2
         body = script[start:end]
         checks = ("const DEFAULT_GROUP_TITLE = 'X-Science';\n" + body +
-                  "\nif (!isSynonTabGroup({title:'Synon'}) || !isSynonTabGroup({title:'X-Science'}) || "
-                  "isSynonTabGroup({title:'other'})) throw Error('group compatibility changed');")
+                  "\nif (isXScienceTabGroup({title:'user group'}) || !isXScienceTabGroup({title:'X-Science'}) || "
+                  "isXScienceTabGroup({title:'other'})) throw Error('group compatibility changed');")
         subprocess.run(["node", "-e", checks], check=True, capture_output=True)
 
 

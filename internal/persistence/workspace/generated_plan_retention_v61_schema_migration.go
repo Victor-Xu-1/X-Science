@@ -8,7 +8,7 @@ import (
 const (
 	generatedPlanRetentionV61CallbackID        = "generated-plan-retention-v61-noop"
 	generatedPlanRetentionV61PreflightIdentity = "generated-plan-retention-column-v1"
-	generatedPlanRetentionV61RuleSpec          = "synon.workspace.generated-plan-retention.v61"
+	generatedPlanRetentionV61RuleSpec          = "x-science.workspace.generated-plan-retention.v61"
 )
 
 var generatedPlanRetentionV61Migration = versionedSchemaMigration{

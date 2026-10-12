@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"synon-go/internal/tools/mcpstdio"
+	"x-science/internal/tools/mcpstdio"
 )
 
 func (s *Server) executeMCPTool(ctx context.Context, toolName string, input map[string]any) (any, error) {

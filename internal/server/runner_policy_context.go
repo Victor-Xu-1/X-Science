@@ -13,15 +13,15 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 
-	eventjournal "synon-go/internal/persistence/journal"
+	eventjournal "x-science/internal/persistence/journal"
 
-	sessionstore "synon-go/internal/persistence/sessions"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	sessionstore "x-science/internal/persistence/sessions"
+	transcriptstore "x-science/internal/persistence/transcript"
 
-	"synon-go/internal/skills"
-	"synon-go/internal/toolcontract"
+	"x-science/internal/skills"
+	"x-science/internal/toolcontract"
 )
 
 func (s *Server) applySessionRunnerAgentToolPolicy(session sessionstore.Session, options SessionRunnerChatOptions) (SessionRunnerChatOptions, string) {
@@ -816,19 +816,19 @@ func (markers runtimeProviderCacheMarkers) Metadata() map[string]any {
 	if len(markers.ResumeCacheKeys) > 0 {
 		cache["resumeCacheKeys"] = append([]string(nil), markers.ResumeCacheKeys...)
 	}
-	return map[string]any{"synon_provider_cache": cache}
+	return map[string]any{"x_science_provider_cache": cache}
 }
 
 func (markers runtimeProviderCacheMarkers) Headers() map[string]string {
 	if markers.Empty() {
 		return nil
 	}
-	headers := map[string]string{"X-Synon-Provider-Cache": "1"}
+	headers := map[string]string{"X-Science-Provider-Cache": "1"}
 	if markers.CompactedThroughEventID > 0 {
-		headers["X-Synon-Compacted-Through-Event-Id"] = fmt.Sprint(markers.CompactedThroughEventID)
+		headers["X-Science-Compacted-Through-Event-Id"] = fmt.Sprint(markers.CompactedThroughEventID)
 	}
 	if len(markers.ResumeCacheKeys) > 0 {
-		headers["X-Synon-Resume-Cache-Keys"] = strings.Join(markers.ResumeCacheKeys, ",")
+		headers["X-Science-Resume-Cache-Keys"] = strings.Join(markers.ResumeCacheKeys, ",")
 	}
 	return headers
 }

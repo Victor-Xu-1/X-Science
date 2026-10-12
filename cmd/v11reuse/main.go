@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"synon-go/internal/compat/v11reuse"
+	"x-science/internal/compat/v11reuse"
 )
 
 func main() {

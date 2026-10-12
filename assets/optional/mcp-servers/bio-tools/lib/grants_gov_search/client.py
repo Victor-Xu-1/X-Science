@@ -20,7 +20,7 @@ import requests
 from .spec import ALL_STATUSES, GrantsSearchSpec
 
 API_URL = "https://api.grants.gov/v1/api/search2"
-USER_AGENT = "bio-tools/grants-gov-search (research; github.com/synon_llm-experimental/bio-tools)"
+USER_AGENT = "bio-tools/grants-gov-search (research; github.com/x_science_llm-experimental/bio-tools)"
 
 
 class GrantsGovError(RuntimeError):

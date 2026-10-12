@@ -5,7 +5,7 @@ import {
   openScientificArtifact,
   removeScientificWorkspace,
   uploadScientificArtifact,
-} from './synonBiomedScientificFixture';
+} from './xScienceScientificFixture';
 import { expect, test } from './officialChromeTest';
 
 const productionCsp =

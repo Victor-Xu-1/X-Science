@@ -6,10 +6,19 @@ import (
 	"os"
 	"path/filepath"
 
-	"synon-go/internal/compute/transfer"
+	"x-science/internal/compute/namespace"
+	"x-science/internal/compute/transfer"
 )
 
 func Verify(ctx context.Context, root, privateDirectory string, contract Contract, inputSHA string) (receipt Receipt, resultErr error) {
+	return verify(ctx, root, privateDirectory, contract, inputSHA, nil, "")
+}
+
+func VerifyWithHistoricalProof(ctx context.Context, root, privateDirectory string, contract Contract, inputSHA, manifestSHA string, proof namespace.SourceProof) (Receipt, error) {
+	return verify(ctx, root, privateDirectory, contract, inputSHA, &proof, manifestSHA)
+}
+
+func verify(ctx context.Context, root, privateDirectory string, contract Contract, inputSHA string, proof *namespace.SourceProof, manifestSHA string) (receipt Receipt, resultErr error) {
 	if !filepath.IsAbs(root) {
 		return receipt, errors.New("checkpoint root is not absolute")
 	}
@@ -36,7 +45,7 @@ func Verify(ctx context.Context, root, privateDirectory string, contract Contrac
 		return receipt, err
 	}
 	defer func() { resultErr = errors.Join(resultErr, index.Close()) }()
-	return Read(ctx, manifest, inputSHA, contract.CommandSHA256(), func(file File) error {
+	consume := func(file File) error {
 		if file.Path == contract.Manifest {
 			return errors.New("checkpoint cannot include its own manifest payload")
 		}
@@ -49,5 +58,9 @@ func Verify(ctx context.Context, root, privateDirectory string, contract Contrac
 			return errors.New("checkpoint payload path changed or escaped")
 		}
 		return transfer.VerifyFile(ctx, location, file.SHA256, file.Bytes)
-	})
+	}
+	if proof != nil {
+		return ReadWithHistoricalProof(ctx, manifest, inputSHA, contract.CommandSHA256(), manifestSHA, consume, *proof)
+	}
+	return Read(ctx, manifest, inputSHA, contract.CommandSHA256(), consume)
 }

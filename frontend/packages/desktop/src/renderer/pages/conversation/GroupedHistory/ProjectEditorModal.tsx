@@ -1,4 +1,4 @@
-import type { SynonBiomedProject, SynonBiomedProjectInput } from '@/renderer/services/synonBiomedGateway';
+import type { XScienceProject, XScienceProjectInput } from '@/renderer/services/xScienceGateway';
 import { Button, Input } from '@arco-design/web-react';
 import Modal from '@/renderer/components/base/WorkbenchModal';
 import React, { useEffect, useState } from 'react';
@@ -6,11 +6,11 @@ import { useTranslation } from 'react-i18next';
 
 type ProjectEditorModalProps = {
   visible: boolean;
-  project?: SynonBiomedProject | null;
+  project?: XScienceProject | null;
   loading?: boolean;
   errorMessage?: string | null;
   onCancel: () => void;
-  onSubmit: (input: SynonBiomedProjectInput) => void;
+  onSubmit: (input: XScienceProjectInput) => void;
 };
 
 const ProjectEditorModal: React.FC<ProjectEditorModalProps> = ({
@@ -63,14 +63,14 @@ const ProjectEditorModal: React.FC<ProjectEditorModalProps> = ({
         }}
       >
         <div>
-          <label htmlFor='synon-project-name' className='block text-14px font-[500] text-t-primary mb-4px'>
+          <label htmlFor='x-science-project-name' className='block text-14px font-[500] text-t-primary mb-4px'>
             {t('conversation.history.projectEditor.nameLabel')}
           </label>
           <p className='m-0 mb-8px text-12px leading-18px text-t-tertiary'>
             {t('conversation.history.projectEditor.nameHelp')}
           </p>
           <Input
-            id='synon-project-name'
+            id='x-science-project-name'
             value={name}
             maxLength={255}
             autoFocus
@@ -80,14 +80,14 @@ const ProjectEditorModal: React.FC<ProjectEditorModalProps> = ({
         </div>
 
         <div>
-          <label htmlFor='synon-project-description' className='block text-14px font-[500] text-t-primary mb-4px'>
+          <label htmlFor='x-science-project-description' className='block text-14px font-[500] text-t-primary mb-4px'>
             {t('conversation.history.projectEditor.descriptionLabel')}
           </label>
           <p className='m-0 mb-8px text-12px leading-18px text-t-tertiary'>
             {t('conversation.history.projectEditor.descriptionHelp')}
           </p>
           <textarea
-            id='synon-project-description'
+            id='x-science-project-description'
             value={description}
             rows={2}
             placeholder={t('conversation.history.projectEditor.descriptionPlaceholder')}
@@ -97,14 +97,14 @@ const ProjectEditorModal: React.FC<ProjectEditorModalProps> = ({
         </div>
 
         <div>
-          <label htmlFor='synon-project-context' className='block text-14px font-[500] text-t-primary mb-4px'>
+          <label htmlFor='x-science-project-context' className='block text-14px font-[500] text-t-primary mb-4px'>
             {t('conversation.history.projectEditor.contextLabel')}
           </label>
           <p className='m-0 mb-8px text-12px leading-18px text-t-tertiary'>
             {t('conversation.history.projectEditor.contextHelp')}
           </p>
           <textarea
-            id='synon-project-context'
+            id='x-science-project-context'
             value={context}
             rows={3}
             placeholder={t('conversation.history.projectEditor.contextPlaceholder')}

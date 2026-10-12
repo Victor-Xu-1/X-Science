@@ -25,7 +25,7 @@ import {
   resolveMarkdownArtifactVersionReferences,
 } from './markdownArtifactReferences';
 import { useConversationArtifactIndex } from '@/renderer/pages/conversation/Messages/artifacts';
-import { getSynonBiomedRelativeArtifactFilename } from '@/renderer/services/synonBiomedArtifactReferences';
+import { getXScienceRelativeArtifactFilename } from '@/renderer/services/xScienceArtifactReferences';
 
 const rehypeKatexWithStaticStyles = () => rehypeKatex();
 
@@ -251,8 +251,8 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
     (reference: string): string | null => {
       const explicitlyResolved = resolveArtifactReference?.(reference);
       if (explicitlyResolved) return explicitlyResolved;
-      if (!workspace?.startsWith('synonbiomed://')) return null;
-      const filename = getSynonBiomedRelativeArtifactFilename(reference);
+      if (!workspace?.startsWith('x-science://')) return null;
+      const filename = getXScienceRelativeArtifactFilename(reference);
       if (!filename) return null;
       const companionUrl = companionArtifactUrls?.[filename.toLocaleLowerCase()];
       if (companionUrl) return companionUrl;
@@ -302,7 +302,7 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
         style={{ minWidth: 0 }}
       >
         <div
-          className='synon-ai-markdown preview-markdown__document'
+          className='x-science-markdown preview-markdown__document'
           style={{
             wordWrap: 'break-word',
             overflowWrap: 'break-word',

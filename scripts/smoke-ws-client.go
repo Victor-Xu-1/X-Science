@@ -56,7 +56,7 @@ func main() {
 
 	resultCh := make(chan map[string]any, 1)
 	errorCh := make(chan error, 1)
-	go executeSynonLinkTool(ctx, os.Args[1], "search_web", map[string]any{"query": "Synon smoke"}, resultCh, errorCh)
+	go executeXScienceLinkTool(ctx, os.Args[1], "search_web", map[string]any{"query": "X-Science smoke"}, resultCh, errorCh)
 
 	command := readCommand(ctx, conn, "search_web")
 	commandID, _ := command["commandId"].(string)
@@ -75,21 +75,21 @@ func main() {
 
 	select {
 	case err := <-errorCh:
-		fmt.Fprintf(os.Stderr, "synon_link tool execution: %v\n", err)
+		fmt.Fprintf(os.Stderr, "x_science_link tool execution: %v\n", err)
 		os.Exit(1)
 	case result := <-resultCh:
 		if result["ok"] != true || result["commandId"] != commandID {
-			fmt.Fprintf(os.Stderr, "unexpected synon_link tool result: %#v\n", result)
+			fmt.Fprintf(os.Stderr, "unexpected x_science_link tool result: %#v\n", result)
 			os.Exit(1)
 		}
 	case <-ctx.Done():
-		fmt.Fprintf(os.Stderr, "synon_link tool execution timed out: %v\n", ctx.Err())
+		fmt.Fprintf(os.Stderr, "x_science_link tool execution timed out: %v\n", ctx.Err())
 		os.Exit(1)
 	}
 
 	resultCh = make(chan map[string]any, 1)
 	errorCh = make(chan error, 1)
-	go executeSynonLinkTool(ctx, os.Args[1], "scroll_page", map[string]any{"direction": "down"}, resultCh, errorCh)
+	go executeXScienceLinkTool(ctx, os.Args[1], "scroll_page", map[string]any{"direction": "down"}, resultCh, errorCh)
 	command = readCommand(ctx, conn, "scroll_page")
 	commandID, _ = command["commandId"].(string)
 	if commandID == "" {
@@ -106,7 +106,7 @@ func main() {
 	})
 	select {
 	case err := <-errorCh:
-		fmt.Fprintf(os.Stderr, "synon_link browser protocol execution: %v\n", err)
+		fmt.Fprintf(os.Stderr, "x_science_link browser protocol execution: %v\n", err)
 		os.Exit(1)
 	case result := <-resultCh:
 		if result["ok"] != true || result["commandId"] != commandID {
@@ -114,14 +114,14 @@ func main() {
 			os.Exit(1)
 		}
 	case <-ctx.Done():
-		fmt.Fprintf(os.Stderr, "synon_link browser protocol execution timed out: %v\n", ctx.Err())
+		fmt.Fprintf(os.Stderr, "x_science_link browser protocol execution timed out: %v\n", ctx.Err())
 		os.Exit(1)
 	}
 
-	fmt.Println("SYNON_LINK_WEBSOCKET=yes")
-	fmt.Println("SYNON_LINK_ACCESS_LIFECYCLE=yes")
-	fmt.Println("SYNON_LINK_TOOL_EXECUTE=yes")
-	fmt.Println("SYNON_LINK_BROWSER_PROTOCOL=yes")
+	fmt.Println("X_SCIENCE_LINK_WEBSOCKET=yes")
+	fmt.Println("X_SCIENCE_LINK_ACCESS_LIFECYCLE=yes")
+	fmt.Println("X_SCIENCE_LINK_TOOL_EXECUTE=yes")
+	fmt.Println("X_SCIENCE_LINK_BROWSER_PROTOCOL=yes")
 }
 
 func exerciseAccessLifecycle(ctx context.Context, wsURL string) {
@@ -131,7 +131,7 @@ func exerciseAccessLifecycle(ctx context.Context, wsURL string) {
 		"scope":    "read_page",
 		"reason":   "smoke access lifecycle",
 	}
-	created, err := requestJSON(ctx, wsURL, http.MethodPost, "/api/synon-link/access-requests", createBody)
+	created, err := requestJSON(ctx, wsURL, http.MethodPost, "/api/x-science-link/access-requests", createBody)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "create access request: %v\n", err)
 		os.Exit(1)
@@ -143,7 +143,7 @@ func exerciseAccessLifecycle(ctx context.Context, wsURL string) {
 		os.Exit(1)
 	}
 
-	listed, err := requestJSON(ctx, wsURL, http.MethodGet, "/api/synon-link/access-requests?userId=local&status=pending", nil)
+	listed, err := requestJSON(ctx, wsURL, http.MethodGet, "/api/x-science-link/access-requests?userId=local&status=pending", nil)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "list access requests: %v\n", err)
 		os.Exit(1)
@@ -154,7 +154,7 @@ func exerciseAccessLifecycle(ctx context.Context, wsURL string) {
 		os.Exit(1)
 	}
 
-	decided, err := requestJSON(ctx, wsURL, http.MethodPost, "/api/synon-link/access-requests/"+url.PathEscape(requestID)+"/decision", map[string]any{
+	decided, err := requestJSON(ctx, wsURL, http.MethodPost, "/api/x-science-link/access-requests/"+url.PathEscape(requestID)+"/decision", map[string]any{
 		"userId":   "local",
 		"approved": true,
 		"reason":   "smoke approved",
@@ -168,7 +168,7 @@ func exerciseAccessLifecycle(ctx context.Context, wsURL string) {
 		os.Exit(1)
 	}
 
-	revoked, err := requestJSON(ctx, wsURL, http.MethodDelete, "/api/synon-link/access-requests/"+url.PathEscape(requestID)+"?userId=local&reason=smoke", nil)
+	revoked, err := requestJSON(ctx, wsURL, http.MethodDelete, "/api/x-science-link/access-requests/"+url.PathEscape(requestID)+"?userId=local&reason=smoke", nil)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "revoke access request: %v\n", err)
 		os.Exit(1)
@@ -179,7 +179,7 @@ func exerciseAccessLifecycle(ctx context.Context, wsURL string) {
 	}
 }
 
-func executeSynonLinkTool(ctx context.Context, wsURL string, action string, payload map[string]any, resultCh chan<- map[string]any, errorCh chan<- error) {
+func executeXScienceLinkTool(ctx context.Context, wsURL string, action string, payload map[string]any, resultCh chan<- map[string]any, errorCh chan<- error) {
 	endpoint, err := toolExecuteURL(wsURL)
 	if err != nil {
 		errorCh <- err
@@ -223,7 +223,7 @@ func executeSynonLinkTool(ctx context.Context, wsURL string, action string, payl
 }
 
 func toolExecuteURL(wsURL string) (string, error) {
-	return httpURL(wsURL, "/api/tools/synon_link/execute")
+	return httpURL(wsURL, "/api/tools/x_science_link/execute")
 }
 
 func requestJSON(ctx context.Context, wsURL string, method string, path string, body map[string]any) (map[string]any, error) {

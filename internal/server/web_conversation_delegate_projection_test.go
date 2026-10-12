@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"testing"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	workspace "synon-go/internal/persistence/workspace"
-	delegatefixture "synon-go/internal/testsupport/delegatefixture"
+	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
+	delegatefixture "x-science/internal/testsupport/delegatefixture"
 )
 
 func TestWebConversationProjectsDelegateToolsAndNotifications(t *testing.T) {

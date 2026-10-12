@@ -62,9 +62,9 @@ func TestStdioMCPRequestHonorsContextDeadline(t *testing.T) {
 
 const (
 	stdioFixtureEnvironment = "GO_WANT_MCP_STDIO_ENV_FIXTURE"
-	hostSecretEnvironment   = "SYNON_MCP_HOST_SECRET_SHOULD_NOT_LEAK"
-	explicitEnvironment     = "SYNON_MCP_EXPLICIT_FIXTURE_VALUE"
-	tlsPostureEnvironment   = "SYNON_MCP_X509_STRICT"
+	hostSecretEnvironment   = "X_SCIENCE_MCP_HOST_SECRET_SHOULD_NOT_LEAK"
+	explicitEnvironment     = "X_SCIENCE_MCP_EXPLICIT_FIXTURE_VALUE"
+	tlsPostureEnvironment   = "X_SCIENCE_MCP_X509_STRICT"
 	tlsBundleEnvironment    = "SSL_CERT_FILE"
 )
 
@@ -113,7 +113,7 @@ func TestStdioMCPSubprocessUsesMinimalExplicitEnvironment(t *testing.T) {
 func TestMCPTrustedTLSRelaxationOverridesConnectorEnvironment(t *testing.T) {
 	environment, err := buildMCPEnvironment(
 		map[string]string{
-			"SYNON_MCP_X509_STRICT": "1",
+			"X_SCIENCE_MCP_X509_STRICT": "1",
 			"SSL_CERT_FILE":         "/untrusted/connector.pem",
 		},
 		trustedMCPEnvironment(ServerConfig{TrustedTLS: &TLSPosture{
@@ -124,7 +124,7 @@ func TestMCPTrustedTLSRelaxationOverridesConnectorEnvironment(t *testing.T) {
 		t.Fatal(err)
 	}
 	joined := strings.Join(environment, "\n")
-	if !strings.Contains(joined, "SYNON_MCP_X509_STRICT=0") ||
+	if !strings.Contains(joined, "X_SCIENCE_MCP_X509_STRICT=0") ||
 		!strings.Contains(joined, "SSL_CERT_FILE=/trusted/operator.pem") ||
 		strings.Contains(joined, "/untrusted/connector.pem") {
 		t.Fatalf("trusted TLS environment = %q", joined)

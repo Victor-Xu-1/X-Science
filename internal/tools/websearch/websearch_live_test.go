@@ -12,9 +12,9 @@ import (
 // default Go HTTP backends (mojeek, wikipedia, crossref, duckduckgo-lite) can
 // return usable links from the real network. Run with:
 //
-//	SYNON_LIVE_WEBSEARCH=1 go test ./internal/tools/websearch -run TestLiveDefaultBackendsReachNetwork -count=1 -timeout 120s
+//	X_SCIENCE_LIVE_WEBSEARCH=1 go test ./internal/tools/websearch -run TestLiveDefaultBackendsReachNetwork -count=1 -timeout 120s
 func TestLiveDefaultBackendsReachNetwork(t *testing.T) {
-	if strings.TrimSpace(os.Getenv("SYNON_LIVE_WEBSEARCH")) != "1" {
+	if strings.TrimSpace(os.Getenv("X_SCIENCE_LIVE_WEBSEARCH")) != "1" {
 		t.Skip("live network verification is opt-in")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -36,7 +36,7 @@ func TestLiveDefaultBackendsReachNetwork(t *testing.T) {
 }
 
 func TestLiveLRRK2SearchReturnsUsableEvidence(t *testing.T) {
-	if strings.TrimSpace(os.Getenv("SYNON_LIVE_WEBSEARCH")) != "1" {
+	if strings.TrimSpace(os.Getenv("X_SCIENCE_LIVE_WEBSEARCH")) != "1" {
 		t.Skip("live network verification is opt-in")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -55,7 +55,7 @@ func TestLiveLRRK2SearchReturnsUsableEvidence(t *testing.T) {
 }
 
 func TestLiveMultilingualAndPharmaceuticalSearchReturnsUsableEvidence(t *testing.T) {
-	if strings.TrimSpace(os.Getenv("SYNON_LIVE_WEBSEARCH")) != "1" {
+	if strings.TrimSpace(os.Getenv("X_SCIENCE_LIVE_WEBSEARCH")) != "1" {
 		t.Skip("live network verification is opt-in")
 	}
 	queries := []string{
@@ -79,7 +79,7 @@ func TestLiveMultilingualAndPharmaceuticalSearchReturnsUsableEvidence(t *testing
 }
 
 func TestLiveBroadDiscoveryReturnsMoreThanLegacyTwentyResultCeiling(t *testing.T) {
-	if strings.TrimSpace(os.Getenv("SYNON_LIVE_WEBSEARCH")) != "1" {
+	if strings.TrimSpace(os.Getenv("X_SCIENCE_LIVE_WEBSEARCH")) != "1" {
 		t.Skip("live network verification is opt-in")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
@@ -108,7 +108,7 @@ func TestLiveBroadDiscoveryReturnsMoreThanLegacyTwentyResultCeiling(t *testing.T
 }
 
 func TestLiveExactClinicalTrialIdentifierReturnsUsableEvidence(t *testing.T) {
-	if strings.TrimSpace(os.Getenv("SYNON_LIVE_WEBSEARCH")) != "1" {
+	if strings.TrimSpace(os.Getenv("X_SCIENCE_LIVE_WEBSEARCH")) != "1" {
 		t.Skip("live network verification is opt-in")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)

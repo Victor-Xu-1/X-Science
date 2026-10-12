@@ -20,11 +20,11 @@ import (
 
 	"github.com/google/uuid"
 
-	kernelruntime "synon-go/internal/kernel"
-	"synon-go/internal/kernelcontract"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/software/localcontainer"
-	"synon-go/internal/sqliteutil"
+	kernelruntime "x-science/internal/kernel"
+	"x-science/internal/kernelcontract"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/software/localcontainer"
+	"x-science/internal/sqliteutil"
 )
 
 const (
@@ -344,6 +344,9 @@ func (e *Executor) dispatch(ctx context.Context, request CommandRequest) Command
 	if err != nil {
 		return commandResponseError(request.RequestID, "dispatch_conflict", "detached kernel dispatch conflicts with durable state")
 	}
+	if execution.ReasonCode == workspace.KernelExecutionNamespaceRecoveryReasonCode && execution.TerminalReceiptID == "" {
+		return commandResponseError(request.RequestID, "recovery_required", "The original execution is preserved pending runtime identity verification; it was not dispatched again.")
+	}
 	durableRequest, err := workspace.DecodeKernelDetachedExecutionRequestV1(execution.RequestJSON)
 	if err != nil || durableRequest.ExecutionID != request.ExecutionID || durableRequest.HostCallMethods != nil && len(durableRequest.HostCallMethods) > 0 {
 		return commandResponseError(request.RequestID, "request_invalid", "detached kernel execution request is unavailable")
@@ -568,9 +571,20 @@ func (e *Executor) observeContainerExecution(
 	}()
 	startedAt := time.Now().UTC()
 	tracker := kernelruntime.NewWorkspaceChangeTracker(e.workspaceDir, request.WorkingDir)
+	identity, previous, identityErr := e.containerRuntimeIdentity(executionCtx, request, environment)
+	if identityErr != nil {
+		if err := e.recordContainerRecoveryRequired(request, identityErr); err != nil {
+			e.reportFatal(err)
+		}
+		return // Preserve the durable execution; do not create or settle a duplicate.
+	}
 	result, err := manager.RunExecution(executionCtx, lifetimeDone, environment, localcontainer.ExecutionRequest{
 		ExecutionID: request.ExecutionID, ToolName: request.ToolName, Code: source,
 		Workspace: e.workspaceDir, WorkingDir: request.WorkingDir,
+		Identity: identity, BeforeNamespaceCutover: previous,
+		RecordIdentity: func(identity localcontainer.RuntimeIdentity) error {
+			return e.recordContainerRuntimeIdentity(request, identity)
+		},
 	})
 	if errors.Is(err, localcontainer.ErrExecutorDetached) {
 		// The Docker daemon owns the still-running container. Leave the durable
@@ -581,7 +595,9 @@ func (e *Executor) observeContainerExecution(
 	if errors.Is(err, localcontainer.ErrExecutionOutcomeUnconfirmed) {
 		// Keep the durable request/ack and original identity for the existing
 		// recovery owner. Neither cancellation nor process failure is proven.
-		e.reportFatal(err)
+		if recoveryErr := e.recordContainerRecoveryRequired(request, err); recoveryErr != nil {
+			e.reportFatal(recoveryErr)
+		}
 		return
 	}
 	filesWritten, droppedRoots := tracker.Finish()

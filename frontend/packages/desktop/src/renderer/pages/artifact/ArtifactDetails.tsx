@@ -6,8 +6,8 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { PRODUCT_NAME } from '@/common/config/productIdentity';
-import type { SynonBiomedProjectArtifact, SynonBiomedProjectFolder } from '@/renderer/services/synonBiomedGateway';
-import type { SynonBiomedArtifactVersion } from '@/renderer/services/synonBiomedArtifacts';
+import type { XScienceProjectArtifact, XScienceProjectFolder } from '@/renderer/services/xScienceGateway';
+import type { XScienceArtifactVersion } from '@/renderer/services/xScienceArtifacts';
 import type { ArtifactReadState } from './useArtifactMetadataReads';
 import { ArtifactMetadataState } from './ArtifactMetadataState';
 import { useArtifactContextReads } from './useArtifactContextReads';
@@ -17,11 +17,11 @@ const ROWS = 'm-0 grid grid-cols-[92px_minmax(0,1fr)] gap-x-10px gap-y-12px text
 const LINK = 'text-[rgb(var(--primary-6))] font-medium break-words whitespace-pre-wrap hover:underline';
 
 export const ArtifactDetails: React.FC<{
-  artifact: SynonBiomedProjectArtifact;
-  displayMetadata: SynonBiomedArtifactVersion | SynonBiomedProjectArtifact | null;
+  artifact: XScienceProjectArtifact;
+  displayMetadata: XScienceArtifactVersion | XScienceProjectArtifact | null;
   displayVersion: number | null | undefined;
   versionId: string | null;
-  folders: ArtifactReadState<SynonBiomedProjectFolder[]>;
+  folders: ArtifactReadState<XScienceProjectFolder[]>;
   owner: string;
   onRetryFolders: () => void;
 }> = ({ artifact, displayMetadata, displayVersion, versionId, folders, owner, onRetryFolders }) => {

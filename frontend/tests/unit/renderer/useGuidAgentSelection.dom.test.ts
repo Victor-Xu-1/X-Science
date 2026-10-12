@@ -7,7 +7,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
-import type { ManagedAgent } from '@/renderer/utils/synonBiomed/runtime/runtimeTypes';
+import type { ManagedAgent } from '@/renderer/utils/xScience/runtime/runtimeTypes';
 import {
   buildAgentRuntimeModeState,
   buildAgentRuntimeModelInfo,
@@ -26,8 +26,8 @@ const { configGetMock, configSetMock, loadSessionDefaultsMock } = vi.hoisted(() 
   loadSessionDefaultsMock: vi.fn(),
 }));
 
-vi.mock('@/renderer/services/synonBiomedSessionDefaults', () => ({
-  loadSynonBiomedSessionDefaults: loadSessionDefaultsMock,
+vi.mock('@/renderer/services/xScienceSessionDefaults', () => ({
+  loadXScienceSessionDefaults: loadSessionDefaultsMock,
 }));
 
 vi.mock('@/common/config/configService', () => ({
@@ -37,13 +37,13 @@ vi.mock('@/common/config/configService', () => ({
   },
 }));
 
-vi.mock('@/renderer/pages/guid/hooks/useSynonBiomedAssistantsLoader', () => ({
-  useSynonBiomedAssistantsLoader: () => ({
+vi.mock('@/renderer/pages/guid/hooks/useXScienceAssistantsLoader', () => ({
+  useXScienceAssistantsLoader: () => ({
     assistants: mockAssistants,
   }),
 }));
 
-vi.mock('@/renderer/hooks/synonBiomed/runtime/useManagedAgents', () => ({
+vi.mock('@/renderer/hooks/xScience/runtime/useManagedAgents', () => ({
   useManagedAgentRuntimeCatalog: () => mockManagedAgents,
 }));
 
@@ -56,7 +56,7 @@ describe('useGuidAssistantSelection', () => {
     mockManagedAgents = [];
     mockAssistants = [
       {
-        id: 'synonbiomed:aidd-expert',
+        id: 'xscience:aidd-expert',
         source: 'builtin',
         name: 'AIDD Expert',
         name_i18n: {},
@@ -64,14 +64,14 @@ describe('useGuidAssistantSelection', () => {
         enabled: true,
         sort_order: 1,
         agent_id: 'AIDD_EXPERT',
-        agent: { type: 'synonbiomed', source: 'builtin', acp_backend: 'synonbiomed' },
+        agent: { type: 'xscience', source: 'builtin', acp_backend: 'xscience' },
         enabled_skills: [],
         custom_skill_names: [],
         disabled_builtin_skills: [],
         context_i18n: {},
         prompts: [],
         prompts_i18n: {},
-        models: ['synonbiomed-default', 'synonbiomed-deep-research'],
+        models: ['xscience-default', 'xscience-deep-research'],
         agent_status: 'online',
         deletable: false,
       } satisfies Assistant,
@@ -86,33 +86,33 @@ describe('useGuidAssistantSelection', () => {
     );
 
     await waitFor(() => {
-      expect(result.current.selectedAssistantId).toBe('synonbiomed:aidd-expert');
+      expect(result.current.selectedAssistantId).toBe('xscience:aidd-expert');
     });
 
     expect(result.current.selectedAssistantAvailable).toBe(true);
-    expect(result.current.selectedAcpModel).toBe('synonbiomed-default');
+    expect(result.current.selectedAcpModel).toBe('xscience-default');
     expect(result.current.currentAcpCachedModelInfo).toEqual({
-      current_model_id: 'synonbiomed-default',
-      current_model_label: 'synonbiomed-default',
+      current_model_id: 'xscience-default',
+      current_model_label: 'xscience-default',
       available_models: [
-        { id: 'synonbiomed-default', label: 'synonbiomed-default' },
-        { id: 'synonbiomed-deep-research', label: 'synonbiomed-deep-research' },
+        { id: 'xscience-default', label: 'xscience-default' },
+        { id: 'xscience-deep-research', label: 'xscience-deep-research' },
       ],
     });
   });
 
   it('restores the last selected guid assistant before falling back to the X-Science default', async () => {
     mockAssistants = [
-      assistantFixture({ id: 'synonbiomed:aidd-expert', runtimeKey: 'synonbiomed', source: 'generated', sortOrder: 1 }),
+      assistantFixture({ id: 'xscience:aidd-expert', runtimeKey: 'xscience', source: 'generated', sortOrder: 1 }),
       assistantFixture({
-        id: 'synonbiomed:oncology-expert',
-        runtimeKey: 'synonbiomed',
+        id: 'xscience:oncology-expert',
+        runtimeKey: 'xscience',
         source: 'builtin',
         sortOrder: 2,
       }),
     ];
     configGetMock.mockImplementation((key: string) =>
-      key === 'guid.lastAssistantId' ? 'synonbiomed:oncology-expert' : undefined
+      key === 'guid.lastAssistantId' ? 'xscience:oncology-expert' : undefined
     );
 
     const { result } = renderHook(() =>
@@ -122,22 +122,22 @@ describe('useGuidAssistantSelection', () => {
     );
 
     await waitFor(() => {
-      expect(result.current.selectedAssistantId).toBe('synonbiomed:oncology-expert');
+      expect(result.current.selectedAssistantId).toBe('xscience:oncology-expert');
     });
   });
 
   it('restores the last selected guid assistant when the guid page resets for a new chat', async () => {
     mockAssistants = [
-      assistantFixture({ id: 'synonbiomed:aidd-expert', runtimeKey: 'synonbiomed', source: 'generated', sortOrder: 1 }),
+      assistantFixture({ id: 'xscience:aidd-expert', runtimeKey: 'xscience', source: 'generated', sortOrder: 1 }),
       assistantFixture({
-        id: 'synonbiomed:oncology-expert',
-        runtimeKey: 'synonbiomed',
+        id: 'xscience:oncology-expert',
+        runtimeKey: 'xscience',
         source: 'builtin',
         sortOrder: 2,
       }),
     ];
     configGetMock.mockImplementation((key: string) =>
-      key === 'guid.lastAssistantId' ? 'synonbiomed:oncology-expert' : undefined
+      key === 'guid.lastAssistantId' ? 'xscience:oncology-expert' : undefined
     );
 
     const { result } = renderHook(() =>
@@ -148,16 +148,16 @@ describe('useGuidAssistantSelection', () => {
     );
 
     await waitFor(() => {
-      expect(result.current.selectedAssistantId).toBe('synonbiomed:oncology-expert');
+      expect(result.current.selectedAssistantId).toBe('xscience:oncology-expert');
     });
   });
 
   it('persists manual guid assistant selections for the next visit', async () => {
     mockAssistants = [
-      assistantFixture({ id: 'synonbiomed:aidd-expert', runtimeKey: 'synonbiomed', source: 'generated', sortOrder: 1 }),
+      assistantFixture({ id: 'xscience:aidd-expert', runtimeKey: 'xscience', source: 'generated', sortOrder: 1 }),
       assistantFixture({
-        id: 'synonbiomed:oncology-expert',
-        runtimeKey: 'synonbiomed',
+        id: 'xscience:oncology-expert',
+        runtimeKey: 'xscience',
         source: 'builtin',
         sortOrder: 2,
       }),
@@ -170,22 +170,22 @@ describe('useGuidAssistantSelection', () => {
     );
 
     await waitFor(() => {
-      expect(result.current.selectedAssistantId).toBe('synonbiomed:aidd-expert');
+      expect(result.current.selectedAssistantId).toBe('xscience:aidd-expert');
     });
 
     act(() => {
-      result.current.setSelectedAssistantId('synonbiomed:oncology-expert');
+      result.current.setSelectedAssistantId('xscience:oncology-expert');
     });
 
-    expect(configSetMock).toHaveBeenCalledWith('guid.lastAssistantId', 'synonbiomed:oncology-expert');
+    expect(configSetMock).toHaveBeenCalledWith('guid.lastAssistantId', 'xscience:oncology-expert');
   });
 
   it('falls back to the default assistant when the persisted guid assistant no longer exists', async () => {
     mockAssistants = [
-      assistantFixture({ id: 'synonbiomed:aidd-expert', runtimeKey: 'synonbiomed', source: 'generated', sortOrder: 1 }),
+      assistantFixture({ id: 'xscience:aidd-expert', runtimeKey: 'xscience', source: 'generated', sortOrder: 1 }),
       assistantFixture({
-        id: 'synonbiomed:oncology-expert',
-        runtimeKey: 'synonbiomed',
+        id: 'xscience:oncology-expert',
+        runtimeKey: 'xscience',
         source: 'builtin',
         sortOrder: 2,
       }),
@@ -201,14 +201,14 @@ describe('useGuidAssistantSelection', () => {
     );
 
     await waitFor(() => {
-      expect(result.current.selectedAssistantId).toBe('synonbiomed:aidd-expert');
+      expect(result.current.selectedAssistantId).toBe('xscience:aidd-expert');
     });
   });
 
   it('does not synthesize a backend slug when no assistants exist', async () => {
     vi.resetModules();
-    vi.doMock('@/renderer/pages/guid/hooks/useSynonBiomedAssistantsLoader', () => ({
-      useSynonBiomedAssistantsLoader: () => ({
+    vi.doMock('@/renderer/pages/guid/hooks/useXScienceAssistantsLoader', () => ({
+      useXScienceAssistantsLoader: () => ({
         assistants: [],
       }),
     }));
@@ -230,7 +230,7 @@ describe('useGuidAssistantSelection', () => {
     expect(result.current.selectedAssistantBackend).toBe('');
     expect(result.current.selectedAssistantAvailable).toBe(false);
 
-    vi.doUnmock('@/renderer/pages/guid/hooks/useSynonBiomedAssistantsLoader');
+    vi.doUnmock('@/renderer/pages/guid/hooks/useXScienceAssistantsLoader');
     vi.resetModules();
   });
 
@@ -246,9 +246,9 @@ describe('useGuidAssistantSelection', () => {
         sort_order: 1,
         agent_id: '2d23ff1c',
         agent: {
-          type: 'synonbiomed',
+          type: 'xscience',
           source: 'builtin',
-          acp_backend: 'synonbiomed',
+          acp_backend: 'xscience',
         },
         enabled_skills: [],
         custom_skill_names: [],
@@ -264,13 +264,13 @@ describe('useGuidAssistantSelection', () => {
     mockManagedAgents = [
       {
         id: '2d23ff1c',
-        backend: 'synonbiomed',
+        backend: 'xscience',
         available_models: {
-          current_model_id: 'synonbiomed-deep-research',
+          current_model_id: 'xscience-deep-research',
           current_model_label: 'Deep Research',
           available_models: [
-            { id: 'synonbiomed-default', label: 'X-Science Default' },
-            { id: 'synonbiomed-deep-research', label: 'Deep Research' },
+            { id: 'xscience-default', label: 'X-Science Default' },
+            { id: 'xscience-deep-research', label: 'Deep Research' },
           ],
         },
         available_modes: {
@@ -293,13 +293,13 @@ describe('useGuidAssistantSelection', () => {
       expect(result.current.selectedAssistantId).toBe('custom-1781258588874-26ad');
     });
 
-    expect(result.current.selectedAcpModel).toBe('synonbiomed-deep-research');
+    expect(result.current.selectedAcpModel).toBe('xscience-deep-research');
     expect(result.current.currentAcpCachedModelInfo).toEqual({
-      current_model_id: 'synonbiomed-deep-research',
+      current_model_id: 'xscience-deep-research',
       current_model_label: 'Deep Research',
       available_models: [
-        { id: 'synonbiomed-default', label: 'X-Science Default' },
-        { id: 'synonbiomed-deep-research', label: 'Deep Research' },
+        { id: 'xscience-default', label: 'X-Science Default' },
+        { id: 'xscience-deep-research', label: 'Deep Research' },
       ],
     });
     expect(result.current.selectedMode).toBe('bypassPermissions');
@@ -321,9 +321,9 @@ describe('useGuidAssistantSelection', () => {
         sort_order: 1,
         agent_id: 'AIDD_EXPERT',
         agent: {
-          type: 'synonbiomed',
+          type: 'xscience',
           source: 'builtin',
-          acp_backend: 'synonbiomed',
+          acp_backend: 'xscience',
         },
         enabled_skills: [],
         custom_skill_names: [],
@@ -339,14 +339,14 @@ describe('useGuidAssistantSelection', () => {
     mockManagedAgents = [
       {
         id: 'AIDD_EXPERT',
-        backend: 'synonbiomed',
+        backend: 'xscience',
         available_models: {
           current_model_id: 'default',
           current_model_label: 'Default',
           available_models: [
             { id: 'default', label: 'Default' },
-            { id: 'synonbiomed-deep-research', label: 'Deep Research' },
-            { id: 'synonbiomed-literature-review', label: 'Literature Review' },
+            { id: 'xscience-deep-research', label: 'Deep Research' },
+            { id: 'xscience-literature-review', label: 'Literature Review' },
           ],
         },
       } as unknown as ManagedAgent,
@@ -364,8 +364,8 @@ describe('useGuidAssistantSelection', () => {
 
     expect(result.current.currentAcpCachedModelInfo?.available_models.map((model) => model.id)).toEqual([
       'default',
-      'synonbiomed-deep-research',
-      'synonbiomed-literature-review',
+      'xscience-deep-research',
+      'xscience-literature-review',
     ]);
   });
 
@@ -381,9 +381,9 @@ describe('useGuidAssistantSelection', () => {
         sort_order: 1,
         agent_id: 'AIDD_EXPERT',
         agent: {
-          type: 'synonbiomed',
+          type: 'xscience',
           source: 'builtin',
-          acp_backend: 'synonbiomed',
+          acp_backend: 'xscience',
         },
         enabled_skills: [],
         custom_skill_names: [],
@@ -399,13 +399,13 @@ describe('useGuidAssistantSelection', () => {
     const buildManagedAgent = () =>
       ({
         id: 'AIDD_EXPERT',
-        backend: 'synonbiomed',
+        backend: 'xscience',
         available_models: {
           current_model_id: 'default',
           current_model_label: 'Default',
           available_models: [
             { id: 'default', label: 'Default' },
-            { id: 'synonbiomed-deep-research', label: 'Deep Research' },
+            { id: 'xscience-deep-research', label: 'Deep Research' },
           ],
         },
       }) as unknown as ManagedAgent;
@@ -422,21 +422,21 @@ describe('useGuidAssistantSelection', () => {
     });
 
     act(() => {
-      result.current.setSelectedAcpModel('synonbiomed-deep-research');
+      result.current.setSelectedAcpModel('xscience-deep-research');
     });
 
-    expect(result.current.selectedAcpModel).toBe('synonbiomed-deep-research');
+    expect(result.current.selectedAcpModel).toBe('xscience-deep-research');
 
     mockManagedAgents = [buildManagedAgent()];
     rerender();
 
-    expect(result.current.selectedAcpModel).toBe('synonbiomed-deep-research');
+    expect(result.current.selectedAcpModel).toBe('xscience-deep-research');
   });
 
   it('does not fall back to historical static modes when managed agent catalog has no modes', async () => {
     mockAssistants = [
       {
-        id: 'assistant-synonbiomed-empty',
+        id: 'assistant-xscience-empty',
         source: 'generated',
         name: 'X-Science',
         name_i18n: {},
@@ -444,7 +444,7 @@ describe('useGuidAssistantSelection', () => {
         enabled: true,
         sort_order: 1,
         agent_id: 'AIDD_EXPERT_EMPTY',
-        agent: { type: 'synonbiomed', source: 'builtin', acp_backend: 'synonbiomed' },
+        agent: { type: 'xscience', source: 'builtin', acp_backend: 'xscience' },
         enabled_skills: [],
         custom_skill_names: [],
         disabled_builtin_skills: [],
@@ -456,7 +456,7 @@ describe('useGuidAssistantSelection', () => {
         deletable: false,
       } satisfies Assistant,
     ];
-    mockManagedAgents = [{ id: 'AIDD_EXPERT_EMPTY', backend: 'synonbiomed' } as unknown as ManagedAgent];
+    mockManagedAgents = [{ id: 'AIDD_EXPERT_EMPTY', backend: 'xscience' } as unknown as ManagedAgent];
 
     const { result } = renderHook(() =>
       useGuidAssistantSelection({
@@ -465,7 +465,7 @@ describe('useGuidAssistantSelection', () => {
     );
 
     await waitFor(() => {
-      expect(result.current.selectedAssistantId).toBe('assistant-synonbiomed-empty');
+      expect(result.current.selectedAssistantId).toBe('assistant-xscience-empty');
     });
 
     expect(result.current.currentAgentModeOptions).toEqual([]);
@@ -475,7 +475,7 @@ describe('useGuidAssistantSelection', () => {
   it('reads X-Science mode options from the managed agent catalog', async () => {
     mockAssistants = [
       {
-        id: 'synonbiomed:aidd-expert',
+        id: 'xscience:aidd-expert',
         source: 'generated',
         name: 'AIDD Expert',
         name_i18n: {},
@@ -483,7 +483,7 @@ describe('useGuidAssistantSelection', () => {
         enabled: true,
         sort_order: 1,
         agent_id: 'AIDD_EXPERT',
-        agent: { type: 'synonbiomed', source: 'builtin', acp_backend: 'synonbiomed' },
+        agent: { type: 'xscience', source: 'builtin', acp_backend: 'xscience' },
         enabled_skills: [],
         custom_skill_names: [],
         disabled_builtin_skills: [],
@@ -498,7 +498,7 @@ describe('useGuidAssistantSelection', () => {
     mockManagedAgents = [
       {
         id: 'AIDD_EXPERT',
-        agent_type: 'synonbiomed',
+        agent_type: 'xscience',
         available_modes: {
           current_mode_id: 'default',
           available_modes: [
@@ -517,10 +517,10 @@ describe('useGuidAssistantSelection', () => {
     );
 
     await waitFor(() => {
-      expect(result.current.selectedAssistantId).toBe('synonbiomed:aidd-expert');
+      expect(result.current.selectedAssistantId).toBe('xscience:aidd-expert');
     });
 
-    expect(result.current.selectedAssistantBackend).toBe('synonbiomed');
+    expect(result.current.selectedAssistantBackend).toBe('xscience');
     expect(result.current.selectedMode).toBe('default');
     expect(result.current.currentAgentModeOptions.map((mode) => mode.value)).toEqual(['default', 'auto_edit', 'yolo']);
   });
@@ -546,7 +546,7 @@ function assistantFixture({
     enabled: true,
     sort_order: sortOrder,
     agent_id: `agent-${runtimeKey}`,
-    agent: { type: 'synonbiomed', source: 'builtin', acp_backend: 'synonbiomed' },
+    agent: { type: 'xscience', source: 'builtin', acp_backend: 'xscience' },
     enabled_skills: [],
     custom_skill_names: [],
     disabled_builtin_skills: [],
@@ -563,16 +563,16 @@ describe('assistant model helpers', () => {
   it('builds model and mode info from agent runtime payloads', () => {
     const agent = {
       available_models: JSON.stringify({
-        current_model_id: 'synonbiomed-deep-research',
+        current_model_id: 'xscience-deep-research',
         current_model_label: 'Deep Research',
         available_models: [
           {
-            id: 'synonbiomed-default',
+            id: 'xscience-default',
             label: 'X-Science Default',
             description: 'Default biomedical workflow model',
           },
           {
-            id: 'synonbiomed-deep-research',
+            id: 'xscience-deep-research',
             label: 'Deep Research',
             description: 'Most capable for complex work',
           },
@@ -588,12 +588,12 @@ describe('assistant model helpers', () => {
     };
 
     expect(buildAgentRuntimeModelInfo(agent)).toEqual({
-      current_model_id: 'synonbiomed-deep-research',
+      current_model_id: 'xscience-deep-research',
       current_model_label: 'Deep Research',
       available_models: [
-        { id: 'synonbiomed-default', label: 'X-Science Default', description: 'Default biomedical workflow model' },
+        { id: 'xscience-default', label: 'X-Science Default', description: 'Default biomedical workflow model' },
         {
-          id: 'synonbiomed-deep-research',
+          id: 'xscience-deep-research',
           label: 'Deep Research',
           description: 'Most capable for complex work',
         },
@@ -717,12 +717,12 @@ describe('assistant model helpers', () => {
   });
 
   it('builds ACP model info from assistant models', () => {
-    expect(buildAssistantModelInfo(['synonbiomed-deep-research', 'synonbiomed-literature-review'])).toEqual({
-      current_model_id: 'synonbiomed-deep-research',
-      current_model_label: 'synonbiomed-deep-research',
+    expect(buildAssistantModelInfo(['xscience-deep-research', 'xscience-literature-review'])).toEqual({
+      current_model_id: 'xscience-deep-research',
+      current_model_label: 'xscience-deep-research',
       available_models: [
-        { id: 'synonbiomed-deep-research', label: 'synonbiomed-deep-research' },
-        { id: 'synonbiomed-literature-review', label: 'synonbiomed-literature-review' },
+        { id: 'xscience-deep-research', label: 'xscience-deep-research' },
+        { id: 'xscience-literature-review', label: 'xscience-literature-review' },
       ],
     });
   });
@@ -739,8 +739,8 @@ describe('assistant model helpers', () => {
   });
 
   it('defaults to the first assistant model when no assistant preference has been applied yet', () => {
-    expect(resolveInitialAssistantModel(['synonbiomed-deep-research', 'synonbiomed-literature-review'])).toBe(
-      'synonbiomed-deep-research'
+    expect(resolveInitialAssistantModel(['xscience-deep-research', 'xscience-literature-review'])).toBe(
+      'xscience-deep-research'
     );
   });
 
@@ -750,10 +750,10 @@ describe('assistant model helpers', () => {
   });
 
   it('applies a persisted global model default when the model is available', async () => {
-    loadSessionDefaultsMock.mockResolvedValue({ defaultModelId: 'synonbiomed-deep-research' });
+    loadSessionDefaultsMock.mockResolvedValue({ defaultModelId: 'xscience-deep-research' });
     const { result } = renderHook(() => useGuidAssistantSelection({}));
 
-    await waitFor(() => expect(result.current.selectedAcpModel).toBe('synonbiomed-deep-research'));
-    expect(result.current.sessionDefaults).toEqual({ defaultModelId: 'synonbiomed-deep-research' });
+    await waitFor(() => expect(result.current.selectedAcpModel).toBe('xscience-deep-research'));
+    expect(result.current.sessionDefaults).toEqual({ defaultModelId: 'xscience-deep-research' });
   });
 });

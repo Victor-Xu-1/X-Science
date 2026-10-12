@@ -19,7 +19,7 @@ func TestCompatibilitySecretHostGitHubCredentialLifecycle(t *testing.T) {
 	t.Setenv("PATH", fixtureDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 
 	t.Run("gh discovery and encrypted import", func(t *testing.T) {
-		t.Setenv("SYNON_HOST_GITHUB_FIXTURE_MODE", "gh")
+		t.Setenv("X_SCIENCE_HOST_GITHUB_FIXTURE_MODE", "gh")
 		root := t.TempDir()
 		server := New(Options{FileRoot: root})
 		app := server.Handler()
@@ -69,7 +69,7 @@ func TestCompatibilitySecretHostGitHubCredentialLifecycle(t *testing.T) {
 	})
 
 	t.Run("git credential fallback", func(t *testing.T) {
-		t.Setenv("SYNON_HOST_GITHUB_FIXTURE_MODE", "git")
+		t.Setenv("X_SCIENCE_HOST_GITHUB_FIXTURE_MODE", "git")
 		app := New(Options{FileRoot: t.TempDir()}).Handler()
 		probe := compatibilitySecretObjectRequest(t, app, http.MethodGet, "/api/credentials/github/host-probe", "owner", nil, http.StatusOK)
 		if probe["found"] != true || probe["login"] != "git-user" || probe["source"] != "git-credential" ||
@@ -83,7 +83,7 @@ func TestCompatibilitySecretHostGitHubCredentialLifecycle(t *testing.T) {
 	})
 
 	t.Run("no host credential", func(t *testing.T) {
-		t.Setenv("SYNON_HOST_GITHUB_FIXTURE_MODE", "none")
+		t.Setenv("X_SCIENCE_HOST_GITHUB_FIXTURE_MODE", "none")
 		app := New(Options{FileRoot: t.TempDir()}).Handler()
 		probe := compatibilitySecretObjectRequest(t, app, http.MethodGet, "/api/credentials/github/host-probe", "owner", nil, http.StatusOK)
 		if len(probe) != 1 || probe["found"] != false {
@@ -96,7 +96,7 @@ func TestCompatibilitySecretHostGitHubCredentialLifecycle(t *testing.T) {
 	})
 
 	t.Run("concurrent import is unique", func(t *testing.T) {
-		t.Setenv("SYNON_HOST_GITHUB_FIXTURE_MODE", "gh")
+		t.Setenv("X_SCIENCE_HOST_GITHUB_FIXTURE_MODE", "gh")
 		app := New(Options{FileRoot: t.TempDir()}).Handler()
 		requests := []*http.Request{
 			compatibilitySecretRequest(t, http.MethodPost, "/api/credentials/github/use-host", "owner", map[string]any{}),

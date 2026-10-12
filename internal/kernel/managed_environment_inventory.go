@@ -95,7 +95,11 @@ func (m *Manager) ManagedEnvironmentActiveGeneration(name string) (generation st
 		return "", false, errors.New("managed environment generation is unavailable")
 	}
 	if _, err := os.Stat(filepath.Join(prefix, managedEnvironmentMarkerName)); errors.Is(err, os.ErrNotExist) {
-		return "", false, nil
+		if _, previousErr := os.Stat(filepath.Join(prefix, previousNamespaceEnvironmentMarkerName)); errors.Is(previousErr, os.ErrNotExist) {
+			return "", false, nil
+		} else if previousErr != nil {
+			return "", false, errors.New("managed environment previous namespace marker is unavailable")
+		}
 	} else if err != nil {
 		return "", false, errors.New("managed environment generation marker is unavailable")
 	}
@@ -269,7 +273,7 @@ func inspectRegisteredPythonVersion(ctx context.Context, prefix string) (string,
 	if err != nil {
 		return "", errors.New("registered environment Python interpreter is unavailable")
 	}
-	command := newWorkerProcessCommand(ctx, python, "-I", "-c", "import sys;print(f'SYNON_PYTHON_VERSION={sys.version_info[0]}.{sys.version_info[1]}')")
+	command := newWorkerProcessCommand(ctx, python, "-I", "-c", "import sys;print(f'X_SCIENCE_PYTHON_VERSION={sys.version_info[0]}.{sys.version_info[1]}')")
 	command.Env = managedEnvironmentRuntimeEnv(prefix)
 	var stdout bytes.Buffer
 	stderr := newTailBuffer(maxDiagnosticBytes)
@@ -277,7 +281,7 @@ func inspectRegisteredPythonVersion(ctx context.Context, prefix string) (string,
 	if err := runWorkerProcess(command); err != nil {
 		return "", fmt.Errorf("inspect registered environment Python version: %w: %s", err, strings.TrimSpace(stderr.String()))
 	}
-	version := strings.TrimPrefix(strings.TrimSpace(stdout.String()), "SYNON_PYTHON_VERSION=")
+	version := strings.TrimPrefix(strings.TrimSpace(stdout.String()), "X_SCIENCE_PYTHON_VERSION=")
 	if !managedPythonVersion.MatchString(version) {
 		return "", errors.New("registered environment Python version is invalid")
 	}

@@ -6,7 +6,7 @@ import (
 	"errors"
 	"strings"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 // HasFrameToolCallBatch identifies execution ownership, including historical

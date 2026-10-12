@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 const (
@@ -350,7 +350,7 @@ func (s *Server) handleAttachmentUploadFinalize(w http.ResponseWriter, r *http.R
 		writeAttachmentError(w, http.StatusBadRequest, "upload_id query param is required")
 		return
 	}
-	mutationKey := firstNonEmpty(r.Header.Get("Idempotency-Key"), r.Header.Get("X-Synon-Idempotency-Key"))
+	mutationKey := firstNonEmpty(r.Header.Get("Idempotency-Key"), r.Header.Get("X-Science-Idempotency-Key"))
 	if strings.TrimSpace(mutationKey) == "" {
 		mutationKey = "attachment-finalize-" + uploadID
 	}

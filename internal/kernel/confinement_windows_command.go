@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	windowsConfinedHelperEnv  = "SYNON_INTERNAL_WINDOWS_CONFINED_HELPER"
-	windowsConfinedPayloadEnv = "SYNON_INTERNAL_WINDOWS_CONFINED_PAYLOAD"
+	windowsConfinedHelperEnv  = "X_SCIENCE_INTERNAL_WINDOWS_CONFINED_HELPER"
+	windowsConfinedPayloadEnv = "X_SCIENCE_INTERNAL_WINDOWS_CONFINED_PAYLOAD"
 	maxWindowsConfinedPayload = 20 << 10
 )
 
@@ -78,7 +78,7 @@ func newWindowsConfinedCommandWithFrozenAuthority(workspace, executable string, 
 		}
 	}
 	request := windowsConfinedRequest{
-		ProfileName: "SynonWorker." + uuid.NewString(),
+		ProfileName: "XScienceWorker." + uuid.NewString(),
 		Workspace:   workspace, Executable: executable,
 		Arguments:     append([]string(nil), arguments...),
 		Environment:   append([]string(nil), environment...),
@@ -161,10 +161,10 @@ func decodeWindowsConfinedRequest(payload string) (*windowsConfinedRequest, erro
 	if err := json.Unmarshal(raw, request); err != nil {
 		return nil, errors.New("Windows kernel confinement helper request is invalid")
 	}
-	if !strings.HasPrefix(request.ProfileName, "SynonWorker.") {
+	if !strings.HasPrefix(request.ProfileName, "XScienceWorker.") {
 		return nil, errors.New("Windows kernel confinement profile identity is invalid")
 	}
-	if _, err := uuid.Parse(strings.TrimPrefix(request.ProfileName, "SynonWorker.")); err != nil {
+	if _, err := uuid.Parse(strings.TrimPrefix(request.ProfileName, "XScienceWorker.")); err != nil {
 		return nil, errors.New("Windows kernel confinement profile identity is invalid")
 	}
 	if err := validateWindowsConfinementRequest(

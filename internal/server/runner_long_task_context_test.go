@@ -2,7 +2,7 @@ package server
 
 import (
 	"strings"
-	eventjournal "synon-go/internal/persistence/journal"
+	eventjournal "x-science/internal/persistence/journal"
 	"testing"
 )
 

@@ -9,15 +9,15 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/mcpdirectory"
-	sessionstore "synon-go/internal/persistence/sessions"
-	workspace "synon-go/internal/persistence/workspace"
+	"x-science/internal/mcpdirectory"
+	sessionstore "x-science/internal/persistence/sessions"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestDiagnosticRealMCPToolSnapshot(t *testing.T) {
-	databasePath := strings.TrimSpace(os.Getenv("SYNON_DIAGNOSTIC_WORKSPACE_DB"))
-	homeDir := strings.TrimSpace(os.Getenv("SYNON_DIAGNOSTIC_HOME"))
-	sourceRoot := strings.TrimSpace(os.Getenv("SYNON_DIAGNOSTIC_SOURCE_ROOT"))
+	databasePath := strings.TrimSpace(os.Getenv("X_SCIENCE_DIAGNOSTIC_WORKSPACE_DB"))
+	homeDir := strings.TrimSpace(os.Getenv("X_SCIENCE_DIAGNOSTIC_HOME"))
+	sourceRoot := strings.TrimSpace(os.Getenv("X_SCIENCE_DIAGNOSTIC_SOURCE_ROOT"))
 	if databasePath == "" || homeDir == "" || sourceRoot == "" {
 		t.Skip("real MCP snapshot diagnostic inputs are not configured")
 	}
@@ -56,15 +56,15 @@ func TestDiagnosticRealMCPToolSnapshot(t *testing.T) {
 				"model":      "ark-code-latest",
 				"permission": "default",
 			},
-			"id":     "synonbiomed:operon",
+			"id":     "xscience:operon",
 			"locale": "zh-CN",
 		},
 		"web_extra": map[string]any{
-			"backend":          "synonbiomed",
+			"backend":          "xscience",
 			"custom_workspace": false,
 			"default_files":    []any{},
 			"project_id":       "project",
-			"workspace":        "synonbiomed://project/project",
+			"workspace":        "x-science://project/project",
 		},
 	}
 	if _, err := store.SetFrameRuntimeMetadata(frameID, workspace.FrameRuntimeMetadata{ContextData: contextData}); err != nil {
@@ -117,8 +117,8 @@ func TestDiagnosticRealMCPToolSnapshot(t *testing.T) {
 	app := New(Options{
 		Workspace: store, FileRoot: homeDir, MCPDirectory: directory,
 		SkillDirectories:  []string{filepath.Join(sourceRoot, "skills")},
-		AgentCatalogRoot:  filepath.Join(sourceRoot, "assets", "synonbiomed", "agents"),
-		AgentManifestPath: filepath.Join(sourceRoot, "assets", "synonbiomed", "agents.manifest.json"),
+		AgentCatalogRoot:  filepath.Join(sourceRoot, "assets", "x-science", "agents"),
+		AgentManifestPath: filepath.Join(sourceRoot, "assets", "x-science", "agents.manifest.json"),
 	})
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()

@@ -107,7 +107,7 @@ vi.mock('@/renderer/pages/conversation/Preview/components/editors/CodeEditor', (
   default: ({ value }: { value: string }) => <pre>{value}</pre>,
 }));
 
-vi.mock('@/renderer/pages/artifact/SynonBiomedPdfArtifactViewer', () => ({
+vi.mock('@/renderer/pages/artifact/XSciencePdfArtifactViewer', () => ({
   default: () => null,
 }));
 
@@ -117,13 +117,13 @@ vi.mock('react-router', () => ({
   useLocation: () => ({ search: '' }),
 }));
 
-vi.mock('@/renderer/services/synonBiomedGateway', () => ({
-  loadSynonBiomedProject: async (projectId: string) => ({ projectId, name: 'Fixture project' }),
-  loadSynonBiomedLinkedTask: async (frameId: string) => ({ frameId, name: 'Fixture task', projectId: null }),
-  loadSynonBiomedArtifact: (...args: unknown[]) => loadArtifactMock(...args),
-  loadSynonBiomedProjectArtifacts: async () => [await loadArtifactMock()],
-  getSynonBiomedArtifactContentUrl: (artifactId: string) => `/api/artifacts/${artifactId}`,
-  loadSynonBiomedProjectFolders: async () => [
+vi.mock('@/renderer/services/xScienceGateway', () => ({
+  loadXScienceProject: async (projectId: string) => ({ projectId, name: 'Fixture project' }),
+  loadXScienceLinkedTask: async (frameId: string) => ({ frameId, name: 'Fixture task', projectId: null }),
+  loadXScienceArtifact: (...args: unknown[]) => loadArtifactMock(...args),
+  loadXScienceProjectArtifacts: async () => [await loadArtifactMock()],
+  getXScienceArtifactContentUrl: (artifactId: string) => `/api/artifacts/${artifactId}`,
+  loadXScienceProjectFolders: async () => [
     {
       folderId: 'folder-1',
       projectId: 'proj_example',
@@ -149,25 +149,25 @@ vi.mock('@/renderer/services/synonBiomedGateway', () => ({
   ],
 }));
 
-vi.mock('@/renderer/services/synonBiomedArtifacts', () => ({
-  loadSynonBiomedArtifactVersions: (...args: unknown[]) => loadVersionsMock(...args),
-  loadSynonBiomedArtifactLineage: (...args: unknown[]) => loadLineageMock(...args),
-  copySynonBiomedArtifact: (...args: unknown[]) => copyArtifactMock(...args),
-  moveSynonBiomedArtifact: (...args: unknown[]) => moveArtifactMock(...args),
-  getSynonBiomedArtifactVersionContentUrl: (versionId: string) => `/api/artifacts/versions/${versionId}`,
+vi.mock('@/renderer/services/xScienceArtifacts', () => ({
+  loadXScienceArtifactVersions: (...args: unknown[]) => loadVersionsMock(...args),
+  loadXScienceArtifactLineage: (...args: unknown[]) => loadLineageMock(...args),
+  copyXScienceArtifact: (...args: unknown[]) => copyArtifactMock(...args),
+  moveXScienceArtifact: (...args: unknown[]) => moveArtifactMock(...args),
+  getXScienceArtifactVersionContentUrl: (versionId: string) => `/api/artifacts/versions/${versionId}`,
 }));
 
-vi.mock('@/renderer/services/synonBiomedWorkspaceSettings', () => ({
-  loadSynonBiomedCloudCredentials: (...args: unknown[]) => loadCloudCredentialsMock(...args),
-  loadSynonBiomedCloudBuckets: (...args: unknown[]) => loadCloudBucketsMock(...args),
-  exportSynonBiomedArtifactToCloud: (...args: unknown[]) => exportArtifactMock(...args),
+vi.mock('@/renderer/services/xScienceWorkspaceSettings', () => ({
+  loadXScienceCloudCredentials: (...args: unknown[]) => loadCloudCredentialsMock(...args),
+  loadXScienceCloudBuckets: (...args: unknown[]) => loadCloudBucketsMock(...args),
+  exportXScienceArtifactToCloud: (...args: unknown[]) => exportArtifactMock(...args),
 }));
 
 import ArtifactPreview from '@/renderer/pages/artifact/ArtifactPreview';
 import AudioPreview from '@/renderer/pages/artifact/AudioPreview';
 import VideoPreview from '@/renderer/pages/artifact/VideoPreview';
 
-vi.mock('@/renderer/pages/conversation/Preview/components/viewers/SynonBiomedStructureViewer', () => ({
+vi.mock('@/renderer/pages/conversation/Preview/components/viewers/XScienceStructureViewer', () => ({
   default: ({ contentUrl }: { contentUrl?: string }) => (
     <output data-testid='structure-version-source'>{contentUrl}</output>
   ),

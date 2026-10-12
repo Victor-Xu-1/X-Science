@@ -67,7 +67,7 @@ jobs:
 
       - name: Verify product identity authority boundary
         run: |
-          go test -buildvcs=false . ./internal/buildinfo -run 'TestCurrentUsesRootProductIdentityAuthority|TestReleaseInfoUsesSynonBiomedIdentity' -count=1
+          go test -buildvcs=false . ./internal/buildinfo -run 'TestCurrentUsesRootProductIdentityAuthority|TestReleaseInfoUsesXScienceIdentity' -count=1
           PYTHONDONTWRITEBYTECODE=1 python3 -m unittest scripts.quality.test_product_identity_gate scripts.quality.test_release_candidate_manifest scripts.quality.test_release_receipt_gate
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/quality/product_identity_gate.py --repo . --mode candidate
           PYTHONDONTWRITEBYTECODE=1 python3 -m unittest scripts.quality.test_repository_governance
@@ -79,7 +79,7 @@ jobs:
           go vet ./...
 
       - name: Verify Windows entrypoint compiles
-        run: CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -buildvcs=false -o "$RUNNER_TEMP/synon-go-windows.exe" ./cmd/synon
+        run: CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -buildvcs=false -o "$RUNNER_TEMP/x-science-windows.exe" ./cmd/x-science
 
   frontend-quality:
     name: Frontend quality and packaged client

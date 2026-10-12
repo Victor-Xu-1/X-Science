@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"synon-go/internal/agentruntime"
-	runnermachine "synon-go/internal/sessionrunner"
+	"x-science/internal/agentruntime"
+	runnermachine "x-science/internal/sessionrunner"
 )
 
 func newSessionRunnerPhaseMachine() (*runnermachine.Machine, error) {

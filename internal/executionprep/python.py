@@ -275,5 +275,5 @@ analysis = Analyzer()
 analysis.visit(tree)
 operations = observation_operations(tree)
 if operations is not None:
-    analysis.facts.append(dict(kind='observation', name='synon.execution-observation.v1', args=operations))
+    analysis.facts.append(dict(kind='observation', name='x-science.execution-observation.v1', args=operations))
 print(json.dumps(analysis.facts, separators=(",", ":")))

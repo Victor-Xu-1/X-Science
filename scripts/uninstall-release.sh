@@ -3,7 +3,7 @@ set -euo pipefail
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 source "$script_dir/release-path-policy.sh"
-product_name="$(synon_release_product_name)"
+product_name="$(x_science_release_product_name)"
 
 allow_corrupt=false
 if [[ "${1:-}" == "--allow-corrupt" ]]; then allow_corrupt=true; shift; fi
@@ -13,7 +13,7 @@ if [[ $# -ne 1 ]]; then
 fi
 
 raw_install_dir="$1"
-install_dir="$(synon_release_safe_path "$raw_install_dir" install)"
+install_dir="$(x_science_release_safe_path "$raw_install_dir" install)"
 if [[ "$install_dir" == "$(dirname "$(realpath -m -- "${HOME:?HOME is required}")")" ]]; then
 	echo "refusing unsafe install directory: $install_dir" >&2
 	exit 1
@@ -23,13 +23,13 @@ if [[ ! -d "$install_dir" || ! -f "$install_dir/RELEASE_MANIFEST.json" ]]; then
 	exit 1
 fi
 if [[ "$allow_corrupt" != true ]]; then
-	if [[ ! -x "$install_dir/synon-go" ]]; then
+	if [[ ! -x "$install_dir/x-science" ]]; then
 		echo "release binary is missing; use --allow-corrupt after checking the path" >&2
 		exit 1
 	fi
-	synon_release_assert_product_identity "$install_dir"
-	"$install_dir/synon-go" release-manifest verify --root "$install_dir" >/dev/null
+	x_science_release_assert_product_identity "$install_dir"
+	"$install_dir/x-science" release-manifest verify --root "$install_dir" >/dev/null
 fi
-synon_release_revalidate_path "$raw_install_dir" "$install_dir" install
+x_science_release_revalidate_path "$raw_install_dir" "$install_dir" install
 rm -rf -- "$install_dir"
 printf '%s uninstalled from %s; external data directories were preserved\n' "$product_name" "$install_dir"

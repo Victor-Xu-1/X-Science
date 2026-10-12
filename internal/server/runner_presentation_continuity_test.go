@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"testing"
 
-	"synon-go/internal/agentruntime"
+	"x-science/internal/agentruntime"
 )
 
 // Broken optional progress must not discard a valid, independently validated

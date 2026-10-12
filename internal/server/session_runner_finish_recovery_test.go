@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	eventjournal "synon-go/internal/persistence/journal"
-	sessionstore "synon-go/internal/persistence/sessions"
-	taskruns "synon-go/internal/persistence/taskruns"
-	workspace "synon-go/internal/persistence/workspace"
+	eventjournal "x-science/internal/persistence/journal"
+	sessionstore "x-science/internal/persistence/sessions"
+	taskruns "x-science/internal/persistence/taskruns"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func newRunnerFinishRecoveryFixture(t *testing.T, sessionID, runnerID string, attempt int) *Server {

@@ -7,7 +7,7 @@
 import React from 'react';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import SynonBiomedExpertsSettings from '@/renderer/pages/settings/SynonBiomedExpertsSettings';
+import XScienceExpertsSettings from '@/renderer/pages/settings/XScienceExpertsSettings';
 import { renderWithI18n } from '../i18nTestUtils';
 
 const mocks = vi.hoisted(() => ({
@@ -29,36 +29,36 @@ vi.mock('@arco-design/web-react', async () => {
   };
 });
 
-vi.mock('@/renderer/services/agents/synonBiomedExpertProfiles', () => ({
-  loadSynonBiomedExpertProfiles: mocks.loadProfiles,
-  loadSynonBiomedExpertProfilesWithRuntimeConnectors: mocks.loadProfiles,
-  loadSynonBiomedExpertInstructions: vi.fn(async () => ''),
-  normalizeSynonBiomedExpertName: (value: string) => value.trim().toUpperCase(),
-  createSynonBiomedExpertProfile: vi.fn(),
-  deleteSynonBiomedExpertProfile: vi.fn(),
-  saveSynonBiomedExpertInstructions: vi.fn(),
-  setSynonBiomedExpertProfileEnabled: mocks.setEnabled,
-  updateSynonBiomedExpertProfile: vi.fn(),
-  updateSynonBiomedExpertSkills: vi.fn(),
-  attachSynonBiomedExpertConnector: vi.fn(),
-  detachSynonBiomedExpertConnector: vi.fn(),
+vi.mock('@/renderer/services/agents/xScienceExpertProfiles', () => ({
+  loadXScienceExpertProfiles: mocks.loadProfiles,
+  loadXScienceExpertProfilesWithRuntimeConnectors: mocks.loadProfiles,
+  loadXScienceExpertInstructions: vi.fn(async () => ''),
+  normalizeXScienceExpertName: (value: string) => value.trim().toUpperCase(),
+  createXScienceExpertProfile: vi.fn(),
+  deleteXScienceExpertProfile: vi.fn(),
+  saveXScienceExpertInstructions: vi.fn(),
+  setXScienceExpertProfileEnabled: mocks.setEnabled,
+  updateXScienceExpertProfile: vi.fn(),
+  updateXScienceExpertSkills: vi.fn(),
+  attachXScienceExpertConnector: vi.fn(),
+  detachXScienceExpertConnector: vi.fn(),
 }));
 
-vi.mock('@/renderer/services/synonBiomedCapabilities', () => ({
-  loadSynonBiomedSkills: mocks.loadSkills,
-  loadSynonBiomedMcpServers: mocks.loadServers,
+vi.mock('@/renderer/services/xScienceCapabilities', () => ({
+  loadXScienceSkills: mocks.loadSkills,
+  loadXScienceMcpServers: mocks.loadServers,
 }));
 
-vi.mock('@/renderer/services/agents/synonBiomedExpertUsage', () => ({
-  loadSynonBiomedExpertUsage: mocks.loadExpertUsage,
-  findSynonBiomedExpertUsage: (usageByName: Record<string, unknown>, name: string) => usageByName[name] ?? null,
+vi.mock('@/renderer/services/agents/xScienceExpertUsage', () => ({
+  loadXScienceExpertUsage: mocks.loadExpertUsage,
+  findXScienceExpertUsage: (usageByName: Record<string, unknown>, name: string) => usageByName[name] ?? null,
 }));
 
 vi.mock('@/renderer/pages/settings/components/SettingsPageWrapper', () => ({
   default: ({ children }: { children: React.ReactNode }) => <div data-testid='settings-wrapper'>{children}</div>,
 }));
 
-describe('SynonBiomedExpertsSettings', () => {
+describe('XScienceExpertsSettings', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     window.history.replaceState(null, '', '/');
@@ -109,7 +109,7 @@ describe('SynonBiomedExpertsSettings', () => {
   });
 
   it('renders the shared settings header and the real expert catalog', async () => {
-    await renderWithI18n(<SynonBiomedExpertsSettings />, 'zh-CN');
+    await renderWithI18n(<XScienceExpertsSettings />, 'zh-CN');
 
     expect(screen.getByTestId('settings-wrapper')).toBeInTheDocument();
     expect(screen.getByTestId('experts-header')).toHaveTextContent('专家');
@@ -125,7 +125,7 @@ describe('SynonBiomedExpertsSettings', () => {
   });
 
   it('localizes bundled expert metadata for the English interface', async () => {
-    await renderWithI18n(<SynonBiomedExpertsSettings />, 'en-US');
+    await renderWithI18n(<XScienceExpertsSettings />, 'en-US');
 
     await waitFor(() => expect(screen.getByText('AI Drug Discovery Expert')).toBeInTheDocument());
     expect(screen.getByText(/generative models, virtual screening/)).toBeInTheDocument();
@@ -151,7 +151,7 @@ describe('SynonBiomedExpertsSettings', () => {
       })
     );
 
-    await renderWithI18n(<SynonBiomedExpertsSettings />, 'zh-CN');
+    await renderWithI18n(<XScienceExpertsSettings />, 'zh-CN');
 
     expect(await screen.findByText('AI 药物研发专家')).toBeInTheDocument();
     expect(screen.getByTestId('expert-list-page')).toBeInTheDocument();
@@ -162,7 +162,7 @@ describe('SynonBiomedExpertsSettings', () => {
   });
 
   it('opens expert details in a modal without replacing the expert list', async () => {
-    await renderWithI18n(<SynonBiomedExpertsSettings />, 'zh-CN');
+    await renderWithI18n(<XScienceExpertsSettings />, 'zh-CN');
 
     const expert = await screen.findByText('AI 药物研发专家');
     fireEvent.click(expert);
@@ -179,7 +179,7 @@ describe('SynonBiomedExpertsSettings', () => {
 
   it('opens and clears the create-expert deep link without requiring a router wrapper', async () => {
     window.history.replaceState(null, '', '/#/settings/experts?create=1');
-    await renderWithI18n(<SynonBiomedExpertsSettings />, 'zh-CN');
+    await renderWithI18n(<XScienceExpertsSettings />, 'zh-CN');
 
     expect(await screen.findByRole('dialog', { name: '添加专家' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '取消' }));
@@ -205,7 +205,7 @@ describe('SynonBiomedExpertsSettings', () => {
       })
     );
 
-    await renderWithI18n(<SynonBiomedExpertsSettings />, 'zh-CN');
+    await renderWithI18n(<XScienceExpertsSettings />, 'zh-CN');
     const toggle = await screen.findByRole('switch', { name: '启用 我的专家' });
     fireEvent.click(toggle);
 

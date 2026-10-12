@@ -1,4 +1,4 @@
-export type BackendStartupFailureReason = 'synon_biomed_backend_unavailable';
+export type BackendStartupFailureReason = 'x_science_backend_unavailable';
 
 export interface BackendStartupFailureInfo {
   reason: BackendStartupFailureReason;
@@ -8,7 +8,7 @@ export interface BackendStartupFailureInfo {
 declare global {
   interface Window {
     __initialLanguage?: string | null;
-    __synonAiE2ETest?: boolean;
+    __xscienceAiE2ETest?: boolean;
     __backendStartupFailed?: boolean;
     __backendStartupFailure?: BackendStartupFailureInfo | null;
     __installationIntegrityReportCount?: number;

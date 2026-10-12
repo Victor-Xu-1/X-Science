@@ -1,8 +1,8 @@
 import {
-  normalizeSynonBiomedPlanDocument,
-  type SynonBiomedPlanDocument,
-  type SynonBiomedPlanStep,
-} from '@/renderer/components/synonBiomed/runtime/runtimeOperationsModel';
+  normalizeXSciencePlanDocument,
+  type XSciencePlanDocument,
+  type XSciencePlanStep,
+} from '@/renderer/components/xScience/runtime/runtimeOperationsModel';
 import { sanitizePublicTaskText } from '../components/toolPublicDetailBlocks';
 import { isRecord } from './detailFormatting';
 import { toolPublicDetailText } from '@/renderer/services/i18n/toolPublicDetailLocale';
@@ -10,7 +10,7 @@ import { toolPublicDetailText } from '@/renderer/services/i18n/toolPublicDetailL
 export function buildToolPlanDocument(
   input: Record<string, unknown>,
   chinese: boolean
-): SynonBiomedPlanDocument | null {
+): XSciencePlanDocument | null {
   const nestedPlan = isRecord(input.plan) ? input.plan : null;
   const base = nestedPlan
     ? {
@@ -33,9 +33,9 @@ export function buildToolPlanDocument(
             },
           ],
         };
-  let document: SynonBiomedPlanDocument;
+  let document: XSciencePlanDocument;
   try {
-    document = normalizeSynonBiomedPlanDocument(candidate);
+    document = normalizeXSciencePlanDocument(candidate);
   } catch {
     return null;
   }
@@ -74,7 +74,7 @@ export function buildToolPlanDocument(
   };
 }
 
-function sanitizeStep(step: SynonBiomedPlanStep): SynonBiomedPlanStep[] {
+function sanitizeStep(step: XSciencePlanStep): XSciencePlanStep[] {
   const title = sanitizePublicTaskText(step.title);
   if (!title) return [];
   const description = sanitizePublicTaskText(step.description) ?? '';

@@ -12,11 +12,11 @@ import (
 	"strings"
 	"sync"
 
-	adaptercommon "synon-go/internal/adapters/common"
-	eventjournal "synon-go/internal/persistence/journal"
-	sessionstore "synon-go/internal/persistence/sessions"
-	taskstore "synon-go/internal/persistence/tasks"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	adaptercommon "x-science/internal/adapters/common"
+	eventjournal "x-science/internal/persistence/journal"
+	sessionstore "x-science/internal/persistence/sessions"
+	taskstore "x-science/internal/persistence/tasks"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 type inboundLiveSessionRecord struct {

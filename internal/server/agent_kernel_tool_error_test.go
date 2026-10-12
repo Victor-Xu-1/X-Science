@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/buildinfo"
-	kernelruntime "synon-go/internal/kernel"
+	"x-science/internal/buildinfo"
+	kernelruntime "x-science/internal/kernel"
 )
 
 func TestAgentKernelLegacyWorkspaceAliasIsNarrow(t *testing.T) {
@@ -30,7 +30,7 @@ func TestAgentKernelLegacyWorkspaceAliasIsNarrow(t *testing.T) {
 
 func TestAgentKernelPythonCodePreflightCompatibilityParserIsFailClosed(t *testing.T) {
 	outcome := kernelruntime.ExecutionOutcome{Response: kernelruntime.Response{Preflight: map[string]any{
-		"schema": "synon.python-code-preflight.v1", "status": "code_preflight_required",
+		"schema": "x-science.python-code-preflight.v1", "status": "code_preflight_required",
 		"executed": false, "diagnostics": []any{map[string]any{"code": "python_imported_api_unavailable"}},
 		"message": "legacy execution safely deferred", "recovery": "inspect the documented interface",
 	}}}
@@ -45,7 +45,7 @@ func TestAgentKernelPythonCodePreflightCompatibilityParserIsFailClosed(t *testin
 	}
 }
 
-func TestAgentKernelDescriptionsDeclareSynonDocsFirstAndEnvironmentBoundaries(t *testing.T) {
+func TestAgentKernelDescriptionsDeclareXScienceDocsFirstAndEnvironmentBoundaries(t *testing.T) {
 	for _, required := range []string{"persistent " + buildinfo.Release().Name + " kernel", "standard Python", "not IPython or Jupyter", "%run", "python script.py", "Load its Skill", "inspect the installed API", "failed cell ends", "manage_environments", "manage_packages", "DataFrame.to_csv", "DataFrame.to_markdown", "tabulate"} {
 		if !strings.Contains(agentKernelPythonDescription, required) {
 			t.Fatalf("python description is missing %q: %s", required, agentKernelPythonDescription)
@@ -83,7 +83,7 @@ print(result["records"][0]["coordinate_files"].get("pdb_url"))`}
 			t.Fatalf("normalized code retains %q: %s", forbidden, code)
 		}
 	}
-	for _, required := range []string{"globals().setdefault", "_synon_task_state", "coordinate_url", "coordinate_files", "pdb_url"} {
+	for _, required := range []string{"globals().setdefault", "_x_science_task_state", "coordinate_url", "coordinate_files", "pdb_url"} {
 		if !strings.Contains(code, required) {
 			t.Fatalf("normalized code is missing %q: %s", required, code)
 		}

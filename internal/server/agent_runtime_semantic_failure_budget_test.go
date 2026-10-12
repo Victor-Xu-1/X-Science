@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"synon-go/internal/agentruntime"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	"x-science/internal/agentruntime"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func semanticBudgetEvent(t *testing.T, value map[string]any) transcriptstore.RunnerReplayEvent {

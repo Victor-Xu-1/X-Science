@@ -7,7 +7,7 @@ import {
 } from '@/renderer/pages/conversation/Preview/components/viewers/dockingEnsemble';
 
 const fixture = [
-  'REMARK 900 SYNON BIOMED DOCKING COMPLEX ENSEMBLE',
+  'REMARK 900 XSCIENCE BIOMED DOCKING COMPLEX ENSEMBLE',
   'ATOM      1 CA   GLY A  16      27.817 -18.400  -4.985  1.00 46.96           C',
   'REMARK 900 REFERENCE LIGAND REF SOURCE G7I CHAIN A RESIDUE 201',
   'HETATM    2 C1   REF Z   1      30.588 -29.829   3.037  1.00 18.75           C',
@@ -21,10 +21,10 @@ const fixture = [
 ].join('\n');
 
 describe('docking ensemble projection', () => {
-  it.each(['X-SCIENCE', 'SYNON BIOMED', 'OTHER-SCIENCE', ''])(
+  it.each(['X-SCIENCE', 'XSCIENCE BIOMED', 'OTHER-SCIENCE', ''])(
     'identifies the format independently of supplier label %s',
     (supplier) => {
-      const source = fixture.replace('SYNON BIOMED ', supplier ? `${supplier} ` : '');
+      const source = fixture.replace('XSCIENCE BIOMED ', supplier ? `${supplier} ` : '');
       const ensemble = parseDockingEnsemble(source);
       expect(ensemble?.entries).toHaveLength(4);
       for (let index = 0; index < ensemble!.entries.length; index += 1) {
@@ -186,7 +186,7 @@ describe('docking ensemble projection', () => {
 
     const merged = mergeDockingEnsembleLigandCoordinates(ensemble, 'D01', minimizedPose);
 
-    expect(merged.source).toContain('REMARK 900 SYNON BIOMED DOCKING COMPLEX ENSEMBLE');
+    expect(merged.source).toContain('REMARK 900 XSCIENCE BIOMED DOCKING COMPLEX ENSEMBLE');
     expect(merged.source).toContain('ATOM      1 CA   GLY A  16      27.817 -18.400  -4.985');
     expect(merged.source).toContain('HETATM    3 C1   D01 Z 101      31.750 -28.250   2.500');
     expect(merged.source).toContain('HETATM    4 C1   D02 Z 102      32.000 -27.000   1.000');

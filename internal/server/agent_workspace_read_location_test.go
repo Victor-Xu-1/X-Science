@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestWorkspaceVersionReadProvidesTheExactSourceFileForAnalysis(t *testing.T) {
@@ -99,7 +99,7 @@ func TestWorkspaceVersionReadKeepsEvidenceWhenLocalCacheIsUnavailable(t *testing
 		t.Fatal(err)
 	}
 	outside := t.TempDir()
-	if err := os.Symlink(outside, filepath.Join(fixture.identity.workspaceDir, ".synon-artifacts")); err != nil {
+	if err := os.Symlink(outside, filepath.Join(fixture.identity.workspaceDir, ".x-science-artifacts")); err != nil {
 		t.Skipf("symlinks unavailable: %v", err)
 	}
 	value, err := fixture.server.executeAgentWorkspaceFileTool(context.Background(), fixture.identity, "read_file", map[string]any{"version_id": version.ID})

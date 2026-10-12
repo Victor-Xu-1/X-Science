@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	eventjournal "synon-go/internal/persistence/journal"
-	workspace "synon-go/internal/persistence/workspace"
+	eventjournal "x-science/internal/persistence/journal"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestCompatibilityCompactionArchivesRecoverJournalAndSurviveRestart(t *testing.T) {

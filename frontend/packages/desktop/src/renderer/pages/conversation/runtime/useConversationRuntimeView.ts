@@ -261,8 +261,8 @@ export const useConversationRuntimeView = (
   const routeSeededConversationRef = useRef<string | null>(null);
   const initialConversationExtra = initialConversation?.extra as { backend?: string; workspace?: string } | undefined;
   const reconcileTerminalFromAuthority =
-    initialConversationExtra?.backend?.trim().toLowerCase() === 'synonbiomed' ||
-    Boolean(initialConversationExtra?.workspace?.startsWith('synonbiomed://'));
+    initialConversationExtra?.backend?.trim().toLowerCase() === 'xscience' ||
+    Boolean(initialConversationExtra?.workspace?.startsWith('x-science://'));
 
   // The route already loaded the authoritative conversation before mounting the
   // chat tree. Seed the shared runtime store before passive hydration effects so

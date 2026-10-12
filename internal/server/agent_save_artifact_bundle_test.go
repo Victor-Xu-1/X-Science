@@ -9,9 +9,9 @@ import (
 	"reflect"
 	"testing"
 
-	kernelruntime "synon-go/internal/kernel"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/sciencecapability"
+	kernelruntime "x-science/internal/kernel"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/sciencecapability"
 )
 
 func TestSaveArtifactsAddsRegistryDeclaredExecutionBundleOutputs(t *testing.T) {
@@ -27,7 +27,7 @@ func TestSaveArtifactsAddsRegistryDeclaredExecutionBundleOutputs(t *testing.T) {
 		}
 	}
 	write(managedExecutionOutputOwnershipMarker,
-		`{"schema":"synon.execution-pack-output-owner.v1","execution_pack_id":"capability.engine"}`)
+		`{"schema":"x-science.execution-pack-output-owner.v1","execution_pack_id":"capability.engine"}`)
 	write("report.md", "# Report\n")
 	write("complex.pdb", "ATOM\n")
 	write("validation.json", `{"overall_pass":true}`)
@@ -81,7 +81,7 @@ func TestManagedExecutionOutputAuthorityRequiresExactReceiptDigests(t *testing.T
 		t.Fatal(err)
 	}
 	files := map[string]string{
-		managedExecutionOutputOwnershipMarker: `{"schema":"synon.execution-pack-output-owner.v1","execution_pack_id":"capability.engine"}`,
+		managedExecutionOutputOwnershipMarker: `{"schema":"x-science.execution-pack-output-owner.v1","execution_pack_id":"capability.engine"}`,
 		"report.md":                           "# validated\n",
 		"raw-engine.log":                      "engine evidence\n",
 		"validation.json":                     `{"overall_pass":true}`,
@@ -137,7 +137,7 @@ func TestManagedExecutionOutputAuthorityRequiresExactReceiptDigests(t *testing.T
 		}
 		fileWrites = append(fileWrites, kernelruntime.FileWrite{Path: filepath.ToSlash(relative), SHA256: digest})
 	}
-	script := filepath.Join(workspaceDir, ".synon", "runtime", "skills", "managed-workflow-abcd", "scripts", "run.py")
+	script := filepath.Join(workspaceDir, ".xscience", "runtime", "skills", "managed-workflow-abcd", "scripts", "run.py")
 	records := []workspace.ExecutionLogRecord{{
 		ID: "execution-one", FrameID: access.Frame.ID, KernelID: kernelID,
 		KernelKind: "bash", CondaEnv: "engine-a-runtime", Language: "python",
@@ -172,7 +172,7 @@ func TestSaveArtifactsDoesNotTrustUnknownExecutionBundleMarker(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(output, managedExecutionOutputOwnershipMarker), []byte(
-		`{"schema":"synon.execution-pack-output-owner.v1","execution_pack_id":"unknown.engine"}`,
+		`{"schema":"x-science.execution-pack-output-owner.v1","execution_pack_id":"unknown.engine"}`,
 	), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -196,7 +196,7 @@ func TestManagedExecutionSnapshotRecoversReplacedAliases(t *testing.T) {
 				t.Fatal(err)
 			}
 			contents := map[string]string{
-				managedExecutionOutputOwnershipMarker: `{"schema":"synon.execution-pack-output-owner.v1","execution_pack_id":"capability.engine"}`,
+				managedExecutionOutputOwnershipMarker: `{"schema":"x-science.execution-pack-output-owner.v1","execution_pack_id":"capability.engine"}`,
 				"report.md":                           "original result\n",
 			}
 			writes := map[string]string{}

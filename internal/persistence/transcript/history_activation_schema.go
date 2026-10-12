@@ -1,6 +1,6 @@
 package transcript
 
-const HistoryActivationContractID = "synon.transcript.history-activation.v31"
+const HistoryActivationContractID = "x-science.transcript.history-activation.v31"
 
 type historyActivationSchemaObject struct {
 	name, statement string

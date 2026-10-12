@@ -189,7 +189,7 @@ func SendText(ctx context.Context, client *http.Client, baseURL string, token st
 	}
 	message := Message{
 		ToUserID:     options.To,
-		ClientID:     "synon-wechat-" + randomID(),
+		ClientID:     "x-science-wechat-" + randomID(),
 		MessageType:  2,
 		MessageState: 2,
 		ContextToken: options.ContextToken,

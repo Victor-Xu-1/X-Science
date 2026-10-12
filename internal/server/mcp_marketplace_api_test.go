@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"synon-go/internal/buildinfo"
+	"x-science/internal/buildinfo"
 )
 
 func TestMCPMarketplaceProxyFetchesBoundedRegistryResponse(t *testing.T) {

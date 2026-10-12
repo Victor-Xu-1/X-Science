@@ -11,12 +11,12 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	secretstore "synon-go/internal/persistence/secrets"
+	secretstore "x-science/internal/persistence/secrets"
 	"time"
 )
 
 func oauthTokenPath(root string, serverName string) string {
-	return filepath.Join(root, ".synon", "mcp-oauth", NormalizeName(serverName)+".json")
+	return filepath.Join(root, ".xscience", "mcp-oauth", NormalizeName(serverName)+".json")
 }
 
 var oauthTokenCacheMu sync.Mutex
@@ -134,7 +134,7 @@ func saveOAuthTokenLocked(root string, serverName string, token oauthTokenCache)
 }
 
 func oauthTokenVault(root string) *secretstore.Store {
-	return secretstore.New(filepath.Join(root, ".synon", "mcp-oauth-vault"))
+	return secretstore.New(filepath.Join(root, ".xscience", "mcp-oauth-vault"))
 }
 
 func oauthTokenSecretID(serverName string) string {
@@ -191,7 +191,7 @@ func MigrateLegacyOAuthTokens(root string) error {
 	if root == "" {
 		return errors.New("OAuth token root is required")
 	}
-	directory := filepath.Join(root, ".synon", "mcp-oauth")
+	directory := filepath.Join(root, ".xscience", "mcp-oauth")
 	entries, err := os.ReadDir(directory)
 	if errors.Is(err, os.ErrNotExist) {
 		return nil

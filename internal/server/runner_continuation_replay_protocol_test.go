@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/providers"
+	"x-science/internal/agentruntime"
+	"x-science/internal/providers"
 )
 
 func TestContinuationTruncatedTailReplayUsesRealStream(t *testing.T) {

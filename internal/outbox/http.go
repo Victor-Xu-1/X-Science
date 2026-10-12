@@ -12,11 +12,11 @@ import (
 	"strings"
 	"time"
 
-	"synon-go/internal/persistence/workspace"
+	"x-science/internal/persistence/workspace"
 )
 
 const (
-	EventIDHeader        = "X-Synon-Event-ID"
+	EventIDHeader        = "X-Science-Event-ID"
 	IdempotencyHeader    = "Idempotency-Key"
 	defaultResponseLimit = 64 << 10
 	maximumResponseLimit = 1 << 20

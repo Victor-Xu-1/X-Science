@@ -16,15 +16,15 @@ import (
 	"testing"
 	"time"
 
-	"synon-go/internal/agentruntime"
-	"synon-go/internal/httptext"
-	workspace "synon-go/internal/persistence/workspace"
-	"synon-go/internal/toolcontract"
-	"synon-go/internal/tools/webfetch"
+	"x-science/internal/agentruntime"
+	"x-science/internal/httptext"
+	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/toolcontract"
+	"x-science/internal/tools/webfetch"
 )
 
 func TestSourceFeedbackCapturedOriginals(t *testing.T) {
-	paths := filepath.SplitList(os.Getenv("SYNON_TEST_SOURCE_BLOBS"))
+	paths := filepath.SplitList(os.Getenv("X_SCIENCE_TEST_SOURCE_BLOBS"))
 	if len(paths) == 0 {
 		t.Skip("no captured original sources selected")
 	}

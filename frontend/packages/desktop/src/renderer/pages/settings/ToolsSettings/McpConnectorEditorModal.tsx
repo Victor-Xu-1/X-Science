@@ -3,15 +3,15 @@ import Modal from '@/renderer/components/base/WorkbenchModal';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type {
-  SynonBiomedCustomMcpServer,
-  SynonBiomedCustomMcpServerInput,
-} from '@/renderer/services/synonBiomedCapabilities';
+  XScienceCustomMcpServer,
+  XScienceCustomMcpServerInput,
+} from '@/renderer/services/xScienceCapabilities';
 
 type Props = {
   visible: boolean;
-  server: SynonBiomedCustomMcpServer | null;
+  server: XScienceCustomMcpServer | null;
   onCancel: () => void;
-  onSubmit: (input: SynonBiomedCustomMcpServerInput) => Promise<void>;
+  onSubmit: (input: XScienceCustomMcpServerInput) => Promise<void>;
 };
 
 type FormState = {
@@ -67,7 +67,7 @@ export const McpConnectorEditorModal: React.FC<Props> = ({ visible, server, onCa
 
   const submit = async () => {
     if (validationError) {
-      Message.error(t(`settings.synonBiomedMcpValidation${capitalize(validationError)}`));
+      Message.error(t(`settings.xScienceMcpValidation${capitalize(validationError)}`));
       return;
     }
     setSaving(true);
@@ -92,17 +92,17 @@ export const McpConnectorEditorModal: React.FC<Props> = ({ visible, server, onCa
   return (
     <Modal
       visible={visible}
-      title={server ? t('settings.synonBiomedMcpEditConnector') : t('settings.synonBiomedMcpAddConnector')}
+      title={server ? t('settings.xScienceMcpEditConnector') : t('settings.xScienceMcpAddConnector')}
       footer={
         <div className='flex justify-end gap-8px'>
           <Button onClick={onCancel}>{t('common.cancel')}</Button>
           <Button
             type='primary'
             loading={saving}
-            data-testid='synon-biomed-mcp-editor-submit'
+            data-testid='x-science-mcp-editor-submit'
             onClick={() => void submit()}
           >
-            {server ? t('common.save') : t('settings.synonBiomedMcpAdd')}
+            {server ? t('common.save') : t('settings.xScienceMcpAdd')}
           </Button>
         </div>
       }
@@ -110,47 +110,47 @@ export const McpConnectorEditorModal: React.FC<Props> = ({ visible, server, onCa
       style={{ width: 640, maxWidth: 'calc(100vw - 24px)' }}
       unmountOnExit
     >
-      <div className='flex flex-col gap-14px' data-testid='synon-biomed-mcp-editor'>
+      <div className='flex flex-col gap-14px' data-testid='x-science-mcp-editor'>
         <div className='grid grid-cols-2 gap-8px rounded-6px bg-fill-2 p-4px'>
           <button
             type='button'
             className='h-34px rounded-4px border-0 bg-2 text-13px font-600 text-t-primary shadow-sm'
           >
-            {t('settings.synonBiomedMcpRemoteUrl')}
+            {t('settings.xScienceMcpRemoteUrl')}
           </button>
           <button
             type='button'
             disabled
-            title={t('settings.synonBiomedMcpLocalUnavailableDetail')}
+            title={t('settings.xScienceMcpLocalUnavailableDetail')}
             className='h-34px rounded-4px border-0 bg-transparent text-13px text-t-tertiary opacity-60 cursor-not-allowed'
           >
-            {t('settings.synonBiomedMcpLocalCommand')}
+            {t('settings.xScienceMcpLocalCommand')}
           </button>
         </div>
 
         <Field label={t('common.name')} required>
           <Input
             value={form.name}
-            data-testid='synon-biomed-mcp-editor-name'
+            data-testid='x-science-mcp-editor-name'
             placeholder='my-mcp-server'
             onChange={(name) => setForm((current) => ({ ...current, name }))}
           />
-          <div className='mt-4px text-11px text-t-tertiary'>{t('settings.synonBiomedMcpNameHint')}</div>
+          <div className='mt-4px text-11px text-t-tertiary'>{t('settings.xScienceMcpNameHint')}</div>
         </Field>
 
-        <Field label={t('settings.synonBiomedMcpServerUrl')} required>
+        <Field label={t('settings.xScienceMcpServerUrl')} required>
           <Input
             value={form.url}
-            data-testid='synon-biomed-mcp-editor-url'
+            data-testid='x-science-mcp-editor-url'
             placeholder='https://mcp.example.com/mcp'
             onChange={(url) => setForm((current) => ({ ...current, url }))}
           />
         </Field>
 
-        <Field label={t('settings.synonBiomedMcpTransport')} required>
+        <Field label={t('settings.xScienceMcpTransport')} required>
           <Select
             value={form.transport}
-            data-testid='synon-biomed-mcp-editor-transport'
+            data-testid='x-science-mcp-editor-transport'
             onChange={(transport) => setForm((current) => ({ ...current, transport }))}
           >
             <Select.Option value='streamable_http'>Streamable HTTP</Select.Option>
@@ -172,29 +172,29 @@ export const McpConnectorEditorModal: React.FC<Props> = ({ visible, server, onCa
           aria-expanded={advanced}
           onClick={() => setAdvanced((value) => !value)}
         >
-          {advanced ? '−' : '+'} {t('settings.synonBiomedMcpAdvanced')}
+          {advanced ? '−' : '+'} {t('settings.xScienceMcpAdvanced')}
         </button>
 
         {advanced ? (
           <div className='grid grid-cols-1 gap-12px border-l-2 border-arco-2 pl-12px'>
-            <Field label={t('settings.synonBiomedMcpOauthServerUrl')}>
+            <Field label={t('settings.xScienceMcpOauthServerUrl')}>
               <Input
                 value={form.oauthServerUrl}
                 placeholder='https://auth.example.com'
                 onChange={(oauthServerUrl) => setForm((current) => ({ ...current, oauthServerUrl }))}
               />
             </Field>
-            <Field label={t('settings.synonBiomedMcpOauthClientId')}>
+            <Field label={t('settings.xScienceMcpOauthClientId')}>
               <Input value={form.clientId} onChange={(clientId) => setForm((current) => ({ ...current, clientId }))} />
             </Field>
-            <Field label={t('settings.synonBiomedMcpOauthScopes')}>
+            <Field label={t('settings.xScienceMcpOauthScopes')}>
               <Input
                 value={form.scopes}
                 placeholder='read write'
                 onChange={(scopes) => setForm((current) => ({ ...current, scopes }))}
               />
             </Field>
-            <Field label={t('settings.synonBiomedMcpHeadersHelper')}>
+            <Field label={t('settings.xScienceMcpHeadersHelper')}>
               <Input
                 value={form.headersHelper}
                 onChange={(headersHelper) => setForm((current) => ({ ...current, headersHelper }))}
@@ -204,7 +204,7 @@ export const McpConnectorEditorModal: React.FC<Props> = ({ visible, server, onCa
         ) : null}
 
         <div className='rounded-6px border border-warning-3 bg-warning-1 px-12px py-10px text-12px leading-5 text-t-secondary'>
-          {t('settings.synonBiomedMcpTrustWarning')}
+          {t('settings.xScienceMcpTrustWarning')}
         </div>
       </div>
     </Modal>

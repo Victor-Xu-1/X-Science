@@ -11,13 +11,13 @@ import (
 	"strconv"
 	"strings"
 
-	"synon-go/internal/agentruntime"
-	eventjournal "synon-go/internal/persistence/journal"
-	transcriptstore "synon-go/internal/persistence/transcript"
+	"x-science/internal/agentruntime"
+	eventjournal "x-science/internal/persistence/journal"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 const (
-	sessionRunnerNoProgressRecoverySchema = "synon.runner_no_progress.v1"
+	sessionRunnerNoProgressRecoverySchema = "x-science.runner_no_progress.v1"
 	sessionRunnerNoProgressRecoveryField  = "runnerNoProgressRecovery"
 	sessionRunnerNoProgressDetailMarker   = "\nX-Science no-progress recovery state: "
 	maxSessionRunnerClosedActions         = 8
@@ -381,12 +381,12 @@ func (s *Server) scanSessionRunnerRecoveryEntries(
 			message["type"] = "message"
 			message["role"] = "assistant"
 		case "runner_checkpoint":
-			if chunk, err := conditions.Observe(message); err != nil {
+			if chunk, err := s.observeNamespaceCorrectionChunk(ctx, authority.Stream.OwnerID, projected.Event, message, &conditions); err != nil {
 				return fmt.Errorf("decode runner correction evidence at event %d: %w", projected.Event.EventID, err)
 			} else if chunk {
 				return nil
 			}
-			cause, present, err := transcriptstore.ParseRunnerInterruptionCause(message)
+			cause, present, err := s.parseRunnerNamespaceCause(ctx, authority.Stream.OwnerID, projected.Event, message)
 			if err != nil {
 				return fmt.Errorf("decode runner recovery cause at event %d: %w", projected.Event.EventID, err)
 			}

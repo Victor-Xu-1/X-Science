@@ -5,13 +5,13 @@ import (
 	"io"
 	"strings"
 
-	transcriptstore "synon-go/internal/persistence/transcript"
-	"synon-go/internal/sciencecapability"
+	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/sciencecapability"
 )
 
 const (
 	trustedScientificUserArtifactDigestSignalPrefix = "input-digest:user-artifact:"
-	managedExecutionPackInputReceiptPrefix          = "SYNON_EXECUTION_PACK_INPUT_RECEIPT="
+	managedExecutionPackInputReceiptPrefix          = "X_SCIENCE_EXECUTION_PACK_INPUT_RECEIPT="
 )
 
 func trustedScientificUserArtifactInputSignals(refs []transcriptstore.UserArtifactReference) []string {
@@ -110,7 +110,7 @@ func managedExecutionPackInputDigestsFromStdout(stdout, packID string, inputs []
 	decoder := json.NewDecoder(strings.NewReader(encoded))
 	decoder.DisallowUnknownFields()
 	if decoder.Decode(&receipt) != nil || decoder.Decode(&struct{}{}) != io.EOF ||
-		receipt.Schema != "synon.execution-pack-input-receipt.v1" || receipt.ExecutionPackID != packID ||
+		receipt.Schema != "x-science.execution-pack-input-receipt.v1" || receipt.ExecutionPackID != packID ||
 		len(receipt.Inputs) < len(inputs) {
 		return nil, false
 	}

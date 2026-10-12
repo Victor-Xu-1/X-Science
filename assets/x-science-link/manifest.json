@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "source": "assets/x-science-link/source",
+  "provenance": {
+    "originalComponent": "Synon Link v0.6.10",
+    "originalGitRevision": "53a8cde66a917eb0b94e0a4f23287eb93328c0fd",
+    "originalArchiveSHA256": "2cb251ad8aedf940f6d3a11b41b74ed55f9b912ab48257a21789b78a1ca0c90b"
+  },
+  "runtime": {
+    "kind": "chrome-extension",
+    "minimumVersion": "114",
+    "optional": false
+  },
+  "files": [
+    {
+      "path": "x-science-browser-extension-v0.6.11.zip",
+      "sha256": "4cc68a85509295788a0037c15d50baeae1a29314331f69741cc59cfe6637979d",
+      "bytes": 525581
+    }
+  ]
+}

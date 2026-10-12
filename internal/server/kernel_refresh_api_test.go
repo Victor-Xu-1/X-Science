@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	kernelruntime "synon-go/internal/kernel"
+	kernelruntime "x-science/internal/kernel"
 )
 
 func TestRefreshKernelsClosesRealWorker(t *testing.T) {

@@ -9,7 +9,7 @@ import { getWorkspacePathFromErrorDetails, normalizeWorkspacePathErrorCode } fro
 import { buildRawErrorSummary } from './errorDiagnostics';
 import type { AgentStreamErrorInfo } from '@/common/chat/chatLib';
 
-const SYNON_AI_TRANSPORT_ERROR_CODES = new Set([
+const X_SCIENCE_TRANSPORT_ERROR_CODES = new Set([
   'MCP_HTTP_RESPONSE_READ_FAILED',
   'MCP_TOOL_REMOTE_ERROR',
   'MCP_TOOL_RESPONSE_UNEXPECTED',
@@ -37,7 +37,7 @@ export const buildSendFailureError = (error: unknown, message: string): AgentStr
     return {
       message,
       code: workspacePathErrorCode,
-      ownership: 'synon-ai',
+      ownership: 'x-science',
       detail: message,
       ...(workspacePath ? { workspacePath } : {}),
       retryable: false,
@@ -45,11 +45,11 @@ export const buildSendFailureError = (error: unknown, message: string): AgentStr
     };
   }
 
-  if (isBackendHttpError(error) && SYNON_AI_TRANSPORT_ERROR_CODES.has(error.code)) {
+  if (isBackendHttpError(error) && X_SCIENCE_TRANSPORT_ERROR_CODES.has(error.code)) {
     return {
       message,
       code: error.code,
-      ownership: 'synon-ai',
+      ownership: 'x-science',
       detail: message,
       retryable: true,
       feedback_recommended: true,
@@ -82,8 +82,8 @@ export const buildSendFailureError = (error: unknown, message: string): AgentStr
   if (isConversationBusyError(error)) {
     return {
       message,
-      code: 'SYNON_AI_CONVERSATION_BUSY',
-      ownership: 'synon-ai',
+      code: 'X_SCIENCE_CONVERSATION_BUSY',
+      ownership: 'x-science',
       detail: message,
       retryable: false,
       feedback_recommended: false,
@@ -97,8 +97,8 @@ export const buildSendFailureError = (error: unknown, message: string): AgentStr
   const rawError = buildRawErrorSummary(error);
   return {
     message,
-    code: 'SYNON_AI_INTERNAL_ERROR',
-    ownership: 'synon-ai',
+    code: 'X_SCIENCE_INTERNAL_ERROR',
+    ownership: 'x-science',
     detail: message,
     retryable: true,
     feedback_recommended: true,

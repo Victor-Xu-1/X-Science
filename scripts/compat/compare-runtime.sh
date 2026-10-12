@@ -5,7 +5,7 @@ ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 SCENARIO=""
 BASELINE=""
 CANDIDATE=""
-ORACLE_BIN="${SYNON_ORACLE_BIN:-}"
+ORACLE_BIN="${X_SCIENCE_ORACLE_BIN:-}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -58,7 +58,7 @@ if ! command -v go >/dev/null 2>&1; then
   echo "ERROR: Go is required to run the development compare CLI" >&2
   exit 1
 fi
-exec go run ./cmd/synon contracts compare \
+exec go run ./cmd/x-science contracts compare \
   --root "$ROOT_DIR" \
   --scenario "$SCENARIO" \
   --baseline "$BASELINE" \

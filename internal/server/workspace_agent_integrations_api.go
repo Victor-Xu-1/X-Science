@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"net/url"
 
-	workspace "synon-go/internal/persistence/workspace"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func (s *Server) handleWorkspaceAgentPrompt(w http.ResponseWriter, r *http.Request, store *workspace.Store, agentName string) {
