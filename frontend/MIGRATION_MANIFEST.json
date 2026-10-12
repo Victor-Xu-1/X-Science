@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "ca2f85bf2c018e02d3d4156fe21e9876e79f16cc0ce58cdaca16fcfc2fd94a59",
+  "adaptationFingerprintSHA256": "35f25b080b470b5232d9d1d3c581be307ae92bb1032999685bb5fc8fe9c2ca8e",
   "removalFingerprintSHA256": "329f9318930f7c6f9d77196e74c4435a0922e2dccba5e9cfc617deb3362e8119",
-  "additionFingerprintSHA256": "e125b631071fb77bb983729f0bdd493a7229b164d41f4394aad16e6d2ed96cd7",
+  "additionFingerprintSHA256": "ed582f83c71c877c66c3bf04c83ba10bbea48e7158ff1a35b64a1d2580f44e3b",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 342,
@@ -1970,8 +1970,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/utils/conversationCache.ts",
       "sourceSHA256": "f446e1545e30f59ef41c178b285891bdedaa9e8c74349e86e7554b5427bc88cc",
-      "targetSHA256": "eb5caed305f32b11327e9d0f1f4a38886fb94f3e91ebb44419b41d53de543dfa",
-      "bytes": 6993,
+      "targetSHA256": "c026fa08ae5de16945a96af42ea3acd72119338747c3e504675cda60867fa32f",
+      "bytes": 6997,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -5043,8 +5043,8 @@
     {
       "path": "vitest.config.ts",
       "sourceSHA256": "b344dd912f0cfb1a752f475777f70cafa609874b9edce353d026f27b4827c4a6",
-      "targetSHA256": "1b8ae78045c73eca8208a5f2e8fd31d938fba3fc5a5eb8cb82766681c6264d72",
-      "bytes": 3927,
+      "targetSHA256": "5d47dd708f9373ddb369320b48afbfb9f6f82b8605fabc2e7b94964f5577a790",
+      "bytes": 3924,
       "reason": "Remove the excluded Bun WebHost project and isolate build-output verification from source tests."
     }
   ],
@@ -8155,8 +8155,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/molstarStructureEngine.ts",
-      "sha256": "d369c940530fc17443272f05df6f77177e03d9e5c4c5924a16a1402ad585e658",
-      "bytes": 150596,
+      "sha256": "8cf8dc5921ca3f3e549fa22abd83213727862ebdb53cfa65e2ae99662df5f497",
+      "bytes": 150600,
       "reason": "Own format-neutral Molstar loading, structure composition, surface styling, ligand extraction, and object visibility operations."
     },
     {
