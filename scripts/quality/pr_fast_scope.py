@@ -88,7 +88,8 @@ def frontend_affected(paths: list[str], repo: Path | None = None) -> bool:
 
 def documentation_only(path: str) -> bool:
     return (path in {"README.md", "AGENTS.md", "CONTRIBUTING.md", "SECURITY.md", "CODE_OF_CONDUCT.md", "LICENSE", ".gitignore", ".gitattributes", ".editorconfig",
-                    ".github/pull_request_template.md", "assets/x-science-link/README.md", "skills/README.md", "internal/outbox/README.md"}
+                    ".github/pull_request_template.md", "assets/x-science-link/README.md", "frontend/README.md",
+                    "skills/README.md", "internal/outbox/README.md"}
             or path.startswith("docs/assets/") or path.startswith("docs/") and path.endswith(".md"))
 
 
@@ -202,7 +203,8 @@ def main() -> int:
             projections = pr_metadata_scope.version_projection_paths(repo, args.base, args.head)
             provenance_changed = bool(set(behavior_paths) & pr_frontend_scope.PROVENANCE)
             frontend_behavior = [path for path in behavior_paths
-                                 if path not in projections and path not in pr_frontend_scope.PROVENANCE]
+                                 if path not in projections and path not in pr_frontend_scope.PROVENANCE
+                                 and not documentation_only(path)]
             affected = frontend_affected(frontend_behavior, repo)
             if not affected and not metadata_paths and not provenance_changed:
                 print("No frontend package is affected by this change; Go and policy gates remain active.")
@@ -216,7 +218,8 @@ def main() -> int:
             if not affected:
                 print("Only proved version metadata changed; fresh provenance passed, no frontend suite/build required.")
                 return 0
-            frontend_inputs = [path for path in behavior_paths if path not in projections]
+            frontend_inputs = [path for path in behavior_paths
+                               if path not in projections and not documentation_only(path)]
             related = pr_frontend_scope.related_command(frontend_inputs)
             fixtures = pr_frontend_scope.fixture_command(frontend_inputs, repo)
             harness = pr_frontend_scope.harness_command(frontend_inputs, repo)

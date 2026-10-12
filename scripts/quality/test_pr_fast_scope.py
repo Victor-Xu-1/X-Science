@@ -63,7 +63,9 @@ class PackageScopeTests(unittest.TestCase):
                 self.assertEqual(self.selected(path), self.all_packages)
 
     def test_documentation_and_frontend_scopes_are_explicit(self):
-        self.assertEqual(self.selected("docs/guide.md", "README.md", ".github/pull_request_template.md"), [])
+        self.assertEqual(self.selected("docs/guide.md", "README.md", ".github/pull_request_template.md",
+                                        "frontend/README.md", "frontend/package-lock.json"), [])
+        self.assertFalse(scope.documentation_only("frontend/package-lock.json"))
         self.assertEqual(self.selected("frontend/src/App.tsx"), [])
         self.assertFalse(scope.frontend_affected(["docs/guide.md"]))
         self.assertTrue(scope.frontend_affected(["frontend/src/App.tsx"]))
