@@ -20,7 +20,7 @@ func TestExecutionInputRecoveryOffersOnlyRegisteredAlternatives(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	script := filepath.Join(root, ".xscience/runtime/skills/primary-fixture/scripts/run.py")
+	script := filepath.Join(root, ".x-science/runtime/skills/primary-fixture/scripts/run.py")
 	input := map[string]any{"command": "python3 " + shellSingleQuote(script) + " --dataset source.txt --derived derived.json", "environment": "python"}
 	for _, test := range []struct {
 		name, routeGroup string

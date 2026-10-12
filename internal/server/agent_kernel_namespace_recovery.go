@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"strings"
 
 	workspace "x-science/internal/persistence/workspace"
 )
@@ -29,6 +30,9 @@ func (s *Server) kernelNamespaceRecoveryInterruption(ctx context.Context, owner,
 	operation, found, err := s.workspaceStore.GetKernelLocalOperation(ctx, owner, operationID)
 	if err != nil || !found {
 		return false, err
+	}
+	if strings.TrimSpace(operation.ExecutionID) == "" {
+		return false, nil
 	}
 	execution, found, err := s.workspaceStore.GetDetachedKernelExecution(ctx, operation.ExecutionID)
 	if err != nil || !found {

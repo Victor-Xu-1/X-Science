@@ -298,7 +298,7 @@ func TestGenericMaterializedSkillPreparationExemptionFailsClosed(t *testing.T) {
 		"dedicated Skill":        "python " + dedicatedScript,
 		"non-preferred asset":    "python " + filepath.ToSlash(filepath.Join(filepath.Dir(genericScript), "other.py")),
 		"missing content digest": "python " + filepath.ToSlash(filepath.Join(
-			workspace, ".xscience/runtime/skills", agentSkillRuntimeDirectoryName("generic-loaded"), "scripts", "prepare.py",
+			workspace, ".x-science/runtime/skills", agentSkillRuntimeDirectoryName("generic-loaded"), "scripts", "prepare.py",
 		)),
 		"attached interpreter code": "python -c pass " + genericScript,
 		"unrecognized interpreter":  "invented-engine " + genericScript,
