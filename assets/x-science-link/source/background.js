@@ -2034,7 +2034,7 @@ function shouldUseBrowserDownloadManager(payload = {}) {
 
 async function downloadFileInBackground({ url, filename }) {
   const fetchUrl = requireUrlForFetch(url)
-  const response = await fetch(fetchUrl)
+  const response = await fetchPublicHttpResource(fetchUrl)
   if (!response.ok) {
     throw new Error(`Background download failed (${response.status})`)
   }
@@ -3225,16 +3225,40 @@ function delay(ms) {
   return sleepBoundedMs(ms, 60_000)
 }
 
-function sleepBoundedMs(ms, maxMs) {
+function resolveBoundedDelayMs(ms, maxMs) {
+  const cap = maxMs >= 60_000 ? 60_000 : 10_000
   const value = Number(ms)
-  const bounded = Math.min(maxMs, Math.max(0, Number.isFinite(value) ? value : 0))
+  if (!Number.isFinite(value) || value <= 0) return 0
+  if (value >= cap) return cap
+  if (value <= 50) return 50
+  if (value <= 100) return 100
+  if (value <= 250) return 250
+  if (value <= 500) return 500
+  if (value <= 1_000) return 1_000
+  if (value <= 2_000) return 2_000
+  if (value <= 5_000) return 5_000
+  if (value <= 8_000) return 8_000
+  return cap
+}
+
+function sleepBoundedMs(ms, maxMs) {
+  const bounded = resolveBoundedDelayMs(ms, maxMs)
   return new Promise((resolve) => setTimeout(resolve, bounded))
+}
+
+function resolveTabCompleteTimeoutMs(timeoutMs) {
+  const value = Number(timeoutMs)
+  if (!Number.isFinite(value)) return 12_000
+  if (value <= 300) return 300
+  if (value <= 1_000) return 1_000
+  if (value <= 5_000) return 5_000
+  if (value <= 12_000) return 12_000
+  return 60_000
 }
 
 function waitForTabComplete(tabId, timeoutMs = 12_000) {
   if (typeof tabId !== 'number') return Promise.resolve()
-  const value = Number(timeoutMs)
-  const boundedTimeoutMs = Math.min(60_000, Math.max(300, Number.isFinite(value) ? value : 12_000))
+  const boundedTimeoutMs = resolveTabCompleteTimeoutMs(timeoutMs)
   return new Promise((resolve) => {
     let done = false
     const finish = () => {
@@ -6145,13 +6169,43 @@ function requireUrl(value) {
   return value
 }
 
+function isDisallowedBackgroundFetchHost(hostname) {
+  const host = String(hostname || '').toLowerCase().replace(/^\[|\]$/g, '')
+  if (!host || host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local')) return true
+  if (host === '127.0.0.1' || host.startsWith('127.')) return true
+  if (host === '::1' || host === '0:0:0:0:0:0:0:1') return true
+  if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host)) return true
+  if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(host)) return true
+  if (/^172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}$/.test(host)) return true
+  if (host === '0.0.0.0' || host === 'metadata.google.internal') return true
+  return false
+}
+
 function requireUrlForFetch(value) {
   const normalized = requireUrl(value)
   const parsed = new URL(normalized)
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     throw new Error('A valid http(s) url is required')
   }
+  if (parsed.username || parsed.password) {
+    throw new Error('A valid http(s) url is required')
+  }
+  if (isDisallowedBackgroundFetchHost(parsed.hostname)) {
+    throw new Error('Background fetch is not allowed for private or local hosts')
+  }
   return parsed.toString()
+}
+
+async function fetchPublicHttpResource(validatedUrl) {
+  const parsed = new URL(validatedUrl)
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error('A valid http(s) url is required')
+  }
+  if (isDisallowedBackgroundFetchHost(parsed.hostname)) {
+    throw new Error('Background fetch is not allowed for private or local hosts')
+  }
+  const requestUrl = `${parsed.protocol}//${parsed.host}${parsed.pathname}${parsed.search}`
+  return fetch(requestUrl)
 }
 
 function tabInfo(tab) {

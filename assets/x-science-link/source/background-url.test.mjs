@@ -119,24 +119,33 @@ test('the serialized search extractor executes without outer helper closures', (
 
 test('background transfer URL parser accepts only complete HTTP(S) URLs', () => {
   const requireUrl = productionFunction('requireUrl')
-  const parse = productionFunction('requireUrlForFetch', { requireUrl })
+  const blocked = productionFunction('isDisallowedBackgroundFetchHost')
+  const parse = productionFunction('requireUrlForFetch', { requireUrl, isDisallowedBackgroundFetchHost: blocked })
   for (const value of ['https://papers.example/a.pdf', 'http://papers.example/a.pdf']) assert.equal(parse(value), value)
   for (const value of ['file:///tmp/private', 'data:text/plain,private', 'javascript:alert(1)', 'ftp://papers.example/a', '/relative']) assert.throws(() => parse(value))
+  for (const value of ['http://127.0.0.1/a.pdf', 'http://localhost/a.pdf', 'http://192.168.0.4/a.pdf', 'http://10.0.0.2/a.pdf']) assert.throws(() => parse(value))
+  for (const host of ['127.0.0.1', 'localhost', '192.168.1.1', '10.0.0.1', 'papers.example']) {
+    assert.equal(blocked(host), host !== 'papers.example', host)
+  }
 })
 
 test('human-read delays and tab completion timers remain bounded and release listeners', async () => {
-  const clampNumber = productionFunction('clampNumber')
+  const resolveDelay = productionFunction('resolveBoundedDelayMs')
+  assert.equal(resolveDelay(Number.MAX_VALUE, 10_000), 10_000)
+  assert.equal(resolveDelay('8000', 10_000), 8_000)
+  assert.equal(resolveDelay(-1, 10_000), 0)
   const timers = []
   const sleep = productionFunction('sleepBoundedMs', {
-    clampNumber,
+    resolveBoundedDelayMs: resolveDelay,
     setTimeout: (callback, ms) => { timers.push(ms); callback(); return timers.length },
   })
   for (const value of [Number.MAX_VALUE, Infinity, NaN, -1, '8000']) await sleep(value, 10_000)
   assert.deepEqual(timers, [10_000, 0, 0, 0, 8000])
   let removed = 0
   let cleared = 0
+  const resolveTimeout = productionFunction('resolveTabCompleteTimeoutMs')
   const wait = productionFunction('waitForTabComplete', {
-    clampNumber,
+    resolveTabCompleteTimeoutMs: resolveTimeout,
     setTimeout: (_callback, ms) => { timers.push(ms); return 1 },
     clearTimeout: () => { cleared += 1 },
     chrome: { tabs: { onUpdated: { addListener: () => {}, removeListener: () => { removed += 1 } }, get: async () => ({ status: 'complete' }) } },
