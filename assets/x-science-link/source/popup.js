@@ -1,4 +1,5 @@
-const DEFAULT_X_SCIENCE_APP_URL = 'http://115.190.116.251/'
+import { DEFAULT_X_SCIENCE_SERVER_URL } from './link-runtime.js'
+const DEFAULT_X_SCIENCE_APP_URL = DEFAULT_X_SCIENCE_SERVER_URL
 
 const stateEl = document.querySelector('#state')
 const userEl = document.querySelector('#user')

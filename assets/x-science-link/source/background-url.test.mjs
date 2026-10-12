@@ -4,6 +4,8 @@ import { test } from 'node:test'
 import vm from 'node:vm'
 
 const background = readFileSync(new URL('./background.js', import.meta.url), 'utf8')
+const runtimeSource = readFileSync(new URL('./link-runtime.js', import.meta.url), 'utf8')
+const runtimePolicy = await import('data:text/javascript;base64,' + Buffer.from(runtimeSource).toString('base64'))
 
 // Evaluate actual production declarations, including declarations local to a
 // serialized page function; the fixtures do not reimplement URL policy.
@@ -25,7 +27,8 @@ function functionSources(name) {
         }
       } else if (character === '{') braces += 1
       else if (character === '}' && --braces === 0) {
-        sources.push(background.slice(start, index + 1))
+        const declarationStart = background.slice(start - 6, start) === 'async ' ? start - 6 : start
+        sources.push(background.slice(declarationStart, index + 1))
         break
       }
     }
@@ -142,4 +145,103 @@ test('human-read delays and tab completion timers remain bounded and release lis
   assert.deepEqual(timers.slice(-3), [60_000, 12_000, 300])
   assert.equal(removed, 3)
   assert.equal(cleared, 3)
+})
+
+test('Chrome sender authority is origin-bound and cannot be supplied by page payloads', () => {
+  const { assertRuntimeMessageSender: guard, isTrustedAppPage: trusted } = runtimePolicy
+  const id = 'owned-connector'
+  const page = { id, url: 'http://localhost:8765/#/guid', frameId: 0 }
+  const server = runtimePolicy.DEFAULT_X_SCIENCE_SERVER_URL
+  assert.equal(server, 'http://127.0.0.1:8765')
+  for (const type of ['connect', 'status', 'disconnect', 'local_files_status', 'show_downloaded_file']) {
+    assert.doesNotThrow(() => guard({ type, serverUrl: server }, page, id, server))
+  }
+  for (const sender of [
+    undefined, { ...page, id: 'other-extension' }, { ...page, url: undefined },
+    { ...page, url: 'about:blank' }, { ...page, frameId: 1 },
+    { ...page, url: 'http://localhost:18885' }, { ...page, url: 'https://localhost:8765' },
+    { ...page, url: 'http://localhost.example:8765' },
+    { ...page, url: 'http://localhost:8765@other.example' },
+  ]) assert.throws(() => guard({ type: 'connect', sender: page, serverUrl: server }, sender, id, server))
+  for (const type of ['login', 'approval_decision', 'extract_active_page']) {
+    assert.throws(() => guard({ type }, page, id, server))
+  }
+  assert.throws(() => guard({ type: 'connect', serverUrl: 'http://127.0.0.1:18885' }, page, id, server))
+  assert.doesNotThrow(() => guard({ type: 'login', serverUrl: 'https://explicit.example' },
+    { id, url: `chrome-extension://${id}/options.html` }, id, server))
+  assert.throws(() => guard({ type: 'login' }, { id, url: 'chrome-extension://other/options.html' }, id, server))
+  assert.equal(trusted('https://explicit.example/task', 'https://explicit.example/'), true)
+  assert.equal(trusted('http://localhost:8765/', 'https://explicit.example'), false)
+  assert.equal(trusted('https://explicit.example/', ''), false)
+})
+
+test('actual message listener rejects untrusted connects before settings or WebSocket effects', async () => {
+  const start = background.indexOf('chrome.runtime.onMessage.addListener(')
+  const end = background.indexOf('\nasync function saveConnectionSettings(', start)
+  assert.ok(start >= 0 && end > start)
+  let listener
+  const stored = {}
+  const writes = []
+  let connections = 0
+  const chrome = {
+    runtime: { id: 'owned-connector', onMessage: { addListener: value => { listener = value } } },
+    storage: { local: {
+      get: async () => ({ ...stored }),
+      set: async values => { writes.push(values); Object.assign(stored, values) },
+    } },
+  }
+  const context = {
+    chrome, DEFAULT_SERVER_URL: runtimePolicy.DEFAULT_X_SCIENCE_SERVER_URL,
+    assertRuntimeMessageSender: runtimePolicy.assertRuntimeMessageSender,
+    normalizeServerUrl: productionFunction('normalizeServerUrl'),
+    connectFromStorage: async () => { connections += 1 }, status: {},
+  }
+  context.saveConnectionSettings = productionFunction('saveConnectionSettings', context)
+  new vm.Script(background.slice(start, end)).runInNewContext(context)
+  const request = (message, sender) => new Promise(resolve => {
+    assert.equal(listener(message, sender, resolve), true)
+  })
+  const page = { id: chrome.runtime.id, url: 'http://localhost:8765/#/guid', frameId: 0 }
+  const message = { type: 'connect', serverUrl: 'http://127.0.0.1:8765', appSession: 'fixture-session' }
+  for (const sender of [{ ...page, url: 'http://localhost:18885' }, { ...page, frameId: 1 }]) {
+    assert.equal((await request(message, sender)).ok, false)
+  }
+  assert.equal((await request({ ...message, serverUrl: 'https://outside.example' }, page)).ok, false)
+  assert.equal((await request({ type: 'approval_decision', approved: true }, page)).ok, false)
+  assert.equal(writes.length, 0)
+  assert.equal(connections, 0)
+  assert.equal((await request(message, page)).ok, true)
+  assert.equal(writes.length, 1)
+  assert.equal(connections, 1)
+  const native = { id: chrome.runtime.id, url: 'chrome-extension://owned-connector/options.html' }
+  assert.equal((await request({ ...message, serverUrl: 'https://explicit.example' }, native)).ok, true)
+  assert.equal((await request(message, page)).ok, false)
+  assert.equal(connections, 2)
+})
+
+test('status broadcasts follow the same configured-origin authority as commands', async () => {
+  const shouldNotifyXScienceTab = productionFunction('shouldNotifyXScienceTab', {
+    isTrustedAppPage: runtimePolicy.isTrustedAppPage,
+    DEFAULT_SERVER_URL: runtimePolicy.DEFAULT_X_SCIENCE_SERVER_URL,
+  })
+  const sent = []
+  const broadcast = productionFunction('broadcastStatusToXScienceTabs', {
+    shouldNotifyXScienceTab,
+    chrome: { tabs: {
+      query: async () => [
+        { id: 1, url: 'http://localhost:8765/#/guid' },
+        { id: 2, url: 'http://127.0.0.1:8765/#/settings' },
+        { id: 3, url: 'http://localhost:18885' },
+        { id: 4, url: 'https://explicit.example/task' },
+      ],
+      sendMessage: async (id, message) => { sent.push({ id, message }) },
+    } },
+  })
+  const status = { serverUrl: runtimePolicy.DEFAULT_X_SCIENCE_SERVER_URL, localFiles: { count: 2 } }
+  await broadcast(status)
+  assert.deepEqual(sent.map(item => item.id), [1, 2])
+  assert.ok(sent.every(item => item.message.status === status))
+  sent.length = 0
+  await broadcast({ ...status, serverUrl: 'https://explicit.example' })
+  assert.deepEqual(sent.map(item => item.id), [4])
 })

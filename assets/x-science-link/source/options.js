@@ -1,4 +1,4 @@
-const DEFAULT_PUBLIC_SERVER_URL = 'http://115.190.116.251:3456'
+import { DEFAULT_X_SCIENCE_SERVER_URL } from './link-runtime.js'
 
 const serverUrlInput = document.querySelector('#serverUrl')
 const usernameInput = document.querySelector('#username')
@@ -11,7 +11,7 @@ init()
 
 async function init() {
   const stored = await chrome.storage.local.get(['serverUrl', 'user'])
-  serverUrlInput.value = stored.serverUrl || DEFAULT_PUBLIC_SERVER_URL
+  serverUrlInput.value = stored.serverUrl || DEFAULT_X_SCIENCE_SERVER_URL
   usernameInput.value = stored.user?.username || ''
   await refreshStatus()
 }

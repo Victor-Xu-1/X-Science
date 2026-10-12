@@ -116,7 +116,7 @@ async function autoConnectFromPageSession() {
 
   autoConnectStarted = true
   try {
-    await chrome.runtime.sendMessage({
+    const result = await chrome.runtime.sendMessage({
       type: 'connect',
       serverUrl: resolveServerUrl(),
       appSession,
@@ -124,6 +124,7 @@ async function autoConnectFromPageSession() {
       autoConnect: true,
       requestPersonalization: true,
     })
+    if (result?.ok === false) throw new Error('Connector rejected this page origin')
     window.localStorage.setItem(AUTO_CONNECT_STORAGE_KEY, '1')
   } catch {
     autoConnectStarted = false
@@ -139,12 +140,5 @@ function readLocalStorage(key) {
 }
 
 function resolveServerUrl() {
-  const { hostname, protocol } = window.location
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return 'http://127.0.0.1:3456'
-  }
-  if (protocol === 'http:' || protocol === 'https:') {
-    return `${protocol}//${hostname}:3456`
-  }
-  return 'http://127.0.0.1:3456'
+  return window.location.origin
 }

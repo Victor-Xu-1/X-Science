@@ -1,6 +1,50 @@
 export const X_SCIENCE_LINK_PROTOCOL_VERSION = '1'
 export const X_SCIENCE_LINK_POLICY_VERSION = '1'
 export const EXTENSION_RUNTIME_BUILD = '2026-06-02-info-flow-upgrade'
+export const DEFAULT_X_SCIENCE_SERVER_URL = 'http://127.0.0.1:8765'
+
+const PAGE_BRIDGE_ACTIONS = new Set([
+  'status', 'connect', 'disconnect', 'ensure_workspace', 'local_files_status',
+  'bookmarks_status', 'request_bookmarks_permission', 'refresh_bookmarks_profile',
+  'revoke_bookmarks_permission', 'clear_local_files', 'open_downloads_folder',
+  'show_downloaded_file', 'open_local_files', 'open_personalization',
+])
+
+function httpOrigin(value) {
+  try {
+    const parsed = new URL(value)
+    if (!['http:', 'https:'].includes(parsed.protocol) || parsed.username || parsed.password) return ''
+    // Both documented fixed localhost entry names identify the same service.
+    // Scheme and port remain part of the authority; another local port does not.
+    if (parsed.hostname === 'localhost') parsed.hostname = '127.0.0.1'
+    return parsed.origin
+  } catch {
+    return ''
+  }
+}
+
+export function isTrustedAppPage(pageUrl, configuredServerUrl) {
+  const configuredOrigin = httpOrigin(configuredServerUrl)
+  return Boolean(configuredOrigin && httpOrigin(pageUrl) === configuredOrigin)
+}
+
+export function assertRuntimeMessageSender(message, sender, extensionId, configuredServerUrl) {
+  if (!extensionId || sender?.id !== extensionId) throw new Error('Untrusted extension message sender')
+  let nativePage = false
+  try {
+    const parsed = new URL(sender.url)
+    nativePage = parsed.protocol === 'chrome-extension:' && parsed.hostname === extensionId
+  } catch {}
+  if (nativePage) return
+  if (sender.frameId !== 0 || !isTrustedAppPage(sender.url, configuredServerUrl)) {
+    throw new Error('Page is not the configured X-Science server')
+  }
+  if (!PAGE_BRIDGE_ACTIONS.has(message?.type)) throw new Error('Message requires the native connector UI')
+  if (message.type === 'connect' && message.serverUrl !== undefined
+      && !isTrustedAppPage(message.serverUrl, configuredServerUrl)) {
+    throw new Error('Change the server using the native connector settings')
+  }
+}
 
 export const BROWSER_SUPPORTED_ACTIONS = Object.freeze([
   'run_task_loop',

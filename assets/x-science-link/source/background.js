@@ -3,11 +3,14 @@ import {
   buildExtensionRuntimeMetadata,
   buildHelloPayload,
   buildLocalDoctorReport,
+  DEFAULT_X_SCIENCE_SERVER_URL,
+  assertRuntimeMessageSender,
+  isTrustedAppPage,
 } from './link-runtime.js'
 import { buildPermissionSnapshot } from './permission-snapshot.js'
 import { openLocalFilesDatabase } from './local-files-database.js'
 
-const DEFAULT_SERVER_URL = 'http://127.0.0.1:3456'
+const DEFAULT_SERVER_URL = DEFAULT_X_SCIENCE_SERVER_URL
 const DEFAULT_GROUP_TITLE = 'X-Science'
 const MAX_X_SCIENCE_TAB_GROUPS = 1
 const LOCAL_FILES_STORE_NAME = 'folders'
@@ -82,9 +85,11 @@ chrome.runtime.onStartup.addListener(() => {
   connectFromStorage()
 })
 
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   void (async () => {
     try {
+      const { serverUrl } = await chrome.storage.local.get(['serverUrl'])
+      assertRuntimeMessageSender(message, sender, chrome.runtime.id, serverUrl || DEFAULT_SERVER_URL)
       if (message?.type === 'connect') {
         await saveConnectionSettings(message)
         await connectFromStorage(true, { requestPersonalization: message.requestPersonalization === true })
@@ -3221,13 +3226,15 @@ function delay(ms) {
 }
 
 function sleepBoundedMs(ms, maxMs) {
-  const bounded = clampNumber(ms, 0, maxMs, 0)
+  const value = Number(ms)
+  const bounded = Math.min(maxMs, Math.max(0, Number.isFinite(value) ? value : 0))
   return new Promise((resolve) => setTimeout(resolve, bounded))
 }
 
 function waitForTabComplete(tabId, timeoutMs = 12_000) {
   if (typeof tabId !== 'number') return Promise.resolve()
-  const boundedTimeoutMs = clampNumber(timeoutMs, 300, 60_000, 12_000)
+  const value = Number(timeoutMs)
+  const boundedTimeoutMs = Math.min(60_000, Math.max(300, Number.isFinite(value) ? value : 12_000))
   return new Promise((resolve) => {
     let done = false
     const finish = () => {
@@ -4598,7 +4605,7 @@ async function broadcastStatusToXScienceTabs(nextStatus) {
   try {
     const tabs = await chrome.tabs.query({})
     await Promise.all(tabs
-      .filter((tab) => shouldNotifyXScienceTab(tab.url || tab.pendingUrl || ''))
+      .filter((tab) => shouldNotifyXScienceTab(tab.url || tab.pendingUrl || '', nextStatus.serverUrl))
       .map((tab) => (
         typeof tab.id === 'number'
           ? chrome.tabs.sendMessage(tab.id, { type: 'status_changed', status: nextStatus }).catch(() => null)
@@ -4609,17 +4616,8 @@ async function broadcastStatusToXScienceTabs(nextStatus) {
   }
 }
 
-function shouldNotifyXScienceTab(url) {
-  try {
-    const parsed = new URL(url)
-    return (
-      parsed.hostname === '115.190.116.251'
-      || parsed.hostname === '127.0.0.1'
-      || parsed.hostname === 'localhost'
-    )
-  } catch {
-    return false
-  }
+function shouldNotifyXScienceTab(url, configuredServerUrl) {
+  return isTrustedAppPage(url, configuredServerUrl || DEFAULT_SERVER_URL)
 }
 
 async function getStatusSnapshot() {

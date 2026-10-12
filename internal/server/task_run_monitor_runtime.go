@@ -50,7 +50,10 @@ func (s *Server) reconcileTaskRun(runID string) (taskruns.Record, error) {
 		}
 		return run, err
 	}
-	assistant := s.latestTaskRunAssistantMessage(run.SessionID)
+	assistant, err := s.latestTaskRunAssistantMessage(run.SessionID)
+	if err != nil {
+		return taskruns.Record{}, err
+	}
 	reconciled, err := s.taskRunStore.ReconcileWithRunner(run.RunID, session.Runner.Status, assistant)
 	if err != nil {
 		return taskruns.Record{}, err
@@ -61,10 +64,10 @@ func (s *Server) reconcileTaskRun(runID string) (taskruns.Record, error) {
 	return reconciled, nil
 }
 
-func (s *Server) latestTaskRunAssistantMessage(sessionID string) string {
-	entries, err := s.eventJournal.ReadAfter(sessionID, 0, 200)
+func (s *Server) latestTaskRunAssistantMessage(sessionID string) (string, error) {
+	entries, err := s.eventJournal.ReadAll(sessionID)
 	if err != nil {
-		return ""
+		return "", err
 	}
 	for i := len(entries) - 1; i >= 0; i-- {
 		role, _ := entries[i].Message["role"].(string)
@@ -72,15 +75,15 @@ func (s *Server) latestTaskRunAssistantMessage(sessionID string) string {
 			continue
 		}
 		if text, _ := entries[i].Message["text"].(string); strings.TrimSpace(text) != "" {
-			return text
+			return text, nil
 		}
 		if message, ok := entries[i].Message["message"].(map[string]any); ok {
 			if text, _ := message["text"].(string); strings.TrimSpace(text) != "" {
-				return text
+				return text, nil
 			}
 		}
 	}
-	return ""
+	return "", nil
 }
 
 func (s *Server) appendTaskRunSystemEvent(run taskruns.Record, text string) error {

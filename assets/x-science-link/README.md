@@ -38,5 +38,16 @@ only canonical session/preference keys, and the server independently validates
 the session. An expired or previous-domain session reconnects through normal
 login; moving a token string never proves it is valid.
 
+The default application/connector endpoint is `http://127.0.0.1:8765`, also
+reachable as `http://localhost:8765`. A saved explicitly configured endpoint is
+preserved. Only the native extension UI can select a different server. Page
+bridge requests and status broadcasts must match the configured server's origin
+(including scheme and port); subframes, opaque origins and other local ports
+cannot connect, change settings, decide approvals or receive local-file status.
+Approved commands from the configured authenticated server may intentionally
+download HTTP(S) resources on a local or private network. The connector is not a
+public-only server fetch proxy; URL scheme checks, existing approval and transfer
+limits still apply, and the application server independently validates sessions.
+
 Packaging and controlled API-contract tests are not acceptance evidence for an
 installed browser profile. The builder never installs or grants an extension.
