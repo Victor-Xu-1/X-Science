@@ -51,6 +51,16 @@ try {
 }
 Assert-Equal $true $invalidPathRejected 'keepalive path must be absolute and fail closed'
 
+# Both installed consumers must target the same canonical deployment units.
+$supervisorSource = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'source-dev-supervisor.ps1')
+$keepaliveSource = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'source-wsl-keepalive.sh')
+foreach ($source in @($supervisorSource, $keepaliveSource)) {
+  foreach ($unit in @('x-science-backend.service', 'x-science-frontend.service')) {
+    Assert-Equal $true $source.Contains($unit) 'startup consumer must use the canonical unit'
+  }
+  Assert-Equal $false $source.Contains('x-science-v010-') 'retired versioned units must not be restarted'
+}
+
 $abandonedMutex = [pscustomobject]@{}
 $abandonedMutex | Add-Member -MemberType ScriptMethod -Name WaitOne -Value {
   param($MillisecondsTimeout, $ExitContext)
