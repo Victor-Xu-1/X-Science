@@ -47,7 +47,11 @@ func runKernelExecutorCLI(args []string) error {
 		*backendGeneration <= 0 || *executorInstanceID == "" {
 		return errors.New("kernel executor requires complete absolute durable authority")
 	}
-	store, err := workspace.OpenExisting(filepath.Join(*home, "workspace", workspace.DatabaseFilename))
+	path, err := workspace.StartupDatabasePath(*home)
+	if err != nil {
+		return fmt.Errorf("resolve kernel executor workspace database: %w", err)
+	}
+	store, err := workspace.OpenExisting(path)
 	if err != nil {
 		return fmt.Errorf("open kernel executor workspace: %w", err)
 	}
