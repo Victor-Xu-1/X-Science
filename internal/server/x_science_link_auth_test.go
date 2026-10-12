@@ -17,6 +17,15 @@ import (
 )
 
 func TestXScienceLinkExtensionLoginAndCompatibilityWebSocket(t *testing.T) {
+	assertLinkRouteAuthenticationLifecycle(t, "/x-science-link/ws")
+}
+
+func TestHistoricalLinkRouteRetainsCanonicalAuthenticationLifecycle(t *testing.T) {
+	assertLinkRouteAuthenticationLifecycle(t, "/synon-link/ws") // Published client wire contract.
+}
+
+func assertLinkRouteAuthenticationLifecycle(t *testing.T, route string) {
+	t.Helper()
 	root := t.TempDir()
 	store, err := workspace.Open(filepath.Join(root, "workspace.db"))
 	if err != nil {
@@ -68,7 +77,7 @@ func TestXScienceLinkExtensionLoginAndCompatibilityWebSocket(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/x-science-link/ws?appSession=" + loginBody.Token + "&clientId=chrome-real"
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + route + "?appSession=" + loginBody.Token + "&clientId=chrome-real"
 	conn, response, err := websocket.Dial(ctx, wsURL, nil)
 	if err != nil {
 		t.Fatalf("compat WebSocket response=%#v error=%v", response, err)
@@ -99,7 +108,7 @@ func TestXScienceLinkExtensionLoginAndCompatibilityWebSocket(t *testing.T) {
 	if logoutResponse.Code != http.StatusOK || !strings.Contains(logoutResponse.Body.String(), `"tokens_deleted":true`) {
 		t.Fatalf("XScience Link logout status=%d body=%s", logoutResponse.Code, logoutResponse.Body.String())
 	}
-	revokedURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/x-science-link/ws?appSession=" + loginBody.Token + "&clientId=revoked"
+	revokedURL := "ws" + strings.TrimPrefix(server.URL, "http") + route + "?appSession=" + loginBody.Token + "&clientId=revoked"
 	revokedConn, revokedResponse, err := websocket.Dial(ctx, revokedURL, nil)
 	if revokedConn != nil {
 		_ = revokedConn.CloseNow()
@@ -110,7 +119,7 @@ func TestXScienceLinkExtensionLoginAndCompatibilityWebSocket(t *testing.T) {
 	restarted := New(Options{FileRoot: root, Workspace: store, XScienceLinkAuth: authOptions})
 	restartedServer := httptest.NewServer(restarted.Handler())
 	defer restartedServer.Close()
-	restartedURL := "ws" + strings.TrimPrefix(restartedServer.URL, "http") + "/x-science-link/ws?appSession=" + loginBody.Token + "&clientId=restarted"
+	restartedURL := "ws" + strings.TrimPrefix(restartedServer.URL, "http") + route + "?appSession=" + loginBody.Token + "&clientId=restarted"
 	restartedConn, restartedResponse, err := websocket.Dial(ctx, restartedURL, nil)
 	if restartedConn != nil {
 		_ = restartedConn.CloseNow()
@@ -119,7 +128,7 @@ func TestXScienceLinkExtensionLoginAndCompatibilityWebSocket(t *testing.T) {
 		t.Fatalf("restarted revoked token response=%#v error=%v", restartedResponse, err)
 	}
 
-	tamperedURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/x-science-link/ws?appSession=" + loginBody.Token + "x&clientId=bad"
+	tamperedURL := "ws" + strings.TrimPrefix(server.URL, "http") + route + "?appSession=" + loginBody.Token + "x&clientId=bad"
 	badConn, badResponse, err := websocket.Dial(ctx, tamperedURL, nil)
 	if badConn != nil {
 		_ = badConn.CloseNow()
