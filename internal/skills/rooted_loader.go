@@ -41,8 +41,12 @@ func loadOpenedDirectory(catalog *Catalog, directory string, root *os.Root, opts
 		if entry.IsDir() || entry.Name() != "SKILL.md" {
 			return nil
 		}
+		if entry.Type()&os.ModeSymlink != 0 {
+			catalog.AddLoadError(path, errors.New("skill manifest must be a regular file, not a symbolic link"))
+			return nil
+		}
 		if !entry.Type().IsRegular() {
-			catalog.AddLoadError(path, errors.New("skill manifest must be a regular file, not a link or pipe"))
+			catalog.AddLoadError(path, errors.New("skill manifest must be a regular file, not a pipe or device"))
 			return nil
 		}
 		data, err := readOpenedSkillManifest(root, filepath.FromSlash(relative))

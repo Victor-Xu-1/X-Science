@@ -117,7 +117,7 @@ func TestCompactXScienceCapabilitiesExposeOnlyRetainedSurface(t *testing.T) {
 	if !reportContainsCapability(report, "taskrun-original-system-tools") {
 		t.Fatalf("capability report missing taskrun-original-system-tools capability: %#v", report.Modules)
 	}
-	if !capabilitySummaryContains(report, "TaskRun XScienceLink browser executors") || !capabilitySummaryContains(report, "needsClient/missingCapability") {
+	if !capabilitySummaryContains(report, "TaskRun X-Science Link browser executors") || !capabilitySummaryContains(report, "needsClient/missingCapability") {
 		t.Fatalf("capability report missing TaskRun XScienceLink executor summary: %#v", report.Modules)
 	}
 	if !reportContainsCapability(report, "taskrun-xsciencelink-direct-executor") {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -158,7 +159,11 @@ func TestTranscriptWebProjectorFreshAndReopenedWorkspaceUsesCurrentVersionConstr
 		t.Fatal(err)
 	}
 	compact := strings.NewReplacer(" ", "", "\n", "", "\r", "", "\t", "").Replace(tableSQL)
-	if !strings.Contains(compact, "CHECK(projector_versionIN(1,2,3,4,5,6,7,8,9,10,11,12))") {
+	versions := make([]string, 0, transcriptstore.TranscriptWebProjectorVersion)
+	for version := 1; version <= transcriptstore.TranscriptWebProjectorVersion; version++ {
+		versions = append(versions, strconv.Itoa(version))
+	}
+	if !strings.Contains(compact, "CHECK(projector_versionIN("+strings.Join(versions, ",")+"))") {
 		t.Fatalf("fresh projector constraint=%s", tableSQL)
 	}
 	status, err := reopened.SchemaStatus(context.Background())
