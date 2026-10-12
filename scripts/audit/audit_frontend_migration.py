@@ -13,10 +13,24 @@ import re
 import sys
 from typing import Any
 
-if __package__:
-    from .frontend_source_namespace import canonical_source_records
-else:
-    from frontend_source_namespace import canonical_source_records
+def _load_canonical_source_records():
+    if __package__:
+        from .frontend_source_namespace import canonical_source_records as loader
+
+        return loader
+    import importlib.util
+
+    helper = Path(__file__).resolve().with_name("frontend_source_namespace.py")
+    spec = importlib.util.spec_from_file_location("frontend_source_namespace", helper)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"cannot load frontend source namespace helper: {helper}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules.setdefault("frontend_source_namespace", module)
+    spec.loader.exec_module(module)
+    return module.canonical_source_records
+
+
+canonical_source_records = _load_canonical_source_records()
 
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[2]
