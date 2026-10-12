@@ -20,9 +20,9 @@ describe('bounded sequence content transport', () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(body));
     vi.stubGlobal('fetch', fetchMock);
     const signal = new AbortController().signal;
-    await expect(
-      loadSequenceContent({ filename: 'tiny.gbk', contentUrl: '/artifact/seq', signal })
-    ).resolves.toBe(body);
+    await expect(loadSequenceContent({ filename: 'tiny.gbk', contentUrl: '/artifact/seq', signal })).resolves.toBe(
+      body
+    );
     expect(fetchMock).toHaveBeenCalledWith('/artifact/seq', {
       credentials: 'include',
       headers: { Accept: 'text/plain, application/octet-stream, chemical/seq-na-genbank' },
@@ -42,7 +42,11 @@ describe('bounded sequence content transport', () => {
       )
     );
     await expect(
-      loadSequenceContent({ filename: 'large.gbk', contentUrl: '/artifact/large', signal: new AbortController().signal })
+      loadSequenceContent({
+        filename: 'large.gbk',
+        contentUrl: '/artifact/large',
+        signal: new AbortController().signal,
+      })
     ).rejects.toMatchObject({
       code: 'too-large',
       details: { limit: '10 MB' },
@@ -71,7 +75,11 @@ describe('bounded sequence content transport', () => {
       )
     );
     await expect(
-      loadSequenceContent({ filename: 'large.gbk', contentUrl: '/artifact/large', signal: new AbortController().signal })
+      loadSequenceContent({
+        filename: 'large.gbk',
+        contentUrl: '/artifact/large',
+        signal: new AbortController().signal,
+      })
     ).rejects.toMatchObject({ code: 'too-large' });
     expect(pulls).toBeLessThanOrEqual(12);
     expect(cancel).toHaveBeenCalledOnce();
@@ -91,7 +99,11 @@ describe('bounded sequence content transport', () => {
     });
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(stream)));
     await expect(
-      loadSequenceContent({ filename: 'large.fasta.gz', contentUrl: '/artifact/gz', signal: new AbortController().signal })
+      loadSequenceContent({
+        filename: 'large.fasta.gz',
+        contentUrl: '/artifact/gz',
+        signal: new AbortController().signal,
+      })
     ).rejects.toMatchObject({ code: 'too-large' });
     expect(pulls).toBeLessThanOrEqual(12);
     expect(cancel).toHaveBeenCalledOnce();
@@ -103,7 +115,11 @@ describe('bounded sequence content transport', () => {
     const compressed = await gzipBytes(inflated);
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(compressed)));
     await expect(
-      loadSequenceContent({ filename: 'inflated.fasta.gz', contentUrl: '/artifact/gz', signal: new AbortController().signal })
+      loadSequenceContent({
+        filename: 'inflated.fasta.gz',
+        contentUrl: '/artifact/gz',
+        signal: new AbortController().signal,
+      })
     ).rejects.toMatchObject({
       code: 'too-large',
       details: { limit: '10 MB' },
