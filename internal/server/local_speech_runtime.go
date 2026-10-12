@@ -554,6 +554,9 @@ func extractLocalSpeechTarBz2(archivePath, destination string) error {
 		if err != nil {
 			return err
 		}
+		if !filepath.IsLocal(relative) {
+			return errors.New("local speech archive path is not local to staging")
+		}
 		target := filepath.Join(destination, relative)
 		if !localSpeechPathWithin(destination, target) {
 			return errors.New("local speech archive path escapes staging directory")

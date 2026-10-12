@@ -417,9 +417,28 @@ func (s *Server) loadGrantedWebSkills(userID, requested string) ([]skills.Skill,
 	if err != nil {
 		return nil, "", err
 	}
+	grants, err := s.loadHostGrants(userID)
+	if err != nil {
+		return nil, "", err
+	}
+	allowedPath := func(path string) bool {
+		for _, grant := range grants {
+			if hostPathWithin(grant.Path, path) {
+				return true
+			}
+		}
+		return false
+	}
+	// Do not reveal host-path existence or type before verifying the grant.
+	if !allowedPath(absolute) {
+		return nil, "", errWebSkillPathForbidden
+	}
 	resolved, err := filepath.EvalSymlinks(absolute)
 	if err != nil {
 		return nil, "", errors.New("skill path does not exist")
+	}
+	if !allowedPath(resolved) {
+		return nil, "", errWebSkillPathForbidden
 	}
 	info, err := os.Stat(resolved)
 	if err != nil {
@@ -432,18 +451,7 @@ func (s *Server) loadGrantedWebSkills(userID, requested string) ([]skills.Skill,
 		}
 		root = filepath.Dir(resolved)
 	}
-	grants, err := s.loadHostGrants(userID)
-	if err != nil {
-		return nil, "", err
-	}
-	allowed := false
-	for _, grant := range grants {
-		if hostPathWithin(grant.Path, root) {
-			allowed = true
-			break
-		}
-	}
-	if !allowed {
+	if !allowedPath(root) {
 		return nil, "", errWebSkillPathForbidden
 	}
 	loaded := skills.Load([]string{root}, runtimeSkillLoadOptions())
