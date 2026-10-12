@@ -188,9 +188,14 @@ func (c *Controller) StageWithPolicy(source, target string, migrate bool, policy
 	if err != nil {
 		return Move{}, fmt.Errorf("target data directory: %w", err)
 	}
+	targetRoot, err := openCanonicalDirectory(target)
+	if err != nil {
+		return Move{}, fmt.Errorf("open target data directory: %w", err)
+	}
+	defer targetRoot.Close()
 	cleanupTarget := func() {
 		if targetCreated {
-			_ = os.Remove(target)
+			_ = removeCreatedEmptyDirectory(target, targetRoot)
 		}
 	}
 	if pathsOverlap(source, target) {
@@ -209,7 +214,7 @@ func (c *Controller) StageWithPolicy(source, target string, migrate bool, policy
 			return Move{}, fmt.Errorf("new location must not overlap protected directory %s", protected)
 		}
 	}
-	entries, err := os.ReadDir(target)
+	entries, err := fs.ReadDir(targetRoot.FS(), ".")
 	if err != nil {
 		cleanupTarget()
 		return Move{}, err

@@ -20,3 +20,28 @@ func TestCanonicalDirectoryCreationRejectsLinkedParentBeforeWriting(t *testing.T
 		t.Fatalf("failed directory admission wrote outside its parent: %v", err)
 	}
 }
+
+func TestCreatedDirectoryCleanupPreservesReplacementLeaf(t *testing.T) {
+	parent := t.TempDir()
+	path := filepath.Join(parent, "target")
+	if err := os.Mkdir(path, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	owned, err := openCanonicalDirectory(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer owned.Close()
+	if err := os.Rename(path, path+"-held"); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(path, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := removeCreatedEmptyDirectory(path, owned); err == nil {
+		t.Fatal("replacement directory removed by old operation")
+	}
+	if info, err := os.Stat(path); err != nil || !info.IsDir() {
+		t.Fatalf("replacement not preserved: %v", err)
+	}
+}

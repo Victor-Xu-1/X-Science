@@ -55,3 +55,23 @@ func createCanonicalDirectory(path string) error {
 	_, err = canonicalExistingDirectory(path)
 	return err
 }
+
+// Failure cleanup may remove only the same empty target that this operation
+// opened. A changed parent or replacement leaf is preserved, never followed.
+func removeCreatedEmptyDirectory(path string, owned *os.Root) error {
+	expected, err := owned.Stat(".")
+	if err != nil {
+		return err
+	}
+	parent, err := openCanonicalDirectory(filepath.Dir(path))
+	if err != nil {
+		return err
+	}
+	defer parent.Close()
+	name := filepath.Base(path)
+	actual, err := parent.Lstat(name)
+	if err != nil || !actual.IsDir() || !os.SameFile(expected, actual) {
+		return errors.New("created target changed before cleanup")
+	}
+	return parent.Remove(name)
+}
