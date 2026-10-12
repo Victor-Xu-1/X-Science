@@ -719,7 +719,7 @@ func (s *Service) fetchManifest(ctx context.Context, directory workspace.MCPDire
 	if directory.ETag != "" {
 		req.Header.Set("If-None-Match", directory.ETag)
 	}
-	client, err := s.secureHTTPClient(requestCtx, directory.URL)
+	client, err := s.secureHTTPClient(requestCtx, manifestURL.String())
 	if err != nil {
 		return manifest{}, "", false, err
 	}
