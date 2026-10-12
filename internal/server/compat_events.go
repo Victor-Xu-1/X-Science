@@ -428,15 +428,25 @@ func (s *Server) handleCompatEventWebSocket(w http.ResponseWriter, r *http.Reque
 	servicePendingControl := func() bool {
 		// A nonblocking queue check alone cannot give the network reader CPU
 		// while this writer drains a fast replay on a single execution thread.
-		runtime.Gosched()
-		select {
-		case <-ctx.Done():
-			return false
-		case control, open := <-controls:
-			return open && handleControl(control)
-		default:
-			return true
+		// Fast CI hosts can buffer a full durable page without blocking writes,
+		// so yield a few times and drain any queued controls before continuing.
+		for attempt := 0; attempt < 4; attempt++ {
+			runtime.Gosched()
+			for {
+				select {
+				case <-ctx.Done():
+					return false
+				case control, open := <-controls:
+					if !open || !handleControl(control) {
+						return false
+					}
+				default:
+					goto controlYieldDone
+				}
+			}
+		controlYieldDone:
 		}
+		return true
 	}
 	drainDurablePage := func() (bool, bool) {
 		next, complete, delivered, err := s.catchUpCompatEventPage(ctx, store, userID, filter, cursor, func(event workspace.RealtimeEvent) bool {
