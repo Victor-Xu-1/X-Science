@@ -33,13 +33,13 @@ func TestWorkspaceAgentHTTPAPIUpdatesDeletesAndManagesSkills(t *testing.T) {
 	}, http.StatusOK)
 
 	response := httptest.NewRecorder()
-	app.ServeHTTP(response, localWorkspaceRequest(http.MethodGet, "/api/go/agents?user_id=user-1", nil))
+	app.ServeHTTP(response, authenticatedWorkspaceURLRequest(http.MethodGet, "/api/go/agents?user_id=user-1", nil))
 	if response.Code != http.StatusOK || !bytes.Contains(response.Body.Bytes(), []byte("Senior Research")) || !bytes.Contains(response.Body.Bytes(), []byte("patent-search")) {
 		t.Fatalf("updated agent = %d: %s", response.Code, response.Body.String())
 	}
 	serveWorkspaceJSON(t, app, http.MethodDelete, "/api/go/agents/research?user_id=user-1", nil, http.StatusOK)
 	deleted := httptest.NewRecorder()
-	app.ServeHTTP(deleted, localWorkspaceRequest(http.MethodGet, "/api/go/agents?user_id=user-1", nil))
+	app.ServeHTTP(deleted, authenticatedWorkspaceURLRequest(http.MethodGet, "/api/go/agents?user_id=user-1", nil))
 	if deleted.Code != http.StatusOK || bytes.Contains(deleted.Body.Bytes(), []byte("\"name\":\"research\"")) {
 		t.Fatalf("deleted agent list = %d: %s", deleted.Code, deleted.Body.String())
 	}
