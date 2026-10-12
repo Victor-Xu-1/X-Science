@@ -45,7 +45,7 @@ class ModuleTopologyGateTests(unittest.TestCase):
             spec = {
                 "schema": gate.SCHEMA,
                 "authorityOwner": "repository-steward",
-                "requiredDirectories": ["skills/xscience", "assets/agents"],
+                "requiredDirectories": ["skills/x-science", "assets/agents"],
                 "requiredFiles": ["small.go"],
                 "bannedPaths": ["tools"],
                 "allowedTrackedRootEntries": ["assets", "skills", "small.go"],
