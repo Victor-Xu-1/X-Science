@@ -1,3 +1,6 @@
+import { clearSharedGatewayReads } from '@/renderer/services/synonBiomedGateway';
+import { rendererAccountScopedKey } from '@/renderer/services/rendererAccountScope';
+
 export type SynonBiomedArtifactMutationInput = {
   conversationId: string;
   artifactId: string;
@@ -33,15 +36,24 @@ async function readJsonResponse<T>(response: Response): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+function clearProjectGatewayReadsAfterWorkspaceMutation(): void {
+  if (rendererAccountScopedKey('') === rendererAccountScopedKey('')) {
+    clearSharedGatewayReads();
+  }
+}
+
 export async function renameSynonBiomedArtifact(
   input: SynonBiomedArtifactRenameInput
 ): Promise<SynonBiomedArtifactRecord> {
   const response = await fetch(workspaceArtifactUrl(input), {
     method: 'PATCH',
+    credentials: 'include',
     headers: { accept: 'application/json', 'content-type': 'application/json' },
     body: JSON.stringify({ filename: input.filename }),
   });
-  return readJsonResponse<SynonBiomedArtifactRecord>(response);
+  const record = await readJsonResponse<SynonBiomedArtifactRecord>(response);
+  clearProjectGatewayReadsAfterWorkspaceMutation();
+  return record;
 }
 
 export async function deleteSynonBiomedArtifact(
@@ -49,9 +61,12 @@ export async function deleteSynonBiomedArtifact(
 ): Promise<Record<string, unknown>> {
   const response = await fetch(workspaceArtifactUrl(input), {
     method: 'DELETE',
+    credentials: 'include',
     headers: { accept: 'application/json' },
   });
-  return readJsonResponse<Record<string, unknown>>(response);
+  const record = await readJsonResponse<Record<string, unknown>>(response);
+  clearProjectGatewayReadsAfterWorkspaceMutation();
+  return record;
 }
 
 export async function uploadSynonBiomedArtifact(
@@ -64,6 +79,7 @@ export async function uploadSynonBiomedArtifact(
   const uploadsUrl = `/api/conversations/${encodeURIComponent(conversationId)}/workspace/uploads`;
   const initResponse = await fetch(uploadsUrl, {
     method: 'POST',
+    credentials: 'include',
     headers: { accept: 'application/json', 'content-type': 'application/json' },
     body: JSON.stringify({
       filename: file.name,
@@ -85,6 +101,7 @@ export async function uploadSynonBiomedArtifact(
     const chunk = file.slice(offset, Math.min(file.size, offset + backendChunkSize));
     const chunkResponse = await fetch(`${uploadsUrl}/${encodeURIComponent(uploadId)}/chunks/${chunkIndex}`, {
       method: 'POST',
+      credentials: 'include',
       headers: { accept: 'application/json', 'content-type': 'application/octet-stream' },
       body: chunk,
       signal: options.signal,
@@ -99,8 +116,11 @@ export async function uploadSynonBiomedArtifact(
 
   const finalizeResponse = await fetch(`${uploadsUrl}/${encodeURIComponent(uploadId)}/finalize`, {
     method: 'POST',
+    credentials: 'include',
     headers: { accept: 'application/json' },
     signal: options.signal,
   });
-  return readJsonResponse<SynonBiomedArtifactRecord>(finalizeResponse);
+  const record = await readJsonResponse<SynonBiomedArtifactRecord>(finalizeResponse);
+  clearProjectGatewayReadsAfterWorkspaceMutation();
+  return record;
 }
