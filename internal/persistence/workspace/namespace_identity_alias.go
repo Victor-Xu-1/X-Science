@@ -23,7 +23,7 @@ var namespaceReceiptQueries = map[string]string{
 }
 
 // ResolveNamespaceIdentityTx is a receipt lookup, never a legacy write path.
-// Only identities frozen at the v74 cutover can acquire an alias. The caller
+// Only identities frozen at the namespace cutover can acquire an alias. The caller
 // must validate its usual owner, immutable input, and terminal/CAS contracts in
 // the same transaction before committing an effect or returning its receipt.
 func (s *Store) ResolveNamespaceIdentityTx(ctx context.Context, tx workspaceTransaction, kind, canonical, historical string) (string, error) {
@@ -40,12 +40,13 @@ func (s *Store) ResolveNamespaceIdentityTx(ctx context.Context, tx workspaceTran
 	}
 	if !ready {
 		// Prior-version migration callbacks may exercise canonical mutations
-		// before v74 exists. An already-cut-over journal cannot lose its guard.
+		// before the cutover exists. Its version comes from the sole migration
+		// authority, not a number that can collide with another published schema.
 		var version int
 		if err := tx.QueryRowContext(ctx, `SELECT COALESCE(MAX(version),0) FROM workspace_schema_migrations`).Scan(&version); err != nil {
 			return "", err
 		}
-		if version >= 74 {
+		if version >= namespaceCutoverV75Migration.version {
 			return "", errors.New("namespace cutover receipt guard is missing")
 		}
 		return canonical, nil

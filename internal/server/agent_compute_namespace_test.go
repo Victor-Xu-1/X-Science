@@ -20,7 +20,7 @@ import (
 	workspace "x-science/internal/persistence/workspace"
 )
 
-// Only this private temporary fixture is reconstructed before the actual v74
+// Only this private temporary fixture is reconstructed before the actual cutover
 // capture. No source hashes or cutover rows are fabricated by the test.
 func captureServerNamespaceFixture(t *testing.T, store *workspace.Store, db *sql.DB) *workspace.Store {
 	t.Helper()
@@ -37,7 +37,7 @@ func captureServerNamespaceFixture(t *testing.T, store *workspace.Store, db *sql
 			t.Fatal(err)
 		}
 	}
-	if _, err := db.Exec(`DELETE FROM workspace_schema_migrations WHERE version=74`); err != nil {
+	if _, err := db.Exec(`DELETE FROM workspace_schema_migrations WHERE name='namespace-cutover-receipts'`); err != nil {
 		t.Fatal(err)
 	}
 	upgraded, err := workspace.Open(path)

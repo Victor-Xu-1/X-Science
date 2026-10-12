@@ -131,6 +131,32 @@ func TestNamespaceCutoverPreservesMergedV74IndexesAndJournal(t *testing.T) {
 	assertDataLifecycleIndexedPlan(t, store.db)
 }
 
+func TestNamespaceIdentityUsesActualCutoverVersionForMissingGuard(t *testing.T) {
+	ctx := context.Background()
+	store := namespaceV73Fixture(t)
+	if err := applyVersionedSchemaMigrationsThrough(ctx, store.db, store.now, 74); err != nil {
+		t.Fatal(err)
+	}
+	resolve := func() (string, error) {
+		tx, err := store.db.BeginTx(ctx, nil)
+		if err != nil {
+			return "", err
+		}
+		defer tx.Rollback()
+		return store.ResolveNamespaceIdentityTx(ctx, tx, "artifact", "native-artifact", "")
+	}
+	if identity, err := resolve(); err != nil || identity != "native-artifact" {
+		t.Fatalf("ordinary schema-74 mutation blocked before cutover: %q %v", identity, err)
+	}
+	namespaceApplyCutover(t, store)
+	if _, err := store.db.Exec(`DROP TABLE namespace_identity_aliases`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := resolve(); err == nil || !strings.Contains(err.Error(), "cutover receipt guard is missing") {
+		t.Fatalf("published cutover admitted missing guard: %v", err)
+	}
+}
+
 func TestNamespaceCutoverRejectsLateHistoricalIdentityAndAliasCollision(t *testing.T) {
 	ctx := context.Background()
 	store := namespaceV73Fixture(t)
