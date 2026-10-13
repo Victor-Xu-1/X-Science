@@ -2,12 +2,12 @@ X-Science — frontend third-party notices
 ===============================================
 
 Third-party packages retain their respective licenses and copyrights.
-These terms are not replaced by the root AGPL or an X-Science commercial agreement.
+These terms are not replaced by the root Apache 2.0 license or an X-Science commercial agreement.
 Code is bundled/minified for browser use; upstream package implementations are not edited.
 
 This notice covers packages in the browser bundle and the copied RDKit runtime.
 Other components and optional scientific runtimes have separate notices in this directory.
-Package lock SHA-256: ae842500ab786ccb7385c6aec3d2dcf439ae7e9255c46fd1b2325b3d251dea22
+Package lock SHA-256: e01ae80d7ce27aeb3976030f5eabcb521756137d56c7739c9383dfa82a98eb95
 
 Package index
 -------------

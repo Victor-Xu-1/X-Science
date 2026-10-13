@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "80326a7a6205a05c84aa59647af6a87ce718ed267b33121cee58f3f0fcfa4a37",
+  "adaptationFingerprintSHA256": "41e8ba34b169a4415e4db1b4b11c62ebb6bfacd6ea8d862a216c6a4b795420de",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
-  "additionFingerprintSHA256": "e8ce3ce457b3d92477865d9ce9d695e873363724fe875a5fb0c193e41d2902d0",
+  "additionFingerprintSHA256": "499482ed785c251e6676667e8e976917185d4f4455b8e2eb384e124df49fc5fe",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 276,
@@ -17,14 +17,14 @@
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "1c744a9fcf1f46d7e915e81f77d13655c9dce90edc3646f16a653b6d1eb818fb",
+      "targetSHA256": "27d72ae2e806119b29b1cf814eff3ce9c6b123df7e7ebe7433346923bc36d177",
       "bytes": 4392,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "ca6e4ec317d2f8db2beecbb15fca3a3a108d7e32cc6381a6fbb416590c61d51a",
+      "targetSHA256": "78f330aec951030ac93ac050b72417174d38677463cdce0f58069481f25d333b",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -4252,8 +4252,8 @@
     {
       "path": "tests/unit/previews/scientificMsaModel.test.ts",
       "sourceSHA256": "5e97b8c1c56743b6cd5d1c651bc278663be7cf1c6908430e7b97174a8787658b",
-      "targetSHA256": "6ddaf92cfb27df25a5b4583948a47b904246785331366c6c9f1169ce54534b73",
-      "bytes": 10670,
+      "targetSHA256": "0d265c391a14837677ee7a630dc44439766e461f80bd8246e275b7cde331a452",
+      "bytes": 12059,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -7523,7 +7523,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "ae842500ab786ccb7385c6aec3d2dcf439ae7e9255c46fd1b2325b3d251dea22",
+      "sha256": "e01ae80d7ce27aeb3976030f5eabcb521756137d56c7739c9383dfa82a98eb95",
       "bytes": 558186,
       "reason": "Deterministic npm build dependency lock."
     },

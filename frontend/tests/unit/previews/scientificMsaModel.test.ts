@@ -7,6 +7,38 @@ import { describe, expect, it } from 'vitest';
 const stockholmRecord = (rows: Array<[string, string]>, version = '1.0') =>
   `# STOCKHOLM ${version}\n${rows.map(([name, sequence]) => `${name} ${sequence}`).join('\n')}\n//\n`;
 
+const insertAfterStockholmHeader = (record: string, insertedLines: string) => {
+  const headerEnd = record.indexOf('\n');
+  if (headerEnd === -1) {
+    throw new Error('Stockholm test record must include a header newline');
+  }
+  return `${record.slice(0, headerEnd + 1)}${insertedLines}${record.slice(headerEnd + 1)}`;
+};
+
+describe('Stockholm fixture insertion', () => {
+  it('inserts once after the header while preserving all remaining record bytes', () => {
+    const record = '# STOCKHOLM 1.0\nalpha AC-G\nbeta ACUG\n//\n';
+    expect(insertAfterStockholmHeader(record, '# inserted comment\n')).toBe(
+      '# STOCKHOLM 1.0\n# inserted comment\nalpha AC-G\nbeta ACUG\n//\n'
+    );
+  });
+
+  it('preserves an empty record and a CRLF header boundary', () => {
+    expect(insertAfterStockholmHeader(stockholmRecord([]), '# inserted comment\n')).toBe(
+      '# STOCKHOLM 1.0\n# inserted comment\n\n//\n'
+    );
+    expect(insertAfterStockholmHeader('# STOCKHOLM 1.0\r\nalpha AC-G\r\n//\r\n', '# inserted comment\r\n')).toBe(
+      '# STOCKHOLM 1.0\r\n# inserted comment\r\nalpha AC-G\r\n//\r\n'
+    );
+  });
+
+  it('requires a newline-terminated fixture header', () => {
+    expect(() => insertAfterStockholmHeader('# STOCKHOLM 1.0', '# inserted comment\n')).toThrow(
+      'Stockholm test record must include a header newline'
+    );
+  });
+});
+
 describe('scientific MSA model', () => {
   it('parses aligned FASTA records and normalizes dot gaps', () => {
     const model = parseScientificAlignment('>alpha\nAC.E\n>beta description\nACFE\n', 'aligned.fasta');
@@ -145,7 +177,7 @@ describe('scientific MSA model', () => {
         ],
         version
       ),
-      record.replace('\n', `\n${header}`),
+      insertAfterStockholmHeader(record, header),
       `${record}${header}`,
     ]) {
       expect(() => parseScientificAlignment(input, 'invalid.sto')).toThrow('parse-failed');
@@ -216,7 +248,11 @@ describe('scientific MSA model', () => {
       ['alpha', 'AC-GU'],
       ['beta', 'ACCGU'],
     ]);
-    const inputs = [`${comment}\n${record}`, record.replace('\n', `\n${comment}\n`), `${record}${comment}\n`];
+    const inputs = [
+      `${comment}\n${record}`,
+      insertAfterStockholmHeader(record, `${comment}\n`),
+      `${record}${comment}\n`,
+    ];
     for (const input of inputs) {
       const model = parseScientificAlignment(input, 'comments.sto');
       expect(model.sequences).toEqual([

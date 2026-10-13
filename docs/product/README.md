@@ -257,8 +257,9 @@ with the project and the material it depends on.
 ### Does the license include model or compute access? / 还需要支付什么费用？
 
 仓库许可不包含第三方模型 API、数据库授权、托管工具或算力额度，这些取决于你的配置。
-一方代码采用 AGPL-3.0-only，另有说明的组件除外；具体使用和分发义务以
-[许可证](../../LICENSE)及[商业许可说明](../../COMMERCIAL-LICENSE.md)为准。
+第一方代码采用 Apache License 2.0，另有说明的组件除外；允许依照协议进行商业使用、
+修改和再分发。具体义务以[许可证](../../LICENSE.txt)及
+[许可与商业服务说明](../../COMMERCIAL-LICENSE.md)为准。
 
 ### Which optional tools should I install? / 是否需要把所有环境都装上？
 
