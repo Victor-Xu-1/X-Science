@@ -143,6 +143,10 @@ ALLOWED_ADDITIONS = {
     "tests/unit/renderer/XScienceIdentity.test.ts": "Verify current public identity, browser metadata, PWA references and exact original mark/browser-icon hashes.",
     "tests/unit/renderer/compositeControlLabels.test.ts": "Reject implicit HTML label forwarding around Arco composite pickers across renderer modules while retaining correct native-input labels and existing control implementations.",
     "tests/fixtures/structureLigands.ts": "Share explicitly synthetic receptor/ligand coordinates across parsed-state and native viewer selection regressions; never substitute them for user artifacts or research results.",
+    "tests/fixtures/anndata-categorical/README.md": "Document the first-party synthetic AnnData categorical metadata scaffold, locked-parser regression use, optional regeneration requirements, and scientific-validation limits.",
+    "tests/fixtures/anndata-categorical/categorical-template.h5ad": "Provide a tiny first-party synthetic AnnData categorical metadata scaffold for real-parser composition regressions, without user records or research results.",
+    "tests/fixtures/anndata-categorical/conform-ordered-bool.py": "Regenerate the scalar HDF5 boolean enum in the first-party synthetic test scaffold using optional Python standard-library and system HDF5 tooling, without a routine test runtime dependency.",
+    "tests/fixtures/anndata-categorical/create-template.mjs": "Regenerate the bounded first-party synthetic AnnData categorical metadata scaffold with locked h5wasm and the optional local enum helper, without user artifacts or research results.",
     "packages/desktop/src/common/chat/roundSummary.ts": "Validate durable per-round completion timing and model usage shared by live and historical messages; unavailable telemetry never erases answer text.",
     "packages/desktop/src/common/chat/largeToolResultReference.ts": "Validate immutable same-origin large-result references once for transcript summaries and lazy detail loading; previews never replace source evidence.",
     "README.md": "Document the browser-only source boundary, dependency authority, scoped checks, and isolated real-backend testing prerequisites.",
@@ -535,9 +539,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "7024d3c1728571e41b2b7f75c45a5d54f5a921edcb7280e5ef04f1208781c2c0"
+APPROVED_ADAPTATION_FINGERPRINT = "922345978d95a6de5bfcc6f88ef564c854f98675394e79456322636969bb75b2"
 APPROVED_REMOVAL_FINGERPRINT = "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff"
-APPROVED_ADDITION_FINGERPRINT = "e041968303b8d60e62bc54f213d6418d714482bc497089aa864eda31f80f6734"
+APPROVED_ADDITION_FINGERPRINT = "8ec224956fd44a2911af324326b74781f077f33e101a73626630e916856d12b1"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {
