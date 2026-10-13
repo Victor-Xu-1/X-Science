@@ -26,7 +26,7 @@ import {
 import { InteractionsProvider, type InteractionsParams } from 'molstar/lib/mol-model-props/computed/interactions';
 import { InteractionsRepresentationProvider } from 'molstar/lib/mol-model-props/computed/representations/interactions';
 import { InteractionTypeColorThemeProvider } from 'molstar/lib/mol-model-props/computed/themes/interaction-type';
-import { StateObjectRef, StateSelection } from 'molstar/lib/mol-state';
+import { StateObjectRef, StateSelection, StateTransformer } from 'molstar/lib/mol-state';
 import { Task } from 'molstar/lib/mol-task';
 import { PluginBehaviors } from 'molstar/lib/mol-plugin/behavior';
 import { setSubtreeVisibility } from 'molstar/lib/mol-plugin/behavior/static/state';
@@ -37,6 +37,10 @@ import { PluginStateObject } from 'molstar/lib/mol-plugin-state/objects';
 import { StateTransforms } from 'molstar/lib/mol-plugin-state/transforms';
 import type { StructureRef } from 'molstar/lib/mol-plugin-state/manager/structure/hierarchy-state';
 import { CubeProvider, DxProvider } from 'molstar/lib/mol-plugin-state/formats/volume';
+import type { CubeFile } from 'molstar/lib/mol-io/reader/cube/parser';
+import { Tokenizer } from 'molstar/lib/mol-io/reader/common/text/tokenizer';
+import { CubeFormat, volumeFromCube } from 'molstar/lib/mol-model-formats/volume/cube';
+import { ParamDefinition as PD } from 'molstar/lib/mol-util/param-definition';
 import { CCDFormat, MmcifFormat } from 'molstar/lib/mol-model-formats/structure/mmcif';
 import { parseSmilesMolBlock } from '@/renderer/services/rdkitBrowser';
 import { hasDeclaredLigandTopology } from './ligandTopology';
@@ -90,6 +94,104 @@ import {
 export type MolstarTrajectoryFormat = 'mmcif' | 'pdb' | 'pdbqt' | 'pqr' | 'gro' | 'xyz' | 'mol' | 'sdf' | 'mol2';
 
 export type MolstarStructureEngineMode = 'viewport' | 'thumbnail';
+
+export function selectMolstarCubeValues(source: CubeFile, dataIndex: number): Float64Array {
+  const { dim, dataSetIds } = source.header;
+  const datasetCount = dataSetIds.length;
+  const voxelCount = dim[0] * dim[1] * dim[2];
+  const valueCount = voxelCount * datasetCount;
+  if (
+    !dim.every((size) => Number.isSafeInteger(size) && size > 0) ||
+    datasetCount === 0 ||
+    !dataSetIds.every(Number.isSafeInteger) ||
+    !Number.isSafeInteger(valueCount) ||
+    source.values.length !== valueCount ||
+    source.values.some((value) => !Number.isFinite(value))
+  ) {
+    throw new Error('MOLSTAR_CUBE_INVALID_GRID_DATA');
+  }
+  if (!Number.isInteger(dataIndex) || dataIndex < 0 || dataIndex >= datasetCount) {
+    throw new Error('MOLSTAR_CUBE_DATA_INDEX_OUT_OF_RANGE');
+  }
+  if (datasetCount === 1) return source.values;
+  const values = new Float64Array(voxelCount);
+  for (let voxel = 0; voxel < voxelCount; voxel += 1) {
+    // CUBE datasets are interleaved at each voxel; IDs are labels, not offsets.
+    values[voxel] = source.values[voxel * datasetCount + dataIndex];
+  }
+  return values;
+}
+
+function validateMolstarCubeValueTokens(source: Parameters<typeof Tokenizer>[0], cube: CubeFile): void {
+  const tokenizer = Tokenizer(source);
+  const headerLines = 6 + cube.header.atomCount + (cube.header.orbitals ? 1 : 0);
+  for (let line = 0; line < headerLines; line += 1) Tokenizer.readLine(tokenizer);
+  // The locked parser pads missing tokens with zero. Validate raw presence so
+  // an incomplete grid cannot appear to have a losslessly selected channel.
+  for (let value = 0; value < cube.values.length; value += 1) {
+    Tokenizer.skipWhitespace(tokenizer);
+    if (tokenizer.position >= tokenizer.length) throw new Error('MOLSTAR_CUBE_INVALID_GRID_DATA');
+    Tokenizer.eatValue(tokenizer);
+  }
+  Tokenizer.skipWhitespace(tokenizer);
+  if (tokenizer.position < tokenizer.length) throw new Error('MOLSTAR_CUBE_INVALID_GRID_DATA');
+}
+
+export const XScienceVolumeFromCube = StateTransformer.builderFactory('x-science')({
+  name: 'volume-from-cube',
+  display: { name: 'Volume from Cube', description: 'Select a CUBE orbital or scalar dataset' },
+  from: PluginStateObject.Format.Cube,
+  to: PluginStateObject.Volume.Data,
+  params: (a) => ({
+    dataIndex: PD.Select(0, a ? a.data.header.dataSetIds.map((id, index) => [index, `${id}`]) : [[0, '0']]),
+    entryId: PD.Text(''),
+  }),
+})({
+  apply({ a, params, spine }) {
+    const raw = spine.getAncestorOfType(PluginStateObject.Data.String);
+    return Task.create('Create volume from Cube dataset', async (ctx) => {
+      const values = selectMolstarCubeValues(a.data, params.dataIndex);
+      if (!raw) throw new Error('MOLSTAR_CUBE_REQUIRES_TEXT');
+      validateMolstarCubeValueTokens(raw.data, a.data);
+      // Feed one grid into the supported converter, avoiding its multi-dataset
+      // stride bug while retaining its units, axes, matrix and volume statistics.
+      const selected: CubeFile = { ...a.data, header: { ...a.data.header, dataSetIds: [] }, values };
+      const converted = await volumeFromCube(selected, { ...params, label: a.data.name || a.label }).runInContext(ctx);
+      // Keep all original channels and orbital metadata available to subsequent
+      // selector updates and to native positive/negative orbital visuals.
+      const volume = { ...converted, sourceData: CubeFormat.create(a.data) };
+      return new PluginStateObject.Volume.Data(volume, {
+        label: volume.label || 'Volume',
+        description: `Volume ${a.data.header.dim.join('×')}`,
+      });
+    });
+  },
+  dispose({ b }) {
+    b?.data.customProperties.dispose();
+  },
+});
+
+const XScienceCubeProvider: typeof CubeProvider = {
+  ...CubeProvider,
+  parse: async (plugin, data, params) => {
+    const format = plugin
+      .build()
+      .to(data)
+      .apply(StateTransforms.Data.ParseCube, {}, { state: { isGhost: true } });
+    const volume = format
+      .apply(XScienceVolumeFromCube, { entryId: params?.entryId })
+      .apply(StateTransforms.Volume.CustomVolumeProperties);
+    const structure = format
+      .apply(StateTransforms.Model.TrajectoryFromCube, undefined, { state: { isGhost: true } })
+      .apply(StateTransforms.Model.ModelFromTrajectory)
+      .apply(StateTransforms.Model.CustomModelProperties)
+      .apply(StateTransforms.Model.StructureFromModel)
+      .apply(StateTransforms.Model.CustomStructureProperties);
+    await format.commit({ revertOnError: true });
+    if (!volume.selector.isOk) throw new Error('MOLSTAR_CUBE_INVALID_GRID_DATA');
+    return { format: format.selector, volume: volume.selector, structure: structure.selector };
+  },
+};
 
 export type MolstarRepresentationPreset = 'auto' | 'polymer-and-ligand' | 'molecular-surface' | 'illustrative';
 
@@ -1434,6 +1536,9 @@ export async function createMolstarStructureEngine(
   ]);
   const spec = mode === 'viewport' ? createMolstarViewportSpec(DefaultPluginUISpec) : DefaultPluginUISpec();
   if (mode === 'thumbnail') configureThumbnailSpec(spec);
+  spec.actions = spec.actions?.map((action) =>
+    action.action === StateTransforms.Volume.VolumeFromCube ? { ...action, action: XScienceVolumeFromCube } : action
+  );
 
   let reactRoot: ReturnType<typeof createRoot> | undefined;
   let disposed = false;
@@ -1512,6 +1617,10 @@ export async function createMolstarStructureEngine(
     },
     spec,
   });
+  // Replace only this engine's format entry, including extension-based native
+  // loading. Remove first so registry.auto cannot find the built-in provider.
+  plugin.dataFormats.remove('cube');
+  plugin.dataFormats.add('cube', XScienceCubeProvider);
   plugin.canvas3d?.setProps({
     camera: { helper: { axes: { name: 'off', params: {} } } },
   });
@@ -3641,8 +3750,9 @@ export async function createMolstarStructureEngine(
           data: source,
           label: filename,
         });
-        const parsed = await CubeProvider.parse(plugin, raw);
-        await CubeProvider.visuals(plugin, parsed);
+        const cubeProvider = plugin.dataFormats.get('cube')!;
+        const parsed = await cubeProvider.parse(plugin, raw);
+        await cubeProvider.visuals!(plugin, parsed);
       } else {
         const trajectory = await parseChemicalTrajectory(source, filename, format);
         const preset = await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default', {
