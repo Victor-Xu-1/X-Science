@@ -83,7 +83,9 @@
   "researchSources": "来源",
   "researchQuery": "检索",
   "researchEmpty": "本次检索未发现可用来源，可调整关键词或改用其他公开数据库。",
+  "researchUnrecognized": "当前返回内容尚不能展示为来源记录。可展开输出查看；这不代表检索没有结果。",
   "toolPublicDetail": {
+    "researchUnrecognizedSummary": "返回数据待查看",
     "runtimeRepairRequired": "运行环境需修复",
     "sourceMismatch": "来源待核对",
     "fullTextUnavailable": "全文不可用",

@@ -14,7 +14,7 @@ const MessageWebResearchSources: React.FC<{
     () =>
       isResearchActivityTool(toolName)
         ? extractResearchSourcePresentation(input, output)
-        : { query: null, results: [] },
+        : { query: null, results: [], state: 'unrecognized' as const },
     [input, output, toolName]
   );
 
@@ -44,7 +44,9 @@ const MessageWebResearchSources: React.FC<{
           ))}
         </div>
       ) : (
-        <p className='tool-research-sources__empty'>{t('messages.researchEmpty')}</p>
+        <p className='tool-research-sources__empty'>
+          {t(presentation.state === 'empty' ? 'messages.researchEmpty' : 'messages.researchUnrecognized')}
+        </p>
       )}
     </section>
   );

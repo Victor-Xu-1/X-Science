@@ -21,7 +21,6 @@ type geminiStreamAccumulator struct {
 	chunks           int
 	terminated       bool
 	toolBoundarySent bool
-	reasoningSent    bool
 }
 
 func (c *streamingRuntimeModelClient) completeGeminiStream(ctx context.Context, request agentruntime.ModelRequest, emit func(agentruntime.ModelStreamEvent) error) (agentruntime.ModelResponse, error) {
@@ -107,13 +106,14 @@ func readGeminiStream(client *runtimeModelClient, response http.Response, emit f
 			return errors.New("Gemini stream emitted output after its terminal reason")
 		}
 		for _, part := range candidate.Content.Parts {
-			if part.Thought && part.Text != "" && !acc.reasoningSent {
+			if part.Thought && part.Text != "" {
+				// Each decoded private fragment is activity, even when its text
+				// repeats. Emit no body and keep public output state unchanged.
 				if err := emit(agentruntime.ModelStreamEvent{
 					Kind: agentruntime.ModelStreamEventPrivateReasoning, ReasoningActive: true,
 				}); err != nil {
 					return err
 				}
-				acc.reasoningSent = true
 			}
 			if !part.Thought && part.Text != "" {
 				acc.content.WriteString(part.Text)

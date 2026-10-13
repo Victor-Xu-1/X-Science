@@ -139,6 +139,11 @@ func TestCommunicationTimingDoesNotInventPublicTimestampsForPrivateOrCancelledCa
 				}
 			}
 			assertCommunicationTime(t, record, "response_finished_at", now)
+			if record["private_activity_event_count"] != uint32(1) {
+				t.Fatalf("single private callback was not retained on %s: %v", mode, record)
+			}
+			assertCommunicationTime(t, record, "first_private_activity_at", now)
+			assertCommunicationTime(t, record, "last_private_activity_at", now)
 		})
 	}
 }
@@ -239,6 +244,11 @@ func TestCommunicationTimingKeepsPresentationConversionSeparateFromPendingAgent(
 		delegate: communicationTimingModel{run: func(_ context.Context, emit func(agentruntime.ModelStreamEvent) error) (agentruntime.ModelResponse, error) {
 			calls++
 			now = now.Add(time.Second)
+			for activity := 0; activity < calls; activity++ {
+				if err := emit(agentruntime.ModelStreamEvent{ReasoningActive: true}); err != nil {
+					return agentruntime.ModelResponse{}, err
+				}
+			}
 			if err := emit(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventContentDelta, ContentDelta: "Text"}); err != nil {
 				return agentruntime.ModelResponse{}, err
 			}
@@ -258,6 +268,10 @@ func TestCommunicationTimingKeepsPresentationConversionSeparateFromPendingAgent(
 		t.Fatalf("presentation altered primary scope: calls=%d records=%v", calls, records)
 	}
 	assertCommunicationTime(t, records[0], "observer_request_started_at", start.Add(3*time.Second))
+	if records[0]["private_activity_event_count"] != uint32(2) {
+		t.Fatalf("presentation activity lost its own scope: %v", records)
+	}
+	assertCommunicationTime(t, records[0], "first_private_activity_at", start.Add(4*time.Second))
 	now = start.Add(6 * time.Second)
 	observer.notePresentationReady()
 	published = 4
@@ -269,6 +283,10 @@ func TestCommunicationTimingKeepsPresentationConversionSeparateFromPendingAgent(
 	assertCommunicationTime(t, records[1], "first_native_content_at", start.Add(time.Second))
 	assertCommunicationTime(t, records[1], "response_finished_at", start.Add(2*time.Second))
 	assertCommunicationTime(t, records[1], "first_publication_at", start.Add(6*time.Second))
+	if records[1]["private_activity_event_count"] != uint32(1) {
+		t.Fatalf("auxiliary private activity replaced the primary call: %v", records)
+	}
+	assertCommunicationTime(t, records[1], "first_private_activity_at", start.Add(time.Second))
 }
 
 func TestCommunicationTimingRecognizesLegacyContentButNotPrivateActivity(t *testing.T) {

@@ -68,6 +68,9 @@ type ToolCall struct {
 	// Durable consumers must record the call/result pair, but must not allocate
 	// an execution authority or infer that a side effect could have started.
 	RejectedBeforeExecution bool `json:"-"`
+	// PreExecutionRejection is runtime-owned model feedback persisted with the
+	// admission decision. Provider JSON cannot set it or authorize execution.
+	PreExecutionRejection json.RawMessage `json:"-"`
 	// ProviderProtocolDiagnostic carries a bounded adapter-side parse failure
 	// for a call that still has a usable call ID and name. Arguments are replaced
 	// with a safe object so the call/result pair remains durably replayable.

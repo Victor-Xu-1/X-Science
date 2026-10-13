@@ -133,6 +133,12 @@ func (s *Server) checkpointChatModelToolCalls(options SessionRunnerChatOptions, 
 		}
 		if call.RejectedBeforeExecution {
 			toolCallPayload["rejectedBeforeExecution"] = true
+			if len(call.PreExecutionRejection) > 0 {
+				if _, err := agentruntime.PreExecutionRejectionMessage(call); err != nil {
+					return err
+				}
+				toolCallPayload["preExecutionRejection"] = call.PreExecutionRejection
+			}
 		}
 		if call.RuntimeRecovered {
 			toolCallPayload["runtimeRecovered"] = true

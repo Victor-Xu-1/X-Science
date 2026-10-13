@@ -44,7 +44,7 @@ func (observer *sessionRunnerCommunicationObserver) completeStream(ctx context.C
 	observer.record("private_repair")
 	observer.before = observer.publishedBytes()
 	observer.timing = newRunnerCommunicationTiming(observer.now)
-	streamBytes, private := 0, false
+	streamBytes := 0
 	streaming, ok := observer.delegate.(agentruntime.StreamingModelClient)
 	var response agentruntime.ModelResponse
 	var err error
@@ -52,8 +52,12 @@ func (observer *sessionRunnerCommunicationObserver) completeStream(ctx context.C
 		response, err = observer.delegate.Complete(ctx, request)
 	} else {
 		response, err = streaming.CompleteStream(ctx, request, func(event agentruntime.ModelStreamEvent) error {
-			streamBytes += len(event.ContentDelta)
-			private = private || event.ReasoningActive || event.Kind == agentruntime.ModelStreamEventPrivateReasoning
+			if event.ContentDelta != "" {
+				streamBytes += len(event.ContentDelta)
+			}
+			if event.ReasoningActive || event.Kind == agentruntime.ModelStreamEventPrivateReasoning {
+				observer.timing.notePrivateActivity()
+			}
 			if !event.ReasoningActive && (event.Kind == agentruntime.ModelStreamEventContentDelta || event.Kind == "") && event.ContentDelta != "" {
 				observer.timing.noteNativeContent()
 			}
@@ -94,10 +98,10 @@ func (observer *sessionRunnerCommunicationObserver) completeStream(ctx context.C
 	observer.pending = map[string]any{
 		"structured_progress_bytes": structuredBytes,
 		"native_text_bytes":         len(response.Message.Content), "native_stream_bytes": streamBytes,
-		"safe_native_text_bytes":     len(sessionRunnerPublicProgressNarration(response.Message.Content)),
-		"private_reasoning_observed": private, "tool_names": names,
-		"required_tool_choice": agentruntime.InitialToolChoiceRequiresCall(request.ToolChoice),
-		"required_tool_name":   firstNonEmpty(stringValue(choice["name"]), stringValue(mapValue(choice["function"])["name"])),
+		"safe_native_text_bytes": len(sessionRunnerPublicProgressNarration(response.Message.Content)),
+		"tool_names":             names,
+		"required_tool_choice":   agentruntime.InitialToolChoiceRequiresCall(request.ToolChoice),
+		"required_tool_name":     firstNonEmpty(stringValue(choice["name"]), stringValue(mapValue(choice["function"])["name"])),
 	}
 	observer.pending["request_scope"] = "agent"
 	if observer.auxiliary {

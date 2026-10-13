@@ -19,6 +19,47 @@ const tool = (name: string, status: NormalizedToolCall['status'] = 'completed'):
 });
 
 describe('tool step summary model', () => {
+  it('uses explicit zero returned counts as empty source evidence in both languages', () => {
+    for (const value of [{ n_records_returned: 0 }, { rows_retrieved: 0 }]) {
+      const search = { ...tool('search_records'), output: JSON.stringify(value) };
+      expect(buildToolStepResultSummary(search, 'en-US')).toBe('No usable sources');
+      expect(buildToolStepResultSummary(search, 'zh-CN')).toBe('未发现可用来源');
+    }
+    const contradictory = {
+      ...tool('search_records'),
+      output: JSON.stringify({ n_records_returned: 0, rows_retrieved: 2 }),
+    };
+    expect(buildToolStepResultSummary(contradictory, 'en-US')).toBe('Returned data needs review');
+    expect(buildToolStepResultSummary(contradictory, 'zh-CN')).toBe('返回数据待查看');
+  });
+
+  it('classifies decoded empty source pages separately from an empty MCP transport envelope', () => {
+    for (const value of [{ result: '[]' }, { content: [{ type: 'text', text: '[]' }] }]) {
+      const search = { ...tool('search_records'), output: JSON.stringify(value) };
+      expect(buildToolStepResultSummary(search, 'en-US')).toBe('No usable sources');
+      expect(buildToolStepResultSummary(search, 'zh-CN')).toBe('未发现可用来源');
+    }
+    for (const value of [{ content: [] }, { content: '[]' }]) {
+      const search = { ...tool('search_records'), output: JSON.stringify(value) };
+      expect(buildToolStepResultSummary(search, 'en-US')).toBe('Returned data needs review');
+      expect(buildToolStepResultSummary(search, 'zh-CN')).toBe('返回数据待查看');
+    }
+  });
+
+  it('uses the same actual compound source projection for the summary as the expanded source list', () => {
+    const output = JSON.stringify({
+      n_cids_total: 500,
+      cids: [12345, 12345],
+      properties: [{ CID: 12345 }],
+      truncated: true,
+    });
+    expect(buildToolStepResultSummary({ ...tool('mcp__chemistry__pubchem_search_compounds'), output }, 'en-US')).toBe(
+      '1 result'
+    );
+    expect(buildToolStepResultSummary({ ...tool('mcp__chemistry__pubchem_search_compounds'), output }, 'zh-CN')).toBe(
+      '1 条结果'
+    );
+  });
   it('does not label settled or interrupted background operations as processing', () => {
     for (const [phase, label] of Object.entries({
       operation_completed: '已完成',
@@ -413,7 +454,7 @@ describe('tool step summary model', () => {
     expect(buildToolStepPublicPresentation(search, 'en-US')).toMatchObject({
       label: 'Search sources',
       detail: 'tumor immunotherapy single-cell response',
-      resultSummary: '8 results',
+      resultSummary: 'Returned data needs review',
       showResearchSources: true,
     });
   });

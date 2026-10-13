@@ -18,6 +18,7 @@ import {
 import type { XScienceRuntimeFailureKind, XScienceRuntimeSnapshot } from './runtimeOperationsModel';
 import XScienceTaskCenterPanel, { type XScienceTaskCenterMetrics } from './XScienceTaskCenterPanel';
 import { useTaskCapsulePlacement } from './useTaskCapsulePlacement';
+import { runtimePausePresentation } from './runtimePausePresentation';
 import './XScienceTaskStatus.css';
 
 export type XScienceTaskStatusError = 'load' | 'refresh' | null;
@@ -397,8 +398,9 @@ const XScienceTaskStatus: React.FC<XScienceTaskStatusProps> = ({
     } else if (waitingForModel) {
       title = t('conversation.xscienceRuntime.runtimeOperations.taskWaitingModel');
       dataState = 'waiting_input';
-    } else if (resumablePause) {
-      title = t('conversation.xscienceRuntime.runtimeOperations.taskPaused');
+    } else if (resumablePause || phase === 'paused') {
+      const pause = runtimePausePresentation(phase === 'paused' ? (status?.failureReason ?? null) : null);
+      title = t(`conversation.xscienceRuntime.runtimeOperations.${pause.title}`);
     } else if ((phase === 'running' || phase === 'starting' || phase === 'queued') && snapshot?.retryReason) {
       title = t(
         snapshot.retryReason === 'model_provider_temporarily_unavailable'
