@@ -196,9 +196,11 @@ Installation, configuration and recovery:
 
 ## License / 许可
 
-First-party code is **AGPL-3.0-only**, except where separate component terms apply.
-Compliant commercial use is permitted. See the unchanged [LICENSE.txt](LICENSE.txt),
-[commercial licensing boundaries](COMMERCIAL-LICENSE.md) and
+First-party code is licensed under the **Apache License 2.0** (`Apache-2.0`),
+except where separate component terms apply. Commercial use, modification and
+redistribution are permitted subject to the license. See [LICENSE.txt](LICENSE.txt),
+[licensing and commercial options](COMMERCIAL-LICENSE.md) and
 [third-party inventory](docs/THIRD_PARTY.md).
 
+第一方代码采用 **Apache License 2.0**，允许依照协议进行商业使用、修改和再分发。
 第三方组件保留各自许可与来源声明；本项目的许可说明不替代它们。

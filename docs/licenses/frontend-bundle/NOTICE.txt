@@ -2,7 +2,7 @@ X-Science — frontend third-party notices
 ===============================================
 
 Third-party packages retain their respective licenses and copyrights.
-These terms are not replaced by the root AGPL or an X-Science commercial agreement.
+These terms are not replaced by the root Apache 2.0 license or an X-Science commercial agreement.
 Code is bundled/minified for browser use; upstream package implementations are not edited.
 
 This notice covers packages in the browser bundle and the copied RDKit runtime.

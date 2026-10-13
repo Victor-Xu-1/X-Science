@@ -5,8 +5,8 @@ dependencies. Each version directory contains `SOURCE.json`, the exact registry
 archive URL and integrity digest, and the upstream license/copyright files.
 The release packager copies this directory under `docs/licenses/`.
 
-These are third-party grants, not claims of XScience ownership. The root AGPL and
-optional commercial license do not replace the upstream terms. This curated
+These are third-party grants, not claims of XScience ownership. The root Apache
+2.0 license and any separate commercial agreement do not replace upstream terms. This curated
 directory is supplemented by `../frontend-bundle/NOTICE.txt`, which preserves
 the full notices for the browser bundle and copied RDKit runtime. Identical
 notices are shared through a package/version index without dropping copyright
