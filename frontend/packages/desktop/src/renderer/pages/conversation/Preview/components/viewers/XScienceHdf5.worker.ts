@@ -143,6 +143,11 @@ function readDistribution(
   const counts = new Map<string, number>();
   for (const rawCode of codeValues) {
     const code = Number(rawCode);
+    // AnnData categorical -1 is a missing cell annotation, not an invalid index.
+    if (code === -1) {
+      counts.set(UNLABELED_CATEGORY, (counts.get(UNLABELED_CATEGORY) || 0) + 1);
+      continue;
+    }
     if (!Number.isInteger(code) || code < 0 || code >= categoryValues.length) continue;
     const value = categoryValues[code] || UNLABELED_CATEGORY;
     counts.set(value, (counts.get(value) || 0) + 1);

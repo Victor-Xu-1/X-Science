@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "7024d3c1728571e41b2b7f75c45a5d54f5a921edcb7280e5ef04f1208781c2c0",
+  "adaptationFingerprintSHA256": "4a5621fa04290087d7f3b05bae96af7ce96b0ce4643adbbdf4438ebe7f3b2681",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
-  "additionFingerprintSHA256": "e041968303b8d60e62bc54f213d6418d714482bc497089aa864eda31f80f6734",
+  "additionFingerprintSHA256": "3f6079d84085c0dbd8601605041faa54fa31e46721225171508c67978d1dbb38",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 276,
     "adaptedSourceFiles": 785,
     "removedSourceFiles": 293,
-    "addedFiles": 930
+    "addedFiles": 935
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "6307fd5109fd185d62f318250bb057b438388104d99d82db5a2a0fb3454c52f3",
+      "targetSHA256": "45288a24f7c7bddefbe53292a935124a2beb8c676ce4210b65e922fb4d841a1a",
       "bytes": 4392,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "f9c3faf479050753ece4f18bdc1802ed89ad46da1ed140e9487f2a18bbd4853d",
+      "targetSHA256": "ccf3279c646c945db9cb466c07d5957f9df4d5ee5073f2c7f5080db56acb0282",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -1729,8 +1729,8 @@
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/XScienceHdf5.worker.ts",
       "originalPath": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedHdf5.worker.ts",
       "sourceSHA256": "cab3ed06048b52f04ae229eb746243305168c6eec9269ea4ac612846c2e34d4a",
-      "targetSHA256": "d4419a861b418a9353fe8ee296f2e2c37dd9b1586888f20cb6cd187eb4930ac7",
-      "bytes": 17054,
+      "targetSHA256": "413e1d2be5ca2cae197613ff51c798bd600cedeb71d9ec58fa73223486064c1d",
+      "bytes": 17262,
       "reason": "Move genuine imported source to the current X-Science namespace. Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -4168,8 +4168,8 @@
       "path": "tests/unit/previews/XScienceHdf5Viewer.dom.test.tsx",
       "originalPath": "tests/unit/previews/SynonBiomedHdf5Viewer.dom.test.tsx",
       "sourceSHA256": "790115f1e9a6a3f119e56bececa5ebcdf85a872ba3cb47d80b0e3431963e5ea5",
-      "targetSHA256": "6e6887cf45419cee46bed77e93b987def4faf11ce32b7475cb368dc33b73758f",
-      "bytes": 6836,
+      "targetSHA256": "af0a5bd3e1ec72933c26ff45efd9bb8efc9090be3045258cfad83e0dbc41af1a",
+      "bytes": 9013,
       "reason": "Move genuine imported source to the current X-Science namespace. Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -7523,7 +7523,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "c822f08282bfcbff64400f984eae018bcea4ddc85392286137c32071ab104a2d",
+      "sha256": "a7614e20a008e3a2910edfdbabfca1163906ead760f00fa8cddf5efb2eda10d5",
       "bytes": 558186,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -10768,6 +10768,30 @@
       "reason": "Project root identity and shared locale resources into the pre-JavaScript document without inline executable code."
     },
     {
+      "path": "tests/fixtures/anndata-categorical/README.md",
+      "sha256": "d9a13c15b918be881dfbf362c1af8b0d093447bd74995e3e4ae40ad813d8e0cf",
+      "bytes": 1537,
+      "reason": "Document the first-party synthetic AnnData categorical metadata scaffold, locked-parser regression use, optional regeneration requirements, and scientific-validation limits."
+    },
+    {
+      "path": "tests/fixtures/anndata-categorical/categorical-template.h5ad",
+      "sha256": "ec5b67f2ec1444087e48d8198fb9cd2e66af2049c562fd6837706875eb32236b",
+      "bytes": 7308,
+      "reason": "Provide a tiny first-party synthetic AnnData categorical metadata scaffold for real-parser composition regressions, without user records or research results."
+    },
+    {
+      "path": "tests/fixtures/anndata-categorical/conform-ordered-bool.py",
+      "sha256": "05817cb19f85711b749e56667a2caeed045dbbc2d449374703239222ad14d009",
+      "bytes": 2391,
+      "reason": "Regenerate the scalar HDF5 boolean enum in the first-party synthetic test scaffold using optional Python standard-library and system HDF5 tooling, without a routine test runtime dependency."
+    },
+    {
+      "path": "tests/fixtures/anndata-categorical/create-template.mjs",
+      "sha256": "32a827c5c3eb200b2b32a84243c71182c525ac02e1f00a9ce5271cc816adc360",
+      "bytes": 1493,
+      "reason": "Regenerate the bounded first-party synthetic AnnData categorical metadata scaffold with locked h5wasm and the optional local enum helper, without user artifacts or research results."
+    },
+    {
       "path": "tests/fixtures/structureLigands.ts",
       "sha256": "6df0b02a29f97fe0b0a46c7f2b1fb8bb38ee38654a03d83ffe6ca773f808d411",
       "bytes": 4228,
@@ -11137,6 +11161,12 @@
       "path": "tests/unit/previews/PreviewTransitionSnapshot.dom.test.tsx",
       "sha256": "dbec5eaead1f9b318f8a7aab6adf9f02a4f7df396d9b1b25abdf6f365032dd0f",
       "bytes": 3916,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/previews/XScienceHdf5.worker.test.ts",
+      "sha256": "58c628fb88bfe7c8c45e4f3f2ed7b4f341bf4579dc649be5229a3c4f7f00177a",
+      "bytes": 10200,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
