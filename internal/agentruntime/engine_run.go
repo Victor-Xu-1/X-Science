@@ -2,6 +2,7 @@ package agentruntime
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 )
@@ -149,8 +150,13 @@ func (e Engine) Run(ctx context.Context, request RunRequest) (RunResult, error) 
 					continue
 				}
 			}
-			for index := range rejectedToolCalls {
+			for index, rejection := range rejectedToolCalls {
 				message.ToolCalls[index].RejectedBeforeExecution = true
+				feedback, feedbackErr := modelVisibleToolRejectionMessage(message.ToolCalls[index], rejection)
+				if feedbackErr != nil {
+					return interruptedRun(messages, feedbackErr)
+				}
+				message.ToolCalls[index].PreExecutionRejection = json.RawMessage(feedback.Content)
 			}
 			// Exhaustion closes an invalid proposal family, never a capability.
 			// A corrected native proposal still passes its ordinary admission;

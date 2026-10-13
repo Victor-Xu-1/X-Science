@@ -115,6 +115,23 @@ func modelMessageMediaBytes(messages []Message) int64 {
 }
 
 func (e Engine) executeTool(ctx context.Context, call ToolCall) (Message, error) {
+	if call.RejectedBeforeExecution {
+		if err := ctx.Err(); err != nil {
+			return Message{}, err
+		}
+		message, err := PreExecutionRejectionMessage(call)
+		if err != nil {
+			return Message{}, err
+		}
+		if err := e.emitLifecycleEvent(ctx, Event{
+			Type: EventToolCompleted, ToolName: call.Name, ToolCallID: call.ID,
+			Arguments: string(call.Arguments), Result: message.Content,
+			RejectedBeforeExecution: true,
+		}); err != nil {
+			return message, err
+		}
+		return message, nil
+	}
 	if call.ID == "" {
 		call.ID = firstNonEmpty(call.Name, "invalid_tool_call")
 	}

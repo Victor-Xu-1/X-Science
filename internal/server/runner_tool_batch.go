@@ -65,7 +65,13 @@ func (s *Server) resumePendingAgentToolCalls(
 			}
 			run.ToolSourceEventIDs[item.ToolCallID] = item.StartedEventID
 		}
-		isKernel := kernelcontract.Admitted(item.ToolName, item.ArgumentsJSON)
+		rejection, err := s.workspaceStore.ReadPendingToolCallRejection(
+			ctx, run.Transcript.Claim, batch.BatchID, item.Ordinal,
+		)
+		if err != nil {
+			return resumed, err
+		}
+		isKernel := !rejection.Rejected && kernelcontract.Admitted(item.ToolName, item.ArgumentsJSON)
 		if isKernel {
 			operation, found, err := s.workspaceStore.GetKernelLocalOperationByToolCall(
 				ctx, batch.OwnerUserID, batch.StreamUID, item.ToolCallID,
@@ -388,7 +394,9 @@ func (s *Server) resumePendingAgentToolCalls(
 		}
 		call := agentruntime.ToolCall{
 			ID: item.ToolCallID, Name: item.ToolName, Arguments: append(json.RawMessage(nil), item.ArgumentsJSON...),
-			Resumed: resumingInterruptedReadOnlyCall,
+			Resumed:                 resumingInterruptedReadOnlyCall,
+			RejectedBeforeExecution: rejection.Rejected,
+			PreExecutionRejection:   rejection.FeedbackJSON,
 		}
 		toolCtx := withTranscriptRunnerChatRun(ctx, run)
 		toolCtx = withWorkspaceMCPSourceEvidenceCollector(toolCtx)

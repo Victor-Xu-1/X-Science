@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"x-science/internal/agentruntime"
 	eventjournal "x-science/internal/persistence/journal"
 	transcriptstore "x-science/internal/persistence/transcript"
 )
@@ -112,6 +113,25 @@ func (s *Server) loadTranscriptRunnerReplay(
 			// matching tool result. The immutable event type is carried separately
 			// as non-serialized in-memory provenance below.
 			message["type"] = "runner_checkpoint"
+			if stringValue(message["reasonCode"]) == "terminal_frame_orphaned_tool" &&
+				stringValue(message["toolPhase"]) == "outcome_unknown" {
+				rejection, err := s.workspaceStore.ReadTerminalToolCallRejection(ctx, authority.Claim, projectedEvent.Event.EventID)
+				if err != nil {
+					return nil, err
+				}
+				if rejection.Rejected {
+					feedback, err := agentruntime.PreExecutionRejectionMessage(agentruntime.ToolCall{
+						ID: rejection.ToolCallID, Name: rejection.ToolName,
+						RejectedBeforeExecution: true, PreExecutionRejection: rejection.FeedbackJSON,
+					})
+					if err != nil {
+						return nil, err
+					}
+					// Read-only replay of the stronger original admission fact.
+					// The immutable orphan audit and terminal batch stay intact.
+					message["toolResult"] = decodeToolEventJSON(feedback.Content)
+				}
+			}
 		default:
 			return nil, fmt.Errorf("unsupported transcript replay event type %q", projectedEvent.Event.Type)
 		}
