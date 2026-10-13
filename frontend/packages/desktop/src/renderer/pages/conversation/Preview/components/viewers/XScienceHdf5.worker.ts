@@ -1,7 +1,8 @@
 /// <reference lib="webworker" />
 
-import h5wasm from 'h5wasm';
-import type { Dataset, Datatype, Entity, Group } from 'h5wasm';
+import h5wasm, { Module } from 'h5wasm';
+import type { Attribute, Dataset, Datatype, Entity, Group } from 'h5wasm';
+import { formatHdf5DisplayValue } from './xScienceHdf5Model';
 import type {
   AnnDataDistribution,
   AnnDataEmbedding,
@@ -401,7 +402,7 @@ function readDataset(dataset: Dataset): Hdf5DatasetDetail {
   let truncated = false;
 
   if (!shape || shape.length === 0) {
-    preview = normalizeValue(dataset.json_value);
+    preview = normalizeValue(readPreviewValue(dataset));
   } else {
     const ranges = buildPreviewRanges(shape);
     const previewSize = ranges.reduce((total, range) => total * Math.max(1, Number(range[1]) || 1), 1);
@@ -433,7 +434,24 @@ function buildPreviewRanges(shape: number[]): [number, number][] {
 function readAttributeSummaries(entity: InspectableEntity): Hdf5AttributeSummary[] {
   return Object.entries(entity.attrs)
     .slice(0, 30)
-    .map(([name, attribute]) => ({ name, value: truncateString(safeJson(attribute.json_value), MAX_ATTRIBUTE_CHARS) }));
+    .map(([name, attribute]) => ({
+      name,
+      value: truncateString(safeDisplayValue(readPreviewValue(attribute)), MAX_ATTRIBUTE_CHARS),
+    }));
+}
+
+function readPreviewValue(source: Dataset | Attribute): unknown {
+  const { type, size } = source.metadata;
+  // h5wasm's JSON conversion rounds 64-bit integers to Number before our
+  // bigint normalization. Keep raw integers exact, but retain JSON semantics
+  // for other datatypes, including h5py's FALSE/TRUE boolean enums.
+  if (type !== Module.H5T_class_t.H5T_INTEGER.value || size !== 8) return source.json_value;
+  const value = source.value;
+  // JSON arrays were capped by normalizeValue; retain that bound for raw
+  // integer attribute arrays without materializing their entire contents.
+  return value instanceof BigInt64Array || value instanceof BigUint64Array
+    ? value.subarray(0, MAX_PREVIEW_VALUES)
+    : value;
 }
 
 function resolveKind(entity: InspectableEntity): Hdf5TreeNode['kind'] {
@@ -448,7 +466,7 @@ function isInspectableEntity(entity: Entity | null): entity is InspectableEntity
 }
 
 function formatDtype(dtype: unknown): string {
-  return typeof dtype === 'string' ? dtype : truncateString(safeJson(dtype), MAX_ATTRIBUTE_CHARS);
+  return typeof dtype === 'string' ? dtype : truncateString(safeDisplayValue(dtype), MAX_ATTRIBUTE_CHARS);
 }
 
 function normalizeValue(value: unknown): unknown {
@@ -465,9 +483,9 @@ function normalizeValue(value: unknown): unknown {
   return value;
 }
 
-function safeJson(value: unknown): string {
+function safeDisplayValue(value: unknown): string {
   try {
-    return JSON.stringify(normalizeValue(value));
+    return formatHdf5DisplayValue(normalizeValue(value)) ?? String(value);
   } catch {
     return String(value);
   }

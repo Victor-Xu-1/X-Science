@@ -6,6 +6,8 @@ import type {
 } from '@/renderer/pages/conversation/Preview/components/viewers/xScienceHdf5Model';
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import React from 'react';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderWithI18n } from '../i18nTestUtils';
 
@@ -117,6 +119,217 @@ describe('XScienceHdf5Viewer', () => {
       '/api/artifacts/artifact-1',
       expect.objectContaining({ credentials: 'same-origin', signal: expect.any(AbortSignal) })
     );
+  });
+
+  it('renders exact integer decimals and boolean metadata from the real HDF5 worker', async () => {
+    vi.resetModules();
+    const { default: h5wasm } = await import('h5wasm');
+    const { FS } = await h5wasm.ready;
+    const filename = `/viewer-integers-${crypto.randomUUID()}.h5`;
+    const template = readFileSync(
+      path.resolve(import.meta.dirname, '../../fixtures/anndata-categorical/categorical-template.h5ad')
+    );
+    FS.writeFile(filename, template);
+    const file = new h5wasm.File(filename, 'a');
+    const integers = [
+      { name: 'signed_unsafe', dtype: '<q', value: '9007199254740993' },
+      { name: 'signed_min', dtype: '<q', value: '-9223372036854775808' },
+      { name: 'signed_max', dtype: '<q', value: '9223372036854775807' },
+      { name: 'unsigned_max', dtype: '<Q', value: '18446744073709551615' },
+      { name: 'timestamp_a', dtype: '<q', value: '1760000000000000000' },
+      { name: 'timestamp_b', dtype: '<q', value: '1760000000000000001' },
+    ];
+    try {
+      for (const { name, dtype, value } of integers) {
+        const data = dtype === '<q' ? new BigInt64Array([BigInt(value)]) : new BigUint64Array([BigInt(value)]);
+        file.create_dataset({ name, data, dtype, shape: [] });
+        file.create_dataset({ name: `${name}_vector`, data, dtype, shape: [1] });
+        file.create_attribute(name, data, [], dtype);
+      }
+      file.create_attribute(
+        'integer_vector',
+        new BigInt64Array(integers.slice(0, 3).map(({ value }) => BigInt(value)))
+      );
+    } finally {
+      file.close();
+    }
+    const bytes = FS.readFile(filename).slice();
+    FS.unlink(filename);
+
+    let dispatch: (event: MessageEvent<Hdf5WorkerRequest>) => void;
+    let receive: (message: Hdf5WorkerResponse) => void;
+    // Adapt only message transport. The actual worker and locked browser
+    // h5wasm parse real bytes and feed the unchanged production presenter.
+    vi.stubGlobal('self', {
+      location: window.location,
+      addEventListener(_type: string, listener: typeof dispatch) {
+        dispatch = listener;
+      },
+      postMessage(message: Hdf5WorkerResponse) {
+        receive(structuredClone(message));
+      },
+    });
+    await import('@/renderer/pages/conversation/Preview/components/viewers/XScienceHdf5.worker');
+    class RealHdf5Worker {
+      listener: ((event: MessageEvent<Hdf5WorkerResponse>) => void) | undefined;
+      addEventListener(type: string, listener: EventListener) {
+        if (type === 'message') this.listener = listener as typeof this.listener;
+      }
+      removeEventListener(type: string) {
+        if (type === 'message') this.listener = undefined;
+      }
+      postMessage(message: Hdf5WorkerRequest) {
+        receive = (data) => this.listener?.({ data } as MessageEvent<Hdf5WorkerResponse>);
+        dispatch({ data: message } as MessageEvent<Hdf5WorkerRequest>);
+      }
+      terminate() {
+        this.listener = undefined;
+      }
+    }
+    vi.stubGlobal('Worker', RealHdf5Worker);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(bytes, { status: 200 })));
+    await renderWithI18n(<XScienceHdf5Viewer filename='integers.h5' contentUrl='/synthetic/integers' />, 'en-US');
+    await waitFor(() => expect(document.querySelector('[data-hdf5-viewer="ready"]')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('tab', { name: 'Data structure' }));
+    const details = screen.getByRole('region', { name: 'HDF5 node details' });
+    for (const { name, value } of integers) {
+      const row = within(details).getByText(name).parentElement!;
+      expect(row).toHaveTextContent(JSON.stringify(value));
+    }
+    expect(within(details).getByText('integer_vector').parentElement).toHaveTextContent(
+      JSON.stringify(integers.slice(0, 3).map(({ value }) => value))
+    );
+
+    const select = (name: string) => {
+      const item = [...document.querySelectorAll('[role="treeitem"]')].find(
+        (node) => node.querySelector('span.truncate')?.textContent === name
+      );
+      if (!item) throw new Error(`Missing HDF5 tree item: ${name}`);
+      fireEvent.click(item.querySelector('button')!);
+    };
+    for (const { name, value } of integers) {
+      select(name);
+      await waitFor(() => expect(details.querySelector('pre')?.textContent).toBe(JSON.stringify(value, null, 2)));
+      expect(details).not.toHaveTextContent('Showing a bounded preview');
+      select(`${name}_vector`);
+      await waitFor(() => expect(details.querySelector('pre')?.textContent).toBe(JSON.stringify([value], null, 2)));
+    }
+    select('obs');
+    select('cell_type');
+    expect(within(details).getByText('ordered').parentElement).toHaveTextContent('false');
+    expect(within(details).getByText('ordered').parentElement).not.toHaveTextContent('0');
+  });
+
+  it('renders nonfinite numbers, literal strings and actual null distinctly from the real HDF5 worker', async () => {
+    vi.resetModules();
+    const { default: h5wasm } = await import('h5wasm');
+    const { FS } = await h5wasm.ready;
+    const filename = `/viewer-nonfinite-${crypto.randomUUID()}.h5`;
+    FS.writeFile(
+      filename,
+      readFileSync(path.resolve(import.meta.dirname, '../../../node_modules/h5wasm/test/empty.h5'))
+    );
+    const file = new h5wasm.File(filename, 'a');
+    const cases: Array<{ name: string; data: Float32Array | Float64Array; text: string; shape: number[] }> = [
+      { name: 'nan64', data: new Float64Array([NaN]), text: 'NaN', shape: [] },
+      { name: 'positive_infinity64', data: new Float64Array([Infinity]), text: 'Infinity', shape: [] },
+      { name: 'negative_infinity64', data: new Float64Array([-Infinity]), text: '-Infinity', shape: [] },
+      { name: 'nan32', data: new Float32Array([NaN]), text: 'NaN', shape: [] },
+      { name: 'positive_infinity32', data: new Float32Array([Infinity]), text: 'Infinity', shape: [] },
+      { name: 'negative_infinity32', data: new Float32Array([-Infinity]), text: '-Infinity', shape: [] },
+      {
+        name: 'mixed',
+        data: new Float64Array([NaN, Infinity, -Infinity, 0, 1.25]),
+        text: '[\n  NaN,\n  Infinity,\n  -Infinity,\n  0,\n  1.25\n]',
+        shape: [5],
+      },
+      { name: 'finite', data: new Float64Array([0, 1.25, -2.5]), text: '[\n  0,\n  1.25,\n  -2.5\n]', shape: [3] },
+      { name: 'empty', data: new Float64Array([]), text: '[]', shape: [0] },
+    ];
+    try {
+      for (const { name, data, shape } of cases) {
+        file.create_dataset({ name, data, shape });
+        file.create_attribute(name, data, shape);
+      }
+      for (const value of ['NaN', 'Infinity', '-Infinity', 'null']) {
+        file.create_dataset({ name: `literal_${value}`, data: [value], dtype: 'S', shape: [] });
+        file.create_attribute(`literal_${value}`, value);
+      }
+      file.create_dataset({ name: 'bounded', data: new Float64Array(401).fill(Infinity) });
+    } finally {
+      file.close();
+    }
+    const bytes = FS.readFile(filename).slice();
+    FS.unlink(filename);
+
+    let dispatch: (event: MessageEvent<Hdf5WorkerRequest>) => void;
+    let receive: (message: Hdf5WorkerResponse) => void;
+    vi.stubGlobal('self', {
+      location: window.location,
+      addEventListener(_type: string, listener: typeof dispatch) {
+        dispatch = listener;
+      },
+      postMessage(message: Hdf5WorkerResponse) {
+        receive(structuredClone(message));
+      },
+    });
+    await import('@/renderer/pages/conversation/Preview/components/viewers/XScienceHdf5.worker');
+    class RealHdf5Worker {
+      listener: ((event: MessageEvent<Hdf5WorkerResponse>) => void) | undefined;
+      addEventListener(type: string, listener: EventListener) {
+        if (type === 'message') this.listener = listener as typeof this.listener;
+      }
+      removeEventListener(type: string) {
+        if (type === 'message') this.listener = undefined;
+      }
+      postMessage(message: Hdf5WorkerRequest) {
+        receive = (data) => this.listener?.({ data } as MessageEvent<Hdf5WorkerResponse>);
+        dispatch({ data: message } as MessageEvent<Hdf5WorkerRequest>);
+      }
+      terminate() {
+        this.listener = undefined;
+      }
+    }
+    vi.stubGlobal('Worker', RealHdf5Worker);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(bytes, { status: 200 })));
+    await renderWithI18n(<XScienceHdf5Viewer filename='nonfinite.h5' contentUrl='/synthetic/nonfinite' />, 'en-US');
+    await waitFor(() => expect(document.querySelector('[data-hdf5-viewer="ready"]')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('tab', { name: 'Data structure' }));
+    const details = screen.getByRole('region', { name: 'HDF5 node details' });
+    const attribute = (name: string) =>
+      within(details).getByText(name).parentElement!.querySelector('code')!.textContent;
+    for (const { name, text } of cases) expect.soft(attribute(name)).toBe(text.replace(/\n\s*/g, ''));
+    expect(attribute('empty_attr')).toBe('null');
+    for (const value of ['NaN', 'Infinity', '-Infinity', 'null'])
+      expect(attribute(`literal_${value}`)).toBe(JSON.stringify(value));
+
+    const select = (name: string) => {
+      const item = [...document.querySelectorAll('[role="treeitem"]')].find(
+        (node) => node.querySelector('span.truncate')?.textContent === name
+      );
+      if (!item) throw new Error(`Missing HDF5 tree item: ${name}`);
+      fireEvent.click(item.querySelector('button')!);
+    };
+    for (const { name, text } of cases) {
+      select(name);
+      await waitFor(() => expect(details.querySelector('pre')?.textContent).toBe(text));
+      expect(details).not.toHaveTextContent('Only the first 400 values are shown in this bounded slice.');
+    }
+    for (const value of ['NaN', 'Infinity', '-Infinity', 'null']) {
+      select(`literal_${value}`);
+      await waitFor(() => expect(details.querySelector('pre')?.textContent).toBe(JSON.stringify(value)));
+    }
+    select('empty_dataset');
+    await waitFor(() => expect(details.querySelector('pre')?.textContent).toBe('null'));
+    select('bounded');
+    await waitFor(() =>
+      expect(details).toHaveTextContent('Only the first 400 values are shown in this bounded slice.')
+    );
+    expect(details.querySelector('pre')?.textContent).toBe(`[\n${Array(400).fill('  Infinity').join(',\n')}\n]`);
+    // Repeat navigation to catch a stale bounded detail or truncation label.
+    select('nan64');
+    await waitFor(() => expect(details.querySelector('pre')?.textContent).toBe('NaN'));
+    expect(details).not.toHaveTextContent('Only the first 400 values are shown in this bounded slice.');
   });
 
   it.each([
