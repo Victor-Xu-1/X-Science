@@ -151,6 +151,13 @@ go test ./internal/server -run 'TestStaticOutputBudget|TestOutputBudget|TestCont
 
 ### First-response attribution · 首个输出归因
 
+公开进度使用既有独立 envelope 协议，与工具参数和最终答案分开。完整块先经过统一
+解码、语言与公开叙述检查，再走原持久发布边界；通过校验的块不等待整个工具响应
+尾部。非公开正文仍是候选，工具仍须完整响应和原 admission；后续请求失败不把已
+接受的进度冒充成成功。残缺或无效块不公开，不从未闭合工具 JSON 中截取字段。
+语言转换仍在主请求完成后进行，不在流回调中递归启动第二个模型请求。新请求只
+指导独立公开块，旧工具进度字段仅作兼容读取，不再注入或强制工具参数。
+
 既有 communication audit 只记录请求级时间、计数和封闭来源，不保存正文、参数或私有
 思考。`observer_request_started_at` 是观察层开始委托的时间；原生正文、原生工具边界、
 完整响应、公开进度就绪、语言处理就绪和持久发布确认分别记录首次时间，未观察到的

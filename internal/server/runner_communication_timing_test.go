@@ -223,6 +223,9 @@ func TestCommunicationTimingNonStreamingDelegateHasNoInventedArrival(t *testing.
 	if record["response_finished_at"] == nil || record["first_native_content_at"] != nil || record["first_publication_at"] != nil {
 		t.Fatalf("nonstreaming response invented streaming or publication: %v", record)
 	}
+	if record["native_stream_bytes"] != 0 {
+		t.Fatalf("terminal adaptation counted as native streaming: %v", record)
+	}
 }
 
 func TestCommunicationTimingKeepsPresentationConversionSeparateFromPendingAgent(t *testing.T) {

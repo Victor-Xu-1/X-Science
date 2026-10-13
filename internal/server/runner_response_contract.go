@@ -5,63 +5,34 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"maps"
 	"strings"
 
 	"x-science/internal/agentruntime"
 )
 
 const runnerPublicProgressField = "public_progress"
-const runnerPublicProgressFieldDescription = "Public progress following the shared communication contract: one or two short sentences with an observed finding or uncertainty, then the next action and its purpose, in the user's language. Separate from the operation label and final answer."
 
-func runnerPublicProgressDescription(due bool) string {
+func runnerPublicProgressCadence(due bool) string {
 	if due {
-		return runnerPublicProgressFieldDescription + " An update is due. Every call, including each call in a parallel batch, must include a brief, nonempty public_progress."
+		return "A public progress update is due. Begin with one complete public progress envelope describing the immediate next action and its purpose, before generating tool arguments. Do not wait to plan every later step."
 	}
-	return runnerPublicProgressFieldDescription + " An update is not due. Routine operations may use an empty string. In parallel batches update only on the first call; use an empty string for remaining calls."
+	return "An additional public progress update is optional. Use a public progress envelope only for materially new progress; do not repeat an unchanged update for parallel calls."
 }
 
-// This is a model-facing response field, not an executable tool argument.
-// It shares the primary model request with the selected action. The executable
-// schema, permissions, admission checks and gateway remain unchanged.
+// Cadence is request guidance, not a second tool schema or execution gate.
+// The public envelope contract has one shared instruction authority. Keep the
+// former tool field reserved only so legacy replay stripping cannot remove a
+// real executable argument with the same name.
 func projectRunnerResponseContract(request agentruntime.ModelRequest, due bool) (agentruntime.ModelRequest, error) {
-	request.Tools = append([]agentruntime.ToolSchema(nil), request.Tools...)
-	for index, tool := range request.Tools {
-		parameters := maps.Clone(tool.Parameters)
-		if parameters == nil {
-			parameters = map[string]any{"type": "object"}
-		}
-		properties, _ := parameters["properties"].(map[string]any)
-		properties = maps.Clone(properties)
-		if properties == nil {
-			properties = map[string]any{}
-		}
+	for _, tool := range request.Tools {
+		properties, _ := tool.Parameters["properties"].(map[string]any)
 		if _, collision := properties[runnerPublicProgressField]; collision {
 			return request, fmt.Errorf("tool %q reserves the primary response progress field", tool.Name)
 		}
-		minimum := 0
-		if due {
-			minimum = 1
-		}
-		properties[runnerPublicProgressField] = map[string]any{
-			"type": "string", "minLength": minimum, "maxLength": sessionRunnerPublicProgressNarrationMaxRunes,
-			"description": runnerPublicProgressDescription(due),
-		}
-		required := []string{}
-		switch values := parameters["required"].(type) {
-		case []string:
-			required = append(required, values...)
-		case []any:
-			for _, value := range values {
-				if name, ok := value.(string); ok {
-					required = append(required, name)
-				}
-			}
-		}
-		parameters["properties"] = properties
-		parameters["required"] = append(required, runnerPublicProgressField)
-		request.Tools[index].Parameters = parameters
 	}
+	request.Messages = append(append([]agentruntime.Message(nil), request.Messages...), agentruntime.Message{
+		Role: "system", Content: runnerPublicProgressCadence(due), ContextUsageSource: agentruntime.ContextUsageSystemPrompt,
+	})
 	return request, nil
 }
 
@@ -70,22 +41,59 @@ type sessionRunnerResponseContractClient struct {
 	progressDue func() bool
 	// Observation only; the canonical publication boundary remains downstream.
 	progressReady func(string)
+	// Optional invalid-envelope diagnostic, without content or execution events.
+	presentationDiagnostic func()
 }
 
 func (client *sessionRunnerResponseContractClient) Complete(ctx context.Context, request agentruntime.ModelRequest) (agentruntime.ModelResponse, error) {
 	return client.CompleteStream(ctx, request, nil)
 }
 
-// Select one narration source only after the response is complete. A native
-// tool-start token does not validate its arguments; interrupted drafts remain
-// private. Structured progress owns its explicit role; native text is fallback.
+// Independent, fully decoded public blocks can precede a complete action.
+// Native drafts and legacy tool-field narration still require the complete
+// response; neither a partial tool boundary nor a partial JSON field releases it.
 func (client *sessionRunnerResponseContractClient) CompleteStream(ctx context.Context, request agentruntime.ModelRequest, emit func(agentruntime.ModelStreamEvent) error) (agentruntime.ModelResponse, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	projected, err := projectRunnerResponseContract(request, client.progressDue != nil && client.progressDue())
 	if err != nil {
 		return agentruntime.ModelResponse{}, err
 	}
-	var response agentruntime.ModelResponse
+	publicBlockObserved := false
+	var publicBlocks runnerLanguageProgressBlocks
+	var publicText strings.Builder
 	collect := func(event agentruntime.ModelStreamEvent) error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if handled, blockErr := publicBlocks.accept(event); handled || blockErr != nil {
+			if blockErr != nil {
+				return blockErr
+			}
+			if event.Kind == agentruntime.ModelStreamEventPublicProgressBoundary {
+				publicBlockObserved = true
+				block := publicBlocks.closed[len(publicBlocks.closed)-1]
+				text := sessionRunnerPublicProgressNarration(block.text)
+				if text == "" {
+					return nil
+				}
+				publicText.WriteString(text)
+				if client.progressReady != nil {
+					client.progressReady("structured")
+				}
+				if emit != nil {
+					if err := emit(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventPublicProgressDelta, BlockID: block.id, ContentDelta: text}); err != nil {
+						return err
+					}
+					if err := ctx.Err(); err != nil {
+						return err
+					}
+					return emit(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventPublicProgressBoundary, BlockID: block.id})
+				}
+			}
+			return nil
+		}
 		// Content remains a private candidate. Forward it incrementally so
 		// persistence, cancellation and progress watchdogs retain their cadence.
 		// A provisional tool boundary cannot promote that candidate.
@@ -94,20 +102,22 @@ func (client *sessionRunnerResponseContractClient) CompleteStream(ctx context.Co
 		}
 		return nil
 	}
-	if streaming, ok := client.delegate.(agentruntime.StreamingModelClient); ok {
-		response, err = streaming.CompleteStream(ctx, projected, collect)
-	} else {
-		response, err = client.delegate.Complete(ctx, projected)
-		if emit != nil && response.Message.Content != "" {
-			if dispatchErr := emit(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventContentDelta, ContentDelta: response.Message.Content}); dispatchErr != nil {
-				return response, dispatchErr
-			}
-		}
-	}
+	response, err := agentruntime.CompletePublicProgressStream(ctx, client.delegate, projected, collect, client.presentationDiagnostic)
 	if err != nil {
 		return response, err
 	}
 	progress, blockID := extractRunnerResponseProgress(&response)
+	if publicBlockObserved {
+		// The independent block is already authoritative for progress. Strip
+		// legacy fields for compatibility, but never republish a second source.
+		// Align the tool-round terminal content with the accepted stream, not
+		// the decoder's unfiltered text; otherwise downstream language handling
+		// could translate or replay a discarded private/overlong narration.
+		if len(response.Message.ToolCalls) > 0 {
+			response.Message.Content = publicText.String()
+		}
+		return response, nil
+	}
 	progressSource := "structured"
 	for _, call := range response.Message.ToolCalls {
 		if call.ProviderProtocolDiagnostic != "" || (len(call.Arguments) > 0 && !json.Valid(call.Arguments)) {

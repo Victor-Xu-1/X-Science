@@ -1009,6 +1009,11 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 		delegate: &sessionRunnerResponseContractClient{
 			delegate: communicationObserver, progressDue: communicationSchedule.due,
 			progressReady: communicationObserver.noteProgressReady,
+			presentationDiagnostic: func() {
+				s.recordSessionRunnerCommunicationAudit(run, map[string]any{
+					"decision": "progress_presentation_discarded", "failure_code": "invalid_public_progress",
+				})
+			},
 		},
 	}
 	engine.AllowToolPreamble = func(text string) bool {

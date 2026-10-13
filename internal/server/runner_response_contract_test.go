@@ -21,9 +21,11 @@ func TestResponseContractProjectsProgressWithoutChangingToolAuthority(t *testing
 	if _, found := original.Tools[0].Parameters["properties"].(map[string]any)[runnerPublicProgressField]; found {
 		t.Fatal("mutated executable tool schema")
 	}
-	field := projected.Tools[0].Parameters["properties"].(map[string]any)[runnerPublicProgressField].(map[string]any)
-	if field["minLength"] != 1 || !reflect.DeepEqual(projected.ToolChoice, original.ToolChoice) {
-		t.Fatal("lost progress requirement or tool choice")
+	if !reflect.DeepEqual(projected.Tools, original.Tools) || !reflect.DeepEqual(projected.ToolChoice, original.ToolChoice) || len(original.Messages) != 0 {
+		t.Fatal("progress guidance changed executable authority")
+	}
+	if len(projected.Messages) != 1 || projected.Messages[0].Content != runnerPublicProgressCadence(true) {
+		t.Fatal("missing request-scoped public progress cadence")
 	}
 }
 
@@ -32,10 +34,10 @@ func TestResponseContractSharesInformativeBoundedProgressStyle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	field := request.Tools[0].Parameters["properties"].(map[string]any)[runnerPublicProgressField].(map[string]any)
-	if field["description"] != runnerPublicProgressDescription(false) ||
+	if request.Messages[0].Content != runnerPublicProgressCadence(false) ||
 		!strings.Contains(sessionRunnerPublicCommunicationContract, sessionRunnerPublicProgressStyle) ||
-		field["minLength"] != 0 || field["maxLength"] != sessionRunnerPublicProgressNarrationMaxRunes {
+		!strings.Contains(sessionRunnerPublicCommunicationContract, agentruntime.PublicProgressEnvelopeContract) ||
+		request.Tools[0].Parameters != nil {
 		t.Fatal("progress style diverged or became a mandatory verbosity gate")
 	}
 	text := "已读取版本记录，内容与要求一致；还需核对当前环境实际导入的版本，排除文件记录与运行环境不一致的情况。下一步将比较两者，并保留读取结果。"
@@ -48,12 +50,11 @@ func TestResponseContractParallelInstructionsMatchProgressCadence(t *testing.T) 
 	for _, test := range []struct {
 		name        string
 		due         bool
-		minimum     int
 		instruction string
 		forbidden   string
 	}{
-		{"due", true, 1, "Every call, including each call in a parallel batch", "only on the first call"},
-		{"not-due", false, 0, "only on the first call; use an empty string for remaining calls", "must include a brief, nonempty"},
+		{"due", true, "Begin with one complete public progress envelope", "Every call"},
+		{"not-due", false, "An additional public progress update is optional", "must include"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			original := agentruntime.ModelRequest{Tools: []agentruntime.ToolSchema{
@@ -64,15 +65,12 @@ func TestResponseContractParallelInstructionsMatchProgressCadence(t *testing.T) 
 			if err != nil {
 				t.Fatal(err)
 			}
+			if len(projected.Messages) != 1 || !strings.Contains(projected.Messages[0].Content, test.instruction) || strings.Contains(projected.Messages[0].Content, test.forbidden) {
+				t.Fatalf("contradictory request progress cadence: %+v", projected.Messages)
+			}
 			for index, tool := range projected.Tools {
-				field := tool.Parameters["properties"].(map[string]any)[runnerPublicProgressField].(map[string]any)
-				description := field["description"].(string)
-				if field["minLength"] != test.minimum || field["maxLength"] != sessionRunnerPublicProgressNarrationMaxRunes ||
-					!strings.Contains(description, test.instruction) || strings.Contains(description, test.forbidden) {
-					t.Fatalf("tool %s has contradictory progress instructions: %v", tool.Name, field)
-				}
-				if !reflect.DeepEqual(tool.Parameters["required"], []string{"path", runnerPublicProgressField}) || tool.Parameters["additionalProperties"] != false {
-					t.Fatalf("tool %s lost its schema requirements", tool.Name)
+				if !reflect.DeepEqual(tool, original.Tools[index]) {
+					t.Fatalf("tool %s acquired a competing progress schema", tool.Name)
 				}
 				if _, exists := original.Tools[index].Parameters["properties"].(map[string]any)[runnerPublicProgressField]; exists {
 					t.Fatal("model-facing progress mutated executable authority")

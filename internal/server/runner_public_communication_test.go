@@ -16,8 +16,8 @@ func TestAppendSessionRunnerPublicCommunicationContractUsesOneSystemBoundary(t *
 	for _, required := range []string{
 		"Assistant communication has two explicit roles",
 		"in the user's language",
-		"public_progress field",
-		"minimum length indicates whether an update is due",
+		"<|PublicProgressBegin|>",
+		"before the response outcome is known",
 		"complete final answer",
 		"accepted only after completion validation",
 	} {
@@ -31,10 +31,10 @@ func TestAppendSessionRunnerPublicCommunicationContractUsesOneSystemBoundary(t *
 		{Role: "user", Content: "分析该问题"},
 	})
 	if len(ordered) != 4 || ordered[2].Role != "system" ||
-		!strings.Contains(ordered[2].Content, "public_progress field") || ordered[3].Role != "user" {
+		!strings.Contains(ordered[2].Content, "<|PublicProgressBegin|>") || ordered[3].Role != "user" {
 		t.Fatalf("public communication contract is not terminal in the system block: %#v", ordered)
 	}
-	if strings.Contains(content, "<|PublicProgressBegin|>") || strings.Contains(content, "after the first successful action") ||
+	if strings.Contains(content, "public_progress field") || strings.Contains(content, "Never put progress control markers") || strings.Contains(content, "after the first successful action") ||
 		strings.Contains(content, "before each materially new stage") ||
 		strings.Contains(content, "Between meaningful evidence or execution steps") {
 		t.Fatalf("obsolete forced-progress contract survived: %q", content)

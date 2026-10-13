@@ -111,6 +111,9 @@ func (client *sessionRunnerResponseLanguageModelClient) CompleteStream(
 			// response preserves its original tool identity and lets the ordinary
 			// schema/admission boundary decide whether that action is executable.
 			progressFailure = err
+			if err == nil && event.Kind == agentruntime.ModelStreamEventPublicProgressBoundary {
+				return client.forwardReadyProgressBlocks(ctx, &progress, emit)
+			}
 			return nil
 		}
 		if !requiresChinese {

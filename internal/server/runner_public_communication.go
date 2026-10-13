@@ -7,11 +7,13 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"x-science/internal/agentruntime"
 )
 
 const sessionRunnerPublicProgressStyle = "Use one or two short sentences: state a concrete observed finding or remaining uncertainty, then the next action and its purpose. Aim for roughly 40-100 Chinese characters or 25-55 English words when there is enough information; these are style targets, not minimums. Before any evidence exists, explain the immediate scope and purpose without inventing a finding. Add information beyond the operation label, not a transcript of tools. Repeated attempts should mention only what changed; when nothing changed, do not restate the same plan. Never invent success, measurements or causes to make an update more detailed."
 
-const sessionRunnerPublicCommunicationContract = "Assistant communication has two explicit roles. During tool work, use the public_progress field declared by the tool schema for concise user-facing explanation in the user's language. The field's minimum length indicates whether an update is due; otherwise routine operations may use an empty string. " + sessionRunnerPublicProgressStyle + " Do not expose private reasoning, internal identifiers or a final conclusion. The operation description remains the short action label in the expandable audit card. A response with no tool calls is the complete final answer and is accepted only after completion validation. Never put progress control markers or report-sized drafts in tool-round prose."
+const sessionRunnerPublicCommunicationContract = "Assistant communication has two explicit roles. " + agentruntime.PublicProgressEnvelopeContract + " " + sessionRunnerPublicProgressStyle + " Put progress only in this independent envelope, not in tool arguments. Do not expose private reasoning, internal identifiers or a final conclusion. The operation description remains the short action label in the expandable audit card. A response with no tool calls is the complete final answer and is accepted only after completion validation. Text outside a complete public envelope remains a private response candidate."
 
 const sessionRunnerPublicProgressNarrationMaxRunes = 300
 const sessionRunnerPublicProgressFingerprintLimit = 64
