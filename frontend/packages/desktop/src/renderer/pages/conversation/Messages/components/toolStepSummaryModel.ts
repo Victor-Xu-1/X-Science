@@ -47,8 +47,7 @@ export interface ToolStepPublicPresentation {
 export function toolSourceUnavailable(tool: NormalizedToolCall): boolean {
   return (
     tool.status === 'completed' &&
-    getToolActivityKind(tool.name) === 'fetch' &&
-    retrievalReceiptPresentation(parseStructuredRecord(tool.input), parseStructuredValue(tool.output), false)
+    retrievalReceiptPresentation(tool.name, parseStructuredRecord(tool.input), parseStructuredValue(tool.output), false)
       .unavailable
   );
 }
@@ -179,7 +178,7 @@ export function buildToolStepResultSummary(tool: NormalizedToolCall, language: s
   const outputValue = parseStructuredValue(tool.output);
   const activityKind = getToolActivityKind(tool.name);
   if (activityKind === 'fetch') {
-    const receipt = retrievalReceiptPresentation(parseStructuredRecord(tool.input), outputValue, chinese);
+    const receipt = retrievalReceiptPresentation(tool.name, parseStructuredRecord(tool.input), outputValue, chinese);
     if (receipt.summary) return receipt.summary;
   }
   if (['environment', 'compute', 'analysis'].includes(activityKind) && isRecord(outputValue)) {

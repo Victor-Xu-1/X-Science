@@ -47,6 +47,39 @@ vi.mock('react-i18next', () => ({
 }));
 
 describe('MessageToolGroupSummary', () => {
+  it.each(['completed', 'error'] as const)(
+    'keeps custom MCP fetch status %s and does not emit native retrieval notices',
+    (status) => {
+      const messages = [
+        {
+          id: `custom-fetch-${status}`,
+          conversation_id: `custom-fetch-task-${status}`,
+          type: 'tool_call',
+          content: {
+            call_id: `custom-fetch-${status}`,
+            name: 'mcp__inventory__fetch_record',
+            status,
+            args: { url: 'https://example.org/request' },
+            output: JSON.stringify({
+              requestedUrl: 'https://example.org/other',
+              sourceUnavailable: true,
+              available: false,
+              records: [{ inventoryId: 'fixture-record' }],
+            }),
+          },
+        },
+      ] as ToolMessage[];
+      render(<MessageToolGroupSummary messages={messages} />);
+      const chip = screen.getByTestId('tool-chip');
+      expect(chip.querySelector(`.tool-status-icon--${status}`)).not.toBeNull();
+      expect(chip.querySelector('.tool-status-icon--blocked')).toBeNull();
+      expect(chip).toHaveTextContent(status === 'error' ? 'Failed' : '1 result');
+      expect(chip).not.toHaveTextContent('Source unavailable');
+      fireEvent.click(chip);
+      expect(document.querySelector('.tool-public-detail')).not.toBeNull();
+      expect(document.querySelector('.tool-public-detail__notice')).toBeNull();
+    }
+  );
   it('preserves a real execution error above source-unavailable attention', () => {
     const messages = [
       {

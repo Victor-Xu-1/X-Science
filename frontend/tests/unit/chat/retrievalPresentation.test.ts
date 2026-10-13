@@ -16,6 +16,47 @@ const tool = (input: object, output: object = {}): NormalizedToolCall => ({
 });
 
 describe('retrieval presentation', () => {
+  it.each(['mcp__inventory__fetch_record', 'mcp__external__web_fetch', 'fetch_report', 'get_document'])(
+    'does not interpret arbitrary %s output as a native source receipt',
+    (name) => {
+      const item = {
+        ...tool(
+          { url: 'https://example.org/request' },
+          {
+            requestedUrl: 'https://example.org/other',
+            sourceUnavailable: true,
+            available: false,
+            bytesRead: 0,
+            complete: true,
+          }
+        ),
+        name,
+      };
+      expect(toolSourceUnavailable(item)).toBe(false);
+      expect(buildToolStepPublicPresentation(item, 'en-US').resultSummary).not.toMatch(
+        /Source unavailable|Full text unavailable|Check source|Read 0 B/
+      );
+      expect(buildToolPublicDetailPresentation(item, 'en-US', null).notices).toEqual([]);
+      expect(buildToolStepGroupSummary([item, item], 'en-US').headline).toBe('Retrieved 2 sources');
+      expect(item.status).toBe('completed');
+    }
+  );
+  it.each(['web_fetch', 'fetch_article_fulltext', 'download_public_scientific_file'])(
+    'preserves native unavailable and abstract-record semantics for %s',
+    (name) => {
+      const unavailable = { ...tool({}, { available: false, sourceUnavailable: true }), name };
+      const abstract = {
+        ...tool({}, { available: false, recordAvailable: true, recordDepth: 'abstract_record' }),
+        name,
+      };
+      expect(toolSourceUnavailable(unavailable)).toBe(true);
+      expect(buildToolStepPublicPresentation(unavailable, 'en-US').resultSummary).toBe('Source unavailable');
+      expect(buildToolPublicDetailPresentation(unavailable, 'en-US', null).notices).toHaveLength(1);
+      expect(toolSourceUnavailable(abstract)).toBe(false);
+      expect(buildToolStepPublicPresentation(abstract, 'en-US').resultSummary).toBe('Full text unavailable');
+      expect(buildToolPublicDetailPresentation(abstract, 'en-US', null).notices).toEqual([]);
+    }
+  );
   it('does not count unavailable sources as acquired material or mutate task status', () => {
     const unavailable = tool({}, { result: { sourceUnavailable: true, bytesRead: 0 } });
     const acquired = tool({}, { bytesRead: 50, complete: true });
