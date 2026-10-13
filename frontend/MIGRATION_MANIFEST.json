@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "91dc1ada1c4c68ddca255a084494870a816015a4f6dd00d14d3b3a404206a00d",
+  "adaptationFingerprintSHA256": "f073b22cce296bf9c290082d3810e7f0f3d8e6ca69a0aaee96a26ed8a2c92ed6",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
-  "additionFingerprintSHA256": "8f37b20bbd13329505a0353fd621142f10a8a2141b8f73e3dde73392f57eb601",
+  "additionFingerprintSHA256": "9a6615949c198ae414f365f4b3124fee04cc5fd1f154ec9cad9d618dc0130c4f",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 275,
@@ -3898,8 +3898,8 @@
     {
       "path": "tests/unit/chat/MessageWebResearchSources.test.ts",
       "sourceSHA256": "0bd710cbf90c45fe95c1583d898e2395335389ae548959116cdd4abf6caee558",
-      "targetSHA256": "62660ac0a575a43ee34f4fa6ed8add86a3503a9b71f08a578e5ef023e3a38c0f",
-      "bytes": 10597,
+      "targetSHA256": "d56130669c853de60c698134bb8830f8f93b7e31cc3fddeb04c1df51bd27fc8a",
+      "bytes": 12328,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -3942,8 +3942,8 @@
     {
       "path": "tests/unit/chat/toolStepSummaryModel.test.ts",
       "sourceSHA256": "7387d2f52551a06e1f305db5e01930b6721c6c1d0a51b39730db1db13127875b",
-      "targetSHA256": "b164378f5b42908808cc2573cef50f08e4a6bb7359990439597098224abb8ac1",
-      "bytes": 20218,
+      "targetSHA256": "428e187f012e5e52b55eda4343d60f76e81373cda862d37971ecfca1322ae083",
+      "bytes": 20997,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -8382,8 +8382,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/components/researchSourceShape.ts",
-      "sha256": "2d42398824cd61e43c16d63f06c46729fb8724700d80d67b9cd4724793a81363",
-      "bytes": 1789,
+      "sha256": "ef6dd5c9d3dd70d7690dbda73e3d166a79e887af62f5894ef59745f771b8637a",
+      "bytes": 1856,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10932,8 +10932,8 @@
     },
     {
       "path": "tests/unit/chat/MessageToolCall.dom.test.tsx",
-      "sha256": "155071b7d3b8e42e36d90ed0cd40d924b4087b6661a037a7b41c8b81f2e51d2d",
-      "bytes": 7643,
+      "sha256": "301ec1cd4ab4b5370315ac65f8de319121400d69c6ef3b0ef18ee7a031c2efcb",
+      "bytes": 7827,
       "reason": "Verify accessible keyboard and status behavior for migrated tool-call messages."
     },
     {
