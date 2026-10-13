@@ -169,7 +169,9 @@ const JsonDocumentViewer: React.FC<JsonViewerProps> = ({
               ? t(`preview.scientific.json.tooLarge.${document.reason}`, {
                   limit: document.limit.toLocaleString(i18n.resolvedLanguage),
                 })
-              : t('preview.scientific.json.invalid')}
+              : document.status === 'imprecise-numbers'
+                ? t('preview.scientific.json.impreciseNumbers')
+                : t('preview.scientific.json.invalid')}
           </div>
         )}
       </div>

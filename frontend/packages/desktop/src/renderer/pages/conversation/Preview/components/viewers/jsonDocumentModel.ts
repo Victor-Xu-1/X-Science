@@ -3,6 +3,7 @@ export type JsonValue = null | boolean | number | string | JsonValue[] | { [key:
 export type JsonDocument =
   | { status: 'ready'; value: JsonValue; nodeCount: number }
   | { status: 'invalid' }
+  | { status: 'imprecise-numbers' }
   | { status: 'too-large'; reason: 'characters' | 'nodes'; limit: number };
 
 export const MAX_STRUCTURED_JSON_CHARS = 1_500_000;
@@ -37,11 +38,79 @@ export function parseJsonDocument(content: string): JsonDocument {
         limit: MAX_STRUCTURED_JSON_NODES,
       };
     }
-    if (Array.isArray(current)) stack.push(...current);
-    else if (isJsonObject(current)) stack.push(...Object.values(current));
+    // Pending children already consume the remaining node budget. Enforce it
+    // before queuing a wide container, without spreading it into arguments.
+    if (Array.isArray(current)) {
+      if (current.length > MAX_STRUCTURED_JSON_NODES - nodeCount - stack.length) {
+        return { status: 'too-large', reason: 'nodes', limit: MAX_STRUCTURED_JSON_NODES };
+      }
+      for (const child of current) stack.push(child);
+    } else if (isJsonObject(current)) {
+      for (const key in current) {
+        if (!Object.hasOwn(current, key)) continue;
+        if (nodeCount + stack.length >= MAX_STRUCTURED_JSON_NODES) {
+          return { status: 'too-large', reason: 'nodes', limit: MAX_STRUCTURED_JSON_NODES };
+        }
+        stack.push(current[key]);
+      }
+    }
   }
 
+  // Only inspect bounded, valid documents. The Tree uses native Numbers, so
+  // refuse it when their displayed decimal value would lose source precision.
+  if (hasImpreciseJsonNumbers(content)) return { status: 'imprecise-numbers' };
+
   return { status: 'ready', value, nodeCount };
+}
+
+function hasImpreciseJsonNumbers(content: string): boolean {
+  const numberToken = /-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/y;
+  let index = 0;
+  while (index < content.length) {
+    if (content[index] === '"') {
+      // Skip keys and string values, including escaped quotes/backslashes.
+      index += 1;
+      while (index < content.length) {
+        const character = content[index++];
+        if (character === '\\') index += 1;
+        else if (character === '"') break;
+      }
+    } else if (content[index] === '-' || /\d/.test(content[index])) {
+      numberToken.lastIndex = index;
+      const token = numberToken.exec(content)![0];
+      index = numberToken.lastIndex;
+      const value = Number(token);
+      if (
+        !Number.isFinite(value) ||
+        Object.is(value, -0) ||
+        (Number.isInteger(value) && !Number.isSafeInteger(value)) ||
+        normalizeJsonNumber(token) !== normalizeJsonNumber(String(value))
+      ) {
+        return true;
+      }
+    } else {
+      index += 1;
+    }
+  }
+  return false;
+}
+
+// Compare decimal values without expanding exponents or using an unbounded
+// precision parser. Finite nonzero Numbers keep the effective exponent bounded
+// by the already enforced character budget; zero ignores the exponent entirely.
+function normalizeJsonNumber(token: string): string {
+  const [, sign, integer, fraction = '', exponent = '0'] = /^(-?)(\d+)(?:\.(\d+))?(?:[eE]([+-]?\d+))?$/.exec(token)!;
+  const digits = integer + fraction;
+  let start = 0;
+  while (start < digits.length && digits[start] === '0') start += 1;
+  if (start === digits.length) return '0';
+  let end = digits.length;
+  // An unanchored /0+$/ replacement can retry every suffix of a long zero
+  // run followed by a nonzero digit. Scan indices once instead of backtracking.
+  while (end > start && digits[end - 1] === '0') end -= 1;
+  const coefficient = digits.slice(start, end);
+  const scale = Number(exponent) - fraction.length + digits.length - end;
+  return `${sign}${coefficient}e${scale}`;
 }
 
 export function isJsonContainer(value: JsonValue): value is JsonValue[] | { [key: string]: JsonValue } {

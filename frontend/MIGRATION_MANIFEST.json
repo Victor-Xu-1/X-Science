@@ -3,13 +3,13 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "7624095680c274dab270b56426b6baf80c7e47061cd6aa0c868de7fa70291eef",
+  "adaptationFingerprintSHA256": "07943660bab587ab5f8477bf967937e901ce0a0c4d219847de5a7890e9756328",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
-  "additionFingerprintSHA256": "1d264d4e6930d8be7e3b19a90c9e30e9c1b80f0fe9b5371420d17f90393530af",
+  "additionFingerprintSHA256": "eadabb6a0f9ba64399cc90ae86376094e43c759e0aa4068b58a5e18bc09ccbec",
   "summary": {
     "sourceFiles": 1354,
-    "unchangedSourceFiles": 276,
-    "adaptedSourceFiles": 785,
+    "unchangedSourceFiles": 275,
+    "adaptedSourceFiles": 786,
     "removedSourceFiles": 293,
     "addedFiles": 935
   },
@@ -17,14 +17,14 @@
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "0f65528f6ad7ab98d4c2e2d2803ba2c28176571f6c3c376c6dd79adc58224b00",
+      "targetSHA256": "4f63d06b13a237d64a7a60af0ec523de3cdaca4bdaa3383d555f04fcd5de67d7",
       "bytes": 4392,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "15f60392916ffcaa594789ae7b3a12dc863f61d7819420da3815aa00c88bd5b0",
+      "targetSHA256": "64a60229389619cec8fad1aca97d1d2e832b2a132f1c9512a71b255bca5dcba6",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -1186,8 +1186,8 @@
       "path": "packages/desktop/src/renderer/pages/artifact/XScienceTextArtifactViewer.tsx",
       "originalPath": "packages/desktop/src/renderer/pages/artifact/SynonBiomedTextArtifactViewer.tsx",
       "sourceSHA256": "a0111b2e5772f6ff9470c9dac7408455c61008b6adf2404952e11d0f24adfc73",
-      "targetSHA256": "5c72e9e0a91f7d2046dced5faf6cf713532daa1560e2dc27f24aeb0a303e9ba7",
-      "bytes": 9037,
+      "targetSHA256": "5d1d09c635e059fae9fa88b1eadcc3157c42ec92a079a85d2dfcdcca35c0da6c",
+      "bytes": 8935,
       "reason": "Move genuine imported source to the current X-Science namespace. Connect immutable Go artifacts, annotations, refinement, and native viewers with bounded localized failure handling."
     },
     {
@@ -1745,8 +1745,8 @@
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/XScienceJsonViewer.tsx",
       "originalPath": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedJsonViewer.tsx",
       "sourceSHA256": "d4d5ff7079af98e03c54373e8ddc84b0bdb3d2f052d8829a819137d12599afc7",
-      "targetSHA256": "6745fbdb17011cd09af43f6bba4a89b2fac8bfd0354bef2a5beca141455f7f98",
-      "bytes": 11585,
+      "targetSHA256": "7d2ae7e60289d65437528a338c49e03add8f4f8a026e6d9b68f2fff216e11c63",
+      "bytes": 11707,
       "reason": "Move genuine imported source to the current X-Science namespace. Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -1821,8 +1821,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/jsonDocumentModel.ts",
       "sourceSHA256": "f9b3246113ac88ce944c25c42417c26f8ec21834f9571146f1e0d78a6909f645",
-      "targetSHA256": "be588c3eb3972f109fb27eb914603a9ff50e4dc295c0e1e89436f9af871fcb6f",
-      "bytes": 4985,
+      "targetSHA256": "259462600ee1949740df57b50cbcf5b3c2bbd8f3b4c74c6de8e092f436ce2835",
+      "bytes": 7923,
       "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -2833,8 +2833,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "f5034896f2131c477da1c9b221bd9dd2704df87b1430417d2243f8a5ba0dd8d6",
-      "bytes": 255753,
+      "targetSHA256": "8452471ea1b3369e2e269f844dfe110a11e611beea4ea1483136a823b839cb2a",
+      "bytes": 255800,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2910,8 +2910,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/preview.json",
       "sourceSHA256": "bf530f4a992cc14652500390e715b7add84853e9b0757158c718244cf4cd8f32",
-      "targetSHA256": "985465229b19292c77857822a797dbbf1c7247a5e86602d6c77b900e8d57232d",
-      "bytes": 42817,
+      "targetSHA256": "f4cd029f23c533810a643790a4bfc697b02a26c8ec74858e68b1060495be6f98",
+      "bytes": 42998,
       "reason": "Add English labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls."
     },
     {
@@ -3001,8 +3001,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/preview.json",
       "sourceSHA256": "6b772273972756a3407fee8fe7b4503e992964a8de901375f06bfd2faacf2ba0",
-      "targetSHA256": "fd705101b792659dd4e073e485f5dcb314f77d1f2fef346980f56b13ed91407b",
-      "bytes": 41320,
+      "targetSHA256": "a00a3688e80d3a0a02e7b01478c28474e97b4476dd4858a785e9440404c66d03",
+      "bytes": 41516,
       "reason": "Add Simplified Chinese labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls."
     },
     {
@@ -4176,8 +4176,8 @@
       "path": "tests/unit/previews/XScienceJsonArtifactViewer.dom.test.tsx",
       "originalPath": "tests/unit/previews/SynonBiomedJsonArtifactViewer.dom.test.tsx",
       "sourceSHA256": "3f05fcfd62937d2ab09dc26fade37548abc705bb3d218aeaab3ecefeb8142084",
-      "targetSHA256": "d0d5e617dda6a29a758175eccb50a9d60c2f0d2433966dbaa8b571bb462d4021",
-      "bytes": 3602,
+      "targetSHA256": "47e4837926c6be06204d7023674dcb9018fd78e6db445754fe754a731f175c0a",
+      "bytes": 5865,
       "reason": "Move genuine imported source to the current X-Science namespace. Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -4240,6 +4240,13 @@
       "sourceSHA256": "84d0287701624d836c605108723cd489fa1c73fd9c07a09f2cc7a200e5095c11",
       "targetSHA256": "85b82c8541a7153cf8e7e30da0632921d0ed614d755454525814a84dea3d74bb",
       "bytes": 1578,
+      "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
+    },
+    {
+      "path": "tests/unit/previews/jsonArtifactModel.test.ts",
+      "sourceSHA256": "e9e7d68a1767f400ca600c44a43dead34f8c2c825ae4535fb0127034ea9c48c1",
+      "targetSHA256": "fa68e59c44639fde97fb60a1fa618529aea9b35b5050c83fdabb41b1dccf22b8",
+      "bytes": 5802,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -4324,8 +4331,8 @@
     {
       "path": "tests/unit/renderer/ArtifactPreview.dom.test.tsx",
       "sourceSHA256": "35fcf88c79cd262a41b65d79e70c4ec8a97ede955c9b4f8d3fefe3fc536d2bd9",
-      "targetSHA256": "fa75d1c247124d3cb6ac4134429fb63a19af6e88cea3cbcfeca0ee5de875a2ff",
-      "bytes": 15778,
+      "targetSHA256": "ba93868c263c1788f4b967adeabc6ed0ed9ef252e04093a884cdd02c8adc6022",
+      "bytes": 16880,
       "reason": "Isolate persisted client configuration while testing native artifact preview and cloud export behavior."
     },
     {
@@ -7523,7 +7530,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "cc47e812c4ce67234e27d2d6fe2a3d22ac16474bffad5bfb0a880e38f2403290",
+      "sha256": "60f4792c97a1835c657daead0658fca8d261e357e77b07ac136b1dd580822020",
       "bytes": 558186,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -11627,8 +11634,8 @@
     },
     {
       "path": "tests/unit/renderer/XScienceTextArtifactViewer.dom.test.tsx",
-      "sha256": "312a18010f7a7c4ec9d1c900d60f31d9b4e04078ab6636498b5be5bbb9075937",
-      "bytes": 4798,
+      "sha256": "f85015742ebe3f16cb157d506058be0d7b611287dd44a7f385972857079a2766",
+      "bytes": 9604,
       "reason": "Verify localized text-artifact rendering and actions."
     },
     {

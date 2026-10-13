@@ -839,7 +839,8 @@
         "object": "{{formattedCount}} fields"
       },
       "emptyArray": "Empty array",
-      "emptyObject": "Empty object"
+      "emptyObject": "Empty object",
+      "impreciseNumbers": "Some numeric values cannot be shown faithfully in Tree view. Source and Copy JSON preserve the exact original text."
     },
     "pdf": {
       "kind": "PDF",
@@ -932,8 +933,13 @@
         "pathology": "Pathology",
         "sex": "Sex"
       },
-      "categories": { "unlabeled": "Unlabeled", "other": "Other" },
-      "embeddingLabels": { "pcaPreview": "PCA preview" },
+      "categories": {
+        "unlabeled": "Unlabeled",
+        "other": "Other"
+      },
+      "embeddingLabels": {
+        "pcaPreview": "PCA preview"
+      },
       "cannotPreviewNamed": "Cannot preview {{name}}",
       "downloadOriginal": "Download original file"
     }

@@ -131,8 +131,9 @@ const XScienceTextArtifactViewer: React.FC<XScienceTextArtifactViewerProps> = ({
         // The response mode only adds passive sanitization. Every HTML frame,
         // including generated interactive documents, has an opaque origin.
         setPassiveSource(response.headers.get('X-Science-HTML-Preview') !== 'isolated');
-        const rawContent = kind === 'html' ? await readHtmlResponseText(response) : await response.text();
-        return language === 'json' ? formatJsonContent(rawContent) : rawContent;
+        // JSON Source and Copy must retain the original numeric tokens. Native
+        // parse/stringify can round integers or replace extreme exponents.
+        return kind === 'html' ? await readHtmlResponseText(response) : await response.text();
       })
       .then(setContent)
       .catch((requestError: unknown) => {
@@ -248,13 +249,5 @@ const XScienceTextArtifactViewer: React.FC<XScienceTextArtifactViewerProps> = ({
     </div>
   );
 };
-
-export function formatJsonContent(content: string): string {
-  try {
-    return JSON.stringify(JSON.parse(content), null, 2);
-  } catch {
-    return content;
-  }
-}
 
 export default XScienceTextArtifactViewer;
