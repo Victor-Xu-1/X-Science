@@ -103,7 +103,7 @@ func TestOutputBudgetPreferenceIsConfigurationScopedAndCopiesNoTaskBounds(t *tes
 	if state, err := older.initializeOutputBudgetPreference(); err != nil || state.SkipInitialAllowance {
 		t.Fatalf("peer learning changed an active task: %+v %v", state, err)
 	}
-	for _, change := range []string{"same", "owner", "provider", "provider-type", "endpoint", "protocol", "model", "role", "allowance", "temperature", "missing-owner"} {
+	for _, change := range []string{"same", "owner", "provider", "credential", "credential-revision", "missing-credential-revision", "provider-type", "endpoint", "protocol", "model", "role", "allowance", "temperature", "missing-owner"} {
 		t.Run(change, func(t *testing.T) {
 			p, role := profile, "agent"
 			switch change {
@@ -111,6 +111,12 @@ func TestOutputBudgetPreferenceIsConfigurationScopedAndCopiesNoTaskBounds(t *tes
 				p.Provider.UserID = "another-owner"
 			case "provider":
 				p.Provider.ID = "another-provider"
+			case "credential":
+				p.Provider.SecretRef = "fixture-reference-other"
+			case "credential-revision":
+				p.CredentialRevision = "revision-other"
+			case "missing-credential-revision":
+				p.CredentialRevision = ""
 			case "provider-type":
 				p.Provider.Type = "another-type"
 			case "endpoint":
@@ -136,6 +142,39 @@ func TestOutputBudgetPreferenceIsConfigurationScopedAndCopiesNoTaskBounds(t *tes
 				t.Fatalf("preference scope or copied task facts=%+v err=%v", state, err)
 			}
 		})
+	}
+}
+
+func TestOutputBudgetChangedCredentialReferenceDoesNotReuseTaskNegotiation(t *testing.T) {
+	store := runtimekv.New(filepath.Join(t.TempDir(), "runtime.sqlite"))
+	defer store.Close()
+	profile := outputPreferenceTestProfile()
+	profile.Provider.SecretRef = "fixture-reference-first"
+	first := newSessionOutputBudgetClient(nil, store, profile, "same-task", "agent").(*sessionOutputBudgetClient)
+	if err := first.observe("context", providers.OutputLimitDetails{RequestedTokens: 17, OutputTokens: 17}, 0); err != nil {
+		t.Fatal(err)
+	}
+	profile.Provider.SecretRef = "fixture-reference-second"
+	second := newSessionOutputBudgetClient(nil, store, profile, "same-task", "agent").(*sessionOutputBudgetClient)
+	state, err := second.read()
+	if err != nil || state != (outputBudgetState{}) || first.namespace == second.namespace {
+		t.Fatalf("new credential inherited earlier negotiation: %+v %v", state, err)
+	}
+}
+
+func TestOutputBudgetRotatedCredentialRevisionDoesNotReuseTaskNegotiation(t *testing.T) {
+	store := runtimekv.New(filepath.Join(t.TempDir(), "runtime.sqlite"))
+	defer store.Close()
+	profile := outputPreferenceTestProfile()
+	first := newSessionOutputBudgetClient(nil, store, profile, "same-task", "agent").(*sessionOutputBudgetClient)
+	if err := first.observe("context", providers.OutputLimitDetails{RequestedTokens: 17, OutputTokens: 17}, 0); err != nil {
+		t.Fatal(err)
+	}
+	profile.CredentialRevision = "revision-two"
+	second := newSessionOutputBudgetClient(nil, store, profile, "same-task", "agent").(*sessionOutputBudgetClient)
+	state, err := second.read()
+	if err != nil || state != (outputBudgetState{}) || first.namespace == second.namespace {
+		t.Fatalf("rotated credential inherited earlier negotiation: %+v %v", state, err)
 	}
 }
 
@@ -227,7 +266,7 @@ func TestOutputBudgetPreferenceConcurrentLearningIsIdempotentAndMinimal(t *testi
 
 func outputPreferenceTestProfile() providers.ModelProfile {
 	allowance := 17
-	return providers.ModelProfile{Provider: providers.ProviderProfile{ID: "provider", UserID: "owner", Endpoint: "https://provider.example/v1", Protocol: providers.ProtocolOpenAICompatible}, Model: "model", MaxTokens: &allowance}
+	return providers.ModelProfile{Provider: providers.ProviderProfile{ID: "provider", UserID: "owner", Endpoint: "https://provider.example/v1", Protocol: providers.ProtocolOpenAICompatible, SecretRef: "fixture-reference"}, Model: "model", MaxTokens: &allowance, CredentialRevision: "revision-one"}
 }
 
 func acceptedPreferenceProbe() outputBudgetState {

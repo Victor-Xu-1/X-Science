@@ -1188,11 +1188,13 @@ provider-declared limits are not bypassed.
 
 Only a silent truncation at the initial soft allowance followed by a complete,
 uncancelled successful default probe may establish a provider-default request
-preference at a session's first automatic budget negotiation under the same owner, provider/profile identity,
+preference at a session's first automatic budget negotiation under the same owner, provider/profile and opaque credential-reference/revision identity,
 protocol, model, runtime role and initial allowance. This is a successful request
 encoding preference, not a model-capacity claim: no prompt, secret, context bound,
 token usage or task-specific next proposal is shared. Configuration changes are
-isolated. An already-started automatic negotiation keeps its original choice;
+isolated, including in-place credential rotation. Without a verifiable credential
+revision, only task-local negotiation is used. No credential value or key hash is
+stored. An already-started automatic negotiation keeps its original choice;
 explicit caller-budget requests neither read nor initialize the preference.
 Empty or malformed responses cannot establish the preference; complete
 tool proposals still pass the original execution gateway. A provider that remains

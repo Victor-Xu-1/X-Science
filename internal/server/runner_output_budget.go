@@ -30,6 +30,12 @@ func newSessionOutputBudgetClient(delegate agentruntime.ModelClient, store *runt
 		return delegate
 	}
 	identityFields := []string{profile.Provider.UserID, session, role, profile.Provider.ID, profile.Provider.Protocol, profile.Provider.Endpoint, profile.Model}
+	if profile.Provider.SecretRef != "" {
+		// This is the opaque reference, never the resolved credential. A changed
+		// account reference cannot reuse an earlier task's negotiated bounds.
+		identityFields = append(identityFields, "credential-reference:"+profile.Provider.SecretRef,
+			"credential-revision:"+profile.CredentialRevision)
+	}
 	initialLimit := 0
 	if profile.MaxTokens != nil {
 		initialLimit = *profile.MaxTokens
