@@ -839,7 +839,8 @@
         "object": "{{formattedCount}} 个字段"
       },
       "emptyArray": "空数组",
-      "emptyObject": "空对象"
+      "emptyObject": "空对象",
+      "impreciseNumbers": "部分数值无法在树视图中准确显示。源码视图和复制 JSON 会保留完整的原始文本。"
     },
     "pdf": {
       "kind": "PDF",
@@ -877,7 +878,10 @@
       "preparingViewer": "正在准备数据查看器",
       "readingNamed": "正在读取 {{name}}",
       "parsing": "正在解析 AnnData 与可视化数据",
-      "dataKinds": { "annData": "AnnData 单细胞数据", "hdf5": "HDF5 数据文件" },
+      "dataKinds": {
+        "annData": "AnnData 单细胞数据",
+        "hdf5": "HDF5 数据文件"
+      },
       "nodeCount": "{{count}} 个节点",
       "truncated": "结构已截断",
       "viewMode": "文件查看方式",
@@ -929,8 +933,13 @@
         "pathology": "病理类型",
         "sex": "性别"
       },
-      "categories": { "unlabeled": "未标注", "other": "其他" },
-      "embeddingLabels": { "pcaPreview": "PCA 预览" },
+      "categories": {
+        "unlabeled": "未标注",
+        "other": "其他"
+      },
+      "embeddingLabels": {
+        "pcaPreview": "PCA 预览"
+      },
       "cannotPreviewNamed": "无法预览 {{name}}",
       "downloadOriginal": "下载原始文件"
     }

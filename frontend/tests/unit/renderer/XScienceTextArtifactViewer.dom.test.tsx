@@ -4,6 +4,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import XScienceTextArtifactViewer from '@/renderer/pages/artifact/XScienceTextArtifactViewer';
 import { resolveMarkdownArtifactVersionReferences } from '@/renderer/pages/conversation/Preview/components/viewers/markdownArtifactReferences';
 import { renderWithI18n } from '../i18nTestUtils';
+import {
+  resolveXScienceArtifactPreviewPlan,
+  X_SCIENCE_TEXT_ACCEPT_HEADER,
+} from '@/renderer/services/xScienceArtifactPreview';
+import { Message } from '@arco-design/web-react';
 
 vi.mock('@/renderer/pages/conversation/Preview/components/editors/CodeEditor', () => ({
   default: ({ value, fileName }: { value: string; fileName: string }) => (
@@ -72,6 +77,105 @@ describe('XScienceTextArtifactViewer', () => {
       '/api/artifacts/text-1',
       expect.objectContaining({ credentials: 'same-origin' })
     );
+  });
+
+  it('preserves fetched JSON numeric tokens and whitespace in exact Source and Copy', async () => {
+    const content =
+      ' {\n "ns_before":1760000000000000000,"ns_after":1760000000000000001,"sample64":9007199254740993,"max_u64":18446744073709551615,"tiny":1e-400,"large":1e400,"finite":1.25,"safe":9007199254740991,"quoted":"9007199254740993","missing":null,"zero":-0\n}\n';
+    const fetchMock = vi.fn(async () => new Response(content, { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const writeText = vi.fn(async (_content: string) => undefined);
+    const originalClipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+    vi.spyOn(Message, 'success').mockImplementation(() => undefined as never);
+    const plan = resolveXScienceArtifactPreviewPlan({ filename: 'measurements.json', contentType: 'application/json' });
+    expect(plan).toEqual({ type: 'code', fetchText: true, language: 'json' });
+    try {
+      await renderWithI18n(
+        <XScienceTextArtifactViewer
+          filename='measurements.json'
+          contentUrl='/api/artifacts/json-1'
+          kind='code'
+          language={plan.language}
+        />,
+        'en-US'
+      );
+      expect((await screen.findByLabelText('measurements.json editor')).textContent).toBe(content);
+      expect(screen.getByRole('tab', { name: 'Tree' })).toBeDisabled();
+      expect(
+        screen.getByText(
+          'Some numeric values cannot be shown faithfully in Tree view. Source and Copy JSON preserve the exact original text.'
+        )
+      ).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Copy JSON' }));
+      await waitFor(() => expect(writeText).toHaveBeenCalledWith(content));
+      expect(fetchMock).toHaveBeenCalledWith('/api/artifacts/json-1', {
+        headers: { Accept: X_SCIENCE_TEXT_ACCEPT_HEADER },
+        credentials: 'same-origin',
+        signal: expect.any(AbortSignal),
+      });
+    } finally {
+      if (originalClipboard) Object.defineProperty(navigator, 'clipboard', originalClipboard);
+      else Reflect.deleteProperty(navigator, 'clipboard');
+    }
+  });
+
+  it.each([' {"finite":1.25,"safe":9007199254740991,"quoted":"1e400","missing":null}\n', '{invalid\n'])(
+    'preserves ordinary and invalid downloaded JSON source exactly',
+    async (content) => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => new Response(content, { status: 200 }))
+      );
+      await renderWithI18n(
+        <XScienceTextArtifactViewer
+          filename='source.json'
+          contentUrl='/api/artifacts/json-control'
+          kind='code'
+          language='json'
+        />,
+        'en-US'
+      );
+      const sourceTab = await screen.findByRole('tab', { name: 'Source' });
+      if (screen.getByRole('tab', { name: 'Tree' }).getAttribute('aria-selected') === 'true') {
+        expect(screen.getByRole('tab', { name: 'Tree' })).not.toBeDisabled();
+        fireEvent.click(sourceTab);
+      }
+      expect(screen.getByLabelText('source.json editor').textContent).toBe(content);
+    }
+  );
+
+  it('keeps Source and Copy usable for a fetched wide scientific array', async () => {
+    const content = `[${'0,'.repeat(149_999)}0]`;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(content, { status: 200 }))
+    );
+    const writeText = vi.fn(async (_content: string) => undefined);
+    const originalClipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+    vi.spyOn(Message, 'success').mockImplementation(() => undefined as never);
+    try {
+      await renderWithI18n(
+        <XScienceTextArtifactViewer
+          filename='counts.json'
+          contentUrl='/api/artifacts/json-wide'
+          kind='code'
+          language='json'
+        />,
+        'en-US'
+      );
+      expect((await screen.findByLabelText('counts.json editor')).textContent).toBe(content);
+      expect(screen.getByRole('tab', { name: 'Tree' })).toBeDisabled();
+      expect(
+        screen.getByText('The file contains more than 12,000 nodes. Source view is used to keep the page responsive.')
+      ).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Copy JSON' }));
+      await waitFor(() => expect(writeText).toHaveBeenCalledWith(content));
+    } finally {
+      if (originalClipboard) Object.defineProperty(navigator, 'clipboard', originalClipboard);
+      else Reflect.deleteProperty(navigator, 'clipboard');
+    }
   });
 
   it('shows a stable localized request error and can retry successfully', async () => {

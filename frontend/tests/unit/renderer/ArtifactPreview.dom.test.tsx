@@ -1,4 +1,5 @@
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { Message } from '@arco-design/web-react';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithI18n } from '../i18nTestUtils';
@@ -104,7 +105,7 @@ vi.mock('@/common/config/configService', () => ({
 }));
 
 vi.mock('@/renderer/pages/conversation/Preview/components/editors/CodeEditor', () => ({
-  default: ({ value }: { value: string }) => <pre>{value}</pre>,
+  default: ({ value }: { value: string }) => <pre data-testid='artifact-source-editor'>{value}</pre>,
 }));
 
 vi.mock('@/renderer/pages/artifact/XSciencePdfArtifactViewer', () => ({
@@ -271,15 +272,24 @@ describe('ArtifactPreview', () => {
   });
 
   it('loads JSON into the structured preview and preserves the exact source view', async () => {
+    const source = ' \r\n{"status":"completed","hits":3}\r\n ';
     loadArtifactMock.mockResolvedValueOnce({
       ...(await loadArtifactMock()),
       filename: 'analysis.json',
       contentType: 'application/json',
-      sizeBytes: 32,
+      sizeBytes: source.length,
+    });
+    const previousClipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+    const copiedJson = vi.fn(async (_text: string) => {});
+    const copiedNotice = vi.spyOn(Message, 'success').mockImplementation(() => undefined as never);
+    const failedNotice = vi.spyOn(Message, 'error').mockImplementation(() => undefined as never);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: copiedJson },
     });
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       if (String(input) === '/api/artifacts/artifact-1') {
-        return new Response('{"status":"completed","hits":3}', {
+        return new Response(source, {
           status: 200,
           headers: { 'content-type': 'application/json' },
         });
@@ -290,29 +300,39 @@ describe('ArtifactPreview', () => {
       });
     });
 
-    await render(<ArtifactPreview />);
+    try {
+      await render(<ArtifactPreview />);
 
-    await screen.findByRole('heading', { name: 'analysis.json' });
-    const preview = await screen.findByLabelText('analysis.json 内容', {}, { timeout: 5_000 });
-    expect(within(preview).getByRole('tab', { name: '结构' })).toHaveAttribute('aria-selected', 'true');
-    expect(preview).toHaveTextContent('statuscompleted');
-    expect(preview).toHaveTextContent('hits3');
+      await screen.findByRole('heading', { name: 'analysis.json' });
+      const preview = await screen.findByLabelText('analysis.json 内容', {}, { timeout: 5_000 });
+      expect(within(preview).getByRole('tab', { name: '结构' })).toHaveAttribute('aria-selected', 'true');
+      expect(preview).toHaveTextContent('statuscompleted');
+      expect(preview).toHaveTextContent('hits3');
 
-    const sourceTab = within(preview).getByRole('tab', { name: '源码' });
-    fireEvent.click(sourceTab);
-    await waitFor(() => {
-      expect(sourceTab).toHaveAttribute('aria-selected', 'true');
-      expect(preview).toHaveTextContent('"status": "completed"');
-      expect(preview).toHaveTextContent('"hits": 3');
-    });
-    expect(fetchMock).toHaveBeenCalledWith('/api/artifacts/artifact-1', {
-      credentials: 'same-origin',
-      headers: {
-        Accept: 'text/plain, text/markdown, application/json, text/csv, text/tab-separated-values, text/html',
-      },
-      signal: expect.any(AbortSignal),
-    });
-    fetchMock.mockRestore();
+      const sourceTab = within(preview).getByRole('tab', { name: '源码' });
+      fireEvent.click(sourceTab);
+      await waitFor(() => {
+        expect(sourceTab).toHaveAttribute('aria-selected', 'true');
+        expect(within(preview).getByTestId('artifact-source-editor').textContent).toBe(source);
+      });
+      fireEvent.click(within(preview).getByRole('button', { name: '复制 JSON' }));
+      await waitFor(() => {
+        expect(copiedJson).toHaveBeenCalledExactlyOnceWith(source);
+        expect(copiedNotice).toHaveBeenCalledTimes(1);
+      });
+      expect(failedNotice).not.toHaveBeenCalled();
+      expect(fetchMock).toHaveBeenCalledWith('/api/artifacts/artifact-1', {
+        credentials: 'same-origin',
+        headers: {
+          Accept: 'text/plain, text/markdown, application/json, text/csv, text/tab-separated-values, text/html',
+        },
+        signal: expect.any(AbortSignal),
+      });
+    } finally {
+      fetchMock.mockRestore();
+      if (previousClipboard) Object.defineProperty(navigator, 'clipboard', previousClipboard);
+      else Reflect.deleteProperty(navigator, 'clipboard');
+    }
   });
 
   it('renders artifact navigation and inspector chrome in English', async () => {

@@ -3043,6 +3043,7 @@ export type I18nKey =
   | 'preview.scientific.json.emptyObject'
   | 'preview.scientific.json.expandAll'
   | 'preview.scientific.json.expandAllUnavailable'
+  | 'preview.scientific.json.impreciseNumbers'
   | 'preview.scientific.json.invalid'
   | 'preview.scientific.json.noMatches'
   | 'preview.scientific.json.root'
