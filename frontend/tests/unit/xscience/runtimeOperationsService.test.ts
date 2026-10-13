@@ -7,12 +7,16 @@ import {
   subscribeXScienceRuntimeInvalidation,
 } from '@/renderer/services/xScienceRuntimeOperations';
 import { describe, expect, it, vi } from 'vitest';
+import { decodeMessageStreamPayload, type IResponseMessage } from '@/common/adapter/messageStreamProtocol';
+import { normalizeXScienceRuntimeSnapshot } from '@/renderer/components/xScience/runtime/runtimeOperationsModel';
 
 const ipcRuntimeInvalidationOnMock = vi.hoisted(() => vi.fn(() => () => {}));
+const ipcResponseStreamOnMock = vi.hoisted(() => vi.fn((_listener: (event: IResponseMessage) => void) => () => {}));
 
 vi.mock('@/common', () => ({
   ipcBridge: {
     runtime: { statusChanged: { on: ipcRuntimeInvalidationOnMock } },
+    acpConversation: { responseStream: { on: ipcResponseStreamOnMock } },
     conversation: {
       confirmation: {
         add: { on: ipcRuntimeInvalidationOnMock },
@@ -49,6 +53,61 @@ const approvalRequest = {
 };
 
 describe('X-Science ask_user runtime service', () => {
+  it('invalidates retry snapshots once for current public progress, never for private, stale or per-token traffic', () => {
+    let snapshot = normalizeXScienceRuntimeSnapshot({
+      id: 'retry-frame',
+      status: 'processing',
+      runtime_retry_reason: 'model_provider_temporarily_unavailable',
+      runtime_retry_attempt_id: 'canonical-attempt-2',
+      runtime_attempt: 2,
+      runtime_input_revision: 3,
+      runtime_observed_at: '2026-10-14T10:00:00.000Z',
+    });
+    const invalidate = vi.fn();
+    const release = subscribeXScienceRuntimeInvalidation('retry-frame', invalidate, {
+      getRetrySnapshot: () => snapshot,
+    });
+    const progress = ipcResponseStreamOnMock.mock.calls.at(-1)![0];
+    const current: IResponseMessage = {
+      type: 'text',
+      data: 'The provider returned public progress.',
+      msg_id: 'segment-4',
+      conversation_id: 'retry-frame',
+      assistant_attempt_id: 'canonical-attempt-2',
+      created_at: Date.parse('2026-10-14T10:00:01.000Z'),
+    };
+    for (const event of [
+      { ...current, type: 'thinking' },
+      { ...current, data: '  ' },
+      { ...current, hidden: true },
+      { ...current, conversation_id: 'another-frame' },
+      { ...current, assistant_attempt_id: 'older-attempt' },
+      { ...current, created_at: Date.parse('2026-10-14T09:59:59.000Z') },
+    ])
+      progress(event);
+    expect(
+      decodeMessageStreamPayload({
+        ...current,
+        type: 'message.stream',
+        stream_type: 'text',
+        provisional: true,
+      })
+    ).toBeUndefined();
+    expect(invalidate).not.toHaveBeenCalled();
+    for (let token = 0; token < 100; token += 1) progress(current);
+    expect(invalidate).toHaveBeenCalledTimes(1);
+    // A failed read leaves this snapshot consumed, so polling/reconnect—not
+    // every token—owns recovery. A fresh authority reply may re-arm the wake.
+    snapshot = { ...snapshot, runtimeObservedAt: '2026-10-14T10:00:02.000Z' };
+    progress(current);
+    expect(invalidate).toHaveBeenCalledTimes(1);
+    progress({ ...current, type: 'content', created_at: Date.parse('2026-10-14T10:00:03.000Z') });
+    expect(invalidate).toHaveBeenCalledTimes(2);
+    snapshot = { ...snapshot, retryReason: undefined };
+    progress({ ...current, created_at: Date.parse('2026-10-14T10:00:04.000Z') });
+    expect(invalidate).toHaveBeenCalledTimes(2);
+    release();
+  });
   it('binds plan approval to the artifact and version the user reviewed', async () => {
     const fetchImpl = vi
       .fn()

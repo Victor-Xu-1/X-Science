@@ -1065,6 +1065,8 @@
       "taskStarting": "Task starting",
       "taskFinalizing": "Preparing final result",
       "taskRunning": "Task running",
+      "taskProviderRetrying": "Model service unavailable · retrying",
+      "taskProviderTransportRetrying": "Model connection interrupted · retrying",
       "taskReviewing": "Reviewing task",
       "taskManualReviewing": "Manual review in progress",
       "taskAutoReviewing": "Auto review in progress",

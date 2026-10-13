@@ -153,11 +153,6 @@ func clientFromHello(userID string, message map[string]any) xsciencelink.Client 
 	}
 }
 
-func stringValue(value any) string {
-	text, _ := value.(string)
-	return text
-}
-
 func stringSlice(value any) []string {
 	items, ok := value.([]any)
 	if !ok {
@@ -169,13 +164,5 @@ func stringSlice(value any) []string {
 			result = append(result, text)
 		}
 	}
-	return result
-}
-
-func mapValue(value any) map[string]any {
-	if value == nil {
-		return nil
-	}
-	result, _ := value.(map[string]any)
 	return result
 }

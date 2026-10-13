@@ -53,15 +53,6 @@ type sessionContextUsageRecorder struct {
 	frameExists func() (bool, error)
 }
 
-type auxiliaryContextUsageKey struct{}
-
-// Localization and other presentation-only calls use the same dynamic model
-// client but are not the agent's actual context window. Their usage remains in
-// provider audit; it must not replace the main request shown in the composer.
-func withAuxiliaryContextUsage(ctx context.Context) context.Context {
-	return context.WithValue(ctx, auxiliaryContextUsageKey{}, true)
-}
-
 func contextUsageRecorderForCall(ctx context.Context, recorder *sessionContextUsageRecorder) *sessionContextUsageRecorder {
 	if ctx != nil && ctx.Value(auxiliaryContextUsageKey{}) == true {
 		return nil

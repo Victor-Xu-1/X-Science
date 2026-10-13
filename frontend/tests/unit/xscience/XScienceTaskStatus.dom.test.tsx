@@ -70,6 +70,30 @@ const expectDetailsSurfaceClosed = () => {
 };
 
 describe('XScienceTaskStatus', () => {
+  it.each(['en-US', 'zh-CN'] as const)(
+    'shows the retry cause in %s and clears it on recovered progress',
+    async (language) => {
+      const { rerender } = await renderWithI18n(
+        <XScienceTaskStatus
+          {...defaultProps}
+          snapshot={snapshot('processing', { retryReason: 'model_provider_temporarily_unavailable' })}
+          onStop={vi.fn()}
+        />,
+        language
+      );
+      expect(screen.getByTestId('x-science-task-status-indicator')).toHaveTextContent(
+        language === 'en-US' ? 'Model service unavailable · retrying' : '模型服务暂时不可用，正在重试'
+      );
+      expect(screen.getByTestId('x-science-runtime-status')).toHaveAttribute('data-state', 'provider-retrying');
+      expect(screen.getByTestId('x-science-task-status-spinner')).toBeInTheDocument();
+      rerender(<XScienceTaskStatus {...defaultProps} snapshot={snapshot('processing')} />);
+      expect(screen.getByTestId('x-science-runtime-status')).toHaveAttribute('data-state', 'running');
+      expect(screen.getByTestId('x-science-task-status-indicator')).toHaveTextContent(
+        language === 'en-US' ? 'Task running' : '任务正在运行'
+      );
+      expect(screen.queryByText(/service unavailable|模型服务暂时不可用/)).not.toBeInTheDocument();
+    }
+  );
   it('announces the phase independently of clocks and focuses/returns from the nonmodal details', async () => {
     await renderWithI18n(<XScienceTaskStatus {...defaultProps} snapshot={snapshot('completed')} />);
     const indicator = screen.getByTestId('x-science-task-status-indicator');

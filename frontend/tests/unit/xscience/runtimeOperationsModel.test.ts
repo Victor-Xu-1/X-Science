@@ -12,6 +12,23 @@ import {
 import { describe, expect, it } from 'vitest';
 
 describe('X-Science runtime operations model', () => {
+  it('keeps provider retry diagnostics closed without changing execution or approval semantics', () => {
+    const base = {
+      id: 'retry-frame',
+      status: 'processing',
+      runtime_retry_reason: 'model_provider_temporarily_unavailable',
+    };
+    const retrying = normalizeXScienceRuntimeSnapshot(base);
+    expect(retrying.retryReason).toBe('model_provider_temporarily_unavailable');
+    expect(toXScienceRuntimeSummary(retrying)).toMatchObject({ state: 'running', is_processing: true });
+    expect(
+      normalizeXScienceRuntimeSnapshot({ ...base, runtime_retry_reason: 'private provider diagnostics' }).retryReason
+    ).toBeUndefined();
+    for (const status of ['completed', 'failed', 'cancelled', 'paused', 'awaiting_user_response']) {
+      expect(normalizeXScienceRuntimeSnapshot({ ...base, status }).retryReason).toBeUndefined();
+    }
+    expect(normalizeXScienceRuntimeSnapshot({ id: 'retry-frame', status: 'processing' }).retryReason).toBeUndefined();
+  });
   it('retains only valid server-derived stage progress in a decision question', () => {
     const stage_progress = {
       schema: 'x-science.plan_stage_progress.v1',

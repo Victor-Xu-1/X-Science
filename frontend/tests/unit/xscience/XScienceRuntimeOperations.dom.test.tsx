@@ -2,7 +2,10 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithI18n } from '../i18nTestUtils';
-import type { XScienceRuntimeSnapshot } from '@/renderer/components/xScience/runtime/runtimeOperationsModel';
+import {
+  normalizeXScienceRuntimeSnapshot,
+  type XScienceRuntimeSnapshot,
+} from '@/renderer/components/xScience/runtime/runtimeOperationsModel';
 
 vi.mock('@arco-design/web-react', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@arco-design/web-react')>();
@@ -328,7 +331,9 @@ describe('XScienceRuntimeOperations', () => {
         });
       });
       expect(screen.getByTestId('x-science-runtime-status')).toHaveAttribute('data-state', 'running');
-      expect(runtimeMocks.subscribeInvalidation).toHaveBeenCalledWith('frame-failed', expect.any(Function));
+      expect(runtimeMocks.subscribeInvalidation).toHaveBeenCalledWith('frame-failed', expect.any(Function), {
+        getRetrySnapshot: expect.any(Function),
+      });
       await act(async () => {
         invalidate?.();
         invalidate?.();
@@ -375,6 +380,75 @@ describe('XScienceRuntimeOperations', () => {
 
       view.unmount();
     } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('refreshes the retry capsule once from live public text before the polling interval', async () => {
+    const { ipcBridge } = await import('@/common');
+    const service = await vi.importActual<typeof import('@/renderer/services/xScienceRuntimeOperations')>(
+      '@/renderer/services/xScienceRuntimeOperations'
+    );
+    let progress: ((event: import('@/common/adapter/messageStreamProtocol').IResponseMessage) => void) | undefined;
+    const subscriptions = [
+      ipcBridge.runtime.statusChanged,
+      ipcBridge.conversation.confirmation.add,
+      ipcBridge.conversation.confirmation.update,
+      ipcBridge.conversation.confirmation.remove,
+      ipcBridge.realtime.reconnected,
+    ].map((source) => {
+      const subscription = vi.spyOn(source, 'on').mockImplementation(() => () => {});
+      return () => subscription.mockRestore();
+    });
+    const progressSubscription = vi
+      .spyOn(ipcBridge.acpConversation.responseStream, 'on')
+      .mockImplementation((listener) => {
+        progress = listener;
+        return () => {
+          progress = undefined;
+        };
+      });
+    subscriptions.push(() => progressSubscription.mockRestore());
+    runtimeMocks.subscribeInvalidation.mockImplementation(service.subscribeXScienceRuntimeInvalidation);
+    const retrying = normalizeXScienceRuntimeSnapshot({
+      id: 'frame-failed',
+      status: 'processing',
+      runtime_retry_reason: 'model_provider_temporarily_unavailable',
+      runtime_retry_attempt_id: 'canonical-attempt-2',
+      runtime_attempt: 2,
+      runtime_input_revision: 3,
+      runtime_observed_at: '2026-10-14T10:00:00.000Z',
+    });
+    runtimeMocks.loadSnapshot
+      .mockResolvedValueOnce(retrying)
+      .mockResolvedValueOnce({ ...retrying, retryReason: undefined });
+    vi.useFakeTimers();
+    let unmount: (() => void) | undefined;
+    try {
+      const view = await renderWithI18n(
+        <XScienceRuntimeOperations conversationId='frame-failed' runtimeState='running' onResumed={vi.fn()} />
+      );
+      unmount = view.unmount;
+      await act(async () => {});
+      expect(screen.getByTestId('x-science-runtime-status')).toHaveAttribute('data-state', 'provider-retrying');
+      await act(async () => {
+        for (let token = 0; token < 100; token += 1)
+          progress?.({
+            type: 'text',
+            data: 'Real public progress',
+            conversation_id: 'frame-failed',
+            msg_id: 'public-segment',
+            assistant_attempt_id: 'canonical-attempt-2',
+            created_at: Date.parse('2026-10-14T10:00:01.000Z'),
+          });
+        await vi.advanceTimersByTimeAsync(80);
+      });
+      expect(runtimeMocks.loadSnapshot).toHaveBeenCalledTimes(2);
+      expect(frameReadMocks.invalidate).toHaveBeenCalledWith('frame-failed');
+      expect(screen.getByTestId('x-science-runtime-status')).toHaveAttribute('data-state', 'running');
+    } finally {
+      if (unmount) await act(async () => unmount?.());
+      for (const restore of subscriptions) restore();
       vi.useRealTimers();
     }
   });

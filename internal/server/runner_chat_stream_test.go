@@ -1190,9 +1190,12 @@ func TestTranscriptRunnerProviderContinuationRecoversTimeoutBeforeNewSemanticByt
 			_, _ = w.Write([]byte("data: {\"id\":\"timeout-prefix\",\"choices\":[{\"delta\":{\"role\":\"assistant\",\"content\":\"durable prefix\"}}]}\n\n"))
 			flusher.Flush()
 		case 2:
-			// A provider may accept a continuation request and return response
-			// headers, then time out before producing the next semantic byte.
-			// The durable prefix from segment one remains the recovery fence.
+			// Replay the exact retained prefix before stalling. Native content
+			// ends the first-action deadline, while the continuation filter drops
+			// all replay: there are still no NEW semantic bytes. This isolates a
+			// transport-idle timeout instead of racing it against the separate
+			// planning-no-native deadline for a headers-only response.
+			_, _ = w.Write([]byte("data: {\"id\":\"timeout-prefix-replay\",\"choices\":[{\"delta\":{\"role\":\"assistant\",\"content\":\"durable prefix\"}}]}\n\n"))
 			flusher.Flush()
 			<-r.Context().Done()
 		case 3:
@@ -1242,7 +1245,7 @@ func TestTranscriptRunnerProviderContinuationRecoversTimeoutBeforeNewSemanticByt
 	options.SessionID = ""
 	options.RunnerID = "stream-timeout-resume-runner-2"
 	second, err := server.RunSessionRunnerChatOnce(context.Background(), options)
-	if err != nil || second.Status != "interrupted" || second.InterruptionReasonCode != "provider_stream_no_progress" {
+	if err != nil || second.Status != "interrupted" || second.InterruptionReasonCode != "provider_stream_no_progress" || !second.InterruptionAutoResume {
 		t.Fatalf("second=%#v err=%v", second, err)
 	}
 	options.RunnerID = "stream-timeout-resume-runner-3"

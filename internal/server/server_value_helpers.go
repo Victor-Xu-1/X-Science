@@ -13,6 +13,19 @@ func firstNonEmpty(values ...string) string {
 	return ""
 }
 
+func stringValue(value any) string {
+	text, _ := value.(string)
+	return text
+}
+
+func mapValue(value any) map[string]any {
+	if value == nil {
+		return nil
+	}
+	result, _ := value.(map[string]any)
+	return result
+}
+
 func compactText(text string, limit int) string {
 	text = strings.Join(strings.Fields(text), " ")
 	if limit <= 0 || len(text) <= limit {

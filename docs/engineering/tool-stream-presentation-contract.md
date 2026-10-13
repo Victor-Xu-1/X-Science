@@ -218,30 +218,36 @@ Only the primary model produces assistant prose. There is no secondary narration
 request or periodic summary writer. The observer records byte counts and typed
 publication decisions without generating text or storing response bodies.
 
-The model-facing tool response contract declares `public_progress` as a string
-separate from executable arguments. Its schema requires a nonempty update at
-the start and after a settled operation and 90 seconds without
-public prose. Routine rounds allow an empty string. Cadence
-metadata is scoped to stream, branch and input revision and survives recovery.
-The primary model produces both the explanation and its action in one request;
-no summarization request is added. One parallel batch publishes at most one
-structured update. Valid structured progress takes precedence; native
-tool-round prose is the fallback, avoiding a duplicate explanation. Native
-response content continues streaming into its private candidate buffer; only
-public promotion waits for the validated response boundary.
+New model requests use one independent public-progress envelope contract,
+separate from executable arguments and the final answer. Request-scoped cadence
+asks for an update at the start and after a settled operation and 90 seconds
+without public prose; routine rounds need no repeated update. Cadence metadata
+is scoped to stream, branch and input revision and survives recovery. The
+primary model produces its explanation and action in one request; no narration
+request is added. Tool-free presentation requests retain their exact contract.
 
-The adapter removes this field before tool admission/execution. Invalid or
-missing progress never disables an otherwise valid scientific operation.
-Interrupted responses cannot publish their structured update. Progress uses
-the existing durable text stream, while a no-tool response remains a final
-candidate subject to all completion checks. Historical progress-envelope
-decoding remains supported, but new model instructions use only the declared
-response field; no second narrator or alternate tool gateway is introduced.
+The existing bounded envelope decoder validates each complete public block
+before language and narration validation. Matching-language blocks traverse the
+original durable publication boundary without waiting for a slow tool tail.
+Language conversion waits until the primary request finishes, preserves block
+order, and never starts recursively within its streaming callback. Non-envelope
+content remains a private candidate. A successful terminal-only provider can be
+decoded after completion, without inventing a native streaming arrival; actual
+streamed content must still agree with the terminal response.
+
+The legacy `public_progress` tool field remains readable only after a complete
+response and is stripped before tool admission. It is no longer injected into
+schemas or instructed alongside the envelope. Accepted independent blocks take
+precedence, with one canonical terminal narration and no duplicate publication.
+Invalid optional progress does not disable an otherwise valid action. An
+already validated public block may survive a later transport failure, but that
+does not authorize an incomplete tool or claim task success. No-tool final
+candidates retain all completion checks; no alternate tool gateway is added.
 
 A completed response with tool calls can contain a short public preamble even
 when its proposed tool requires private protocol repair. The publication owner
 must explicitly approve that preamble; tool-choice, schema, admission and final
-validation remain unchanged. Incomplete responses and final-looking or
+validation remain unchanged. Incomplete private candidates and final-looking or
 report-sized drafts are not promoted to progress. Progress is bounded to 300
 Unicode characters without clipping the underlying model response.
 

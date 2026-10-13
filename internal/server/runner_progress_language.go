@@ -8,12 +8,6 @@ import (
 	"x-science/internal/agentruntime"
 )
 
-type runnerLanguageProgressBlock struct{ id, text string }
-type runnerLanguageProgressBlocks struct {
-	open   *runnerLanguageProgressBlock
-	closed []runnerLanguageProgressBlock
-}
-
 func (client *sessionRunnerResponseLanguageModelClient) discardProgressPresentation(err error) {
 	code := "invalid_progress"
 	if failure, ok := err.(sessionRunnerPresentationViolation); ok {
@@ -21,44 +15,6 @@ func (client *sessionRunnerResponseLanguageModelClient) discardProgressPresentat
 	}
 	if client.audit != nil {
 		client.audit(map[string]any{"decision": "progress_presentation_discarded", "failure_code": code})
-	}
-}
-
-func (blocks *runnerLanguageProgressBlocks) accept(event agentruntime.ModelStreamEvent) (bool, error) {
-	switch event.Kind {
-	case agentruntime.ModelStreamEventPublicProgressDelta:
-		if err := agentruntime.ValidateModelStreamEvent(event); err != nil {
-			return true, sessionRunnerPresentationViolation{Code: "invalid_progress_event"}
-		}
-		if event.BlockID == "" {
-			return true, sessionRunnerPresentationViolation{Code: "missing_block_identity"}
-		}
-		if len(blocks.closed) >= 64 {
-			return true, sessionRunnerPresentationViolation{Code: "too_many_blocks"}
-		}
-		if blocks.open == nil {
-			blocks.open = &runnerLanguageProgressBlock{id: event.BlockID}
-		}
-		if blocks.open.id != event.BlockID {
-			return true, sessionRunnerPresentationViolation{Code: "block_identity_changed"}
-		}
-		if len(blocks.open.text)+len(event.ContentDelta) > 16*1024 {
-			return true, sessionRunnerPresentationViolation{Code: "block_too_large"}
-		}
-		blocks.open.text += event.ContentDelta
-		return true, nil
-	case agentruntime.ModelStreamEventPublicProgressBoundary:
-		if err := agentruntime.ValidateModelStreamEvent(event); err != nil {
-			return true, sessionRunnerPresentationViolation{Code: "invalid_progress_event"}
-		}
-		if blocks.open == nil || blocks.open.id != event.BlockID {
-			return true, sessionRunnerPresentationViolation{Code: "unexpected_boundary"}
-		}
-		blocks.closed = append(blocks.closed, *blocks.open)
-		blocks.open = nil
-		return true, nil
-	default:
-		return false, nil
 	}
 }
 
@@ -74,6 +30,10 @@ func (client *sessionRunnerResponseLanguageModelClient) localizeProgressBlocks(c
 	for _, block := range blocks.closed {
 		text := block.text
 		originalText.WriteString(text)
+		if block.forwarded {
+			localizedText.WriteString(block.forwardedText)
+			continue
+		}
 		if sessionRunnerRequiresChinese(client.language) && sessionRunnerClearlyEnglishProgress(text) {
 			candidate := agentruntime.ModelResponse{Message: agentruntime.Message{Content: text, ToolCalls: response.Message.ToolCalls}}
 			translated, err := client.localizeOrKeepToolCall(ctx, request, candidate)
@@ -94,13 +54,8 @@ func (client *sessionRunnerResponseLanguageModelClient) localizeProgressBlocks(c
 			}
 		}
 		localizedText.WriteString(text)
-		if emit != nil && text != "" {
-			if err := emit(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventPublicProgressDelta, BlockID: block.id, ContentDelta: text}); err != nil {
-				return response, false, err
-			}
-			if err := emit(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventPublicProgressBoundary, BlockID: block.id}); err != nil {
-				return response, false, err
-			}
+		if err := client.emitProgressBlock(ctx, block.id, text, emit); err != nil {
+			return response, false, err
 		}
 	}
 	// The response-contract adapter selects this progress as canonical tool-round
@@ -111,4 +66,47 @@ func (client *sessionRunnerResponseLanguageModelClient) localizeProgressBlocks(c
 		return response, true, nil
 	}
 	return response, false, nil
+}
+
+// A complete public block has an independent publication boundary. Pass blocks
+// already in the requested language immediately; any optional translation still
+// waits for the complete native action so it cannot rewrite partial tool data.
+func (client *sessionRunnerResponseLanguageModelClient) forwardReadyProgressBlocks(ctx context.Context, blocks *runnerLanguageProgressBlocks, emit func(agentruntime.ModelStreamEvent) error) error {
+	for index := range blocks.closed {
+		block := &blocks.closed[index]
+		if block.forwarded {
+			continue
+		}
+		if sessionRunnerRequiresChinese(client.language) && sessionRunnerClearlyEnglishProgress(block.text) {
+			break // Preserve order behind the earlier block awaiting conversion.
+		}
+		text := sessionRunnerPublicProgressNarration(block.text)
+		if err := client.emitProgressBlock(ctx, block.id, text, emit); err != nil {
+			return err
+		}
+		block.forwarded, block.forwardedText = true, text
+	}
+	return nil
+}
+
+func (client *sessionRunnerResponseLanguageModelClient) emitProgressBlock(ctx context.Context, id, text string, emit func(agentruntime.ModelStreamEvent) error) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if emit == nil || text == "" {
+		return nil
+	}
+	if client.presentationReady != nil {
+		client.presentationReady()
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if err := emit(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventPublicProgressDelta, BlockID: id, ContentDelta: text}); err != nil {
+		return err
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	return emit(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventPublicProgressBoundary, BlockID: id})
 }

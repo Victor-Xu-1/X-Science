@@ -1518,6 +1518,8 @@ export type I18nKey =
   | 'conversation.xscienceRuntime.runtimeOperations.taskPendingCount'
   | 'conversation.xscienceRuntime.runtimeOperations.taskPlan'
   | 'conversation.xscienceRuntime.runtimeOperations.taskPlanUnavailable'
+  | 'conversation.xscienceRuntime.runtimeOperations.taskProviderRetrying'
+  | 'conversation.xscienceRuntime.runtimeOperations.taskProviderTransportRetrying'
   | 'conversation.xscienceRuntime.runtimeOperations.taskQueued'
   | 'conversation.xscienceRuntime.runtimeOperations.taskQueuedCommandCount'
   | 'conversation.xscienceRuntime.runtimeOperations.taskRecovery'

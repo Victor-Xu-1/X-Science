@@ -70,7 +70,8 @@ export function notifyXScienceRuntimeInvalidation(frameId: string, event?: XScie
 
 export function subscribeXScienceRuntimeInvalidation(
   frameId: string,
-  onInvalidate: (event?: XScienceRuntimeInvalidation) => void
+  onInvalidate: (event?: XScienceRuntimeInvalidation) => void,
+  options: { getRetrySnapshot?: () => XScienceRuntimeSnapshot | null } = {}
 ): () => void {
   const normalizedFrameId = frameId.trim();
   const invalidate = (event?: XScienceRuntimeInvalidation) => {
@@ -86,6 +87,37 @@ export function subscribeXScienceRuntimeInvalidation(
   const releaseStatus = ipcBridge.runtime.statusChanged.on((event) => {
     if (event.scope.kind === 'conversation' && event.scope.id === normalizedFrameId) invalidate(event);
   });
+  let consumedRetrySnapshot: XScienceRuntimeSnapshot | null = null;
+  const releaseProgress = options.getRetrySnapshot
+    ? ipcBridge.acpConversation.responseStream.on((event) => {
+        const snapshot = options.getRetrySnapshot?.();
+        if (!snapshot?.retryReason || snapshot === consumedRetrySnapshot || snapshot.frameId !== normalizedFrameId)
+          return;
+        const observedAt = Date.parse(snapshot.runtimeObservedAt ?? '');
+        if (
+          !snapshot.retryAttemptId ||
+          !snapshot.runtimeAttempt ||
+          !snapshot.runtimeInputRevision ||
+          event.conversation_id !== normalizedFrameId ||
+          event.hidden === true ||
+          (event.type !== 'text' && event.type !== 'content') ||
+          (event.assistant_attempt_id ?? event.msg_id) !== snapshot.retryAttemptId ||
+          typeof event.data !== 'string' ||
+          !event.data.trim() ||
+          !Number.isFinite(observedAt) ||
+          event.created_at === undefined ||
+          event.created_at < observedAt
+        )
+          return;
+        // A live public delta is only an invalidation, never new runtime truth.
+        // Consume this loaded snapshot once: coalescing/in-flight hydration owns
+        // the read; later tokens cannot create an HTTP-per-token feedback loop.
+        // A fresh authoritative retry snapshot re-arms the wake, while failed
+        // reads retain the existing bounded polling/reconnect recovery path.
+        consumedRetrySnapshot = snapshot;
+        invalidate();
+      })
+    : undefined;
   const invalidateConfirmation = (event: { conversation_id: string }) => {
     if (event.conversation_id === normalizedFrameId) invalidate();
   };
@@ -97,6 +129,7 @@ export function subscribeXScienceRuntimeInvalidation(
   return () => {
     if (!active) return;
     active = false;
+    releaseProgress?.();
     releaseReconnect();
     releaseConfirmationRemove();
     releaseConfirmationUpdate();

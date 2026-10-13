@@ -149,6 +149,29 @@ go test ./internal/server -run 'TestServerClose.*BackgroundShell|TestBackgroundS
 go test ./internal/server -run 'TestStaticOutputBudget|TestOutputBudget|TestContinuation.*Generations|TestContinuationGrowingBudget' -count=1
 ```
 
+### First-response attribution · 首个输出归因
+
+公开进度使用既有独立 envelope 协议，与工具参数和最终答案分开。完整块先经过统一
+解码、语言与公开叙述检查，再走原持久发布边界；通过校验的块不等待整个工具响应
+尾部。非公开正文仍是候选，工具仍须完整响应和原 admission；后续请求失败不把已
+接受的进度冒充成成功。残缺或无效块不公开，不从未闭合工具 JSON 中截取字段。
+语言转换仍在主请求完成后进行，不在流回调中递归启动第二个模型请求。新请求只
+指导独立公开块，旧工具进度字段仅作兼容读取，不再注入或强制工具参数。
+
+既有 communication audit 只记录请求级时间、计数和封闭来源，不保存正文、参数或私有
+思考。`observer_request_started_at` 是观察层开始委托的时间；原生正文、原生工具边界、
+完整响应、公开进度就绪、语言处理就绪和持久发布确认分别记录首次时间，未观察到的
+阶段省略。它们不等于供应商首个网络字节、首次私有 token 或浏览器绘制时间。
+语言转写等辅助请求单独标记为 `presentation`，不能替换仍待公开的主请求时间范围。
+这些观察不授权提前公开候选、改变工具权限或新增模型调用；公开块仍经过原语言、
+真实性、去重及持久化边界。需要按同一请求比较到达与发布时间，不能把整段生成耗时
+直接归因于缓冲。
+
+临时模型服务或传输失败的自动重试原因由当前输入/运行代次的持久化事件投影到既有
+frame runtime 快照。页面显示等待重试原因，不猜测供应商配额或倒计时；仅开始下一次
+模型请求不代表恢复成功。真实公开/工具进展、终态、人工等待或新输入清理旧原因，
+重连与实时更新使用同一权威。此展示不改变自动重试、租约、审批和取消策略。
+
 ### Reading progress · 读取进展
 
 任务内重复读取相同来源和窗口时，以实际返回内容判断是否有新证据，不以模型附带的

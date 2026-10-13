@@ -4,14 +4,6 @@ import transcriptstore "x-science/internal/persistence/transcript"
 
 const sessionRunnerFinalPresentationReasonCode = "response_presentation_invalid"
 
-// Only protocol metadata belongs here. Never embed provider text or executable
-// arguments in the error, public reason, or correction instruction.
-type sessionRunnerPresentationViolation struct{ Code string }
-
-func (failure sessionRunnerPresentationViolation) Error() string {
-	return "model response progress contract is invalid"
-}
-
 // Only an unusable final candidate requires a replacement response. Optional
 // progress failures with valid actions never implement this correction contract.
 type sessionRunnerFinalPresentationCorrection struct{}

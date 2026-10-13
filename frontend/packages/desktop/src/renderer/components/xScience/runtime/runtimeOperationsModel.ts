@@ -48,6 +48,10 @@ export type XScienceRuntimeSnapshot = {
   runtimeAttempt: number | null;
   runtimeInputRevision: number | null;
   runtimeStage: XScienceRuntimeStage;
+  /** Closed, canonical retry classification; never raw provider diagnostics. */
+  retryReason?: 'model_provider_temporarily_unavailable' | 'provider_transport_temporarily_unavailable';
+  /** Opaque identity shared with the canonical public message stream. */
+  retryAttemptId?: string;
   reviewStatus: string | null;
   reviewKind: string | null;
   reviewProfile: string | null;
@@ -435,6 +439,12 @@ export function normalizeXScienceRuntimeSnapshot(value: unknown): XScienceRuntim
   const planApproval = status === 'awaiting_plan_approval' && taskPlan ? taskPlan : null;
   const runtimeStage = normalizeRuntimeStage(value.runtime_stage);
   const reviewTriggerValue = stringValue(value.runtime_review_trigger).toLowerCase();
+  const retryReason = value.runtime_retry_reason;
+  const retryPhase = TASK_PHASE_BY_FRAME_STATUS.get(status);
+  const providerRetrying =
+    (retryPhase === 'running' || retryPhase === 'starting' || retryPhase === 'queued') &&
+    (retryReason === 'model_provider_temporarily_unavailable' ||
+      retryReason === 'provider_transport_temporarily_unavailable');
   return {
     frameId,
     rootFrameId: stringValue(value.root_frame_id) || frameId,
@@ -466,6 +476,9 @@ export function normalizeXScienceRuntimeSnapshot(value: unknown): XScienceRuntim
     runtimeAttempt: positiveInteger(value.runtime_attempt),
     runtimeInputRevision: nonNegativeInteger(value.runtime_input_revision),
     runtimeStage,
+    ...(providerRetrying
+      ? { retryReason, retryAttemptId: nullableString(value.runtime_retry_attempt_id) ?? undefined }
+      : {}),
     reviewStatus: nullableString(value.runtime_review_status)?.toLowerCase() ?? null,
     reviewKind: nullableString(value.runtime_review_kind),
     reviewProfile: nullableString(value.runtime_review_profile),

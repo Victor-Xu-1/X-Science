@@ -399,6 +399,13 @@ const XScienceTaskStatus: React.FC<XScienceTaskStatusProps> = ({
       dataState = 'waiting_input';
     } else if (resumablePause) {
       title = t('conversation.xscienceRuntime.runtimeOperations.taskPaused');
+    } else if ((phase === 'running' || phase === 'starting' || phase === 'queued') && snapshot?.retryReason) {
+      title = t(
+        snapshot.retryReason === 'model_provider_temporarily_unavailable'
+          ? 'conversation.xscienceRuntime.runtimeOperations.taskProviderRetrying'
+          : 'conversation.xscienceRuntime.runtimeOperations.taskProviderTransportRetrying'
+      );
+      dataState = 'provider-retrying';
     } else {
       title = t(titleKeys[status.phase]);
     }
