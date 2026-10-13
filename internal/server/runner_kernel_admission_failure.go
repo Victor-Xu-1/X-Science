@@ -25,14 +25,8 @@ func (s *Server) settleKernelAdmissionFailure(run *sessionRunnerChatRun, callID 
 	if !found || operation.ToolCallID != callID || operation.StreamUID != run.Transcript.Stream.UID {
 		return nil, false, workspace.ErrKernelLocalOperationConflict
 	}
-	if operation.State == workspace.KernelLocalOperationStateCancelled && operation.ExecutionID == "" {
-		persisted, err := s.kernelLocalOperationPersistedResult(operation)
-		if err != nil {
-			return nil, false, err
-		}
-		if agentKernelPreflightResult(persisted) {
-			return persisted, true, nil
-		}
+	if operation.State == workspace.KernelLocalOperationStateCancelled {
+		return s.settledKernelAdmissionFailureResult(operation, result)
 	}
 	if !kernelAdmissionFailureIsUnstarted(operation) {
 		return result, false, nil
@@ -48,8 +42,30 @@ func (s *Server) settleKernelAdmissionFailure(run *sessionRunnerChatRun, callID 
 	if stringValue(value["code"]) == "" && stringValue(value["status"]) == "" {
 		value["code"] = "execution_preflight_failed"
 	}
-	_, handled, err := s.reconcileKernelOperationPreflightResult(context.Background(), run, callID, value)
-	return value, handled, err
+	settled, handled, err := s.reconcileKernelOperationPreflightResult(context.Background(), run, callID, value)
+	if err != nil || !handled {
+		return result, false, err
+	}
+	return s.settledKernelAdmissionFailureResult(settled, result)
+}
+
+// Reconciliation may observe a terminal operation that another executor settled
+// after the initial approved-state read. Only its immutable materialization can
+// prove a preflight; never project the stale proposed result over that outcome.
+// Worker preflights can legitimately have preparation/start lifecycle records,
+// so retain their actual receipt instead of inferring execution from state alone.
+func (s *Server) settledKernelAdmissionFailureResult(operation workspace.KernelLocalOperation, original map[string]any) (map[string]any, bool, error) {
+	if !workspace.KernelLocalOperationIsTerminal(operation.State) {
+		return nil, false, workspace.ErrKernelLocalOperationConflict
+	}
+	persisted, err := s.kernelLocalOperationPersistedResult(operation)
+	if err != nil {
+		return nil, false, err
+	}
+	if !agentKernelPreflightResult(persisted) {
+		return original, false, nil
+	}
+	return persisted, true, nil
 }
 
 func kernelAdmissionFailureIsUnstarted(operation workspace.KernelLocalOperation) bool {
