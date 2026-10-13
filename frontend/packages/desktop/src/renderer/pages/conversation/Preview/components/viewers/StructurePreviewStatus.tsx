@@ -5,7 +5,7 @@
  */
 
 import { Button, Empty, Spin } from '@arco-design/web-react';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { scientificPreviewErrorKey, type ScientificPreviewError } from './scientificPreviewError';
 
@@ -26,26 +26,29 @@ export function useStructurePreviewRetry({
 }: Omit<StructurePreviewStatusProps, 'onRetry'> & { content?: string; contentUrl?: string }) {
   const [loadRevision, setLoadRevision] = useState(0);
   const statusRootRef = useRef<HTMLElement>(null);
-  const returnFocus = useRef(false);
+  const returnFocus = useRef<number | null>(null);
 
-  useEffect(() => {
-    returnFocus.current = false;
+  useLayoutEffect(() => {
+    returnFocus.current = null;
   }, [content, contentUrl, filename]);
 
   useEffect(() => {
-    if (loading || !returnFocus.current) return;
-    returnFocus.current = false;
+    if (loading || returnFocus.current !== loadRevision) return;
+    returnFocus.current = null;
     const root = statusRootRef.current;
     const active = document.activeElement;
     if (!root || root.closest('[hidden], [aria-hidden="true"]')) return;
     if (active && active !== document.body && active.isConnected) return;
     if (error) root.querySelector<HTMLButtonElement>('[data-testid="structure-preview-retry"]')?.focus();
     else root.focus();
+    // A revision-only render still has the previous attempt's status. Only a
+    // status change can settle retry focus; its captured revision fences late effects.
   }, [loading, error]);
 
   const retryStructure = () => {
-    returnFocus.current = true;
-    setLoadRevision((revision) => revision + 1);
+    const revision = (returnFocus.current ?? loadRevision) + 1;
+    returnFocus.current = revision;
+    setLoadRevision(revision);
   };
   return { loadRevision, statusRootRef, retryStructure };
 }

@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "f8be6cfba60753d1a91d087172537f3d676f854533b2dfd1b6102b177984f003",
+  "adaptationFingerprintSHA256": "1acd11df0d3ad74b016545152b8109309338b0c4675ffc7fe899d96dacc89b30",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
-  "additionFingerprintSHA256": "5832026729442cb30c777e3570801269f225eda37dbe4aebb64f9c290ec33f1d",
+  "additionFingerprintSHA256": "f5c6311463b055458ce4802704715c118e5dd3285ff7fc82f857bbaeee59a80c",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 276,
     "adaptedSourceFiles": 785,
     "removedSourceFiles": 293,
-    "addedFiles": 924
+    "addedFiles": 930
   },
   "adaptations": [
     {
@@ -1777,8 +1777,8 @@
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/XScienceSequenceViewer.tsx",
       "originalPath": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedSequenceViewer.tsx",
       "sourceSHA256": "eac3d5e7c1bebcdb91eef6b3e226a406380864fc754df294c018a429d51d3419",
-      "targetSHA256": "1b5cd77dc05869a5b8af27dfe29cd7f3696ab1380fb722bca7018f29edb24c35",
-      "bytes": 11193,
+      "targetSHA256": "6aa2dfb9d60a1052c9e0dd9b6ccd81b35f4b43723958631cfe09b673415b4bf5",
+      "bytes": 10552,
       "reason": "Move genuine imported source to the current X-Science namespace. Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -1849,8 +1849,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/sequenceModel.ts",
       "sourceSHA256": "790dd6313111c0eaebd55fe647fb3c1182dfddf5364b6b98a040aeac3185d5fb",
-      "targetSHA256": "2a4de9554e62cfef1522c168d88fe9519972694f873558e1726e38d49e402c68",
-      "bytes": 5266,
+      "targetSHA256": "db0772c31970cc2ba2c43729745b8e2067dcef42b7be8b7dfe106e5bda4d458c",
+      "bytes": 6841,
       "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -4216,8 +4216,8 @@
       "path": "tests/unit/previews/XScienceStructureViewer.dom.test.tsx",
       "originalPath": "tests/unit/previews/SynonBiomedStructureViewer.dom.test.tsx",
       "sourceSHA256": "ba8c8acb753fdac5f71871a9aeba75f7dd569f1f82eca75dae7e0c76fa5f1c54",
-      "targetSHA256": "c73d3dda9915e993d488c318a6bff3fdeb5d8605c6d0bd2ca8eddb03e518d443",
-      "bytes": 162168,
+      "targetSHA256": "67adc1f64d679095d74803c88c1e835f30987e6381cd354dfbdcf8bf67cfc420",
+      "bytes": 170851,
       "reason": "Move genuine imported source to the current X-Science namespace. Verify format-neutral composition controls, collapsed 2D panels, and source-invalidated interactions after minimization."
     },
     {
@@ -8741,8 +8741,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/StructurePreviewStatus.tsx",
-      "sha256": "46e71161edcfa126ef21f2abfde947a6de6ab1439b9bc7b6183be95682a6cd8b",
-      "bytes": 2537,
+      "sha256": "1a9b9528483791018669252c2c5436c38315023f93a8f0041b7ac61ed3ca71ae",
+      "bytes": 2804,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -11147,8 +11147,8 @@
     },
     {
       "path": "tests/unit/previews/XScienceSequenceViewer.load.test.ts",
-      "sha256": "929ffc7829d876bb1fab4da24304a4c2dedb5ecede676a403b3c135119422bc4",
-      "bytes": 5400,
+      "sha256": "3ec6977d7862eccc1bcb227ebce39ce3d99c1d2fe40ec88976018c1103ffa21f",
+      "bytes": 10578,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -11263,6 +11263,42 @@
       "path": "tests/unit/previews/scientificPreviewLoaders.dom.test.tsx",
       "sha256": "c1dbd5cf28d0fae7000711847cca1b3a7048e4a90a5833019a5c1028dd9bd6cc",
       "bytes": 4879,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/previews/sequenceByteBudget.regression.dom.test.tsx",
+      "sha256": "9b021fa391b750e805b6c24e3d82c465be7121397ab2f212578ca41ef0975d41",
+      "bytes": 19777,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/previews/snapgeneCompatibility.regression.dom.test.tsx",
+      "sha256": "0c0271c4f6b6723f247ecfef988a46b967ed681f2bad15e9852258712767f6cd",
+      "bytes": 10227,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/previews/snapgeneCompatibility.regression.test.ts",
+      "sha256": "cb820018bef65800a14c00977126f71f2941e48dfd601356617f27bd8e6dd3e5",
+      "bytes": 8924,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/previews/snapgenePacketBounds.regression.dom.test.tsx",
+      "sha256": "a197ef90ba15148e17440f48447196a41e57de2df1f78f1d08ae43c069fb6088",
+      "bytes": 3079,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/previews/snapgenePacketBounds.regression.test.ts",
+      "sha256": "59be45220f60eddf572d57091be6193f75f7ee443e5a2a0e6401590c509d1f20",
+      "bytes": 1643,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/previews/snapgenePacketFixtures.ts",
+      "sha256": "cf2ab3f9eed8b3f05fb7cd03c7d3c0c35f29efbba42f1c3f2ce926d1128ceeee",
+      "bytes": 4671,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
