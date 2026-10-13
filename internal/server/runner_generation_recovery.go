@@ -23,15 +23,6 @@ type providerGenerationRecovery struct {
 	NotBefore     time.Time `json:"not_before,omitempty"`
 }
 
-type sessionOutputBudgetRecoveryError struct {
-	cause   error
-	scope   string
-	canGrow bool
-}
-
-func (e *sessionOutputBudgetRecoveryError) Error() string { return e.cause.Error() }
-func (e *sessionOutputBudgetRecoveryError) Unwrap() error { return e.cause }
-
 func (run *sessionRunnerChatRun) generationRecoverySnapshot() providerGenerationRecovery {
 	run.generationRecoveryMu.Lock()
 	defer run.generationRecoveryMu.Unlock()
