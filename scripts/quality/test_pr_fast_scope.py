@@ -63,6 +63,8 @@ class PackageScopeTests(unittest.TestCase):
                 self.assertEqual(self.selected(path), self.all_packages)
 
     def test_documentation_and_frontend_scopes_are_explicit(self):
+        self.assertEqual(self.selected("LICENSE.txt", "COMMERCIAL-LICENSE.md"), [])
+        self.assertFalse(scope.documentation_only("commercial_license_runtime.go"))
         self.assertEqual(self.selected("docs/guide.md", "README.md", ".github/pull_request_template.md",
                                         "frontend/README.md", "frontend/package-lock.json",
                                         "frontend/package.json"), [])
