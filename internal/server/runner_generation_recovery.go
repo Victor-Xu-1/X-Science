@@ -10,6 +10,7 @@ import (
 
 	eventjournal "x-science/internal/persistence/journal"
 	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/providers"
 	"x-science/internal/sessionrunner"
 )
 
@@ -102,22 +103,28 @@ func (s *Server) checkpointGenerationRecovery(ctx context.Context, run *sessionR
 	}
 	ctx, cancel := context.WithTimeout(ctx, sessionRunnerContentDeltaPersistenceTimeout)
 	defer cancel()
-	scope, canGrow := "provider-default", false
+	scope := "provider-default"
 	var fixed *sessionOutputBudgetSaturatedError
 	var adaptive *sessionOutputBudgetRecoveryError
 	if errors.As(cause, &fixed) && fixed.scope != "" {
 		scope = fixed.scope
 	}
 	if errors.As(cause, &adaptive) {
-		scope, canGrow = adaptive.scope, adaptive.canGrow
+		scope = adaptive.scope
 	}
 	state := run.generationRecoverySnapshot()
 	if state.Scope != scope || state.InputRevision != run.Transcript.Claim.ClaimedInputRevision {
 		state = providerGenerationRecovery{Version: 1, Scope: scope, InputRevision: run.Transcript.Claim.ClaimedInputRevision}
 	}
 	next, park := sessionrunner.AdvanceRecovery(sessionrunner.RecoveryProgress{
-		SemanticBytes: run.ProviderAttemptSemanticBytes, BudgetCanGrow: canGrow, Consecutive: state.Consecutive,
+		SemanticBytes: run.ProviderAttemptSemanticBytes, Consecutive: state.Consecutive,
 	})
+	// A typed action deadline has already exhausted a complete operation window.
+	// Only the empty native response variant qualifies: accepted public content
+	// or a tool boundary must keep its existing exact-prefix recovery semantics.
+	if run.ProviderAttemptSemanticBytes == 0 && providers.IsProviderPlanningNoNativeProgress(cause) {
+		park = true
+	}
 	state.Consecutive = min(next, sessionrunner.MaxRecoveryStreak)
 	state.NotBefore = time.Time{}
 	if state.Consecutive > 0 && !park {

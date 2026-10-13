@@ -28,7 +28,8 @@ func completeDefaultProbeResponse(response agentruntime.ModelResponse) bool {
 
 // Consume before dispatch: a failed or interrupted comparison cannot repeat the
 // same probe after client/process recreation. The measured Next proposal stays
-// available for normal bounded negotiation if this comparison fails.
+// available for transport/limit negotiation, but an exhausted action window
+// retires that stale numerical fallback through retireFailedPlanningProbe.
 func (client *sessionOutputBudgetClient) consumeDefaultProbe(contextID string) (outputBudgetState, bool, error) {
 	var state outputBudgetState
 	consumed := false
@@ -54,6 +55,35 @@ func (client *sessionOutputBudgetClient) consumeDefaultProbe(contextID string) (
 		return true, nil
 	})
 	return state, consumed, err
+}
+
+// An empty default-budget attempt that exhausted its action window disproves
+// further automatic replay of the preceding numerical proposal. This is not a
+// provider capacity observation or a successful preference. Explicit recovery
+// may still request the default route; the canonical runner owns auto-resume.
+func (client *sessionOutputBudgetClient) retireFailedPlanningProbe(probe outputBudgetState) error {
+	return client.store.EditNamespace(client.namespace, func(entries map[string]runtimekv.Entry) (bool, error) {
+		entry, found := entries["state"]
+		if !found {
+			return false, nil
+		}
+		state, err := client.decode(entry)
+		if err != nil {
+			return false, err
+		}
+		// Do not erase a newer request's observation if ownership has moved on.
+		if !state.DefaultProbeUsed || state.DefaultProbePending || state.Context != probe.Context ||
+			state.Next != probe.Next || state.Lower != probe.Lower || state.Ceiling != probe.Ceiling || state.Rejected != probe.Rejected {
+			return false, nil
+		}
+		state.Next = 0
+		state.SkipInitialAllowance = true
+		entry.Value = state
+		entry.Version++
+		entry.UpdatedAt = time.Now().UTC()
+		entries["state"] = entry
+		return true, nil
+	})
 }
 
 // Successful provider-default execution retires only the soft initial hint.

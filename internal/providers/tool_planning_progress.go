@@ -5,12 +5,25 @@ import (
 	"errors"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"x-science/internal/agentruntime"
 )
 
 var errProviderPlanningNoProgress = errors.New("provider tool planning exceeded its action-progress window without public output or a tool call")
+
+// This request-scoped observation carries native action evidence, not executable
+// arguments or public content. Keep a boundary racing cancellation visible until
+// the decoder returns; taking a snapshot when the timer fires can lose it.
+type providerPlanningNoProgressError struct {
+	toolBoundaryObserved *atomic.Bool
+}
+
+func (err *providerPlanningNoProgressError) Error() string {
+	return errProviderPlanningNoProgress.Error()
+}
+func (err *providerPlanningNoProgressError) Unwrap() error { return errProviderPlanningNoProgress }
 
 type providerStreamPlanningDeadline struct {
 	Stop            func()
@@ -76,6 +89,7 @@ func toolPlanningStreamContext(
 	var generation uint64
 	stopped := false
 	headersReceived := false
+	var toolBoundaryObserved atomic.Bool
 	arm := func() {
 		generation++
 		currentGeneration := generation
@@ -87,7 +101,7 @@ func toolPlanningStreamContext(
 			}
 			stopped = true
 			generation++
-			cause := errProviderPlanningNoProgress
+			var cause error = &providerPlanningNoProgressError{toolBoundaryObserved: &toolBoundaryObserved}
 			if !headersReceived {
 				// Header absence is a transport availability failure, not evidence
 				// of private-only generation. Preserve its bounded retry contract.
@@ -113,6 +127,9 @@ func toolPlanningStreamContext(
 		useful := strings.TrimSpace(event.ContentDelta) != "" || event.Kind == agentruntime.ModelStreamEventToolCallBoundary
 		mu.Lock()
 		headersReceived = true // A decoded event necessarily follows response headers.
+		if event.Kind == agentruntime.ModelStreamEventToolCallBoundary {
+			toolBoundaryObserved.Store(true)
+		}
 		if useful {
 			generation++
 			if timer != nil {
