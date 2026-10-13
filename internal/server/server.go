@@ -362,24 +362,7 @@ func New(options Options) *Server {
 	}
 	tools := options.Tools
 	operations := options.Operations
-	// Every public-source consumer shares the operator route. Supplying a base
-	// HTTP client alone must not turn its ambient proxy into DNS authority.
-	publicSourceProxy := strings.TrimSpace(options.ConfigNetworkProxy)
-	if options.ConfigNetworkProxyInherited {
-		publicSourceProxy = ""
-	}
-	options.WebFetchOptions.TrustedProxyURL = publicSourceProxy
-	if options.WebFetchOptions.BaseHTTPClient == nil {
-		options.WebFetchOptions.BaseHTTPClient = options.HTTPClient
-	}
-	registeredWebSearchOptions := options.WebSearchOptions
-	registeredWebSearchOptions.TrustedProxyURL = publicSourceProxy
-	if registeredWebSearchOptions.BaseHTTPClient == nil {
-		registeredWebSearchOptions.BaseHTTPClient = options.HTTPClient
-	}
-	if strings.TrimSpace(registeredWebSearchOptions.Root) == "" {
-		registeredWebSearchOptions.Root = options.FileRoot
-	}
+	registeredWebSearchOptions, publicSourceProxy := configurePublicSourceOptions(&options)
 	if tools != nil && operations == nil {
 		catalogs := registry.Split(tools)
 		tools = catalogs.ModelTools

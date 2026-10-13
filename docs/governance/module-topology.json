@@ -112,7 +112,7 @@
     }
   ],
   "growthCeilings": [
-    {"kind": "lines", "path": "internal/server/server.go", "maximum": 1100},
+    {"kind": "lines", "path": "internal/server/server.go", "maximum": 1000},
     {"kind": "lines", "path": "internal/tools/registry/registry.go", "maximum": 460},
     {"kind": "lines", "path": "internal/tools/registry/catalog.go", "maximum": 1830},
     {"kind": "lines", "path": "internal/sessionrunner/machine.go", "maximum": 250},
