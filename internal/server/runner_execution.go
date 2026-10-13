@@ -777,7 +777,7 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 	publicProgressBlockID := ""
 	progressDeduper := &sessionRunnerPublicProgressDeduper{}
 	progressOutcomeAuthority := newSessionRunnerProgressOutcomeAuthority(agentRuntimeMessagesFromChat(messages))
-	progressSegmentPublished := false
+	typedProgressObserved := false
 	publicNarrationBytes := 0
 	communicationSchedule, scheduleErr := s.loadSessionRunnerCommunicationSchedule(deltaContext, run)
 	if scheduleErr != nil {
@@ -818,7 +818,6 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 		// This is the acknowledgement of the durable publication boundary,
 		// not the provider's first token or a browser paint timestamp.
 		communicationObserver.notePublication()
-		progressSegmentPublished = true
 		publicNarrationBytes += len(delta)
 		return communicationSchedule.published()
 	}
@@ -828,6 +827,9 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 	}
 	publishTypedProgressSegment := func(blockID string) error {
 		// A complete typed update replaces a still-private draft, not history.
+		// Its explicit authority holds even if optional narration is filtered or
+		// deduplicated; ordinary trailing text cannot become another public block.
+		typedProgressObserved = true
 		candidateStream.discard()
 		privatePrefix = ""
 		return publishProgress(blockID, publicProgressStream.take())
@@ -898,21 +900,19 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 				message, calls := s.sanitizeManagedAskUserModelTurnForCheckpoint(
 					run, event.Message, event.ToolCalls,
 				)
-				if progressSegmentPublished {
-					// A complete typed progress block has already been published.
-					// Only a trailing explicit progress fragment can remain.
-					if candidateStream.hasContent() {
-						if err := publishProgressSegment(); err != nil {
-							return err
-						}
-					}
+				if typedProgressObserved {
+					// Only closed public blocks authorize progress in this segment.
+					// ContentDelta after a block is still a private candidate, not
+					// permission to publish a tool-round draft at completion.
+					candidateStream.discard()
+					privatePrefix = ""
 				} else {
 					candidateStream.replace(message)
 					if err := publishProgressSegment(); err != nil {
 						return err
 					}
 				}
-				progressSegmentPublished = false
+				typedProgressObserved = false
 				if err := s.checkpointChatModelToolCalls(options, run, calls); err != nil {
 					return err
 				}
@@ -925,11 +925,15 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 			agentruntime.EventToolFailed, agentruntime.EventToolPaused:
 			if event.Type == agentruntime.EventToolStarted && candidateStream.hasContent() {
 				// Some providers emit tool calls only on the tool-start boundary,
-				// not on EventModelResponse. That boundary proves the preceding
-				// text is progress narration rather than a final candidate.
-				if err := publishProgressSegment(); err != nil {
+				// not on EventModelResponse. Preserve the legacy native preamble
+				// only when no explicit public block already owns this segment.
+				if typedProgressObserved {
+					candidateStream.discard()
+					privatePrefix = ""
+				} else if err := publishProgressSegment(); err != nil {
 					return err
 				}
+				typedProgressObserved = false
 				run.beginNextAssistantSegment()
 				progressDeduper.reset()
 			}
@@ -1018,7 +1022,7 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 	}
 	engine.AllowToolPreamble = func(text string) bool {
 		safe := sessionRunnerPublicProgressNarration(text)
-		return !progressSegmentPublished && safe != "" && safe == strings.TrimSpace(text) && progressOutcomeAuthority.allows(safe)
+		return !typedProgressObserved && safe != "" && safe == strings.TrimSpace(text) && progressOutcomeAuthority.allows(safe)
 	}
 	result, err := s.runVerifiedSessionAgent(
 		withTranscriptRunnerChatRun(evidenceContext, run), session, options, engine, runRequest, taskContract, run,
