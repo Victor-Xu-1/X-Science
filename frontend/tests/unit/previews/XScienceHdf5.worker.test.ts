@@ -223,4 +223,134 @@ describe('real HDF5 AnnData categorical composition', () => {
     expect(distribution.items.reduce((total, item) => total + item.count, 0)).toBe(codes.length);
     await rawCodes(codes);
   });
+
+  it.each(
+    [199, 200, 201].flatMap((categoryCount) => [0, 1, 2].map((missingCount) => ({ categoryCount, missingCount })))
+  )(
+    'keeps the guard at $categoryCount observed categories with $missingCount missing cells',
+    async ({ categoryCount, missingCount }) => {
+      const categories = Array.from({ length: categoryCount }, (_, index) => `type${index}`);
+      const codes = [...categories.map((_label, index) => index), ...Array(missingCount).fill(-1)];
+      const overview = await openFixture(new Int16Array(codes), categories);
+      if (categoryCount > 200) {
+        expect(overview.distributions).toEqual([]);
+      } else {
+        expect(overview.distributions).toHaveLength(1);
+        const distribution = overview.distributions[0];
+        expect(distribution.total).toBe(codes.length);
+        expect(distribution.items).toHaveLength(11);
+        const visibleCategoryCount = missingCount > 1 ? 9 : 10;
+        const visibleCategories = distribution.items.filter((item) => !item.labelKey);
+        expect(visibleCategories.map((item) => [item.label, item.count])).toEqual(
+          categories.slice(0, visibleCategoryCount).map((label) => [label, 1])
+        );
+        expect(distribution.items[10]).toEqual({
+          label: '',
+          labelKey: 'other',
+          count: categoryCount - visibleCategoryCount + (missingCount === 1 ? 1 : 0),
+        });
+        if (missingCount > 1) {
+          expect(distribution.items[0]).toEqual({ label: '', labelKey: 'unlabeled', count: missingCount });
+        } else {
+          expect(distribution.items.some((item) => item.labelKey === 'unlabeled')).toBe(false);
+        }
+        expect(distribution.items.reduce((total, item) => total + item.count, 0)).toBe(codes.length);
+      }
+      await rawCodes(codes);
+    }
+  );
+
+  it('counts a literal Unlabeled category separately from missing cells at the boundary', async () => {
+    const categories = ['Unlabeled', ...Array.from({ length: 199 }, (_, index) => `type${index}`)];
+    const codes = [...categories.map((_label, index) => index), -1, -1];
+    const overview = await openFixture(new Int16Array(codes), categories);
+    const distribution = overview.distributions[0];
+    expect(distribution.total).toBe(202);
+    expect(distribution.items).toHaveLength(11);
+    expect(distribution.items[0]).toEqual({ label: '', labelKey: 'unlabeled', count: 2 });
+    expect(distribution.items[1]).toEqual({ label: 'Unlabeled', labelKey: undefined, count: 1 });
+    expect(distribution.items[10]).toEqual({ label: '', labelKey: 'other', count: 191 });
+    await rawCodes(codes);
+  });
+
+  it.each([200, 201])('counts an observed empty category label toward the %s-category guard', async (categoryCount) => {
+    const categories = ['', ...Array.from({ length: categoryCount - 1 }, (_, index) => `type${index}`)];
+    // Put missing first: a later valid empty label must still count as a real category.
+    const codes = [-1, -1, ...categories.map((_label, index) => index)];
+    const overview = await openFixture(new Int16Array(codes), categories);
+    if (categoryCount > 200) {
+      expect(overview.distributions).toEqual([]);
+    } else {
+      const distribution = overview.distributions[0];
+      expect(distribution.total).toBe(202);
+      expect(distribution.items[0]).toEqual({ label: '', labelKey: 'unlabeled', count: 3 });
+      expect(distribution.items[10]).toEqual({ label: '', labelKey: 'other', count: 190 });
+    }
+    await rawCodes(codes);
+  });
+
+  it('retains the observed-label guard when category tables have unused and duplicate entries', async () => {
+    const observed = Array.from({ length: 200 }, (_, index) => `type${index}`);
+    const categories = [...observed, 'type0', '', ...Array.from({ length: 299 }, (_, index) => `unused${index}`)];
+    const codes = [...observed.map((_label, index) => index), 200, -1];
+    const overview = await openFixture(new Int16Array(codes), categories);
+    const distribution = overview.distributions[0];
+    expect(distribution.total).toBe(202);
+    expect(distribution.items[0]).toEqual({ label: 'type0', labelKey: undefined, count: 2 });
+    expect(distribution.items[10]).toEqual({ label: '', labelKey: 'other', count: 191 });
+    await rawCodes(codes);
+  });
+
+  it('does not let a dominant missing bucket admit 201 genuine categories', async () => {
+    const categories = Array.from({ length: 201 }, (_, index) => `type${index}`);
+    const codes = [...Array(100).fill(-1), ...categories.map((_label, index) => index)];
+    const overview = await openFixture(new Int16Array(codes), categories);
+    expect(overview.distributions).toEqual([]);
+    await rawCodes(codes);
+  });
+
+  it('keeps the full boundary composition while limiting raw previews to 400 values', async () => {
+    const categories = Array.from({ length: 200 }, (_, index) => `type${index}`);
+    const codes = [...Array(201).fill(-1), ...categories.map((_label, index) => index)];
+    const overview = await openFixture(new Int16Array(codes), categories);
+    const distribution = overview.distributions[0];
+    expect(distribution.total).toBe(401);
+    expect(distribution.items[0]).toEqual({ label: '', labelKey: 'unlabeled', count: 201 });
+    expect(distribution.items[10]).toEqual({ label: '', labelKey: 'other', count: 191 });
+    expect(distribution.items.reduce((total, item) => total + item.count, 0)).toBe(401);
+    const response = await request({ type: 'read', path: '/obs/cell_type/codes', requestId: ++nextRequestId });
+    expect(response.type).toBe('detail');
+    if (response.type !== 'detail') throw new Error('Missing raw categorical detail');
+    expect(response.requestId).toBe(nextRequestId);
+    expect(response.detail.shape).toEqual([401]);
+    expect(response.detail.preview).toEqual(codes.slice(0, 400));
+    expect(response.detail.truncated).toBe(true);
+  });
+
+  it('keeps invalid codes out of the category limit and denominator at the boundary', async () => {
+    const categories = Array.from({ length: 200 }, (_, index) => `type${index}`);
+    const codes = [...categories.map((_label, index) => index), -1, -2, -1.5, 0.5, NaN, Infinity, -Infinity, 200, 999];
+    const overview = await openFixture(new Float64Array(codes), categories);
+    const distribution = overview.distributions[0];
+    expect(distribution.total).toBe(201);
+    expect(distribution.items[10]).toEqual({ label: '', labelKey: 'other', count: 191 });
+    await rawCodes(codes);
+  });
+
+  it.each([199, 200, 201])(
+    'keeps the string-dataset guard unchanged for %s labels plus a blank',
+    async (categoryCount) => {
+      const labels = [...Array.from({ length: categoryCount }, (_, index) => `type${index}`), ''];
+      const codes = new Int16Array(labels.length);
+      const overview = await openFixture(codes, ['T cell'], labels);
+      const distribution = overview.distributions.find((item) => item.key === 'responder');
+      if (categoryCount >= 200) {
+        expect(distribution).toBeUndefined();
+      } else {
+        expect(distribution?.total).toBe(200);
+        expect(distribution?.items[10]).toEqual({ label: '', labelKey: 'other', count: 190 });
+      }
+      await rawCodes(Array.from(codes));
+    }
+  );
 });

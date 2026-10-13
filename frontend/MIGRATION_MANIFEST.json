@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "4a5621fa04290087d7f3b05bae96af7ce96b0ce4643adbbdf4438ebe7f3b2681",
+  "adaptationFingerprintSHA256": "922345978d95a6de5bfcc6f88ef564c854f98675394e79456322636969bb75b2",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
-  "additionFingerprintSHA256": "3f6079d84085c0dbd8601605041faa54fa31e46721225171508c67978d1dbb38",
+  "additionFingerprintSHA256": "8ec224956fd44a2911af324326b74781f077f33e101a73626630e916856d12b1",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 276,
@@ -1729,8 +1729,8 @@
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/XScienceHdf5.worker.ts",
       "originalPath": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedHdf5.worker.ts",
       "sourceSHA256": "cab3ed06048b52f04ae229eb746243305168c6eec9269ea4ac612846c2e34d4a",
-      "targetSHA256": "413e1d2be5ca2cae197613ff51c798bd600cedeb71d9ec58fa73223486064c1d",
-      "bytes": 17262,
+      "targetSHA256": "d59d8425b42e94df52241d13ba7406d8098b5f5ea0286c405acca28e33f92225",
+      "bytes": 17481,
       "reason": "Move genuine imported source to the current X-Science namespace. Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -11165,8 +11165,8 @@
     },
     {
       "path": "tests/unit/previews/XScienceHdf5.worker.test.ts",
-      "sha256": "58c628fb88bfe7c8c45e4f3f2ed7b4f341bf4579dc649be5229a3c4f7f00177a",
-      "bytes": 10200,
+      "sha256": "ea328a395fd10e282f669d8f36e496fc2e6121010689bb6bfdd78fd4c63f05e7",
+      "bytes": 17388,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

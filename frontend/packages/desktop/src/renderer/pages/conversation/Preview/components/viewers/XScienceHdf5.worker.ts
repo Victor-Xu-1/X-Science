@@ -141,6 +141,7 @@ function readDistribution(
   const categoryValues = toPrimitiveArray((categories as Dataset).value).map(String);
   const codeValues = toPrimitiveArray((codes as Dataset).value);
   const counts = new Map<string, number>();
+  const observedCategories = new Set<string>();
   for (const rawCode of codeValues) {
     const code = Number(rawCode);
     // AnnData categorical -1 is a missing cell annotation, not an invalid index.
@@ -150,9 +151,11 @@ function readDistribution(
     }
     if (!Number.isInteger(code) || code < 0 || code >= categoryValues.length) continue;
     const value = categoryValues[code] || UNLABELED_CATEGORY;
+    observedCategories.add(value);
     counts.set(value, (counts.get(value) || 0) + 1);
   }
-  return finalizeDistribution(key, labelKey, counts);
+  // Missing cells contribute to composition, but do not add a real category.
+  return finalizeDistribution(key, labelKey, counts, observedCategories.size);
 }
 
 function aggregateValues(
@@ -171,9 +174,10 @@ function aggregateValues(
 function finalizeDistribution(
   key: string,
   labelKey: NonNullable<AnnDataDistribution['labelKey']>,
-  counts: Map<string, number>
+  counts: Map<string, number>,
+  categoryCount = counts.size
 ): AnnDataDistribution | null {
-  if (counts.size === 0 || counts.size > 200) return null;
+  if (counts.size === 0 || categoryCount > 200) return null;
   const sorted = [...counts.entries()].toSorted((left, right) => right[1] - left[1]);
   const visible = sorted.slice(0, MAX_DISTRIBUTION_ITEMS);
   const hiddenCount = sorted.slice(MAX_DISTRIBUTION_ITEMS).reduce((total, item) => total + item[1], 0);
