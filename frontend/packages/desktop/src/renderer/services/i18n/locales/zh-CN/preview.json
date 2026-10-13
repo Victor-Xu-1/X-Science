@@ -541,6 +541,7 @@
       "emptyContent": "{{kind}}为空。",
       "initializeFailed": "{{kind}}查看器初始化失败。",
       "missingContent": "没有可用的{{kind}}内容。",
+      "multipleAlignments": "此 Stockholm 文件包含多个比对。请打开仅包含一个比对的文件进行预览。",
       "parseFailed": "{{kind}}解析失败。",
       "requestFailed": "{{kind}}加载失败。",
       "requestFailedWithStatus": "{{kind}}加载失败（HTTP {{status}}）。",

@@ -2956,6 +2956,7 @@ export type I18nKey =
   | 'preview.scientific.errors.emptyContent'
   | 'preview.scientific.errors.initializeFailed'
   | 'preview.scientific.errors.missingContent'
+  | 'preview.scientific.errors.multipleAlignments'
   | 'preview.scientific.errors.parseFailed'
   | 'preview.scientific.errors.requestFailed'
   | 'preview.scientific.errors.requestFailedWithStatus'

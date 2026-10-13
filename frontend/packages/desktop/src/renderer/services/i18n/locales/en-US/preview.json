@@ -541,6 +541,7 @@
       "emptyContent": "{{kind}} is empty.",
       "initializeFailed": "Failed to initialize the {{kind}} viewer.",
       "missingContent": "No {{kind}} content is available.",
+      "multipleAlignments": "This Stockholm file contains multiple alignments. Open a file containing a single alignment to preview it.",
       "parseFailed": "Failed to parse {{kind}}.",
       "requestFailed": "Failed to load {{kind}}.",
       "requestFailedWithStatus": "Failed to load {{kind}} (HTTP {{status}}).",

@@ -29,7 +29,7 @@ export function parseScientificAlignment(
     format === 'clustal'
       ? parseInterleavedAlignment(content, { skipHeader: true })
       : format === 'stockholm'
-        ? parseInterleavedAlignment(content, { skipHeader: false })
+        ? parseStockholmAlignment(content)
         : parseFasta(content, fallbackSequenceName);
   const sequences = parsed.map((record) => ({
     name: record.name,
@@ -98,6 +98,38 @@ function parseInterleavedAlignment(content: string, options: { skipHeader: boole
   }
 
   return order.map((name) => ({ name, sequence: sequences.get(name) ?? '' }));
+}
+
+function parseStockholmAlignment(content: string): ScientificAlignmentSequence[] {
+  const sequences = new Map<string, string>();
+  let state: 'before-record' | 'in-record' | 'after-record' = 'before-record';
+
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    if (/^#\s+STOCKHOLM\s+\d+\.\S*$/.test(line)) {
+      if (!/^#\s+STOCKHOLM\s+1\.\d+$/.test(line)) throw new ScientificPreviewError('parse-failed');
+      if (state !== 'before-record') throw new ScientificPreviewError('multiple-alignments');
+      state = 'in-record';
+      continue;
+    }
+    if (line === '//') {
+      if (state !== 'in-record') throw new ScientificPreviewError('parse-failed');
+      state = 'after-record';
+      continue;
+    }
+    if (line.startsWith('#')) continue;
+    if (state !== 'in-record') throw new ScientificPreviewError('parse-failed');
+
+    const match = line.match(/^(\S+)\s+([A-Za-z*?._~-]+)(?:\s+\d+)?$/);
+    if (!match) throw new ScientificPreviewError('parse-failed');
+    const [, name, fragment] = match;
+    // Stockholm accepts four equivalent gap symbols; the viewer uses dashes.
+    sequences.set(name, `${sequences.get(name) ?? ''}${fragment.replace(/[._~]/g, '-')}`);
+  }
+
+  if (state !== 'after-record') throw new ScientificPreviewError('parse-failed');
+  return Array.from(sequences, ([name, sequence]) => ({ name, sequence }));
 }
 
 function normalizeSequence(sequence: string): string {
