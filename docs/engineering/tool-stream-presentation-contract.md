@@ -160,6 +160,13 @@ size without changing the visible result count.
 
 ## Grouping boundaries
 
+A settled retrieval whose typed receipt says the source is unavailable retains
+its transport history, but uses an attention indicator instead of a success
+checkmark. Groups count it as an unavailable source, not acquired material.
+Typed runtime-directory admission failures show that the environment needs repair,
+rather than only an unexplained non-executed label. No message body or untrusted
+scientific payload can manufacture these states.
+
 - Real assistant prose is always a hard boundary. It explains a changed
   finding, decision, uncertainty, or method; routine operations do not require
   filler text.

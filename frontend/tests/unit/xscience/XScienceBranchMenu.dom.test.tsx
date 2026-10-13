@@ -64,13 +64,17 @@ describe('XScienceBranchMenu', () => {
     fireEvent.click(screen.getByTestId('x-science-branch-trigger'));
     const menu = await screen.findByRole('menu', { name: '会话分支' });
     expect(branchMocks.load).toHaveBeenCalledWith('root-a');
-    expect(within(menu).getByRole('menuitemradio', { name: '主分支 · 当前' })).toHaveAttribute('aria-checked', 'true');
+    expect(await within(menu).findByRole('menuitemradio', { name: '主分支 · 当前' })).toHaveAttribute(
+      'aria-checked',
+      'true'
+    );
 
-    fireEvent.click(within(menu).getByRole('menuitemradio', { name: '分支 1' }));
+    fireEvent.click(await within(menu).findByRole('menuitemradio', { name: '分支 1' }));
     expect(branchMocks.select).toHaveBeenCalledWith('root-a', 'root-a-branch');
   });
 
   it('numbers child branches independently of root ordering', async () => {
+    const pending = deferred<ReturnType<typeof branchState>>();
     const state = branchState('root-a');
     state.activeBranchId = 'root-a-branch';
     state.selectedBranchId = 'root-a-branch';
@@ -78,12 +82,21 @@ describe('XScienceBranchMenu', () => {
     state.branches.forEach((branch) => {
       branch.active = branch.id === 'root-a-branch';
     });
-    branchMocks.load.mockResolvedValue(state);
+    branchMocks.load.mockReturnValueOnce(pending.promise);
     await renderWithI18n(<XScienceBranchMenu rootFrameId='root-a' />);
 
     fireEvent.click(screen.getByTestId('x-science-branch-trigger'));
     const menu = await screen.findByRole('menu', { name: '会话分支' });
-    expect(within(menu).getByRole('menuitemradio', { name: '分支 1 · 当前' })).toHaveAttribute('aria-checked', 'true');
+    // The menu shell is visible while its branch request is still pending.
+    // Availability of that shell must not be mistaken for loaded menu items.
+    expect(branchMocks.load).toHaveBeenCalledWith('root-a');
+    expect(within(menu).queryAllByRole('menuitemradio')).toHaveLength(0);
+    const selectedBranch = within(menu).findByRole('menuitemradio', { name: '分支 1 · 当前' });
+    await act(async () => {
+      pending.resolve(state);
+      await pending.promise;
+    });
+    expect(await selectedBranch).toHaveAttribute('aria-checked', 'true');
     expect(within(menu).getByRole('menuitemradio', { name: '主分支' })).toHaveAttribute('aria-checked', 'false');
   });
 

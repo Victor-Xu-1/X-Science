@@ -160,7 +160,11 @@ func (s *Service) AuthorizeUnified(ctx context.Context, userID, id string) (mcps
 		}
 		config.ConnectorID = bundledOAuthKey(userID, item.ID)
 		config.Name = item.Name
-		return mcpstdio.AuthenticateServer(ctx, s.root, item.Name, config)
+		runtimeCtx, err := s.runtimeConnectorContext(ctx, config)
+		if err != nil {
+			return mcpstdio.OAuthStartResult{}, err
+		}
+		return mcpstdio.AuthenticateServer(runtimeCtx, s.root, item.Name, config)
 	}
 	return s.Authorize(ctx, userID, id)
 }

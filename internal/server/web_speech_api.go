@@ -21,7 +21,6 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"x-science/internal/mcpdirectory"
 	secretstore "x-science/internal/persistence/secrets"
 )
 
@@ -837,7 +836,7 @@ func (s *Server) transcribeDeepgramSpeech(ctx context.Context, config *webDeepgr
 func (s *Server) webSpeechHTTPClient(ctx context.Context, endpoint string) (*http.Client, *webSpeechAPIError) {
 	factory := s.speechClientForURL
 	if factory == nil {
-		factory = mcpdirectory.SecureHTTPClient
+		factory = s.publicSourceHTTPClient
 	}
 	client, err := factory(ctx, endpoint, s.httpClient)
 	if err != nil || client == nil {

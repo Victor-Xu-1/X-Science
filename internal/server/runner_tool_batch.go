@@ -526,6 +526,20 @@ func (s *Server) checkpointSessionRunnerToolEvent(
 	run *sessionRunnerChatRun,
 	event agentruntime.Event,
 ) error {
+	if event.Type == agentruntime.EventToolFailed && !event.RejectedBeforeExecution {
+		result, _ := decodeToolEventJSON(event.Result).(map[string]any)
+		settled, handled, err := s.settleKernelAdmissionFailure(run, event.ToolCallID, result)
+		if err != nil {
+			return err
+		}
+		if handled {
+			encoded, err := json.Marshal(settled)
+			if err != nil {
+				return err
+			}
+			event.Result, event.RejectedBeforeExecution = string(encoded), true
+		}
+	}
 	if event.Type == agentruntime.EventToolCompleted || event.Type == agentruntime.EventToolFailed {
 		// Admission can reject after approval but before execution. Both terminal
 		// event kinds must retire that unstarted operation through its existing

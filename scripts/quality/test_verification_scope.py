@@ -287,7 +287,13 @@ class VerificationOwnershipTests(unittest.TestCase):
         self.assertFalse(groups[0]['frontend'])
         self.assertEqual(contract.checks(groups + groups), [['bash', paths[1]]])
         entries = scope.packages(repo)  # Read the actual Go graph; do not execute Go tests.
-        expected = ['x-science/cmd/x-science', 'x-science/internal/config', 'x-science/scripts/smoke-live-im']
+        # The declared owners must select the same dependency closure as their
+        # real Go sources. Consumer/test imports evolve; freezing their names
+        # incorrectly rejects legitimate new coverage of the config boundary.
+        owner_sources = ['cmd/x-science/main.go', 'internal/config/config.go']
+        expected = scope.select_packages(repo, owner_sources, entries)[0]
+        self.assertTrue(set(groups[0]['packages']).issubset(expected))
+        self.assertLess(len(expected), len(entries), 'watcher ownership must not fall back to all packages')
         for path in paths:
             self.assertEqual(scope.select_packages(repo, [path], entries)[0], expected)
 

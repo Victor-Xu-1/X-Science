@@ -9,13 +9,13 @@ import (
 	"mime"
 	"net"
 	"net/http"
-	"net/netip"
 	"net/url"
 	"regexp"
 	"strings"
 	"time"
 
 	"x-science/internal/buildinfo"
+	"x-science/internal/mcpdirectory"
 )
 
 const (
@@ -64,15 +64,14 @@ type Result struct {
 type Options struct {
 	BaseURL                   string
 	HTTPClient                *http.Client
+	TrustedProxyURL           string
 	Resolver                  AddressResolver
 	Timeout                   time.Duration
 	MaxBytes                  int64
 	TestOnlyAllowCustomOrigin bool
 }
 
-type AddressResolver interface {
-	LookupNetIP(context.Context, string, string) ([]netip.Addr, error)
-}
+type AddressResolver = mcpdirectory.AddressResolver
 
 type Client struct {
 	baseURL    string
@@ -103,7 +102,7 @@ func NewClient(options Options) *Client {
 		baseURL = defaultBaseURL
 	}
 	configErr := validateOrigin(baseURL, options.TestOnlyAllowCustomOrigin)
-	httpClient, clientErr := newPinnedHTTPClient(options.HTTPClient, options.Resolver)
+	httpClient, clientErr := newPinnedHTTPClient(options.HTTPClient, options.Resolver, options.TrustedProxyURL)
 	if configErr == nil {
 		configErr = clientErr
 	}
@@ -383,25 +382,6 @@ func (c *Client) do(ctx context.Context, target string) (*http.Response, error) 
 	return c.httpClient.Do(request)
 }
 
-var reservedNetworks = []netip.Prefix{
-	netip.MustParsePrefix("0.0.0.0/8"),
-	netip.MustParsePrefix("100.64.0.0/10"),
-	netip.MustParsePrefix("192.0.0.0/24"),
-	netip.MustParsePrefix("192.0.2.0/24"),
-	netip.MustParsePrefix("192.88.99.0/24"),
-	netip.MustParsePrefix("198.18.0.0/15"),
-	netip.MustParsePrefix("198.51.100.0/24"),
-	netip.MustParsePrefix("203.0.113.0/24"),
-	netip.MustParsePrefix("240.0.0.0/4"),
-	netip.MustParsePrefix("100::/64"),
-	netip.MustParsePrefix("2001::/23"),
-	netip.MustParsePrefix("2001:db8::/32"),
-	netip.MustParsePrefix("2002::/16"),
-	netip.MustParsePrefix("3fff::/20"),
-	netip.MustParsePrefix("5f00::/16"),
-	netip.MustParsePrefix("fec0::/10"),
-}
-
 func validateOrigin(raw string, testOnlyCustom bool) error {
 	parsed, err := url.Parse(raw)
 	if err != nil || parsed.Scheme != "https" || parsed.Hostname() == "" || parsed.User != nil {
@@ -416,115 +396,19 @@ func validateOrigin(raw string, testOnlyCustom bool) error {
 	return nil
 }
 
-func newPinnedHTTPClient(base *http.Client, resolver AddressResolver) (*http.Client, error) {
-	if base == nil {
-		base = http.DefaultClient
+func newPinnedHTTPClient(base *http.Client, resolver AddressResolver, trustedProxyURL string) (*http.Client, error) {
+	client, err := mcpdirectory.NewPublicHTTPClient(base, resolver, trustedProxyURL)
+	if err != nil {
+		return nil, err
 	}
-	client := *base
-	previousRedirect := base.CheckRedirect
+	checkRedirect := client.CheckRedirect
 	client.CheckRedirect = func(request *http.Request, via []*http.Request) error {
 		if len(via) >= 5 {
 			return errors.New("too many article full-text redirects")
 		}
-		if request.URL == nil || request.URL.Scheme != "https" || request.URL.Hostname() == "" || request.URL.User != nil {
-			return errors.New("article full-text redirects must use HTTPS without credentials")
-		}
-		if previousRedirect != nil {
-			return previousRedirect(request, via)
-		}
-		return nil
+		return checkRedirect(request, via)
 	}
-	var transport *http.Transport
-	switch original := base.Transport.(type) {
-	case nil:
-		transport = http.DefaultTransport.(*http.Transport).Clone()
-	case *http.Transport:
-		transport = original.Clone()
-	default:
-		return nil, fmt.Errorf("article full-text HTTP transport %T cannot enforce address pinning", base.Transport)
-	}
-	if transport.DialTLSContext != nil {
-		return nil, errors.New("article full-text HTTP client cannot use a custom DialTLSContext")
-	}
-	originalDial := transport.DialContext
-	if originalDial == nil {
-		originalDial = (&net.Dialer{Timeout: 20 * time.Second, KeepAlive: 30 * time.Second}).DialContext
-	}
-	transport.Proxy = nil
-	transport.DialContext = func(dialCtx context.Context, network string, address string) (net.Conn, error) {
-		host, port, err := net.SplitHostPort(address)
-		if err != nil {
-			return nil, fmt.Errorf("invalid article full-text dial address %q: %w", address, err)
-		}
-		addresses, err := resolvePublicAddresses(dialCtx, resolver, host)
-		if err != nil {
-			return nil, err
-		}
-		var dialErrors []error
-		for _, pinned := range addresses {
-			connection, dialErr := originalDial(dialCtx, network, net.JoinHostPort(pinned.String(), port))
-			if dialErr == nil {
-				return connection, nil
-			}
-			dialErrors = append(dialErrors, dialErr)
-		}
-		return nil, fmt.Errorf("dial pinned article full-text destination: %w", errors.Join(dialErrors...))
-	}
-	client.Transport = transport
-	return &client, nil
-}
-
-func resolvePublicAddresses(ctx context.Context, resolver AddressResolver, host string) ([]netip.Addr, error) {
-	host = strings.TrimSuffix(strings.ToLower(strings.TrimSpace(host)), ".")
-	if host == "" || host == "localhost" || strings.HasSuffix(host, ".localhost") || strings.HasSuffix(host, ".local") {
-		return nil, fmt.Errorf("article full-text destination %q is local", host)
-	}
-	if literal, err := netip.ParseAddr(host); err == nil {
-		literal = literal.Unmap()
-		if !isPublicAddress(literal) {
-			return nil, fmt.Errorf("article full-text destination %q is non-public", host)
-		}
-		return []netip.Addr{literal}, nil
-	}
-	if resolver == nil {
-		resolver = net.DefaultResolver
-	}
-	addresses, err := resolver.LookupNetIP(ctx, "ip", host)
-	if err != nil {
-		return nil, fmt.Errorf("resolve article full-text destination %q: %w", host, err)
-	}
-	if len(addresses) == 0 {
-		return nil, fmt.Errorf("article full-text destination %q resolved to no addresses", host)
-	}
-	result := make([]netip.Addr, 0, len(addresses))
-	seen := map[netip.Addr]struct{}{}
-	for _, address := range addresses {
-		address = address.Unmap()
-		if !isPublicAddress(address) {
-			return nil, fmt.Errorf("article full-text destination %q resolved to non-public address %s", host, address)
-		}
-		if _, exists := seen[address]; !exists {
-			seen[address] = struct{}{}
-			result = append(result, address)
-		}
-	}
-	return result, nil
-}
-
-func isPublicAddress(address netip.Addr) bool {
-	if !address.IsValid() {
-		return false
-	}
-	address = address.Unmap()
-	if !address.IsGlobalUnicast() || address.IsLoopback() || address.IsPrivate() || address.IsLinkLocalUnicast() || address.IsLinkLocalMulticast() || address.IsMulticast() || address.IsUnspecified() {
-		return false
-	}
-	for _, network := range reservedNetworks {
-		if network.Contains(address) {
-			return false
-		}
-	}
-	return true
+	return client, nil
 }
 
 func requireMediaType(raw string, allowed string) error {

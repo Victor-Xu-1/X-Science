@@ -86,13 +86,10 @@ func newGeneratedPlanProcessFixture(t *testing.T) (*Server, *workspace.Store, st
 	return New(Options{FileRoot: root, Workspace: store}), store, frame.ID
 }
 
-func TestResearchProcessInjectsOneBilingualModuleQuerySet(t *testing.T) {
+func TestResearchProcessDefaultsMissingSourceToBilingualModuleQuerySet(t *testing.T) {
 	server, _, frameID := newGeneratedPlanProcessFixture(t)
 	input := server.generatedPlanResearchQueryInput(frameID, "web_research", map[string]any{
-		"operation": "search_and_fetch", "query": "model-selected focus",
-		"query_variants": []any{
-			"caller lane 1", "caller lane 2", "caller lane 3", "caller lane 4", "caller lane 5", "caller lane 6",
-		},
+		"operation": "search_and_fetch",
 	})
 	if input["query"] != "作用机制 原始证据" || input["research_depth"] != "deep" {
 		t.Fatalf("active module query or depth was not authoritative: %#v", input)
@@ -101,7 +98,7 @@ func TestResearchProcessInjectsOneBilingualModuleQuerySet(t *testing.T) {
 	if len(variants) != 1 || variants[0] != "mechanism primary evidence" {
 		t.Fatalf("module bilingual queries did not reach web research: %#v", input)
 	}
-	webSearch := server.generatedPlanResearchQueryInput(frameID, "web_search", map[string]any{"query": "model-selected focus"})
+	webSearch := server.generatedPlanResearchQueryInput(frameID, "web_search", map[string]any{})
 	if webSearch["query"] != "作用机制 原始证据" || len(stringValueSlice(webSearch["query_variants"])) != 1 {
 		t.Fatalf("web search did not share the module query set: %#v", webSearch)
 	}
@@ -263,8 +260,8 @@ func TestAutonomousResearchCorrectionKeepsRequiredSourceReadReachable(t *testing
 		frameID, "web_fetch", map[string]any{"url": "https://model.example/guess"},
 		[]string{"source-locator-read", "evidence-read"},
 	)
-	if normalized["url"] != "https://evidence.example/primary-record" {
-		t.Fatalf("required source-read target did not reach the reader: %#v", normalized)
+	if normalized["url"] != "https://model.example/guess" {
+		t.Fatalf("required source-read advice replaced the explicit selected source: %#v", normalized)
 	}
 }
 
@@ -337,7 +334,7 @@ func TestResearchProcessNormalizesCanonicalToolAliases(t *testing.T) {
 		t.Fatalf("canonical progress alias bypassed active-step binding: %#v", progress)
 	}
 	research := server.generatedPlanResearchQueryInput(frameID, "WebResearch", map[string]any{
-		"operation": "search_and_fetch", "query": "stale query",
+		"operation": "search_and_fetch",
 	})
 	if research["query"] != "作用机制 原始证据" || research["research_depth"] != "deep" ||
 		stringValue(mapValue(research["research_session"])["mode"]) != "start" {
@@ -637,7 +634,7 @@ func TestResearchProcessRepairsMissingProgressStatusFromActiveState(t *testing.T
 	}
 }
 
-func TestResearchProcessSwitchesQueryAuthorityWithTheActiveModule(t *testing.T) {
+func TestResearchProcessSwitchesOnlyMissingQueryDefaultsWithTheActiveModule(t *testing.T) {
 	server, store, frameID := newGeneratedPlanProcessFixture(t)
 	metadata, found, err := store.GetFrameRuntimeMetadata(frameID)
 	if err != nil || !found {
@@ -651,7 +648,7 @@ func TestResearchProcessSwitchesQueryAuthorityWithTheActiveModule(t *testing.T) 
 		t.Fatal(err)
 	}
 	input := server.generatedPlanResearchQueryInput(frameID, "web_research", map[string]any{
-		"operation": "search_and_fetch", "query": "作用机制 原始证据", "research_depth": "focused",
+		"operation": "search_and_fetch",
 	})
 	if input["query"] != "POLQ 抑制剂 研发进展" || input["research_depth"] != "systematic" ||
 		!stringSliceContains(stringValueSlice(input["query_variants"]), "POLQ inhibitor development pipeline") {
@@ -678,7 +675,7 @@ func TestResearchProcessPreservesFindingDrivenFollowUpAfterSeedCoverage(t *testi
 		"operation": "search_and_fetch", "query": "BRCA reversion resistance POLQ response",
 		"query_variants": []any{"POLQ biomarker response subgroup"}, "research_depth": "focused",
 	})
-	if input["query"] != "BRCA reversion resistance POLQ response" || input["research_depth"] != "deep" ||
+	if input["query"] != "BRCA reversion resistance POLQ response" || input["research_depth"] != "focused" ||
 		!stringSliceContains(stringValueSlice(input["query_variants"]), "POLQ biomarker response subgroup") {
 		t.Fatalf("finding-driven follow-up was overwritten by the seed query: %#v", input)
 	}
@@ -700,7 +697,7 @@ func TestResearchProcessRestoresOnlyMissingLanguageLane(t *testing.T) {
 		t.Fatal(err)
 	}
 	input := server.generatedPlanResearchQueryInput(frameID, "web_research", map[string]any{
-		"operation": "search_and_fetch", "query": "model retry", "query_variants": []any{"stale lane"},
+		"operation": "search_and_fetch",
 	})
 	if input["query"] != "mechanism primary evidence" || len(stringValueSlice(input["query_variants"])) != 0 {
 		t.Fatalf("missing English lane was not isolated: %#v", input)
@@ -724,11 +721,11 @@ func TestResearchProcessKeepsModelQueryWhenPlanDidNotPrewriteQueries(t *testing.
 	input := server.generatedPlanResearchQueryInput(frameID, "web_research", map[string]any{
 		"operation": "search_and_fetch", "query": "model-authored follow-up",
 	})
-	if input["query"] != "model-authored follow-up" || input["research_depth"] != "deep" {
+	if input["query"] != "model-authored follow-up" || input["research_depth"] != nil {
 		t.Fatalf("model-directed research query was replaced or lost its depth: %#v", input)
 	}
-	if stringValue(mapValue(input["research_session"])["mode"]) != "start" {
-		t.Fatalf("initial plan research did not start a resumable source session: %#v", input)
+	if input["research_session"] != nil {
+		t.Fatalf("plan invented a session for an explicit source call: %#v", input)
 	}
 
 	run := &sessionRunnerChatRun{TaskIntent: "Research and deliver"}
@@ -776,7 +773,7 @@ func TestResearchProcessExecutesAndReconcilesSourceOwnedContinuation(t *testing.
 	}
 
 	normalized := server.generatedPlanResearchQueryInput(frameID, "web_search", map[string]any{
-		"query": "stale model query",
+		"query": "finding-driven follow-up",
 	})
 	if normalized["query"] != "finding-driven follow-up" || normalized["research_session"] != nil {
 		t.Fatalf("source continuation was not resumed with its exact frontier: %#v", normalized)
@@ -860,8 +857,8 @@ func TestResearchProcessExecutesDiscoveredFetchAlternative(t *testing.T) {
 	normalized := server.generatedPlanResearchQueryInput(frameID, "web_fetch", map[string]any{
 		"url": "https://model-guessed.example/other",
 	})
-	if normalized["url"] != "https://evidence.example/next-record" {
-		t.Fatalf("discovered fetch route was not preserved exactly: %#v", normalized)
+	if normalized["url"] != "https://model-guessed.example/other" {
+		t.Fatalf("plan replaced the explicit alternative source: %#v", normalized)
 	}
 	registeredBinary := server.generatedPlanResearchQueryInput(frameID, "web_fetch", map[string]any{
 		"url": "https://github.com/rdk/p2rank/releases/download/2.5.1/p2rank_2.5.1.tar.gz",
@@ -884,8 +881,8 @@ func TestResearchProcessExecutesDiscoveredFetchAlternative(t *testing.T) {
 	})
 	var resolvedInput map[string]any
 	if !ok || json.Unmarshal(resolved.Arguments, &resolvedInput) != nil ||
-		resolvedInput["url"] != "https://evidence.example/next-record" {
-		t.Fatalf("retry guard did not see the source-owned execution identity: ok=%t input=%#v", ok, resolvedInput)
+		resolvedInput["url"] != "https://model-guessed.example/other" {
+		t.Fatalf("retry guard did not preserve the explicit execution identity: ok=%t input=%#v", ok, resolvedInput)
 	}
 	messages := []agentruntime.Message{
 		{Role: "assistant", ToolCalls: []agentruntime.ToolCall{{ID: "record-frontier", Name: updateStepStatusToolName}}},

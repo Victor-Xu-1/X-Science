@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 	"x-science/internal/agentruntime"
-	"x-science/internal/mcpdirectory"
 	"x-science/internal/providers"
 	"x-science/internal/skills"
 	"x-science/internal/tools/mcpstdio"
@@ -326,7 +325,7 @@ func (s *Server) agentRuntimeMCPToolListWithBudget(parent context.Context, budge
 		}
 		probeCtx := discoveryCtx
 		if strings.TrimSpace(config.URL) != "" {
-			client, secureErr := mcpdirectory.SecureHTTPClient(discoveryCtx, config.URL, s.httpClient)
+			client, secureErr := s.publicSourceHTTPClient(discoveryCtx, config.URL, s.httpClient)
 			if secureErr != nil {
 				projection.Error = secureErr.Error()
 				projection.Status = "failed"

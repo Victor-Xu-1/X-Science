@@ -109,7 +109,7 @@ export function buildToolPublicDetailPresentation(
       ? projectToolDetailValue(output, { chinese, detailKind, label: treeLabel, source: 'output' })
       : null,
     narrative: [...new Set(narrative)],
-    notices: detailKind === 'retrieval' ? retrievalReceiptPresentation(input, output, chinese).notices : [],
+    notices: retrievalReceiptPresentation(tool.name, input, output, chinese).notices,
     planDocument: detailKind === 'plan' && input ? buildToolPlanDocument(input, chinese) : null,
     planAssessment: detailKind === 'plan' && input ? buildPlanAssessment(input, chinese) : null,
     showIdentity: policy.showIdentity,

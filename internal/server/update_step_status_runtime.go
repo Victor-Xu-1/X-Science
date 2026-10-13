@@ -258,13 +258,18 @@ func (s *Server) executeAgentUpdateStepStatus(
 		}
 		deepSourceReadRequired := requestedStatus == "completed" && researchMaterialsAvailable &&
 			generatedPlanResearchDepthRequiresSourceRead(step.ResearchDepth) && len(boundSourceReceiptValues) == 0
-		if deepSourceReadRequired {
+		if deepSourceReadRequired && boolValue(contextData["_plan_approved"], false) {
 			status = "in_progress"
 			researchContinuation = generatedPlanRequiredSourceReadContinuation(
 				step, allSourceReceipts, pendingSourceContinuation,
 			)
 		} else if requestedStatus == "completed" {
 			switch {
+			case deepSourceReadRequired:
+				// Autonomous planning records the model's progress decision without
+				// manufacturing source evidence. Keep the missing receipt visible as
+				// an advisory; only an explicitly approved plan can block navigation.
+				researchContinuation = generatedPlanRequiredSourceReadContinuation(step, allSourceReceipts, pendingSourceContinuation)
 			case len(boundSourceReceiptValues) == 0:
 				researchContinuation = map[string]any{
 					"reason":                "research_material_required",

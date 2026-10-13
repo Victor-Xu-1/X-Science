@@ -84,6 +84,7 @@
   "researchQuery": "query",
   "researchEmpty": "No usable sources were found. Refine the query or use another public database.",
   "toolPublicDetail": {
+    "runtimeRepairRequired": "Runtime needs repair",
     "sourceMismatch": "Check source",
     "fullTextUnavailable": "Full text unavailable",
     "sourceUnavailable": "Source unavailable",

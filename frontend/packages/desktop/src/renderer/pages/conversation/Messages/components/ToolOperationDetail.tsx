@@ -16,7 +16,7 @@ import ToolStatusIcon from './ToolStatusIcon';
 import TranscriptActivity from './TranscriptActivity';
 import type { TranscriptActivityState } from '../transcriptActivityModel';
 import { toolExecutionDisposition } from './toolExecutionDisposition';
-import { buildToolStepPublicPresentation } from './toolStepSummaryModel';
+import { buildToolStepPublicPresentation, toolSourceUnavailable } from './toolStepSummaryModel';
 import { useToolOperationDetail } from './useToolOperationDetail';
 import { toolPublicDetailText } from '@/renderer/services/i18n/toolPublicDetailLocale';
 
@@ -41,6 +41,7 @@ const ToolOperationDetail: React.FC<{
   );
   const hasDetail = detailPresentation.expandable;
   const isActive = isActiveToolStatus(item.status);
+  const presentationStatus = toolSourceUnavailable(item) ? 'blocked' : item.status;
   const continuationLabel =
     activity?.spinning && !isActive
       ? toolPublicDetailText(language.toLowerCase().startsWith('zh'), 'continuationAfterStep')
@@ -81,7 +82,7 @@ const ToolOperationDetail: React.FC<{
 
   return (
     <div
-      className={`tool-step tool-step--${item.status}${nested ? ' tool-step--nested' : ''}${
+      className={`tool-step tool-step--${presentationStatus}${nested ? ' tool-step--nested' : ''}${
         executionDisposition ? ` tool-step--${executionDisposition}` : ''
       }${expanded ? ' tool-step--expanded' : ''}`}
     >
@@ -101,7 +102,7 @@ const ToolOperationDetail: React.FC<{
           {activity?.spinning ? (
             <TranscriptActivity activity={activity} />
           ) : (
-            <ToolStatusIcon status={item.status} disposition={toolExecutionDisposition(item)} />
+            <ToolStatusIcon status={presentationStatus} disposition={toolExecutionDisposition(item)} />
           )}
         </span>
         <span

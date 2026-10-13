@@ -11,8 +11,8 @@ import (
 )
 
 // NormalizeProxyURL validates the one trusted upstream HTTP CONNECT proxy
-// accepted by the runtime. Credentials may be embedded for Basic proxy
-// authentication, but callers must never log the returned URL.
+// accepted by the runtime. Userinfo, paths and query strings are not supported;
+// callers must not log the unvalidated operator input.
 func NormalizeProxyURL(value string) (string, error) {
 	value = strings.TrimSpace(value)
 	if value == "" {
@@ -73,4 +73,22 @@ func configureHTTPProxy(transport *http.Transport, value string) error {
 	}
 	transport.Proxy = http.ProxyURL(parsed)
 	return nil
+}
+
+// ConfigureExplicitProxy never inherits ambient proxy authority. It is used
+// by public-source clients whose route must come from operator configuration.
+// The caller owns a cloned transport; its supplied base client is unchanged.
+func ConfigureExplicitProxy(transport *http.Transport, value string) (bool, error) {
+	if transport == nil {
+		return false, errors.New("HTTP transport is unavailable")
+	}
+	parsed, err := parsedProxyURL(value)
+	if err != nil {
+		return false, err
+	}
+	transport.Proxy = nil
+	if parsed != nil {
+		transport.Proxy = http.ProxyURL(parsed)
+	}
+	return parsed != nil, nil
 }

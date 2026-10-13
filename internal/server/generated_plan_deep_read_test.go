@@ -22,7 +22,7 @@ func TestDeepResearchStepKeepsDiscoverySeparateFromSourceReading(t *testing.T) {
 	if _, err := fixture.store.SetFrameRuntimeMetadata(fixture.stream.FrameID, workspace.FrameRuntimeMetadata{
 		FrameID: fixture.stream.FrameID,
 		ContextData: map[string]any{
-			"_plan_execution_authorized": true, "_plan_control_mode": "autonomous",
+			"_plan_execution_authorized": true, "_plan_approved": true, "_plan_control_mode": "approved",
 			"_plan_artifact_id": "plan", "_plan_version_id": "version",
 			"_plan_json": map[string]any{
 				"version": 3, "task_summary": "Investigate a therapeutic mechanism",
@@ -131,6 +131,37 @@ func TestFocusedResearchMayKeepDiscoveryOnlyCompletionAdvisory(t *testing.T) {
 		if !generatedPlanResearchDepthRequiresSourceRead(depth) {
 			t.Fatalf("research depth %q did not require a source read", depth)
 		}
+	}
+}
+
+func TestAutonomousDeepResearchKeepsMissingEvidenceAdvisoryWithoutInventingReceipts(t *testing.T) {
+	fixture := newAgentSaveArtifactsFixture(t)
+	input := revisionPlanInput("Inspect sources")
+	phase := mapValue(anySliceValue(input["phases"])[0])
+	track := mapValue(anySliceValue(phase["delegations"])[0])
+	step := mapValue(anySliceValue(track["steps"])[0])
+	step["kind"], step["research_depth"], step["output_module"] = "research", "deep", "source_review"
+	step["research_question"] = "What is available from the sources?"
+	step["discovery_queries"] = []any{map[string]any{"language": "en", "query": "source evidence"}, map[string]any{"language": "zh", "query": "来源证据"}}
+	ctx, run := appendLargeToolResultSource(t, fixture, "autonomous-source-plan", generatePlanToolName)
+	run.AutonomousPlanning = true
+	run.TaskIntent = "Review sources and continue the independent output work"
+	result, err := fixture.server.executeAgentGeneratePlan(ctx, fixture.stream.FrameID, "autonomous-source-plan", input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stepID := stringValue(mapValue(anySliceValue(mapValue(result)["steps"])[0])["id"])
+	completed, err := fixture.server.executeAgentUpdateStepStatus(withTranscriptRunnerChatRun(context.Background(), run), fixture.stream.FrameID, "record-source-limits", map[string]any{
+		"step": stepID, "status": "completed", "notes": "No readable source is available; no source claim is verified.",
+	})
+	value := mapValue(completed)
+	advice := mapValue(value["research_continuation"])
+	if err != nil || value["status"] != "completed" || len(anySliceValue(value["source_receipts"])) != 0 || boolValue(advice["required"], true) || boolValue(advice["blocking"], true) || !boolValue(advice["quality_advisory"], false) {
+		t.Fatalf("autonomous progress blocked or invented evidence: %#v err=%v", value, err)
+	}
+	metadata, found, err := fixture.store.GetFrameRuntimeMetadata(fixture.stream.FrameID)
+	if err != nil || !found || mapValue(mapValue(metadata.ContextData["_step_statuses"])[stepID])["status"] != "completed" {
+		t.Fatalf("progress was not durable: %#v %v", metadata, err)
 	}
 }
 

@@ -10,6 +10,7 @@ import (
 	"x-science/internal/agentruntime"
 	transcriptstore "x-science/internal/persistence/transcript"
 	"x-science/internal/tools/rcsbsearch"
+	"x-science/internal/tools/securefetch"
 )
 
 const (
@@ -23,11 +24,12 @@ type RCSBStructureSearcher interface {
 	Search(context.Context, rcsbsearch.Input) (rcsbsearch.Result, error)
 }
 
-func defaultRCSBStructureSearcher(configured RCSBStructureSearcher) RCSBStructureSearcher {
+func defaultRCSBStructureSearcher(configured RCSBStructureSearcher, publicSourceProxy string) RCSBStructureSearcher {
 	if configured != nil {
 		return configured
 	}
 	return rcsbsearch.New(rcsbsearch.Options{
+		Fetcher:  securefetch.New(securefetch.Options{ProxyURL: publicSourceProxy}),
 		MaxBytes: agentRCSBSearchLimit, Timeout: agentRCSBSearchTimeout,
 	})
 }

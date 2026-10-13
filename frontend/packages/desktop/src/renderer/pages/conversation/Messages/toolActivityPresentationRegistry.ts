@@ -37,6 +37,7 @@ type ToolActivityDefinition = {
   hidden?: boolean;
   showIdentity?: boolean;
   showGenericOutput?: boolean;
+  nativeRetrievalReceipt?: boolean;
 };
 
 type ToolActivityFamily = 'plan' | 'research' | 'setup' | 'execution' | 'other';
@@ -64,9 +65,9 @@ const TOOL_ACTIVITY_DEFINITIONS: Record<string, ToolActivityDefinition> = {
   websearch: { kind: 'search' },
   webresearch: { kind: 'search' },
   web_research: { kind: 'search' },
-  web_fetch: { kind: 'fetch' },
-  fetch_article_fulltext: { kind: 'fetch' },
-  download_public_scientific_file: { kind: 'fetch', detailKind: 'retrieval' },
+  web_fetch: { kind: 'fetch', nativeRetrievalReceipt: true },
+  fetch_article_fulltext: { kind: 'fetch', nativeRetrievalReceipt: true },
+  download_public_scientific_file: { kind: 'fetch', detailKind: 'retrieval', nativeRetrievalReceipt: true },
   search_skills: { kind: 'prepare', detailKind: 'method', showGenericOutput: false },
   tool_search_tool_regex: { kind: 'prepare', detailKind: 'method', showGenericOutput: false },
   skill: { kind: 'prepare', detailKind: 'method', showGenericOutput: false },
@@ -163,12 +164,20 @@ function inferredActivityKind(normalized: string): ToolActivityKind {
 }
 
 function activityDefinition(name: string): ToolActivityDefinition {
+  // The runtime accepts this exact compatibility name; reuse the canonical
+  // policy without treating case variants or MCP-prefixed tools as aliases.
+  if (name === 'WebFetch') return TOOL_ACTIVITY_DEFINITIONS.web_fetch;
   const normalized = name.trim().toLowerCase();
   return TOOL_ACTIVITY_DEFINITIONS[normalized] ?? { kind: inferredActivityKind(normalized) };
 }
 
 export function getToolActivityKind(name: string): ToolActivityKind {
   return activityDefinition(name).kind;
+}
+
+/** Inferred activity labels never grant a custom tool the native receipt contract. */
+export function hasNativeRetrievalReceipt(name: string): boolean {
+  return activityDefinition(name).nativeRetrievalReceipt === true;
 }
 
 export function getToolPublicDetailKind(name: string): ToolPublicDetailKind {

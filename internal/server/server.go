@@ -108,6 +108,7 @@ type Options struct {
 	ConfigAllowedDomains                  []string
 	ConfigDeniedDomains                   []string
 	ConfigNetworkProxy                    string
+	ConfigNetworkProxyInherited           bool
 	MCPX509Posture                        func() mcpstdio.TLSPosture
 	RestartRuntime                        func(reason string) error
 	RuntimeUpdate                         RuntimeUpdateOptions
@@ -201,6 +202,7 @@ type Server struct {
 	configAllowedDomains                  []string
 	configDeniedDomains                   []string
 	configNetworkProxy                    string
+	publicSourceProxy                     string
 	mcpX509Posture                        func() mcpstdio.TLSPosture
 	allowedDomainsMu                      sync.Mutex
 	hostGrantKernelMu                     sync.Mutex
@@ -360,10 +362,7 @@ func New(options Options) *Server {
 	}
 	tools := options.Tools
 	operations := options.Operations
-	registeredWebSearchOptions := options.WebSearchOptions
-	if strings.TrimSpace(registeredWebSearchOptions.Root) == "" {
-		registeredWebSearchOptions.Root = options.FileRoot
-	}
+	registeredWebSearchOptions, publicSourceProxy := configurePublicSourceOptions(&options)
 	if tools != nil && operations == nil {
 		catalogs := registry.Split(tools)
 		tools = catalogs.ModelTools
@@ -403,7 +402,7 @@ func New(options Options) *Server {
 	mcpDirectory := options.MCPDirectory
 	mcpDirectoryOwned := false
 	if mcpDirectory == nil && options.Workspace != nil && strings.TrimSpace(options.FileRoot) != "" {
-		mcpDirectory = mcpdirectory.New(options.Workspace, options.FileRoot, httpClient)
+		mcpDirectory = mcpdirectory.New(options.Workspace, options.FileRoot, httpClient, publicSourceProxy)
 		mcpDirectoryOwned = true
 	}
 	if mcpDirectory != nil && options.Workspace != nil {
@@ -596,6 +595,7 @@ func New(options Options) *Server {
 		configAllowedDomains:                  append([]string(nil), options.ConfigAllowedDomains...),
 		configDeniedDomains:                   append([]string(nil), options.ConfigDeniedDomains...),
 		configNetworkProxy:                    strings.TrimSpace(options.ConfigNetworkProxy),
+		publicSourceProxy:                     publicSourceProxy,
 		mcpX509Posture:                        options.MCPX509Posture,
 		hostGrantKernelFences:                 map[string]bool{},
 		hostGrantKernelFenceEpoch:             map[string]uint64{},
@@ -626,16 +626,14 @@ func New(options Options) *Server {
 		scientificRuntimeWarmupWake:           make(chan string, len(scientificRuntimeWarmupDefinitions())),
 		runtimeStartedAt:                      time.Now().UTC(),
 		mcpDiscoverySlots:                     processMCPDiscoverySlots,
-		rcsbFiles:                             defaultRCSBFileFetcher(options.RCSBFiles),
-		rcsbSearch:                            defaultRCSBStructureSearcher(options.RCSBSearch),
-		publicScientificFiles:                 defaultPublicScientificFileFetcher(options.PublicScientificFiles, options.ConfigNetworkProxy),
+		rcsbFiles:                             defaultRCSBFileFetcher(options.RCSBFiles, publicSourceProxy),
+		rcsbSearch:                            defaultRCSBStructureSearcher(options.RCSBSearch, publicSourceProxy),
+		publicScientificFiles:                 defaultPublicScientificFileFetcher(options.PublicScientificFiles, publicSourceProxy),
 		publicScientificResponseHeaderTimeout: options.PublicScientificResponseHeaderTimeout,
 		publicScientificTransferIdleTimeout:   options.PublicScientificTransferIdleTimeout,
 		publicScientificDownloadSlots:         make(chan struct{}, agentPublicScientificDownloadConcurrency),
 		httpClient:                            httpClient,
-		speechClientForURL:                    mcpdirectory.SecureHTTPClient,
 		localSpeechRuntime:                    newLocalSpeechRuntime(options.FileRoot, httpClient),
-		webImageClientForURL:                  mcpdirectory.SecureHTTPClient,
 		verifierToken:                         strings.TrimSpace(options.VerifierToken),
 		feedback:                              options.Feedback,
 		feishuDeviceQR:                        feishuDeviceQR,
@@ -673,6 +671,8 @@ func New(options Options) *Server {
 		webUI:                                 options.WebUI,
 		httpMetrics:                           observability.NewHTTPRegistry(),
 	}
+	server.speechClientForURL = server.publicSourceHTTPClient
+	server.webImageClientForURL = server.publicSourceHTTPClient
 	if mcpDirectory != nil {
 		mcpDirectory.SetConnectorUsageRecorder(func(ctx context.Context, userID string, connector mcpdirectory.RuntimeConnector, toolName string, callErr error) {
 			server.recordMCPConnectorInvocation(ctx, userID, connector.ID, connector.Source, connector.Name, toolName, callErr)

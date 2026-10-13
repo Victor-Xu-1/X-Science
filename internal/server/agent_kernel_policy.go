@@ -502,8 +502,18 @@ func (s *Server) ensureAgentKernelManagedDirectories() error {
 			continue
 		}
 		target, targetErr := canonicalAgentWorkspaceDirectoryTarget(managed)
-		if targetErr != nil || !hostPathWithin(canonicalFileRoot, target) {
+		if targetErr != nil {
 			return errors.New("kernel managed directories could not be verified")
+		}
+		if !hostPathWithin(canonicalFileRoot, target) {
+			// Operator-configured runtime roots may be separate from task data.
+			// Admit only an existing root: task execution never provisions an
+			// external directory or grants it to the writable task workspace.
+			resolved, resolveErr := canonicalHostDirectory(managed)
+			if resolveErr != nil || filepath.Clean(resolved) != filepath.Clean(target) {
+				return errors.New("kernel managed directories could not be verified")
+			}
+			continue
 		}
 		resolved, ensureErr := secureEnsureAgentWorkspaceDirectory(target, 0o700)
 		if ensureErr != nil || filepath.Clean(resolved) != filepath.Clean(target) || !hostPathWithin(canonicalFileRoot, resolved) {

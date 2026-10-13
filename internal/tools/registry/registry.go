@@ -53,6 +53,9 @@ func (r *Registry) SetWebOptions(fetchOptions webfetch.Options, searchOptions we
 	}
 	r.webFetchOptions = fetchOptions
 	r.webSearchOptions = searchOptions
+	r.articleFulltextClient = articlefulltext.NewClient(articlefulltext.Options{
+		HTTPClient: fetchOptions.BaseHTTPClient, TrustedProxyURL: fetchOptions.TrustedProxyURL,
+	})
 	// Patent discovery and record reading share the same operator-selected
 	// network route as web_search/web_fetch. A separate default HTTP client here
 	// would make the general web tools succeed while patent sources time out.

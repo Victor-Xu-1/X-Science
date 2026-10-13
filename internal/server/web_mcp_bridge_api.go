@@ -15,7 +15,6 @@ import (
 
 	"github.com/google/uuid"
 
-	"x-science/internal/mcpdirectory"
 	secretstore "x-science/internal/persistence/secrets"
 	workspace "x-science/internal/persistence/workspace"
 	"x-science/internal/tools/mcpstdio"
@@ -129,7 +128,7 @@ func (s *Server) handleWebMCPServers(w http.ResponseWriter, r *http.Request, sto
 			writeWebMCPError(w, http.StatusBadRequest, "INVALID_MCP_CONFIG", err.Error(), nil)
 			return
 		}
-		prepared, err := prepareWebMCPRecord(r.Context(), userID, uuid.NewString(), input)
+		prepared, err := s.prepareWebMCPRecord(r.Context(), userID, uuid.NewString(), input)
 		if err != nil {
 			writeWebMCPError(w, http.StatusBadRequest, "INVALID_MCP_CONFIG", err.Error(), nil)
 			return
@@ -177,7 +176,7 @@ func (s *Server) handleWebMCPServerImport(w http.ResponseWriter, r *http.Request
 	}
 	prepared := make([]webMCPPreparedRecord, 0, len(input.Servers))
 	for index, record := range input.Servers {
-		item, err := prepareWebMCPRecord(r.Context(), userID, uuid.NewString(), record)
+		item, err := s.prepareWebMCPRecord(r.Context(), userID, uuid.NewString(), record)
 		if err != nil {
 			writeWebMCPError(w, http.StatusBadRequest, "INVALID_MCP_IMPORT", fmt.Sprintf("server %d: %v", index, err), nil)
 			return
@@ -307,7 +306,7 @@ func (s *Server) updateWebMCPServer(w http.ResponseWriter, r *http.Request, stor
 		writeWebMCPError(w, http.StatusForbidden, "MCP_BUILTIN_READ_ONLY", "clients cannot mark MCP servers as built-in", nil)
 		return
 	}
-	prepared, err := prepareWebMCPRecord(r.Context(), userID, server.ID, merged)
+	prepared, err := s.prepareWebMCPRecord(r.Context(), userID, server.ID, merged)
 	if err != nil {
 		writeWebMCPError(w, http.StatusBadRequest, "INVALID_MCP_CONFIG", err.Error(), nil)
 		return
@@ -407,7 +406,7 @@ func (s *Server) handleWebMCPConnectionTest(w http.ResponseWriter, r *http.Reque
 		}
 	}
 	if serverName == "" {
-		prepared, err := prepareWebMCPRecord(r.Context(), userID, uuid.NewString(), input)
+		prepared, err := s.prepareWebMCPRecord(r.Context(), userID, uuid.NewString(), input)
 		if err != nil {
 			writeWebMCPError(w, http.StatusBadRequest, "INVALID_MCP_CONFIG", err.Error(), nil)
 			return
@@ -418,7 +417,7 @@ func (s *Server) handleWebMCPConnectionTest(w http.ResponseWriter, r *http.Reque
 	ctx, cancel := context.WithTimeout(r.Context(), webMCPConnectionTimeout)
 	defer cancel()
 	if strings.TrimSpace(config.URL) != "" {
-		client, err := mcpdirectory.SecureHTTPClient(ctx, config.URL, s.httpClient)
+		client, err := s.publicSourceHTTPClient(ctx, config.URL, s.httpClient)
 		if err != nil {
 			writeWebMCPConnectionFailure(w, config, err)
 			return
@@ -494,7 +493,7 @@ func (s *Server) handleWebMCPOAuthLogin(w http.ResponseWriter, r *http.Request, 
 		writeWebMCPError(w, http.StatusBadRequest, "MCP_OAUTH_UNSUPPORTED", "OAuth requires an HTTP MCP transport", nil)
 		return
 	}
-	client, err := mcpdirectory.SecureHTTPClient(r.Context(), config.URL, s.httpClient)
+	client, err := s.publicSourceHTTPClient(r.Context(), config.URL, s.httpClient)
 	if err != nil {
 		writeWebMCPError(w, http.StatusBadRequest, "MCP_OAUTH_UNAVAILABLE", err.Error(), nil)
 		return
@@ -596,7 +595,7 @@ func (s *Server) webMCPServerFromOAuthRequest(w http.ResponseWriter, r *http.Req
 	return matches[0], true
 }
 
-func prepareWebMCPRecord(ctx context.Context, userID, serverID string, input webMCPMutationRequest) (webMCPPreparedRecord, error) {
+func (s *Server) prepareWebMCPRecord(ctx context.Context, userID, serverID string, input webMCPMutationRequest) (webMCPPreparedRecord, error) {
 	if input.Name == nil || input.Transport == nil {
 		return webMCPPreparedRecord{}, errors.New("name and transport are required")
 	}
@@ -614,7 +613,7 @@ func prepareWebMCPRecord(ctx context.Context, userID, serverID string, input web
 	if input.Builtin != nil && *input.Builtin {
 		return webMCPPreparedRecord{}, errors.New("clients cannot create built-in MCP servers")
 	}
-	transport, rawURL, storedTransport, err := normalizeWebMCPTransport(ctx, serverID, *input.Transport)
+	transport, rawURL, storedTransport, err := s.normalizeWebMCPTransport(ctx, serverID, *input.Transport)
 	if err != nil {
 		return webMCPPreparedRecord{}, err
 	}
@@ -649,7 +648,7 @@ func prepareWebMCPRecord(ctx context.Context, userID, serverID string, input web
 	}, nil
 }
 
-func normalizeWebMCPTransport(ctx context.Context, serverID string, input webMCPTransport) (webMCPTransport, string, string, error) {
+func (s *Server) normalizeWebMCPTransport(ctx context.Context, serverID string, input webMCPTransport) (webMCPTransport, string, string, error) {
 	input.Type = strings.ToLower(strings.TrimSpace(input.Type))
 	switch input.Type {
 	case "stdio":
@@ -682,7 +681,7 @@ func normalizeWebMCPTransport(ctx context.Context, serverID string, input webMCP
 		if input.Command != "" || len(input.Args) > 0 || len(input.Env) > 0 {
 			return webMCPTransport{}, "", "", errors.New("HTTP MCP transport cannot include command, args, or environment")
 		}
-		if err := validatePublicMCPURL(ctx, input.URL); err != nil {
+		if err := s.validatePublicSourceURL(ctx, input.URL); err != nil {
 			return webMCPTransport{}, "", "", err
 		}
 		if len(input.Headers) > webMCPMaxHeaders {

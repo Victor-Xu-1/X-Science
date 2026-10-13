@@ -396,15 +396,21 @@ func (s *Server) generatedPlanUpdateStepStatusInput(frameID, toolName string, in
 	return normalized
 }
 
-// generatedPlanResearchQueryInput binds source calls to the active research
-// frontier. Discovery uses the plan's bilingual queries; an already discovered
-// fetch route keeps its exact URL. Once both planned lanes have run, later calls
-// retain their model-authored follow-up so a finding can open a new investigation.
+// generatedPlanResearchQueryInput supplies a missing source locator, never a
+// replacement for an explicitly selected source. A plan is navigation state;
+// its unfinished evidence requirements cannot take ownership of tool arguments.
 func (s *Server) generatedPlanResearchQueryInput(
 	frameID, toolName string,
 	input map[string]any,
 	capabilitySets ...[]string,
 ) map[string]any {
+	for _, key := range []string{"query", "url", "doi", "pmid", "pmcid", "identifier", "accession", "publication_number"} {
+		value, supplied := input[key]
+		text, isText := value.(string)
+		if supplied && value != nil && (!isText || strings.TrimSpace(text) != "") {
+			return input
+		}
+	}
 	capabilities := []string(nil)
 	if len(capabilitySets) > 0 {
 		capabilities = capabilitySets[0]
@@ -426,26 +432,15 @@ func (s *Server) generatedPlanResearchQueryInput(
 	}
 	researchTool := runtimeCapabilitiesContain(capabilities, "research")
 	searchTool := runtimeCapabilitiesContain(capabilities, "search")
+	discoveryTool := runtimeCapabilitiesContain(capabilities, "source-discovery")
 	evidenceReader := runtimeCapabilitiesContain(capabilities, "evidence-read")
 	if !runtimeCapabilitiesContainSource(capabilities) {
 		return input
 	}
-	// A registered execution asset is not a research-page continuation. Keep
-	// its exact model URL intact so the binary download contract can either
-	// reuse it or reject the wrong web_fetch route; never replace it with an
-	// older plan-owned page URL.
-	if normalizeAgentToolName(toolName) == "webfetch" {
-		requestedURL := strings.TrimSpace(stringValue(input["url"]))
-		if requestedURL != "" {
-			for _, download := range s.registeredExecutionDownloadHints() {
-				if download.URL == requestedURL {
-					return input
-				}
-			}
-		}
-		if isLikelyScientificDownloadURL(requestedURL) {
-			return input
-		}
+	// Producing source evidence does not make an analysis tool a retriever.
+	// Only declared search/discovery/research/read capabilities consume locators.
+	if !researchTool && !searchTool && !discoveryTool && !evidenceReader {
+		return input
 	}
 	step, action, found := s.generatedPlanActiveResearchStep(frameID)
 	if !found {
@@ -465,7 +460,7 @@ func (s *Server) generatedPlanResearchQueryInput(
 	}
 	normalized := copyMapAny(input)
 	normalized = generatedPlanApplyResearchContinuationInput(toolName, capabilities, normalized, researchContinuation)
-	if evidenceReader && !searchTool {
+	if evidenceReader && !searchTool && !discoveryTool {
 		return normalized
 	}
 	if researchTool {
@@ -511,6 +506,12 @@ func (s *Server) generatedPlanResearchQueryInput(
 	}
 	primary := strings.TrimSpace(queries[0].Query)
 	normalized["query"] = primary
+	// Source discovery supplies a primary query, not the richer Web-search
+	// query_variants extension. Keep model-owned arguments but do not invent
+	// unsupported fields for narrower discovery schemas.
+	if discoveryTool && !searchTool && !researchTool {
+		return normalized
+	}
 	variants := make([]string, 0, 6)
 	for _, query := range queries[1:] {
 		if strings.TrimSpace(query.Query) != "" && strings.TrimSpace(query.Query) != primary {
@@ -518,10 +519,12 @@ func (s *Server) generatedPlanResearchQueryInput(
 		}
 	}
 	variants = uniqueStrings(variants)
-	if len(variants) > 0 {
-		normalized["query_variants"] = variants
-	} else {
-		delete(normalized, "query_variants")
+	if _, supplied := input["query_variants"]; !supplied {
+		if len(variants) > 0 {
+			normalized["query_variants"] = variants
+		} else {
+			delete(normalized, "query_variants")
+		}
 	}
 	if researchTool {
 		normalized["research_depth"] = step.ResearchDepth

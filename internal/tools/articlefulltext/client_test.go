@@ -9,9 +9,27 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
+
+func TestArticleFulltextUsesConfiguredProxyWithoutResolvingSyntheticLocalDNS(t *testing.T) {
+	var calls atomic.Int64
+	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodConnect || r.Host != "www.ebi.ac.uk:443" {
+			t.Errorf("unexpected proxy request: %s %s", r.Method, r.Host)
+		}
+		calls.Add(1)
+		http.Error(w, "controlled proxy unavailable", http.StatusServiceUnavailable)
+	}))
+	defer proxy.Close()
+	client := NewClient(Options{TrustedProxyURL: proxy.URL, Resolver: staticResolver{"www.ebi.ac.uk": {netip.MustParseAddr("198.18.0.145")}}})
+	result, err := client.Fetch(context.Background(), Input{PMCID: "PMC12345"})
+	if calls.Load() != 1 || err == nil || result.Available {
+		t.Fatalf("configured route not used or false evidence: calls=%d result=%#v err=%v", calls.Load(), result, err)
+	}
+}
 
 func TestClientFetchesDOIThroughPinnedEuropePMCTransport(t *testing.T) {
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

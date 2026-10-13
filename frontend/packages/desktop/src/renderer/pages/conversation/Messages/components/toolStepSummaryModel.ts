@@ -12,6 +12,7 @@ import { buildToolFailurePresentation } from './toolFailurePresentation';
 import { buildToolProgressPublicPresentation, hasDeterminateByteTransfer } from './toolProgressPresentation';
 import { toolOperationAction, toolOperationSubject } from './toolOperationSubject';
 import { retrievalReceiptPresentation } from '../toolDetails/retrievalReceiptPresentation';
+import { toolPublicDetailText } from '@/renderer/services/i18n/toolPublicDetailLocale';
 import { toolExecutionDisposition, toolExecutionRecoveryFamily, toolWasNotExecuted } from './toolExecutionDisposition';
 
 const INTERNAL_PUBLIC_TEXT =
@@ -40,6 +41,15 @@ export interface ToolStepPublicPresentation {
   showResearchSources: boolean;
   shouldLoadFull: boolean;
   failureSummary: string | null;
+}
+
+/** A settled retrieval is not a successful evidence acquisition. */
+export function toolSourceUnavailable(tool: NormalizedToolCall): boolean {
+  return (
+    tool.status === 'completed' &&
+    retrievalReceiptPresentation(tool.name, parseStructuredRecord(tool.input), parseStructuredValue(tool.output), false)
+      .unavailable
+  );
 }
 
 export function buildToolStepPublicPresentation(
@@ -75,8 +85,11 @@ export function buildToolStepGroupSummary(
   const recoveryChecks = notExecutedTools.filter((tool) => toolExecutionRecoveryFamily(tool) !== null);
   const otherNotExecuted = notExecutedTools.length - recoveryChecks.length;
   const executedTools = tools.filter((tool) => !toolWasNotExecuted(tool));
+  const unavailableSources = executedTools.filter(toolSourceUnavailable);
+  const unavailableSourceSet = new Set(unavailableSources);
   const counts = new Map<ToolActivityKind, number>();
   for (const tool of executedTools) {
+    if (unavailableSourceSet.has(tool)) continue;
     const kind = getToolActivityKind(tool.name);
     counts.set(kind, (counts.get(kind) ?? 0) + 1);
   }
@@ -87,6 +100,10 @@ export function buildToolStepGroupSummary(
     .map(([kind, count]) => toolActivityGroupPhrase(kind, count, chinese));
   const hasMoreActivityKinds = counts.size > activityPhrases.length;
   const phrases = [...activityPhrases];
+  const unavailableLabel = unavailableSources.length
+    ? `${toolPublicDetailText(chinese, 'sourceUnavailable')} · ${unavailableSources.length}`
+    : '';
+  if (unavailableLabel) phrases.push(unavailableLabel);
   if (recoveryChecks.length > 0) {
     phrases.push(
       chinese
@@ -135,6 +152,10 @@ export function buildToolStepGroupSummary(
 
 export function buildToolStepResultSummary(tool: NormalizedToolCall, language: string): string | null {
   const chinese = language.toLowerCase().startsWith('zh');
+  const admission = parseStructuredRecord(tool.output);
+  if (toolWasNotExecuted(tool) && admission?.code === 'kernel_runtime_directories_unavailable') {
+    return toolPublicDetailText(chinese, 'runtimeRepairRequired');
+  }
   switch (toolExecutionDisposition(tool)) {
     case 'not-executed':
       return chinese ? '未执行' : 'Not executed';
@@ -157,7 +178,7 @@ export function buildToolStepResultSummary(tool: NormalizedToolCall, language: s
   const outputValue = parseStructuredValue(tool.output);
   const activityKind = getToolActivityKind(tool.name);
   if (activityKind === 'fetch') {
-    const receipt = retrievalReceiptPresentation(parseStructuredRecord(tool.input), outputValue, chinese);
+    const receipt = retrievalReceiptPresentation(tool.name, parseStructuredRecord(tool.input), outputValue, chinese);
     if (receipt.summary) return receipt.summary;
   }
   if (['environment', 'compute', 'analysis'].includes(activityKind) && isRecord(outputValue)) {

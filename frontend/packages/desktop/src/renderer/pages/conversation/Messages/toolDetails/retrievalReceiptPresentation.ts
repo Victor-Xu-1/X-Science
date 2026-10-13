@@ -1,5 +1,6 @@
 import { toolPublicDetailText } from '@/renderer/services/i18n/toolPublicDetailLocale';
 import { formatBytes } from './detailFormatting';
+import { hasNativeRetrievalReceipt } from '../toolActivityPresentationRegistry';
 
 const secretParameter = /api[_-]?key|auth|credential|password|secret|signature|token/iu;
 
@@ -71,7 +72,10 @@ export function publicReceiptScalar(key: string, value: unknown): unknown {
   return value;
 }
 
-export function retrievalReceiptPresentation(input: unknown, output: unknown, chinese: boolean) {
+export function retrievalReceiptPresentation(toolName: string, input: unknown, output: unknown, chinese: boolean) {
+  // Custom MCP payload fields may describe scientific data, not our execution
+  // receipt. Gate every summary, status and expanded notice at this boundary.
+  if (!hasNativeRetrievalReceipt(toolName)) return { unavailable: false, summary: null, notices: [] };
   const receipt = receiptRecord(output);
   const requested = record(input) ? publicSourceUrl(input.url) : null;
   const receiptRequest = publicSourceUrl(receipt?.requestedUrl ?? receipt?.requested_url);
@@ -99,6 +103,7 @@ export function retrievalReceiptPresentation(input: unknown, output: unknown, ch
             ? toolPublicDetailText(chinese, 'readSize', { size })
             : null;
   return {
+    unavailable: unavailable || (receipt?.available === false && receipt?.recordAvailable !== true),
     summary,
     notices: [
       ...(mismatch

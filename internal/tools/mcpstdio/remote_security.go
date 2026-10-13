@@ -15,13 +15,28 @@ type remoteSecurityFixtureClientKey struct{}
 // PublicHTTPSPinnedTransport is implemented by transports that already
 // enforce per-request public-HTTPS validation and address pinning (the
 // mcpdirectory service). secureRemoteHTTPClient reuses such a transport so a
-// directory probe can keep a caller-provided transport (for example a test
-// transport that terminates TLS on loopback while the advertised endpoint is
-// a public address) without weakening the pinning contract. Any other custom
-// transport is still rejected.
+// directory probe retains its public-address policy without replacing its
+// transport. The marker alone does not delegate preflight DNS validation.
 type PublicHTTPSPinnedTransport interface {
 	http.RoundTripper
 	PublicHTTPSPinned() bool
+}
+
+// publicHTTPSDestinationValidator additionally validates URLs without issuing
+// requests, including OAuth authorization links opened outside the HTTP client.
+// Its implementation owns the resolution policy: direct public-address checks
+// or DNS delegated to an explicitly configured operator proxy.
+type publicHTTPSDestinationValidator interface {
+	PublicHTTPSPinnedTransport
+	ValidatePublicHTTPSDestination(context.Context, string) error
+}
+
+func validatePublicTransportDestination(ctx context.Context, rawURL string) (bool, error) {
+	transport, ok := httpClientForContext(ctx).Transport.(publicHTTPSDestinationValidator)
+	if !ok || !transport.PublicHTTPSPinned() {
+		return false, nil
+	}
+	return true, transport.ValidatePublicHTTPSDestination(ctx, rawURL)
 }
 
 // withRemoteSecurityFixtureClient is deliberately unexported and used only by
@@ -33,13 +48,24 @@ func withRemoteSecurityFixtureClient(ctx context.Context, client *http.Client) c
 }
 
 // secureRemoteHTTPClient is the mandatory transport for remote MCP RPC. It
-// rejects non-public HTTPS endpoints, disables proxies and redirects, and pins
-// the resolved public address for the request so DNS cannot redirect a call to
-// an internal service after validation.
+// rejects non-public HTTPS endpoints and redirects. A trusted public transport
+// retains its resolution policy; all other clients resolve and pin a public
+// address without inheriting proxies or custom transports.
 func secureRemoteHTTPClient(ctx context.Context, rawURL string) (*http.Client, error) {
-	parsed, pinned, err := validateRemoteMCPURL(ctx, rawURL)
+	parsed, err := parseRemoteMCPURL(rawURL)
 	if err != nil {
 		return nil, err
+	}
+	validated, err := validatePublicTransportDestination(ctx, rawURL)
+	if err != nil {
+		return nil, err
+	}
+	var pinned net.IP
+	if !validated {
+		pinned, err = resolvePublicOAuthAddress(ctx, parsed.Hostname())
+		if err != nil {
+			return nil, fmt.Errorf("remote MCP endpoint: %w", err)
+		}
 	}
 	expectedHost := normalizeRemoteMCPHost(parsed.Hostname())
 	expectedPort := parsed.Port()
@@ -89,18 +115,6 @@ func secureRemoteHTTPClient(ctx context.Context, rawURL string) (*http.Client, e
 	}
 	client.Transport = transport
 	return &client, nil
-}
-
-func validateRemoteMCPURL(ctx context.Context, rawURL string) (*url.URL, net.IP, error) {
-	parsed, err := parseRemoteMCPURL(rawURL)
-	if err != nil {
-		return nil, nil, err
-	}
-	pinned, err := resolvePublicOAuthAddress(ctx, parsed.Hostname())
-	if err != nil {
-		return nil, nil, fmt.Errorf("remote MCP endpoint: %w", err)
-	}
-	return parsed, pinned, nil
 }
 
 func canonicalRemoteMCPOrigin(rawURL string) (string, error) {
