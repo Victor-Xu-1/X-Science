@@ -147,6 +147,11 @@ ALLOWED_ADDITIONS = {
     "tests/fixtures/anndata-categorical/categorical-template.h5ad": "Provide a tiny first-party synthetic AnnData categorical metadata scaffold for real-parser composition regressions, without user records or research results.",
     "tests/fixtures/anndata-categorical/conform-ordered-bool.py": "Regenerate the scalar HDF5 boolean enum in the first-party synthetic test scaffold using optional Python standard-library and system HDF5 tooling, without a routine test runtime dependency.",
     "tests/fixtures/anndata-categorical/create-template.mjs": "Regenerate the bounded first-party synthetic AnnData categorical metadata scaffold with locked h5wasm and the optional local enum helper, without user artifacts or research results.",
+    "tests/fixtures/sequence-joined-location/contiguous.gbk": "Provide a small first-party synthetic contiguous GenBank feature fixture as a valid control for the compound-location preview guard.",
+    "tests/fixtures/sequence-joined-location/joined.gbk": "Provide a small first-party synthetic joined GenBank feature fixture for truthful unsupported-location preview behavior, without user records or research results.",
+    "tests/fixtures/sequence-joined-location/origin.gbk": "Provide a small first-party synthetic origin-spanning joined GenBank feature fixture for compound-location rejection coverage.",
+    "tests/fixtures/sequence-joined-location/reverse.gbk": "Provide a small first-party synthetic reverse-strand joined GenBank feature fixture for compound-location rejection coverage.",
+    "tests/fixtures/sequence-joined-location/dispatch-comment.jbei": "Provide a small first-party synthetic JBEI fixture with a leading comment to verify locked-parser dispatch priority is preserved.",
     "packages/desktop/src/common/chat/roundSummary.ts": "Validate durable per-round completion timing and model usage shared by live and historical messages; unavailable telemetry never erases answer text.",
     "packages/desktop/src/common/chat/largeToolResultReference.ts": "Validate immutable same-origin large-result references once for transcript summaries and lazy detail loading; previews never replace source evidence.",
     "README.md": "Document the browser-only source boundary, dependency authority, scoped checks, and isolated real-backend testing prerequisites.",
@@ -539,9 +544,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "e075e630990c1cee4762310309e1358e415d72ad244561428fd9d1c90e83365e"
+APPROVED_ADAPTATION_FINGERPRINT = "24d3b0e53b0413e5691838785fac37e83d3384774bdd661b956d1cede38f14ae"
 APPROVED_REMOVAL_FINGERPRINT = "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff"
-APPROVED_ADDITION_FINGERPRINT = "3a822501602677e9e955770bfacea1602383fbfb5cfa1ebc3c293c7520585b28"
+APPROVED_ADDITION_FINGERPRINT = "491e027bc13ab5f08dd4dbd3e758dd0aa7e3bbe8c966cb5138092759a446441d"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

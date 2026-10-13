@@ -36,11 +36,16 @@ export async function parseSequenceDocument(input: string | ArrayBuffer, filenam
   const parserFilename = format === 'snapgene' ? uncompressedFilename.replace(/\.dna$/i, '.dna') : uncompressedFilename;
   if (format === 'fastq') return parseFastqDocument(input, parserFilename);
 
+  const parserInput = input instanceof ArrayBuffer ? decodeSequenceParserInput(input, format) : input;
+  if (usesGenBankParser(parserInput, parserFilename)) {
+    assertSupportedGenBankLocations(parserInput);
+  }
+
   const { default: seqparse } = await import('seqparse');
   const parsed =
     input instanceof ArrayBuffer
-      ? await seqparse(decodeSequenceParserInput(input, format), { fileName: parserFilename, source: input })
-      : await seqparse(input, { fileName: parserFilename });
+      ? await seqparse(parserInput, { fileName: parserFilename, source: input })
+      : await seqparse(parserInput, { fileName: parserFilename });
 
   if (!parsed?.seq) throw new ScientificPreviewError('empty-content');
   return {
@@ -50,6 +55,71 @@ export async function parseSequenceDocument(input: string | ArrayBuffer, filenam
     annotations: parsed.annotations ?? [],
     format,
   };
+}
+
+function usesGenBankParser(source: string, filename: string): boolean {
+  // Mirror the locked seqparse dispatch predicates through its GenBank branch.
+  // JBEI and FASTA take priority, even if their text contains a GenBank example
+  // or their filename suggests GenBank. Keep filename checks case-sensitive,
+  // as in seqparse; resolveSequenceFormat alone does not identify this branch.
+  if (source.substring(0, 200).includes(':seq="http://jbei.org/sequence"') || source.startsWith('<seq:seq')) {
+    return false;
+  }
+  if (source.startsWith('>') || source.startsWith(';') || hasExtension(filename, ['.seq', '.fa', '.fas', '.fasta'])) {
+    return false;
+  }
+  return (
+    (source.includes('LOCUS') && source.includes('ORIGIN')) ||
+    hasExtension(filename, ['.gb', '.gbk', '.genbank', '.ape'])
+  );
+}
+
+function assertSupportedGenBankLocations(source: string): void {
+  let inFeatures = false;
+  let inLocation = false;
+  let location = '';
+  const checkLocation = (): void => {
+    // The locked parser and SeqViz selection API have one start/end range.
+    // Splitting a compound feature or using its bounding interval would change
+    // its biological order/selection, so reject instead of silently truncating.
+    if (/(?:^|[,(])(?:join|order)\(/i.test(location.replace(/\s+/g, ''))) {
+      throw new ScientificPreviewError('unsupported-sequence-location');
+    }
+    location = '';
+  };
+
+  for (const line of source.split(/\r?\n/)) {
+    if (/^FEATURES(?:\s|$)/.test(line)) {
+      checkLocation();
+      inFeatures = true;
+      inLocation = false;
+      continue;
+    }
+    if (!inFeatures) continue;
+    // GenBank feature keys occupy columns 6–20; locations and qualifiers begin
+    // at column 22. Non-indented lines end the feature table (e.g. ORIGIN).
+    if (/^\S/.test(line)) {
+      checkLocation();
+      inFeatures = false;
+      inLocation = false;
+      continue;
+    }
+    if (line.slice(0, 5) !== '     ') continue;
+    const featureKey = line.slice(5, 21).trim();
+    const value = line.slice(21).trim();
+    if (featureKey) {
+      checkLocation();
+      inLocation = true;
+      location = value;
+    } else if (inLocation && value.startsWith('/')) {
+      checkLocation();
+      // Ignore the entire qualifier block, including wrapped quoted text.
+      inLocation = false;
+    } else if (inLocation) {
+      location += value;
+    }
+  }
+  checkLocation();
 }
 
 function decodeSequenceParserInput(input: ArrayBuffer, format: SequenceFormat): string {
