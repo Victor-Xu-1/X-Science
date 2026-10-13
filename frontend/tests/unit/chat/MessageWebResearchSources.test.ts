@@ -5,6 +5,29 @@ import {
 } from '@/renderer/pages/conversation/Messages/components/researchSourcePresentation';
 
 describe('MessageWebResearchSources model', () => {
+  it('recognizes decoded empty result arrays without treating empty transport content as results', () => {
+    for (const value of [
+      { result: '[]' },
+      { result: JSON.stringify('[]') },
+      { results: '[]' },
+      { content: [{ type: 'text', text: '[]' }] },
+    ]) {
+      expect(extractResearchSourcePresentation(undefined, JSON.stringify(value))).toMatchObject({
+        state: 'empty',
+        results: [],
+      });
+    }
+    for (const value of [
+      { content: [] },
+      { content: '[]' },
+      { content: [{ type: 'text', text: 'not structured data' }] },
+      { result: '[{"unsupported":"record"}]' },
+      { retrieved: 1, result: '[]' },
+    ]) {
+      expect(extractResearchSourcePresentation(undefined, JSON.stringify(value)).state).toBe('unrecognized');
+    }
+  });
+
   it('projects compound identifiers and properties once, preserving record titles and actual page size', () => {
     const presentation = extractResearchSourcePresentation(
       undefined,

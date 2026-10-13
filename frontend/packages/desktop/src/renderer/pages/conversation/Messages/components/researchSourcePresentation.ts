@@ -92,13 +92,17 @@ function collectStructuredResults(
   seen: Set<string>,
   limit: number,
   shape: ResearchSourceShape,
-  depth = 0
+  depth = 0,
+  decodedResultCollection = depth === 0
 ): void {
   if (value == null || results.length >= limit || depth > 8) return;
   if (typeof value === 'string') {
     const parsed = parseJson(value);
     if (parsed !== null && parsed !== value) {
-      collectStructuredResults(parsed, results, seen, limit, shape, depth + 1);
+      // Decoded result pages retain their collection meaning at any supported
+      // depth. An empty MCP content envelope itself is not an empty source page.
+      if (decodedResultCollection) observeResearchCollection(parsed, shape);
+      collectStructuredResults(parsed, results, seen, limit, shape, depth + 1, decodedResultCollection);
     }
     return;
   }
@@ -115,7 +119,7 @@ function collectStructuredResults(
   const result = resultFromRecord(value);
   if (result) appendResult(result, results, seen, limit);
   if (value.type === 'text' && typeof value.text === 'string') {
-    collectStructuredResults(value.text, results, seen, limit, shape, depth + 1);
+    collectStructuredResults(value.text, results, seen, limit, shape, depth + 1, true);
     return;
   }
 
@@ -162,7 +166,7 @@ function collectStructuredResults(
   ]) {
     if (results.length >= limit) return;
     if (key !== 'content') observeResearchCollection(value[key], shape);
-    collectStructuredResults(value[key], results, seen, limit, shape, depth + 1);
+    collectStructuredResults(value[key], results, seen, limit, shape, depth + 1, key !== 'content');
   }
 }
 

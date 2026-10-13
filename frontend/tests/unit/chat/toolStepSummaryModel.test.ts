@@ -19,6 +19,19 @@ const tool = (name: string, status: NormalizedToolCall['status'] = 'completed'):
 });
 
 describe('tool step summary model', () => {
+  it('classifies decoded empty source pages separately from an empty MCP transport envelope', () => {
+    for (const value of [{ result: '[]' }, { content: [{ type: 'text', text: '[]' }] }]) {
+      const search = { ...tool('search_records'), output: JSON.stringify(value) };
+      expect(buildToolStepResultSummary(search, 'en-US')).toBe('No usable sources');
+      expect(buildToolStepResultSummary(search, 'zh-CN')).toBe('未发现可用来源');
+    }
+    for (const value of [{ content: [] }, { content: '[]' }]) {
+      const search = { ...tool('search_records'), output: JSON.stringify(value) };
+      expect(buildToolStepResultSummary(search, 'en-US')).toBe('Returned data needs review');
+      expect(buildToolStepResultSummary(search, 'zh-CN')).toBe('返回数据待查看');
+    }
+  });
+
   it('uses the same actual compound source projection for the summary as the expanded source list', () => {
     const output = JSON.stringify({
       n_cids_total: 500,

@@ -38,6 +38,47 @@ const message = {
 describe('MessageToolCall', () => {
   beforeEach(() => conversationDisclosureStore.resetForTests());
 
+  it.each([
+    ['en-US', { result: '[]' }, true],
+    ['zh-CN', { result: '[]' }, true],
+    ['en-US', { content: [{ type: 'text', text: '[]' }] }, true],
+    ['zh-CN', { content: [{ type: 'text', text: '[]' }] }, true],
+    ['en-US', { content: [] }, false],
+    ['zh-CN', { content: [] }, false],
+  ] as const)('keeps the %s summary and expanded empty-page state aligned for %j', async (language, output, empty) => {
+    await renderWithI18n(
+      <MessageToolCall
+        message={{
+          ...message,
+          content: { ...message.content, status: 'completed', output: JSON.stringify(output) },
+        }}
+      />,
+      language
+    );
+    const toggle = screen.getByTestId('tool-chip');
+    expect(toggle).toHaveTextContent(
+      empty
+        ? language === 'en-US'
+          ? 'No usable sources'
+          : '未发现可用来源'
+        : language === 'en-US'
+          ? 'Returned data needs review'
+          : '返回数据待查看'
+    );
+    fireEvent.click(toggle);
+    const sources = screen.getByRole('region', { name: language === 'en-US' ? 'Sources' : '来源' });
+    expect(sources).toHaveTextContent(
+      empty
+        ? language === 'en-US'
+          ? 'No usable sources were found.'
+          : '本次检索未发现可用来源'
+        : language === 'en-US'
+          ? 'This response could not be presented as source records.'
+          : '当前返回内容尚不能展示为来源记录'
+    );
+    expect(within(sources).queryByRole('link')).not.toBeInTheDocument();
+  });
+
   it.each(['en-US', 'zh-CN'] as const)('uses one compound count and expanded source in %s', async (language) => {
     await renderWithI18n(
       <MessageToolCall
