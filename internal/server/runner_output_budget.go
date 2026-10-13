@@ -22,6 +22,7 @@ type sessionOutputBudgetClient struct {
 	store                     *runtimekv.Store
 	namespace, owner, session string
 	initialLimit              int
+	preferenceNamespace       string
 }
 
 func newSessionOutputBudgetClient(delegate agentruntime.ModelClient, store *runtimekv.Store, profile providers.ModelProfile, session, role string) agentruntime.ModelClient {
@@ -39,6 +40,7 @@ func newSessionOutputBudgetClient(delegate agentruntime.ModelClient, store *runt
 	identity, _ := json.Marshal(identityFields)
 	digest := sha256.Sum256(identity)
 	client := &sessionOutputBudgetClient{delegate: delegate, store: store, namespace: "output-budget-" + hex.EncodeToString(digest[:]), owner: profile.Provider.UserID, session: session, initialLimit: initialLimit}
+	client.preferenceNamespace = outputBudgetPreferenceNamespace(profile, role)
 	return client
 }
 
@@ -164,6 +166,7 @@ func (client *sessionOutputBudgetClient) observeGeneration(
 			// Keep the measured next proposal as a fallback, but first retire the
 			// disproven soft allowance through one provider-default comparison.
 			state.DefaultProbePending = true
+			state.DefaultProbeFromInitial = details.RequestedTokens == client.initialLimit
 			state.SkipInitialAllowance = true
 		}
 		entry.Value = state
@@ -224,6 +227,14 @@ func (client *sessionOutputBudgetClient) run(ctx context.Context, request agentr
 	if err != nil {
 		return agentruntime.ModelResponse{}, err
 	}
+	if state == (outputBudgetState{}) {
+		initialized, preferenceErr := client.initializeOutputBudgetPreference()
+		if preferenceErr != nil {
+			log.Printf("output budget initial preference unavailable: %v", preferenceErr)
+		} else {
+			state = initialized
+		}
+	}
 	contextID, err := outputBudgetContext(request)
 	if err != nil {
 		return agentruntime.ModelResponse{}, err
@@ -265,6 +276,9 @@ func (client *sessionOutputBudgetClient) run(ctx context.Context, request agentr
 			if err := client.acceptDefaultProbe(contextID); err != nil {
 				log.Printf("output budget default preference could not be saved: %v", err)
 			}
+			if err := client.rememberOutputBudgetPreference(ctx, previousState, response); err != nil {
+				log.Printf("output budget profile preference could not be saved: %v", err)
+			}
 		}
 		return response, callErr
 	}
@@ -304,7 +318,7 @@ func (client *sessionOutputBudgetClient) run(ctx context.Context, request agentr
 	}
 	defaultProbe := false
 	if limited || rejected > 0 || providerMaximum > 0 {
-		silentSavedGeneration := streamed && !nativeProgress.Load() && providers.IsContinuationSafeResponseTruncation(callErr)
+		silentSavedGeneration := streamed && effectiveBudget > 0 && !nativeProgress.Load() && providers.IsContinuationSafeResponseTruncation(callErr)
 		if saveErr := client.observeGeneration(contextID, details, rejected, providerMaximum, silentSavedGeneration); saveErr != nil {
 			// Never invalidate an accepted response merely because saving a
 			// future-call hint failed. Failed generations retain both errors.

@@ -12,20 +12,18 @@ import (
 // This accepts only transport-level completeness, not scientific correctness or
 // permission to execute. Tool proposals still pass the existing runtime gateway.
 func completeDefaultProbeResponse(response agentruntime.ModelResponse) bool {
-	if strings.TrimSpace(response.Message.Content) != "" {
-		return true
-	}
-	if len(response.Message.ToolCalls) == 0 {
+	switch strings.ToLower(strings.TrimSpace(response.StopReason)) {
+	case "length", "max_tokens", "max_output_tokens", "content_filter":
 		return false
 	}
 	for _, call := range response.Message.ToolCalls {
 		var arguments map[string]json.RawMessage
-		if strings.TrimSpace(call.ID) == "" || strings.TrimSpace(call.Name) == "" ||
+		if strings.TrimSpace(call.ID) == "" || strings.TrimSpace(call.Name) == "" || call.ProviderProtocolDiagnostic != "" ||
 			json.Unmarshal(call.Arguments, &arguments) != nil || arguments == nil {
 			return false
 		}
 	}
-	return true
+	return strings.TrimSpace(response.Message.Content) != "" || len(response.Message.ToolCalls) > 0
 }
 
 // Consume before dispatch: a failed or interrupted comparison cannot repeat the

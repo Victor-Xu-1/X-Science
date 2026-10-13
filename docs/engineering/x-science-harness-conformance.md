@@ -1179,6 +1179,23 @@ is tried directly and retained only for its generation context. Missing usage
 does not manufacture a consumed-token count; it retires the ineffective initial
 allowance and allows one transition to the provider-default route. Recreating a
 client preserves these observations and does not reinstate the saved ceiling.
+For a streamed, continuation-safe output-limit stop with measured usage but no
+native public text or tool boundary, a saved soft allowance also schedules one
+durable provider-default probe instead of repeatedly doubling small requests.
+The probe is atomically consumed before dispatch. Failure preserves the measured
+bounded negotiation; cancellation, accepted prefixes, partial tool arguments and
+provider-declared limits are not bypassed.
+
+Only a silent truncation at the initial soft allowance followed by a complete,
+uncancelled successful default probe may establish a provider-default request
+preference for new sessions under the same owner, provider/profile identity,
+protocol, model, runtime role and initial allowance. This is a successful request
+encoding preference, not a model-capacity claim: no prompt, secret, context bound,
+token usage or task-specific next proposal is shared. Configuration changes are
+isolated. Empty or malformed responses cannot establish the preference; complete
+tool proposals still pass the original execution gateway. A provider that remains
+private-only still follows the existing no-progress boundary, not infinite retry
+or fabricated public text.
 An explicit positive caller allowance
 remains authoritative, as do cancellation and task-wide resource controls.
 Explicit caller output caps, automatic budgets, empty responses and partial
