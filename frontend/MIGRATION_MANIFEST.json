@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "752c8a24e6bc1c4a7dbf6c778e8e3a1f1ae248d8f4e633054e7036c19ddc4f8e",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
-  "additionFingerprintSHA256": "9607969e17f1a83d3a2bfdcce0c9b310b05dda9d5919c9501e91e4703197383c",
+  "additionFingerprintSHA256": "0690eda324fbcd4790db267581ebbf70af51de3596b2388d68b1049d44a19d3f",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 276,
@@ -8477,8 +8477,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/toolActivityPresentationRegistry.ts",
-      "sha256": "00e68a074c7aef4c31990229aa9fde712c95ef8525aa0ee1a531a4364c7d97e3",
-      "bytes": 13608,
+      "sha256": "f22bcb5085ddc18ef34d2644db64251a1d481e7836edbd5766db22485724fe81",
+      "bytes": 13803,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10919,8 +10919,8 @@
     },
     {
       "path": "tests/unit/chat/retrievalPresentation.test.ts",
-      "sha256": "d87b3e6261e366be8c199d29e2b12c201d811a3a480fd45deae884b2088a0792",
-      "bytes": 9589,
+      "sha256": "c14ea3e8034ca356548c11edfaaaef0b828ce939f2fe0035b4f897b4f592ebd2",
+      "bytes": 10809,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
