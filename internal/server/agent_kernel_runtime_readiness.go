@@ -5,6 +5,14 @@ import (
 	"strings"
 )
 
+func (s *Server) isManagedScientificREnvironment(environment string) bool {
+	if strings.EqualFold(strings.TrimSpace(environment), "r") {
+		return true
+	}
+	return s != nil && s.kernelManager != nil &&
+		strings.EqualFold(strings.TrimSpace(environment), s.kernelManager.ManagedREnvironmentName())
+}
+
 // Runtime admission is distinct from package installation. This read-only
 // check uses the same protected-root authority as execution and never creates
 // directories during a health request.

@@ -682,11 +682,3 @@ func (s *Server) executeAgentKernelToolInternal(
 	return s.finishAgentKernelExecution(ctx, access, spec, session, started, outcome, outputLimitBytes,
 		kernelOperation, kernelOperationClaim, nil, inputArtifactCollector.snapshot())
 }
-
-func (s *Server) isManagedScientificREnvironment(environment string) bool {
-	if strings.EqualFold(strings.TrimSpace(environment), "r") {
-		return true
-	}
-	return s != nil && s.kernelManager != nil &&
-		strings.EqualFold(strings.TrimSpace(environment), s.kernelManager.ManagedREnvironmentName())
-}
