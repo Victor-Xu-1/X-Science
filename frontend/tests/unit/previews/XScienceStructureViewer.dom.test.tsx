@@ -7,6 +7,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithI18n } from '../i18nTestUtils';
 import type { StructureMinimizationPose } from '@/renderer/pages/conversation/Preview/components/viewers/structureMinimizationInput';
 import { DOUBLE_BOND_MOL, DOUBLE_BOND_SDF } from '../../fixtures/structureLigands';
+import {
+  StructurePreviewStatus,
+  useStructurePreviewRetry,
+} from '@/renderer/pages/conversation/Preview/components/viewers/StructurePreviewStatus';
+import { ScientificPreviewError } from '@/renderer/pages/conversation/Preview/components/viewers/scientificPreviewError';
 
 const structureViewerCss = readFileSync(
   resolve(
@@ -363,6 +368,51 @@ const dockingPanelResizeEnsemble = [
   'END',
 ].join('\n');
 
+type RetryFocusHarnessProps = {
+  loading: boolean;
+  error: ScientificPreviewError | null;
+  contentUrl?: string;
+  earlyRetries?: number;
+  hidden?: boolean;
+};
+
+/** A committed error can receive retry input before its passive effects run. */
+function RetryFocusHarness({
+  loading,
+  error,
+  contentUrl = '/original-source',
+  earlyRetries = 1,
+  hidden = false,
+}: RetryFocusHarnessProps) {
+  const { loadRevision, statusRootRef, retryStructure } = useStructurePreviewRetry({
+    filename: 'complex.pdb',
+    contentUrl,
+    loading,
+    error,
+  });
+  const retriedOwner = React.useRef<string | null>(null);
+  React.useLayoutEffect(() => {
+    if (!error || retriedOwner.current === contentUrl) return;
+    retriedOwner.current = contentUrl;
+    statusRootRef.current?.querySelector<HTMLButtonElement>('[data-testid="structure-preview-retry"]')?.focus();
+    for (let index = 0; index < earlyRetries; index += 1) retryStructure();
+  }, [contentUrl, error, earlyRetries, retryStructure, statusRootRef]);
+  return (
+    <>
+      <section
+        ref={statusRootRef}
+        tabIndex={-1}
+        data-testid='retry-focus-harness'
+        data-revision={loadRevision}
+        hidden={hidden}
+      >
+        <StructurePreviewStatus filename='complex.pdb' loading={loading} error={error} onRetry={retryStructure} />
+      </section>
+      <button type='button'>Keep editing</button>
+    </>
+  );
+}
+
 describe('XScienceStructureViewer', () => {
   it('persists an immutable native snapshot before offering the browser download', async () => {
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
@@ -571,7 +621,141 @@ describe('XScienceStructureViewer', () => {
     expect(read).toHaveBeenCalledTimes(2);
     expect(read.mock.calls.map(([url]) => url)).toEqual([sourceUrl, sourceUrl]);
     expect(molstarMocks.engine.dispose).toHaveBeenCalledTimes(1);
-    expect(screen.getByTestId('x-science-molstar-viewer')).toHaveFocus();
+    await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId('x-science-molstar-viewer')).toHaveFocus());
+  });
+
+  it.each(['en-US', 'zh-CN'] as const)(
+    'restores retry focus only after the structure load completes in %s',
+    async (locale) => {
+      let finishLoad!: (composition: Awaited<ReturnType<typeof molstarMocks.engine.load>>) => void;
+      molstarMocks.engine.load.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finishLoad = resolve;
+          })
+      );
+      const read = vi
+        .fn()
+        .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+        .mockResolvedValueOnce(new Response('original structure bytes'));
+      vi.stubGlobal('fetch', read);
+      const view = await renderWithI18n(
+        <XScienceStructureViewer filename='complex.pdb' contentUrl='/original-source' />,
+        locale
+      );
+      const retry = await screen.findByRole('button', { name: view.i18n.t('preview.scientific.retry') });
+      act(() => retry.focus());
+      fireEvent.click(retry);
+      await waitFor(() =>
+        expect(molstarMocks.engine.load).toHaveBeenCalledWith('original structure bytes', 'complex.pdb', 'pdb')
+      );
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(screen.getByRole('status')).toBeInTheDocument();
+      expect(document.body).toHaveFocus();
+      expect(read).toHaveBeenCalledTimes(2);
+      await act(async () => {
+        finishLoad({ objects: [], atomCount: 0, hasProtein: false, hasLigand: false });
+      });
+      await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument());
+      await waitFor(() => expect(screen.getByTestId('x-science-molstar-viewer')).toHaveFocus());
+    }
+  );
+
+  it.each(['en-US', 'zh-CN'] as const)(
+    'keeps an early retry owned through stale error effects in %s',
+    async (locale) => {
+      const view = await renderWithI18n(<RetryFocusHarness loading error={null} />, locale);
+      view.rerender(<RetryFocusHarness loading={false} error={new ScientificPreviewError('request-failed')} />);
+      expect(screen.getByTestId('retry-focus-harness')).toHaveAttribute('data-revision', '1');
+      view.rerender(<RetryFocusHarness loading error={null} />);
+      expect(screen.getByRole('status')).toBeInTheDocument();
+      expect(document.body).toHaveFocus();
+      view.rerender(<RetryFocusHarness loading={false} error={null} />);
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+      expect(screen.getByTestId('retry-focus-harness')).toHaveFocus();
+    }
+  );
+
+  it.each(['en-US', 'zh-CN'] as const)('returns an early failed retry to its retry control in %s', async (locale) => {
+    const view = await renderWithI18n(<RetryFocusHarness loading error={null} />, locale);
+    view.rerender(<RetryFocusHarness loading={false} error={new ScientificPreviewError('request-failed')} />);
+    view.rerender(<RetryFocusHarness loading error={null} />);
+    view.rerender(<RetryFocusHarness loading={false} error={new ScientificPreviewError('parse-failed')} />);
+    expect(screen.getByTestId('structure-preview-retry')).toHaveFocus();
+  });
+
+  it.each(['en-US', 'zh-CN'] as const)('retains another destination after an early retry in %s', async (locale) => {
+    const view = await renderWithI18n(<RetryFocusHarness loading error={null} />, locale);
+    view.rerender(<RetryFocusHarness loading={false} error={new ScientificPreviewError('request-failed')} />);
+    view.rerender(<RetryFocusHarness loading error={null} />);
+    const destination = screen.getByRole('button', { name: 'Keep editing' });
+    act(() => destination.focus());
+    view.rerender(<RetryFocusHarness loading={false} error={null} />);
+    expect(destination).toHaveFocus();
+  });
+
+  it.each(['en-US', 'zh-CN'] as const)(
+    'owns rapid early retries without losing their latest revision in %s',
+    async (locale) => {
+      const view = await renderWithI18n(<RetryFocusHarness loading error={null} earlyRetries={2} />, locale);
+      view.rerender(
+        <RetryFocusHarness loading={false} error={new ScientificPreviewError('request-failed')} earlyRetries={2} />
+      );
+      expect(screen.getByTestId('retry-focus-harness')).toHaveAttribute('data-revision', '2');
+      view.rerender(<RetryFocusHarness loading error={null} earlyRetries={2} />);
+      view.rerender(<RetryFocusHarness loading={false} error={null} earlyRetries={2} />);
+      expect(screen.getByTestId('retry-focus-harness')).toHaveFocus();
+    }
+  );
+
+  it.each(['en-US', 'zh-CN'] as const)(
+    'invalidates early retry focus when the source changes in %s',
+    async (locale) => {
+      const view = await renderWithI18n(<RetryFocusHarness loading error={null} />, locale);
+      view.rerender(<RetryFocusHarness loading={false} error={new ScientificPreviewError('request-failed')} />);
+      view.rerender(<RetryFocusHarness loading error={null} />);
+      view.rerender(<RetryFocusHarness loading={false} error={null} contentUrl='/new-source' />);
+      expect(document.body).toHaveFocus();
+      expect(screen.getByTestId('retry-focus-harness')).not.toHaveFocus();
+    }
+  );
+
+  it.each(['en-US', 'zh-CN'] as const)('does not restore early retry focus after unmount in %s', async (locale) => {
+    const view = await renderWithI18n(<RetryFocusHarness loading error={null} />, locale);
+    view.rerender(<RetryFocusHarness loading={false} error={new ScientificPreviewError('request-failed')} />);
+    view.rerender(<RetryFocusHarness loading error={null} />);
+    view.unmount();
+    await act(async () => {});
+    expect(document.body).toHaveFocus();
+  });
+
+  it.each(['en-US', 'zh-CN'] as const)(
+    'owns a new source retry before passive source effects in %s',
+    async (locale) => {
+      const view = await renderWithI18n(<RetryFocusHarness loading error={null} />, locale);
+      view.rerender(
+        <RetryFocusHarness
+          loading={false}
+          error={new ScientificPreviewError('request-failed')}
+          contentUrl='/new-source'
+        />
+      );
+      expect(screen.getByTestId('retry-focus-harness')).toHaveAttribute('data-revision', '1');
+      view.rerender(<RetryFocusHarness loading error={null} contentUrl='/new-source' />);
+      view.rerender(<RetryFocusHarness loading={false} error={null} contentUrl='/new-source' />);
+      expect(screen.getByTestId('retry-focus-harness')).toHaveFocus();
+    }
+  );
+
+  it.each(['en-US', 'zh-CN'] as const)('does not restore early retry focus to a hidden owner in %s', async (locale) => {
+    const view = await renderWithI18n(<RetryFocusHarness loading error={null} />, locale);
+    view.rerender(<RetryFocusHarness loading={false} error={new ScientificPreviewError('request-failed')} />);
+    view.rerender(<RetryFocusHarness loading error={null} />);
+    view.rerender(<RetryFocusHarness loading={false} error={null} hidden />);
+    expect(document.body).toHaveFocus();
+    view.rerender(<RetryFocusHarness loading={false} error={null} />);
+    expect(document.body).toHaveFocus();
   });
 
   it('keeps initialization failure distinct and retries only on user action', async () => {
