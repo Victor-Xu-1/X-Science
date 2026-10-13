@@ -22,6 +22,18 @@
   --settings-card-gap: var(--ui-space-6);
   --settings-section-gap: var(--ui-space-7);
   --settings-section-padding: 20px;
+  --settings-section-header-padding: 18px 18px 0;
+  --settings-section-body-padding: 16px 18px 18px;
+  --settings-section-icon-size: 36px;
+  --settings-header-row-height: 44px;
+  --settings-list-row-height: 76px;
+  --settings-list-row-padding: 14px 20px;
+  --settings-empty-height: 112px;
+  --settings-switch-width: 46px;
+  --settings-switch-height: 28px;
+  --settings-switch-thumb: 20px;
+  --settings-switch-offset: 4px;
+  --settings-switch-checked-offset: 22px;
   --settings-content-inline: 0px;
   --settings-entity-card-padding: 18px;
   --settings-entity-card-padding-wide: 20px;
@@ -58,9 +70,45 @@
   --settings-control-border: color-mix(in srgb, var(--settings-text-secondary) 80%, var(--settings-surface));
 }
 
-/* Route-level density files used to shrink three routes into a second visual
-   language (24px titles, 32px controls, 9–11px copy). Those routes now share
-   one ramp with every other settings page. */
+/* One compact profile for operational settings. Existing components consume
+   the same scoped type/spacing tokens, including utility-class consumers;
+   catalogs, chat, previews and user content keep their original scale. */
+.settings-page-wrapper[data-settings-density='compact'] {
+  --settings-content-max: 1040px;
+  --ui-font-subtitle: 13px;
+  --ui-font-title: 14px;
+  --ui-font-section: 15px;
+  --ui-font-lead: 15px;
+  --ui-font-headline: 22px;
+  --ui-line-height-subtitle: 20px;
+  --ui-line-height-section: 22px;
+  --ui-space-6: 14px;
+  --ui-space-7: 18px;
+  --ui-space-8: 24px;
+  --settings-control-height: 34px;
+  --settings-card-radius: 12px;
+  --settings-card-padding: 16px;
+  --settings-card-gap: 14px;
+  --settings-section-gap: 18px;
+  --settings-section-padding: 16px;
+  --settings-section-header-padding: 16px 16px 0;
+  --settings-section-body-padding: 12px 16px 16px;
+  --settings-section-icon-size: 30px;
+  --settings-header-row-height: 34px;
+  --settings-list-row-height: 60px;
+  --settings-list-row-padding: 10px 16px;
+  --settings-empty-height: 68px;
+  --settings-switch-width: 40px;
+  --settings-switch-height: 24px;
+  --settings-switch-thumb: 18px;
+  --settings-switch-offset: 3px;
+  --settings-switch-checked-offset: 19px;
+  --settings-entity-card-height: 160px;
+  --settings-page-title-size: 22px;
+  --settings-page-title-line: 30px;
+  --settings-control-border: color-mix(in srgb, var(--settings-text-secondary) 35%, var(--settings-border));
+}
+
 /* One metadata ramp replaces the 8/9/10/11px cluster. */
 .settings-page-wrapper
   :is(
@@ -94,9 +142,7 @@
   padding-inline: var(--settings-content-inline);
 }
 
-/* Keep the shell hierarchy balanced: navigation is one step larger while
-   section copy remains compact enough to preserve the generous card whitespace
-   from the approved sheets. */
+/* Section copy follows the shared body scale. */
 .settings-page-wrapper[data-settings-visual-system='scientific-connectors-v3'] .settings-section__body {
   font-size: var(--ui-font-body) !important;
   line-height: 20px !important;
@@ -118,7 +164,7 @@
 
 .settings-page-wrapper[data-settings-visual-system='scientific-connectors-v3'] .settings-page-header__row {
   display: flex;
-  min-height: 44px;
+  min-height: var(--settings-header-row-height);
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--ui-space-7);
@@ -311,12 +357,10 @@
   font-size: var(--ui-font-subtitle);
 }
 
-/* Switches in the approved sheets are quiet teal pills with a white thumb;
-   keep the behavior and aria state from Arco while replacing its dark theme
-   skin inside settings only. */
+/* Switch geometry follows the page scale; Arco still owns behavior and state. */
 .settings-page-wrapper[data-settings-visual-system='scientific-connectors-v3'] [role='switch'] {
-  width: 46px !important;
-  height: 28px !important;
+  width: var(--settings-switch-width) !important;
+  height: var(--settings-switch-height) !important;
   border: 0 !important;
   border-radius: var(--ui-radius-pill) !important;
   background: var(--workspace-selected, #dce7ee) !important;
@@ -329,11 +373,11 @@
 }
 
 .settings-page-wrapper[data-settings-visual-system='scientific-connectors-v3'] [role='switch'] .arco-switch-dot {
-  top: 4px !important;
+  top: var(--settings-switch-offset) !important;
   right: auto !important;
-  left: 4px !important;
-  width: 20px !important;
-  height: 20px !important;
+  left: var(--settings-switch-offset) !important;
+  width: var(--settings-switch-thumb) !important;
+  height: var(--settings-switch-thumb) !important;
   border-radius: var(--ui-radius-circle) !important;
   background: var(--settings-surface) !important;
   box-shadow: 0 1px 2px rgb(13 27 62 / 12%);
@@ -346,7 +390,7 @@
 .settings-page-wrapper[data-settings-visual-system='scientific-connectors-v3']
   [role='switch'].arco-switch-checked
   .arco-switch-dot {
-  left: 22px !important;
+  left: var(--settings-switch-checked-offset) !important;
 }
 
 /* Cards and lists */
@@ -366,7 +410,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--ui-space-7);
-  padding: 18px 18px 0;
+  padding: var(--settings-section-header-padding);
 }
 
 .settings-page-wrapper[data-settings-visual-system='scientific-connectors-v3'] .settings-section__heading {
@@ -378,9 +422,9 @@
 
 .settings-page-wrapper[data-settings-visual-system='scientific-connectors-v3'] .settings-section__icon {
   display: block;
-  width: 36px;
-  height: 36px;
-  flex: 0 0 36px;
+  width: var(--settings-section-icon-size);
+  height: var(--settings-section-icon-size);
+  flex: 0 0 var(--settings-section-icon-size);
   border-radius: var(--ui-radius-lg);
   object-fit: contain;
   user-select: none;
@@ -409,12 +453,12 @@
 
 .settings-page-wrapper[data-settings-visual-system='scientific-connectors-v3'] .settings-section__body {
   min-width: 0;
-  padding: 16px 18px 18px;
+  padding: var(--settings-section-body-padding);
 }
 
 .settings-page-wrapper[data-settings-visual-system='scientific-connectors-v3'] .settings-empty-state {
   display: flex;
-  min-height: 96px;
+  min-height: min(96px, var(--settings-empty-height));
   align-items: center;
   justify-content: center;
   padding: var(--ui-space-7);
@@ -439,8 +483,8 @@
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
-  min-height: 76px;
-  padding: 14px 20px !important;
+  min-height: var(--settings-list-row-height);
+  padding: var(--settings-list-row-padding) !important;
   border-color: var(--settings-border) !important;
   background: var(--settings-surface);
   transition: background-color 140ms ease;
@@ -470,7 +514,7 @@
 
 .settings-page-wrapper[data-settings-visual-system='scientific-connectors-v3'] .settings-empty-artwork-panel {
   display: flex;
-  min-height: 112px;
+  min-height: var(--settings-empty-height);
   flex-direction: column;
   align-items: center;
   justify-content: center;

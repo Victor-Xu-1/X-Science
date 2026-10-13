@@ -25,13 +25,22 @@ vi.mock('@/renderer/services/xScienceLlm', () => ({
 
 vi.mock('@arco-design/web-react', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@arco-design/web-react')>();
-  return { ...actual, Message: { ...actual.Message, success: mocks.success, error: mocks.error } };
+  return {
+    ...actual,
+    Message: { ...actual.Message, success: mocks.success, error: mocks.error },
+  };
 });
 
 const snapshot: XScienceLlmProvidersSnapshot = {
   activeProfileId: 'first',
   templates: [
-    { provider: 'custom', label: 'Custom', defaultBaseUrl: '', modelExamples: [], protocol: 'openai' },
+    {
+      provider: 'custom',
+      label: 'Custom',
+      defaultBaseUrl: '',
+      modelExamples: [],
+      protocol: 'openai',
+    },
     {
       provider: 'deepseek',
       label: 'DeepSeek',
@@ -97,7 +106,7 @@ describe('model profile read and editor ownership', () => {
     await renderWithI18n(<XScienceModelsSettingsContent />, 'zh-CN');
     expect(screen.getByRole('button', { name: '新增模型配置' })).toBeDisabled();
     expect(screen.queryByText('未配置')).not.toBeInTheDocument();
-    expect(document.querySelector('.settings-summary-strip')?.firstElementChild).not.toHaveTextContent('0');
+    expect(screen.queryByRole('heading', { name: '模型连接' })).not.toBeInTheDocument();
     await act(async () => pending.resolve(freshSnapshot()));
     expect(await screen.findByText('First model')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '新增模型配置' })).toBeEnabled();
@@ -255,7 +264,9 @@ describe('model profile read and editor ownership', () => {
     const view = await renderWithI18n(<XScienceModelsSettingsContent />, 'zh-CN');
     await screen.findByText('First model');
     fireEvent.click(screen.getByRole('button', { name: '新增模型配置' }));
-    fireEvent.change(screen.getByLabelText('配置名称'), { target: { value: 'Preserved draft' } });
+    fireEvent.change(screen.getByLabelText('配置名称'), {
+      target: { value: 'Preserved draft' },
+    });
     await act(async () => view.i18n.changeLanguage('en-US'));
     expect(mocks.load).toHaveBeenCalledTimes(1);
     expect(screen.getByLabelText('Profile name')).toHaveValue('Preserved draft');
@@ -268,7 +279,9 @@ describe('model profile read and editor ownership', () => {
     await screen.findByText('First model');
     fireEvent.click(screen.getByRole('button', { name: '将 Second model 设为当前模型' }));
     fireEvent.click(screen.getByRole('button', { name: '新增模型配置' }));
-    fireEvent.change(screen.getByLabelText('配置名称'), { target: { value: 'Preserved draft' } });
+    fireEvent.change(screen.getByLabelText('配置名称'), {
+      target: { value: 'Preserved draft' },
+    });
     await act(async () => action.resolve({ ok: true }));
     await waitFor(() => expect(mocks.load).toHaveBeenCalledTimes(2));
     expect(screen.getByLabelText('配置名称')).toHaveValue('Preserved draft');
@@ -280,18 +293,25 @@ describe('model profile read and editor ownership', () => {
     await renderWithI18n(<XScienceModelsSettingsContent />, 'zh-CN');
     await screen.findByText('First model');
     fireEvent.click(screen.getByRole('button', { name: '新增模型配置' }));
-    fireEvent.change(screen.getByLabelText('配置名称'), { target: { value: 'Submitted draft' } });
+    fireEvent.change(screen.getByLabelText('配置名称'), {
+      target: { value: 'Submitted draft' },
+    });
     fireEvent.click(screen.getByRole('button', { name: '保存' }));
     await waitFor(() => expect(mocks.save).toHaveBeenCalledTimes(1));
     fireEvent.click(screen.getByRole('button', { name: '取消' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: '新增模型配置' }));
-    fireEvent.change(screen.getByLabelText('配置名称'), { target: { value: 'Newer draft' } });
+    fireEvent.change(screen.getByLabelText('配置名称'), {
+      target: { value: 'Newer draft' },
+    });
     await act(async () => saving.resolve({ ok: true }));
     expect(screen.getByRole('dialog', { name: '新增模型配置' })).toBeInTheDocument();
     expect(screen.getByLabelText('配置名称')).toHaveValue('Newer draft');
     expect(mocks.save).toHaveBeenCalledTimes(1);
-    expect(mocks.save.mock.calls[0][0]).toMatchObject({ name: 'Submitted draft', provider: 'deepseek' });
+    expect(mocks.save.mock.calls[0][0]).toMatchObject({
+      name: 'Submitted draft',
+      provider: 'deepseek',
+    });
   });
 
   it('does not report an older save failure as a failure of the new editor', async () => {
@@ -300,13 +320,17 @@ describe('model profile read and editor ownership', () => {
     await renderWithI18n(<XScienceModelsSettingsContent />, 'zh-CN');
     await screen.findByText('First model');
     fireEvent.click(screen.getByRole('button', { name: '新增模型配置' }));
-    fireEvent.change(screen.getByLabelText('配置名称'), { target: { value: 'Submitted draft' } });
+    fireEvent.change(screen.getByLabelText('配置名称'), {
+      target: { value: 'Submitted draft' },
+    });
     fireEvent.click(screen.getByRole('button', { name: '保存' }));
     await waitFor(() => expect(mocks.save).toHaveBeenCalledTimes(1));
     fireEvent.click(screen.getByRole('button', { name: '取消' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: '新增模型配置' }));
-    fireEvent.change(screen.getByLabelText('配置名称'), { target: { value: 'Newer draft' } });
+    fireEvent.change(screen.getByLabelText('配置名称'), {
+      target: { value: 'Newer draft' },
+    });
     await act(async () => saving.reject(new Error('older save failed')));
     expect(mocks.error).not.toHaveBeenCalled();
     expect(screen.getByLabelText('配置名称')).toHaveValue('Newer draft');
@@ -319,7 +343,9 @@ describe('model profile read and editor ownership', () => {
     const view = await renderWithI18n(<XScienceModelsSettingsContent />, 'zh-CN');
     await screen.findByText('First model');
     fireEvent.click(screen.getByRole('button', { name: '新增模型配置' }));
-    fireEvent.change(screen.getByLabelText('配置名称'), { target: { value: 'Submitted draft' } });
+    fireEvent.change(screen.getByLabelText('配置名称'), {
+      target: { value: 'Submitted draft' },
+    });
     fireEvent.click(screen.getByRole('button', { name: '保存' }));
     await waitFor(() => expect(mocks.save).toHaveBeenCalledTimes(1));
     view.unmount();

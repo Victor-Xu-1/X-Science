@@ -11,9 +11,9 @@
   min-height: var(--settings-entity-card-height);
 }
 .settings-page-wrapper[data-settings-route='compute'] .compute-overview-grid .settings-section__icon {
-  width: 48px;
-  height: 48px;
-  flex-basis: 48px;
+  width: var(--settings-section-icon-size);
+  height: var(--settings-section-icon-size);
+  flex-basis: var(--settings-section-icon-size);
   border-radius: var(--ui-radius-xl);
 }
 .settings-page-wrapper[data-settings-route='compute'] .compute-overview-grid .settings-section__header {
@@ -26,7 +26,7 @@
 }
 .settings-page-wrapper[data-settings-route='compute'] .compute-overview-grid .settings-section__body {
   margin-top: auto;
-  padding: 12px 24px 16px;
+  padding: var(--settings-section-body-padding);
 }
 .compute-overview-grid .compute-product-row {
   flex-wrap: wrap;
