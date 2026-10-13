@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "07943660bab587ab5f8477bf967937e901ce0a0c4d219847de5a7890e9756328",
+  "adaptationFingerprintSHA256": "6398897b337033be912bd04dcb1312c1643459d4fe0767865515e764f52380e6",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
-  "additionFingerprintSHA256": "eadabb6a0f9ba64399cc90ae86376094e43c759e0aa4068b58a5e18bc09ccbec",
+  "additionFingerprintSHA256": "c5766d96ebd524df917aaae040b59a8c2ef8f27fc421969b5bd69aa9d7328dc6",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 275,
     "adaptedSourceFiles": 786,
     "removedSourceFiles": 293,
-    "addedFiles": 935
+    "addedFiles": 943
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "4f63d06b13a237d64a7a60af0ec523de3cdaca4bdaa3383d555f04fcd5de67d7",
+      "targetSHA256": "3522cfa8c251c962f4e5a0bc45cd27f4186595e4f5e8b2869c9c4544986de91f",
       "bytes": 4392,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "64a60229389619cec8fad1aca97d1d2e832b2a132f1c9512a71b255bca5dcba6",
+      "targetSHA256": "b61606cbedda4fd706121db35ef2e9808af9d52f66f971fafaa7aa6a9e8eb2f3",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -1849,8 +1849,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/sequenceModel.ts",
       "sourceSHA256": "790dd6313111c0eaebd55fe647fb3c1182dfddf5364b6b98a040aeac3185d5fb",
-      "targetSHA256": "db0772c31970cc2ba2c43729745b8e2067dcef42b7be8b7dfe106e5bda4d458c",
-      "bytes": 6841,
+      "targetSHA256": "3194bbc16c2c68bed31e0a5c7ff17ceca7d6de11b4d37d9136ee6ad492b228fa",
+      "bytes": 9431,
       "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -2833,8 +2833,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "8452471ea1b3369e2e269f844dfe110a11e611beea4ea1483136a823b839cb2a",
-      "bytes": 255800,
+      "targetSHA256": "1ffacae60714e46c6681e241143b907d6ad36c48ea68ac1c85eaf8517640c445",
+      "bytes": 255860,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2910,8 +2910,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/preview.json",
       "sourceSHA256": "bf530f4a992cc14652500390e715b7add84853e9b0757158c718244cf4cd8f32",
-      "targetSHA256": "f4cd029f23c533810a643790a4bfc697b02a26c8ec74858e68b1060495be6f98",
-      "bytes": 42998,
+      "targetSHA256": "6040251633e64861f939dddaccf7a870837b86651caf095d1442903a89efb047",
+      "bytes": 43221,
       "reason": "Add English labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls."
     },
     {
@@ -3001,8 +3001,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/preview.json",
       "sourceSHA256": "6b772273972756a3407fee8fe7b4503e992964a8de901375f06bfd2faacf2ba0",
-      "targetSHA256": "a00a3688e80d3a0a02e7b01478c28474e97b4476dd4858a785e9440404c66d03",
-      "bytes": 41516,
+      "targetSHA256": "4adfee3e70a2c862294a70bb99b6d1c3bec12746dbe0b776c426d5d44c011702",
+      "bytes": 41746,
       "reason": "Add Simplified Chinese labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls."
     },
     {
@@ -7530,7 +7530,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "60f4792c97a1835c657daead0658fca8d261e357e77b07ac136b1dd580822020",
+      "sha256": "f69fc405ca4c8f126d66e1fb5f42d47f87bc43d47e09ceb90868a5bbfd400859",
       "bytes": 558186,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -8904,8 +8904,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/scientificPreviewError.ts",
-      "sha256": "ecc6c181bd6f8cca56118a97a17cf1653674956edae849efee729585f5836149",
-      "bytes": 1691,
+      "sha256": "6025f42f1c2392d142991fee8badbd54e0ad1aeb1d775e1682d8a03ef3f2d842",
+      "bytes": 1727,
       "reason": "Shared localized and non-sensitive error mapping for scientific preview failures."
     },
     {
@@ -10799,6 +10799,36 @@
       "reason": "Regenerate the bounded first-party synthetic AnnData categorical metadata scaffold with locked h5wasm and the optional local enum helper, without user artifacts or research results."
     },
     {
+      "path": "tests/fixtures/sequence-joined-location/contiguous.gbk",
+      "sha256": "1e2c73ca52d40acc73918945adf361461122a55614517973a595d6aaac0c9adb",
+      "bytes": 734,
+      "reason": "Provide a small first-party synthetic contiguous GenBank feature fixture as a valid control for the compound-location preview guard."
+    },
+    {
+      "path": "tests/fixtures/sequence-joined-location/dispatch-comment.jbei",
+      "sha256": "774d5bccb41a7a00643c63298899eda9647fa78fb49850f08b0c6cecf205cfcf",
+      "bytes": 395,
+      "reason": "Provide a small first-party synthetic JBEI fixture with a leading comment to verify locked-parser dispatch priority is preserved."
+    },
+    {
+      "path": "tests/fixtures/sequence-joined-location/joined.gbk",
+      "sha256": "be4deb1a87231bf66b2b7a81a74c51a2ebaa55da22f8ffdef7b78efe6fd132fc",
+      "bytes": 742,
+      "reason": "Provide a small first-party synthetic joined GenBank feature fixture for truthful unsupported-location preview behavior, without user records or research results."
+    },
+    {
+      "path": "tests/fixtures/sequence-joined-location/origin.gbk",
+      "sha256": "62bdffe9914d8031d6f06bc610119879fd22c28779dcc8fed6c93941394e41c2",
+      "bytes": 742,
+      "reason": "Provide a small first-party synthetic origin-spanning joined GenBank feature fixture for compound-location rejection coverage."
+    },
+    {
+      "path": "tests/fixtures/sequence-joined-location/reverse.gbk",
+      "sha256": "bc0b5ca43c6354bab6509a2327e8468f9c97c0bdafc14b27c481d8ee292a6b1a",
+      "bytes": 755,
+      "reason": "Provide a small first-party synthetic reverse-strand joined GenBank feature fixture for compound-location rejection coverage."
+    },
+    {
       "path": "tests/fixtures/structureLigands.ts",
       "sha256": "6df0b02a29f97fe0b0a46c7f2b1fb8bb38ee38654a03d83ffe6ca773f808d411",
       "bytes": 4228,
@@ -11306,6 +11336,24 @@
       "path": "tests/unit/previews/sequenceByteBudget.regression.dom.test.tsx",
       "sha256": "9b021fa391b750e805b6c24e3d82c465be7121397ab2f212578ca41ef0975d41",
       "bytes": 19777,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/previews/sequenceJoinedLocation.dom.test.tsx",
+      "sha256": "70ecf33561556a6ba03fefdd2acc57c4dad763840254750fbb6b0cd44bffa321",
+      "bytes": 9333,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/previews/sequenceJoinedLocation.test.ts",
+      "sha256": "b032d5afbcc3b34b6e411b723cc9293ad8a053d1740668c9deadc5998858bead",
+      "bytes": 4774,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/previews/sequenceParserDispatch.test.ts",
+      "sha256": "e1d746eddc79510e0fd2a66b59d2fe91222a9758b42c9ce087a0198eed680aab",
+      "bytes": 3218,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

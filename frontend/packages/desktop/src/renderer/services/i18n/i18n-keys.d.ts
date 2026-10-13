@@ -2964,6 +2964,7 @@ export type I18nKey =
   | 'preview.scientific.errors.searchFailed'
   | 'preview.scientific.errors.tooLarge'
   | 'preview.scientific.errors.unsupportedFormat'
+  | 'preview.scientific.errors.unsupportedSequenceLocation'
   | 'preview.scientific.genome.genome'
   | 'preview.scientific.genome.kind'
   | 'preview.scientific.genome.loading'

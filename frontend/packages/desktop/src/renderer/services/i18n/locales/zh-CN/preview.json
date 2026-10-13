@@ -547,7 +547,8 @@
       "requestFailedWithStatus": "{{kind}}加载失败（HTTP {{status}}）。",
       "searchFailed": "无法跳转到指定{{kind}}位置。",
       "tooLarge": "{{kind}}超过 {{limit}} 预览限制。",
-      "unsupportedFormat": "{{kind}}查看器不支持 {{filename}} 的文件格式。"
+      "unsupportedFormat": "{{kind}}查看器不支持 {{filename}} 的文件格式。",
+      "unsupportedSequenceLocation": "此 GenBank 文件包含连接（join）或有序（order）的多片段特征位置，当前预览无法准确显示。请使用支持多片段特征位置的查看器打开原始文件。"
     },
     "table": {
       "kind": "表格",

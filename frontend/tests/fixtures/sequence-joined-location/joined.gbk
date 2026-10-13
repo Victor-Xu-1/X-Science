@@ -1,0 +1,20 @@
+LOCUS       JOINCHECK                 36 bp    DNA     linear   SYN 13-OCT-2026
+DEFINITION  Benign independent synthetic CDS fixture.
+ACCESSION   JOINCHECK
+VERSION     JOINCHECK.1
+KEYWORDS    .
+SOURCE      synthetic construct
+  ORGANISM  synthetic construct
+            other sequences; artificial sequences.
+FEATURES             Location/Qualifiers
+     source          1..36
+                     /organism="synthetic construct"
+                     /mol_type="other DNA"
+     CDS             join(4..6,19..24)
+                     /gene="joined_CDS"
+                     /product="synthetic test peptide"
+                     /codon_start=1
+                     /translation="MP"
+ORIGIN
+        1 aaaatgcccg ggtttaaacc ctaagggttt aaaccc
+//
