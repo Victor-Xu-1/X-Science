@@ -63,6 +63,8 @@ type NetworkPolicyConfig struct {
 	Proxy                        string   `json:"proxy"`
 	CABundle                     string   `json:"ca_bundle"`
 	MCPX509Strict                string   `json:"mcp_x509_strict"`
+	// ProxyInherited records ambient routing, not explicit public-source authority.
+	ProxyInherited bool `json:"-"`
 }
 
 type XScienceLinkAuthConfig struct {
@@ -314,9 +316,11 @@ func applyNetworkPolicy(cfg *Config, configPath string) error {
 	}
 	if value := strings.TrimSpace(os.Getenv("X_SCIENCE_NETWORK_PROXY")); value != "" {
 		cfg.Network.Proxy = value
+		cfg.Network.ProxyInherited = false
 	}
 	if strings.TrimSpace(cfg.Network.Proxy) == "" {
 		cfg.Network.Proxy = inheritedHTTPProxy()
+		cfg.Network.ProxyInherited = cfg.Network.Proxy != ""
 	}
 	proxy, err := networktls.NormalizeProxyURL(cfg.Network.Proxy)
 	if err != nil {
@@ -361,8 +365,8 @@ func applyNetworkPolicy(cfg *Config, configPath string) error {
 	return nil
 }
 
-// inheritedHTTPProxy promotes the operator's standard process proxy into the
-// explicit runtime configuration used by detached kernel executors. Relying on
+// inheritedHTTPProxy retains the standard process route for detached kernel
+// executors without granting it explicit public-source authority. Relying on
 // http.ProxyFromEnvironment only inside the executor is insufficient: service
 // supervisors and process handoffs can intentionally narrow the child
 // environment, causing model/API traffic to use the working host route while

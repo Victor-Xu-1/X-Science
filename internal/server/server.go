@@ -108,6 +108,7 @@ type Options struct {
 	ConfigAllowedDomains                  []string
 	ConfigDeniedDomains                   []string
 	ConfigNetworkProxy                    string
+	ConfigNetworkProxyInherited           bool
 	MCPX509Posture                        func() mcpstdio.TLSPosture
 	RestartRuntime                        func(reason string) error
 	RuntimeUpdate                         RuntimeUpdateOptions
@@ -201,6 +202,7 @@ type Server struct {
 	configAllowedDomains                  []string
 	configDeniedDomains                   []string
 	configNetworkProxy                    string
+	publicSourceProxy                     string
 	mcpX509Posture                        func() mcpstdio.TLSPosture
 	allowedDomainsMu                      sync.Mutex
 	hostGrantKernelMu                     sync.Mutex
@@ -362,12 +364,16 @@ func New(options Options) *Server {
 	operations := options.Operations
 	// Every public-source consumer shares the operator route. Supplying a base
 	// HTTP client alone must not turn its ambient proxy into DNS authority.
-	options.WebFetchOptions.TrustedProxyURL = options.ConfigNetworkProxy
+	publicSourceProxy := strings.TrimSpace(options.ConfigNetworkProxy)
+	if options.ConfigNetworkProxyInherited {
+		publicSourceProxy = ""
+	}
+	options.WebFetchOptions.TrustedProxyURL = publicSourceProxy
 	if options.WebFetchOptions.BaseHTTPClient == nil {
 		options.WebFetchOptions.BaseHTTPClient = options.HTTPClient
 	}
 	registeredWebSearchOptions := options.WebSearchOptions
-	registeredWebSearchOptions.TrustedProxyURL = options.ConfigNetworkProxy
+	registeredWebSearchOptions.TrustedProxyURL = publicSourceProxy
 	if registeredWebSearchOptions.BaseHTTPClient == nil {
 		registeredWebSearchOptions.BaseHTTPClient = options.HTTPClient
 	}
@@ -413,7 +419,7 @@ func New(options Options) *Server {
 	mcpDirectory := options.MCPDirectory
 	mcpDirectoryOwned := false
 	if mcpDirectory == nil && options.Workspace != nil && strings.TrimSpace(options.FileRoot) != "" {
-		mcpDirectory = mcpdirectory.New(options.Workspace, options.FileRoot, httpClient, options.ConfigNetworkProxy)
+		mcpDirectory = mcpdirectory.New(options.Workspace, options.FileRoot, httpClient, publicSourceProxy)
 		mcpDirectoryOwned = true
 	}
 	if mcpDirectory != nil && options.Workspace != nil {
@@ -606,6 +612,7 @@ func New(options Options) *Server {
 		configAllowedDomains:                  append([]string(nil), options.ConfigAllowedDomains...),
 		configDeniedDomains:                   append([]string(nil), options.ConfigDeniedDomains...),
 		configNetworkProxy:                    strings.TrimSpace(options.ConfigNetworkProxy),
+		publicSourceProxy:                     publicSourceProxy,
 		mcpX509Posture:                        options.MCPX509Posture,
 		hostGrantKernelFences:                 map[string]bool{},
 		hostGrantKernelFenceEpoch:             map[string]uint64{},
@@ -638,7 +645,7 @@ func New(options Options) *Server {
 		mcpDiscoverySlots:                     processMCPDiscoverySlots,
 		rcsbFiles:                             defaultRCSBFileFetcher(options.RCSBFiles),
 		rcsbSearch:                            defaultRCSBStructureSearcher(options.RCSBSearch),
-		publicScientificFiles:                 defaultPublicScientificFileFetcher(options.PublicScientificFiles, options.ConfigNetworkProxy),
+		publicScientificFiles:                 defaultPublicScientificFileFetcher(options.PublicScientificFiles, publicSourceProxy),
 		publicScientificResponseHeaderTimeout: options.PublicScientificResponseHeaderTimeout,
 		publicScientificTransferIdleTimeout:   options.PublicScientificTransferIdleTimeout,
 		publicScientificDownloadSlots:         make(chan struct{}, agentPublicScientificDownloadConcurrency),

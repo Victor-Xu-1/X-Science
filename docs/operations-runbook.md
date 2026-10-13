@@ -1185,6 +1185,8 @@ provider transport retains its existing IPv4/CDN routing policy rather than
 claiming public-source address pinning; a failed explicit proxy does not trigger
 a second direct route. Ambient process proxy variables are not a substitute
 for the application's configured network authority.
+Inherited ambient routes remain available to provider and kernel runtime clients,
+but are neither public-source authority nor persisted as `network.proxy` when configuration is saved.
 
 Keep HTTPS certificate verification, public-destination validation and
 per-call timeouts enabled. Verify a fresh MCP catalog and a read-only tool result;
