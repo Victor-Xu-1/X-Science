@@ -25,6 +25,9 @@ func (model *earlyProgressLanguageModel) CompleteStream(ctx context.Context, req
 		model.t.Fatal("recursive presentation call inside active provider callback")
 	}
 	if request.ReasoningMode == agentruntime.ReasoningModeDisabled {
+		if len(request.Messages) != 2 || request.Messages[0].Content != simplifiedChineseTranslationInstruction {
+			model.t.Fatal("translation acquired a competing progress instruction")
+		}
 		return agentruntime.ModelResponse{Message: agentruntime.Message{Content: model.translation}}, nil
 	}
 	model.active = true

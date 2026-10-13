@@ -46,6 +46,19 @@ func TestResponseContractSharesInformativeBoundedProgressStyle(t *testing.T) {
 	}
 }
 
+func TestResponseContractLeavesToolFreePresentationRequestUnchanged(t *testing.T) {
+	original := agentruntime.ModelRequest{Messages: []agentruntime.Message{
+		{Role: "system", Content: "Translate only the supplied text."},
+		{Role: "user", Content: "source text"},
+	}, ReasoningMode: agentruntime.ReasoningModeDisabled}
+	for _, due := range []bool{false, true} {
+		projected, err := projectRunnerResponseContract(original, due)
+		if err != nil || !reflect.DeepEqual(projected, original) {
+			t.Fatalf("presentation-only request acquired action guidance: %+v error=%v", projected, err)
+		}
+	}
+}
+
 func TestResponseContractParallelInstructionsMatchProgressCadence(t *testing.T) {
 	for _, test := range []struct {
 		name        string

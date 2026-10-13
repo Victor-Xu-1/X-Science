@@ -24,6 +24,11 @@ func runnerPublicProgressCadence(due bool) string {
 // former tool field reserved only so legacy replay stripping cannot remove a
 // real executable argument with the same name.
 func projectRunnerResponseContract(request agentruntime.ModelRequest, due bool) (agentruntime.ModelRequest, error) {
+	if len(request.Tools) == 0 {
+		// Translation and other presentation-only calls have their own exact
+		// output contract. Do not ask them to plan actions or emit progress.
+		return request, nil
+	}
 	for _, tool := range request.Tools {
 		properties, _ := tool.Parameters["properties"].(map[string]any)
 		if _, collision := properties[runnerPublicProgressField]; collision {
