@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "20f3f916aff9b12162c6cc2ec5d173b5f9dda46c2f9cf573d7bb4022c939060d",
+  "adaptationFingerprintSHA256": "093ead7d58c247bfc842f07ba4c8be1d6a6e25ec624733af778149bc2d6a3a87",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
-  "additionFingerprintSHA256": "42ceb11c376c7ce3f7639371b24be424d39ba330b832876237129050f8b3a8a0",
+  "additionFingerprintSHA256": "7b17ba02e53c9dfc44385f4df914de196f8c63c6bcd72ed7abc20759e07cd12f",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 276,
     "adaptedSourceFiles": 785,
     "removedSourceFiles": 293,
-    "addedFiles": 930
+    "addedFiles": 935
   },
   "adaptations": [
     {
@@ -1729,8 +1729,8 @@
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/XScienceHdf5.worker.ts",
       "originalPath": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedHdf5.worker.ts",
       "sourceSHA256": "cab3ed06048b52f04ae229eb746243305168c6eec9269ea4ac612846c2e34d4a",
-      "targetSHA256": "d4419a861b418a9353fe8ee296f2e2c37dd9b1586888f20cb6cd187eb4930ac7",
-      "bytes": 17054,
+      "targetSHA256": "d59d8425b42e94df52241d13ba7406d8098b5f5ea0286c405acca28e33f92225",
+      "bytes": 17481,
       "reason": "Move genuine imported source to the current X-Science namespace. Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -4168,8 +4168,8 @@
       "path": "tests/unit/previews/XScienceHdf5Viewer.dom.test.tsx",
       "originalPath": "tests/unit/previews/SynonBiomedHdf5Viewer.dom.test.tsx",
       "sourceSHA256": "790115f1e9a6a3f119e56bececa5ebcdf85a872ba3cb47d80b0e3431963e5ea5",
-      "targetSHA256": "6e6887cf45419cee46bed77e93b987def4faf11ce32b7475cb368dc33b73758f",
-      "bytes": 6836,
+      "targetSHA256": "af0a5bd3e1ec72933c26ff45efd9bb8efc9090be3045258cfad83e0dbc41af1a",
+      "bytes": 9013,
       "reason": "Move genuine imported source to the current X-Science namespace. Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -10768,6 +10768,30 @@
       "reason": "Project root identity and shared locale resources into the pre-JavaScript document without inline executable code."
     },
     {
+      "path": "tests/fixtures/anndata-categorical/README.md",
+      "sha256": "d9a13c15b918be881dfbf362c1af8b0d093447bd74995e3e4ae40ad813d8e0cf",
+      "bytes": 1537,
+      "reason": "Document the first-party synthetic AnnData categorical metadata scaffold, locked-parser regression use, optional regeneration requirements, and scientific-validation limits."
+    },
+    {
+      "path": "tests/fixtures/anndata-categorical/categorical-template.h5ad",
+      "sha256": "ec5b67f2ec1444087e48d8198fb9cd2e66af2049c562fd6837706875eb32236b",
+      "bytes": 7308,
+      "reason": "Provide a tiny first-party synthetic AnnData categorical metadata scaffold for real-parser composition regressions, without user records or research results."
+    },
+    {
+      "path": "tests/fixtures/anndata-categorical/conform-ordered-bool.py",
+      "sha256": "05817cb19f85711b749e56667a2caeed045dbbc2d449374703239222ad14d009",
+      "bytes": 2391,
+      "reason": "Regenerate the scalar HDF5 boolean enum in the first-party synthetic test scaffold using optional Python standard-library and system HDF5 tooling, without a routine test runtime dependency."
+    },
+    {
+      "path": "tests/fixtures/anndata-categorical/create-template.mjs",
+      "sha256": "32a827c5c3eb200b2b32a84243c71182c525ac02e1f00a9ce5271cc816adc360",
+      "bytes": 1493,
+      "reason": "Regenerate the bounded first-party synthetic AnnData categorical metadata scaffold with locked h5wasm and the optional local enum helper, without user artifacts or research results."
+    },
+    {
       "path": "tests/fixtures/structureLigands.ts",
       "sha256": "6df0b02a29f97fe0b0a46c7f2b1fb8bb38ee38654a03d83ffe6ca773f808d411",
       "bytes": 4228,
@@ -11137,6 +11161,12 @@
       "path": "tests/unit/previews/PreviewTransitionSnapshot.dom.test.tsx",
       "sha256": "dbec5eaead1f9b318f8a7aab6adf9f02a4f7df396d9b1b25abdf6f365032dd0f",
       "bytes": 3916,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/previews/XScienceHdf5.worker.test.ts",
+      "sha256": "ea328a395fd10e282f669d8f36e496fc2e6121010689bb6bfdd78fd4c63f05e7",
+      "bytes": 17388,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
