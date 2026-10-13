@@ -52,8 +52,9 @@ func (client *sessionOutputBudgetClient) decodeOutputBudgetPreference(entry runt
 	return preference, nil
 }
 
-// Freeze the initial choice once per task, so another task's later learning
-// cannot replace this task's in-progress budget negotiation. Only a boolean is
+// Freeze the first automatic choice once per task, so another task's later
+// learning cannot replace in-progress automatic negotiation. Explicit caller
+// budgets do not read or initialize this optional preference. Only a boolean is
 // copied; Context, Next, Lower, Rejected and Ceiling remain task-local.
 func (client *sessionOutputBudgetClient) initializeOutputBudgetPreference() (outputBudgetState, error) {
 	var state outputBudgetState

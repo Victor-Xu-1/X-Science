@@ -57,6 +57,37 @@ func callOutputPreferenceTask(t *testing.T, f *outputProbeFixture, session strin
 	return client.CompleteStream(context.Background(), request, nil)
 }
 
+func TestOutputBudgetPreferenceBeginsAtFirstAutomaticNegotiation(t *testing.T) {
+	f := newOutputProbeFixture(t, providers.ProtocolOpenAICompatible, func(w http.ResponseWriter, budget int) {
+		if budget == 17 {
+			writeProbeLimit(w, providers.ProtocolOpenAICompatible, "private", 17)
+		} else {
+			writeProbeSuccess(w, providers.ProtocolOpenAICompatible)
+		}
+	})
+	if _, err := callOutputPreferenceTask(t, f, "hard-first", agentruntime.ModelRequest{MaxTokens: 7}); err != nil {
+		t.Fatal(err)
+	}
+	hardFirst := newSessionOutputBudgetClient(nil, f.store, f.profile, "hard-first", "agent").(*sessionOutputBudgetClient)
+	if state, err := hardFirst.read(); err != nil || state != (outputBudgetState{}) {
+		t.Fatalf("explicit request unexpectedly initialized automatic state: %+v %v", state, err)
+	}
+	if _, err := f.call(t, agentruntime.ModelRequest{}); !providers.IsProviderOutputTokenLimit(err) {
+		t.Fatalf("initial peer truncation lost: %v", err)
+	}
+	if _, err := f.call(t, agentruntime.ModelRequest{}); err != nil {
+		t.Fatal(err)
+	}
+	for _, request := range []agentruntime.ModelRequest{{}, {MaxTokens: 7}} {
+		if _, err := callOutputPreferenceTask(t, f, "hard-first", request); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if got := f.budgets(5); !reflect.DeepEqual(got, []int{7, 17, 0, 0, 7}) {
+		t.Fatalf("hard or initial automatic budget changed unexpectedly: %v", got)
+	}
+}
+
 func TestOutputBudgetPreferenceIsConfigurationScopedAndCopiesNoTaskBounds(t *testing.T) {
 	store := runtimekv.New(filepath.Join(t.TempDir(), "runtime.sqlite"))
 	defer store.Close()
