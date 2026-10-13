@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "38d9c4644e2663f9c16e7a29a7600ad3ac32cf2e9b6b52792281241906d239f9",
+  "adaptationFingerprintSHA256": "99f5a07e7e46abfd6429b16735277ef114a827b1a044bf99a11594bbb988d108",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
-  "additionFingerprintSHA256": "ec3b7804b923e8c58d8638b1f6ecc151f10e4e67116185debefcfbdb03a4c22c",
+  "additionFingerprintSHA256": "e03f6bcb7a92847b3554bd9d8c429bf175e3c8ec698bde89d89d29a3244ba4fb",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 276,
@@ -17,14 +17,14 @@
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "519ce09a3a24adfa6b1582fe67b7098b7bf5a4fb76618185172b7556697b4f59",
+      "targetSHA256": "50f46d8ba05304c1f3e6326ffdf5ecf30725e42ac62b934c688805ad8637610f",
       "bytes": 4392,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "d718d17a31d0c1a2dd2ce2e0e75025a1c8452ce75f75f1ba72f0faa802774ca0",
+      "targetSHA256": "0f231b1e7a6d7facb0e4305ed3f949c4b7ff1b6256682102c73c10277dac8c66",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -7523,7 +7523,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "08f1ecb4cca5e5df5a05a4a4607b2d35f1a61a6e7b8335fe5ba38122bac97880",
+      "sha256": "4b7fb77dc1b00cadd0c10ff089397e4bece56eae489a4952b3d77bf4c30f321b",
       "bytes": 558186,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -8867,8 +8867,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/molstarStructureEngine.ts",
-      "sha256": "d631632a963819ee71076c364b16a9bc32d5c5b2591af025135a3a0489495df7",
-      "bytes": 150527,
+      "sha256": "bf500cd57a7c408f375e014afc49a5e1ccb2f15d288dfe900c18a5785a7b2426",
+      "bytes": 155987,
       "reason": "Own format-neutral Molstar loading, structure composition, surface styling, ligand extraction, and object visibility operations."
     },
     {
@@ -11243,8 +11243,8 @@
     },
     {
       "path": "tests/unit/previews/molstarStructureEngine.test.ts",
-      "sha256": "09f6f9a4b0109c6f50bcfdf0db991e1c5d0d9992f47800d2c23129e0b893eb6f",
-      "bytes": 41928,
+      "sha256": "e8c1f69b3b005a018ff6c12f06c597b77d2b48bb7eceef980afb0666b1dfc6ee",
+      "bytes": 55409,
       "reason": "Verify unified molecular parsing, composition classification, electrostatic surfaces, ligand extraction, and visibility behavior."
     },
     {

@@ -1,4 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
+// @vitest-environment jsdom
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { setImmediate, clearImmediate } from 'node:timers';
 import {
   applyDockingVisibilitySwap,
   createLatestDockingRefinementQueue,
@@ -44,6 +46,9 @@ import {
   resolvePocketLayerPlan,
   isStructureDoubleClick,
   focusStructureLociFromDoubleClick,
+  createMolstarStructureEngine,
+  selectMolstarCubeValues,
+  XScienceVolumeFromCube,
 } from '@/renderer/pages/conversation/Preview/components/viewers/molstarStructureEngine';
 import {
   ELECTROSTATIC_COLOR_STOPS,
@@ -72,6 +77,307 @@ import { getQualityProps } from 'molstar/lib/mol-repr/util';
 import { Vec3 } from 'molstar/lib/mol-math/linear-algebra';
 import { createMolstarInteractionStrengthLabelData } from '@/renderer/pages/conversation/Preview/components/viewers/molstarInteractionStrengthLabels';
 import { isDisplayLigandResidueName } from '@/renderer/pages/conversation/Preview/components/viewers/structureComposition';
+import { PluginContext } from 'molstar/lib/mol-plugin/context';
+import { CubeProvider } from 'molstar/lib/mol-plugin-state/formats/volume';
+import { PluginStateObject } from 'molstar/lib/mol-plugin-state/objects';
+import { StateTransforms } from 'molstar/lib/mol-plugin-state/transforms';
+import { parseCube } from 'molstar/lib/mol-io/reader/cube/parser';
+import type { CubeFile } from 'molstar/lib/mol-io/reader/cube/parser';
+import { resolveStructureFormat } from '@/renderer/pages/conversation/Preview/components/viewers/structureSource';
+
+// Only replace the React/DOM shell. Parsers, providers, state transforms,
+// structures and CPU isosurface representations remain actual Mol* code.
+vi.mock('molstar/lib/mol-plugin-ui/index', () => ({
+  createPluginUI: async ({ spec }: { spec: ConstructorParameters<typeof PluginContext>[0] }) => {
+    const plugin = new PluginContext(spec);
+    await plugin.init();
+    return plugin;
+  },
+}));
+vi.mock('@/renderer/services/rdkitBrowser', () => ({
+  parseSmilesMolBlock: vi.fn(() => {
+    throw new Error('CHEMISTRY_NOT_REQUESTED');
+  }),
+}));
+
+const CUBE_CHANNELS = [
+  [-4, -3, -2, -1, 1, 2, 3, 4],
+  [20, 21, 22, 23, 24, 25, 26, 27],
+  [-57, -56, -55, -54, 50, 51, 52, 53],
+];
+
+function createCubeFixture(channels: number[][], ids?: number[]): string {
+  const header = [
+    'Synthetic dataset-selection regression',
+    'All lengths in Bohr; z then dataset are the fastest moving indices',
+    `${ids ? -1 : 1} -1 2 3${ids ? '' : ` ${channels.length}`}`,
+    '2 2 0 0',
+    '2 0 3 0',
+    '2 0 0 4',
+    '6 6 2 3 4',
+  ];
+  if (ids) header.push(`${ids.length} ${ids.join(' ')}`);
+  const values = channels[0].flatMap((_, voxel) => channels.map((channel) => channel[voxel]));
+  for (let offset = 0; offset < values.length; offset += 6) {
+    header.push(
+      values
+        .slice(offset, offset + 6)
+        .map((value) => value.toExponential(5))
+        .join(' ')
+    );
+  }
+  return `${header.join('\n')}\n`;
+}
+
+async function withCubePreview(
+  channels: number[][],
+  ids: number[] | undefined,
+  run: (engine: Awaited<ReturnType<typeof createMolstarStructureEngine>>, source: string) => Promise<void>,
+  mode: 'viewport' | 'thumbnail' = 'viewport',
+  prepareSource: (source: string) => string = (source) => source
+): Promise<void> {
+  const host = document.createElement('div');
+  document.body.append(host);
+  const engine = await createMolstarStructureEngine(host, { mode });
+  try {
+    const source = prepareSource(createCubeFixture(channels, ids));
+    const filename = mode === 'thumbnail' ? 'orbitals.cub' : 'orbitals.cube';
+    await engine.load(source, filename, resolveStructureFormat(filename)!);
+    await run(engine, source);
+  } finally {
+    engine.dispose();
+    host.remove();
+  }
+}
+
+describe('CUBE preview data integrity', () => {
+  beforeAll(() => {
+    // Mol*'s headless scheduler uses these browser globals under jsdom.
+    Object.assign(window, { setImmediate, clearImmediate });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => {
+        throw new Error('NETWORK_NOT_REQUESTED');
+      })
+    );
+  });
+  afterAll(() => vi.unstubAllGlobals());
+
+  it.each([
+    ['two orbitals', CUBE_CHANNELS.slice(0, 2), [11, 29]],
+    ['three orbitals', CUBE_CHANNELS, [11, 29, 47]],
+    ['two scalar NVAL datasets', CUBE_CHANNELS.slice(0, 2), undefined],
+    ['three scalar NVAL datasets', CUBE_CHANNELS, undefined],
+    ['single orbital', [CUBE_CHANNELS[1]], [29]],
+    ['single scalar', [CUBE_CHANNELS[0]], undefined],
+  ] as const)(
+    'selects every channel losslessly for %s through native state and visuals',
+    async (_name, channels, ids) => {
+      await withCubePreview(channels as number[][], ids as number[] | undefined, async (engine, source) => {
+        const cells = () => [...engine.plugin.state.data.cells.values()];
+        const parsed = cells().find((cell) => PluginStateObject.Format.Cube.is(cell.obj))!;
+        const volume = cells().find((cell) => PluginStateObject.Volume.Data.is(cell.obj))!;
+        const original = parsed.obj!.data as CubeFile;
+        expect(original.values).toEqual(
+          new Float64Array(channels[0].flatMap((_, voxel) => channels.map((channel) => channel[voxel])))
+        );
+        expect(original.header.dataSetIds).toEqual(ids ?? channels.map((_, index) => index));
+        expect(cells().find((cell) => PluginStateObject.Data.String.is(cell.obj))!.obj!.data).toBe(source);
+        for (let dataIndex = 0; dataIndex < channels.length; dataIndex += 1) {
+          if (dataIndex > 0)
+            await engine.plugin.build().to(volume.transform.ref).update({ dataIndex }).commit({ revertOnError: true });
+          const data = volume.obj!.data;
+          expect(volume.params!.values.dataIndex).toBe(dataIndex);
+          expect([...data.grid.cells.data]).toEqual(channels[dataIndex]);
+          expect(data.sourceData.data).toBe(original);
+          expect(data.grid.cells.space.dimensions).toEqual([2, 2, 2]);
+          expect(
+            [
+              [0, 0, 0],
+              [0, 0, 1],
+              [0, 1, 0],
+              [1, 0, 0],
+            ].map(([x, y, z]) => data.grid.cells.space.get(data.grid.cells.data, x, y, z))
+          ).toEqual([0, 1, 2, 4].map((index) => channels[dataIndex][index]));
+          expect(data.grid.stats.min).toBe(Math.min(...channels[dataIndex]));
+          expect(data.grid.stats.max).toBe(Math.max(...channels[dataIndex]));
+          const representations = cells().filter((cell) => PluginStateObject.Volume.Representation3D.is(cell.obj));
+          expect(representations).toHaveLength(ids ? 2 : 1);
+          expect(representations.map((cell) => Array.from(cell.obj!.data.sourceData.grid.cells.data))).toEqual(
+            Array.from({ length: ids ? 2 : 1 }, () => channels[dataIndex])
+          );
+        }
+        const bohr = 0.529177210859;
+        expect(volume.obj!.data.grid.transform.matrix).toEqual([
+          2 * bohr,
+          0,
+          0,
+          0,
+          0,
+          3 * bohr,
+          0,
+          0,
+          0,
+          0,
+          4 * bohr,
+          0,
+          -bohr,
+          2 * bohr,
+          3 * bohr,
+          1,
+        ]);
+        const structure = cells().find((cell) => PluginStateObject.Molecule.Structure.is(cell.obj))!.obj!.data;
+        expect(structure.elementCount).toBe(1);
+        const model = structure.models[0];
+        expect(model.atomicHierarchy.atoms.type_symbol.toArray()).toEqual(['C']);
+        expect(model.atomicConformation.x[0]).toBeCloseTo(2 * bohr);
+        expect(model.atomicConformation.y[0]).toBeCloseTo(3 * bohr);
+        expect(model.atomicConformation.z[0]).toBeCloseTo(4 * bohr);
+      });
+    }
+  );
+
+  it.each([
+    ['two orbitals', CUBE_CHANNELS.slice(0, 2), [11, 29], 1],
+    ['three orbitals middle', CUBE_CHANNELS, [11, 29, 47], 1],
+    ['three orbitals last', CUBE_CHANNELS, [11, 29, 47], 2],
+    ['two scalar datasets', CUBE_CHANNELS.slice(0, 2), undefined, 1],
+    ['three scalar datasets last', CUBE_CHANNELS, undefined, 2],
+  ] as const)('selects nonzero positional channel for %s', async (_name, channels, ids, dataIndex) => {
+    await withCubePreview(channels as number[][], ids as number[] | undefined, async (engine) => {
+      const cells = () => [...engine.plugin.state.data.cells.values()];
+      const volume = cells().find((cell) => PluginStateObject.Volume.Data.is(cell.obj))!;
+      await engine.plugin.build().to(volume.transform.ref).update({ dataIndex }).commit({ revertOnError: true });
+      expect([...volume.obj!.data.grid.cells.data]).toEqual(channels[dataIndex]);
+      expect(
+        cells()
+          .filter((cell) => PluginStateObject.Volume.Representation3D.is(cell.obj))
+          .map((cell) => Array.from(cell.obj!.data.sourceData.grid.cells.data))
+      ).toEqual(Array.from({ length: ids ? 2 : 1 }, () => channels[dataIndex]));
+    });
+  });
+
+  it('uses an instance-scoped provider and native action in thumbnail and extension auto-loading', async () => {
+    await withCubePreview(
+      CUBE_CHANNELS,
+      [11, 29, 47],
+      async (engine) => {
+        const plugin = engine.plugin;
+        expect(plugin.dataFormats.get('cube')).not.toBe(CubeProvider);
+        const raw = await plugin.builders.data.rawData({
+          data: createCubeFixture(CUBE_CHANNELS, [11, 29, 47]),
+          label: 'another.cub',
+        });
+        const provider = plugin.dataFormats.auto(
+          { ext: 'cub' } as Parameters<typeof plugin.dataFormats.auto>[0],
+          raw.obj!
+        )!;
+        expect(provider).toBe(plugin.dataFormats.get('cube'));
+        const parsed = await provider.parse(plugin, raw);
+        expect([...parsed.volume.data.grid.cells.data]).toEqual(CUBE_CHANNELS[0]);
+        const actions = plugin.spec.actions!.map((action) => action.action);
+        expect(actions).toContain(XScienceVolumeFromCube);
+        expect(actions).not.toContain(StateTransforms.Volume.VolumeFromCube);
+        // No global Mol* registry, provider export or another plugin is changed.
+        const independentPlugin = new PluginContext({ behaviors: [] });
+        expect(independentPlugin.dataFormats.get('cube')).toBe(CubeProvider);
+        independentPlugin.dispose();
+      },
+      'thumbnail'
+    );
+  });
+
+  it.each(['CRLF and tabs', 'blank comments', 'omitted NVAL', 'two atoms', 'no trailing newline'])(
+    'retains valid %s source syntax with the token-presence guard',
+    async (variant) => {
+      const channels = variant === 'omitted NVAL' ? [CUBE_CHANNELS[0]] : CUBE_CHANNELS;
+      const ids = variant === 'omitted NVAL' ? undefined : [11, 29, 47];
+      await withCubePreview(
+        channels,
+        ids,
+        async (engine, source) => {
+          const cells = [...engine.plugin.state.data.cells.values()];
+          const volume = cells.find((cell) => PluginStateObject.Volume.Data.is(cell.obj))!;
+          expect([...volume.obj!.data.grid.cells.data]).toEqual(channels[0]);
+          expect(cells.find((cell) => PluginStateObject.Data.String.is(cell.obj))!.obj!.data).toBe(source);
+          expect(cells.find((cell) => PluginStateObject.Molecule.Structure.is(cell.obj))!.obj!.data.elementCount).toBe(
+            variant === 'two atoms' ? 2 : 1
+          );
+        },
+        'viewport',
+        (source) => {
+          if (variant === 'CRLF and tabs')
+            return source
+              .split('\n')
+              .map((line) => ` \t${line.replaceAll(' ', '\t')} \t`)
+              .join('\r\n');
+          if (variant === 'blank comments') return source.replace(/^.*\n.*\n/, '\n\n');
+          if (variant === 'omitted NVAL') return source.replace('1 -1 2 3 1', '1 -1 2 3');
+          if (variant === 'two atoms')
+            return source.replace('-1 -1 2 3', '-2 -1 2 3').replace('6 6 2 3 4\n', '6 6 2 3 4\n8 8 4 3 2\n');
+          return source.trimEnd();
+        }
+      );
+    }
+  );
+
+  it.each(['truncated', 'zero dimension', 'extra grid token'])(
+    'rejects %s input through the actual parser and rolls back volume state',
+    async (kind) => {
+      const host = document.createElement('div');
+      const engine = await createMolstarStructureEngine(host);
+      try {
+        const complete = createCubeFixture(CUBE_CHANNELS, [11, 29, 47]);
+        const source =
+          kind === 'truncated'
+            ? complete.replace(/\S+\s*$/, '')
+            : kind === 'zero dimension'
+              ? complete.replace('2 2 0 0', '0 2 0 0')
+              : `${complete}9\n`;
+        await expect(engine.load(source, 'invalid.cube', 'cube')).rejects.toThrow('MOLSTAR_CUBE_INVALID_GRID_DATA');
+        expect(
+          [...engine.plugin.state.data.cells.values()].some((cell) => PluginStateObject.Volume.Data.is(cell.obj))
+        ).toBe(false);
+      } finally {
+        engine.dispose();
+      }
+    }
+  );
+});
+
+describe('CUBE dataset shape and selection bounds', () => {
+  async function parsedCube(): Promise<CubeFile> {
+    const result = await parseCube(createCubeFixture(CUBE_CHANNELS, [11, 29, 47]), 'test.cube').run();
+    if (!('result' in result)) throw new Error(result.message);
+    return result.result;
+  }
+  it.each([-1, 3, 11, 29, 47, 0.5, NaN, Infinity])(
+    'rejects positional index %s instead of treating IDs as indexes',
+    async (index) => {
+      const source = await parsedCube();
+      expect(() => selectMolstarCubeValues(source, index)).toThrow('MOLSTAR_CUBE_DATA_INDEX_OUT_OF_RANGE');
+    }
+  );
+  it('rejects truncated and non-finite grids without inventing values', async () => {
+    const source = await parsedCube();
+    expect(() => selectMolstarCubeValues({ ...source, values: source.values.slice(0, -1) }, 0)).toThrow(
+      'MOLSTAR_CUBE_INVALID_GRID_DATA'
+    );
+    source.values[2] = NaN;
+    expect(() => selectMolstarCubeValues(source, 0)).toThrow('MOLSTAR_CUBE_INVALID_GRID_DATA');
+  });
+  it('rejects empty datasets and invalid dimensions', async () => {
+    const source = await parsedCube();
+    expect(() => selectMolstarCubeValues({ ...source, header: { ...source.header, dataSetIds: [] } }, 0)).toThrow(
+      'MOLSTAR_CUBE_INVALID_GRID_DATA'
+    );
+    for (const size of [0, -2, 1.5, Infinity]) {
+      expect(() =>
+        selectMolstarCubeValues({ ...source, header: { ...source.header, dim: Vec3.create(size, 2, 2) } }, 0)
+      ).toThrow('MOLSTAR_CUBE_INVALID_GRID_DATA');
+    }
+  });
+});
 
 describe('3D interaction strength labels', () => {
   const records = [
