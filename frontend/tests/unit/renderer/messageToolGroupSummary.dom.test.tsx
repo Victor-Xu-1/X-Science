@@ -47,6 +47,36 @@ vi.mock('react-i18next', () => ({
 }));
 
 describe('MessageToolGroupSummary', () => {
+  it('preserves a real execution error above source-unavailable attention', () => {
+    const messages = [
+      {
+        id: 'failed-execution',
+        conversation_id: 'mixed-result-task',
+        type: 'tool_call',
+        content: {
+          call_id: 'failed-execution',
+          name: 'python',
+          status: 'error',
+          output: JSON.stringify({ ok: false, executed: true, error: 'actual execution failure' }),
+        },
+      },
+      {
+        id: 'missing-source',
+        conversation_id: 'mixed-result-task',
+        type: 'tool_call',
+        content: {
+          call_id: 'missing-source',
+          name: 'web_fetch',
+          status: 'completed',
+          args: { url: 'https://example.org/missing' },
+          output: JSON.stringify({ ok: true, result: { sourceUnavailable: true, statusCode: 404 } }),
+        },
+      },
+    ] as ToolMessage[];
+    render(<MessageToolGroupSummary messages={messages} />);
+    expect(screen.getByTestId('tool-group-header')).toHaveClass('tool-step--error');
+    expect(screen.getByTestId('tool-group-header')).not.toHaveClass('tool-step--blocked');
+  });
   it('shows recoverable source unavailability from the native receipt without a completed-evidence claim', () => {
     const messages = [
       {

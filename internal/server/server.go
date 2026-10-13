@@ -367,6 +367,10 @@ func New(options Options) *Server {
 		options.WebFetchOptions.BaseHTTPClient = options.HTTPClient
 	}
 	registeredWebSearchOptions := options.WebSearchOptions
+	registeredWebSearchOptions.TrustedProxyURL = options.ConfigNetworkProxy
+	if registeredWebSearchOptions.BaseHTTPClient == nil {
+		registeredWebSearchOptions.BaseHTTPClient = options.HTTPClient
+	}
 	if strings.TrimSpace(registeredWebSearchOptions.Root) == "" {
 		registeredWebSearchOptions.Root = options.FileRoot
 	}
@@ -639,9 +643,7 @@ func New(options Options) *Server {
 		publicScientificTransferIdleTimeout:   options.PublicScientificTransferIdleTimeout,
 		publicScientificDownloadSlots:         make(chan struct{}, agentPublicScientificDownloadConcurrency),
 		httpClient:                            httpClient,
-		speechClientForURL:                    mcpdirectory.SecureHTTPClient,
 		localSpeechRuntime:                    newLocalSpeechRuntime(options.FileRoot, httpClient),
-		webImageClientForURL:                  mcpdirectory.SecureHTTPClient,
 		verifierToken:                         strings.TrimSpace(options.VerifierToken),
 		feedback:                              options.Feedback,
 		feishuDeviceQR:                        feishuDeviceQR,
@@ -679,6 +681,8 @@ func New(options Options) *Server {
 		webUI:                                 options.WebUI,
 		httpMetrics:                           observability.NewHTTPRegistry(),
 	}
+	server.speechClientForURL = server.publicSourceHTTPClient
+	server.webImageClientForURL = server.publicSourceHTTPClient
 	if mcpDirectory != nil {
 		mcpDirectory.SetConnectorUsageRecorder(func(ctx context.Context, userID string, connector mcpdirectory.RuntimeConnector, toolName string, callErr error) {
 			server.recordMCPConnectorInvocation(ctx, userID, connector.ID, connector.Source, connector.Name, toolName, callErr)

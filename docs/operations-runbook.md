@@ -1169,15 +1169,22 @@ configuration, then restart that service. A proxy exported only in an interactiv
 shell does not configure an already-running service. The configured proxy must
 be reachable from the service's actual host/container/WSL network namespace.
 
-Web, patent, article-full-text and directory connector traffic share the public
-source client. Explicit `X_SCIENCE_NETWORK_PROXY` delegates public-hostname DNS
+Web-fetch, patent, article-full-text and remote MCP connector traffic share the
+public source client, including custom connector registration, discovery and
+execution. Explicit `X_SCIENCE_NETWORK_PROXY` delegates public-hostname DNS
 to the operator-trusted proxy, consistently with kernel egress; an ambient client
-proxy alone does not grant that authority. Direct traffic retains per-hop public
+proxy is cleared when no explicit proxy is configured. Direct traffic retains per-hop public
 address pinning. Local/reserved hosts, private IP literals, credentials in source
 URLs and unsafe redirects remain rejected. A failing explicit proxy never falls
 back to direct traffic. Do not allow-list synthetic/private IP ranges to work
 around a DNS-routing mismatch. Source outages remain unavailable evidence, not
 successful reads or proof that no publications or patents exist.
+
+Built-in Web search uses the same explicit-only proxy selection. Its fixed
+provider transport retains its existing IPv4/CDN routing policy rather than
+claiming public-source address pinning; a failed explicit proxy does not trigger
+a second direct route. Ambient process proxy variables are not a substitute
+for the application's configured network authority.
 
 Keep HTTPS certificate verification, public-destination validation and
 per-call timeouts enabled. Verify a fresh MCP catalog and a read-only tool result;

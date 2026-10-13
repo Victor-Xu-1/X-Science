@@ -2,6 +2,7 @@ package mcpdirectory
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -19,6 +20,44 @@ type forbiddenProxyLocalResolver struct{ calls atomic.Int64 }
 func (r *forbiddenProxyLocalResolver) LookupNetIP(context.Context, string, string) ([]netip.Addr, error) {
 	r.calls.Add(1)
 	return []netip.Addr{netip.MustParseAddr("198.18.0.1")}, nil
+}
+
+func TestPublicSourceAmbientProxyCannotOverrideValidPublicDNS(t *testing.T) {
+	origin := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = io.WriteString(w, "pinned source")
+	}))
+	defer origin.Close()
+	target, _ := url.Parse(origin.URL)
+	base := origin.Client()
+	transport := base.Transport.(*http.Transport).Clone()
+	transport.TLSClientConfig = transport.TLSClientConfig.Clone()
+	transport.TLSClientConfig.InsecureSkipVerify = true // Local TLS fixture only.
+	var proxyCalls, directCalls atomic.Int64
+	transport.Proxy = func(*http.Request) (*url.URL, error) {
+		proxyCalls.Add(1)
+		return url.Parse("http://127.0.0.1:9")
+	}
+	transport.DialContext = func(ctx context.Context, network, address string) (net.Conn, error) {
+		if address != "93.184.216.34:443" {
+			return nil, fmt.Errorf("unpinned address: %s", address)
+		}
+		directCalls.Add(1)
+		return (&net.Dialer{}).DialContext(ctx, network, target.Host)
+	}
+	base = &http.Client{Transport: transport, Timeout: time.Second}
+	resolver := staticPublicIPResolver{addresses: []netip.Addr{netip.MustParseAddr("93.184.216.34")}}
+	client, err := NewPublicHTTPClient(base, resolver, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	response, err := client.Get("https://source.example.com/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if proxyCalls.Load() != 0 || directCalls.Load() != 1 || transport.Proxy == nil {
+		t.Fatalf("ambient=%d pinned=%d; caller transport must remain unchanged", proxyCalls.Load(), directCalls.Load())
+	}
 }
 
 func TestPublicSourceExplicitProxyOwnsDNSAndPreservesRedirectPolicy(t *testing.T) {

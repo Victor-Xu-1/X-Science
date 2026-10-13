@@ -15,6 +15,7 @@ import (
 
 	"x-science/internal/buildinfo"
 	"x-science/internal/httpreliability"
+	"x-science/internal/networktls"
 )
 
 func webSearchUserAgent() string {
@@ -40,7 +41,7 @@ func searchHTTPBackends(ctx context.Context, input Input, maxResults int, option
 	}
 	clientForURL := options.ClientForURL
 	if clientForURL == nil {
-		clientForURL = newWebSearchHTTPClient(timeout, options.BaseHTTPClient)
+		clientForURL = newWebSearchHTTPClient(timeout, options.BaseHTTPClient, options.TrustedProxyURL)
 	}
 	results := make(chan httpSearchBackendResult, len(backends))
 	for index, backend := range backends {
@@ -222,11 +223,11 @@ func searchHitRelevanceScore(query string, hit Hit) int {
 // pinning, and a bounded per-request timeout. Pinning is deliberately not used
 // here because search engines serve from anycast/CDN pools whose addresses
 // change between lookups.
-func newWebSearchHTTPClient(timeout time.Duration, optionalBase ...*http.Client) func(context.Context, string) (*http.Client, error) {
+func newWebSearchHTTPClient(timeout time.Duration, baseClient *http.Client, trustedProxyURL string) func(context.Context, string) (*http.Client, error) {
 	return func(context.Context, string) (*http.Client, error) {
-		base := http.DefaultClient
-		if len(optionalBase) > 0 && optionalBase[0] != nil {
-			base = optionalBase[0]
+		base := baseClient
+		if base == nil {
+			base = http.DefaultClient
 		}
 		var transport *http.Transport
 		switch value := base.Transport.(type) {
@@ -236,6 +237,9 @@ func newWebSearchHTTPClient(timeout time.Duration, optionalBase ...*http.Client)
 			transport = value.Clone()
 		default:
 			return nil, fmt.Errorf("web search HTTP transport %T cannot enforce IPv4 dialing", base.Transport)
+		}
+		if _, err := networktls.ConfigureExplicitProxy(transport, trustedProxyURL); err != nil {
+			return nil, err
 		}
 		dialer := net.Dialer{Timeout: timeout, KeepAlive: 30 * time.Second}
 		transport.DialContext = func(dialCtx context.Context, _ string, address string) (net.Conn, error) {

@@ -397,7 +397,7 @@ func (s *Server) discoverCompatMCPTools(ctx context.Context, server workspace.MC
 		return nil, err
 	}
 	if strings.TrimSpace(config.URL) != "" {
-		client, err := mcpdirectory.SecureHTTPClient(ctx, config.URL, s.httpClient)
+		client, err := s.publicSourceHTTPClient(ctx, config.URL, s.httpClient)
 		if err != nil {
 			return nil, err
 		}
@@ -439,7 +439,7 @@ func (s *Server) handleMCPServerCollectionCompatibility(w http.ResponseWriter, r
 			writeAgentCompatError(w, http.StatusBadRequest, err)
 			return
 		}
-		if err := validateCompatMCPServerInput(r.Context(), input.Name, input.URL, input.Transport, input.OAuthServerURL); err != nil {
+		if err := s.validateCompatMCPServerInput(r.Context(), input.Name, input.URL, input.Transport, input.OAuthServerURL); err != nil {
 			writeAgentCompatError(w, http.StatusBadRequest, err)
 			return
 		}
@@ -515,7 +515,7 @@ func (s *Server) handleMCPServerRecordCompatibility(w http.ResponseWriter, r *ht
 		if input.OAuthServerURL.Set {
 			oauthURL = input.OAuthServerURL.Value
 		}
-		if err := validateCompatMCPServerInput(r.Context(), name, rawURL, transport, oauthURL); err != nil {
+		if err := s.validateCompatMCPServerInput(r.Context(), name, rawURL, transport, oauthURL); err != nil {
 			writeAgentCompatError(w, http.StatusBadRequest, err)
 			return
 		}
@@ -798,24 +798,20 @@ func compatMCPTransportForAPI(value string) string {
 	return value
 }
 
-func validateCompatMCPServerInput(ctx context.Context, name, rawURL, transport, oauthServerURL string) error {
+func (s *Server) validateCompatMCPServerInput(ctx context.Context, name, rawURL, transport, oauthServerURL string) error {
 	if !compatMCPServerNamePattern.MatchString(name) {
 		return errors.New("name must contain only lowercase letters, numbers, and hyphens")
 	}
 	if transport != "sse" && transport != "streamable_http" {
 		return errors.New("transport must be sse or streamable_http")
 	}
-	if err := validatePublicMCPURL(ctx, rawURL); err != nil {
+	if err := s.validatePublicSourceURL(ctx, rawURL); err != nil {
 		return err
 	}
 	if strings.TrimSpace(oauthServerURL) != "" {
-		if err := validatePublicMCPURL(ctx, oauthServerURL); err != nil {
+		if err := s.validatePublicSourceURL(ctx, oauthServerURL); err != nil {
 			return fmt.Errorf("invalid OAuth server URL: %w", err)
 		}
 	}
 	return nil
-}
-
-func validatePublicMCPURL(ctx context.Context, raw string) error {
-	return mcpdirectory.ValidatePublicHTTPSURL(ctx, raw)
 }

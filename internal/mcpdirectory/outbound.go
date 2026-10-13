@@ -81,7 +81,13 @@ func ValidatePublicHTTPSURL(ctx context.Context, rawURL string) error {
 // SecureHTTPClient returns the address-pinned client used by directory probes
 // so custom MCP tool discovery cannot bypass the shared outbound policy.
 func SecureHTTPClient(ctx context.Context, rawURL string, base *http.Client) (*http.Client, error) {
-	return (&Service{client: base}).secureHTTPClient(ctx, rawURL)
+	return SecureHTTPClientWithProxy(ctx, rawURL, base, "")
+}
+
+// SecureHTTPClientWithProxy keeps the same URL/redirect policy while accepting
+// explicit operator proxy authority for custom connector consumers.
+func SecureHTTPClientWithProxy(ctx context.Context, rawURL string, base *http.Client, trustedProxyURL string) (*http.Client, error) {
+	return (&Service{client: base, trustedProxyURL: trustedProxyURL}).secureHTTPClient(ctx, rawURL)
 }
 
 func (s *Service) secureHTTPClient(ctx context.Context, rawURL string) (*http.Client, error) {
@@ -107,18 +113,11 @@ func NewPublicHTTPClient(baseClient *http.Client, resolver AddressResolver, trus
 	if err != nil {
 		return nil, err
 	}
-	proxy, err := networktls.NormalizeProxyURL(trustedProxyURL)
+	proxyConfigured, err := networktls.ConfigureExplicitProxy(transport, trustedProxyURL)
 	if err != nil {
 		return nil, err
 	}
-	if proxy != "" {
-		parsed, err := url.Parse(proxy)
-		if err != nil {
-			return nil, errors.New("configured source proxy is invalid")
-		}
-		transport.Proxy = http.ProxyURL(parsed)
-	}
-	roundTripper := &publicHTTPSRoundTripper{base: transport, resolver: resolver, trustProxyResolution: proxy != ""}
+	roundTripper := &publicHTTPSRoundTripper{base: transport, resolver: resolver, trustProxyResolution: proxyConfigured}
 	client := *baseClient
 	client.Transport = roundTripper
 	previousRedirect := baseClient.CheckRedirect

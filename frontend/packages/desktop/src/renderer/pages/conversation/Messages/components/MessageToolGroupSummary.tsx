@@ -16,12 +16,12 @@ const aggregateStatus = (tools: NormalizedToolCall[]): NormalizedToolStatus => {
   if (tools.some((tool) => tool.status === 'running')) return 'running';
   if (tools.some((tool) => tool.status === 'waiting')) return 'waiting';
   if (tools.some((tool) => tool.status === 'blocked')) return 'blocked';
-  if (tools.some(toolSourceUnavailable)) return 'blocked';
   if (tools.some((tool) => tool.status === 'error' && !toolWasNotExecuted(tool))) return 'error';
   if (tools.some((tool) => tool.status === 'interrupted')) return 'interrupted';
   if (tools.some((tool) => tool.status === 'unknown')) return 'unknown';
   if (tools.some((tool) => tool.status === 'canceled')) return 'canceled';
   if (tools.some((tool) => tool.status === 'pending')) return 'pending';
+  if (tools.some(toolSourceUnavailable)) return 'blocked';
   return 'completed';
 };
 

@@ -72,6 +72,12 @@ up, with a bounded shutdown; a denied reuse does not close another live worker.
 
 ## Durable detached execution recovery
 
+Managed-root admission runs before any environment installer or provisioner.
+An externally configured root must already exist at that boundary; a directory
+created by the current tool call cannot establish operator authority. A missing
+or unverifiable root returns a typed, non-executing runtime-configuration
+preflight instead of starting a worker or repeating recovery attempts.
+
 A definite preparation failure while an operation remains approved and has no
 prepared/start/execution identity settles atomically as a non-executing preflight.
 It does not open a runner recovery cycle or run the failed call a second time.

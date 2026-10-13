@@ -117,6 +117,8 @@ type Options struct {
 	HTTPBackends    []httpSearchBackend
 	ClientForURL    func(context.Context, string) (*http.Client, error)
 	BaseHTTPClient  *http.Client
+	// TrustedProxyURL is operator configuration, never model-authored input.
+	TrustedProxyURL string
 }
 
 type httpSearchBackend struct {

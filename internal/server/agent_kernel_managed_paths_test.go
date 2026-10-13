@@ -1,10 +1,44 @@
 package server
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
 )
+
+func TestAgentKernelChecksDirectoriesBeforeRuntimePreparation(t *testing.T) {
+	store, _, _ := newTranscriptWebFixture(t)
+	createKernelAPIProjectAndFrame(t, store, "project-root-admission", "owner-root-admission", "frame-root-admission", "OPERON", "")
+	access, found, err := store.GetKernelFrameAccess("frame-root-admission")
+	if err != nil || !found {
+		t.Fatalf("frame access found=%t err=%v", found, err)
+	}
+	for _, tool := range []string{"python", "bash", "r", "repl"} {
+		t.Run(tool, func(t *testing.T) {
+			missing := filepath.Join(t.TempDir(), "external-runtime")
+			app := &Server{workspaceStore: store, fileRoot: t.TempDir(), condaHome: missing, condaEnvsPath: filepath.Join(missing, "envs")}
+			input := map[string]any{"code": "print(1)", "environment": agentKernelManagedPythonEnvironment, "human_description": "Check directory admission"}
+			if tool == "bash" {
+				delete(input, "code")
+				input["command"] = "printf 1"
+			} else if tool == "r" {
+				input["environment"] = "r"
+			} else if tool == "repl" {
+				delete(input, "environment")
+			}
+			// There deliberately is no runtime manager: the directory guard must
+			// run before any manager/provisioning path can be reached.
+			result, err := app.executeAgentKernelTool(context.Background(), &agentKernelContext{access: access}, tool, input)
+			if err != nil || result["code"] != "kernel_runtime_directories_unavailable" || result["executed"] != false {
+				t.Fatalf("directory admission did not precede preparation: result=%#v err=%v", result, err)
+			}
+			if _, err := os.Stat(missing); !os.IsNotExist(err) {
+				t.Fatalf("execution provisioned an external root: %v", err)
+			}
+		})
+	}
+}
 
 func TestAgentKernelManagedDirectoriesAcceptConfiguredExternalRoots(t *testing.T) {
 	root, conda := t.TempDir(), t.TempDir()

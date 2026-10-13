@@ -476,7 +476,7 @@ func (s *Server) executeWorkspaceMCPTool(ctx context.Context, sessionID, toolNam
 			return nil, true, err
 		}
 		if strings.TrimSpace(config.URL) != "" {
-			client, err := mcpdirectory.SecureHTTPClient(toolCtx, config.URL, s.httpClient)
+			client, err := s.publicSourceHTTPClient(toolCtx, config.URL, s.httpClient)
 			if err != nil {
 				return nil, true, err
 			}
@@ -916,7 +916,7 @@ func (s *Server) workspaceMCPRuntimeConnectorTools(ctx context.Context, userID s
 		return nil, err
 	}
 	if strings.TrimSpace(config.URL) != "" {
-		client, err := mcpdirectory.SecureHTTPClient(ctx, config.URL, s.httpClient)
+		client, err := s.publicSourceHTTPClient(ctx, config.URL, s.httpClient)
 		if err != nil {
 			return nil, err
 		}

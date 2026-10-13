@@ -82,6 +82,11 @@ func (s *Server) executeAgentKernelToolInternal(
 	if err != nil {
 		return nil, err
 	}
+	// Admission precedes every installer/provisioner. A later existence check
+	// could mistake a directory created by this very call for an operator root.
+	if err := s.ensureAgentKernelManagedDirectories(); err != nil {
+		return agentKernelRuntimeConfigurationPreflight(), nil
+	}
 	// Durable approval is bound to the exact model-authored call. Execution-only
 	// compatibility normalization must never replace that immutable authority.
 	// Keeping these values separate matches the Harness boundary used for every
@@ -319,9 +324,6 @@ func (s *Server) executeAgentKernelToolInternal(
 	}
 	if s.kernelHostGrantFenceActive(access.UserID) {
 		return nil, errKernelHostAccessFenced
-	}
-	if err := s.ensureAgentKernelManagedDirectories(); err != nil {
-		return agentKernelRuntimeConfigurationPreflight(), nil
 	}
 	executionIdentity := *identity
 	executionIdentity.workspaceDir = workspaceDir

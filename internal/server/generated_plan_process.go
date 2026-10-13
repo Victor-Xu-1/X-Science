@@ -411,9 +411,6 @@ func (s *Server) generatedPlanResearchQueryInput(
 			return input
 		}
 	}
-	if len(stringValueSlice(input["query_variants"])) > 0 {
-		return input
-	}
 	capabilities := []string(nil)
 	if len(capabilitySets) > 0 {
 		capabilities = capabilitySets[0]
@@ -515,10 +512,12 @@ func (s *Server) generatedPlanResearchQueryInput(
 		}
 	}
 	variants = uniqueStrings(variants)
-	if len(variants) > 0 {
-		normalized["query_variants"] = variants
-	} else {
-		delete(normalized, "query_variants")
+	if _, supplied := input["query_variants"]; !supplied {
+		if len(variants) > 0 {
+			normalized["query_variants"] = variants
+		} else {
+			delete(normalized, "query_variants")
+		}
 	}
 	if researchTool {
 		normalized["research_depth"] = step.ResearchDepth

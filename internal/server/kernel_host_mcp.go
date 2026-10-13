@@ -531,7 +531,7 @@ func (s *Server) executeResolvedKernelMCPTool(ctx context.Context, resolution ke
 			}
 			config := *resolution.executable
 			if strings.TrimSpace(config.URL) != "" {
-				client, err := mcpdirectory.SecureHTTPClient(callCtx, config.URL, s.httpClient)
+				client, err := s.publicSourceHTTPClient(callCtx, config.URL, s.httpClient)
 				if err != nil {
 					return "", err
 				}

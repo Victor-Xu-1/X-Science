@@ -48,3 +48,16 @@ func TestResearchProcessPreservesExplicitSourceIdentityBeforeAnyReadReceipt(t *t
 		}
 	}
 }
+
+func TestResearchProcessFillsMissingPrimaryQueryWithoutReplacingVariants(t *testing.T) {
+	server, _, frameID := newGeneratedPlanProcessFixture(t)
+	variants := []any{"explicit secondary query", "another explicit query"}
+	input := map[string]any{"query_variants": variants}
+	got := server.generatedPlanResearchQueryInput(frameID, "web_search", input)
+	if stringValue(got["query"]) == "" || !reflect.DeepEqual(got["query_variants"], variants) {
+		t.Fatalf("missing primary query or replaced variants: %#v", got)
+	}
+	if _, mutated := input["query"]; mutated {
+		t.Fatal("plan default mutated model-authored input")
+	}
+}

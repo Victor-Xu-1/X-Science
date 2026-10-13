@@ -98,7 +98,7 @@ func (s *Server) handleKernelMCPManagementHostCall(
 		}
 		serverID := uuid.NewString()
 		transport := input.Transport
-		prepared, err := prepareWebMCPRecord(ctx, userID, serverID, webMCPMutationRequest{
+		prepared, err := s.prepareWebMCPRecord(ctx, userID, serverID, webMCPMutationRequest{
 			Name: &input.Name, Description: &input.Description, Transport: &transport,
 		})
 		if err != nil {
