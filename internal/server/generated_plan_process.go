@@ -432,13 +432,14 @@ func (s *Server) generatedPlanResearchQueryInput(
 	}
 	researchTool := runtimeCapabilitiesContain(capabilities, "research")
 	searchTool := runtimeCapabilitiesContain(capabilities, "search")
+	discoveryTool := runtimeCapabilitiesContain(capabilities, "source-discovery")
 	evidenceReader := runtimeCapabilitiesContain(capabilities, "evidence-read")
 	if !runtimeCapabilitiesContainSource(capabilities) {
 		return input
 	}
 	// Producing source evidence does not make an analysis tool a retriever.
-	// Only declared search/research/read capabilities can consume plan locators.
-	if !researchTool && !searchTool && !evidenceReader {
+	// Only declared search/discovery/research/read capabilities consume locators.
+	if !researchTool && !searchTool && !discoveryTool && !evidenceReader {
 		return input
 	}
 	step, action, found := s.generatedPlanActiveResearchStep(frameID)
@@ -459,7 +460,7 @@ func (s *Server) generatedPlanResearchQueryInput(
 	}
 	normalized := copyMapAny(input)
 	normalized = generatedPlanApplyResearchContinuationInput(toolName, capabilities, normalized, researchContinuation)
-	if evidenceReader && !searchTool {
+	if evidenceReader && !searchTool && !discoveryTool {
 		return normalized
 	}
 	if researchTool {
@@ -505,6 +506,12 @@ func (s *Server) generatedPlanResearchQueryInput(
 	}
 	primary := strings.TrimSpace(queries[0].Query)
 	normalized["query"] = primary
+	// Source discovery supplies a primary query, not the richer Web-search
+	// query_variants extension. Keep model-owned arguments but do not invent
+	// unsupported fields for narrower discovery schemas.
+	if discoveryTool && !searchTool && !researchTool {
+		return normalized
+	}
 	variants := make([]string, 0, 6)
 	for _, query := range queries[1:] {
 		if strings.TrimSpace(query.Query) != "" && strings.TrimSpace(query.Query) != primary {
