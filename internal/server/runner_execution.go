@@ -815,6 +815,9 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 		if err := deltaBatcher.boundary(operationCtx); err != nil {
 			return err
 		}
+		// This is the acknowledgement of the durable publication boundary,
+		// not the provider's first token or a browser paint timestamp.
+		communicationObserver.notePublication()
 		progressSegmentPublished = true
 		publicNarrationBytes += len(delta)
 		return communicationSchedule.published()
@@ -1000,10 +1003,12 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 		audit:            func(record map[string]any) { s.recordSessionRunnerCommunicationAudit(run, record) },
 	}
 	engine.Model = &sessionRunnerResponseLanguageModelClient{
-		language: taskLanguage,
-		audit:    func(record map[string]any) { s.recordSessionRunnerCommunicationAudit(run, record) },
+		language:          taskLanguage,
+		audit:             func(record map[string]any) { s.recordSessionRunnerCommunicationAudit(run, record) },
+		presentationReady: communicationObserver.notePresentationReady,
 		delegate: &sessionRunnerResponseContractClient{
 			delegate: communicationObserver, progressDue: communicationSchedule.due,
+			progressReady: communicationObserver.noteProgressReady,
 		},
 	}
 	engine.AllowToolPreamble = func(text string) bool {

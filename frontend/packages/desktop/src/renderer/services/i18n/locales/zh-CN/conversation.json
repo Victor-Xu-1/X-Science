@@ -1065,6 +1065,8 @@
       "taskStarting": "任务正在启动",
       "taskFinalizing": "正在整理最终结果",
       "taskRunning": "任务正在运行",
+      "taskProviderRetrying": "模型服务暂时不可用，正在重试",
+      "taskProviderTransportRetrying": "模型连接暂时中断，正在重试",
       "taskReviewing": "任务正在审阅",
       "taskManualReviewing": "手动审阅中",
       "taskAutoReviewing": "自动审阅中",

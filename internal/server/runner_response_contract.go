@@ -68,6 +68,8 @@ func projectRunnerResponseContract(request agentruntime.ModelRequest, due bool) 
 type sessionRunnerResponseContractClient struct {
 	delegate    agentruntime.ModelClient
 	progressDue func() bool
+	// Observation only; the canonical publication boundary remains downstream.
+	progressReady func(string)
 }
 
 func (client *sessionRunnerResponseContractClient) Complete(ctx context.Context, request agentruntime.ModelRequest) (agentruntime.ModelResponse, error) {
@@ -106,6 +108,7 @@ func (client *sessionRunnerResponseContractClient) CompleteStream(ctx context.Co
 		return response, err
 	}
 	progress, blockID := extractRunnerResponseProgress(&response)
+	progressSource := "structured"
 	for _, call := range response.Message.ToolCalls {
 		if call.ProviderProtocolDiagnostic != "" || (len(call.Arguments) > 0 && !json.Valid(call.Arguments)) {
 			// Providers retain malformed proposals for the engine's private
@@ -122,9 +125,13 @@ func (client *sessionRunnerResponseContractClient) CompleteStream(ctx context.Co
 		// without promoting an earlier interrupted response's candidate bytes.
 		progress = sessionRunnerPublicProgressNarration(response.Message.Content)
 		blockID = fmt.Sprintf("native-%x", sha256.Sum256([]byte(response.Message.ToolCalls[0].ID+"\x00"+progress)))
+		progressSource = "native"
 	}
 	if progress == "" {
 		return response, nil
+	}
+	if client.progressReady != nil {
+		client.progressReady(progressSource)
 	}
 	// Cadence controls when to request an update, not whether a model-authored
 	// finding may be published. The runner's ordinary safety and deduplication

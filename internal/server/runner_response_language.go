@@ -29,6 +29,8 @@ type sessionRunnerResponseLanguageModelClient struct {
 	delegate agentruntime.ModelClient
 	language string
 	audit    func(map[string]any)
+	// Records readiness after language validation, not necessarily translation.
+	presentationReady func()
 }
 
 type sessionRunnerResponseLanguageMismatch struct{ ValidationCode string }

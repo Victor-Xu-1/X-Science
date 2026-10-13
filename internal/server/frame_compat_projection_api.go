@@ -312,6 +312,17 @@ func (s *Server) compatibilityFrameRuntimeProjection(frameID string) (map[string
 		"runtime_task_observed_at": taskSummary.ObservedAt.UTC(),
 		"runtime_task_started_at":  taskSummary.StartedAt.UTC(),
 	}
+	if !compatibilityFrameStatusTerminal(frameContext.Frame.Status) {
+		retryReason, retryErr := s.transcriptStore.RunnerAutomaticRetryReason(
+			ctx, stream.UID, stream.OwnerID, summary.InputRevision, summary.Attempt,
+		)
+		if retryErr != nil {
+			return nil, "", retryErr
+		}
+		if reason := publicProviderRetryReason(retryReason); reason != "" {
+			projection["runtime_retry_reason"] = reason
+		}
+	}
 	taskMetricsProjection, err := s.compatibilityFrameTaskMetricsProjection(
 		ctx, frameID, stream.UID, stream.OwnerID, summary.InputRevision,
 	)

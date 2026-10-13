@@ -39,6 +39,9 @@ const ToolOperationDetail: React.FC<{
     () => buildToolStepPublicPresentation(displayItem, language),
     [displayItem, language]
   );
+  // The scoped hydration hook already preserves live status and invalidates
+  // older revisions. Share its result summary across the row and expanded view.
+  const resultSummary = detailPresentation.resultSummary;
   const hasDetail = detailPresentation.expandable;
   const isActive = isActiveToolStatus(item.status);
   const presentationStatus = toolSourceUnavailable(item) ? 'blocked' : item.status;
@@ -120,9 +123,9 @@ const ToolOperationDetail: React.FC<{
             </span>
           ) : null}
         </span>
-        {timelinePresentation.resultSummary ? (
+        {resultSummary ? (
           <span className='tool-step-row__result'>
-            {timelinePresentation.resultSummary}
+            {resultSummary}
             {repeatCount > 1 ? ` ×${repeatCount}` : ''}
           </span>
         ) : null}
@@ -164,11 +167,7 @@ const ToolOperationDetail: React.FC<{
                     output={displayItem.output}
                   />
                 ) : null}
-                <MessageToolPublicDetail
-                  item={displayItem}
-                  language={language}
-                  resultSummary={timelinePresentation.resultSummary ?? detailPresentation.resultSummary}
-                />
+                <MessageToolPublicDetail item={displayItem} language={language} resultSummary={resultSummary} />
                 {displayItem.imagePath ? (
                   <div className='tool-image-inset group relative overflow-hidden'>
                     <LocalImageView

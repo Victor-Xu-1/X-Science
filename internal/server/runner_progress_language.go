@@ -95,6 +95,9 @@ func (client *sessionRunnerResponseLanguageModelClient) localizeProgressBlocks(c
 		}
 		localizedText.WriteString(text)
 		if emit != nil && text != "" {
+			if client.presentationReady != nil {
+				client.presentationReady()
+			}
 			if err := emit(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventPublicProgressDelta, BlockID: block.id, ContentDelta: text}); err != nil {
 				return response, false, err
 			}

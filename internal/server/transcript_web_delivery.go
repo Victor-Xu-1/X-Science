@@ -588,7 +588,8 @@ func (s *Server) publishTranscriptWebClaim(ctx context.Context, claim transcript
 	}
 	waitingForModel := transcriptWebModelSelectionInterruption(payload)
 	waitingForRecovery := transcriptWebRecoveryWaitInterruption(payload)
-	if claim.Event.Type == "runner_checkpoint" && !richAskUser && !waitingForModel && !waitingForRecovery &&
+	providerRetry := transcriptWebProviderRetryInterruption(payload)
+	if claim.Event.Type == "runner_checkpoint" && !richAskUser && !waitingForModel && !waitingForRecovery && !providerRetry &&
 		!transcriptRunnerAttemptStarted(payload, attempt) && !transcriptWebRuntimeDrainToolBoundary(payload) {
 		// Planning, model-resolution, memory, review-policy and similar durable
 		// checkpoints are valuable for recovery/audit, but they have no distinct
@@ -763,6 +764,12 @@ func (s *Server) publishTranscriptWebClaim(ctx context.Context, claim transcript
 			"scope": map[string]any{"kind": "conversation", "id": stream.SessionID},
 			"phase": "waiting_for_lock", "artifact_refs": refs,
 		}
+		if providerRetry {
+			// This is an invalidation, not a new lifecycle authority. Clients
+			// read the current input/attempt-scoped runtime projection, so a late
+			// retry publication cannot regress newer progress or completion.
+			runtimePayload["reason_code"] = firstNonEmpty(webString(payload["reason_code"]), webString(payload["reasonCode"]))
+		}
 		if waitingForModel || waitingForRecovery {
 			reason := firstNonEmpty(webString(payload["reason_code"]), webString(payload["reasonCode"]))
 			runtimePayload["phase"] = "paused"
@@ -813,6 +820,21 @@ func transcriptWebRecoveryWaitInterruption(payload map[string]any) bool {
 	return strings.EqualFold(webString(payload["status"]), "interrupted") &&
 		payload["auto_resume"] == false && !transcriptWebModelSelectionInterruption(payload) &&
 		runnerInterruptionMayContinueSameTask(firstNonEmpty(webString(payload["reason_code"]), webString(payload["reasonCode"])))
+}
+
+func transcriptWebProviderRetryInterruption(payload map[string]any) bool {
+	return strings.EqualFold(strings.TrimSpace(webString(payload["status"])), "interrupted") &&
+		payload["auto_resume"] == true &&
+		publicProviderRetryReason(firstNonEmpty(webString(payload["reason_code"]), webString(payload["reasonCode"]))) != ""
+}
+
+func publicProviderRetryReason(reason string) string {
+	switch strings.TrimSpace(reason) {
+	case sessionRunnerModelProviderTemporaryReasonCode, sessionRunnerProviderTransportTemporaryReasonCode:
+		return strings.TrimSpace(reason)
+	default:
+		return ""
+	}
 }
 
 func runnerRecoveryWaitPublicMessage(task string) string {
