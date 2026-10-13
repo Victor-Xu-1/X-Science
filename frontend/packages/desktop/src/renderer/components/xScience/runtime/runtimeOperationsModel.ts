@@ -50,6 +50,8 @@ export type XScienceRuntimeSnapshot = {
   runtimeStage: XScienceRuntimeStage;
   /** Closed, canonical retry classification; never raw provider diagnostics. */
   retryReason?: 'model_provider_temporarily_unavailable' | 'provider_transport_temporarily_unavailable';
+  /** Opaque identity shared with the canonical public message stream. */
+  retryAttemptId?: string;
   reviewStatus: string | null;
   reviewKind: string | null;
   reviewProfile: string | null;
@@ -474,7 +476,9 @@ export function normalizeXScienceRuntimeSnapshot(value: unknown): XScienceRuntim
     runtimeAttempt: positiveInteger(value.runtime_attempt),
     runtimeInputRevision: nonNegativeInteger(value.runtime_input_revision),
     runtimeStage,
-    ...(providerRetrying ? { retryReason } : {}),
+    ...(providerRetrying
+      ? { retryReason, retryAttemptId: nullableString(value.runtime_retry_attempt_id) ?? undefined }
+      : {}),
     reviewStatus: nullableString(value.runtime_review_status)?.toLowerCase() ?? null,
     reviewKind: nullableString(value.runtime_review_kind),
     reviewProfile: nullableString(value.runtime_review_profile),

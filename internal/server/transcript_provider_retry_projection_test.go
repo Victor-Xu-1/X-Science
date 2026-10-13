@@ -44,6 +44,9 @@ func TestTranscriptProviderRetryProjectsLiveAndReloadFromSameAuthority(t *testin
 	if err != nil || projection["runtime_retry_reason"] != sessionRunnerModelProviderTemporaryReasonCode || projection["runtime_paused"] == true {
 		t.Fatalf("projection=%#v err=%v", projection, err)
 	}
+	if projection["runtime_retry_attempt_id"] != transcriptAssistantMessageID(frameID, claimed.Claim.Attempt, 1) {
+		t.Fatalf("retry projection is not bound to its canonical message-stream attempt: %#v", projection)
+	}
 	if err := server.drainTranscriptWebDeliveries(context.Background()); err != nil {
 		t.Fatal(err)
 	}

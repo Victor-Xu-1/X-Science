@@ -207,22 +207,26 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
   );
   useEffect(() => {
     let active = true;
-    const release = subscribeXScienceRuntimeInvalidation(conversationId, (event?: XScienceRuntimeInvalidation) => {
-      if (!active) return;
-      if (event?.terminal_status && TERMINAL_RUNTIME_STATUSES.has(event.terminal_status)) {
-        if (realtimeRefreshTimerRef.current !== null) {
-          window.clearTimeout(realtimeRefreshTimerRef.current);
-          realtimeRefreshTimerRef.current = null;
+    const release = subscribeXScienceRuntimeInvalidation(
+      conversationId,
+      (event?: XScienceRuntimeInvalidation) => {
+        if (!active) return;
+        if (event?.terminal_status && TERMINAL_RUNTIME_STATUSES.has(event.terminal_status)) {
+          if (realtimeRefreshTimerRef.current !== null) {
+            window.clearTimeout(realtimeRefreshTimerRef.current);
+            realtimeRefreshTimerRef.current = null;
+          }
+          setSnapshotRevision((value) => value + 1);
+          return;
         }
-        setSnapshotRevision((value) => value + 1);
-        return;
-      }
-      if (realtimeRefreshTimerRef.current !== null) return;
-      realtimeRefreshTimerRef.current = window.setTimeout(() => {
-        realtimeRefreshTimerRef.current = null;
-        if (active) setSnapshotRevision((value) => value + 1);
-      }, 80);
-    });
+        if (realtimeRefreshTimerRef.current !== null) return;
+        realtimeRefreshTimerRef.current = window.setTimeout(() => {
+          realtimeRefreshTimerRef.current = null;
+          if (active) setSnapshotRevision((value) => value + 1);
+        }, 80);
+      },
+      { getRetrySnapshot: () => snapshotRef.current }
+    );
     return () => {
       active = false;
       release();

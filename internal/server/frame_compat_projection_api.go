@@ -321,6 +321,7 @@ func (s *Server) compatibilityFrameRuntimeProjection(frameID string) (map[string
 		}
 		if reason := publicProviderRetryReason(retryReason); reason != "" {
 			projection["runtime_retry_reason"] = reason
+			projection["runtime_retry_attempt_id"] = transcriptAssistantMessageID(frameID, summary.Attempt, 1)
 		}
 	}
 	taskMetricsProjection, err := s.compatibilityFrameTaskMetricsProjection(
