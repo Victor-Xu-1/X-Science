@@ -6,6 +6,24 @@ export no_proxy="$NO_PROXY"
 
 binary="${1:-dist/x-science}"
 
+# Component integrity and native-plugin identity have separate authorities.
+smoke_expectations="$(
+	python3 - <<'PY'
+import json
+from pathlib import Path
+
+inventory_path = Path("assets/x-science-link/manifest.json")
+inventory = json.loads(inventory_path.read_text())
+package, = inventory["files"]
+manifest = json.loads((Path(inventory["source"]) / "manifest.json").read_text())
+identity = json.loads(Path("product-identity.json").read_text())
+print("\t".join((json.dumps((inventory_path.parent / package["path"]).as_posix()),
+                 package["sha256"], manifest["version"], identity["machine_slug"])))
+PY
+)"
+IFS=$'\t' read -r link_package_path_json link_package_sha256 link_package_version native_plugin_id <<<"$smoke_expectations"
+native_plugin_mount="/api/plugins/$native_plugin_id"
+
 port="$(
 	python3 - <<'PY'
 import socket
@@ -165,7 +183,7 @@ JSON
 plugin_dir_json="$(python3 -c 'import json,sys; print(json.dumps(sys.argv[1]))' "$plugin_dir")"
 # Adapter credentials and origins are isolated fixture values; no external
 # platform or user account is contacted by this HTTP smoke.
-printf '{"host":"127.0.0.1","port":%s,"x_science_link_package":"assets/x-science-link/x-science-link-extension-v0.6.10.zip","plugin_directories":[%s],"enabled_adapters":["feishu","wechat"],"feishu":{"app_id":"smoke-app","app_secret":"smoke-secret","domain":"%s"},"wechat":{"account_id":"smoke-account","bot_token":"smoke-token","base_url":"%s"}}\n' "$port" "$plugin_dir_json" "$adapter_origin" "$adapter_origin" >"$cfg"
+printf '{"host":"127.0.0.1","port":%s,"x_science_link_package":%s,"plugin_directories":[%s],"enabled_adapters":["feishu","wechat"],"feishu":{"app_id":"smoke-app","app_secret":"smoke-secret","domain":"%s"},"wechat":{"account_id":"smoke-account","bot_token":"smoke-token","base_url":"%s"}}\n' "$port" "$link_package_path_json" "$plugin_dir_json" "$adapter_origin" "$adapter_origin" >"$cfg"
 mkdir -p "$home/smoke" "$home/projects/alpha"
 if [[ "$host_is_windows" == true ]]; then
 	shell_expected_workdir="$(cygpath -w "$home")"
@@ -191,15 +209,15 @@ done
 
 health="$(curl -fsS "http://127.0.0.1:$port/health")"
 plugins="$(curl -fsS "http://127.0.0.1:$port/api/plugins")"
-plugin_manifest="$(curl -fsS "http://127.0.0.1:$port/api/plugins/x-science/manifest")"
+plugin_manifest="$(curl -fsS "http://127.0.0.1:$port$native_plugin_mount/manifest")"
 external_plugin_manifest="$(curl -fsS "http://127.0.0.1:$port/api/plugins/terminal-tools/manifest")"
-capabilities="$(curl -fsS "http://127.0.0.1:$port/api/plugins/x-science/capabilities")"
+capabilities="$(curl -fsS "http://127.0.0.1:$port$native_plugin_mount/capabilities")"
 link_capabilities="$(curl -fsS "http://127.0.0.1:$port/api/x-science-link/capabilities")"
 link_doctor="$(curl -fsS "http://127.0.0.1:$port/api/x-science-link/doctor?userId=smoke-user")"
 link_package="$tmp/x-science-link-extension.zip"
-curl -fsS "http://127.0.0.1:$port/api/plugins/x-science/link/download" -o "$link_package"
-printf '2cb251ad8aedf940f6d3a11b41b74ed55f9b912ab48257a21789b78a1ca0c90b  %s\n' "$link_package" | sha256sum -c -
-unzip -p "$link_package" manifest.json | grep -q '"version": "0.6.10"'
+curl -fsS "http://127.0.0.1:$port$native_plugin_mount/link/download" -o "$link_package"
+printf '%s  %s\n' "$link_package_sha256" "$link_package" | sha256sum -c -
+unzip -p "$link_package" manifest.json | python3 -c 'import json,sys; sys.exit(json.load(sys.stdin)["version"] != sys.argv[1])' "$link_package_version"
 tools_file="$tmp/tools.json"
 curl -fsS "http://127.0.0.1:$port/api/tools" -o "$tools_file"
 tool_fetch_file="$tmp/tool-fetch-loopback.json"
@@ -310,13 +328,13 @@ session_claim_b="$(curl -fsS -X POST "http://127.0.0.1:$port/api/tools/session_c
 printf 'PORT=%s\n' "$port"
 printf 'HEALTH=%s\n' "$health"
 
-printf '%s' "$plugins" | grep -q '"id":"xscience"'
+printf '%s' "$plugins" | grep -Fq "\"id\":\"$native_plugin_id\""
 printf '%s' "$plugins" | grep -q '"id":"terminal-tools"'
 printf '%s' "$plugins" | grep -q '"status":"running"'
-printf '%s' "$plugins" | grep -q '/api/plugins/x-science/capabilities'
+printf '%s' "$plugins" | grep -Fq "$native_plugin_mount/capabilities"
 printf '%s' "$plugins" | grep -qi 'admet' && exit 1
 printf '%s' "$plugin_manifest" | grep -q '"pluginFormat":"x_science_agent_native"'
-printf '%s' "$plugin_manifest" | grep -q '"apiMount":"/api/plugins/xscience"'
+printf '%s' "$plugin_manifest" | grep -Fq "\"apiMount\":\"$native_plugin_mount\""
 printf '%s' "$external_plugin_manifest" | grep -q '"pluginFormat":"x_science_agent_external"'
 printf '%s' "$external_plugin_manifest" | grep -q '"apiMount":"/api/plugins/terminal-tools"'
 test -f "$plugin_ready"

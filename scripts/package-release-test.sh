@@ -152,8 +152,8 @@ for secret in wechat-package-secret feishu-package-secret; do
 	fi
 done
 verify_packaged_readme_contract "$package_dir/README.md"
-test -f "$package_dir/LICENSE"
-cmp LICENSE "$package_dir/LICENSE"
+test -f "$package_dir/LICENSE.txt"
+cmp LICENSE.txt "$package_dir/LICENSE.txt"
 cmp COMMERCIAL-LICENSE.md "$package_dir/COMMERCIAL-LICENSE.md"
 cmp frontend/LICENSE "$package_dir/docs/licenses/frontend/LICENSE"
 test -f "$package_dir/product-identity.json"

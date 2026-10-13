@@ -222,7 +222,8 @@
           "-m",
           "unittest",
           "scripts.packaging.test_release_package"
-        ]
+        ],
+        ["python3", "-B", "-m", "unittest", "scripts.quality.test_release_license_contract"]
       ]
     },
     {
@@ -614,10 +615,13 @@
     },
     {
       "name": "http-smoke-contract",
-      "paths": ["scripts/smoke-http.sh"],
+      "paths": ["scripts/smoke-http.sh", "scripts/quality/test_smoke_http_component_contracts.py"],
       "packages": ["x-science/cmd/x-science", "x-science/internal/server", "x-science/internal/config"],
       "frontend": false,
-      "checks": [["bash", "-n", "scripts/smoke-http.sh"]]
+      "checks": [
+        ["bash", "-n", "scripts/smoke-http.sh"],
+        ["python3", "-B", "-m", "unittest", "scripts.quality.test_smoke_http_component_contracts"]
+      ]
     },
     {
       "name": "current-launcher-and-installer-display",
@@ -794,12 +798,14 @@
         "docs/governance/product-identity-consumer-matrix.json",
         "docs/governance/product-rename-compatibility-map.json",
         "scripts/quality/test_product_identity_gate.py",
-        "scripts/package-release-test.sh"
+        "scripts/package-release-test.sh",
+        "scripts/quality/test_release_license_contract.py"
       ],
       "frontend": false,
       "checks": [
         ["python3", "-B", "-m", "unittest", "scripts.quality.test_product_identity_gate"],
-        ["bash", "-n", "scripts/package-release-test.sh"]
+        ["bash", "-n", "scripts/package-release-test.sh"],
+        ["python3", "-B", "-m", "unittest", "scripts.quality.test_release_license_contract"]
       ]
     },
     {

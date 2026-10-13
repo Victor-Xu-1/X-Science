@@ -100,7 +100,7 @@ env -i PATH="$PATH" HOME="$tmp/home" X_SCIENCE_RUNNER_ENABLED=true X_SCIENCE_RUN
 test -x "$install_dir/x-science-live-im-smoke"
 env -i PATH="$PATH" HOME="$tmp/home" "$install_dir/x-science-live-im-smoke" --plan --json | grep -q '"status":"planned"'
 test -f "$install_dir/README.md"
-test -f "$install_dir/LICENSE"
+test -f "$install_dir/LICENSE.txt"
 test -f "$install_dir/.env.example"
 test -f "$install_dir/docs/THIRD_PARTY.md"
 test -f "$install_dir/docs/operations-runbook.md"
