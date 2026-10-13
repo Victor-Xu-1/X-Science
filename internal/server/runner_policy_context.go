@@ -163,6 +163,10 @@ func appendRuntimeAgentPolicyContextMessageWithSource(messages []chatCompletionM
 	return out
 }
 
+func appendSessionRunnerPublicCommunicationContract(messages []chatCompletionMessage) []chatCompletionMessage {
+	return appendRuntimeTerminalPolicyContextMessage(messages, sessionRunnerPublicCommunicationContract)
+}
+
 // appendRuntimeTerminalPolicyContextMessage adds a task-derived contract at
 // the end of the leading system block. Use it only for resolved facts that must
 // dominate stale draft content on resume; general policy continues to use

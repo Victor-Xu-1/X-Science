@@ -288,6 +288,11 @@ func (client *sessionOutputBudgetClient) run(ctx context.Context, request agentr
 		}
 		return response, callErr
 	}
+	if usingDefaultProbe && !nativeProgress.Load() && providers.IsProviderPlanningNoNativeProgress(callErr) {
+		if err := client.retireFailedPlanningProbe(previousState); err != nil {
+			return response, errors.Join(callErr, err)
+		}
+	}
 	rejected := 0
 	providerMaximum, _ := providers.ProviderOutputTokenMaximum(callErr)
 	if status, ok := providers.HTTPStatus(callErr); ok && (status == http.StatusBadRequest || status == http.StatusUnprocessableEntity) && adaptive.MaxTokens > 0 && !nativeProgress.Load() {
@@ -349,11 +354,7 @@ func (client *sessionOutputBudgetClient) run(ctx context.Context, request agentr
 	if providers.IsProviderOutputTokenLimit(callErr) {
 		var saturated *sessionOutputBudgetSaturatedError
 		if !errors.As(callErr, &saturated) {
-			state, readErr := client.read()
-			if readErr != nil {
-				return response, errors.Join(callErr, readErr)
-			}
-			callErr = &sessionOutputBudgetRecoveryError{cause: callErr, scope: scope, canGrow: state.Next > effectiveBudget || defaultProbe}
+			callErr = &sessionOutputBudgetRecoveryError{cause: callErr, scope: scope}
 		}
 	} else if callErr != nil {
 		// Protocol/empty/transport failures share the same provider authority.

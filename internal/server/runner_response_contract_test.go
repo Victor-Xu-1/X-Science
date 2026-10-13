@@ -33,7 +33,7 @@ func TestResponseContractSharesInformativeBoundedProgressStyle(t *testing.T) {
 		t.Fatal(err)
 	}
 	field := request.Tools[0].Parameters["properties"].(map[string]any)[runnerPublicProgressField].(map[string]any)
-	if field["description"] != runnerPublicProgressFieldDescription ||
+	if field["description"] != runnerPublicProgressDescription(false) ||
 		!strings.Contains(sessionRunnerPublicCommunicationContract, sessionRunnerPublicProgressStyle) ||
 		field["minLength"] != 0 || field["maxLength"] != sessionRunnerPublicProgressNarrationMaxRunes {
 		t.Fatal("progress style diverged or became a mandatory verbosity gate")
@@ -41,6 +41,44 @@ func TestResponseContractSharesInformativeBoundedProgressStyle(t *testing.T) {
 	text := "已读取版本记录，内容与要求一致；还需核对当前环境实际导入的版本，排除文件记录与运行环境不一致的情况。下一步将比较两者，并保留读取结果。"
 	if got := sessionRunnerPublicProgressNarration(text); got != text {
 		t.Fatalf("informative bounded progress was lost: %q", got)
+	}
+}
+
+func TestResponseContractParallelInstructionsMatchProgressCadence(t *testing.T) {
+	for _, test := range []struct {
+		name        string
+		due         bool
+		minimum     int
+		instruction string
+		forbidden   string
+	}{
+		{"due", true, 1, "Every call, including each call in a parallel batch", "only on the first call"},
+		{"not-due", false, 0, "only on the first call; use an empty string for remaining calls", "must include a brief, nonempty"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			original := agentruntime.ModelRequest{Tools: []agentruntime.ToolSchema{
+				{Name: "inspect_a", Parameters: map[string]any{"type": "object", "properties": map[string]any{"path": map[string]any{"type": "string"}}, "required": []string{"path"}, "additionalProperties": false}},
+				{Name: "inspect_b", Parameters: map[string]any{"type": "object", "properties": map[string]any{"path": map[string]any{"type": "string"}}, "required": []string{"path"}, "additionalProperties": false}},
+			}}
+			projected, err := projectRunnerResponseContract(original, test.due)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for index, tool := range projected.Tools {
+				field := tool.Parameters["properties"].(map[string]any)[runnerPublicProgressField].(map[string]any)
+				description := field["description"].(string)
+				if field["minLength"] != test.minimum || field["maxLength"] != sessionRunnerPublicProgressNarrationMaxRunes ||
+					!strings.Contains(description, test.instruction) || strings.Contains(description, test.forbidden) {
+					t.Fatalf("tool %s has contradictory progress instructions: %v", tool.Name, field)
+				}
+				if !reflect.DeepEqual(tool.Parameters["required"], []string{"path", runnerPublicProgressField}) || tool.Parameters["additionalProperties"] != false {
+					t.Fatalf("tool %s lost its schema requirements", tool.Name)
+				}
+				if _, exists := original.Tools[index].Parameters["properties"].(map[string]any)[runnerPublicProgressField]; exists {
+					t.Fatal("model-facing progress mutated executable authority")
+				}
+			}
+		})
 	}
 }
 
@@ -146,9 +184,17 @@ func TestResponseContractPreservesInvalidFieldToolArgumentsAndRejectsSchemaColli
 
 func TestResponseContractConsolidatesBatchRegardlessOfRequestCadence(t *testing.T) {
 	for _, due := range []bool{false, true} {
+		secondProgress := ""
+		if due {
+			secondProgress = "Comparing the two records."
+		}
+		secondArgs, err := json.Marshal(map[string]any{"path": "b.csv", runnerPublicProgressField: secondProgress})
+		if err != nil {
+			t.Fatal(err)
+		}
 		model := &nativeCommunicationFixture{responses: []agentruntime.ModelResponse{{Message: agentruntime.Message{ToolCalls: []agentruntime.ToolCall{
-			{ID: "a", Name: "inspect", Arguments: json.RawMessage(`{"public_progress":"Comparing the two records."}`)},
-			{ID: "b", Name: "inspect", Arguments: json.RawMessage(`{"public_progress":"Comparing the two records."}`)},
+			{ID: "a", Name: "inspect_a", Arguments: json.RawMessage(`{"path":"a.csv","public_progress":"Comparing the two records."}`)},
+			{ID: "b", Name: "inspect_b", Arguments: secondArgs},
 		}}}}}
 		client := &sessionRunnerResponseContractClient{delegate: model, progressDue: func() bool { return due }}
 		count := 0
@@ -158,12 +204,13 @@ func TestResponseContractConsolidatesBatchRegardlessOfRequestCadence(t *testing.
 			}
 			return nil
 		})
-		if err != nil || count != 1 || model.calls != 1 {
+		if err != nil || count != 1 || model.calls != 1 || len(response.Message.ToolCalls) != 2 {
 			t.Fatalf("due=%t count=%d err=%v", due, count, err)
 		}
-		for _, call := range response.Message.ToolCalls {
-			if strings.Contains(string(call.Arguments), runnerPublicProgressField) {
-				t.Fatal("control field reached execution")
+		for index, call := range response.Message.ToolCalls {
+			want := []string{`{"path":"a.csv"}`, `{"path":"b.csv"}`}[index]
+			if string(call.Arguments) != want {
+				t.Fatalf("control field reached execution or executable input changed: %s", call.Arguments)
 			}
 		}
 	}

@@ -1182,9 +1182,12 @@ client preserves these observations and does not reinstate the saved ceiling.
 For a streamed, continuation-safe output-limit stop with measured usage but no
 native public text or tool boundary, a saved soft allowance also schedules one
 durable provider-default probe instead of repeatedly doubling small requests.
-The probe is atomically consumed before dispatch. Failure preserves the measured
-bounded negotiation; cancellation, accepted prefixes, partial tool arguments and
-provider-declared limits are not bypassed.
+The probe is atomically consumed before dispatch. Transport and token-limit
+failures preserve the measured bounded negotiation. A typed action-window timeout
+with no native public content or tool boundary instead retires the preceding
+numerical next proposal, while retaining actual usage and provider bounds. It
+does not establish a successful preference. Cancellation, accepted prefixes,
+partial tool arguments and provider-declared limits are not bypassed.
 
 Only a silent truncation at the initial soft allowance followed by a complete,
 uncancelled successful default probe may establish a provider-default request
@@ -1205,7 +1208,16 @@ remains authoritative, as do cancellation and task-wide resource controls.
 Explicit caller output caps, automatic budgets, empty responses and partial
 tool arguments cannot bypass the unchanged-route wait. The phase machine owns
 the progress decision; server adapters own its claim-fenced persistence and
-existing dispatch. A token-limit reason alone is not evidence of progress.
+existing dispatch. A token-limit reason or a larger proposed budget is not
+evidence of progress and cannot exempt an unchanged route from its existing
+consecutive no-progress boundary. A typed empty action-window timeout whose timer
+observed no native tool boundary or public output has already exhausted its
+operation window and immediately parks at a resumable checkpoint with automatic
+replay disabled. A partial tool boundary stays in bounded recovery: it is neither
+absent native action nor permission to execute incomplete arguments. Generic empty responses, header timeouts,
+transient transport failures and accepted public prefixes keep their respective
+recovery contracts. Explicit continuation or new user input can dispatch again;
+parking neither destroys task state nor claims that the model produced an answer.
 Read observations are restored from the active canonical branch independently
 of the provider replay window, using the existing bounded task-local cache.
 Successful execution is not by itself new evidence: repeated completed runtime

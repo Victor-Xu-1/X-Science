@@ -12,7 +12,8 @@ func TestRecoveryMeasuresEffectsRatherThanLiveness(t *testing.T) {
 		{"fragment", RecoveryProgress{SemanticBytes: 3, Consecutive: 3}, 4, true},
 		{"empty", RecoveryProgress{Consecutive: 3}, 4, true},
 		{"healthy output", RecoveryProgress{SemanticBytes: 128, Consecutive: 3}, 0, false},
-		{"new budget", RecoveryProgress{BudgetCanGrow: true, Consecutive: 3}, 4, false},
+		{"recovery before boundary", RecoveryProgress{Consecutive: 2}, 3, false},
+		{"healthy output after boundary", RecoveryProgress{SemanticBytes: 128, Consecutive: 4}, 0, false},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			count, park := AdvanceRecovery(test.input)

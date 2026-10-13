@@ -16,6 +16,7 @@ var (
 
 type providerEmptyResponseError struct {
 	message string
+	cause   error
 }
 
 func (err *providerEmptyResponseError) Error() string {
@@ -29,6 +30,13 @@ func (err *providerEmptyResponseError) Is(target error) bool {
 	return target == errProviderEmptyResponse
 }
 
+func (err *providerEmptyResponseError) Unwrap() error {
+	if err == nil {
+		return nil
+	}
+	return err.cause
+}
+
 func newProviderEmptyResponseError(message string) error {
 	return &providerEmptyResponseError{message: message}
 }
@@ -39,6 +47,22 @@ func newProviderEmptyResponseError(message string) error {
 // logical task can continue from its last completed tool checkpoint.
 func IsProviderEmptyResponse(err error) bool {
 	return errors.Is(err, errProviderEmptyResponse)
+}
+
+// IsProviderPlanningNoProgress identifies the provider-owned action deadline,
+// including its empty-response or accepted-prefix recovery wrapper. Error text,
+// ordinary empty responses and transport failures cannot establish this cause.
+func IsProviderPlanningNoProgress(err error) bool {
+	return errors.Is(err, errProviderPlanningNoProgress)
+}
+
+// IsProviderPlanningNoNativeProgress requires the action timer's observation,
+// not just an empty-response label. Empty means no complete executable action;
+// it may still contain a partial tool boundary that retains bounded recovery.
+func IsProviderPlanningNoNativeProgress(err error) bool {
+	var deadline *providerPlanningNoProgressError
+	return IsProviderEmptyResponse(err) && errors.As(err, &deadline) && deadline != nil &&
+		deadline.toolBoundaryObserved != nil && !deadline.toolBoundaryObserved.Load()
 }
 
 type providerContentResponseTruncatedError struct {
@@ -206,7 +230,7 @@ func classifyProviderStreamInterruption(parentCtx, requestCtx context.Context, e
 		if emitted {
 			return newRecoverableStreamInterruption(err)
 		}
-		return newProviderEmptyResponseError(err.Error())
+		return &providerEmptyResponseError{message: err.Error(), cause: err}
 	}
 	if candidate != nil && emitted && isRecoverableProviderStreamFailure(err) {
 		return newRecoverableStreamInterruption(err)

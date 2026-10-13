@@ -200,7 +200,3 @@ func sessionRunnerProgressNarrationHasFinalStructure(content string) bool {
 	}
 	return false
 }
-
-func appendSessionRunnerPublicCommunicationContract(messages []chatCompletionMessage) []chatCompletionMessage {
-	return appendRuntimeTerminalPolicyContextMessage(messages, sessionRunnerPublicCommunicationContract)
-}

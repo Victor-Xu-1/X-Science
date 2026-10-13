@@ -27,9 +27,8 @@ func (e *sessionOutputBudgetSaturatedError) Error() string { return e.cause.Erro
 func (e *sessionOutputBudgetSaturatedError) Unwrap() error { return e.cause }
 
 type sessionOutputBudgetRecoveryError struct {
-	cause   error
-	scope   string
-	canGrow bool
+	cause error
+	scope string
 }
 
 func (e *sessionOutputBudgetRecoveryError) Error() string { return e.cause.Error() }

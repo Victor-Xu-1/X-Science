@@ -12,7 +12,14 @@ import (
 )
 
 const runnerPublicProgressField = "public_progress"
-const runnerPublicProgressFieldDescription = "Public progress following the shared communication contract: one or two short sentences with an observed finding or uncertainty, then the next action and its purpose, in the user's language. Separate from the operation label and final answer. Routine operations may use an empty string when minLength is zero. In parallel batches update only on the first call."
+const runnerPublicProgressFieldDescription = "Public progress following the shared communication contract: one or two short sentences with an observed finding or uncertainty, then the next action and its purpose, in the user's language. Separate from the operation label and final answer."
+
+func runnerPublicProgressDescription(due bool) string {
+	if due {
+		return runnerPublicProgressFieldDescription + " An update is due. Every call, including each call in a parallel batch, must include a brief, nonempty public_progress."
+	}
+	return runnerPublicProgressFieldDescription + " An update is not due. Routine operations may use an empty string. In parallel batches update only on the first call; use an empty string for remaining calls."
+}
 
 // This is a model-facing response field, not an executable tool argument.
 // It shares the primary model request with the selected action. The executable
@@ -38,7 +45,7 @@ func projectRunnerResponseContract(request agentruntime.ModelRequest, due bool) 
 		}
 		properties[runnerPublicProgressField] = map[string]any{
 			"type": "string", "minLength": minimum, "maxLength": sessionRunnerPublicProgressNarrationMaxRunes,
-			"description": runnerPublicProgressFieldDescription,
+			"description": runnerPublicProgressDescription(due),
 		}
 		required := []string{}
 		switch values := parameters["required"].(type) {
