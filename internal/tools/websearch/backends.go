@@ -219,8 +219,10 @@ func searchHitRelevanceScore(query string, hit Hit) int {
 // newWebSearchHTTPClient returns the outbound client used for the built-in
 // search backends. The search endpoints are fixed public providers (Bing,
 // Mojeek, Wikipedia, Crossref, DuckDuckGo Lite) rather than user-supplied URLs, so the
-// client mirrors the v1.1 alignment contract: IPv4-only dialing, no address
-// pinning, and a bounded per-request timeout. Pinning is deliberately not used
+// client mirrors the v1.1 alignment contract: IPv4-only direct dialing, no
+// address pinning, and a bounded per-request timeout. Explicit proxy endpoints
+// use ordinary dual-stack dialing; the proxy owns provider DNS and routing.
+// Pinning is deliberately not used
 // here because search engines serve from anycast/CDN pools whose addresses
 // change between lookups.
 func newWebSearchHTTPClient(timeout time.Duration, baseClient *http.Client, trustedProxyURL string) func(context.Context, string) (*http.Client, error) {
@@ -238,12 +240,17 @@ func newWebSearchHTTPClient(timeout time.Duration, baseClient *http.Client, trus
 		default:
 			return nil, fmt.Errorf("web search HTTP transport %T cannot enforce IPv4 dialing", base.Transport)
 		}
-		if _, err := networktls.ConfigureExplicitProxy(transport, trustedProxyURL); err != nil {
+		hasProxy, err := networktls.ConfigureExplicitProxy(transport, trustedProxyURL)
+		if err != nil {
 			return nil, err
+		}
+		network := "tcp4"
+		if hasProxy {
+			network = "tcp"
 		}
 		dialer := net.Dialer{Timeout: timeout, KeepAlive: 30 * time.Second}
 		transport.DialContext = func(dialCtx context.Context, _ string, address string) (net.Conn, error) {
-			return dialer.DialContext(dialCtx, "tcp4", address)
+			return dialer.DialContext(dialCtx, network, address)
 		}
 		return &http.Client{Transport: transport}, nil
 	}
