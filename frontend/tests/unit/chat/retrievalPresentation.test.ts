@@ -21,6 +21,9 @@ describe('retrieval presentation', () => {
     const acquired = tool({}, { bytesRead: 50, complete: true });
     expect(toolSourceUnavailable(unavailable)).toBe(true);
     expect(toolSourceUnavailable(acquired)).toBe(false);
+    expect(
+      toolSourceUnavailable(tool({}, { available: false, recordAvailable: true, recordDepth: 'abstract_record' }))
+    ).toBe(false);
     expect(buildToolStepGroupSummary([unavailable, unavailable], 'en-US').headline).toBe('Source unavailable · 2');
     expect(buildToolStepGroupSummary([unavailable, acquired], 'zh-CN').headline).toContain('来源不可用 · 1');
     expect(unavailable.status).toBe('completed');

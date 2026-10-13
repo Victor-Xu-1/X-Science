@@ -99,7 +99,7 @@ export function retrievalReceiptPresentation(input: unknown, output: unknown, ch
             ? toolPublicDetailText(chinese, 'readSize', { size })
             : null;
   return {
-    unavailable: unavailable || receipt?.available === false,
+    unavailable: unavailable || (receipt?.available === false && receipt?.recordAvailable !== true),
     summary,
     notices: [
       ...(mismatch
