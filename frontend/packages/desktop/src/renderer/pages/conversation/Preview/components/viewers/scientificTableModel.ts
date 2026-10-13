@@ -26,13 +26,13 @@ export async function parseScientificTable(
   const prepared = await prepareTableData(data, options.filename);
   const delimited = delimitedFormat(options.filename);
   if (delimited === 'sam') {
-    const source = decodeDelimitedText(prepared.data, prepared.truncated);
+    const source = decodeDelimitedText(prepared.data, prepared.truncated, delimited);
     return [parseSamTable(source, prepared.truncated)];
   }
 
   const XLSX = await import('xlsx-republish');
   const workbook = delimited
-    ? XLSX.read(decodeDelimitedText(prepared.data, prepared.truncated), {
+    ? XLSX.read(decodeDelimitedText(prepared.data, prepared.truncated, delimited), {
         type: 'string',
         cellDates: true,
         FS: delimited === 'tsv' ? '\t' : ',',
@@ -123,7 +123,7 @@ async function readStreamPrefix(stream: ReadableStream<Uint8Array>, limit: numbe
   return { data: bytes.buffer, truncated };
 }
 
-function decodeDelimitedText(data: ArrayBuffer, truncated: boolean): string {
+function decodeDelimitedText(data: ArrayBuffer, truncated: boolean, format: DelimitedFormat): string {
   const bytes = new Uint8Array(data);
   let text: string;
   if (bytes[0] === 0xff && bytes[1] === 0xfe) {
@@ -135,8 +135,76 @@ function decodeDelimitedText(data: ArrayBuffer, truncated: boolean): string {
   }
 
   if (!truncated) return text;
+  if (format !== 'sam') return completeDelimitedRecordPrefix(text, format === 'tsv' ? '\t' : ',');
   const lastLineBreak = Math.max(text.lastIndexOf('\n'), text.lastIndexOf('\r'));
   return lastLineBreak > 0 ? text.slice(0, lastLineBreak + 1) : text;
+}
+
+// A known-truncated prefix cannot prove that its final record is complete,
+// even if its quotes are balanced. Only terminators outside quoted fields count.
+function completeDelimitedRecordPrefix(text: string, delimiter: ',' | '\t'): string {
+  const hasDirective = text.startsWith('sep=');
+  const validDirective = hasDirective && (text[5] === '\r' || text[5] === '\n');
+  const inferredSeparator = hasDirective && !validDirective;
+  const separator = validDirective ? text[4] : inferredSeparator ? inferSheetJsSeparator(text) : delimiter;
+  const dataStart = validDirective ? (text[5] === '\r' && text[6] === '\n' ? 7 : 6) : 0;
+  let inQuotes = false;
+  let quotedField = false;
+  let atFieldStart = true;
+  let recordEnd = dataStart;
+
+  for (let index = dataStart; index < text.length; index += 1) {
+    const character = text[index];
+    // SheetJS keeps the field's initial-quote marker through tolerated reopening.
+    // Toggling each quote also leaves escaped double quotes in the same state.
+    if (character === '"') {
+      if (quotedField || atFieldStart) {
+        quotedField = true;
+        inQuotes = !inQuotes;
+      }
+      atFieldStart = false;
+      continue;
+    }
+    if (inQuotes) continue;
+
+    if (character === '\r' && text[index + 1] === '\n') index += 1;
+    if (character === separator) {
+      atFieldStart = true;
+      quotedField = false;
+    } else if (character === '\n' || character === '\r') {
+      recordEnd = index + 1;
+      atFieldStart = true;
+      quotedField = false;
+    } else {
+      atFieldStart = false;
+    }
+  }
+
+  const prefix = text.slice(0, recordEnd);
+  // A malformed sep= declaration is retained as data by SheetJS. Fix its
+  // original inferred separator with a control line so a shorter prefix cannot
+  // trigger a different guess. SheetJS removes only the added control line.
+  return inferredSeparator && prefix ? `sep=${separator}\n${prefix}` : prefix;
+}
+
+function inferSheetJsSeparator(text: string): string {
+  // Match locked SheetJS 0.20.3: first 1024 characters, globally toggled
+  // quotes, and comma > tab > semicolon > pipe on ties (comma if none).
+  const candidates = [',', '\t', ';', '|'];
+  const counts = [0, 0, 0, 0];
+  let inQuotes = false;
+  for (const character of text.slice(0, 1024)) {
+    if (character === '"') inQuotes = !inQuotes;
+    else if (!inQuotes) {
+      const index = candidates.indexOf(character);
+      if (index >= 0) counts[index] += 1;
+    }
+  }
+  let largest = 0;
+  for (let index = 1; index < candidates.length; index += 1) {
+    if (counts[index] > counts[largest]) largest = index;
+  }
+  return candidates[largest];
 }
 
 const SAM_COLUMNS = ['QNAME', 'FLAG', 'RNAME', 'POS', 'MAPQ', 'CIGAR', 'RNEXT', 'PNEXT', 'TLEN', 'SEQ', 'QUAL'];

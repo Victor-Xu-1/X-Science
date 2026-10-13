@@ -3,7 +3,7 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "c9014bc0f2df44b04ad6c20e7676aff7fb612d1dc324f7b53254727fc1c900a5",
+  "adaptationFingerprintSHA256": "c9ccaf11911d2951bb4e21b3faa2039fd45344bf6e5be6cf5de66cf8460e5b49",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
   "additionFingerprintSHA256": "513be5f8d67c23ca1e364391d9b492b95bf73d61a123e9da7febfce6f7bedc47",
   "summary": {
@@ -1842,8 +1842,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/scientificTableModel.ts",
       "sourceSHA256": "6f706996fa76d1e5e743a3854302eb047e424b5a7728a98c9fe00001e10e761c",
-      "targetSHA256": "f18134b5014b18ca94aae91b12e63d5ede8e83a4abc976f1247235b46afd243a",
-      "bytes": 6727,
+      "targetSHA256": "0f829a7191b2fc1796c47ba22a9d11994f21d49544e255efd9587ef246f7ab44",
+      "bytes": 9502,
       "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -4224,8 +4224,8 @@
       "path": "tests/unit/previews/XScienceTableViewer.dom.test.tsx",
       "originalPath": "tests/unit/previews/SynonBiomedTableViewer.dom.test.tsx",
       "sourceSHA256": "1dba077f66c7e19377a14a7c59a3054ebbc570bb3a702c4c3d4e6aed097ed0a0",
-      "targetSHA256": "48603e5c90d1f263bb7cefc8e5b94481ed876088ecd44e1c950c0c58d629be66",
-      "bytes": 2699,
+      "targetSHA256": "c1b2b95539351f2612fa7f9621ce204d43836a9f12b5c644be3ab8dff72d197d",
+      "bytes": 4094,
       "reason": "Move genuine imported source to the current X-Science namespace. Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -4259,8 +4259,8 @@
     {
       "path": "tests/unit/previews/scientificTableModel.test.ts",
       "sourceSHA256": "925022361f15cdf2ef6a0f5fceb5f45f4883855f7452a23bc5fcee32bd008bb9",
-      "targetSHA256": "045ada870c16df802fcb6fd1ea09c567a022ba3bc17d6f625ce6cfb8a245ad99",
-      "bytes": 4775,
+      "targetSHA256": "dc9dc6478f1d44cdd2f13746d40036caf934718cb47019e8d90303eefeeeb677",
+      "bytes": 17435,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
