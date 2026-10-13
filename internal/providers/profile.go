@@ -45,13 +45,16 @@ type ProviderProfile struct {
 }
 
 type ModelProfile struct {
-	Provider      ProviderProfile `json:"provider"`
-	Model         string          `json:"model"`
-	APIKey        string          `json:"-"`
-	Temperature   *float64        `json:"temperature,omitempty"`
-	MaxTokens     *int            `json:"maxTokens,omitempty"`
-	ContextWindow *int            `json:"contextWindow,omitempty"`
-	Request       RequestProfile  `json:"request"`
+	Provider ProviderProfile `json:"provider"`
+	Model    string          `json:"model"`
+	APIKey   string          `json:"-"`
+	// CredentialRevision identifies the owner-scoped vault update observed
+	// alongside APIKey. It is operational identity, never public profile data.
+	CredentialRevision string         `json:"-"`
+	Temperature        *float64       `json:"temperature,omitempty"`
+	MaxTokens          *int           `json:"maxTokens,omitempty"`
+	ContextWindow      *int           `json:"contextWindow,omitempty"`
+	Request            RequestProfile `json:"request"`
 }
 
 type ResolutionInput struct {
@@ -252,7 +255,7 @@ func buildModelProfile(provider workspace.ModelProvider, secretStore *secretstor
 	if err != nil {
 		return ModelProfile{}, err
 	}
-	apiKey, err := resolveSecretRef(secretStore, userID, provider.SecretRef)
+	apiKey, credentialRevision, err := resolveSecretRef(secretStore, userID, provider.SecretRef)
 	if err != nil {
 		return ModelProfile{}, err
 	}
@@ -283,11 +286,12 @@ func buildModelProfile(provider workspace.ModelProvider, secretStore *secretstor
 			SecretRef:    strings.TrimSpace(provider.SecretRef),
 			Capabilities: capabilities,
 		},
-		Model:         strings.TrimSpace(provider.Model),
-		APIKey:        apiKey,
-		Temperature:   provider.Temperature,
-		MaxTokens:     provider.MaxTokens,
-		ContextWindow: provider.ContextWindow,
+		Model:              strings.TrimSpace(provider.Model),
+		APIKey:             apiKey,
+		CredentialRevision: credentialRevision,
+		Temperature:        provider.Temperature,
+		MaxTokens:          provider.MaxTokens,
+		ContextWindow:      provider.ContextWindow,
 		Request: RequestProfile{
 			Timeout:          input.RequestTimeout,
 			MaxAttempts:      maxAttempts,
@@ -470,34 +474,38 @@ func providerCapabilities(protocol string) ([]string, error) {
 	return adapter.capabilities(), nil
 }
 
-func resolveSecretRef(store *secretstore.Store, userID string, secretRef string) (string, error) {
+func resolveSecretRef(store *secretstore.Store, userID string, secretRef string) (string, string, error) {
 	secretRef = strings.TrimSpace(secretRef)
 	if secretRef == "" {
-		return "", nil
+		return "", "", nil
 	}
 	if store == nil {
-		return "", fmt.Errorf("secret store is required to resolve provider credentials")
+		return "", "", fmt.Errorf("secret store is required to resolve provider credentials")
 	}
 	secretID, err := secretIDFromRef(secretRef)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	secret, found, err := store.ResolveForUser(secretID, userID)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	if !found {
-		return "", fmt.Errorf("secret %s not found", secretID)
+		return "", "", fmt.Errorf("secret %s not found", secretID)
+	}
+	revision := ""
+	if !secret.UpdatedAt.IsZero() {
+		revision = secret.UpdatedAt.UTC().Format(time.RFC3339Nano)
 	}
 	if strings.TrimSpace(secret.Value) != "" {
-		return strings.TrimSpace(secret.Value), nil
+		return strings.TrimSpace(secret.Value), revision, nil
 	}
 	for _, key := range []string{"apiKey", "api_key", "token", "access_token"} {
 		if value := strings.TrimSpace(secret.Credentials[key]); value != "" {
-			return value, nil
+			return value, revision, nil
 		}
 	}
-	return "", fmt.Errorf("secret %s does not contain an API key", secretID)
+	return "", "", fmt.Errorf("secret %s does not contain an API key", secretID)
 }
 
 func secretIDFromRef(secretRef string) (string, error) {

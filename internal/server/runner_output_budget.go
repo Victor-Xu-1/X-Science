@@ -17,35 +17,12 @@ import (
 	"x-science/internal/providers"
 )
 
-// State is a hint for a future request, not a claimed model maximum. Rejection
-// bounds apply only to the exact generation context that produced them.
-type outputBudgetState struct {
-	Next                 int    `json:"next"`
-	Lower                int    `json:"lower"`
-	Rejected             int    `json:"rejected"`
-	Ceiling              int    `json:"ceiling"`
-	Context              string `json:"context"`
-	Owner                string `json:"ownerUserId"`
-	Session              string `json:"sessionId"`
-	SkipInitialAllowance bool   `json:"skipInitialAllowance,omitempty"`
-}
-
-// Preserves the provider error while recording that a larger effective output
-// allowance could not be obtained. Recovery may change the action, but must not
-// spend indefinitely replaying a generation that only adds tiny fragments.
-type sessionOutputBudgetSaturatedError struct {
-	cause error
-	scope string
-}
-
-func (e *sessionOutputBudgetSaturatedError) Error() string { return e.cause.Error() }
-func (e *sessionOutputBudgetSaturatedError) Unwrap() error { return e.cause }
-
 type sessionOutputBudgetClient struct {
 	delegate                  agentruntime.ModelClient
 	store                     *runtimekv.Store
 	namespace, owner, session string
 	initialLimit              int
+	preferenceNamespace       string
 }
 
 func newSessionOutputBudgetClient(delegate agentruntime.ModelClient, store *runtimekv.Store, profile providers.ModelProfile, session, role string) agentruntime.ModelClient {
@@ -53,6 +30,12 @@ func newSessionOutputBudgetClient(delegate agentruntime.ModelClient, store *runt
 		return delegate
 	}
 	identityFields := []string{profile.Provider.UserID, session, role, profile.Provider.ID, profile.Provider.Protocol, profile.Provider.Endpoint, profile.Model}
+	if profile.Provider.SecretRef != "" {
+		// This is the opaque reference, never the resolved credential. A changed
+		// account reference cannot reuse an earlier task's negotiated bounds.
+		identityFields = append(identityFields, "credential-reference:"+profile.Provider.SecretRef,
+			"credential-revision:"+profile.CredentialRevision)
+	}
 	initialLimit := 0
 	if profile.MaxTokens != nil {
 		initialLimit = *profile.MaxTokens
@@ -63,6 +46,7 @@ func newSessionOutputBudgetClient(delegate agentruntime.ModelClient, store *runt
 	identity, _ := json.Marshal(identityFields)
 	digest := sha256.Sum256(identity)
 	client := &sessionOutputBudgetClient{delegate: delegate, store: store, namespace: "output-budget-" + hex.EncodeToString(digest[:]), owner: profile.Provider.UserID, session: session, initialLimit: initialLimit}
+	client.preferenceNamespace = outputBudgetPreferenceNamespace(profile, role)
 	return client
 }
 
@@ -110,6 +94,16 @@ func (client *sessionOutputBudgetClient) observe(
 	rejected int,
 	providerMaximum ...int,
 ) error {
+	maximum := 0
+	if len(providerMaximum) > 0 {
+		maximum = providerMaximum[0]
+	}
+	return client.observeGeneration(contextID, details, rejected, maximum, false)
+}
+
+func (client *sessionOutputBudgetClient) observeGeneration(
+	contextID string, details providers.OutputLimitDetails, rejected, providerMaximum int, silentSavedGeneration bool,
+) error {
 	return client.store.EditNamespace(client.namespace, func(entries map[string]runtimekv.Entry) (bool, error) {
 		state := outputBudgetState{Owner: client.owner, Session: client.session}
 		entry, found := entries["state"]
@@ -129,9 +123,8 @@ func (client *sessionOutputBudgetClient) observe(
 			state.Rejected = rejected
 		}
 		used := details.OutputTokens
-		if len(providerMaximum) > 0 && providerMaximum[0] > 0 &&
-			(state.Ceiling == 0 || providerMaximum[0] < state.Ceiling) {
-			state.Ceiling = providerMaximum[0]
+		if providerMaximum > 0 && (state.Ceiling == 0 || providerMaximum < state.Ceiling) {
+			state.Ceiling = providerMaximum
 		}
 		if used > 0 {
 			state.Lower = used
@@ -165,14 +158,22 @@ func (client *sessionOutputBudgetClient) observe(
 			// No usage-derived lower bound: use the provider default, unless a
 			// typed maximum was accepted by the bounded comparison request.
 			state.Next = 0
-			if len(providerMaximum) > 0 && providerMaximum[0] > 0 {
-				state.Next = providerMaximum[0]
+			if providerMaximum > 0 {
+				state.Next = providerMaximum
 			} else {
 				state.SkipInitialAllowance = true
 			}
 		}
 		if state.Ceiling > 0 && state.Next > state.Ceiling {
 			state.Next = state.Ceiling
+		}
+		if silentSavedGeneration && client.initialLimit > 0 && details.RequestedTokens > 0 && used > 0 &&
+			state.Ceiling == 0 && !state.SkipInitialAllowance && !state.DefaultProbeUsed {
+			// Keep the measured next proposal as a fallback, but first retire the
+			// disproven soft allowance through one provider-default comparison.
+			state.DefaultProbePending = true
+			state.DefaultProbeFromInitial = details.RequestedTokens == client.initialLimit
+			state.SkipInitialAllowance = true
 		}
 		entry.Value = state
 		entry.Version++
@@ -194,10 +195,14 @@ func (client *sessionOutputBudgetClient) CompleteStream(ctx context.Context, req
 }
 
 func (client *sessionOutputBudgetClient) run(ctx context.Context, request agentruntime.ModelRequest, emit func(agentruntime.ModelStreamEvent) error) (agentruntime.ModelResponse, error) {
-	var visible atomic.Bool
+	var nativeProgress atomic.Bool
+	streamed := false
 	tracked := func(event agentruntime.ModelStreamEvent) error {
-		if event.ContentDelta != "" {
-			visible.Store(true)
+		// Native content may still be filtered by the publication boundary. It
+		// nevertheless fences replay here; private activity is not such output.
+		if event.Kind == agentruntime.ModelStreamEventToolCallBoundary ||
+			(event.Kind != agentruntime.ModelStreamEventPrivateReasoning && event.ContentDelta != "") {
+			nativeProgress.Store(true)
 		}
 		if emit != nil {
 			return emit(event)
@@ -207,6 +212,7 @@ func (client *sessionOutputBudgetClient) run(ctx context.Context, request agentr
 	invoke := func(input agentruntime.ModelRequest) (agentruntime.ModelResponse, error) {
 		if emit != nil {
 			if streaming, ok := client.delegate.(agentruntime.StreamingModelClient); ok {
+				streamed = true
 				return streaming.CompleteStream(ctx, input, tracked)
 			}
 		}
@@ -227,9 +233,27 @@ func (client *sessionOutputBudgetClient) run(ctx context.Context, request agentr
 	if err != nil {
 		return agentruntime.ModelResponse{}, err
 	}
+	if state == (outputBudgetState{}) {
+		initialized, preferenceErr := client.initializeOutputBudgetPreference()
+		if preferenceErr != nil {
+			log.Printf("output budget initial preference unavailable: %v", preferenceErr)
+		} else {
+			state = initialized
+		}
+	}
 	contextID, err := outputBudgetContext(request)
 	if err != nil {
 		return agentruntime.ModelResponse{}, err
+	}
+	usingDefaultProbe := false
+	if state.DefaultProbePending {
+		if err := ctx.Err(); err != nil {
+			return agentruntime.ModelResponse{}, err
+		}
+		state, usingDefaultProbe, err = client.consumeDefaultProbe(contextID)
+		if err != nil {
+			return agentruntime.ModelResponse{}, err
+		}
 	}
 	if state.Context != contextID {
 		// A constraint observed for an older request cannot freeze a request
@@ -248,14 +272,25 @@ func (client *sessionOutputBudgetClient) run(ctx context.Context, request agentr
 	if state.Ceiling > 0 && adaptive.MaxTokens > state.Ceiling {
 		adaptive.MaxTokens = state.Ceiling
 	}
+	if usingDefaultProbe {
+		adaptive.MaxTokens = 0
+	}
 	response, callErr := invoke(adaptive)
 	effectiveBudget := adaptive.MaxTokens
 	if callErr == nil || ctx.Err() != nil {
+		if usingDefaultProbe && callErr == nil && ctx.Err() == nil && completeDefaultProbeResponse(response) {
+			if err := client.acceptDefaultProbe(contextID); err != nil {
+				log.Printf("output budget default preference could not be saved: %v", err)
+			}
+			if err := client.rememberOutputBudgetPreference(ctx, previousState, response); err != nil {
+				log.Printf("output budget profile preference could not be saved: %v", err)
+			}
+		}
 		return response, callErr
 	}
 	rejected := 0
 	providerMaximum, _ := providers.ProviderOutputTokenMaximum(callErr)
-	if status, ok := providers.HTTPStatus(callErr); ok && (status == http.StatusBadRequest || status == http.StatusUnprocessableEntity) && adaptive.MaxTokens > 0 && !visible.Load() {
+	if status, ok := providers.HTTPStatus(callErr); ok && (status == http.StatusBadRequest || status == http.StatusUnprocessableEntity) && adaptive.MaxTokens > 0 && !nativeProgress.Load() {
 		// Confirm the diagnosis by changing only our budget override. This is
 		// one bounded transport comparison, never a tool execution replay.
 		fallbackInput := request
@@ -289,7 +324,8 @@ func (client *sessionOutputBudgetClient) run(ctx context.Context, request agentr
 	}
 	defaultProbe := false
 	if limited || rejected > 0 || providerMaximum > 0 {
-		if saveErr := client.observe(contextID, details, rejected, providerMaximum); saveErr != nil {
+		silentSavedGeneration := streamed && effectiveBudget > 0 && !nativeProgress.Load() && providers.IsContinuationSafeResponseTruncation(callErr)
+		if saveErr := client.observeGeneration(contextID, details, rejected, providerMaximum, silentSavedGeneration); saveErr != nil {
 			// Never invalidate an accepted response merely because saving a
 			// future-call hint failed. Failed generations retain both errors.
 			if callErr != nil {
