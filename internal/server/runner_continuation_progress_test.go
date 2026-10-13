@@ -26,8 +26,12 @@ func TestContinuationLongGenerationsDoNotTriggerFragmentRecovery(t *testing.T) {
 	testContinuationGenerationProgress(t, false, true, false)
 }
 
-func TestContinuationGrowingBudgetKeepsRecovering(t *testing.T) {
-	testContinuationGenerationProgress(t, false, false, true)
+func TestContinuationGrowingBudgetWithoutProgressParksAndRetainsHistory(t *testing.T) {
+	testContinuationGenerationProgress(t, true, false, true)
+}
+
+func TestContinuationGrowingBudgetWithMaterialOutputKeepsRecovering(t *testing.T) {
+	testContinuationGenerationProgress(t, false, true, true)
 }
 
 func testContinuationGenerationProgress(t *testing.T, stall, long, growing bool) {
@@ -36,8 +40,9 @@ func testContinuationGenerationProgress(t *testing.T, stall, long, growing bool)
 	seedTranscriptWebFrame(t, store, "local", "progress-project", "progress-frame")
 	var mu sync.Mutex
 	var requests []string
+	var budgets []int
 	rounds := 4
-	if growing {
+	if growing && !stall {
 		rounds = 6
 	}
 	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -57,6 +62,7 @@ func testContinuationGenerationProgress(t *testing.T, stall, long, growing bool)
 		}
 		mu.Lock()
 		requests = append(requests, text.String())
+		budgets = append(budgets, request.MaxTokens)
 		sequence := len(requests)
 		mu.Unlock()
 		content, finish := fmt.Sprintf("fragment%d", sequence), "length"
@@ -107,6 +113,13 @@ func testContinuationGenerationProgress(t *testing.T, stall, long, growing bool)
 	defer mu.Unlock()
 	if len(requests) != rounds {
 		t.Fatalf("provider requests=%d", len(requests))
+	}
+	if growing {
+		for i := 1; i < len(budgets); i++ {
+			if budgets[i] <= budgets[i-1] {
+				t.Fatalf("fixture did not exercise growing output budgets: %v", budgets)
+			}
+		}
 	}
 	changedRoute := strings.Contains(requests[2], "Continuation recovery: next-action")
 	if changedRoute == long {
