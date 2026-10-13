@@ -59,6 +59,34 @@ func TestResponseContractLeavesToolFreePresentationRequestUnchanged(t *testing.T
 	}
 }
 
+func TestResponseContractKeepsConversationTailAndSharedSystemBoundary(t *testing.T) {
+	for _, shared := range []bool{false, true} {
+		for _, tailRole := range []string{"user", "tool"} {
+			messages := []agentruntime.Message{{Role: "system", Content: "base policy"}}
+			if shared {
+				messages = append(messages, agentruntime.Message{Role: "system", Content: sessionRunnerPublicCommunicationContract})
+			}
+			messages = append(messages, agentruntime.Message{Role: tailRole, Content: "preserve exact conversation tail"})
+			original := agentruntime.ModelRequest{Messages: messages, Tools: []agentruntime.ToolSchema{{Name: "inspect"}}}
+			before := append([]agentruntime.Message(nil), messages...)
+			projected, err := projectRunnerResponseContract(original, true)
+			if err != nil || !reflect.DeepEqual(original.Messages, before) || !reflect.DeepEqual(projected.Messages[len(projected.Messages)-1], before[len(before)-1]) {
+				t.Fatalf("conversation changed: shared=%t tail=%s projected=%+v error=%v", shared, tailRole, projected.Messages, err)
+			}
+			wantCount := len(before) + 1
+			if shared {
+				wantCount = len(before)
+			}
+			if len(projected.Messages) != wantCount || !strings.Contains(projected.Messages[len(projected.Messages)-2].Content, runnerPublicProgressCadence(true)) {
+				t.Fatalf("cadence escaped its system boundary: %+v", projected.Messages)
+			}
+		}
+	}
+	if !strings.Contains(sessionRunnerPublicCommunicationContract, "in the user's language") {
+		t.Fatal("public language instruction was lost")
+	}
+}
+
 func TestResponseContractParallelInstructionsMatchProgressCadence(t *testing.T) {
 	for _, test := range []struct {
 		name        string

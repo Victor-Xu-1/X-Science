@@ -35,9 +35,25 @@ func projectRunnerResponseContract(request agentruntime.ModelRequest, due bool) 
 			return request, fmt.Errorf("tool %q reserves the primary response progress field", tool.Name)
 		}
 	}
-	request.Messages = append(append([]agentruntime.Message(nil), request.Messages...), agentruntime.Message{
+	request.Messages = append([]agentruntime.Message(nil), request.Messages...)
+	for index := range request.Messages {
+		message := &request.Messages[index]
+		if message.Role == "system" && strings.Contains(message.Content, sessionRunnerPublicCommunicationContract) {
+			message.Content += "\n\n" + runnerPublicProgressCadence(due)
+			return request, nil
+		}
+	}
+	// Keep guidance in the leading system block. Appending it after the latest
+	// user/tool message changes provider conversation and recovery semantics.
+	boundary := 0
+	for boundary < len(request.Messages) && request.Messages[boundary].Role == "system" {
+		boundary++
+	}
+	request.Messages = append(request.Messages, agentruntime.Message{})
+	copy(request.Messages[boundary+1:], request.Messages[boundary:])
+	request.Messages[boundary] = agentruntime.Message{
 		Role: "system", Content: runnerPublicProgressCadence(due), ContextUsageSource: agentruntime.ContextUsageSystemPrompt,
-	})
+	}
 	return request, nil
 }
 
