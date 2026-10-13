@@ -108,10 +108,13 @@ Preserve upstream notices. Record third-party additions, their versions,
 checksums, terms, and update procedure in the
 [third-party inventory](docs/THIRD_PARTY.md).
 
-First-party code is offered under [AGPL-3.0-only](LICENSE.txt), except where separate
-component terms apply. A contribution under AGPL alone does not grant permission
-to relicense it commercially; no copyright assignment or contributor agreement
-is implied. See [licensing and commercial options](COMMERCIAL-LICENSE.md).
+First-party code is offered under the [Apache License 2.0](LICENSE.txt), except
+where separate component terms apply. Unless explicitly stated otherwise,
+contributions intentionally submitted for inclusion are provided under that
+license, as described in its Section 5. Contributors retain their copyright;
+no copyright assignment or separate contributor agreement is implied. Only
+submit material you are authorized to contribute and preserve any separate
+third-party terms. See [licensing and commercial options](COMMERCIAL-LICENSE.md).
 
 X-Science is research software. Passing engineering checks does not replace
 scientific review or a user's assessment of a result.

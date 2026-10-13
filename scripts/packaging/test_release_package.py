@@ -2,10 +2,13 @@
 
 import copy
 import contextlib
+import hashlib
 import io
 import json
 import os
+import re
 import shutil
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -13,6 +16,63 @@ from pathlib import Path
 
 from scripts.packaging import release_package as packaging
 from scripts.packaging import oci_bundle
+
+
+class LicenseDistributionTest(unittest.TestCase):
+    """Exercise the real license copy/assertion statements without a full build."""
+
+    root = Path(__file__).resolve().parents[2]
+
+    def test_root_license_is_the_unmodified_apache_2_text(self):
+        # https://www.apache.org/licenses/LICENSE-2.0.txt, UTF-8 with LF endings.
+        content = (self.root / "LICENSE.txt").read_bytes()
+        self.assertEqual(hashlib.sha256(content).hexdigest(),
+                         "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30")
+
+    def license_commands(self, script, variable, verbs):
+        content = (self.root / "scripts" / script).read_text()
+        commands = [line.strip() for line in content.splitlines()
+                    if re.match(r"^(?:" + "|".join(verbs) + r")\s", line.strip())
+                    and f'"${variable}/LICENSE' in line]
+        self.assertEqual(len(commands), len(verbs), (script, commands))
+        return "\n".join(commands)
+
+    def run_commands(self, commands, directory):
+        environment = dict(os.environ, pkg=str(directory), package_dir=str(directory),
+                           install_dir=str(directory))
+        return subprocess.run(["bash", "-eu", "-c", commands], cwd=self.root,
+                              env=environment, capture_output=True, text=True, timeout=10)
+
+    def test_package_writer_and_both_consumers_agree_on_license_bytes(self):
+        writer = self.license_commands("package-release.sh", "pkg", ["cp"])
+        with tempfile.TemporaryDirectory(prefix="x-science-license-") as directory:
+            destination = Path(directory)
+            copied = self.run_commands(writer, destination)
+            self.assertEqual(copied.returncode, 0, copied.stderr)
+            self.assertEqual((destination / "LICENSE.txt").read_bytes(),
+                             (self.root / "LICENSE.txt").read_bytes())
+            for script, variable in [("package-release-test.sh", "package_dir"),
+                                     ("install-release-test.sh", "install_dir")]:
+                with self.subTest(script=script):
+                    commands = self.license_commands(script, variable, ["test", "cmp"])
+                    result = self.run_commands(commands, destination)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_consumers_reject_missing_corrupt_and_legacy_named_license(self):
+        for script, variable in [("package-release-test.sh", "package_dir"),
+                                 ("install-release-test.sh", "install_dir")]:
+            commands = self.license_commands(script, variable, ["test", "cmp"])
+            for case in ("missing", "corrupt", "legacy-name"):
+                with self.subTest(script=script, case=case), tempfile.TemporaryDirectory(
+                    prefix="x-science-license-negative-",
+                ) as directory:
+                    destination = Path(directory)
+                    if case == "corrupt":
+                        (destination / "LICENSE.txt").write_text("incomplete license\n")
+                    elif case == "legacy-name":
+                        shutil.copyfile(self.root / "LICENSE.txt", destination / "LICENSE")
+                    result = self.run_commands(commands, destination)
+                    self.assertNotEqual(result.returncode, 0, "accepted " + case)
 
 
 class ReleasePackageTest(unittest.TestCase):

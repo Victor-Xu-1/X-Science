@@ -66,7 +66,7 @@ retained contents of these legacy components:
 - `assets/x-science/agents/bookmarker/metadata.yaml`.
 
 Publication does not establish a redistribution grant for this material.
-Neither the first-party AGPL license nor a first-party commercial agreement
+Neither the first-party Apache 2.0 license nor a first-party commercial agreement
 purports to grant rights owned by another party. Public copies, similar code,
 and import records alone do not establish such permission. Existing component
 notices remain intact; this statement does not revoke any valid upstream grant.
