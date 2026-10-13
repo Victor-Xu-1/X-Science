@@ -19,6 +19,20 @@ const tool = (name: string, status: NormalizedToolCall['status'] = 'completed'):
 });
 
 describe('tool step summary model', () => {
+  it('uses explicit zero returned counts as empty source evidence in both languages', () => {
+    for (const value of [{ n_records_returned: 0 }, { rows_retrieved: 0 }]) {
+      const search = { ...tool('search_records'), output: JSON.stringify(value) };
+      expect(buildToolStepResultSummary(search, 'en-US')).toBe('No usable sources');
+      expect(buildToolStepResultSummary(search, 'zh-CN')).toBe('未发现可用来源');
+    }
+    const contradictory = {
+      ...tool('search_records'),
+      output: JSON.stringify({ n_records_returned: 0, rows_retrieved: 2 }),
+    };
+    expect(buildToolStepResultSummary(contradictory, 'en-US')).toBe('Returned data needs review');
+    expect(buildToolStepResultSummary(contradictory, 'zh-CN')).toBe('返回数据待查看');
+  });
+
   it('classifies decoded empty source pages separately from an empty MCP transport envelope', () => {
     for (const value of [{ result: '[]' }, { content: [{ type: 'text', text: '[]' }] }]) {
       const search = { ...tool('search_records'), output: JSON.stringify(value) };

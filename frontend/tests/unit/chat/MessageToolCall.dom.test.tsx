@@ -43,6 +43,10 @@ describe('MessageToolCall', () => {
     ['zh-CN', { result: '[]' }, true],
     ['en-US', { content: [{ type: 'text', text: '[]' }] }, true],
     ['zh-CN', { content: [{ type: 'text', text: '[]' }] }, true],
+    ['en-US', { n_records_returned: 0 }, true],
+    ['zh-CN', { n_records_returned: 0 }, true],
+    ['en-US', { rows_retrieved: 0 }, true],
+    ['zh-CN', { rows_retrieved: 0 }, true],
     ['en-US', { content: [] }, false],
     ['zh-CN', { content: [] }, false],
   ] as const)('keeps the %s summary and expanded empty-page state aligned for %j', async (language, output, empty) => {

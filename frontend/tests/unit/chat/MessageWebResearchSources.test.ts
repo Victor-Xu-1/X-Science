@@ -3,8 +3,56 @@ import {
   extractResearchSourcePresentation,
   isResearchActivityTool,
 } from '@/renderer/pages/conversation/Messages/components/researchSourcePresentation';
+import {
+  observeResearchReturnClaim,
+  researchSourceState,
+  type ResearchSourceShape,
+} from '@/renderer/pages/conversation/Messages/components/researchSourceShape';
 
 describe('MessageWebResearchSources model', () => {
+  it('recognizes explicit zero returned counts without accepting invalid or conflicting counters', () => {
+    for (const key of [
+      'n_records_returned',
+      'rows_retrieved',
+      'n_retrieved',
+      'n_returned',
+      'results_returned',
+      'returnedResults',
+      'retrieved',
+    ]) {
+      expect(extractResearchSourcePresentation(undefined, JSON.stringify({ [key]: 0 }))).toMatchObject({
+        state: 'empty',
+        results: [],
+      });
+      for (const value of [-1, NaN, Infinity, -Infinity, '0', null, 1]) {
+        const shape: ResearchSourceShape = {
+          collectionSeen: false,
+          nonemptyCollection: false,
+          positiveReturnedClaim: false,
+        };
+        observeResearchReturnClaim({ [key]: value }, shape);
+        expect(researchSourceState(shape, 0)).toBe('unrecognized');
+      }
+    }
+    for (const value of [
+      { n_records_returned: 0, rows_retrieved: 1 },
+      { n_records_returned: 1, rows_retrieved: 0 },
+      { n_records_returned: 0, records: [{ unsupported: 'record' }] },
+      { api_total: 0 },
+      { n_cids_total: 0 },
+      { total: 0 },
+      { results: 0 },
+    ]) {
+      expect(extractResearchSourcePresentation(undefined, JSON.stringify(value)).state).toBe('unrecognized');
+    }
+    for (const value of [
+      { result: JSON.stringify({ n_records_returned: 0 }) },
+      { content: [{ type: 'text', text: JSON.stringify({ rows_retrieved: 0 }) }] },
+    ]) {
+      expect(extractResearchSourcePresentation(undefined, JSON.stringify(value)).state).toBe('empty');
+    }
+  });
+
   it('recognizes decoded empty result arrays without treating empty transport content as results', () => {
     for (const value of [
       { result: '[]' },

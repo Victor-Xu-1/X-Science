@@ -27,7 +27,9 @@ export function observeResearchReturnClaim(record: Record<string, unknown>, shap
     'retrieved',
   ]) {
     const value = record[key];
-    if (typeof value === 'number' && Number.isFinite(value) && value > 0) shape.positiveReturnedClaim = true;
+    if (typeof value !== 'number' || !Number.isFinite(value)) continue;
+    if (value === 0) shape.collectionSeen = true;
+    if (value > 0) shape.positiveReturnedClaim = true;
   }
 }
 
