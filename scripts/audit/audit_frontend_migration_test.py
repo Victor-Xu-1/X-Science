@@ -125,5 +125,117 @@ class FrontendMigrationPolicyTests(unittest.TestCase):
                     MODULE.migration_manifest(frontend, source)
 
 
+    def test_sequence_fixture_additions_are_exact_and_first_party(self) -> None:
+        prefix = "tests/fixtures/sequence-joined-location/"
+        expected = {
+            "tests/fixtures/sequence-joined-location/contiguous.gbk": "Provide a small first-party synthetic contiguous GenBank feature fixture as a valid control for the compound-location preview guard.",
+            "tests/fixtures/sequence-joined-location/joined.gbk": "Provide a small first-party synthetic joined GenBank feature fixture for truthful unsupported-location preview behavior, without user records or research results.",
+            "tests/fixtures/sequence-joined-location/origin.gbk": "Provide a small first-party synthetic origin-spanning joined GenBank feature fixture for compound-location rejection coverage.",
+            "tests/fixtures/sequence-joined-location/reverse.gbk": "Provide a small first-party synthetic reverse-strand joined GenBank feature fixture for compound-location rejection coverage.",
+            "tests/fixtures/sequence-joined-location/dispatch-comment.jbei": "Provide a small first-party synthetic JBEI fixture with a leading comment to verify locked-parser dispatch priority is preserved.",
+        }
+        self.assertEqual(
+            {path: reason for path, reason in MODULE.ALLOWED_ADDITIONS.items() if path.startswith(prefix)},
+            expected,
+        )
+        for path, reason in expected.items():
+            with self.subTest(path=path):
+                self.assertEqual(MODULE.addition_reason(path), reason)
+                self.assertIn("first-party synthetic", reason)
+
+    def test_sequence_fixture_additions_do_not_grant_a_directory_or_extension(self) -> None:
+        for path in (
+            "tests/fixtures/sequence-joined-location/unknown.gbk",
+            "tests/fixtures/sequence-joined-location/unknown.jbei",
+            "tests/fixtures/sequence-joined-location/README.md",
+            "tests/fixtures/sequence-joined-location/contiguous.gbk.bak",
+            "tests/fixtures/sequence-joined-location/dispatch-comment.jbei.bak",
+            "tests/fixtures/sequence-joined-location/CONTIGUOUS.gbk",
+            "tests/fixtures/sequence-joined-location/dispatch-comment.JBEI",
+            "tests/fixtures/sequence-joined-location/contiguous.gb",
+            "tests/fixtures/sequence-joined-location/contiguous.jbei",
+            "tests/fixtures/sequence-joined-location/dispatch-comment.gbk",
+            "tests/fixtures/sequence-joined-location/contiguous.gbk/unknown.txt",
+            "tests/fixtures/sequence-joined-location/nested/joined.gbk",
+            "tests/fixtures/sequence-joined-location-extra/joined.gbk",
+            "tests/fixtures/sequence-joined-location-other/dispatch-comment.jbei",
+            "tests/fixtures/other-sequence/joined.gbk",
+            "tests/fixtures/other-sequence/dispatch-comment.jbei",
+            "tests/fixtures/sequence-joined-location//joined.gbk",
+            "tests/fixtures/sequence-joined-location/./joined.gbk",
+            "tests/fixtures/sequence-joined-location/../joined.gbk",
+            "/tests/fixtures/sequence-joined-location/joined.gbk",
+        ):
+            with self.subTest(path=path):
+                self.assertIsNone(MODULE.addition_reason(path))
+
+    def test_sequence_fixture_additions_retain_required_provenance_body_checks(self) -> None:
+        # Synthetic bytes exercise only provenance policy. The approved source's
+        # real-parser sequence tests own scientific behavior and dispatch checks.
+        import tempfile
+        from unittest.mock import patch
+
+        paths = (
+            "tests/fixtures/sequence-joined-location/contiguous.gbk",
+            "tests/fixtures/sequence-joined-location/joined.gbk",
+            "tests/fixtures/sequence-joined-location/origin.gbk",
+            "tests/fixtures/sequence-joined-location/reverse.gbk",
+            "tests/fixtures/sequence-joined-location/dispatch-comment.jbei",
+        )
+        allowed = {path: MODULE.addition_reason(path) for path in paths}
+        self.assertTrue(all(reason is not None for reason in allowed.values()))
+        with tempfile.TemporaryDirectory() as temporary:
+            frontend = Path(temporary)
+            bodies = {path: ("synthetic policy fixture: " + path + "\n").encode() for path in paths}
+            for path, body in bodies.items():
+                target = frontend / path
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(body)
+            records = [
+                {"path": path, "sha256": MODULE.sha256_file(frontend / path)}
+                for path in sorted(paths)
+            ]
+            with patch.multiple(
+                MODULE,
+                ALLOWED_ADAPTATIONS={}, ALLOWED_ADAPTATION_RULES=(),
+                ALLOWED_ADDITIONS=allowed, ALLOWED_ADDITION_RULES=(),
+                ALLOWED_REMOVALS={}, ALLOWED_REMOVAL_RULES=(),
+                APPROVED_ADAPTATION_FINGERPRINT=MODULE.adaptation_fingerprint([]),
+                APPROVED_ADDITION_FINGERPRINT=MODULE.addition_fingerprint(records),
+                APPROVED_REMOVAL_FINGERPRINT=MODULE.removal_fingerprint([]),
+            ):
+                source = {"files": []}
+                (frontend / MODULE.SOURCE_MANIFEST).write_text('{"files": []}\n', encoding="utf-8")
+                manifest = MODULE.migration_manifest(frontend, source)
+                self.assertEqual([record["path"] for record in manifest["additions"]], sorted(paths))
+                self.assertEqual(
+                    {record["path"]: record["reason"] for record in manifest["additions"]}, allowed,
+                )
+                for path, body in bodies.items():
+                    target = frontend / path
+                    with self.subTest(path=path, change="body"):
+                        target.write_bytes(body + b"changed\n")
+                        with self.assertRaisesRegex(RuntimeError, "addition fingerprint mismatch"):
+                            MODULE.migration_manifest(frontend, source)
+                        target.write_bytes(body)
+                    with self.subTest(path=path, change="missing"):
+                        target.unlink()
+                        with self.assertRaisesRegex(RuntimeError, "required migrated frontend additions are missing"):
+                            MODULE.migration_manifest(frontend, source)
+                        target.write_bytes(body)
+                for path in (
+                    "tests/fixtures/sequence-joined-location/unknown.gbk",
+                    "tests/fixtures/sequence-joined-location/unknown.jbei",
+                    "tests/fixtures/other-sequence/contiguous.gbk",
+                ):
+                    rogue = frontend / path
+                    rogue.parent.mkdir(parents=True, exist_ok=True)
+                    rogue.write_bytes(b"unreviewed fixture\n")
+                    with self.subTest(path=path, change="unclassified"):
+                        with self.assertRaisesRegex(RuntimeError, "unclassified migrated frontend additions"):
+                            MODULE.migration_manifest(frontend, source)
+                    rogue.unlink()
+
+
 if __name__ == "__main__":
     unittest.main()

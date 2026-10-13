@@ -7,7 +7,8 @@ export type ScientificPreviewErrorCode =
   | 'request-failed'
   | 'search-failed'
   | 'too-large'
-  | 'unsupported-format';
+  | 'unsupported-format'
+  | 'unsupported-sequence-location';
 
 type ScientificPreviewErrorDetails = {
   limit?: string;

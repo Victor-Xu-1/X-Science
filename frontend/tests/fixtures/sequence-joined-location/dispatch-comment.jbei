@@ -1,0 +1,10 @@
+<seq:seq xmlns:seq="http://jbei.org/sequence">
+<seq:name>JBEI control with XML comment</seq:name>
+<seq:sequence>ATGCCCTAA</seq:sequence>
+<!-- An archived location example, not an annotation in this JBEI document
+LOCUS       COMMENT                    36 bp    DNA     linear   SYN 13-OCT-2026
+FEATURES             Location/Qualifiers
+     CDS             join(4..6,19..24)
+ORIGIN
+-->
+</seq:seq>

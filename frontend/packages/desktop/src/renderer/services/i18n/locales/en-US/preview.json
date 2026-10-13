@@ -547,7 +547,8 @@
       "requestFailedWithStatus": "Failed to load {{kind}} (HTTP {{status}}).",
       "searchFailed": "Failed to navigate to the specified {{kind}} location.",
       "tooLarge": "{{kind}} exceeds the {{limit}} preview limit.",
-      "unsupportedFormat": "The file format for {{filename}} is not supported by the {{kind}} viewer."
+      "unsupportedFormat": "The file format for {{filename}} is not supported by the {{kind}} viewer.",
+      "unsupportedSequenceLocation": "This GenBank record uses joined or ordered feature locations that this preview cannot display accurately. Open the original file in a viewer that supports compound feature locations."
     },
     "table": {
       "kind": "table",
