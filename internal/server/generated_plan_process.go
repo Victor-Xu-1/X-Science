@@ -404,7 +404,7 @@ func (s *Server) generatedPlanResearchQueryInput(
 	input map[string]any,
 	capabilitySets ...[]string,
 ) map[string]any {
-	for _, key := range []string{"query", "url", "doi", "pmid", "pmcid", "identifier", "accession"} {
+	for _, key := range []string{"query", "url", "doi", "pmid", "pmcid", "identifier", "accession", "publication_number"} {
 		value, supplied := input[key]
 		text, isText := value.(string)
 		if supplied && value != nil && (!isText || strings.TrimSpace(text) != "") {
@@ -437,6 +437,11 @@ func (s *Server) generatedPlanResearchQueryInput(
 	searchTool := runtimeCapabilitiesContain(capabilities, "search")
 	evidenceReader := runtimeCapabilitiesContain(capabilities, "evidence-read")
 	if !runtimeCapabilitiesContainSource(capabilities) {
+		return input
+	}
+	// Producing source evidence does not make an analysis tool a retriever.
+	// Only declared search/research/read capabilities can consume plan locators.
+	if !researchTool && !searchTool && !evidenceReader {
 		return input
 	}
 	step, action, found := s.generatedPlanActiveResearchStep(frameID)

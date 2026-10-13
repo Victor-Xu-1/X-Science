@@ -28,8 +28,11 @@ func TestResearchProcessPreservesExplicitSourceIdentityBeforeAnyReadReceipt(t *t
 		}{
 			{"web_search", map[string]any{"query": "a distinct follow-up", "query_variants": []any{"another language"}}},
 			{"patent_search", map[string]any{"operation": "search", "query": "a compound patent family"}},
+			{"patent_search", map[string]any{"operation": "lookup", "publication_number": "US223898A"}},
+			{"patent_search", map[string]any{"operation": "resolve_download", "publication_number": "US223898A"}},
 			{"web_fetch", map[string]any{"url": "https://example.org/new", "limit": 2000}},
 			{"fetch_article_fulltext", map[string]any{"doi": "10.1000/new-source"}},
+			{"binding_mode_analysis", map[string]any{"pdb_id": "1ABC", "ligand_resname": "LIG"}},
 		} {
 			got := server.generatedPlanResearchQueryInput(frameID, test.tool, test.input)
 			if !reflect.DeepEqual(got, test.input) {
