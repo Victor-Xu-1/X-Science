@@ -3,6 +3,7 @@ package transcript
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"strings"
 	"time"
@@ -88,13 +89,17 @@ func (r *Repository) GetRunnerTaskMetricsAuthority(
 	}
 	// Approval responses advance an existing attempt's claimed revision, while
 	// batch admission identity stays immutable. Use the same originating attempts
-	// as model usage, counting each root batch once rather than replayed events.
+	// captured for model usage, even if a new approval arrives between reads.
+	// Count each root batch once rather than replayed or nested tool events.
+	latestAttemptsJSON, err := json.Marshal(result.LatestAttempts)
+	if err != nil {
+		return RunnerTaskMetricsAuthority{}, false, err
+	}
 	result.LatestToolCallCount, err = readToolCallCount(`
 		SELECT SUM(batch.call_count) FROM transcript_tool_call_batches batch
-		JOIN transcript_runner_attempts origin
-			ON origin.stream_uid=batch.stream_uid AND origin.attempt=batch.source_runner_attempt
-		WHERE batch.owner_user_id=? AND batch.stream_uid=? AND origin.claimed_input_revision=?`,
-		ownerID, streamUID, inputRevision,
+		WHERE batch.owner_user_id=? AND batch.stream_uid=?
+			AND batch.source_runner_attempt IN (SELECT value FROM json_each(?))`,
+		ownerID, streamUID, string(latestAttemptsJSON),
 	)
 	if err != nil {
 		return RunnerTaskMetricsAuthority{}, false, err
