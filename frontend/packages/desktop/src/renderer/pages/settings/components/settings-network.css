@@ -1,7 +1,7 @@
 /* Natural section height and visible disclosures replace nested sheet scrolls. */
 .network-group-row {
-  min-height: 60px;
-  padding: var(--ui-space-5) var(--ui-space-2);
+  min-height: 56px;
+  padding: 10px var(--ui-space-2);
 }
 .network-group-row__icon {
   width: 28px;

@@ -119,25 +119,20 @@ describe('XScienceModelsSettingsContent', () => {
     expect(activeProfile).not.toHaveTextContent('回答长度');
     expect(mocks.load).toHaveBeenCalledTimes(1);
 
-    const summary = document.querySelector('.settings-summary-strip');
-    expect(summary).not.toBeNull();
-    expect(Array.from(summary!.children).map((element) => element.tagName)).toEqual(['DIV', 'DIV', 'BUTTON']);
     const addModelAction = screen.getByTestId('x-science-model-add');
     expect(addModelAction).toHaveAttribute('aria-label', '新增模型配置');
-    expect(addModelAction.parentElement).toBe(summary);
-    expect(within(summary!).getByRole('button', { name: '新增模型配置' })).toBe(addModelAction);
-    expect(within(screen.getByTestId('models-header')).queryByRole('button', { name: '新增模型配置' })).toBeNull();
-    expect(within(summary!).queryByText('密钥状态')).toBeNull();
-
-    const profileMain = activeProfile.querySelector('.settings-model-profile__main');
-    expect(profileMain).not.toBeNull();
-    expect(Array.from(profileMain!.children).map((element) => element.className)).toEqual([
-      'settings-model-profile__identity',
-      'settings-model-profile__detail settings-model-profile__model-id',
-      'settings-model-profile__detail settings-model-profile__base-url',
-      'settings-model-profile__key',
-      'settings-model-profile__actions',
-    ]);
+    expect(
+      within(screen.getByTestId('models-header')).getByRole('button', {
+        name: '新增模型配置',
+      })
+    ).toBe(addModelAction);
+    expect(screen.getByRole('region', { name: '模型连接' })).toBeInTheDocument();
+    expect(screen.getByRole('article', { name: 'Production DeepSeek' })).toBe(activeProfile);
+    expect(
+      within(activeProfile).queryByRole('button', {
+        name: '将 Production DeepSeek 设为当前模型',
+      })
+    ).toBeNull();
   });
 
   it('tests and activates a profile through the XScience LLM Core service', async () => {
@@ -148,6 +143,7 @@ describe('XScienceModelsSettingsContent', () => {
     await waitFor(() => expect(mocks.test).toHaveBeenCalledWith('profile-active'));
     expect(mocks.success).toHaveBeenCalledWith(expect.stringContaining('deepseek-chat'));
 
+    await waitFor(() => expect(screen.getByRole('button', { name: '将 Reasoning 设为当前模型' })).toBeEnabled());
     fireEvent.click(screen.getByRole('button', { name: '将 Reasoning 设为当前模型' }));
     await waitFor(() => expect(mocks.activate).toHaveBeenCalledWith(snapshot.profiles[1]));
     expect(mocks.load).toHaveBeenCalledTimes(2);
@@ -170,6 +166,40 @@ describe('XScienceModelsSettingsContent', () => {
     await waitFor(() => expect(mocks.test).toHaveBeenCalledWith('profile-active'));
     expect(mocks.success).toHaveBeenCalledWith(expect.stringContaining('deepseek-chat'));
     expect(mocks.success).not.toHaveBeenCalledWith(expect.stringContaining('deepseek-v4-flash'));
+    expect(within(activeProfile).getByRole('status')).toHaveTextContent('deepseek-chat');
+    expect(within(activeProfile).getByRole('status')).not.toHaveTextContent('deepseek-v4-flash');
+  });
+
+  it('keeps the test result on its profile and clears it when refreshing', async () => {
+    mocks.test.mockRejectedValueOnce(new Error('private upstream diagnostic'));
+    await renderWithI18n(<XScienceModelsSettingsContent />, 'en-US');
+    const profile = await screen.findByRole('article', { name: 'Production DeepSeek' });
+    fireEvent.click(within(profile).getByRole('button', { name: /Test/ }));
+    expect(await within(profile).findByRole('alert')).not.toHaveTextContent('private upstream diagnostic');
+    expect(within(screen.getByRole('article', { name: 'Reasoning' })).queryByRole('alert')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+    await waitFor(() => expect(within(profile).queryByRole('alert')).toBeNull());
+  });
+
+  it('prevents duplicate tests while allowing an independent configuration draft', async () => {
+    let finish!: (value: unknown) => void;
+    mocks.test.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+    );
+    await renderWithI18n(<XScienceModelsSettingsContent />, 'zh-CN');
+    const profile = await screen.findByRole('article', { name: 'Production DeepSeek' });
+    const test = within(profile).getByRole('button', { name: '测试 Production DeepSeek' });
+    fireEvent.click(test);
+    fireEvent.click(test);
+    expect(mocks.test).toHaveBeenCalledTimes(1);
+    expect(profile).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByRole('button', { name: '将 Reasoning 设为当前模型' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '新增模型配置' })).toBeEnabled();
+    finish({ model: 'internal-alias' });
+    expect(await within(profile).findByRole('status')).toHaveTextContent('deepseek-chat');
+    await waitFor(() => expect(test).toBeEnabled());
   });
 
   it('opens an XScience-native profile editor without rendering the legacy injected settings UI', async () => {
@@ -222,7 +252,9 @@ describe('XScienceModelsSettingsContent', () => {
     fireEvent.click(screen.getByRole('button', { name: '新增模型配置' }));
     expect(await screen.findByRole('dialog', { name: '新增模型配置' })).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('配置名称'), { target: { value: 'Semantic options' } });
+    fireEvent.change(screen.getByLabelText('配置名称'), {
+      target: { value: 'Semantic options' },
+    });
 
     const temperatureSelect = screen.getByTestId('x-science-temperature-select');
     const temperatureTrigger = temperatureSelect.querySelector<HTMLElement>('.arco-select-view');
@@ -245,7 +277,9 @@ describe('XScienceModelsSettingsContent', () => {
     await renderWithI18n(<XScienceModelsSettingsContent />, 'zh-CN');
     await screen.findByText('Production DeepSeek');
     fireEvent.click(screen.getByRole('button', { name: '新增模型配置' }));
-    fireEvent.change(screen.getByLabelText('配置名称'), { target: { value: 'Provider default' } });
+    fireEvent.change(screen.getByLabelText('配置名称'), {
+      target: { value: 'Provider default' },
+    });
     fireEvent.click(screen.getByRole('button', { name: '保存' }));
     await waitFor(() => expect(mocks.save).toHaveBeenCalledTimes(1));
     expect(mocks.save.mock.calls[0][0]).not.toHaveProperty('maxTokens');
@@ -253,7 +287,10 @@ describe('XScienceModelsSettingsContent', () => {
   });
 
   it('saves a declared context window and clears it after endpoint changes', async () => {
-    mocks.load.mockResolvedValue({ ...snapshot, profiles: [{ ...snapshot.profiles[0], contextWindow: 128000 }] });
+    mocks.load.mockResolvedValue({
+      ...snapshot,
+      profiles: [{ ...snapshot.profiles[0], contextWindow: 128000 }],
+    });
     await renderWithI18n(<XScienceModelsSettingsContent />, 'zh-CN');
     await screen.findByText('Production DeepSeek');
     fireEvent.click(screen.getByRole('button', { name: '编辑 Production DeepSeek' }));
@@ -262,7 +299,9 @@ describe('XScienceModelsSettingsContent', () => {
     await waitFor(() => expect(mocks.save).toHaveBeenCalledTimes(1));
     expect(mocks.save.mock.calls[0][0]).toHaveProperty('contextWindow', 128000);
     fireEvent.click(screen.getByRole('button', { name: '编辑 Production DeepSeek' }));
-    fireEvent.change(screen.getByLabelText('Base URL'), { target: { value: 'https://other.invalid/v1' } });
+    fireEvent.change(screen.getByLabelText('Base URL'), {
+      target: { value: 'https://other.invalid/v1' },
+    });
     expect(screen.getByLabelText('上下文窗口（token）')).toHaveValue('');
     fireEvent.click(screen.getByRole('button', { name: '保存' }));
     await waitFor(() => expect(mocks.save).toHaveBeenCalledTimes(2));

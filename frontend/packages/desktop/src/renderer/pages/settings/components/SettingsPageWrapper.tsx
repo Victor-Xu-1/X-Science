@@ -16,6 +16,7 @@ import {
 } from '../settingsNavigation';
 import type { SettingsRouteId } from '../settingsRouteLoaders';
 import {
+  COMPACT_SETTINGS_ROUTES,
   getSettingsVisualContract,
   SETTINGS_LAYOUT_REVISION,
   SETTINGS_VISUAL_SYSTEM_ID,
@@ -136,6 +137,7 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
         <div
           className={containerClass}
           data-settings-route={contentRoute}
+          data-settings-density={COMPACT_SETTINGS_ROUTES.includes(contentRoute) ? 'compact' : undefined}
           data-settings-module={contentRoute}
           data-settings-visual-system={SETTINGS_VISUAL_SYSTEM_ID}
           data-settings-layout-revision={SETTINGS_LAYOUT_REVISION}

@@ -3,7 +3,6 @@
 .settings-page-wrapper[data-settings-visual-system='scientific-connectors-v3']
   :is(
     .settings-summary-strip,
-    .settings-model-profile,
     .settings-section,
     .settings-list,
     .memory-manager__layer-tabs,

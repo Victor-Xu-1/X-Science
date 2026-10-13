@@ -11,6 +11,18 @@ import type { SettingsRouteId } from '../settingsRouteLoaders';
 export const SETTINGS_VISUAL_SYSTEM_ID = 'scientific-connectors-v3';
 export const SETTINGS_LAYOUT_REVISION = 'intrinsic-responsive-v1';
 
+/** The operational settings share a compact scale; catalogs keep their own
+ * readable card density. This is presentation only, never a runtime limit. */
+export const COMPACT_SETTINGS_ROUTES: readonly SettingsRouteId[] = [
+  'models',
+  'compute',
+  'governance',
+  'network',
+  'credentials',
+  'storage',
+  'general',
+];
+
 export const SETTINGS_DESKTOP_VIEWPORT = { width: 1536, height: 1024 } as const;
 export const SETTINGS_MOBILE_VIEWPORT = { width: 390, height: 844 } as const;
 
@@ -127,8 +139,8 @@ export const SETTINGS_VISUAL_CONTRACTS = {
       mobile: null,
     },
     rootTestId: 'models-header',
-    primarySelectors: ['.settings-list', '.settings-list-row'],
-    interactionSelectors: ['.settings-summary-action', '.settings-list-row button', '.settings-action-button'],
+    primarySelectors: ['.model-connections', '.model-profile-card'],
+    interactionSelectors: ['.settings-page-header__actions button', '.model-profile-card button'],
     dynamicStates: ['loading', 'empty', 'test-success', 'test-error'],
   }),
   compute: contract({

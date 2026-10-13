@@ -13,25 +13,24 @@
   width: 100%;
   overflow: hidden;
   border: 1px solid var(--settings-border);
-  border-radius: var(--ui-radius-xl);
+  border-radius: var(--settings-card-radius);
   background: var(--settings-surface);
 }
 
 .settings-page-wrapper[data-settings-route='governance'] .memory-layer-card {
   display: grid;
-  min-height: 96px;
+  min-height: 76px;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 18px;
-  padding: 18px 20px;
+  gap: 14px;
+  padding: 14px 16px;
   transition:
     border-color 120ms ease,
     box-shadow 120ms ease;
 }
 
 .settings-page-wrapper[data-settings-route='governance'] .memory-layer-card--active {
-  border-color: color-mix(in srgb, var(--settings-accent) 48%, var(--settings-border));
-  box-shadow: inset 3px 0 0 var(--settings-accent);
+  background: var(--settings-surface-subtle);
 }
 
 .settings-page-wrapper[data-settings-route='governance'] .memory-layer-tab {
@@ -39,11 +38,11 @@
   width: 100% !important;
   height: auto !important;
   min-height: 0 !important;
-  grid-template-columns: 44px minmax(0, 1fr);
+  grid-template-columns: 32px minmax(0, 1fr);
   grid-template-rows: auto auto;
   align-items: center;
   justify-content: stretch !important;
-  gap: 3px 15px !important;
+  gap: 2px 12px !important;
   padding: 0 !important;
   border: 0 !important;
   border-radius: 0 !important;
@@ -52,8 +51,8 @@
 }
 
 .settings-page-wrapper[data-settings-route='governance'] .memory-layer-tab__icon {
-  width: 44px;
-  height: 44px;
+  width: 32px;
+  height: 32px;
   grid-row: 1 / 3;
   border-radius: var(--ui-radius-lg);
 }
@@ -153,7 +152,7 @@
 
 .settings-page-wrapper[data-settings-route='governance'] .memory-manager__workspace {
   height: auto;
-  min-height: 192px;
+  min-height: 160px;
   margin-top: var(--ui-space-5);
 }
 
@@ -167,7 +166,7 @@
 
 .settings-page-wrapper[data-settings-route='governance'] .memory-manager__editor-header {
   align-items: center;
-  padding: 17px 20px 14px;
+  padding: 14px 16px 12px;
 }
 
 .settings-page-wrapper[data-settings-route='governance'] .memory-manager__editor-title {
@@ -221,7 +220,7 @@
 
 .settings-page-wrapper[data-settings-route='governance'] .memory-manager__content {
   min-height: 0;
-  padding: 14px 20px 18px;
+  padding: 12px 16px 14px;
 }
 
 .settings-page-wrapper[data-settings-route='governance'] .memory-manager__state,
@@ -249,7 +248,7 @@
   html body .settings-page-wrapper[data-settings-route='governance'] .memory-manager {
     width: 100% !important;
     max-width: none !important;
-    margin-top: 24px !important;
+    margin-top: var(--settings-section-gap) !important;
   }
 }
 
@@ -291,7 +290,7 @@
 
   .settings-page-wrapper[data-settings-route='governance'] .memory-manager__workspace {
     height: auto;
-    min-height: 300px;
+    min-height: 160px;
     max-height: none;
     margin-top: 10px;
   }

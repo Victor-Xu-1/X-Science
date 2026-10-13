@@ -48,7 +48,7 @@
   gap: var(--ui-space-6);
 }
 .settings-storage-workspace .settings-section__body {
-  padding: 0 24px 24px;
+  padding: 0 var(--settings-section-padding) var(--settings-section-padding);
 }
 .settings-storage-workspace .settings-section__title {
   font-size: var(--ui-font-section);

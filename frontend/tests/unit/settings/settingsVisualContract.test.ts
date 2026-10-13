@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
+  COMPACT_SETTINGS_ROUTES,
   SETTINGS_LAYOUT_REVISION,
   SETTINGS_VISUAL_SYSTEM_ID,
   SETTINGS_VISUAL_CONTRACTS,
@@ -29,6 +30,35 @@ const surfaces = css('settings-card-surfaces');
 const manifest = css('settings');
 
 describe('intrinsic settings presentation contract', () => {
+  it('uses one compact scale for the seven operational pages without shrinking other surfaces', () => {
+    expect(COMPACT_SETTINGS_ROUTES).toEqual([
+      'models',
+      'compute',
+      'governance',
+      'network',
+      'credentials',
+      'storage',
+      'general',
+    ]);
+    expect(read('components/SettingsPageWrapper.tsx')).toContain(
+      "data-settings-density={COMPACT_SETTINGS_ROUTES.includes(contentRoute) ? 'compact' : undefined}"
+    );
+    const compact = core.match(/\.settings-page-wrapper\[data-settings-density='compact'\]\s*\{([^}]+)\}/)?.[1];
+    expect(compact).toContain('--settings-content-max: 1040px');
+    expect(compact).toContain('--settings-control-height: 34px');
+    expect(compact).toContain('--settings-page-title-size: 22px');
+    expect(compact).toContain('--ui-font-subtitle: 13px');
+    expect(compact).toContain('--settings-section-padding: 16px');
+    expect(css('settings-models')).not.toContain('--ui-font-body:');
+    expect(SETTINGS_VISUAL_CONTRACTS.models.primarySelectors).toContain('.model-profile-card');
+  });
+  it('constrains the model editor FocusLock wrapper so short screens retain the footer', () => {
+    const editorCss = read('models/model-profile-editor.css');
+    expect(editorCss).toMatch(/> \[data-focus-lock-disabled\]\s*\{[^}]*display:\s*flex/);
+    expect(editorCss).toMatch(/\.arco-modal-content\s*\{[^}]*overflow-y:\s*auto/);
+    expect(editorCss).toMatch(/\.arco-modal-footer\s*\{[^}]*flex:\s*0 0 auto/);
+    expect(read('models/ModelProfileEditor.tsx')).toContain('min(600px, 94vw)');
+  });
   it('lets current-model summary values use the available space without truncating identity', () => {
     expect(read('XScienceModelsSettings.tsx')).not.toContain("font-600 truncate'>{value}");
     expect(css('settings-skills')).not.toMatch(/\.settings-summary-item strong\s*\{[^}]*max-width:\s*70%/);
@@ -240,6 +270,6 @@ describe('active artwork and reference retirement', () => {
     );
     expect(css('settings-experts')).toContain('.expert-card > :not(.expert-card__artwork)');
     expect(css('settings-route-layouts')).toContain('.network-section--allowed > :not(.network-section__artwork)');
-    expect(core).toContain('flex: 0 0 36px');
+    expect(core).toContain('flex: 0 0 var(--settings-section-icon-size)');
   });
 });

@@ -8,6 +8,7 @@ import type {
   XScienceLlmProviderTemplate,
 } from '@/renderer/services/xScienceLlm';
 import { localizeProviderTemplate, TEMPERATURE_OPTIONS, withCurrentNumericOption } from './modelProfilePresentation';
+import './model-profile-editor.css';
 
 export type ModelProfileEditorState = { profile?: XScienceLlmProfile };
 
@@ -93,122 +94,135 @@ export const ModelProfileEditor: React.FC<{
       cancelText={t('common.cancel')}
       okButtonProps={{ disabled: !valid, loading: saving }}
       unmountOnExit
-      style={{ width: 'min(620px, 92vw)' }}
+      style={{ width: 'min(600px, 94vw)' }}
     >
-      <div className='grid grid-cols-1 md:grid-cols-2 gap-x-14px gap-y-12px'>
-        <Field label={t('settings.modelsName')} className='md:col-span-2'>
-          <Input
-            aria-label={t('settings.modelsName')}
-            value={draft.name}
-            onChange={(name) => setDraft((current) => ({ ...current, name }))}
-            placeholder={t('settings.modelsNamePlaceholder')}
-          />
-        </Field>
-        <Field label={t('settings.modelsProvider')}>
-          <Select
-            aria-label={t('settings.modelsProvider')}
-            data-testid='x-science-provider-select'
-            value={draft.provider}
-            getPopupContainer={getEditorPopupContainer}
-            onChange={(provider) => {
-              const template = templates.find((item) => item.provider === provider);
-              setDraft((current) => ({
-                ...current,
-                provider,
-                baseUrl: provider === current.provider ? current.baseUrl : template?.defaultBaseUrl || current.baseUrl,
-                model: provider === current.provider ? current.model : template?.modelExamples[0] || '',
-                contextWindow: provider === current.provider ? current.contextWindow : undefined,
-              }));
-            }}
-          >
-            {templates.map((template) => (
-              <Select.Option key={template.provider} value={template.provider}>
-                {localizeProviderTemplate(template, t).label}
-              </Select.Option>
-            ))}
-          </Select>
-        </Field>
-        <Field label={t('settings.modelsModelId')}>
-          <Select
-            aria-label={t('settings.modelsModelId')}
-            data-testid='x-science-model-id-select'
-            value={draft.model || undefined}
-            getPopupContainer={getEditorPopupContainer}
-            onChange={(model) =>
-              setDraft((current) => ({
-                ...current,
-                model: typeof model === 'string' ? model : '',
-                contextWindow: model === current.model ? current.contextWindow : undefined,
-              }))
-            }
-            placeholder={t('settings.customModelPlaceholder')}
-            showSearch
-            allowClear
-            allowCreate
-          >
-            {modelOptions.map((model) => (
-              <Select.Option key={model} value={model}>
-                {model}
-              </Select.Option>
-            ))}
-          </Select>
-        </Field>
-        <Field label={t('settings.modelsBaseUrl')} className='md:col-span-2'>
-          <Input
-            aria-label={t('settings.modelsBaseUrl')}
-            value={draft.baseUrl}
-            onChange={(baseUrl) =>
-              setDraft((current) => ({
-                ...current,
-                baseUrl,
-                contextWindow: baseUrl === current.baseUrl ? current.contextWindow : undefined,
-              }))
-            }
-            placeholder={selectedTemplate?.defaultBaseUrl}
-          />
-        </Field>
-        <Field label={t('settings.modelsApiKey')} className='md:col-span-2'>
-          <Input.Password
-            aria-label={t('settings.modelsApiKey')}
-            value={draft.apiKey}
-            onChange={(apiKey) => setDraft((current) => ({ ...current, apiKey }))}
-            placeholder={editor?.profile?.hasApiKey ? t('settings.modelsKeepKey') : t('settings.modelsKeyPlaceholder')}
-            autoComplete='new-password'
-          />
-        </Field>
-        <Field
-          label={t('settings.modelsContextWindow')}
-          description={t('settings.modelsContextWindowHint')}
-          className='md:col-span-2'
-        >
-          <InputNumber
-            aria-label={t('settings.modelsContextWindow')}
-            data-testid='x-science-context-window-input'
-            value={draft.contextWindow}
-            min={1}
-            max={10_000_000}
-            step={1}
-            precision={0}
-            placeholder={t('settings.modelsContextWindowUnknown')}
-            onChange={(contextWindow) => setDraft((current) => ({ ...current, contextWindow }))}
-          />
-        </Field>
-        <Field label={t('settings.modelsTemperature')} description={t('settings.modelsTemperatureHint')}>
-          <Select
-            aria-label={t('settings.modelsTemperature')}
-            data-testid='x-science-temperature-select'
-            value={String(draft.temperature)}
-            getPopupContainer={getEditorPopupContainer}
-            onChange={(temperature) => setDraft((current) => ({ ...current, temperature: Number(temperature ?? 0.2) }))}
-          >
-            {temperatureOptions.map((option) => (
-              <Select.Option key={`temperature-${option.value}`} value={String(option.value)}>
-                {t(option.labelKey)}
-              </Select.Option>
-            ))}
-          </Select>
-        </Field>
-      </div>
+      <p className='model-editor-intro'>{t('settings.modelsEditorIntro')}</p>
+      <fieldset className='model-editor-section'>
+        <legend>{t('settings.modelsConnectionSection')}</legend>
+        <div className='model-editor-grid'>
+          <Field label={t('settings.modelsName')} className='model-editor-field--wide'>
+            <Input
+              aria-label={t('settings.modelsName')}
+              value={draft.name}
+              onChange={(name) => setDraft((current) => ({ ...current, name }))}
+              placeholder={t('settings.modelsNamePlaceholder')}
+            />
+          </Field>
+          <Field label={t('settings.modelsProvider')}>
+            <Select
+              aria-label={t('settings.modelsProvider')}
+              data-testid='x-science-provider-select'
+              value={draft.provider}
+              getPopupContainer={getEditorPopupContainer}
+              onChange={(provider) => {
+                const template = templates.find((item) => item.provider === provider);
+                setDraft((current) => ({
+                  ...current,
+                  provider,
+                  baseUrl:
+                    provider === current.provider ? current.baseUrl : template?.defaultBaseUrl || current.baseUrl,
+                  model: provider === current.provider ? current.model : template?.modelExamples[0] || '',
+                  contextWindow: provider === current.provider ? current.contextWindow : undefined,
+                }));
+              }}
+            >
+              {templates.map((template) => (
+                <Select.Option key={template.provider} value={template.provider}>
+                  {localizeProviderTemplate(template, t).label}
+                </Select.Option>
+              ))}
+            </Select>
+          </Field>
+          <Field label={t('settings.modelsModelId')}>
+            <Select
+              aria-label={t('settings.modelsModelId')}
+              data-testid='x-science-model-id-select'
+              value={draft.model || undefined}
+              getPopupContainer={getEditorPopupContainer}
+              onChange={(model) =>
+                setDraft((current) => ({
+                  ...current,
+                  model: typeof model === 'string' ? model : '',
+                  contextWindow: model === current.model ? current.contextWindow : undefined,
+                }))
+              }
+              placeholder={t('settings.customModelPlaceholder')}
+              showSearch
+              allowClear
+              allowCreate
+            >
+              {modelOptions.map((model) => (
+                <Select.Option key={model} value={model}>
+                  {model}
+                </Select.Option>
+              ))}
+            </Select>
+          </Field>
+          <Field label={t('settings.modelsBaseUrl')} className='model-editor-field--wide'>
+            <Input
+              aria-label={t('settings.modelsBaseUrl')}
+              value={draft.baseUrl}
+              onChange={(baseUrl) =>
+                setDraft((current) => ({
+                  ...current,
+                  baseUrl,
+                  contextWindow: baseUrl === current.baseUrl ? current.contextWindow : undefined,
+                }))
+              }
+              placeholder={selectedTemplate?.defaultBaseUrl}
+            />
+          </Field>
+          <Field label={t('settings.modelsApiKey')} className='model-editor-field--wide'>
+            <Input.Password
+              aria-label={t('settings.modelsApiKey')}
+              value={draft.apiKey}
+              onChange={(apiKey) => setDraft((current) => ({ ...current, apiKey }))}
+              placeholder={
+                editor?.profile?.hasApiKey ? t('settings.modelsKeepKey') : t('settings.modelsKeyPlaceholder')
+              }
+              autoComplete='new-password'
+            />
+          </Field>
+        </div>
+      </fieldset>
+      <fieldset className='model-editor-section'>
+        <legend>{t('settings.modelsBehaviorSection')}</legend>
+        <div className='model-editor-grid'>
+          <Field label={t('settings.modelsContextWindow')} description={t('settings.modelsContextWindowHint')}>
+            <InputNumber
+              aria-label={t('settings.modelsContextWindow')}
+              data-testid='x-science-context-window-input'
+              value={draft.contextWindow}
+              min={1}
+              max={10_000_000}
+              step={1}
+              precision={0}
+              placeholder={t('settings.modelsContextWindowUnknown')}
+              onChange={(contextWindow) => setDraft((current) => ({ ...current, contextWindow }))}
+            />
+          </Field>
+          <Field label={t('settings.modelsTemperature')} description={t('settings.modelsTemperatureHint')}>
+            <Select
+              aria-label={t('settings.modelsTemperature')}
+              data-testid='x-science-temperature-select'
+              value={String(draft.temperature)}
+              getPopupContainer={getEditorPopupContainer}
+              onChange={(temperature) =>
+                setDraft((current) => ({
+                  ...current,
+                  temperature: Number(temperature ?? 0.2),
+                }))
+              }
+            >
+              {temperatureOptions.map((option) => (
+                <Select.Option key={`temperature-${option.value}`} value={String(option.value)}>
+                  {t(option.labelKey)}
+                </Select.Option>
+              ))}
+            </Select>
+          </Field>
+        </div>
+      </fieldset>
     </Modal>
   );
 };
@@ -219,10 +233,10 @@ const Field: React.FC<{
   className?: string;
   children: React.ReactNode;
 }> = ({ label, description, className, children }) => (
-  <div className={`flex flex-col gap-5px text-12px text-t-secondary ${className ?? ''}`}>
-    <span>{label}</span>
+  <div className={`model-editor-field ${className ?? ''}`}>
+    <span className='model-editor-field__label'>{label}</span>
     {children}
-    {description ? <span className='text-11px leading-18px text-t-tertiary'>{description}</span> : null}
+    {description ? <span className='model-editor-field__hint'>{description}</span> : null}
   </div>
 );
 
