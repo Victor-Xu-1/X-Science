@@ -4,6 +4,7 @@ import { Button } from '@arco-design/web-react';
 import { Download, FileText, FolderClose, Refresh } from '@icon-park/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { formatHdf5DisplayValue } from './xScienceHdf5Model';
 import type {
   AnnDataDistribution,
   AnnDataEmbedding,
@@ -495,7 +496,7 @@ const Hdf5NodeDetails: React.FC<{
           {detail && (
             <>
               <pre className='mt-8px max-h-420px overflow-auto border border-solid border-[var(--color-border-2)] bg-fill-1 p-12px text-11px leading-18px text-t-primary'>
-                {JSON.stringify(detail.preview, null, 2)}
+                {formatHdf5DisplayValue(detail.preview, 2)}
               </pre>
               {detail.truncated && (
                 <p className='m-0 mt-6px text-11px text-t-tertiary'>{t('preview.scientific.hdf5.sliceTruncated')}</p>

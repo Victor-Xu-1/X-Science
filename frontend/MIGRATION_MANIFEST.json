@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "752c8a24e6bc1c4a7dbf6c778e8e3a1f1ae248d8f4e633054e7036c19ddc4f8e",
+  "adaptationFingerprintSHA256": "bf2b109f117ca3b5db26464cfa37809a1188155f938f0522f1c01403c6249f1f",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
-  "additionFingerprintSHA256": "0690eda324fbcd4790db267581ebbf70af51de3596b2388d68b1049d44a19d3f",
+  "additionFingerprintSHA256": "c2789fd59f82a6cde0c3e821972520bbf808e80485cf2232d0ef7bd97cefa45d",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 276,
@@ -17,14 +17,14 @@
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "f00d22628cbe4477872bd05cb7eb8eb0a32cbf8410a1ef21d260dc03dc31f79d",
+      "targetSHA256": "20a54e7d1e62b8733191352ad1c06a291a4b1dec88404ae623516c922d49a03d",
       "bytes": 4392,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "c4650ecfb25550e6325c4d845e8aee086909c088cbbd7570f0c6e117ac43b6e6",
+      "targetSHA256": "a4d8fd950d13a500a2bd046d420186d0e66e208f5b566ab037245527aaed0481",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -1729,16 +1729,16 @@
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/XScienceHdf5.worker.ts",
       "originalPath": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedHdf5.worker.ts",
       "sourceSHA256": "cab3ed06048b52f04ae229eb746243305168c6eec9269ea4ac612846c2e34d4a",
-      "targetSHA256": "d59d8425b42e94df52241d13ba7406d8098b5f5ea0286c405acca28e33f92225",
-      "bytes": 17481,
+      "targetSHA256": "3f2301f271855782fb89d52a604fe0e5c59d665b9d1259bff0df9e16fc95b69f",
+      "bytes": 18382,
       "reason": "Move genuine imported source to the current X-Science namespace. Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/XScienceHdf5Viewer.tsx",
       "originalPath": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedHdf5Viewer.tsx",
       "sourceSHA256": "37037ed1ebfdb06439a1ee9615354475cef385c2f096fc10213a2d277d667692",
-      "targetSHA256": "442277ff2ca5eef229d22b39a2d0669c0ebd714b5896b6b9d5657f0dc0508469",
-      "bytes": 25250,
+      "targetSHA256": "a3f6d3ca5b2fc2ec90e18afae6b415ea343ee389857ef8aa5d88fef4975af998",
+      "bytes": 25314,
       "reason": "Move genuine imported source to the current X-Science namespace. Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -1857,8 +1857,8 @@
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/xScienceHdf5Model.ts",
       "originalPath": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/synonBiomedHdf5Model.ts",
       "sourceSHA256": "31bee3c7db14ad01f16b994d59ec2e18b714c9e57c962d538b5c43e7389b3ad1",
-      "targetSHA256": "8312f00766855a57d5b557f4e1014bc09b60c2326bb9c41642d61b02a24a43cb",
-      "bytes": 1735,
+      "targetSHA256": "506866cb1502b1a03d2c33401a44a486c86ede3db9205c7c22a6415ac0635604",
+      "bytes": 3024,
       "reason": "Move genuine imported source to the current X-Science namespace. Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -4168,8 +4168,8 @@
       "path": "tests/unit/previews/XScienceHdf5Viewer.dom.test.tsx",
       "originalPath": "tests/unit/previews/SynonBiomedHdf5Viewer.dom.test.tsx",
       "sourceSHA256": "790115f1e9a6a3f119e56bececa5ebcdf85a872ba3cb47d80b0e3431963e5ea5",
-      "targetSHA256": "af0a5bd3e1ec72933c26ff45efd9bb8efc9090be3045258cfad83e0dbc41af1a",
-      "bytes": 9013,
+      "targetSHA256": "5eb04d3e25897f68b5ba418ce5237179e2515f8d03c5daf1409aceda90f65055",
+      "bytes": 19646,
       "reason": "Move genuine imported source to the current X-Science namespace. Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -7523,7 +7523,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "52a3346e8c0906bd96df8214ca9da9c9ba21aceedb7c6be83ac793f7f6170ff5",
+      "sha256": "1d87d7a00788f923f71cf54e2eebb0dc1f0d4c0f1d90896c12552885c4a273d7",
       "bytes": 558186,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -11165,8 +11165,8 @@
     },
     {
       "path": "tests/unit/previews/XScienceHdf5.worker.test.ts",
-      "sha256": "ea328a395fd10e282f669d8f36e496fc2e6121010689bb6bfdd78fd4c63f05e7",
-      "bytes": 17388,
+      "sha256": "4b1dfba1c22e899bc3c032bc338fac42052f2db11bc94473b1a34ad89dfab069",
+      "bytes": 34469,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
