@@ -6,6 +6,7 @@ import {
   toolSourceUnavailable,
 } from '@/renderer/pages/conversation/Messages/components/toolStepSummaryModel';
 import { buildToolPublicDetailPresentation } from '@/renderer/pages/conversation/Messages/toolDetails/detailProjection';
+import { hasNativeRetrievalReceipt } from '@/renderer/pages/conversation/Messages/toolActivityPresentationRegistry';
 
 const tool = (input: object, output: object = {}): NormalizedToolCall => ({
   key: 'receipt',
@@ -41,7 +42,7 @@ describe('retrieval presentation', () => {
       expect(item.status).toBe('completed');
     }
   );
-  it.each(['web_fetch', 'fetch_article_fulltext', 'download_public_scientific_file'])(
+  it.each(['web_fetch', 'WebFetch', 'fetch_article_fulltext', 'download_public_scientific_file'])(
     'preserves native unavailable and abstract-record semantics for %s',
     (name) => {
       const unavailable = { ...tool({}, { available: false, sourceUnavailable: true }), name };
@@ -55,8 +56,27 @@ describe('retrieval presentation', () => {
       expect(toolSourceUnavailable(abstract)).toBe(false);
       expect(buildToolStepPublicPresentation(abstract, 'en-US').resultSummary).toBe('Full text unavailable');
       expect(buildToolPublicDetailPresentation(abstract, 'en-US', null).notices).toEqual([]);
+      expect(buildToolStepGroupSummary([unavailable, unavailable], 'en-US').headline).toBe('Source unavailable · 2');
+      expect(buildToolStepGroupSummary([abstract, abstract], 'en-US').headline).toBe('Retrieved 2 sources');
+      expect(unavailable.status).toBe('completed');
     }
   );
+  it.each([
+    'mcp__external__WebFetch',
+    'mcp_external__WebFetch',
+    'mcp__external__fetch_article_fulltext',
+    'mcp__external__download_public_scientific_file',
+    'webfetch',
+    'WEBFETCH',
+    ' WebFetch ',
+  ])('does not grant native receipt authority to the alias lookalike %s', (name) => {
+    const item = { ...tool({}, { available: false, sourceUnavailable: true }), name };
+    expect(hasNativeRetrievalReceipt(name)).toBe(false);
+    expect(toolSourceUnavailable(item)).toBe(false);
+    expect(buildToolStepPublicPresentation(item, 'en-US').resultSummary).not.toBe('Source unavailable');
+    expect(buildToolPublicDetailPresentation(item, 'en-US', null).notices).toEqual([]);
+    expect(buildToolStepGroupSummary([item, item], 'en-US').headline).not.toContain('Source unavailable');
+  });
   it('does not count unavailable sources as acquired material or mutate task status', () => {
     const unavailable = tool({}, { result: { sourceUnavailable: true, bytesRead: 0 } });
     const acquired = tool({}, { bytesRead: 50, complete: true });

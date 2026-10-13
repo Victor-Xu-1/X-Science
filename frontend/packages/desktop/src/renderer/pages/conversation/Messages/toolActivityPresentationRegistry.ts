@@ -164,6 +164,9 @@ function inferredActivityKind(normalized: string): ToolActivityKind {
 }
 
 function activityDefinition(name: string): ToolActivityDefinition {
+  // The runtime accepts this exact compatibility name; reuse the canonical
+  // policy without treating case variants or MCP-prefixed tools as aliases.
+  if (name === 'WebFetch') return TOOL_ACTIVITY_DEFINITIONS.web_fetch;
   const normalized = name.trim().toLowerCase();
   return TOOL_ACTIVITY_DEFINITIONS[normalized] ?? { kind: inferredActivityKind(normalized) };
 }
@@ -174,7 +177,7 @@ export function getToolActivityKind(name: string): ToolActivityKind {
 
 /** Inferred activity labels never grant a custom tool the native receipt contract. */
 export function hasNativeRetrievalReceipt(name: string): boolean {
-  return TOOL_ACTIVITY_DEFINITIONS[name.trim().toLowerCase()]?.nativeRetrievalReceipt === true;
+  return activityDefinition(name).nativeRetrievalReceipt === true;
 }
 
 export function getToolPublicDetailKind(name: string): ToolPublicDetailKind {
