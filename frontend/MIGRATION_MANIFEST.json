@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "d0adfc1309c3b8d9d1c78a01b8417d086349fc26ee8f77c0c27424f480f0f93a",
+  "adaptationFingerprintSHA256": "6ffe69d02bfa7bc9e84fc733dc0f9425f3c079769adaea2d4e53da4a2af5b92a",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
-  "additionFingerprintSHA256": "4834307e1077b0d388c8269a727f195431a10ba306a9a31015879ebddb585541",
+  "additionFingerprintSHA256": "d9352639c1c639a1da3158c4a342c7ea10043da346bc1913db39316287fe8087",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 276,
@@ -1835,8 +1835,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/scientificMsaModel.ts",
       "sourceSHA256": "cbe8a483cfabbb3f0e1158933185179d576460b50753f7d189be2d31b96be0e8",
-      "targetSHA256": "268413e417e7fb581ddfa9d3ab20788fe1a718625f129805e8e3971c51b803a5",
-      "bytes": 4379,
+      "targetSHA256": "f1d18d73ad1a9a2328ff26668441e0ee26087baf61beee9526ed018908f07b33",
+      "bytes": 5759,
       "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -2833,8 +2833,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "ecb5d5d040e1bb001e10ba67c3cbbf327c016ddf8680ad1044b0027279221460",
-      "bytes": 255702,
+      "targetSHA256": "f5034896f2131c477da1c9b221bd9dd2704df87b1430417d2243f8a5ba0dd8d6",
+      "bytes": 255753,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2910,8 +2910,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/preview.json",
       "sourceSHA256": "bf530f4a992cc14652500390e715b7add84853e9b0757158c718244cf4cd8f32",
-      "targetSHA256": "9e736bcf1d1da502f752ef35bd168d4177bf7f90e0be17d0fefdfba598cc6ec3",
-      "bytes": 42679,
+      "targetSHA256": "985465229b19292c77857822a797dbbf1c7247a5e86602d6c77b900e8d57232d",
+      "bytes": 42817,
       "reason": "Add English labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls."
     },
     {
@@ -3001,8 +3001,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/preview.json",
       "sourceSHA256": "6b772273972756a3407fee8fe7b4503e992964a8de901375f06bfd2faacf2ba0",
-      "targetSHA256": "4d1d2c4827495123809786d60bccc98d8baa72cf10ff390cca2a5d127f43319a",
-      "bytes": 41193,
+      "targetSHA256": "fd705101b792659dd4e073e485f5dcb314f77d1f2fef346980f56b13ed91407b",
+      "bytes": 41320,
       "reason": "Add Simplified Chinese labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls."
     },
     {
@@ -4192,8 +4192,8 @@
       "path": "tests/unit/previews/XScienceMsaViewer.dom.test.tsx",
       "originalPath": "tests/unit/previews/SynonBiomedMsaViewer.dom.test.tsx",
       "sourceSHA256": "04693844ed2aad30aedcf78565189ca0a1bde8cd70a69747c287193ca92c68e8",
-      "targetSHA256": "97320e3524fb983478c307b451e6d512a0f52d3e25502a07155039ed365a9d95",
-      "bytes": 1477,
+      "targetSHA256": "8a4139c1ed44217e2e7696e029b1200cf413776366aeb0ab174d9af6a9a49fe4",
+      "bytes": 3198,
       "reason": "Move genuine imported source to the current X-Science namespace. Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -4252,8 +4252,8 @@
     {
       "path": "tests/unit/previews/scientificMsaModel.test.ts",
       "sourceSHA256": "5e97b8c1c56743b6cd5d1c651bc278663be7cf1c6908430e7b97174a8787658b",
-      "targetSHA256": "366736fd9e40c6356c7c99719bf783fa2e8a50999ed34cd5f202ad921e652ea2",
-      "bytes": 2185,
+      "targetSHA256": "0d265c391a14837677ee7a630dc44439766e461f80bd8246e275b7cde331a452",
+      "bytes": 12059,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -8897,8 +8897,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/scientificPreviewError.ts",
-      "sha256": "229bb12a6945996d0aa4483f57183bfb4fd7e5b6f4df2fbda5fb71d215407014",
-      "bytes": 1665,
+      "sha256": "ecc6c181bd6f8cca56118a97a17cf1653674956edae849efee729585f5836149",
+      "bytes": 1691,
       "reason": "Shared localized and non-sensitive error mapping for scientific preview failures."
     },
     {
