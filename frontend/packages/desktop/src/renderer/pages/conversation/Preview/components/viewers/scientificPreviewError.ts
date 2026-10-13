@@ -2,6 +2,7 @@ export type ScientificPreviewErrorCode =
   | 'empty-content'
   | 'initialize-failed'
   | 'missing-content'
+  | 'multiple-alignments'
   | 'parse-failed'
   | 'request-failed'
   | 'search-failed'
