@@ -1393,6 +1393,8 @@ export type I18nKey =
   | 'conversation.xscienceRuntime.runtimeOperations.manualReviewResult'
   | 'conversation.xscienceRuntime.runtimeOperations.modelBusy'
   | 'conversation.xscienceRuntime.runtimeOperations.modelBusyDescription'
+  | 'conversation.xscienceRuntime.runtimeOperations.modelNoProgressPaused'
+  | 'conversation.xscienceRuntime.runtimeOperations.modelResponsePaused'
   | 'conversation.xscienceRuntime.runtimeOperations.modelUnavailable'
   | 'conversation.xscienceRuntime.runtimeOperations.modelUnavailableDescription'
   | 'conversation.xscienceRuntime.runtimeOperations.modelUnavailableWithRecovery'

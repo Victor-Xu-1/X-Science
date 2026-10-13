@@ -71,6 +71,23 @@ const expectDetailsSurfaceClosed = () => {
 
 describe('XScienceTaskStatus', () => {
   it.each(['en-US', 'zh-CN'] as const)(
+    'labels the no-progress pause in %s even without a resume action',
+    async (language) => {
+      await renderWithI18n(
+        <XScienceTaskStatus
+          {...defaultProps}
+          snapshot={snapshot('paused', { failureReason: 'provider_stream_no_progress' })}
+        />,
+        language
+      );
+      expect(screen.getByTestId('x-science-runtime-status')).toHaveAttribute('data-state', 'paused');
+      expect(screen.getByTestId('x-science-task-status-indicator')).toHaveTextContent(
+        language === 'en-US' ? 'Model response paused' : '模型响应已暂停'
+      );
+      expect(screen.queryByTestId('x-science-task-status-spinner')).not.toBeInTheDocument();
+    }
+  );
+  it.each(['en-US', 'zh-CN'] as const)(
     'shows the retry cause in %s and clears it on recovered progress',
     async (language) => {
       const { rerender } = await renderWithI18n(

@@ -1080,6 +1080,8 @@
       "recoveryTitle": "Task recovery needed",
       "outputLimitPaused": "This model response reached its output limit. Task progress is preserved; continue the current task to handle unfinished work. This is not a permission request.",
       "recoveryPaused": "Task progress is preserved. Execution is paused, not waiting for permission; inspect the task status and continue from the current progress.",
+      "modelResponsePaused": "Model response paused",
+      "modelNoProgressPaused": "The model did not return usable public text or a tool action in this request. Your goal and completed results are preserved. You can continue, or select another model before continuing. This is not a permission request.",
       "resumePausedTask": "Continue task",
       "planChanged": "The task plan changed. Reload and review the current plan before deciding.",
       "taskCancelling": "Task cancelling",

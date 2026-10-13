@@ -774,7 +774,7 @@ func (s *Server) publishTranscriptWebClaim(ctx context.Context, claim transcript
 			reason := firstNonEmpty(webString(payload["reason_code"]), webString(payload["reasonCode"]))
 			runtimePayload["phase"] = "paused"
 			runtimePayload["reason_code"] = reason
-			runtimePayload["message"] = runnerRecoveryWaitPublicMessage(frameContext.Frame.Name)
+			runtimePayload["message"] = runnerRecoveryWaitPublicMessage(sessionRunnerResponseLanguage(frameContext.Frame.Name), reason)
 			if waitingForModel {
 				runtimePayload["phase"] = "waiting_input"
 				runtimePayload["message"] = firstNonEmpty(webString(payload["resume_detail"]), "No active model configuration is available. Configure or select a model, then continue this same task.")
@@ -835,13 +835,6 @@ func publicProviderRetryReason(reason string) string {
 	default:
 		return ""
 	}
-}
-
-func runnerRecoveryWaitPublicMessage(task string) string {
-	if sessionRunnerResponseLanguage(task) == "zh" {
-		return "连续恢复未改变当前阻塞条件，任务已暂停；原目标和已完成结果均已保留。条件修复、模型切换或补充输入后可继续。"
-	}
-	return "Recovery has not changed the blocking condition. The task is paused with its goal and completed results preserved; it can continue after the condition, model selection, or user input changes."
 }
 
 func (s *Server) publishTranscriptTerminal(
