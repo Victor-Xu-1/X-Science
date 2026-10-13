@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "ad286179733d4612bd06bdc98c1aa6b5de3ec5b3c03d7d23999540a3d1a800d0",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
-  "additionFingerprintSHA256": "d67db3e7a3af3895e29609ebe49c40761201cf02b703e6877f48fa51b502f376",
+  "additionFingerprintSHA256": "ceb4c2ddc449fcebad4da65a2706bda64f020717e9e1585ef85e44603b459bf8",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 276,
@@ -9509,8 +9509,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/settings/components/settings-models.css",
-      "sha256": "c90f21bc118a4f0cbb636fdc97b13215af60f16632e0ff2fe1e8ac8583ace39a",
-      "bytes": 6586,
+      "sha256": "b8fc120ef21662364d0e618007008f5bcd08d819a8c84b83cb6f5e530d4f449d",
+      "bytes": 6757,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9611,8 +9611,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/settings/models/model-profile-editor.css",
-      "sha256": "bc14045d80b345f0cd8b338315be075ab7220ab56fd0649667fa9d41d0e2090e",
-      "bytes": 2845,
+      "sha256": "6368fa4ec089f068011c4a5b570e56d8d85f97b87d9eb1a7d046d84c4b0d1306",
+      "bytes": 2939,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {

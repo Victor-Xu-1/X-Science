@@ -18,7 +18,7 @@
 }
 .x-science-model-editor-modal .arco-modal-title {
   text-align: start;
-  font-size: 18px;
+  font-size: var(--ui-font-lead);
   line-height: 1.4;
   font-weight: 600;
 }
@@ -41,7 +41,7 @@
   margin: 8px 0 18px;
   max-width: 54ch;
   color: var(--color-text-2);
-  font-size: 13px;
+  font-size: var(--ui-font-body);
   line-height: 1.5;
 }
 .model-editor-section {
@@ -61,7 +61,7 @@
   margin-bottom: 12px;
   padding: 0;
   color: var(--color-text-1);
-  font-size: 14px;
+  font-size: var(--ui-font-subtitle);
   font-weight: 600;
 }
 .model-editor-grid {
@@ -80,18 +80,18 @@
 }
 .model-editor-field__label {
   color: var(--color-text-2);
-  font-size: 13px;
+  font-size: var(--ui-font-body);
   font-weight: 500;
   line-height: 1.5;
 }
 .model-editor-field__hint {
   color: var(--color-text-3);
-  font-size: 12px;
+  font-size: var(--ui-font-meta);
   line-height: 1.65;
 }
 .model-editor-field :is(.arco-input-wrapper, .arco-input, .arco-select-view, .arco-input-number) {
   border-radius: 9px;
-  font-size: 13px;
+  font-size: var(--ui-font-body);
 }
 .model-editor-field :is(.arco-input-wrapper, .arco-select-view, .arco-input-number) {
   min-height: 34px;

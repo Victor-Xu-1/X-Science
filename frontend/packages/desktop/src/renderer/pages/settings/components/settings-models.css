@@ -22,7 +22,7 @@
 .model-connections-heading h2 {
   margin: 0;
   color: var(--settings-text);
-  font-size: 14px;
+  font-size: var(--settings-section-title-size);
   font-weight: 600;
 }
 .model-connections-count {
@@ -30,7 +30,7 @@
   border-radius: 20px;
   background: var(--settings-surface-subtle);
   color: var(--settings-text-secondary);
-  font-size: 12px;
+  font-size: var(--settings-meta-size);
   font-variant-numeric: tabular-nums;
 }
 .model-profiles-list {
@@ -85,7 +85,7 @@
 }
 .model-profile-card__identity > span {
   color: var(--settings-text-secondary);
-  font-size: 12px;
+  font-size: var(--settings-meta-size);
   line-height: 1.5;
 }
 .model-profile-card__current {
@@ -96,7 +96,7 @@
   border-radius: 20px;
   color: var(--settings-accent-strong);
   background: var(--settings-accent-soft);
-  font-size: 12px;
+  font-size: var(--settings-meta-size);
   font-weight: 500;
   white-space: nowrap;
 }
@@ -112,7 +112,7 @@
 .model-profile-card__details dt {
   margin-bottom: 5px;
   color: var(--settings-text-secondary);
-  font-size: 12px;
+  font-size: var(--settings-meta-size);
   line-height: 1.4;
 }
 .model-profile-card__details dd {
@@ -127,7 +127,7 @@
 }
 .model-profile-card__endpoint {
   font-family: var(--font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
-  font-size: 12px !important;
+  font-size: var(--settings-meta-size) !important;
 }
 .model-profile-card__credential {
   display: flex;
@@ -151,7 +151,7 @@
 }
 .model-profile-card__runtime {
   color: var(--settings-text-secondary);
-  font-size: 12px;
+  font-size: var(--settings-meta-size);
   line-height: 1.6;
 }
 .model-profile-card__actions {
@@ -170,7 +170,7 @@
 .model-profile-card__result {
   padding: 10px 18px;
   border-top: 1px solid var(--settings-border);
-  font-size: 13px;
+  font-size: var(--ui-font-body);
   line-height: 1.6;
 }
 .model-profile-card__result.is-success {
