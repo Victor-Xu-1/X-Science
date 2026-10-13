@@ -86,9 +86,14 @@ func (r *Repository) GetRunnerTaskMetricsAuthority(
 	if err != nil {
 		return RunnerTaskMetricsAuthority{}, false, err
 	}
+	// Approval responses advance an existing attempt's claimed revision, while
+	// batch admission identity stays immutable. Use the same originating attempts
+	// as model usage, counting each root batch once rather than replayed events.
 	result.LatestToolCallCount, err = readToolCallCount(`
-		SELECT SUM(call_count) FROM transcript_tool_call_batches
-		WHERE owner_user_id=? AND stream_uid=? AND admitted_input_revision=?`,
+		SELECT SUM(batch.call_count) FROM transcript_tool_call_batches batch
+		JOIN transcript_runner_attempts origin
+			ON origin.stream_uid=batch.stream_uid AND origin.attempt=batch.source_runner_attempt
+		WHERE batch.owner_user_id=? AND batch.stream_uid=? AND origin.claimed_input_revision=?`,
 		ownerID, streamUID, inputRevision,
 	)
 	if err != nil {
