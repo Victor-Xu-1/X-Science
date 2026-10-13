@@ -19,7 +19,6 @@ type XScienceSequenceViewerProps = {
 type SequenceViewerMode = 'both' | 'circular' | 'linear';
 
 export const MAX_SEQUENCE_BYTES = 10 * 1024 * 1024;
-const SEQUENCE_SIZE_LIMIT_LABEL = '10 MB';
 const LazySeqViz = React.lazy(async () => {
   const module = await import('seqviz');
   return { default: module.SeqViz };
@@ -182,126 +181,101 @@ export async function loadSequenceContent({
     headers: { Accept: 'text/plain, application/octet-stream, chemical/seq-na-genbank' },
     signal,
   });
-  if (!response.ok) throw new ScientificPreviewError('request-failed', { status: response.status });
-  const transportDecoded = response.headers.get('content-encoding')?.toLowerCase() === 'gzip';
-  if (filename.toLowerCase().endsWith('.gz') && !transportDecoded) {
-    rejectDeclaredOversize(response);
-    const compressed = await readBoundedResponseBody(response, MAX_SEQUENCE_BYTES, signal);
-    const decompressed = await decompressGzipBounded(compressed, MAX_SEQUENCE_BYTES, signal);
-    if (resolveSequenceFormat(filename) === 'snapgene') return decompressed;
-    const source = new TextDecoder('utf-8', { fatal: true }).decode(decompressed);
-    assertWithinLimit(new Blob([source]).size);
-    return source;
+  const transportDecoded = response.headers.get('content-encoding')?.trim().toLowerCase() === 'gzip';
+  const gzipFile = filename.toLowerCase().endsWith('.gz') && !transportDecoded;
+  let gzipDecoder: DecompressionStream | undefined;
+  try {
+    if (!response.ok) throw new ScientificPreviewError('request-failed', { status: response.status });
+    // Fetch already decoded HTTP gzip, so its Content-Length describes compressed transport bytes.
+    if (!transportDecoded) {
+      const declaredLength = Number(response.headers.get('content-length'));
+      if (Number.isFinite(declaredLength)) assertWithinLimit(declaredLength);
+    }
+    if (gzipFile) {
+      if (typeof DecompressionStream === 'undefined') throw new ScientificPreviewError('initialize-failed');
+      gzipDecoder = new DecompressionStream('gzip');
+    }
+    signal.throwIfAborted();
+  } catch (reason) {
+    await response.body?.cancel(reason).catch(() => {});
+    throw reason;
   }
-  rejectDeclaredOversize(response);
 
-  if (resolveSequenceFormat(filename) === 'snapgene') {
-    return readBoundedResponseBody(response, MAX_SEQUENCE_BYTES, signal);
+  let stream = response.body;
+  if (stream && gzipDecoder) {
+    let compressedBytes = 0;
+    // Bound the file's raw bytes independently of its decoded output, without buffering it first.
+    stream = stream
+      .pipeThrough(
+        new TransformStream<Uint8Array, Uint8Array>({
+          transform(chunk, controller) {
+            compressedBytes += chunk.byteLength;
+            assertWithinLimit(compressedBytes);
+            controller.enqueue(chunk);
+          },
+        }),
+        { signal }
+      )
+      .pipeThrough(gzipDecoder, { signal });
   }
-  const bytes = await readBoundedResponseBody(response, MAX_SEQUENCE_BYTES, signal);
-  const source = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
-  assertWithinLimit(new Blob([source]).size);
-  return source;
-}
-
-function rejectDeclaredOversize(response: Response): void {
-  const declaredLength = Number(response.headers.get('content-length'));
-  if (Number.isFinite(declaredLength) && declaredLength > MAX_SEQUENCE_BYTES) {
-    void response.body?.cancel();
-    throw new ScientificPreviewError('too-large', { limit: SEQUENCE_SIZE_LIMIT_LABEL });
-  }
+  return readSequenceStream(stream, signal, resolveSequenceFormat(filename) === 'snapgene', gzipFile);
 }
 
 function assertWithinLimit(size: number): void {
-  if (size > MAX_SEQUENCE_BYTES) throw new ScientificPreviewError('too-large', { limit: SEQUENCE_SIZE_LIMIT_LABEL });
+  if (size > MAX_SEQUENCE_BYTES) throw new ScientificPreviewError('too-large', { limit: '10 MB' });
 }
 
-async function readBoundedResponseBody(response: Response, limit: number, signal: AbortSignal): Promise<ArrayBuffer> {
-  if (!response.body) {
-    const data = await response.arrayBuffer();
-    if (data.byteLength > limit) throw new ScientificPreviewError('too-large', { limit: SEQUENCE_SIZE_LIMIT_LABEL });
-    return data;
-  }
-
-  const reader = response.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  let complete = false;
-
-  try {
-    while (true) {
-      signal.throwIfAborted();
-      // oxlint-disable-next-line eslint/no-await-in-loop
-      const { done, value } = await reader.read();
-      signal.throwIfAborted();
-      if (done) {
-        complete = true;
-        break;
-      }
-      total += value.byteLength;
-      if (total > limit) {
-        throw new ScientificPreviewError('too-large', { limit: SEQUENCE_SIZE_LIMIT_LABEL });
-      }
-      chunks.push(value);
-    }
-  } finally {
-    try {
-      if (!complete) await reader.cancel();
-    } finally {
-      reader.releaseLock();
-    }
-  }
-
-  const bytes = new Uint8Array(total);
-  let offset = 0;
-  for (const chunk of chunks) {
-    bytes.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return bytes.buffer;
-}
-
-async function decompressGzipBounded(data: ArrayBuffer, limit: number, signal: AbortSignal): Promise<ArrayBuffer> {
-  if (typeof DecompressionStream === 'undefined') {
-    throw new ScientificPreviewError('initialize-failed');
-  }
-  const stream = new Blob([data]).stream().pipeThrough(new DecompressionStream('gzip'));
+async function readSequenceStream(
+  stream: ReadableStream<Uint8Array> | null,
+  signal: AbortSignal,
+  binary: boolean,
+  fatalUtf8: boolean
+): Promise<string | ArrayBuffer> {
+  if (!stream) return binary ? new ArrayBuffer(0) : '';
   const reader = stream.getReader();
+  const decoder = new TextDecoder('utf-8', { fatal: fatalUtf8 });
   const chunks: Uint8Array[] = [];
-  let total = 0;
+  const parts: string[] = [];
+  let bytes = 0;
+  let textBytes = 0;
   let complete = false;
-
+  const abort = () => {
+    void reader.cancel(signal.reason).catch(() => {});
+  };
+  const appendText = (part: string) => {
+    textBytes += new Blob([part]).size;
+    assertWithinLimit(textBytes);
+    parts.push(part);
+  };
+  signal.addEventListener('abort', abort, { once: true });
   try {
     while (true) {
       signal.throwIfAborted();
+      // Serial reads keep the next chunk behind the budget check.
       // oxlint-disable-next-line eslint/no-await-in-loop
       const { done, value } = await reader.read();
       signal.throwIfAborted();
-      if (done) {
-        complete = true;
-        break;
-      }
-      total += value.byteLength;
-      if (total > limit) {
-        throw new ScientificPreviewError('too-large', { limit: SEQUENCE_SIZE_LIMIT_LABEL });
-      }
-      chunks.push(value);
+      if (done) break;
+      bytes += value.byteLength;
+      assertWithinLimit(bytes);
+      if (binary) chunks.push(value);
+      else appendText(decoder.decode(value, { stream: true }));
     }
+    if (!binary) appendText(decoder.decode());
+    complete = true;
+    if (!binary) return parts.join('');
+    const source = new Uint8Array(bytes);
+    let offset = 0;
+    for (const chunk of chunks) {
+      source.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    return source.buffer;
   } finally {
-    try {
-      if (!complete) await reader.cancel();
-    } finally {
-      reader.releaseLock();
-    }
+    signal.removeEventListener('abort', abort);
+    if (!complete) await reader.cancel().catch(() => {});
+    reader.releaseLock();
   }
-
-  const bytes = new Uint8Array(total);
-  let offset = 0;
-  for (const chunk of chunks) {
-    bytes.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return bytes.buffer;
 }
 
 export default XScienceSequenceViewer;
