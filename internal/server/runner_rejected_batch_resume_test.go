@@ -21,7 +21,13 @@ import (
 // recovery use production paths. The second proposal has valid JSON/schema but
 // fails the actual Python compiler before execution; no receipt is invented.
 func TestTranscriptRunnerApprovalResumeRetainsRejectedKernelSuccessor(t *testing.T) {
-	manager := newServerKernelTestManager(t)
+	// This fixture intentionally uses the installed system interpreter, not an
+	// unprovisioned managed scientific environment. The model must request only
+	// the Python tool that this exact test runtime can actually advertise.
+	manager := newServerKernelTestManagerWithPythonEnvironment(t, "python")
+	if !manager.ManagedPythonCapabilityAvailable() || !manager.RuntimeReady("python", "python") {
+		t.Fatal("approval regression requires an advertised, ready Python runtime")
+	}
 	store, repo, db := newTranscriptWebFixture(t)
 	seedTranscriptWebFrame(t, store, "local", "project-rejected-successor", "frame-rejected-successor")
 	if _, err := db.Exec(`UPDATE frames SET agent_name='OPERON' WHERE id='frame-rejected-successor'`); err != nil {
@@ -52,6 +58,15 @@ func TestTranscriptRunnerApprovalResumeRetainsRejectedKernelSuccessor(t *testing
 		}
 		w.Header().Set("Content-Type", "application/json")
 		if requests.Add(1) == 1 {
+			pythonAdvertised := false
+			for _, tool := range request.Tools {
+				pythonAdvertised = pythonAdvertised || tool.Function.Name == "python"
+			}
+			if !pythonAdvertised {
+				t.Error("approval regression fixture did not advertise the requested Python tool")
+				http.Error(w, "fixture Python tool unavailable", http.StatusBadRequest)
+				return
+			}
 			calls := []any{}
 			for _, call := range []struct{ id, code string }{
 				{"approved-first", "open('approved-count.txt', 'a').write('x'); print(17)"},

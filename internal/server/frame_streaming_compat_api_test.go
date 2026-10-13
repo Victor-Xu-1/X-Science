@@ -376,6 +376,11 @@ func appendStreamingFixture(t *testing.T, journal *eventjournal.EventJournal, fr
 
 func newServerKernelTestManager(t *testing.T) *kernelruntime.Manager {
 	t.Helper()
+	return newServerKernelTestManagerWithPythonEnvironment(t, "")
+}
+
+func newServerKernelTestManagerWithPythonEnvironment(t *testing.T, environment string) *kernelruntime.Manager {
+	t.Helper()
 	python, err := exec.LookPath("python3")
 	if err != nil {
 		t.Skip("python3 is not installed")
@@ -388,9 +393,10 @@ func newServerKernelTestManager(t *testing.T) *kernelruntime.Manager {
 	assetRoot := filepath.Join(repositoryRoot, "assets", "optional")
 	manager := kernelruntime.NewManager(kernelruntime.Config{
 		Python: python, AssetRoot: assetRoot,
-		ManifestPath:    filepath.Join(assetRoot, "kernel-compute.manifest.json"),
-		WorkerPath:      filepath.Join(assetRoot, "kernels", "kernel_worker.py"),
-		ShutdownTimeout: 2 * time.Second,
+		ManagedPythonEnvironment: environment,
+		ManifestPath:             filepath.Join(assetRoot, "kernel-compute.manifest.json"),
+		WorkerPath:               filepath.Join(assetRoot, "kernels", "kernel_worker.py"),
+		ShutdownTimeout:          2 * time.Second,
 	})
 	t.Cleanup(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
