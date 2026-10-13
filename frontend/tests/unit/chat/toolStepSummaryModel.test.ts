@@ -19,6 +19,20 @@ const tool = (name: string, status: NormalizedToolCall['status'] = 'completed'):
 });
 
 describe('tool step summary model', () => {
+  it('uses the same actual compound source projection for the summary as the expanded source list', () => {
+    const output = JSON.stringify({
+      n_cids_total: 500,
+      cids: [12345, 12345],
+      properties: [{ CID: 12345 }],
+      truncated: true,
+    });
+    expect(buildToolStepResultSummary({ ...tool('mcp__chemistry__pubchem_search_compounds'), output }, 'en-US')).toBe(
+      '1 result'
+    );
+    expect(buildToolStepResultSummary({ ...tool('mcp__chemistry__pubchem_search_compounds'), output }, 'zh-CN')).toBe(
+      '1 条结果'
+    );
+  });
   it('does not label settled or interrupted background operations as processing', () => {
     for (const [phase, label] of Object.entries({
       operation_completed: '已完成',
@@ -413,7 +427,7 @@ describe('tool step summary model', () => {
     expect(buildToolStepPublicPresentation(search, 'en-US')).toMatchObject({
       label: 'Search sources',
       detail: 'tumor immunotherapy single-cell response',
-      resultSummary: '8 results',
+      resultSummary: 'Returned data needs review',
       showResearchSources: true,
     });
   });

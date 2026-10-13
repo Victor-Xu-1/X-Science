@@ -1,5 +1,13 @@
 import { getToolActivityKind } from '../toolActivityPresentationRegistry';
 import { sanitizePublicTaskText } from './toolPublicDetailBlocks';
+import {
+  observeResearchCollection,
+  observeResearchReturnClaim,
+  pubchemCompoundIdentity,
+  researchSourceState,
+  type ResearchSourceShape,
+  type ResearchSourceState,
+} from './researchSourceShape';
 
 const URL_PATTERN = /https?:\/\/[^\s<>"'\\]+/giu;
 const TRAILING_PUNCTUATION = /[),.;:\]}]+$/u;
@@ -18,6 +26,7 @@ export type ResearchSourceResult = {
 export type ResearchSourcePresentation = {
   query: string | null;
   results: ResearchSourceResult[];
+  state: ResearchSourceState;
 };
 
 export function isResearchActivityTool(name: string): boolean {
@@ -41,8 +50,9 @@ export function extractResearchSourcePresentation(
   );
   const results: ResearchSourceResult[] = [];
   const seen = new Set<string>();
+  const shape: ResearchSourceShape = { collectionSeen: false, nonemptyCollection: false, positiveReturnedClaim: false };
 
-  collectStructuredResults(parsedOutput, results, seen, limit);
+  collectStructuredResults(parsedOutput, results, seen, limit, shape);
   // URL and identifier scraping are fallbacks for plain-text connector output
   // only. Re-scanning serialized structured output can turn nested diagnostics,
   // snippets, or provider metadata into extra source cards that were not part
@@ -53,7 +63,7 @@ export function extractResearchSourcePresentation(
     if (results.length < limit) collectTextIdentifiers(output, results, seen, limit);
   }
 
-  return { query, results };
+  return { query, results, state: researchSourceState(shape, results.length) };
 }
 
 function collectTextIdentifiers(
@@ -81,29 +91,33 @@ function collectStructuredResults(
   results: ResearchSourceResult[],
   seen: Set<string>,
   limit: number,
+  shape: ResearchSourceShape,
   depth = 0
 ): void {
   if (value == null || results.length >= limit || depth > 8) return;
   if (typeof value === 'string') {
     const parsed = parseJson(value);
     if (parsed !== null && parsed !== value) {
-      collectStructuredResults(parsed, results, seen, limit, depth + 1);
+      collectStructuredResults(parsed, results, seen, limit, shape, depth + 1);
     }
     return;
   }
   if (Array.isArray(value)) {
+    if (depth === 0) observeResearchCollection(value, shape);
     for (const item of value) {
-      collectStructuredResults(item, results, seen, limit, depth + 1);
+      collectStructuredResults(item, results, seen, limit, shape, depth + 1);
       if (results.length >= limit) return;
     }
     return;
   }
   if (!isRecord(value)) return;
-
+  observeResearchReturnClaim(value, shape);
   const result = resultFromRecord(value);
   if (result) appendResult(result, results, seen, limit);
-
-  collectIdentifierResults(value, results, seen, limit);
+  if (value.type === 'text' && typeof value.text === 'string') {
+    collectStructuredResults(value.text, results, seen, limit, shape, depth + 1);
+    return;
+  }
 
   // Native and federated search envelopes may expose both raw provider
   // `results` and the canonical ranked/deduplicated `sources` collection.
@@ -111,15 +125,26 @@ function collectStructuredResults(
   // raw candidates as well inflates the disclosure and makes it disagree with
   // the authoritative compact count.
   if (Array.isArray(value.sources) && value.sources.length > 0) {
-    collectStructuredResults(value.sources, results, seen, limit, depth + 1);
+    observeResearchCollection(value.sources, shape);
+    collectStructuredResults(value.sources, results, seen, limit, shape, depth + 1);
     return;
   }
+
+  // Typed properties carry the compound's public name; retain them before
+  // identifier-only aliases, which then fill missing records without duplicates.
+  if (Array.isArray(value.properties)) {
+    observeResearchCollection(value.properties, shape);
+    collectStructuredResults(value.properties, results, seen, limit, shape, depth + 1);
+  }
+  collectIdentifierResults(value, results, seen, limit, shape);
 
   for (const key of [
     'result',
     'results',
     'records',
+    'matches',
     'articles',
+    'preprints',
     'works',
     'studies',
     'trials',
@@ -136,7 +161,8 @@ function collectStructuredResults(
     'data',
   ]) {
     if (results.length >= limit) return;
-    collectStructuredResults(value[key], results, seen, limit, depth + 1);
+    if (key !== 'content') observeResearchCollection(value[key], shape);
+    collectStructuredResults(value[key], results, seen, limit, shape, depth + 1);
   }
 }
 
@@ -144,7 +170,8 @@ function collectIdentifierResults(
   record: Record<string, unknown>,
   results: ResearchSourceResult[],
   seen: Set<string>,
-  limit: number
+  limit: number,
+  shape: ResearchSourceShape
 ): void {
   const collections: Array<{
     keys: string[];
@@ -156,12 +183,14 @@ function collectIdentifierResults(
     { keys: ['pdb_ids', 'pdbids'], toResult: pdbResult },
     { keys: ['accessions'], toResult: accessionResult },
     { keys: ['urls', 'links'], toResult: urlResult },
+    { keys: ['cids'], toResult: pubchemResult },
   ];
 
   for (const collection of collections) {
     for (const key of collection.keys) {
       const value = record[key];
       if (!Array.isArray(value)) continue;
+      observeResearchCollection(value, shape);
       for (const item of value) {
         if (typeof item !== 'string' && typeof item !== 'number') continue;
         const result = collection.toResult(String(item).trim());
@@ -170,6 +199,11 @@ function collectIdentifierResults(
       }
     }
   }
+}
+
+function pubchemResult(identifier: string): ResearchSourceResult | null {
+  const compound = pubchemCompoundIdentity(identifier);
+  return compound ? identifierResult(`PubChem CID ${compound.cid}`, compound.url) : null;
 }
 
 function pubmedResult(identifier: string): ResearchSourceResult | null {
@@ -217,7 +251,13 @@ function identifierResult(title: string, url: string): ResearchSourceResult {
 }
 
 function resultFromRecord(record: Record<string, unknown>): ResearchSourceResult | null {
-  const title = safePublicResearchText(firstString(record, ['title', 'name', 'label', 'pref_name']));
+  const compound = pubchemCompoundIdentity(record.CID ?? record.cid);
+  const title = safePublicResearchText(
+    firstString(record, ['title', 'name', 'label', 'pref_name', ...(compound ? ['IUPACName'] : [])])
+  );
+  if (compound) {
+    return identifierResult(truncate(title ?? `PubChem CID ${compound.cid}`, MAX_TITLE_CHARACTERS), compound.url);
+  }
   const pmid = firstString(record, ['pmid']);
   const pmcid = firstString(record, ['pmcid']);
   const accession = firstValidPublicSemanticIdentity([

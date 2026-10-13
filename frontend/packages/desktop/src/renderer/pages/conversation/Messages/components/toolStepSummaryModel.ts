@@ -206,56 +206,23 @@ export function buildToolStepResultSummary(tool: NormalizedToolCall, language: s
         ? `${compactResearchCount} 条结果`
         : `${compactResearchCount} ${compactResearchCount === 1 ? 'result' : 'results'}`;
     }
-    const researchResultCount = extractResearchSourcePresentation(tool.input, tool.output).results.length;
+    const presentation = extractResearchSourcePresentation(tool.input, tool.output);
+    const researchResultCount = presentation.results.length;
     if (researchResultCount > 0) {
       return chinese
         ? `${researchResultCount} 条结果`
         : `${researchResultCount} ${researchResultCount === 1 ? 'result' : 'results'}`;
-    }
-    const normalizedName = tool.name.trim().toLowerCase();
-    const nativeWebSearch = ['web_search', 'websearch', 'web_research', 'webresearch'].includes(normalizedName);
-    if (!nativeWebSearch) {
-      // MCP/database searches often return structured scientific records rather
-      // than public URLs. Count the records actually returned by that tool,
-      // including JSON text nested in a generic MCP result envelope. Do not use
-      // api_total/total here: those describe the upstream corpus, not the
-      // current page visible to the user.
-      const explicitReturnedCount = firstNumericField(outputValue, [
-        'n_records_returned',
-        'rows_retrieved',
-        'n_retrieved',
-        'n_returned',
-        'results_returned',
-        'returnedResults',
-        'retrieved',
-      ]);
-      const structuredRecordCount = countNamedCollection(outputValue, [
-        'records',
-        'results',
-        'items',
-        'matches',
-        'articles',
-        'works',
-        'studies',
-        'trials',
-        'compounds',
-        'targets',
-        'entries',
-        'preprints',
-        'variants',
-        'datasets',
-      ]);
-      const returnedCount = explicitReturnedCount ?? structuredRecordCount;
-      if (returnedCount !== null) {
-        return chinese ? `${returnedCount} 条结果` : `${returnedCount} ${returnedCount === 1 ? 'result' : 'results'}`;
-      }
     }
     // A compact history preview may retain the authoritative retrieval count
     // before its result records are hydrated. Trust only explicit retrieved /
     // returned counters in that truncated envelope, never a generic transport
     // "results" counter that may describe provider attempts.
     if (tool.truncated) return chinese ? '检索详情待加载' : 'Search details pending';
-    return chinese ? '未发现可用来源' : 'No usable sources';
+    return presentation.state === 'empty'
+      ? chinese
+        ? '未发现可用来源'
+        : 'No usable sources'
+      : toolPublicDetailText(chinese, 'researchUnrecognizedSummary');
   }
 
   const input = parseStructuredRecord(tool.input);
@@ -429,14 +396,6 @@ function numericField(value: unknown, key: string, depth = 0): number | null {
   for (const nestedKey of ['result', 'data', 'diagnostics']) {
     const nested = numericField(value[nestedKey], key, depth + 1);
     if (nested !== null) return nested;
-  }
-  return null;
-}
-
-function firstNumericField(value: unknown, keys: string[]): number | null {
-  for (const key of keys) {
-    const count = numericField(value, key);
-    if (count !== null) return count;
   }
   return null;
 }

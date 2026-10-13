@@ -5,6 +5,75 @@ import {
 } from '@/renderer/pages/conversation/Messages/components/researchSourcePresentation';
 
 describe('MessageWebResearchSources model', () => {
+  it('projects compound identifiers and properties once, preserving record titles and actual page size', () => {
+    const presentation = extractResearchSourcePresentation(
+      undefined,
+      JSON.stringify({
+        query: 'public fixture',
+        namespace: 'name',
+        n_cids_total: 900,
+        truncated: true,
+        cids: [12345, 67890, 12345],
+        properties: [
+          { CID: 12345, title: 'First compound' },
+          { CID: 67890, IUPACName: 'Second compound' },
+        ],
+      })
+    );
+    expect(presentation.state).toBe('available');
+    expect(presentation.results).toHaveLength(2);
+    expect(presentation.results.map((source) => [source.title, source.url])).toEqual([
+      ['First compound', 'https://pubchem.ncbi.nlm.nih.gov/compound/12345'],
+      ['Second compound', 'https://pubchem.ncbi.nlm.nih.gov/compound/67890'],
+    ]);
+  });
+
+  it('supports identifier-only, property-only and nested MCP compound results', () => {
+    for (const value of [
+      { cids: [12345], properties: [] },
+      { properties: [{ CID: 12345 }] },
+      { content: [{ type: 'text', text: JSON.stringify({ cids: ['12345'], properties: [{ CID: 12345 }] }) }] },
+      { ok: true, result: JSON.stringify({ cids: [12345] }) },
+    ]) {
+      expect(extractResearchSourcePresentation(undefined, JSON.stringify(value))).toMatchObject({
+        state: 'available',
+        results: [{ url: 'https://pubchem.ncbi.nlm.nih.gov/compound/12345' }],
+      });
+    }
+  });
+
+  it('rejects invalid compound identities rather than inventing links or declaring empty results', () => {
+    const presentation = extractResearchSourcePresentation(
+      undefined,
+      JSON.stringify({
+        cids: [0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1, '1/../../private', 'https://localhost/private', '01'],
+        properties: [{ CID: 'private value' }],
+      })
+    );
+    expect(presentation.results).toEqual([]);
+    expect(presentation.state).toBe('unrecognized');
+  });
+
+  it('distinguishes actual empty collections from unsupported nonempty connector output', () => {
+    for (const value of [
+      { cids: [], properties: [], n_cids_total: 0 },
+      { results: [] },
+      [],
+      { result: [] },
+      { result: JSON.stringify({ records: [] }) },
+      { content: [{ type: 'text', text: JSON.stringify({ cids: [] }) }] },
+    ]) {
+      expect(extractResearchSourcePresentation(undefined, JSON.stringify(value)).state).toBe('empty');
+    }
+    for (const value of [
+      { custom_data: ['record'] },
+      { records: [{ unsupported: 'record' }] },
+      { retrieved: 8, records: [] },
+      { properties: [{ CID: -1 }] },
+    ]) {
+      expect(extractResearchSourcePresentation(undefined, JSON.stringify(value)).state).toBe('unrecognized');
+    }
+  });
   it.each(['web_search', 'WebSearch', 'WebResearch', 'web_research'])('recognizes %s as a research tool', (name) => {
     expect(isResearchActivityTool(name)).toBe(true);
   });
@@ -27,6 +96,7 @@ describe('MessageWebResearchSources model', () => {
 
     expect(extractResearchSourcePresentation(undefined, output, 2)).toEqual({
       query: null,
+      state: 'available',
       results: [
         {
           key: 'https://example.org/a',

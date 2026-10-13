@@ -103,6 +103,17 @@ connector name, or historical message shape. Every public operation first maps
 through this registry and then uses the same detail projection for live events,
 reconnect hydration, and history replay.
 
+Search summaries and expanded source lists use one projection of the returned
+page, not independent counts or the provider's corpus total. Typed compound CID
+arrays and property records map to validated public source identities, with
+duplicate aliases removed and available record titles retained. Nested MCP JSON
+is handled by the same bounded traversal; no result-specific network request is
+needed to display a record. A recognized empty collection is an empty result;
+nonempty data with an unsupported shape is explicitly unrecognized, not proof
+that the search found nothing. Conflicting positive counters with empty records
+do not invent source cards. Historical truncated previews may retain their
+separately recorded compact count while awaiting full output hydration.
+
 ## Canonical tool coverage
 
 The public registry covers the complete root-tool contract and the task-owned

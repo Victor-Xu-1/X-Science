@@ -7,6 +7,12 @@ import { conversationDisclosureStore } from '@/renderer/services/runtime/convers
 import { renderWithI18n } from '../i18nTestUtils';
 
 vi.mock('@/renderer/components/base/FileChangesPanel', () => ({ default: () => null }));
+vi.mock('@/renderer/components/Markdown', () => ({
+  default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+}));
+vi.mock('@/renderer/components/media/LocalImageView', () => ({
+  default: ({ src, alt }: { src: string; alt: string }) => <img src={src} alt={alt} />,
+}));
 vi.mock('@/renderer/hooks/file/useDiffPreviewHandlers', () => ({
   useDiffPreviewHandlers: () => ({ handleFileClick: vi.fn(), handleDiffClick: vi.fn() }),
 }));
@@ -32,6 +38,66 @@ const message = {
 describe('MessageToolCall', () => {
   beforeEach(() => conversationDisclosureStore.resetForTests());
 
+  it.each(['en-US', 'zh-CN'] as const)('uses one compound count and expanded source in %s', async (language) => {
+    await renderWithI18n(
+      <MessageToolCall
+        message={{
+          ...message,
+          content: {
+            call_id: 'compound-call',
+            name: 'mcp__chemistry__pubchem_search_compounds',
+            status: 'completed',
+            args: { query: 'public fixture' },
+            output: JSON.stringify({
+              cids: [12345, 12345],
+              properties: [{ CID: 12345, title: 'Public compound' }],
+              n_cids_total: 900,
+            }),
+          },
+        }}
+      />,
+      language
+    );
+    const toggle = screen.getByTestId('tool-chip');
+    expect(toggle).toHaveTextContent(language === 'en-US' ? '1 result' : '1 条结果');
+    fireEvent.click(toggle);
+    const source = screen.getByRole('link', { name: 'Public compound' });
+    expect(source).toHaveAttribute('href', 'https://pubchem.ncbi.nlm.nih.gov/compound/12345');
+    expect(screen.getAllByRole('link', { name: 'Public compound' })).toHaveLength(1);
+    expect(screen.queryByText(/No usable sources were found|本次检索未发现可用来源/)).not.toBeInTheDocument();
+    expect(toggle).not.toHaveTextContent('900');
+  });
+
+  it.each(['en-US', 'zh-CN'] as const)(
+    'does not label an unrecognized nonempty response as empty in %s',
+    async (language) => {
+      await renderWithI18n(
+        <MessageToolCall
+          message={{
+            ...message,
+            content: {
+              ...message.content,
+              status: 'completed',
+              output: JSON.stringify({ custom_data: [{ record: 'fixture' }] }),
+            },
+          }}
+        />,
+        language
+      );
+      const toggle = screen.getByTestId('tool-chip');
+      expect(toggle).toHaveTextContent(language === 'en-US' ? 'Returned data needs review' : '返回数据待查看');
+      fireEvent.click(toggle);
+      expect(
+        screen.getByText(
+          language === 'en-US'
+            ? 'This response could not be presented as source records. Expand the returned output to inspect it; this does not mean the search found no results.'
+            : '当前返回内容尚不能展示为来源记录。可展开输出查看；这不代表检索没有结果。'
+        )
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/No usable sources were found|本次检索未发现可用来源/)).not.toBeInTheDocument();
+    }
+  );
+
   it('routes an inferred search call through the canonical research summary', async () => {
     await renderWithI18n(<MessageToolCall message={message} />, 'en-US');
 
@@ -48,7 +114,7 @@ describe('MessageToolCall', () => {
     const sources = screen.getByRole('region', { name: 'Sources' });
     expect(within(sources).getByText('query')).toBeInTheDocument();
     expect(within(sources).getByText('STAT6')).toBeInTheDocument();
-    expect(within(sources).getByText(/No usable sources were found/)).toBeInTheDocument();
+    expect(within(sources).getByText(/This response could not be presented as source records/)).toBeInTheDocument();
     expect(screen.getByTestId('show-output-toggle')).toHaveAttribute('aria-expanded', 'false');
     fireEvent.click(screen.getByTestId('show-output-toggle'));
     expect(screen.getByText('3 records found')).toBeInTheDocument();
