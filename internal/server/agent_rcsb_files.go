@@ -17,6 +17,7 @@ import (
 	transcriptstore "x-science/internal/persistence/transcript"
 	workspace "x-science/internal/persistence/workspace"
 	"x-science/internal/tools/rcsbfiles"
+	"x-science/internal/tools/securefetch"
 )
 
 const (
@@ -42,11 +43,14 @@ type RCSBFileFetcher interface {
 	Fetch(context.Context, rcsbfiles.Input) (rcsbfiles.Result, error)
 }
 
-func defaultRCSBFileFetcher(configured RCSBFileFetcher) RCSBFileFetcher {
+func defaultRCSBFileFetcher(configured RCSBFileFetcher, publicSourceProxy string) RCSBFileFetcher {
 	if configured != nil {
 		return configured
 	}
-	return rcsbfiles.New(rcsbfiles.Options{MaxBytes: agentRCSBFileLimit, Timeout: agentRCSBFileTimeout})
+	return rcsbfiles.New(rcsbfiles.Options{
+		Fetcher:  securefetch.New(securefetch.Options{ProxyURL: publicSourceProxy}),
+		MaxBytes: agentRCSBFileLimit, Timeout: agentRCSBFileTimeout,
+	})
 }
 
 func agentRCSBFileToolSchema() agentruntime.ToolSchema {
