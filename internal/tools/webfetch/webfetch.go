@@ -32,6 +32,8 @@ type Options struct {
 	MaxAttempts     int
 	ClientForURL    func(context.Context, string) (*http.Client, error)
 	BaseHTTPClient  *http.Client
+	// TrustedProxyURL comes only from operator configuration, never tool input.
+	TrustedProxyURL string
 	Now             func() time.Time
 }
 
@@ -109,6 +111,9 @@ func FetchWithOptions(ctx context.Context, rawURL string, limit int64, options O
 			base := options.BaseHTTPClient
 			if base == nil {
 				base = http.DefaultClient
+			}
+			if options.TrustedProxyURL != "" {
+				return mcpdirectory.NewPublicHTTPClient(base, nil, options.TrustedProxyURL)
 			}
 			return mcpdirectory.SecureHTTPClient(requestCtx, target, base)
 		}

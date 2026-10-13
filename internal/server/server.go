@@ -360,6 +360,12 @@ func New(options Options) *Server {
 	}
 	tools := options.Tools
 	operations := options.Operations
+	// Every public-source consumer shares the operator route. Supplying a base
+	// HTTP client alone must not turn its ambient proxy into DNS authority.
+	options.WebFetchOptions.TrustedProxyURL = options.ConfigNetworkProxy
+	if options.WebFetchOptions.BaseHTTPClient == nil {
+		options.WebFetchOptions.BaseHTTPClient = options.HTTPClient
+	}
 	registeredWebSearchOptions := options.WebSearchOptions
 	if strings.TrimSpace(registeredWebSearchOptions.Root) == "" {
 		registeredWebSearchOptions.Root = options.FileRoot
@@ -403,7 +409,7 @@ func New(options Options) *Server {
 	mcpDirectory := options.MCPDirectory
 	mcpDirectoryOwned := false
 	if mcpDirectory == nil && options.Workspace != nil && strings.TrimSpace(options.FileRoot) != "" {
-		mcpDirectory = mcpdirectory.New(options.Workspace, options.FileRoot, httpClient)
+		mcpDirectory = mcpdirectory.New(options.Workspace, options.FileRoot, httpClient, options.ConfigNetworkProxy)
 		mcpDirectoryOwned = true
 	}
 	if mcpDirectory != nil && options.Workspace != nil {

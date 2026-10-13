@@ -51,6 +51,12 @@ authorize a release.
 - Advanced deployments may set absolute `X_SCIENCE_CONDA_HOME` and
   `X_SCIENCE_CONDA_ENVS_PATH` overrides; otherwise both roots are derived from the
   current user's `X_SCIENCE_HOME`/platform data directory and validated at startup.
+  Existing operator-configured roots outside the data directory are supported
+  and remain protected from writable task mounts. Execution never creates a
+  missing external root. Provision or repair it through its runtime manager;
+  repeatedly changing task code or installing another environment cannot repair
+  a shared root failure. Scientific core health reports unavailable when installed
+  generations have missing/unverifiable runtime directories.
 - The default listener is `127.0.0.1:8765`. Non-loopback listening requires either
   `X_SCIENCE_LINK_AUTH_PASSWORD` or a complete supported external authentication
   configuration with `X_SCIENCE_AUTH_PUBLIC_BASE_URL`; unauthenticated binding is rejected.
@@ -1162,6 +1168,16 @@ service's persistent startup environment, or set `network.proxy` in its startup
 configuration, then restart that service. A proxy exported only in an interactive
 shell does not configure an already-running service. The configured proxy must
 be reachable from the service's actual host/container/WSL network namespace.
+
+Web, patent, article-full-text and directory connector traffic share the public
+source client. Explicit `X_SCIENCE_NETWORK_PROXY` delegates public-hostname DNS
+to the operator-trusted proxy, consistently with kernel egress; an ambient client
+proxy alone does not grant that authority. Direct traffic retains per-hop public
+address pinning. Local/reserved hosts, private IP literals, credentials in source
+URLs and unsafe redirects remain rejected. A failing explicit proxy never falls
+back to direct traffic. Do not allow-list synthetic/private IP ranges to work
+around a DNS-routing mismatch. Source outages remain unavailable evidence, not
+successful reads or proof that no publications or patents exist.
 
 Keep HTTPS certificate verification, public-destination validation and
 per-call timeouts enabled. Verify a fresh MCP catalog and a read-only tool result;

@@ -36,6 +36,7 @@ type Service struct {
 	root                  string
 	client                *http.Client
 	resolver              publicIPResolver
+	trustedProxyURL       string
 	startedAt             time.Time
 	mu                    sync.Mutex
 	tlsMu                 sync.RWMutex
@@ -181,7 +182,7 @@ type manifestConnector struct {
 	AuthHint     string
 }
 
-func New(store *workspace.Store, root string, client *http.Client) *Service {
+func New(store *workspace.Store, root string, client *http.Client, trustedProxy ...string) *Service {
 	if client == nil {
 		client = http.DefaultClient
 	}
@@ -190,8 +191,13 @@ func New(store *workspace.Store, root string, client *http.Client) *Service {
 	bundled := defaultBundledConnectors()
 	optional := loadOptionalConnectorDefinitions()
 	loadInstalledOptionalConnectors(root, bundled, optional)
+	proxy := ""
+	if len(trustedProxy) > 0 {
+		proxy = trustedProxy[0]
+	}
 	return &Service{
-		store: store, root: root, client: client, startedAt: time.Now().UTC(), bundled: bundled, optional: optional,
+		trustedProxyURL: proxy,
+		store:           store, root: root, client: client, startedAt: time.Now().UTC(), bundled: bundled, optional: optional,
 		bootstrapCtx: bootstrapCtx, bootstrapCancel: bootstrapCancel,
 		optionalInstallCtx: optionalInstallCtx, optionalInstallCancel: optionalInstallCancel,
 		catalogFlights:  make(map[string]*connectorToolCatalogFlight),

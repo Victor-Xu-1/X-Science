@@ -10,12 +10,13 @@ import './MessageToolGroupSummary.css';
 import { groupRepeatedNonExecutingTools, toolWasNotExecuted } from './toolExecutionDisposition';
 import ToolOperationDetail from './ToolOperationDetail';
 import TranscriptActivity, { TranscriptActivityContext } from './TranscriptActivity';
-import { buildToolStepGroupSummary } from './toolStepSummaryModel';
+import { buildToolStepGroupSummary, toolSourceUnavailable } from './toolStepSummaryModel';
 
 const aggregateStatus = (tools: NormalizedToolCall[]): NormalizedToolStatus => {
   if (tools.some((tool) => tool.status === 'running')) return 'running';
   if (tools.some((tool) => tool.status === 'waiting')) return 'waiting';
   if (tools.some((tool) => tool.status === 'blocked')) return 'blocked';
+  if (tools.some(toolSourceUnavailable)) return 'blocked';
   if (tools.some((tool) => tool.status === 'error' && !toolWasNotExecuted(tool))) return 'error';
   if (tools.some((tool) => tool.status === 'interrupted')) return 'interrupted';
   if (tools.some((tool) => tool.status === 'unknown')) return 'unknown';

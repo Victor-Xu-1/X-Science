@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { NormalizedToolCall } from '@/common/chat/normalizeToolCall';
-import { buildToolStepPublicPresentation } from '@/renderer/pages/conversation/Messages/components/toolStepSummaryModel';
+import {
+  buildToolStepPublicPresentation,
+  buildToolStepGroupSummary,
+  toolSourceUnavailable,
+} from '@/renderer/pages/conversation/Messages/components/toolStepSummaryModel';
 import { buildToolPublicDetailPresentation } from '@/renderer/pages/conversation/Messages/toolDetails/detailProjection';
 
 const tool = (input: object, output: object = {}): NormalizedToolCall => ({
@@ -12,6 +16,33 @@ const tool = (input: object, output: object = {}): NormalizedToolCall => ({
 });
 
 describe('retrieval presentation', () => {
+  it('does not count unavailable sources as acquired material or mutate task status', () => {
+    const unavailable = tool({}, { result: { sourceUnavailable: true, bytesRead: 0 } });
+    const acquired = tool({}, { bytesRead: 50, complete: true });
+    expect(toolSourceUnavailable(unavailable)).toBe(true);
+    expect(toolSourceUnavailable(acquired)).toBe(false);
+    expect(buildToolStepGroupSummary([unavailable, unavailable], 'en-US').headline).toBe('Source unavailable · 2');
+    expect(buildToolStepGroupSummary([unavailable, acquired], 'zh-CN').headline).toContain('来源不可用 · 1');
+    expect(unavailable.status).toBe('completed');
+  });
+  it('shows a repairable runtime admission failure instead of an unexplained skipped step', () => {
+    const item = {
+      ...tool(
+        {},
+        {
+          ok: false,
+          executed: false,
+          preflight: true,
+          code: 'kernel_runtime_directories_unavailable',
+          message: 'Runtime configuration requires repair.',
+        }
+      ),
+      name: 'python',
+      status: 'error' as const,
+    };
+    expect(buildToolStepPublicPresentation(item, 'en-US').resultSummary).toBe('Runtime needs repair');
+    expect(buildToolStepPublicPresentation(item, 'zh-CN').resultSummary).toBe('运行环境需修复');
+  });
   it.each([403, 404, 618, 0])(
     'shows native unavailable receipt %i without treating response bytes as evidence',
     (statusCode) => {

@@ -34,6 +34,29 @@ func TestKernelPreflightSettlementRequiresNonExecutionProof(t *testing.T) {
 	}
 }
 
+func TestKernelAdmissionFailureNeverSettlesPreparedOrStartedWork(t *testing.T) {
+	now := time.Now()
+	for _, state := range []string{
+		workspace.KernelLocalOperationStatePendingApproval, workspace.KernelLocalOperationStatePrepared,
+		workspace.KernelLocalOperationStateStarted, workspace.KernelLocalOperationStateCompleted,
+		workspace.KernelLocalOperationStateFailed, workspace.KernelLocalOperationStateCancelled,
+		workspace.KernelLocalOperationStateOutcomeUnknown,
+	} {
+		if kernelAdmissionFailureIsUnstarted(workspace.KernelLocalOperation{State: state}) {
+			t.Fatalf("non-approved state admitted for preparation settlement: %s", state)
+		}
+	}
+	for _, operation := range []workspace.KernelLocalOperation{
+		{State: workspace.KernelLocalOperationStateApproved, PreparedAt: &now},
+		{State: workspace.KernelLocalOperationStateApproved, StartedAt: &now},
+		{State: workspace.KernelLocalOperationStateApproved, ExecutionID: "accepted-execution"},
+	} {
+		if kernelAdmissionFailureIsUnstarted(operation) {
+			t.Fatalf("execution provenance was ignored: %#v", operation)
+		}
+	}
+}
+
 func TestRecoveredExplicitKernelPreflightPreservesLogicalOutcome(t *testing.T) {
 	for _, succeeded := range []bool{true, false} {
 		status, phase := recoveredKernelToolCheckpointStatus(workspace.KernelLocalOperation{
@@ -94,6 +117,7 @@ func TestCheckpointRejectedKernelOperationSettlesWithoutExecution(t *testing.T) 
 		reason   string
 	}{
 		{"failed-legacy-approved", true, agentruntime.EventToolFailed, `{"ok":false,"executed":false,"status":"code_preflight_required","message":"code needs repair"}`, "code_preflight_required"},
+		{"failed-raw-approved", true, agentruntime.EventToolFailed, `{"ok":false,"error":"runtime preparation failed"}`, "execution_preflight_failed"},
 		{"failed-explicit-approved", true, agentruntime.EventToolFailed, `{"ok":false,"executed":false,"preflight":true,"code":"repeated_failed_tool_call","message":"the call is unchanged"}`, "repeated_failed_tool_call"},
 		{"completed-explicit-approved", true, agentruntime.EventToolCompleted, `{"ok":false,"executed":false,"preflight":true,"status":"input_authority_required","message":"input lineage is missing"}`, "input_authority_required"},
 		{"failed-explicit-pending", false, agentruntime.EventToolFailed, `{"ok":false,"executed":false,"preflight":true,"code":"input_authority_required","message":"input lineage is missing"}`, "input_authority_required"},
@@ -123,6 +147,9 @@ func TestCheckpointRejectedKernelOperationSettlesWithoutExecution(t *testing.T) 
 				Type: test.event, ToolName: call.Name, ToolCallID: call.ID,
 				Arguments: string(call.Arguments), Result: test.result, RejectedBeforeExecution: true,
 			}
+			if test.name == "failed-raw-approved" {
+				event.RejectedBeforeExecution = false
+			}
 			for replay := 0; replay < 2; replay++ {
 				if err := server.checkpointSessionRunnerToolEvent(context.Background(), options, run, event); err != nil {
 					t.Fatal(err)
@@ -146,6 +173,9 @@ func TestCheckpointRejectedKernelOperationSettlesWithoutExecution(t *testing.T) 
 			}
 			if err := json.Unmarshal([]byte(test.result), &wantResult); err != nil {
 				t.Fatal(err)
+			}
+			if test.name == "failed-raw-approved" {
+				wantResult["executed"], wantResult["preflight"], wantResult["code"] = false, true, "execution_preflight_failed"
 			}
 			if !reflect.DeepEqual(gotResult, wantResult) {
 				t.Fatalf("materialized result=%#v want=%#v", gotResult, wantResult)

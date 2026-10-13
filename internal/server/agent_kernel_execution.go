@@ -321,7 +321,7 @@ func (s *Server) executeAgentKernelToolInternal(
 		return nil, errKernelHostAccessFenced
 	}
 	if err := s.ensureAgentKernelManagedDirectories(); err != nil {
-		return nil, err
+		return agentKernelRuntimeConfigurationPreflight(), nil
 	}
 	executionIdentity := *identity
 	executionIdentity.workspaceDir = workspaceDir

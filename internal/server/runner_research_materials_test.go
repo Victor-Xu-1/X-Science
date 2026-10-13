@@ -1341,7 +1341,7 @@ func TestDeepResearchModuleCompletionRequiresBindingAvailableSource(t *testing.T
 	if _, err := fixture.store.SetFrameRuntimeMetadata(fixture.stream.FrameID, workspace.FrameRuntimeMetadata{
 		FrameID: fixture.stream.FrameID,
 		ContextData: map[string]any{
-			"_plan_execution_authorized": true, "_plan_control_mode": "autonomous",
+			"_plan_execution_authorized": true, "_plan_approved": true, "_plan_control_mode": "approved",
 			"_plan_artifact_id": "plan", "_plan_version_id": "version",
 			"_plan_json": map[string]any{
 				"version": 3, "task_summary": "Research each module",

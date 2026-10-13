@@ -72,6 +72,13 @@ up, with a bounded shutdown; a denied reuse does not close another live worker.
 
 ## Durable detached execution recovery
 
+A definite preparation failure while an operation remains approved and has no
+prepared/start/execution identity settles atomically as a non-executing preflight.
+It does not open a runner recovery cycle or run the failed call a second time.
+The durable operation is the proof: generic error text alone cannot settle a
+prepared/started operation, and live execution/unknown outcomes retain recovery
+ownership. Duplicate failure publications reuse the same immutable result.
+
 Runner lease renewal retries transient store contention only inside the remaining
 owned grant, rather than the short four-attempt preparation budget. The retry
 requires a deadline before making a write, honors parent cancellation, and returns

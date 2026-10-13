@@ -116,6 +116,8 @@ func TestTranscriptFrameRunnerExecutesPythonWithoutLegacySession(t *testing.T) {
 
 	server := newV11TestServer(t, Options{
 		Workspace: store, Transcript: repo, KernelManager: manager, FileRoot: t.TempDir(),
+		// Installed runtime roots are operator-owned, separate from task data.
+		CondaHome: t.TempDir(), CondaEnvsPath: t.TempDir(),
 	})
 	if err := disableBundledMCPForLocalFixture(t.Context(), server, "local"); err != nil {
 		closeTestServer(t, server)

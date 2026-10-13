@@ -139,6 +139,11 @@ func (s *Server) scientificCoreRuntimeHealth() map[string]any {
 		return result
 	}
 	if python.Status == "ready" && r.Status == "ready" {
+		if !s.agentKernelManagedDirectoriesReady() {
+			result["status"] = "unavailable"
+			result["code"] = "kernel_runtime_directories_unavailable"
+			return result
+		}
 		result["status"] = "ready"
 		result["ready"] = true
 		return result

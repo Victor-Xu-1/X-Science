@@ -10,11 +10,16 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"x-science/internal/networkpolicy"
+	"x-science/internal/networktls"
 )
 
-type publicIPResolver interface {
+type AddressResolver interface {
 	LookupNetIP(context.Context, string, string) ([]netip.Addr, error)
 }
+
+type publicIPResolver = AddressResolver
 
 // ErrPublicDestinationUnavailable marks a syntactically valid public-hostname
 // request that could not produce a usable public address. Callers may expose
@@ -80,11 +85,21 @@ func SecureHTTPClient(ctx context.Context, rawURL string, base *http.Client) (*h
 }
 
 func (s *Service) secureHTTPClient(ctx context.Context, rawURL string) (*http.Client, error) {
-	_, _, err := resolvePublicHTTPSURL(ctx, s.resolver, rawURL)
+	client, err := NewPublicHTTPClient(s.client, s.resolver, s.trustedProxyURL)
 	if err != nil {
 		return nil, err
 	}
-	baseClient := s.client
+	if _, _, err := client.Transport.(*publicHTTPSRoundTripper).destination(ctx, rawURL); err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+// NewPublicHTTPClient is the public-source transport authority. Direct traffic
+// resolves and pins public addresses. Only an explicit operator proxy delegates
+// DNS to that proxy, as kernel egress already does; an ambient Proxy function is
+// not permission to bypass local resolution. URL/redirect policy always applies.
+func NewPublicHTTPClient(baseClient *http.Client, resolver AddressResolver, trustedProxyURL string) (*http.Client, error) {
 	if baseClient == nil {
 		baseClient = http.DefaultClient
 	}
@@ -92,14 +107,30 @@ func (s *Service) secureHTTPClient(ctx context.Context, rawURL string) (*http.Cl
 	if err != nil {
 		return nil, err
 	}
+	proxy, err := networktls.NormalizeProxyURL(trustedProxyURL)
+	if err != nil {
+		return nil, err
+	}
+	if proxy != "" {
+		parsed, err := url.Parse(proxy)
+		if err != nil {
+			return nil, errors.New("configured source proxy is invalid")
+		}
+		transport.Proxy = http.ProxyURL(parsed)
+	}
+	roundTripper := &publicHTTPSRoundTripper{base: transport, resolver: resolver, trustProxyResolution: proxy != ""}
 	client := *baseClient
-	client.Transport = &publicHTTPSRoundTripper{base: transport, resolver: s.resolver}
+	client.Transport = roundTripper
+	previousRedirect := baseClient.CheckRedirect
 	client.CheckRedirect = func(request *http.Request, via []*http.Request) error {
 		if len(via) >= 10 {
 			return errors.New("MCP directory redirect chain exceeds 10 hops")
 		}
-		if _, _, err := resolvePublicHTTPSURL(request.Context(), s.resolver, request.URL.String()); err != nil {
+		if _, _, err := roundTripper.destination(request.Context(), request.URL.String()); err != nil {
 			return fmt.Errorf("MCP directory redirect destination is not an approved public HTTPS origin: %w", err)
+		}
+		if previousRedirect != nil {
+			return previousRedirect(request, via)
 		}
 		return nil
 	}
@@ -110,8 +141,24 @@ func (s *Service) secureHTTPClient(ctx context.Context, rawURL string) (*http.Cl
 // net/http invokes it again after each accepted redirect, so a redirect cannot
 // reuse the prior hop's DNS decision or pinned dial target.
 type publicHTTPSRoundTripper struct {
-	base     *http.Transport
-	resolver publicIPResolver
+	base                 *http.Transport
+	resolver             publicIPResolver
+	trustProxyResolution bool
+}
+
+func (t *publicHTTPSRoundTripper) destination(ctx context.Context, rawURL string) (*url.URL, []netip.Addr, error) {
+	if !t.trustProxyResolution {
+		return resolvePublicHTTPSURL(ctx, t.resolver, rawURL)
+	}
+	parsed, err := validateHTTPSURL(rawURL, false)
+	if err != nil {
+		return nil, nil, err
+	}
+	host := normalizeHost(parsed.Hostname())
+	if _, err := netip.ParseAddr(host); err != nil && !networkpolicy.AllowsHost(host, []string{networkpolicy.PublicWildcard}, nil) {
+		return nil, nil, errors.New("source proxy destination must be a public hostname")
+	}
+	return parsed, nil, nil
 }
 
 // PublicHTTPSPinned reports that this transport already enforces the shared
@@ -124,7 +171,7 @@ func (t *publicHTTPSRoundTripper) RoundTrip(request *http.Request) (*http.Respon
 	if request == nil || request.URL == nil {
 		return nil, errors.New("MCP directory request URL is required")
 	}
-	parsed, addresses, err := resolvePublicHTTPSURL(request.Context(), t.resolver, request.URL.String())
+	parsed, addresses, err := t.destination(request.Context(), request.URL.String())
 	if err != nil {
 		return nil, fmt.Errorf("MCP directory request destination is not an approved public HTTPS origin: %w", err)
 	}
@@ -138,6 +185,9 @@ func (t *publicHTTPSRoundTripper) RoundTrip(request *http.Request) (*http.Respon
 		}
 	}
 	if proxyURL == nil {
+		if t.trustProxyResolution {
+			return nil, errors.New("configured source proxy is unavailable")
+		}
 		configurePinnedDial(transport, normalizeHost(parsed.Hostname()), parsed.Port(), addresses)
 	}
 	return transport.RoundTrip(request)

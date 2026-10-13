@@ -11,8 +11,21 @@ import { buildToolStepResultSummary } from '@/renderer/pages/conversation/Messag
 import { conversationDisclosureStore } from '@/renderer/services/runtime/conversationDisclosureStore';
 import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 
+// Tool presentation tests do not own the client-preferences API. Keep theme
+// initialization from issuing browser-relative fetches in Node.
+vi.mock('@/common/config/configService', () => ({
+  configService: {
+    whenReady: () => Promise.resolve(),
+    get: () => undefined,
+    setLocal: vi.fn(),
+    subscribe: () => () => {},
+    reset: vi.fn(),
+  },
+}));
+
 vi.mock('@/common', () => ({
   ipcBridge: {
+    theme: { setActive: { invoke: vi.fn().mockResolvedValue(undefined) } },
     database: {
       getConversationMessage: {
         invoke: vi.fn(),
@@ -55,6 +68,8 @@ describe('MessageToolGroupSummary', () => {
     render(<MessageToolGroupSummary messages={messages} />);
     expect(screen.getByTestId('tool-chip')).toHaveTextContent('Source unavailable');
     expect(screen.getByTestId('tool-chip')).not.toHaveTextContent('Completed');
+    expect(screen.getByTestId('tool-chip').querySelector('.tool-status-icon--completed')).toBeNull();
+    expect(screen.getByTestId('tool-chip').querySelector('.tool-status-icon--blocked')).not.toBeNull();
     fireEvent.click(screen.getByTestId('tool-chip'));
     expect(
       screen.getByText('This response is not usable source evidence. The task can retry or use another source.')

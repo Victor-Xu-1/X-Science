@@ -396,15 +396,24 @@ func (s *Server) generatedPlanUpdateStepStatusInput(frameID, toolName string, in
 	return normalized
 }
 
-// generatedPlanResearchQueryInput binds source calls to the active research
-// frontier. Discovery uses the plan's bilingual queries; an already discovered
-// fetch route keeps its exact URL. Once both planned lanes have run, later calls
-// retain their model-authored follow-up so a finding can open a new investigation.
+// generatedPlanResearchQueryInput supplies a missing source locator, never a
+// replacement for an explicitly selected source. A plan is navigation state;
+// its unfinished evidence requirements cannot take ownership of tool arguments.
 func (s *Server) generatedPlanResearchQueryInput(
 	frameID, toolName string,
 	input map[string]any,
 	capabilitySets ...[]string,
 ) map[string]any {
+	for _, key := range []string{"query", "url", "doi", "pmid", "pmcid", "identifier", "accession"} {
+		value, supplied := input[key]
+		text, isText := value.(string)
+		if supplied && value != nil && (!isText || strings.TrimSpace(text) != "") {
+			return input
+		}
+	}
+	if len(stringValueSlice(input["query_variants"])) > 0 {
+		return input
+	}
 	capabilities := []string(nil)
 	if len(capabilitySets) > 0 {
 		capabilities = capabilitySets[0]
@@ -429,23 +438,6 @@ func (s *Server) generatedPlanResearchQueryInput(
 	evidenceReader := runtimeCapabilitiesContain(capabilities, "evidence-read")
 	if !runtimeCapabilitiesContainSource(capabilities) {
 		return input
-	}
-	// A registered execution asset is not a research-page continuation. Keep
-	// its exact model URL intact so the binary download contract can either
-	// reuse it or reject the wrong web_fetch route; never replace it with an
-	// older plan-owned page URL.
-	if normalizeAgentToolName(toolName) == "webfetch" {
-		requestedURL := strings.TrimSpace(stringValue(input["url"]))
-		if requestedURL != "" {
-			for _, download := range s.registeredExecutionDownloadHints() {
-				if download.URL == requestedURL {
-					return input
-				}
-			}
-		}
-		if isLikelyScientificDownloadURL(requestedURL) {
-			return input
-		}
 	}
 	step, action, found := s.generatedPlanActiveResearchStep(frameID)
 	if !found {

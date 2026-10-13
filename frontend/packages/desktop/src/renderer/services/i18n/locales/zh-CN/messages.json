@@ -84,6 +84,7 @@
   "researchQuery": "检索",
   "researchEmpty": "本次检索未发现可用来源，可调整关键词或改用其他公开数据库。",
   "toolPublicDetail": {
+    "runtimeRepairRequired": "运行环境需修复",
     "sourceMismatch": "来源待核对",
     "fullTextUnavailable": "全文不可用",
     "sourceUnavailable": "来源不可用",

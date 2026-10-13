@@ -11,8 +11,8 @@ import (
 )
 
 // NormalizeProxyURL validates the one trusted upstream HTTP CONNECT proxy
-// accepted by the runtime. Credentials may be embedded for Basic proxy
-// authentication, but callers must never log the returned URL.
+// accepted by the runtime. Userinfo, paths and query strings are not supported;
+// callers must not log the unvalidated operator input.
 func NormalizeProxyURL(value string) (string, error) {
 	value = strings.TrimSpace(value)
 	if value == "" {

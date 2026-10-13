@@ -2462,6 +2462,7 @@ export type I18nKey =
   | 'messages.toolPublicDetail.retrievedAt'
   | 'messages.toolPublicDetail.returnedSource'
   | 'messages.toolPublicDetail.runOutput'
+  | 'messages.toolPublicDetail.runtimeRepairRequired'
   | 'messages.toolPublicDetail.seconds'
   | 'messages.toolPublicDetail.selected'
   | 'messages.toolPublicDetail.showMore'

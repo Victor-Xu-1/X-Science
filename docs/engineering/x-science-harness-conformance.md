@@ -766,11 +766,15 @@ tools are absent from new model snapshots.
     research step complete, unobserved query languages and source-proposed
     follow-ups remain visible as `required=false` quality advisories; they do
     not reopen the step, force Tool choice, or enter protocol recovery. A new
-    `deep` or `systematic` step with no bound source-reader receipt instead
+    explicitly approved `deep` or `systematic` step with no bound source-reader receipt instead
     remains `in_progress` with a `x-science.research-source-read.v1` capability
     requirement and bounded locators from its discovery receipts. Search
     snippets and search-returned abstract records remain discovery in this
-    transition; the model selects which source to read, may bind an existing
+    transition. Autonomous plans retain missing-evidence information as advisory
+    navigation, without inventing a receipt or a verified scientific conclusion.
+    Explicit source queries, URLs and identifiers are never replaced by a plan's
+    earlier discovery query or continuation locator; defaults only fill absent
+    source selection. The model selects which source to read, may bind an existing
     qualified receipt, and may truthfully mark the step blocked/skipped when no
     authoritative material is available. Previously completed legacy steps are
     not reopened retroactively. The same bounded entity and topic relevance
