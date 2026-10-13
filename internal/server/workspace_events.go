@@ -126,19 +126,38 @@ func (s *Server) handleWorkspaceEventStream(w http.ResponseWriter, r *http.Reque
 	w.Header().Set("Connection", "keep-alive")
 	channel, unsubscribe := s.workspaceEvents.Subscribe()
 	defer unsubscribe()
-	for {
-		events, err := store.ListFrameEvents(frameID, cursor, 1000)
-		if err != nil {
-			return
-		}
-		for _, event := range events {
-			if !writeWorkspaceSSE(w, event) {
-				return
+	// Subscribe before replay so an arrival at the replay/live boundary cannot
+	// be missed. Keep each durable read bounded, but drain every pending page.
+	replay := func(before int64) bool {
+		for {
+			if r.Context().Err() != nil {
+				return false
 			}
-			cursor = event.Sequence
+			events, err := store.ListFrameEvents(frameID, cursor, 1000)
+			if err != nil {
+				return false
+			}
+			for _, event := range events {
+				if r.Context().Err() != nil {
+					return false
+				}
+				if before > 0 && event.Sequence >= before {
+					flusher.Flush()
+					return true
+				}
+				if !writeWorkspaceSSE(w, event) {
+					return false
+				}
+				cursor = event.Sequence
+			}
+			flusher.Flush()
+			if len(events) < 1000 {
+				return true
+			}
 		}
-		flusher.Flush()
-		break
+	}
+	if !replay(0) {
+		return
 	}
 	for {
 		select {
@@ -150,6 +169,12 @@ func (s *Server) handleWorkspaceEventStream(w http.ResponseWriter, r *http.Reque
 			}
 			if event.FrameID != frameID || event.Sequence <= cursor {
 				continue
+			}
+			// A newer notification must not move the resume cursor past retained
+			// events. Preserve the notification itself: outbox fanout can retain a
+			// captured payload even after its durable source has been deleted.
+			if !replay(event.Sequence) || r.Context().Err() != nil {
+				return
 			}
 			if !writeWorkspaceSSE(w, event) {
 				return
