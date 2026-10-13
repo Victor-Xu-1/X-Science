@@ -166,6 +166,15 @@ func (t *publicHTTPSRoundTripper) destination(ctx context.Context, rawURL string
 // provided through the server's HTTP client.
 func (t *publicHTTPSRoundTripper) PublicHTTPSPinned() bool { return true }
 
+// ValidatePublicHTTPSDestination applies this transport's exact URL and DNS
+// policy without issuing a request. Layered MCP/OAuth callers use it for
+// preflight checks and browser authorization links, retaining direct private-DNS
+// rejection without imposing local DNS on explicitly proxy-resolved traffic.
+func (t *publicHTTPSRoundTripper) ValidatePublicHTTPSDestination(ctx context.Context, rawURL string) error {
+	_, _, err := t.destination(ctx, rawURL)
+	return err
+}
+
 func (t *publicHTTPSRoundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
 	if request == nil || request.URL == nil {
 		return nil, errors.New("MCP directory request URL is required")

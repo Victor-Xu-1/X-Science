@@ -507,7 +507,7 @@ func sameOAuthIssuer(callbackISS, metadataIssuer string) bool {
 }
 
 func doOAuthRequest(ctx context.Context, req *http.Request) (*http.Response, error) {
-	if err := validateOAuthEndpoint(req.URL.String(), "MCP OAuth request"); err != nil {
+	if err := validateResolvedOAuthEndpoint(ctx, req.URL.String(), "MCP OAuth request"); err != nil {
 		return nil, err
 	}
 	client, err := oauthHTTPClientForContext(ctx)
@@ -524,9 +524,8 @@ func oauthHTTPClientForContext(ctx context.Context) (*http.Client, error) {
 		return http.ErrUseLastResponse
 	}
 	if pinned, ok := baseClient.Transport.(PublicHTTPSPinnedTransport); ok && pinned.PublicHTTPSPinned() {
-		// The MCP directory transport already validates each OAuth endpoint and
-		// pins its resolved public address. Replacing it here would discard that
-		// contract and make an otherwise valid connector fail during OAuth.
+		// Retain the public transport's per-request validation and resolution
+		// policy, including DNS owned by an explicit operator proxy.
 		return &client, nil
 	}
 
@@ -655,6 +654,12 @@ func validateOAuthEndpoint(value, label string) error {
 func validateResolvedOAuthEndpoint(ctx context.Context, value, label string) error {
 	if err := validateOAuthEndpoint(value, label); err != nil {
 		return err
+	}
+	if validated, err := validatePublicTransportDestination(ctx, value); validated {
+		if err != nil {
+			return fmt.Errorf("%s: %w", label, err)
+		}
+		return nil
 	}
 	parsed, err := url.Parse(strings.TrimSpace(value))
 	if err != nil {

@@ -630,9 +630,11 @@ func (s *Service) Authorize(ctx context.Context, userID, id string) (mcpstdio.OA
 	oauthKey := directoryOAuthKey(userID, row.ID)
 	config := s.applyTLSPosture(serverConfig(row))
 	config.Name = oauthKey
-	result, err := mcpstdio.AuthenticateServer(
-		mcpstdio.WithHTTPClient(ctx, s.client), s.root, oauthKey, config,
-	)
+	runtimeCtx, err := s.runtimeConnectorContext(ctx, config)
+	if err != nil {
+		return mcpstdio.OAuthStartResult{}, err
+	}
+	result, err := mcpstdio.AuthenticateServer(runtimeCtx, s.root, oauthKey, config)
 	if err != nil {
 		return mcpstdio.OAuthStartResult{}, err
 	}
