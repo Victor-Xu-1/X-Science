@@ -141,6 +141,7 @@
     {
       "name": "source-supervisor-and-local-hosts",
       "paths": [
+        "scripts/dev/frontend-dependency-watch.mjs",
         "scripts/dev/install-source-dev-supervisor.ps1",
         "scripts/dev/source-dev-supervisor-test.ps1",
         "scripts/dev/source-dev-supervisor.ps1",
@@ -148,7 +149,8 @@
         "scripts/dev/source-frontend-host.sh",
         "scripts/dev/source-quickstart-test.sh",
         "scripts/dev/source-quickstart.sh",
-        "scripts/dev/source-wsl-keepalive.sh"
+        "scripts/dev/source-wsl-keepalive.sh",
+        "scripts/dev/testdata/gated-node.sh"
       ],
       "packages": [
         "x-science/cmd/x-science",

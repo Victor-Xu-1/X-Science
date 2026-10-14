@@ -185,6 +185,31 @@ class VerificationOwnershipTests(unittest.TestCase):
                     for target in targets:
                         self.assertTrue((repo / target).is_file(), target)
 
+    def test_frontend_dependency_watcher_keeps_host_checks_and_consumers(self):
+        repo = Path(__file__).resolve().parents[2]
+        paths = ["scripts/dev/frontend-dependency-watch.mjs", "scripts/dev/testdata/gated-node.sh"]
+        entries = [
+            {"ImportPath": "x-science/cmd/x-science", "Dir": str(repo / "cmd/x-science")},
+            {"ImportPath": "x-science/internal/config", "Dir": str(repo / "internal/config")},
+            {"ImportPath": "x-science/internal/client", "Dir": str(repo / "internal/client"),
+             "TestImports": ["x-science/internal/config"]},
+            {"ImportPath": "x-science/internal/unrelated", "Dir": str(repo / "internal/unrelated")},
+        ]
+        expected = sorted(entry["ImportPath"] for entry in entries[:3])
+        for path in paths:
+            with self.subTest(path=path):
+                groups = contract.matched(repo, [path])
+                self.assertEqual([group["name"] for group in groups], ["source-supervisor-and-local-hosts"])
+                self.assertIn(["bash", "scripts/dev/source-frontend-host-test.sh"], contract.checks(groups))
+                self.assertEqual(groups[0]["packages"],
+                                 ["x-science/cmd/x-science", "x-science/internal/config"])
+                self.assertFalse(groups[0]["frontend"])
+                self.assertEqual(scope.select_packages(repo, [path], entries)[0], expected)
+                unknown = path + ".unregistered"
+                self.assertEqual(contract.matched(repo, [unknown]), [])
+                self.assertEqual(scope.select_packages(repo, [unknown], entries)[0],
+                                 sorted(entry["ImportPath"] for entry in entries))
+
     def test_version_counter_has_exact_verification_ownership(self):
         repo = Path(__file__).resolve().parents[2]
         groups = contract.matched(repo, ["scripts/quality/product_version.py"])

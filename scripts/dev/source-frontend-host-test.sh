@@ -6,16 +6,21 @@ TMP_DIR=$(mktemp -d)
 host_pid=""
 
 cleanup() {
+  local workers="${fake_state:-$TMP_DIR/fake-npm}/workers"
+  # A gate may be in a foreground version query before any owned group exists.
+  # Release our fixture gates before waiting for the host's shutdown trap.
+  rm -f -- "${fake_state:-$TMP_DIR/fake-npm}/hold-install-key" \
+    "${fake_state:-$TMP_DIR/fake-npm}/hold-watcher"
   if [[ -n "$host_pid" ]] && kill -0 "$host_pid" 2>/dev/null; then
     kill -TERM "$host_pid" 2>/dev/null || true
     wait "$host_pid" 2>/dev/null || true
   fi
-  if [[ -f "$TMP_DIR/fake-npm/workers" ]]; then
+  if [[ -f "$workers" ]]; then
     while IFS= read -r worker_pid; do
       if [[ "$worker_pid" =~ ^[0-9]+$ ]] && kill -0 "$worker_pid" 2>/dev/null; then
         kill -KILL "$worker_pid" 2>/dev/null || true
       fi
-    done <"$TMP_DIR/fake-npm/workers"
+    done <"$workers"
   fi
   case "$TMP_DIR" in
     /tmp/tmp.*) rm -rf -- "$TMP_DIR" ;;
@@ -112,6 +117,70 @@ while IFS= read -r worker_pid; do
 done <"$fake_state/workers"
 test ! -e "$state_root/host.pid"
 test ! -e "$state_root/frontend.pgid"
+if compgen -G "$state_root/watcher-ready.*" >/dev/null; then
+  echo "frontend watcher readiness receipt survived host shutdown" >&2
+  exit 1
+fi
+
+# Control both startup gaps without a scheduling delay: the post-ci hash has
+# read version 1 before the wrapper blocks its version query; version 2 is
+# written before subscriptions exist. No npm run may start with the stale tree.
+source_frontend="$TMP_DIR/startup-frontend"
+state_root="$TMP_DIR/startup-state"
+fake_state="$TMP_DIR/startup-fake-npm"
+mkdir -p "$source_frontend/packages/desktop" "$fake_state" "$TMP_DIR/bin"
+real_node=$(command -v node)
+cp "$ROOT_DIR/scripts/dev/testdata/gated-node.sh" "$TMP_DIR/bin/node"
+chmod 755 "$TMP_DIR/bin/node"
+: >"$fake_state/hold-watcher"
+: >"$fake_state/hold-install-key"
+printf '{"version":1}\n' >"$source_frontend/package.json"
+printf '{"lockfileVersion":3}\n' >"$source_frontend/package-lock.json"
+printf '{}\n' >"$source_frontend/packages/desktop/package.json"
+PATH="$TMP_DIR/bin:$PATH" \
+FAKE_NODE_REAL_BIN="$real_node" \
+FAKE_NPM_STATE="$fake_state" \
+X_SCIENCE_DEV_FRONTEND_SOURCE="$source_frontend" \
+X_SCIENCE_DEV_FRONTEND_RUNTIME_STATE="$state_root" \
+NPM="$ROOT_DIR/scripts/dev/testdata/fake-npm.sh" \
+  bash "$ROOT_DIR/scripts/dev/source-frontend-host.sh" >"$TMP_DIR/host.log" 2>&1 &
+host_pid=$!
+wait_for_event_count ci 1
+wait_for_event_count install-key-captured 1
+printf '{"version":2}\n' >"$source_frontend/package.json"
+rm -f -- "$fake_state/hold-install-key"
+wait_for_event_count watcher-gated 1
+ready_files=("$state_root"/watcher-ready.*)
+if [[ "${#ready_files[@]}" != "1" || ! -f "${ready_files[0]}" || -s "${ready_files[0]}" ]]; then
+  echo "watcher readiness was not bound to the current blocked subscription" >&2
+  exit 1
+fi
+first_ready_file="${ready_files[0]}"
+if [[ "$(event_count run)" != "0" ]] || grep -Fq ' started from ' "$TMP_DIR/host.log"; then
+  echo "frontend started before subscriptions and the installed-key check" >&2
+  exit 1
+fi
+rm -f -- "$fake_state/hold-watcher"
+wait_for_event_count ci 2
+wait_for_event_count run 1
+[[ "$(event_count ci)" == "2" && "$(event_count run)" == "1" ]]
+[[ "$(grep -E '^(ci|run)$' "$fake_state/events")" == $'ci\nci\nrun' ]]
+test ! -e "$first_ready_file"
+kill -TERM "$host_pid"
+wait "$host_pid"
+host_pid=""
+while IFS= read -r worker_pid; do
+  if kill -0 "$worker_pid" 2>/dev/null; then
+    echo "startup-race worker survived host shutdown: $worker_pid" >&2
+    exit 1
+  fi
+done <"$fake_state/workers"
+test ! -e "$state_root/host.pid"
+test ! -e "$state_root/frontend.pgid"
+if compgen -G "$state_root/watcher-ready.*" >/dev/null; then
+  echo "startup-race watcher receipt survived host shutdown" >&2
+  exit 1
+fi
 
 # A failed dependency install must be diagnostic and must not launch Vite from
 # a stale node_modules tree.
