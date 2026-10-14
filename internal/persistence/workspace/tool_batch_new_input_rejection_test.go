@@ -62,13 +62,15 @@ func TestDeferredKernelProposalNewInputPreventsOldTailExecution(t *testing.T) {
 					t.Fatalf("old deferred proposal could execute before new input: ordinal=%d rejection=%+v err=%v", item.Ordinal, rejection, err)
 				}
 				var feedback struct {
+					OK        *bool  `json:"ok"`
+					Code      string `json:"code"`
 					Executed  bool   `json:"executed"`
 					Preflight bool   `json:"preflight"`
 					Outcome   string `json:"execution_outcome"`
 					Status    string `json:"status"`
 					Message   string `json:"message"`
 				}
-				if err := json.Unmarshal(rejection.FeedbackJSON, &feedback); err != nil || feedback.Executed || !feedback.Preflight || feedback.Outcome != "not_started" || feedback.Status != "superseded_by_new_user_input" || feedback.Message == "" {
+				if err := json.Unmarshal(rejection.FeedbackJSON, &feedback); err != nil || feedback.OK == nil || *feedback.OK || feedback.Code != "superseded_by_new_user_input" || feedback.Executed || !feedback.Preflight || feedback.Outcome != "not_started" || feedback.Status != "superseded_by_new_user_input" || feedback.Message == "" {
 					t.Fatalf("invalid non-execution feedback: %+v %v", feedback, err)
 				}
 				replayed, err := store.ReadPendingToolCallRejection(ctx, claim, batch.BatchID, item.Ordinal)

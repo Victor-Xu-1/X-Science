@@ -10,8 +10,9 @@ import (
 	transcriptstore "x-science/internal/persistence/transcript"
 )
 
-// ToolCallPreExecutionRejection is read only from the immutable host checkpoint,
-// never from model arguments. Feedback may be absent in legacy checkpoints.
+// ToolCallPreExecutionRejection is read from immutable host checkpoints and
+// canonical newer user input, never from model arguments. Feedback may be
+// absent in legacy checkpoints.
 type ToolCallPreExecutionRejection struct {
 	Rejected     bool
 	FeedbackJSON json.RawMessage
@@ -48,8 +49,11 @@ func (s *Store) readToolCallRejection(
 	}
 	var result ToolCallPreExecutionRejection
 	err = repository.RunImmediate(ctx, func(tx *transcriptstore.ImmediateTransaction) error {
+		var stream transcriptstore.Stream
 		if terminalEventID == 0 {
-			if _, err := tx.ValidateLiveRunnerClaim(ctx, claim); err != nil {
+			var err error
+			stream, err = tx.ValidateLiveRunnerClaim(ctx, claim)
+			if err != nil {
 				return err
 			}
 		}
@@ -91,12 +95,20 @@ func (s *Store) readToolCallRejection(
 		if err != nil {
 			return err
 		}
+		newInputRejection := false
+		if !rejection.Rejected && terminalEventID == 0 {
+			rejection, err = deferredKernelProposalInputRejection(ctx, tx, stream, claim, batch, item)
+			if err != nil {
+				return err
+			}
+			newInputRejection = rejection.Rejected
+		}
 		if !rejection.Rejected {
 			return nil
 		}
 		if item.StartedEventID != 0 || item.WaitingEventID != 0 ||
 			(terminalEventID == 0 && (item.State != ToolCallBatchItemStatePending || item.TerminalEventID != 0)) {
-			if terminalEventID > 0 {
+			if terminalEventID > 0 || newInputRejection {
 				return nil
 			}
 			return ErrToolCallBatchConflict
@@ -115,7 +127,7 @@ func (s *Store) readToolCallRejection(
 			return err
 		}
 		if operations != 0 || effects != 0 {
-			if terminalEventID > 0 {
+			if terminalEventID > 0 || newInputRejection {
 				return nil
 			}
 			return ErrToolCallBatchConflict
