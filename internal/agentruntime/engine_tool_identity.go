@@ -23,6 +23,18 @@ type toolCallIdentityScope struct {
 	next   uint64
 }
 
+// prepareRunIdentity checks run readiness before allocating a new identity
+// scope. It runs on every invocation, including reuse of the same Engine.
+func (e Engine) prepareRunIdentity(request RunRequest) (*toolCallIdentityScope, error) {
+	if e.Model == nil {
+		return nil, errors.New("agent runtime model client is required")
+	}
+	if len(request.Messages) == 0 {
+		return nil, errors.New("agent runtime requires at least one message")
+	}
+	return newToolCallIdentityScope(e.ToolCallIdentityPolicy)
+}
+
 func newToolCallIdentityScope(policy ToolCallIdentityPolicy) (*toolCallIdentityScope, error) {
 	switch policy {
 	case "", ConversationToolCallIdentity:

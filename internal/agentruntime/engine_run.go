@@ -3,18 +3,11 @@ package agentruntime
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"strings"
 )
 
 func (e Engine) Run(ctx context.Context, request RunRequest) (RunResult, error) {
-	if e.Model == nil {
-		return RunResult{}, errors.New("agent runtime model client is required")
-	}
-	if len(request.Messages) == 0 {
-		return RunResult{}, errors.New("agent runtime requires at least one message")
-	}
-	identityScope, err := newToolCallIdentityScope(e.ToolCallIdentityPolicy)
+	identityScope, err := e.prepareRunIdentity(request)
 	if err != nil {
 		return RunResult{}, err
 	}
