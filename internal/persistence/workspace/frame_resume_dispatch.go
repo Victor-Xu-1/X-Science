@@ -932,7 +932,12 @@ func (s *Store) signalCompatibilityFrameResumeDispatchModelSwitch(
 			Evidence: "observed", Revision: modelRevision},
 	}
 	if state == CompatibilityFrameResumeDispatchWakeWoken {
+		waitOrigin, err := frameResumeWaitOrigin(ctx, tx, row)
+		if err != nil {
+			return FrameEvent{}, CompatibilityFrameResumeDispatchWakeNone, false, err
+		}
 		auditPayload["waitRef"] = row.dispatch.WaitRef
+		auditPayload["waitOriginEventId"] = waitOrigin
 	} else {
 		auditPayload["claimEventId"] = fmt.Sprintf("frame-resume-dispatch-claim:%s:%d", row.dispatch.ResumeEvent.ID, row.dispatch.Attempt)
 	}
