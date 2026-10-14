@@ -1051,6 +1051,18 @@ keeps the WSL source host alive on 8765/8766 and is installed explicitly from
 `scripts/dev/install-source-dev-supervisor.ps1`; it is never packaged or used as
 authority for the Windows-native release described in this runbook.
 
+The source-development launcher starts one hidden canonical keepalive with an
+explicit distro, user and helper path. Linux systemd alone owns service restart;
+failed HTTP probes never authorize a backend restart. An unexpected helper exit
+(including zero) or launch failure records safe stage/exit metadata in the
+existing `XScience/source-dev/watchdog.log` and returns failure, without an
+automatic launcher or Scheduled Task retry loop. Inspect that failure before an
+explicit start; logon and the installer's optional `-Start` entry remain. The
+installed `watchdog.ps1` filename and singleton mutex are retained for compatibility.
+Normal unwind attempts to stop its owned client; abrupt parent termination is
+not a guarantee of child settlement. Installing this revision is an explicit
+operator action and does not itself reconcile historical orphaned helpers.
+
 After a Windows reboot, assume the product is stopped: confirm port 8765 is
 free, re-run the manual start procedure, and repeat the live health check. Do
 not enable a historical WSL keepalive task as authority for the Windows-native

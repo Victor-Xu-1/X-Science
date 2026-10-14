@@ -27,8 +27,7 @@ $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument `
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User "$env:USERDOMAIN\$env:USERNAME"
 $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries `
   -DontStopIfGoingOnBatteries -StartWhenAvailable `
-  -MultipleInstances IgnoreNew -ExecutionTimeLimit ([timespan]::Zero) `
-  -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1)
+  -MultipleInstances IgnoreNew -ExecutionTimeLimit ([timespan]::Zero)
 $principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" `
   -LogonType Interactive -RunLevel Limited
 

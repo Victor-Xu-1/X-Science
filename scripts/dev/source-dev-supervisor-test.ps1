@@ -33,6 +33,8 @@ function Start-Process {
       -ArgumentList @('-NoProfile', '-NonInteractive', '-Command', 'exit 17') -WindowStyle Hidden -PassThru
     # Keep the actual owned handle before the short process can exit.
     $null = $fixture.Process.Handle
+    $fixture.OwnedProcess = [Diagnostics.Process]::GetProcessById($fixture.Process.Id)
+    $null = $fixture.OwnedProcess.Handle
   }
   return $fixture.Process
 }
@@ -72,7 +74,7 @@ function Invoke-SupervisorFixture {
   param([string]$Mode = 'zero-exit', [int]$ExitCode = 0, [switch]$MutexBusy)
   $global:sourceSupervisorFixture = [pscustomobject]@{
     Mode = $Mode; Process = (New-HelperFixture $ExitCode); Starts = 0; Probes = 0
-    RetrySleeps = 0; Releases = 0; MutexBusy = $MutexBusy.IsPresent; Arguments = @()
+    RetrySleeps = 0; Releases = 0; MutexBusy = $MutexBusy.IsPresent; Arguments = @(); OwnedProcess = $null
   }
   $savedLocalAppData = $env:LOCALAPPDATA
   $fixtureRoot = Join-Path ([IO.Path]::GetTempPath()) ('x-science-supervisor-' + [guid]::NewGuid())
@@ -93,8 +95,10 @@ function Invoke-SupervisorFixture {
     return $result
   } finally {
     $env:LOCALAPPDATA = $savedLocalAppData
-    $process = $global:sourceSupervisorFixture.Process
-    if ($process -is [Diagnostics.Process]) {
+    # The script disposes its own Process object; this independent retained
+    # handle lets the fixture join/clean only its child even if the script fails.
+    $process = $global:sourceSupervisorFixture.OwnedProcess
+    if ($null -ne $process) {
       if (-not $process.HasExited) { $process.Kill(); [void]$process.WaitForExit(5000) }
       $process.Dispose()
     }
@@ -108,6 +112,8 @@ $result = Invoke-SupervisorFixture
 Assert-Equal 0 $result.Probes 'source launcher must never authorize service restart from HTTP health'
 Assert-Equal 0 $result.RetrySleeps 'source launcher must not retry an exited helper'
 Assert-Equal 1 $result.Starts 'one launcher invocation starts one helper'
+Assert-Equal '-d|FixtureUbuntu|-u|root|--exec|/usr/bin/env|X_SCIENCE_DEV_WSL_USER=fixture_user|/fixture/keepalive.sh' `
+  ($result.Arguments -join '|') 'actual launch must retain the explicit helper binding'
 Assert-Equal 1 $result.ExitCode 'unexpected helper exit zero is not a live-service success'
 Assert-Equal $null $result.Error 'helper failure must have a controlled exit status'
 Assert-Equal 1 $result.Releases 'owned mutex must be released after helper exit'
