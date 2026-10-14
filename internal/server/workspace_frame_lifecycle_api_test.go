@@ -37,7 +37,9 @@ func TestWorkspaceFrameLifecycleHTTPAPI(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	app := New(Options{Workspace: store}).Handler()
+	serverApp := New(Options{FileRoot: t.TempDir(), Workspace: store})
+	t.Cleanup(func() { closeTestServer(t, serverApp) })
+	app := serverApp.Handler()
 
 	serveWorkspaceJSON(t, app, http.MethodPost, "/api/go/frames/root-frame/messages/queued-1/retract", map[string]any{}, http.StatusOK)
 	message, found, err := store.LocateFrameMessage("root-frame", "queued-1")
@@ -59,7 +61,11 @@ func TestWorkspaceFrameLifecycleHTTPAPI(t *testing.T) {
 	if _, err := store.UpdateFrame("root-frame", workspace.UpdateFrameInput{Status: &paused}); err != nil {
 		t.Fatal(err)
 	}
-	serveWorkspaceJSON(t, app, http.MethodPost, "/api/go/frames/root-frame/resume", map[string]any{}, http.StatusOK)
+	retired := compatJSONRequest(t, app, http.MethodPost, "/api/go/frames/root-frame/resume", "local", map[string]any{}, http.StatusGone)
+	if retired["replacement"] != "/api/frames/{id}/resume" {
+		t.Fatalf("retired resume=%#v", retired)
+	}
+	compatJSONRequest(t, app, http.MethodPost, "/api/frames/root-frame/resume", "local", map[string]any{}, http.StatusOK)
 	frame, found, err := store.GetFrame("root-frame")
 	if err != nil || !found || frame.Status != "processing" {
 		t.Fatalf("resumed frame = %#v, found=%v, err=%v", frame, found, err)
@@ -68,12 +74,12 @@ func TestWorkspaceFrameLifecycleHTTPAPI(t *testing.T) {
 	serveWorkspaceJSON(t, app, http.MethodPost, "/api/go/frames/root-frame/move", map[string]any{
 		"projectId": "project-2",
 	}, http.StatusOK)
-	serveWorkspaceJSON(t, app, http.MethodPost, "/api/go/frames/root-frame/resume", map[string]any{}, http.StatusOK)
+	serveWorkspaceJSON(t, app, http.MethodPost, "/api/go/frames/root-frame/resume", map[string]any{}, http.StatusGone)
 	events, err := store.ListFrameEvents("root-frame", 0, 20)
-	if err != nil || len(events) != 3 ||
+	if err != nil || len(events) != 4 ||
 		events[0].Type != "message_retracted" ||
 		events[1].Type != "frame_moved" ||
-		events[2].Type != "frame_resumed" {
+		events[2].Type != "frame_resumed" || events[3].Type != "frame_resume_continue_command_accepted" {
 		t.Fatalf("lifecycle events = %#v, err=%v", events, err)
 	}
 }

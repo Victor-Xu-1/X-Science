@@ -75,7 +75,7 @@ func TestHostLoadsExternalPluginManifestAndRunsProcess(t *testing.T) {
 	}
 	t.Cleanup(func() {
 		cancel()
-		host.StopExternalProcesses()
+		stopHostProcesses(t, host)
 	})
 	waitForFile(t, readyFile)
 
@@ -87,7 +87,7 @@ func TestHostLoadsExternalPluginManifestAndRunsProcess(t *testing.T) {
 		t.Fatalf("Runtime after start = %#v", plugin.Runtime)
 	}
 
-	host.StopExternalProcesses()
+	stopHostProcesses(t, host)
 	plugin, _ = host.Get("terminal-tools")
 	if plugin.Runtime.Status != "stopped" {
 		t.Fatalf("Runtime after stop = %#v", plugin.Runtime)
@@ -133,7 +133,7 @@ func TestHostMarksExternalProcessExitedWhenChildEnds(t *testing.T) {
 	if err := host.StartExternalProcesses(ctx); err != nil {
 		t.Fatalf("StartExternalProcesses() error = %v", err)
 	}
-	t.Cleanup(host.StopExternalProcesses)
+	t.Cleanup(func() { stopHostProcesses(t, host) })
 	waitForFile(t, readyFile)
 	waitForRuntimeStatus(t, host, "short-plugin", "exited")
 }
@@ -318,7 +318,7 @@ func TestHostPluginProcessStripsAmbientSecretsAndAllowsExplicitEnvironment(t *te
 	if err := host.StartExternalProcesses(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(host.StopExternalProcesses)
+	t.Cleanup(func() { stopHostProcesses(t, host) })
 	waitForFile(t, readyFile)
 	raw, err := os.ReadFile(environmentFile)
 	if err != nil {
@@ -413,7 +413,7 @@ func TestHostStopKillsPluginProcessTree(t *testing.T) {
 		t.Fatal(err)
 	}
 	childPID := waitForPIDFile(t, childPIDFile)
-	host.StopExternalProcesses()
+	stopHostProcesses(t, host)
 	waitForPIDExit(t, childPID)
 }
 

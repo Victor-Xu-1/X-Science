@@ -19,6 +19,10 @@ import {
 } from './xScienceHttp';
 import { normalizeXScienceConversationBranches } from './xScienceConversationBranches';
 import { invalidateXScienceFrameReads, loadCachedXScienceFrame } from './xScienceFrameReads';
+import {
+  requireContinueReceipt,
+  type XScienceContinueInput,
+} from '@/renderer/components/xScience/runtime/resumeCommandIntent';
 
 export type { XScienceGatewayOptions as XScienceRuntimeGatewayOptions } from './xScienceHttp';
 
@@ -43,9 +47,7 @@ export type ForkXScienceAtAskUserAnswerInput = {
   clientMutationId: string;
 };
 
-export type XScienceResumeInput = {
-  model?: string;
-};
+export type XScienceResumeInput = XScienceContinueInput;
 
 export type XScienceExecutionLogPage = {
   records: XScienceExecutionRecord[];
@@ -190,10 +192,10 @@ export async function loadXSciencePlanDocument(
 
 export async function resumeXScienceFrame(
   frameId: string,
-  input: XScienceResumeInput = {},
+  input: XScienceResumeInput,
   options: XScienceRuntimeGatewayOptions = {}
 ): Promise<{ snapshot: XScienceRuntimeSnapshot; runtime: TConversationRuntimeSummary }> {
-  await requestJson<unknown>(
+  const accepted = await requestJson<unknown>(
     `/api/frames/${encodeURIComponent(frameId)}/resume`,
     {
       method: 'POST',
@@ -202,6 +204,7 @@ export async function resumeXScienceFrame(
     },
     options
   );
+  requireContinueReceipt(accepted, frameId, input);
   invalidateXScienceFrameReads(frameId);
   const snapshot = await loadXScienceRuntimeSnapshot(frameId, options);
   return { snapshot, runtime: toXScienceRuntimeSummary(snapshot) };

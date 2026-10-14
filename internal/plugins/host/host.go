@@ -68,14 +68,21 @@ func (p Plugin) Root() string {
 }
 
 type Host struct {
-	mu        sync.RWMutex
-	plugins   map[string]Plugin
-	processes map[string]*externalProcess
+	mu          sync.RWMutex
+	plugins     map[string]Plugin
+	processes   map[string]*externalProcess
+	stopping    bool
+	shutdownErr error
 }
 
 type externalProcess struct {
-	command *exec.Cmd
-	control *subprocess.Control
+	command  *exec.Cmd
+	control  *subprocess.Control
+	done     chan struct{}
+	stopping bool
+	stopErr  error
+	waitErr  error
+	startErr error
 }
 
 func NewDefault() *Host {
@@ -191,6 +198,12 @@ func (h *Host) StartExternalProcesses(ctx context.Context) error {
 	}
 	h.mu.Lock()
 	defer h.mu.Unlock()
+	if h.shutdownErr != nil {
+		return fmt.Errorf("plugin process cleanup previously failed: %w", h.shutdownErr)
+	}
+	if h.stopping {
+		return errors.New("plugin processes are still stopping")
+	}
 	var errs []error
 	for id, plugin := range h.plugins {
 		process := plugin.Server.Process
@@ -227,81 +240,21 @@ func (h *Host) StartExternalProcesses(ctx context.Context) error {
 			continue
 		}
 		if err := cmd.Start(); err != nil {
-			_ = control.Close()
-			plugin.Runtime = RuntimeStatus{Kind: "external_process", Status: "failed", Error: err.Error()}
-			h.plugins[id] = plugin
-			errs = append(errs, fmt.Errorf("start plugin %s: %w", id, err))
+			errs = append(errs, h.recordUnstartedProcessFailure(id, plugin, control, fmt.Errorf("start plugin %s: %w", id, err)))
 			continue
 		}
+		running := h.ownStartedProcess(id, plugin, cmd, control)
+		var startErr error
 		if err := control.Attach(cmd); err != nil {
-			_ = control.Kill(cmd)
-			_ = cmd.Wait()
-			_ = control.Close()
-			plugin.Runtime = RuntimeStatus{Kind: "external_process", Status: "failed", Error: err.Error()}
-			h.plugins[id] = plugin
-			errs = append(errs, fmt.Errorf("attach plugin %s process control: %w", id, err))
-			continue
+			startErr = fmt.Errorf("attach plugin %s process control: %w", id, err)
+		} else if err := ctx.Err(); err != nil {
+			startErr = fmt.Errorf("start plugin %s: %w", id, err)
 		}
-		if err := ctx.Err(); err != nil {
-			_ = control.Kill(cmd)
-			_ = cmd.Wait()
-			_ = control.Close()
-			plugin.Runtime = RuntimeStatus{Kind: "external_process", Status: "failed", Error: err.Error()}
-			h.plugins[id] = plugin
-			errs = append(errs, fmt.Errorf("start plugin %s: %w", id, err))
-			continue
+		if err := h.finishProcessStartup(id, running, startErr); err != nil {
+			errs = append(errs, err)
 		}
-		running := &externalProcess{command: cmd, control: control}
-		h.processes[id] = running
-		plugin.Runtime = RuntimeStatus{
-			Kind:      "external_process",
-			Status:    "running",
-			PID:       cmd.Process.Pid,
-			StartedAt: time.Now().UTC().Format(time.RFC3339),
-		}
-		h.plugins[id] = plugin
-		go h.waitForProcess(id, running)
 	}
 	return errors.Join(errs...)
-}
-
-func (h *Host) StopExternalProcesses() {
-	h.mu.Lock()
-	processes := h.processes
-	h.processes = make(map[string]*externalProcess)
-	for id, process := range processes {
-		plugin := h.plugins[id]
-		plugin.Runtime = RuntimeStatus{Kind: "external_process", Status: "stopped"}
-		h.plugins[id] = plugin
-		_ = process.control.Kill(process.command)
-		_ = process.control.Close()
-	}
-	h.mu.Unlock()
-}
-
-func (h *Host) waitForProcess(id string, process *externalProcess) {
-	err := process.command.Wait()
-	closeErr := process.control.Close()
-	if err == nil {
-		err = closeErr
-	}
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	if h.processes[id] != process {
-		return
-	}
-	delete(h.processes, id)
-	plugin := h.plugins[id]
-	plugin.Runtime.PID = 0
-	plugin.Runtime.StartedAt = ""
-	if err != nil {
-		plugin.Runtime.Status = "failed"
-		plugin.Runtime.Error = err.Error()
-	} else {
-		plugin.Runtime.Status = "exited"
-		plugin.Runtime.Error = ""
-	}
-	h.plugins[id] = plugin
 }
 
 func LoadExternalDirectories(directories []string) ([]Plugin, error) {

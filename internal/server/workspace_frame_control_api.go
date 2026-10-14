@@ -19,6 +19,9 @@ var removedWorkspaceFrameControls = map[string]struct {
 	code        string
 	replacement string
 }{
+	"resume": {
+		code: "x-science.frame_control.resume_removed.v1", replacement: "/api/frames/{id}/resume",
+	},
 	"approve-plan": {
 		code: "x-science.frame_control.approve_plan_removed.v1", replacement: "/api/frames/{id}/approve-plan",
 	},

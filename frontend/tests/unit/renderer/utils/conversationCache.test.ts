@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BackendHttpError } from '@/common/adapter/httpBridge';
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/config/storage';
@@ -14,13 +14,19 @@ import {
   clearConversationReadCaches,
   getConversationOrNull,
   getConversationOrNullShared,
+  invalidateConversationReadCaches,
   preferConversationSnapshot,
   readConversationRouteSnapshot,
   readRecentConversationRouteDetail,
   rememberConversationRouteSnapshot,
   refreshConversationCache,
 } from '@/renderer/pages/conversation/utils/conversationCache';
-import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
+import {
+  getRendererAccountScopeToken,
+  resetRendererAccountScopeForTest,
+  setRendererAccountOwner,
+} from '@/renderer/services/rendererAccountScope';
+import { emitter } from '@/renderer/utils/emitter';
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -50,6 +56,7 @@ describe('conversationCache', () => {
     clearConversationReadCaches();
     resetRendererAccountScopeForTest();
   });
+  afterEach(() => vi.restoreAllMocks());
 
   describe('getConversationOrNull', () => {
     it('returns null when the backend reports a missing conversation', async () => {
@@ -136,10 +143,11 @@ describe('conversationCache', () => {
 
       setRendererAccountOwner('owner-a');
       const first = getConversationOrNull('conv-1');
+      const firstRejection = expect(first).rejects.toMatchObject({ name: 'AbortError' });
       setRendererAccountOwner('owner-b');
       await expect(getConversationOrNull('conv-1')).resolves.toMatchObject({ name: 'owner-b detail' });
       resolveOwnerA({ ...mockConversation, name: 'owner-a detail' });
-      await expect(first).resolves.toMatchObject({ name: 'owner-a detail' });
+      await firstRejection;
 
       expect(ipcBridge.conversation.get.invoke).toHaveBeenCalledTimes(2);
     });
@@ -180,6 +188,108 @@ describe('conversationCache', () => {
       await expect(refreshConversationCache('conv-1', mutate)).rejects.toBe(error);
 
       expect(mutate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('authoritative detail invalidation', () => {
+    it('publishes canonical absence only as read-only missing, never a queue-clearing delete action', async () => {
+      setRendererAccountOwner('owner-a');
+      const emit = vi.spyOn(emitter, 'emit');
+      vi.mocked(ipcBridge.conversation.get.invoke).mockResolvedValue(null);
+
+      await expect(getConversationOrNullShared('conv-1')).resolves.toBeNull();
+
+      expect(emit).toHaveBeenCalledExactlyOnceWith(
+        'conversation.detail.missing',
+        getRendererAccountScopeToken(),
+        'conv-1'
+      );
+      expect(emit).not.toHaveBeenCalledWith('conversation.deleted', expect.anything());
+    });
+
+    it('does not publish a previous account404 into the new owner scope', async () => {
+      setRendererAccountOwner('owner-a');
+      let rejectOld!: (reason: unknown) => void;
+      vi.mocked(ipcBridge.conversation.get.invoke).mockReturnValueOnce(
+        new Promise((_, reject) => {
+          rejectOld = reject;
+        })
+      );
+      const oldRead = getConversationOrNullShared('conv-1');
+      setRendererAccountOwner('owner-b');
+      rememberConversationRouteSnapshot('owner-b', mockConversation, 'detail');
+      const emit = vi.spyOn(emitter, 'emit');
+      rejectOld(new BackendHttpError({ method: 'GET', path: '/api/conversations/conv-1', status: 404, body: {} }));
+
+      await expect(oldRead).rejects.toMatchObject({ name: 'AbortError' });
+
+      expect(emit).not.toHaveBeenCalled();
+      expect(readConversationRouteSnapshot('owner-b', 'conv-1')).toBe(mockConversation);
+    });
+
+    it('fences a superseded404 without invalidating the fresh same-owner handoff', async () => {
+      setRendererAccountOwner('owner-a');
+      let rejectOld!: (reason: unknown) => void;
+      vi.mocked(ipcBridge.conversation.get.invoke).mockReturnValueOnce(
+        new Promise((_, reject) => {
+          rejectOld = reject;
+        })
+      );
+      const oldRead = getConversationOrNullShared('conv-1');
+      invalidateConversationReadCaches('owner-a', 'conv-1');
+      beginConversationDetailHandoff('conv-1');
+      vi.mocked(ipcBridge.conversation.get.invoke).mockResolvedValue(mockConversation);
+      await expect(getConversationOrNullShared('conv-1')).resolves.toBe(mockConversation);
+      rememberConversationRouteSnapshot('owner-a', mockConversation, 'detail');
+      const emit = vi.spyOn(emitter, 'emit');
+      rejectOld(new BackendHttpError({ method: 'GET', path: '/api/conversations/conv-1', status: 404, body: {} }));
+      await expect(oldRead).rejects.toMatchObject({ name: 'AbortError' });
+
+      expect(emit).not.toHaveBeenCalled();
+      expect(readRecentConversationRouteDetail('owner-a', 'conv-1')).toBe(mockConversation);
+      await expect(getConversationOrNullShared('conv-1')).resolves.toBe(mockConversation);
+      expect(ipcBridge.conversation.get.invoke).toHaveBeenCalledTimes(2);
+    });
+
+    it('fences a superseded successful refresh without overwriting the fresh same-owner handoff', async () => {
+      setRendererAccountOwner('owner-a');
+      let resolveOld!: (value: TChatConversation) => void;
+      vi.mocked(ipcBridge.conversation.get.invoke).mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveOld = resolve;
+        })
+      );
+      const oldRefresh = refreshConversationCache('conv-1', mutate);
+      const oldRejection = expect(oldRefresh).rejects.toMatchObject({ name: 'AbortError' });
+      invalidateConversationReadCaches('owner-a', 'conv-1');
+      beginConversationDetailHandoff('conv-1');
+      const fresh = { ...mockConversation, name: 'fresh detail' };
+      vi.mocked(ipcBridge.conversation.get.invoke).mockResolvedValue(fresh);
+      await refreshConversationCache('conv-1', mutate);
+      rememberConversationRouteSnapshot('owner-a', fresh, 'detail');
+      const emit = vi.spyOn(emitter, 'emit');
+
+      resolveOld({ ...mockConversation, name: 'superseded detail' });
+      await oldRejection;
+
+      expect(mutate).toHaveBeenCalledExactlyOnceWith('conversation/conv-1', fresh, false);
+      expect(emit).not.toHaveBeenCalled();
+      expect(readRecentConversationRouteDetail('owner-a', 'conv-1')).toBe(fresh);
+      await expect(getConversationOrNullShared('conv-1')).resolves.toBe(fresh);
+      expect(ipcBridge.conversation.get.invoke).toHaveBeenCalledTimes(2);
+    });
+
+    it('invalidates only the selected owner and conversation snapshots', () => {
+      setRendererAccountOwner('owner-a');
+      rememberConversationRouteSnapshot('owner-a', mockConversation, 'detail');
+      rememberConversationRouteSnapshot('owner-a', { ...mockConversation, id: 'conv-other' }, 'detail');
+      rememberConversationRouteSnapshot('owner-b', mockConversation, 'detail');
+
+      invalidateConversationReadCaches('owner-a', 'conv-1');
+
+      expect(readConversationRouteSnapshot('owner-a', 'conv-1')).toBeUndefined();
+      expect(readConversationRouteSnapshot('owner-a', 'conv-other')).toMatchObject({ id: 'conv-other' });
+      expect(readConversationRouteSnapshot('owner-b', 'conv-1')).toBe(mockConversation);
     });
   });
 

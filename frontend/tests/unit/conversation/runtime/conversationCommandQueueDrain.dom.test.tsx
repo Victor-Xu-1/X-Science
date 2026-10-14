@@ -13,6 +13,10 @@ import {
   useConversationCommandQueue,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
 import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
+import {
+  clearConversationReadCaches,
+  getConversationOrNullShared,
+} from '@/renderer/pages/conversation/utils/conversationCache';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -138,5 +142,28 @@ describe('useConversationCommandQueue drain', () => {
     expect([...Array(localStorage.length)].map((_, index) => localStorage.key(index))).toEqual([
       expect.stringContaining('/owner-a/conv-shared'),
     ]);
+  });
+
+  it('preserves an actual queued draft and persisted bytes after a read-only detail404', async () => {
+    setRendererAccountOwner('owner-a');
+    const id = 'queue-preserved-on-missing';
+    const queue = renderQueue({ conversation_id: id, runtimeGate: processingGate });
+    act(() => queue.result.current.enqueue({ input: 'queued draft fixture', files: [] }));
+    await waitFor(() => expect(queue.result.current.items).toHaveLength(1));
+    const key = `conversation-command-queue/v2/owner-a/${id}`;
+    const persisted = localStorage.getItem(key);
+    expect(persisted).toContain('queued draft fixture');
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 404 })));
+    try {
+      await act(async () => {
+        await expect(getConversationOrNullShared(id)).resolves.toBeNull();
+      });
+
+      expect(queue.result.current.items).toEqual([expect.objectContaining({ input: 'queued draft fixture' })]);
+      expect(localStorage.getItem(key)).toBe(persisted);
+    } finally {
+      vi.unstubAllGlobals();
+      clearConversationReadCaches();
+    }
   });
 });

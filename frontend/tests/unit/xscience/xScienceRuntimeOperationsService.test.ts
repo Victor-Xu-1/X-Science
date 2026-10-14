@@ -100,14 +100,34 @@ describe('X-Science runtime operations service', () => {
   });
 
   it('sends the selected real model in the resume request and reloads the resulting frame', async () => {
-    requestJson.mockResolvedValueOnce({ root_frame_id: 'frame-failed' }).mockResolvedValueOnce({
-      id: 'frame-failed',
-      root_frame_id: 'frame-failed',
-      status: 'processing',
+    const input = {
+      client_command_id: '006239c2-cc88-45fc-8e9f-d6e16a0c755d',
+      resume_target: {
+        resume_event_id: null,
+        wait_ref: null,
+        state_ref: `resume-state:${'a'.repeat(64)}`,
+      },
       model: 'model-c',
-    });
+    };
+    requestJson
+      .mockResolvedValueOnce({
+        root_frame_id: 'frame-failed',
+        continue_command: {
+          id: 'accepted-command',
+          target: input.resume_target,
+          resume_event_id: 'resume-event',
+          outcome: 'resumed',
+          replayed: false,
+        },
+      })
+      .mockResolvedValueOnce({
+        id: 'frame-failed',
+        root_frame_id: 'frame-failed',
+        status: 'processing',
+        model: 'model-c',
+      });
 
-    const result = await resumeXScienceFrame('frame-failed', { model: 'model-c' });
+    const result = await resumeXScienceFrame('frame-failed', input);
 
     expect(requestJson).toHaveBeenNthCalledWith(
       1,
@@ -115,7 +135,7 @@ describe('X-Science runtime operations service', () => {
       {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: '{"model":"model-c"}',
+        body: JSON.stringify(input),
       },
       {}
     );

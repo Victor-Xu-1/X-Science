@@ -30,6 +30,16 @@
 - `/#/artifacts/:artifactId`：产物预览。
 - `/#/settings/:section`：设置；旧入口可由路由重定向到对应页。
 
+An initial conversation-detail read failure shows a local, localized error with
+a retry action using the same detail reader. SWR owns retry-in-flight state;
+existing conversation data or owner-scoped route snapshots remain visible during
+transient errors. Only an authoritative not-found result redirects to the new-task
+route; retry and backend reconnect do not restart the research task.
+
+首次读取对话详情失败时显示局部错误，并可沿原详情读取链路重试；重试忙碌状态仍由
+SWR 管理。暂时错误保留已加载的对话内容或当前用户的路由快照，只有权威的不存在
+结果才跳转到新任务入口；手动重试和后端重连不会重启科研任务。
+
 Sidebar task rows keep stable click adapters while their action dependencies are
 unchanged, allowing the existing row memoization to skip unchanged neighbors.
 Task selection and pinned navigation use distinct adapters; both follow the
@@ -40,6 +50,16 @@ row-render contract, not a claim about end-to-end task execution speed.
 侧栏任务行在操作依赖不变时保持稳定点击回调，让既有缓存跳过未变的相邻行。任务
 选择与置顶导航分别绑定回调，但都使用当前路由、批量模式与会话回调；任务快照、
 未读状态、菜单和其他交互属性变化仍正常更新，不以忽略交互属性的比较器换取缓存。
+
+An already-loaded conversation rechecks its authoritative detail after its own
+deletion notification, even while active. Only a current-account null/HTTP404
+replaces the route with the new-task screen; transient errors retain loaded
+content and queued drafts. Detail absence is a read-only observation, not a
+delete action or queue cleanup; superseded reads cannot hide a newer composer.
+
+已加载的对话收到自身删除通知后重新核对权威详情，运行中也不跳过。只有当前账号的
+有效空结果或 HTTP404 才返回新任务页；暂时错误保留已加载内容和排队草稿。详情缺失
+只是只读观察，不执行删除或清空队列；已被新读取替代的回执不能隐藏新的输入框。
 
 ### Presentation and keyboard contracts · 显示与键盘契约
 

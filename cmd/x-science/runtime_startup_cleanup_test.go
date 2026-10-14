@@ -30,6 +30,7 @@ func TestRuntimeCleanupRegisteredBeforeFallibleRecovery(t *testing.T) {
 		t.Fatal("runServer not found")
 	}
 	constructor, cleanup, recovery, cleanupCount := -1, -1, -1, 0
+	coordinator, firstOwner, coordinatorCount := -1, -1, 0
 	for index, statement := range body.List {
 		if assignment, ok := statement.(*ast.AssignStmt); ok && len(assignment.Lhs) == 1 && len(assignment.Rhs) == 1 {
 			name, named := assignment.Lhs[0].(*ast.Ident)
@@ -37,8 +38,28 @@ func TestRuntimeCleanupRegisteredBeforeFallibleRecovery(t *testing.T) {
 				constructor = index
 			}
 		}
-		if deferred, ok := statement.(*ast.DeferStmt); ok && startupHasCall(deferred, "app", "Close") {
-			cleanup, cleanupCount = index, cleanupCount+1
+		if startupHasCall(statement, "primaryOwners", "Add") {
+			ast.Inspect(statement, func(node ast.Node) bool {
+				method, ok := node.(*ast.SelectorExpr)
+				if !ok || method.Sel.Name != "Close" {
+					return true
+				}
+				if name, ok := method.X.(*ast.Ident); ok && name.Name == "app" {
+					cleanup, cleanupCount = index, cleanupCount+1
+				}
+				return true
+			})
+		}
+		if startupHasNamedCall(statement, "newIMOutboundDispatcher") {
+			firstOwner = index
+		}
+		if deferred, ok := statement.(*ast.DeferStmt); ok {
+			if startupHasNamedCall(deferred, "shutdownPrimaryRuntime") {
+				coordinator, coordinatorCount = index, coordinatorCount+1
+			}
+			if startupHasCall(deferred, "app", "Close") || startupHasCall(deferred, "imOutbound", "Close") || startupHasCall(deferred, "plugins", "StopExternalProcesses") {
+				t.Error("owner must use the shared error-aware shutdown coordinator")
+			}
 		}
 		if conditional, ok := statement.(*ast.IfStmt); ok && startupHasCall(conditional.Init, "app", "RecoverIMOutbound") {
 			recovery = index
@@ -47,6 +68,23 @@ func TestRuntimeCleanupRegisteredBeforeFallibleRecovery(t *testing.T) {
 	if constructor < 0 || recovery < 0 || cleanupCount != 1 || cleanup != constructor+1 || cleanup >= recovery {
 		t.Fatalf("cleanup must be registered immediately after construction and before recovery: constructor=%d cleanup=%d recovery=%d cleanupCount=%d", constructor, cleanup, recovery, cleanupCount)
 	}
+	if coordinatorCount != 1 || coordinator < 0 || firstOwner <= coordinator {
+		t.Fatalf("one shutdown coordinator must precede owned construction: coordinator=%d count=%d firstOwner=%d", coordinator, coordinatorCount, firstOwner)
+	}
+}
+
+func startupHasNamedCall(node ast.Node, function string) bool {
+	found := false
+	ast.Inspect(node, func(current ast.Node) bool {
+		call, ok := current.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		name, ok := call.Fun.(*ast.Ident)
+		found = found || ok && name.Name == function
+		return true
+	})
+	return found
 }
 
 func startupHasCall(node ast.Node, receiver, method string) bool {

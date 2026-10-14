@@ -16,6 +16,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+
 	eventjournal "x-science/internal/persistence/journal"
 	sessionstore "x-science/internal/persistence/sessions"
 	transcriptstore "x-science/internal/persistence/transcript"
@@ -1384,6 +1386,11 @@ func assertV11EmptyFrameShape(t *testing.T, frame map[string]any, projectID, fra
 
 func compatJSONRequest(t *testing.T, handler http.Handler, method, target, userID string, body any, wantStatus int) map[string]any {
 	t.Helper()
+	if method == http.MethodPost && strings.HasPrefix(target, "/api/frames/") && strings.HasSuffix(target, "/resume") && wantStatus == http.StatusOK {
+		if original, ok := body.(map[string]any); ok && original["client_command_id"] == nil {
+			body = compatibilityContinueTestBody(t, handler, strings.TrimSuffix(target, "/resume"), userID, original)
+		}
+	}
 	response := httptest.NewRecorder()
 	request := compatRequest(t, method, target, userID, body)
 	handler.ServeHTTP(response, request)
@@ -1395,6 +1402,22 @@ func compatJSONRequest(t *testing.T, handler http.Handler, method, target, userI
 		t.Fatalf("decode %s %s response: %v: %s", method, target, err, response.Body.String())
 	}
 	return decoded
+}
+
+// Existing lifecycle tests remain real HTTP consumers: fetch the server's
+// target instead of manufacturing its state fingerprint or bypassing checks.
+func compatibilityContinueTestBody(t *testing.T, handler http.Handler, framePath, ownerID string, controls map[string]any) map[string]any {
+	t.Helper()
+	frame := compatJSONRequest(t, handler, http.MethodGet, framePath, ownerID, nil, http.StatusOK)
+	if frame["resume_target"] == nil {
+		t.Fatal("resume target missing from frame detail")
+	}
+	body := make(map[string]any, len(controls)+2)
+	for key, value := range controls {
+		body[key] = value
+	}
+	body["client_command_id"], body["resume_target"] = uuid.NewString(), frame["resume_target"]
+	return body
 }
 
 func compatJSONArrayRequest(t *testing.T, handler http.Handler, method, target, userID string, body any, wantStatus int) []map[string]any {

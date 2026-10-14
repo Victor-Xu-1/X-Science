@@ -41,6 +41,11 @@ claim → recovery → context → snapshot → provider ⇄ tool → verify →
 即使文字提到“继续”或上一轮产物，也不会自动继承旧阶段的执行限制。
 历史消息、原文件和不可变产物版本仍可访问，不能冒充新请求已经执行。
 
+界面的继续命令携带原始 `resume_target` 和稳定 `client_command_id`；受理回执、
+已有恢复及可选唤醒沿同一事务提交。网络重试先返回原回执，不把旧命令重新绑定到
+后续等待；纯后台 claim/requeue 不使同一语义目标失效。旧无条件 raw resume 接口
+退役为 410。请求、busy/stale 边界及历史证据限制见 [Resume wake audit](../engineering/frame-resume-wake-audit.md)。
+
 带工具的模型请求从派发起，按该调用配置的超时限定首次有效动作窗口；持续到达的
 私有思考或未成帧 JSON 字节不能刷新这条窗口。请求头等待与首次行动使用同一取消权威，
 避免等长定时器竞态导致传输重试。无进展时沿现有无输出恢复链保存检查点，

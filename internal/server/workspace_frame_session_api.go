@@ -36,25 +36,6 @@ func (s *Server) handleWorkspaceFrameMove(w http.ResponseWriter, r *http.Request
 	writeWorkspaceJSON(w, http.StatusOK, map[string]any{"ok": true, "frame": frame, "alreadyInProject": event == nil})
 }
 
-func (s *Server) handleWorkspaceFrameResume(w http.ResponseWriter, r *http.Request, store *workspace.Store, frameID string) {
-	if r.Method != http.MethodPost {
-		writeWorkspaceJSON(w, http.StatusMethodNotAllowed, map[string]any{"ok": false, "error": "method not allowed"})
-		return
-	}
-	frame, event, err := store.ResumeFrame(frameID)
-	if err != nil {
-		writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
-		return
-	}
-	if event != nil {
-		if err := s.publishWorkspaceEvent(*event); err != nil {
-			writeWorkspaceJSON(w, http.StatusInternalServerError, map[string]any{"ok": false, "error": "frame resumed but its realtime event could not be persisted: " + err.Error()})
-			return
-		}
-	}
-	writeWorkspaceJSON(w, http.StatusOK, map[string]any{"ok": true, "frame": frame, "alreadyRunning": event == nil})
-}
-
 func (s *Server) handleWorkspaceFrameMessages(w http.ResponseWriter, r *http.Request, store *workspace.Store, frameID string, segments []string) {
 	if len(segments) == 2 {
 		if r.Method == http.MethodPost {

@@ -1,4 +1,5 @@
 import { PRODUCT_NAME } from '@/common/config/productIdentity';
+import { XScienceContinueIntent, type XScienceContinueInput } from './resumeCommandIntent';
 import type { TConversationRuntimeSummary } from '@/common/config/storage';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import {
@@ -134,6 +135,8 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
   const inputControllerRef = useRef<AbortController | null>(null);
   const resumeRequestRef = useRef(0);
   const resumeControllerRef = useRef<AbortController | null>(null);
+  const resumeIntentRef = useRef(new XScienceContinueIntent());
+  const retryResumeRef = useRef<() => void>(() => {});
   const [resumeInFlight, setResumeInFlight] = useState(false);
   const [pauseInFlight, setPauseInFlight] = useState(false);
   const planActionRequestRef = useRef(0);
@@ -536,8 +539,20 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
   };
 
   const resumeTask = async (modelOverride?: string) => {
-    if (!snapshotRef.current?.canResume || resumeInFlight) return;
+    if (!snapshotRef.current?.canResume || resumeInFlight || resumeControllerRef.current) return;
     const owner = conversationId;
+    let input: XScienceContinueInput;
+    try {
+      input = resumeIntentRef.current.prepare(owner, snapshotRef.current.resumeTarget, modelOverride);
+    } catch (reason) {
+      if (reason instanceof Error && reason.message === 'resume_pending_controls_changed') {
+        messageApi.info(t('conversation.xscienceRuntime.runtimeOperations.resumeRetryOriginal'));
+        return;
+      }
+      refreshRuntime();
+      messageApi.error(t('conversation.xscienceRuntime.runtimeOperations.resumeRefreshNeeded'));
+      return;
+    }
     const operation = ++resumeRequestRef.current;
     resumeControllerRef.current?.abort();
     const controller = new AbortController();
@@ -549,16 +564,29 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
       // time. A typed unavailable/safety recovery may explicitly choose the
       // verified alternative shown to the user; both paths still use the same
       // backend resume authority.
-      const result = await resumeXScienceFrame(owner, modelOverride ? { model: modelOverride } : {}, {
+      const result = await resumeXScienceFrame(owner, input, {
         signal: controller.signal,
       });
       if (conversationAuthorityRef.current !== owner || resumeRequestRef.current !== operation) return;
+      resumeIntentRef.current.accepted(owner, input);
       setSnapshotError(null);
       applyAuthoritativeSnapshot(result.snapshot, false);
       onResumed(result.snapshot.rootFrameId, result.runtime);
       messageApi.success(t('conversation.xscienceRuntime.runtimeOperations.resumeSucceeded'));
     } catch (reason) {
       if (conversationAuthorityRef.current !== owner || resumeRequestRef.current !== operation) return;
+      if (isXScienceHttpError(reason) && reason.code.startsWith('RESUME_')) {
+        onResumeFailed?.(reason.code);
+        if (reason.code === 'RESUME_COMMAND_BUSY') {
+          resumeIntentRef.current.busy(owner);
+          messageApi.info(t('conversation.xscienceRuntime.runtimeOperations.resumeBusy'));
+        } else {
+          resumeIntentRef.current.reject(owner);
+          messageApi.error(t('conversation.xscienceRuntime.runtimeOperations.resumeStateChanged'));
+        }
+        refreshRuntime();
+        return;
+      }
       console.error(
         `[${PRODUCT_NAME} RuntimeOperations] Failed to resume task`,
         redactErrorText(reason instanceof Error ? reason.message : String(reason))
@@ -572,6 +600,14 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
       }
     }
   };
+  retryResumeRef.current = () => {
+    void resumeTask();
+  };
+  useEffect(() => {
+    if (!resumeInFlight && resumeIntentRef.current.retryAfterSnapshot(conversationId, snapshot?.resumeTarget)) {
+      retryResumeRef.current();
+    }
+  }, [conversationId, snapshot, resumeInFlight]);
 
   const reconcileInputConflict = async (
     reason: unknown,

@@ -940,11 +940,6 @@ func (s *Server) handleWorkspaceFrame(w http.ResponseWriter, r *http.Request) {
 				s.handleWorkspaceFrameMove(w, r, store, userID, frameID)
 				return
 			}
-		case "resume":
-			if len(segments) == 2 {
-				s.handleWorkspaceFrameResume(w, r, store, frameID)
-				return
-			}
 		case "fork":
 			if len(segments) == 2 {
 				s.handleWorkspaceFrameBranch(w, r, store, frameID, workspace.FrameBranchEdit)

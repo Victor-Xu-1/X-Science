@@ -73,6 +73,9 @@ type SessionOutboundDispatcher struct {
 	mu       sync.RWMutex
 	bindings map[string]IMSessionBinding
 	workers  map[string]*sessionOutboundWorker
+	closing  bool
+	active   int
+	done     chan struct{}
 	handlers map[string]SessionOutboundHandler
 	options  SessionOutboundDispatcherOptions
 }
@@ -124,6 +127,7 @@ func NewSessionOutboundDispatcher(ctx context.Context, options SessionOutboundDi
 		ctx: dispatcherCtx, cancel: cancel,
 		bindings: make(map[string]IMSessionBinding),
 		workers:  make(map[string]*sessionOutboundWorker),
+		done:     make(chan struct{}),
 		handlers: handlers,
 		options:  options,
 	}, nil
@@ -159,6 +163,9 @@ func (d *SessionOutboundDispatcher) Bind(binding IMSessionBinding) error {
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	if d.closing {
+		return errors.New("session outbound dispatcher is closed")
+	}
 	select {
 	case <-d.ctx.Done():
 		return errors.New("session outbound dispatcher is closed")
@@ -182,7 +189,11 @@ func (d *SessionOutboundDispatcher) Bind(binding IMSessionBinding) error {
 			return err
 		}, d.options.Delivery)
 		d.workers[binding.SessionID] = worker
-		go d.runWorker(worker)
+		d.active++
+		go func() {
+			defer d.finishSessionOutboundActivity()
+			d.runWorker(worker)
+		}()
 	}
 	return nil
 }
@@ -193,13 +204,18 @@ func (d *SessionOutboundDispatcher) Enqueue(event SessionOutboundEvent) bool {
 	}
 	event.SessionID = strings.TrimSpace(event.SessionID)
 	event.Message = cloneServerMessage(event.Message)
-	d.mu.RLock()
+	d.mu.Lock()
 	worker := d.workers[event.SessionID]
 	binding := d.bindings[event.SessionID]
-	d.mu.RUnlock()
-	if worker == nil {
+	if d.closing || worker == nil || d.ctx.Err() != nil {
+		d.mu.Unlock()
 		return false
 	}
+	// The caller can synchronously publish a queue-timeout result. Its lifetime
+	// belongs to shutdown even after Unbind removes the route's worker.
+	d.active++
+	d.mu.Unlock()
+	defer d.finishSessionOutboundActivity()
 	timer := time.NewTimer(d.options.EnqueueWait)
 	defer timer.Stop()
 	select {
@@ -225,12 +241,6 @@ func (d *SessionOutboundDispatcher) Unbind(sessionID string) {
 	d.mu.Unlock()
 	if worker != nil && worker.cancel != nil {
 		worker.cancel()
-	}
-}
-
-func (d *SessionOutboundDispatcher) Close() {
-	if d != nil && d.cancel != nil {
-		d.cancel()
 	}
 }
 

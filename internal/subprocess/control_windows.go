@@ -13,9 +13,10 @@ import (
 )
 
 type Control struct {
-	mu     sync.Mutex
-	job    windows.Handle
-	closed bool
+	mu       sync.Mutex
+	job      windows.Handle
+	closed   bool
+	attached bool
 }
 
 func Prepare(command *exec.Cmd) (*Control, error) {
@@ -60,7 +61,11 @@ func (control *Control) Attach(command *exec.Cmd) error {
 	if control.closed {
 		return os.ErrProcessDone
 	}
-	return windows.AssignProcessToJobObject(control.job, handle)
+	if err := windows.AssignProcessToJobObject(control.job, handle); err != nil {
+		return err
+	}
+	control.attached = true
+	return nil
 }
 
 func (control *Control) Kill(command *exec.Cmd) error {
@@ -69,9 +74,11 @@ func (control *Control) Kill(command *exec.Cmd) error {
 	if control.closed {
 		return os.ErrProcessDone
 	}
-	if err := windows.TerminateJobObject(control.job, 1); err == nil {
+	if err := windows.TerminateJobObject(control.job, 1); err == nil && control.attached {
 		return nil
 	}
+	// Cancellation can race Start -> Attach, or Attach can fail. Killing an
+	// empty Job succeeds but has no effect on that still-unassigned parent.
 	if command == nil || command.Process == nil {
 		return os.ErrProcessDone
 	}
