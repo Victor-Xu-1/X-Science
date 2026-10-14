@@ -15,7 +15,7 @@ type frameResumeTargetFrame struct {
 	RootSequence                                                 int64
 	Stream, Branch                                               string
 	Epoch, AuthorityGeneration, InputRevision, BranchGeneration  int64
-	Checkpoint, LegacyInput                                      string
+	Checkpoint, LegacyInput, ResumeBoundary                      string
 }
 
 type frameResumeTargetSnapshot struct {
@@ -70,6 +70,8 @@ func frameResumeTargetTx(ctx context.Context, tx workspaceTransaction, ownerID, 
 			COALESCE((SELECT e.id FROM frame_events e WHERE e.frame_id=f.id AND
 				(e.event_type IN ('user_message','queued_message') OR
 				(e.event_type='message' AND json_extract(e.payload,'$.role')='user'))
+				ORDER BY e.sequence DESC LIMIT 1),''),
+			COALESCE((SELECT e.id FROM frame_events e WHERE e.frame_id=f.id AND e.event_type='frame_resumed'
 				ORDER BY e.sequence DESC LIMIT 1),'')
 		FROM frames f JOIN projects p ON p.id=f.project_id
 		LEFT JOIN transcript_frame_authority a ON a.owner_id=p.user_id AND a.session_id=f.id
@@ -86,7 +88,7 @@ func frameResumeTargetTx(ctx context.Context, tx workspaceTransaction, ownerID, 
 		if err := rows.Scan(&frame.ID, &frame.Incarnation, &frame.Owner, &frame.Project, &frame.Parent,
 			&frame.Root, &frame.Agent, &frame.Status, &frame.RootSequence,
 			&frame.Stream, &frame.Epoch, &frame.AuthorityGeneration, &frame.InputRevision, &frame.Branch,
-			&frame.BranchGeneration, &frame.Checkpoint, &frame.LegacyInput); err != nil {
+			&frame.BranchGeneration, &frame.Checkpoint, &frame.LegacyInput, &frame.ResumeBoundary); err != nil {
 			_ = rows.Close()
 			return state, err
 		}
