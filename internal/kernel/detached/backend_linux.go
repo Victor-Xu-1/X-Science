@@ -331,6 +331,11 @@ func (b *Backend) retirePredecessorForReplacement(
 				return b.Store.GetKernelExecutionBackend(refreshCtx, predecessor.BackendID)
 			})
 		} else if predecessor.State == workspace.KernelExecutionBackendStateStarting {
+			if retired, retireErr := b.retireUnlaunchedResourceWait(ctx, predecessor, spec); retireErr != nil {
+				return predecessor, false, retireErr
+			} else if retired {
+				continue
+			}
 			if ready, waitErr := b.waitForReady(ctx, predecessor.BackendID, predecessor.BackendGeneration, b.StartTimeout); waitErr == nil {
 				predecessor = ready
 				continue
