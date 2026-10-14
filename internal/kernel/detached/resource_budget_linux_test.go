@@ -26,12 +26,12 @@ func (launcher *explicitBudgetTestLauncher) Observe(context.Context, string, int
 	return ExecutorLaunchUnknown, errors.New("unexpected observation")
 }
 
-func (launcher *explicitBudgetTestLauncher) ResourceCapacity(_ context.Context, requested int64) (workspace.KernelResourceCapacity, int64, error) {
+func (launcher *explicitBudgetTestLauncher) ResourceCapacity(_ context.Context, requested int64) (workspace.KernelResourceCapacity, executorCapacityObservation, error) {
 	launcher.requested = requested
 	return workspace.KernelResourceCapacity{
 		MaximumBytes: 8 << 30, AvailableBytes: 6 << 30, DefaultBytes: 2 << 30,
 		MinimumBytes: executorMemoryFloorBytes, Usage: map[string]int64{},
-	}, executorControlReserveBytes, nil
+	}, executorCapacityObservation{AvailableBytes: 9 << 30, ReserveBytes: executorControlReserveBytes}, nil
 }
 
 func (launcher *explicitBudgetTestLauncher) ResourceUsage(context.Context, string, int64) (int64, ExecutorLaunchState, error) {
