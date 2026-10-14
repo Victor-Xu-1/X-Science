@@ -140,7 +140,9 @@ class VerificationOwnershipTests(unittest.TestCase):
     def test_shared_verification_runs_once_across_required_partitions(self):
         with patch.object(scope, 'changed_paths', return_value=['scripts/check.py']), patch.object(
             scope, 'resolve_packages', return_value=([], 'verification only'),
-        ), patch.object(scope, 'run', return_value=subprocess.CompletedProcess([], 0)) as invoke:
+        ), patch.object(scope, 'run', return_value=subprocess.CompletedProcess([], 0)) as invoke, patch.object(
+            scope, 'planning_inputs', return_value=({}, scope.pr_test_partition.CostProfile()),
+        ):
             for index in range(4):
                 args = ['pr_fast_scope.py', '--repo', str(self.repo), '--base', 'a' * 40,
                         '--head', 'b' * 40, '--shard-index', str(index), '--shard-count', '4']
@@ -190,6 +192,19 @@ class VerificationOwnershipTests(unittest.TestCase):
         self.assertEqual(contract.checks(groups), [
             ["python3", "-B", "-m", "unittest", "scripts.packaging.test_product_version", "scripts.packaging.test_pr_version_gate", "scripts.packaging.test_prepare_pr_version", "scripts.packaging.test_version_config", "scripts.packaging.test_version_provenance"],
         ])
+
+    def test_test_cost_profile_has_exact_checker_ownership_without_runtime_exemption(self):
+        repo = Path(__file__).resolve().parents[2]
+        path = scope.pr_test_partition.PROFILE_PATH
+        groups = contract.matched(repo, [path])
+        self.assertEqual([group["name"] for group in groups], ["verification-selection"])
+        self.assertIn("scripts.quality.test_pr_test_partition", contract.checks(groups)[0])
+        entries = [{"ImportPath": "fixture/runtime", "Dir": str(repo / "internal/runtime")}]
+        self.assertEqual(scope.select_packages(repo, [path], entries)[0], [])
+        self.assertEqual(scope.select_packages(repo, [path + ".new"], entries)[0], ["fixture/runtime"])
+        entries[0]["Dir"] = str(repo)
+        entries[0]["EmbedFiles"] = [path]
+        self.assertEqual(scope.select_packages(repo, [path], entries)[0], ["fixture/runtime"])
 
     def test_ci_guide_is_verified_without_selecting_unrelated_runtime_packages(self):
         repo = Path(__file__).resolve().parents[2]

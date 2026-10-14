@@ -777,6 +777,7 @@
         "scripts/quality/test_pr_namespace_scope.py",
         "scripts/quality/go_namespace_equivalence.go",
         "scripts/quality/pr_test_partition.py",
+        "scripts/quality/pr_test_costs.json",
         "scripts/quality/test_pr_test_partition.py",
         "scripts/quality/runtime_input_scope.py",
         "scripts/quality/runtime_input_scope.json",

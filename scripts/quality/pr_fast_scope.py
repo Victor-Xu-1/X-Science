@@ -174,6 +174,55 @@ def behavior_scope(repo: Path, base: str, head: str, paths: list[str]):
     return behavior, metadata, build_defaults
 
 
+def planning_inputs(repo: Path, base: str, head: str) -> tuple[dict, pr_test_partition.CostProfile]:
+    """Bind planning to the checkout and a shared immutable commit-time anchor."""
+    checkout = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo,
+                              text=True, check=False, capture_output=True)
+    if checkout.returncode or checkout.stdout.strip() != head:
+        raise ValueError("actual checkout HEAD does not match --head")
+    timestamp = subprocess.run(["git", "show", "-s", "--format=%ct", head], cwd=repo,
+                               text=True, check=False, capture_output=True)
+    if timestamp.returncode or not re.fullmatch(r"[0-9]+", timestamp.stdout.strip()):
+        raise ValueError("cannot resolve immutable head commit-time anchor")
+    state = subprocess.run(["git", "status", "--porcelain", "--untracked-files=normal"], cwd=repo,
+                           text=True, check=False, capture_output=True)
+    if state.returncode:
+        raise ValueError("cannot identify planning source state")
+    toolchain = subprocess.run(["go", "env", "-json", "GOVERSION", "GOOS", "GOARCH"], cwd=repo,
+                               text=True, check=False, capture_output=True)
+    if toolchain.returncode:
+        raise RuntimeError("cannot identify Go planning environment")
+    value = json.loads(toolchain.stdout)
+    if not isinstance(value, dict) or set(value) != {"GOVERSION", "GOOS", "GOARCH"}:
+        raise ValueError("invalid Go planning environment response")
+    environment = {"go_version": value["GOVERSION"], "goos": value["GOOS"],
+                   "goarch": value["GOARCH"], "race": False, "batch_size": pr_test_partition.BATCH_SIZE}
+    anchor = int(timestamp.stdout.strip())
+    binding = {"base": base, "head": head, "checkout_head": checkout.stdout.strip(),
+               "anchor_epoch": anchor, "source_state": "local-dirty" if state.stdout.strip() else "clean",
+               "environment": environment}
+    return binding, pr_test_partition.load_profile(repo / pr_test_partition.PROFILE_PATH, environment, anchor)
+
+
+def affected_test_plan(repo: Path, inventory: dict[str, list[str]], index: int, count: int,
+                       binding: dict, profile: pr_test_partition.CostProfile) -> dict:
+    pr_test_partition.validate_partition(index, count)
+    complete = pr_test_partition.assignment(inventory, count, profile)
+    selected = complete["shards"][index]
+    if selected:
+        test_plan = execution_plan("pr", index, False, pr_test_partition.canonical_inventory(inventory),
+                                   selected, batch_size=pr_test_partition.BATCH_SIZE)
+    else:
+        # Empty partitions still produce the same full-inventory planning evidence.
+        test_plan = {"group": "pr", "index": index, "race": False, "packages": [],
+                     "inventory_count": sum(map(len, inventory.values())),
+                     "selected": {}, "commands": []}
+    test_plan["inventory_sha256"] = complete["metadata"]["inventory_sha256"]
+    test_plan["shard_count"] = count
+    test_plan["partition"] = {**complete["metadata"], **binding, "shard_index": index}
+    return test_plan
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", type=Path, default=Path.cwd())
@@ -192,8 +241,7 @@ def main() -> int:
         paths = changed_paths(repo, args.base, args.head)
         behavior_paths, metadata_paths, build_defaults = behavior_scope(repo, args.base, args.head, paths)
         groups = verification_scope.matched(repo, behavior_paths)
-        if not 1 <= args.shard_count <= pr_test_partition.MAX_SHARDS or not 0 <= args.shard_index < args.shard_count:
-            raise ValueError("invalid affected-test partition")
+        pr_test_partition.validate_partition(args.shard_index, args.shard_count)
         if not args.frontend and not args.vet and not args.matrix and args.shard_index == 0:
             for command in verification_scope.checks(groups):
                 result = run(repo, *command)
@@ -266,16 +314,13 @@ def main() -> int:
                 raise ValueError("test evidence must be outside source")
             log_dir.mkdir(parents=True, exist_ok=True)
             (log_dir / "scope.json").write_text(json.dumps(scope, indent=2) + "\n")
-        if selected:
-            if args.log_dir is None:
-                raise ValueError("Go execution requires an external --log-dir")
-            inventory = discover(repo, selected, race=False)
-            shard = pr_test_partition.select(inventory, args.shard_index, args.shard_count)
-            if not shard:
-                print("No tests assigned to this partition; other partitions retain the inventory.")
-                return 0
-            test_plan = execution_plan("pr", args.shard_index, False, inventory, shard, batch_size=64)
-            test_plan["shard_count"] = args.shard_count
+        if selected and args.log_dir is None:
+            raise ValueError("Go execution requires an external --log-dir")
+        binding, profile = planning_inputs(repo, args.base, args.head)
+        inventory = discover(repo, selected, race=False) if selected else {}
+        test_plan = affected_test_plan(repo, inventory, args.shard_index, args.shard_count, binding, profile)
+        print(json.dumps({"partition": test_plan["partition"]}, ensure_ascii=False))
+        if args.log_dir is not None:
             return execute(repo, test_plan, args.log_dir)
         print("No Go package is affected by this change; frontend and policy gates remain active.")
         return 0

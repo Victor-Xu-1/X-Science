@@ -237,3 +237,58 @@ then normally merges the PR. It does not repeat the same suite on the operator's
 machine. Actual-main checks and task/data-safe deployment remain required;
 deployment smoke covers the shared baseline and only the directly affected
 user interaction. Full release qualification remains a separate boundary.
+
+### Affected Go cost-aware scheduling
+
+PR/main Go partitions compute the same complete assignment independently before
+selecting their own index. Global top-level-test LPT orders by descending integer
+milliseconds, then full package identity and test name. Placement minimizes the
+estimated total load, including a 2200ms startup/package-initialization fee for
+each new 64-test process batch, with partition index as the final tie-breaker.
+Subtests stay with their parent. Packages with no tests retain SHA256-based
+exactly-once compilation. Scope selection, discovery, `-count=1`, the 30-minute
+process timeout, failure propagation and partition-zero verification are unchanged.
+Required checker failures still stop before Go discovery; after discovery,
+duplicate names and incomplete/overlapping assignments fail before execution.
+
+`pr_test_costs.json` is a consumed, sparse scheduling configuration, not a test
+allowlist. Its initial 62 entries are medians of successful pass timings from
+three compatible runs, retaining only tests at least 5000ms. Unknown/new/renamed
+names and tests without pass evidence use a positive 1000ms default. Deleted or
+out-of-scope entries never create execution items; unused entries are counted.
+The batch fee models mixed Go startup, package initialization and tool overhead,
+not a measured compilation-only cost. Raw timings and acceptance reports remain
+outside source. Historical package keys are projected to the current module
+namespace; the initial projection preserves all 62 unchanged top-level test
+names in their verified package counterparts. These remain estimates, not
+current measurements. The calibration runs are [PR181](https://github.com/Victor-Xu-1/X-Science/actions/runs/38243297421),
+[PR182](https://github.com/Victor-Xu-1/X-Science/actions/runs/38246987592) and
+[PR184](https://github.com/Victor-Xu-1/X-Science/actions/runs/38250581962).
+
+The strict v1 profile records Go version, GOOS, GOARCH, race mode and batch size,
+observations and an explicit validity window of at most 30 days. Every partition
+uses the immutable requested head's commit timestamp as its expiry anchor, never
+its runner's current time. Missing, expired, future-observation or incompatible
+profiles explicitly fall back to 1000ms per test and 2200ms per batch. Old-SHA
+reruns intentionally retain that SHA's time semantics. Invalid schema, duplicate
+JSON keys/identities, noninteger/boolean/nonfinite/nonpositive costs, costs over
+1800000ms, files over 64KiB, symlinks, traversal and nonregular files fail clearly,
+even when the profile would otherwise be stale. Recalibrate only from recent
+compatible successful pass evidence; scheduling weights never change eligibility.
+
+Each external `plan.json`, including an empty partition or empty Go scope, binds
+base/head, actual checkout HEAD, clean or local-dirty source state, immutable
+anchor, environment, profile content SHA256/status, algorithm/schema, canonical
+complete inventory SHA256 and full-assignment SHA256. Execution refuses a checkout
+HEAD different from `--head`. Each partition validates full union and disjointness
+before taking its own assignment. Empty partitions write plans and summaries
+through the same executor without spawning Go commands. A local-dirty plan is
+local evidence, not an exact clean-head hosted result.
+
+The existing required aggregate validates job success only; it does not download
+artifacts or independently validate cross-artifact union. Historical timing
+replays predict placement benefits, not actual wall-clock savings or completed
+coverage. Check the new exact-head artifacts, actual test-step wall time,
+partition spread and batch count before making a performance claim. Full/race
+scheduling and release qualification remain unchanged. Rollback is to revert the
+scheduler/profile change through a reviewed PR; do not remove tests or assertions.
