@@ -226,9 +226,13 @@ func (state *sessionRunnerNoProgressRecovery) observeEntry(
 		return
 	}
 	observation, sourceCheckpoint := state.sources.observeEntry(entry)
-	sourceUnchanged := sourceObservationIsUnchanged(observation, sourceCheckpoint) && !runnerSourceMaterialChange(stringValue(message["toolName"]), runnerSourceObservationResult(entry))
+	witness, witnessed := entry.RuntimeProjection.(runnerSourceObservationWitness)
+	result := runnerRecoveryMaterialResult(runnerSourceObservationResult(entry), witnessed && witness.executionResult != nil, witnessed && witness.executionUnavailable)
+	progressMessage := copyMapAny(message)
+	progressMessage["toolResult"] = result
+	sourceUnchanged := sourceObservationIsUnchanged(observation, sourceCheckpoint) && !runnerSourceMaterialChange(stringValue(message["toolName"]), result)
 	newSource := observation != nil && observation.State == agentruntime.SourceObservationNew
-	if newSource || runnerCheckpointHasMaterialProgress(message) && !sourceUnchanged {
+	if newSource || !sourceUnchanged && runnerCheckpointHasMaterialProgress(progressMessage) {
 		state.lastMaterialProgress = true
 		state.resetMaterialProgress()
 		return

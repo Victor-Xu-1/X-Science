@@ -2,11 +2,13 @@ package server
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"x-science/internal/agentruntime"
 	eventjournal "x-science/internal/persistence/journal"
 	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/toolcontract"
 )
 
 func TestRunnerSourceReplayKeepsOrdinaryClosedRoutesUntilActualProgress(t *testing.T) {
@@ -62,6 +64,49 @@ func TestRunnerSourceReplayKeepsOrdinaryClosedRoutesUntilActualProgress(t *testi
 				if actual.containsFingerprint(fingerprint) != test.wantClosed || actual.lastMaterialProgress == test.wantClosed || actual.SourceRepetition {
 					t.Fatalf("%s recovery drifted without material evidence: %+v", label, actual)
 				}
+			}
+		})
+	}
+}
+
+func TestRunnerSourceReplayUsesRestoredOuterProgress(t *testing.T) {
+	for _, test := range []struct {
+		name        string
+		actual      any
+		unavailable bool
+		wantClosed  bool
+	}{
+		{"failed original", map[string]any{"ok": false, "error": "controlled failure"}, false, true},
+		{"unavailable original", map[string]any{"sourceUnavailable": true}, false, true},
+		{"real ordinary computation", map[string]any{"ok": true, "stdout": "new computation"}, false, false},
+		{"missing original", nil, true, true},
+		{"unrestored descriptor", nil, false, true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			state := newSessionRunnerNoProgressRecovery(runnerRecoveryObligationFingerprint(nil, transcriptstore.RunnerInterruptionCause{}))
+			state.observeEntry(eventjournal.Entry{SourceEventType: "user_message", Message: eventjournal.Message{"type": "message", "role": "user"}}, nil)
+			callID, proposal := "externalized-outer", int64(10)
+			state.observeEntry(eventjournal.Entry{EventID: proposal, SourceEventType: "runner_checkpoint", Message: eventjournal.Message{"type": "runner_checkpoint", "modelToolCalls": []any{map[string]any{"id": callID}}}}, nil)
+			closedCall := agentruntime.ToolCall{Name: "read_file", Arguments: json.RawMessage(`{"path":"existing.txt"}`)}
+			fingerprint := agentruntime.ExecutionCallFingerprint(closedCall.Name, closedCall.Arguments)
+			state.recordNoProgress([]agentruntime.ToolCall{closedCall})
+			descriptor := toolcontract.ExternalizedResultDescriptor{
+				ArtifactID: "controlled-artifact", VersionID: "controlled-version", SHA256: strings.Repeat("a", 64),
+				SizeBytes: 8192, ContentType: "application/json", Outcome: "succeeded",
+				ContentURL: "/api/artifacts/controlled-artifact/versions/controlled-version", Preview: "{", Truncated: true,
+			}
+			raw, _ := json.Marshal(descriptor)
+			var recorded map[string]any
+			if json.Unmarshal(raw, &recorded) != nil {
+				t.Fatal("invalid fixture descriptor")
+			}
+			outer := sourceObservationOuter(callID, "", nil)
+			outer["toolResult"] = recorded
+			state.observeEntry(eventjournal.Entry{SourceEventType: "runner_checkpoint", Message: outer, RuntimeProjection: runnerSourceObservationWitness{
+				proposalEventID: proposal, executionResult: test.actual, executionUnavailable: test.unavailable,
+			}}, nil)
+			if state.containsFingerprint(fingerprint) != test.wantClosed || state.lastMaterialProgress == test.wantClosed {
+				t.Fatalf("recorded descriptor overrode actual result availability/progress: %+v", state)
 			}
 		})
 	}

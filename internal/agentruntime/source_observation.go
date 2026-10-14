@@ -145,14 +145,14 @@ func (window *SourceObservationWindow) Complete(operation string, materialChange
 	return observation
 }
 
-// A later unobserved/unknown call cannot erase earlier verified repetition.
-// This aggregates source feedback, not execution effects: a new source can
-// replace it, and real material progress anywhere in the batch still suppresses
-// recovery feedback. Copy the completed observation so later calls cannot
-// mutate a previously retained host result through an aliased pointer.
+// Any verified new source makes the batch productive; later repetitions cannot
+// erase it. Otherwise, unobserved/unknown calls cannot erase verified repetition.
+// This aggregates source feedback, not execution effects: real material progress
+// anywhere in the batch still suppresses recovery feedback. Copy the completed
+// observation so later calls cannot mutate a retained host result by aliasing.
 func mergeBatchSourceObservation(previous, next *SourceObservation) *SourceObservation {
-	if previous != nil && previous.State == SourceObservationRepeated &&
-		(next == nil || next.State == SourceObservationUnknown) {
+	if previous != nil && (previous.State == SourceObservationNew ||
+		previous.State == SourceObservationRepeated && (next == nil || next.State == SourceObservationUnknown)) {
 		return previous
 	}
 	if next == nil {
