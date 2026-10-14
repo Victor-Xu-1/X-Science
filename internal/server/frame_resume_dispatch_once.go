@@ -7,7 +7,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+
 	sessionstore "x-science/internal/persistence/sessions"
+	transcriptstore "x-science/internal/persistence/transcript"
 	workspace "x-science/internal/persistence/workspace"
 )
 
@@ -158,6 +160,10 @@ func (s *Server) RunFrameResumeDispatchOnce(ctx context.Context, options FrameRe
 					ClaimToken:      dispatch.ClaimToken,
 					Status:          state.Status,
 					Message:         state.Status,
+					RecoveredRunnerTerminal: &transcriptstore.RecoveredRunnerTerminalReference{
+						StreamUID: stream.UID, OwnerID: stream.OwnerID, RunnerID: runnerID,
+						Attempt: state.Attempt, EventID: state.FinishedEventID,
+					},
 					Details: map[string]any{
 						"runnerId":           runnerID,
 						"runnerAttempt":      state.Attempt,
@@ -504,6 +510,7 @@ func (s *Server) RunFrameResumeDispatchOnce(ctx context.Context, options FrameRe
 			ClaimToken:      dispatch.ClaimToken,
 			Status:          status,
 			Message:         message,
+			RunnerTerminal:  runnerResult.transcriptTerminalReference(),
 			Details: map[string]any{
 				"runnerId":          runnerID,
 				"runnerAttempt":     runnerResult.Attempt,

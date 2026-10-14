@@ -613,6 +613,7 @@ func (s *Server) executeAgentKernelToolInternal(
 		return s.finishAgentKernelExecution(ctx, access, spec, session, started, *earlyOutcome, outputLimitBytes,
 			kernelOperation, kernelOperationClaim, nil, inputArtifactCollector.snapshot())
 	}
+	retireKernelRecoveryPreparation(ctx)
 	s.publishAgentKernelEvent(access, started, "start", map[string]any{"source": started.Code, "started_at": started.StartedAt.UTC().Format(time.RFC3339Nano)})
 	startObserver := func() <-chan struct{} {
 		closeAfterExecution := ownedKernel

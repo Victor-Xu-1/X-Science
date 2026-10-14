@@ -72,7 +72,9 @@ func (r *Repository) FinishRunner(ctx context.Context, input FinishRunnerInput) 
 			if _, err := bindCommittedArtifactReferencesConn(ctx, conn, stream, input.Claim.Attempt, event.EventID, receipt.FinishedAt); err != nil {
 				return err
 			}
-			return applyFrameTerminalStatusConn(ctx, conn, stream, input.Status, statusDescription, receipt.FinishedAt)
+			// The first finish committed its receipt and Frame projection together.
+			// Replaying that receipt must not overwrite a later continuation.
+			return nil
 		}
 		stream, err = validateClaimConn(ctx, conn, input.Claim, now, true)
 		if err != nil {

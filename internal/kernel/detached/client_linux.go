@@ -33,9 +33,11 @@ func (c Client) Call(ctx context.Context, input CommandRequest) (CommandResponse
 	}
 	connection, err := (&net.Dialer{}).DialContext(ctx, "unix", c.SocketPath)
 	if err != nil {
-		return CommandResponse{}, fmt.Errorf("connect detached kernel executor: %w", err)
+		return CommandResponse{}, fmt.Errorf("connect detached kernel executor: %w", commandContextIOError(ctx, err))
 	}
 	defer connection.Close()
+	stopCancellation := context.AfterFunc(ctx, func() { _ = connection.Close() })
+	defer stopCancellation()
 	unixConnection, ok := connection.(*net.UnixConn)
 	if !ok {
 		return CommandResponse{}, errors.New("detached kernel executor did not use a Unix socket")
@@ -49,11 +51,11 @@ func (c Client) Call(ctx context.Context, input CommandRequest) (CommandResponse
 		}
 	}
 	if err := writeAll(connection, frame); err != nil {
-		return CommandResponse{}, fmt.Errorf("write detached kernel command: %w", err)
+		return CommandResponse{}, fmt.Errorf("write detached kernel command: %w", commandContextIOError(ctx, err))
 	}
 	responseFrame, err := readBoundedCommandFrame(connection, maxCommandResponseBytes)
 	if err != nil {
-		return CommandResponse{}, fmt.Errorf("read detached kernel response: %w", err)
+		return CommandResponse{}, fmt.Errorf("read detached kernel response: %w", commandContextIOError(ctx, err))
 	}
 	response, err := DecodeCommandResponse(responseFrame)
 	if err != nil {
@@ -66,6 +68,16 @@ func (c Client) Call(ctx context.Context, input CommandRequest) (CommandResponse
 		return response, &CommandError{Code: response.Code, Message: response.Message}
 	}
 	return response, nil
+}
+
+// Only cancellation/timeout transport failures inherit the caller's cause.
+// A decoded server result, peer EOF or unrelated I/O error keeps its own meaning.
+func commandContextIOError(ctx context.Context, err error) error {
+	if cause := context.Cause(ctx); cause != nil &&
+		(errors.Is(err, net.ErrClosed) || errors.Is(err, ctx.Err()) || os.IsTimeout(err)) {
+		return cause
+	}
+	return err
 }
 
 func validateTrustedUnixSocket(path string) error {

@@ -22,6 +22,21 @@ func (s *Server) resumeApprovedAgentKernelOperations(
 	options SessionRunnerChatOptions,
 	run *sessionRunnerChatRun,
 ) (bool, error) {
+	return s.resumeApprovedAgentKernelOperationsWithPreparationBudget(ctx, options, run,
+		defaultSessionRunnerKernelRecoveryTimeout)
+}
+
+// The caller supplies only the host preparation budget. Software-runtime work
+// retains its existing declared timeout policy; model input cannot set this value.
+func (s *Server) resumeApprovedAgentKernelOperationsWithPreparationBudget(
+	ctx context.Context,
+	options SessionRunnerChatOptions,
+	run *sessionRunnerChatRun,
+	ordinaryPreparationBudget time.Duration,
+) (bool, error) {
+	if ordinaryPreparationBudget <= 0 {
+		return false, errors.New("kernel recovery preparation budget must be positive")
+	}
 	if s == nil || s.workspaceStore == nil || run == nil || run.Transcript == nil {
 		return false, nil
 	}
@@ -149,9 +164,14 @@ func (s *Server) resumeApprovedAgentKernelOperations(
 				if timeoutErr != nil {
 					return resumed, timeoutErr
 				}
+				if strings.TrimSpace(operation.Tool) != softwareRuntimeToolName {
+					recoveryTimeout = ordinaryPreparationBudget
+				}
 				operationCtx := ctx
 				cancelOperation := func() {}
-				if recoveryTimeout > 0 {
+				if strings.TrimSpace(operation.Tool) != softwareRuntimeToolName {
+					operationCtx, cancelOperation = withKernelRecoveryPreparationBudget(ctx, recoveryTimeout)
+				} else if recoveryTimeout > 0 {
 					operationCtx, cancelOperation = context.WithTimeoutCause(
 						ctx, recoveryTimeout, errSessionRunnerKernelRecoveryDeadline,
 					)
@@ -165,7 +185,7 @@ func (s *Server) resumeApprovedAgentKernelOperations(
 						return sessionRunnerToolProgressPersistenceBestEffort(event,
 							s.checkpointSessionRunnerToolEvent(recoveryCtx, options, run, event))
 					})
-				if recoveryTimeout > 0 && err != nil && errors.Is(operationCtx.Err(), context.DeadlineExceeded) {
+				if recoveryTimeout > 0 && err != nil && errors.Is(context.Cause(operationCtx), errSessionRunnerKernelRecoveryDeadline) {
 					err = sessionRunnerKernelRecoveryTimeout{
 						timeout: recoveryTimeout,
 						cause:   errSessionRunnerKernelRecoveryDeadline,

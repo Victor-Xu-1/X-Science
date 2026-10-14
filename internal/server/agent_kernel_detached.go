@@ -183,10 +183,12 @@ func (s *Server) executeDetachedAgentKernel(
 		FrameID: access.Frame.ID, Language: spec.Language, Environment: spec.Environment,
 		KernelKind: spec.KernelKind, Code: code, Origin: "agent", StartedAt: time.Now().UTC(),
 	}
-	_, err = s.kernelExecutionBackend.Start(ctx, ref, kernelruntime.BackendStartFence{
+	dispatchCtx, cancelDispatch := kernelRecoveryPreparationCommandContext(ctx)
+	_, err = s.kernelExecutionBackend.Start(dispatchCtx, ref, kernelruntime.BackendStartFence{
 		ExecutionStateVersion: execution.StateVersion, ControllerEpoch: lease.Epoch,
 		ControllerToken: lease.Token, DispatchSequence: 1,
 	})
+	cancelDispatch()
 	if err != nil {
 		cancelCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		cancelErr := s.deliverPersistedDetachedCancellation(cancelCtx, ref, lease)
@@ -201,6 +203,7 @@ func (s *Server) executeDetachedAgentKernel(
 		}
 		return nil, err
 	}
+	retireKernelRecoveryPreparation(ctx)
 	if background {
 		if err := s.recordAgentKernelBackgroundStart(access, started); err != nil {
 			return nil, fmt.Errorf("record detached kernel background execution: %w", err)

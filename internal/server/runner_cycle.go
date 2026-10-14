@@ -121,6 +121,7 @@ func (s *Server) runSessionRunnerChatOnce(
 	if transcriptAuthority != nil {
 		result.Claimed = true
 		result.Attempt = int(transcriptAuthority.Claim.Attempt)
+		result.transcriptAuthority = transcriptAuthority
 	} else if projectionClaimed && session.Runner != nil {
 		result.Claimed = true
 		result.Attempt = session.Runner.Attempt
@@ -169,6 +170,7 @@ func (s *Server) runSessionRunnerChatOnce(
 		}
 		result.Claimed = true
 		result.Attempt = int(transcriptAuthority.Claim.Attempt)
+		result.transcriptAuthority = transcriptAuthority
 	} else {
 		result.Claimed = true
 		if session.Runner != nil {
