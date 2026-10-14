@@ -672,8 +672,14 @@ func TestCheckpointChatModelToolCallsCreatesDurableKernelOperationAtomically(t *
 		{ID: "invalid-software-runtime-call", Name: softwareRuntimeToolName, Arguments: json.RawMessage(`{"capability":"r-summary","language":"r","packages":[{"manager":"conda","spec":"r-jsonlite=2.0.0"}],"imports":["jsonlite"],"executable":"Rscript"}`)},
 		{ID: "read-call", Name: "read_file", Arguments: json.RawMessage(`{"path":"notes.txt"}`)},
 	}
-	if err := server.checkpointChatModelToolCalls(SessionRunnerChatOptions{RunnerID: "kernel-operation-runner"}, run, calls); err != nil {
-		t.Fatal(err)
+	// Single-call checkpoints retain immediate canonical admission. Multi-call
+	// ordering is exercised by TestKernelBatchAdmissionUsesPrecedingSetupReceipt
+	// and the real Engine/Python regression; later inputs must not be approved
+	// before their predecessor receipts exist.
+	for _, call := range calls {
+		if err := server.checkpointChatModelToolCalls(SessionRunnerChatOptions{RunnerID: "kernel-operation-runner"}, run, []agentruntime.ToolCall{call}); err != nil {
+			t.Fatal(err)
+		}
 	}
 	var operationID string
 	if err := db.QueryRow(`SELECT operation_id FROM kernel_local_operations WHERE stream_uid=?`, stream.UID).Scan(&operationID); err != nil {
@@ -704,8 +710,10 @@ func TestCheckpointChatModelToolCallsCreatesDurableKernelOperationAtomically(t *
 	); rejectedErr != nil || rejectedFound {
 		t.Fatalf("rejected software operation=%#v found=%t err=%v", rejectedOperation, rejectedFound, rejectedErr)
 	}
-	if err := server.checkpointChatModelToolCalls(SessionRunnerChatOptions{RunnerID: "kernel-operation-runner"}, run, calls); err != nil {
-		t.Fatal(err)
+	for _, call := range calls {
+		if err := server.checkpointChatModelToolCalls(SessionRunnerChatOptions{RunnerID: "kernel-operation-runner"}, run, []agentruntime.ToolCall{call}); err != nil {
+			t.Fatal(err)
+		}
 	}
 	var operationCount, checkpointCount, toolItemCount int
 	if err := db.QueryRow(`SELECT COUNT(*) FROM kernel_local_operations WHERE stream_uid=?`, stream.UID).Scan(&operationCount); err != nil {
@@ -719,7 +727,7 @@ func TestCheckpointChatModelToolCallsCreatesDurableKernelOperationAtomically(t *
 		JOIN transcript_tool_call_batches batch ON batch.batch_id=item.batch_id WHERE batch.stream_uid=?`, stream.UID).Scan(&toolItemCount); err != nil {
 		t.Fatal(err)
 	}
-	if operationCount != 3 || checkpointCount != 1 || toolItemCount != 5 {
+	if operationCount != 3 || checkpointCount != len(calls) || toolItemCount != 5 {
 		t.Fatalf("operations=%d checkpoints=%d tool_items=%d", operationCount, checkpointCount, toolItemCount)
 	}
 }
