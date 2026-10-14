@@ -99,6 +99,7 @@ func (s *Server) validateRunnerSourceObservationEntry(ctx context.Context, autho
 		return entry, nil
 	}
 	if !runnerSourceReceiptSucceeded(result) {
+		entry.RuntimeProjection = runnerSourceObservationWitness{proposalEventID: proposal}
 		return entry, nil
 	}
 	if descriptor, _, externalized, err := toolcontract.DecodeExternalizedResult(checkpoint.ToolResult); externalized {

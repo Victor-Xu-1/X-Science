@@ -184,6 +184,48 @@ func TestRunnerSourceObservationCanonicalUnsuccessfulSourceNeverGetsWitness(t *t
 	ctx := t.Context()
 	authority, run := largeMCPStartedOperation(t, fixture)
 	index := 0
+	commitAndValidate := func(t *testing.T, output map[string]any, external bool) eventjournal.Entry {
+		t.Helper()
+		index++
+		input := map[string]any{"query": "controlled source outcome"}
+		call := kernelruntime.HostCall{ID: fmt.Sprintf("hc-%032x", index), CellID: authority.operation.ExecutionID}
+		audit := workspace.KernelMCPAuditInput{CallID: call.ID, FrameID: fixture.stream.FrameID, RootFrameID: fixture.stream.RootFrameID,
+			OwnerUserID: fixture.stream.OwnerID, Server: "fixture", Method: "search", Input: input}
+		if _, err := fixture.store.BeginKernelMCPAudit(ctx, audit); err != nil {
+			t.Fatal(err)
+		}
+		attestation := kernelMCPSourceEvidenceAttestation{Class: workspace.KernelMCPEvidenceClassBundledReadOnly, ConnectorID: "bundled:fixture", ConnectorSource: "bundled", InputSchemaSHA256: strings.Repeat("a", 64), ReadOnlyHint: true}
+		if err := fixture.server.commitKernelMCPSourceEvidence(ctx, authority, audit, call, "mcp__fixture__search", input, output, attestation); err != nil {
+			t.Fatal(err)
+		}
+		events, err := fixture.repo.ListProjectedEvents(ctx, transcriptstore.ListProjectedEventsInput{StreamUID: fixture.stream.UID, OwnerID: fixture.stream.OwnerID, Limit: 100})
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, projected := range events {
+			var message eventjournal.Message
+			if json.Unmarshal(projected.ResolvedPayloadJSON, &message) != nil || message["toolCallId"] != call.ID {
+				continue
+			}
+			message["type"] = "runner_checkpoint"
+			raw, _ := json.Marshal(message["toolResult"])
+			if _, _, gotExternal, err := toolcontract.DecodeExternalizedResult(raw); err != nil || gotExternal != external {
+				t.Fatalf("fixture externalization=%t; want %t: %v", gotExternal, external, err)
+			}
+			validated, err := fixture.server.validateRunnerSourceObservationEntry(ctx, run.Transcript, eventjournal.Entry{EventID: projected.Event.EventID, Message: message, SourceEventType: "runner_checkpoint"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			return validated
+		}
+		t.Fatal("fixture did not persist its real source receipt")
+		return eventjournal.Entry{}
+	}
+	success := commitAndValidate(t, map[string]any{"records": []any{}}, false)
+	successWitness := success.RuntimeProjection.(runnerSourceObservationWitness)
+	if successWitness.key == "" {
+		t.Fatal("fixture's real successful source did not acquire a witness")
+	}
 	for name, outcome := range map[string]map[string]any{
 		"unavailable":  {"sourceUnavailable": true},
 		"failed":       {"ok": false},
@@ -192,45 +234,33 @@ func TestRunnerSourceObservationCanonicalUnsuccessfulSourceNeverGetsWitness(t *t
 	} {
 		for _, external := range []bool{false, true} {
 			t.Run(fmt.Sprintf("%s/external=%t", name, external), func(t *testing.T) {
-				index++
 				output := copyMapAny(outcome)
 				if external {
 					output["padding"] = strings.Repeat("preserved-source ", 2000)
 				}
-				input := map[string]any{"query": "controlled source outcome"}
-				call := kernelruntime.HostCall{ID: fmt.Sprintf("hc-%032x", index), CellID: authority.operation.ExecutionID}
-				audit := workspace.KernelMCPAuditInput{CallID: call.ID, FrameID: fixture.stream.FrameID, RootFrameID: fixture.stream.RootFrameID,
-					OwnerUserID: fixture.stream.OwnerID, Server: "fixture", Method: "search", Input: input}
-				if _, err := fixture.store.BeginKernelMCPAudit(ctx, audit); err != nil {
-					t.Fatal(err)
+				failed := commitAndValidate(t, output, external)
+				witness := failed.RuntimeProjection.(runnerSourceObservationWitness)
+				if witness.key != "" || witness.proposalEventID != successWitness.proposalEventID {
+					t.Fatalf("unsuccessful source lost its proposal or acquired a success witness: %+v", witness)
 				}
-				attestation := kernelMCPSourceEvidenceAttestation{Class: workspace.KernelMCPEvidenceClassBundledReadOnly, ConnectorID: "bundled:fixture", ConnectorSource: "bundled", InputSchemaSHA256: strings.Repeat("a", 64), ReadOnlyHint: true}
-				if err := fixture.server.commitKernelMCPSourceEvidence(ctx, authority, audit, call, "mcp__fixture__search", input, output, attestation); err != nil {
-					t.Fatal(err)
-				}
-				events, err := fixture.repo.ListProjectedEvents(ctx, transcriptstore.ListProjectedEventsInput{StreamUID: fixture.stream.UID, OwnerID: fixture.stream.OwnerID, Limit: 100})
-				if err != nil {
-					t.Fatal(err)
-				}
-				found := false
-				for _, projected := range events {
-					var message eventjournal.Message
-					if json.Unmarshal(projected.ResolvedPayloadJSON, &message) != nil || message["toolCallId"] != call.ID {
-						continue
+				for _, failureFirst := range []bool{false, true} {
+					callID := authority.operation.ToolCallID
+					reducer := runnerSourceObservationReducer{inputScoped: true, admitted: map[string]int64{callID: successWitness.proposalEventID}}
+					// Seed the bounded window with the real successful source's key
+					// so its next observation would be Repeated without the failure.
+					reducer.window.Observe("earlier-completed", successWitness.key)
+					reducer.window.Complete("earlier-completed", false)
+					first, second := success, failed
+					if failureFirst {
+						first, second = second, first
 					}
-					found = true
-					message["type"] = "runner_checkpoint"
-					raw, _ := json.Marshal(message["toolResult"])
-					if _, _, gotExternal, err := toolcontract.DecodeExternalizedResult(raw); err != nil || gotExternal != external {
-						t.Fatalf("fixture externalization=%t; want %t: %v", gotExternal, external, err)
+					reducer.observeEntry(first)
+					reducer.observeEntry(second)
+					outer := sourceObservationOuter(callID, "fresh independent computation", nil)
+					observation, _ := reducer.observeEntry(eventjournal.Entry{Message: outer, RuntimeProjection: runnerSourceObservationWitness{proposalEventID: successWitness.proposalEventID, executionResult: outer["toolResult"]}})
+					if observation == nil || observation.State != agentruntime.SourceObservationUnknown || !observation.HasSources {
+						t.Fatalf("mixed canonical group did not remain unknown (failureFirst=%t): %+v", failureFirst, observation)
 					}
-					validated, err := fixture.server.validateRunnerSourceObservationEntry(ctx, run.Transcript, eventjournal.Entry{EventID: projected.Event.EventID, Message: message, SourceEventType: "runner_checkpoint"})
-					if err != nil || validated.RuntimeProjection.(runnerSourceObservationWitness).key != "" {
-						t.Fatalf("unsuccessful restored source acquired a verified witness: %+v %v", validated.RuntimeProjection, err)
-					}
-				}
-				if !found {
-					t.Fatal("fixture did not persist its real source receipt")
 				}
 			})
 		}
