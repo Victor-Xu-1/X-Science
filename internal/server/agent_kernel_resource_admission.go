@@ -7,7 +7,7 @@ import (
 )
 
 func agentKernelMemoryBudgetSchema() map[string]any {
-	return map[string]any{"type": "integer", "minimum": 1, "description": "Optional explicit executor memory allocation in MiB. This is a requested budget, not a verified scientific minimum. Admission uses actual host capacity and durable reservations; unavailable capacity waits without starting or reducing the computation."}
+	return map[string]any{"type": "integer", "minimum": 1, "description": "Optional explicit executor memory allocation in MiB. This is a requested budget, not a verified scientific minimum. Admission uses actual host capacity and durable reservations; temporary capacity shortages wait without starting or reducing the computation. Budgets exceeding the observed host limit require changed capacity or a new allocation."}
 }
 
 func kernelResourceAdmissionReceipt(err error) (map[string]any, bool) {
@@ -21,6 +21,19 @@ func kernelResourceAdmissionReceipt(err error) (map[string]any, bool) {
 			"requested_memory_bytes": belowMinimum.RequestedBytes, "minimum_memory_bytes": belowMinimum.MinimumBytes,
 			"error":    "The requested memory allocation is below the observed executor minimum. No computation was started and no budget was silently increased.",
 			"recovery": "submit_a_new_operation_with_an_explicit_budget_at_least_minimum_memory_bytes_or_choose_an_authorized_different_runtime",
+		}, true
+	}
+	var exceeds *detached.ExecutorResourceBudgetExceedsCurrentCapacityError
+	if errors.As(err, &exceeds) {
+		return map[string]any{
+			"backend_id": exceeds.BackendID, "backend_generation": exceeds.Generation,
+			"admission_state": "budget_exceeds_current_host_capacity",
+			"ok":              false, "executed": false, "status": "resource_budget_exceeds_current_capacity",
+			"retryable": false, "execution_outcome": "not_started",
+			"requested_memory_bytes": exceeds.RequestedBytes, "maximum_memory_bytes": exceeds.MaximumBytes,
+			"host_total_memory_bytes": exceeds.HostTotalBytes, "control_reserve_bytes": exceeds.ReserveBytes,
+			"error":    "The requested memory allocation exceeds the observed host total after the controller reserve. Freeing current usage alone cannot fit it under this observation. No computation was started and no budget was silently reduced.",
+			"recovery": "recheck_after_host_capacity_changes_or_submit_a_new_operation_with_a_different_explicit_budget_or_choose_an_authorized_different_runtime",
 		}, true
 	}
 	var unavailable *detached.ExecutorResourceUnavailableError
