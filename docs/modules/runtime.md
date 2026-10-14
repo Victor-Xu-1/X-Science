@@ -287,4 +287,8 @@ stream 时，受影响的累计耗时明确不可用，不按壁钟猜测、不�
 `ObservationError` 与 canonical 数据，不使对话因单纯计时未知而不可读取，也不改变
 执行状态或恢复条件。所有者、SQL/schema 与请求取消错误仍沿原错误通道返回。
 
+暂停投影读取真实恢复权限，不读取计时是否可用。普通非自动恢复的 interruption 只有在
+匹配的 resumable checkpoint 存在时才显示可继续暂停；不可恢复的过期边界仍走原执行
+停滞提示。模型选择保留既有 fresh-input 恢复例外，自动恢复的兼容分支不变。
+
 [模块导航](README.md) · [工具流式呈现契约](../engineering/tool-stream-presentation-contract.md)

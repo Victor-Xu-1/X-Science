@@ -438,12 +438,10 @@ func latestPausedRunnerInterruption(
 	if err != nil {
 		return transcriptstore.RunnerInterruption{}, false, err
 	}
-	if !interruption.AutoResume || interruption.ReasonCode == sessionRunnerModelProviderUnavailableReasonCode {
-		// A recoverable checkpoint may deliberately wait for changed conditions.
-		// Resumability alone does not mean a runner is executing the logical task.
-		return interruption, true, nil
-	}
-	return interruption, !resumable || resumableCheckpoint.Sequence != interruption.CheckpointSequence, nil
+	return interruption, runnerInterruptionProjectsPaused(
+		interruption, resumableCheckpoint, resumable,
+		interruption.ReasonCode == sessionRunnerModelProviderUnavailableReasonCode,
+	), nil
 }
 
 func (s *Server) compatibilityFrameReviewProjection(
