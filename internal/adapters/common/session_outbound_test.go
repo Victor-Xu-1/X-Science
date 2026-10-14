@@ -25,7 +25,7 @@ func TestSessionOutboundDispatcherCoalescesDeltasAndAvoidsFinalDuplicate(t *test
 	if err != nil {
 		t.Fatalf("new dispatcher: %v", err)
 	}
-	defer dispatcher.Close()
+	defer closeSessionOutboundTestDispatcher(t, dispatcher)
 	if err := dispatcher.Bind(IMSessionBinding{SessionID: "im:wechat:42", Platform: "wechat", ChatID: "42", TargetID: "42", OwnerUserID: "local"}); err != nil {
 		t.Fatalf("bind: %v", err)
 	}
@@ -75,7 +75,7 @@ func TestSessionOutboundDispatcherAcknowledgesExactFinalWithoutDuplicateSend(t *
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer dispatcher.Close()
+	defer closeSessionOutboundTestDispatcher(t, dispatcher)
 	binding := IMSessionBinding{SessionID: "im:wechat:receipt", Platform: "wechat", ChatID: "receipt", OwnerUserID: "local"}
 	if err := dispatcher.Bind(binding); err != nil {
 		t.Fatal(err)
@@ -119,7 +119,7 @@ func TestSessionOutboundDispatcherAcknowledgesInvisiblePlanningCheckpoint(t *tes
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer dispatcher.Close()
+	defer closeSessionOutboundTestDispatcher(t, dispatcher)
 	binding := IMSessionBinding{SessionID: "im:wechat:planning", Platform: "wechat", ChatID: "planning", OwnerUserID: "local"}
 	if err := dispatcher.Bind(binding); err != nil {
 		t.Fatal(err)
@@ -157,7 +157,7 @@ func TestSessionOutboundDispatcherSendsCorrectedFinalAfterStreamedDelta(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer dispatcher.Close()
+	defer closeSessionOutboundTestDispatcher(t, dispatcher)
 	binding := IMSessionBinding{SessionID: "im:wechat:corrected", Platform: "wechat", ChatID: "corrected", OwnerUserID: "local"}
 	if err := dispatcher.Bind(binding); err != nil {
 		t.Fatal(err)
@@ -195,7 +195,7 @@ func TestSessionOutboundDispatcherSettlesEveryCoalescedDeltaReceipt(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer dispatcher.Close()
+	defer closeSessionOutboundTestDispatcher(t, dispatcher)
 	binding := IMSessionBinding{SessionID: "im:wechat:coalesced", Platform: "wechat", ChatID: "coalesced", OwnerUserID: "local"}
 	if err := dispatcher.Bind(binding); err != nil {
 		t.Fatal(err)
@@ -243,7 +243,7 @@ func TestSessionOutboundDispatcherRetriesThenDeduplicatesDeliveredEvent(t *testi
 	if err != nil {
 		t.Fatalf("new dispatcher: %v", err)
 	}
-	defer dispatcher.Close()
+	defer closeSessionOutboundTestDispatcher(t, dispatcher)
 	if err := dispatcher.Bind(IMSessionBinding{SessionID: "im:feishu:oc_1", Platform: "feishu", ChatID: "oc_1", OwnerUserID: "local"}); err != nil {
 		t.Fatalf("bind: %v", err)
 	}
@@ -276,7 +276,7 @@ func TestSessionOutboundDispatcherValidatesCanonicalOwnedBinding(t *testing.T) {
 	if err != nil {
 		t.Fatalf("new dispatcher: %v", err)
 	}
-	defer dispatcher.Close()
+	defer closeSessionOutboundTestDispatcher(t, dispatcher)
 	for _, binding := range []IMSessionBinding{
 		{SessionID: "im:wechat:user-1", Platform: "wechat", ChatID: "other", OwnerUserID: "local"},
 		{SessionID: "im:wechat:user-1", Platform: "wechat", ChatID: "user-1"},
@@ -308,7 +308,7 @@ func TestSessionOutboundDispatcherFailsClosedWhenRouteAuthorizationIsRevoked(t *
 	if err != nil {
 		t.Fatalf("new dispatcher: %v", err)
 	}
-	defer dispatcher.Close()
+	defer closeSessionOutboundTestDispatcher(t, dispatcher)
 	if err := dispatcher.Bind(IMSessionBinding{
 		SessionID: "im:wechat:42", Platform: "wechat", ChatID: "42",
 		SenderID: "paired-user", OwnerUserID: "local",
@@ -347,7 +347,7 @@ func TestSessionOutboundDispatcherUnbindCancelsInFlightDelivery(t *testing.T) {
 	if err != nil {
 		t.Fatalf("new dispatcher: %v", err)
 	}
-	defer dispatcher.Close()
+	defer closeSessionOutboundTestDispatcher(t, dispatcher)
 	if err := dispatcher.Bind(IMSessionBinding{
 		SessionID: "im:wechat:77", Platform: "wechat", ChatID: "77",
 		SenderID: "paired-user", OwnerUserID: "local",

@@ -23,6 +23,15 @@ import (
 	transcriptstore "x-science/internal/persistence/transcript"
 )
 
+func closeTranscriptIMTestDispatcher(t *testing.T, dispatcher *adaptercommon.SessionOutboundDispatcher) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	if err := dispatcher.Close(ctx); err != nil {
+		t.Errorf("close transcript IM dispatcher: %v", err)
+	}
+}
+
 func TestIMRunnerUsesTranscriptAuthorityAndDeliversThroughReceiptWorker(t *testing.T) {
 	store, repo, db := newTranscriptWebFixture(t)
 	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -51,7 +60,7 @@ func TestIMRunnerUsesTranscriptAuthorityAndDeliversThroughReceiptWorker(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer dispatcher.Close()
+	defer closeTranscriptIMTestDispatcher(t, dispatcher)
 	server = New(Options{Workspace: store, Transcript: repo, FileRoot: t.TempDir(), IMOutbound: dispatcher, StartBackgroundServices: true})
 	t.Cleanup(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -435,7 +444,7 @@ func TestTranscriptIMInvisibleSystemEventSettlesBeforeTerminal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer dispatcher.Close()
+	defer closeTranscriptIMTestDispatcher(t, dispatcher)
 	server = New(Options{Workspace: store, Transcript: repo, FileRoot: t.TempDir(), IMOutbound: dispatcher})
 	sessionID, _, err := server.recordInboundLiveSession(inboundLiveSessionRecord{
 		Platform: "wechat", ChatID: "system-noop", SenderID: "sender-a", Text: "run",
@@ -568,7 +577,7 @@ func TestTranscriptIMQueueSaturationHasSingleDurableSettlement(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer dispatcher.Close()
+	defer closeTranscriptIMTestDispatcher(t, dispatcher)
 	defer close(release)
 	server = New(Options{Workspace: workspace, Transcript: repo, FileRoot: t.TempDir(), IMOutbound: dispatcher})
 	sessionID, _, err := server.recordInboundLiveSession(inboundLiveSessionRecord{

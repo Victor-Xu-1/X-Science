@@ -16,7 +16,9 @@ func TestNewIMOutboundDispatcherStaysDisabledWithoutEnabledAdapters(t *testing.T
 		t.Fatalf("newIMOutboundDispatcher() error = %v", err)
 	}
 	if dispatcher != nil {
-		dispatcher.Close()
+		if err := dispatcher.Close(t.Context()); err != nil {
+			t.Errorf("close unexpected dispatcher: %v", err)
+		}
 		t.Fatalf("newIMOutboundDispatcher() = %#v", dispatcher)
 	}
 }
@@ -34,7 +36,9 @@ func TestNewIMOutboundDispatcherFailsClosedWithoutBidirectionalCredentials(t *te
 		t.Run(tc.name, func(t *testing.T) {
 			dispatcher, err := newIMOutboundDispatcher(context.Background(), tc.cfg, nil)
 			if dispatcher != nil {
-				dispatcher.Close()
+				if err := dispatcher.Close(t.Context()); err != nil {
+					t.Errorf("close unexpected dispatcher: %v", err)
+				}
 			}
 			if err == nil || !strings.Contains(err.Error(), tc.want) {
 				t.Fatalf("newIMOutboundDispatcher() dispatcher=%#v error=%v", dispatcher, err)
@@ -60,7 +64,9 @@ func TestNewIMOutboundDispatcherBuildsEveryRetainedPlatformHandler(t *testing.T)
 			if dispatcher == nil {
 				t.Fatal("newIMOutboundDispatcher() returned nil")
 			}
-			dispatcher.Close()
+			if err := dispatcher.Close(t.Context()); err != nil {
+				t.Fatalf("close configured dispatcher: %v", err)
+			}
 		})
 	}
 }
