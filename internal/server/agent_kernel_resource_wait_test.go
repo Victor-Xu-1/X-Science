@@ -45,13 +45,6 @@ func TestAgentKernelNotificationWaitIncludesPendingResourceAdmission(t *testing.
 	if _, admitted, err := f.store.AdmitKernelResources(ctx, backend, 0, capacity); err != nil || !admitted {
 		t.Fatalf("capacity admitted=%t err=%v", admitted, err)
 	}
-	if _, _, err := f.store.CreateNotification(ctx, workspace.CreateNotificationInput{
-		ID: "controlled-resource-admitted", SenderFrameID: access.Frame.ID, RecipientFrameID: access.Frame.ID,
-		RootFrameID: access.Frame.RootFrameID, OwnerUserID: access.UserID, NotificationType: "resource_capacity_admitted",
-		Payload: map[string]any{"backend_id": backend.BackendID, "backend_generation": backend.BackendGeneration, "executed": false, "status": "execution_capacity_admitted"},
-	}); err != nil {
-		t.Fatal(err)
-	}
 	result, err = f.server.waitForAgentKernelNotification(ctx, f.identity, 0, "resource-wait-delivery")
 	if err != nil || result["status"] != "received" || numberValue(result["num_notifications"]) != 1 {
 		t.Fatalf("durable capacity notification unavailable: %#v err=%v", result, err)

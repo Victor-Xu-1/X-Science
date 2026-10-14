@@ -104,12 +104,17 @@ The model must submit a newly approved operation with a sufficient budget or an
 authorized different runtime. Budgets are never silently increased, the durable
 reservation floor remains enforced, and ordinary capacity waits remain retryable.
 
-Capacity-unavailable startup reservations remain pending work for notification
-waiting while their exact current task/backend generations are active. The
-existing startup supervisor, not a second scheduler, retries resource admission
-and emits the durable `resource_capacity_admitted` notification. That notification
+Capacity-unavailable reservations and reserved-but-starting executors remain
+pending work while their exact current task/backend generations are active; a
+ready idle executor does not remain pending merely because it owns a reservation.
+The existing startup supervisor, not a second scheduler, retries resource admission.
+A previously persisted wait's admission and its `resource_capacity_admitted`
+notification commit in one transaction. Initial immediate admissions do not emit
+an extra notification; reserved replays remain idempotent. That notification
 does not execute a previously cancelled operation; a subsequent tool proposal
-still requires ordinary execution authorization. Empty notification observations
+still requires ordinary execution authorization and actual worker readiness.
+Legacy reserved rows without recorded wait origin are not given a fabricated
+notification. Empty notification observations
 (`idle`, timeout, or legacy empty completion) do not reset material-progress or
 generation-recovery budgets. Real delivered notifications and new execution
 effects retain their progress semantics.
