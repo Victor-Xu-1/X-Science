@@ -51,6 +51,7 @@ func ownedUnreapedProcess(t *testing.T, host *Host, id string) (*externalProcess
 	reap := func() { reapOnce.Do(func() { go host.waitForProcess(id, process) }) }
 	t.Cleanup(func() {
 		_ = control.Kill(command)
+		_ = command.Process.Kill() // Attach may have failed before the parent entered its Job.
 		reap()
 		select {
 		case <-process.done:
