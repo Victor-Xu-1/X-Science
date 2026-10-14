@@ -198,7 +198,7 @@ func appendKernelMCPCatalogUnavailable(values []map[string]any, connector worksp
 	})
 }
 
-func kernelMCPCatalogTool(connector workspaceMCPRuntimeConnector, tool mcpstdio.ToolProjection, includeOutputSchema bool) map[string]any {
+func kernelMCPCatalogTool(connector workspaceMCPRuntimeConnector, tool mcpstdio.ToolProjection, includeFullSchemas bool) map[string]any {
 	result := map[string]any{
 		"server":      connector.ID,
 		"server_name": connector.Name,
@@ -208,7 +208,12 @@ func kernelMCPCatalogTool(connector workspaceMCPRuntimeConnector, tool mcpstdio.
 		"parameters":  kernelMCPCatalogParameters(tool),
 		"read_only":   tool.ReadOnlyHint,
 	}
-	if includeOutputSchema && tool.HasOutputSchema && len(tool.OutputSchema) > 0 {
+	if includeFullSchemas {
+		for name, value := range kernelMCPCatalogInputSchemaFields(tool.InputSchema) {
+			result[name] = value
+		}
+	}
+	if includeFullSchemas && tool.HasOutputSchema && len(tool.OutputSchema) > 0 {
 		// list_methods is server-filtered and may expose the real response shape
 		// needed for safe structured parsing. Keep broad unfiltered discovery
 		// lean, and bound any single connector-owned schema.
