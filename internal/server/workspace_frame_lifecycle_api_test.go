@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"net/http"
 	"path/filepath"
 	"testing"
@@ -37,7 +38,9 @@ func TestWorkspaceFrameLifecycleHTTPAPI(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	app := New(Options{Workspace: store}).Handler()
+	serverApp := New(Options{FileRoot: t.TempDir(), Workspace: store})
+	t.Cleanup(func() { _ = serverApp.Close(context.Background()) })
+	app := serverApp.Handler()
 
 	serveWorkspaceJSON(t, app, http.MethodPost, "/api/go/frames/root-frame/messages/queued-1/retract", map[string]any{}, http.StatusOK)
 	message, found, err := store.LocateFrameMessage("root-frame", "queued-1")
