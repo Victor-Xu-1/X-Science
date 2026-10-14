@@ -332,3 +332,23 @@ func TestRunnerTimingUnknownClockBoundaryDoesNotHideConversation(t *testing.T) {
 		})
 	}
 }
+
+func TestRunnerTimingResumedClockRollbackRetainsTypedDiagnostic(t *testing.T) {
+	startedAt := time.Date(2026, 10, 13, 0, 0, 0, 0, time.UTC)
+	pausedAt := startedAt.Add(90 * time.Second)
+	resumedAt := pausedAt.Add(24 * time.Hour)
+	generation := strings.Repeat("a", 64)
+	attempt := runnerTimingAttempt{
+		attempt: 1, revision: 1, status: "running", generation: generation,
+		claimedAt: startedAt, expiresAt: resumedAt.Add(time.Hour),
+		facts: []runnerTimingFactRecord{{valid: true, fact: runnerTimingResumeFact{
+			PreviousGeneration: strings.Repeat("b", 64), Generation: generation,
+			PreviousInputRevision: 1, InputRevision: 1,
+			PreviousExpiresAt: pausedAt, ResumedAt: resumedAt,
+		}}},
+	}
+	latest, task, found, err := reduceRunnerTiming("controlled-stream", []runnerTimingAttempt{attempt}, resumedAt.Add(-time.Hour))
+	if err != nil || !found || !latest.ElapsedUnknown || !task.ElapsedUnknown || !errors.Is(latest.ObservationError, ErrEventConflict) || !errors.Is(task.ObservationError, ErrEventConflict) || latest.Status != "running" {
+		t.Fatalf("resumed clock rollback lost its nonfatal typed diagnostic: latest=%+v task=%+v err=%v", latest, task, err)
+	}
+}

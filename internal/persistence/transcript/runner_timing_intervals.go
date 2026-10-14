@@ -46,11 +46,14 @@ func runnerTimingIntervals(attempt runnerTimingAttempt, observedAt time.Time) ([
 		if !record.valid || !validRunnerTimingGeneration(fact.Generation) || !validRunnerTimingGeneration(fact.PreviousGeneration) ||
 			fact.Generation == fact.PreviousGeneration || revision <= 0 || fact.PreviousInputRevision != revision || fact.InputRevision < revision ||
 			fact.PreviousExpiresAt.IsZero() || fact.ResumedAt.IsZero() ||
-			fact.PreviousExpiresAt.Before(start) || fact.ResumedAt.Before(fact.PreviousExpiresAt) || fact.ResumedAt.After(end) ||
+			fact.PreviousExpiresAt.Before(start) || fact.ResumedAt.Before(fact.PreviousExpiresAt) ||
 			i > 0 && fact.PreviousGeneration != generation {
 			// Missing/foreign/old-reader generations cannot be repaired by
 			// guessing pause gaps. The current input may also cross the gap.
 			return []runnerActiveInterval{{start: attempt.claimedAt, end: end, revision: attempt.revision, unknown: true}}, nil
+		}
+		if fact.ResumedAt.After(end) {
+			return nil, ErrEventConflict
 		}
 		intervals = append(intervals, runnerActiveInterval{start: start, end: fact.PreviousExpiresAt, revision: revision, unknown: i == 0 && fact.LegacyPrefixUnknown})
 		start, revision, generation = fact.ResumedAt, fact.InputRevision, fact.Generation
