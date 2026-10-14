@@ -16,14 +16,21 @@ import (
 )
 
 type executorResourcePlanner interface {
-	ResourceCapacity(context.Context, int64) (workspace.KernelResourceCapacity, int64, error)
+	ResourceCapacity(context.Context, int64) (workspace.KernelResourceCapacity, executorCapacityObservation, error)
 	ResourceUsage(context.Context, string, int64) (int64, ExecutorLaunchState, error)
 }
 
-func (l *SystemdUserExecutorLauncher) ResourceCapacity(ctx context.Context, requested int64) (workspace.KernelResourceCapacity, int64, error) {
+// Admission capacity is clamped after reserve deduction. Keep the original
+// observation separately: adding the reserve back cannot undo that clamp.
+type executorCapacityObservation struct {
+	AvailableBytes int64
+	ReserveBytes   int64
+}
+
+func (l *SystemdUserExecutorLauncher) ResourceCapacity(ctx context.Context, requested int64) (workspace.KernelResourceCapacity, executorCapacityObservation, error) {
 	total, available, reserve, err := readExecutorMemory(l.meminfoPath)
 	if err != nil {
-		return workspace.KernelResourceCapacity{}, 0, err
+		return workspace.KernelResourceCapacity{}, executorCapacityObservation{}, err
 	}
 	// The conservative default share is not a ceiling on an explicit budget.
 	// Large hosts retain the fixed controller headroom plus all current usage,
@@ -31,7 +38,7 @@ func (l *SystemdUserExecutorLauncher) ResourceCapacity(ctx context.Context, requ
 	if requested > 0 {
 		reserve = executorControlReserveBytes
 	}
-	return workspace.KernelResourceCapacity{MaximumBytes: max(0, total-reserve), AvailableBytes: max(0, available-reserve), DefaultBytes: max(executorMemoryFloorBytes, memoryFraction(total, executorMemoryTotalFraction)), MinimumBytes: executorMemoryFloorBytes, Usage: map[string]int64{}}, reserve, nil
+	return workspace.KernelResourceCapacity{MaximumBytes: max(0, total-reserve), AvailableBytes: max(0, available-reserve), DefaultBytes: max(executorMemoryFloorBytes, memoryFraction(total, executorMemoryTotalFraction)), MinimumBytes: executorMemoryFloorBytes, Usage: map[string]int64{}}, executorCapacityObservation{AvailableBytes: available, ReserveBytes: reserve}, nil
 }
 
 func (l *SystemdUserExecutorLauncher) ResourceUsage(ctx context.Context, id string, generation int64) (int64, ExecutorLaunchState, error) {
@@ -129,7 +136,7 @@ func (b *Backend) reserveExecutorResources(ctx context.Context, backend workspac
 	if err != nil {
 		return 0, err
 	}
-	capacity, reserve, err := planner.ResourceCapacity(ctx, spec.ResourceMemoryBytes)
+	capacity, observation, err := planner.ResourceCapacity(ctx, spec.ResourceMemoryBytes)
 	if err != nil {
 		return 0, err
 	}
@@ -170,7 +177,7 @@ func (b *Backend) reserveExecutorResources(ctx context.Context, backend workspac
 		return 0, err
 	}
 	if !admitted {
-		return 0, &ExecutorResourceUnavailableError{AvailableBytes: capacity.AvailableBytes + reserve, ReserveBytes: reserve, RequiredBytes: max(spec.ResourceMemoryBytes, capacity.MinimumBytes), BackendID: backend.BackendID, Generation: backend.BackendGeneration}
+		return 0, &ExecutorResourceUnavailableError{AvailableBytes: observation.AvailableBytes, ReserveBytes: observation.ReserveBytes, RequiredBytes: max(spec.ResourceMemoryBytes, capacity.MinimumBytes), BackendID: backend.BackendID, Generation: backend.BackendGeneration}
 	}
 	return reservation.ReservedBytes, nil
 }
