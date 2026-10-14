@@ -418,6 +418,8 @@ func readOpenAIChatStream(reader io.Reader, limit int64, emit func(agentruntime.
 				return false, errors.New("OpenAI chat stream repeated a choice index in one event")
 			}
 			choiceIndexes[choiceIndex] = struct{}{}
+		}
+		for _, choice := range chunk.Choices {
 			hasSemanticDelta := strings.TrimSpace(choice.Delta.Role) != "" || choice.Delta.Content != "" ||
 				choice.Delta.ReasoningContent != "" || len(choice.Delta.ToolCalls) != 0
 			if accumulator.finishReason != "" && hasSemanticDelta {
@@ -470,29 +472,6 @@ func readOpenAIChatStream(reader io.Reader, limit int64, emit func(agentruntime.
 				accumulator.role = role
 				accumulator.roleBound = true
 			}
-			if choice.Delta.Content != "" {
-				accumulator.content.WriteString(choice.Delta.Content)
-				accumulator.emitted = true
-				if err := emit(agentruntime.ModelStreamEvent{
-					Kind: agentruntime.ModelStreamEventContentDelta, ContentDelta: choice.Delta.Content,
-				}); err != nil {
-					return false, err
-				}
-			}
-			if choice.Delta.ReasoningContent != "" {
-				accumulator.reasoningContent.WriteString(choice.Delta.ReasoningContent)
-				if err := emit(agentruntime.ModelStreamEvent{
-					Kind: agentruntime.ModelStreamEventPrivateReasoning, ReasoningActive: true,
-				}); err != nil {
-					return false, err
-				}
-			}
-			if len(choice.Delta.ToolCalls) > 0 && !accumulator.toolBoundarySent {
-				if err := emit(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventToolCallBoundary}); err != nil {
-					return false, err
-				}
-				accumulator.toolBoundarySent = true
-			}
 			for _, delta := range choice.Delta.ToolCalls {
 				if delta.Index == nil {
 					return false, errors.New("OpenAI chat stream function call is missing an index")
@@ -528,6 +507,29 @@ func readOpenAIChatStream(reader io.Reader, limit int64, emit func(agentruntime.
 			}
 			if semanticDeltaBytes > 0 || firstTerminal {
 				recordProviderStreamProgress(reader, semanticDeltaBytes)
+			}
+			if choice.Delta.Content != "" {
+				accumulator.content.WriteString(choice.Delta.Content)
+				accumulator.emitted = true
+				if err := emit(agentruntime.ModelStreamEvent{
+					Kind: agentruntime.ModelStreamEventContentDelta, ContentDelta: choice.Delta.Content,
+				}); err != nil {
+					return false, err
+				}
+			}
+			if choice.Delta.ReasoningContent != "" {
+				accumulator.reasoningContent.WriteString(choice.Delta.ReasoningContent)
+				if err := emit(agentruntime.ModelStreamEvent{
+					Kind: agentruntime.ModelStreamEventPrivateReasoning, ReasoningActive: true,
+				}); err != nil {
+					return false, err
+				}
+			}
+			if len(choice.Delta.ToolCalls) > 0 && !accumulator.toolBoundarySent {
+				if err := emit(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventToolCallBoundary}); err != nil {
+					return false, err
+				}
+				accumulator.toolBoundarySent = true
 			}
 		}
 		return false, nil

@@ -107,34 +107,10 @@ func readGeminiStream(client *runtimeModelClient, response http.Response, emit f
 		}
 		for _, part := range candidate.Content.Parts {
 			growth := int64(len(part.Text))
-			if part.Thought && part.Text != "" {
-				// Each decoded private fragment is activity, even when its text
-				// repeats. Emit no body and keep public output state unchanged.
-				if err := emit(agentruntime.ModelStreamEvent{
-					Kind: agentruntime.ModelStreamEventPrivateReasoning, ReasoningActive: true,
-				}); err != nil {
-					return err
-				}
-			}
-			if !part.Thought && part.Text != "" {
-				acc.content.WriteString(part.Text)
-				acc.emitted = true
-				if err := emit(agentruntime.ModelStreamEvent{
-					Kind: agentruntime.ModelStreamEventContentDelta, ContentDelta: part.Text,
-				}); err != nil {
-					return err
-				}
-			}
 			if part.FunctionCall != nil {
 				name, err := normalizeModelToolName(part.FunctionCall.Name)
 				if err != nil {
 					return err
-				}
-				if !acc.toolBoundarySent {
-					if err := emit(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventToolCallBoundary}); err != nil {
-						return err
-					}
-					acc.toolBoundarySent = true
 				}
 				rawArguments, err := json.Marshal(part.FunctionCall.Args)
 				if err != nil {
@@ -154,6 +130,30 @@ func readGeminiStream(client *runtimeModelClient, response http.Response, emit f
 			}
 			if growth > 0 {
 				recordProviderStreamProgress(response.Body, growth)
+			}
+			if part.Thought && part.Text != "" {
+				// Each decoded private fragment is activity, even when its text
+				// repeats. Emit no body and keep public output state unchanged.
+				if err := emit(agentruntime.ModelStreamEvent{
+					Kind: agentruntime.ModelStreamEventPrivateReasoning, ReasoningActive: true,
+				}); err != nil {
+					return err
+				}
+			}
+			if !part.Thought && part.Text != "" {
+				acc.content.WriteString(part.Text)
+				acc.emitted = true
+				if err := emit(agentruntime.ModelStreamEvent{
+					Kind: agentruntime.ModelStreamEventContentDelta, ContentDelta: part.Text,
+				}); err != nil {
+					return err
+				}
+			}
+			if part.FunctionCall != nil && !acc.toolBoundarySent {
+				if err := emit(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventToolCallBoundary}); err != nil {
+					return err
+				}
+				acc.toolBoundarySent = true
 			}
 		}
 		if finishReason := strings.ToUpper(strings.TrimSpace(candidate.FinishReason)); finishReason != "" {

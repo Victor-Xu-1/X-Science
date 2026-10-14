@@ -244,16 +244,24 @@ func readOpenAIResponsesStream(reader io.Reader, limit int64, emit func(agentrun
 				return errors.New("OpenAI Responses stream function call identity is incomplete")
 			}
 			identity := openAIResponsesStreamCallIdentity{CallID: callID, Name: name}
-			if existing, found := accumulator.callIdentity[itemID]; found && existing != identity {
-				return errors.New("OpenAI Responses stream function call identity changed")
+			if existing, found := accumulator.callIdentity[itemID]; found {
+				if existing != identity {
+					return errors.New("OpenAI Responses stream function call identity changed")
+				}
+				return nil
 			}
+			growth := int64(len(itemID) + len(callID) + len(name))
+			if err := accumulator.reserveSemanticBytes(growth); err != nil {
+				return err
+			}
+			accumulator.callIdentity[itemID] = identity
+			recordProviderStreamProgress(reader, growth)
 			if !accumulator.toolBoundarySent {
 				if err := emit(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventToolCallBoundary}); err != nil {
 					return err
 				}
 				accumulator.toolBoundarySent = true
 			}
-			accumulator.callIdentity[itemID] = identity
 		case "response.output_text.delta":
 			if event.Delta == "" {
 				return nil

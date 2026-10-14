@@ -109,34 +109,34 @@ func readAnthropicStream(client *runtimeModelClient, response http.Response, emi
 				if err != nil {
 					return err
 				}
+				acc.tools[event.Index] = &anthropicStreamTool{ID: strings.TrimSpace(event.ContentBlock.ID), Name: name}
+				recordProviderStreamProgress(response.Body, int64(len(strings.TrimSpace(event.ContentBlock.ID))+len(event.ContentBlock.Name)))
 				if !acc.toolBoundarySent {
 					if err := emit(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventToolCallBoundary}); err != nil {
 						return err
 					}
 					acc.toolBoundarySent = true
 				}
-				acc.tools[event.Index] = &anthropicStreamTool{ID: strings.TrimSpace(event.ContentBlock.ID), Name: name}
-				recordProviderStreamProgress(response.Body, int64(len(strings.TrimSpace(event.ContentBlock.ID))+len(event.ContentBlock.Name)))
 			}
 		case "content_block_delta":
 			switch event.Delta.Type {
 			case "thinking_delta":
 				if event.Delta.Thinking != "" {
+					recordProviderStreamProgress(response.Body, int64(len(event.Delta.Thinking)))
 					if err := emit(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventPrivateReasoning, ReasoningActive: true}); err != nil {
 						return err
 					}
-					recordProviderStreamProgress(response.Body, int64(len(event.Delta.Thinking)))
 				}
 			case "text_delta":
 				if event.Delta.Text != "" {
 					acc.content.WriteString(event.Delta.Text)
 					acc.emitted = true
+					recordProviderStreamProgress(response.Body, int64(len(event.Delta.Text)))
 					if err := emit(agentruntime.ModelStreamEvent{
 						Kind: agentruntime.ModelStreamEventContentDelta, ContentDelta: event.Delta.Text,
 					}); err != nil {
 						return err
 					}
-					recordProviderStreamProgress(response.Body, int64(len(event.Delta.Text)))
 				}
 			case "input_json_delta":
 				tool := acc.tools[event.Index]
