@@ -216,7 +216,11 @@ func (s *Server) autoResumeInterruptedFrames(ctx context.Context) {
 				// replays the latest transcript, so no competing resume path is created.
 				if autoResumeCandidateSupersedesDispatchFence(existing, candidate) {
 					wakeEvent, changed, wakeErr := s.workspaceStore.WakeCompatibilityFrameResumeDispatch(
-						existing.ResumeEvent.ID,
+						workspace.FrameResumeDispatchWakeInput{
+							ResumeEventID: existing.ResumeEvent.ID, ExpectedWaitRef: existing.WaitRef,
+							Source: workspace.FrameResumeWakeAutomaticRecovery,
+							Cause:  s.frameResumeCandidateWakeCause(ctx, candidate),
+						},
 					)
 					if wakeErr != nil {
 						log.Printf("auto_resume_registered_dispatch_wake_failed frame_id=%s event_id=%s error=%v",

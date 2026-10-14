@@ -249,7 +249,21 @@ func (s *Store) SettleTaskOperation(ctx context.Context, event OutboxEvent, payl
 		if err != nil {
 			return err
 		}
-		_, _, err = wakeCompatibilityFrameResumeDispatchTx(ctx, tx, resumeID, s.now().UTC())
+		row, found, err := scanCompatibilityFrameResumeDispatch(tx.QueryRowContext(ctx, `
+			SELECT e.id,e.frame_id,e.sequence,e.payload,e.created_at,
+				f.root_frame_id,f.project_id,f.agent_name,f.status
+			FROM frame_events e JOIN frames f ON f.id=e.frame_id WHERE e.id=?`, resumeID))
+		if err != nil {
+			return err
+		}
+		if !found {
+			return errors.New("task settlement resume dispatch is unavailable")
+		}
+		_, _, err = wakeCompatibilityFrameResumeDispatchTx(ctx, tx, FrameResumeDispatchWakeInput{
+			ResumeEventID: resumeID, ExpectedWaitRef: row.dispatch.WaitRef, Source: FrameResumeWakeTaskOperation,
+			Cause: FrameResumeWakeCause{Kind: "task_operation_settlement", ReferenceID: event.ID, Evidence: "canonical",
+				OperationID: operation.ID, NotificationID: operation.NotificationID},
+		}, s.now().UTC())
 		return err
 	})
 	if err == nil {
