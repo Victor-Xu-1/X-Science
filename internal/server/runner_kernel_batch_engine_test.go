@@ -53,9 +53,16 @@ func (g orderedKernelBatchGateway) Execute(ctx context.Context, call agentruntim
 // reuse producer, lifecycle checkpoints, approval, Python and receipts are real.
 func TestKernelBatchAdmissionEngineRunsSetupThenPythonWithoutRepair(t *testing.T) {
 	manager := newServerKernelTestManagerWithPythonEnvironment(t, "python")
+	if !manager.ManagedPythonCapabilityAvailable() || !manager.RuntimeReady("python", "python") {
+		t.Fatal("ordered execution regression requires an advertised, ready Python runtime")
+	}
 	f := newAgentSaveArtifactsFixtureWithKernelManager(t, manager)
+	seedPermissionTestAgent(t, f.store, f.stream.OwnerID)
 	if _, err := f.store.SetFrameRuntimeMetadata(f.stream.FrameID, workspace.FrameRuntimeMetadata{FrameID: f.stream.FrameID, ContextData: map[string]any{"web_assistant": map[string]any{"id": "xscience:operon", "conversation_overrides": map[string]any{"permission": "allow"}}}}); err != nil {
 		t.Fatal(err)
+	}
+	if mode, err := f.server.webSessionApprovalMode(f.stream.FrameID); err != nil || mode != "allow" {
+		t.Fatalf("controlled conversation approval authority mode=%q err=%v", mode, err)
 	}
 	run := &sessionRunnerChatRun{SessionID: f.stream.SessionID, Attempt: int(f.claim.Attempt), ClaimToken: f.claim.ClaimToken, Transcript: &transcriptRunnerAuthority{Stream: f.stream, Claim: f.claim}, managedEnvironmentBindingsHydrated: true}
 	ctx := withTranscriptRunnerChatRun(context.Background(), run)
@@ -63,7 +70,7 @@ func TestKernelBatchAdmissionEngineRunsSetupThenPythonWithoutRepair(t *testing.T
 	gateway := serverAgentRuntimeToolGateway{server: f.server, taskRun: run, kernel: f.identity, sessionID: f.stream.SessionID, toolSchemas: schemas, toolValidators: agentRuntimeToolValidators(schemas), hasToolSnapshot: true}
 	authority := &recordingManagedEnvironmentAuthority{listResult: []kernelruntime.ManagedEnvironment{{Name: "python", Language: "python", Status: "ready", Generation: "controlled-ready", Packages: []string{"fixture=1.0=build=conda"}}}}
 	model := &orderedKernelBatchModel{calls: []agentruntime.ToolCall{
-		{ID: "engine-setup", Name: manageEnvironmentsToolName, Arguments: mustMarshalRawMessage(map[string]any{"mode": "create", "name": "requested-env", "language": "python", "packages": []any{"fixture"}, "human_description": "Prepare controlled runtime"})},
+		{ID: "engine-setup", Name: manageEnvironmentsToolName, Arguments: mustMarshalRawMessage(map[string]any{"mode": "create", "name": "requested-env", "language": "python", "packages": []any{"fixture"}, "resource_requirements": managedEnvironmentTestResources(), "human_description": "Prepare controlled runtime"})},
 		{ID: "engine-compute", Name: "python", Arguments: mustMarshalRawMessage(map[string]any{"environment": "requested-env", "code": "with open('ordered-engine-count.txt', 'a') as output:\n    output.write('x')\nprint(17)", "human_description": "Run controlled calculation"})},
 	}}
 	options := SessionRunnerChatOptions{RunnerID: f.claim.RunnerID}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -16,7 +17,8 @@ import (
 func TestKernelBatchAdmissionUsesPrecedingSetupReceipt(t *testing.T) {
 	for _, tool := range []string{"python", "r", "bash"} {
 		t.Run(tool, func(t *testing.T) {
-			f := newAgentSaveArtifactsFixture(t)
+			manager := kernelruntime.NewManager(kernelruntime.Config{CondaEnvsPath: filepath.Join(t.TempDir(), "envs")})
+			f := newAgentSaveArtifactsFixtureWithKernelManager(t, manager)
 			ctx := context.Background()
 			run := &sessionRunnerChatRun{SessionID: f.stream.SessionID, Attempt: int(f.claim.Attempt), ClaimToken: f.claim.ClaimToken,
 				Transcript: &transcriptRunnerAuthority{Stream: f.stream, Claim: f.claim}, managedEnvironmentBindingsHydrated: true}
@@ -26,7 +28,7 @@ func TestKernelBatchAdmissionUsesPrecedingSetupReceipt(t *testing.T) {
 			if tool == "bash" {
 				language = "python"
 			}
-			setupInput := map[string]any{"mode": "create", "name": "requested-env", "language": language, "packages": []any{"fixture"}, "human_description": "Prepare controlled runtime"}
+			setupInput := map[string]any{"mode": "create", "name": "requested-env", "language": language, "packages": []any{"fixture"}, "resource_requirements": managedEnvironmentTestResources(), "human_description": "Prepare controlled runtime"}
 			input := map[string]any{"environment": "requested-env", "code": "print(1)", "human_description": "Controlled calculation"}
 			if tool == "bash" {
 				delete(input, "code")
