@@ -8,6 +8,7 @@ import (
 
 	"x-science/internal/agentruntime"
 	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 	"x-science/internal/toolprogress"
 )
 
@@ -43,8 +44,17 @@ func TestRecoveredKernelProgressPublishesUnderNewClaimWithoutDuplicateLifecycle(
 	if err != nil || !found {
 		t.Fatalf("checkpoint found=%t err=%v", found, err)
 	}
+	// A real terminal attempt requires the normal Continue dispatch authority;
+	// the presence of a resumable checkpoint alone cannot create a new owner.
+	if _, err := f.store.ResumeCompatibilityFrameConversation(f.stream.RootFrameID, workspace.ResumeCompatibilityFrameInput{}); err != nil {
+		t.Fatal(err)
+	}
+	dispatch, found, err := f.store.ClaimNextCompatibilityFrameResumeDispatch("progress-resume-dispatch", time.Minute)
+	if err != nil || !found {
+		t.Fatalf("resume dispatch found=%t err=%v", found, err)
+	}
 	claimed, err := f.repo.ClaimRunner(ctx, transcriptstore.ClaimRunnerInput{
-		StreamUID: f.stream.UID, OwnerID: f.stream.OwnerID, RunnerID: "recovered-progress-runner", TTL: time.Minute,
+		StreamUID: f.stream.UID, OwnerID: f.stream.OwnerID, RunnerID: "frame-resume:" + dispatch.ResumeEvent.ID, TTL: time.Minute,
 		ResumeSource: transcriptstore.ResumeSourceCheckpoint, ResumeCheckpoint: checkpoint.Sequence,
 	})
 	if err != nil || !claimed.Claimed {
