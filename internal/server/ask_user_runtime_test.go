@@ -171,6 +171,7 @@ func TestTranscriptRunnerAskUserPausesUntilNewInputThenResumesCheckpoint(t *test
 	store, repo, db := newTranscriptWebFixture(t)
 	seedTranscriptWebFrame(t, store, "local", "project-ask", "frame-ask")
 	var requests atomic.Int64
+	var durableAskCallID atomic.Value
 	modelAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sequence := requests.Add(1)
 		var payload map[string]any
@@ -192,9 +193,13 @@ func TestTranscriptRunnerAskUserPausesUntilNewInputThenResumesCheckpoint(t *test
 		rawMessages, _ := json.Marshal(payload["messages"])
 		toolResultFound := false
 		messages, _ := payload["messages"].([]any)
+		callID := requireProviderToolCallID(t, payload, "ask_user", 0)
+		if persisted, ok := durableAskCallID.Load().(string); !ok || callID != persisted {
+			t.Fatalf("AskUser resume changed the persisted identity: provider=%q persisted=%v", callID, durableAskCallID.Load())
+		}
 		for _, item := range messages {
 			message, _ := item.(map[string]any)
-			if message["role"] != "tool" || message["tool_call_id"] != requireProviderToolCallID(t, payload, "ask_user", 0) {
+			if message["role"] != "tool" || message["tool_call_id"] != callID {
 				continue
 			}
 			content, _ := message["content"].(string)
@@ -234,6 +239,16 @@ func TestTranscriptRunnerAskUserPausesUntilNewInputThenResumesCheckpoint(t *test
 	if err != nil || !found {
 		t.Fatalf("stream=%#v found=%t err=%v", stream, found, err)
 	}
+	var askCallCount int
+	var askCallID string
+	if err := db.QueryRow(`SELECT COUNT(*), COALESCE(MIN(item.tool_call_id),'')
+		FROM transcript_tool_call_items item
+		JOIN transcript_tool_call_batches batch ON batch.batch_id=item.batch_id
+		WHERE batch.stream_uid=? AND batch.source_runner_attempt=? AND item.tool_name='ask_user'`,
+		stream.UID, paused.Attempt).Scan(&askCallCount, &askCallID); err != nil || askCallCount != 1 || askCallID == "" {
+		t.Fatalf("persisted AskUser calls=%d id=%q err=%v", askCallCount, askCallID, err)
+	}
+	durableAskCallID.Store(askCallID)
 	pendingHistory, authoritative, err := srv.loadTranscriptWebHistory(context.Background(), "local", "frame-ask")
 	if err != nil || !authoritative || len(pendingHistory) != 3 {
 		t.Fatalf("pending history=%#v authoritative=%t err=%v", pendingHistory, authoritative, err)
@@ -243,7 +258,7 @@ func TestTranscriptRunnerAskUserPausesUntilNewInputThenResumesCheckpoint(t *test
 		progress["content"] != "I will ask before selecting the structure." {
 		t.Fatalf("AskUser progress explanation=%#v", pendingHistory[1])
 	}
-	pendingAsk := requireAskUserHistoryMessage(t, pendingHistory, "ask-structure")
+	pendingAsk := requireAskUserHistoryMessage(t, pendingHistory, askCallID)
 	pendingContent, _ := pendingAsk["content"].(map[string]any)
 	pendingCompatibility, _ := pendingContent["_frame_compat"].(map[string]any)
 	if pendingAsk["status"] != "work" || pendingContent["status"] != "running" ||
@@ -278,7 +293,7 @@ func TestTranscriptRunnerAskUserPausesUntilNewInputThenResumesCheckpoint(t *test
 	resolved := compatJSONRequest(t, srv.Handler(), http.MethodPost, "/api/frames/frame-ask/resolve-input", "local", map[string]any{
 		"ultra_mode": true,
 		"responses": []any{map[string]any{
-			"tool_id": "ask-structure", "action": "answer",
+			"tool_id": askCallID, "action": "answer",
 			"answers": map[string]any{"Which structure?": "Structure A"},
 		}},
 	}, http.StatusOK)
@@ -377,7 +392,7 @@ func TestTranscriptRunnerAskUserPausesUntilNewInputThenResumesCheckpoint(t *test
 	if err := json.Unmarshal(historyResponse.Body.Bytes(), &historyPage); err != nil {
 		t.Fatal(err)
 	}
-	answeredAsk := requireAskUserHistoryMessage(t, historyPage.Items, "ask-structure")
+	answeredAsk := requireAskUserHistoryMessage(t, historyPage.Items, askCallID)
 	answeredContent, _ := answeredAsk["content"].(map[string]any)
 	answeredCompatibility, _ := answeredContent["_frame_compat"].(map[string]any)
 	if answeredAsk["status"] != "finish" || answeredContent["status"] != "completed" ||
