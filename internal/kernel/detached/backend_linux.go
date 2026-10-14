@@ -404,6 +404,10 @@ func (b *Backend) lockSession(ctx context.Context, kernelID string) (func(), err
 	if ctx == nil || kernelID == "" {
 		return nil, errors.New("detached kernel session lock requires context and identity")
 	}
+	// Lock acquisition has not admitted startup. An obsolete request must stop
+	// waiting here, but must not cancel the setup lifetime after acquisition.
+	waitCtx, cancelWait := resourceAdmissionContext(ctx)
+	defer cancelWait()
 	b.sessionLocksMu.Lock()
 	if b.sessionLocks == nil {
 		b.sessionLocks = make(map[string]*backendSessionLock)
@@ -418,15 +422,28 @@ func (b *Backend) lockSession(ctx context.Context, kernelID string) (func(), err
 	b.sessionLocksMu.Unlock()
 
 	select {
-	case <-ctx.Done():
+	case <-waitCtx.Done():
 		b.releaseSessionLockReference(kernelID, lock)
-		return nil, ctx.Err()
+		return nil, resourceWaitContextError(waitCtx)
 	case <-lock.gate:
 	}
-	return func() {
+	unlock := func() {
 		lock.gate <- struct{}{}
 		b.releaseSessionLockReference(kernelID, lock)
-	}, nil
+	}
+	if err := resourceWaitContextError(waitCtx); err != nil {
+		unlock()
+		return nil, err
+	}
+	// Both select cases can be ready, and AfterFunc propagation is asynchronous.
+	// Recheck the original source before transferring ownership of the gate.
+	if source, ok := ctx.(kernelruntime.ResourceAdmissionWaitContextSource); ok {
+		if original := source.ResourceAdmissionWaitContext(); original != nil && original.Err() != nil {
+			unlock()
+			return nil, resourceWaitContextError(original)
+		}
+	}
+	return unlock, nil
 }
 
 func (b *Backend) releaseSessionLockReference(kernelID string, lock *backendSessionLock) {
