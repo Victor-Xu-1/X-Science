@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -41,6 +42,11 @@ func TestKernelMCPCatalogParametersPreserveNullableEnumAndArrayItemSchema(t *tes
 func TestKernelMCPCatalogToolExposesBoundedOutputSchemaOnlyForFilteredDiscovery(t *testing.T) {
 	tool := mcpstdio.ToolProjection{
 		Name: "mcp__pubmed__batch_fetch_metadata", ToolName: "batch_fetch_metadata",
+		InputSchema: map[string]any{"type": "object", "properties": map[string]any{
+			"query": map[string]any{"type": "object", "required": []string{"terms"}, "properties": map[string]any{
+				"terms": map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
+			}},
+		}},
 		HasOutputSchema: true,
 		OutputSchema: map[string]any{"type": "object", "properties": map[string]any{
 			"publication_date": map[string]any{"type": "object", "properties": map[string]any{
@@ -53,9 +59,15 @@ func TestKernelMCPCatalogToolExposesBoundedOutputSchemaOnlyForFilteredDiscovery(
 	if mapValue(filtered["output_schema"])["type"] != "object" {
 		t.Fatalf("filtered output schema=%#v", filtered)
 	}
+	if filtered["input_schema_status"] != "complete" || !reflect.DeepEqual(filtered["input_schema"], tool.InputSchema) {
+		t.Fatalf("filtered input schema lost its admitted authority: %#v", filtered)
+	}
 	unfiltered := kernelMCPCatalogTool(connector, tool, false)
 	if _, found := unfiltered["output_schema"]; found {
 		t.Fatalf("unfiltered catalog leaked full output schema=%#v", unfiltered)
+	}
+	if _, found := unfiltered["input_schema"]; found {
+		t.Fatalf("unfiltered catalog eagerly included a complete input schema: %#v", unfiltered)
 	}
 }
 

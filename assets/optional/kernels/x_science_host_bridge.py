@@ -1261,6 +1261,20 @@ def _host_mcp_list_servers():
         servers.add(server)
     return sorted(servers)
 
+def _host_mcp_method_input_schema(tool, parameters):
+    if "input_schema" not in tool:
+        if "input_schema_status" in tool:
+            raise ValueError("MCP catalog input schema is missing its value")
+        return parameters.as_input_schema(), "projected_legacy"
+    schema = tool["input_schema"]
+    status = tool.get("input_schema_status")
+    if status == "complete" and isinstance(schema, dict):
+        return schema, status
+    if status == "unavailable" and schema is None:
+        return None, status
+    raise ValueError("MCP catalog authoritative input schema is invalid")
+
+
 def _host_mcp_list_methods(server):
     if not isinstance(server, str) or not server:
         raise TypeError("host.mcp.list_methods: server must be a non-empty str")
@@ -1298,12 +1312,16 @@ def _host_mcp_list_methods(server):
         if not isinstance(tool, dict) or tool.get("server") != resolved_server:
             continue
         parameters = _MCPParameterList(tool.get("parameters") or [])
+        input_schema, input_schema_status = _host_mcp_method_input_schema(
+            tool, parameters
+        )
         methods.append({
             "server": resolved_server,
             "name": tool.get("method"),
             "description": tool.get("description") or "",
             "parameters": parameters,
-            "input_schema": parameters.as_input_schema(),
+            "input_schema": input_schema,
+            "input_schema_status": input_schema_status,
             "output_schema": tool.get("output_schema") or {},
             "read_only": tool.get("read_only") is True,
         })
