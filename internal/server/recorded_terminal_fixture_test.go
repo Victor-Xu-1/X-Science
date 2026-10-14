@@ -33,6 +33,11 @@ func newRecordedTerminalFixture(t *testing.T) *recordedTerminalFixture {
 
 func newRecordedTerminalFixtureWithStatus(t *testing.T, status string) *recordedTerminalFixture {
 	t.Helper()
+	return newRecordedTerminalFixtureWithLease(t, status, time.Minute)
+}
+
+func newRecordedTerminalFixtureWithLease(t *testing.T, status string, dispatchTTL time.Duration) *recordedTerminalFixture {
+	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	t.Cleanup(cancel)
 	store, repo, db := newTranscriptWebFixture(t)
@@ -72,7 +77,7 @@ func newRecordedTerminalFixtureWithStatus(t *testing.T, status string) *recorded
 	if _, err := store.ResumeCompatibilityFrameConversation(stream.FrameID, workspace.ResumeCompatibilityFrameInput{}); err != nil {
 		t.Fatal(err)
 	}
-	dispatch, found, err := store.ClaimNextCompatibilityFrameResumeDispatch("recorded-worker", time.Minute)
+	dispatch, found, err := store.ClaimNextCompatibilityFrameResumeDispatch("recorded-worker", dispatchTTL)
 	if err != nil || !found {
 		t.Fatalf("dispatch found=%t err=%v", found, err)
 	}

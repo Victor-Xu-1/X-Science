@@ -14,6 +14,9 @@ import (
 func projectFrameResumeTerminalTx(ctx context.Context, tx *transcriptstore.ImmediateTransaction,
 	input CompleteCompatibilityFrameResumeDispatchInput, dispatch CompatibilityFrameResumeDispatch, recorded bool,
 ) (bool, error) {
+	if input.RunnerTerminal != nil && input.RecoveredRunnerTerminal != nil {
+		return false, transcriptstore.ErrEventConflict
+	}
 	var streamUID, ownerID string
 	err := tx.QueryRowContext(ctx, `SELECT stream.stream_uid,stream.owner_id
 		FROM transcript_frame_authority authority
@@ -23,7 +26,7 @@ func projectFrameResumeTerminalTx(ctx context.Context, tx *transcriptstore.Immed
 		WHERE stream.frame_id=? AND stream.kind='frame_ref'`, dispatch.FrameID).
 		Scan(&streamUID, &ownerID)
 	if errors.Is(err, sql.ErrNoRows) {
-		if input.RunnerTerminal != nil {
+		if input.RunnerTerminal != nil || input.RecoveredRunnerTerminal != nil {
 			return false, transcriptstore.ErrClaimStale
 		}
 		var transcriptFrame bool
@@ -38,6 +41,13 @@ func projectFrameResumeTerminalTx(ctx context.Context, tx *transcriptstore.Immed
 	}
 	if err != nil {
 		return false, err
+	}
+	if reference := input.RecoveredRunnerTerminal; reference != nil {
+		if reference.StreamUID != streamUID || reference.OwnerID != ownerID ||
+			reference.RunnerID != "frame-resume:"+input.ResumeEventID {
+			return false, transcriptstore.ErrClaimStale
+		}
+		return false, tx.ValidateRecoveredRunnerTerminal(ctx, *reference, input.Status)
 	}
 	if input.RunnerTerminal == nil {
 		if recorded {

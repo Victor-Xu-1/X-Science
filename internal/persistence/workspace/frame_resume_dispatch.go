@@ -62,13 +62,14 @@ const (
 )
 
 type CompleteCompatibilityFrameResumeDispatchInput struct {
-	ResumeEventID   string
-	ExpectedAttempt int
-	ClaimToken      string
-	Status          string
-	Message         string
-	Details         map[string]any
-	RunnerTerminal  *transcriptstore.RunnerTerminalReference
+	ResumeEventID           string
+	ExpectedAttempt         int
+	ClaimToken              string
+	Status                  string
+	Message                 string
+	Details                 map[string]any
+	RunnerTerminal          *transcriptstore.RunnerTerminalReference          `json:"-"`
+	RecoveredRunnerTerminal *transcriptstore.RecoveredRunnerTerminalReference `json:"-"`
 }
 
 type RequeueCompatibilityFrameResumeDispatchInput struct {
