@@ -340,7 +340,7 @@ func runServer(info buildinfo.Info, cfg config.Config, tlsResolver *networktls.R
 	defer func() {
 		shutdownContext, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer shutdownCancel()
-		cleanupErr := shutdownPrimaryRuntime(shutdownContext, cancel, primaryWorkers, func(ctx context.Context) error {
+		cleanupErr := shutdownPrimaryRuntime(shutdownContext, cancel, primaryWorkers, 5*time.Second, func(ctx context.Context) error {
 			return app.Close(ctx)
 		})
 		runErr = withRuntimeShutdownFailure(runErr, cleanupErr)

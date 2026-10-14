@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 )
 
 // The runServer owner registers all primary workers synchronously before it
@@ -36,7 +37,7 @@ func (workers *runtimePrimaryWorkers) Wait(ctx context.Context) error {
 	}
 }
 
-func shutdownPrimaryRuntime(ctx context.Context, cancel context.CancelFunc, workers *runtimePrimaryWorkers, closeRuntime func(context.Context) error) error {
+func shutdownPrimaryRuntime(ctx context.Context, cancel context.CancelFunc, workers *runtimePrimaryWorkers, closeTimeout time.Duration, closeRuntime func(context.Context) error) error {
 	cancel()
 	joinErr := workers.Wait(ctx)
 	if joinErr != nil {
@@ -44,7 +45,11 @@ func shutdownPrimaryRuntime(ctx context.Context, cancel context.CancelFunc, work
 	}
 	// Cancellation/cleanup must still be attempted after an incomplete join.
 	// An error is not evidence that the remaining writers have stopped.
-	closeErr := closeRuntime(ctx)
+	// Create the caller-owned cleanup budget only AFTER the join, retaining
+	// diagnostic values without inheriting its exhausted deadline/cancellation.
+	closeContext, closeCancel := context.WithTimeout(context.WithoutCancel(ctx), closeTimeout)
+	defer closeCancel()
+	closeErr := closeRuntime(closeContext)
 	if closeErr != nil {
 		closeErr = fmt.Errorf("close primary runtime: %w", closeErr)
 	}

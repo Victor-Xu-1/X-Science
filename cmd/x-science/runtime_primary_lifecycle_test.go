@@ -25,7 +25,7 @@ func TestPrimaryRuntimeShutdownCancelsAndJoinsBeforeClose(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	defer cancel()
 	closed := false
-	err := shutdownPrimaryRuntime(ctx, func() { cancelCause(cause) }, workers, func(context.Context) error {
+	err := shutdownPrimaryRuntime(ctx, func() { cancelCause(cause) }, workers, time.Second, func(context.Context) error {
 		closed = true
 		if completed.Load() != 3 {
 			return fmt.Errorf("runtime closed before owned workers joined: %d", completed.Load())
@@ -56,15 +56,47 @@ func TestPrimaryRuntimeShutdownJoinDeadlineStillClosesAndRetainsErrors(t *testin
 	defer cancel()
 	closeFailure := errors.New("controlled close failure")
 	cancelled, closed := false, false
-	err := shutdownPrimaryRuntime(ctx, func() { cancelled = true }, workers, func(received context.Context) error {
+	err := shutdownPrimaryRuntime(ctx, func() { cancelled = true }, workers, time.Second, func(received context.Context) error {
 		closed = true
-		if received != ctx {
-			t.Fatal("shutdown replaced the caller's deadline")
+		if received.Err() != nil {
+			t.Fatalf("exhausted primary join prevented runtime cleanup: %v", received.Err())
+		}
+		deadline, bounded := received.Deadline()
+		if !bounded || time.Until(deadline) <= 0 || time.Until(deadline) > time.Second {
+			t.Fatal("runtime close did not retain its separate bounded budget")
 		}
 		return closeFailure
 	})
 	if !cancelled || !closed || !errors.Is(err, context.DeadlineExceeded) || !errors.Is(err, closeFailure) {
 		t.Fatalf("deadline lost cleanup or causes: cancel=%t close=%t err=%v", cancelled, closed, err)
+	}
+}
+
+func TestPrimaryRuntimeCloseBudgetRemainsBoundedAfterJoinTimeout(t *testing.T) {
+	workers := &runtimePrimaryWorkers{}
+	release := make(chan struct{})
+	workers.Go(func() { <-release })
+	defer func() {
+		close(release)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		if err := workers.Wait(ctx); err != nil {
+			t.Errorf("release controlled worker: %v", err)
+		}
+	}()
+	type cleanupValueKey struct{}
+	parent := context.WithValue(t.Context(), cleanupValueKey{}, "retained diagnostic")
+	joinContext, joinCancel := context.WithCancel(parent)
+	joinCancel()
+	err := shutdownPrimaryRuntime(joinContext, func() {}, workers, 5*time.Millisecond, func(ctx context.Context) error {
+		if ctx.Err() != nil || ctx.Value(cleanupValueKey{}) != "retained diagnostic" {
+			t.Fatal("fresh cleanup context lost liveness or diagnostic values")
+		}
+		<-ctx.Done()
+		return ctx.Err()
+	})
+	if !errors.Is(err, context.Canceled) || !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("join cancellation or cleanup deadline was lost: %v", err)
 	}
 }
 
