@@ -724,6 +724,15 @@
       ]
     },
     {
+      "name": "frontend-build-artifact-producer",
+      "paths": [
+        "scripts/packaging/frontend_build_artifact.py",
+        "scripts/packaging/test_frontend_build_artifact.py"
+      ],
+      "frontend": false,
+      "checks": [["python3", "-B", "-m", "unittest", "scripts.packaging.test_frontend_build_artifact"]]
+    },
+    {
       "name": "pr-version-counter",
       "paths": [
         "docs/governance/versioning.md",
@@ -822,6 +831,7 @@
     {
       "name": "workflow-contracts",
       "paths": [
+        ".github/workflows/frontend-build-artifact.yml",
         ".github/workflows/quality-pr.yml",
         ".github/workflows/quality-main.yml",
         ".github/workflows/quality.yml",

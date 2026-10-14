@@ -1,0 +1,66 @@
+name: X-Science Trusted Frontend Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact current main SHA; any other ref or revision is refused
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-build-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  frontend-build:
+    name: Trusted main frontend artifact (build only)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify immutable GitHub Actions policy
+        run: |
+          go test -buildvcs=false ./scripts/quality/github-actions-gate
+          go run -buildvcs=false ./scripts/quality/github-actions-gate --repo . --policy docs/governance/github-actions-pins.json
+
+      - name: Refuse untrusted or stale build requests
+        run: python3 -B scripts/packaging/frontend_build_artifact.py validate
+
+      - name: Set up locked frontend runtime
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build and verify frontend only
+        run: |
+          cd frontend
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build
+          npm run test:packaged
+
+      - name: Produce bounded frontend archive and identity manifest
+        run: python3 -B scripts/packaging/frontend_build_artifact.py package --output "$RUNNER_TEMP/frontend-build-artifact"
+
+      - name: Upload frontend build artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: frontend-build-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/frontend-build-artifact/frontend-build.tar.gz
+            ${{ runner.temp }}/frontend-build-artifact/frontend-build-manifest.json
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+          overwrite: false
