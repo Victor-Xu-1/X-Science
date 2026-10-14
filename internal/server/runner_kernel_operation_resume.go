@@ -22,6 +22,21 @@ func (s *Server) resumeApprovedAgentKernelOperations(
 	options SessionRunnerChatOptions,
 	run *sessionRunnerChatRun,
 ) (bool, error) {
+	return s.resumeApprovedAgentKernelOperationsWithPreparationBudget(ctx, options, run,
+		defaultSessionRunnerKernelRecoveryTimeout)
+}
+
+// The caller supplies only the host preparation budget. Software-runtime work
+// retains its existing declared timeout policy; model input cannot set this value.
+func (s *Server) resumeApprovedAgentKernelOperationsWithPreparationBudget(
+	ctx context.Context,
+	options SessionRunnerChatOptions,
+	run *sessionRunnerChatRun,
+	ordinaryPreparationBudget time.Duration,
+) (bool, error) {
+	if ordinaryPreparationBudget <= 0 {
+		return false, errors.New("kernel recovery preparation budget must be positive")
+	}
 	if s == nil || s.workspaceStore == nil || run == nil || run.Transcript == nil {
 		return false, nil
 	}
@@ -148,6 +163,9 @@ func (s *Server) resumeApprovedAgentKernelOperations(
 				recoveryTimeout, timeoutErr := kernelLocalOperationRecoveryTimeout(operation.Tool, input)
 				if timeoutErr != nil {
 					return resumed, timeoutErr
+				}
+				if strings.TrimSpace(operation.Tool) != softwareRuntimeToolName {
+					recoveryTimeout = ordinaryPreparationBudget
 				}
 				operationCtx := ctx
 				cancelOperation := func() {}
