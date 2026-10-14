@@ -143,10 +143,11 @@ describe('conversationCache', () => {
 
       setRendererAccountOwner('owner-a');
       const first = getConversationOrNull('conv-1');
+      const firstRejection = expect(first).rejects.toMatchObject({ name: 'AbortError' });
       setRendererAccountOwner('owner-b');
       await expect(getConversationOrNull('conv-1')).resolves.toMatchObject({ name: 'owner-b detail' });
       resolveOwnerA({ ...mockConversation, name: 'owner-a detail' });
-      await expect(first).resolves.toMatchObject({ name: 'owner-a detail' });
+      await firstRejection;
 
       expect(ipcBridge.conversation.get.invoke).toHaveBeenCalledTimes(2);
     });
@@ -247,6 +248,34 @@ describe('conversationCache', () => {
       expect(emit).not.toHaveBeenCalled();
       expect(readRecentConversationRouteDetail('owner-a', 'conv-1')).toBe(mockConversation);
       await expect(getConversationOrNullShared('conv-1')).resolves.toBe(mockConversation);
+      expect(ipcBridge.conversation.get.invoke).toHaveBeenCalledTimes(2);
+    });
+
+    it('fences a superseded successful refresh without overwriting the fresh same-owner handoff', async () => {
+      setRendererAccountOwner('owner-a');
+      let resolveOld!: (value: TChatConversation) => void;
+      vi.mocked(ipcBridge.conversation.get.invoke).mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveOld = resolve;
+        })
+      );
+      const oldRefresh = refreshConversationCache('conv-1', mutate);
+      const oldRejection = expect(oldRefresh).rejects.toMatchObject({ name: 'AbortError' });
+      invalidateConversationReadCaches('owner-a', 'conv-1');
+      beginConversationDetailHandoff('conv-1');
+      const fresh = { ...mockConversation, name: 'fresh detail' };
+      vi.mocked(ipcBridge.conversation.get.invoke).mockResolvedValue(fresh);
+      await refreshConversationCache('conv-1', mutate);
+      rememberConversationRouteSnapshot('owner-a', fresh, 'detail');
+      const emit = vi.spyOn(emitter, 'emit');
+
+      resolveOld({ ...mockConversation, name: 'superseded detail' });
+      await oldRejection;
+
+      expect(mutate).toHaveBeenCalledExactlyOnceWith('conversation/conv-1', fresh, false);
+      expect(emit).not.toHaveBeenCalled();
+      expect(readRecentConversationRouteDetail('owner-a', 'conv-1')).toBe(fresh);
+      await expect(getConversationOrNullShared('conv-1')).resolves.toBe(fresh);
       expect(ipcBridge.conversation.get.invoke).toHaveBeenCalledTimes(2);
     });
 

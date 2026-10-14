@@ -3,7 +3,7 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "4399ad79aed4398fa0e5c811f2a5e16697020b1ab5a4f3ae4739a5c1353ae78e",
+  "adaptationFingerprintSHA256": "9d9a14b343603e7050d6064c47c7ac629e4742caf3559bf3b2068664ffbdd104",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
   "additionFingerprintSHA256": "7795ac2cd9aba6bcb753a868ad7e6d5e610c1eff45807a7bad27331b1e804725",
   "summary": {
@@ -2247,8 +2247,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/utils/conversationCache.ts",
       "sourceSHA256": "f446e1545e30f59ef41c178b285891bdedaa9e8c74349e86e7554b5427bc88cc",
-      "targetSHA256": "98351702713939d564980484df8596b3befa8d979439422f4aa38009368a3904",
-      "bytes": 8673,
+      "targetSHA256": "8b72eb5456b84edb2fd4de4b81a4ecbeb3a596bfeee928ed6eb5a84bed65e56f",
+      "bytes": 8669,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -4949,8 +4949,8 @@
     {
       "path": "tests/unit/renderer/utils/conversationCache.test.ts",
       "sourceSHA256": "fe0627d87c5156b5ad0495d95142cc85c804cc2920b3bf6308113fd91347f352",
-      "targetSHA256": "e52b040b936fae6f203b01a1bce14bc197d83d08efd772704e8b13a7e3ee0762",
-      "bytes": 13316,
+      "targetSHA256": "a3170bf945a37f80aa6980801fd0ef9531dd2222dd3a6c0270378f9708b20e63",
+      "bytes": 14791,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -5445,8 +5445,8 @@
       "path": "tests/unit/xscience/runtimeOperationsModel.test.ts",
       "originalPath": "tests/unit/synonbiomed/runtimeOperationsModel.test.ts",
       "sourceSHA256": "dd65ca1857a1dbc8a12e86afed81e3f497f43ab61d91f220a5617b414f903d1b",
-      "targetSHA256": "18895d734b09a01ecf646a9e65e9555e407cabdb955fdfced37c59dae871ab18",
-      "bytes": 30085,
+      "targetSHA256": "91b4f9437576e65459f1fb1f9ac36a97bfed32122a44bdec226dff65aa03185c",
+      "bytes": 30111,
       "reason": "Move genuine imported source to the current X-Science namespace. Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {

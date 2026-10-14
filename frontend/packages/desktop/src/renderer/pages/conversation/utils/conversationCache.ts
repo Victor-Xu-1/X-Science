@@ -161,11 +161,11 @@ export function getConversationOrNull(conversationId: string): Promise<TChatConv
       throw error;
     })
     .then((conversation) => {
+      if (key !== rendererAccountScopedKey(conversationKey) || conversationDetailRequests.get(key) !== request) {
+        // A superseded reader must not publish either stale detail or absence.
+        throw new DOMException('Conversation detail read superseded', 'AbortError');
+      }
       if (conversation === null) {
-        if (key !== rendererAccountScopedKey(conversationKey) || conversationDetailRequests.get(key) !== request) {
-          // The old reader must not set its own private missing flag either.
-          throw new DOMException('Conversation detail read superseded', 'AbortError');
-        }
         // A nested runtime reader and the route share this canonical missing
         // result. Do not leave only the nested composer's private missing flag.
         invalidateConversationReadCaches(ownerId, conversationKey);

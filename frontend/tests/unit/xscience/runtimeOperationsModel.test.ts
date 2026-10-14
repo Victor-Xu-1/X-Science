@@ -110,6 +110,7 @@ describe('X-Science runtime operations model', () => {
       reviewBlockingIssueCount: 0,
       canCancel: false,
       canResume: true,
+      resumeTarget: null,
       pendingInputRequests: [],
       taskPlan: null,
       planApproval: null,
