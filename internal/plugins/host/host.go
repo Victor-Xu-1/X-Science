@@ -71,11 +71,16 @@ type Host struct {
 	mu        sync.RWMutex
 	plugins   map[string]Plugin
 	processes map[string]*externalProcess
+	stopping  bool
 }
 
 type externalProcess struct {
-	command *exec.Cmd
-	control *subprocess.Control
+	command  *exec.Cmd
+	control  *subprocess.Control
+	done     chan struct{}
+	stopping bool
+	stopErr  error
+	waitErr  error
 }
 
 func NewDefault() *Host {
@@ -191,6 +196,9 @@ func (h *Host) StartExternalProcesses(ctx context.Context) error {
 	}
 	h.mu.Lock()
 	defer h.mu.Unlock()
+	if h.stopping {
+		return errors.New("plugin processes are still stopping")
+	}
 	var errs []error
 	for id, plugin := range h.plugins {
 		process := plugin.Server.Process
@@ -251,7 +259,7 @@ func (h *Host) StartExternalProcesses(ctx context.Context) error {
 			errs = append(errs, fmt.Errorf("start plugin %s: %w", id, err))
 			continue
 		}
-		running := &externalProcess{command: cmd, control: control}
+		running := &externalProcess{command: cmd, control: control, done: make(chan struct{})}
 		h.processes[id] = running
 		plugin.Runtime = RuntimeStatus{
 			Kind:      "external_process",
@@ -263,45 +271,6 @@ func (h *Host) StartExternalProcesses(ctx context.Context) error {
 		go h.waitForProcess(id, running)
 	}
 	return errors.Join(errs...)
-}
-
-func (h *Host) StopExternalProcesses() {
-	h.mu.Lock()
-	processes := h.processes
-	h.processes = make(map[string]*externalProcess)
-	for id, process := range processes {
-		plugin := h.plugins[id]
-		plugin.Runtime = RuntimeStatus{Kind: "external_process", Status: "stopped"}
-		h.plugins[id] = plugin
-		_ = process.control.Kill(process.command)
-		_ = process.control.Close()
-	}
-	h.mu.Unlock()
-}
-
-func (h *Host) waitForProcess(id string, process *externalProcess) {
-	err := process.command.Wait()
-	closeErr := process.control.Close()
-	if err == nil {
-		err = closeErr
-	}
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	if h.processes[id] != process {
-		return
-	}
-	delete(h.processes, id)
-	plugin := h.plugins[id]
-	plugin.Runtime.PID = 0
-	plugin.Runtime.StartedAt = ""
-	if err != nil {
-		plugin.Runtime.Status = "failed"
-		plugin.Runtime.Error = err.Error()
-	} else {
-		plugin.Runtime.Status = "exited"
-		plugin.Runtime.Error = ""
-	}
-	h.plugins[id] = plugin
 }
 
 func LoadExternalDirectories(directories []string) ([]Plugin, error) {
