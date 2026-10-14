@@ -316,6 +316,15 @@ storage identities. The compact timeline never displays raw JSON or raw logs.
 
 ## Stability
 
+Task elapsed time is the persisted active-work duration, not the age of a
+conversation or the current browser mount. Reload and reconnect retain the
+same durable value; the compatibility projection does not subtract a pause
+already excluded by the lease authority. Explicit timing unavailability wins
+over cached numbers and timestamp fallbacks in every task phase. A separately
+known latest-input duration cannot replace an unknown whole-task total. The
+[runtime clock contract](../modules/runtime.md#durable-active-work-clock) owns
+interval reconstruction and historical evidence limitations.
+
 ### Approval and detached operation ownership
 
 Approving a runner-owned call records authorization; the approval endpoint does

@@ -257,4 +257,34 @@ go test ./internal/sessionrunner ./internal/toolgateway -count=1
 `internal/server` 下直接相关的回归，再用实际模型或工具协议复测同一行为。
 凭据、网络或运行环境不可用时，应分别记录，不能用模拟响应宣称真实链路通过。
 
+### Durable active-work clock
+
+任务累计与最新输入的耗时共用 Transcript 的租约区间归约器，在同一只读 SQL 快照中
+读取 attempt、当前输入版本及 canonical 计时事实。原始 `claimed_at` 和真实终结审计时间
+不改写；每段运行到已记录的租约端点或更早的终结/观测时间为止。成功的同 attempt
+checkpoint 恢复在原 claim 事务中追加内部 `runner_timing_resumed` 事实，精确绑定
+所有者、stream、attempt、前后输入版本、前后 claim generation、旧租约结束及新 claim
+开始时间。失败/重复 claim 和续租不创建新的恢复区间，未成功取得 runner 的 dispatch
+轮询也不形成计时事实。不同输入按各段不可变版本归属，不从被更新的 attempt 行反推。
+这只是可验证的 runner 活跃区间与任务累计时钟；租约端点不是科研任务总时限，不会
+终止 detached 或远程长计算，也不能替代 kernel、作业调度器或科研执行回执。
+
+该事实没有 delivery destination，不是用户输入、模型上下文、工具/科研执行回执或唤醒
+条件。公共历史与增量游标共用内部事实过滤器；即使只含内部事实的一页也推进来源游标，
+不制造消息或工具状态。查询沿既有 `(stream_uid, client_message_id)` 索引的事实前缀范围，
+不会为了每次计时读取扫描长任务的全部工具结果。没有新表、迁移或第二套时钟权威。
+
+历史同 attempt 恢复未记录精确端点、generation 链断裂或原始事实不属于当前所有者/
+stream 时，受影响的累计耗时明确不可用，不按壁钟猜测、不回填暂停区间，也不发布假的
+零。之后独立新输入的完整区间仍可单独准确计量，不能冒充完整任务累计。API 的
+`runtime_elapsed_available` 与 `runtime_task_elapsed_available` 分别约束相应数字；
+不可用时数字为 null，前端不能退回缓存值或 started-at 壁钟推算。兼容投影不再重复扣除
+已经由租约端点排除的暂停时间。回滚到不理解该事实的旧计时 reader 不保留新计时语义；
+需保留兼容 reader 与原始事实，旧二进制漏记的新 generation 会被识别为 unknown，
+而不是因此自动重跑或修改用户任务。
+
+壁钟回拨、无效时间端点或计时溢出只使对应耗时 unavailable，并保留非致命的原始
+`ObservationError` 与 canonical 数据，不使对话因单纯计时未知而不可读取，也不改变
+执行状态或恢复条件。所有者、SQL/schema 与请求取消错误仍沿原错误通道返回。
+
 [模块导航](README.md) · [工具流式呈现契约](../engineering/tool-stream-presentation-contract.md)

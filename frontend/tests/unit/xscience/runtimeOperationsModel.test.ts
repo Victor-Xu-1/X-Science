@@ -269,6 +269,18 @@ describe('X-Science runtime operations model', () => {
     ).toMatchObject({ error: null, statusDescription: 'Querying public biomedical databases' });
   });
 
+  it('retains explicit clock unavailability independently of cached numeric values', () => {
+    expect(
+      normalizeXScienceRuntimeSnapshot({
+        id: 'frame-unknown-clock',
+        status: 'paused',
+        runtime_elapsed_ms: 10_000,
+        runtime_elapsed_available: false,
+        runtime_task_elapsed_ms: null,
+        runtime_task_elapsed_available: false,
+      })
+    ).toMatchObject({ runtimeElapsedAvailable: false, runtimeTaskElapsedAvailable: false });
+  });
   it('normalizes the durable active-work clock without accepting malformed values', () => {
     expect(
       normalizeXScienceRuntimeSnapshot({

@@ -70,6 +70,37 @@ const expectDetailsSurfaceClosed = () => {
 };
 
 describe('XScienceTaskStatus', () => {
+  it.each([
+    ['paused', 'en-US'],
+    ['completed', 'en-US'],
+    ['processing', 'en-US'],
+    ['paused', 'zh-CN'],
+    ['completed', 'zh-CN'],
+    ['processing', 'zh-CN'],
+  ] as const)(
+    'does not invent a clock from timestamps or cached numeric data when %s timing is unavailable in %s',
+    async (phase, language) => {
+      await renderWithI18n(
+        <XScienceTaskStatus
+          {...defaultProps}
+          snapshot={snapshot(phase, {
+            runtimeElapsedMs: 30_000,
+            runtimeElapsedAvailable: true,
+            runtimeTaskElapsedMs: 0,
+            runtimeTaskElapsedAvailable: false,
+            runtimeTaskStartedAt: '2026-08-01T00:00:00Z',
+            runtimeTaskObservedAt: '2026-08-10T08:00:00Z',
+            runtimeTaskActive: true,
+          })}
+        />,
+        language
+      );
+      expect(screen.getByTestId('x-science-task-status-indicator')).toHaveTextContent(
+        language === 'en-US' ? 'Elapsed time unavailable' : '累计耗时不可用'
+      );
+      expect(screen.queryByText(/Total 00:00|Total 00:30/)).not.toBeInTheDocument();
+    }
+  );
   it.each(['en-US', 'zh-CN'] as const)(
     'labels the no-progress pause in %s even without a resume action',
     async (language) => {

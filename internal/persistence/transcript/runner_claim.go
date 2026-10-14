@@ -498,6 +498,10 @@ func (r *Repository) claimRunnerConn(
 		if checkpointAttempt != reuseAttempt {
 			return result, ErrCheckpointUnavailable
 		}
+		timingFact, err := prepareRunnerTimingResumeFactConn(ctx, conn, stream, reuseAttempt, claimedRevision, digest, now)
+		if err != nil {
+			return result, err
+		}
 		if activeAttempt > 0 {
 			updated, err := conn.ExecContext(ctx, `
 				UPDATE transcript_runner_attempts
@@ -546,6 +550,9 @@ func (r *Repository) claimRunnerConn(
 			}
 		}
 		if err := resumeWaitingFrameForRunnerConn(ctx, conn, stream, now); err != nil {
+			return result, err
+		}
+		if err := appendRunnerTimingResumeFactConn(ctx, conn, stream, timingFact); err != nil {
 			return result, err
 		}
 		result.Claimed = true

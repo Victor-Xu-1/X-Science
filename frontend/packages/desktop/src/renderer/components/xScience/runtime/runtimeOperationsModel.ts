@@ -36,11 +36,13 @@ export type XScienceRuntimeSnapshot = {
   completedAt: string | null;
   updatedAt: string | null;
   runtimeElapsedMs: number | null;
+  runtimeElapsedAvailable?: boolean;
   runtimeObservedAt: string | null;
   runtimeStartedAt: string | null;
   runtimeFinishedAt: string | null;
   runtimeActive: boolean | null;
   runtimeTaskElapsedMs: number | null;
+  runtimeTaskElapsedAvailable?: boolean;
   runtimeTaskObservedAt: string | null;
   runtimeTaskStartedAt: string | null;
   runtimeTaskFinishedAt: string | null;
@@ -464,11 +466,17 @@ export function normalizeXScienceRuntimeSnapshot(value: unknown): XScienceRuntim
     completedAt: timestampValue(value.completed_at),
     updatedAt: timestampValue(value.updated_at),
     runtimeElapsedMs: nonNegativeFiniteNumber(value.runtime_elapsed_ms),
+    ...(typeof value.runtime_elapsed_available === 'boolean'
+      ? { runtimeElapsedAvailable: value.runtime_elapsed_available }
+      : {}),
     runtimeObservedAt: timestampValue(value.runtime_observed_at),
     runtimeStartedAt: timestampValue(value.runtime_started_at),
     runtimeFinishedAt: timestampValue(value.runtime_finished_at),
     runtimeActive: typeof value.runtime_active === 'boolean' ? value.runtime_active : null,
     runtimeTaskElapsedMs: nonNegativeFiniteNumber(value.runtime_task_elapsed_ms),
+    ...(typeof value.runtime_task_elapsed_available === 'boolean'
+      ? { runtimeTaskElapsedAvailable: value.runtime_task_elapsed_available }
+      : {}),
     runtimeTaskObservedAt: timestampValue(value.runtime_task_observed_at),
     runtimeTaskStartedAt: timestampValue(value.runtime_task_started_at),
     runtimeTaskFinishedAt: timestampValue(value.runtime_task_finished_at),

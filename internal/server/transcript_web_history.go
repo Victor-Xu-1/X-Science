@@ -450,7 +450,7 @@ func (s *Server) projectTranscriptWebProjectedEvent(
 	ownerID, sessionID string,
 	projected transcriptstore.ProjectedEvent,
 ) error {
-	if transcriptstore.IsRunnerAdmissionFact(projected.Event, projected.ResolvedPayloadJSON) {
+	if transcriptstore.IsRunnerInternalFact(projected.Event, projected.ResolvedPayloadJSON) {
 		return nil
 	}
 	var namespaceErr error

@@ -25,11 +25,13 @@ export type XScienceLongTaskStatus = {
   completedAt: string | null;
   updatedAt: string | null;
   elapsedMs: number | null;
+  elapsedAvailable?: boolean;
   elapsedObservedAt: string | null;
   elapsedActive: boolean | null;
   taskStartedAt: string | null;
   taskCompletedAt: string | null;
   taskElapsedMs: number | null;
+  taskElapsedAvailable?: boolean;
   taskElapsedObservedAt: string | null;
   taskElapsedActive: boolean | null;
   canCancel: boolean;
@@ -67,12 +69,17 @@ export function projectXScienceLongTaskStatus(snapshot: XScienceRuntimeSnapshot)
       startedAt: snapshot.runtimeStartedAt ?? snapshot.createdAt,
       completedAt: snapshot.runtimeFinishedAt ?? snapshot.completedAt,
       updatedAt: snapshot.updatedAt,
-      elapsedMs: snapshot.runtimeElapsedMs,
+      elapsedMs: snapshot.runtimeElapsedAvailable === false ? null : snapshot.runtimeElapsedMs,
+      elapsedAvailable: snapshot.runtimeElapsedAvailable,
       elapsedObservedAt: snapshot.runtimeObservedAt,
       elapsedActive: snapshot.runtimeActive,
       taskStartedAt: snapshot.runtimeTaskStartedAt ?? snapshot.runtimeStartedAt ?? snapshot.createdAt,
       taskCompletedAt: snapshot.runtimeTaskFinishedAt ?? snapshot.runtimeFinishedAt ?? snapshot.completedAt,
-      taskElapsedMs: snapshot.runtimeTaskElapsedMs ?? snapshot.runtimeElapsedMs,
+      taskElapsedMs:
+        snapshot.runtimeTaskElapsedAvailable === false
+          ? null
+          : (snapshot.runtimeTaskElapsedMs ?? snapshot.runtimeElapsedMs),
+      taskElapsedAvailable: snapshot.runtimeTaskElapsedAvailable ?? snapshot.runtimeElapsedAvailable,
       taskElapsedObservedAt: snapshot.runtimeTaskObservedAt ?? snapshot.runtimeObservedAt,
       taskElapsedActive: snapshot.runtimeTaskActive ?? snapshot.runtimeActive,
       canCancel: snapshot.canCancel,

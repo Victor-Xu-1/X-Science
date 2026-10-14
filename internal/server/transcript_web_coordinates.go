@@ -169,7 +169,7 @@ func (r *transcriptWebCoordinateReducer) replaceMessageID(index int, messageID s
 }
 
 func (r *transcriptWebCoordinateReducer) consume(projected transcriptstore.ProjectedEvent) error {
-	if transcriptstore.IsRunnerAdmissionFact(projected.Event, projected.ResolvedPayloadJSON) {
+	if transcriptstore.IsRunnerInternalFact(projected.Event, projected.ResolvedPayloadJSON) {
 		return nil
 	}
 	payload, err := transcriptPayloadObject(projected.ResolvedPayloadJSON)

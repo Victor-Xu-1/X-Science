@@ -526,31 +526,40 @@ type RunnerRuntimeState struct {
 // user input. Retries of the same input revision accumulate their claimed
 // intervals, while idle gaps and prior input revisions are excluded.
 type RunnerTimingSummary struct {
-	StreamUID       string
-	Attempt         int64
-	InputRevision   int64
-	Status          string
-	StartedAt       time.Time
-	FinishedAt      *time.Time
-	ObservedAt      time.Time
-	Elapsed         time.Duration
-	Active          bool
-	FinishedEventID int64
+	StreamUID             string
+	Attempt               int64
+	InputRevision         int64
+	Status                string
+	StartedAt             time.Time
+	FinishedAt            *time.Time
+	ObservedAt            time.Time
+	SnapshotInputRevision int64
+	SnapshotUpdatedAt     time.Time
+	SnapshotFrameStatus   string
+	Elapsed               time.Duration
+	// Elapsed is only the known portion when ElapsedUnknown is true; callers
+	// must not publish it as a complete duration or substitute a wall clock.
+	ElapsedUnknown   bool
+	ObservationError error // Nonfatal clock observation failure; never execution authority.
+	Active           bool
+	FinishedEventID  int64
 }
 
 // RunnerTaskTimingSummary is the durable active-work clock for the entire
 // frame task. Every runner attempt contributes its claimed interval, while
 // idle gaps between logical user-input revisions remain excluded.
 type RunnerTaskTimingSummary struct {
-	StreamUID     string
-	Attempt       int64
-	InputRevision int64
-	Status        string
-	StartedAt     time.Time
-	FinishedAt    *time.Time
-	ObservedAt    time.Time
-	Elapsed       time.Duration
-	Active        bool
+	StreamUID        string
+	Attempt          int64
+	InputRevision    int64
+	Status           string
+	StartedAt        time.Time
+	FinishedAt       *time.Time
+	ObservedAt       time.Time
+	Elapsed          time.Duration
+	ElapsedUnknown   bool
+	ObservationError error // Nonfatal clock observation failure; canonical evidence is retained.
+	Active           bool
 }
 
 type DeliveryIntent struct {

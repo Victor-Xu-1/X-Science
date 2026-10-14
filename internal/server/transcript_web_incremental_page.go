@@ -29,7 +29,7 @@ func (s *Server) applyIncrementalTranscriptWebAssistantPage(
 		if err := ctx.Err(); err != nil {
 			return transcriptWebIncrementalResult{}, err
 		}
-		if transcriptstore.IsRunnerAdmissionFact(projected.Event, projected.ResolvedPayloadJSON) {
+		if transcriptstore.IsRunnerInternalFact(projected.Event, projected.ResolvedPayloadJSON) {
 			continue
 		}
 		switch projected.Event.Type {

@@ -75,6 +75,7 @@ const parseRfc3339Timestamp = (value: string | null): number | null => {
 };
 
 const elapsedMilliseconds = (status: XScienceLongTaskStatus, now: number): number | null => {
+  if (status.elapsedAvailable === false) return null;
   if (status.elapsedMs !== null) {
     if (!status.terminal && status.elapsedActive) {
       const observedAt = parseRfc3339Timestamp(status.elapsedObservedAt);
@@ -88,6 +89,7 @@ const elapsedMilliseconds = (status: XScienceLongTaskStatus, now: number): numbe
 };
 
 const taskElapsedMilliseconds = (status: XScienceLongTaskStatus, now: number): number | null => {
+  if (status.taskElapsedAvailable === false) return null;
   if (status.taskElapsedMs !== null) {
     if (!status.taskCompleted && !status.terminal && status.taskElapsedActive) {
       const observedAt = parseRfc3339Timestamp(status.taskElapsedObservedAt);
@@ -102,6 +104,7 @@ const taskElapsedMilliseconds = (status: XScienceLongTaskStatus, now: number): n
 };
 
 const hasLiveElapsedClock = (status: XScienceLongTaskStatus): boolean => {
+  if (status.taskElapsedAvailable === false) return false;
   if (status.taskCompleted || status.terminal) return false;
   if (status.taskElapsedMs !== null) {
     return status.taskElapsedActive === true && parseRfc3339Timestamp(status.taskElapsedObservedAt) !== null;
@@ -347,11 +350,13 @@ const XScienceTaskStatus: React.FC<XScienceTaskStatusProps> = ({
     status?.startedAt,
     status?.terminal,
     status?.elapsedMs,
+    status?.elapsedAvailable,
     status?.elapsedObservedAt,
     status?.elapsedActive,
     status?.taskStartedAt,
     status?.taskCompletedAt,
     status?.taskElapsedMs,
+    status?.taskElapsedAvailable,
     status?.taskElapsedObservedAt,
     status?.taskElapsedActive,
   ]);
@@ -419,11 +424,13 @@ const XScienceTaskStatus: React.FC<XScienceTaskStatusProps> = ({
   const startedAtValue = formatTaskTimestamp(status?.taskStartedAt ?? null);
   const finishedAtValue = formatTaskTimestamp(status?.taskCompletedAt ?? null);
   const elapsedLabel =
-    taskElapsed === null
-      ? null
-      : t('conversation.xscienceRuntime.runtimeOperations.taskTotalElapsed', {
-          duration: elapsedValue,
-        });
+    status?.taskElapsedAvailable === false
+      ? t('conversation.xscienceRuntime.runtimeOperations.taskElapsedUnavailable')
+      : taskElapsed === null
+        ? null
+        : t('conversation.xscienceRuntime.runtimeOperations.taskTotalElapsed', {
+            duration: elapsedValue,
+          });
   const attentionCount = pendingInputCount + (snapshot?.planApproval ? 1 : 0);
   const secondaryLabelCandidate =
     attentionCount > 0

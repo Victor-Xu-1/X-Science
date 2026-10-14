@@ -253,32 +253,31 @@ func (s *Server) compatibilityFrameRuntimeProjection(frameID string) (map[string
 	if err != nil || !found {
 		return nil, "", err
 	}
-	summary, found, err := s.transcriptStore.GetLatestRunnerTimingSummary(ctx, stream.UID, stream.OwnerID)
+	summary, taskSummary, found, err := s.transcriptStore.GetRunnerTimingSummaries(ctx, stream.UID, stream.OwnerID)
 	if err != nil || !found {
 		return nil, "", err
 	}
-	taskSummary, taskFound, err := s.transcriptStore.GetRunnerTaskTimingSummary(ctx, stream.UID, stream.OwnerID)
-	if err != nil {
-		return nil, "", err
-	}
-	if !taskFound {
-		return nil, "", transcriptstore.ErrEventConflict
-	}
-	if summary.InputRevision != stream.InputRevision && !compatibilityFrameStatusTerminal(frameContext.Frame.Status) {
+	if summary.InputRevision < summary.SnapshotInputRevision && !compatibilityFrameStatusTerminal(summary.SnapshotFrameStatus) {
 		// A newly accepted input can be visible before its runner claim exists.
 		// Never project the previous logical input's terminal elapsed time into
 		// that pending-start window.
-		projection := compatibilityPendingFrameRuntimeProjection(stream, time.Now().UTC())
+		stream.InputRevision, stream.UpdatedAt = summary.SnapshotInputRevision, summary.SnapshotUpdatedAt
+		projection := compatibilityPendingFrameRuntimeProjection(stream, summary.ObservedAt)
 		pendingElapsed, _ := projection["runtime_elapsed_ms"].(int64)
-		taskElapsed, sumErr := checkedTaskMetricSum(taskSummary.Elapsed.Milliseconds(), pendingElapsed)
-		if sumErr != nil {
-			return nil, "", fmt.Errorf("sum pending task elapsed time: %w", sumErr)
+		var taskElapsed any
+		if !taskSummary.ElapsedUnknown {
+			knownElapsed, sumErr := checkedTaskMetricSum(taskSummary.Elapsed.Milliseconds(), pendingElapsed)
+			if sumErr != nil {
+				return nil, "", fmt.Errorf("sum pending task elapsed time: %w", sumErr)
+			}
+			taskElapsed = knownElapsed
 		}
 		projection["runtime_task_active"] = true
 		projection["runtime_task_elapsed_ms"] = taskElapsed
+		projection["runtime_task_elapsed_available"] = !taskSummary.ElapsedUnknown
 		projection["runtime_task_finished_at"] = nil
 		projection["runtime_task_observed_at"] = projection["runtime_observed_at"]
-		projection["runtime_task_started_at"] = taskSummary.StartedAt.UTC()
+		projection["runtime_task_started_at"] = compatibilityRunnerStartedAtValue(taskSummary.StartedAt)
 		taskMetricsProjection, metricsErr := s.compatibilityFrameTaskMetricsProjection(
 			ctx, frameID, stream.UID, stream.OwnerID, stream.InputRevision,
 		)
@@ -299,18 +298,20 @@ func (s *Server) compatibilityFrameRuntimeProjection(frameID string) (map[string
 		taskFinishedAt = taskSummary.FinishedAt.UTC()
 	}
 	projection := map[string]any{
-		"runtime_active":           summary.Active,
-		"runtime_attempt":          summary.Attempt,
-		"runtime_elapsed_ms":       summary.Elapsed.Milliseconds(),
-		"runtime_finished_at":      finishedAt,
-		"runtime_input_revision":   summary.InputRevision,
-		"runtime_observed_at":      summary.ObservedAt.UTC(),
-		"runtime_started_at":       summary.StartedAt.UTC(),
-		"runtime_task_active":      taskSummary.Active,
-		"runtime_task_elapsed_ms":  taskSummary.Elapsed.Milliseconds(),
-		"runtime_task_finished_at": taskFinishedAt,
-		"runtime_task_observed_at": taskSummary.ObservedAt.UTC(),
-		"runtime_task_started_at":  taskSummary.StartedAt.UTC(),
+		"runtime_active":                 summary.Active,
+		"runtime_attempt":                summary.Attempt,
+		"runtime_elapsed_ms":             compatibilityRunnerElapsedValue(summary.Elapsed, summary.ElapsedUnknown),
+		"runtime_elapsed_available":      !summary.ElapsedUnknown,
+		"runtime_finished_at":            finishedAt,
+		"runtime_input_revision":         summary.InputRevision,
+		"runtime_observed_at":            summary.ObservedAt.UTC(),
+		"runtime_started_at":             compatibilityRunnerStartedAtValue(summary.StartedAt),
+		"runtime_task_active":            taskSummary.Active,
+		"runtime_task_elapsed_ms":        compatibilityRunnerElapsedValue(taskSummary.Elapsed, taskSummary.ElapsedUnknown),
+		"runtime_task_elapsed_available": !taskSummary.ElapsedUnknown,
+		"runtime_task_finished_at":       taskFinishedAt,
+		"runtime_task_observed_at":       taskSummary.ObservedAt.UTC(),
+		"runtime_task_started_at":        compatibilityRunnerStartedAtValue(taskSummary.StartedAt),
 	}
 	if !compatibilityFrameStatusTerminal(frameContext.Frame.Status) {
 		retryReason, retryErr := s.transcriptStore.RunnerAutomaticRetryReason(
@@ -351,17 +352,7 @@ func (s *Server) compatibilityFrameRuntimeProjection(frameID string) (map[string
 		projection["runtime_interruption_reason"] = interruption.ReasonCode
 		projection["runtime_interruption_detail"] = interruption.ResumeDetail
 		if !interruption.CreatedAt.IsZero() {
-			frozenElapsed := summary.Elapsed - summary.ObservedAt.Sub(interruption.CreatedAt)
-			if frozenElapsed < 0 {
-				frozenElapsed = 0
-			}
-			projection["runtime_elapsed_ms"] = frozenElapsed.Milliseconds()
 			projection["runtime_observed_at"] = interruption.CreatedAt.UTC()
-			taskFrozenElapsed := taskSummary.Elapsed - taskSummary.ObservedAt.Sub(interruption.CreatedAt)
-			if taskFrozenElapsed < 0 {
-				taskFrozenElapsed = 0
-			}
-			projection["runtime_task_elapsed_ms"] = taskFrozenElapsed.Milliseconds()
 			projection["runtime_task_observed_at"] = interruption.CreatedAt.UTC()
 		}
 	}
@@ -399,6 +390,20 @@ func compatibilityFrameStatusTerminal(status string) bool {
 	status = strings.ToLower(strings.TrimSpace(status))
 	return status == workspace.FrameStatusCompleted || status == workspace.FrameStatusFailed ||
 		status == workspace.FrameStatusCancelled || status == "canceled"
+}
+
+func compatibilityRunnerElapsedValue(elapsed time.Duration, unknown bool) any {
+	if unknown {
+		return nil
+	}
+	return elapsed.Milliseconds()
+}
+
+func compatibilityRunnerStartedAtValue(startedAt time.Time) any {
+	if startedAt.IsZero() {
+		return nil
+	}
+	return startedAt.UTC()
 }
 
 func compatibilityFrameNeedsFinalPresentation(status string, presentationReady bool) bool {
@@ -601,13 +606,14 @@ func compatibilityPendingFrameRuntimeProjection(stream transcriptstore.Stream, o
 		// The input is durable and claimable even before a runner attempt is
 		// visible. Treat this as active preparation so clients keep a live clock
 		// instead of presenting a misleading frozen 00:00 state.
-		"runtime_active":         true,
-		"runtime_attempt":        nil,
-		"runtime_elapsed_ms":     elapsed,
-		"runtime_finished_at":    nil,
-		"runtime_input_revision": stream.InputRevision,
-		"runtime_stage":          "starting",
-		"runtime_observed_at":    observedAt.UTC(),
-		"runtime_started_at":     startedAt,
+		"runtime_active":            true,
+		"runtime_attempt":           nil,
+		"runtime_elapsed_ms":        elapsed,
+		"runtime_elapsed_available": true,
+		"runtime_finished_at":       nil,
+		"runtime_input_revision":    stream.InputRevision,
+		"runtime_stage":             "starting",
+		"runtime_observed_at":       observedAt.UTC(),
+		"runtime_started_at":        startedAt,
 	}
 }
