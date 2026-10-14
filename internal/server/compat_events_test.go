@@ -649,6 +649,66 @@ func TestCompatEventReplayIsBoundedAndAdvancesAcrossDeliveryNone(t *testing.T) {
 	}
 }
 
+func TestCompatWebSocketPendingControlsDrainBeforeDurableEvent(t *testing.T) {
+	controls := make(chan map[string]any, 2)
+	controls <- map[string]any{"type": "ping", "id": "first"}
+	controls <- map[string]any{"type": "ping", "id": "second"}
+	var delivered []string
+	if !serviceCompatWebSocketPendingControls(context.Background(), controls, func(control map[string]any) bool {
+		delivered = append(delivered, control["id"].(string))
+		return true
+	}) {
+		t.Fatal("admitted controls stopped durable delivery")
+	}
+	delivered = append(delivered, "durable")
+	if want := []string{"first", "second", "durable"}; !reflect.DeepEqual(delivered, want) || len(controls) != 0 {
+		t.Fatalf("queued controls were not drained first: delivered=%v pending=%d", delivered, len(controls))
+	}
+}
+
+func TestCompatWebSocketPendingControlsStopWithoutContinuingDelivery(t *testing.T) {
+	t.Run("cancelled", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		if serviceCompatWebSocketPendingControls(ctx, make(chan map[string]any), func(map[string]any) bool {
+			t.Fatal("cancelled empty queue invoked a handler")
+			return true
+		}) {
+			t.Fatal("cancelled queue allowed durable delivery")
+		}
+	})
+	t.Run("closed", func(t *testing.T) {
+		controls := make(chan map[string]any)
+		close(controls)
+		if serviceCompatWebSocketPendingControls(context.Background(), controls, func(map[string]any) bool {
+			t.Fatal("closed empty queue invoked a handler")
+			return true
+		}) {
+			t.Fatal("closed queue allowed durable delivery")
+		}
+	})
+	t.Run("handler stopped", func(t *testing.T) {
+		controls := make(chan map[string]any, 2)
+		controls <- map[string]any{"type": "ping"}
+		controls <- map[string]any{"type": "ping"}
+		calls := 0
+		if serviceCompatWebSocketPendingControls(context.Background(), controls, func(map[string]any) bool {
+			calls++
+			return false
+		}) || calls != 1 || len(controls) != 1 {
+			t.Fatalf("handler failure continued delivery: calls=%d pending=%d", calls, len(controls))
+		}
+	})
+	t.Run("empty", func(t *testing.T) {
+		if !serviceCompatWebSocketPendingControls(context.Background(), make(chan map[string]any), func(map[string]any) bool {
+			t.Fatal("empty queue invoked a handler")
+			return false
+		}) {
+			t.Fatal("empty open queue stopped durable delivery")
+		}
+	})
+}
+
 func TestCompatWebSocketServicesControlsBetweenDurableCatchUpPages(t *testing.T) {
 	previous := runtime.GOMAXPROCS(1)
 	defer runtime.GOMAXPROCS(previous)
@@ -677,17 +737,18 @@ func TestCompatWebSocketServicesControlsBetweenDurableCatchUpPages(t *testing.T)
 		t.Fatalf("connected=%#v", connected)
 	}
 
-	var last workspace.RealtimeEvent
+	backlog := make([]workspace.RealtimeEvent, 0, compatDurableCatchUpPageSize*4)
 	for index := 0; index < compatDurableCatchUpPageSize*4; index++ {
-		last, err = store.AppendRealtimeEvent(workspace.RealtimeEventInput{
+		event, err := store.AppendRealtimeEvent(workspace.RealtimeEventInput{
 			ID: fmt.Sprintf("backlog-%04d", index), UserID: "owner", Type: "frame_update",
 			Payload: map[string]any{"status": "running", "index": index},
 		})
 		if err != nil {
 			t.Fatal(err)
 		}
+		backlog = append(backlog, event)
 	}
-	srv.compatEvents.Publish(last)
+	srv.compatEvents.Publish(backlog[len(backlog)-1])
 	for range 2 {
 		if err := writeWebSocketJSON(ctx, connection, map[string]any{"type": "ping"}); err != nil {
 			t.Fatal(err)
@@ -695,24 +756,27 @@ func TestCompatWebSocketServicesControlsBetweenDurableCatchUpPages(t *testing.T)
 	}
 
 	pongs := 0
-	eventsSincePong := 0
-	lastSequence := int64(0)
-	for pongs < 2 {
+	receivedEvents := 0
+	// A successful client write is not proof that the server reader has
+	// admitted a control. Queue priority is tested above at the real admission
+	// boundary; this socket path proves both pongs and the complete backlog.
+	for pongs < 2 || receivedEvents < len(backlog) {
 		message := readCompatWebSocketTest(t, ctx, connection)
 		if message["type"] == "pong" {
 			pongs++
-			eventsSincePong = 0
+			if pongs > 2 {
+				t.Fatalf("duplicate pong: count=%d", pongs)
+			}
 			continue
 		}
-		sequence := int64(numberValue(message["_sequence"]))
-		if sequence <= lastSequence {
-			t.Fatalf("non-monotonic message=%#v last=%d", message, lastSequence)
+		if receivedEvents >= len(backlog) {
+			t.Fatalf("unexpected durable message after complete backlog: %#v", message)
 		}
-		lastSequence = sequence
-		eventsSincePong++
-		if eventsSincePong > compatDurableCatchUpPageSize {
-			t.Fatalf("control starved behind %d durable events", eventsSincePong)
+		want := backlog[receivedEvents]
+		if message["type"] != want.Type || message["_event_id"] != want.ID || int64(numberValue(message["_sequence"])) != want.Sequence {
+			t.Fatalf("backlog event %d lost, duplicated or reordered: got=%#v want=%#v", receivedEvents, message, want)
 		}
+		receivedEvents++
 	}
 }
 
