@@ -160,10 +160,9 @@ func largeMCPStartedOperation(t *testing.T, fixture *agentSaveArtifactsFixture, 
 	ctx := context.Background()
 	run := &sessionRunnerChatRun{SessionID: fixture.stream.SessionID, Attempt: int(fixture.claim.Attempt), ClaimToken: fixture.claim.ClaimToken,
 		Transcript: &transcriptRunnerAuthority{Stream: fixture.stream, Claim: fixture.claim}}
-	call := agentruntime.ToolCall{ID: "large-source-repl", Name: "repl", Arguments: json.RawMessage(`{"code":"import host"}`)}
+	call := agentruntime.ToolCall{ID: "large-source-repl", Name: "repl", Arguments: json.RawMessage(largeMCPREPLArguments)}
 	if len(callIdentities) > 0 {
 		call.ID = callIdentities[0]
-		call.Arguments = json.RawMessage(`{"code":"import host","environment":"python"}`)
 	}
 	if err := fixture.server.checkpointChatModelToolCalls(SessionRunnerChatOptions{RunnerID: fixture.claim.RunnerID}, run, []agentruntime.ToolCall{call}); err != nil {
 		t.Fatal(err)

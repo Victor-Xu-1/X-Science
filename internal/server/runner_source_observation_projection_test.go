@@ -23,7 +23,7 @@ func TestRunnerSourceObservationCanonicalSQLitePagingRestart(t *testing.T) {
 	for i, label := range []string{"pmids:", "pmids:", "pmIds:", "pmids:"} {
 		callID := fmt.Sprint("source-observation-", i)
 		authority, operationRun := largeMCPStartedOperation(t, fixture, callID)
-		arguments := `{"code":"import host","environment":"python"}`
+		arguments := largeMCPREPLArguments
 		if err := fixture.server.checkpointSessionRunnerToolEvent(ctx, SessionRunnerChatOptions{RunnerID: fixture.claim.RunnerID}, operationRun, agentruntime.Event{Type: agentruntime.EventToolStarted, ToolName: "repl", ToolCallID: callID, Arguments: arguments}); err != nil {
 			t.Fatal(err)
 		}
