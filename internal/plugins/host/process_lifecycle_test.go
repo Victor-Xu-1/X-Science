@@ -24,7 +24,7 @@ func stopHostProcesses(t *testing.T, host *Host) {
 
 // Delay only the wait goroutine registration, not process termination. This
 // models a real reaper that has not yet been scheduled, without a mock Kill.
-func ownedUnreapedProcess(t *testing.T, host *Host, id string) *externalProcess {
+func ownedUnreapedProcess(t *testing.T, host *Host, id string) (*externalProcess, func()) {
 	t.Helper()
 	executable, err := os.Executable()
 	if err != nil {
@@ -46,24 +46,32 @@ func ownedUnreapedProcess(t *testing.T, host *Host, id string) *externalProcess 
 		_ = control.Close()
 		t.Fatal(err)
 	}
-	if err := control.Attach(command); err != nil {
+	process := &externalProcess{command: command, control: control, done: make(chan struct{})}
+	var reapOnce sync.Once
+	reap := func() { reapOnce.Do(func() { go host.waitForProcess(id, process) }) }
+	t.Cleanup(func() {
 		_ = control.Kill(command)
-		_ = command.Wait()
-		_ = control.Close()
+		reap()
+		select {
+		case <-process.done:
+		case <-time.After(5 * time.Second):
+			t.Error("controlled test process did not finish cleanup")
+		}
+	})
+	if err := control.Attach(command); err != nil {
 		t.Fatal(err)
 	}
 	waitForFile(t, ready)
-	process := &externalProcess{command: command, control: control, done: make(chan struct{})}
 	host.mu.Lock()
 	host.plugins[id] = Plugin{ID: id, Runtime: RuntimeStatus{Kind: "external_process", Status: "running", PID: command.Process.Pid}}
 	host.processes[id] = process
 	host.mu.Unlock()
-	return process
+	return process, reap
 }
 
 func TestHostStopWaitsForReapingAndRejectsOverlappingStart(t *testing.T) {
 	host := New(nil)
-	process := ownedUnreapedProcess(t, host, "owned")
+	process, reap := ownedUnreapedProcess(t, host, "owned")
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	if err := host.StopExternalProcesses(ctx); !errors.Is(err, context.Canceled) {
@@ -76,7 +84,7 @@ func TestHostStopWaitsForReapingAndRejectsOverlappingStart(t *testing.T) {
 	if err := host.StartExternalProcesses(context.Background()); err == nil {
 		t.Fatal("replacement start accepted before prior Wait cleanup")
 	}
-	go host.waitForProcess("owned", process)
+	reap()
 	stopHostProcesses(t, host)
 	select {
 	case <-process.done:
@@ -94,8 +102,8 @@ func TestHostStopWaitsForReapingAndRejectsOverlappingStart(t *testing.T) {
 
 func TestHostStopCancelsAllBeforeDeadlineAndConcurrentCallersShareReaping(t *testing.T) {
 	host := New(nil)
-	first := ownedUnreapedProcess(t, host, "first")
-	second := ownedUnreapedProcess(t, host, "second")
+	first, reapFirst := ownedUnreapedProcess(t, host, "first")
+	second, reapSecond := ownedUnreapedProcess(t, host, "second")
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	if err := host.StopExternalProcesses(ctx); !errors.Is(err, context.Canceled) {
@@ -111,8 +119,8 @@ func TestHostStopCancelsAllBeforeDeadlineAndConcurrentCallersShareReaping(t *tes
 	for range 4 {
 		callers.Go(func() { stopHostProcesses(t, host) })
 	}
-	go host.waitForProcess("first", first)
-	go host.waitForProcess("second", second)
+	reapFirst()
+	reapSecond()
 	callers.Wait()
 	for _, process := range []*externalProcess{first, second} {
 		if process.command.ProcessState == nil {
@@ -121,7 +129,7 @@ func TestHostStopCancelsAllBeforeDeadlineAndConcurrentCallersShareReaping(t *tes
 	}
 }
 
-func TestHostStopRetainsWaitFailureAndCompletedCleanupBeatsCancelledContext(t *testing.T) {
+func TestHostStopRetainsSettledInfrastructureFailureAndBlocksRestart(t *testing.T) {
 	host := New(nil)
 	command := exec.Command("not-started")
 	control, err := subprocess.Prepare(command)
@@ -142,8 +150,15 @@ func TestHostStopRetainsWaitFailureAndCompletedCleanupBeatsCancelledContext(t *t
 	if plugin.Runtime.Status != "failed" || plugin.Runtime.Error == "" {
 		t.Fatalf("cleanup failure was hidden: %#v", plugin.Runtime)
 	}
-	// An already settled empty host is quiescent even under a cancelled budget.
-	if err := host.StopExternalProcesses(ctx); err != nil {
-		t.Fatalf("completed cleanup spuriously failed: %v", err)
+	if err := host.StopExternalProcesses(ctx); err == nil || !errors.Is(err, process.waitErr) {
+		t.Fatalf("settled cleanup failure disappeared from Stop: %v", err)
+	}
+	if err := host.StartExternalProcesses(context.Background()); err == nil {
+		t.Fatal("failed cleanup authorized replacement")
+	}
+	// Successful cleanup, unlike an infrastructure failure, takes precedence
+	// over an already cancelled budget.
+	if err := New(nil).StopExternalProcesses(ctx); err != nil {
+		t.Fatalf("completed empty host spuriously failed: %v", err)
 	}
 }
