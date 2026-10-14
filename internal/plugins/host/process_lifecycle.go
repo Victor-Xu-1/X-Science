@@ -20,6 +20,7 @@ func (h *Host) StopExternalProcesses(ctx context.Context) error {
 	}
 	var errs []error
 	h.mu.Lock()
+	errs = append(errs, h.shutdownErr)
 	processes := make(map[string]*externalProcess, len(h.processes))
 	for id, process := range h.processes {
 		processes[id] = process
@@ -65,6 +66,16 @@ func (h *Host) waitForProcess(id string, process *externalProcess) {
 	var exitErr *exec.ExitError
 	if waitErr != nil && (!process.stopping || !errors.As(waitErr, &exitErr)) {
 		process.waitErr = errors.Join(waitErr, closeErr)
+	}
+	// Preserve settled infrastructure failures after their process leaves the
+	// active map. A later Stop must still inform the primary shutdown owner;
+	// a failed control cleanup cannot authorize another process generation.
+	cleanupErr := process.waitErr
+	if errors.As(waitErr, &exitErr) {
+		cleanupErr = closeErr
+	}
+	if err := errors.Join(process.stopErr, cleanupErr); err != nil {
+		h.shutdownErr = errors.Join(h.shutdownErr, fmt.Errorf("plugin %s cleanup: %w", id, err))
 	}
 	if h.processes[id] == process {
 		delete(h.processes, id)

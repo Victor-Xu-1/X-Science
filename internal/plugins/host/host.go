@@ -68,10 +68,11 @@ func (p Plugin) Root() string {
 }
 
 type Host struct {
-	mu        sync.RWMutex
-	plugins   map[string]Plugin
-	processes map[string]*externalProcess
-	stopping  bool
+	mu          sync.RWMutex
+	plugins     map[string]Plugin
+	processes   map[string]*externalProcess
+	stopping    bool
+	shutdownErr error
 }
 
 type externalProcess struct {
@@ -196,6 +197,9 @@ func (h *Host) StartExternalProcesses(ctx context.Context) error {
 	}
 	h.mu.Lock()
 	defer h.mu.Unlock()
+	if h.shutdownErr != nil {
+		return fmt.Errorf("plugin process cleanup previously failed: %w", h.shutdownErr)
+	}
 	if h.stopping {
 		return errors.New("plugin processes are still stopping")
 	}
