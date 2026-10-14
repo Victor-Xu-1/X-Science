@@ -126,7 +126,7 @@ const ChatConversationIndex: React.FC = () => {
         // A deletion is not an active-runtime metadata update. Bypass the
         // navigation handoff and let the same detail authority confirm null.
         invalidateConversationReadCaches(user?.id ?? '', id);
-        void mutate().catch(() => undefined);
+        void mutate().catch((): void => undefined);
         return;
       }
 
@@ -184,7 +184,7 @@ const ChatConversationIndex: React.FC = () => {
         onRetry={() => {
           // SWR retains the error for this surface; a failed manual retry must
           // not also become an unhandled event-handler rejection.
-          void mutate().catch(() => undefined);
+          void mutate().catch((): void => undefined);
         }}
       />
     );
