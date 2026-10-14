@@ -145,6 +145,23 @@ func (window *SourceObservationWindow) Complete(operation string, materialChange
 	return observation
 }
 
+// A later unobserved/unknown call cannot erase earlier verified repetition.
+// This aggregates source feedback, not execution effects: a new source can
+// replace it, and real material progress anywhere in the batch still suppresses
+// recovery feedback. Copy the completed observation so later calls cannot
+// mutate a previously retained host result through an aliased pointer.
+func mergeBatchSourceObservation(previous, next *SourceObservation) *SourceObservation {
+	if previous != nil && previous.State == SourceObservationRepeated &&
+		(next == nil || next.State == SourceObservationUnknown) {
+		return previous
+	}
+	if next == nil {
+		return nil
+	}
+	observation := *next
+	return &observation
+}
+
 // Preserve the original tool failure while adding host-only source feedback.
 // Source repetition is not execution equivalence and never closes a tool call.
 func sourceObservationRecoveryFeedback(modelMessages []Message, observation *SourceObservation, batchMessages []Message, limit int, toolErr error) ([]Message, error) {

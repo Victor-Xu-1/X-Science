@@ -29,7 +29,7 @@ func (e Engine) ExecuteToolBatch(
 	for ordinal := startOrdinal; ordinal < len(calls); ordinal++ {
 		toolMessage, toolErr := e.executeTool(ctx, calls[ordinal])
 		result.NoProgress = result.NoProgress && toolMessage.noProgress
-		result.SourceObservation = toolMessage.sourceObservation
+		result.SourceObservation = mergeBatchSourceObservation(result.SourceObservation, toolMessage.sourceObservation)
 		if toolMessage.Role != "" {
 			pendingParts = append(pendingParts, toolMessage.pending...)
 			toolMessage.pending = nil

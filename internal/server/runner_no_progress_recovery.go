@@ -228,7 +228,7 @@ func (state *sessionRunnerNoProgressRecovery) observeEntry(
 	observation, sourceCheckpoint := state.sources.observeEntry(entry)
 	sourceUnchanged := sourceObservationIsUnchanged(observation, sourceCheckpoint) && !runnerSourceMaterialChange(stringValue(message["toolName"]), runnerSourceObservationResult(entry))
 	newSource := observation != nil && observation.State == agentruntime.SourceObservationNew
-	if newSource || runnerCheckpointHasMaterialProgress(message) && !(state.SourceRepetition && sourceUnchanged) {
+	if newSource || runnerCheckpointHasMaterialProgress(message) && !sourceUnchanged {
 		state.lastMaterialProgress = true
 		state.resetMaterialProgress()
 		return
