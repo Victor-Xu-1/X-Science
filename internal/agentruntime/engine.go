@@ -38,6 +38,7 @@ type Message struct {
 	pending            []ContentPart
 	terminal           bool
 	noProgress         bool
+	pendingWorkWait    bool
 	sourceObservation  *SourceObservation
 }
 
@@ -202,6 +203,11 @@ type ToolResult struct {
 	// SourceObservation is supplied only by the host's verified receipt
 	// projection. It is not an execution-effect or idempotency assertion.
 	SourceObservation *SourceObservation `json:"-"`
+	// PendingWorkWait is host-only proof that a bounded wait observed ongoing
+	// durable work. It is not successful computation, a material effect or a
+	// model-supplied result flag; it only keeps that wait from being treated as
+	// repetition of an already completed operation.
+	PendingWorkWait bool `json:"-"`
 	// ExecutedArguments is the canonical JSON object that reached the tool after
 	// runtime normalization. A nil value means the requested ToolCall arguments
 	// were executed unchanged. Terminal lifecycle events use this value so
@@ -363,7 +369,10 @@ type ToolBatchExecution struct {
 	// NoProgress is true only when every call in this batch returned the same
 	// previously observed idempotent read. The live engine uses it to bound a
 	// model that keeps narrating while repeating an already available source.
-	NoProgress        bool
+	NoProgress bool
+	// OnlyPendingWaits is host-proven for every item, never inferred from a
+	// model-visible pending_work field or a mixed batch with ordinary actions.
+	OnlyPendingWaits  bool
 	SourceObservation *SourceObservation
 }
 

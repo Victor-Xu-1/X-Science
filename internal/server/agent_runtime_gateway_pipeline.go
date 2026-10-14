@@ -506,6 +506,8 @@ func serverAgentRuntimeGatewayExecute(invocation *toolgateway.Invocation) {
 			invocation.CompleteForAudit(result, "failed", err.Error(), err)
 			return
 		}
+		execution.result = nativeNotificationWaitToolResult(invocation.Input, result)
+		execution.resultReady = true
 		invocation.CompleteForAudit(result, "completed", "", nil)
 		return
 	}

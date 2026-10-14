@@ -119,6 +119,15 @@ notification. Empty notification observations
 generation-recovery budgets. Real delivered notifications and new execution
 effects retain their progress semantics.
 
+The native bounded notification wait also supplies a private host observation
+when durable work is still pending. A batch consisting only of those waits is
+not repetition of a completed action, so the per-segment identical-call guard
+does not interrupt it before the next wait. This is not a material-progress
+receipt: persisted correction budgets are unchanged. Zero-time peeks, idle
+queues, completed/uncollected results, failed calls and mixed action batches
+retain ordinary loop handling; raw tool JSON cannot grant this observation.
+Cancellation and the normal tool-round segment budget still apply.
+
 ### Documented alternatives to automatic input resolvers
 
 An automatic resolver is one evidence route, not a monopoly on a task's

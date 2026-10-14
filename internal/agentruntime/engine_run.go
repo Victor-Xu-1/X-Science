@@ -210,6 +210,13 @@ func (e Engine) Run(ctx context.Context, request RunRequest) (RunResult, error) 
 			batch, toolErr = e.ExecuteToolBatch(ctx, message.ToolCalls, 0, normalized.MediaPolicy, mediaBytesUsed)
 		}
 		messages = append(messages, batch.Messages...)
+		if batch.OnlyPendingWaits && toolErr == nil {
+			// Waiting for real work is not repeating a completed action. Keep
+			// ordinary segment budgets and cancellation, without claiming a
+			// material effect or resetting durable recovery obligations.
+			lastToolCallRoundSignature = ""
+			consecutiveIdenticalToolRounds = 0
+		}
 		// Admission alone proves no effect. Reset the private repair window
 		// only after actual progress; retain per-family history until a valid
 		// call to that same operation target succeeds.
