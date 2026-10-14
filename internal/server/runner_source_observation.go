@@ -22,6 +22,16 @@ type runnerSourceObservationReducer struct {
 	admitted             map[string]int64
 }
 
+func (reducer *runnerSourceObservationReducer) recordCompleted(callID string, observation agentruntime.SourceObservation) *agentruntime.SourceObservation {
+	reducer.completedCallID, reducer.completedObservation = callID, observation
+	if reducer.liveCallID == callID {
+		reducer.liveCallID = ""
+		reducer.liveComputed = false
+	}
+	delete(reducer.admitted, callID)
+	return &observation
+}
+
 func runnerVerifiedSourceIdentity(message eventjournal.Message, originalDigest ...string) (string, bool) {
 	raw, err := json.Marshal(message)
 	if err != nil {
@@ -97,29 +107,17 @@ func (reducer *runnerSourceObservationReducer) observe(message eventjournal.Mess
 			return nil, true
 		}
 		result := reducer.window.Complete(operation, false)
-		reducer.completedCallID, reducer.completedObservation = callID, result
-		if reducer.liveCallID == callID {
-			reducer.liveCallID = ""
-			reducer.liveComputed = false
-		}
-		delete(reducer.admitted, operation)
-		return &result, true
+		return reducer.recordCompleted(callID, result), true
 	}
 	if reducer.liveCallID == callID && reducer.liveComputed {
 		result := reducer.liveObservation
-		reducer.liveCallID = ""
-		reducer.liveComputed = false
-		reducer.completedCallID, reducer.completedObservation = callID, result
-		delete(reducer.admitted, callID)
-		return &result, false
+		return reducer.recordCompleted(callID, result), false
 	}
 	if result := message["toolResult"]; agentruntime.ToolResultDidNotExecute(result) || agentruntime.ClassifyToolResult(result).HardFailed() {
 		reducer.window.Unknown(callID)
 	}
 	result := reducer.window.Complete(callID, runnerSourceMaterialChange(stringValue(message["toolName"]), message["toolResult"]))
-	reducer.completedCallID, reducer.completedObservation = callID, result
-	delete(reducer.admitted, callID)
-	return &result, false
+	return reducer.recordCompleted(callID, result), false
 }
 
 func (reducer *runnerSourceObservationReducer) observeEntry(entry eventjournal.Entry) (*agentruntime.SourceObservation, bool) {
@@ -163,7 +161,7 @@ func (reducer *runnerSourceObservationReducer) observeEntry(entry eventjournal.E
 			operation := stringValue(entry.Message["toolCallId"])
 			reducer.window.Unknown(operation)
 			result := reducer.window.Complete(operation, false)
-			return &result, false
+			return reducer.recordCompleted(operation, result), false
 		}
 		if witness.executionResult != nil {
 			message := copyMapAny(entry.Message)

@@ -229,3 +229,69 @@ func TestRunnerSourceObservationWithoutAdmittedInputStaysUnknown(t *testing.T) {
 		}
 	}
 }
+
+func TestRunnerSourceObservationNewSourceReopensDurableRecoveryWithReusedOuter(t *testing.T) {
+	state := newSessionRunnerNoProgressRecovery(runnerRecoveryObligationFingerprint(nil, transcriptstore.RunnerInterruptionCause{}))
+	state.observeEntry(eventjournal.Entry{SourceEventType: "user_message", Message: eventjournal.Message{"type": "message", "role": "user"}}, nil)
+	state.recordNoProgress(nil, true)
+	state.recordNoProgress(nil, true)
+	proposal := int64(10)
+	callID := "replayed-new-source"
+	state.observeEntry(eventjournal.Entry{EventID: proposal, SourceEventType: "runner_checkpoint", Message: eventjournal.Message{"type": "runner_checkpoint", "modelToolCalls": []any{map[string]any{"id": callID}}}}, nil)
+	source := sourceObservationReceipt("host-"+callID, callID)
+	key, valid := runnerVerifiedSourceIdentity(source)
+	if !valid {
+		t.Fatal("fixture did not create verified source content")
+	}
+	state.observeEntry(eventjournal.Entry{SourceEventType: "runner_checkpoint", Message: source, RuntimeProjection: runnerSourceObservationWitness{key: key, proposalEventID: proposal}}, nil)
+	if state.Consecutive != 2 || !state.SourceRepetition {
+		t.Fatal("nested source receipt alone reopened the surrounding operation")
+	}
+	outer := sourceObservationOuter(callID, "same presentation", map[string]any{"reused": true})
+	if runnerCheckpointHasMaterialProgress(outer) {
+		t.Fatal("fixture did not reproduce a reused completed operation")
+	}
+	state.observeEntry(eventjournal.Entry{SourceEventType: "runner_checkpoint", Message: outer, RuntimeProjection: runnerSourceObservationWitness{proposalEventID: proposal, executionResult: outer["toolResult"]}}, nil)
+	if state.Consecutive != 0 || state.SourceRepetition || !state.lastMaterialProgress {
+		t.Fatalf("new verified source did not reopen durable recovery: %+v", state)
+	}
+}
+
+func TestRunnerSourceObservationUnavailableCanonicalOuterOverridesLiveCache(t *testing.T) {
+	var live, replay runnerSourceObservationReducer
+	input := eventjournal.Entry{SourceEventType: "user_message"}
+	live.observeEntry(input)
+	replay.observeEntry(input)
+	for i := 0; i < 2; i++ {
+		proposal := int64(10 + i)
+		callID := fmt.Sprint("unavailable-outer-", i)
+		header := eventjournal.Entry{EventID: proposal, SourceEventType: "runner_checkpoint", Message: eventjournal.Message{"type": "runner_checkpoint", "modelToolCalls": []any{map[string]any{"id": callID}}}}
+		source := sourceObservationReceipt("host-"+callID, callID)
+		key, _ := runnerVerifiedSourceIdentity(source)
+		sourceEntry := eventjournal.Entry{SourceEventType: "runner_checkpoint", Message: source, RuntimeProjection: runnerSourceObservationWitness{key: key, proposalEventID: proposal}}
+		outer := sourceObservationOuter(callID, "same presentation", nil)
+		for _, entry := range []eventjournal.Entry{header, sourceEntry} {
+			live.observeEntry(entry)
+			replay.observeEntry(entry)
+		}
+		call := agentruntime.ToolCall{ID: callID, Name: "repl"}
+		before := live.completeLive(call, outer["toolResult"])
+		witness := runnerSourceObservationWitness{proposalEventID: proposal, executionResult: outer["toolResult"]}
+		if i == 1 {
+			if before.State != agentruntime.SourceObservationRepeated || before.RepeatedOperations != 1 {
+				t.Fatalf("fixture did not create a cached repeated observation: %+v", before)
+			}
+			witness.executionResult, witness.executionUnavailable = nil, true
+		}
+		terminal := eventjournal.Entry{SourceEventType: "runner_checkpoint", Message: outer, RuntimeProjection: witness}
+		canonical, _ := live.observeEntry(terminal)
+		restored, _ := replay.observeEntry(terminal)
+		after := live.completeLive(call, outer["toolResult"])
+		if *canonical != *restored || *after != *restored {
+			t.Fatalf("unavailable canonical result retained stale live state: canonical=%+v replay=%+v live=%+v", canonical, restored, after)
+		}
+		if i == 1 && (after.State != agentruntime.SourceObservationUnknown || after.RepeatedOperations != 0 || live.admitted[callID] != 0 || live.liveComputed) {
+			t.Fatalf("canonical unavailability did not finalize exactly once: %+v", after)
+		}
+	}
+}
