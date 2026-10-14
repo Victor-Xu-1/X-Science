@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "e7966e8277b2a02e2f33ed4f98f60803513b9f77f5814a96ac85761a0d2ff144",
+  "adaptationFingerprintSHA256": "0526ac10197b2c0fda825a297a97b49f674000e22d1fdf34b84eb9e057b50838",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
-  "additionFingerprintSHA256": "9cec41706d0ecb5b8fa8293651a1c3f77c2e5e6f11feb81f89313e6b6d3e8638",
+  "additionFingerprintSHA256": "7795ac2cd9aba6bcb753a868ad7e6d5e610c1eff45807a7bad27331b1e804725",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 275,
@@ -17,14 +17,14 @@
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "5e4eb47a7a487981ab741cb198873c33a6d30f92c5c313e78fc16c2e156eda76",
+      "targetSHA256": "889dc3cdda96f1b5650fbe8531cebcd3a1cc2196100827931680c113554701d4",
       "bytes": 4392,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "94976fc822362f5749e2dde143472c9613de0fbcffab70655ef0bcd4c66857bc",
+      "targetSHA256": "7125ceb83049b245e83071334e8c305c1baf6dc5803f2a56a42bec34fc0121e3",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -7530,7 +7530,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "8895ad8f81a8cc523cde74203b496d0711c7983955b860e4eb2ee1ef55fefb3e",
+      "sha256": "d430d3335d12b985ecfae8ecd48b7a4943b1413f0da2c67402ae839581173759",
       "bytes": 558186,
       "reason": "Deterministic npm build dependency lock."
     },
