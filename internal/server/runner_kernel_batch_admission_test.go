@@ -49,10 +49,12 @@ func TestKernelBatchAdmissionUsesPrecedingSetupReceipt(t *testing.T) {
 			if err := f.server.checkpointSessionRunnerToolEvent(ctx, options, run, agentruntime.Event{Type: agentruntime.EventToolStarted, ToolName: calls[0].Name, ToolCallID: calls[0].ID, Arguments: string(calls[0].Arguments)}); err != nil {
 				t.Fatal(err)
 			}
-			authority := &recordingManagedEnvironmentAuthority{listResult: []kernelruntime.ManagedEnvironment{{Name: "verified-env", Language: language, Status: "ready", Generation: "verified-generation", Packages: []string{"fixture=1.0=build=conda"}}}}
+			ready := kernelruntime.ManagedEnvironment{Name: "verified-env", Language: language, Status: "ready", Generation: "verified-generation", Packages: []string{"fixture=1.0=build=conda"}}
+			// Discovery and the mandatory reuse-boundary inspection describe the same runtime.
+			authority := &recordingManagedEnvironmentAuthority{listResult: []kernelruntime.ManagedEnvironment{ready}, mutateResult: ready}
 			result, err := f.server.executeAgentEnvironmentManagementToolWithAuthority(ctx, f.identity, calls[0], manageEnvironmentsToolName, setupInput, authority)
-			if err != nil || stringValue(mapValue(result)["mode"]) != "reuse" {
-				t.Fatalf("setup=%#v err=%v", result, err)
+			if err != nil || stringValue(mapValue(result)["mode"]) != "reuse" || authority.inspectName != ready.Name || authority.mutations != 0 {
+				t.Fatalf("setup=%#v inspected=%q mutations=%d err=%v", result, authority.inspectName, authority.mutations, err)
 			}
 			run.bindManagedEnvironmentToolResult(manageEnvironmentsToolName, setupInput, result)
 			if err := f.server.checkpointSessionRunnerToolEvent(ctx, options, run, agentruntime.Event{Type: agentruntime.EventToolCompleted, ToolName: calls[0].Name, ToolCallID: calls[0].ID, Arguments: string(calls[0].Arguments), Result: string(mustMarshalRawMessage(result))}); err != nil {
