@@ -335,6 +335,13 @@ func runServer(info buildinfo.Info, cfg config.Config, tlsResolver *networktls.R
 		VMResources:             vmResourceController,
 		WebUI:                   webHandler,
 	}, cfg))
+	defer func() {
+		shutdownContext, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer shutdownCancel()
+		if err := app.Close(shutdownContext); err != nil {
+			log.Printf("close kernel runtime: %v", err)
+		}
+	}()
 	if recovery, err := app.RecoverIMOutbound(ctx); err != nil {
 		return fmt.Errorf("recover IM outbound delivery: %w", err)
 	} else if recovery.Routes > 0 {
@@ -343,13 +350,6 @@ func runServer(info buildinfo.Info, cfg config.Config, tlsResolver *networktls.R
 			log.Printf("IM outbound recovery warning: %s", warning)
 		}
 	}
-	defer func() {
-		shutdownContext, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer shutdownCancel()
-		if err := app.Close(shutdownContext); err != nil {
-			log.Printf("close kernel runtime: %v", err)
-		}
-	}()
 	realtimeOutbox, err := newRealtimeOutboxDispatcher(workspaceStore, app)
 	if err != nil {
 		return fmt.Errorf("configure realtime outbox: %w", err)
