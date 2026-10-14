@@ -92,6 +92,7 @@ func (s *Server) startKernelChildRun(child workspace.KernelSupervisedChild, gate
 	_ = s.workspaceStore.MarkKernelChildDispatched(context.Background(), child.FrameID, child.OwnerUserID)
 	go func() {
 		defer close(run.done)
+		defer kernelChildRuns.CompareAndDelete(key, run)
 		defer cancel()
 		if len(gates) > 0 && gates[0] != nil {
 			select {
