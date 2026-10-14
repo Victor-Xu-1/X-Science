@@ -103,8 +103,8 @@ type resourceWaitRequestContext struct {
 	request context.Context
 }
 
-func (c resourceWaitRequestContext) ResourceAdmissionWaitContext() (context.Context, func()) {
-	return c.request, func() {}
+func (c resourceWaitRequestContext) ResourceAdmissionWaitContext() context.Context {
+	return c.request
 }
 
 func TestResourceWaitCancellationInterruptsSQLiteConnectionWait(t *testing.T) {
@@ -151,6 +151,28 @@ type resourceWaitMaskedValues struct {
 }
 
 func (c resourceWaitMaskedValues) Value(key any) any { return c.values.Value(key) }
+
+func TestResourceAdmissionContextPreservesAlreadyCancelledSourceCause(t *testing.T) {
+	live, closeLive := context.WithCancel(context.Background())
+	defer closeLive()
+	want := errors.New("original preparation budget exhausted")
+	request, stopRequest := context.WithCancelCause(live)
+	stopRequest(want)
+	setup, stopSetup := context.WithCancelCause(context.WithoutCancel(request))
+	stopSetup(want)
+	// The detached setup keeps lifecycle values while a host preparation
+	// cancellation has already reached its embedded context.
+	masked := resourceWaitMaskedValues{Context: setup, values: live}
+	source := resourceWaitRequestContext{Context: masked, request: request}
+	if !errors.Is(context.Cause(source), context.Canceled) || live.Err() != nil {
+		t.Fatal("fixture did not retain a live task behind the cancelled setup")
+	}
+	queued, cleanup := resourceAdmissionContext(source)
+	defer cleanup()
+	if !errors.Is(context.Cause(queued), want) {
+		t.Fatalf("setup propagation replaced the original cause: got=%v want=%v", context.Cause(queued), want)
+	}
+}
 
 func TestResourceWaitDeadlineNeverBecomesNilSuccess(t *testing.T) {
 	live, cancelLive := context.WithCancel(context.Background())

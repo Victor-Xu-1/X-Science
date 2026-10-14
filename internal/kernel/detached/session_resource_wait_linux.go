@@ -32,13 +32,16 @@ func (b *Backend) launchExecutorWithResourceWait(ctx context.Context, backend wo
 }
 
 func (b *Backend) waitForSessionResourceCapacity(ctx context.Context, expected workspace.KernelExecutionBackend) error {
+	capacityScope, _ := ctx.(kernelruntime.ResourceCapacityWaitScopeSource)
 	ctx, cancelWait := resourceAdmissionContext(ctx)
 	defer cancelWait()
+	endCapacityWait := func() {}
+	defer func() { endCapacityWait() }()
 	// Outbox delivery is a wake hint, not admission authority. Keep a low-rate
 	// durable readback for restarts or commits made by a different Store handle.
 	ticker := time.NewTicker(defaultExecutorHeartbeatInterval)
 	defer ticker.Stop()
-	reported := false
+	waitingObserved := false
 	for {
 		if err := ctx.Err(); err != nil {
 			return resourceWaitContextError(ctx)
@@ -84,9 +87,14 @@ func (b *Backend) waitForSessionResourceCapacity(ctx context.Context, expected w
 		default:
 			return workspace.ErrKernelExecutionBackendStale
 		}
-		if !reported {
+		if !waitingObserved {
+			if capacityScope != nil {
+				if cleanup := capacityScope.BeginResourceCapacityWait(); cleanup != nil {
+					endCapacityWait = cleanup
+				}
+			}
 			toolprogress.Report(ctx, toolprogress.Update{Phase: "waiting_for_resources", Message: "Waiting for execution capacity; the original operation is preserved and no computation has started.", Indeterminate: true})
-			reported = true
+			waitingObserved = true
 		}
 		select {
 		case <-ctx.Done():
@@ -98,28 +106,47 @@ func (b *Backend) waitForSessionResourceCapacity(ctx context.Context, expected w
 	}
 }
 
-// Merge once per queue wait, including its SQLite reads, not once per poll.
-// Cancelling this derived context never cancels admitted startup's parent.
+// Merge cancellation once per admission wait, including SQLite reads, not once
+// per poll. This does not start capacity accounting or cancel the setup parent.
 func resourceAdmissionContext(setup context.Context) (context.Context, context.CancelFunc) {
-	queued, cancel := context.WithCancelCause(setup)
-	stop := func() bool { return true }
-	endWait := func() {}
+	original := setup
 	if source, ok := setup.(kernelruntime.ResourceAdmissionWaitContextSource); ok {
-		original, cleanup := source.ResourceAdmissionWaitContext()
-		if cleanup != nil {
-			endWait = cleanup
-		}
-		if original != nil {
-			stop = context.AfterFunc(original, func() { cancel(resourceWaitContextError(original)) })
-			if original.Err() != nil {
-				cancel(resourceWaitContextError(original))
-			}
+		if request := source.ResourceAdmissionWaitContext(); request != nil {
+			original = request
 		}
 	}
+	// Setup can mask request values behind a still-live task lifetime. Do not
+	// let its generic cancellation race ahead of the original request's cause.
+	queued, cancel := context.WithCancelCause(context.WithoutCancel(setup))
+	forwardSetup := func() {
+		if original.Err() != nil {
+			cancel(resourceWaitContextError(original))
+		} else {
+			cancel(resourceWaitContextError(setup))
+		}
+	}
+	stopSetup := context.AfterFunc(setup, forwardSetup)
+	stopOriginal := context.AfterFunc(original, func() { cancel(resourceWaitContextError(original)) })
 	if setup.Err() != nil {
-		cancel(resourceWaitContextError(setup))
+		forwardSetup()
 	}
-	return queued, func() { stop(); cancel(nil); endWait() }
+	if original.Err() != nil {
+		cancel(resourceWaitContextError(original))
+	}
+	return resourceAdmissionWaitContext{Context: queued, setup: setup}, func() {
+		stopSetup()
+		stopOriginal()
+		cancel(nil)
+	}
+}
+
+type resourceAdmissionWaitContext struct {
+	context.Context
+	setup context.Context
+}
+
+func (c resourceAdmissionWaitContext) Deadline() (time.Time, bool) {
+	return c.setup.Deadline()
 }
 
 func resourceWaitContextError(ctx context.Context) error {

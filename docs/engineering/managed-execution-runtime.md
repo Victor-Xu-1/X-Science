@@ -112,6 +112,9 @@ not consume the subsequent executor readiness timeout.
 An ordinary recovered operation's host preparation budget also excludes this
 durable resource wait. Preparation time consumed before waiting is not restored:
 the same remaining budget resumes after admission, through bounded dispatch.
+The original request-context accessor is read-only. Only a verified waiting
+reservation opens the separate capacity scope; session-lock acquisition and
+pre-admission database reads continue spending the preparation budget.
 Only a successful handoff to the execution owner retires that preparation timer;
 a prepared database row alone does not. Foreground observation and long-running
 execution then retain their existing ownership and immutable execution timeout.

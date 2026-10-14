@@ -6,6 +6,8 @@ import (
 	"testing"
 	"testing/synctest"
 	"time"
+
+	kernelruntime "x-science/internal/kernel"
 )
 
 func TestKernelRecoveryPreparationBudgetChargesOnlyPreparing(t *testing.T) {
@@ -13,8 +15,14 @@ func TestKernelRecoveryPreparationBudgetChargesOnlyPreparing(t *testing.T) {
 		ctx, closeBudget := withKernelRecoveryPreparationBudget(context.Background(), 100*time.Millisecond)
 		defer closeBudget()
 		budget := kernelRecoveryPreparationBudgetFrom(ctx)
+		setup, closeSetup := detachedKernelSetupContext(ctx, 0)
+		defer closeSetup()
+		admission := setup.(kernelruntime.ResourceAdmissionWaitContextSource)
+		if admission.ResourceAdmissionWaitContext() != ctx || admission.ResourceAdmissionWaitContext() != ctx {
+			t.Fatal("admission lookup changed the original cancellation authority")
+		}
 		time.Sleep(40 * time.Millisecond)
-		resume := budget.suspend()
+		resume := setup.(kernelruntime.ResourceCapacityWaitScopeSource).BeginResourceCapacityWait()
 		time.Sleep(time.Hour)
 		if ctx.Err() != nil {
 			t.Fatal("resource queue consumed the preparation budget")

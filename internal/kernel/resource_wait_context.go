@@ -7,7 +7,14 @@ import "context"
 // Only unstarted session-admission and resource-queue waits observe this context;
 // admitted startup and execution retain their existing detached lifecycle contract.
 type ResourceAdmissionWaitContextSource interface {
-	// The cleanup ends this one queue-wait scope. It must be called on every
-	// exit, including cancellation; polling does not open additional scopes.
-	ResourceAdmissionWaitContext() (context.Context, func())
+	ResourceAdmissionWaitContext() context.Context
+}
+
+// ResourceCapacityWaitScopeSource optionally accounts for a verified durable
+// capacity wait separately from host preparation. Reading cancellation authority
+// or waiting for a session lock must never begin this scope.
+type ResourceCapacityWaitScopeSource interface {
+	// Begin once, only after exact backend and waiting reservation validation.
+	// Call the returned cleanup once on every exit, including cancellation.
+	BeginResourceCapacityWait() func()
 }

@@ -24,14 +24,19 @@ type detachedKernelLifecycleContext struct {
 }
 
 var _ kernelruntime.ResourceAdmissionWaitContextSource = detachedKernelLifecycleContext{}
+var _ kernelruntime.ResourceCapacityWaitScopeSource = detachedKernelLifecycleContext{}
 
 // Resource waiting has not started execution and must release an obsolete
 // runner/lease waiter. Normal admitted startup still survives request handoff.
-func (c detachedKernelLifecycleContext) ResourceAdmissionWaitContext() (context.Context, func()) {
+func (c detachedKernelLifecycleContext) ResourceAdmissionWaitContext() context.Context {
+	return c.values
+}
+
+func (c detachedKernelLifecycleContext) BeginResourceCapacityWait() func() {
 	if budget := kernelRecoveryPreparationBudgetFrom(c.values); budget != nil {
-		return c.values, budget.suspend()
+		return budget.suspend()
 	}
-	return c.values, func() {}
+	return func() {}
 }
 
 func (c detachedKernelLifecycleContext) Err() error {
