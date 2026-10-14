@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "18881e600b0bdae6fb4cf73a2225fe29fea014722d4313b2ef74d44dab2a8aa3",
+  "adaptationFingerprintSHA256": "df98ae2f7105b92c2afbb10c73cec6e8577cbcba77596eb53e0411af495baf0f",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
-  "additionFingerprintSHA256": "252bc5d14799167d26193e6c2ce73aa5c78be2f5ff701ce6e390cd86352acb09",
+  "additionFingerprintSHA256": "29af7820c13d7026462dffbe6a61b7f149ae8c5e1cf7a4c23795cb50e4bd5a28",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 275,
@@ -17,15 +17,15 @@
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "76f8e3e9cdcaa740986ea9c559e386032da034131962f1ea476094d830c7bc79",
-      "bytes": 4392,
+      "targetSHA256": "aab8f3edd22d536a50e97af4b366ff9eaade73660c0523a7e6902c4e247fe9fe",
+      "bytes": 4391,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "d54ba2c9242afa7fafb55b505dab71541101719791f33f219b5327fb79d34964",
-      "bytes": 157,
+      "targetSHA256": "d49c75ce228b5e96796c50af28dd7349bbe88885d40e45ad9ad85a0d67738b45",
+      "bytes": 156,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
     {
@@ -7530,8 +7530,8 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "1b65d3e30e038408ddc617a5b6ea177bf568cb59ef14d0fdc23e532142a0add0",
-      "bytes": 558186,
+      "sha256": "1e6139d5f02797da442a4a3e81f14664a1edfa43378481cbb2baff13bba5f707",
+      "bytes": 558183,
       "reason": "Deterministic npm build dependency lock."
     },
     {

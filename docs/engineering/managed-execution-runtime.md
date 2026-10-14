@@ -101,8 +101,13 @@ field. An explicit budget below the observed executor minimum returns the typed
 `resource_budget_below_minimum` unstarted result with requested/minimum bytes and
 `retryable=false`; waiting for free capacity cannot fix the unchanged allocation.
 The model must submit a newly approved operation with a sufficient budget or an
-authorized different runtime. Budgets are never silently increased, the durable
-reservation floor remains enforced, and ordinary capacity waits remain retryable.
+authorized different runtime. Budgets are never silently increased, and the
+durable reservation floor remains enforced. Ordinary capacity waits retain the
+original approved operation inside `EnsureSession`, without returning a failure
+to the model or requesting a replacement tool proposal. The resource-queue phase
+observes both the original runner/lease cancellation and the task lifetime;
+admitted startup retains its existing request-handoff semantics. Queue time does
+not consume the subsequent executor readiness timeout.
 
 Capacity-unavailable reservations and reserved-but-starting executors remain
 pending work while their exact current task/backend generations are active; a
@@ -111,8 +116,10 @@ The existing startup supervisor, not a second scheduler, retries resource admiss
 A previously persisted wait's admission and its `resource_capacity_admitted`
 notification commit in one transaction. Initial immediate admissions do not emit
 an extra notification; reserved replays remain idempotent. That notification
-does not execute a previously cancelled operation; a subsequent tool proposal
-still requires ordinary execution authorization and actual worker readiness.
+proves resource admission, not worker readiness or computation. The original
+call continues through ordinary readiness, live-claim and exact approval checks.
+Historically cancelled operations remain terminal and are never revived; any
+new proposal still requires its own ordinary execution authorization.
 Legacy reserved rows without recorded wait origin are not given a fabricated
 notification. Empty notification observations
 (`idle`, timeout, or legacy empty completion) do not reset material-progress or

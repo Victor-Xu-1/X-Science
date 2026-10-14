@@ -3,6 +3,8 @@ package server
 import (
 	"context"
 	"time"
+
+	kernelruntime "x-science/internal/kernel"
 )
 
 const detachedKernelInfrastructureGrace = 2 * time.Minute
@@ -19,6 +21,14 @@ type detachedKernelLifecycleContext struct {
 	// is intentionally a different parent used for cancellation, but it does
 	// not own runner, reviewer, or approval values attached by the live turn.
 	values context.Context
+}
+
+var _ kernelruntime.ResourceAdmissionWaitContextSource = detachedKernelLifecycleContext{}
+
+// Resource waiting has not started execution and must release an obsolete
+// runner/lease waiter. Normal admitted startup still survives request handoff.
+func (c detachedKernelLifecycleContext) ResourceAdmissionWaitContext() context.Context {
+	return c.values
 }
 
 func (c detachedKernelLifecycleContext) Err() error {

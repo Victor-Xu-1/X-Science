@@ -149,7 +149,7 @@ func (b *Backend) EnsureSession(ctx context.Context, spec kernelruntime.SessionS
 				return kernelruntime.BackendSessionRef{}, err
 			}
 			if found && reservation.State == "waiting" {
-				if err := b.launchExecutor(existing); err != nil {
+				if err := b.launchExecutorWithResourceWait(ctx, existing); err != nil {
 					return kernelruntime.BackendSessionRef{}, err
 				}
 			}
@@ -250,7 +250,7 @@ func (b *Backend) EnsureSession(ctx context.Context, spec kernelruntime.SessionS
 		if recreateErr != nil {
 			return kernelruntime.BackendSessionRef{}, recreateErr
 		}
-		if err := b.launchExecutor(backend); err != nil {
+		if err := b.launchExecutorWithResourceWait(ctx, backend); err != nil {
 			return kernelruntime.BackendSessionRef{}, err
 		}
 		ready, err := b.waitForReady(ctx, backend.BackendID, backend.BackendGeneration, b.StartTimeout)
@@ -296,7 +296,7 @@ func (b *Backend) EnsureSession(ctx context.Context, spec kernelruntime.SessionS
 	if err != nil {
 		return kernelruntime.BackendSessionRef{}, err
 	}
-	if err := b.launchExecutor(backend); err != nil {
+	if err := b.launchExecutorWithResourceWait(ctx, backend); err != nil {
 		return kernelruntime.BackendSessionRef{}, err
 	}
 	ready, err := b.waitForReady(ctx, backend.BackendID, backend.BackendGeneration, b.StartTimeout)
