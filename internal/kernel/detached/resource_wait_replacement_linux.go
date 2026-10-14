@@ -58,6 +58,11 @@ func (b *Backend) settleReleasedResourceWait(ctx context.Context, expected works
 	if !eligible || reservation.State != "released" {
 		return true, errStartupStillOwned
 	}
+	if current.State == workspace.KernelExecutionBackendStateStopped {
+		// A stale Starting snapshot must still count as handled, but the exact
+		// released-zero terminal proof needs no further observation or finish.
+		return true, nil
+	}
 	if b.Launcher == nil {
 		return true, errStartupStillOwned
 	}

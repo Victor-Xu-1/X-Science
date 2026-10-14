@@ -10,6 +10,9 @@ import (
 )
 
 func (b *Backend) reconcileResourceWait(ctx context.Context, backend workspace.KernelExecutionBackend) (bool, error) {
+	if backend.State == workspace.KernelExecutionBackendStateStopped {
+		return false, nil // This snapshot already carries the terminal result.
+	}
 	reservation, found, err := b.Store.KernelResourceReservation(ctx, backend.BackendID, backend.BackendGeneration)
 	if err != nil {
 		return true, err
