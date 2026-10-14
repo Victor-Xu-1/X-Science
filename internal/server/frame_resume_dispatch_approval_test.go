@@ -192,8 +192,25 @@ func TestFrameResumeDispatchRequeuesAwaitingApprovalAndWakesOnDecision(t *testin
 	if err != nil || resolved.State != workspace.KernelLocalOperationStateFailed {
 		t.Fatalf("resolved=%#v err=%v", resolved, err)
 	}
-	if err := server.wakeFrameResumeDispatchAfterKernelTransition(context.Background(), resolved); err != nil {
+	// The shared caller may still hold the pre-decision value. Audit evidence
+	// must resolve the committed operation, not label that stale value current.
+	if err := server.wakeFrameResumeDispatchAfterKernelTransition(context.Background(), operation); err != nil {
 		t.Fatal(err)
+	}
+	var wakeRaw string
+	if err := db.QueryRow(`SELECT payload FROM frame_events WHERE frame_id=? AND event_type='frame_resume_dispatch_woken'`, stream.FrameID).Scan(&wakeRaw); err != nil {
+		t.Fatal(err)
+	}
+	var wakeAudit struct {
+		Source  workspace.FrameResumeWakeSource `json:"source"`
+		ActorID string                          `json:"actorId"`
+		Cause   workspace.FrameResumeWakeCause  `json:"cause"`
+	}
+	if err := json.Unmarshal([]byte(wakeRaw), &wakeAudit); err != nil {
+		t.Fatal(err)
+	}
+	if wakeAudit.Source != workspace.FrameResumeWakeKernelOperation || wakeAudit.ActorID != "" || wakeAudit.Cause.OperationVersion != resolved.StateVersion || wakeAudit.Cause.DecisionID != resolved.ApprovalDecisionID || wakeAudit.Cause.DecisionSource != "user" || wakeAudit.Cause.DecisionActorID != stream.OwnerID {
+		t.Fatalf("kernel wake lost the committed witness: %#v", wakeAudit)
 	}
 	woken, found, err := store.GetCompatibilityFrameResumeDispatchByFrame("frame-kernel-pause-dispatch")
 	if err != nil || !found || woken.Status != "registered" || !woken.NotBefore.IsZero() {

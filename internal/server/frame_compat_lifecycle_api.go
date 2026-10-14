@@ -171,13 +171,24 @@ func (s *Server) handleCompatibilityFrameResume(w http.ResponseWriter, r *http.R
 	// the active dispatch when the logical task is already processing; without
 	// consuming its notBefore fence the API would report success while leaving
 	// the task visibly failed until the automatic backstop elapsed.
-	if wakeEvent, woken, wakeErr := s.workspaceStore.WakeCompatibilityFrameResumeDispatch(result.Event.ID); wakeErr != nil {
-		writeV11StoreError(w, fmt.Errorf("frame resumed but dispatch wake failed: %w", wakeErr))
+	currentDispatch, dispatchFound, dispatchErr := s.workspaceStore.GetCompatibilityFrameResumeDispatch(result.Event.ID)
+	if dispatchErr != nil {
+		writeV11StoreError(w, dispatchErr)
 		return
-	} else if woken {
-		if publishErr := s.publishWorkspaceEvent(wakeEvent); publishErr != nil {
-			writeV11StoreError(w, fmt.Errorf("frame resumed but dispatch wake delivery failed: %w", publishErr))
+	}
+	if dispatchFound && (!currentDispatch.NotBefore.IsZero() || currentDispatch.WaitingFor != "") {
+		if wakeEvent, woken, wakeErr := s.workspaceStore.WakeCompatibilityFrameResumeDispatch(workspace.FrameResumeDispatchWakeInput{
+			ResumeEventID: result.Event.ID, ExpectedWaitRef: currentDispatch.WaitRef,
+			Source: workspace.FrameResumeWakeContinue, ActorID: compatAgentUserID(r),
+			Cause: workspace.FrameResumeWakeCause{Kind: "continue_command", ReferenceID: uuid.NewString(), Evidence: "observed"},
+		}); wakeErr != nil {
+			writeV11StoreError(w, fmt.Errorf("frame resumed but dispatch wake failed: %w", wakeErr))
 			return
+		} else if woken {
+			if publishErr := s.publishWorkspaceEvent(wakeEvent); publishErr != nil {
+				writeV11StoreError(w, fmt.Errorf("frame resumed but dispatch wake delivery failed: %w", publishErr))
+				return
+			}
 		}
 	}
 	if err := s.registerFrameResumeDispatch(result.Event.ID, defaultFrameResumeReservationTTL); err != nil {

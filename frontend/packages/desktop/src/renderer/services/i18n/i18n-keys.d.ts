@@ -1492,6 +1492,7 @@ export type I18nKey =
   | 'conversation.xscienceRuntime.runtimeOperations.taskDefaultConfiguration'
   | 'conversation.xscienceRuntime.runtimeOperations.taskDetails'
   | 'conversation.xscienceRuntime.runtimeOperations.taskElapsed'
+  | 'conversation.xscienceRuntime.runtimeOperations.taskElapsedUnavailable'
   | 'conversation.xscienceRuntime.runtimeOperations.taskError'
   | 'conversation.xscienceRuntime.runtimeOperations.taskFailed'
   | 'conversation.xscienceRuntime.runtimeOperations.taskFailureReason'

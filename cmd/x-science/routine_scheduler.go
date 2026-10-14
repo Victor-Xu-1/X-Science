@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"math"
@@ -105,15 +106,18 @@ func startRoutineScheduler(ctx context.Context, scheduler *routinescheduler.Sche
 	return nil
 }
 
-func stopRoutineScheduler(app *server.Server, scheduler *routinescheduler.Scheduler) {
+func stopRoutineScheduler(app *server.Server, scheduler *routinescheduler.Scheduler) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := scheduler.Stop(ctx); err != nil {
 		log.Printf("stop routine scheduler: %v", err)
-		if auditErr := app.RecordRoutineSchedulerError(err); auditErr != nil {
+		auditErr := app.RecordRoutineSchedulerError(err)
+		if auditErr != nil {
 			log.Printf("routine scheduler stop audit: %v", auditErr)
 		}
+		return errors.Join(err, auditErr)
 	}
+	return nil
 }
 
 func withRoutineSchedulerWake(next http.Handler, wake func()) http.Handler {

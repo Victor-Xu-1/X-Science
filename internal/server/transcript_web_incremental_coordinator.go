@@ -165,7 +165,7 @@ func (s *Server) tryIncrementalTranscriptWebReadModel(
 	}
 	assistantPage := false
 	for _, projected := range page {
-		if transcriptstore.IsRunnerAdmissionFact(projected.Event, projected.ResolvedPayloadJSON) {
+		if transcriptstore.IsRunnerInternalFact(projected.Event, projected.ResolvedPayloadJSON) {
 			continue
 		}
 		switch projected.Event.Type {
@@ -194,7 +194,7 @@ func (s *Server) tryIncrementalTranscriptWebReadModel(
 	records := make([]transcriptstore.TranscriptWebMessageRecord, 0, len(page))
 	references := make([]transcriptstore.TranscriptWebMessageArtifactReference, 0)
 	for _, projected := range page {
-		if transcriptstore.IsRunnerAdmissionFact(projected.Event, projected.ResolvedPayloadJSON) {
+		if transcriptstore.IsRunnerInternalFact(projected.Event, projected.ResolvedPayloadJSON) {
 			continue
 		}
 		record, eventReferences, err := buildIncrementalTranscriptWebUserMessage(
@@ -267,7 +267,7 @@ func (s *Server) tryIncrementalTranscriptWebReadModel(
 }
 
 func classifyTranscriptWebIncrementalEvent(projected transcriptstore.ProjectedEvent) transcriptWebIncrementalDisposition {
-	if transcriptstore.IsRunnerAdmissionFact(projected.Event, projected.ResolvedPayloadJSON) {
+	if transcriptstore.IsRunnerInternalFact(projected.Event, projected.ResolvedPayloadJSON) {
 		return ""
 	}
 	switch projected.Event.Type {

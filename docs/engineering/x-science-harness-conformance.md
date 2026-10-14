@@ -1248,3 +1248,7 @@ not establish successful calls to credentialed external models or compute
 accounts. Release requirements are defined in the
 [operator contract](../release-acceptance-contract.md); each release must carry
 evidence for its exact source revision and applicable external prerequisites.
+
+Waiting-period identity and diagnostic wake-source evidence follow the
+[resume wake audit contract](frame-resume-wake-audit.md). That audit does not
+grant execution authority or prove a successful task outcome.

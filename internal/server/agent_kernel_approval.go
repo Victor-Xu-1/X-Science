@@ -253,10 +253,25 @@ func (s *Server) wakeFrameResumeDispatchAfterKernelTransition(
 	ctx context.Context,
 	operation workspace.KernelLocalOperation,
 ) error {
-	return s.wakeFrameResumeDispatchForFrame(ctx, operation.FrameID)
+	if s == nil || s.workspaceStore == nil {
+		return nil
+	}
+	committed, found, err := s.workspaceStore.GetKernelLocalOperation(ctx, operation.OwnerUserID, operation.OperationID)
+	if err == nil && found {
+		operation = committed
+	}
+	cause := workspace.FrameResumeWakeCause{Kind: "kernel_operation_version", ReferenceID: operation.OperationID,
+		Evidence: "observed", OperationID: operation.OperationID, OperationVersion: operation.StateVersion,
+		DecisionID: operation.ApprovalDecisionID, DecisionSource: operation.ApprovalSource,
+		DecisionActorID: operation.ApprovalActorID,
+	}
+	if err != nil || !found {
+		cause.Evidence, cause.ReferenceID = "unknown", ""
+	}
+	return s.wakeFrameResumeDispatchForFrame(ctx, operation.FrameID, workspace.FrameResumeWakeKernelOperation, "", cause)
 }
 
-func (s *Server) wakeFrameResumeDispatchForFrame(ctx context.Context, frameID string) error {
+func (s *Server) wakeFrameResumeDispatchForFrame(ctx context.Context, frameID string, source workspace.FrameResumeWakeSource, actorID string, cause workspace.FrameResumeWakeCause) error {
 	if s == nil || s.workspaceStore == nil {
 		return nil
 	}
@@ -264,7 +279,9 @@ func (s *Server) wakeFrameResumeDispatchForFrame(ctx context.Context, frameID st
 	if err != nil || !found {
 		return err
 	}
-	event, changed, err := s.workspaceStore.WakeCompatibilityFrameResumeDispatch(dispatch.ResumeEvent.ID)
+	event, changed, err := s.workspaceStore.WakeCompatibilityFrameResumeDispatch(workspace.FrameResumeDispatchWakeInput{
+		ResumeEventID: dispatch.ResumeEvent.ID, ExpectedWaitRef: dispatch.WaitRef, Source: source, ActorID: actorID, Cause: cause,
+	})
 	if err != nil {
 		return err
 	}
@@ -285,7 +302,16 @@ func (s *Server) WakeFrameResumeDispatchAfterKernelSettlement(ctx context.Contex
 	if strings.TrimSpace(settlement.OperationID) == "" {
 		return nil
 	}
-	return s.wakeFrameResumeDispatchForFrame(ctx, settlement.FrameID)
+	cause := workspace.FrameResumeWakeCause{Kind: "kernel_settlement_outbox", ReferenceID: event.ID, Evidence: "canonical",
+		OperationID: settlement.OperationID, ExpectedOperationVersion: settlement.OperationVersion, NotificationID: settlement.NotificationID,
+	}
+	if s != nil && s.workspaceStore != nil {
+		committed, found, err := s.workspaceStore.GetKernelLocalOperation(ctx, settlement.NotificationOwner, settlement.OperationID)
+		if err == nil && found {
+			cause.OperationVersion = committed.StateVersion
+		}
+	}
+	return s.wakeFrameResumeDispatchForFrame(ctx, settlement.FrameID, workspace.FrameResumeWakeKernelSettlement, "", cause)
 }
 
 func kernelLocalExecResolveError(err error) error {

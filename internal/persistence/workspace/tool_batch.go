@@ -312,6 +312,13 @@ func (s *Store) GetToolCallBatch(
 	return batch, true, nil
 }
 
+func (s *Store) ToolCallProposalForTerminalReceipt(ctx context.Context, ownerID, callID, toolName string, eventID int64, snapshot transcriptstore.ProjectionSnapshot) (int64, bool, error) {
+	if s == nil {
+		return 0, false, errors.New("workspace store is required")
+	}
+	return lookupToolCallReceiptProposal(ctx, s.db, ownerID, callID, toolName, eventID, snapshot)
+}
+
 func (s *Store) ListToolCallBatchItems(
 	ctx context.Context,
 	ownerUserID, batchID string,

@@ -45,6 +45,7 @@ type CompatibilityFrameResumeDispatch struct {
 	LeaseExpiresAt time.Time
 	NotBefore      time.Time
 	WaitingFor     string
+	WaitRef        string
 	Error          string
 	AuditEvents    []FrameEvent
 }
@@ -518,6 +519,7 @@ func (s *Store) RequeueCompatibilityFrameResumeDispatch(input RequeueCompatibili
 	dispatchPayload["interruptedAt"] = now.Format(time.RFC3339Nano)
 	dispatchPayload["interruptionReasonCode"] = input.ReasonCode
 	dispatchPayload["interruptedClaimTokenSHA256"] = claimTokenSHA256
+	dispatchPayload["waitEventId"] = auditID
 	if input.RunnerAttempt > 0 {
 		dispatchPayload["runnerAttempt"] = input.RunnerAttempt
 	}
@@ -697,13 +699,12 @@ func (s *Store) ConvergeCompatibilityFrameResumeDispatch(
 // while no runner is holding the dispatch. Other dispatches are a no-op: an
 // active runner claim is already making progress and will observe the durable
 // decision itself.
-func (s *Store) WakeCompatibilityFrameResumeDispatch(eventID string) (FrameEvent, bool, error) {
+func (s *Store) WakeCompatibilityFrameResumeDispatch(input FrameResumeDispatchWakeInput) (FrameEvent, bool, error) {
 	if s == nil || s.db == nil {
 		return FrameEvent{}, false, errors.New("workspace store is closed")
 	}
-	eventID = strings.TrimSpace(eventID)
-	if eventID == "" {
-		return FrameEvent{}, false, errors.New("resume event id is required")
+	if err := validateFrameResumeWake(input); err != nil {
+		return FrameEvent{}, false, err
 	}
 	ctx := context.Background()
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -711,7 +712,7 @@ func (s *Store) WakeCompatibilityFrameResumeDispatch(eventID string) (FrameEvent
 		return FrameEvent{}, false, fmt.Errorf("begin resume dispatch wake: %w", err)
 	}
 	defer tx.Rollback()
-	event, changed, err := wakeCompatibilityFrameResumeDispatchTx(ctx, tx, eventID, s.now().UTC())
+	event, changed, err := wakeCompatibilityFrameResumeDispatchTx(ctx, tx, input, s.now().UTC())
 	if err != nil || !changed {
 		return event, changed, err
 	}
@@ -721,7 +722,11 @@ func (s *Store) WakeCompatibilityFrameResumeDispatch(eventID string) (FrameEvent
 	return event, true, nil
 }
 
-func wakeCompatibilityFrameResumeDispatchTx(ctx context.Context, tx workspaceTransaction, eventID string, now time.Time) (FrameEvent, bool, error) {
+func wakeCompatibilityFrameResumeDispatchTx(ctx context.Context, tx workspaceTransaction, input FrameResumeDispatchWakeInput, now time.Time) (FrameEvent, bool, error) {
+	if err := validateFrameResumeWake(input); err != nil {
+		return FrameEvent{}, false, err
+	}
+	eventID := input.ResumeEventID
 	row, found, err := scanCompatibilityFrameResumeDispatch(tx.QueryRowContext(ctx, `
 		SELECT e.id, e.frame_id, e.sequence, e.payload, e.created_at,
 			f.root_frame_id, f.project_id, f.agent_name, f.status
@@ -741,11 +746,16 @@ func wakeCompatibilityFrameResumeDispatchTx(ctx context.Context, tx workspaceTra
 	if !ok {
 		return FrameEvent{}, false, errors.New("resume event dispatch payload is invalid")
 	}
+	if row.dispatch.WaitRef != input.ExpectedWaitRef {
+		return FrameEvent{}, false, nil
+	}
 	_, timeFenced := dispatchPayload["notBefore"]
 	waitingFor := resumeDispatchString(dispatchPayload["waitingFor"])
 	if !timeFenced && waitingFor == "" {
-		return FrameEvent{}, false, nil
+		event, _, err := compatibilityDispatchAuditEventByID(ctx, tx, frameResumeWakeAuditID(eventID, input.ExpectedWaitRef))
+		return event, false, err
 	}
+	dispatchPayload["waitEventId"] = input.ExpectedWaitRef
 	delete(dispatchPayload, "notBefore")
 	delete(dispatchPayload, "waitingFor")
 	delete(dispatchPayload, "recoveryContractRevision")
@@ -774,11 +784,7 @@ func wakeCompatibilityFrameResumeDispatchTx(ctx context.Context, tx workspaceTra
 	} else if changed != 1 {
 		return FrameEvent{}, false, errors.New("resume dispatch wake changed concurrently")
 	}
-	auditEvent, err := appendCompatibilityDispatchAuditEvent(ctx, tx, "frame-resume-dispatch-woken:"+eventID,
-		row.dispatch.FrameID, "frame_resume_dispatch_woken", map[string]any{
-			"resumeEventId": eventID, "dispatchAttempt": row.dispatch.Attempt,
-			"priorStatus": row.dispatch.Status,
-		}, now)
+	auditEvent, err := appendFrameResumeWakeAudit(ctx, tx, row, input, now)
 	if err != nil {
 		return FrameEvent{}, false, err
 	}
@@ -881,6 +887,8 @@ func (s *Store) signalCompatibilityFrameResumeDispatchModelSwitch(
 		dispatchPayload["modelSwitchRequestedAt"] = now.Format(time.RFC3339Nano)
 		dispatchPayload["wakeReasonCode"] = providerFailureReasonCode
 	} else if row.dispatch.Status == frameResumeDispatchRegistered {
+		dispatchPayload["waitEventId"] = row.dispatch.WaitRef
+		eventID = frameResumeWakeAuditID(row.dispatch.ResumeEvent.ID, row.dispatch.WaitRef)
 		delete(dispatchPayload, "notBefore")
 		delete(dispatchPayload, "waitingFor")
 		delete(dispatchPayload, "blockedAt")
@@ -913,14 +921,27 @@ func (s *Store) signalCompatibilityFrameResumeDispatchModelSwitch(
 	} else if changed != 1 {
 		return FrameEvent{}, CompatibilityFrameResumeDispatchWakeNone, true, nil
 	}
-	auditEvent, err := appendCompatibilityDispatchAuditEvent(ctx, tx, eventID,
-		row.dispatch.FrameID, eventType, map[string]any{
-			"resumeEventId":   row.dispatch.ResumeEvent.ID,
-			"dispatchAttempt": row.dispatch.Attempt,
-			"priorStatus":     row.dispatch.Status,
-			"modelRevision":   modelRevision,
-			"reasonCode":      providerFailureReasonCode,
-		}, now)
+	auditPayload := map[string]any{
+		"resumeEventId":   row.dispatch.ResumeEvent.ID,
+		"dispatchAttempt": row.dispatch.Attempt,
+		"priorStatus":     row.dispatch.Status,
+		"modelRevision":   modelRevision,
+		"reasonCode":      providerFailureReasonCode,
+		"source":          string(FrameResumeWakeModelSwitch),
+		"cause": FrameResumeWakeCause{Kind: "model_selection_revision", ReferenceID: frameID,
+			Evidence: "observed", Revision: modelRevision},
+	}
+	if state == CompatibilityFrameResumeDispatchWakeWoken {
+		waitOrigin, err := frameResumeWaitOrigin(ctx, tx, row)
+		if err != nil {
+			return FrameEvent{}, CompatibilityFrameResumeDispatchWakeNone, false, err
+		}
+		auditPayload["waitRef"] = row.dispatch.WaitRef
+		auditPayload["waitOriginEventId"] = waitOrigin
+	} else {
+		auditPayload["claimEventId"] = fmt.Sprintf("frame-resume-dispatch-claim:%s:%d", row.dispatch.ResumeEvent.ID, row.dispatch.Attempt)
+	}
+	auditEvent, err := appendCompatibilityDispatchAuditEvent(ctx, tx, eventID, row.dispatch.FrameID, eventType, auditPayload, now)
 	if err != nil {
 		return FrameEvent{}, CompatibilityFrameResumeDispatchWakeNone, false, err
 	}
@@ -1031,6 +1052,10 @@ func (s *Store) FailCompatibilityFrameResumeDispatch(eventID string, expectedAtt
 				"resumeEventId": eventID, "dispatchAttempt": expectedAttempt,
 				"reasonCode": code, "modelRevision": modelRevision,
 				"wakeReason": "model_switch",
+				"source":     string(FrameResumeWakeModelSwitch),
+				"cause": FrameResumeWakeCause{Kind: "model_selection_revision", ReferenceID: row.dispatch.FrameID,
+					Evidence: "observed", Revision: int64(modelRevision)},
+				"armedEventId": fmt.Sprintf("frame-resume-dispatch-model-switch-armed:%s:%d", eventID, modelRevision),
 			}, now)
 		if err != nil {
 			return FrameEvent{}, false, err
@@ -1337,6 +1362,7 @@ func scanCompatibilityFrameResumeDispatch(scanner interface{ Scan(...any) error 
 	row.dispatch.LeaseExpiresAt = resumeDispatchTime(dispatchPayload["leaseExpiresAt"])
 	row.dispatch.NotBefore = resumeDispatchTime(dispatchPayload["notBefore"])
 	row.dispatch.WaitingFor = resumeDispatchString(dispatchPayload["waitingFor"])
+	row.dispatch.WaitRef = frameResumeDispatchWaitRef(dispatchPayload)
 	return row, true, nil
 }
 

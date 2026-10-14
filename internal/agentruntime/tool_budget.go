@@ -66,6 +66,9 @@ type ToolRoundNoProgressError struct {
 	// progress in this unit. The outer runner persists their fingerprints so a
 	// resumed Engine cannot unknowingly reopen the same route.
 	Calls []ToolCall
+	// SourceRepetition observes repeated verified source content only. Calls
+	// must remain empty: arbitrary surrounding execution is never quarantined.
+	SourceRepetition bool
 }
 
 type ToolCallBatchLimitError struct {
@@ -102,6 +105,9 @@ func (e *ToolRoundLimitError) Error() string {
 func (e *ToolRoundNoProgressError) Error() string {
 	if e == nil {
 		return "agent runtime tool call round made no semantic progress"
+	}
+	if e.SourceRepetition {
+		return fmt.Sprintf("agent runtime observed repeated verified source content for %d completed operations; surrounding execution effects remain unknown", e.Limit)
 	}
 	return fmt.Sprintf("agent runtime made no semantic progress for %d consecutive identical tool call rounds", e.Limit)
 }

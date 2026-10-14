@@ -33,6 +33,9 @@ type sessionRunnerNoProgressRecovery struct {
 	ObligationFingerprint string                      `json:"obligation_fingerprint"`
 	Consecutive           int                         `json:"consecutive"`
 	ClosedActions         []sessionRunnerClosedAction `json:"closed_actions,omitempty"`
+	SourceRepetition      bool                        `json:"source_repetition,omitempty"`
+	sources               runnerSourceObservationReducer
+	lastMaterialProgress  bool
 }
 
 type sessionRunnerRecoveryProjection struct {
@@ -74,6 +77,7 @@ func (state *sessionRunnerNoProgressRecovery) resetScope(scope string) {
 	state.ObligationFingerprint = strings.TrimSpace(scope)
 	state.Consecutive = 0
 	state.ClosedActions = nil
+	state.SourceRepetition = false
 }
 
 func (state *sessionRunnerNoProgressRecovery) resetMaterialProgress() {
@@ -82,6 +86,7 @@ func (state *sessionRunnerNoProgressRecovery) resetMaterialProgress() {
 	}
 	state.Consecutive = 0
 	state.ClosedActions = nil
+	state.SourceRepetition = false
 }
 
 func (state *sessionRunnerNoProgressRecovery) addClosedAction(tool, fingerprint string) {
@@ -115,12 +120,16 @@ func (state *sessionRunnerNoProgressRecovery) mergeClosedActions(actions []sessi
 	}
 }
 
-func (state *sessionRunnerNoProgressRecovery) recordNoProgress(calls []agentruntime.ToolCall) {
+func (state *sessionRunnerNoProgressRecovery) recordNoProgress(calls []agentruntime.ToolCall, sourceRepetition ...bool) {
 	if state == nil {
 		return
 	}
 	state.Schema = sessionRunnerNoProgressRecoverySchema
 	state.Consecutive++
+	state.SourceRepetition = len(sourceRepetition) > 0 && sourceRepetition[0]
+	if state.SourceRepetition {
+		return
+	}
 	for _, call := range calls {
 		state.addClosedAction(
 			call.Name,
@@ -142,6 +151,9 @@ func (state sessionRunnerNoProgressRecovery) payload() map[string]any {
 	value := map[string]any{
 		"schema": state.Schema, "obligation_fingerprint": state.ObligationFingerprint,
 		"consecutive": state.Consecutive,
+	}
+	if state.SourceRepetition {
+		value["source_repetition"] = true
 	}
 	if len(state.ClosedActions) > 0 {
 		actions := make([]any, 0, len(state.ClosedActions))
@@ -177,6 +189,7 @@ func parseSessionRunnerNoProgressRecoveryDetail(detail string) (sessionRunnerNoP
 	}
 	validated := newSessionRunnerNoProgressRecovery(state.ObligationFingerprint)
 	validated.Consecutive = state.Consecutive
+	validated.SourceRepetition = state.SourceRepetition
 	validated.mergeClosedActions(state.ClosedActions)
 	if len(validated.ClosedActions) != len(state.ClosedActions) {
 		return sessionRunnerNoProgressRecovery{}, false
@@ -196,20 +209,31 @@ func (state *sessionRunnerNoProgressRecovery) observeEntry(
 	if state == nil {
 		return
 	}
+	state.lastMaterialProgress = false
 	message := entry.Message
 	logicalScope := runnerRecoveryObligationFingerprint(authority, transcriptstore.RunnerInterruptionCause{})
 	if runnerEntryStartsNewLogicalTask(entry) {
 		state.resetScope(logicalScope)
+		state.sources.observeEntry(entry)
 		return
 	}
 	if strings.TrimSpace(stringValue(message["type"])) != "runner_checkpoint" {
+		state.sources.observeEntry(entry)
 		return
 	}
 	if runnerRecoveryCheckpointSuperseded(entry) {
 		state.resetMaterialProgress()
 		return
 	}
-	if runnerCheckpointHasMaterialProgress(message) {
+	observation, sourceCheckpoint := state.sources.observeEntry(entry)
+	witness, witnessed := entry.RuntimeProjection.(runnerSourceObservationWitness)
+	result := runnerRecoveryMaterialResult(runnerSourceObservationResult(entry), witnessed && witness.executionResult != nil, witnessed && witness.executionUnavailable)
+	progressMessage := copyMapAny(message)
+	progressMessage["toolResult"] = result
+	sourceUnchanged := sourceObservationIsUnchanged(observation, sourceCheckpoint) && !runnerSourceMaterialChange(stringValue(message["toolName"]), result)
+	newSource := observation != nil && observation.State == agentruntime.SourceObservationNew
+	if newSource || !sourceUnchanged && runnerCheckpointHasMaterialProgress(progressMessage) {
+		state.lastMaterialProgress = true
 		state.resetMaterialProgress()
 		return
 	}
@@ -238,6 +262,7 @@ func (state *sessionRunnerNoProgressRecovery) observeEntry(
 			state.resetScope(persisted.ObligationFingerprint)
 		}
 		state.Consecutive = max(state.Consecutive+1, persisted.Consecutive)
+		state.SourceRepetition = persisted.SourceRepetition
 		state.mergeClosedActions(persisted.ClosedActions)
 		return
 	}
@@ -361,6 +386,10 @@ func (s *Server) scanSessionRunnerRecoveryEntries(
 	if err != nil {
 		return fmt.Errorf("load runner recovery projection snapshot: %w", err)
 	}
+	sourceBoundary, err := s.runnerSourceObservationInputBoundary(ctx, authority, snapshot)
+	if err != nil {
+		return err
+	}
 	var conditions transcriptstore.RunnerCorrectionAssembler
 	return s.scanTranscriptProjection(ctx, snapshot, authority.Stream.OwnerID, snapshot.ThroughPublicationSequence, func(projected transcriptstore.ProjectedEvent) error {
 		if err := ctx.Err(); err != nil {
@@ -406,11 +435,19 @@ func (s *Server) scanSessionRunnerRecoveryEntries(
 		if projected.Event.RunnerAttempt != nil {
 			message["runnerAttempt"] = *projected.Event.RunnerAttempt
 		}
-		return visit(eventjournal.Entry{
+		entry := eventjournal.Entry{
 			SessionID: authority.Stream.SessionID, EventID: projected.Event.EventID,
 			Message: message, SourceEventType: projected.Event.Type,
 			RuntimeProjection: runtimeProjection,
-		})
+		}
+		if sourceBoundary > 0 && projected.Event.PublicationSeq > sourceBoundary {
+			var err error
+			entry, err = s.validateRunnerSourceObservationEntry(ctx, authority, entry, snapshot)
+			if err != nil {
+				return err
+			}
+		}
+		return visit(entry)
 	})
 }
 
@@ -443,7 +480,7 @@ func (run *sessionRunnerChatRun) restoreNoProgressRecovery(state sessionRunnerNo
 	run.NoProgressRecovery = &state
 }
 
-func (run *sessionRunnerChatRun) recordNoProgress(calls []agentruntime.ToolCall) sessionRunnerNoProgressRecovery {
+func (run *sessionRunnerChatRun) recordNoProgress(calls []agentruntime.ToolCall, sourceRepetition ...bool) sessionRunnerNoProgressRecovery {
 	if run == nil {
 		return sessionRunnerNoProgressRecovery{}
 	}
@@ -452,7 +489,7 @@ func (run *sessionRunnerChatRun) recordNoProgress(calls []agentruntime.ToolCall)
 		state := newSessionRunnerNoProgressRecovery(expected)
 		run.NoProgressRecovery = &state
 	}
-	run.NoProgressRecovery.recordNoProgress(calls)
+	run.NoProgressRecovery.recordNoProgress(calls, sourceRepetition...)
 	return *run.NoProgressRecovery
 }
 
@@ -464,7 +501,13 @@ func (run *sessionRunnerChatRun) recordMaterialProgress() {
 }
 
 func sessionRunnerNoProgressRecoveryContext(state sessionRunnerNoProgressRecovery) string {
-	if state.Consecutive <= 0 || len(state.ClosedActions) == 0 {
+	if state.Consecutive <= 0 {
+		return ""
+	}
+	if state.SourceRepetition {
+		return "Durable source-observation recovery (server supplied): completed operations repeatedly returned unchanged verified source content. Their original results are preserved. This does not prove that surrounding interpreter execution had no effects or new uninstrumented computation, and does not close or cache interpreter actions. Reuse source receipts, choose a genuinely different needed action, or finish; preserve every existing result."
+	}
+	if len(state.ClosedActions) == 0 {
 		return ""
 	}
 	encoded, err := json.Marshal(state.payload())

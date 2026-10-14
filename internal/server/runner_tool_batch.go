@@ -615,7 +615,8 @@ func (s *Server) checkpointSessionRunnerToolEvent(
 			return err
 		}
 		observed := run.observeExecutionEvidence(event.ToolName, toolResult)
-		if phase == "completed" && runnerGenerationToolProgress(event.ToolName, observed) {
+		s.refreshRunnerToolSourceObservation(ctx, run, agentruntime.ToolCall{ID: event.ToolCallID, Name: event.ToolName}, toolResult)
+		if phase == "completed" && run.completedSourceToolProgress(event.ToolCallID, event.ToolName, observed) {
 			run.recordMaterialProgress()
 			run.resetGenerationRecoveryProgress()
 		}

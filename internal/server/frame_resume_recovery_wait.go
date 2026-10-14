@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 
 	eventjournal "x-science/internal/persistence/journal"
@@ -30,14 +31,17 @@ func (s *Server) wakeChangedFrameRecoveryWaits(ctx context.Context) error {
 			if !found || current.ResumeEvent.ID != waiting.ResumeEvent.ID || current.WaitingFor != workspace.CompatibilityFrameResumeDispatchWaitRecoveryCondition {
 				continue
 			}
-			changed, err := s.frameRecoveryWaitStateChanged(ctx, current)
+			cause, err := s.frameRecoveryWaitStateChange(ctx, current)
 			if err != nil {
 				return err
 			}
-			if !changed {
+			if cause == nil {
 				continue
 			}
-			event, woken, err := s.workspaceStore.WakeCompatibilityFrameResumeDispatch(current.ResumeEvent.ID)
+			event, woken, err := s.workspaceStore.WakeCompatibilityFrameResumeDispatch(workspace.FrameResumeDispatchWakeInput{
+				ResumeEventID: current.ResumeEvent.ID, ExpectedWaitRef: current.WaitRef,
+				Source: workspace.FrameResumeWakeRecoveryCondition, Cause: *cause,
+			})
 			if err != nil {
 				return err
 			}
@@ -55,36 +59,37 @@ func (s *Server) wakeChangedFrameRecoveryWaits(ctx context.Context) error {
 	}
 }
 
-func (s *Server) frameRecoveryWaitStateChanged(ctx context.Context, dispatch workspace.CompatibilityFrameResumeDispatch) (bool, error) {
+func (s *Server) frameRecoveryWaitStateChange(ctx context.Context, dispatch workspace.CompatibilityFrameResumeDispatch) (*workspace.FrameResumeWakeCause, error) {
 	state := mapValue(dispatch.ResumeEvent.Payload["dispatch"])
 	revision := int(numberValue(state["recoveryContractRevision"]))
 	if revision > 0 && revision < sessionRunnerRecoveryContractRevision {
-		return true, nil
+		cause := frameResumeRecoveryContractWakeCause(revision)
+		return &cause, nil
 	}
 	checkpoint := int64(numberValue(state["checkpointEventId"]))
 	frame, found, err := s.workspaceStore.GetFrameRealtimeContext(dispatch.FrameID)
 	if err != nil || !found {
-		return false, err
+		return nil, err
 	}
 	stream, found, err := s.transcriptStore.GetFrameStreamBySession(ctx, frame.UserID, dispatch.FrameID)
 	if err != nil || !found {
-		return false, err
+		return nil, err
 	}
 	if checkpoint <= 0 || stream.NextEventID <= checkpoint+1 {
-		return false, nil
+		return nil, nil
 	}
 	snapshot, err := s.transcriptStore.GetProjectionSnapshot(ctx, stream.UID, stream.OwnerID)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
-	changed := false
+	var cause *workspace.FrameResumeWakeCause
 	err = s.scanTranscriptProjection(ctx, snapshot, stream.OwnerID, snapshot.ThroughPublicationSequence, func(event transcriptstore.ProjectedEvent) error {
-		if changed || event.Event.EventID <= checkpoint {
+		if cause != nil || event.Event.EventID <= checkpoint {
 			return nil
 		}
 		switch event.Event.Type {
 		case "user_message", "user_input_response":
-			changed = true
+			cause = frameRecoveryWaitEventCause(event.Event)
 		case "runner_checkpoint":
 			var message eventjournal.Message
 			raw := event.ResolvedPayloadJSON
@@ -95,9 +100,16 @@ func (s *Server) frameRecoveryWaitStateChanged(ctx context.Context, dispatch wor
 				return err
 			}
 			message["type"] = "runner_checkpoint"
-			changed = runnerCheckpointHasMaterialProgress(message)
+			if runnerCheckpointHasMaterialProgress(message) {
+				cause = frameRecoveryWaitEventCause(event.Event)
+			}
 		}
 		return nil
 	})
-	return changed, err
+	return cause, err
+}
+
+func frameRecoveryWaitEventCause(event transcriptstore.Event) *workspace.FrameResumeWakeCause {
+	return &workspace.FrameResumeWakeCause{Kind: "recovery_condition_event", Evidence: "canonical",
+		ReferenceID: fmt.Sprintf("%s:%d", event.StreamUID, event.EventID), StreamUID: event.StreamUID, EventID: event.EventID}
 }

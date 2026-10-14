@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"strings"
-	"time"
 )
 
 // RunnerTaskMetricsAuthority identifies durable metric scopes for an entire
@@ -113,94 +112,6 @@ func (r *Repository) GetRunnerTaskTimingSummary(
 	ctx context.Context,
 	streamUID, ownerID string,
 ) (RunnerTaskTimingSummary, bool, error) {
-	db := r.readDatabase()
-	streamUID = strings.TrimSpace(streamUID)
-	ownerID = strings.TrimSpace(ownerID)
-	if db == nil {
-		return RunnerTaskTimingSummary{}, false, ErrSchemaUnavailable
-	}
-	if streamUID == "" || ownerID == "" {
-		return RunnerTaskTimingSummary{}, false, errors.New("stream and owner are required")
-	}
-	if _, err := r.GetStream(ctx, streamUID, ownerID); err != nil {
-		return RunnerTaskTimingSummary{}, false, err
-	}
-
-	var summary RunnerTaskTimingSummary
-	var latestFinishedAt sql.NullTime
-	var latestExpiresAt time.Time
-	err := db.QueryRowContext(ctx, `
-		SELECT stream_uid,attempt,claimed_input_revision,status,expires_at,finished_at
-		FROM transcript_runner_attempts
-		WHERE stream_uid=? ORDER BY attempt DESC LIMIT 1`, streamUID,
-	).Scan(&summary.StreamUID, &summary.Attempt, &summary.InputRevision, &summary.Status, &latestExpiresAt, &latestFinishedAt)
-	if errors.Is(err, sql.ErrNoRows) {
-		return RunnerTaskTimingSummary{}, false, nil
-	}
-	if err != nil {
-		return RunnerTaskTimingSummary{}, false, schemaError(err)
-	}
-	summary.ObservedAt = r.now().UTC()
-	if latestFinishedAt.Valid {
-		finishedAt := latestFinishedAt.Time.UTC()
-		summary.FinishedAt = &finishedAt
-	}
-	summary.Active = summary.Status == "running" && summary.FinishedAt == nil && latestExpiresAt.After(summary.ObservedAt)
-	if summary.Status == "running" && summary.FinishedAt != nil || summary.Status != "running" && summary.FinishedAt == nil {
-		return RunnerTaskTimingSummary{}, false, ErrEventConflict
-	}
-
-	rows, err := db.QueryContext(ctx, `
-		SELECT attempt,status,claimed_at,expires_at,finished_at
-		FROM transcript_runner_attempts
-		WHERE stream_uid=? ORDER BY attempt`, streamUID)
-	if err != nil {
-		return RunnerTaskTimingSummary{}, false, schemaError(err)
-	}
-	defer rows.Close()
-	found := false
-	for rows.Next() {
-		var attempt int64
-		var status string
-		var claimedAt time.Time
-		var expiresAt time.Time
-		var finishedAt sql.NullTime
-		if err := rows.Scan(&attempt, &status, &claimedAt, &expiresAt, &finishedAt); err != nil {
-			return RunnerTaskTimingSummary{}, false, schemaError(err)
-		}
-		claimedAt = claimedAt.UTC()
-		if attempt <= 0 || claimedAt.IsZero() {
-			return RunnerTaskTimingSummary{}, false, ErrEventConflict
-		}
-		if !found || claimedAt.Before(summary.StartedAt) {
-			summary.StartedAt = claimedAt
-			found = true
-		}
-		end := summary.ObservedAt
-		if finishedAt.Valid {
-			if status == "running" {
-				return RunnerTaskTimingSummary{}, false, ErrEventConflict
-			}
-			end = finishedAt.Time.UTC()
-		} else if attempt != summary.Attempt || status != "running" {
-			return RunnerTaskTimingSummary{}, false, ErrEventConflict
-		} else if expiresAt.Before(end) {
-			end = expiresAt.UTC()
-		}
-		if end.Before(claimedAt) {
-			return RunnerTaskTimingSummary{}, false, ErrEventConflict
-		}
-		segment := end.Sub(claimedAt)
-		if segment < 0 || summary.Elapsed > time.Duration(1<<63-1)-segment {
-			return RunnerTaskTimingSummary{}, false, ErrEventConflict
-		}
-		summary.Elapsed += segment
-	}
-	if err := rows.Err(); err != nil {
-		return RunnerTaskTimingSummary{}, false, schemaError(err)
-	}
-	if !found || summary.StartedAt.IsZero() {
-		return RunnerTaskTimingSummary{}, false, ErrEventConflict
-	}
-	return summary, true, nil
+	_, task, found, err := r.GetRunnerTimingSummaries(ctx, streamUID, ownerID)
+	return task, found, err
 }

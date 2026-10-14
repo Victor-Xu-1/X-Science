@@ -92,6 +92,7 @@ func (s *Server) startKernelChildRun(child workspace.KernelSupervisedChild, gate
 	_ = s.workspaceStore.MarkKernelChildDispatched(context.Background(), child.FrameID, child.OwnerUserID)
 	go func() {
 		defer close(run.done)
+		defer kernelChildRuns.CompareAndDelete(key, run)
 		defer cancel()
 		if len(gates) > 0 && gates[0] != nil {
 			select {
@@ -115,19 +116,26 @@ func (s *Server) startKernelChildRun(child workspace.KernelSupervisedChild, gate
 }
 
 func (s *Server) cancelAllKernelChildRuns(ctx context.Context) error {
-	var joinErr error
-	kernelChildRuns.Range(func(_, value any) bool {
-		run := value.(*kernelChildRun)
-		run.cancel()
-		select {
-		case <-run.done:
-		case <-ctx.Done():
-			joinErr = errors.Join(joinErr, ctx.Err())
-			return false
+	var runs []*kernelChildRun
+	kernelChildRuns.Range(func(key, value any) bool {
+		if key.(kernelChildRunKey).server == s {
+			runs = append(runs, value.(*kernelChildRun))
 		}
 		return true
 	})
-	return joinErr
+	// Cancel every owned child before waiting: one slow settlement must not
+	// prevent other children from receiving shutdown when the deadline expires.
+	for _, run := range runs {
+		run.cancel()
+	}
+	for _, run := range runs {
+		select {
+		case <-run.done:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	return nil
 }
 
 func (s *Server) runKernelChildSupervisor(ctx context.Context, child workspace.KernelSupervisedChild, run *kernelChildRun) {

@@ -1092,6 +1092,7 @@
       "taskCompletedReviewInterrupted": "Task completed · Review interrupted",
       "taskElapsed": "Elapsed {{duration}}",
       "taskTotalElapsed": "Total {{duration}}",
+      "taskElapsedUnavailable": "Elapsed time unavailable",
       "taskStatusLoading": "Confirming task status",
       "taskModel": "Current run model",
       "taskCurrentStep": "Current step",

@@ -46,6 +46,7 @@ func (s *Server) restoreRunnerProgressEntry(run *sessionRunnerChatRun, entry eve
 	if run == nil {
 		return nil
 	}
+	sourceObservation, sourceCheckpoint := run.sourceProgressReplay.observeEntry(entry)
 	if runnerEntryStartsNewLogicalTask(entry) {
 		run.readReuse = nil
 		run.resetGenerationRecoveryProgress()
@@ -88,7 +89,7 @@ func (s *Server) restoreRunnerProgressEntry(run *sessionRunnerChatRun, entry eve
 		s.hydrateSessionRunnerReadReuse(run, []eventjournal.Entry{entry})
 	}
 	result = run.observeExecutionEvidence(name, result)
-	if runnerGenerationToolProgress(name, result) {
+	if runnerSourceAwareToolProgress(sourceObservation, sourceCheckpoint, name, result) {
 		run.resetGenerationRecoveryProgress()
 	}
 	return nil

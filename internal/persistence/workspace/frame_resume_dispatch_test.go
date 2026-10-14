@@ -85,7 +85,7 @@ func TestWakeCompatibilityFrameResumeDispatchClearsNotBefore(t *testing.T) {
 		t.Fatalf("insert registered dispatch: %v", err)
 	}
 
-	event, changed, err := store.WakeCompatibilityFrameResumeDispatch("resume-wake")
+	event, changed, err := wakeCompatibilityDispatchForTest(store, "resume-wake")
 	if err != nil || !changed || event.Type != "frame_resume_dispatch_woken" || event.FrameID != "frame-wake" {
 		t.Fatalf("wake event=%#v changed=%t err=%v", event, changed, err)
 	}
@@ -97,7 +97,7 @@ func TestWakeCompatibilityFrameResumeDispatchClearsNotBefore(t *testing.T) {
 		t.Fatalf("woken dispatch status=%q notBefore=%v", dispatch.Status, dispatch.NotBefore)
 	}
 
-	if _, changed, err := store.WakeCompatibilityFrameResumeDispatch("resume-wake"); err != nil || changed {
+	if _, changed, err := wakeCompatibilityDispatchForTest(store, "resume-wake"); err != nil || changed {
 		t.Fatalf("second wake changed=%t err=%v", changed, err)
 	}
 
@@ -105,7 +105,7 @@ func TestWakeCompatibilityFrameResumeDispatchClearsNotBefore(t *testing.T) {
 		`{"dispatch":{"status":"claimed","attempt":1,"claimToken":"token","leaseExpiresAt":"2026-01-01T00:00:00Z"}}`); err != nil {
 		t.Fatalf("rewrite claimed dispatch: %v", err)
 	}
-	if _, changed, err := store.WakeCompatibilityFrameResumeDispatch("resume-wake"); err != nil || changed {
+	if _, changed, err := wakeCompatibilityDispatchForTest(store, "resume-wake"); err != nil || changed {
 		t.Fatalf("claimed dispatch wake changed=%t err=%v", changed, err)
 	}
 }
@@ -221,7 +221,7 @@ func TestLegacyBlockedCompatibilityFrameResumeDispatchCannotBeRevived(t *testing
 		t.Fatalf("insert blocked dispatch: %v", err)
 	}
 
-	event, changed, err := store.WakeCompatibilityFrameResumeDispatch("resume-unblock")
+	event, changed, err := wakeCompatibilityDispatchForTest(store, "resume-unblock")
 	if err != nil || changed || event.Type != "" {
 		t.Fatalf("wake event=%#v changed=%t err=%v", event, changed, err)
 	}
@@ -322,7 +322,7 @@ func TestWakeCompatibilityFrameResumeDispatchMissingEventFails(t *testing.T) {
 		t.Fatalf("open workspace: %v", err)
 	}
 	t.Cleanup(func() { _ = store.Close() })
-	if _, _, err := store.WakeCompatibilityFrameResumeDispatch("missing-resume"); err == nil {
+	if _, _, err := wakeCompatibilityDispatchForTest(store, "missing-resume"); err == nil {
 		t.Fatal("missing resume dispatch wake succeeded")
 	}
 }

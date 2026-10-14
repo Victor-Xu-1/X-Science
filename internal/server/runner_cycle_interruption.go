@@ -249,15 +249,21 @@ func (s *Server) handleSessionRunnerChatInterruption(
 		noProgressCount := runnerToolRoundNoProgressInterruptionCount(entries) + 1
 		noProgressState := sessionRunnerNoProgressRecovery{}
 		if chatRun != nil {
-			noProgressState = chatRun.recordNoProgress(toolRoundNoProgress.Calls)
+			noProgressState = chatRun.recordNoProgress(toolRoundNoProgress.Calls, toolRoundNoProgress.SourceRepetition)
 			noProgressCount = noProgressState.Consecutive
 		}
 		reasonCode := sessionRunnerToolRoundNoProgressReasonCode
 		resumeDetail := "the agent repeated tool rounds without producing new evidence; resume must reuse completed receipts and choose a materially different action or finish"
+		if toolRoundNoProgress.SourceRepetition {
+			resumeDetail = "completed operations repeatedly returned unchanged verified source content; original results are preserved and surrounding execution effects remain unknown; reuse source receipts or choose a genuinely different needed action or finish; no interpreter action is closed by this observation"
+		}
 		if noProgressCount >= sessionRunnerConsecutiveIdenticalToolRoundBudget {
 			reasonCode = sessionRunnerToolRoundNoProgressExhaustedReasonCode
 			result.AwaitingRecoveryCondition = true
 			resumeDetail = "the current recovery obligation exhausted unchanged tool routes without material progress; preserve the goal and completed receipts, and resume this same checkpoint after relevant state, model selection, runtime contract, or user input changes"
+			if toolRoundNoProgress.SourceRepetition {
+				resumeDetail = "repeated verified source content exhausted the bounded source-observation recovery window; preserve all executed results and the goal; this does not prove absence of other effects or computation and does not close interpreter actions; resume the same checkpoint after relevant state, model selection, runtime contract, or user input changes"
+			}
 		}
 		if noProgressState.Schema == sessionRunnerNoProgressRecoverySchema {
 			resumeDetail = noProgressState.resumeDetail(resumeDetail)

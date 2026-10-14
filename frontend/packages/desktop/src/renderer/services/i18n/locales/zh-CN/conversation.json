@@ -1092,6 +1092,7 @@
       "taskCompletedReviewInterrupted": "任务已完成 · 审阅中断",
       "taskElapsed": "耗时 {{duration}}",
       "taskTotalElapsed": "总耗时 {{duration}}",
+      "taskElapsedUnavailable": "累计耗时不可用",
       "taskStatusLoading": "正在确认任务状态",
       "taskModel": "当前运行模型",
       "taskCurrentStep": "当前阶段",

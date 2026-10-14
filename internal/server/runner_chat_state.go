@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"x-science/internal/agentruntime"
 	transcriptstore "x-science/internal/persistence/transcript"
 	"x-science/internal/providers"
 	"x-science/internal/sciencecapability"
@@ -83,6 +84,11 @@ type sessionRunnerChatRun struct {
 	generationRecoveryMu               sync.Mutex
 	generationRecovery                 providerGenerationRecovery
 	NoProgressRecovery                 *sessionRunnerNoProgressRecovery
+	sourceObservationMu                sync.Mutex
+	sourceObservations                 *runnerSourceObservationProjection
+	sourceObservationResultCallID      string
+	sourceObservationResult            *agentruntime.SourceObservation
+	sourceProgressReplay               runnerSourceObservationReducer
 	managedEnvironmentMu               sync.Mutex
 	managedEnvironmentBindings         map[string]string
 	managedEnvironmentImplementations  map[string][]string

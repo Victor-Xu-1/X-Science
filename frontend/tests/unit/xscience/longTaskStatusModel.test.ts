@@ -242,6 +242,18 @@ describe('longTaskStatusModel', () => {
     expect(result.value).not.toHaveProperty('eta');
   });
 
+  it('does not substitute known latest timing for explicitly unavailable whole-task timing', () => {
+    expect(
+      projectXScienceLongTaskStatus(
+        snapshot('processing', {
+          runtimeElapsedMs: 30_000,
+          runtimeElapsedAvailable: true,
+          runtimeTaskElapsedMs: null,
+          runtimeTaskElapsedAvailable: false,
+        })
+      )
+    ).toMatchObject({ ok: true, value: { elapsedMs: 30_000, taskElapsedMs: null, taskElapsedAvailable: false } });
+  });
   it('prefers transcript-owned timing fields while preserving legacy timestamps as fallback', () => {
     const result = projectXScienceLongTaskStatus(
       snapshot('processing', {

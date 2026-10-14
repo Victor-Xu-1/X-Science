@@ -13,6 +13,7 @@ func TestRunnerAdmissionFactsDoNotManufactureWebActivity(t *testing.T) {
 	for _, admission := range []struct{ kind, identity, payload string }{
 		{transcriptstore.RunnerPreparationAdmissionEventType, "runner-preparation:stream-a:1", `{"dispatch_state":"preparation"}`},
 		{"runner_checkpoint", "runner-execution-admitted:stream-a:1", `{"status":"running","dispatch_state":"execution_admitted"}`},
+		{transcriptstore.RunnerTimingResumeEventType, "runner-timing-resume:cloned-or-damaged", `{"schema":"unknown","stream_uid":"original-source"}`},
 	} {
 		t.Run(admission.kind, func(t *testing.T) {
 			projected := transcriptstore.ProjectedEvent{Event: transcriptstore.Event{
@@ -87,5 +88,66 @@ func TestRunnerAdmissionFactsAdvanceIncrementalCursorWithoutMessageGaps(t *testi
 	_, records, found, err := readModel.GetTranscriptWebProjectionCheckpoint(t.Context(), stream.OwnerID, stream.UID, branch.ActiveBranchID)
 	if err != nil || !found || len(records) != 2 || records[1].Ordinal != 2 {
 		t.Fatalf("message gap: records=%#v found=%t error=%v", records, found, err)
+	}
+}
+
+func TestRunnerTimingFactsAdvanceAnInternalOnlyPageWithoutPublicActivity(t *testing.T) {
+	store, repository, db := newTranscriptWebFixture(t)
+	seedTranscriptWebFrame(t, store, "owner-clock", "project-clock", "frame-clock")
+	stream, err := repository.CreateStream(t.Context(), transcriptstore.CreateStreamInput{
+		UID: "stream-clock", OwnerID: "owner-clock", ExternalID: "frame-clock", SessionID: "frame-clock",
+		Kind: transcriptstore.StreamKindFrameRef, ProjectID: "project-clock", RootFrameID: "frame-clock", FrameID: "frame-clock", Epoch: 1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	appendInput := func(identity string) {
+		t.Helper()
+		if _, _, created, err := repository.AppendFrameUserEvent(t.Context(), transcriptstore.AppendFrameUserEventInput{
+			StreamUID: stream.UID, OwnerID: stream.OwnerID, ClientMessageID: identity,
+			FrameEventID: identity + "-frame", MessageUUID: identity, Text: identity,
+		}); err != nil || !created {
+			t.Fatalf("input created=%t err=%v", created, err)
+		}
+	}
+	appendInput("clock-first-input")
+	claim, err := repository.ClaimRunner(t.Context(), transcriptstore.ClaimRunnerInput{StreamUID: stream.UID, OwnerID: stream.OwnerID, RunnerID: "clock-first", TTL: time.Minute, ResumeSource: transcriptstore.ResumeSourceFresh})
+	if err != nil || !claim.Claimed {
+		t.Fatalf("claim=%+v err=%v", claim, err)
+	}
+	paused, err := repository.InterruptRunner(t.Context(), transcriptstore.InterruptRunnerInput{Claim: claim.Claim, ClientMessageID: "clock-pause", ReasonCode: "runtime_draining", Resumable: true, AutoResume: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	branch, err := repository.GetBranchState(t.Context(), stream.UID, stream.OwnerID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	readModel := transcriptstore.NewWebReadModelRepository(db, db)
+	server := &Server{workspaceStore: store, transcriptStore: repository, transcriptWebReadModel: readModel}
+	if err := server.rebuildTranscriptWebReadModel(t.Context(), requireSingleTranscriptWebProjectionWork(t, readModel, stream.OwnerID)); err != nil {
+		t.Fatal(err)
+	}
+	before := requireTranscriptWebReadModelFence(t, readModel, stream, branch.ActiveBranchID)
+	resumed, err := repository.ClaimRunner(t.Context(), transcriptstore.ClaimRunnerInput{StreamUID: stream.UID, OwnerID: stream.OwnerID, RunnerID: "clock-resume", TTL: time.Minute, ResumeSource: transcriptstore.ResumeSourceCheckpoint, ResumeCheckpoint: paused.Checkpoint.Sequence})
+	if err != nil || !resumed.Claimed {
+		t.Fatalf("resume=%+v err=%v", resumed, err)
+	}
+	result, err := server.tryIncrementalTranscriptWebReadModel(t.Context(), stream, requireSingleTranscriptWebProjectionWork(t, readModel, stream.OwnerID))
+	if err != nil || result.Disposition != transcriptWebIncrementalAppliedReady || result.MessagesWritten != 0 {
+		t.Fatalf("internal-only page=%+v err=%v", result, err)
+	}
+	afterFact := requireTranscriptWebReadModelFence(t, readModel, stream, branch.ActiveBranchID)
+	if afterFact.StateThroughPublicationSequence != before.StateThroughPublicationSequence+1 || afterFact.VisibleMessageCount != before.VisibleMessageCount || afterFact.StateMessageCount != before.StateMessageCount {
+		t.Fatalf("internal fact manufactured a message or stalled cursor: before=%+v after=%+v", before, afterFact)
+	}
+	appendInput("clock-second-input")
+	result, err = server.tryIncrementalTranscriptWebReadModel(t.Context(), stream, requireSingleTranscriptWebProjectionWork(t, readModel, stream.OwnerID))
+	if err != nil || result.Disposition != transcriptWebIncrementalAppliedReady {
+		t.Fatalf("following page=%+v err=%v", result, err)
+	}
+	afterInput := requireTranscriptWebReadModelFence(t, readModel, stream, branch.ActiveBranchID)
+	if afterInput.StateMessageCount != before.StateMessageCount+1 || afterInput.VisibleMessageCount != before.VisibleMessageCount+1 || afterInput.StateThroughPublicationSequence != afterFact.StateThroughPublicationSequence+1 {
+		t.Fatalf("next page inherited a visible ordinal gap: before=%+v after=%+v", before, afterInput)
 	}
 }

@@ -255,6 +255,7 @@ func (e Engine) Run(ctx context.Context, request RunRequest) (RunResult, error) 
 				Role: "system", Content: idempotentToolRoundRecoveryInstruction(message.ToolCalls),
 			})
 		}
+		modelMessages, toolErr = sourceObservationRecoveryFeedback(modelMessages, batch.SourceObservation, batch.Messages, request.MaxConsecutiveIdenticalToolRounds, toolErr)
 		mediaBytesUsed = batch.MediaBytesUsed
 		if toolErr != nil {
 			return interruptedRun(messages, toolErr)

@@ -565,7 +565,7 @@ func (s *Server) publishTranscriptWebClaim(ctx context.Context, claim transcript
 	if stream.Kind != transcriptstore.StreamKindFrameRef || stream.SessionID == "" {
 		return transcriptstore.ErrTerminalProjectionUnavailable
 	}
-	if transcriptstore.IsRunnerAdmissionFact(claim.Event, claim.ResolvedPayloadJSON) {
+	if transcriptstore.IsRunnerInternalFact(claim.Event, claim.ResolvedPayloadJSON) {
 		return nil
 	}
 	switch claim.Event.Type {
