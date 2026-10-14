@@ -92,6 +92,7 @@ func (reducer *runnerSourceObservationReducer) observe(message eventjournal.Mess
 		if len(witnesses) > 0 {
 			key, verified = witnesses[0].key, witnesses[0].key != ""
 		}
+		verified = verified && runnerSourceReceiptSucceeded(message["toolResult"])
 		if reducer.inputScoped && reducer.admitted[operation] == 0 {
 			verified = false
 		}
@@ -178,10 +179,6 @@ func runnerSourceObservationResult(entry eventjournal.Entry) any {
 		return witness.executionResult
 	}
 	return entry.Message["toolResult"]
-}
-
-func sourceObservationIsUnchanged(observation *agentruntime.SourceObservation, sourceCheckpoint bool) bool {
-	return sourceCheckpoint && observation == nil || observation != nil && observation.HasSources && observation.State != agentruntime.SourceObservationNew
 }
 
 func (reducer *runnerSourceObservationReducer) completeLive(call agentruntime.ToolCall, value any) *agentruntime.SourceObservation {

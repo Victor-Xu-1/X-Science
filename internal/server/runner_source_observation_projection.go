@@ -90,11 +90,15 @@ func (s *Server) validateRunnerSourceObservationEntry(ctx context.Context, autho
 		entry.RuntimeProjection = runnerSourceObservationWitness{proposalEventID: proposal, executionUnavailable: !sourceReceipt}
 		return entry, nil
 	}
+	var result any
+	if json.Unmarshal([]byte(content), &result) != nil {
+		return entry, nil
+	}
 	if !sourceReceipt {
-		var result any
-		if json.Unmarshal([]byte(content), &result) == nil {
-			entry.RuntimeProjection = runnerSourceObservationWitness{proposalEventID: proposal, executionResult: result}
-		}
+		entry.RuntimeProjection = runnerSourceObservationWitness{proposalEventID: proposal, executionResult: result}
+		return entry, nil
+	}
+	if !runnerSourceReceiptSucceeded(result) {
 		return entry, nil
 	}
 	if descriptor, _, externalized, err := toolcontract.DecodeExternalizedResult(checkpoint.ToolResult); externalized {

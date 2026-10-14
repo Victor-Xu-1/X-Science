@@ -81,6 +81,58 @@ func TestRunnerSourceObservationMaterialChangeAndFailure(t *testing.T) {
 	}
 }
 
+func TestRunnerSourceObservationUnsuccessfulReceiptsNeverBecomeNew(t *testing.T) {
+	for name, result := range map[string]map[string]any{
+		"unavailable":  {"sourceUnavailable": true},
+		"failed":       {"ok": false},
+		"partial":      {"partial": true},
+		"not executed": {"ok": true, "executed": false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			var live, replay runnerSourceObservationReducer
+			source := sourceObservationReceipt("unsuccessful-host", "unsuccessful-outer")
+			source["toolResult"] = result
+			raw, _ := json.Marshal(result)
+			source["resultSha256"] = kernelMCPEvidenceSHA256(raw)
+			if _, verified := runnerVerifiedSourceIdentity(source); !verified {
+				t.Fatal("fixture must retain a structurally valid durable source identity")
+			}
+			live.observe(source)
+			replay.observe(source)
+			outer := sourceObservationOuter("unsuccessful-outer", "a fresh computed result", nil)
+			observed := live.completeLive(agentruntime.ToolCall{ID: "unsuccessful-outer", Name: "repl"}, outer["toolResult"])
+			restored, _ := replay.observe(outer)
+			if observed.State != agentruntime.SourceObservationUnknown || *observed != *restored || observed.RepeatedOperations != 0 {
+				t.Fatalf("unsuccessful source became new evidence: live=%+v replay=%+v", observed, restored)
+			}
+			if !runnerSourceAwareToolProgress(observed, false, "repl", outer["toolResult"]) {
+				t.Fatal("unknown source discarded the outer cell's ordinary computation")
+			}
+		})
+	}
+}
+
+func TestRunnerSourceObservationUnknownRetainsOuterOutcomeAuthority(t *testing.T) {
+	unknown := &agentruntime.SourceObservation{State: agentruntime.SourceObservationUnknown, HasSources: true}
+	for _, test := range []struct {
+		name     string
+		result   map[string]any
+		progress bool
+	}{
+		{"fresh independent computation", map[string]any{"ok": true, "stdout": "fresh variable result", "files_written": []any{}}, true},
+		{"typed failed outer", map[string]any{"ok": false, "stdout": "diagnostic"}, false},
+		{"typed unavailable outer", map[string]any{"sourceUnavailable": true, "stdout": "diagnostic"}, false},
+		{"outer did not execute", map[string]any{"ok": true, "executed": false}, false},
+		{"repeated execution evidence", map[string]any{"ok": true, "stdout": "same", "recovery_evidence_repeated": true}, false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if got := runnerSourceAwareToolProgress(unknown, false, "repl", test.result); got != test.progress {
+				t.Fatalf("ordinary outer progress=%t; want %t", got, test.progress)
+			}
+		})
+	}
+}
+
 func TestRunnerSourceObservationRecoveryModeSurvivesReplayWithoutClosingActions(t *testing.T) {
 	scope := runnerRecoveryObligationFingerprint(nil, transcriptstore.RunnerInterruptionCause{})
 	state := newSessionRunnerNoProgressRecovery(scope)
@@ -172,7 +224,7 @@ func TestRunnerSourceObservationDirectReceiptCompletesExactlyOnce(t *testing.T) 
 
 func TestRunnerSourceObservationProgressUsesSourceAndExecutionContracts(t *testing.T) {
 	result := map[string]any{"ok": true, "stdout": "fresh variable value", "files_written": []any{}}
-	unknown := &agentruntime.SourceObservation{State: agentruntime.SourceObservationUnknown}
+	unknown := &agentruntime.SourceObservation{State: agentruntime.SourceObservationUnknown, HasSources: true}
 	run := &sessionRunnerChatRun{NoProgressRecovery: &sessionRunnerNoProgressRecovery{SourceRepetition: true}, sourceObservationResultCallID: "cell", sourceObservationResult: unknown}
 	if !run.completedSourceToolProgress("cell", "repl", result) || !runnerSourceAwareToolProgress(unknown, false, "repl", result) {
 		t.Fatal("source mode swallowed ordinary new non-source computation")
