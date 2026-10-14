@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "f073b22cce296bf9c290082d3810e7f0f3d8e6ca69a0aaee96a26ed8a2c92ed6",
+  "adaptationFingerprintSHA256": "358dcf20fbd379a7207976ed4db3ae85580eb3debd5b40c7ca15a8e70d668ebd",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
-  "additionFingerprintSHA256": "9a6615949c198ae414f365f4b3124fee04cc5fd1f154ec9cad9d618dc0130c4f",
+  "additionFingerprintSHA256": "e2644c9c3da13d4617e3f28a031f7a17cea2cd4999eb8d8c74f5fe54be33d318",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 275,
@@ -2289,8 +2289,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/guid/components/GuidActionRow.tsx",
       "sourceSHA256": "623d5d194504e32b12762099309e18d794401ad20c32312ff4efd80d73ce0707",
-      "targetSHA256": "42aa13e9ff97e65493d762bb410d98f8a34029b7a17d6a29b9ff7f7bdc73130c",
-      "bytes": 5296,
+      "targetSHA256": "375a1bbc52f4fac82c4bb2e1cbdf0c070ed844e9182e7a696d032f4d45c79a0d",
+      "bytes": 5382,
       "reason": "Migrate authenticated login, onboarding, project workbench, and artifact workflows to the Go product shell."
     },
     {
@@ -11886,8 +11886,8 @@
     },
     {
       "path": "tests/unit/renderer/guidActionRow.dom.test.tsx",
-      "sha256": "4d9882a27561a2ea6db41ec80f904c2e4cc7842617ec7c7b6bb10351e080518b",
-      "bytes": 2629,
+      "sha256": "d2e0de92b137c6ff0e8745739c4c1ac0f4633efcdd18449ea7f3e5984f11f570",
+      "bytes": 4596,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
