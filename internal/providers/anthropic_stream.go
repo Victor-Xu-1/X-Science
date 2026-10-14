@@ -37,6 +37,7 @@ type anthropicStreamEvent struct {
 		Type        string `json:"type"`
 		Text        string `json:"text,omitempty"`
 		Thinking    string `json:"thinking,omitempty"`
+		Signature   string `json:"signature,omitempty"`
 		PartialJSON string `json:"partial_json,omitempty"`
 	} `json:"delta,omitempty"`
 	Usage anthropicStreamUsage `json:"usage,omitempty"`
@@ -120,6 +121,10 @@ func readAnthropicStream(client *runtimeModelClient, response http.Response, emi
 			}
 		case "content_block_delta":
 			switch event.Delta.Type {
+			case "signature_delta":
+				if event.Delta.Signature != "" {
+					recordProviderStreamProgress(response.Body, int64(len(event.Delta.Signature)))
+				}
 			case "thinking_delta":
 				if event.Delta.Thinking != "" {
 					recordProviderStreamProgress(response.Body, int64(len(event.Delta.Thinking)))

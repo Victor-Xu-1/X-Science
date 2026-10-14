@@ -643,7 +643,7 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 			)
 		}
 		run.restoreNoProgressRecovery(state)
-		if recoveryContext := sessionRunnerNoProgressRecoveryContext(*run.NoProgressRecovery); recoveryContext != "" {
+		if recoveryContext := sessionRunnerNoProgressRecoveryContext(*run.NoProgressRecovery, runtimeToolAuthority); recoveryContext != "" {
 			messages = appendRuntimeTerminalPolicyContextMessage(messages, recoveryContext)
 		}
 		if recoveryContext := run.generationRecoveryContext(); recoveryContext != "" {

@@ -161,7 +161,7 @@ func TestRunnerSourceObservationRecoveryModeSurvivesReplayWithoutClosingActions(
 	if !restored.SourceRepetition || restored.Consecutive < 1 || len(restored.ClosedActions) != 0 {
 		t.Fatalf("source mode degraded on restart: %+v", restored)
 	}
-	context := sessionRunnerNoProgressRecoveryContext(restored)
+	context := sessionRunnerNoProgressRecoveryContext(restored, nil)
 	if !strings.Contains(context, "does not prove") || strings.Contains(context, "cannot execute again") || strings.Contains(context, "idempotent") {
 		t.Fatalf("unsafe resumed feedback: %s", context)
 	}

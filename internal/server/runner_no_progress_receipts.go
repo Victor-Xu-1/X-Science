@@ -48,6 +48,12 @@ func (g serverAgentRuntimeToolGateway) noProgressBatchPreflight(ctx context.Cont
 		if err != nil {
 			continue
 		}
+		// A durable control wait observes mutable external state; a historical
+		// empty receipt cannot close its future claim route. Keep ordinary
+		// admission above and all other preflight policies intact.
+		if noProgressToolIsDurableWait(g.toolSchemas, name) {
+			continue
+		}
 		input := map[string]any{}
 		if len(call.Arguments) > 0 && json.Unmarshal(call.Arguments, &input) != nil {
 			continue
@@ -135,6 +141,12 @@ func (g serverAgentRuntimeToolGateway) noProgressBatchPreflight(ctx context.Cont
 }
 
 const noProgressClosedRouteDiagnostic = `{"code":"durable_no_progress_route_closed","message":"This exact tool route is closed in the current recovery obligation.","recovery":"Reuse completed receipts and choose materially different arguments or another advertised capability; finish if no further evidence is needed."}`
+
+func noProgressToolIsDurableWait(schemas []agentruntime.ToolSchema, name string) bool {
+	return agentRuntimeToolSchemaHasCapability(agentruntime.ToolSchema{
+		Name: name, Capabilities: agentRuntimeToolCapabilities(schemas, name),
+	}, "durable-wait")
+}
 
 func (g serverAgentRuntimeToolGateway) noProgressClosedRouteDiagnostic(call agentruntime.ToolCall) string {
 	return g.closedRouteDiagnostic(call, noProgressClosedRouteDiagnostic)

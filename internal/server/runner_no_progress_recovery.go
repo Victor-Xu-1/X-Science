@@ -500,17 +500,24 @@ func (run *sessionRunnerChatRun) recordMaterialProgress() {
 	run.NoProgressRecovery.resetMaterialProgress()
 }
 
-func sessionRunnerNoProgressRecoveryContext(state sessionRunnerNoProgressRecovery) string {
+func sessionRunnerNoProgressRecoveryContext(state sessionRunnerNoProgressRecovery, schemas []agentruntime.ToolSchema) string {
 	if state.Consecutive <= 0 {
 		return ""
 	}
 	if state.SourceRepetition {
 		return "Durable source-observation recovery (server supplied): completed operations repeatedly returned unchanged verified source content. Their original results are preserved. This does not prove that surrounding interpreter execution had no effects or new uninstrumented computation, and does not close or cache interpreter actions. Reuse source receipts, choose a genuinely different needed action, or finish; preserve every existing result."
 	}
-	if len(state.ClosedActions) == 0 {
+	projection := state
+	projection.ClosedActions = make([]sessionRunnerClosedAction, 0, len(state.ClosedActions))
+	for _, action := range state.ClosedActions {
+		if !noProgressToolIsDurableWait(schemas, action.Tool) {
+			projection.ClosedActions = append(projection.ClosedActions, action)
+		}
+	}
+	if len(projection.ClosedActions) == 0 {
 		return ""
 	}
-	encoded, err := json.Marshal(state.payload())
+	encoded, err := json.Marshal(projection.payload())
 	if err != nil {
 		return ""
 	}
