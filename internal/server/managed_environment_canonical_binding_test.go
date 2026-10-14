@@ -16,7 +16,7 @@ import (
 )
 
 func TestCanonicalEnvironmentBindingRepairsLegacyReceiptAcrossReopen(t *testing.T) {
-	for _, mode := range []string{"preflight", "create-reuse", "packages-reuse"} {
+	for _, mode := range []string{"preflight", "create-reuse", "packages-reuse", "packages-preflight"} {
 		t.Run(mode, func(t *testing.T) {
 			manager := kernelruntime.NewManager(kernelruntime.Config{CondaEnvsPath: filepath.Join(t.TempDir(), "envs")})
 			f := newAgentSaveArtifactsFixtureWithKernelManager(t, manager)
@@ -32,11 +32,14 @@ func TestCanonicalEnvironmentBindingRepairsLegacyReceiptAcrossReopen(t *testing.
 				"human_description": "Prepare the requested analysis", "resource_requirements": managedEnvironmentTestResources()}
 			if mode == "create-reuse" {
 				input["mode"] = "create"
-			} else if mode == "packages-reuse" {
+			} else if mode == "packages-reuse" || mode == "packages-preflight" {
 				tool = managePackagesToolName
 				input = map[string]any{"mode": "install", "environment": "existing", "implementation": "Engine A 1.2.7",
 					"packages": []any{"fixture"}, "human_description": "Prepare the requested analysis",
 					"resource_requirements": managedEnvironmentTestResources()}
+				if mode == "packages-preflight" {
+					input["mode"] = "preflight"
+				}
 			}
 			old := map[string]any{"status": "completed", "mode": "reuse", "environment": map[string]any{
 				"name": "existing", "status": "ready", "generation": "observed-generation"}}

@@ -615,13 +615,20 @@ func (s *Server) executeAgentEnvironmentManagementToolWithAuthority(
 					return decision, nil
 				}
 			}
-			return s.executeManagedEnvironmentResourcePreflight(ctx, identity, authority, managedEnvironmentPreflightSpec{
+			preflight, err := s.executeManagedEnvironmentResourcePreflight(ctx, identity, authority, managedEnvironmentPreflightSpec{
 				Operation: "install", Implementation: request.Implementation,
 				Environment: request.Environment, ForkTo: request.ForkTo,
 				Language: "python", Packages: request.Packages, Channels: request.Channels, UsePip: request.UsePip,
 				PackageSourceURLs:    managedPipPackageSourceURLs(request.PipFindLinks, request.PipExtraIndexURLs),
 				ResourceRequirements: request.ResourceRequirements,
 			})
+			if err != nil {
+				return nil, err
+			}
+			preflight["environment_binding"] = managedEnvironmentBindingReceipt(name, map[string]any{
+				"implementation": request.Implementation, "environment": request.Environment, "fork_to": request.ForkTo,
+			})
+			return preflight, nil
 		}
 		if request.Mode == "list" {
 			environment, found, err := authority.InspectManagedEnvironment(ctx, request.Environment)
