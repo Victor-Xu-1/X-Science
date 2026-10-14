@@ -82,6 +82,24 @@ the current request's imports before returning success.
 
 ## Runtime authority
 
+Kernel proposals normalize task-owned environment aliases and registered runtime
+arguments before their checkpoint creates the immutable operation. The same
+gateway normalization governs dispatch; approval continues to compare the exact
+canonical input bytes, digest, environment and operation incarnation. A changed
+proposal retains `originalArguments` in that same checkpoint as provenance only;
+it is neither an execution authority nor a reason to rewrite an existing approved
+operation. Legacy checkpoint readers ignore this additional field, and recovered
+tool batches execute their already committed canonical arguments.
+
+Python, R and Bash executor validation use the shared `kernelcontract` field/type
+contract, including `memory_budget_mb`. REPL does not acquire a compute-budget
+field. An explicit budget below the observed executor minimum returns the typed
+`resource_budget_below_minimum` unstarted result with requested/minimum bytes and
+`retryable=false`; waiting for free capacity cannot fix the unchanged allocation.
+The model must submit a newly approved operation with a sufficient budget or an
+authorized different runtime. Budgets are never silently increased, the durable
+reservation floor remains enforced, and ordinary capacity waits remain retryable.
+
 ### Documented alternatives to automatic input resolvers
 
 An automatic resolver is one evidence route, not a monopoly on a task's

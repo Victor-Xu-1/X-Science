@@ -140,6 +140,12 @@ func (b *Backend) reserveExecutorResources(ctx context.Context, backend workspac
 	if err != nil {
 		return 0, err
 	}
+	if spec.ResourceMemoryBytes > 0 && capacity.MinimumBytes > 0 && spec.ResourceMemoryBytes < capacity.MinimumBytes {
+		return 0, &ExecutorResourceBudgetBelowMinimumError{
+			BackendID: backend.BackendID, Generation: backend.BackendGeneration,
+			RequestedBytes: spec.ResourceMemoryBytes, MinimumBytes: capacity.MinimumBytes,
+		}
+	}
 	reservations, err := b.Store.ListKernelResourceReservations(ctx, backend.MachineBootID)
 	if err != nil {
 		return 0, err

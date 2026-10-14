@@ -711,6 +711,7 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 	engine := s.newAgentRuntimeEngineWithContext(
 		withTranscriptRunnerChatRun(evidenceContext, run), options, runtimeToolAuthority,
 	)
+	kernelCheckpointGateway, kernelCheckpointGatewayFound := engine.Tools.(serverAgentRuntimeToolGateway)
 	initialModel := sessionRunnerResolvedModelClient{}
 	initialReady := false
 	if options.ModelProfile != nil && engine.Model != nil {
@@ -913,7 +914,10 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 					}
 				}
 				typedProgressObserved = false
-				if err := s.checkpointChatModelToolCalls(options, run, calls); err != nil {
+				if !kernelCheckpointGatewayFound {
+					return errors.New("kernel checkpoint normalization gateway is unavailable")
+				}
+				if err := s.checkpointChatModelToolCallsWithContext(deltaContext, options, run, calls, kernelCheckpointGateway); err != nil {
 					return err
 				}
 				run.beginNextAssistantSegment()

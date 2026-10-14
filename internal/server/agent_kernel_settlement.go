@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 	kernelruntime "x-science/internal/kernel"
+	"x-science/internal/kernelcontract"
 	transcriptstore "x-science/internal/persistence/transcript"
 	workspace "x-science/internal/persistence/workspace"
 )
@@ -110,21 +111,15 @@ func validateAgentKernelToolInput(publicName string, input map[string]any) error
 		_, err := decodeSoftwareRuntimeRequest(input)
 		return err
 	}
-	allowed := map[string]struct{}{}
-	switch publicName {
-	case "python", "r":
-		allowed = map[string]struct{}{"code": {}, "environment": {}, "working_dir": {}, "background": {}, "human_description": {}}
-	case "bash":
-		allowed = map[string]struct{}{"command": {}, "environment": {}, "working_dir": {}, "background": {}, "human_description": {}}
-	case "repl":
-		allowed = map[string]struct{}{"code": {}, "working_dir": {}, "background": {}, "fresh": {}, "human_description": {}}
-	default:
-		return errors.New("unsupported kernel tool")
+	encoded, err := json.Marshal(input)
+	if err != nil {
+		return err
 	}
-	for key := range input {
-		if _, ok := allowed[key]; !ok {
-			return errors.New("kernel tool input contains unsupported fields")
-		}
+	// The proposal, durable operation and executor share one field/type contract.
+	// In particular an explicit memory budget is executable intent, not an
+	// unknown presentation field that can be discarded by this final boundary.
+	if _, _, err := kernelcontract.CanonicalInput(publicName, encoded); err != nil {
+		return err
 	}
 	if publicName == "bash" {
 		command, ok := input["command"].(string)

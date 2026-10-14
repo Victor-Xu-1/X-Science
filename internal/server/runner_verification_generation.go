@@ -202,10 +202,14 @@ func (s *Server) runSessionReviewerGeneration(
 		},
 	}
 	engine.Model = dynamicReviewerModel
+	kernelCheckpointGateway, kernelCheckpointGatewayFound := engine.Tools.(serverAgentRuntimeToolGateway)
 	engine.Tools = sessionReviewerToolGateway(engine.Tools, scope)
 	engine.OnEventError = func(event agentruntime.Event) error {
 		if event.Type == agentruntime.EventModelResponse && len(event.ToolCalls) > 0 {
-			return wrapSessionRunnerReviewStageError(s.checkpointChatModelToolCalls(runtimeOptions, reviewerRun, event.ToolCalls))
+			if !kernelCheckpointGatewayFound {
+				return errors.New("kernel checkpoint normalization gateway is unavailable")
+			}
+			return wrapSessionRunnerReviewStageError(s.checkpointChatModelToolCallsWithContext(reviewCtx, runtimeOptions, reviewerRun, event.ToolCalls, kernelCheckpointGateway))
 		}
 		if event.Type != agentruntime.EventToolStarted && event.Type != agentruntime.EventToolCompleted &&
 			event.Type != agentruntime.EventToolFailed && event.Type != agentruntime.EventToolPaused {

@@ -106,7 +106,11 @@ func (s *Server) checkpointChatContentDelta(
 	return nil
 }
 
-func (s *Server) checkpointChatModelToolCalls(options SessionRunnerChatOptions, run *sessionRunnerChatRun, calls []agentruntime.ToolCall) error {
+func (s *Server) checkpointChatModelToolCalls(options SessionRunnerChatOptions, run *sessionRunnerChatRun, calls []agentruntime.ToolCall, gateways ...serverAgentRuntimeToolGateway) error {
+	return s.checkpointChatModelToolCallsWithContext(context.Background(), options, run, calls, gateways...)
+}
+
+func (s *Server) checkpointChatModelToolCallsWithContext(ctx context.Context, options SessionRunnerChatOptions, run *sessionRunnerChatRun, calls []agentruntime.ToolCall, gateways ...serverAgentRuntimeToolGateway) error {
 	if run == nil || len(calls) == 0 {
 		return nil
 	}
@@ -122,6 +126,16 @@ func (s *Server) checkpointChatModelToolCalls(options SessionRunnerChatOptions, 
 			return err
 		}
 		arguments := call.Arguments
+		if kernelcontract.IsTool(name) && !call.RejectedBeforeExecution {
+			gateway, err := s.kernelCheckpointAdmissionGateway(ctx, options, run, name, gateways)
+			if err != nil {
+				return err
+			}
+			arguments, err = normalizedKernelCheckpointArguments(gateway, name, arguments)
+			if err != nil {
+				return err
+			}
+		}
 		if canonical, admitted := canonicalKernelCheckpointArguments(name, arguments); admitted {
 			arguments = canonical
 		}
@@ -130,6 +144,11 @@ func (s *Server) checkpointChatModelToolCalls(options SessionRunnerChatOptions, 
 			"type":      "function",
 			"name":      name,
 			"arguments": decodeToolEventJSON(string(arguments)),
+		}
+		if string(arguments) != string(call.Arguments) {
+			// Non-authoritative provenance only. Execution and approval bind solely
+			// to arguments above; no existing operation or proposal is rewritten.
+			toolCallPayload["originalArguments"] = append(json.RawMessage(nil), call.Arguments...)
 		}
 		if call.RejectedBeforeExecution {
 			toolCallPayload["rejectedBeforeExecution"] = true
