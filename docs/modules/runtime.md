@@ -62,6 +62,12 @@ claim → recovery → context → snapshot → provider ⇄ tool → verify →
 已加载 Skill 只保留仍获准的方法引用，发现和展示不扩大执行权限；执行仍由原有网关、
 JSON Schema、审批和任务归属检查决定。
 
+指定服务器的方法目录通过 `input_schema` 直接返回同一获准输入 Schema；
+`input_schema_status` 区分 `complete`、`unavailable` 和 `projected_legacy`。
+紧凑可迭代的 `parameters` 仍是便利视图，不是第二份完整 Schema 权威；旧目录的投影
+不能冒充完整约束，新格式的值与状态不一致时明确报错。完整输入 Schema 沿既有分页、
+受管大结果及摘要校验路径传递，不因单个 Schema 超过 64 KiB 而静默截断。
+
 自动生成的工作计划是导航状态，不是第二套完成判据。最终答复通过任务契约、实际执行
 回执和产物完整性检查后，未更新完的计划状态只记录为提示，不自动重开一轮模型调用、
 重复计算或重新发布；原计划的待办状态保留，不能为了放行而伪造完成。
