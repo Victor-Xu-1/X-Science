@@ -598,6 +598,14 @@ func TestTranscriptRunnerAskUserSurvivesProcessRestartBeforeResolve(t *testing.T
 	if err != nil || paused.Status != "awaiting_user_response" || requests.Load() != 1 {
 		t.Fatalf("paused=%#v requests=%d err=%v", paused, requests.Load(), err)
 	}
+	pendingBeforeRestart, err := first.webConversationPendingConfirmations("frame-ask-restart")
+	if err != nil || len(pendingBeforeRestart) != 1 {
+		t.Fatalf("pending before restart=%#v err=%v", pendingBeforeRestart, err)
+	}
+	askCallID := webString(pendingBeforeRestart[0]["id"])
+	if askCallID == "" || webString(pendingBeforeRestart[0]["call_id"]) != askCallID {
+		t.Fatal("pending AskUser has no consistent durable call identity")
+	}
 	closeContext, cancelClose := context.WithTimeout(context.Background(), time.Second)
 	if err := first.Close(closeContext); err != nil {
 		cancelClose()
@@ -628,10 +636,15 @@ func TestTranscriptRunnerAskUserSurvivesProcessRestartBeforeResolve(t *testing.T
 	if err != nil || !found || frame.Status != "awaiting_user_response" {
 		t.Fatalf("restarted frame=%#v found=%t err=%v", frame, found, err)
 	}
+	pendingAfterRestart, err := restarted.webConversationPendingConfirmations("frame-ask-restart")
+	if err != nil || len(pendingAfterRestart) != 1 || webString(pendingAfterRestart[0]["id"]) != askCallID ||
+		webString(pendingAfterRestart[0]["call_id"]) != askCallID {
+		t.Fatalf("restart changed pending AskUser identity: %#v err=%v", pendingAfterRestart, err)
+	}
 	request := newLoopbackTestRequest(http.MethodPost, "/api/frames/frame-ask-restart/resolve-input", nil)
 	request.Header.Set("X-Science-User-Id", "local")
 	resolved, err := restarted.resolveCompatibilityInput(request, frame, compatibilityResolveInputRequest{Responses: []compatibilityInputResponse{{
-		ToolID: "ask-restart", Action: "answer", Answers: map[string]string{"Which branch?": "Alpha"},
+		ToolID: askCallID, Action: "answer", Answers: map[string]string{"Which branch?": "Alpha"},
 	}}})
 	if err != nil || resolved.Status != "accepted" {
 		t.Fatalf("resolved=%#v err=%v", resolved, err)
@@ -739,14 +752,18 @@ func TestRunnerAskUserPausesPersistsAnswerAndResumes(t *testing.T) {
 		t.Fatalf("parked frame=%#v found=%v err=%v", frame, found, err)
 	}
 	confirmations, err := srv.webConversationPendingConfirmations("frame")
-	if err != nil || len(confirmations) != 1 || confirmations[0]["id"] != "ask-structure" {
+	if err != nil || len(confirmations) != 1 {
 		t.Fatalf("confirmations=%#v err=%v", confirmations, err)
+	}
+	askCallID := webString(confirmations[0]["id"])
+	if askCallID == "" || webString(confirmations[0]["call_id"]) != askCallID {
+		t.Fatal("pending AskUser lost its durable call identity")
 	}
 
 	request := newLoopbackTestRequest(http.MethodPost, "/api/frames/frame/resolve-input", nil)
 	request.Header.Set("X-Science-User-Id", "local")
 	resolved, err := srv.resolveCompatibilityInput(request, frame, compatibilityResolveInputRequest{Responses: []compatibilityInputResponse{{
-		ToolID: "ask-structure", Action: "answer", Answers: map[string]string{"Which CRBN structure should be used?": "5FQD"},
+		ToolID: askCallID, Action: "answer", Answers: map[string]string{"Which CRBN structure should be used?": "5FQD"},
 	}}})
 	if err != nil || resolved.Status != "accepted" {
 		t.Fatalf("resolved=%#v err=%v", resolved, err)

@@ -904,9 +904,11 @@ func TestGeneratePlanTextApprovalUsesApproveOnlyCallBeforeExecution(t *testing.T
 				"role": "assistant", "tool_calls": []any{map[string]any{"id": "plan-text-status", "type": "function", "function": map[string]any{"name": updateStepStatusToolName, "arguments": `{"step":"Run approved work","status":"completed"}`}}},
 			}}}})
 		case 5:
-			raw, _ := json.Marshal(request.Messages)
-			if !strings.Contains(string(raw), "plan-text-status") {
-				t.Fatalf("terminal plan status was not delivered before completion: %s", raw)
+			terminalCallID := requireLatestProviderToolCallID(t, request, updateStepStatusToolName)
+			if !chatRequestHasToolResult(request, terminalCallID, `"status":"completed"`) {
+				t.Error("terminal plan status was not paired with its durable call before completion")
+				http.Error(w, "terminal plan receipt missing", http.StatusBadRequest)
+				return
 			}
 			_ = json.NewEncoder(w).Encode(map[string]any{"choices": []any{map[string]any{"message": map[string]any{"role": "assistant", "content": "Approved execution completed."}}}})
 		default:
