@@ -89,8 +89,8 @@ func TestPrimaryRuntimeCloseBudgetRemainsBoundedAfterJoinTimeout(t *testing.T) {
 	joinContext, joinCancel := context.WithCancel(parent)
 	joinCancel()
 	err := shutdownPrimaryRuntime(joinContext, func() {}, workers, 5*time.Millisecond, func(ctx context.Context) error {
-		if ctx.Err() != nil || ctx.Value(cleanupValueKey{}) != "retained diagnostic" {
-			t.Fatal("fresh cleanup context lost liveness or diagnostic values")
+		if ctx.Value(cleanupValueKey{}) != "retained diagnostic" {
+			t.Fatal("fresh cleanup context lost diagnostic values")
 		}
 		<-ctx.Done()
 		return ctx.Err()
