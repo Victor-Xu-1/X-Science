@@ -9,6 +9,40 @@ import (
 	"testing"
 )
 
+func TestSourceObservationRecoveryFeedbackPreservesErrorPrecedence(t *testing.T) {
+	prior := errors.New("original tool failure")
+	repeated := &SourceObservation{State: SourceObservationRepeated, RepeatedOperations: 3}
+	for _, test := range []struct {
+		name        string
+		observation *SourceObservation
+		limit       int
+		prior       error
+		feedback    bool
+		exhausted   bool
+	}{
+		{"unobserved", nil, 3, nil, false, false},
+		{"new", &SourceObservation{State: SourceObservationNew}, 3, nil, false, false},
+		{"below limit", repeated, 4, nil, true, false},
+		{"disabled limit", repeated, 0, nil, true, false},
+		{"exhausted", repeated, 3, nil, true, true},
+		{"original failure", repeated, 3, prior, true, false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			messages, err := sourceObservationRecoveryFeedback(nil, test.observation, nil, test.limit, test.prior)
+			if (len(messages) == 1) != test.feedback {
+				t.Fatalf("feedback=%#v", messages)
+			}
+			var exhausted *ToolRoundNoProgressError
+			if errors.As(err, &exhausted) != test.exhausted || test.prior != nil && err != test.prior || !test.exhausted && test.prior == nil && err != nil {
+				t.Fatalf("wrong error precedence: %v", err)
+			}
+			if exhausted != nil && (!exhausted.SourceRepetition || len(exhausted.Calls) != 0 || exhausted.Limit != test.limit) {
+				t.Fatalf("source observation closed unknown calls: %#v", exhausted)
+			}
+		})
+	}
+}
+
 func TestSourceObservationIdentityAndWindow(t *testing.T) {
 	identity := SourceEvidenceIdentity{Class: "bundled-readonly-source-v1", ConnectorID: "bundled:fixture", ConnectorSource: "bundled", ToolName: "mcp__fixture__search", InputSchemaSHA256: strings.Repeat("a", 64), RequestSHA256: strings.Repeat("b", 64), ResultSHA256: strings.Repeat("c", 64)}
 	key, ok := identity.Key()

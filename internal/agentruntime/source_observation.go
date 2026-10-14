@@ -145,6 +145,19 @@ func (window *SourceObservationWindow) Complete(operation string, materialChange
 	return observation
 }
 
+// Preserve the original tool failure while adding host-only source feedback.
+// Source repetition is not execution equivalence and never closes a tool call.
+func sourceObservationRecoveryFeedback(modelMessages []Message, observation *SourceObservation, batchMessages []Message, limit int, toolErr error) ([]Message, error) {
+	if observation == nil || observation.State != SourceObservationRepeated || toolRoundReportsMaterialProgress(batchMessages) {
+		return modelMessages, toolErr
+	}
+	modelMessages = append(modelMessages, Message{Role: "system", Content: sourceObservationRecoveryInstruction()})
+	if toolErr == nil && limit > 0 && observation.RepeatedOperations >= limit {
+		toolErr = &ToolRoundNoProgressError{Limit: limit, SourceRepetition: true}
+	}
+	return modelMessages, toolErr
+}
+
 func sourceObservationRecoveryInstruction() string {
 	return "The latest executed operation returned repeated verified source content, not new source evidence. " +
 		"Reuse the existing source receipts or choose a genuinely different needed source/action, or finish with the available evidence. " +
