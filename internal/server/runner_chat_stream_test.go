@@ -387,7 +387,7 @@ func testSessionRunnerChatProgressBeforeTool(t *testing.T, structured, chinese b
 			_, _ = w.Write([]byte("data: {\"id\":\"candidate-before-tool\",\"choices\":[{\"index\":0,\"finish_reason\":\"tool_calls\",\"delta\":{}}]}\n\n"))
 		case 2:
 			messages, ok := request["messages"].([]any)
-			if !ok || !hasToolResultMessage(messages, "call_stream_list", "") {
+			if !ok || !hasToolResultMessage(messages, requireProviderToolCallID(t, request, "runtime_get", 0), "") {
 				t.Fatalf("tool result was not returned to the provider: %#v", request["messages"])
 			}
 			_, _ = fmt.Fprintf(w, "data: {\"id\":\"final-after-tool\",\"choices\":[{\"index\":0,\"finish_reason\":\"stop\",\"delta\":{\"role\":\"assistant\",\"content\":%q}}]}\n\n", expectedFinal)

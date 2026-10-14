@@ -171,6 +171,7 @@ func TestTranscriptRunnerAskUserPausesUntilNewInputThenResumesCheckpoint(t *test
 	store, repo, db := newTranscriptWebFixture(t)
 	seedTranscriptWebFrame(t, store, "local", "project-ask", "frame-ask")
 	var requests atomic.Int64
+	var durableAskCallID atomic.Value
 	modelAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sequence := requests.Add(1)
 		var payload map[string]any
@@ -192,9 +193,13 @@ func TestTranscriptRunnerAskUserPausesUntilNewInputThenResumesCheckpoint(t *test
 		rawMessages, _ := json.Marshal(payload["messages"])
 		toolResultFound := false
 		messages, _ := payload["messages"].([]any)
+		callID := requireProviderToolCallID(t, payload, "ask_user", 0)
+		if persisted, ok := durableAskCallID.Load().(string); !ok || callID != persisted {
+			t.Fatalf("AskUser resume changed the persisted identity: provider=%q persisted=%v", callID, durableAskCallID.Load())
+		}
 		for _, item := range messages {
 			message, _ := item.(map[string]any)
-			if message["role"] != "tool" || message["tool_call_id"] != "ask-structure" {
+			if message["role"] != "tool" || message["tool_call_id"] != callID {
 				continue
 			}
 			content, _ := message["content"].(string)
@@ -234,6 +239,16 @@ func TestTranscriptRunnerAskUserPausesUntilNewInputThenResumesCheckpoint(t *test
 	if err != nil || !found {
 		t.Fatalf("stream=%#v found=%t err=%v", stream, found, err)
 	}
+	var askCallCount int
+	var askCallID string
+	if err := db.QueryRow(`SELECT COUNT(*), COALESCE(MIN(item.tool_call_id),'')
+		FROM transcript_tool_call_items item
+		JOIN transcript_tool_call_batches batch ON batch.batch_id=item.batch_id
+		WHERE batch.stream_uid=? AND batch.source_runner_attempt=? AND item.tool_name='ask_user'`,
+		stream.UID, paused.Attempt).Scan(&askCallCount, &askCallID); err != nil || askCallCount != 1 || askCallID == "" {
+		t.Fatalf("persisted AskUser calls=%d id=%q err=%v", askCallCount, askCallID, err)
+	}
+	durableAskCallID.Store(askCallID)
 	pendingHistory, authoritative, err := srv.loadTranscriptWebHistory(context.Background(), "local", "frame-ask")
 	if err != nil || !authoritative || len(pendingHistory) != 3 {
 		t.Fatalf("pending history=%#v authoritative=%t err=%v", pendingHistory, authoritative, err)
@@ -243,7 +258,7 @@ func TestTranscriptRunnerAskUserPausesUntilNewInputThenResumesCheckpoint(t *test
 		progress["content"] != "I will ask before selecting the structure." {
 		t.Fatalf("AskUser progress explanation=%#v", pendingHistory[1])
 	}
-	pendingAsk := requireAskUserHistoryMessage(t, pendingHistory, "ask-structure")
+	pendingAsk := requireAskUserHistoryMessage(t, pendingHistory, askCallID)
 	pendingContent, _ := pendingAsk["content"].(map[string]any)
 	pendingCompatibility, _ := pendingContent["_frame_compat"].(map[string]any)
 	if pendingAsk["status"] != "work" || pendingContent["status"] != "running" ||
@@ -278,7 +293,7 @@ func TestTranscriptRunnerAskUserPausesUntilNewInputThenResumesCheckpoint(t *test
 	resolved := compatJSONRequest(t, srv.Handler(), http.MethodPost, "/api/frames/frame-ask/resolve-input", "local", map[string]any{
 		"ultra_mode": true,
 		"responses": []any{map[string]any{
-			"tool_id": "ask-structure", "action": "answer",
+			"tool_id": askCallID, "action": "answer",
 			"answers": map[string]any{"Which structure?": "Structure A"},
 		}},
 	}, http.StatusOK)
@@ -377,7 +392,7 @@ func TestTranscriptRunnerAskUserPausesUntilNewInputThenResumesCheckpoint(t *test
 	if err := json.Unmarshal(historyResponse.Body.Bytes(), &historyPage); err != nil {
 		t.Fatal(err)
 	}
-	answeredAsk := requireAskUserHistoryMessage(t, historyPage.Items, "ask-structure")
+	answeredAsk := requireAskUserHistoryMessage(t, historyPage.Items, askCallID)
 	answeredContent, _ := answeredAsk["content"].(map[string]any)
 	answeredCompatibility, _ := answeredContent["_frame_compat"].(map[string]any)
 	if answeredAsk["status"] != "finish" || answeredContent["status"] != "completed" ||
@@ -583,6 +598,14 @@ func TestTranscriptRunnerAskUserSurvivesProcessRestartBeforeResolve(t *testing.T
 	if err != nil || paused.Status != "awaiting_user_response" || requests.Load() != 1 {
 		t.Fatalf("paused=%#v requests=%d err=%v", paused, requests.Load(), err)
 	}
+	pendingBeforeRestart, err := first.webConversationPendingConfirmations("frame-ask-restart")
+	if err != nil || len(pendingBeforeRestart) != 1 {
+		t.Fatalf("pending before restart=%#v err=%v", pendingBeforeRestart, err)
+	}
+	askCallID := webString(pendingBeforeRestart[0]["id"])
+	if askCallID == "" || webString(pendingBeforeRestart[0]["call_id"]) != askCallID {
+		t.Fatal("pending AskUser has no consistent durable call identity")
+	}
 	closeContext, cancelClose := context.WithTimeout(context.Background(), time.Second)
 	if err := first.Close(closeContext); err != nil {
 		cancelClose()
@@ -613,10 +636,15 @@ func TestTranscriptRunnerAskUserSurvivesProcessRestartBeforeResolve(t *testing.T
 	if err != nil || !found || frame.Status != "awaiting_user_response" {
 		t.Fatalf("restarted frame=%#v found=%t err=%v", frame, found, err)
 	}
+	pendingAfterRestart, err := restarted.webConversationPendingConfirmations("frame-ask-restart")
+	if err != nil || len(pendingAfterRestart) != 1 || webString(pendingAfterRestart[0]["id"]) != askCallID ||
+		webString(pendingAfterRestart[0]["call_id"]) != askCallID {
+		t.Fatalf("restart changed pending AskUser identity: %#v err=%v", pendingAfterRestart, err)
+	}
 	request := newLoopbackTestRequest(http.MethodPost, "/api/frames/frame-ask-restart/resolve-input", nil)
 	request.Header.Set("X-Science-User-Id", "local")
 	resolved, err := restarted.resolveCompatibilityInput(request, frame, compatibilityResolveInputRequest{Responses: []compatibilityInputResponse{{
-		ToolID: "ask-restart", Action: "answer", Answers: map[string]string{"Which branch?": "Alpha"},
+		ToolID: askCallID, Action: "answer", Answers: map[string]string{"Which branch?": "Alpha"},
 	}}})
 	if err != nil || resolved.Status != "accepted" {
 		t.Fatalf("resolved=%#v err=%v", resolved, err)
@@ -724,14 +752,18 @@ func TestRunnerAskUserPausesPersistsAnswerAndResumes(t *testing.T) {
 		t.Fatalf("parked frame=%#v found=%v err=%v", frame, found, err)
 	}
 	confirmations, err := srv.webConversationPendingConfirmations("frame")
-	if err != nil || len(confirmations) != 1 || confirmations[0]["id"] != "ask-structure" {
+	if err != nil || len(confirmations) != 1 {
 		t.Fatalf("confirmations=%#v err=%v", confirmations, err)
+	}
+	askCallID := webString(confirmations[0]["id"])
+	if askCallID == "" || webString(confirmations[0]["call_id"]) != askCallID {
+		t.Fatal("pending AskUser lost its durable call identity")
 	}
 
 	request := newLoopbackTestRequest(http.MethodPost, "/api/frames/frame/resolve-input", nil)
 	request.Header.Set("X-Science-User-Id", "local")
 	resolved, err := srv.resolveCompatibilityInput(request, frame, compatibilityResolveInputRequest{Responses: []compatibilityInputResponse{{
-		ToolID: "ask-structure", Action: "answer", Answers: map[string]string{"Which CRBN structure should be used?": "5FQD"},
+		ToolID: askCallID, Action: "answer", Answers: map[string]string{"Which CRBN structure should be used?": "5FQD"},
 	}}})
 	if err != nil || resolved.Status != "accepted" {
 		t.Fatalf("resolved=%#v err=%v", resolved, err)

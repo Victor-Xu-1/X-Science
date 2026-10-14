@@ -72,7 +72,7 @@ func validateToolCallBatch(calls []ToolCall, maxCalls int) error {
 	seen := make(map[string]struct{}, len(calls))
 	for index, call := range calls {
 		callID := strings.TrimSpace(call.ID)
-		if callID == "" || callID != call.ID {
+		if callID == "" || callID != call.ID || len(callID) > 512 {
 			return &ToolCallBatchValidationError{Index: index, Code: "invalid_id"}
 		}
 		if _, exists := seen[callID]; exists {

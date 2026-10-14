@@ -78,9 +78,9 @@ func TestTranscriptRunnerApprovalResumeRetainsRejectedKernelSuccessor(t *testing
 			_ = json.NewEncoder(w).Encode(map[string]any{"choices": []any{map[string]any{"message": map[string]any{"role": "assistant", "tool_calls": calls}}}})
 			return
 		}
-		if !chatRequestHasToolResult(request, "approved-first", "17") ||
-			!chatRequestHasToolResult(request, "rejected-second", `"executed":false`) ||
-			!chatRequestHasToolResult(request, "rejected-second", "python_syntax_preflight_required") {
+		if !chatRequestHasToolResult(request, requireProviderToolCallID(t, request, "python", 0), "17") ||
+			!chatRequestHasToolResult(request, requireProviderToolCallID(t, request, "python", 1), `"executed":false`) ||
+			!chatRequestHasToolResult(request, requireProviderToolCallID(t, request, "python", 1), "python_syntax_preflight_required") {
 			t.Error("resumed provider did not receive real first result and exact second rejection")
 		}
 		_ = json.NewEncoder(w).Encode(map[string]any{"choices": []any{map[string]any{"message": map[string]any{"role": "assistant", "content": "The approved calculation printed 17. The other proposal was not executed because its Python syntax was invalid."}}}})
@@ -114,10 +114,15 @@ func TestTranscriptRunnerApprovalResumeRetainsRejectedKernelSuccessor(t *testing
 		t.Fatalf("actual execution records=%#v err=%v", records, err)
 	}
 	var operations, starts int
-	if err := db.QueryRow(`SELECT COUNT(*) FROM kernel_local_operations WHERE tool_call_id='rejected-second'`).Scan(&operations); err != nil {
+	var rejectedCallID string
+	if err := db.QueryRow(`SELECT tool_call_id FROM transcript_tool_call_items
+		WHERE tool_name='python' AND json_extract(arguments_json,'$.code')='if True print(2)'`).Scan(&rejectedCallID); err != nil || rejectedCallID == "" {
+		t.Fatalf("rejected durable call ID=%q err=%v", rejectedCallID, err)
+	}
+	if err := db.QueryRow(`SELECT COUNT(*) FROM kernel_local_operations WHERE tool_call_id=?`, rejectedCallID).Scan(&operations); err != nil {
 		t.Fatal(err)
 	}
-	if err := db.QueryRow(`SELECT COUNT(*) FROM transcript_tool_call_items WHERE tool_call_id='rejected-second' AND (started_event_id IS NOT NULL OR waiting_event_id IS NOT NULL)`).Scan(&starts); err != nil {
+	if err := db.QueryRow(`SELECT COUNT(*) FROM transcript_tool_call_items WHERE tool_call_id=? AND (started_event_id IS NOT NULL OR waiting_event_id IS NOT NULL)`, rejectedCallID).Scan(&starts); err != nil {
 		t.Fatal(err)
 	}
 	if operations != 0 || starts != 0 {

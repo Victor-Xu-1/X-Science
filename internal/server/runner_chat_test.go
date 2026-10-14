@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -1992,6 +1993,7 @@ func TestSessionRunnerChatDoesNotInjectCompetingRuntimePlan(t *testing.T) {
 
 func TestSessionRunnerChatOnceExecutesModelToolCalls(t *testing.T) {
 	var requests atomic.Int64
+	var canonicalCallID atomic.Value
 	modelAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sequence := requests.Add(1)
 		var request map[string]any
@@ -2022,7 +2024,9 @@ func TestSessionRunnerChatOnceExecutesModelToolCalls(t *testing.T) {
 			}`))
 		case 2:
 			messages, ok := request["messages"].([]any)
-			if !ok || !hasToolResultMessage(messages, "call_skill_search_1", "") {
+			callID := requireProviderToolCallID(t, request, "search_skills", 0)
+			canonicalCallID.Store(callID)
+			if !ok || !hasToolResultMessage(messages, callID, "") {
 				t.Fatalf("second request missing tool result message: %#v", request["messages"])
 			}
 			w.Header().Set("Content-Type", "application/json")
@@ -2077,6 +2081,10 @@ func TestSessionRunnerChatOnceExecutesModelToolCalls(t *testing.T) {
 	if requests.Load() != 2 {
 		t.Fatalf("model requests = %d", requests.Load())
 	}
+	callID, ok := canonicalCallID.Load().(string)
+	if !ok {
+		t.Fatal("provider did not observe the canonical search_skills call")
+	}
 
 	replayed := postToolInput(t, httpServer.URL, "session_replay", map[string]any{
 		"sessionId":    sessionID,
@@ -2084,7 +2092,7 @@ func TestSessionRunnerChatOnceExecutesModelToolCalls(t *testing.T) {
 		"limit":        float64(10),
 	})
 	entries := replayed["result"].(map[string]any)["entries"].([]any)
-	if !hasModelToolCallCheckpoint(entries, "search_skills", "call_skill_search_1", "runtime") {
+	if !hasModelToolCallCheckpoint(entries, "search_skills", callID, "runtime") {
 		t.Fatalf("missing model tool-call checkpoint: %#v", entries)
 	}
 	if !hasJournalEntry(entries, "runner_checkpoint", "running", "tool search_skills started") {
@@ -2093,7 +2101,7 @@ func TestSessionRunnerChatOnceExecutesModelToolCalls(t *testing.T) {
 	if !hasJournalEntry(entries, "runner_checkpoint", "completed", "tool search_skills completed") {
 		t.Fatalf("missing tool completion checkpoint: %#v", entries)
 	}
-	if !hasRunnerToolCheckpoint(entries, "completed", "search_skills", "call_skill_search_1", "") {
+	if !hasRunnerToolCheckpoint(entries, "completed", "search_skills", callID, "") {
 		t.Fatalf("missing structured tool completion checkpoint: %#v", entries)
 	}
 	if !hasJournalEntry(entries, "message", "", "completed capability search through the fixed tool surface") {
@@ -2104,13 +2112,14 @@ func TestSessionRunnerChatOnceExecutesModelToolCalls(t *testing.T) {
 		"format":    "markdown",
 	})
 	markdown := exported["result"].(map[string]any)["content"].(string)
-	if !strings.Contains(markdown, "Model Tool Calls:") || !strings.Contains(markdown, "Tool: search_skills") || !strings.Contains(markdown, "Tool Call: call_skill_search_1") || !strings.Contains(markdown, "runtime") {
+	if !strings.Contains(markdown, "Model Tool Calls:") || !strings.Contains(markdown, "Tool: search_skills") || !strings.Contains(markdown, "Tool Call: "+callID) || !strings.Contains(markdown, "runtime") {
 		t.Fatalf("tool transcript markdown = %q", markdown)
 	}
 }
 
 func TestSessionRunnerChatOnceExecutesFourToolCallsWithoutFixtureDerivedBatchLimit(t *testing.T) {
 	var requests atomic.Int64
+	var canonicalCallIDs atomic.Value
 	modelAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sequence := requests.Add(1)
 		var request map[string]any
@@ -2138,8 +2147,13 @@ func TestSessionRunnerChatOnceExecutesFourToolCallsWithoutFixtureDerivedBatchLim
 			if !ok {
 				t.Fatalf("second request messages = %#v", request["messages"])
 			}
-			for index := 1; index <= 4; index++ {
-				if !hasToolResultMessage(messages, fmt.Sprintf("call_skill_%d", index), "skills") {
+			callIDs := providerToolCallIDs(t, request, "search_skills")
+			if len(callIDs) != 4 {
+				t.Fatalf("provider assistant call IDs=%#v, want four distinct ordered calls", callIDs)
+			}
+			canonicalCallIDs.Store(callIDs)
+			for index, callID := range callIDs {
+				if !hasToolResultMessage(messages, callID, "skills") {
 					t.Fatalf("second request missing tool result %d: %#v", index, messages)
 				}
 			}
@@ -2182,12 +2196,32 @@ func TestSessionRunnerChatOnceExecutesFourToolCallsWithoutFixtureDerivedBatchLim
 		"sessionId": sessionID, "afterEventId": float64(0), "limit": float64(40),
 	})
 	entries := replayed["result"].(map[string]any)["entries"].([]any)
-	for index := 1; index <= 4; index++ {
-		callID := fmt.Sprintf("call_skill_%d", index)
+	callIDs, ok := canonicalCallIDs.Load().([]string)
+	if !ok || len(callIDs) != 4 {
+		t.Fatalf("provider did not observe four canonical calls: %#v", canonicalCallIDs.Load())
+	}
+	for _, callID := range callIDs {
 		if !hasModelToolCallCheckpoint(entries, "search_skills", callID, "") ||
 			!hasRunnerToolCheckpoint(entries, "completed", "search_skills", callID, "skills") {
 			t.Fatalf("missing durable checkpoint for %s: %#v", callID, entries)
 		}
+	}
+	var modelIDs, completedIDs []string
+	for _, entry := range entries {
+		message := journalEntryMessage(entry)
+		calls, _ := message["modelToolCalls"].([]any)
+		for _, rawCall := range calls {
+			call, _ := rawCall.(map[string]any)
+			if call["name"] == "search_skills" {
+				modelIDs = append(modelIDs, stringValue(call["id"]))
+			}
+		}
+		if message["toolName"] == "search_skills" && message["status"] == "completed" {
+			completedIDs = append(completedIDs, stringValue(message["toolCallId"]))
+		}
+	}
+	if !slices.Equal(modelIDs, callIDs) || !slices.Equal(completedIDs, callIDs) {
+		t.Fatalf("canonical batch order changed: provider=%#v model=%#v completed=%#v", callIDs, modelIDs, completedIDs)
 	}
 }
 
@@ -2414,7 +2448,7 @@ func TestSessionRunnerChatToolAllowlistBlocksUnlistedToolCalls(t *testing.T) {
 			}`))
 		case 2:
 			messages, ok := request["messages"].([]any)
-			if !ok || !hasToolResultMessage(messages, "call_edit_1", "unadvertised_tool") {
+			if !ok || !hasToolResultMessage(messages, requireProviderToolCallID(t, request, "edit_file", 0), "unadvertised_tool") {
 				t.Fatalf("second request missing durable tool rejection: %#v", request["messages"])
 			}
 			w.Header().Set("Content-Type", "application/json")
@@ -2526,7 +2560,7 @@ func TestSessionRunnerChatEnforcesReadOnlyAgentToolPolicy(t *testing.T) {
 			}`))
 		case 2:
 			messages, ok := request["messages"].([]any)
-			if !ok || !hasToolResultMessage(messages, "call_readonly_edit_file", "unadvertised_tool") {
+			if !ok || !hasToolResultMessage(messages, requireProviderToolCallID(t, request, "edit_file", 0), "unadvertised_tool") {
 				t.Fatalf("second request missing durable read-only rejection: %#v", request["messages"])
 			}
 			w.Header().Set("Content-Type", "application/json")
@@ -2855,7 +2889,7 @@ func TestSessionRunnerChatOnceInterruptsWhenToolRoundLimitExceeded(t *testing.T)
 			}`))
 		case 2:
 			messages, ok := request["messages"].([]any)
-			if !ok || !hasToolResultMessage(messages, "call_web_search_1", "disabled") {
+			if !ok || !hasToolResultMessage(messages, requireProviderToolCallID(t, request, "web_search", 0), "disabled") {
 				t.Fatalf("second request missing first tool result: %#v", request["messages"])
 			}
 			w.Header().Set("Content-Type", "application/json")

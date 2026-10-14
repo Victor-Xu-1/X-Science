@@ -336,6 +336,7 @@ func (s *Server) runAgentRuntimeAgentHook(ctx context.Context, eventName string,
 	}
 	allowedTools := readOnlyAgentAllowedTools(nil)
 	engine := agentruntime.Engine{
+		ToolCallIdentityPolicy: agentruntime.DurableToolCallIdentity,
 		Model: agentruntime.OpenAIChatClient{
 			Endpoint:       options.Endpoint,
 			APIKey:         options.APIKey,

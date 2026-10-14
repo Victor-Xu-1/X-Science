@@ -3,16 +3,13 @@ package agentruntime
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"strings"
 )
 
 func (e Engine) Run(ctx context.Context, request RunRequest) (RunResult, error) {
-	if e.Model == nil {
-		return RunResult{}, errors.New("agent runtime model client is required")
-	}
-	if len(request.Messages) == 0 {
-		return RunResult{}, errors.New("agent runtime requires at least one message")
+	identityScope, err := e.prepareRunIdentity(request)
+	if err != nil {
+		return RunResult{}, err
 	}
 	normalized, err := NormalizeModelRequestMedia(ModelRequest{
 		Messages: request.Messages, MediaPolicy: request.MediaPolicy,
@@ -129,7 +126,10 @@ func (e Engine) Run(ctx context.Context, request RunRequest) (RunResult, error) 
 			if preflightToolCalls {
 				preflight = preflightChecker
 			}
-			message.ToolCalls = namespaceReusedToolCallIDs(modelMessages, message.ToolCalls, toolRounds+1)
+			message.ToolCalls, err = identityScope.namespace(modelMessages, message.ToolCalls, toolRounds+1)
+			if err != nil {
+				return interruptedRun(messages, err)
+			}
 			rejectedToolCalls, err = collectToolCallRejections(
 				ctx, message.ToolCalls, modelRequest.Tools, admission, preflight,
 			)

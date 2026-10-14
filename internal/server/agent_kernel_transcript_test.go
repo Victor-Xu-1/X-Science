@@ -87,7 +87,7 @@ func TestTranscriptFrameRunnerExecutesPythonWithoutLegacySession(t *testing.T) {
 		if requestNumber == 2 {
 			foundResult := false
 			for _, message := range request.Messages {
-				if message.Role == "tool" && message.ToolCallID == "python-call" &&
+				if message.Role == "tool" && message.ToolCallID == requireProviderToolCallID(t, request, "python", 0) &&
 					strings.Contains(message.Content, projectPath) {
 					foundResult = true
 					break
@@ -101,7 +101,7 @@ func TestTranscriptFrameRunnerExecutesPythonWithoutLegacySession(t *testing.T) {
 		}
 		foundArtifact := false
 		for _, message := range request.Messages {
-			if message.Role == "tool" && message.ToolCallID == "save-call" &&
+			if message.Role == "tool" && message.ToolCallID == requireProviderToolCallID(t, request, "save_artifacts", 0) &&
 				strings.Contains(message.Content, `"artifact_id"`) && strings.Contains(message.Content, `"version_id"`) {
 				foundArtifact = true
 				break
@@ -518,18 +518,18 @@ func TestTranscriptRunnerBackgroundKernelWaitsForDurableNotification(t *testing.
 			}
 			_, _ = w.Write([]byte(`{"choices":[{"message":{"role":"assistant","tool_calls":[{"id":"wait-empty","type":"function","function":{"name":"wait_for_notification","arguments":"{\"timeout_seconds\":0}"}}]}}]}`))
 		case 2:
-			if !chatRequestHasToolResult(request, "wait-empty", `"status":"idle"`) ||
-				!chatRequestHasToolResult(request, "wait-empty", `"num_notifications":0`) {
+			if !chatRequestHasToolResult(request, requireProviderToolCallID(t, request, "wait_for_notification", 0), `"status":"idle"`) ||
+				!chatRequestHasToolResult(request, requireProviderToolCallID(t, request, "wait_for_notification", 0), `"num_notifications":0`) {
 				t.Errorf("provider did not receive truthful empty observation: %#v", request.Messages)
 			}
 			_, _ = w.Write([]byte(`{"choices":[{"message":{"role":"assistant","tool_calls":[{"id":"background-python","type":"function","function":{"name":"python","arguments":"{\"code\":\"import time; time.sleep(0.2); print('BACKGROUND-READY')\",\"environment\":\"python\",\"background\":true,\"human_description\":\"Running background kernel check\"}"}}]}}]}`))
 		case 3:
-			if !chatRequestHasToolResult(request, "background-python", "running") {
+			if !chatRequestHasToolResult(request, requireProviderToolCallID(t, request, "python", 0), "running") {
 				t.Errorf("provider did not receive running background receipt: %#v", request.Messages)
 			}
 			_, _ = w.Write([]byte(`{"choices":[{"message":{"role":"assistant","tool_calls":[{"id":"wait-background","type":"function","function":{"name":"wait_for_notification","arguments":"{\"timeout_seconds\":3,\"human_description\":\"Waiting for background kernel result\"}"}}]}}]}`))
 		case 4:
-			if !chatRequestHasToolResult(request, "wait-background", "BACKGROUND-READY") {
+			if !chatRequestHasToolResult(request, requireProviderToolCallID(t, request, "wait_for_notification", 1), "BACKGROUND-READY") {
 				t.Errorf("provider did not receive durable cell result: %#v", request.Messages)
 			}
 			_, _ = w.Write([]byte(`{"choices":[{"message":{"role":"assistant","content":"Background result collected"}}]}`))

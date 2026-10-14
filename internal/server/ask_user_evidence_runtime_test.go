@@ -265,7 +265,7 @@ func TestAskUserPublicProseAuthorityDoesNotTreatTypedImplementationAsVisibleText
 }
 
 func TestTranscriptRunnerNormalizesUnverifiedEvidenceBeforeParking(t *testing.T) {
-	store, repo, _ := newTranscriptWebFixture(t)
+	store, repo, db := newTranscriptWebFixture(t)
 	seedTranscriptWebFrame(t, store, "local", "project-ask-evidence", "frame-ask-evidence")
 	var requests atomic.Int64
 	modelAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -285,7 +285,8 @@ func TestTranscriptRunnerNormalizesUnverifiedEvidenceBeforeParking(t *testing.T)
 			}}}})
 			return
 		}
-		evidence := []any{"tool-call:readiness-preflight"}
+		readinessCallID := requireLatestProviderToolCallID(t, payload, "search_skills")
+		evidence := []any{"tool-call:" + readinessCallID}
 		callID := "ask-unverified"
 		if sequence > 2 {
 			t.Fatalf("unexpected model request %d", sequence)
@@ -302,7 +303,7 @@ func TestTranscriptRunnerNormalizesUnverifiedEvidenceBeforeParking(t *testing.T)
 		)
 		if sequence == 2 {
 			continueOption["readiness_status"] = "verified_ready"
-			continueOption["readiness_evidence"] = []any{"tool-call:readiness-preflight"}
+			continueOption["readiness_evidence"] = []any{"tool-call:" + readinessCallID}
 			continueOption["selection_basis"] = "execution_readiness"
 		}
 		arguments := map[string]any{
@@ -342,7 +343,17 @@ func TestTranscriptRunnerNormalizesUnverifiedEvidenceBeforeParking(t *testing.T)
 		t.Fatalf("result=%#v requests=%d err=%v", result, requests.Load(), err)
 	}
 	confirmations, err := server.webConversationPendingConfirmations("frame-ask-evidence")
-	if err != nil || len(confirmations) != 1 || confirmations[0]["id"] != "ask-unverified" {
+	var callCount int
+	var canonicalAskID string
+	if err := db.QueryRow(`SELECT COUNT(*), COALESCE(MIN(item.tool_call_id),'')
+		FROM transcript_tool_call_items item
+		JOIN transcript_tool_call_batches batch ON batch.batch_id=item.batch_id
+		JOIN transcript_streams stream ON stream.stream_uid=batch.stream_uid
+		WHERE stream.owner_id='local' AND stream.frame_id='frame-ask-evidence'
+		AND batch.source_runner_attempt=? AND item.tool_name='ask_user'`, result.Attempt).Scan(&callCount, &canonicalAskID); err != nil || callCount != 1 || canonicalAskID == "" {
+		t.Fatalf("durable AskUser calls=%d id=%q err=%v", callCount, canonicalAskID, err)
+	}
+	if err != nil || len(confirmations) != 1 || confirmations[0]["id"] != canonicalAskID || confirmations[0]["call_id"] != canonicalAskID {
 		t.Fatalf("confirmations=%#v err=%v", confirmations, err)
 	}
 }
