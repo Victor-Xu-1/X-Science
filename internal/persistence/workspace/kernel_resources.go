@@ -20,6 +20,27 @@ type KernelResourceReservation struct {
 	State          string
 }
 
+// CountPendingKernelResourceWaits projects the existing startup supervisor's
+// waiting authority. It neither admits resources nor starts a cancelled call.
+func (s *Store) CountPendingKernelResourceWaits(ctx context.Context, access KernelFrameAccess) (int, error) {
+	if s == nil || s.db == nil || ctx == nil {
+		return 0, errors.New("workspace resource wait authority is unavailable")
+	}
+	var count int
+	err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM kernel_resource_reservations r
+		JOIN kernel_execution_backends b ON b.backend_id=r.backend_id
+			AND b.backend_generation=r.backend_generation AND b.machine_boot_id=r.machine_boot_id
+		JOIN frames f ON f.id=b.frame_id AND f.incarnation_id=b.frame_incarnation_id
+		JOIN frames root ON root.id=b.root_frame_id AND root.incarnation_id=b.root_frame_incarnation_id
+		JOIN projects p ON p.id=b.project_id AND p.user_id=b.owner_user_id
+		WHERE r.state='waiting' AND b.state='starting' AND f.status='processing'
+			AND f.project_id=p.id AND root.project_id=p.id
+			AND b.owner_user_id=? AND b.project_id=? AND b.frame_id=? AND b.frame_incarnation_id=?
+			AND b.root_frame_id=? AND b.root_frame_incarnation_id=?`, access.UserID, access.Frame.ProjectID,
+		access.Frame.ID, access.Frame.IncarnationID, access.Frame.RootFrameID, access.RootFrameIncarnationID).Scan(&count)
+	return count, err
+}
+
 // Capacity excludes the control-plane reserve. Usage is a current physical
 // observation for the exact reserved generation. Unknown usage is zero, so a
 // control outage cannot free a promise. Already-used memory is not counted

@@ -182,6 +182,19 @@ func runnerCheckpointHasMaterialProgress(message eventjournal.Message) bool {
 		return false
 	}
 	result := mapValue(message["toolResult"])
+	if normalizeAgentToolName(stringValue(message["toolName"])) == "waitfornotification" {
+		// A successful wait/peek with no delivered notification is a control
+		// observation, not new work. Reuse the actual notification manifest
+		// contract so live and replay cannot reset recovery on idle polling.
+		raw, err := json.Marshal(result)
+		if err != nil {
+			return false
+		}
+		count, err := agentKernelNotificationClaimCount(string(raw))
+		if err != nil || count == 0 {
+			return false
+		}
+	}
 	outcome := agentruntime.ClassifyToolResult(result)
 	// An unavailable source is recoverable, but acquired no new evidence. It
 	// must not clear the same durable route quarantine on live and replay paths.
