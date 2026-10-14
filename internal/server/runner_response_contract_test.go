@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -43,6 +44,40 @@ func TestResponseContractSharesInformativeBoundedProgressStyle(t *testing.T) {
 	text := "已读取版本记录，内容与要求一致；还需核对当前环境实际导入的版本，排除文件记录与运行环境不一致的情况。下一步将比较两者，并保留读取结果。"
 	if got := sessionRunnerPublicProgressNarration(text); got != text {
 		t.Fatalf("informative bounded progress was lost: %q", got)
+	}
+}
+
+func TestResponseContractAllowsBriefOpeningBeforeFullPlanning(t *testing.T) {
+	original := agentruntime.ModelRequest{
+		Messages: []agentruntime.Message{
+			{Role: "system", Content: sessionRunnerPublicCommunicationContract},
+			{Role: "user", Content: "Investigate the supplied evidence and compare the alternatives."},
+		},
+		Tools: []agentruntime.ToolSchema{{Name: "inspect"}},
+	}
+	projected, err := projectRunnerResponseContract(original, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(projected.Messages) != 2 || projected.Messages[0].Role != "system" ||
+		!reflect.DeepEqual(projected.Messages[1], original.Messages[1]) ||
+		!reflect.DeepEqual(projected.Tools, original.Tools) {
+		t.Fatal("opening guidance changed the conversation or tool authority")
+	}
+	prompt := projected.Messages[0].Content
+	for name, pattern := range map[string]string{
+		"short opening permitted":       `(?i)(?:task start|first (?:public )?update|opening update)[^.]*one short sentence[^.]*sufficient`,
+		"opening precedes preparation":  `(?i)before (?:preparing|creating|writing|generating)[^.]*plan[^.]*tool arguments`,
+		"later evidence remains useful": `(?i)(?:(?:after|once)[^.]*evidence[^.]*what changed|state a concrete observed finding or remaining uncertainty)`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			if !regexp.MustCompile(pattern).MatchString(prompt) {
+				t.Errorf("projected request does not express %s", name)
+			}
+		})
+	}
+	if regexp.MustCompile(`(?i)\b[0-9]+\s*[-–]\s*[0-9]+\s+(?:Chinese|English)`).MatchString(prompt) {
+		t.Error("projected request still asks for a numeric narration-length target")
 	}
 }
 
@@ -94,7 +129,7 @@ func TestResponseContractParallelInstructionsMatchProgressCadence(t *testing.T) 
 		instruction string
 		forbidden   string
 	}{
-		{"due", true, "Begin with one complete public progress envelope", "Every call"},
+		{"due", true, "complete public progress envelope", "Every call"},
 		{"not-due", false, "An additional public progress update is optional", "must include"},
 	} {
 		t.Run(test.name, func(t *testing.T) {

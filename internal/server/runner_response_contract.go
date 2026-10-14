@@ -14,7 +14,7 @@ const runnerPublicProgressField = "public_progress"
 
 func runnerPublicProgressCadence(due bool) string {
 	if due {
-		return "A public progress update is due. Begin with one complete public progress envelope describing the immediate next action and its purpose, before generating tool arguments. Do not wait to plan every later step."
+		return "A public progress update is due. First emit one brief, complete public progress envelope describing the immediate next action and its purpose, then continue the work. Do not delay this update to plan later stages or prepare tool arguments."
 	}
 	return "An additional public progress update is optional. Use a public progress envelope only for materially new progress; do not repeat an unchanged update for parallel calls."
 }

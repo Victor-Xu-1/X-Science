@@ -154,10 +154,13 @@ func TestRuntimeMCPContextUsesLoadOnDemandBridge(t *testing.T) {
 		}},
 	}}
 	context := runtimeMCPContext(schemas, nil)
-	for _, required := range []string{"Invocation contract:", "mcp__remote__echo", "Preserve JSON Schema types exactly"} {
+	for _, required := range []string{"Invocation contract:", "- remote", "host.mcp.list_methods(server)", "Preserve JSON Schema types exactly"} {
 		if !strings.Contains(context, required) {
 			t.Fatalf("MCP context missing %q: %q", required, context)
 		}
+	}
+	if strings.Contains(context, "mcp__remote__echo") {
+		t.Fatalf("unselected method was eagerly copied into root context: %q", context)
 	}
 	if active := partitionAgentRuntimeToolSchemasForModel(schemas); agentRuntimeToolSchemaNamed(active, "mcp__remote__echo") {
 		t.Fatalf("flattened MCP method entered the model root snapshot: %#v", agentRuntimeToolSchemaNames(active))

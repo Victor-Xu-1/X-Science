@@ -3,9 +3,60 @@ import { cleanup, fireEvent, screen } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { renderWithI18n } from '../i18nTestUtils';
+import { renderWithI18n, type TestLanguage } from '../i18nTestUtils';
 
 afterEach(cleanup);
+
+describe.each([
+  { branch: 'single action', sendOptionsNode: undefined },
+  { branch: 'joined actions', sendOptionsNode: <button>Send options</button> },
+])('GuidActionRow $branch send control', ({ sendOptionsNode }) => {
+  describe.each([
+    { language: 'en-US' as TestLanguage, label: 'Send' },
+    { language: 'zh-CN' as TestLanguage, label: '发送' },
+  ])('$language', ({ language, label }) => {
+    const renderSendAction = async (state: { disabled?: boolean; loading?: boolean } = {}) => {
+      const onSend = vi.fn();
+      await renderWithI18n(
+        <GuidActionRow
+          files={[]}
+          onFilesUploaded={vi.fn()}
+          openFileSelector={vi.fn()}
+          onSelectProjectFiles={vi.fn()}
+          modelSelectorNode={null}
+          loading={state.loading ?? false}
+          isButtonDisabled={state.disabled ?? false}
+          sendOptionsNode={sendOptionsNode}
+          onSend={onSend}
+        />,
+        language,
+        { wrapper: MemoryRouter }
+      );
+      return { onSend, button: screen.getByRole('button', { name: label, exact: true }) };
+    };
+
+    it('names the enabled icon control and submits once for one click', async () => {
+      const { onSend, button } = await renderSendAction();
+      expect(button).toBeEnabled();
+      fireEvent.click(button);
+      expect(onSend).toHaveBeenCalledTimes(1);
+    });
+
+    it('retains its name while disabled and prevents submission', async () => {
+      const { onSend, button } = await renderSendAction({ disabled: true });
+      expect(button).toBeDisabled();
+      fireEvent.click(button);
+      expect(onSend).not.toHaveBeenCalled();
+    });
+
+    it('retains its name while loading and prevents another submission', async () => {
+      const { onSend, button } = await renderSendAction({ loading: true });
+      expect(button).toHaveClass('arco-btn-loading');
+      fireEvent.click(button);
+      expect(onSend).not.toHaveBeenCalled();
+    });
+  });
+});
 
 describe('GuidActionRow attachment actions', () => {
   it('matches the formal conversation menu structure while keeping unavailable actions disabled', async () => {
