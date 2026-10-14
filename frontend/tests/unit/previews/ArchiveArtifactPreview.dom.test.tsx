@@ -47,7 +47,15 @@ async function view() {
   return { ...rendered, change: (uri: string, name?: string) => rendered.rerender(node(uri, name)) };
 }
 async function openNotes() {
-  fireEvent.click(await screen.findByRole('button', { name: /notes\.md.*42 B/ }));
+  const entry = await screen.findByRole('button', { name: /notes\.md.*42 B/ });
+  await act(async () => {
+    fireEvent.click(entry);
+  });
+  // The fetched entry mounts a second real lazy boundary. Settle that import
+  // and React's commit before applying the normal element-query deadline.
+  await act(async () => {
+    await vi.dynamicImportSettled();
+  });
   return screen.findByTestId('preview-board');
 }
 
