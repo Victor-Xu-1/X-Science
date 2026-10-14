@@ -129,6 +129,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
               icon={<ArrowUp theme='filled' size='14' fill='white' strokeWidth={5} className='sendbox-action-icon' />}
               onClick={onSend}
               data-testid='guid-send-btn'
+              aria-label={t('common.send')}
             />
             <span className='sendbox-joined-actions__divider' aria-hidden='true' />
             {sendOptionsNode}
@@ -147,6 +148,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
             icon={<ArrowUp theme='filled' size='14' fill='white' strokeWidth={5} className='sendbox-action-icon' />}
             onClick={onSend}
             data-testid='guid-send-btn'
+            aria-label={t('common.send')}
           />
         )}
       </div>
