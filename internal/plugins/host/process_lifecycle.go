@@ -24,18 +24,7 @@ func (h *Host) StopExternalProcesses(ctx context.Context) error {
 	processes := make(map[string]*externalProcess, len(h.processes))
 	for id, process := range h.processes {
 		processes[id] = process
-		if process.stopping {
-			errs = append(errs, process.stopErr)
-			continue
-		}
-		process.stopping = true
-		plugin := h.plugins[id]
-		plugin.Runtime.Status = "stopping"
-		h.plugins[id] = plugin
-		if err := process.control.Kill(process.command); err != nil && !errors.Is(err, os.ErrProcessDone) {
-			process.stopErr = fmt.Errorf("terminate plugin %s: %w", id, err)
-		}
-		errs = append(errs, process.stopErr)
+		errs = append(errs, h.stopExternalProcess(id, process))
 	}
 	h.stopping = len(h.processes) != 0
 	h.mu.Unlock()
@@ -55,6 +44,21 @@ func (h *Host) StopExternalProcesses(ctx context.Context) error {
 		errs = append(errs, process.waitErr)
 	}
 	return errors.Join(errs...)
+}
+
+// Both failed startup and normal Stop use this termination request while h.mu
+// is held. Repeated callers do not race control handles or a second Wait.
+func (h *Host) stopExternalProcess(id string, process *externalProcess) error {
+	if !process.stopping {
+		process.stopping = true
+		plugin := h.plugins[id]
+		plugin.Runtime.Status = "stopping"
+		h.plugins[id] = plugin
+		if err := process.control.Kill(process.command); err != nil && !errors.Is(err, os.ErrProcessDone) {
+			process.stopErr = fmt.Errorf("terminate plugin %s: %w", id, err)
+		}
+	}
+	return process.stopErr
 }
 
 func (h *Host) waitForProcess(id string, process *externalProcess) {
@@ -84,6 +88,9 @@ func (h *Host) waitForProcess(id string, process *externalProcess) {
 		plugin.Runtime.StartedAt = ""
 		plugin.Runtime.Error = ""
 		switch {
+		case process.startErr != nil:
+			plugin.Runtime.Status = "failed"
+			plugin.Runtime.Error = errors.Join(process.startErr, process.stopErr, process.waitErr).Error()
 		case process.stopping:
 			plugin.Runtime.Status = "stopped"
 			if err := errors.Join(process.stopErr, process.waitErr); err != nil {

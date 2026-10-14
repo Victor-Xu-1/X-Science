@@ -82,6 +82,7 @@ type externalProcess struct {
 	stopping bool
 	stopErr  error
 	waitErr  error
+	startErr error
 }
 
 func NewDefault() *Host {
@@ -239,40 +240,19 @@ func (h *Host) StartExternalProcesses(ctx context.Context) error {
 			continue
 		}
 		if err := cmd.Start(); err != nil {
-			_ = control.Close()
-			plugin.Runtime = RuntimeStatus{Kind: "external_process", Status: "failed", Error: err.Error()}
-			h.plugins[id] = plugin
-			errs = append(errs, fmt.Errorf("start plugin %s: %w", id, err))
+			errs = append(errs, h.recordUnstartedProcessFailure(id, plugin, control, fmt.Errorf("start plugin %s: %w", id, err)))
 			continue
 		}
+		running := h.ownStartedProcess(id, plugin, cmd, control)
+		var startErr error
 		if err := control.Attach(cmd); err != nil {
-			_ = control.Kill(cmd)
-			_ = cmd.Wait()
-			_ = control.Close()
-			plugin.Runtime = RuntimeStatus{Kind: "external_process", Status: "failed", Error: err.Error()}
-			h.plugins[id] = plugin
-			errs = append(errs, fmt.Errorf("attach plugin %s process control: %w", id, err))
-			continue
+			startErr = fmt.Errorf("attach plugin %s process control: %w", id, err)
+		} else if err := ctx.Err(); err != nil {
+			startErr = fmt.Errorf("start plugin %s: %w", id, err)
 		}
-		if err := ctx.Err(); err != nil {
-			_ = control.Kill(cmd)
-			_ = cmd.Wait()
-			_ = control.Close()
-			plugin.Runtime = RuntimeStatus{Kind: "external_process", Status: "failed", Error: err.Error()}
-			h.plugins[id] = plugin
-			errs = append(errs, fmt.Errorf("start plugin %s: %w", id, err))
-			continue
+		if err := h.finishProcessStartup(id, running, startErr); err != nil {
+			errs = append(errs, err)
 		}
-		running := &externalProcess{command: cmd, control: control, done: make(chan struct{})}
-		h.processes[id] = running
-		plugin.Runtime = RuntimeStatus{
-			Kind:      "external_process",
-			Status:    "running",
-			PID:       cmd.Process.Pid,
-			StartedAt: time.Now().UTC().Format(time.RFC3339),
-		}
-		h.plugins[id] = plugin
-		go h.waitForProcess(id, running)
 	}
 	return errors.Join(errs...)
 }
