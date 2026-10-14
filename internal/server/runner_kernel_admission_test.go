@@ -7,10 +7,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -325,5 +327,26 @@ func TestKernelAdmissionNormalizationHonorsCallerCancellationAndTask(t *testing.
 		if _, err := normalizedKernelCheckpointArguments(serverAgentRuntimeToolGateway{}, "bash", raw); err == nil {
 			t.Fatal("normalization erased ambiguous JSON before durable admission")
 		}
+	}
+}
+
+func TestKernelCheckpointNormalizationDoesNotDiscoverExternalTools(t *testing.T) {
+	root := t.TempDir()
+	client := configureMCPHTTPFixture(t, root)
+	transport := client.Transport
+	var requests atomic.Int64
+	client.Transport = runnerStreamRoundTripFunc(func(request *http.Request) (*http.Response, error) {
+		requests.Add(1)
+		return transport.RoundTrip(request)
+	})
+	server := newV11TestServer(t, Options{FileRoot: root, HTTPClient: client})
+	run := &sessionRunnerChatRun{managedEnvironmentBindingsHydrated: true}
+	before := requests.Load()
+	gateway, err := server.kernelCheckpointAdmissionGateway(t.Context(), SessionRunnerChatOptions{}, run, "repl", nil)
+	if err != nil || gateway.server != server || gateway.taskRun != run {
+		t.Fatalf("local checkpoint lost its task authority: %v", err)
+	}
+	if got := requests.Load() - before; got != 0 {
+		t.Fatalf("local checkpoint performed %d unrelated external discovery requests", got)
 	}
 }

@@ -92,6 +92,8 @@ The original body is not copied and cannot be reconstructed from its digest.
 These fields are neither execution authority nor a reason to rewrite an existing
 approved operation. Legacy checkpoint readers ignore this additional metadata,
 and recovered tool batches execute their already committed canonical arguments.
+The direct checkpoint path resolves only built-in kernel schemas; it does not
+rediscover unrelated external connectors inside the bounded persistence window.
 
 Python, R and Bash executor validation use the shared `kernelcontract` field/type
 contract, including `memory_budget_mb`. REPL does not acquire a compute-budget

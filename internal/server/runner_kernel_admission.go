@@ -48,7 +48,10 @@ func (s *Server) kernelCheckpointAdmissionGateway(
 	if sessionID == "" {
 		sessionID = options.SessionID
 	}
-	schemas := s.agentRuntimeToolSchemasWithContext(ctx, []string{name}, sessionID)
+	// This checkpoint only normalizes built-in kernel inputs. External MCP
+	// discovery cannot contribute to their schema and must not spend the bounded
+	// persistence budget (or block local execution when a connector is offline).
+	schemas := s.agentRuntimeToolSchemasWithContextOptions(ctx, []string{name}, true, sessionID)
 	if err := ctx.Err(); err != nil {
 		return serverAgentRuntimeToolGateway{}, err
 	}
