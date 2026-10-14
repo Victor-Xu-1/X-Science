@@ -80,8 +80,12 @@ func TestWorkspaceStartupReadsPublishedDatabaseWithoutCopyOrDeletion(t *testing.
 		t.Fatalf("published data was not opened: %q %v", value, err)
 	}
 	var schema int
-	if err := reader.QueryRow(`SELECT MAX(version) FROM workspace_schema_migrations`).Scan(&schema); err != nil || schema != 75 {
-		t.Fatalf("original database was not opened/upgraded: %d %v", schema, err)
+	expected, err := workspace.ExpectedSchemaStatus()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := reader.QueryRow(`SELECT MAX(version) FROM workspace_schema_migrations`).Scan(&schema); err != nil || schema != expected.TargetVersion {
+		t.Fatalf("original database was not opened/upgraded: got=%d want=%d err=%v", schema, expected.TargetVersion, err)
 	}
 	if _, err := os.Stat(filepath.Join(home, workspace.DatabaseRelativePath)); !os.IsNotExist(err) {
 		t.Fatal("startup created a second empty database authority")

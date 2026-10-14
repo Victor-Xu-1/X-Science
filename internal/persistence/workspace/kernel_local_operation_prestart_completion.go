@@ -32,6 +32,18 @@ func (s *Store) CompleteKernelLocalOperationPreflight(
 	ctx context.Context,
 	input CompleteKernelLocalOperationPreflightInput,
 ) (KernelLocalOperation, error) {
+	return s.completeKernelLocalOperationPreflightTx(ctx, nil, input, nil)
+}
+
+func (s *Store) completeKernelLocalOperationPreflightTx(
+	ctx context.Context,
+	transaction *transcriptstore.ImmediateTransaction,
+	input CompleteKernelLocalOperationPreflightInput,
+	supersession *kernelRecoveryInputAuthority,
+) (KernelLocalOperation, error) {
+	if supersession != nil && (transaction == nil || supersession.eventID <= 0 || supersession.publication <= 0) {
+		return KernelLocalOperation{}, ErrKernelLocalOperationConflict
+	}
 	input.OwnerUserID = strings.TrimSpace(input.OwnerUserID)
 	input.OperationID = strings.TrimSpace(input.OperationID)
 	reason, err := normalizeKernelLocalOperationReason(input.ReasonCode)
@@ -62,6 +74,7 @@ func (s *Store) CompleteKernelLocalOperationPreflight(
 		preflightDecisionID = "kernel-preflight-" + hex.EncodeToString(decisionDigest[:])[:24]
 	}
 	operation, err := s.transitionKernelLocalOperation(ctx, kernelLocalOperationTransitionInput{
+		transaction: transaction,
 		ownerUserID: input.OwnerUserID, operationID: input.OperationID,
 		expectedState: input.ExpectedState, expectedVersion: input.ExpectedStateVersion,
 		// The v39 protocol deliberately permits approved operations to terminate
@@ -75,6 +88,9 @@ func (s *Store) CompleteKernelLocalOperationPreflight(
 			if operation.ExecutionID != "" || operation.PreparedAt != nil || operation.StartedAt != nil {
 				return ErrKernelLocalOperationStale
 			}
+			if supersession != nil && operation.SourcePublicationSeq >= supersession.publication {
+				return ErrKernelLocalOperationStale
+			}
 			if input.ExpectedState == KernelLocalOperationStateApproved &&
 				(operation.AdmittedInputRevision <= 0 || operation.AdmittedInputRevision > input.Claim.ClaimedInputRevision) {
 				return ErrKernelLocalOperationStale
@@ -86,7 +102,12 @@ func (s *Store) CompleteKernelLocalOperationPreflight(
 				return "", nil, nil
 			}
 			if err := removeKernelLocalOperationPendingProjection(ctx, tx, operation); err != nil {
-				return "", nil, err
+				// Pause may already have removed this UI projection. Only the
+				// caller's validated, same-transaction supersession authority can
+				// retire that pending ledger row; conflicting projections still fail.
+				if supersession == nil || !errors.Is(err, errKernelLocalOperationPendingProjectionMissing) {
+					return "", nil, err
+				}
 			}
 			// This is an explicit runtime denial of execution, never an implicit
 			// user approval. Crash recovery derives the immutable input revision
@@ -119,7 +140,7 @@ func (s *Store) CompleteKernelLocalOperationPreflight(
 			return err
 		},
 	})
-	if err == nil {
+	if err == nil && transaction == nil {
 		s.signalKernelRetentionWake()
 	}
 	return operation, err

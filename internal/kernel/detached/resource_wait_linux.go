@@ -10,9 +10,15 @@ import (
 )
 
 func (b *Backend) reconcileResourceWait(ctx context.Context, backend workspace.KernelExecutionBackend) (bool, error) {
+	if backend.State == workspace.KernelExecutionBackendStateStopped {
+		return false, nil // This snapshot already carries the terminal result.
+	}
 	reservation, found, err := b.Store.KernelResourceReservation(ctx, backend.BackendID, backend.BackendGeneration)
 	if err != nil {
 		return true, err
+	}
+	if found && reservation.State == "released" {
+		return b.reconcileReleasedResourceWait(ctx, backend)
 	}
 	if !found || reservation.State != "waiting" {
 		return false, nil
@@ -26,16 +32,29 @@ func (b *Backend) reconcileResourceWait(ctx context.Context, backend workspace.K
 		if err != nil || !cancelled {
 			return true, err
 		}
-		return true, b.Store.FailKernelExecutorStartup(ctx, workspace.KernelStartupFailure{BackendID: backend.BackendID, BackendGeneration: backend.BackendGeneration, ExecutorInstanceID: backend.ExecutorInstanceID, Stage: "process_exit"})
+		return b.reconcileReleasedResourceWait(ctx, backend)
 	}
 	if err := b.launchExecutor(backend); err != nil {
 		var waiting *ExecutorResourceUnavailableError
 		if errors.As(err, &waiting) {
 			return true, nil
 		}
+		if errors.Is(err, workspace.ErrKernelExecutionBackendStale) {
+			if handled, settleErr := b.reconcileReleasedResourceWait(ctx, backend); handled {
+				return true, settleErr
+			}
+		}
 		return true, err
 	}
 	// The existing capacity notice committed with resource admission. Do not
 	// introduce a second publication window after external launch/readiness.
 	return true, nil
+}
+
+func (b *Backend) reconcileReleasedResourceWait(ctx context.Context, backend workspace.KernelExecutionBackend) (bool, error) {
+	handled, err := b.settleReleasedResourceWait(ctx, backend)
+	if errors.Is(err, errStartupStillOwned) || errors.Is(err, workspace.ErrKernelExecutionBackendStale) {
+		return true, nil // Existing supervisor will revisit pending/advanced ownership.
+	}
+	return handled || err != nil, err
 }

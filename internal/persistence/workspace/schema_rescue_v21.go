@@ -66,6 +66,8 @@ func schemaMigrationIdentityHandlersKnown(identity schemaMigrationIdentityV2) bo
 		return identity.PreflightIdentity == modelProviderContextV71PreflightIdentity && identity.RuleSpec == modelProviderContextV71RuleSpec
 	case kernelResourcesV72CallbackID:
 		return identity.PreflightIdentity == kernelResourcesV72PreflightIdentity && identity.RuleSpec == kernelResourcesV72RuleSpec
+	case kernelResourceRetirementV76CallbackID:
+		return identity.PreflightIdentity == kernelResourceRetirementV76PreflightIdentity && identity.RuleSpec == kernelResourceRetirementV76RuleSpec
 	case projectIdentityV73CallbackID:
 		return identity.PreflightIdentity == projectIdentityV73PreflightIdentity && identity.RuleSpec == projectIdentityV73RuleSpec
 	case namespaceCutoverV75CallbackID:
@@ -223,6 +225,8 @@ func runSchemaMigrationPreflight(ctx context.Context, executor schemaMigrationQu
 		return preflightModelProviderContextV71(ctx, executor)
 	case kernelResourcesV72PreflightIdentity:
 		return preflightKernelResourcesV72(ctx, executor)
+	case kernelResourceRetirementV76PreflightIdentity:
+		return preflightKernelResourceRetirementV76(ctx, executor)
 	case projectIdentityV73PreflightIdentity:
 		return preflightProjectIdentityV73(ctx, executor)
 	case dataLifecycleIndexesV74PreflightIdentity:
@@ -322,6 +326,8 @@ func runSchemaMigrationCallback(ctx context.Context, tx *sql.Tx, migration versi
 	case modelProviderContextV71CallbackID:
 		return nil
 	case kernelResourcesV72CallbackID:
+		return nil
+	case kernelResourceRetirementV76CallbackID:
 		return nil
 	case projectIdentityV73CallbackID:
 		return nil

@@ -112,6 +112,9 @@ func (e *StartupFailureError) Error() string {
 // configured supervisor proves this generation has exited. No elapsed-time
 // heuristic is allowed to create a competing executor.
 func (b *Backend) settleExitedStartup(ctx context.Context, backend workspace.KernelExecutionBackend) error {
+	if handled, err := b.settleReleasedResourceWait(ctx, backend); handled || err != nil {
+		return err
+	}
 	reservation, found, err := b.Store.KernelResourceReservation(ctx, backend.BackendID, backend.BackendGeneration)
 	if err != nil {
 		return err

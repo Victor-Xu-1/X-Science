@@ -32,12 +32,37 @@ func captureServerNamespaceFixture(t *testing.T, store *workspace.Store, db *sql
 	if err := store.Close(); err != nil {
 		t.Fatal(err)
 	}
+	tx, err := db.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback()
 	for _, table := range []string{"compute_namespace_observed_source_receipts", "namespace_identity_aliases", "namespace_cutover_receipts", "kernel_runtime_identity_receipts", "namespace_kernel_operation_receipts", "namespace_transcript_event_receipts", "namespace_compute_job_receipts", "namespace_history_audit_receipts"} {
-		if _, err := db.Exec(`DROP TABLE ` + table); err != nil {
+		if _, err := tx.Exec(`DROP TABLE ` + table); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if _, err := db.Exec(`DELETE FROM workspace_schema_migrations WHERE name='namespace-cutover-receipts'`); err != nil {
+	// Reconstruct the actual v74 predecessor, including the unchanged v69
+	// startup guard. Removing only the v75 journal row leaves a hole once v76
+	// exists; retaining its newer trigger would also forge a historical shape.
+	if _, err := tx.Exec(`DROP TRIGGER kernel_startup_terminal_receipt`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tx.Exec(`CREATE TRIGGER kernel_startup_terminal_receipt BEFORE UPDATE ON kernel_execution_backends
+		WHEN OLD.state='starting' AND NEW.state='stopped' AND NOT EXISTS(
+		SELECT 1 FROM kernel_execution_startup_receipts r WHERE r.backend_id=NEW.backend_id
+		AND r.backend_generation=NEW.backend_generation AND r.executor_instance_id=NEW.executor_instance_id)
+		BEGIN SELECT RAISE(ABORT,'kernel startup terminal receipt is required'); END`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tx.Exec(`DELETE FROM workspace_schema_migrations WHERE version>=75`); err != nil {
+		t.Fatal(err)
+	}
+	var count, version int
+	if err := tx.QueryRow(`SELECT COUNT(*),MAX(version) FROM workspace_schema_migrations`).Scan(&count, &version); err != nil || count != 74 || version != 74 {
+		t.Fatalf("historical fixture is not the complete v74 prefix: count=%d version=%d err=%v", count, version, err)
+	}
+	if err := tx.Commit(); err != nil {
 		t.Fatal(err)
 	}
 	upgraded, err := workspace.Open(path)

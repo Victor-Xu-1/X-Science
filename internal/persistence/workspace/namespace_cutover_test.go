@@ -159,7 +159,8 @@ func TestNamespaceIdentityUsesActualCutoverVersionForMissingGuard(t *testing.T) 
 
 func TestWorkspaceOpenAppliesRegisteredNamespaceCutover(t *testing.T) {
 	last := workspaceSchemaMigrations[len(workspaceSchemaMigrations)-1]
-	if workspaceSchemaVersion != last.version || last.version != namespaceCutoverV75Migration.version {
+	cutover := workspaceSchemaMigrations[namespaceCutoverV75Migration.version-1]
+	if workspaceSchemaVersion != last.version || cutover.checksum() != namespaceCutoverV75Migration.checksum() {
 		t.Fatalf("declared schema %d does not include the final registered migration %d", workspaceSchemaVersion, last.version)
 	}
 	store, err := Open(filepath.Join(t.TempDir(), "fresh.sqlite"))

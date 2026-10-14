@@ -703,6 +703,7 @@ func (s *Store) ListRunnableKernelLocalOperations(
 		return nil, err
 	}
 	operations := make([]KernelLocalOperation, 0, limit)
+	superseded := false
 	err = repository.RunImmediate(ctx, func(tx *transcriptstore.ImmediateTransaction) error {
 		stream, err := tx.ValidateLiveRunnerClaim(ctx, claim)
 		if err != nil {
@@ -710,6 +711,10 @@ func (s *Store) ListRunnableKernelLocalOperations(
 		}
 		if stream.UID != claim.StreamUID || stream.OwnerID != claim.OwnerID || claim.ClaimedInputRevision <= 0 {
 			return ErrKernelLocalOperationConflict
+		}
+		superseded, err = s.supersedeUnstartedKernelOperationsForInputTx(ctx, tx, stream, claim)
+		if err != nil {
+			return err
 		}
 		rows, err := tx.QueryContext(ctx, `SELECT operation.operation_id,
 			COALESCE(operation.admitted_input_revision,source_attempt.claimed_input_revision)
@@ -789,6 +794,9 @@ func (s *Store) ListRunnableKernelLocalOperations(
 		}
 		return nil
 	})
+	if err == nil && superseded {
+		s.signalKernelRetentionWake()
+	}
 	return operations, err
 }
 
@@ -1324,6 +1332,7 @@ func reactivateKernelOperationFrameForRecoveryTx(
 }
 
 type kernelLocalOperationTransitionInput struct {
+	transaction                                          *transcriptstore.ImmediateTransaction
 	ownerUserID, operationID, expectedState, targetState string
 	expectedVersion                                      int64
 	reasonCode, setClause, extraPredicate                string
@@ -1340,12 +1349,8 @@ func (s *Store) transitionKernelLocalOperation(
 	ctx context.Context,
 	input kernelLocalOperationTransitionInput,
 ) (KernelLocalOperation, error) {
-	repository, err := s.TranscriptRepository(ctx)
-	if err != nil {
-		return KernelLocalOperation{}, err
-	}
 	var operation KernelLocalOperation
-	err = repository.RunImmediate(ctx, func(tx *transcriptstore.ImmediateTransaction) error {
+	transition := func(tx *transcriptstore.ImmediateTransaction) error {
 		current, found, err := getKernelLocalOperationQuery(ctx, tx, input.operationID)
 		if err != nil {
 			return err
@@ -1416,7 +1421,17 @@ func (s *Store) transitionKernelLocalOperation(
 			}
 		}
 		return nil
-	})
+	}
+	var err error
+	if input.transaction != nil {
+		err = transition(input.transaction)
+	} else {
+		var repository *transcriptstore.Repository
+		repository, err = s.TranscriptRepository(ctx)
+		if err == nil {
+			err = repository.RunImmediate(ctx, transition)
+		}
+	}
 	return operation, err
 }
 

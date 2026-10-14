@@ -157,10 +157,14 @@ func (s *Server) resumeApprovedAgentKernelOperations(
 					)
 				}
 				recoveryCtx := withTranscriptRunnerChatRun(operationCtx, run)
-				result, err = s.executeAgentKernelToolWithApproval(
-					recoveryCtx, identity, call, operation.Tool, input,
-					options.OutputLimitBytes, options.AllowedTools,
-				)
+				result, err = observeRecoveredKernelTool(recoveryCtx, call, batchItem.ArgumentsJSON,
+					func(executionCtx context.Context) (map[string]any, error) {
+						return s.executeAgentKernelToolWithApproval(executionCtx, identity, call, operation.Tool, input,
+							options.OutputLimitBytes, options.AllowedTools)
+					}, func(event agentruntime.Event) error {
+						return sessionRunnerToolProgressPersistenceBestEffort(event,
+							s.checkpointSessionRunnerToolEvent(recoveryCtx, options, run, event))
+					})
 				if recoveryTimeout > 0 && err != nil && errors.Is(operationCtx.Err(), context.DeadlineExceeded) {
 					err = sessionRunnerKernelRecoveryTimeout{
 						timeout: recoveryTimeout,
