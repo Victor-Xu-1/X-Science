@@ -99,7 +99,8 @@ func TestResumeDispatchCompletionPreservesAcceptedComposerInput(t *testing.T) {
 	if _, repeated, err := store.CompleteCompatibilityFrameResumeDispatch(workspace.CompleteCompatibilityFrameResumeDispatchInput{
 		ResumeEventID: dispatch.ResumeEvent.ID, ExpectedAttempt: dispatch.Attempt, ClaimToken: dispatch.ClaimToken,
 		Status: "completed", Message: "The original review is complete.",
-		Details: map[string]any{"runnerId": authority.Claim.RunnerID, "runnerAttempt": authority.Claim.Attempt, "finishEventId": finish.EventID},
+		RunnerTerminal: &transcriptstore.RunnerTerminalReference{Claim: authority.Claim, EventID: finish.EventID},
+		Details:        map[string]any{"runnerId": authority.Claim.RunnerID, "runnerAttempt": authority.Claim.Attempt, "finishEventId": finish.EventID},
 	}); err != nil || repeated {
 		t.Fatalf("owned dispatch completion repeated=%t err=%v", repeated, err)
 	}

@@ -53,6 +53,7 @@ type SessionRunnerCycleResult struct {
 	AssistantEventID          int64  `json:"assistantEventId,omitempty"`
 	FinishEventID             int64  `json:"finishEventId,omitempty"`
 	AutoAdvanced              bool   `json:"autoAdvanced,omitempty"`
+	transcriptAuthority       *transcriptRunnerAuthority
 }
 
 type sessionRunnerCommandInput struct {

@@ -504,6 +504,7 @@ func (s *Server) RunFrameResumeDispatchOnce(ctx context.Context, options FrameRe
 			ClaimToken:      dispatch.ClaimToken,
 			Status:          status,
 			Message:         message,
+			RunnerTerminal:  runnerResult.transcriptTerminalReference(),
 			Details: map[string]any{
 				"runnerId":          runnerID,
 				"runnerAttempt":     runnerResult.Attempt,
