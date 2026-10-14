@@ -72,6 +72,22 @@ up, with a bounded shutdown; a denied reuse does not close another live worker.
 
 ## Durable detached execution recovery
 
+Multi-call model responses preserve their original ordered proposals with a
+versioned per-item admission contract. A kernel call is normalized only when its
+ordinal reaches the ordinary start boundary, after prior tool receipts have
+committed. Environment preparation can therefore select a verified immutable
+environment before dependent execution is approved, without rewriting a previous
+approval or asking the model to repeat the batch.
+
+The start checkpoint, batch transition and one kernel operation commit in the
+same transaction. The operation retains its original batch source and ordinal;
+the start witness binds that proposal digest to the final executable input's
+digest and byte length. The witness does not duplicate executable source. The
+gateway executes only the operation's immutable input, and still validates live
+owner, branch, incarnation, claim and exact approval. Recovery reuses this same
+admission boundary and operation; legacy and single-call checkpoints retain their
+existing frozen input. Invalid proposals remain non-executing validation results.
+
 Managed-root admission runs before any environment installer or provisioner.
 An externally configured root must already exist at that boundary; a directory
 created by the current tool call cannot establish operator authority. A missing

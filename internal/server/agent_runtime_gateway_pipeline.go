@@ -262,7 +262,16 @@ func serverAgentRuntimeGatewayAdmit(invocation *toolgateway.Invocation) {
 		}
 	}
 	invocation.OriginalInput = copyMapAny(input)
-	invocation.Input = gateway.normalizeAdmittedToolArguments(name, input)
+	admittedInput, admitted, admissionErr := gateway.admittedKernelBatchInput(invocation.Context, execution.call)
+	if admissionErr != nil {
+		invocation.CompleteForAudit(nil, "failed", admissionErr.Error(), admissionErr)
+		return
+	}
+	if admitted {
+		invocation.Input = admittedInput
+	} else {
+		invocation.Input = gateway.normalizeAdmittedToolArguments(name, input)
+	}
 	if !gateway.deferSchemaToExecutor {
 		if value := gateway.validateAdmittedToolArguments(name, invocation.Input); value != nil {
 			execution.badRequest = true

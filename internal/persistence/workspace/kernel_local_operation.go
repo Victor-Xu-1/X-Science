@@ -298,6 +298,15 @@ func (s *Store) CreateKernelLocalOperationsForCheckpointTx(
 	tx *transcriptstore.ImmediateTransaction,
 	event transcriptstore.Event,
 ) ([]KernelLocalOperation, error) {
+	return s.createKernelLocalOperationsForCheckpointTx(ctx, tx, event, nil)
+}
+
+func (s *Store) createKernelLocalOperationsForCheckpointTx(
+	ctx context.Context,
+	tx *transcriptstore.ImmediateTransaction,
+	event transcriptstore.Event,
+	admission *kernelBatchStartAdmission,
+) ([]KernelLocalOperation, error) {
 	if s == nil || tx == nil || strings.TrimSpace(event.StreamUID) == "" || event.EventID <= 0 {
 		return nil, errors.New("workspace, transcript transaction, and source checkpoint are required")
 	}
@@ -344,13 +353,24 @@ func (s *Store) CreateKernelLocalOperationsForCheckpointTx(
 		return nil, ErrKernelLocalOperationConflict
 	}
 	var checkpoint struct {
-		ModelToolCalls []kernelLocalToolCallV1 `json:"modelToolCalls"`
+		ModelToolCalls         []kernelLocalToolCallV1 `json:"modelToolCalls"`
+		KernelAdmissionVersion int                     `json:"kernelAdmissionVersion"`
 	}
 	if !utf8.Valid(payloadJSON) || validateKernelLocalOperationJSON(payloadJSON) != nil {
 		return nil, errors.New("canonical model tool-call checkpoint is invalid")
 	}
 	if err := json.Unmarshal(payloadJSON, &checkpoint); err != nil || len(checkpoint.ModelToolCalls) == 0 {
 		return nil, errors.New("canonical model tool-call checkpoint is invalid")
+	}
+	if checkpoint.KernelAdmissionVersion != 0 {
+		if checkpoint.KernelAdmissionVersion != KernelBatchAdmissionVersion {
+			return nil, ErrKernelLocalOperationConflict
+		}
+		if admission == nil {
+			return nil, nil // The ordered start transaction owns executable admission.
+		}
+	} else if admission != nil {
+		return nil, ErrKernelLocalOperationConflict
 	}
 	seenCallIDs := make(map[string]struct{}, len(checkpoint.ModelToolCalls))
 	operations := make([]KernelLocalOperation, 0, len(checkpoint.ModelToolCalls))
@@ -366,6 +386,12 @@ func (s *Store) CreateKernelLocalOperationsForCheckpointTx(
 			return nil, errors.New("canonical model tool call identity is duplicated")
 		}
 		seenCallIDs[call.ID] = struct{}{}
+		if admission != nil {
+			if int64(ordinal) != admission.Ordinal {
+				continue
+			}
+			call.Arguments = admission.Arguments
+		}
 		if call.RejectedBeforeExecution {
 			continue
 		}
