@@ -10,46 +10,8 @@ import (
 
 	"x-science/internal/agentruntime"
 	kernelruntime "x-science/internal/kernel"
-	"x-science/internal/skills"
 	"x-science/internal/software"
 )
-
-func TestRuntimeMCPContextRequiresExactNamesTypesAndBoundedRepair(t *testing.T) {
-	context := runtimeMCPContext([]agentruntime.ToolSchema{{
-		Name: "mcp__chembl__drug_search",
-		Parameters: map[string]any{"type": "object", "required": []any{"query"}, "properties": map[string]any{
-			"query":     map[string]any{"type": "string"},
-			"max_phase": map[string]any{"type": "integer"},
-		}},
-	}}, nil)
-	for _, required := range []string{
-		"exact tool name", "numbers are unquoted JSON numbers", "arrays are JSON arrays",
-		"invalid_tool_arguments", "do not repeat the same invalid arguments",
-	} {
-		if !strings.Contains(context, required) {
-			t.Fatalf("MCP context missing %q: %s", required, context)
-		}
-	}
-	for _, duplicated := range []string{"max_phase:integer", "query:string!", "description="} {
-		if strings.Contains(context, duplicated) {
-			t.Fatalf("MCP context duplicated JSON Schema detail %q: %s", duplicated, context)
-		}
-	}
-}
-
-func TestRuntimeMCPContextListsAllAdmittedNamesAndOnlyAnnotatesSkillSelections(t *testing.T) {
-	context := runtimeMCPContext([]agentruntime.ToolSchema{
-		{Name: "mcp__chembl__drug_search", Description: "already in JSON Schema"},
-		{Name: "mcp__pubmed__search", Description: "must not be repeated"},
-	}, []skills.Skill{{Name: "chemistry", Tools: []string{"mcp__chembl__drug_search"}}})
-	if !strings.Contains(context, "mcp__chembl__drug_search | selectedBySkill=chemistry") {
-		t.Fatalf("selected tool annotation missing: %s", context)
-	}
-	if !strings.Contains(context, "- mcp__pubmed__search") || strings.Contains(context, "mcp__pubmed__search | selectedBySkill=") ||
-		strings.Contains(context, "already in JSON Schema") {
-		t.Fatalf("admitted tool names or annotations are inconsistent: %s", context)
-	}
-}
 
 func TestAgentRuntimeMCPArgumentsRequireExactJSONTypes(t *testing.T) {
 	schema := agentruntime.ToolSchema{

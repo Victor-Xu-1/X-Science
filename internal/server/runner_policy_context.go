@@ -676,42 +676,6 @@ func appendRuntimeSkillCandidateContextMessage(messages []chatCompletionMessage,
 	return appendRuntimeAgentPolicyContextMessageWithSource(messages, strings.TrimSpace(context), agentruntime.ContextUsageSkills)
 }
 
-func runtimeMCPContext(schemas []agentruntime.ToolSchema, selectedSkills []skills.Skill) string {
-	mcpSchemas := make([]agentruntime.ToolSchema, 0, len(schemas))
-	for _, schema := range schemas {
-		if strings.HasPrefix(strings.ToLower(strings.TrimSpace(schema.Name)), "mcp__") {
-			mcpSchemas = append(mcpSchemas, schema)
-		}
-	}
-	if len(mcpSchemas) == 0 {
-		return ""
-	}
-	selectedByTool := selectedSkillMCPToolMap(selectedSkills)
-	sort.SliceStable(mcpSchemas, func(i, j int) bool {
-		leftSelected := len(selectedByTool[mcpSchemas[i].Name]) > 0
-		rightSelected := len(selectedByTool[mcpSchemas[j].Name]) > 0
-		if leftSelected != rightSelected {
-			return leftSelected
-		}
-		return mcpSchemas[i].Name < mcpSchemas[j].Name
-	})
-	lines := []string{
-		"Invocation contract:",
-		"- Use only an exact tool name from this admitted snapshot; never invent or rename a connector namespace.",
-		"- Preserve JSON Schema types exactly: numbers are unquoted JSON numbers and arrays are JSON arrays, not encoded strings.",
-		"- When a call returns invalid_tool_arguments, repair only the reported paths before one corrected call; do not repeat the same invalid arguments.",
-	}
-	for _, schema := range mcpSchemas {
-		skillNames := selectedByTool[schema.Name]
-		fields := []string{schema.Name}
-		if len(skillNames) > 0 {
-			fields = append(fields, "selectedBySkill="+strings.Join(skillNames, ","))
-		}
-		lines = append(lines, "- "+strings.Join(fields, " | "))
-	}
-	return strings.Join(lines, "\n")
-}
-
 func agentRuntimeToolSchemaInputNames(schema agentruntime.ToolSchema) []string {
 	properties, _ := schema.Parameters["properties"].(map[string]any)
 	names := make([]string, 0, len(properties))
@@ -720,29 +684,6 @@ func agentRuntimeToolSchemaInputNames(schema agentruntime.ToolSchema) []string {
 	}
 	sort.Strings(names)
 	return names
-}
-
-func selectedSkillMCPToolMap(selectedSkills []skills.Skill) map[string][]string {
-	selectedByTool := map[string][]string{}
-	for _, skill := range selectedSkills {
-		skillName := strings.TrimSpace(skill.Name)
-		if skillName == "" {
-			continue
-		}
-		for _, toolName := range skill.Tools {
-			toolName = strings.TrimSpace(toolName)
-			if !strings.HasPrefix(toolName, "mcp__") {
-				continue
-			}
-			if !stringSliceContains(selectedByTool[toolName], skillName) {
-				selectedByTool[toolName] = append(selectedByTool[toolName], skillName)
-			}
-		}
-	}
-	for toolName := range selectedByTool {
-		sort.Strings(selectedByTool[toolName])
-	}
-	return selectedByTool
 }
 
 func appendRuntimeMCPContextMessage(messages []chatCompletionMessage, context string) []chatCompletionMessage {
