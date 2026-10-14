@@ -80,6 +80,48 @@ describe('tool step summary model', () => {
     expect(buildToolStepResultSummary(tool('python', 'unknown'), 'en-US')).toBe('Status unknown');
   });
 
+  it.each([
+    ['waiting_for_resources', 'Waiting for execution resources', '等待执行资源'],
+    ['starting', 'Starting execution environment', '正在启动执行环境'],
+  ])('preserves and localizes the %s phase without inventing execution progress', (phase, english, chinese) => {
+    const internalMessage = 'backend private startup detail';
+    const normalized = normalizeToolCall({
+      id: `message-${phase}`,
+      conversation_id: 'conversation-resource-wait',
+      type: 'tool_call',
+      content: {
+        call_id: `call-${phase}`,
+        name: 'python',
+        args: {},
+        status: 'running',
+        progress: { phase, message: internalMessage, elapsedMs: 90_000, indeterminate: true },
+      },
+    } as IMessageToolCall);
+    if (!normalized?.progress) throw new Error('Valid host progress was dropped during normalization');
+    expect(normalized.progress).toMatchObject({ phase, indeterminate: true });
+    expect(normalized.progress.phasePercent).toBeUndefined();
+
+    for (const [language, label, phaseLabel, running] of [
+      ['en-US', english, 'Current phase', 'Running'],
+      ['zh-CN', chinese, '当前阶段', '进行中'],
+    ]) {
+      const progress = buildToolProgressPublicPresentation(normalized.progress, language);
+      expect(progress.phaseLabel).toBe(label);
+      expect(progress.rows[0]).toEqual({ label: phaseLabel, value: label });
+      const step = buildToolStepPublicPresentation(normalized, language);
+      expect(step.detail).toContain(label);
+      expect(step.resultSummary).toBe(running);
+      expect(JSON.stringify({ progress, step })).not.toContain(internalMessage);
+      expect(progress.compactDetail).not.toContain('%');
+    }
+  });
+
+  it('keeps unknown progress phases on the existing localized fallback', () => {
+    const progress = { phase: 'future_unrecognized_phase', indeterminate: true };
+    expect(buildToolProgressPublicPresentation(progress, 'en-US').phaseLabel).toBe('Processing');
+    expect(buildToolProgressPublicPresentation(progress, 'zh-CN').phaseLabel).toBe('处理中');
+  });
+
   it('summarizes a mixed work trace with meaningful activities in Chinese', () => {
     expect(
       buildToolStepGroupSummary(
