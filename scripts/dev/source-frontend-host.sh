@@ -343,7 +343,7 @@ SUPERVISOR
 )
 
   (
-    cd "$SOURCE_FRONTEND"
+    cd "$SOURCE_FRONTEND" || exit 1
     exec setsid --fork --wait bash -c "$supervisor_script" _ \
       "$$" "$NPM_BIN" "$SCRIPT_DIR/frontend-dependency-watch.mjs" \
       "$FRONTEND_PGID_FILE" "$watcher_ready_file" "${package_files[@]}"
