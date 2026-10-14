@@ -20,6 +20,7 @@ type resourceReplacementLauncher struct {
 	launchError   error
 	launches      []ExecutorLaunchRequest
 	observeHook   func(context.Context) error
+	capacityHook  func(context.Context) error
 }
 
 func (l *resourceReplacementLauncher) Launch(request ExecutorLaunchRequest) error {
@@ -41,7 +42,14 @@ func (l *resourceReplacementLauncher) Observe(ctx context.Context, id string, _ 
 	return ExecutorLaunchUnknown, nil
 }
 
-func (*resourceReplacementLauncher) ResourceCapacity(context.Context, int64) (workspace.KernelResourceCapacity, executorCapacityObservation, error) {
+func (l *resourceReplacementLauncher) ResourceCapacity(ctx context.Context, _ int64) (workspace.KernelResourceCapacity, executorCapacityObservation, error) {
+	if l.capacityHook != nil {
+		hook := l.capacityHook
+		l.capacityHook = nil
+		if err := hook(ctx); err != nil {
+			return workspace.KernelResourceCapacity{}, executorCapacityObservation{}, err
+		}
+	}
 	return workspace.KernelResourceCapacity{AvailableBytes: 2 << 30, DefaultBytes: 1 << 30, MinimumBytes: executorMemoryFloorBytes, Usage: map[string]int64{}}, executorCapacityObservation{AvailableBytes: 2 << 30}, nil
 }
 

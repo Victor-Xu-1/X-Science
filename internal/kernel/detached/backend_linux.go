@@ -895,6 +895,10 @@ func (b *Backend) launchExecutor(backend workspace.KernelExecutionBackend) (laun
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
+		if handled, settleErr := b.settleReleasedResourceWait(ctx, backend); handled || settleErr != nil {
+			launchErr = errors.Join(launchErr, settleErr)
+			return
+		}
 		state, observeErr := b.Launcher.Observe(ctx, backend.BackendID, backend.BackendGeneration)
 		if observeErr == nil && state == ExecutorLaunchExited {
 			settleErr := b.Store.FailKernelExecutorStartup(ctx, workspace.KernelStartupFailure{

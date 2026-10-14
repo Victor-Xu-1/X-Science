@@ -4,6 +4,7 @@ package detached
 
 import (
 	"context"
+	"errors"
 
 	workspace "x-science/internal/persistence/workspace"
 )
@@ -14,7 +15,7 @@ import (
 // existing readiness/drain protocol instead.
 func (b *Backend) retireUnlaunchedResourceWait(ctx context.Context, expected workspace.KernelExecutionBackend, desired workspace.KernelExecutionSessionSpecV1) (bool, error) {
 	current, reservation, eligible, err := b.readUnlaunchedResourceWait(ctx, expected)
-	if err != nil || !eligible {
+	if err != nil || !eligible || current.State != workspace.KernelExecutionBackendStateStarting {
 		return false, err
 	}
 	// A matching generation may have appeared since EnsureSession's first
@@ -35,12 +36,44 @@ func (b *Backend) retireUnlaunchedResourceWait(ctx context.Context, expected wor
 			return false, err
 		}
 	}
-	current, reservation, eligible, err = b.readUnlaunchedResourceWait(ctx, expected)
-	if err != nil || !eligible {
+	handled, err := b.settleReleasedResourceWait(ctx, expected)
+	if errors.Is(err, errStartupStillOwned) {
+		return false, nil // Preserve the predecessor's existing readiness path.
+	}
+	return handled, err
+}
+
+// A released-zero fence belongs to the non-launch path even when its final
+// absence proof is still pending. handled prevents recovery/error consumers
+// from turning that pending proof into a fictional process-exit/launch failure.
+func (b *Backend) settleReleasedResourceWait(ctx context.Context, expected workspace.KernelExecutionBackend) (handled bool, err error) {
+	reservation, found, err := b.Store.KernelResourceReservation(ctx, expected.BackendID, expected.BackendGeneration)
+	if err != nil || !found || reservation.State != "released" || reservation.ReservedBytes != 0 {
 		return false, err
 	}
-	if reservation.State != "released" {
-		return false, workspace.ErrKernelExecutionBackendStale
+	current, reservation, eligible, err := b.readUnlaunchedResourceWait(ctx, expected)
+	if err != nil {
+		return true, err
+	}
+	if !eligible || reservation.State != "released" {
+		return true, errStartupStillOwned
+	}
+	if b.Launcher == nil {
+		return true, errStartupStillOwned
+	}
+	state, err := b.Launcher.Observe(ctx, expected.BackendID, expected.BackendGeneration)
+	if err != nil {
+		return true, err
+	}
+	if state != ExecutorLaunchExited {
+		return true, errStartupStillOwned
+	}
+	current, reservation, eligible, err = b.readUnlaunchedResourceWait(ctx, expected)
+	if err != nil {
+		return true, err
+	}
+	if !eligible || reservation.State != "released" {
+		return true, errStartupStillOwned
 	}
 	// Every physical launch first calls AdmitKernelResources, which rejects a
 	// released row. Thus no legal startup can race this finish after our winning
@@ -51,10 +84,10 @@ func (b *Backend) retireUnlaunchedResourceWait(ctx context.Context, expected wor
 		ExecutorInstanceID: current.ExecutorInstanceID,
 	})
 	if err != nil {
-		return false, err
+		return true, err
 	}
 	if !sameResourceWaitBackend(finished, expected) || finished.State != workspace.KernelExecutionBackendStateStopped {
-		return false, workspace.ErrKernelExecutionBackendStale
+		return true, workspace.ErrKernelExecutionBackendStale
 	}
 	return true, nil
 }
@@ -68,7 +101,8 @@ func (b *Backend) readUnlaunchedResourceWait(ctx context.Context, expected works
 	if !found || !sameResourceWaitBackend(current, expected) {
 		return current, reservation, false, workspace.ErrKernelExecutionBackendStale
 	}
-	if !unlaunchedResourceWaitBackend(current) {
+	if !unlaunchedResourceWaitBackend(current) &&
+		!(current.State == workspace.KernelExecutionBackendStateStopped && resourceWaitPhysicalIdentityAbsent(current)) {
 		return current, reservation, false, nil
 	}
 	reservation, found, err = b.Store.KernelResourceReservation(ctx, expected.BackendID, expected.BackendGeneration)
@@ -92,8 +126,11 @@ func (b *Backend) readUnlaunchedResourceWait(ctx context.Context, expected works
 }
 
 func unlaunchedResourceWaitBackend(current workspace.KernelExecutionBackend) bool {
-	return current.State == workspace.KernelExecutionBackendStateStarting &&
-		current.ExecutorPID == 0 && current.ExecutorPIDStartTicks == 0 &&
+	return current.State == workspace.KernelExecutionBackendStateStarting && resourceWaitPhysicalIdentityAbsent(current)
+}
+
+func resourceWaitPhysicalIdentityAbsent(current workspace.KernelExecutionBackend) bool {
+	return current.ExecutorPID == 0 && current.ExecutorPIDStartTicks == 0 &&
 		current.WorkerPID == 0 && current.WorkerPIDStartTicks == 0 && current.WorkerPGID == 0 &&
 		current.CgroupPath == "" && current.HeartbeatSequence == 0 && current.HeartbeatAt == nil
 }
