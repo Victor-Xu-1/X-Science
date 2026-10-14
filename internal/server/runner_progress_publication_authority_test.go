@@ -64,7 +64,7 @@ func testRunnerProgressPublicationAuthority(t *testing.T, mode string) {
 			}
 		case 2:
 			messages, ok := request["messages"].([]any)
-			if !ok || !hasToolResultMessage(messages, "fixture-read", "") {
+			if !ok || !hasToolResultMessage(messages, requireProviderToolCallID(t, request, "runtime_get", 0), "") {
 				t.Error("native tool did not reach the ordinary execution/result path")
 			}
 			writePublicationFixtureEvent(w, map[string]any{"role": "assistant", "content": final}, "stop")

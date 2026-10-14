@@ -97,6 +97,7 @@ func TestTranscriptRunnerExecutesClaimedMemoryWriteThroughOpenAIProtocol(t *test
 
 	var requests atomic.Int64
 	var openingRequests atomic.Int64
+	var priorSearchCallID atomic.Value
 	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
 		var body map[string]any
 		if err := json.NewDecoder(request.Body).Decode(&body); err != nil {
@@ -122,14 +123,16 @@ func TestTranscriptRunnerExecutesClaimedMemoryWriteThroughOpenAIProtocol(t *test
 			_, _ = w.Write([]byte(`{"choices":[{"message":{"role":"assistant","tool_calls":[{"id":"call_memory_1","type":"function","function":{"name":"write_memory","arguments":"{\"append\":[{\"text\":\"NEK7 assay licenses are reviewed quarterly\",\"evidence\":\"observed\"}]}"}}]}}]}`))
 		case 2:
 			messages, ok := body["messages"].([]any)
-			if !ok || !hasToolResultMessage(messages, "call_memory_1", "Memory updated: 1 appended") {
+			if !ok || !hasToolResultMessage(messages, requireProviderToolCallID(t, body, "write_memory", 0), "Memory updated: 1 appended") {
 				t.Fatalf("provider did not receive the claimed memory result: %#v", body["messages"])
 			}
 			w.Header().Set("Content-Type", "application/json")
 			_, _ = w.Write([]byte(`{"choices":[{"message":{"role":"assistant","tool_calls":[{"id":"call_memory_2","type":"function","function":{"name":"search_memory","arguments":"{\"query\":\"NEK7 assay licenses\"}"}}]}}]}`))
 		case 3:
 			messages, ok := body["messages"].([]any)
-			if !ok || !hasToolResultMessage(messages, "call_memory_2", "NEK7 assay licenses are reviewed quarterly") {
+			callID := requireLatestProviderToolCallID(t, body, "search_memory")
+			priorSearchCallID.Store(callID)
+			if !ok || !hasToolResultMessage(messages, callID, "NEK7 assay licenses are reviewed quarterly") {
 				t.Fatalf("provider did not receive durable memory search result: %#v", body["messages"])
 			}
 			w.Header().Set("Content-Type", "application/json")
@@ -139,7 +142,11 @@ func TestTranscriptRunnerExecutesClaimedMemoryWriteThroughOpenAIProtocol(t *test
 			_, _ = w.Write([]byte(`{"choices":[{"message":{"role":"assistant","tool_calls":[{"id":"call_memory_3","type":"function","function":{"name":"search_memory","arguments":"{\"query\":\"NEK7 assay licenses\"}"}}]}}]}`))
 		case 5:
 			messages, ok := body["messages"].([]any)
-			if !ok || !hasToolResultMessage(messages, "call_memory_3", "NEK7 assay licenses are reviewed quarterly") {
+			callID := requireLatestProviderToolCallID(t, body, "search_memory")
+			if previous, found := priorSearchCallID.Load().(string); !found || previous == callID {
+				t.Fatalf("follow-up search reused the earlier call identity: previous=%v current=%q", priorSearchCallID.Load(), callID)
+			}
+			if !ok || !hasToolResultMessage(messages, callID, "NEK7 assay licenses are reviewed quarterly") {
 				t.Fatalf("provider did not receive replayed durable memory search result: %#v", body["messages"])
 			}
 			w.Header().Set("Content-Type", "application/json")

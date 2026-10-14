@@ -2500,7 +2500,7 @@ func TestServerAgentRuntimeBridgePreToolAgentHookUsesCanonicalReadOnlyToolsAndUp
 			}`))
 		case 2:
 			messages, ok := request["messages"].([]any)
-			if !ok || !hasToolResultMessage(messages, "call_hook_search_1", "") {
+			if !ok || !hasToolResultMessage(messages, requireProviderToolCallID(t, request, "search_skills", 0), "") {
 				t.Fatalf("agent hook second request missing capability-search result: %#v", request["messages"])
 			}
 			w.Header().Set("Content-Type", "application/json")

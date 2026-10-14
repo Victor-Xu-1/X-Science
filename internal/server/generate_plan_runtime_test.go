@@ -20,7 +20,7 @@ import (
 )
 
 func TestGeneratePlanPersistsOneArtifactPausesAndResumesAfterExactApproval(t *testing.T) {
-	store, repo, _ := newTranscriptWebFixture(t)
+	store, repo, database := newTranscriptWebFixture(t)
 	const frameID = "frame-generate-plan"
 	seedTranscriptWebFrame(t, store, "local", "project-generate-plan", frameID)
 
@@ -41,6 +41,7 @@ func TestGeneratePlanPersistsOneArtifactPausesAndResumesAfterExactApproval(t *te
 		t.Fatal(err)
 	}
 	var requests atomic.Int64
+	var durablePlanCallID atomic.Value
 	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sequence := requests.Add(1)
 		var request chatCompletionRequest
@@ -81,6 +82,10 @@ func TestGeneratePlanPersistsOneArtifactPausesAndResumesAfterExactApproval(t *te
 				}}},
 			}}})
 		case 2:
+			callID := requireProviderToolCallID(t, request, generatePlanToolName, 0)
+			if persisted, ok := durablePlanCallID.Load().(string); !ok || callID != persisted {
+				t.Fatalf("approved plan replay used another identity: provider=%q persisted=%v", callID, durablePlanCallID.Load())
+			}
 			encoded, _ := json.Marshal(request.Messages)
 			if !strings.Contains(string(encoded), compatibilityPlanApprovalText) {
 				t.Fatalf("approved plan response was not present on resume: %s", encoded)
@@ -142,6 +147,20 @@ func TestGeneratePlanPersistsOneArtifactPausesAndResumesAfterExactApproval(t *te
 	if err != nil || !paused.Claimed || paused.Status != "awaiting_approval" || requests.Load() != 1 {
 		t.Fatalf("paused=%#v requests=%d err=%v", paused, requests.Load(), err)
 	}
+	stream, found, err := repo.GetFrameStreamBySession(context.Background(), "local", frameID)
+	if err != nil || !found {
+		t.Fatalf("stream=%#v found=%t err=%v", stream, found, err)
+	}
+	var planCallCount int
+	var planCallID string
+	if err := database.QueryRow(`SELECT COUNT(*), COALESCE(MIN(item.tool_call_id),'')
+		FROM transcript_tool_call_items item
+		JOIN transcript_tool_call_batches batch ON batch.batch_id=item.batch_id
+		WHERE batch.stream_uid=? AND batch.source_runner_attempt=? AND item.tool_name=?`,
+		stream.UID, paused.Attempt, generatePlanToolName).Scan(&planCallCount, &planCallID); err != nil || planCallCount != 1 || planCallID == "" {
+		t.Fatalf("persisted generate_plan calls=%d id=%q err=%v", planCallCount, planCallID, err)
+	}
+	durablePlanCallID.Store(planCallID)
 	frame, found, err := store.GetCompatibilityFrame(frameID)
 	if err != nil || !found || frame.Status != "awaiting_plan_approval" {
 		t.Fatalf("frame=%#v found=%t err=%v", frame, found, err)
@@ -152,7 +171,7 @@ func TestGeneratePlanPersistsOneArtifactPausesAndResumesAfterExactApproval(t *te
 	}
 	artifactID := stringValue(metadata.ContextData["_plan_artifact_id"])
 	versionID := stringValue(metadata.ContextData["_plan_version_id"])
-	if artifactID == "" || versionID == "" || metadata.ContextData["_plan_tool_call_id"] != "plan-call-1" ||
+	if artifactID == "" || versionID == "" || metadata.ContextData["_plan_tool_call_id"] != planCallID ||
 		metadata.ContextData["_plan_approved"] != false {
 		t.Fatalf("plan metadata=%#v", metadata.ContextData)
 	}
@@ -167,10 +186,6 @@ func TestGeneratePlanPersistsOneArtifactPausesAndResumesAfterExactApproval(t *te
 	closeErr := reader.Close()
 	if readErr != nil || closeErr != nil || !strings.Contains(string(content), `"version": 3`) {
 		t.Fatalf("plan artifact content=%q read_err=%v close_err=%v", content, readErr, closeErr)
-	}
-	stream, found, err := repo.GetFrameStreamBySession(context.Background(), "local", frameID)
-	if err != nil || !found {
-		t.Fatalf("stream=%#v found=%t err=%v", stream, found, err)
 	}
 	state, err := repo.GetRunnerRuntimeState(context.Background(), stream.UID, stream.OwnerID, 1)
 	if err != nil || state.Status != "running" || state.Phase != transcriptstore.RunnerPhaseWaitingApproval {
