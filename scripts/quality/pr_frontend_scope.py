@@ -121,12 +121,47 @@ def fixture_command(paths: list[str], repo: Path) -> list[str] | None:
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { build } from 'vite';
+// An array is concatenated with the product's input by Vite's config merge.
+// Stable names replace a string input and keep same-basename entries distinct.
+const expectedInput = Object.freeze(Object.fromEntries(process.argv.slice(1).map((value, index) =>
+  ['fixture-' + index, resolve(value)])));
+// Vite aliases the input into resolved configs. Never share the expected map.
+const input = { ...expectedInput };
+function assertFixtureInput(actual, label) {
+  if (!actual || typeof actual !== 'object' || Array.isArray(actual) ||
+      Object.keys(actual).length !== Object.keys(expectedInput).length ||
+      Object.entries(expectedInput).some(([name, path]) =>
+        !Object.hasOwn(actual, name) || actual[name] !== path)) {
+    throw new Error('browser fixture input scope changed in ' + label);
+  }
+}
+function assertFixtureConfig(config) {
+  assertFixtureInput(config?.build?.rollupOptions?.input, 'resolved build');
+  assertFixtureInput(config?.environments?.client?.build?.rollupOptions?.input, 'resolved client');
+}
+let resolvedConfig;
+const fixtureScope = {
+  name: 'changed-browser-fixture-input-scope', apply: 'build', enforce: 'post',
+  configResolved(config) {
+    resolvedConfig = config;
+    assertFixtureConfig(config);
+  },
+  options: {
+    order: 'post',
+    handler(options) {
+      // Recheck after all config hooks, before Rollup starts the module graph.
+      assertFixtureConfig(resolvedConfig);
+      assertFixtureInput(options.input, 'Rollup build');
+    }
+  }
+};
 const output = await mkdtemp(join(tmpdir(), 'x-science-pr-fixtures-'));
 console.log('Changed browser fixture output:', output);
 await build({
   configFile: resolve('vite.config.ts'), root: process.cwd(),
+  plugins: [fixtureScope],
   build: { outDir: output, emptyOutDir: false,
-    rollupOptions: { input: process.argv.slice(1).map(value => resolve(value)) } }
+    rollupOptions: { input } }
 });"""
     # Match the existing product Vite build's heap budget, not Node's lower
     # default; this is a build process option, not a runtime/science limit.
