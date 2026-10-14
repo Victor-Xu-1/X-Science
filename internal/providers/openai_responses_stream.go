@@ -326,13 +326,14 @@ func readOpenAIResponsesStream(reader io.Reader, limit int64, emit func(agentrun
 			if isProviderStreamTruncatedReason(response.StopReason) {
 				return fmt.Errorf("%w: finish reason %s", errProviderResponseTruncated, response.StopReason)
 			}
+			previousSemanticBytes := accumulator.semanticBytes
 			if err := accumulator.observeCompletedSemanticBytes(openAIResponsesModelSemanticBytes(response)); err != nil {
 				return err
 			}
 			accumulator.requestID = requestID
 			accumulator.usage = usage
 			accumulator.completed = &response
-			recordProviderStreamProgress(reader, 0)
+			recordProviderStreamProgress(reader, accumulator.semanticBytes-previousSemanticBytes)
 		case "response.incomplete":
 			accumulator.requestID = event.Response.ID
 			accumulator.usage = providerTokenUsage{PromptTokens: event.Response.Usage.InputTokens, CompletionTokens: event.Response.Usage.OutputTokens, TotalTokens: event.Response.Usage.TotalTokens}
