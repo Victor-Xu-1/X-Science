@@ -394,6 +394,17 @@ available to the operator. A newly built receipt-capable binary resumes the
 same native endpoint path after handoff. This legacy upgrade boundary does not
 change the normal receipt-capable startup or weaken active-task admission.
 
+Primary shutdown cancels and joins its service loops, then closes the server,
+external plugin processes and IM delivery dispatcher while their persistence
+stores remain open. IM shutdown joins both delivery workers and result callbacks;
+plugin shutdown joins process/control cleanup, including partial startup. The
+existing bounded cleanup budget is shared by those owners. A join or cleanup
+failure is returned, blocks an in-process replacement, and leaves the stores open
+rather than closing them beneath an unjoined writer. A clean shutdown closes
+workspace, runtime state and the operational log in reverse startup order; flush
+errors also block replacement. This does not terminate detached scientific jobs
+or prove that a separate process has exclusive ownership of the same data path.
+
 ### First-run scientific runtime preparation
 
 On every supported native target (Linux/WSL amd64, Windows x64, macOS Intel,

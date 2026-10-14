@@ -133,18 +133,16 @@ func parseServeCommandFlags(args []string, output io.Writer) (serveCommandFlags,
 }
 
 func runServer(info buildinfo.Info, cfg config.Config, tlsResolver *networktls.Resolver, runtimeEndpointFile string) (runErr error) {
+	primaryResources := &runtimePrimaryResources{}
+	defer func() { runErr = primaryResources.CloseAfter(runErr) }()
 	operationalLog, err := operationlog.Open(filepath.Join(cfg.HomeDir, "logs"))
 	if err != nil {
 		return fmt.Errorf("configure operational log retention: %w", err)
 	}
+	primaryResources.Add("operational log", operationalLog.Close)
 	previousLogOutput := log.Writer()
 	log.SetOutput(io.MultiWriter(previousLogOutput, operationalLog))
-	defer func() {
-		log.SetOutput(previousLogOutput)
-		if closeErr := operationalLog.Close(); closeErr != nil {
-			log.Printf("close operational log: %v", closeErr)
-		}
-	}()
+	defer log.SetOutput(previousLogOutput)
 	tlsResolveContext, tlsResolveCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	initialTLSPosture := tlsResolver.Current(tlsResolveContext)
 	tlsResolveCancel()
@@ -162,7 +160,7 @@ func runServer(info buildinfo.Info, cfg config.Config, tlsResolver *networktls.R
 		return fmt.Errorf("configure runtime TLS trust: %w", err)
 	}
 	runtimeState := runtimekv.New(filepath.Join(cfg.HomeDir, "runtime-state.sqlite"))
-	defer runtimeState.Close()
+	primaryResources.Add("runtime state", runtimeState.Close)
 	if err := applyPersistedMessageChannelRuntimeConfig(&cfg, runtimeState); err != nil {
 		return err
 	}
@@ -176,7 +174,7 @@ func runServer(info buildinfo.Info, cfg config.Config, tlsResolver *networktls.R
 	if err != nil {
 		return err
 	}
-	defer workspaceStore.Close()
+	primaryResources.Add("workspace", workspaceStore.Close)
 	transcriptRepository, err := workspaceStore.TranscriptRepository(context.Background())
 	if err != nil {
 		return fmt.Errorf("open workspace transcript authority: %w", err)
@@ -189,6 +187,13 @@ func runServer(info buildinfo.Info, cfg config.Config, tlsResolver *networktls.R
 	cancel := func() { cancelCause(server.ErrRuntimeDraining) }
 	defer cancel()
 	primaryWorkers := &runtimePrimaryWorkers{}
+	primaryOwners := &runtimePrimaryClosers{}
+	defer func() {
+		shutdownContext, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer shutdownCancel()
+		cleanupErr := shutdownPrimaryRuntime(shutdownContext, cancel, primaryWorkers, 5*time.Second, primaryOwners.Close)
+		runErr = withRuntimeShutdownFailure(runErr, cleanupErr)
+	}()
 	var app *server.Server
 	imOutbound, err := newIMOutboundDispatcher(ctx, cfg, runtimeHTTPClient, imOutboundRuntimeHooks{
 		Authorize: func(binding adaptercommon.IMSessionBinding) error {
@@ -208,17 +213,16 @@ func runServer(info buildinfo.Info, cfg config.Config, tlsResolver *networktls.R
 		return fmt.Errorf("configure IM outbound delivery: %w", err)
 	}
 	if imOutbound != nil {
-		defer imOutbound.Close()
+		primaryOwners.Add("IM outbound", imOutbound.Close)
 	}
 	plugins, err := pluginhost.NewDefaultWithExternalDirectories(cfg.PluginDirectories)
 	if err != nil {
 		return err
 	}
+	primaryOwners.Add("external plugins", plugins.StopExternalProcesses)
 	if err := plugins.StartExternalProcesses(ctx); err != nil {
-		plugins.StopExternalProcesses()
 		return err
 	}
-	defer plugins.StopExternalProcesses()
 	link := xsciencelink.NewService()
 	link.SetTaskLogPath(filepath.Join(cfg.HomeDir, "x-science-link-task-logs.jsonl"))
 	compactSummarizer := newCompactSummarizerOptions(cfg)
@@ -337,14 +341,7 @@ func runServer(info buildinfo.Info, cfg config.Config, tlsResolver *networktls.R
 		VMResources:             vmResourceController,
 		WebUI:                   webHandler,
 	}, cfg))
-	defer func() {
-		shutdownContext, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer shutdownCancel()
-		cleanupErr := shutdownPrimaryRuntime(shutdownContext, cancel, primaryWorkers, 5*time.Second, func(ctx context.Context) error {
-			return app.Close(ctx)
-		})
-		runErr = withRuntimeShutdownFailure(runErr, cleanupErr)
-	}()
+	primaryOwners.Add("server", app.Close)
 	if recovery, err := app.RecoverIMOutbound(ctx); err != nil {
 		return fmt.Errorf("recover IM outbound delivery: %w", err)
 	} else if recovery.Routes > 0 {
