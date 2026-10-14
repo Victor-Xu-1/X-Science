@@ -10,6 +10,8 @@ func TestPendingKernelResourceWaitsUseCurrentTaskAuthority(t *testing.T) {
 		name         string
 		alter        string
 		changeAccess func(*KernelFrameAccess)
+		finish       bool
+		recreate     bool
 		want         int
 	}{
 		{name: "owned waiting", want: 1},
@@ -18,13 +20,13 @@ func TestPendingKernelResourceWaitsUseCurrentTaskAuthority(t *testing.T) {
 		{name: "foreign root", changeAccess: func(a *KernelFrameAccess) { a.Frame.RootFrameID = "other" }},
 		{name: "old access frame", changeAccess: func(a *KernelFrameAccess) { a.Frame.IncarnationID = "old" }},
 		{name: "old access root", changeAccess: func(a *KernelFrameAccess) { a.RootFrameIncarnationID = "old" }},
-		{name: "old generation", alter: `UPDATE kernel_execution_backends SET backend_generation=2 WHERE backend_id='resource-wait-backend'`},
+		{name: "old generation", finish: true, recreate: true},
 		{name: "old reservation boot", alter: `UPDATE kernel_resource_reservations SET machine_boot_id='old-boot'`},
 		{name: "old current frame", alter: `UPDATE frames SET incarnation_id='new-incarnation' WHERE id='frame'`},
 		{name: "cancelled task", alter: `UPDATE frames SET status='cancelled' WHERE id='frame'`},
 		{name: "paused task", alter: `UPDATE frames SET status='awaiting_user_response' WHERE id='frame'`},
 		{name: "released reservation", alter: `UPDATE kernel_resource_reservations SET state='released'`},
-		{name: "terminal backend", alter: `UPDATE kernel_execution_backends SET state='stopped' WHERE backend_id='resource-wait-backend'`},
+		{name: "terminal backend", finish: true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			ctx := context.Background()
@@ -53,6 +55,27 @@ func TestPendingKernelResourceWaitsUseCurrentTaskAuthority(t *testing.T) {
 			}
 			if test.changeAccess != nil {
 				test.changeAccess(&access)
+			}
+			if test.finish {
+				// This controlled fixture never launched a process. Record its
+				// actual startup failure before exercising the terminal guard.
+				if err := store.FailKernelExecutorStartup(ctx, KernelStartupFailure{
+					BackendID: backend.BackendID, BackendGeneration: backend.BackendGeneration,
+					ExecutorInstanceID: backend.ExecutorInstanceID, Stage: "launch",
+				}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if test.recreate {
+				next, err := store.RecreateKernelExecutionBackend(ctx, RecreateKernelExecutionBackendInput{
+					BackendID: backend.BackendID, ExecutorInstanceID: backend.ExecutorInstanceID + "-next",
+					MachineBootID: backend.MachineBootID, SocketPath: backend.SocketPath,
+					KernelID: backend.KernelID, KernelGeneration: backend.KernelGeneration,
+					SessionSpec: kernelExecutionSessionSpecForTest(op),
+				})
+				if err != nil || next.BackendGeneration != backend.BackendGeneration+1 || next.State != KernelExecutionBackendStateStarting {
+					t.Fatalf("next generation was not legally recreated: %#v err=%v", next, err)
+				}
 			}
 			if test.alter != "" {
 				if _, err := store.db.Exec(test.alter); err != nil {
