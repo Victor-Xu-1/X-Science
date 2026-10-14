@@ -305,6 +305,22 @@ failed required core runtime, while core runtimes cannot be paused or
 uninstalled. Mutations require the normal authenticated session and CSRF
 protection.
 
+### Trusted frontend build artifacts
+
+The optional [frontend build workflow](../.github/workflows/frontend-build-artifact.yml)
+accepts an explicit current-main SHA and produces only a frontend archive and
+`x-science.frontend-build-artifact.v1` manifest after the locked npm install,
+original build and packaged checks succeed. It is not a required merge check,
+deployment authority, tagged release or proof of scientific execution. Artifacts
+expire after seven days; no user secrets or runtime state are supplied.
+
+A deployment consumer must independently verify the successful trusted workflow
+run/repository/main/SHA/attempt, then the source tree, lockfile and complete
+regular-file inventory before accepting the archive. GitHub artifact transport
+digests and the inner archive digest are different layers. Preserve the existing
+local packaged checks, exact-main receipts, idle admission, rollback and activation
+authority; a manifest alone does not authorize deploying or overwriting files.
+
 ### Source startup
 
 The public repository is `Victor-Xu-1/X-Science`.
