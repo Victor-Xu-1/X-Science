@@ -83,6 +83,11 @@ type sessionRunnerChatRun struct {
 	generationRecoveryMu               sync.Mutex
 	generationRecovery                 providerGenerationRecovery
 	NoProgressRecovery                 *sessionRunnerNoProgressRecovery
+	sourceObservationMu                sync.Mutex
+	sourceObservations                 *runnerSourceObservationProjection
+	sourceObservationResultCallID      string
+	sourceObservationResult            *agentruntime.SourceObservation
+	sourceProgressReplay               runnerSourceObservationReducer
 	managedEnvironmentMu               sync.Mutex
 	managedEnvironmentBindings         map[string]string
 	managedEnvironmentImplementations  map[string][]string

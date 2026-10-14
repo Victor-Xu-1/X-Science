@@ -17,13 +17,25 @@ func toolRoundReportsMaterialProgress(messages []Message) bool {
 		if json.Unmarshal([]byte(message.Content), &value) != nil || ToolResultDidNotExecute(value) {
 			continue
 		}
-		if reported, committed := toolResultWorkspaceMutationReport(value); reported && committed {
+		if ToolResultReportsMaterialProgress(value) {
 			return true
 		}
-		if effect, ok := value["effect"].(map[string]any); ok &&
-			effect["schema"] == ToolEffectSchema && effect["state"] == string(ToolEffectChanged) {
-			return true
-		}
+	}
+	return false
+}
+
+// ToolResultReportsMaterialProgress shares the existing host receipt contract
+// with server-side source observation; successful status/stdout is not enough.
+func ToolResultReportsMaterialProgress(result any) bool {
+	value, ok := result.(map[string]any)
+	if !ok || ToolResultDidNotExecute(value) {
+		return false
+	}
+	if reported, committed := toolResultWorkspaceMutationReport(value); reported && committed {
+		return true
+	}
+	if effect, ok := value["effect"].(map[string]any); ok && effect["schema"] == ToolEffectSchema && effect["state"] == string(ToolEffectChanged) {
+		return true
 	}
 	return false
 }

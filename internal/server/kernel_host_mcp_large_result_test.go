@@ -155,12 +155,16 @@ func testKernelMCPStructuredSourceReplay(t *testing.T, copies int) {
 	}
 }
 
-func largeMCPStartedOperation(t *testing.T, fixture *agentSaveArtifactsFixture) (*kernelMCPTranscriptEvidenceAuthority, *sessionRunnerChatRun) {
+func largeMCPStartedOperation(t *testing.T, fixture *agentSaveArtifactsFixture, callIdentities ...string) (*kernelMCPTranscriptEvidenceAuthority, *sessionRunnerChatRun) {
 	t.Helper()
 	ctx := context.Background()
 	run := &sessionRunnerChatRun{SessionID: fixture.stream.SessionID, Attempt: int(fixture.claim.Attempt), ClaimToken: fixture.claim.ClaimToken,
 		Transcript: &transcriptRunnerAuthority{Stream: fixture.stream, Claim: fixture.claim}}
 	call := agentruntime.ToolCall{ID: "large-source-repl", Name: "repl", Arguments: json.RawMessage(`{"code":"import host"}`)}
+	if len(callIdentities) > 0 {
+		call.ID = callIdentities[0]
+		call.Arguments = json.RawMessage(`{"code":"import host","environment":"python"}`)
+	}
 	if err := fixture.server.checkpointChatModelToolCalls(SessionRunnerChatOptions{RunnerID: fixture.claim.RunnerID}, run, []agentruntime.ToolCall{call}); err != nil {
 		t.Fatal(err)
 	}
@@ -183,7 +187,7 @@ func largeMCPStartedOperation(t *testing.T, fixture *agentSaveArtifactsFixture) 
 	}
 	operation, err = store.StartKernelLocalOperation(ctx, workspace.StartKernelLocalOperationInput{
 		OwnerUserID: fixture.stream.OwnerID, OperationID: operation.OperationID, ExpectedStateVersion: operation.StateVersion,
-		Claim: fixture.claim, BootID: "large-source-boot", ExecutionID: "large-source-cell"})
+		Claim: fixture.claim, BootID: "large-source-boot", ExecutionID: call.ID + "-cell"})
 	if err != nil {
 		t.Fatal(err)
 	}

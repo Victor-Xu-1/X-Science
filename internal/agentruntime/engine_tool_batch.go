@@ -29,6 +29,7 @@ func (e Engine) ExecuteToolBatch(
 	for ordinal := startOrdinal; ordinal < len(calls); ordinal++ {
 		toolMessage, toolErr := e.executeTool(ctx, calls[ordinal])
 		result.NoProgress = result.NoProgress && toolMessage.noProgress
+		result.SourceObservation = toolMessage.sourceObservation
 		if toolMessage.Role != "" {
 			pendingParts = append(pendingParts, toolMessage.pending...)
 			toolMessage.pending = nil
@@ -226,6 +227,7 @@ func (e Engine) executeTool(ctx context.Context, call ToolCall) (Message, error)
 	message.pending = append([]ContentPart(nil), result.Parts...)
 	message.terminal = result.Terminal && outcome == ToolResultSucceeded
 	message.noProgress = toolResultReportsNoProgress(result.Value)
+	message.sourceObservation = result.SourceObservation
 	eventType := EventToolCompleted
 	eventMessage := ""
 	rejectedBeforeExecution := IsNonExecutingPreflight(result.Value)

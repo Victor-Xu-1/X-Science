@@ -202,8 +202,13 @@ func (g serverAgentRuntimeToolGateway) trustedAgentRuntimeToolResult(
 	call agentruntime.ToolCall,
 	value any,
 	parts []agentruntime.ContentPart,
-) agentruntime.ToolResult {
-	result := agentruntime.ToolResult{Value: value, Parts: parts}
+) (result agentruntime.ToolResult) {
+	result = agentruntime.ToolResult{Value: value, Parts: parts}
+	defer func() {
+		if g.server != nil && g.taskRun != nil && !g.suppressHooks {
+			result.SourceObservation = g.server.runnerToolSourceObservation(ctx, g.taskRun, call, result.Value)
+		}
+	}()
 	if g.server == nil || g.server.workspaceStore == nil || !isAgentKernelToolName(call.Name) {
 		return result
 	}

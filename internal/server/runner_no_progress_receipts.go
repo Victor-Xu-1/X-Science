@@ -69,7 +69,7 @@ func (g serverAgentRuntimeToolGateway) noProgressBatchPreflight(ctx context.Cont
 		previousScope := recovery.ObligationFingerprint
 		recovery.observeEntry(entry, run.Transcript)
 		superseded := runnerRecoveryCheckpointSuperseded(entry)
-		if superseded || previousScope != recovery.ObligationFingerprint || runnerEntryStartsNewLogicalTask(entry) || runnerCheckpointHasMaterialProgress(entry.Message) {
+		if superseded || previousScope != recovery.ObligationFingerprint || runnerEntryStartsNewLogicalTask(entry) || recovery.lastMaterialProgress {
 			for key := range targets {
 				targets[key] = noProgressReceiptMatch{}
 			}
@@ -86,7 +86,7 @@ func (g serverAgentRuntimeToolGateway) noProgressBatchPreflight(ctx context.Cont
 			// Explicit closure records preserve older route decisions, including
 			// rejected routes. They do not assert that those proposals executed.
 			for key, match := range targets {
-				match.closed = match.closed || match.pending || recovery.containsFingerprint(key)
+				match.closed = match.closed || (!recovery.SourceRepetition && match.pending) || recovery.containsFingerprint(key)
 				targets[key] = match
 			}
 			return nil

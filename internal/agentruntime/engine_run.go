@@ -255,6 +255,16 @@ func (e Engine) Run(ctx context.Context, request RunRequest) (RunResult, error) 
 				Role: "system", Content: idempotentToolRoundRecoveryInstruction(message.ToolCalls),
 			})
 		}
+		if observation := batch.SourceObservation; observation != nil &&
+			observation.State == SourceObservationRepeated && !toolRoundReportsMaterialProgress(batch.Messages) {
+			modelMessages = append(modelMessages, Message{Role: "system", Content: sourceObservationRecoveryInstruction()})
+			if toolErr == nil && request.MaxConsecutiveIdenticalToolRounds > 0 &&
+				observation.RepeatedOperations >= request.MaxConsecutiveIdenticalToolRounds {
+				return interruptedRun(messages, &ToolRoundNoProgressError{
+					Limit: request.MaxConsecutiveIdenticalToolRounds, SourceRepetition: true,
+				})
+			}
+		}
 		mediaBytesUsed = batch.MediaBytesUsed
 		if toolErr != nil {
 			return interruptedRun(messages, toolErr)
