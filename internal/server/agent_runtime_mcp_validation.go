@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
-	"github.com/santhosh-tekuri/jsonschema/v6/kind"
 
 	"x-science/internal/agentruntime"
 	"x-science/internal/failurecontract"
@@ -918,6 +917,9 @@ func sanitizedAgentRuntimeValidationIssues(raw any) []map[string]any {
 				safe[key] = value
 			}
 		}
+		if entry["path_omitted"] == true {
+			safe["path_omitted"] = true
+		}
 		if len(safe) != 0 {
 			issues = append(issues, safe)
 		}
@@ -946,124 +948,6 @@ func (v agentRuntimeMCPValidator) Validate(input map[string]any) map[string]any 
 		}
 	}
 	return nil
-}
-
-func agentRuntimeMCPValidationIssues(schema map[string]any, input map[string]any, err error) []map[string]any {
-	root, ok := err.(*jsonschema.ValidationError)
-	if !ok {
-		return []map[string]any{{"path": "", "keyword": "schema", "actual": agentRuntimeJSONType(input)}}
-	}
-	leaves := make([]*jsonschema.ValidationError, 0, maxAgentRuntimeMCPValidationIssues)
-	var visit func(*jsonschema.ValidationError)
-	visit = func(current *jsonschema.ValidationError) {
-		if current == nil || len(leaves) >= maxAgentRuntimeMCPValidationIssues {
-			return
-		}
-		if len(current.Causes) == 0 {
-			leaves = append(leaves, current)
-			return
-		}
-		for _, cause := range current.Causes {
-			visit(cause)
-		}
-	}
-	visit(root)
-	issues := make([]map[string]any, 0, len(leaves))
-	seen := map[string]struct{}{}
-	for _, leaf := range leaves {
-		if required, ok := leaf.ErrorKind.(*kind.Required); ok {
-			for _, missing := range required.Missing {
-				if len(issues) >= maxAgentRuntimeMCPValidationIssues {
-					break
-				}
-				pathParts := append(append([]string(nil), leaf.InstanceLocation...), missing)
-				path := agentRuntimeJSONPointer(pathParts)
-				expected := agentRuntimeSchemaJSONTypes(agentRuntimeSchemaAt(schema, pathParts))
-				key := path + "\x00required\x00" + strings.Join(expected, ",") + "\x00missing"
-				if _, found := seen[key]; found {
-					continue
-				}
-				seen[key] = struct{}{}
-				issue := map[string]any{"path": path, "keyword": "required", "actual": "missing"}
-				if len(expected) > 0 {
-					issue["expected"] = expected
-				}
-				issues = append(issues, issue)
-			}
-			continue
-		}
-		path := agentRuntimeJSONPointer(leaf.InstanceLocation)
-		keyword := "schema"
-		if leaf.ErrorKind != nil {
-			keywordPath := leaf.ErrorKind.KeywordPath()
-			if len(keywordPath) > 0 {
-				keyword = keywordPath[len(keywordPath)-1]
-			}
-		}
-		expected := agentRuntimeSchemaJSONTypes(agentRuntimeSchemaAt(schema, leaf.InstanceLocation))
-		actual := agentRuntimeJSONType(agentRuntimeValueAt(input, leaf.InstanceLocation))
-		key := path + "\x00" + keyword + "\x00" + strings.Join(expected, ",") + "\x00" + actual
-		if _, found := seen[key]; found {
-			continue
-		}
-		seen[key] = struct{}{}
-		issue := map[string]any{"path": path, "keyword": keyword, "actual": actual}
-		if len(expected) > 0 {
-			issue["expected"] = expected
-		}
-		issues = append(issues, issue)
-	}
-	// When an object is missing a required field and also carries a field that
-	// belongs to another tool contract, lead with the actionable missing-field
-	// repair. Reporting the parent additionalProperties error as a second issue
-	// made models oscillate between deleting and adding fields instead of
-	// producing the one admitted object.
-	requiredParents := map[string]struct{}{}
-	for _, issue := range issues {
-		if issue["keyword"] != "required" {
-			continue
-		}
-		path := fmt.Sprint(issue["path"])
-		parent := ""
-		if index := strings.LastIndex(path, "/"); index > 0 {
-			parent = path[:index]
-		}
-		requiredParents[parent] = struct{}{}
-	}
-	if len(requiredParents) > 0 {
-		filtered := issues[:0]
-		for _, issue := range issues {
-			if issue["keyword"] == "additionalProperties" {
-				if _, redundant := requiredParents[fmt.Sprint(issue["path"])]; redundant {
-					continue
-				}
-			}
-			filtered = append(filtered, issue)
-		}
-		issues = filtered
-	}
-	if len(issues) == 0 {
-		issues = append(issues, map[string]any{"path": "", "keyword": "schema", "actual": agentRuntimeJSONType(input)})
-	}
-	sort.SliceStable(issues, func(i, j int) bool {
-		left, right := fmt.Sprint(issues[i]["path"]), fmt.Sprint(issues[j]["path"])
-		if left != right {
-			return left < right
-		}
-		return fmt.Sprint(issues[i]["keyword"]) < fmt.Sprint(issues[j]["keyword"])
-	})
-	return issues
-}
-
-func agentRuntimeJSONPointer(parts []string) string {
-	if len(parts) == 0 {
-		return ""
-	}
-	escaped := make([]string, len(parts))
-	for index, part := range parts {
-		escaped[index] = strings.ReplaceAll(strings.ReplaceAll(part, "~", "~0"), "/", "~1")
-	}
-	return "/" + strings.Join(escaped, "/")
 }
 
 func agentRuntimeSchemaAt(schema map[string]any, path []string) map[string]any {

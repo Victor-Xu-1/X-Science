@@ -80,7 +80,7 @@ func TestAgentRuntimeMCPValidationNamesMissingRequiredProperties(t *testing.T) {
 	})
 	result := validator.Validate(map[string]any{"chembl_id": "CHEMBL203"})
 	issues, _ := result["issues"].([]map[string]any)
-	if len(issues) != 1 || issues[0]["path"] != "/query" || issues[0]["keyword"] != "required" || issues[0]["actual"] != "missing" {
+	if len(issues) != 1 || issues[0]["path"] != "/query" || issues[0]["keyword"] != "required" || issues[0]["actual_type"] != "missing" {
 		t.Fatalf("missing required issue = %#v", issues)
 	}
 	if !reflect.DeepEqual(issues[0]["expected"], []string{"string"}) {
