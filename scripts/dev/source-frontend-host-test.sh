@@ -7,6 +7,10 @@ host_pid=""
 
 cleanup() {
   local workers="${fake_state:-$TMP_DIR/fake-npm}/workers"
+  # A gate may be in a foreground version query before any owned group exists.
+  # Release our fixture gates before waiting for the host's shutdown trap.
+  rm -f -- "${fake_state:-$TMP_DIR/fake-npm}/hold-install-key" \
+    "${fake_state:-$TMP_DIR/fake-npm}/hold-watcher"
   if [[ -n "$host_pid" ]] && kill -0 "$host_pid" 2>/dev/null; then
     kill -TERM "$host_pid" 2>/dev/null || true
     wait "$host_pid" 2>/dev/null || true

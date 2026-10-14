@@ -357,6 +357,13 @@ flow; complete that first-use flow before entering the workbench. Use
 terminal has desktop-browser access. The browser action is never implicit. No
 Web password is compiled into the repository.
 
+The source frontend host waits for its current dependency watcher to subscribe
+before allowing Vite to launch. It compares package metadata with the last
+successfully installed dependency key, not a fresh but uninstalled snapshot.
+Changes during startup cause the owned group to stop and dependencies to be
+prepared again; missing watcher readiness fails startup and cleans up that group.
+This dependency handshake is separate from the quickstart's HTTP health check.
+
 The source backend watcher loads its optional trusted local environment file
 from `${XDG_CONFIG_HOME:-$HOME/.config}/x-science/workbench-model.env`.
 `X_SCIENCE_DEV_MODEL_ENV_FILE` selects an explicit alternative file; it does not
