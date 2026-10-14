@@ -63,6 +63,7 @@ func TestFrameContinueHTTPReplayPrecedesDynamicRegistryAndPreservesNewWait(t *te
 	if _, _, err := f.store.RequeueCompatibilityFrameResumeDispatch(workspace.RequeueCompatibilityFrameResumeDispatchInput{
 		ResumeEventID: claim.ResumeEvent.ID, ExpectedAttempt: claim.Attempt, ClaimToken: claim.ClaimToken, ReasonCode: sessionRunnerPlanStepsIncompleteReasonCode,
 		RunnerAttempt: int(checkpoint.Attempt), CheckpointEventID: checkpoint.EventID, WaitingFor: workspace.CompatibilityFrameResumeDispatchWaitRecoveryCondition,
+		RecoveryContractRevision: sessionRunnerRecoveryContractRevision,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -124,6 +125,7 @@ func TestFrameContinueHTTPPostCommitPublicationRetryCannotWakeNextWait(t *testin
 	if _, _, err := f.store.RequeueCompatibilityFrameResumeDispatch(workspace.RequeueCompatibilityFrameResumeDispatchInput{
 		ResumeEventID: claim.ResumeEvent.ID, ExpectedAttempt: claim.Attempt, ClaimToken: claim.ClaimToken, ReasonCode: sessionRunnerPlanStepsIncompleteReasonCode,
 		RunnerAttempt: int(checkpoint.Attempt), CheckpointEventID: checkpoint.EventID, WaitingFor: workspace.CompatibilityFrameResumeDispatchWaitRecoveryCondition,
+		RecoveryContractRevision: sessionRunnerRecoveryContractRevision,
 	}); err != nil {
 		t.Fatal(err)
 	}
