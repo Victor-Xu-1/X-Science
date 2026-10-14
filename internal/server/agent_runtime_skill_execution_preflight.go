@@ -571,7 +571,7 @@ func (g serverAgentRuntimeToolGateway) agentRuntimeSelectedImplementationEnviron
 	}
 	return map[string]any{
 		"ok": false, "status": "selected_implementation_environment_mismatch", "executed": false,
-		"message":                     "The requested managed environment belongs to a different scientific implementation than the user's latest answered choice.",
+		"message":                     "The requested managed environment belongs to a different scientific implementation than the current task's admitted selection.",
 		"environment":                 environment,
 		"environment_implementations": append([]string(nil), bound...),
 		"selected_implementations":    append([]string(nil), selected...),

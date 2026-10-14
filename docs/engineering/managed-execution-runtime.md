@@ -527,6 +527,17 @@ Foreground results, background notifications and history reconstruction use
 one result-binding consumer. The durable receipt carries the source/target
 environment relationship and implementation identity, not a second controller.
 
+Ready preflight recommendations and synchronous environment/package reuse use
+the same `environment_binding` v1 builder as new managed operations. Its input
+records the canonical implementation actually admitted by the server, while
+the original proposed arguments remain unchanged. A version-bearing display
+name cannot reappear as a competing identity during live binding or recovery.
+Opaque/version identity comparison and scientific selection protection remain
+strict. Older receipts are not rewritten or guessed from the current selection;
+a newly admitted preflight/reuse receipt can repair their task-local binding.
+Bounded refusal diagnostics preserve the requested environment and both exact
+implementation lists, or explicitly mark whole omitted fields when over budget.
+
 Environment binding recovery publishes readiness only after the complete read
 has succeeded. Concurrent consumers wait for the same attempt; failures remain
 retryable and are returned to the caller rather than cached as an empty success.

@@ -14,6 +14,7 @@ var agentRuntimePreflightDiagnosticFields = []string{
 	"required_entrypoint", "skill", "download", "downloads",
 	"next_tool", "execution_pack_id", "implementation", "selected_implementations",
 	"implementation_identities", "required_capabilities", "requested_environment",
+	"environment", "environment_implementations",
 	"required_packages", "required_imports", "decision_required",
 }
 

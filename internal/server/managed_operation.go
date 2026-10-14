@@ -141,7 +141,7 @@ func (request managedOperationRequest) binding(tool string) map[string]any {
 		input["environment"] = request.Packages.Environment
 		input["fork_to"] = request.Packages.ForkTo
 	}
-	return map[string]any{"version": 1, "tool": tool, "input": input}
+	return managedEnvironmentBindingReceipt(tool, input)
 }
 
 func (s *Server) executeManagedEnvironmentOperation(ctx context.Context, access workspace.KernelFrameAccess, call agentruntime.ToolCall, tool string, background bool, metadata map[string]any, request managedOperationRequest, authority managedEnvironmentAuthority) (any, error) {
